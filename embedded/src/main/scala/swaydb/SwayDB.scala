@@ -62,8 +62,10 @@ object SwayDB extends LazyLogging {
   }
 
   /**
-    * A pre-configured, 8 Leveled, persistent database where Level1 accumulates a minimum of 10 Segments before eagerly
+    * A pre-configured, 8 Leveled, persistent database where Level1 accumulates a minimum of 10 Segments before
     * pushing Segments to lower Level.
+    *
+    * For custom configurations read documentation on website: http://www.swaydb.io/#configuring-levels
     *
     * @param dir                         Root directory for all Level where appendix folder & files are created
     * @param otherDirs                   Secondary directories for all Levels where Segments get distributed.
@@ -131,6 +133,9 @@ object SwayDB extends LazyLogging {
         SwayDBMap[K, V](new SwayDB(core))
     }
 
+  /**
+    * For custom configurations read documentation on website: http://www.swaydb.io/#configuring-levels
+    */
   def persistentSet[T](dir: Path,
                        maxOpenSegments: Int = 1000,
                        cacheSize: Long = 100.mb,
@@ -172,7 +177,9 @@ object SwayDB extends LazyLogging {
     }
 
   /**
-    * An 2 Leveled (Level0 & Level1), in-memory database.
+    * A 2 Leveled (Level0 & Level1), in-memory database.
+    *
+    * For custom configurations read documentation on website: http://www.swaydb.io/#configuring-levels
     *
     * @param mapSize         size of Level0 maps before they are converted into Segments
     * @param segmentSize     size of Level1 Segments
@@ -209,6 +216,9 @@ object SwayDB extends LazyLogging {
         SwayDBMap[K, V](new SwayDB(core))
     }
 
+  /**
+    * For custom configurations read documentation on website: http://www.swaydb.io/#configuring-levels
+    */
   def memorySet[T](mapSize: Int = 4.mb,
                    segmentSize: Int = 2.mb,
                    bloomFilterFalsePositiveRate: Double = 0.01,
@@ -233,6 +243,8 @@ object SwayDB extends LazyLogging {
 
   /**
     * A 3 Leveled in-memory database where the 3rd is persistent.
+    *
+    * For custom configurations read documentation on website: http://www.swaydb.io/#configuring-levels
     *
     * @param dir                           Root directory for all Level where appendix folder & files are created
     * @param otherDirs                     Secondary directories for all Levels where Segments get distributed.
@@ -306,6 +318,9 @@ object SwayDB extends LazyLogging {
         SwayDBMap[K, V](new SwayDB(core))
     }
 
+  /**
+    * For custom configurations read documentation on website: http://www.swaydb.io/#configuring-levels
+    */
   def memoryPersistentSet[T](dir: Path,
                              maxOpenSegments: Int = 1000,
                              mapSize: Int = 4.mb,
@@ -373,8 +388,6 @@ object SwayDB extends LazyLogging {
     * @tparam V Type of value
     * @return Database instance
     */
-  //TODO - cacheSize, cacheCheckMaxDelay & segmentCloserMaxDelay are not required for in-memory only Levels.
-  //Need a type safe way to hide these configs for memory only databases.
   def apply[K, V](config: SwayDBPersistentConfig,
                   maxSegmentsOpen: Int,
                   cacheSize: Long,

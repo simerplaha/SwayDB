@@ -25,6 +25,14 @@ import swaydb.data.slice.Slice
 
 import scala.util.Try
 
+/**
+  * For internal use only.
+  *
+  * Untyped raw bytes API for the core module.
+  *
+  * If access to this untyped API is required then [[swaydb.serializers.Default.SliceSerializer]]
+  * should be used instead.
+  */
 private[swaydb] trait SwayDBAPI {
 
   def put(key: Slice[Byte]): Try[Level0Meter]

@@ -25,6 +25,11 @@ import java.nio.charset.StandardCharsets
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 
+/**
+  * Default serializers.
+  *
+  * Documentation for custom serializers: http://www.swaydb.io/#custom-serializers
+  */
 object Default {
 
   implicit object IntSerializer extends Serializer[Int] {

@@ -22,7 +22,7 @@ package swaydb.data.slice
 import scala.util.{Success, Try}
 
 /**
-  * FIXME - Need to remove eager .get calls.
+  * http://www.swaydb.io/#slice/byte-slice
   */
 private[swaydb] class SliceReader(slice: Slice[Byte]) extends Reader {
 

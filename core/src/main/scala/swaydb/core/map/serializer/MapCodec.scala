@@ -42,7 +42,6 @@ private[core] object MapCodec extends LazyLogging {
         mapEntry.map(_ ++ nextEntry) orElse Some(nextEntry)
     }
 
-  //TODO - need check that this entrySet iterator has the most current view as the old map file will be replaced.
   def write[K, V](map: java.util.Map[K, V])(implicit formatter: MapSerializer[K, V]): Slice[Byte] =
     toMapEntry(map).map(write[K, V]) getOrElse Slice.create[Byte](0)
 

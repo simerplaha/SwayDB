@@ -35,6 +35,11 @@ object SwayDBSet {
     new SwayDBSet(api)
 }
 
+/**
+  * Set database API.
+  *
+  * For documentation check - http://swaydb.io/#api
+  */
 class SwayDBSet[T](api: SwayDBAPI)(implicit serializer: Serializer[T]) extends KeysIterator[T](api, None) {
 
   def get(elem: T): Try[Option[T]] =

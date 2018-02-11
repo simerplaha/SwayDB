@@ -22,8 +22,14 @@ package swaydb.data.accelerate
 import scala.concurrent.duration._
 import swaydb.data.util.StorageUnits._
 
+/**
+  * Default Accelerator implementation.
+  */
 object Accelerator {
 
+  /**
+    * file:///Users/simer/IdeaProjects/SwayDB.io/docs/index.html#configuring-levels/acceleration
+    */
   private def nextMapSize(mapCount: Int,
                           increaseMapSizeBy: Int,
                           maxMapSize: Long,
@@ -33,6 +39,9 @@ object Accelerator {
     else
       (level0Meter.currentMapSize * increaseMapSizeBy) min maxMapSize
 
+  /**
+    * http://swaydb.io/#configuring-levels/acceleration/brake
+    */
   def brake(increaseMapSizeOnMapCount: Int = 4,
             increaseMapSizeBy: Int = 2,
             maxMapSize: Long = 24.mb,
@@ -54,6 +63,10 @@ object Accelerator {
           )
     )
 
+  /**
+    * http://swaydb.io/#configuring-levels/acceleration/noBrakes
+    */
+
   def noBrakes(onMapCount: Int = 6,
                increaseMapSizeBy: Int = 2,
                maxMapSize: Long = 24.mb)(level0Meter: Level0Meter): Accelerator =
@@ -73,5 +86,8 @@ object Accelerator {
     )
 }
 
+/**
+  * http://swaydb.io/#configuring-levels/acceleration
+  */
 case class Accelerator(nextMapSize: Long,
                        brake: Option[Brake])

@@ -27,6 +27,10 @@ import scala.collection.generic.CanBuildFrom
 import scala.util.{Failure, Success, Try}
 
 /**
+  * Implements APIs for key only databases iteration.
+  *
+  * Documentation on iteration API - http://www.swaydb.io/#api/iteration-api
+  *
   * This iterator and [[DBIterator]] share a lot of the same code. A higher type is required.
   */
 case class KeysIterator[K](private val api: SwayDBAPI,

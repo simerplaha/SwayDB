@@ -113,10 +113,6 @@ private[core] object Persistent {
   }
 
   /**
-    * TODO - Should updateStats mutate the stats ? A 2.mb Segment can easily contain 100,000's of key-value. During a merge
-    * process copying key-values can create 100,000 * 2 key-values which have to garbage collection and could
-    * lead to frequent stalls for reads, writes & compaction.
-    *
     * @param valueOffset This valueOffset is the position of the value in the Segment this key-value belongs to and is
     *                    not the same as stats.valueOffset. stats.valueOffset is the value's position in the
     *                    List/Slice of key-values it currently belongs to.

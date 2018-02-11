@@ -19,4 +19,4 @@
 
 package swaydb.api
 
-object Test
+class Test

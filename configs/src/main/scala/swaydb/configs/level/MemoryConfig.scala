@@ -30,7 +30,7 @@ import scala.concurrent.duration._
 object MemoryConfig {
 
   /**
-    * Builds configuration for in-memory database
+    * Default configuration for 2 leveled Memory database.
     */
   def apply(mapSize: Int,
             segmentSize: Int,
@@ -49,7 +49,7 @@ object MemoryConfig {
       )
 
   /**
-    * Builds configuration for in-memory-persistent database
+    * Default configuration for in-memory 3 leveled database that is persistent for the 3rd Level.
     */
   def apply(dir: Path,
             otherDirs: Seq[Dir],

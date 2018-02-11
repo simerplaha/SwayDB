@@ -19,13 +19,24 @@
 
 package swaydb
 
+import swaydb.types._
+
 sealed trait Batch[K, +V]
 
 object Batch {
 
+  /**
+    * Batch Put key & value for a [[SwayDBMap]]
+    */
   case class Put[K, V](key: K, value: V) extends Batch[K, V]
 
+  /**
+    * Batch Put key & value for a [[SwayDBSet]]
+    */
   case class Add[T](elem: T) extends Batch[T, Nothing]
 
+  /**
+    * Batch remove for [[SwayDBMap]] & [[SwayDBSet]]
+    */
   case class Remove[K](key: K) extends Batch[K, Nothing]
 }

@@ -27,6 +27,9 @@ import swaydb.data.storage.Level0Storage
 
 sealed trait PersistentConfig
 
+/**
+  * http://swaydb.io#configuring-levels
+  */
 object ConfigWizard {
   def addPersistentLevel0(mapSize: Long,
                           dir: Path,

@@ -34,7 +34,7 @@ View detailed benchmark results [here](http://swaydb.io/#performance/macbook-pro
 
 ## Examples
 - [Creating Tables](http://swaydb.io/#examples/creating-tables)
-- [Event-sourcing](http://swaydb.io/#examples/eventsourcing)
+- [Event-sourcing](http://swaydb.io/#examples/event-sourcing)
 - [Storing data in chunks](http://swaydb.io/#examples/storing-data-in-chunks)
 
 ## Related GitHub projects

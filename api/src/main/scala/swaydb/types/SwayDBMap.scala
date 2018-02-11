@@ -38,12 +38,25 @@ object SwayDBMap {
   }
 }
 
+/**
+  * Key-value or Map database API.
+  *
+  * For documentation check - http://swaydb.io/#api
+  */
 class SwayDBMap[K, V](api: SwayDBAPI)(implicit keySerializer: Serializer[K],
                                       valueSerializer: Serializer[V]) extends DBIterator[K, V](api, None) {
 
+  /**
+    * Returns target value for the input key.
+    */
   def get(key: K): Try[Option[V]] =
     api.get(key).map(_.map(_.read[V]))
 
+  /**
+    * Returns target full key for the input partial key.
+    *
+    * This function is mostly used for Set databases where partial ordering on the Key is provided.
+    */
   def getKey(key: K): Try[Option[K]] =
     api.getKey(key).map(_.map(_.read[K]))
 

@@ -28,6 +28,10 @@ import swaydb.data.util.{ByteSizeOf, ByteUtil}
 import scala.annotation.tailrec
 import scala.reflect.ClassTag
 
+/**
+  *
+  * Documentation - http://swaydb.io/#slice
+  */
 object Slice {
 
   def fill[T: ClassTag](length: Int)(elem: => T): Slice[T] =
@@ -78,6 +82,9 @@ object Slice {
     }
   }
 
+  /**
+    * http://www.swaydb.io/#slice/byte-slice
+    */
   implicit class ByteSliceImplicits(slice: Slice[Byte]) {
 
     def addByte(value: Byte): Slice[Byte] = {
