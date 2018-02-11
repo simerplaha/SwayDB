@@ -1,0 +1,245 @@
+/*
+ * Copyright (C) 2018 Simer Plaha (@simerplaha)
+ *
+ * This file is a part of SwayDB.
+ *
+ * SwayDB is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * SwayDB is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+package swaydb.iterator
+
+import swaydb.api.SwayDBAPI
+import swaydb.data.slice.Slice
+import swaydb.serializers._
+import scala.collection.generic.CanBuildFrom
+import scala.util.{Failure, Success, Try}
+
+/**
+  * This iterator and [[KeysIterator]] share a lot of the same code. A higher type is required.
+  */
+case class DBIterator[K, V](private val api: SwayDBAPI,
+                            private val from: Option[From[K]],
+                            private val reverse: Boolean = false,
+                            private val until: (K, V) => Boolean = (_: K, _: V) => true)(implicit keySerializer: Serializer[K],
+                                                                                         valueSerializer: Serializer[V]) extends Iterable[(K, V)] {
+
+  def from(key: K): DBIterator[K, V] =
+    copy(from = Some(From(key = key, orBefore = false, orAfter = false, before = false, after = false)))
+
+  def before(key: K) =
+    copy(from = Some(From(key = key, orBefore = false, orAfter = false, before = true, after = false)))
+
+  def fromOrBefore(key: K) =
+    copy(from = Some(From(key = key, orBefore = true, orAfter = false, before = false, after = false)))
+
+  def after(key: K) =
+    copy(from = Some(From(key = key, orBefore = false, orAfter = false, before = false, after = true)))
+
+  def fromOrAfter(key: K) =
+    copy(from = Some(From(key = key, orBefore = false, orAfter = true, before = false, after = false)))
+
+  def until(condition: (K, V) => Boolean) =
+    copy(until = condition)
+
+  def untilKey(condition: K => Boolean) =
+    copy(
+      until =
+        (key: K, _: V) =>
+          condition(key)
+    )
+
+  def untilValue(condition: V => Boolean) =
+    copy(
+      until =
+        (_: K, value: V) =>
+          condition(value)
+    )
+
+  override def iterator = new Iterator[(K, V)] {
+
+    private var started: Boolean = false
+    private var nextKeyValueBytes: (Slice[Byte], Option[Slice[Byte]]) = _
+    private var nextKeyValueTyped: (K, V) = _
+
+    private def start: Try[Option[(Slice[Byte], Option[Slice[Byte]])]] =
+      from match {
+        case Some(from) =>
+          val fromKeyBytes: Slice[Byte] = from.key
+          if (from.before)
+            api.before(fromKeyBytes)
+          else if (from.after)
+            api.after(fromKeyBytes)
+          else
+            api.getKeyValue(fromKeyBytes)
+              .flatMap {
+                case Some((key, valueOption)) =>
+                  Success(Some(key, valueOption))
+                case _ =>
+                  if (from.orAfter)
+                    api.after(fromKeyBytes)
+                  else if (from.orBefore)
+                    api.before(fromKeyBytes)
+                  else
+                    Success(None)
+              }
+
+        case None =>
+          if (reverse)
+            api.last
+          else
+            api.head
+      }
+
+    override def hasNext: Boolean =
+      if (started) {
+        if (nextKeyValueBytes == null)
+          false
+        else {
+          val next =
+            if (reverse)
+              api.before(nextKeyValueBytes._1)
+            else
+              api.after(nextKeyValueBytes._1)
+
+          next match {
+            case Success(value) =>
+              value match {
+                case Some(keyValue @ (key, value)) =>
+                  val keyT = key.read[K]
+                  val valueT = value.read[V]
+                  if (until(keyT, valueT)) {
+                    nextKeyValueBytes = keyValue
+                    nextKeyValueTyped = (keyT, valueT)
+                    true
+                  } else
+                    false
+
+                case _ =>
+                  false
+              }
+            case Failure(exception) =>
+              System.err.println("Failed to iterate", exception)
+              throw exception
+          }
+        }
+      } else
+        start match {
+          case Success(value) =>
+            started = true
+            value match {
+              case Some(keyValue @ (key, value)) =>
+                val keyT = key.read[K]
+                val valueT = value.read[V]
+                if (until(keyT, valueT)) {
+                  nextKeyValueBytes = keyValue
+                  nextKeyValueTyped = (keyT, valueT)
+                  true
+                } else
+                  false
+
+              case _ =>
+                false
+            }
+          case Failure(exception) =>
+            System.err.println("Failed to start Key iterator", exception)
+            throw exception
+        }
+
+    override def next(): (K, V) =
+      nextKeyValueTyped
+
+    override def toString(): String =
+      classOf[DBIterator[_, _]].getClass.getSimpleName
+  }
+
+  override def size: Int =
+    api.keyValueCount.get
+
+  override def isEmpty: Boolean =
+    api.headKey.get.isEmpty
+
+  override def nonEmpty: Boolean =
+    !isEmpty
+
+  override def head: (K, V) =
+    headOption.get
+
+  override def last: (K, V) =
+    lastOption.get
+
+  override def headOption: Option[(K, V)] =
+    if (from.isDefined)
+      this.take(1).headOption
+    else
+      api.head map {
+        case Some((key, value)) =>
+          Some(key.read[K], value.read[V])
+        case _ =>
+          None
+      } get
+
+  override def lastOption: Option[(K, V)] =
+    api.last map {
+      case Some((key, value)) =>
+        Some(key.read[K], value.read[V])
+      case _ =>
+        None
+    } get
+
+  def foreachRight[U](f: (K, V) => U): Unit =
+    copy(reverse = true).foreach {
+      case (k: K, v: V) =>
+        f(k, v)
+    }
+
+  def mapRight[B, T](f: (K, V) => B)(implicit bf: CanBuildFrom[Iterable[(K, V)], B, T]): T = {
+    copy(reverse = true) map {
+      case (k: K, v: V) =>
+        f(k, v)
+    }
+  }
+
+  override def foldRight[B](z: B)(op: ((K, V), B) => B): B =
+    copy(reverse = true).foldLeft(z) {
+      case (b: B, (k: K, v: V)) =>
+        op((k, v), b)
+    }
+
+  override def takeRight(n: Int): Iterable[(K, V)] =
+    copy(reverse = true).take(n)
+
+  override def dropRight(n: Int): Iterable[(K, V)] =
+    copy(reverse = true).drop(n)
+
+  override def reduceRight[B >: (K, V)](op: ((K, V), B) => B): B =
+    copy(reverse = true).reduceLeft[B] {
+      case (b: B, (k: K, v: V)) =>
+        op((k, v), b)
+    }
+
+  override def reduceRightOption[B >: (K, V)](op: ((K, V), B) => B): Option[B] =
+    copy(reverse = true).reduceLeftOption[B] {
+      case (b: B, (k: K, v: V)) =>
+        op((k, v), b)
+    }
+
+  override def scanRight[B, That](z: B)(op: ((K, V), B) => B)(implicit bf: CanBuildFrom[Iterable[(K, V)], B, That]): That =
+    copy(reverse = true).scanLeft(z) {
+      case (z: B, (k: K, v: V)) =>
+        op((k, v), z)
+    }
+
+  override def toString(): String =
+    classOf[DBIterator[_, _]].getClass.getSimpleName
+}
