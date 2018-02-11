@@ -15,8 +15,8 @@ View detailed benchmark results [here](http://swaydb.io/#performance/macbook-pro
 
 ## Features
 
-- Type-safe, non-blocking
-- Multiple disks
+- Embeddable, Type-safe, non-blocking
+- Multiple disks, In-memory & periodically persistent
 - Lazily fetched values
 - Configurable Levels
 - Configurable cache size
