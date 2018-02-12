@@ -7,7 +7,7 @@ val scala212 = "2.12.4"
 
 lazy val commonSettings = Seq(
   organization := "io.swaydb",
-  version := "0.1-SNAPSHOT",
+  version := "0.1",
   scalaVersion := scala212
 )
 
