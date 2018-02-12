@@ -1,4 +1,7 @@
-# <img src="docs/logo.png" align = "right"/> SwayDB
+# <img src="docs/logo.png" align = "right"/> SwayDB [![Gitter Chat][gitter-badge]][gitter-link]
+
+[gitter-badge]: https://badges.gitter.im/Join%20Chat.svg
+[gitter-link]: https://gitter.im/SwayDB-chat/Lobby
 
 Embeddable, non-blocking, type-safe key-value store for single or multiple disks and in-memory storage.
 
