@@ -48,8 +48,6 @@ class SegmentWriterReaderSpec extends TestBase {
       def test(keyValues: Slice[KeyValue]) = {
         val bytes = SegmentWriter.toSlice(keyValues, 0.1).assertGet
         bytes.isFull shouldBe true
-
-//        assertBloom(keyValues, bloom)
         //in memory
         assertReads(keyValues, Reader(bytes))
         //on disk
@@ -154,7 +152,7 @@ class SegmentWriterReaderSpec extends TestBase {
       footer.keyValueCount shouldBe keyValues.size
       footer.keyValueCount shouldBe keyValues.size
       footer.startIndexOffset shouldBe keyValues.last.stats.toValueOffset + 1
-//      footer.endIndexOffset shouldBe (bytes.size - Segment.footerSize - 1)
+      //      footer.endIndexOffset shouldBe (bytes.size - Segment.footerSize - 1)
     }
 
     "report Segment corruption is CRC check does not match when reading the footer" in {
