@@ -56,8 +56,10 @@ private[core] case class Distribution(path: Path,
 private[core] object PathsDistributor {
 
   implicit val order: Ordering[Distribution] =
-    (x: Distribution, y: Distribution) =>
-      y.missing compareTo x.missing
+    new Ordering[Distribution] {
+      override def compare(x: Distribution, y: Distribution): Int =
+        y.missing compareTo x.missing
+    }
 
   def apply(dirs: Seq[Dir],
             segments: () => Iterable[Segment]): PathsDistributor = {
@@ -129,7 +131,7 @@ private[core] object PathsDistributor {
 
 private[core] class PathsDistributor(dirs: Seq[Dir],
                                      //this should be the size of
-                                     segments: () => Iterable[Segment]) extends LazyLogging{
+                                     segments: () => Iterable[Segment]) extends LazyLogging {
 
   import PathsDistributor._
 
@@ -154,7 +156,7 @@ private[core] class PathsDistributor(dirs: Seq[Dir],
     val distributionResult = distribute(totalSize, distributions)
     val paths: Seq[Path] = distributionResult.flatMap(dist => Array.fill(dist.missing)(dist.path))
     if (paths.nonEmpty) {
-//      logger.trace(s"{} Un-even distribution. Prioritizing paths {}", head.path, paths.mkString(", "))
+      //      logger.trace(s"{} Un-even distribution. Prioritizing paths {}", head.path, paths.mkString(", "))
       paths.asJava
     }
     else //if there are no un-even distributions go back to default distribution ratio.
