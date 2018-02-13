@@ -19,30 +19,30 @@
 
 package swaydb.core.level
 
-import java.nio.file.{Files, NoSuchFileException}
+import java.nio.file.NoSuchFileException
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.PrivateMethodTester
-import swaydb.core.TestBase
+import swaydb.core.{TestBase, TestQueues}
 import swaydb.core.actor.TestActor
 import swaydb.core.data.Transient.Delete
 import swaydb.core.data._
 import swaydb.core.io.file.{DBFile, IO}
 import swaydb.core.level.actor.LevelAPI
-import swaydb.core.level.actor.LevelCommand.{PullRequest, PushMap, PushSegments, PushSegmentsResponse}
-import swaydb.core.map.{Map, MapEntry}
+import swaydb.core.level.actor.LevelCommand.{PushSegments, PushSegmentsResponse}
 import swaydb.core.map.serializer.{KeyValuesMapSerializer, SegmentsMapSerializer}
+import swaydb.core.map.{Map, MapEntry}
 import swaydb.core.segment.Segment
 import swaydb.core.util.Extension
 import swaydb.core.util.FileUtil._
+import swaydb.core.util.PipeOps._
 import swaydb.data.compaction.Throttle
+import swaydb.data.config.Dir
 import swaydb.data.slice.Slice
+import swaydb.data.storage.LevelStorage
 import swaydb.data.util.StorageUnits._
 import swaydb.order.KeyOrder
 import swaydb.serializers.Default._
-import swaydb.core.util.PipeOps._
-import swaydb.data.config.{Dir, RecoveryMode}
-import swaydb.data.storage.LevelStorage
 import swaydb.serializers._
 
 import scala.collection.mutable.ListBuffer
@@ -79,8 +79,8 @@ class LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
   //  override def deleteFiles: Boolean =
   //    false
 
-  implicit val maxSegmentsOpenCacheImplicitLimiter: DBFile => Unit = fileOpenLimiter
-  implicit val keyValuesLimitImplicitLimiter: (PersistentReadOnly, Segment) => Unit = keyValueLimiter
+  implicit val maxSegmentsOpenCacheImplicitLimiter: DBFile => Unit = TestQueues.fileOpenLimiter
+  implicit val keyValuesLimitImplicitLimiter: (PersistentReadOnly, Segment) => Unit = TestQueues.keyValueLimiter
 
   "Level" should {
     "initialise" in {
@@ -307,57 +307,59 @@ class LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
     }
 
     "distribute Segments to multiple directories based on the distribution ratio" in {
-      val dir = testDir.resolve("distributeSegmentsTest")
+      if (persistent) {
+        val dir = testDir.resolve("distributeSegmentsTest")
 
-      def assertDistribution = {
-        dir.resolve(1.toString).files(Extension.Seg) should have size 7
-        dir.resolve(2.toString).files(Extension.Seg) should have size 14
-        dir.resolve(3.toString).files(Extension.Seg) should have size 21
-        dir.resolve(4.toString).files(Extension.Seg) should have size 28
-        dir.resolve(5.toString).files(Extension.Seg) should have size 30
+        def assertDistribution = {
+          dir.resolve(1.toString).files(Extension.Seg) should have size 7
+          dir.resolve(2.toString).files(Extension.Seg) should have size 14
+          dir.resolve(3.toString).files(Extension.Seg) should have size 21
+          dir.resolve(4.toString).files(Extension.Seg) should have size 28
+          dir.resolve(5.toString).files(Extension.Seg) should have size 30
+        }
+
+        val storage =
+          LevelStorage.Persistent(
+            mmapSegmentsOnWrite = mmapSegmentsOnWrite,
+            mmapSegmentsOnRead = mmapSegmentsOnRead,
+            dir = dir.resolve(1.toString),
+            otherDirs =
+              Seq(
+                Dir(dir.resolve(2.toString), 2),
+                Dir(dir.resolve(3.toString), 3),
+                Dir(dir.resolve(4.toString), 4),
+                Dir(dir.resolve(5.toString), 5)
+              )
+          )
+        val keyValues = randomIntKeyStringValues(keyValuesCount, valueSize = 1000)
+
+        val level = TestLevel(throttle = (_) => Throttle(Duration.Zero, 0), segmentSize = 1.byte, levelStorage = storage)
+
+        level.putKeyValues(keyValues).assertGet
+        level.segmentsCount() shouldBe 100
+        assertDistribution
+
+        //write the same key-values again so that all Segments are updated. This should still maintain the Segment distribution
+        level.putKeyValues(keyValues).assertGet
+        assertDistribution
+
+        //shuffle key-values should still maintain distribution order
+        Random.shuffle(keyValues.grouped(10).map(_.updateStats)).foreach {
+          keyValues =>
+            level.putKeyValues(keyValues).assertGet
+        }
+        assertDistribution
+
+        //delete some key-values
+        Random.shuffle(keyValues.grouped(10).map(_.updateStats)).take(2).foreach {
+          keyValues =>
+            val deleteKeyValues = Slice(keyValues.map(keyValue => Delete(keyValue.key)).toArray).updateStats
+            level.putKeyValues(deleteKeyValues).assertGet
+        }
+
+        level.putKeyValues(keyValues).assertGet
+        assertDistribution
       }
-
-      val storage =
-        LevelStorage.Persistent(
-          mmapSegmentsOnWrite = mmapSegmentsOnWrite,
-          mmapSegmentsOnRead = mmapSegmentsOnRead,
-          dir = dir.resolve(1.toString),
-          otherDirs =
-            Seq(
-              Dir(dir.resolve(2.toString), 2),
-              Dir(dir.resolve(3.toString), 3),
-              Dir(dir.resolve(4.toString), 4),
-              Dir(dir.resolve(5.toString), 5)
-            )
-        )
-      val keyValues = randomIntKeyStringValues(keyValuesCount, valueSize = 1000)
-
-      val level = TestLevel(throttle = (_) => Throttle(Duration.Zero, 0), segmentSize = 1.byte, levelStorage = storage)
-
-      level.putKeyValues(keyValues).assertGet
-      level.segmentsCount() shouldBe 100
-      assertDistribution
-
-      //write the same key-values again so that all Segments are updated. This should still maintain the Segment distribution
-      level.putKeyValues(keyValues).assertGet
-      assertDistribution
-
-      //shuffle key-values should still maintain distribution order
-      Random.shuffle(keyValues.grouped(10).map(_.updateStats)).foreach {
-        keyValues =>
-          level.putKeyValues(keyValues).assertGet
-      }
-      assertDistribution
-
-      //delete some key-values
-      Random.shuffle(keyValues.grouped(10).map(_.updateStats)).take(2).foreach {
-        keyValues =>
-          val deleteKeyValues = Slice(keyValues.map(keyValue => Delete(keyValue.key)).toArray).updateStats
-          level.putKeyValues(deleteKeyValues).assertGet
-      }
-
-      level.putKeyValues(keyValues).assertGet
-      assertDistribution
     }
 
     "fail when writing a deleted segment" in {

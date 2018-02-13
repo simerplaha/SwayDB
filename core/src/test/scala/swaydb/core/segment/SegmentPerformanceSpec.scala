@@ -19,7 +19,7 @@
 
 package swaydb.core.segment
 
-import swaydb.core.TestBase
+import swaydb.core.{TestBase, TestQueues}
 import swaydb.core.data.{KeyValueReadOnly, PersistentReadOnly}
 import swaydb.core.io.file.DBFile
 import swaydb.core.util.Benchmark
@@ -55,8 +55,8 @@ class SegmentPerformanceSpec extends TestBase with Benchmark {
   val keyValuesCount = 100
 
 
-  implicit val maxSegmentsOpenCacheImplicitLimiter: DBFile => Unit = fileOpenLimiter
-  implicit val keyValuesLimitImplicitLimiter: (PersistentReadOnly, Segment) => Unit = keyValueLimiter
+  implicit val maxSegmentsOpenCacheImplicitLimiter: DBFile => Unit = TestQueues.fileOpenLimiter
+  implicit val keyValuesLimitImplicitLimiter: (PersistentReadOnly, Segment) => Unit = TestQueues.keyValueLimiter
 
   val keyValues = randomIntKeyValues(keyValuesCount)
 

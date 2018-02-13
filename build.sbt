@@ -5,6 +5,8 @@ import xerial.sbt.Sonatype._
 val scala211 = "2.11.12"
 val scala212 = "2.12.4"
 
+parallelExecution in ThisBuild := false
+
 lazy val commonSettings = Seq(
   organization := "io.swaydb",
   version := "0.1",

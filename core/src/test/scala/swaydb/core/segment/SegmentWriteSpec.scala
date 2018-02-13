@@ -28,7 +28,7 @@ import swaydb.core.level.PathsDistributor
 import swaydb.core.segment.SegmentException.CannotCopyInMemoryFiles
 import swaydb.core.util.FileUtil._
 import swaydb.core.util._
-import swaydb.core.{LimitQueues, TestBase}
+import swaydb.core.{LimitQueues, TestBase, TestQueues}
 import swaydb.data.config.Dir
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
@@ -68,8 +68,8 @@ class SegmentWriteSpec extends TestBase with Benchmark {
 
   //  override def deleteFiles = false
 
-  implicit val fileOpenLimiterImplicit: DBFile => Unit = fileOpenLimiter
-  implicit val keyValueLimiterImplicit: (PersistentReadOnly, Segment) => Unit = keyValueLimiter
+  implicit val fileOpenLimiterImplicit: DBFile => Unit = TestQueues.fileOpenLimiter
+  implicit val keyValueLimiterImplicit: (PersistentReadOnly, Segment) => Unit = TestQueues.keyValueLimiter
 
   "Segment" should {
 

@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import org.scalatest.concurrent.Eventually
 import org.scalatest.{BeforeAndAfterAll, WordSpec}
+import swaydb.core.TestQueues._
 import swaydb.core.actor.TestActor
 import swaydb.core.data.{KeyValue, PersistentReadOnly}
 import swaydb.core.io.file.{DBFile, IO}
@@ -33,7 +34,6 @@ import swaydb.core.io.reader.FileReader
 import swaydb.core.level.actor.LevelCommand.{PushSegments, PushSegmentsResponse}
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, LevelRef}
-import swaydb.core.map.Map
 import swaydb.core.segment.Segment
 import swaydb.core.util.IDGenerator
 import swaydb.data.accelerate.{Accelerator, Level0Meter}
@@ -60,9 +60,9 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
   val testMemoryFileDirectory = Paths.get(getClass.getClassLoader.getResource("").getPath).getParent.getParent.resolve("TEST_MEMORY_FILES")
 
   //default setting, these can be overridden to apply different settings for test cases.
-  def maxSegmentsOpen = 1000
 
-  def keyValuesCacheLimit: Int = 100.mb
+  val levelReadRetryLimit = 100
+  val levelZeroReadRetryLimit = 1000
 
   def segmentSize: Long = 2.mb
 
@@ -111,11 +111,6 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
       AppendixStorage.Memory
     else
       AppendixStorage.Persistent(mmap = appendixStorageMMAP, 4.mb)
-
-  lazy val keyValueLimiter = LimitQueues.keyValueLimiter(keyValuesCacheLimit, 10.seconds)
-  lazy val fileOpenLimiter = LimitQueues.segmentOpenLimiter(maxSegmentsOpen, 10.seconds)
-  val levelReadRetryLimit = 100
-  val levelZeroReadRetryLimit = 1000
 
   def persistent = levelStorage.persistent
 
@@ -182,28 +177,14 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
           FileVisitResult.CONTINUE
         }
       })
-//
-//  sys.addShutdownHook {
-//    walkDeleteFolder(testDir)
-//  }
+
+  //
+  //  sys.addShutdownHook {
+  //    walkDeleteFolder(testDir)
+  //  }
 
   override protected def afterAll(): Unit = {
     walkDeleteFolder(testDir)
-  }
-
-  def randomKeyValue(keySize: Int = 16, valueSize: Int = 100): KeyValue =
-    genKeyValues(1, keySize, valueSize).head
-
-  private def genKeyValues(count: Int, keySize: Int, valueSize: Int): Slice[KeyValue] = {
-    val keyValues = Slice.create[KeyValue](count)
-    Range.inclusive(1, count).foreach {
-      _ =>
-        val key = Slice[Byte](randomBytes(keySize))
-        val value = Slice[Byte](randomBytes(valueSize))
-        //        keyValues add KeyValue(key, value, keyValues.lastOption)
-        ???
-    }
-    keyValues
   }
 
   implicit class RunThisImplicits[T, R](f: => R) {

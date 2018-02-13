@@ -21,7 +21,7 @@ package swaydb.core.map
 
 import java.util.concurrent.ConcurrentSkipListMap
 
-import swaydb.core.TestBase
+import swaydb.core.{TestBase, TestQueues}
 import swaydb.core.data.{KeyValueReadOnly, PersistentReadOnly}
 import swaydb.core.io.file.DBFile
 import swaydb.core.io.reader.Reader
@@ -35,8 +35,8 @@ import swaydb.serializers._
 class MapEntrySpec extends TestBase {
 
   implicit val ordering = KeyOrder.default
-  implicit val maxSegmentsOpenCacheImplicitLimiter: DBFile => Unit = fileOpenLimiter
-  implicit val keyValuesLimitImplicitLimiter: (PersistentReadOnly, Segment) => Unit = keyValueLimiter
+  implicit val maxSegmentsOpenCacheImplicitLimiter: DBFile => Unit = TestQueues.fileOpenLimiter
+  implicit val keyValuesLimitImplicitLimiter: (PersistentReadOnly, Segment) => Unit = TestQueues.keyValueLimiter
 
   implicit val mapFormatter = SegmentsMapSerializer(removeDeletedRecords = false, mmapSegmentsOnRead = true, mmapSegmentsOnWrite = false, cacheKeysOnCreate = false)
 

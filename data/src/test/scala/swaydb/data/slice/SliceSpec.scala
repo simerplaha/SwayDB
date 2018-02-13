@@ -19,15 +19,12 @@
 
 package swaydb.data.slice
 
-import java.util.concurrent.atomic.AtomicIntegerArray
-
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.data.TryAssert
 import swaydb.data.util.ByteSizeOf
 
 import scala.util.Random
 
-class SliceSpec extends WordSpec with Matchers with TryAssert {
+class SliceSpec extends WordSpec with Matchers {
 
   def randomByte() = (Random.nextInt(256) - 128).toByte
 

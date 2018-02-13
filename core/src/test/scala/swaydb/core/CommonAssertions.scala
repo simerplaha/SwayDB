@@ -26,13 +26,12 @@ import org.scalatest.{Assertion, Assertions}
 import swaydb.core.data._
 import swaydb.core.level.zero.{LevelZero, LevelZeroRef}
 import swaydb.core.level.{Level, LevelRef}
+import swaydb.core.map.MapEntry
 import swaydb.core.map.MapEntry.{Add, Remove}
 import swaydb.core.map.serializer.MapSerializer
-import swaydb.core.map.{Map, MapEntry}
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.one.MatchResult.{Matched, Next, Stop}
 import swaydb.core.segment.format.one.{KeyMatcher, MatchResult, SegmentReader}
-import swaydb.data.TryAssert
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.order.KeyOrder
 
