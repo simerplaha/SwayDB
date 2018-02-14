@@ -17,16 +17,8 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core
+package swaydb.data.repairAppendix
 
-import scala.concurrent.duration._
-import swaydb.data.util.StorageUnits._
+private[swaydb] case class OverlappingSegmentsException(segmentInfo: SegmentInfoUnTyped,
+                                                        overlappingSegmentInfo: SegmentInfoUnTyped) extends Throwable
 
-object TestQueues {
-
-  implicit val level0PushDownPool = TestExecutionContext.executionContext
-
-  val keyValueLimiter = LimitQueues.keyValueLimiter(10.mb, 5.seconds)
-  val fileOpenLimiter = LimitQueues.segmentOpenLimiter(100, 5.seconds)
-
-}

@@ -29,7 +29,7 @@ import swaydb.core.io.file.IO
 import swaydb.core.level.LevelRef
 import swaydb.core.level.actor.LevelCommand.WakeUp
 import swaydb.core.level.actor.LevelZeroAPI
-import swaydb.core.map.serializer.KeyValuesMapSerializer
+import swaydb.core.map.serializer.Level0KeyValuesSerializer
 import swaydb.core.map.{MapEntry, Maps}
 import swaydb.core.retry.Retry
 import swaydb.core.util.MinMax
@@ -51,7 +51,7 @@ private[core] object LevelZero extends LazyLogging {
             acceleration: Level0Meter => Accelerator,
             readRetryLimit: Int)(implicit ordering: Ordering[Slice[Byte]],
                                  ec: ExecutionContext): Try[LevelZero] = {
-    implicit val serializer: KeyValuesMapSerializer = KeyValuesMapSerializer(ordering)
+    implicit val serializer: Level0KeyValuesSerializer = Level0KeyValuesSerializer(ordering)
     val mapsAndPathAndLock =
       storage match {
         case Persistent(mmap, databaseDirectory, recovery) =>
@@ -85,7 +85,7 @@ private[core] class LevelZero(val path: Path,
                               val maps: Maps[Slice[Byte], (ValueType, Option[Slice[Byte]])],
                               val nextLevel: LevelRef,
                               lock: Option[FileLock])(implicit ordering: Ordering[Slice[Byte]],
-                                                      val serializer: KeyValuesMapSerializer,
+                                                      val serializer: Level0KeyValuesSerializer,
                                                       ec: ExecutionContext) extends LevelZeroRef with LazyLogging {
 
   logger.info("{}: Level0 started.", path)

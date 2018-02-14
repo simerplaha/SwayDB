@@ -19,7 +19,7 @@
 
 package swaydb.core.level
 
-import java.nio.file.Path
+import java.nio.file.{Path, Paths}
 
 import swaydb.core.data.ValueType
 import swaydb.core.level.actor.LevelAPI
@@ -35,6 +35,10 @@ import scala.util.{Success, Try}
 private[core] object TrashLevel extends LevelRef {
 
   override val paths: PathsDistributor = PathsDistributor(Seq(), () => Seq())
+
+  override def appendixPath: Path = Paths.get("Trash level has no path")
+
+  def rootPath: Path = Paths.get("Trash level has no path")
 
   override val throttle: LevelMeter => Throttle =
     (_) => Throttle(Duration.Zero, 0)

@@ -23,7 +23,7 @@ import java.nio.file.Files
 
 import swaydb.core.TestBase
 import swaydb.core.data.ValueType
-import swaydb.core.map.serializer.KeyValuesMapSerializer
+import swaydb.core.map.serializer.Level0KeyValuesSerializer
 import swaydb.core.util.Extension
 import swaydb.core.util.FileUtil._
 import swaydb.data.accelerate.Accelerator
@@ -39,7 +39,7 @@ import scala.collection.JavaConverters._
 class MapsSpec extends TestBase {
 
   implicit val ordering = KeyOrder.default
-  implicit val serializer = KeyValuesMapSerializer(ordering)
+  implicit val serializer = Level0KeyValuesSerializer(ordering)
 
   //  override def deleteFiles = false
 

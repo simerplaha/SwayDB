@@ -28,7 +28,7 @@ import swaydb.data.util.StorageUnits._
 object Accelerator {
 
   /**
-    * file:///Users/simer/IdeaProjects/SwayDB.io/docs/index.html#configuring-levels/acceleration
+    * http://swaydb.io/#configuring-levels/acceleration
     */
   private def nextMapSize(mapCount: Int,
                           increaseMapSizeBy: Int,

@@ -25,7 +25,7 @@ import java.util.concurrent.ConcurrentSkipListMap
 import swaydb.core.TestBase
 import swaydb.core.data.ValueType
 import swaydb.core.io.file.{DBFile, IO}
-import swaydb.core.map.serializer.{KeyValuesMapSerializer, MapCodec}
+import swaydb.core.map.serializer.{Level0KeyValuesSerializer, MapCodec}
 import swaydb.core.util.Extension
 import swaydb.core.util.FileUtil._
 import swaydb.data.config.RecoveryMode
@@ -40,7 +40,7 @@ import scala.util.Random
 class MapSpec extends TestBase {
 
   implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
-  implicit val serializer = KeyValuesMapSerializer(ordering)
+  implicit val serializer = Level0KeyValuesSerializer(ordering)
 
   def test(map: Map[Slice[Byte], (ValueType, Option[Slice[Byte]])]) = {
     map.add(1, (ValueType.Add, Some(1))).assertGet shouldBe true

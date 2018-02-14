@@ -26,7 +26,7 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import org.scalatest.concurrent.Eventually
 import org.scalatest.{BeforeAndAfterAll, WordSpec}
-import swaydb.core.TestQueues._
+import swaydb.core.TestLimitQueues._
 import swaydb.core.actor.TestActor
 import swaydb.core.data.{KeyValue, PersistentReadOnly}
 import swaydb.core.io.file.{DBFile, IO}

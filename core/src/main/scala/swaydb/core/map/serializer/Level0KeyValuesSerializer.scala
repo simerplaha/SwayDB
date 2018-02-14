@@ -27,14 +27,14 @@ import swaydb.data.util.ByteSizeOf
 
 import scala.util.Try
 
-private[core] object KeyValuesMapSerializer {
+private[core] object Level0KeyValuesSerializer {
 
   def apply(implicit ordering: Ordering[Slice[Byte]]) =
-    new KeyValuesMapSerializer()
+    new Level0KeyValuesSerializer()
 
 }
 
-private[core] class KeyValuesMapSerializer(implicit ordering: Ordering[Slice[Byte]]) extends MapSerializer[Slice[Byte], (ValueType, Option[Slice[Byte]])] {
+private[core] class Level0KeyValuesSerializer(implicit ordering: Ordering[Slice[Byte]]) extends MapSerializer[Slice[Byte], (ValueType, Option[Slice[Byte]])] {
 
   implicit val readerWriter = this
 

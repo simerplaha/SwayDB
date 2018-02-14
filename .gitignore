@@ -21,3 +21,6 @@ project/plugins/project/
 .idea
 *.iml
 docs/SwayDB_doco/
+# these files are copy of the SwayDB.stress & SwayDB.performance modules used for quick tests only.
+/embedded/src/test/scala/swaydb/StressSpec.scala
+/embedded/src/test/scala/swaydb/SpeedSpec.scala

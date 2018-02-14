@@ -27,11 +27,14 @@ import swaydb.configs.level.{MemoryConfig, PersistentConfig}
 import swaydb.core.CoreAPI
 import swaydb.core.data.ValueType
 import swaydb.core.map.MapEntry
+import swaydb.core.tool.AppendixRepairer
 import swaydb.data.accelerate.{Accelerator, Level0Meter}
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.config._
+import swaydb.data.repairAppendix.RepairResult.OverlappingSegments
 import swaydb.data.request
 import swaydb.data.slice.Slice
+import swaydb.data.repairAppendix._
 import swaydb.order.KeyOrder
 import swaydb.serializers.Serializer
 import swaydb.types.{SwayDBMap, SwayDBSet}
@@ -39,7 +42,7 @@ import swaydb.types.{SwayDBMap, SwayDBSet}
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{FiniteDuration, _}
 import scala.concurrent.forkjoin.ForkJoinPool
-import scala.util.{Failure, Try}
+import scala.util.{Failure, Success, Try}
 
 /**
   * Instance used for creating/initialising databases.
@@ -430,6 +433,42 @@ object SwayDB extends LazyLogging {
         SwayDBSet[T](new SwayDB(core))
     }
 
+  /**
+    * Documentation: http://www.swaydb.io/#api/repairAppendix
+    */
+  def repairAppendix[K](levelPath: Path,
+                        repairStrategy: AppendixRepairStrategy)(implicit serializer: Serializer[K],
+                                                                ordering: Ordering[Slice[Byte]] = KeyOrder.default,
+                                                                ec: ExecutionContext = defaultExecutionContext): Try[RepairResult[K]] =
+  //convert to typed result.
+    AppendixRepairer(levelPath, repairStrategy) match {
+      case Failure(OverlappingSegmentsException(segmentInfo, overlappingSegmentInfo)) =>
+        Success(
+          OverlappingSegments[K](
+            segmentInfo =
+              SegmentInfo(
+                path = segmentInfo.path,
+                minKey = serializer.read(segmentInfo.minKey),
+                maxKey = serializer.read(segmentInfo.maxKey),
+                segmentSize = segmentInfo.segmentSize,
+                keyValueCount = segmentInfo.keyValueCount
+              ),
+            overlappingSegmentInfo =
+              SegmentInfo(
+                path = overlappingSegmentInfo.path,
+                minKey = serializer.read(overlappingSegmentInfo.minKey),
+                maxKey = serializer.read(overlappingSegmentInfo.maxKey),
+                segmentSize = overlappingSegmentInfo.segmentSize,
+                keyValueCount = overlappingSegmentInfo.keyValueCount
+              )
+          )
+        )
+      case Failure(exception) =>
+        Failure(exception)
+
+      case Success(_) =>
+        Success(RepairResult.Repaired)
+    }
 }
 
 private[swaydb] class SwayDB(api: CoreAPI) extends SwayDBAPI {

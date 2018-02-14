@@ -35,7 +35,7 @@ import swaydb.data.util.ByteSizeOf
 import scala.concurrent.ExecutionContext
 import scala.util.{Success, Try}
 
-private[core] object SegmentsMapSerializer {
+private[core] object AppendixSerializer {
 
   def apply(removeDeletedRecords: Boolean,
             mmapSegmentsOnRead: Boolean,
@@ -44,14 +44,14 @@ private[core] object SegmentsMapSerializer {
                                         keyValueLimiter: (PersistentReadOnly, Segment) => Unit,
                                         fileOpenLimited: DBFile => Unit,
                                         ec: ExecutionContext) =
-    new SegmentsMapSerializer(removeDeletedRecords, mmapSegmentsOnRead, mmapSegmentsOnWrite, cacheKeysOnCreate)
+    new AppendixSerializer(removeDeletedRecords, mmapSegmentsOnRead, mmapSegmentsOnWrite, cacheKeysOnCreate)
 
 }
 
-private[core] class SegmentsMapSerializer(removeDeletes: Boolean,
-                                          mmapSegmentsOnRead: Boolean,
-                                          mmapSegmentsOnWrite: Boolean,
-                                          cacheKeysOnCreate: Boolean)(implicit ordering: Ordering[Slice[Byte]],
+private[core] class AppendixSerializer(removeDeletes: Boolean,
+                                       mmapSegmentsOnRead: Boolean,
+                                       mmapSegmentsOnWrite: Boolean,
+                                       cacheKeysOnCreate: Boolean)(implicit ordering: Ordering[Slice[Byte]],
                                                                       keyValueLimiter: (PersistentReadOnly, Segment) => Unit,
                                                                       fileOpenLimiter: DBFile => Unit,
                                                                       ec: ExecutionContext) extends MapSerializer[Slice[Byte], Segment] with LazyLogging {

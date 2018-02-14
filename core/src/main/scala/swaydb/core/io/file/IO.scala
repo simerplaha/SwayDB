@@ -112,19 +112,20 @@ object IO extends LazyLogging {
 
   def walkDelete(folder: Path): Try[Unit] =
     try {
-      Files.walkFileTree(folder, new SimpleFileVisitor[Path]() {
-        @throws[IOException]
-        override def visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult = {
-          Files.delete(file)
-          FileVisitResult.CONTINUE
-        }
+      if (exists(folder))
+        Files.walkFileTree(folder, new SimpleFileVisitor[Path]() {
+          @throws[IOException]
+          override def visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult = {
+            Files.delete(file)
+            FileVisitResult.CONTINUE
+          }
 
-        override def postVisitDirectory(dir: Path, exc: IOException): FileVisitResult = {
-          if (exc != null) throw exc
-          Files.delete(dir)
-          FileVisitResult.CONTINUE
-        }
-      })
+          override def postVisitDirectory(dir: Path, exc: IOException): FileVisitResult = {
+            if (exc != null) throw exc
+            Files.delete(dir)
+            FileVisitResult.CONTINUE
+          }
+        })
       Success()
     } catch {
       case exception: Throwable =>

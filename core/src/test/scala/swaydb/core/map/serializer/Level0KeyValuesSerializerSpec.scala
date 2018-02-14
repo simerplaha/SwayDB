@@ -31,14 +31,14 @@ import swaydb.serializers.Default._
 import swaydb.serializers._
 import scala.collection.JavaConverters._
 
-class KeyValuesMapSerializerSpec extends TestBase {
+class Level0KeyValuesSerializerSpec extends TestBase {
 
   implicit val ordering = KeyOrder.default
 
   "KeyValuesMemoryMapSerializer" should {
 
     val dir = testSegmentFile
-    implicit val serializer = KeyValuesMapSerializer(ordering)
+    implicit val serializer = Level0KeyValuesSerializer(ordering)
 
     "write add key value of ValueType.Add" in {
       val addEntry = MapEntry.Add[Slice[Byte], (ValueType, Option[Slice[Byte]])](1, (ValueType.Add, Option(1)))

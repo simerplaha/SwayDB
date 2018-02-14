@@ -25,7 +25,7 @@ import swaydb.core.data.Transient.Delete
 import swaydb.core.data.{KeyValue, ValueType}
 import swaydb.core.io.file.IO
 import swaydb.core.map.MapEntry
-import swaydb.core.map.serializer.KeyValuesMapSerializer
+import swaydb.core.map.serializer.Level0KeyValuesSerializer
 import swaydb.core.util.Benchmark
 import swaydb.data.compaction.Throttle
 import swaydb.data.slice.Slice
@@ -61,7 +61,7 @@ class LevelZeroSpec3 extends LevelZeroSpec {
 class LevelZeroSpec extends TestBase with MockFactory with Benchmark {
 
   implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
-  implicit val serializer = KeyValuesMapSerializer(ordering)
+  implicit val serializer = Level0KeyValuesSerializer(ordering)
   val keyValuesCount = 10
 
   //  override def deleteFiles = false

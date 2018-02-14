@@ -21,7 +21,7 @@ package swaydb.core.map
 
 import swaydb.core.TestBase
 import swaydb.core.data.ValueType
-import swaydb.core.map.serializer.KeyValuesMapSerializer
+import swaydb.core.map.serializer.Level0KeyValuesSerializer
 import swaydb.data.config.RecoveryMode
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
@@ -30,7 +30,7 @@ import swaydb.order.KeyOrder
 class MapStressSpec extends TestBase {
 
   implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
-  implicit val serializer = KeyValuesMapSerializer(ordering)
+  implicit val serializer = Level0KeyValuesSerializer(ordering)
 
   "Map" should {
     "write 10000 entries when flushOnOverflow is true and map size is 1.kb" in {

@@ -21,7 +21,7 @@ package swaydb.core.map.serializer
 
 import java.util.concurrent.ConcurrentSkipListMap
 
-import swaydb.core.{TestBase, TestQueues}
+import swaydb.core.{TestBase, TestLimitQueues}
 import swaydb.core.data.{KeyValue, PersistentReadOnly}
 import swaydb.core.io.file.DBFile
 import swaydb.core.io.reader.Reader
@@ -32,14 +32,14 @@ import swaydb.order.KeyOrder
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
-class SegmentsMapSerializerSpec extends TestBase {
+class AppendixSerializerSpec extends TestBase {
   implicit val ordering = KeyOrder.default
-  implicit val maxSegmentsOpenCacheImplicitLimiter: DBFile => Unit = TestQueues.fileOpenLimiter
-  implicit val keyValuesLimitImplicitLimiter: (PersistentReadOnly, Segment) => Unit = TestQueues.keyValueLimiter
+  implicit val maxSegmentsOpenCacheImplicitLimiter: DBFile => Unit = TestLimitQueues.fileOpenLimiter
+  implicit val keyValuesLimitImplicitLimiter: (PersistentReadOnly, Segment) => Unit = TestLimitQueues.keyValueLimiter
 
   "SegmentsPersistentMapsSerializer" should {
 
-    implicit val serializer = SegmentsMapSerializer(removeDeletedRecords = true, mmapSegmentsOnRead = true, mmapSegmentsOnWrite = false, cacheKeysOnCreate = false)
+    implicit val serializer = AppendixSerializer(removeDeletedRecords = true, mmapSegmentsOnRead = true, mmapSegmentsOnWrite = false, cacheKeysOnCreate = false)
 
     "write Add segment entry to slice" in {
       val keyValues = randomIntKeyValues(count = 10)

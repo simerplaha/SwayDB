@@ -22,7 +22,7 @@ package swaydb.core.map
 import swaydb.core.TestBase
 import swaydb.core.data.ValueType
 import swaydb.core.io.file.IO
-import swaydb.core.map.serializer.KeyValuesMapSerializer
+import swaydb.core.map.serializer.Level0KeyValuesSerializer
 import swaydb.core.util.Benchmark
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.config.RecoveryMode
@@ -33,7 +33,7 @@ import swaydb.order.KeyOrder
 class MapsPerformanceSpec extends TestBase with Benchmark {
 
   implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
-  implicit val serializer = KeyValuesMapSerializer(ordering)
+  implicit val serializer = Level0KeyValuesSerializer(ordering)
 
   "Maps" should {
     "write key values with default BlockingAcceleration" in {

@@ -28,7 +28,7 @@ import swaydb.core.data.{PersistentReadOnly, _}
 import swaydb.core.io.file.{DBFile, IO}
 import swaydb.core.level.LevelException.NoNextLevel
 import swaydb.core.level.actor.{LevelAPI, LevelActor, LevelCommand}
-import swaydb.core.map.serializer.SegmentsMapSerializer
+import swaydb.core.map.serializer.AppendixSerializer
 import swaydb.core.map.{Map, MapEntry}
 import swaydb.core.retry.Retry
 import swaydb.core.segment.SegmentException.SegmentFileMissing
@@ -87,8 +87,8 @@ private[core] object Level extends LazyLogging {
     acquireLock(levelStorage) flatMap {
       lock =>
         //lock acquired. Initialising Level.
-        implicit val serializer: SegmentsMapSerializer =
-          SegmentsMapSerializer(
+        implicit val serializer: AppendixSerializer =
+          AppendixSerializer(
             removeDeletedRecords = removeDeletes(nextLevel),
             mmapSegmentsOnRead = levelStorage.mmapSegmentsOnWrite,
             mmapSegmentsOnWrite = levelStorage.mmapSegmentsOnRead,
@@ -173,7 +173,7 @@ private[core] class Level(val dirs: Seq[Dir],
                           appendix: Map[Slice[Byte], Segment],
                           lock: Option[FileLock])(implicit ordering: Ordering[Slice[Byte]],
                                                   ec: ExecutionContext,
-                                                  serializer: SegmentsMapSerializer,
+                                                  serializer: AppendixSerializer,
                                                   keyValueLimiter: (PersistentReadOnly, Segment) => Unit,
                                                   fileOpenLimited: DBFile => Unit) extends LevelRef with LazyLogging {
 
@@ -186,6 +186,12 @@ private[core] class Level(val dirs: Seq[Dir],
   implicit val orderOnReadOnly = ordering.on[PersistentReadOnly](_.key)
 
   val removeDeletedRecords = Level.removeDeletes(nextLevel)
+
+  def rootPath: Path =
+    dirs.head.path
+
+  def appendixPath: Path =
+    rootPath.resolve("appendix")
 
   def releaseLocks: Try[Unit] =
     Try(lock.foreach(_.release())) flatMap {

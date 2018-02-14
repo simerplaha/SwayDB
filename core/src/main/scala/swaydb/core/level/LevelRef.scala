@@ -43,6 +43,10 @@ private[core] trait LevelRef extends LevelActorAPI {
 
   def hasNextLevel: Boolean
 
+  def appendixPath: Path
+
+  def rootPath: Path
+
   def takeSegments(size: Int,
                    condition: Segment => Boolean): Iterable[Segment]
 

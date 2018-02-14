@@ -29,7 +29,7 @@ import swaydb.core.io.file.DBFile
 import swaydb.core.io.reader.Reader
 import swaydb.core.level.PathsDistributor
 import swaydb.core.map.Map
-import swaydb.core.segment.format.one.SegmentWriter
+import swaydb.core.segment.format.one.{SegmentReader, SegmentWriter}
 import swaydb.core.util.BloomFilterUtil._
 import swaydb.core.util.IDGenerator
 import swaydb.core.util.TryUtil._
@@ -187,6 +187,59 @@ private[core] object Segment {
           segmentSize = segmentSize,
           removeDeletes = removeDeletes
         )
+    }
+  }
+
+  /**
+    * Reads the [[PersistentSegment]] when the min, max keys & fileSize is not known.
+    *
+    * This function requires the Segment to be opened and read. After the Segment is successfully
+    * read the file is closed.
+    *
+    * Normally this function is only useful for Appendix file recovery.
+    */
+  def apply(path: Path,
+            mmapReads: Boolean,
+            mmapWrites: Boolean,
+            cacheKeysOnCreate: Boolean,
+            removeDeletes: Boolean,
+            checkExists: Boolean)(implicit ordering: Ordering[Slice[Byte]],
+                                         keyValueLimiter: (PersistentReadOnly, Segment) => Unit,
+                                         fileOpenLimited: DBFile => Unit,
+                                         ec: ExecutionContext): Try[Segment] = {
+
+    val file =
+      if (mmapReads)
+        DBFile.mmapRead(path, fileOpenLimited, checkExists)
+      else
+        DBFile.channelRead(path, fileOpenLimited, checkExists)
+
+    file flatMap {
+      file =>
+        file.fileSize flatMap {
+          fileSize =>
+            SegmentReader.readFooter(Reader(file)) flatMap {
+              footer =>
+                SegmentReader.readAllReadOnly(footer, Reader(file)) flatMap {
+                  keyValues =>
+                    //close the file
+                    file.close map {
+                      _ =>
+                        new PersistentSegment(
+                          file = file,
+                          mmapReads = mmapReads,
+                          mmapWrites = mmapWrites,
+                          cacheKeysOnCreate = cacheKeysOnCreate,
+                          minKey = keyValues.head.key,
+                          maxKey = keyValues.last.key,
+                          segmentSize = fileSize.toInt,
+                          removeDeletes = removeDeletes
+                        )
+                    }
+                }
+            }
+        }
+
     }
   }
 

@@ -22,7 +22,7 @@ package swaydb.core.map
 import swaydb.core.TestBase
 import swaydb.core.data.ValueType
 import swaydb.core.io.file.IO
-import swaydb.core.map.serializer.KeyValuesMapSerializer
+import swaydb.core.map.serializer.Level0KeyValuesSerializer
 import swaydb.data.slice.Slice
 import swaydb.core.util.FileUtil._
 import swaydb.data.accelerate.{Accelerator, Brake, Level0Meter}
@@ -33,7 +33,7 @@ import swaydb.order.KeyOrder
 class MapsStressSpec extends TestBase {
 
   implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
-  implicit val serializer = KeyValuesMapSerializer(ordering)
+  implicit val serializer = Level0KeyValuesSerializer(ordering)
   val keyValueCount = 10
 
   "Maps.persistent" should {

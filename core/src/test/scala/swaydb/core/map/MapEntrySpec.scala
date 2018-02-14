@@ -21,11 +21,11 @@ package swaydb.core.map
 
 import java.util.concurrent.ConcurrentSkipListMap
 
-import swaydb.core.{TestBase, TestQueues}
+import swaydb.core.{TestBase, TestLimitQueues}
 import swaydb.core.data.{KeyValueReadOnly, PersistentReadOnly}
 import swaydb.core.io.file.DBFile
 import swaydb.core.io.reader.Reader
-import swaydb.core.map.serializer.SegmentsMapSerializer
+import swaydb.core.map.serializer.AppendixSerializer
 import swaydb.core.segment.Segment
 import swaydb.data.slice.Slice
 import swaydb.order.KeyOrder
@@ -35,10 +35,10 @@ import swaydb.serializers._
 class MapEntrySpec extends TestBase {
 
   implicit val ordering = KeyOrder.default
-  implicit val maxSegmentsOpenCacheImplicitLimiter: DBFile => Unit = TestQueues.fileOpenLimiter
-  implicit val keyValuesLimitImplicitLimiter: (PersistentReadOnly, Segment) => Unit = TestQueues.keyValueLimiter
+  implicit val maxSegmentsOpenCacheImplicitLimiter: DBFile => Unit = TestLimitQueues.fileOpenLimiter
+  implicit val keyValuesLimitImplicitLimiter: (PersistentReadOnly, Segment) => Unit = TestLimitQueues.keyValueLimiter
 
-  implicit val mapFormatter = SegmentsMapSerializer(removeDeletedRecords = false, mmapSegmentsOnRead = true, mmapSegmentsOnWrite = false, cacheKeysOnCreate = false)
+  implicit val mapFormatter = AppendixSerializer(removeDeletedRecords = false, mmapSegmentsOnRead = true, mmapSegmentsOnWrite = false, cacheKeysOnCreate = false)
 
   val keyValues = randomIntKeyValues(count = 10)
   val segment = TestSegment(keyValues).assertGet

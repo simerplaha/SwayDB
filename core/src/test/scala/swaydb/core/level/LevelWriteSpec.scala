@@ -23,14 +23,14 @@ import java.nio.file.NoSuchFileException
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.PrivateMethodTester
-import swaydb.core.{TestBase, TestQueues}
+import swaydb.core.{TestBase, TestLimitQueues}
 import swaydb.core.actor.TestActor
 import swaydb.core.data.Transient.Delete
 import swaydb.core.data._
 import swaydb.core.io.file.{DBFile, IO}
 import swaydb.core.level.actor.LevelAPI
 import swaydb.core.level.actor.LevelCommand.{PushSegments, PushSegmentsResponse}
-import swaydb.core.map.serializer.{KeyValuesMapSerializer, SegmentsMapSerializer}
+import swaydb.core.map.serializer.{Level0KeyValuesSerializer, AppendixSerializer}
 import swaydb.core.map.{Map, MapEntry}
 import swaydb.core.segment.Segment
 import swaydb.core.util.Extension
@@ -79,8 +79,8 @@ class LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
   //  override def deleteFiles: Boolean =
   //    false
 
-  implicit val maxSegmentsOpenCacheImplicitLimiter: DBFile => Unit = TestQueues.fileOpenLimiter
-  implicit val keyValuesLimitImplicitLimiter: (PersistentReadOnly, Segment) => Unit = TestQueues.keyValueLimiter
+  implicit val maxSegmentsOpenCacheImplicitLimiter: DBFile => Unit = TestLimitQueues.fileOpenLimiter
+  implicit val keyValuesLimitImplicitLimiter: (PersistentReadOnly, Segment) => Unit = TestLimitQueues.keyValueLimiter
 
   "Level" should {
     "initialise" in {
@@ -384,7 +384,7 @@ class LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
   }
 
   "Level.putMap" should {
-    implicit val serializer = KeyValuesMapSerializer(ordering)
+    implicit val serializer = Level0KeyValuesSerializer(ordering)
 
     val map =
       if (persistent)
@@ -690,8 +690,8 @@ class LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
 
   "Level.buildNewMapEntry" should {
 
-    implicit val serializer: SegmentsMapSerializer =
-      SegmentsMapSerializer(
+    implicit val serializer: AppendixSerializer =
+      AppendixSerializer(
         removeDeletedRecords = false,
         mmapSegmentsOnRead = true,
         mmapSegmentsOnWrite = true,

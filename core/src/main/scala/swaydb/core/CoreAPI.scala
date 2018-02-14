@@ -22,7 +22,7 @@ package swaydb.core
 import swaydb.core.data.KeyValue.KeyValueTuple
 import swaydb.core.data.ValueType
 import swaydb.core.map.MapEntry
-import swaydb.core.map.serializer.KeyValuesMapSerializer
+import swaydb.core.map.serializer.Level0KeyValuesSerializer
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.config.SwayDBConfig
@@ -45,7 +45,7 @@ private[swaydb] object CoreAPI {
 
 private[swaydb] trait CoreAPI {
 
-  val serializer: KeyValuesMapSerializer
+  val serializer: Level0KeyValuesSerializer
 
   def put(key: Slice[Byte]): Try[Level0Meter]
 

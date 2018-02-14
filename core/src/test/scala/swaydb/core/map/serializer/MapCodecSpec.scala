@@ -31,7 +31,7 @@ import swaydb.serializers._
 class MapCodecSpec extends TestBase {
 
   implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
-  implicit val serializer = KeyValuesMapSerializer(ordering)
+  implicit val serializer = Level0KeyValuesSerializer(ordering)
 
   "MemoryMapCodec" should {
     "write and read key values" in {
