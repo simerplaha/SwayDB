@@ -22,7 +22,7 @@ val publishSettings = Seq[Setting[_]](
   publishLocal := {},
   sonatypeProjectHosting := Some(GithubHosting("simerplaha", "SwayDB", "simer.j@gmail.com")),
   developers := List(
-    Developer(id = "simerplaha", name = "Simer Plaha", email = "simer.j@gmail.com", url = url("http://swaydb.org"))
+    Developer(id = "simerplaha", name = "Simer Plaha", email = "simer.j@gmail.com", url = url("http://swaydb.io"))
   ),
   publishTo := sonatypePublishTo.value
 )
