@@ -33,8 +33,8 @@ class MapStressSpec extends TestBase {
   implicit val serializer = Level0KeyValuesSerializer(ordering)
 
   "Map" should {
-    "write 10000 entries when flushOnOverflow is true and map size is 1.kb" in {
-      val keyValues = randomIntKeyValues(10000)
+    "write entries when flushOnOverflow is true and map size is 1.kb" in {
+      val keyValues = randomIntKeyValues(100)
 
       def test(map: Map[Slice[Byte], (ValueType, Option[Slice[Byte]])]) = {
         keyValues foreach {

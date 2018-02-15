@@ -36,9 +36,9 @@ class MapsPerformanceSpec extends TestBase with Benchmark {
   implicit val serializer = Level0KeyValuesSerializer(ordering)
 
   "Maps" should {
-    "write key values with default BlockingAcceleration" in {
+    "write key values" in {
       //      val keyValues = randomIntKeyValues(2000000)
-      val keyValues = randomIntKeyValues(20000)
+      val keyValues = randomIntKeyValues(2000)
 
       def testWrite(maps: Maps[Slice[Byte], (ValueType, Option[Slice[Byte]])]) =
         keyValues foreach {
@@ -56,7 +56,7 @@ class MapsPerformanceSpec extends TestBase with Benchmark {
 
       val dir1 = IO.createDirectoryIfAbsent(testDir.resolve(1.toString))
 
-      val map1 = Maps.persistent(dir1, mmap = true, 4.mb, Accelerator.brake(), RecoveryMode.Report).assertGet
+      val map1 = Maps.persistent(dir1, mmap = true, 4.mb, Accelerator.noBrakes(), RecoveryMode.Report).assertGet
       benchmark(s"MMAP = true - writing ${keyValues.size} keys") {
         testWrite(map1)
       }
@@ -65,7 +65,7 @@ class MapsPerformanceSpec extends TestBase with Benchmark {
       }
 
       val dir2 = IO.createDirectoryIfAbsent(testDir.resolve(2.toString))
-      val map2 = Maps.persistent(dir2, mmap = false, 4.mb, Accelerator.brake(), RecoveryMode.Report).assertGet
+      val map2 = Maps.persistent(dir2, mmap = false, 4.mb, Accelerator.noBrakes(), RecoveryMode.Report).assertGet
       benchmark(s"MMAP = false - writing ${keyValues.size} keys") {
         testWrite(map2)
       }
@@ -73,7 +73,7 @@ class MapsPerformanceSpec extends TestBase with Benchmark {
         testRead(map2)
       }
 
-      val map3 = Maps.memory(4.mb, Accelerator.brake())
+      val map3 = Maps.memory(4.mb, Accelerator.noBrakes())
       benchmark(s"In-memory - writing ${keyValues.size} keys") {
         testWrite(map3)
       }
@@ -81,6 +81,10 @@ class MapsPerformanceSpec extends TestBase with Benchmark {
       benchmark(s"In-memory - reading ${keyValues.size} keys") {
         testRead(map3)
       }
+
+      map1.close.assertGet
+      map2.close.assertGet
+      map3.close.assertGet
     }
   }
 }

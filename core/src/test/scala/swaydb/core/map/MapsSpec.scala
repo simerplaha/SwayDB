@@ -19,7 +19,7 @@
 
 package swaydb.core.map
 
-import java.nio.file.Files
+import java.nio.file.{Files, NoSuchFileException}
 
 import swaydb.core.TestBase
 import swaydb.core.data.ValueType
@@ -70,6 +70,9 @@ class MapsSpec extends TestBase {
       //reopening will start the Map in recovery mode which will add all the existing maps in memory and initialise a new map for writing
       //so a new folder 1 is initialised.
       path.folders.map(_.folderId) shouldBe List(0, 1)
+
+      maps.close.assertGet
+      reopen.close.assertGet
     }
 
     "delete empty maps on recovery" in {
@@ -283,6 +286,24 @@ class MapsSpec extends TestBase {
       recoveredMaps.get(5) shouldBe empty
       recoveredMaps.get(6) shouldBe empty
     }
+
+    "start a new Map if writing an entry fails" in {
+      val path = createRandomDir
+      val maps = Maps.persistent(path, mmap = false, 70.bytes, Accelerator.brake(), RecoveryMode.Report).assertGet
+      maps.add(1, (ValueType.Add, Some(1))).assertGet
+      maps.queuedMapsCountWithCurrent shouldBe 1
+      //delete the map
+      maps.map.delete.assertGet
+
+      //failure because the file is deleted. The Map will NOT try to re-write this entry again because
+      //it should be an indication that something is wrong with the file system permissions.
+      maps.add(2, (ValueType.Add, Some(2))).failed.assertGet shouldBe a[NoSuchFileException]
+
+      //new Map file is created. Now this write will succeed.
+      maps.add(2, (ValueType.Add, Some(2))).assertGet
+
+    }
+
   }
 
 }

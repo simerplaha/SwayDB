@@ -43,16 +43,16 @@ private[map] object PersistentMap extends LazyLogging {
                                          flushOnOverflow: Boolean,
                                          fileSize: Long,
                                          dropCorruptedTailEntries: Boolean)(implicit ordering: Ordering[K],
-                                                                         serializer: MapSerializer[K, V],
-                                                                         ec: ExecutionContext): Try[RecoveryResult[PersistentMap[K, V]]] = {
+                                                                            serializer: MapSerializer[K, V],
+                                                                            ec: ExecutionContext): Try[RecoveryResult[PersistentMap[K, V]]] = {
     IO.createDirectoryIfAbsent(folder)
     val skipList: ConcurrentSkipListMap[K, V] = new ConcurrentSkipListMap[K, V](ordering)
 
     recover(folder, mmap, fileSize, skipList, dropCorruptedTailEntries) map {
-      file =>
+      fileRecoveryResult =>
         RecoveryResult(
-          item = new PersistentMap[K, V](folder, skipList, mmap, fileSize, flushOnOverflow, file.item),
-          result = file.result
+          item = new PersistentMap[K, V](folder, skipList, mmap, fileSize, flushOnOverflow, fileRecoveryResult.item),
+          result = fileRecoveryResult.result
         )
     }
   }
@@ -61,8 +61,8 @@ private[map] object PersistentMap extends LazyLogging {
                                          mmap: Boolean,
                                          flushOnOverflow: Boolean,
                                          fileSize: Long)(implicit ordering: Ordering[K],
-                                                                         serializer: MapSerializer[K, V],
-                                                                         ec: ExecutionContext): Try[PersistentMap[K, V]] = {
+                                                         serializer: MapSerializer[K, V],
+                                                         ec: ExecutionContext): Try[PersistentMap[K, V]] = {
     IO.createDirectoryIfAbsent(folder)
     val skipList: ConcurrentSkipListMap[K, V] = new ConcurrentSkipListMap[K, V](ordering)
 
@@ -83,7 +83,7 @@ private[map] object PersistentMap extends LazyLogging {
                                  fileSize: Long,
                                  skipList: ConcurrentSkipListMap[K, V],
                                  dropCorruptedTailEntries: Boolean)(implicit serializer: MapSerializer[K, V],
-                                                         ec: ExecutionContext): Try[RecoveryResult[DBFile]] =
+                                                                    ec: ExecutionContext): Try[RecoveryResult[DBFile]] =
   //read all existing logs and populate skipList
     folder.files(Extension.Log) tryMap {
       path =>
@@ -96,18 +96,23 @@ private[map] object PersistentMap extends LazyLogging {
                 MapCodec.read[K, V](bytes, dropCorruptedTailEntries) map {
                   recovery =>
                     logger.info("{}: Recovered! Populating in-memory map with recovered key-values.", path)
-                    recovery.item.foreach(_ applyTo skipList)
-                    logger.info("{}: Map recovery complete.", path)
+                    val entriesRecovered =
+                      recovery.item.foldLeft(0) {
+                        case (size, entry) =>
+                          entry applyTo skipList
+                          size + entry.entries.size
+                      }
+                    logger.info(s"{}: Recovered {} ${if (entriesRecovered > 1) "entries" else "entry"}.", path, entriesRecovered)
                     RecoveryResult(file, recovery.result)
                 }
             }
         }
     } flatMap {
-      optionFiles =>
-        recover(optionFiles.map(_.item), mmap, fileSize, skipList) getOrElse firstFile(folder, mmap, fileSize) map {
+      recoveredFiles =>
+        nextFile(recoveredFiles.map(_.item), mmap, fileSize, skipList) getOrElse firstFile(folder, mmap, fileSize) map {
           file =>
             //if there was a failure recovering any one of the files, return the recovery with the failure result.
-            val result: Try[Unit] = optionFiles.find(_.result.isFailure).map(_.result) getOrElse Success()
+            val result: Try[Unit] = recoveredFiles.find(_.result.isFailure).map(_.result) getOrElse Success()
             RecoveryResult(file, result)
         }
     }
@@ -119,11 +124,11 @@ private[map] object PersistentMap extends LazyLogging {
     *
     * oldFiles get deleted after the recovery is successful. In case of a failure an error message is logged.
     */
-  private[map] def recover[K, V](oldFiles: Iterable[DBFile],
-                                 mmap: Boolean,
-                                 fileSize: Long,
-                                 skipList: ConcurrentSkipListMap[K, V])(implicit serializer: MapSerializer[K, V],
-                                                                        ec: ExecutionContext): Option[Try[DBFile]] =
+  private[map] def nextFile[K, V](oldFiles: Iterable[DBFile],
+                                  mmap: Boolean,
+                                  fileSize: Long,
+                                  skipList: ConcurrentSkipListMap[K, V])(implicit serializer: MapSerializer[K, V],
+                                                                         ec: ExecutionContext): Option[Try[DBFile]] =
     oldFiles.lastOption.map {
       lastFile =>
         nextFile(lastFile, mmap, fileSize, skipList) flatMap {

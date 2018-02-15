@@ -42,7 +42,7 @@ class MapSpec extends TestBase {
   implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
   implicit val serializer = Level0KeyValuesSerializer(ordering)
 
-  def test(map: Map[Slice[Byte], (ValueType, Option[Slice[Byte]])]) = {
+  def testInsertAndRead(map: Map[Slice[Byte], (ValueType, Option[Slice[Byte]])]) = {
     map.add(1, (ValueType.Add, Some(1))).assertGet shouldBe true
     map.add(2, (ValueType.Add, Some(2))).assertGet shouldBe true
     map.get(1).assertGet._2 shouldBe ((ValueType.Add, Some(1)))
@@ -60,25 +60,28 @@ class MapSpec extends TestBase {
     map.remove(1).assertGet
     map.get(1).isEmpty shouldBe true
     map.isEmpty shouldBe true
+
+    map.close().assertGet
   }
 
   "Map" should {
     "initialise and recover from an already existing empty map" in {
       val map = Map.persistent(createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).assertGet.item
+      map.close().assertGet
       //recover from an empty map
-      test(Map.persistent(map.path, mmap = true, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).assertGet.item)
+      testInsertAndRead(Map.persistent(map.path, mmap = true, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).assertGet.item)
     }
 
     "initialise a map with data and recover" in {
       val map = Map.persistent(createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).assertGet.item
-      test(map)
+      testInsertAndRead(map)
       //re-open
-      test(Map.persistent(map.path, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).assertGet.item)
+      testInsertAndRead(Map.persistent(map.path, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).assertGet.item)
       //re-open as mmap
-      test(Map.persistent(map.path, mmap = true, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).assertGet.item)
+      testInsertAndRead(Map.persistent(map.path, mmap = true, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).assertGet.item)
       //re-read
       //in-memory
-      test(Map.memory(1.mb, flushOnOverflow = false))
+      testInsertAndRead(Map.memory(1.mb, flushOnOverflow = false))
     }
 
     "initialise a Map that has two persistent files (second file did not get deleted due to early JVM termination)" in {
@@ -90,7 +93,7 @@ class MapSpec extends TestBase {
       val map2 = Map.persistent(createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).assertGet.item
       map2.add(4, (ValueType.Add, Some(4))).assertGet shouldBe true
       map2.add(5, (ValueType.Add, Some(5))).assertGet shouldBe true
-      map2.add(6, (ValueType.Add, Some(6))).assertGet shouldBe true
+      map2.add(2, (ValueType.Add, Some(22))).assertGet shouldBe true //second file will overrride 2's value to be 22
 
       //move map2's log file into map1's log file folder named as 1.log and reboot to test recovery.
       val map2sLogFile = map2.path.resolve(0.toLogFileId)
@@ -98,15 +101,19 @@ class MapSpec extends TestBase {
 
       //recover map 1 and it should contain all entries of map1 and map2
       val map1Recovered = Map.persistent(map1.path, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).assertGet.item
-      map1Recovered.add(1, (ValueType.Add, Some(1))).assertGet shouldBe true
-      map1Recovered.add(2, (ValueType.Add, Some(2))).assertGet shouldBe true
-      map1Recovered.add(3, (ValueType.Add, Some(3))).assertGet shouldBe true
-      map1Recovered.add(4, (ValueType.Add, Some(4))).assertGet shouldBe true
-      map1Recovered.add(5, (ValueType.Add, Some(5))).assertGet shouldBe true
-      map1Recovered.add(6, (ValueType.Add, Some(6))).assertGet shouldBe true
+      map1Recovered.get(1).assertGet._2 shouldBe(ValueType.Add, Some(1))
+      map1Recovered.get(2).assertGet._2 shouldBe(ValueType.Add, Some(22)) //second file overrides 2's value to be 22
+      map1Recovered.get(3).assertGet._2 shouldBe(ValueType.Add, Some(3))
+      map1Recovered.get(4).assertGet._2 shouldBe(ValueType.Add, Some(4))
+      map1Recovered.get(5).assertGet._2 shouldBe(ValueType.Add, Some(5))
+      map1Recovered.get(6) shouldBe empty
 
       //recovered file's id is 2.log
       map1Recovered.path.files(Extension.Log).map(_.fileId.assertGet) should contain only ((2, Extension.Log))
+
+      map1.close().assertGet
+      map2.close().assertGet
+      map1Recovered.close().assertGet
     }
 
     "fail initialise if the Map exists but recovery is not provided" in {
@@ -117,19 +124,21 @@ class MapSpec extends TestBase {
 
       //recovers because the recovery is provided
       Map.persistent(map.path, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).assertGet
+
+      map.close().assertGet
     }
   }
 
   "PersistentMap.add and remove" should {
     "add and remove key values" in {
-      test(Map.persistent(createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).assertGet.item)
-      test(Map.persistent(createRandomDir, mmap = true, flushOnOverflow = false, fileSize = 1.mb, dropCorruptedTailEntries = false).assertGet.item)
-      test(Map.memory(1.mb, flushOnOverflow = false))
+      testInsertAndRead(Map.persistent(createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).assertGet.item)
+      testInsertAndRead(Map.persistent(createRandomDir, mmap = true, flushOnOverflow = false, fileSize = 1.mb, dropCorruptedTailEntries = false).assertGet.item)
+      testInsertAndRead(Map.memory(1.mb, flushOnOverflow = false))
     }
 
     "return true if entry is too large for the map and flushOnOverflow is false" in {
       def test(map: Map[Slice[Byte], (ValueType, Option[Slice[Byte]])]) = {
-        //since this is the first entry and it's byte size is 33.bytes, this entry will get added to the map.
+        //since this is the first entry and it's byte size is 21.bytes, this entry will get added to the map.
         map.add(1, (ValueType.Add, Some(1))).assertGet shouldBe true
 
         //now map is not empty but the next entry is too large. This will return false
@@ -137,20 +146,20 @@ class MapSpec extends TestBase {
 
         map.get(1).assertGet._2 shouldBe ((ValueType.Add, Some(1)))
         map.get(2).isEmpty shouldBe true //second entry does not exists as it was too large for the map.
-        map
+        map.close().assertGet
       }
 
-      //file size is 33.byte which is too small so every write entry require flushing.
+      //file size is 21.byte which is too small so every write entry require flushing.
       val path1 = createRandomDir
-      test(Map.persistent(path1, mmap = false, flushOnOverflow = false, 33.byte, dropCorruptedTailEntries = false).assertGet.item)
+      test(Map.persistent(path1, mmap = false, flushOnOverflow = false, 21.byte, dropCorruptedTailEntries = false).assertGet.item)
       //re-open as mmap
-      test(Map.persistent(path1, mmap = true, flushOnOverflow = false, 33.byte, dropCorruptedTailEntries = false).assertGet.item)
+      test(Map.persistent(path1, mmap = true, flushOnOverflow = false, 21.byte, dropCorruptedTailEntries = false).assertGet.item)
       //
       val path2 = createRandomDir
-      test(Map.persistent(path2, mmap = true, flushOnOverflow = false, 33.byte, dropCorruptedTailEntries = false).assertGet.item)
+      test(Map.persistent(path2, mmap = true, flushOnOverflow = false, 21.byte, dropCorruptedTailEntries = false).assertGet.item)
       //re-open
-      test(Map.persistent(path2, mmap = false, flushOnOverflow = false, 33.byte, dropCorruptedTailEntries = false).assertGet.item)
-      test(Map.memory(33.byte, flushOnOverflow = false))
+      test(Map.persistent(path2, mmap = false, flushOnOverflow = false, 21.byte, dropCorruptedTailEntries = false).assertGet.item)
+      test(Map.memory(21.byte, flushOnOverflow = false))
       //test when every entry is smaller then the map size. Map size is 1.byte so
       test(Map.persistent(createRandomDir, mmap = false, flushOnOverflow = false, 1.byte, dropCorruptedTailEntries = false).assertGet.item)
       test(Map.persistent(createRandomDir, mmap = true, flushOnOverflow = false, 1.byte, dropCorruptedTailEntries = false).assertGet.item)
@@ -159,7 +168,7 @@ class MapSpec extends TestBase {
 
     "flush the map and write new entry if the new entry is too large for the map and flushOnOverflow is true" in {
       def test(map: Map[Slice[Byte], (ValueType, Option[Slice[Byte]])]) = {
-        //since this is the first entry and it's byte size is 33.bytes, this entry will get added to the map.
+        //since this is the first entry and it's byte size is 21.bytes, this entry will get added to the map.
         map.add(1, (ValueType.Add, Some(1))).assertGet shouldBe true
 
         //now map is not empty but the next entry is too large. But since flushOnOverFlow is true, this will
@@ -168,7 +177,7 @@ class MapSpec extends TestBase {
 
         map.get(1).assertGet._2 shouldBe ((ValueType.Add, Some(1)))
         map.get(2).assertGet._2 shouldBe ((ValueType.Remove, Some(2)))
-        map
+        map.close().assertGet
       }
 
       val path1 = createRandomDir
@@ -199,6 +208,7 @@ class MapSpec extends TestBase {
       file.path.fileId.assertGet shouldBe(0, Extension.Log)
 
       skipList.isEmpty shouldBe true
+      file.close.assertGet
     }
 
     "recover from an existing PersistentMap folder" in {
@@ -231,6 +241,9 @@ class MapSpec extends TestBase {
       map.add(2, (ValueType.Remove, Some(2))).assertGet shouldBe true
       map.add(3, (ValueType.Add, Some(3))).assertGet shouldBe true
       map.currentFilePath.fileId.assertGet shouldBe(3, Extension.Log)
+      map.path.resolveSibling(0.toLogFileId).exists shouldBe false //0.log gets deleted
+      map.path.resolveSibling(1.toLogFileId).exists shouldBe false //1.log gets deleted
+      map.path.resolveSibling(2.toLogFileId).exists shouldBe false //2.log gets deleted
 
       //reopen file
       val skipList = new ConcurrentSkipListMap[Slice[Byte], (ValueType, Option[Slice[Byte]])](ordering)
@@ -239,9 +252,6 @@ class MapSpec extends TestBase {
       recoveredFile.isMemoryMapped.assertGet shouldBe true
       recoveredFile.existsOnDisk shouldBe true
       recoveredFile.path.fileId.assertGet shouldBe(4, Extension.Log) //file id gets incremented on recover
-      recoveredFile.path.resolveSibling(0.toLogFileId).exists shouldBe false //0.log gets deleted
-      recoveredFile.path.resolveSibling(1.toLogFileId).exists shouldBe false //1.log gets deleted
-      recoveredFile.path.resolveSibling(2.toLogFileId).exists shouldBe false //2.log gets deleted
       recoveredFile.path.resolveSibling(3.toLogFileId).exists shouldBe false //3.log gets deleted
 
       skipList.isEmpty shouldBe false
@@ -262,6 +272,11 @@ class MapSpec extends TestBase {
       skipList2.get(1: Slice[Byte]) shouldBe ((ValueType.Add, Some(1)))
       skipList2.get(2: Slice[Byte]) shouldBe ((ValueType.Remove, Some(2)))
       skipList2.get(3: Slice[Byte]) shouldBe ((ValueType.Add, Some(3)))
+
+      map.close().assertGet
+      recoveredFile.close.assertGet
+      recoveredFile2.close.assertGet
+
     }
 
     "recover from an existing PersistentMap folder with empty memory map" in {
@@ -280,6 +295,8 @@ class MapSpec extends TestBase {
       file.path.resolveSibling(0.toLogFileId).exists shouldBe false //0.log gets deleted
 
       skipList.isEmpty shouldBe true
+
+      file.close.assertGet
     }
   }
 
@@ -301,6 +318,9 @@ class MapSpec extends TestBase {
       nextFileSkipList.get(1: Slice[Byte]) shouldBe ((ValueType.Add, Some(1)))
       nextFileSkipList.get(2: Slice[Byte]) shouldBe ((ValueType.Add, Some(2)))
       nextFileSkipList.get(3: Slice[Byte]) shouldBe ((ValueType.Remove, Some(3)))
+
+      currentFile.close.assertGet
+      nextFile.close.assertGet
     }
   }
 
@@ -310,6 +330,7 @@ class MapSpec extends TestBase {
       i =>
         map.add(i, (ValueType.Add, Some(i))).assertGet shouldBe true
     }
+    map.size shouldBe 100
     val allBytes = Files.readAllBytes(map.currentFilePath)
 
     "fail if the WAL file is corrupted and and when dropCorruptedTailEntries = false" in {

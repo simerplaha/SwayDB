@@ -34,11 +34,12 @@ class MapsStressSpec extends TestBase {
 
   implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
   implicit val serializer = Level0KeyValuesSerializer(ordering)
-  val keyValueCount = 10
+
+//  override def deleteFiles = false
 
   "Maps.persistent" should {
     "initialise and recover over 1000 maps persistent map and on reopening them should recover state all 1000 persisted maps" in {
-      val keyValues = randomIntKeyValues(keyValueCount)
+      val keyValues = randomIntKeyValues(10)
 
       //disable braking
       val acceleration =
@@ -46,19 +47,17 @@ class MapsStressSpec extends TestBase {
           Accelerator(meter.currentMapSize, None)
         }
 
-      def testWrite(maps: Maps[Slice[Byte], (ValueType, Option[Slice[Byte]])]) = {
+      def testWrite(maps: Maps[Slice[Byte], (ValueType, Option[Slice[Byte]])]) =
         keyValues foreach {
           keyValue =>
             maps.add(keyValue.key, (ValueType.Add, keyValue.getOrFetchValue.assertGetOpt)).assertGet
         }
-      }
 
-      def testRead(maps: Maps[Slice[Byte], (ValueType, Option[Slice[Byte]])]) = {
+      def testRead(maps: Maps[Slice[Byte], (ValueType, Option[Slice[Byte]])]) =
         keyValues foreach {
           keyValue =>
             maps.get(keyValue.key).assertGet._2 shouldBe ((ValueType.Add, keyValue.getOrFetchValue.assertGetOpt))
         }
-      }
 
       val dir1 = IO.createDirectoryIfAbsent(testDir.resolve(1.toString))
       val dir2 = IO.createDirectoryIfAbsent(testDir.resolve(2.toString))
