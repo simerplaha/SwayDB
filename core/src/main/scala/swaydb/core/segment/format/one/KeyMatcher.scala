@@ -79,8 +79,13 @@ private[core] object KeyMatcher {
       next match {
         case Some(next) =>
           val nextCompare = ordering.compare(next.key, key)
-          if (nextCompare >= 0)
-            Matched(previous)
+          if (nextCompare >= 0) {
+            val previousCompare = ordering.compare(previous.key, key)
+            if (previousCompare < 0)
+              Matched(previous)
+            else
+              Stop
+          }
           else if (nextCompare < 0)
             if (hasMore)
               Next

@@ -144,9 +144,9 @@ private[segment] class PersistentSegment(val file: DBFile,
 
           recover =
             (segments: Slice[Segment], _: Failure[Slice[Segment]]) =>
-              segments.foreach {
+              segments foreach {
                 segmentToDelete =>
-                  segmentToDelete.delete.failed.foreach {
+                  segmentToDelete.delete.failed foreach {
                     exception =>
                       logger.error(s"{}: Failed to delete Segment '{}' in recover due to failed put", path, segmentToDelete.path, exception)
                   }

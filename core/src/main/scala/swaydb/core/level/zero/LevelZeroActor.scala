@@ -24,6 +24,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.actor.{Actor, ActorRef}
+import swaydb.core.level.LevelException.ContainsOverlappingBusySegments
 import swaydb.core.level.actor.LevelCommand._
 import swaydb.core.level.actor.{LevelZeroAPI, LevelZeroCommand}
 import swaydb.data.slice.Slice
@@ -109,7 +110,14 @@ private[core] class LevelZeroActor(zero: LevelZero)(implicit ec: ExecutionContex
                 }
 
               case Failure(exception) =>
-                logger.debug(s"{}: Failed to push. Waiting for pull", zero.path, exception)
+                exception match {
+                  //do not log the stack if the Failure to merge was ContainsOverlappingBusySegments.
+                  case ContainsOverlappingBusySegments =>
+                    logger.debug(s"{}: Failed to push. Waiting for pull. Cause - {}", zero.path, ContainsOverlappingBusySegments.getClass.getSimpleName.dropRight(1))
+                  case _ =>
+                    logger.debug(s"{}: Failed to push. Waiting for pull", zero.path, exception)
+                }
+
                 //wait for a Pull. But if a new maps gets added while waiting for a Pull.
                 //Try Push anyway, even if it's waiting for pull.
                 nextLevel ! PullRequest(self)

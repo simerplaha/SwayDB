@@ -119,7 +119,7 @@ private[core] object Level extends LazyLogging {
           (appendix: Map[Slice[Byte], Segment]) =>
             logger.debug("{}: Checking Segments exist.", levelStorage.dir)
             //check that all existing Segments in appendix also exists on disk or else return error message.
-            appendix.asScala.tryForeach {
+            appendix.asScala tryForeach {
               case (_, segment) =>
                 if (segment.existsOnDisk)
                   Success()

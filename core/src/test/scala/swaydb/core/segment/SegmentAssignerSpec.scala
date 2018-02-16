@@ -101,16 +101,6 @@ class SegmentAssignerSpec extends TestBase {
       result.keys.head.path shouldBe segment2.path
     }
 
-    "assign gap KeyValue to the second Segment, if the second Segment is smaller then the first segment" in {
-      val segment1 = TestSegment(Slice(KeyValue(1), KeyValue(2)).updateStats).get
-      val segment2 = TestSegment(Slice(KeyValue(4))).get
-      val segments = Set(segment1, segment2)
-
-      val result = SegmentAssigner.assign(Slice(KeyValue(3)), segments)
-      result.size shouldBe 1
-      result.keys.head.path shouldBe segment2.path
-    }
-
     "assign key value to the first segment when the key is the new smallest" in {
       val segment1 = TestSegment(Slice(KeyValue(1), KeyValue(2)).updateStats).get
       val segment2 = TestSegment(Slice(KeyValue(4), KeyValue(5)).updateStats).get
@@ -124,11 +114,13 @@ class SegmentAssignerSpec extends TestBase {
     "assign key value to the last segment when the key is the new largest" in {
       val segment1 = TestSegment(Slice(KeyValue(1), KeyValue(2)).updateStats).get
       val segment2 = TestSegment(Slice(KeyValue(4), KeyValue(5)).updateStats).get
-      val segments = Set(segment1, segment2)
+      val segment3 = TestSegment(Slice(KeyValue(6), KeyValue(7)).updateStats).get
+      val segment4 = TestSegment(Slice(KeyValue(8), KeyValue(9)).updateStats).get
+      val segments = Set(segment1, segment2, segment3, segment4)
 
-      val result = SegmentAssigner.assign(Slice(KeyValue(6)), segments)
+      val result = SegmentAssigner.assign(Slice(KeyValue(10)), segments)
       result.size shouldBe 1
-      result.keys.head.path shouldBe segment2.path
+      result.keys.head.path shouldBe segment4.path
     }
 
     "assign all KeyValues to their target Segments" in {
