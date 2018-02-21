@@ -204,9 +204,9 @@ private[core] object Segment {
             cacheKeysOnCreate: Boolean,
             removeDeletes: Boolean,
             checkExists: Boolean)(implicit ordering: Ordering[Slice[Byte]],
-                                         keyValueLimiter: (PersistentReadOnly, Segment) => Unit,
-                                         fileOpenLimited: DBFile => Unit,
-                                         ec: ExecutionContext): Try[Segment] = {
+                                  keyValueLimiter: (PersistentReadOnly, Segment) => Unit,
+                                  fileOpenLimited: DBFile => Unit,
+                                  ec: ExecutionContext): Try[Segment] = {
 
     val file =
       if (mmapReads)
@@ -252,24 +252,11 @@ private[core] object Segment {
   def overlaps(minKey: Slice[Byte],
                maxKey: Slice[Byte],
                segment: Segment)(implicit ordering: Ordering[Slice[Byte]]): Boolean =
-    overlaps((minKey, maxKey), (segment.minKey, segment.maxKey)) ||
-      overlaps((segment.minKey, segment.maxKey), (minKey, maxKey))
-
-  private def overlaps(range1: (Slice[Byte], Slice[Byte]),
-                       range2: (Slice[Byte], Slice[Byte]))(implicit ordering: Ordering[Slice[Byte]]): Boolean = {
-    import ordering._
-    if ((range1._1 equiv range2._1) || (range1._2 equiv range2._1))
-      true
-    else if ((range1._1 equiv range2._2) || (range1._2 equiv range2._2))
-      true
-    else
-      range2._1 <= range1._1 && range1._2 <= range2._2
-  }
+    Slice.intersects((minKey, maxKey), (segment.minKey, segment.maxKey))
 
   def overlaps(segment1: Segment,
                segment2: Segment)(implicit ordering: Ordering[Slice[Byte]]): Boolean =
-    overlaps(segment1.minKey, segment1.maxKey, segment2) ||
-      overlaps(segment2.minKey, segment2.maxKey, segment1)
+    overlaps(segment1.minKey, segment1.maxKey, segment2)
 
   def nonOverlapping(segments1: Iterable[Segment],
                      segments2: Iterable[Segment])(implicit ordering: Ordering[Slice[Byte]]): Iterable[Segment] =

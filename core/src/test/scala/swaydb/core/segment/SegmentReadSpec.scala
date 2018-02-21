@@ -83,28 +83,35 @@ class SegmentReadSpec extends TestBase with ScalaFutures with PrivateMethodTeste
     "return true for overlapping KeyValues else false" in {
       val segment = TestSegment(Slice(KeyValue(1), Delete(5)).updateStats).assertGet
 
-      //exact
+      //      1 - 5
+      //      1 - 5
       Segment.overlaps(1, 5, segment) shouldBe true
-
-      //outer left
+      //0 - 0
+      //      1 - 5
       Segment.overlaps(0, 0, segment) shouldBe false
-
-      //middle
+      //  0 - 1
+      //      1 - 5
       Segment.overlaps(0, 1, segment) shouldBe true
-      Segment.overlaps(1, 2, segment) shouldBe true
-      Segment.overlaps(2, 3, segment) shouldBe true
-      Segment.overlaps(3, 4, segment) shouldBe true
-      Segment.overlaps(4, 5, segment) shouldBe true
+      //    0 - 2
+      //      1 - 5
+      Segment.overlaps(0, 2, segment) shouldBe true
+      //       2-4
+      //      1 - 5
+      Segment.overlaps(2, 4, segment) shouldBe true
+      //        4 - 6
+      //      1 - 5
+      Segment.overlaps(4, 6, segment) shouldBe true
+      //          5 - 6
+      //      1 - 5
       Segment.overlaps(5, 6, segment) shouldBe true
-
-      //outer right
+      //            6 - 7
+      //      1 - 5
       Segment.overlaps(6, 7, segment) shouldBe false
 
       //wide outer overlap
+      //    0   -   6
+      //      1 - 5
       Segment.overlaps(0, 6, segment) shouldBe true
-
-      //wide inner overlap
-      Segment.overlaps(2, 4, segment) shouldBe true
 
       segment.close.assertGet
     }

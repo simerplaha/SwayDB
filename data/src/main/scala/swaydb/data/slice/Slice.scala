@@ -67,6 +67,18 @@ object Slice {
   def writeString(string: String, charsets: Charset = StandardCharsets.UTF_8): Slice[Byte] =
     Slice(string.getBytes(charsets))
 
+  def intersects[T](range1: (Slice[T], Slice[T]),
+                    range2: (Slice[T], Slice[T]))(implicit ordering: Ordering[Slice[T]]): Boolean = {
+    import ordering._
+
+    def check(range1: (Slice[T], Slice[T]),
+              range2: (Slice[T], Slice[T])): Boolean =
+      range1._1 >= range2._1 && range1._1 <= range2._2 ||
+        range1._2 >= range2._1 && range1._2 <= range2._2
+
+    check(range1, range2) || check(range2, range1)
+  }
+
   implicit class SlicesImplicits[T: ClassTag](slices: Slice[Slice[T]]) {
     /**
       * Closes this Slice and children Slices which disables
