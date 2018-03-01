@@ -19,7 +19,7 @@
 
 package swaydb.core.segment
 
-import swaydb.core.data.KeyValue
+import swaydb.core.data.KeyValueWriteOnly
 import swaydb.data.slice.Slice
 
 import scala.annotation.tailrec
@@ -28,10 +28,10 @@ import swaydb.core.util.SliceUtil._
 
 private[core] object SegmentMerge {
 
-  def mergeSmallerSegmentWithPrevious(segments: ListBuffer[Slice[KeyValue]],
+  def mergeSmallerSegmentWithPrevious(segments: ListBuffer[Slice[KeyValueWriteOnly]],
                                       minSegmentSize: Long,
                                       forMemory: Boolean,
-                                      bloomFilterFalsePositiveRate: Double): ListBuffer[Slice[KeyValue]] =
+                                      bloomFilterFalsePositiveRate: Double): ListBuffer[Slice[KeyValueWriteOnly]] =
     if (segments.length >= 2 && ((forMemory && segments.last.memorySegmentSize < minSegmentSize) || segments.last.persistentSegmentSize < minSegmentSize)) {
       val newSegments = segments dropRight 1
       val newSegmentsLast = newSegments.last
@@ -43,9 +43,9 @@ private[core] object SegmentMerge {
     } else
       segments.map(_.close())
 
-  def add(nextKeyValue: KeyValue,
+  def add(nextKeyValue: KeyValueWriteOnly,
           remainingKeyValues: Int,
-          segmentKeyValues: ListBuffer[Slice[KeyValue]],
+          segmentKeyValues: ListBuffer[Slice[KeyValueWriteOnly]],
           minSegmentSize: Long,
           forInMemory: Boolean,
           bloomFilterFalsePositiveRate: Double): Unit = {
@@ -66,7 +66,7 @@ private[core] object SegmentMerge {
         currentSegmentSize + nextKeyValueWithUpdatedStats.stats.thisKeyValuesSegmentSizeWithoutFooter
 
     def startNewSegment(): Unit =
-      segmentKeyValues += Slice.create[KeyValue](remainingKeyValues)
+      segmentKeyValues += Slice.create[KeyValueWriteOnly](remainingKeyValues)
 
     def addKeyValue(): Unit =
       segmentKeyValues.last add nextKeyValueWithUpdatedStats
@@ -78,25 +78,25 @@ private[core] object SegmentMerge {
       addKeyValue()
   }
 
-  def split(keyValues: Slice[KeyValue],
+  def split(keyValues: Slice[KeyValueWriteOnly],
             minSegmentSize: Long,
             removeDeletes: Boolean,
             forInMemory: Boolean,
-            bloomFilterFalsePositiveRate: Double)(implicit ordering: Ordering[Slice[Byte]]): Iterable[Slice[KeyValue]] =
-    merge(keyValues, Slice.create[KeyValue](0), minSegmentSize, removeDeletes = removeDeletes, forInMemory = forInMemory, bloomFilterFalsePositiveRate)
+            bloomFilterFalsePositiveRate: Double)(implicit ordering: Ordering[Slice[Byte]]): Iterable[Slice[KeyValueWriteOnly]] =
+    merge(keyValues, Slice.create[KeyValueWriteOnly](0), minSegmentSize, removeDeletes = removeDeletes, forInMemory = forInMemory, bloomFilterFalsePositiveRate)
 
-  def merge(newKeyValues: Slice[KeyValue],
-            currentKeyValues: Slice[KeyValue],
+  def merge(newKeyValues: Slice[KeyValueWriteOnly],
+            currentKeyValues: Slice[KeyValueWriteOnly],
             minSegmentSize: Long,
             removeDeletes: Boolean,
             forInMemory: Boolean,
-            bloomFilterFalsePositiveRate: Double)(implicit ordering: Ordering[Slice[Byte]]): Iterable[Slice[KeyValue]] = {
+            bloomFilterFalsePositiveRate: Double)(implicit ordering: Ordering[Slice[Byte]]): Iterable[Slice[KeyValueWriteOnly]] = {
     import ordering._
-    val splits = ListBuffer[Slice[KeyValue]](Slice.create[KeyValue](newKeyValues.size + currentKeyValues.size))
+    val splits = ListBuffer[Slice[KeyValueWriteOnly]](Slice.create[KeyValueWriteOnly](newKeyValues.size + currentKeyValues.size))
 
     @tailrec
-    def doMerge(newKeyValues: Slice[KeyValue],
-                oldKeyValues: Slice[KeyValue]): ListBuffer[Slice[KeyValue]] = {
+    def doMerge(newKeyValues: Slice[KeyValueWriteOnly],
+                oldKeyValues: Slice[KeyValueWriteOnly]): ListBuffer[Slice[KeyValueWriteOnly]] = {
       //used to create the new split Slice for new split segment.
       def remainingKeyValuesCount = newKeyValues.size + currentKeyValues.size
 

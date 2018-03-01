@@ -20,7 +20,7 @@
 package swaydb.core.level.actor
 
 import swaydb.core.actor.ActorRef
-import swaydb.core.data.ValueType
+import swaydb.core.data.Value
 import swaydb.core.map.Map
 import swaydb.core.segment.Segment
 import swaydb.data.slice.Slice
@@ -63,6 +63,6 @@ object LevelCommand {
 
   case class PullRequest(pullFrom: ActorRef[Pull]) extends LevelAPI
 
-  case class PushMap(map: Map[Slice[Byte], (ValueType, Option[Slice[Byte]])],
+  case class PushMap(map: Map[Slice[Byte], Value],
                      replyTo: ActorRef[PushMapResponse]) extends LevelAPI
 }

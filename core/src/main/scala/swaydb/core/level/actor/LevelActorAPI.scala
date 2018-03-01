@@ -19,7 +19,7 @@
 
 package swaydb.core.level.actor
 
-import swaydb.core.data.ValueType
+import swaydb.core.data.Value
 import swaydb.core.level.PathsDistributor
 import swaydb.core.map.Map
 import swaydb.core.segment.Segment
@@ -60,7 +60,7 @@ private[core] trait LevelActorAPI {
 
   def removeSegments(segments: Iterable[Segment]): Try[Int]
 
-  def putMap(map: Map[Slice[Byte], (ValueType, Option[Slice[Byte]])]): Try[Unit]
+  def putMap(map: Map[Slice[Byte], Value]): Try[Unit]
 
   def put(segments: Iterable[Segment]): Try[Unit]
 

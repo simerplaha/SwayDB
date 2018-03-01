@@ -19,7 +19,7 @@
 
 package swaydb.core.segment
 
-import swaydb.core.data.{KeyValue, ValueType}
+import swaydb.core.data.{KeyValueWriteOnly, Value}
 import swaydb.core.map.Map
 import swaydb.data.slice.Slice
 
@@ -28,7 +28,7 @@ import scala.collection.mutable
 
 private[core] object SegmentAssigner {
 
-  def assign(map: Map[Slice[Byte], (ValueType, Option[Slice[Byte]])],
+  def assign(map: Map[Slice[Byte], Value],
              targetSegments: Iterable[Segment])(implicit ordering: Ordering[Slice[Byte]]): Iterable[Segment] =
     SegmentAssigner.assign(Segment.tempMinMaxKeyValues(map), targetSegments).keys
 
@@ -36,15 +36,15 @@ private[core] object SegmentAssigner {
              targetSegments: Iterable[Segment])(implicit ordering: Ordering[Slice[Byte]]): Iterable[Segment] =
     SegmentAssigner.assign(Segment.tempMinMaxKeyValues(inputSegments), targetSegments).keys
 
-  def assign(keyValues: Slice[KeyValue],
-             segments: Iterable[Segment])(implicit ordering: Ordering[Slice[Byte]]): mutable.Map[Segment, Slice[KeyValue]] = {
+  def assign(keyValues: Slice[KeyValueWriteOnly],
+             segments: Iterable[Segment])(implicit ordering: Ordering[Slice[Byte]]): mutable.Map[Segment, Slice[KeyValueWriteOnly]] = {
     import ordering._
-    val assignmentsMap = mutable.Map.empty[Segment, Slice[KeyValue]]
+    val assignmentsMap = mutable.Map.empty[Segment, Slice[KeyValueWriteOnly]]
     val segmentsIterator = segments.iterator
 
     def getNextSegmentMayBe() = if (segmentsIterator.hasNext) Some(segmentsIterator.next()) else None
 
-    def assignKeyValueToSegment(segment: Segment, keyValue: Slice[KeyValue]): Unit =
+    def assignKeyValueToSegment(segment: Segment, keyValue: Slice[KeyValueWriteOnly]): Unit =
       assignmentsMap.get(segment) match {
         case Some(currentSlice) =>
           assignmentsMap += (segment -> keyValues.slice(currentSlice.fromOffset, currentSlice.toOffset + 1))
@@ -53,7 +53,7 @@ private[core] object SegmentAssigner {
       }
 
     @tailrec
-    def assign(remainingKeyValues: Slice[KeyValue],
+    def assign(remainingKeyValues: Slice[KeyValueWriteOnly],
                thisSegmentMayBe: Option[Segment],
                nextSegmentMayBe: Option[Segment]): Unit = {
       (remainingKeyValues.headOption, thisSegmentMayBe, nextSegmentMayBe) match {

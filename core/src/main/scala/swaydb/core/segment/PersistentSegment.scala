@@ -115,7 +115,7 @@ private[segment] class PersistentSegment(val file: DBFile,
   /**
     * Default targetPath is set to this [[PersistentSegment]]'s parent directory.
     */
-  def put(newKeyValues: Slice[KeyValue],
+  def put(newKeyValues: Slice[KeyValueWriteOnly],
           minSegmentSize: Long,
           bloomFilterFalsePositiveRate: Double,
           targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Try[Slice[Segment]] =

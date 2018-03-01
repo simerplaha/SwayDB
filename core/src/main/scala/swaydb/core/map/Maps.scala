@@ -25,7 +25,7 @@ import java.util.concurrent.ConcurrentLinkedDeque
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.brake.BrakePedal
 import swaydb.core.io.file.IO
-import swaydb.core.map.serializer.MapSerializer
+import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.core.util.FileUtil._
 import swaydb.core.util.TryUtil._
 import swaydb.data.accelerate.{Accelerator, Level0Meter}
@@ -42,7 +42,8 @@ private[core] object Maps extends LazyLogging {
 
   def memory[K, V: ClassTag](fileSize: Long,
                              acceleration: Level0Meter => Accelerator)(implicit ordering: Ordering[K],
-                                                                       serializer: MapSerializer[K, V],
+                                                                       mapReader: MapEntryReader[MapEntry[K, V]],
+                                                                       writer: MapEntryWriter[MapEntry.Add[K, V]],
                                                                        ec: ExecutionContext): Maps[K, V] =
     new Maps[K, V](
       maps = new ConcurrentLinkedDeque[Map[K, V]](),
@@ -56,7 +57,8 @@ private[core] object Maps extends LazyLogging {
                                  fileSize: Long,
                                  acceleration: Level0Meter => Accelerator,
                                  recovery: RecoveryMode)(implicit ordering: Ordering[K],
-                                                         serializer: MapSerializer[K, V],
+                                                         writer: MapEntryWriter[MapEntry.Add[K, V]],
+                                                         reader: MapEntryReader[MapEntry[K, V]],
                                                          ec: ExecutionContext): Try[Maps[K, V]] = {
     logger.debug("{}: Maps persistent started. Initialising recovery.", path)
     //reverse to keep the newest maps at the top.
@@ -77,7 +79,7 @@ private[core] object Maps extends LazyLogging {
           }
         //delete maps that are empty.
         val (emptyMaps, otherMaps) = recoveredMapsReversed.partition(_.isEmpty)
-        logger.info(s"{}: Deleting empty {} maps {}.", path, emptyMaps.size, emptyMaps.flatMap(_.pathOption).map(_.toString).mkString(", "))
+        if (emptyMaps.nonEmpty) logger.info(s"{}: Deleting empty {} maps {}.", path, emptyMaps.size, emptyMaps.flatMap(_.pathOption).map(_.toString).mkString(", "))
         emptyMaps tryForeach (_.delete) match {
           case Some(Failure(exception)) =>
             logger.error(s"{}: Failed to delete empty maps {}", path, emptyMaps.flatMap(_.pathOption).map(_.toString).mkString(", "))
@@ -99,8 +101,9 @@ private[core] object Maps extends LazyLogging {
                                       mmap: Boolean,
                                       fileSize: Long,
                                       recovery: RecoveryMode)(implicit ordering: Ordering[K],
-                                                              ec: ExecutionContext,
-                                                              serializer: MapSerializer[K, V]): Try[Seq[Map[K, V]]] = {
+                                                              writer: MapEntryWriter[MapEntry.Add[K, V]],
+                                                              mapReader: MapEntryReader[MapEntry[K, V]],
+                                                              ec: ExecutionContext): Try[Seq[Map[K, V]]] = {
     /**
       * Performs corruption handling based on the the value set for [[RecoveryMode]].
       */
@@ -111,7 +114,7 @@ private[core] object Maps extends LazyLogging {
       exception match {
         case exception: IllegalStateException =>
           recovery match {
-            case RecoveryMode.Report =>
+            case RecoveryMode.ReportCorruption =>
               //return failure immediately without effecting the current state of Level0
               Failure(exception)
 
@@ -187,8 +190,9 @@ private[core] object Maps extends LazyLogging {
 
   def nextMap[K, V: ClassTag](nextMapSize: Long,
                               currentMap: Map[K, V])(implicit ordering: Ordering[K],
-                                                     ec: ExecutionContext,
-                                                     serializer: MapSerializer[K, V]): Try[Map[K, V]] =
+                                                     mapReader: MapEntryReader[MapEntry[K, V]],
+                                                     writer: MapEntryWriter[MapEntry.Add[K, V]],
+                                                     ec: ExecutionContext): Try[Map[K, V]] =
     currentMap match {
       case currentMap @ PersistentMap(path, _, mmap, _, _, _) =>
         currentMap.close() flatMap {
@@ -205,7 +209,8 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
                                          fileSize: Long,
                                          acceleration: Level0Meter => Accelerator,
                                          @volatile private var currentMap: Map[K, V])(implicit ordering: Ordering[K],
-                                                                                      serializer: MapSerializer[K, V],
+                                                                                      mapReader: MapEntryReader[MapEntry[K, V]],
+                                                                                      writer: MapEntryWriter[MapEntry.Add[K, V]],
                                                                                       ec: ExecutionContext) extends LazyLogging {
 
   private var meter = Level0Meter(fileSize, currentMap.fileSize, maps.size() + 1)
@@ -217,16 +222,10 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
   def setOnFullListener(event: () => Unit) =
     onFullListener = event
 
-  def add(key: K, value: V): Try[Level0Meter] =
-    add(MapEntry.Add(key, value))
-
-  def remove(key: K): Try[Level0Meter] =
-    add(MapEntry.Remove[K, V](key))
-
-  def add(mapEntry: MapEntry[K, V]): Try[Level0Meter] =
+  def write(mapEntry: MapEntry[K, V]): Try[Level0Meter] =
     synchronized {
       if (brakePedal != null && brakePedal.applyBrakes()) brakePedal = null
-      write(mapEntry)
+      persist(mapEntry)
     }
 
   /**
@@ -235,7 +234,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
     *         in LevelZero to determine if there is a map that should be converted Segment.
     */
   @tailrec
-  private def write(entry: MapEntry[K, V]): Try[Level0Meter] =
+  private def persist(entry: MapEntry[K, V]): Try[Level0Meter] =
     currentMap.write(entry) match {
       case Success(writeSuccessful) =>
         if (writeSuccessful)
@@ -259,7 +258,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
                   currentMap = nextMap
                   meter = Level0Meter(fileSize, nextMapSize, mapsSize + 1)
                   onFullListener()
-                  write(entry)
+                  persist(entry)
 
                 case Failure(exception) =>
                   Failure(exception)

@@ -21,7 +21,7 @@ package swaydb.core.level
 
 import swaydb.core.TestBase
 import swaydb.core.actor.TestActor
-import swaydb.core.data.KeyValue
+import swaydb.core.data.KeyValueWriteOnly
 import swaydb.core.level.actor.LevelCommand
 import swaydb.core.level.actor.LevelCommand._
 import swaydb.core.util.Benchmark
@@ -75,7 +75,7 @@ class LevelStressSpec extends TestBase with Benchmark {
       val testSegmentsDir = createRandomIntDirectory
 
       def doPut: Unit = {
-        val keyValues: Slice[KeyValue] = randomIntKeyValues(keyValueCount)
+        val keyValues: Slice[KeyValueWriteOnly] = randomIntKeyValues(keyValueCount)
         val segment = TestSegment(keyValues, path = testSegmentsDir.resolve(nextSegmentId)).get
         val replyTo = TestActor[LevelCommand]()
         level1 ! PushSegments(Seq(segment), replyTo)

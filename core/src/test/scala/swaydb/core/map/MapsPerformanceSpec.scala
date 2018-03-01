@@ -20,9 +20,8 @@
 package swaydb.core.map
 
 import swaydb.core.TestBase
-import swaydb.core.data.ValueType
+import swaydb.core.data.Value
 import swaydb.core.io.file.IO
-import swaydb.core.map.serializer.Level0KeyValuesSerializer
 import swaydb.core.util.Benchmark
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.config.RecoveryMode
@@ -33,21 +32,24 @@ import swaydb.order.KeyOrder
 class MapsPerformanceSpec extends TestBase with Benchmark {
 
   implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
-  implicit val serializer = Level0KeyValuesSerializer(ordering)
+
+  import swaydb.core.map.serializer.LevelZeroMapEntryReader._
+  import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
 
   "Maps" should {
     "write key values" in {
       //      val keyValues = randomIntKeyValues(2000000)
       val keyValues = randomIntKeyValues(2000)
 
-      def testWrite(maps: Maps[Slice[Byte], (ValueType, Option[Slice[Byte]])]) =
+      def testWrite(maps: Maps[Slice[Byte], Value]) =
         keyValues foreach {
           keyValue =>
-            maps.add(keyValue.key, (ValueType.Add, keyValue.getOrFetchValue.assertGetOpt))
-          //            maps.add(keyValue.key, (ValueType.Add, keyValue.getOrFetchValue.assertGetOpt)).assertGet
+            maps.write {
+              MapEntry.Add[Slice[Byte], Value.Put](keyValue.key, Value.Put(keyValue.getOrFetchValue.assertGetOpt))(Level0AddWriter)
+            }.assertGet
         }
 
-      def testRead(maps: Maps[Slice[Byte], (ValueType, Option[Slice[Byte]])]) =
+      def testRead(maps: Maps[Slice[Byte], Value]) =
         keyValues foreach {
           keyValue =>
             maps.get(keyValue.key)
@@ -56,7 +58,7 @@ class MapsPerformanceSpec extends TestBase with Benchmark {
 
       val dir1 = IO.createDirectoryIfAbsent(testDir.resolve(1.toString))
 
-      val map1 = Maps.persistent(dir1, mmap = true, 4.mb, Accelerator.noBrakes(), RecoveryMode.Report).assertGet
+      val map1 = Maps.persistent[Slice[Byte], Value](dir1, mmap = true, 4.mb, Accelerator.noBrakes(), RecoveryMode.ReportCorruption).assertGet
       benchmark(s"MMAP = true - writing ${keyValues.size} keys") {
         testWrite(map1)
       }
@@ -65,7 +67,7 @@ class MapsPerformanceSpec extends TestBase with Benchmark {
       }
 
       val dir2 = IO.createDirectoryIfAbsent(testDir.resolve(2.toString))
-      val map2 = Maps.persistent(dir2, mmap = false, 4.mb, Accelerator.noBrakes(), RecoveryMode.Report).assertGet
+      val map2 = Maps.persistent[Slice[Byte], Value](dir2, mmap = false, 4.mb, Accelerator.noBrakes(), RecoveryMode.ReportCorruption).assertGet
       benchmark(s"MMAP = false - writing ${keyValues.size} keys") {
         testWrite(map2)
       }

@@ -17,32 +17,27 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.data
+package swaydb.core.map.serializer
 
-private[swaydb] sealed trait ValueType {
-  def id: Int
+import swaydb.core.map.MapEntry
+import swaydb.data.slice.Slice
 
-  def isDelete: Boolean
+import scala.annotation.implicitNotFound
 
-  def notDelete: Boolean = !isDelete
+@implicitNotFound("Type class implementation not found for MapEntryWriter of type ${T}")
+trait MapEntryWriter[T <: MapEntry[_, _]] {
+  val id: Int
+
+  def write(entry: T, bytes: Slice[Byte]): Unit
+
+  def bytesRequired(entry: T): Int
 }
 
-private[swaydb] object ValueType {
+object MapEntryWriter {
 
-  def apply(id: Int): ValueType =
-    if (id == Add.id)
-      Add
-    else
-      Remove
+  def write[T <: MapEntry[_, _]](entry: T, bytes: Slice[Byte])(implicit serializer: MapEntryWriter[T]): Unit =
+    serializer.write(entry, bytes)
 
-  object Add extends ValueType {
-    override def id: Int = 0x00
-
-    override def isDelete: Boolean = false
-  }
-  object Remove extends ValueType {
-    override def id: Int = 0x01
-
-    override def isDelete: Boolean = true
-  }
+  def bytesRequired[T <: MapEntry[_, _]](entry: T)(implicit serializer: MapEntryWriter[T]): Int =
+    serializer.bytesRequired(entry)
 }

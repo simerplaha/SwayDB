@@ -21,8 +21,11 @@ package swaydb.core.tool
 
 import java.nio.file.NoSuchFileException
 
-import swaydb.core.TestBase
-import swaydb.core.io.file.IO
+import swaydb.core.data.PersistentReadOnly
+import swaydb.core.{TestBase, TestLimitQueues}
+import swaydb.core.io.file.{DBFile, IO}
+import swaydb.core.map.serializer.AppendixMapEntryReader
+import swaydb.core.segment.Segment
 import swaydb.data.slice.Slice
 import swaydb.data.repairAppendix.{AppendixRepairStrategy, OverlappingSegmentsException}
 import swaydb.data.util.StorageUnits._
@@ -34,6 +37,9 @@ import scala.util.Random
 class AppendixRepairerSpec extends TestBase {
 
   implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
+
+  implicit val maxSegmentsOpenCacheImplicitLimiter: DBFile => Unit = TestLimitQueues.fileOpenLimiter
+  implicit val keyValuesLimitImplicitLimiter: (PersistentReadOnly, Segment) => Unit = TestLimitQueues.keyValueLimiter
 
   "AppendixRepair" should {
     "fail if the input path does not exist" in {

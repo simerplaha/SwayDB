@@ -20,7 +20,7 @@
 package swaydb.core.segment
 
 import swaydb.core.TestBase
-import swaydb.core.data.{KeyValue, Transient}
+import swaydb.core.data.{KeyValueWriteOnly, Transient}
 import swaydb.core.util.FileUtil._
 import swaydb.data.slice.Slice
 import swaydb.order.KeyOrder
@@ -141,23 +141,23 @@ class SegmentAssignerSpec extends TestBase {
 
       resultArray(0)._1.path shouldBe segment1.path
       resultArray(0)._2 should have size 1
-      resultArray(0)._2.head.key shouldBe 1
+      resultArray(0)._2.head.key shouldBe (1: Slice[Byte])
 
       resultArray(1)._1.path shouldBe segment2.path
       resultArray(1)._2 should have size 1
-      resultArray(1)._2.head.key shouldBe 2
+      resultArray(1)._2.head.key shouldBe (2: Slice[Byte])
 
       resultArray(2)._1.path shouldBe segment3.path
       resultArray(2)._2 should have size 1
-      resultArray(2)._2.head.key shouldBe 3
+      resultArray(2)._2.head.key shouldBe (3: Slice[Byte])
 
       resultArray(3)._1.path shouldBe segment4.path
       resultArray(3)._2 should have size 1
-      resultArray(3)._2.head.key shouldBe 4
+      resultArray(3)._2.head.key shouldBe (4: Slice[Byte])
 
       resultArray(4)._1.path shouldBe segment5.path
       resultArray(4)._2 should have size 1
-      resultArray(4)._2.head.key shouldBe 5
+      resultArray(4)._2.head.key shouldBe (5: Slice[Byte])
     }
   }
 }

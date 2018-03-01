@@ -20,26 +20,29 @@
 package swaydb.core.map
 
 import swaydb.core.TestBase
-import swaydb.core.data.ValueType
+import swaydb.core.data.Value
 import swaydb.core.io.file.IO
-import swaydb.core.map.serializer.Level0KeyValuesSerializer
-import swaydb.data.slice.Slice
 import swaydb.core.util.FileUtil._
-import swaydb.data.accelerate.{Accelerator, Brake, Level0Meter}
+import swaydb.data.accelerate.{Accelerator, Level0Meter}
 import swaydb.data.config.RecoveryMode
+import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.order.KeyOrder
+import swaydb.serializers._
+import swaydb.serializers.Default._
 
 class MapsStressSpec extends TestBase {
 
   implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
-  implicit val serializer = Level0KeyValuesSerializer(ordering)
 
-//  override def deleteFiles = false
+  import swaydb.core.map.serializer.LevelZeroMapEntryReader._
+  import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
+
+  val keyValueCount = 100
 
   "Maps.persistent" should {
     "initialise and recover over 1000 maps persistent map and on reopening them should recover state all 1000 persisted maps" in {
-      val keyValues = randomIntKeyValues(10)
+      val keyValues = randomIntKeyValues(keyValueCount)
 
       //disable braking
       val acceleration =
@@ -47,26 +50,28 @@ class MapsStressSpec extends TestBase {
           Accelerator(meter.currentMapSize, None)
         }
 
-      def testWrite(maps: Maps[Slice[Byte], (ValueType, Option[Slice[Byte]])]) =
+      def testWrite(maps: Maps[Slice[Byte], Value]) = {
         keyValues foreach {
           keyValue =>
-            maps.add(keyValue.key, (ValueType.Add, keyValue.getOrFetchValue.assertGetOpt)).assertGet
+            maps.write(MapEntry.Add(keyValue.key, Value.Put(keyValue.getOrFetchValue.assertGetOpt))).assertGet
         }
+      }
 
-      def testRead(maps: Maps[Slice[Byte], (ValueType, Option[Slice[Byte]])]) =
+      def testRead(maps: Maps[Slice[Byte], Value]) = {
         keyValues foreach {
           keyValue =>
-            maps.get(keyValue.key).assertGet._2 shouldBe ((ValueType.Add, keyValue.getOrFetchValue.assertGetOpt))
+            maps.get(keyValue.key).assertGet._2 shouldBe Value.Put(keyValue.getOrFetchValue.assertGetOpt)
         }
+      }
 
       val dir1 = IO.createDirectoryIfAbsent(testDir.resolve(1.toString))
       val dir2 = IO.createDirectoryIfAbsent(testDir.resolve(2.toString))
 
-      val map1 = Maps.persistent(dir1, mmap = true, 1.byte, acceleration, RecoveryMode.Report).assertGet
+      val map1 = Maps.persistent[Slice[Byte], Value](dir1, mmap = true, 1.byte, acceleration, RecoveryMode.ReportCorruption).assertGet
       testWrite(map1)
       testRead(map1)
 
-      val map2 = Maps.persistent(dir2, mmap = true, 1.byte, acceleration, RecoveryMode.Report).assertGet
+      val map2 = Maps.persistent[Slice[Byte], Value](dir2, mmap = true, 1.byte, acceleration, RecoveryMode.ReportCorruption).assertGet
       testWrite(map2)
       testRead(map2)
 
@@ -75,9 +80,9 @@ class MapsStressSpec extends TestBase {
       testRead(map3)
 
       def reopen = {
-        val open1 = Maps.persistent(dir1, mmap = false, 1.byte, acceleration, RecoveryMode.Report).assertGet
+        val open1 = Maps.persistent[Slice[Byte], Value](dir1, mmap = false, 1.byte, acceleration, RecoveryMode.ReportCorruption).assertGet
         testRead(open1)
-        val open2 = Maps.persistent(dir2, mmap = true, 1.byte, acceleration, RecoveryMode.Report).assertGet
+        val open2 = Maps.persistent[Slice[Byte], Value](dir2, mmap = true, 1.byte, acceleration, RecoveryMode.ReportCorruption).assertGet
         testRead(open2)
 
         open1.close.assertGet

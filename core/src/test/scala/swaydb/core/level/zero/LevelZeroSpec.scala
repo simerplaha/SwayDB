@@ -21,11 +21,9 @@ package swaydb.core.level.zero
 
 import org.scalamock.scalatest.MockFactory
 import swaydb.core.TestBase
+import swaydb.core.data.Transient
 import swaydb.core.data.Transient.Remove
-import swaydb.core.data.{KeyValue, Transient, ValueType}
 import swaydb.core.io.file.IO
-import swaydb.core.map.MapEntry
-import swaydb.core.map.serializer.Level0KeyValuesSerializer
 import swaydb.core.util.Benchmark
 import swaydb.data.compaction.Throttle
 import swaydb.data.slice.Slice
@@ -62,7 +60,9 @@ class LevelZeroSpec3 extends LevelZeroSpec {
 class LevelZeroSpec extends TestBase with MockFactory with Benchmark {
 
   implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
-  implicit val serializer = Level0KeyValuesSerializer(ordering)
+
+  import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
+
   val keyValuesCount = 10
 
   //  override def deleteFiles = false
@@ -85,10 +85,10 @@ class LevelZeroSpec extends TestBase with MockFactory with Benchmark {
     "write key-value" in {
       def assert(zero: LevelZero): Unit = {
         zero.put(1, "one").assertGet
-        zero.get(1).assertGet.assertGet shouldBe "one"
+        zero.get(1).assertGet.assertGet shouldBe ("one": Slice[Byte])
 
         zero.put("2", "two").assertGet
-        zero.get("2").assertGet.assertGet shouldBe "two"
+        zero.get("2").assertGet.assertGet shouldBe ("two": Slice[Byte])
       }
 
       val zero = TestLevelZero(TestLevel(throttle = (_) => Throttle(10.seconds, 0)))
@@ -249,16 +249,16 @@ class LevelZeroSpec extends TestBase with MockFactory with Benchmark {
       zero.put(5, "five").assertGet
 
       val (headKey, headValue) = zero.head.assertGet
-      headKey shouldBe 1
-      headValue.assertGet shouldBe "one"
+      headKey shouldBe (1: Slice[Byte])
+      headValue.assertGet shouldBe ("one": Slice[Byte])
 
       //remove 1
       zero.remove(1).assertGet
       println
       val (headKey2, headValue2) = zero.head.assertGet
       println("headKey2: " + headKey2.read[Int])
-      headKey2 shouldBe 2
-      headValue2.assertGet shouldBe "two"
+      headKey2 shouldBe (2: Slice[Byte])
+      headValue2.assertGet shouldBe ("two": Slice[Byte])
 
       zero.remove(2).assertGet
       zero.remove(3).assertGet
@@ -267,8 +267,8 @@ class LevelZeroSpec extends TestBase with MockFactory with Benchmark {
       println
       val (headKey5, headValue5) = zero.head.assertGet
       println("headKey5: " + headKey5.read[Int])
-      headKey5 shouldBe 5
-      headValue5.assertGet shouldBe "five"
+      headKey5 shouldBe (5: Slice[Byte])
+      headValue5.assertGet shouldBe ("five": Slice[Byte])
 
       zero.remove(5).assertGet
       zero.head.assertGetOpt shouldBe empty
@@ -287,16 +287,16 @@ class LevelZeroSpec extends TestBase with MockFactory with Benchmark {
       zero.put(5, "five").assertGet
 
       val (lastKey, lastValue) = zero.last.assertGet
-      lastKey shouldBe 5
-      lastValue.assertGet shouldBe "five"
+      lastKey shouldBe (5: Slice[Byte])
+      lastValue.assertGet shouldBe ("five": Slice[Byte])
 
       //remove 5
       zero.remove(5).assertGet
       println
       val (lastKey4, lastValue4) = zero.last.assertGet
       println("lastKey4: " + lastKey4.read[Int])
-      lastKey4 shouldBe 4
-      lastValue4.assertGet shouldBe "four"
+      lastKey4 shouldBe (4: Slice[Byte])
+      lastValue4.assertGet shouldBe ("four": Slice[Byte])
 
       zero.remove(2).assertGet
       zero.remove(3).assertGet
@@ -305,8 +305,8 @@ class LevelZeroSpec extends TestBase with MockFactory with Benchmark {
       println
       val (lastKey1, lastValue1) = zero.last.assertGet
       println("lastKey1: " + lastKey1.read[Int])
-      lastKey1 shouldBe 1
-      lastValue1.assertGet shouldBe "one"
+      lastKey1 shouldBe (1: Slice[Byte])
+      lastValue1.assertGet shouldBe ("one": Slice[Byte])
 
       zero.remove(1).assertGet
       zero.last.assertGetOpt shouldBe empty

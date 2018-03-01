@@ -22,7 +22,7 @@ package swaydb.core.map
 import java.util.concurrent.ConcurrentSkipListMap
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.map.serializer.MapSerializer
+import swaydb.core.map.serializer.MapEntryWriter
 
 import scala.reflect.ClassTag
 import scala.util.{Success, Try}
@@ -30,20 +30,14 @@ import scala.util.{Success, Try}
 private[map] class MemoryMap[K, V: ClassTag](val skipList: ConcurrentSkipListMap[K, V],
                                              flushOnOverflow: Boolean,
                                              val fileSize: Long)(implicit ordering: Ordering[K],
-                                                                 serializer: MapSerializer[K, V]) extends Map[K, V] with LazyLogging {
+                                                                 writer: MapEntryWriter[MapEntry.Add[K, V]]) extends Map[K, V] with LazyLogging {
 
   private var currentBytesWritten: Long = 0
 
   def delete: Try[Unit] =
     Try(skipList.clear())
 
-  def add(key: K, value: V): Try[Boolean] =
-    write(MapEntry.Add(key, value))
-
-  def remove(key: K): Try[Boolean] =
-    write(MapEntry.Remove[K, V](key))
-
-  def write(entry: MapEntry[K, V]): Try[Boolean] =
+  override def write(entry: MapEntry[K, V]): Try[Boolean] =
     synchronized {
       if (flushOnOverflow || currentBytesWritten == 0 || ((currentBytesWritten + entry.totalByteSize) <= fileSize)) {
         entry applyTo skipList
@@ -52,4 +46,5 @@ private[map] class MemoryMap[K, V: ClassTag](val skipList: ConcurrentSkipListMap
       } else
         Success(false)
     }
+
 }

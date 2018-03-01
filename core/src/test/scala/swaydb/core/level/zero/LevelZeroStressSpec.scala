@@ -84,7 +84,7 @@ class LevelZeroStressSpec extends TestBase with Benchmark {
           val key = keyValue.key.read[Int]
           if (key % 100000 == 0)
             println(s"GET. KeyValue : $key")
-          zero.get(keyValue.key).assertGetOpt shouldBe keyValue.getOrFetchValue.assertGetOpt
+          zero.get(keyValue.key).assertGet shouldBe keyValue.getOrFetchValue.assertGetOpt
       }
 
     def readLower =

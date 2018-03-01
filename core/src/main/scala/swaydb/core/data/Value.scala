@@ -17,29 +17,35 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.util
+package swaydb.core.data
 
-import swaydb.core.data.KeyValueWriteOnly
-import swaydb.core.io.reader.Reader
-import swaydb.data.slice.{Slice, SliceReader}
+import swaydb.data.slice.Slice
 
-private[core] object SliceUtil {
+private[swaydb] sealed trait Value {
+  def id: Int
 
-  implicit class ByteArrayImplicits(slice: Slice[Byte]) {
-    def createReader(): SliceReader =
-      Reader(slice)
+  def isRemove: Boolean
+
+  def notRemove: Boolean = !isRemove
+}
+
+private[swaydb] object Value {
+
+  sealed trait Remove extends Value
+  case object Remove extends Remove {
+    override def id: Int = 0
+
+    override def isRemove: Boolean = true
   }
 
-  implicit class SliceKeyValueImplicits(slice: Slice[KeyValueWriteOnly]) {
-    def persistentSegmentSize: Int =
-      slice.lastOption.map(_.stats.segmentSize).getOrElse(0)
-
-    def memorySegmentSize: Int =
-      slice.lastOption.map(_.stats.memorySegmentSize).getOrElse(0)
-
-
-    def persistentSegmentSizeWithoutFooter: Int =
-      slice.lastOption.map(_.stats.segmentSizeWithoutFooter).getOrElse(0)
+  object Put {
+    def apply(value: Slice[Byte]): Put =
+      new Put(Some(value))
   }
 
+  case class Put(value: Option[Slice[Byte]]) extends Value {
+    override def id: Int = 1
+
+    override def isRemove: Boolean = false
+  }
 }

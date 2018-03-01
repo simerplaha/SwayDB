@@ -69,21 +69,21 @@ private[core] object Stats {
             value: Slice[Byte],
             isDelete: Boolean,
             falsePositiveRate: Double,
-            previousStats: Option[KeyValue]): Stats =
+            previousStats: Option[KeyValueWriteOnly]): Stats =
     Stats(key, Some(value), isDelete, falsePositiveRate, previousStats)
 
   def apply(key: Slice[Byte],
             value: Option[Slice[Byte]],
             isDelete: Boolean,
             falsePositiveRate: Double,
-            previous: Option[KeyValue]): Stats =
+            previous: Option[KeyValueWriteOnly]): Stats =
     Stats(key, value.map(_.size).getOrElse(0), isDelete, falsePositiveRate, previous)
 
   def apply(key: Slice[Byte],
             valueLength: Int,
             isDelete: Boolean,
             falsePositiveRate: Double,
-            previous: Option[KeyValue]): Stats = {
+            previous: Option[KeyValueWriteOnly]): Stats = {
     val valueOffset =
       previous match {
         case Some(previous) =>
@@ -104,7 +104,7 @@ private[core] object Stats {
                     valueOffset: Int,
                     isDelete: Boolean,
                     falsePositiveRate: Double,
-                    previous: Option[KeyValue]): Stats = {
+                    previous: Option[KeyValueWriteOnly]): Stats = {
 
     val commonBytes: Int =
       previous.map(previousKeyValue => ByteUtilCore.commonPrefixBytes(previousKeyValue.key, key)) getOrElse 0

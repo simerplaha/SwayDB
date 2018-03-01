@@ -23,12 +23,11 @@ import java.nio.channels.{FileChannel, FileLock}
 import java.nio.file.{Path, StandardOpenOption}
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.data.ValueType.{Add, Remove}
-import swaydb.core.data.{PersistentReadOnly, _}
+import swaydb.core.data._
 import swaydb.core.io.file.{DBFile, IO}
 import swaydb.core.level.LevelException.NoNextLevel
 import swaydb.core.level.actor.{LevelAPI, LevelActor, LevelCommand}
-import swaydb.core.map.serializer.AppendixSerializer
+import swaydb.core.map.serializer._
 import swaydb.core.map.{Map, MapEntry}
 import swaydb.core.retry.Retry
 import swaydb.core.segment.SegmentException.SegmentFileMissing
@@ -86,17 +85,22 @@ private[core] object Level extends LazyLogging {
     //acquire lock on folder
     acquireLock(levelStorage) flatMap {
       lock =>
-        //lock acquired. Initialising Level.
-        implicit val serializer: AppendixSerializer =
-          AppendixSerializer(
-            removeDeletedRecords = removeDeletes(nextLevel),
+        //lock acquired.
+        //initialise readers & writers
+        import AppendixMapEntryWriter.{AppendixAddWriter, AppendixRemoveWriter}
+
+        val appendixReader =
+          new AppendixMapEntryReader(
+            removeDeletes = removeDeletes(nextLevel),
             mmapSegmentsOnRead = levelStorage.mmapSegmentsOnWrite,
             mmapSegmentsOnWrite = levelStorage.mmapSegmentsOnRead,
             cacheKeysOnCreate = cacheKeysOnCreate
           )
 
+        import appendixReader._
+
         //initialise appendix
-        val appendix =
+        val appendix: Try[Map[Slice[Byte], Segment]] =
           appendixStorage match {
             case Persistent(mmap, appendixFlushCheckpointSize) =>
               logger.info("{}: Initialising appendix.", levelStorage.dir)
@@ -107,14 +111,15 @@ private[core] object Level extends LazyLogging {
                 Failure(new IllegalStateException(s"Failed to start Level. Appendix file is missing '$appendixFolder'."))
               } else {
                 IO createDirectoriesIfAbsent appendixFolder
-                Map.persistent(appendixFolder, mmap, flushOnOverflow = true, appendixFlushCheckpointSize, dropCorruptedTailEntries = false).map(_.item)
+                Map.persistent[Slice[Byte], Segment](appendixFolder, mmap, flushOnOverflow = true, appendixFlushCheckpointSize, dropCorruptedTailEntries = false).map(_.item)
               }
 
             case AppendixStorage.Memory =>
               logger.info("{}: Initialising appendix for in-memory Level", levelStorage.dir)
-              Try(Map.memory())
+              Try(Map.memory[Slice[Byte], Segment]())
           }
 
+        //initialise Level
         appendix flatMap {
           (appendix: Map[Slice[Byte], Segment]) =>
             logger.debug("{}: Checking Segments exist.", levelStorage.dir)
@@ -131,6 +136,7 @@ private[core] object Level extends LazyLogging {
 
               case None =>
                 logger.info("{}: Starting level.", levelStorage.dir)
+
                 Success(
                   new Level(
                     dirs = levelStorage.dirs,
@@ -173,7 +179,8 @@ private[core] class Level(val dirs: Seq[Dir],
                           appendix: Map[Slice[Byte], Segment],
                           lock: Option[FileLock])(implicit ordering: Ordering[Slice[Byte]],
                                                   ec: ExecutionContext,
-                                                  serializer: AppendixSerializer,
+                                                  removeWriter: MapEntryWriter[MapEntry.Remove[Slice[Byte]]],
+                                                  addWriter: MapEntryWriter[MapEntry.Add[Slice[Byte], Segment]],
                                                   keyValueLimiter: (PersistentReadOnly, Segment) => Unit,
                                                   fileOpenLimited: DBFile => Unit) extends LevelRef with LazyLogging {
 
@@ -296,7 +303,7 @@ private[core] class Level(val dirs: Seq[Dir],
       merge(segments, appendix.values().asScala, None)
   }
 
-  def putMap(map: Map[Slice[Byte], (ValueType, Option[Slice[Byte]])]): Try[Unit] = {
+  def putMap(map: Map[Slice[Byte], Value]): Try[Unit] = {
     logger.trace("{}: PutMap '{}' Maps.", paths.head, map.count())
     //do an initial check to ensure that the Segments do not overlap with busy Segments
     val busySegs = getBusySegments()
@@ -305,18 +312,18 @@ private[core] class Level(val dirs: Seq[Dir],
       Failure(LevelException.ContainsOverlappingBusySegments)
     }
     else
-      map.foldLeft(Slice.create[KeyValue](map.count())) {
-        case (slice, (key, (valueType, value))) =>
-          valueType match {
-            case Add =>
+      map.foldLeft(Slice.create[KeyValueWriteOnly](map.count())) {
+        case (slice, (key, value)) =>
+          value match {
+            case Value.Put(value) =>
               slice add Transient.Put(key, value, bloomFilterFalsePositiveRate, slice.lastOption)
-            case Remove =>
+            case Value.Remove =>
               slice add Transient.Remove(key, bloomFilterFalsePositiveRate, slice.lastOption)
           }
       } ==> (putKeyValues(_, appendix.values().asScala, None))
   }
 
-  def putKeyValues(keyValues: Slice[KeyValue]): Try[Unit] = {
+  def putKeyValues(keyValues: Slice[KeyValueWriteOnly]): Try[Unit] = {
     logger.trace(s"{}: Received put for '{}' KeyValues.", paths.head, keyValues.size)
     putKeyValues(keyValues, appendix.values().asScala, None)
   }
@@ -380,7 +387,8 @@ private[core] class Level(val dirs: Seq[Dir],
       val initialEntry =
       segmentsToMerge.foldLeft(Option.empty[MapEntry[Slice[Byte], Segment]]) {
         case (mapEntry, smallMap) =>
-          mapEntry.map(_ - smallMap.minKey) orElse Some(MapEntry.Remove(smallMap.minKey))
+          val entry = MapEntry.Remove(smallMap.minKey)
+          mapEntry.map(_ ++ entry) orElse Some(entry)
       }
       merge(segments, targetSegments, initialEntry) map {
         _ =>
@@ -459,7 +467,7 @@ private[core] class Level(val dirs: Seq[Dir],
     }
   }
 
-  private def putKeyValues(keyValues: Slice[KeyValue],
+  private def putKeyValues(keyValues: Slice[KeyValueWriteOnly],
                            targetSegments: Iterable[Segment],
                            initialEntry: Option[MapEntry[Slice[Byte], Segment]]): Try[Unit] = {
     logger.trace(s"{}: Merging {} KeyValues.", paths.head, keyValues.size)
@@ -487,9 +495,9 @@ private[core] class Level(val dirs: Seq[Dir],
                   _ =>
                     logger.debug(s"{}: putKeyValues successful. Deleting assigned Segments. {}.", paths.head, assignments.map(_._1.path.toString))
                     //delete assigned segments as they are replaced with new segments.
-                    assignments.foreach {
+                    assignments foreach {
                       case (segment, _) =>
-                        segment.delete.failed.map {
+                        segment.delete.failed map {
                           exception =>
                             logger.error(s"{}: Failed to delete Segment {}", paths.head, segment.path, exception)
                         }
@@ -504,9 +512,9 @@ private[core] class Level(val dirs: Seq[Dir],
                 logFailure(s"${paths.head}: Failed to write key-values. Reverting", exception)
                 targetSegmentAndNewSegments foreach {
                   case (_, newSegments) =>
-                    newSegments.foreach {
+                    newSegments foreach {
                       segment =>
-                        segment.delete.failed.map {
+                        segment.delete.failed map {
                           exception =>
                             logger.error(s"{}: Failed to delete Segment {}", paths.head, segment.path, exception)
                         }
@@ -519,7 +527,7 @@ private[core] class Level(val dirs: Seq[Dir],
     }
   }
 
-  private def addAsNewSegments(keyValues: Slice[KeyValue],
+  private def addAsNewSegments(keyValues: Slice[KeyValueWriteOnly],
                                initialEntry: Option[MapEntry[Slice[Byte], Segment]]): Try[Unit] = {
     logger.debug(s"{}: In addToNewSegments {} KeyValues.", paths.head, keyValues.size)
 
@@ -593,7 +601,7 @@ private[core] class Level(val dirs: Seq[Dir],
         toAlert
     }
 
-  def putAssignedKeyValues(assignedSegments: mutable.Map[Segment, Slice[KeyValue]]): Try[Slice[(Segment, Slice[Segment])]] =
+  def putAssignedKeyValues(assignedSegments: mutable.Map[Segment, Slice[KeyValueWriteOnly]]): Try[Slice[(Segment, Slice[Segment])]] =
     assignedSegments.tryMap[(Segment, Slice[Segment])](
       tryBlock = {
         case (targetSegment, assignedKeyValues) =>
@@ -639,7 +647,7 @@ private[core] class Level(val dirs: Seq[Dir],
       }
     (originalSegmentMayBe match {
       case Some(originalMap) if removeOriginalSegments =>
-        val removeLogEntry = MapEntry.Remove[Slice[Byte], Segment](originalMap.minKey)
+        val removeLogEntry = MapEntry.Remove[Slice[Byte]](originalMap.minKey)
         nextLogEntry.map(_ ++ removeLogEntry) orElse Some(removeLogEntry)
       case _ =>
         nextLogEntry
@@ -660,7 +668,7 @@ private[core] class Level(val dirs: Seq[Dir],
     segments.foldLeft(Option.empty[MapEntry[Slice[Byte], Segment]]) {
       case (previousEntry, segmentToRemove) =>
         segmentsToRemove.add(segmentToRemove)
-        val nextEntry = MapEntry.Remove[Slice[Byte], Segment](segmentToRemove.minKey)
+        val nextEntry = MapEntry.Remove[Slice[Byte]](segmentToRemove.minKey)
         previousEntry.map(_ ++ nextEntry) orElse Some(nextEntry)
     } map {
       mapEntry =>

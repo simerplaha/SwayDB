@@ -30,7 +30,7 @@ object RecoveryMode {
   /**
     * Returns failure immediately if a corruption is detected.
     */
-  case object Report extends RecoveryMode {
+  case object ReportCorruption extends RecoveryMode {
     override def drop: Boolean = false
   }
 

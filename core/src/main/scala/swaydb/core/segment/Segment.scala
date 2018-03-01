@@ -43,7 +43,7 @@ import scala.util.{Failure, Success, Try}
 private[core] object Segment {
 
   def memory(path: Path,
-             keyValues: Slice[KeyValue],
+             keyValues: Slice[KeyValueWriteOnly],
              bloomFilterFalsePositiveRate: Double,
              removeDeletes: Boolean)(implicit ordering: Ordering[Slice[Byte]]): Try[Segment] = {
     val skipList = new ConcurrentSkipListMap[Slice[Byte], PersistentReadOnly](ordering)
@@ -105,7 +105,7 @@ private[core] object Segment {
                  mmapReads: Boolean,
                  mmapWrites: Boolean,
                  cacheKeysOnCreate: Boolean,
-                 keyValues: Slice[KeyValue],
+                 keyValues: Slice[KeyValueWriteOnly],
                  removeDeletes: Boolean)(implicit ordering: Ordering[Slice[Byte]],
                                          keyValueLimiter: (PersistentReadOnly, Segment) => Unit,
                                          fileOpenLimiter: DBFile => Unit,
@@ -243,7 +243,7 @@ private[core] object Segment {
     }
   }
 
-  def belongsTo(keyValue: KeyValue,
+  def belongsTo(keyValue: KeyValueWriteOnly,
                 segment: Segment)(implicit ordering: Ordering[Slice[Byte]]): Boolean = {
     import ordering._
     keyValue.key >= segment.minKey && keyValue.key <= segment.maxKey
@@ -321,16 +321,16 @@ private[core] object Segment {
     }
   }
 
-  def tempMinMaxKeyValues(map: Map[Slice[Byte], (ValueType, Option[Slice[Byte]])]): Slice[KeyValue] = {
+  def tempMinMaxKeyValues(map: Map[Slice[Byte], Value]): Slice[KeyValueWriteOnly] = {
     for {
       minKey <- map.head
       maxKey <- map.last
     } yield
       Slice(Transient.Put(minKey._1), Transient.Put(maxKey._1))
-  } getOrElse Slice.create[KeyValue](0)
+  } getOrElse Slice.create[KeyValueWriteOnly](0)
 
-  def tempMinMaxKeyValues(segments: Iterable[Segment]): Slice[KeyValue] =
-    segments.foldLeft(Slice.create[KeyValue](segments.size * 2)) {
+  def tempMinMaxKeyValues(segments: Iterable[Segment]): Slice[KeyValueWriteOnly] =
+    segments.foldLeft(Slice.create[KeyValueWriteOnly](segments.size * 2)) {
       case (keyValues, segment) =>
         keyValues add Transient.Put(segment.minKey)
         keyValues add Transient.Put(segment.maxKey)
@@ -349,7 +349,7 @@ private[core] object Segment {
           )
       ).nonEmpty
 
-  def overlapsWithBusySegments(map: Map[Slice[Byte], (ValueType, Option[Slice[Byte]])],
+  def overlapsWithBusySegments(map: Map[Slice[Byte], Value],
                                busySegments: Iterable[Segment],
                                appendixSegments: Iterable[Segment])(implicit ordering: Ordering[Slice[Byte]]): Boolean =
     busySegments.nonEmpty &&
@@ -374,7 +374,7 @@ private[core] trait Segment {
 
   def path: Path
 
-  def put(newKeyValues: Slice[KeyValue],
+  def put(newKeyValues: Slice[KeyValueWriteOnly],
           minSegmentSize: Long,
           bloomFilterFalsePositiveRate: Double,
           targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Try[Slice[Segment]]

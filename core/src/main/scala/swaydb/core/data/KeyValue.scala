@@ -19,20 +19,20 @@
 
 package swaydb.core.data
 
-import swaydb.core.data.KeyValue.{KeyValueTuple, KeyValueInternal, ValuePair}
-import swaydb.core.data.Transient.Put
+import swaydb.core.data.KeyValue._
+import swaydb.core.data.Value.{Put, Remove}
 import swaydb.data.slice.Slice
 
 import scala.util.{Success, Try}
 
-private[core] sealed trait KeyValueType {
+private[core] sealed trait KeyValue {
   def key: Slice[Byte]
 
   def id: Int
 
   def isRemove: Boolean
 
-  def notDelete: Boolean = !isRemove
+  def notRemove: Boolean = !isRemove
 
   def keyLength =
     key.size
@@ -41,16 +41,11 @@ private[core] sealed trait KeyValueType {
 
   def toKeyValuePair: Try[Option[KeyValueInternal]] =
     getOrFetchValue map {
-      value =>
-        val valueType = if (isRemove) ValueType.Remove else ValueType.Add
-        Some(key, (valueType, value))
-    }
-
-  def toValueResponse: Try[Option[ValuePair]] =
-    getOrFetchValue map {
-      value =>
-        val valueType = if (isRemove) ValueType.Remove else ValueType.Add
-        Some(valueType, value)
+      valueBytes =>
+        Some(
+          key,
+          if (isRemove) Value.Remove else Value.Put(valueBytes)
+        )
     }
 
   def toTuple: Try[Option[KeyValueTuple]] =
@@ -60,14 +55,14 @@ private[core] sealed trait KeyValueType {
     }
 }
 
-trait KeyValueReadOnly extends KeyValueType {
+trait KeyValueReadOnly extends KeyValue {
   val valueLength: Int
 }
 
-trait KeyValue extends KeyValueType {
+trait KeyValueWriteOnly extends KeyValue {
   val stats: Stats
 
-  def updateStats(falsePositiveRate: Double, keyValue: Option[KeyValue]): KeyValue
+  def updateStats(falsePositiveRate: Double, keyValue: Option[KeyValueWriteOnly]): KeyValueWriteOnly
 
 }
 
@@ -76,23 +71,26 @@ private[core] object KeyValue {
   type KeyValueTuple = (Slice[Byte], Option[Slice[Byte]])
 
   implicit class ToKeyValueTypeFromInternal(keyVal: KeyValueInternal) {
-    def toKeyValueType = new KeyValueType {
+    def toKeyValueType: KeyValue = new KeyValue {
       override def isRemove: Boolean =
-        keyVal._2._1.isDelete
+        keyVal._2.isRemove
 
       override def getOrFetchValue: Try[Option[Slice[Byte]]] =
-        Success(keyVal._2._2)
+        keyVal._2 match {
+          case _: Remove =>
+            Success(None)
+          case Put(value) =>
+            Success(value)
+        }
 
       override def id: Int =
-        keyVal._2._1.id
+        keyVal._2.id
 
       override def key: Slice[Byte] =
         keyVal._1
     }
   }
 
-  type KeyValueInternal = (Slice[Byte], (ValueType, Option[Slice[Byte]]))
-
-  type ValuePair = (ValueType, Option[Slice[Byte]])
+  type KeyValueInternal = (Slice[Byte], Value)
 
 }

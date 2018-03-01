@@ -421,4 +421,17 @@ class Slice[+T: ClassTag](array: Array[T],
   def underlyingArraySize =
     array.length
 
+  override def equals(that: Any): Boolean =
+    that match {
+      case other: Slice[T] =>
+        this.size == other.size &&
+          this.iterator.sameElements(other.iterator)
+
+      case _ =>
+        false
+    }
+
+  override def hashCode(): Int =
+    array.hashCode()
+
 }

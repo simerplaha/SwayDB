@@ -23,14 +23,14 @@ import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.io.file.IO
-import swaydb.core.map.Map
-import swaydb.core.map.serializer.AppendixSerializer
+import swaydb.core.map.serializer.{AppendixMapEntryReader, MapEntryReader, MapEntryWriter}
+import swaydb.core.map.{Map, MapEntry}
 import swaydb.core.segment.Segment
 import swaydb.core.util.TryUtil._
 import swaydb.core.util.{Extension, FileUtil}
-import swaydb.data.slice.Slice
 import swaydb.data.repairAppendix.AppendixRepairStrategy._
-import swaydb.data.repairAppendix.{OverlappingSegmentsException, AppendixRepairStrategy, SegmentInfoUnTyped}
+import swaydb.data.repairAppendix.{AppendixRepairStrategy, OverlappingSegmentsException, SegmentInfoUnTyped}
+import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 
 import scala.concurrent.ExecutionContext
@@ -41,7 +41,10 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
   def apply(levelPath: Path,
             strategy: AppendixRepairStrategy)(implicit ordering: Ordering[Slice[Byte]],
                                               ec: ExecutionContext): Try[Unit] = {
-    implicit val serializer = AppendixSerializer(false, false, false, false)(ordering, (_, _) => (), _ => (), ec)
+    val reader = AppendixMapEntryReader(false, false, false, false)(ordering, (_, _) => (), (_) => (), ec)
+    import reader._
+    import swaydb.core.map.serializer.AppendixMapEntryWriter._
+
     Try(FileUtil.files(levelPath, Extension.Seg)) flatMap {
       files =>
         files.tryMap(Segment(_, false, false, false, false, true)(ordering, (_, _) => (), _ => (), ec))
@@ -126,8 +129,9 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
     }
 
   def buildAppendixMap(appendixDir: Path,
-                       segments: Slice[Segment])(implicit appendixSerializer: AppendixSerializer,
-                                                 ordering: Ordering[Slice[Byte]],
+                       segments: Slice[Segment])(implicit ordering: Ordering[Slice[Byte]],
+                                                 writer: MapEntryWriter[MapEntry.Add[Slice[Byte], Segment]],
+                                                 mapReader: MapEntryReader[MapEntry[Slice[Byte], Segment]],
                                                  ec: ExecutionContext): Try[Unit] =
     IO.walkDelete(appendixDir) flatMap {
       _ =>
@@ -135,7 +139,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
           appendix =>
             segments tryForeach {
               segment =>
-                appendix.add(segment.minKey, segment)
+                appendix.write(MapEntry.Add(segment.minKey, segment))
             } match {
               case Some(Failure(exception)) =>
                 Failure(exception)

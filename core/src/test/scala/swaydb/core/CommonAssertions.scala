@@ -28,7 +28,7 @@ import swaydb.core.level.zero.{LevelZero, LevelZeroRef}
 import swaydb.core.level.{Level, LevelRef}
 import swaydb.core.map.MapEntry
 import swaydb.core.map.MapEntry.{Add, Remove}
-import swaydb.core.map.serializer.MapSerializer
+import swaydb.core.map.serializer.MapEntryWriter
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.one.MatchResult.{Matched, Next, Stop}
 import swaydb.core.segment.format.one.{KeyMatcher, MatchResult, SegmentReader}
@@ -41,8 +41,8 @@ import scala.util.Random
 
 trait CommonAssertions extends TryAssert with FutureBase {
 
-  implicit class SliceKeyValueImplicits(actual: Slice[KeyValueType]) {
-    def shouldBe(expected: Slice[KeyValueType], ignoreValueOffset: Boolean = false, ignoreStats: Boolean = false): Assertion = {
+  implicit class SliceKeyValueImplicits(actual: Slice[KeyValue]) {
+    def shouldBe(expected: Slice[KeyValue], ignoreValueOffset: Boolean = false, ignoreStats: Boolean = false): Assertion = {
       actual.size shouldBe expected.size
       var i = 0
       while (i < actual.size) {
@@ -54,14 +54,14 @@ trait CommonAssertions extends TryAssert with FutureBase {
       Assertions.succeed
     }
 
-    def toMapEntry(implicit serializer: MapSerializer[Slice[Byte], (ValueType, Option[Slice[Byte]])]) =
-      actual.foldLeft(Option.empty[MapEntry[Slice[Byte], (ValueType, Option[Slice[Byte]])]]) {
+    def toMapEntry(implicit serializer: MapEntryWriter[MapEntry.Add[Slice[Byte], Value]]) =
+      actual.foldLeft(Option.empty[MapEntry[Slice[Byte], Value]]) {
         case (mapEntry, keyValue) =>
-          val newEntry: MapEntry[Slice[Byte], (ValueType, Option[Slice[Byte]])] =
+          val newEntry: MapEntry[Slice[Byte], Value] =
             if (keyValue.isRemove)
-              MapEntry.Add[Slice[Byte], (ValueType, Option[Slice[Byte]])](keyValue.key, (ValueType.Remove, keyValue.getOrFetchValue.assertGetOpt))
+              MapEntry.Add[Slice[Byte], Value](keyValue.key, Value.Remove)
             else
-              MapEntry.Add[Slice[Byte], (ValueType, Option[Slice[Byte]])](keyValue.key, (ValueType.Add, keyValue.getOrFetchValue.assertGetOpt))
+              MapEntry.Add[Slice[Byte], Value](keyValue.key, Value.Put(keyValue.getOrFetchValue.assertGetOpt))
 
           mapEntry.map(_ ++ newEntry) orElse Some(newEntry)
       }
@@ -82,25 +82,20 @@ trait CommonAssertions extends TryAssert with FutureBase {
   }
 
   implicit class SliceByteImplicits(actual: Slice[Byte]) {
-    def shouldBe(expected: Slice[Byte]): Assertion = {
-      import KeyOrder.default._
-      expected equiv actual shouldBe true
-    }
-
-    def shouldHaveSameKey(expected: KeyValueType): Unit = {
+    def shouldHaveSameKey(expected: KeyValue): Unit = {
       actual shouldBe expected.key
     }
   }
 
-  def getStats(keyValue: KeyValueType): Option[Stats] =
+  def getStats(keyValue: KeyValue): Option[Stats] =
     keyValue match {
       case _: KeyValueReadOnly =>
         None
-      case keyValue: KeyValue =>
+      case keyValue: KeyValueWriteOnly =>
         Some(keyValue.stats)
     }
 
-  def getValue(keyValue: KeyValueType): Option[Slice[Byte]] =
+  def getValue(keyValue: KeyValue): Option[Slice[Byte]] =
     keyValue match {
       case keyValue: PersistentType =>
         keyValue.getOrFetchValue.assertGetOpt
@@ -109,13 +104,13 @@ trait CommonAssertions extends TryAssert with FutureBase {
         keyValue.getOrFetchValue.assertGetOpt
     }
 
-  implicit class KeyValueImplicits[KVA <: KeyValueType](actual: KVA) {
+  implicit class KeyValueImplicits[KVA <: KeyValue](actual: KVA) {
 
-    def shouldBeIgnoreStats[KVE <: KeyValueType](expected: KVE): Unit = {
+    def shouldBeIgnoreStats[KVE <: KeyValue](expected: KVE): Unit = {
       actual shouldBe(expected, ignoreStats = true)
     }
 
-    def shouldBe[KVE <: KeyValueType](expected: KVE, ignoreValueOffset: Boolean = false, ignoreStats: Boolean = false): Unit = {
+    def shouldBe[KVE <: KeyValue](expected: KVE, ignoreValueOffset: Boolean = false, ignoreStats: Boolean = false): Unit = {
       actual.key shouldBe expected.key
       getValue(actual) shouldBe getValue(expected)
       actual.isRemove shouldBe expected.isRemove
@@ -132,8 +127,8 @@ trait CommonAssertions extends TryAssert with FutureBase {
     }
   }
 
-  implicit class ValueTypeValueImplicits(actual: Option[(ValueType, Option[Slice[Byte]])]) {
-    def shouldBe(expected: Option[(ValueType, Option[Slice[Byte]])]) = {
+  implicit class ValueTypeValueImplicits(actual: Option[Value]) {
+    def shouldBe(expected: Option[Value]) = {
       actual.isDefined shouldBe expected.isDefined
       if (actual.isDefined)
         actual.get shouldBe expected.get
@@ -149,18 +144,18 @@ trait CommonAssertions extends TryAssert with FutureBase {
   }
 
   implicit class PersistentReadOnlyKeyValueOptionImplicits(actual: Option[PersistentReadOnly]) {
-    def shouldBe(expected: Option[KeyValue]) = {
+    def shouldBe(expected: Option[KeyValueWriteOnly]) = {
       actual.isDefined shouldBe expected.isDefined
       if (actual.isDefined)
         actual.get shouldBe expected.get
     }
 
-    def shouldBe(expected: KeyValue) =
+    def shouldBe(expected: KeyValueWriteOnly) =
       actual.assertGet shouldBe expected
   }
 
   implicit class PersistentReadOnlyKeyValueImplicits(actual: PersistentReadOnly) {
-    def shouldBe(expected: KeyValue) = {
+    def shouldBe(expected: KeyValueWriteOnly) = {
       actual.key shouldBe expected.key
       actual.getOrFetchValue.assertGetOpt shouldBe expected.getOrFetchValue.assertGetOpt
       actual.isRemove shouldBe expected.isRemove
@@ -172,13 +167,6 @@ trait CommonAssertions extends TryAssert with FutureBase {
       actual.key shouldBe expected.key
       actual.getOrFetchValue.assertGetOpt shouldBe expected.getOrFetchValue.assertGetOpt
       actual.isRemove shouldBe expected.isRemove
-    }
-  }
-
-  implicit class ValueTypeValueImplicits2(actual: (ValueType, Option[Slice[Byte]])) {
-    def shouldBe(expected: (ValueType, Option[Slice[Byte]])) = {
-      actual._1 shouldBe expected._1
-      actual._2 shouldBe expected._2
     }
   }
 
@@ -212,7 +200,7 @@ trait CommonAssertions extends TryAssert with FutureBase {
       assertReads(expected.getAll(0.1).get, actual)
     }
 
-    def shouldContainAll(keyValues: Slice[KeyValueType]): Unit =
+    def shouldContainAll(keyValues: Slice[KeyValue]): Unit =
       keyValues.foreach {
         keyValue =>
           val result = actual.get(keyValue.key).assertGet
@@ -222,22 +210,32 @@ trait CommonAssertions extends TryAssert with FutureBase {
       }
   }
 
-  implicit class MapEntryImplicits[K, V](actual: MapEntry[K, V]) {
+  implicit class MapEntryImplicits(actual: MapEntry[Slice[Byte], Value]) {
 
-    def shouldBe(expected: MapEntry[K, V]): Assertion = {
+    def shouldBe(expected: MapEntry[Slice[Byte], Value]): Unit = {
       actual.entryBytesSize shouldBe expected.entryBytesSize
+      actual.totalByteSize shouldBe expected.totalByteSize
       actual match {
         case Add(key, value) =>
-          expected.isInstanceOf[Add[K, V]] shouldBe true
+          val exp = expected.asInstanceOf[Add[Slice[Byte], Value]]
+          key shouldBe exp.key
+          value shouldBe exp.value
 
         case Remove(key) =>
-          expected.isInstanceOf[Remove[K, V]] shouldBe true
-      }
+          val exp = expected.asInstanceOf[Remove[Slice[Byte]]]
+          key shouldBe exp.key
 
+        case _ => //MapEntry is a batch of other MapEntries, iterate and assert.
+          expected.entries.size shouldBe actual.entries.size
+          expected.entries.zip(actual.entries) foreach {
+            case (expected, actual) =>
+              actual shouldBe expected
+          }
+      }
     }
   }
 
-  implicit class MatchResultImplicits[KV <: KeyValueType](actual: MatchResult[KV]) {
+  implicit class MatchResultImplicits[KV <: KeyValue](actual: MatchResult[KV]) {
     def shouldBe(expected: MatchResult[KV]): Unit = {
       expected match {
         case Matched(result) =>
@@ -292,45 +290,7 @@ trait CommonAssertions extends TryAssert with FutureBase {
     }
   }
 
-  implicit class OptionOptionSlice(actual: Option[Option[Slice[Byte]]]) {
-
-    def shouldBe(expected: Option[Slice[Byte]]): Unit = {
-      expected match {
-        case Some(expected) =>
-          actual.isDefined shouldBe true
-          actual.get shouldBe Some(expected)
-        case None =>
-          assert(actual.isEmpty)
-      }
-    }
-  }
-
-  implicit class OptionKeyValue(actual: Option[Slice[Byte]]) {
-
-    import KeyOrder.default._
-
-    def shouldBe(expected: Option[Slice[Byte]]): Unit = {
-      expected match {
-        case Some(expected) =>
-          def printError =
-            fail(
-              s"""
-                 |Expected: $expected
-                 |Actual  : $actual
-            """.stripMargin)
-
-          if (actual.assertGet.isEmpty)
-            printError
-          else if (!expected.equiv(actual.assertGet))
-            printError
-
-        case None =>
-          assert(actual.isEmpty)
-      }
-    }
-  }
-
-  def assertHigher(keyValuesIterable: Iterable[KeyValueType],
+  def assertHigher(keyValuesIterable: Iterable[KeyValue],
                    level: LevelRef) = {
     val keyValues = keyValuesIterable.toArray
 
@@ -354,7 +314,7 @@ trait CommonAssertions extends TryAssert with FutureBase {
     assertHigher(0)
   }
 
-  def assertLower(keyValuesIterable: Iterable[KeyValueType],
+  def assertLower(keyValuesIterable: Iterable[KeyValue],
                   level: LevelRef) = {
     val keyValues = keyValuesIterable.toArray
 
@@ -377,7 +337,7 @@ trait CommonAssertions extends TryAssert with FutureBase {
     assertLowers(0)
   }
 
-  def assertLowerFromThisLevel(keyValuesIterable: Iterable[KeyValueType],
+  def assertLowerFromThisLevel(keyValuesIterable: Iterable[KeyValue],
                                level: Level) = {
     val keyValues = keyValuesIterable.toArray
 
@@ -400,7 +360,7 @@ trait CommonAssertions extends TryAssert with FutureBase {
     assertLowers(0)
   }
 
-  def assertHigher(keyValues: Slice[KeyValueType],
+  def assertHigher(keyValues: Slice[KeyValue],
                    level: LevelZeroRef) = {
     @tailrec
     def assertHigher(index: Int) {
@@ -424,7 +384,7 @@ trait CommonAssertions extends TryAssert with FutureBase {
     assertHigher(0)
   }
 
-  def assertLower(keyValues: Slice[KeyValueType],
+  def assertLower(keyValues: Slice[KeyValue],
                   level: LevelZeroRef) = {
 
     @tailrec
@@ -448,33 +408,33 @@ trait CommonAssertions extends TryAssert with FutureBase {
     assertLowers(0)
   }
 
-  def assertGet(keyValues: Slice[KeyValueType],
+  def assertGet(keyValues: Slice[KeyValue],
                 reader: Reader)(implicit ordering: Ordering[Slice[Byte]]) =
     keyValues foreach {
       keyValue =>
         SegmentReader.find(KeyMatcher.Exact(keyValue.key), None, reader.copy()).assertGet shouldBeIgnoreStats keyValue
     }
 
-  def assertBloom(keyValues: Slice[KeyValueType],
+  def assertBloom(keyValues: Slice[KeyValue],
                   bloom: BloomFilter[Slice[Byte]])(implicit ordering: Ordering[Slice[Byte]]) =
     keyValues foreach {
       keyValue =>
         bloom.mightContain(keyValue.key) shouldBe true
     }
 
-  def assertReads(keyValues: Slice[KeyValueType],
+  def assertReads(keyValues: Slice[KeyValue],
                   segment: Segment) = {
     val asserts = Seq(() => assertGet(keyValues, segment), () => assertHigher(keyValues, segment), () => assertLower(keyValues, segment))
     Random.shuffle(asserts).foreach(_ ())
   }
 
-  def assertReads(keyValues: Slice[KeyValueType],
+  def assertReads(keyValues: Slice[KeyValue],
                   level: LevelRef) = {
     val asserts = Seq(() => assertGet(keyValues, level), () => assertHigher(keyValues, level), () => assertLower(keyValues, level))
     Random.shuffle(asserts).foreach(_ ())
   }
 
-  def assertGetFromThisLevelOnly(keyValues: Slice[KeyValueType],
+  def assertGetFromThisLevelOnly(keyValues: Slice[KeyValue],
                                  level: Level) =
     keyValues foreach {
       keyValue =>
@@ -483,7 +443,7 @@ trait CommonAssertions extends TryAssert with FutureBase {
         actual.getOrFetchValue.assertGetOpt shouldBe keyValue.getOrFetchValue.assertGetOpt
     }
 
-  def assertReads(keyValues: Slice[KeyValue],
+  def assertReads(keyValues: Slice[KeyValueWriteOnly],
                   reader: Reader)(implicit ordering: Ordering[Slice[Byte]]) = {
 
     val footer = SegmentReader.readFooter(reader.copy()).assertGet
@@ -495,7 +455,7 @@ trait CommonAssertions extends TryAssert with FutureBase {
     assertHigher(keyValues, reader.copy())
   }
 
-  def assertGet(keyValues: Iterable[KeyValueType],
+  def assertGet(keyValues: Iterable[KeyValue],
                 segment: Segment) =
     keyValues foreach {
       keyValue =>
@@ -504,7 +464,7 @@ trait CommonAssertions extends TryAssert with FutureBase {
         actual.getOrFetchValue.assertGetOpt shouldBe keyValue.getOrFetchValue.assertGetOpt
     }
 
-  def assertGet(keyValues: Iterable[KeyValueType],
+  def assertGet(keyValues: Iterable[KeyValue],
                 level: LevelRef) =
     keyValues foreach {
       keyValue =>
@@ -513,35 +473,35 @@ trait CommonAssertions extends TryAssert with FutureBase {
         actual.getOrFetchValue.assertGetOpt shouldBe keyValue.getOrFetchValue.assertGetOpt
     }
 
-  def assertGetNone(keyValues: Iterable[KeyValueType],
+  def assertGetNone(keyValues: Iterable[KeyValue],
                     level: LevelRef) =
     keyValues foreach {
       keyValue =>
         level.get(keyValue.key).assertGetOpt shouldBe empty
     }
 
-  def assertGetNone(keyValues: Iterable[KeyValueType],
+  def assertGetNone(keyValues: Iterable[KeyValue],
                     level: LevelZero) =
     keyValues foreach {
       keyValue =>
         level.get(keyValue.key).assertGetOpt shouldBe None
     }
 
-  def assertGetNoneFromThisLevelOnly(keyValues: Iterable[KeyValueType],
+  def assertGetNoneFromThisLevelOnly(keyValues: Iterable[KeyValue],
                                      level: Level) =
     keyValues foreach {
       keyValue =>
         level.getFromThisLevel(keyValue.key).assertGetOpt shouldBe empty
     }
 
-  def assertGet(keyValues: Iterable[KeyValueType],
+  def assertGet(keyValues: Iterable[KeyValue],
                 level: LevelZeroRef) =
     keyValues foreach {
       keyValue =>
-        level.get(keyValue.key).assertGetOpt shouldBe keyValue.getOrFetchValue.assertGetOpt
+        level.get(keyValue.key).assertGet shouldBe keyValue.getOrFetchValue.assertGetOpt
     }
 
-  def assertHeadLast(keyValues: Iterable[KeyValueType],
+  def assertHeadLast(keyValues: Iterable[KeyValue],
                      zero: LevelZeroRef) = {
     val (headKey, headValue) = zero.head.assertGet
     headKey shouldBe keyValues.head.key
@@ -556,7 +516,7 @@ trait CommonAssertions extends TryAssert with FutureBase {
     zero.lastKey.assertGet shouldBe keyValues.last.key
   }
 
-  def assertLower(keyValues: Slice[KeyValueType],
+  def assertLower(keyValues: Slice[KeyValue],
                   reader: Reader)(implicit ordering: Ordering[Slice[Byte]]) = {
 
     @tailrec
@@ -577,7 +537,7 @@ trait CommonAssertions extends TryAssert with FutureBase {
     assertLowers(0)
   }
 
-  def assertHigher(keyValues: Slice[KeyValueType],
+  def assertHigher(keyValues: Slice[KeyValue],
                    reader: Reader)(implicit ordering: Ordering[Slice[Byte]]) = {
 
     @tailrec
@@ -598,7 +558,7 @@ trait CommonAssertions extends TryAssert with FutureBase {
     assertHigher(0)
   }
 
-  def assertLower(keyValues: Slice[KeyValueType],
+  def assertLower(keyValues: Slice[KeyValue],
                   segment: Segment) = {
 
     @tailrec
@@ -623,7 +583,7 @@ trait CommonAssertions extends TryAssert with FutureBase {
     assertLowers(0)
   }
 
-  def assertHigher(keyValues: Slice[KeyValueType],
+  def assertHigher(keyValues: Slice[KeyValue],
                    segment: Segment) = {
 
     (0 until keyValues.size) foreach {

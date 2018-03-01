@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import org.scalamock.scalatest.MockFactory
 import swaydb.core.{TestBase, data}
 import swaydb.core.actor.TestActor
-import swaydb.core.data.{KeyValue, Transient}
+import swaydb.core.data.{KeyValueWriteOnly, Transient}
 import swaydb.core.level.LevelException.ContainsOverlappingBusySegments
 import swaydb.core.level.actor.LevelAPI
 import swaydb.core.level.actor.LevelCommand.{Pull, PullRequest, PushSegments, PushSegmentsResponse}

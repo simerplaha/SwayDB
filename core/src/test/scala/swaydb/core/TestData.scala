@@ -19,19 +19,17 @@
 
 package swaydb.core
 
-import swaydb.core.data.{KeyValue, Transient}
-import swaydb.core.data.KeyValue.{KeyValueInternal, KeyValueTuple}
 import swaydb.core.data.Transient.Remove
+import swaydb.core.data.{KeyValueWriteOnly, Transient}
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 import swaydb.data.util.StorageUnits._
-import swaydb.serializers._
 import swaydb.serializers.Default._
+import swaydb.serializers._
 
-import scala.collection.{immutable, mutable}
+import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.util.Random
-import swaydb.serializers._
 
 trait TestData {
 
@@ -69,8 +67,8 @@ trait TestData {
                          startId: Int = 1,
                          addToValue: Int = 0,
                          nonValue: Boolean = false,
-                         addRandomDeletes: Boolean = false): Slice[KeyValue] = {
-    val slice = Slice.create[KeyValue](count)
+                         addRandomDeletes: Boolean = false): Slice[KeyValueWriteOnly] = {
+    val slice = Slice.create[KeyValueWriteOnly](count)
     val startFrom = randomInt(minus = count)
     //    val startFrom = 1
     for (key <- startFrom until startFrom + count) {
@@ -87,8 +85,8 @@ trait TestData {
   def randomIntKeyStringValues(count: Int = 5,
                                startId: Int = 1,
                                valueSize: Int = 50,
-                               addRandomDeletes: Boolean = false): Slice[KeyValue] = {
-    val slice = Slice.create[KeyValue](count)
+                               addRandomDeletes: Boolean = false): Slice[KeyValueWriteOnly] = {
+    val slice = Slice.create[KeyValueWriteOnly](count)
     val startFrom = randomInt(minus = count)
     //            val startFrom = 1
     for (key <- startFrom until startFrom + count) {
@@ -126,7 +124,7 @@ trait TestData {
   }
 
   def randomIntKeys(count: Int = 5,
-                    startId: Int = 1): Slice[KeyValue] =
+                    startId: Int = 1): Slice[KeyValueWriteOnly] =
     randomIntKeyValues(count = count, startId = startId, nonValue = true)
 }
 

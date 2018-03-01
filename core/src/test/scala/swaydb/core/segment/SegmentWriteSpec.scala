@@ -22,7 +22,7 @@ package swaydb.core.segment
 import java.nio.file._
 
 import swaydb.core.data.Transient.Remove
-import swaydb.core.data.{KeyValue, PersistentReadOnly, Transient}
+import swaydb.core.data.{KeyValueWriteOnly, PersistentReadOnly, Transient}
 import swaydb.core.io.file.{DBFile, IO}
 import swaydb.core.level.PathsDistributor
 import swaydb.core.segment.SegmentException.CannotCopyInMemoryFiles
@@ -212,7 +212,7 @@ class SegmentWriteSpec extends TestBase with Benchmark {
         }
       }
 
-      def open(keyValue: KeyValue) = {
+      def open(keyValue: KeyValueWriteOnly) = {
         segment.get(keyValue.key).assertGet shouldBe keyValue
         segment.isFileDefined shouldBe true
         segment.isOpen shouldBe true
@@ -443,7 +443,7 @@ class SegmentWriteSpec extends TestBase with Benchmark {
       val keyValues = randomIntKeyStringValues(count = 100)
       val segment = TestSegment(keyValues, removeDeletes = true).assertGet
 
-      val updatedKeyValues = Slice.create[KeyValue](keyValues.size)
+      val updatedKeyValues = Slice.create[KeyValueWriteOnly](keyValues.size)
       keyValues.foreach(keyValue => updatedKeyValues add Transient.Put(keyValue.key, 0.1, updatedKeyValues.lastOption))
 
       val updatedSegments = segment.put(updatedKeyValues, 4.mb, 0.1).assertGet
@@ -467,7 +467,7 @@ class SegmentWriteSpec extends TestBase with Benchmark {
       val keyValues1 = randomIntKeyValues(count = 10)
       val segment1 = TestSegment(keyValues1).assertGet
 
-      val keyValues2 = Slice.create[KeyValue](10)
+      val keyValues2 = Slice.create[KeyValueWriteOnly](10)
       keyValues1 foreach {
         keyValue =>
           keyValues2 add Transient.Put(keyValue.key, value = randomInt(), previous = keyValues2.lastOption, falsePositiveRate = 0.1)

@@ -19,18 +19,23 @@
 
 package swaydb.core.map.serializer
 
+import swaydb.core.data.Value
+import swaydb.core.io.reader.Reader
 import swaydb.core.map.MapEntry
 import swaydb.data.slice.{Reader, Slice}
 
-import scala.util.Try
+import scala.annotation.implicitNotFound
+import scala.util.{Failure, Try}
 
-private[core] trait MapSerializer[K, V] {
-
-  def read(reader: Reader): Try[Option[MapEntry[K, V]]]
-
-  def writeTo(slice: Slice[Byte], entry: MapEntry[K, V]): Unit
-
-  def bytesRequiredFor(entry: MapEntry[K, V]): Int
-
+@implicitNotFound("Type class implementation not found for MapEntryReader of type ${T}")
+trait MapEntryReader[T <: MapEntry[_, _]] {
+  def read(reader: Reader): Try[Option[T]]
 }
 
+object MapEntryReader {
+  def read[T <: MapEntry[_, _]](bytes: Slice[Byte])(implicit serializer: MapEntryReader[T]): Try[Option[T]] =
+    serializer.read(Reader(bytes))
+
+  def read[T <: MapEntry[_, _]](reader: Reader)(implicit serializer: MapEntryReader[T]): Try[Option[T]] =
+    serializer.read(reader)
+}

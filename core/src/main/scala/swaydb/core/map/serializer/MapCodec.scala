@@ -35,17 +35,17 @@ private[core] object MapCodec extends LazyLogging {
   //    crc         +     length
     ByteSizeOf.long + ByteSizeOf.int
 
-  def toMapEntry[K, V](map: java.util.Map[K, V])(implicit formatter: MapSerializer[K, V]): Option[MapEntry[K, V]] =
+  def toMapEntry[K, V](map: java.util.Map[K, V])(implicit writer: MapEntryWriter[MapEntry.Add[K, V]]): Option[MapEntry[K, V]] =
     map.entrySet().asScala.foldLeft(Option.empty[MapEntry[K, V]]) {
       case (mapEntry, skipListEntry) =>
         val nextEntry = MapEntry.Add(skipListEntry.getKey, skipListEntry.getValue)
         mapEntry.map(_ ++ nextEntry) orElse Some(nextEntry)
     }
 
-  def write[K, V](map: java.util.Map[K, V])(implicit formatter: MapSerializer[K, V]): Slice[Byte] =
+  def write[K, V](map: java.util.Map[K, V])(implicit writer: MapEntryWriter[MapEntry.Add[K, V]]): Slice[Byte] =
     toMapEntry(map).map(write[K, V]) getOrElse Slice.create[Byte](0)
 
-  def write[K, V](mapEntries: MapEntry[K, V])(implicit serializer: MapSerializer[K, V]): Slice[Byte] = {
+  def write[K, V](mapEntries: MapEntry[K, V]): Slice[Byte] = {
     val totalSize = headerSize + mapEntries.entryBytesSize
 
     val slice = Slice.create[Byte](totalSize.toInt)
@@ -62,7 +62,7 @@ private[core] object MapCodec extends LazyLogging {
 
   //Java style return statements are used to break out of the loop. Use functions instead.
   def read[K, V](bytes: Slice[Byte],
-                 dropCorruptedTailEntries: Boolean)(implicit formatter: MapSerializer[K, V]): Try[RecoveryResult[Option[MapEntry[K, V]]]] =
+                 dropCorruptedTailEntries: Boolean)(implicit mapReader: MapEntryReader[MapEntry[K, V]]): Try[RecoveryResult[Option[MapEntry[K, V]]]] =
     bytes.createReader().foldLeftTry(RecoveryResult(Option.empty[MapEntry[K, V]], Try())) {
       case (recovery, reader) =>
         reader.hasAtLeast(ByteSizeOf.long) flatMap {
@@ -79,7 +79,7 @@ private[core] object MapCodec extends LazyLogging {
                     val checkCRC = CRC32 forBytes payload
                     //crc check.
                     if (crc == checkCRC) {
-                      formatter.read(payload.createReader()) map {
+                      mapReader.read(payload.createReader()) map {
                         case Some(readMapEntry) =>
                           val nextEntry = recovery.item.map(_ ++ readMapEntry) orElse Some(readMapEntry)
                           RecoveryResult(nextEntry, recovery.result)
@@ -94,7 +94,7 @@ private[core] object MapCodec extends LazyLogging {
                       Failure(new IllegalStateException(failureMessage))
                     }
                   } catch {
-                    case ex: Exception =>
+                    case ex: Throwable =>
                       logger.error("File corruption! Unable to read entry at position {}. dropCorruptedTailEntries = {}.", reader.getPosition, dropCorruptedTailEntries, ex)
                       Failure(new IllegalStateException(s"File corruption! Unable to read entry at position ${reader.getPosition}. dropCorruptedTailEntries = $dropCorruptedTailEntries.", ex))
                   }

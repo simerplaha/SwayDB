@@ -21,7 +21,7 @@ package swaydb.core.level
 
 import java.nio.file.{Path, Paths}
 
-import swaydb.core.data.ValueType
+import swaydb.core.data.Value
 import swaydb.core.level.actor.LevelAPI
 import swaydb.core.level.actor.LevelCommand._
 import swaydb.core.map.Map
@@ -136,7 +136,7 @@ private[core] object TrashLevel extends LevelRef {
   override def segmentCountAndLevelSize =
     (0, 0)
 
-  override def putMap(map: Map[Slice[Byte], (ValueType, Option[Slice[Byte]])]) =
+  override def putMap(map: Map[Slice[Byte], Value]) =
     Success()
 
   override def head =

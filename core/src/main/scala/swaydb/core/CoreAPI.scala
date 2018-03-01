@@ -19,15 +19,13 @@
 
 package swaydb.core
 
-import swaydb.core.data.KeyValue.KeyValueTuple
-import swaydb.core.data.ValueType
+import swaydb.core.data.Value
 import swaydb.core.map.MapEntry
-import swaydb.core.map.serializer.Level0KeyValuesSerializer
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.config.SwayDBConfig
 import swaydb.data.slice.Slice
-
+import swaydb.core.data.KeyValue._
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
 import scala.util.Try
@@ -45,15 +43,13 @@ private[swaydb] object CoreAPI {
 
 private[swaydb] trait CoreAPI {
 
-  val serializer: Level0KeyValuesSerializer
-
   def put(key: Slice[Byte]): Try[Level0Meter]
 
   def put(key: Slice[Byte], value: Slice[Byte]): Try[Level0Meter]
 
   def put(key: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter]
 
-  def put(entry: MapEntry[Slice[Byte], (ValueType, Option[Slice[Byte]])]): Try[Level0Meter]
+  def put(entry: MapEntry[Slice[Byte], Value]): Try[Level0Meter]
 
   def remove(key: Slice[Byte]): Try[Level0Meter]
 

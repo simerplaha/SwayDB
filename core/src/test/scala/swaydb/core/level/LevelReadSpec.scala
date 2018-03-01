@@ -21,7 +21,7 @@ package swaydb.core.level
 
 import org.scalamock.scalatest.MockFactory
 import swaydb.core.TestBase
-import swaydb.core.data.{KeyValue, Transient}
+import swaydb.core.data.{KeyValueWriteOnly, Transient}
 import swaydb.core.util.Benchmark
 import swaydb.core.util.PipeOps._
 import swaydb.data.compaction.{LevelMeter, Throttle}

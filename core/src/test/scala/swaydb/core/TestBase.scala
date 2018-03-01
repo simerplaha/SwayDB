@@ -28,7 +28,7 @@ import org.scalatest.concurrent.Eventually
 import org.scalatest.{BeforeAndAfterAll, WordSpec}
 import swaydb.core.TestLimitQueues._
 import swaydb.core.actor.TestActor
-import swaydb.core.data.{KeyValue, PersistentReadOnly}
+import swaydb.core.data.{KeyValueWriteOnly, PersistentReadOnly}
 import swaydb.core.io.file.{DBFile, IO}
 import swaydb.core.io.reader.FileReader
 import swaydb.core.level.actor.LevelCommand.{PushSegments, PushSegmentsResponse}
@@ -104,7 +104,7 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
     if (inMemoryStorage)
       Level0Storage.Memory
     else
-      Level0Storage.Persistent(mmap = level0MMAP, randomIntDirectory, RecoveryMode.Report)
+      Level0Storage.Persistent(mmap = level0MMAP, randomIntDirectory, RecoveryMode.ReportCorruption)
 
   def appendixStorage: AppendixStorage =
     if (inMemoryStorage)
@@ -252,7 +252,7 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
           _: Unit =>
             LevelZero(
               mapSize = mapSize,
-              storage = Level0Storage.Persistent(true, level.path.getParent, RecoveryMode.Report),
+              storage = Level0Storage.Persistent(true, level.path.getParent, RecoveryMode.ReportCorruption),
               nextLevel = level.nextLevel,
               acceleration = Accelerator.brake(),
               readRetryLimit = levelZeroReadRetryLimit
@@ -270,9 +270,9 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
     def time = int
   }
 
-  implicit class KeyValuesImplicits(keyValues: Slice[KeyValue]) {
-    def updateStats: Slice[KeyValue] = {
-      val slice = Slice.create[KeyValue](keyValues.size)
+  implicit class KeyValuesImplicits(keyValues: Slice[KeyValueWriteOnly]) {
+    def updateStats: Slice[KeyValueWriteOnly] = {
+      val slice = Slice.create[KeyValueWriteOnly](keyValues.size)
       keyValues foreach {
         keyValue =>
           slice.add(keyValue.updateStats(0.1, keyValue = slice.lastOption))
@@ -296,7 +296,7 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
     createFileReader(createFile(bytes))
 
   object TestSegment {
-    def apply(keyValues: Slice[KeyValue] = randomIntKeyStringValues(),
+    def apply(keyValues: Slice[KeyValueWriteOnly] = randomIntKeyStringValues(),
               removeDeletes: Boolean = false,
               path: Path = testSegmentFile,
               cacheKeysOnCreate: Boolean = cacheKeysOnCreate,

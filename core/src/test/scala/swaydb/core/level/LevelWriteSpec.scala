@@ -23,19 +23,19 @@ import java.nio.file.NoSuchFileException
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.PrivateMethodTester
-import swaydb.core.{TestBase, TestLimitQueues}
 import swaydb.core.actor.TestActor
 import swaydb.core.data.Transient.Remove
 import swaydb.core.data._
 import swaydb.core.io.file.{DBFile, IO}
 import swaydb.core.level.actor.LevelAPI
 import swaydb.core.level.actor.LevelCommand.{PushSegments, PushSegmentsResponse}
-import swaydb.core.map.serializer.{Level0KeyValuesSerializer, AppendixSerializer}
+import swaydb.core.map.serializer.{AppendixMapEntryReader, AppendixMapEntryWriter}
 import swaydb.core.map.{Map, MapEntry}
 import swaydb.core.segment.Segment
 import swaydb.core.util.Extension
 import swaydb.core.util.FileUtil._
 import swaydb.core.util.PipeOps._
+import swaydb.core.{TestBase, TestLimitQueues}
 import swaydb.data.compaction.Throttle
 import swaydb.data.config.Dir
 import swaydb.data.slice.Slice
@@ -384,19 +384,20 @@ class LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
   }
 
   "Level.putMap" should {
-    implicit val serializer = Level0KeyValuesSerializer(ordering)
+    import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
+    import swaydb.core.map.serializer.LevelZeroMapEntryReader._
 
     val map =
       if (persistent)
-        Map.persistent(randomIntDirectory, true, true, 1.mb, dropCorruptedTailEntries = false).assertGet.item
+        Map.persistent[Slice[Byte], Value](randomIntDirectory, true, true, 1.mb, dropCorruptedTailEntries = false).assertGet.item
       else
-        Map.memory()
+        Map.memory[Slice[Byte], Value]()
 
     val keyValues = randomIntKeyStringValues(keyValuesCount, addRandomDeletes = true)
     keyValues foreach {
       keyValue =>
-        val valueType = if (keyValue.isRemove) ValueType.Remove else ValueType.Add
-        map.add(keyValue.key, (valueType, keyValue.getOrFetchValue.assertGetOpt))
+        val value = if (keyValue.isRemove) Value.Remove else Value.Put(keyValue.getOrFetchValue.assertGetOpt)
+        map.write(MapEntry.Add[Slice[Byte], Value](keyValue.key, value))
     }
 
     "create a segment to an empty Level with no lower level" in {
@@ -425,7 +426,7 @@ class LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
 
       //put a new map
       level.putMap(map).assertGet
-      assertGet(keyValues.filter(_.notDelete), level)
+      assertGet(keyValues.filter(_.notRemove), level)
 
       level.get("one").assertGetOpt shouldBe existingKeyValues(0)
       level.get("two").assertGetOpt shouldBe existingKeyValues(1)
@@ -455,7 +456,7 @@ class LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
       //do another put so a merge occurs resulting in split
       level.putKeyValues(Slice(keyValues.head)).assertGet
 
-      val deleteKeyValues = Slice.create[KeyValue](keyValues.size * 2)
+      val deleteKeyValues = Slice.create[KeyValueWriteOnly](keyValues.size * 2)
       keyValues foreach {
         keyValue =>
           deleteKeyValues add Remove(keyValue.key, previous = deleteKeyValues.lastOption, falsePositiveRate = 0.1)
@@ -484,7 +485,7 @@ class LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
       val keyValues = randomIntKeyStringValues()
       level.putKeyValues(keyValues).assertGet
 
-      val deleteKeyValues = Slice.create[KeyValue](keyValues.size)
+      val deleteKeyValues = Slice.create[KeyValueWriteOnly](keyValues.size)
       keyValues foreach {
         keyValue =>
           deleteKeyValues add Transient.Remove(keyValue.key, previous = deleteKeyValues.lastOption, falsePositiveRate = 0.1)
@@ -689,14 +690,7 @@ class LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
   }
 
   "Level.buildNewMapEntry" should {
-
-    implicit val serializer: AppendixSerializer =
-      AppendixSerializer(
-        removeDeletedRecords = false,
-        mmapSegmentsOnRead = true,
-        mmapSegmentsOnWrite = true,
-        cacheKeysOnCreate = false
-      )
+    import swaydb.core.map.serializer.AppendixMapEntryWriter._
 
     "build MapEntry.Add map for the first created Segment" in {
       val level = TestLevel()
@@ -742,7 +736,7 @@ class LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
         MapEntry.Add[Slice[Byte], Segment](1, mergedSegment1) ++
           MapEntry.Add[Slice[Byte], Segment](6, mergedSegment2) ++
           MapEntry.Add[Slice[Byte], Segment](11, mergedSegment3) ++
-          MapEntry.Remove[Slice[Byte], Segment](0)
+          MapEntry.Remove[Slice[Byte]](0)
 
       val actualMapEntry = level.buildNewMapEntry(Slice(mergedSegment1, mergedSegment2, mergedSegment3), Some(originalSegment), initialMapEntry = None).assertGet
 

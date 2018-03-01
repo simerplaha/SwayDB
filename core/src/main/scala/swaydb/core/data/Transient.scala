@@ -29,7 +29,7 @@ private[core] sealed trait TransientReadOnly extends TransientType with KeyValue
   val value: Option[Slice[Byte]]
 }
 
-private[core] sealed trait Transient extends TransientType with KeyValue {
+private[core] sealed trait Transient extends TransientType with KeyValueWriteOnly {
   val value: Option[Slice[Byte]]
 }
 
@@ -41,7 +41,7 @@ private[core] object Transient {
     def apply(key: Slice[Byte],
               value: Option[Slice[Byte]],
               falsePositiveRate: Double,
-              previousMayBe: Option[KeyValue]): Put =
+              previousMayBe: Option[KeyValueWriteOnly]): Put =
       new Put(key, value, Stats(key, value, false, falsePositiveRate, previousMayBe))
 
     def apply(key: Slice[Byte]): Put =
@@ -53,10 +53,10 @@ private[core] object Transient {
     def apply(key: Slice[Byte], value: Slice[Byte], falsePositiveRate: Double): Put =
       Put(key, Some(value), Stats(key, value, isDelete = false, falsePositiveRate = falsePositiveRate))
 
-    def apply(key: Slice[Byte], falsePositiveRate: Double, previous: Option[KeyValue]): Put =
+    def apply(key: Slice[Byte], falsePositiveRate: Double, previous: Option[KeyValueWriteOnly]): Put =
       Put(key, None, falsePositiveRate, previous)
 
-    def apply(key: Slice[Byte], value: Slice[Byte], falsePositiveRate: Double, previous: Option[KeyValue]): Put =
+    def apply(key: Slice[Byte], value: Slice[Byte], falsePositiveRate: Double, previous: Option[KeyValueWriteOnly]): Put =
       Put(key, Some(value), Stats(key, value, isDelete = false, falsePositiveRate = falsePositiveRate, previous))
   }
 
@@ -68,7 +68,7 @@ private[core] object Transient {
 
     override def id: Int = Put.id
 
-    override def updateStats(falsePositiveRate: Double, keyValue: Option[KeyValue]): KeyValue =
+    override def updateStats(falsePositiveRate: Double, keyValue: Option[KeyValueWriteOnly]): KeyValueWriteOnly =
       this.copy(stats = Stats(key, value, false, falsePositiveRate, keyValue))
 
     override def getOrFetchValue: Try[Option[Slice[Byte]]] = Success(value)
@@ -85,13 +85,13 @@ private[core] object Transient {
 
     def apply(key: Slice[Byte],
               falsePositiveRate: Double,
-              previous: Option[KeyValue]): Remove =
+              previous: Option[KeyValueWriteOnly]): Remove =
       new Remove(key, Stats(key, None, true, falsePositiveRate, previous))
   }
 
   case class Remove(key: Slice[Byte],
                     stats: Stats) extends Transient {
-    override def updateStats(falsePositiveRate: Double, keyValue: Option[KeyValue]): KeyValue =
+    override def updateStats(falsePositiveRate: Double, keyValue: Option[KeyValueWriteOnly]): KeyValueWriteOnly =
       this.copy(stats = Stats(key, None, true, falsePositiveRate, keyValue))
 
     override def id: Int = Remove.id

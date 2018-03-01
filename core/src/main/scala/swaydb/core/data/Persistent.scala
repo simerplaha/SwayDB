@@ -41,7 +41,7 @@ private[core] sealed trait PersistentReadOnly extends PersistentType with KeyVal
   val indexOffset: Int
 }
 
-private[core] sealed trait Persistent extends PersistentType with KeyValue
+private[core] sealed trait Persistent extends PersistentType with KeyValueWriteOnly
 
 private[core] object Persistent {
 
@@ -55,7 +55,7 @@ private[core] object Persistent {
               nextIndexOffset: Int,
               nextIndexSize: Int,
               falsePositiveRate: Double,
-              previous: Option[KeyValue]): Put = {
+              previous: Option[KeyValueWriteOnly]): Put = {
       new Put(key, valueReader, nextIndexOffset, nextIndexSize, valueOffset, Stats(key, valueLength, false, falsePositiveRate, previous))
     }
 
@@ -91,7 +91,7 @@ private[core] object Persistent {
     override def valueLength: Int = stats.valueLength
 
     //call updateStats will eager fetch the KeyValue from the old reader.
-    override def updateStats(falsePositiveRate: Double, keyValue: Option[KeyValue]) =
+    override def updateStats(falsePositiveRate: Double, keyValue: Option[KeyValueWriteOnly]) =
       getOrFetchValue map {
         value =>
           val updatedKeyValue = this.copy(stats = Stats(key, value, isDelete = false, falsePositiveRate, keyValue))
@@ -139,7 +139,7 @@ private[core] object Persistent {
               nextIndexOffset: Int,
               nextIndexSize: Int,
               falsePositiveRate: Double,
-              previousMayBe: Option[KeyValue]): Removed =
+              previousMayBe: Option[KeyValueWriteOnly]): Removed =
       new Removed(key, nextIndexOffset, nextIndexSize, Stats(key, None, true, falsePositiveRate, previousMayBe))
 
     def apply(falsePositiveRate: Double,
@@ -168,7 +168,7 @@ private[core] object Persistent {
                      override val stats: Stats) extends Persistent with RemovedBase {
     def key = _key
 
-    override def updateStats(falsePositiveRate: Double, keyValue: Option[KeyValue]): KeyValue =
+    override def updateStats(falsePositiveRate: Double, keyValue: Option[KeyValueWriteOnly]): KeyValueWriteOnly =
       this.copy(stats = Stats(key, None, true, falsePositiveRate, keyValue))
 
     override def unsliceKey(): Unit =

@@ -19,16 +19,16 @@
 
 package swaydb.core.map
 
-import java.nio.file.{FileAlreadyExistsException, Files}
+import java.nio.file.{FileAlreadyExistsException, Files, Path}
 import java.util.concurrent.ConcurrentSkipListMap
 
-import swaydb.core.TestBase
-import swaydb.core.data.ValueType
-import swaydb.core.io.file.{DBFile, IO}
-import swaydb.core.map.serializer.{Level0KeyValuesSerializer, MapCodec}
+import swaydb.core.data.{PersistentReadOnly, Transient, Value}
+import swaydb.core.io.file.DBFile
+import swaydb.core.map.serializer._
+import swaydb.core.segment.Segment
 import swaydb.core.util.Extension
 import swaydb.core.util.FileUtil._
-import swaydb.data.config.RecoveryMode
+import swaydb.core.{TestBase, TestLimitQueues}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.order.KeyOrder
@@ -40,72 +40,154 @@ import scala.util.Random
 class MapSpec extends TestBase {
 
   implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
-  implicit val serializer = Level0KeyValuesSerializer(ordering)
+  implicit val maxSegmentsOpenCacheImplicitLimiter: DBFile => Unit = TestLimitQueues.fileOpenLimiter
+  implicit val keyValuesLimitImplicitLimiter: (PersistentReadOnly, Segment) => Unit = TestLimitQueues.keyValueLimiter
 
-  def testInsertAndRead(map: Map[Slice[Byte], (ValueType, Option[Slice[Byte]])]) = {
-    map.add(1, (ValueType.Add, Some(1))).assertGet shouldBe true
-    map.add(2, (ValueType.Add, Some(2))).assertGet shouldBe true
-    map.get(1).assertGet._2 shouldBe ((ValueType.Add, Some(1)))
-    map.get(2).assertGet._2 shouldBe ((ValueType.Add, Some(2)))
-
-    map.add(1, (ValueType.Remove, Some(1))).assertGet shouldBe true
-    map.add(2, (ValueType.Remove, Some(2))).assertGet shouldBe true
-    map.get(1).assertGet._2 shouldBe ((ValueType.Remove, Some(1)))
-    map.get(2).assertGet._2 shouldBe ((ValueType.Remove, Some(2)))
-
-    map.remove(2).assertGet
-    map.get(2).isEmpty shouldBe true
-    map.isEmpty shouldBe false
-
-    map.remove(1).assertGet
-    map.get(1).isEmpty shouldBe true
-    map.isEmpty shouldBe true
-
-    map.close().assertGet
-  }
+  val appendixReader = AppendixMapEntryReader(false, true, true, false)
 
   "Map" should {
-    "initialise and recover from an already existing empty map" in {
-      val map = Map.persistent(createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).assertGet.item
+    "initialise a memory level0" in {
+      import LevelZeroMapEntryWriter._
+
+      val map = Map.memory[Slice[Byte], Value](1.mb, flushOnOverflow = false)
+
+      map.write(MapEntry.Add(1, Value.Put(Some(1)))).assertGet shouldBe true
+      map.write(MapEntry.Add(2, Value.Put(Some(2)))).assertGet shouldBe true
+      map.get(1).assertGet._2 shouldBe Value.Put(Some(1))
+      map.get(2).assertGet._2 shouldBe Value.Put(Some(2))
+
+      map.write(MapEntry.Add[Slice[Byte], Value.Remove](1, Value.Remove)).assertGet shouldBe true
+      map.write(MapEntry.Add[Slice[Byte], Value.Remove](2, Value.Remove)).assertGet shouldBe true
+      map.get(1).assertGet._2 shouldBe Value.Remove
+      map.get(2).assertGet._2 shouldBe Value.Remove
+    }
+
+    "initialise a memory Appendix map" in {
+      import AppendixMapEntryWriter._
+
+      val map = Map.memory[Slice[Byte], Segment](1.mb, flushOnOverflow = false)
+      val segment1 = TestSegment().assertGet
+      val segment2 = TestSegment().assertGet
+
+      map.write(MapEntry.Add[Slice[Byte], Segment](1, segment1)).assertGet shouldBe true
+      map.write(MapEntry.Add[Slice[Byte], Segment](2, segment2)).assertGet shouldBe true
+      map.get(1).assertGet._2 shouldBe segment1
+      map.get(2).assertGet._2 shouldBe segment2
+
+      map.write(MapEntry.Remove[Slice[Byte]](1)).assertGet shouldBe true
+      map.write(MapEntry.Remove[Slice[Byte]](2)).assertGet shouldBe true
+      map.get(1) shouldBe empty
+      map.get(2) shouldBe empty
+    }
+
+    "initialise a persistent Level0 map and recover from it when it's empty" in {
+      import LevelZeroMapEntryReader._
+      import LevelZeroMapEntryWriter._
+
+      val map = Map.persistent[Slice[Byte], Value](createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).assertGet.item
+      map.isEmpty shouldBe true
       map.close().assertGet
       //recover from an empty map
-      testInsertAndRead(Map.persistent(map.path, mmap = true, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).assertGet.item)
+      val recovered = Map.persistent[Slice[Byte], Value](map.path, mmap = true, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).assertGet.item
+      recovered.isEmpty shouldBe true
+      recovered.close().assertGet
     }
 
-    "initialise a map with data and recover" in {
-      val map = Map.persistent(createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).assertGet.item
-      testInsertAndRead(map)
-      //re-open
-      testInsertAndRead(Map.persistent(map.path, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).assertGet.item)
-      //re-open as mmap
-      testInsertAndRead(Map.persistent(map.path, mmap = true, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).assertGet.item)
-      //re-read
-      //in-memory
-      testInsertAndRead(Map.memory(1.mb, flushOnOverflow = false))
+    "initialise a persistent Appendix map and recover from it when it's empty" in {
+      import AppendixMapEntryWriter._
+      import appendixReader._
+
+      val map = Map.persistent[Slice[Byte], Segment](createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).assertGet.item
+      map.isEmpty shouldBe true
+      map.close().assertGet
+      //recover from an empty map
+      val recovered = Map.persistent[Slice[Byte], Segment](map.path, mmap = true, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).assertGet.item
+      recovered.isEmpty shouldBe true
+      recovered.close().assertGet
     }
 
-    "initialise a Map that has two persistent files (second file did not get deleted due to early JVM termination)" in {
-      val map1 = Map.persistent(createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).assertGet.item
-      map1.add(1, (ValueType.Add, Some(1))).assertGet shouldBe true
-      map1.add(2, (ValueType.Add, Some(2))).assertGet shouldBe true
-      map1.add(3, (ValueType.Add, Some(3))).assertGet shouldBe true
+    "initialise a persistent Level0 map and recover from it when it's contains data" in {
+      import LevelZeroMapEntryReader._
+      import LevelZeroMapEntryWriter._
 
-      val map2 = Map.persistent(createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).assertGet.item
-      map2.add(4, (ValueType.Add, Some(4))).assertGet shouldBe true
-      map2.add(5, (ValueType.Add, Some(5))).assertGet shouldBe true
-      map2.add(2, (ValueType.Add, Some(22))).assertGet shouldBe true //second file will overrride 2's value to be 22
+      val map = Map.persistent[Slice[Byte], Value](createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).assertGet.item
+      map.write(MapEntry.Add[Slice[Byte], Value.Put](1, Value.Put(Some(1)))).assertGet shouldBe true
+      map.write(MapEntry.Add[Slice[Byte], Value.Put](2, Value.Put(Some(2)))).assertGet shouldBe true
+      map.write(MapEntry.Add[Slice[Byte], Value.Remove](2, Value.Remove)).assertGet shouldBe true
+      map.get(1).assertGet._2 shouldBe Value.Put(Some(1))
+      map.get(2).assertGet._2 shouldBe Value.Remove
+
+      def doRecover(path: Path): PersistentMap[Slice[Byte], Value] = {
+        val recovered = Map.persistent[Slice[Byte], Value](map.path, mmap = Random.nextBoolean(), flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).assertGet.item
+        recovered.get(1).assertGet._2 shouldBe Value.Put(Some(1))
+        recovered.get(2).assertGet._2 shouldBe Value.Remove
+        recovered.close().assertGet
+        recovered
+      }
+
+      //recover the maps 10 times
+      (1 to 10).foldLeft(map) {
+        case (map, _) =>
+          doRecover(map.path)
+      }
+      map.close().assertGet
+    }
+
+    "initialise a persistent Appendix map and recover from it when it's contains data" in {
+      import AppendixMapEntryWriter._
+      import appendixReader._
+
+      val segment1 = TestSegment(Slice(Transient.Put(1, Some(1), 0.1, None), Transient.Put(2, Some(2), 0.1, None)).updateStats).assertGet
+      val segment2 = TestSegment(Slice(Transient.Put(3, Some(3), 0.1, None), Transient.Put(4, Some(4), 0.1, None)).updateStats).assertGet
+
+      val map = Map.persistent[Slice[Byte], Segment](createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).assertGet.item
+      map.write(MapEntry.Add[Slice[Byte], Segment](1, segment1)).assertGet shouldBe true
+      map.write(MapEntry.Add[Slice[Byte], Segment](2, segment2)).assertGet shouldBe true
+      map.write(MapEntry.Remove[Slice[Byte]](2)).assertGet shouldBe true
+      map.get(1).assertGet._2 shouldBe segment1
+      map.get(2) shouldBe empty
+
+      def doRecover(path: Path): PersistentMap[Slice[Byte], Segment] = {
+        val recovered = Map.persistent[Slice[Byte], Segment](map.path, mmap = Random.nextBoolean(), flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).assertGet.item
+        recovered.get(1).assertGet._2 shouldBe segment1
+        recovered.get(2) shouldBe empty
+        recovered.close().assertGet
+        recovered
+      }
+
+      //recover and maps 10 times
+      (1 to 10).foldLeft(map) {
+        case (map, _) =>
+          doRecover(map.path)
+      }
+      map.close().assertGet
+    }
+
+    "initialise a Map that has two persistent Level0 map files (second file did not get deleted due to early JVM termination)" in {
+      import LevelZeroMapEntryReader._
+      import LevelZeroMapEntryWriter._
+
+      val map1 = Map.persistent[Slice[Byte], Value](createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).assertGet.item
+      map1.write(MapEntry.Add(1, Value.Put(Some(1)))).assertGet shouldBe true
+      map1.write(MapEntry.Add(2, Value.Put(Some(2)))).assertGet shouldBe true
+      map1.write(MapEntry.Add(3, Value.Put(Some(3)))).assertGet shouldBe true
+
+      val map2 = Map.persistent[Slice[Byte], Value](createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).assertGet.item
+      map2.write(MapEntry.Add(4, Value.Put(Some(4)))).assertGet shouldBe true
+      map2.write(MapEntry.Add(5, Value.Put(Some(5)))).assertGet shouldBe true
+      map2.write(MapEntry.Add(2, Value.Put(Some(22)))).assertGet shouldBe true //second file will override 2's value to be 22
 
       //move map2's log file into map1's log file folder named as 1.log and reboot to test recovery.
       val map2sLogFile = map2.path.resolve(0.toLogFileId)
       Files.copy(map2sLogFile, map1.path.resolve(1.toLogFileId))
 
       //recover map 1 and it should contain all entries of map1 and map2
-      val map1Recovered = Map.persistent(map1.path, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).assertGet.item
-      map1Recovered.get(1).assertGet._2 shouldBe(ValueType.Add, Some(1))
-      map1Recovered.get(2).assertGet._2 shouldBe(ValueType.Add, Some(22)) //second file overrides 2's value to be 22
-      map1Recovered.get(3).assertGet._2 shouldBe(ValueType.Add, Some(3))
-      map1Recovered.get(4).assertGet._2 shouldBe(ValueType.Add, Some(4))
-      map1Recovered.get(5).assertGet._2 shouldBe(ValueType.Add, Some(5))
+      val map1Recovered = Map.persistent[Slice[Byte], Value](map1.path, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).assertGet.item
+      map1Recovered.get(1).assertGet._2 shouldBe Value.Put(Some(1))
+      map1Recovered.get(2).assertGet._2 shouldBe Value.Put(Some(22)) //second file overrides 2's value to be 22
+      map1Recovered.get(3).assertGet._2 shouldBe Value.Put(Some(3))
+      map1Recovered.get(4).assertGet._2 shouldBe Value.Put(Some(4))
+      map1Recovered.get(5).assertGet._2 shouldBe Value.Put(Some(5))
       map1Recovered.get(6) shouldBe empty
 
       //recovered file's id is 2.log
@@ -116,90 +198,77 @@ class MapSpec extends TestBase {
       map1Recovered.close().assertGet
     }
 
+    "initialise a Map that has two persistent Appendix map files (second file did not get deleted due to early JVM termination)" in {
+      import AppendixMapEntryWriter._
+      import appendixReader._
+
+      val segment1 = TestSegment(Slice(Transient.Put(1, Some(1), 0.1, None), Transient.Put(2, Some(2), 0.1, None)).updateStats).assertGet
+      val segment2 = TestSegment(Slice(Transient.Put(3, Some(3), 0.1, None), Transient.Put(4, Some(4), 0.1, None)).updateStats).assertGet
+      val segment3 = TestSegment(Slice(Transient.Put(5, Some(5), 0.1, None), Transient.Put(6, Some(6), 0.1, None)).updateStats).assertGet
+      val segment4 = TestSegment(Slice(Transient.Put(7, Some(7), 0.1, None), Transient.Put(8, Some(8), 0.1, None)).updateStats).assertGet
+      val segment5 = TestSegment(Slice(Transient.Put(9, Some(9), 0.1, None), Transient.Put(10, Some(10), 0.1, None)).updateStats).assertGet
+      val segment2Updated = TestSegment(Slice(Transient.Put(11, Some(11), 0.1, None), Transient.Put(12, Some(12), 0.1, None)).updateStats).assertGet
+
+      val map1 = Map.persistent[Slice[Byte], Segment](createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).assertGet.item
+      map1.write(MapEntry.Add(1, segment1)).assertGet shouldBe true
+      map1.write(MapEntry.Add(2, segment2)).assertGet shouldBe true
+      map1.write(MapEntry.Add(3, segment3)).assertGet shouldBe true
+
+      val map2 = Map.persistent[Slice[Byte], Segment](createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).assertGet.item
+      map2.write(MapEntry.Add(4, segment4)).assertGet shouldBe true
+      map2.write(MapEntry.Add(5, segment5)).assertGet shouldBe true
+      map2.write(MapEntry.Add(2, segment2Updated)).assertGet shouldBe true //second file will override 2's value to be segment2Updated
+
+      //move map2's log file into map1's log file folder named as 1.log and reboot to test recovery.
+      val map2sLogFile = map2.path.resolve(0.toLogFileId)
+      Files.copy(map2sLogFile, map1.path.resolve(1.toLogFileId))
+
+      //recover map 1 and it should contain all entries of map1 and map2
+      val map1Recovered = Map.persistent[Slice[Byte], Segment](map1.path, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).assertGet.item
+      map1Recovered.get(1).assertGet._2 shouldBe segment1
+      map1Recovered.get(2).assertGet._2 shouldBe segment2Updated //second file overrides 2's value to be segment2Updated
+      map1Recovered.get(3).assertGet._2 shouldBe segment3
+      map1Recovered.get(4).assertGet._2 shouldBe segment4
+      map1Recovered.get(5).assertGet._2 shouldBe segment5
+      map1Recovered.get(6) shouldBe empty
+
+      //recovered file's id is 2.log
+      map1Recovered.path.files(Extension.Log).map(_.fileId.assertGet) should contain only ((2, Extension.Log))
+
+      map1.close().assertGet
+      map2.close().assertGet
+      map1Recovered.close().assertGet
+      segment1.close.assertGet
+      segment2.close.assertGet
+      segment3.close.assertGet
+      segment4.close.assertGet
+      segment5.close.assertGet
+      segment2Updated.close.assertGet
+    }
+
     "fail initialise if the Map exists but recovery is not provided" in {
-      val map = Map.persistent(createRandomDir, mmap = false, flushOnOverflow = false, 1.mb).assertGet
+      import LevelZeroMapEntryReader._
+      import LevelZeroMapEntryWriter._
+
+      val map = Map.persistent[Slice[Byte], Value](createRandomDir, mmap = false, flushOnOverflow = false, 1.mb).assertGet
 
       //fails because the file already exists.
-      Map.persistent(map.path, mmap = false, flushOnOverflow = false, 1.mb).failed.assertGet shouldBe a[FileAlreadyExistsException]
+      Map.persistent[Slice[Byte], Value](map.path, mmap = false, flushOnOverflow = false, 1.mb).failed.assertGet shouldBe a[FileAlreadyExistsException]
 
       //recovers because the recovery is provided
-      Map.persistent(map.path, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).assertGet
+      Map.persistent[Slice[Byte], Value](map.path, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).assertGet
 
       map.close().assertGet
     }
   }
 
-  "PersistentMap.add and remove" should {
-    "add and remove key values" in {
-      testInsertAndRead(Map.persistent(createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).assertGet.item)
-      testInsertAndRead(Map.persistent(createRandomDir, mmap = true, flushOnOverflow = false, fileSize = 1.mb, dropCorruptedTailEntries = false).assertGet.item)
-      testInsertAndRead(Map.memory(1.mb, flushOnOverflow = false))
-    }
-
-    "return true if entry is too large for the map and flushOnOverflow is false" in {
-      def test(map: Map[Slice[Byte], (ValueType, Option[Slice[Byte]])]) = {
-        //since this is the first entry and it's byte size is 21.bytes, this entry will get added to the map.
-        map.add(1, (ValueType.Add, Some(1))).assertGet shouldBe true
-
-        //now map is not empty but the next entry is too large. This will return false
-        map.add(2, (ValueType.Add, Some(2))).assertGet shouldBe false
-
-        map.get(1).assertGet._2 shouldBe ((ValueType.Add, Some(1)))
-        map.get(2).isEmpty shouldBe true //second entry does not exists as it was too large for the map.
-        map.close().assertGet
-      }
-
-      //file size is 21.byte which is too small so every write entry require flushing.
-      val path1 = createRandomDir
-      test(Map.persistent(path1, mmap = false, flushOnOverflow = false, 21.byte, dropCorruptedTailEntries = false).assertGet.item)
-      //re-open as mmap
-      test(Map.persistent(path1, mmap = true, flushOnOverflow = false, 21.byte, dropCorruptedTailEntries = false).assertGet.item)
-      //
-      val path2 = createRandomDir
-      test(Map.persistent(path2, mmap = true, flushOnOverflow = false, 21.byte, dropCorruptedTailEntries = false).assertGet.item)
-      //re-open
-      test(Map.persistent(path2, mmap = false, flushOnOverflow = false, 21.byte, dropCorruptedTailEntries = false).assertGet.item)
-      test(Map.memory(21.byte, flushOnOverflow = false))
-      //test when every entry is smaller then the map size. Map size is 1.byte so
-      test(Map.persistent(createRandomDir, mmap = false, flushOnOverflow = false, 1.byte, dropCorruptedTailEntries = false).assertGet.item)
-      test(Map.persistent(createRandomDir, mmap = true, flushOnOverflow = false, 1.byte, dropCorruptedTailEntries = false).assertGet.item)
-      test(Map.memory(1.byte, flushOnOverflow = false))
-    }
-
-    "flush the map and write new entry if the new entry is too large for the map and flushOnOverflow is true" in {
-      def test(map: Map[Slice[Byte], (ValueType, Option[Slice[Byte]])]) = {
-        //since this is the first entry and it's byte size is 21.bytes, this entry will get added to the map.
-        map.add(1, (ValueType.Add, Some(1))).assertGet shouldBe true
-
-        //now map is not empty but the next entry is too large. But since flushOnOverFlow is true, this will
-        //successfully get written
-        map.add(2, (ValueType.Remove, Some(2))).assertGet shouldBe true
-
-        map.get(1).assertGet._2 shouldBe ((ValueType.Add, Some(1)))
-        map.get(2).assertGet._2 shouldBe ((ValueType.Remove, Some(2)))
-        map.close().assertGet
-      }
-
-      val path1 = createRandomDir
-      val path2 = createRandomDir
-      //path1
-      //file size is 1.byte which is too small so every write entry require flushing.
-      test(Map.persistent(path1, mmap = false, flushOnOverflow = true, 1.byte, dropCorruptedTailEntries = false).assertGet.item)
-      test(Map.persistent(path1, mmap = false, flushOnOverflow = true, 1.byte, dropCorruptedTailEntries = false).assertGet.item)
-      test(Map.persistent(path1, mmap = true, flushOnOverflow = true, 1.byte, dropCorruptedTailEntries = false).assertGet.item)
-      //path2
-      test(Map.persistent(path2, mmap = true, flushOnOverflow = true, 1.byte, dropCorruptedTailEntries = false).assertGet.item)
-      test(Map.persistent(path2, mmap = true, flushOnOverflow = true, 1.byte, dropCorruptedTailEntries = false).assertGet.item)
-      test(Map.persistent(path2, mmap = false, flushOnOverflow = true, 1.byte, dropCorruptedTailEntries = false).assertGet.item)
-      //memory
-      test(Map.memory(1.byte, flushOnOverflow = true))
-    }
-  }
-
   "PersistentMap.recover" should {
     "recover from an empty PersistentMap folder" in {
-      val skipList = new ConcurrentSkipListMap[Slice[Byte], (ValueType, Option[Slice[Byte]])]()
-      val file = PersistentMap.recover(createRandomDir, false, 4.mb, skipList, dropCorruptedTailEntries = false).assertGet.item
+      import LevelZeroMapEntryReader._
+      import LevelZeroMapEntryWriter._
+
+      val skipList = new ConcurrentSkipListMap[Slice[Byte], Value]()
+      val file = PersistentMap.recover[Slice[Byte], Value](createRandomDir, false, 4.mb, skipList, dropCorruptedTailEntries = false).assertGet.item
 
       file.isOpen shouldBe true
       file.isMemoryMapped.assertGet shouldBe false
@@ -212,14 +281,17 @@ class MapSpec extends TestBase {
     }
 
     "recover from an existing PersistentMap folder" in {
+      import LevelZeroMapEntryReader._
+      import LevelZeroMapEntryWriter._
+
       //create a map
-      val map = Map.persistent(createRandomDir, mmap = true, flushOnOverflow = false, fileSize = 4.mb, dropCorruptedTailEntries = false).assertGet.item
-      map.add(1, (ValueType.Add, Some(1))).assertGet shouldBe true
-      map.add(2, (ValueType.Remove, Some(2))).assertGet shouldBe true
-      map.add(3, (ValueType.Add, Some(3))).assertGet shouldBe true
+      val map = Map.persistent[Slice[Byte], Value](createRandomDir, mmap = true, flushOnOverflow = false, fileSize = 4.mb, dropCorruptedTailEntries = false).assertGet.item
+      map.write(MapEntry.Add(1, Value.Put(1))).assertGet shouldBe true
+      map.write(MapEntry.Add[Slice[Byte], Value.Remove](2, Value.Remove)).assertGet shouldBe true
+      map.write(MapEntry.Add(3, Value.Put(3))).assertGet shouldBe true
       map.currentFilePath.fileId.assertGet shouldBe(0, Extension.Log)
 
-      val skipList = new ConcurrentSkipListMap[Slice[Byte], (ValueType, Option[Slice[Byte]])](ordering)
+      val skipList = new ConcurrentSkipListMap[Slice[Byte], Value](ordering)
       val recoveredFile = PersistentMap.recover(map.path, false, 4.mb, skipList, dropCorruptedTailEntries = false).assertGet.item
 
       recoveredFile.isOpen shouldBe true
@@ -229,24 +301,27 @@ class MapSpec extends TestBase {
       recoveredFile.path.resolveSibling(0.toLogFileId).exists shouldBe false //0.log gets deleted
 
       skipList.isEmpty shouldBe false
-      skipList.get(1: Slice[Byte]) shouldBe ((ValueType.Add, Some(1)))
-      skipList.get(2: Slice[Byte]) shouldBe ((ValueType.Remove, Some(2)))
-      skipList.get(3: Slice[Byte]) shouldBe ((ValueType.Add, Some(3)))
+      skipList.get(1: Slice[Byte]) shouldBe Value.Put(1)
+      skipList.get(2: Slice[Byte]) shouldBe Value.Remove
+      skipList.get(3: Slice[Byte]) shouldBe Value.Put(3)
     }
 
     "recover from an existing PersistentMap folder when flushOnOverflow is true" in {
+      import LevelZeroMapEntryReader._
+      import LevelZeroMapEntryWriter._
+
       //create a map
-      val map = Map.persistent(createRandomDir, mmap = true, flushOnOverflow = true, fileSize = 1.byte, dropCorruptedTailEntries = false).assertGet.item
-      map.add(1, (ValueType.Add, Some(1))).assertGet shouldBe true
-      map.add(2, (ValueType.Remove, Some(2))).assertGet shouldBe true
-      map.add(3, (ValueType.Add, Some(3))).assertGet shouldBe true
+      val map = Map.persistent[Slice[Byte], Value](createRandomDir, mmap = true, flushOnOverflow = true, fileSize = 1.byte, dropCorruptedTailEntries = false).assertGet.item
+      map.write(MapEntry.Add(1, Value.Put(1))).assertGet shouldBe true
+      map.write(MapEntry.Add[Slice[Byte], Value.Remove](2, Value.Remove)).assertGet shouldBe true
+      map.write(MapEntry.Add(3, Value.Put(3))).assertGet shouldBe true
       map.currentFilePath.fileId.assertGet shouldBe(3, Extension.Log)
       map.path.resolveSibling(0.toLogFileId).exists shouldBe false //0.log gets deleted
       map.path.resolveSibling(1.toLogFileId).exists shouldBe false //1.log gets deleted
       map.path.resolveSibling(2.toLogFileId).exists shouldBe false //2.log gets deleted
 
       //reopen file
-      val skipList = new ConcurrentSkipListMap[Slice[Byte], (ValueType, Option[Slice[Byte]])](ordering)
+      val skipList = new ConcurrentSkipListMap[Slice[Byte], Value](ordering)
       val recoveredFile = PersistentMap.recover(map.path, true, 1.byte, skipList, dropCorruptedTailEntries = false).assertGet.item
       recoveredFile.isOpen shouldBe true
       recoveredFile.isMemoryMapped.assertGet shouldBe true
@@ -255,12 +330,12 @@ class MapSpec extends TestBase {
       recoveredFile.path.resolveSibling(3.toLogFileId).exists shouldBe false //3.log gets deleted
 
       skipList.isEmpty shouldBe false
-      skipList.get(1: Slice[Byte]) shouldBe ((ValueType.Add, Some(1)))
-      skipList.get(2: Slice[Byte]) shouldBe ((ValueType.Remove, Some(2)))
-      skipList.get(3: Slice[Byte]) shouldBe ((ValueType.Add, Some(3)))
+      skipList.get(1: Slice[Byte]) shouldBe Value.Put(1)
+      skipList.get(2: Slice[Byte]) shouldBe Value.Remove
+      skipList.get(3: Slice[Byte]) shouldBe Value.Put(3)
 
       //reopen the recovered file
-      val skipList2 = new ConcurrentSkipListMap[Slice[Byte], (ValueType, Option[Slice[Byte]])](ordering)
+      val skipList2 = new ConcurrentSkipListMap[Slice[Byte], Value](ordering)
       val recoveredFile2 = PersistentMap.recover(map.path, true, 1.byte, skipList2, dropCorruptedTailEntries = false).assertGet.item
       recoveredFile2.isOpen shouldBe true
       recoveredFile2.isMemoryMapped.assertGet shouldBe true
@@ -269,9 +344,9 @@ class MapSpec extends TestBase {
       recoveredFile2.path.resolveSibling(4.toLogFileId).exists shouldBe false //4.log gets deleted
 
       skipList2.isEmpty shouldBe false
-      skipList2.get(1: Slice[Byte]) shouldBe ((ValueType.Add, Some(1)))
-      skipList2.get(2: Slice[Byte]) shouldBe ((ValueType.Remove, Some(2)))
-      skipList2.get(3: Slice[Byte]) shouldBe ((ValueType.Add, Some(3)))
+      skipList.get(1: Slice[Byte]) shouldBe Value.Put(1)
+      skipList.get(2: Slice[Byte]) shouldBe Value.Remove
+      skipList.get(3: Slice[Byte]) shouldBe Value.Put(3)
 
       map.close().assertGet
       recoveredFile.close.assertGet
@@ -280,12 +355,15 @@ class MapSpec extends TestBase {
     }
 
     "recover from an existing PersistentMap folder with empty memory map" in {
+      import LevelZeroMapEntryReader._
+      import LevelZeroMapEntryWriter._
+
       //create a map
-      val map = Map.persistent(createRandomDir, mmap = true, flushOnOverflow = false, fileSize = 4.mb, dropCorruptedTailEntries = false).assertGet.item
+      val map = Map.persistent[Slice[Byte], Value](createRandomDir, mmap = true, flushOnOverflow = false, fileSize = 4.mb, dropCorruptedTailEntries = false).assertGet.item
       map.currentFilePath.fileId.assertGet shouldBe(0, Extension.Log)
       map.close().assertGet
 
-      val skipList = new ConcurrentSkipListMap[Slice[Byte], (ValueType, Option[Slice[Byte]])](ordering)
+      val skipList = new ConcurrentSkipListMap[Slice[Byte], Value](ordering)
       val file = PersistentMap.recover(map.path, false, 4.mb, skipList, dropCorruptedTailEntries = false).assertGet.item
 
       file.isOpen shouldBe true
@@ -302,22 +380,25 @@ class MapSpec extends TestBase {
 
   "PersistentMap.nextFile" should {
     "creates a new file from the current file" in {
-      val skipList = new ConcurrentSkipListMap[Slice[Byte], (ValueType, Option[Slice[Byte]])](ordering)
-      skipList.put(1, (ValueType.Add, Some(1)))
-      skipList.put(2, (ValueType.Add, Some(2)))
-      skipList.put(3, (ValueType.Remove, Some(3)))
+      import LevelZeroMapEntryReader._
+      import LevelZeroMapEntryWriter._
+
+      val skipList = new ConcurrentSkipListMap[Slice[Byte], Value](ordering)
+      skipList.put(1, Value.Put(1))
+      skipList.put(2, Value.Put(2))
+      skipList.put(3, Value.Remove)
 
       val currentFile = PersistentMap.recover(createRandomDir, false, 4.mb, skipList, dropCorruptedTailEntries = false).assertGet.item
       val nextFile = PersistentMap.nextFile(currentFile, false, 4.mb, skipList).assertGet
 
-      val nextFileSkipList = new ConcurrentSkipListMap[Slice[Byte], (ValueType, Option[Slice[Byte]])](ordering)
+      val nextFileSkipList = new ConcurrentSkipListMap[Slice[Byte], Value](ordering)
       val nextFileBytes = DBFile.channelRead(nextFile.path).assertGet.readAll.assertGet
       val mapEntries = MapCodec.read(nextFileBytes, dropCorruptedTailEntries = false).assertGet.item.assertGet
       mapEntries applyTo nextFileSkipList
 
-      nextFileSkipList.get(1: Slice[Byte]) shouldBe ((ValueType.Add, Some(1)))
-      nextFileSkipList.get(2: Slice[Byte]) shouldBe ((ValueType.Add, Some(2)))
-      nextFileSkipList.get(3: Slice[Byte]) shouldBe ((ValueType.Remove, Some(3)))
+      nextFileSkipList.get(1: Slice[Byte]) shouldBe Value.Put(1)
+      nextFileSkipList.get(2: Slice[Byte]) shouldBe Value.Put(2)
+      nextFileSkipList.get(3: Slice[Byte]) shouldBe Value.Remove
 
       currentFile.close.assertGet
       nextFile.close.assertGet
@@ -325,17 +406,21 @@ class MapSpec extends TestBase {
   }
 
   "PersistentMap.recovery on corruption" should {
-    val map = Map.persistent(createRandomDir, mmap = false, flushOnOverflow = false, fileSize = 4.mb, dropCorruptedTailEntries = false).assertGet.item
+    import LevelZeroMapEntryReader._
+    import LevelZeroMapEntryWriter._
+
+    val map = Map.persistent[Slice[Byte], Value](createRandomDir, mmap = false, flushOnOverflow = false, fileSize = 4.mb, dropCorruptedTailEntries = false).assertGet.item
     (1 to 100) foreach {
       i =>
-        map.add(i, (ValueType.Add, Some(i))).assertGet shouldBe true
+        map.write(MapEntry.Add(i, Value.Put(i))).assertGet shouldBe true
     }
     map.size shouldBe 100
     val allBytes = Files.readAllBytes(map.currentFilePath)
 
     "fail if the WAL file is corrupted and and when dropCorruptedTailEntries = false" in {
+
       def assertRecover =
-        Map.persistent(map.currentFilePath.getParent, mmap = false, flushOnOverflow = false, fileSize = 4.mb, dropCorruptedTailEntries = false).failed.assertGet shouldBe a[IllegalStateException]
+        Map.persistent[Slice[Byte], Value](map.currentFilePath.getParent, mmap = false, flushOnOverflow = false, fileSize = 4.mb, dropCorruptedTailEntries = false).failed.assertGet shouldBe a[IllegalStateException]
 
       //drop last byte
       Files.write(map.currentFilePath, allBytes.dropRight(1))
@@ -353,30 +438,33 @@ class MapSpec extends TestBase {
     "successfully recover partial data if WAL file is corrupted and when dropCorruptedTailEntries = true" in {
       //recover again with SkipLogOnCorruption, since the last entry is corrupted, the first two entries will still get read
       Files.write(map.currentFilePath, allBytes.dropRight(1))
-      val recoveredMap = Map.persistent(map.currentFilePath.getParent, mmap = false, flushOnOverflow = false, fileSize = 4.mb, dropCorruptedTailEntries = true).assertGet.item
+      val recoveredMap = Map.persistent[Slice[Byte], Value](map.currentFilePath.getParent, mmap = false, flushOnOverflow = false, fileSize = 4.mb, dropCorruptedTailEntries = true).assertGet.item
       (1 to 99) foreach {
         i =>
-          recoveredMap.get(i).assertGet._2 shouldBe ((ValueType.Add, Some(i)))
+          recoveredMap.get(i).assertGet._2 shouldBe Value.Put(i)
       }
       recoveredMap.contains(100) shouldBe false
 
       //if the top entry is corrupted.
       Files.write(recoveredMap.currentFilePath, allBytes.drop(1))
-      val recoveredMap2 = Map.persistent(recoveredMap.currentFilePath.getParent, mmap = false, flushOnOverflow = false, fileSize = 4.mb, dropCorruptedTailEntries = true).assertGet.item
+      val recoveredMap2 = Map.persistent[Slice[Byte], Value](recoveredMap.currentFilePath.getParent, mmap = false, flushOnOverflow = false, fileSize = 4.mb, dropCorruptedTailEntries = true).assertGet.item
       recoveredMap2.isEmpty shouldBe true
     }
   }
 
   "PersistentMap.recovery on corruption when there are two WAL files and the first file is corrupted" should {
-    val map1 = Map.persistent(createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).assertGet.item
-    map1.add(1, (ValueType.Add, Some(1))).assertGet shouldBe true
-    map1.add(2, (ValueType.Add, Some(2))).assertGet shouldBe true
-    map1.add(3, (ValueType.Add, Some(3))).assertGet shouldBe true
+    import LevelZeroMapEntryReader._
+    import LevelZeroMapEntryWriter._
 
-    val map2 = Map.persistent(createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).assertGet.item
-    map2.add(4, (ValueType.Add, Some(4))).assertGet shouldBe true
-    map2.add(5, (ValueType.Add, Some(5))).assertGet shouldBe true
-    map2.add(6, (ValueType.Add, Some(6))).assertGet shouldBe true
+    val map1 = Map.persistent[Slice[Byte], Value](createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).assertGet.item
+    map1.write(MapEntry.Add(1, Value.Put(1))).assertGet shouldBe true
+    map1.write(MapEntry.Add(2, Value.Put(2))).assertGet shouldBe true
+    map1.write(MapEntry.Add(3, Value.Put(3))).assertGet shouldBe true
+
+    val map2 = Map.persistent[Slice[Byte], Value](createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).assertGet.item
+    map2.write(MapEntry.Add(4, Value.Put(4))).assertGet shouldBe true
+    map2.write(MapEntry.Add(5, Value.Put(5))).assertGet shouldBe true
+    map2.write(MapEntry.Add(6, Value.Put(6))).assertGet shouldBe true
 
     val map2sLogFile = map2.path.resolve(0.toLogFileId)
     val copiedLogFileId = map1.path.resolve(1.toLogFileId)
@@ -392,38 +480,41 @@ class MapSpec extends TestBase {
     "fail recovery if first map is corrupted" in {
       //corrupt 0.log bytes
       Files.write(log0, log0Bytes.drop(1))
-      Map.persistent(map1.path, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).failed.assertGet shouldBe a[IllegalStateException]
+      Map.persistent[Slice[Byte], Value](map1.path, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).failed.assertGet shouldBe a[IllegalStateException]
       Files.write(log0, log0Bytes) //fix log0 bytes
     }
 
     "successfully recover Map by reading both WAL files if the first WAL file is corrupted" in {
       //corrupt 0.log bytes
       Files.write(log0, log0Bytes.dropRight(1))
-      val recoveredMapWith0LogCorrupted: RecoveryResult[PersistentMap[Slice[Byte], (ValueType, Option[Slice[Byte]])]] = Map.persistent(map1.path, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = true).assertGet
+      val recoveredMapWith0LogCorrupted = Map.persistent[Slice[Byte], Value](map1.path, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = true).assertGet
       //recovery state contains failure because the WAL file is partially recovered.
       recoveredMapWith0LogCorrupted.result.failed.assertGet shouldBe a[IllegalStateException]
       recoveredMapWith0LogCorrupted.item.size shouldBe 5 //5 because the 3rd entry in 0.log is corrupted
 
       //checking the recovered entries
-      recoveredMapWith0LogCorrupted.item.get(1).assertGet._2 shouldBe ((ValueType.Add, Some(1)))
-      recoveredMapWith0LogCorrupted.item.get(2).assertGet._2 shouldBe ((ValueType.Add, Some(2)))
+      recoveredMapWith0LogCorrupted.item.get(1).assertGet._2 shouldBe Value.Put(1)
+      recoveredMapWith0LogCorrupted.item.get(2).assertGet._2 shouldBe Value.Put(2)
       recoveredMapWith0LogCorrupted.item.get(3) shouldBe empty //since the last byte of 0.log file is corrupted, the last entry is missing
-      recoveredMapWith0LogCorrupted.item.get(4).assertGet._2 shouldBe ((ValueType.Add, Some(4)))
-      recoveredMapWith0LogCorrupted.item.get(5).assertGet._2 shouldBe ((ValueType.Add, Some(5)))
-      recoveredMapWith0LogCorrupted.item.get(6).assertGet._2 shouldBe ((ValueType.Add, Some(6)))
+      recoveredMapWith0LogCorrupted.item.get(4).assertGet._2 shouldBe Value.Put(4)
+      recoveredMapWith0LogCorrupted.item.get(5).assertGet._2 shouldBe Value.Put(5)
+      recoveredMapWith0LogCorrupted.item.get(6).assertGet._2 shouldBe Value.Put(6)
     }
   }
 
   "PersistentMap.recovery on corruption when there are two WAL files and the second file is corrupted" should {
-    val map1 = Map.persistent(createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).assertGet.item
-    map1.add(1, (ValueType.Add, Some(1))).assertGet shouldBe true
-    map1.add(2, (ValueType.Add, Some(2))).assertGet shouldBe true
-    map1.add(3, (ValueType.Add, Some(3))).assertGet shouldBe true
+    import LevelZeroMapEntryReader._
+    import LevelZeroMapEntryWriter._
 
-    val map2 = Map.persistent(createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).assertGet.item
-    map2.add(4, (ValueType.Add, Some(4))).assertGet shouldBe true
-    map2.add(5, (ValueType.Add, Some(5))).assertGet shouldBe true
-    map2.add(6, (ValueType.Add, Some(6))).assertGet shouldBe true
+    val map1 = Map.persistent[Slice[Byte], Value](createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).assertGet.item
+    map1.write(MapEntry.Add(1, Value.Put(1))).assertGet shouldBe true
+    map1.write(MapEntry.Add(2, Value.Put(2))).assertGet shouldBe true
+    map1.write(MapEntry.Add(3, Value.Put(3))).assertGet shouldBe true
+
+    val map2 = Map.persistent[Slice[Byte], Value](createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).assertGet.item
+    map2.write(MapEntry.Add(4, Value.Put(4))).assertGet shouldBe true
+    map2.write(MapEntry.Add(5, Value.Put(5))).assertGet shouldBe true
+    map2.write(MapEntry.Add(6, Value.Put(6))).assertGet shouldBe true
 
     val map2sLogFile = map2.path.resolve(0.toLogFileId)
     val copiedLogFileId = map1.path.resolve(1.toLogFileId)
@@ -438,26 +529,25 @@ class MapSpec extends TestBase {
     "fail recovery if one of two WAL files of the map is corrupted" in {
       //corrupt 1.log bytes
       Files.write(log1, log1Bytes.drop(1))
-      Map.persistent(map1.path, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).failed.assertGet shouldBe a[IllegalStateException]
+      Map.persistent[Slice[Byte], Value](map1.path, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).failed.assertGet shouldBe a[IllegalStateException]
       Files.write(log1, log1Bytes) //fix log1 bytes
     }
 
     "successfully recover Map by reading both WAL files if the second WAL file is corrupted" in {
       //corrupt 1.log bytes
       Files.write(log1, log1Bytes.dropRight(1))
-      val recoveredMapWith0LogCorrupted: RecoveryResult[PersistentMap[Slice[Byte], (ValueType, Option[Slice[Byte]])]] = Map.persistent(map1.path, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = true).assertGet
+      val recoveredMapWith0LogCorrupted = Map.persistent[Slice[Byte], Value](map1.path, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = true).assertGet
       //recovery state contains failure because the WAL file is partially recovered.
       recoveredMapWith0LogCorrupted.result.failed.assertGet shouldBe a[IllegalStateException]
       recoveredMapWith0LogCorrupted.item.size shouldBe 5 //5 because the 3rd entry in 1.log is corrupted
 
       //checking the recovered entries
-      recoveredMapWith0LogCorrupted.item.get(1).assertGet._2 shouldBe ((ValueType.Add, Some(1)))
-      recoveredMapWith0LogCorrupted.item.get(2).assertGet._2 shouldBe ((ValueType.Add, Some(2)))
-      recoveredMapWith0LogCorrupted.item.get(3).assertGet._2 shouldBe ((ValueType.Add, Some(3)))
-      recoveredMapWith0LogCorrupted.item.get(4).assertGet._2 shouldBe ((ValueType.Add, Some(4)))
-      recoveredMapWith0LogCorrupted.item.get(5).assertGet._2 shouldBe ((ValueType.Add, Some(5)))
+      recoveredMapWith0LogCorrupted.item.get(1).assertGet._2 shouldBe Value.Put(1)
+      recoveredMapWith0LogCorrupted.item.get(2).assertGet._2 shouldBe Value.Put(2)
+      recoveredMapWith0LogCorrupted.item.get(3).assertGet._2 shouldBe Value.Put(3)
+      recoveredMapWith0LogCorrupted.item.get(4).assertGet._2 shouldBe Value.Put(4)
+      recoveredMapWith0LogCorrupted.item.get(5).assertGet._2 shouldBe Value.Put(5)
       recoveredMapWith0LogCorrupted.item.get(6) shouldBe empty
     }
   }
-
 }

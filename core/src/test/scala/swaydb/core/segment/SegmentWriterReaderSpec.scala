@@ -20,7 +20,7 @@
 package swaydb.core.segment
 
 import swaydb.core.TestBase
-import swaydb.core.data.{KeyValue, Transient}
+import swaydb.core.data.{KeyValueWriteOnly, Transient}
 import swaydb.core.data.Transient.Remove
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
@@ -45,7 +45,7 @@ class SegmentWriterReaderSpec extends TestBase {
     "converting KeyValues to bytes and execute readAll and find on the bytes" in {
       implicit val ordering = KeyOrder.default
 
-      def test(keyValues: Slice[KeyValue]) = {
+      def test(keyValues: Slice[KeyValueWriteOnly]) = {
         val bytes = SegmentWriter.toSlice(keyValues, 0.1).assertGet
         bytes.isFull shouldBe true
         //in memory

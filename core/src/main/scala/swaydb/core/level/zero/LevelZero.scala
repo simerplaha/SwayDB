@@ -23,13 +23,13 @@ import java.nio.channels.{FileChannel, FileLock}
 import java.nio.file.{Path, Paths, StandardOpenOption}
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.data.KeyValue.{KeyValueInternal, KeyValueTuple, _}
+import swaydb.core.data.KeyValue._
+import swaydb.core.data.Value.{Put, Remove}
 import swaydb.core.data._
 import swaydb.core.io.file.IO
 import swaydb.core.level.LevelRef
 import swaydb.core.level.actor.LevelCommand.WakeUp
 import swaydb.core.level.actor.LevelZeroAPI
-import swaydb.core.map.serializer.Level0KeyValuesSerializer
 import swaydb.core.map.{MapEntry, Maps}
 import swaydb.core.retry.Retry
 import swaydb.core.util.MinMax
@@ -51,7 +51,9 @@ private[core] object LevelZero extends LazyLogging {
             acceleration: Level0Meter => Accelerator,
             readRetryLimit: Int)(implicit ordering: Ordering[Slice[Byte]],
                                  ec: ExecutionContext): Try[LevelZero] = {
-    implicit val serializer: Level0KeyValuesSerializer = Level0KeyValuesSerializer(ordering)
+    import swaydb.core.map.serializer.LevelZeroMapEntryReader.Level0Reader
+    import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
+
     val mapsAndPathAndLock =
       storage match {
         case Persistent(mmap, databaseDirectory, recovery) =>
@@ -62,15 +64,16 @@ private[core] object LevelZero extends LazyLogging {
           IO createFileIfAbsent lockFile
           Try(FileChannel.open(lockFile, StandardOpenOption.WRITE).tryLock()) flatMap {
             lock =>
+
               logger.info("{}: Recovering Maps.", path)
-              Maps.persistent[Slice[Byte], (ValueType, Option[Slice[Byte]])](path, mmap, mapSize, acceleration, recovery) map {
+              Maps.persistent[Slice[Byte], Value](path, mmap, mapSize, acceleration, recovery) map {
                 maps =>
                   (maps, path, Some(lock))
               }
           }
 
         case Memory =>
-          Success(Maps.memory[Slice[Byte], (ValueType, Option[Slice[Byte]])](mapSize, acceleration), Paths.get("MEMORY_DB").resolve(0.toString), None)
+          Success(Maps.memory[Slice[Byte], Value](mapSize, acceleration), Paths.get("MEMORY_DB").resolve(0.toString), None)
       }
     mapsAndPathAndLock map {
       case (maps, path, lock: Option[FileLock]) =>
@@ -82,16 +85,17 @@ private[core] object LevelZero extends LazyLogging {
 private[core] class LevelZero(val path: Path,
                               mapSize: Long,
                               readRetryLimit: Int,
-                              val maps: Maps[Slice[Byte], (ValueType, Option[Slice[Byte]])],
+                              val maps: Maps[Slice[Byte], Value],
                               val nextLevel: LevelRef,
                               lock: Option[FileLock])(implicit ordering: Ordering[Slice[Byte]],
-                                                      val serializer: Level0KeyValuesSerializer,
                                                       ec: ExecutionContext) extends LevelZeroRef with LazyLogging {
 
   logger.info("{}: Level0 started.", path)
 
-  implicit val orderOnReadOnly = ordering.on[KeyValueType](_.key)
+  implicit val orderOnReadOnly = ordering.on[KeyValue](_.key)
   implicit val orderKeyValueInternal = ordering.on[KeyValueInternal](_._1)
+
+  import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
 
   private val actor =
     LevelZeroActor(this)
@@ -128,25 +132,25 @@ private[core] class LevelZero(val path: Path,
 
   def put(key: Slice[Byte]): Try[Level0Meter] =
     assertKey(key) {
-      maps.add(key, (ValueType.Add, None))
+      maps.write(MapEntry.Add(key, Value.Put(None)))
     }
 
   def put(key: Slice[Byte], value: Slice[Byte]): Try[Level0Meter] =
     assertKey(key) {
-      maps.add(key, (ValueType.Add, Some(value)))
+      maps.write(MapEntry.Add(key, Value.Put(Some(value))))
     }
 
   def put(key: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter] =
     assertKey(key) {
-      maps.add(key, (ValueType.Add, value))
+      maps.write(MapEntry.Add(key, Value.Put(value)))
     }
 
-  def put(entry: MapEntry[Slice[Byte], (ValueType, Option[Slice[Byte]])]): Try[Level0Meter] =
-    maps add entry
+  def put(entry: MapEntry[Slice[Byte], Value]): Try[Level0Meter] =
+    maps write entry
 
   def remove(key: Slice[Byte]): Try[Level0Meter] =
     assertKey(key) {
-      maps add(key, (ValueType.Remove, None))
+      maps.write(MapEntry.Add[Slice[Byte], Value.Remove](key, Value.Remove))
     }
 
   def headFromMaps =
@@ -171,7 +175,7 @@ private[core] class LevelZero(val path: Path,
       headKeyValue.map(_.map(_.key))
     }
 
-  private def headKeyValue: Try[Option[KeyValueType]] =
+  private def headKeyValue: Try[Option[KeyValue]] =
     withRetry {
       val fromMaps: Option[KeyValueInternal] = headFromMaps
       nextLevel.head flatMap {
@@ -199,7 +203,7 @@ private[core] class LevelZero(val path: Path,
       lastKeyValue.map(_.map(_.key))
     }
 
-  private def lastKeyValue: Try[Option[KeyValueType]] =
+  private def lastKeyValue: Try[Option[KeyValue]] =
     withRetry {
       val fromMaps: Option[KeyValueInternal] = lastFromMaps
       nextLevel.last flatMap {
@@ -227,7 +231,7 @@ private[core] class LevelZero(val path: Path,
     }
 
   @tailrec
-  private def higherKeyValue(key: Slice[Byte]): Try[Option[KeyValueType]] = {
+  private def higherKeyValue(key: Slice[Byte]): Try[Option[KeyValue]] = {
     val fromMaps: Option[KeyValueInternal] = higherFromMaps(key)
     nextLevel.higher(key) match {
       case Success(fromLevels) =>
@@ -259,7 +263,7 @@ private[core] class LevelZero(val path: Path,
     }
 
   @tailrec
-  private def lowerKeyValue(key: Slice[Byte]): Try[Option[KeyValueType]] = {
+  private def lowerKeyValue(key: Slice[Byte]): Try[Option[KeyValue]] = {
     val fromMaps: Option[KeyValueInternal] = lowerFromMaps(key)
     nextLevel.lower(key) match {
       case Success(fromLevels) =>
@@ -282,13 +286,13 @@ private[core] class LevelZero(val path: Path,
   def contains(key: Slice[Byte]): Try[Boolean] =
     withRetry {
       maps.get(key) match {
-        case Some((_, (valueType, _))) =>
-          Success(valueType.notDelete)
+        case Some((_, value)) =>
+          Success(value.notRemove)
 
         case None =>
           nextLevel.get(key) flatMap {
             case Some(keyValue) =>
-              Success(keyValue.notDelete)
+              Success(keyValue.notRemove)
 
             case _ =>
               Success(false)
@@ -299,12 +303,13 @@ private[core] class LevelZero(val path: Path,
   def get(key: Slice[Byte]): Try[Option[Option[Slice[Byte]]]] =
     withRetry {
       maps.get(key) match {
-        case Some((_, (valueType, value))) =>
-          if (valueType.isDelete)
-            Success(None)
-          else
-            Success(Some(value))
-
+        case Some((_, value)) =>
+          value match {
+            case _: Remove =>
+              Success(None)
+            case Put(value) =>
+              Success(Some(value))
+          }
         case None =>
           nextLevel.get(key) flatMap {
             case Some(keyValue) =>
@@ -321,8 +326,8 @@ private[core] class LevelZero(val path: Path,
   def getKey(key: Slice[Byte]): Try[Option[Slice[Byte]]] =
     withRetry {
       maps.get(key) match {
-        case Some((key, (valueType, _))) =>
-          if (valueType.isDelete)
+        case Some((key, value)) =>
+          if (value.isRemove)
             Success(None)
           else
             Success(Some(key))
@@ -343,11 +348,13 @@ private[core] class LevelZero(val path: Path,
   def getKeyValue(key: Slice[Byte]): Try[Option[KeyValueTuple]] =
     withRetry {
       maps.get(key) match {
-        case Some((key, (valueType, value))) =>
-          if (valueType.isDelete)
-            Success(None)
-          else
-            Success(Some(key, value))
+        case Some((key, value)) =>
+          value match {
+            case _: Remove =>
+              Success(None)
+            case Put(value) =>
+              Success(Some(key, value))
+          }
 
         case None =>
           nextLevel.get(key) flatMap {
@@ -368,11 +375,13 @@ private[core] class LevelZero(val path: Path,
   def valueSize(key: Slice[Byte]): Try[Option[Int]] =
     withRetry {
       maps.get(key) match {
-        case Some((_, (valueType, value))) =>
-          if (valueType.isDelete)
-            Success(None)
-          else
-            Success(value.map(_.size))
+        case Some((_, value)) =>
+          value match {
+            case _: Remove =>
+              Success(None)
+            case Put(value) =>
+              Success(value.map(_.size))
+          }
 
         case None =>
           nextLevel.get(key).map(_.map(_.valueLength))
@@ -423,8 +432,8 @@ private[core] class LevelZero(val path: Path,
   override def mightContain(key: Slice[Byte]): Try[Boolean] =
     withRetry {
       maps.get(key) match {
-        case Some((_, (valueType, _))) =>
-          Success(valueType.notDelete)
+        case Some((_, value)) =>
+          Success(value.notRemove)
 
         case None =>
           nextLevel mightContain key

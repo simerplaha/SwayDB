@@ -24,7 +24,7 @@ import java.util.concurrent.ConcurrentSkipListMap
 import java.util.function.BiConsumer
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.map.serializer.MapSerializer
+import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.core.util.TryUtil.tryOrNone
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
@@ -43,7 +43,8 @@ private[core] object Map extends LazyLogging {
                                  fileSize: Long,
                                  dropCorruptedTailEntries: Boolean)(implicit ordering: Ordering[K],
                                                                     ec: ExecutionContext,
-                                                                    serializer: MapSerializer[K, V]): Try[RecoveryResult[PersistentMap[K, V]]] =
+                                                                    writer: MapEntryWriter[MapEntry.Add[K, V]],
+                                                                    reader: MapEntryReader[MapEntry[K, V]]): Try[RecoveryResult[PersistentMap[K, V]]] =
     PersistentMap(folder, mmap, flushOnOverflow, fileSize, dropCorruptedTailEntries)
 
   def persistent[K, V: ClassTag](folder: Path,
@@ -51,12 +52,13 @@ private[core] object Map extends LazyLogging {
                                  flushOnOverflow: Boolean,
                                  fileSize: Long)(implicit ordering: Ordering[K],
                                                  ec: ExecutionContext,
-                                                 serializer: MapSerializer[K, V]): Try[PersistentMap[K, V]] =
+                                                 reader: MapEntryReader[MapEntry[K, V]],
+                                                 writer: MapEntryWriter[MapEntry.Add[K, V]]): Try[PersistentMap[K, V]] =
     PersistentMap(folder, mmap, flushOnOverflow, fileSize)
 
   def memory[K, V: ClassTag](fileSize: Long = 0.byte,
                              flushOnOverflow: Boolean = true)(implicit ordering: Ordering[K],
-                                                              serializer: MapSerializer[K, V]): MemoryMap[K, V] =
+                                                              writer: MapEntryWriter[MapEntry.Add[K, V]]): MemoryMap[K, V] =
     new MemoryMap[K, V](
       skipList = new ConcurrentSkipListMap[K, V](ordering),
       flushOnOverflow = flushOnOverflow,
@@ -69,10 +71,6 @@ private[core] trait Map[K, V] {
   val skipList: ConcurrentSkipListMap[K, V]
 
   val fileSize: Long
-
-  def add(key: K, value: V): Try[Boolean]
-
-  def remove(key: K): Try[Boolean]
 
   def write(mapEntry: MapEntry[K, V]): Try[Boolean]
 

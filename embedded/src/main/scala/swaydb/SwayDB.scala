@@ -25,16 +25,17 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.api.SwayDBAPI
 import swaydb.configs.level.{MemoryConfig, PersistentConfig}
 import swaydb.core.CoreAPI
-import swaydb.core.data.ValueType
+import swaydb.core.data.Value
 import swaydb.core.map.MapEntry
+import swaydb.core.map.serializer.LevelZeroMapEntryWriter
 import swaydb.core.tool.AppendixRepairer
 import swaydb.data.accelerate.{Accelerator, Level0Meter}
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.config._
 import swaydb.data.repairAppendix.RepairResult.OverlappingSegments
+import swaydb.data.repairAppendix._
 import swaydb.data.request
 import swaydb.data.slice.Slice
-import swaydb.data.repairAppendix._
 import swaydb.order.KeyOrder
 import swaydb.serializers.Serializer
 import swaydb.types.{SwayDBMap, SwayDBSet}
@@ -101,7 +102,7 @@ object SwayDB extends LazyLogging {
                        cacheSize: Long = 100.mb,
                        mapSize: Int = 4.mb,
                        mmapMaps: Boolean = true,
-                       recoveryMode: RecoveryMode = RecoveryMode.Report,
+                       recoveryMode: RecoveryMode = RecoveryMode.ReportCorruption,
                        mmapAppendix: Boolean = true,
                        mmapSegments: MMAP = MMAP.WriteAndRead,
                        segmentSize: Int = 2.mb,
@@ -144,7 +145,7 @@ object SwayDB extends LazyLogging {
                        cacheSize: Long = 100.mb,
                        mapSize: Int = 4.mb,
                        mmapMaps: Boolean = true,
-                       recoveryMode: RecoveryMode = RecoveryMode.Report,
+                       recoveryMode: RecoveryMode = RecoveryMode.ReportCorruption,
                        mmapAppendix: Boolean = true,
                        mmapSegments: MMAP = MMAP.WriteAndRead,
                        segmentSize: Int = 2.mb,
@@ -483,15 +484,15 @@ private[swaydb] class SwayDB(api: CoreAPI) extends SwayDBAPI {
     api.put(key, value)
 
   override def put(entries: Iterable[request.Batch]) =
-    entries.foldLeft(Option.empty[MapEntry[Slice[Byte], (ValueType, Option[Slice[Byte]])]]) {
+    entries.foldLeft(Option.empty[MapEntry[Slice[Byte], Value]]) {
       case (mapEntry, batchEntry) =>
         val nextEntry =
           batchEntry match {
             case request.Batch.Put(key, value) =>
-              MapEntry.Add[Slice[Byte], (ValueType, Option[Slice[Byte]])](key, (ValueType.Add, value))(api.serializer)
+              MapEntry.Add[Slice[Byte], Value.Put](key, Value.Put(value))(LevelZeroMapEntryWriter.Level0AddWriter)
 
             case request.Batch.Remove(key) =>
-              MapEntry.Add[Slice[Byte], (ValueType, Option[Slice[Byte]])](key, (ValueType.Remove, None))(api.serializer)
+              MapEntry.Add[Slice[Byte], Value.Remove](key, Value.Remove)(LevelZeroMapEntryWriter.Level0RemoveWriter)
           }
         Some(mapEntry.map(_ ++ nextEntry) getOrElse nextEntry)
     } map {

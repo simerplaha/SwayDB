@@ -44,7 +44,7 @@ private[segment] class MemorySegment(val path: Path,
 
   @volatile private var deleted = false
 
-  override def put(newKeyValues: Slice[KeyValue],
+  override def put(newKeyValues: Slice[KeyValueWriteOnly],
                    minSegmentSize: Long,
                    bloomFilterFalsePositiveRate: Double,
                    targetPaths: PathsDistributor)(implicit idGenerator: IDGenerator): Try[Slice[Segment]] =
