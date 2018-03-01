@@ -309,9 +309,9 @@ private[core] class Level(val dirs: Seq[Dir],
         case (slice, (key, (valueType, value))) =>
           valueType match {
             case Add =>
-              slice add Transient.Create(key, value, bloomFilterFalsePositiveRate, slice.lastOption)
+              slice add Transient.Put(key, value, bloomFilterFalsePositiveRate, slice.lastOption)
             case Remove =>
-              slice add Transient.Delete(key, bloomFilterFalsePositiveRate, slice.lastOption)
+              slice add Transient.Remove(key, bloomFilterFalsePositiveRate, slice.lastOption)
           }
       } ==> (putKeyValues(_, appendix.values().asScala, None))
   }

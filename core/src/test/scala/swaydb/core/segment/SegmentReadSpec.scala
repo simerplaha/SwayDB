@@ -24,8 +24,8 @@ import java.nio.file.{Files, NoSuchFileException}
 import org.scalatest.PrivateMethodTester
 import org.scalatest.concurrent.ScalaFutures
 import swaydb.core.TestBase
-import swaydb.core.data.KeyValue
-import swaydb.core.data.Transient.Delete
+import swaydb.core.data.{KeyValue, Transient}
+import swaydb.core.data.Transient.Remove
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
 import swaydb.core.segment.format.one.SegmentWriter
 import swaydb.data.slice.Slice
@@ -62,17 +62,17 @@ class SegmentReadSpec extends TestBase with ScalaFutures with PrivateMethodTeste
 
   "Segment.belongsTo" should {
     "return true for overlapping KeyValues else false" in {
-      val segment = TestSegment(Slice(KeyValue(1), Delete(5)).updateStats).assertGet
+      val segment = TestSegment(Slice(Transient.Put(1), Remove(5)).updateStats).assertGet
 
-      Segment.belongsTo(KeyValue(0), segment) shouldBe false
+      Segment.belongsTo(Transient.Put(0), segment) shouldBe false
 
-      Segment.belongsTo(KeyValue(1), segment) shouldBe true
-      Segment.belongsTo(KeyValue(2), segment) shouldBe true
-      Segment.belongsTo(Delete(3), segment) shouldBe true
-      Segment.belongsTo(KeyValue(4), segment) shouldBe true
-      Segment.belongsTo(Delete(5), segment) shouldBe true
+      Segment.belongsTo(Transient.Put(1), segment) shouldBe true
+      Segment.belongsTo(Transient.Put(2), segment) shouldBe true
+      Segment.belongsTo(Remove(3), segment) shouldBe true
+      Segment.belongsTo(Transient.Put(4), segment) shouldBe true
+      Segment.belongsTo(Remove(5), segment) shouldBe true
 
-      Segment.belongsTo(Delete(6), segment) shouldBe false
+      Segment.belongsTo(Remove(6), segment) shouldBe false
 
       segment.close.assertGet
 
@@ -81,7 +81,7 @@ class SegmentReadSpec extends TestBase with ScalaFutures with PrivateMethodTeste
 
   "Segment.rangeBelongsTo" should {
     "return true for overlapping KeyValues else false" in {
-      val segment = TestSegment(Slice(KeyValue(1), Delete(5)).updateStats).assertGet
+      val segment = TestSegment(Slice(Transient.Put(1), Remove(5)).updateStats).assertGet
 
       //      1 - 5
       //      1 - 5
@@ -121,50 +121,50 @@ class SegmentReadSpec extends TestBase with ScalaFutures with PrivateMethodTeste
     "return true for overlapping Segments else false" in {
       //0 1
       //    2 3
-      var segment1 = TestSegment(Slice(KeyValue(0), Delete(1)).updateStats).assertGet
-      var segment2 = TestSegment(Slice(Delete(2), KeyValue(3)).updateStats).assertGet
+      var segment1 = TestSegment(Slice(Transient.Put(0), Remove(1)).updateStats).assertGet
+      var segment2 = TestSegment(Slice(Remove(2), Transient.Put(3)).updateStats).assertGet
       Segment.overlaps(segment1, segment2) shouldBe false
       Segment.overlaps(segment2, segment1) shouldBe false
 
       //1 2
       //  2 3
-      segment1 = TestSegment(Slice(KeyValue(1), Delete(2)).updateStats).assertGet
-      segment2 = TestSegment(Slice(Delete(2), KeyValue(3)).updateStats).assertGet
+      segment1 = TestSegment(Slice(Transient.Put(1), Remove(2)).updateStats).assertGet
+      segment2 = TestSegment(Slice(Remove(2), Transient.Put(3)).updateStats).assertGet
       Segment.overlaps(segment1, segment2) shouldBe true
       Segment.overlaps(segment2, segment1) shouldBe true
 
       //2 3
       //2 3
-      segment1 = TestSegment(Slice(Delete(2), KeyValue(3)).updateStats).assertGet
-      segment2 = TestSegment(Slice(KeyValue(2), Delete(3)).updateStats).assertGet
+      segment1 = TestSegment(Slice(Remove(2), Transient.Put(3)).updateStats).assertGet
+      segment2 = TestSegment(Slice(Transient.Put(2), Remove(3)).updateStats).assertGet
       Segment.overlaps(segment1, segment2) shouldBe true
       Segment.overlaps(segment2, segment1) shouldBe true
 
       //  3 4
       //2 3
-      segment1 = TestSegment(Slice(Delete(3), KeyValue(4)).updateStats).assertGet
-      segment2 = TestSegment(Slice(KeyValue(2), Delete(3)).updateStats).assertGet
+      segment1 = TestSegment(Slice(Remove(3), Transient.Put(4)).updateStats).assertGet
+      segment2 = TestSegment(Slice(Transient.Put(2), Remove(3)).updateStats).assertGet
       Segment.overlaps(segment1, segment2) shouldBe true
       Segment.overlaps(segment2, segment1) shouldBe true
 
       //    4 5
       //2 3
-      segment1 = TestSegment(Slice(KeyValue(4), Delete(5)).updateStats).assertGet
-      segment2 = TestSegment(Slice(KeyValue(2), Delete(3)).updateStats).assertGet
+      segment1 = TestSegment(Slice(Transient.Put(4), Remove(5)).updateStats).assertGet
+      segment2 = TestSegment(Slice(Transient.Put(2), Remove(3)).updateStats).assertGet
       Segment.overlaps(segment1, segment2) shouldBe false
       Segment.overlaps(segment2, segment1) shouldBe false
 
       //0       10
       //   2 3
-      segment1 = TestSegment(Slice(Delete(0), KeyValue(10)).updateStats).assertGet
-      segment2 = TestSegment(Slice(Delete(2), KeyValue(3)).updateStats).assertGet
+      segment1 = TestSegment(Slice(Remove(0), Transient.Put(10)).updateStats).assertGet
+      segment2 = TestSegment(Slice(Remove(2), Transient.Put(3)).updateStats).assertGet
       Segment.overlaps(segment1, segment2) shouldBe true
       Segment.overlaps(segment2, segment1) shouldBe true
 
       //   2 3
       //0       10
-      segment1 = TestSegment(Slice(KeyValue(2), KeyValue(3)).updateStats).assertGet
-      segment2 = TestSegment(Slice(KeyValue(0), KeyValue(10)).updateStats).assertGet
+      segment1 = TestSegment(Slice(Transient.Put(2), Transient.Put(3)).updateStats).assertGet
+      segment2 = TestSegment(Slice(Transient.Put(0), Transient.Put(10)).updateStats).assertGet
       Segment.overlaps(segment1, segment2) shouldBe true
       Segment.overlaps(segment2, segment1) shouldBe true
 
@@ -177,8 +177,8 @@ class SegmentReadSpec extends TestBase with ScalaFutures with PrivateMethodTeste
     "return non overlapping Segments" in {
       //0-1, 2-3
       //         4-5, 6-7
-      var segments1 = List(TestSegment(Slice(KeyValue(0), KeyValue(1)).updateStats).get, TestSegment(Slice(KeyValue(2), KeyValue(3)).updateStats).get)
-      var segments2 = List(TestSegment(Slice(KeyValue(4), KeyValue(5)).updateStats).get, TestSegment(Slice(KeyValue(6), KeyValue(7)).updateStats).get)
+      var segments1 = List(TestSegment(Slice(Transient.Put(0), Transient.Put(1)).updateStats).get, TestSegment(Slice(Transient.Put(2), Transient.Put(3)).updateStats).get)
+      var segments2 = List(TestSegment(Slice(Transient.Put(4), Transient.Put(5)).updateStats).get, TestSegment(Slice(Transient.Put(6), Transient.Put(7)).updateStats).get)
       Segment.nonOverlapping(segments1, segments2).map(_.path) shouldBe segments1.map(_.path)
       Segment.nonOverlapping(segments2, segments1).map(_.path) shouldBe segments2.map(_.path)
       Segment.overlaps(segments1, segments2).map(_.path) shouldBe empty
@@ -187,8 +187,8 @@ class SegmentReadSpec extends TestBase with ScalaFutures with PrivateMethodTeste
 
       //2-3, 4-5
       //     4-5, 6-7
-      segments1 = List(TestSegment(Slice(KeyValue(2), KeyValue(3)).updateStats).get, TestSegment(Slice(KeyValue(4), KeyValue(5)).updateStats).get)
-      segments2 = List(TestSegment(Slice(KeyValue(4), KeyValue(5)).updateStats).get, TestSegment(Slice(KeyValue(6), KeyValue(7)).updateStats).get)
+      segments1 = List(TestSegment(Slice(Transient.Put(2), Transient.Put(3)).updateStats).get, TestSegment(Slice(Transient.Put(4), Transient.Put(5)).updateStats).get)
+      segments2 = List(TestSegment(Slice(Transient.Put(4), Transient.Put(5)).updateStats).get, TestSegment(Slice(Transient.Put(6), Transient.Put(7)).updateStats).get)
       Segment.nonOverlapping(segments1, segments2).map(_.path) should contain only segments1.head.path
       Segment.nonOverlapping(segments2, segments1).map(_.path) should contain only segments2.last.path
       Segment.overlaps(segments1, segments2).map(_.path) should contain only segments1.last.path
@@ -196,8 +196,8 @@ class SegmentReadSpec extends TestBase with ScalaFutures with PrivateMethodTeste
 
       //4-5, 6-7
       //4-5, 6-7
-      segments1 = List(TestSegment(Slice(KeyValue(4), KeyValue(5)).updateStats).get, TestSegment(Slice(KeyValue(6), KeyValue(7)).updateStats).get)
-      segments2 = List(TestSegment(Slice(KeyValue(4), KeyValue(5)).updateStats).get, TestSegment(Slice(KeyValue(6), KeyValue(7)).updateStats).get)
+      segments1 = List(TestSegment(Slice(Transient.Put(4), Transient.Put(5)).updateStats).get, TestSegment(Slice(Transient.Put(6), Transient.Put(7)).updateStats).get)
+      segments2 = List(TestSegment(Slice(Transient.Put(4), Transient.Put(5)).updateStats).get, TestSegment(Slice(Transient.Put(6), Transient.Put(7)).updateStats).get)
       Segment.nonOverlapping(segments1, segments2).map(_.path) shouldBe empty
       Segment.nonOverlapping(segments2, segments1).map(_.path) shouldBe empty
       Segment.overlaps(segments1, segments2).map(_.path) shouldBe segments1.map(_.path)
@@ -205,8 +205,8 @@ class SegmentReadSpec extends TestBase with ScalaFutures with PrivateMethodTeste
 
       //     6-7, 8-9
       //4-5, 6-7
-      segments1 = List(TestSegment(Slice(KeyValue(6), KeyValue(7)).updateStats).get, TestSegment(Slice(KeyValue(8), KeyValue(9)).updateStats).get)
-      segments2 = List(TestSegment(Slice(KeyValue(4), KeyValue(5)).updateStats).get, TestSegment(Slice(KeyValue(6), KeyValue(7)).updateStats).get)
+      segments1 = List(TestSegment(Slice(Transient.Put(6), Transient.Put(7)).updateStats).get, TestSegment(Slice(Transient.Put(8), Transient.Put(9)).updateStats).get)
+      segments2 = List(TestSegment(Slice(Transient.Put(4), Transient.Put(5)).updateStats).get, TestSegment(Slice(Transient.Put(6), Transient.Put(7)).updateStats).get)
       Segment.nonOverlapping(segments1, segments2).map(_.path) should contain only segments1.last.path
       Segment.nonOverlapping(segments2, segments1).map(_.path) should contain only segments2.head.path
       Segment.overlaps(segments1, segments2).map(_.path) should contain only segments1.head.path
@@ -214,8 +214,8 @@ class SegmentReadSpec extends TestBase with ScalaFutures with PrivateMethodTeste
 
       //         8-9, 10-11
       //4-5, 6-7
-      segments1 = List(TestSegment(Slice(KeyValue(8), KeyValue(9)).updateStats).get, TestSegment(Slice(KeyValue(10), KeyValue(11)).updateStats).get)
-      segments2 = List(TestSegment(Slice(KeyValue(4), KeyValue(5)).updateStats).get, TestSegment(Slice(KeyValue(6), KeyValue(7)).updateStats).get)
+      segments1 = List(TestSegment(Slice(Transient.Put(8), Transient.Put(9)).updateStats).get, TestSegment(Slice(Transient.Put(10), Transient.Put(11)).updateStats).get)
+      segments2 = List(TestSegment(Slice(Transient.Put(4), Transient.Put(5)).updateStats).get, TestSegment(Slice(Transient.Put(6), Transient.Put(7)).updateStats).get)
       Segment.nonOverlapping(segments1, segments2).map(_.path) should contain allElementsOf segments1.map(_.path)
       Segment.nonOverlapping(segments2, segments1).map(_.path) should contain allElementsOf segments2.map(_.path)
       Segment.overlaps(segments1, segments2).map(_.path) shouldBe empty
@@ -223,8 +223,8 @@ class SegmentReadSpec extends TestBase with ScalaFutures with PrivateMethodTeste
 
       //1-2            10-11
       //     4-5, 6-7
-      segments1 = List(TestSegment(Slice(KeyValue(1), KeyValue(2)).updateStats).get, TestSegment(Slice(KeyValue(10), KeyValue(11)).updateStats).get)
-      segments2 = List(TestSegment(Slice(KeyValue(4), KeyValue(5)).updateStats).get, TestSegment(Slice(KeyValue(6), KeyValue(7)).updateStats).get)
+      segments1 = List(TestSegment(Slice(Transient.Put(1), Transient.Put(2)).updateStats).get, TestSegment(Slice(Transient.Put(10), Transient.Put(11)).updateStats).get)
+      segments2 = List(TestSegment(Slice(Transient.Put(4), Transient.Put(5)).updateStats).get, TestSegment(Slice(Transient.Put(6), Transient.Put(7)).updateStats).get)
       Segment.nonOverlapping(segments1, segments2).map(_.path) should contain allElementsOf segments1.map(_.path)
       Segment.nonOverlapping(segments2, segments1).map(_.path) should contain allElementsOf segments2.map(_.path)
       Segment.overlaps(segments1, segments2).map(_.path) shouldBe empty
@@ -238,10 +238,10 @@ class SegmentReadSpec extends TestBase with ScalaFutures with PrivateMethodTeste
 
       Segment.tempMinMaxKeyValues(segments) shouldBe
         Slice(
-          KeyValue(segments(0).minKey), KeyValue(segments(0).maxKey),
-          KeyValue(segments(1).minKey), KeyValue(segments(1).maxKey),
-          KeyValue(segments(2).minKey), KeyValue(segments(2).maxKey),
-          KeyValue(segments(3).minKey), KeyValue(segments(3).maxKey)
+          Transient.Put(segments(0).minKey), Transient.Put(segments(0).maxKey),
+          Transient.Put(segments(1).minKey), Transient.Put(segments(1).maxKey),
+          Transient.Put(segments(2).minKey), Transient.Put(segments(2).maxKey),
+          Transient.Put(segments(3).minKey), Transient.Put(segments(3).maxKey)
         )
     }
   }
@@ -250,51 +250,51 @@ class SegmentReadSpec extends TestBase with ScalaFutures with PrivateMethodTeste
     "return true or false if input Segments overlap or do not overlap with busy Segments respectively" in {
 
       val targetSegments = {
-        TestSegment(Slice(KeyValue(1), KeyValue(2)).updateStats) ::
-          TestSegment(Slice(KeyValue(3), KeyValue(4)).updateStats) ::
-          TestSegment(Slice(KeyValue(7), KeyValue(8)).updateStats) ::
-          TestSegment(Slice(KeyValue(9), KeyValue(10)).updateStats) ::
+        TestSegment(Slice(Transient.Put(1), Transient.Put(2)).updateStats) ::
+          TestSegment(Slice(Transient.Put(3), Transient.Put(4)).updateStats) ::
+          TestSegment(Slice(Transient.Put(7), Transient.Put(8)).updateStats) ::
+          TestSegment(Slice(Transient.Put(9), Transient.Put(10)).updateStats) ::
           Nil
       }.map(_.assertGet)
 
       //0-1
       //          3-4       7-8
       //     1-2, 3-4, ---, 7-8, 9-10
-      var inputSegments = Seq(TestSegment(Slice(KeyValue(0), KeyValue(1)).updateStats)).map(_.assertGet)
-      var busySegments = Seq(TestSegment(Slice(KeyValue(3), KeyValue(4)).updateStats), TestSegment(Slice(KeyValue(7), KeyValue(8)).updateStats)).map(_.assertGet)
+      var inputSegments = Seq(TestSegment(Slice(Transient.Put(0), Transient.Put(1)).updateStats)).map(_.assertGet)
+      var busySegments = Seq(TestSegment(Slice(Transient.Put(3), Transient.Put(4)).updateStats), TestSegment(Slice(Transient.Put(7), Transient.Put(8)).updateStats)).map(_.assertGet)
       Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments) shouldBe false
 
       //     1-2
       //          3-4       7-8
       //     1-2, 3-4, ---, 7-8, 9-10
-      inputSegments = Seq(TestSegment(Slice(KeyValue(1), KeyValue(2)).updateStats)).map(_.assertGet)
+      inputSegments = Seq(TestSegment(Slice(Transient.Put(1), Transient.Put(2)).updateStats)).map(_.assertGet)
       Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments) shouldBe false
 
       //          3-4
       //          3-4       7-8
       //     1-2, 3-4, ---, 7-8, 9-10
-      inputSegments = Seq(TestSegment(Slice(KeyValue(3), KeyValue(2)).updateStats)).map(_.assertGet)
+      inputSegments = Seq(TestSegment(Slice(Transient.Put(3), Transient.Put(2)).updateStats)).map(_.assertGet)
       Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments) shouldBe true
 
       //               5-6
       //          3-4       7-8
       //     1-2, 3-4, ---, 7-8, 9-10
-      inputSegments = Seq(TestSegment(Slice(KeyValue(5), KeyValue(6)).updateStats)).map(_.assertGet)
+      inputSegments = Seq(TestSegment(Slice(Transient.Put(5), Transient.Put(6)).updateStats)).map(_.assertGet)
       Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments) shouldBe true
 
       //                         9-10
       //          3-4       7-8
       //     1-2, 3-4, ---, 7-8, 9-10
-      inputSegments = Seq(TestSegment(Slice(KeyValue(9), KeyValue(10)).updateStats)).map(_.assertGet)
+      inputSegments = Seq(TestSegment(Slice(Transient.Put(9), Transient.Put(10)).updateStats)).map(_.assertGet)
       Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments) shouldBe false
 
       //               5-6
       //     1-2            7-8
       //     1-2, 3-4, ---, 7-8, 9-10
-      inputSegments = Seq(TestSegment(Slice(KeyValue(5), KeyValue(6)).updateStats)).map(_.assertGet)
+      inputSegments = Seq(TestSegment(Slice(Transient.Put(5), Transient.Put(6)).updateStats)).map(_.assertGet)
       busySegments = {
-        TestSegment(Slice(KeyValue(1), KeyValue(2)).updateStats) ::
-          TestSegment(Slice(KeyValue(7), KeyValue(8)).updateStats) ::
+        TestSegment(Slice(Transient.Put(1), Transient.Put(2)).updateStats) ::
+          TestSegment(Slice(Transient.Put(7), Transient.Put(8)).updateStats) ::
           Nil
       }.map(_.assertGet)
       Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments) shouldBe true
@@ -302,7 +302,7 @@ class SegmentReadSpec extends TestBase with ScalaFutures with PrivateMethodTeste
       //               5-6
       //     1-2                 9-10
       //     1-2, 3-4, ---, 7-8, 9-10
-      busySegments = Seq(TestSegment(Slice(KeyValue(1), KeyValue(2)).updateStats), TestSegment(Slice(KeyValue(9), KeyValue(10)).updateStats)).map(_.assertGet)
+      busySegments = Seq(TestSegment(Slice(Transient.Put(1), Transient.Put(2)).updateStats), TestSegment(Slice(Transient.Put(9), Transient.Put(10)).updateStats)).map(_.assertGet)
       Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments) shouldBe false
     }
   }
@@ -416,13 +416,13 @@ class SegmentReadSpec extends TestBase with ScalaFutures with PrivateMethodTeste
     }
 
     "return None if the key does not exist" in {
-      val segment = TestSegment(Slice(KeyValue(1), KeyValue(2)).updateStats).assertGet
+      val segment = TestSegment(Slice(Transient.Put(1), Transient.Put(2)).updateStats).assertGet
 
       segment.get(3).assertGetOpt.isEmpty shouldBe true
     }
 
     "return None value if the key exists and if its a delete key value" in {
-      val keyValues = Slice(KeyValue(1), Delete(2), KeyValue(3, 4)).updateStats
+      val keyValues = Slice(Transient.Put(1), Remove(2), Transient.Put(3, 4)).updateStats
       val segment = TestSegment(keyValues).assertGet
 
       segment.get(2).assertGet shouldBe keyValues(1)
@@ -441,7 +441,7 @@ class SegmentReadSpec extends TestBase with ScalaFutures with PrivateMethodTeste
     }
 
     "read value from a closed ValueReader" in {
-      val keyValues = Slice(KeyValue(1, 1), KeyValue(2, 2)).updateStats
+      val keyValues = Slice(Transient.Put(1, 1), Transient.Put(2, 2)).updateStats
       val segment = TestSegment(keyValues).assertGet
 
       val keyValue = segment.get(2).assertGet
@@ -492,7 +492,7 @@ class SegmentReadSpec extends TestBase with ScalaFutures with PrivateMethodTeste
 
   "Segment.lower and Segment.lowerKey" should {
     "get the lower from the segment" in {
-      val keyValues = Slice(KeyValue(1, 1), Delete(2), KeyValue(3, 3)).updateStats
+      val keyValues = Slice(Transient.Put(1, 1), Remove(2), Transient.Put(3, 3)).updateStats
       val segment = TestSegment(keyValues).assertGet
 
       segment.lower(0).assertGetOpt shouldBe empty //smallest key in this segment is 1
@@ -501,21 +501,21 @@ class SegmentReadSpec extends TestBase with ScalaFutures with PrivateMethodTeste
       val lowerOf2 = segment.lower(2).assertGet
       lowerOf2.key shouldBe 1
       lowerOf2.getOrFetchValue.assertGet shouldBe 1
-      lowerOf2.isDelete shouldBe false
+      lowerOf2.isRemove shouldBe false
 
       val lowerOf3 = segment.lower(3).assertGet
       lowerOf3.key shouldBe 2
       lowerOf3.getOrFetchValue.assertGetOpt shouldBe None
-      lowerOf3.isDelete shouldBe true
+      lowerOf3.isRemove shouldBe true
 
       val lowerOf4 = segment.lower(4).assertGet
       lowerOf4.key shouldBe 3
       lowerOf4.getOrFetchValue.assertGet shouldBe 3
-      lowerOf4.isDelete shouldBe false
+      lowerOf4.isRemove shouldBe false
     }
 
     "get the lower key from the segment that has only 1 key" in {
-      val keyValues = Slice(Delete(1)).updateStats
+      val keyValues = Slice(Remove(1)).updateStats
       val segment = TestSegment(keyValues).assertGet
 
       segment.lower(0).assertGetOpt shouldBe empty //smallest key in this segment is 1
@@ -524,7 +524,7 @@ class SegmentReadSpec extends TestBase with ScalaFutures with PrivateMethodTeste
       val lowerOf2 = segment.lower(2).assertGet
       lowerOf2.key shouldBe 1
       lowerOf2.getOrFetchValue.assertGetOpt shouldBe None
-      lowerOf2.isDelete shouldBe true
+      lowerOf2.isRemove shouldBe true
     }
 
     "get the lower key from the segment that has only many keys key" in {
@@ -537,23 +537,23 @@ class SegmentReadSpec extends TestBase with ScalaFutures with PrivateMethodTeste
 
   "Segment.higher and Segment.higherKey" should {
     "get the higher from the segment" in {
-      val keyValues = Slice(KeyValue(1, 1), Delete(2), KeyValue(3, 3)).updateStats
+      val keyValues = Slice(Transient.Put(1, 1), Remove(2), Transient.Put(3, 3)).updateStats
       val segment = TestSegment(keyValues).assertGet
 
       val higherOf0 = segment.higher(0).assertGet
       higherOf0.key shouldBe 1
       higherOf0.getOrFetchValue.assertGet shouldBe 1
-      higherOf0.isDelete shouldBe false
+      higherOf0.isRemove shouldBe false
 
       val higherOf1 = segment.higher(1).assertGet
       higherOf1.key shouldBe 2
       higherOf1.getOrFetchValue.assertGetOpt shouldBe None
-      higherOf1.isDelete shouldBe true
+      higherOf1.isRemove shouldBe true
 
       val higherOf2 = segment.higher(2).assertGet
       higherOf2.key shouldBe 3
       higherOf2.getOrFetchValue.assertGet shouldBe 3
-      higherOf2.isDelete shouldBe false
+      higherOf2.isRemove shouldBe false
 
       segment.higher(3).assertGetOpt shouldBe empty //smallest key in this segment is 1
       segment.higher(4).assertGetOpt shouldBe empty
@@ -561,13 +561,13 @@ class SegmentReadSpec extends TestBase with ScalaFutures with PrivateMethodTeste
     }
 
     "get the higher key from the segment that has only 1 key" in {
-      val keyValues = Slice(Delete(1)).updateStats
+      val keyValues = Slice(Remove(1)).updateStats
       val segment = TestSegment(keyValues).assertGet
 
       val higherOf0 = segment.higher(0).assertGet
       higherOf0.key shouldBe 1
       higherOf0.getOrFetchValue.assertGetOpt shouldBe None
-      higherOf0.isDelete shouldBe true
+      higherOf0.isRemove shouldBe true
 
       segment.higher(1).assertGetOpt shouldBe empty
       segment.higher(2).assertGetOpt shouldBe empty

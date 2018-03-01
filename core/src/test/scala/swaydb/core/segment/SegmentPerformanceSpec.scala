@@ -73,7 +73,7 @@ class SegmentPerformanceSpec extends TestBase with Benchmark {
         val higher = segment.higher(keyValue.key).assertGet
         higher.key shouldBe expectedHigher.key
         higher.getOrFetchValue.assertGetOpt shouldBe expectedHigher.getOrFetchValue.assertGetOpt
-        higher.isDelete shouldBe expectedHigher.isDelete
+        higher.isRemove shouldBe expectedHigher.isRemove
     }
 
   def assertLower(segment: Segment) =
@@ -86,7 +86,7 @@ class SegmentPerformanceSpec extends TestBase with Benchmark {
         val lower = segment.lower(keyValue.key).assertGet
         lower.key shouldBe expectedLower.key
         lower.getOrFetchValue.assertGetOpt shouldBe expectedLower.getOrFetchValue.assertGetOpt
-        lower.isDelete shouldBe expectedLower.isDelete
+        lower.isRemove shouldBe expectedLower.isRemove
     }
 
   var segment: Segment = null

@@ -22,7 +22,7 @@ package swaydb.core.map.serializer
 import java.util.concurrent.ConcurrentSkipListMap
 
 import swaydb.core.TestBase
-import swaydb.core.data.{KeyValue, ValueType}
+import swaydb.core.data.{KeyValue, Transient, ValueType}
 import swaydb.data.slice.Slice
 import swaydb.order.KeyOrder
 import swaydb.serializers.Default._
@@ -103,8 +103,8 @@ class MapCodecSpec extends TestBase {
         map
       }
 
-      val keyValues1 = Slice(KeyValue(1, 1), KeyValue(2, 2), KeyValue(3, 3), KeyValue(4, 4), KeyValue(5, 5)).updateStats
-      val keyValues2 = Slice(KeyValue(6, 6), KeyValue(7, 7), KeyValue(8, 8), KeyValue(9, 9), KeyValue(10, 10)).updateStats
+      val keyValues1 = Slice(Transient.Put(1, 1), Transient.Put(2, 2), Transient.Put(3, 3), Transient.Put(4, 4), Transient.Put(5, 5)).updateStats
+      val keyValues2 = Slice(Transient.Put(6, 6), Transient.Put(7, 7), Transient.Put(8, 8), Transient.Put(9, 9), Transient.Put(10, 10)).updateStats
       val allKeyValues = keyValues1 ++ keyValues2
 
       val skipList1 = createKeyValueSkipList(keyValues1)

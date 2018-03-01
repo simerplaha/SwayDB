@@ -20,8 +20,8 @@
 package swaydb.core.segment
 
 import swaydb.core.TestBase
-import swaydb.core.data.KeyValue
-import swaydb.core.data.Transient.Delete
+import swaydb.core.data.{KeyValue, Transient}
+import swaydb.core.data.Transient.Remove
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.order.KeyOrder
@@ -42,12 +42,12 @@ class SegmentMergeSpec extends TestBase {
     "add KeyValue to existing split and close the split if the total segmentSize is minSegmentSize for persistent key-values" in {
 
       val initialSegment = Slice.create[KeyValue](10)
-      initialSegment.add(KeyValue(key = 1, value = 1, previous = None, falsePositiveRate = 0.1))
-      initialSegment.add(KeyValue(key = 2, value = 2, previous = initialSegment.lastOption, falsePositiveRate = 0.1)) //total segmentSize is 60 bytes
+      initialSegment.add(Transient.Put(key = 1, value = 1, previous = None, falsePositiveRate = 0.1))
+      initialSegment.add(Transient.Put(key = 2, value = 2, previous = initialSegment.lastOption, falsePositiveRate = 0.1)) //total segmentSize is 60 bytes
 
       val segments = ListBuffer[Slice[KeyValue]](initialSegment)
       //this KeyValue's segment size without footer is 14 bytes
-      val keyValue = KeyValue(3, 3)
+      val keyValue = Transient.Put(3, 3)
 
       //minSegmentSize is 70.bytes. Adding the above keyValues should create a segment of total size
       // 60 + 14 - 3 (common bytes between 2 and 3) which is over the limit = 71.bytes.
@@ -71,12 +71,12 @@ class SegmentMergeSpec extends TestBase {
     "add KeyValue to existing split and close the split if the total segmentSize is minSegmentSize for memory key-values" in {
 
       val initialSegment = Slice.create[KeyValue](10)
-      initialSegment.add(KeyValue(key = 1, value = 1, previous = None, falsePositiveRate = 0.1))
-      initialSegment.add(KeyValue(key = 2, value = 2, previous = initialSegment.lastOption, falsePositiveRate = 0.1)) //total segmentSize is 16 bytes
+      initialSegment.add(Transient.Put(key = 1, value = 1, previous = None, falsePositiveRate = 0.1))
+      initialSegment.add(Transient.Put(key = 2, value = 2, previous = initialSegment.lastOption, falsePositiveRate = 0.1)) //total segmentSize is 16 bytes
 
       val segments = ListBuffer[Slice[KeyValue]](initialSegment)
       //this KeyValue's segment size without footer is 8 bytes
-      val keyValue = KeyValue(3, 3)
+      val keyValue = Transient.Put(3, 3)
 
       //minSegmentSize is 23.bytes. Adding the above keyValues should create a segment of total size
       // 16 + 8 = 24.bytes which is over the limit = 23.bytes.
@@ -100,11 +100,11 @@ class SegmentMergeSpec extends TestBase {
     "add KeyValue to current split if the total segmentSize with the new KeyValue < minSegmentSize for persistent key-values" in {
 
       val initialSegment = Slice.create[KeyValue](10)
-      initialSegment.add(KeyValue(key = 1, value = 1, previous = initialSegment.lastOption, falsePositiveRate = 0.1))
-      initialSegment.add(KeyValue(key = 2, value = 2, previous = initialSegment.lastOption, falsePositiveRate = 0.1)) //total segmentSize is 60.bytes
+      initialSegment.add(Transient.Put(key = 1, value = 1, previous = initialSegment.lastOption, falsePositiveRate = 0.1))
+      initialSegment.add(Transient.Put(key = 2, value = 2, previous = initialSegment.lastOption, falsePositiveRate = 0.1)) //total segmentSize is 60.bytes
 
       val segments = ListBuffer.empty[Slice[KeyValue]] += initialSegment
-      val keyValue = KeyValue(1, 1) //this KeyValue's segment size without footer is 14 bytes
+      val keyValue = Transient.Put(1, 1) //this KeyValue's segment size without footer is 14 bytes
 
       //minSegmentSize is 72.bytes. Adding the above keyValue should create a segment of
       // 60 + 14 - 3 (common bytes between 2 and 3) = 71.bytes.
@@ -124,11 +124,11 @@ class SegmentMergeSpec extends TestBase {
     "add KeyValue to current split if the total segmentSize with the new KeyValue < minSegmentSize for memory key-values" in {
 
       val initialSegment = Slice.create[KeyValue](10)
-      initialSegment.add(KeyValue(key = 1, value = 1, previous = initialSegment.lastOption, falsePositiveRate = 0.1))
-      initialSegment.add(KeyValue(key = 2, value = 2, previous = initialSegment.lastOption, falsePositiveRate = 0.1)) //total segmentSize is 16 bytes
+      initialSegment.add(Transient.Put(key = 1, value = 1, previous = initialSegment.lastOption, falsePositiveRate = 0.1))
+      initialSegment.add(Transient.Put(key = 2, value = 2, previous = initialSegment.lastOption, falsePositiveRate = 0.1)) //total segmentSize is 16 bytes
 
       val segments = ListBuffer.empty[Slice[KeyValue]] += initialSegment
-      val keyValue = KeyValue(1, 1) //this KeyValue's segment size without footer is 8 bytes
+      val keyValue = Transient.Put(1, 1) //this KeyValue's segment size without footer is 8 bytes
 
       //minSegmentSize is 25.bytes. Adding the above keyValue should create a segment of
       // 16 + 8 = 24.bytes which is under the limit 25.bytes.
@@ -152,11 +152,11 @@ class SegmentMergeSpec extends TestBase {
     "transfer the last segment's KeyValues to previous segment, if the last segment's segmentSize is < minSegmentSize for persistent key-values" in {
 
       val segment1 = Slice.create[KeyValue](10)
-      segment1.add(KeyValue(key = 1, value = 1, previous = segment1.lastOption, falsePositiveRate = 0.1))
-      segment1.add(KeyValue(key = 2, value = 2, previous = segment1.lastOption, falsePositiveRate = 0.1)) //total segmentSize is 60.bytes
+      segment1.add(Transient.Put(key = 1, value = 1, previous = segment1.lastOption, falsePositiveRate = 0.1))
+      segment1.add(Transient.Put(key = 2, value = 2, previous = segment1.lastOption, falsePositiveRate = 0.1)) //total segmentSize is 60.bytes
 
       val smallerLastSegment = Slice.create[KeyValue](10)
-      smallerLastSegment.add(KeyValue(key = 1, value = 1, previous = None, falsePositiveRate = 0.1)) //total segmentSize is 49.bytes
+      smallerLastSegment.add(Transient.Put(key = 1, value = 1, previous = None, falsePositiveRate = 0.1)) //total segmentSize is 49.bytes
 
       val segments = ListBuffer[Slice[KeyValue]](segment1, smallerLastSegment)
 
@@ -170,11 +170,11 @@ class SegmentMergeSpec extends TestBase {
 
     "transfer the last segment's KeyValues to previous segment, if the last segment's segmentSize is < minSegmentSize for memory key-values" in {
       val segment1 = Slice.create[KeyValue](10)
-      segment1.add(KeyValue(key = 1, value = 1, previous = segment1.lastOption, falsePositiveRate = 0.1))
-      segment1.add(KeyValue(key = 2, value = 2, previous = segment1.lastOption, falsePositiveRate = 0.1)) //total segmentSize is 16.bytes
+      segment1.add(Transient.Put(key = 1, value = 1, previous = segment1.lastOption, falsePositiveRate = 0.1))
+      segment1.add(Transient.Put(key = 2, value = 2, previous = segment1.lastOption, falsePositiveRate = 0.1)) //total segmentSize is 16.bytes
 
       val smallerLastSegment = Slice.create[KeyValue](10)
-      smallerLastSegment.add(KeyValue(key = 1, value = 1, previous = None, falsePositiveRate = 0.1)) //total segmentSize is 8.bytes
+      smallerLastSegment.add(Transient.Put(key = 1, value = 1, previous = None, falsePositiveRate = 0.1)) //total segmentSize is 8.bytes
 
       val segments = ListBuffer[Slice[KeyValue]](segment1, smallerLastSegment)
 
@@ -189,8 +189,8 @@ class SegmentMergeSpec extends TestBase {
     "make no change if there is only one segment" in {
 
       val segment1 = Slice.create[KeyValue](10)
-      segment1.add(KeyValue(key = 1, value = 1, previous = segment1.lastOption, falsePositiveRate = 0.1))
-      segment1.add(KeyValue(key = 2, value = 2, previous = segment1.lastOption, falsePositiveRate = 0.1)) //total segmentSize is 37
+      segment1.add(Transient.Put(key = 1, value = 1, previous = segment1.lastOption, falsePositiveRate = 0.1))
+      segment1.add(Transient.Put(key = 2, value = 2, previous = segment1.lastOption, falsePositiveRate = 0.1)) //total segmentSize is 37
 
       val segments = ListBuffer[Slice[KeyValue]](segment1)
 
@@ -205,8 +205,8 @@ class SegmentMergeSpec extends TestBase {
 
     "should split KeyValues to equal chunks" in {
 
-      val oldKeyValues: Slice[KeyValue] = Slice(KeyValue(1, 1), KeyValue(2, 2), KeyValue(3, 3), KeyValue(4, 4)).updateStats
-      val newKeyValues: Slice[KeyValue] = Slice(KeyValue(1, 22), KeyValue(2, 22), KeyValue(3, 22), KeyValue(4, 22)).updateStats
+      val oldKeyValues: Slice[KeyValue] = Slice(Transient.Put(1, 1), Transient.Put(2, 2), Transient.Put(3, 3), Transient.Put(4, 4)).updateStats
+      val newKeyValues: Slice[KeyValue] = Slice(Transient.Put(1, 22), Transient.Put(2, 22), Transient.Put(3, 22), Transient.Put(4, 22)).updateStats
 
       def assert(segments: Array[Slice[KeyValue]]) = {
         segments.length shouldBe 4
@@ -230,8 +230,8 @@ class SegmentMergeSpec extends TestBase {
 
     "should merge should remove Deleted key-values if removeDeletes is true" in {
 
-      val oldKeyValues: Slice[KeyValue] = Slice(KeyValue(1, 1), KeyValue(2, 2), KeyValue(3, 3), KeyValue(4, 4)).updateStats
-      val newKeyValues: Slice[KeyValue] = Slice(Delete(0), KeyValue(1, 11), Delete(2), KeyValue(3, 33), Delete(4), Delete(5)).updateStats
+      val oldKeyValues: Slice[KeyValue] = Slice(Transient.Put(1, 1), Transient.Put(2, 2), Transient.Put(3, 3), Transient.Put(4, 4)).updateStats
+      val newKeyValues: Slice[KeyValue] = Slice(Remove(0), Transient.Put(1, 11), Remove(2), Transient.Put(3, 33), Remove(4), Remove(5)).updateStats
 
       def assert(segments: Iterable[Slice[KeyValue]]) = {
         segments should have size 1

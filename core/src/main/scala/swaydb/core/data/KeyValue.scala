@@ -20,7 +20,7 @@
 package swaydb.core.data
 
 import swaydb.core.data.KeyValue.{KeyValueTuple, KeyValueInternal, ValuePair}
-import swaydb.core.data.Transient.Create
+import swaydb.core.data.Transient.Put
 import swaydb.data.slice.Slice
 
 import scala.util.{Success, Try}
@@ -30,9 +30,9 @@ private[core] sealed trait KeyValueType {
 
   def id: Int
 
-  def isDelete: Boolean
+  def isRemove: Boolean
 
-  def notDelete: Boolean = !isDelete
+  def notDelete: Boolean = !isRemove
 
   def keyLength =
     key.size
@@ -42,14 +42,14 @@ private[core] sealed trait KeyValueType {
   def toKeyValuePair: Try[Option[KeyValueInternal]] =
     getOrFetchValue map {
       value =>
-        val valueType = if (isDelete) ValueType.Remove else ValueType.Add
+        val valueType = if (isRemove) ValueType.Remove else ValueType.Add
         Some(key, (valueType, value))
     }
 
   def toValueResponse: Try[Option[ValuePair]] =
     getOrFetchValue map {
       value =>
-        val valueType = if (isDelete) ValueType.Remove else ValueType.Add
+        val valueType = if (isRemove) ValueType.Remove else ValueType.Add
         Some(valueType, value)
     }
 
@@ -77,7 +77,7 @@ private[core] object KeyValue {
 
   implicit class ToKeyValueTypeFromInternal(keyVal: KeyValueInternal) {
     def toKeyValueType = new KeyValueType {
-      override def isDelete: Boolean =
+      override def isRemove: Boolean =
         keyVal._2._1.isDelete
 
       override def getOrFetchValue: Try[Option[Slice[Byte]]] =
@@ -95,21 +95,4 @@ private[core] object KeyValue {
 
   type ValuePair = (ValueType, Option[Slice[Byte]])
 
-  def apply(key: Slice[Byte]): Create =
-    Create(key, None, Stats(key, isDelete = false, falsePositiveRate = 0.1))
-
-  def apply(key: Slice[Byte], value: Slice[Byte]): Create =
-    Create(key, Some(value), Stats(key, value, isDelete = false, falsePositiveRate = 0.1))
-
-  def apply(key: Slice[Byte], value: Slice[Byte], falsePositiveRate: Double): Create =
-    Create(key, Some(value), Stats(key, value, isDelete = false, falsePositiveRate = falsePositiveRate))
-
-  def apply(key: Slice[Byte], value: Option[Slice[Byte]], falsePositiveRate: Double, previous: Option[KeyValue]): Create =
-    Create(key, value, falsePositiveRate, previous)
-
-  def apply(key: Slice[Byte], falsePositiveRate: Double, previous: Option[KeyValue]): Create =
-    Create(key, None, falsePositiveRate, previous)
-
-  def apply(key: Slice[Byte], value: Slice[Byte], falsePositiveRate: Double, previous: Option[KeyValue]): Create =
-    Create(key, Some(value), Stats(key, value, isDelete = false, falsePositiveRate = falsePositiveRate, previous))
 }

@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import org.scalamock.scalatest.MockFactory
 import swaydb.core.{TestBase, data}
 import swaydb.core.actor.TestActor
-import swaydb.core.data.KeyValue
+import swaydb.core.data.{KeyValue, Transient}
 import swaydb.core.level.LevelException.ContainsOverlappingBusySegments
 import swaydb.core.level.actor.LevelAPI
 import swaydb.core.level.actor.LevelCommand.{Pull, PullRequest, PushSegments, PushSegmentsResponse}
@@ -52,7 +52,7 @@ class LevelCompactionSpec extends TestBase with MockFactory {
 
   "Level" should {
     "merge all it's Segments to lower level" in {
-      val testSegments = (1 to 10) map { index => TestSegment(Slice(KeyValue(index, index))).assertGet }
+      val testSegments = (1 to 10) map { index => TestSegment(Slice(Transient.Put(index, index))).assertGet }
 
       val nextLevel = mock[LevelRef]
       nextLevel.isTrash _ expects() returning false repeat 2.times
@@ -87,7 +87,7 @@ class LevelCompactionSpec extends TestBase with MockFactory {
     "merge all 50 Segments to lower level in batches of 10" in {
       //total 50 segments, lower level should get 5 requests with 10 segments in each.
       val batchSize = 10
-      val testSegments = (1 to 50) map { index => TestSegment(Slice(KeyValue(index, index))).assertGet }
+      val testSegments = (1 to 50) map { index => TestSegment(Slice(Transient.Put(index, index))).assertGet }
 
       val nextLevel = mock[LevelRef]
       nextLevel.isTrash _ expects() returning false repeat 2.times
@@ -123,7 +123,7 @@ class LevelCompactionSpec extends TestBase with MockFactory {
 
     "collapse all existing small Segments to a single segment and then Push the single large segments to lower level" in {
       //100 small segments.
-      val testSegments = (1 to 100) map { index => TestSegment(Slice(KeyValue(index, index))).assertGet }
+      val testSegments = (1 to 100) map { index => TestSegment(Slice(Transient.Put(index, index))).assertGet }
 
       val nextLevel = mock[LevelRef]
       nextLevel.isTrash _ expects() returning false repeat 2.times
@@ -160,7 +160,7 @@ class LevelCompactionSpec extends TestBase with MockFactory {
     "not push Segments that have overlapping KeyValues with lower level's " +
       "current busy segments (Segments that lower level is pushing down)" +
       "but re-send those Segments on after the first push of non overlapping Segments are dispatch" in {
-      val testSegments = (1 to 10) map { index => TestSegment(Slice(KeyValue(index, index))).assertGet }
+      val testSegments = (1 to 10) map { index => TestSegment(Slice(Transient.Put(index, index))).assertGet }
 
       val nextLevel = mock[LevelRef]
       nextLevel.isTrash _ expects() returning false repeat 2.times
@@ -211,7 +211,7 @@ class LevelCompactionSpec extends TestBase with MockFactory {
 
     "not push Segments that have overlapping KeyValues with lower level's " +
       "current busy segments and wait for lower level to trigger pull" in {
-      val testSegments = (1 to 10) map { index => TestSegment(Slice(KeyValue(index, index))).assertGet }
+      val testSegments = (1 to 10) map { index => TestSegment(Slice(Transient.Put(index, index))).assertGet }
 
       val nextLevel = mock[LevelRef]
       nextLevel.isTrash _ expects() returning false repeat 2.times

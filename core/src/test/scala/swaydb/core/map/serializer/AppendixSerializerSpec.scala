@@ -22,7 +22,7 @@ package swaydb.core.map.serializer
 import java.util.concurrent.ConcurrentSkipListMap
 
 import swaydb.core.{TestBase, TestLimitQueues}
-import swaydb.core.data.{KeyValue, PersistentReadOnly}
+import swaydb.core.data.{KeyValue, PersistentReadOnly, Transient}
 import swaydb.core.io.file.DBFile
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.MapEntry
@@ -98,9 +98,9 @@ class AppendixSerializerSpec extends TestBase {
     }
 
     "write multiple entries" in {
-      val segment1 = TestSegment(Slice(KeyValue(1, 1)), path = randomDir).assertGet
-      val segment2 = TestSegment(Slice(KeyValue(2, 2)), path = randomDir).assertGet
-      val segment3 = TestSegment(Slice(KeyValue(3, 3)), path = randomDir).assertGet
+      val segment1 = TestSegment(Slice(Transient.Put(1, 1)), path = randomDir).assertGet
+      val segment2 = TestSegment(Slice(Transient.Put(2, 2)), path = randomDir).assertGet
+      val segment3 = TestSegment(Slice(Transient.Put(3, 3)), path = randomDir).assertGet
 
       val entry: MapEntry[Slice[Byte], Segment] =
         MapEntry.Add(segment1.minKey, segment1) ++
@@ -117,9 +117,9 @@ class AppendixSerializerSpec extends TestBase {
     }
 
     "report corruption" in {
-      val segment1 = TestSegment(Slice(KeyValue(1, 1)), path = randomDir).assertGet
-      val segment2 = TestSegment(Slice(KeyValue(2, 2)), path = randomDir).assertGet
-      val segment3 = TestSegment(Slice(KeyValue(3, 3)), path = randomDir).assertGet
+      val segment1 = TestSegment(Slice(Transient.Put(1, 1)), path = randomDir).assertGet
+      val segment2 = TestSegment(Slice(Transient.Put(2, 2)), path = randomDir).assertGet
+      val segment3 = TestSegment(Slice(Transient.Put(3, 3)), path = randomDir).assertGet
 
       val entry: MapEntry[Slice[Byte], Segment] =
         MapEntry.Add(segment1.minKey, segment1) ++

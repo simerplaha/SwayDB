@@ -122,8 +122,8 @@ private[segment] class MemorySegment(val path: Path,
     else
       cache.asScala.tryFoldLeft(addTo.getOrElse(Slice.create[Persistent](cache.size()))) {
         case (entries, (key: Slice[Byte], value: PersistentReadOnly)) =>
-          if (value.isDelete) {
-            entries add Persistent.Deleted(key, 0x00, 0x00, bloomFilterFalsePositiveRate, entries.lastOption)
+          if (value.isRemove) {
+            entries add Persistent.Removed(key, 0x00, 0x00, bloomFilterFalsePositiveRate, entries.lastOption)
             Success(entries)
           } else {
             value.getOrFetchValue map {
@@ -135,7 +135,7 @@ private[segment] class MemorySegment(val path: Path,
                   } getOrElse
                     (Reader.emptyReader, 0)
 
-                entries add Persistent.Created(key, reader, valueSize, 0x00, 0x00, 0x00, bloomFilterFalsePositiveRate, entries.lastOption)
+                entries add Persistent.Put(key, reader, valueSize, 0x00, 0x00, 0x00, bloomFilterFalsePositiveRate, entries.lastOption)
             } map {
               _ =>
                 entries

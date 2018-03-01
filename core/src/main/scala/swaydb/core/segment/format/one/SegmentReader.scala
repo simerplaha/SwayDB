@@ -20,8 +20,8 @@
 package swaydb.core.segment.format.one
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.data.Persistent.Created
-import swaydb.core.data.Transient.Delete
+import swaydb.core.data.Persistent.Put
+import swaydb.core.data.Transient.Remove
 import swaydb.core.data.{Persistent, PersistentReadOnly, PersistentType}
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
@@ -142,12 +142,12 @@ private[core] object SegmentReader extends LazyLogging {
         else
           (0, -1)
 
-      if (id == Created.id) {
+      if (id == Put.id) {
         val valueLength = indexEntryReader.readIntUnsigned().get
         val valueOffset = if (valueLength == 0) 0 else indexEntryReader.readIntUnsigned().get
         val (nextIndexSize, nextIndexOffset) = nextIndexSizeAndOffset
         Success(onCreate(key, valueLength, valueOffset, nextIndexOffset, nextIndexSize))
-      } else if (id == Delete.id) {
+      } else if (id == Remove.id) {
         val (nextIndexSize, nextIndexOffset) = nextIndexSizeAndOffset
         Success(onDelete(key, nextIndexOffset, nextIndexSize))
       } else {
@@ -203,8 +203,8 @@ private[core] object SegmentReader extends LazyLogging {
             //user entries.lastOption instead of previousMayBe because, addTo might already be pre-populated and the
             //last entry would of bethe.
             previous = lastEntry,
-            onCreate = Persistent.Created(reader.copy(), bloomFilterFalsePositiveRate, lastEntry),
-            onDelete = Persistent.Deleted(bloomFilterFalsePositiveRate, lastEntry)
+            onCreate = Persistent.Put(reader.copy(), bloomFilterFalsePositiveRate, lastEntry),
+            onDelete = Persistent.Removed(bloomFilterFalsePositiveRate, lastEntry)
           ) map {
             next =>
               entries add next
@@ -254,8 +254,8 @@ private[core] object SegmentReader extends LazyLogging {
             //user entries.lastOption instead of previousMayBe because, addTo might already be pre-populated and the
             //last entry would of bethe.
             previous = lastEntry,
-            onCreate = Persistent.CreatedReadOnly(reader.copy(), lastEntry.map(_.nextIndexOffset).getOrElse(footer.startIndexOffset)),
-            onDelete = Persistent.DeletedReadOnly(lastEntry.map(_.nextIndexOffset).getOrElse(footer.startIndexOffset))
+            onCreate = Persistent.PutReadOnly(reader.copy(), lastEntry.map(_.nextIndexOffset).getOrElse(footer.startIndexOffset)),
+            onDelete = Persistent.RemovedReadOnly(lastEntry.map(_.nextIndexOffset).getOrElse(footer.startIndexOffset))
           ) map {
             next =>
               entries add next
@@ -347,8 +347,8 @@ private[core] object SegmentReader extends LazyLogging {
               previous = startFrom,
               endIndexOffset = footer.endIndexOffset,
               reader = reader,
-              onCreate = Persistent.CreatedReadOnly(reader, startFrom.nextIndexOffset),
-              onDelete = Persistent.DeletedReadOnly(startFrom.nextIndexOffset)
+              onCreate = Persistent.PutReadOnly(reader, startFrom.nextIndexOffset),
+              onDelete = Persistent.RemovedReadOnly(startFrom.nextIndexOffset)
             ) flatMap {
               keyValue =>
                 find(startFrom, Some(keyValue), matcher, reader, footer)
@@ -360,8 +360,8 @@ private[core] object SegmentReader extends LazyLogging {
             fromPosition = footer.startIndexOffset,
             endIndexOffset = footer.endIndexOffset,
             reader = reader,
-            onCreate = Persistent.CreatedReadOnly(reader, footer.startIndexOffset),
-            onDelete = Persistent.DeletedReadOnly(footer.startIndexOffset)
+            onCreate = Persistent.PutReadOnly(reader, footer.startIndexOffset),
+            onDelete = Persistent.RemovedReadOnly(footer.startIndexOffset)
           ) flatMap {
             keyValue =>
               find(keyValue, None, matcher, reader, footer)
@@ -385,8 +385,8 @@ private[core] object SegmentReader extends LazyLogging {
           previous = readFrom,
           endIndexOffset = footer.endIndexOffset,
           reader = reader,
-          onCreate = Persistent.CreatedReadOnly(reader, readFrom.nextIndexOffset),
-          onDelete = Persistent.DeletedReadOnly(readFrom.nextIndexOffset)
+          onCreate = Persistent.PutReadOnly(reader, readFrom.nextIndexOffset),
+          onDelete = Persistent.RemovedReadOnly(readFrom.nextIndexOffset)
         ) match {
           case Success(nextNextKeyValue) =>
             find(readFrom, Some(nextNextKeyValue), matcher, reader, footer)

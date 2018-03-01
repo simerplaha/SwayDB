@@ -19,7 +19,7 @@
 
 package swaydb.core.queue
 
-import swaydb.core.data.Persistent.CreatedReadOnly
+import swaydb.core.data.Persistent.PutReadOnly
 import swaydb.core.io.reader.Reader
 import swaydb.core.{LimitQueues, TestBase}
 

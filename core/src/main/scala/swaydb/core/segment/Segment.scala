@@ -23,8 +23,8 @@ import java.nio.file.Path
 import java.util.concurrent.ConcurrentSkipListMap
 
 import bloomfilter.mutable.BloomFilter
-import swaydb.core.data.Persistent.{CreatedReadOnly, DeletedReadOnly}
-import swaydb.core.data.{KeyValue, Persistent, PersistentReadOnly, ValueType}
+import swaydb.core.data.Persistent.{PutReadOnly, RemovedReadOnly}
+import swaydb.core.data._
 import swaydb.core.io.file.DBFile
 import swaydb.core.io.reader.Reader
 import swaydb.core.level.PathsDistributor
@@ -50,10 +50,10 @@ private[core] object Segment {
     val bloomFilter = BloomFilter[Slice[Byte]](keyValues.size, bloomFilterFalsePositiveRate)
     keyValues tryForeach {
       keyValue =>
-        if (keyValue.isDelete) {
+        if (keyValue.isRemove) {
           skipList.put(
             keyValue.key,
-            DeletedReadOnly(keyValue.key, 0x00, 0x00, 0x00)
+            RemovedReadOnly(keyValue.key, 0x00, 0x00, 0x00)
           )
           bloomFilter add keyValue.key
           Success()
@@ -69,7 +69,7 @@ private[core] object Segment {
                   (Reader.emptyReader, 0)
               skipList.put(
                 keyValue.key.unslice(),
-                CreatedReadOnly(
+                PutReadOnly(
                   _key = keyValue.key,
                   valueReader = reader,
                   nextIndexOffset = 0x00,
@@ -326,14 +326,14 @@ private[core] object Segment {
       minKey <- map.head
       maxKey <- map.last
     } yield
-      Slice(KeyValue(minKey._1), KeyValue(maxKey._1))
+      Slice(Transient.Put(minKey._1), Transient.Put(maxKey._1))
   } getOrElse Slice.create[KeyValue](0)
 
   def tempMinMaxKeyValues(segments: Iterable[Segment]): Slice[KeyValue] =
     segments.foldLeft(Slice.create[KeyValue](segments.size * 2)) {
       case (keyValues, segment) =>
-        keyValues add KeyValue(segment.minKey)
-        keyValues add KeyValue(segment.maxKey)
+        keyValues add Transient.Put(segment.minKey)
+        keyValues add Transient.Put(segment.maxKey)
     }
 
   def overlapsWithBusySegments(inputSegments: Iterable[Segment],

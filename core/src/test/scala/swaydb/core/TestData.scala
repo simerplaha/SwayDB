@@ -19,9 +19,9 @@
 
 package swaydb.core
 
-import swaydb.core.data.KeyValue
+import swaydb.core.data.{KeyValue, Transient}
 import swaydb.core.data.KeyValue.{KeyValueInternal, KeyValueTuple}
-import swaydb.core.data.Transient.Delete
+import swaydb.core.data.Transient.Remove
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 import swaydb.data.util.StorageUnits._
@@ -75,11 +75,11 @@ trait TestData {
     //    val startFrom = 1
     for (key <- startFrom until startFrom + count) {
       if (nonValue)
-        slice add KeyValue(key = key, value = None, previous = slice.lastOption, falsePositiveRate = 0.1)
+        slice add Transient.Put(key = key, previous = slice.lastOption, falsePositiveRate = 0.1)
       else if (addRandomDeletes && Random.nextBoolean())
-        slice add Delete(key = key, previous = slice.lastOption, falsePositiveRate = 0.1)
+        slice add Remove(key = key, previous = slice.lastOption, falsePositiveRate = 0.1)
       else
-        slice add KeyValue(key = key, value = randomInt(), previous = slice.lastOption, falsePositiveRate = 0.1)
+        slice add Transient.Put(key = key, value = randomInt(), previous = slice.lastOption, falsePositiveRate = 0.1)
     }
     slice
   }
@@ -94,9 +94,9 @@ trait TestData {
     for (key <- startFrom until startFrom + count) {
       val keyValue =
         if (addRandomDeletes && Random.nextBoolean())
-          Delete(key = key, previous = slice.lastOption, falsePositiveRate = 0.1)
+          Remove(key = key, previous = slice.lastOption, falsePositiveRate = 0.1)
         else
-          KeyValue(key = key, value = Random.nextString(valueSize), previous = slice.lastOption, falsePositiveRate = 0.1)
+          Transient.Put(key = key, value = Random.nextString(valueSize), previous = slice.lastOption, falsePositiveRate = 0.1)
       slice add keyValue
     }
     slice

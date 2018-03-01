@@ -21,8 +21,8 @@ package swaydb.core.segment
 
 import java.nio.file._
 
-import swaydb.core.data.Transient.Delete
-import swaydb.core.data.{KeyValue, PersistentReadOnly}
+import swaydb.core.data.Transient.Remove
+import swaydb.core.data.{KeyValue, PersistentReadOnly, Transient}
 import swaydb.core.io.file.{DBFile, IO}
 import swaydb.core.level.PathsDistributor
 import swaydb.core.segment.SegmentException.CannotCopyInMemoryFiles
@@ -90,7 +90,7 @@ class SegmentWriteSpec extends TestBase with Benchmark {
     }
 
     "create a Segment and populate cache" in {
-      val keyValues = Slice(KeyValue("a", 1), KeyValue("b", 2), KeyValue("c", 3), KeyValue("d", 4), KeyValue("e", 5), KeyValue("f", 6)).updateStats
+      val keyValues = Slice(Transient.Put("a", 1), Transient.Put("b", 2), Transient.Put("c", 3), Transient.Put("d", 4), Transient.Put("e", 5), Transient.Put("f", 6)).updateStats
       val segment = TestSegment(keyValues, cacheKeysOnCreate = true).assertGet
 
       keyValues foreach {
@@ -335,27 +335,27 @@ class SegmentWriteSpec extends TestBase with Benchmark {
 
   "Segment.put" should {
     "return None for empty values" in {
-      val segment = TestSegment(Slice(KeyValue(1, Slice.create[Byte](0)))).assertGet
+      val segment = TestSegment(Slice(Transient.Put(1, Slice.create[Byte](0)))).assertGet
       segment.get(1).assertGet.getOrFetchValue.assertGetOpt shouldBe None
     }
 
     "reopen closed channel" in {
-      val keyValue1 = Slice(KeyValue(5, Slice(randomBytes(100))))
+      val keyValue1 = Slice(Transient.Put(5, Slice(randomBytes(100))))
 
       val segment = TestSegment(keyValue1).assertGet
       segment.close.assertGet
       if (persistent) segment.isOpen shouldBe false
 
-      val keyValue2 = Slice(KeyValue(2, Slice(randomBytes(100))), KeyValue(3, Slice(randomBytes(100)))).updateStats
+      val keyValue2 = Slice(Transient.Put(2, Slice(randomBytes(100))), Transient.Put(3, Slice(randomBytes(100)))).updateStats
       segment.put(keyValue2, 1.mb, 0.1).assertGet
       if (persistent) segment.isOpen shouldBe true
     }
 
     "return a new segment with merged key values" in {
-      val keyValues = Slice(KeyValue(1, 1))
+      val keyValues = Slice(Transient.Put(1, 1))
       val segment = TestSegment(keyValues).assertGet
 
-      val newKeyValues = Slice(KeyValue(2, 2))
+      val newKeyValues = Slice(Transient.Put(2, 2))
       val newSegments = segment.put(newKeyValues, 4.mb, 0.1).assertGet
       newSegments should have size 1
 
@@ -419,8 +419,8 @@ class SegmentWriteSpec extends TestBase with Benchmark {
           segment.get(keyValue.key).assertGet shouldBe keyValue
       }
 
-      val deleteKeyValues = Slice.create[Delete](keyValues.size)
-      keyValues.foreach(keyValue => deleteKeyValues add Delete(keyValue.key, 0.1, deleteKeyValues.lastOption))
+      val deleteKeyValues = Slice.create[Remove](keyValues.size)
+      keyValues.foreach(keyValue => deleteKeyValues add Remove(keyValue.key, 0.1, deleteKeyValues.lastOption))
 
       val deletedSegment = segment.put(deleteKeyValues, 4.mb, 0.1).assertGet
       deletedSegment should have size 1
@@ -444,7 +444,7 @@ class SegmentWriteSpec extends TestBase with Benchmark {
       val segment = TestSegment(keyValues, removeDeletes = true).assertGet
 
       val updatedKeyValues = Slice.create[KeyValue](keyValues.size)
-      keyValues.foreach(keyValue => updatedKeyValues add KeyValue(keyValue.key, 0.1, updatedKeyValues.lastOption))
+      keyValues.foreach(keyValue => updatedKeyValues add Transient.Put(keyValue.key, 0.1, updatedKeyValues.lastOption))
 
       val updatedSegments = segment.put(updatedKeyValues, 4.mb, 0.1).assertGet
       updatedSegments should have size 1
@@ -470,7 +470,7 @@ class SegmentWriteSpec extends TestBase with Benchmark {
       val keyValues2 = Slice.create[KeyValue](10)
       keyValues1 foreach {
         keyValue =>
-          keyValues2 add KeyValue(keyValue.key, value = randomInt(), previous = keyValues2.lastOption, falsePositiveRate = 0.1)
+          keyValues2 add Transient.Put(keyValue.key, value = randomInt(), previous = keyValues2.lastOption, falsePositiveRate = 0.1)
       }
 
       val segment2 = TestSegment(keyValues2).assertGet
@@ -492,8 +492,8 @@ class SegmentWriteSpec extends TestBase with Benchmark {
       val keyValues = randomIntKeyValues(count = 10)
       val segment = TestSegment(keyValues, removeDeletes = true).assertGet
 
-      val deleteKeyValues = Slice.create[Delete](keyValues.size)
-      keyValues.foreach(keyValue => deleteKeyValues add Delete(keyValue.key))
+      val deleteKeyValues = Slice.create[Remove](keyValues.size)
+      keyValues.foreach(keyValue => deleteKeyValues add Remove(keyValue.key))
 
       segment.put(deleteKeyValues, 4.mb, 0.1).assertGet shouldBe empty
     }
@@ -502,8 +502,8 @@ class SegmentWriteSpec extends TestBase with Benchmark {
       val keyValues = randomIntKeyValues(count = 10)
       val segment = TestSegment(keyValues, removeDeletes = true).assertGet
 
-      val deleteKeyValues = Slice.create[Delete](keyValues.size - 1)
-      keyValues.drop(1).foreach(keyValue => deleteKeyValues add Delete(keyValue.key))
+      val deleteKeyValues = Slice.create[Remove](keyValues.size - 1)
+      keyValues.drop(1).foreach(keyValue => deleteKeyValues add Remove(keyValue.key))
 
       val newSegments = segment.put(deleteKeyValues, 4.mb, 0.1).assertGet
       newSegments.size shouldBe 1
@@ -519,10 +519,10 @@ class SegmentWriteSpec extends TestBase with Benchmark {
     }
 
     "distribute new Segments to multiple folders equally" in {
-      val keyValues1 = Slice(KeyValue(1, 1), KeyValue(2, 2), KeyValue(3, 3), KeyValue(4, 4), KeyValue(5, 5), KeyValue(6, 6)).updateStats
+      val keyValues1 = Slice(Transient.Put(1, 1), Transient.Put(2, 2), Transient.Put(3, 3), Transient.Put(4, 4), Transient.Put(5, 5), Transient.Put(6, 6)).updateStats
       val segment = TestSegment(keyValues1).assertGet
 
-      val keyValues2 = Slice(KeyValue(7, 7), KeyValue(8, 8), KeyValue(9, 9), KeyValue(10, 10), KeyValue(11, 11), KeyValue(12, 12)).updateStats
+      val keyValues2 = Slice(Transient.Put(7, 7), Transient.Put(8, 8), Transient.Put(9, 9), Transient.Put(10, 10), Transient.Put(11, 11), Transient.Put(12, 12)).updateStats
 
       val dirs = (1 to 6) map (_ => Dir(createRandomIntDirectory, 1))
 

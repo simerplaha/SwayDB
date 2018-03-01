@@ -19,7 +19,7 @@
 
 package swaydb.core.data
 
-import swaydb.core.data.Persistent.{Created, Deleted}
+import swaydb.core.data.Persistent.{Put, Removed}
 import swaydb.core.util.{BloomFilterUtil, ByteUtilCore}
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
@@ -127,7 +127,7 @@ private[core] object Stats {
     val thisKeyValuesIndexSizeWithoutFooter =
       if (isDelete) {
         val indexSize =
-          ByteUtilCore.sizeUnsignedInt(Deleted.id) +
+          ByteUtilCore.sizeUnsignedInt(Removed.id) +
             ByteUtilCore.sizeUnsignedInt(commonBytes) +
             ByteUtilCore.sizeUnsignedInt(keyLength) +
             keyLength
@@ -136,7 +136,7 @@ private[core] object Stats {
       }
       else if (valueLength == 0) {
         val indexSize =
-          ByteUtilCore.sizeUnsignedInt(Created.id) +
+          ByteUtilCore.sizeUnsignedInt(Put.id) +
             ByteUtilCore.sizeUnsignedInt(commonBytes) +
             ByteUtilCore.sizeUnsignedInt(keyLength) +
             keyLength +
@@ -146,7 +146,7 @@ private[core] object Stats {
       }
       else {
         val indexSize =
-          ByteUtilCore.sizeUnsignedInt(Created.id) +
+          ByteUtilCore.sizeUnsignedInt(Put.id) +
             ByteUtilCore.sizeUnsignedInt(commonBytes) +
             ByteUtilCore.sizeUnsignedInt(keyLength) +
             keyLength +

@@ -21,8 +21,8 @@ package swaydb.core.level.zero
 
 import org.scalamock.scalatest.MockFactory
 import swaydb.core.TestBase
-import swaydb.core.data.Transient.Delete
-import swaydb.core.data.{KeyValue, ValueType}
+import swaydb.core.data.Transient.Remove
+import swaydb.core.data.{KeyValue, Transient, ValueType}
 import swaydb.core.io.file.IO
 import swaydb.core.map.MapEntry
 import swaydb.core.map.serializer.Level0KeyValuesSerializer
@@ -33,6 +33,7 @@ import swaydb.data.util.StorageUnits._
 import swaydb.order.KeyOrder
 import swaydb.serializers.Default._
 import swaydb.serializers._
+
 import scala.concurrent.duration._
 import scala.util.Random
 
@@ -112,7 +113,7 @@ class LevelZeroSpec extends TestBase with MockFactory with Benchmark {
       //in-memory key-values are slice of the whole Segment.
       if (persistent) {
         //put the same key-value to Level1 and expect the key-values to be sliced
-        level.putKeyValues(Slice(KeyValue(one, one))).assertGet
+        level.putKeyValues(Slice(Transient.Put(one, one))).assertGet
         val gotFromLevelOne = level.get(one).assertGet
         gotFromLevelOne.getOrFetchValue.assertGet shouldBe one
         //ensure that key-values are not unsliced in LevelOne.
@@ -187,7 +188,7 @@ class LevelZeroSpec extends TestBase with MockFactory with Benchmark {
 
     "batch writing empty keys should fail" in {
       if (persistent) {
-        val keyValues = Slice(KeyValue(Slice.create[Byte](0), 1))
+        val keyValues = Slice(Transient.Put(Slice.create[Byte](0), 1))
 
         val zero = TestLevelZero(TestLevel())
         assertThrows[Exception] {
@@ -228,7 +229,7 @@ class LevelZeroSpec extends TestBase with MockFactory with Benchmark {
 
       assertGet(keyValues, zero)
 
-      val removeKeyValues = Slice(keyValues.map(keyValue => Delete(keyValue.key)).toArray)
+      val removeKeyValues = Slice(keyValues.map(keyValue => Remove(keyValue.key)).toArray)
       zero.put(removeKeyValues.toMapEntry.get).assertGet
 
       assertGetNone(keyValues, zero)

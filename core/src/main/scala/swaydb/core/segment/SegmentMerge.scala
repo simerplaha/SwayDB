@@ -103,19 +103,19 @@ private[core] object SegmentMerge {
       (newKeyValues.headOption, oldKeyValues.headOption) match {
 
         case (Some(newKeyValue), Some(oldKeyValue)) if oldKeyValue.key < newKeyValue.key =>
-          if (!(removeDeletes && oldKeyValue.isDelete))
+          if (!(removeDeletes && oldKeyValue.isRemove))
             add(oldKeyValue, remainingKeyValuesCount - 1, splits, minSegmentSize, forInMemory, bloomFilterFalsePositiveRate)
 
           doMerge(newKeyValues, oldKeyValues.drop(1))
 
         case (Some(newKeyValue), Some(oldKeyValue)) if newKeyValue.key < oldKeyValue.key =>
-          if (!(removeDeletes && newKeyValue.isDelete))
+          if (!(removeDeletes && newKeyValue.isRemove))
             add(newKeyValue, remainingKeyValuesCount - 1, splits, minSegmentSize, forInMemory, bloomFilterFalsePositiveRate)
 
           doMerge(newKeyValues.drop(1), oldKeyValues)
 
         case (Some(newKeyValue), Some(_)) => //equals
-          if (removeDeletes && newKeyValue.isDelete) {
+          if (removeDeletes && newKeyValue.isRemove) {
             doMerge(newKeyValues.drop(1), oldKeyValues.drop(1))
           } else {
             add(newKeyValue, remainingKeyValuesCount - 2, splits, minSegmentSize, forInMemory, bloomFilterFalsePositiveRate)
@@ -126,7 +126,7 @@ private[core] object SegmentMerge {
         case (Some(_), None) =>
           newKeyValues foreach {
             keyValue =>
-              if (!(removeDeletes && keyValue.isDelete))
+              if (!(removeDeletes && keyValue.isRemove))
                 add(keyValue, remainingKeyValuesCount, splits, minSegmentSize, forInMemory, bloomFilterFalsePositiveRate)
           }
           mergeSmallerSegmentWithPrevious(splits, minSegmentSize, forInMemory, bloomFilterFalsePositiveRate)
@@ -135,7 +135,7 @@ private[core] object SegmentMerge {
         case (None, Some(_)) =>
           oldKeyValues foreach {
             keyValue =>
-              if (!(removeDeletes && keyValue.isDelete))
+              if (!(removeDeletes && keyValue.isRemove))
                 add(keyValue, remainingKeyValuesCount, splits, minSegmentSize, forInMemory, bloomFilterFalsePositiveRate)
           }
           mergeSmallerSegmentWithPrevious(splits, minSegmentSize, forInMemory, bloomFilterFalsePositiveRate)

@@ -19,7 +19,6 @@
 
 package swaydb.core.data
 
-import swaydb.core.data.Persistent.Created
 import swaydb.data.slice.Slice
 
 import scala.util.{Success, Try}
@@ -36,21 +35,38 @@ private[core] sealed trait Transient extends TransientType with KeyValue {
 
 private[core] object Transient {
 
-  object Create {
+  object Put {
+    val id = 1
+
     def apply(key: Slice[Byte],
               value: Option[Slice[Byte]],
               falsePositiveRate: Double,
-              previousMayBe: Option[KeyValue]): Create =
-      new Create(key, value, Stats(key, value, false, falsePositiveRate, previousMayBe))
+              previousMayBe: Option[KeyValue]): Put =
+      new Put(key, value, Stats(key, value, false, falsePositiveRate, previousMayBe))
+
+    def apply(key: Slice[Byte]): Put =
+      Put(key, None, Stats(key, isDelete = false, falsePositiveRate = 0.1))
+
+    def apply(key: Slice[Byte], value: Slice[Byte]): Put =
+      Put(key, Some(value), Stats(key, value, isDelete = false, falsePositiveRate = 0.1))
+
+    def apply(key: Slice[Byte], value: Slice[Byte], falsePositiveRate: Double): Put =
+      Put(key, Some(value), Stats(key, value, isDelete = false, falsePositiveRate = falsePositiveRate))
+
+    def apply(key: Slice[Byte], falsePositiveRate: Double, previous: Option[KeyValue]): Put =
+      Put(key, None, falsePositiveRate, previous)
+
+    def apply(key: Slice[Byte], value: Slice[Byte], falsePositiveRate: Double, previous: Option[KeyValue]): Put =
+      Put(key, Some(value), Stats(key, value, isDelete = false, falsePositiveRate = falsePositiveRate, previous))
   }
 
-  case class Create(key: Slice[Byte],
-                    value: Option[Slice[Byte]],
-                    stats: Stats) extends Transient {
+  case class Put(key: Slice[Byte],
+                 value: Option[Slice[Byte]],
+                 stats: Stats) extends Transient {
 
-    override def isDelete: Boolean = false
+    override def isRemove: Boolean = false
 
-    override def id: Int = Created.id
+    override def id: Int = Put.id
 
     override def updateStats(falsePositiveRate: Double, keyValue: Option[KeyValue]): KeyValue =
       this.copy(stats = Stats(key, value, false, falsePositiveRate, keyValue))
@@ -58,29 +74,29 @@ private[core] object Transient {
     override def getOrFetchValue: Try[Option[Slice[Byte]]] = Success(value)
   }
 
-  object Delete {
+  object Remove {
     val id: Int = 0
 
-    def apply(key: Slice[Byte]): Delete =
-      new Delete(key, Stats(key, None, true, 0.1, None))
+    def apply(key: Slice[Byte]): Remove =
+      new Remove(key, Stats(key, None, true, 0.1, None))
 
-    def apply(key: Slice[Byte], falsePositiveRate: Double): Delete =
-      new Delete(key, Stats(key, None, true, falsePositiveRate, None))
+    def apply(key: Slice[Byte], falsePositiveRate: Double): Remove =
+      new Remove(key, Stats(key, None, true, falsePositiveRate, None))
 
     def apply(key: Slice[Byte],
               falsePositiveRate: Double,
-              previous: Option[KeyValue]): Delete =
-      new Delete(key, Stats(key, None, true, falsePositiveRate, previous))
+              previous: Option[KeyValue]): Remove =
+      new Remove(key, Stats(key, None, true, falsePositiveRate, previous))
   }
 
-  case class Delete(key: Slice[Byte],
+  case class Remove(key: Slice[Byte],
                     stats: Stats) extends Transient {
     override def updateStats(falsePositiveRate: Double, keyValue: Option[KeyValue]): KeyValue =
       this.copy(stats = Stats(key, None, true, falsePositiveRate, keyValue))
 
-    override def id: Int = Delete.id
+    override def id: Int = Remove.id
 
-    override def isDelete: Boolean =
+    override def isRemove: Boolean =
       true
 
     override val value: Option[Slice[Byte]] = None

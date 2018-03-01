@@ -58,7 +58,7 @@ trait CommonAssertions extends TryAssert with FutureBase {
       actual.foldLeft(Option.empty[MapEntry[Slice[Byte], (ValueType, Option[Slice[Byte]])]]) {
         case (mapEntry, keyValue) =>
           val newEntry: MapEntry[Slice[Byte], (ValueType, Option[Slice[Byte]])] =
-            if (keyValue.isDelete)
+            if (keyValue.isRemove)
               MapEntry.Add[Slice[Byte], (ValueType, Option[Slice[Byte]])](keyValue.key, (ValueType.Remove, keyValue.getOrFetchValue.assertGetOpt))
             else
               MapEntry.Add[Slice[Byte], (ValueType, Option[Slice[Byte]])](keyValue.key, (ValueType.Add, keyValue.getOrFetchValue.assertGetOpt))
@@ -118,7 +118,7 @@ trait CommonAssertions extends TryAssert with FutureBase {
     def shouldBe[KVE <: KeyValueType](expected: KVE, ignoreValueOffset: Boolean = false, ignoreStats: Boolean = false): Unit = {
       actual.key shouldBe expected.key
       getValue(actual) shouldBe getValue(expected)
-      actual.isDelete shouldBe expected.isDelete
+      actual.isRemove shouldBe expected.isRemove
       if (!ignoreStats)
         getStats(actual) shouldBe(getStats(expected), ignoreValueOffset)
     }
@@ -163,7 +163,7 @@ trait CommonAssertions extends TryAssert with FutureBase {
     def shouldBe(expected: KeyValue) = {
       actual.key shouldBe expected.key
       actual.getOrFetchValue.assertGetOpt shouldBe expected.getOrFetchValue.assertGetOpt
-      actual.isDelete shouldBe expected.isDelete
+      actual.isRemove shouldBe expected.isRemove
     }
   }
 
@@ -171,7 +171,7 @@ trait CommonAssertions extends TryAssert with FutureBase {
     def shouldBe(expected: PersistentReadOnly) = {
       actual.key shouldBe expected.key
       actual.getOrFetchValue.assertGetOpt shouldBe expected.getOrFetchValue.assertGetOpt
-      actual.isDelete shouldBe expected.isDelete
+      actual.isRemove shouldBe expected.isRemove
     }
   }
 
@@ -218,7 +218,7 @@ trait CommonAssertions extends TryAssert with FutureBase {
           val result = actual.get(keyValue.key).assertGet
           result.key shouldBe keyValue.key
           result.getOrFetchValue.assertGetOpt shouldBe keyValue.getOrFetchValue.assertGetOpt
-          result.isDelete shouldBe keyValue.isDelete
+          result.isRemove shouldBe keyValue.isRemove
       }
   }
 
@@ -479,7 +479,7 @@ trait CommonAssertions extends TryAssert with FutureBase {
     keyValues foreach {
       keyValue =>
         val actual = level.getFromThisLevel(keyValue.key).assertGet
-        actual.isDelete shouldBe keyValue.isDelete
+        actual.isRemove shouldBe keyValue.isRemove
         actual.getOrFetchValue.assertGetOpt shouldBe keyValue.getOrFetchValue.assertGetOpt
     }
 
@@ -500,7 +500,7 @@ trait CommonAssertions extends TryAssert with FutureBase {
     keyValues foreach {
       keyValue =>
         val actual = segment.get(keyValue.key).assertGet
-        actual.isDelete shouldBe keyValue.isDelete
+        actual.isRemove shouldBe keyValue.isRemove
         actual.getOrFetchValue.assertGetOpt shouldBe keyValue.getOrFetchValue.assertGetOpt
     }
 
@@ -509,7 +509,7 @@ trait CommonAssertions extends TryAssert with FutureBase {
     keyValues foreach {
       keyValue =>
         val actual = level.get(keyValue.key).assertGet
-        actual.isDelete shouldBe keyValue.isDelete
+        actual.isRemove shouldBe keyValue.isRemove
         actual.getOrFetchValue.assertGetOpt shouldBe keyValue.getOrFetchValue.assertGetOpt
     }
 
@@ -615,7 +615,7 @@ trait CommonAssertions extends TryAssert with FutureBase {
         val lower = segment.lower(keyValue.key).assertGet
         lower.key shouldBe expectedLower.key
         lower.getOrFetchValue.assertGetOpt shouldBe expectedLower.getOrFetchValue.assertGetOpt
-        lower.isDelete shouldBe expectedLower.isDelete
+        lower.isRemove shouldBe expectedLower.isRemove
         assertLowers(index + 1)
       }
     }
@@ -637,7 +637,7 @@ trait CommonAssertions extends TryAssert with FutureBase {
           val higher = segment.higher(keyValue.key).assertGet
           higher.key shouldBe expectedHigher.key
           higher.getOrFetchValue.assertGetOpt shouldBe expectedHigher.getOrFetchValue.assertGetOpt
-          higher.isDelete shouldBe expectedHigher.isDelete
+          higher.isRemove shouldBe expectedHigher.isRemove
         }
     }
   }

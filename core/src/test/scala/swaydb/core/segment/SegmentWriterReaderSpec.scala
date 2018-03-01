@@ -20,8 +20,8 @@
 package swaydb.core.segment
 
 import swaydb.core.TestBase
-import swaydb.core.data.KeyValue
-import swaydb.core.data.Transient.Delete
+import swaydb.core.data.{KeyValue, Transient}
+import swaydb.core.data.Transient.Remove
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
 import swaydb.core.segment.format.one.{KeyMatcher, SegmentFooter, SegmentReader, SegmentWriter}
@@ -55,35 +55,35 @@ class SegmentWriterReaderSpec extends TestBase {
       }
 
       //testing key-values of various lengths in random positions
-      test(Slice(KeyValue(1, value = 1)))
-      test(Slice(KeyValue(1)))
-      test(Slice(Delete(1)))
+      test(Slice(Transient.Put(1, value = 1)))
+      test(Slice(Transient.Put(1)))
+      test(Slice(Remove(1)))
 
-      test(Slice(KeyValue(1, "one")))
-      test(Slice(KeyValue("two two two two two two two two two two two")))
-      test(Slice(Delete("three three three three three")))
+      test(Slice(Transient.Put(1, "one")))
+      test(Slice(Transient.Put("two two two two two two two two two two two")))
+      test(Slice(Remove("three three three three three")))
 
-      test(Slice(KeyValue(1, 1), Delete(2)).updateStats)
-      test(Slice(Delete("one"), KeyValue("two", "two value")).updateStats)
+      test(Slice(Transient.Put(1, 1), Remove(2)).updateStats)
+      test(Slice(Remove("one"), Transient.Put("two", "two value")).updateStats)
 
-      test(Slice(KeyValue(1), Delete(2)).updateStats)
-      test(Slice(Delete(1), KeyValue(2), Delete(3), Delete(4)).updateStats)
+      test(Slice(Transient.Put(1), Remove(2)).updateStats)
+      test(Slice(Remove(1), Transient.Put(2), Remove(3), Remove(4)).updateStats)
 
-      test(Slice(KeyValue(1), KeyValue(2, 2)).updateStats)
-      test(Slice(KeyValue(1, 1), KeyValue(2)).updateStats)
-      test(Slice(Delete(1), KeyValue(2, 2)).updateStats)
+      test(Slice(Transient.Put(1), Transient.Put(2, 2)).updateStats)
+      test(Slice(Transient.Put(1, 1), Transient.Put(2)).updateStats)
+      test(Slice(Remove(1), Transient.Put(2, 2)).updateStats)
 
-      test(Slice(KeyValue(1, 1), KeyValue(2, 2), KeyValue(3, 3)).updateStats)
-      test(Slice(KeyValue(1), KeyValue(2), KeyValue(3)).updateStats)
-      test(Slice(KeyValue(1), Delete(2), KeyValue(3)).updateStats)
-      test(Slice(KeyValue(1), Delete(2), KeyValue(3, 3)).updateStats)
-      test(Slice(KeyValue(1, 1), Delete(2), KeyValue(3)).updateStats)
-      test(Slice(Delete(1), KeyValue(2, 2), KeyValue(3)).updateStats)
+      test(Slice(Transient.Put(1, 1), Transient.Put(2, 2), Transient.Put(3, 3)).updateStats)
+      test(Slice(Transient.Put(1), Transient.Put(2), Transient.Put(3)).updateStats)
+      test(Slice(Transient.Put(1), Remove(2), Transient.Put(3)).updateStats)
+      test(Slice(Transient.Put(1), Remove(2), Transient.Put(3, 3)).updateStats)
+      test(Slice(Transient.Put(1, 1), Remove(2), Transient.Put(3)).updateStats)
+      test(Slice(Remove(1), Transient.Put(2, 2), Transient.Put(3)).updateStats)
     }
 
     "converting two KeyValues with common key bytes to Segment slice and read them" in {
 
-      val keyValues = Slice(KeyValue("123", value = 1), KeyValue("1234", value = 2)).updateStats
+      val keyValues = Slice(Transient.Put("123", value = 1), Transient.Put("1234", value = 2)).updateStats
       val bytes = SegmentWriter.toSlice(keyValues, 0.1).assertGet
       bytes.isFull shouldBe true
       //in memory
@@ -96,10 +96,10 @@ class SegmentWriterReaderSpec extends TestBase {
 
       val keyValues =
         Slice(
-          KeyValue(Slice(s"a$randomChars".getBytes()), value = randomChars),
-          KeyValue(Slice(s"b$randomChars".getBytes()), value = randomChars),
-          KeyValue(Slice(s"c$randomChars".getBytes()), value = randomChars),
-          KeyValue(Slice(s"d$randomChars".getBytes()), value = randomChars)
+          Transient.Put(Slice(s"a$randomChars".getBytes()), value = randomChars),
+          Transient.Put(Slice(s"b$randomChars".getBytes()), value = randomChars),
+          Transient.Put(Slice(s"c$randomChars".getBytes()), value = randomChars),
+          Transient.Put(Slice(s"d$randomChars".getBytes()), value = randomChars)
         ).updateStats
 
       val bytes = SegmentWriter.toSlice(keyValues, 0.1).assertGet
@@ -112,7 +112,7 @@ class SegmentWriterReaderSpec extends TestBase {
     }
 
     "write and read Int min max key values" in {
-      val keyValues = Slice(KeyValue(Int.MaxValue, Int.MinValue), KeyValue(Int.MinValue, Int.MaxValue)).updateStats
+      val keyValues = Slice(Transient.Put(Int.MaxValue, Int.MinValue), Transient.Put(Int.MinValue, Int.MaxValue)).updateStats
 
       val bytes = SegmentWriter.toSlice(keyValues, 0.1).assertGet
 
@@ -144,7 +144,7 @@ class SegmentWriterReaderSpec extends TestBase {
     }
 
     "read footer" in {
-      val keyValues = Slice(KeyValue(1, 1), KeyValue(2, 2)).updateStats
+      val keyValues = Slice(Transient.Put(1, 1), Transient.Put(2, 2)).updateStats
 
       val bytes = SegmentWriter.toSlice(keyValues, 0.1).assertGet
 
@@ -156,7 +156,7 @@ class SegmentWriterReaderSpec extends TestBase {
     }
 
     "report Segment corruption is CRC check does not match when reading the footer" in {
-      val keyValues = Slice(KeyValue(1)).updateStats
+      val keyValues = Slice(Transient.Put(1)).updateStats
 
       val bytes = SegmentWriter.toSlice(keyValues, 0.1).assertGet
 
@@ -168,7 +168,7 @@ class SegmentWriterReaderSpec extends TestBase {
 
   "SegmentReader.find" should {
     "get key-values using KeyMatcher.Exact" in {
-      val keyValues = Slice(KeyValue(1, "one"), KeyValue(2, "two")).updateStats
+      val keyValues = Slice(Transient.Put(1, "one"), Transient.Put(2, "two")).updateStats
       val bytes = SegmentWriter.toSlice(keyValues, 0.1).assertGet
 
       val footer = SegmentReader.readFooter(Reader(bytes)).assertGet
@@ -191,7 +191,7 @@ class SegmentWriterReaderSpec extends TestBase {
     }
 
     "get key-values using KeyMatcher.Lower" in {
-      val keyValues = Slice(KeyValue(1, "one"), KeyValue(2, "two")).updateStats
+      val keyValues = Slice(Transient.Put(1, "one"), Transient.Put(2, "two")).updateStats
       val bytes = SegmentWriter.toSlice(keyValues, 0.1).assertGet
 
       SegmentReader.find(KeyMatcher.Lower(keyValues.head.key), None, Reader(bytes)).assertGetOpt shouldBe empty
@@ -205,7 +205,7 @@ class SegmentWriterReaderSpec extends TestBase {
     }
 
     "get key-values using KeyMatcher.Higher" in {
-      val keyValues = Slice(KeyValue(1, "one"), KeyValue(2, "two")).updateStats
+      val keyValues = Slice(Transient.Put(1, "one"), Transient.Put(2, "two")).updateStats
       val bytes = SegmentWriter.toSlice(keyValues, 0.1).assertGet
 
       val foundKeyValue = SegmentReader.find(KeyMatcher.Higher(keyValues.head.key), None, Reader(bytes)).assertGet

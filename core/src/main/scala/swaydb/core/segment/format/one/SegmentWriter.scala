@@ -72,7 +72,7 @@ private[core] object SegmentWriter extends LazyLogging {
 
                     valuesSlice addAll value //value
 
-                  case _ if !keyValue.isDelete =>
+                  case _ if !keyValue.isRemove =>
                     indexAndFooterSlice addIntUnsigned 0
 
                   case _ =>

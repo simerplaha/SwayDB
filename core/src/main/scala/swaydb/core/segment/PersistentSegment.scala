@@ -25,7 +25,7 @@ import java.util.concurrent.atomic.AtomicReference
 
 import bloomfilter.mutable.BloomFilter
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.data.Persistent.{CreatedReadOnly, DeletedReadOnly}
+import swaydb.core.data.Persistent.{PutReadOnly, RemovedReadOnly}
 import swaydb.core.data.{PersistentReadOnly, _}
 import swaydb.core.io.file.DBFile
 import swaydb.core.io.reader.Reader
@@ -70,9 +70,9 @@ private[segment] class PersistentSegment(val file: DBFile,
                 sliceKeyValue =>
                   addToCache {
                     sliceKeyValue match {
-                      case keyValue: CreatedReadOnly =>
+                      case keyValue: PutReadOnly =>
                         keyValue.copy(_key = sliceKeyValue.key.unslice(), valueReader = createReader())
-                      case keyValue: DeletedReadOnly =>
+                      case keyValue: RemovedReadOnly =>
                         keyValue.copy(_key = sliceKeyValue.key.unslice())
                     }
                   }

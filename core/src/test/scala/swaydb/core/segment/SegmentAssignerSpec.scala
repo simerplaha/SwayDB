@@ -20,7 +20,7 @@
 package swaydb.core.segment
 
 import swaydb.core.TestBase
-import swaydb.core.data.KeyValue
+import swaydb.core.data.{KeyValue, Transient}
 import swaydb.core.util.FileUtil._
 import swaydb.data.slice.Slice
 import swaydb.order.KeyOrder
@@ -66,24 +66,24 @@ class SegmentAssignerSpec extends TestBase {
     }
 
     "assign KeyValues to second Segment when none of the keys belong to the first Segment" in {
-      val segment1 = TestSegment(Slice(KeyValue(1), KeyValue(2)).updateStats).get
-      val segment2 = TestSegment(Slice(KeyValue(3)).updateStats).get
+      val segment1 = TestSegment(Slice(Transient.Put(1), Transient.Put(2)).updateStats).get
+      val segment2 = TestSegment(Slice(Transient.Put(3)).updateStats).get
       val segments = Set(segment1, segment2)
 
-      val result = SegmentAssigner.assign(Slice(KeyValue(4), KeyValue(5), KeyValue(6)).updateStats, segments)
+      val result = SegmentAssigner.assign(Slice(Transient.Put(4), Transient.Put(5), Transient.Put(6)).updateStats, segments)
       result.size shouldBe 1
       result.keys.head.path shouldBe segment2.path
     }
 
     "assign gap KeyValue to the first Segment, if the first Segment is smaller then the Second segment " +
       "and at least one key-value is already assigned to the first Segment" in {
-      val segment1 = TestSegment(Slice(KeyValue(1)).updateStats).get
-      val segment2 = TestSegment(Slice(KeyValue(3), KeyValue(4)).updateStats).get
+      val segment1 = TestSegment(Slice(Transient.Put(1)).updateStats).get
+      val segment2 = TestSegment(Slice(Transient.Put(3), Transient.Put(4)).updateStats).get
       val segments = Set(segment1, segment2)
 
       //1 will get assigned to first segment, 2 is a gap key and since first segment is not empty,
       // 2 gets assigned to first Segment
-      val keyValues = Slice(KeyValue(1, 1), KeyValue(2))
+      val keyValues = Slice(Transient.Put(1, 1), Transient.Put(2))
       val result = SegmentAssigner.assign(keyValues, segments)
       result.size shouldBe 1
       result.keys.head.path shouldBe segment1.path
@@ -92,44 +92,44 @@ class SegmentAssignerSpec extends TestBase {
 
     "assign gap KeyValue to the second Segment, if the first Segment is smaller then the Second segment but " +
       "first Segment current has no other key-values assigned to it" in {
-      val segment1 = TestSegment(Slice(KeyValue(1)).updateStats).get
-      val segment2 = TestSegment(Slice(KeyValue(3), KeyValue(4)).updateStats).get
+      val segment1 = TestSegment(Slice(Transient.Put(1)).updateStats).get
+      val segment2 = TestSegment(Slice(Transient.Put(3), Transient.Put(4)).updateStats).get
       val segments = Set(segment1, segment2)
 
-      val result = SegmentAssigner.assign(Slice(KeyValue(2)), segments)
+      val result = SegmentAssigner.assign(Slice(Transient.Put(2)), segments)
       result.size shouldBe 1
       result.keys.head.path shouldBe segment2.path
     }
 
     "assign key value to the first segment when the key is the new smallest" in {
-      val segment1 = TestSegment(Slice(KeyValue(1), KeyValue(2)).updateStats).get
-      val segment2 = TestSegment(Slice(KeyValue(4), KeyValue(5)).updateStats).get
+      val segment1 = TestSegment(Slice(Transient.Put(1), Transient.Put(2)).updateStats).get
+      val segment2 = TestSegment(Slice(Transient.Put(4), Transient.Put(5)).updateStats).get
       val segments = Set(segment1, segment2)
 
-      val result = SegmentAssigner.assign(Slice(KeyValue(0)), segments)
+      val result = SegmentAssigner.assign(Slice(Transient.Put(0)), segments)
       result.size shouldBe 1
       result.keys.head.path shouldBe segment1.path
     }
 
     "assign key value to the last segment when the key is the new largest" in {
-      val segment1 = TestSegment(Slice(KeyValue(1), KeyValue(2)).updateStats).get
-      val segment2 = TestSegment(Slice(KeyValue(4), KeyValue(5)).updateStats).get
-      val segment3 = TestSegment(Slice(KeyValue(6), KeyValue(7)).updateStats).get
-      val segment4 = TestSegment(Slice(KeyValue(8), KeyValue(9)).updateStats).get
+      val segment1 = TestSegment(Slice(Transient.Put(1), Transient.Put(2)).updateStats).get
+      val segment2 = TestSegment(Slice(Transient.Put(4), Transient.Put(5)).updateStats).get
+      val segment3 = TestSegment(Slice(Transient.Put(6), Transient.Put(7)).updateStats).get
+      val segment4 = TestSegment(Slice(Transient.Put(8), Transient.Put(9)).updateStats).get
       val segments = Set(segment1, segment2, segment3, segment4)
 
-      val result = SegmentAssigner.assign(Slice(KeyValue(10)), segments)
+      val result = SegmentAssigner.assign(Slice(Transient.Put(10)), segments)
       result.size shouldBe 1
       result.keys.head.path shouldBe segment4.path
     }
 
     "assign all KeyValues to their target Segments" in {
-      val keyValues = Slice(KeyValue(1), KeyValue(2), KeyValue(3), KeyValue(4), KeyValue(5)).updateStats
-      val segment1 = TestSegment(Slice(KeyValue(key = 1, value = 1))).assertGet
-      val segment2 = TestSegment(Slice(KeyValue(key = 2, value = 2))).assertGet
-      val segment3 = TestSegment(Slice(KeyValue(key = 3, value = 3))).assertGet
-      val segment4 = TestSegment(Slice(KeyValue(key = 4, value = 4))).assertGet
-      val segment5 = TestSegment(Slice(KeyValue(key = 5, value = 5))).assertGet
+      val keyValues = Slice(Transient.Put(1), Transient.Put(2), Transient.Put(3), Transient.Put(4), Transient.Put(5)).updateStats
+      val segment1 = TestSegment(Slice(Transient.Put(key = 1, value = 1))).assertGet
+      val segment2 = TestSegment(Slice(Transient.Put(key = 2, value = 2))).assertGet
+      val segment3 = TestSegment(Slice(Transient.Put(key = 3, value = 3))).assertGet
+      val segment4 = TestSegment(Slice(Transient.Put(key = 4, value = 4))).assertGet
+      val segment5 = TestSegment(Slice(Transient.Put(key = 5, value = 5))).assertGet
 
       val segments = List(segment1, segment2, segment3, segment4, segment5)
 

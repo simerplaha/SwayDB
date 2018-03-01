@@ -19,7 +19,6 @@
 
 package swaydb.core.data
 
-import swaydb.core.segment.format.one.SegmentReader
 import swaydb.data.slice.{Reader, Slice}
 
 import scala.util.{Failure, Success, Try}
@@ -46,7 +45,7 @@ private[core] sealed trait Persistent extends PersistentType with KeyValue
 
 private[core] object Persistent {
 
-  object Created {
+  object Put {
     val id = 1
 
     def apply(key: Slice[Byte],
@@ -56,8 +55,8 @@ private[core] object Persistent {
               nextIndexOffset: Int,
               nextIndexSize: Int,
               falsePositiveRate: Double,
-              previous: Option[KeyValue]): Created = {
-      new Created(key, valueReader, nextIndexOffset, nextIndexSize, valueOffset, Stats(key, valueLength, false, falsePositiveRate, previous))
+              previous: Option[KeyValue]): Put = {
+      new Put(key, valueReader, nextIndexOffset, nextIndexSize, valueOffset, Stats(key, valueLength, false, falsePositiveRate, previous))
     }
 
     def apply(valueReader: Reader,
@@ -66,63 +65,22 @@ private[core] object Persistent {
                                             valueLength: Int,
                                             valueOffset: Int,
                                             nextIndexOffset: Int,
-                                            nextIndexSize: Int): Persistent.Created =
-      Persistent.Created(key, valueReader, valueLength, valueOffset, nextIndexOffset, nextIndexSize, falsePositiveRate, previous)
+                                            nextIndexSize: Int): Persistent.Put =
+      Persistent.Put(key, valueReader, valueLength, valueOffset, nextIndexOffset, nextIndexSize, falsePositiveRate, previous)
   }
 
-  trait LazyValue {
-    @volatile var valueOption: Option[Slice[Byte]] = None
-
-    val valueReader: Reader
-
-    def valueLength: Int
-
-    def valueOffset: Int
-
-    def unsliceKey: Unit
-
-    def id: Int =
-      Created.id
-
-    //tries fetching the value from the given reader
-    private def fetchValue(reader: Reader): Try[Option[Slice[Byte]]] = {
-      if (valueLength == 0) //if valueLength is 0, don't have to hit the file. Return None
-        Success(None)
-      else
-        valueOption match {
-          case value @ Some(_) =>
-            Success(value)
-
-          case None =>
-            SegmentReader.getValue(valueOffset, valueLength, reader) map {
-              value =>
-                valueOption = value
-                value
-            }
-        }
-    }
-
-    def getOrFetchValue: Try[Option[Slice[Byte]]] =
-      fetchValue(valueReader)
-
-    def isDelete: Boolean = false
-
-    def isValueDefined: Boolean = valueOption.isDefined
-
-    def getValue: Option[Slice[Byte]] = valueOption
-  }
 
   /**
     * @param valueOffset This valueOffset is the position of the value in the Segment this key-value belongs to and is
     *                    not the same as stats.valueOffset. stats.valueOffset is the value's position in the
     *                    List/Slice of key-values it currently belongs to.
     */
-  case class Created(private var _key: Slice[Byte],
-                     valueReader: Reader,
-                     nextIndexOffset: Int,
-                     nextIndexSize: Int,
-                     valueOffset: Int,
-                     stats: Stats) extends Persistent with LazyValue {
+  case class Put(private var _key: Slice[Byte],
+                 valueReader: Reader,
+                 nextIndexOffset: Int,
+                 nextIndexSize: Int,
+                 valueOffset: Int,
+                 stats: Stats) extends Persistent with LazyValue {
 
     def key = _key
 
@@ -149,23 +107,23 @@ private[core] object Persistent {
 
   }
 
-  object CreatedReadOnly {
+  object PutReadOnly {
     def apply(valueReader: Reader,
               indexOffset: Int)(key: Slice[Byte],
                                 valueLength: Int,
                                 valueOffset: Int,
                                 nextIndexOffset: Int,
-                                nextIndexSize: Int): Persistent.CreatedReadOnly =
-      Persistent.CreatedReadOnly(key, valueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength)
+                                nextIndexSize: Int): Persistent.PutReadOnly =
+      Persistent.PutReadOnly(key, valueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength)
   }
 
-  case class CreatedReadOnly(private var _key: Slice[Byte],
-                             valueReader: Reader,
-                             nextIndexOffset: Int,
-                             nextIndexSize: Int,
-                             indexOffset: Int,
-                             valueOffset: Int,
-                             valueLength: Int) extends PersistentReadOnly with LazyValue {
+  case class PutReadOnly(private var _key: Slice[Byte],
+                         valueReader: Reader,
+                         nextIndexOffset: Int,
+                         nextIndexSize: Int,
+                         indexOffset: Int,
+                         valueOffset: Int,
+                         valueLength: Int) extends PersistentReadOnly with LazyValue {
     override def unsliceKey: Unit =
       _key = _key.unslice()
 
@@ -174,24 +132,24 @@ private[core] object Persistent {
 
   }
 
-  object Deleted {
+  object Removed {
     val id: Int = 0
 
     def apply(key: Slice[Byte],
               nextIndexOffset: Int,
               nextIndexSize: Int,
               falsePositiveRate: Double,
-              previousMayBe: Option[KeyValue]): Deleted =
-      new Deleted(key, nextIndexOffset, nextIndexSize, Stats(key, None, true, falsePositiveRate, previousMayBe))
+              previousMayBe: Option[KeyValue]): Removed =
+      new Removed(key, nextIndexOffset, nextIndexSize, Stats(key, None, true, falsePositiveRate, previousMayBe))
 
     def apply(falsePositiveRate: Double,
               previous: Option[Persistent])(key: Slice[Byte],
                                             nextIndexOffset: Int,
-                                            nextIndexSize: Int): Persistent.Deleted =
-      Persistent.Deleted(key, nextIndexOffset, nextIndexSize, falsePositiveRate, previous)
+                                            nextIndexSize: Int): Persistent.Removed =
+      Persistent.Removed(key, nextIndexOffset, nextIndexSize, falsePositiveRate, previous)
   }
 
-  sealed trait DeletedBase {
+  sealed trait RemovedBase {
     def getOrFetchValue: Try[Option[Slice[Byte]]] =
       Success(None)
 
@@ -199,15 +157,15 @@ private[core] object Persistent {
 
     def getValue: Option[Slice[Byte]] = None
 
-    def isDelete: Boolean = true
+    def isRemove: Boolean = true
 
     def id: Int = 0
   }
 
-  case class Deleted(private var _key: Slice[Byte],
+  case class Removed(private var _key: Slice[Byte],
                      nextIndexOffset: Int,
                      nextIndexSize: Int,
-                     override val stats: Stats) extends Persistent with DeletedBase {
+                     override val stats: Stats) extends Persistent with RemovedBase {
     def key = _key
 
     override def updateStats(falsePositiveRate: Double, keyValue: Option[KeyValue]): KeyValue =
@@ -217,18 +175,18 @@ private[core] object Persistent {
       _key = _key.unslice()
 
   }
-  object DeletedReadOnly {
+  object RemovedReadOnly {
     def apply(indexOffset: Int)(key: Slice[Byte],
                                 nextIndexOffset: Int,
-                                nextIndexSize: Int): Persistent.DeletedReadOnly =
-      Persistent.DeletedReadOnly(key, indexOffset, nextIndexOffset, nextIndexSize)
+                                nextIndexSize: Int): Persistent.RemovedReadOnly =
+      Persistent.RemovedReadOnly(key, indexOffset, nextIndexOffset, nextIndexSize)
 
   }
 
-  case class DeletedReadOnly(private var _key: Slice[Byte],
+  case class RemovedReadOnly(private var _key: Slice[Byte],
                              indexOffset: Int,
                              nextIndexOffset: Int,
-                             nextIndexSize: Int) extends PersistentReadOnly with DeletedBase {
+                             nextIndexSize: Int) extends PersistentReadOnly with RemovedBase {
     def key = _key
 
     override def unsliceKey(): Unit =

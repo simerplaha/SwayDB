@@ -178,7 +178,7 @@ private[core] class LevelZero(val path: Path,
         fromLevels =>
           MinMax.min(fromMaps.map(_.toKeyValueType), fromLevels) match {
             case Some(keyValue) =>
-              if (keyValue.isDelete)
+              if (keyValue.isRemove)
                 higherKeyValue(keyValue.key)
               else
                 Success(Some(keyValue))
@@ -206,7 +206,7 @@ private[core] class LevelZero(val path: Path,
         fromLevels =>
           MinMax.max(fromMaps.map(_.toKeyValueType), fromLevels) match {
             case Some(keyValue) =>
-              if (keyValue.isDelete)
+              if (keyValue.isRemove)
                 lowerKeyValue(keyValue.key)
               else
                 Success(Some(keyValue))
@@ -234,7 +234,7 @@ private[core] class LevelZero(val path: Path,
         MinMax.min(fromMaps.map(_.toKeyValueType), fromLevels) match {
           case Some(keyValue) =>
             //            println(s"Higher: ${keyValue.key.read[Int]}")
-            if (keyValue.isDelete)
+            if (keyValue.isRemove)
               higherKeyValue(keyValue.key)
             else
               Success(Some(keyValue))
@@ -265,7 +265,7 @@ private[core] class LevelZero(val path: Path,
       case Success(fromLevels) =>
         MinMax.max(fromMaps.map(_.toKeyValueType), fromLevels) match {
           case Some(keyValue) =>
-            if (keyValue.isDelete)
+            if (keyValue.isRemove)
               lowerKeyValue(keyValue.key)
             else
               Success(Some(keyValue))
@@ -308,7 +308,7 @@ private[core] class LevelZero(val path: Path,
         case None =>
           nextLevel.get(key) flatMap {
             case Some(keyValue) =>
-              if (keyValue.isDelete)
+              if (keyValue.isRemove)
                 Success(None)
               else
                 keyValue.getOrFetchValue map (Some(_))
@@ -330,7 +330,7 @@ private[core] class LevelZero(val path: Path,
         case None =>
           nextLevel.get(key) flatMap {
             case Some(keyValue) =>
-              if (keyValue.isDelete)
+              if (keyValue.isRemove)
                 Success(None)
               else
                 Success(Some(keyValue.key))
@@ -352,7 +352,7 @@ private[core] class LevelZero(val path: Path,
         case None =>
           nextLevel.get(key) flatMap {
             case Some(keyValue) =>
-              if (keyValue.isDelete)
+              if (keyValue.isRemove)
                 Success(None)
               else
                 keyValue.getOrFetchValue.map {
