@@ -14,7 +14,7 @@ Documentation: http://swaydb.io
 | Persistent      | up to `308,000` writes/sec & up to `316,000` reads/sec                
 | In memory       | up to `653,000` writes/sec & up to `628,000` reads/sec                
 
-View detailed benchmark results [here](http://swaydb.io/#performance/macbook-pro-mid-2014/memory). 
+View detailed benchmark results [here](http://swaydb.io/performance/macbook-pro-mid-2014/memory). 
 
 ## Features
 
@@ -33,12 +33,12 @@ View detailed benchmark results [here](http://swaydb.io/#performance/macbook-pro
 
 ## Quick start
 
-[Quick start demo](http://swaydb.io/#quick-start).
+[Quick start demo](http://swaydb.io/quick-start).
 
 ## Examples
-- [Creating Tables](http://swaydb.io/#examples/creating-tables)
-- [Event-sourcing](http://swaydb.io/#examples/event-sourcing)
-- [Storing data in chunks](http://swaydb.io/#examples/storing-data-in-chunks)
+- [Creating Tables](http://swaydb.io/examples/creating-tables)
+- [Event-sourcing](http://swaydb.io/examples/event-sourcing)
+- [Storing data in chunks](http://swaydb.io/examples/storing-data-in-chunks)
 
 ## Related GitHub projects
 - [SwayDB.examples](https://github.com/simerplaha/SwayDB.examples) - Examples demonstrating features and APIs.
