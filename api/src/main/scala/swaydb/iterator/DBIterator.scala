@@ -28,7 +28,7 @@ import scala.util.{Failure, Success, Try}
 /**
   * Implements APIs for databases iteration.
   *
-  * Documentation on iteration API - http://www.swaydb.io/#api/iteration-api
+  * Documentation on iteration API - http://www.swaydb.io/api/iteration-api
   *
   * This iterator and [[KeysIterator]] share a lot of the same code. A higher type is required.
   */

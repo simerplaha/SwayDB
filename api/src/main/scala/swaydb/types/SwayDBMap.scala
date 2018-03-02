@@ -41,7 +41,7 @@ object SwayDBMap {
 /**
   * Key-value or Map database API.
   *
-  * For documentation check - http://swaydb.io/#api
+  * For documentation check - http://swaydb.io/api
   */
 class SwayDBMap[K, V](api: SwayDBAPI)(implicit keySerializer: Serializer[K],
                                       valueSerializer: Serializer[V]) extends DBIterator[K, V](api, None) {

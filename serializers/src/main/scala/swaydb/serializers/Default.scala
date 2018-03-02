@@ -28,7 +28,7 @@ import swaydb.data.util.ByteSizeOf
 /**
   * Default serializers.
   *
-  * Documentation for custom serializers: http://www.swaydb.io/#custom-serializers
+  * Documentation for custom serializers: http://www.swaydb.io/custom-serializers
   */
 object Default {
 

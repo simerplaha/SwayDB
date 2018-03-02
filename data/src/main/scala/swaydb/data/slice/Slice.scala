@@ -30,7 +30,7 @@ import scala.reflect.ClassTag
 
 /**
   *
-  * Documentation - http://swaydb.io/#slice
+  * Documentation - http://swaydb.io/slice
   */
 object Slice {
 
@@ -95,7 +95,7 @@ object Slice {
   }
 
   /**
-    * http://www.swaydb.io/#slice/byte-slice
+    * http://www.swaydb.io/slice/byte-slice
     */
   implicit class ByteSliceImplicits(slice: Slice[Byte]) {
 

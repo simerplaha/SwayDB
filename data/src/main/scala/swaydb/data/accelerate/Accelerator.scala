@@ -28,7 +28,7 @@ import swaydb.data.util.StorageUnits._
 object Accelerator {
 
   /**
-    * http://swaydb.io/#configuring-levels/acceleration
+    * http://swaydb.io/configuring-levels/acceleration
     */
   private def nextMapSize(mapCount: Int,
                           increaseMapSizeBy: Int,
@@ -40,7 +40,7 @@ object Accelerator {
       (level0Meter.currentMapSize * increaseMapSizeBy) min maxMapSize
 
   /**
-    * http://swaydb.io/#configuring-levels/acceleration/brake
+    * http://swaydb.io/configuring-levels/acceleration/brake
     */
   def brake(increaseMapSizeOnMapCount: Int = 4,
             increaseMapSizeBy: Int = 2,
@@ -64,7 +64,7 @@ object Accelerator {
     )
 
   /**
-    * http://swaydb.io/#configuring-levels/acceleration/noBrakes
+    * http://swaydb.io/configuring-levels/acceleration/noBrakes
     */
 
   def noBrakes(onMapCount: Int = 6,
@@ -87,7 +87,7 @@ object Accelerator {
 }
 
 /**
-  * http://swaydb.io/#configuring-levels/acceleration
+  * http://swaydb.io/configuring-levels/acceleration
   */
 case class Accelerator(nextMapSize: Long,
                        brake: Option[Brake])

@@ -25,7 +25,7 @@ import swaydb.data.slice.Slice
   * Default ordering.
   *
   * Custom key-ordering can be implemented.
-  * Documentation: http://www.swaydb.io/#custom-key-ordering
+  * Documentation: http://www.swaydb.io/custom-key-ordering
   *
   */
 object KeyOrder {
