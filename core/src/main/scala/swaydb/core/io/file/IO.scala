@@ -26,6 +26,7 @@ import java.nio.file.attribute.BasicFileAttributes
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.segment.SegmentException
+import swaydb.core.util.TryUtil
 import swaydb.data.slice.Slice
 
 import scala.util.{Failure, Success, Try}
@@ -60,7 +61,7 @@ object IO extends LazyLogging {
       if (written != bytes.written)
         Failure(SegmentException.FailedToWriteAllBytes(written, bytes.written, bytes.size))
       else
-        Success()
+        TryUtil.successUnit
     } catch {
       case exception: Exception =>
         Failure(exception)
@@ -79,7 +80,7 @@ object IO extends LazyLogging {
     if (exists(path))
       delete(path)
     else
-      Success()
+      TryUtil.successUnit
 
   def createFile(path: Path): Try[Path] =
     Try {
@@ -126,7 +127,7 @@ object IO extends LazyLogging {
             FileVisitResult.CONTINUE
           }
         })
-      Success()
+      TryUtil.successUnit
     } catch {
       case exception: Throwable =>
         Failure(exception)

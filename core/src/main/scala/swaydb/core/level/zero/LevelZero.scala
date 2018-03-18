@@ -53,7 +53,7 @@ private[core] object LevelZero extends LazyLogging {
                                  ec: ExecutionContext): Try[LevelZero] = {
     import swaydb.core.map.serializer.LevelZeroMapEntryReader.Level0Reader
     import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
-
+    implicit val skipListRangeConflictResolver = SkipListRangeConflictResolver
     val mapsAndPathAndLock =
       storage match {
         case Persistent(mmap, databaseDirectory, recovery) =>
@@ -64,7 +64,6 @@ private[core] object LevelZero extends LazyLogging {
           IO createFileIfAbsent lockFile
           Try(FileChannel.open(lockFile, StandardOpenOption.WRITE).tryLock()) flatMap {
             lock =>
-
               logger.info("{}: Recovering Maps.", path)
               Maps.persistent[Slice[Byte], Value](path, mmap, mapSize, acceleration, recovery) map {
                 maps =>
@@ -132,17 +131,17 @@ private[core] class LevelZero(val path: Path,
 
   def put(key: Slice[Byte]): Try[Level0Meter] =
     assertKey(key) {
-      maps.write(MapEntry.Add(key, Value.Put(None)))
+      maps.write(MapEntry.Put(key, Value.Put(None)))
     }
 
   def put(key: Slice[Byte], value: Slice[Byte]): Try[Level0Meter] =
     assertKey(key) {
-      maps.write(MapEntry.Add(key, Value.Put(Some(value))))
+      maps.write(MapEntry.Put(key, Value.Put(Some(value))))
     }
 
   def put(key: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter] =
     assertKey(key) {
-      maps.write(MapEntry.Add(key, Value.Put(value)))
+      maps.write(MapEntry.Put(key, Value.Put(value)))
     }
 
   def put(entry: MapEntry[Slice[Byte], Value]): Try[Level0Meter] =
@@ -150,7 +149,21 @@ private[core] class LevelZero(val path: Path,
 
   def remove(key: Slice[Byte]): Try[Level0Meter] =
     assertKey(key) {
-      maps.write(MapEntry.Add[Slice[Byte], Value.Remove](key, Value.Remove))
+      maps.write(MapEntry.Put[Slice[Byte], Value.Remove](key, Value.Remove))
+    }
+
+  def remove(fromKey: Slice[Byte], untilKey: Slice[Byte]): Try[Level0Meter] =
+    assertKey(fromKey) {
+      assertKey(untilKey) {
+        maps.write(MapEntry.Put[Slice[Byte], Value.Range](fromKey, Value.Range(untilKey, None, Value.Remove)))
+      }
+    }
+
+  def update(fromKey: Slice[Byte], untilKey: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter] =
+    assertKey(fromKey) {
+      assertKey(untilKey) {
+        maps.write(MapEntry.Put[Slice[Byte], Value.Range](fromKey, Value.Range(untilKey, None, Value.Put(value))))
+      }
     }
 
   def headFromMaps =
@@ -242,7 +255,6 @@ private[core] class LevelZero(val path: Path,
               higherKeyValue(keyValue.key)
             else
               Success(Some(keyValue))
-
           case None =>
             Success(None)
         }
@@ -273,7 +285,6 @@ private[core] class LevelZero(val path: Path,
               lowerKeyValue(keyValue.key)
             else
               Success(Some(keyValue))
-
           case None =>
             Success(None)
         }
@@ -439,4 +450,5 @@ private[core] class LevelZero(val path: Path,
           nextLevel mightContain key
       }
     }
+
 }

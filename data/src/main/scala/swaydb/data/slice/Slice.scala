@@ -49,6 +49,9 @@ object Slice {
     else
       new Slice[T](data, 0, data.length - 1, data.length)
 
+  def empty[T: ClassTag] =
+    Slice.create[T](0)
+
   def apply[T: ClassTag](data: T*): Slice[T] =
     Slice(data.toArray)
 

@@ -20,10 +20,10 @@
 package swaydb.core.data
 
 import swaydb.core.data.KeyValue._
-import swaydb.core.data.Value.{Put, Remove}
+import swaydb.core.data.SegmentEntry.Range
 import swaydb.data.slice.Slice
 
-import scala.util.{Success, Try}
+import scala.util.{Failure, Success, Try}
 
 private[core] sealed trait KeyValue {
   def key: Slice[Byte]
@@ -55,18 +55,63 @@ private[core] sealed trait KeyValue {
     }
 }
 
-trait KeyValueReadOnly extends KeyValue {
-  val valueLength: Int
-}
-
-trait KeyValueWriteOnly extends KeyValue {
-  val stats: Stats
-
-  def updateStats(falsePositiveRate: Double, keyValue: Option[KeyValueWriteOnly]): KeyValueWriteOnly
-
-}
-
 private[core] object KeyValue {
+
+  trait ReadOnly extends KeyValue {
+    val valueLength: Int
+  }
+
+  trait WriteOnly extends KeyValue {
+    val stats: Stats
+
+    def updateStats(falsePositiveRate: Double, keyValue: Option[KeyValue.WriteOnly]): KeyValue.WriteOnly
+
+    val isRemoveRange: Boolean
+  }
+
+  trait FixedWriteOnly extends KeyValue.WriteOnly
+
+  implicit class FixedWriteOnlyImplicit(fixed: FixedWriteOnly) {
+    def toValue: Try[Value.Fixed] =
+      fixed match {
+        case _: Transient.Remove =>
+          Success(Value.Remove)
+        case _: SegmentEntry.Remove =>
+          Success(Value.Remove)
+        case put: Transient.Put =>
+          Success(Value.Put(put.value))
+        case put: SegmentEntry.Put =>
+          put.getOrFetchValue.map(Value.Put(_))
+      }
+  }
+
+  trait RangeWriteOnly extends KeyValue.WriteOnly {
+    def fromKey: Slice[Byte]
+
+    def toKey: Slice[Byte]
+
+    def fetchRangeValue: Try[Value.Fixed]
+
+    def fetchFromValue: Try[Option[Value.Fixed]]
+
+    def fetchFromAndRangeValue: Try[(Option[Value.Fixed], Value.Fixed)]
+  }
+
+  implicit class RangeWriteOnlyImplicit(range: RangeWriteOnly) {
+    def toValue: Try[(Slice[Byte], Value.Range)] =
+      range match {
+        case range: Range =>
+          range.fetchFromAndRangeValue match {
+            case Success((fromValue, rangeValue)) =>
+              Success(range.fromKey, Value.Range(range.toKey, fromValue, rangeValue))
+
+            case Failure(exception) =>
+              Failure(exception)
+          }
+        case range: Transient.Range =>
+          Success(range.fromKey, Value.Range(range.toKey, range.fromValue, range.rangeValue))
+      }
+  }
 
   type KeyValueTuple = (Slice[Byte], Option[Slice[Byte]])
 
@@ -77,9 +122,9 @@ private[core] object KeyValue {
 
       override def getOrFetchValue: Try[Option[Slice[Byte]]] =
         keyVal._2 match {
-          case _: Remove =>
+          case _: Value.Remove =>
             Success(None)
-          case Put(value) =>
+          case Value.Put(value) =>
             Success(value)
         }
 
@@ -90,7 +135,6 @@ private[core] object KeyValue {
         keyVal._1
     }
   }
-
   type KeyValueInternal = (Slice[Byte], Value)
 
 }

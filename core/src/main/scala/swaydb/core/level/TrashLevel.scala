@@ -26,6 +26,7 @@ import swaydb.core.level.actor.LevelAPI
 import swaydb.core.level.actor.LevelCommand._
 import swaydb.core.map.Map
 import swaydb.core.segment.Segment
+import swaydb.core.util.TryUtil
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.slice.Slice
 
@@ -46,9 +47,9 @@ private[core] object TrashLevel extends LevelRef {
   override def !(request: LevelAPI): Unit =
     request match {
       case request: PushSegments =>
-        request.replyTo ! PushSegmentsResponse(request, Success())
+        request.replyTo ! PushSegmentsResponse(request, TryUtil.successUnit)
       case request: PushMap =>
-        request.replyTo ! PushMapResponse(request, Success())
+        request.replyTo ! PushMapResponse(request, TryUtil.successUnit)
       case PullRequest(pullFrom) =>
         pullFrom ! Pull
     }
@@ -96,7 +97,7 @@ private[core] object TrashLevel extends LevelRef {
     * Forward only occurs if lower level is empty and not busy.
     */
   override def forward(levelAPI: LevelAPI): Try[Unit] =
-    Success()
+    TryUtil.successUnit
 
   override def push(levelAPI: LevelAPI): Unit =
     this ! levelAPI
@@ -117,10 +118,10 @@ private[core] object TrashLevel extends LevelRef {
     Success(segments.size)
 
   override def put(segments: Iterable[Segment]): Try[Unit] =
-    Success()
+    TryUtil.successUnit
 
   override def put(segment: Segment): Try[Unit] =
-    Success()
+    TryUtil.successUnit
 
   override def pickSegmentsToPush(count: Int): Iterable[Segment] =
     Iterable.empty
@@ -137,7 +138,7 @@ private[core] object TrashLevel extends LevelRef {
     (0, 0)
 
   override def putMap(map: Map[Slice[Byte], Value]) =
-    Success()
+    TryUtil.successUnit
 
   override def head =
     Success(None)
@@ -157,8 +158,6 @@ private[core] object TrashLevel extends LevelRef {
   override def isEmpty: Boolean =
     true
 
-  override def isTrash: Boolean = true
-
   override def takeSegments(size: Int, condition: Segment => Boolean): Iterable[Segment] =
     Iterable.empty
 
@@ -172,10 +171,10 @@ private[core] object TrashLevel extends LevelRef {
     0
 
   override def releaseLocks: Try[Unit] =
-    Success()
+    TryUtil.successUnit
 
   override def close: Try[Unit] =
-    Success()
+    TryUtil.successUnit
 
   override def meter: LevelMeter =
     LevelMeter(0, 0)
@@ -185,4 +184,6 @@ private[core] object TrashLevel extends LevelRef {
 
   override def mightContain(key: Slice[Byte]): Try[Boolean] =
     Success(false)
+
+  override val isTrash: Boolean = true
 }

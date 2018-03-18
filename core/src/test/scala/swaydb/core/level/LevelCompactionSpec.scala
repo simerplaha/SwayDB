@@ -22,22 +22,20 @@ package swaydb.core.level
 import java.util.concurrent.atomic.AtomicInteger
 
 import org.scalamock.scalatest.MockFactory
-import swaydb.core.{TestBase, data}
-import swaydb.core.actor.TestActor
-import swaydb.core.data.{KeyValueWriteOnly, Transient}
+import swaydb.core.TestBase
+import swaydb.core.data.Transient
 import swaydb.core.level.LevelException.ContainsOverlappingBusySegments
 import swaydb.core.level.actor.LevelAPI
 import swaydb.core.level.actor.LevelCommand.{Pull, PullRequest, PushSegments, PushSegmentsResponse}
-import swaydb.core.util.Delay
 import swaydb.data.compaction.Throttle
 import swaydb.data.slice.Slice
-
-import scala.concurrent.duration._
-import scala.util.{Failure, Success}
 import swaydb.data.util.StorageUnits._
 import swaydb.order.KeyOrder
 import swaydb.serializers.Default._
 import swaydb.serializers._
+
+import scala.concurrent.duration._
+import scala.util.{Failure, Success}
 
 
 class LevelCompactionMemorySpec extends LevelCompactionSpec {

@@ -19,52 +19,49 @@
 
 package swaydb.core.segment.format.one
 
-import swaydb.core.data.KeyValueReadOnly
+import swaydb.core.data.SegmentEntry.RangeReadOnly
+import swaydb.core.data.SegmentEntryReadOnly
 import swaydb.core.segment.format.one.MatchResult.{Matched, _}
 import swaydb.data.slice.Slice
 
-sealed trait MatchResult[+K]
+sealed trait MatchResult
 
 object MatchResult {
-  case class Matched[K <: KeyValueReadOnly](result: K) extends MatchResult[K]
-  case object Next extends MatchResult[Nothing]
-  case object Stop extends MatchResult[Nothing]
+  case class Matched(result: SegmentEntryReadOnly) extends MatchResult
+  case object Next extends MatchResult
+  case object Stop extends MatchResult
 }
 
 private[core] sealed trait KeyMatcher {
   val key: Slice[Byte]
 
-  def apply[K <: KeyValueReadOnly](previous: K,
-                                   next: Option[K],
-                                   hasMore: => Boolean): MatchResult[K]
+  def apply(previous: SegmentEntryReadOnly,
+            next: Option[SegmentEntryReadOnly],
+            hasMore: => Boolean): MatchResult
 }
 
 private[core] object KeyMatcher {
-  case class Exact(key: Slice[Byte])(implicit ordering: Ordering[Slice[Byte]]) extends KeyMatcher {
+  case class Get(key: Slice[Byte])(implicit ordering: Ordering[Slice[Byte]]) extends KeyMatcher {
 
-    override def apply[K <: KeyValueReadOnly](previous: K,
-                                              next: Option[K],
-                                              hasMore: => Boolean): MatchResult[K] =
-      next match {
-        case Some(next) =>
-          val nextMatch = ordering.compare(next.key, key)
-          if (nextMatch == 0)
-            Matched(next)
-          else if (nextMatch < 0 && hasMore)
+    override def apply(previous: SegmentEntryReadOnly,
+                       next: Option[SegmentEntryReadOnly],
+                       hasMore: => Boolean): MatchResult =
+      next.getOrElse(previous) match {
+        case range: RangeReadOnly =>
+          val fromKeyMatch = ordering.compare(key, range.fromKey)
+          val toKeyMatch = ordering.compare(key, range.toKey)
+          if (fromKeyMatch >= 0 && toKeyMatch < 0) //is within the range
+            Matched(range)
+          else if (fromKeyMatch > 0 && hasMore)
             Next
-          //next key-value should never be read if previous was a match. This should not occur in actual scenarios.
-          //          else if (nextMatch > 0 && ordering.compare(previous.key, key) == 0)
-          //            Matched(previous)
           else
             Stop
 
-        case None =>
-          val previousMatch = ordering.compare(previous.key, key)
-
-          if (previousMatch == 0)
-            Matched(previous)
-
-          else if (previousMatch < 0 && hasMore)
+        case keyValue =>
+          val matchResult = ordering.compare(key, keyValue.key)
+          if (matchResult == 0)
+            Matched(keyValue)
+          else if (matchResult > 0 && hasMore)
             Next
           else
             Stop
@@ -73,9 +70,9 @@ private[core] object KeyMatcher {
 
   case class Lower(key: Slice[Byte])(implicit ordering: Ordering[Slice[Byte]]) extends KeyMatcher {
 
-    override def apply[K <: KeyValueReadOnly](previous: K,
-                                              next: Option[K],
-                                              hasMore: => Boolean): MatchResult[K] = {
+    override def apply(previous: SegmentEntryReadOnly,
+                       next: Option[SegmentEntryReadOnly],
+                       hasMore: => Boolean): MatchResult = {
       next match {
         case Some(next) =>
           val nextCompare = ordering.compare(next.key, key)
@@ -88,7 +85,13 @@ private[core] object KeyMatcher {
           }
           else if (nextCompare < 0)
             if (hasMore)
-              Next
+              next match {
+                case range: RangeReadOnly if ordering.compare(key, range.toKey) <= 0 =>
+                  Matched(next)
+
+                case _ =>
+                  Next
+              }
             else
               Matched(next)
           else
@@ -100,7 +103,13 @@ private[core] object KeyMatcher {
             Stop
           else if (previousCompare < 0)
             if (hasMore)
-              Next
+              previous match {
+                case range: RangeReadOnly if ordering.compare(key, range.toKey) <= 0 =>
+                  Matched(previous)
+
+                case _ =>
+                  Next
+              }
             else
               Matched(previous)
           else
@@ -111,28 +120,26 @@ private[core] object KeyMatcher {
 
   case class Higher(key: Slice[Byte])(implicit ordering: Ordering[Slice[Byte]]) extends KeyMatcher {
 
-    override def apply[K <: KeyValueReadOnly](previous: K,
-                                              next: Option[K],
-                                              hasMore: => Boolean): MatchResult[K] = {
-      next match {
-        case Some(next) =>
-          val nextCompare = ordering.compare(next.key, key)
-          if (nextCompare > 0)
-            Matched(next)
-          else if (nextCompare <= 0 && hasMore)
-            Next
-          else
-            Stop
+    override def apply(previous: SegmentEntryReadOnly,
+                       next: Option[SegmentEntryReadOnly],
+                       hasMore: => Boolean): MatchResult = {
+      val keyValue = next getOrElse previous
+      val nextCompare = ordering.compare(keyValue.key, key)
+      if (nextCompare > 0)
+        Matched(keyValue)
+      else if (nextCompare <= 0)
+        keyValue match {
+          case range: RangeReadOnly if ordering.compare(key, range.toKey) < 0 =>
+            Matched(keyValue)
 
-        case None =>
-          val previousCompare = ordering.compare(previous.key, key)
-          if (previousCompare > 0)
-            Matched(previous)
-          else if (previousCompare <= 0 && hasMore)
-            Next
-          else
-            Stop
-      }
+          case _ =>
+            if (hasMore)
+              Next
+            else
+              Stop
+        }
+      else
+        Stop
     }
   }
 

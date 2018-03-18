@@ -24,7 +24,8 @@ import java.util.concurrent.ConcurrentSkipListMap
 
 import bloomfilter.mutable.BloomFilter
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.data.{PersistentReadOnly, _}
+import swaydb.core.data.SegmentEntry.{PutReadOnly, RangeReadOnly, RemoveReadOnly}
+import swaydb.core.data.{SegmentEntryReadOnly, _}
 import swaydb.core.io.reader.Reader
 import swaydb.core.level.PathsDistributor
 import swaydb.core.util.TryUtil._
@@ -39,12 +40,12 @@ private[segment] class MemorySegment(val path: Path,
                                      val maxKey: Slice[Byte],
                                      val segmentSize: Int,
                                      val removeDeletes: Boolean,
-                                     private[segment] val cache: ConcurrentSkipListMap[Slice[Byte], PersistentReadOnly],
+                                     private[segment] val cache: ConcurrentSkipListMap[Slice[Byte], SegmentEntryReadOnly],
                                      val bloomFilter: BloomFilter[Slice[Byte]])(implicit ordering: Ordering[Slice[Byte]]) extends Segment with LazyLogging {
 
   @volatile private var deleted = false
 
-  override def put(newKeyValues: Slice[KeyValueWriteOnly],
+  override def put(newKeyValues: Slice[KeyValue.WriteOnly],
                    minSegmentSize: Long,
                    bloomFilterFalsePositiveRate: Double,
                    targetPaths: PathsDistributor)(implicit idGenerator: IDGenerator): Try[Slice[Segment]] =
@@ -55,41 +56,44 @@ private[segment] class MemorySegment(val path: Path,
         currentKeyValues =>
           SegmentMerge.merge(
             newKeyValues = newKeyValues,
-            currentKeyValues = currentKeyValues,
+            oldKeyValues = currentKeyValues,
             minSegmentSize = minSegmentSize,
             forInMemory = true,
-            removeDeletes = removeDeletes,
+            isLastLevel = removeDeletes,
             bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate
-          ).tryMap(
-            tryBlock =
-              keyValues => {
-                Segment.memory(
-                  path = targetPaths.next.resolve(idGenerator.nextSegmentID),
-                  keyValues = keyValues,
-                  bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-                  removeDeletes = removeDeletes
-                )
-              },
+          ) flatMap {
+            splits =>
+              splits.tryMap(
+                tryBlock =
+                  keyValues => {
+                    Segment.memory(
+                      path = targetPaths.next.resolve(idGenerator.nextSegmentID),
+                      keyValues = keyValues,
+                      bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+                      removeDeletes = removeDeletes
+                    )
+                  },
 
-            recover =
-              (segments: Slice[Segment], _: Failure[Slice[Segment]]) =>
-                segments.foreach {
-                  segmentToDelete =>
-                    segmentToDelete.delete.failed.foreach {
-                      exception =>
-                        logger.error(s"{}: Failed to delete Segment '{}' in recover due to failed put", path, segmentToDelete.path, exception)
+                recover =
+                  (segments: Slice[Segment], _: Failure[Iterable[Segment]]) =>
+                    segments.foreach {
+                      segmentToDelete =>
+                        segmentToDelete.delete.failed.foreach {
+                          exception =>
+                            logger.error(s"{}: Failed to delete Segment '{}' in recover due to failed put", path, segmentToDelete.path, exception)
+                        }
                     }
-                }
-          )
+              )
+          }
       }
 
   override def copyTo(toPath: Path): Try[Path] =
     Failure(SegmentException.CannotCopyInMemoryFiles(path))
 
-  override def getFromCache(key: Slice[Byte]): Option[PersistentReadOnly] =
+  override def getFromCache(key: Slice[Byte]): Option[SegmentEntryReadOnly] =
     Option(cache.get(key))
 
-  override def get(key: Slice[Byte]): Try[Option[PersistentReadOnly]] =
+  override def get(key: Slice[Byte]): Try[Option[SegmentEntryReadOnly]] =
     if (deleted)
       Failure(new NoSuchFileException(path.toString))
     else if (!bloomFilter.mightContain(key))
@@ -100,7 +104,7 @@ private[segment] class MemorySegment(val path: Path,
   def mightContain(key: Slice[Byte]): Try[Boolean] =
     Try(bloomFilter mightContain key)
 
-  override def lower(key: Slice[Byte]): Try[Option[PersistentReadOnly]] =
+  override def lower(key: Slice[Byte]): Try[Option[SegmentEntryReadOnly]] =
     if (deleted)
       Failure(new NoSuchFileException(path.toString))
     else
@@ -108,7 +112,7 @@ private[segment] class MemorySegment(val path: Path,
         Option(cache.lowerEntry(key)).map(_.getValue)
       }
 
-  override def higher(key: Slice[Byte]): Try[Option[PersistentReadOnly]] =
+  override def higher(key: Slice[Byte]): Try[Option[SegmentEntryReadOnly]] =
     if (deleted)
       Failure(new NoSuchFileException(path.toString))
     else
@@ -116,30 +120,46 @@ private[segment] class MemorySegment(val path: Path,
         Option(cache.higherEntry(key)).map(_.getValue)
       }
 
-  override def getAll(bloomFilterFalsePositiveRate: Double, addTo: Option[Slice[Persistent]]): Try[Slice[Persistent]] =
+  override def getAll(bloomFilterFalsePositiveRate: Double, addTo: Option[Slice[SegmentEntry]]): Try[Slice[SegmentEntry]] =
     if (deleted)
       Failure(new NoSuchFileException(path.toString))
     else
-      cache.asScala.tryFoldLeft(addTo.getOrElse(Slice.create[Persistent](cache.size()))) {
-        case (entries, (key: Slice[Byte], value: PersistentReadOnly)) =>
-          if (value.isRemove) {
-            entries add Persistent.Removed(key, 0x00, 0x00, bloomFilterFalsePositiveRate, entries.lastOption)
-            Success(entries)
-          } else {
-            value.getOrFetchValue map {
-              valueOption =>
-                val (reader, valueSize) =
-                  valueOption.map {
-                    value =>
-                      (Reader(value.unslice()), value.size)
-                  } getOrElse
-                    (Reader.emptyReader, 0)
+      cache.asScala.tryFoldLeft(addTo.getOrElse(Slice.create[SegmentEntry](cache.size()))) {
+        case (entries, (key: Slice[Byte], value: SegmentEntryReadOnly)) =>
+          value match {
+            case _: PutReadOnly =>
+              value.getOrFetchValue map {
+                valueOption =>
+                  val (reader, valueSize) =
+                    valueOption.map {
+                      value =>
+                        (Reader(value.unslice()), value.size)
+                    } getOrElse
+                      (Reader.emptyReader, 0)
 
-                entries add Persistent.Put(key, reader, valueSize, 0x00, 0x00, 0x00, bloomFilterFalsePositiveRate, entries.lastOption)
-            } map {
-              _ =>
-                entries
-            }
+                  entries add SegmentEntry.Put(key, reader, valueSize, 0x00, 0x00, 0x00, bloomFilterFalsePositiveRate, entries.lastOption)
+              } map {
+                _ =>
+                  entries
+              }
+            case _: RemoveReadOnly =>
+              entries add SegmentEntry.Remove(key, 0x00, 0x00, bloomFilterFalsePositiveRate, entries.lastOption)
+              Success(entries)
+
+            case range: RangeReadOnly =>
+              value.getOrFetchValue map {
+                valueOption =>
+                  val (reader, valueSize) =
+                    valueOption.map {
+                      value =>
+                        (Reader(value.unslice()), value.size)
+                    } getOrElse
+                      (Reader.emptyReader, 0)
+                  entries add SegmentEntry.Range(range.id, range.fromKey, range.toKey, valueSize, reader, 0x00, 0x00, 0x00, bloomFilterFalsePositiveRate, entries.lastOption)
+              } map {
+                _ =>
+                  entries
+              }
           }
       }
 
@@ -150,7 +170,7 @@ private[segment] class MemorySegment(val path: Path,
   }
 
   override def close: Try[Unit] =
-    Success()
+    TryUtil.successUnit
 
   override def getKeyValueCount(): Try[Int] =
     Try(cache.size())

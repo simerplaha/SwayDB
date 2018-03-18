@@ -21,7 +21,8 @@ package swaydb.core.map
 
 import swaydb.core.TestBase
 import swaydb.core.data.Value
-import swaydb.core.map.serializer.LevelZeroMapEntryWriter.Level0AddWriter
+import swaydb.core.level.zero.SkipListRangeConflictResolver
+import swaydb.core.map.serializer.LevelZeroMapEntryWriter.Level0PutWriter
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.order.KeyOrder
@@ -29,6 +30,7 @@ import swaydb.order.KeyOrder
 class MapStressSpec extends TestBase {
 
   implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
+  implicit val skipListRangeConflictResolver = SkipListRangeConflictResolver
 
   "Map" should {
     "write entries when flushOnOverflow is true and map size is 1.kb" in {
@@ -37,7 +39,7 @@ class MapStressSpec extends TestBase {
       def test(map: Map[Slice[Byte], Value]) = {
         keyValues foreach {
           keyValue =>
-            val entry = MapEntry.Add[Slice[Byte], Value.Put](keyValue.key, Value.Put(keyValue.getOrFetchValue.assertGetOpt))(Level0AddWriter)
+            val entry = MapEntry.Put[Slice[Byte], Value.Put](keyValue.key, Value.Put(keyValue.getOrFetchValue.assertGetOpt))(Level0PutWriter)
             map.write(entry).assertGet shouldBe true
         }
 
@@ -55,7 +57,7 @@ class MapStressSpec extends TestBase {
       val dir2 = createRandomDir
 
       import swaydb.core.map.serializer.LevelZeroMapEntryReader.Level0Reader
-      import swaydb.core.map.serializer.LevelZeroMapEntryWriter.Level0AddValueWriter
+      import swaydb.core.map.serializer.LevelZeroMapEntryWriter.Level0PutValueWriter
 
       test(Map.persistent[Slice[Byte], Value](dir1, mmap = true, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).assertGet.item)
       test(Map.persistent[Slice[Byte], Value](dir2, mmap = false, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).assertGet.item)

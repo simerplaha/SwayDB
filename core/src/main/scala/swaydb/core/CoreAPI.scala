@@ -53,6 +53,10 @@ private[swaydb] trait CoreAPI {
 
   def remove(key: Slice[Byte]): Try[Level0Meter]
 
+  def remove(fromKey: Slice[Byte], untilKey: Slice[Byte]): Try[Level0Meter]
+
+  def update(fromKey: Slice[Byte], untilKey: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter]
+
   def head: Try[Option[KeyValueTuple]]
 
   def headKey: Try[Option[Slice[Byte]]]

@@ -20,10 +20,9 @@
 package swaydb.core.segment.format.one
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.data.Persistent.Put
-import swaydb.core.data.Transient.Remove
-import swaydb.core.data.{Persistent, PersistentReadOnly, PersistentType}
+import swaydb.core.data.{SegmentEntry, SegmentEntryReadOnly, SegmentEntryType, Transient}
 import swaydb.core.io.reader.Reader
+import swaydb.core.map.serializer.RangeValueSerializer
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
 import swaydb.core.util.BloomFilterUtil._
 import swaydb.core.util.TryUtil._
@@ -41,11 +40,12 @@ import scala.util.{Failure, Success, Try}
   */
 private[core] object SegmentReader extends LazyLogging {
 
-  private def readNextKeyValue[P <: PersistentType](previous: P,
-                                                    endIndexOffset: Int,
-                                                    reader: Reader,
-                                                    onCreate: (Slice[Byte], Int, Int, Int, Int) => P,
-                                                    onDelete: (Slice[Byte], Int, Int) => P): Try[P] = {
+  private def readNextKeyValue[P <: SegmentEntryType](previous: P,
+                                                      endIndexOffset: Int,
+                                                      reader: Reader,
+                                                      onCreate: (Slice[Byte], Int, Int, Int, Int) => P,
+                                                      onRange: (Int, Slice[Byte], Int, Int, Int, Int) => Try[P],
+                                                      onDelete: (Slice[Byte], Int, Int) => P): Try[P] = {
     reader moveTo previous.nextIndexOffset
     readNextKeyValue(
       indexEntrySizeMayBe = Some(previous.nextIndexSize),
@@ -54,15 +54,17 @@ private[core] object SegmentReader extends LazyLogging {
       reader = reader,
       previous = Some(previous),
       onCreate = onCreate,
+      onRange = onRange,
       onDelete = onDelete
     )
   }
 
-  private def readNextKeyValue[P <: PersistentType](fromPosition: Int,
-                                                    endIndexOffset: Int,
-                                                    reader: Reader,
-                                                    onCreate: (Slice[Byte], Int, Int, Int, Int) => P,
-                                                    onDelete: (Slice[Byte], Int, Int) => P): Try[P] = {
+  private def readNextKeyValue[P <: SegmentEntryType](fromPosition: Int,
+                                                      endIndexOffset: Int,
+                                                      reader: Reader,
+                                                      onCreate: (Slice[Byte], Int, Int, Int, Int) => P,
+                                                      onRange: (Int, Slice[Byte], Int, Int, Int, Int) => Try[P],
+                                                      onDelete: (Slice[Byte], Int, Int) => P): Try[P] = {
     reader moveTo fromPosition
     readNextKeyValue(
       indexEntrySizeMayBe = None,
@@ -71,18 +73,20 @@ private[core] object SegmentReader extends LazyLogging {
       reader = reader,
       previous = None,
       onCreate = onCreate,
+      onRange = onRange,
       onDelete = onDelete
     )
   }
 
   //Pre-requisite: The position of the index on the reader should be set.
-  private def readNextKeyValue[P <: PersistentType](indexEntrySizeMayBe: Option[Int],
-                                                    adjustNextIndexOffsetBy: Int, //the reader could be a sub slice. This is used to adjust next indexOffset size
-                                                    endIndexOffset: Int,
-                                                    reader: Reader,
-                                                    previous: Option[P],
-                                                    onCreate: (Slice[Byte], Int, Int, Int, Int) => P,
-                                                    onDelete: (Slice[Byte], Int, Int) => P): Try[P] =
+  private def readNextKeyValue[P <: SegmentEntryType](indexEntrySizeMayBe: Option[Int],
+                                                      adjustNextIndexOffsetBy: Int, //the reader could be a sub slice. This is used to adjust next indexOffset size
+                                                      endIndexOffset: Int,
+                                                      reader: Reader,
+                                                      previous: Option[P],
+                                                      onCreate: (Slice[Byte], Int, Int, Int, Int) => P,
+                                                      onRange: (Int, Slice[Byte], Int, Int, Int, Int) => Try[P],
+                                                      onDelete: (Slice[Byte], Int, Int) => P): Try[P] =
     try {
       val positionBeforeRead = reader.getPosition
       //size of the index entry to read
@@ -142,12 +146,17 @@ private[core] object SegmentReader extends LazyLogging {
         else
           (0, -1)
 
-      if (id == Put.id) {
-        val valueLength = indexEntryReader.readIntUnsigned().get
+      val valueLength = indexEntryReader.readIntUnsigned().get
+
+      if (id == Transient.Put.id) {
         val valueOffset = if (valueLength == 0) 0 else indexEntryReader.readIntUnsigned().get
         val (nextIndexSize, nextIndexOffset) = nextIndexSizeAndOffset
         Success(onCreate(key, valueLength, valueOffset, nextIndexOffset, nextIndexSize))
-      } else if (id == Remove.id) {
+      } else if (id >= RangeValueSerializer.minId && id <= RangeValueSerializer.maxId) {
+        val valueOffset = if (valueLength == 0) 0 else indexEntryReader.readIntUnsigned().get
+        val (nextIndexSize, nextIndexOffset) = nextIndexSizeAndOffset
+        onRange(id, key, valueLength, valueOffset, nextIndexOffset, nextIndexSize)
+      } else if (id == Transient.Remove.id) {
         val (nextIndexSize, nextIndexOffset) = nextIndexSizeAndOffset
         Success(onDelete(key, nextIndexOffset, nextIndexSize))
       } else {
@@ -174,7 +183,7 @@ private[core] object SegmentReader extends LazyLogging {
   def readAll(footer: SegmentFooter,
               reader: Reader,
               bloomFilterFalsePositiveRate: Double,
-              addTo: Option[Slice[Persistent]] = None): Try[Slice[Persistent]] =
+              addTo: Option[Slice[SegmentEntry]] = None): Try[Slice[SegmentEntry]] =
     try {
       //since this is a index slice of the full Segment, adjustments for nextIndexOffset is required.
       val adjustNextIndexOffsetBy = footer.startIndexOffset
@@ -182,8 +191,8 @@ private[core] object SegmentReader extends LazyLogging {
       val indexOnlyReader = Reader((reader moveTo footer.startIndexOffset read (footer.endIndexOffset - footer.startIndexOffset + 1)).get)
       val endIndexOffset: Int = indexOnlyReader.size.get.toInt - 1
 
-      val entries = addTo getOrElse Slice.create[Persistent](footer.keyValueCount)
-      (1 to footer.keyValueCount).tryFoldLeft(Option.empty[Persistent]) {
+      val entries = addTo getOrElse Slice.create[SegmentEntry](footer.keyValueCount)
+      (1 to footer.keyValueCount).tryFoldLeft(Option.empty[SegmentEntry]) {
         case (previousMayBe, _) =>
           val nextIndexSize =
             previousMayBe map {
@@ -203,8 +212,9 @@ private[core] object SegmentReader extends LazyLogging {
             //user entries.lastOption instead of previousMayBe because, addTo might already be pre-populated and the
             //last entry would of bethe.
             previous = lastEntry,
-            onCreate = Persistent.Put(reader.copy(), bloomFilterFalsePositiveRate, lastEntry),
-            onDelete = Persistent.Removed(bloomFilterFalsePositiveRate, lastEntry)
+            onCreate = SegmentEntry.Put(reader.copy(), bloomFilterFalsePositiveRate, lastEntry),
+            onRange = SegmentEntry.Range(reader.copy(), bloomFilterFalsePositiveRate, lastEntry),
+            onDelete = SegmentEntry.Remove(bloomFilterFalsePositiveRate, lastEntry)
           ) map {
             next =>
               entries add next
@@ -225,7 +235,7 @@ private[core] object SegmentReader extends LazyLogging {
   //TODO - abstract readAll and readAllReadOnly functions
   def readAllReadOnly(footer: SegmentFooter,
                       reader: Reader,
-                      addTo: Option[Slice[PersistentReadOnly]] = None): Try[Slice[PersistentReadOnly]] =
+                      addTo: Option[Slice[SegmentEntryReadOnly]] = None): Try[Slice[SegmentEntryReadOnly]] =
     try {
       //since this is a index slice of the full Segment, adjustments for nextIndexOffset is required.
       val adjustNextIndexOffsetBy = footer.startIndexOffset
@@ -233,8 +243,8 @@ private[core] object SegmentReader extends LazyLogging {
       val indexOnlyReader = Reader((reader moveTo footer.startIndexOffset read (footer.endIndexOffset - footer.startIndexOffset + 1)).get)
       val endIndexOffset: Int = indexOnlyReader.size.get.toInt - 1
 
-      val entries = addTo getOrElse Slice.create[PersistentReadOnly](footer.keyValueCount)
-      (1 to footer.keyValueCount).tryFoldLeft(Option.empty[PersistentReadOnly]) {
+      val entries = addTo getOrElse Slice.create[SegmentEntryReadOnly](footer.keyValueCount)
+      (1 to footer.keyValueCount).tryFoldLeft(Option.empty[SegmentEntryReadOnly]) {
         case (previousMayBe, _) =>
           val nextIndexSize =
             previousMayBe map {
@@ -254,8 +264,9 @@ private[core] object SegmentReader extends LazyLogging {
             //user entries.lastOption instead of previousMayBe because, addTo might already be pre-populated and the
             //last entry would of bethe.
             previous = lastEntry,
-            onCreate = Persistent.PutReadOnly(reader.copy(), lastEntry.map(_.nextIndexOffset).getOrElse(footer.startIndexOffset)),
-            onDelete = Persistent.RemovedReadOnly(lastEntry.map(_.nextIndexOffset).getOrElse(footer.startIndexOffset))
+            onCreate = SegmentEntry.PutReadOnly(reader.copy(), lastEntry.map(_.nextIndexOffset).getOrElse(footer.startIndexOffset)),
+            onRange = SegmentEntry.RangeReadOnly(reader.copy(), lastEntry.map(_.nextIndexOffset).getOrElse(footer.startIndexOffset)),
+            onDelete = SegmentEntry.RemoveReadOnly(lastEntry.map(_.nextIndexOffset).getOrElse(footer.startIndexOffset))
           ) map {
             next =>
               entries add next
@@ -328,14 +339,14 @@ private[core] object SegmentReader extends LazyLogging {
   }
 
   def find(matcher: KeyMatcher,
-           startFrom: Option[PersistentReadOnly],
-           reader: Reader): Try[Option[PersistentReadOnly]] =
+           startFrom: Option[SegmentEntryReadOnly],
+           reader: Reader): Try[Option[SegmentEntryReadOnly]] =
     readFooter(reader) flatMap (find(matcher, startFrom, reader, _))
 
   def find(matcher: KeyMatcher,
-           startFrom: Option[PersistentReadOnly],
+           startFrom: Option[SegmentEntryReadOnly],
            reader: Reader,
-           footer: SegmentFooter): Try[Option[PersistentReadOnly]] =
+           footer: SegmentFooter): Try[Option[SegmentEntryReadOnly]] =
     try {
       startFrom match {
         case Some(startFrom) =>
@@ -347,8 +358,9 @@ private[core] object SegmentReader extends LazyLogging {
               previous = startFrom,
               endIndexOffset = footer.endIndexOffset,
               reader = reader,
-              onCreate = Persistent.PutReadOnly(reader, startFrom.nextIndexOffset),
-              onDelete = Persistent.RemovedReadOnly(startFrom.nextIndexOffset)
+              onCreate = SegmentEntry.PutReadOnly(reader, startFrom.nextIndexOffset),
+              onRange = SegmentEntry.RangeReadOnly(reader, startFrom.nextIndexOffset),
+              onDelete = SegmentEntry.RemoveReadOnly(startFrom.nextIndexOffset)
             ) flatMap {
               keyValue =>
                 find(startFrom, Some(keyValue), matcher, reader, footer)
@@ -360,8 +372,9 @@ private[core] object SegmentReader extends LazyLogging {
             fromPosition = footer.startIndexOffset,
             endIndexOffset = footer.endIndexOffset,
             reader = reader,
-            onCreate = Persistent.PutReadOnly(reader, footer.startIndexOffset),
-            onDelete = Persistent.RemovedReadOnly(footer.startIndexOffset)
+            onCreate = SegmentEntry.PutReadOnly(reader, footer.startIndexOffset),
+            onRange = SegmentEntry.RangeReadOnly(reader, footer.startIndexOffset),
+            onDelete = SegmentEntry.RemoveReadOnly(footer.startIndexOffset)
           ) flatMap {
             keyValue =>
               find(keyValue, None, matcher, reader, footer)
@@ -373,11 +386,11 @@ private[core] object SegmentReader extends LazyLogging {
     }
 
   @tailrec
-  private def find(previous: PersistentReadOnly,
-                   next: Option[PersistentReadOnly],
+  private def find(previous: SegmentEntryReadOnly,
+                   next: Option[SegmentEntryReadOnly],
                    matcher: KeyMatcher,
                    reader: Reader,
-                   footer: SegmentFooter): Try[Option[PersistentReadOnly]] =
+                   footer: SegmentFooter): Try[Option[SegmentEntryReadOnly]] =
     matcher(previous, next, hasMore = hasMore(next getOrElse previous, footer)) match {
       case MatchResult.Next =>
         val readFrom = next getOrElse previous
@@ -385,8 +398,9 @@ private[core] object SegmentReader extends LazyLogging {
           previous = readFrom,
           endIndexOffset = footer.endIndexOffset,
           reader = reader,
-          onCreate = Persistent.PutReadOnly(reader, readFrom.nextIndexOffset),
-          onDelete = Persistent.RemovedReadOnly(readFrom.nextIndexOffset)
+          onCreate = SegmentEntry.PutReadOnly(reader, readFrom.nextIndexOffset),
+          onRange = SegmentEntry.RangeReadOnly(reader, readFrom.nextIndexOffset),
+          onDelete = SegmentEntry.RemoveReadOnly(readFrom.nextIndexOffset)
         ) match {
           case Success(nextNextKeyValue) =>
             find(readFrom, Some(nextNextKeyValue), matcher, reader, footer)
@@ -403,7 +417,7 @@ private[core] object SegmentReader extends LazyLogging {
 
     }
 
-  private def hasMore(keyValue: PersistentReadOnly, footer: SegmentFooter) =
+  private def hasMore(keyValue: SegmentEntryReadOnly, footer: SegmentFooter) =
     keyValue.nextIndexOffset >= 0 && keyValue.nextIndexOffset < footer.endIndexOffset
 
 }

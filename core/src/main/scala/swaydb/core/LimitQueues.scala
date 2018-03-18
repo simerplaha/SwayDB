@@ -19,7 +19,7 @@
 package swaydb.core
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.data.PersistentReadOnly
+import swaydb.core.data.SegmentEntryReadOnly
 import swaydb.core.io.file.DBFile
 import swaydb.core.queue.LimitQueue
 import swaydb.core.segment.Segment
@@ -30,16 +30,17 @@ import scala.ref.WeakReference
 
 private[core] object LimitQueues extends LazyLogging {
 
-  def keyValueWeigher(entry: (WeakReference[PersistentReadOnly], WeakReference[Segment])): Long =
+  def keyValueWeigher(entry: (WeakReference[SegmentEntryReadOnly], WeakReference[Segment])): Long =
     entry._1.get map {
       keyValue =>
         val otherBytes = (Math.ceil(keyValue.key.size + keyValue.valueLength / 8.0) - 1.0) * 8
-        if (keyValue.isRemove) (168 + otherBytes).toLong else (264 + otherBytes).toLong
+        //        if (keyValue.isRemove) (168 + otherBytes).toLong else (264 + otherBytes).toLong
+        (264 + otherBytes).toLong
     } getOrElse 0L
 
-  def keyValueLimiter(cacheSize: Long, delay: FiniteDuration)(implicit ex: ExecutionContext): (PersistentReadOnly, Segment) => Unit = {
+  def keyValueLimiter(cacheSize: Long, delay: FiniteDuration)(implicit ex: ExecutionContext): (SegmentEntryReadOnly, Segment) => Unit = {
 
-    val queue = LimitQueue[(WeakReference[PersistentReadOnly], WeakReference[Segment])](cacheSize, delay, keyValueWeigher) {
+    val queue = LimitQueue[(WeakReference[SegmentEntryReadOnly], WeakReference[Segment])](cacheSize, delay, keyValueWeigher) {
       case (keyValueRef, segmentRef) =>
         for {
           segment <- segmentRef.get
@@ -48,7 +49,7 @@ private[core] object LimitQueues extends LazyLogging {
           segment.removeFromCache(keyValue.key)
         }
     }
-    (keyValue: PersistentReadOnly, segment: Segment) =>
+    (keyValue: SegmentEntryReadOnly, segment: Segment) =>
       queue ! (new WeakReference(keyValue), new WeakReference[Segment](segment))
   }
 

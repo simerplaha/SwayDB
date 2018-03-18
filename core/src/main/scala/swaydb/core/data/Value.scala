@@ -31,7 +31,9 @@ private[swaydb] sealed trait Value {
 
 private[swaydb] object Value {
 
-  sealed trait Remove extends Value
+  private[swaydb] sealed trait Fixed extends Value
+
+  sealed trait Remove extends Fixed
   case object Remove extends Remove {
     override def id: Int = 0
 
@@ -43,9 +45,21 @@ private[swaydb] object Value {
       new Put(Some(value))
   }
 
-  case class Put(value: Option[Slice[Byte]]) extends Value {
+  case class Put(value: Option[Slice[Byte]]) extends Fixed {
     override def id: Int = 1
 
     override def isRemove: Boolean = false
+  }
+
+  object Range {
+    val id = 2
+  }
+  case class Range(toKey: Slice[Byte],
+                   fromValue: Option[Value.Fixed],
+                   rangeValue: Value.Fixed) extends Value {
+    override def id: Int = Range.id
+
+    override def isRemove: Boolean =
+      rangeValue.isRemove
   }
 }

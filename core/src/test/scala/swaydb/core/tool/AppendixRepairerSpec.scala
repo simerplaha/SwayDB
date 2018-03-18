@@ -21,7 +21,7 @@ package swaydb.core.tool
 
 import java.nio.file.NoSuchFileException
 
-import swaydb.core.data.PersistentReadOnly
+import swaydb.core.data.SegmentEntryReadOnly
 import swaydb.core.{TestBase, TestLimitQueues}
 import swaydb.core.io.file.{DBFile, IO}
 import swaydb.core.map.serializer.AppendixMapEntryReader
@@ -39,11 +39,11 @@ class AppendixRepairerSpec extends TestBase {
   implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
 
   implicit val maxSegmentsOpenCacheImplicitLimiter: DBFile => Unit = TestLimitQueues.fileOpenLimiter
-  implicit val keyValuesLimitImplicitLimiter: (PersistentReadOnly, Segment) => Unit = TestLimitQueues.keyValueLimiter
+  implicit val keyValuesLimitImplicitLimiter: (SegmentEntryReadOnly, Segment) => Unit = TestLimitQueues.keyValueLimiter
 
   "AppendixRepair" should {
     "fail if the input path does not exist" in {
-      AppendixRepairer(nextLevelPath, AppendixRepairStrategy.Report).failed.assertGet shouldBe a[NoSuchFileException]
+      AppendixRepairer(nextLevelPath, AppendixRepairStrategy.ReportFailure).failed.assertGet shouldBe a[NoSuchFileException]
     }
 
     "create new appendix file if all the Segments in the Level are non-overlapping Segments" in {
@@ -54,7 +54,7 @@ class AppendixRepairerSpec extends TestBase {
       val segmentsBeforeRepair = level.segments
 
       //repair appendix
-      AppendixRepairer(level.rootPath, AppendixRepairStrategy.Report).assertGet
+      AppendixRepairer(level.rootPath, AppendixRepairStrategy.ReportFailure).assertGet
       level.appendixPath.exists shouldBe true //appendix is created
 
       //reopen level and it should contain all the Segment
@@ -70,7 +70,7 @@ class AppendixRepairerSpec extends TestBase {
       level.appendixPath.exists shouldBe false
 
       //repair appendix
-      AppendixRepairer(level.rootPath, AppendixRepairStrategy.Report).assertGet
+      AppendixRepairer(level.rootPath, AppendixRepairStrategy.ReportFailure).assertGet
       level.appendixPath.exists shouldBe true //appendix is created
 
       //reopen level, the Level is empty
@@ -92,7 +92,7 @@ class AppendixRepairerSpec extends TestBase {
           val duplicateSegment = segment.path.getParent.resolve(segmentId.toSegmentFileId)
           segment.copyTo(duplicateSegment).assertGet
           //perform repair
-          AppendixRepairer(level.rootPath, AppendixRepairStrategy.Report).failed.assertGet shouldBe a[OverlappingSegmentsException]
+          AppendixRepairer(level.rootPath, AppendixRepairStrategy.ReportFailure).failed.assertGet shouldBe a[OverlappingSegmentsException]
           //perform repair with DeleteNext. This will delete the newest duplicate Segment.
           AppendixRepairer(level.rootPath, AppendixRepairStrategy.KeepOld).assertGet
           //newer duplicate Segment is deleted
@@ -135,7 +135,7 @@ class AppendixRepairerSpec extends TestBase {
 
           createOverlappingSegment()
           //perform repair with Report
-          AppendixRepairer(level.rootPath, AppendixRepairStrategy.Report).failed.assertGet shouldBe a[OverlappingSegmentsException]
+          AppendixRepairer(level.rootPath, AppendixRepairStrategy.ReportFailure).failed.assertGet shouldBe a[OverlappingSegmentsException]
           //perform repair with DeleteNext. This will delete the newest overlapping Segment.
           AppendixRepairer(level.rootPath, AppendixRepairStrategy.KeepOld).assertGet
           //overlapping Segment does not exist.

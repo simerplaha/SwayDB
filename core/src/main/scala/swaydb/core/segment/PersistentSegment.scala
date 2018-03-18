@@ -25,8 +25,8 @@ import java.util.concurrent.atomic.AtomicReference
 
 import bloomfilter.mutable.BloomFilter
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.data.Persistent.{PutReadOnly, RemovedReadOnly}
-import swaydb.core.data.{PersistentReadOnly, _}
+import swaydb.core.data.SegmentEntry.{PutReadOnly, RemoveReadOnly}
+import swaydb.core.data.{SegmentEntryReadOnly, _}
 import swaydb.core.io.file.DBFile
 import swaydb.core.io.reader.Reader
 import swaydb.core.level.PathsDistributor
@@ -48,7 +48,7 @@ private[segment] class PersistentSegment(val file: DBFile,
                                          val maxKey: Slice[Byte],
                                          val segmentSize: Int,
                                          val removeDeletes: Boolean)(implicit ordering: Ordering[Slice[Byte]],
-                                                                     keyValueLimiter: (PersistentReadOnly, Segment) => Unit,
+                                                                     keyValueLimiter: (SegmentEntryReadOnly, Segment) => Unit,
                                                                      fileOpenLimited: DBFile => Unit,
                                                                      ec: ExecutionContext) extends Segment with LazyLogging {
 
@@ -56,7 +56,7 @@ private[segment] class PersistentSegment(val file: DBFile,
 
   def path = file.path
 
-  private[segment] lazy val cache = new ConcurrentSkipListMap[Slice[Byte], PersistentReadOnly](ordering)
+  private[segment] lazy val cache = new ConcurrentSkipListMap[Slice[Byte], SegmentEntryReadOnly](ordering)
   private[segment] lazy val footer = new AtomicReference[Option[SegmentFooter]](None)
 
   def populateCacheWithKeys(reader: Reader) =
@@ -72,7 +72,7 @@ private[segment] class PersistentSegment(val file: DBFile,
                     sliceKeyValue match {
                       case keyValue: PutReadOnly =>
                         keyValue.copy(_key = sliceKeyValue.key.unslice(), valueReader = createReader())
-                      case keyValue: RemovedReadOnly =>
+                      case keyValue: RemoveReadOnly =>
                         keyValue.copy(_key = sliceKeyValue.key.unslice())
                     }
                   }
@@ -93,19 +93,21 @@ private[segment] class PersistentSegment(val file: DBFile,
   private def createReader(): Reader =
     Reader(file)
 
-  private def addToCache(keyValue: PersistentReadOnly): Unit = {
+  private def addToCache(keyValue: SegmentEntryReadOnly): Unit = {
     cache.put(keyValue.key, keyValue)
     keyValueLimiter(keyValue, this)
   }
 
   def delete: Try[Unit] = {
     logger.trace(s"{}: DELETING FILE", path)
-    clearCache()
-    footer.set(None)
     file.delete() recoverWith {
       case exception =>
         logger.error(s"{}: Failed to delete Segment file.", path, exception)
         Failure(exception)
+    } map {
+      _ =>
+        clearCache()
+        footer.set(None)
     }
   }
 
@@ -115,7 +117,7 @@ private[segment] class PersistentSegment(val file: DBFile,
   /**
     * Default targetPath is set to this [[PersistentSegment]]'s parent directory.
     */
-  def put(newKeyValues: Slice[KeyValueWriteOnly],
+  def put(newKeyValues: Slice[KeyValue.WriteOnly],
           minSegmentSize: Long,
           bloomFilterFalsePositiveRate: Double,
           targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Try[Slice[Segment]] =
@@ -123,35 +125,38 @@ private[segment] class PersistentSegment(val file: DBFile,
       currentKeyValues =>
         SegmentMerge.merge(
           newKeyValues = newKeyValues,
-          currentKeyValues = currentKeyValues,
+          oldKeyValues = currentKeyValues,
           minSegmentSize = minSegmentSize,
           forInMemory = false,
-          removeDeletes = removeDeletes,
+          isLastLevel = removeDeletes,
           bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate
-        ).tryMap(
-          tryBlock =
-            keyValues => {
-              Segment.persistent(
-                path = targetPaths.next.resolve(idGenerator.nextSegmentID),
-                cacheKeysOnCreate = cacheKeysOnCreate,
-                mmapReads = mmapReads,
-                mmapWrites = mmapWrites,
-                keyValues = keyValues,
-                bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-                removeDeletes = removeDeletes
-              )
-            },
+        ) flatMap {
+          splits =>
+            splits.tryMap(
+              tryBlock =
+                keyValues => {
+                  Segment.persistent(
+                    path = targetPaths.next.resolve(idGenerator.nextSegmentID),
+                    cacheKeysOnCreate = cacheKeysOnCreate,
+                    mmapReads = mmapReads,
+                    mmapWrites = mmapWrites,
+                    keyValues = keyValues,
+                    bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+                    removeDeletes = removeDeletes
+                  )
+                },
 
-          recover =
-            (segments: Slice[Segment], _: Failure[Slice[Segment]]) =>
-              segments foreach {
-                segmentToDelete =>
-                  segmentToDelete.delete.failed foreach {
-                    exception =>
-                      logger.error(s"{}: Failed to delete Segment '{}' in recover due to failed put", path, segmentToDelete.path, exception)
+              recover =
+                (segments: Slice[Segment], _: Failure[Slice[Segment]]) =>
+                  segments foreach {
+                    segmentToDelete =>
+                      segmentToDelete.delete.failed foreach {
+                        exception =>
+                          logger.error(s"{}: Failed to delete Segment '{}' in recover due to failed put", path, segmentToDelete.path, exception)
+                      }
                   }
-              }
-        )
+            )
+        }
     }
 
   private def prepareGet[T](getOperation: (SegmentFooter, Reader) => Try[T]): Try[T] =
@@ -164,7 +169,7 @@ private[segment] class PersistentSegment(val file: DBFile,
         Failure(ex)
     }
 
-  private def returnResponse(response: Try[Option[PersistentReadOnly]]): Try[Option[PersistentReadOnly]] =
+  private def returnResponse(response: Try[Option[SegmentEntryReadOnly]]): Try[Option[SegmentEntryReadOnly]] =
     response flatMap {
       case Some(keyValue) =>
         if (persistent) keyValue.unsliceKey
@@ -187,13 +192,13 @@ private[segment] class PersistentSegment(val file: DBFile,
   override def getBloomFilter: Try[BloomFilter[Slice[Byte]]] =
     getFooter().map(_.bloomFilter)
 
-  def getFromCache(key: Slice[Byte]): Option[PersistentReadOnly] =
+  def getFromCache(key: Slice[Byte]): Option[SegmentEntryReadOnly] =
     Option(cache.get(key))
 
   def mightContain(key: Slice[Byte]): Try[Boolean] =
     getFooter().map(_.bloomFilter.mightContain(key))
 
-  def get(key: Slice[Byte]): Try[Option[PersistentReadOnly]] =
+  def get(key: Slice[Byte]): Try[Option[SegmentEntryReadOnly]] =
     if (key < minKey || key > maxKey)
       Success(None)
     else {
@@ -209,14 +214,14 @@ private[segment] class PersistentSegment(val file: DBFile,
                 Success(None)
               else
                 returnResponse {
-                  find(KeyMatcher.Exact(key), startFrom = floorEntry.map(_.getValue), reader, footer)
+                  find(KeyMatcher.Get(key), startFrom = floorEntry.map(_.getValue), reader, footer)
                 }
           }
       }
     }
 
   private def satisfyLowerFromCache(key: Slice[Byte],
-                                    lowerKeyValue: PersistentReadOnly): Option[PersistentReadOnly] =
+                                    lowerKeyValue: SegmentEntryReadOnly): Option[SegmentEntryReadOnly] =
     Option(cache.ceilingEntry(key)).map(_.getValue) flatMap {
       ceilingKeyValue =>
         if (lowerKeyValue.nextIndexOffset == ceilingKeyValue.indexOffset)
@@ -225,7 +230,7 @@ private[segment] class PersistentSegment(val file: DBFile,
           None
     }
 
-  def lower(key: Slice[Byte]): Try[Option[PersistentReadOnly]] =
+  def lower(key: Slice[Byte]): Try[Option[SegmentEntryReadOnly]] =
     if (key < minKey)
       Success(None)
     else if (key > maxKey)
@@ -245,7 +250,7 @@ private[segment] class PersistentSegment(val file: DBFile,
     }
 
   private def satisfyHigherFromCache(key: Slice[Byte],
-                                     floorKeyValue: PersistentReadOnly): Option[PersistentReadOnly] =
+                                     floorKeyValue: SegmentEntryReadOnly): Option[SegmentEntryReadOnly] =
     Option(cache.higherEntry(key)).map(_.getValue) flatMap {
       higherKeyValue =>
         if (floorKeyValue.nextIndexOffset == higherKeyValue.indexOffset)
@@ -254,7 +259,7 @@ private[segment] class PersistentSegment(val file: DBFile,
           None
     }
 
-  def higher(key: Slice[Byte]): Try[Option[PersistentReadOnly]] =
+  def higher(key: Slice[Byte]): Try[Option[SegmentEntryReadOnly]] =
     if (key >= maxKey)
       Success(None)
     else if (key < minKey)
@@ -274,7 +279,7 @@ private[segment] class PersistentSegment(val file: DBFile,
         }
     }
 
-  def getAll(bloomFilterFalsePositiveRate: Double, addTo: Option[Slice[Persistent]] = None): Try[Slice[Persistent]] =
+  def getAll(bloomFilterFalsePositiveRate: Double, addTo: Option[Slice[SegmentEntry]] = None): Try[Slice[SegmentEntry]] =
     prepareGet {
       (footer, reader) =>
         SegmentReader.readAll(footer, reader, bloomFilterFalsePositiveRate, addTo) recoverWith {

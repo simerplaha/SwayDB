@@ -20,8 +20,9 @@
 package swaydb.core.segment
 
 import swaydb.core.TestBase
-import swaydb.core.data.Persistent.PutReadOnly
+import swaydb.core.data.SegmentEntry.{PutReadOnly, RangeReadOnly}
 import swaydb.core.io.reader.Reader
+import swaydb.core.map.serializer.RangeValueSerializers.UnitPutSerializer
 import swaydb.core.segment.format.one.KeyMatcher
 import swaydb.core.segment.format.one.MatchResult._
 import swaydb.serializers.Default._
@@ -44,63 +45,94 @@ class KeyMatcherSpec extends TestBase {
     *
     * Tests check for keys to match in all positions (before and after each key)
     */
+  implicit def IntToSomeKeyValue(int: Int): Option[PutReadOnly] =
+    Some(int)
+
   implicit def IntToKeyValue(int: Int): PutReadOnly =
     PutReadOnly(int, Reader(Slice.create[Byte](0)), 0, 0, 0, 0, 0)
 
-  implicit def IntToSomeKeyValue(int: Int): Option[PutReadOnly] =
-    Some(PutReadOnly(int, Reader(Slice.create[Byte](0)), 0, 0, 0, 0, 0))
+  implicit def IntTupleToRange(tuple: (Int, Int)): RangeReadOnly =
+    RangeReadOnly(UnitPutSerializer.rangeId, tuple._1, tuple._2, Reader(Slice.create[Byte](0)), 0, 0, 0, 0, 0)
+
+  implicit def IntTupleToRangeOption(tuple: (Int, Int)): Option[RangeReadOnly] =
+    Some(tuple)
 
   "KeyMatcher.Exact" should {
 
-    "find matches" in {
-      //0, 1, 2
-      KeyMatcher.Exact(-1).apply[PutReadOnly](previous = 0, next = None, hasMore = false) shouldBe Stop
-      KeyMatcher.Exact(-1).apply[PutReadOnly](previous = 0, next = None, hasMore = true) shouldBe Stop
-      KeyMatcher.Exact(-1).apply[PutReadOnly](previous = 1, next = None, hasMore = false) shouldBe Stop
-      KeyMatcher.Exact(-1).apply[PutReadOnly](previous = 1, next = None, hasMore = true) shouldBe Stop
-      KeyMatcher.Exact(-1).apply[PutReadOnly](previous = 0, next = 1, hasMore = false) shouldBe Stop
-      KeyMatcher.Exact(-1).apply[PutReadOnly](previous = 0, next = 1, hasMore = true) shouldBe Stop
-      KeyMatcher.Exact(-1).apply[PutReadOnly](previous = 0, next = 2, hasMore = false) shouldBe Stop
-      KeyMatcher.Exact(-1).apply[PutReadOnly](previous = 0, next = 2, hasMore = true) shouldBe Stop
+    "find matches when " in {
+      //-1
+      //   0, 1, 2
+      KeyMatcher.Get(-1).apply(previous = 0, next = None, hasMore = false) shouldBe Stop
+      KeyMatcher.Get(-1).apply(previous = 0, next = None, hasMore = true) shouldBe Stop
+      KeyMatcher.Get(-1).apply(previous = 1, next = None, hasMore = false) shouldBe Stop
+      KeyMatcher.Get(-1).apply(previous = 1, next = None, hasMore = true) shouldBe Stop
+      KeyMatcher.Get(-1).apply(previous = 0, next = 1, hasMore = false) shouldBe Stop
+      KeyMatcher.Get(-1).apply(previous = 0, next = 1, hasMore = true) shouldBe Stop
+      KeyMatcher.Get(-1).apply(previous = 0, next = 2, hasMore = false) shouldBe Stop
+      KeyMatcher.Get(-1).apply(previous = 0, next = 2, hasMore = true) shouldBe Stop
 
-      KeyMatcher.Exact(0).apply[PutReadOnly](previous = 0, next = None, hasMore = false) shouldBe Matched(0)
-      KeyMatcher.Exact(0).apply[PutReadOnly](previous = 0, next = None, hasMore = true) shouldBe Matched(0)
-      KeyMatcher.Exact(0).apply[PutReadOnly](previous = 1, next = None, hasMore = false) shouldBe Stop
-      KeyMatcher.Exact(0).apply[PutReadOnly](previous = 1, next = None, hasMore = true) shouldBe Stop
+
+      //0
+      //0, 1, 2
+      KeyMatcher.Get(0).apply(previous = 0, next = None, hasMore = false) shouldBe Matched(0)
+      KeyMatcher.Get(0).apply(previous = 0, next = None, hasMore = true) shouldBe Matched(0)
+      KeyMatcher.Get(0).apply(previous = 1, next = None, hasMore = false) shouldBe Stop
+      KeyMatcher.Get(0).apply(previous = 1, next = None, hasMore = true) shouldBe Stop
       //next should never be fetched if previous was a match. This should not occur in actual scenarios.
       //    KeyMatcher.Exact(0).apply[CreatedReadOnly](previous = 0, next = 1, hasMore = false) shouldBe Matched(0)
       //    KeyMatcher.Exact(0).apply[CreatedReadOnly](previous = 0, next = 1, hasMore = true) shouldBe Matched(0)
       //    KeyMatcher.Exact(0).apply[CreatedReadOnly](previous = 0, next = 2, hasMore = false) shouldBe Matched(0)
       //    KeyMatcher.Exact(0).apply[CreatedReadOnly](previous = 0, next = 2, hasMore = true) shouldBe Matched(0)
 
-      KeyMatcher.Exact(1).apply[PutReadOnly](previous = 0, next = None, hasMore = false) shouldBe Stop
-      KeyMatcher.Exact(1).apply[PutReadOnly](previous = 0, next = None, hasMore = true) shouldBe Next
-      KeyMatcher.Exact(1).apply[PutReadOnly](previous = 1, next = None, hasMore = false) shouldBe Matched(1)
-      KeyMatcher.Exact(1).apply[PutReadOnly](previous = 1, next = None, hasMore = true) shouldBe Matched(1)
-      KeyMatcher.Exact(1).apply[PutReadOnly](previous = 0, next = 1, hasMore = false) shouldBe Matched(1)
-      KeyMatcher.Exact(1).apply[PutReadOnly](previous = 0, next = 1, hasMore = true) shouldBe Matched(1)
-      KeyMatcher.Exact(1).apply[PutReadOnly](previous = 0, next = 2, hasMore = false) shouldBe Stop
-      KeyMatcher.Exact(1).apply[PutReadOnly](previous = 0, next = 2, hasMore = true) shouldBe Stop
+      //   1
+      //0, 1, 2
+      KeyMatcher.Get(1).apply(previous = 0, next = None, hasMore = false) shouldBe Stop
+      KeyMatcher.Get(1).apply(previous = 0, next = None, hasMore = true) shouldBe Next
+      KeyMatcher.Get(1).apply(previous = 1, next = None, hasMore = false) shouldBe Matched(1)
+      KeyMatcher.Get(1).apply(previous = 1, next = None, hasMore = true) shouldBe Matched(1)
+      KeyMatcher.Get(1).apply(previous = 0, next = 1, hasMore = false) shouldBe Matched(1)
+      KeyMatcher.Get(1).apply(previous = 0, next = 1, hasMore = true) shouldBe Matched(1)
+      KeyMatcher.Get(1).apply(previous = 0, next = 2, hasMore = false) shouldBe Stop
+      KeyMatcher.Get(1).apply(previous = 0, next = 2, hasMore = true) shouldBe Stop
 
-      KeyMatcher.Exact(3).apply[PutReadOnly](previous = 2, next = None, hasMore = false) shouldBe Stop
-      KeyMatcher.Exact(3).apply[PutReadOnly](previous = 2, next = None, hasMore = true) shouldBe Next
-      KeyMatcher.Exact(3).apply[PutReadOnly](previous = 3, next = None, hasMore = false) shouldBe Matched(3)
-      KeyMatcher.Exact(3).apply[PutReadOnly](previous = 3, next = None, hasMore = true) shouldBe Matched(3)
-      KeyMatcher.Exact(3).apply[PutReadOnly](previous = 2, next = 3, hasMore = false) shouldBe Matched(3)
-      KeyMatcher.Exact(3).apply[PutReadOnly](previous = 2, next = 3, hasMore = true) shouldBe Matched(3)
-      KeyMatcher.Exact(3).apply[PutReadOnly](previous = 2, next = 4, hasMore = false) shouldBe Stop
-      KeyMatcher.Exact(3).apply[PutReadOnly](previous = 2, next = 4, hasMore = true) shouldBe Stop
-      KeyMatcher.Exact(3).apply[PutReadOnly](previous = 0, next = 4, hasMore = true) shouldBe Stop
+      //         3
+      //0, 1, 2
+      KeyMatcher.Get(3).apply(previous = 2, next = None, hasMore = false) shouldBe Stop
+      KeyMatcher.Get(3).apply(previous = 2, next = None, hasMore = true) shouldBe Next
+      KeyMatcher.Get(3).apply(previous = 3, next = None, hasMore = false) shouldBe Matched(3)
+      KeyMatcher.Get(3).apply(previous = 3, next = None, hasMore = true) shouldBe Matched(3)
+      KeyMatcher.Get(3).apply(previous = 2, next = 3, hasMore = false) shouldBe Matched(3)
+      KeyMatcher.Get(3).apply(previous = 2, next = 3, hasMore = true) shouldBe Matched(3)
+      KeyMatcher.Get(3).apply(previous = 2, next = 4, hasMore = false) shouldBe Stop
+      KeyMatcher.Get(3).apply(previous = 2, next = 4, hasMore = true) shouldBe Stop
+      KeyMatcher.Get(3).apply(previous = 0, next = 4, hasMore = true) shouldBe Stop
 
-      KeyMatcher.Exact(5).apply[PutReadOnly](previous = 4, next = None, hasMore = false) shouldBe Stop
-      KeyMatcher.Exact(5).apply[PutReadOnly](previous = 4, next = None, hasMore = true) shouldBe Next
-      KeyMatcher.Exact(5).apply[PutReadOnly](previous = 5, next = None, hasMore = false) shouldBe Matched(5)
-      KeyMatcher.Exact(5).apply[PutReadOnly](previous = 5, next = None, hasMore = true) shouldBe Matched(5)
-      KeyMatcher.Exact(5).apply[PutReadOnly](previous = 4, next = 5, hasMore = false) shouldBe Matched(5)
-      KeyMatcher.Exact(5).apply[PutReadOnly](previous = 4, next = 5, hasMore = true) shouldBe Matched(5)
-      KeyMatcher.Exact(5).apply[PutReadOnly](previous = 2, next = 6, hasMore = false) shouldBe Stop
-      KeyMatcher.Exact(5).apply[PutReadOnly](previous = 2, next = 6, hasMore = true) shouldBe Stop
-      KeyMatcher.Exact(5).apply[PutReadOnly](previous = 0, next = 6, hasMore = true) shouldBe Stop
+      //-1
+      KeyMatcher.Get(-1).apply(previous = 0, next = (5, 10), hasMore = false) shouldBe Stop
+      KeyMatcher.Get(-1).apply(previous = 0, next = (5, 10), hasMore = true) shouldBe Stop
+      KeyMatcher.Get(-1).apply(previous = (5, 10), next = None, hasMore = false) shouldBe Stop
+      KeyMatcher.Get(-1).apply(previous = (5, 10), next = None, hasMore = true) shouldBe Stop
+      KeyMatcher.Get(-1).apply(previous = (5, 10), next = 20, hasMore = false) shouldBe Stop
+      KeyMatcher.Get(-1).apply(previous = (5, 10), next = 20, hasMore = true) shouldBe Stop
+
+      KeyMatcher.Get(0).apply(previous = (5, 10), next = None, hasMore = false) shouldBe Stop
+      KeyMatcher.Get(0).apply(previous = (5, 10), next = None, hasMore = true) shouldBe Stop
+      KeyMatcher.Get(0).apply(previous = (5, 10), next = 20, hasMore = false) shouldBe Stop
+      KeyMatcher.Get(0).apply(previous = (5, 10), next = 20, hasMore = true) shouldBe Stop
+
+      KeyMatcher.Get(5).apply(previous = (5, 10), next = None, hasMore = false) shouldBe Matched((5, 10))
+      KeyMatcher.Get(5).apply(previous = (5, 10), next = None, hasMore = true) shouldBe Matched((5, 10))
+      KeyMatcher.Get(6).apply(previous = (5, 10), next = None, hasMore = true) shouldBe Matched((5, 10))
+      KeyMatcher.Get(6).apply(previous = (5, 10), next = None, hasMore = false) shouldBe Matched((5, 10))
+      KeyMatcher.Get(9).apply(previous = (5, 10), next = None, hasMore = true) shouldBe Matched((5, 10))
+      KeyMatcher.Get(9).apply(previous = (5, 10), next = None, hasMore = false) shouldBe Matched((5, 10))
+      KeyMatcher.Get(10).apply(previous = (5, 10), next = None, hasMore = true) shouldBe Next
+      KeyMatcher.Get(10).apply(previous = (5, 10), next = None, hasMore = false) shouldBe Stop
+
+      KeyMatcher.Get(21).apply(previous = (5, 10), next = (20, 30), hasMore = false) shouldBe Matched((20, 30))
+      KeyMatcher.Get(21).apply(previous = (5, 10), next = (20, 30), hasMore = true) shouldBe Matched((20, 30))
+      KeyMatcher.Get(15).apply(previous = (5, 10), next = (20, 30), hasMore = true) shouldBe Stop
+      KeyMatcher.Get(15).apply(previous = (5, 10), next = (20, 30), hasMore = false) shouldBe Stop
     }
 
     "read only up to the largest key and Stop iteration early if the next key is larger then the key to find" in {
@@ -108,7 +140,7 @@ class KeyMatcherSpec extends TestBase {
       def find(toFind: Int) =
         (1 to 100).foldLeft(0) {
           case (iterationCount, next) =>
-            val result = KeyMatcher.Exact(toFind).apply[PutReadOnly](previous = next, next = Some(next + 1), hasMore = true)
+            val result = KeyMatcher.Get(toFind).apply(previous = next, next = Some(next + 1), hasMore = true)
             if (next + 1 == toFind) {
               result shouldBe Matched(toFind)
               iterationCount + 1
@@ -131,58 +163,87 @@ class KeyMatcherSpec extends TestBase {
 
     "find matches" in {
       //0, 1, 2
-      KeyMatcher.Lower(-1).apply[PutReadOnly](previous = 0, next = None, hasMore = false) shouldBe Stop
-      KeyMatcher.Lower(-1).apply[PutReadOnly](previous = 0, next = None, hasMore = true) shouldBe Stop
-      KeyMatcher.Lower(-1).apply[PutReadOnly](previous = 1, next = None, hasMore = false) shouldBe Stop
-      KeyMatcher.Lower(-1).apply[PutReadOnly](previous = 1, next = None, hasMore = true) shouldBe Stop
-      KeyMatcher.Lower(-1).apply[PutReadOnly](previous = 0, next = 1, hasMore = false) shouldBe Stop
-      KeyMatcher.Lower(-1).apply[PutReadOnly](previous = 0, next = 1, hasMore = true) shouldBe Stop
-      KeyMatcher.Lower(-1).apply[PutReadOnly](previous = 0, next = 2, hasMore = false) shouldBe Stop
-      KeyMatcher.Lower(-1).apply[PutReadOnly](previous = 0, next = 2, hasMore = true) shouldBe Stop
+      KeyMatcher.Lower(-1).apply(previous = 0, next = None, hasMore = false) shouldBe Stop
+      KeyMatcher.Lower(-1).apply(previous = 0, next = None, hasMore = true) shouldBe Stop
+      KeyMatcher.Lower(-1).apply(previous = 1, next = None, hasMore = false) shouldBe Stop
+      KeyMatcher.Lower(-1).apply(previous = 1, next = None, hasMore = true) shouldBe Stop
+      KeyMatcher.Lower(-1).apply(previous = 0, next = 1, hasMore = false) shouldBe Stop
+      KeyMatcher.Lower(-1).apply(previous = 0, next = 1, hasMore = true) shouldBe Stop
+      KeyMatcher.Lower(-1).apply(previous = 0, next = 2, hasMore = false) shouldBe Stop
+      KeyMatcher.Lower(-1).apply(previous = 0, next = 2, hasMore = true) shouldBe Stop
 
-      KeyMatcher.Lower(0).apply[PutReadOnly](previous = 0, next = None, hasMore = false) shouldBe Stop
-      KeyMatcher.Lower(0).apply[PutReadOnly](previous = 0, next = None, hasMore = true) shouldBe Stop
-      KeyMatcher.Lower(0).apply[PutReadOnly](previous = 1, next = None, hasMore = false) shouldBe Stop
-      KeyMatcher.Lower(0).apply[PutReadOnly](previous = 1, next = None, hasMore = true) shouldBe Stop
-      KeyMatcher.Lower(0).apply[PutReadOnly](previous = 0, next = 1, hasMore = false) shouldBe Stop
-      KeyMatcher.Lower(0).apply[PutReadOnly](previous = 0, next = 1, hasMore = true) shouldBe Stop
-      KeyMatcher.Lower(0).apply[PutReadOnly](previous = 0, next = 2, hasMore = false) shouldBe Stop
-      KeyMatcher.Lower(0).apply[PutReadOnly](previous = 0, next = 2, hasMore = true) shouldBe Stop
+      KeyMatcher.Lower(0).apply(previous = 0, next = None, hasMore = false) shouldBe Stop
+      KeyMatcher.Lower(0).apply(previous = 0, next = None, hasMore = true) shouldBe Stop
+      KeyMatcher.Lower(0).apply(previous = 1, next = None, hasMore = false) shouldBe Stop
+      KeyMatcher.Lower(0).apply(previous = 1, next = None, hasMore = true) shouldBe Stop
+      KeyMatcher.Lower(0).apply(previous = 0, next = 1, hasMore = false) shouldBe Stop
+      KeyMatcher.Lower(0).apply(previous = 0, next = 1, hasMore = true) shouldBe Stop
+      KeyMatcher.Lower(0).apply(previous = 0, next = 2, hasMore = false) shouldBe Stop
+      KeyMatcher.Lower(0).apply(previous = 0, next = 2, hasMore = true) shouldBe Stop
 
-      KeyMatcher.Lower(1).apply[PutReadOnly](previous = 0, next = None, hasMore = false) shouldBe Matched(0)
-      KeyMatcher.Lower(1).apply[PutReadOnly](previous = 0, next = None, hasMore = true) shouldBe Next
-      KeyMatcher.Lower(1).apply[PutReadOnly](previous = 1, next = None, hasMore = false) shouldBe Stop
-      KeyMatcher.Lower(1).apply[PutReadOnly](previous = 1, next = None, hasMore = true) shouldBe Stop
-      KeyMatcher.Lower(1).apply[PutReadOnly](previous = 0, next = 1, hasMore = false) shouldBe Matched(0)
-      KeyMatcher.Lower(1).apply[PutReadOnly](previous = 0, next = 1, hasMore = true) shouldBe Matched(0)
-      KeyMatcher.Lower(1).apply[PutReadOnly](previous = 0, next = 2, hasMore = false) shouldBe Matched(0)
-      KeyMatcher.Lower(1).apply[PutReadOnly](previous = 0, next = 2, hasMore = true) shouldBe Matched(0)
+      KeyMatcher.Lower(1).apply(previous = 0, next = None, hasMore = false) shouldBe Matched(0)
+      KeyMatcher.Lower(1).apply(previous = 0, next = None, hasMore = true) shouldBe Next
+      KeyMatcher.Lower(1).apply(previous = 1, next = None, hasMore = false) shouldBe Stop
+      KeyMatcher.Lower(1).apply(previous = 1, next = None, hasMore = true) shouldBe Stop
+      KeyMatcher.Lower(1).apply(previous = 0, next = 1, hasMore = false) shouldBe Matched(0)
+      KeyMatcher.Lower(1).apply(previous = 0, next = 1, hasMore = true) shouldBe Matched(0)
+      KeyMatcher.Lower(1).apply(previous = 0, next = 2, hasMore = false) shouldBe Matched(0)
+      KeyMatcher.Lower(1).apply(previous = 0, next = 2, hasMore = true) shouldBe Matched(0)
 
-      KeyMatcher.Lower(2).apply[PutReadOnly](previous = 0, next = None, hasMore = false) shouldBe Matched(0)
-      KeyMatcher.Lower(2).apply[PutReadOnly](previous = 0, next = None, hasMore = true) shouldBe Next
-      KeyMatcher.Lower(2).apply[PutReadOnly](previous = 1, next = None, hasMore = false) shouldBe Matched(1)
-      KeyMatcher.Lower(2).apply[PutReadOnly](previous = 1, next = None, hasMore = true) shouldBe Next
-      KeyMatcher.Lower(2).apply[PutReadOnly](previous = 0, next = 1, hasMore = false) shouldBe Matched(1)
-      KeyMatcher.Lower(2).apply[PutReadOnly](previous = 0, next = 1, hasMore = true) shouldBe Next
-      KeyMatcher.Lower(2).apply[PutReadOnly](previous = 0, next = 2, hasMore = false) shouldBe Matched(0)
-      KeyMatcher.Lower(2).apply[PutReadOnly](previous = 0, next = 2, hasMore = true) shouldBe Matched(0)
+      KeyMatcher.Lower(2).apply(previous = 0, next = None, hasMore = false) shouldBe Matched(0)
+      KeyMatcher.Lower(2).apply(previous = 0, next = None, hasMore = true) shouldBe Next
+      KeyMatcher.Lower(2).apply(previous = 1, next = None, hasMore = false) shouldBe Matched(1)
+      KeyMatcher.Lower(2).apply(previous = 1, next = None, hasMore = true) shouldBe Next
+      KeyMatcher.Lower(2).apply(previous = 0, next = 1, hasMore = false) shouldBe Matched(1)
+      KeyMatcher.Lower(2).apply(previous = 0, next = 1, hasMore = true) shouldBe Next
+      KeyMatcher.Lower(2).apply(previous = 0, next = 2, hasMore = false) shouldBe Matched(0)
+      KeyMatcher.Lower(2).apply(previous = 0, next = 2, hasMore = true) shouldBe Matched(0)
 
-      KeyMatcher.Lower(3).apply[PutReadOnly](previous = 0, next = None, hasMore = false) shouldBe Matched(0)
-      KeyMatcher.Lower(3).apply[PutReadOnly](previous = 0, next = None, hasMore = true) shouldBe Next
-      KeyMatcher.Lower(3).apply[PutReadOnly](previous = 1, next = None, hasMore = false) shouldBe Matched(1)
-      KeyMatcher.Lower(3).apply[PutReadOnly](previous = 1, next = None, hasMore = true) shouldBe Next
-      KeyMatcher.Lower(3).apply[PutReadOnly](previous = 0, next = 1, hasMore = false) shouldBe Matched(1)
-      KeyMatcher.Lower(3).apply[PutReadOnly](previous = 0, next = 1, hasMore = true) shouldBe Next
-      KeyMatcher.Lower(3).apply[PutReadOnly](previous = 0, next = 2, hasMore = false) shouldBe Matched(2)
-      KeyMatcher.Lower(3).apply[PutReadOnly](previous = 0, next = 2, hasMore = true) shouldBe Next
+      KeyMatcher.Lower(3).apply(previous = 0, next = None, hasMore = false) shouldBe Matched(0)
+      KeyMatcher.Lower(3).apply(previous = 0, next = None, hasMore = true) shouldBe Next
+      KeyMatcher.Lower(3).apply(previous = 1, next = None, hasMore = false) shouldBe Matched(1)
+      KeyMatcher.Lower(3).apply(previous = 1, next = None, hasMore = true) shouldBe Next
+      KeyMatcher.Lower(3).apply(previous = 0, next = 1, hasMore = false) shouldBe Matched(1)
+      KeyMatcher.Lower(3).apply(previous = 0, next = 1, hasMore = true) shouldBe Next
+      KeyMatcher.Lower(3).apply(previous = 0, next = 2, hasMore = false) shouldBe Matched(2)
+      KeyMatcher.Lower(3).apply(previous = 0, next = 2, hasMore = true) shouldBe Next
+
+      KeyMatcher.Lower(3).apply(previous = (5, 10), next = None, hasMore = false) shouldBe Stop
+      KeyMatcher.Lower(3).apply(previous = (5, 10), next = None, hasMore = true) shouldBe Stop
+      KeyMatcher.Lower(4).apply(previous = (5, 10), next = None, hasMore = false) shouldBe Stop
+      KeyMatcher.Lower(4).apply(previous = (5, 10), next = None, hasMore = true) shouldBe Stop
+      KeyMatcher.Lower(5).apply(previous = (5, 10), next = None, hasMore = false) shouldBe Stop
+      KeyMatcher.Lower(5).apply(previous = (5, 10), next = None, hasMore = true) shouldBe Stop
+
+      KeyMatcher.Lower(6).apply(previous = (5, 10), next = None, hasMore = false) shouldBe Matched((5, 10))
+      KeyMatcher.Lower(6).apply(previous = (5, 10), next = None, hasMore = true) shouldBe Matched((5, 10))
+      KeyMatcher.Lower(10).apply(previous = (5, 10), next = None, hasMore = true) shouldBe Matched((5, 10))
+      KeyMatcher.Lower(10).apply(previous = (5, 10), next = None, hasMore = false) shouldBe Matched((5, 10))
+
+      KeyMatcher.Lower(11).apply(previous = (5, 10), next = None, hasMore = false) shouldBe Matched((5, 10))
+      KeyMatcher.Lower(11).apply(previous = (5, 10), next = None, hasMore = true) shouldBe Next
+
+      KeyMatcher.Lower(12).apply(previous = (5, 10), next = (15, 20), hasMore = true) shouldBe Matched((5, 10))
+      KeyMatcher.Lower(12).apply(previous = (5, 10), next = (15, 20), hasMore = false) shouldBe Matched((5, 10))
+      KeyMatcher.Lower(15).apply(previous = (5, 10), next = (15, 20), hasMore = false) shouldBe Matched((5, 10))
+      KeyMatcher.Lower(15).apply(previous = (5, 10), next = (15, 20), hasMore = true) shouldBe Matched((5, 10))
+
+      KeyMatcher.Lower(20).apply(previous = (5, 10), next = None, hasMore = false) shouldBe Matched((5, 10))
+      KeyMatcher.Lower(20).apply(previous = (5, 10), next = None, hasMore = true) shouldBe Next
+      KeyMatcher.Lower(20).apply(previous = (5, 10), next = (15, 20), hasMore = true) shouldBe Matched((15, 20))
+      KeyMatcher.Lower(20).apply(previous = (5, 10), next = (15, 20), hasMore = false) shouldBe Matched((15, 20))
+      KeyMatcher.Lower(20).apply(previous = (5, 10), next = (15, 20), hasMore = true) shouldBe Matched((15, 20))
+
+      KeyMatcher.Lower(21).apply(previous = (5, 10), next = (15, 20), hasMore = false) shouldBe Matched((15, 20))
+      KeyMatcher.Lower(21).apply(previous = (5, 10), next = (15, 20), hasMore = true) shouldBe Next
     }
 
-    "read only minimum number of keys to satisfy the request" in {
+    "read only minimum number of lower keys to satisfy the request" in {
 
       def find(toFind: Int) =
         (1 to 100).foldLeft(0) {
           case (iterationCount, next) =>
-            val result = KeyMatcher.Lower(toFind).apply[PutReadOnly](previous = next, next = Some(next + 1), hasMore = true)
+            val result = KeyMatcher.Lower(toFind).apply(previous = next, next = Some(next + 1), hasMore = true)
             if (next + 1 == toFind) {
               result shouldBe Matched(toFind - 1)
               iterationCount + 1
@@ -203,51 +264,81 @@ class KeyMatcherSpec extends TestBase {
 
   "KeyMatcher.Higher" in {
     //0, 1, 2
-    KeyMatcher.Higher(-1).apply[PutReadOnly](previous = 0, next = None, hasMore = false) shouldBe Matched(0)
-    KeyMatcher.Higher(-1).apply[PutReadOnly](previous = 0, next = None, hasMore = true) shouldBe Matched(0)
-    KeyMatcher.Higher(-1).apply[PutReadOnly](previous = 1, next = None, hasMore = false) shouldBe Matched(1)
-    KeyMatcher.Higher(-1).apply[PutReadOnly](previous = 1, next = None, hasMore = true) shouldBe Matched(1)
+    KeyMatcher.Higher(-1).apply(previous = 0, next = None, hasMore = false) shouldBe Matched(0)
+    KeyMatcher.Higher(-1).apply(previous = 0, next = None, hasMore = true) shouldBe Matched(0)
+    KeyMatcher.Higher(-1).apply(previous = 1, next = None, hasMore = false) shouldBe Matched(1)
+    KeyMatcher.Higher(-1).apply(previous = 1, next = None, hasMore = true) shouldBe Matched(1)
     //    KeyMatcher.Higher(-1).apply[CreatedReadOnly](previous = 0, next = 1, hasMore = false) shouldBe Stop
     //    KeyMatcher.Higher(-1).apply[CreatedReadOnly](previous = 0, next = 1, hasMore = true) shouldBe Stop
     //    KeyMatcher.Higher(-1).apply[CreatedReadOnly](previous = 0, next = 2, hasMore = false) shouldBe Stop
     //    KeyMatcher.Higher(-1).apply[CreatedReadOnly](previous = 0, next = 2, hasMore = true) shouldBe Stop
 
-    KeyMatcher.Higher(0).apply[PutReadOnly](previous = 0, next = None, hasMore = false) shouldBe Stop
-    KeyMatcher.Higher(0).apply[PutReadOnly](previous = 0, next = None, hasMore = true) shouldBe Next
-    KeyMatcher.Higher(0).apply[PutReadOnly](previous = 1, next = None, hasMore = false) shouldBe Matched(1)
-    KeyMatcher.Higher(0).apply[PutReadOnly](previous = 1, next = None, hasMore = true) shouldBe Matched(1)
-    KeyMatcher.Higher(0).apply[PutReadOnly](previous = 0, next = 1, hasMore = false) shouldBe Matched(1)
-    KeyMatcher.Higher(0).apply[PutReadOnly](previous = 0, next = 1, hasMore = true) shouldBe Matched(1)
-    KeyMatcher.Higher(0).apply[PutReadOnly](previous = 0, next = 2, hasMore = false) shouldBe Matched(2)
-    KeyMatcher.Higher(0).apply[PutReadOnly](previous = 0, next = 2, hasMore = true) shouldBe Matched(2)
+    KeyMatcher.Higher(0).apply(previous = 0, next = None, hasMore = false) shouldBe Stop
+    KeyMatcher.Higher(0).apply(previous = 0, next = None, hasMore = true) shouldBe Next
+    KeyMatcher.Higher(0).apply(previous = 1, next = None, hasMore = false) shouldBe Matched(1)
+    KeyMatcher.Higher(0).apply(previous = 1, next = None, hasMore = true) shouldBe Matched(1)
+    KeyMatcher.Higher(0).apply(previous = 0, next = 1, hasMore = false) shouldBe Matched(1)
+    KeyMatcher.Higher(0).apply(previous = 0, next = 1, hasMore = true) shouldBe Matched(1)
+    KeyMatcher.Higher(0).apply(previous = 0, next = 2, hasMore = false) shouldBe Matched(2)
+    KeyMatcher.Higher(0).apply(previous = 0, next = 2, hasMore = true) shouldBe Matched(2)
 
-    KeyMatcher.Higher(1).apply[PutReadOnly](previous = 0, next = None, hasMore = false) shouldBe Stop
-    KeyMatcher.Higher(1).apply[PutReadOnly](previous = 0, next = None, hasMore = true) shouldBe Next
-    KeyMatcher.Higher(1).apply[PutReadOnly](previous = 1, next = None, hasMore = false) shouldBe Stop
-    KeyMatcher.Higher(1).apply[PutReadOnly](previous = 1, next = None, hasMore = true) shouldBe Next
-    KeyMatcher.Higher(1).apply[PutReadOnly](previous = 0, next = 1, hasMore = false) shouldBe Stop
-    KeyMatcher.Higher(1).apply[PutReadOnly](previous = 0, next = 1, hasMore = true) shouldBe Next
-    KeyMatcher.Higher(1).apply[PutReadOnly](previous = 0, next = 2, hasMore = false) shouldBe Matched(2)
-    KeyMatcher.Higher(1).apply[PutReadOnly](previous = 0, next = 2, hasMore = true) shouldBe Matched(2)
+    KeyMatcher.Higher(1).apply(previous = 0, next = None, hasMore = false) shouldBe Stop
+    KeyMatcher.Higher(1).apply(previous = 0, next = None, hasMore = true) shouldBe Next
+    KeyMatcher.Higher(1).apply(previous = 1, next = None, hasMore = false) shouldBe Stop
+    KeyMatcher.Higher(1).apply(previous = 1, next = None, hasMore = true) shouldBe Next
+    KeyMatcher.Higher(1).apply(previous = 0, next = 1, hasMore = false) shouldBe Stop
+    KeyMatcher.Higher(1).apply(previous = 0, next = 1, hasMore = true) shouldBe Next
+    KeyMatcher.Higher(1).apply(previous = 0, next = 2, hasMore = false) shouldBe Matched(2)
+    KeyMatcher.Higher(1).apply(previous = 0, next = 2, hasMore = true) shouldBe Matched(2)
 
-    KeyMatcher.Higher(2).apply[PutReadOnly](previous = 0, next = None, hasMore = false) shouldBe Stop
-    KeyMatcher.Higher(2).apply[PutReadOnly](previous = 0, next = None, hasMore = true) shouldBe Next
-    KeyMatcher.Higher(2).apply[PutReadOnly](previous = 1, next = None, hasMore = false) shouldBe Stop
-    KeyMatcher.Higher(2).apply[PutReadOnly](previous = 1, next = None, hasMore = true) shouldBe Next
-    KeyMatcher.Higher(2).apply[PutReadOnly](previous = 0, next = 1, hasMore = false) shouldBe Stop
-    KeyMatcher.Higher(2).apply[PutReadOnly](previous = 0, next = 1, hasMore = true) shouldBe Next
-    KeyMatcher.Higher(2).apply[PutReadOnly](previous = 0, next = 2, hasMore = false) shouldBe Stop
-    KeyMatcher.Higher(2).apply[PutReadOnly](previous = 0, next = 2, hasMore = true) shouldBe Next
+    KeyMatcher.Higher(2).apply(previous = 0, next = None, hasMore = false) shouldBe Stop
+    KeyMatcher.Higher(2).apply(previous = 0, next = None, hasMore = true) shouldBe Next
+    KeyMatcher.Higher(2).apply(previous = 1, next = None, hasMore = false) shouldBe Stop
+    KeyMatcher.Higher(2).apply(previous = 1, next = None, hasMore = true) shouldBe Next
+    KeyMatcher.Higher(2).apply(previous = 0, next = 1, hasMore = false) shouldBe Stop
+    KeyMatcher.Higher(2).apply(previous = 0, next = 1, hasMore = true) shouldBe Next
+    KeyMatcher.Higher(2).apply(previous = 0, next = 2, hasMore = false) shouldBe Stop
+    KeyMatcher.Higher(2).apply(previous = 0, next = 2, hasMore = true) shouldBe Next
 
-    KeyMatcher.Higher(3).apply[PutReadOnly](previous = 0, next = None, hasMore = false) shouldBe Stop
-    KeyMatcher.Higher(3).apply[PutReadOnly](previous = 0, next = None, hasMore = true) shouldBe Next
-    KeyMatcher.Higher(3).apply[PutReadOnly](previous = 1, next = None, hasMore = false) shouldBe Stop
-    KeyMatcher.Higher(3).apply[PutReadOnly](previous = 1, next = None, hasMore = true) shouldBe Next
-    KeyMatcher.Higher(3).apply[PutReadOnly](previous = 0, next = 1, hasMore = false) shouldBe Stop
-    KeyMatcher.Higher(3).apply[PutReadOnly](previous = 0, next = 1, hasMore = true) shouldBe Next
-    KeyMatcher.Higher(3).apply[PutReadOnly](previous = 0, next = 2, hasMore = false) shouldBe Stop
-    KeyMatcher.Higher(3).apply[PutReadOnly](previous = 0, next = 2, hasMore = true) shouldBe Next
+    KeyMatcher.Higher(3).apply(previous = 0, next = None, hasMore = false) shouldBe Stop
+    KeyMatcher.Higher(3).apply(previous = 0, next = None, hasMore = true) shouldBe Next
+    KeyMatcher.Higher(3).apply(previous = 1, next = None, hasMore = false) shouldBe Stop
+    KeyMatcher.Higher(3).apply(previous = 1, next = None, hasMore = true) shouldBe Next
+    KeyMatcher.Higher(3).apply(previous = 0, next = 1, hasMore = false) shouldBe Stop
+    KeyMatcher.Higher(3).apply(previous = 0, next = 1, hasMore = true) shouldBe Next
+    KeyMatcher.Higher(3).apply(previous = 0, next = 2, hasMore = false) shouldBe Stop
+    KeyMatcher.Higher(3).apply(previous = 0, next = 2, hasMore = true) shouldBe Next
 
+    KeyMatcher.Higher(3).apply(previous = (5, 10), next = None, hasMore = false) shouldBe Matched((5, 10))
+    KeyMatcher.Higher(3).apply(previous = (5, 10), next = None, hasMore = true) shouldBe Matched((5, 10))
+    KeyMatcher.Higher(4).apply(previous = (5, 10), next = None, hasMore = false) shouldBe Matched((5, 10))
+    KeyMatcher.Higher(4).apply(previous = (5, 10), next = None, hasMore = true) shouldBe Matched((5, 10))
+    KeyMatcher.Higher(5).apply(previous = (5, 10), next = None, hasMore = false) shouldBe Matched((5, 10))
+    KeyMatcher.Higher(5).apply(previous = (5, 10), next = None, hasMore = true) shouldBe Matched((5, 10))
+
+    KeyMatcher.Higher(6).apply(previous = (5, 10), next = None, hasMore = false) shouldBe Matched((5, 10))
+    KeyMatcher.Higher(6).apply(previous = (5, 10), next = None, hasMore = true) shouldBe Matched((5, 10))
+    KeyMatcher.Higher(10).apply(previous = (5, 10), next = None, hasMore = true) shouldBe Next
+    KeyMatcher.Higher(10).apply(previous = (5, 10), next = None, hasMore = false) shouldBe Stop
+
+    KeyMatcher.Higher(11).apply(previous = (5, 10), next = None, hasMore = false) shouldBe Stop
+    KeyMatcher.Higher(11).apply(previous = (5, 10), next = None, hasMore = true) shouldBe Next
+
+    KeyMatcher.Higher(12).apply(previous = (5, 10), next = (15, 20), hasMore = true) shouldBe Matched((15, 20))
+    KeyMatcher.Higher(12).apply(previous = (5, 10), next = (15, 20), hasMore = false) shouldBe Matched((15, 20))
+    KeyMatcher.Higher(15).apply(previous = (5, 10), next = (15, 20), hasMore = false) shouldBe Matched((15, 20))
+    KeyMatcher.Higher(15).apply(previous = (5, 10), next = (15, 20), hasMore = true) shouldBe Matched((15, 20))
+
+    KeyMatcher.Higher(19).apply(previous = (5, 10), next = (15, 20), hasMore = false) shouldBe Matched((15, 20))
+    KeyMatcher.Higher(19).apply(previous = (5, 10), next = (15, 20), hasMore = true) shouldBe Matched((15, 20))
+
+    KeyMatcher.Higher(20).apply(previous = (5, 10), next = None, hasMore = false) shouldBe Stop
+    KeyMatcher.Higher(20).apply(previous = (5, 10), next = None, hasMore = true) shouldBe Next
+    KeyMatcher.Higher(20).apply(previous = (5, 10), next = (15, 20), hasMore = true) shouldBe Next
+    KeyMatcher.Higher(20).apply(previous = (5, 10), next = (15, 20), hasMore = false) shouldBe Stop
+    KeyMatcher.Higher(20).apply(previous = (5, 10), next = (15, 20), hasMore = true) shouldBe Next
+
+    KeyMatcher.Higher(21).apply(previous = (5, 10), next = (15, 20), hasMore = false) shouldBe Stop
+    KeyMatcher.Higher(21).apply(previous = (5, 10), next = (15, 20), hasMore = true) shouldBe Next
   }
-
 }

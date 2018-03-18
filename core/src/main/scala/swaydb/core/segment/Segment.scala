@@ -23,15 +23,16 @@ import java.nio.file.Path
 import java.util.concurrent.ConcurrentSkipListMap
 
 import bloomfilter.mutable.BloomFilter
-import swaydb.core.data.Persistent.{PutReadOnly, RemovedReadOnly}
-import swaydb.core.data._
+import swaydb.core.data.SegmentEntry.{PutReadOnly, RangeReadOnly, RemoveReadOnly}
+import swaydb.core.data.Transient.{Put, Range, Remove}
+import swaydb.core.data.{SegmentEntry, _}
 import swaydb.core.io.file.DBFile
 import swaydb.core.io.reader.Reader
 import swaydb.core.level.PathsDistributor
 import swaydb.core.map.Map
 import swaydb.core.segment.format.one.{SegmentReader, SegmentWriter}
 import swaydb.core.util.BloomFilterUtil._
-import swaydb.core.util.IDGenerator
+import swaydb.core.util.{IDGenerator, TryUtil}
 import swaydb.core.util.TryUtil._
 import swaydb.data.config.Dir
 import swaydb.data.slice.Slice
@@ -43,44 +44,74 @@ import scala.util.{Failure, Success, Try}
 private[core] object Segment {
 
   def memory(path: Path,
-             keyValues: Slice[KeyValueWriteOnly],
+             keyValues: Iterable[KeyValue.WriteOnly],
              bloomFilterFalsePositiveRate: Double,
              removeDeletes: Boolean)(implicit ordering: Ordering[Slice[Byte]]): Try[Segment] = {
-    val skipList = new ConcurrentSkipListMap[Slice[Byte], PersistentReadOnly](ordering)
+    val skipList = new ConcurrentSkipListMap[Slice[Byte], SegmentEntryReadOnly](ordering)
     val bloomFilter = BloomFilter[Slice[Byte]](keyValues.size, bloomFilterFalsePositiveRate)
     keyValues tryForeach {
       keyValue =>
-        if (keyValue.isRemove) {
-          skipList.put(
-            keyValue.key,
-            RemovedReadOnly(keyValue.key, 0x00, 0x00, 0x00)
-          )
-          bloomFilter add keyValue.key
-          Success()
-        }
-        else
-          keyValue.getOrFetchValue map {
-            valueOption =>
-              val (reader, valueSize) =
-                valueOption.map {
-                  value =>
-                    (Reader(value.unslice()), value.size)
-                } getOrElse
-                  (Reader.emptyReader, 0)
-              skipList.put(
-                keyValue.key.unslice(),
-                PutReadOnly(
-                  _key = keyValue.key,
-                  valueReader = reader,
-                  nextIndexOffset = 0x00,
-                  nextIndexSize = 0x00,
-                  indexOffset = 0x00,
-                  valueOffset = 0x00,
-                  valueLength = valueSize
+        val keyUnsliced = keyValue.key.unslice()
+
+        keyValue match {
+          case _: Transient.Remove | _: SegmentEntry.Remove =>
+            skipList.put(
+              keyUnsliced,
+              RemoveReadOnly(keyUnsliced, 0x00, 0x00, 0x00)
+            )
+            bloomFilter add keyUnsliced
+            TryUtil.successUnit
+
+          case _: Transient.Put | _: SegmentEntry.Put =>
+            keyValue.getOrFetchValue map {
+              value =>
+                val (reader, valueSize) =
+                  value.map {
+                    value =>
+                      (Reader(value.unslice()), value.size)
+                  } getOrElse
+                    (Reader.emptyReader, 0)
+                skipList.put(
+                  keyUnsliced,
+                  PutReadOnly(
+                    _key = keyUnsliced,
+                    valueReader = reader,
+                    nextIndexOffset = 0x00,
+                    nextIndexSize = 0x00,
+                    indexOffset = 0x00,
+                    valueOffset = 0x00,
+                    valueLength = valueSize
+                  )
                 )
-              )
-              bloomFilter add keyValue.key
-          }
+                bloomFilter add keyValue.key
+            }
+
+          case range: KeyValue.RangeWriteOnly =>
+            range.getOrFetchValue map {
+              value =>
+                val (reader, valueSize) =
+                  value.map {
+                    value =>
+                      (Reader(value.unslice()), value.size)
+                  } getOrElse
+                    (Reader.emptyReader, 0)
+                skipList.put(
+                  keyUnsliced,
+                  RangeReadOnly(
+                    id = range.id,
+                    _fromKey = keyUnsliced,
+                    _toKey = range.toKey.unslice(),
+                    valueReader = reader,
+                    nextIndexOffset = 0x00,
+                    nextIndexSize = 0x00,
+                    indexOffset = 0x00,
+                    valueOffset = 0x00,
+                    valueLength = valueSize
+                  )
+                )
+                bloomFilter add keyValue.key
+            }
+        }
     } match {
       case Some(Failure(exception)) =>
         Failure(exception)
@@ -105,9 +136,9 @@ private[core] object Segment {
                  mmapReads: Boolean,
                  mmapWrites: Boolean,
                  cacheKeysOnCreate: Boolean,
-                 keyValues: Slice[KeyValueWriteOnly],
+                 keyValues: Iterable[KeyValue.WriteOnly],
                  removeDeletes: Boolean)(implicit ordering: Ordering[Slice[Byte]],
-                                         keyValueLimiter: (PersistentReadOnly, Segment) => Unit,
+                                         keyValueLimiter: (SegmentEntryReadOnly, Segment) => Unit,
                                          fileOpenLimiter: DBFile => Unit,
                                          ec: ExecutionContext): Try[Segment] =
     SegmentWriter.toSlice(keyValues, bloomFilterFalsePositiveRate) flatMap {
@@ -165,7 +196,7 @@ private[core] object Segment {
             segmentSize: Int,
             removeDeletes: Boolean,
             checkExists: Boolean = true)(implicit ordering: Ordering[Slice[Byte]],
-                                         keyValueLimiter: (PersistentReadOnly, Segment) => Unit,
+                                         keyValueLimiter: (SegmentEntryReadOnly, Segment) => Unit,
                                          fileOpenLimited: DBFile => Unit,
                                          ec: ExecutionContext): Try[Segment] = {
 
@@ -204,7 +235,7 @@ private[core] object Segment {
             cacheKeysOnCreate: Boolean,
             removeDeletes: Boolean,
             checkExists: Boolean)(implicit ordering: Ordering[Slice[Byte]],
-                                  keyValueLimiter: (PersistentReadOnly, Segment) => Unit,
+                                  keyValueLimiter: (SegmentEntryReadOnly, Segment) => Unit,
                                   fileOpenLimited: DBFile => Unit,
                                   ec: ExecutionContext): Try[Segment] = {
 
@@ -243,7 +274,7 @@ private[core] object Segment {
     }
   }
 
-  def belongsTo(keyValue: KeyValueWriteOnly,
+  def belongsTo(keyValue: KeyValue.WriteOnly,
                 segment: Segment)(implicit ordering: Ordering[Slice[Byte]]): Boolean = {
     import ordering._
     keyValue.key >= segment.minKey && keyValue.key <= segment.maxKey
@@ -292,9 +323,9 @@ private[core] object Segment {
   /**
     * Pre condition: Segments should be sorted with their minKey in ascending order.
     */
-  def getAllKeyValues(bloomFilterFalsePositiveRate: Double, segments: Iterable[Segment]): Try[Slice[Persistent]] =
+  def getAllKeyValues(bloomFilterFalsePositiveRate: Double, segments: Iterable[Segment]): Try[Slice[SegmentEntry]] =
     if (segments.isEmpty)
-      Success(Slice.create[Persistent](0))
+      Success(Slice.create[SegmentEntry](0))
     else if (segments.size == 1)
       segments.head.getAll(bloomFilterFalsePositiveRate)
     else
@@ -303,7 +334,7 @@ private[core] object Segment {
           segment.getKeyValueCount().map(_ + total)
       } flatMap {
         totalKeyValues =>
-          segments.tryFoldLeft(Slice.create[Persistent](totalKeyValues)) {
+          segments.tryFoldLeft(Slice.create[SegmentEntry](totalKeyValues)) {
             case (allKeyValues, segment) =>
               segment.getAll(bloomFilterFalsePositiveRate, Some(allKeyValues))
           }
@@ -321,16 +352,16 @@ private[core] object Segment {
     }
   }
 
-  def tempMinMaxKeyValues(map: Map[Slice[Byte], Value]): Slice[KeyValueWriteOnly] = {
+  def tempMinMaxKeyValues(map: Map[Slice[Byte], Value]): Slice[KeyValue.WriteOnly] = {
     for {
       minKey <- map.head
       maxKey <- map.last
     } yield
       Slice(Transient.Put(minKey._1), Transient.Put(maxKey._1))
-  } getOrElse Slice.create[KeyValueWriteOnly](0)
+  } getOrElse Slice.create[KeyValue.WriteOnly](0)
 
-  def tempMinMaxKeyValues(segments: Iterable[Segment]): Slice[KeyValueWriteOnly] =
-    segments.foldLeft(Slice.create[KeyValueWriteOnly](segments.size * 2)) {
+  def tempMinMaxKeyValues(segments: Iterable[Segment]): Slice[KeyValue.WriteOnly] =
+    segments.foldLeft(Slice.create[KeyValue.WriteOnly](segments.size * 2)) {
       case (keyValues, segment) =>
         keyValues add Transient.Put(segment.minKey)
         keyValues add Transient.Put(segment.maxKey)
@@ -374,24 +405,24 @@ private[core] trait Segment {
 
   def path: Path
 
-  def put(newKeyValues: Slice[KeyValueWriteOnly],
+  def put(newKeyValues: Slice[KeyValue.WriteOnly],
           minSegmentSize: Long,
           bloomFilterFalsePositiveRate: Double,
           targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Try[Slice[Segment]]
 
   def copyTo(toPath: Path): Try[Path]
 
-  def getFromCache(key: Slice[Byte]): Option[PersistentReadOnly]
+  def getFromCache(key: Slice[Byte]): Option[SegmentEntryReadOnly]
 
   def mightContain(key: Slice[Byte]): Try[Boolean]
 
-  def get(key: Slice[Byte]): Try[Option[PersistentReadOnly]]
+  def get(key: Slice[Byte]): Try[Option[SegmentEntryReadOnly]]
 
-  def lower(key: Slice[Byte]): Try[Option[PersistentReadOnly]]
+  def lower(key: Slice[Byte]): Try[Option[SegmentEntryReadOnly]]
 
-  def higher(key: Slice[Byte]): Try[Option[PersistentReadOnly]]
+  def higher(key: Slice[Byte]): Try[Option[SegmentEntryReadOnly]]
 
-  def getAll(bloomFilterFalsePositiveRate: Double, addTo: Option[Slice[Persistent]] = None): Try[Slice[Persistent]]
+  def getAll(bloomFilterFalsePositiveRate: Double, addTo: Option[Slice[SegmentEntry]] = None): Try[Slice[SegmentEntry]]
 
   def delete: Try[Unit]
 

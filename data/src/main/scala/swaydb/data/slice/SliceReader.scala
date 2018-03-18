@@ -24,7 +24,7 @@ import scala.util.{Success, Try}
 /**
   * http://www.swaydb.io/slice/byte-slice
   */
-private[swaydb] class SliceReader(slice: Slice[Byte]) extends Reader {
+private[swaydb] case class SliceReader(slice: Slice[Byte]) extends Reader {
 
   private var position: Int = 0
 
@@ -60,7 +60,7 @@ private[swaydb] class SliceReader(slice: Slice[Byte]) extends Reader {
   override def getPosition: Int =
     position
 
-  def remaining =
+  override def remaining =
     size map {
       size =>
         size - position

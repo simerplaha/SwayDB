@@ -19,8 +19,9 @@
 
 package swaydb.core
 
+import swaydb.core.data.KeyValue.WriteOnly
 import swaydb.core.data.Transient.Remove
-import swaydb.core.data.{KeyValueWriteOnly, Transient}
+import swaydb.core.data.{KeyValue, Transient}
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 import swaydb.data.util.StorageUnits._
@@ -67,8 +68,8 @@ trait TestData {
                          startId: Int = 1,
                          addToValue: Int = 0,
                          nonValue: Boolean = false,
-                         addRandomDeletes: Boolean = false): Slice[KeyValueWriteOnly] = {
-    val slice = Slice.create[KeyValueWriteOnly](count)
+                         addRandomDeletes: Boolean = false): Slice[KeyValue.WriteOnly] = {
+    val slice = Slice.create[KeyValue.WriteOnly](count)
     val startFrom = randomInt(minus = count)
     //    val startFrom = 1
     for (key <- startFrom until startFrom + count) {
@@ -85,8 +86,8 @@ trait TestData {
   def randomIntKeyStringValues(count: Int = 5,
                                startId: Int = 1,
                                valueSize: Int = 50,
-                               addRandomDeletes: Boolean = false): Slice[KeyValueWriteOnly] = {
-    val slice = Slice.create[KeyValueWriteOnly](count)
+                               addRandomDeletes: Boolean = false): Slice[KeyValue.WriteOnly] = {
+    val slice = Slice.create[KeyValue.WriteOnly](count)
     val startFrom = randomInt(minus = count)
     //            val startFrom = 1
     for (key <- startFrom until startFrom + count) {
@@ -124,7 +125,7 @@ trait TestData {
   }
 
   def randomIntKeys(count: Int = 5,
-                    startId: Int = 1): Slice[KeyValueWriteOnly] =
+                    startId: Int = 1): Slice[KeyValue.WriteOnly] =
     randomIntKeyValues(count = count, startId = startId, nonValue = true)
 }
 

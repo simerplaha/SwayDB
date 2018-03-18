@@ -21,8 +21,9 @@ package swaydb.core.map.serializer
 
 import java.util.concurrent.ConcurrentSkipListMap
 
+import swaydb.core.data.KeyValue.WriteOnly
 import swaydb.core.{TestBase, TestLimitQueues}
-import swaydb.core.data.{KeyValueWriteOnly, PersistentReadOnly, Transient, Value}
+import swaydb.core.data.{KeyValue, SegmentEntryReadOnly, Transient, Value}
 import swaydb.core.io.file.DBFile
 import swaydb.core.segment.Segment
 import swaydb.data.slice.Slice
@@ -34,13 +35,13 @@ class MapCodecSpec extends TestBase {
 
   implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
   implicit val maxSegmentsOpenCacheImplicitLimiter: DBFile => Unit = TestLimitQueues.fileOpenLimiter
-  implicit val keyValuesLimitImplicitLimiter: (PersistentReadOnly, Segment) => Unit = TestLimitQueues.keyValueLimiter
+  implicit val keyValuesLimitImplicitLimiter: (SegmentEntryReadOnly, Segment) => Unit = TestLimitQueues.keyValueLimiter
 
   val appendixReader = AppendixMapEntryReader(false, true, true, false)
 
   "MemoryMapCodec" should {
     "write and read key values" in {
-      import LevelZeroMapEntryWriter.Level0AddValueWriter
+      import LevelZeroMapEntryWriter.Level0PutValueWriter
       val keyValues = randomIntKeyValues(1000, addRandomDeletes = true)
       val map = new ConcurrentSkipListMap[Slice[Byte], Value](ordering)
       keyValues foreach {
@@ -82,7 +83,7 @@ class MapCodecSpec extends TestBase {
         }
       }
 
-      import LevelZeroMapEntryWriter.Level0AddValueWriter
+      import LevelZeroMapEntryWriter.Level0PutValueWriter
       //first write creates bytes that have no empty bytes
       val bytes = MapCodec.write(map)
       bytes.isFull shouldBe true
@@ -101,7 +102,7 @@ class MapCodecSpec extends TestBase {
     }
 
     "only skip entries that are do not pass the CRC check if skipOnCorruption is true" in {
-      def createKeyValueSkipList(keyValues: Slice[KeyValueWriteOnly]) = {
+      def createKeyValueSkipList(keyValues: Slice[KeyValue.WriteOnly]) = {
         val map = new ConcurrentSkipListMap[Slice[Byte], Value](ordering)
         keyValues foreach {
           keyValue =>
@@ -117,7 +118,7 @@ class MapCodecSpec extends TestBase {
       val skipList1 = createKeyValueSkipList(keyValues1)
       val skipList2 = createKeyValueSkipList(keyValues2)
 
-      import LevelZeroMapEntryWriter.Level0AddValueWriter
+      import LevelZeroMapEntryWriter.Level0PutValueWriter
       val bytes1 = MapCodec.write(skipList1)
       val bytes2 = MapCodec.write(skipList2)
       //combined the bytes of both the entries so that are in one single file.

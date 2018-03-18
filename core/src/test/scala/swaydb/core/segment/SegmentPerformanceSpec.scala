@@ -19,13 +19,11 @@
 
 package swaydb.core.segment
 
-import swaydb.core.{TestBase, TestLimitQueues}
-import swaydb.core.data.{KeyValueReadOnly, PersistentReadOnly}
+import swaydb.core.data.SegmentEntryReadOnly
 import swaydb.core.io.file.DBFile
 import swaydb.core.util.Benchmark
-import swaydb.data.storage.{AppendixStorage, Level0Storage, LevelStorage}
+import swaydb.core.{TestBase, TestLimitQueues}
 import swaydb.order.KeyOrder
-import swaydb.data.util.StorageUnits._
 
 //@formatter:off
 class SegmentPerformanceSpec1 extends SegmentPerformanceSpec {
@@ -56,7 +54,7 @@ class SegmentPerformanceSpec extends TestBase with Benchmark {
 
 
   implicit val maxSegmentsOpenCacheImplicitLimiter: DBFile => Unit = TestLimitQueues.fileOpenLimiter
-  implicit val keyValuesLimitImplicitLimiter: (PersistentReadOnly, Segment) => Unit = TestLimitQueues.keyValueLimiter
+  implicit val keyValuesLimitImplicitLimiter: (SegmentEntryReadOnly, Segment) => Unit = TestLimitQueues.keyValueLimiter
 
   val keyValues = randomIntKeyValues(keyValuesCount)
 
@@ -73,7 +71,6 @@ class SegmentPerformanceSpec extends TestBase with Benchmark {
         val higher = segment.higher(keyValue.key).assertGet
         higher.key shouldBe expectedHigher.key
         higher.getOrFetchValue.assertGetOpt shouldBe expectedHigher.getOrFetchValue.assertGetOpt
-        higher.isRemove shouldBe expectedHigher.isRemove
     }
 
   def assertLower(segment: Segment) =
@@ -86,7 +83,6 @@ class SegmentPerformanceSpec extends TestBase with Benchmark {
         val lower = segment.lower(keyValue.key).assertGet
         lower.key shouldBe expectedLower.key
         lower.getOrFetchValue.assertGetOpt shouldBe expectedLower.getOrFetchValue.assertGetOpt
-        lower.isRemove shouldBe expectedLower.isRemove
     }
 
   var segment: Segment = null

@@ -21,6 +21,7 @@ package swaydb.core.level
 
 import java.nio.channels.{FileChannel, FileLock}
 import java.nio.file.{Path, StandardOpenOption}
+import java.util.concurrent.ConcurrentSkipListMap
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data._
@@ -28,7 +29,7 @@ import swaydb.core.io.file.{DBFile, IO}
 import swaydb.core.level.LevelException.NoNextLevel
 import swaydb.core.level.actor.{LevelAPI, LevelActor, LevelCommand}
 import swaydb.core.map.serializer._
-import swaydb.core.map.{Map, MapEntry}
+import swaydb.core.map.{Map, MapEntry, SkipListConflictResolver}
 import swaydb.core.retry.Retry
 import swaydb.core.segment.SegmentException.SegmentFileMissing
 import swaydb.core.segment.{Segment, SegmentAssigner, SegmentMerge}
@@ -52,6 +53,18 @@ import scala.concurrent.duration.FiniteDuration
 import scala.util.{Failure, Success, Try}
 
 private[core] object Level extends LazyLogging {
+
+  implicit object SkipListConflictResolver extends SkipListConflictResolver[Slice[Byte], Segment] {
+    override def insert(insertKey: Slice[Byte],
+                        insertValue: Segment,
+                        skipList: ConcurrentSkipListMap[Slice[Byte], Segment])(implicit ordering: Ordering[Slice[Byte]]): Unit =
+      skipList.put(insertKey, insertValue)
+
+    //Appendixes do not use Range so there will be no conflicts. Need a type-safe way of handling this.
+    override def insert(entry: MapEntry[Slice[Byte], Segment],
+                        skipList: ConcurrentSkipListMap[Slice[Byte], Segment])(implicit ordering: Ordering[Slice[Byte]]): Unit =
+      entry applyTo skipList
+  }
 
   def acquireLock(levelStorage: LevelStorage): Try[Option[FileLock]] =
     if (levelStorage.persistent)
@@ -80,14 +93,14 @@ private[core] object Level extends LazyLogging {
             pushForward: Boolean = false,
             throttle: LevelMeter => Throttle)(implicit ordering: Ordering[Slice[Byte]],
                                               ec: ExecutionContext,
-                                              keyValueLimiter: (PersistentReadOnly, Segment) => Unit,
+                                              keyValueLimiter: (SegmentEntryReadOnly, Segment) => Unit,
                                               fileOpenLimited: DBFile => Unit): Try[LevelRef] = {
     //acquire lock on folder
     acquireLock(levelStorage) flatMap {
       lock =>
         //lock acquired.
         //initialise readers & writers
-        import AppendixMapEntryWriter.{AppendixAddWriter, AppendixRemoveWriter}
+        import AppendixMapEntryWriter.{AppendixPutWriter, AppendixRemoveWriter}
 
         val appendixReader =
           new AppendixMapEntryReader(
@@ -127,7 +140,7 @@ private[core] object Level extends LazyLogging {
             appendix.asScala tryForeach {
               case (_, segment) =>
                 if (segment.existsOnDisk)
-                  Success()
+                  TryUtil.successUnit
                 else
                   Failure(SegmentFileMissing(segment.path))
             } match {
@@ -180,8 +193,8 @@ private[core] class Level(val dirs: Seq[Dir],
                           lock: Option[FileLock])(implicit ordering: Ordering[Slice[Byte]],
                                                   ec: ExecutionContext,
                                                   removeWriter: MapEntryWriter[MapEntry.Remove[Slice[Byte]]],
-                                                  addWriter: MapEntryWriter[MapEntry.Add[Slice[Byte], Segment]],
-                                                  keyValueLimiter: (PersistentReadOnly, Segment) => Unit,
+                                                  addWriter: MapEntryWriter[MapEntry.Put[Slice[Byte], Segment]],
+                                                  keyValueLimiter: (SegmentEntryReadOnly, Segment) => Unit,
                                                   fileOpenLimited: DBFile => Unit) extends LevelRef with LazyLogging {
 
   val paths: PathsDistributor = PathsDistributor(dirs, () => appendix.values().asScala)
@@ -190,7 +203,7 @@ private[core] class Level(val dirs: Seq[Dir],
 
   logger.info(s"{}: Level started.", paths)
 
-  implicit val orderOnReadOnly = ordering.on[PersistentReadOnly](_.key)
+  implicit val orderOnReadOnly = ordering.on[SegmentEntryReadOnly](_.key)
 
   val removeDeletedRecords = Level.removeDeletes(nextLevel)
 
@@ -203,7 +216,7 @@ private[core] class Level(val dirs: Seq[Dir],
   def releaseLocks: Try[Unit] =
     Try(lock.foreach(_.release())) flatMap {
       _ =>
-        nextLevel.map(_.releaseLocks) getOrElse Success()
+        nextLevel.map(_.releaseLocks) getOrElse TryUtil.successUnit
     }
 
   private def deleteOrphanSegments(): Unit =
@@ -252,7 +265,7 @@ private[core] class Level(val dirs: Seq[Dir],
         if (pushForward && isEmpty && nextLevel.isEmpty) {
           logger.debug("{}: Push forwarded.", paths)
           nextLevel ! command
-          Success()
+          TryUtil.successUnit
         }
         else
           Failure(LevelException.NotSentToNextLevel)
@@ -312,18 +325,20 @@ private[core] class Level(val dirs: Seq[Dir],
       Failure(LevelException.ContainsOverlappingBusySegments)
     }
     else
-      map.foldLeft(Slice.create[KeyValueWriteOnly](map.count())) {
+      map.foldLeft(Slice.create[KeyValue.WriteOnly](map.count())) {
         case (slice, (key, value)) =>
           value match {
             case Value.Put(value) =>
               slice add Transient.Put(key, value, bloomFilterFalsePositiveRate, slice.lastOption)
             case Value.Remove =>
               slice add Transient.Remove(key, bloomFilterFalsePositiveRate, slice.lastOption)
+            case Value.Range(toKey, fromValue: Option[Value.Fixed], rangeValue: Value.Fixed) =>
+              slice add Transient.Range(key, toKey, fromValue, rangeValue, bloomFilterFalsePositiveRate, slice.lastOption)(RangeValueSerializers.OptionRangeValueSerializer)
           }
       } ==> (putKeyValues(_, appendix.values().asScala, None))
   }
 
-  def putKeyValues(keyValues: Slice[KeyValueWriteOnly]): Try[Unit] = {
+  def putKeyValues(keyValues: Slice[KeyValue.WriteOnly]): Try[Unit] = {
     logger.trace(s"{}: Received put for '{}' KeyValues.", paths.head, keyValues.size)
     putKeyValues(keyValues, appendix.values().asScala, None)
   }
@@ -467,106 +482,113 @@ private[core] class Level(val dirs: Seq[Dir],
     }
   }
 
-  private def putKeyValues(keyValues: Slice[KeyValueWriteOnly],
+  private def putKeyValues(keyValues: Slice[KeyValue.WriteOnly],
                            targetSegments: Iterable[Segment],
                            initialEntry: Option[MapEntry[Slice[Byte], Segment]]): Try[Unit] = {
     logger.trace(s"{}: Merging {} KeyValues.", paths.head, keyValues.size)
-    val assignments = SegmentAssigner.assign(keyValues, targetSegments)
-    val busySegments: Seq[Segment] = getBusySegments()
-    //check to ensure that assigned Segments do not overlap with busy Segments.
-    if (Segment.intersects(assignments.keys, busySegments)) {
-      logger.trace(s"{}: Assigned segments {} intersect with current busy segments: {}.", paths.head, assignments.map(_._1.path.toString), busySegments.map(_.path.toString))
-      Failure(LevelException.ContainsOverlappingBusySegments)
-    } else {
-      logger.trace(s"{}: Assigned segments {} for KeyValues: {}.", paths.head, assignments.map(_._1.path.toString), keyValues.size)
-      if (assignments.isEmpty) {
-        logger.debug(s"{}: Assigned segments are empty. Adding a new segment for KeyValues: {}.", paths.head, keyValues.size)
-        addAsNewSegments(keyValues, initialEntry)
-      } else {
-        logger.debug(s"{}: Assigned segments {}. Merging KeyValues: {}.", paths.head, assignments.map(_._1.path.toString), keyValues.size)
-        putAssignedKeyValues(assignments) flatMap {
-          targetSegmentAndNewSegments =>
-            targetSegmentAndNewSegments.tryFoldLeft(initialEntry) {
-              case (mapEntry, (targetSegment, newSegments)) =>
-                buildNewMapEntry(newSegments, Some(targetSegment), mapEntry).map(Some(_))
-            } flatMap {
-              case Some(mapEntry) =>
-                (appendix write mapEntry) map {
-                  _ =>
-                    logger.debug(s"{}: putKeyValues successful. Deleting assigned Segments. {}.", paths.head, assignments.map(_._1.path.toString))
-                    //delete assigned segments as they are replaced with new segments.
-                    assignments foreach {
-                      case (segment, _) =>
-                        segment.delete.failed map {
-                          exception =>
-                            logger.error(s"{}: Failed to delete Segment {}", paths.head, segment.path, exception)
+    SegmentAssigner.assign(keyValues, targetSegments) flatMap {
+      assignments =>
+        val busySegments: Seq[Segment] = getBusySegments()
+        //check to ensure that assigned Segments do not overlap with busy Segments.
+        if (Segment.intersects(assignments.keys, busySegments)) {
+          logger.trace(s"{}: Assigned segments {} intersect with current busy segments: {}.", paths.head, assignments.map(_._1.path.toString), busySegments.map(_.path.toString))
+          Failure(LevelException.ContainsOverlappingBusySegments)
+        } else {
+          logger.trace(s"{}: Assigned segments {} for KeyValues: {}.", paths.head, assignments.map(_._1.path.toString), keyValues.size)
+          if (assignments.isEmpty) {
+            logger.debug(s"{}: Assigned segments are empty. Adding a new segment for KeyValues: {}.", paths.head, keyValues.size)
+            addAsNewSegments(keyValues, initialEntry)
+          } else {
+            logger.debug(s"{}: Assigned segments {}. Merging KeyValues: {}.", paths.head, assignments.map(_._1.path.toString), keyValues.size)
+            putAssignedKeyValues(assignments) flatMap {
+              targetSegmentAndNewSegments =>
+                targetSegmentAndNewSegments.tryFoldLeft(initialEntry) {
+                  case (mapEntry, (targetSegment, newSegments)) =>
+                    buildNewMapEntry(newSegments, Some(targetSegment), mapEntry).map(Some(_))
+                } flatMap {
+                  case Some(mapEntry) =>
+                    (appendix write mapEntry) map {
+                      _ =>
+                        logger.debug(s"{}: putKeyValues successful. Deleting assigned Segments. {}.", paths.head, assignments.map(_._1.path.toString))
+                        //delete assigned segments as they are replaced with new segments.
+                        assignments foreach {
+                          case (segment, _) =>
+                            segment.delete.failed map {
+                              exception =>
+                                logger.error(s"{}: Failed to delete Segment {}", paths.head, segment.path, exception)
+                            }
                         }
                     }
-                }
 
-              case None =>
-                Failure(new Exception(s"${paths.head}: Failed to create map entry"))
+                  case None =>
+                    Failure(new Exception(s"${paths.head}: Failed to create map entry"))
 
-            } recoverWith {
-              case exception =>
-                logFailure(s"${paths.head}: Failed to write key-values. Reverting", exception)
-                targetSegmentAndNewSegments foreach {
-                  case (_, newSegments) =>
-                    newSegments foreach {
-                      segment =>
-                        segment.delete.failed map {
-                          exception =>
-                            logger.error(s"{}: Failed to delete Segment {}", paths.head, segment.path, exception)
+                } recoverWith {
+                  case exception =>
+                    logFailure(s"${paths.head}: Failed to write key-values. Reverting", exception)
+                    targetSegmentAndNewSegments foreach {
+                      case (_, newSegments) =>
+                        newSegments foreach {
+                          segment =>
+                            segment.delete.failed map {
+                              exception =>
+                                logger.error(s"{}: Failed to delete Segment {}", paths.head, segment.path, exception)
+                            }
                         }
                     }
+                    Failure(exception)
                 }
-                Failure(exception)
             }
+          }
         }
-      }
     }
   }
 
-  private def addAsNewSegments(keyValues: Slice[KeyValueWriteOnly],
+  private def addAsNewSegments(keyValues: Slice[KeyValue.WriteOnly],
                                initialEntry: Option[MapEntry[Slice[Byte], Segment]]): Try[Unit] = {
     logger.debug(s"{}: In addToNewSegments {} KeyValues.", paths.head, keyValues.size)
 
-    SegmentMerge.split(keyValues, segmentSize, removeDeletedRecords, inMemory, bloomFilterFalsePositiveRate).tryMap[Segment](
-      tryBlock =
-        keyValues =>
-          if (inMemory)
-            Segment.memory(
-              path = paths.next.resolve(segmentIDGenerator.nextSegmentID),
-              bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-              keyValues = keyValues,
-              removeDeletes = removeDeletedRecords
-            )
-          else
-            Segment.persistent(
-              path = paths.next.resolve(segmentIDGenerator.nextSegmentID),
-              bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-              cacheKeysOnCreate = cacheKeysOnCreate,
-              mmapReads = mmapSegmentsOnRead,
-              mmapWrites = mmapSegmentsOnWrite,
-              keyValues = keyValues,
-              removeDeletes = removeDeletedRecords
-            ),
+    SegmentMerge
+      .split(keyValues, segmentSize, removeDeletedRecords, inMemory, bloomFilterFalsePositiveRate)
+      .flatMap {
+        splits =>
+          splits.tryMap[Segment](
+            tryBlock =
+              keyValues =>
+                if (inMemory)
+                  Segment.memory(
+                    path = paths.next.resolve(segmentIDGenerator.nextSegmentID),
+                    bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+                    keyValues = keyValues,
+                    removeDeletes = removeDeletedRecords
+                  )
+                else
+                  Segment.persistent(
+                    path = paths.next.resolve(segmentIDGenerator.nextSegmentID),
+                    bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+                    cacheKeysOnCreate = cacheKeysOnCreate,
+                    mmapReads = mmapSegmentsOnRead,
+                    mmapWrites = mmapSegmentsOnWrite,
+                    keyValues = keyValues,
+                    removeDeletes = removeDeletedRecords
+                  ),
 
-      recover =
-        (segments, failure) => {
-          logFailure(s"${paths.head}: Failed to complete put request. Deleting partially written batch ${segments.size} IndexSegments", failure.exception)
-          segments foreach {
-            segment =>
-              segment.delete.failed foreach {
-                exception =>
-                  logger.error(s"{}: Failed to delete Segment '{}' in recovery addAsNewSegments", paths.head, segment.path, exception)
+            recover =
+              (segments, failure) => {
+                logFailure(s"${paths.head}: Failed to complete put request. Deleting partially written batch ${segments.size} Segments", failure.exception)
+                segments foreach {
+                  segment =>
+                    segment.delete.failed foreach {
+                      exception =>
+                        logger.error(s"{}: Failed to delete Segment '{}' in recovery addAsNewSegments", paths.head, segment.path, exception)
+                    }
+                }
               }
-          }
-        }
-    ) flatMap {
+          )
+      } flatMap {
       newSegments =>
         if (newSegments.isEmpty)
-          Success()
+          TryUtil.successUnit
         else
           buildNewMapEntry(newSegments, initialMapEntry = initialEntry)
             .flatMap {
@@ -578,7 +600,7 @@ private[core] class Level(val dirs: Seq[Dir],
             }
             .recoverWith {
               case exception =>
-                logFailure(s"${paths.head}: Failed to complete put request. Deleting partially written batch ${segments.size} IndexSegments", exception)
+                logFailure(s"${paths.head}: Failed to complete put request. Deleting partially written batch ${segments.size} Segments", exception)
 
                 newSegments foreach {
                   segment =>
@@ -601,7 +623,7 @@ private[core] class Level(val dirs: Seq[Dir],
         toAlert
     }
 
-  def putAssignedKeyValues(assignedSegments: mutable.Map[Segment, Slice[KeyValueWriteOnly]]): Try[Slice[(Segment, Slice[Segment])]] =
+  def putAssignedKeyValues(assignedSegments: mutable.Map[Segment, Slice[KeyValue.WriteOnly]]): Try[Slice[(Segment, Slice[Segment])]] =
     assignedSegments.tryMap[(Segment, Slice[Segment])](
       tryBlock = {
         case (targetSegment, assignedKeyValues) =>
@@ -642,7 +664,7 @@ private[core] class Level(val dirs: Seq[Dir],
           if (removeOriginalSegments && originalSegmentMayBe.exists(_.minKey equiv newMap.minKey))
             removeOriginalSegments = false
 
-          val nextLogEntry = MapEntry.Add(newMap.minKey, newMap)
+          val nextLogEntry = MapEntry.Put(newMap.minKey, newMap)
           loggerCommand.map(_ ++ nextLogEntry) orElse Some(nextLogEntry)
       }
     (originalSegmentMayBe match {
@@ -703,7 +725,7 @@ private[core] class Level(val dirs: Seq[Dir],
       }
     }
 
-  def getFromThisLevel(key: Slice[Byte]): Try[Option[PersistentReadOnly]] =
+  def getFromThisLevel(key: Slice[Byte]): Try[Option[SegmentEntryReadOnly]] =
     appendix.floor(key) match {
       case Some(segment) =>
         segment get key
@@ -793,7 +815,7 @@ private[core] class Level(val dirs: Seq[Dir],
       MinMax.min(thisLevelHead, nextLevelHead)
     }
 
-  private def lastInNextLevel: Try[Option[PersistentReadOnly]] =
+  private def lastInNextLevel: Try[Option[SegmentEntryReadOnly]] =
     nextLevel.map(_.last) getOrElse Success(None)
 
   private def lastInThisLevel =
@@ -940,10 +962,10 @@ private[core] class Level(val dirs: Seq[Dir],
         logger.error("{}: Failed to close file", paths.head, failed.exception)
         failed
       case None =>
-        Success()
+        TryUtil.successUnit
     }
   }
 
-  override def isTrash: Boolean = false
+  override val isTrash: Boolean = false
 
 }

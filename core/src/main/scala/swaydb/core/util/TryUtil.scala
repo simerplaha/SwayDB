@@ -25,16 +25,9 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.reflect.ClassTag
 import scala.util.{Failure, Success, Try}
 
-private[core] object TryInFuture {
-
-  import TryUtil._
-
-  def apply[T](tryBlock: => Try[T])(implicit ec: ExecutionContext): Future[T] =
-    tryBlock.tryInFuture
-
-}
-
 private[core] object TryUtil {
+
+  final val successUnit: Success[Unit] = Success()
 
   implicit class IterableTryImplicit[T: ClassTag](iterable: Iterable[T]) {
 

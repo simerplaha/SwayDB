@@ -28,10 +28,27 @@ import swaydb.data.slice.Slice
 
 object AppendixMapEntryWriter {
 
-  implicit object AppendixAddWriter extends MapEntryWriter[MapEntry.Add[Slice[Byte], Segment]] {
-    override val id: Int = 1
+  implicit object AppendixRemoveWriter extends MapEntryWriter[MapEntry.Remove[Slice[Byte]]] {
+    val id: Int = 0
 
-    override def write(entry: MapEntry.Add[Slice[Byte], Segment], bytes: Slice[Byte]): Unit = {
+    override def write(entry: MapEntry.Remove[Slice[Byte]], bytes: Slice[Byte]): Unit =
+      bytes
+        .addIntUnsigned(id)
+        .addIntUnsigned(entry.key.size)
+        .addAll(entry.key)
+
+    override def bytesRequired(entry: MapEntry.Remove[Slice[Byte]]): Int =
+      ByteUtilCore.sizeUnsignedInt(id) +
+        ByteUtilCore.sizeUnsignedInt(entry.key.size) +
+        entry.key.size
+
+    override val isRange: Boolean = false
+  }
+
+  implicit object AppendixPutWriter extends MapEntryWriter[MapEntry.Put[Slice[Byte], Segment]] {
+    val id: Int = 1
+
+    override def write(entry: MapEntry.Put[Slice[Byte], Segment], bytes: Slice[Byte]): Unit = {
       val segmentPath = Slice(entry.value.path.toString.getBytes(StandardCharsets.UTF_8))
       bytes
         .addIntUnsigned(id)
@@ -44,7 +61,7 @@ object AppendixMapEntryWriter {
         .addAll(entry.value.maxKey)
     }
 
-    override def bytesRequired(entry: MapEntry.Add[Slice[Byte], Segment]): Int = {
+    override def bytesRequired(entry: MapEntry.Put[Slice[Byte], Segment]): Int = {
       val segmentPath = entry.value.path.toString.getBytes(StandardCharsets.UTF_8)
 
       ByteUtilCore.sizeUnsignedInt(id) +
@@ -57,30 +74,18 @@ object AppendixMapEntryWriter {
         entry.value.maxKey.size
 
     }
-  }
 
-  implicit object AppendixRemoveWriter extends MapEntryWriter[MapEntry.Remove[Slice[Byte]]] {
-    override val id: Int = 0
-
-    override def write(entry: MapEntry.Remove[Slice[Byte]], bytes: Slice[Byte]): Unit =
-      bytes
-        .addIntUnsigned(id)
-        .addIntUnsigned(entry.key.size)
-        .addAll(entry.key)
-
-    override def bytesRequired(entry: MapEntry.Remove[Slice[Byte]]): Int =
-      ByteUtilCore.sizeUnsignedInt(id) +
-        ByteUtilCore.sizeUnsignedInt(entry.key.size) +
-        entry.key.size
+    override val isRange: Boolean = false
   }
 
   implicit object AppendixMapEntry extends MapEntryWriter[MapEntry[Slice[Byte], Segment]] {
-    override val id: Int = -1
 
     override def write(entry: MapEntry[Slice[Byte], Segment], bytes: Slice[Byte]): Unit =
       entry.writeTo(bytes)
 
     override def bytesRequired(entry: MapEntry[Slice[Byte], Segment]): Int =
       entry.entryBytesSize
+
+    override val isRange: Boolean = false
   }
 }

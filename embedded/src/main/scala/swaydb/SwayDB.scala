@@ -102,7 +102,7 @@ object SwayDB extends LazyLogging {
                        cacheSize: Long = 100.mb,
                        mapSize: Int = 4.mb,
                        mmapMaps: Boolean = true,
-                       recoveryMode: RecoveryMode = RecoveryMode.ReportCorruption,
+                       recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
                        mmapAppendix: Boolean = true,
                        mmapSegments: MMAP = MMAP.WriteAndRead,
                        segmentSize: Int = 2.mb,
@@ -145,7 +145,7 @@ object SwayDB extends LazyLogging {
                        cacheSize: Long = 100.mb,
                        mapSize: Int = 4.mb,
                        mmapMaps: Boolean = true,
-                       recoveryMode: RecoveryMode = RecoveryMode.ReportCorruption,
+                       recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
                        mmapAppendix: Boolean = true,
                        mmapSegments: MMAP = MMAP.WriteAndRead,
                        segmentSize: Int = 2.mb,
@@ -489,10 +489,16 @@ private[swaydb] class SwayDB(api: CoreAPI) extends SwayDBAPI {
         val nextEntry =
           batchEntry match {
             case request.Batch.Put(key, value) =>
-              MapEntry.Add[Slice[Byte], Value.Put](key, Value.Put(value))(LevelZeroMapEntryWriter.Level0AddWriter)
+              MapEntry.Put[Slice[Byte], Value.Put](key, Value.Put(value))(LevelZeroMapEntryWriter.Level0PutWriter)
 
             case request.Batch.Remove(key) =>
-              MapEntry.Add[Slice[Byte], Value.Remove](key, Value.Remove)(LevelZeroMapEntryWriter.Level0RemoveWriter)
+              MapEntry.Put[Slice[Byte], Value.Remove](key, Value.Remove)(LevelZeroMapEntryWriter.Level0RemoveWriter)
+
+            case request.Batch.RemoveRange(fromKey, untilKey) =>
+              MapEntry.Put[Slice[Byte], Value.Range](fromKey, Value.Range(untilKey, None, Value.Remove))(LevelZeroMapEntryWriter.Level0PutRangeWriter)
+
+            case request.Batch.UpdateRange(fromKey, untilKey, value) =>
+              MapEntry.Put[Slice[Byte], Value.Range](fromKey, Value.Range(untilKey, None, Value.Put(value)))(LevelZeroMapEntryWriter.Level0PutRangeWriter)
           }
         Some(mapEntry.map(_ ++ nextEntry) getOrElse nextEntry)
     } map {

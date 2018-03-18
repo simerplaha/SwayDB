@@ -19,7 +19,7 @@
 
 package swaydb.core.util
 
-import swaydb.core.data.KeyValueWriteOnly
+import swaydb.core.data.KeyValue
 import swaydb.core.io.reader.Reader
 import swaydb.data.slice.{Slice, SliceReader}
 
@@ -30,7 +30,7 @@ private[core] object SliceUtil {
       Reader(slice)
   }
 
-  implicit class SliceKeyValueImplicits(slice: Slice[KeyValueWriteOnly]) {
+  implicit class SliceKeyValueImplicits(slice: Iterable[KeyValue.WriteOnly]) {
     def persistentSegmentSize: Int =
       slice.lastOption.map(_.stats.segmentSize).getOrElse(0)
 
@@ -41,5 +41,6 @@ private[core] object SliceUtil {
     def persistentSegmentSizeWithoutFooter: Int =
       slice.lastOption.map(_.stats.segmentSizeWithoutFooter).getOrElse(0)
   }
+
 
 }

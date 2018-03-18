@@ -26,11 +26,11 @@ import scala.annotation.implicitNotFound
 
 @implicitNotFound("Type class implementation not found for MapEntryWriter of type ${T}")
 trait MapEntryWriter[T <: MapEntry[_, _]] {
-  val id: Int
-
   def write(entry: T, bytes: Slice[Byte]): Unit
 
   def bytesRequired(entry: T): Int
+
+  val isRange: Boolean
 }
 
 object MapEntryWriter {

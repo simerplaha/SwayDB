@@ -26,6 +26,7 @@ import java.nio.file.NoSuchFileException
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.retry.RetryException.RetryFailedException
 import swaydb.core.segment.SegmentException.FailedToOpenFile
+import swaydb.core.util.TryUtil
 
 import scala.annotation.tailrec
 import scala.util.{Failure, Success, Try}
@@ -35,16 +36,16 @@ object Retry extends LazyLogging {
   val levelReadRetryUntil =
     (failure: Throwable, resourceId: String) =>
       failure match {
-        case _ @ RetryFailedException(exceptionResourceId, _, _, _) if exceptionResourceId != resourceId => Success()
-        case _: FailedToOpenFile => Success()
-        case _: NoSuchFileException => Success()
-        case _: FileNotFoundException => Success()
-        case _: AsynchronousCloseException => Success()
-        case _: ClosedChannelException => Success()
+        case _ @ RetryFailedException(exceptionResourceId, _, _, _) if exceptionResourceId != resourceId => TryUtil.successUnit
+        case _: FailedToOpenFile => TryUtil.successUnit
+        case _: NoSuchFileException => TryUtil.successUnit
+        case _: FileNotFoundException => TryUtil.successUnit
+        case _: AsynchronousCloseException => TryUtil.successUnit
+        case _: ClosedChannelException => TryUtil.successUnit
         //NullPointer exception occurs when the MMAP buffer is being prepared to be cleared, but the reads
         //are still being directed to that Segment. A retry should occur so that the request gets routed to
         //the new Segment or if the Segment was closed, a retry will re-opened it.
-        case _: NullPointerException => Success()
+        case _: NullPointerException => TryUtil.successUnit
         //Retry if RetryFailedException occurred at a lower level.
         //for all other exceptions do not retry and push failure back up.
         case exception =>

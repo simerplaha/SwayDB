@@ -22,6 +22,7 @@ package swaydb.core.io.file
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.core.util.TryUtil
 import swaydb.data.slice.Slice
 
 import scala.util.{Failure, Success, Try}
@@ -35,7 +36,7 @@ private[file] class MemoryFile(val path: Path,
                                private var bytes: Slice[Byte]) extends LazyLogging with DBFileType {
 
   override def close(): Try[Unit] =
-    Success()
+    TryUtil.successUnit
 
   override def append(slice: Slice[Byte]): Try[Unit] =
     Failure(new UnsupportedOperationException("Memory files are immutable. Cannot append."))
@@ -74,5 +75,5 @@ private[file] class MemoryFile(val path: Path,
     }
 
   override def forceSave(): Try[Unit] =
-    Success()
+    TryUtil.successUnit
 }

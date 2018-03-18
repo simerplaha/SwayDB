@@ -69,6 +69,12 @@ private[swaydb] trait Reader { self =>
   def readString(charset: Charset = StandardCharsets.UTF_8): Try[String] =
     ByteUtil.readString(self, charset)
 
+  def remaining: Try[Long] =
+    size map {
+      size =>
+        size - getPosition
+    }
+
   def copy(): Reader
 
   @tailrec

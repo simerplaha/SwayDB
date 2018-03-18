@@ -28,7 +28,8 @@ import org.scalatest.concurrent.Eventually
 import org.scalatest.{BeforeAndAfterAll, WordSpec}
 import swaydb.core.TestLimitQueues._
 import swaydb.core.actor.TestActor
-import swaydb.core.data.{KeyValueWriteOnly, PersistentReadOnly}
+import swaydb.core.data.KeyValue.WriteOnly
+import swaydb.core.data.{KeyValue, SegmentEntryReadOnly}
 import swaydb.core.io.file.{DBFile, IO}
 import swaydb.core.io.reader.FileReader
 import swaydb.core.level.actor.LevelCommand.{PushSegments, PushSegmentsResponse}
@@ -104,7 +105,7 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
     if (inMemoryStorage)
       Level0Storage.Memory
     else
-      Level0Storage.Persistent(mmap = level0MMAP, randomIntDirectory, RecoveryMode.ReportCorruption)
+      Level0Storage.Persistent(mmap = level0MMAP, randomIntDirectory, RecoveryMode.ReportFailure)
 
   def appendixStorage: AppendixStorage =
     if (inMemoryStorage)
@@ -212,11 +213,11 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
     def tryReopen: Try[Level] =
       tryReopen()
 
-    def reopen(segmentSize: Long = level.segmentSize)(implicit keyValueLimiter: (PersistentReadOnly, Segment) => Unit = keyValueLimiter,
+    def reopen(segmentSize: Long = level.segmentSize)(implicit keyValueLimiter: (SegmentEntryReadOnly, Segment) => Unit = keyValueLimiter,
                                                       fileOpenLimited: DBFile => Unit = fileOpenLimiter): Level =
       tryReopen(segmentSize).assertGet
 
-    def tryReopen(segmentSize: Long = level.segmentSize)(implicit keyValueLimiter: (PersistentReadOnly, Segment) => Unit = keyValueLimiter,
+    def tryReopen(segmentSize: Long = level.segmentSize)(implicit keyValueLimiter: (SegmentEntryReadOnly, Segment) => Unit = keyValueLimiter,
                                                          fileOpenLimited: DBFile => Unit = fileOpenLimiter): Try[Level] = {
       level.releaseLocks flatMap {
         _: Unit =>
@@ -245,14 +246,14 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
     def reopen: LevelZero =
       reopen()
 
-    def reopen(mapSize: Long = mapSize)(implicit keyValueLimiter: (PersistentReadOnly, Segment) => Unit = keyValueLimiter,
+    def reopen(mapSize: Long = mapSize)(implicit keyValueLimiter: (SegmentEntryReadOnly, Segment) => Unit = keyValueLimiter,
                                         fileOpenLimited: DBFile => Unit = fileOpenLimiter): LevelZero = {
       val reopened =
         level.releaseLocks flatMap {
           _: Unit =>
             LevelZero(
               mapSize = mapSize,
-              storage = Level0Storage.Persistent(true, level.path.getParent, RecoveryMode.ReportCorruption),
+              storage = Level0Storage.Persistent(true, level.path.getParent, RecoveryMode.ReportFailure),
               nextLevel = level.nextLevel,
               acceleration = Accelerator.brake(),
               readRetryLimit = levelZeroReadRetryLimit
@@ -270,9 +271,9 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
     def time = int
   }
 
-  implicit class KeyValuesImplicits(keyValues: Slice[KeyValueWriteOnly]) {
-    def updateStats: Slice[KeyValueWriteOnly] = {
-      val slice = Slice.create[KeyValueWriteOnly](keyValues.size)
+  implicit class KeyValuesImplicits(keyValues: Iterable[KeyValue.WriteOnly]) {
+    def updateStats: Slice[KeyValue.WriteOnly] = {
+      val slice = Slice.create[KeyValue.WriteOnly](keyValues.size)
       keyValues foreach {
         keyValue =>
           slice.add(keyValue.updateStats(0.1, keyValue = slice.lastOption))
@@ -296,12 +297,12 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
     createFileReader(createFile(bytes))
 
   object TestSegment {
-    def apply(keyValues: Slice[KeyValueWriteOnly] = randomIntKeyStringValues(),
+    def apply(keyValues: Slice[KeyValue.WriteOnly] = randomIntKeyStringValues(),
               removeDeletes: Boolean = false,
               path: Path = testSegmentFile,
               cacheKeysOnCreate: Boolean = cacheKeysOnCreate,
               bloomFilterFalsePositiveRate: Double = 0.1)(implicit ordering: Ordering[Slice[Byte]],
-                                                          keyValueLimiter: (PersistentReadOnly, Segment) => Unit = keyValueLimiter,
+                                                          keyValueLimiter: (SegmentEntryReadOnly, Segment) => Unit = keyValueLimiter,
                                                           fileOpenLimited: DBFile => Unit = fileOpenLimiter): Try[Segment] =
       if (levelStorage.memory)
         Segment.memory(
@@ -356,7 +357,7 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
               throttle: LevelMeter => Throttle = testDefaultThrottle,
               readRetryLimit: Int = levelReadRetryLimit,
               bloomFilterFalsePositiveRate: Double = 0.01)(implicit ordering: Ordering[Slice[Byte]],
-                                                           keyValueLimiter: (PersistentReadOnly, Segment) => Unit = keyValueLimiter,
+                                                           keyValueLimiter: (SegmentEntryReadOnly, Segment) => Unit = keyValueLimiter,
                                                            fileOpenLimited: DBFile => Unit = fileOpenLimiter): Level =
       Level(
         levelStorage = levelStorage,
@@ -377,7 +378,7 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
               mapSize: Long = mapSize,
               brake: Level0Meter => Accelerator = Accelerator.brake(),
               readRetryLimit: Int = levelZeroReadRetryLimit)(implicit ordering: Ordering[Slice[Byte]],
-                                                             keyValueLimiter: (PersistentReadOnly, Segment) => Unit = keyValueLimiter,
+                                                             keyValueLimiter: (SegmentEntryReadOnly, Segment) => Unit = keyValueLimiter,
                                                              fileOpenLimited: DBFile => Unit = fileOpenLimiter): LevelZero =
       LevelZero(
         mapSize = mapSize,

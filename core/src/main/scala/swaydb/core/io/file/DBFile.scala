@@ -25,6 +25,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.segment.SegmentException
 import swaydb.core.segment.SegmentException.CannotCopyInMemoryFiles
+import swaydb.core.util.TryUtil
 import swaydb.data.slice.Slice
 
 import scala.concurrent.ExecutionContext
@@ -124,7 +125,7 @@ class DBFile(val path: Path,
             //cannot lose reference to in-memory file on close. Only on delete, this in-memory file reference can be discarded.
             if (!memory) file = None
         }
-    } getOrElse Success()
+    } getOrElse TryUtil.successUnit
 
   //if it's an in memory files return failure as Memory files cannot be copied.
   def copyTo(toPath: Path): Try[Path] =
@@ -214,5 +215,17 @@ class DBFile(val path: Path,
     openFile() flatMap (_.isFull)
 
   override def forceSave(): Try[Unit] =
-    file.map(_.forceSave()) getOrElse Success()
+    file.map(_.forceSave()) getOrElse TryUtil.successUnit
+
+  override def equals(that: Any): Boolean =
+    that match {
+      case other: DBFile =>
+        this.path == other.path
+
+      case _ =>
+        false
+    }
+
+  override def hashCode(): Int =
+    path.hashCode()
 }

@@ -20,7 +20,7 @@
 package swaydb.core.segment
 
 import swaydb.core.TestBase
-import swaydb.core.data.{KeyValueWriteOnly, Transient}
+import swaydb.core.data.Transient
 import swaydb.core.util.FileUtil._
 import swaydb.data.slice.Slice
 import swaydb.order.KeyOrder
@@ -59,7 +59,7 @@ class SegmentAssignerSpec extends TestBase {
 
       val segment = TestSegment().assertGet
 
-      val result = SegmentAssigner.assign(keyValues, List(segment))
+      val result = SegmentAssigner.assign(keyValues, List(segment)).assertGet
       result.size shouldBe 1
       result.keys.head.path.fileId.assertGet._1 shouldBe 1
       result.values.head shouldBe(keyValues, ignoreValueOffset = true)
@@ -70,7 +70,7 @@ class SegmentAssignerSpec extends TestBase {
       val segment2 = TestSegment(Slice(Transient.Put(3)).updateStats).get
       val segments = Set(segment1, segment2)
 
-      val result = SegmentAssigner.assign(Slice(Transient.Put(4), Transient.Put(5), Transient.Put(6)).updateStats, segments)
+      val result = SegmentAssigner.assign(Slice(Transient.Put(4), Transient.Put(5), Transient.Put(6)).updateStats, segments).assertGet
       result.size shouldBe 1
       result.keys.head.path shouldBe segment2.path
     }
@@ -84,7 +84,7 @@ class SegmentAssignerSpec extends TestBase {
       //1 will get assigned to first segment, 2 is a gap key and since first segment is not empty,
       // 2 gets assigned to first Segment
       val keyValues = Slice(Transient.Put(1, 1), Transient.Put(2))
-      val result = SegmentAssigner.assign(keyValues, segments)
+      val result = SegmentAssigner.assign(keyValues, segments).assertGet
       result.size shouldBe 1
       result.keys.head.path shouldBe segment1.path
       result.values.head.shouldBe(keyValues, ignoreStats = true)
@@ -96,7 +96,7 @@ class SegmentAssignerSpec extends TestBase {
       val segment2 = TestSegment(Slice(Transient.Put(3), Transient.Put(4)).updateStats).get
       val segments = Set(segment1, segment2)
 
-      val result = SegmentAssigner.assign(Slice(Transient.Put(2)), segments)
+      val result = SegmentAssigner.assign(Slice(Transient.Put(2)), segments).assertGet
       result.size shouldBe 1
       result.keys.head.path shouldBe segment2.path
     }
@@ -106,7 +106,7 @@ class SegmentAssignerSpec extends TestBase {
       val segment2 = TestSegment(Slice(Transient.Put(4), Transient.Put(5)).updateStats).get
       val segments = Set(segment1, segment2)
 
-      val result = SegmentAssigner.assign(Slice(Transient.Put(0)), segments)
+      val result = SegmentAssigner.assign(Slice(Transient.Put(0)), segments).assertGet
       result.size shouldBe 1
       result.keys.head.path shouldBe segment1.path
     }
@@ -118,7 +118,7 @@ class SegmentAssignerSpec extends TestBase {
       val segment4 = TestSegment(Slice(Transient.Put(8), Transient.Put(9)).updateStats).get
       val segments = Set(segment1, segment2, segment3, segment4)
 
-      val result = SegmentAssigner.assign(Slice(Transient.Put(10)), segments)
+      val result = SegmentAssigner.assign(Slice(Transient.Put(10)), segments).assertGet
       result.size shouldBe 1
       result.keys.head.path shouldBe segment4.path
     }
@@ -133,7 +133,7 @@ class SegmentAssignerSpec extends TestBase {
 
       val segments = List(segment1, segment2, segment3, segment4, segment5)
 
-      val result = SegmentAssigner.assign(keyValues, segments)
+      val result = SegmentAssigner.assign(keyValues, segments).assertGet
       result.size shouldBe 5
 
       //sort them by the fileId, so it's easier to test

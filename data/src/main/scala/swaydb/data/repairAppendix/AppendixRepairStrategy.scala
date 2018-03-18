@@ -23,5 +23,5 @@ sealed trait AppendixRepairStrategy
 object AppendixRepairStrategy {
   object KeepNew extends AppendixRepairStrategy
   object KeepOld extends AppendixRepairStrategy
-  object Report extends AppendixRepairStrategy
+  object ReportFailure extends AppendixRepairStrategy
 }

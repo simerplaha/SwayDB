@@ -24,6 +24,7 @@ import java.nio.channels.FileChannel
 import java.nio.file.{NoSuchFileException, Path, StandardOpenOption}
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.core.util.TryUtil
 import swaydb.data.slice.Slice
 
 import scala.util.{Failure, Success, Try}
@@ -99,5 +100,5 @@ private[file] class ChannelFile(val path: Path,
     }
 
   override def forceSave(): Try[Unit] =
-    Success()
+    TryUtil.successUnit
 }

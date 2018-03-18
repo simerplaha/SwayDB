@@ -22,7 +22,7 @@ package swaydb.core.segment
 import java.nio.file._
 
 import swaydb.core.data.Transient.Remove
-import swaydb.core.data.{KeyValueWriteOnly, PersistentReadOnly, Transient}
+import swaydb.core.data.{KeyValue, SegmentEntryReadOnly, Transient}
 import swaydb.core.io.file.{DBFile, IO}
 import swaydb.core.level.PathsDistributor
 import swaydb.core.segment.SegmentException.CannotCopyInMemoryFiles
@@ -69,7 +69,7 @@ class SegmentWriteSpec extends TestBase with Benchmark {
   //  override def deleteFiles = false
 
   implicit val fileOpenLimiterImplicit: DBFile => Unit = TestLimitQueues.fileOpenLimiter
-  implicit val keyValueLimiterImplicit: (PersistentReadOnly, Segment) => Unit = TestLimitQueues.keyValueLimiter
+  implicit val keyValueLimiterImplicit: (SegmentEntryReadOnly, Segment) => Unit = TestLimitQueues.keyValueLimiter
 
   "Segment" should {
 
@@ -212,7 +212,7 @@ class SegmentWriteSpec extends TestBase with Benchmark {
         }
       }
 
-      def open(keyValue: KeyValueWriteOnly) = {
+      def open(keyValue: KeyValue.WriteOnly) = {
         segment.get(keyValue.key).assertGet shouldBe keyValue
         segment.isFileDefined shouldBe true
         segment.isOpen shouldBe true
@@ -361,10 +361,10 @@ class SegmentWriteSpec extends TestBase with Benchmark {
 
       val allReadKeyValues = Segment.getAllKeyValues(0.1, newSegments).assertGet
 
-      val expectedKeyValues = SegmentMerge.merge(newKeyValues, keyValues, 1.mb, false, forInMemory = memory, 0.1)
+      val expectedKeyValues = SegmentMerge.merge(newKeyValues, keyValues, 1.mb, false, forInMemory = memory, 0.1).assertGet
       expectedKeyValues should have size 1
 
-      allReadKeyValues shouldBe expectedKeyValues.head
+      allReadKeyValues.map(entry => (entry.key, entry.getOrFetchValue.assertGetOpt)) shouldBe expectedKeyValues.head.map(entry => (entry.key, entry.getOrFetchValue.assertGetOpt))
     }
 
     "return multiple new segments with merged key values" in {
@@ -378,11 +378,11 @@ class SegmentWriteSpec extends TestBase with Benchmark {
       val allReadKeyValues = Segment.getAllKeyValues(0.1, newSegments).assertGet
 
       //give merge a very large size so that there are no splits (test convenience)
-      val expectedKeyValues = SegmentMerge.merge(newKeyValues, keyValues, 10.mb, false, forInMemory = memory, 0.1)
+      val expectedKeyValues = SegmentMerge.merge(newKeyValues, keyValues, 10.mb, false, forInMemory = memory, 0.1).assertGet
       expectedKeyValues should have size 1
 
       //allReadKeyValues are read from multiple Segments so valueOffsets will be invalid so stats will be invalid
-      allReadKeyValues shouldBe(expectedKeyValues.head, ignoreStats = true)
+      allReadKeyValues.map(entry => (entry.key, entry.getOrFetchValue.assertGetOpt)) shouldBe expectedKeyValues.head.map(entry => (entry.key, entry.getOrFetchValue.assertGetOpt))
     }
 
     "fail put and delete partially written batch Segments if there was a failure in creating one of them" in {
@@ -443,7 +443,7 @@ class SegmentWriteSpec extends TestBase with Benchmark {
       val keyValues = randomIntKeyStringValues(count = 100)
       val segment = TestSegment(keyValues, removeDeletes = true).assertGet
 
-      val updatedKeyValues = Slice.create[KeyValueWriteOnly](keyValues.size)
+      val updatedKeyValues = Slice.create[KeyValue.WriteOnly](keyValues.size)
       keyValues.foreach(keyValue => updatedKeyValues add Transient.Put(keyValue.key, 0.1, updatedKeyValues.lastOption))
 
       val updatedSegments = segment.put(updatedKeyValues, 4.mb, 0.1).assertGet
@@ -467,7 +467,7 @@ class SegmentWriteSpec extends TestBase with Benchmark {
       val keyValues1 = randomIntKeyValues(count = 10)
       val segment1 = TestSegment(keyValues1).assertGet
 
-      val keyValues2 = Slice.create[KeyValueWriteOnly](10)
+      val keyValues2 = Slice.create[KeyValue.WriteOnly](10)
       keyValues1 foreach {
         keyValue =>
           keyValues2 add Transient.Put(keyValue.key, value = randomInt(), previous = keyValues2.lastOption, falsePositiveRate = 0.1)

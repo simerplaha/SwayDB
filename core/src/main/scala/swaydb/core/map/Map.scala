@@ -25,6 +25,7 @@ import java.util.function.BiConsumer
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
+import swaydb.core.util.TryUtil
 import swaydb.core.util.TryUtil.tryOrNone
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
@@ -43,8 +44,9 @@ private[core] object Map extends LazyLogging {
                                  fileSize: Long,
                                  dropCorruptedTailEntries: Boolean)(implicit ordering: Ordering[K],
                                                                     ec: ExecutionContext,
-                                                                    writer: MapEntryWriter[MapEntry.Add[K, V]],
-                                                                    reader: MapEntryReader[MapEntry[K, V]]): Try[RecoveryResult[PersistentMap[K, V]]] =
+                                                                    writer: MapEntryWriter[MapEntry.Put[K, V]],
+                                                                    reader: MapEntryReader[MapEntry[K, V]],
+                                                                    skipListConflictResolver: SkipListConflictResolver[K, V]): Try[RecoveryResult[PersistentMap[K, V]]] =
     PersistentMap(folder, mmap, flushOnOverflow, fileSize, dropCorruptedTailEntries)
 
   def persistent[K, V: ClassTag](folder: Path,
@@ -53,12 +55,14 @@ private[core] object Map extends LazyLogging {
                                  fileSize: Long)(implicit ordering: Ordering[K],
                                                  ec: ExecutionContext,
                                                  reader: MapEntryReader[MapEntry[K, V]],
-                                                 writer: MapEntryWriter[MapEntry.Add[K, V]]): Try[PersistentMap[K, V]] =
+                                                 writer: MapEntryWriter[MapEntry.Put[K, V]],
+                                                 skipListConflictResolver: SkipListConflictResolver[K, V]): Try[PersistentMap[K, V]] =
     PersistentMap(folder, mmap, flushOnOverflow, fileSize)
 
   def memory[K, V: ClassTag](fileSize: Long = 0.byte,
                              flushOnOverflow: Boolean = true)(implicit ordering: Ordering[K],
-                                                              writer: MapEntryWriter[MapEntry.Add[K, V]]): MemoryMap[K, V] =
+                                                              skipListConflictResolver: SkipListConflictResolver[K, V],
+                                                              writer: MapEntryWriter[MapEntry.Put[K, V]]): MemoryMap[K, V] =
     new MemoryMap[K, V](
       skipList = new ConcurrentSkipListMap[K, V](ordering),
       flushOnOverflow = flushOnOverflow,
@@ -67,6 +71,8 @@ private[core] object Map extends LazyLogging {
 }
 
 private[core] trait Map[K, V] {
+
+  def hasRange: Boolean
 
   val skipList: ConcurrentSkipListMap[K, V]
 
@@ -194,7 +200,7 @@ private[core] trait Map[K, V] {
     None
 
   def close(): Try[Unit] =
-    Success()
+    TryUtil.successUnit
 
   def fileId: Try[Long] =
     Success(0)

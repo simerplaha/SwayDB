@@ -26,6 +26,7 @@ import java.nio.{BufferOverflowException, MappedByteBuffer}
 import java.util.concurrent.atomic.AtomicBoolean
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.core.util.TryUtil
 import swaydb.data.slice.Slice
 import swaydb.data.slice.Slice._
 
@@ -76,13 +77,13 @@ private[file] class MMAPFile(val path: Path,
       }
     } else {
       logger.trace("{}: Already closed.", path)
-      Success()
+      TryUtil.successUnit
     }
   }
 
   def forceSave(): Try[Unit] =
     if (mode == MapMode.READ_ONLY)
-      Success()
+      TryUtil.successUnit
     else
       Try(buffer.force())
 
@@ -108,7 +109,7 @@ private[file] class MMAPFile(val path: Path,
   final def append(slice: Slice[Byte]): Try[Unit] =
     Try(buffer.put(slice.toByteBuffer)) match {
       case Success(_) =>
-        Success()
+        TryUtil.successUnit
 
       //Although this code extends the buffer, currently there is no implementation that requires this feature.
       //All the bytes requires for each write operation are pre-calculated EXACTLY and an overflow should NEVER occur.

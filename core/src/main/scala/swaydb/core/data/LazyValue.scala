@@ -19,7 +19,6 @@
 
 package swaydb.core.data
 
-import swaydb.core.data.Persistent.Put
 import swaydb.core.segment.format.one.SegmentReader
 import swaydb.data.slice.{Reader, Slice}
 
@@ -33,11 +32,6 @@ trait LazyValue {
   def valueLength: Int
 
   def valueOffset: Int
-
-  def unsliceKey: Unit
-
-  def id: Int =
-    Put.id
 
   //tries fetching the value from the given reader
   private def fetchValue(reader: Reader): Try[Option[Slice[Byte]]] = {
@@ -59,8 +53,6 @@ trait LazyValue {
 
   def getOrFetchValue: Try[Option[Slice[Byte]]] =
     fetchValue(valueReader)
-
-  def isRemove: Boolean = false
 
   def isValueDefined: Boolean = valueOption.isDefined
 

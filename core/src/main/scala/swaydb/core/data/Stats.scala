@@ -19,7 +19,6 @@
 
 package swaydb.core.data
 
-import swaydb.core.data.Persistent.{Put, Removed}
 import swaydb.core.util.{BloomFilterUtil, ByteUtilCore}
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
@@ -35,7 +34,8 @@ private[core] case class Stats(valueOffset: Int,
                                segmentSizeWithoutFooter: Int,
                                thisKeyValuesUncompressedKeySize: Int,
                                thisKeyValuesSegmentSizeWithoutFooter: Int,
-                               thisKeyValuesIndexSizeWithoutFooter: Int) {
+                               thisKeyValuesIndexSizeWithoutFooter: Int,
+                               hasRemoveRange: Boolean) {
   def isNoneValue: Boolean =
     valueLength == 0
 
@@ -55,35 +55,35 @@ private[core] case class Stats(valueOffset: Int,
 private[core] object Stats {
 
   def apply(key: Slice[Byte],
-            isDelete: Boolean,
-            falsePositiveRate: Double): Stats =
-    Stats(key, 0, 0, isDelete, falsePositiveRate, None)
+            falsePositiveRate: Double,
+            hasRemoveRange: Boolean): Stats =
+    Stats(key, 0, 0, falsePositiveRate, hasRemoveRange = hasRemoveRange, None)
 
   def apply(key: Slice[Byte],
             value: Slice[Byte],
             falsePositiveRate: Double,
-            isDelete: Boolean): Stats =
-    Stats(key, value.size, 0, isDelete, falsePositiveRate, None)
+            hasRemoveRange: Boolean): Stats =
+    Stats(key, value.size, 0, falsePositiveRate, hasRemoveRange, None)
 
   def apply(key: Slice[Byte],
             value: Slice[Byte],
-            isDelete: Boolean,
             falsePositiveRate: Double,
-            previousStats: Option[KeyValueWriteOnly]): Stats =
-    Stats(key, Some(value), isDelete, falsePositiveRate, previousStats)
+            hasRemoveRange: Boolean,
+            previous: Option[KeyValue.WriteOnly]): Stats =
+    Stats(key, Some(value), falsePositiveRate, hasRemoveRange || previous.exists(_.isRemoveRange), previous)
 
   def apply(key: Slice[Byte],
             value: Option[Slice[Byte]],
-            isDelete: Boolean,
             falsePositiveRate: Double,
-            previous: Option[KeyValueWriteOnly]): Stats =
-    Stats(key, value.map(_.size).getOrElse(0), isDelete, falsePositiveRate, previous)
+            hasRemoveRange: Boolean,
+            previous: Option[KeyValue.WriteOnly]): Stats =
+    Stats(key, value.map(_.size).getOrElse(0), falsePositiveRate, hasRemoveRange || previous.exists(_.isRemoveRange), previous)
 
   def apply(key: Slice[Byte],
             valueLength: Int,
-            isDelete: Boolean,
             falsePositiveRate: Double,
-            previous: Option[KeyValueWriteOnly]): Stats = {
+            hasRemoveRange: Boolean,
+            previous: Option[KeyValue.WriteOnly]): Stats = {
     val valueOffset =
       previous match {
         case Some(previous) =>
@@ -96,15 +96,15 @@ private[core] object Stats {
         case _ =>
           0
       }
-    Stats(key, valueLength, valueOffset, isDelete, falsePositiveRate, previous)
+    Stats(key, valueLength, valueOffset, falsePositiveRate, hasRemoveRange || previous.exists(_.isRemoveRange), previous)
   }
 
   private def apply(key: Slice[Byte],
                     valueLength: Int,
                     valueOffset: Int,
-                    isDelete: Boolean,
                     falsePositiveRate: Double,
-                    previous: Option[KeyValueWriteOnly]): Stats = {
+                    hasRemoveRange: Boolean,
+                    previous: Option[KeyValue.WriteOnly]): Stats = {
 
     val commonBytes: Int =
       previous.map(previousKeyValue => ByteUtilCore.commonPrefixBytes(previousKeyValue.key, key)) getOrElse 0
@@ -125,28 +125,18 @@ private[core] object Stats {
       previousStats.map(_.position + 1) getOrElse 1
 
     val thisKeyValuesIndexSizeWithoutFooter =
-      if (isDelete) {
+      if (valueLength == 0) {
         val indexSize =
-          ByteUtilCore.sizeUnsignedInt(Removed.id) +
-            ByteUtilCore.sizeUnsignedInt(commonBytes) +
-            ByteUtilCore.sizeUnsignedInt(keyLength) +
-            keyLength
-
-        ByteUtilCore.sizeUnsignedInt(indexSize) + indexSize
-      }
-      else if (valueLength == 0) {
-        val indexSize =
-          ByteUtilCore.sizeUnsignedInt(Put.id) +
+          1 +
             ByteUtilCore.sizeUnsignedInt(commonBytes) +
             ByteUtilCore.sizeUnsignedInt(keyLength) +
             keyLength +
             ByteUtilCore.sizeUnsignedInt(0)
 
         ByteUtilCore.sizeUnsignedInt(indexSize) + indexSize
-      }
-      else {
+      } else {
         val indexSize =
-          ByteUtilCore.sizeUnsignedInt(Put.id) +
+          1 +
             ByteUtilCore.sizeUnsignedInt(commonBytes) +
             ByteUtilCore.sizeUnsignedInt(keyLength) +
             keyLength +
@@ -190,7 +180,8 @@ private[core] object Stats {
       segmentSizeWithoutFooter = segmentSizeWithoutFooter,
       thisKeyValuesUncompressedKeySize = key.size,
       thisKeyValuesSegmentSizeWithoutFooter = thisKeyValuesSegmentSizeWithoutFooter,
-      thisKeyValuesIndexSizeWithoutFooter = thisKeyValuesIndexSizeWithoutFooter
+      thisKeyValuesIndexSizeWithoutFooter = thisKeyValuesIndexSizeWithoutFooter,
+      hasRemoveRange = hasRemoveRange
     )
   }
 }

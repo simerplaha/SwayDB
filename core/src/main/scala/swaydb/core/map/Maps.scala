@@ -27,6 +27,7 @@ import swaydb.core.brake.BrakePedal
 import swaydb.core.io.file.IO
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.core.util.FileUtil._
+import swaydb.core.util.TryUtil
 import swaydb.core.util.TryUtil._
 import swaydb.data.accelerate.{Accelerator, Level0Meter}
 import swaydb.data.config.RecoveryMode
@@ -43,7 +44,8 @@ private[core] object Maps extends LazyLogging {
   def memory[K, V: ClassTag](fileSize: Long,
                              acceleration: Level0Meter => Accelerator)(implicit ordering: Ordering[K],
                                                                        mapReader: MapEntryReader[MapEntry[K, V]],
-                                                                       writer: MapEntryWriter[MapEntry.Add[K, V]],
+                                                                       writer: MapEntryWriter[MapEntry.Put[K, V]],
+                                                                       skipListConflictResolver: SkipListConflictResolver[K, V],
                                                                        ec: ExecutionContext): Maps[K, V] =
     new Maps[K, V](
       maps = new ConcurrentLinkedDeque[Map[K, V]](),
@@ -57,8 +59,9 @@ private[core] object Maps extends LazyLogging {
                                  fileSize: Long,
                                  acceleration: Level0Meter => Accelerator,
                                  recovery: RecoveryMode)(implicit ordering: Ordering[K],
-                                                         writer: MapEntryWriter[MapEntry.Add[K, V]],
+                                                         writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                          reader: MapEntryReader[MapEntry[K, V]],
+                                                         skipListConflictResolver: SkipListConflictResolver[K, V],
                                                          ec: ExecutionContext): Try[Maps[K, V]] = {
     logger.debug("{}: Maps persistent started. Initialising recovery.", path)
     //reverse to keep the newest maps at the top.
@@ -101,8 +104,9 @@ private[core] object Maps extends LazyLogging {
                                       mmap: Boolean,
                                       fileSize: Long,
                                       recovery: RecoveryMode)(implicit ordering: Ordering[K],
-                                                              writer: MapEntryWriter[MapEntry.Add[K, V]],
+                                                              writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                               mapReader: MapEntryReader[MapEntry[K, V]],
+                                                              skipListConflictResolver: SkipListConflictResolver[K, V],
                                                               ec: ExecutionContext): Try[Seq[Map[K, V]]] = {
     /**
       * Performs corruption handling based on the the value set for [[RecoveryMode]].
@@ -110,11 +114,11 @@ private[core] object Maps extends LazyLogging {
     def applyRecoveryMode(exception: Throwable,
                           mapPath: Path,
                           otherMapsPaths: List[Path],
-                          recoveredMaps: ListBuffer[Map[K, V]]): Try[Seq[Map[K, V]]] =
+                          recoveredMaps: ListBuffer[Map[K, V]])(implicit skipListConflictResolver: SkipListConflictResolver[K, V]): Try[Seq[Map[K, V]]] =
       exception match {
         case exception: IllegalStateException =>
           recovery match {
-            case RecoveryMode.ReportCorruption =>
+            case RecoveryMode.ReportFailure =>
               //return failure immediately without effecting the current state of Level0
               Failure(exception)
 
@@ -133,7 +137,7 @@ private[core] object Maps extends LazyLogging {
                   IO.walkDelete(mapPath) match {
                     case Success(_) =>
                       logger.info(s"{}: Deleted file after corruption. Recovery mode: {}", mapPath, recovery.name)
-                      Success()
+                      TryUtil.successUnit
 
                     case Failure(exception) =>
                       logger.error(s"{}: Failure to delete file after corruption file. Recovery mode: {}", mapPath, recovery.name)
@@ -159,7 +163,7 @@ private[core] object Maps extends LazyLogging {
       * are not expected to become too large that would result in a stack overflow.
       */
     def doRecovery(maps: List[Path],
-                   recoveredMaps: ListBuffer[Map[K, V]]): Try[Seq[Map[K, V]]] =
+                   recoveredMaps: ListBuffer[Map[K, V]])(implicit skipListConflictResolver: SkipListConflictResolver[K, V]): Try[Seq[Map[K, V]]] =
       maps match {
         case Nil =>
           Success(recoveredMaps)
@@ -191,10 +195,11 @@ private[core] object Maps extends LazyLogging {
   def nextMap[K, V: ClassTag](nextMapSize: Long,
                               currentMap: Map[K, V])(implicit ordering: Ordering[K],
                                                      mapReader: MapEntryReader[MapEntry[K, V]],
-                                                     writer: MapEntryWriter[MapEntry.Add[K, V]],
+                                                     writer: MapEntryWriter[MapEntry.Put[K, V]],
+                                                     skipListConflictResolver: SkipListConflictResolver[K, V],
                                                      ec: ExecutionContext): Try[Map[K, V]] =
     currentMap match {
-      case currentMap @ PersistentMap(path, _, mmap, _, _, _) =>
+      case currentMap @ PersistentMap(path, mmap, _, _, _, _) =>
         currentMap.close() flatMap {
           _ =>
             Map.persistent[K, V](path.incrementFolderId, mmap, flushOnOverflow = false, fileSize = nextMapSize)
@@ -210,7 +215,8 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
                                          acceleration: Level0Meter => Accelerator,
                                          @volatile private var currentMap: Map[K, V])(implicit ordering: Ordering[K],
                                                                                       mapReader: MapEntryReader[MapEntry[K, V]],
-                                                                                      writer: MapEntryWriter[MapEntry.Add[K, V]],
+                                                                                      writer: MapEntryWriter[MapEntry.Put[K, V]],
+                                                                                      skipListConflictResolver: SkipListConflictResolver[K, V],
                                                                                       ec: ExecutionContext) extends LazyLogging {
 
   private var meter = Level0Meter(fileSize, currentMap.fileSize, maps.size() + 1)
@@ -371,7 +377,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
             Failure(exception)
 
           case Success(_) =>
-            Success()
+            TryUtil.successUnit
         }
     }
 
@@ -391,7 +397,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
     currentMap
 
   def close: Try[Unit] =
-    maps.asScala.tryForeach(f = _.close(), failFast = false) getOrElse Success()
+    maps.asScala.tryForeach(f = _.close(), failFast = false) getOrElse TryUtil.successUnit
 
   def getMeter =
     Level0Meter(fileSize, currentMap.fileSize, maps.size() + 1)

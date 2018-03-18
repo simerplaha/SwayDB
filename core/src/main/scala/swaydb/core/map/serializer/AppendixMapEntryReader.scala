@@ -22,7 +22,7 @@ package swaydb.core.map.serializer
 import java.nio.charset.StandardCharsets
 import java.nio.file.Paths
 
-import swaydb.core.data.PersistentReadOnly
+import swaydb.core.data.SegmentEntryReadOnly
 import swaydb.core.io.file.DBFile
 import swaydb.core.map.MapEntry
 import swaydb.core.segment.Segment
@@ -36,7 +36,7 @@ object AppendixMapEntryReader {
             mmapSegmentsOnRead: Boolean,
             mmapSegmentsOnWrite: Boolean,
             cacheKeysOnCreate: Boolean)(implicit ordering: Ordering[Slice[Byte]],
-                                        keyValueLimiter: (PersistentReadOnly, Segment) => Unit,
+                                        keyValueLimiter: (SegmentEntryReadOnly, Segment) => Unit,
                                         fileOpenLimiter: DBFile => Unit,
                                         ec: ExecutionContext): AppendixMapEntryReader =
     new AppendixMapEntryReader(
@@ -51,12 +51,12 @@ class AppendixMapEntryReader(removeDeletes: Boolean,
                              mmapSegmentsOnRead: Boolean,
                              mmapSegmentsOnWrite: Boolean,
                              cacheKeysOnCreate: Boolean)(implicit ordering: Ordering[Slice[Byte]],
-                                                         keyValueLimiter: (PersistentReadOnly, Segment) => Unit,
+                                                         keyValueLimiter: (SegmentEntryReadOnly, Segment) => Unit,
                                                          fileOpenLimiter: DBFile => Unit,
                                                          ec: ExecutionContext) {
 
-  implicit object AppendixAddReader extends MapEntryReader[MapEntry.Add[Slice[Byte], Segment]] {
-    override def read(reader: Reader): Try[Option[MapEntry.Add[Slice[Byte], Segment]]] =
+  implicit object AppendixPutReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Segment]] {
+    override def read(reader: Reader): Try[Option[MapEntry.Put[Slice[Byte], Segment]]] =
       for {
         segmentPathLength <- reader.readIntUnsigned()
         segmentPathBytes <- reader.read(segmentPathLength).map(_.unslice())
@@ -68,7 +68,7 @@ class AppendixMapEntryReader(removeDeletes: Boolean,
         maxKey <- reader.read(maxKeyLength).map(_.unslice())
         segment <- Segment(segmentPath, cacheKeysOnCreate, mmapSegmentsOnRead, mmapSegmentsOnWrite, minKey, maxKey, segmentSize, removeDeletes, checkExists = false)
       } yield {
-        Some(MapEntry.Add(minKey, segment)(AppendixMapEntryWriter.AppendixAddWriter))
+        Some(MapEntry.Put(minKey, segment)(AppendixMapEntryWriter.AppendixPutWriter))
       }
   }
 
@@ -88,8 +88,8 @@ class AppendixMapEntryReader(removeDeletes: Boolean,
         case (previousEntry, reader) =>
           reader.readIntUnsigned() flatMap {
             entryId =>
-              if (entryId == AppendixMapEntryWriter.AppendixAddWriter.id)
-                AppendixAddReader.read(reader) map {
+              if (entryId == AppendixMapEntryWriter.AppendixPutWriter.id)
+                AppendixPutReader.read(reader) map {
                   nextEntry =>
                     nextEntry flatMap {
                       nextEntry =>

@@ -21,7 +21,7 @@ package swaydb.core.map
 
 import java.util.concurrent.ConcurrentSkipListMap
 
-import swaydb.core.map.MapEntry.{Add, Remove}
+import swaydb.core.map.MapEntry.{Put, Remove}
 import swaydb.core.map.serializer.{MapCodec, MapEntryWriter}
 import swaydb.data.slice.Slice
 
@@ -37,9 +37,10 @@ import scala.collection.mutable.ListBuffer
   */
 
 private[swaydb] sealed trait MapEntry[K, +V] { thisEntry =>
-  val hasRange: Boolean
 
   def applyTo[T >: V](map: ConcurrentSkipListMap[K, T]): Unit
+
+  val hasRange: Boolean
 
   /**
     * Each map entry computes the bytes required for the entry on creation.
@@ -58,7 +59,7 @@ private[swaydb] sealed trait MapEntry[K, +V] { thisEntry =>
 
   def asString(keyParser: K => String, valueParser: V => String): String = {
     this match {
-      case Add(key, value) =>
+      case Put(key, value) =>
         s"""
            |Type         : Add
            |key          : ${keyParser(key)}
@@ -91,11 +92,11 @@ private[swaydb] object MapEntry {
         override val entryBytesSize =
           left.entryBytesSize + right.entryBytesSize
 
-        override val hasRange: Boolean =
-          left.hasRange || right.hasRange
-
         override def applyTo[T >: V](map: ConcurrentSkipListMap[K, T]): Unit =
           _entries.asInstanceOf[ListBuffer[MapEntry[K, V]]] foreach (_.applyTo(map))
+
+        override val hasRange: Boolean =
+          left.hasRange || right.hasRange
       }
 
     def entries: ListBuffer[MapEntry[K, V]] =
@@ -103,8 +104,10 @@ private[swaydb] object MapEntry {
 
   }
 
-  case class Add[K, V](key: K,
-                       value: V)(implicit serializer: MapEntryWriter[MapEntry.Add[K, V]]) extends MapEntry[K, V] {
+  case class Put[K, V](key: K,
+                       value: V)(implicit serializer: MapEntryWriter[MapEntry.Put[K, V]]) extends MapEntry[K, V] {
+
+    val hasRange: Boolean = serializer.isRange
 
     override val entryBytesSize: Int =
       serializer bytesRequired this
@@ -112,21 +115,20 @@ private[swaydb] object MapEntry {
     override def writeTo(slice: Slice[Byte]): Unit =
       serializer.write(this, slice)
 
-    override val hasRange: Boolean = false
-
     override def applyTo[T >: V](map: ConcurrentSkipListMap[K, T]): Unit =
       map.put(key, value)
+
   }
 
   case class Remove[K](key: K)(implicit serializer: MapEntryWriter[MapEntry.Remove[K]]) extends MapEntry[K, Nothing] {
 
+    val hasRange: Boolean = serializer.isRange
+
     override val entryBytesSize: Int =
       serializer bytesRequired this
 
     override def writeTo(slice: Slice[Byte]): Unit =
       serializer.write(this, slice)
-
-    override val hasRange: Boolean = false
 
     override def applyTo[T >: Nothing](map: ConcurrentSkipListMap[K, T]): Unit =
       map.remove(key)

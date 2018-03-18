@@ -24,11 +24,13 @@ import java.nio.file.NoSuchFileException
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.PrivateMethodTester
 import swaydb.core.actor.TestActor
+import swaydb.core.data.KeyValue.WriteOnly
 import swaydb.core.data.Transient.Remove
 import swaydb.core.data._
 import swaydb.core.io.file.{DBFile, IO}
 import swaydb.core.level.actor.LevelAPI
 import swaydb.core.level.actor.LevelCommand.{PushSegments, PushSegmentsResponse}
+import swaydb.core.level.zero.SkipListRangeConflictResolver
 import swaydb.core.map.serializer.{AppendixMapEntryReader, AppendixMapEntryWriter}
 import swaydb.core.map.{Map, MapEntry}
 import swaydb.core.segment.Segment
@@ -80,7 +82,8 @@ class LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
   //    false
 
   implicit val maxSegmentsOpenCacheImplicitLimiter: DBFile => Unit = TestLimitQueues.fileOpenLimiter
-  implicit val keyValuesLimitImplicitLimiter: (PersistentReadOnly, Segment) => Unit = TestLimitQueues.keyValueLimiter
+  implicit val keyValuesLimitImplicitLimiter: (SegmentEntryReadOnly, Segment) => Unit = TestLimitQueues.keyValueLimiter
+  implicit val skipListRangeConflictResolver = SkipListRangeConflictResolver
 
   "Level" should {
     "initialise" in {
@@ -396,18 +399,18 @@ class LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
     val keyValues = randomIntKeyStringValues(keyValuesCount, addRandomDeletes = true)
     keyValues foreach {
       keyValue =>
-        val value = if (keyValue.isRemove) Value.Remove else Value.Put(keyValue.getOrFetchValue.assertGetOpt)
-        map.write(MapEntry.Add[Slice[Byte], Value](keyValue.key, value))
+        val value = if (keyValue.isInstanceOf[Transient.Remove]) Value.Remove else Value.Put(keyValue.getOrFetchValue.assertGetOpt)
+        map.write(MapEntry.Put[Slice[Byte], Value](keyValue.key, value))
     }
 
     "create a segment to an empty Level with no lower level" in {
       val level = TestLevel()
       level.putMap(map).assertGet
       //since this is a new Segment and Level has no sub-level, all the deleted key-values will get removed.
-      assertReads(keyValues.filterNot(_.isRemove), level)
+      assertReads(keyValues.filterNot(_.isInstanceOf[Transient.Remove]), level)
 
       //deleted key-values do not exist.
-      keyValues.filter(_.isRemove) foreach {
+      keyValues.filter(_.isInstanceOf[Transient.Remove]) foreach {
         deleted =>
           level.get(deleted.key).assertGetOpt shouldBe empty
       }
@@ -426,7 +429,7 @@ class LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
 
       //put a new map
       level.putMap(map).assertGet
-      assertGet(keyValues.filter(_.notRemove), level)
+      assertGet(keyValues.filterNot(_.isInstanceOf[Transient.Remove]), level)
 
       level.get("one").assertGetOpt shouldBe existingKeyValues(0)
       level.get("two").assertGetOpt shouldBe existingKeyValues(1)
@@ -456,7 +459,7 @@ class LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
       //do another put so a merge occurs resulting in split
       level.putKeyValues(Slice(keyValues.head)).assertGet
 
-      val deleteKeyValues = Slice.create[KeyValueWriteOnly](keyValues.size * 2)
+      val deleteKeyValues = Slice.create[KeyValue.WriteOnly](keyValues.size * 2)
       keyValues foreach {
         keyValue =>
           deleteKeyValues add Remove(keyValue.key, previous = deleteKeyValues.lastOption, falsePositiveRate = 0.1)
@@ -485,7 +488,7 @@ class LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
       val keyValues = randomIntKeyStringValues()
       level.putKeyValues(keyValues).assertGet
 
-      val deleteKeyValues = Slice.create[KeyValueWriteOnly](keyValues.size)
+      val deleteKeyValues = Slice.create[KeyValue.WriteOnly](keyValues.size)
       keyValues foreach {
         keyValue =>
           deleteKeyValues add Transient.Remove(keyValue.key, previous = deleteKeyValues.lastOption, falsePositiveRate = 0.1)
@@ -692,18 +695,18 @@ class LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
   "Level.buildNewMapEntry" should {
     import swaydb.core.map.serializer.AppendixMapEntryWriter._
 
-    "build MapEntry.Add map for the first created Segment" in {
+    "build MapEntry.Put map for the first created Segment" in {
       val level = TestLevel()
 
       val map = TestSegment(Slice(Transient.Put(1, "value1"), Transient.Put(2, "value2")).updateStats).assertGet
       val actualMapEntry = level.buildNewMapEntry(Slice(map), initialMapEntry = None).assertGet
-      val expectedMapEntry = MapEntry.Add[Slice[Byte], Segment](map.minKey, map)
+      val expectedMapEntry = MapEntry.Put[Slice[Byte], Segment](map.minKey, map)
 
       actualMapEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.read[Int]) shouldBe
         expectedMapEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.read[Int])
     }
 
-    "build MapEntry.Add map for the newly merged Segments and not add MapEntry.Remove map " +
+    "build MapEntry.Put map for the newly merged Segments and not add MapEntry.Remove map " +
       "for original Segment as it's minKey is replace by one of the new Segment" in {
       val level = TestLevel()
 
@@ -715,16 +718,16 @@ class LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
       val actualMapEntry = level.buildNewMapEntry(Slice(mergedSegment1, mergedSegment2, mergedSegment3), Some(originalSegment), initialMapEntry = None).assertGet
 
       val expectedMapEntry =
-        MapEntry.Add[Slice[Byte], Segment](1, mergedSegment1) ++
-          MapEntry.Add[Slice[Byte], Segment](6, mergedSegment2) ++
-          MapEntry.Add[Slice[Byte], Segment](11, mergedSegment3)
+        MapEntry.Put[Slice[Byte], Segment](1, mergedSegment1) ++
+          MapEntry.Put[Slice[Byte], Segment](6, mergedSegment2) ++
+          MapEntry.Put[Slice[Byte], Segment](11, mergedSegment3)
 
       actualMapEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.read[Int]) shouldBe
         expectedMapEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.read[Int])
 
     }
 
-    "build MapEntry.Add map for the newly merged Segments and also add Remove map entry for original map when all minKeys are unique" in {
+    "build MapEntry.Put map for the newly merged Segments and also add Remove map entry for original map when all minKeys are unique" in {
       val level = TestLevel()
 
       val originalSegment = TestSegment(Slice(Transient.Put(0, "value"), Transient.Put(5, "value")).updateStats).assertGet
@@ -733,9 +736,9 @@ class LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
       val mergedSegment3 = TestSegment(Slice(Transient.Put(11, "value"), Transient.Put(15, "value")).updateStats).assertGet
 
       val expectedMapEntry =
-        MapEntry.Add[Slice[Byte], Segment](1, mergedSegment1) ++
-          MapEntry.Add[Slice[Byte], Segment](6, mergedSegment2) ++
-          MapEntry.Add[Slice[Byte], Segment](11, mergedSegment3) ++
+        MapEntry.Put[Slice[Byte], Segment](1, mergedSegment1) ++
+          MapEntry.Put[Slice[Byte], Segment](6, mergedSegment2) ++
+          MapEntry.Put[Slice[Byte], Segment](11, mergedSegment3) ++
           MapEntry.Remove[Slice[Byte]](0)
 
       val actualMapEntry = level.buildNewMapEntry(Slice(mergedSegment1, mergedSegment2, mergedSegment3), Some(originalSegment), initialMapEntry = None).assertGet

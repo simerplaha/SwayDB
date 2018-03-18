@@ -21,7 +21,7 @@ package swaydb.core.map.serializer
 
 import java.util.concurrent.ConcurrentSkipListMap
 
-import swaydb.core.data.PersistentReadOnly
+import swaydb.core.data.SegmentEntryReadOnly
 import swaydb.core.io.file.DBFile
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.MapEntry
@@ -38,22 +38,22 @@ class AppendixMapEntrySpec extends TestBase {
 
   implicit val ordering = KeyOrder.default
   implicit val maxSegmentsOpenCacheImplicitLimiter: DBFile => Unit = TestLimitQueues.fileOpenLimiter
-  implicit val keyValuesLimitImplicitLimiter: (PersistentReadOnly, Segment) => Unit = TestLimitQueues.keyValueLimiter
+  implicit val keyValuesLimitImplicitLimiter: (SegmentEntryReadOnly, Segment) => Unit = TestLimitQueues.keyValueLimiter
   val appendixReader = AppendixMapEntryReader(false, true, true, false)
   val segment = TestSegment().assertGet
 
   "MapEntryWriterAppendix & MapEntryReaderAppendix" should {
 
     "write Add segment entry to slice" in {
-      import AppendixMapEntryWriter.AppendixAddWriter
-      val entry = MapEntry.Add[Slice[Byte], Segment](1, segment)
+      import AppendixMapEntryWriter.AppendixPutWriter
+      val entry = MapEntry.Put[Slice[Byte], Segment](1, segment)
 
       val slice = Slice.create[Byte](entry.entryBytesSize)
       entry writeTo slice
       slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
-      import appendixReader.AppendixAddReader
-      MapEntryReader.read[MapEntry.Add[Slice[Byte], Segment]](Reader(slice.drop(1))).assertGet shouldBe entry
+      import appendixReader.AppendixPutReader
+      MapEntryReader.read[MapEntry.Put[Slice[Byte], Segment]](Reader(slice.drop(1))).assertGet shouldBe entry
 
       import appendixReader.AppendixReader
       val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Segment]](Reader(slice)).assertGet
@@ -91,7 +91,7 @@ class AppendixMapEntrySpec extends TestBase {
     }
 
     "write and remove key-value" in {
-      import AppendixMapEntryWriter.{AppendixAddWriter, AppendixRemoveWriter}
+      import AppendixMapEntryWriter.{AppendixPutWriter, AppendixRemoveWriter}
 
       val segment1 = TestSegment().assertGet
       val segment2 = TestSegment().assertGet
@@ -100,13 +100,13 @@ class AppendixMapEntrySpec extends TestBase {
       val segment5 = TestSegment().assertGet
 
       val entry: MapEntry[Slice[Byte], Segment] =
-        (MapEntry.Add[Slice[Byte], Segment](1, segment1): MapEntry[Slice[Byte], Segment]) ++
-          MapEntry.Add[Slice[Byte], Segment](2, segment2) ++
+        (MapEntry.Put[Slice[Byte], Segment](1, segment1): MapEntry[Slice[Byte], Segment]) ++
+          MapEntry.Put[Slice[Byte], Segment](2, segment2) ++
           MapEntry.Remove[Slice[Byte]](1) ++
-          MapEntry.Add[Slice[Byte], Segment](3, segment3) ++
-          MapEntry.Add[Slice[Byte], Segment](4, segment4) ++
+          MapEntry.Put[Slice[Byte], Segment](3, segment3) ++
+          MapEntry.Put[Slice[Byte], Segment](4, segment4) ++
           MapEntry.Remove[Slice[Byte]](2) ++
-          MapEntry.Add[Slice[Byte], Segment](5, segment5)
+          MapEntry.Put[Slice[Byte], Segment](5, segment5)
 
       val slice = Slice.create[Byte](entry.entryBytesSize)
       entry writeTo slice

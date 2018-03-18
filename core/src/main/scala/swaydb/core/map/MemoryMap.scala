@@ -30,9 +30,14 @@ import scala.util.{Success, Try}
 private[map] class MemoryMap[K, V: ClassTag](val skipList: ConcurrentSkipListMap[K, V],
                                              flushOnOverflow: Boolean,
                                              val fileSize: Long)(implicit ordering: Ordering[K],
-                                                                 writer: MapEntryWriter[MapEntry.Add[K, V]]) extends Map[K, V] with LazyLogging {
+                                                                 skipListConflictResolver: SkipListConflictResolver[K, V],
+                                                                 writer: MapEntryWriter[MapEntry.Put[K, V]]) extends Map[K, V] with LazyLogging {
 
   private var currentBytesWritten: Long = 0
+
+  @volatile private var _hasRange: Boolean = false
+
+  override def hasRange: Boolean = _hasRange
 
   def delete: Try[Unit] =
     Try(skipList.clear())
@@ -40,7 +45,14 @@ private[map] class MemoryMap[K, V: ClassTag](val skipList: ConcurrentSkipListMap
   override def write(entry: MapEntry[K, V]): Try[Boolean] =
     synchronized {
       if (flushOnOverflow || currentBytesWritten == 0 || ((currentBytesWritten + entry.totalByteSize) <= fileSize)) {
-        entry applyTo skipList
+        if (_hasRange) {
+          skipListConflictResolver.insert(entry, skipList)
+        } else if (entry.hasRange) {
+          skipListConflictResolver.insert(entry, skipList)
+          _hasRange = true
+        } else {
+          entry applyTo skipList
+        }
         currentBytesWritten += entry.totalByteSize
         Success(true)
       } else

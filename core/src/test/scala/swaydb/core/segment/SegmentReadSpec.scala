@@ -24,7 +24,7 @@ import java.nio.file.{Files, NoSuchFileException}
 import org.scalatest.PrivateMethodTester
 import org.scalatest.concurrent.ScalaFutures
 import swaydb.core.TestBase
-import swaydb.core.data.{KeyValueWriteOnly, Transient}
+import swaydb.core.data.{Transient}
 import swaydb.core.data.Transient.Remove
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
 import swaydb.core.segment.format.one.SegmentWriter
@@ -501,17 +501,14 @@ class SegmentReadSpec extends TestBase with ScalaFutures with PrivateMethodTeste
       val lowerOf2 = segment.lower(2).assertGet
       lowerOf2.key shouldBe (1: Slice[Byte])
       lowerOf2.getOrFetchValue.assertGet shouldBe (1: Slice[Byte])
-      lowerOf2.isRemove shouldBe false
 
       val lowerOf3 = segment.lower(3).assertGet
       lowerOf3.key shouldBe (2: Slice[Byte])
       lowerOf3.getOrFetchValue.assertGetOpt shouldBe None
-      lowerOf3.isRemove shouldBe true
 
       val lowerOf4 = segment.lower(4).assertGet
       lowerOf4.key shouldBe (3: Slice[Byte])
       lowerOf4.getOrFetchValue.assertGet shouldBe (3: Slice[Byte])
-      lowerOf4.isRemove shouldBe false
     }
 
     "get the lower key from the segment that has only 1 key" in {
@@ -524,7 +521,6 @@ class SegmentReadSpec extends TestBase with ScalaFutures with PrivateMethodTeste
       val lowerOf2 = segment.lower(2).assertGet
       lowerOf2.key shouldBe (1: Slice[Byte])
       lowerOf2.getOrFetchValue.assertGetOpt shouldBe None
-      lowerOf2.isRemove shouldBe true
     }
 
     "get the lower key from the segment that has only many keys key" in {
@@ -543,17 +539,14 @@ class SegmentReadSpec extends TestBase with ScalaFutures with PrivateMethodTeste
       val higherOf0 = segment.higher(0).assertGet
       higherOf0.key shouldBe (1: Slice[Byte])
       higherOf0.getOrFetchValue.assertGet shouldBe (1: Slice[Byte])
-      higherOf0.isRemove shouldBe false
 
       val higherOf1 = segment.higher(1).assertGet
       higherOf1.key shouldBe (2: Slice[Byte])
       higherOf1.getOrFetchValue.assertGetOpt shouldBe None
-      higherOf1.isRemove shouldBe true
 
       val higherOf2 = segment.higher(2).assertGet
       higherOf2.key shouldBe (3: Slice[Byte])
       higherOf2.getOrFetchValue.assertGet shouldBe (3: Slice[Byte])
-      higherOf2.isRemove shouldBe false
 
       segment.higher(3).assertGetOpt shouldBe empty //smallest key in this segment is 1
       segment.higher(4).assertGetOpt shouldBe empty
@@ -567,7 +560,6 @@ class SegmentReadSpec extends TestBase with ScalaFutures with PrivateMethodTeste
       val higherOf0 = segment.higher(0).assertGet
       higherOf0.key shouldBe (1: Slice[Byte])
       higherOf0.getOrFetchValue.assertGetOpt shouldBe None
-      higherOf0.isRemove shouldBe true
 
       segment.higher(1).assertGetOpt shouldBe empty
       segment.higher(2).assertGetOpt shouldBe empty

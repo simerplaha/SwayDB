@@ -21,9 +21,9 @@ package swaydb.core.segment.format.one
 
 import bloomfilter.mutable.BloomFilter
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.data.{KeyValueWriteOnly, Persistent, Transient}
+import swaydb.core.data.{KeyValue, SegmentEntry, Transient}
 import swaydb.core.util.BloomFilterUtil._
-import swaydb.core.util.{BloomFilterUtil, CRC32}
+import swaydb.core.util.CRC32
 import swaydb.data.slice.Slice
 import swaydb.data.slice.Slice._
 
@@ -33,7 +33,7 @@ private[core] object SegmentWriter extends LazyLogging {
 
   val crcBytes: Int = 7
 
-  def toSlice(keyValues: Iterable[KeyValueWriteOnly], bloomFilterFalsePositiveRate: Double): Try[Slice[Byte]] = {
+  def toSlice(keyValues: Iterable[KeyValue.WriteOnly], bloomFilterFalsePositiveRate: Double): Try[Slice[Byte]] = {
     if (keyValues.isEmpty) {
       Success(Slice.create[Byte](0))
     } else {
@@ -50,7 +50,7 @@ private[core] object SegmentWriter extends LazyLogging {
                 case transient: Transient =>
                   Success(transient.value)
 
-                case persistent: Persistent =>
+                case persistent: SegmentEntry =>
                   persistent.getOrFetchValue
               }
 
@@ -72,10 +72,8 @@ private[core] object SegmentWriter extends LazyLogging {
 
                     valuesSlice addAll value //value
 
-                  case _ if !keyValue.isRemove =>
-                    indexAndFooterSlice addIntUnsigned 0
-
                   case _ =>
+                    indexAndFooterSlice addIntUnsigned 0
                 }
             }
         }

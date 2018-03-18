@@ -21,8 +21,9 @@ package swaydb.core.level
 
 import org.scalamock.scalatest.MockFactory
 import swaydb.core.TestBase
-import swaydb.core.data.{KeyValueWriteOnly, Transient}
+import swaydb.core.data.Transient
 import swaydb.core.util.Benchmark
+import swaydb.core.util.FileUtil._
 import swaydb.core.util.PipeOps._
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.slice.Slice
@@ -30,7 +31,6 @@ import swaydb.data.util.StorageUnits._
 import swaydb.order.KeyOrder
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.core.util.FileUtil._
 
 import scala.concurrent.duration._
 

@@ -22,6 +22,7 @@ package swaydb.core.map
 import swaydb.core.TestBase
 import swaydb.core.data.Value
 import swaydb.core.io.file.IO
+import swaydb.core.level.zero.SkipListRangeConflictResolver
 import swaydb.core.util.Benchmark
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.config.RecoveryMode
@@ -35,6 +36,7 @@ class MapsPerformanceSpec extends TestBase with Benchmark {
 
   import swaydb.core.map.serializer.LevelZeroMapEntryReader._
   import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
+  implicit val skipListRangeConflictResolver = SkipListRangeConflictResolver
 
   "Maps" should {
     "write key values" in {
@@ -45,7 +47,7 @@ class MapsPerformanceSpec extends TestBase with Benchmark {
         keyValues foreach {
           keyValue =>
             maps.write {
-              MapEntry.Add[Slice[Byte], Value.Put](keyValue.key, Value.Put(keyValue.getOrFetchValue.assertGetOpt))(Level0AddWriter)
+              MapEntry.Put[Slice[Byte], Value.Put](keyValue.key, Value.Put(keyValue.getOrFetchValue.assertGetOpt))(Level0PutWriter)
             }.assertGet
         }
 
@@ -58,7 +60,7 @@ class MapsPerformanceSpec extends TestBase with Benchmark {
 
       val dir1 = IO.createDirectoryIfAbsent(testDir.resolve(1.toString))
 
-      val map1 = Maps.persistent[Slice[Byte], Value](dir1, mmap = true, 4.mb, Accelerator.noBrakes(), RecoveryMode.ReportCorruption).assertGet
+      val map1 = Maps.persistent[Slice[Byte], Value](dir1, mmap = true, 4.mb, Accelerator.noBrakes(), RecoveryMode.ReportFailure).assertGet
       benchmark(s"MMAP = true - writing ${keyValues.size} keys") {
         testWrite(map1)
       }
@@ -67,7 +69,7 @@ class MapsPerformanceSpec extends TestBase with Benchmark {
       }
 
       val dir2 = IO.createDirectoryIfAbsent(testDir.resolve(2.toString))
-      val map2 = Maps.persistent[Slice[Byte], Value](dir2, mmap = false, 4.mb, Accelerator.noBrakes(), RecoveryMode.ReportCorruption).assertGet
+      val map2 = Maps.persistent[Slice[Byte], Value](dir2, mmap = false, 4.mb, Accelerator.noBrakes(), RecoveryMode.ReportFailure).assertGet
       benchmark(s"MMAP = false - writing ${keyValues.size} keys") {
         testWrite(map2)
       }

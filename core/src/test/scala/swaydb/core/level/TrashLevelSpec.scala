@@ -23,7 +23,6 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.PrivateMethodTester
 import swaydb.core.TestBase
 import swaydb.core.actor.TestActor
-import swaydb.core.data.KeyValueReadOnly
 import swaydb.core.io.file.DBFile
 import swaydb.core.level.actor.LevelCommand.{PushSegments, PushSegmentsResponse}
 import swaydb.core.segment.Segment
