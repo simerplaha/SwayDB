@@ -20,7 +20,6 @@
 package swaydb.core.map.serializer
 
 import swaydb.core.data.Value
-import swaydb.core.data.Value.{Put, Remove}
 import swaydb.core.io.reader.Reader
 import swaydb.core.util.ByteUtilCore
 import swaydb.data.slice.{Reader, Slice}
@@ -43,28 +42,6 @@ trait ValueSerializer[T] {
 }
 
 object ValueSerializers {
-
-  object PutSerializerWithoutSize extends ValueSerializer[Value.Put] {
-
-    override def write(value: Value.Put, bytes: Slice[Byte]): Unit =
-      bytes
-        .addAll(value.value.getOrElse(Slice.emptyByteSlice))
-
-    override def bytesRequired(value: Value.Put): Int =
-      value.value.map(_.size).getOrElse(0)
-
-    override def read(reader: Reader): Try[Value.Put] =
-      reader.remaining flatMap {
-        remaining =>
-          if (remaining == 0)
-            Success(Value.Put(None))
-          else
-            reader.read(remaining.toInt) map {
-              value =>
-                Value.Put(Some(value))
-            }
-      }
-  }
 
   object PutSerializerWithSize extends ValueSerializer[Value.Put] {
 

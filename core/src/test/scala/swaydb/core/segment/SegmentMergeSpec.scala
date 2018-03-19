@@ -20,9 +20,7 @@
 package swaydb.core.segment
 
 import swaydb.core.TestBase
-import swaydb.core.data.{KeyValue, Transient, Value}
-import swaydb.core.data.Transient.Remove
-import swaydb.data.slice.Slice
+import swaydb.core.data.{KeyValue, Transient}
 import swaydb.data.util.StorageUnits._
 import swaydb.order.KeyOrder
 import swaydb.serializers.Default._
@@ -36,24 +34,21 @@ class SegmentMergeSpec extends TestBase {
 
   import ordering._
 
-  import swaydb.core.map.serializer.ValueSerializers._
-
   "SegmentMerge.addKeyValue" should {
-
     "add KeyValue to existing split and close the split if the total segmentSize is minSegmentSize for persistent key-values" in {
 
       val initialSegment = ListBuffer[KeyValue.WriteOnly]()
       initialSegment += Transient.Put(key = 1, value = 1, previous = None, falsePositiveRate = 0.1)
-      initialSegment += Transient.Put(key = 2, value = 2, previous = initialSegment.lastOption, falsePositiveRate = 0.1) //total segmentSize is 60 bytes
+      initialSegment += Transient.Put(key = 2, value = 2, previous = initialSegment.lastOption, falsePositiveRate = 0.1) //total segmentSize is 62 bytes
 
       val segments = ListBuffer[ListBuffer[KeyValue.WriteOnly]](initialSegment)
       //this KeyValue's segment size without footer is 14 bytes
       val keyValue = Transient.Put(3, 3)
 
-      //minSegmentSize is 70.bytes. Adding the above keyValues should create a segment of total size
-      // 60 + 14 - 3 (common bytes between 2 and 3) which is over the limit = 71.bytes.
+      //minSegmentSize is 72.bytes. Adding the above keyValues should create a segment of total size
+      // 62 + 14 - 3 (common bytes between 2 and 3) which is over the limit = 73.bytes.
       // this should result is closing the existing segment and starting a new segment
-      SegmentMerge.addKeyValue(keyValue, segments, 70.bytes, forInMemory = false, bloomFilterFalsePositiveRate = 0.1, isLastLevel = false)
+      SegmentMerge.addKeyValue(keyValue, segments, 72.bytes, forInMemory = false, bloomFilterFalsePositiveRate = 0.1, isLastLevel = false)
 
       //the initialSegment should be closed and a new segment should get started
       segments.size shouldBe 2
@@ -62,7 +57,7 @@ class SegmentMergeSpec extends TestBase {
       closedSegment(0).key equiv initialSegment.head.key
       closedSegment(1).key equiv initialSegment.last.key
       closedSegment(2).key equiv keyValue.key
-      closedSegment.last.stats.segmentSize shouldBe 71.bytes
+      closedSegment.last.stats.segmentSize shouldBe 73.bytes
 
       //since the previous segment is closed a new segment shouldBe created for next KeyValues to be added.
       segments.last shouldBe empty
@@ -100,15 +95,15 @@ class SegmentMergeSpec extends TestBase {
 
       val initialSegment = ListBuffer.empty[KeyValue.WriteOnly]
       initialSegment.+=(Transient.Put(key = 1, value = 1, previous = initialSegment.lastOption, falsePositiveRate = 0.1))
-      initialSegment.+=(Transient.Put(key = 2, value = 2, previous = initialSegment.lastOption, falsePositiveRate = 0.1)) //total segmentSize is 60.bytes
+      initialSegment.+=(Transient.Put(key = 2, value = 2, previous = initialSegment.lastOption, falsePositiveRate = 0.1)) //total segmentSize is 62.bytes
 
       val segments = ListBuffer.empty[ListBuffer[KeyValue.WriteOnly]] += initialSegment
       val keyValue = Transient.Put(1, 1) //this KeyValue's segment size without footer is 14 bytes
 
       //minSegmentSize is 72.bytes. Adding the above keyValue should create a segment of
-      // 60 + 14 - 3 (common bytes between 2 and 3) = 71.bytes.
-      //which is under the limit of 72.bytes. This should result in adding the next keyValue to existing segment without starting a new segment
-      SegmentMerge.addKeyValue(keyValue, segments, 72.bytes, forInMemory = false, bloomFilterFalsePositiveRate = 0.1, isLastLevel = false)
+      // 62 + 14 - 3 (common bytes between 2 and 3) = 73.bytes.
+      //which is under the limit of 74.bytes. This should result in adding the next keyValue to existing segment without starting a new segment
+      SegmentMerge.addKeyValue(keyValue, segments, 74.bytes, forInMemory = false, bloomFilterFalsePositiveRate = 0.1, isLastLevel = false)
 
       //the initialSegment should be closed and a new segment should get started
       segments.size shouldBe 1
@@ -117,7 +112,7 @@ class SegmentMergeSpec extends TestBase {
       closedSegment(0).key equiv initialSegment.head.key
       closedSegment(1).key equiv initialSegment.last.key
       closedSegment(2).key equiv keyValue.key
-      closedSegment.last.stats.segmentSize shouldBe 71.bytes
+      closedSegment.last.stats.segmentSize shouldBe 73.bytes
     }
 
     "add KeyValue to current split if the total segmentSize with the new KeyValue < minSegmentSize for memory key-values" in {

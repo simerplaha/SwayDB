@@ -22,15 +22,14 @@ package swaydb.core.tool
 import java.nio.file.NoSuchFileException
 
 import swaydb.core.data.SegmentEntryReadOnly
-import swaydb.core.{TestBase, TestLimitQueues}
 import swaydb.core.io.file.{DBFile, IO}
-import swaydb.core.map.serializer.AppendixMapEntryReader
 import swaydb.core.segment.Segment
-import swaydb.data.slice.Slice
+import swaydb.core.util.FileUtil._
+import swaydb.core.{TestBase, TestLimitQueues}
 import swaydb.data.repairAppendix.{AppendixRepairStrategy, OverlappingSegmentsException}
+import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.order.KeyOrder
-import swaydb.core.util.FileUtil._
 
 import scala.util.Random
 

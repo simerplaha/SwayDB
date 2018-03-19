@@ -17,14 +17,20 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.segment.format.one
+package swaydb.core.map
 
-import bloomfilter.mutable.BloomFilter
-import swaydb.data.slice.Slice
+import java.util.concurrent.ConcurrentSkipListMap
 
-private[core] case class SegmentFooter(crc: Long,
-                                       startIndexOffset: Int,
-                                       endIndexOffset: Int,
-                                       keyValueCount: Int,
-                                       hasRange: Boolean,
-                                       bloomFilter: Option[BloomFilter[Slice[Byte]]])
+import scala.annotation.implicitNotFound
+
+@implicitNotFound("Type class implementation not found for SkipListMerge of type [${K}, ${V}]")
+trait SkipListMerge[K, V] {
+
+  def insert(insertKey: K,
+             insertValue: V,
+             skipList: ConcurrentSkipListMap[K, V])(implicit ordering: Ordering[K])
+
+  def insert(entry: MapEntry[K, V],
+             skipList: ConcurrentSkipListMap[K, V])(implicit ordering: Ordering[K])
+
+}

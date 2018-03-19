@@ -24,7 +24,7 @@ import java.nio.file.Path
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.io.file.IO
 import swaydb.core.map.serializer.{AppendixMapEntryReader, MapEntryReader, MapEntryWriter}
-import swaydb.core.map.{Map, MapEntry, SkipListConflictResolver}
+import swaydb.core.map.{Map, MapEntry, SkipListMerge}
 import swaydb.core.segment.Segment
 import swaydb.core.util.TryUtil._
 import swaydb.core.util.{Extension, FileUtil, TryUtil}
@@ -44,7 +44,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
     val reader = AppendixMapEntryReader(false, false, false, false)(ordering, (_, _) => (), (_) => (), ec)
     import reader._
     import swaydb.core.map.serializer.AppendixMapEntryWriter._
-    import swaydb.core.level.Level.SkipListConflictResolver
+    import swaydb.core.level.Level.SkipListMerge$
 
     Try(FileUtil.files(levelPath, Extension.Seg)) flatMap {
       files =>
@@ -133,7 +133,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
                        segments: Slice[Segment])(implicit ordering: Ordering[Slice[Byte]],
                                                  writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Segment]],
                                                  mapReader: MapEntryReader[MapEntry[Slice[Byte], Segment]],
-                                                 skipListConflictResolver: SkipListConflictResolver[Slice[Byte], Segment],
+                                                 skipListMerger: SkipListMerge[Slice[Byte], Segment],
                                                  ec: ExecutionContext): Try[Unit] =
     IO.walkDelete(appendixDir) flatMap {
       _ =>

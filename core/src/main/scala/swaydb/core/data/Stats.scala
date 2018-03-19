@@ -19,6 +19,7 @@
 
 package swaydb.core.data
 
+import swaydb.core.data.KeyValue.RangeWriteOnly
 import swaydb.core.util.{BloomFilterUtil, ByteUtilCore}
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
@@ -35,7 +36,8 @@ private[core] case class Stats(valueOffset: Int,
                                thisKeyValuesUncompressedKeySize: Int,
                                thisKeyValuesSegmentSizeWithoutFooter: Int,
                                thisKeyValuesIndexSizeWithoutFooter: Int,
-                               hasRemoveRange: Boolean) {
+                               hasRemoveRange: Boolean,
+                               hasRange: Boolean) {
   def isNoneValue: Boolean =
     valueLength == 0
 
@@ -55,34 +57,62 @@ private[core] case class Stats(valueOffset: Int,
 private[core] object Stats {
 
   def apply(key: Slice[Byte],
-            falsePositiveRate: Double,
-            hasRemoveRange: Boolean): Stats =
-    Stats(key, 0, 0, falsePositiveRate, hasRemoveRange = hasRemoveRange, None)
+            falsePositiveRate: Double): Stats =
+    Stats(
+      key = key,
+      valueLength = 0,
+      valueOffset = 0,
+      falsePositiveRate = falsePositiveRate,
+      hasRemoveRange = false,
+      hasRange = false,
+      previous = None)
+
+  def apply(key: Slice[Byte],
+            value: Slice[Byte],
+            falsePositiveRate: Double): Stats =
+    Stats(
+      key = key,
+      valueLength = value.size,
+      valueOffset = 0,
+      falsePositiveRate = falsePositiveRate,
+      hasRemoveRange = false,
+      hasRange = false,
+      previous = None
+    )
 
   def apply(key: Slice[Byte],
             value: Slice[Byte],
             falsePositiveRate: Double,
-            hasRemoveRange: Boolean): Stats =
-    Stats(key, value.size, 0, falsePositiveRate, hasRemoveRange, None)
-
-  def apply(key: Slice[Byte],
-            value: Slice[Byte],
-            falsePositiveRate: Double,
-            hasRemoveRange: Boolean,
             previous: Option[KeyValue.WriteOnly]): Stats =
-    Stats(key, Some(value), falsePositiveRate, hasRemoveRange || previous.exists(_.isRemoveRange), previous)
+    Stats(
+      key = key,
+      value = Some(value),
+      falsePositiveRate = falsePositiveRate,
+      isRemoveRange = previous.exists(_.stats.hasRemoveRange),
+      isRange = previous.exists(_.stats.hasRange),
+      previous = previous
+    )
 
   def apply(key: Slice[Byte],
             value: Option[Slice[Byte]],
             falsePositiveRate: Double,
-            hasRemoveRange: Boolean,
+            isRemoveRange: Boolean,
+            isRange: Boolean,
             previous: Option[KeyValue.WriteOnly]): Stats =
-    Stats(key, value.map(_.size).getOrElse(0), falsePositiveRate, hasRemoveRange || previous.exists(_.isRemoveRange), previous)
+    Stats(
+      key = key,
+      valueLength = value.map(_.size).getOrElse(0),
+      falsePositiveRate = falsePositiveRate,
+      isRemoveRange = isRemoveRange,
+      isRange = isRange,
+      previous = previous
+    )
 
   def apply(key: Slice[Byte],
             valueLength: Int,
             falsePositiveRate: Double,
-            hasRemoveRange: Boolean,
+            isRemoveRange: Boolean,
+            isRange: Boolean,
             previous: Option[KeyValue.WriteOnly]): Stats = {
     val valueOffset =
       previous match {
@@ -96,7 +126,16 @@ private[core] object Stats {
         case _ =>
           0
       }
-    Stats(key, valueLength, valueOffset, falsePositiveRate, hasRemoveRange || previous.exists(_.isRemoveRange), previous)
+
+    Stats(
+      key = key,
+      valueLength = valueLength,
+      valueOffset = valueOffset,
+      falsePositiveRate = falsePositiveRate,
+      hasRemoveRange = isRemoveRange || previous.exists(_.stats.hasRemoveRange),
+      hasRange = isRemoveRange || isRange || previous.exists(_.stats.hasRange),
+      previous = previous
+    )
   }
 
   private def apply(key: Slice[Byte],
@@ -104,10 +143,17 @@ private[core] object Stats {
                     valueOffset: Int,
                     falsePositiveRate: Double,
                     hasRemoveRange: Boolean,
+                    hasRange: Boolean,
                     previous: Option[KeyValue.WriteOnly]): Stats = {
 
     val commonBytes: Int =
-      previous.map(previousKeyValue => ByteUtilCore.commonPrefixBytes(previousKeyValue.key, key)) getOrElse 0
+      previous.map {
+        case previousKeyValue: RangeWriteOnly =>
+          ByteUtilCore.commonPrefixBytes(previousKeyValue.fullKey, key)
+
+        case previousKeyValue =>
+          ByteUtilCore.commonPrefixBytes(previousKeyValue.key, key)
+      } getOrElse 0
 
     val keyWithoutCommonBytes =
       if (commonBytes != 0)
@@ -156,11 +202,19 @@ private[core] object Stats {
       previousStats.map(_.segmentValuesSize).getOrElse(0) + valueLength
 
     val footerSize =
-      ByteSizeOf.long + //for CRC. This cannot be unsignedLong because the size of the crc long bytes is not fixed.
+      1 + //1 byte for format
+        1 + //for hasRange
+        ByteSizeOf.long + //for CRC. This cannot be unsignedLong because the size of the crc long bytes is not fixed.
         ByteUtilCore.sizeUnsignedInt(segmentValuesSize) + //index offset
         ByteUtilCore.sizeUnsignedInt(position) + //key-values count
-        BloomFilterUtil.byteSize(position, falsePositiveRate) +
-        1 //1 byte for format
+        {
+          if (hasRemoveRange) { //BloomFilter is not created when hasRemoveRange is true.
+            1 //(1 for unsigned int 0)
+          } else {
+            val bloomFilterByteSize = BloomFilterUtil.byteSize(position, falsePositiveRate)
+            ByteUtilCore.sizeUnsignedInt(bloomFilterByteSize) + bloomFilterByteSize
+          }
+        }
 
     val segmentSize: Int =
       segmentSizeWithoutFooter + footerSize + ByteSizeOf.int
@@ -181,7 +235,8 @@ private[core] object Stats {
       thisKeyValuesUncompressedKeySize = key.size,
       thisKeyValuesSegmentSizeWithoutFooter = thisKeyValuesSegmentSizeWithoutFooter,
       thisKeyValuesIndexSizeWithoutFooter = thisKeyValuesIndexSizeWithoutFooter,
-      hasRemoveRange = hasRemoveRange
+      hasRemoveRange = hasRemoveRange,
+      hasRange = hasRange
     )
   }
 }

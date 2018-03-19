@@ -50,7 +50,7 @@ class MergeRangeIntoRange_OldRangeIsRemove_FromKeyLesser_Spec extends TestBase {
         ).updateStats
       )
 
-      assertRangeSplitter(
+      assertSkipListMerge(
         newKeyValues,
         oldKeyValues,
         Slice(
@@ -78,7 +78,7 @@ class MergeRangeIntoRange_OldRangeIsRemove_FromKeyLesser_Spec extends TestBase {
         ).updateStats
       )
 
-      assertRangeSplitter(
+      assertSkipListMerge(
         newKeyValues,
         oldKeyValues,
         Slice(
@@ -106,7 +106,7 @@ class MergeRangeIntoRange_OldRangeIsRemove_FromKeyLesser_Spec extends TestBase {
         ).updateStats
       )
 
-      assertRangeSplitter(
+      assertSkipListMerge(
         newKeyValues,
         oldKeyValues,
         Slice(
@@ -136,7 +136,7 @@ class MergeRangeIntoRange_OldRangeIsRemove_FromKeyLesser_Spec extends TestBase {
         ).updateStats
       )
 
-      assertRangeSplitter(
+      assertSkipListMerge(
         newKeyValues,
         oldKeyValues,
         Slice(
@@ -164,7 +164,7 @@ class MergeRangeIntoRange_OldRangeIsRemove_FromKeyLesser_Spec extends TestBase {
         ).updateStats
       )
 
-      assertRangeSplitter(
+      assertSkipListMerge(
         newKeyValues,
         oldKeyValues,
         Slice(
@@ -192,7 +192,7 @@ class MergeRangeIntoRange_OldRangeIsRemove_FromKeyLesser_Spec extends TestBase {
         ).updateStats
       )
 
-      assertRangeSplitter(
+      assertSkipListMerge(
         newKeyValues,
         oldKeyValues,
         Slice(
@@ -219,7 +219,7 @@ class MergeRangeIntoRange_OldRangeIsRemove_FromKeyLesser_Spec extends TestBase {
       ).updateStats
 
       assertMerge(newKeyValues, oldKeyValues, expected)
-      assertRangeSplitter(newKeyValues, oldKeyValues, expected)
+      assertSkipListMerge(newKeyValues, oldKeyValues, expected)
 
       //is last Level
       assertMerge(newKeyValues, oldKeyValues, expected = Slice.empty, isLastLevel = true)
@@ -237,7 +237,7 @@ class MergeRangeIntoRange_OldRangeIsRemove_FromKeyLesser_Spec extends TestBase {
       ).updateStats
 
       assertMerge(newKeyValues, oldKeyValues, expected)
-      assertRangeSplitter(newKeyValues, oldKeyValues, expected)
+      assertSkipListMerge(newKeyValues, oldKeyValues, expected)
 
       //is last Level
       assertMerge(newKeyValues, oldKeyValues, expected = Transient.Put(0, value = 1, 0.1, None), isLastLevel = true)
@@ -255,7 +255,7 @@ class MergeRangeIntoRange_OldRangeIsRemove_FromKeyLesser_Spec extends TestBase {
       ).updateStats
 
       assertMerge(newKeyValues, oldKeyValues, expected)
-      assertRangeSplitter(newKeyValues, oldKeyValues, expected)
+      assertSkipListMerge(newKeyValues, oldKeyValues, expected)
 
       //is last Level
       assertMerge(newKeyValues, oldKeyValues, expected = Slice.empty, isLastLevel = true)
@@ -276,7 +276,7 @@ class MergeRangeIntoRange_OldRangeIsRemove_FromKeyLesser_Spec extends TestBase {
           Transient.Range[Value.Fixed, Value.Fixed](20, 21, None, Value.Remove, 0.1, None)
         ).updateStats
       )
-      assertRangeSplitter(
+      assertSkipListMerge(
         newKeyValues,
         oldKeyValues,
         Transient.Range[Value.Fixed, Value.Fixed](0, 21, None, Value.Remove, 0.1, None)
@@ -301,7 +301,7 @@ class MergeRangeIntoRange_OldRangeIsRemove_FromKeyLesser_Spec extends TestBase {
           Transient.Range[Value.Fixed, Value.Fixed](20, 21, None, Value.Remove, 0.1, None)
         ).updateStats
       )
-      assertRangeSplitter(
+      assertSkipListMerge(
         newKeyValues,
         oldKeyValues,
         Transient.Range[Value.Fixed, Value.Fixed](0, 21, Some(Value.Put(1)), Value.Remove, 0.1, None)
@@ -325,7 +325,7 @@ class MergeRangeIntoRange_OldRangeIsRemove_FromKeyLesser_Spec extends TestBase {
           Transient.Range[Value.Fixed, Value.Fixed](20, 21, None, Value.Remove, 0.1, None)
         ).updateStats
       )
-      assertRangeSplitter(
+      assertSkipListMerge(
         newKeyValues,
         oldKeyValues,
         Transient.Range[Value.Fixed, Value.Fixed](0, 21, Some(Value.Remove), Value.Remove, 0.1, None)

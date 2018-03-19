@@ -46,7 +46,7 @@ private[core] object Map extends LazyLogging {
                                                                     ec: ExecutionContext,
                                                                     writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                     reader: MapEntryReader[MapEntry[K, V]],
-                                                                    skipListConflictResolver: SkipListConflictResolver[K, V]): Try[RecoveryResult[PersistentMap[K, V]]] =
+                                                                    skipListMerge: SkipListMerge[K, V]): Try[RecoveryResult[PersistentMap[K, V]]] =
     PersistentMap(folder, mmap, flushOnOverflow, fileSize, dropCorruptedTailEntries)
 
   def persistent[K, V: ClassTag](folder: Path,
@@ -56,12 +56,12 @@ private[core] object Map extends LazyLogging {
                                                  ec: ExecutionContext,
                                                  reader: MapEntryReader[MapEntry[K, V]],
                                                  writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                 skipListConflictResolver: SkipListConflictResolver[K, V]): Try[PersistentMap[K, V]] =
+                                                 skipListMerger: SkipListMerge[K, V]): Try[PersistentMap[K, V]] =
     PersistentMap(folder, mmap, flushOnOverflow, fileSize)
 
   def memory[K, V: ClassTag](fileSize: Long = 0.byte,
                              flushOnOverflow: Boolean = true)(implicit ordering: Ordering[K],
-                                                              skipListConflictResolver: SkipListConflictResolver[K, V],
+                                                              skipListMerge: SkipListMerge[K, V],
                                                               writer: MapEntryWriter[MapEntry.Put[K, V]]): MemoryMap[K, V] =
     new MemoryMap[K, V](
       skipList = new ConcurrentSkipListMap[K, V](ordering),

@@ -22,6 +22,7 @@ package swaydb.core.map.serializer
 import java.nio.charset.StandardCharsets
 
 import swaydb.core.map.MapEntry
+import swaydb.data.segment.MaxKey.{Fixed, Range}
 import swaydb.core.segment.Segment
 import swaydb.core.util.ByteUtilCore
 import swaydb.data.slice.Slice
@@ -50,6 +51,13 @@ object AppendixMapEntryWriter {
 
     override def write(entry: MapEntry.Put[Slice[Byte], Segment], bytes: Slice[Byte]): Unit = {
       val segmentPath = Slice(entry.value.path.toString.getBytes(StandardCharsets.UTF_8))
+      val (maxKeyId, maxKeyBytes) =
+        entry.value.maxKey match {
+          case Fixed(maxKey) =>
+            (1, maxKey)
+          case Range(fromKey, maxToKey) =>
+            (2, ByteUtilCore.compress(fromKey, maxToKey))
+        }
       bytes
         .addIntUnsigned(id)
         .addIntUnsigned(segmentPath.size)
@@ -57,12 +65,21 @@ object AppendixMapEntryWriter {
         .addIntUnsigned(entry.value.segmentSize)
         .addIntUnsigned(entry.key.size)
         .addAll(entry.key)
-        .addIntUnsigned(entry.value.maxKey.size)
-        .addAll(entry.value.maxKey)
+        .addIntUnsigned(maxKeyId)
+        .addIntUnsigned(maxKeyBytes.size)
+        .addAll(maxKeyBytes)
     }
 
     override def bytesRequired(entry: MapEntry.Put[Slice[Byte], Segment]): Int = {
       val segmentPath = entry.value.path.toString.getBytes(StandardCharsets.UTF_8)
+
+      val (maxKeyId, maxKeyBytes) =
+        entry.value.maxKey match {
+          case Fixed(maxKey) =>
+            (1, maxKey)
+          case Range(fromKey, maxToKey) =>
+            (2, ByteUtilCore.compress(fromKey, maxToKey))
+        }
 
       ByteUtilCore.sizeUnsignedInt(id) +
         ByteUtilCore.sizeUnsignedInt(segmentPath.length) +
@@ -70,9 +87,9 @@ object AppendixMapEntryWriter {
         ByteUtilCore.sizeUnsignedInt(entry.value.segmentSize) +
         ByteUtilCore.sizeUnsignedInt(entry.key.size) +
         entry.key.size +
-        ByteUtilCore.sizeUnsignedInt(entry.value.maxKey.size) +
-        entry.value.maxKey.size
-
+        ByteUtilCore.sizeUnsignedInt(maxKeyId) +
+        ByteUtilCore.sizeUnsignedInt(maxKeyBytes.size) +
+        maxKeyBytes.size
     }
 
     override val isRange: Boolean = false

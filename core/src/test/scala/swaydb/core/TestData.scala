@@ -21,7 +21,7 @@ package swaydb.core
 
 import swaydb.core.data.KeyValue.WriteOnly
 import swaydb.core.data.Transient.Remove
-import swaydb.core.data.{KeyValue, Transient}
+import swaydb.core.data.{KeyValue, Transient, Value}
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 import swaydb.data.util.StorageUnits._
@@ -31,6 +31,7 @@ import swaydb.serializers._
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.util.Random
+import swaydb.core.map.serializer.RangeValueSerializers._
 
 trait TestData {
 
@@ -64,68 +65,69 @@ trait TestData {
 
   def randomInt(minus: Int = 0) = Math.abs(Random.nextInt(Int.MaxValue)) - minus - 1
 
-  def randomIntKeyValues(count: Int = 5,
-                         startId: Int = 1,
-                         addToValue: Int = 0,
-                         nonValue: Boolean = false,
-                         addRandomDeletes: Boolean = false): Slice[KeyValue.WriteOnly] = {
-    val slice = Slice.create[KeyValue.WriteOnly](count)
-    val startFrom = randomInt(minus = count)
-    //    val startFrom = 1
-    for (key <- startFrom until startFrom + count) {
-      if (nonValue)
-        slice add Transient.Put(key = key, previous = slice.lastOption, falsePositiveRate = 0.1)
-      else if (addRandomDeletes && Random.nextBoolean())
-        slice add Remove(key = key, previous = slice.lastOption, falsePositiveRate = 0.1)
-      else
-        slice add Transient.Put(key = key, value = randomInt(), previous = slice.lastOption, falsePositiveRate = 0.1)
-    }
-    slice
-  }
-
   def randomIntKeyStringValues(count: Int = 5,
-                               startId: Int = 1,
+                               startId: Option[Int] = None,
+                               addToValue: Int = 0,
                                valueSize: Int = 50,
-                               addRandomDeletes: Boolean = false): Slice[KeyValue.WriteOnly] = {
+                               nonValue: Boolean = false,
+                               addRandomDeletes: Boolean = false,
+                               addRandomRanges: Boolean = false): Slice[KeyValue.WriteOnly] =
+    randomIntKeyValues(count, startId, addToValue, Some(valueSize), nonValue, addRandomDeletes, addRandomRanges)
+
+  def randomIntKeyValues(count: Int = 5,
+                         startId: Option[Int] = None,
+                         addToValue: Int = 0,
+                         valueSize: Option[Int] = None,
+                         nonValue: Boolean = false,
+                         addRandomDeletes: Boolean = false,
+                         addRandomRanges: Boolean = false): Slice[KeyValue.WriteOnly] = {
     val slice = Slice.create[KeyValue.WriteOnly](count)
-    val startFrom = randomInt(minus = count)
-    //            val startFrom = 1
-    for (key <- startFrom until startFrom + count) {
-      val keyValue =
-        if (addRandomDeletes && Random.nextBoolean())
-          Remove(key = key, previous = slice.lastOption, falsePositiveRate = 0.1)
-        else
-          Transient.Put(key = key, value = Random.nextString(valueSize), previous = slice.lastOption, falsePositiveRate = 0.1)
-      slice add keyValue
-    }
-    slice
-  }
+//            var key = 1
+    var key = startId getOrElse randomInt(minus = count)
+    val until = key + count
+    while (key < until) {
+      if (nonValue) {
+        slice add Transient.Put(key, previous = slice.lastOption, falsePositiveRate = 0.1)
+        key = key + 1
+      } else if ((addRandomDeletes || addRandomRanges) && Random.nextBoolean()) {
+        if (addRandomDeletes) {
+          slice add Remove(key, previous = slice.lastOption, falsePositiveRate = 0.1)
+          key = key + 1
+        }
+        if (addRandomRanges) {
+          val value: Slice[Byte] = valueSize.map(size => Random.nextString(size): Slice[Byte]).getOrElse(randomInt(): Slice[Byte])
+          val toKey = key + 10
+          val fromValue =
+            if (Random.nextBoolean()) {
+              if (Random.nextBoolean()) Some(Value.Remove) else Some(Value.Put(value))
+            } else {
+              None
+            }
 
-  def sortedIntKeyStringValue(count: Int = 5,
-                              startId: Int = 1,
-                              keySize: Int = 16.bytes,
-                              valueSize: Int = 50.bytes): List[(Int, String)] = {
-    val map = mutable.Map.empty[Int, String]
-    while (map.size < count) {
-      val key: Int = ints(keySize / ByteSizeOf.int)
-      val value = Random.nextString(valueSize)
-      map.put(key, value)
+          val rangeValue =
+            if (Random.nextBoolean()) {
+              Value.Remove
+            } else {
+              Value.Put(value)
+            }
+          slice add Transient.Range[Value.Fixed, Value.Fixed](key, toKey, fromValue, rangeValue, previous = slice.lastOption, falsePositiveRate = 0.1)
+          //randomly skip the Range's toKey for the next key.
+          if (Random.nextBoolean())
+            key = toKey
+          else
+            key = toKey + 1
+        }
+      } else {
+        val value: Slice[Byte] = valueSize.map(size => Random.nextString(size): Slice[Byte]).getOrElse(randomInt(): Slice[Byte])
+        slice add Transient.Put(key, value = value, previous = slice.lastOption, falsePositiveRate = 0.1)
+        key = key + 1
+      }
     }
-    map.toList.sortBy(_._1)
-  }
-
-  def sortedIntKeys(count: Int = 5,
-                    keySize: Int = 16.bytes): Seq[Int] = {
-    val keys = ListBuffer.empty[Int]
-    while (keys.size < count) {
-      val key: Int = ints(keySize / ByteSizeOf.int)
-      keys += key
-    }
-    keys.sorted
+    slice.close()
   }
 
   def randomIntKeys(count: Int = 5,
-                    startId: Int = 1): Slice[KeyValue.WriteOnly] =
+                    startId: Option[Int] = None): Slice[KeyValue.WriteOnly] =
     randomIntKeyValues(count = count, startId = startId, nonValue = true)
 }
 

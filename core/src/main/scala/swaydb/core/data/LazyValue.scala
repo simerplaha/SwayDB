@@ -25,7 +25,7 @@ import swaydb.data.slice.{Reader, Slice}
 import scala.util.{Success, Try}
 
 trait LazyValue {
-  @volatile var valueOption: Option[Slice[Byte]] = None
+  @volatile var valueOption: Option[Slice[Byte]] = null
 
   val valueReader: Reader
 
@@ -34,27 +34,20 @@ trait LazyValue {
   def valueOffset: Int
 
   //tries fetching the value from the given reader
-  private def fetchValue(reader: Reader): Try[Option[Slice[Byte]]] = {
-    if (valueLength == 0) //if valueLength is 0, don't have to hit the file. Return None
-      Success(None)
-    else
-      valueOption match {
-        case value @ Some(_) =>
-          Success(value)
-
-        case None =>
-          SegmentReader.getValue(valueOffset, valueLength, reader) map {
-            value =>
-              valueOption = value
-              value
-          }
+  private def fetchValue(reader: Reader): Try[Option[Slice[Byte]]] =
+    if (valueOption == null)
+      SegmentReader.getValue(valueOffset, valueLength, reader) map {
+        value =>
+          valueOption = value
+          value
       }
-  }
+    else
+      Success(valueOption)
 
   def getOrFetchValue: Try[Option[Slice[Byte]]] =
     fetchValue(valueReader)
 
-  def isValueDefined: Boolean = valueOption.isDefined
+  def isValueDefined: Boolean = valueOption != null
 
   def getValue: Option[Slice[Byte]] = valueOption
 }

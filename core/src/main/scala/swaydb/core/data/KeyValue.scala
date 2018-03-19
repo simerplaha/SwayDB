@@ -67,6 +67,8 @@ private[core] object KeyValue {
     def updateStats(falsePositiveRate: Double, keyValue: Option[KeyValue.WriteOnly]): KeyValue.WriteOnly
 
     val isRemoveRange: Boolean
+
+    val isRange: Boolean
   }
 
   trait FixedWriteOnly extends KeyValue.WriteOnly
@@ -90,11 +92,15 @@ private[core] object KeyValue {
 
     def toKey: Slice[Byte]
 
+    def fullKey: Slice[Byte]
+
     def fetchRangeValue: Try[Value.Fixed]
 
     def fetchFromValue: Try[Option[Value.Fixed]]
 
     def fetchFromAndRangeValue: Try[(Option[Value.Fixed], Value.Fixed)]
+
+    val isRange: Boolean = true
   }
 
   implicit class RangeWriteOnlyImplicit(range: RangeWriteOnly) {

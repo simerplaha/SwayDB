@@ -25,16 +25,18 @@ import java.util.concurrent.atomic.AtomicReference
 
 import bloomfilter.mutable.BloomFilter
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.data.SegmentEntry.{PutReadOnly, RemoveReadOnly}
+import swaydb.core.data.SegmentEntry.{PutReadOnly, RangeReadOnly, RemoveReadOnly}
 import swaydb.core.data.{SegmentEntryReadOnly, _}
 import swaydb.core.io.file.DBFile
 import swaydb.core.io.reader.Reader
 import swaydb.core.level.PathsDistributor
+import swaydb.data.segment.MaxKey.{Fixed, Range}
 import swaydb.core.segment.format.one.SegmentReader._
 import swaydb.core.segment.format.one.{KeyMatcher, SegmentFooter, SegmentReader}
 import swaydb.core.util.TryUtil._
 import swaydb.core.util._
 import swaydb.data.config.Dir
+import swaydb.data.segment.MaxKey
 import swaydb.data.slice.{Reader, Slice}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -45,7 +47,7 @@ private[segment] class PersistentSegment(val file: DBFile,
                                          mmapWrites: Boolean,
                                          cacheKeysOnCreate: Boolean,
                                          val minKey: Slice[Byte],
-                                         val maxKey: Slice[Byte],
+                                         val maxKey: MaxKey,
                                          val segmentSize: Int,
                                          val removeDeletes: Boolean)(implicit ordering: Ordering[Slice[Byte]],
                                                                      keyValueLimiter: (SegmentEntryReadOnly, Segment) => Unit,
@@ -189,35 +191,48 @@ private[segment] class PersistentSegment(val file: DBFile,
       }
     }
 
-  override def getBloomFilter: Try[BloomFilter[Slice[Byte]]] =
+  override def getBloomFilter: Try[Option[BloomFilter[Slice[Byte]]]] =
     getFooter().map(_.bloomFilter)
 
   def getFromCache(key: Slice[Byte]): Option[SegmentEntryReadOnly] =
     Option(cache.get(key))
 
   def mightContain(key: Slice[Byte]): Try[Boolean] =
-    getFooter().map(_.bloomFilter.mightContain(key))
+    getFooter().map(_.bloomFilter.forall(_.mightContain(key)))
+
+  def isGreaterThanMaxKey(key: Slice[Byte]) =
+    maxKey match {
+      case Fixed(maxKey) =>
+        key > maxKey
+      case range: Range =>
+
+    }
 
   def get(key: Slice[Byte]): Try[Option[SegmentEntryReadOnly]] =
-    if (key < minKey || key > maxKey)
-      Success(None)
-    else {
-      val floorEntry = Option(cache.floorEntry(key))
-      floorEntry match {
-        case Some(value) if value.getKey equiv key =>
-          Success(Some(value.getValue))
+    maxKey match {
+      case Fixed(maxKey) if key > maxKey =>
+        Success(None)
 
-        case _ =>
-          prepareGet {
-            (footer, reader) =>
-              if (!footer.bloomFilter.mightContain(key))
-                Success(None)
-              else
-                returnResponse {
-                  find(KeyMatcher.Get(key), startFrom = floorEntry.map(_.getValue), reader, footer)
-                }
-          }
-      }
+      case range: Range if key >= range.maxKey =>
+        Success(None)
+
+      case _ =>
+        val floorEntry = Option(cache.floorEntry(key))
+        floorEntry match {
+          case Some(value) if value.getKey equiv key =>
+            Success(Some(value.getValue))
+
+          case _ =>
+            prepareGet {
+              (footer, reader) =>
+                if (!footer.hasRange && !footer.bloomFilter.forall(_.mightContain(key)))
+                  Success(None)
+                else
+                  returnResponse {
+                    find(KeyMatcher.Get(key), startFrom = floorEntry.map(_.getValue), reader, footer)
+                  }
+            }
+        }
     }
 
   private def satisfyLowerFromCache(key: Slice[Byte],
@@ -231,52 +246,69 @@ private[segment] class PersistentSegment(val file: DBFile,
     }
 
   def lower(key: Slice[Byte]): Try[Option[SegmentEntryReadOnly]] =
-    if (key < minKey)
+    if (key <= minKey)
       Success(None)
-    else if (key > maxKey)
-      get(maxKey)
     else {
-      val lowerKeyValue = Option(cache.lowerEntry(key)).map(_.getValue)
-      val lowerFromCache = lowerKeyValue.flatMap(satisfyLowerFromCache(key, _))
-      if (lowerFromCache.isDefined)
-        Success(lowerFromCache)
-      else
-        prepareGet {
-          (footer, reader) =>
-            returnResponse {
-              find(KeyMatcher.Lower(key), startFrom = lowerKeyValue, reader, footer)
+      maxKey match {
+        case Fixed(maxKey) if key > maxKey =>
+          get(maxKey)
+
+        case Range(fromKey, _) if key > fromKey =>
+          get(fromKey)
+
+        case _ =>
+          val lowerKeyValue = Option(cache.lowerEntry(key)).map(_.getValue)
+          val lowerFromCache = lowerKeyValue.flatMap(satisfyLowerFromCache(key, _))
+          if (lowerFromCache.isDefined)
+            Success(lowerFromCache)
+          else
+            prepareGet {
+              (footer, reader) =>
+                returnResponse {
+                  find(KeyMatcher.Lower(key), startFrom = lowerKeyValue, reader, footer)
+                }
             }
-        }
+      }
     }
 
   private def satisfyHigherFromCache(key: Slice[Byte],
                                      floorKeyValue: SegmentEntryReadOnly): Option[SegmentEntryReadOnly] =
-    Option(cache.higherEntry(key)).map(_.getValue) flatMap {
-      higherKeyValue =>
-        if (floorKeyValue.nextIndexOffset == higherKeyValue.indexOffset)
-          Some(higherKeyValue)
-        else
-          None
+    floorKeyValue match {
+      case floorRange: RangeReadOnly if key >= floorRange.fromKey && key < floorRange.toKey =>
+        Some(floorKeyValue)
+
+      case _ =>
+        Option(cache.higherEntry(key)).map(_.getValue) flatMap {
+          higherKeyValue =>
+            if (floorKeyValue.nextIndexOffset == higherKeyValue.indexOffset)
+              Some(higherKeyValue)
+            else
+              None
+        }
     }
 
   def higher(key: Slice[Byte]): Try[Option[SegmentEntryReadOnly]] =
-    if (key >= maxKey)
-      Success(None)
-    else if (key < minKey)
-      get(minKey)
-    else {
-      val floorKeyValue = Option(cache.floorEntry(key)).map(_.getValue)
-      val higherFromCache = floorKeyValue.flatMap(satisfyHigherFromCache(key, _))
+    maxKey match {
+      case Fixed(maxKey) if key >= maxKey =>
+        Success(None)
 
-      if (higherFromCache.isDefined)
-        Success(higherFromCache)
-      else
-        prepareGet {
-          (footer, reader) =>
-            returnResponse {
-              find(KeyMatcher.Higher(key), startFrom = floorKeyValue, reader, footer)
-            }
-        }
+      case Range(_, maxKey) if key >= maxKey =>
+        Success(None)
+
+      case _ =>
+        val floorKeyValue = Option(cache.floorEntry(key)).map(_.getValue)
+        val higherFromCache = floorKeyValue.flatMap(satisfyHigherFromCache(key, _))
+
+        if (higherFromCache.isDefined)
+          Success(higherFromCache)
+        else
+          prepareGet {
+            (footer, reader) =>
+              returnResponse {
+                find(KeyMatcher.Higher(key), startFrom = floorKeyValue, reader, footer)
+              }
+          }
+
     }
 
   def getAll(bloomFilterFalsePositiveRate: Double, addTo: Option[Slice[SegmentEntry]] = None): Try[Slice[SegmentEntry]] =
@@ -307,4 +339,6 @@ private[segment] class PersistentSegment(val file: DBFile,
   def persistent: Boolean =
     file.persistent
 
+  override def hasRange: Try[Boolean] =
+    getFooter().map(_.hasRange)
 }

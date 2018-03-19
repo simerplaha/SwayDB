@@ -25,7 +25,7 @@ import bloomfilter.mutable.BloomFilter
 import org.scalatest.{Assertion, Assertions}
 import swaydb.core.data.Value.{Fixed, Range}
 import swaydb.core.data._
-import swaydb.core.level.zero.{LevelZero, LevelZeroRef, SkipListRangeConflictResolver}
+import swaydb.core.level.zero.{LevelZero, LevelZeroRef, LevelZeroSkipListMerge}
 import swaydb.core.level.{Level, LevelRef}
 import swaydb.core.map.MapEntry
 import swaydb.core.map.MapEntry.Put
@@ -39,7 +39,7 @@ import swaydb.order.KeyOrder
 
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
-import scala.util.{Random, Try}
+import scala.util.{Failure, Random, Success, Try}
 
 trait CommonAssertions extends TryAssert with FutureBase {
 
@@ -85,7 +85,6 @@ trait CommonAssertions extends TryAssert with FutureBase {
     }
   }
 
-
   implicit class RangeWriteOnlyImplicit(range: KeyValue.WriteOnly) {
     def toValueTry: Try[(Slice[Byte], Value)] =
       range match {
@@ -99,16 +98,16 @@ trait CommonAssertions extends TryAssert with FutureBase {
       }
   }
 
-  def assertRangeSplitter(newKeyValues: Iterable[KeyValue.WriteOnly],
+  def assertSkipListMerge(newKeyValues: Iterable[KeyValue.WriteOnly],
                           oldKeyValues: Iterable[KeyValue.WriteOnly],
                           expected: KeyValue.WriteOnly)(implicit ordering: Ordering[Slice[Byte]]): ConcurrentSkipListMap[Slice[Byte], Value] =
-    assertRangeSplitter(newKeyValues, oldKeyValues, Slice(expected))
+    assertSkipListMerge(newKeyValues, oldKeyValues, Slice(expected))
 
-  def assertRangeSplitter(newKeyValues: Iterable[KeyValue.WriteOnly],
+  def assertSkipListMerge(newKeyValues: Iterable[KeyValue.WriteOnly],
                           oldKeyValues: Iterable[KeyValue.WriteOnly],
                           expected: Iterable[KeyValue.WriteOnly])(implicit ordering: Ordering[Slice[Byte]]): ConcurrentSkipListMap[Slice[Byte], Value] = {
     val skipList = new ConcurrentSkipListMap[Slice[Byte], Value](ordering)
-    (oldKeyValues ++ newKeyValues).map(_.toValueTry.assertGet) foreach { case (key, value) => SkipListRangeConflictResolver.insert(key, value, skipList) }
+    (oldKeyValues ++ newKeyValues).map(_.toValueTry.assertGet) foreach { case (key, value) => LevelZeroSkipListMerge.insert(key, value, skipList) }
     skipList.size() shouldBe expected.size
     skipList.asScala.toList shouldBe expected.map(_.toValueTry.assertGet)
     skipList
@@ -189,15 +188,40 @@ trait CommonAssertions extends TryAssert with FutureBase {
         Some(keyValue.stats)
     }
 
-  implicit class KeyValueImplicits[KVA <: KeyValue](actual: KVA) {
+  implicit class KeyValueImplicits(actual: KeyValue) {
 
-    def shouldBeIgnoreStats[KVE <: KeyValue](expected: KVE): Unit = {
+    def shouldBeIgnoreStats(expected: KeyValue): Unit = {
       actual shouldBe(expected, ignoreStats = true)
     }
 
-    def shouldBe[KVE <: KeyValue](expected: KVE, ignoreValueOffset: Boolean = false, ignoreStats: Boolean = false): Unit = {
-      actual.key shouldBe expected.key
-      actual.getOrFetchValue.assertGetOpt shouldBe expected.getOrFetchValue.assertGetOpt
+    def shouldBe(expected: KeyValue, ignoreValueOffset: Boolean = false, ignoreStats: Boolean = false): Unit = {
+      (expected, actual) match {
+        case (expectedRange: KeyValue.RangeWriteOnly, actualRange: KeyValue.RangeWriteOnly) =>
+          actualRange.fromKey shouldBe expectedRange.fromKey
+          actualRange.toKey shouldBe expectedRange.toKey
+          actualRange.fetchFromAndRangeValue.assertGet shouldBe expectedRange.fetchFromAndRangeValue.assertGet
+          actualRange.fetchFromValue.assertGetOpt shouldBe expectedRange.fetchFromValue.assertGetOpt
+          actualRange.fetchRangeValue.assertGet shouldBe expectedRange.fetchRangeValue.assertGet
+          actualRange.fullKey shouldBe expectedRange.fullKey
+          actualRange.id shouldBe expectedRange.id
+          actualRange.isRange shouldBe expectedRange.isRange
+          actualRange.isRemove shouldBe expectedRange.isRemove
+          actualRange.isRemoveRange shouldBe expectedRange.isRemoveRange
+
+        case (expectedRange: KeyValue.RangeWriteOnly, actualRange: SegmentEntry.RangeReadOnly) =>
+          actualRange.fromKey shouldBe expectedRange.fromKey
+          actualRange.toKey shouldBe expectedRange.toKey
+          actualRange.fetchFromAndRangeValue.assertGet shouldBe expectedRange.fetchFromAndRangeValue.assertGet
+          actualRange.fetchFromValue.assertGetOpt shouldBe expectedRange.fetchFromValue.assertGetOpt
+          actualRange.fetchRangeValue.assertGet shouldBe expectedRange.fetchRangeValue.assertGet
+          actualRange.id shouldBe expectedRange.id
+          actualRange.isRemove shouldBe expectedRange.isRemove
+
+        case _ =>
+          actual.key shouldBe expected.key
+          actual.getOrFetchValue.assertGetOpt shouldBe expected.getOrFetchValue.assertGetOpt
+      }
+
       if (!ignoreStats)
         getStats(actual) shouldBe(getStats(expected), ignoreValueOffset)
 
@@ -209,14 +233,6 @@ trait CommonAssertions extends TryAssert with FutureBase {
       actual.isDefined shouldBe expected.isDefined
       if (actual.isDefined)
         actual.assertGet shouldBe(expected.assertGet, ignoreValueOffset)
-    }
-  }
-
-  implicit class ValueTypeValueImplicits(actual: Option[Value]) {
-    def shouldBe(expected: Option[Value]) = {
-      actual.isDefined shouldBe expected.isDefined
-      if (actual.isDefined)
-        actual.get shouldBe expected.get
     }
   }
 
@@ -241,15 +257,43 @@ trait CommonAssertions extends TryAssert with FutureBase {
 
   implicit class PersistentReadOnlyKeyValueImplicits(actual: SegmentEntryReadOnly) {
     def shouldBe(expected: KeyValue.WriteOnly) = {
-      actual.key shouldBe expected.key
-      actual.getOrFetchValue.assertGetOpt shouldBe expected.getOrFetchValue.assertGetOpt
+      expected match {
+        case range: KeyValue.RangeWriteOnly =>
+          actual should be(a[SegmentEntry.RangeReadOnly])
+          val actualRange = actual.asInstanceOf[SegmentEntry.RangeReadOnly]
+          range.fromKey shouldBe actualRange.fromKey
+          range.toKey shouldBe actualRange.toKey
+          range.fetchFromAndRangeValue.assertGet shouldBe actualRange.fetchFromAndRangeValue.assertGet
+          actualRange.fetchFromValue.assertGetOpt shouldBe actualRange.fetchFromValue.assertGetOpt
+          actualRange.fetchRangeValue.assertGet shouldBe actualRange.fetchRangeValue.assertGet
+          actualRange.id shouldBe actualRange.id
+          actualRange.isRemove shouldBe actualRange.isRemove
+
+        case _ =>
+          actual.key shouldBe expected.key
+          actual.getOrFetchValue.assertGetOpt shouldBe expected.getOrFetchValue.assertGetOpt
+      }
+
     }
   }
 
   implicit class PersistentReadOnlyImplicits(actual: SegmentEntryReadOnly) {
     def shouldBe(expected: SegmentEntryReadOnly) = {
-      actual.key shouldBe expected.key
-      actual.getOrFetchValue.assertGetOpt shouldBe expected.getOrFetchValue.assertGetOpt
+      expected match {
+        case range: KeyValue.RangeWriteOnly =>
+          actual should be(a[SegmentEntry.RangeReadOnly])
+          val actualRange = actual.asInstanceOf[SegmentEntry.RangeReadOnly]
+          range.fromKey shouldBe actualRange.fromKey
+          range.toKey shouldBe actualRange.toKey
+          actualRange.fetchFromValue.assertGetOpt shouldBe actualRange.fetchFromValue.assertGetOpt
+          actualRange.fetchRangeValue.assertGet shouldBe actualRange.fetchRangeValue.assertGet
+          actualRange.id shouldBe actualRange.id
+          actualRange.isRemove shouldBe actualRange.isRemove
+
+        case _ =>
+          actual.key shouldBe expected.key
+          actual.getOrFetchValue.assertGetOpt shouldBe expected.getOrFetchValue.assertGetOpt
+      }
     }
   }
 
@@ -276,7 +320,7 @@ trait CommonAssertions extends TryAssert with FutureBase {
     def shouldBe(expected: Segment): Unit = {
       actual.segmentSize shouldBe expected.segmentSize
       actual.minKey.unslice() equiv expected.minKey.unslice()
-      actual.maxKey.unslice() equiv expected.maxKey.unslice()
+      actual.maxKey.maxKey.unslice() equiv expected.maxKey.maxKey.unslice()
       actual.existsOnDisk shouldBe expected.existsOnDisk
       actual.path shouldBe expected.path
       //      actual.id shouldBe expected.id
@@ -497,7 +541,7 @@ trait CommonAssertions extends TryAssert with FutureBase {
     assertLowers(0)
   }
 
-  def assertGet(keyValues: Slice[KeyValue],
+  def assertGet(keyValues: Slice[KeyValue.WriteOnly],
                 reader: Reader)(implicit ordering: Ordering[Slice[Byte]]) =
     keyValues foreach {
       keyValue =>
@@ -511,7 +555,7 @@ trait CommonAssertions extends TryAssert with FutureBase {
         bloom.mightContain(keyValue.key) shouldBe true
     }
 
-  def assertReads(keyValues: Slice[KeyValue],
+  def assertReads(keyValues: Slice[KeyValue.WriteOnly],
                   segment: Segment) = {
     val asserts = Seq(() => assertGet(keyValues, segment), () => assertHigher(keyValues, segment), () => assertLower(keyValues, segment))
     Random.shuffle(asserts).foreach(_ ())
@@ -602,7 +646,7 @@ trait CommonAssertions extends TryAssert with FutureBase {
     zero.lastKey.assertGet shouldBe keyValues.last.key
   }
 
-  def assertLower(keyValues: Slice[KeyValue],
+  def assertLower(keyValues: Slice[KeyValue.WriteOnly],
                   reader: Reader)(implicit ordering: Ordering[Slice[Byte]]) = {
 
     @tailrec
@@ -611,11 +655,26 @@ trait CommonAssertions extends TryAssert with FutureBase {
       if (index > keyValues.size - 1) {
         Assertions.succeed
       } else if (index == 0) {
-        SegmentReader.find(KeyMatcher.Lower(keyValues(0).key), None, reader.copy()).assertGetOpt shouldBe empty
+        keyValues(index) match {
+          case range: KeyValue.RangeWriteOnly =>
+            SegmentReader.find(KeyMatcher.Lower(range.fromKey), None, reader.copy()).assertGetOpt shouldBe empty
+            SegmentReader.find(KeyMatcher.Lower(range.toKey), None, reader.copy()).assertGetOpt shouldBe range
+
+          case _ =>
+            SegmentReader.find(KeyMatcher.Lower(keyValues(index).key), None, reader.copy()).assertGetOpt shouldBe empty
+        }
         assertLowers(index + 1)
       } else {
         val expectedLowerKeyValue = keyValues(index - 1)
-        SegmentReader.find(KeyMatcher.Lower(keyValues(index).key), None, reader.copy()).assertGet shouldBeIgnoreStats expectedLowerKeyValue
+        keyValues(index) match {
+          case range: KeyValue.RangeWriteOnly =>
+            SegmentReader.find(KeyMatcher.Lower(range.fromKey), None, reader.copy()).assertGet shouldBeIgnoreStats expectedLowerKeyValue
+            SegmentReader.find(KeyMatcher.Lower(range.toKey), None, reader.copy()).assertGet shouldBeIgnoreStats range
+
+          case _ =>
+            SegmentReader.find(KeyMatcher.Lower(keyValues(index).key), None, reader.copy()).assertGet shouldBeIgnoreStats expectedLowerKeyValue
+        }
+
         assertLowers(index + 1)
       }
     }
@@ -623,7 +682,7 @@ trait CommonAssertions extends TryAssert with FutureBase {
     assertLowers(0)
   }
 
-  def assertHigher(keyValues: Slice[KeyValue],
+  def assertHigher(keyValues: Slice[KeyValue.WriteOnly],
                    reader: Reader)(implicit ordering: Ordering[Slice[Byte]]) = {
 
     @tailrec
@@ -632,11 +691,22 @@ trait CommonAssertions extends TryAssert with FutureBase {
       if (index > keyValues.size - 1) {
         Assertions.succeed
       } else if (index == lastIndex) {
-        SegmentReader.find(KeyMatcher.Higher(keyValues(lastIndex).key), None, reader.copy()).assertGetOpt shouldBe empty
+        keyValues(lastIndex) match {
+          case range: KeyValue.RangeWriteOnly =>
+            SegmentReader.find(KeyMatcher.Higher(range.fromKey), None, reader.copy()).assertGetOpt shouldBe range
+            SegmentReader.find(KeyMatcher.Higher(range.toKey), None, reader.copy()).assertGetOpt shouldBe empty
+          case _ =>
+            SegmentReader.find(KeyMatcher.Higher(keyValues(lastIndex).key), None, reader.copy()).assertGetOpt shouldBe empty
+        }
         assertHigher(index + 1)
       } else {
         val expectedHigherKeyValue = keyValues(index + 1)
-        SegmentReader.find(KeyMatcher.Higher(keyValues(index).key), None, reader.copy()).assertGet shouldBeIgnoreStats expectedHigherKeyValue
+        keyValues(index) match {
+          case range: KeyValue.RangeWriteOnly =>
+            SegmentReader.find(KeyMatcher.Higher(keyValues(index).key), None, reader.copy()).assertGet shouldBeIgnoreStats range
+          case _ =>
+            SegmentReader.find(KeyMatcher.Higher(keyValues(index).key), None, reader.copy()).assertGet shouldBeIgnoreStats expectedHigherKeyValue
+        }
         assertHigher(index + 1)
       }
     }
@@ -644,7 +714,7 @@ trait CommonAssertions extends TryAssert with FutureBase {
     assertHigher(0)
   }
 
-  def assertLower(keyValues: Slice[KeyValue],
+  def assertLower(keyValues: Slice[KeyValue.WriteOnly],
                   segment: Segment) = {
 
     @tailrec
@@ -668,20 +738,49 @@ trait CommonAssertions extends TryAssert with FutureBase {
     assertLowers(0)
   }
 
-  def assertHigher(keyValues: Slice[KeyValue],
+  def assertHigher(keyValues: Slice[KeyValue.WriteOnly],
                    segment: Segment) = {
-
+    import KeyOrder.default._
     (0 until keyValues.size) foreach {
       index =>
         if (index == keyValues.size - 1) {
-          val actualKeyValue = keyValues(index)
-          segment.higher(actualKeyValue.key).assertGetOpt shouldBe empty
+          keyValues(index) match {
+            case range: KeyValue.RangeWriteOnly =>
+              segment.higher(range.fromKey).assertGetOpt shouldBe range
+              segment.higher(range.toKey).assertGetOpt shouldBe empty
+
+            case keyValue =>
+              segment.higher(keyValue.key).assertGetOpt shouldBe empty
+          }
         } else {
           val keyValue = keyValues(index)
           val expectedHigher = keyValues(index + 1)
-          val higher = segment.higher(keyValue.key).assertGet
-          higher.key shouldBe expectedHigher.key
-          higher.getOrFetchValue.assertGetOpt shouldBe expectedHigher.getOrFetchValue.assertGetOpt
+          keyValue match {
+            case range: KeyValue.RangeWriteOnly =>
+
+              segment.higher(range.fromKey).assertGet shouldBe range
+              val toKeyHigher = segment.higher(range.toKey).assertGetOpt
+              //suppose this keyValue is Range (1 - 10), second is Put(10), third is Put(11), performing higher on Range's toKey(10) will return 11 and not 10.
+              //but 10 will be return if the second key-value was a range key-value.
+              //if the toKey is equal to expected higher's key, then the higher is the next 3rd key.
+              if (!expectedHigher.isInstanceOf[KeyValue.RangeWriteOnly] && (expectedHigher.key equiv range.toKey)) {
+                if (index + 2 == keyValues.size) { //if there is no 3rd key, toKeyHigher should be empty
+                  toKeyHigher shouldBe empty
+                } else {
+                  toKeyHigher.assertGet.key shouldBe keyValues(index + 2).key
+                  toKeyHigher.assertGet.getOrFetchValue.assertGetOpt shouldBe keyValues(index + 2).getOrFetchValue.assertGetOpt
+                }
+              } else {
+                toKeyHigher.assertGet.key shouldBe expectedHigher.key
+                toKeyHigher.assertGet.getOrFetchValue.assertGetOpt shouldBe expectedHigher.getOrFetchValue.assertGetOpt
+              }
+
+            case _ =>
+              val higher = segment.higher(keyValue.key).assertGet
+              higher.key shouldBe expectedHigher.key
+              higher.getOrFetchValue.assertGetOpt shouldBe expectedHigher.getOrFetchValue.assertGetOpt
+          }
+
         }
     }
   }

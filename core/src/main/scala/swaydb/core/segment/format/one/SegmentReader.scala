@@ -313,10 +313,16 @@ private[core] object SegmentReader extends LazyLogging {
       val footerBytes = reader.moveTo(fileSize - footerSize - ByteSizeOf.int).read(footerSize)
       val footerReader = Reader(footerBytes.get)
       footerReader.readIntUnsigned().get
+      val hasRange = if (footerReader.get().get == 1) true else false
       val indexStartOffset = footerReader.readIntUnsigned().get
       val expectedCRC = footerReader.readLong().get
       val keyValueCount = footerReader.readIntUnsigned().get
-      val bloomFilterSlice = footerReader.read(footerReader.remaining.get.toInt).get
+      val bloomFilterSize = footerReader.readIntUnsigned().get
+      val bloomFilterSlice =
+        if (bloomFilterSize == 0)
+          None
+        else
+          Some(footerReader.read(bloomFilterSize).get)
 
       val crcBytes = reader.moveTo(indexStartOffset).read(SegmentWriter.crcBytes).get
       val crc = CRC32.forBytes(crcBytes)
@@ -324,7 +330,7 @@ private[core] object SegmentReader extends LazyLogging {
         Failure(SegmentCorruptionException(s"Corrupted Segment: CRC Check failed. $expectedCRC != $crc", new Exception("CRC check failed.")))
       } else {
         val indexEndOffset = fileSize.toInt - footerSize - ByteSizeOf.int - 1
-        Success(SegmentFooter(expectedCRC, indexStartOffset, indexEndOffset, keyValueCount, bloomFilterSlice.toBloomFilter))
+        Success(SegmentFooter(expectedCRC, indexStartOffset, indexEndOffset, keyValueCount, hasRange = hasRange, bloomFilterSlice.map(_.toBloomFilter)))
       }
     } catch {
       case exception: Exception =>

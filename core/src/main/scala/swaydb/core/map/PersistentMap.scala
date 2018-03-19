@@ -45,7 +45,7 @@ private[map] object PersistentMap extends LazyLogging {
                                          dropCorruptedTailEntries: Boolean)(implicit ordering: Ordering[K],
                                                                             reader: MapEntryReader[MapEntry[K, V]],
                                                                             writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                                            skipListConflictResolver: SkipListConflictResolver[K, V],
+                                                                            skipListMerger: SkipListMerge[K, V],
                                                                             ec: ExecutionContext): Try[RecoveryResult[PersistentMap[K, V]]] = {
     IO.createDirectoryIfAbsent(folder)
     val skipList: ConcurrentSkipListMap[K, V] = new ConcurrentSkipListMap[K, V](ordering)
@@ -65,7 +65,7 @@ private[map] object PersistentMap extends LazyLogging {
                                          fileSize: Long)(implicit ordering: Ordering[K],
                                                          reader: MapEntryReader[MapEntry[K, V]],
                                                          writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                         skipListConflictResolver: SkipListConflictResolver[K, V],
+                                                         skipListMerger: SkipListMerge[K, V],
                                                          ec: ExecutionContext): Try[PersistentMap[K, V]] = {
     IO.createDirectoryIfAbsent(folder)
     val skipList: ConcurrentSkipListMap[K, V] = new ConcurrentSkipListMap[K, V](ordering)
@@ -88,7 +88,7 @@ private[map] object PersistentMap extends LazyLogging {
                                  skipList: ConcurrentSkipListMap[K, V],
                                  dropCorruptedTailEntries: Boolean)(implicit writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                     mapReader: MapEntryReader[MapEntry[K, V]],
-                                                                    skipListConflictResolver: SkipListConflictResolver[K, V],
+                                                                    skipListMerger: SkipListMerge[K, V],
                                                                     ordering: Ordering[K],
                                                                     ec: ExecutionContext): Try[(RecoveryResult[DBFile], Boolean)] = {
     //read all existing logs and populate skipList
@@ -108,7 +108,7 @@ private[map] object PersistentMap extends LazyLogging {
                       recovery.item.foldLeft(0) {
                         case (size, entry) =>
                           if (entry.hasRange) {
-                            skipListConflictResolver.insert(entry, skipList)
+                            skipListMerger.insert(entry, skipList)
                             hasRange = true
                           } else
                             entry applyTo skipList
@@ -205,7 +205,7 @@ private[map] case class PersistentMap[K, V: ClassTag](path: Path,
                                                       @volatile private var _hasRange: Boolean)(val skipList: ConcurrentSkipListMap[K, V])(implicit ordering: Ordering[K],
                                                                                                                                            reader: MapEntryReader[MapEntry[K, V]],
                                                                                                                                            writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                                                                                                           skipListRangeResolver: SkipListConflictResolver[K, V],
+                                                                                                                                           skipListRangeResolver: SkipListMerge[K, V],
                                                                                                                                            ec: ExecutionContext) extends Map[K, V] with LazyLogging {
 
   // actualSize of the file can be different to fileSize when the entry's size is > fileSize.

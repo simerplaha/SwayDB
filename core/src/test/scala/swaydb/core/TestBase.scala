@@ -36,6 +36,7 @@ import swaydb.core.level.actor.LevelCommand.{PushSegments, PushSegmentsResponse}
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, LevelRef}
 import swaydb.core.segment.Segment
+import swaydb.data.segment.MaxKey
 import swaydb.core.util.IDGenerator
 import swaydb.data.accelerate.{Accelerator, Level0Meter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
@@ -205,6 +206,38 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
     }
   }
 
+  implicit class ReopenSegment(segment: Segment)(implicit ordering: Ordering[Slice[Byte]],
+                                                 keyValueLimiter: (SegmentEntryReadOnly, Segment) => Unit = keyValueLimiter,
+                                                 fileOpenLimited: DBFile => Unit = fileOpenLimiter) {
+
+    def tryReopen: Try[Segment] =
+      tryReopen(segment.path)
+
+    def tryReopen(path: Path): Try[Segment] =
+      Segment(
+        path = path,
+        mmapReads = Random.nextBoolean(),
+        mmapWrites = Random.nextBoolean(),
+        cacheKeysOnCreate = Random.nextBoolean(),
+        minKey = segment.minKey,
+        maxKey = segment.maxKey,
+        segmentSize = segment.segmentSize,
+        removeDeletes = segment.removeDeletes
+      ) flatMap {
+        reopenedSegment =>
+          segment.close map {
+            _ =>
+              reopenedSegment
+          }
+      }
+
+    def reopen: Segment =
+      tryReopen.assertGet
+
+    def reopen(path: Path): Segment =
+      tryReopen(path).assertGet
+  }
+
   implicit class ReopenLevel(level: Level)(implicit ordering: Ordering[Slice[Byte]]) {
 
     def reopen: Level =
@@ -280,6 +313,17 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
       }
       slice
     }
+
+    def maxKey: MaxKey =
+      keyValues.last match {
+        case range: KeyValue.RangeWriteOnly =>
+          MaxKey.Range(range.fromKey, range.toKey)
+        case last =>
+          MaxKey.Fixed(last.key)
+      }
+
+    def minKey: Slice[Byte] =
+      keyValues.head.key
   }
 
   def createFile(bytes: Slice[Byte]): Path =

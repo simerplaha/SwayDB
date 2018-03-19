@@ -127,6 +127,19 @@ object ByteUtil {
     slice add (x & 0x7F).toByte
   }
 
+  def writeUnsignedIntReversed(int: Int): Slice[Byte] = {
+    val array = new Array[Byte](5)
+    var i = 4
+    var x = int
+    while ((x & 0xFFFFF80) != 0L) {
+      array(i) = ((x & 0x7F) | 0x80).toByte
+      x >>>= 7
+      i -= 1
+    }
+    array(i) = (x & 0x7F).toByte
+    Slice(array).slice(i, array.length - 1)
+  }
+
   def readUnsignedInt(reader: Reader): Try[Int] = {
     try {
       var i = 0
@@ -156,6 +169,26 @@ object ByteUtil {
         int |= (read & 0x7F) << i
         i += 7
         index += 1
+        require(i <= 35)
+      } while ((read & 0x80) != 0)
+      Success(int)
+    } catch {
+      case ex: Exception =>
+        Failure(ex)
+    }
+  }
+
+  def readLastUnsignedInt(slice: Slice[Byte]): Try[Int] = {
+    try {
+      var index = slice.size - 1
+      var i = 0
+      var int = 0
+      var read = 0
+      do {
+        read = slice(index)
+        int |= (read & 0x7F) << i
+        i += 7
+        index -= 1
         require(i <= 35)
       } while ((read & 0x80) != 0)
       Success(int)

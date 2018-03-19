@@ -24,14 +24,12 @@ import java.nio.file.NoSuchFileException
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.PrivateMethodTester
 import swaydb.core.actor.TestActor
-import swaydb.core.data.KeyValue.WriteOnly
 import swaydb.core.data.Transient.Remove
 import swaydb.core.data._
 import swaydb.core.io.file.{DBFile, IO}
 import swaydb.core.level.actor.LevelAPI
 import swaydb.core.level.actor.LevelCommand.{PushSegments, PushSegmentsResponse}
-import swaydb.core.level.zero.SkipListRangeConflictResolver
-import swaydb.core.map.serializer.{AppendixMapEntryReader, AppendixMapEntryWriter}
+import swaydb.core.level.zero.LevelZeroSkipListMerge
 import swaydb.core.map.{Map, MapEntry}
 import swaydb.core.segment.Segment
 import swaydb.core.util.Extension
@@ -83,7 +81,7 @@ class LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
 
   implicit val maxSegmentsOpenCacheImplicitLimiter: DBFile => Unit = TestLimitQueues.fileOpenLimiter
   implicit val keyValuesLimitImplicitLimiter: (SegmentEntryReadOnly, Segment) => Unit = TestLimitQueues.keyValueLimiter
-  implicit val skipListRangeConflictResolver = SkipListRangeConflictResolver
+  implicit val skipListMerger = LevelZeroSkipListMerge
 
   "Level" should {
     "initialise" in {
@@ -387,8 +385,8 @@ class LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
   }
 
   "Level.putMap" should {
-    import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
     import swaydb.core.map.serializer.LevelZeroMapEntryReader._
+    import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
 
     val map =
       if (persistent)
@@ -702,8 +700,8 @@ class LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
       val actualMapEntry = level.buildNewMapEntry(Slice(map), initialMapEntry = None).assertGet
       val expectedMapEntry = MapEntry.Put[Slice[Byte], Segment](map.minKey, map)
 
-      actualMapEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.read[Int]) shouldBe
-        expectedMapEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.read[Int])
+      actualMapEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.maxKey.read[Int]) shouldBe
+        expectedMapEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.maxKey.read[Int])
     }
 
     "build MapEntry.Put map for the newly merged Segments and not add MapEntry.Remove map " +
@@ -722,8 +720,8 @@ class LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
           MapEntry.Put[Slice[Byte], Segment](6, mergedSegment2) ++
           MapEntry.Put[Slice[Byte], Segment](11, mergedSegment3)
 
-      actualMapEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.read[Int]) shouldBe
-        expectedMapEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.read[Int])
+      actualMapEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.maxKey.read[Int]) shouldBe
+        expectedMapEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.maxKey.read[Int])
 
     }
 
@@ -743,8 +741,8 @@ class LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
 
       val actualMapEntry = level.buildNewMapEntry(Slice(mergedSegment1, mergedSegment2, mergedSegment3), Some(originalSegment), initialMapEntry = None).assertGet
 
-      actualMapEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.read[Int]) shouldBe
-        expectedMapEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.read[Int])
+      actualMapEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.maxKey.read[Int]) shouldBe
+        expectedMapEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.maxKey.read[Int])
     }
   }
 

@@ -21,6 +21,8 @@ package swaydb.core.data
 
 import swaydb.core.data.KeyValue.{FixedWriteOnly, RangeWriteOnly}
 import swaydb.core.map.serializer.RangeValueSerializer
+import swaydb.core.map.serializer.RangeValueSerializers.PutRemoveSerializer
+import swaydb.core.util.ByteUtilCore
 import swaydb.data.slice.{Reader, Slice}
 
 import scala.util.{Failure, Success, Try}
@@ -57,7 +59,7 @@ private[core] object SegmentEntry {
               nextIndexSize: Int,
               falsePositiveRate: Double,
               previous: Option[KeyValue.WriteOnly]): Put =
-      new Put(key, valueReader, nextIndexOffset, nextIndexSize, valueOffset, Stats(key, valueLength, falsePositiveRate, previous.exists(_.isRemoveRange), previous))
+      new Put(key, valueReader, nextIndexOffset, nextIndexSize, valueOffset, Stats(key, valueLength, falsePositiveRate, false, false, previous))
 
     def apply(valueReader: Reader,
               falsePositiveRate: Double,
@@ -92,7 +94,7 @@ private[core] object SegmentEntry {
     override def updateStats(falsePositiveRate: Double, keyValue: Option[KeyValue.WriteOnly]) =
       getOrFetchValue map {
         value =>
-          val updatedKeyValue = this.copy(stats = Stats(key, value, falsePositiveRate, keyValue.exists(_.isRemoveRange), keyValue))
+          val updatedKeyValue = this.copy(stats = Stats(key, value, falsePositiveRate, false, false, keyValue))
           //value is fetched and the offset is changed, set the value fetched from the old reader.
           updatedKeyValue.valueOption = value
           updatedKeyValue
@@ -106,6 +108,8 @@ private[core] object SegmentEntry {
     override val isRemoveRange: Boolean = false
 
     override def isRemove: Boolean = false
+
+    override val isRange: Boolean = false
   }
 
   object Range {
@@ -119,17 +123,28 @@ private[core] object SegmentEntry {
               nextIndexSize: Int,
               valueOffset: Int,
               falsePositiveRate: Double,
-              previous: Option[KeyValue.WriteOnly]): Range =
+              previous: Option[KeyValue.WriteOnly]): Range = {
+      val fullKey = ByteUtilCore.compress(fromKey, toKey)
       new Range(
         id = id,
         fromKey = fromKey,
         toKey = toKey,
+        fullKey = fullKey,
         valueReader = valueReader,
         nextIndexOffset = nextIndexOffset,
         nextIndexSize = nextIndexSize,
         valueOffset = valueOffset,
-        stats = Stats(Transient.Range.mergeKeys(fromKey, toKey), valueLength, falsePositiveRate, id == RangeValueSerializer.removeRangeId || previous.exists(_.isRemoveRange), previous)
+        stats =
+          Stats(
+            key = fullKey,
+            valueLength = valueLength,
+            falsePositiveRate = falsePositiveRate,
+            isRemoveRange = RangeValueSerializer.isRemoveRange(id),
+            isRange = true,
+            previous = previous
+          )
       )
+    }
 
     def apply(valueReader: Reader,
               falsePositiveRate: Double,
@@ -139,17 +154,27 @@ private[core] object SegmentEntry {
                                               valueOffset: Int,
                                               nextIndexOffset: Int,
                                               nextIndexSize: Int): Try[SegmentEntry.Range] =
-      Transient.Range.unMergeKeys(key) map {
+      ByteUtilCore.uncompress(key) map {
         case (fromKey, toKey) =>
+          val fullKey = ByteUtilCore.compress(fromKey, toKey)
           new Range(
             id = id,
             fromKey = fromKey,
             toKey = toKey,
+            fullKey = fullKey,
             valueReader = valueReader,
             nextIndexOffset = nextIndexOffset,
             nextIndexSize = nextIndexSize,
             valueOffset = valueOffset,
-            stats = Stats(Transient.Range.mergeKeys(fromKey, toKey), valueLength, falsePositiveRate, id == RangeValueSerializer.removeRangeId || previous.exists(_.isRemoveRange), previous)
+            stats =
+              Stats(
+                key = fullKey,
+                valueLength = valueLength,
+                falsePositiveRate = falsePositiveRate,
+                isRemoveRange = RangeValueSerializer.isRemoveRange(id),
+                isRange = true,
+                previous = previous
+              )
           )
       }
   }
@@ -157,6 +182,7 @@ private[core] object SegmentEntry {
   case class Range(id: Int,
                    fromKey: Slice[Byte],
                    toKey: Slice[Byte],
+                   fullKey: Slice[Byte],
                    valueReader: Reader,
                    nextIndexOffset: Int,
                    nextIndexSize: Int,
@@ -171,7 +197,7 @@ private[core] object SegmentEntry {
     override def updateStats(falsePositiveRate: Double, keyValue: Option[KeyValue.WriteOnly]) =
       getOrFetchValue map {
         value =>
-          val updatedKeyValue = this.copy(stats = Stats(Transient.Range.mergeKeys(fromKey, toKey), value, falsePositiveRate, this.isRemoveRange || keyValue.exists(_.isRemoveRange), keyValue))
+          val updatedKeyValue = this.copy(stats = Stats(fullKey, value, falsePositiveRate, this.isRemoveRange, true, keyValue))
           //value is fetched and the offset is changed, set the value fetched from the old reader.
           updatedKeyValue.valueOption = value
           updatedKeyValue
@@ -182,7 +208,8 @@ private[core] object SegmentEntry {
           throw exception
       }
 
-    override val isRemoveRange: Boolean = id == RangeValueSerializer.removeRangeId
+    override val isRemoveRange: Boolean =
+      RangeValueSerializer.isRemoveRange(id)
 
     override def isRemove: Boolean = false
   }
@@ -223,7 +250,7 @@ private[core] object SegmentEntry {
               nextIndexSize: Int,
               falsePositiveRate: Double,
               previousMayBe: Option[KeyValue.WriteOnly]): Remove =
-      new Remove(key, nextIndexOffset, nextIndexSize, Stats(key, None, falsePositiveRate, previousMayBe.exists(_.isRemoveRange), previousMayBe))
+      new Remove(key, nextIndexOffset, nextIndexSize, Stats(key, None, falsePositiveRate, false, false, previousMayBe))
 
     def apply(falsePositiveRate: Double,
               previous: Option[SegmentEntry])(key: Slice[Byte],
@@ -239,9 +266,9 @@ private[core] object SegmentEntry {
     def key = _key
 
     override def updateStats(falsePositiveRate: Double, keyValue: Option[KeyValue.WriteOnly]): KeyValue.WriteOnly =
-      this.copy(stats = Stats(key, None, falsePositiveRate, keyValue.exists(_.isRemoveRange), keyValue))
+      this.copy(stats = Stats(key, None, falsePositiveRate, false, false, keyValue))
 
-    override def isValueDefined: Boolean = false
+    override def isValueDefined: Boolean = true
 
     override def id: Int = Transient.Remove.id
 
@@ -250,6 +277,8 @@ private[core] object SegmentEntry {
     override val isRemoveRange: Boolean = false
 
     override def isRemove: Boolean = true
+
+    override val isRange: Boolean = false
   }
 
   object RemoveReadOnly {
@@ -271,7 +300,7 @@ private[core] object SegmentEntry {
 
     override val valueLength: Int = 0
 
-    override def isValueDefined: Boolean = false
+    override def isValueDefined: Boolean = true
 
     override def id: Int = Transient.Remove.id
 
@@ -288,7 +317,7 @@ private[core] object SegmentEntry {
                                 valueOffset: Int,
                                 nextIndexOffset: Int,
                                 nextIndexSize: Int): Try[SegmentEntry.RangeReadOnly] =
-      Transient.Range.unMergeKeys(key) map {
+      ByteUtilCore.uncompress(key) map {
         case (fromKey, toKey) =>
           SegmentEntry.RangeReadOnly(id, fromKey, toKey, valueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength)
       }

@@ -17,14 +17,14 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.segment.format.one
+package swaydb.data.repairAppendix
 
-import bloomfilter.mutable.BloomFilter
-import swaydb.data.slice.Slice
+sealed trait MaxKey[T] {
+  val maxKey: T
+}
 
-private[core] case class SegmentFooter(crc: Long,
-                                       startIndexOffset: Int,
-                                       endIndexOffset: Int,
-                                       keyValueCount: Int,
-                                       hasRange: Boolean,
-                                       bloomFilter: Option[BloomFilter[Slice[Byte]]])
+object MaxKey {
+  case class Fixed[T](maxKey: T) extends MaxKey[T]
+
+  case class Range[T](fromKey: T, maxKey: T) extends MaxKey[T]
+}

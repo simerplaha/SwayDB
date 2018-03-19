@@ -71,13 +71,30 @@ object Slice {
     Slice(string.getBytes(charsets))
 
   def intersects[T](range1: (Slice[T], Slice[T]),
-                    range2: (Slice[T], Slice[T]))(implicit ordering: Ordering[Slice[T]]): Boolean = {
+                    range2: (Slice[T], Slice[T]))(implicit ordering: Ordering[Slice[T]]): Boolean =
+    intersects((range1._1, range1._2, true), (range2._1, range2._2, true))
+
+  /**
+    * Boolean indicates if the toKey is inclusive.
+    */
+  def intersects[T](range1: (Slice[T], Slice[T], Boolean),
+                    range2: (Slice[T], Slice[T], Boolean))(implicit ordering: Ordering[Slice[T]]): Boolean = {
     import ordering._
 
-    def check(range1: (Slice[T], Slice[T]),
-              range2: (Slice[T], Slice[T])): Boolean =
-      range1._1 >= range2._1 && range1._1 <= range2._2 ||
-        range1._2 >= range2._1 && range1._2 <= range2._2
+    def check(range1: (Slice[T], Slice[T], Boolean),
+              range2: (Slice[T], Slice[T], Boolean)): Boolean =
+      if (range1._3 && range2._3)
+        range1._1 >= range2._1 && range1._1 <= range2._2 ||
+          range1._2 >= range2._1 && range1._2 <= range2._2
+      else if (!range1._3 && range2._3)
+        range1._1 >= range2._1 && range1._1 <= range2._2 ||
+          range1._2 > range2._1 && range1._2 < range2._2
+      else if (range1._3 && !range2._3)
+        range1._1 >= range2._1 && range1._1 < range2._2 ||
+          range1._2 >= range2._1 && range1._2 < range2._2
+      else //both are false
+        range1._1 >= range2._1 && range1._1 < range2._2 ||
+          range1._2 > range2._1 && range1._2 < range2._2
 
     check(range1, range2) || check(range2, range1)
   }

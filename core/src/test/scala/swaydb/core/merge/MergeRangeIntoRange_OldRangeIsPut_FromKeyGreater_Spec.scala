@@ -45,7 +45,7 @@ class MergeRangeIntoRange_OldRangeIsPut_FromKeyGreater_Spec extends TestBase {
       ).updateStats
 
       assertMerge(newKeyValues, oldKeyValues, expected)
-      assertRangeSplitter(newKeyValues, oldKeyValues, expected)
+      assertSkipListMerge(newKeyValues, oldKeyValues, expected)
 
       //is last Level
       assertMerge(newKeyValues, oldKeyValues, expected = Slice.empty, isLastLevel = true)
@@ -64,7 +64,7 @@ class MergeRangeIntoRange_OldRangeIsPut_FromKeyGreater_Spec extends TestBase {
       ).updateStats
 
       assertMerge(newKeyValues, oldKeyValues, expected)
-      assertRangeSplitter(newKeyValues, oldKeyValues, expected)
+      assertSkipListMerge(newKeyValues, oldKeyValues, expected)
 
       //is last Level
       assertMerge(newKeyValues, oldKeyValues, expected = Transient.Put(2, 1, 0.1, None), isLastLevel = true)
@@ -82,7 +82,7 @@ class MergeRangeIntoRange_OldRangeIsPut_FromKeyGreater_Spec extends TestBase {
       ).updateStats
 
       assertMerge(newKeyValues, oldKeyValues, expected)
-      assertRangeSplitter(newKeyValues, oldKeyValues, expected)
+      assertSkipListMerge(newKeyValues, oldKeyValues, expected)
 
       //is last Level
       assertMerge(newKeyValues, oldKeyValues, expected = Transient.Put(1, "one", 0.1, None), isLastLevel = true)
@@ -100,7 +100,7 @@ class MergeRangeIntoRange_OldRangeIsPut_FromKeyGreater_Spec extends TestBase {
       ).updateStats
 
       assertMerge(newKeyValues, oldKeyValues, expected)
-      assertRangeSplitter(newKeyValues, oldKeyValues, expected)
+      assertSkipListMerge(newKeyValues, oldKeyValues, expected)
 
       //is last Level
       assertMerge(newKeyValues, oldKeyValues, expected = Slice.empty, isLastLevel = true)
@@ -118,7 +118,7 @@ class MergeRangeIntoRange_OldRangeIsPut_FromKeyGreater_Spec extends TestBase {
       ).updateStats
 
       assertMerge(newKeyValues, oldKeyValues, expected)
-      assertRangeSplitter(newKeyValues, oldKeyValues, expected)
+      assertSkipListMerge(newKeyValues, oldKeyValues, expected)
 
       //is last Level
       assertMerge(newKeyValues, oldKeyValues, expected = Slice.empty, isLastLevel = true)
@@ -136,7 +136,7 @@ class MergeRangeIntoRange_OldRangeIsPut_FromKeyGreater_Spec extends TestBase {
       ).updateStats
 
       assertMerge(newKeyValues, oldKeyValues, expected)
-      assertRangeSplitter(newKeyValues, oldKeyValues, expected)
+      assertSkipListMerge(newKeyValues, oldKeyValues, expected)
 
       //is last Level
       assertMerge(newKeyValues, oldKeyValues, expected = Transient.Put(1, 1, 0.1, None), isLastLevel = true)
@@ -154,7 +154,7 @@ class MergeRangeIntoRange_OldRangeIsPut_FromKeyGreater_Spec extends TestBase {
       ).updateStats
 
       assertMerge(newKeyValues, oldKeyValues, expected)
-      assertRangeSplitter(newKeyValues, oldKeyValues, expected)
+      assertSkipListMerge(newKeyValues, oldKeyValues, expected)
 
       //is last Level
       assertMerge(newKeyValues, oldKeyValues, expected = Transient.Put(2, 1, 0.1, None), isLastLevel = true)
@@ -173,7 +173,7 @@ class MergeRangeIntoRange_OldRangeIsPut_FromKeyGreater_Spec extends TestBase {
       ).updateStats
 
       assertMerge(newKeyValues, oldKeyValues, expected)
-      assertRangeSplitter(newKeyValues, oldKeyValues, expected)
+      assertSkipListMerge(newKeyValues, oldKeyValues, expected)
 
       //is last Level
       assertMerge(newKeyValues, oldKeyValues, expected = Slice.empty, isLastLevel = true)
@@ -192,7 +192,7 @@ class MergeRangeIntoRange_OldRangeIsPut_FromKeyGreater_Spec extends TestBase {
       ).updateStats
 
       assertMerge(newKeyValues, oldKeyValues, expected)
-      assertRangeSplitter(newKeyValues, oldKeyValues, expected)
+      assertSkipListMerge(newKeyValues, oldKeyValues, expected)
 
       //is last Level
       assertMerge(newKeyValues, oldKeyValues, expected = Slice.empty, isLastLevel = true)
@@ -209,7 +209,7 @@ class MergeRangeIntoRange_OldRangeIsPut_FromKeyGreater_Spec extends TestBase {
       ).updateStats
 
       assertMerge(newKeyValues, oldKeyValues, expected)
-      assertRangeSplitter(newKeyValues, oldKeyValues, expected)
+      assertSkipListMerge(newKeyValues, oldKeyValues, expected)
 
       //is last Level
       assertMerge(newKeyValues, oldKeyValues, expected = Transient.Put(2, 1, 0.1, None), isLastLevel = true)
@@ -226,7 +226,7 @@ class MergeRangeIntoRange_OldRangeIsPut_FromKeyGreater_Spec extends TestBase {
       ).updateStats
 
       assertMerge(newKeyValues, oldKeyValues, expected)
-      assertRangeSplitter(newKeyValues, oldKeyValues, expected)
+      assertSkipListMerge(newKeyValues, oldKeyValues, expected)
 
       //is last Level
       assertMerge(newKeyValues, oldKeyValues, expected = Transient.Put(1, 1, 0.1, None), isLastLevel = true)
@@ -243,7 +243,7 @@ class MergeRangeIntoRange_OldRangeIsPut_FromKeyGreater_Spec extends TestBase {
       ).updateStats
 
       assertMerge(newKeyValues, oldKeyValues, expected)
-      assertRangeSplitter(newKeyValues, oldKeyValues, expected)
+      assertSkipListMerge(newKeyValues, oldKeyValues, expected)
 
       //is last Level
       assertMerge(newKeyValues, oldKeyValues, expected = Slice.empty, isLastLevel = true)
@@ -260,7 +260,7 @@ class MergeRangeIntoRange_OldRangeIsPut_FromKeyGreater_Spec extends TestBase {
       ).updateStats
 
       assertMerge(newKeyValues, oldKeyValues, expected)
-      assertRangeSplitter(newKeyValues, oldKeyValues, expected)
+      assertSkipListMerge(newKeyValues, oldKeyValues, expected)
 
       //is last Level
       assertMerge(newKeyValues, oldKeyValues, expected = Slice.empty, isLastLevel = true)
@@ -277,7 +277,7 @@ class MergeRangeIntoRange_OldRangeIsPut_FromKeyGreater_Spec extends TestBase {
       ).updateStats
 
       assertMerge(newKeyValues, oldKeyValues, expected)
-      assertRangeSplitter(newKeyValues, oldKeyValues, expected)
+      assertSkipListMerge(newKeyValues, oldKeyValues, expected)
 
       //is last Level
       assertMerge(newKeyValues, oldKeyValues, expected = Transient.Put(2, 1, 0.1, None), isLastLevel = true)
@@ -294,7 +294,7 @@ class MergeRangeIntoRange_OldRangeIsPut_FromKeyGreater_Spec extends TestBase {
       ).updateStats
 
       assertMerge(newKeyValues, oldKeyValues, expected)
-      assertRangeSplitter(newKeyValues, oldKeyValues, expected)
+      assertSkipListMerge(newKeyValues, oldKeyValues, expected)
 
       //is last Level
       assertMerge(newKeyValues, oldKeyValues, expected = Slice.empty, isLastLevel = true)
@@ -311,7 +311,7 @@ class MergeRangeIntoRange_OldRangeIsPut_FromKeyGreater_Spec extends TestBase {
       ).updateStats
 
       assertMerge(newKeyValues, oldKeyValues, expected)
-      assertRangeSplitter(newKeyValues, oldKeyValues, expected)
+      assertSkipListMerge(newKeyValues, oldKeyValues, expected)
 
       //is last Level
       assertMerge(newKeyValues, oldKeyValues, expected = Transient.Put(1, 1, 0.1, None), isLastLevel = true)

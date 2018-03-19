@@ -24,7 +24,7 @@ import java.util.concurrent.ConcurrentSkipListMap
 
 import swaydb.core.data.{SegmentEntryReadOnly, Transient, Value}
 import swaydb.core.io.file.DBFile
-import swaydb.core.level.zero.SkipListRangeConflictResolver
+import swaydb.core.level.zero.LevelZeroSkipListMerge
 import swaydb.core.map.serializer._
 import swaydb.core.segment.Segment
 import swaydb.core.util.Extension
@@ -43,9 +43,9 @@ class MapSpec extends TestBase {
   implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
   implicit val maxSegmentsOpenCacheImplicitLimiter: DBFile => Unit = TestLimitQueues.fileOpenLimiter
   implicit val keyValuesLimitImplicitLimiter: (SegmentEntryReadOnly, Segment) => Unit = TestLimitQueues.keyValueLimiter
-  implicit val skipListRangeConflictResolver = SkipListRangeConflictResolver
+  implicit val skipListMerger = LevelZeroSkipListMerge
 
-  import swaydb.core.level.Level.SkipListConflictResolver
+  import swaydb.core.level.Level.SkipListMerge$
 
   val appendixReader = AppendixMapEntryReader(false, true, true, false)
 

@@ -19,7 +19,11 @@
 
 package swaydb.core.util
 
+import swaydb.core.io.reader.Reader
 import swaydb.data.slice.Slice
+import swaydb.data.util.ByteUtil
+
+import scala.util.Try
 
 private[core] object ByteUtilCore {
 
@@ -42,4 +46,51 @@ private[core] object ByteUtilCore {
     size
   }
 
+  /**
+    * Merges the input bytes into a single byte array extracting common bytes.
+    */
+  def compress(left: Slice[Byte], right: Slice[Byte]): Slice[Byte] = {
+    val commonBytes = commonPrefixBytes(left, right)
+    val leftWithoutCommonBytes =
+      if (commonBytes != 0)
+        right.slice(commonBytes, right.size - 1)
+      else
+        right
+
+    val leftByteSize = sizeUnsignedInt(left.size)
+    val commonBytesSize = sizeUnsignedInt(commonBytes)
+    val rightByteSize = ByteUtilCore.sizeUnsignedInt(leftWithoutCommonBytes.size)
+    val compressedSlice = Slice.create[Byte](leftByteSize + left.size + commonBytesSize + rightByteSize + leftWithoutCommonBytes.size)
+
+    compressedSlice addAll left
+    compressedSlice addIntUnsigned commonBytes
+    compressedSlice addIntUnsigned leftWithoutCommonBytes.size
+    compressedSlice addAll leftWithoutCommonBytes
+    compressedSlice addAll ByteUtil.writeUnsignedIntReversed(left.size) //store key1's byte size to the end to allow further merges with other keys.
+  }
+
+  def uncompress(bytes: Slice[Byte]): Try[(Slice[Byte], Slice[Byte])] = {
+    val reader = Reader(bytes)
+    for {
+      leftBytesSize <- ByteUtil.readLastUnsignedInt(bytes)
+      left <- reader.read(leftBytesSize)
+      commonBytes <- reader.readIntUnsigned()
+      rightBytesSize <- reader.readIntUnsigned()
+      right <-
+        if (commonBytes == 0)
+          reader.read(rightBytesSize)
+        else {
+          val missingCommonBytes = left.slice(0, commonBytes - 1)
+          val fullBytes = Slice.create[Byte](commonBytes + rightBytesSize)
+          missingCommonBytes foreach fullBytes.add
+          reader.read(rightBytesSize) map {
+            toKey =>
+              toKey foreach fullBytes.add
+              fullBytes
+          }
+        }
+    } yield {
+      (left, right)
+    }
+  }
 }

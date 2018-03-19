@@ -29,8 +29,9 @@ import swaydb.core.io.file.{DBFile, IO}
 import swaydb.core.level.LevelException.NoNextLevel
 import swaydb.core.level.actor.{LevelAPI, LevelActor, LevelCommand}
 import swaydb.core.map.serializer._
-import swaydb.core.map.{Map, MapEntry, SkipListConflictResolver}
+import swaydb.core.map.{Map, MapEntry, SkipListMerge}
 import swaydb.core.retry.Retry
+import swaydb.data.segment.MaxKey.{Fixed, Range}
 import swaydb.core.segment.SegmentException.SegmentFileMissing
 import swaydb.core.segment.{Segment, SegmentAssigner, SegmentMerge}
 import swaydb.core.util.ExceptionUtil._
@@ -54,7 +55,7 @@ import scala.util.{Failure, Success, Try}
 
 private[core] object Level extends LazyLogging {
 
-  implicit object SkipListConflictResolver extends SkipListConflictResolver[Slice[Byte], Segment] {
+  implicit object SkipListMerge$ extends SkipListMerge[Slice[Byte], Segment] {
     override def insert(insertKey: Slice[Byte],
                         insertValue: Segment,
                         skipList: ConcurrentSkipListMap[Slice[Byte], Segment])(implicit ordering: Ordering[Slice[Byte]]): Unit =
@@ -821,7 +822,12 @@ private[core] class Level(val dirs: Seq[Dir],
   private def lastInThisLevel =
     appendix.last.map {
       case (_, lastSegment) =>
-        lastSegment.get(lastSegment.maxKey)
+        lastSegment.maxKey match {
+          case Fixed(maxKey) =>
+            lastSegment.get(maxKey)
+          case Range(fromKey, _) =>
+            lastSegment.get(fromKey)
+        }
     } getOrElse Success(None)
 
   override def last =
@@ -859,8 +865,8 @@ private[core] class Level(val dirs: Seq[Dir],
   def higherSegment(key: Slice[Byte]): Option[Segment] =
     (appendix higher key).map(_._2)
 
-  def higherSegmentMaxKey(key: Slice[Byte]): Option[Slice[Byte]] =
-    higherSegment(key).map(_.maxKey)
+  //  def higherSegmentMaxKey(key: Slice[Byte]): Option[Slice[Byte]] =
+  //    higherSegment(key).map(_.maxKey)
 
   def getBusySegments(): List[Segment] =
     actor.getBusySegments

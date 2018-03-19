@@ -92,8 +92,7 @@ class Level0MapEntrySpec extends TestBase {
     "write range key-value" in {
       import LevelZeroMapEntryWriter.Level0PutRangeWriter
 
-      def writeRange(inputRange: Value.Range,
-                     expectedRange: Option[Value.Range] = None) = {
+      def writeRange(inputRange: Value.Range) = {
         val entry = MapEntry.Put[Slice[Byte], Value.Range](1, inputRange)
 
         val slice = Slice.create[Byte](entry.entryBytesSize)
@@ -114,7 +113,7 @@ class Level0MapEntrySpec extends TestBase {
         scalaSkipList should have size 1
         val (headKey, headValue) = scalaSkipList.head
         headKey shouldBe (1: Slice[Byte])
-        headValue shouldBe expectedRange.getOrElse(inputRange)
+        headValue shouldBe inputRange
       }
       //put range
       writeRange(Value.Range(1, Some(Value.Put("one from value")), Value.Put("one range value")))
@@ -124,7 +123,7 @@ class Level0MapEntrySpec extends TestBase {
       //remove range
       writeRange(Value.Range(1, Some(Value.Put("put")), Value.Remove))
       writeRange(Value.Range(1, None, Value.Remove))
-      writeRange(Value.Range(1, Some(Value.Remove), Value.Remove), expectedRange = Some(Value.Range(1, None, Value.Remove)))
+      writeRange(Value.Range(1, Some(Value.Remove), Value.Remove))
     }
 
     "write and remove key-value" in {
@@ -172,7 +171,7 @@ class Level0MapEntrySpec extends TestBase {
         scalaSkipList.get(8).assertGet shouldBe Value.Range(9, Some(Value.Remove), Value.Put(8))
         scalaSkipList.get(9).assertGet shouldBe Value.Range(10, None, Value.Remove)
         scalaSkipList.get(10).assertGet shouldBe Value.Range(11, Some(Value.Put("10")), Value.Remove)
-        scalaSkipList.get(11).assertGet shouldBe Value.Range(12, None, Value.Remove)
+        scalaSkipList.get(11).assertGet shouldBe Value.Range(12, Some(Value.Remove), Value.Remove)
       }
       //write skip list to bytes should result in the same skip list as before
       import LevelZeroMapEntryWriter.Level0PutValueWriter

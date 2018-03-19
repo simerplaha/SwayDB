@@ -43,11 +43,11 @@ class MergeFixedIntoFixedSpec extends TestBase {
       val expected = Slice(Transient.Put(1, "1 value"), Transient.Put(2, "2 value")).updateStats
 
       assertMerge(newKeyValues, oldKeyValues, expected)
-      assertRangeSplitter(newKeyValues, oldKeyValues, expected)
+      assertSkipListMerge(newKeyValues, oldKeyValues, expected)
 
       //reversed should return the same result
       assertMerge(oldKeyValues, newKeyValues, expected)
-      assertRangeSplitter(oldKeyValues, newKeyValues, expected)
+      assertSkipListMerge(oldKeyValues, newKeyValues, expected)
 
       //last Level check
       assertMerge(newKeyValues, oldKeyValues, expected, isLastLevel = true)
@@ -60,11 +60,11 @@ class MergeFixedIntoFixedSpec extends TestBase {
       val expected = Slice(Transient.Remove(1), Transient.Remove(2)).updateStats
 
       assertMerge(newKeyValues, oldKeyValues, expected)
-      assertRangeSplitter(newKeyValues, oldKeyValues, expected)
+      assertSkipListMerge(newKeyValues, oldKeyValues, expected)
 
       //reversed should return the same result
       assertMerge(oldKeyValues, newKeyValues, expected)
-      assertRangeSplitter(oldKeyValues, newKeyValues, expected)
+      assertSkipListMerge(oldKeyValues, newKeyValues, expected)
 
       //last Level check
       assertMerge(newKeyValues, oldKeyValues, Slice.empty, isLastLevel = true)
@@ -77,7 +77,7 @@ class MergeFixedIntoFixedSpec extends TestBase {
       val expected = Slice(Transient.Put(1, "new value"))
 
       assertMerge(newKeyValues, oldKeyValues, expected)
-      assertRangeSplitter(newKeyValues, oldKeyValues, expected)
+      assertSkipListMerge(newKeyValues, oldKeyValues, expected)
 
       //last Level check
       assertMerge(newKeyValues, oldKeyValues, expected, isLastLevel = true)
@@ -89,7 +89,7 @@ class MergeFixedIntoFixedSpec extends TestBase {
       val expected = Slice(Transient.Put(1, "old value 1"), Transient.Remove(2), Transient.Put(3, "new value")).updateStats
 
       assertMerge(newKeyValues, oldKeyValues, expected)
-      assertRangeSplitter(newKeyValues, oldKeyValues, expected)
+      assertSkipListMerge(newKeyValues, oldKeyValues, expected)
 
       //last Level check does not contain removes.
       assertMerge(newKeyValues, oldKeyValues, expected.filterNot(_.isInstanceOf[Transient.Remove]).updateStats, isLastLevel = true)
@@ -102,7 +102,7 @@ class MergeFixedIntoFixedSpec extends TestBase {
       val expected = Slice(Transient.Put(1, "old value 1"), Transient.Remove(2), Transient.Put(3, "old value 3")).updateStats
 
       assertMerge(newKeyValues, oldKeyValues, expected)
-      assertRangeSplitter(newKeyValues, oldKeyValues, expected)
+      assertSkipListMerge(newKeyValues, oldKeyValues, expected)
 
       assertMerge(newKeyValues, oldKeyValues, expected.filterNot(_.isInstanceOf[Transient.Remove]).updateStats, isLastLevel = true)
     }
@@ -114,7 +114,7 @@ class MergeFixedIntoFixedSpec extends TestBase {
       val expected = Slice(Transient.Put(1, "old value 1"), Transient.Put(2, "old value 2"), Transient.Put(3, "old value 3")).updateStats
 
       assertMerge(newKeyValues, oldKeyValues, expected)
-      assertRangeSplitter(newKeyValues, oldKeyValues, expected)
+      assertSkipListMerge(newKeyValues, oldKeyValues, expected)
     }
 
     "discard Remove if the level is the last Level" in {
@@ -131,7 +131,7 @@ class MergeFixedIntoFixedSpec extends TestBase {
       val oldKeyValues = Slice(Transient.Put(1, "old value 1"), Transient.Put(2, "old value 2"), Transient.Put(3, "old value 3")).updateStats
 
       assertMerge(newKeyValues, oldKeyValues, Slice.empty, isLastLevel = true)
-      assertRangeSplitter(newKeyValues, oldKeyValues, newKeyValues)
+      assertSkipListMerge(newKeyValues, oldKeyValues, newKeyValues)
     }
 
     "split KeyValues to equal chunks" in {

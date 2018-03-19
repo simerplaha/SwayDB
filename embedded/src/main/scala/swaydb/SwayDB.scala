@@ -450,7 +450,14 @@ object SwayDB extends LazyLogging {
               SegmentInfo(
                 path = segmentInfo.path,
                 minKey = serializer.read(segmentInfo.minKey),
-                maxKey = serializer.read(segmentInfo.maxKey),
+                maxKey =
+                  segmentInfo.maxKey match {
+                    case swaydb.data.segment.MaxKey.Fixed(maxKey) =>
+                      swaydb.data.repairAppendix.MaxKey.Fixed(serializer.read(maxKey))
+
+                    case swaydb.data.segment.MaxKey.Range(fromKey, maxKey) =>
+                      swaydb.data.repairAppendix.MaxKey.Range(fromKey = serializer.read(fromKey), maxKey = serializer.read(maxKey))
+                  },
                 segmentSize = segmentInfo.segmentSize,
                 keyValueCount = segmentInfo.keyValueCount
               ),
@@ -458,7 +465,14 @@ object SwayDB extends LazyLogging {
               SegmentInfo(
                 path = overlappingSegmentInfo.path,
                 minKey = serializer.read(overlappingSegmentInfo.minKey),
-                maxKey = serializer.read(overlappingSegmentInfo.maxKey),
+                maxKey =
+                  overlappingSegmentInfo.maxKey match {
+                    case swaydb.data.segment.MaxKey.Fixed(maxKey) =>
+                      swaydb.data.repairAppendix.MaxKey.Fixed(serializer.read(maxKey))
+
+                    case swaydb.data.segment.MaxKey.Range(fromKey, maxKey) =>
+                      swaydb.data.repairAppendix.MaxKey.Range(fromKey = serializer.read(fromKey), maxKey = serializer.read(maxKey))
+                  },
                 segmentSize = overlappingSegmentInfo.segmentSize,
                 keyValueCount = overlappingSegmentInfo.keyValueCount
               )

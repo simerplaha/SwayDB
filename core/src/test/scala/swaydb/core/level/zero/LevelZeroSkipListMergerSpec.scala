@@ -24,14 +24,14 @@ import org.scalatest.{Matchers, WordSpec}
 import swaydb.core.CommonAssertions
 import swaydb.core.data.Value
 import swaydb.core.data.Value._
-import swaydb.core.level.zero.SkipListRangeConflictResolver._
+import swaydb.core.level.zero.LevelZeroSkipListMerge._
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
 import scala.collection.JavaConverters._
 
-class SkipListRangeConflictResolverSpec extends WordSpec with Matchers with CommonAssertions {
+class LevelZeroSkipListMergerSpec extends WordSpec with Matchers with CommonAssertions {
   implicit val ordering = swaydb.order.KeyOrder.default
 
   "insert" should {

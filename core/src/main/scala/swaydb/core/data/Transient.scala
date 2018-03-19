@@ -20,8 +20,6 @@
 package swaydb.core.data
 
 import swaydb.core.data.KeyValue.{FixedWriteOnly, RangeWriteOnly}
-import swaydb.core.data.Transient.Range
-import swaydb.core.io.reader.Reader
 import swaydb.core.map.serializer.RangeValueSerializer
 import swaydb.core.util.ByteUtilCore
 import swaydb.data.slice.Slice
@@ -38,20 +36,22 @@ private[core] object Transient {
     val id: Int = 0
 
     def apply(key: Slice[Byte]): Remove =
-      new Remove(key, Stats(key, None, 0.1, hasRemoveRange = false, None))
+      new Remove(key, Stats(key, None, 0.1, isRemoveRange = false, isRange = false, None))
 
     def apply(key: Slice[Byte], falsePositiveRate: Double): Remove =
-      new Remove(key, Stats(key, None, falsePositiveRate, hasRemoveRange = false, None))
+      new Remove(key, Stats(key, None, falsePositiveRate, isRemoveRange = false, isRange = false, None))
 
     def apply(key: Slice[Byte],
               falsePositiveRate: Double,
               previous: Option[KeyValue.WriteOnly]): Remove =
-      new Remove(key, Stats(key, None, falsePositiveRate, hasRemoveRange = previous.exists(_.isRemoveRange), previous))
+      new Remove(key, Stats(key, None, falsePositiveRate, isRemoveRange = false, isRange = false, previous))
   }
 
   case class Remove(key: Slice[Byte],
                     stats: Stats) extends Transient with FixedWriteOnly {
     override def id: Int = Remove.id
+
+    override val isRange: Boolean = false
 
     override val isRemoveRange =
       false
@@ -62,9 +62,20 @@ private[core] object Transient {
 
     override def updateStats(falsePositiveRate: Double,
                              keyValue: Option[KeyValue.WriteOnly]): KeyValue.WriteOnly =
-      this.copy(stats = Stats(key, None, falsePositiveRate, keyValue.exists(_.isRemoveRange), keyValue))
+      this.copy(
+        stats =
+          Stats(
+            key = key,
+            value = None,
+            falsePositiveRate = falsePositiveRate,
+            isRemoveRange = isRemoveRange,
+            isRange = isRange,
+            previous = keyValue
+          )
+      )
 
     override def isRemove: Boolean = true
+
   }
 
   object Put {
@@ -74,22 +85,22 @@ private[core] object Transient {
               value: Option[Slice[Byte]],
               falsePositiveRate: Double,
               previousMayBe: Option[KeyValue.WriteOnly]): Put =
-      new Put(key, value, Stats(key, value, falsePositiveRate, previousMayBe.exists(_.isRemoveRange), previousMayBe))
+      new Put(key, value, Stats(key, value, falsePositiveRate, false, false, previousMayBe))
 
     def apply(key: Slice[Byte]): Put =
-      Put(key, None, Stats(key, falsePositiveRate = 0.1, hasRemoveRange = false))
+      Put(key, None, Stats(key, falsePositiveRate = 0.1))
 
     def apply(key: Slice[Byte], value: Slice[Byte]): Put =
-      Put(key, Some(value), Stats(key, value, falsePositiveRate = 0.1, hasRemoveRange = false))
+      Put(key, Some(value), Stats(key, value, falsePositiveRate = 0.1))
 
     def apply(key: Slice[Byte], value: Slice[Byte], falsePositiveRate: Double): Put =
-      Put(key, Some(value), Stats(key, value, falsePositiveRate = falsePositiveRate, hasRemoveRange = false))
+      Put(key, Some(value), Stats(key, value, falsePositiveRate = falsePositiveRate))
 
     def apply(key: Slice[Byte], falsePositiveRate: Double, previous: Option[KeyValue.WriteOnly]): Put =
       Put(key, None, falsePositiveRate, previous)
 
     def apply(key: Slice[Byte], value: Slice[Byte], falsePositiveRate: Double, previous: Option[KeyValue.WriteOnly]): Put =
-      Put(key, Some(value), Stats(key, value, falsePositiveRate = falsePositiveRate, previous.exists(_.isRemoveRange), previous))
+      Put(key, Some(value), Stats(key, value, falsePositiveRate = falsePositiveRate, previous))
   }
 
   case class Put(key: Slice[Byte],
@@ -102,37 +113,27 @@ private[core] object Transient {
       false
 
     override def updateStats(falsePositiveRate: Double, keyValue: Option[KeyValue.WriteOnly]): KeyValue.WriteOnly =
-      this.copy(stats = Stats(key, value, falsePositiveRate, keyValue.exists(_.isRemoveRange), keyValue))
+      this.copy(
+        stats =
+          Stats(
+            key = key,
+            value = value,
+            falsePositiveRate = falsePositiveRate,
+            isRemoveRange = isRemoveRange,
+            isRange = isRange,
+            previous = keyValue
+          )
+      )
 
     override def getOrFetchValue: Try[Option[Slice[Byte]]] = Success(value)
 
     override def isRemove: Boolean = false
+
+    override val isRange: Boolean = false
   }
 
   object Range {
     val id = 2
-
-    def mergeKeys(fromKey: Slice[Byte], toKey: Slice[Byte]): Slice[Byte] = {
-      val fromKeySize = ByteUtilCore.sizeUnsignedInt(fromKey.size)
-      val toKeySize = ByteUtilCore.sizeUnsignedInt(toKey.size)
-      val key = Slice.create[Byte](fromKeySize + fromKey.size + toKeySize + toKey.size)
-      key addIntUnsigned fromKey.size
-      key addAll fromKey
-      key addIntUnsigned toKey.size
-      key addAll toKey
-    }
-
-    def unMergeKeys(key: Slice[Byte]): Try[(Slice[Byte], Slice[Byte])] = {
-      val reader = Reader(key)
-      for {
-        fromKeySize <- reader.readIntUnsigned()
-        fromKey <- reader.read(fromKeySize)
-        toKeySize <- reader.readIntUnsigned()
-        toKey <- reader.read(toKeySize)
-      } yield {
-        (fromKey, toKey)
-      }
-    }
 
     def apply[F <: Value.Fixed, R <: Value.Fixed](fromKey: Slice[Byte],
                                                   toKey: Slice[Byte],
@@ -148,15 +149,24 @@ private[core] object Transient {
       val (bytesRequired, rangeId) = rangeValueSerializer.bytesRequiredAndRangeId((), rangeValue)
       val value = if (bytesRequired == 0) None else Some(Slice.create[Byte](bytesRequired))
       value.foreach(rangeValueSerializer.write((), rangeValue, _))
-
+      val fullKey = ByteUtilCore.compress(fromKey, toKey)
       new Range(
         id = rangeId,
         fromKey = fromKey,
         toKey = toKey,
+        fullKey = fullKey,
         fromValue = None,
         rangeValue = rangeValue,
         value = value,
-        stats = Stats(Range.mergeKeys(fromKey, toKey), value, falsePositiveRate, rangeValue.isRemove || previous.exists(_.isRemoveRange), previous)
+        stats =
+          Stats(
+            key = fullKey,
+            value = value,
+            falsePositiveRate = falsePositiveRate,
+            isRemoveRange = rangeValue.isRemove,
+            isRange = true,
+            previous = previous
+          )
       )
     }
 
@@ -169,15 +179,25 @@ private[core] object Transient {
       val (bytesRequired, rangeId) = rangeValueSerializer.bytesRequiredAndRangeId(fromValue, rangeValue)
       val value = if (bytesRequired == 0) None else Some(Slice.create[Byte](bytesRequired))
       value.foreach(rangeValueSerializer.write(fromValue, rangeValue, _))
+      val fullKey = ByteUtilCore.compress(fromKey, toKey)
 
       new Range(
         id = rangeId,
         fromKey = fromKey,
+        fullKey = fullKey,
         toKey = toKey,
         fromValue = fromValue,
         rangeValue = rangeValue,
         value = value,
-        stats = Stats(Range.mergeKeys(fromKey, toKey), value, falsePositiveRate, rangeValue.isRemove || previous.exists(_.isRemoveRange), previous)
+        stats =
+          Stats(
+            key = fullKey,
+            value = value,
+            falsePositiveRate = falsePositiveRate,
+            isRemoveRange = rangeValue.isRemove,
+            isRange = true,
+            previous = previous
+          )
       )
     }
   }
@@ -185,6 +205,7 @@ private[core] object Transient {
   case class Range(id: Int,
                    fromKey: Slice[Byte],
                    toKey: Slice[Byte],
+                   fullKey: Slice[Byte],
                    fromValue: Option[Value.Fixed],
                    rangeValue: Value.Fixed,
                    value: Option[Slice[Byte]],
@@ -196,7 +217,17 @@ private[core] object Transient {
       rangeValue.isRemove
 
     override def updateStats(falsePositiveRate: Double, keyValue: Option[KeyValue.WriteOnly]): KeyValue.WriteOnly =
-      this.copy(stats = Stats(Range.mergeKeys(fromKey, toKey), value, falsePositiveRate, isRemoveRange || keyValue.exists(_.isRemoveRange), keyValue))
+      this.copy(
+        stats =
+          Stats(
+            key = ByteUtilCore.compress(fromKey, toKey),
+            value = value,
+            falsePositiveRate = falsePositiveRate,
+            isRemoveRange = isRemoveRange,
+            isRange = true,
+            previous = keyValue
+          )
+      )
 
     override def getOrFetchValue: Try[Option[Slice[Byte]]] =
       Success(value)

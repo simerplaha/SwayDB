@@ -24,13 +24,13 @@ import java.util.concurrent.ConcurrentSkipListMap
 import swaydb.core.data.Value
 import swaydb.core.data.Value.Fixed
 import swaydb.core.map.MapEntry.{Put, Remove}
-import swaydb.core.map.{MapEntry, SkipListConflictResolver}
+import swaydb.core.map.{MapEntry, SkipListMerge}
 import swaydb.core.util.PipeOps._
 import swaydb.data.slice.Slice
 
 import scala.collection.JavaConverters._
 
-object SkipListRangeConflictResolver extends SkipListConflictResolver[Slice[Byte], Value] {
+object LevelZeroSkipListMerge extends SkipListMerge[Slice[Byte], Value] {
 
   /**
     * Pre-requisite: splitKey should always be within range's fromKey and less than toKey.
@@ -53,7 +53,7 @@ object SkipListRangeConflictResolver extends SkipListConflictResolver[Slice[Byte
   }
 
   //pre-requisite: split keys should always be greater than range's fromKey
-  //3'rd range returned is None if the splitToKey > the range's toKey.
+  //3'rd range is returned None if the splitToKey > the range's toKey.
   private def split(splitFromKey: Slice[Byte],
                     splitToKey: Slice[Byte],
                     splitFromValue: Option[Value.Fixed],

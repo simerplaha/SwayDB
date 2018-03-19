@@ -24,17 +24,19 @@ import java.util.concurrent.ConcurrentSkipListMap
 
 import bloomfilter.mutable.BloomFilter
 import swaydb.core.data.SegmentEntry.{PutReadOnly, RangeReadOnly, RemoveReadOnly}
-import swaydb.core.data.Transient.{Put, Range, Remove}
 import swaydb.core.data.{SegmentEntry, _}
 import swaydb.core.io.file.DBFile
 import swaydb.core.io.reader.Reader
 import swaydb.core.level.PathsDistributor
 import swaydb.core.map.Map
+import swaydb.core.map.serializer.RangeValueSerializers
+import swaydb.data.segment.MaxKey.Fixed
 import swaydb.core.segment.format.one.{SegmentReader, SegmentWriter}
 import swaydb.core.util.BloomFilterUtil._
-import swaydb.core.util.{IDGenerator, TryUtil}
 import swaydb.core.util.TryUtil._
+import swaydb.core.util.{IDGenerator, TryUtil}
 import swaydb.data.config.Dir
+import swaydb.data.segment.MaxKey
 import swaydb.data.slice.Slice
 
 import scala.collection.mutable.ListBuffer
@@ -48,7 +50,11 @@ private[core] object Segment {
              bloomFilterFalsePositiveRate: Double,
              removeDeletes: Boolean)(implicit ordering: Ordering[Slice[Byte]]): Try[Segment] = {
     val skipList = new ConcurrentSkipListMap[Slice[Byte], SegmentEntryReadOnly](ordering)
-    val bloomFilter = BloomFilter[Slice[Byte]](keyValues.size, bloomFilterFalsePositiveRate)
+    val bloomFilter =
+      if (keyValues.last.stats.hasRemoveRange)
+        None
+      else
+        Some(BloomFilter[Slice[Byte]](keyValues.size, bloomFilterFalsePositiveRate))
     keyValues tryForeach {
       keyValue =>
         val keyUnsliced = keyValue.key.unslice()
@@ -59,7 +65,7 @@ private[core] object Segment {
               keyUnsliced,
               RemoveReadOnly(keyUnsliced, 0x00, 0x00, 0x00)
             )
-            bloomFilter add keyUnsliced
+            bloomFilter.foreach(_ add keyUnsliced)
             TryUtil.successUnit
 
           case _: Transient.Put | _: SegmentEntry.Put =>
@@ -83,7 +89,7 @@ private[core] object Segment {
                     valueLength = valueSize
                   )
                 )
-                bloomFilter add keyValue.key
+                bloomFilter.foreach(_ add keyUnsliced)
             }
 
           case range: KeyValue.RangeWriteOnly =>
@@ -109,7 +115,7 @@ private[core] object Segment {
                     valueLength = valueSize
                   )
                 )
-                bloomFilter add keyValue.key
+                bloomFilter.foreach(_ add keyUnsliced)
             }
         }
     } match {
@@ -121,7 +127,15 @@ private[core] object Segment {
           new MemorySegment(
             path = path,
             minKey = keyValues.head.key.unslice(),
-            maxKey = keyValues.last.key.unslice(),
+            _hasRange = keyValues.last.stats.hasRange,
+            maxKey =
+              keyValues.last match {
+                case range: KeyValue.RangeWriteOnly =>
+                  MaxKey.Range(range.fromKey, range.toKey)
+
+                case keyValue =>
+                  MaxKey.Fixed(keyValue.key.unslice())
+              },
             segmentSize = keyValues.last.stats.memorySegmentSize,
             removeDeletes = removeDeletes,
             bloomFilter = bloomFilter,
@@ -178,7 +192,14 @@ private[core] object Segment {
                 mmapWrites = mmapWrites,
                 cacheKeysOnCreate = cacheKeysOnCreate,
                 minKey = keyValues.head.key.unslice(),
-                maxKey = keyValues.last.key.unslice(),
+                maxKey =
+                  keyValues.last match {
+                    case range: KeyValue.RangeWriteOnly =>
+                      MaxKey.Range(range.fromKey, range.toKey)
+
+                    case keyValue =>
+                      MaxKey.Fixed(keyValue.key.unslice())
+                  },
                 segmentSize = keyValues.last.stats.segmentSize,
                 removeDeletes = removeDeletes
               )
@@ -192,7 +213,7 @@ private[core] object Segment {
             mmapWrites: Boolean,
             cacheKeysOnCreate: Boolean,
             minKey: Slice[Byte],
-            maxKey: Slice[Byte],
+            maxKey: MaxKey,
             segmentSize: Int,
             removeDeletes: Boolean,
             checkExists: Boolean = true)(implicit ordering: Ordering[Slice[Byte]],
@@ -262,7 +283,14 @@ private[core] object Segment {
                           mmapWrites = mmapWrites,
                           cacheKeysOnCreate = cacheKeysOnCreate,
                           minKey = keyValues.head.key,
-                          maxKey = keyValues.last.key,
+                          maxKey =
+                            keyValues.last match {
+                              case range: KeyValue.RangeWriteOnly =>
+                                MaxKey.Range(range.fromKey, range.toKey)
+
+                              case keyValue =>
+                                MaxKey.Fixed(keyValue.key)
+                            },
                           segmentSize = fileSize.toInt,
                           removeDeletes = removeDeletes
                         )
@@ -277,17 +305,22 @@ private[core] object Segment {
   def belongsTo(keyValue: KeyValue.WriteOnly,
                 segment: Segment)(implicit ordering: Ordering[Slice[Byte]]): Boolean = {
     import ordering._
-    keyValue.key >= segment.minKey && keyValue.key <= segment.maxKey
+    keyValue.key >= segment.minKey && {
+      if (segment.maxKey.inclusive)
+        keyValue.key <= segment.maxKey.maxKey
+      else
+        keyValue.key < segment.maxKey.maxKey
+    }
   }
 
   def overlaps(minKey: Slice[Byte],
                maxKey: Slice[Byte],
                segment: Segment)(implicit ordering: Ordering[Slice[Byte]]): Boolean =
-    Slice.intersects((minKey, maxKey), (segment.minKey, segment.maxKey))
+    Slice.intersects((minKey, maxKey, true), (segment.minKey, segment.maxKey.maxKey, segment.maxKey.inclusive))
 
   def overlaps(segment1: Segment,
                segment2: Segment)(implicit ordering: Ordering[Slice[Byte]]): Boolean =
-    overlaps(segment1.minKey, segment1.maxKey, segment2)
+    Slice.intersects((segment1.minKey, segment1.maxKey.maxKey, segment1.maxKey.inclusive), (segment2.minKey, segment2.maxKey.maxKey, segment2.maxKey.inclusive))
 
   def nonOverlapping(segments1: Iterable[Segment],
                      segments2: Iterable[Segment])(implicit ordering: Ordering[Slice[Byte]]): Iterable[Segment] =
@@ -364,7 +397,12 @@ private[core] object Segment {
     segments.foldLeft(Slice.create[KeyValue.WriteOnly](segments.size * 2)) {
       case (keyValues, segment) =>
         keyValues add Transient.Put(segment.minKey)
-        keyValues add Transient.Put(segment.maxKey)
+        segment.maxKey match {
+          case Fixed(maxKey) =>
+            keyValues add Transient.Put(maxKey)
+          case MaxKey.Range(fromKey, maxKey) =>
+            keyValues add Transient.Range(fromKey, maxKey, None, Value.Put(maxKey))(RangeValueSerializers.OptionPutPutSerializer)
+        }
     }
 
   def overlapsWithBusySegments(inputSegments: Iterable[Segment],
@@ -397,11 +435,11 @@ private[core] object Segment {
 private[core] trait Segment {
   private[segment] val cache: ConcurrentSkipListMap[Slice[Byte], _]
   val minKey: Slice[Byte]
-  val maxKey: Slice[Byte]
+  val maxKey: MaxKey
   val segmentSize: Int
   val removeDeletes: Boolean
 
-  def getBloomFilter: Try[BloomFilter[Slice[Byte]]]
+  def getBloomFilter: Try[Option[BloomFilter[Slice[Byte]]]]
 
   def path: Path
 
@@ -444,6 +482,8 @@ private[core] trait Segment {
 
   def cacheSize: Int =
     cache.size()
+
+  def hasRange: Try[Boolean]
 
   def isOpen: Boolean
 

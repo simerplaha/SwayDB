@@ -53,7 +53,7 @@ private[core] object LevelZero extends LazyLogging {
                                  ec: ExecutionContext): Try[LevelZero] = {
     import swaydb.core.map.serializer.LevelZeroMapEntryReader.Level0Reader
     import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
-    implicit val skipListRangeConflictResolver = SkipListRangeConflictResolver
+    implicit val skipListMerger = LevelZeroSkipListMerge
     val mapsAndPathAndLock =
       storage match {
         case Persistent(mmap, databaseDirectory, recovery) =>

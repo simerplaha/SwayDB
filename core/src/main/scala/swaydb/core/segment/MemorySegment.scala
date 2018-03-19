@@ -28,8 +28,10 @@ import swaydb.core.data.SegmentEntry.{PutReadOnly, RangeReadOnly, RemoveReadOnly
 import swaydb.core.data.{SegmentEntryReadOnly, _}
 import swaydb.core.io.reader.Reader
 import swaydb.core.level.PathsDistributor
+import swaydb.data.segment.MaxKey.{Fixed, Range}
 import swaydb.core.util.TryUtil._
 import swaydb.core.util._
+import swaydb.data.segment.MaxKey
 import swaydb.data.slice.Slice
 
 import scala.collection.JavaConverters._
@@ -37,13 +39,16 @@ import scala.util.{Failure, Success, Try}
 
 private[segment] class MemorySegment(val path: Path,
                                      val minKey: Slice[Byte],
-                                     val maxKey: Slice[Byte],
+                                     val maxKey: MaxKey,
                                      val segmentSize: Int,
                                      val removeDeletes: Boolean,
+                                     val _hasRange: Boolean,
                                      private[segment] val cache: ConcurrentSkipListMap[Slice[Byte], SegmentEntryReadOnly],
-                                     val bloomFilter: BloomFilter[Slice[Byte]])(implicit ordering: Ordering[Slice[Byte]]) extends Segment with LazyLogging {
+                                     val bloomFilter: Option[BloomFilter[Slice[Byte]]])(implicit ordering: Ordering[Slice[Byte]]) extends Segment with LazyLogging {
 
   @volatile private var deleted = false
+
+  import ordering._
 
   override def put(newKeyValues: Slice[KeyValue.WriteOnly],
                    minSegmentSize: Long,
@@ -96,13 +101,31 @@ private[segment] class MemorySegment(val path: Path,
   override def get(key: Slice[Byte]): Try[Option[SegmentEntryReadOnly]] =
     if (deleted)
       Failure(new NoSuchFileException(path.toString))
-    else if (!bloomFilter.mightContain(key))
+    else if (!_hasRange && !bloomFilter.forall(_.mightContain(key)))
       Success(None)
     else
-      Try(Option(cache.get(key)))
+      maxKey match {
+        case Fixed(maxKey) if key > maxKey =>
+          Success(None)
+
+        case range: Range if key >= range.maxKey =>
+          Success(None)
+
+        case _ =>
+          if (_hasRange)
+            Option(cache.floorEntry(key)).map(_.getValue) match {
+              case floorRange @ Some(range: RangeReadOnly) if key >= range.fromKey && key < range.toKey =>
+                Success(floorRange)
+
+              case _ =>
+                Try(Option(cache.get(key)))
+            }
+          else
+            Try(Option(cache.get(key)))
+      }
 
   def mightContain(key: Slice[Byte]): Try[Boolean] =
-    Try(bloomFilter mightContain key)
+    Try(bloomFilter.forall(_.mightContain(key)))
 
   override def lower(key: Slice[Byte]): Try[Option[SegmentEntryReadOnly]] =
     if (deleted)
@@ -117,7 +140,15 @@ private[segment] class MemorySegment(val path: Path,
       Failure(new NoSuchFileException(path.toString))
     else
       Try {
-        Option(cache.higherEntry(key)).map(_.getValue)
+        if (_hasRange) {
+          Option(cache.floorEntry(key)).map(_.getValue) match {
+            case floor @ Some(floorRange: RangeReadOnly) if key >= floorRange.fromKey && key < floorRange.toKey =>
+              floor
+            case _ =>
+              Option(cache.higherEntry(key)).map(_.getValue)
+          }
+        } else
+          Option(cache.higherEntry(key)).map(_.getValue)
       }
 
   override def getAll(bloomFilterFalsePositiveRate: Double, addTo: Option[Slice[SegmentEntry]]): Try[Slice[SegmentEntry]] =
@@ -190,6 +221,9 @@ private[segment] class MemorySegment(val path: Path,
   override def existsOnDisk: Boolean =
     false
 
-  override def getBloomFilter: Try[BloomFilter[Slice[Byte]]] =
+  override def getBloomFilter: Try[Option[BloomFilter[Slice[Byte]]]] =
     Try(bloomFilter)
+
+  override def hasRange: Try[Boolean] =
+    Try(_hasRange)
 }

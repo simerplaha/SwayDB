@@ -19,10 +19,11 @@
 
 package swaydb.core.segment
 
-import swaydb.core.data.SegmentEntryReadOnly
+import swaydb.core.data.{KeyValue, SegmentEntryReadOnly}
 import swaydb.core.io.file.DBFile
 import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestLimitQueues}
+import swaydb.data.segment.MaxKey
 import swaydb.order.KeyOrder
 
 //@formatter:off
@@ -100,7 +101,13 @@ class SegmentPerformanceSpec extends TestBase with Benchmark {
       mmapWrites = levelStorage.mmapSegmentsOnWrite,
       cacheKeysOnCreate = false,
       minKey = keyValues.head.key,
-      maxKey = keyValues.last.key,
+      maxKey =
+      keyValues.last match {
+        case range: KeyValue.RangeWriteOnly =>
+          MaxKey.Range(range.fromKey, range.toKey)
+        case _ =>
+          MaxKey.Fixed(keyValues.last.key)
+      },
       segmentSize = keyValues.last.stats.segmentSize,
       removeDeletes = false
     ).assertGet

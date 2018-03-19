@@ -45,7 +45,7 @@ private[core] object Maps extends LazyLogging {
                              acceleration: Level0Meter => Accelerator)(implicit ordering: Ordering[K],
                                                                        mapReader: MapEntryReader[MapEntry[K, V]],
                                                                        writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                                       skipListConflictResolver: SkipListConflictResolver[K, V],
+                                                                       skipListMerger: SkipListMerge[K, V],
                                                                        ec: ExecutionContext): Maps[K, V] =
     new Maps[K, V](
       maps = new ConcurrentLinkedDeque[Map[K, V]](),
@@ -61,7 +61,7 @@ private[core] object Maps extends LazyLogging {
                                  recovery: RecoveryMode)(implicit ordering: Ordering[K],
                                                          writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                          reader: MapEntryReader[MapEntry[K, V]],
-                                                         skipListConflictResolver: SkipListConflictResolver[K, V],
+                                                         skipListMerger: SkipListMerge[K, V],
                                                          ec: ExecutionContext): Try[Maps[K, V]] = {
     logger.debug("{}: Maps persistent started. Initialising recovery.", path)
     //reverse to keep the newest maps at the top.
@@ -106,7 +106,7 @@ private[core] object Maps extends LazyLogging {
                                       recovery: RecoveryMode)(implicit ordering: Ordering[K],
                                                               writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                               mapReader: MapEntryReader[MapEntry[K, V]],
-                                                              skipListConflictResolver: SkipListConflictResolver[K, V],
+                                                              skipListMerger: SkipListMerge[K, V],
                                                               ec: ExecutionContext): Try[Seq[Map[K, V]]] = {
     /**
       * Performs corruption handling based on the the value set for [[RecoveryMode]].
@@ -114,7 +114,7 @@ private[core] object Maps extends LazyLogging {
     def applyRecoveryMode(exception: Throwable,
                           mapPath: Path,
                           otherMapsPaths: List[Path],
-                          recoveredMaps: ListBuffer[Map[K, V]])(implicit skipListConflictResolver: SkipListConflictResolver[K, V]): Try[Seq[Map[K, V]]] =
+                          recoveredMaps: ListBuffer[Map[K, V]])(implicit skipListMerger: SkipListMerge[K, V]): Try[Seq[Map[K, V]]] =
       exception match {
         case exception: IllegalStateException =>
           recovery match {
@@ -163,7 +163,7 @@ private[core] object Maps extends LazyLogging {
       * are not expected to become too large that would result in a stack overflow.
       */
     def doRecovery(maps: List[Path],
-                   recoveredMaps: ListBuffer[Map[K, V]])(implicit skipListConflictResolver: SkipListConflictResolver[K, V]): Try[Seq[Map[K, V]]] =
+                   recoveredMaps: ListBuffer[Map[K, V]])(implicit skipListMerger: SkipListMerge[K, V]): Try[Seq[Map[K, V]]] =
       maps match {
         case Nil =>
           Success(recoveredMaps)
@@ -196,7 +196,7 @@ private[core] object Maps extends LazyLogging {
                               currentMap: Map[K, V])(implicit ordering: Ordering[K],
                                                      mapReader: MapEntryReader[MapEntry[K, V]],
                                                      writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                     skipListConflictResolver: SkipListConflictResolver[K, V],
+                                                     skipListMerger: SkipListMerge[K, V],
                                                      ec: ExecutionContext): Try[Map[K, V]] =
     currentMap match {
       case currentMap @ PersistentMap(path, mmap, _, _, _, _) =>
@@ -216,7 +216,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
                                          @volatile private var currentMap: Map[K, V])(implicit ordering: Ordering[K],
                                                                                       mapReader: MapEntryReader[MapEntry[K, V]],
                                                                                       writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                                                      skipListConflictResolver: SkipListConflictResolver[K, V],
+                                                                                      skipListMerger: SkipListMerge[K, V],
                                                                                       ec: ExecutionContext) extends LazyLogging {
 
   private var meter = Level0Meter(fileSize, currentMap.fileSize, maps.size() + 1)

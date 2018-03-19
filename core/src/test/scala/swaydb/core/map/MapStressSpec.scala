@@ -21,7 +21,7 @@ package swaydb.core.map
 
 import swaydb.core.TestBase
 import swaydb.core.data.Value
-import swaydb.core.level.zero.SkipListRangeConflictResolver
+import swaydb.core.level.zero.LevelZeroSkipListMerge
 import swaydb.core.map.serializer.LevelZeroMapEntryWriter.Level0PutWriter
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
@@ -30,7 +30,7 @@ import swaydb.order.KeyOrder
 class MapStressSpec extends TestBase {
 
   implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
-  implicit val skipListRangeConflictResolver = SkipListRangeConflictResolver
+  implicit val skipListMerger = LevelZeroSkipListMerge
 
   "Map" should {
     "write entries when flushOnOverflow is true and map size is 1.kb" in {

@@ -23,7 +23,7 @@ import java.nio.file.{Files, NoSuchFileException}
 
 import swaydb.core.TestBase
 import swaydb.core.data.Value
-import swaydb.core.level.zero.SkipListRangeConflictResolver
+import swaydb.core.level.zero.LevelZeroSkipListMerge
 import swaydb.core.util.Extension
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.config.RecoveryMode
@@ -42,7 +42,7 @@ class MapsSpec extends TestBase {
 
   import swaydb.core.map.serializer.LevelZeroMapEntryReader._
   import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
-  implicit val skipListRangeConflictResolver = SkipListRangeConflictResolver
+  implicit val skipListMerger = LevelZeroSkipListMerge
 
   "Maps.persistent" should {
     "initialise and recover on reopen" in {
@@ -108,9 +108,9 @@ class MapsSpec extends TestBase {
     "initialise a new map if the current map is full" in {
       def test(maps: Maps[Slice[Byte], Value]) = {
         maps.write(MapEntry.Put(1, Value.Put(1))).assertGet //entry size is 32.bytes
-        maps.write(MapEntry.Put(2: Slice[Byte], Value.Range(2, None, Value.Put(2)))).assertGet //another 44.bytes
+        maps.write(MapEntry.Put(2: Slice[Byte], Value.Range(2, None, Value.Put(2)))).assertGet //another 45.bytes
         maps.queuedMapsCountWithCurrent shouldBe 1
-        //another 44.bytes but map has total size of 76.bytes.
+        //another 45.bytes but map has total size of 77.bytes.
         //now since the Map is overflow a new should get created.
         maps.write(MapEntry.Put[Slice[Byte], Value](3, Value.Remove)).assertGet
         maps.queuedMapsCount shouldBe 1
@@ -119,13 +119,13 @@ class MapsSpec extends TestBase {
 
       //persistent
       val path = createRandomDir
-      val maps = Maps.persistent[Slice[Byte], Value](path, mmap = false, 32.bytes + 44.bytes, Accelerator.brake(), RecoveryMode.ReportFailure).assertGet
+      val maps = Maps.persistent[Slice[Byte], Value](path, mmap = false, 32.bytes + 45.bytes, Accelerator.brake(), RecoveryMode.ReportFailure).assertGet
       test(maps)
       //new map 1 gets created since the 3rd entry is overflow entry.
       path.folders.map(_.folderId) should contain only(0, 1)
 
       //in memory
-      test(Maps.memory(32.bytes + 44.bytes, Accelerator.brake()))
+      test(Maps.memory(32.bytes + 45.bytes, Accelerator.brake()))
     }
 
     "write a key value larger then the actual fileSize" in {

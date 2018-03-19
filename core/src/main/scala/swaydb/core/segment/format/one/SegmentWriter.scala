@@ -33,12 +33,24 @@ private[core] object SegmentWriter extends LazyLogging {
 
   val crcBytes: Int = 7
 
+  /**
+    * Rules for creating bloom filters
+    *
+    * - If key-values contains a Remove range - bloom filters are not created
+    * - If key-value contains a Range - a flag is added to Appendix
+    * - if key-value contains an Update range - get does not consult
+    */
+
   def toSlice(keyValues: Iterable[KeyValue.WriteOnly], bloomFilterFalsePositiveRate: Double): Try[Slice[Byte]] = {
     if (keyValues.isEmpty) {
       Success(Slice.create[Byte](0))
     } else {
       Try {
-        val bloomFilter = BloomFilter[Slice[Byte]](keyValues.size, bloomFilterFalsePositiveRate)
+        val bloomFilter =
+          if (keyValues.last.stats.hasRemoveRange)
+            None
+          else
+            Some(BloomFilter[Slice[Byte]](keyValues.size, bloomFilterFalsePositiveRate))
 
         val slice = Slice.create[Byte](keyValues.last.stats.segmentSize)
 
@@ -56,7 +68,7 @@ private[core] object SegmentWriter extends LazyLogging {
 
             valueMayBe map {
               valueMayBe =>
-                bloomFilter add keyValue.key
+                bloomFilter.foreach(_ add keyValue.key)
 
                 indexAndFooterSlice addIntUnsigned keyValue.stats.thisKeyValuesIndexSizeWithoutFooter
                 indexAndFooterSlice addIntUnsigned keyValue.id
@@ -83,10 +95,18 @@ private[core] object SegmentWriter extends LazyLogging {
         //currently there is only one format. So this is hardcoded but if there are a new file format then
         //SegmentWriter and SegmentReader should be changed to be type classes with unique format types ids.
         indexAndFooterSlice addIntUnsigned 1
+        if (keyValues.last.stats.hasRange) indexAndFooterSlice addByte 1 else indexAndFooterSlice addByte 0
         indexAndFooterSlice addIntUnsigned indexAndFooterSlice.fromOffset
         indexAndFooterSlice addLong CRC32.forBytes(indexAndFooterSlice.take(SegmentWriter.crcBytes))
         indexAndFooterSlice addIntUnsigned keyValues.size
-        indexAndFooterSlice addAll bloomFilter.toBytes
+        bloomFilter match {
+          case Some(bloomFilter) =>
+            val bloomFilterBytes = bloomFilter.toBytes
+            indexAndFooterSlice addIntUnsigned bloomFilterBytes.length
+            indexAndFooterSlice addAll bloomFilterBytes
+          case None =>
+            indexAndFooterSlice addIntUnsigned 0
+        }
         indexAndFooterSlice addInt (indexAndFooterSlice.written - footerStart)
         assert(valuesSlice.isFull, "Values slice is not full")
         assert(indexAndFooterSlice.isFull, s"Index and footer slice is not full. Size: ${indexAndFooterSlice.size} - Written: ${indexAndFooterSlice.written}")

@@ -71,7 +71,6 @@ class KeyMatcherSpec extends TestBase {
       KeyMatcher.Get(-1).apply(previous = 0, next = 2, hasMore = false) shouldBe Stop
       KeyMatcher.Get(-1).apply(previous = 0, next = 2, hasMore = true) shouldBe Stop
 
-
       //0
       //0, 1, 2
       KeyMatcher.Get(0).apply(previous = 0, next = None, hasMore = false) shouldBe Matched(0)
@@ -238,7 +237,7 @@ class KeyMatcherSpec extends TestBase {
       KeyMatcher.Lower(21).apply(previous = (5, 10), next = (15, 20), hasMore = true) shouldBe Next
     }
 
-    "read only minimum number of lower keys to satisfy the request" in {
+    "read only minimum number of lower keys to fullfil the request" in {
 
       def find(toFind: Int) =
         (1 to 100).foldLeft(0) {

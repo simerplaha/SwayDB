@@ -54,7 +54,7 @@ trait LazyRangeValue extends LazyValue {
               fromValueRangeValue
           }
         case None =>
-          Success(None, Value.Remove)
+          RangeValueSerializer.readRemoveRangeOnly(id)
       }
     else
       Success(fromValue, rangeValue)

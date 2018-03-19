@@ -17,20 +17,21 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.map
+package swaydb.data.segment
 
-import java.util.concurrent.ConcurrentSkipListMap
+import swaydb.data.slice.Slice
 
-import scala.annotation.implicitNotFound
+private[swaydb] sealed trait MaxKey {
+  val maxKey: Slice[Byte]
+  val inclusive: Boolean
+}
 
-@implicitNotFound("Type class implementation not found for SkipListConflictResolver of type [${K}, ${V}]")
-trait SkipListConflictResolver[K, V] {
+private[swaydb] object MaxKey {
 
-  def insert(insertKey: K,
-             insertValue: V,
-             skipList: ConcurrentSkipListMap[K, V])(implicit ordering: Ordering[K])
-
-  def insert(entry: MapEntry[K, V],
-             skipList: ConcurrentSkipListMap[K, V])(implicit ordering: Ordering[K])
-
+  private[swaydb] case class Fixed(maxKey: Slice[Byte]) extends MaxKey {
+    override val inclusive: Boolean = true
+  }
+  private[swaydb] case class Range(fromKey: Slice[Byte], maxKey: Slice[Byte]) extends MaxKey {
+    override val inclusive: Boolean = false
+  }
 }

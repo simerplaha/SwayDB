@@ -89,8 +89,9 @@ private[core] object SegmentAssigner {
                 case Some(nextSegment) if keyValue.toKey > nextSegment.minKey =>
                   keyValue.fetchFromAndRangeValue match {
                     case Success((fromValue, rangeValue)) =>
-                      val thisSegmentsRange = Transient.Range(fromKey = keyValue.fromKey, toKey = nextSegment.minKey, fromValue = fromValue, rangeValue = rangeValue, falsePositiveRate = 1, None)
-                      val nextSegmentsRange = Transient.Range(fromKey = nextSegment.minKey, toKey = keyValue.toKey, fromValue = None, rangeValue = rangeValue, falsePositiveRate = 1, None)
+                      //false positive rate here does not matter as these are only assignments. Setting them to be 0.1 since the default is 0.1 and it's easier to equality tests on Stats if it's 0.1.
+                      val thisSegmentsRange = Transient.Range(fromKey = keyValue.fromKey, toKey = nextSegment.minKey, fromValue = fromValue, rangeValue = rangeValue, falsePositiveRate = 0.1, None)
+                      val nextSegmentsRange = Transient.Range(fromKey = nextSegment.minKey, toKey = keyValue.toKey, fromValue = None, rangeValue = rangeValue, falsePositiveRate = 0.1, None)
                       assignKeyValueToSegment(thisSegment, thisSegmentsRange, remainingKeyValues.size)
                       assign(dropKeyValue(Some(nextSegmentsRange)), Some(nextSegment), getNextSegmentMayBe())
 
@@ -123,6 +124,8 @@ private[core] object SegmentAssigner {
                   assign(dropKeyValue(Some(keyValue)), Some(nextSegment), getNextSegmentMayBe())
 
                 case _ =>
+                  //ignore if a key-value is not already assigned to thisSegment. No point adding a single key-value to a Segment.
+                  //same code as above, need to push it to a common function.
                   if (assignmentsMap.contains(thisSegment)) {
                     assignKeyValueToSegment(thisSegment, keyValue, remainingKeyValues.size)
                     assign(dropKeyValue(), thisSegmentMayBe, nextSegmentMayBe)

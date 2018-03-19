@@ -26,6 +26,8 @@ import swaydb.core.data.SegmentEntryReadOnly
 import swaydb.core.io.file.DBFile
 import swaydb.core.map.MapEntry
 import swaydb.core.segment.Segment
+import swaydb.data.segment.MaxKey
+import swaydb.core.util.ByteUtilCore
 import swaydb.data.slice.{Reader, Slice}
 
 import scala.concurrent.ExecutionContext
@@ -64,8 +66,18 @@ class AppendixMapEntryReader(removeDeletes: Boolean,
         segmentSize <- reader.readIntUnsigned()
         minKeyLength <- reader.readIntUnsigned()
         minKey <- reader.read(minKeyLength).map(_.unslice())
+        maxKeyId <- reader.readIntUnsigned()
         maxKeyLength <- reader.readIntUnsigned()
-        maxKey <- reader.read(maxKeyLength).map(_.unslice())
+        maxKeyBytes <- reader.read(maxKeyLength).map(_.unslice())
+        maxKey <-
+          if (maxKeyId == 1)
+            Success(MaxKey.Fixed(maxKeyBytes))
+          else {
+            ByteUtilCore.uncompress(maxKeyBytes) map {
+              case (fromKey, toKey) =>
+                MaxKey.Range(fromKey, toKey)
+            }
+          }
         segment <- Segment(segmentPath, cacheKeysOnCreate, mmapSegmentsOnRead, mmapSegmentsOnWrite, minKey, maxKey, segmentSize, removeDeletes, checkExists = false)
       } yield {
         Some(MapEntry.Put(minKey, segment)(AppendixMapEntryWriter.AppendixPutWriter))

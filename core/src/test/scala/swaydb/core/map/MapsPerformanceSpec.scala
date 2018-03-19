@@ -22,7 +22,7 @@ package swaydb.core.map
 import swaydb.core.TestBase
 import swaydb.core.data.Value
 import swaydb.core.io.file.IO
-import swaydb.core.level.zero.SkipListRangeConflictResolver
+import swaydb.core.level.zero.LevelZeroSkipListMerge
 import swaydb.core.util.Benchmark
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.config.RecoveryMode
@@ -36,7 +36,7 @@ class MapsPerformanceSpec extends TestBase with Benchmark {
 
   import swaydb.core.map.serializer.LevelZeroMapEntryReader._
   import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
-  implicit val skipListRangeConflictResolver = SkipListRangeConflictResolver
+  implicit val skipListMerger = LevelZeroSkipListMerge
 
   "Maps" should {
     "write key values" in {

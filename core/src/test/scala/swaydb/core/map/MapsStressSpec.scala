@@ -22,7 +22,7 @@ package swaydb.core.map
 import swaydb.core.TestBase
 import swaydb.core.data.Value
 import swaydb.core.io.file.IO
-import swaydb.core.level.zero.SkipListRangeConflictResolver
+import swaydb.core.level.zero.LevelZeroSkipListMerge
 import swaydb.core.util.FileUtil._
 import swaydb.data.accelerate.{Accelerator, Level0Meter}
 import swaydb.data.config.RecoveryMode
@@ -36,7 +36,7 @@ class MapsStressSpec extends TestBase {
 
   import swaydb.core.map.serializer.LevelZeroMapEntryReader._
   import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
-  implicit val skipListRangeConflictResolver = SkipListRangeConflictResolver
+  implicit val skipListMerger = LevelZeroSkipListMerge
 
   val keyValueCount = 100
 
