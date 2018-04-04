@@ -110,7 +110,7 @@ private[core] object Segment {
             maxKey =
               keyValues.last match {
                 case range: KeyValue.WriteOnly.Range =>
-                  MaxKey.Range(range.fromKey, range.toKey)
+                  MaxKey.Range(range.fromKey.unslice(), range.toKey.unslice())
 
                 case keyValue =>
                   MaxKey.Fixed(keyValue.key.unslice())

@@ -24,6 +24,7 @@ import java.nio.file._
 import swaydb.core.data.Transient.Remove
 import swaydb.core.data.{Memory, _}
 import swaydb.core.io.file.{DBFile, IO}
+import swaydb.core.io.reader.Reader
 import swaydb.core.level.PathsDistributor
 import swaydb.data.segment.MaxKey.{Fixed, Range}
 import swaydb.core.segment.SegmentException.CannotCopyInMemoryFiles
@@ -41,6 +42,7 @@ import scala.collection.JavaConverters._
 import scala.concurrent.duration._
 import scala.util.Random
 import swaydb.core.map.serializer.RangeValueSerializers._
+import swaydb.core.segment.format.one.{SegmentReader, SegmentWriter}
 import swaydb.data.segment.MaxKey
 
 //@formatter:off
@@ -81,6 +83,7 @@ class SegmentWriteSpec extends TestBase with Benchmark {
       assertOnSegment(
         keyValues =
           randomIntKeyValuesMemory(keyValuesCount, addRandomDeletes = Random.nextBoolean(), addRandomRanges = Random.nextBoolean()),
+
         assertionWithKeyValues =
           (keyValues, segment) => {
             assertReads(keyValues, segment)
@@ -89,6 +92,7 @@ class SegmentWriteSpec extends TestBase with Benchmark {
               keyValues.last match {
                 case _: Memory.Fixed =>
                   MaxKey.Fixed(keyValues.last.key)
+
                 case range: Memory.Range =>
                   MaxKey.Range(range.fromKey, range.toKey)
               }
@@ -156,20 +160,89 @@ class SegmentWriteSpec extends TestBase with Benchmark {
       )
     }
 
-    "not create bloomFilter if the Segment has Remove range key-values and footer should set hasRange to true" in {
+    "un-slice minKey and maxKey when Segments are created" in {
+      def doAssert(keyValues: Slice[KeyValue.WriteOnly]) = {
+        val bytes = SegmentWriter.toSlice(keyValues, 0.1).assertGet
+
+        //read key-values so they are all part of the same byte array.
+        val readKeyValues = SegmentReader.readAll(SegmentReader.readFooter(Reader(bytes)).assertGet, Reader(bytes)).assertGet.toMemory
+
+        //assert that readKeyValues keys are not unsliced i.e. they are sub-slices of original large byte array.
+        readKeyValues foreach {
+          readKeyValue =>
+            readKeyValue.key.underlyingArraySize should be > readKeyValue.key.unslice().size
+            readKeyValue.key.underlyingArraySize shouldBe bytes.size
+
+            readKeyValue match {
+              case Memory.Range(fromKey, toKey, fromValue, rangeValue) =>
+                fromKey.underlyingArraySize should be > readKeyValue.key.unslice().size
+                fromKey.underlyingArraySize shouldBe bytes.size
+
+                toKey.underlyingArraySize should be > readKeyValue.key.unslice().size
+                toKey.underlyingArraySize shouldBe bytes.size
+              case _ =>
+            }
+        }
+
+        //when Segments are created min and max keys will be unsliced.
+        assertOnSegment(
+          keyValues = readKeyValues,
+          assertion =
+            segment => {
+              segment.minKey shouldBe keyValues.head.key
+
+              segment.minKey.underlyingArraySize shouldBe 1
+              segment.maxKey match {
+                case Fixed(maxKey) =>
+                  maxKey.underlyingArraySize shouldBe 1
+                case Range(fromKey, maxKey) =>
+                  fromKey.underlyingArraySize shouldBe 1
+                  maxKey.underlyingArraySize shouldBe 1
+              }
+            }
+        )
+      }
+
+      doAssert(Slice(Transient.Put("a", "value"), Transient.Put("b", "value"), Transient.Put("c", "value"), Transient.Put("d", "value")).updateStats)
+      doAssert(Slice(Transient.Put("a", "value"), Transient.Put("b", "value"), Transient.Put("c", "value"), Transient.Remove("d")).updateStats)
+      doAssert(Slice(Transient.Put("a", "value"), Transient.Put("b", "value"), Transient.Put("c", "value"), Transient.Range[Value, Value]("d", "z", None, Value.Remove)).updateStats)
+    }
+
+    "not create bloomFilter if the Segment has Remove range key-values and set hasRange to true" in {
+
+      def doAssert(segment: Segment) = {
+        segment.getBloomFilter.assertGetOpt shouldBe empty
+        segment.hasRange.assertGet shouldBe true
+        segment.close.assertGet
+      }
 
       assertOnSegment(
         keyValues = Slice(Memory.Put(0), Memory.Range(1, 10, None, Value.Remove)),
-        assertion =
-          segment => {
-            segment.getBloomFilter.assertGetOpt shouldBe empty
-            segment.hasRange.assertGet shouldBe true
-            segment.close.assertGet
-          }
+        assertion = doAssert(_)
+      )
+
+      assertOnSegment(
+        keyValues = Slice(Memory.Put(0), Memory.Range(1, 10, Some(Value.Remove), Value.Remove)),
+        assertion = doAssert(_)
+      )
+
+      assertOnSegment(
+        keyValues = Slice(Memory.Put(0), Memory.Range(1, 10, Some(Value.Put(1)), Value.Remove)),
+        assertion = doAssert(_)
       )
     }
 
-    "create bloomFilter if the Segment has no Remove range key-values by has update range key-values and footer should set hasRange to true" in {
+    "create bloomFilter if the Segment has no Remove range key-values by has update range key-values and set hasRange to true when there are Range key-value" in {
+      assertOnSegment(
+        keyValues = Slice(Memory.Put(0), Memory.Put(1, 1), Memory.Remove(2)),
+        assertion =
+          segment => {
+            segment.getBloomFilter.assertGetOpt shouldBe defined
+            segment.hasRange.assertGet shouldBe false
+            segment.close.assertGet
+          }
+      )
+
       assertOnSegment(
         keyValues = Slice(Memory.Put(0), Memory.Range(1, 10, None, Value.Put(10))),
         assertion =

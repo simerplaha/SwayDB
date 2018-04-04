@@ -41,11 +41,11 @@ import scala.util.{Failure, Success, Try}
 private[core] object SegmentReader extends LazyLogging {
 
   private def readNextKeyValue[P <: Persistent](previous: P,
-                                                         endIndexOffset: Int,
-                                                         reader: Reader,
-                                                         onCreate: (Slice[Byte], Int, Int, Int, Int) => P,
-                                                         onRange: (Int, Slice[Byte], Int, Int, Int, Int) => Try[P],
-                                                         onDelete: (Slice[Byte], Int, Int) => P): Try[P] = {
+                                                endIndexOffset: Int,
+                                                reader: Reader,
+                                                onCreate: (Slice[Byte], Int, Int, Int, Int) => P,
+                                                onRange: (Int, Slice[Byte], Int, Int, Int, Int) => Try[P],
+                                                onDelete: (Slice[Byte], Int, Int) => P): Try[P] = {
     reader moveTo previous.nextIndexOffset
     readNextKeyValue(
       indexEntrySizeMayBe = Some(previous.nextIndexSize),
