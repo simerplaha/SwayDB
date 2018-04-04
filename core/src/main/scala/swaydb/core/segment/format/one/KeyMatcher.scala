@@ -19,15 +19,14 @@
 
 package swaydb.core.segment.format.one
 
-import swaydb.core.data.SegmentEntry.RangeReadOnly
-import swaydb.core.data.SegmentEntryReadOnly
+import swaydb.core.data.Persistent
 import swaydb.core.segment.format.one.MatchResult.{Matched, _}
 import swaydb.data.slice.Slice
 
 sealed trait MatchResult
 
 object MatchResult {
-  case class Matched(result: SegmentEntryReadOnly) extends MatchResult
+  case class Matched(result: Persistent) extends MatchResult
   case object Next extends MatchResult
   case object Stop extends MatchResult
 }
@@ -35,19 +34,19 @@ object MatchResult {
 private[core] sealed trait KeyMatcher {
   val key: Slice[Byte]
 
-  def apply(previous: SegmentEntryReadOnly,
-            next: Option[SegmentEntryReadOnly],
+  def apply(previous: Persistent,
+            next: Option[Persistent],
             hasMore: => Boolean): MatchResult
 }
 
 private[core] object KeyMatcher {
   case class Get(key: Slice[Byte])(implicit ordering: Ordering[Slice[Byte]]) extends KeyMatcher {
 
-    override def apply(previous: SegmentEntryReadOnly,
-                       next: Option[SegmentEntryReadOnly],
+    override def apply(previous: Persistent,
+                       next: Option[Persistent],
                        hasMore: => Boolean): MatchResult =
       next.getOrElse(previous) match {
-        case range: RangeReadOnly =>
+        case range: Persistent.Range =>
           val fromKeyMatch = ordering.compare(key, range.fromKey)
           val toKeyMatch = ordering.compare(key, range.toKey)
           if (fromKeyMatch >= 0 && toKeyMatch < 0) //is within the range
@@ -70,8 +69,8 @@ private[core] object KeyMatcher {
 
   case class Lower(key: Slice[Byte])(implicit ordering: Ordering[Slice[Byte]]) extends KeyMatcher {
 
-    override def apply(previous: SegmentEntryReadOnly,
-                       next: Option[SegmentEntryReadOnly],
+    override def apply(previous: Persistent,
+                       next: Option[Persistent],
                        hasMore: => Boolean): MatchResult = {
       next match {
         case Some(next) =>
@@ -86,7 +85,7 @@ private[core] object KeyMatcher {
           else if (nextCompare < 0)
             if (hasMore)
               next match {
-                case range: RangeReadOnly if ordering.compare(key, range.toKey) <= 0 =>
+                case range: Persistent.Range if ordering.compare(key, range.toKey) <= 0 =>
                   Matched(next)
 
                 case _ =>
@@ -104,7 +103,7 @@ private[core] object KeyMatcher {
           else if (previousCompare < 0)
             if (hasMore)
               previous match {
-                case range: RangeReadOnly if ordering.compare(key, range.toKey) <= 0 =>
+                case range: Persistent.Range if ordering.compare(key, range.toKey) <= 0 =>
                   Matched(previous)
 
                 case _ =>
@@ -120,8 +119,8 @@ private[core] object KeyMatcher {
 
   case class Higher(key: Slice[Byte])(implicit ordering: Ordering[Slice[Byte]]) extends KeyMatcher {
 
-    override def apply(previous: SegmentEntryReadOnly,
-                       next: Option[SegmentEntryReadOnly],
+    override def apply(previous: Persistent,
+                       next: Option[Persistent],
                        hasMore: => Boolean): MatchResult = {
       val keyValue = next getOrElse previous
       val nextCompare = ordering.compare(keyValue.key, key)
@@ -129,7 +128,7 @@ private[core] object KeyMatcher {
         Matched(keyValue)
       else if (nextCompare <= 0)
         keyValue match {
-          case range: RangeReadOnly if ordering.compare(key, range.toKey) < 0 =>
+          case range: Persistent.Range if ordering.compare(key, range.toKey) < 0 =>
             Matched(keyValue)
 
           case _ =>

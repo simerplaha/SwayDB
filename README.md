@@ -3,7 +3,7 @@
 [gitter-badge]: https://badges.gitter.im/Join%20Chat.svg
 [gitter-link]: https://gitter.im/SwayDB-chat/Lobby
 
-Embeddable, non-blocking, type-safe key-value store for single or multiple disks and in-memory storage.
+Type-safe & non-blocking key-value storage library for single/multiple disks and in-memory.
 
 Documentation: http://swaydb.io
 
@@ -20,6 +20,9 @@ View detailed benchmark results [here](http://swaydb.io/performance/macbook-pro-
 
 - Embeddable, Type-safe, non-blocking
 - Multiple disks, In-memory & periodically persistent
+- Database storage formats
+    - Key-value (`Map[K, V]`)
+    - Row (`Set[T]`)
 - Lazily fetched values
 - Configurable Levels
 - Configurable cache size
@@ -31,11 +34,24 @@ View detailed benchmark results [here](http://swaydb.io/performance/macbook-pro-
 
 [Read more](http://swaydb.io/).
 
+## Demo
+```scala
+//Iteration: fetch all key-values withing range 10 to 90, update values and batch write updated key-values
+db
+.from(10)
+.untilKey(_ <= 90)
+.map {
+  case (key, value) =>
+    (key, value + "_updated")
+} andThen {
+   updatedKeyValues =>
+     db.batchPut(updatedKeyValues)
+}
+```
 ## Quick start
-
 [Quick start demo](http://swaydb.io/quick-start).
 
-## Examples
+## Examples 
 - [Creating Tables](http://swaydb.io/examples/creating-tables)
 - [Event-sourcing](http://swaydb.io/examples/event-sourcing)
 - [Storing data in chunks](http://swaydb.io/examples/storing-data-in-chunks)

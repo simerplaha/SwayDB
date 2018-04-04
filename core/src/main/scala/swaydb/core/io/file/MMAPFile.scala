@@ -108,7 +108,7 @@ private[file] class MMAPFile(val path: Path,
   @tailrec
   final def append(slice: Slice[Byte]): Try[Unit] =
     Try(buffer.put(slice.toByteBuffer)) match {
-      case Success(_) =>
+      case _: Success[_] =>
         TryUtil.successUnit
 
       //Although this code extends the buffer, currently there is no implementation that requires this feature.

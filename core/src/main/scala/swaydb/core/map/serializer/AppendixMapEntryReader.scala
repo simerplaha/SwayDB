@@ -22,7 +22,7 @@ package swaydb.core.map.serializer
 import java.nio.charset.StandardCharsets
 import java.nio.file.Paths
 
-import swaydb.core.data.SegmentEntryReadOnly
+import swaydb.core.data.Persistent
 import swaydb.core.io.file.DBFile
 import swaydb.core.map.MapEntry
 import swaydb.core.segment.Segment
@@ -38,7 +38,7 @@ object AppendixMapEntryReader {
             mmapSegmentsOnRead: Boolean,
             mmapSegmentsOnWrite: Boolean,
             cacheKeysOnCreate: Boolean)(implicit ordering: Ordering[Slice[Byte]],
-                                        keyValueLimiter: (SegmentEntryReadOnly, Segment) => Unit,
+                                        keyValueLimiter: (Persistent, Segment) => Unit,
                                         fileOpenLimiter: DBFile => Unit,
                                         ec: ExecutionContext): AppendixMapEntryReader =
     new AppendixMapEntryReader(
@@ -53,7 +53,7 @@ class AppendixMapEntryReader(removeDeletes: Boolean,
                              mmapSegmentsOnRead: Boolean,
                              mmapSegmentsOnWrite: Boolean,
                              cacheKeysOnCreate: Boolean)(implicit ordering: Ordering[Slice[Byte]],
-                                                         keyValueLimiter: (SegmentEntryReadOnly, Segment) => Unit,
+                                                         keyValueLimiter: (Persistent, Segment) => Unit,
                                                          fileOpenLimiter: DBFile => Unit,
                                                          ec: ExecutionContext) {
 
@@ -62,7 +62,7 @@ class AppendixMapEntryReader(removeDeletes: Boolean,
       for {
         segmentPathLength <- reader.readIntUnsigned()
         segmentPathBytes <- reader.read(segmentPathLength).map(_.unslice())
-        segmentPath <- Success(Paths.get(new String(segmentPathBytes.toArray, StandardCharsets.UTF_8)))
+        segmentPath <- Try(Paths.get(new String(segmentPathBytes.toArray, StandardCharsets.UTF_8)))
         segmentSize <- reader.readIntUnsigned()
         minKeyLength <- reader.readIntUnsigned()
         minKey <- reader.read(minKeyLength).map(_.unslice())

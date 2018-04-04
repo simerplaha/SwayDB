@@ -19,8 +19,6 @@
 
 package swaydb.core.level.actor
 
-import java.nio.file.Path
-
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.actor.{Actor, ActorRef}
 import swaydb.core.level.LevelException.ContainsOverlappingBusySegments
@@ -241,7 +239,7 @@ private[core] class LevelActor(implicit level: LevelActorAPI,
   }
 
   private val actor =
-    Actor[LevelCommand, Path](dir.path) {
+    Actor[LevelCommand] {
       case (request, self) =>
         implicit val selfImplicit: ActorRef[LevelCommand] = self
         logger.trace(s"{}: ** RECEIVED MESSAGE ** : {} ", dir, request.getClass.getSimpleName)

@@ -51,8 +51,7 @@ private[file] object BufferCleaner extends LazyLogging {
     if (started.compareAndSet(false, true)) {
       actor = createActor
       actor ! (message._1, message._2, false)
-    }
-    else if (actor == null)
+    } else if (actor == null)
       this ! message
     else
       actor ! (message._1, message._2, false)

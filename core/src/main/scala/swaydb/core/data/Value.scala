@@ -31,9 +31,27 @@ private[swaydb] sealed trait Value {
 
 private[swaydb] object Value {
 
-  private[swaydb] sealed trait Fixed extends Value
+  implicit class UnSliceValue(value: Value) {
 
-  sealed trait Remove extends Fixed
+    /**
+      * @return An Value key-value with it's byte arrays sliced.
+      *         If the sliced byte array is empty, it set the value to None.
+      */
+    def unslice: Value =
+      value match {
+        case Value.Put(value) =>
+          val unslicedValue = value.map(_.unslice())
+          if (unslicedValue.exists(_.isEmpty))
+            Value.Put(None)
+          else
+            Value.Put(unslicedValue)
+
+        case Value.Remove =>
+          value
+      }
+  }
+
+  sealed trait Remove extends Value
   case object Remove extends Remove {
     override def id: Int = 0
 
@@ -45,21 +63,9 @@ private[swaydb] object Value {
       new Put(Some(value))
   }
 
-  case class Put(value: Option[Slice[Byte]]) extends Fixed {
+  case class Put(value: Option[Slice[Byte]]) extends Value {
     override def id: Int = 1
 
     override def isRemove: Boolean = false
-  }
-
-  object Range {
-    val id = 2
-  }
-  case class Range(toKey: Slice[Byte],
-                   fromValue: Option[Value.Fixed],
-                   rangeValue: Value.Fixed) extends Value {
-    override def id: Int = Range.id
-
-    override def isRemove: Boolean =
-      rangeValue.isRemove
   }
 }

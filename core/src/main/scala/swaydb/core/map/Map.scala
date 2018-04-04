@@ -34,7 +34,7 @@ import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 import scala.concurrent.ExecutionContext
 import scala.reflect.ClassTag
-import scala.util.{Success, Try}
+import scala.util.Try
 
 private[core] object Map extends LazyLogging {
 
@@ -109,6 +109,9 @@ private[core] trait Map[K, V] {
   def floor(key: K): Option[V] =
     Option(skipList.floorEntry(key)).map(_.getValue)
 
+  def ceilingKey(key: K): Option[K] =
+    Option(skipList.ceilingKey(key))
+
   def ceilingValue(key: K): Option[V] =
     Option(skipList.ceilingEntry(key)).map(_.getValue)
 
@@ -148,15 +151,8 @@ private[core] trait Map[K, V] {
   def keys() =
     skipList.keySet()
 
-  def get(key: K)(implicit ordering: Ordering[K]): Option[(K, V)] =
-    Option(skipList.floorEntry(key)).flatMap {
-      entry =>
-        val entryKey = entry.getKey
-        if (ordering.compare(entryKey, key) == 0)
-          Some(entryKey, entry.getValue)
-        else
-          None
-    }
+  def get(key: K)(implicit ordering: Ordering[K]): Option[V] =
+    Option(skipList.get(key))
 
   def take(count: Int): Slice[V] = {
     val slice = Slice.create(count)
@@ -203,6 +199,6 @@ private[core] trait Map[K, V] {
     TryUtil.successUnit
 
   def fileId: Try[Long] =
-    Success(0)
+    scala.util.Success(0)
 
 }

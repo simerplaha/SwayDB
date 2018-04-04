@@ -21,7 +21,8 @@ package swaydb.core.map.serializer
 
 import java.util.concurrent.ConcurrentSkipListMap
 
-import swaydb.core.data.SegmentEntryReadOnly
+import swaydb.core.data.Persistent
+import swaydb.core.data.Persistent
 import swaydb.core.io.file.DBFile
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.MapEntry
@@ -38,7 +39,7 @@ class AppendixMapEntrySpec extends TestBase {
 
   implicit val ordering = KeyOrder.default
   implicit val maxSegmentsOpenCacheImplicitLimiter: DBFile => Unit = TestLimitQueues.fileOpenLimiter
-  implicit val keyValuesLimitImplicitLimiter: (SegmentEntryReadOnly, Segment) => Unit = TestLimitQueues.keyValueLimiter
+  implicit val keyValuesLimitImplicitLimiter: (Persistent, Segment) => Unit = TestLimitQueues.keyValueLimiter
   val appendixReader = AppendixMapEntryReader(false, true, true, false)
   val segment = TestSegment().assertGet
 

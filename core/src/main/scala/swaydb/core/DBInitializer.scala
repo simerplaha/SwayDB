@@ -22,7 +22,7 @@ package swaydb.core
 import java.nio.file.Paths
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.data.SegmentEntryReadOnly
+import swaydb.core.data.Persistent
 import swaydb.core.io.file.DBFile
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, LevelRef, TrashLevel}
@@ -51,7 +51,7 @@ private[core] object DBInitializer extends LazyLogging {
       else
         _ => throw new IllegalAccessError("fileOpenLimiter is not required for in-memory databases.")
 
-    implicit val keyValueLimiter: (SegmentEntryReadOnly, Segment) => Unit =
+    implicit val keyValueLimiter: (Persistent, Segment) => Unit =
       if (config.persistent)
         LimitQueues.keyValueLimiter(cacheSize, keyValueQueueDelay)
       else

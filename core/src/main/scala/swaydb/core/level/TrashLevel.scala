@@ -21,7 +21,7 @@ package swaydb.core.level
 
 import java.nio.file.{Path, Paths}
 
-import swaydb.core.data.Value
+import swaydb.core.data.{KeyValue, Memory}
 import swaydb.core.level.actor.LevelAPI
 import swaydb.core.level.actor.LevelCommand._
 import swaydb.core.map.Map
@@ -37,9 +37,9 @@ private[core] object TrashLevel extends LevelRef {
 
   override val paths: PathsDistributor = PathsDistributor(Seq(), () => Seq())
 
-  override def appendixPath: Path = Paths.get("Trash level has no path")
+  override val appendixPath: Path = Paths.get("Trash level has no path")
 
-  def rootPath: Path = Paths.get("Trash level has no path")
+  override val rootPath: Path = Paths.get("Trash level has no path")
 
   override val throttle: LevelMeter => Throttle =
     (_) => Throttle(Duration.Zero, 0)
@@ -54,22 +54,22 @@ private[core] object TrashLevel extends LevelRef {
         pullFrom ! Pull
     }
 
-  override def nextLevel: Option[LevelRef] =
+  override val nextLevel: Option[LevelRef] =
     None
 
-  override def segments: Iterable[Segment] =
+  override val segments: Iterable[Segment] =
     Iterable.empty
 
-  override def hasNextLevel: Boolean =
+  override val hasNextLevel: Boolean =
     false
 
-  override def keyValueCount: Try[Int] =
+  override val keyValueCount: Try[Int] =
     Success(0)
 
-  override def segmentsCount(): Int =
+  override val segmentsCount: Int =
     0
 
-  override def segmentFilesOnDisk: List[Path] =
+  override val segmentFilesOnDisk: List[Path] =
     List.empty
 
   override def take(count: Int): Slice[Segment] =
@@ -84,13 +84,13 @@ private[core] object TrashLevel extends LevelRef {
   override def getSegment(minKey: Slice[Byte]): Option[Segment] =
     None
 
-  override def getBusySegments(): List[Segment] =
+  override val getBusySegments: List[Segment] =
     List.empty
 
   override val pushForward: Boolean =
     false
 
-  override def nextBatchSize: Int =
+  override val nextBatchSize: Int =
     0
 
   /**
@@ -129,21 +129,18 @@ private[core] object TrashLevel extends LevelRef {
   override def collapseAllSmallSegments(batch: Int): Try[Int] =
     Success(0)
 
-  override def existsOnDisk =
+  override val existsOnDisk =
     false
 
-  override def levelSize = 0
+  override val levelSize = 0
 
-  override def segmentCountAndLevelSize =
+  override val segmentCountAndLevelSize =
     (0, 0)
 
-  override def putMap(map: Map[Slice[Byte], Value]) =
-    TryUtil.successUnit
-
-  override def head =
+  override val head =
     Success(None)
 
-  override def last =
+  override val last =
     Success(None)
 
   override def get(key: Slice[Byte]) =
@@ -155,7 +152,7 @@ private[core] object TrashLevel extends LevelRef {
   override def higher(key: Slice[Byte]) =
     Success(None)
 
-  override def isEmpty: Boolean =
+  override val isEmpty: Boolean =
     true
 
   override def takeSegments(size: Int, condition: Segment => Boolean): Iterable[Segment] =
@@ -167,16 +164,16 @@ private[core] object TrashLevel extends LevelRef {
   override def takeLargeSegments(size: Int): Iterable[Segment] =
     Iterable.empty
 
-  override def sizeOfSegments: Long =
+  override val sizeOfSegments: Long =
     0
 
   override def releaseLocks: Try[Unit] =
     TryUtil.successUnit
 
-  override def close: Try[Unit] =
+  override val close: Try[Unit] =
     TryUtil.successUnit
 
-  override def meter: LevelMeter =
+  override val meter: LevelMeter =
     LevelMeter(0, 0)
 
   override def meterFor(levelNumber: Int): Option[LevelMeter] =
@@ -186,4 +183,19 @@ private[core] object TrashLevel extends LevelRef {
     Success(false)
 
   override val isTrash: Boolean = true
+
+  override def putMap(map: Map[Slice[Byte], Memory]): Try[Unit] =
+    TryUtil.successUnit
+
+  override def ceiling(key: Slice[Byte]): Try[Option[KeyValue.FindResponse]] =
+    Success(None)
+
+  override def floor(key: Slice[Byte]): Try[Option[KeyValue.FindResponse]] =
+    Success(None)
+
+  override val firstKey: Option[Slice[Byte]] =
+    None
+
+  override val lastKey: Option[Slice[Byte]] =
+    None
 }

@@ -21,7 +21,7 @@ package swaydb.core.level.zero
 
 import org.scalamock.scalatest.MockFactory
 import swaydb.core.TestBase
-import swaydb.core.data.Transient
+import swaydb.core.data.{Memory, Transient}
 import swaydb.core.data.Transient.Remove
 import swaydb.core.io.file.IO
 import swaydb.core.util.Benchmark
@@ -77,6 +77,9 @@ class LevelZeroSpec extends TestBase with MockFactory with Benchmark {
         //maps folder is initialised
         IO.exists(zero.path.resolve("0/0.log")) shouldBe true
         zero.reopen.existsOnDisk shouldBe true
+      } else {
+        zero.existsOnDisk shouldBe false
+        nextLevel.existsOnDisk shouldBe false
       }
     }
   }
@@ -94,7 +97,6 @@ class LevelZeroSpec extends TestBase with MockFactory with Benchmark {
       val zero = TestLevelZero(TestLevel(throttle = (_) => Throttle(10.seconds, 0)))
       assert(zero)
       if (persistent) assert(zero.reopen)
-
     }
 
     "write key-values that have empty bytes but the Slices are closed" in {
@@ -113,7 +115,7 @@ class LevelZeroSpec extends TestBase with MockFactory with Benchmark {
       //in-memory key-values are slice of the whole Segment.
       if (persistent) {
         //put the same key-value to Level1 and expect the key-values to be sliced
-        level.putKeyValues(Slice(Transient.Put(one, one))).assertGet
+        level.putKeyValues(Slice(Memory.Put(one, one))).assertGet
         val gotFromLevelOne = level.get(one).assertGet
         gotFromLevelOne.getOrFetchValue.assertGet shouldBe one
         //ensure that key-values are not unsliced in LevelOne.
@@ -234,6 +236,22 @@ class LevelZeroSpec extends TestBase with MockFactory with Benchmark {
 
       assertGetNone(keyValues, zero)
       zero.head.assertGetOpt shouldBe empty
+    }
+  }
+
+  "LevelZero.sizeOfSegments" should {
+    "return the size of Segments in all the levels" in {
+      val one = TestLevel()
+      val zero = TestLevelZero(one, mapSize = 100.byte)
+
+      val keyValues = randomIntKeyStringValues(keyValuesCount)
+      keyValues foreach {
+        keyValue =>
+          zero.put(keyValue.key, keyValue.getOrFetchValue.assertGetOpt).assertGet
+      }
+      eventual {
+        zero.sizeOfSegments should be > 1L
+      }
     }
   }
 

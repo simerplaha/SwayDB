@@ -21,7 +21,7 @@ package swaydb.core.level
 
 import java.nio.file.Path
 
-import swaydb.core.data.SegmentEntryReadOnly
+import swaydb.core.data.{KeyValue, Persistent}
 import swaydb.core.level.actor.{LevelAPI, LevelActorAPI}
 import swaydb.core.segment.Segment
 import swaydb.data.compaction.{LevelMeter, Throttle}
@@ -50,17 +50,25 @@ private[core] trait LevelRef extends LevelActorAPI {
   def takeSegments(size: Int,
                    condition: Segment => Boolean): Iterable[Segment]
 
-  def head: Try[Option[SegmentEntryReadOnly]]
+  def head: Try[Option[KeyValue.FindResponse]]
 
-  def last: Try[Option[SegmentEntryReadOnly]]
+  def last: Try[Option[KeyValue.FindResponse]]
 
-  def get(key: Slice[Byte]): Try[Option[SegmentEntryReadOnly]]
+  def get(key: Slice[Byte]): Try[Option[KeyValue.FindResponse]]
+
+  def ceiling(key: Slice[Byte]): Try[Option[KeyValue.FindResponse]]
+
+  def floor(key: Slice[Byte]): Try[Option[KeyValue.FindResponse]]
 
   def mightContain(key: Slice[Byte]): Try[Boolean]
 
-  def lower(key: Slice[Byte]): Try[Option[SegmentEntryReadOnly]]
+  def lower(key: Slice[Byte]): Try[Option[KeyValue.FindResponse]]
 
-  def higher(key: Slice[Byte]): Try[Option[SegmentEntryReadOnly]]
+  def higher(key: Slice[Byte]): Try[Option[KeyValue.FindResponse]]
+
+  def firstKey: Option[Slice[Byte]]
+
+  def lastKey: Option[Slice[Byte]]
 
   def keyValueCount: Try[Int]
 

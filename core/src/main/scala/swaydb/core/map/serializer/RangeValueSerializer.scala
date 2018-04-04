@@ -40,6 +40,7 @@ object RangeValueSerializers {
 
   implicit val putSerializer = ValueSerializers.PutSerializerWithUnsignedSize
 
+  //ids 1 and 0 are reserved for Put and Remove respectively.
   val removeRangeId = 2
 
   val removeRemoveRangeId = 3
@@ -113,9 +114,9 @@ object RangeValueSerializers {
       ValueSerializer.read[Value.Put](reader).map(put => ((), put))
   }
 
-  implicit object OptionRangeValueSerializer extends RangeValueSerializer[Option[Value.Fixed], Value.Fixed] {
+  implicit object OptionRangeValueSerializer extends RangeValueSerializer[Option[Value], Value] {
 
-    override def write(fromValue: Option[Value.Fixed], rangeValue: Value.Fixed, bytes: Slice[Byte]): Unit =
+    override def write(fromValue: Option[Value], rangeValue: Value, bytes: Slice[Byte]): Unit =
       (fromValue, rangeValue) match {
         case (None, _: Value.Remove) | (Some(_: Value.Remove), _: Value.Remove) =>
           ()
@@ -132,7 +133,7 @@ object RangeValueSerializers {
           RangeValueSerializer.write[Put, Put](fromValue, rangeValue)(bytes)
       }
 
-    override def bytesRequiredAndRangeId(fromValue: Option[Value.Fixed], rangeValue: Value.Fixed): (Int, Int) =
+    override def bytesRequiredAndRangeId(fromValue: Option[Value], rangeValue: Value): (Int, Int) =
       (fromValue, rangeValue) match {
         case (None, _: Value.Remove) =>
           (0, removeRangeId)
@@ -195,8 +196,8 @@ object RangeValueSerializers {
 
 object RangeValueSerializer {
 
-  val minId = RangeValueSerializers.removeRangeId
-  val maxId = UnitPutSerializer.rangeId
+  def isRangeValue(id: Int): Boolean =
+    id >= RangeValueSerializers.removeRangeId && id <= UnitPutSerializer.rangeId
 
   def isRemoveRange(id: Int): Boolean =
     id == RangeValueSerializers.removeRangeId ||
@@ -221,7 +222,7 @@ object RangeValueSerializer {
         Failure(new IllegalArgumentException(s"Not a remove range only id: $id"))
     }
 
-  def read(id: Int, bytes: Slice[Byte]): Try[(Option[Value.Fixed], Value.Fixed)] =
+  def read(id: Int, bytes: Slice[Byte]): Try[(Option[Value], Value)] =
     id match {
       case RangeValueSerializers.removeRangeId =>
         Success(None, Value.Remove)

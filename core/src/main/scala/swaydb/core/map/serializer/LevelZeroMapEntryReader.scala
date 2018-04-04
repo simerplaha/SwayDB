@@ -19,7 +19,7 @@
 
 package swaydb.core.map.serializer
 
-import swaydb.core.data.Value
+import swaydb.core.data.{Memory, Value}
 import swaydb.core.map.MapEntry
 import swaydb.data.slice.{Reader, Slice}
 
@@ -29,32 +29,33 @@ object LevelZeroMapEntryReader {
 
   implicit val putSerializer = ValueSerializers.PutSerializerWithSize
 
-  implicit object Level0AddReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Value.Put]] {
+  implicit object Level0RemoveReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Memory.Remove]] {
 
-    override def read(reader: Reader): Try[Option[MapEntry.Put[Slice[Byte], Value.Put]]] =
-      for {
-        keyLength <- reader.readInt()
-        key <- reader.read(keyLength).map(_.unslice())
-        value <- ValueSerializer.read[Value.Put](reader)
-      } yield {
-        Some(MapEntry.Put(key, value)(LevelZeroMapEntryWriter.Level0PutWriter))
-      }
-  }
-
-  implicit object Level0RemoveReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Value.Remove]] {
-
-    override def read(reader: Reader): Try[Option[MapEntry.Put[Slice[Byte], Value.Remove]]] =
+    override def read(reader: Reader): Try[Option[MapEntry.Put[Slice[Byte], Memory.Remove]]] =
       for {
         keyLength <- reader.readInt()
         key <- reader.read(keyLength).map(_.unslice())
       } yield {
-        Some(MapEntry.Put[Slice[Byte], Value.Remove](key, Value.Remove)(LevelZeroMapEntryWriter.Level0RemoveWriter))
+        Some(MapEntry.Put(key, Memory.Remove(key))(LevelZeroMapEntryWriter.Level0RemoveWriter))
       }
   }
 
-  implicit object Level0RangeReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Value.Range]] {
+  implicit object Level0AddReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Memory.Put]] {
 
-    override def read(reader: Reader): Try[Option[MapEntry.Put[Slice[Byte], Value.Range]]] =
+    override def read(reader: Reader): Try[Option[MapEntry.Put[Slice[Byte], Memory.Put]]] =
+      for {
+        keyLength <- reader.readInt()
+        key <- reader.read(keyLength).map(_.unslice())
+        valueLength <- reader.readInt()
+        value <- if (valueLength == 0) Success(None) else reader.read(valueLength).map(Some(_))
+      } yield {
+        Some(MapEntry.Put(key, Memory.Put(key, value))(LevelZeroMapEntryWriter.Level0PutWriter))
+      }
+  }
+
+  implicit object Level0RangeReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Memory.Range]] {
+
+    override def read(reader: Reader): Try[Option[MapEntry.Put[Slice[Byte], Memory.Range]]] =
       for {
         fromKeyLength <- reader.readInt()
         fromKey <- reader.read(fromKeyLength).map(_.unslice())
@@ -65,13 +66,13 @@ object LevelZeroMapEntryReader {
         valueBytes <- if (valueLength == 0) Success(Slice.emptyByteSlice) else reader.read(valueLength)
         (fromValue, rangeValue) <- RangeValueSerializer.read(rangeValueId, valueBytes)
       } yield {
-        Some(MapEntry.Put[Slice[Byte], Value.Range](fromKey, Value.Range(toKey, fromValue, rangeValue))(LevelZeroMapEntryWriter.Level0PutRangeWriter))
+        Some(MapEntry.Put(fromKey, Memory.Range(fromKey, toKey, fromValue, rangeValue))(LevelZeroMapEntryWriter.Level0PutRangeWriter))
       }
   }
 
-  implicit object Level0Reader extends MapEntryReader[MapEntry[Slice[Byte], Value]] {
-    override def read(reader: Reader): Try[Option[MapEntry[Slice[Byte], Value]]] =
-      reader.foldLeftTry(Option.empty[MapEntry[Slice[Byte], Value]]) {
+  implicit object Level0Reader extends MapEntryReader[MapEntry[Slice[Byte], Memory]] {
+    override def read(reader: Reader): Try[Option[MapEntry[Slice[Byte], Memory]]] =
+      reader.foldLeftTry(Option.empty[MapEntry[Slice[Byte], Memory]]) {
         case (previousEntry, reader) =>
           reader.readInt() flatMap {
             entryId =>

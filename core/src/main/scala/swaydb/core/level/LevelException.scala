@@ -21,9 +21,7 @@ package swaydb.core.level
 
 sealed trait LevelException extends Throwable
 object LevelException {
-  case object NoNextLevel extends LevelException
   case object NoSegmentsRemoved extends LevelException
-  case object FailedToPushToNextLevel extends LevelException
   case object ContainsOverlappingBusySegments extends LevelException
   case object NotSentToNextLevel extends LevelException
 }

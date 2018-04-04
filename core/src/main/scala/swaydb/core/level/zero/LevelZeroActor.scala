@@ -19,7 +19,6 @@
 
 package swaydb.core.level.zero
 
-import java.nio.file.Path
 import java.util.concurrent.atomic.AtomicBoolean
 
 import com.typesafe.scalalogging.LazyLogging
@@ -57,7 +56,7 @@ private[core] class LevelZeroActor(zero: LevelZero)(implicit ec: ExecutionContex
     actor ! command
 
   val actor: ActorRef[LevelZeroAPI] =
-    Actor[LevelZeroCommand, Path](zero.path) {
+    Actor[LevelZeroCommand] {
       case (request, self) =>
         logger.debug(s"{}: ** RECEIVED MESSAGE ** : {}", zero.path, request.getClass.getSimpleName)
         request match {

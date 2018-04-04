@@ -202,21 +202,21 @@ case class DBIterator[K, V](private val api: SwayDBAPI,
     } get
 
   def foreachRight[U](f: (K, V) => U): Unit =
-    copy(reverse = true).foreach {
-      case (k: K, v: V) =>
+    copy(reverse = true) foreach {
+      case (k, v) =>
         f(k, v)
     }
 
   def mapRight[B, T](f: (K, V) => B)(implicit bf: CanBuildFrom[Iterable[(K, V)], B, T]): T = {
     copy(reverse = true) map {
-      case (k: K, v: V) =>
+      case (k, v) =>
         f(k, v)
     }
   }
 
   override def foldRight[B](z: B)(op: ((K, V), B) => B): B =
     copy(reverse = true).foldLeft(z) {
-      case (b: B, (k: K, v: V)) =>
+      case (b, (k, v)) =>
         op((k, v), b)
     }
 
@@ -228,19 +228,19 @@ case class DBIterator[K, V](private val api: SwayDBAPI,
 
   override def reduceRight[B >: (K, V)](op: ((K, V), B) => B): B =
     copy(reverse = true).reduceLeft[B] {
-      case (b: B, (k: K, v: V)) =>
+      case (b, (k, v)) =>
         op((k, v), b)
     }
 
   override def reduceRightOption[B >: (K, V)](op: ((K, V), B) => B): Option[B] =
     copy(reverse = true).reduceLeftOption[B] {
-      case (b: B, (k: K, v: V)) =>
+      case (b, (k, v)) =>
         op((k, v), b)
     }
 
   override def scanRight[B, That](z: B)(op: ((K, V), B) => B)(implicit bf: CanBuildFrom[Iterable[(K, V)], B, That]): That =
     copy(reverse = true).scanLeft(z) {
-      case (z: B, (k: K, v: V)) =>
+      case (z, (k, v)) =>
         op((k, v), z)
     }
 

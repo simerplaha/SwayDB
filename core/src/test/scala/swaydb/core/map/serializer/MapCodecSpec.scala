@@ -23,7 +23,7 @@ import java.util.concurrent.ConcurrentSkipListMap
 
 import swaydb.core.data.KeyValue.WriteOnly
 import swaydb.core.{TestBase, TestLimitQueues}
-import swaydb.core.data.{KeyValue, SegmentEntryReadOnly, Transient, Value}
+import swaydb.core.data._
 import swaydb.core.io.file.DBFile
 import swaydb.core.segment.Segment
 import swaydb.data.slice.Slice
@@ -35,7 +35,7 @@ class MapCodecSpec extends TestBase {
 
   implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
   implicit val maxSegmentsOpenCacheImplicitLimiter: DBFile => Unit = TestLimitQueues.fileOpenLimiter
-  implicit val keyValuesLimitImplicitLimiter: (SegmentEntryReadOnly, Segment) => Unit = TestLimitQueues.keyValueLimiter
+  implicit val keyValuesLimitImplicitLimiter: (Persistent, Segment) => Unit = TestLimitQueues.keyValueLimiter
 
   val appendixReader = AppendixMapEntryReader(false, true, true, false)
 
@@ -43,10 +43,10 @@ class MapCodecSpec extends TestBase {
     "write and read key values" in {
       import LevelZeroMapEntryWriter.Level0PutValueWriter
       val keyValues = randomIntKeyValues(1000, addRandomDeletes = true)
-      val map = new ConcurrentSkipListMap[Slice[Byte], Value](ordering)
+      val map = new ConcurrentSkipListMap[Slice[Byte], Memory](ordering)
       keyValues foreach {
         keyValue =>
-          map.put(keyValue.key, Value.Put(keyValue.getOrFetchValue.assertGetOpt))
+          map.put(keyValue.key, Memory.Put(keyValue.key, keyValue.getOrFetchValue.assertGetOpt))
       }
 
       val bytes = MapCodec.write(map)
@@ -54,32 +54,32 @@ class MapCodecSpec extends TestBase {
 
       //re-read the bytes written to map and it should contain all the original entries
       import LevelZeroMapEntryReader.Level0Reader
-      val readMap = new ConcurrentSkipListMap[Slice[Byte], Value](ordering)
-      MapCodec.read[Slice[Byte], Value](bytes, dropCorruptedTailEntries = false).assertGet.item.assertGet applyTo readMap
+      val readMap = new ConcurrentSkipListMap[Slice[Byte], Memory](ordering)
+      MapCodec.read[Slice[Byte], Memory](bytes, dropCorruptedTailEntries = false).assertGet.item.assertGet applyTo readMap
       keyValues foreach {
         keyValue =>
           val value = readMap.get(keyValue.key)
-          value shouldBe Value.Put(keyValue.getOrFetchValue.assertGetOpt)
+          value shouldBe Memory.Put(keyValue.key, keyValue.getOrFetchValue.assertGetOpt)
       }
     }
 
     "read bytes to map and ignore empty written byte(s)" in {
       val keyValues = randomIntKeyValues(1000, addRandomDeletes = true)
-      val map = new ConcurrentSkipListMap[Slice[Byte], Value](ordering)
+      val map = new ConcurrentSkipListMap[Slice[Byte], Memory](ordering)
       keyValues foreach {
         keyValue =>
-          map.put(keyValue.key, Value.Put(keyValue.getOrFetchValue.assertGetOpt))
+          map.put(keyValue.key, Memory.Put(keyValue.key, keyValue.getOrFetchValue.assertGetOpt))
       }
 
       def assertBytes(bytesWithEmpty: Slice[Byte]) = {
         //re-read the bytes written to map and it should contain all the original entries
         import LevelZeroMapEntryReader.Level0Reader
-        val readMap = new ConcurrentSkipListMap[Slice[Byte], Value](ordering)
+        val readMap = new ConcurrentSkipListMap[Slice[Byte], Memory](ordering)
         MapCodec.read(bytesWithEmpty, dropCorruptedTailEntries = false).assertGet.item.assertGet applyTo readMap
         keyValues foreach {
           keyValue =>
             val value = readMap.get(keyValue.key)
-            value shouldBe Value.Put(keyValue.getOrFetchValue.assertGetOpt)
+            value shouldBe Memory.Put(keyValue.key, keyValue.getOrFetchValue.assertGetOpt)
         }
       }
 
@@ -103,10 +103,10 @@ class MapCodecSpec extends TestBase {
 
     "only skip entries that are do not pass the CRC check if skipOnCorruption is true" in {
       def createKeyValueSkipList(keyValues: Slice[KeyValue.WriteOnly]) = {
-        val map = new ConcurrentSkipListMap[Slice[Byte], Value](ordering)
+        val map = new ConcurrentSkipListMap[Slice[Byte], Memory](ordering)
         keyValues foreach {
           keyValue =>
-            map.put(keyValue.key, Value.Put(keyValue.getOrFetchValue.assertGetOpt))
+            map.put(keyValue.key, Memory.Put(keyValue.key, keyValue.getOrFetchValue.assertGetOpt))
         }
         map
       }
@@ -124,7 +124,7 @@ class MapCodecSpec extends TestBase {
       //combined the bytes of both the entries so that are in one single file.
       val allBytes = Slice((bytes1 ++ bytes2).toArray)
 
-      val map = new ConcurrentSkipListMap[Slice[Byte], Value](ordering)
+      val map = new ConcurrentSkipListMap[Slice[Byte], Memory](ordering)
 
       //re-read allBytes and write it to skipList and it should contain all the original entries
       import LevelZeroMapEntryReader.Level0Reader
@@ -134,7 +134,7 @@ class MapCodecSpec extends TestBase {
       allKeyValues foreach {
         keyValue =>
           val value = map.get(keyValue.key)
-          value shouldBe Value.Put(keyValue.getOrFetchValue.assertGetOpt)
+          value shouldBe Memory.Put(keyValue.key, keyValue.getOrFetchValue.assertGetOpt)
       }
 
       //corrupt bytes in bytes2 and read the bytes again. keyValues2 should not exist as it's key-values are corrupted.
@@ -148,7 +148,7 @@ class MapCodecSpec extends TestBase {
       keyValues1 foreach {
         keyValue =>
           val value = map.get(keyValue.key)
-          value shouldBe Value.Put(keyValue.getOrFetchValue.assertGetOpt)
+          value shouldBe Memory.Put(keyValue.key, keyValue.getOrFetchValue.assertGetOpt)
       }
 
       //corrupt bytes of bytes1

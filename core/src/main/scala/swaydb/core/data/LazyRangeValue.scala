@@ -28,22 +28,22 @@ trait LazyRangeValue extends LazyValue {
 
   val id: Int
 
-  @volatile private var fromValue: Option[Value.Fixed] = null
-  @volatile private var rangeValue: Value.Fixed = null
+  @volatile private var fromValue: Option[Value] = null
+  @volatile private var rangeValue: Value = null
 
-  def fetchRangeValue: Try[Value.Fixed] =
+  def fetchRangeValue: Try[Value] =
     if (rangeValue == null)
       fetchFromAndRangeValue.map(_._2)
     else
       Success(rangeValue)
 
-  def fetchFromValue: Try[Option[Value.Fixed]] =
+  def fetchFromValue: Try[Option[Value]] =
     if (fromValue == null)
       fetchFromAndRangeValue.map(_._1)
     else
       Success(fromValue)
 
-  def fetchFromAndRangeValue: Try[(Option[Value.Fixed], Value.Fixed)] =
+  def fetchFromAndRangeValue: Try[(Option[Value], Value)] =
     if (fromValue == null || rangeValue == null)
       getOrFetchValue flatMap {
         case Some(rangeValue) =>

@@ -28,19 +28,18 @@ import org.scalatest.concurrent.Eventually
 import org.scalatest.{BeforeAndAfterAll, WordSpec}
 import swaydb.core.TestLimitQueues._
 import swaydb.core.actor.TestActor
-import swaydb.core.data.KeyValue.WriteOnly
-import swaydb.core.data.{KeyValue, SegmentEntryReadOnly}
+import swaydb.core.data.{KeyValue, Memory, Persistent}
 import swaydb.core.io.file.{DBFile, IO}
 import swaydb.core.io.reader.FileReader
 import swaydb.core.level.actor.LevelCommand.{PushSegments, PushSegmentsResponse}
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, LevelRef}
 import swaydb.core.segment.Segment
-import swaydb.data.segment.MaxKey
 import swaydb.core.util.IDGenerator
 import swaydb.data.accelerate.{Accelerator, Level0Meter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.{Dir, RecoveryMode}
+import swaydb.data.segment.MaxKey
 import swaydb.data.slice.Slice
 import swaydb.data.storage.{AppendixStorage, Level0Storage, LevelStorage}
 import swaydb.data.util.StorageUnits._
@@ -207,7 +206,7 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
   }
 
   implicit class ReopenSegment(segment: Segment)(implicit ordering: Ordering[Slice[Byte]],
-                                                 keyValueLimiter: (SegmentEntryReadOnly, Segment) => Unit = keyValueLimiter,
+                                                 keyValueLimiter: (Persistent, Segment) => Unit = keyValueLimiter,
                                                  fileOpenLimited: DBFile => Unit = fileOpenLimiter) {
 
     def tryReopen: Try[Segment] =
@@ -246,30 +245,33 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
     def tryReopen: Try[Level] =
       tryReopen()
 
-    def reopen(segmentSize: Long = level.segmentSize)(implicit keyValueLimiter: (SegmentEntryReadOnly, Segment) => Unit = keyValueLimiter,
+    def reopen(segmentSize: Long = level.segmentSize)(implicit keyValueLimiter: (Persistent, Segment) => Unit = keyValueLimiter,
                                                       fileOpenLimited: DBFile => Unit = fileOpenLimiter): Level =
       tryReopen(segmentSize).assertGet
 
-    def tryReopen(segmentSize: Long = level.segmentSize)(implicit keyValueLimiter: (SegmentEntryReadOnly, Segment) => Unit = keyValueLimiter,
+    def tryReopen(segmentSize: Long = level.segmentSize)(implicit keyValueLimiter: (Persistent, Segment) => Unit = keyValueLimiter,
                                                          fileOpenLimited: DBFile => Unit = fileOpenLimiter): Try[Level] = {
       level.releaseLocks flatMap {
-        _: Unit =>
-          Level(
-            levelStorage = LevelStorage.Persistent(
-              mmapSegmentsOnWrite = level.mmapSegmentsOnWrite,
-              mmapSegmentsOnRead = level.mmapSegmentsOnRead,
-              dir = level.paths.headPath,
-              otherDirs = level.dirs.drop(1).map(dir => Dir(dir.path, 1))
-            ),
-            appendixStorage = AppendixStorage.Persistent(mmap = true, 4.mb),
-            segmentSize = segmentSize,
-            nextLevel = level.nextLevel,
-            pushForward = level.pushForward,
-            readRetryLimit = levelReadRetryLimit,
-            bloomFilterFalsePositiveRate = 0.1,
-            throttle = level.throttle,
-            cacheKeysOnCreate = cacheKeysOnCreate
-          ).map(_.asInstanceOf[Level])
+        _ =>
+          level.close flatMap {
+            _ =>
+              Level(
+                levelStorage = LevelStorage.Persistent(
+                  mmapSegmentsOnWrite = level.mmapSegmentsOnWrite,
+                  mmapSegmentsOnRead = level.mmapSegmentsOnRead,
+                  dir = level.paths.headPath,
+                  otherDirs = level.dirs.drop(1).map(dir => Dir(dir.path, 1))
+                ),
+                appendixStorage = AppendixStorage.Persistent(mmap = true, 4.mb),
+                segmentSize = segmentSize,
+                nextLevel = level.nextLevel,
+                pushForward = level.pushForward,
+                readRetryLimit = levelReadRetryLimit,
+                bloomFilterFalsePositiveRate = 0.1,
+                throttle = level.throttle,
+                cacheKeysOnCreate = cacheKeysOnCreate,
+              ).map(_.asInstanceOf[Level])
+          }
       }
     }
   }
@@ -279,18 +281,21 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
     def reopen: LevelZero =
       reopen()
 
-    def reopen(mapSize: Long = mapSize)(implicit keyValueLimiter: (SegmentEntryReadOnly, Segment) => Unit = keyValueLimiter,
+    def reopen(mapSize: Long = mapSize)(implicit keyValueLimiter: (Persistent, Segment) => Unit = keyValueLimiter,
                                         fileOpenLimited: DBFile => Unit = fileOpenLimiter): LevelZero = {
       val reopened =
         level.releaseLocks flatMap {
-          _: Unit =>
-            LevelZero(
-              mapSize = mapSize,
-              storage = Level0Storage.Persistent(true, level.path.getParent, RecoveryMode.ReportFailure),
-              nextLevel = level.nextLevel,
-              acceleration = Accelerator.brake(),
-              readRetryLimit = levelZeroReadRetryLimit
-            )
+          _ =>
+            level.close flatMap {
+              _ =>
+                LevelZero(
+                  mapSize = mapSize,
+                  storage = Level0Storage.Persistent(true, level.path.getParent, RecoveryMode.ReportFailure),
+                  nextLevel = level.nextLevel,
+                  acceleration = Accelerator.brake(),
+                  readRetryLimit = levelZeroReadRetryLimit
+                )
+            }
         }
       reopened.assertGet
     }
@@ -316,7 +321,7 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
 
     def maxKey: MaxKey =
       keyValues.last match {
-        case range: KeyValue.RangeWriteOnly =>
+        case range: KeyValue.WriteOnly.Range =>
           MaxKey.Range(range.fromKey, range.toKey)
         case last =>
           MaxKey.Fixed(last.key)
@@ -346,7 +351,7 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
               path: Path = testSegmentFile,
               cacheKeysOnCreate: Boolean = cacheKeysOnCreate,
               bloomFilterFalsePositiveRate: Double = 0.1)(implicit ordering: Ordering[Slice[Byte]],
-                                                          keyValueLimiter: (SegmentEntryReadOnly, Segment) => Unit = keyValueLimiter,
+                                                          keyValueLimiter: (Persistent, Segment) => Unit = keyValueLimiter,
                                                           fileOpenLimited: DBFile => Unit = fileOpenLimiter): Try[Segment] =
       if (levelStorage.memory)
         Segment.memory(
@@ -401,7 +406,7 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
               throttle: LevelMeter => Throttle = testDefaultThrottle,
               readRetryLimit: Int = levelReadRetryLimit,
               bloomFilterFalsePositiveRate: Double = 0.01)(implicit ordering: Ordering[Slice[Byte]],
-                                                           keyValueLimiter: (SegmentEntryReadOnly, Segment) => Unit = keyValueLimiter,
+                                                           keyValueLimiter: (Persistent, Segment) => Unit = keyValueLimiter,
                                                            fileOpenLimited: DBFile => Unit = fileOpenLimiter): Level =
       Level(
         levelStorage = levelStorage,
@@ -422,7 +427,7 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
               mapSize: Long = mapSize,
               brake: Level0Meter => Accelerator = Accelerator.brake(),
               readRetryLimit: Int = levelZeroReadRetryLimit)(implicit ordering: Ordering[Slice[Byte]],
-                                                             keyValueLimiter: (SegmentEntryReadOnly, Segment) => Unit = keyValueLimiter,
+                                                             keyValueLimiter: (Persistent, Segment) => Unit = keyValueLimiter,
                                                              fileOpenLimited: DBFile => Unit = fileOpenLimiter): LevelZero =
       LevelZero(
         mapSize = mapSize,
@@ -433,6 +438,94 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
       ).assertGet
   }
 
-  //  class MemoryMapMocker extends Map[Slice[Byte], Option[Slice[Byte]]](null, false, 0)(null, null, null)
+  def assertOnLevel[T](keyValues: Slice[Memory],
+                       assertion: Level => T)(implicit ordering: Ordering[Slice[Byte]]) = {
+    val level = TestLevel(nextLevel = Some(TestLevel()), throttle = (_) => Throttle(Duration.Zero, 0))
+    level.putKeyValues(keyValues).assertGet
 
+    assertion(level)
+    assertion(level)
+
+    if (persistent) {
+      val levelReopened = level.reopen //reopen
+      assertion(levelReopened)
+      assertion(levelReopened)
+      levelReopened.close.assertGet
+    }
+  }
+
+  def assertOnLevel[T](keyValues: Slice[Memory],
+                       assertionWithKeyValues: (Slice[Memory], Level) => T)(implicit ordering: Ordering[Slice[Byte]]) = {
+    val level = TestLevel(nextLevel = Some(TestLevel()), throttle = (_) => Throttle(Duration.Zero, 0))
+    level.putKeyValues(keyValues).assertGet
+
+    assertionWithKeyValues(keyValues, level)
+    assertionWithKeyValues(keyValues, level)
+
+    if (persistent) {
+      val levelReopened = level.reopen //reopen
+      assertionWithKeyValues(keyValues, levelReopened)
+      assertionWithKeyValues(keyValues, levelReopened)
+      levelReopened.close.assertGet
+    }
+  }
+
+  def assertOnLevel[T](upperLevelKeyValues: Slice[Memory],
+                       lowerLevelKeyValues: Slice[Memory],
+                       assertion: Level => T)(implicit ordering: Ordering[Slice[Byte]]) = {
+    val lowerLevel = TestLevel(nextLevel = Some(TestLevel()), throttle = (_) => Throttle(Duration.Zero, 0))
+    val level = TestLevel(nextLevel = Some(lowerLevel), throttle = (_) => Throttle(Duration.Zero, 0))
+
+    if (lowerLevelKeyValues.nonEmpty)
+      lowerLevel.putKeyValues(lowerLevelKeyValues).assertGet
+
+    if (upperLevelKeyValues.nonEmpty)
+      level.putKeyValues(upperLevelKeyValues).assertGet
+
+    assertion(level)
+    assertion(level)
+
+    if (persistent) {
+      val levelReopened = level.reopen //reopen
+      assertion(levelReopened)
+      assertion(levelReopened)
+      levelReopened.close.assertGet
+    }
+  }
+
+  def assertOnSegment[T](keyValues: Iterable[Memory],
+                         assertion: Segment => T)(implicit ordering: Ordering[Slice[Byte]]) = {
+    val segment = TestSegment(keyValues.toTransient).assertGet
+
+    assertion(segment) //first
+    assertion(segment) //with cache populated
+    if (persistent) {
+      segment.clearCache()
+      assertion(segment) //same Segment but test with cleared cache.
+
+      val segmentReopened = segment.reopen //test with reopen Segment
+      assertion(segmentReopened)
+      assertion(segmentReopened)
+      segmentReopened.close.assertGet
+    } else {
+      segment.close.assertGet
+    }
+  }
+
+  def assertOnSegment[T](keyValues: Slice[Memory],
+                         assertionWithKeyValues: (Slice[Memory], Segment) => T)(implicit ordering: Ordering[Slice[Byte]]) = {
+    val segment = TestSegment(keyValues.toTransient).assertGet
+
+    assertionWithKeyValues(keyValues, segment)
+    assertionWithKeyValues(keyValues, segment)
+
+    if (persistent) {
+      val segmentReopened = segment.reopen //reopen
+      assertionWithKeyValues(keyValues, segmentReopened)
+      assertionWithKeyValues(keyValues, segmentReopened)
+      segmentReopened.close.assertGet
+    } else {
+      segment.close.assertGet
+    }
+  }
 }

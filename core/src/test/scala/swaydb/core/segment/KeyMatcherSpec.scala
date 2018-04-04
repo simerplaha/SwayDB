@@ -20,7 +20,7 @@
 package swaydb.core.segment
 
 import swaydb.core.TestBase
-import swaydb.core.data.SegmentEntry.{PutReadOnly, RangeReadOnly}
+import swaydb.core.data.Persistent._
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.serializer.RangeValueSerializers.UnitPutSerializer
 import swaydb.core.segment.format.one.KeyMatcher
@@ -45,16 +45,16 @@ class KeyMatcherSpec extends TestBase {
     *
     * Tests check for keys to match in all positions (before and after each key)
     */
-  implicit def IntToSomeKeyValue(int: Int): Option[PutReadOnly] =
+  implicit def IntToSomeKeyValue(int: Int): Option[Put] =
     Some(int)
 
-  implicit def IntToKeyValue(int: Int): PutReadOnly =
-    PutReadOnly(int, Reader(Slice.create[Byte](0)), 0, 0, 0, 0, 0)
+  implicit def IntToKeyValue(int: Int): Put =
+    Put(int, Reader(Slice.create[Byte](0)), 0, 0, 0, 0, 0)
 
-  implicit def IntTupleToRange(tuple: (Int, Int)): RangeReadOnly =
-    RangeReadOnly(UnitPutSerializer.rangeId, tuple._1, tuple._2, Reader(Slice.create[Byte](0)), 0, 0, 0, 0, 0)
+  implicit def IntTupleToRange(tuple: (Int, Int)): Range =
+    Range(UnitPutSerializer.rangeId, tuple._1, tuple._2, Reader(Slice.create[Byte](0)), 0, 0, 0, 0, 0)
 
-  implicit def IntTupleToRangeOption(tuple: (Int, Int)): Option[RangeReadOnly] =
+  implicit def IntTupleToRangeOption(tuple: (Int, Int)): Option[Range] =
     Some(tuple)
 
   "KeyMatcher.Exact" should {
@@ -237,7 +237,7 @@ class KeyMatcherSpec extends TestBase {
       KeyMatcher.Lower(21).apply(previous = (5, 10), next = (15, 20), hasMore = true) shouldBe Next
     }
 
-    "read only minimum number of lower keys to fullfil the request" in {
+    "read only minimum number of lower keys to fulfil the request" in {
 
       def find(toFind: Int) =
         (1 to 100).foldLeft(0) {

@@ -19,7 +19,7 @@
 
 package swaydb.core.segment
 
-import swaydb.core.data.{KeyValue, SegmentEntryReadOnly}
+import swaydb.core.data.{KeyValue, Persistent}
 import swaydb.core.io.file.DBFile
 import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestLimitQueues}
@@ -55,12 +55,12 @@ class SegmentPerformanceSpec extends TestBase with Benchmark {
 
 
   implicit val maxSegmentsOpenCacheImplicitLimiter: DBFile => Unit = TestLimitQueues.fileOpenLimiter
-  implicit val keyValuesLimitImplicitLimiter: (SegmentEntryReadOnly, Segment) => Unit = TestLimitQueues.keyValueLimiter
+  implicit val keyValuesLimitImplicitLimiter: (Persistent, Segment) => Unit = TestLimitQueues.keyValueLimiter
 
   val keyValues = randomIntKeyValues(keyValuesCount)
 
   def assertGet(segment: Segment) =
-    keyValues.foreach(keyValue => segment.get(keyValue.key).assertGetOpt shouldBe Some(keyValue))
+    keyValues.foreach(keyValue => segment.get(keyValue.key).assertGet shouldBe keyValue)
 
   def assertHigher(segment: Segment) =
     (0 until keyValues.size - 1) foreach {
@@ -69,9 +69,7 @@ class SegmentPerformanceSpec extends TestBase with Benchmark {
         //        println(s"index: $index")
         val keyValue = keyValues(index)
         val expectedHigher = keyValues(index + 1)
-        val higher = segment.higher(keyValue.key).assertGet
-        higher.key shouldBe expectedHigher.key
-        higher.getOrFetchValue.assertGetOpt shouldBe expectedHigher.getOrFetchValue.assertGetOpt
+        segment.higher(keyValue.key).assertGet shouldBe expectedHigher
     }
 
   def assertLower(segment: Segment) =
@@ -81,9 +79,7 @@ class SegmentPerformanceSpec extends TestBase with Benchmark {
         //        segment.lowerKeyValue(keyValues(index).key)
         val keyValue = keyValues(index)
         val expectedLower = keyValues(index - 1)
-        val lower = segment.lower(keyValue.key).assertGet
-        lower.key shouldBe expectedLower.key
-        lower.getOrFetchValue.assertGetOpt shouldBe expectedLower.getOrFetchValue.assertGetOpt
+        segment.lower(keyValue.key).assertGet shouldBe expectedLower
     }
 
   var segment: Segment = null
@@ -103,7 +99,7 @@ class SegmentPerformanceSpec extends TestBase with Benchmark {
       minKey = keyValues.head.key,
       maxKey =
       keyValues.last match {
-        case range: KeyValue.RangeWriteOnly =>
+        case range: KeyValue.WriteOnly.Range =>
           MaxKey.Range(range.fromKey, range.toKey)
         case _ =>
           MaxKey.Fixed(keyValues.last.key)

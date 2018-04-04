@@ -24,7 +24,6 @@ import java.nio.file.NoSuchFileException
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.PrivateMethodTester
 import swaydb.core.actor.TestActor
-import swaydb.core.data.Transient.Remove
 import swaydb.core.data._
 import swaydb.core.io.file.{DBFile, IO}
 import swaydb.core.level.actor.LevelAPI
@@ -80,7 +79,7 @@ class LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
   //    false
 
   implicit val maxSegmentsOpenCacheImplicitLimiter: DBFile => Unit = TestLimitQueues.fileOpenLimiter
-  implicit val keyValuesLimitImplicitLimiter: (SegmentEntryReadOnly, Segment) => Unit = TestLimitQueues.keyValueLimiter
+  implicit val keyValuesLimitImplicitLimiter: (Persistent, Segment) => Unit = TestLimitQueues.keyValueLimiter
   implicit val skipListMerger = LevelZeroSkipListMerge
 
   "Level" should {
@@ -115,7 +114,7 @@ class LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
       if (persistent) {
         //create a non empty level
         val level = TestLevel()
-        level.putKeyValues(randomIntKeyValues(keyValuesCount)).assertGet
+        level.putKeyValues(randomIntKeyValuesMemory(keyValuesCount)).assertGet
 
         //delete the appendix file
         level.paths.headPath.resolve("appendix").files(Extension.Log) map IO.delete
@@ -136,7 +135,7 @@ class LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
         // memory Level do not have orphan Segments
       } else {
         val level = TestLevel()
-        level.putKeyValues(randomIntKeyValues()).assertGet
+        level.putKeyValues(randomIntKeyValuesMemory()).assertGet
         val segmentsIdsBeforeInvalidSegments = level.segmentFilesOnDisk
         segmentsIdsBeforeInvalidSegments should have size 1
 
@@ -166,7 +165,7 @@ class LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
   "Level.currentLargestSegmentId" should {
     "get the largest segment in the Level when the Level is not empty" in {
       val level = TestLevel(segmentSize = 1.kb)
-      level.putKeyValues(randomIntKeyValues(2000)).assertGet
+      level.putKeyValues(randomIntKeyValuesMemory(2000)).assertGet
 
       val function = PrivateMethod[Long]('largestSegmentId)
       val largeSegmentId = level invokePrivate function()
@@ -286,25 +285,20 @@ class LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
 
     "write multiple Segments to a non empty Level" in {
       val level = TestLevel(throttle = (_) => Throttle(Duration.Zero, 0))
-      val keyValues = randomIntKeyStringValues(keyValuesCount * 3, valueSize = 1000)
+      val allKeyValues = randomIntKeyValuesMemory(keyValuesCount * 3, valueSize = Some(1000))
+      val slicedKeyValues = allKeyValues.groupedSlice(3)
+      val keyValues1 = slicedKeyValues(0)
+      val keyValues2 = slicedKeyValues(1)
+      val keyValues3 = slicedKeyValues(2)
 
-      //create a
-      val (keyValues1, keyValues2, keyValues3) =
-        keyValues
-          .splitAt(keyValues.size / 3)
-          .==> {
-            case (split1, split2) =>
-              val (two, three) = split2.splitAt(split2.size / 2)
-              (split1.updateStats, two.updateStats, three.updateStats)
-          }
       //create a level with key-values
-      level.putKeyValues(keyValues2.updateStats).assertGet
+      level.putKeyValues(keyValues2).assertGet
       level.isEmpty shouldBe false
 
-      val segments = Seq(TestSegment(keyValues1).assertGet, TestSegment(keyValues3).assertGet)
+      val segments = Seq(TestSegment(keyValues1.toTransient).assertGet, TestSegment(keyValues3.toTransient).assertGet)
       level.put(segments).assertGet
 
-      assertReads(keyValues, level)
+      assertReads(allKeyValues, level)
     }
 
     "distribute Segments to multiple directories based on the distribution ratio" in {
@@ -332,7 +326,7 @@ class LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
                 Dir(dir.resolve(5.toString), 5)
               )
           )
-        val keyValues = randomIntKeyStringValues(keyValuesCount, valueSize = 1000)
+        val keyValues = randomIntKeyValuesMemory(keyValuesCount)
 
         val level = TestLevel(throttle = (_) => Throttle(Duration.Zero, 0), segmentSize = 1.byte, levelStorage = storage)
 
@@ -345,16 +339,16 @@ class LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
         assertDistribution
 
         //shuffle key-values should still maintain distribution order
-        Random.shuffle(keyValues.grouped(10).map(_.updateStats)).foreach {
+        Random.shuffle(keyValues.grouped(10)).foreach {
           keyValues =>
             level.putKeyValues(keyValues).assertGet
         }
         assertDistribution
 
         //delete some key-values
-        Random.shuffle(keyValues.grouped(10).map(_.updateStats)).take(2).foreach {
+        Random.shuffle(keyValues.grouped(10)).take(2).foreach {
           keyValues =>
-            val deleteKeyValues = Slice(keyValues.map(keyValue => Remove(keyValue.key)).toArray).updateStats
+            val deleteKeyValues = keyValues.map(keyValue => Memory.Remove(keyValue.key)).toSlice
             level.putKeyValues(deleteKeyValues).assertGet
         }
 
@@ -390,25 +384,26 @@ class LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
 
     val map =
       if (persistent)
-        Map.persistent[Slice[Byte], Value](randomIntDirectory, true, true, 1.mb, dropCorruptedTailEntries = false).assertGet.item
+        Map.persistent[Slice[Byte], Memory](randomIntDirectory, true, true, 1.mb, dropCorruptedTailEntries = false).assertGet.item
       else
-        Map.memory[Slice[Byte], Value]()
+        Map.memory[Slice[Byte], Memory]()
 
-    val keyValues = randomIntKeyStringValues(keyValuesCount, addRandomDeletes = true)
+    val keyValues = randomIntKeyValuesMemory(keyValuesCount, addRandomDeletes = true)
     keyValues foreach {
       keyValue =>
-        val value = if (keyValue.isInstanceOf[Transient.Remove]) Value.Remove else Value.Put(keyValue.getOrFetchValue.assertGetOpt)
-        map.write(MapEntry.Put[Slice[Byte], Value](keyValue.key, value))
+        map.write(MapEntry.Put(keyValue.key, keyValue))
     }
 
     "create a segment to an empty Level with no lower level" in {
       val level = TestLevel()
       level.putMap(map).assertGet
       //since this is a new Segment and Level has no sub-level, all the deleted key-values will get removed.
-      assertReads(keyValues.filterNot(_.isInstanceOf[Transient.Remove]), level)
+      val (deletedKeyValues, otherKeyValues) = keyValues.partition(_.isInstanceOf[Memory.Remove])
+
+      assertReads(otherKeyValues, level)
 
       //deleted key-values do not exist.
-      keyValues.filter(_.isInstanceOf[Transient.Remove]) foreach {
+      deletedKeyValues foreach {
         deleted =>
           level.get(deleted.key).assertGetOpt shouldBe empty
       }
@@ -418,20 +413,20 @@ class LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
       val level = TestLevel()
 
       //creating a Segment with existing string key-values
-      val existingKeyValues = Array(Transient.Put("one", "one"), Transient.Put("two", "two"), Transient.Put("three", "three"), Remove("four"))
+      val existingKeyValues = Array(Memory.Put("one", "one"), Memory.Put("two", "two"), Memory.Put("three", "three"), Memory.Remove("four"))
+
       val sortedExistingKeyValues =
-        Slice(Array(Transient.Put("one", "one"), Transient.Put("two", "two"), Transient.Put("three", "three"), Remove("four"))
-          .sorted(ordering.on[KeyValue](_.key)))
-          .updateStats
+        Slice(Array(Memory.Put("one", "one"), Memory.Put("two", "two"), Memory.Put("three", "three"), Memory.Remove("four")).sorted(ordering.on[KeyValue](_.key)))
+
       level.putKeyValues(sortedExistingKeyValues).assertGet
 
       //put a new map
       level.putMap(map).assertGet
-      assertGet(keyValues.filterNot(_.isInstanceOf[Transient.Remove]), level)
+      assertGet(keyValues.filterNot(_.isInstanceOf[Memory.Remove]), level)
 
-      level.get("one").assertGetOpt shouldBe existingKeyValues(0)
-      level.get("two").assertGetOpt shouldBe existingKeyValues(1)
-      level.get("three").assertGetOpt shouldBe existingKeyValues(2)
+      level.get("one").assertGet shouldBe existingKeyValues(0)
+      level.get("two").assertGet shouldBe existingKeyValues(1)
+      level.get("three").assertGet shouldBe existingKeyValues(2)
       level.get("four").assertGetOpt shouldBe empty
     }
   }
@@ -440,7 +435,7 @@ class LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
     "write a key-values to the Level" in {
       val level = TestLevel()
 
-      val keyValues = randomIntKeyStringValues()
+      val keyValues = randomIntKeyValuesMemory()
       level.putKeyValues(keyValues).assertGet
 
       level.putKeyValues(Slice(keyValues.head)).assertGet
@@ -452,22 +447,22 @@ class LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
     "return an empty level if all the key values in the Level were deleted and if Level is the only Level" in {
       val level = TestLevel(segmentSize = 1.kb, throttle = (_) => Throttle(Duration.Zero, 0))
 
-      val keyValues = randomIntKeyStringValues(keyValuesCount)
+      val keyValues = randomIntKeyValuesMemory(keyValuesCount)
       level.putKeyValues(keyValues).assertGet
       //do another put so a merge occurs resulting in split
       level.putKeyValues(Slice(keyValues.head)).assertGet
 
-      val deleteKeyValues = Slice.create[KeyValue.WriteOnly](keyValues.size * 2)
+      val deleteKeyValues = Slice.create[KeyValue.ReadOnly](keyValues.size * 2)
       keyValues foreach {
         keyValue =>
-          deleteKeyValues add Remove(keyValue.key, previous = deleteKeyValues.lastOption, falsePositiveRate = 0.1)
+          deleteKeyValues add Memory.Remove(keyValue.key)
       }
       //also add another set of Delete key-values where the keys do not belong to the Level but since there is no lower level
       //these delete keys should also be removed
       val lastKeyValuesId = keyValues.last.key.read[Int] + 1
       (lastKeyValuesId until keyValues.size + lastKeyValuesId) foreach {
         id =>
-          deleteKeyValues add Remove(id, previous = deleteKeyValues.lastOption, falsePositiveRate = 0.1)
+          deleteKeyValues add Memory.Remove(id)
       }
 
       level.putKeyValues(deleteKeyValues).assertGet
@@ -483,18 +478,21 @@ class LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
     "not return an empty level if all the key values in the Level were deleted but it has lower level" in {
       val level = TestLevel(nextLevel = Some(TestLevel()))
 
-      val keyValues = randomIntKeyStringValues()
+      val keyValues = randomIntKeyValuesMemory()
       level.putKeyValues(keyValues).assertGet
 
-      val deleteKeyValues = Slice.create[KeyValue.WriteOnly](keyValues.size)
+      val deleteKeyValues = Slice.create[KeyValue.ReadOnly](keyValues.size)
       keyValues foreach {
         keyValue =>
-          deleteKeyValues add Transient.Remove(keyValue.key, previous = deleteKeyValues.lastOption, falsePositiveRate = 0.1)
+          deleteKeyValues add Memory.Remove(keyValue.key)
       }
 
       level.putKeyValues(deleteKeyValues).assertGet
       level.isEmpty shouldBe false
-      assertReads(deleteKeyValues, level)
+      keyValues foreach {
+        keyValue =>
+          level.get(keyValue.key).assertGetOpt shouldBe empty
+      }
     }
   }
 
@@ -502,7 +500,7 @@ class LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
     "collapse small Segments to 50% of the size when the Segment's size was reduced by deleting 50% of it's key-values" in {
       //disable throttling so that it does not automatically collapse small Segments
       val level = TestLevel(segmentSize = 1.kb, throttle = (_) => Throttle(Duration.Zero, 0))
-      val keyValues = randomIntKeyValues(1000)
+      val keyValues = randomIntKeyValuesMemory(1000)
       level.putKeyValues(keyValues).assertGet
       //dispatch another put request so that existing Segment gets split
       level.putKeyValues(Slice(keyValues.head)).assertGet
@@ -514,7 +512,7 @@ class LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
         keyValues.zipWithIndex.flatMap {
           case (keyValue, index) =>
             if (index % 2 == 0)
-              Some(Remove(keyValue.key))
+              Some(Memory.Remove(keyValue.key))
             else {
               keyValuesNoDeleted += keyValue
               None
@@ -537,7 +535,7 @@ class LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
         //disable throttling so that it does not automatically collapse small Segments
         val level = TestLevel(segmentSize = 1.kb, throttle = (_) => Throttle(Duration.Zero, 0))
 
-        val keyValues = randomIntKeyValues(1000)
+        val keyValues = randomIntKeyValuesMemory(1000)
         level.putKeyValues(keyValues).assertGet
         //dispatch another push to trigger split
         level.putKeyValues(Slice(keyValues.head)).assertGet
@@ -565,7 +563,7 @@ class LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
       val level = TestLevel()
       level.isEmpty shouldBe true
 
-      val keyValues = randomIntKeyStringValues()
+      val keyValues = randomIntKeyValuesMemory()
       val function = PrivateMethod[Try[Unit]]('addAsNewSegments)
       (level invokePrivate function(keyValues, None)).assertGet
 
@@ -633,7 +631,7 @@ class LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
       val targetSegmentKeyValues = randomIntKeyStringValues()
       val targetSegment = TestSegment(keyValues = targetSegmentKeyValues, path = testSegmentFile.resolveSibling("10.seg")).assertGet
 
-      val keyValues = randomIntKeyStringValues()
+      val keyValues = randomIntKeyValuesMemory()
       val function = PrivateMethod[Try[Unit]]('putKeyValues)
       (level invokePrivate function(keyValues, Seq(targetSegment), None)).assertGet
 
@@ -656,12 +654,10 @@ class LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
       val targetSegmentKeyValues = randomIntKeyStringValues()
       val targetSegment = TestSegment(keyValues = targetSegmentKeyValues).assertGet
 
-      val keyValueMock = mock[Remove]
-
       val keyValues: Slice[KeyValue] = Slice.create[KeyValue](3) //null KeyValue will throw an exception and the put should be reverted
-      keyValues.add(Transient.Put(123))
-      keyValues.add(Transient.Put(1234, 12345))
-      keyValues.add(keyValueMock)
+      keyValues.add(Memory.Put(123))
+      keyValues.add(Memory.Put(1234, 12345))
+      keyValues.add(Persistent.Put(1235, null, 10, 10, 10, 10, 10)) //give it a null Reader so that it fails reading the value.
 
       val function = PrivateMethod[Try[Unit]]('putKeyValues)
       val failed = level invokePrivate function(keyValues, Iterable(targetSegment), None)
@@ -676,7 +672,7 @@ class LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
   "Level.removeSegments" should {
     "remove segments from disk and remove them from appendix" in {
       val level = TestLevel(segmentSize = 1.kb)
-      level.putKeyValues(randomIntKeyStringValues(10000)).assertGet
+      level.putKeyValues(randomIntKeyValuesMemory(keyValuesCount)).assertGet
 
       level.removeSegments(level.segments).assertGet
 

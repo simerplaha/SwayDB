@@ -20,7 +20,7 @@
 package swaydb.core.segment
 
 import swaydb.core.TestBase
-import swaydb.core.data.{KeyValue, Transient}
+import swaydb.core.data.{KeyValue, Memory, Transient}
 import swaydb.data.util.StorageUnits._
 import swaydb.order.KeyOrder
 import swaydb.serializers.Default._
@@ -43,7 +43,7 @@ class SegmentMergeSpec extends TestBase {
 
       val segments = ListBuffer[ListBuffer[KeyValue.WriteOnly]](initialSegment)
       //this KeyValue's segment size without footer is 14 bytes
-      val keyValue = Transient.Put(3, 3)
+      val keyValue = Memory.Put(3, 3)
 
       //minSegmentSize is 72.bytes. Adding the above keyValues should create a segment of total size
       // 62 + 14 - 3 (common bytes between 2 and 3) which is over the limit = 73.bytes.
@@ -60,7 +60,7 @@ class SegmentMergeSpec extends TestBase {
       closedSegment.last.stats.segmentSize shouldBe 73.bytes
 
       //since the previous segment is closed a new segment shouldBe created for next KeyValues to be added.
-      segments.last shouldBe empty
+      segments.last shouldBe Seq.empty
     }
 
     "add KeyValue to existing split and close the split if the total segmentSize is minSegmentSize for memory key-values" in {
@@ -71,7 +71,7 @@ class SegmentMergeSpec extends TestBase {
 
       val segments = ListBuffer[ListBuffer[KeyValue.WriteOnly]](initialSegment)
       //this KeyValue's segment size without footer is 8 bytes
-      val keyValue = Transient.Put(3, 3)
+      val keyValue = Memory.Put(3, 3)
 
       //minSegmentSize is 23.bytes. Adding the above keyValues should create a segment of total size
       // 16 + 8 = 24.bytes which is over the limit = 23.bytes.
@@ -88,7 +88,7 @@ class SegmentMergeSpec extends TestBase {
       closedSegment.last.stats.memorySegmentSize shouldBe 24.bytes
 
       //since the previous segment is closed a new segment shouldBe created for next KeyValues to be added.
-      segments.last shouldBe empty
+      segments.last shouldBe Seq.empty
     }
 
     "add KeyValue to current split if the total segmentSize with the new KeyValue < minSegmentSize for persistent key-values" in {
@@ -98,7 +98,7 @@ class SegmentMergeSpec extends TestBase {
       initialSegment.+=(Transient.Put(key = 2, value = 2, previous = initialSegment.lastOption, falsePositiveRate = 0.1)) //total segmentSize is 62.bytes
 
       val segments = ListBuffer.empty[ListBuffer[KeyValue.WriteOnly]] += initialSegment
-      val keyValue = Transient.Put(1, 1) //this KeyValue's segment size without footer is 14 bytes
+      val keyValue = Memory.Put(1, 1) //this KeyValue's segment size without footer is 14 bytes
 
       //minSegmentSize is 72.bytes. Adding the above keyValue should create a segment of
       // 62 + 14 - 3 (common bytes between 2 and 3) = 73.bytes.
@@ -122,7 +122,7 @@ class SegmentMergeSpec extends TestBase {
       initialSegment.+=(Transient.Put(key = 2, value = 2, previous = initialSegment.lastOption, falsePositiveRate = 0.1)) //total segmentSize is 16 bytes
 
       val segments = ListBuffer.empty[ListBuffer[KeyValue.WriteOnly]] += initialSegment
-      val keyValue = Transient.Put(1, 1) //this KeyValue's segment size without footer is 8 bytes
+      val keyValue = Memory.Put(1, 1) //this KeyValue's segment size without footer is 8 bytes
 
       //minSegmentSize is 25.bytes. Adding the above keyValue should create a segment of
       // 16 + 8 = 24.bytes which is under the limit 25.bytes.

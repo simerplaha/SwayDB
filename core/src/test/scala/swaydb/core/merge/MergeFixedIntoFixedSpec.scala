@@ -20,8 +20,7 @@
 package swaydb.core.merge
 
 import swaydb.core.TestBase
-import swaydb.core.data.Transient.Remove
-import swaydb.core.data.{KeyValue, Transient}
+import swaydb.core.data.{KeyValue, Memory, Transient}
 import swaydb.core.segment.SegmentMerge
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
@@ -38,8 +37,8 @@ class MergeFixedIntoFixedSpec extends TestBase {
   "SegmentMerge.merge when merging Fixed key-values" should {
 
     "merge non-overlapping Put key-values in-order" in {
-      val newKeyValues = Slice(Transient.Put(1, "1 value"))
-      val oldKeyValues = Slice(Transient.Put(2, "2 value"))
+      val newKeyValues = Slice(Memory.Put(1, "1 value"))
+      val oldKeyValues = Slice(Memory.Put(2, "2 value"))
       val expected = Slice(Transient.Put(1, "1 value"), Transient.Put(2, "2 value")).updateStats
 
       assertMerge(newKeyValues, oldKeyValues, expected)
@@ -55,8 +54,8 @@ class MergeFixedIntoFixedSpec extends TestBase {
     }
 
     "merge non-overlapping Remove key-values in-order" in {
-      val newKeyValues = Slice(Transient.Remove(1))
-      val oldKeyValues = Slice(Transient.Remove(2))
+      val newKeyValues = Slice(Memory.Remove(1))
+      val oldKeyValues = Slice(Memory.Remove(2))
       val expected = Slice(Transient.Remove(1), Transient.Remove(2)).updateStats
 
       assertMerge(newKeyValues, oldKeyValues, expected)
@@ -72,8 +71,8 @@ class MergeFixedIntoFixedSpec extends TestBase {
     }
 
     "update value for Put" in {
-      val newKeyValues = Slice(Transient.Put(1, "new value"))
-      val oldKeyValues = Slice(Transient.Put(1, "old value"))
+      val newKeyValues = Slice(Memory.Put(1, "new value"))
+      val oldKeyValues = Slice(Memory.Put(1, "old value"))
       val expected = Slice(Transient.Put(1, "new value"))
 
       assertMerge(newKeyValues, oldKeyValues, expected)
@@ -84,8 +83,8 @@ class MergeFixedIntoFixedSpec extends TestBase {
     }
 
     "update value for Put when there are multiple key-values" in {
-      val newKeyValues = Slice(Transient.Put(3, "new value"))
-      val oldKeyValues = Slice(Transient.Put(1, "old value 1"), Transient.Remove(2), Transient.Put(3, "old value 3")).updateStats
+      val newKeyValues = Slice(Memory.Put(3, "new value"))
+      val oldKeyValues = Slice(Memory.Put(1, "old value 1"), Memory.Remove(2), Memory.Put(3, "old value 3"))
       val expected = Slice(Transient.Put(1, "old value 1"), Transient.Remove(2), Transient.Put(3, "new value")).updateStats
 
       assertMerge(newKeyValues, oldKeyValues, expected)
@@ -96,8 +95,8 @@ class MergeFixedIntoFixedSpec extends TestBase {
     }
 
     "replace Put with Remove" in {
-      val newKeyValues = Slice(Transient.Remove(2))
-      val oldKeyValues = Slice(Transient.Put(1, "old value 1"), Transient.Put(2, "old value 2"), Transient.Put(3, "old value 3")).updateStats
+      val newKeyValues = Slice(Memory.Remove(2))
+      val oldKeyValues = Slice(Memory.Put(1, "old value 1"), Memory.Put(2, "old value 2"), Memory.Put(3, "old value 3"))
 
       val expected = Slice(Transient.Put(1, "old value 1"), Transient.Remove(2), Transient.Put(3, "old value 3")).updateStats
 
@@ -108,8 +107,8 @@ class MergeFixedIntoFixedSpec extends TestBase {
     }
 
     "replace Remove with Put" in {
-      val newKeyValues = Slice(Transient.Put(2, "old value 2"))
-      val oldKeyValues = Slice(Transient.Put(1, "old value 1"), Transient.Remove(2), Transient.Put(3, "old value 3")).updateStats
+      val newKeyValues = Slice(Memory.Put(2, "old value 2"))
+      val oldKeyValues = Slice(Memory.Put(1, "old value 1"), Memory.Remove(2), Memory.Put(3, "old value 3"))
 
       val expected = Slice(Transient.Put(1, "old value 1"), Transient.Put(2, "old value 2"), Transient.Put(3, "old value 3")).updateStats
 
@@ -118,8 +117,8 @@ class MergeFixedIntoFixedSpec extends TestBase {
     }
 
     "discard Remove if the level is the last Level" in {
-      val newKeyValues = Slice(Transient.Remove(2), Transient.Remove(4), Transient.Remove(5)).updateStats
-      val oldKeyValues = Slice(Transient.Put(1, "old value 1"), Transient.Put(2, "old value 2"), Transient.Put(3, "old value 3")).updateStats
+      val newKeyValues = Slice(Memory.Remove(2), Memory.Remove(4), Memory.Remove(5))
+      val oldKeyValues = Slice(Memory.Put(1, "old value 1"), Memory.Put(2, "old value 2"), Memory.Put(3, "old value 3"))
 
       val expected = Slice(Transient.Put(1, "old value 1"), Transient.Put(3, "old value 3")).updateStats
 
@@ -127,16 +126,16 @@ class MergeFixedIntoFixedSpec extends TestBase {
     }
 
     "returns empty if all the key-values were removed and it's the last level" in {
-      val newKeyValues = Slice(Transient.Remove(1), Transient.Remove(2), Transient.Remove(3)).updateStats
-      val oldKeyValues = Slice(Transient.Put(1, "old value 1"), Transient.Put(2, "old value 2"), Transient.Put(3, "old value 3")).updateStats
+      val newKeyValues = Slice(Memory.Remove(1), Memory.Remove(2), Memory.Remove(3))
+      val oldKeyValues = Slice(Memory.Put(1, "old value 1"), Memory.Put(2, "old value 2"), Memory.Put(3, "old value 3"))
 
       assertMerge(newKeyValues, oldKeyValues, Slice.empty, isLastLevel = true)
       assertSkipListMerge(newKeyValues, oldKeyValues, newKeyValues)
     }
 
     "split KeyValues to equal chunks" in {
-      val oldKeyValues: Slice[KeyValue.WriteOnly] = Slice(Transient.Put(1, 1), Transient.Put(2, 2), Transient.Put(3, 3), Transient.Put(4, 4)).updateStats
-      val newKeyValues: Slice[KeyValue.WriteOnly] = Slice(Transient.Put(1, 22), Transient.Put(2, 22), Transient.Put(3, 22), Transient.Put(4, 22)).updateStats
+      val oldKeyValues: Slice[Memory] = Slice(Memory.Put(1, 1), Memory.Put(2, 2), Memory.Put(3, 3), Memory.Put(4, 4))
+      val newKeyValues: Slice[Memory] = Slice(Memory.Put(1, 22), Memory.Put(2, 22), Memory.Put(3, 22), Memory.Put(4, 22))
 
       def assert(segments: Array[Iterable[KeyValue.WriteOnly]]) = {
         segments.length shouldBe 4
@@ -160,8 +159,8 @@ class MergeFixedIntoFixedSpec extends TestBase {
 
     "remove Deleted key-values if it's the last Level" in {
 
-      val oldKeyValues: Slice[KeyValue.WriteOnly] = Slice(Transient.Put(1, 1), Transient.Put(2, 2), Transient.Put(3, 3), Transient.Put(4, 4)).updateStats
-      val newKeyValues: Slice[KeyValue.WriteOnly] = Slice(Remove(0), Transient.Put(1, 11), Remove(2), Transient.Put(3, 33), Remove(4), Remove(5)).updateStats
+      val oldKeyValues: Slice[Memory] = Slice(Memory.Put(1, 1), Memory.Put(2, 2), Memory.Put(3, 3), Memory.Put(4, 4))
+      val newKeyValues: Slice[Memory] = Slice(Memory.Remove(0), Memory.Put(1, 11), Memory.Remove(2), Memory.Put(3, 33), Memory.Remove(4), Memory.Remove(5))
 
       def assert(segments: Iterable[Array[KeyValue.WriteOnly]]) = {
         segments should have size 1

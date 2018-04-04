@@ -25,7 +25,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.api.SwayDBAPI
 import swaydb.configs.level.{MemoryConfig, PersistentConfig}
 import swaydb.core.CoreAPI
-import swaydb.core.data.Value
+import swaydb.core.data.{Memory, Value}
 import swaydb.core.map.MapEntry
 import swaydb.core.map.serializer.LevelZeroMapEntryWriter
 import swaydb.core.tool.AppendixRepairer
@@ -56,7 +56,7 @@ object SwayDB extends LazyLogging {
     * This can be overridden by provided an implicit parameter in the scope of where the database is initialized.
     */
   def defaultExecutionContext = new ExecutionContext {
-    lazy val threadPool = new ForkJoinPool(100)
+    val threadPool = new ForkJoinPool(100)
 
     def execute(runnable: Runnable) =
       threadPool execute runnable
@@ -498,21 +498,21 @@ private[swaydb] class SwayDB(api: CoreAPI) extends SwayDBAPI {
     api.put(key, value)
 
   override def put(entries: Iterable[request.Batch]) =
-    entries.foldLeft(Option.empty[MapEntry[Slice[Byte], Value]]) {
+    entries.foldLeft(Option.empty[MapEntry[Slice[Byte], Memory]]) {
       case (mapEntry, batchEntry) =>
         val nextEntry =
           batchEntry match {
             case request.Batch.Put(key, value) =>
-              MapEntry.Put[Slice[Byte], Value.Put](key, Value.Put(value))(LevelZeroMapEntryWriter.Level0PutWriter)
+              MapEntry.Put[Slice[Byte], Memory.Put](key, Memory.Put(key, value))(LevelZeroMapEntryWriter.Level0PutWriter)
 
             case request.Batch.Remove(key) =>
-              MapEntry.Put[Slice[Byte], Value.Remove](key, Value.Remove)(LevelZeroMapEntryWriter.Level0RemoveWriter)
+              MapEntry.Put[Slice[Byte], Memory.Remove](key, Memory.Remove(key))(LevelZeroMapEntryWriter.Level0RemoveWriter)
 
             case request.Batch.RemoveRange(fromKey, untilKey) =>
-              MapEntry.Put[Slice[Byte], Value.Range](fromKey, Value.Range(untilKey, None, Value.Remove))(LevelZeroMapEntryWriter.Level0PutRangeWriter)
+              MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, untilKey, None, Value.Remove))(LevelZeroMapEntryWriter.Level0PutRangeWriter)
 
             case request.Batch.UpdateRange(fromKey, untilKey, value) =>
-              MapEntry.Put[Slice[Byte], Value.Range](fromKey, Value.Range(untilKey, None, Value.Put(value)))(LevelZeroMapEntryWriter.Level0PutRangeWriter)
+              MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, untilKey, None, Value.Put(value)))(LevelZeroMapEntryWriter.Level0PutRangeWriter)
           }
         Some(mapEntry.map(_ ++ nextEntry) getOrElse nextEntry)
     } map {
@@ -576,4 +576,10 @@ private[swaydb] class SwayDB(api: CoreAPI) extends SwayDBAPI {
 
   override def levelMeter(levelNumber: Int): Option[LevelMeter] =
     api.levelMeter(levelNumber)
+
+  override def remove(from: Slice[Byte], until: Slice[Byte]): Try[Level0Meter] =
+    api.remove(from, until)
+
+  override def update(from: Slice[Byte], until: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter] =
+    api.update(from, until, value)
 }

@@ -19,9 +19,10 @@
 
 package swaydb.core
 
-import swaydb.core.data.KeyValue.WriteOnly
-import swaydb.core.data.Transient.Remove
-import swaydb.core.data.{KeyValue, Transient, Value}
+import swaydb.core.data.KeyValue.{ReadOnly, WriteOnly}
+import swaydb.core.data.KeyValue.WriteOnly.Fixed
+import swaydb.core.data.Transient.{Put, Range, Remove}
+import swaydb.core.data.{Memory, Persistent, _}
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 import swaydb.data.util.StorageUnits._
@@ -33,7 +34,9 @@ import scala.collection.mutable.ListBuffer
 import scala.util.Random
 import swaydb.core.map.serializer.RangeValueSerializers._
 
-trait TestData {
+import scala.reflect.ClassTag
+
+trait TestData extends TryAssert {
 
   def randomCharacters(size: Int = 10) = Random.alphanumeric.take(size).mkString
 
@@ -82,7 +85,7 @@ trait TestData {
                          addRandomDeletes: Boolean = false,
                          addRandomRanges: Boolean = false): Slice[KeyValue.WriteOnly] = {
     val slice = Slice.create[KeyValue.WriteOnly](count)
-//            var key = 1
+    //            var key = 1
     var key = startId getOrElse randomInt(minus = count)
     val until = key + count
     while (key < until) {
@@ -110,7 +113,7 @@ trait TestData {
             } else {
               Value.Put(value)
             }
-          slice add Transient.Range[Value.Fixed, Value.Fixed](key, toKey, fromValue, rangeValue, previous = slice.lastOption, falsePositiveRate = 0.1)
+          slice add Transient.Range[Value, Value](key, toKey, fromValue, rangeValue, previous = slice.lastOption, falsePositiveRate = 0.1)
           //randomly skip the Range's toKey for the next key.
           if (Random.nextBoolean())
             key = toKey
@@ -125,6 +128,7 @@ trait TestData {
     }
     slice.close()
   }
+
 
   def randomIntKeys(count: Int = 5,
                     startId: Option[Int] = None): Slice[KeyValue.WriteOnly] =

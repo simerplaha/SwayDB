@@ -3,13 +3,13 @@ import sbt.url
 import xerial.sbt.Sonatype._
 
 val scala211 = "2.11.12"
-val scala212 = "2.12.4"
+val scala212 = "2.12.5"
 
 parallelExecution in ThisBuild := false
 
 lazy val commonSettings = Seq(
   organization := "io.swaydb",
-  version := "0.1.2",
+  version := "0.2",
   scalaVersion := scala212
 )
 
@@ -29,14 +29,14 @@ val publishSettings = Seq[Setting[_]](
 
 val testDependencies =
   Seq(
-    "org.scalatest" %% "scalatest" % "3.0.4" % Test,
+    "org.scalatest" %% "scalatest" % "3.0.5" % Test,
     "org.scalamock" %% "scalamock-scalatest-support" % "3.6.0" % Test,
     "ch.qos.logback" % "logback-classic" % "1.2.3" % Test
   )
 
 val commonDependencies =
   Seq(
-    "com.typesafe.scala-logging" %% "scala-logging" % "3.7.2"
+    "com.typesafe.scala-logging" %% "scala-logging" % "3.8.0"
   ) ++ testDependencies
 
 

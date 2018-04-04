@@ -62,10 +62,8 @@ private[core] object PathsDistributor {
     }
 
   def apply(dirs: Seq[Dir],
-            segments: () => Iterable[Segment]): PathsDistributor = {
-
+            segments: () => Iterable[Segment]): PathsDistributor =
     new PathsDistributor(dirs, segments)
-  }
 
   def getActualSize(dir: Dir,
                     segments: Iterable[Segment]) =
@@ -80,7 +78,7 @@ private[core] object PathsDistributor {
   def getDistributions(dirs: Seq[Dir],
                        _segments: () => Iterable[Segment]): (Array[Distribution], Int) = {
     var totalSize = 0
-    lazy val segments = _segments()
+    lazy val segments = _segments() //lazy val ???
     val distributions: Array[Distribution] =
       dirs.map({
         dir =>
@@ -135,7 +133,7 @@ private[core] class PathsDistributor(dirs: Seq[Dir],
 
   import PathsDistributor._
 
-  private lazy val queue = new ConcurrentLinkedDeque[Path](distributePaths)
+  private val queue = new ConcurrentLinkedDeque[Path](distributePaths)
 
   @tailrec
   final def next: Path =

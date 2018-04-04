@@ -19,14 +19,12 @@
 
 package swaydb.core.util
 
-import java.util.zip.CRC32
-
 import swaydb.data.slice.Slice
 
 private[core] object CRC32 {
 
   def forBytes(bytes: Slice[Byte]): Long = {
-    val checksum = new CRC32
+    val checksum = new java.util.zip.CRC32
     checksum.update(bytes.toByteBuffer)
     checksum.getValue
   }

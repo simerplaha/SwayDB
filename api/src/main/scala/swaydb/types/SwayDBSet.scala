@@ -75,6 +75,9 @@ class SwayDBSet[T](api: SwayDBAPI)(implicit serializer: Serializer[T]) extends K
   def remove(elem: T): Try[Level0Meter] =
     api.remove(elem)
 
+  def remove(from: T, until: T): Try[Level0Meter] =
+    api.remove(from, until)
+
   def level0Meter: Level0Meter =
     api.level0Meter
 

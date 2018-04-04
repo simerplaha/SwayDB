@@ -355,7 +355,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
   def contains(key: K): Boolean =
     get(key).exists(_ => true)
 
-  def get(key: K): Option[(K, V)] =
+  def get(key: K): Option[V] =
     find(_.get(key))
 
   def reduce[R](matcher: Map[K, V] => Option[R],
@@ -401,4 +401,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
 
   def getMeter =
     Level0Meter(fileSize, currentMap.fileSize, maps.size() + 1)
+
+  def iterator =
+    maps.iterator()
 }

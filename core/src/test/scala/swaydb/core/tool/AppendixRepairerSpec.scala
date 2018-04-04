@@ -21,7 +21,7 @@ package swaydb.core.tool
 
 import java.nio.file.NoSuchFileException
 
-import swaydb.core.data.SegmentEntryReadOnly
+import swaydb.core.data.Persistent
 import swaydb.core.io.file.{DBFile, IO}
 import swaydb.core.segment.Segment
 import swaydb.core.util.FileUtil._
@@ -38,7 +38,7 @@ class AppendixRepairerSpec extends TestBase {
   implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
 
   implicit val maxSegmentsOpenCacheImplicitLimiter: DBFile => Unit = TestLimitQueues.fileOpenLimiter
-  implicit val keyValuesLimitImplicitLimiter: (SegmentEntryReadOnly, Segment) => Unit = TestLimitQueues.keyValueLimiter
+  implicit val keyValuesLimitImplicitLimiter: (Persistent, Segment) => Unit = TestLimitQueues.keyValueLimiter
 
   "AppendixRepair" should {
     "fail if the input path does not exist" in {
@@ -46,8 +46,8 @@ class AppendixRepairerSpec extends TestBase {
     }
 
     "create new appendix file if all the Segments in the Level are non-overlapping Segments" in {
-      val level = TestLevel(segmentSize = 10.kb)
-      level.putKeyValues(randomIntKeyStringValues(1000)).assertGet
+      val level = TestLevel(segmentSize = 1.kb)
+      level.putKeyValues(randomIntKeyValuesMemory(1000)).assertGet
 
       level.segmentsCount() should be > 2
       val segmentsBeforeRepair = level.segments
@@ -62,7 +62,7 @@ class AppendixRepairerSpec extends TestBase {
 
     "create empty appendix file is the Level is empty" in {
       //create empty Level
-      val level = TestLevel(segmentSize = 10.kb)
+      val level = TestLevel(segmentSize = 1.kb)
 
       //delete appendix
       IO.walkDelete(level.appendixPath).assertGet
@@ -77,10 +77,9 @@ class AppendixRepairerSpec extends TestBase {
     }
 
     "report duplicate Segments" in {
-      //create empty Level
-      val level = TestLevel(segmentSize = 10.kb)
+      val level = TestLevel(segmentSize = 1.kb)
 
-      val keyValues = randomIntKeyStringValues(1000)
+      val keyValues = randomIntKeyValuesMemory(1000)
       level.putKeyValues(keyValues).assertGet
 
       level.segmentsCount() should be > 2
@@ -108,14 +107,14 @@ class AppendixRepairerSpec extends TestBase {
           segmentId + 1
       }
       //level still contains the same key-values
-      level.reopen.segments shouldHaveSameKeyValuesAs segmentsBeforeRepair
+      Segment.getAllKeyValues(0.1, level.reopen.segments).assertGet shouldBe keyValues
     }
 
     "report overlapping min & max key Segments & delete newer overlapping Segment if DeleteNext is selected" in {
       //create empty Level
-      val level = TestLevel(segmentSize = 10.kb)
+      val level = TestLevel(segmentSize = 1.kb)
 
-      val keyValues = randomIntKeyStringValues(1000)
+      val keyValues = randomIntKeyValuesMemory(1000)
       level.putKeyValues(keyValues).assertGet
 
       level.segmentsCount() should be > 2
@@ -126,9 +125,9 @@ class AppendixRepairerSpec extends TestBase {
 
           def createOverlappingSegment() = {
             val numberOfKeyValuesToOverlap = randomNextInt(3) max 1
-            val keyValuesToOverlap = Random.shuffle(segment.getAll(0.1).assertGet.toList).take(numberOfKeyValuesToOverlap)
+            val keyValuesToOverlap = Random.shuffle(segment.getAll().assertGet.toList).take(numberOfKeyValuesToOverlap)
             //create overlapping Segment
-            val overlappingSegment = TestSegment(Slice(keyValuesToOverlap.toArray).updateStats).assertGet
+            val overlappingSegment = TestSegment(keyValuesToOverlap.toTransient).assertGet
             overlappingSegment.copyTo(overlappingLevelSegmentPath).assertGet
           }
 

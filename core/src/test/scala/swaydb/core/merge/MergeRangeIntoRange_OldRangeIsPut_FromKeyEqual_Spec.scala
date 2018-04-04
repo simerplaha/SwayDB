@@ -20,7 +20,7 @@
 package swaydb.core.merge
 
 import swaydb.core.TestBase
-import swaydb.core.data.{Transient, Value}
+import swaydb.core.data.{Memory, Transient, Value}
 import swaydb.data.slice.Slice
 import swaydb.order.KeyOrder
 import swaydb.serializers.Default._
@@ -36,12 +36,12 @@ class MergeRangeIntoRange_OldRangeIsPut_FromKeyEqual_Spec extends TestBase {
     "add new Range to the left if it's smaller then the old's range fromKey and new Range's toKey overlaps old Range's fromKey and new Ranges's fromValue is Remove" in {
       //1 - 10
       //    10 - 20
-      val newKeyValues = Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 10, Some(Value.Remove), Value.Put(1), 0.1, None))
-      val oldKeyValues = Slice(Transient.Range[Value.Fixed, Value.Fixed](10, 20, None, Value.Put(10), 0.1, None))
+      val newKeyValues = Slice(Memory.Range(1, 10, Some(Value.Remove), Value.Put(1)))
+      val oldKeyValues = Slice(Memory.Range(10, 20, None, Value.Put(10)))
 
       val expected = Slice(
-        Transient.Range[Value.Fixed, Value.Fixed](1, 10, Some(Value.Remove), Value.Put(1), 0.1, None),
-        Transient.Range[Value.Fixed, Value.Fixed](10, 20, None, Value.Put(10), 0.1, None)
+        Transient.Range[Value, Value](1, 10, Some(Value.Remove), Value.Put(1), 0.1, None),
+        Transient.Range[Value, Value](10, 20, None, Value.Put(10), 0.1, None)
       ).updateStats
 
       assertMerge(newKeyValues, oldKeyValues, expected)
@@ -54,12 +54,12 @@ class MergeRangeIntoRange_OldRangeIsPut_FromKeyEqual_Spec extends TestBase {
     "add new Range to the left if it's smaller then the old's range fromKey and new Range's toKey overlaps old Range's fromKey and new Ranges's fromValue is Put" in {
       //1 - 10
       //    10 - 20
-      val newKeyValues = Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 10, Some(Value.Put(1)), Value.Put(1), 0.1, None))
-      val oldKeyValues = Slice(Transient.Range[Value.Fixed, Value.Fixed](10, 20, None, Value.Put(10), 0.1, None))
+      val newKeyValues = Slice(Memory.Range(1, 10, Some(Value.Put(1)), Value.Put(1)))
+      val oldKeyValues = Slice(Memory.Range(10, 20, None, Value.Put(10)))
 
       val expected = Slice(
-        Transient.Range[Value.Fixed, Value.Fixed](1, 10, Some(Value.Put(1)), Value.Put(1), 0.1, None),
-        Transient.Range[Value.Fixed, Value.Fixed](10, 20, None, Value.Put(10), 0.1, None)
+        Transient.Range[Value, Value](1, 10, Some(Value.Put(1)), Value.Put(1), 0.1, None),
+        Transient.Range[Value, Value](10, 20, None, Value.Put(10), 0.1, None)
       ).updateStats
 
       assertMerge(newKeyValues, oldKeyValues, expected)
@@ -72,11 +72,11 @@ class MergeRangeIntoRange_OldRangeIsPut_FromKeyEqual_Spec extends TestBase {
     "add new Range to the left if it's smaller then the old's range's fromKey and new Range's toKey does not overlaps old Range's fromKey and new Range's fromValue is Remove" in {
       //1 - 10
       //      11 - 20
-      val newKeyValues = Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 10, Some(Value.Remove), Value.Put(1), 0.1, None))
-      val oldKeyValues = Slice(Transient.Range[Value.Fixed, Value.Fixed](11, 20, None, Value.Put(10), 0.1, None))
+      val newKeyValues = Slice(Memory.Range(1, 10, Some(Value.Remove), Value.Put(1)))
+      val oldKeyValues = Slice(Memory.Range(11, 20, None, Value.Put(10)))
       val expected = Slice(
-        Transient.Range[Value.Fixed, Value.Fixed](1, 10, Some(Value.Remove), Value.Put(1), 0.1, None),
-        Transient.Range[Value.Fixed, Value.Fixed](11, 20, None, Value.Put(10), 0.1, None)
+        Transient.Range[Value, Value](1, 10, Some(Value.Remove), Value.Put(1), 0.1, None),
+        Transient.Range[Value, Value](11, 20, None, Value.Put(10), 0.1, None)
       ).updateStats
 
       assertMerge(newKeyValues, oldKeyValues, expected)
@@ -89,11 +89,11 @@ class MergeRangeIntoRange_OldRangeIsPut_FromKeyEqual_Spec extends TestBase {
     "add new Range to the left if it's smaller then the old's range's fromKey and new Range's toKey does not overlaps old Range's fromKey and new Range's fromValue is Put" in {
       //1 - 10
       //      11 - 20
-      val newKeyValues = Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 10, Some(Value.Put("one")), Value.Put(1), 0.1, None))
-      val oldKeyValues = Slice(Transient.Range[Value.Fixed, Value.Fixed](11, 20, None, Value.Put(10), 0.1, None))
+      val newKeyValues = Slice(Memory.Range(1, 10, Some(Value.Put("one")), Value.Put(1)))
+      val oldKeyValues = Slice(Memory.Range(11, 20, None, Value.Put(10)))
       val expected = Slice(
-        Transient.Range[Value.Fixed, Value.Fixed](1, 10, Some(Value.Put("one")), Value.Put(1), 0.1, None),
-        Transient.Range[Value.Fixed, Value.Fixed](11, 20, None, Value.Put(10), 0.1, None)
+        Transient.Range[Value, Value](1, 10, Some(Value.Put("one")), Value.Put(1), 0.1, None),
+        Transient.Range[Value, Value](11, 20, None, Value.Put(10), 0.1, None)
       ).updateStats
 
       assertMerge(newKeyValues, oldKeyValues, expected)
@@ -108,12 +108,12 @@ class MergeRangeIntoRange_OldRangeIsPut_FromKeyEqual_Spec extends TestBase {
     "new Range's range value is Put" in {
       //1 - 10
       //1    -    20
-      val newKeyValues = Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 10, None, Value.Put(10), 0.1, None))
-      val oldKeyValues = Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 20, None, Value.Put(20), 0.1, None))
+      val newKeyValues = Slice(Memory.Range(1, 10, None, Value.Put(10)))
+      val oldKeyValues = Slice(Memory.Range(1, 20, None, Value.Put(20)))
 
       val expected = Slice(
-        Transient.Range[Value.Fixed, Value.Fixed](1, 10, None, Value.Put(10), 0.1, None),
-        Transient.Range[Value.Fixed, Value.Fixed](10, 20, None, Value.Put(20), 0.1, None)
+        Transient.Range[Value, Value](1, 10, None, Value.Put(10), 0.1, None),
+        Transient.Range[Value, Value](10, 20, None, Value.Put(20), 0.1, None)
       ).updateStats
 
       assertMerge(newKeyValues, oldKeyValues, expected)
@@ -126,12 +126,12 @@ class MergeRangeIntoRange_OldRangeIsPut_FromKeyEqual_Spec extends TestBase {
     "new Range's range value is Put and new Range's fromValue set to Put" in {
       //1 - 10
       //1    -    20
-      val newKeyValues = Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 10, Some(Value.Put(1)), Value.Put(10), 0.1, None))
-      val oldKeyValues = Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 20, None, Value.Put(20), 0.1, None))
+      val newKeyValues = Slice(Memory.Range(1, 10, Some(Value.Put(1)), Value.Put(10)))
+      val oldKeyValues = Slice(Memory.Range(1, 20, None, Value.Put(20)))
 
       val expected = Slice(
-        Transient.Range[Value.Fixed, Value.Fixed](1, 10, Some(Value.Put(1)), Value.Put(10), 0.1, None),
-        Transient.Range[Value.Fixed, Value.Fixed](10, 20, None, Value.Put(20), 0.1, None)
+        Transient.Range[Value, Value](1, 10, Some(Value.Put(1)), Value.Put(10), 0.1, None),
+        Transient.Range[Value, Value](10, 20, None, Value.Put(20), 0.1, None)
       ).updateStats
 
       assertMerge(newKeyValues, oldKeyValues, expected)
@@ -144,12 +144,12 @@ class MergeRangeIntoRange_OldRangeIsPut_FromKeyEqual_Spec extends TestBase {
     "new Range's range value is Put and fromValue is Put and new Range's fromValue is None" in {
       //1 - 10
       //1    -    20
-      val newKeyValues = Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 10, None, Value.Put(1), 0.1, None))
-      val oldKeyValues = Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 20, Some(Value.Put("one")), Value.Put(20), 0.1, None))
+      val newKeyValues = Slice(Memory.Range(1, 10, None, Value.Put(1)))
+      val oldKeyValues = Slice(Memory.Range(1, 20, Some(Value.Put("one")), Value.Put(20)))
 
       val expected = Slice(
-        Transient.Range[Value.Fixed, Value.Fixed](1, 10, Some(Value.Put(1)), Value.Put(1), 0.1, None),
-        Transient.Range[Value.Fixed, Value.Fixed](10, 20, None, Value.Put(20), 0.1, None)
+        Transient.Range[Value, Value](1, 10, Some(Value.Put(1)), Value.Put(1), 0.1, None),
+        Transient.Range[Value, Value](10, 20, None, Value.Put(20), 0.1, None)
       ).updateStats
 
       assertMerge(newKeyValues, oldKeyValues, expected)
@@ -162,11 +162,11 @@ class MergeRangeIntoRange_OldRangeIsPut_FromKeyEqual_Spec extends TestBase {
     "new Range's range value is Put and new Range's fromValue set to Remove" in {
       //1 - 10
       //1    -    20
-      val newKeyValues = Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 10, Some(Value.Remove), Value.Put(10), 0.1, None))
-      val oldKeyValues = Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 20, None, Value.Put(20), 0.1, None))
+      val newKeyValues = Slice(Memory.Range(1, 10, Some(Value.Remove), Value.Put(10)))
+      val oldKeyValues = Slice(Memory.Range(1, 20, None, Value.Put(20)))
       val expected = Slice(
-        Transient.Range[Value.Fixed, Value.Fixed](1, 10, Some(Value.Remove), Value.Put(10), 0.1, None),
-        Transient.Range[Value.Fixed, Value.Fixed](10, 20, None, Value.Put(20), 0.1, None)
+        Transient.Range[Value, Value](1, 10, Some(Value.Remove), Value.Put(10), 0.1, None),
+        Transient.Range[Value, Value](10, 20, None, Value.Put(20), 0.1, None)
       ).updateStats
 
       assertMerge(newKeyValues, oldKeyValues, expected)
@@ -179,12 +179,12 @@ class MergeRangeIntoRange_OldRangeIsPut_FromKeyEqual_Spec extends TestBase {
     "new Range's range value is Remove" in {
       //1 - 10
       //1    -    20
-      val newKeyValues = Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 10, None, Value.Remove, 0.1, None))
-      val oldKeyValues = Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 20, None, Value.Put(20), 0.1, None))
+      val newKeyValues = Slice(Memory.Range(1, 10, None, Value.Remove))
+      val oldKeyValues = Slice(Memory.Range(1, 20, None, Value.Put(20)))
 
       val expected = Slice(
-        Transient.Range[Value.Fixed, Value.Fixed](1, 10, None, Value.Remove, 0.1, None),
-        Transient.Range[Value.Fixed, Value.Fixed](10, 20, None, Value.Put(20), 0.1, None)
+        Transient.Range[Value, Value](1, 10, None, Value.Remove, 0.1, None),
+        Transient.Range[Value, Value](10, 20, None, Value.Put(20), 0.1, None)
       ).updateStats
 
       assertMerge(newKeyValues, oldKeyValues, expected)
@@ -197,15 +197,15 @@ class MergeRangeIntoRange_OldRangeIsPut_FromKeyEqual_Spec extends TestBase {
     "new Range's range value is Remove and fromValue of old Range is set to Put" in {
       //1 - 10
       //1    -    20
-      val newKeyValues = Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 10, None, Value.Remove, 0.1, None))
-      val oldKeyValues = Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 20, Some(Value.Put(1)), Value.Put(20), 0.1, None))
+      val newKeyValues = Slice(Memory.Range(1, 10, None, Value.Remove))
+      val oldKeyValues = Slice(Memory.Range(1, 20, Some(Value.Put(1)), Value.Put(20)))
 
       assertMerge(
         newKeyValues = newKeyValues,
         oldKeyValues = oldKeyValues,
         expected = Slice(
-          Transient.Range[Value.Fixed, Value.Fixed](1, 10, Some(Value.Remove), Value.Remove, 0.1, None),
-          Transient.Range[Value.Fixed, Value.Fixed](10, 20, None, Value.Put(20), 0.1, None)
+          Transient.Range[Value, Value](1, 10, Some(Value.Remove), Value.Remove, 0.1, None),
+          Transient.Range[Value, Value](10, 20, None, Value.Put(20), 0.1, None)
         ).updateStats
       )
 
@@ -213,8 +213,8 @@ class MergeRangeIntoRange_OldRangeIsPut_FromKeyEqual_Spec extends TestBase {
         newKeyValues = newKeyValues,
         oldKeyValues = oldKeyValues,
         expected = Slice(
-          Transient.Range[Value.Fixed, Value.Fixed](1, 10, None, Value.Remove, 0.1, None),
-          Transient.Range[Value.Fixed, Value.Fixed](10, 20, None, Value.Put(20), 0.1, None)
+          Transient.Range[Value, Value](1, 10, None, Value.Remove, 0.1, None),
+          Transient.Range[Value, Value](10, 20, None, Value.Put(20), 0.1, None)
         ).updateStats
       )
       //      //is last Level
@@ -224,11 +224,11 @@ class MergeRangeIntoRange_OldRangeIsPut_FromKeyEqual_Spec extends TestBase {
     "new Range's range value is Remove and new Range's fromValue set to Put" in {
       //1 - 10
       //1    -    20
-      val newKeyValues = Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 10, Some(Value.Put(1)), Value.Remove, 0.1, None))
-      val oldKeyValues = Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 20, None, Value.Put(20), 0.1, None))
+      val newKeyValues = Slice(Memory.Range(1, 10, Some(Value.Put(1)), Value.Remove))
+      val oldKeyValues = Slice(Memory.Range(1, 20, None, Value.Put(20)))
       val expected = Slice(
-        Transient.Range[Value.Fixed, Value.Fixed](1, 10, Some(Value.Put(1)), Value.Remove, 0.1, None),
-        Transient.Range[Value.Fixed, Value.Fixed](10, 20, None, Value.Put(20), 0.1, None)
+        Transient.Range[Value, Value](1, 10, Some(Value.Put(1)), Value.Remove, 0.1, None),
+        Transient.Range[Value, Value](10, 20, None, Value.Put(20), 0.1, None)
       ).updateStats
 
       assertMerge(newKeyValues, oldKeyValues, expected)
@@ -241,11 +241,11 @@ class MergeRangeIntoRange_OldRangeIsPut_FromKeyEqual_Spec extends TestBase {
     "new Range's range value is Remove and new Range's fromValue set to Remove" in {
       //1 - 10
       //1    -    20
-      val newKeyValues = Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 10, Some(Value.Remove), Value.Remove, 0.1, None))
-      val oldKeyValues = Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 20, None, Value.Put(20), 0.1, None))
+      val newKeyValues = Slice(Memory.Range(1, 10, Some(Value.Remove), Value.Remove))
+      val oldKeyValues = Slice(Memory.Range(1, 20, None, Value.Put(20)))
       val expected = Slice(
-        Transient.Range[Value.Fixed, Value.Fixed](1, 10, Some(Value.Remove), Value.Remove, 0.1, None),
-        Transient.Range[Value.Fixed, Value.Fixed](10, 20, None, Value.Put(20), 0.1, None)
+        Transient.Range[Value, Value](1, 10, Some(Value.Remove), Value.Remove, 0.1, None),
+        Transient.Range[Value, Value](10, 20, None, Value.Put(20), 0.1, None)
       ).updateStats
 
       assertMerge(newKeyValues, oldKeyValues, expected)
@@ -260,9 +260,9 @@ class MergeRangeIntoRange_OldRangeIsPut_FromKeyEqual_Spec extends TestBase {
     "new Range's range value is Remove and old Range's fromValue set is Put" in {
       //1    -    20
       //1    -    20
-      val newKeyValues = Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 20, Some(Value.Remove), Value.Put(100), 0.1, None))
-      val oldKeyValues = Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 20, Some(Value.Put(1)), Value.Put(20), 0.1, None))
-      val expected = Transient.Range[Value.Fixed, Value.Fixed](1, 20, Some(Value.Remove), Value.Put(100), 0.1, None)
+      val newKeyValues = Slice(Memory.Range(1, 20, Some(Value.Remove), Value.Put(100)))
+      val oldKeyValues = Slice(Memory.Range(1, 20, Some(Value.Put(1)), Value.Put(20)))
+      val expected = Transient.Range[Value, Value](1, 20, Some(Value.Remove), Value.Put(100), 0.1, None)
 
       assertMerge(newKeyValues, oldKeyValues, Slice(expected))
       assertSkipListMerge(newKeyValues, oldKeyValues, expected)
@@ -274,9 +274,9 @@ class MergeRangeIntoRange_OldRangeIsPut_FromKeyEqual_Spec extends TestBase {
     "new Range's range value is Put and old Range's fromValue set is Remove" in {
       //1    -    20
       //1    -    20
-      val newKeyValues = Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 20, Some(Value.Put(1)), Value.Put(100), 0.1, None))
-      val oldKeyValues = Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 20, Some(Value.Remove), Value.Put(20), 0.1, None))
-      val expected = Transient.Range[Value.Fixed, Value.Fixed](1, 20, Some(Value.Put(1)), Value.Put(100), 0.1, None)
+      val newKeyValues = Slice(Memory.Range(1, 20, Some(Value.Put(1)), Value.Put(100)))
+      val oldKeyValues = Slice(Memory.Range(1, 20, Some(Value.Remove), Value.Put(20)))
+      val expected = Transient.Range[Value, Value](1, 20, Some(Value.Put(1)), Value.Put(100), 0.1, None)
 
       assertMerge(newKeyValues, oldKeyValues, Slice(expected))
       assertSkipListMerge(newKeyValues, oldKeyValues, expected)
@@ -288,9 +288,9 @@ class MergeRangeIntoRange_OldRangeIsPut_FromKeyEqual_Spec extends TestBase {
     "new Range's range value is None and old Range's fromValue set is Put" in {
       //1    -    20
       //1    -    20
-      val newKeyValues = Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 20, None, Value.Put(100), 0.1, None))
-      val oldKeyValues = Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 20, Some(Value.Put(1)), Value.Put(20), 0.1, None))
-      val expected = Transient.Range[Value.Fixed, Value.Fixed](1, 20, Some(Value.Put(100)), Value.Put(100), 0.1, None)
+      val newKeyValues = Slice(Memory.Range(1, 20, None, Value.Put(100)))
+      val oldKeyValues = Slice(Memory.Range(1, 20, Some(Value.Put(1)), Value.Put(20)))
+      val expected = Transient.Range[Value, Value](1, 20, Some(Value.Put(100)), Value.Put(100), 0.1, None)
 
       assertMerge(newKeyValues, oldKeyValues, Slice(expected))
       assertSkipListMerge(newKeyValues, oldKeyValues, expected)
@@ -302,9 +302,9 @@ class MergeRangeIntoRange_OldRangeIsPut_FromKeyEqual_Spec extends TestBase {
     "new Range's range value is Put and old Range's fromValue set is None" in {
       //1    -    20
       //1    -    20
-      val newKeyValues = Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 20, Some(Value.Put(1)), Value.Put(100), 0.1, None))
-      val oldKeyValues = Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 20, None, Value.Put(20), 0.1, None))
-      val expected = Transient.Range[Value.Fixed, Value.Fixed](1, 20, Some(Value.Put(1)), Value.Put(100), 0.1, None)
+      val newKeyValues = Slice(Memory.Range(1, 20, Some(Value.Put(1)), Value.Put(100)))
+      val oldKeyValues = Slice(Memory.Range(1, 20, None, Value.Put(20)))
+      val expected = Transient.Range[Value, Value](1, 20, Some(Value.Put(1)), Value.Put(100), 0.1, None)
 
       assertMerge(newKeyValues, oldKeyValues, Slice(expected))
       assertSkipListMerge(newKeyValues, oldKeyValues, expected)
@@ -317,15 +317,15 @@ class MergeRangeIntoRange_OldRangeIsPut_FromKeyEqual_Spec extends TestBase {
       //1 - 10, 10 - 20
       //1      -     20
       val newKeyValues = Slice(
-        Transient.Range[Value.Fixed, Value.Fixed](1, 10, Some(Value.Put(1)), Value.Put("ten"), 0.1, None),
-        Transient.Range[Value.Fixed, Value.Fixed](10, 20, Some(Value.Remove), Value.Put("twenty"), 0.1, None)
+        Memory.Range(1, 10, Some(Value.Put(1)), Value.Put("ten")),
+        Memory.Range(10, 20, Some(Value.Remove), Value.Put("twenty"))
       )
-      val oldKeyValues = Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 20, Some(Value.Remove), Value.Put(20), 0.1, None))
+      val oldKeyValues = Slice(Memory.Range(1, 20, Some(Value.Remove), Value.Put(20)))
 
       val expected =
         Slice(
-          Transient.Range[Value.Fixed, Value.Fixed](1, 10, Some(Value.Put(1)), Value.Put("ten"), 0.1, None),
-          Transient.Range[Value.Fixed, Value.Fixed](10, 20, Some(Value.Remove), Value.Put("twenty"), 0.1, None)
+          Transient.Range[Value, Value](1, 10, Some(Value.Put(1)), Value.Put("ten"), 0.1, None),
+          Transient.Range[Value, Value](10, 20, Some(Value.Remove), Value.Put("twenty"), 0.1, None)
         ).updateStats
 
       assertMerge(newKeyValues, oldKeyValues, expected)
@@ -341,10 +341,10 @@ class MergeRangeIntoRange_OldRangeIsPut_FromKeyEqual_Spec extends TestBase {
     "new Range's range value is Put" in {
       //1     -      21
       //1    -    20
-      val newKeyValues = Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 21, None, Value.Put(10), 0.1, None))
-      val oldKeyValues = Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 20, None, Value.Put(20), 0.1, None))
+      val newKeyValues = Slice(Memory.Range(1, 21, None, Value.Put(10)))
+      val oldKeyValues = Slice(Memory.Range(1, 20, None, Value.Put(20)))
 
-      val expected = Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 21, None, Value.Put(10), 0.1, None))
+      val expected = Slice(Transient.Range[Value, Value](1, 21, None, Value.Put(10), 0.1, None))
 
       assertMerge(newKeyValues, oldKeyValues, expected)
       assertSkipListMerge(newKeyValues, oldKeyValues, expected)
@@ -356,9 +356,9 @@ class MergeRangeIntoRange_OldRangeIsPut_FromKeyEqual_Spec extends TestBase {
     "new Range's range value is Put and new Range's fromValue set to Put" in {
       //1     -      21
       //1    -    20
-      val newKeyValues = Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 21, Some(Value.Put(1)), Value.Put(10), 0.1, None))
-      val oldKeyValues = Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 20, None, Value.Put(20), 0.1, None))
-      val expected = Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 21, Some(Value.Put(1)), Value.Put(10), 0.1, None))
+      val newKeyValues = Slice(Memory.Range(1, 21, Some(Value.Put(1)), Value.Put(10)))
+      val oldKeyValues = Slice(Memory.Range(1, 20, None, Value.Put(20)))
+      val expected = Slice(Transient.Range[Value, Value](1, 21, Some(Value.Put(1)), Value.Put(10), 0.1, None))
 
       assertMerge(newKeyValues, oldKeyValues, expected)
       assertSkipListMerge(newKeyValues, oldKeyValues, expected)
@@ -370,9 +370,9 @@ class MergeRangeIntoRange_OldRangeIsPut_FromKeyEqual_Spec extends TestBase {
     "new Range's range value is Put and old Range's fromValue set to Put" in {
       //1     -      21
       //1    -    20
-      val newKeyValues = Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 21, None, Value.Put(10), 0.1, None))
-      val oldKeyValues = Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 20, Some(Value.Put(1)), Value.Put(20), 0.1, None))
-      val expected = Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 21, Some(Value.Put(10)), Value.Put(10), 0.1, None))
+      val newKeyValues = Slice(Memory.Range(1, 21, None, Value.Put(10)))
+      val oldKeyValues = Slice(Memory.Range(1, 20, Some(Value.Put(1)), Value.Put(20)))
+      val expected = Slice(Transient.Range[Value, Value](1, 21, Some(Value.Put(10)), Value.Put(10), 0.1, None))
 
       assertMerge(newKeyValues, oldKeyValues, expected)
       assertSkipListMerge(newKeyValues, oldKeyValues, expected)
@@ -384,10 +384,10 @@ class MergeRangeIntoRange_OldRangeIsPut_FromKeyEqual_Spec extends TestBase {
     "new Range's range value is Put and new Range's fromValue set to Remove" in {
       //1     -      21
       //1    -    20
-      val newKeyValues = Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 21, Some(Value.Remove), Value.Put(10), 0.1, None))
-      val oldKeyValues = Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 20, None, Value.Put(20), 0.1, None))
+      val newKeyValues = Slice(Memory.Range(1, 21, Some(Value.Remove), Value.Put(10)))
+      val oldKeyValues = Slice(Memory.Range(1, 20, None, Value.Put(20)))
 
-      val expected = Transient.Range[Value.Fixed, Value.Fixed](1, 21, Some(Value.Remove), Value.Put(10), 0.1, None)
+      val expected = Transient.Range[Value, Value](1, 21, Some(Value.Remove), Value.Put(10), 0.1, None)
 
       assertMerge(newKeyValues, oldKeyValues, Slice(expected))
       assertSkipListMerge(newKeyValues, oldKeyValues, expected)
@@ -399,9 +399,9 @@ class MergeRangeIntoRange_OldRangeIsPut_FromKeyEqual_Spec extends TestBase {
     "new Range's range value is Remove" in {
       //1     -      21
       //1    -    20
-      val newKeyValues = Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 21, None, Value.Remove, 0.1, None))
-      val oldKeyValues = Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 20, None, Value.Put(20), 0.1, None))
-      val expected = Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 21, None, Value.Remove, 0.1, None))
+      val newKeyValues = Slice(Memory.Range(1, 21, None, Value.Remove))
+      val oldKeyValues = Slice(Memory.Range(1, 20, None, Value.Put(20)))
+      val expected = Slice(Transient.Range[Value, Value](1, 21, None, Value.Remove, 0.1, None))
 
       assertMerge(newKeyValues, oldKeyValues, expected)
       assertSkipListMerge(newKeyValues, oldKeyValues, expected)
@@ -413,9 +413,9 @@ class MergeRangeIntoRange_OldRangeIsPut_FromKeyEqual_Spec extends TestBase {
     "new Range's range value is Remove and new Range's fromValue set to Put" in {
       //1     -      21
       //1    -    20
-      val newKeyValues = Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 21, Some(Value.Put(1)), Value.Remove, 0.1, None))
-      val oldKeyValues = Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 20, None, Value.Put(20), 0.1, None))
-      val expected = Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 21, Some(Value.Put(1)), Value.Remove, 0.1, None))
+      val newKeyValues = Slice(Memory.Range(1, 21, Some(Value.Put(1)), Value.Remove))
+      val oldKeyValues = Slice(Memory.Range(1, 20, None, Value.Put(20)))
+      val expected = Slice(Transient.Range[Value, Value](1, 21, Some(Value.Put(1)), Value.Remove, 0.1, None))
 
       assertMerge(newKeyValues, oldKeyValues, expected)
       assertSkipListMerge(newKeyValues, oldKeyValues, expected)
@@ -427,9 +427,9 @@ class MergeRangeIntoRange_OldRangeIsPut_FromKeyEqual_Spec extends TestBase {
     "new Range's range value is Remove and new Range's fromValue set to Remove" in {
       //1     -      21
       //1    -    20
-      val newKeyValues = Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 21, Some(Value.Remove), Value.Remove, 0.1, None))
-      val oldKeyValues = Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 20, None, Value.Put(20), 0.1, None))
-      val expected = Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 21, Some(Value.Remove), Value.Remove, 0.1, None))
+      val newKeyValues = Slice(Memory.Range(1, 21, Some(Value.Remove), Value.Remove))
+      val oldKeyValues = Slice(Memory.Range(1, 20, None, Value.Put(20)))
+      val expected = Slice(Transient.Range[Value, Value](1, 21, Some(Value.Remove), Value.Remove, 0.1, None))
 
       assertMerge(newKeyValues, oldKeyValues, expected)
       assertSkipListMerge(newKeyValues, oldKeyValues, expected)
@@ -441,19 +441,19 @@ class MergeRangeIntoRange_OldRangeIsPut_FromKeyEqual_Spec extends TestBase {
     "new Range's range value is Remove and old Range's fromValue set to Put" in {
       //1     -      21
       //1    -    20
-      val newKeyValues = Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 21, Some(Value.Remove), Value.Remove, 0.1, None))
-      val oldKeyValues = Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 20, Some(Value.Put(1)), Value.Put(20), 0.1, None))
+      val newKeyValues = Slice(Memory.Range(1, 21, Some(Value.Remove), Value.Remove))
+      val oldKeyValues = Slice(Memory.Range(1, 20, Some(Value.Put(1)), Value.Put(20)))
 
       assertMerge(
         newKeyValues = newKeyValues,
         oldKeyValues = oldKeyValues,
-        expected = Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 21, Some(Value.Remove), Value.Remove, 0.1, None))
+        expected = Slice(Transient.Range[Value, Value](1, 21, Some(Value.Remove), Value.Remove, 0.1, None))
       )
 
       assertSkipListMerge(
         newKeyValues = newKeyValues,
         oldKeyValues = oldKeyValues,
-        expected = Transient.Range[Value.Fixed, Value.Fixed](1, 21, Some(Value.Remove), Value.Remove, 0.1, None)
+        expected = Transient.Range[Value, Value](1, 21, Some(Value.Remove), Value.Remove, 0.1, None)
       )
 
       //is last Level

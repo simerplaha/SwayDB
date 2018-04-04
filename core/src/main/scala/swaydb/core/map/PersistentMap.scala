@@ -205,7 +205,7 @@ private[map] case class PersistentMap[K, V: ClassTag](path: Path,
                                                       @volatile private var _hasRange: Boolean)(val skipList: ConcurrentSkipListMap[K, V])(implicit ordering: Ordering[K],
                                                                                                                                            reader: MapEntryReader[MapEntry[K, V]],
                                                                                                                                            writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                                                                                                           skipListRangeResolver: SkipListMerge[K, V],
+                                                                                                                                           skipListMerger: SkipListMerge[K, V],
                                                                                                                                            ec: ExecutionContext) extends Map[K, V] with LazyLogging {
 
   // actualSize of the file can be different to fileSize when the entry's size is > fileSize.
@@ -232,9 +232,9 @@ private[map] case class PersistentMap[K, V: ClassTag](path: Path,
       currentFile.append(MapCodec.write(entry)) map {
         _ =>
           if (_hasRange) {
-            skipListRangeResolver.insert(entry, skipList)
+            skipListMerger.insert(entry, skipList)
           } else if (entry.hasRange) {
-            skipListRangeResolver.insert(entry, skipList)
+            skipListMerger.insert(entry, skipList)
             _hasRange = true
           } else {
             entry applyTo skipList

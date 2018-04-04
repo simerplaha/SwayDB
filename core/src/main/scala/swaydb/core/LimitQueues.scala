@@ -19,7 +19,7 @@
 package swaydb.core
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.data.SegmentEntryReadOnly
+import swaydb.core.data.Persistent
 import swaydb.core.io.file.DBFile
 import swaydb.core.queue.LimitQueue
 import swaydb.core.segment.Segment
@@ -30,7 +30,7 @@ import scala.ref.WeakReference
 
 private[core] object LimitQueues extends LazyLogging {
 
-  def keyValueWeigher(entry: (WeakReference[SegmentEntryReadOnly], WeakReference[Segment])): Long =
+  def keyValueWeigher(entry: (WeakReference[Persistent], WeakReference[Segment])): Long =
     entry._1.get map {
       keyValue =>
         val otherBytes = (Math.ceil(keyValue.key.size + keyValue.valueLength / 8.0) - 1.0) * 8
@@ -38,9 +38,9 @@ private[core] object LimitQueues extends LazyLogging {
         (264 + otherBytes).toLong
     } getOrElse 0L
 
-  def keyValueLimiter(cacheSize: Long, delay: FiniteDuration)(implicit ex: ExecutionContext): (SegmentEntryReadOnly, Segment) => Unit = {
+  def keyValueLimiter(cacheSize: Long, delay: FiniteDuration)(implicit ex: ExecutionContext): (Persistent, Segment) => Unit = {
 
-    val queue = LimitQueue[(WeakReference[SegmentEntryReadOnly], WeakReference[Segment])](cacheSize, delay, keyValueWeigher) {
+    val queue = LimitQueue[(WeakReference[Persistent], WeakReference[Segment])](cacheSize, delay, keyValueWeigher) {
       case (keyValueRef, segmentRef) =>
         for {
           segment <- segmentRef.get
@@ -49,7 +49,7 @@ private[core] object LimitQueues extends LazyLogging {
           segment.removeFromCache(keyValue.key)
         }
     }
-    (keyValue: SegmentEntryReadOnly, segment: Segment) =>
+    (keyValue: Persistent, segment: Segment) =>
       queue ! (new WeakReference(keyValue), new WeakReference[Segment](segment))
   }
 
@@ -59,9 +59,9 @@ private[core] object LimitQueues extends LazyLogging {
   def segmentOpenLimiter(maxSegmentsOpen: Long, delay: FiniteDuration)(implicit ex: ExecutionContext): DBFile => Unit = {
     val queue = LimitQueue[WeakReference[DBFile]](maxSegmentsOpen, delay, segmentWeigher) {
       dbFile =>
-        dbFile.get.foreach {
+        dbFile.get foreach {
           file =>
-            file.close.failed.foreach {
+            file.close.failed foreach {
               exception =>
                 logger.error(s"Failed to close file. ${file.path}", exception)
             }

@@ -21,16 +21,12 @@ package swaydb.core.level
 
 import java.nio.file.{Path, Paths}
 
-import scala.collection.JavaConverters._
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.{Matchers, WordSpec}
+import swaydb.core.TestBase
 import swaydb.core.io.file.IO
 import swaydb.core.segment.Segment
-import swaydb.core.{FutureBase, TestBase}
 import swaydb.data.config.Dir
 import swaydb.order.KeyOrder
-
-import scala.concurrent.duration._
 
 class PathsDistributorSpec extends TestBase with MockFactory {
 
@@ -158,8 +154,7 @@ class PathsDistributorSpec extends TestBase with MockFactory {
 
   "PathsDistributor.next" should {
     "always returns the first path if there is only 1 directory" in {
-      val segments = mockFunction[Iterable[Segment]]
-      val distributor = PathsDistributor(Seq(Dir("1", 0)), segments)
+      val distributor = PathsDistributor(Seq(Dir("1", 0)), () => Seq.empty)
 
       (1 to 100) foreach {
         _ =>

@@ -45,6 +45,10 @@ private[swaydb] trait SwayDBAPI {
 
   def remove(key: Slice[Byte]): Try[Level0Meter]
 
+  def remove(from: Slice[Byte], until: Slice[Byte]): Try[Level0Meter]
+
+  def update(from: Slice[Byte], until: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter]
+
   def head: Try[Option[(Slice[Byte], Option[Slice[Byte]])]]
 
   def headKey: Try[Option[Slice[Byte]]]

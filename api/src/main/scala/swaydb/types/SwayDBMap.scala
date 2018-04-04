@@ -95,6 +95,12 @@ class SwayDBMap[K, V](api: SwayDBAPI)(implicit keySerializer: Serializer[K],
   def remove(key: K): Try[Level0Meter] =
     api.remove(key)
 
+  def remove(from: K, until: K): Try[Level0Meter] =
+    api.remove(from, until)
+
+  def update(from: K, until: K, value: V): Try[Level0Meter] =
+    api.update(from, until, Some(value))
+
   def contains(key: K): Try[Boolean] =
     api contains key
 

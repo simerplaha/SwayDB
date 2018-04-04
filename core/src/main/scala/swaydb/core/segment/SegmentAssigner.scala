@@ -19,9 +19,7 @@
 
 package swaydb.core.segment
 
-import swaydb.core.data.{KeyValue, Transient, Value}
-import swaydb.core.map.Map
-import swaydb.core.map.serializer.RangeValueSerializers._
+import swaydb.core.data.{KeyValue, Memory}
 import swaydb.core.util.TryUtil
 import swaydb.data.slice.Slice
 
@@ -31,43 +29,43 @@ import scala.util.{Failure, Success, Try}
 
 private[core] object SegmentAssigner {
 
-  def assign(map: Map[Slice[Byte], Value],
-             targetSegments: Iterable[Segment])(implicit ordering: Ordering[Slice[Byte]]): Iterable[Segment] =
-    SegmentAssigner.assign(Segment.tempMinMaxKeyValues(map), targetSegments).get.keys
+  def assignMinMaxOnly(keyValues: Iterable[KeyValue.ReadOnly],
+                       targetSegments: Iterable[Segment])(implicit ordering: Ordering[Slice[Byte]]): Iterable[Segment] =
+    SegmentAssigner.assign(Segment.tempMinMaxKeyValuesKeyValues(keyValues), targetSegments).get.keys
 
-  def assign(inputSegments: Iterable[Segment],
-             targetSegments: Iterable[Segment])(implicit ordering: Ordering[Slice[Byte]]): Iterable[Segment] =
+  def assignMinMaxOnlyForSegments(inputSegments: Iterable[Segment],
+                                  targetSegments: Iterable[Segment])(implicit ordering: Ordering[Slice[Byte]]): Iterable[Segment] =
     SegmentAssigner.assign(Segment.tempMinMaxKeyValues(inputSegments), targetSegments).get.keys
 
-  def assign(keyValues: Slice[KeyValue.WriteOnly],
-             segments: Iterable[Segment])(implicit ordering: Ordering[Slice[Byte]]): Try[mutable.Map[Segment, Slice[KeyValue.WriteOnly]]] = {
+  def assign(keyValues: Iterable[KeyValue.ReadOnly],
+             segments: Iterable[Segment])(implicit ordering: Ordering[Slice[Byte]]): Try[mutable.Map[Segment, Slice[KeyValue.ReadOnly]]] = {
     import ordering._
-    val assignmentsMap = mutable.Map.empty[Segment, Slice[KeyValue.WriteOnly]]
+    val assignmentsMap = mutable.Map.empty[Segment, Slice[KeyValue.ReadOnly]]
     val segmentsIterator = segments.iterator
 
     def getNextSegmentMayBe() = if (segmentsIterator.hasNext) Some(segmentsIterator.next()) else None
 
     def assignKeyValueToSegment(segment: Segment,
-                                keyValue: KeyValue.WriteOnly,
+                                keyValue: KeyValue.ReadOnly,
                                 remainingKeyValues: Int): Unit =
       assignmentsMap.get(segment) match {
         case Some(currentAssignments) =>
           assignmentsMap += (segment -> (currentAssignments add keyValue))
         case None =>
           //+1 for cases when a Range might extend to the next Segment.
-          val initial = Slice.create[KeyValue.WriteOnly](remainingKeyValues + 1)
+          val initial = Slice.create[KeyValue.ReadOnly](remainingKeyValues + 1)
           initial add keyValue
           assignmentsMap += (segment -> initial)
       }
 
-    var stashKeyValue = Option.empty[KeyValue.RangeWriteOnly]
+    var stashKeyValue = Option.empty[KeyValue.ReadOnly.Range]
 
     @tailrec
-    def assign(remainingKeyValues: Slice[KeyValue.WriteOnly],
+    def assign(remainingKeyValues: Iterable[KeyValue.ReadOnly],
                thisSegmentMayBe: Option[Segment],
                nextSegmentMayBe: Option[Segment]): Try[Unit] = {
 
-      def dropKeyValue(stash: Option[KeyValue.RangeWriteOnly] = None) =
+      def dropKeyValue(stash: Option[KeyValue.ReadOnly.Range] = None) =
         if (stashKeyValue.isDefined) {
           stashKeyValue = stash
           remainingKeyValues
@@ -80,18 +78,17 @@ private[core] object SegmentAssigner {
         //add this key-value if it is the new smallest key or if this key belong to this Segment or if there is no next Segment
         case (Some(keyValue: KeyValue), Some(thisSegment), _) if keyValue.key <= thisSegment.minKey || Segment.belongsTo(keyValue, thisSegment) || nextSegmentMayBe.isEmpty =>
           keyValue match {
-            case keyValue: KeyValue.FixedWriteOnly =>
+            case keyValue: KeyValue.ReadOnly.Fixed =>
               assignKeyValueToSegment(thisSegment, keyValue, remainingKeyValues.size)
               assign(dropKeyValue(), thisSegmentMayBe, nextSegmentMayBe)
 
-            case keyValue: KeyValue.RangeWriteOnly =>
+            case keyValue: KeyValue.ReadOnly.Range =>
               nextSegmentMayBe match {
                 case Some(nextSegment) if keyValue.toKey > nextSegment.minKey =>
                   keyValue.fetchFromAndRangeValue match {
                     case Success((fromValue, rangeValue)) =>
-                      //false positive rate here does not matter as these are only assignments. Setting them to be 0.1 since the default is 0.1 and it's easier to equality tests on Stats if it's 0.1.
-                      val thisSegmentsRange = Transient.Range(fromKey = keyValue.fromKey, toKey = nextSegment.minKey, fromValue = fromValue, rangeValue = rangeValue, falsePositiveRate = 0.1, None)
-                      val nextSegmentsRange = Transient.Range(fromKey = nextSegment.minKey, toKey = keyValue.toKey, fromValue = None, rangeValue = rangeValue, falsePositiveRate = 0.1, None)
+                      val thisSegmentsRange = Memory.Range(fromKey = keyValue.fromKey, toKey = nextSegment.minKey, fromValue = fromValue, rangeValue = rangeValue)
+                      val nextSegmentsRange = Memory.Range(fromKey = nextSegment.minKey, toKey = keyValue.toKey, fromValue = None, rangeValue = rangeValue)
                       assignKeyValueToSegment(thisSegment, thisSegmentsRange, remainingKeyValues.size)
                       assign(dropKeyValue(Some(nextSegmentsRange)), Some(nextSegment), getNextSegmentMayBe())
 
@@ -109,7 +106,7 @@ private[core] object SegmentAssigner {
         // is this a gap key between thisSegment and the nextSegment
         case (Some(keyValue: KeyValue), Some(thisSegment), Some(nextSegment)) if keyValue.key < nextSegment.minKey =>
           keyValue match {
-            case keyValue: KeyValue.FixedWriteOnly =>
+            case keyValue: KeyValue.ReadOnly.Fixed =>
               //ignore if a key-value is not already assigned to thisSegment. No point adding a single key-value to a Segment.
               if (assignmentsMap.contains(thisSegment)) {
                 assignKeyValueToSegment(thisSegment, keyValue, remainingKeyValues.size)
@@ -117,7 +114,7 @@ private[core] object SegmentAssigner {
               } else
                 assign(remainingKeyValues, Some(nextSegment), getNextSegmentMayBe())
 
-            case keyValue: KeyValue.RangeWriteOnly =>
+            case keyValue: KeyValue.ReadOnly.Range =>
               nextSegmentMayBe match {
                 case Some(nextSegment) if keyValue.toKey > nextSegment.minKey =>
                   //if it's a gap Range key-value and it's flows onto the next Segment, just jump to the next Segment.
@@ -142,9 +139,7 @@ private[core] object SegmentAssigner {
       }
     }
 
-    if (segments.size == 1)
-      Success(mutable.Map((segments.head, keyValues)))
-    else if (segmentsIterator.hasNext)
+    if (segmentsIterator.hasNext)
       assign(keyValues, Some(segmentsIterator.next()), getNextSegmentMayBe()) map {
         _ =>
           assignmentsMap map {

@@ -21,6 +21,7 @@ package swaydb.core.map
 
 import java.util.concurrent.ConcurrentSkipListMap
 
+import swaydb.core.data.Memory
 import swaydb.core.map.MapEntry.{Put, Remove}
 import swaydb.core.map.serializer.{MapCodec, MapEntryWriter}
 import swaydb.data.slice.Slice

@@ -56,7 +56,7 @@ private[swaydb] sealed trait ActorRef[-T] {
 
 private[swaydb] object Actor {
   /**
-    * Basic Actor that processes all incoming messages sequentially.
+    * Basic stateful Actor that processes all incoming messages sequentially.
     *
     * On each message send (!) the Actor is woken up if it's not already running.
     */
@@ -70,6 +70,14 @@ private[swaydb] object Actor {
         },
       delay = None
     )
+
+  /**
+    * Basic stateless Actor that processes all incoming messages sequentially.
+    *
+    * On each message send (!) the Actor is woken up if it's not already running.
+    */
+  def apply[T](execution: (T, Actor[T, Unit]) => Unit)(implicit ec: ExecutionContext): ActorRef[T] =
+    apply[T, Unit]()(execution)
 
   /**
     * Processes messages at regular intervals.
@@ -107,9 +115,9 @@ private[swaydb] object Actor {
     )
 }
 
-private[swaydb] class Actor[T, S](val state: S,
-                                  execution: (T, Actor[T, S]) => Option[FiniteDuration],
-                                  private var delay: Option[FiniteDuration])(implicit ec: ExecutionContext) extends ActorRef[T] with LazyLogging { self =>
+private[swaydb] class Actor[T, +S](val state: S,
+                                   execution: (T, Actor[T, S]) => Option[FiniteDuration],
+                                   private var delay: Option[FiniteDuration])(implicit ec: ExecutionContext) extends ActorRef[T] with LazyLogging { self =>
 
   private val busy = new AtomicBoolean(false)
   private val queue = new ConcurrentLinkedQueue[T]

@@ -19,7 +19,6 @@
 
 package swaydb.core.data
 
-import swaydb.core.data.KeyValue.RangeWriteOnly
 import swaydb.core.util.{BloomFilterUtil, ByteUtilCore}
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
@@ -148,7 +147,7 @@ private[core] object Stats {
 
     val commonBytes: Int =
       previous.map {
-        case previousKeyValue: RangeWriteOnly =>
+        case previousKeyValue: KeyValue.WriteOnly.Range =>
           ByteUtilCore.commonPrefixBytes(previousKeyValue.fullKey, key)
 
         case previousKeyValue =>

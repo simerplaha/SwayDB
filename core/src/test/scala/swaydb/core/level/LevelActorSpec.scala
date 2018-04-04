@@ -40,7 +40,6 @@ class LevelActorSpec extends TestBase with MockFactory {
 
   implicit val ordering = KeyOrder.default
 
-
   "LevelActor.wakeUp" should {
     "return PushJob and PushScheduled state when the current state is Sleeping and there is lower level" in {
       implicit val level = mock[LevelActorAPI]

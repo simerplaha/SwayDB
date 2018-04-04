@@ -19,68 +19,69 @@
 
 package swaydb.core.map.serializer
 
-import swaydb.core.data.Value
+import swaydb.core.data.Memory
 import swaydb.core.map.MapEntry
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 
 object LevelZeroMapEntryWriter {
 
-  implicit object Level0RemoveWriter extends MapEntryWriter[MapEntry.Put[Slice[Byte], Value.Remove]] {
+  implicit object Level0RemoveWriter extends MapEntryWriter[MapEntry.Put[Slice[Byte], Memory.Remove]] {
     val id: Int = 0
 
-    override def write(entry: MapEntry.Put[Slice[Byte], Value.Remove], bytes: Slice[Byte]): Unit =
+    override def write(entry: MapEntry.Put[Slice[Byte], Memory.Remove], bytes: Slice[Byte]): Unit =
       bytes
         .addInt(id)
-        .addInt(entry.key.size)
-        .addAll(entry.key)
+        .addInt(entry.value.key.size)
+        .addAll(entry.value.key)
 
-    override def bytesRequired(entry: MapEntry.Put[Slice[Byte], Value.Remove]): Int =
+    override def bytesRequired(entry: MapEntry.Put[Slice[Byte], Memory.Remove]): Int =
       ByteSizeOf.int +
         ByteSizeOf.int +
-        entry.key.size
+        entry.value.key.size
 
     override val isRange: Boolean = false
   }
 
-  implicit object Level0PutWriter extends MapEntryWriter[MapEntry.Put[Slice[Byte], Value.Put]] {
+  implicit object Level0PutWriter extends MapEntryWriter[MapEntry.Put[Slice[Byte], Memory.Put]] {
     val id: Int = 1
 
     implicit val putSerializer = ValueSerializers.PutSerializerWithSize
 
-    override def write(entry: MapEntry.Put[Slice[Byte], Value.Put], bytes: Slice[Byte]): Unit =
-      ValueSerializer.write(entry.value) {
-        bytes
-          .addInt(id)
-          .addInt(entry.key.size)
-          .addAll(entry.key)
-      }
+    override def write(entry: MapEntry.Put[Slice[Byte], Memory.Put], bytes: Slice[Byte]): Unit =
+      bytes
+        .addInt(id)
+        .addInt(entry.value.key.size)
+        .addAll(entry.value.key)
+        .addInt(entry.value.value.map(_.size).getOrElse(0))
+        .addAll(entry.value.value.getOrElse(Slice.emptyByteSlice))
 
-    override def bytesRequired(entry: MapEntry.Put[Slice[Byte], Value.Put]): Int =
-      if (entry.key.isEmpty)
+    override def bytesRequired(entry: MapEntry.Put[Slice[Byte], Memory.Put]): Int =
+      if (entry.value.key.isEmpty)
         0
       else
         ByteSizeOf.int +
           ByteSizeOf.int +
-          entry.key.size +
-          ValueSerializer.bytesRequired(entry.value)
+          entry.value.key.size +
+          ByteSizeOf.int +
+          entry.value.value.map(_.size).getOrElse(0)
 
     override val isRange: Boolean = false
   }
 
-  implicit object Level0PutRangeWriter extends MapEntryWriter[MapEntry.Put[Slice[Byte], Value.Range]] {
+  implicit object Level0PutRangeWriter extends MapEntryWriter[MapEntry.Put[Slice[Byte], Memory.Range]] {
     val id = 2
 
     implicit val putSerializer = ValueSerializers.PutSerializerWithSize
     implicit val rangeSerializer = RangeValueSerializers.OptionRangeValueSerializer
 
-    override def write(entry: MapEntry.Put[Slice[Byte], Value.Range], bytes: Slice[Byte]): Unit = {
+    override def write(entry: MapEntry.Put[Slice[Byte], Memory.Range], bytes: Slice[Byte]): Unit = {
       val (valueBytesRequired, rangeId) = RangeValueSerializer.bytesRequiredAndRangeId(entry.value.fromValue, entry.value.rangeValue)
       RangeValueSerializer.write(entry.value.fromValue, entry.value.rangeValue) {
         bytes
           .addInt(id)
-          .addInt(entry.key.size)
-          .addAll(entry.key)
+          .addInt(entry.value.fromKey.size)
+          .addAll(entry.value.fromKey)
           .addInt(entry.value.toKey.size)
           .addAll(entry.value.toKey)
           .addInt(rangeId)
@@ -88,13 +89,13 @@ object LevelZeroMapEntryWriter {
       }
     }
 
-    override def bytesRequired(entry: MapEntry.Put[Slice[Byte], Value.Range]): Int =
-      if (entry.key.isEmpty)
+    override def bytesRequired(entry: MapEntry.Put[Slice[Byte], Memory.Range]): Int =
+      if (entry.value.key.isEmpty)
         0
       else
         ByteSizeOf.int +
           ByteSizeOf.int +
-          entry.key.size +
+          entry.value.key.size +
           ByteSizeOf.int +
           entry.value.toKey.size +
           ByteSizeOf.int +
@@ -104,26 +105,30 @@ object LevelZeroMapEntryWriter {
     override val isRange: Boolean = true
   }
 
-  implicit object Level0PutValueWriter extends MapEntryWriter[MapEntry.Put[Slice[Byte], Value]] {
+  implicit object Level0PutValueWriter extends MapEntryWriter[MapEntry.Put[Slice[Byte], Memory]] {
 
-    override def write(entry: MapEntry.Put[Slice[Byte], Value], bytes: Slice[Byte]): Unit =
+    override def write(entry: MapEntry.Put[Slice[Byte], Memory], bytes: Slice[Byte]): Unit =
       entry match {
-        case entry @ MapEntry.Put(_, Value.Put(_)) =>
-          MapEntryWriter.write(entry.asInstanceOf[MapEntry.Put[Slice[Byte], Value.Put]], bytes)
-        case entry @ MapEntry.Put(_, Value.Remove) =>
-          MapEntryWriter.write(entry.asInstanceOf[MapEntry.Put[Slice[Byte], Value.Remove]], bytes)
-        case entry @ MapEntry.Put(_, Value.Range(_, _, _)) =>
-          MapEntryWriter.write(entry.asInstanceOf[MapEntry.Put[Slice[Byte], Value.Range]], bytes)
+        case entry @ MapEntry.Put(_, _: Memory.Put) =>
+          MapEntryWriter.write(entry.asInstanceOf[MapEntry.Put[Slice[Byte], Memory.Put]], bytes)
+
+        case entry @ MapEntry.Put(_, _: Memory.Remove) =>
+          MapEntryWriter.write(entry.asInstanceOf[MapEntry.Put[Slice[Byte], Memory.Remove]], bytes)
+
+        case entry @ MapEntry.Put(_, _: Memory.Range) =>
+          MapEntryWriter.write(entry.asInstanceOf[MapEntry.Put[Slice[Byte], Memory.Range]], bytes)
       }
 
-    override def bytesRequired(entry: MapEntry.Put[Slice[Byte], Value]): Int =
+    override def bytesRequired(entry: MapEntry.Put[Slice[Byte], Memory]): Int =
       entry match {
-        case entry @ MapEntry.Put(_, Value.Put(_)) =>
-          MapEntryWriter.bytesRequired(entry.asInstanceOf[MapEntry.Put[Slice[Byte], Value.Put]])
-        case entry @ MapEntry.Put(_, Value.Remove) =>
-          MapEntryWriter.bytesRequired(entry.asInstanceOf[MapEntry.Put[Slice[Byte], Value.Remove]])
-        case entry @ MapEntry.Put(_, Value.Range(_, _, _)) =>
-          MapEntryWriter.bytesRequired(entry.asInstanceOf[MapEntry.Put[Slice[Byte], Value.Range]])
+        case entry @ MapEntry.Put(_, _: Memory.Put) =>
+          MapEntryWriter.bytesRequired(entry.asInstanceOf[MapEntry.Put[Slice[Byte], Memory.Put]])
+
+        case entry @ MapEntry.Put(_, _: Memory.Remove) =>
+          MapEntryWriter.bytesRequired(entry.asInstanceOf[MapEntry.Put[Slice[Byte], Memory.Remove]])
+
+        case entry @ MapEntry.Put(_, _: Memory.Range) =>
+          MapEntryWriter.bytesRequired(entry.asInstanceOf[MapEntry.Put[Slice[Byte], Memory.Range]])
       }
 
     override val isRange: Boolean = false

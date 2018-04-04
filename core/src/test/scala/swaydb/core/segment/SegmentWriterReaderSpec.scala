@@ -20,7 +20,7 @@
 package swaydb.core.segment
 
 import swaydb.core.TestBase
-import swaydb.core.data.{KeyValue, SegmentEntry, Transient, Value}
+import swaydb.core.data.{KeyValue, Persistent, Transient, Value}
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
 import swaydb.core.segment.format.one.{KeyMatcher, SegmentFooter, SegmentReader, SegmentWriter}
@@ -62,51 +62,51 @@ class SegmentWriterReaderSpec extends TestBase {
       test(Slice(Transient.Put(1, value = 1)))
       test(Slice(Transient.Put(1)))
       test(Slice(Transient.Remove(1)))
-      test(Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 10, None, Value.Remove)))
-      test(Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 10, Some(Value.Remove), Value.Remove)))
-      test(Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 10, Some(Value.Put(1)), Value.Remove)))
-      test(Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 10, None, Value.Put(1))))
-      test(Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 10, Some(Value.Put(1)), Value.Put(10))))
-      test(Slice(Transient.Range[Value.Fixed, Value.Fixed](1, 10, Some(Value.Remove), Value.Put(10))))
+      test(Slice(Transient.Range[Value, Value](1, 10, None, Value.Remove)))
+      test(Slice(Transient.Range[Value, Value](1, 10, Some(Value.Remove), Value.Remove)))
+      test(Slice(Transient.Range[Value, Value](1, 10, Some(Value.Put(1)), Value.Remove)))
+      test(Slice(Transient.Range[Value, Value](1, 10, None, Value.Put(1))))
+      test(Slice(Transient.Range[Value, Value](1, 10, Some(Value.Put(1)), Value.Put(10))))
+      test(Slice(Transient.Range[Value, Value](1, 10, Some(Value.Remove), Value.Put(10))))
 
       //single key-values with String keys and values
       test(Slice(Transient.Put("one", value = "one")))
       test(Slice(Transient.Put("one")))
       test(Slice(Transient.Remove("one")))
-      test(Slice(Transient.Range[Value.Fixed, Value.Fixed]("one", "ten", None, Value.Remove)))
-      test(Slice(Transient.Range[Value.Fixed, Value.Fixed]("one", "ten", Some(Value.Remove), Value.Remove)))
-      test(Slice(Transient.Range[Value.Fixed, Value.Fixed]("one", "ten", Some(Value.Put("one")), Value.Remove)))
-      test(Slice(Transient.Range[Value.Fixed, Value.Fixed]("one", "ten", None, Value.Put("one"))))
-      test(Slice(Transient.Range[Value.Fixed, Value.Fixed]("one", "ten", Some(Value.Put("one")), Value.Put("ten"))))
-      test(Slice(Transient.Range[Value.Fixed, Value.Fixed]("one", "ten", Some(Value.Remove), Value.Put("ten"))))
+      test(Slice(Transient.Range[Value, Value]("one", "ten", None, Value.Remove)))
+      test(Slice(Transient.Range[Value, Value]("one", "ten", Some(Value.Remove), Value.Remove)))
+      test(Slice(Transient.Range[Value, Value]("one", "ten", Some(Value.Put("one")), Value.Remove)))
+      test(Slice(Transient.Range[Value, Value]("one", "ten", None, Value.Put("one"))))
+      test(Slice(Transient.Range[Value, Value]("one", "ten", Some(Value.Put("one")), Value.Put("ten"))))
+      test(Slice(Transient.Range[Value, Value]("one", "ten", Some(Value.Remove), Value.Put("ten"))))
 
       //single large
-      test(Slice(Transient.Put(1, "one one one one one one one one one one one one one one one one one one one one one one")))
-      test(Slice(Transient.Put("two two two two two two two two two two two two two two two two two two two two two two two")))
-      test(Slice(Transient.Remove("three three three three three three three three three three three three three three three three")))
-      test(Slice(Transient.Range[Value.Fixed, Value.Fixed]("one one one one one one one one", "ten ten ten ten ten ten ten ten ten", Some(Value.Put("one one one one")), Value.Put("ten ten ten ten ten ten ten"))))
+      test(Slice(Transient.Put(1, "one" * 10)))
+      test(Slice(Transient.Put("two" * 10)))
+      test(Slice(Transient.Remove("three" * 10)))
+      test(Slice(Transient.Range[Value, Value]("one" * 10, "ten" * 10, Some(Value.Put("one" * 10)), Value.Put("ten" * 10))))
 
       //put key values variations
       test(Slice(Transient.Put(1, 1), Transient.Remove(2)).updateStats)
       test(Slice(Transient.Put(1, 1), Transient.Put(2, 2)).updateStats)
-      test(Slice(Transient.Put(1, 1), Transient.Range[Value.Fixed, Value.Fixed](2, 10, None, Value.Put(10))).updateStats)
-      test(Slice(Transient.Put(1, 1), Transient.Range[Value.Fixed, Value.Fixed](2, 10, Some(Value.Put(2)), Value.Put(10))).updateStats)
-      test(Slice(Transient.Put(1, 1), Transient.Range[Value.Fixed, Value.Fixed](2, 10, Some(Value.Remove), Value.Put(10))).updateStats)
-      test(Slice(Transient.Put(1, 1), Transient.Range[Value.Fixed, Value.Fixed](2, 10, None, Value.Remove)).updateStats)
-      test(Slice(Transient.Put(1, 1), Transient.Range[Value.Fixed, Value.Fixed](2, 10, Some(Value.Put(2)), Value.Remove)).updateStats)
-      test(Slice(Transient.Put(1, 1), Transient.Range[Value.Fixed, Value.Fixed](2, 10, Some(Value.Remove), Value.Remove)).updateStats)
+      test(Slice(Transient.Put(1, 1), Transient.Range[Value, Value](2, 10, None, Value.Put(10))).updateStats)
+      test(Slice(Transient.Put(1, 1), Transient.Range[Value, Value](2, 10, Some(Value.Put(2)), Value.Put(10))).updateStats)
+      test(Slice(Transient.Put(1, 1), Transient.Range[Value, Value](2, 10, Some(Value.Remove), Value.Put(10))).updateStats)
+      test(Slice(Transient.Put(1, 1), Transient.Range[Value, Value](2, 10, None, Value.Remove)).updateStats)
+      test(Slice(Transient.Put(1, 1), Transient.Range[Value, Value](2, 10, Some(Value.Put(2)), Value.Remove)).updateStats)
+      test(Slice(Transient.Put(1, 1), Transient.Range[Value, Value](2, 10, Some(Value.Remove), Value.Remove)).updateStats)
 
       //remove key values variations
       test(Slice(Transient.Remove(1), Transient.Remove(2)).updateStats)
       test(Slice(Transient.Remove(1), Transient.Put(2, 2)).updateStats)
-      test(Slice(Transient.Remove(1), Transient.Range[Value.Fixed, Value.Fixed](2, 10, None, Value.Put(10))).updateStats)
-      test(Slice(Transient.Remove(1), Transient.Range[Value.Fixed, Value.Fixed](2, 10, Some(Value.Put(2)), Value.Put(10))).updateStats)
-      test(Slice(Transient.Remove(1), Transient.Range[Value.Fixed, Value.Fixed](2, 10, Some(Value.Remove), Value.Put(10))).updateStats)
-      test(Slice(Transient.Remove(1), Transient.Range[Value.Fixed, Value.Fixed](2, 10, None, Value.Remove)).updateStats)
-      test(Slice(Transient.Remove(1), Transient.Range[Value.Fixed, Value.Fixed](2, 10, Some(Value.Put(2)), Value.Remove)).updateStats)
-      test(Slice(Transient.Remove(1), Transient.Range[Value.Fixed, Value.Fixed](2, 10, Some(Value.Remove), Value.Remove)).updateStats)
+      test(Slice(Transient.Remove(1), Transient.Range[Value, Value](2, 10, None, Value.Put(10))).updateStats)
+      test(Slice(Transient.Remove(1), Transient.Range[Value, Value](2, 10, Some(Value.Put(2)), Value.Put(10))).updateStats)
+      test(Slice(Transient.Remove(1), Transient.Range[Value, Value](2, 10, Some(Value.Remove), Value.Put(10))).updateStats)
+      test(Slice(Transient.Remove(1), Transient.Range[Value, Value](2, 10, None, Value.Remove)).updateStats)
+      test(Slice(Transient.Remove(1), Transient.Range[Value, Value](2, 10, Some(Value.Put(2)), Value.Remove)).updateStats)
+      test(Slice(Transient.Remove(1), Transient.Range[Value, Value](2, 10, Some(Value.Remove), Value.Remove)).updateStats)
 
-      test(Slice(Transient.Remove(1), Transient.Put(2), Transient.Remove(3), Transient.Remove(4), Transient.Range[Value.Fixed, Value.Fixed](5, 10, Some(Value.Put(10)), Value.Remove)).updateStats)
+      test(Slice(Transient.Remove(1), Transient.Put(2), Transient.Remove(3), Transient.Remove(4), Transient.Range[Value, Value](5, 10, Some(Value.Put(10)), Value.Remove)).updateStats)
 
       test(Slice(Transient.Put(1, 1), Transient.Put(2, 2), Transient.Put(3, 3)).updateStats)
       test(Slice(Transient.Put(1), Transient.Put(2), Transient.Put(3)).updateStats)
@@ -116,12 +116,12 @@ class SegmentWriterReaderSpec extends TestBase {
       test(Slice(Transient.Remove(1), Transient.Put(2, 2), Transient.Put(3)).updateStats)
       test(
         Slice(
-          Transient.Range[Value.Fixed, Value.Fixed](1, 10, None, Value.Remove),
-          Transient.Range[Value.Fixed, Value.Fixed](10, 20, Some(Value.Remove), Value.Remove),
-          Transient.Range[Value.Fixed, Value.Fixed](20, 30, Some(Value.Put(1)), Value.Remove),
-          Transient.Range[Value.Fixed, Value.Fixed](30, 40, None, Value.Put(1)),
-          Transient.Range[Value.Fixed, Value.Fixed](40, 50, Some(Value.Put(1)), Value.Put(10)),
-          Transient.Range[Value.Fixed, Value.Fixed](50, 60, Some(Value.Remove), Value.Put(10))
+          Transient.Range[Value, Value](1, 10, None, Value.Remove),
+          Transient.Range[Value, Value](10, 20, Some(Value.Remove), Value.Remove),
+          Transient.Range[Value, Value](20, 30, Some(Value.Put(1)), Value.Remove),
+          Transient.Range[Value, Value](30, 40, None, Value.Put(1)),
+          Transient.Range[Value, Value](40, 50, Some(Value.Put(1)), Value.Put(10)),
+          Transient.Range[Value, Value](50, 60, Some(Value.Remove), Value.Put(10))
         ).updateStats
       )
     }
@@ -156,12 +156,12 @@ class SegmentWriterReaderSpec extends TestBase {
       val key7: Slice[Byte] = 125
 
       val keyValues = Slice(
-        Transient.Range[Value.Fixed, Value.Fixed](key1, key2, None, Value.Put(10)),
-        Transient.Range[Value.Fixed, Value.Fixed](key2, key3, Some(Value.Put(10)), Value.Put(10)),
-        Transient.Range[Value.Fixed, Value.Fixed](key3, key4, Some(Value.Remove), Value.Put(10)),
-        Transient.Range[Value.Fixed, Value.Fixed](key4, key5, None, Value.Remove),
-        Transient.Range[Value.Fixed, Value.Fixed](key5, key6, Some(Value.Put(10)), Value.Remove),
-        Transient.Range[Value.Fixed, Value.Fixed](key6, key7, Some(Value.Remove), Value.Remove)
+        Transient.Range[Value, Value](key1, key2, None, Value.Put(10)),
+        Transient.Range[Value, Value](key2, key3, Some(Value.Put(10)), Value.Put(10)),
+        Transient.Range[Value, Value](key3, key4, Some(Value.Remove), Value.Put(10)),
+        Transient.Range[Value, Value](key4, key5, None, Value.Remove),
+        Transient.Range[Value, Value](key5, key6, Some(Value.Put(10)), Value.Remove),
+        Transient.Range[Value, Value](key6, key7, Some(Value.Remove), Value.Remove)
       ).updateStats
 
       keyValues.head.stats.commonBytes shouldBe 0
@@ -183,9 +183,9 @@ class SegmentWriterReaderSpec extends TestBase {
           Transient.Put(Slice(s"a$randomChars".getBytes()), value = randomChars),
           Transient.Remove(Slice(s"b$randomChars".getBytes())),
           Transient.Put(Slice(s"c$randomChars".getBytes()), value = randomChars),
-          Transient.Range[Value.Fixed, Value.Fixed](fromKey = Slice(s"d$randomChars".getBytes()), toKey = Slice(s"e$randomChars".getBytes()), None, Value.Put(randomChars)),
-          Transient.Range[Value.Fixed, Value.Fixed](fromKey = Slice(s"f$randomChars".getBytes()), toKey = Slice(s"g$randomChars".getBytes()), Some(Value.Put(randomChars)), Value.Put(randomChars)),
-          Transient.Range[Value.Fixed, Value.Fixed](fromKey = Slice(s"h$randomChars".getBytes()), toKey = Slice(s"i$randomChars".getBytes()), Some(Value.Remove), Value.Put(randomChars))
+          Transient.Range[Value, Value](fromKey = Slice(s"d$randomChars".getBytes()), toKey = Slice(s"e$randomChars".getBytes()), None, Value.Put(randomChars)),
+          Transient.Range[Value, Value](fromKey = Slice(s"f$randomChars".getBytes()), toKey = Slice(s"g$randomChars".getBytes()), Some(Value.Put(randomChars)), Value.Put(randomChars)),
+          Transient.Range[Value, Value](fromKey = Slice(s"h$randomChars".getBytes()), toKey = Slice(s"i$randomChars".getBytes()), Some(Value.Remove), Value.Put(randomChars))
         ).updateStats
 
       val bytes = SegmentWriter.toSlice(keyValues, 0.1).assertGet
@@ -230,7 +230,7 @@ class SegmentWriterReaderSpec extends TestBase {
     }
 
     "read footer" in {
-      val keyValues = Slice(Transient.Put(1, 1), Transient.Remove(2), Transient.Range[Value.Fixed, Value.Fixed](3, 4, Some(Value.Put(3)), Value.Remove)).updateStats
+      val keyValues = Slice(Transient.Put(1, 1), Transient.Remove(2), Transient.Range[Value, Value](3, 4, Some(Value.Put(3)), Value.Remove)).updateStats
 
       val bytes = SegmentWriter.toSlice(keyValues, 0.1).assertGet
 
@@ -258,7 +258,7 @@ class SegmentWriterReaderSpec extends TestBase {
           Transient.Put(1, "one"),
           Transient.Put(2, "two"),
           Transient.Remove(Int.MaxValue - 10),
-          Transient.Range[Value.Fixed, Value.Fixed](Int.MaxValue - 9, Int.MaxValue, None, Value.Put(10))
+          Transient.Range[Value, Value](Int.MaxValue - 9, Int.MaxValue, None, Value.Put(10))
         ).updateStats
 
       val bytes = SegmentWriter.toSlice(keyValues, 0.1).assertGet
@@ -293,7 +293,7 @@ class SegmentWriterReaderSpec extends TestBase {
       foundKeyValue3.indexOffset shouldBe foundKeyValue2.nextIndexOffset
 
       //FOURTH KEY
-      val foundKeyValue4 = SegmentReader.find(KeyMatcher.Get(keyValues(3).key), None, Reader(bytes)).assertGet.asInstanceOf[SegmentEntry.RangeReadOnly]
+      val foundKeyValue4 = SegmentReader.find(KeyMatcher.Get(keyValues(3).key), None, Reader(bytes)).assertGet.asInstanceOf[Persistent.Range]
       foundKeyValue4.getOrFetchValue.assertGetOpt shouldBe keyValues(3).getOrFetchValue.assertGetOpt
       foundKeyValue4.fromKey shouldBe (Int.MaxValue - 9: Slice[Byte])
       foundKeyValue4.toKey shouldBe (Int.MaxValue: Slice[Byte])
@@ -313,7 +313,7 @@ class SegmentWriterReaderSpec extends TestBase {
           Transient.Put(1, "one"),
           Transient.Put(2, "two"),
           Transient.Remove(Int.MaxValue - 10),
-          Transient.Range[Value.Fixed, Value.Fixed](Int.MaxValue - 9, Int.MaxValue, None, Value.Put(10))
+          Transient.Range[Value, Value](Int.MaxValue - 9, Int.MaxValue, None, Value.Put(10))
         ).updateStats
 
       val bytes = SegmentWriter.toSlice(keyValues, 0.1).assertGet
@@ -341,7 +341,7 @@ class SegmentWriterReaderSpec extends TestBase {
       foundKeyValue4FromKey.getOrFetchValue.assertGetOpt shouldBe empty //lower is Remove
       foundKeyValue4FromKey.key shouldBe keyValues(2).key
 
-      val foundKeyValue4ToKey = SegmentReader.find(KeyMatcher.Lower(fourth.toKey), None, Reader(bytes)).assertGet.asInstanceOf[SegmentEntry.RangeReadOnly]
+      val foundKeyValue4ToKey = SegmentReader.find(KeyMatcher.Lower(fourth.toKey), None, Reader(bytes)).assertGet.asInstanceOf[Persistent.Range]
       foundKeyValue4ToKey.getOrFetchValue.assertGetOpt shouldBe fourth.getOrFetchValue.assertGetOpt //lower is Self
       foundKeyValue4ToKey.fromKey shouldBe fourth.fromKey
       foundKeyValue4ToKey.toKey shouldBe fourth.toKey
@@ -353,7 +353,7 @@ class SegmentWriterReaderSpec extends TestBase {
           Transient.Put(1, "one"),
           Transient.Put(2, "two"),
           Transient.Remove(Int.MaxValue - 10),
-          Transient.Range[Value.Fixed, Value.Fixed](Int.MaxValue - 9, Int.MaxValue, None, Value.Put(10))
+          Transient.Range[Value, Value](Int.MaxValue - 9, Int.MaxValue, None, Value.Put(10))
         ).updateStats
 
       val bytes = SegmentWriter.toSlice(keyValues, 0.1).assertGet
@@ -379,7 +379,7 @@ class SegmentWriterReaderSpec extends TestBase {
 
       //FOURTH
       val fourth = keyValues(3).asInstanceOf[Transient.Range]
-      val foundKeyValue4FromKey = SegmentReader.find(KeyMatcher.Higher(fourth.fromKey), None, Reader(bytes)).assertGet.asInstanceOf[SegmentEntry.RangeReadOnly]
+      val foundKeyValue4FromKey = SegmentReader.find(KeyMatcher.Higher(fourth.fromKey), None, Reader(bytes)).assertGet.asInstanceOf[Persistent.Range]
       foundKeyValue4FromKey.getOrFetchValue.assertGetOpt shouldBe fourth.getOrFetchValue.assertGetOpt //lower is Remove
       foundKeyValue4FromKey.fromKey shouldBe fourth.fromKey
       foundKeyValue4FromKey.toKey shouldBe fourth.toKey

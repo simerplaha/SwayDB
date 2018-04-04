@@ -20,7 +20,7 @@
 package swaydb.core.merge
 
 import swaydb.core.TestBase
-import swaydb.core.data.{KeyValue, Transient, Value}
+import swaydb.core.data.{KeyValue, Memory, Transient, Value}
 import swaydb.data.slice.Slice
 import swaydb.order.KeyOrder
 import swaydb.serializers.Default._
@@ -36,8 +36,8 @@ class MergeFixedIntoRangeSpec extends TestBase {
     "add Fixed smaller key-value if it's does not overlap the range key-value" in {
       //1
       //  2 - 3
-      val newKeyValues = Slice(Transient.Put(1, "new value"))
-      val oldKeyValues = Slice(Transient.Range(2, 3, Option.empty[Value.Put], Value.Put(10), 0.1, None))
+      val newKeyValues = Slice(Memory.Put(1, "new value"))
+      val oldKeyValues = Slice(Memory.Range(2, 3, Option.empty[Value.Put], Value.Put(10)))
 
       val expected = Slice(Transient.Put(1, "new value"), Transient.Range(2, 3, Option.empty[Value.Put], Value.Put(10), 0.1, None)).updateStats
 
@@ -55,8 +55,8 @@ class MergeFixedIntoRangeSpec extends TestBase {
     "add Fixed larger key-value if it does not overlap the range key-value" in {
       //      4
       //2 - 3
-      val newKeyValues = Slice(Transient.Put(4, "four"))
-      val oldKeyValues = Slice(Transient.Range(2, 3, Option.empty[Value.Put], Value.Put(10), 0.1, None))
+      val newKeyValues = Slice(Memory.Put(4, "four"))
+      val oldKeyValues = Slice(Memory.Range(2, 3, Option.empty[Value.Put], Value.Put(10)))
 
       val expected = Seq(Transient.Range(2, 3, Option.empty[Value.Put], Value.Put(10), 0.1, None), Transient.Put(4, "four")).updateStats
 
@@ -74,8 +74,8 @@ class MergeFixedIntoRangeSpec extends TestBase {
     "update the range's fromValue with Put if the input key-values key matches range's fromKey" in {
       //2
       //2 - 3
-      val newKeyValues = Slice(Transient.Put(2, 2))
-      val oldKeyValues = Slice(Transient.Range(2, 3, Option.empty[Value.Put], Value.Put(10), 0.1, None))
+      val newKeyValues = Slice(Memory.Put(2, 2))
+      val oldKeyValues = Slice(Memory.Range(2, 3, Option.empty[Value.Put], Value.Put(10)))
 
       val expected = Slice(Transient.Range(2, 3, Some(Value.Put(2)), Value.Put(10), 0.1, None))
 
@@ -89,8 +89,8 @@ class MergeFixedIntoRangeSpec extends TestBase {
     "update the range's fromValue with Remove if the input key-values key matches range's fromKey" in {
       //2
       //2 - 3
-      val newKeyValues = Slice(Transient.Remove(2))
-      val oldKeyValues = Slice(Transient.Range(2, 3, Option.empty[Value.Remove], Value.Put(10), 0.1, None))
+      val newKeyValues = Slice(Memory.Remove(2))
+      val oldKeyValues = Slice(Memory.Range(2, 3, Option.empty[Value.Remove], Value.Put(10)))
 
       val expected = Slice(Transient.Range[Value.Remove, Value.Put](2, 3, Some(Value.Remove), Value.Put(10), 0.1, None))
 
@@ -104,8 +104,8 @@ class MergeFixedIntoRangeSpec extends TestBase {
     "split the range's if the input key-values key overlaps range's second key" in {
       //  11
       //10   -   20
-      val newKeyValues = Slice(Transient.Put(11, 11))
-      val oldKeyValues = Slice(Transient.Range(10, 20, Option.empty[Value.Put], Value.Put(10), 0.1, None))
+      val newKeyValues = Slice(Memory.Put(11, 11))
+      val oldKeyValues = Slice(Memory.Range(10, 20, Option.empty[Value.Put], Value.Put(10)))
 
       val expected: Slice[KeyValue.WriteOnly] =
         Seq(
@@ -123,8 +123,8 @@ class MergeFixedIntoRangeSpec extends TestBase {
     "split the range's if the input key-value key overlaps range's mid key" in {
       //    15
       //10   -   20
-      val newKeyValues = Slice(Transient.Put(15, 15))
-      val oldKeyValues = Slice(Transient.Range(10, 20, Option.empty[Value.Put], Value.Put("ranges value"), 0.1, None))
+      val newKeyValues = Slice(Memory.Put(15, 15))
+      val oldKeyValues = Slice(Memory.Range(10, 20, Option.empty[Value.Put], Value.Put("ranges value")))
 
       val expected =
         Seq(
@@ -142,8 +142,8 @@ class MergeFixedIntoRangeSpec extends TestBase {
     "split the range if the input key-values key overlaps range's mid key" in {
       //  12,  18
       //10   -   20
-      val newKeyValues = Slice(Transient.Put(12, 12), Transient.Remove(18)).updateStats
-      val oldKeyValues = Slice(Transient.Range(10, 20, Option.empty[Value.Put], Value.Put("ranges value"), 0.1, None))
+      val newKeyValues = Slice(Memory.Put(12, 12), Memory.Remove(18))
+      val oldKeyValues = Slice(Memory.Range(10, 20, Option.empty[Value.Put], Value.Put("ranges value")))
 
       val expected =
         Seq(
@@ -162,8 +162,8 @@ class MergeFixedIntoRangeSpec extends TestBase {
     "add the input Put key-value as a new key-value if the key is equal to range's toKey" in {
       //         20
       //10   -   20
-      val newKeyValues = Slice(Transient.Put(20, 20))
-      val oldKeyValues = Slice(Transient.Range(10, 20, Option.empty[Value.Put], Value.Put("ranges value"), 0.1, None))
+      val newKeyValues = Slice(Memory.Put(20, 20))
+      val oldKeyValues = Slice(Memory.Range(10, 20, Option.empty[Value.Put], Value.Put("ranges value")))
 
       val expected =
         Seq(
@@ -175,7 +175,7 @@ class MergeFixedIntoRangeSpec extends TestBase {
       assertSkipListMerge(newKeyValues, oldKeyValues, expected)
 
       //last level check
-      assertMerge(newKeyValues, oldKeyValues, newKeyValues, isLastLevel = true)
+      assertMerge(newKeyValues, oldKeyValues, Transient.Put(20, 20), isLastLevel = true)
     }
 
     "split the range if the input key-values key overlaps range's multiple keys (random mix test)" in {
@@ -183,22 +183,22 @@ class MergeFixedIntoRangeSpec extends TestBase {
       //   10      -     20        25   -   30
       val newKeyValues =
       Slice(
-        Transient.Put(9, 9),
-        Transient.Put(10, 10),
-        Transient.Put(11, 11),
-        Transient.Remove(15),
-        Transient.Put(18, 18),
-        Transient.Remove(21),
-        Transient.Put(23, 23),
-        Transient.Remove(25),
-        Transient.Put(27, 27),
-        Transient.Put(30, 30)
-      ).updateStats
+        Memory.Put(9, 9),
+        Memory.Put(10, 10),
+        Memory.Put(11, 11),
+        Memory.Remove(15),
+        Memory.Put(18, 18),
+        Memory.Remove(21),
+        Memory.Put(23, 23),
+        Memory.Remove(25),
+        Memory.Put(27, 27),
+        Memory.Put(30, 30)
+      )
 
       val oldKeyValues =
         Slice(
-          Transient.Range(10, 20, Option.empty[Value.Put], Value.Put("ranges value 1"), 0.1, None),
-          Transient.Range(25, 30, Some(Value.Put(25)), Value.Put("ranges value 2"), 0.1, None)
+          Memory.Range(10, 20, Option.empty[Value.Put], Value.Put("ranges value 1")),
+          Memory.Range(25, 30, Some(Value.Put(25)), Value.Put("ranges value 2"))
         )
 
       val expected =
@@ -219,7 +219,18 @@ class MergeFixedIntoRangeSpec extends TestBase {
       assertSkipListMerge(newKeyValues, oldKeyValues, expected)
 
       //last level check
-      assertMerge(newKeyValues, oldKeyValues, newKeyValues.filterNot(_.isInstanceOf[Transient.Remove]).updateStats, isLastLevel = true)
+      val expectedInLastLevel =
+        Slice(
+          Transient.Put(9, 9),
+          Transient.Put(10, 10),
+          Transient.Put(11, 11),
+          Transient.Put(18, 18),
+          Transient.Put(23, 23),
+          Transient.Put(27, 27),
+          Transient.Put(30, 30)
+        ).updateStats
+
+      assertMerge(newKeyValues, oldKeyValues, expectedInLastLevel, isLastLevel = true)
     }
   }
 

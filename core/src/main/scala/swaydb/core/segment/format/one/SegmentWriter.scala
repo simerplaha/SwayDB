@@ -21,7 +21,7 @@ package swaydb.core.segment.format.one
 
 import bloomfilter.mutable.BloomFilter
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.data.{KeyValue, SegmentEntry, Transient}
+import swaydb.core.data.{KeyValue, Persistent, Transient}
 import swaydb.core.util.BloomFilterUtil._
 import swaydb.core.util.CRC32
 import swaydb.data.slice.Slice
@@ -62,7 +62,7 @@ private[core] object SegmentWriter extends LazyLogging {
                 case transient: Transient =>
                   Success(transient.value)
 
-                case persistent: SegmentEntry =>
+                case persistent: Persistent =>
                   persistent.getOrFetchValue
               }
 

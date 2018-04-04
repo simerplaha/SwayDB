@@ -185,7 +185,7 @@ case class KeysIterator[K](private val api: SwayDBAPI,
 
   override def foldRight[B](z: B)(op: (K, B) => B): B =
     copy(reverse = true).foldLeft(z) {
-      case (b: B, (k: K)) =>
+      case (b, (k)) =>
         op(k, b)
     }
 
@@ -197,19 +197,19 @@ case class KeysIterator[K](private val api: SwayDBAPI,
 
   override def reduceRight[B >: K](op: (K, B) => B): B =
     copy(reverse = true).reduceLeft[B] {
-      case (b: B, (k: K)) =>
+      case (b, (k)) =>
         op(k, b)
     }
 
   override def reduceRightOption[B >: K](op: (K, B) => B): Option[B] =
     copy(reverse = true).reduceLeftOption[B] {
-      case (b: B, (k: K)) =>
+      case (b, (k)) =>
         op(k, b)
     }
 
   override def scanRight[B, That](z: B)(op: (K, B) => B)(implicit bf: CanBuildFrom[Iterable[K], B, That]): That =
     copy(reverse = true).scanLeft(z) {
-      case (z: B, (k: K)) =>
+      case (z, (k)) =>
         op(k, z)
     }
 
