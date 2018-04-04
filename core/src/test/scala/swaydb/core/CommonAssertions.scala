@@ -405,12 +405,10 @@ trait CommonAssertions extends TryAssert with FutureBase with TestData {
 
   implicit class SegmentImplicits(actual: Segment) {
 
-    import KeyOrder.default._
-
     def shouldBe(expected: Segment): Unit = {
       actual.segmentSize shouldBe expected.segmentSize
-      actual.minKey.unslice() equiv expected.minKey.unslice()
-      actual.maxKey.maxKey.unslice() equiv expected.maxKey.maxKey.unslice()
+      actual.minKey shouldBe expected.minKey
+      actual.maxKey shouldBe expected.maxKey
       actual.existsOnDisk shouldBe expected.existsOnDisk
       actual.path shouldBe expected.path
       assertReads(expected.getAll().assertGet, actual)

@@ -23,15 +23,18 @@ import java.nio.file._
 
 import swaydb.core.data.Transient.Remove
 import swaydb.core.data.{Memory, _}
-import swaydb.core.io.file.{DBFile, IO}
+import swaydb.core.io.file.DBFile
 import swaydb.core.io.reader.Reader
 import swaydb.core.level.PathsDistributor
-import swaydb.data.segment.MaxKey.{Fixed, Range}
+import swaydb.core.map.serializer.RangeValueSerializers._
 import swaydb.core.segment.SegmentException.CannotCopyInMemoryFiles
+import swaydb.core.segment.format.one.{SegmentReader, SegmentWriter}
 import swaydb.core.util.FileUtil._
 import swaydb.core.util._
 import swaydb.core.{LimitQueues, TestBase, TestLimitQueues}
 import swaydb.data.config.Dir
+import swaydb.data.segment.MaxKey
+import swaydb.data.segment.MaxKey.{Fixed, Range}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.order.KeyOrder
@@ -41,9 +44,6 @@ import swaydb.serializers._
 import scala.collection.JavaConverters._
 import scala.concurrent.duration._
 import scala.util.Random
-import swaydb.core.map.serializer.RangeValueSerializers._
-import swaydb.core.segment.format.one.{SegmentReader, SegmentWriter}
-import swaydb.data.segment.MaxKey
 
 //@formatter:off
 class SegmentWriteSpec1 extends SegmentWriteSpec {
@@ -353,6 +353,20 @@ class SegmentWriteSpec extends TestBase with Benchmark {
         reopenedSegment.isCacheEmpty shouldBe false
 
         assertBloom(keyValues, reopenedSegment.getBloomFilter.assertGet)
+      }
+    }
+
+    "initialise a segment that already exists but Segment info is unknown" in {
+      if (memory) {
+        //memory Segments cannot re-initialise Segments after shutdown.
+      } else {
+        val keyValues = randomIntKeyValues(keyValuesCount, addRandomDeletes = true, addRandomRanges = true)
+        val segmentFile = testSegmentFile
+
+        val segment = TestSegment(keyValues, path = segmentFile).assertGet
+        val readSegment = Segment(segment.path, Random.nextBoolean(), Random.nextBoolean(), Random.nextBoolean(), false, true).assertGet
+
+        segment shouldBe readSegment
       }
     }
 

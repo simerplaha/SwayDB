@@ -264,11 +264,11 @@ private[core] object Segment {
                           minKey = keyValues.head.key,
                           maxKey =
                             keyValues.last match {
-                              case range: KeyValue.WriteOnly.Range =>
-                                MaxKey.Range(range.fromKey, range.toKey)
+                              case fixed: KeyValue.ReadOnly.Fixed =>
+                                MaxKey.Fixed(fixed.key)
 
-                              case keyValue =>
-                                MaxKey.Fixed(keyValue.key)
+                              case range: KeyValue.ReadOnly.Range =>
+                                MaxKey.Range(range.fromKey, range.toKey)
                             },
                           segmentSize = fileSize.toInt,
                           removeDeletes = removeDeletes
