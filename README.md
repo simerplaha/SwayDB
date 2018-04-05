@@ -20,13 +20,15 @@ View detailed benchmark results [here](http://swaydb.io/performance/macbook-pro-
 
 - Embeddable, Type-safe, non-blocking
 - Multiple disks, In-memory & periodically persistent
-- Database storage formats
+- ACID like atomic writes with [Batch API](http://www.swaydb.io/api/write-api/batch/)
+- APIs similar to Scala collections.
+- Key only iterations (Lazily fetched values)
+- Data storage formats
     - Key-value (`Map[K, V]`)
     - Row (`Set[T]`)
-- Lazily fetched values
 - Configurable Levels
 - Configurable cache size
-- Concurrent Leveled Compaction
+- Concurrent level compaction
 - Optional Memory-mapped files
 - Scala Streams
 - Bloom filters

@@ -27,6 +27,7 @@ import swaydb.core.data.{Persistent, _}
 import swaydb.core.io.file.DBFile
 import swaydb.core.io.reader.Reader
 import swaydb.core.level.PathsDistributor
+import swaydb.core.map.Map
 import swaydb.core.segment.format.one.{SegmentReader, SegmentWriter}
 import swaydb.core.util.BloomFilterUtil._
 import swaydb.core.util.TryUtil._
@@ -335,7 +336,7 @@ private[core] object Segment {
   /**
     * Pre condition: Segments should be sorted with their minKey in ascending order.
     */
-  def getAllKeyValues(bloomFilterFalsePositiveRate: Double, segments: Iterable[Segment]): Try[Iterable[KeyValue.ReadOnly]] =
+  def getAllKeyValues(bloomFilterFalsePositiveRate: Double, segments: Iterable[Segment]): Try[Slice[KeyValue.ReadOnly]] =
     if (segments.isEmpty)
       Success(Slice.create[KeyValue.ReadOnly](0))
     else if (segments.size == 1)
@@ -384,29 +385,54 @@ private[core] object Segment {
 
   def overlapsWithBusySegments(inputSegments: Iterable[Segment],
                                busySegments: Iterable[Segment],
-                               appendixSegments: Iterable[Segment])(implicit ordering: Ordering[Slice[Byte]]): Boolean =
-    busySegments.nonEmpty &&
-      Segment.overlaps(
-        segments1 = busySegments,
-        segments2 =
-          SegmentAssigner.assignMinMaxOnlyForSegments(
-            inputSegments = inputSegments,
-            targetSegments = appendixSegments
-          )
-      ).nonEmpty
+                               appendixSegments: Iterable[Segment])(implicit ordering: Ordering[Slice[Byte]]): Try[Boolean] =
+    if (busySegments.isEmpty)
+      Success(false)
+    else
+      SegmentAssigner.assignMinMaxOnlyForSegments(
+        inputSegments = inputSegments,
+        targetSegments = appendixSegments
+      ) map {
+        assignments =>
+          Segment.overlaps(
+            segments1 = busySegments,
+            segments2 = assignments
+          ).nonEmpty
+      }
 
-  def overlapsWithBusySegmentsKeyValues(keyValues: Iterable[KeyValue.ReadOnly],
-                                        busySegments: Iterable[Segment],
-                                        appendixSegments: Iterable[Segment])(implicit ordering: Ordering[Slice[Byte]]): Boolean =
-    busySegments.nonEmpty &&
-      Segment.overlaps(
-        segments1 = busySegments,
-        segments2 =
-          SegmentAssigner.assignMinMaxOnly(
-            keyValues = keyValues,
-            targetSegments = appendixSegments
-          )
-      ).nonEmpty
+  def overlapsWithBusySegments(map: Map[Slice[Byte], Memory],
+                               busySegments: Iterable[Segment],
+                               appendixSegments: Iterable[Segment])(implicit ordering: Ordering[Slice[Byte]]): Try[Boolean] =
+    if (busySegments.isEmpty)
+      Success(false)
+    else
+      (for {
+        head <- map.headValue()
+        last <- map.lastValue()
+      } yield {
+        if (ordering.equiv(head.key, last.key))
+          SegmentAssigner.assign(
+            keyValues = Slice(head),
+            segments = appendixSegments
+          ) map {
+            assignments =>
+              Segment.overlaps(
+                segments1 = busySegments,
+                segments2 = assignments.keys
+              ).nonEmpty
+          }
+        else
+          SegmentAssigner.assign(
+            keyValues = Slice(head, last),
+            segments = appendixSegments
+          ) map {
+            assignments =>
+              Segment.overlaps(
+                segments1 = busySegments,
+                segments2 = assignments.keys
+              ).nonEmpty
+          }
+      }) getOrElse Success(false)
 }
 
 private[core] trait Segment {

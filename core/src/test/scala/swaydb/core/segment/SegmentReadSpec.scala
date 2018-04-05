@@ -523,31 +523,31 @@ class SegmentReadSpec extends TestBase with ScalaFutures with PrivateMethodTeste
       //     1-2, 3-4, ---, 7-8, 9-10
       var inputSegments = Seq(TestSegment(Slice(Transient.Put(0), Transient.Put(1)).updateStats)).map(_.assertGet)
       var busySegments = Seq(TestSegment(Slice(Transient.Put(3), Transient.Put(4)).updateStats), TestSegment(Slice(Transient.Put(7), Transient.Put(8)).updateStats)).map(_.assertGet)
-      Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments) shouldBe false
+      Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments).assertGet shouldBe false
 
       //     1-2
       //          3-4       7-8
       //     1-2, 3-4, ---, 7-8, 9-10
       inputSegments = Seq(TestSegment(Slice(Transient.Put(1), Transient.Put(2)).updateStats)).map(_.assertGet)
-      Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments) shouldBe false
+      Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments).assertGet shouldBe false
 
       //          3-4
       //          3-4       7-8
       //     1-2, 3-4, ---, 7-8, 9-10
       inputSegments = Seq(TestSegment(Slice(Transient.Put(3), Transient.Put(2)).updateStats)).map(_.assertGet)
-      Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments) shouldBe true
+      Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments).assertGet shouldBe true
 
       //               5-6
       //          3-4       7-8
       //     1-2, 3-4, ---, 7-8, 9-10
       inputSegments = Seq(TestSegment(Slice(Transient.Put(5), Transient.Put(6)).updateStats)).map(_.assertGet)
-      Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments) shouldBe true
+      Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments).assertGet shouldBe true
 
       //                         9-10
       //          3-4       7-8
       //     1-2, 3-4, ---, 7-8, 9-10
       inputSegments = Seq(TestSegment(Slice(Transient.Put(9), Transient.Put(10)).updateStats)).map(_.assertGet)
-      Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments) shouldBe false
+      Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments).assertGet shouldBe false
 
       //               5-6
       //     1-2            7-8
@@ -558,13 +558,72 @@ class SegmentReadSpec extends TestBase with ScalaFutures with PrivateMethodTeste
           TestSegment(Slice(Transient.Put(7), Transient.Put(8)).updateStats) ::
           Nil
       }.map(_.assertGet)
-      Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments) shouldBe true
+      Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments).assertGet shouldBe true
 
       //               5-6
       //     1-2                 9-10
       //     1-2, 3-4, ---, 7-8, 9-10
       busySegments = Seq(TestSegment(Slice(Transient.Put(1), Transient.Put(2)).updateStats), TestSegment(Slice(Transient.Put(9), Transient.Put(10)).updateStats)).map(_.assertGet)
-      Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments) shouldBe false
+      Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments).assertGet shouldBe false
+    }
+
+    "return true or false if input map overlap or do not overlap with busy Segments respectively" in {
+
+      val targetSegments = {
+        TestSegment(Slice(Transient.Put(1), Transient.Put(2)).updateStats) ::
+          TestSegment(Slice(Transient.Put(3), Transient.Put(4)).updateStats) ::
+          TestSegment(Slice(Transient.Put(7), Transient.Put(8)).updateStats) ::
+          TestSegment(Slice(Transient.Put(9), Transient.Put(10)).updateStats) ::
+          Nil
+      }.map(_.assertGet)
+
+      //0-1
+      //          3-4       7-8
+      //     1-2, 3-4, ---, 7-8, 9-10
+      var inputMap = TestMap(Slice(Memory.Put(0), Memory.Put(1)))
+      var busySegments = Seq(TestSegment(Slice(Transient.Put(3), Transient.Put(4)).updateStats), TestSegment(Slice(Transient.Put(7), Transient.Put(8)).updateStats)).map(_.assertGet)
+      Segment.overlapsWithBusySegments(inputMap, busySegments, targetSegments).assertGet shouldBe false
+
+      //     1-2
+      //          3-4       7-8
+      //     1-2, 3-4, ---, 7-8, 9-10
+      inputMap = TestMap(Slice(Memory.Put(1), Memory.Put(2)))
+      Segment.overlapsWithBusySegments(inputMap, busySegments, targetSegments).assertGet shouldBe false
+
+      //          3-4
+      //          3-4       7-8
+      //     1-2, 3-4, ---, 7-8, 9-10
+      inputMap = TestMap(Slice(Memory.Put(3), Memory.Put(2)))
+      Segment.overlapsWithBusySegments(inputMap, busySegments, targetSegments).assertGet shouldBe true
+
+      //               5-6
+      //          3-4       7-8
+      //     1-2, 3-4, ---, 7-8, 9-10
+      inputMap = TestMap(Slice(Memory.Put(5), Memory.Put(6)))
+      Segment.overlapsWithBusySegments(inputMap, busySegments, targetSegments).assertGet shouldBe true
+
+      //                         9-10
+      //          3-4       7-8
+      //     1-2, 3-4, ---, 7-8, 9-10
+      inputMap = TestMap(Slice(Memory.Put(9), Memory.Put(10)))
+      Segment.overlapsWithBusySegments(inputMap, busySegments, targetSegments).assertGet shouldBe false
+
+      //               5-6
+      //     1-2            7-8
+      //     1-2, 3-4, ---, 7-8, 9-10
+      inputMap = TestMap(Slice(Memory.Put(5), Memory.Put(6)))
+      busySegments = {
+        TestSegment(Slice(Transient.Put(1), Transient.Put(2)).updateStats) ::
+          TestSegment(Slice(Transient.Put(7), Transient.Put(8)).updateStats) ::
+          Nil
+      }.map(_.assertGet)
+      Segment.overlapsWithBusySegments(inputMap, busySegments, targetSegments).assertGet shouldBe true
+
+      //               5-6
+      //     1-2                 9-10
+      //     1-2, 3-4, ---, 7-8, 9-10
+      busySegments = Seq(TestSegment(Slice(Transient.Put(1), Transient.Put(2)).updateStats), TestSegment(Slice(Transient.Put(9), Transient.Put(10)).updateStats)).map(_.assertGet)
+      Segment.overlapsWithBusySegments(inputMap, busySegments, targetSegments).assertGet shouldBe false
     }
   }
 

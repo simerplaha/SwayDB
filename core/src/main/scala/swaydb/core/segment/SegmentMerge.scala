@@ -134,15 +134,15 @@ private[core] object SegmentMerge {
     }
   }
 
-  def split(keyValues: Iterable[KeyValue.ReadOnly],
+  def split(keyValues: Slice[KeyValue.ReadOnly],
             minSegmentSize: Long,
             removeDeletes: Boolean,
             forInMemory: Boolean,
             bloomFilterFalsePositiveRate: Double)(implicit ordering: Ordering[Slice[Byte]]): Try[Iterable[Iterable[KeyValue.WriteOnly]]] =
     merge(keyValues, Slice.create[KeyValue.ReadOnly](0), minSegmentSize, isLastLevel = removeDeletes, forInMemory = forInMemory, bloomFilterFalsePositiveRate)
 
-  def merge(newKeyValues: Iterable[KeyValue.ReadOnly],
-            oldKeyValues: Iterable[KeyValue.ReadOnly],
+  def merge(newKeyValues: Slice[KeyValue.ReadOnly],
+            oldKeyValues: Slice[KeyValue.ReadOnly],
             minSegmentSize: Long,
             isLastLevel: Boolean,
             forInMemory: Boolean,
@@ -154,8 +154,8 @@ private[core] object SegmentMerge {
     var oldRangeKeyValueStash = Option.empty[KeyValue.ReadOnly.Range]
 
     @tailrec
-    def doMerge(newKeyValues: Iterable[KeyValue.ReadOnly],
-                oldKeyValues: Iterable[KeyValue.ReadOnly]): Try[ListBuffer[ListBuffer[KeyValue.WriteOnly]]] = {
+    def doMerge(newKeyValues: Slice[KeyValue.ReadOnly],
+                oldKeyValues: Slice[KeyValue.ReadOnly]): Try[ListBuffer[ListBuffer[KeyValue.WriteOnly]]] = {
 
       def dropOldKeyValue(stash: Option[KeyValue.ReadOnly.Range] = None) =
         if (oldRangeKeyValueStash.isDefined) {

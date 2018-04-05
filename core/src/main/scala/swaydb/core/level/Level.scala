@@ -303,28 +303,34 @@ private[core] class Level(val dirs: Seq[Dir],
     logger.trace(s"{}: Putting segments '{}' segments.", paths.head, segments.map(_.path.toString).toList)
     //check to ensure that the Segments do not overlap with busy Segments
     val busySegments = getBusySegments()
-    if (Segment.overlapsWithBusySegments(segments, busySegments, appendix.values().asScala)) {
-      logger.debug("{}: Segments '{}' intersect with current busy segments: {}", paths.head, segments.map(_.path.toString), busySegments.map(_.path.toString))
-      Failure(LevelException.ContainsOverlappingBusySegments)
+    val appendixValues = appendix.values().asScala
+    Segment.overlapsWithBusySegments(segments, busySegments, appendixValues) flatMap {
+      overlaps =>
+        if (overlaps) {
+          logger.debug("{}: Segments '{}' intersect with current busy segments: {}", paths.head, segments.map(_.path.toString), busySegments.map(_.path.toString))
+          Failure(LevelException.ContainsOverlappingBusySegments)
+        } //only copy Segments if the both this Level and the Segments are persistent.
+        else if (!inMemory && segments.headOption.exists(_.persistent) && isEmpty)
+          copy(segments)
+        else
+          merge(segments, appendixValues, None)
     }
-    //only copy Segments if the both this Level and the Segments are persistent.
-    else if (!inMemory && segments.headOption.exists(_.persistent) && isEmpty)
-      copy(segments)
-    else
-      merge(segments, appendix.values().asScala, None)
   }
 
   def putMap(map: Map[Slice[Byte], Memory]): Try[Unit] = {
     logger.trace("{}: PutMap '{}' Maps.", paths.head, map.count())
     //do an initial check to ensure that the Segments do not overlap with busy Segments
     val busySegs = getBusySegments()
-    val keyValues = map.values().asScala
-    if (Segment.overlapsWithBusySegmentsKeyValues(keyValues, busySegs, appendix.values().asScala)) {
-      logger.debug("{}: Map '{}' contains key-values intersect with current busy segments: {}", paths.head, map.pathOption.map(_.toString), busySegs.map(_.path.toString))
-      Failure(LevelException.ContainsOverlappingBusySegments)
+    val appendixValues = appendix.values().asScala
+    Segment.overlapsWithBusySegments(map, busySegs, appendixValues) flatMap {
+      overlaps =>
+        if (overlaps) {
+          logger.debug("{}: Map '{}' contains key-values intersect with current busy segments: {}", paths.head, map.pathOption.map(_.toString), busySegs.map(_.path.toString))
+          Failure(LevelException.ContainsOverlappingBusySegments)
+        } else {
+          putKeyValues(Slice(map.values().toArray(new Array[Memory](map.skipList.size()))), appendixValues, None)
+        }
     }
-    else
-      putKeyValues(keyValues, appendix.values().asScala, None)
   }
 
   def putKeyValues(keyValues: Slice[KeyValue.ReadOnly]): Try[Unit] = {
@@ -471,7 +477,7 @@ private[core] class Level(val dirs: Seq[Dir],
     }
   }
 
-  private def putKeyValues(keyValues: Iterable[KeyValue.ReadOnly],
+  private def putKeyValues(keyValues: Slice[KeyValue.ReadOnly],
                            targetSegments: Iterable[Segment],
                            initialEntry: Option[MapEntry[Slice[Byte], Segment]]): Try[Unit] = {
     logger.trace(s"{}: Merging {} KeyValues.", paths.head, keyValues.size)
@@ -533,7 +539,7 @@ private[core] class Level(val dirs: Seq[Dir],
     }
   }
 
-  private def addAsNewSegments(keyValues: Iterable[KeyValue.ReadOnly],
+  private def addAsNewSegments(keyValues: Slice[KeyValue.ReadOnly],
                                initialEntry: Option[MapEntry[Slice[Byte], Segment]]): Try[Unit] = {
     logger.debug(s"{}: In addToNewSegments {} KeyValues.", paths.head, keyValues.size)
 

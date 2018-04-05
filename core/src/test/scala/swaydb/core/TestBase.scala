@@ -24,6 +24,7 @@ import java.nio.file._
 import java.nio.file.attribute.BasicFileAttributes
 import java.util.concurrent.atomic.AtomicInteger
 
+import com.typesafe.scalalogging.LazyLogging
 import org.scalatest.concurrent.Eventually
 import org.scalatest.{BeforeAndAfterAll, WordSpec}
 import swaydb.core.TestLimitQueues._
@@ -34,6 +35,7 @@ import swaydb.core.io.reader.FileReader
 import swaydb.core.level.actor.LevelCommand.{PushSegments, PushSegmentsResponse}
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, LevelRef}
+import swaydb.core.map.{MapEntry, PersistentMap}
 import swaydb.core.segment.Segment
 import swaydb.core.util.IDGenerator
 import swaydb.data.accelerate.{Accelerator, Level0Meter}
@@ -43,10 +45,11 @@ import swaydb.data.segment.MaxKey
 import swaydb.data.slice.Slice
 import swaydb.data.storage.{AppendixStorage, Level0Storage, LevelStorage}
 import swaydb.data.util.StorageUnits._
+import swaydb.core.util.FileUtil._
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.util.{Random, Try}
+import scala.util.{Random, Success, Try}
 
 trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeAndAfterAll with Eventually {
 
@@ -149,6 +152,12 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
       randomIntDirectory.resolve(nextSegmentId)
     else
       IO.createDirectoriesIfAbsent(randomIntDirectory).resolve(nextSegmentId)
+
+  def testMapFile: Path =
+    if (memory)
+      randomIntDirectory.resolve(nextId.toString + ".map")
+    else
+      IO.createDirectoriesIfAbsent(randomIntDirectory).resolve(nextId.toString + ".map")
 
   def farOut = new Exception("Far out! Something went wrong")
 
@@ -344,6 +353,40 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
 
   def createFileChannelReader(bytes: Slice[Byte]): FileReader =
     createFileReader(createFile(bytes))
+
+  object TestMap {
+    def apply(keyValues: Slice[Memory],
+              fileSize: Int = 4.mb,
+              path: Path = testMapFile,
+              flushOnOverflow: Boolean = false,
+              mmap: Boolean = true)(implicit ordering: Ordering[Slice[Byte]],
+                                    keyValueLimiter: (Persistent, Segment) => Unit = keyValueLimiter,
+                                    fileOpenLimited: DBFile => Unit = fileOpenLimiter): map.Map[Slice[Byte], Memory] = {
+      import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
+      import swaydb.core.map.serializer.LevelZeroMapEntryReader._
+      implicit val merger = swaydb.core.level.zero.LevelZeroSkipListMerge
+
+      val testMap =
+        if (levelStorage.memory)
+          map.Map.memory[Slice[Byte], Memory](
+            fileSize = fileSize,
+            flushOnOverflow = flushOnOverflow
+          )
+        else
+          map.Map.persistent[Slice[Byte], Memory](
+            folder = path,
+            mmap = mmap,
+            flushOnOverflow = flushOnOverflow,
+            fileSize = fileSize
+          ).assertGet
+
+      keyValues foreach {
+        keyValue =>
+          testMap.write(MapEntry.Put(keyValue.key, keyValue))
+      }
+      testMap
+    }
+  }
 
   object TestSegment {
     def apply(keyValues: Slice[KeyValue.WriteOnly] = randomIntKeyStringValues(),

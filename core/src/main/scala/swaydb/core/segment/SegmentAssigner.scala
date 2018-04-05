@@ -29,15 +29,11 @@ import scala.util.{Failure, Success, Try}
 
 private[core] object SegmentAssigner {
 
-  def assignMinMaxOnly(keyValues: Iterable[KeyValue.ReadOnly],
-                       targetSegments: Iterable[Segment])(implicit ordering: Ordering[Slice[Byte]]): Iterable[Segment] =
-    SegmentAssigner.assign(Segment.tempMinMaxKeyValuesKeyValues(keyValues), targetSegments).get.keys
-
   def assignMinMaxOnlyForSegments(inputSegments: Iterable[Segment],
-                                  targetSegments: Iterable[Segment])(implicit ordering: Ordering[Slice[Byte]]): Iterable[Segment] =
-    SegmentAssigner.assign(Segment.tempMinMaxKeyValues(inputSegments), targetSegments).get.keys
+                                  targetSegments: Iterable[Segment])(implicit ordering: Ordering[Slice[Byte]]): Try[Iterable[Segment]] =
+    SegmentAssigner.assign(Segment.tempMinMaxKeyValues(inputSegments), targetSegments).map(_.keys)
 
-  def assign(keyValues: Iterable[KeyValue.ReadOnly],
+  def assign(keyValues: Slice[KeyValue.ReadOnly],
              segments: Iterable[Segment])(implicit ordering: Ordering[Slice[Byte]]): Try[mutable.Map[Segment, Slice[KeyValue.ReadOnly]]] = {
     import ordering._
     val assignmentsMap = mutable.Map.empty[Segment, Slice[KeyValue.ReadOnly]]
@@ -61,7 +57,7 @@ private[core] object SegmentAssigner {
     var stashKeyValue = Option.empty[KeyValue.ReadOnly.Range]
 
     @tailrec
-    def assign(remainingKeyValues: Iterable[KeyValue.ReadOnly],
+    def assign(remainingKeyValues: Slice[KeyValue.ReadOnly],
                thisSegmentMayBe: Option[Segment],
                nextSegmentMayBe: Option[Segment]): Try[Unit] = {
 
