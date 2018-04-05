@@ -103,15 +103,33 @@ class SegmentReadSpec extends TestBase with ScalaFutures with PrivateMethodTeste
 
       segment.close.assertGet
     }
+
+    "return true if the input key-value belong to the Segment else false when the Segment's min key is a Range key-value" in {
+      val segment = TestSegment(Slice(Transient.Range[Value, Value](1, 10, None, Value.Remove), Transient.Put(11)).updateStats).assertGet
+
+      Segment.belongsTo(Transient.Put(0), segment) shouldBe false
+
+      Segment.belongsTo(Transient.Put(1), segment) shouldBe true
+      Segment.belongsTo(Transient.Put(2), segment) shouldBe true
+      Segment.belongsTo(Remove(3), segment) shouldBe true
+      Segment.belongsTo(Transient.Range[Value, Value](3, 10, None, Value.Remove), segment) shouldBe true
+      Segment.belongsTo(Transient.Put(4), segment) shouldBe true
+      Segment.belongsTo(Remove(5), segment) shouldBe true
+      Segment.belongsTo(Remove(6), segment) shouldBe true
+      Segment.belongsTo(Remove(7), segment) shouldBe true
+      Segment.belongsTo(Remove(10), segment) shouldBe true
+
+      Segment.belongsTo(Transient.Range[Value, Value](9, 10, Some(Value.Remove), Value.Put(10)), segment) shouldBe true
+      Segment.belongsTo(Transient.Range[Value, Value](10, 11, Some(Value.Remove), Value.Put(10)), segment) shouldBe true
+
+      segment.close.assertGet
+    }
   }
 
   "Segment.rangeBelongsTo" should {
     "return true for overlapping KeyValues else false for Segments if the Segment's last key-value is not a Range" in {
       val segment = TestSegment(Slice(Transient.Put(1), Transient.Remove(5)).updateStats).assertGet
 
-      //      1 - 5
-      //      1 - 5
-      Segment.overlaps(1, 5, segment) shouldBe true
       //0 - 0
       //      1 - 5
       Segment.overlaps(0, 0, segment) shouldBe false
@@ -121,12 +139,37 @@ class SegmentReadSpec extends TestBase with ScalaFutures with PrivateMethodTeste
       //    0 - 2
       //      1 - 5
       Segment.overlaps(0, 2, segment) shouldBe true
+      //    0   - 5
+      //      1 - 5
+      Segment.overlaps(0, 5, segment) shouldBe true
+      //    0   -   6
+      //      1 - 5
+      Segment.overlaps(0, 6, segment) shouldBe true
+
+
+      //      1-2
+      //      1 - 5
+      Segment.overlaps(1, 2, segment) shouldBe true
+      //      1-4
+      //      1 - 5
+      Segment.overlaps(1, 4, segment) shouldBe true
+      //      1 - 5
+      //      1 - 5
+      Segment.overlaps(1, 5, segment) shouldBe true
+      //      1 -  6
+      //      1 - 5
+      Segment.overlaps(1, 6, segment) shouldBe true
+
+
       //       2-4
       //      1 - 5
       Segment.overlaps(2, 4, segment) shouldBe true
-      //        4 - 6
+      //       2- 5
       //      1 - 5
-      Segment.overlaps(4, 6, segment) shouldBe true
+      Segment.overlaps(2, 5, segment) shouldBe true
+      //        2 - 6
+      //      1 - 5
+      Segment.overlaps(2, 6, segment) shouldBe true
       //          5 - 6
       //      1 - 5
       Segment.overlaps(5, 6, segment) shouldBe true
@@ -145,9 +188,7 @@ class SegmentReadSpec extends TestBase with ScalaFutures with PrivateMethodTeste
     "return true for overlapping KeyValues else false for Segments if the Segment's last key-value is a Range" in {
       val segment = TestSegment(Slice(Transient.Put(1), Transient.Range[Value, Value](5, 10, None, Value.Remove)).updateStats).assertGet
 
-      //      1 - 5
-      //      1 - (5 - 10(EX))
-      Segment.overlaps(1, 5, segment) shouldBe true
+
       //0 - 0
       //      1 - (5 - 10(EX))
       Segment.overlaps(0, 0, segment) shouldBe false
@@ -157,15 +198,58 @@ class SegmentReadSpec extends TestBase with ScalaFutures with PrivateMethodTeste
       //    0 - 2
       //      1 - (5 - 10(EX))
       Segment.overlaps(0, 2, segment) shouldBe true
+      //    0 -    5
+      //      1 - (5 - 10(EX))
+      Segment.overlaps(0, 5, segment) shouldBe true
+      //    0   -    7
+      //      1 - (5 - 10(EX))
+      Segment.overlaps(0, 7, segment) shouldBe true
+      //    0     -    10
+      //      1 - (5 - 10(EX))
+      Segment.overlaps(0, 10, segment) shouldBe true
+      //    0      -      11
+      //      1 - (5 - 10(EX))
+      Segment.overlaps(0, 11, segment) shouldBe true
+
+      //      1 - 5
+      //      1 - (5 - 10(EX))
+      Segment.overlaps(1, 5, segment) shouldBe true
+      //      1 -   6
+      //      1 - (5 - 10(EX))
+      Segment.overlaps(1, 6, segment) shouldBe true
+      //      1 -      10
+      //      1 - (5 - 10(EX))
+      Segment.overlaps(1, 10, segment) shouldBe true
+      //      1 -          11
+      //      1 - (5 - 10(EX))
+      Segment.overlaps(1, 11, segment) shouldBe true
+
       //       2-4
       //      1 - (5 - 10(EX))
       Segment.overlaps(2, 4, segment) shouldBe true
-      //        4 - 6
+      //       2 - 5
       //      1 - (5 - 10(EX))
-      Segment.overlaps(4, 6, segment) shouldBe true
+      Segment.overlaps(2, 5, segment) shouldBe true
+      //       2 -   6
+      //      1 - (5 - 10(EX))
+      Segment.overlaps(2, 6, segment) shouldBe true
+      //       2   -    10
+      //      1 - (5 - 10(EX))
+      Segment.overlaps(2, 10, segment) shouldBe true
+      //       2     -    11
+      //      1 - (5 - 10(EX))
+      Segment.overlaps(2, 11, segment) shouldBe true
+
+
       //          5 - 6
       //      1 - (5 - 10(EX))
       Segment.overlaps(5, 6, segment) shouldBe true
+      //          5 -  10
+      //      1 - (5 - 10(EX))
+      Segment.overlaps(5, 10, segment) shouldBe true
+      //          5   -   11
+      //      1 - (5 - 10(EX))
+      Segment.overlaps(5, 11, segment) shouldBe true
       //            6 - 7
       //      1 - (5 - 10(EX))
       Segment.overlaps(6, 7, segment) shouldBe true

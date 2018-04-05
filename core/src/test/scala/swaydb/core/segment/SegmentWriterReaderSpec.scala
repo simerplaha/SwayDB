@@ -228,15 +228,55 @@ class SegmentWriterReaderSpec extends TestBase {
       assertReads(keyValues, createFileChannelReader(bytes))
     }
 
-    "read footer" in {
-      val keyValues = Slice(Transient.Put(1, 1), Transient.Remove(2), Transient.Range[Value, Value](3, 4, Some(Value.Put(3)), Value.Remove)).updateStats
+    "read footer when Segment contains no Range key-value" in {
+      val keyValues = Slice(Transient.Put(1, 1), Transient.Remove(2)).updateStats
 
       val bytes = SegmentWriter.toSlice(keyValues, 0.1).assertGet
 
       val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).get
       footer.keyValueCount shouldBe keyValues.size
       footer.keyValueCount shouldBe keyValues.size
-      footer.startIndexOffset shouldBe keyValues.last.stats.toValueOffset + 1
+      footer.startIndexOffset shouldBe keyValues.head.stats.toValueOffset + 1
+      footer.hasRange shouldBe false
+      val bloomFilter = footer.bloomFilter.assertGet
+      keyValues foreach (keyValue => bloomFilter.mightContain(keyValue.key) shouldBe true)
+      footer.crc should be > 0L
+    }
+
+    "read footer when Segment contains Put range key-value" in {
+      def doAssert(keyValues: Slice[KeyValue.WriteOnly]) = {
+        val bytes = SegmentWriter.toSlice(keyValues, 0.1).assertGet
+
+        val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).get
+        footer.keyValueCount shouldBe keyValues.size
+        footer.keyValueCount shouldBe keyValues.size
+        footer.startIndexOffset shouldBe keyValues.last.stats.toValueOffset + 1
+        footer.hasRange shouldBe true
+        val bloomFilter = footer.bloomFilter.assertGet
+        keyValues foreach (keyValue => bloomFilter.mightContain(keyValue.key) shouldBe true)
+        footer.crc should be > 0L
+      }
+
+      doAssert(Slice(Transient.Put(1, 1), Transient.Remove(2), Transient.Range[Value, Value](3, 4, Some(Value.Put(3)), Value.Put(10))).updateStats)
+      doAssert(Slice(Transient.Remove(1), Transient.Put(2, 2), Transient.Range[Value, Value](3, 4, None, Value.Put(10))).updateStats)
+      doAssert(Slice(Transient.Put(1, 1), Transient.Remove(2), Transient.Range[Value, Value](3, 4, Some(Value.Remove), Value.Put(10))).updateStats)
+    }
+
+    "read footer when Segment contains Remove range key-value" in {
+      def doAssert(keyValues: Slice[KeyValue.WriteOnly]) = {
+        val bytes = SegmentWriter.toSlice(keyValues, 0.1).assertGet
+
+        val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).get
+        footer.keyValueCount shouldBe keyValues.size
+        footer.keyValueCount shouldBe keyValues.size
+        footer.hasRange shouldBe true
+        footer.bloomFilter shouldBe empty
+        footer.crc should be > 0L
+      }
+
+      doAssert(Slice(Transient.Put(1, 1), Transient.Remove(2), Transient.Range[Value, Value](3, 4, Some(Value.Put(3)), Value.Remove)).updateStats)
+      doAssert(Slice(Transient.Remove(1), Transient.Put(2, 2), Transient.Range[Value, Value](3, 4, None, Value.Remove)).updateStats)
+      doAssert(Slice(Transient.Put(1, 1), Transient.Remove(2), Transient.Range[Value, Value](3, 4, Some(Value.Remove), Value.Remove)).updateStats)
     }
 
     "report Segment corruption is CRC check does not match when reading the footer" in {

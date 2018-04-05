@@ -161,7 +161,7 @@ class SegmentWriteSpec extends TestBase with Benchmark {
       )
     }
 
-    "un-slice minKey and maxKey when Segments are created" in {
+    "un-slice Segment's minKey & maxKey and also un-slice cache key-values" in {
       //assert that all key-values added to cache are not sub-slices.
       def assertCacheKeyValuesAreNotSubSlices(segment: Segment) = {
         segment.cache.asScala foreach {
@@ -278,6 +278,7 @@ class SegmentWriteSpec extends TestBase with Benchmark {
       doAssert(Slice(Transient.Put("a", "a"), Transient.Remove("b"), Transient.Range[Value, Value]("c", "d", Some(Value.Put("c")), Value.Put("d")), Transient.Put("d", "d")).updateStats)
       doAssert(Slice(Transient.Put("a", "a"), Transient.Range[Value, Value]("b", "d", None, Value.Remove), Transient.Put("e", "e"), Transient.Remove("f")).updateStats)
       doAssert(Slice(Transient.Put("a", "a"), Transient.Put("b", "b"), Transient.Put("c", "c"), Transient.Range[Value, Value]("d", "z", Some(Value.Put("d")), Value.Remove)).updateStats)
+      doAssert(Slice(Transient.Range[Value, Value]("a", "b", None, Value.Put("a")), Transient.Put("b", "b"), Transient.Put("c", "c"), Transient.Range[Value, Value]("d", "z", Some(Value.Put("d")), Value.Put("d"))).updateStats)
     }
 
     "not create bloomFilter if the Segment has Remove range key-values and set hasRange to true" in {
