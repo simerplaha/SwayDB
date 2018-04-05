@@ -92,9 +92,9 @@ private[core] object TryUtil {
         }
       }
       failure match {
-        case Some(value) =>
-          recover(result, value)
-          value
+        case Some(failure) =>
+          recover(result, failure)
+          failure
         case None =>
           Success(result)
       }

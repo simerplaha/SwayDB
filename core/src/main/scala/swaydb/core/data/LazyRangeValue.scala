@@ -49,8 +49,8 @@ trait LazyRangeValue extends LazyValue {
         case Some(rangeValue) =>
           RangeValueSerializer.read(id, rangeValue) map {
             case fromValueRangeValue @ (fromValue, rangeValue) =>
-              this.fromValue = fromValue
-              this.rangeValue = rangeValue
+              this.fromValue = fromValue.map(_.unslice)
+              this.rangeValue = rangeValue.unslice
               fromValueRangeValue
           }
         case None =>

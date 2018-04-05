@@ -352,17 +352,14 @@ private[core] object Segment {
           }
       }
 
-  def deleteSegments(segments: Iterable[Segment]): Try[Int] = {
-    //    println(s"$id: Trying to delete segments: ${segments.map(_.id.toString).array.toList}")
+  def deleteSegments(segments: Iterable[Segment]): Try[Int] =
     segments.tryFoldLeft(0, failFast = false) {
       case (deleteCount, segment) =>
-        //        println(s"Deleting ${segment.id}")
-        segment.delete.map {
+        segment.delete map {
           _ =>
             deleteCount + 1
         }
     }
-  }
 
   def tempMinMaxKeyValuesKeyValues(map: Iterable[KeyValue.ReadOnly]): Slice[Memory] = {
     for {
@@ -464,6 +461,8 @@ private[core] trait Segment {
     cache.size()
 
   def hasRange: Try[Boolean]
+
+  def isFooterDefined: Boolean
 
   def isOpen: Boolean
 

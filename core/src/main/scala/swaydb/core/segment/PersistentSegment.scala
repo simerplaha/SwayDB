@@ -338,6 +338,9 @@ private[segment] class PersistentSegment(val file: DBFile,
   def persistent: Boolean =
     file.persistent
 
+  override def isFooterDefined: Boolean =
+    footer.isDefined
+
   override def hasRange: Try[Boolean] =
     getFooter().map(_.hasRange)
 }

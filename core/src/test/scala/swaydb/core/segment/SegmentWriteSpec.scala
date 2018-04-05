@@ -21,8 +21,9 @@ package swaydb.core.segment
 
 import java.nio.file._
 
+import swaydb.core.data.Memory.Put
 import swaydb.core.data.Transient.Remove
-import swaydb.core.data.{Memory, _}
+import swaydb.core.data.{Memory, Value, _}
 import swaydb.core.io.file.DBFile
 import swaydb.core.io.reader.Reader
 import swaydb.core.level.PathsDistributor
@@ -161,14 +162,81 @@ class SegmentWriteSpec extends TestBase with Benchmark {
     }
 
     "un-slice minKey and maxKey when Segments are created" in {
-      def doAssert(keyValues: Slice[KeyValue.WriteOnly]) = {
-        val bytes = SegmentWriter.toSlice(keyValues, 0.1).assertGet
+      //assert that all key-values added to cache are not sub-slices.
+      def assertCacheKeyValuesAreNotSubSlices(segment: Segment) = {
+        segment.cache.asScala foreach {
+          case (key, value: KeyValue.ReadOnly) =>
+            key.underlyingArraySize shouldBe 1
 
-        //read key-values so they are all part of the same byte array.
-        val readKeyValues = SegmentReader.readAll(SegmentReader.readFooter(Reader(bytes)).assertGet, Reader(bytes)).assertGet.toMemory
+            value match {
+              case fixed: Memory.Fixed =>
+                fixed match {
+                  case Put(key, value) =>
+                    key.underlyingArraySize shouldBe 1
+                    value.foreach(_.underlyingArraySize shouldBe 1)
+                  case Memory.Remove(key) =>
+                    key.underlyingArraySize shouldBe 1
+                }
 
-        //assert that readKeyValues keys are not unsliced i.e. they are sub-slices of original large byte array.
-        readKeyValues foreach {
+              case Memory.Range(fromKey, toKey, fromValue, rangeValue) =>
+                fromKey.underlyingArraySize shouldBe 1
+                toKey.underlyingArraySize shouldBe 1
+
+                fromValue foreach {
+                  case Value.Put(value) =>
+                    value.foreach(_.underlyingArraySize shouldBe 1)
+                  case Value.Remove =>
+                }
+
+                rangeValue match {
+                  case Value.Put(value) =>
+                    value.foreach(_.underlyingArraySize shouldBe 1)
+                  case Value.Remove =>
+                }
+
+              case fixed: Persistent.Fixed =>
+                fixed match {
+                  case Persistent.Put(key, value, _, _, _, _, _) =>
+                    key.underlyingArraySize shouldBe 1
+                    fixed.getOrFetchValue.assertGetOpt.foreach(_.underlyingArraySize shouldBe 1)
+                  case Persistent.Remove(key, _, _, _) =>
+                    key.underlyingArraySize shouldBe 1
+
+                }
+
+              case range @ Persistent.Range(id, fromKey, toKey, _, _, _, _, _, _) =>
+                fromKey.underlyingArraySize shouldBe 1
+                toKey.underlyingArraySize shouldBe 1
+                val (fromValue, rangeValue) = range.fetchFromAndRangeValue.assertGet
+                fromValue foreach {
+                  case Value.Put(value) =>
+                    value.foreach(_.underlyingArraySize shouldBe 1)
+                  case Value.Remove =>
+                }
+                rangeValue match {
+                  case Value.Put(value) =>
+                    value.foreach(_.underlyingArraySize shouldBe 1)
+                  case Value.Remove =>
+                }
+            }
+        }
+      }
+
+      def assertMinAndMaxKeyAreNotSubSlices(segment: Segment) = {
+        segment.minKey.underlyingArraySize shouldBe 1
+        segment.maxKey match {
+          case Fixed(maxKey) =>
+            maxKey.underlyingArraySize shouldBe 1
+
+          case Range(fromKey, maxKey) =>
+            fromKey.underlyingArraySize shouldBe 1
+            maxKey.underlyingArraySize shouldBe 1
+        }
+      }
+
+      def assertKeyValuesAreSubSlices(keyValues: Slice[Memory],
+                                      bytes: Slice[Byte]) =
+        keyValues foreach {
           readKeyValue =>
             readKeyValue.key.underlyingArraySize should be > readKeyValue.key.unslice().size
             readKeyValue.key.underlyingArraySize shouldBe bytes.size
@@ -184,28 +252,32 @@ class SegmentWriteSpec extends TestBase with Benchmark {
             }
         }
 
-        //when Segments are created min and max keys will be unsliced.
+      def doAssert(keyValues: Slice[KeyValue.WriteOnly]) = {
+        val bytes = SegmentWriter.toSlice(keyValues, 0.1).assertGet
+
+        //read key-values so they are all part of the same byte array.
+        val readKeyValues: Slice[Memory] = SegmentReader.readAll(SegmentReader.readFooter(Reader(bytes)).assertGet, Reader(bytes)).assertGet.toMemory
+
+        //assert that readKeyValues keys are sub=slices of original large byte array.
+        assertKeyValuesAreSubSlices(readKeyValues, bytes)
+
+        //Create Segment with sub-slice key-values and assert min & maxKey and also check that cached key-values are un-sliced.
         assertOnSegment(
           keyValues = readKeyValues,
           assertion =
             segment => {
-              segment.minKey shouldBe keyValues.head.key
-
-              segment.minKey.underlyingArraySize shouldBe 1
-              segment.maxKey match {
-                case Fixed(maxKey) =>
-                  maxKey.underlyingArraySize shouldBe 1
-                case Range(fromKey, maxKey) =>
-                  fromKey.underlyingArraySize shouldBe 1
-                  maxKey.underlyingArraySize shouldBe 1
-              }
+              assertMinAndMaxKeyAreNotSubSlices(segment)
+              //if Persistent Segment, read all key-values from disk so that they get added to cache.
+              if (persistent) assertGet(readKeyValues, segment)
+              //assert key-values added to cache are un-sliced
+              assertCacheKeyValuesAreNotSubSlices(segment)
             }
         )
       }
 
-      doAssert(Slice(Transient.Put("a", "value"), Transient.Put("b", "value"), Transient.Put("c", "value"), Transient.Put("d", "value")).updateStats)
-      doAssert(Slice(Transient.Put("a", "value"), Transient.Put("b", "value"), Transient.Put("c", "value"), Transient.Remove("d")).updateStats)
-      doAssert(Slice(Transient.Put("a", "value"), Transient.Put("b", "value"), Transient.Put("c", "value"), Transient.Range[Value, Value]("d", "z", None, Value.Remove)).updateStats)
+      doAssert(Slice(Transient.Put("a", "a"), Transient.Remove("b"), Transient.Range[Value, Value]("c", "d", Some(Value.Put("c")), Value.Put("d")), Transient.Put("d", "d")).updateStats)
+      doAssert(Slice(Transient.Put("a", "a"), Transient.Range[Value, Value]("b", "d", None, Value.Remove), Transient.Put("e", "e"), Transient.Remove("f")).updateStats)
+      doAssert(Slice(Transient.Put("a", "a"), Transient.Put("b", "b"), Transient.Put("c", "c"), Transient.Range[Value, Value]("d", "z", Some(Value.Put("d")), Value.Remove)).updateStats)
     }
 
     "not create bloomFilter if the Segment has Remove range key-values and set hasRange to true" in {
@@ -404,7 +476,7 @@ class SegmentWriteSpec extends TestBase with Benchmark {
   }
 
   "Segment" should {
-    "open a closed Segment on read" in {
+    "open a closed Segment on read and clear footer" in {
       val keyValues = randomIntKeyValues(keyValuesCount)
       val segment = TestSegment(keyValues).assertGet
 
@@ -413,6 +485,7 @@ class SegmentWriteSpec extends TestBase with Benchmark {
         if (levelStorage.persistent) {
           segment.isFileDefined shouldBe false
           segment.isOpen shouldBe false
+          segment.isFooterDefined shouldBe false
         }
       }
 
@@ -420,14 +493,14 @@ class SegmentWriteSpec extends TestBase with Benchmark {
         segment.get(keyValue.key).assertGet shouldBe keyValue
         segment.isFileDefined shouldBe true
         segment.isOpen shouldBe true
+        segment.isFooterDefined shouldBe true
       }
 
-      close
-      open(keyValues.head)
-
-      close
-      open(keyValues.last)
-
+      keyValues foreach {
+        keyValue =>
+          close
+          open(keyValue)
+      }
     }
 
     "fail get and put operations on a Segment that does not exists" in {
@@ -453,17 +526,13 @@ class SegmentWriteSpec extends TestBase with Benchmark {
       implicit val segmentOpenLimit = LimitQueues.segmentOpenLimiter(1, 100.millisecond)
       val keyValues = randomIntKeyValues(keyValuesCount)
       val segment1 = TestSegment(keyValues)(ordering, keyValueLimiterImplicit, segmentOpenLimit).assertGet
-      //if its not mmap'd then read the file so that it gets opened for this test.
-      if (!levelStorage.mmapSegmentsOnWrite)
-        segment1.getKeyValueCount().assertGet shouldBe keyValues.size
 
+      segment1.getKeyValueCount().assertGet shouldBe keyValues.size
       segment1.isOpen shouldBe true
 
       //create another segment should close segment 1
       val segment2 = TestSegment(keyValues)(ordering, keyValueLimiterImplicit, segmentOpenLimit).assertGet
-      //if its not mmap'd then read the file so that it gets opened for this test.
-      if (!levelStorage.mmapSegmentsOnWrite)
-        segment2.getKeyValueCount().assertGet shouldBe keyValues.size
+      segment2.getKeyValueCount().assertGet shouldBe keyValues.size
 
       eventual(5.seconds) {
         //segment one is closed
@@ -473,7 +542,7 @@ class SegmentWriteSpec extends TestBase with Benchmark {
       (segment1 get keyValues.head.key).assertGet shouldBe keyValues.head
       segment1.isOpen shouldBe true
 
-      eventual(20.seconds) {
+      eventual(5.seconds) {
         //segment2 is closed
         segment2.isOpen shouldBe false
       }
@@ -487,15 +556,19 @@ class SegmentWriteSpec extends TestBase with Benchmark {
       assertReads(keyValues, segment) //populate the cache
 
       segment.cacheSize shouldBe keyValues.size
+      segment.isFooterDefined shouldBe true //footer is set in-memory
 
-      segment.delete.isSuccess shouldBe true
+      segment.delete.assertGet
       segment.cacheSize shouldBe keyValues.size //cache is not cleared
-      if (persistent) segment.isOpen shouldBe false
+      if (persistent) {
+        segment.isOpen shouldBe false
+        segment.isFooterDefined shouldBe false //on delete in-memory footer is cleared
+      }
       segment.existsOnDisk shouldBe false
     }
   }
 
-  "Segment.copy" should {
+  "Segment.copyTo" should {
     "copy the segment to a target path without deleting the original" in {
       if (memory) {
         val segment = TestSegment(randomIntKeyValues()).assertGet
@@ -618,7 +691,7 @@ class SegmentWriteSpec extends TestBase with Benchmark {
         //create a segment with the next id in sequence which should fail put with FileAlreadyExistsException
         val segmentToFailPut = TestSegment(path = tenthSegmentId).assertGet
 
-        segment.put(newKeyValues.toMemory, 1.kb, 0.1).failed.get shouldBe a[FileAlreadyExistsException]
+        segment.put(newKeyValues.toMemory, 1.kb, 0.1).failed.assertGet shouldBe a[FileAlreadyExistsException]
 
         //the folder should contain only the original segment and the segmentToFailPut
         segment.path.getParent.files(Extension.Seg) should contain only(segment.path, segmentToFailPut.path)
@@ -626,16 +699,11 @@ class SegmentWriteSpec extends TestBase with Benchmark {
     }
 
     "return new segment with deleted KeyValues if all keys were deleted and removeDeletes is false" in {
-      val keyValues = randomIntKeyValues(count = keyValuesCount)
+      val keyValues = Slice(Transient.Put(1), Transient.Put(2), Transient.Put(3), Transient.Put(4), Transient.Range[Value, Value](5, 10, None, Value.Put(10))).updateStats
       val segment = TestSegment(keyValues, removeDeletes = false).assertGet
+      assertGet(keyValues, segment)
 
-      keyValues foreach {
-        keyValue =>
-          segment.get(keyValue.key).assertGet shouldBe keyValue
-      }
-
-      val deleteKeyValues = Slice.create[Memory.Remove](keyValues.size)
-      keyValues.foreach(keyValue => deleteKeyValues add Memory.Remove(keyValue.key))
+      val deleteKeyValues = Slice(Memory.Remove(1), Memory.Remove(2), Memory.Remove(3), Memory.Remove(4), Memory.Range(5, 10, None, Value.Remove))
 
       val deletedSegment = segment.put(deleteKeyValues, 4.mb, 0.1).assertGet
       deletedSegment should have size 1
@@ -643,14 +711,12 @@ class SegmentWriteSpec extends TestBase with Benchmark {
       val newDeletedSegment = deletedSegment.head
       newDeletedSegment.getKeyValueCount().assertGet shouldBe keyValues.size
 
-      deleteKeyValues foreach {
-        keyValue =>
-          newDeletedSegment.get(keyValue.key).assertGet shouldBe keyValue
-      }
+      assertGet(keyValues, segment)
+      if (persistent) assertGet(keyValues, segment.reopen)
     }
 
     "return new segment with updated KeyValues if all keys values were updated to None" in {
-      val keyValues = randomIntKeyStringValues(count = 100)
+      val keyValues = randomIntKeyStringValues(count = 100, addRandomRanges = true)
       val segment = TestSegment(keyValues, removeDeletes = true).assertGet
 
       val updatedKeyValues = Slice.create[Memory](keyValues.size)
@@ -662,10 +728,7 @@ class SegmentWriteSpec extends TestBase with Benchmark {
       val newUpdatedSegment = updatedSegments.head
       newUpdatedSegment.getKeyValueCount().assertGet shouldBe keyValues.size
 
-      updatedKeyValues foreach {
-        keyValue =>
-          newUpdatedSegment.get(keyValue.key).assertGet shouldBe keyValue
-      }
+      assertGet(updatedKeyValues, newUpdatedSegment)
     }
 
     "merge existing segment file with new KeyValues returning new segment file with updated KeyValues" in {
@@ -694,13 +757,28 @@ class SegmentWriteSpec extends TestBase with Benchmark {
     }
 
     "return no new segments if all the KeyValues in the Segment were deleted and if remove deletes is true" in {
-      val keyValues = randomIntKeyValues(count = 10)
+      val keyValues = Slice(Transient.Put(1), Transient.Put(2), Transient.Put(3), Transient.Put(4), Transient.Range[Value, Value](5, 10, None, Value.Put(10))).updateStats
       val segment = TestSegment(keyValues, removeDeletes = true).assertGet
 
-      val deleteKeyValues = Slice.create[Memory.Remove](keyValues.size)
-      keyValues.foreach(keyValue => deleteKeyValues add Memory.Remove(keyValue.key))
+      val deleteKeyValues = Slice.create[Memory](keyValues.size)
+      (1 to 4).foreach(key => deleteKeyValues add Memory.Remove(key))
+      deleteKeyValues add Memory.Range(5, 10, None, Value.Remove)
 
       segment.put(deleteKeyValues, 4.mb, 0.1).assertGet shouldBe empty
+    }
+
+    "slice Put range into slice with fromValue set to Remove" in {
+      val keyValues = Slice(Transient.Range[Value, Value](1, 10, None, Value.Put(10))).updateStats
+      val segment = TestSegment(keyValues, removeDeletes = false).assertGet
+
+      val deleteKeyValues = Slice.create[Memory](10)
+      (1 to 10).foreach(key => deleteKeyValues add Memory.Remove(key))
+
+      val removedRanges = segment.put(deleteKeyValues, 4.mb, 0.1).assertGet.head.getAll().assertGet
+
+      val expected: Seq[Memory] = (1 to 9).map(key => Memory.Range(key, key + 1, Some(Value.Remove), Value.Put(10))) :+ Memory.Remove(10)
+
+      removedRanges shouldBe expected
     }
 
     "return 1 new segment with only 1 key-value if all the KeyValues in the Segment were deleted but 1" in {

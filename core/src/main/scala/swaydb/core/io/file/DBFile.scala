@@ -109,7 +109,8 @@ class DBFile(val path: Path,
     close flatMap {
       _ =>
         //try delegating the delete to the file itself.
-        // If the file was closed, then delete it from disk.
+        //If the file is already closed, then delete it from disk.
+        //memory files are never closed so the first statement will always be executed for memory files.
         (file.map(_.delete()) getOrElse IO.deleteIfExists(path)) map {
           _ =>
             file = None

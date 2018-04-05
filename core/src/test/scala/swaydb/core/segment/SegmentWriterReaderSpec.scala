@@ -25,7 +25,6 @@ import swaydb.core.io.reader.Reader
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
 import swaydb.core.segment.format.one.{KeyMatcher, SegmentFooter, SegmentReader, SegmentWriter}
 import swaydb.data.slice.Slice
-import swaydb.data.util.ByteUtil
 import swaydb.order.KeyOrder
 import swaydb.serializers.Default._
 import swaydb.serializers._

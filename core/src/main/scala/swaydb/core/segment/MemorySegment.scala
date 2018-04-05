@@ -203,4 +203,8 @@ private[segment] class MemorySegment(val path: Path,
 
   override def hasRange: Try[Boolean] =
     Try(_hasRange)
+
+  override def isFooterDefined: Boolean =
+    true
+
 }
