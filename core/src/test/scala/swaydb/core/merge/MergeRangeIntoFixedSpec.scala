@@ -36,17 +36,21 @@ class MergeRangeIntoFixedSpec extends TestBase {
     "add smaller Range key-value to the left if it's does not overlap the range key-value" in {
       //1 - 10
       //    10
-      val newKeyValues = Slice(Memory.Range(1, 10, Option.empty[Value.Put], Value.Put(9)))
+      val newKeyValues = Slice(Memory.Range(1, 10, Option.empty[Value.Put], Value.Put(10)))
       val oldKeyValues = Slice(Memory.Put(10, "new value"))
 
       val expected =
         Slice(
-          Transient.Range(1, 10, Option.empty[Value.Put], Value.Put(9), 0.1, None),
+          Transient.Range(1, 10, Option.empty[Value.Put], Value.Put(10), 0.1, None),
           Transient.Put(10, "new value")
         ).updateStats
 
       assertMerge(newKeyValues, oldKeyValues, expected)
       assertSkipListMerge(newKeyValues, oldKeyValues, expected)
+
+      //reversed produces the same result
+      assertMerge(oldKeyValues, newKeyValues, expected)
+      assertSkipListMerge(oldKeyValues, newKeyValues, expected)
 
       //last level check
       assertMerge(newKeyValues, oldKeyValues, Transient.Put(10, "new value"), isLastLevel = true)
@@ -67,6 +71,10 @@ class MergeRangeIntoFixedSpec extends TestBase {
       assertMerge(newKeyValues, oldKeyValues, expected)
       assertSkipListMerge(newKeyValues, oldKeyValues, expected)
 
+      //reversed produces the same result
+      assertMerge(oldKeyValues, newKeyValues, expected)
+      assertSkipListMerge(oldKeyValues, newKeyValues, expected)
+
       //last level check
       assertMerge(newKeyValues, oldKeyValues, Slice(Transient.Put(1, 1), Transient.Put(10, 10)).updateStats, isLastLevel = true)
     }
@@ -83,6 +91,10 @@ class MergeRangeIntoFixedSpec extends TestBase {
 
       assertMerge(newKeyValues, oldKeyValues, expected)
       assertSkipListMerge(newKeyValues, oldKeyValues, expected)
+
+      //reversed produces the same result
+      assertMerge(oldKeyValues, newKeyValues, expected)
+      assertSkipListMerge(oldKeyValues, newKeyValues, expected)
 
       //last level check
       assertMerge(newKeyValues, oldKeyValues, Transient.Put(10, "new value value"), isLastLevel = true)
@@ -101,6 +113,10 @@ class MergeRangeIntoFixedSpec extends TestBase {
       assertMerge(newKeyValues, oldKeyValues, expected)
       assertSkipListMerge(newKeyValues, oldKeyValues, expected)
 
+      //reversed produces the same result
+      assertMerge(oldKeyValues, newKeyValues, expected)
+      assertSkipListMerge(oldKeyValues, newKeyValues, expected)
+
       //last level check
       assertMerge(newKeyValues, oldKeyValues, Transient.Put(10, "new value"), isLastLevel = true)
     }
@@ -117,6 +133,10 @@ class MergeRangeIntoFixedSpec extends TestBase {
 
       assertMerge(newKeyValues, oldKeyValues, expected)
       assertSkipListMerge(newKeyValues, oldKeyValues, expected)
+
+      //reversed produces the same result
+      assertMerge(oldKeyValues, newKeyValues, expected)
+      assertSkipListMerge(oldKeyValues, newKeyValues, expected)
 
       //last level check
       assertMerge(newKeyValues, oldKeyValues, Slice(Transient.Put(10, 10), Transient.Put(11, 11)).updateStats, isLastLevel = true)
@@ -136,8 +156,100 @@ class MergeRangeIntoFixedSpec extends TestBase {
       assertMerge(newKeyValues, oldKeyValues, expected)
       assertSkipListMerge(newKeyValues, oldKeyValues, expected)
 
+      //reversed produces the same result
+      assertMerge(oldKeyValues, newKeyValues, expected)
+      assertSkipListMerge(oldKeyValues, newKeyValues, expected)
+
       //last level check
-      assertMerge(newKeyValues, oldKeyValues, (Transient.Put(10, 10)), isLastLevel = true)
+      assertMerge(newKeyValues, oldKeyValues, Transient.Put(10, 10), isLastLevel = true)
+    }
+
+    "split key-value with update value if range overlaps a fixed value" in {
+      // 1  -   11
+      //      10
+      val newKeyValues = Slice(Memory.Range(1, 11, None, Value.Put("updated")))
+      val oldKeyValues = Slice(Memory.Put(10, 10))
+
+      val expected = Slice(
+        Transient.Range[Value, Value](1, 10, None, Value.Put("updated"), 0.1, None),
+        Transient.Range[Value, Value](10, 11, Some(Value.Put("updated")), Value.Put("updated"), 0.1, None)
+      ).updateStats
+
+      assertMerge(newKeyValues, oldKeyValues, expected)
+      assertSkipListMerge(newKeyValues, oldKeyValues, expected)
+
+      //last level check
+      assertMerge(newKeyValues, oldKeyValues, Transient.Put(10, "updated"), isLastLevel = true)
+    }
+
+    "split key-value with update value and keep range's Remove fromValue if range overlaps a fixed value" in {
+      // 1  -   11
+      //      10
+      val newKeyValues = Slice(Memory.Range(1, 11, Some(Value.Remove), Value.Put("updated")))
+      val oldKeyValues = Slice(Memory.Put(10, 10))
+
+      val expected = Slice(
+        Transient.Range[Value, Value](1, 10, Some(Value.Remove), Value.Put("updated"), 0.1, None),
+        Transient.Range[Value, Value](10, 11, Some(Value.Put("updated")), Value.Put("updated"), 0.1, None)
+      ).updateStats
+
+      assertMerge(newKeyValues, oldKeyValues, expected)
+      assertSkipListMerge(newKeyValues, oldKeyValues, expected)
+
+      //last level check
+      assertMerge(newKeyValues, oldKeyValues, Transient.Put(10, "updated"), isLastLevel = true)
+    }
+
+    "split key-value with update value and keep range's Put fromValue if range overlaps a fixed value" in {
+      // 1  -   11
+      //      10
+      val newKeyValues = Slice(Memory.Range(1, 11, Some(Value.Put("1")), Value.Put("updated")))
+      val oldKeyValues = Slice(Memory.Put(10, 10))
+
+      val expected = Slice(
+        Transient.Range[Value, Value](1, 10, Some(Value.Put("1")), Value.Put("updated"), 0.1, None),
+        Transient.Range[Value, Value](10, 11, Some(Value.Put("updated")), Value.Put("updated"), 0.1, None)
+      ).updateStats
+
+      assertMerge(newKeyValues, oldKeyValues, expected)
+      assertSkipListMerge(newKeyValues, oldKeyValues, expected)
+
+      //last level check
+      assertMerge(newKeyValues, oldKeyValues, Slice(Transient.Put(1, "1"), Transient.Put(10, "updated")).updateStats, isLastLevel = true)
+    }
+
+    "apply update Range to Put key-value when fixed key equiv to Range's fromKey" in {
+      // 1  -   11
+      // 1
+      val newKeyValues = Slice(Memory.Range(1, 11, None, Value.Put("updated")))
+      val oldKeyValues = Slice(Memory.Put(1, 1))
+
+      val expected = Slice(
+        Transient.Range[Value, Value](1, 11, Some(Value.Put("updated")), Value.Put("updated"), 0.1, None)
+      ).updateStats
+
+      assertMerge(newKeyValues, oldKeyValues, expected)
+      assertSkipListMerge(newKeyValues, oldKeyValues, expected)
+
+      //last level check
+      assertMerge(newKeyValues, oldKeyValues, Slice(Transient.Put(1, "updated")).updateStats, isLastLevel = true)
+    }
+
+    "Remove Put key-value when fixed key equiv Range's fromKey and Range's fromKey is remove" in {
+      // 1  -   11
+      // 1
+      val newKeyValues = Slice(Memory.Range(1, 11, Some(Value.Remove), Value.Put("updated")))
+      val oldKeyValues = Slice(Memory.Put(1, 1))
+
+      val expected = Slice(
+        Transient.Range[Value, Value](1, 11, Some(Value.Remove), Value.Put("updated"), 0.1, None)
+      ).updateStats
+
+      assertMerge(newKeyValues, oldKeyValues, expected)
+      assertSkipListMerge(newKeyValues, oldKeyValues, expected)
+
+      //last level check
+      assertMerge(newKeyValues, oldKeyValues, Slice.empty, isLastLevel = true)
     }
 
     "remove all key-values" in {

@@ -80,6 +80,7 @@ lazy val embedded =
     .settings(
       libraryDependencies ++= commonDependencies
     ).dependsOn(apiJVM, core, configs, ordering)
+    .dependsOn(core % "compile->compile;test->test")
 
 lazy val ordering =
   project

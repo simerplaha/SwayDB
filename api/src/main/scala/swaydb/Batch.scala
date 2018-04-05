@@ -31,6 +31,11 @@ object Batch {
   case class Put[K, V](key: K, value: V) extends Batch[K, V]
 
   /**
+    * Batch Update key & value for a [[SwayDBMap]]
+    */
+  case class Update[K, V](from: K, to: K, value: V) extends Batch[K, V]
+
+  /**
     * Batch Put key & value for a [[SwayDBSet]]
     */
   case class Add[T](elem: T) extends Batch[T, Nothing]
@@ -38,5 +43,13 @@ object Batch {
   /**
     * Batch remove for [[SwayDBMap]] & [[SwayDBSet]]
     */
-  case class Remove[K](key: K) extends Batch[K, Nothing]
+  object Remove {
+    def apply[K](key: K): Remove[K] =
+      new Remove(key, None)
+
+    def apply[K](from: K, until: K): Remove[K] =
+      new Remove(from, Some(until))
+  }
+
+  private[swaydb] case class Remove[K](from: K, until: Option[K]) extends Batch[K, Nothing]
 }

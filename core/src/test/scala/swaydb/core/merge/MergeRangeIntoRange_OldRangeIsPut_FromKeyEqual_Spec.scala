@@ -32,78 +32,6 @@ class MergeRangeIntoRange_OldRangeIsPut_FromKeyEqual_Spec extends TestBase {
 
   import swaydb.core.map.serializer.RangeValueSerializers._
 
-  "SegmentMerge.merge for Ranges when ranges do not overlap" should {
-    "add new Range to the left if it's smaller then the old's range fromKey and new Range's toKey overlaps old Range's fromKey and new Ranges's fromValue is Remove" in {
-      //1 - 10
-      //    10 - 20
-      val newKeyValues = Slice(Memory.Range(1, 10, Some(Value.Remove), Value.Put(1)))
-      val oldKeyValues = Slice(Memory.Range(10, 20, None, Value.Put(10)))
-
-      val expected = Slice(
-        Transient.Range[Value, Value](1, 10, Some(Value.Remove), Value.Put(1), 0.1, None),
-        Transient.Range[Value, Value](10, 20, None, Value.Put(10), 0.1, None)
-      ).updateStats
-
-      assertMerge(newKeyValues, oldKeyValues, expected)
-      assertSkipListMerge(newKeyValues, oldKeyValues, expected)
-
-      //is last Level
-      assertMerge(newKeyValues, oldKeyValues, expected = Slice.empty, isLastLevel = true)
-    }
-
-    "add new Range to the left if it's smaller then the old's range fromKey and new Range's toKey overlaps old Range's fromKey and new Ranges's fromValue is Put" in {
-      //1 - 10
-      //    10 - 20
-      val newKeyValues = Slice(Memory.Range(1, 10, Some(Value.Put(1)), Value.Put(1)))
-      val oldKeyValues = Slice(Memory.Range(10, 20, None, Value.Put(10)))
-
-      val expected = Slice(
-        Transient.Range[Value, Value](1, 10, Some(Value.Put(1)), Value.Put(1), 0.1, None),
-        Transient.Range[Value, Value](10, 20, None, Value.Put(10), 0.1, None)
-      ).updateStats
-
-      assertMerge(newKeyValues, oldKeyValues, expected)
-      assertSkipListMerge(newKeyValues, oldKeyValues, expected)
-
-      //is last Level
-      assertMerge(newKeyValues, oldKeyValues, expected = Transient.Put(1, 1), isLastLevel = true)
-    }
-
-    "add new Range to the left if it's smaller then the old's range's fromKey and new Range's toKey does not overlaps old Range's fromKey and new Range's fromValue is Remove" in {
-      //1 - 10
-      //      11 - 20
-      val newKeyValues = Slice(Memory.Range(1, 10, Some(Value.Remove), Value.Put(1)))
-      val oldKeyValues = Slice(Memory.Range(11, 20, None, Value.Put(10)))
-      val expected = Slice(
-        Transient.Range[Value, Value](1, 10, Some(Value.Remove), Value.Put(1), 0.1, None),
-        Transient.Range[Value, Value](11, 20, None, Value.Put(10), 0.1, None)
-      ).updateStats
-
-      assertMerge(newKeyValues, oldKeyValues, expected)
-      assertSkipListMerge(newKeyValues, oldKeyValues, expected)
-
-      //is last Level
-      assertMerge(newKeyValues, oldKeyValues, expected = Slice.empty, isLastLevel = true)
-    }
-
-    "add new Range to the left if it's smaller then the old's range's fromKey and new Range's toKey does not overlaps old Range's fromKey and new Range's fromValue is Put" in {
-      //1 - 10
-      //      11 - 20
-      val newKeyValues = Slice(Memory.Range(1, 10, Some(Value.Put("one")), Value.Put(1)))
-      val oldKeyValues = Slice(Memory.Range(11, 20, None, Value.Put(10)))
-      val expected = Slice(
-        Transient.Range[Value, Value](1, 10, Some(Value.Put("one")), Value.Put(1), 0.1, None),
-        Transient.Range[Value, Value](11, 20, None, Value.Put(10), 0.1, None)
-      ).updateStats
-
-      assertMerge(newKeyValues, oldKeyValues, expected)
-      assertSkipListMerge(newKeyValues, oldKeyValues, expected)
-
-      //is last Level
-      assertMerge(newKeyValues, oldKeyValues, expected = Transient.Put(1, "one"), isLastLevel = true)
-    }
-  }
-
   "SegmentMerge.merge for Ranges when old Range's rangeValue is Put & Ranges fromKeys are equal and new Range's to key is <= old Range's toKey" should {
     "new Range's range value is Put" in {
       //1 - 10
@@ -458,6 +386,34 @@ class MergeRangeIntoRange_OldRangeIsPut_FromKeyEqual_Spec extends TestBase {
 
       //is last Level
       assertMerge(newKeyValues, oldKeyValues, expected = Slice.empty, isLastLevel = true)
+    }
+
+    "mid range split" in {
+      //      10   -   20
+      //4   -   15,  19   -   30
+      val newKeyValues =
+      Slice(
+        Memory.Range(10, 20, Some(Value.Put(10)), Value.Put(200))
+      )
+
+      val oldKeyValues = Slice(
+        Memory.Range(4, 15, Some(Value.Put(4)), Value.Put(15)),
+        Memory.Range(19, 30, Some(Value.Put(19)), Value.Put(30))
+      )
+
+      val expected =
+        Slice(
+          Transient.Range[Value, Value](4, 10, Some(Value.Put(4)), Value.Put(15), 0.1, None),
+          Transient.Range[Value, Value](10, 19, Some(Value.Put(10)), Value.Put(200), 0.1, None),
+          Transient.Range[Value, Value](19, 20, Some(Value.Put(200)), Value.Put(200), 0.1, None),
+          Transient.Range[Value, Value](20, 30, None, Value.Put(30), 0.1, None)
+        ).updateStats
+
+      assertMerge(newKeyValues, oldKeyValues, expected)
+      assertSkipListMerge(newKeyValues, oldKeyValues, expected)
+
+      //is last Level
+      assertMerge(newKeyValues, oldKeyValues, expected = Slice(Transient.Put(4, 4), Transient.Put(10, 10), Transient.Put(19, 200)).updateStats, isLastLevel = true)
     }
   }
 

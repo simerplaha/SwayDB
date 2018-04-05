@@ -32,13 +32,12 @@ class MergeFixedIntoFixedSpec extends TestBase {
 
   implicit val ordering = KeyOrder.default
 
-  import ordering._
-
   "SegmentMerge.merge when merging Fixed key-values" should {
 
     "merge non-overlapping Put key-values in-order" in {
       val newKeyValues = Slice(Memory.Put(1, "1 value"))
       val oldKeyValues = Slice(Memory.Put(2, "2 value"))
+
       val expected = Slice(Transient.Put(1, "1 value"), Transient.Put(2, "2 value")).updateStats
 
       assertMerge(newKeyValues, oldKeyValues, expected)
@@ -56,6 +55,7 @@ class MergeFixedIntoFixedSpec extends TestBase {
     "merge non-overlapping Remove key-values in-order" in {
       val newKeyValues = Slice(Memory.Remove(1))
       val oldKeyValues = Slice(Memory.Remove(2))
+
       val expected = Slice(Transient.Remove(1), Transient.Remove(2)).updateStats
 
       assertMerge(newKeyValues, oldKeyValues, expected)
@@ -70,6 +70,24 @@ class MergeFixedIntoFixedSpec extends TestBase {
       assertMerge(oldKeyValues, newKeyValues, Slice.empty, isLastLevel = true)
     }
 
+    "merge non-overlapping Put & Remove key-values in-order" in {
+      val newKeyValues = Slice(Memory.Put(1, "1 value"))
+      val oldKeyValues = Slice(Memory.Remove(2))
+
+      val expected = Slice(Transient.Put(1, "1 value"), Transient.Remove(2)).updateStats
+
+      assertMerge(newKeyValues, oldKeyValues, expected)
+      assertSkipListMerge(newKeyValues, oldKeyValues, expected)
+
+      //reversed should return the same result
+      assertMerge(oldKeyValues, newKeyValues, expected)
+      assertSkipListMerge(oldKeyValues, newKeyValues, expected)
+
+      //last Level check
+      assertMerge(newKeyValues, oldKeyValues, Transient.Put(1, "1 value"), isLastLevel = true)
+      assertMerge(oldKeyValues, newKeyValues, Transient.Put(1, "1 value"), isLastLevel = true)
+    }
+
     "update value for Put" in {
       val newKeyValues = Slice(Memory.Put(1, "new value"))
       val oldKeyValues = Slice(Memory.Put(1, "old value"))
@@ -80,6 +98,12 @@ class MergeFixedIntoFixedSpec extends TestBase {
 
       //last Level check
       assertMerge(newKeyValues, oldKeyValues, expected, isLastLevel = true)
+
+      //reversed
+      assertMerge(oldKeyValues, newKeyValues, Transient.Put(1, "old value"), isLastLevel = false)
+      assertSkipListMerge(oldKeyValues, newKeyValues, Transient.Put(1, "old value"))
+      //last Level check
+      assertMerge(oldKeyValues, newKeyValues, Transient.Put(1, "old value"), isLastLevel = true)
     }
 
     "update value for Put when there are multiple key-values" in {
@@ -125,7 +149,7 @@ class MergeFixedIntoFixedSpec extends TestBase {
       assertMerge(newKeyValues, oldKeyValues, expected, isLastLevel = true)
     }
 
-    "returns empty if all the key-values were removed and it's the last level" in {
+    "return empty if all the key-values were removed and it's the last level" in {
       val newKeyValues = Slice(Memory.Remove(1), Memory.Remove(2), Memory.Remove(3))
       val oldKeyValues = Slice(Memory.Put(1, "old value 1"), Memory.Put(2, "old value 2"), Memory.Put(3, "old value 3"))
 
@@ -133,32 +157,8 @@ class MergeFixedIntoFixedSpec extends TestBase {
       assertSkipListMerge(newKeyValues, oldKeyValues, newKeyValues)
     }
 
-    "split KeyValues to equal chunks" in {
-      val oldKeyValues: Slice[Memory] = Slice(Memory.Put(1, 1), Memory.Put(2, 2), Memory.Put(3, 3), Memory.Put(4, 4))
-      val newKeyValues: Slice[Memory] = Slice(Memory.Put(1, 22), Memory.Put(2, 22), Memory.Put(3, 22), Memory.Put(4, 22))
-
-      def assert(segments: Array[Iterable[KeyValue.WriteOnly]]) = {
-        segments.length shouldBe 4
-
-        segments(0).size shouldBe 1
-        segments(0).head shouldBe newKeyValues(0)
-
-        segments(1).size shouldBe 1
-        segments(1).head.key equiv newKeyValues(1).key
-
-        segments(2).size shouldBe 1
-        segments(2).head.key equiv newKeyValues(2).key
-
-        segments(3).size shouldBe 1
-        segments(3).head.key equiv newKeyValues(3).key
-      }
-
-      assert(SegmentMerge.merge(newKeyValues, oldKeyValues, minSegmentSize = 1.byte, isLastLevel = false, forInMemory = false, bloomFilterFalsePositiveRate = 0.1).assertGet.toArray)
-      assert(SegmentMerge.merge(newKeyValues, oldKeyValues, minSegmentSize = 1.byte, isLastLevel = false, forInMemory = true, bloomFilterFalsePositiveRate = 0.1).assertGet.toArray)
-    }
 
     "remove Deleted key-values if it's the last Level" in {
-
       val oldKeyValues: Slice[Memory] = Slice(Memory.Put(1, 1), Memory.Put(2, 2), Memory.Put(3, 3), Memory.Put(4, 4))
       val newKeyValues: Slice[Memory] = Slice(Memory.Remove(0), Memory.Put(1, 11), Memory.Remove(2), Memory.Put(3, 33), Memory.Remove(4), Memory.Remove(5))
 

@@ -62,9 +62,10 @@
 //        //          val key = keyValue.key.asInt()
 //        //          if (key % 1000 == 0)
 //        //            println(s"Reading $key")
-//        val got = level.get(keyValue.key).assertGet
-//        got.key shouldBe keyValue.key
-//        got.getOrFetchValue.assertGetOpt shouldBe keyValue.getOrFetchValue.assertGetOpt
+//        level.get(keyValue.key).assertGet
+//      //        val got = level.get(keyValue.key).assertGet
+//      //        got.key shouldBe keyValue.key
+//      //        got.getOrFetchValue.assertGetOpt shouldBe keyValue.getOrFetchValue.assertGetOpt
 //      //          println("value: " + level.get(keyValue.key).assertGet._2.assertGet.asInt())
 //    }
 //  }
@@ -76,7 +77,7 @@
 //        //        level.lowerKeyValueSync(keyValues(index).key)
 //        val keyValue = level.lower(keyValues(index).key).assertGet
 //        keyValue.key shouldBe keyValues(index - 1).key
-//        keyValue.getOrFetchValue.assertGetOpt shouldBe keyValues(index - 1).getOrFetchValue.assertGetOpt
+//      //        keyValue.getOrFetchValue.assertGetOpt shouldBe keyValues(index - 1).getOrFetchValue.assertGetOpt
 //    }
 //
 //  def readHigher(level: Level) =
@@ -84,8 +85,8 @@
 //      index =>
 //        //        level.higherKeyValueSync(keyValues(index).key)
 //        val keyValue = level.higher(keyValues(index).key).assertGet
-////        keyValue.key shouldBe keyValues(index + 1).key
-////        keyValue.getOrFetchValue.assertGetOpt shouldBe keyValues(index + 1).getOrFetchValue.assertGetOpt
+//        //        keyValue.key shouldBe keyValues(index + 1).key
+//        //        keyValue.getOrFetchValue.assertGetOpt shouldBe keyValues(index + 1).getOrFetchValue.assertGetOpt
 //        ???
 //    }
 //

@@ -505,14 +505,14 @@ private[swaydb] class SwayDB(api: CoreAPI) extends SwayDBAPI {
             case request.Batch.Put(key, value) =>
               MapEntry.Put[Slice[Byte], Memory.Put](key, Memory.Put(key, value))(LevelZeroMapEntryWriter.Level0PutWriter)
 
-            case request.Batch.Remove(key) =>
-              MapEntry.Put[Slice[Byte], Memory.Remove](key, Memory.Remove(key))(LevelZeroMapEntryWriter.Level0RemoveWriter)
-
             case request.Batch.RemoveRange(fromKey, untilKey) =>
               MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, untilKey, None, Value.Remove))(LevelZeroMapEntryWriter.Level0PutRangeWriter)
 
             case request.Batch.UpdateRange(fromKey, untilKey, value) =>
               MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, untilKey, None, Value.Put(value)))(LevelZeroMapEntryWriter.Level0PutRangeWriter)
+
+            case request.Batch.Remove(key) =>
+              MapEntry.Put[Slice[Byte], Memory.Remove](key, Memory.Remove(key))(LevelZeroMapEntryWriter.Level0RemoveWriter)
           }
         Some(mapEntry.map(_ ++ nextEntry) getOrElse nextEntry)
     } map {

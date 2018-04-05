@@ -332,19 +332,4 @@ class LevelZeroSpec extends TestBase with MockFactory with Benchmark {
     }
   }
 
-  "LevelZero.sizeOfSegments" should {
-    "return the size of Segments in all the levels" in {
-      val one = TestLevel()
-      val zero = TestLevelZero(one, mapSize = 100.byte)
-
-      val keyValues = randomIntKeyStringValues(keyValuesCount)
-      keyValues foreach {
-        keyValue =>
-          zero.put(keyValue.key, keyValue.getOrFetchValue.assertGetOpt).assertGet
-      }
-      eventual {
-        zero.sizeOfSegments should be > 1L
-      }
-    }
-  }
 }

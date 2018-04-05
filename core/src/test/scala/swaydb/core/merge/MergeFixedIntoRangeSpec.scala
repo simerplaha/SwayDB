@@ -97,11 +97,15 @@ class MergeFixedIntoRangeSpec extends TestBase {
       assertMerge(newKeyValues, oldKeyValues, expected)
       assertSkipListMerge(newKeyValues, oldKeyValues, expected)
 
+      //reverse will produce same result because Update does not apply to removed key-values.
+      assertMerge(oldKeyValues, newKeyValues, expected)
+      assertSkipListMerge(oldKeyValues, newKeyValues, expected)
+
       //last level check
       assertMerge(newKeyValues, oldKeyValues, Slice.empty, isLastLevel = true)
     }
 
-    "split the range's if the input key-values key overlaps range's second key" in {
+    "split the range if the input key overlaps the range" in {
       //  11
       //10   -   20
       val newKeyValues = Slice(Memory.Put(11, 11))

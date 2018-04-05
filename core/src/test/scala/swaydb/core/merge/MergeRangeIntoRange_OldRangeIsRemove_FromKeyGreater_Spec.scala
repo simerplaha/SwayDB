@@ -21,9 +21,7 @@ package swaydb.core.merge
 
 import swaydb.core.TestBase
 import swaydb.core.data.{Memory, Transient, Value}
-import swaydb.core.segment.SegmentMerge
 import swaydb.data.slice.Slice
-import swaydb.data.util.StorageUnits._
 import swaydb.order.KeyOrder
 import swaydb.serializers.Default._
 import swaydb.serializers._

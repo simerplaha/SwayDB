@@ -38,7 +38,7 @@ object SwayDBSet {
 /**
   * Set database API.
   *
-  * For documentation check - http://swaydb.io/api
+  * For documentation check - http://swaydb.io/api/
   */
 class SwayDBSet[T](api: SwayDBAPI)(implicit serializer: Serializer[T]) extends KeysIterator[T](api, None) {
 

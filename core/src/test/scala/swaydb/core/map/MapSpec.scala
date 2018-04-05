@@ -235,11 +235,11 @@ class MapSpec extends TestBase {
       import appendixReader._
 
       val segment1 = TestSegment(Slice(Transient.Put(1, Some(1), 0.1, None), Transient.Put(2, Some(2), 0.1, None)).updateStats).assertGet
-      val segment2 = TestSegment(Slice(Transient.Put(3, Some(3), 0.1, None), Transient.Put(4, Some(4), 0.1, None)).updateStats).assertGet
-      val segment3 = TestSegment(Slice(Transient.Put(5, Some(5), 0.1, None), Transient.Put(6, Some(6), 0.1, None)).updateStats).assertGet
-      val segment4 = TestSegment(Slice(Transient.Put(7, Some(7), 0.1, None), Transient.Put(8, Some(8), 0.1, None)).updateStats).assertGet
-      val segment5 = TestSegment(Slice(Transient.Put(9, Some(9), 0.1, None), Transient.Put(10, Some(10), 0.1, None)).updateStats).assertGet
-      val segment2Updated = TestSegment(Slice(Transient.Put(11, Some(11), 0.1, None), Transient.Put(12, Some(12), 0.1, None)).updateStats).assertGet
+      val segment2 = TestSegment(Slice(Transient.Put(2, Some(2), 0.1, None), Transient.Put(4, Some(4), 0.1, None)).updateStats).assertGet
+      val segment3 = TestSegment(Slice(Transient.Put(3, Some(3), 0.1, None), Transient.Put(6, Some(6), 0.1, None)).updateStats).assertGet
+      val segment4 = TestSegment(Slice(Transient.Put(4, Some(4), 0.1, None), Transient.Put(8, Some(8), 0.1, None)).updateStats).assertGet
+      val segment5 = TestSegment(Slice(Transient.Put(5, Some(5), 0.1, None), Transient.Put(10, Some(10), 0.1, None)).updateStats).assertGet
+      val segment2Updated = TestSegment(Slice(Transient.Put(2, Some(2), 0.1, None), Transient.Put(12, Some(12), 0.1, None)).updateStats).assertGet
 
       val map1 = Map.persistent[Slice[Byte], Segment](createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).assertGet.item
       map1.write(MapEntry.Put(1, segment1)).assertGet shouldBe true

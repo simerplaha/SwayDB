@@ -21,6 +21,7 @@ package swaydb.core.segment
 
 import swaydb.core.TestBase
 import swaydb.core.data.{KeyValue, Memory, Transient}
+import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.order.KeyOrder
 import swaydb.serializers.Default._
@@ -138,7 +139,6 @@ class SegmentMergeSpec extends TestBase {
       closedSegment(2).key equiv keyValue.key
       closedSegment.last.stats.memorySegmentSize shouldBe 24.bytes
     }
-
   }
 
   "SegmentMerge.transferLastMayBe" should {
@@ -192,6 +192,30 @@ class SegmentMergeSpec extends TestBase {
 
       SegmentMerge.mergeSmallerSegmentWithPrevious(segments, 37.bytes, forMemory = false, bloomFilterFalsePositiveRate = 0.1).size shouldBe 1
       SegmentMerge.mergeSmallerSegmentWithPrevious(segments, 16.bytes, forMemory = true, bloomFilterFalsePositiveRate = 0.1).size shouldBe 1
+    }
+
+    "split KeyValues into equal chunks" in {
+      val oldKeyValues: Slice[Memory] = Slice(Memory.Put(1, 1), Memory.Put(2, 2), Memory.Put(3, 3), Memory.Put(4, 4))
+      val newKeyValues: Slice[Memory] = Slice(Memory.Put(1, 22), Memory.Put(2, 22), Memory.Put(3, 22), Memory.Put(4, 22))
+
+      def assert(segments: Array[Iterable[KeyValue.WriteOnly]]) = {
+        segments.length shouldBe 4
+
+        segments(0).size shouldBe 1
+        segments(0).head shouldBe newKeyValues(0)
+
+        segments(1).size shouldBe 1
+        segments(1).head.key equiv newKeyValues(1).key
+
+        segments(2).size shouldBe 1
+        segments(2).head.key equiv newKeyValues(2).key
+
+        segments(3).size shouldBe 1
+        segments(3).head.key equiv newKeyValues(3).key
+      }
+
+      assert(SegmentMerge.merge(newKeyValues, oldKeyValues, minSegmentSize = 1.byte, isLastLevel = false, forInMemory = false, bloomFilterFalsePositiveRate = 0.1).assertGet.toArray)
+      assert(SegmentMerge.merge(newKeyValues, oldKeyValues, minSegmentSize = 1.byte, isLastLevel = false, forInMemory = true, bloomFilterFalsePositiveRate = 0.1).assertGet.toArray)
     }
   }
 }

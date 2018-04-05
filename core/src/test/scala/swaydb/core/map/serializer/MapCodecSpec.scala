@@ -21,15 +21,14 @@ package swaydb.core.map.serializer
 
 import java.util.concurrent.ConcurrentSkipListMap
 
-import swaydb.core.data.KeyValue.WriteOnly
-import swaydb.core.{TestBase, TestLimitQueues}
 import swaydb.core.data._
 import swaydb.core.io.file.DBFile
 import swaydb.core.segment.Segment
+import swaydb.core.{TestBase, TestLimitQueues}
 import swaydb.data.slice.Slice
 import swaydb.order.KeyOrder
-import swaydb.serializers._
 import swaydb.serializers.Default._
+import swaydb.serializers._
 
 class MapCodecSpec extends TestBase {
 

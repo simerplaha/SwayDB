@@ -26,8 +26,6 @@ import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
-import scala.util.Random
-
 class BloomFilterUtilSpec extends WordSpec with Matchers {
 
   "BloomFilterUtil.toBytes" should {

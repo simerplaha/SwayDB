@@ -47,7 +47,7 @@ class AppendixMapEntrySpec extends TestBase {
 
     "write Add segment entry to slice" in {
       import AppendixMapEntryWriter.AppendixPutWriter
-      val entry = MapEntry.Put[Slice[Byte], Segment](1, segment)
+      val entry = MapEntry.Put[Slice[Byte], Segment](segment.minKey, segment)
 
       val slice = Slice.create[Byte](entry.entryBytesSize)
       entry writeTo slice
@@ -66,7 +66,7 @@ class AppendixMapEntrySpec extends TestBase {
 
       scalaSkipList should have size 1
       val (headKey, headValue) = scalaSkipList.head
-      headKey shouldBe (1: Slice[Byte])
+      headKey shouldBe segment.minKey
       headValue shouldBe segment
     }
 
@@ -101,13 +101,13 @@ class AppendixMapEntrySpec extends TestBase {
       val segment5 = TestSegment().assertGet
 
       val entry: MapEntry[Slice[Byte], Segment] =
-        (MapEntry.Put[Slice[Byte], Segment](1, segment1): MapEntry[Slice[Byte], Segment]) ++
-          MapEntry.Put[Slice[Byte], Segment](2, segment2) ++
-          MapEntry.Remove[Slice[Byte]](1) ++
-          MapEntry.Put[Slice[Byte], Segment](3, segment3) ++
-          MapEntry.Put[Slice[Byte], Segment](4, segment4) ++
-          MapEntry.Remove[Slice[Byte]](2) ++
-          MapEntry.Put[Slice[Byte], Segment](5, segment5)
+        (MapEntry.Put[Slice[Byte], Segment](segment1.minKey, segment1): MapEntry[Slice[Byte], Segment]) ++
+          MapEntry.Put[Slice[Byte], Segment](segment2.minKey, segment2) ++
+          MapEntry.Remove[Slice[Byte]](segment1.minKey) ++
+          MapEntry.Put[Slice[Byte], Segment](segment3.minKey, segment3) ++
+          MapEntry.Put[Slice[Byte], Segment](segment4.minKey, segment4) ++
+          MapEntry.Remove[Slice[Byte]](segment2.minKey) ++
+          MapEntry.Put[Slice[Byte], Segment](segment5.minKey, segment5)
 
       val slice = Slice.create[Byte](entry.entryBytesSize)
       entry writeTo slice
@@ -124,11 +124,11 @@ class AppendixMapEntrySpec extends TestBase {
 
       def assertSkipList() = {
         scalaSkipList should have size 3
-        scalaSkipList.get(1) shouldBe empty
-        scalaSkipList.get(2) shouldBe empty
-        scalaSkipList.get(3).assertGet shouldBe segment3
-        scalaSkipList.get(4).assertGet shouldBe segment4
-        scalaSkipList.get(5).assertGet shouldBe segment5
+        scalaSkipList.get(segment1.minKey) shouldBe empty
+        scalaSkipList.get(segment2.minKey) shouldBe empty
+        scalaSkipList.get(segment3.minKey).assertGet shouldBe segment3
+        scalaSkipList.get(segment4.minKey).assertGet shouldBe segment4
+        scalaSkipList.get(segment5.minKey).assertGet shouldBe segment5
       }
       //write skip list to bytes should result in the same skip list as before
       import appendixReader.AppendixReader

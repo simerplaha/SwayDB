@@ -19,8 +19,6 @@
 
 package swaydb.core.merge
 
-import java.util.concurrent.ConcurrentSkipListMap
-
 import swaydb.core.TestBase
 import swaydb.core.data.{Memory, Transient, Value}
 import swaydb.data.slice.Slice
