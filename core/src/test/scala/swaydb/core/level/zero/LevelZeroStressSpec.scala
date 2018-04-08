@@ -58,7 +58,7 @@ class LevelZeroStressSpec extends TestBase with Benchmark {
 //  override def deleteFiles = false
 
 //  val keyValueCount = 1000000
-  val keyValueCount = 1000
+  val keyValueCount = 100
 
   "Concurrently put, get, read lower and higher 1 million key-values" in {
     val level1 = TestLevel(nextLevel = Some(TestLevel()))

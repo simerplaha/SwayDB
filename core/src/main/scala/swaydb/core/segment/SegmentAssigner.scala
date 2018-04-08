@@ -135,7 +135,9 @@ private[core] object SegmentAssigner {
       }
     }
 
-    if (segmentsIterator.hasNext)
+    if (segments.size == 1)
+      Success(mutable.Map((segments.head, keyValues)))
+    else if (segmentsIterator.hasNext)
       assign(keyValues, Some(segmentsIterator.next()), getNextSegmentMayBe()) map {
         _ =>
           assignmentsMap map {

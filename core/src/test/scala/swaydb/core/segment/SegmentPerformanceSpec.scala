@@ -95,7 +95,6 @@ class SegmentPerformanceSpec extends TestBase with Benchmark {
       path = segment.path,
       mmapReads = levelStorage.mmapSegmentsOnRead,
       mmapWrites = levelStorage.mmapSegmentsOnWrite,
-      cacheKeysOnCreate = false,
       minKey = keyValues.head.key,
       maxKey =
       keyValues.last match {

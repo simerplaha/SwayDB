@@ -64,8 +64,8 @@ class LevelStressSpec extends TestBase with Benchmark {
     "concurrently reads and write records that are written in batches and concurrently pushed to lower levels." +
       "All KeyValues should eventually end up in last level" in {
 
-//      val keyValueCount = 1000
-      val keyValueCount = 100000
+      val keyValueCount = 1000
+//      val keyValueCount = 100000
       val iterations = 5
 
       val level4 = TestLevel(segmentSize = 2.mb)

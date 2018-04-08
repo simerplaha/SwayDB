@@ -90,4 +90,6 @@ class SwayDBSet[T](api: SwayDBAPI)(implicit serializer: Serializer[T]) extends K
   def sizeOfSegments: Long =
     api.sizeOfSegments
 
+  def valueSize(elem: T): Try[Option[Int]] =
+    api valueSize elem
 }

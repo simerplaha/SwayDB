@@ -66,8 +66,11 @@ private[swaydb] trait Reader { self =>
   def readLongSigned(): Try[Long] =
     ByteUtil.readSignedLong(self)
 
-  def readString(charset: Charset = StandardCharsets.UTF_8): Try[String] =
+  def readRemainingAsString(charset: Charset = StandardCharsets.UTF_8): Try[String] =
     ByteUtil.readString(self, charset)
+
+  def readString(size: Int, charset: Charset = StandardCharsets.UTF_8): Try[String] =
+    ByteUtil.readString(size, self, charset)
 
   def remaining: Try[Long] =
     size map {

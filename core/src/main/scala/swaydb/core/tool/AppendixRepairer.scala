@@ -41,14 +41,14 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
   def apply(levelPath: Path,
             strategy: AppendixRepairStrategy)(implicit ordering: Ordering[Slice[Byte]],
                                               ec: ExecutionContext): Try[Unit] = {
-    val reader = AppendixMapEntryReader(false, false, false, false)(ordering, (_, _) => (), (_) => (), ec)
+    val reader = AppendixMapEntryReader(false, false, false)(ordering, (_, _) => (), (_) => (), ec)
     import reader._
     import swaydb.core.map.serializer.AppendixMapEntryWriter._
     import swaydb.core.level.Level.SkipListMerge$
 
     Try(FileUtil.files(levelPath, Extension.Seg)) flatMap {
       files =>
-        files.tryMap(Segment(_, false, false, false, false, true)(ordering, (_, _) => (), _ => (), ec))
+        files.tryMap(Segment(_, false, false, false, true)(ordering, (_, _) => (), _ => (), ec))
           .flatMap {
             segments =>
               checkOverlappingSegments(segments, strategy) flatMap {

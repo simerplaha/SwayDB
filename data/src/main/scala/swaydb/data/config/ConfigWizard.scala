@@ -60,7 +60,6 @@ case class Level0PersistentConfig(mapSize: Long,
                           mmapAppendix: Boolean,
                           appendixFlushCheckpointSize: Long,
                           pushForward: Boolean,
-                          cacheKeysOnCreate: Boolean,
                           bloomFilterFalsePositiveRate: Double,
                           throttle: LevelMeter => Throttle): SwayDBPersistentConfig =
     SwayDBPersistentConfig(
@@ -73,7 +72,6 @@ case class Level0PersistentConfig(mapSize: Long,
         mmapAppendix = mmapAppendix,
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
         pushForward = pushForward,
-        cacheKeysOnCreate = cacheKeysOnCreate,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
         throttle = throttle
       ),
@@ -107,7 +105,6 @@ case class Level0MemoryConfig(mapSize: Long,
                           mmapAppendix: Boolean,
                           appendixFlushCheckpointSize: Long,
                           pushForward: Boolean,
-                          cacheKeysOnCreate: Boolean,
                           bloomFilterFalsePositiveRate: Double,
                           throttle: LevelMeter => Throttle): SwayDBPersistentConfig =
     SwayDBPersistentConfig(
@@ -120,7 +117,6 @@ case class Level0MemoryConfig(mapSize: Long,
         mmapAppendix = mmapAppendix,
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
         pushForward = pushForward,
-        cacheKeysOnCreate = cacheKeysOnCreate,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
         throttle = throttle
       ),
@@ -160,7 +156,6 @@ case class PersistentLevelConfig(dir: Path,
                                  mmapAppendix: Boolean,
                                  appendixFlushCheckpointSize: Long,
                                  pushForward: Boolean,
-                                 cacheKeysOnCreate: Boolean,
                                  bloomFilterFalsePositiveRate: Double,
                                  throttle: LevelMeter => Throttle) extends LevelConfig
 
@@ -185,7 +180,6 @@ case class SwayDBMemoryConfig(level0: Level0MemoryConfig,
                          mmapAppendix: Boolean,
                          appendixFlushCheckpointSize: Long,
                          pushForward: Boolean,
-                         cacheKeysOnCreate: Boolean,
                          bloomFilterFalsePositiveRate: Double,
                          throttle: LevelMeter => Throttle): SwayDBPersistentConfig =
     SwayDBPersistentConfig(
@@ -200,7 +194,6 @@ case class SwayDBMemoryConfig(level0: Level0MemoryConfig,
           mmapAppendix = mmapAppendix,
           appendixFlushCheckpointSize = appendixFlushCheckpointSize,
           pushForward = pushForward,
-          cacheKeysOnCreate = cacheKeysOnCreate,
           bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
           throttle = throttle
         )
@@ -208,7 +201,6 @@ case class SwayDBMemoryConfig(level0: Level0MemoryConfig,
 
   def addMemoryLevel(segmentSize: Int,
                      pushForward: Boolean,
-                     cacheKeysOnCreate: Boolean,
                      bloomFilterFalsePositiveRate: Double,
                      throttle: LevelMeter => Throttle): SwayDBMemoryConfig =
 
@@ -241,7 +233,6 @@ case class SwayDBPersistentConfig(level0: Level0Config,
                          mmapAppendix: Boolean,
                          appendixFlushCheckpointSize: Long,
                          pushForward: Boolean,
-                         cacheKeysOnCreate: Boolean,
                          bloomFilterFalsePositiveRate: Double,
                          throttle: LevelMeter => Throttle): SwayDBPersistentConfig =
     copy(
@@ -254,7 +245,6 @@ case class SwayDBPersistentConfig(level0: Level0Config,
           mmapAppendix = mmapAppendix,
           appendixFlushCheckpointSize = appendixFlushCheckpointSize,
           pushForward = pushForward,
-          cacheKeysOnCreate = cacheKeysOnCreate,
           bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
           throttle = throttle
         )
@@ -262,7 +252,6 @@ case class SwayDBPersistentConfig(level0: Level0Config,
 
   def addMemoryLevel(segmentSize: Int,
                      pushForward: Boolean,
-                     cacheKeysOnCreate: Boolean,
                      bloomFilterFalsePositiveRate: Double,
                      throttle: LevelMeter => Throttle): SwayDBPersistentConfig =
 

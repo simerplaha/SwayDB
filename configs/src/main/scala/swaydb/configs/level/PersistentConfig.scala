@@ -59,7 +59,6 @@ object PersistentConfig {
         mmapAppendix = mmapAppendix,
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
         pushForward = true,
-        cacheKeysOnCreate = false,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
         throttle =
           levelMeter => {
@@ -76,7 +75,6 @@ object PersistentConfig {
         mmapAppendix = mmapAppendix,
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
         pushForward = true,
-        cacheKeysOnCreate = false,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
         throttle =
           levelMeter => {
@@ -93,7 +91,6 @@ object PersistentConfig {
         mmapAppendix = mmapAppendix,
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
         pushForward = true,
-        cacheKeysOnCreate = false,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
         throttle =
           levelMeter => {
@@ -110,7 +107,6 @@ object PersistentConfig {
         mmapAppendix = mmapAppendix,
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
         pushForward = false,
-        cacheKeysOnCreate = false,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
         throttle =
           levelMeter => {
@@ -127,7 +123,6 @@ object PersistentConfig {
         mmapAppendix = mmapAppendix,
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
         pushForward = false,
-        cacheKeysOnCreate = false,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
         throttle =
           levelMeter => {
@@ -144,7 +139,6 @@ object PersistentConfig {
         mmapAppendix = mmapAppendix,
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
         pushForward = false,
-        cacheKeysOnCreate = false,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
         throttle =
           levelMeter => {
@@ -161,7 +155,6 @@ object PersistentConfig {
         mmapAppendix = mmapAppendix,
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
         pushForward = false,
-        cacheKeysOnCreate = false,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
         throttle =
           levelMeter => {

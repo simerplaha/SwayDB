@@ -373,7 +373,7 @@ private[swaydb] object Memory {
   case class Put(key: Slice[Byte],
                  value: Option[Slice[Byte]]) extends Memory.Fixed with KeyValue.FindResponse with KeyValue.ReadOnly.Fixed {
 
-    override def isRemove: Boolean = false
+    override val isRemove: Boolean = false
 
     override def getOrFetchValue: Try[Option[Slice[Byte]]] =
       Success(value)
@@ -384,7 +384,7 @@ private[swaydb] object Memory {
 
   case class Remove(key: Slice[Byte]) extends Memory.Fixed with KeyValue.ReadOnly.Fixed {
 
-    override def isRemove: Boolean = true
+    override val isRemove: Boolean = true
 
     override def getOrFetchValue: Try[Option[Slice[Byte]]] =
       Success(None)
@@ -395,7 +395,7 @@ private[swaydb] object Memory {
                    fromValue: Option[Value],
                    rangeValue: Value) extends Memory with KeyValue.ReadOnly.Range {
 
-    override def isRemove: Boolean = false
+    override val isRemove: Boolean = false
 
     override def key: Slice[Byte] = fromKey
 

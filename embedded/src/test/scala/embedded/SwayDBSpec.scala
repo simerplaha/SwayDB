@@ -21,36 +21,43 @@ package embedded
 
 import swaydb.SwayDB
 import swaydb.core.TestBase
-import swaydb._
 import swaydb.serializers.Default._
 import swaydb.types.SwayDBMap
 
 class SwayDBPersistentSpec extends SwayDBSpec {
-  override val db: SwayDBMap[Int, String] =
-    SwayDB.persistent[Int, String](testDir).assertGet
+  override def newDB(): SwayDBMap[Int, String] =
+    SwayDB.persistent[Int, String](randomDir).assertGet
 }
 
 class SwayDBPersistentSpecWith1ByteMapSize extends SwayDBSpec {
-  override val db: SwayDBMap[Int, String] =
-    SwayDB.persistent[Int, String](testDir, mapSize = 1.byte).assertGet
+
+  import swaydb._
+
+  override def newDB(): SwayDBMap[Int, String] =
+    SwayDB.persistent[Int, String](randomDir, mapSize = 1.byte).assertGet
 }
 
 class SwayDBMemorySpec extends SwayDBSpec {
-  override val db: SwayDBMap[Int, String] =
+  override def newDB(): SwayDBMap[Int, String] =
     SwayDB.memory[Int, String]().assertGet
 }
 
 class SwayDBMemoryWith1ByteMapSizeSpec extends SwayDBSpec {
-  override val db: SwayDBMap[Int, String] =
+
+  import swaydb._
+
+  override def newDB(): SwayDBMap[Int, String] =
     SwayDB.memory[Int, String](mapSize = 1.byte).assertGet
 }
 
-trait SwayDBSpec extends TestBase {
+sealed trait SwayDBSpec extends TestBase {
 
-  val db: SwayDBMap[Int, String]
+  def newDB(): SwayDBMap[Int, String]
 
   "SwayDB" should {
     "get" in {
+
+      val db = newDB()
 
       (1 to 100) foreach {
         i =>
@@ -64,6 +71,7 @@ trait SwayDBSpec extends TestBase {
     }
 
     "remove range" in {
+      val db = newDB()
       (1 to 100) foreach {
         i =>
           db.put(i, i.toString).assertGet
@@ -80,10 +88,12 @@ trait SwayDBSpec extends TestBase {
         i =>
           db.get(i).assertGetOpt shouldBe empty
       }
-      db.get(100).assertGet shouldBe 100.toString
+      db.get(100).assertGet shouldBe "100"
     }
 
     "update" in {
+      val db = newDB()
+
       (1 to 100) foreach {
         i =>
           db.put(i, i.toString).assertGet
@@ -100,10 +110,12 @@ trait SwayDBSpec extends TestBase {
         i =>
           db.get(i).assertGet shouldBe "updated"
       }
-      db.get(100).assertGet shouldBe 100.toString
+      db.get(100).assertGet shouldBe "100"
     }
 
     "remove all but first and last" in {
+      val db = newDB()
+
       (1 to 1000) foreach {
         i =>
           db.put(i, i.toString).assertGet
@@ -116,6 +128,98 @@ trait SwayDBSpec extends TestBase {
       db.last shouldBe ((1000, "1000"))
     }
 
-  }
+    "update only key-values that are not removed" in {
+      val db = newDB()
 
+      (1 to 100) foreach {
+        i =>
+          db.put(i, i.toString).assertGet
+      }
+
+      (2 to 99) foreach {
+        i =>
+          db.remove(i).assertGet
+      }
+
+      db.update(1, 101, "updated").assertGet
+
+      db.toList should contain only((1, "updated"), (100, "updated"))
+      db.head shouldBe ((1, "updated"))
+      db.last shouldBe ((100, "updated"))
+
+    }
+
+    "update only key-values that are not removed by remove range" in {
+      val db = newDB()
+
+      (1 to 100) foreach {
+        i =>
+          db.put(i, i.toString).assertGet
+      }
+
+      db.remove(2, 100).assertGet
+
+      db.update(1, 101, "updated").assertGet
+
+      db.toList should contain only((1, "updated"), (100, "updated"))
+      db.head shouldBe ((1, "updated"))
+      db.last shouldBe ((100, "updated"))
+    }
+
+    "return only key-values that were not removed from remove range" in {
+      val db = newDB()
+
+      (1 to 100) foreach {
+        i =>
+          db.put(i, i.toString).assertGet
+      }
+
+      db.update(10, 90, "updated").assertGet
+
+      db.remove(50, 100).assertGet
+
+      val expectedUnchanged =
+        (1 to 9) map {
+          i =>
+            (i, i.toString)
+        }
+
+      val expectedUpdated =
+        (10 to 49) map {
+          i =>
+            (i, "updated")
+        }
+
+      val expected = expectedUnchanged ++ expectedUpdated :+ (100, "100")
+
+      db.toList shouldBe expected
+      db.head shouldBe ((1, "1"))
+      db.last shouldBe ((100, "100"))
+    }
+
+    "return empty for an empty database with update range" in {
+      val db = newDB()
+      db.update(1, Int.MaxValue, "updated").assertGet
+
+      db.isEmpty shouldBe true
+
+      db.toList shouldBe empty
+
+      db.headOption shouldBe empty
+      db.lastOption shouldBe empty
+    }
+
+    "return empty for an empty database with remove range" in {
+      val db = newDB()
+      db.remove(1, Int.MaxValue).assertGet
+
+      db.isEmpty shouldBe true
+
+      db.toList shouldBe empty
+
+      db.headOption shouldBe empty
+      db.lastOption shouldBe empty
+    }
+
+  }
 }

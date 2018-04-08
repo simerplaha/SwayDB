@@ -61,7 +61,7 @@ class MapStressSpec extends TestBase {
 
       test(Map.persistent[Slice[Byte], Memory](dir1, mmap = true, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).assertGet.item)
       test(Map.persistent[Slice[Byte], Memory](dir2, mmap = false, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).assertGet.item)
-      test(Map.memory(flushOnOverflow = true, fileSize = 1.kb))
+      test(Map.memory[Slice[Byte], Memory](flushOnOverflow = true, fileSize = 1.kb))
 
       //reopen - all the entries should get recovered for persistent maps. Also switch mmap types.
       testRead(Map.persistent[Slice[Byte], Memory](dir1, mmap = false, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).assertGet.item)

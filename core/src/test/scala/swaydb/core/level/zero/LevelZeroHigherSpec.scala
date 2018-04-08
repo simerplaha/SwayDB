@@ -70,6 +70,9 @@ class LevelZeroHigherSpec extends TestBase with MockFactory with Benchmark {
         i =>
           level0.higher(i).assertGetOpt shouldBe empty
       }
+
+      level0.head.assertGetOpt shouldBe empty
+      level0.last.assertGetOpt shouldBe empty
     }
 
     "get higher key-value" in {
@@ -86,6 +89,8 @@ class LevelZeroHigherSpec extends TestBase with MockFactory with Benchmark {
           level0.higher(i).assertGetOpt should contain((i + 1: Slice[Byte], Some(i + 1: Slice[Byte])))
       }
 
+      level0.head.assertGet shouldBe ((1: Slice[Byte], Some(1: Slice[Byte])))
+      level0.last.assertGet shouldBe ((100: Slice[Byte], Some(100: Slice[Byte])))
     }
 
     "get higher key-value for updated key-value range" in {
@@ -104,6 +109,8 @@ class LevelZeroHigherSpec extends TestBase with MockFactory with Benchmark {
           level0.higher(i).assertGetOpt should contain((i + 1: Slice[Byte], Some("updated": Slice[Byte])))
       }
 
+      level0.head.assertGet shouldBe ((1: Slice[Byte], Some("updated": Slice[Byte])))
+      level0.last.assertGet shouldBe ((100: Slice[Byte], Some("updated": Slice[Byte])))
     }
 
     "get higher key-value for removed key-value range" in {
@@ -130,6 +137,10 @@ class LevelZeroHigherSpec extends TestBase with MockFactory with Benchmark {
           else
             level0.higher(i).assertGetOpt should contain((i + 1: Slice[Byte], Some(i + 1: Slice[Byte])))
       }
+
+
+      level0.head.assertGet shouldBe ((1: Slice[Byte], Some(1: Slice[Byte])))
+      level0.last.assertGet shouldBe ((100: Slice[Byte], Some(100: Slice[Byte])))
     }
   }
 }

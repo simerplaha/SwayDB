@@ -54,7 +54,12 @@ trait LazyRangeValue extends LazyValue {
               fromValueRangeValue
           }
         case None =>
-          RangeValueSerializer.readRemoveRangeOnly(id)
+          RangeValueSerializer.readRemoveRangeOnly(id) map {
+            case fromValueRangeValue @ (fromValue, rangeValue) =>
+              this.fromValue = fromValue.map(_.unslice)
+              this.rangeValue = rangeValue.unslice
+              fromValueRangeValue
+          }
       }
     else
       Success(fromValue, rangeValue)

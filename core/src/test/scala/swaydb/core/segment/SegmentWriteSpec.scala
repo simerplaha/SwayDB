@@ -370,22 +370,6 @@ class SegmentWriteSpec extends TestBase with Benchmark {
       )
     }
 
-    "create a Segment and populate cache" in {
-      val keyValues = Slice(Transient.Put("a", 1), Transient.Put("b", 2), Transient.Put("c", 3), Transient.Put("d", 4), Transient.Put("e", 5), Transient.Put("f", 6)).updateStats
-      val segment = TestSegment(keyValues, cacheKeysOnCreate = true).assertGet
-
-      keyValues foreach {
-        keyValue =>
-          eventual(segment.isInCache(keyValue.key) shouldBe true)
-          segment.cache.asScala.foreach(_._1.underlyingArraySize shouldBe 1)
-          val result = segment.get(keyValue.key).assertGet
-          result shouldBe keyValue
-          result.getOrFetchValue.assertGet.underlyingArraySize shouldBe 4
-      }
-
-      assertBloom(keyValues, segment.getBloomFilter.assertGet)
-    }
-
     "not overwrite a Segment if it already exists" in {
       if (memory) {
         //memory Segments do not check for overwrite. No tests required
@@ -437,7 +421,7 @@ class SegmentWriteSpec extends TestBase with Benchmark {
         val segmentFile = testSegmentFile
 
         val segment = TestSegment(keyValues, path = segmentFile).assertGet
-        val readSegment = Segment(segment.path, Random.nextBoolean(), Random.nextBoolean(), Random.nextBoolean(), false, true).assertGet
+        val readSegment = Segment(segment.path, Random.nextBoolean(), Random.nextBoolean(), false, true).assertGet
 
         segment shouldBe readSegment
       }

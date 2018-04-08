@@ -65,14 +65,12 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
 
   //default setting, these can be overridden to apply different settings for test cases.
 
-  val levelReadRetryLimit = 100
   val levelZeroReadRetryLimit = 1000
 
   def segmentSize: Long = 2.mb
 
   def mapSize: Long = 4.mb
 
-  def cacheKeysOnCreate: Boolean = false
 
   def levelFoldersCount = 0
 
@@ -226,7 +224,6 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
         path = path,
         mmapReads = Random.nextBoolean(),
         mmapWrites = Random.nextBoolean(),
-        cacheKeysOnCreate = Random.nextBoolean(),
         minKey = segment.minKey,
         maxKey = segment.maxKey,
         segmentSize = segment.segmentSize,
@@ -275,10 +272,8 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
                 segmentSize = segmentSize,
                 nextLevel = level.nextLevel,
                 pushForward = level.pushForward,
-                readRetryLimit = levelReadRetryLimit,
                 bloomFilterFalsePositiveRate = 0.1,
-                throttle = level.throttle,
-                cacheKeysOnCreate = cacheKeysOnCreate,
+                throttle = level.throttle
               ).map(_.asInstanceOf[Level])
           }
       }
@@ -392,7 +387,6 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
     def apply(keyValues: Slice[KeyValue.WriteOnly] = randomIntKeyStringValues(),
               removeDeletes: Boolean = false,
               path: Path = testSegmentFile,
-              cacheKeysOnCreate: Boolean = cacheKeysOnCreate,
               bloomFilterFalsePositiveRate: Double = 0.1)(implicit ordering: Ordering[Slice[Byte]],
                                                           keyValueLimiter: (Persistent, Segment) => Unit = keyValueLimiter,
                                                           fileOpenLimited: DBFile => Unit = fileOpenLimiter): Try[Segment] =
@@ -408,7 +402,6 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
           path = path,
           mmapReads = levelStorage.mmapSegmentsOnRead,
           mmapWrites = levelStorage.mmapSegmentsOnWrite,
-          cacheKeysOnCreate = cacheKeysOnCreate,
           keyValues = keyValues,
           bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
           removeDeletes = removeDeletes
@@ -442,12 +435,10 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
 
     def apply(levelStorage: LevelStorage = levelStorage,
               appendixStorage: AppendixStorage = appendixStorage,
-              cacheKeysOnCreate: Boolean = cacheKeysOnCreate,
               segmentSize: Long = segmentSize,
               nextLevel: Option[LevelRef] = None,
               pushForward: Boolean = false,
               throttle: LevelMeter => Throttle = testDefaultThrottle,
-              readRetryLimit: Int = levelReadRetryLimit,
               bloomFilterFalsePositiveRate: Double = 0.01)(implicit ordering: Ordering[Slice[Byte]],
                                                            keyValueLimiter: (Persistent, Segment) => Unit = keyValueLimiter,
                                                            fileOpenLimited: DBFile => Unit = fileOpenLimiter): Level =
@@ -456,10 +447,8 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
         segmentSize = segmentSize,
         nextLevel = nextLevel,
         pushForward = pushForward,
-        cacheKeysOnCreate = cacheKeysOnCreate,
         appendixStorage = appendixStorage,
         throttle = throttle,
-        readRetryLimit = readRetryLimit,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate
       ).assertGet.asInstanceOf[Level]
   }

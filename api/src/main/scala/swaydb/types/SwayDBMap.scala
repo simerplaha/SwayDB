@@ -122,4 +122,7 @@ class SwayDBMap[K, V](api: SwayDBAPI)(implicit keySerializer: Serializer[K],
   def sizeOfSegments: Long =
     api.sizeOfSegments
 
+  def valueSize(key: K): Try[Option[Int]] =
+    api valueSize key
+
 }

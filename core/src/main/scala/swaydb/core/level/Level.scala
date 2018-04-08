@@ -83,10 +83,8 @@ private[core] object Level extends LazyLogging {
 
   def apply(segmentSize: Long,
             bloomFilterFalsePositiveRate: Double,
-            cacheKeysOnCreate: Boolean,
             levelStorage: LevelStorage,
             appendixStorage: AppendixStorage,
-            readRetryLimit: Int,
             nextLevel: Option[LevelRef],
             pushForward: Boolean = false,
             throttle: LevelMeter => Throttle)(implicit ordering: Ordering[Slice[Byte]],
@@ -104,8 +102,7 @@ private[core] object Level extends LazyLogging {
           new AppendixMapEntryReader(
             removeDeletes = removeDeletes(nextLevel),
             mmapSegmentsOnRead = levelStorage.mmapSegmentsOnWrite,
-            mmapSegmentsOnWrite = levelStorage.mmapSegmentsOnRead,
-            cacheKeysOnCreate = cacheKeysOnCreate
+            mmapSegmentsOnWrite = levelStorage.mmapSegmentsOnRead
           )
 
         import appendixReader._
@@ -152,8 +149,6 @@ private[core] object Level extends LazyLogging {
                   new Level(
                     dirs = levelStorage.dirs,
                     bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-                    cacheKeysOnCreate = cacheKeysOnCreate,
-                    readRetryLimit = readRetryLimit,
                     pushForward = pushForward,
                     mmapSegmentsOnWrite = levelStorage.mmapSegmentsOnWrite,
                     mmapSegmentsOnRead = levelStorage.mmapSegmentsOnRead,
@@ -178,8 +173,6 @@ private[core] object Level extends LazyLogging {
 
 private[core] class Level(val dirs: Seq[Dir],
                           bloomFilterFalsePositiveRate: Double,
-                          cacheKeysOnCreate: Boolean,
-                          readRetryLimit: Int,
                           val mmapSegmentsOnWrite: Boolean,
                           val mmapSegmentsOnRead: Boolean,
                           val inMemory: Boolean,
@@ -434,7 +427,6 @@ private[core] class Level(val dirs: Seq[Dir],
             _ =>
               Segment(
                 path = targetSegmentPath,
-                cacheKeysOnCreate = cacheKeysOnCreate,
                 mmapReads = mmapSegmentsOnRead,
                 mmapWrites = mmapSegmentsOnWrite,
                 minKey = segment.minKey,
@@ -561,7 +553,6 @@ private[core] class Level(val dirs: Seq[Dir],
                   Segment.persistent(
                     path = paths.next.resolve(segmentIDGenerator.nextSegmentID),
                     bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-                    cacheKeysOnCreate = cacheKeysOnCreate,
                     mmapReads = mmapSegmentsOnRead,
                     mmapWrites = mmapSegmentsOnWrite,
                     keyValues = keyValues,
@@ -707,16 +698,6 @@ private[core] class Level(val dirs: Seq[Dir],
     } getOrElse Failure(LevelException.NoSegmentsRemoved)
   }
 
-  def withRetry[T](tryBlock: => Try[T]): Try[T] =
-    Retry[T](resourceId = paths.head.toString, maxRetryLimit = readRetryLimit, until = Retry.levelReadRetryUntil) {
-      try
-        tryBlock
-      catch {
-        case ex: Exception =>
-          Failure(ex)
-      }
-    }
-
   def getFromThisLevel(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly]] =
     appendix.floor(key) match {
       case Some(segment) =>
@@ -730,9 +711,7 @@ private[core] class Level(val dirs: Seq[Dir],
     nextLevel.map(_.get(key)) getOrElse Success(None)
 
   override def get(key: Slice[Byte]): Try[Option[KeyValue.FindResponse]] =
-    withRetry {
-      Get(key, getFromThisLevel, getFromNextLevel)
-    }
+    Get(key, getFromThisLevel, getFromNextLevel)
 
   def mightContainInThisLevel(key: Slice[Byte]): Try[Boolean] =
     appendix.floor(key) match {
@@ -744,7 +723,7 @@ private[core] class Level(val dirs: Seq[Dir],
     }
 
   override def mightContain(key: Slice[Byte]): Try[Boolean] =
-    withRetry(mightContainInThisLevel(key)) flatMap {
+    mightContainInThisLevel(key) flatMap {
       yes =>
         if (yes)
           Success(yes)
@@ -774,9 +753,7 @@ private[core] class Level(val dirs: Seq[Dir],
     }
 
   override def lower(key: Slice[Byte]) =
-    withRetry {
-      Lower(key, lowerInThisLevel, lowerFromNextLevel)
-    }
+    Lower(key, lowerInThisLevel, lowerFromNextLevel)
 
   private def higherFromFloorSegment(key: Slice[Byte]) =
     appendix.floor(key).map(_.higher(key)) getOrElse Success(None)
@@ -812,18 +789,21 @@ private[core] class Level(val dirs: Seq[Dir],
     }
 
   override def higher(key: Slice[Byte]): Try[Option[KeyValue.FindResponse]] =
-    withRetry {
-      Higher(key, higherInThisLevel, ceiling, higherInNextLevel)
-    }
+    Higher(key, higherInThisLevel, ceiling, higherInNextLevel)
 
+  /**
+    * Does a quick appendix lookup.
+    * It does not check if the returned key is removed. Use [[Level.head]] instead.
+    */
   override def firstKey: Option[Slice[Byte]] =
     MinMax.min(appendix.firstKey, nextLevel.flatMap(_.firstKey))
 
-  private def lastKeyInThisLevel: Option[Slice[Byte]] =
-    appendix.lastValue() map (_.maxKey.maxKey)
-
+  /**
+    * Does a quick appendix lookup.
+    * It does not check if the returned key is removed. Use [[Level.last]] instead.
+    */
   override def lastKey: Option[Slice[Byte]] =
-    MinMax.max(lastKeyInThisLevel, nextLevel.flatMap(_.lastKey))
+    MinMax.max(appendix.lastValue().map(_.maxKey.maxKey), nextLevel.flatMap(_.lastKey))
 
   override def head =
     firstKey.map(ceiling) getOrElse Success(None)

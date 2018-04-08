@@ -36,23 +36,20 @@ import scala.util.{Failure, Success, Try}
 object AppendixMapEntryReader {
   def apply(removeDeletes: Boolean,
             mmapSegmentsOnRead: Boolean,
-            mmapSegmentsOnWrite: Boolean,
-            cacheKeysOnCreate: Boolean)(implicit ordering: Ordering[Slice[Byte]],
+            mmapSegmentsOnWrite: Boolean)(implicit ordering: Ordering[Slice[Byte]],
                                         keyValueLimiter: (Persistent, Segment) => Unit,
                                         fileOpenLimiter: DBFile => Unit,
                                         ec: ExecutionContext): AppendixMapEntryReader =
     new AppendixMapEntryReader(
       removeDeletes = removeDeletes,
       mmapSegmentsOnRead = mmapSegmentsOnRead,
-      mmapSegmentsOnWrite = mmapSegmentsOnWrite,
-      cacheKeysOnCreate = cacheKeysOnCreate
+      mmapSegmentsOnWrite = mmapSegmentsOnWrite
     )
 }
 
 class AppendixMapEntryReader(removeDeletes: Boolean,
                              mmapSegmentsOnRead: Boolean,
-                             mmapSegmentsOnWrite: Boolean,
-                             cacheKeysOnCreate: Boolean)(implicit ordering: Ordering[Slice[Byte]],
+                             mmapSegmentsOnWrite: Boolean)(implicit ordering: Ordering[Slice[Byte]],
                                                          keyValueLimiter: (Persistent, Segment) => Unit,
                                                          fileOpenLimiter: DBFile => Unit,
                                                          ec: ExecutionContext) {
@@ -78,7 +75,7 @@ class AppendixMapEntryReader(removeDeletes: Boolean,
                 MaxKey.Range(fromKey, toKey)
             }
           }
-        segment <- Segment(segmentPath, cacheKeysOnCreate, mmapSegmentsOnRead, mmapSegmentsOnWrite, minKey, maxKey, segmentSize, removeDeletes, checkExists = false)
+        segment <- Segment(segmentPath, mmapSegmentsOnRead, mmapSegmentsOnWrite, minKey, maxKey, segmentSize, removeDeletes, checkExists = false)
       } yield {
         Some(MapEntry.Put(minKey, segment)(AppendixMapEntryWriter.AppendixPutWriter))
       }

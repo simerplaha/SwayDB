@@ -129,7 +129,6 @@ private[core] object Segment {
                  bloomFilterFalsePositiveRate: Double,
                  mmapReads: Boolean,
                  mmapWrites: Boolean,
-                 cacheKeysOnCreate: Boolean,
                  keyValues: Iterable[KeyValue.WriteOnly],
                  removeDeletes: Boolean)(implicit ordering: Ordering[Slice[Byte]],
                                          keyValueLimiter: (Persistent, Segment) => Unit,
@@ -165,33 +164,28 @@ private[core] object Segment {
 
         writeResult map {
           file =>
-            val segment =
-              new PersistentSegment(
-                file = file,
-                mmapReads = mmapReads,
-                mmapWrites = mmapWrites,
-                cacheKeysOnCreate = cacheKeysOnCreate,
-                minKey = keyValues.head.key.unslice(),
-                maxKey =
-                  keyValues.last match {
-                    case range: KeyValue.WriteOnly.Range =>
-                      MaxKey.Range(range.fromKey.unslice(), range.toKey.unslice())
+            new PersistentSegment(
+              file = file,
+              mmapReads = mmapReads,
+              mmapWrites = mmapWrites,
+              minKey = keyValues.head.key.unslice(),
+              maxKey =
+                keyValues.last match {
+                  case range: KeyValue.WriteOnly.Range =>
+                    MaxKey.Range(range.fromKey.unslice(), range.toKey.unslice())
 
-                    case keyValue =>
-                      MaxKey.Fixed(keyValue.key.unslice())
-                  },
-                segmentSize = keyValues.last.stats.segmentSize,
-                removeDeletes = removeDeletes
-              )
-            if (cacheKeysOnCreate) segment.populateCacheWithKeys(Reader(bytes))
-            segment
+                  case keyValue =>
+                    MaxKey.Fixed(keyValue.key.unslice())
+                },
+              segmentSize = keyValues.last.stats.segmentSize,
+              removeDeletes = removeDeletes
+            )
         }
     }
 
   def apply(path: Path,
             mmapReads: Boolean,
             mmapWrites: Boolean,
-            cacheKeysOnCreate: Boolean,
             minKey: Slice[Byte],
             maxKey: MaxKey,
             segmentSize: Int,
@@ -213,7 +207,6 @@ private[core] object Segment {
           file = file,
           mmapReads = mmapReads,
           mmapWrites = mmapWrites,
-          cacheKeysOnCreate = cacheKeysOnCreate,
           minKey = minKey,
           maxKey = maxKey,
           segmentSize = segmentSize,
@@ -233,7 +226,6 @@ private[core] object Segment {
   def apply(path: Path,
             mmapReads: Boolean,
             mmapWrites: Boolean,
-            cacheKeysOnCreate: Boolean,
             removeDeletes: Boolean,
             checkExists: Boolean)(implicit ordering: Ordering[Slice[Byte]],
                                   keyValueLimiter: (Persistent, Segment) => Unit,
@@ -261,7 +253,6 @@ private[core] object Segment {
                           file = file,
                           mmapReads = mmapReads,
                           mmapWrites = mmapWrites,
-                          cacheKeysOnCreate = cacheKeysOnCreate,
                           minKey = keyValues.head.key,
                           maxKey =
                             keyValues.last match {
@@ -405,34 +396,25 @@ private[core] object Segment {
                                appendixSegments: Iterable[Segment])(implicit ordering: Ordering[Slice[Byte]]): Try[Boolean] =
     if (busySegments.isEmpty)
       Success(false)
-    else
-      (for {
+    else {
+      for {
         head <- map.headValue()
         last <- map.lastValue()
       } yield {
-        if (ordering.equiv(head.key, last.key))
-          SegmentAssigner.assign(
-            keyValues = Slice(head),
-            segments = appendixSegments
-          ) map {
-            assignments =>
-              Segment.overlaps(
-                segments1 = busySegments,
-                segments2 = assignments.keys
-              ).nonEmpty
-          }
-        else
-          SegmentAssigner.assign(
-            keyValues = Slice(head, last),
-            segments = appendixSegments
-          ) map {
-            assignments =>
-              Segment.overlaps(
-                segments1 = busySegments,
-                segments2 = assignments.keys
-              ).nonEmpty
-          }
-      }) getOrElse Success(false)
+        {
+          if (ordering.equiv(head.key, last.key))
+            SegmentAssigner.assign(keyValues = Slice(head), segments = appendixSegments)
+          else
+            SegmentAssigner.assign(keyValues = Slice(head, last), segments = appendixSegments)
+        } map {
+          assignments =>
+            Segment.overlaps(
+              segments1 = busySegments,
+              segments2 = assignments.keys
+            ).nonEmpty
+        }
+      }
+    } getOrElse Success(false)
 }
 
 private[core] trait Segment {

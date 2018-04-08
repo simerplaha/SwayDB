@@ -57,6 +57,54 @@ class MergeRangeIntoRange_OldRangeIsRemove_FromKeyEqual_Spec extends TestBase {
       assertMerge(newKeyValues, oldKeyValues, expected = Slice.empty, isLastLevel = true)
     }
 
+    "old Range's fromValue is Remove and new Range's fromValue is None" in {
+      //1 - 10
+      //1    -    20
+      val newKeyValues = Slice(Memory.Range(1, 10, None, Value.Put(1)))
+      val oldKeyValues = Slice(Memory.Range(1, 20, Some(Value.Remove), Value.Remove))
+
+      assertMerge(
+        newKeyValues,
+        oldKeyValues,
+        Slice(Transient.Range[Value, Value](1, 20, Some(Value.Remove), Value.Remove, 0.1, None))
+      )
+      assertSkipListMerge(
+        newKeyValues,
+        oldKeyValues,
+        Slice(
+          Transient.Range[Value, Value](1, 10, Some(Value.Remove), Value.Remove, 0.1, None),
+          Transient.Range[Value, Value](10, 20, None, Value.Remove, 0.1, None)
+        ).updateStats
+      )
+
+      //is last Level
+      assertMerge(newKeyValues, oldKeyValues, expected = Slice.empty, isLastLevel = true)
+    }
+
+    "old Range's fromValue is Remove and new Range's fromValue is Put" in {
+      //1 - 10
+      //1    -    20
+      val newKeyValues = Slice(Memory.Range(1, 10, Some(Value.Put(1)), Value.Put(1)))
+      val oldKeyValues = Slice(Memory.Range(1, 20, Some(Value.Remove), Value.Remove))
+
+      assertMerge(
+        newKeyValues,
+        oldKeyValues,
+        Slice(Transient.Range[Value, Value](1, 20, Some(Value.Put(1)), Value.Remove, 0.1, None))
+      )
+      assertSkipListMerge(
+        newKeyValues,
+        oldKeyValues,
+        Slice(
+          Transient.Range[Value, Value](1, 10, Some(Value.Put(1)), Value.Remove, 0.1, None),
+          Transient.Range[Value, Value](10, 20, None, Value.Remove, 0.1, None)
+        ).updateStats
+      )
+
+      //is last Level
+      assertMerge(newKeyValues, oldKeyValues, expected = Transient.Put(1, 1), isLastLevel = true)
+    }
+
     "old Range's rangeValue is Remove, new Range's range value is Put, new Range's fromValue is Put" in {
       //1 - 10
       //1    -    20

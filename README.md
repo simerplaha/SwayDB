@@ -26,6 +26,7 @@ View detailed benchmark results [here](http://swaydb.io/performance/macbook-pro-
 - Data storage formats
     - Key-value (`Map[K, V]`)
     - Row (`Set[T]`)
+- In-built custom serialization API with [Slice](http://www.swaydb.io/slice/byte-slice/) 
 - Configurable Levels
 - Configurable cache size
 - Concurrent level compaction

@@ -22,7 +22,7 @@ package swaydb.data.config
 sealed trait RecoveryMode {
   def name = this.getClass.getSimpleName.replaceAll("\\$", "")
 
-  def drop: Boolean
+  val drop: Boolean
 }
 
 object RecoveryMode {
@@ -31,7 +31,7 @@ object RecoveryMode {
     * Returns failure immediately if a corruption is detected.
     */
   case object ReportFailure extends RecoveryMode {
-    override def drop: Boolean = false
+    override val drop: Boolean = false
   }
 
   /**
@@ -39,7 +39,7 @@ object RecoveryMode {
     * drops all entries after the corruption.
     */
   case object DropCorruptedTailEntries extends RecoveryMode {
-    override def drop: Boolean = true
+    override val drop: Boolean = true
   }
 
   /**
@@ -48,6 +48,6 @@ object RecoveryMode {
     * subsequent Map files after the corrupted file.
     */
   case object DropCorruptedTailEntriesAndMaps extends RecoveryMode {
-    override def drop: Boolean = true
+    override val drop: Boolean = true
   }
 }

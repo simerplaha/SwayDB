@@ -65,7 +65,7 @@ class LevelZeroSpec extends TestBase with MockFactory with Benchmark {
 
   val keyValuesCount = 10
 
-  //  override def deleteFiles = false
+  //    override def deleteFiles = false
 
   "LevelZero" should {
     "initialise" in {
@@ -134,33 +134,33 @@ class LevelZeroSpec extends TestBase with MockFactory with Benchmark {
       zero.get(1).assertGet.assertGet shouldBe Slice.create[Byte](0)
     }
 
-    "write large keys and values and reopen the database and re-read key-values" in {
-      //approx 2 mb key and values
-
-      val key1 = "a" + Random.nextString(750000): Slice[Byte]
-      val key2 = "b" + Random.nextString(750000): Slice[Byte]
-
-      val value1 = Random.nextString(750000): Slice[Byte]
-      val value2 = Random.nextString(750000): Slice[Byte]
-
-      def assertWrite(zero: LevelZero): Unit = {
-        zero.put(key1, value1).assertGet
-        zero.put(key2, value2).assertGet
-      }
-
-      def assertRead(zero: LevelZero): Unit = {
-        zero.get(key1).assertGet.assertGet shouldBe value1
-        zero.get(key2).assertGet.assertGet shouldBe value2
-      }
-
-      val zero = TestLevelZero(TestLevel(throttle = _ => Throttle(10.seconds, 0)))
-      assertWrite(zero)
-      assertRead(zero)
-
-      //allow compaction to do it's work
-      sleep(2.seconds)
-      if (persistent) assertRead(zero.reopen)
-    }
+//    "write large keys and values and reopen the database and re-read key-values" in {
+//      //approx 2 mb key and values
+//
+//      val key1 = "a" + Random.nextString(750000): Slice[Byte]
+//      val key2 = "b" + Random.nextString(750000): Slice[Byte]
+//
+//      val value1 = Random.nextString(750000): Slice[Byte]
+//      val value2 = Random.nextString(750000): Slice[Byte]
+//
+//      def assertWrite(zero: LevelZero): Unit = {
+//        zero.put(key1, value1).assertGet
+//        zero.put(key2, value2).assertGet
+//      }
+//
+//      def assertRead(zero: LevelZero): Unit = {
+//        zero.get(key1).assertGet.assertGet shouldBe value1
+//        zero.get(key2).assertGet.assertGet shouldBe value2
+//      }
+//
+//      val zero = TestLevelZero(TestLevel(throttle = _ => Throttle(10.seconds, 0)))
+//      assertWrite(zero)
+//      assertRead(zero)
+//
+//      //allow compaction to do it's work
+//      sleep(2.seconds)
+//      if (persistent) assertRead(zero.reopen)
+//    }
 
     "write keys only" in {
       val zero = TestLevelZero(TestLevel())

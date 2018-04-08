@@ -89,7 +89,11 @@ class BytesReader(slice: Slice[Byte]) {
     * }}}
     * requires an Array and not an Iterable. Slice currently does not expose the internal Array.
     */
-  def readString(charset: Charset = StandardCharsets.UTF_8): String =
-    sliceReader.readString(charset).get
+  def readRemainingAsString(charset: Charset = StandardCharsets.UTF_8): String =
+    sliceReader.readRemainingAsString(charset).get
+
+  def readString(size: Int, charset: Charset = StandardCharsets.UTF_8): String =
+    sliceReader.readString(size, charset).get
+
 
 }

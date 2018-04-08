@@ -21,6 +21,7 @@ package swaydb.core.segment.format.one
 
 import bloomfilter.mutable.BloomFilter
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.core.data.KeyValue.WriteOnly.{Fixed, Range}
 import swaydb.core.data.{KeyValue, Persistent, Transient}
 import swaydb.core.util.BloomFilterUtil._
 import swaydb.core.util.CRC32
@@ -57,16 +58,7 @@ private[core] object SegmentWriter extends LazyLogging {
         val (valuesSlice, indexAndFooterSlice) = slice splitAt keyValues.last.stats.segmentValuesSize
         keyValues foreach {
           keyValue =>
-            val valueMayBe =
-              keyValue match {
-                case transient: Transient =>
-                  Success(transient.value)
-
-                case persistent: Persistent =>
-                  persistent.getOrFetchValue
-              }
-
-            valueMayBe map {
+            keyValue.getOrFetchValue map {
               valueMayBe =>
                 bloomFilter.foreach(_ add keyValue.key)
 

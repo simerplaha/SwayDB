@@ -67,14 +67,12 @@ private[core] object DBInitializer extends LazyLogging {
             segmentSize = segmentSize,
             nextLevel = nextLevel,
             pushForward = pushForward,
-            cacheKeysOnCreate = false,
             appendixStorage = AppendixStorage.Memory,
             bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-            throttle = throttle,
-            readRetryLimit = 10
+            throttle = throttle
           )
 
-        case PersistentLevelConfig(dir, otherDirs, segmentSize, mmapSegment, mmapAppendix, appendixFlushCheckpointSize, pushForward, cacheKeysOnCreate, bloomFilterFalsePositiveRate, throttle) =>
+        case PersistentLevelConfig(dir, otherDirs, segmentSize, mmapSegment, mmapAppendix, appendixFlushCheckpointSize, pushForward, bloomFilterFalsePositiveRate, throttle) =>
           Level(
             levelStorage =
               LevelStorage.Persistent(
@@ -86,11 +84,9 @@ private[core] object DBInitializer extends LazyLogging {
             segmentSize = segmentSize,
             nextLevel = nextLevel,
             pushForward = pushForward,
-            cacheKeysOnCreate = cacheKeysOnCreate,
             appendixStorage = AppendixStorage.Persistent(mmapAppendix, appendixFlushCheckpointSize),
             bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-            throttle = throttle,
-            readRetryLimit = 10
+            throttle = throttle
           )
 
         case TrashLevelConfig =>
@@ -105,7 +101,7 @@ private[core] object DBInitializer extends LazyLogging {
         logger.info("Closing files.")
         zero.close.failed foreach {
           exception =>
-            logger.error("Failed to close LevelZero.", exception)
+            logger.error("Failed to close Levels.", exception)
         }
 
         logger.info("Releasing database locks.")

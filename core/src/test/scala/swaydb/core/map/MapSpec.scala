@@ -47,7 +47,7 @@ class MapSpec extends TestBase {
 
   import swaydb.core.level.Level.SkipListMerge$
 
-  val appendixReader = AppendixMapEntryReader(false, true, true, false)
+  val appendixReader = AppendixMapEntryReader(false, true, true)
 
   "Map" should {
     "initialise a memory level0" in {

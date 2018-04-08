@@ -37,13 +37,12 @@ import swaydb.data.segment.MaxKey
 import swaydb.data.segment.MaxKey.{Fixed, Range}
 import swaydb.data.slice.{Reader, Slice}
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success, Try}
 
 private[segment] class PersistentSegment(val file: DBFile,
                                          mmapReads: Boolean,
                                          mmapWrites: Boolean,
-                                         cacheKeysOnCreate: Boolean,
                                          val minKey: Slice[Byte],
                                          val maxKey: MaxKey,
                                          val segmentSize: Int,
@@ -58,28 +57,6 @@ private[segment] class PersistentSegment(val file: DBFile,
 
   private[segment] val cache = new ConcurrentSkipListMap[Slice[Byte], Persistent](ordering)
   @volatile private[segment] var footer = Option.empty[SegmentFooter]
-
-  def populateCacheWithKeys(reader: Reader) =
-    Future {
-      SegmentReader.readFooter(reader) flatMap {
-        footer =>
-          this.footer = Some(footer)
-          readAll(footer, reader.copy()) map {
-            keyValues =>
-              keyValues foreach {
-                sliceKeyValue =>
-                  addToCache {
-                    sliceKeyValue match {
-                      case keyValue: Persistent.Put =>
-                        keyValue.copy(_key = sliceKeyValue.key.unslice(), valueReader = createReader())
-                      case keyValue: Persistent.Remove =>
-                        keyValue.copy(_key = sliceKeyValue.key.unslice())
-                    }
-                  }
-              }
-          }
-      }
-    }
 
   def close: Try[Unit] =
     file.close map {
@@ -139,7 +116,6 @@ private[segment] class PersistentSegment(val file: DBFile,
                 keyValues => {
                   Segment.persistent(
                     path = targetPaths.next.resolve(idGenerator.nextSegmentID),
-                    cacheKeysOnCreate = cacheKeysOnCreate,
                     mmapReads = mmapReads,
                     mmapWrites = mmapWrites,
                     keyValues = keyValues,

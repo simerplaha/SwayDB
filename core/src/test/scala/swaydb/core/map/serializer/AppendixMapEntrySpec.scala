@@ -40,7 +40,7 @@ class AppendixMapEntrySpec extends TestBase {
   implicit val ordering = KeyOrder.default
   implicit val maxSegmentsOpenCacheImplicitLimiter: DBFile => Unit = TestLimitQueues.fileOpenLimiter
   implicit val keyValuesLimitImplicitLimiter: (Persistent, Segment) => Unit = TestLimitQueues.keyValueLimiter
-  val appendixReader = AppendixMapEntryReader(false, true, true, false)
+  val appendixReader = AppendixMapEntryReader(false, true, true)
   val segment = TestSegment().assertGet
 
   "MapEntryWriterAppendix & MapEntryReaderAppendix" should {

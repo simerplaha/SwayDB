@@ -35,8 +35,8 @@ import scala.util.{Failure, Success, Try}
 case class DBIterator[K, V](private val api: SwayDBAPI,
                             private val from: Option[From[K]],
                             private val reverse: Boolean = false,
-                            private val until: (K, V) => Boolean = (_: K, _: V) => true)(implicit keySerializer: Serializer[K],
-                                                                                         valueSerializer: Serializer[V]) extends Iterable[(K, V)] {
+                            private val till: (K, V) => Boolean = (_: K, _: V) => true)(implicit keySerializer: Serializer[K],
+                                                                                        valueSerializer: Serializer[V]) extends Iterable[(K, V)] {
 
   def from(key: K): DBIterator[K, V] =
     copy(from = Some(From(key = key, orBefore = false, orAfter = false, before = false, after = false)))
@@ -53,19 +53,19 @@ case class DBIterator[K, V](private val api: SwayDBAPI,
   def fromOrAfter(key: K) =
     copy(from = Some(From(key = key, orBefore = false, orAfter = true, before = false, after = false)))
 
-  def until(condition: (K, V) => Boolean) =
-    copy(until = condition)
+  def till(condition: (K, V) => Boolean) =
+    copy(till = condition)
 
-  def untilKey(condition: K => Boolean) =
+  def tillKey(condition: K => Boolean) =
     copy(
-      until =
+      till =
         (key: K, _: V) =>
           condition(key)
     )
 
-  def untilValue(condition: V => Boolean) =
+  def tillValue(condition: V => Boolean) =
     copy(
-      until =
+      till =
         (_: K, value: V) =>
           condition(value)
     )
@@ -122,7 +122,7 @@ case class DBIterator[K, V](private val api: SwayDBAPI,
                 case Some(keyValue @ (key, value)) =>
                   val keyT = key.read[K]
                   val valueT = value.read[V]
-                  if (until(keyT, valueT)) {
+                  if (till(keyT, valueT)) {
                     nextKeyValueBytes = keyValue
                     nextKeyValueTyped = (keyT, valueT)
                     true
@@ -145,7 +145,7 @@ case class DBIterator[K, V](private val api: SwayDBAPI,
               case Some(keyValue @ (key, value)) =>
                 val keyT = key.read[K]
                 val valueT = value.read[V]
-                if (until(keyT, valueT)) {
+                if (till(keyT, valueT)) {
                   nextKeyValueBytes = keyValue
                   nextKeyValueTyped = (keyT, valueT)
                   true
@@ -168,7 +168,10 @@ case class DBIterator[K, V](private val api: SwayDBAPI,
   }
 
   override def size: Int =
-    api.keyValueCount.get
+    sizeTry.get
+
+  def sizeTry: Try[Int] =
+    api.keyValueCount
 
   override def isEmpty: Boolean =
     api.headKey.get.isEmpty
@@ -183,23 +186,29 @@ case class DBIterator[K, V](private val api: SwayDBAPI,
     lastOption.get
 
   override def headOption: Option[(K, V)] =
+    headOptionTry.get
+
+  private def headOptionTry: Try[Option[(K, V)]] =
     if (from.isDefined)
-      this.take(1).headOption
+      Try(this.take(1).headOption)
     else
       api.head map {
         case Some((key, value)) =>
           Some(key.read[K], value.read[V])
         case _ =>
           None
-      } get
+      }
 
   override def lastOption: Option[(K, V)] =
+    lastOptionTry.get
+
+  private def lastOptionTry: Try[Option[(K, V)]] =
     api.last map {
       case Some((key, value)) =>
         Some(key.read[K], value.read[V])
       case _ =>
         None
-    } get
+    }
 
   def foreachRight[U](f: (K, V) => U): Unit =
     copy(reverse = true) foreach {

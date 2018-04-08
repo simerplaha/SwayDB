@@ -67,6 +67,9 @@ class LevelZeroGetSpec extends TestBase with MockFactory with Benchmark {
 
       level0.put(1, 1).assertGet
       level0.get(1).assertGet should contain(1: Slice[Byte])
+
+      level0.head.assertGet shouldBe ((1: Slice[Byte], Some(1: Slice[Byte])))
+      level0.last.assertGet shouldBe ((1: Slice[Byte], Some(1: Slice[Byte])))
     }
 
     "get None for removed key-value" in {
@@ -77,6 +80,9 @@ class LevelZeroGetSpec extends TestBase with MockFactory with Benchmark {
       level0.remove(1).assertGet
 
       level0.get(1).assertGetOpt shouldBe empty
+
+      level0.head.assertGetOpt shouldBe empty
+      level0.last.assertGetOpt shouldBe empty
     }
 
     "get updated Range's value" in {
@@ -98,6 +104,9 @@ class LevelZeroGetSpec extends TestBase with MockFactory with Benchmark {
           else
             level0.get(i).assertGet should contain(i: Slice[Byte])
       }
+
+      level0.head.assertGet shouldBe ((1: Slice[Byte], Some(1: Slice[Byte])))
+      level0.last.assertGet shouldBe ((20: Slice[Byte], Some(20: Slice[Byte])))
     }
 
     "get None for removed Range" in {
@@ -119,6 +128,9 @@ class LevelZeroGetSpec extends TestBase with MockFactory with Benchmark {
           else
             level0.get(i).assertGet should contain(i: Slice[Byte])
       }
+
+      level0.head.assertGet shouldBe ((1: Slice[Byte], Some(1: Slice[Byte])))
+      level0.last.assertGet shouldBe ((20: Slice[Byte], Some(20: Slice[Byte])))
     }
 
     "get key-values from multiple maps" in {
@@ -140,6 +152,9 @@ class LevelZeroGetSpec extends TestBase with MockFactory with Benchmark {
         i =>
           level0.get(i).assertGet should contain(i: Slice[Byte])
       }
+
+      level0.head.assertGet shouldBe ((1: Slice[Byte], Some(1: Slice[Byte])))
+      level0.last.assertGet shouldBe ((20: Slice[Byte], Some(20: Slice[Byte])))
     }
 
     "get key-values from multiple maps with update ranges for all key-values" in {
@@ -165,6 +180,9 @@ class LevelZeroGetSpec extends TestBase with MockFactory with Benchmark {
         i =>
           level0.get(i).assertGet should contain(s"$i updated": Slice[Byte])
       }
+
+      level0.head.assertGet shouldBe ((1: Slice[Byte], Some("1 updated": Slice[Byte])))
+      level0.last.assertGet shouldBe ((20: Slice[Byte], Some("20 updated": Slice[Byte])))
     }
 
     "get key-values from multiple maps with remove ranges for all key-values" in {
@@ -191,6 +209,9 @@ class LevelZeroGetSpec extends TestBase with MockFactory with Benchmark {
         i =>
           level0.get(i).assertGetOpt shouldBe empty
       }
+
+      level0.head.assertGetOpt shouldBe empty
+      level0.last.assertGetOpt shouldBe empty
     }
   }
 }

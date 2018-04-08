@@ -36,7 +36,7 @@ import scala.util.{Failure, Success, Try}
 case class KeysIterator[K](private val api: SwayDBAPI,
                            private val from: Option[From[K]],
                            private val reverse: Boolean = false,
-                           private val until: (K) => Boolean = (_: K) => true)(implicit serializer: Serializer[K]) extends Iterable[K] {
+                           private val till: (K) => Boolean = (_: K) => true)(implicit serializer: Serializer[K]) extends Iterable[K] {
 
   def from(key: K): KeysIterator[K] =
     copy(from = Some(From(key = key, orBefore = false, orAfter = false, before = false, after = false)))
@@ -53,8 +53,8 @@ case class KeysIterator[K](private val api: SwayDBAPI,
   def fromOrAfter(key: K) =
     copy(from = Some(From(key = key, orBefore = false, orAfter = true, before = false, after = false)))
 
-  def until(condition: K => Boolean) =
-    copy(until = condition)
+  def till(condition: K => Boolean) =
+    copy(till = condition)
 
   override def iterator = new Iterator[K] {
 
@@ -108,7 +108,7 @@ case class KeysIterator[K](private val api: SwayDBAPI,
               key match {
                 case Some(key) =>
                   val keyT = key.read[K]
-                  if (until(keyT)) {
+                  if (till(keyT)) {
                     nextKeyBytes = key
                     nextKeyTyped = keyT
                     true
@@ -130,7 +130,7 @@ case class KeysIterator[K](private val api: SwayDBAPI,
             value match {
               case Some(key) =>
                 val keyT = key.read[K]
-                if (until(keyT)) {
+                if (till(keyT)) {
                   nextKeyBytes = key
                   nextKeyTyped = keyT
                   true

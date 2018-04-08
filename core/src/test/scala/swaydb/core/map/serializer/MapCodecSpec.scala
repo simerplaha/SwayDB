@@ -36,7 +36,7 @@ class MapCodecSpec extends TestBase {
   implicit val maxSegmentsOpenCacheImplicitLimiter: DBFile => Unit = TestLimitQueues.fileOpenLimiter
   implicit val keyValuesLimitImplicitLimiter: (Persistent, Segment) => Unit = TestLimitQueues.keyValueLimiter
 
-  val appendixReader = AppendixMapEntryReader(false, true, true, false)
+  val appendixReader = AppendixMapEntryReader(false, true, true)
 
   "MemoryMapCodec" should {
     "write and read key values" in {

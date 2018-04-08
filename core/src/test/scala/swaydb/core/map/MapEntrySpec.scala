@@ -41,7 +41,7 @@ class MapEntrySpec extends TestBase {
   implicit val maxSegmentsOpenCacheImplicitLimiter: DBFile => Unit = TestLimitQueues.fileOpenLimiter
   implicit val keyValuesLimitImplicitLimiter: (Persistent, Segment) => Unit = TestLimitQueues.keyValueLimiter
 
-  val appendixReader = AppendixMapEntryReader(false, true, true, false)
+  val appendixReader = AppendixMapEntryReader(false, true, true)
 
   val keyValues = randomIntKeyValues(count = 10)
   val segment = TestSegment(keyValues).assertGet

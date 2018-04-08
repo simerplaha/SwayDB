@@ -59,7 +59,6 @@ object MemoryConfig {
             memoryLevelSegmentSize: Int,
             persistentLevelSegmentSize: Int,
             persistentLevelAppendixFlushCheckpointSize: Int,
-            cachePersistentLevelKeyValues: Boolean,
             mmapPersistentSegments: MMAP,
             mmapPersistentAppendix: Boolean,
             bloomFilterFalsePositiveRate: Double,
@@ -89,7 +88,6 @@ object MemoryConfig {
         mmapAppendix = mmapPersistentAppendix,
         appendixFlushCheckpointSize = persistentLevelAppendixFlushCheckpointSize,
         pushForward = false,
-        cacheKeysOnCreate = cachePersistentLevelKeyValues,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
         throttle = (_) => Throttle(Duration.Zero, maxSegmentsToPush)
       )

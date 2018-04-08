@@ -71,6 +71,8 @@ private[swaydb] trait SwayDBAPI {
 
   def getKeyValue(key: Slice[Byte]): Try[Option[(Slice[Byte], Option[Slice[Byte]])]]
 
+  def valueSize(key: Slice[Byte]): Try[Option[Int]]
+
   def beforeKey(key: Slice[Byte]): Try[Option[Slice[Byte]]]
 
   def before(key: Slice[Byte]): Try[Option[(Slice[Byte], Option[Slice[Byte]])]]

@@ -74,6 +74,11 @@ object ByteUtil {
         reader.read((size - reader.getPosition).toInt) map (readString(_, charset))
     }
 
+  def readString(size: Int,
+                 reader: Reader,
+                 charset: Charset): Try[String] =
+    reader.read(size) map (readString(_, charset))
+
   //TODO - readString is expensive. If the slice bytes are a sub-slice of another other Slice a copy of the array will be created.
   def readString(slice: Slice[Byte], charset: Charset): String =
     new String(slice.toArray, charset)
@@ -91,8 +96,7 @@ object ByteUtil {
     * Creating reader on each read will be expensive therefore the functions are repeated
     * for slice and reader.
     *
-    * Need to re-evaluate this code and see if abstract functions can be used without creating
-    * unnecessary objects.
+    * Need to re-evaluate this code and see if abstract functions can be used.
     * ************************************************/
 
   def writeSignedInt(x: Int, slice: Slice[Byte]): Unit =

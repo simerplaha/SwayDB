@@ -35,6 +35,7 @@ import swaydb.serializers._
 import swaydb.core.util.FileUtil._
 
 import scala.collection.JavaConverters._
+import scala.util.{Failure, Success}
 
 class MapsSpec extends TestBase {
 
@@ -222,7 +223,7 @@ class MapsSpec extends TestBase {
       recoveredMaps.last.get(1).assertGet shouldBe Memory.Put(1)
     }
 
-    "fail recovery if one of the map is corrupted and recovery mode is Report" in {
+    "fail recovery if one of the map is corrupted and recovery mode is ReportFailure" in {
       val path = createRandomDir
       val maps = Maps.persistent[Slice[Byte], Memory](path, mmap = true, 1.byte, Accelerator.brake(), RecoveryMode.ReportFailure).assertGet
       maps.write(MapEntry.Put(1, Memory.Put(1))).assertGet

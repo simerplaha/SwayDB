@@ -235,7 +235,7 @@ class Slice[+T: ClassTag](array: Array[T],
                           val toOffset: Int,
                           private var _written: Int) extends Iterable[T] {
 
-  var writePosition = fromOffset + _written
+  private var writePosition = fromOffset + _written
 
   override val size =
     toOffset - fromOffset + 1

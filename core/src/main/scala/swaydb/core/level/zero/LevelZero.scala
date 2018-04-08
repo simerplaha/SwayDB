@@ -347,9 +347,6 @@ private[core] class LevelZero(val path: Path,
 
         case _ =>
           currentMap.higherValue(key)
-
-        case _ =>
-          None
       }
     else
       currentMap.higher(key).map(_._2)
@@ -477,12 +474,12 @@ private[core] class LevelZero(val path: Path,
     find(key).map(_.isDefined)
 
   def valueSize(key: Slice[Byte]): Try[Option[Int]] =
-    find(key) flatMap {
+    find(key) map {
       result =>
         result map {
           response =>
-            Success(Some(response.valueLength))
-        } getOrElse Success(None)
+            response.valueLength
+        }
     }
 
   def keyValueCount: Try[Int] =

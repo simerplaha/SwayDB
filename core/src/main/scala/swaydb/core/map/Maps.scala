@@ -162,6 +162,7 @@ private[core] object Maps extends LazyLogging {
       * This is not tail recursive. The number of in-memory [[Map]]s in [[swaydb.core.level.zero.LevelZero]]
       * are not expected to become too large that would result in a stack overflow.
       */
+    @tailrec
     def doRecovery(maps: List[Path],
                    recoveredMaps: ListBuffer[Map[K, V]])(implicit skipListMerger: SkipListMerge[K, V]): Try[Seq[Map[K, V]]] =
       maps match {
@@ -170,23 +171,52 @@ private[core] object Maps extends LazyLogging {
 
         case mapPath :: otherMapsPaths =>
           logger.info(s"{}: Recovering.", mapPath)
-          Map.persistent[K, V](mapPath, mmap, flushOnOverflow = false, fileSize, recovery.drop) flatMap {
-            recoveredMap =>
+
+          Map.persistent[K, V](mapPath, mmap, flushOnOverflow = false, fileSize, recovery.drop) match {
+            case Success(recoveredMap) =>
               //recovered immutable memory map's files should be closed after load as they are always read from in memory
               // and does not require the files to be opened.
-              recoveredMap.item.close() flatMap {
-                _ =>
+              recoveredMap.item.close() match {
+                case Success(_) =>
                   recoveredMaps += recoveredMap.item //recoveredMap.item can also be partially recovered file based on RecoveryMode set.
                   //if the recoveredMap's recovery result is a failure (partially recovered file),
                   //apply corruption handling based on the value set for RecoveryMode.
-                  recoveredMap.result.failed.map(applyRecoveryMode(_, mapPath, otherMapsPaths, recoveredMaps)) getOrElse
-                    doRecovery(otherMapsPaths, recoveredMaps) //if the failure recovery was applied successfully, continue recovering other Maps.
+                  recoveredMap.result match {
+                    case Success(_) => //Recovery was successful. Recover next map.
+                      doRecovery(otherMapsPaths, recoveredMaps)
+
+                    case Failure(exception) =>
+                      applyRecoveryMode(exception, mapPath, otherMapsPaths, recoveredMaps)
+                  }
+
+                case Failure(exception) => //failed to close the file.
+                  Failure(exception)
               }
-          } recoverWith {
-            case exception =>
+
+            case Failure(exception) =>
               //if there was a full failure perform failure handling based on the value set for RecoveryMode.
               applyRecoveryMode(exception, mapPath, otherMapsPaths, recoveredMaps)
           }
+
+        //non tailrec version.
+        //          Map.persistent[K, V](mapPath, mmap, flushOnOverflow = false, fileSize, recovery.drop) flatMap {
+        //            recoveredMap =>
+        //              //file was recovered. This can be either full recovery or partial recovery.
+        //              //recovered immutable memory map's files should be closed after load as they are always read from in memory
+        //              // and does not require the files to be opened.
+        //              recoveredMap.item.close() flatMap {
+        //                _ =>
+        //                  recoveredMaps += recoveredMap.item //recoveredMap.item can also be partially recovered file based on RecoveryMode set.
+        //                  //if the recoveredMap's recovery result is a failure (partially recovered file),
+        //                  //apply corruption handling based on the value set for RecoveryMode.
+        //                  recoveredMap.result.failed.map(applyRecoveryMode(_, mapPath, otherMapsPaths, recoveredMaps)) getOrElse
+        //                    doRecovery(otherMapsPaths, recoveredMaps) //if the failure recovery was applied successfully, continue recovering other Maps.
+        //              }
+        //          } recoverWith {
+        //            case exception =>
+        //              //if there was a full failure perform failure handling based on the value set for RecoveryMode.
+        //              applyRecoveryMode(exception, mapPath, otherMapsPaths, recoveredMaps)
+        //          }
       }
 
     doRecovery(folder.folders, ListBuffer.empty)

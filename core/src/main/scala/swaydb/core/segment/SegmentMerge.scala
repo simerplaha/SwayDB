@@ -19,8 +19,9 @@
 
 package swaydb.core.segment
 
+import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.KeyValue.ReadOnly
-import swaydb.core.data._
+import swaydb.core.data.{Memory, Persistent, Value, _}
 import swaydb.core.map.serializer.RangeValueSerializers._
 import swaydb.core.util.SliceUtil._
 import swaydb.core.util.TryUtil
@@ -31,7 +32,7 @@ import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
 import scala.util.{Failure, Success, Try}
 
-private[core] object SegmentMerge {
+private[core] object SegmentMerge extends LazyLogging {
 
   def mergeSmallerSegmentWithPrevious(segments: ListBuffer[ListBuffer[KeyValue.WriteOnly]],
                                       minSegmentSize: Long,
@@ -153,11 +154,13 @@ private[core] object SegmentMerge {
     var newRangeKeyValueStash = Option.empty[KeyValue.ReadOnly.Range]
     var oldRangeKeyValueStash = Option.empty[KeyValue.ReadOnly.Range]
 
+    //    var count = 0
+
     @tailrec
     def doMerge(newKeyValues: Slice[KeyValue.ReadOnly],
                 oldKeyValues: Slice[KeyValue.ReadOnly]): Try[ListBuffer[ListBuffer[KeyValue.WriteOnly]]] = {
 
-      def dropOldKeyValue(stash: Option[KeyValue.ReadOnly.Range] = None) =
+      def dropOldKeyValue(stash: Option[KeyValue.ReadOnly.Range] = None) = {
         if (oldRangeKeyValueStash.isDefined) {
           oldRangeKeyValueStash = stash
           oldKeyValues
@@ -165,6 +168,7 @@ private[core] object SegmentMerge {
           oldRangeKeyValueStash = stash
           oldKeyValues.drop(1)
         }
+      }
 
       def dropNewKeyValue(stash: Option[KeyValue.ReadOnly.Range] = None) = {
         if (newRangeKeyValueStash.isDefined) {
@@ -176,8 +180,9 @@ private[core] object SegmentMerge {
         }
       }
 
-      def add(nextKeyValue: KeyValue.ReadOnly): Try[Unit] =
+      def add(nextKeyValue: KeyValue.ReadOnly): Try[Unit] = {
         addKeyValue(nextKeyValue, splits, minSegmentSize, forInMemory, isLastLevel, bloomFilterFalsePositiveRate)
+      }
 
       (newRangeKeyValueStash orElse newKeyValues.headOption, oldRangeKeyValueStash orElse oldKeyValues.headOption) match {
 
@@ -345,7 +350,14 @@ private[core] object SegmentMerge {
 
                     oldRangeRangeValue match {
                       case Value.Remove if newRangeFromKey equiv oldRangeFromKey =>
-                        val newFromValue = newRangeFromValue orElse (if (oldRangeFromValue.isDefined) Some(newRangeRangeValue) else None)
+                        val newFromValue = newRangeFromValue orElse {
+                          oldRangeFromValue map {
+                            case Value.Remove =>
+                              Value.Remove
+                            case Value.Put(_) =>
+                              newRangeRangeValue
+                          }
+                        }
                         if (newRangeToKey <= oldRangeToKey) {
                           val newOldRange = Memory.Range(oldRangeFromKey, oldRangeToKey, newFromValue, oldRangeRangeValue)
                           doMerge(dropNewKeyValue(), dropOldKeyValue(stash = Some(newOldRange)))
@@ -415,20 +427,27 @@ private[core] object SegmentMerge {
                           val right = Memory.Range(oldRangeToKey, newRangeToKey, None, newRangeRangeValue)
                           add(left).flatMap(_ => add(mid)) match {
                             case Success(_) =>
-                              doMerge(dropNewKeyValue(), dropOldKeyValue(stash = Some(right)))
+                              doMerge(dropNewKeyValue(stash = Some(right)), dropOldKeyValue())
                             case Failure(exception) =>
                               Failure(exception)
                           }
                         }
 
-                      case _ if newRangeFromKey equiv oldRangeFromKey =>
+                      case _: Value.Put if newRangeFromKey equiv oldRangeFromKey =>
                         //if fromValue is set in newRange, use it! else check if the fromValue is set in oldRange and replace it with newRange's rangeValue.
-                        val fromValue = newRangeFromValue orElse (if (oldRangeFromValue.isDefined) Some(newRangeRangeValue) else None)
+                        val newFromValue = newRangeFromValue orElse {
+                          oldRangeFromValue map {
+                            case Value.Remove =>
+                              Value.Remove
+                            case Value.Put(_) =>
+                              newRangeRangeValue
+                          }
+                        }
                         if (newRangeToKey >= oldRangeToKey) { //new range completely overlaps old range.
-                          val adjustedNewRange = Memory.Range(newRangeFromKey, newRangeToKey, fromValue, newRangeRangeValue)
+                          val adjustedNewRange = Memory.Range(newRangeFromKey, newRangeToKey, newFromValue, newRangeRangeValue)
                           doMerge(dropNewKeyValue(stash = Some(adjustedNewRange)), dropOldKeyValue())
                         } else { // newRangeToKey < oldRangeToKey
-                          val left = Memory.Range(newRangeFromKey, newRangeToKey, fromValue, newRangeRangeValue)
+                          val left = Memory.Range(newRangeFromKey, newRangeToKey, newFromValue, newRangeRangeValue)
                           val right = Memory.Range(newRangeToKey, oldRangeToKey, None, oldRangeRangeValue)
                           add(left) match {
                             case Success(_) =>
@@ -438,7 +457,7 @@ private[core] object SegmentMerge {
                           }
                         }
 
-                      case _ if newRangeFromKey > oldRangeFromKey =>
+                      case _: Value.Put if newRangeFromKey > oldRangeFromKey =>
                         //if fromValue is set in newRange, use it! else check if the fromValue is set in oldRange and replace it with newRange's rangeValue.
                         if (newRangeToKey >= oldRangeToKey) { //new range completely overlaps old range's right half.
                           val left = Memory.Range(oldRangeFromKey, newRangeFromKey, oldRangeFromValue, oldRangeRangeValue)
@@ -461,13 +480,13 @@ private[core] object SegmentMerge {
                           }
                         }
 
-                      case _ if newRangeFromKey < oldRangeFromKey =>
+                      case _: Value.Put if newRangeFromKey < oldRangeFromKey =>
                         //if fromValue is set in newRange, use it! else check if the fromValue is set in oldRange and replace it with newRange's rangeValue.
                         if (newRangeToKey >= oldRangeToKey) {
                           oldRangeFromValue match {
-                            case Some(_) =>
+                            case Some(oldRangeFromValue) =>
                               val left = Memory.Range(newRangeFromKey, oldRangeFromKey, newRangeFromValue, newRangeRangeValue)
-                              val right = Memory.Range(oldRangeFromKey, newRangeToKey, Some(newRangeRangeValue), newRangeRangeValue)
+                              val right = Memory.Range(oldRangeFromKey, newRangeToKey, if (oldRangeFromValue.isRemove) Some(Value.Remove) else Some(newRangeRangeValue), newRangeRangeValue)
                               add(left) match {
                                 case Success(_) =>
                                   doMerge(dropNewKeyValue(stash = Some(right)), dropOldKeyValue())
@@ -480,9 +499,9 @@ private[core] object SegmentMerge {
                           }
                         } else { // newRangeToKey < oldRangeToKey
                           oldRangeFromValue match {
-                            case Some(_) =>
+                            case Some(oldRangeFromValue) =>
                               val left = Memory.Range(newRangeFromKey, oldRangeFromKey, newRangeFromValue, newRangeRangeValue)
-                              val mid = Memory.Range(oldRangeFromKey, newRangeToKey, Some(newRangeRangeValue), newRangeRangeValue)
+                              val mid = Memory.Range(oldRangeFromKey, newRangeToKey, if (oldRangeFromValue.isRemove) Some(Value.Remove) else Some(newRangeRangeValue), newRangeRangeValue)
                               val right = Memory.Range(newRangeToKey, oldRangeToKey, None, oldRangeRangeValue)
                               add(left).flatMap(_ => add(mid)) match {
                                 case Success(_) =>
@@ -517,7 +536,9 @@ private[core] object SegmentMerge {
         case (Some(newKeyValue), None) =>
           add(newKeyValue) match {
             case Success(_) =>
-              newKeyValues.drop(1).tryForeach(add) match {
+              //if stash exists for newKeyValues, do not drop from the newKeyValue for the above add. Ignore head and continue adding remaining new keyValues.
+              val remainingKeyValues = if (newRangeKeyValueStash.isDefined) newKeyValues else newKeyValues.drop(1)
+              remainingKeyValues.tryForeach(add) match {
                 case Some(Failure(exception)) =>
                   Failure(exception)
                 case None =>
@@ -531,7 +552,9 @@ private[core] object SegmentMerge {
         case (None, Some(oldKeyValue)) =>
           add(oldKeyValue) match {
             case Success(_) =>
-              oldKeyValues.drop(1).tryForeach(add) match {
+              //if stash exists for oldKeyValues, do not drop from the oldKeyValue from the above add. Ignore head and continue adding remaining old keyValues.
+              val remainingKeyValues = if (oldRangeKeyValueStash.isDefined) oldKeyValues else oldKeyValues.drop(1)
+              remainingKeyValues.tryForeach(add) match {
                 case Some(Failure(exception)) =>
                   Failure(exception)
                 case None =>

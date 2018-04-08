@@ -258,7 +258,6 @@ object SwayDB extends LazyLogging {
     * @param maxSegmentsToPush             Numbers of Segments to push from in-memory Level (Level1) to persistent Level (Level2)
     * @param memoryLevelSegmentSize        Size of Level1's Segments
     * @param persistentLevelSegmentSize    Size of Level2's Segments
-    * @param cachePersistentLevelKeyValues If true adds keys to cache on create for Level2
     * @param mmapPersistentSegments        Memory-maps Level2 Segments
     * @param mmapPersistentAppendix        Memory-maps Level2's appendix file
     * @param cacheSize                     Size of
@@ -284,7 +283,6 @@ object SwayDB extends LazyLogging {
                              memoryLevelSegmentSize: Int = 2.mb,
                              persistentLevelSegmentSize: Int = 2.mb,
                              persistentLevelAppendixFlushCheckpointSize: Int = 2.mb,
-                             cachePersistentLevelKeyValues: Boolean = false,
                              mmapPersistentSegments: MMAP = MMAP.WriteAndRead,
                              mmapPersistentAppendix: Boolean = true,
                              cacheSize: Long = 100.mb,
@@ -307,7 +305,6 @@ object SwayDB extends LazyLogging {
           memoryLevelSegmentSize = memoryLevelSegmentSize,
           persistentLevelSegmentSize = persistentLevelSegmentSize,
           persistentLevelAppendixFlushCheckpointSize = persistentLevelAppendixFlushCheckpointSize,
-          cachePersistentLevelKeyValues = cachePersistentLevelKeyValues,
           mmapPersistentSegments = mmapPersistentSegments,
           mmapPersistentAppendix = mmapPersistentAppendix,
           bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
@@ -333,7 +330,6 @@ object SwayDB extends LazyLogging {
                              memoryLevelSegmentSize: Int = 2.mb,
                              persistentLevelSegmentSize: Int = 2.mb,
                              persistentLevelAppendixFlushCheckpointSize: Int = 2.mb,
-                             cachePersistentLevelKeyValues: Boolean = false,
                              mmapPersistentSegments: MMAP = MMAP.WriteAndRead,
                              mmapPersistentAppendix: Boolean = true,
                              cacheSize: Long = 100.mb,
@@ -355,7 +351,6 @@ object SwayDB extends LazyLogging {
           memoryLevelSegmentSize = memoryLevelSegmentSize,
           persistentLevelSegmentSize = persistentLevelSegmentSize,
           persistentLevelAppendixFlushCheckpointSize = persistentLevelAppendixFlushCheckpointSize,
-          cachePersistentLevelKeyValues = cachePersistentLevelKeyValues,
           mmapPersistentSegments = mmapPersistentSegments,
           mmapPersistentAppendix = mmapPersistentAppendix,
           bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
@@ -582,4 +577,7 @@ private[swaydb] class SwayDB(api: CoreAPI) extends SwayDBAPI {
 
   override def update(from: Slice[Byte], until: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter] =
     api.update(from, until, value)
+
+  override def valueSize(key: Slice[Byte]): Try[Option[Int]] =
+    api.valueSize(key)
 }
