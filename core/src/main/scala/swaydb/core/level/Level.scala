@@ -929,7 +929,6 @@ private[core] class Level(val dirs: Seq[Dir],
     appendix.values().asScala.filter(_.segmentSize < segmentSize) take size
 
   def close: Try[Unit] = {
-    Delay.cancelTimer()
     actor.clearMessages()
     appendix.close().failed foreach {
       exception =>

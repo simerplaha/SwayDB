@@ -19,10 +19,16 @@
 
 package embedded
 
-import swaydb.SwayDB
+import java.nio.charset.StandardCharsets
+
+import swaydb.{Batch, SwayDB}
 import swaydb.core.TestBase
 import swaydb.serializers.Default._
 import swaydb.types.SwayDBMap
+
+import scala.annotation.tailrec
+import scala.concurrent.Future
+import scala.concurrent.duration._
 
 class SwayDBPersistentSpec extends SwayDBSpec {
   override def newDB(): SwayDBMap[Int, String] =
@@ -219,6 +225,164 @@ sealed trait SwayDBSpec extends TestBase {
 
       db.headOption shouldBe empty
       db.lastOption shouldBe empty
+    }
+
+    "batch put, remove, update & range remove key-values" in {
+      val db = newDB()
+
+      db.batch(Batch.Put(1, "one"), Batch.Remove(1)).assertGet
+      db.get(1).assertGetOpt shouldBe empty
+
+      //remove and then put should return Put's value
+      db.batch(Batch.Remove(1), Batch.Put(1, "one")).assertGet
+      db.get(1).assertGet shouldBe "one"
+
+      //remove range and put should return Put's value
+      db.batch(Batch.Remove(1, 100), Batch.Put(1, "one")).assertGet
+      db.get(1).assertGet shouldBe "one"
+
+      db.batch(Batch.Put(1, "one"), Batch.Put(2, "two"), Batch.Put(1, "one one"), Batch.Update(1, 100, "updated"), Batch.Remove(1, 100)).assertGet
+      db.get(1).assertGetOpt shouldBe empty
+      db.isEmpty shouldBe true
+
+      db.batch(Batch.Put(1, "one"), Batch.Put(2, "two"), Batch.Put(1, "one one"), Batch.Remove(1, 100), Batch.Update(1, 100, "updated")).assertGet
+      db.get(1).assertGetOpt shouldBe empty
+      db.isEmpty shouldBe true
+
+      db.batch(Batch.Put(1, "one"), Batch.Put(2, "two"), Batch.Put(1, "one again"), Batch.Update(1, 100, "updated")).assertGet
+      db.get(1).assertGet shouldBe "updated"
+      db.toMap.values should contain only "updated"
+
+      db.batch(Batch.Put(1, "one"), Batch.Put(2, "two"), Batch.Put(100, "hundred"), Batch.Remove(1, 100), Batch.Update(1, 1000, "updated")).assertGet
+      db.toList should contain only ((100, "updated"))
+    }
+
+    "perform from, until, before & after" in {
+      val db = newDB()
+
+      (1 to 10000) foreach {
+        i =>
+          db.put(i, i.toString).assertGet
+      }
+
+      db.from(9999).toList should contain only((9999, "9999"), (10000, "10000"))
+      db.from(9999).drop(1).take(1).toList should contain only ((10000, "10000"))
+      db.before(9999).take(1).toList should contain only ((9998, "9998"))
+      db.after(9999).take(1).toList should contain only ((10000, "10000"))
+      db.after(9999).drop(1).toList shouldBe empty
+
+      db.after(10).tillKey(_ <= 11).toList should contain only ((11, "11"))
+      db.after(10).tillKey(_ <= 11).drop(1).toList shouldBe empty
+
+      db.fromOrBefore(0).toList shouldBe empty
+      db.fromOrAfter(0).take(1).toList should contain only ((1, "1"))
+    }
+
+    "perform mightContain & contains" in {
+      val db = newDB()
+
+      (1 to 10000) foreach {
+        i =>
+          db.put(i, i.toString).assertGet
+      }
+
+      (1 to 10000) foreach {
+        i =>
+          db.mightContain(i).assertGet shouldBe true
+          db.contains(i).assertGet shouldBe true
+      }
+
+      db.mightContain(898989898).assertGet shouldBe false
+      db.contains(20000).assertGet shouldBe false
+    }
+
+    "contains on removed should return false" in {
+      val db = newDB()
+
+      (1 to 100000) foreach {
+        i =>
+          db.put(i, i.toString).assertGet
+      }
+
+      (1 to 100000) foreach {
+        i =>
+          db.remove(i).assertGet
+      }
+
+      (1 to 100000) foreach {
+        i =>
+          db.contains(i).assertGet shouldBe false
+      }
+
+      db.contains(100001).assertGet shouldBe false
+    }
+
+    "return valueSize" in {
+      val db = newDB()
+
+      (1 to 10000) foreach {
+        i =>
+          db.put(i, i.toString).assertGet
+      }
+
+      (1 to 10000) foreach {
+        i =>
+          db.valueSize(i).assertGet shouldBe i.toString.getBytes(StandardCharsets.UTF_8).length
+      }
+    }
+
+    "eventually remove all Segments from the database when remove range is submitted" in {
+      val db = newDB()
+
+      (1 to 2000000) foreach {
+        i =>
+          db.put(i, i.toString).assertGet
+      }
+
+      db.remove(1, 2000001).assertGet
+
+      def pluralSegment(count: Int) = if (count == 1) "Segment" else "Segments"
+
+      //recursively go through all levels and assert they do no have any Segments.
+      @tailrec
+      def assertLevelsAreEmpty(db: SwayDBMap[Int, String], levelNumber: Int, expectedLastLevelEmpty: Boolean): Unit = {
+        db.levelMeter(levelNumber) match {
+          case Some(meter) if db.levelMeter(levelNumber + 1).nonEmpty => //is not the last Level. Check if this level contains no Segments.
+            db.isEmpty shouldBe true //isEmpty will always return true since all key-values were removed.
+            if (meter.segmentsCount == 0) { //this Level is empty, jump to next Level.
+              println(s"Level $levelNumber is empty.")
+              assertLevelsAreEmpty(db, levelNumber + 1, expectedLastLevelEmpty)
+            } else {
+              val interval = (levelNumber * 3).seconds //Level is not empty, try again with delay.
+              println(s"Level $levelNumber contains ${meter.segmentsCount} ${pluralSegment(meter.segmentsCount)}. Will check again after $interval.")
+              sleep(interval)
+              assertLevelsAreEmpty(db, levelNumber, expectedLastLevelEmpty)
+            }
+          case _ => //is the last Level which will contains Segments.
+            if (!expectedLastLevelEmpty) {
+              println(s"Level $levelNumber. Submitting updated to trigger removed.")
+              (1 to 200000) foreach { //submit multiple update range key-values so that a map gets submitted for compaction and to trigger merge on copied Segments in last Level.
+                i =>
+                  db.update(1, 1000001, "just triggering update to assert remove").assertGet
+                  if (i == 100000) sleep(2.seconds)
+              }
+              //update submitted, now expect the merge to get triggered on the Segments in the last Level and Compaction to remove all key-values.
+            }
+
+            db.isEmpty shouldBe true //isEmpty will always return true since all key-values were removed.
+
+            val segmentsCount = db.levelMeter(levelNumber).map(_.segmentsCount) getOrElse -1
+            if (segmentsCount != 0) {
+              println(s"Level $levelNumber contains $segmentsCount ${pluralSegment(segmentsCount)}. Will check again after 8.seconds.")
+              sleep(8.seconds)
+              assertLevelsAreEmpty(db, levelNumber, true)
+            } else {
+              println(s"Compaction completed. Level $levelNumber is empty.\n")
+            }
+        }
+      }
+
+      Future(assertLevelsAreEmpty(db, 1, false)).await(5.minutes)
     }
 
   }

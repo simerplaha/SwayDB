@@ -35,7 +35,7 @@ import swaydb.core.level.actor.LevelZeroAPI
 import swaydb.core.map
 import swaydb.core.map.{MapEntry, Maps, SkipListMerge}
 import swaydb.core.retry.Retry
-import swaydb.core.util.{Delay, MinMax}
+import swaydb.core.util.MinMax
 import swaydb.data.accelerate.{Accelerator, Level0Meter}
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.slice.Slice
@@ -236,18 +236,22 @@ private[core] class LevelZero(val path: Path,
     }
 
   def getKey(key: Slice[Byte]): Try[Option[Slice[Byte]]] =
-    find(key).map(_.map(_.key))
+    withRetry {
+      find(key).map(_.map(_.key))
+    }
 
   def getKeyValue(key: Slice[Byte]): Try[Option[KeyValueTuple]] =
-    find(key) flatMap {
-      result =>
-        result map {
-          response =>
-            response.getOrFetchValue map {
-              result =>
-                Some(response.key, result)
-            }
-        } getOrElse Success(None)
+    withRetry {
+      find(key) flatMap {
+        result =>
+          result map {
+            response =>
+              response.getOrFetchValue map {
+                result =>
+                  Some(response.key, result)
+              }
+          } getOrElse Success(None)
+      }
     }
 
   def firstKeyFromMaps =
@@ -471,7 +475,9 @@ private[core] class LevelZero(val path: Path,
     }
 
   def contains(key: Slice[Byte]): Try[Boolean] =
-    find(key).map(_.isDefined)
+    withRetry {
+      find(key).map(_.isDefined)
+    }
 
   def valueSize(key: Slice[Byte]): Try[Option[Int]] =
     find(key) map {
@@ -507,7 +513,7 @@ private[core] class LevelZero(val path: Path,
     IO.exists(path)
 
   def close: Try[Unit] = {
-    Delay.cancelTimer()
+    //    Delay.cancelTimer()
     maps.close.failed foreach {
       exception =>
         logger.error(s"$path: Failed to close maps", exception)
