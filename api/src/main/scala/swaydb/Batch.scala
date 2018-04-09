@@ -33,7 +33,7 @@ object Batch {
   /**
     * Batch Update key & value for a [[SwayDBMap]]
     */
-  case class Update[K, V](from: K, to: K, value: V) extends Batch[K, V]
+  case class Update[K, V](from: K, until: K, value: V) extends Batch[K, V]
 
   /**
     * Batch Put key & value for a [[SwayDBSet]]
