@@ -53,7 +53,7 @@ private[map] object PersistentMap extends LazyLogging {
     recover(folder, mmap, fileSize, skipList, dropCorruptedTailEntries) map {
       case (fileRecoveryResult, hasRange) =>
         RecoveryResult(
-          item = new PersistentMap[K, V](folder, mmap, fileSize, flushOnOverflow, fileRecoveryResult.item, _hasRange = hasRange)(skipList),
+          item = new PersistentMap[K, V](folder, mmap, fileSize, flushOnOverflow, fileRecoveryResult.item, hasRangeInitial = hasRange)(skipList),
           result = fileRecoveryResult.result
         )
     }
@@ -72,7 +72,7 @@ private[map] object PersistentMap extends LazyLogging {
 
     firstFile(folder, mmap, fileSize) map {
       file =>
-        new PersistentMap[K, V](folder, mmap, fileSize, flushOnOverflow, _hasRange = false, currentFile = file)(skipList)
+        new PersistentMap[K, V](folder, mmap, fileSize, flushOnOverflow, hasRangeInitial = false, currentFile = file)(skipList)
     }
   }
 
@@ -202,7 +202,7 @@ private[map] case class PersistentMap[K, V: ClassTag](path: Path,
                                                       fileSize: Long,
                                                       flushOnOverflow: Boolean,
                                                       private var currentFile: DBFile,
-                                                      @volatile private var _hasRange: Boolean)(val skipList: ConcurrentSkipListMap[K, V])(implicit ordering: Ordering[K],
+                                                      private val hasRangeInitial: Boolean)(val skipList: ConcurrentSkipListMap[K, V])(implicit ordering: Ordering[K],
                                                                                                                                            reader: MapEntryReader[MapEntry[K, V]],
                                                                                                                                            writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                                                                                            skipListMerger: SkipListMerge[K, V],
@@ -215,6 +215,9 @@ private[map] case class PersistentMap[K, V: ClassTag](path: Path,
   private var actualFileSize: Long = fileSize
   // does not account of flushed entries.
   private var bytesWritten: Long = 0
+
+  //_hasRange is not a case class input parameters because 2.11 throws compilation error 'values cannot be volatile'
+  @volatile private var _hasRange: Boolean = hasRangeInitial
 
   override def hasRange: Boolean = _hasRange
 

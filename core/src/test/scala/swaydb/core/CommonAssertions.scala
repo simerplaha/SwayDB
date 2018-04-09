@@ -309,7 +309,7 @@ trait CommonAssertions extends TryAssert with FutureBase with TestData {
 
   implicit class KeyValueImplicits(actual: KeyValue) {
 
-    def toMemory =
+    def toMemory: Memory =
       actual match {
         case readOnly: ReadOnly => readOnly.toMemory
         case writeOnly: WriteOnly => writeOnly.toMemory

@@ -132,9 +132,10 @@ private[core] object TrashLevel extends LevelRef {
   override val existsOnDisk =
     false
 
-  override val levelSize = 0
+  override val levelSize: Long =
+    0
 
-  override val segmentCountAndLevelSize =
+  override val segmentCountAndLevelSize: (Int, Long) =
     (0, 0)
 
   override val head =
