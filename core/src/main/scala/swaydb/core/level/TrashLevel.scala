@@ -198,4 +198,7 @@ private[core] object TrashLevel extends LevelRef {
 
   override val lastKey: Option[Slice[Byte]] =
     None
+
+  override def closeSegments(): Try[Unit] =
+    TryUtil.successUnit
 }

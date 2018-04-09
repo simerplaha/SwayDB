@@ -55,7 +55,7 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
 
   implicit val idGenerator = IDGenerator(0)
 
-  private val currentLevelId = new AtomicInteger(0)
+  private val currentLevelId = new AtomicInteger(10)
 
   private def nextLevelId = currentLevelId.incrementAndGet()
 
@@ -131,7 +131,7 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
   def deleteFiles = true
 
   def randomIntDirectory: Path =
-    testDir.resolve(randomInt().toString)
+    testDir.resolve(nextLevelId.toString)
 
   def createRandomIntDirectory: Path =
     if (persistent)
@@ -259,7 +259,7 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
                                                          fileOpenLimited: DBFile => Unit = fileOpenLimiter): Try[Level] = {
       level.releaseLocks flatMap {
         _ =>
-          level.close flatMap {
+          level.closeSegments flatMap {
             _ =>
               Level(
                 levelStorage = LevelStorage.Persistent(
@@ -290,7 +290,7 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
       val reopened =
         level.releaseLocks flatMap {
           _ =>
-            level.close flatMap {
+            level.closeSegments flatMap {
               _ =>
                 LevelZero(
                   mapSize = mapSize,
@@ -482,7 +482,7 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
       val levelReopened = level.reopen //reopen
       assertion(levelReopened)
       assertion(levelReopened)
-      levelReopened.close.assertGet
+      levelReopened.closeSegments().assertGet
     }
   }
 
@@ -498,7 +498,7 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
       val levelReopened = level.reopen //reopen
       assertionWithKeyValues(keyValues, levelReopened)
       assertionWithKeyValues(keyValues, levelReopened)
-      levelReopened.close.assertGet
+      levelReopened.closeSegments.assertGet
     }
   }
 
@@ -521,7 +521,7 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
       val levelReopened = level.reopen //reopen
       assertion(levelReopened)
       assertion(levelReopened)
-      levelReopened.close.assertGet
+      levelReopened.closeSegments.assertGet
     }
   }
 

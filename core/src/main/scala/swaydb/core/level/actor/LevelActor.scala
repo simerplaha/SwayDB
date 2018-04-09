@@ -224,6 +224,9 @@ private[core] class LevelActor(implicit level: LevelActorAPI,
   def !(command: LevelCommand): Unit =
     actor ! command
 
+  def clearMessages() =
+    actor.clearMessages()
+
   private def executeTask(task: PushTask)(implicit self: ActorRef[LevelCommand]) =
     if (task.delay.fromNow.isOverdue()) {
       logger.trace(s"{}: PushTask overdue. Executing now.", dir.path)

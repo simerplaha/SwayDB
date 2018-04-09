@@ -52,6 +52,8 @@ private[swaydb] sealed trait ActorRef[-T] {
   def hasMessages: Boolean
 
   def messageCount: Int
+
+  def clearMessages(): Unit
 }
 
 private[swaydb] object Actor {
@@ -133,6 +135,9 @@ private[swaydb] class Actor[T, +S](val state: S,
     queue offer message
     processMessages()
   }
+
+  override def clearMessages(): Unit =
+    queue.clear()
 
   override def hasMessages: Boolean =
     queue.isEmpty

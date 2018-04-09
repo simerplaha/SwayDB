@@ -55,4 +55,7 @@ private[swaydb] object Delay {
 
   def futureFromTry[T](delayFor: FiniteDuration)(block: => Try[T])(implicit ctx: ExecutionContext): Future[T] =
     runWithDelay(delayFor)(block.tryInFuture)
+
+  def cancelTimer(): Unit =
+    timer.cancel()
 }

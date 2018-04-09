@@ -929,17 +929,23 @@ private[core] class Level(val dirs: Seq[Dir],
     appendix.values().asScala.filter(_.segmentSize < segmentSize) take size
 
   def close: Try[Unit] = {
+    Delay.cancelTimer()
+    actor.clearMessages()
     appendix.close().failed foreach {
       exception =>
         logger.error("{}: Failed to close appendix", paths.head, exception)
     }
-    segments.tryForeach(_.close, failFast = false) match {
-      case Some(failed) =>
-        logger.error("{}: Failed to close file", paths.head, failed.exception)
-        failed
-      case None =>
-        TryUtil.successUnit
+    closeSegments()
+    nextLevel.map(_.close) getOrElse TryUtil.successUnit
+  }
+
+  def closeSegments(): Try[Unit] = {
+    segments.tryForeach(_.close, failFast = false) foreach {
+      case Failure(exception) =>
+        logger.error("{}: Failed to close Segment file.", paths.head, exception)
     }
+
+    nextLevel.map(_.closeSegments()) getOrElse TryUtil.successUnit
   }
 
   override val isTrash: Boolean = false

@@ -52,6 +52,9 @@ private[core] class LevelZeroActor(zero: LevelZero)(implicit ec: ExecutionContex
 
   logger.debug(s"{}: LevelZero actor started.", zero.path)
 
+  def clearMessages() =
+    actor.clearMessages()
+
   def !(command: LevelZeroAPI): Unit =
     actor ! command
 

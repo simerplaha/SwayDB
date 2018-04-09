@@ -35,7 +35,7 @@ import swaydb.core.level.actor.LevelZeroAPI
 import swaydb.core.map
 import swaydb.core.map.{MapEntry, Maps, SkipListMerge}
 import swaydb.core.retry.Retry
-import swaydb.core.util.MinMax
+import swaydb.core.util.{Delay, MinMax}
 import swaydb.data.accelerate.{Accelerator, Level0Meter}
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.slice.Slice
@@ -507,12 +507,16 @@ private[core] class LevelZero(val path: Path,
     IO.exists(path)
 
   def close: Try[Unit] = {
+    Delay.cancelTimer()
     maps.close.failed foreach {
       exception =>
         logger.error(s"$path: Failed to close maps", exception)
     }
     nextLevel.close
   }
+
+  def closeSegments: Try[Unit] =
+    nextLevel.closeSegments()
 
   override def level0Meter: Level0Meter =
     maps.getMeter

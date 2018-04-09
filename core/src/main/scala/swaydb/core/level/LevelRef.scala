@@ -102,6 +102,8 @@ private[core] trait LevelRef extends LevelActorAPI {
 
   def close: Try[Unit]
 
+  def closeSegments(): Try[Unit]
+
   def meter: LevelMeter
 
   def meterFor(levelNumber: Int): Option[LevelMeter]
