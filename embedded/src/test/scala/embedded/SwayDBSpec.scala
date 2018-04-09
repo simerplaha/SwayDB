@@ -344,6 +344,7 @@ sealed trait SwayDBSpec extends TestBase {
       def pluralSegment(count: Int) = if (count == 1) "Segment" else "Segments"
 
       //recursively go through all levels and assert they do no have any Segments.
+      //Note: Could change this test to use Future with delays instead of blocking but the blocking code is probably more easier to read.
       @tailrec
       def assertLevelsAreEmpty(db: SwayDBMap[Int, String], levelNumber: Int, expectedLastLevelEmpty: Boolean): Unit = {
         db.levelMeter(levelNumber) match {
@@ -381,9 +382,8 @@ sealed trait SwayDBSpec extends TestBase {
             }
         }
       }
-
+      //this test might take a while depending on the Compaction speed but it should not run for too long hence the timeout.
       Future(assertLevelsAreEmpty(db, 1, false)).await(5.minutes)
     }
-
   }
 }
