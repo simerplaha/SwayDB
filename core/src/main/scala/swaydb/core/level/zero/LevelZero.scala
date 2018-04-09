@@ -513,7 +513,6 @@ private[core] class LevelZero(val path: Path,
     IO.exists(path)
 
   def close: Try[Unit] = {
-    //    Delay.cancelTimer()
     maps.close.failed foreach {
       exception =>
         logger.error(s"$path: Failed to close maps", exception)
