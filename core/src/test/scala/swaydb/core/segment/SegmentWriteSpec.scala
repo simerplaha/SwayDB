@@ -578,6 +578,173 @@ class SegmentWriteSpec extends TestBase with Benchmark {
     }
   }
 
+  "Segment.copyToPersist" should {
+    "copy the segment and persist it to disk" in {
+      val keyValues = randomIntKeyValues(keyValuesCount, addRandomDeletes = true, addRandomRanges = true)
+      val segment = TestSegment(keyValues).assertGet
+      val levelPath = createNextLevelPath
+      val segments =
+        Segment.copyToPersist(
+          segment = segment,
+          fetchNextPath = levelPath.resolve(nextSegmentId),
+          mmapSegmentsOnRead = levelStorage.mmapSegmentsOnRead,
+          mmapSegmentsOnWrite = levelStorage.mmapSegmentsOnWrite,
+          removeDeletes = false,
+          minSegmentSize =
+            if (persistent)
+              keyValues.last.stats.segmentSize / 10
+            else
+              keyValues.last.stats.memorySegmentSize / 10,
+          bloomFilterFalsePositiveRate = 0.1
+        ).assertGet
+
+      if (persistent)
+        segments should have size 1
+      else
+        segments.size should be > 2
+
+      segments.foreach(_.existsOnDisk shouldBe true)
+      Segment.getAllKeyValues(0.1, segments).assertGet shouldBe keyValues
+    }
+
+    "copy the segment and persist it to disk when remove deletes is true" in {
+      val keyValues = randomIntKeyValues(keyValuesCount, addRandomDeletes = true, addRandomRanges = true)
+      val segment = TestSegment(keyValues).assertGet
+      val levelPath = createNextLevelPath
+
+      val segments =
+        Segment.copyToPersist(
+          segment = segment,
+          fetchNextPath = levelPath.resolve(nextSegmentId),
+          mmapSegmentsOnRead = levelStorage.mmapSegmentsOnRead,
+          mmapSegmentsOnWrite = levelStorage.mmapSegmentsOnWrite,
+          removeDeletes = true,
+          minSegmentSize =
+            if (persistent)
+              keyValues.last.stats.segmentSize / 10
+            else
+              keyValues.last.stats.memorySegmentSize / 10,
+          bloomFilterFalsePositiveRate = 0.1
+        ).assertGet
+
+      segments.foreach(_.existsOnDisk shouldBe true)
+
+      if (persistent)
+        Segment.getAllKeyValues(0.1, segments).assertGet shouldBe keyValues //persistent Segments are simply copied and are not checked for removed key-values.
+      else
+        Segment.getAllKeyValues(0.1, segments).assertGet shouldBe keyValues.collect { //memory Segments does a split/merge and apply lastLevel rules.
+          case keyValue: Transient.Put =>
+            keyValue
+          case range @ Transient.Range(_, fromKey, _, _, Some(Value.Put(fromValue)), _, _, _) =>
+            Transient.Put(fromKey, fromValue, 0.1, None)
+        }.updateStats
+    }
+
+    "revert copy if Segment initialisation fails after copy" in {
+      val keyValues = randomIntKeyValues(keyValuesCount, addRandomDeletes = true, addRandomRanges = true)
+      val segment = TestSegment(keyValues).assertGet
+      val levelPath = createNextLevelPath
+      val nextPath = levelPath.resolve(nextSegmentId)
+
+      Files.createFile(nextPath) //path already taken.
+
+      Segment.copyToPersist(
+        segment = segment,
+        fetchNextPath = nextPath,
+        mmapSegmentsOnRead = levelStorage.mmapSegmentsOnRead,
+        mmapSegmentsOnWrite = levelStorage.mmapSegmentsOnWrite,
+        removeDeletes = true,
+        minSegmentSize =
+          if (persistent)
+            keyValues.last.stats.segmentSize / 10
+          else
+            keyValues.last.stats.memorySegmentSize / 10,
+        bloomFilterFalsePositiveRate = 0.1
+      ).failed.assertGet shouldBe a[FileAlreadyExistsException]
+
+      Files.size(nextPath) shouldBe 0
+      if (persistent) segment.existsOnDisk shouldBe true //original Segment remains untouched
+
+    }
+
+    "revert copy of Key-values if creating at least one Segment fails" in {
+      val keyValues = randomIntKeyValuesMemory(keyValuesCount, addRandomDeletes = true, addRandomRanges = true)
+      val levelPath = createNextLevelPath
+      val nextSegmentId = nextId
+      def nextPath = levelPath.resolve(IDGenerator.segmentId(nextId))
+
+      Files.createFile(levelPath.resolve(IDGenerator.segmentId(nextSegmentId + 4))) //path already taken.
+
+      val filesBeforeCopy = levelPath.files(Extension.Seg)
+      filesBeforeCopy.size shouldBe 1
+
+      Segment.copyToPersist(
+        keyValues = keyValues,
+        fetchNextPath = nextPath,
+        mmapSegmentsOnRead = levelStorage.mmapSegmentsOnRead,
+        mmapSegmentsOnWrite = levelStorage.mmapSegmentsOnWrite,
+        removeDeletes = false,
+        minSegmentSize = keyValues.toTransient.last.stats.segmentSize / 5,
+        bloomFilterFalsePositiveRate = 0.1
+      ).failed.assertGet shouldBe a[FileAlreadyExistsException]
+
+      levelPath.files(Extension.Seg) shouldBe filesBeforeCopy
+    }
+  }
+
+  "Segment.copyToMemory" should {
+    "copy persistent segment and store it in Memory" in {
+      val keyValues = randomIntKeyValues(keyValuesCount, addRandomDeletes = true, addRandomRanges = true)
+      val segment = TestSegment(keyValues).assertGet
+      val levelPath = createNextLevelPath
+      val segments =
+        Segment.copyToMemory(
+          segment = segment,
+          fetchNextPath = levelPath.resolve(nextSegmentId),
+          removeDeletes = false,
+          minSegmentSize =
+            if (persistent)
+              keyValues.last.stats.segmentSize / 4
+            else
+              keyValues.last.stats.memorySegmentSize / 4,
+          bloomFilterFalsePositiveRate = 0.1
+        ).assertGet
+
+      segments.size should be >= 2 //ensures that splits occurs. Memory Segments do not get written to disk without splitting.
+
+      segments.foreach(_.existsOnDisk shouldBe false)
+      Segment.getAllKeyValues(0.1, segments).assertGet shouldBe keyValues
+    }
+
+    "copy the segment and persist it to disk when removeDeletes is true" in {
+      val keyValues = randomIntKeyValues(keyValuesCount, addRandomDeletes = true, addRandomRanges = true)
+      val segment = TestSegment(keyValues).assertGet
+      val levelPath = createNextLevelPath
+
+      val segments =
+        Segment.copyToMemory(
+          segment = segment,
+          fetchNextPath = levelPath.resolve(nextSegmentId),
+          removeDeletes = true,
+          minSegmentSize = keyValues.last.stats.segmentSize / 10,
+          bloomFilterFalsePositiveRate = 0.1
+        ).assertGet
+
+      segments.foreach(_.existsOnDisk shouldBe false)
+
+      segments.size should be >= 2 //ensures that splits occurs. Memory Segments do not get written to disk without splitting.
+
+      Segment.getAllKeyValues(0.1, segments).assertGet shouldBe keyValues.collect {
+        case keyValue: Transient.Put =>
+          keyValue
+        case Transient.Range(_, fromKey, _, _, Some(Value.Put(fromValue)), _, _, _) =>
+          Transient.Put(fromKey, fromValue, 0.1, None)
+      }.updateStats
+    }
+
+
+  }
+
   "Segment.put" should {
     "return None for empty values" in {
       val segment =

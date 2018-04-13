@@ -36,6 +36,9 @@ import swaydb.core.map.serializer.RangeValueSerializers._
 import scala.concurrent.duration._
 
 //@formatter:off
+
+class LevelReadSpec0 extends LevelReadSpec
+
 class LevelReadSpec1 extends LevelReadSpec {
   override def levelFoldersCount = 10
   override def mmapSegmentsOnWrite = true
@@ -52,12 +55,12 @@ class LevelReadSpec2 extends LevelReadSpec {
   override def appendixStorageMMAP = false
 }
 
-class LevelReadSpec3 extends LevelReadSpec {
+class LevelMemoryReadSpec extends LevelReadSpec {
   override def inMemoryStorage = true
 }
 //@formatter:on
 
-class LevelReadSpec extends TestBase with MockFactory with Benchmark {
+trait LevelReadSpec extends TestBase with MockFactory with Benchmark {
 
   implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
   val keyValuesCount = 100
@@ -82,7 +85,6 @@ class LevelReadSpec extends TestBase with MockFactory with Benchmark {
       if (persistent) assert(level.reopen)
     }
   }
-
 
   "Level.takeSmallSegments" should {
     "filter smaller segments from a Level" in {

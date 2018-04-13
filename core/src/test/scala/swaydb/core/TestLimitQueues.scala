@@ -27,6 +27,6 @@ object TestLimitQueues {
   implicit val level0PushDownPool = TestExecutionContext.executionContext
 
   val keyValueLimiter = LimitQueues.keyValueLimiter(10.mb, 5.seconds)
-  val fileOpenLimiter = LimitQueues.segmentOpenLimiter(100, 2.seconds)
+  val fileOpenLimiter = LimitQueues.segmentOpenLimiter(100, 5.seconds)
 
 }

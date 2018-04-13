@@ -135,12 +135,25 @@ private[core] object SegmentMerge extends LazyLogging {
     }
   }
 
-  def split(keyValues: Slice[KeyValue.ReadOnly],
+  def split(keyValues: Iterable[KeyValue.ReadOnly],
             minSegmentSize: Long,
-            removeDeletes: Boolean,
+            isLastLevel: Boolean,
             forInMemory: Boolean,
-            bloomFilterFalsePositiveRate: Double)(implicit ordering: Ordering[Slice[Byte]]): Try[Iterable[Iterable[KeyValue.WriteOnly]]] =
-    merge(keyValues, Slice.create[KeyValue.ReadOnly](0), minSegmentSize, isLastLevel = removeDeletes, forInMemory = forInMemory, bloomFilterFalsePositiveRate)
+            bloomFilterFalsePositiveRate: Double)(implicit ordering: Ordering[Slice[Byte]]): Iterable[Iterable[KeyValue.WriteOnly]] = {
+    val splits = ListBuffer[ListBuffer[KeyValue.WriteOnly]](ListBuffer())
+    keyValues foreach {
+      keyValue =>
+        addKeyValue(
+          keyValueToAdd = keyValue,
+          segmentKeyValues = splits,
+          minSegmentSize = minSegmentSize,
+          forInMemory = forInMemory,
+          isLastLevel = isLastLevel,
+          bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate
+        )
+    }
+    mergeSmallerSegmentWithPrevious(splits, minSegmentSize, forInMemory, bloomFilterFalsePositiveRate)
+  }
 
   def merge(newKeyValues: Slice[KeyValue.ReadOnly],
             oldKeyValues: Slice[KeyValue.ReadOnly],
@@ -151,16 +164,14 @@ private[core] object SegmentMerge extends LazyLogging {
     import ordering._
     val splits = ListBuffer[ListBuffer[KeyValue.WriteOnly]](ListBuffer())
 
-    var newRangeKeyValueStash = Option.empty[KeyValue.ReadOnly.Range]
-    var oldRangeKeyValueStash = Option.empty[KeyValue.ReadOnly.Range]
-
-    //    var count = 0
+    var newRangeKeyValueStash = Option.empty[Memory.Range]
+    var oldRangeKeyValueStash = Option.empty[Memory.Range]
 
     @tailrec
     def doMerge(newKeyValues: Slice[KeyValue.ReadOnly],
                 oldKeyValues: Slice[KeyValue.ReadOnly]): Try[ListBuffer[ListBuffer[KeyValue.WriteOnly]]] = {
 
-      def dropOldKeyValue(stash: Option[KeyValue.ReadOnly.Range] = None) = {
+      def dropOldKeyValue(stash: Option[Memory.Range] = None) = {
         if (oldRangeKeyValueStash.isDefined) {
           oldRangeKeyValueStash = stash
           oldKeyValues
@@ -170,7 +181,7 @@ private[core] object SegmentMerge extends LazyLogging {
         }
       }
 
-      def dropNewKeyValue(stash: Option[KeyValue.ReadOnly.Range] = None) = {
+      def dropNewKeyValue(stash: Option[Memory.Range] = None) = {
         if (newRangeKeyValueStash.isDefined) {
           newRangeKeyValueStash = stash
           newKeyValues

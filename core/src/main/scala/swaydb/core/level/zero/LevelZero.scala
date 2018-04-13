@@ -35,7 +35,7 @@ import swaydb.core.level.actor.LevelZeroAPI
 import swaydb.core.map
 import swaydb.core.map.{MapEntry, Maps, SkipListMerge}
 import swaydb.core.retry.Retry
-import swaydb.core.util.MinMax
+import swaydb.core.util.{Delay, MinMax}
 import swaydb.data.accelerate.{Accelerator, Level0Meter}
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.slice.Slice

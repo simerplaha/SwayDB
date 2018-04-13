@@ -20,13 +20,13 @@
 package swaydb.core.segment
 
 import swaydb.core.TestBase
-import swaydb.core.data.{KeyValue, Memory, Transient}
+import swaydb.core.data.{KeyValue, Memory, Transient, Value}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.order.KeyOrder
 import swaydb.serializers.Default._
 import swaydb.serializers._
-
+import swaydb.core.map.serializer.RangeValueSerializers._
 import scala.collection.mutable.ListBuffer
 
 class SegmentMergeSpec extends TestBase {
@@ -138,6 +138,50 @@ class SegmentMergeSpec extends TestBase {
       closedSegment(1).key equiv initialSegment.last.key
       closedSegment(2).key equiv keyValue.key
       closedSegment.last.stats.memorySegmentSize shouldBe 24.bytes
+    }
+  }
+
+  "SegmentMerge.split" should {
+    "split key-values" in {
+      val keyValues: Slice[Memory] = Slice(Memory.Put(1, 1), Memory.Remove(2), Memory.Put(3, 3), Memory.Put(4, 4), Memory.Range(5, 10, Some(Value.Remove), Value.Put(5)))
+
+      val split1 =
+        SegmentMerge.split(
+          keyValues = keyValues,
+          minSegmentSize = 1.byte,
+          isLastLevel = false,
+          forInMemory = false,
+          bloomFilterFalsePositiveRate = 0.1
+        )
+
+      split1 should have size 5
+      split1 should contain only
+        (ListBuffer(Transient.Put(1, 1)),
+          ListBuffer(Transient.Remove(2)),
+          ListBuffer(Transient.Put(3, 3)),
+          ListBuffer(Transient.Put(4, 4)), //51.byte Segment size
+          ListBuffer(Transient.Range[Value, Value](5, 10, Some(Value.Remove), Value.Put(5))) //56.bytes (segment size)
+        )
+
+      val split2 =
+        SegmentMerge.split(
+          keyValues = keyValues,
+          minSegmentSize = 255.bytes,
+          isLastLevel = false,
+          forInMemory = false,
+          bloomFilterFalsePositiveRate = 0.1
+        )
+
+      val expected =
+        Seq(
+          Transient.Put(1, 1),
+          Transient.Remove(2),
+          Transient.Put(3, 3),
+          Transient.Put(4, 4), //51.byte Segment size
+          Transient.Range[Value, Value](5, 10, Some(Value.Remove), Value.Put(5)) //56.bytes (segment size)
+        ).updateStats
+
+      split2.flatten shouldBe expected
     }
   }
 

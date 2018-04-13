@@ -58,5 +58,4 @@ private[map] class MemoryMap[K, V: ClassTag](val skipList: ConcurrentSkipListMap
       } else
         Success(false)
     }
-
 }

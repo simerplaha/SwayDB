@@ -282,6 +282,53 @@ class SegmentReadSpec extends TestBase with ScalaFutures with PrivateMethodTeste
     }
   }
 
+  "Segment.partitionOverlapping" should {
+    "partition overlapping and non-overlapping Segments" in {
+      //0-1, 2-3
+      //         4-5, 6-7
+      var segments1 = Seq(TestSegment(Slice(Transient.Put(0), Transient.Remove(1)).updateStats).assertGet, TestSegment(Slice(Transient.Put(2), Transient.Remove(3)).updateStats).assertGet)
+      var segments2 = Seq(TestSegment(Slice(Transient.Put(4), Transient.Remove(5)).updateStats).assertGet, TestSegment(Slice(Transient.Put(6), Transient.Remove(7)).updateStats).assertGet)
+      Segment.partitionOverlapping(segments1, segments2) shouldBe(Seq.empty, segments1)
+
+      //0-1,   3-4
+      //         4-5, 6-7
+      segments1 = Seq(TestSegment(Slice(Transient.Put(0), Transient.Remove(1)).updateStats).assertGet, TestSegment(Slice(Transient.Put(3), Transient.Remove(4)).updateStats).assertGet)
+      segments2 = Seq(TestSegment(Slice(Transient.Put(4), Transient.Remove(5)).updateStats).assertGet, TestSegment(Slice(Transient.Put(6), Transient.Remove(7)).updateStats).assertGet)
+      Segment.partitionOverlapping(segments1, segments2) shouldBe(Seq(segments1.last), Seq(segments1.head))
+
+      //0-1,   3 - 5
+      //         4-5, 6-7
+      segments1 = Seq(TestSegment(Slice(Transient.Put(0), Transient.Remove(1)).updateStats).assertGet, TestSegment(Slice(Transient.Put(3), Transient.Remove(5)).updateStats).assertGet)
+      segments2 = Seq(TestSegment(Slice(Transient.Put(4), Transient.Remove(5)).updateStats).assertGet, TestSegment(Slice(Transient.Put(6), Transient.Remove(7)).updateStats).assertGet)
+      Segment.partitionOverlapping(segments1, segments2) shouldBe(Seq(segments1.last), Seq(segments1.head))
+
+
+      //0-1,      6-8
+      //      4-5,    10-20
+      segments1 = Seq(TestSegment(Slice(Transient.Put(0), Transient.Remove(1)).updateStats).assertGet, TestSegment(Slice(Transient.Put(6), Transient.Remove(8)).updateStats).assertGet)
+      segments2 = Seq(TestSegment(Slice(Transient.Put(4), Transient.Remove(5)).updateStats).assertGet, TestSegment(Slice(Transient.Put(10), Transient.Remove(20)).updateStats).assertGet)
+      Segment.partitionOverlapping(segments1, segments2) shouldBe(Seq.empty, segments1)
+
+      //0-1,             20 - 21
+      //      4-5,    10-20
+      segments1 = Seq(TestSegment(Slice(Transient.Put(0), Transient.Remove(1)).updateStats).assertGet, TestSegment(Slice(Transient.Put(20), Transient.Remove(21)).updateStats).assertGet)
+      segments2 = Seq(TestSegment(Slice(Transient.Put(4), Transient.Remove(5)).updateStats).assertGet, TestSegment(Slice(Transient.Put(10), Transient.Remove(20)).updateStats).assertGet)
+      Segment.partitionOverlapping(segments1, segments2) shouldBe(Seq(segments1.last), Seq(segments1.head))
+
+      //0-1,               21 - 22
+      //      4-5,    10-20
+      segments1 = Seq(TestSegment(Slice(Transient.Put(0), Transient.Remove(1)).updateStats).assertGet, TestSegment(Slice(Transient.Put(21), Transient.Remove(22)).updateStats).assertGet)
+      segments2 = Seq(TestSegment(Slice(Transient.Put(4), Transient.Remove(5)).updateStats).assertGet, TestSegment(Slice(Transient.Put(10), Transient.Remove(20)).updateStats).assertGet)
+      Segment.partitionOverlapping(segments1, segments2) shouldBe(Seq.empty, segments1)
+
+      //0          -          22
+      //      4-5,    10-20
+      segments1 = Seq(TestSegment(Slice(Transient.Range[Value, Value](0, 22, None, Value.Remove)).updateStats).assertGet)
+      segments2 = Seq(TestSegment(Slice(Transient.Put(4), Transient.Remove(5)).updateStats).assertGet, TestSegment(Slice(Transient.Put(10), Transient.Remove(20)).updateStats).assertGet)
+      Segment.partitionOverlapping(segments1, segments2) shouldBe(segments1, Seq.empty)
+    }
+  }
+
   "Segment.overlaps" should {
     "return true for overlapping Segments else false for Segments without Ranges" in {
       //0 1

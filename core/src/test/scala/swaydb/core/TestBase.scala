@@ -69,7 +69,6 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
 
   def mapSize: Long = 4.mb
 
-
   def levelFoldersCount = 0
 
   def mmapSegmentsOnWrite = true
@@ -138,7 +137,7 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
       randomIntDirectory
 
   def createNextLevelPath: Path =
-    Files.createDirectory(nextLevelPath)
+    IO.createDirectoriesIfAbsent(nextLevelPath)
 
   def nextLevelPath: Path =
     testDir.resolve(nextLevelId.toString)
@@ -169,7 +168,7 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
     testFileDirectory.resolve(this.getClass.getSimpleName + "_MEMORY_DIR")
 
   def walkDeleteFolder(folder: Path): Unit =
-    if (deleteFiles && persistent)
+    if (deleteFiles && IO.exists(folder))
       Files.walkFileTree(folder, new SimpleFileVisitor[Path]() {
         @throws[IOException]
         override def visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult = {
@@ -242,6 +241,21 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
   }
 
   implicit class ReopenLevel(level: Level)(implicit ordering: Ordering[Slice[Byte]]) {
+
+    import swaydb.core.util.TryUtil._
+
+    def putKeyValues(keyValues: Slice[KeyValue.ReadOnly]): Try[Unit] = {
+      import swaydb.data.util.StorageUnits._
+      Segment.copyToMemory(keyValues, Paths.get("testMemorySegment"), false, 1000.mb, 0.1) flatMap {
+        segments =>
+          segments tryMap {
+            segment =>
+              level.put(segment)
+          } map {
+            _ => ()
+          }
+      }
+    }
 
     def reopen: Level =
       reopen()

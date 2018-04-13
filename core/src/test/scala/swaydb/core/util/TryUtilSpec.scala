@@ -21,7 +21,7 @@ package swaydb.core.util
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.core.FutureBase
+import swaydb.core.{FutureBase, TryAssert}
 import swaydb.core.util.TryUtil._
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
@@ -30,7 +30,7 @@ import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
 
-class TryUtilSpec extends WordSpec with Matchers with MockFactory with FutureBase {
+class TryUtilSpec extends WordSpec with Matchers with MockFactory with FutureBase with TryAssert {
 
   "runInFuture" should {
     "run the try in a new thread" in {
@@ -127,6 +127,37 @@ class TryUtilSpec extends WordSpec with Matchers with MockFactory with FutureBas
       result.failed.get.getMessage shouldBe "Failed at 3"
 
       intsCleanedUp should contain inOrderOnly(1, 2)
+    }
+  }
+
+  "Slice.tryFlattenIterable" should {
+
+    "return flattened list" in {
+      val slice = Slice(1, 2, 3, 4, 5)
+
+      val result: Try[Iterable[String]] =
+        slice.tryFlattenIterable {
+          item =>
+            Try(Seq(item.toString))
+        }
+
+      result.assertGet.toArray shouldBe Array("1", "2", "3", "4", "5")
+    }
+
+    "return failure" in {
+      val slice = Slice(1, 2, 3, 4, 5)
+
+      val result: Try[Iterable[String]] =
+        slice.tryFlattenIterable {
+          item =>
+            if (item < 3) {
+              Try(Seq(item.toString))
+            }
+            else {
+              Failure(new Exception("Kaboom!"))
+            }
+        }
+      result.failed.assertGet.getMessage shouldBe "Kaboom!"
     }
   }
 

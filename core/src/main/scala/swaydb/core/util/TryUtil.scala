@@ -21,6 +21,7 @@ package swaydb.core.util
 
 import swaydb.data.slice.Slice
 
+import scala.collection.mutable.ListBuffer
 import scala.concurrent.{ExecutionContext, Future}
 import scala.reflect.ClassTag
 import scala.util.{Failure, Success, Try}
@@ -61,6 +62,30 @@ private[core] object TryUtil {
         tryBlock(it.next()) match {
           case Success(value) =>
             results add value
+
+          case failed @ Failure(_) =>
+            failure = Some(Failure(failed.exception))
+        }
+      }
+      failure match {
+        case Some(value) =>
+          recover(results, value)
+          value
+        case None =>
+          Success(results)
+      }
+    }
+
+    def tryFlattenIterable[R: ClassTag](tryBlock: T => Try[Iterable[R]],
+                                        recover: (Iterable[R], Failure[Slice[R]]) => Unit = (_: Iterable[R], _: Failure[Iterable[R]]) => (),
+                                        failFast: Boolean = true): Try[Iterable[R]] = {
+      val it = iterable.iterator
+      var failure: Option[Failure[Slice[R]]] = None
+      val results = ListBuffer.empty[R]
+      while ((!failFast || failure.isEmpty) && it.hasNext) {
+        tryBlock(it.next()) match {
+          case Success(value) =>
+            value foreach (results += _)
 
           case failed @ Failure(_) =>
             failure = Some(Failure(failed.exception))

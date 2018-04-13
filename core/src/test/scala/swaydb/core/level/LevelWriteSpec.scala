@@ -19,19 +19,20 @@
 
 package swaydb.core.level
 
-import java.nio.file.NoSuchFileException
+import java.nio.file.{FileAlreadyExistsException, Files, NoSuchFileException}
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.PrivateMethodTester
 import swaydb.core.actor.TestActor
 import swaydb.core.data._
 import swaydb.core.io.file.{DBFile, IO}
+import swaydb.core.level.LevelException.ReceivedKeyValuesToMergeWithoutTargetSegment
 import swaydb.core.level.actor.LevelAPI
 import swaydb.core.level.actor.LevelCommand.{PushSegments, PushSegmentsResponse}
 import swaydb.core.level.zero.LevelZeroSkipListMerge
 import swaydb.core.map.{Map, MapEntry}
 import swaydb.core.segment.Segment
-import swaydb.core.util.Extension
+import swaydb.core.util.{Extension, IDGenerator}
 import swaydb.core.util.FileUtil._
 import swaydb.core.util.PipeOps._
 import swaydb.core.{TestBase, TestLimitQueues}
@@ -114,7 +115,7 @@ class LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
       if (persistent) {
         //create a non empty level
         val level = TestLevel()
-        level.putKeyValues(randomIntKeyValuesMemory(keyValuesCount)).assertGet
+        level.put(TestSegment(randomIntKeyValues(keyValuesCount)).assertGet).assertGet
 
         //delete the appendix file
         level.paths.headPath.resolve("appendix").files(Extension.Log) map IO.delete
@@ -376,6 +377,79 @@ class LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
       if (persistent) level.reopen.isEmpty shouldBe true
     }
 
+    "return failure if segmentToMerge has no target Segment" in {
+      val keyValues = randomIntKeyValues(keyValuesCount)
+      val segmentsToMerge = TestSegment(keyValues).assertGet
+      val level = TestLevel()
+      level.put(Seq(segmentsToMerge), Seq(), Seq()).failed.assertGet shouldBe ReceivedKeyValuesToMergeWithoutTargetSegment(keyValues.size)
+    }
+
+    "copy Segments if segmentsToMerge is empty" in {
+      val keyValues = randomIntKeyValues(keyValuesCount).groupedSlice(5).map(_.updateStats)
+      val segmentToCopy = keyValues map (keyValues => TestSegment(keyValues).assertGet)
+
+      val level = TestLevel(nextLevel = Some(TestLevel()), throttle = (_) => Throttle(Duration.Zero, 0))
+
+      level.put(Seq.empty, segmentToCopy, Seq.empty).assertGet
+
+      level.isEmpty shouldBe false
+      assertReads(keyValues.flatten, level)
+    }
+
+    "revert copy on failure" in {
+      if (persistent) {
+        val keyValues = randomIntKeyValues(keyValuesCount).groupedSlice(5).map(_.updateStats)
+        val segmentToCopy = keyValues map (keyValues => TestSegment(keyValues).assertGet)
+
+        val level = TestLevel(nextLevel = Some(TestLevel()), throttle = (_) => Throttle(Duration.Zero, 0))
+
+        //create a file with the same Segment name as the 4th Segment file. This should result in failure.
+        Files.createFile(level.paths.next.resolve(IDGenerator.segmentId(level.segmentIDGenerator.nextID + 4)))
+
+        val levelFilesBeforePut = level.segmentFilesOnDisk
+
+        level.put(Seq.empty, segmentToCopy, Seq.empty).failed.assertGet shouldBe a[FileAlreadyExistsException]
+
+        level.isEmpty shouldBe true
+        level.segmentFilesOnDisk shouldBe levelFilesBeforePut
+      }
+    }
+
+    "copy and merge Segments" in {
+      val keyValues = randomIntKeyValues(100).groupedSlice(10).map(_.updateStats).toArray
+      val segmentToCopy = keyValues.take(5) map (keyValues => TestSegment(keyValues).assertGet)
+      val segmentToMerge = keyValues.drop(5).take(4) map (keyValues => TestSegment(keyValues).assertGet)
+      val targetSegment = TestSegment(keyValues.last).assertGet
+
+      val level = TestLevel(nextLevel = Some(TestLevel()), throttle = (_) => Throttle(Duration.Zero, 0))
+      level.put(targetSegment).assertGet
+      level.put(segmentToMerge, segmentToCopy, Seq(targetSegment)).assertGet
+
+      level.isEmpty shouldBe false
+
+      assertGet(keyValues.flatten, level)
+    }
+
+    "revert copy if merge fails" in {
+      if (persistent) {
+        val keyValues = randomIntKeyValues(100).groupedSlice(10).map(_.updateStats).toArray
+        val segmentToCopy = keyValues.take(5) map (keyValues => TestSegment(keyValues).assertGet)
+        val segmentToMerge = keyValues.drop(5).take(4) map (keyValues => TestSegment(keyValues).assertGet)
+        val targetSegment = TestSegment(keyValues.last).assertGet
+
+        val level = TestLevel(segmentSize = 150.bytes, nextLevel = Some(TestLevel()), throttle = (_) => Throttle(Duration.Zero, 0))
+        level.put(targetSegment).assertGet
+
+        //segment to copy
+        Files.createFile(level.paths.next.resolve(IDGenerator.segmentId(level.segmentIDGenerator.nextID + 9)))
+
+        val appendixBeforePut = level.segments
+        val levelFilesBeforePut = level.segmentFilesOnDisk
+        level.put(segmentToMerge, segmentToCopy, Seq(targetSegment)).failed.assertGet shouldBe a[FileAlreadyExistsException]
+        level.segmentFilesOnDisk shouldBe levelFilesBeforePut
+        level.segments.map(_.path) shouldBe appendixBeforePut.map(_.path)
+      }
+    }
   }
 
   "Level.putMap" should {
@@ -449,8 +523,6 @@ class LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
 
       val keyValues = randomIntKeyValuesMemory(keyValuesCount)
       level.putKeyValues(keyValues).assertGet
-      //do another put so a merge occurs resulting in split
-      level.putKeyValues(Slice(keyValues.head)).assertGet
 
       val deleteKeyValues = Slice.create[KeyValue.ReadOnly](keyValues.size * 2)
       keyValues foreach {
@@ -509,7 +581,7 @@ class LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
 
       val keyValuesNoDeleted = ListBuffer.empty[KeyValue]
       val deleteEverySecond =
-        keyValues.zipWithIndex.flatMap {
+        keyValues.zipWithIndex flatMap {
           case (keyValue, index) =>
             if (index % 2 == 0)
               Some(Memory.Remove(keyValue.key))
@@ -558,70 +630,55 @@ class LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
     }
   }
 
-  "Level.addAsNewSegments" should {
-    "write key values as new segments" in {
+  "Level.copy" should {
+    "copy segments" in {
+      val level = TestLevel(throttle = (_) => Throttle(Duration.Zero, 0))
+      level.isEmpty shouldBe true
+
+      val keyValues1 = randomIntKeyStringValues()
+      val keyValues2 = randomIntKeyStringValues()
+      val segments = Iterable(TestSegment(keyValues1).assertGet, TestSegment(keyValues2).assertGet)
+      val copiedSegments = level.copy(segments).assertGet
+
+      val allKeyValues = Slice((keyValues1 ++ keyValues2).toArray).updateStats
+
+      level.isEmpty shouldBe true //copy function does not write to appendix.
+
+      if (persistent) level.segmentFilesOnDisk should not be empty
+
+      Segment.getAllKeyValues(0.1, copiedSegments).assertGet shouldBe allKeyValues
+    }
+
+    "fail copying Segments if it failed to copy one of the Segments" in {
       val level = TestLevel()
       level.isEmpty shouldBe true
 
-      val keyValues = randomIntKeyValuesMemory()
-      val function = PrivateMethod[Try[Unit]]('addAsNewSegments)
-      (level invokePrivate function(keyValues, None)).assertGet
+      val segment1 = TestSegment().assertGet
+      val segment2 = TestSegment().assertGet
 
-      level.isEmpty shouldBe false
-      assertReads(keyValues, level)
-      //if it's a persistent Level, reopen to ensure data stays intact
-      if (persistent) {
-        val reopenLevel = level.reopen
-        reopenLevel.isEmpty shouldBe false
-        assertReads(keyValues, reopenLevel.reopen)
-      }
-    }
-  }
+      segment2.delete.assertGet // delete segment2 so there is a failure in copying Segments
 
-  "Level.copy" should {
-    "copy segments" in {
-      if (memory) {
-        //memory Segments cannot be copied
-      } else {
-        val level = TestLevel(throttle = (_) => Throttle(Duration.Zero, 0))
-        level.isEmpty shouldBe true
+      val segments = Iterable(segment1, segment2)
+      level.copy(segments).failed.assertGet shouldBe a[NoSuchFileException]
 
-        val keyValues1 = randomIntKeyStringValues()
-        val keyValues2 = randomIntKeyStringValues()
-        val segments = Iterable(TestSegment(keyValues1).assertGet, TestSegment(keyValues2).assertGet)
-        val function = PrivateMethod[Try[Unit]]('copy)
-        (level invokePrivate function(segments)).assertGet
-
-        val allKeyValues = Slice((keyValues1 ++ keyValues2).toArray).updateStats
-
-        level.isEmpty shouldBe false
-        assertGet(allKeyValues, level)
-        assertGet(allKeyValues, level.reopen)
-      }
+      level.isEmpty shouldBe true
+      if (persistent) level.reopen.isEmpty shouldBe true
     }
 
-    "fail copying if it failed to copy one of the Segments" in {
-      if (memory) {
-        //memory Segments cannot be copied
-      } else {
-        val level = TestLevel()
-        level.isEmpty shouldBe true
+    "copy Map" in {
+      val level = TestLevel(throttle = (_) => Throttle(Duration.Zero, 0))
+      level.isEmpty shouldBe true
 
-        val segment1 = TestSegment().assertGet
-        val segment2 = TestSegment().assertGet
+      val keyValues = randomIntKeyValuesMemory(keyValuesCount)
+      val copiedSegments = level.copy(TestMap(keyValues)).assertGet
 
-        segment2.delete.assertGet // delete segment2 so there is a failure in copying Segments
+      level.isEmpty shouldBe true //copy function does not write to appendix.
 
-        val segments = Iterable(segment1, segment2)
-        val function = PrivateMethod[Try[Unit]]('copy)
-        val failed = level invokePrivate function(segments)
-        failed.isFailure shouldBe true
-        failed.failed.get shouldBe a[NoSuchFileException]
+      if (persistent) level.segmentFilesOnDisk should not be empty
 
-        level.isEmpty shouldBe true
-        level.reopen.isEmpty shouldBe true
-      }
+      Segment.getAllKeyValues(0.1, copiedSegments).assertGet shouldBe keyValues
     }
+
   }
 
   "Level.putKeyValues" should {

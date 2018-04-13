@@ -66,7 +66,7 @@ private[segment] class MemorySegment(val path: Path,
             bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate
           ) flatMap {
             splits =>
-              splits.tryMap(
+              splits.tryMap[Segment](
                 tryBlock =
                   keyValues => {
                     Segment.memory(
@@ -165,6 +165,7 @@ private[segment] class MemorySegment(val path: Path,
       }
 
   override def delete: Try[Unit] = {
+    //cache should not be cleared.
     logger.trace(s"{}: DELETING FILE", path)
     if (deleted)
       Failure(new NoSuchFileException(path.toString))

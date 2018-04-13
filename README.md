@@ -3,7 +3,7 @@
 [gitter-badge]: https://badges.gitter.im/Join%20Chat.svg
 [gitter-link]: https://gitter.im/SwayDB-chat/Lobby
 
-Type-safe & non-blocking key-value storage library for single/multiple disks and in-memory.
+Type-safe & non-blocking key-value storage library for single/multiple disks and in-memory storage.
 
 Documentation: http://swaydb.io
 
@@ -11,8 +11,8 @@ Documentation: http://swaydb.io
 
 | Storage  type   | Performance                               
 |:---------------:|:------------------------------------------------------
-| Persistent      | up to `308,000` writes/sec & up to `316,000` reads/sec                
-| In memory       | up to `653,000` writes/sec & up to `628,000` reads/sec                
+| Persistent      | up to `308,000` writes/sec & `316,000` reads/sec                
+| In memory       | up to `653,000` writes/sec & `628,000` reads/sec                
 
 View detailed benchmark results [here](http://swaydb.io/performance/macbook-pro-mid-2014/memory). 
 

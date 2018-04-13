@@ -41,9 +41,8 @@ private[core] object ExceptionUtil extends LazyLogging {
         if (logger.underlying.isTraceEnabled)
           logger.trace(message, exception)
 
-      case _: ArrayIndexOutOfBoundsException | _: IndexOutOfBoundsException | _: IllegalArgumentException | _: NegativeArraySizeException =>
-        logger.error(message + " Corruption.", exception)
-
+      //      case _: ArrayIndexOutOfBoundsException | _: IndexOutOfBoundsException | _: IllegalArgumentException | _: NegativeArraySizeException =>
+      //        logger.error(message + " Corruption.", exception)
       case _ =>
         logger.error(message, exception)
     }

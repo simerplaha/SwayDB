@@ -27,12 +27,12 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data._
 import swaydb.core.finders.{Get, Higher, Lower}
 import swaydb.core.io.file.{DBFile, IO}
+import swaydb.core.level.LevelException.ReceivedKeyValuesToMergeWithoutTargetSegment
 import swaydb.core.level.actor.{LevelAPI, LevelActor, LevelCommand}
 import swaydb.core.map.serializer._
 import swaydb.core.map.{Map, MapEntry, SkipListMerge}
-import swaydb.core.retry.Retry
 import swaydb.core.segment.SegmentException.SegmentFileMissing
-import swaydb.core.segment.{Segment, SegmentAssigner, SegmentMerge}
+import swaydb.core.segment.{Segment, SegmentAssigner}
 import swaydb.core.util.ExceptionUtil._
 import swaydb.core.util.FileUtil._
 import swaydb.core.util.TryUtil._
@@ -129,7 +129,7 @@ private[core] object Level extends LazyLogging {
 
         //initialise Level
         appendix flatMap {
-          (appendix: Map[Slice[Byte], Segment]) =>
+          appendix =>
             logger.debug("{}: Checking Segments exist.", levelStorage.dir)
             //check that all existing Segments in appendix also exists on disk or else return error message.
             appendix.asScala tryForeach {
@@ -237,7 +237,7 @@ private[core] class Level(val dirs: Seq[Dir],
           segmentId
     }
 
-  private implicit val segmentIDGenerator = IDGenerator(initial = largestSegmentId)
+  private[level] implicit val segmentIDGenerator = IDGenerator(initial = largestSegmentId)
 
   def init: Level = {
     if (existsOnDisk) deleteOrphanSegments()
@@ -302,13 +302,48 @@ private[core] class Level(val dirs: Seq[Dir],
         if (overlaps) {
           logger.debug("{}: Segments '{}' intersect with current busy segments: {}", paths.head, segments.map(_.path.toString), busySegments.map(_.path.toString))
           Failure(LevelException.ContainsOverlappingBusySegments)
-        } //only copy Segments if the both this Level and the Segments are persistent.
-        else if (!inMemory && segments.headOption.exists(_.persistent) && isEmpty)
-          copy(segments)
-        else
-          merge(segments, appendixValues, None)
+        } else { //only copy Segments if the both this Level and the Segments are persistent.
+          val (segmentToMerge, segmentToCopy) = Segment.partitionOverlapping(segments, appendixValues)
+          put(segmentToMerge, segmentToCopy, appendixValues)
+        }
     }
   }
+
+  private def deleteCopiedSegments(copiedSegments: Iterable[Segment]) =
+    copiedSegments foreach {
+      segmentToDelete =>
+        segmentToDelete.delete.failed foreach {
+          exception =>
+            logger.error(s"{}: Failed to delete copied Segment '{}'", paths.head, segmentToDelete.path, exception)
+        }
+    }
+
+  private[level] def put(segmentsToMerge: Iterable[Segment],
+                         segmentsToCopy: Iterable[Segment],
+                         targetSegments: Iterable[Segment]): Try[Unit] =
+    if (segmentsToCopy.nonEmpty)
+      copy(segmentsToCopy) flatMap {
+        copiedSegments =>
+          buildNewMapEntry(copiedSegments, None, None) flatMap {
+            copiedSegmentsEntry =>
+              val putResult =
+                if (segmentsToMerge.nonEmpty)
+                  merge(segmentsToMerge, targetSegments, Some(copiedSegmentsEntry))
+                else
+                  appendix
+                    .write(copiedSegmentsEntry)
+                    .map(_ => alertActorOfSmallSegments(copiedSegments))
+
+              putResult recoverWith {
+                case exception =>
+                  logFailure(s"${paths.head}: Failed to create a log entry. Deleting ${copiedSegments.size} copied segments", exception)
+                  deleteCopiedSegments(copiedSegments)
+                  Failure(exception)
+              }
+          }
+      }
+    else
+      merge(segmentsToMerge, targetSegments, None)
 
   def putMap(map: Map[Slice[Byte], Memory]): Try[Unit] = {
     logger.trace("{}: PutMap '{}' Maps.", paths.head, map.count())
@@ -316,19 +351,97 @@ private[core] class Level(val dirs: Seq[Dir],
     val busySegs = getBusySegments()
     val appendixValues = appendix.values().asScala
     Segment.overlapsWithBusySegments(map, busySegs, appendixValues) flatMap {
-      overlaps =>
-        if (overlaps) {
+      overlapsWithBusySegments =>
+        if (overlapsWithBusySegments) {
           logger.debug("{}: Map '{}' contains key-values intersect with current busy segments: {}", paths.head, map.pathOption.map(_.toString), busySegs.map(_.path.toString))
           Failure(LevelException.ContainsOverlappingBusySegments)
         } else {
-          putKeyValues(Slice(map.values().toArray(new Array[Memory](map.skipList.size()))), appendixValues, None)
+          if (!Segment.overlaps(map, appendixValues)) {
+            copy(map) flatMap {
+              newSegments =>
+                buildNewMapEntry(newSegments, None, None) flatMap {
+                  entry =>
+                    appendix
+                      .write(entry)
+                      .map(_ => ())
+                } recoverWith {
+                  case exception =>
+                    logFailure(s"${paths.head}: Failed to create a log entry for memory Segment.", exception)
+                    deleteCopiedSegments(newSegments)
+                    Failure(exception)
+                }
+            }
+          } else {
+            putKeyValues(Slice(map.values().toArray(new Array[Memory](map.skipList.size()))), appendixValues, None)
+          }
         }
     }
   }
 
-  def putKeyValues(keyValues: Slice[KeyValue.ReadOnly]): Try[Unit] = {
-    logger.trace(s"{}: Received put for '{}' KeyValues.", paths.head, keyValues.size)
-    putKeyValues(keyValues, appendix.values().asScala, None)
+  private[level] def copy(map: Map[Slice[Byte], Memory]): Try[Iterable[Segment]] = {
+    logger.trace(s"{}: Copying {} Map", paths.head, map.pathOption)
+
+    def targetSegmentPath = paths.next.resolve(IDGenerator.segmentId(segmentIDGenerator.nextID))
+
+    val keyValues = Slice(map.skipList.values().asScala.toArray)
+    if (inMemory)
+      Segment.copyToMemory(
+        keyValues = keyValues,
+        fetchNextPath = targetSegmentPath,
+        minSegmentSize = segmentSize,
+        removeDeletes = removeDeletedRecords,
+        bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate
+      )
+    else
+      Segment.copyToPersist(
+        keyValues = keyValues,
+        fetchNextPath = targetSegmentPath,
+        mmapSegmentsOnRead = mmapSegmentsOnRead,
+        mmapSegmentsOnWrite = mmapSegmentsOnWrite,
+        minSegmentSize = segmentSize,
+        removeDeletes = removeDeletedRecords,
+        bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate
+      )
+  }
+
+  private[level] def copy(segmentsToCopy: Iterable[Segment]): Try[Iterable[Segment]] = {
+    logger.trace(s"{}: Copying {} Segments", paths.head, segmentsToCopy.map(_.path.toString))
+    segmentsToCopy.tryFlattenIterable[Segment](
+      tryBlock =
+        segment => {
+          def targetSegmentPath = paths.next.resolve(IDGenerator.segmentId(segmentIDGenerator.nextID))
+
+          if (inMemory)
+            Segment.copyToMemory(
+              segment = segment,
+              fetchNextPath = targetSegmentPath,
+              minSegmentSize = segmentSize,
+              removeDeletes = removeDeletedRecords,
+              bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate
+            )
+          else
+            Segment.copyToPersist(
+              segment = segment,
+              fetchNextPath = targetSegmentPath,
+              mmapSegmentsOnRead = mmapSegmentsOnRead,
+              mmapSegmentsOnWrite = mmapSegmentsOnWrite,
+              minSegmentSize = segmentSize,
+              removeDeletes = removeDeletedRecords,
+              bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate
+            )
+        },
+      recover =
+        (segments, failure) => {
+          logFailure(s"${paths.head}: Failed to copy Segments. Deleting partially copied Segments ${segments.size} Segments", failure.exception)
+          segments foreach {
+            segment =>
+              segment.delete.failed foreach {
+                exception =>
+                  logger.error(s"{}: Failed to delete copied Segment '{}'", paths.head, segment.path, exception)
+              }
+          }
+        }
+    )
   }
 
   def collapseAllSmallSegments(batch: Int): Try[Int] = {
@@ -417,58 +530,6 @@ private[core] class Level(val dirs: Seq[Dir],
     }
   }
 
-  private def copy(segmentsToCopy: Iterable[Segment]): Try[Unit] = {
-    logger.trace(s"{}: Copying {} Segments", paths.head, segmentsToCopy.map(_.path.toString))
-    segmentsToCopy.tryMap[Segment](
-      tryBlock =
-        segment => {
-          val targetSegmentPath = paths.next.resolve(IDGenerator.segmentId(segmentIDGenerator.nextID))
-          segment.copyTo(targetSegmentPath) flatMap {
-            _ =>
-              Segment(
-                path = targetSegmentPath,
-                mmapReads = mmapSegmentsOnRead,
-                mmapWrites = mmapSegmentsOnWrite,
-                minKey = segment.minKey,
-                maxKey = segment.maxKey,
-                segmentSize = segment.segmentSize,
-                removeDeletes = removeDeletedRecords
-              )
-          }
-        },
-      recover =
-        (copiedSegment, failure) => {
-          logFailure(s"${paths.head}: Failed to copy ${segmentsToCopy.size} segment(s). Deleting ${copiedSegment.size} copied segment(s)", failure.exception)
-
-          copiedSegment foreach {
-            segment =>
-              segment.delete.failed.map {
-                exception =>
-                  logger.warn(s"{}: Failed to delete partially copied Segment {} after failure to copy", paths.head, segment.path, exception)
-              }
-          }
-        }
-    ) flatMap {
-      copiedSegment =>
-        buildNewMapEntry(copiedSegment, None, None)
-          .flatMap(appendix.write)
-          .map(_ => alertActorOfSmallSegments(copiedSegment))
-          .recoverWith {
-            case exception =>
-              logFailure(s"${paths.head}: Failed to create a log entry. Deleting ${copiedSegment.size} copied segments", exception)
-
-              copiedSegment foreach {
-                segmentToDelete =>
-                  segmentToDelete.delete.failed foreach {
-                    exception =>
-                      logger.error(s"{}: Failed to delete Segment '{}'", paths.head, segmentToDelete.path, exception)
-                  }
-              }
-              Failure(exception)
-          }
-    }
-  }
-
   private def putKeyValues(keyValues: Slice[KeyValue.ReadOnly],
                            targetSegments: Iterable[Segment],
                            initialEntry: Option[MapEntry[Slice[Byte], Segment]]): Try[Unit] = {
@@ -483,8 +544,8 @@ private[core] class Level(val dirs: Seq[Dir],
         } else {
           logger.trace(s"{}: Assigned segments {} for KeyValues: {}.", paths.head, assignments.map(_._1.path.toString), keyValues.size)
           if (assignments.isEmpty) {
-            logger.debug(s"{}: Assigned segments are empty. Adding a new segment for KeyValues: {}.", paths.head, keyValues.size)
-            addAsNewSegments(keyValues, initialEntry)
+            logger.error(s"{}: Assigned segments are empty. Cannot merge Segments to empty target Segments: {}.", paths.head, keyValues.size)
+            Failure(ReceivedKeyValuesToMergeWithoutTargetSegment(keyValues.size))
           } else {
             logger.debug(s"{}: Assigned segments {}. Merging KeyValues: {}.", paths.head, assignments.map(_._1.path.toString), keyValues.size)
             putAssignedKeyValues(assignments) flatMap {
@@ -531,75 +592,6 @@ private[core] class Level(val dirs: Seq[Dir],
     }
   }
 
-  private def addAsNewSegments(keyValues: Slice[KeyValue.ReadOnly],
-                               initialEntry: Option[MapEntry[Slice[Byte], Segment]]): Try[Unit] = {
-    logger.debug(s"{}: In addToNewSegments {} KeyValues.", paths.head, keyValues.size)
-
-    SegmentMerge
-      .split(keyValues, segmentSize, removeDeletedRecords, inMemory, bloomFilterFalsePositiveRate)
-      .flatMap {
-        splits =>
-          splits.tryMap[Segment](
-            tryBlock =
-              keyValues =>
-                if (inMemory)
-                  Segment.memory(
-                    path = paths.next.resolve(segmentIDGenerator.nextSegmentID),
-                    bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-                    keyValues = keyValues,
-                    removeDeletes = removeDeletedRecords
-                  )
-                else
-                  Segment.persistent(
-                    path = paths.next.resolve(segmentIDGenerator.nextSegmentID),
-                    bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-                    mmapReads = mmapSegmentsOnRead,
-                    mmapWrites = mmapSegmentsOnWrite,
-                    keyValues = keyValues,
-                    removeDeletes = removeDeletedRecords
-                  ),
-
-            recover =
-              (segments, failure) => {
-                logFailure(s"${paths.head}: Failed to complete put request. Deleting partially written batch ${segments.size} Segments", failure.exception)
-                segments foreach {
-                  segment =>
-                    segment.delete.failed foreach {
-                      exception =>
-                        logger.error(s"{}: Failed to delete Segment '{}' in recovery addAsNewSegments", paths.head, segment.path, exception)
-                    }
-                }
-              }
-          )
-      } flatMap {
-      newSegments =>
-        if (newSegments.isEmpty)
-          TryUtil.successUnit
-        else
-          buildNewMapEntry(newSegments, initialMapEntry = initialEntry)
-            .flatMap {
-              entry =>
-                appendix.write(entry) map {
-                  _ =>
-                    alertActorOfSmallSegments(newSegments)
-                }
-            }
-            .recoverWith {
-              case exception =>
-                logFailure(s"${paths.head}: Failed to complete put request. Deleting partially written batch ${segments.size} Segments", exception)
-
-                newSegments foreach {
-                  segment =>
-                    segment.delete.failed foreach {
-                      exception =>
-                        logger.error(s"{}: Failed to delete Segment '{}' in recovery addAsNewSegments", paths.head, segment.path, exception)
-                    }
-                }
-                Failure(exception)
-            }
-    }
-  }
-
   //if there is a small segment in the new segments, alert the Actor to collapse the small segments before next Push
   def alertActorOfSmallSegments(newSegments: Iterable[Segment]) =
     newSegments foreachBreak {
@@ -622,7 +614,7 @@ private[core] class Level(val dirs: Seq[Dir],
       recover =
         (targetSegmentAndNewSegments, failure) => {
           logFailure(s"${paths.head}: Failed to do putAssignedKeyValues, Reverting and deleting written ${targetSegmentAndNewSegments.size} segments", failure.exception)
-          targetSegmentAndNewSegments.foreach {
+          targetSegmentAndNewSegments foreach {
             case (_, newSegments) =>
               newSegments foreach {
                 segment =>

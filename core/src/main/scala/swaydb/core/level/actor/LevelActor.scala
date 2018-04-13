@@ -59,7 +59,7 @@ private[core] object LevelActor extends LazyLogging {
       case state: Sleeping =>
         val hasNextLevel = level.hasNextLevel
         val hasSmallSegments = state.hasSmallSegments
-        if (hasNextLevel || state.hasSmallSegments) {
+        if (hasNextLevel || hasSmallSegments) {
           val delay = level.nextPushDelay
           logger.trace(s"{}: Started. Scheduled with delay delay", level.paths.head, delay)
           Some(PushScheduled(state.hasSmallSegments), PushTask(delay, Push))
