@@ -383,7 +383,7 @@ sealed trait SwayDBSpec extends TestBase {
         }
       }
       //this test might take a while depending on the Compaction speed but it should not run for too long hence the timeout.
-      Future(assertLevelsAreEmpty(db, 1, false)).await(5.minutes)
+      Future(assertLevelsAreEmpty(db, 1, false)).await(10.minutes)
     }
   }
 }
