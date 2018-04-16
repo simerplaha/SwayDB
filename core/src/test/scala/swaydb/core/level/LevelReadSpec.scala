@@ -75,7 +75,7 @@ trait LevelReadSpec extends TestBase with MockFactory with Benchmark {
             level.mightContain(keyValue.key).assertGet shouldBe true
         }
 
-        level.mightContain("DOES NOT EXISTS").assertGet shouldBe false
+        level.mightContain("THIS KEY DOES NOT EXISTS").assertGet shouldBe false
       }
 
       val level = TestLevel()

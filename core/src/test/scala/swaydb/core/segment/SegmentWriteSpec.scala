@@ -726,7 +726,7 @@ class SegmentWriteSpec extends TestBase with Benchmark {
           segment = segment,
           fetchNextPath = levelPath.resolve(nextSegmentId),
           removeDeletes = true,
-          minSegmentSize = keyValues.last.stats.segmentSize / 10,
+          minSegmentSize = keyValues.last.stats.segmentSize / 20,
           bloomFilterFalsePositiveRate = 0.1
         ).assertGet
 

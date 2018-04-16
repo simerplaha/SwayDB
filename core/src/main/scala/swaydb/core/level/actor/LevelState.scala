@@ -46,12 +46,12 @@ private[core] object LevelState {
                      waitingPull: Option[ActorRef[Pull]]) extends LevelState {
     override def isSleeping: Boolean = false
 
-    override def copyWithHasSmallSegments(hasSmallSegments: Boolean): LevelState =
-      copy(hasSmallSegments = hasSmallSegments)
-
     override def isPushing: Boolean = true
 
     override def isScheduled: Boolean = false
+
+    override def copyWithHasSmallSegments(hasSmallSegments: Boolean): LevelState =
+      copy(hasSmallSegments = hasSmallSegments)
   }
 
   case class PushScheduled(hasSmallSegments: Boolean) extends LevelState {
@@ -66,7 +66,7 @@ private[core] object LevelState {
     override val waitingPull: Option[ActorRef[Pull]] = None
 
     override def copyWithHasSmallSegments(hasSmallSegments: Boolean): LevelState =
-      Sleeping(hasSmallSegments = hasSmallSegments)
+      copy(hasSmallSegments = hasSmallSegments)
   }
 
   case class Sleeping(hasSmallSegments: Boolean) extends LevelState {
@@ -82,7 +82,7 @@ private[core] object LevelState {
     override val waitingPull: Option[ActorRef[Pull]] = None
 
     override def copyWithHasSmallSegments(hasSmallSegments: Boolean): LevelState =
-      Sleeping(hasSmallSegments = hasSmallSegments)
+      copy(hasSmallSegments = hasSmallSegments)
   }
 
   case class WaitingPull(hasSmallSegments: Boolean) extends LevelState {
@@ -98,6 +98,6 @@ private[core] object LevelState {
     override val waitingPull: Option[ActorRef[Pull]] = None
 
     override def copyWithHasSmallSegments(hasSmallSegments: Boolean): LevelState =
-      Sleeping(hasSmallSegments = hasSmallSegments)
+      copy(hasSmallSegments = hasSmallSegments)
   }
 }

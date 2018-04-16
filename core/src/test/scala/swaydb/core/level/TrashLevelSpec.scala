@@ -35,6 +35,8 @@ import swaydb.data.util.StorageUnits._
 import scala.concurrent.duration._
 
 //@formatter:off
+class TrashLevelSpec0 extends TrashLevelSpec
+
 class TrashLevelSpec1 extends TrashLevelSpec {
   override def levelFoldersCount = 10
   override def mmapSegmentsOnWrite = true
@@ -56,7 +58,7 @@ class TrashLevelSpec3 extends TrashLevelSpec {
 }
 //@formatter:on
 
-class TrashLevelSpec extends TestBase with MockFactory with PrivateMethodTester {
+trait TrashLevelSpec extends TestBase with MockFactory with PrivateMethodTester {
 
   implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
   val keyValuesCount = 100

@@ -485,7 +485,7 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
   def assertOnLevel[T](keyValues: Slice[Memory],
                        assertion: Level => T)(implicit ordering: Ordering[Slice[Byte]]) = {
     val level = TestLevel(nextLevel = Some(TestLevel()), throttle = (_) => Throttle(Duration.Zero, 0))
-    level.putKeyValues(keyValues).assertGet
+    if (keyValues.nonEmpty) level.putKeyValues(keyValues).assertGet
 
     assertion(level)
     assertion(level)
@@ -501,7 +501,7 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
   def assertOnLevel[T](keyValues: Slice[Memory],
                        assertionWithKeyValues: (Slice[Memory], Level) => T)(implicit ordering: Ordering[Slice[Byte]]) = {
     val level = TestLevel(nextLevel = Some(TestLevel()), throttle = (_) => Throttle(Duration.Zero, 0))
-    level.putKeyValues(keyValues).assertGet
+    if (keyValues.nonEmpty) level.putKeyValues(keyValues).assertGet
 
     assertionWithKeyValues(keyValues, level)
     assertionWithKeyValues(keyValues, level)

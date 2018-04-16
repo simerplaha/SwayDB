@@ -50,6 +50,9 @@ import scala.concurrent.duration._
 import scala.util.{Random, Success, Try}
 
 //@formatter:off
+
+class LevelWriteSpec0 extends LevelWriteSpec
+
 class LevelWriteSpec1 extends LevelWriteSpec {
   override def levelFoldersCount = 10
   override def mmapSegmentsOnWrite = true
@@ -71,7 +74,7 @@ class LevelWriteSpec3 extends LevelWriteSpec {
 }
 //@formatter:on
 
-class LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester {
+trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester {
 
   implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
   val keyValuesCount = 100
@@ -404,8 +407,12 @@ class LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
         val level = TestLevel(nextLevel = Some(TestLevel()), throttle = (_) => Throttle(Duration.Zero, 0))
 
         //create a file with the same Segment name as the 4th Segment file. This should result in failure.
-        Files.createFile(level.paths.next.resolve(IDGenerator.segmentId(level.segmentIDGenerator.nextID + 4)))
+        val id = IDGenerator.segmentId(level.segmentIDGenerator.nextID + 4)
+        level.paths.queuedPaths foreach { //create this file in all paths.
+          _ =>
+            Files.createFile(level.paths.next.resolve(id))
 
+        }
         val levelFilesBeforePut = level.segmentFilesOnDisk
 
         level.put(Seq.empty, segmentToCopy, Seq.empty).failed.assertGet shouldBe a[FileAlreadyExistsException]
@@ -441,7 +448,12 @@ class LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
         level.put(targetSegment).assertGet
 
         //segment to copy
-        Files.createFile(level.paths.next.resolve(IDGenerator.segmentId(level.segmentIDGenerator.nextID + 9)))
+        val id = IDGenerator.segmentId(level.segmentIDGenerator.nextID + 9)
+        level.paths.queuedPaths foreach { //create this file in all paths.
+          _ =>
+            Files.createFile(level.paths.next.resolve(id))
+
+        }
 
         val appendixBeforePut = level.segments
         val levelFilesBeforePut = level.segmentFilesOnDisk
