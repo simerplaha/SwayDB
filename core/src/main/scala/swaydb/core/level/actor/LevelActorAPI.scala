@@ -19,7 +19,7 @@
 
 package swaydb.core.level.actor
 
-import swaydb.core.data.{Memory, Value}
+import swaydb.core.data.Memory
 import swaydb.core.level.PathsDistributor
 import swaydb.core.map.Map
 import swaydb.core.segment.Segment
@@ -71,6 +71,8 @@ private[core] trait LevelActorAPI {
   def pickSegmentsToPush(count: Int): Iterable[Segment]
 
   def collapseAllSmallSegments(batch: Int): Try[Int]
+
+  def clearExpiredKeyValues(): Try[Unit]
 
   def levelSize: Long
 

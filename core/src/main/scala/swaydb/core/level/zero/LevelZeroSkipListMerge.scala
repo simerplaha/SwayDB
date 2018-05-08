@@ -23,18 +23,30 @@ import java.util.concurrent.ConcurrentSkipListMap
 
 import swaydb.core.data.{Memory, Value}
 import swaydb.core.map.{MapEntry, SkipListMerge}
+import swaydb.core.segment.KeyValueMerger
 import swaydb.core.util.PipeOps._
 import swaydb.data.slice.Slice
 
 import scala.collection.JavaConverters._
+import scala.concurrent.duration.FiniteDuration
 
-object LevelZeroSkipListMerge extends SkipListMerge[Slice[Byte], Memory] {
+object LevelZeroSkipListMerge {
+  def apply(graceTimeout: FiniteDuration): LevelZeroSkipListMerge =
+    new LevelZeroSkipListMerge(graceTimeout)
+}
+
+class LevelZeroSkipListMerge(val graceTimeout: FiniteDuration) extends SkipListMerge[Slice[Byte], Memory] {
+
+  def applyValue(newKeyValue: Memory.Fixed,
+                 oldKeyValue: Memory.Fixed,
+                 graceTimeout: FiniteDuration): Memory.Fixed =
+    KeyValueMerger.applyValue(newKeyValue, oldKeyValue, graceTimeout).get.asInstanceOf[Memory.Fixed]
 
   /**
     * Pre-requisite: splitKey should always be within range's fromKey and less than toKey.
     */
   private def split(splitKey: Slice[Byte],
-                    splitFromValue: Option[Value],
+                    splitFromValue: Option[Value.FromValue],
                     range: Memory.Range)(implicit ordering: Ordering[Slice[Byte]]): (Memory.Range, Option[Memory.Range]) = {
     import ordering._
     if (splitKey equiv range.fromKey) //if the splitKey == range's from key, update the fromKeyValue in the range.
@@ -53,7 +65,7 @@ object LevelZeroSkipListMerge extends SkipListMerge[Slice[Byte], Memory] {
   //3'rd range is returned None if the splitToKey > the range's toKey.
   private def split(splitFromKey: Slice[Byte],
                     splitToKey: Slice[Byte],
-                    splitFromValue: Option[Value],
+                    splitFromValue: Option[Value.FromValue],
                     range: Memory.Range)(implicit ordering: Ordering[Slice[Byte]]): (Memory.Range, Option[Memory.Range], Option[Memory.Range]) = {
     import ordering._
     split(splitFromKey, splitFromValue, range) match {
@@ -83,11 +95,11 @@ object LevelZeroSkipListMerge extends SkipListMerge[Slice[Byte], Memory] {
     edge match {
       case edgeRange: Memory.Range if splitKey > edgeRange.fromKey && splitKey < edgeRange.toKey => //adjust only if within the range
         split(splitKey, None, edgeRange) match {
-          case ((_, None)) =>
+          case (_, None) =>
           //if only 1 split is returned then the
           //head fully overlaps the insert range's toKey.
           //no change required, the submission process will fix this ranges.
-          case ((lowerRange, Some(upperRange))) =>
+          case (lowerRange, Some(upperRange)) =>
             //Split occurred, stash the lowerRange and keep the upperRange skipList.
             skipList.put(upperRange.fromKey, upperRange) //put the upperRange, this will not alter the previous state of the skipList as only new entry is being added.
             skipList.put(lowerRange.fromKey, lowerRange)
@@ -106,23 +118,24 @@ object LevelZeroSkipListMerge extends SkipListMerge[Slice[Byte], Memory] {
     Option(skipList.floorEntry(insert.key)) match {
       case Some(floorEntry) =>
         floorEntry.getValue match {
-          //if floor entry for input fixed entry, simply put to replace the old entry if the keys are the same or it will as a new entry.
-          case _: Memory.Fixed =>
-            skipList.put(insert.key, insert)
+          //if floor entry for input Fixed entry & if they keys match, do applyValue else simply add the new key-value.
+          case floor: Memory.Fixed =>
+            if (floor.key equiv insert.key)
+              skipList.put(insert.key, applyValue(insert, floor, graceTimeout))
+            else
+              skipList.put(insert.key, insert)
 
           //if the floor entry is a range try to do a split. split function might not return splits if the insertKey
           //is greater than range's toKey since toKeys' of Ranges are exclusive.
           case floorRange: Memory.Range if insert.key < floorRange.toKey => //if the fixed key is smaller than the range's toKey then do a split.
-            val insertValue =
-              insert match {
-                case put: Memory.Put => Value.Put(put.value)
-                case _: Memory.Remove => Value.Remove
-              }
-            split(insert.key, Some(insertValue), floorRange) match {
-              case ((left, right)) =>
+            //Gah! performing a .get here. Although .get should never fail in this case because both the input key-values are in-memory and do not perform IO.
+            //This should still be done properly.
+            split(insert.key, Some(KeyValueMerger.applyValue(insert, floorRange.fromValue.getOrElse(floorRange.rangeValue), graceTimeout).get), floorRange) match {
+              case (left, right) =>
                 right foreach (right => skipList.put(right.fromKey, right))
                 skipList.put(left.fromKey, left)
             }
+
           case _ =>
             skipList.put(insert.key, insert)
         }
@@ -191,13 +204,12 @@ object LevelZeroSkipListMerge extends SkipListMerge[Slice[Byte], Memory] {
       //          case Value.Range(toKey, fromValue, rangeValue) =>
       //            s"""Range(toKey = ${toKey.readInt()}, fromValue = ${fromValue.map(asString(_))}, rangeValue = ${asString(rangeValue)})"""
       //        }
-
       (insert.fromValue, insert.rangeValue) match {
-        case (_, Value.Remove) =>
+        case (None | Some(Value.Remove(None)) | Some(_: Value.Put), Value.Remove(None)) =>
           skipList.put(insert.fromKey, insert)
           skipList.subMap(insert.fromKey, false, insert.toKey, false).clear()
 
-        case (_, Value.Put(_)) =>
+        case _ =>
           skipList.subMap(insert.fromKey, true, insert.toKey, false)
             .asScala
             .foldLeft((insert, false)) { //Boolean indicates if the current remaining range is inserted. If it's not then it will be inserted at the end of the fold.
@@ -212,13 +224,10 @@ object LevelZeroSkipListMerge extends SkipListMerge[Slice[Byte], Memory] {
                       case conflicting: Memory.Fixed =>
                         val conflictingKeyValue =
                           nextInsertRange.fromValue match {
-                            case Some(value) if conflicting.key equiv nextInsertRange.fromKey =>
-                              value
+                            case Some(nextInsertRangeFromValue) if conflicting.key equiv nextInsertRange.fromKey =>
+                              KeyValueMerger.applyValue(nextInsertRangeFromValue, conflicting, graceTimeout).get
                             case _ =>
-                              if (conflicting.isRemove)
-                                Value.Remove
-                              else
-                                insert.rangeValue
+                              KeyValueMerger.applyValue(nextInsertRange.rangeValue, conflicting, graceTimeout).get
                           }
 
                         val (left, right) = split(conflicting.key, Some(conflictingKeyValue), nextInsertRange)
@@ -226,20 +235,26 @@ object LevelZeroSkipListMerge extends SkipListMerge[Slice[Byte], Memory] {
                         skipList.put(left.fromKey, left)
                         (right getOrElse left, true)
 
-                      //match if conflicting range was remove. Updates cannot be applied on removed ranges, removed ranges are kept as is.
-                      case Memory.Range(conflictingFromKey, conflictingToKey, conflictingFromValue, Value.Remove) =>
+                      case conflicting @ Memory.Range(conflictingFromKey, conflictingToKey, _, _) =>
                         //if fromValue is set then this is an actual key and should be updated.
-                        val splitFromValue =
-                          nextInsertRange.fromValue match {
-                            case Some(value) if conflicting.key equiv nextInsertRange.fromKey =>
-                              Some(value)
-                            case _ =>
-                              conflictingFromValue match {
-                                case removed @ Some(Value.Remove) => removed //if the key was remove, Update will not be applied, it will stay removed.
-                                case Some(_) => Some(insert.rangeValue) //if the key exists and was not remove, update will be applied to be the range's value.
-                                case None => None //else the key does not exists so there is no split value.
-                              }
+                        val splitFromValue: Option[Value.FromValue] =
+                          conflicting.fromValue map {
+                            conflictingFromValue =>
+                              if (conflicting.key equiv nextInsertRange.fromKey)
+                                KeyValueMerger.applyValue(nextInsertRange.fromValue.getOrElse(nextInsertRange.rangeValue), conflictingFromValue, graceTimeout).get
+                              else
+                                KeyValueMerger.applyValue(nextInsertRange.rangeValue, conflictingFromValue, graceTimeout).get
+                          } orElse {
+                            nextInsertRange.fromValue flatMap { //if fromValue of next insert range is set but not for existing Range.
+                              nextInsertRangeFromValue =>
+                                if (conflicting.key equiv nextInsertRange.fromKey)
+                                  Some(KeyValueMerger.applyValue(nextInsertRangeFromValue, conflicting.fromValue.getOrElse(conflicting.rangeValue), graceTimeout).get)
+                                else //conflicting range is not overlapping nextInsertRange's fromValue. Return None.
+                                  None
+                            }
                           }
+
+                        val splitRangeValue: Value.RangeValue = KeyValueMerger.applyValue(nextInsertRange.rangeValue, conflicting.rangeValue, graceTimeout).get
 
                         split(conflictingFromKey, conflictingToKey, splitFromValue, nextInsertRange) match {
                           case (left, Some(mid), Some(right)) =>
@@ -248,19 +263,19 @@ object LevelZeroSkipListMerge extends SkipListMerge[Slice[Byte], Memory] {
                             //                            println(s"Split mid   : ${midKey.readInt()} -> ${asString(midValue)}")
                             //                            println(s"Split right : ${rightKey.readInt()} -> ${asString(rightValue)}")
 
-                            skipList.put(mid.fromKey, mid.copy(rangeValue = Value.Remove))
+                            skipList.put(mid.fromKey, mid.copy(rangeValue = splitRangeValue))
                             skipList.put(left.fromKey, left) //the previous entry was remove, so the rangeValue still remains removed.
                             (right, false)
 
                           case (left, Some(right), None) =>
                             //                            println(s"Split left  : ${leftKey.readInt()} -> ${asString(leftValue)}")
                             //                            println(s"Split right : ${rightKey.readInt()} -> ${asString(rightValue)}")
-                            if (left.fromKey equiv conflictingFromKey) { //if the split occurred at the root fromKey, set left to Remove
+                            if (left.fromKey equiv conflictingFromKey) { //if the split occurred at the root fromKey, set left
                               skipList.put(right.fromKey, right)
-                              skipList.put(left.fromKey, left.copy(rangeValue = Value.Remove)) //the previous entry was remove, so the rangeValue still remains removed.
+                              skipList.put(left.fromKey, left.copy(rangeValue = splitRangeValue)) //the previous entry was remove, so the rangeValue still remains removed.
                               (right, true)
-                            } else { //if the split occurred at top right, set right to Remove
-                              val rightValueRemoved = right.copy(rangeValue = Value.Remove)
+                            } else { //if the split occurred at top right
+                              val rightValueRemoved = right.copy(rangeValue = splitRangeValue)
                               skipList.put(right.fromKey, rightValueRemoved)
                               skipList.put(left.fromKey, left) //the previous entry was remove, so the rangeValue still remains removed.
                               (rightValueRemoved, true)
@@ -268,37 +283,9 @@ object LevelZeroSkipListMerge extends SkipListMerge[Slice[Byte], Memory] {
 
                           case (left, None, None) =>
                             //                            println(s"Split left  : ${leftKey.readInt()} -> ${asString(leftValue)}")
-                            val leftRemoved = left.copy(rangeValue = Value.Remove)
+                            val leftRemoved = left.copy(rangeValue = splitRangeValue)
                             skipList.put(left.fromKey, leftRemoved)
                             (left, true)
-                        }
-
-                      case conflictingRange: Memory.Range =>
-                        //if fromValue is set then this is an actual key and should be updated.
-                        conflictingRange.fromValue match {
-                          case None => //if the ranges key-value does not have actual values set, remove them.
-                            skipList.put(nextInsertRange.fromKey, nextInsertRange) //last range didn't contain any conflicting keys requiring splits. Add the last range.
-                            if (conflictingRange.fromKey != nextInsertRange.fromKey) skipList.remove(conflictingRange.fromKey) //remove if it's not already replaced by above put key.
-                            (nextInsertRange, true)
-
-                          case Some(_) =>
-                            val splitFromValue =
-                              nextInsertRange.fromValue match {
-                                case Some(value) if conflictingRange.fromKey equiv nextInsertRange.fromKey =>
-                                  Some(value)
-                                case _ =>
-                                  conflictingRange.fromValue match {
-                                    case removed @ Some(Value.Remove) => removed //if the key was remove, Update will not be applied, it will stay removed.
-                                    case Some(_) => Some(insert.rangeValue) //if the key exists and was not remove, update will be applied to be the range's value.
-                                    case None => None //else the key does not exists so there is no split value.
-                                  }
-                              }
-                            split(conflictingRange.fromKey, splitFromValue, nextInsertRange) match {
-                              case (left, right) =>
-                                right foreach (right => skipList.put(right.fromKey, right))
-                                skipList.put(left.fromKey, left)
-                                (right getOrElse left, true)
-                            }
                         }
                     }
                 }
@@ -308,6 +295,7 @@ object LevelZeroSkipListMerge extends SkipListMerge[Slice[Byte], Memory] {
                 skipList.put(last.fromKey, last)
           }
       }
+
     }
   }
 

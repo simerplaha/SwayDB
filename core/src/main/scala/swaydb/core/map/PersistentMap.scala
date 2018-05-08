@@ -23,11 +23,12 @@ import java.nio.file.Path
 import java.util.concurrent.ConcurrentSkipListMap
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.core.data.Memory
 import swaydb.core.io.file.{DBFile, IO}
 import swaydb.core.map.serializer.{MapCodec, MapEntryReader, MapEntryWriter}
-import swaydb.core.util.{Extension, TryUtil}
 import swaydb.core.util.FileUtil._
 import swaydb.core.util.TryUtil._
+import swaydb.core.util.{Extension, TryUtil}
 
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
@@ -107,11 +108,18 @@ private[map] object PersistentMap extends LazyLogging {
                     val entriesRecovered =
                       recovery.item.foldLeft(0) {
                         case (size, entry) =>
-                          if (entry.hasRange) {
+                          //when populating skipList do the same checks a PersistentMap does when writing key-values to the skipList.
+                          //Use the merger to write key-values to skipList if the there a range, update or remove(with deadline).
+                          //else simply write the key-values to the skipList. This logic should be abstracted out to a common function.
+                          //See MapSpec for tests.
+                          if (hasRange || entry.hasUpdate || entry.hasRemoveDeadline) {
+                            skipListMerger.insert(entry, skipList)
+                          } else if (entry.hasRange) {
                             skipListMerger.insert(entry, skipList)
                             hasRange = true
-                          } else
+                          } else {
                             entry applyTo skipList
+                          }
                           size + entry.entries.size
                       }
                     logger.info(s"{}: Recovered {} ${if (entriesRecovered > 1) "entries" else "entry"}.", path, entriesRecovered)
@@ -203,10 +211,10 @@ private[map] case class PersistentMap[K, V: ClassTag](path: Path,
                                                       flushOnOverflow: Boolean,
                                                       private var currentFile: DBFile,
                                                       private val hasRangeInitial: Boolean)(val skipList: ConcurrentSkipListMap[K, V])(implicit ordering: Ordering[K],
-                                                                                                                                           reader: MapEntryReader[MapEntry[K, V]],
-                                                                                                                                           writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                                                                                                           skipListMerger: SkipListMerge[K, V],
-                                                                                                                                           ec: ExecutionContext) extends Map[K, V] with LazyLogging {
+                                                                                                                                       reader: MapEntryReader[MapEntry[K, V]],
+                                                                                                                                       writer: MapEntryWriter[MapEntry.Put[K, V]],
+                                                                                                                                       skipListMerger: SkipListMerge[K, V],
+                                                                                                                                       ec: ExecutionContext) extends Map[K, V] with LazyLogging {
 
   // actualSize of the file can be different to fileSize when the entry's size is > fileSize.
   // In this case a file is created just to fit those bytes (for that one entry).
@@ -229,12 +237,24 @@ private[map] case class PersistentMap[K, V: ClassTag](path: Path,
       persist(mapEntry)
     }
 
+  /**
+    * Before writing the Entry, check to ensure if the current [[MapEntry]] requires a merge write or direct write.
+    *
+    * Merge write should be used when
+    * - The entry contains a [[Memory.Range]] key-value.
+    * - The entry contains a [[Memory.Update]] Update key-value.
+    * - The entry contains a [[Memory.Remove]] with deadline key-value. Removes without deadlines do not require merging.
+    *
+    * Note: These check are not required for Appendix writes because Appendix entries current do not use
+    * Range, Update or key-values with deadline.
+    */
   @tailrec
   private def persist(entry: MapEntry[K, V]): Try[Boolean] =
     if ((bytesWritten + entry.totalByteSize) <= actualFileSize)
       currentFile.append(MapCodec.write(entry)) map {
         _ =>
-          if (_hasRange) {
+          //if this main contains range then use skipListMerge.
+          if (entry.hasUpdate || entry.hasRemoveDeadline || _hasRange) {
             skipListMerger.insert(entry, skipList)
           } else if (entry.hasRange) {
             skipListMerger.insert(entry, skipList)

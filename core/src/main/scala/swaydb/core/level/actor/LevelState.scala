@@ -19,6 +19,8 @@
 
 package swaydb.core.level.actor
 
+import java.util.TimerTask
+
 import swaydb.core.actor.ActorRef
 import swaydb.core.level.actor.LevelCommand.Pull
 import swaydb.core.segment.Segment
@@ -26,6 +28,8 @@ import swaydb.core.segment.Segment
 private[core] sealed trait LevelState {
 
   val hasSmallSegments: Boolean
+
+  val task: Option[TimerTask]
 
   def busySegments: List[Segment]
 
@@ -38,11 +42,17 @@ private[core] sealed trait LevelState {
   val waitingPull: Option[ActorRef[Pull]]
 
   def copyWithHasSmallSegments(hasSmallSegments: Boolean): LevelState
+
+  def setTask(task: TimerTask): LevelState
+
+  def clearTask(): LevelState
+
 }
 
 private[core] object LevelState {
   case class Pushing(busySegments: List[Segment],
                      hasSmallSegments: Boolean,
+                     task: Option[TimerTask],
                      waitingPull: Option[ActorRef[Pull]]) extends LevelState {
     override def isSleeping: Boolean = false
 
@@ -52,9 +62,16 @@ private[core] object LevelState {
 
     override def copyWithHasSmallSegments(hasSmallSegments: Boolean): LevelState =
       copy(hasSmallSegments = hasSmallSegments)
+
+    override def setTask(task: TimerTask): LevelState =
+      copy(task = Some(task))
+
+    override def clearTask(): LevelState =
+      copy(task = None)
   }
 
-  case class PushScheduled(hasSmallSegments: Boolean) extends LevelState {
+  case class PushScheduled(hasSmallSegments: Boolean,
+                           task: Option[TimerTask]) extends LevelState {
     override def isSleeping: Boolean = false
 
     override def isPushing: Boolean = false
@@ -67,9 +84,16 @@ private[core] object LevelState {
 
     override def copyWithHasSmallSegments(hasSmallSegments: Boolean): LevelState =
       copy(hasSmallSegments = hasSmallSegments)
+
+    override def setTask(expireKeyValueScheduled: TimerTask): LevelState =
+      copy(task = Some(expireKeyValueScheduled))
+
+    override def clearTask(): LevelState =
+      copy(task = None)
   }
 
-  case class Sleeping(hasSmallSegments: Boolean) extends LevelState {
+  case class Sleeping(hasSmallSegments: Boolean,
+                      task: Option[TimerTask]) extends LevelState {
 
     override def isSleeping: Boolean = true
 
@@ -83,9 +107,16 @@ private[core] object LevelState {
 
     override def copyWithHasSmallSegments(hasSmallSegments: Boolean): LevelState =
       copy(hasSmallSegments = hasSmallSegments)
+
+    override def setTask(expireKeyValueScheduled: TimerTask): LevelState =
+      copy(task = Some(expireKeyValueScheduled))
+
+    override def clearTask(): LevelState =
+      copy(task = None)
   }
 
-  case class WaitingPull(hasSmallSegments: Boolean) extends LevelState {
+  case class WaitingPull(hasSmallSegments: Boolean,
+                         task: Option[TimerTask]) extends LevelState {
 
     override def isSleeping: Boolean = true
 
@@ -99,5 +130,11 @@ private[core] object LevelState {
 
     override def copyWithHasSmallSegments(hasSmallSegments: Boolean): LevelState =
       copy(hasSmallSegments = hasSmallSegments)
+
+    override def setTask(expireKeyValueScheduled: TimerTask): LevelState =
+      copy(task = Some(expireKeyValueScheduled))
+
+    override def clearTask(): LevelState =
+      copy(task = None)
   }
 }

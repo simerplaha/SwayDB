@@ -47,7 +47,7 @@ class Level0MapEntrySpec extends TestBase {
       addEntry writeTo slice
       slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
-      import LevelZeroMapEntryReader.Level0AddReader
+      import LevelZeroMapEntryReader.Level0PutReader
       MapEntryReader.read[MapEntry.Put[Slice[Byte], Memory.Put]](Reader(slice.drop(ByteSizeOf.int))).assertGet shouldBe addEntry
 
       import LevelZeroMapEntryReader.Level0Reader
@@ -89,8 +89,33 @@ class Level0MapEntrySpec extends TestBase {
       headValue shouldBe Memory.Remove(1)
     }
 
+    "write Update key value" in {
+      import LevelZeroMapEntryWriter.Level0UpdateWriter
+      val addEntry = MapEntry.Put[Slice[Byte], Memory.Update](1, Memory.Update(1, 1))
+
+      val slice = Slice.create[Byte](addEntry.entryBytesSize)
+      addEntry writeTo slice
+      slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
+
+      import LevelZeroMapEntryReader.Level0UpdateReader
+      MapEntryReader.read[MapEntry.Put[Slice[Byte], Memory.Update]](Reader(slice.drop(ByteSizeOf.int))).assertGet shouldBe addEntry
+
+      import LevelZeroMapEntryReader.Level0Reader
+      val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Memory]](Reader(slice)).assertGet
+      readEntry shouldBe addEntry
+
+      val skipList = new ConcurrentSkipListMap[Slice[Byte], Memory](ordering)
+      readEntry applyTo skipList
+      val scalaSkipList = skipList.asScala
+
+      scalaSkipList should have size 1
+      val (headKey, headValue) = scalaSkipList.head
+      headKey shouldBe (1: Slice[Byte])
+      headValue shouldBe Memory.Update(1, 1)
+    }
+
     "write range key-value" in {
-      import LevelZeroMapEntryWriter.Level0PutRangeWriter
+      import LevelZeroMapEntryWriter.Level0RangeWriter
 
       def writeRange(inputRange: Memory.Range) = {
         val entry = MapEntry.Put[Slice[Byte], Memory.Range](0, inputRange)
@@ -115,21 +140,18 @@ class Level0MapEntrySpec extends TestBase {
         headKey shouldBe (0: Slice[Byte])
         headValue shouldBe inputRange
       }
-      //put range
-      writeRange(Memory.Range(0, 1, Some(Value.Put("one from value")), Value.Put("one range value")))
-      writeRange(Memory.Range(0, 1, None, Value.Put("one range value")))
-      writeRange(Memory.Range(0, 1, Some(Value.Remove), Value.Put("one range value")))
 
-      //remove range
-      writeRange(Memory.Range(0, 1, Some(Value.Put("put")), Value.Remove))
-      writeRange(Memory.Range(0, 1, None, Value.Remove))
-      writeRange(Memory.Range(0, 1, Some(Value.Remove), Value.Remove))
+      (1 to 100) foreach {
+        _ =>
+          writeRange(randomRangeKeyValue(0, 1))
+      }
     }
 
-    "write and remove key-value" in {
+    "write, remove & update key-value" in {
       import LevelZeroMapEntryWriter.Level0PutWriter
+      import LevelZeroMapEntryWriter.Level0UpdateWriter
       import LevelZeroMapEntryWriter.Level0RemoveWriter
-      import LevelZeroMapEntryWriter.Level0PutRangeWriter
+      import LevelZeroMapEntryWriter.Level0RangeWriter
 
       val entry: MapEntry[Slice[Byte], Memory] =
         (MapEntry.Put[Slice[Byte], Memory.Put](1, Memory.Put(1, 1)): MapEntry[Slice[Byte], Memory]) ++
@@ -139,12 +161,13 @@ class Level0MapEntrySpec extends TestBase {
           MapEntry.Put[Slice[Byte], Memory.Remove](2, Memory.Remove(2)) ++
           MapEntry.Put[Slice[Byte], Memory.Put](4, Memory.Put(4, 4)) ++
           MapEntry.Put[Slice[Byte], Memory.Put](5, Memory.Put(5, 5)) ++
-          MapEntry.Put[Slice[Byte], Memory.Range](6, Memory.Range(6, 7, None, Value.Put(6))) ++
-          MapEntry.Put[Slice[Byte], Memory.Range](7, Memory.Range(7,8, Some(Value.Put("7")), Value.Put(7))) ++
-          MapEntry.Put[Slice[Byte], Memory.Range](8, Memory.Range(8, 9, Some(Value.Remove), Value.Put(8))) ++
-          MapEntry.Put[Slice[Byte], Memory.Range](9, Memory.Range(9, 10, None, Value.Remove)) ++
-          MapEntry.Put[Slice[Byte], Memory.Range](10, Memory.Range(10, 11, Some(Value.Put("10")), Value.Remove)) ++
-          MapEntry.Put[Slice[Byte], Memory.Range](11, Memory.Range(11, 12, Some(Value.Remove), Value.Remove))
+          MapEntry.Put[Slice[Byte], Memory.Update](3, Memory.Update(3, "three")) ++
+          MapEntry.Put[Slice[Byte], Memory.Range](6, Memory.Range(6, 7, None, Value.Update(6))) ++
+          MapEntry.Put[Slice[Byte], Memory.Range](7, Memory.Range(7, 8, Some(Value.Put("7")), Value.Update(7))) ++
+          MapEntry.Put[Slice[Byte], Memory.Range](8, Memory.Range(8, 9, Some(Value.Remove(None)), Value.Update(8))) ++
+          MapEntry.Put[Slice[Byte], Memory.Range](9, Memory.Range(9, 10, None, Value.Remove(None))) ++
+          MapEntry.Put[Slice[Byte], Memory.Range](10, Memory.Range(10, 11, Some(Value.Put("10")), Value.Remove(None))) ++
+          MapEntry.Put[Slice[Byte], Memory.Range](11, Memory.Range(11, 12, Some(Value.Remove(None)), Value.Remove(None)))
 
       val slice = Slice.create[Byte](entry.entryBytesSize)
       entry writeTo slice
@@ -163,15 +186,15 @@ class Level0MapEntrySpec extends TestBase {
         scalaSkipList should have size 11
         scalaSkipList.get(1).assertGet shouldBe Memory.Remove(1)
         scalaSkipList.get(2).assertGet shouldBe Memory.Remove(2)
-        scalaSkipList.get(3).assertGet shouldBe Memory.Put(3, 3)
+        scalaSkipList.get(3).assertGet shouldBe Memory.Update(3, "three")
         scalaSkipList.get(4).assertGet shouldBe Memory.Put(4, 4)
         scalaSkipList.get(5).assertGet shouldBe Memory.Put(5, 5)
-        scalaSkipList.get(6).assertGet shouldBe Memory.Range(6, 7, None, Value.Put(6))
-        scalaSkipList.get(7).assertGet shouldBe Memory.Range(7, 8, Some(Value.Put("7")), Value.Put(7))
-        scalaSkipList.get(8).assertGet shouldBe Memory.Range(8, 9, Some(Value.Remove), Value.Put(8))
-        scalaSkipList.get(9).assertGet shouldBe Memory.Range(9, 10, None, Value.Remove)
-        scalaSkipList.get(10).assertGet shouldBe Memory.Range(10, 11, Some(Value.Put("10")), Value.Remove)
-        scalaSkipList.get(11).assertGet shouldBe Memory.Range(11, 12, Some(Value.Remove), Value.Remove)
+        scalaSkipList.get(6).assertGet shouldBe Memory.Range(6, 7, None, Value.Update(6))
+        scalaSkipList.get(7).assertGet shouldBe Memory.Range(7, 8, Some(Value.Put("7")), Value.Update(7))
+        scalaSkipList.get(8).assertGet shouldBe Memory.Range(8, 9, Some(Value.Remove(None)), Value.Update(8))
+        scalaSkipList.get(9).assertGet shouldBe Memory.Range(9, 10, None, Value.Remove(None))
+        scalaSkipList.get(10).assertGet shouldBe Memory.Range(10, 11, Some(Value.Put("10")), Value.Remove(None))
+        scalaSkipList.get(11).assertGet shouldBe Memory.Range(11, 12, Some(Value.Remove(None)), Value.Remove(None))
       }
       //write skip list to bytes should result in the same skip list as before
       import LevelZeroMapEntryWriter.Level0PutValueWriter

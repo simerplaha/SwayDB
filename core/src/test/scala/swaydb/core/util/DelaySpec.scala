@@ -19,34 +19,58 @@
 
 package swaydb.core.util
 
+import org.scalatest.concurrent.Eventually
 import org.scalatest.{Matchers, WordSpec}
 
-import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
 
-class DelaySpec extends WordSpec with Matchers {
+class DelaySpec extends WordSpec with Matchers with Eventually {
 
-  "Delay.cancelTimer" should {
-    "cancel all existing scheduled tasks" in {
+//  "Delay.cancelTimer" should {
+//    "cancel all existing scheduled tasks" in {
+//      @volatile var tasksExecuted = 0
+//
+//      //create 5 tasks
+//      Delay.future(1.second)(tasksExecuted += 1)
+//      Delay.future(1.second)(tasksExecuted += 1)
+//      Delay.future(1.second)(tasksExecuted += 1)
+//      Delay.future(2.second)(tasksExecuted += 1)
+//      Delay.future(2.second)(tasksExecuted += 1)
+//
+//      //after 1.5 seconds cancel timer
+//      Thread.sleep(1.5.seconds.toMillis)
+////      Delay.cancelTimer()
+//
+//      //the remaining two tasks did not get executed.
+//      tasksExecuted shouldBe 3
+//
+//      //after 2.seconds the remaining two tasks are still not executed.
+//      Thread.sleep(2.seconds.toMillis)
+//      tasksExecuted shouldBe 3
+//    }
+//  }
+
+  "Delay.task" should {
+    "run tasks and cancel tasks" in {
       @volatile var tasksExecuted = 0
 
-      //create 5 tasks
-      Delay.future(1.second)(tasksExecuted += 1)
-      Delay.future(1.second)(tasksExecuted += 1)
-      Delay.future(1.second)(tasksExecuted += 1)
-      Delay.future(2.second)(tasksExecuted += 1)
-      Delay.future(2.second)(tasksExecuted += 1)
+      Delay.task(1.seconds)(tasksExecuted += 1)
+      Delay.task(2.seconds)(tasksExecuted += 1)
+      Delay.task(3.seconds)(tasksExecuted += 1)
+      Delay.task(4.seconds)(tasksExecuted += 1)
+      Delay.task(5.seconds)(tasksExecuted += 1)
 
-      //after 1.5 seconds cancel timer
-      Thread.sleep(1.5.seconds.toMillis)
-      Delay.cancelTimer()
+      eventually(timeout(8.seconds)) {
+        tasksExecuted shouldBe 5
+      }
 
-      //the remaining two tasks did not get executed.
-      tasksExecuted shouldBe 3
+      Delay.task(1.seconds)(tasksExecuted += 1).cancel()
+      Delay.task(1.seconds)(tasksExecuted += 1)
 
-      //after 2.seconds the remaining two tasks are still not executed.
-      Thread.sleep(2.seconds.toMillis)
-      tasksExecuted shouldBe 3
+      Thread.sleep(5.seconds.toMillis)
+
+      tasksExecuted shouldBe 6
     }
   }
 }

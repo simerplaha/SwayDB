@@ -19,14 +19,14 @@
 
 package swaydb.core.map.serializer
 
-import swaydb.core.data.Value
-import swaydb.core.data.Value.{Put, Remove}
+import swaydb.core.data.Value.{Put, Remove, Update}
+import swaydb.core.data.{DataId, Value}
 import swaydb.core.io.reader.Reader
-import swaydb.core.map.serializer.RangeValueSerializers.{PutPutSerializer, PutRemoveSerializer, RemovePutSerializer, UnitPutSerializer}
+import swaydb.core.map.serializer.RangeValueSerializers.{PutRemoveSerializer, PutUpdateSerializer, RemoveRemoveSerializer, RemoveUpdateSerializer, UnitRemoveSerializer, UnitUpdateSerializer, UpdateRemoveSerializer, UpdateUpdateSerializer}
 import swaydb.data.slice.{Reader, Slice}
 
 import scala.annotation.implicitNotFound
-import scala.util.{Failure, Success, Try}
+import scala.util.Try
 
 @implicitNotFound("Type class implementation not found for RangeValueSerializer of type [${F}, ${R}]")
 sealed trait RangeValueSerializer[F, R] {
@@ -38,158 +38,230 @@ sealed trait RangeValueSerializer[F, R] {
 
 object RangeValueSerializers {
 
-  implicit val putSerializer = ValueSerializers.PutSerializerWithUnsignedSize
+  import ValueSerializers.Levels._
 
-  //ids 1 and 0 are reserved for Put and Remove respectively.
-  val removeRangeId = 2
+  implicit object UnitRemoveSerializer extends RangeValueSerializer[Unit, Value.Remove] {
 
-  val removeRemoveRangeId = 3
+    val id = DataId.RemoveRange.id
 
-  implicit object RemovePutSerializer extends RangeValueSerializer[Value.Remove, Value.Put] {
-    val rangeId = 4
+    override def write(fromValue: Unit, rangeValue: Value.Remove, bytes: Slice[Byte]): Unit =
+      ValueSerializer.write[Value.Remove](rangeValue)(bytes)
 
-    override def write(fromValue: Value.Remove, rangeValue: Value.Put, bytes: Slice[Byte]): Unit =
-      ValueSerializer.write(rangeValue)(bytes)
+    override def bytesRequiredAndRangeId(fromValue: Unit, rangeValue: Value.Remove): (Int, Int) =
+      (ValueSerializer.bytesRequired(rangeValue), id)
 
-    override def bytesRequiredAndRangeId(fromValue: Value.Remove, rangeValue: Value.Put): (Int, Int) =
-      (ValueSerializer.bytesRequired(rangeValue), rangeId)
-
-    def read(reader: Reader): Try[(Remove, Put)] =
-      ValueSerializer.read[Value.Put](reader) map {
-        rangeValue =>
-          (Value.Remove, rangeValue)
-      }
+    def read(reader: Reader): Try[(Unit, Remove)] =
+      ValueSerializer.read[Value.Remove](reader).map(put => ((), put))
   }
 
-  implicit object PutRemoveSerializer extends RangeValueSerializer[Value.Put, Value.Remove] {
-    val rangeId = 5
+  implicit object UnitUpdateSerializer extends RangeValueSerializer[Unit, Value.Update] {
 
-    override def write(fromValue: Value.Put, rangeValue: Value.Remove, bytes: Slice[Byte]): Unit =
-      ValueSerializer.write(fromValue)(bytes)
+    val id = DataId.UpdateRange.id
 
-    override def bytesRequiredAndRangeId(fromValue: Value.Put, rangeValue: Value.Remove): (Int, Int) =
-      (ValueSerializer.bytesRequired(fromValue), rangeId)
+    override def write(fromValue: Unit, rangeValue: Value.Update, bytes: Slice[Byte]): Unit =
+      ValueSerializer.write[Value.Update](rangeValue)(bytes)
 
-    def read(reader: Reader): Try[(Put, Remove)] =
-      ValueSerializer.read[Value.Put](reader) map {
-        fromPut =>
-          (fromPut, Value.Remove)
-      }
+    override def bytesRequiredAndRangeId(fromValue: Unit, rangeValue: Value.Update): (Int, Int) =
+      (ValueSerializer.bytesRequired(rangeValue), id)
+
+    def read(reader: Reader): Try[(Unit, Value.Update)] =
+      ValueSerializer.read[Value.Update](reader).map(put => ((), put))
   }
 
-  implicit object PutPutSerializer extends RangeValueSerializer[Value.Put, Value.Put] {
-    val rangeId = 6
+  implicit object RemoveRemoveSerializer extends RangeValueSerializer[Value.Remove, Value.Remove] {
 
-    override def write(fromValue: Value.Put, rangeValue: Value.Put, bytes: Slice[Byte]): Unit = {
+    val id = DataId.RemoveRemoveRange.id
+
+    override def write(fromValue: Value.Remove, rangeValue: Value.Remove, bytes: Slice[Byte]): Unit = {
       ValueSerializer.write(fromValue)(bytes)
       ValueSerializer.write(rangeValue)(bytes)
     }
 
-    override def bytesRequiredAndRangeId(fromValue: Value.Put, rangeValue: Value.Put): (Int, Int) =
+    override def bytesRequiredAndRangeId(fromValue: Value.Remove, rangeValue: Value.Remove): (Int, Int) =
       (
         ValueSerializer.bytesRequired(fromValue) + ValueSerializer.bytesRequired(rangeValue),
-        rangeId
+        id
       )
 
-    def read(reader: Reader): Try[(Put, Put)] =
-      ValueSerializer.read[Value.Put](reader) flatMap {
+    def read(reader: Reader): Try[(Value.Remove, Value.Remove)] =
+      ValueSerializer.read[Value.Remove](reader) flatMap {
         fromKeyValue =>
-          ValueSerializer.read[Value.Put](reader) map {
+          ValueSerializer.read[Value.Remove](reader) map {
             rangeValue =>
               (fromKeyValue, rangeValue)
           }
       }
   }
 
-  implicit object UnitPutSerializer extends RangeValueSerializer[Unit, Value.Put] {
-    val rangeId = 7
+  implicit object RemoveUpdateSerializer extends RangeValueSerializer[Value.Remove, Value.Update] {
 
-    override def write(fromValue: Unit, rangeValue: Value.Put, bytes: Slice[Byte]): Unit =
-      ValueSerializer.write[Value.Put](rangeValue)(bytes)
+    val id = DataId.RemoveUpdateRange.id
 
-    override def bytesRequiredAndRangeId(fromValue: Unit, rangeValue: Value.Put): (Int, Int) =
-      (ValueSerializer.bytesRequired(rangeValue), rangeId)
+    override def write(fromValue: Value.Remove, rangeValue: Value.Update, bytes: Slice[Byte]): Unit = {
+      ValueSerializer.write(fromValue)(bytes)
+      ValueSerializer.write(rangeValue)(bytes)
+    }
 
-    def read(reader: Reader): Try[(Unit, Put)] =
-      ValueSerializer.read[Value.Put](reader).map(put => ((), put))
+    override def bytesRequiredAndRangeId(fromValue: Value.Remove, rangeValue: Value.Update): (Int, Int) =
+      (
+        ValueSerializer.bytesRequired(fromValue) + ValueSerializer.bytesRequired(rangeValue),
+        id
+      )
+
+    def read(reader: Reader): Try[(Value.Remove, Value.Update)] =
+      ValueSerializer.read[Value.Remove](reader) flatMap {
+        fromKeyValue =>
+          ValueSerializer.read[Value.Update](reader) map {
+            rangeValue =>
+              (fromKeyValue, rangeValue)
+          }
+      }
   }
 
-  implicit object OptionRangeValueSerializer extends RangeValueSerializer[Option[Value], Value] {
+  implicit object PutRemoveSerializer extends RangeValueSerializer[Value.Put, Value.Remove] {
 
-    override def write(fromValue: Option[Value], rangeValue: Value, bytes: Slice[Byte]): Unit =
+    val id = DataId.PutRemoveRange.id
+
+    override def write(fromValue: Value.Put, rangeValue: Value.Remove, bytes: Slice[Byte]): Unit = {
+      ValueSerializer.write(fromValue)(bytes)
+      ValueSerializer.write(rangeValue)(bytes)
+    }
+
+    override def bytesRequiredAndRangeId(fromValue: Value.Put, rangeValue: Value.Remove): (Int, Int) =
+      (ValueSerializer.bytesRequired(fromValue) + ValueSerializer.bytesRequired(rangeValue), id)
+
+    def read(reader: Reader): Try[(Put, Remove)] =
+      ValueSerializer.read[Value.Put](reader) flatMap {
+        fromKeyValue =>
+          ValueSerializer.read[Value.Remove](reader) map {
+            rangeValue =>
+              (fromKeyValue, rangeValue)
+          }
+      }
+  }
+
+  implicit object PutUpdateSerializer extends RangeValueSerializer[Value.Put, Value.Update] {
+
+    val id = DataId.PutUpdateRange.id
+
+    override def write(fromValue: Value.Put, rangeValue: Value.Update, bytes: Slice[Byte]): Unit = {
+      ValueSerializer.write(fromValue)(bytes)
+      ValueSerializer.write(rangeValue)(bytes)
+    }
+
+    override def bytesRequiredAndRangeId(fromValue: Value.Put, rangeValue: Value.Update): (Int, Int) =
+      (
+        ValueSerializer.bytesRequired(fromValue) + ValueSerializer.bytesRequired(rangeValue),
+        id
+      )
+
+    def read(reader: Reader): Try[(Value.Put, Value.Update)] =
+      ValueSerializer.read[Value.Put](reader) flatMap {
+        fromKeyValue =>
+          ValueSerializer.read[Value.Update](reader) map {
+            rangeValue =>
+              (fromKeyValue, rangeValue)
+          }
+      }
+  }
+
+  implicit object UpdateRemoveSerializer extends RangeValueSerializer[Value.Update, Value.Remove] {
+    val id = DataId.UpdateRemoveRange.id
+
+    override def write(fromValue: Value.Update, rangeValue: Value.Remove, bytes: Slice[Byte]): Unit = {
+      ValueSerializer.write(fromValue)(bytes)
+      ValueSerializer.write(rangeValue)(bytes)
+    }
+
+    override def bytesRequiredAndRangeId(fromValue: Value.Update, rangeValue: Value.Remove): (Int, Int) =
+      (ValueSerializer.bytesRequired(fromValue) + ValueSerializer.bytesRequired(rangeValue), id)
+
+    def read(reader: Reader): Try[(Value.Update, Value.Remove)] =
+      ValueSerializer.read[Value.Update](reader) flatMap {
+        fromKeyValue =>
+          ValueSerializer.read[Value.Remove](reader) map {
+            rangeValue =>
+              (fromKeyValue, rangeValue)
+          }
+      }
+  }
+
+  implicit object UpdateUpdateSerializer extends RangeValueSerializer[Value.Update, Value.Update] {
+
+    val id = DataId.UpdateUpdateRange.id
+
+    override def write(fromValue: Value.Update, rangeValue: Value.Update, bytes: Slice[Byte]): Unit = {
+      ValueSerializer.write(fromValue)(bytes)
+      ValueSerializer.write(rangeValue)(bytes)
+    }
+
+    override def bytesRequiredAndRangeId(fromValue: Value.Update, rangeValue: Value.Update): (Int, Int) =
+      (ValueSerializer.bytesRequired(fromValue) + ValueSerializer.bytesRequired(rangeValue), id)
+
+    def read(reader: Reader): Try[(Value.Update, Value.Update)] =
+      ValueSerializer.read[Value.Update](reader) flatMap {
+        fromKeyValue =>
+          ValueSerializer.read[Value.Update](reader) map {
+            rangeValue =>
+              (fromKeyValue, rangeValue)
+          }
+      }
+  }
+
+  implicit object OptionRangeValueSerializer extends RangeValueSerializer[Option[Value.FromValue], Value.RangeValue] {
+
+    override def write(fromValue: Option[Value.FromValue], rangeValue: Value.RangeValue, bytes: Slice[Byte]): Unit =
       (fromValue, rangeValue) match {
-        case (None, _: Value.Remove) | (Some(_: Value.Remove), _: Value.Remove) =>
-          ()
+        case (None, rangeValue: Value.Remove) =>
+          RangeValueSerializer.write[Unit, Value.Remove]((), rangeValue)(bytes)
 
-        case (None, rangeValue: Value.Put) =>
-          RangeValueSerializer.write[Unit, Value.Put]((), rangeValue)(bytes)
+        case (None, rangeValue: Value.Update) =>
+          RangeValueSerializer.write[Unit, Value.Update]((), rangeValue)(bytes)
 
-        case (Some(fromValue: Value.Remove), rangeValue: Value.Put) =>
-          RangeValueSerializer.write[Remove, Put](fromValue, rangeValue)(bytes)
+        case (Some(fromValue: Value.Remove), rangeValue: Value.Update) =>
+          RangeValueSerializer.write[Remove, Update](fromValue, rangeValue)(bytes)
+
+        case (Some(fromValue: Value.Remove), rangeValue: Value.Remove) =>
+          RangeValueSerializer.write[Remove, Remove](fromValue, rangeValue)(bytes)
+
+        case (Some(fromValue: Value.Put), rangeValue: Value.Update) =>
+          RangeValueSerializer.write[Put, Update](fromValue, rangeValue)(bytes)
 
         case (Some(fromValue: Value.Put), rangeValue: Value.Remove) =>
           RangeValueSerializer.write[Put, Remove](fromValue, rangeValue)(bytes)
-        case (Some(fromValue: Value.Put), rangeValue: Value.Put) =>
-          RangeValueSerializer.write[Put, Put](fromValue, rangeValue)(bytes)
+
+        case (Some(fromValue: Value.Update), rangeValue: Value.Update) =>
+          RangeValueSerializer.write[Update, Update](fromValue, rangeValue)(bytes)
+
+        case (Some(fromValue: Value.Update), rangeValue: Value.Remove) =>
+          RangeValueSerializer.write[Update, Remove](fromValue, rangeValue)(bytes)
       }
 
-    override def bytesRequiredAndRangeId(fromValue: Option[Value], rangeValue: Value): (Int, Int) =
+    override def bytesRequiredAndRangeId(fromValue: Option[Value.FromValue], rangeValue: Value.RangeValue): (Int, Int) =
       (fromValue, rangeValue) match {
-        case (None, _: Value.Remove) =>
-          (0, removeRangeId)
+        case (None, rangeValue: Value.Remove) =>
+          RangeValueSerializer.bytesRequiredAndRangeId[Unit, Value.Remove]((), rangeValue)
 
-        case (Some(_: Value.Remove), _: Value.Remove) =>
-          (0, removeRemoveRangeId)
+        case (None, rangeValue: Value.Update) =>
+          RangeValueSerializer.bytesRequiredAndRangeId[Unit, Value.Update]((), rangeValue)
 
-        case (None, rangeValue: Value.Put) =>
-          RangeValueSerializer.bytesRequiredAndRangeId[Unit, Value.Put]((), rangeValue)
+        case (Some(fromValue: Value.Remove), rangeValue: Value.Update) =>
+          RangeValueSerializer.bytesRequiredAndRangeId[Remove, Update](fromValue, rangeValue)
 
-        case (Some(fromValue: Value.Remove), rangeValue: Value.Put) =>
-          RangeValueSerializer.bytesRequiredAndRangeId(fromValue, rangeValue)
+        case (Some(fromValue: Value.Remove), rangeValue: Value.Remove) =>
+          RangeValueSerializer.bytesRequiredAndRangeId[Remove, Remove](fromValue, rangeValue)
+
+        case (Some(fromValue: Value.Put), rangeValue: Value.Update) =>
+          RangeValueSerializer.bytesRequiredAndRangeId[Put, Update](fromValue, rangeValue)
 
         case (Some(fromValue: Value.Put), rangeValue: Value.Remove) =>
-          RangeValueSerializer.bytesRequiredAndRangeId(fromValue, rangeValue)
-        case (Some(fromValue: Value.Put), rangeValue: Value.Put) =>
-          RangeValueSerializer.bytesRequiredAndRangeId(fromValue, rangeValue)
-      }
+          RangeValueSerializer.bytesRequiredAndRangeId[Put, Remove](fromValue, rangeValue)
 
-  }
+        case (Some(fromValue: Value.Update), rangeValue: Value.Update) =>
+          RangeValueSerializer.bytesRequiredAndRangeId[Update, Update](fromValue, rangeValue)
 
-  implicit object OptionRemovePutSerializer extends RangeValueSerializer[Option[Value.Remove], Value.Put] {
-    override def write(fromValue: Option[Value.Remove], rangeValue: Value.Put, bytes: Slice[Byte]): Unit =
-      fromValue match {
-        case Some(fromValue) =>
-          RangeValueSerializer.write[Value.Remove, Value.Put](fromValue, rangeValue)(bytes)
-        case None =>
-          RangeValueSerializer.write[Unit, Value.Put]((), rangeValue)(bytes)
-      }
-
-    override def bytesRequiredAndRangeId(fromValue: Option[Value.Remove], rangeValue: Value.Put): (Int, Int) =
-      fromValue match {
-        case Some(fromValue) =>
-          RangeValueSerializer.bytesRequiredAndRangeId[Value.Remove, Value.Put](fromValue, rangeValue)
-        case None =>
-          RangeValueSerializer.bytesRequiredAndRangeId[Unit, Value.Put]((), rangeValue)
-      }
-
-  }
-
-  implicit object OptionPutPutSerializer extends RangeValueSerializer[Option[Value.Put], Value.Put] {
-
-    override def write(fromValue: Option[Value.Put], rangeValue: Value.Put, bytes: Slice[Byte]): Unit =
-      fromValue match {
-        case Some(fromValue) =>
-          RangeValueSerializer.write(fromValue, rangeValue)(bytes)
-        case None =>
-          RangeValueSerializer.write((), rangeValue)(bytes)
-      }
-
-    override def bytesRequiredAndRangeId(fromValue: Option[Value.Put], rangeValue: Value.Put): (Int, Int) =
-      fromValue match {
-        case Some(fromValue) =>
-          RangeValueSerializer.bytesRequiredAndRangeId[Value.Put, Value.Put](fromValue, rangeValue)
-        case None =>
-          RangeValueSerializer.bytesRequiredAndRangeId((), rangeValue)
+        case (Some(fromValue: Value.Update), rangeValue: Value.Remove) =>
+          RangeValueSerializer.bytesRequiredAndRangeId[Update, Remove](fromValue, rangeValue)
       }
   }
 }
@@ -197,12 +269,10 @@ object RangeValueSerializers {
 object RangeValueSerializer {
 
   def isRangeValue(id: Int): Boolean =
-    id >= RangeValueSerializers.removeRangeId && id <= UnitPutSerializer.rangeId
+    id >= DataId.rangeIdMin.id && id <= DataId.rangeIdMax.id
 
   def isRemoveRange(id: Int): Boolean =
-    id == RangeValueSerializers.removeRangeId ||
-      id == RangeValueSerializers.removeRemoveRangeId ||
-      id == PutRemoveSerializer.rangeId
+    DataId.removeRangeIds.exists(_.id == id)
 
   def write[F, R](fromValue: F, rangeValue: R)(bytes: Slice[Byte])(implicit serializer: RangeValueSerializer[F, R]): Unit =
     serializer.write(fromValue, rangeValue, bytes)
@@ -210,45 +280,23 @@ object RangeValueSerializer {
   def bytesRequiredAndRangeId[F, R](fromValue: F, rangeValue: R)(implicit serializer: RangeValueSerializer[F, R]): (Int, Int) =
     serializer.bytesRequiredAndRangeId(fromValue, rangeValue)
 
-  def readRemoveRangeOnly(id: Int): Try[(Option[Value.Remove], Value.Remove)] =
+  def read(id: Int, bytes: Slice[Byte]): Try[(Option[Value.FromValue], Value.RangeValue)] =
     id match {
-      case RangeValueSerializers.removeRangeId =>
-        Success(None, Value.Remove)
-
-      case RangeValueSerializers.removeRemoveRangeId =>
-        Success(Some(Value.Remove), Value.Remove)
-
-      case _ =>
-        Failure(new IllegalArgumentException(s"Not a remove range only id: $id"))
-    }
-
-  def read(id: Int, bytes: Slice[Byte]): Try[(Option[Value], Value)] =
-    id match {
-      case RangeValueSerializers.removeRangeId =>
-        Success(None, Value.Remove)
-
-      case RangeValueSerializers.removeRemoveRangeId =>
-        Success(Some(Value.Remove), Value.Remove)
-
-      case RemovePutSerializer.rangeId =>
-        RemovePutSerializer.read(Reader(bytes)) map {
-          case (fromValue, rangeValue) =>
-            (Some(fromValue), rangeValue)
-        }
-      case PutRemoveSerializer.rangeId =>
-        PutRemoveSerializer.read(Reader(bytes)) map {
-          case (fromValue, rangeValue) =>
-            (Some(fromValue), rangeValue)
-        }
-      case PutPutSerializer.rangeId =>
-        PutPutSerializer.read(Reader(bytes)) map {
-          case (fromValue, rangeValue) =>
-            (Some(fromValue), rangeValue)
-        }
-      case UnitPutSerializer.rangeId =>
-        UnitPutSerializer.read(Reader(bytes)) map {
-          case (_, rangeValue) =>
-            (None, rangeValue)
-        }
+      case RemoveRemoveSerializer.id =>
+        RemoveRemoveSerializer.read(Reader(bytes)) map { case (fromValue, rangeValue) => (Some(fromValue), rangeValue) }
+      case RemoveUpdateSerializer.id =>
+        RemoveUpdateSerializer.read(Reader(bytes)) map { case (fromValue, rangeValue) => (Some(fromValue), rangeValue) }
+      case PutRemoveSerializer.id =>
+        PutRemoveSerializer.read(Reader(bytes)) map { case (fromValue, rangeValue) => (Some(fromValue), rangeValue) }
+      case PutUpdateSerializer.id =>
+        PutUpdateSerializer.read(Reader(bytes)) map { case (fromValue, rangeValue) => (Some(fromValue), rangeValue) }
+      case UpdateRemoveSerializer.id =>
+        UpdateRemoveSerializer.read(Reader(bytes)) map { case (fromValue, rangeValue) => (Some(fromValue), rangeValue) }
+      case UpdateUpdateSerializer.id =>
+        UpdateUpdateSerializer.read(Reader(bytes)) map { case (fromValue, rangeValue) => (Some(fromValue), rangeValue) }
+      case UnitRemoveSerializer.id =>
+        UnitRemoveSerializer.read(Reader(bytes)) map { case (_, rangeValue) => (None, rangeValue) }
+      case UnitUpdateSerializer.id =>
+        UnitUpdateSerializer.read(Reader(bytes)) map { case (_, rangeValue) => (None, rangeValue) }
     }
 }

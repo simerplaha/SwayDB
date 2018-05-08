@@ -46,6 +46,17 @@ private[core] object ByteUtilCore {
     size
   }
 
+  def sizeUnsignedLong(long: Long): Int = {
+    var size = 0
+    var x = long
+    while ((x & 0xFFFFFFFFFFFFFF80L) != 0L) {
+      size += 1
+      x >>>= 7
+    }
+    size += 1
+    size
+  }
+
   /**
     * Merges the input bytes into a single byte array extracting common bytes.
     */

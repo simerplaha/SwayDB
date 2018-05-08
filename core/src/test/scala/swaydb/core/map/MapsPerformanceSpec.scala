@@ -29,6 +29,7 @@ import swaydb.data.config.RecoveryMode
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.order.KeyOrder
+import scala.concurrent.duration._
 
 class MapsPerformanceSpec extends TestBase with Benchmark {
 
@@ -36,7 +37,7 @@ class MapsPerformanceSpec extends TestBase with Benchmark {
 
   import swaydb.core.map.serializer.LevelZeroMapEntryReader._
   import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
-  implicit val skipListMerger = LevelZeroSkipListMerge
+  implicit val skipListMerger = LevelZeroSkipListMerge(10.seconds)
 
   "Maps" should {
     "write key values" in {

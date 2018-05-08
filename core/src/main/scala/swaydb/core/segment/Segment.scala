@@ -31,99 +31,192 @@ import swaydb.core.level.PathsDistributor
 import swaydb.core.map.Map
 import swaydb.core.segment.format.one.{SegmentReader, SegmentWriter}
 import swaydb.core.util.BloomFilterUtil._
+import swaydb.core.util.IDGenerator
 import swaydb.core.util.TryUtil._
-import swaydb.core.util.{IDGenerator, TryUtil}
 import swaydb.data.config.Dir
 import swaydb.data.segment.MaxKey
 import swaydb.data.segment.MaxKey.Fixed
 import swaydb.data.slice.Slice
 
+import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.{Deadline, FiniteDuration}
 import scala.util.{Failure, Success, Try}
-import scala.collection.JavaConverters._
+import swaydb.core.util.PipeOps._
 
 private[core] object Segment extends LazyLogging {
+
+  def getNearestDeadline(previous: Option[Deadline],
+                         next: Option[Deadline]): Option[Deadline] =
+
+    (previous, next) match {
+      case (None, None) => None
+      case (previous @ Some(_), None) => previous
+      case (None, next @ Some(_)) => next
+      case (Some(previous), Some(next)) =>
+        if (previous < next)
+          Some(previous)
+        else
+          Some(next)
+    }
+
+  def getNearestDeadline(previous: Option[Deadline],
+                         keyValue: KeyValue): Try[Option[Deadline]] =
+    keyValue match {
+      case readOnly: KeyValue.ReadOnly.Fixed =>
+        Try(getNearestDeadline(previous, readOnly.deadline))
+
+      case writeOnly: KeyValue.WriteOnly.Fixed =>
+        Try(getNearestDeadline(previous, writeOnly.deadline))
+
+      case range: KeyValue.ReadOnly.Range =>
+        range.fetchFromAndRangeValue map {
+          case (Some(fromValue), rangeValue) =>
+            getNearestDeadline(previous, fromValue.deadline) ==> {
+              getNearestDeadline(_, rangeValue.deadline)
+            }
+          case (None, rangeValue) =>
+            getNearestDeadline(previous, rangeValue.deadline)
+        }
+
+      case range: KeyValue.WriteOnly.Range =>
+        range.fetchFromAndRangeValue map {
+          case (Some(fromValue), rangeValue) =>
+            getNearestDeadline(previous, fromValue.deadline) ==> {
+              getNearestDeadline(_, rangeValue.deadline)
+            }
+          case (None, rangeValue) =>
+            getNearestDeadline(previous, rangeValue.deadline)
+        }
+    }
+
+  def getNearestDeadline(keyValues: Iterable[KeyValue]): Try[Option[Deadline]] =
+    keyValues.tryFoldLeft(Option.empty[Deadline])(getNearestDeadline)
+
+  def getNearestDeadlineSegment(previous: Segment,
+                                next: Segment): Option[Segment] =
+    (previous.nearestExpiryDeadline, next.nearestExpiryDeadline) match {
+      case (None, None) => None
+      case (Some(_), None) => Some(previous)
+      case (None, Some(_)) => Some(next)
+      case (Some(previousDeadline), Some(nextDeadline)) =>
+        if (previousDeadline < nextDeadline)
+          Some(previous)
+        else
+          Some(next)
+    }
+
+  def getNearestDeadlineSegment(segments: Iterable[Segment]): Option[Segment] =
+    segments.foldLeft(Option.empty[Segment]) {
+      case (previous, next) =>
+        previous map {
+          previous =>
+            getNearestDeadlineSegment(previous, next)
+        } getOrElse Some(next)
+    }
 
   def memory(path: Path,
              keyValues: Iterable[KeyValue.WriteOnly],
              bloomFilterFalsePositiveRate: Double,
              removeDeletes: Boolean)(implicit ordering: Ordering[Slice[Byte]]): Try[Segment] = {
-    val skipList = new ConcurrentSkipListMap[Slice[Byte], Memory](ordering)
-    val bloomFilter =
-      if (keyValues.last.stats.hasRemoveRange)
-        None
-      else
-        Some(BloomFilter[Slice[Byte]](keyValues.size, bloomFilterFalsePositiveRate))
+    if (keyValues.isEmpty) {
+      Failure(new Exception("Empty key-values submitted to memory Segment."))
+    } else {
+      val skipList = new ConcurrentSkipListMap[Slice[Byte], Memory](ordering)
+      val bloomFilter =
+        if (keyValues.last.stats.hasRemoveRange)
+          None
+        else
+          Some(BloomFilter[Slice[Byte]](keyValues.size, bloomFilterFalsePositiveRate))
 
-    //Note: WriteOnly key-values can be received from Persistent Segments in which case it's important that
-    //all byte arrays are unsliced before writing them to Memory Segment.
-    keyValues tryForeach {
-      keyValue =>
-        val keyUnsliced = keyValue.key.unslice()
+      //Note: WriteOnly key-values can be received from Persistent Segments in which case it's important that
+      //all byte arrays are unsliced before writing them to Memory Segment.
+      keyValues.tryFoldLeft(Option.empty[Deadline]) {
+        case (deadline, keyValue) =>
+          val keyUnsliced = keyValue.key.unslice()
 
-        keyValue match {
-          case _: Transient.Remove =>
-            skipList.put(
-              keyUnsliced,
-              Memory.Remove(keyUnsliced)
-            )
-            bloomFilter.foreach(_ add keyUnsliced)
-            TryUtil.successUnit
+          keyValue match {
+            case remove: Transient.Remove =>
+              skipList.put(
+                keyUnsliced,
+                Memory.Remove(keyUnsliced, remove.deadline)
+              )
+              bloomFilter.foreach(_ add keyUnsliced)
+              Segment.getNearestDeadline(deadline, keyValue)
 
-          case _: Transient.Put =>
-            keyValue.getOrFetchValue map {
-              value =>
-                val unslicedValue = value.map(_.unslice())
-                unslicedValue match {
-                  case Some(value) if value.nonEmpty =>
-                    skipList.put(keyUnsliced, Memory.Put(key = keyUnsliced, value = value.unslice()))
+            case put: Transient.Put =>
+              keyValue.getOrFetchValue flatMap {
+                value =>
+                  val unslicedValue = value.map(_.unslice())
+                  unslicedValue match {
+                    case Some(value) if value.nonEmpty =>
+                      skipList.put(keyUnsliced, Memory.Put(key = keyUnsliced, value = value.unslice(), put.deadline))
 
-                  case _ =>
-                    skipList.put(keyUnsliced, Memory.Put(key = keyUnsliced, value = None))
-                }
-                bloomFilter.foreach(_ add keyUnsliced)
-            }
+                    case _ =>
+                      skipList.put(keyUnsliced, Memory.Put(key = keyUnsliced, value = None, put.deadline))
+                  }
+                  bloomFilter.foreach(_ add keyUnsliced)
+                  Segment.getNearestDeadline(deadline, keyValue)
+              }
 
-          case range: KeyValue.WriteOnly.Range =>
-            range.fetchFromAndRangeValue map {
-              case (fromValue, rangeValue) =>
-                skipList.put(
-                  keyUnsliced,
-                  Memory.Range(
-                    fromKey = keyUnsliced,
-                    toKey = range.toKey.unslice(),
-                    fromValue = fromValue.map(_.unslice),
-                    rangeValue = rangeValue.unslice
+            case update: Transient.Update =>
+              keyValue.getOrFetchValue flatMap {
+                value =>
+                  val unslicedValue = value.map(_.unslice())
+                  unslicedValue match {
+                    case Some(value) if value.nonEmpty =>
+                      skipList.put(keyUnsliced, Memory.Update(key = keyUnsliced, value = value.unslice(), update.deadline))
+
+                    case _ =>
+                      skipList.put(keyUnsliced, Memory.Update(key = keyUnsliced, value = None, update.deadline))
+                  }
+                  bloomFilter.foreach(_ add keyUnsliced)
+                  Segment.getNearestDeadline(deadline, keyValue)
+              }
+
+            case range: KeyValue.WriteOnly.Range =>
+              range.fetchFromAndRangeValue flatMap {
+                case (fromValue, rangeValue) =>
+                  skipList.put(
+                    keyUnsliced,
+                    Memory.Range(
+                      fromKey = keyUnsliced,
+                      toKey = range.toKey.unslice(),
+                      fromValue = fromValue.map(_.unslice),
+                      rangeValue = rangeValue.unslice
+                    )
                   )
-                )
-                bloomFilter.foreach(_ add keyUnsliced)
-            }
-        }
-    } match {
-      case Some(Failure(exception)) =>
-        Failure(exception)
+                  bloomFilter.foreach(_ add keyUnsliced)
+                  Segment.getNearestDeadline(deadline, keyValue)
+              }
+          }
+      } match {
+        case Failure(exception) =>
+          Failure(exception)
 
-      case None =>
-        Success(
-          new MemorySegment(
-            path = path,
-            minKey = keyValues.head.key.unslice(),
-            _hasRange = keyValues.last.stats.hasRange,
-            maxKey =
-              keyValues.last match {
-                case range: KeyValue.WriteOnly.Range =>
-                  MaxKey.Range(range.fromKey.unslice(), range.toKey.unslice())
+        case Success(deadline) =>
+          Success(
+            new MemorySegment(
+              path = path,
+              minKey = keyValues.head.key.unslice(),
+              _hasRange = keyValues.last.stats.hasRange,
+              maxKey =
+                keyValues.last match {
+                  case range: KeyValue.WriteOnly.Range =>
+                    MaxKey.Range(range.fromKey.unslice(), range.toKey.unslice())
 
-                case keyValue =>
-                  MaxKey.Fixed(keyValue.key.unslice())
-              },
-            segmentSize = keyValues.last.stats.memorySegmentSize,
-            removeDeletes = removeDeletes,
-            bloomFilter = bloomFilter,
-            cache = skipList
+                  case keyValue =>
+                    MaxKey.Fixed(keyValue.key.unslice())
+                },
+              segmentSize = keyValues.last.stats.memorySegmentSize,
+              removeDeletes = removeDeletes,
+              bloomFilter = bloomFilter,
+              cache = skipList,
+              nearestExpiryDeadline = deadline
+            )
           )
-        )
+      }
     }
   }
 
@@ -137,51 +230,56 @@ private[core] object Segment extends LazyLogging {
                                          fileOpenLimiter: DBFile => Unit,
                                          ec: ExecutionContext): Try[Segment] =
     SegmentWriter.toSlice(keyValues, bloomFilterFalsePositiveRate) flatMap {
-      bytes =>
-        val writeResult =
-        //if both read and writes are mmaped. Keep the file open.
-          if (mmapWrites && mmapReads)
-            DBFile.mmapWriteAndRead(bytes, path, fileOpenLimiter)
-          //if mmapReads is false, write bytes in mmaped mode and then close and re-open for read.
-          else if (mmapWrites && !mmapReads)
-            DBFile.mmapWriteAndRead(bytes, path) flatMap {
-              file =>
-                //close immediately to force flush the bytes to disk. Having mmapWrites == true and mmapReads == false,
-                //is probably not the most efficient and should be advised not to used.
-                file.close flatMap {
-                  _ =>
-                    DBFile.channelRead(file.path, fileOpenLimiter)
-                }
-            }
-          else if (!mmapWrites && mmapReads)
-            DBFile.write(bytes, path) flatMap {
-              path =>
-                DBFile.mmapRead(path, fileOpenLimiter)
-            }
-          else
-            DBFile.write(bytes, path) flatMap {
-              path =>
-                DBFile.channelRead(path, fileOpenLimiter)
-            }
+      case (bytes, deadline) =>
+        if (bytes.isEmpty) {
+          Failure(new Exception("Empty key-values submitted to persistent Segment."))
+        } else {
+          val writeResult =
+          //if both read and writes are mmaped. Keep the file open.
+            if (mmapWrites && mmapReads)
+              DBFile.mmapWriteAndRead(bytes, path, fileOpenLimiter)
+            //if mmapReads is false, write bytes in mmaped mode and then close and re-open for read.
+            else if (mmapWrites && !mmapReads)
+              DBFile.mmapWriteAndRead(bytes, path) flatMap {
+                file =>
+                  //close immediately to force flush the bytes to disk. Having mmapWrites == true and mmapReads == false,
+                  //is probably not the most efficient and should be advised not to used.
+                  file.close flatMap {
+                    _ =>
+                      DBFile.channelRead(file.path, fileOpenLimiter)
+                  }
+              }
+            else if (!mmapWrites && mmapReads)
+              DBFile.write(bytes, path) flatMap {
+                path =>
+                  DBFile.mmapRead(path, fileOpenLimiter)
+              }
+            else
+              DBFile.write(bytes, path) flatMap {
+                path =>
+                  DBFile.channelRead(path, fileOpenLimiter)
+              }
 
-        writeResult map {
-          file =>
-            new PersistentSegment(
-              file = file,
-              mmapReads = mmapReads,
-              mmapWrites = mmapWrites,
-              minKey = keyValues.head.key.unslice(),
-              maxKey =
-                keyValues.last match {
-                  case range: KeyValue.WriteOnly.Range =>
-                    MaxKey.Range(range.fromKey.unslice(), range.toKey.unslice())
+          writeResult map {
+            file =>
+              new PersistentSegment(
+                file = file,
+                mmapReads = mmapReads,
+                mmapWrites = mmapWrites,
+                minKey = keyValues.head.key.unslice(),
+                maxKey =
+                  keyValues.last match {
+                    case range: KeyValue.WriteOnly.Range =>
+                      MaxKey.Range(range.fromKey.unslice(), range.toKey.unslice())
 
-                  case keyValue =>
-                    MaxKey.Fixed(keyValue.key.unslice())
-                },
-              segmentSize = keyValues.last.stats.segmentSize,
-              removeDeletes = removeDeletes
-            )
+                    case keyValue =>
+                      MaxKey.Fixed(keyValue.key.unslice())
+                  },
+                segmentSize = keyValues.last.stats.segmentSize,
+                removeDeletes = removeDeletes,
+                nearestExpiryDeadline = deadline
+              )
+          }
         }
     }
 
@@ -207,6 +305,7 @@ private[core] object Segment extends LazyLogging {
               minKey = segment.minKey,
               maxKey = segment.maxKey,
               segmentSize = segment.segmentSize,
+              nearestExpiryDeadline = segment.nearestExpiryDeadline,
               removeDeletes = removeDeletes
             ) recoverWith {
               case exception =>
@@ -245,7 +344,7 @@ private[core] object Segment extends LazyLogging {
                                                           fileOpenLimited: DBFile => Unit,
                                                           ec: ExecutionContext): Try[Slice[Segment]] = {
     val splits =
-      SegmentMerge.split(
+      SegmentMerger.split(
         keyValues = keyValues,
         minSegmentSize = minSegmentSize,
         isLastLevel = removeDeletes,
@@ -301,7 +400,7 @@ private[core] object Segment extends LazyLogging {
                    minSegmentSize: Long,
                    bloomFilterFalsePositiveRate: Double)(implicit ordering: Ordering[Slice[Byte]],
                                                          ec: ExecutionContext): Try[Slice[Segment]] =
-    SegmentMerge.split(
+    SegmentMerger.split(
       keyValues = keyValues,
       minSegmentSize = minSegmentSize,
       isLastLevel = removeDeletes,
@@ -324,6 +423,7 @@ private[core] object Segment extends LazyLogging {
             maxKey: MaxKey,
             segmentSize: Int,
             removeDeletes: Boolean,
+            nearestExpiryDeadline: Option[Deadline],
             checkExists: Boolean = true)(implicit ordering: Ordering[Slice[Byte]],
                                          keyValueLimiter: (Persistent, Segment) => Unit,
                                          fileOpenLimited: DBFile => Unit,
@@ -344,7 +444,8 @@ private[core] object Segment extends LazyLogging {
           minKey = minKey,
           maxKey = maxKey,
           segmentSize = segmentSize,
-          removeDeletes = removeDeletes
+          removeDeletes = removeDeletes,
+          nearestExpiryDeadline = nearestExpiryDeadline
         )
     }
   }
@@ -381,29 +482,32 @@ private[core] object Segment extends LazyLogging {
                 SegmentReader.readAll(footer, Reader(file)) flatMap {
                   keyValues =>
                     //close the file
-                    file.close map {
+                    file.close flatMap {
                       _ =>
-                        new PersistentSegment(
-                          file = file,
-                          mmapReads = mmapReads,
-                          mmapWrites = mmapWrites,
-                          minKey = keyValues.head.key,
-                          maxKey =
-                            keyValues.last match {
-                              case fixed: KeyValue.ReadOnly.Fixed =>
-                                MaxKey.Fixed(fixed.key)
+                        getNearestDeadline(keyValues) map {
+                          nearestDeadline =>
+                            new PersistentSegment(
+                              file = file,
+                              mmapReads = mmapReads,
+                              mmapWrites = mmapWrites,
+                              minKey = keyValues.head.key,
+                              maxKey =
+                                keyValues.last match {
+                                  case fixed: KeyValue.ReadOnly.Fixed =>
+                                    MaxKey.Fixed(fixed.key)
 
-                              case range: KeyValue.ReadOnly.Range =>
-                                MaxKey.Range(range.fromKey, range.toKey)
-                            },
-                          segmentSize = fileSize.toInt,
-                          removeDeletes = removeDeletes
-                        )
+                                  case range: KeyValue.ReadOnly.Range =>
+                                    MaxKey.Range(range.fromKey, range.toKey)
+                                },
+                              segmentSize = fileSize.toInt,
+                              nearestExpiryDeadline = nearestDeadline,
+                              removeDeletes = removeDeletes
+                            )
+                        }
                     }
                 }
             }
         }
-
     }
   }
 
@@ -513,7 +617,7 @@ private[core] object Segment extends LazyLogging {
             keyValues add Memory.Put(maxKey, None)
 
           case MaxKey.Range(fromKey, maxKey) =>
-            keyValues add Memory.Range(fromKey, maxKey, None, Value.Put(maxKey))
+            keyValues add Memory.Range(fromKey, maxKey, None, Value.Update(maxKey))
         }
     }
 
@@ -524,7 +628,7 @@ private[core] object Segment extends LazyLogging {
         case fixed: Memory.Fixed =>
           Memory.Put(fixed.key, None)
         case Memory.Range(fromKey, toKey, fromValue, rangeValue) =>
-          Memory.Range(fromKey, toKey, None, Value.Put(toKey))
+          Memory.Range(fromKey, toKey, None, Value.Update(toKey))
       }
     } yield
       Slice(minKey, maxKey)
@@ -592,6 +696,7 @@ private[core] trait Segment {
   val maxKey: MaxKey
   val segmentSize: Int
   val removeDeletes: Boolean
+  val nearestExpiryDeadline: Option[Deadline]
 
   def getBloomFilter: Try[Option[BloomFilter[Slice[Byte]]]]
 
@@ -600,7 +705,12 @@ private[core] trait Segment {
   def put(newKeyValues: Slice[KeyValue.ReadOnly],
           minSegmentSize: Long,
           bloomFilterFalsePositiveRate: Double,
+          graceTimeout: FiniteDuration,
           targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Try[Slice[Segment]]
+
+  def refresh(minSegmentSize: Long,
+              bloomFilterFalsePositiveRate: Double,
+              targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Try[Slice[Segment]]
 
   def copyTo(toPath: Path): Try[Path]
 

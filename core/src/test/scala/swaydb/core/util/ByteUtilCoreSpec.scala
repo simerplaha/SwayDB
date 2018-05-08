@@ -45,6 +45,21 @@ class ByteUtilCoreSpec extends WordSpec with Matchers with TryAssert {
   }
 
   "compress and uncompress" should {
+    "dasd" in {
+      val bytes1: Slice[Byte] = 1234
+      val bytes2: Slice[Byte] = 5678
+      val mergedBytes = ByteUtilCore.compress(bytes1, bytes2)
+//      mergedBytes.size should be < (bytes1.size + bytes2.size)
+      mergedBytes.isFull shouldBe true
+
+      val (readBytes1, readBytes2) = ByteUtilCore.uncompress(mergedBytes).assertGet
+
+      (readBytes1, readBytes2) shouldBe ((bytes1, bytes2))
+      readBytes1.isFull shouldBe true
+      readBytes2.isFull shouldBe true
+    }
+
+
     "merge, compress and uncompress two byte array" in {
       val key = "123456789"
       val bytes1: Slice[Byte] = key * 100

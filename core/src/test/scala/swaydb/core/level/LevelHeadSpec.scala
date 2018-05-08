@@ -72,14 +72,14 @@ class LevelHeadSpec extends TestBase with MockFactory with Benchmark {
 
     "return None if the Level contains head Remove range with None fromValue" in {
       assertOnLevel(
-        keyValues = Slice(Memory.Range(1, 100, None, Value.Remove)),
+        keyValues = Slice(Memory.Range(1, 100, None, Value.Remove(None))),
         assertion = _.head.assertGetOpt shouldBe empty
       )
     }
 
     "return None if the Level contains head Remove range with Remove fromValue" in {
       assertOnLevel(
-        keyValues = Slice(Memory.Range(1, 100, Some(Value.Remove), Value.Remove)),
+        keyValues = Slice(Memory.Range(1, 100, Some(Value.Remove(None)), Value.Remove(None))),
         assertion = _.head.assertGetOpt shouldBe empty
       )
     }
@@ -93,21 +93,21 @@ class LevelHeadSpec extends TestBase with MockFactory with Benchmark {
 
     "return head if the Level contains head Remove Range with Put fromValue" in {
       assertOnLevel(
-        keyValues = Slice(Memory.Range(1, 100, Some(Value.Put(1)), Value.Remove)),
+        keyValues = Slice(Memory.Range(1, 100, Some(Value.Put(1)), Value.Remove(None))),
         assertion = _.head.assertGet shouldBe Memory.Put(1, 1)
       )
     }
 
     "return head if the Level contains head Put Range with Put rangeValue" in {
       assertOnLevel(
-        keyValues = Slice(Memory.Range(1, 100, Some(Value.Put(1)), Value.Put(100))),
+        keyValues = Slice(Memory.Range(1, 100, Some(Value.Put(1)), Value.Update(100))),
         assertion = _.head.assertGet shouldBe Memory.Put(1, 1)
       )
     }
 
     "return head if the Level's first key-value is a Remove range and second key-value is Put" in {
       assertOnLevel(
-        keyValues = Slice(Memory.Range(1, 100, Some(Value.Remove), Value.Remove), Memory.Put(101, 101)),
+        keyValues = Slice(Memory.Range(1, 100, Some(Value.Remove(None)), Value.Remove(None)), Memory.Put(101, 101)),
         assertion = _.head.assertGet shouldBe Memory.Put(101, 101)
       )
     }
@@ -132,7 +132,7 @@ class LevelHeadSpec extends TestBase with MockFactory with Benchmark {
 
     "return second key-value from lower Level if the first head was removed by Remove range in upper Level" in {
       assertOnLevel(
-        upperLevelKeyValues = Slice(Memory.Range(1, 100, Some(Value.Remove), Value.Remove)),
+        upperLevelKeyValues = Slice(Memory.Range(1, 100, Some(Value.Remove(None)), Value.Remove(None))),
         lowerLevelKeyValues = Slice(Memory.Put(50, 50), Memory.Put(200, 200)),
         assertion = _.head.assertGet shouldBe Memory.Put(200, 200)
       )
@@ -140,7 +140,7 @@ class LevelHeadSpec extends TestBase with MockFactory with Benchmark {
 
     "return second key-value from lower Level if the first head was removed by Remove range in upper Level and the lowest == remove range's toKey" in {
       assertOnLevel(
-        upperLevelKeyValues = Slice(Memory.Range(1, 100, Some(Value.Remove), Value.Remove)),
+        upperLevelKeyValues = Slice(Memory.Range(1, 100, Some(Value.Remove(None)), Value.Remove(None))),
         lowerLevelKeyValues = Slice(Memory.Put(50, 50), Memory.Put(100, 100)),
         assertion = _.head.assertGet shouldBe Memory.Put(100, 100)
       )
@@ -148,7 +148,7 @@ class LevelHeadSpec extends TestBase with MockFactory with Benchmark {
 
     "return head if the Level's first key-value is an Update Range, second key-value is Put and lower Level contains a head key-value that falls within the range" in {
       assertOnLevel(
-        upperLevelKeyValues = Slice(Memory.Range(1, 100, Some(Value.Remove), Value.Put(100)), Memory.Put(101, 101)),
+        upperLevelKeyValues = Slice(Memory.Range(1, 100, Some(Value.Remove(None)), Value.Update(100)), Memory.Put(101, 101)),
         lowerLevelKeyValues = Slice(Memory.Put(50, 50)),
         assertion = _.head.assertGet shouldBe Memory.Put(50, 100)
       )
@@ -157,7 +157,7 @@ class LevelHeadSpec extends TestBase with MockFactory with Benchmark {
     "return head when lower level has head Range but upper level contains the next lowest Put" in {
       assertOnLevel(
         upperLevelKeyValues = Slice(Memory.Put(101, 101)),
-        lowerLevelKeyValues = Slice(Memory.Range(1, 10, None, Value.Put(100))),
+        lowerLevelKeyValues = Slice(Memory.Range(1, 10, None, Value.Update(100))),
         assertion = _.head.assertGet shouldBe Memory.Put(101, 101)
       )
     }
@@ -165,14 +165,14 @@ class LevelHeadSpec extends TestBase with MockFactory with Benchmark {
     "return head when lower level has head Range with fromValue set" in {
       assertOnLevel(
         upperLevelKeyValues = Slice(Memory.Put(101, 101)),
-        lowerLevelKeyValues = Slice(Memory.Range(1, 10, Some(Value.Put("one")), Value.Put(100))),
+        lowerLevelKeyValues = Slice(Memory.Range(1, 10, Some(Value.Put("one")), Value.Update(100))),
         assertion = _.head.assertGet shouldBe Memory.Put(1, Some("one"))
       )
     }
 
     "return head if the Level's first key-value is an Update Range second key-value is Put and lower Level contains a head Remove key-value that falls within the range" in {
       assertOnLevel(
-        upperLevelKeyValues = Slice(Memory.Range(1, 100, Some(Value.Remove), Value.Put(100)), Memory.Put(101, 101)),
+        upperLevelKeyValues = Slice(Memory.Range(1, 100, Some(Value.Remove(None)), Value.Update(100)), Memory.Put(101, 101)),
         lowerLevelKeyValues = Slice(Memory.Remove(50)),
         assertion = _.head.assertGet shouldBe Memory.Put(101, 101)
       )
@@ -183,7 +183,7 @@ class LevelHeadSpec extends TestBase with MockFactory with Benchmark {
         upperLevelKeyValues =
           Slice(
             Memory.Remove(1),
-            Memory.Range(50, 100, Some(Value.Remove), Value.Put(100)),
+            Memory.Range(50, 100, Some(Value.Remove(None)), Value.Update(100)),
             Memory.Put(101, 101)
           ),
         lowerLevelKeyValues =
@@ -197,7 +197,7 @@ class LevelHeadSpec extends TestBase with MockFactory with Benchmark {
         upperLevelKeyValues =
           Slice(
             Memory.Remove(1),
-            Memory.Range(50, 100, Some(Value.Remove), Value.Put(100)),
+            Memory.Range(50, 100, Some(Value.Remove(None)), Value.Update(100)),
             Memory.Put(101, 101)
           ),
         lowerLevelKeyValues =
@@ -211,7 +211,7 @@ class LevelHeadSpec extends TestBase with MockFactory with Benchmark {
         upperLevelKeyValues =
           Slice(
             Memory.Remove(1),
-            Memory.Range(50, 100, Some(Value.Remove), Value.Put(100)),
+            Memory.Range(50, 100, Some(Value.Remove(None)), Value.Update(100)),
             Memory.Put(101, 101)
           ),
         lowerLevelKeyValues =
@@ -225,7 +225,7 @@ class LevelHeadSpec extends TestBase with MockFactory with Benchmark {
         upperLevelKeyValues =
           Slice(
             Memory.Remove(1),
-            Memory.Range(50, 100, Some(Value.Remove), Value.Put(100)),
+            Memory.Range(50, 100, Some(Value.Remove(None)), Value.Update(100)),
             Memory.Put(101, 101)
           ),
         lowerLevelKeyValues =
@@ -239,7 +239,7 @@ class LevelHeadSpec extends TestBase with MockFactory with Benchmark {
         upperLevelKeyValues =
           Slice(
             Memory.Remove(1),
-            Memory.Range(50, 100, Some(Value.Remove), Value.Put("100 range")),
+            Memory.Range(50, 100, Some(Value.Remove(None)), Value.Update("100 range")),
             Memory.Put(101, 101)
           ),
         lowerLevelKeyValues =
@@ -253,7 +253,7 @@ class LevelHeadSpec extends TestBase with MockFactory with Benchmark {
         upperLevelKeyValues =
           Slice(
             Memory.Remove(1),
-            Memory.Range(50, 100, Some(Value.Remove), Value.Put("100 range")),
+            Memory.Range(50, 100, Some(Value.Remove(None)), Value.Update("100 range")),
             Memory.Put(101, 101)
           ),
         lowerLevelKeyValues =
@@ -267,7 +267,7 @@ class LevelHeadSpec extends TestBase with MockFactory with Benchmark {
         upperLevelKeyValues =
           Slice(
             Memory.Remove(1),
-            Memory.Range(50, 100, Some(Value.Remove), Value.Put("100 range")),
+            Memory.Range(50, 100, Some(Value.Remove(None)), Value.Update("100 range")),
             Memory.Put(101, 101)
           ),
         lowerLevelKeyValues =
@@ -279,7 +279,7 @@ class LevelHeadSpec extends TestBase with MockFactory with Benchmark {
         upperLevelKeyValues =
           Slice(
             Memory.Remove(1),
-            Memory.Range(50, 100, Some(Value.Remove), Value.Put("100 range")),
+            Memory.Range(50, 100, Some(Value.Remove(None)), Value.Update("100 range")),
             Memory.Remove(101)
           ),
         lowerLevelKeyValues =
@@ -300,7 +300,7 @@ class LevelHeadSpec extends TestBase with MockFactory with Benchmark {
         lowerLevelKeyValues =
           Slice(
             Memory.Remove(1),
-            Memory.Range(50, 100, Some(Value.Remove), Value.Put("100 range")),
+            Memory.Range(50, 100, Some(Value.Remove(None)), Value.Update("100 range")),
             Memory.Put(101, 101)
           ),
         assertion = _.head.assertGet shouldBe Memory.Put(101, 101)

@@ -25,6 +25,7 @@ import swaydb.core.map.Map
 import swaydb.core.segment.Segment
 import swaydb.data.slice.Slice
 
+import scala.concurrent.duration.Deadline
 import scala.util.Try
 
 sealed trait LevelCommand
@@ -56,7 +57,10 @@ object LevelCommand {
   sealed trait Pull extends LevelResponse with LevelZeroResponse
   case object Pull extends Pull
 
-  case object CollapseSmallSegments extends LevelCommand
+  sealed trait CollapseSmallSegments extends LevelCommand
+  case object CollapseSmallSegments extends CollapseSmallSegments
+
+  case class ClearExpiredKeyValues(nextDeadline: Deadline) extends LevelCommand
 
   case class PushSegments(segments: Iterable[Segment],
                           replyTo: ActorRef[PushSegmentsResponse]) extends LevelAPI

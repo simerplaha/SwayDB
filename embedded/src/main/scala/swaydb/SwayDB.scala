@@ -250,27 +250,27 @@ object SwayDB extends LazyLogging {
     *
     * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
     *
-    * @param dir                           Root directory for all Level where appendix folder & files are created
-    * @param otherDirs                     Secondary directories for all Levels where Segments get distributed.
-    * @param maxOpenSegments               Number of concurrent Segments opened
-    * @param mapSize                       Size of LevelZero's maps (WAL)
-    * @param maxMemoryLevelSize            Total size of in-memory Level (Level1) before Segments gets pushed to persistent Level (Level2)
-    * @param maxSegmentsToPush             Numbers of Segments to push from in-memory Level (Level1) to persistent Level (Level2)
-    * @param memoryLevelSegmentSize        Size of Level1's Segments
-    * @param persistentLevelSegmentSize    Size of Level2's Segments
-    * @param mmapPersistentSegments        Memory-maps Level2 Segments
-    * @param mmapPersistentAppendix        Memory-maps Level2's appendix file
-    * @param cacheSize                     Size of
-    * @param cacheCheckDelay               Sets the max interval at which key-values get dropped from the cache. The delays
-    *                                      are dynamically adjusted based on the current size of the cache to stay close the set
-    *                                      cacheSize.
-    * @param segmentsOpenCheckDelay        Sets the max interval at which Segments get closed. The delays
-    *                                      are dynamically adjusted based on the current number of open Segments.
-    * @param acceleration                  Controls the write speed.
-    * @param keySerializer                 Converts keys to Bytes
-    * @param valueSerializer               Converts values to Bytes
-    * @param ordering                      Sort order for keys
-    * @param ec                            ExecutionContext
+    * @param dir                        Root directory for all Level where appendix folder & files are created
+    * @param otherDirs                  Secondary directories for all Levels where Segments get distributed.
+    * @param maxOpenSegments            Number of concurrent Segments opened
+    * @param mapSize                    Size of LevelZero's maps (WAL)
+    * @param maxMemoryLevelSize         Total size of in-memory Level (Level1) before Segments gets pushed to persistent Level (Level2)
+    * @param maxSegmentsToPush          Numbers of Segments to push from in-memory Level (Level1) to persistent Level (Level2)
+    * @param memoryLevelSegmentSize     Size of Level1's Segments
+    * @param persistentLevelSegmentSize Size of Level2's Segments
+    * @param mmapPersistentSegments     Memory-maps Level2 Segments
+    * @param mmapPersistentAppendix     Memory-maps Level2's appendix file
+    * @param cacheSize                  Size of
+    * @param cacheCheckDelay            Sets the max interval at which key-values get dropped from the cache. The delays
+    *                                   are dynamically adjusted based on the current size of the cache to stay close the set
+    *                                   cacheSize.
+    * @param segmentsOpenCheckDelay     Sets the max interval at which Segments get closed. The delays
+    *                                   are dynamically adjusted based on the current number of open Segments.
+    * @param acceleration               Controls the write speed.
+    * @param keySerializer              Converts keys to Bytes
+    * @param valueSerializer            Converts values to Bytes
+    * @param ordering                   Sort order for keys
+    * @param ec                         ExecutionContext
     * @tparam K Type of key
     * @tparam V Type of value
     * @return Database instance
@@ -501,10 +501,10 @@ private[swaydb] class SwayDB(api: CoreAPI) extends SwayDBAPI {
               MapEntry.Put[Slice[Byte], Memory.Put](key, Memory.Put(key, value))(LevelZeroMapEntryWriter.Level0PutWriter)
 
             case request.Batch.RemoveRange(fromKey, untilKey) =>
-              MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, untilKey, None, Value.Remove))(LevelZeroMapEntryWriter.Level0PutRangeWriter)
+              MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, untilKey, None, Value.Remove(None)))(LevelZeroMapEntryWriter.Level0RangeWriter)
 
             case request.Batch.UpdateRange(fromKey, untilKey, value) =>
-              MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, untilKey, None, Value.Put(value)))(LevelZeroMapEntryWriter.Level0PutRangeWriter)
+              MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, untilKey, None, Value.Update(value, None)))(LevelZeroMapEntryWriter.Level0RangeWriter)
 
             case request.Batch.Remove(key) =>
               MapEntry.Put[Slice[Byte], Memory.Remove](key, Memory.Remove(key))(LevelZeroMapEntryWriter.Level0RemoveWriter)
@@ -572,6 +572,9 @@ private[swaydb] class SwayDB(api: CoreAPI) extends SwayDBAPI {
   override def levelMeter(levelNumber: Int): Option[LevelMeter] =
     api.levelMeter(levelNumber)
 
+  override def remove(fromKey: Slice[Byte], toKey: Slice[Byte], after: FiniteDuration): Try[Level0Meter] =
+    api.remove(fromKey, toKey, after.fromNow)
+
   override def remove(from: Slice[Byte], until: Slice[Byte]): Try[Level0Meter] =
     api.remove(from, until)
 
@@ -580,4 +583,7 @@ private[swaydb] class SwayDB(api: CoreAPI) extends SwayDBAPI {
 
   override def valueSize(key: Slice[Byte]): Try[Option[Int]] =
     api.valueSize(key)
+
+  override def keySize(key: Slice[Byte]): Try[Option[Int]] =
+    api.keySize(key)
 }

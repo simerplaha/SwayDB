@@ -27,11 +27,14 @@ import swaydb.core.segment.Segment
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.slice.Slice
 
+import scala.concurrent.duration.FiniteDuration
 import scala.util.Try
 
 private[core] trait LevelRef extends LevelActorAPI {
   val paths: PathsDistributor
   val throttle: LevelMeter => Throttle
+
+  val graceTimeout: FiniteDuration
 
   def releaseLocks: Try[Unit]
 
@@ -50,21 +53,21 @@ private[core] trait LevelRef extends LevelActorAPI {
   def takeSegments(size: Int,
                    condition: Segment => Boolean): Iterable[Segment]
 
-  def head: Try[Option[KeyValue.FindResponse]]
+  def head: Try[Option[KeyValue.ReadOnly.Put]]
 
-  def last: Try[Option[KeyValue.FindResponse]]
+  def last: Try[Option[KeyValue.ReadOnly.Put]]
 
-  def get(key: Slice[Byte]): Try[Option[KeyValue.FindResponse]]
+  def get(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Put]]
 
-  def ceiling(key: Slice[Byte]): Try[Option[KeyValue.FindResponse]]
+  def ceiling(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Put]]
 
-  def floor(key: Slice[Byte]): Try[Option[KeyValue.FindResponse]]
+  def floor(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Put]]
 
   def mightContain(key: Slice[Byte]): Try[Boolean]
 
-  def lower(key: Slice[Byte]): Try[Option[KeyValue.FindResponse]]
+  def lower(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Put]]
 
-  def higher(key: Slice[Byte]): Try[Option[KeyValue.FindResponse]]
+  def higher(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Put]]
 
   def firstKey: Option[Slice[Byte]]
 

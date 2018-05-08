@@ -19,6 +19,8 @@
 
 package swaydb.core.level
 
+import java.nio.file.Paths
+
 import org.scalamock.scalatest.MockFactory
 import swaydb.core.TestBase
 import swaydb.core.actor.TestActor
@@ -27,8 +29,10 @@ import swaydb.core.level.actor.LevelCommand._
 import swaydb.core.level.actor.LevelState.{PushScheduled, Pushing, Sleeping, WaitingPull}
 import swaydb.core.level.actor._
 import swaydb.core.segment.Segment
-import swaydb.core.util.TryUtil
+import swaydb.core.util.{Delay, TryUtil}
 import swaydb.order.KeyOrder
+import swaydb.core.util.FiniteDurationUtil._
+import swaydb.data.config.Dir
 
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
@@ -46,9 +50,9 @@ class LevelActorSpec extends TestBase with MockFactory {
       level.hasNextLevel _ expects() returning true
       level.nextPushDelay _ expects() returning 1.second
 
-      implicit val state = Sleeping(hasSmallSegments = false)
+      implicit val state = Sleeping(hasSmallSegments = false, task = None)
 
-      LevelActor.wakeUp should contain((PushScheduled(state.hasSmallSegments), PushTask(1.second, Push)))
+      LevelActor.wakeUp should contain((PushScheduled(state.hasSmallSegments, state.task), PushTask(1.second, Push)))
     }
 
     "return PushJob on Sleeping if the level does not have lower level but has small segments" in {
@@ -56,34 +60,34 @@ class LevelActorSpec extends TestBase with MockFactory {
       level.hasNextLevel _ expects() returning false
       level.nextPushDelay _ expects() returning 1.second
 
-      implicit val state = Sleeping(hasSmallSegments = true)
+      implicit val state = Sleeping(hasSmallSegments = true, task = None)
 
-      LevelActor.wakeUp should contain((PushScheduled(state.hasSmallSegments), PushTask(1.second, Push)))
+      LevelActor.wakeUp should contain((PushScheduled(state.hasSmallSegments, state.task), PushTask(1.second, Push)))
     }
 
     "not return PushJob if there is no lower level and no small segments" in {
       implicit val level = mock[LevelActorAPI]
       level.hasNextLevel _ expects() returning false
-      implicit val state = Sleeping(hasSmallSegments = false)
+      implicit val state = Sleeping(hasSmallSegments = false, task = None)
 
       LevelActor.wakeUp shouldBe empty
     }
 
     "not return PushJob when the state is Pushing" in {
       implicit val level = mock[LevelActorAPI]
-      implicit val state = Pushing(List.empty, false, None)
+      implicit val state = Pushing(List.empty, false, None, None)
       LevelActor.wakeUp shouldBe empty
     }
 
     "not return PushJob when the state is PushScheduled" in {
       implicit val level = mock[LevelActorAPI]
-      implicit val state = PushScheduled(false)
+      implicit val state = PushScheduled(false, None)
       LevelActor.wakeUp shouldBe empty
     }
 
     "not return PushJob when the state is WaitingPull" in {
       implicit val level = mock[LevelActorAPI]
-      implicit val state = WaitingPull(false)
+      implicit val state = WaitingPull(false, None)
       LevelActor.wakeUp shouldBe empty
     }
 
@@ -92,39 +96,156 @@ class LevelActorSpec extends TestBase with MockFactory {
   "LevelActor.collapseSmallSegments" should {
     "set hasSmallSegments to false on successful collapse" in {
       implicit val level = mock[LevelActorAPI]
-      implicit val state = Sleeping(hasSmallSegments = true)
+      implicit val state = Sleeping(hasSmallSegments = true, task = None)
+      implicit val self = TestActor[LevelCommand]()
 
       level.nextBatchSize _ expects() returning 10
       level.collapseAllSmallSegments _ expects 10 returning Success(0)
 
-      LevelActor.collapseSmallSegments shouldBe Sleeping(hasSmallSegments = false)
+      LevelActor.collapseSmallSegments shouldBe Sleeping(hasSmallSegments = false, task = None)
     }
 
     "set hasSmallSegments to true on successful and if success returned > 0" in {
       implicit val level = mock[LevelActorAPI]
-      implicit val state = Sleeping(hasSmallSegments = true)
+      implicit val state = Sleeping(hasSmallSegments = true, task = None)
+      implicit val self = TestActor[LevelCommand]()
 
       level.nextBatchSize _ expects() returning 10
       level.collapseAllSmallSegments _ expects 10 returning Success(1)
 
-      LevelActor.collapseSmallSegments shouldBe Sleeping(hasSmallSegments = true)
+      LevelActor.collapseSmallSegments shouldBe Sleeping(hasSmallSegments = true, task = None)
     }
 
-    "set hasSmallSegments to false if collapse fails" in {
+    "set hasSmallSegments to false if collapse fails and scheduled a task to continue collapsing" in {
       implicit val level = mock[LevelActorAPI]
-      implicit val state = Sleeping(hasSmallSegments = true)
+      implicit val state = Sleeping(hasSmallSegments = true, task = None)
+      implicit val self = TestActor[LevelCommand]()
 
       level.nextBatchSize _ expects() returning 10
       level.collapseAllSmallSegments _ expects 10 returning Failure(LevelException.ContainsOverlappingBusySegments)
 
       LevelActor.collapseSmallSegments shouldBe state.copyWithHasSmallSegments(false)
+
+      self.expectMessage[CollapseSmallSegments](LevelActor.unexpectedFailureRetry + 1.second) shouldBe LevelCommand.CollapseSmallSegments
+    }
+  }
+
+  "LevelActor.clearExpiredKeyValues" should {
+    "schedule a ClearExpiredKeyValues if the expiry time hasTimeLeft and execute clearExpiredKeyValues on overdue" in {
+      implicit val level = mock[LevelActorAPI]
+      implicit val state = Sleeping(hasSmallSegments = true, task = None)
+      implicit val self = TestActor[LevelCommand]()
+
+//      level.paths _ expects() returning PathsDistributor(Seq(Dir(Paths.get("testPath"), 1)), () => Seq.empty) repeat 3.times
+      level.clearExpiredKeyValues _ expects() returning Success()
+
+      val deadline = 5.second.fromNow
+      val newState = LevelActor.clearExpiredKeyValues(deadline)
+      newState shouldBe a[Sleeping]
+      newState.task shouldBe defined
+
+      //message scheduled
+      self.expectMessage[LevelCommand.ClearExpiredKeyValues](LevelActor.unexpectedFailureRetry + 5.second) shouldBe LevelCommand.ClearExpiredKeyValues(deadline)
+
+      //invoke function with the current state which should execute clearExpiredKeyValues
+      LevelActor.clearExpiredKeyValues(deadline).task shouldBe empty
+    }
+
+    "cancel previously scheduled task if new deadline is overdue than currently scheduled deadline" in {
+      @volatile var taskRan = false
+      val initialTaskDelay = 2.seconds
+      val existingTask = Delay.task(initialTaskDelay) {
+        taskRan = true
+      }
+
+      implicit val level = mock[LevelActorAPI]
+      implicit val state = Sleeping(hasSmallSegments = true, task = Some(existingTask))
+      implicit val self = TestActor[LevelCommand]()
+
+//      level.paths _ expects() returning PathsDistributor(Seq(Dir(Paths.get("testPath"), 1)), () => Seq.empty) repeat 2.times
+      level.clearExpiredKeyValues _ expects() returning Success()
+
+      val deadline = 0.second.fromNow
+      val newState = LevelActor.clearExpiredKeyValues(deadline)
+      newState shouldBe a[Sleeping]
+      newState.task shouldBe empty
+
+      //sleep for initial task delay and check that it did not get executed
+      sleep(initialTaskDelay + 1.second)
+      taskRan shouldBe false
+    }
+
+    "cancel previously scheduled task if new deadline is occurring earlier than currently scheduled deadline" in {
+      @volatile var taskRan = false
+      val initialTaskDelay = 5.seconds
+      val existingTask = Delay.task(initialTaskDelay) {
+        taskRan = true
+      }
+
+      implicit val level = mock[LevelActorAPI]
+      implicit val state = Sleeping(hasSmallSegments = true, task = Some(existingTask))
+      implicit val self = TestActor[LevelCommand]()
+
+//      level.paths _ expects() returning PathsDistributor(Seq(Dir(Paths.get("testPath"), 1)), () => Seq.empty) repeat 3.times
+      level.clearExpiredKeyValues _ expects() returning Success()
+
+      val deadline = 2.second.fromNow
+      val newState = LevelActor.clearExpiredKeyValues(deadline)
+      newState shouldBe a[Sleeping]
+      newState.task shouldBe defined
+
+      self.expectMessage[LevelCommand.ClearExpiredKeyValues](5.second) shouldBe LevelCommand.ClearExpiredKeyValues(deadline)
+
+      LevelActor.clearExpiredKeyValues(deadline).task shouldBe empty
+      //sleep for initial task delay and check that it did not get executed
+      sleep(initialTaskDelay + 1.second)
+      taskRan shouldBe false
+    }
+
+    "ignore new deadline if it's larger than existing scheduled deadline" in {
+      @volatile var taskRan = false
+      val initialTaskDelay = 2.seconds
+      val existingTask = Delay.task(initialTaskDelay) {
+        taskRan = true
+      }
+
+      implicit val level = mock[LevelActorAPI]
+      implicit val state = Sleeping(hasSmallSegments = true, task = Some(existingTask))
+      implicit val self = TestActor[LevelCommand]()
+
+//      level.paths _ expects() returning PathsDistributor(Seq(Dir(Paths.get("testPath"), 1)), () => Seq.empty)
+
+      val deadline = 10.second.fromNow
+      val newState = LevelActor.clearExpiredKeyValues(deadline)
+      newState shouldBe a[Sleeping]
+      newState.task shouldBe defined
+
+      self.expectNoMessage(5.seconds)
+    }
+
+    "scheduled task with unexpectedFailureRetry during on failure" in {
+      implicit val level = mock[LevelActorAPI]
+      implicit val state = Sleeping(hasSmallSegments = true, task = None)
+      implicit val self = TestActor[LevelCommand]()
+
+//      level.paths _ expects() returning PathsDistributor(Seq(Dir(Paths.get("testPath"), 1)), () => Seq.empty)
+      level.clearExpiredKeyValues _ expects() returning Failure(LevelException.ContainsOverlappingBusySegments)
+
+      val deadline = 0.second.fromNow
+      val newState = LevelActor.clearExpiredKeyValues(deadline)
+      newState shouldBe a[Sleeping]
+      newState.task shouldBe defined
+
+      //message scheduled
+      val retryDeadline = self.expectMessage[LevelCommand.ClearExpiredKeyValues](LevelActor.unexpectedFailureRetry + 5.second).nextDeadline
+      retryDeadline shouldBe <=(LevelActor.unexpectedFailureRetry.fromNow)
     }
   }
 
   "LevelActor.doPush" should {
     "not run push if it's already in Pushing state" in {
       implicit val level = mock[LevelActorAPI]
-      implicit val state = Pushing(List.empty, false, None)
+      implicit val state = Pushing(List.empty, false, None, None)
       implicit val self = TestActor[LevelCommand]()
 
       LevelActor.doPush shouldBe state
@@ -133,20 +254,20 @@ class LevelActorSpec extends TestBase with MockFactory {
 
     "execute collapse small segments first if hasSmallSegments = true" in {
       implicit val level = mock[LevelActorAPI]
-      implicit val state = PushScheduled(hasSmallSegments = true)
+      implicit val state = PushScheduled(hasSmallSegments = true, task = None)
       implicit val self = TestActor[LevelCommand]()
 
       level.nextBatchSize _ expects() returning 10
       level.collapseAllSmallSegments _ expects 10 returning Success(0)
       level.hasNextLevel _ expects() returns false
 
-      LevelActor.doPush shouldBe Sleeping(hasSmallSegments = false)
+      LevelActor.doPush shouldBe Sleeping(hasSmallSegments = false, task = None)
       self.expectNoMessage()
     }
 
     "go into sleeping mode if the level is empty" in {
       implicit val level = mock[LevelActorAPI]
-      implicit val state = Sleeping(hasSmallSegments = false)
+      implicit val state = Sleeping(hasSmallSegments = false, task = None)
       implicit val self = TestActor[LevelCommand]()
 
       level.hasNextLevel _ expects() returns true
@@ -160,7 +281,7 @@ class LevelActorSpec extends TestBase with MockFactory {
 
     "go into sleeping mode if the level is not empty but" in {
       implicit val level = mock[LevelActorAPI]
-      implicit val state = Sleeping(hasSmallSegments = false)
+      implicit val state = Sleeping(hasSmallSegments = false, task = None)
       implicit val self = TestActor[LevelCommand]()
 
       level.hasNextLevel _ expects() returns true
@@ -174,7 +295,7 @@ class LevelActorSpec extends TestBase with MockFactory {
 
     "send segments to lower level" in {
       implicit val level = mock[LevelActorAPI]
-      implicit val state = Sleeping(hasSmallSegments = false)
+      implicit val state = Sleeping(hasSmallSegments = false, task = None)
       implicit val self = TestActor[LevelCommand]()
 
       val testSegments = Seq(TestSegment().assertGet, TestSegment().assertGet)
@@ -198,7 +319,7 @@ class LevelActorSpec extends TestBase with MockFactory {
 
     "send pull request to lower level if non of the current Segments are mergeable with lower level" in {
       implicit val level = mock[LevelActorAPI]
-      implicit val state = Sleeping(hasSmallSegments = false)
+      implicit val state = Sleeping(hasSmallSegments = false, task = None)
       implicit val self = TestActor[LevelCommand]()
 
       level.hasNextLevel _ expects() returns true
@@ -219,7 +340,7 @@ class LevelActorSpec extends TestBase with MockFactory {
 
     "return sleeping state if the Throttle returned 0 Segments to pick" in {
       implicit val level = mock[LevelActorAPI]
-      implicit val state = Sleeping(hasSmallSegments = false)
+      implicit val state = Sleeping(hasSmallSegments = false, task = None)
       implicit val self = TestActor[LevelCommand]()
 
       level.hasNextLevel _ expects() returns true
@@ -232,7 +353,7 @@ class LevelActorSpec extends TestBase with MockFactory {
   "LevelActor.doRequest" should {
     "forward request to lower level" in {
       implicit val level = mock[LevelActorAPI]
-      implicit val state = Pushing(List.empty, false, None)
+      implicit val state = Pushing(List.empty, false, None, None)
       implicit val self = TestActor[LevelCommand]()
 
       val testSegments = Seq(TestSegment().assertGet, TestSegment().assertGet)
@@ -255,7 +376,7 @@ class LevelActorSpec extends TestBase with MockFactory {
 
     "process request in self level if forward fails and respond success to sender" in {
       implicit val level = mock[LevelActorAPI]
-      implicit val state = Pushing(List.empty, false, None)
+      implicit val state = Pushing(List.empty, false, None, None)
       implicit val self = TestActor[LevelCommand]()
 
       val testSegments = Seq(TestSegment().assertGet, TestSegment().assertGet)
@@ -275,7 +396,7 @@ class LevelActorSpec extends TestBase with MockFactory {
 
     "process request in self level if forward fails and respond failure to sender" in {
       implicit val level = mock[LevelActorAPI]
-      implicit val state = Pushing(List.empty, false, None)
+      implicit val state = Pushing(List.empty, false, None, None)
       implicit val self = TestActor[LevelCommand]()
 
       val testSegments = Seq(TestSegment().assertGet, TestSegment().assertGet)
@@ -298,7 +419,7 @@ class LevelActorSpec extends TestBase with MockFactory {
       val sender = TestActor[LevelCommand]()
 
       implicit val level = mock[LevelActorAPI]
-      implicit val state = Pushing(List.empty, false, Some(sender))
+      implicit val state = Pushing(List.empty, false, None, Some(sender))
       implicit val self = TestActor[LevelCommand]()
 
       val testSegments = Seq(TestSegment().assertGet, TestSegment().assertGet)
@@ -313,14 +434,14 @@ class LevelActorSpec extends TestBase with MockFactory {
 
       level.nextPushDelay _ expects() returns 1.second
 
-      LevelActor.doPushResponse(PushSegmentsResponse(request, TryUtil.successUnit)) shouldBe(Sleeping(false), Some(PushTask(1.second, Push)))
+      LevelActor.doPushResponse(PushSegmentsResponse(request, TryUtil.successUnit)) shouldBe(Sleeping(false, None), Some(PushTask(1.second, Push)))
       self.expectNoMessage()
       sender.expectMessage[Pull]()
     }
 
     "submit a Pull request if Push response was ContainsOverlappingBusySegments" in {
       implicit val level = mock[LevelActorAPI]
-      implicit val state = Pushing(List.empty, true, None)
+      implicit val state = Pushing(List.empty, true, None, None)
       implicit val self = TestActor[LevelCommand]()
 
       val testSegments = Seq(TestSegment().assertGet, TestSegment().assertGet)
@@ -330,13 +451,13 @@ class LevelActorSpec extends TestBase with MockFactory {
 
       level.push _ expects PullRequest(self) returning()
 
-      LevelActor.doPushResponse(PushSegmentsResponse(request, Failure(ContainsOverlappingBusySegments))) shouldBe(WaitingPull(true), None)
+      LevelActor.doPushResponse(PushSegmentsResponse(request, Failure(ContainsOverlappingBusySegments))) shouldBe(WaitingPull(true, None), None)
       self.expectNoMessage()
     }
 
     "for all Push failures other then ContainsBusySegments, next push should be scheduled within the next 1.second" in {
       implicit val level = mock[LevelActorAPI]
-      implicit val state = Pushing(List.empty, true, None)
+      implicit val state = Pushing(List.empty, true, None, None)
       implicit val self = TestActor[LevelCommand]()
 
       val testSegments = Seq(TestSegment().assertGet, TestSegment().assertGet)
@@ -344,7 +465,7 @@ class LevelActorSpec extends TestBase with MockFactory {
       val sender = TestActor[LevelCommand]()
       val request = PushSegments(testSegments, sender)
 
-      LevelActor.doPushResponse(PushSegmentsResponse(request, Failure(farOut))) shouldBe(Sleeping(true), Some(PushTask(LevelActor.unexpectedFailureRetry, Push)))
+      LevelActor.doPushResponse(PushSegmentsResponse(request, Failure(farOut))) shouldBe(Sleeping(true, None), Some(PushTask(LevelActor.unexpectedFailureRetry, Push)))
       self.expectNoMessage()
     }
   }

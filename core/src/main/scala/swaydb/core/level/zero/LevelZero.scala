@@ -25,7 +25,7 @@ import java.util
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.KeyValue._
-import swaydb.core.data.Memory.{Fixed, Range}
+import swaydb.core.data.Memory.{Overwrite, Range}
 import swaydb.core.data._
 import swaydb.core.finders.{Get, Higher, Lower}
 import swaydb.core.io.file.IO
@@ -35,13 +35,14 @@ import swaydb.core.level.actor.LevelZeroAPI
 import swaydb.core.map
 import swaydb.core.map.{MapEntry, Maps, SkipListMerge}
 import swaydb.core.retry.Retry
-import swaydb.core.util.{Delay, MinMax}
+import swaydb.core.util.{Delay, MinMax, TryUtil}
 import swaydb.data.accelerate.{Accelerator, Level0Meter}
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.slice.Slice
 import swaydb.data.storage.Level0Storage
 
 import scala.collection.JavaConverters._
+import scala.concurrent.duration.{Deadline, FiniteDuration}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
@@ -51,11 +52,12 @@ private[core] object LevelZero extends LazyLogging {
             storage: Level0Storage,
             nextLevel: LevelRef,
             acceleration: Level0Meter => Accelerator,
-            readRetryLimit: Int)(implicit ordering: Ordering[Slice[Byte]],
-                                 ec: ExecutionContext): Try[LevelZero] = {
+            readRetryLimit: Int,
+            graceTimeout: FiniteDuration)(implicit ordering: Ordering[Slice[Byte]],
+                                          ec: ExecutionContext): Try[LevelZero] = {
     import swaydb.core.map.serializer.LevelZeroMapEntryReader.Level0Reader
     import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
-    implicit val skipListMerger: SkipListMerge[Slice[Byte], Memory] = LevelZeroSkipListMerge
+    implicit val skipListMerger: SkipListMerge[Slice[Byte], Memory] = LevelZeroSkipListMerge(graceTimeout)
     implicit val memoryOrdering: Ordering[Memory] = ordering.on[Memory](_.key)
     val mapsAndPathAndLock =
       storage match {
@@ -97,7 +99,11 @@ private[core] class LevelZero(val path: Path,
 
   import ordering._
 
-  implicit val orderOnReadOnly = ordering.on[KeyValue](_.key)
+  implicit val orderOnReadOnly = ordering.on[KeyValue.ReadOnly.Fixed](_.key)
+
+  implicit val responseOrdering = ordering.on[KeyValue.ReadOnly.Put](_.key)
+
+  implicit val overwriteOrdering = ordering.on[KeyValue.ReadOnly.Overwrite](_.key)
 
   import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
 
@@ -136,12 +142,17 @@ private[core] class LevelZero(val path: Path,
 
   def put(key: Slice[Byte]): Try[Level0Meter] =
     assertKey(key) {
-      maps.write(MapEntry.Put[Slice[Byte], Memory](key, Memory.Put(key, None)))
+      maps.write(MapEntry.Put[Slice[Byte], Memory](key, Memory.Put(key)))
     }
 
   def put(key: Slice[Byte], value: Slice[Byte]): Try[Level0Meter] =
     assertKey(key) {
       maps.write(MapEntry.Put(key, Memory.Put(key, value)))
+    }
+
+  def put(key: Slice[Byte], value: Slice[Byte], removeAt: Deadline): Try[Level0Meter] =
+    assertKey(key) {
+      maps.write(MapEntry.Put(key, Memory.Put(key, value, removeAt)))
     }
 
   def put(key: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter] =
@@ -157,11 +168,33 @@ private[core] class LevelZero(val path: Path,
       maps.write(MapEntry.Put[Slice[Byte], Memory.Remove](key, Memory.Remove(key)))
     }
 
+  def remove(key: Slice[Byte], at: Deadline): Try[Level0Meter] =
+    assertKey(key) {
+      maps.write(MapEntry.Put[Slice[Byte], Memory.Remove](key, Memory.Remove(key, at)))
+    }
+
   def remove(fromKey: Slice[Byte], untilKey: Slice[Byte]): Try[Level0Meter] =
     assertKey(fromKey) {
       assertKey(untilKey) {
-        maps.write(MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, untilKey, None, Value.Remove)))
+        maps.write(MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, untilKey, None, Value.Remove(None))))
       }
+    }
+
+  def remove(fromKey: Slice[Byte], untilKey: Slice[Byte], at: Deadline): Try[Level0Meter] =
+    assertKey(fromKey) {
+      assertKey(untilKey) {
+        maps.write(MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, untilKey, None, Value.Remove(at))))
+      }
+    }
+
+  def update(key: Slice[Byte], value: Slice[Byte]): Try[Level0Meter] =
+    assertKey(key) {
+      maps.write(MapEntry.Put(key, Memory.Update(key, value)))
+    }
+
+  def update(key: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter] =
+    assertKey(key) {
+      maps.write(MapEntry.Put(key, Memory.Update(key, value)))
     }
 
   def update(fromKey: Slice[Byte], untilKey: Slice[Byte], value: Slice[Byte]): Try[Level0Meter] =
@@ -170,7 +203,7 @@ private[core] class LevelZero(val path: Path,
   def update(fromKey: Slice[Byte], untilKey: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter] =
     assertKey(fromKey) {
       assertKey(untilKey) {
-        maps.write(MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, untilKey, None, Value.Put(value))))
+        maps.write(MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, untilKey, None, Value.Update(value, None))))
       }
     }
 
@@ -191,7 +224,7 @@ private[core] class LevelZero(val path: Path,
       currentMap.get(key)
 
   private def getFromNextLevel(key: Slice[Byte],
-                               mapsIterator: util.Iterator[map.Map[Slice[Byte], Memory]]): Try[Option[KeyValue.FindResponse]] =
+                               mapsIterator: util.Iterator[map.Map[Slice[Byte], Memory]]): Try[Option[KeyValue.ReadOnly.Put]] =
     if (mapsIterator.hasNext) {
       val next = mapsIterator.next()
       //println(s"Get for key: ${key.readInt()} in ${next.pathOption}")
@@ -203,10 +236,10 @@ private[core] class LevelZero(val path: Path,
 
   private def find(key: Slice[Byte],
                    currentMap: map.Map[Slice[Byte], Memory],
-                   mapsIterator: util.Iterator[map.Map[Slice[Byte], Memory]]): Try[Option[KeyValue.FindResponse]] =
+                   mapsIterator: util.Iterator[map.Map[Slice[Byte], Memory]]): Try[Option[KeyValue.ReadOnly.Put]] =
     Get(
       key = key,
-      getInCurrentLevelOnly =
+      getFromCurrentLevel =
         key =>
           Try(getFromMap(key, currentMap)),
       getFromNextLevel =
@@ -214,7 +247,7 @@ private[core] class LevelZero(val path: Path,
           getFromNextLevel(key, mapsIterator)
     )
 
-  private def find(key: Slice[Byte]): Try[Option[KeyValue.FindResponse]] =
+  private def find(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Put]] =
     find(
       key = key,
       currentMap = maps.map,
@@ -231,7 +264,7 @@ private[core] class LevelZero(val path: Path,
                 result =>
                   Some(result)
               }
-          } getOrElse Success(None)
+          } getOrElse TryUtil.successNone
       }
     }
 
@@ -250,7 +283,7 @@ private[core] class LevelZero(val path: Path,
                 result =>
                   Some(response.key, result)
               }
-          } getOrElse Success(None)
+          } getOrElse TryUtil.successNone
       }
     }
 
@@ -262,7 +295,7 @@ private[core] class LevelZero(val path: Path,
       matcher =
         map =>
           map.lastValue() map {
-            case fixed: Fixed =>
+            case fixed: Overwrite =>
               fixed.key
             case range: Range =>
               range.toKey
@@ -280,7 +313,7 @@ private[core] class LevelZero(val path: Path,
                 result =>
                   Some(response.key, result)
               }
-          } getOrElse Success(None)
+          } getOrElse TryUtil.successNone
       }
     }
 
@@ -299,7 +332,7 @@ private[core] class LevelZero(val path: Path,
                 result =>
                   Some(response.key, result)
               }
-          } getOrElse Success(None)
+          } getOrElse TryUtil.successNone
       }
     }
 
@@ -308,18 +341,18 @@ private[core] class LevelZero(val path: Path,
       findLast.map(_.map(_.key))
     }
 
-  def findHead: Try[Option[KeyValue.FindResponse]] =
-    MinMax.min(firstKeyFromMaps, nextLevel.firstKey).map(ceiling) getOrElse Success(None)
+  def findHead: Try[Option[KeyValue.ReadOnly.Put]] =
+    MinMax.min(firstKeyFromMaps, nextLevel.firstKey).map(ceiling) getOrElse TryUtil.successNone
 
-  def findLast: Try[Option[KeyValue.FindResponse]] =
-    MinMax.max(lastKeyFromMaps, nextLevel.lastKey).map(floor) getOrElse Success(None)
+  def findLast: Try[Option[KeyValue.ReadOnly.Put]] =
+    MinMax.max(lastKeyFromMaps, nextLevel.lastKey).map(floor) getOrElse TryUtil.successNone
 
-  def ceiling(key: Slice[Byte]): Try[Option[FindResponse]] =
+  def ceiling(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Put]] =
     ceiling(key, maps.map, maps.iterator.asScala.toList)
 
   def ceiling(key: Slice[Byte],
               currentMap: map.Map[Slice[Byte], Memory],
-              otherMaps: List[map.Map[Slice[Byte], Memory]]): Try[Option[FindResponse]] =
+              otherMaps: List[map.Map[Slice[Byte], Memory]]): Try[Option[KeyValue.ReadOnly.Put]] =
     find(key, currentMap, otherMaps.iterator.asJava) flatMap {
       found =>
         if (found.isDefined)
@@ -328,12 +361,12 @@ private[core] class LevelZero(val path: Path,
           findHigher(key, currentMap, otherMaps)
     }
 
-  def floor(key: Slice[Byte]): Try[Option[FindResponse]] =
+  def floor(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Put]] =
     floor(key, maps.map, maps.iterator.asScala.toList)
 
   def floor(key: Slice[Byte],
             currentMap: map.Map[Slice[Byte], Memory],
-            otherMaps: List[map.Map[Slice[Byte], Memory]]): Try[Option[FindResponse]] =
+            otherMaps: List[map.Map[Slice[Byte], Memory]]): Try[Option[KeyValue.ReadOnly.Put]] =
     find(key, currentMap, otherMaps.iterator.asJava) flatMap {
       found =>
         if (found.isDefined)
@@ -356,7 +389,7 @@ private[core] class LevelZero(val path: Path,
       currentMap.higher(key).map(_._2)
 
   def findHigherInNextLevel(key: Slice[Byte],
-                            otherMaps: List[map.Map[Slice[Byte], Memory]]): Try[Option[KeyValue.FindResponse]] =
+                            otherMaps: List[map.Map[Slice[Byte], Memory]]): Try[Option[KeyValue.ReadOnly.Put]] =
     otherMaps.headOption match {
       case Some(nextMap) =>
         //println(s"Finding higher for key: ${key.readInt()} in ${nextMap.pathOption}")
@@ -368,10 +401,10 @@ private[core] class LevelZero(val path: Path,
 
   def findHigher(key: Slice[Byte],
                  currentMap: map.Map[Slice[Byte], Memory],
-                 otherMaps: List[map.Map[Slice[Byte], Memory]]): Try[Option[KeyValue.FindResponse]] =
+                 otherMaps: List[map.Map[Slice[Byte], Memory]]): Try[Option[KeyValue.ReadOnly.Put]] =
     Higher(
       key = key,
-      higherInCurrentLevelOnly =
+      higherFromCurrentLevel =
         key =>
           Try(higherFromMap(key, currentMap)),
       ceiling =
@@ -388,7 +421,7 @@ private[core] class LevelZero(val path: Path,
     *
     * Higher queries require iteration of all maps anyway so a full initial conversion to a List is acceptable.
     */
-  def findHigher(key: Slice[Byte]): Try[Option[KeyValue.FindResponse]] =
+  def findHigher(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Put]] =
     findHigher(
       key = key,
       currentMap = maps.map,
@@ -405,7 +438,7 @@ private[core] class LevelZero(val path: Path,
                 result =>
                   Some(response.key, result)
               }
-          } getOrElse Success(None)
+          } getOrElse TryUtil.successNone
       }
     }
 
@@ -419,7 +452,7 @@ private[core] class LevelZero(val path: Path,
     currentMap.lower(key).map(_._2)
 
   def findLowerInNextLevel(key: Slice[Byte],
-                           otherMaps: List[map.Map[Slice[Byte], Memory]]): Try[Option[KeyValue.FindResponse]] =
+                           otherMaps: List[map.Map[Slice[Byte], Memory]]): Try[Option[KeyValue.ReadOnly.Put]] =
     otherMaps.headOption match {
       case Some(nextMap) =>
         //println(s"Finding lower for key: ${key.readInt()} in ${nextMap.pathOption}")
@@ -431,13 +464,13 @@ private[core] class LevelZero(val path: Path,
 
   def findLower(key: Slice[Byte],
                 currentMap: map.Map[Slice[Byte], Memory],
-                otherMaps: List[map.Map[Slice[Byte], Memory]]): Try[Option[KeyValue.FindResponse]] =
+                otherMaps: List[map.Map[Slice[Byte], Memory]]): Try[Option[KeyValue.ReadOnly.Put]] =
     Lower(
       key = key,
-      lowerInCurrentLevelOnly =
+      lowerFromCurrentLevel =
         key =>
           Try(lowerFromMap(key, currentMap)),
-      lowerInNextLevel =
+      lowerFromNextLevel =
         key =>
           findLowerInNextLevel(key, otherMaps)
     )
@@ -448,7 +481,7 @@ private[core] class LevelZero(val path: Path,
     *
     * Lower queries require iteration of all maps anyway so a full initial conversion to a List is acceptable.
     */
-  def findLower(key: Slice[Byte]): Try[Option[KeyValue.FindResponse]] =
+  def findLower(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Put]] =
     findLower(
       key = key,
       currentMap = maps.map,
@@ -465,7 +498,7 @@ private[core] class LevelZero(val path: Path,
                 result =>
                   Some(response.key, result)
               }
-          } getOrElse Success(None)
+          } getOrElse TryUtil.successNone
       }
     }
 
@@ -487,6 +520,8 @@ private[core] class LevelZero(val path: Path,
             response.valueLength
         }
     }
+
+  def keySize(key: Slice[Byte]): Try[Option[Int]] = ???
 
   def keyValueCount: Try[Int] =
     withRetry {
@@ -513,6 +548,7 @@ private[core] class LevelZero(val path: Path,
     IO.exists(path)
 
   def close: Try[Unit] = {
+//    Delay.cancelTimer()
     maps.close.failed foreach {
       exception =>
         logger.error(s"$path: Failed to close maps", exception)

@@ -34,9 +34,9 @@ import swaydb.core.io.reader.FileReader
 import swaydb.core.level.actor.LevelCommand.{PushSegments, PushSegmentsResponse}
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, LevelRef}
-import swaydb.core.map.MapEntry
+import swaydb.core.map.{MapEntry, PersistentMap}
 import swaydb.core.segment.Segment
-import swaydb.core.util.IDGenerator
+import swaydb.core.util.{IDGenerator, TryUtil}
 import swaydb.data.accelerate.{Accelerator, Level0Meter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.{Dir, RecoveryMode}
@@ -216,7 +216,7 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
     def tryReopen: Try[Segment] =
       tryReopen(segment.path)
 
-    def tryReopen(path: Path): Try[Segment] =
+    def tryReopen(path: Path, removeDeletes: Boolean = segment.removeDeletes): Try[Segment] =
       Segment(
         path = path,
         mmapReads = Random.nextBoolean(),
@@ -224,7 +224,8 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
         minKey = segment.minKey,
         maxKey = segment.maxKey,
         segmentSize = segment.segmentSize,
-        removeDeletes = segment.removeDeletes
+        removeDeletes = removeDeletes,
+        nearestExpiryDeadline = segment.nearestExpiryDeadline
       ) flatMap {
         reopenedSegment =>
           segment.close map {
@@ -236,8 +237,8 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
     def reopen: Segment =
       tryReopen.assertGet
 
-    def reopen(path: Path): Segment =
-      tryReopen(path).assertGet
+    def reopen(path: Path, removeDeletes: Boolean = segment.removeDeletes): Segment =
+      tryReopen(path, removeDeletes).assertGet
   }
 
   implicit class ReopenLevel(level: Level)(implicit ordering: Ordering[Slice[Byte]]) {
@@ -246,15 +247,18 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
 
     def putKeyValues(keyValues: Slice[KeyValue.ReadOnly]): Try[Unit] = {
       import swaydb.data.util.StorageUnits._
-      Segment.copyToMemory(keyValues, Paths.get("testMemorySegment"), false, 1000.mb, 0.1) flatMap {
-        segments =>
-          segments tryMap {
-            segment =>
-              level.put(segment)
-          } map {
-            _ => ()
-          }
-      }
+      if (keyValues.isEmpty)
+        TryUtil.successUnit
+      else
+        Segment.copyToMemory(keyValues, Paths.get("testMemorySegment"), false, 1000.mb, 0.1) flatMap {
+          segments =>
+            segments tryMap {
+              segment =>
+                level.put(segment)
+            } map {
+              _ => ()
+            }
+        }
     }
 
     def reopen: Level =
@@ -285,7 +289,8 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
                 nextLevel = level.nextLevel,
                 pushForward = level.pushForward,
                 bloomFilterFalsePositiveRate = 0.1,
-                throttle = level.throttle
+                throttle = level.throttle,
+                graceTimeout = 10.seconds
               ).map(_.asInstanceOf[Level])
           }
       }
@@ -309,7 +314,8 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
                   storage = Level0Storage.Persistent(true, level.path.getParent, RecoveryMode.ReportFailure),
                   nextLevel = level.nextLevel,
                   acceleration = Accelerator.brake(),
-                  readRetryLimit = levelZeroReadRetryLimit
+                  readRetryLimit = levelZeroReadRetryLimit,
+                  graceTimeout = 10.seconds
                 )
             }
         }
@@ -366,12 +372,13 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
               fileSize: Int = 4.mb,
               path: Path = testMapFile,
               flushOnOverflow: Boolean = false,
-              mmap: Boolean = true)(implicit ordering: Ordering[Slice[Byte]],
-                                    keyValueLimiter: (Persistent, Segment) => Unit = keyValueLimiter,
-                                    fileOpenLimited: DBFile => Unit = fileOpenLimiter): map.Map[Slice[Byte], Memory] = {
+              mmap: Boolean = true,
+              graceTimeout: FiniteDuration = 10.seconds)(implicit ordering: Ordering[Slice[Byte]],
+                                                         keyValueLimiter: (Persistent, Segment) => Unit = keyValueLimiter,
+                                                         fileOpenLimited: DBFile => Unit = fileOpenLimiter): map.Map[Slice[Byte], Memory] = {
       import swaydb.core.map.serializer.LevelZeroMapEntryReader._
       import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
-      implicit val merger = swaydb.core.level.zero.LevelZeroSkipListMerge
+      implicit val merger = swaydb.core.level.zero.LevelZeroSkipListMerge(graceTimeout)
 
       val testMap =
         if (levelStorage.memory)
@@ -451,9 +458,10 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
               nextLevel: Option[LevelRef] = None,
               pushForward: Boolean = false,
               throttle: LevelMeter => Throttle = testDefaultThrottle,
-              bloomFilterFalsePositiveRate: Double = 0.01)(implicit ordering: Ordering[Slice[Byte]],
-                                                           keyValueLimiter: (Persistent, Segment) => Unit = keyValueLimiter,
-                                                           fileOpenLimited: DBFile => Unit = fileOpenLimiter): Level =
+              bloomFilterFalsePositiveRate: Double = 0.01,
+              graceTimeout: FiniteDuration = 10.seconds)(implicit ordering: Ordering[Slice[Byte]],
+                                                         keyValueLimiter: (Persistent, Segment) => Unit = keyValueLimiter,
+                                                         fileOpenLimited: DBFile => Unit = fileOpenLimiter): Level =
       Level(
         levelStorage = levelStorage,
         segmentSize = segmentSize,
@@ -461,7 +469,8 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
         pushForward = pushForward,
         appendixStorage = appendixStorage,
         throttle = throttle,
-        bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate
+        bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+        graceTimeout = graceTimeout
       ).assertGet.asInstanceOf[Level]
   }
 
@@ -470,15 +479,17 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
     def apply(nextLevel: LevelRef,
               mapSize: Long = mapSize,
               brake: Level0Meter => Accelerator = Accelerator.brake(),
-              readRetryLimit: Int = levelZeroReadRetryLimit)(implicit ordering: Ordering[Slice[Byte]],
-                                                             keyValueLimiter: (Persistent, Segment) => Unit = keyValueLimiter,
-                                                             fileOpenLimited: DBFile => Unit = fileOpenLimiter): LevelZero =
+              readRetryLimit: Int = levelZeroReadRetryLimit,
+              graceTimeout: FiniteDuration = 10.seconds)(implicit ordering: Ordering[Slice[Byte]],
+                                                         keyValueLimiter: (Persistent, Segment) => Unit = keyValueLimiter,
+                                                         fileOpenLimited: DBFile => Unit = fileOpenLimiter): LevelZero =
       LevelZero(
         mapSize = mapSize,
         storage = level0Storage,
         nextLevel = nextLevel,
         acceleration = brake,
-        readRetryLimit = readRetryLimit
+        readRetryLimit = readRetryLimit,
+        graceTimeout = graceTimeout
       ).assertGet
   }
 
@@ -498,8 +509,8 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
     }
   }
 
-  def assertOnLevel[T](keyValues: Slice[Memory],
-                       assertionWithKeyValues: (Slice[Memory], Level) => T)(implicit ordering: Ordering[Slice[Byte]]) = {
+  def assertOnLevel(keyValues: Slice[Memory],
+                    assertionWithKeyValues: (Slice[Memory], Level) => Unit)(implicit ordering: Ordering[Slice[Byte]]) = {
     val level = TestLevel(nextLevel = Some(TestLevel()), throttle = (_) => Throttle(Duration.Zero, 0))
     if (keyValues.nonEmpty) level.putKeyValues(keyValues).assertGet
 
@@ -511,6 +522,8 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
       assertionWithKeyValues(keyValues, levelReopened)
       assertionWithKeyValues(keyValues, levelReopened)
       levelReopened.closeSegments.assertGet
+    } else {
+      level.close.assertGet
     }
   }
 
@@ -534,6 +547,8 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
       assertion(levelReopened)
       assertion(levelReopened)
       levelReopened.closeSegments.assertGet
+    } else {
+      level.close.assertGet
     }
   }
 

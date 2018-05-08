@@ -32,6 +32,9 @@ object AppendixMapEntryWriter {
   implicit object AppendixRemoveWriter extends MapEntryWriter[MapEntry.Remove[Slice[Byte]]] {
     val id: Int = 0
 
+    override val isRange: Boolean = false
+    override val isUpdate: Boolean = false
+
     override def write(entry: MapEntry.Remove[Slice[Byte]], bytes: Slice[Byte]): Unit =
       bytes
         .addIntUnsigned(id)
@@ -42,12 +45,13 @@ object AppendixMapEntryWriter {
       ByteUtilCore.sizeUnsignedInt(id) +
         ByteUtilCore.sizeUnsignedInt(entry.key.size) +
         entry.key.size
-
-    override val isRange: Boolean = false
   }
 
   implicit object AppendixPutWriter extends MapEntryWriter[MapEntry.Put[Slice[Byte], Segment]] {
     val id: Int = 1
+
+    override val isRange: Boolean = false
+    override val isUpdate: Boolean = false
 
     override def write(entry: MapEntry.Put[Slice[Byte], Segment], bytes: Slice[Byte]): Unit = {
       val segmentPath = Slice(entry.value.path.toString.getBytes(StandardCharsets.UTF_8))
@@ -68,6 +72,7 @@ object AppendixMapEntryWriter {
         .addIntUnsigned(maxKeyId)
         .addIntUnsigned(maxKeyBytes.size)
         .addAll(maxKeyBytes)
+        .addLongUnsigned(entry.value.nearestExpiryDeadline.map(_.time.toNanos).getOrElse(0L))
     }
 
     override def bytesRequired(entry: MapEntry.Put[Slice[Byte], Segment]): Int = {
@@ -89,20 +94,21 @@ object AppendixMapEntryWriter {
         entry.key.size +
         ByteUtilCore.sizeUnsignedInt(maxKeyId) +
         ByteUtilCore.sizeUnsignedInt(maxKeyBytes.size) +
-        maxKeyBytes.size
+        maxKeyBytes.size +
+        ByteUtilCore.sizeUnsignedLong(entry.value.nearestExpiryDeadline.map(_.time.toNanos).getOrElse(0L))
     }
 
-    override val isRange: Boolean = false
   }
 
   implicit object AppendixMapEntry extends MapEntryWriter[MapEntry[Slice[Byte], Segment]] {
+
+    override val isRange: Boolean = false
+    override val isUpdate: Boolean = false
 
     override def write(entry: MapEntry[Slice[Byte], Segment], bytes: Slice[Byte]): Unit =
       entry.writeTo(bytes)
 
     override def bytesRequired(entry: MapEntry[Slice[Byte], Segment]): Int =
       entry.entryBytesSize
-
-    override val isRange: Boolean = false
   }
 }

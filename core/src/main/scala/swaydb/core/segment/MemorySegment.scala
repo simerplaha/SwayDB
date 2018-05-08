@@ -32,7 +32,9 @@ import swaydb.core.util._
 import swaydb.data.segment.MaxKey
 import swaydb.data.segment.MaxKey.{Fixed, Range}
 import swaydb.data.slice.Slice
+import PipeOps._
 
+import scala.concurrent.duration.{Deadline, FiniteDuration}
 import scala.util.{Failure, Success, Try}
 
 private[segment] class MemorySegment(val path: Path,
@@ -42,7 +44,8 @@ private[segment] class MemorySegment(val path: Path,
                                      val removeDeletes: Boolean,
                                      val _hasRange: Boolean,
                                      private[segment] val cache: ConcurrentSkipListMap[Slice[Byte], Memory],
-                                     val bloomFilter: Option[BloomFilter[Slice[Byte]]])(implicit ordering: Ordering[Slice[Byte]]) extends Segment with LazyLogging {
+                                     val bloomFilter: Option[BloomFilter[Slice[Byte]]],
+                                     val nearestExpiryDeadline: Option[Deadline])(implicit ordering: Ordering[Slice[Byte]]) extends Segment with LazyLogging {
 
   @volatile private var deleted = false
 
@@ -51,19 +54,21 @@ private[segment] class MemorySegment(val path: Path,
   override def put(newKeyValues: Slice[KeyValue.ReadOnly],
                    minSegmentSize: Long,
                    bloomFilterFalsePositiveRate: Double,
+                   graceTimeout: FiniteDuration,
                    targetPaths: PathsDistributor)(implicit idGenerator: IDGenerator): Try[Slice[Segment]] =
     if (deleted)
       Failure(new NoSuchFileException(path.toString))
     else
       getAll() flatMap {
         currentKeyValues =>
-          SegmentMerge.merge(
+          SegmentMerger.merge(
             newKeyValues = newKeyValues,
             oldKeyValues = currentKeyValues,
             minSegmentSize = minSegmentSize,
             forInMemory = true,
             isLastLevel = removeDeletes,
-            bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate
+            bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+            hasTimeLeftAtLeast = graceTimeout
           ) flatMap {
             splits =>
               splits.tryMap[Segment](
@@ -79,9 +84,49 @@ private[segment] class MemorySegment(val path: Path,
 
                 recover =
                   (segments: Slice[Segment], _: Failure[Iterable[Segment]]) =>
-                    segments.foreach {
+                    segments foreach {
                       segmentToDelete =>
-                        segmentToDelete.delete.failed.foreach {
+                        segmentToDelete.delete.failed foreach {
+                          exception =>
+                            logger.error(s"{}: Failed to delete Segment '{}' in recover due to failed put", path, segmentToDelete.path, exception)
+                        }
+                    }
+              )
+          }
+      }
+
+  override def refresh(minSegmentSize: Long,
+                       bloomFilterFalsePositiveRate: Double,
+                       targetPaths: PathsDistributor)(implicit idGenerator: IDGenerator): Try[Slice[Segment]] =
+    if (deleted)
+      Failure(new NoSuchFileException(path.toString))
+    else
+      getAll() flatMap {
+        currentKeyValues =>
+          SegmentMerger.split(
+            keyValues = currentKeyValues,
+            minSegmentSize = minSegmentSize,
+            forInMemory = true,
+            isLastLevel = removeDeletes,
+            bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate
+          ) ==> {
+            splits =>
+              splits.tryMap[Segment](
+                tryBlock =
+                  keyValues => {
+                    Segment.memory(
+                      path = targetPaths.next.resolve(idGenerator.nextSegmentID),
+                      keyValues = keyValues,
+                      bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+                      removeDeletes = removeDeletes
+                    )
+                  },
+
+                recover =
+                  (segments: Slice[Segment], _: Failure[Iterable[Segment]]) =>
+                    segments foreach {
+                      segmentToDelete =>
+                        segmentToDelete.delete.failed foreach {
                           exception =>
                             logger.error(s"{}: Failed to delete Segment '{}' in recover due to failed put", path, segmentToDelete.path, exception)
                         }
@@ -100,14 +145,14 @@ private[segment] class MemorySegment(val path: Path,
     if (deleted)
       Failure(new NoSuchFileException(path.toString))
     else if (!_hasRange && !bloomFilter.forall(_.mightContain(key)))
-      Success(None)
+      TryUtil.successNone
     else
       maxKey match {
         case Fixed(maxKey) if key > maxKey =>
-          Success(None)
+          TryUtil.successNone
 
         case range: Range if key >= range.maxKey =>
-          Success(None)
+          TryUtil.successNone
 
         case _ =>
           if (_hasRange)

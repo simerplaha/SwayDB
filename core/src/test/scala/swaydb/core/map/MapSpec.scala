@@ -35,7 +35,8 @@ import swaydb.data.util.StorageUnits._
 import swaydb.order.KeyOrder
 import swaydb.serializers.Default._
 import swaydb.serializers._
-
+import scala.collection.JavaConverters._
+import scala.concurrent.duration._
 import scala.util.Random
 
 class MapSpec extends TestBase {
@@ -43,9 +44,9 @@ class MapSpec extends TestBase {
   implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
   implicit val maxSegmentsOpenCacheImplicitLimiter: DBFile => Unit = TestLimitQueues.fileOpenLimiter
   implicit val keyValuesLimitImplicitLimiter: (Persistent, Segment) => Unit = TestLimitQueues.keyValueLimiter
-  implicit val skipListMerger = LevelZeroSkipListMerge
+  implicit val skipListMerger = LevelZeroSkipListMerge(10.seconds)
 
-  import swaydb.core.level.Level.SkipListMerge$
+  implicit val merger = swaydb.core.level.Level.SkipListMerge
 
   val appendixReader = AppendixMapEntryReader(false, true, true)
 
@@ -69,11 +70,10 @@ class MapSpec extends TestBase {
 
       map.hasRange shouldBe false
 
-      map.write(MapEntry.Put[Slice[Byte], Memory.Range](1, Memory.Range(1, 10, None, Value.Remove))).assertGet shouldBe true
-      map.write(MapEntry.Put[Slice[Byte], Memory.Range](11, Memory.Range(11, 20, Some(Value.Put(20)), Value.Put(20)))).assertGet shouldBe true
-      map.get(1).assertGet shouldBe Memory.Range(1, 10, None, Value.Remove)
-      map.get(11).assertGet shouldBe Memory.Range(11, 20, Some(Value.Put(20)), Value.Put(20))
-      map.get(2) shouldBe None
+      map.write(MapEntry.Put[Slice[Byte], Memory.Range](1, Memory.Range(1, 10, None, Value.Remove(None)))).assertGet shouldBe true
+      map.write(MapEntry.Put[Slice[Byte], Memory.Range](11, Memory.Range(11, 20, Some(Value.Put(20)), Value.Update(20)))).assertGet shouldBe true
+      map.get(1).assertGet shouldBe Memory.Range(1, 10, None, Value.Remove(None))
+      map.get(11).assertGet shouldBe Memory.Range(11, 20, Some(Value.Put(20)), Value.Update(20))
 
       map.hasRange shouldBe true
     }
@@ -134,20 +134,20 @@ class MapSpec extends TestBase {
       map.write(MapEntry.Put[Slice[Byte], Memory.Put](1, Memory.Put(1, Some(1)))).assertGet shouldBe true
       map.write(MapEntry.Put[Slice[Byte], Memory.Put](2, Memory.Put(2, Some(2)))).assertGet shouldBe true
       map.write(MapEntry.Put[Slice[Byte], Memory.Remove](2, Memory.Remove(2))).assertGet shouldBe true
-      map.write(MapEntry.Put[Slice[Byte], Memory.Range](10, Memory.Range(10, 20, None, Value.Put(20)))).assertGet shouldBe true
-      map.write(MapEntry.Put[Slice[Byte], Memory.Range](10, Memory.Range(10, 15, None, Value.Remove))).assertGet shouldBe true
+      map.write(MapEntry.Put[Slice[Byte], Memory.Range](10, Memory.Range(10, 20, None, Value.Update(20)))).assertGet shouldBe true
+      map.write(MapEntry.Put[Slice[Byte], Memory.Range](10, Memory.Range(10, 15, None, Value.Remove(None)))).assertGet shouldBe true
 
       map.get(1).assertGet shouldBe Memory.Put(1, Some(1))
       map.get(2).assertGet shouldBe Memory.Remove(2)
-      map.get(10).assertGet shouldBe Memory.Range(10, 15, None, Value.Remove)
-      map.get(15).assertGet shouldBe Memory.Range(15, 20, None, Value.Put(20))
+      map.get(10).assertGet shouldBe Memory.Range(10, 15, None, Value.Remove(None))
+      map.get(15).assertGet shouldBe Memory.Range(15, 20, None, Value.Update(20))
 
       def doRecover(path: Path): PersistentMap[Slice[Byte], Memory] = {
         val recovered = Map.persistent[Slice[Byte], Memory](map.path, mmap = Random.nextBoolean(), flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).assertGet.item
         recovered.get(1).assertGet shouldBe Memory.Put(1, Some(1))
         recovered.get(2).assertGet shouldBe Memory.Remove(2)
-        recovered.get(10).assertGet shouldBe Memory.Range(10, 15, None, Value.Remove)
-        recovered.get(15).assertGet shouldBe Memory.Range(15, 20, None, Value.Put(20))
+        recovered.get(10).assertGet shouldBe Memory.Range(10, 15, None, Value.Remove(None))
+        recovered.get(15).assertGet shouldBe Memory.Range(15, 20, None, Value.Update(20))
         recovered.hasRange shouldBe true
         recovered.close().assertGet
         recovered
@@ -199,13 +199,13 @@ class MapSpec extends TestBase {
       map1.write(MapEntry.Put(1, Memory.Put(1, Some(1)))).assertGet shouldBe true
       map1.write(MapEntry.Put(2, Memory.Put(2, Some(2)))).assertGet shouldBe true
       map1.write(MapEntry.Put(3, Memory.Put(3, Some(3)))).assertGet shouldBe true
-      map1.write(MapEntry.Put[Slice[Byte], Memory.Range](10, Memory.Range(10, 20, None, Value.Put(20)))).assertGet shouldBe true
+      map1.write(MapEntry.Put[Slice[Byte], Memory.Range](10, Memory.Range(10, 20, None, Value.Update(20)))).assertGet shouldBe true
 
       val map2 = Map.persistent[Slice[Byte], Memory](createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).assertGet.item
       map2.write(MapEntry.Put(4, Memory.Put(4, Some(4)))).assertGet shouldBe true
       map2.write(MapEntry.Put(5, Memory.Put(5, Some(5)))).assertGet shouldBe true
       map2.write(MapEntry.Put(2, Memory.Put(2, Some(22)))).assertGet shouldBe true //second file will override 2's value to be 22
-      map2.write(MapEntry.Put[Slice[Byte], Memory.Range](10, Memory.Range(10, 15, None, Value.Remove))).assertGet shouldBe true
+      map2.write(MapEntry.Put[Slice[Byte], Memory.Range](10, Memory.Range(10, 15, None, Value.Remove(None)))).assertGet shouldBe true
 
       //move map2's log file into map1's log file folder named as 1.log and reboot to test recovery.
       val map2sLogFile = map2.path.resolve(0.toLogFileId)
@@ -219,8 +219,8 @@ class MapSpec extends TestBase {
       map1Recovered.get(4).assertGet shouldBe Memory.Put(4, Some(4))
       map1Recovered.get(5).assertGet shouldBe Memory.Put(5, Some(5))
       map1Recovered.get(6) shouldBe empty
-      map1Recovered.get(10).assertGet shouldBe Memory.Range(10, 15, None, Value.Remove)
-      map1Recovered.get(15).assertGet shouldBe Memory.Range(15, 20, None, Value.Put(20))
+      map1Recovered.get(10).assertGet shouldBe Memory.Range(10, 15, None, Value.Remove(None))
+      map1Recovered.get(15).assertGet shouldBe Memory.Range(15, 20, None, Value.Update(20))
 
       //recovered file's id is 2.log
       map1Recovered.path.files(Extension.Log).map(_.fileId.assertGet) should contain only ((2, Extension.Log))
@@ -322,8 +322,8 @@ class MapSpec extends TestBase {
       map.write(MapEntry.Put[Slice[Byte], Memory.Remove](2, Memory.Remove(2))).assertGet shouldBe true
       map.write(MapEntry.Put(3, Memory.Put(3, 3))).assertGet shouldBe true
       map.write(MapEntry.Put(3, Memory.Put(3, 3))).assertGet shouldBe true
-      map.write(MapEntry.Put[Slice[Byte], Memory.Range](10, Memory.Range(10, 20, None, Value.Put(20)))).assertGet shouldBe true
-      map.write(MapEntry.Put[Slice[Byte], Memory.Range](10, Memory.Range(10, 15, None, Value.Remove))).assertGet shouldBe true
+      map.write(MapEntry.Put[Slice[Byte], Memory.Range](10, Memory.Range(10, 20, None, Value.Update(20)))).assertGet shouldBe true
+      map.write(MapEntry.Put[Slice[Byte], Memory.Range](10, Memory.Range(10, 15, None, Value.Remove(None)))).assertGet shouldBe true
 
       map.currentFilePath.fileId.assertGet shouldBe(0, Extension.Log)
 
@@ -342,8 +342,8 @@ class MapSpec extends TestBase {
       skipList.get(1: Slice[Byte]) shouldBe Memory.Put(1, 1)
       skipList.get(2: Slice[Byte]) shouldBe Memory.Remove(2)
       skipList.get(3: Slice[Byte]) shouldBe Memory.Put(3, 3)
-      skipList.get(10: Slice[Byte]) shouldBe Memory.Range(10, 15, None, Value.Remove)
-      skipList.get(15: Slice[Byte]) shouldBe Memory.Range(15, 20, None, Value.Put(20))
+      skipList.get(10: Slice[Byte]) shouldBe Memory.Range(10, 15, None, Value.Remove(None))
+      skipList.get(15: Slice[Byte]) shouldBe Memory.Range(15, 20, None, Value.Update(20))
     }
 
     "recover from an existing PersistentMap folder when flushOnOverflow is true" in {
@@ -356,8 +356,8 @@ class MapSpec extends TestBase {
       map.write(MapEntry.Put(1, Memory.Put(1, 1))).assertGet shouldBe true
       map.write(MapEntry.Put[Slice[Byte], Memory.Remove](2, Memory.Remove(2))).assertGet shouldBe true
       map.write(MapEntry.Put(3, Memory.Put(3, 3))).assertGet shouldBe true
-      map.write(MapEntry.Put[Slice[Byte], Memory.Range](10, Memory.Range(10, 20, None, Value.Put(20)))).assertGet shouldBe true
-      map.write(MapEntry.Put[Slice[Byte], Memory.Range](10, Memory.Range(10, 15, None, Value.Remove))).assertGet shouldBe true
+      map.write(MapEntry.Put[Slice[Byte], Memory.Range](10, Memory.Range(10, 20, None, Value.Update(20)))).assertGet shouldBe true
+      map.write(MapEntry.Put[Slice[Byte], Memory.Range](10, Memory.Range(10, 15, None, Value.Remove(None)))).assertGet shouldBe true
 
       map.currentFilePath.fileId.assertGet shouldBe(5, Extension.Log)
       map.path.resolveSibling(0.toLogFileId).exists shouldBe false //0.log gets deleted
@@ -379,8 +379,8 @@ class MapSpec extends TestBase {
       skipList.get(1: Slice[Byte]) shouldBe Memory.Put(1, 1)
       skipList.get(2: Slice[Byte]) shouldBe Memory.Remove(2)
       skipList.get(3: Slice[Byte]) shouldBe Memory.Put(3, 3)
-      skipList.get(10: Slice[Byte]) shouldBe Memory.Range(10, 15, None, Value.Remove)
-      skipList.get(15: Slice[Byte]) shouldBe Memory.Range(15, 20, None, Value.Put(20))
+      skipList.get(10: Slice[Byte]) shouldBe Memory.Range(10, 15, None, Value.Remove(None))
+      skipList.get(15: Slice[Byte]) shouldBe Memory.Range(15, 20, None, Value.Update(20))
 
       //reopen the recovered file
       val skipList2 = new ConcurrentSkipListMap[Slice[Byte], Memory](ordering)
@@ -395,8 +395,8 @@ class MapSpec extends TestBase {
       skipList2.get(1: Slice[Byte]) shouldBe Memory.Put(1, 1)
       skipList2.get(2: Slice[Byte]) shouldBe Memory.Remove(2)
       skipList2.get(3: Slice[Byte]) shouldBe Memory.Put(3, 3)
-      skipList2.get(10: Slice[Byte]) shouldBe Memory.Range(10, 15, None, Value.Remove)
-      skipList2.get(15: Slice[Byte]) shouldBe Memory.Range(15, 20, None, Value.Put(20))
+      skipList2.get(10: Slice[Byte]) shouldBe Memory.Range(10, 15, None, Value.Remove(None))
+      skipList2.get(15: Slice[Byte]) shouldBe Memory.Range(15, 20, None, Value.Update(20))
 
       map.close().assertGet
       recoveredFile.close.assertGet
@@ -436,8 +436,8 @@ class MapSpec extends TestBase {
       skipList.put(1, Memory.Put(1, 1))
       skipList.put(2, Memory.Put(2, 2))
       skipList.put(3, Memory.Remove(3))
-      skipList.put(10, Memory.Range(10, 15, None, Value.Remove))
-      skipList.put(15, Memory.Range(15, 20, Some(Value.Put(15)), Value.Put(14)))
+      skipList.put(10, Memory.Range(10, 15, None, Value.Remove(None)))
+      skipList.put(15, Memory.Range(15, 20, Some(Value.Put(15)), Value.Update(14)))
 
       val currentFile = PersistentMap.recover(createRandomDir, false, 4.mb, skipList, dropCorruptedTailEntries = false).assertGet._1.item
       val nextFile = PersistentMap.nextFile(currentFile, false, 4.mb, skipList).assertGet
@@ -450,8 +450,8 @@ class MapSpec extends TestBase {
       nextFileSkipList.get(1: Slice[Byte]) shouldBe Memory.Put(1, 1)
       nextFileSkipList.get(2: Slice[Byte]) shouldBe Memory.Put(2, 2)
       nextFileSkipList.get(3: Slice[Byte]) shouldBe Memory.Remove(3)
-      nextFileSkipList.get(10: Slice[Byte]) shouldBe Memory.Range(10, 15, None, Value.Remove)
-      nextFileSkipList.get(15: Slice[Byte]) shouldBe Memory.Range(15, 20, Some(Value.Put(15)), Value.Put(14))
+      nextFileSkipList.get(10: Slice[Byte]) shouldBe Memory.Range(10, 15, None, Value.Remove(None))
+      nextFileSkipList.get(15: Slice[Byte]) shouldBe Memory.Range(15, 20, Some(Value.Put(15)), Value.Update(14))
 
       currentFile.close.assertGet
       nextFile.close.assertGet
@@ -597,6 +597,40 @@ class MapSpec extends TestBase {
       recoveredMapWith0LogCorrupted.item.get(4).assertGet shouldBe Memory.Put(4, 4)
       recoveredMapWith0LogCorrupted.item.get(5).assertGet shouldBe Memory.Put(5, 5)
       recoveredMapWith0LogCorrupted.item.get(6) shouldBe empty
+    }
+  }
+
+  "Randomly inserting data into Map and recovering the Map" should {
+    "result in the recovered Map to have the same skipList as the Map before recovery" in {
+      import LevelZeroMapEntryWriter._
+      import LevelZeroMapEntryReader._
+
+      //run this test multiple times to randomly generate multiple combinations of overlapping key-value with optionally & randomly added Put, Remove, Range or Update.
+      (1 to 100) foreach {
+        _ =>
+          //create a Map with randomly max size so that this test also covers when multiple maps are created. Also set flushOnOverflow to true so that the same Map gets written.
+          val map = Map.persistent[Slice[Byte], Memory](createRandomDir, mmap = Random.nextBoolean(), flushOnOverflow = true, randomIntMax(1.mb), dropCorruptedTailEntries = false).assertGet.item
+
+          //randomly create 100 key-values to insert into the Map. These key-values may contain range, update, or key-values deadlines randomly.
+          val keyValues = randomizedIntKeyValues(1000).toMemory
+          //slice write them to that if map's randomly selected size is too small and multiple maps are written to.
+          keyValues.groupedSlice(5) foreach {
+            keyValues =>
+              map.write(keyValues.toMapEntry.assertGet).assertGet shouldBe true
+          }
+          map.skipList.values().asScala shouldBe keyValues
+
+          //write overlapping key-values to the same map which are randomly selected and may or may not contain range, update, or key-values deadlines.
+          val updatedValues = randomizedIntKeyValues(1000, startId = Some(keyValues.head.key.readInt()))
+          val updatedEntries = updatedValues.toMapEntry.assertGet
+          map.write(updatedEntries).assertGet shouldBe true
+
+          //reopening the map should return in the original skipList.
+          val reopened = map.reopen
+          reopened.skipList.size() shouldBe map.skipList.size()
+          reopened.skipList shouldBe map.skipList
+          reopened.delete.assertGet
+      }
     }
   }
 }

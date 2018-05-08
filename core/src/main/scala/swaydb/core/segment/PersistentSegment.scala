@@ -36,8 +36,10 @@ import swaydb.data.config.Dir
 import swaydb.data.segment.MaxKey
 import swaydb.data.segment.MaxKey.{Fixed, Range}
 import swaydb.data.slice.{Reader, Slice}
+import PipeOps._
 
 import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.{Deadline, FiniteDuration}
 import scala.util.{Failure, Success, Try}
 
 private[segment] class PersistentSegment(val file: DBFile,
@@ -46,10 +48,11 @@ private[segment] class PersistentSegment(val file: DBFile,
                                          val minKey: Slice[Byte],
                                          val maxKey: MaxKey,
                                          val segmentSize: Int,
-                                         val removeDeletes: Boolean)(implicit ordering: Ordering[Slice[Byte]],
-                                                                     keyValueLimiter: (Persistent, Segment) => Unit,
-                                                                     fileOpenLimited: DBFile => Unit,
-                                                                     ec: ExecutionContext) extends Segment with LazyLogging {
+                                         val removeDeletes: Boolean,
+                                         val nearestExpiryDeadline: Option[Deadline])(implicit ordering: Ordering[Slice[Byte]],
+                                                                                      keyValueLimiter: (Persistent, Segment) => Unit,
+                                                                                      fileOpenLimited: DBFile => Unit,
+                                                                                      ec: ExecutionContext) extends Segment with LazyLogging {
 
   import ordering._
 
@@ -99,16 +102,18 @@ private[segment] class PersistentSegment(val file: DBFile,
   def put(newKeyValues: Slice[KeyValue.ReadOnly],
           minSegmentSize: Long,
           bloomFilterFalsePositiveRate: Double,
+          graceTimeout: FiniteDuration,
           targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Try[Slice[Segment]] =
     getAll() flatMap {
       currentKeyValues =>
-        SegmentMerge.merge(
+        SegmentMerger.merge(
           newKeyValues = newKeyValues,
           oldKeyValues = currentKeyValues,
           minSegmentSize = minSegmentSize,
           forInMemory = false,
           isLastLevel = removeDeletes,
-          bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate
+          bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+          hasTimeLeftAtLeast = graceTimeout
         ) flatMap {
           splits =>
             splits.tryMap(
@@ -131,6 +136,45 @@ private[segment] class PersistentSegment(val file: DBFile,
                       segmentToDelete.delete.failed foreach {
                         exception =>
                           logger.error(s"{}: Failed to delete Segment '{}' in recover due to failed put", path, segmentToDelete.path, exception)
+                      }
+                  }
+            )
+        }
+    }
+
+  def refresh(minSegmentSize: Long,
+              bloomFilterFalsePositiveRate: Double,
+              targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Try[Slice[Segment]] =
+    getAll() flatMap {
+      currentKeyValues =>
+        SegmentMerger.split(
+          keyValues = currentKeyValues,
+          minSegmentSize = minSegmentSize,
+          forInMemory = false,
+          isLastLevel = removeDeletes,
+          bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate
+        ) ==> {
+          splits =>
+            splits.tryMap(
+              tryBlock =
+                keyValues => {
+                  Segment.persistent(
+                    path = targetPaths.next.resolve(idGenerator.nextSegmentID),
+                    mmapReads = mmapReads,
+                    mmapWrites = mmapWrites,
+                    keyValues = keyValues,
+                    bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+                    removeDeletes = removeDeletes
+                  )
+                },
+
+              recover =
+                (segments: Slice[Segment], _: Failure[Slice[Segment]]) =>
+                  segments foreach {
+                    segmentToDelete =>
+                      segmentToDelete.delete.failed foreach {
+                        exception =>
+                          logger.error(s"{}: Failed to delete Segment '{}' in recover due to failed refresh", path, segmentToDelete.path, exception)
                       }
                   }
             )
@@ -179,14 +223,14 @@ private[segment] class PersistentSegment(val file: DBFile,
   def get(key: Slice[Byte]): Try[Option[Persistent]] =
     maxKey match {
       case Fixed(maxKey) if key > maxKey =>
-        Success(None)
+        TryUtil.successNone
 
       case range: Range if key >= range.maxKey =>
-        Success(None)
+        TryUtil.successNone
 
       //check for minKey inside the Segment is not required since Levels already do minKey check.
       //      case _ if key < minKey =>
-      //        Success(None)
+      //        TryUtil.successNone
 
       case _ =>
         val floorValue = Option(cache.floorEntry(key)).map(_.getValue)
@@ -201,7 +245,7 @@ private[segment] class PersistentSegment(val file: DBFile,
             prepareGet {
               (footer, reader) =>
                 if (!footer.hasRange && !footer.bloomFilter.forall(_.mightContain(key)))
-                  Success(None)
+                  TryUtil.successNone
                 else
                   returnResponse {
                     find(KeyMatcher.Get(key), startFrom = floorValue, reader, footer)
@@ -222,7 +266,7 @@ private[segment] class PersistentSegment(val file: DBFile,
 
   def lower(key: Slice[Byte]): Try[Option[Persistent]] =
     if (key <= minKey)
-      Success(None)
+      TryUtil.successNone
     else {
       maxKey match {
         case Fixed(maxKey) if key > maxKey =>
@@ -265,10 +309,10 @@ private[segment] class PersistentSegment(val file: DBFile,
   def higher(key: Slice[Byte]): Try[Option[Persistent]] =
     maxKey match {
       case Fixed(maxKey) if key >= maxKey =>
-        Success(None)
+        TryUtil.successNone
 
       case Range(_, maxKey) if key >= maxKey =>
-        Success(None)
+        TryUtil.successNone
 
       case _ =>
         val floorKeyValue = Option(cache.floorEntry(key)).map(_.getValue)

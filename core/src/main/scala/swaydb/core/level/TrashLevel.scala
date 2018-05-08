@@ -139,19 +139,19 @@ private[core] object TrashLevel extends LevelRef {
     (0, 0)
 
   override val head =
-    Success(None)
+    TryUtil.successNone
 
   override val last =
-    Success(None)
+    TryUtil.successNone
 
   override def get(key: Slice[Byte]) =
-    Success(None)
+    TryUtil.successNone
 
   override def lower(key: Slice[Byte]) =
-    Success(None)
+    TryUtil.successNone
 
   override def higher(key: Slice[Byte]) =
-    Success(None)
+    TryUtil.successNone
 
   override val isEmpty: Boolean =
     true
@@ -188,11 +188,11 @@ private[core] object TrashLevel extends LevelRef {
   override def putMap(map: Map[Slice[Byte], Memory]): Try[Unit] =
     TryUtil.successUnit
 
-  override def ceiling(key: Slice[Byte]): Try[Option[KeyValue.FindResponse]] =
-    Success(None)
+  override def ceiling(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Put]] =
+    TryUtil.successNone
 
-  override def floor(key: Slice[Byte]): Try[Option[KeyValue.FindResponse]] =
-    Success(None)
+  override def floor(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Put]] =
+    TryUtil.successNone
 
   override val firstKey: Option[Slice[Byte]] =
     None
@@ -202,4 +202,10 @@ private[core] object TrashLevel extends LevelRef {
 
   override def closeSegments(): Try[Unit] =
     TryUtil.successUnit
+
+  override def clearExpiredKeyValues(): Try[Unit] =
+    TryUtil.successUnit
+
+  override val graceTimeout: FiniteDuration =
+    0.seconds
 }

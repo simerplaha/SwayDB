@@ -41,7 +41,7 @@ class MapCodecSpec extends TestBase {
   "MemoryMapCodec" should {
     "write and read key values" in {
       import LevelZeroMapEntryWriter.Level0PutValueWriter
-      val keyValues = randomIntKeyValues(1000, addRandomDeletes = true)
+      val keyValues = randomIntKeyValues(1000, addRandomRemoves = true)
       val map = new ConcurrentSkipListMap[Slice[Byte], Memory](ordering)
       keyValues foreach {
         keyValue =>
@@ -63,7 +63,7 @@ class MapCodecSpec extends TestBase {
     }
 
     "read bytes to map and ignore empty written byte(s)" in {
-      val keyValues = randomIntKeyValues(1000, addRandomDeletes = true)
+      val keyValues = randomIntKeyValues(1000, addRandomRemoves = true)
       val map = new ConcurrentSkipListMap[Slice[Byte], Memory](ordering)
       keyValues foreach {
         keyValue =>

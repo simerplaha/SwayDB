@@ -22,7 +22,7 @@ package swaydb.core.segment
 import swaydb.core.TestBase
 import swaydb.core.data.Persistent._
 import swaydb.core.io.reader.Reader
-import swaydb.core.map.serializer.RangeValueSerializers.UnitPutSerializer
+import swaydb.core.map.serializer.RangeValueSerializers.UnitUpdateSerializer
 import swaydb.core.segment.format.one.KeyMatcher
 import swaydb.core.segment.format.one.MatchResult._
 import swaydb.serializers.Default._
@@ -49,10 +49,10 @@ class KeyMatcherSpec extends TestBase {
     Some(int)
 
   implicit def IntToKeyValue(int: Int): Put =
-    Put(int, Reader(Slice.create[Byte](0)), 0, 0, 0, 0, 0)
+    Put(int, None, Reader(Slice.create[Byte](0)), 0, 0, 0, 0, 0)
 
   implicit def IntTupleToRange(tuple: (Int, Int)): Range =
-    Range(UnitPutSerializer.rangeId, tuple._1, tuple._2, Reader(Slice.create[Byte](0)), 0, 0, 0, 0, 0)
+    Range(UnitUpdateSerializer.id, tuple._1, tuple._2, Reader(Slice.create[Byte](0)), 0, 0, 0, 0, 0)
 
   implicit def IntTupleToRangeOption(tuple: (Int, Int)): Option[Range] =
     Some(tuple)

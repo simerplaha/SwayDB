@@ -24,10 +24,12 @@ import swaydb.api.SwayDBAPI
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.request
+import swaydb.data.slice.Slice
 import swaydb.iterator.{DBIterator, KeysIterator}
 import swaydb.serializers.{Serializer, _}
 import swaydb.types.BatchImplicits._
 
+import scala.concurrent.duration.FiniteDuration
 import scala.util.Try
 
 object SwayDBMap {
@@ -69,6 +71,9 @@ class SwayDBMap[K, V](api: SwayDBAPI)(implicit keySerializer: Serializer[K],
   def put(key: K, value: V): Try[Level0Meter] =
     api.put(key, Some(value))
 
+  def put(key: K, value: V, expireAfter: FiniteDuration): Try[Level0Meter] =
+    api.put(key, Some(value))
+
   def batch(batch: Batch[K, V]*): Try[Level0Meter] =
     api.put(batch)
 
@@ -98,6 +103,9 @@ class SwayDBMap[K, V](api: SwayDBAPI)(implicit keySerializer: Serializer[K],
   def remove(from: K, until: K): Try[Level0Meter] =
     api.remove(from, until)
 
+  def remove(from: K, to: K, after: FiniteDuration): Try[Level0Meter] =
+    api.remove(from, to, after)
+
   def update(from: K, until: K, value: V): Try[Level0Meter] =
     api.update(from, until, Some(value))
 
@@ -122,7 +130,15 @@ class SwayDBMap[K, V](api: SwayDBAPI)(implicit keySerializer: Serializer[K],
   def sizeOfSegments: Long =
     api.sizeOfSegments
 
+  def keyLength(key: K): Int =
+    (key: Slice[Byte]).size
+
+  def valueLength(value: V): Int =
+    (value: Slice[Byte]).size
+
+  def keySize(key: K): Try[Option[Int]] =
+    api keySize key
+
   def valueSize(key: K): Try[Option[Int]] =
     api valueSize key
-
 }

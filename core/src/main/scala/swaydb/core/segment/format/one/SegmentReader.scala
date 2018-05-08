@@ -19,6 +19,8 @@
 
 package swaydb.core.segment.format.one
 
+import java.util.concurrent.TimeUnit
+
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.{KeyValue, Persistent, Transient}
 import swaydb.core.io.reader.Reader
@@ -26,12 +28,13 @@ import swaydb.core.map.serializer.RangeValueSerializer
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
 import swaydb.core.util.BloomFilterUtil._
 import swaydb.core.util.TryUtil._
-import swaydb.core.util.{ByteUtilCore, CRC32}
+import swaydb.core.util.{ByteUtilCore, CRC32, TryUtil}
 import swaydb.data.slice.Slice._
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
 
 import scala.annotation.tailrec
+import scala.concurrent.duration.Deadline
 import scala.util.{Failure, Success, Try}
 
 /**
@@ -43,9 +46,10 @@ private[core] object SegmentReader extends LazyLogging {
   private def readNextKeyValue[P <: Persistent](previous: P,
                                                 endIndexOffset: Int,
                                                 reader: Reader,
-                                                onCreate: (Slice[Byte], Int, Int, Int, Int) => P,
+                                                onPut: (Slice[Byte], Int, Int, Int, Int, Option[Deadline]) => P,
+                                                onUpdate: (Slice[Byte], Int, Int, Int, Int, Option[Deadline]) => P,
                                                 onRange: (Int, Slice[Byte], Int, Int, Int, Int) => Try[P],
-                                                onDelete: (Slice[Byte], Int, Int) => P): Try[P] = {
+                                                onRemove: (Slice[Byte], Int, Int, Option[Deadline]) => P): Try[P] = {
     reader moveTo previous.nextIndexOffset
     readNextKeyValue(
       indexEntrySizeMayBe = Some(previous.nextIndexSize),
@@ -53,18 +57,20 @@ private[core] object SegmentReader extends LazyLogging {
       endIndexOffset = endIndexOffset,
       reader = reader,
       previous = Some(previous),
-      onCreate = onCreate,
+      onPut = onPut,
+      onUpdate = onUpdate,
       onRange = onRange,
-      onDelete = onDelete
+      onRemove = onRemove
     )
   }
 
   private def readNextKeyValue[P <: Persistent](fromPosition: Int,
                                                 endIndexOffset: Int,
                                                 reader: Reader,
-                                                onCreate: (Slice[Byte], Int, Int, Int, Int) => P,
+                                                onPut: (Slice[Byte], Int, Int, Int, Int, Option[Deadline]) => P,
+                                                onUpdate: (Slice[Byte], Int, Int, Int, Int, Option[Deadline]) => P,
                                                 onRange: (Int, Slice[Byte], Int, Int, Int, Int) => Try[P],
-                                                onDelete: (Slice[Byte], Int, Int) => P): Try[P] = {
+                                                onRemove: (Slice[Byte], Int, Int, Option[Deadline]) => P): Try[P] = {
     reader moveTo fromPosition
     readNextKeyValue(
       indexEntrySizeMayBe = None,
@@ -72,9 +78,10 @@ private[core] object SegmentReader extends LazyLogging {
       endIndexOffset = endIndexOffset,
       reader = reader,
       previous = None,
-      onCreate = onCreate,
+      onPut = onPut,
+      onUpdate = onUpdate,
       onRange = onRange,
-      onDelete = onDelete
+      onRemove = onRemove
     )
   }
 
@@ -84,9 +91,10 @@ private[core] object SegmentReader extends LazyLogging {
                                                 endIndexOffset: Int,
                                                 reader: Reader,
                                                 previous: Option[P],
-                                                onCreate: (Slice[Byte], Int, Int, Int, Int) => P,
+                                                onPut: (Slice[Byte], Int, Int, Int, Int, Option[Deadline]) => P,
+                                                onUpdate: (Slice[Byte], Int, Int, Int, Int, Option[Deadline]) => P,
                                                 onRange: (Int, Slice[Byte], Int, Int, Int, Int) => Try[P],
-                                                onDelete: (Slice[Byte], Int, Int) => P): Try[P] =
+                                                onRemove: (Slice[Byte], Int, Int, Option[Deadline]) => P): Try[P] =
     try {
       val positionBeforeRead = reader.getPosition
       //size of the index entry to read
@@ -138,6 +146,9 @@ private[core] object SegmentReader extends LazyLogging {
             key = Slice(fullKey)
         }
 
+      val deadlineLong = indexEntryReader.readLongUnsigned().get
+      val deadline = if (deadlineLong == 0) None else Some(Deadline(deadlineLong, TimeUnit.NANOSECONDS))
+
       //The above fetches another 5 bytes (unsigned int) along with previous index entry.
       //These 5 bytes contains the next index's size. Here the next key-values indexSize and indexOffset are read.
       def nextIndexSizeAndOffset: (Int, Int) =
@@ -151,10 +162,14 @@ private[core] object SegmentReader extends LazyLogging {
       if (id == Transient.Put.id) {
         val valueOffset = if (valueLength == 0) 0 else indexEntryReader.readIntUnsigned().get
         val (nextIndexSize, nextIndexOffset) = nextIndexSizeAndOffset
-        Success(onCreate(key, valueLength, valueOffset, nextIndexOffset, nextIndexSize))
+        Success(onPut(key, valueLength, valueOffset, nextIndexOffset, nextIndexSize, deadline))
       } else if (id == Transient.Remove.id) {
         val (nextIndexSize, nextIndexOffset) = nextIndexSizeAndOffset
-        Success(onDelete(key, nextIndexOffset, nextIndexSize))
+        Success(onRemove(key, nextIndexOffset, nextIndexSize, deadline))
+      } else if (id == Transient.Update.id) {
+        val valueOffset = if (valueLength == 0) 0 else indexEntryReader.readIntUnsigned().get
+        val (nextIndexSize, nextIndexOffset) = nextIndexSizeAndOffset
+        Success(onUpdate(key, valueLength, valueOffset, nextIndexOffset, nextIndexSize, deadline))
       } else if (RangeValueSerializer.isRangeValue(id)) {
         val valueOffset = if (valueLength == 0) 0 else indexEntryReader.readIntUnsigned().get
         val (nextIndexSize, nextIndexOffset) = nextIndexSizeAndOffset
@@ -209,9 +224,10 @@ private[core] object SegmentReader extends LazyLogging {
             //user entries.lastOption instead of previousMayBe because, addTo might already be pre-populated and the
             //last entry would of bethe.
             previous = previousMayBe,
-            onCreate = Persistent.Put(reader.copy(), previousMayBe.map(_.nextIndexOffset).getOrElse(footer.startIndexOffset)),
+            onPut = Persistent.Put(reader.copy(), previousMayBe.map(_.nextIndexOffset).getOrElse(footer.startIndexOffset)),
+            onUpdate = Persistent.Update(reader.copy(), previousMayBe.map(_.nextIndexOffset).getOrElse(footer.startIndexOffset)),
             onRange = Persistent.Range(reader.copy(), previousMayBe.map(_.nextIndexOffset).getOrElse(footer.startIndexOffset)),
-            onDelete = Persistent.Remove(previousMayBe.map(_.nextIndexOffset).getOrElse(footer.startIndexOffset))
+            onRemove = Persistent.Remove(previousMayBe.map(_.nextIndexOffset).getOrElse(footer.startIndexOffset))
           ) map {
             next =>
               entries add next
@@ -232,7 +248,7 @@ private[core] object SegmentReader extends LazyLogging {
   def getValue(valueOffset: Int, valueLength: Int, reader: Reader): Try[Option[Slice[Byte]]] =
     try {
       if (valueLength == 0)
-        Success(None)
+        TryUtil.successNone
       else
         (reader.copy() moveTo valueOffset read valueLength).map(Some(_))
     } catch {
@@ -303,15 +319,16 @@ private[core] object SegmentReader extends LazyLogging {
         case Some(startFrom) =>
           //if startFrom is the last index entry, return None.
           if (startFrom.nextIndexSize == 0)
-            Success(None)
+            TryUtil.successNone
           else
             readNextKeyValue(
               previous = startFrom,
               endIndexOffset = footer.endIndexOffset,
               reader = reader,
-              onCreate = Persistent.Put(reader, startFrom.nextIndexOffset),
+              onPut = Persistent.Put(reader, startFrom.nextIndexOffset),
+              onUpdate = Persistent.Update(reader, startFrom.nextIndexOffset),
               onRange = Persistent.Range(reader, startFrom.nextIndexOffset),
-              onDelete = Persistent.Remove(startFrom.nextIndexOffset)
+              onRemove = Persistent.Remove(startFrom.nextIndexOffset)
             ) flatMap {
               keyValue =>
                 find(startFrom, Some(keyValue), matcher, reader, footer)
@@ -323,9 +340,10 @@ private[core] object SegmentReader extends LazyLogging {
             fromPosition = footer.startIndexOffset,
             endIndexOffset = footer.endIndexOffset,
             reader = reader,
-            onCreate = Persistent.Put(reader, footer.startIndexOffset),
+            onPut = Persistent.Put(reader, footer.startIndexOffset),
+            onUpdate = Persistent.Update(reader, footer.startIndexOffset),
             onRange = Persistent.Range(reader, footer.startIndexOffset),
-            onDelete = Persistent.Remove(footer.startIndexOffset)
+            onRemove = Persistent.Remove(footer.startIndexOffset)
           ) flatMap {
             keyValue =>
               find(keyValue, None, matcher, reader, footer)
@@ -349,9 +367,10 @@ private[core] object SegmentReader extends LazyLogging {
           previous = readFrom,
           endIndexOffset = footer.endIndexOffset,
           reader = reader,
-          onCreate = Persistent.Put(reader, readFrom.nextIndexOffset),
+          onPut = Persistent.Put(reader, readFrom.nextIndexOffset),
+          onUpdate = Persistent.Update(reader, readFrom.nextIndexOffset),
           onRange = Persistent.Range(reader, readFrom.nextIndexOffset),
-          onDelete = Persistent.Remove(readFrom.nextIndexOffset)
+          onRemove = Persistent.Remove(readFrom.nextIndexOffset)
         ) match {
           case Success(nextNextKeyValue) =>
             find(readFrom, Some(nextNextKeyValue), matcher, reader, footer)
@@ -364,7 +383,7 @@ private[core] object SegmentReader extends LazyLogging {
         Success(Some(keyValue))
 
       case MatchResult.Stop =>
-        Success(None)
+        TryUtil.successNone
 
     }
 

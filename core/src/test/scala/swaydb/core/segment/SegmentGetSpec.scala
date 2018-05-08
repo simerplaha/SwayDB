@@ -19,23 +19,18 @@
 
 package swaydb.core.segment
 
-import java.nio.file.{Files, NoSuchFileException}
-
 import org.scalatest.PrivateMethodTester
 import org.scalatest.concurrent.ScalaFutures
 import swaydb.core.TestBase
-import swaydb.core.data.Transient.Remove
 import swaydb.core.data._
-import swaydb.core.map.serializer.RangeValueSerializers
-import swaydb.core.map.serializer.RangeValueSerializers._
-import swaydb.core.segment.SegmentException.SegmentCorruptionException
-import swaydb.core.segment.format.one.SegmentWriter
-import swaydb.data.segment.MaxKey.{Fixed, Range}
 import swaydb.data.slice.Slice
 import swaydb.order.KeyOrder
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
+import scala.concurrent.duration._
+
+class SegmentGetSpec0 extends SegmentGetSpec
 //@formatter:off
 class SegmentGetSpec1 extends SegmentGetSpec {
   override def levelFoldersCount = 10
@@ -58,7 +53,7 @@ class SegmentGetSpec3 extends SegmentGetSpec {
 }
 //@formatter:on
 
-class SegmentGetSpec extends TestBase with ScalaFutures with PrivateMethodTester {
+trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMethodTester {
 
   implicit val ordering = KeyOrder.default
   val keyValuesCount = 100
@@ -87,7 +82,7 @@ class SegmentGetSpec extends TestBase with ScalaFutures with PrivateMethodTester
 
     "return None key when the key is greater or less than Segment's min & maxKey and max Key is a Raneg key-value" in {
       assertOnSegment(
-        keyValues = Slice(Memory.Range(1, 10, None, Value.Put(10))),
+        keyValues = Slice(Memory.Range(1, 10, None, Value.Update(10))),
         assertion =
           segment => {
             segment.get(0).assertGetOpt shouldBe empty
@@ -99,8 +94,8 @@ class SegmentGetSpec extends TestBase with ScalaFutures with PrivateMethodTester
       assertOnSegment(
         keyValues =
           Slice(
-            Memory.Range(1, 10, None, Value.Put(10)),
-            Memory.Range(10, 20, None, Value.Put(20))
+            Memory.Range(1, 10, None, Value.Update(10)),
+            Memory.Range(10, 20, None, Value.Update(20))
           ),
         assertion =
           segment => {
@@ -112,9 +107,18 @@ class SegmentGetSpec extends TestBase with ScalaFutures with PrivateMethodTester
     }
 
     "get a Put key-value" in {
+      val deadline = 1.second.fromNow
       assertOnSegment(
-        keyValues = Slice(Memory.Put(1, 10)),
-        assertion = _.get(1).assertGet shouldBe Memory.Put(1, 10)
+        keyValues = Slice(Memory.Put(1, 10, deadline)),
+        assertion = _.get(1).assertGet shouldBe Memory.Put(1, 10, deadline)
+      )
+    }
+
+    "get a Put key-value with deadline" in {
+      val deadline = 1.second.fromNow
+      assertOnSegment(
+        keyValues = Slice(Memory.Put(1, 10, deadline)),
+        assertion = _.get(1).assertGet shouldBe Memory.Put(1, 10, deadline)
       )
     }
 
@@ -125,46 +129,54 @@ class SegmentGetSpec extends TestBase with ScalaFutures with PrivateMethodTester
       )
     }
 
+    "get a Remove key-value with deadline" in {
+      val deadline = 1.day.fromNow
+      assertOnSegment(
+        keyValues = Slice(Memory.Remove(1, deadline)),
+        assertion = _.get(1).assertGet shouldBe Memory.Remove(1, deadline)
+      )
+    }
+
     "get Range key-values" in {
       assertOnSegment(
-        keyValues = Slice(Memory.Range(1, 10, None, Value.Remove)),
-        assertion = _.get(1).assertGet shouldBe Memory.Range(1, 10, None, Value.Remove)
+        keyValues = Slice(Memory.Range(1, 10, None, Value.Remove(None))),
+        assertion = _.get(1).assertGet shouldBe Memory.Range(1, 10, None, Value.Remove(None))
       )
 
       assertOnSegment(
-        keyValues = Slice(Memory.Range(1, 10, Some(Value.Remove), Value.Remove)),
-        assertion = _.get(1).assertGet shouldBe Memory.Range(1, 10, Some(Value.Remove), Value.Remove)
+        keyValues = Slice(Memory.Range(1, 10, Some(Value.Remove(None)), Value.Remove(None))),
+        assertion = _.get(1).assertGet shouldBe Memory.Range(1, 10, Some(Value.Remove(None)), Value.Remove(None))
       )
 
       assertOnSegment(
-        keyValues = Slice(Memory.Range(1, 10, Some(Value.Put(1)), Value.Remove)),
-        assertion = _.get(1).assertGet shouldBe Memory.Range(1, 10, Some(Value.Put(1)), Value.Remove)
+        keyValues = Slice(Memory.Range(1, 10, Some(Value.Put(1)), Value.Remove(None))),
+        assertion = _.get(1).assertGet shouldBe Memory.Range(1, 10, Some(Value.Put(1)), Value.Remove(None))
       )
 
       assertOnSegment(
-        keyValues = Slice(Memory.Range(1, 10, None, Value.Put(10))),
-        assertion = _.get(1).assertGet shouldBe Memory.Range(1, 10, None, Value.Put(10))
+        keyValues = Slice(Memory.Range(1, 10, None, Value.Update(10))),
+        assertion = _.get(1).assertGet shouldBe Memory.Range(1, 10, None, Value.Update(10))
       )
 
       assertOnSegment(
-        keyValues = Slice(Memory.Range(1, 10, Some(Value.Remove), Value.Put(10))),
-        assertion = _.get(1).assertGet shouldBe Memory.Range(1, 10, Some(Value.Remove), Value.Put(10))
+        keyValues = Slice(Memory.Range(1, 10, Some(Value.Remove(None)), Value.Update(10))),
+        assertion = _.get(1).assertGet shouldBe Memory.Range(1, 10, Some(Value.Remove(None)), Value.Update(10))
       )
 
       assertOnSegment(
-        keyValues = Slice(Memory.Range(1, 10, Some(Value.Put(1)), Value.Put(10))),
-        assertion = _.get(1).assertGet shouldBe Memory.Range(1, 10, Some(Value.Put(1)), Value.Put(10))
+        keyValues = Slice(Memory.Range(1, 10, Some(Value.Put(1)), Value.Update(10))),
+        assertion = _.get(1).assertGet shouldBe Memory.Range(1, 10, Some(Value.Put(1)), Value.Update(10))
       )
     }
 
     "get random key-values" in {
-      val keyValues = randomIntKeyValues(keyValuesCount, addRandomDeletes = true, addRandomRanges = true)
+      val keyValues = randomIntKeyValues(keyValuesCount, addRandomRanges = true)
       val segment = TestSegment(keyValues).assertGet
       assertGet(keyValues, segment)
     }
 
     "add unsliced key-values to Segment's caches" in {
-      val keyValues = randomIntKeyStringValues(keyValuesCount, addRandomDeletes = true, addRandomRanges = true)
+      val keyValues = randomIntKeyValues(keyValuesCount, addRandomRemoves = true, addRandomRanges = true, addRandomPutDeadlines = true, addRandomRemoveDeadlines = true)
       val segment = TestSegment(keyValues).assertGet
 
       (0 until keyValues.size) foreach {

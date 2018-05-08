@@ -21,29 +21,29 @@ package swaydb.core.data
 
 import swaydb.core.map.serializer.RangeValueSerializer
 
-import scala.util.{Success, Try}
+import scala.util.{Failure, Success, Try}
 
 //GAH! Inheritance Yuk! Need to update this code.
 trait LazyRangeValue extends LazyValue {
 
   val id: Int
 
-  @volatile private var fromValue: Option[Value] = null
-  @volatile private var rangeValue: Value = null
+  @volatile private var fromValue: Option[Value.FromValue] = null
+  @volatile private var rangeValue: Value.RangeValue = null
 
-  def fetchRangeValue: Try[Value] =
+  def fetchRangeValue: Try[Value.RangeValue] =
     if (rangeValue == null)
       fetchFromAndRangeValue.map(_._2)
     else
       Success(rangeValue)
 
-  def fetchFromValue: Try[Option[Value]] =
+  def fetchFromValue: Try[Option[Value.FromValue]] =
     if (fromValue == null)
       fetchFromAndRangeValue.map(_._1)
     else
       Success(fromValue)
 
-  def fetchFromAndRangeValue: Try[(Option[Value], Value)] =
+  def fetchFromAndRangeValue: Try[(Option[Value.FromValue], Value.RangeValue)] =
     if (fromValue == null || rangeValue == null)
       getOrFetchValue flatMap {
         case Some(rangeValue) =>
@@ -54,12 +54,7 @@ trait LazyRangeValue extends LazyValue {
               fromValueRangeValue
           }
         case None =>
-          RangeValueSerializer.readRemoveRangeOnly(id) map {
-            case fromValueRangeValue @ (fromValue, rangeValue) =>
-              this.fromValue = fromValue.map(_.unslice)
-              this.rangeValue = rangeValue.unslice
-              fromValueRangeValue
-          }
+          Failure(new IllegalStateException(s"Invalid rangeId $id"))
       }
     else
       Success(fromValue, rangeValue)

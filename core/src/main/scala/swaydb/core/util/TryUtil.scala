@@ -28,7 +28,9 @@ import scala.util.{Failure, Success, Try}
 
 private[core] object TryUtil {
 
-  final val successUnit: Success[Unit] = Success()
+  val successUnit: Success[Unit] = Success()
+
+  val successNone = Success(None)
 
   implicit class IterableTryImplicit[T: ClassTag](iterable: Iterable[T]) {
 

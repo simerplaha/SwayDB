@@ -19,15 +19,17 @@
 
 package swaydb.core.map.serializer
 
-import swaydb.core.data.{Memory, Value}
+import java.util.concurrent.TimeUnit
+
+import swaydb.core.data.Memory
 import swaydb.core.map.MapEntry
+import swaydb.core.util.TryUtil
 import swaydb.data.slice.{Reader, Slice}
 
+import scala.concurrent.duration.Deadline
 import scala.util.{Failure, Success, Try}
 
 object LevelZeroMapEntryReader {
-
-  implicit val putSerializer = ValueSerializers.PutSerializerWithSize
 
   implicit object Level0RemoveReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Memory.Remove]] {
 
@@ -35,21 +37,40 @@ object LevelZeroMapEntryReader {
       for {
         keyLength <- reader.readInt()
         key <- reader.read(keyLength).map(_.unslice())
+        after <- reader.readLong()
       } yield {
-        Some(MapEntry.Put(key, Memory.Remove(key))(LevelZeroMapEntryWriter.Level0RemoveWriter))
+        val deadline = if (after == 0) None else Some(Deadline(after, TimeUnit.NANOSECONDS))
+        Some(MapEntry.Put(key, Memory.Remove(key, deadline))(LevelZeroMapEntryWriter.Level0RemoveWriter))
       }
   }
 
-  implicit object Level0AddReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Memory.Put]] {
+  implicit object Level0PutReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Memory.Put]] {
 
     override def read(reader: Reader): Try[Option[MapEntry.Put[Slice[Byte], Memory.Put]]] =
       for {
         keyLength <- reader.readInt()
         key <- reader.read(keyLength).map(_.unslice())
         valueLength <- reader.readInt()
-        value <- if (valueLength == 0) Success(None) else reader.read(valueLength).map(Some(_))
+        value <- if (valueLength == 0) TryUtil.successNone else reader.read(valueLength).map(Some(_))
+        after <- reader.readLong()
       } yield {
-        Some(MapEntry.Put(key, Memory.Put(key, value))(LevelZeroMapEntryWriter.Level0PutWriter))
+        val deadline = if (after == 0) None else Some(Deadline(after, TimeUnit.NANOSECONDS))
+        Some(MapEntry.Put(key, Memory.Put(key, value, deadline))(LevelZeroMapEntryWriter.Level0PutWriter))
+      }
+  }
+
+  implicit object Level0UpdateReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Memory.Update]] {
+
+    override def read(reader: Reader): Try[Option[MapEntry.Put[Slice[Byte], Memory.Update]]] =
+      for {
+        keyLength <- reader.readInt()
+        key <- reader.read(keyLength).map(_.unslice())
+        valueLength <- reader.readInt()
+        value <- if (valueLength == 0) TryUtil.successNone else reader.read(valueLength).map(Some(_))
+        after <- reader.readLong()
+      } yield {
+        val deadline = if (after == 0) None else Some(Deadline(after, TimeUnit.NANOSECONDS))
+        Some(MapEntry.Put(key, Memory.Update(key, value, deadline))(LevelZeroMapEntryWriter.Level0UpdateWriter))
       }
   }
 
@@ -66,7 +87,7 @@ object LevelZeroMapEntryReader {
         valueBytes <- if (valueLength == 0) Success(Slice.emptyByteSlice) else reader.read(valueLength)
         (fromValue, rangeValue) <- RangeValueSerializer.read(rangeValueId, valueBytes)
       } yield {
-        Some(MapEntry.Put(fromKey, Memory.Range(fromKey, toKey, fromValue, rangeValue))(LevelZeroMapEntryWriter.Level0PutRangeWriter))
+        Some(MapEntry.Put(fromKey, Memory.Range(fromKey, toKey, fromValue, rangeValue))(LevelZeroMapEntryWriter.Level0RangeWriter))
       }
   }
 
@@ -77,7 +98,7 @@ object LevelZeroMapEntryReader {
           reader.readInt() flatMap {
             entryId =>
               if (entryId == LevelZeroMapEntryWriter.Level0PutWriter.id)
-                Level0AddReader.read(reader) map {
+                Level0PutReader.read(reader) map {
                   nextEntry =>
                     nextEntry flatMap {
                       nextEntry =>
@@ -92,8 +113,16 @@ object LevelZeroMapEntryReader {
                         previousEntry.map(_ ++ nextEntry) orElse Some(nextEntry)
                     }
                 }
-              else if (entryId == LevelZeroMapEntryWriter.Level0PutRangeWriter.id)
+              else if (entryId == LevelZeroMapEntryWriter.Level0RangeWriter.id)
                 Level0RangeReader.read(reader) map {
+                  nextEntry =>
+                    nextEntry flatMap {
+                      nextEntry =>
+                        previousEntry.map(_ ++ nextEntry) orElse Some(nextEntry)
+                    }
+                }
+              else if (entryId == LevelZeroMapEntryWriter.Level0UpdateWriter.id)
+                Level0UpdateReader.read(reader) map {
                   nextEntry =>
                     nextEntry flatMap {
                       nextEntry =>

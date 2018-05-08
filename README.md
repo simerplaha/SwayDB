@@ -41,15 +41,15 @@ View detailed benchmark results [here](http://swaydb.io/performance/macbook-pro-
 ```scala
 //Iteration: fetch all key-values withing range 10 to 90, update values and batch write updated key-values
 db
-.from(10)
-.untilKey(_ <= 90)
-.map {
-  case (key, value) =>
-    (key, value + "_updated")
-} andThen {
-   updatedKeyValues =>
-     db.batchPut(updatedKeyValues)
-}
+  .from(10)
+  .tillKey(_ <= 90)
+  .map {
+    case (key, value) =>
+      (key, value + "_updated")
+  } andThen {
+     updatedKeyValues =>
+       db.batchPut(updatedKeyValues)
+  }
 ```
 ## Quick start
 [Quick start demo](http://swaydb.io/quick-start).
@@ -64,3 +64,10 @@ db
 - [SwayDB.benchmark](https://github.com/simerplaha/SwayDB.benchmark) - Benchmarks for write and read performance.
 - [SwayDB.stress](https://github.com/simerplaha/SwayDB.stress) - Stress tests.
 - [SwayDB.io](https://github.com/simerplaha/SwayDB.io) - Website code.
+
+## Backward compatibility
+Currently for versions `0.*` the code & file formats are going through rapid changes.
+Next few versions will require many changes in the file formats to improve data compression.
+
+Backward compatible will be supported for versions `1.*` and after. 
+So please suggest features & improvements now while we are still in version `0.*`.

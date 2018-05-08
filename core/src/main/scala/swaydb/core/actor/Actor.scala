@@ -19,11 +19,13 @@
 
 package swaydb.core.actor
 
+import java.util.TimerTask
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicBoolean
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.util.Delay
+
 import scala.concurrent.duration._
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
@@ -47,7 +49,7 @@ private[swaydb] sealed trait ActorRef[-T] {
   /**
     * Sends a message to this actor with delay
     */
-  def schedule(message: T, delay: FiniteDuration): Unit
+  def schedule(message: T, delay: FiniteDuration): TimerTask
 
   def hasMessages: Boolean
 
@@ -145,8 +147,8 @@ private[swaydb] class Actor[T, +S](val state: S,
   override def messageCount: Int =
     queue.size()
 
-  override def schedule(message: T, delay: FiniteDuration): Unit =
-    Delay.future(delay)(this ! message)
+  override def schedule(message: T, delay: FiniteDuration): TimerTask =
+    Delay.task(delay)(this ! message)
 
   override def submit(message: T): Unit =
     queue offer message

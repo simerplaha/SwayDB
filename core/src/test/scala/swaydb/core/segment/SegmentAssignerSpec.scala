@@ -20,6 +20,7 @@
 package swaydb.core.segment
 
 import swaydb.core.TestBase
+import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data.{Memory, Transient, Value}
 import swaydb.core.util.FileUtil._
 import swaydb.data.slice.Slice
@@ -28,6 +29,7 @@ import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.core.map.serializer.RangeValueSerializers._
 import swaydb.core.util.PipeOps._
+import scala.concurrent.duration._
 
 import scala.util.Random
 
@@ -61,7 +63,14 @@ class SegmentAssignerSpec extends TestBase {
   "SegmentAssign.assign" should {
 
     "assign KeyValues to the first Segment if there is only one Segment" in {
-      val keyValues = randomIntKeyValues(count = keyValueCount, addRandomDeletes = Random.nextBoolean(), addRandomRanges = Random.nextBoolean()).toMemory
+      val keyValues =
+        randomIntKeyValues(
+          count = keyValueCount,
+          addRandomRemoves = Random.nextBoolean(),
+          addRandomRanges = Random.nextBoolean(),
+          addRandomPutDeadlines = Random.nextBoolean(),
+          addRandomRemoveDeadlines = Random.nextBoolean()
+        ).toMemory
 
       val segment = TestSegment().assertGet
 
@@ -72,7 +81,7 @@ class SegmentAssignerSpec extends TestBase {
     }
 
     "assign KeyValues to second Segment when none of the keys belong to the first Segment" in {
-      val segment1 = TestSegment(Slice(Transient.Put(1), Transient.Range[Value, Value](2, 10, None, Value.Remove)).updateStats).assertGet
+      val segment1 = TestSegment(Slice(Transient.Put(1), Transient.Range[FromValue, RangeValue](2, 10, None, Value.Remove(10.seconds.fromNow))).updateStats).assertGet
       val segment2 = TestSegment(Slice(Transient.Put(10)).updateStats).assertGet
       val segments = Seq(segment1, segment2)
 
@@ -81,7 +90,7 @@ class SegmentAssignerSpec extends TestBase {
           keyValues =
             Slice(
               Memory.Put(10),
-              Memory.Range(11, 20, None, Value.Put(11)),
+              Memory.Range(11, 20, None, Value.Update(11)),
               Memory.Remove(20)
             ),
           segments = segments
@@ -92,7 +101,7 @@ class SegmentAssignerSpec extends TestBase {
     }
 
     "assign gap KeyValue to the first Segment if the first Segment already has a key-value assigned to it" in {
-      val segment1 = TestSegment(Slice(Transient.Put(1), Transient.Range[Value, Value](2, 10, None, Value.Remove)).updateStats).assertGet
+      val segment1 = TestSegment(Slice(Transient.Put(1), Transient.Range[FromValue, RangeValue](2, 10, None, Value.Remove(None))).updateStats).assertGet
       val segment2 = TestSegment(Slice(Transient.Remove(20)).updateStats).assertGet
       val segments = Seq(segment1, segment2)
 
@@ -110,7 +119,7 @@ class SegmentAssignerSpec extends TestBase {
     }
 
     "assign gap KeyValue to the second Segment if the first Segment has no key-value assigned to it" in {
-      val segment1 = TestSegment(Slice(Transient.Put(1), Transient.Range[Value, Value](2, 10, None, Value.Remove)).updateStats).assertGet
+      val segment1 = TestSegment(Slice(Transient.Put(1), Transient.Range[FromValue, RangeValue](2, 10, None, Value.Remove(1.second.fromNow))).updateStats).assertGet
       val segment2 = TestSegment(Slice(Transient.Remove(20)).updateStats).assertGet
       val segments = Seq(segment1, segment2)
 
@@ -128,13 +137,13 @@ class SegmentAssignerSpec extends TestBase {
 
     "assign gap Range KeyValue to all Segments that fall within the Range's toKey" in {
       // 1 - 10(exclusive)
-      val segment1 = TestSegment(Slice(Transient.Put(1), Transient.Range[Value, Value](2, 10, None, Value.Remove)).updateStats).assertGet
+      val segment1 = TestSegment(Slice(Transient.Put(1), Transient.Range[FromValue, RangeValue](2, 10, None, Value.Remove(None))).updateStats).assertGet
       // 20 - 20
       val segment2 = TestSegment(Slice(Transient.Remove(20)).updateStats).assertGet
       //21 - 30
-      val segment3 = TestSegment(Slice(Transient.Range[Value, Value](21, 30, None, Value.Remove), Transient.Put(30)).updateStats).assertGet
+      val segment3 = TestSegment(Slice(Transient.Range[FromValue, RangeValue](21, 30, None, Value.Remove(None)), Transient.Put(30)).updateStats).assertGet
       //40 - 60
-      val segment4 = TestSegment(Slice(Transient.Remove(40), Transient.Range[Value, Value](41, 50, None, Value.Remove), Transient.Put(60)).updateStats).assertGet
+      val segment4 = TestSegment(Slice(Transient.Remove(40), Transient.Range[FromValue, RangeValue](41, 50, None, Value.Remove(None)), Transient.Put(60)).updateStats).assertGet
       //70 - 80
       val segment5 = TestSegment(Slice(Transient.Put(70), Transient.Remove(80)).updateStats).assertGet
       val segments = Seq(segment1, segment2, segment3, segment4, segment5)
@@ -142,14 +151,14 @@ class SegmentAssignerSpec extends TestBase {
       //15 is a gap key but no key-values are assigned to segment1 so segment2 will get this key-value.
       val keyValues =
         Slice(
-          Memory.Range(15, 50, Some(Value.Remove), Value.Put(10))
+          Memory.Range(15, 50, Some(Value.Remove(None)), Value.Update(10))
         )
 
       val assignments = SegmentAssigner.assign(keyValues, segments).assertGet
       assignments.size shouldBe 3
-      assignments.find(_._1 == segment2).assertGet._2 should contain only Memory.Range(15, 21, Some(Value.Remove), Value.Put(10))
-      assignments.find(_._1 == segment3).assertGet._2 should contain only Memory.Range(21, 40, None, Value.Put(10))
-      assignments.find(_._1 == segment4).assertGet._2 should contain only Memory.Range(40, 50, None, Value.Put(10))
+      assignments.find(_._1 == segment2).assertGet._2 should contain only Memory.Range(15, 21, Some(Value.Remove(None)), Value.Update(10))
+      assignments.find(_._1 == segment3).assertGet._2 should contain only Memory.Range(21, 40, None, Value.Update(10))
+      assignments.find(_._1 == segment4).assertGet._2 should contain only Memory.Range(40, 50, None, Value.Update(10))
     }
 
     "assign key value to the first segment when the key is the new smallest" in {
@@ -170,7 +179,7 @@ class SegmentAssignerSpec extends TestBase {
     "assign key value to the first segment and split out to other Segment when the key is the new smallest and the range spreads onto other Segments" in {
       val segment1 = TestSegment(Slice(Transient.Put(1), Transient.Put(2)).updateStats).assertGet
       val segment2 = TestSegment(Slice(Transient.Put(4), Transient.Put(5)).updateStats).assertGet
-      val segment3 = TestSegment(Slice(Transient.Range[Value, Value](6, 10, Some(Value.Remove), Value.Put(10)), Transient.Remove(10)).updateStats).assertGet
+      val segment3 = TestSegment(Slice(Transient.Range[FromValue, RangeValue](6, 10, Some(Value.Remove(None)), Value.Update(10)), Transient.Remove(10)).updateStats).assertGet
 
       //segment1 - 1 - 2
       //segment2 - 4 - 5
@@ -178,12 +187,12 @@ class SegmentAssignerSpec extends TestBase {
       val segments = Seq(segment1, segment2, segment3)
 
       //insert range 0 - 20. This overlaps all 3 Segment and key-values will get sliced and distributed to all Segments.
-      SegmentAssigner.assign(Slice(Memory.Range(0, 20, Some(Value.Put(0)), Value.Remove)), segments).assertGet ==> {
+      SegmentAssigner.assign(Slice(Memory.Range(0, 20, Some(Value.Put(0)), Value.Remove(None))), segments).assertGet ==> {
         assignments =>
           assignments.size shouldBe 3
-          assignments.find(_._1 == segment1).assertGet._2 should contain only Memory.Range(0, 4, Some(Value.Put(0)), Value.Remove)
-          assignments.find(_._1 == segment2).assertGet._2 should contain only Memory.Range(4, 6, None, Value.Remove)
-          assignments.find(_._1 == segment3).assertGet._2 should contain only Memory.Range(6, 20, None, Value.Remove)
+          assignments.find(_._1 == segment1).assertGet._2 should contain only Memory.Range(0, 4, Some(Value.Put(0)), Value.Remove(None))
+          assignments.find(_._1 == segment2).assertGet._2 should contain only Memory.Range(4, 6, None, Value.Remove(None))
+          assignments.find(_._1 == segment3).assertGet._2 should contain only Memory.Range(6, 20, None, Value.Remove(None))
       }
     }
 
@@ -208,11 +217,11 @@ class SegmentAssignerSpec extends TestBase {
           result.values.head should contain only Memory.Remove(10)
       }
 
-      SegmentAssigner.assign(Slice(Memory.Range(10, 20, Some(Value.Put(10)), Value.Remove)), segments).assertGet ==> {
+      SegmentAssigner.assign(Slice(Memory.Range(10, 20, Some(Value.Put(10)), Value.Remove(None))), segments).assertGet ==> {
         result =>
           result.size shouldBe 1
           result.keys.head.path shouldBe segment4.path
-          result.values.head should contain only Memory.Range(10, 20, Some(Value.Put(10)), Value.Remove)
+          result.values.head should contain only Memory.Range(10, 20, Some(Value.Put(10)), Value.Remove(None))
       }
     }
 

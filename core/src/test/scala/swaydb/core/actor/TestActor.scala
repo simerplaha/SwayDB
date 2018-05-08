@@ -19,6 +19,7 @@
 
 package swaydb.core.actor
 
+import java.util.TimerTask
 import java.util.concurrent.ConcurrentLinkedQueue
 
 import org.scalatest.Matchers
@@ -30,22 +31,16 @@ import swaydb.core.util.Delay
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.reflect.ClassTag
-import scala.util.Random
 
-object TestActor {
-  def apply[T]()(implicit ec: ExecutionContext) =
-    new TestActor[T](Random.nextInt())
-}
-
-class TestActor[T](id: Int)(implicit ec: ExecutionContext) extends Actor[T, Unit](id, (_, _) => None, None) with Eventually with Matchers with ScalaFutures with FutureBase {
+case class TestActor[T](implicit ec: ExecutionContext) extends Actor[T, Unit]((), (_, _) => None, None) with Eventually with Matchers with ScalaFutures with FutureBase {
 
   private val queue = new ConcurrentLinkedQueue[T]
 
   override def submit(message: T): Unit =
     queue offer message
 
-  override def schedule(message: T, delay: FiniteDuration): Unit =
-    throw new NotImplementedError(s"${this.getClass.getSimpleName} does not implement schedule")
+  override def schedule(message: T, delay: FiniteDuration): TimerTask =
+    Delay.task(delay)(this ! message)
 
   override def hasMessages: Boolean =
     !queue.isEmpty

@@ -21,51 +21,178 @@ package swaydb.core.data
 
 import swaydb.data.slice.Slice
 
-private[swaydb] sealed trait Value {
-  def id: Int
+import scala.concurrent.duration.{Deadline, FiniteDuration}
 
-  def isRemove: Boolean
+private[swaydb] sealed trait Value {
+
+  val isRemove: Boolean
 
   def notRemove: Boolean = !isRemove
+
+  val deadline: Option[Deadline]
+
+  def hasTimeLeft(): Boolean
+
+  def isOverdue(): Boolean =
+    !hasTimeLeft()
+
+  def hasTimeLeftWithGrace(grace: FiniteDuration): Boolean
 }
 
 private[swaydb] object Value {
 
-  implicit class UnSliceValue(value: Value) {
+  private[swaydb] sealed trait FromValue extends Value
+  private[swaydb] sealed trait RangeValue extends Value
+
+  implicit class UnSliceFromValue(value: Value.FromValue) {
 
     /**
       * @return An Value key-value with it's byte arrays sliced.
       *         If the sliced byte array is empty, it set the value to None.
       */
-    def unslice: Value =
+    def unslice: Value.FromValue =
       value match {
-        case Value.Put(value) =>
-          val unslicedValue = value.map(_.unslice())
-          if (unslicedValue.exists(_.isEmpty))
-            Value.Put(None)
-          else
-            Value.Put(unslicedValue)
-
-        case Value.Remove =>
+        case _: Value.Remove =>
           value
+
+        case put: Value.Put =>
+          put.unslice()
+
+        case update: Value.Update =>
+          update.unslice()
       }
   }
 
-  sealed trait Remove extends Value
-  case object Remove extends Remove {
-    override def id: Int = 0
+  implicit class UnSliceRangeValue(value: Value.RangeValue) {
+    /**
+      * @return An Value key-value with it's byte arrays sliced.
+      *         If the sliced byte array is empty, it set the value to None.
+      */
+    def unslice: RangeValue =
+      value match {
+        case _: Value.Remove =>
+          value
 
-    override def isRemove: Boolean = true
+        case update: Value.Update =>
+          update.unslice()
+      }
+
+    def toMemory(key: Slice[Byte]): Memory.Fixed =
+      value match {
+        case Value.Remove(deadline) =>
+          Memory.Remove(key, deadline)
+
+        case Value.Update(value, deadline) =>
+          Memory.Update(key, value, deadline)
+      }
+  }
+
+  implicit class ValueImplicits(value: Value) {
+    /**
+      * @return An Value key-value with it's byte arrays sliced.
+      *         If the sliced byte array is empty, it set the value to None.
+      */
+    def toMemory(key: Slice[Byte]): Memory.Fixed =
+      value match {
+        case Remove(deadline) =>
+          Memory.Remove(key, deadline)
+        case Put(value, deadline) =>
+          Memory.Put(key, value, deadline)
+        case Update(value, deadline) =>
+          Memory.Update(key, value, deadline)
+      }
+  }
+
+  object Remove {
+    def apply(deadline: Deadline): Remove =
+      new Remove(Some(deadline))
+  }
+
+  case class Remove(deadline: Option[Deadline]) extends FromValue with RangeValue {
+
+    override val isRemove: Boolean = true
+
+    override def hasTimeLeft(): Boolean =
+      deadline.exists(_.hasTimeLeft())
+
+    override def hasTimeLeftWithGrace(grace: FiniteDuration): Boolean =
+      deadline.exists(deadline => (deadline - grace).hasTimeLeft())
   }
 
   object Put {
     def apply(value: Slice[Byte]): Put =
-      new Put(Some(value))
+      new Put(Some(value), None)
+
+    def apply(value: Slice[Byte], removeAfter: Deadline): Put =
+      new Put(Some(value), Some(removeAfter))
+
+    def apply(value: Slice[Byte], duration: FiniteDuration): Put =
+      new Put(Some(value), Some(duration.fromNow))
+
+    def apply(value: Option[Slice[Byte]], duration: FiniteDuration): Put =
+      new Put(value, Some(duration.fromNow))
+
+    def apply(value: Option[Slice[Byte]])(removeAfter: Deadline): Put =
+      new Put(value, Some(removeAfter))
   }
 
-  case class Put(value: Option[Slice[Byte]]) extends Value {
-    override def id: Int = 1
+  case class Put(value: Option[Slice[Byte]],
+                 deadline: Option[Deadline]) extends FromValue {
 
-    override def isRemove: Boolean = false
+    override val isRemove: Boolean = false
+
+    override def hasTimeLeft(): Boolean =
+      deadline.forall(_.hasTimeLeft())
+
+    override def hasTimeLeftWithGrace(grace: FiniteDuration): Boolean =
+      deadline.forall(deadline => (deadline - grace).hasTimeLeft())
+
+    def unslice(): Value.Put = {
+      val unslicedValue = value.map(_.unslice())
+      if (unslicedValue.exists(_.isEmpty))
+        Value.Put(None, deadline)
+      else
+        Value.Put(unslicedValue, deadline)
+    }
+  }
+
+  object Update {
+    def apply(value: Slice[Byte]): Update =
+      new Update(Some(value), None)
+
+    def apply(value: Slice[Byte], deadline: Option[Deadline]): Update =
+      new Update(Some(value), deadline)
+
+    def apply(value: Slice[Byte], removeAfter: Deadline): Update =
+      new Update(Some(value), Some(removeAfter))
+
+    def apply(value: Slice[Byte], duration: FiniteDuration): Update =
+      new Update(Some(value), Some(duration.fromNow))
+
+    def apply(value: Option[Slice[Byte]], duration: FiniteDuration): Update =
+      new Update(value, Some(duration.fromNow))
+
+    def apply(value: Option[Slice[Byte]])(removeAfter: Deadline): Update =
+      new Update(value, Some(removeAfter))
+  }
+
+  case class Update(value: Option[Slice[Byte]],
+                    deadline: Option[Deadline]) extends FromValue with RangeValue {
+
+    override val isRemove: Boolean = false
+
+    override def hasTimeLeft(): Boolean =
+      deadline.forall(_.hasTimeLeft())
+
+    override def hasTimeLeftWithGrace(grace: FiniteDuration): Boolean =
+      deadline.forall(deadline => (deadline - grace).hasTimeLeft())
+
+    def unslice(): Value.Update = {
+      val unslicedValue = value.map(_.unslice())
+      if (unslicedValue.exists(_.isEmpty))
+        Value.Update(None, deadline)
+      else
+        Value.Update(unslicedValue, deadline)
+    }
   }
 }

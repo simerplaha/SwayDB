@@ -21,6 +21,7 @@ package swaydb.core.map.serializer
 
 import java.nio.charset.StandardCharsets
 import java.nio.file.Paths
+import java.util.concurrent.TimeUnit
 
 import swaydb.core.data.Persistent
 import swaydb.core.io.file.DBFile
@@ -31,15 +32,16 @@ import swaydb.core.util.ByteUtilCore
 import swaydb.data.slice.{Reader, Slice}
 
 import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.Deadline
 import scala.util.{Failure, Success, Try}
 
 object AppendixMapEntryReader {
   def apply(removeDeletes: Boolean,
             mmapSegmentsOnRead: Boolean,
             mmapSegmentsOnWrite: Boolean)(implicit ordering: Ordering[Slice[Byte]],
-                                        keyValueLimiter: (Persistent, Segment) => Unit,
-                                        fileOpenLimiter: DBFile => Unit,
-                                        ec: ExecutionContext): AppendixMapEntryReader =
+                                          keyValueLimiter: (Persistent, Segment) => Unit,
+                                          fileOpenLimiter: DBFile => Unit,
+                                          ec: ExecutionContext): AppendixMapEntryReader =
     new AppendixMapEntryReader(
       removeDeletes = removeDeletes,
       mmapSegmentsOnRead = mmapSegmentsOnRead,
@@ -50,9 +52,9 @@ object AppendixMapEntryReader {
 class AppendixMapEntryReader(removeDeletes: Boolean,
                              mmapSegmentsOnRead: Boolean,
                              mmapSegmentsOnWrite: Boolean)(implicit ordering: Ordering[Slice[Byte]],
-                                                         keyValueLimiter: (Persistent, Segment) => Unit,
-                                                         fileOpenLimiter: DBFile => Unit,
-                                                         ec: ExecutionContext) {
+                                                           keyValueLimiter: (Persistent, Segment) => Unit,
+                                                           fileOpenLimiter: DBFile => Unit,
+                                                           ec: ExecutionContext) {
 
   implicit object AppendixPutReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Segment]] {
     override def read(reader: Reader): Try[Option[MapEntry.Put[Slice[Byte], Segment]]] =
@@ -75,7 +77,25 @@ class AppendixMapEntryReader(removeDeletes: Boolean,
                 MaxKey.Range(fromKey, toKey)
             }
           }
-        segment <- Segment(segmentPath, mmapSegmentsOnRead, mmapSegmentsOnWrite, minKey, maxKey, segmentSize, removeDeletes, checkExists = false)
+        nearestExpiryDeadline <- reader.readLongUnsigned() map {
+          deadlineNanos =>
+            if (deadlineNanos == 0)
+              None
+            else
+              Some(Deadline(deadlineNanos, TimeUnit.NANOSECONDS))
+        }
+        segment <-
+          Segment(
+            path = segmentPath,
+            mmapReads = mmapSegmentsOnRead,
+            mmapWrites = mmapSegmentsOnWrite,
+            minKey = minKey,
+            maxKey = maxKey,
+            segmentSize = segmentSize,
+            removeDeletes = removeDeletes,
+            nearestExpiryDeadline = nearestExpiryDeadline,
+            checkExists = false
+          )
       } yield {
         Some(MapEntry.Put(minKey, segment)(AppendixMapEntryWriter.AppendixPutWriter))
       }

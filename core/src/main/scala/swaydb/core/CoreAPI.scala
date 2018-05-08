@@ -28,7 +28,7 @@ import swaydb.data.config.SwayDBConfig
 import swaydb.data.slice.Slice
 
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration.{Deadline, FiniteDuration}
 import scala.util.Try
 
 private[swaydb] object CoreAPI {
@@ -50,11 +50,23 @@ private[swaydb] trait CoreAPI {
 
   def put(key: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter]
 
+  def put(key: Slice[Byte], value: Slice[Byte], removeAt: Deadline): Try[Level0Meter]
+
   def put(entry: MapEntry[Slice[Byte], Memory]): Try[Level0Meter]
 
   def remove(key: Slice[Byte]): Try[Level0Meter]
 
+  def remove(key: Slice[Byte], at: Deadline): Try[Level0Meter]
+
   def remove(fromKey: Slice[Byte], untilKey: Slice[Byte]): Try[Level0Meter]
+
+  def remove(fromKey: Slice[Byte], untilKey: Slice[Byte], at: Deadline): Try[Level0Meter]
+
+  def update(key: Slice[Byte], value: Slice[Byte]): Try[Level0Meter]
+
+  def update(key: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter]
+
+  def update(fromKey: Slice[Byte], untilKey: Slice[Byte], value: Slice[Byte]): Try[Level0Meter]
 
   def update(fromKey: Slice[Byte], untilKey: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter]
 
@@ -81,6 +93,8 @@ private[swaydb] trait CoreAPI {
   def getKeyValue(key: Slice[Byte]): Try[Option[KeyValueTuple]]
 
   def valueSize(key: Slice[Byte]): Try[Option[Int]]
+
+  def keySize(key: Slice[Byte]): Try[Option[Int]]
 
   def beforeKey(key: Slice[Byte]): Try[Option[Slice[Byte]]]
 

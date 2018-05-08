@@ -33,6 +33,8 @@ import swaydb.serializers._
 import scala.concurrent.duration._
 
 //@formatter:off
+class LevelGetSpec0 extends LevelGetSpec
+
 class LevelGetSpec1 extends LevelGetSpec {
   override def levelFoldersCount = 10
   override def mmapSegmentsOnWrite = true
@@ -54,7 +56,11 @@ class LevelGetSpec3 extends LevelGetSpec {
 }
 //@formatter:on
 
-class LevelGetSpec extends TestBase with MockFactory with Benchmark {
+/**
+  * These test cases have been superseded by [[Get_FromMultipleLevels_Spec]] and
+  * [[Get_FromSingleLevel_Spec]] and exist as archived test cases only.
+  */
+trait LevelGetSpec extends TestBase with MockFactory with Benchmark {
 
   implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
   val keyValuesCount = 100
@@ -72,7 +78,9 @@ class LevelGetSpec extends TestBase with MockFactory with Benchmark {
         keyValues = Slice(Memory.Put(1, "one")),
         assertion = _.get(1).assertGet shouldBe Memory.Put(1, "one")
       )
+    }
 
+    "return key when the key exists - randomly genrated key-values" in {
       assertOnLevel(
         keyValues = randomIntKeyValuesMemory(keyValuesCount),
         assertionWithKeyValues =
@@ -107,7 +115,7 @@ class LevelGetSpec extends TestBase with MockFactory with Benchmark {
       )
 
       assertOnLevel(
-        keyValues = randomIntKeyValuesMemory(keyValuesCount, addRandomDeletes = true).filter(_.isRemove),
+        keyValues = randomIntKeyValuesMemory(keyValuesCount, addRandomRemoves = true).filter(_.isRemove),
         assertionWithKeyValues =
           (keyValues, level) =>
             keyValues foreach {
@@ -117,9 +125,36 @@ class LevelGetSpec extends TestBase with MockFactory with Benchmark {
       )
     }
 
+    "return None for removed keys with deadline in the future that do not have Put in lower level" in {
+      assertOnLevel(
+        keyValues = Slice(Memory.Remove(1, 10.seconds.fromNow)),
+        assertion = _.get(1).assertGetOpt shouldBe empty
+      )
+    }
+
+    "return Put key with expiry" in {
+      val deadline = 10.seconds.fromNow
+      assertOnLevel(
+        keyValues = Slice(Memory.Put(1, 1, deadline)),
+        assertion = _.get(1).assertGet shouldBe Memory.Put(1, 1, deadline)
+      )
+    }
+
+    "return None for expired Put key" in {
+      val deadline = 2.seconds.fromNow
+      assertOnLevel(
+        keyValues = Slice(Memory.Put(1, 1, deadline)),
+        assertion =
+          level => {
+            sleep(2.1.seconds)
+            level.get(1).assertGetOpt shouldBe empty
+          }
+      )
+    }
+
     "return None for Remove Range key-value" in {
       assertOnLevel(
-        keyValues = Slice(Memory.Range(1, 10, None, Value.Remove)),
+        keyValues = Slice(Memory.Range(1, 10, None, Value.Remove(None))),
         assertion =
           level =>
             (0 to 15) foreach {
@@ -131,9 +166,9 @@ class LevelGetSpec extends TestBase with MockFactory with Benchmark {
       assertOnLevel(
         keyValues =
           Slice(
-            Memory.Range(1, 10, None, Value.Remove),
-            Memory.Range(10, 20, Some(Value.Remove), Value.Remove),
-            Memory.Range(25, 30, None, Value.Remove)
+            Memory.Range(1, 10, None, Value.Remove(None)),
+            Memory.Range(10, 20, Some(Value.Remove(None)), Value.Remove(None)),
+            Memory.Range(25, 30, None, Value.Remove(None))
           ),
         assertion =
           level =>
@@ -146,7 +181,7 @@ class LevelGetSpec extends TestBase with MockFactory with Benchmark {
 
     "return None for Remove Range with Put from value" in {
       assertOnLevel(
-        keyValues = Slice(Memory.Range(1, 10, Some(Value.Put("one")), Value.Remove)),
+        keyValues = Slice(Memory.Range(1, 10, Some(Value.Put("one")), Value.Remove(None))),
         assertion =
           level => {
             level.get(0).assertGetOpt shouldBe empty
@@ -160,8 +195,8 @@ class LevelGetSpec extends TestBase with MockFactory with Benchmark {
 
       assertOnLevel(
         keyValues = Slice(
-          Memory.Range(1, 10, Some(Value.Put("one")), Value.Remove),
-          Memory.Range(20, 30, Some(Value.Put("twenty")), Value.Remove)
+          Memory.Range(1, 10, Some(Value.Put("one")), Value.Remove(None)),
+          Memory.Range(20, 30, Some(Value.Put("twenty")), Value.Remove(None))
         ),
         assertion =
           level => {
@@ -182,7 +217,7 @@ class LevelGetSpec extends TestBase with MockFactory with Benchmark {
 
     "return None for Remove Range with Remove fromValue" in {
       assertOnLevel(
-        keyValues = Slice(Memory.Range(1, 10, Some(Value.Remove), Value.Remove)),
+        keyValues = Slice(Memory.Range(1, 10, Some(Value.Remove(None)), Value.Remove(None))),
         assertion =
           level =>
             (0 to 10) foreach {
@@ -193,8 +228,8 @@ class LevelGetSpec extends TestBase with MockFactory with Benchmark {
 
       assertOnLevel(
         keyValues = Slice(
-          Memory.Range(1, 10, Some(Value.Remove), Value.Remove),
-          Memory.Range(20, 30, Some(Value.Remove), Value.Remove)
+          Memory.Range(1, 10, Some(Value.Remove(None)), Value.Remove(None)),
+          Memory.Range(20, 30, Some(Value.Remove(None)), Value.Remove(None))
         ),
         assertion =
           level =>
@@ -207,7 +242,7 @@ class LevelGetSpec extends TestBase with MockFactory with Benchmark {
 
     "return Put Range key-value that doesn't have existing Put key-values but Range's fromValue is set to Put" in {
       assertOnLevel(
-        keyValues = Slice(Memory.Range(1, 10, Some(Value.Put(1)), Value.Put(10))),
+        keyValues = Slice(Memory.Range(1, 10, Some(Value.Put(1)), Value.Update(10))),
         assertion =
           level => {
             level.get(0).assertGetOpt shouldBe empty
@@ -223,8 +258,8 @@ class LevelGetSpec extends TestBase with MockFactory with Benchmark {
       assertOnLevel(
         keyValues =
           Slice(
-            Memory.Range(1, 10, Some(Value.Put(1)), Value.Put(10)),
-            Memory.Range(20, 30, Some(Value.Put(20)), Value.Put(10))
+            Memory.Range(1, 10, Some(Value.Put(1)), Value.Update(10)),
+            Memory.Range(20, 30, Some(Value.Put(20)), Value.Update(10))
           ),
         assertion =
           level => {
@@ -248,7 +283,7 @@ class LevelGetSpec extends TestBase with MockFactory with Benchmark {
 
     "return Put Range key-value that doesn't have existing Put key-values but Range's fromValue is set to Remove" in {
       assertOnLevel(
-        keyValues = Slice(Memory.Range(1, 10, Some(Value.Remove), Value.Put(10))),
+        keyValues = Slice(Memory.Range(1, 10, Some(Value.Remove(None)), Value.Update(10))),
         assertion =
           level =>
             (0 to 11) foreach {
@@ -260,8 +295,8 @@ class LevelGetSpec extends TestBase with MockFactory with Benchmark {
       assertOnLevel(
         keyValues =
           Slice(
-            Memory.Range(1, 10, Some(Value.Remove), Value.Put(10)),
-            Memory.Range(20, 30, Some(Value.Remove), Value.Put(10))
+            Memory.Range(1, 10, Some(Value.Remove(None)), Value.Update(10)),
+            Memory.Range(20, 30, Some(Value.Remove(None)), Value.Update(10))
           ),
         assertion =
           level =>
@@ -274,7 +309,7 @@ class LevelGetSpec extends TestBase with MockFactory with Benchmark {
 
     "return Put Range key-value that doesn't have existing Put key-values" in {
       assertOnLevel(
-        keyValues = Slice(Memory.Range(1, 10, None, Value.Put(10))),
+        keyValues = Slice(Memory.Range(1, 10, None, Value.Update(10))),
         assertion =
           level =>
             (0 to 11) foreach {
@@ -286,8 +321,8 @@ class LevelGetSpec extends TestBase with MockFactory with Benchmark {
       assertOnLevel(
         keyValues =
           Slice(
-            Memory.Range(1, 10, None, Value.Put(10)),
-            Memory.Range(20, 30, None, Value.Put(10))
+            Memory.Range(1, 10, None, Value.Update(10)),
+            Memory.Range(20, 30, None, Value.Update(10))
           ),
         assertion =
           level =>
@@ -302,10 +337,10 @@ class LevelGetSpec extends TestBase with MockFactory with Benchmark {
       assertOnLevel(
         keyValues =
           Slice(
-            Memory.Range(1, 10, None, Value.Put(10)),
+            Memory.Range(1, 10, None, Value.Update(10)),
             Memory.Remove(11),
             Memory.Put(20, 20),
-            Memory.Range(21, 30, None, Value.Put(30))
+            Memory.Range(21, 30, None, Value.Update(30))
           ),
         assertion =
           level => {
@@ -373,10 +408,62 @@ class LevelGetSpec extends TestBase with MockFactory with Benchmark {
       )
     }
 
+    "return Put key-value with deadline from lower level" in {
+      val deadline = 10.seconds.fromNow
+      assertOnLevel(
+        upperLevelKeyValues = Slice.empty,
+        lowerLevelKeyValues = Slice(Memory.Put(1, 10, deadline)),
+        assertion = _.get(1).assertGet shouldBe Memory.Put(1, 10, deadline)
+      )
+    }
+
+    "return None for expired put key-value from lower level" in {
+      val deadline = 2.seconds.fromNow
+      assertOnLevel(
+        upperLevelKeyValues = Slice.empty,
+        lowerLevelKeyValues = Slice(Memory.Put(1, 10, deadline)),
+        assertion =
+          level => {
+            sleep(2.1.seconds)
+            level.get(1).assertGetOpt shouldBe empty
+          }
+      )
+    }
+
+    "return key when upper Level contains Remove that hasTimeLeft and lower level contains Put" in {
+      val deadline = 1.day.fromNow
+      assertOnLevel(
+        upperLevelKeyValues = Slice(Memory.Remove(1, deadline)),
+        lowerLevelKeyValues = Slice(Memory.Put(1, 10)),
+        assertion = _.get(1).assertGet shouldBe Memory.Put(1, 10, deadline)
+      )
+    }
+
+    "return key when upper Level contains Put that hasTimeLeft and lower level contains expired Remove" in {
+      val putDeadline = 1.day.fromNow
+      assertOnLevel(
+        upperLevelKeyValues = Slice(Memory.Put(1, 10, putDeadline)),
+        lowerLevelKeyValues = Slice(Memory.Remove(1, 1.nanosecond.fromNow)),
+        assertion = _.get(1).assertGet shouldBe Memory.Put(1, 10, putDeadline)
+      )
+    }
+
+    "return key when upper Level contains Remove that isOverDue and lower level contains Put" in {
+      assertOnLevel(
+        upperLevelKeyValues = Slice(Memory.Remove(1, 2.seconds.fromNow)),
+        lowerLevelKeyValues = Slice(Memory.Put(1, 10)),
+        assertion =
+          level => {
+            sleep(2.1.seconds)
+            level.get(1).assertGetOpt shouldBe empty
+          }
+      )
+    }
+
     "return None for removed Range key-value from lower Level" in {
       assertOnLevel(
         upperLevelKeyValues = Slice.empty,
-        lowerLevelKeyValues = Slice(Memory.Range(1, 10, None, Value.Remove)),
+        lowerLevelKeyValues = Slice(Memory.Range(1, 10, None, Value.Remove(None))),
         assertion =
           level => {
             (0 to 11) foreach {
@@ -389,7 +476,7 @@ class LevelGetSpec extends TestBase with MockFactory with Benchmark {
 
     "return None for removed Range upper Level key-value that also has valid Put key-values in lower Level" in {
       assertOnLevel(
-        upperLevelKeyValues = Slice(Memory.Range(1, 10, None, Value.Remove)),
+        upperLevelKeyValues = Slice(Memory.Range(1, 10, None, Value.Remove(None))),
         lowerLevelKeyValues = (1 to 9).map(key => Memory.Put(key, key)).toSlice,
         assertion =
           level => {
@@ -422,13 +509,13 @@ class LevelGetSpec extends TestBase with MockFactory with Benchmark {
       //    5  -  9 (removed)
       //0      -      15
       assertOnLevel(
-        upperLevelKeyValues = Slice(Memory.Range(5, 10, None, Value.Remove)),
+        upperLevelKeyValues = Slice(Memory.Range(5, 10, None, Value.Remove(None))),
         lowerLevelKeyValues = (0 to 15).map(key => Memory.Put(key, key)).toSlice,
         assertion = doAssertion(_)
       )
 
       assertOnLevel( //fromValue set to Remove should return the same result.
-        upperLevelKeyValues = Slice(Memory.Range(5, 10, Some(Value.Remove), Value.Remove)),
+        upperLevelKeyValues = Slice(Memory.Range(5, 10, Some(Value.Remove(None)), Value.Remove(None))),
         lowerLevelKeyValues = (0 to 15).map(key => Memory.Put(key, key)).toSlice,
         assertion = doAssertion(_)
       )
@@ -438,7 +525,7 @@ class LevelGetSpec extends TestBase with MockFactory with Benchmark {
       //    5  -  9 (put - removed)
       //0      -      15
       assertOnLevel(
-        upperLevelKeyValues = Slice(Memory.Range(5, 10, Some(Value.Put(5)), Value.Remove)),
+        upperLevelKeyValues = Slice(Memory.Range(5, 10, Some(Value.Put(5)), Value.Remove(None))),
         lowerLevelKeyValues = (0 to 15).map(key => Memory.Put(key, key)).toSlice,
         assertion =
           level => {
@@ -465,7 +552,7 @@ class LevelGetSpec extends TestBase with MockFactory with Benchmark {
       //    5  -  9 (put - removed)
       assertOnLevel(
         upperLevelKeyValues = (0 to 15).map(key => Memory.Put(key, key)).toSlice,
-        lowerLevelKeyValues = Slice(Memory.Range(5, 10, Some(Value.Put(5)), Value.Remove)),
+        lowerLevelKeyValues = Slice(Memory.Range(5, 10, Some(Value.Put(5)), Value.Remove(None))),
         assertion =
           level => {
             (0 to 15) foreach {
@@ -478,7 +565,7 @@ class LevelGetSpec extends TestBase with MockFactory with Benchmark {
 
     "return key-values with update value when upper Level contains Range key-value and lower Level contains actual Put key-values" in {
       assertOnLevel(
-        upperLevelKeyValues = Slice(Memory.Range(5, 10, Some(Value.Put("five")), Value.Put("upper level"))),
+        upperLevelKeyValues = Slice(Memory.Range(5, 10, Some(Value.Put("five")), Value.Update("upper level"))),
         lowerLevelKeyValues = (0 to 15).map(key => Memory.Put(key, key)).toSlice,
         assertion =
           level => {
@@ -502,7 +589,7 @@ class LevelGetSpec extends TestBase with MockFactory with Benchmark {
 
     "return None for key-values that are removed from lower Level but contain Range update in upper Level" in {
       assertOnLevel(
-        upperLevelKeyValues = Slice(Memory.Range(5, 10, None, Value.Put("upper level"))),
+        upperLevelKeyValues = Slice(Memory.Range(5, 10, None, Value.Update("upper level"))),
         lowerLevelKeyValues = Slice(Memory.Remove(5), Memory.Put(7, 7), Memory.Remove(9)),
         assertion =
           level => {
@@ -526,12 +613,12 @@ class LevelGetSpec extends TestBase with MockFactory with Benchmark {
     val keyValues =
       Slice(
         Memory.Remove(1),
-        Memory.Range(2, 10, None, Value.Remove),
-        Memory.Range(10, 20, Some(Value.Remove), Value.Put(10)),
-        Memory.Range(25, 30, None, Value.Remove),
+        Memory.Range(2, 10, None, Value.Remove(None)),
+        Memory.Range(10, 20, Some(Value.Remove(None)), Value.Update(10)),
+        Memory.Range(25, 30, None, Value.Remove(None)),
         Memory.Remove(30),
-        Memory.Range(31, 35, None, Value.Put(30)),
-        Memory.Range(40, 45, Some(Value.Remove), Value.Remove)
+        Memory.Range(31, 35, None, Value.Update(30)),
+        Memory.Range(40, 45, Some(Value.Remove(None)), Value.Remove(None))
       )
 
     level.putKeyValues(keyValues).assertGet

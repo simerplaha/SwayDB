@@ -21,13 +21,14 @@ package swaydb.core.segment.format.one
 
 import bloomfilter.mutable.BloomFilter
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.data.KeyValue.WriteOnly.{Fixed, Range}
-import swaydb.core.data.{KeyValue, Persistent, Transient}
+import swaydb.core.data.KeyValue
+import swaydb.core.segment.Segment
 import swaydb.core.util.BloomFilterUtil._
 import swaydb.core.util.CRC32
 import swaydb.data.slice.Slice
 import swaydb.data.slice.Slice._
 
+import scala.concurrent.duration.Deadline
 import scala.util.{Success, Try}
 
 private[core] object SegmentWriter extends LazyLogging {
@@ -42,9 +43,9 @@ private[core] object SegmentWriter extends LazyLogging {
     * - if key-value contains an Update range - get does not consult
     */
 
-  def toSlice(keyValues: Iterable[KeyValue.WriteOnly], bloomFilterFalsePositiveRate: Double): Try[Slice[Byte]] = {
+  def toSlice(keyValues: Iterable[KeyValue.WriteOnly], bloomFilterFalsePositiveRate: Double): Try[(Slice[Byte], Option[Deadline])] = {
     if (keyValues.isEmpty) {
-      Success(Slice.create[Byte](0))
+      Success(Slice.create[Byte](0), None)
     } else {
       Try {
         val bloomFilter =
@@ -54,30 +55,42 @@ private[core] object SegmentWriter extends LazyLogging {
             Some(BloomFilter[Slice[Byte]](keyValues.size, bloomFilterFalsePositiveRate))
 
         val slice = Slice.create[Byte](keyValues.last.stats.segmentSize)
+        var deadline: Option[Deadline] = None
 
         val (valuesSlice, indexAndFooterSlice) = slice splitAt keyValues.last.stats.segmentValuesSize
         keyValues foreach {
           keyValue =>
-            keyValue.getOrFetchValue map {
+            keyValue.getOrFetchValue flatMap {
               valueMayBe =>
-                bloomFilter.foreach(_ add keyValue.key)
+                Segment.getNearestDeadline(deadline, keyValue) map {
+                  nearestDeadline =>
+                    deadline = nearestDeadline
 
-                indexAndFooterSlice addIntUnsigned keyValue.stats.thisKeyValuesIndexSizeWithoutFooter
-                indexAndFooterSlice addIntUnsigned keyValue.id
-                indexAndFooterSlice addIntUnsigned keyValue.stats.commonBytes
-                indexAndFooterSlice addIntUnsigned keyValue.stats.keyWithoutCommonBytes.size
-                indexAndFooterSlice addAll keyValue.stats.keyWithoutCommonBytes
+                    bloomFilter.foreach(_ add keyValue.key)
 
-                valueMayBe match {
-                  case Some(value) if value.size > 0 =>
-                    assert(valuesSlice.written == keyValue.stats.valueOffset, s"Value offset is incorrect. actual: ${valuesSlice.written} - expected: ${keyValue.stats.valueOffset}")
-                    indexAndFooterSlice addIntUnsigned keyValue.stats.valueLength
-                    indexAndFooterSlice addIntUnsigned valuesSlice.written
+                    indexAndFooterSlice addIntUnsigned keyValue.stats.thisKeyValuesIndexSizeWithoutFooter
+                    indexAndFooterSlice addIntUnsigned keyValue.id
+                    indexAndFooterSlice addIntUnsigned keyValue.stats.commonBytes
+                    indexAndFooterSlice addIntUnsigned keyValue.stats.keyWithoutCommonBytes.size
+                    indexAndFooterSlice addAll keyValue.stats.keyWithoutCommonBytes
+                    keyValue match {
+                      case single: KeyValue.WriteOnly.Fixed =>
+                        indexAndFooterSlice addLongUnsigned single.deadline.map(_.time.toNanos).getOrElse(0L)
+                      case _: KeyValue.WriteOnly.Range =>
+                        indexAndFooterSlice addLongUnsigned 0L
+                    }
 
-                    valuesSlice addAll value //value
+                    valueMayBe match {
+                      case Some(value) if value.size > 0 =>
+                        assert(valuesSlice.written == keyValue.stats.valueOffset, s"Value offset is incorrect. actual: ${valuesSlice.written} - expected: ${keyValue.stats.valueOffset}")
+                        indexAndFooterSlice addIntUnsigned keyValue.stats.valueLength
+                        indexAndFooterSlice addIntUnsigned valuesSlice.written
 
-                  case _ =>
-                    indexAndFooterSlice addIntUnsigned 0
+                        valuesSlice addAll value //value
+
+                      case _ =>
+                        indexAndFooterSlice addIntUnsigned 0
+                    }
                 }
             }
         }
@@ -104,7 +117,7 @@ private[core] object SegmentWriter extends LazyLogging {
         assert(indexAndFooterSlice.isFull, s"Index and footer slice is not full. Size: ${indexAndFooterSlice.size} - Written: ${indexAndFooterSlice.written}")
         val sliceArray = slice.toArray
         assert(keyValues.last.stats.segmentSize == sliceArray.length, s"Invalid segment size. actual: ${sliceArray.length} - expected: ${keyValues.last.stats.segmentSize}")
-        Slice(sliceArray)
+        (Slice(sliceArray), deadline)
       }
     }
   }

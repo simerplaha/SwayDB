@@ -42,6 +42,8 @@ private[swaydb] sealed trait MapEntry[K, +V] { thisEntry =>
   def applyTo[T >: V](map: ConcurrentSkipListMap[K, T]): Unit
 
   val hasRange: Boolean
+  val hasUpdate: Boolean
+  val hasRemoveDeadline: Boolean
 
   /**
     * Each map entry computes the bytes required for the entry on creation.
@@ -98,6 +100,12 @@ private[swaydb] object MapEntry {
 
         override val hasRange: Boolean =
           left.hasRange || right.hasRange
+
+        override val hasUpdate: Boolean =
+          left.hasUpdate || right.hasUpdate
+
+        override val hasRemoveDeadline: Boolean =
+          left.hasRemoveDeadline || right.hasRemoveDeadline
       }
 
     def entries: ListBuffer[MapEntry[K, V]] =
@@ -109,6 +117,12 @@ private[swaydb] object MapEntry {
                        value: V)(implicit serializer: MapEntryWriter[MapEntry.Put[K, V]]) extends MapEntry[K, V] {
 
     val hasRange: Boolean = serializer.isRange
+    val hasUpdate: Boolean = serializer.isUpdate
+    val hasRemoveDeadline: Boolean =
+      value match {
+        case Memory.Remove(_, Some(_)) => true
+        case _ => false
+      }
 
     override val entryBytesSize: Int =
       serializer bytesRequired this
@@ -124,6 +138,8 @@ private[swaydb] object MapEntry {
   case class Remove[K](key: K)(implicit serializer: MapEntryWriter[MapEntry.Remove[K]]) extends MapEntry[K, Nothing] {
 
     val hasRange: Boolean = serializer.isRange
+    val hasUpdate: Boolean = serializer.isUpdate
+    val hasRemoveDeadline: Boolean = false
 
     override val entryBytesSize: Int =
       serializer bytesRequired this

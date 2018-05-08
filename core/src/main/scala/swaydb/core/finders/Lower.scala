@@ -19,234 +19,278 @@
 
 package swaydb.core.finders
 
-import swaydb.core.data.{KeyValue, Memory, Persistent, Value}
-import swaydb.core.util.MinMax
+import swaydb.core.data.KeyValue
+import swaydb.core.segment.KeyValueMerger
 import swaydb.data.slice.Slice
 
-import scala.annotation.tailrec
-import scala.util.{Failure, Success, Try}
+import scala.concurrent.duration.Duration
+import scala.util.{Success, Try}
 
 object Lower {
 
   def apply(key: Slice[Byte],
-            lowerInCurrentLevelOnly: Slice[Byte] => Try[Option[KeyValue.ReadOnly]],
-            lowerInNextLevel: Slice[Byte] => Try[Option[KeyValue.FindResponse]])(implicit ordering: Ordering[Slice[Byte]],
-                                                                                 keyValueOrdering: Ordering[KeyValue]): Try[Option[KeyValue.FindResponse]] = {
-
+            lowerFromCurrentLevel: Slice[Byte] => Try[Option[KeyValue.ReadOnly]],
+            lowerFromNextLevel: Slice[Byte] => Try[Option[KeyValue.ReadOnly.Put]])(implicit ordering: Ordering[Slice[Byte]],
+                                                                                   keyValueOrdering: Ordering[KeyValue.ReadOnly.Fixed]): Try[Option[KeyValue.ReadOnly.Put]] = {
     import ordering._
-    //    println(s"${rootPath}: Lower for key: " + key.readInt())
-    @tailrec
-    def lower(key: Slice[Byte]): Try[Option[KeyValue.FindResponse]] =
-      lowerInCurrentLevelOnly(key) match {
-        case Success(lowerFromThis) =>
-          lowerFromThis match {
-            case Some(lowerFromThisFixed: KeyValue.ReadOnly.Fixed) => //if lower from this Level is a fixed key-value, return max of this and next Level's lower.
-              lowerInNextLevel(key) match {
-                case Success(lowerFromNext) =>
-                  MinMax.max(Some(lowerFromThisFixed), lowerFromNext) match {
-                    case Some(lowerRemove: Persistent.Remove) =>
-                      lower(lowerRemove.key)
 
-                    case Some(lowerRemove: Memory.Remove) =>
-                      lower(lowerRemove.key)
-
-                    case Some(lower: Persistent.Put) =>
-                      Success(Some(lower))
-
-                    case Some(lower: Memory.Put) =>
-                      Success(Some(lower))
-
-                    case None =>
-                      Success(None)
-                  }
-                case failed @ Failure(_) =>
-                  failed
-              }
-
-            //key is within the range
-            //example
-            //  15    (input key)
-            //10 - 20 (lower range)
-            case Some(lowerFromThisLevelRange: KeyValue.ReadOnly.Range) if key > lowerFromThisLevelRange.fromKey && key <= lowerFromThisLevelRange.toKey =>
-              lowerInNextLevel(key) match {
-
-                //example
-                //  15    (input key)
-                //10      (lower from next Level)
-                //10 - 20 (lower from this Level range)
-                case Success(Some(lowerInNext)) if lowerInNext.key equiv lowerFromThisLevelRange.fromKey => //if lower from next matches this range's fromKey
-                  lowerFromThisLevelRange.fetchFromValue match {
-                    case Success(Some(Value.Remove)) =>
-                      lower(lowerFromThisLevelRange.fromKey)
-
-                    case Success(Some(Value.Put(fromValue))) =>
-                      Success(Some(Memory.Put(lowerFromThisLevelRange.fromKey, fromValue)))
-
-                    case Success(None) =>
-                      lowerFromThisLevelRange.fetchRangeValue match {
-                        case Success(Value.Remove) =>
-                          lower(lowerFromThisLevelRange.fromKey)
-
-                        case Success(Value.Put(fromValue)) =>
-                          Success(Some(Memory.Put(lowerFromThisLevelRange.fromKey, fromValue)))
-
-                        case Failure(exception) =>
-                          Failure(exception)
-                      }
-
-                    case Failure(exception) =>
-                      Failure(exception)
-                  }
-                //example
-                //    15     (input key)
-                //  12       (lower from next Level)
-                //10  -   20 (lower from this Level range)
-                case Success(Some(lowerInNext)) if lowerInNext.key > lowerFromThisLevelRange.fromKey =>
-                  lowerFromThisLevelRange.fetchRangeValue match {
-                    case Success(Value.Remove) => //if the range is remove.
-                      lowerFromThisLevelRange.fetchFromValue match { //check if fromValue is set and return it.
-                        case Success(Some(Value.Remove)) => //fromValue is not set, get the lower of fromKey
-                          lower(lowerFromThisLevelRange.fromKey)
-
-                        case Success(Some(Value.Put(fromValue))) => //fromValue is set, return this as lower.
-                          Success(Some(Memory.Put(lowerFromThisLevelRange.fromKey, fromValue)))
-
-                        case Success(None) => //fromValue is not set, get lower of fromKey
-                          lower(lowerFromThisLevelRange.fromKey)
-
-                        case Failure(exception) =>
-                          Failure(exception)
-                      }
-
-                    case Success(Value.Put(fromValue)) => //range value is put.
-                      Success(Some(Memory.Put(lowerInNext.key, fromValue)))
-
-                    case Failure(exception) =>
-                      Failure(exception)
-                  }
-
-                //example
-                //      15      (input key)
-                // 9            (lower from next Level or is None)
-                //   10  -   20 (lower from this Level range)
-                case Success(_) =>
-                  lowerFromThisLevelRange.fetchFromValue match {
-                    case Success(Some(Value.Remove)) =>
-                      lower(lowerFromThisLevelRange.fromKey)
-
-                    case Success(Some(Value.Put(fromValue))) =>
-                      Success(Some(Memory.Put(lowerFromThisLevelRange.fromKey, fromValue)))
-
-                    case Success(None) =>
-                      lower(lowerFromThisLevelRange.fromKey)
-
-                    case Failure(exception) =>
-                      Failure(exception)
-                  }
-
-                case Failure(exception) =>
-                  Failure(exception)
-              }
-
-            //example
-            //             25 (input key)
-            //10  -   20      (lower from this Level range)
-            case Some(lowerFromThisLevelRange: KeyValue.ReadOnly.Range) =>
-              lowerInNextLevel(key) match {
-                case Success(Some(lowerInNext)) if lowerInNext.key >= lowerFromThisLevelRange.toKey => //lower from next level is right edge: 20 - 24
-                  Success(Some(lowerInNext))
-
-                case Success(Some(lowerInNext)) if lowerInNext.key < lowerFromThisLevelRange.fromKey => //lower from next level is left edge: 0 - 9
-                  lowerFromThisLevelRange.fetchFromValue match {
-                    case Success(Some(Value.Remove)) =>
-                      lower(lowerFromThisLevelRange.fromKey)
-
-                    case Success(Some(Value.Put(fromValue))) =>
-                      Success(Some(Memory.Put(lowerFromThisLevelRange.fromKey, fromValue)))
-
-                    case Success(None) =>
-                      lower(lowerFromThisLevelRange.fromKey)
-
-                    case Failure(exception) =>
-                      Failure(exception)
-                  }
-
-                case Success(Some(lowerInNext)) if lowerInNext.key equiv lowerFromThisLevelRange.fromKey => //lower from next level is within range: 10
-                  lowerFromThisLevelRange.fetchFromValue match {
-                    case Success(Some(Value.Remove)) =>
-                      lower(lowerFromThisLevelRange.fromKey)
-
-                    case Success(Some(Value.Put(fromValue))) =>
-                      Success(Some(Memory.Put(lowerFromThisLevelRange.fromKey, fromValue)))
-
-                    case Success(None) =>
-                      lowerFromThisLevelRange.fetchRangeValue match {
-                        case Success(Value.Remove) =>
-                          lower(lowerFromThisLevelRange.fromKey)
-
-                        case Success(Value.Put(rangeValue)) =>
-                          Success(Some(Memory.Put(lowerInNext.key, rangeValue)))
-
-                        case Failure(exception) =>
-                          Failure(exception)
-                      }
-
-                    case Failure(exception) =>
-                      Failure(exception)
-                  }
-
-                case Success(Some(lowerInNext)) => //lower from next level is within range: 11 - 19
-                  lowerFromThisLevelRange.fetchRangeValue match {
-                    case Success(Value.Remove) =>
-                      lowerFromThisLevelRange.fetchFromValue match {
-                        case Success(Some(Value.Remove)) =>
-                          lower(lowerFromThisLevelRange.fromKey)
-
-                        case Success(Some(Value.Put(fromValue))) =>
-                          Success(Some(Memory.Put(lowerFromThisLevelRange.fromKey, fromValue)))
-
-                        case Success(None) =>
-                          lower(lowerFromThisLevelRange.fromKey)
-
-                        case Failure(exception) =>
-                          Failure(exception)
-                      }
-
-                    case Success(Value.Put(fromValue)) =>
-                      Success(Some(Memory.Put(lowerInNext.key, fromValue)))
-
-                    case Failure(exception) =>
-                      Failure(exception)
-                  }
-
-                case Success(None) => //lower level has no lower, fetch fromValue or fromValue's lower.
-                  lowerFromThisLevelRange.fetchFromValue match {
-                    case Success(Some(Value.Remove)) =>
-                      lower(lowerFromThisLevelRange.fromKey)
-
-                    case Success(Some(Value.Put(fromValue))) =>
-                      Success(Some(Memory.Put(lowerFromThisLevelRange.fromKey, fromValue)))
-
-                    case Success(None) =>
-                      lower(lowerFromThisLevelRange.fromKey)
-
-                    case Failure(exception) =>
-                      Failure(exception)
-                  }
-
-                case Failure(exception) =>
-                  Failure(exception)
+    /**
+      * Given two key-values returns the lowest. If both are expired then it fetches the next lowest.
+      * This function never invokes lowerInNextLevel. 'next' should be pre-fetched and applied to the current Level's
+      * lowest Range key-value (if overlapping required) before invoking this function.
+      *
+      * Pre-requisite: current.key and next.key should be equal.
+      */
+    def returnHighest(current: KeyValue.ReadOnly.Fixed,
+                      next: Option[KeyValue.ReadOnly.Put]): Try[Option[KeyValue.ReadOnly.Put]] =
+      current match {
+        case current: KeyValue.ReadOnly.Put =>
+          next match {
+            case Some(next) =>
+              if (current.hasTimeLeft()) {
+                //    2  or  5   (current)
+                //    2          (next)
+                if (current.key >= next.key)
+                  Success(Some(current))
+                //0          (current)
+                //    2      (next)
+                else //else next is highest
+                  Success(Some(next))
+              } else {
+                //0 or 1      (current)
+                //       2    (next)
+                if (next.key > current.key)
+                  Success(Some(next))
+                //     2
+                //     2
+                else
+                  lower(current.key)
               }
 
             case None =>
-              lowerInNextLevel(key)
+              if (current.hasTimeLeft())
+                Success(Some(current))
+              else
+                lower(current.key)
           }
 
-        case Failure(exception) =>
-          Failure(exception)
+        case current: KeyValue.ReadOnly.Remove =>
+          next match {
+            case Some(next) =>
+              if (current.hasTimeLeft()) {
+                //    2
+                //    2
+                if (current.key equiv next.key)
+                  Success(current.deadline.map(next.updateDeadline) orElse Some(next))
+
+                //    2
+                //0
+                else if (current.key > next.key)
+                  lower(current.key)
+
+                //    2
+                //         5
+                else
+                  Success(Some(next))
+              } else { //lower remove from current is expired.
+                //    2
+                //        5
+                if (next.key > current.key)
+                  Success(Some(next))
+                //     2
+                //0 or 2
+                else
+                  lower(current.key)
+              }
+
+            case None =>
+              lower(current.key)
+          }
+
+        case current: KeyValue.ReadOnly.Update =>
+          next match {
+            case Some(next) =>
+              if (current.hasTimeLeft()) {
+                //    2
+                //    2
+                if (current.key equiv next.key)
+                  Try {
+                    current.deadline map {
+                      _ =>
+                        current.toPut()
+                    } orElse {
+                      next.deadline.map(current.toPut) orElse Some(current.toPut())
+                    }
+                  }
+                //    2
+                //0
+                else if (current.key > next.key)
+                  lower(current.key)
+
+                //    2
+                //         5
+                else
+                  Success(Some(next))
+              } else { //lower update from current is expired.
+                //    2
+                //         5
+                if (next.key > current.key)
+                  Success(Some(next))
+                //     2
+                //0 or 2
+                else
+                  lower(current.key)
+              }
+
+            case None =>
+              lower(current.key)
+          }
       }
+
+    //    println(s"${rootPath}: Lower for key: " + key.readInt())
+    def doLower(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Put]] =
+      lowerFromCurrentLevel(key) flatMap {
+        /** LOWER FIXED FROM CURRENT LEVEL **/
+        case Some(current: KeyValue.ReadOnly.Fixed) => //if the lower from the current Level is a Fixed key-value, fetch from next Level and return the lowest.
+          lowerFromNextLevel(key) flatMap {
+            next =>
+              returnHighest(current, next)
+          }
+
+        /** LOWER RANGE FROM CURRENT LEVEL **/
+        //example
+        //     20 (input key)
+        //10 - 20 (lower range from current Level)
+        case Some(current: KeyValue.ReadOnly.Range) if key <= current.toKey =>
+          current.fetchFromAndRangeValue flatMap {
+            case (fromValue, rangeValue) =>
+              if (rangeValue.hasTimeLeft()) //if the current range is active fetch the lowest from next Level and return lowest from both Levels.
+                lowerFromNextLevel(key) flatMap {
+                  case Some(next) =>
+                    //  11 ->   20 (input keys)
+                    //10   -    20 (lower range)
+                    //  11 -> 19   (lower possible keys from next)
+                    if (next.key > current.fromKey) //if the lower in next Level falls within the range
+                      KeyValueMerger.applyValue(rangeValue.toMemory(next.key), next, Duration.Zero) flatMap {
+                        current =>
+                          returnHighest(current, None) //return applied value with next key-value as the current value.
+                      }
+
+                    //  11 ->   20 (input keys)
+                    //10   -    20 (lower range)
+                    //10
+                    else if (next.key equiv current.fromKey)
+                      KeyValueMerger.applyValue(fromValue.getOrElse(rangeValue).toMemory(next.key), next, Duration.Zero) flatMap {
+                        current =>
+                          returnHighest(current, None) //return applied value with next key-value as the current value.
+                      }
+
+
+                    //       11 ->   20 (input keys)
+                    //     10   -    20 (lower range)
+                    //0->9
+                    else
+                      fromValue map {
+                        fromValue =>
+                          returnHighest(fromValue.toMemory(current.fromKey), None)
+                      } getOrElse lower(current.fromKey)
+
+                  case None =>
+                    fromValue map {
+                      fromValue =>
+                        returnHighest(fromValue.toMemory(current.fromKey), None)
+                    } getOrElse lower(current.fromKey)
+                }
+              else
+                fromValue map {
+                  fromValue =>
+                    if (fromValue.hasTimeLeft())
+                      lowerFromNextLevel(key) flatMap {
+                        case Some(next) =>
+                          //check for equality from lower Level with fromValue only.
+                          if (current.key equiv next.key)
+                            KeyValueMerger.applyValue(fromValue.toMemory(next.key), next, Duration.Zero) flatMap {
+                              current =>
+                                returnHighest(current, None) //return applied value with next key-value as the current value.
+                            }
+                          else
+                            returnHighest(fromValue.toMemory(current.fromKey), None)
+
+                        case None =>
+                          returnHighest(fromValue.toMemory(current.fromKey), None)
+                      }
+                    else
+                      lower(current.fromKey)
+                } getOrElse lower(current.fromKey)
+          }
+
+        //example:
+        //             22 (input key)
+        //    10 - 20     (lower range)
+        case Some(current: KeyValue.ReadOnly.Range) =>
+          lowerFromNextLevel(key) flatMap {
+            case someNext @ Some(next) =>
+
+              //                     22 (input key)
+              //      10 - 20
+              //           20 or 21
+              if (next.key >= current.toKey)
+                Success(someNext)
+
+              //                   22 (input key)
+              //      10   -   20
+              //         11->19
+              else if (next.key > current.fromKey)
+                current.fetchRangeValue flatMap {
+                  rangeValue =>
+                    KeyValueMerger.applyValue(rangeValue.toMemory(next.key), next, Duration.Zero) flatMap {
+                      current =>
+                        returnHighest(current, None) //return applied value with next key-value as the current value.
+                    }
+                }
+              //                22 (input key)
+              //      10  -  20
+              //      10
+              else if (next.key equiv current.fromKey) //if the lower in next Level falls within the range.
+                current.fetchFromOrElseRangeValue flatMap {
+                  fromOrElseRangeValue =>
+                    KeyValueMerger.applyValue(fromOrElseRangeValue.toMemory(current.fromKey), next, Duration.Zero) flatMap {
+                      current =>
+                        returnHighest(current, None) //return applied value with next key-value as the current value.
+                    }
+                }
+              //               22 (input key)
+              //       10 - 20
+              //0 to 9
+              else
+                current.fetchFromValue flatMap {
+                  case Some(fromValue) =>
+                    //next does not need to supplied here because it's already know that 'next' is larger than fromValue and there is not the lowest.
+                    //returnLower will execute lower on fromKey if the the current does not result to a valid lower key-value.
+                    returnHighest(fromValue.toMemory(current.fromKey), None)
+
+                  case None =>
+                    lower(current.fromKey)
+                }
+
+            //no lower key-value in the next Level. Return fromValue orElse jump to toKey.
+            case None =>
+              current.fetchFromValue flatMap {
+                fromValue =>
+                  fromValue map {
+                    fromValue =>
+                      returnHighest(fromValue.toMemory(current.fromKey), None)
+                  } getOrElse lower(current.fromKey)
+              }
+          }
+
+        case None =>
+          lowerFromNextLevel(key)
+      }
+
+    def lower(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Put]] =
+      doLower(key)
 
     lower(key)
   }
-
 }

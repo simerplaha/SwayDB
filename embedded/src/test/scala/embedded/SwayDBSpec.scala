@@ -233,7 +233,7 @@ sealed trait SwayDBSpec extends TestBase {
       db.batch(Batch.Put(1, "one"), Batch.Remove(1)).assertGet
       db.get(1).assertGetOpt shouldBe empty
 
-      //remove and then put should return Put's value
+      //      remove and then put should return Put's value
       db.batch(Batch.Remove(1), Batch.Put(1, "one")).assertGet
       db.get(1).assertGet shouldBe "one"
 
@@ -244,7 +244,7 @@ sealed trait SwayDBSpec extends TestBase {
       db.batch(Batch.Put(1, "one"), Batch.Put(2, "two"), Batch.Put(1, "one one"), Batch.Update(1, 100, "updated"), Batch.Remove(1, 100)).assertGet
       db.get(1).assertGetOpt shouldBe empty
       db.isEmpty shouldBe true
-
+      //
       db.batch(Batch.Put(1, "one"), Batch.Put(2, "two"), Batch.Put(1, "one one"), Batch.Remove(1, 100), Batch.Update(1, 100, "updated")).assertGet
       db.get(1).assertGetOpt shouldBe empty
       db.isEmpty shouldBe true
@@ -361,8 +361,8 @@ sealed trait SwayDBSpec extends TestBase {
             }
           case _ => //is the last Level which will contains Segments.
             if (!expectedLastLevelEmpty) {
-              println(s"Level $levelNumber. Submitting updated to trigger removed.")
-              (1 to 200000) foreach { //submit multiple update range key-values so that a map gets submitted for compaction and to trigger merge on copied Segments in last Level.
+              println(s"Level $levelNumber. Submitting updated to trigger remove.")
+              (1 to 500000) foreach { //submit multiple update range key-values so that a map gets submitted for compaction and to trigger merge on copied Segments in last Level.
                 i =>
                   db.update(1, 1000001, "just triggering update to assert remove").assertGet
                   if (i == 100000) sleep(2.seconds)

@@ -32,6 +32,8 @@ import swaydb.serializers._
 
 import scala.concurrent.duration._
 
+class LevelLowerSpec0 extends LevelLowerSpec
+
 //@formatter:off
 class LevelLowerSpec1 extends LevelLowerSpec {
   override def levelFoldersCount = 10
@@ -54,7 +56,7 @@ class LevelLowerSpec3 extends LevelLowerSpec {
 }
 //@formatter:on
 
-class LevelLowerSpec extends TestBase with MockFactory with Benchmark {
+trait LevelLowerSpec extends TestBase with MockFactory with Benchmark {
 
   implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
   val keyValuesCount = 100
@@ -128,7 +130,7 @@ class LevelLowerSpec extends TestBase with MockFactory with Benchmark {
       val level = TestLevel(nextLevel = Some(lowerLevel), throttle = (_) => Throttle(Duration.Zero, 0))
 
       level.putKeyValues(Slice(Memory.Remove(1))).assertGet
-      lowerLevel.putKeyValues(Slice(Memory.Remove(2), Memory.Range(5, 10, Some(Value.Remove), Value.Remove))).assertGet
+      lowerLevel.putKeyValues(Slice(Memory.Remove(2), Memory.Range(5, 10, Some(Value.Remove(None)), Value.Remove(None)))).assertGet
 
       def doAssert(level: Level) =
         (10 to 21) foreach {
@@ -184,7 +186,7 @@ class LevelLowerSpec extends TestBase with MockFactory with Benchmark {
       //create a Level with lower level so that Range remove does not get deleted
       val level = TestLevel(nextLevel = Some(TestLevel()), throttle = (_) => Throttle(Duration.Zero, 0))
 
-      val keyValues = Slice(Memory.Range(1, 10, None, Value.Remove))
+      val keyValues = Slice(Memory.Range(1, 10, None, Value.Remove(None)))
       level.putKeyValues(keyValues).assertGet
       level.segmentsCount() shouldBe 1
 
@@ -208,7 +210,7 @@ class LevelLowerSpec extends TestBase with MockFactory with Benchmark {
       //create a Level with lower level so that Range remove does not get deleted
       val level = TestLevel(nextLevel = Some(TestLevel()), throttle = (_) => Throttle(Duration.Zero, 0))
 
-      val keyValues = Slice(Memory.Range(1, 10, None, Value.Put(10)))
+      val keyValues = Slice(Memory.Range(1, 10, None, Value.Update(10)))
       level.putKeyValues(keyValues).assertGet
       level.segmentsCount() shouldBe 1
 
@@ -236,8 +238,8 @@ class LevelLowerSpec extends TestBase with MockFactory with Benchmark {
       val keyValues =
         Slice(
           Memory.Remove(1),
-          Memory.Range(2, 10, None, Value.Remove),
-          Memory.Range(10, 15, Some(Value.Remove), Value.Remove)
+          Memory.Range(2, 10, None, Value.Remove(None)),
+          Memory.Range(10, 15, Some(Value.Remove(None)), Value.Remove(None))
         )
 
       level.putKeyValues(keyValues).assertGet
@@ -264,9 +266,9 @@ class LevelLowerSpec extends TestBase with MockFactory with Benchmark {
 
       val keyValues =
         Slice(
-          Memory.Range(2, 10, None, Value.Put(10)),
-          Memory.Range(10, 15, None, Value.Put(15)),
-          Memory.Range(16, 20, None, Value.Put(20))
+          Memory.Range(2, 10, None, Value.Update(10)),
+          Memory.Range(10, 15, None, Value.Update(15)),
+          Memory.Range(16, 20, None, Value.Update(20))
         )
 
       level.putKeyValues(keyValues).assertGet
@@ -294,12 +296,12 @@ class LevelLowerSpec extends TestBase with MockFactory with Benchmark {
       val keyValues =
         Slice(
           Memory.Remove(1),
-          Memory.Range(2, 10, None, Value.Remove),
-          Memory.Range(10, 20, Some(Value.Remove), Value.Put(10)),
-          Memory.Range(25, 30, None, Value.Remove),
+          Memory.Range(2, 10, None, Value.Remove(None)),
+          Memory.Range(10, 20, Some(Value.Remove(None)), Value.Update(10)),
+          Memory.Range(25, 30, None, Value.Remove(None)),
           Memory.Remove(30),
-          Memory.Range(31, 35, None, Value.Put(30)),
-          Memory.Range(40, 45, Some(Value.Remove), Value.Remove)
+          Memory.Range(31, 35, None, Value.Update(30)),
+          Memory.Range(40, 45, Some(Value.Remove(None)), Value.Remove(None))
         )
 
       level.putKeyValues(keyValues).assertGet
@@ -329,12 +331,12 @@ class LevelLowerSpec extends TestBase with MockFactory with Benchmark {
       val keyValues =
         Slice(
           Memory.Put(1),
-          Memory.Range(2, 10, None, Value.Remove),
-          Memory.Range(10, 20, Some(Value.Remove), Value.Put(10)),
-          Memory.Range(25, 30, None, Value.Remove),
+          Memory.Range(2, 10, None, Value.Remove(None)),
+          Memory.Range(10, 20, Some(Value.Remove(None)), Value.Update(10)),
+          Memory.Range(25, 30, None, Value.Remove(None)),
           Memory.Remove(30),
-          Memory.Range(31, 35, None, Value.Put(30)),
-          Memory.Range(40, 45, Some(Value.Remove), Value.Remove),
+          Memory.Range(31, 35, None, Value.Update(30)),
+          Memory.Range(40, 45, Some(Value.Remove(None)), Value.Remove(None)),
           Memory.Remove(100)
         )
 
@@ -366,12 +368,12 @@ class LevelLowerSpec extends TestBase with MockFactory with Benchmark {
       val keyValues =
         Slice(
           Memory.Remove(1),
-          Memory.Range(2, 10, None, Value.Remove),
-          Memory.Range(10, 20, Some(Value.Remove), Value.Put(10)),
-          Memory.Range(25, 30, None, Value.Remove),
+          Memory.Range(2, 10, None, Value.Remove(None)),
+          Memory.Range(10, 20, Some(Value.Remove(None)), Value.Update(10)),
+          Memory.Range(25, 30, None, Value.Remove(None)),
           Memory.Remove(30),
-          Memory.Range(31, 35, None, Value.Put(30)),
-          Memory.Range(40, 45, Some(Value.Remove), Value.Remove)
+          Memory.Range(31, 35, None, Value.Update(30)),
+          Memory.Range(40, 45, Some(Value.Remove(None)), Value.Remove(None))
         )
 
       level.putKeyValues(keyValues).assertGet
@@ -405,12 +407,12 @@ class LevelLowerSpec extends TestBase with MockFactory with Benchmark {
       val keyValues =
         Slice(
           Memory.Remove(5),
-          Memory.Range(7, 10, None, Value.Remove),
-          Memory.Range(10, 20, Some(Value.Remove), Value.Put(10)),
-          Memory.Range(25, 30, None, Value.Remove),
+          Memory.Range(7, 10, None, Value.Remove(None)),
+          Memory.Range(10, 20, Some(Value.Remove(None)), Value.Update(10)),
+          Memory.Range(25, 30, None, Value.Remove(None)),
           Memory.Remove(30),
-          Memory.Range(31, 35, None, Value.Put(30)),
-          Memory.Range(40, 45, Some(Value.Remove), Value.Remove)
+          Memory.Range(31, 35, None, Value.Update(30)),
+          Memory.Range(40, 45, Some(Value.Remove(None)), Value.Remove(None))
         )
 
       level.putKeyValues(keyValues).assertGet

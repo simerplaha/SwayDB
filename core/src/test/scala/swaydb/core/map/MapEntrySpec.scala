@@ -32,6 +32,7 @@ import swaydb.data.util.ByteSizeOf
 import swaydb.order.KeyOrder
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import scala.concurrent.duration._
 
 import scala.collection.JavaConverters._
 
@@ -47,6 +48,35 @@ class MapEntrySpec extends TestBase {
   val segment = TestSegment(keyValues).assertGet
 
   "MapEntry" should {
+    "set hasRemoveDeadline to true if Put has remove deadline" in {
+      import LevelZeroMapEntryWriter._
+      MapEntry.Put[Slice[Byte], Memory.Remove](1, Memory.Remove(1, 1.second.fromNow)).hasRemoveDeadline shouldBe true
+    }
+
+    "set hasRemoveDeadline to false if Put has remove deadline" in {
+      import LevelZeroMapEntryWriter._
+      MapEntry.Put[Slice[Byte], Memory.Remove](1, Memory.Remove(1)).hasRemoveDeadline shouldBe false
+    }
+
+    "set hasUpdate to true if Put has update" in {
+      import LevelZeroMapEntryWriter._
+      val entry = MapEntry.Put[Slice[Byte], Memory.Update](1, Memory.Update(1, 1))
+      entry.hasRemoveDeadline shouldBe false
+      entry.hasUpdate shouldBe true
+    }
+
+    "set hasUpdate to false if Put does not have update" in {
+      import LevelZeroMapEntryWriter._
+
+      val entry = MapEntry.Put[Slice[Byte], Memory.Put](1, Memory.Put(1, 1))
+      entry.hasRemoveDeadline shouldBe false
+      entry.hasUpdate shouldBe false
+
+      val entry2 = MapEntry.Put[Slice[Byte], Memory.Remove](1, Memory.Remove(1))
+      entry2.hasRemoveDeadline shouldBe false
+      entry2.hasUpdate shouldBe false
+    }
+
     "put Level0 single Put entry to skipList" in {
       import LevelZeroMapEntryWriter._
       val skipList = new ConcurrentSkipListMap[Slice[Byte], Memory](ordering)
@@ -75,7 +105,7 @@ class MapEntrySpec extends TestBase {
       import LevelZeroMapEntryWriter._
       val skipList = new ConcurrentSkipListMap[Slice[Byte], Memory](ordering)
 
-      val range1 = Memory.Range(1, 10, Some(Value.Put("one")), Value.Put("range one"))
+      val range1 = Memory.Range(1, 10, Some(Value.Put("one")), Value.Update("range one"))
       val entry1 = MapEntry.Put[Slice[Byte], Memory.Range](1, range1)
       entry1.hasRange shouldBe true
 
@@ -83,7 +113,7 @@ class MapEntrySpec extends TestBase {
       skipList should have size 1
       skipList.get(1: Slice[Byte]) shouldBe range1
 
-      val range2 = Memory.Range(2, 10, None, Value.Put("range one"))
+      val range2 = Memory.Range(2, 10, None, Value.Update("range one"))
       val entry2 = MapEntry.Put[Slice[Byte], Memory.Range](2, range2)
       entry2.hasRange shouldBe true
 
@@ -96,7 +126,7 @@ class MapEntrySpec extends TestBase {
       import LevelZeroMapEntryWriter._
       val skipList = new ConcurrentSkipListMap[Slice[Byte], Memory](ordering)
 
-      val range1 = Memory.Range(1, 10, Some(Value.Remove), Value.Remove)
+      val range1 = Memory.Range(1, 10, Some(Value.Remove(None)), Value.Remove(None))
       val entry1 = MapEntry.Put[Slice[Byte], Memory.Range](1, range1)
       entry1.hasRange shouldBe true
 
@@ -104,7 +134,7 @@ class MapEntrySpec extends TestBase {
       skipList should have size 1
       skipList.get(1: Slice[Byte]) shouldBe range1
 
-      val range2 = Memory.Range(2, 10, None, Value.Remove)
+      val range2 = Memory.Range(2, 10, None, Value.Remove(None))
       val entry2 = MapEntry.Put[Slice[Byte], Memory.Range](2, range2)
       entry2.hasRange shouldBe true
 
@@ -124,10 +154,10 @@ class MapEntrySpec extends TestBase {
           MapEntry.Put[Slice[Byte], Memory.Put](3, Memory.Put(3, Some("three"))) ++
           MapEntry.Put[Slice[Byte], Memory.Remove](2, Memory.Remove(2)) ++
           MapEntry.Put[Slice[Byte], Memory.Put](4, Memory.Put(4, Some("four"))) ++
-          MapEntry.Put[Slice[Byte], Memory.Range](5, Memory.Range(5, 10, None, Value.Put(10))) ++
-          MapEntry.Put[Slice[Byte], Memory.Range](11, Memory.Range(11, 20, Some(Value.Put(20)), Value.Put(20))) ++
-          MapEntry.Put[Slice[Byte], Memory.Range](21, Memory.Range(21, 30, None, Value.Remove)) ++
-          MapEntry.Put[Slice[Byte], Memory.Range](31, Memory.Range(31, 40, Some(Value.Put(20)), Value.Remove))
+          MapEntry.Put[Slice[Byte], Memory.Range](5, Memory.Range(5, 10, None, Value.Update(10))) ++
+          MapEntry.Put[Slice[Byte], Memory.Range](11, Memory.Range(11, 20, Some(Value.Put(20)), Value.Update(20))) ++
+          MapEntry.Put[Slice[Byte], Memory.Range](21, Memory.Range(21, 30, None, Value.Remove(None))) ++
+          MapEntry.Put[Slice[Byte], Memory.Range](31, Memory.Range(31, 40, Some(Value.Put(20)), Value.Remove(None)))
 
       entry applyTo skipList
 
@@ -138,10 +168,10 @@ class MapEntrySpec extends TestBase {
       skipList.get(2: Slice[Byte]) shouldBe Memory.Remove(2)
       skipList.get(3: Slice[Byte]) shouldBe Memory.Put(3, Some("three"))
       skipList.get(4: Slice[Byte]) shouldBe Memory.Put(4, Some("four"))
-      skipList.get(5: Slice[Byte]) shouldBe Memory.Range(5, 10, None, Value.Put(10))
-      skipList.get(11: Slice[Byte]) shouldBe Memory.Range(11, 20, Some(Value.Put(20)), Value.Put(20))
-      skipList.get(21: Slice[Byte]) shouldBe Memory.Range(21, 30, None, Value.Remove)
-      skipList.get(31: Slice[Byte]) shouldBe Memory.Range(31, 40, Some(Value.Put(20)), Value.Remove)
+      skipList.get(5: Slice[Byte]) shouldBe Memory.Range(5, 10, None, Value.Update(10))
+      skipList.get(11: Slice[Byte]) shouldBe Memory.Range(11, 20, Some(Value.Put(20)), Value.Update(20))
+      skipList.get(21: Slice[Byte]) shouldBe Memory.Range(21, 30, None, Value.Remove(None))
+      skipList.get(31: Slice[Byte]) shouldBe Memory.Range(31, 40, Some(Value.Put(20)), Value.Remove(None))
     }
 
     "add Appendix single Put entry to skipList" in {

@@ -47,7 +47,9 @@ trait LazyValue {
   def getOrFetchValue: Try[Option[Slice[Byte]]] =
     fetchValue(valueReader)
 
-  def isValueDefined: Boolean = valueOption != null
+  def isValueDefined: Boolean =
+    valueOption != null
 
-  def getValue: Option[Slice[Byte]] = valueOption
+  def getValue: Option[Slice[Byte]] =
+    valueOption
 }

@@ -82,14 +82,14 @@ class SegmentLowerSpec extends TestBase with ScalaFutures with PrivateMethodTest
 
     "get the lower key from the segment that has only 1 Range key" in {
       assertOnSegment(
-        keyValues = Slice(Memory.Range(1, 10, None, Value.Put("ten"))),
+        keyValues = Slice(Memory.Range(1, 10, None, Value.Update("ten"))),
         assertion =
           segment => {
             segment.lower(0).assertGetOpt shouldBe empty
             segment.lower(1).assertGetOpt shouldBe empty
             (2 to 15) foreach {
               i =>
-                segment.lower(i).assertGet shouldBe Memory.Range(1, 10, None, Value.Put("ten"))
+                segment.lower(i).assertGet shouldBe Memory.Range(1, 10, None, Value.Update("ten"))
             }
           }
       )
@@ -119,10 +119,10 @@ class SegmentLowerSpec extends TestBase with ScalaFutures with PrivateMethodTest
       assertOnSegment(
         keyValues = Slice(
           Memory.Put(1, 1),
-          Memory.Range(2, 5, None, Value.Remove),
+          Memory.Range(2, 5, None, Value.Remove(None)),
           Memory.Remove(10),
-          Memory.Range(11, 20, None, Value.Put(11)),
-          Memory.Range(20, 30, None, Value.Put(20))
+          Memory.Range(11, 20, None, Value.Update(11)),
+          Memory.Range(20, 30, None, Value.Update(20))
         ),
         assertionWithKeyValues =
           (keyValues, segment) => {
@@ -181,7 +181,7 @@ class SegmentLowerSpec extends TestBase with ScalaFutures with PrivateMethodTest
 
     "get the lower key from the segment that has only many keys key" in {
       assertOnSegment(
-        keyValues = randomIntKeyValuesMemory(keyValuesCount, addRandomDeletes = true, addRandomRanges = true),
+        keyValues = randomIntKeyValuesMemory(keyValuesCount, addRandomRemoves = true, addRandomRanges = true),
         assertionWithKeyValues = assertLower(_, _)
       )
     }

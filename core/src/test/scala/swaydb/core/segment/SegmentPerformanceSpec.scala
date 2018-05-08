@@ -104,6 +104,7 @@ class SegmentPerformanceSpec extends TestBase with Benchmark {
           MaxKey.Fixed(keyValues.last.key)
       },
       segmentSize = keyValues.last.stats.segmentSize,
+      nearestExpiryDeadline = segment.nearestExpiryDeadline,
       removeDeletes = false
     ).assertGet
   }

@@ -114,7 +114,7 @@ class AppendixRepairerSpec extends TestBase {
       //create empty Level
       val level = TestLevel(segmentSize = 1.kb)
 
-      val keyValues = randomIntKeyValuesMemory(1000)
+      val keyValues = randomizedIntKeyValues(1000).toMemory
       level.putKeyValues(keyValues).assertGet
 
       level.segmentsCount() should be > 2

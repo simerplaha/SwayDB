@@ -20,7 +20,7 @@
 package swaydb.core.map
 
 import swaydb.core.TestBase
-import swaydb.core.data.{Memory, Value}
+import swaydb.core.data.Memory
 import swaydb.core.io.file.IO
 import swaydb.core.level.zero.LevelZeroSkipListMerge
 import swaydb.core.util.FileUtil._
@@ -30,13 +30,16 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.order.KeyOrder
 
+import scala.concurrent.duration._
+
 class MapsStressSpec extends TestBase {
 
   implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
 
   import swaydb.core.map.serializer.LevelZeroMapEntryReader._
   import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
-  implicit val skipListMerger = LevelZeroSkipListMerge
+
+  implicit val skipListMerger = LevelZeroSkipListMerge(10.seconds)
 
   val keyValueCount = 100
 

@@ -26,11 +26,12 @@ import swaydb.core.map.serializer.LevelZeroMapEntryWriter.Level0PutWriter
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.order.KeyOrder
+import scala.concurrent.duration._
 
 class MapStressSpec extends TestBase {
 
   implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
-  implicit val skipListMerger = LevelZeroSkipListMerge
+  implicit val skipListMerger = LevelZeroSkipListMerge(10.seconds)
 
   "Map" should {
     "write entries when flushOnOverflow is true and map size is 1.kb" in {
@@ -46,12 +47,11 @@ class MapStressSpec extends TestBase {
         testRead(map)
       }
 
-      def testRead(map: Map[Slice[Byte], Memory]) = {
+      def testRead(map: Map[Slice[Byte], Memory]) =
         keyValues foreach {
           keyValue =>
             map.get(keyValue.key).assertGet shouldBe Memory.Put(keyValue.key, keyValue.getOrFetchValue.assertGetOpt)
         }
-      }
 
       val dir1 = createRandomDir
       val dir2 = createRandomDir

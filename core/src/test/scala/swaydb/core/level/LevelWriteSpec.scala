@@ -20,6 +20,7 @@
 package swaydb.core.level
 
 import java.nio.file.{FileAlreadyExistsException, Files, NoSuchFileException}
+import java.util.Timer
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.PrivateMethodTester
@@ -48,6 +49,8 @@ import swaydb.serializers._
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
 import scala.util.{Random, Success, Try}
+
+class LevelWriteSpec0 extends LevelWriteSpec
 
 //@formatter:off
 
@@ -255,7 +258,9 @@ trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
     }
 
     "write a segment to a non empty Level" in {
-      val level = TestLevel()
+      //small Segment size so that small Segments do not collapse when running this test
+      // as reads do not get retried on failure in Level, they only get retried in LevelZero.
+      val level = TestLevel(segmentSize = 100.bytes)
       val keyValues = randomIntKeyStringValues(keyValuesCount)
       val segment = TestSegment(keyValues).assertGet
       level.put(segment).assertGet
@@ -467,6 +472,7 @@ trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
   "Level.putMap" should {
     import swaydb.core.map.serializer.LevelZeroMapEntryReader._
     import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
+    implicit val merged = LevelZeroSkipListMerge(10.seconds)
 
     val map =
       if (persistent)
@@ -474,7 +480,7 @@ trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
       else
         Map.memory[Slice[Byte], Memory]()
 
-    val keyValues = randomIntKeyValuesMemory(keyValuesCount, addRandomDeletes = true)
+    val keyValues = randomIntKeyValuesMemory(keyValuesCount, addRandomRemoves = true)
     keyValues foreach {
       keyValue =>
         map.write(MapEntry.Put(keyValue.key, keyValue))
@@ -642,6 +648,47 @@ trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
     }
   }
 
+  "Level.clearExpiredKeyValues" should {
+    "clear expired key-values" in {
+      //this test is similar as the above collapsing small Segment test.
+      //Remove or expiring key-values should have the same result
+      val level = TestLevel(segmentSize = 1.kb, throttle = (_) => Throttle(Duration.Zero, 0))
+      val expiryAt = 2.seconds.fromNow
+      val keyValues = randomIntKeyValuesMemory(1000)
+      level.putKeyValues(keyValues).assertGet
+      //dispatch another put request so that existing Segment gets split
+      level.putKeyValues(Slice(keyValues.head)).assertGet
+      val segmentCountBeforeDelete = level.segmentsCount()
+      segmentCountBeforeDelete > 1 shouldBe true
+
+      val keyValuesNoDeleted = ListBuffer.empty[KeyValue]
+      val deleteEverySecond =
+        keyValues.zipWithIndex flatMap {
+          case (keyValue, index) =>
+            if (index % 2 == 0)
+              Some(Memory.Remove(keyValue.key, expiryAt + index.millisecond))
+            else {
+              keyValuesNoDeleted += keyValue
+              None
+            }
+        }
+
+      //delete half of the key values which will create small Segments
+      level.putKeyValues(Slice(deleteEverySecond.toArray)).assertGet
+
+      level.collapseAllSmallSegments(1000).assertGet
+      level.segmentFilesInAppendix shouldBe segmentCountBeforeDelete
+
+      sleep(10.seconds)
+      level.collapseAllSmallSegments(1000).assertGet
+
+      eventual(10.seconds) {
+        level.segmentFilesInAppendix shouldBe (segmentCountBeforeDelete / 2)
+      }
+      assertReads(Slice(keyValuesNoDeleted.toArray), level)
+    }
+  }
+
   "Level.copy" should {
     "copy segments" in {
       val level = TestLevel(throttle = (_) => Throttle(Duration.Zero, 0))
@@ -726,7 +773,7 @@ trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
       val keyValues: Slice[KeyValue] = Slice.create[KeyValue](3) //null KeyValue will throw an exception and the put should be reverted
       keyValues.add(Memory.Put(123))
       keyValues.add(Memory.Put(1234, 12345))
-      keyValues.add(Persistent.Put(1235, null, 10, 10, 10, 10, 10)) //give it a null Reader so that it fails reading the value.
+      keyValues.add(Persistent.Put(1235, None, null, 10, 10, 10, 10, 10)) //give it a null Reader so that it fails reading the value.
 
       val function = PrivateMethod[Try[Unit]]('putKeyValues)
       val failed = level invokePrivate function(keyValues, Iterable(targetSegment), None)

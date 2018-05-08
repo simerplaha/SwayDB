@@ -19,6 +19,9 @@
 
 package swaydb.core.util
 
+import java.util.TimerTask
+import java.util.concurrent.TimeUnit
+
 import scala.concurrent.duration._
 
 private[core] object FiniteDurationUtil {
@@ -30,4 +33,11 @@ private[core] object FiniteDurationUtil {
     }
   }
 
+  implicit class TimerTaskToDuration(task: TimerTask) {
+    def deadline() =
+      timeLeft().fromNow
+
+    def timeLeft(): FiniteDuration =
+      FiniteDuration(task.scheduledExecutionTime() - System.currentTimeMillis(), TimeUnit.MILLISECONDS)
+  }
 }

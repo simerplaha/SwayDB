@@ -45,7 +45,7 @@ class AppendixMapEntrySpec extends TestBase {
 
   "MapEntryWriterAppendix & MapEntryReaderAppendix" should {
 
-    "write Add segment entry to slice" in {
+    "write Add segment" in {
       import AppendixMapEntryWriter.AppendixPutWriter
       val entry = MapEntry.Put[Slice[Byte], Segment](segment.minKey, segment)
 
@@ -70,7 +70,7 @@ class AppendixMapEntrySpec extends TestBase {
       headValue shouldBe segment
     }
 
-    "write remove key-value" in {
+    "write Remove Segment" in {
       import AppendixMapEntryWriter.AppendixRemoveWriter
       val entry = MapEntry.Remove[Slice[Byte]](1)
 

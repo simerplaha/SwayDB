@@ -20,8 +20,9 @@
 package swaydb.core
 
 import swaydb.core.data.KeyValue.{ReadOnly, WriteOnly}
-import swaydb.core.data.KeyValue.WriteOnly.Fixed
+import swaydb.core.data.KeyValue.WriteOnly.Overwrite
 import swaydb.core.data.Transient.{Put, Range, Remove}
+import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data.{Memory, Persistent, _}
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
@@ -34,9 +35,62 @@ import scala.collection.mutable.ListBuffer
 import scala.util.Random
 import swaydb.core.map.serializer.RangeValueSerializers._
 
+import scala.concurrent.duration._
 import scala.reflect.ClassTag
 
 trait TestData extends TryAssert {
+
+  def randomStringOption: Option[Slice[Byte]] =
+    if (Random.nextBoolean())
+      Some(randomCharacters())
+    else
+      None
+
+  def randomDeadlineOption: Option[Deadline] =
+    if (Random.nextBoolean())
+      Some(randomIntMax(30).seconds.fromNow)
+    else if (Random.nextBoolean())
+    //minus a minimum of 10.seconds for expired deadline. So test cases assertions to not fail if deadline has nanoseconds difference.
+      Some(0.seconds.fromNow - (randomIntMax(30) + 10).seconds)
+    else
+      None
+
+  def randomFixedKeyValue(key: Slice[Byte]): Memory.Fixed =
+    if (Random.nextBoolean())
+      Memory.Put(key, randomStringOption, randomDeadlineOption)
+    else if (Random.nextBoolean())
+      Memory.Remove(key, randomDeadlineOption)
+    else
+      Memory.Update(key, randomStringOption, randomDeadlineOption)
+
+  def randomRangeKeyValue(from: Slice[Byte], to: Slice[Byte]): Memory.Range =
+    Memory.Range(from, to, randomFromValueOption(), randomRangeValue())
+
+  def randomRangeValueOption(from: Slice[Byte], to: Slice[Byte]): Option[Memory.Range] =
+    if (Random.nextBoolean())
+      Some(randomRangeKeyValue(from, to))
+    else
+      None
+
+  def randomFromValueOption(): Option[Value.FromValue] =
+    if (Random.nextBoolean())
+      Some(randomFromValue())
+    else
+      None
+
+  def randomFromValue(): Value.FromValue =
+    if (Random.nextBoolean())
+      Value.Put(randomStringOption, randomDeadlineOption)
+    else if (Random.nextBoolean())
+      Value.Remove(randomDeadlineOption)
+    else
+      Value.Update(randomStringOption, randomDeadlineOption)
+
+  def randomRangeValue(): Value.RangeValue =
+    if (Random.nextBoolean())
+      Value.Remove(randomDeadlineOption)
+    else
+      Value.Update(randomStringOption, randomDeadlineOption)
 
   def randomCharacters(size: Int = 10) = Random.alphanumeric.take(size).mkString
 
@@ -68,21 +122,49 @@ trait TestData extends TryAssert {
 
   def randomInt(minus: Int = 0) = Math.abs(Random.nextInt(Int.MaxValue)) - minus - 1
 
+  def randomIntMax(max: Int = Int.MaxValue) = Math.abs(Random.nextInt(max))
+
   def randomIntKeyStringValues(count: Int = 5,
                                startId: Option[Int] = None,
-                               addToValue: Int = 0,
                                valueSize: Int = 50,
                                nonValue: Boolean = false,
-                               addRandomDeletes: Boolean = false,
-                               addRandomRanges: Boolean = false): Slice[KeyValue.WriteOnly] =
-    randomIntKeyValues(count, startId, addToValue, Some(valueSize), nonValue, addRandomDeletes, addRandomRanges)
+                               addRandomRemoves: Boolean = false,
+                               addRandomRanges: Boolean = false,
+                               addRandomRemoveDeadlines: Boolean = false,
+                               addRandomPutDeadlines: Boolean = false): Slice[KeyValue.WriteOnly] =
+    randomIntKeyValues(
+      count = count,
+      startId = startId,
+      valueSize = Some(valueSize),
+      nonValue = nonValue,
+      addRandomRemoves = addRandomRemoves,
+      addRandomRanges = addRandomRanges,
+      addRandomRemoveDeadlines = addRandomRemoveDeadlines,
+      addRandomPutDeadlines = addRandomPutDeadlines
+    )
 
-  def randomIntKeyValues(count: Int = 5,
+  def randomizedIntKeyValues(count: Int = 5,
+                             startId: Option[Int] = None,
+                             valueSize: Int = 50,
+                             nonValue: Boolean = false): Slice[KeyValue.WriteOnly] =
+    randomIntKeyValues(
+      count = count,
+      startId = startId,
+      valueSize = Some(valueSize),
+      nonValue = nonValue,
+      addRandomRemoves = Random.nextBoolean(),
+      addRandomRanges = Random.nextBoolean(),
+      addRandomRemoveDeadlines = Random.nextBoolean(),
+      addRandomPutDeadlines = Random.nextBoolean()
+    )
+
+  def randomIntKeyValues(count: Int = 20,
                          startId: Option[Int] = None,
-                         addToValue: Int = 0,
                          valueSize: Option[Int] = None,
                          nonValue: Boolean = false,
-                         addRandomDeletes: Boolean = false,
+                         addRandomRemoves: Boolean = false,
+                         addRandomRemoveDeadlines: Boolean = false,
+                         addRandomPutDeadlines: Boolean = false,
                          addRandomRanges: Boolean = false): Slice[KeyValue.WriteOnly] = {
     val slice = Slice.create[KeyValue.WriteOnly](count)
     //            var key = 1
@@ -90,35 +172,22 @@ trait TestData extends TryAssert {
     val until = key + count
     while (key < until) {
       if (nonValue) {
-        slice add Transient.Put(key, previous = slice.lastOption, falsePositiveRate = 0.1)
+        slice add Transient.Put(key, previous = slice.lastOption, if (addRandomPutDeadlines && Random.nextBoolean()) Some(10.seconds.fromNow) else None)
         key = key + 1
-      } else if ((addRandomDeletes || addRandomRanges) && Random.nextBoolean()) {
-        if (addRandomDeletes) {
-          slice add Remove(key, previous = slice.lastOption, falsePositiveRate = 0.1)
+      } else if ((addRandomRemoves || addRandomRanges) && Random.nextBoolean()) {
+        if (addRandomRemoves) {
+          slice add Remove(key, previous = slice.lastOption, if (addRandomRemoveDeadlines && Random.nextBoolean()) Some(10.seconds.fromNow) else None)
           key = key + 1
         }
         if (addRandomRanges) {
-          val value: Slice[Byte] = valueSize.map(size => Random.nextString(size): Slice[Byte]).getOrElse(randomInt(): Slice[Byte])
+          //          val value: Slice[Byte] = valueSize.map(size => Random.nextString(size): Slice[Byte]).getOrElse(randomInt(): Slice[Byte])
           val toKey = key + 10
-          val fromValue =
-            if (Random.nextBoolean()) {
-              if (Random.nextBoolean()) Some(Value.Remove) else Some(Value.Put(value))
-            } else {
-              None
-            }
-
-          val rangeValue =
-            if (Random.nextBoolean()) {
-              Value.Remove
-            } else {
-              Value.Put(value)
-            }
-          slice add Transient.Range[Value, Value](key, toKey, fromValue, rangeValue, previous = slice.lastOption, falsePositiveRate = 0.1)
+          slice add Transient.Range[FromValue, RangeValue](key, toKey, randomFromValueOption(), randomRangeValue(), previous = slice.lastOption, falsePositiveRate = 0.1)
           //randomly skip the Range's toKey for the next key.
           if (Random.nextBoolean())
             key = toKey
           else
-            key = toKey + 1
+            key = toKey + randomIntMax(5)
         }
       } else {
         val value: Slice[Byte] = valueSize.map(size => Random.nextString(size): Slice[Byte]).getOrElse(randomInt(): Slice[Byte])
@@ -129,8 +198,7 @@ trait TestData extends TryAssert {
     slice.close()
   }
 
-
-  def randomIntKeys(count: Int = 5,
+  def randomIntKeys(count: Int = 20,
                     startId: Option[Int] = None): Slice[KeyValue.WriteOnly] =
     randomIntKeyValues(count = count, startId = startId, nonValue = true)
 }

@@ -31,6 +31,8 @@ trait MapEntryWriter[T <: MapEntry[_, _]] {
   def bytesRequired(entry: T): Int
 
   val isRange: Boolean
+
+  val isUpdate: Boolean
 }
 
 object MapEntryWriter {

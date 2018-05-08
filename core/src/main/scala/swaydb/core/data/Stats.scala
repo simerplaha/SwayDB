@@ -23,6 +23,9 @@ import swaydb.core.util.{BloomFilterUtil, ByteUtilCore}
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 
+import scala.concurrent.duration.Deadline
+import swaydb.core.util.TimeUtil._
+
 private[core] case class Stats(valueOffset: Int,
                                valueLength: Int,
                                segmentSize: Int,
@@ -64,7 +67,38 @@ private[core] object Stats {
       falsePositiveRate = falsePositiveRate,
       hasRemoveRange = false,
       hasRange = false,
-      previous = None)
+      previous = None,
+      deadlines = Seq.empty
+    )
+
+  def apply(key: Slice[Byte],
+            falsePositiveRate: Double,
+            deadlines: Iterable[Deadline]): Stats =
+    Stats(
+      key = key,
+      valueLength = 0,
+      valueOffset = 0,
+      falsePositiveRate = falsePositiveRate,
+      hasRemoveRange = false,
+      hasRange = false,
+      previous = None,
+      deadlines = deadlines
+    )
+
+  def apply(key: Slice[Byte],
+            falsePositiveRate: Double,
+            previous: Option[KeyValue.WriteOnly],
+            deadlines: Iterable[Deadline]): Stats =
+    Stats(
+      key = key,
+      valueLength = 0,
+      valueOffset = 0,
+      falsePositiveRate = falsePositiveRate,
+      hasRemoveRange = false,
+      hasRange = false,
+      previous = previous,
+      deadlines = deadlines
+    )
 
   def apply(key: Slice[Byte],
             value: Slice[Byte],
@@ -76,20 +110,23 @@ private[core] object Stats {
       falsePositiveRate = falsePositiveRate,
       hasRemoveRange = false,
       hasRange = false,
-      previous = None
+      previous = None,
+      deadlines = Seq.empty
     )
 
   def apply(key: Slice[Byte],
             value: Slice[Byte],
             falsePositiveRate: Double,
-            previous: Option[KeyValue.WriteOnly]): Stats =
+            previous: Option[KeyValue.WriteOnly],
+            deadlines: Iterable[Deadline]): Stats =
     Stats(
       key = key,
       value = Some(value),
       falsePositiveRate = falsePositiveRate,
       isRemoveRange = previous.exists(_.stats.hasRemoveRange),
       isRange = previous.exists(_.stats.hasRange),
-      previous = previous
+      previous = previous,
+      deadlines = deadlines
     )
 
   def apply(key: Slice[Byte],
@@ -97,14 +134,16 @@ private[core] object Stats {
             falsePositiveRate: Double,
             isRemoveRange: Boolean,
             isRange: Boolean,
-            previous: Option[KeyValue.WriteOnly]): Stats =
+            previous: Option[KeyValue.WriteOnly],
+            deadlines: Iterable[Deadline]): Stats =
     Stats(
       key = key,
       valueLength = value.map(_.size).getOrElse(0),
       falsePositiveRate = falsePositiveRate,
       isRemoveRange = isRemoveRange,
       isRange = isRange,
-      previous = previous
+      previous = previous,
+      deadlines = deadlines
     )
 
   def apply(key: Slice[Byte],
@@ -112,7 +151,8 @@ private[core] object Stats {
             falsePositiveRate: Double,
             isRemoveRange: Boolean,
             isRange: Boolean,
-            previous: Option[KeyValue.WriteOnly]): Stats = {
+            previous: Option[KeyValue.WriteOnly],
+            deadlines: Iterable[Deadline]): Stats = {
     val valueOffset =
       previous match {
         case Some(previous) =>
@@ -133,7 +173,8 @@ private[core] object Stats {
       falsePositiveRate = falsePositiveRate,
       hasRemoveRange = isRemoveRange || previous.exists(_.stats.hasRemoveRange),
       hasRange = isRemoveRange || isRange || previous.exists(_.stats.hasRange),
-      previous = previous
+      previous = previous,
+      deadlines = deadlines
     )
   }
 
@@ -143,7 +184,8 @@ private[core] object Stats {
                     falsePositiveRate: Double,
                     hasRemoveRange: Boolean,
                     hasRange: Boolean,
-                    previous: Option[KeyValue.WriteOnly]): Stats = {
+                    previous: Option[KeyValue.WriteOnly],
+                    deadlines: Iterable[Deadline]): Stats = {
 
     val commonBytes: Int =
       previous.map {
@@ -160,7 +202,7 @@ private[core] object Stats {
       else
         key
 
-    val keyLength =
+    val keyLengthWithoutCommonBytes =
       keyWithoutCommonBytes.size
 
     val previousStats =
@@ -174,19 +216,29 @@ private[core] object Stats {
         val indexSize =
           1 +
             ByteUtilCore.sizeUnsignedInt(commonBytes) +
-            ByteUtilCore.sizeUnsignedInt(keyLength) +
-            keyLength +
-            ByteUtilCore.sizeUnsignedInt(0)
+            ByteUtilCore.sizeUnsignedInt(keyLengthWithoutCommonBytes) +
+            keyLengthWithoutCommonBytes +
+            ByteUtilCore.sizeUnsignedInt(0) + {
+            if (deadlines.isEmpty)
+              1
+            else
+              deadlines.foldLeft(0)((count, deadline) => count + ByteUtilCore.sizeUnsignedLong(deadline.toNanos))
+          }
 
         ByteUtilCore.sizeUnsignedInt(indexSize) + indexSize
       } else {
         val indexSize =
           1 +
             ByteUtilCore.sizeUnsignedInt(commonBytes) +
-            ByteUtilCore.sizeUnsignedInt(keyLength) +
-            keyLength +
+            ByteUtilCore.sizeUnsignedInt(keyLengthWithoutCommonBytes) +
+            keyLengthWithoutCommonBytes +
             ByteUtilCore.sizeUnsignedInt(valueLength) +
-            ByteUtilCore.sizeUnsignedInt(valueOffset)
+            ByteUtilCore.sizeUnsignedInt(valueOffset) + {
+            if (deadlines.isEmpty)
+              1
+            else
+              deadlines.foldLeft(0)((count, deadline) => count + ByteUtilCore.sizeUnsignedLong(deadline.toNanos))
+          }
 
         ByteUtilCore.sizeUnsignedInt(indexSize) + indexSize
       }

@@ -22,11 +22,13 @@ package swaydb.core.map.serializer
 import swaydb.core.data.Value
 import swaydb.core.io.reader.Reader
 import swaydb.core.util.ByteUtilCore
+import swaydb.core.util.TimeUtil._
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
 
 import scala.annotation.implicitNotFound
-import scala.util.{Success, Try}
+import scala.concurrent.duration.Deadline
+import scala.util.Try
 
 @implicitNotFound("Type class implementation not found for ValueSerializer of type ${T}")
 trait ValueSerializer[T] {
@@ -43,54 +45,189 @@ trait ValueSerializer[T] {
 
 object ValueSerializers {
 
-  object PutSerializerWithSize extends ValueSerializer[Value.Put] {
+  object LevelZero {
 
-    override def write(value: Value.Put, bytes: Slice[Byte]): Unit =
-      bytes
-        .addInt(value.value.map(_.size).getOrElse(0))
-        .addAll(value.value.getOrElse(Slice.emptyByteSlice))
-
-    override def bytesRequired(value: Value.Put): Int =
-      ByteSizeOf.int +
-        value.value.map(_.size).getOrElse(0)
-
-    override def read(reader: Reader): Try[Value.Put] =
-      reader.readInt() flatMap {
-        valueLength =>
-          if (valueLength == 0)
-            Success(Value.Put(None))
+    def readDeadlineLevelZero(reader: Reader): Try[Option[Deadline]] =
+      reader.readLong() map {
+        deadline =>
+          if (deadline == 0)
+            None
           else
-            reader.read(valueLength) map {
-              value =>
-                Value.Put(Some(value))
-            }
+            deadline.toDeadlineOption
       }
+
+    implicit object RemoveSerializerLevelZero extends ValueSerializer[Value.Remove] {
+
+      override def write(value: Value.Remove, bytes: Slice[Byte]): Unit =
+        bytes.addLong(value.deadline.toNanos)
+
+      override def bytesRequired(value: Value.Remove): Int =
+        ByteSizeOf.long
+
+      override def read(reader: Reader): Try[Value.Remove] =
+        readDeadlineLevelZero(reader) map {
+          deadline =>
+            Value.Remove(deadline)
+        }
+    }
+
+    implicit object PutSerializerLevelZero extends ValueSerializer[Value.Put] {
+
+      override def write(value: Value.Put, bytes: Slice[Byte]): Unit =
+        bytes
+          .addInt(value.value.map(_.size).getOrElse(0))
+          .addAll(value.value.getOrElse(Slice.emptyByteSlice))
+          .addLong(value.deadline.toNanos)
+
+      override def bytesRequired(value: Value.Put): Int =
+        ByteSizeOf.int +
+          value.value.map(_.size).getOrElse(0) +
+          ByteSizeOf.long
+
+      override def read(reader: Reader): Try[Value.Put] =
+        reader.readInt() flatMap {
+          valueLength =>
+            if (valueLength == 0)
+              readDeadlineLevelZero(reader) map {
+                deadline =>
+                  Value.Put(None, deadline)
+              }
+            else
+              reader.read(valueLength) flatMap {
+                value =>
+                  readDeadlineLevelZero(reader) map {
+                    deadline =>
+                      Value.Put(Some(value), deadline)
+                  }
+              }
+        }
+    }
+
+
+    implicit object UpdateSerializerLevelZero extends ValueSerializer[Value.Update] {
+
+      override def write(value: Value.Update, bytes: Slice[Byte]): Unit =
+        bytes
+          .addInt(value.value.map(_.size).getOrElse(0))
+          .addAll(value.value.getOrElse(Slice.emptyByteSlice))
+          .addLong(value.deadline.toNanos)
+
+      override def bytesRequired(value: Value.Update): Int =
+        ByteSizeOf.int +
+          value.value.map(_.size).getOrElse(0) +
+          ByteSizeOf.long
+
+      override def read(reader: Reader): Try[Value.Update] =
+        reader.readInt() flatMap {
+          valueLength =>
+            if (valueLength == 0)
+              readDeadlineLevelZero(reader) map {
+                deadline =>
+                  Value.Update(None, deadline)
+              }
+            else
+              reader.read(valueLength) flatMap {
+                value =>
+                  readDeadlineLevelZero(reader) map {
+                    deadline =>
+                      Value.Update(Some(value), deadline)
+                  }
+              }
+        }
+    }
+
   }
 
-  object PutSerializerWithUnsignedSize extends ValueSerializer[Value.Put] {
+  object Levels {
 
-    override def write(value: Value.Put, bytes: Slice[Byte]): Unit =
-      bytes
-        .addIntUnsigned(value.value.map(_.size).getOrElse(0))
-        .addAll(value.value.getOrElse(Slice.emptyByteSlice))
-
-    override def bytesRequired(value: Value.Put): Int =
-      ByteUtilCore.sizeUnsignedInt(value.value.map(_.size).getOrElse(0)) +
-        value.value.map(_.size).getOrElse(0)
-
-    override def read(reader: Reader): Try[Value.Put] =
-      reader.readIntUnsigned() flatMap {
-        valueLength =>
-          if (valueLength == 0)
-            Success(Value.Put(None))
+    def readDeadlineLevels(reader: Reader): Try[Option[Deadline]] =
+      reader.readLongUnsigned() map {
+        deadline =>
+          if (deadline == 0)
+            None
           else
-            reader.read(valueLength) map {
-              value =>
-                Value.Put(Some(value))
-            }
+            deadline.toDeadlineOption
       }
-  }
 
+    implicit object PutSerializerLevels extends ValueSerializer[Value.Put] {
+
+      override def write(value: Value.Put, bytes: Slice[Byte]): Unit =
+        bytes
+          .addIntUnsigned(value.value.map(_.size).getOrElse(0))
+          .addAll(value.value.getOrElse(Slice.emptyByteSlice))
+          .addLongUnsigned(value.deadline.toNanos)
+
+      override def bytesRequired(value: Value.Put): Int =
+        ByteUtilCore.sizeUnsignedInt(value.value.map(_.size).getOrElse(0)) +
+          value.value.map(_.size).getOrElse(0) +
+          ByteUtilCore.sizeUnsignedLong(value.deadline.toNanos)
+
+      override def read(reader: Reader): Try[Value.Put] =
+        reader.readIntUnsigned() flatMap {
+          valueLength =>
+            if (valueLength == 0)
+              readDeadlineLevels(reader) map {
+                deadline =>
+                  Value.Put(None, deadline)
+              }
+            else
+              reader.read(valueLength) flatMap {
+                value =>
+                  readDeadlineLevels(reader) map {
+                    deadline =>
+                      Value.Put(Some(value), deadline)
+                  }
+              }
+        }
+    }
+
+    implicit object RemoveSerializerLevels extends ValueSerializer[Value.Remove] {
+
+      override def write(value: Value.Remove, bytes: Slice[Byte]): Unit =
+        bytes.addLongUnsigned(value.deadline.toNanos)
+
+      override def bytesRequired(value: Value.Remove): Int =
+        ByteUtilCore.sizeUnsignedLong(value.deadline.toNanos)
+
+      override def read(reader: Reader): Try[Value.Remove] =
+        readDeadlineLevels(reader) map {
+          deadline =>
+            Value.Remove(deadline)
+        }
+    }
+
+    implicit object UpdateSerializerLevels extends ValueSerializer[Value.Update] {
+
+      override def write(value: Value.Update, bytes: Slice[Byte]): Unit =
+        bytes
+          .addIntUnsigned(value.value.map(_.size).getOrElse(0))
+          .addAll(value.value.getOrElse(Slice.emptyByteSlice))
+          .addLongUnsigned(value.deadline.toNanos)
+
+      override def bytesRequired(value: Value.Update): Int =
+        ByteUtilCore.sizeUnsignedInt(value.value.map(_.size).getOrElse(0)) +
+          value.value.map(_.size).getOrElse(0) +
+          ByteUtilCore.sizeUnsignedLong(value.deadline.toNanos)
+
+      override def read(reader: Reader): Try[Value.Update] =
+        reader.readIntUnsigned() flatMap {
+          valueLength =>
+            if (valueLength == 0)
+              readDeadlineLevels(reader) map {
+                deadline =>
+                  Value.Update(None, deadline)
+              }
+            else
+              reader.read(valueLength) flatMap {
+                value =>
+                  readDeadlineLevels(reader) map {
+                    deadline =>
+                      Value.Update(Some(value), deadline)
+                  }
+              }
+        }
+    }
+  }
 }
 
 object ValueSerializer {

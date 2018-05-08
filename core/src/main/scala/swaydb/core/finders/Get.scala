@@ -19,8 +19,8 @@
 
 package swaydb.core.finders
 
-import swaydb.core.data.KeyValue.ReadOnly.{Fixed, Range}
-import swaydb.core.data.{KeyValue, Memory, Persistent, Value}
+import swaydb.core.data.{KeyValue, Memory, Value}
+import swaydb.core.util.TryUtil
 import swaydb.data.slice.Slice
 
 import scala.util.{Success, Try}
@@ -28,46 +28,90 @@ import scala.util.{Success, Try}
 object Get {
 
   def apply(key: Slice[Byte],
-            getInCurrentLevelOnly: Slice[Byte] => Try[Option[KeyValue.ReadOnly]],
-            getFromNextLevel: Slice[Byte] => Try[Option[KeyValue.FindResponse]])(implicit ordering: Ordering[Slice[Byte]]): Try[Option[KeyValue.FindResponse]] = {
+            getFromCurrentLevel: Slice[Byte] => Try[Option[KeyValue.ReadOnly]],
+            getFromNextLevel: Slice[Byte] => Try[Option[KeyValue.ReadOnly.Put]])(implicit ordering: Ordering[Slice[Byte]]): Try[Option[KeyValue.ReadOnly.Put]] = {
     import ordering._
-    getInCurrentLevelOnly(key) flatMap {
+
+    def returnValue(current: Value): Try[Option[KeyValue.ReadOnly.Put]] =
+      current match {
+        case current @ Value.Remove(deadline) =>
+          if (current.hasTimeLeft())
+            getFromNextLevel(key) map {
+              case Some(response) =>
+                deadline.map(response.updateDeadline) orElse Some(response)
+
+              case None =>
+                None
+            }
+          else
+            TryUtil.successNone
+
+        case current: Value.Put =>
+          if (current.hasTimeLeft())
+            Success(Some(Memory.Put(key, current.value, current.deadline)))
+          else
+            TryUtil.successNone
+
+        case current: Value.Update =>
+          if (current.hasTimeLeft())
+            getFromNextLevel(key) map {
+              case Some(next) =>
+                Some(Memory.Put(key, current.value, current.deadline orElse next.deadline))
+
+              case None =>
+                None
+            }
+          else
+            TryUtil.successNone
+      }
+
+    getFromCurrentLevel(key) flatMap {
       case Some(getFromCurrent) =>
         getFromCurrent match {
-          case fixed: Fixed =>
-            fixed match {
-              case _: Memory.Remove | _: Persistent.Remove =>
-                Success(None)
+          case current: KeyValue.ReadOnly.Fixed =>
+            current match {
+              case current: KeyValue.ReadOnly.Remove =>
+                if (current.hasTimeLeft())
+                  current.deadline map {
+                    removeDeadline =>
+                      getFromNextLevel(key) map {
+                        response =>
+                          response.map(_.updateDeadline(removeDeadline))
+                      }
+                  } getOrElse getFromNextLevel(key)
+                else
+                  TryUtil.successNone
 
-              case put: Memory.Put =>
-                Success(Some(put))
+              case current: KeyValue.ReadOnly.Put =>
+                if (current.hasTimeLeft())
+                  Success(Some(current))
+                else
+                  TryUtil.successNone
 
-              case put: Persistent.Put =>
-                Success(Some(put))
+              case current: KeyValue.ReadOnly.Update =>
+                if (current.hasTimeLeft())
+                  getFromNextLevel(key) map {
+                    nextOption =>
+                      if (nextOption.isDefined) {
+                        if (current.deadline.isDefined)
+                          Some(current.toPut())
+                        else
+                          nextOption.flatMap(_.deadline).map(current.toPut) orElse Some(current.toPut())
+                      }
+                      else
+                        None
+                  }
+                else
+                  TryUtil.successNone
             }
 
-          case range: Range =>
-            range.fetchFromValue flatMap {
-              case Some(_: Value.Remove) if range.fromKey equiv key =>
-                Success(None)
-
-              case Some(fromValue: Value.Put) if range.fromKey equiv key =>
-                Success(Some(Memory.Put(key, fromValue.value)))
-
-              case _ =>
-                range.fetchRangeValue flatMap {
-                  case Value.Remove =>
-                    Success(None)
-
-                  case rangeValue: Value.Put =>
-                    getFromNextLevel(key) map {
-                      case Some(_) =>
-                        Some(Memory.Put(key, rangeValue.value))
-
-                      case None =>
-                        None
-                    }
-                }
+          case current: KeyValue.ReadOnly.Range =>
+            current.fetchFromAndRangeValue flatMap {
+              case (fromValue, rangeValue) =>
+                if (current.fromKey equiv key)
+                  returnValue(fromValue getOrElse rangeValue)
+                else
+                  returnValue(rangeValue)
             }
         }
 

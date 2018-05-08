@@ -21,14 +21,15 @@ package swaydb.core.util
 
 import java.util.{Timer, TimerTask}
 
+import swaydb.core.util.TryUtil._
+
 import scala.concurrent._
 import scala.concurrent.duration.FiniteDuration
 import scala.util.Try
-import TryUtil._
 
-private[swaydb] object Delay {
+object Delay {
 
-  private val timer = new Timer(true)
+  val timer = new Timer(true)
 
   private def runWithDelay[T](delayFor: FiniteDuration)(block: => Future[T])(implicit ctx: ExecutionContext): Future[T] = {
     val promise = Promise[T]()
@@ -47,6 +48,16 @@ private[swaydb] object Delay {
     promise.future
   }
 
+  private def createTask(delayFor: FiniteDuration)(block: => Unit): TimerTask = {
+    val task =
+      new TimerTask {
+        def run() =
+          block
+      }
+    timer.schedule(task, delayFor.toMillis)
+    task
+  }
+
   def apply[T](delayFor: FiniteDuration)(block: => Future[T])(implicit ctx: ExecutionContext): Future[T] =
     runWithDelay(delayFor)(block)
 
@@ -55,6 +66,9 @@ private[swaydb] object Delay {
 
   def futureFromTry[T](delayFor: FiniteDuration)(block: => Try[T])(implicit ctx: ExecutionContext): Future[T] =
     runWithDelay(delayFor)(block.tryInFuture)
+
+  def task(delayFor: FiniteDuration)(block: => Unit): TimerTask =
+    createTask(delayFor)(block)
 
   def cancelTimer(): Unit =
     timer.cancel()

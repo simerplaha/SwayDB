@@ -19,14 +19,28 @@
 
 package swaydb.core
 
-import scala.concurrent.duration._
+import java.util.concurrent.ConcurrentLinkedQueue
+
+import swaydb.core.io.file.DBFile
 import swaydb.data.util.StorageUnits._
+
+import scala.concurrent.duration._
 
 object TestLimitQueues {
 
   implicit val level0PushDownPool = TestExecutionContext.executionContext
 
+  val queue = new ConcurrentLinkedQueue[DBFile]()
+  @volatile var queueSize = queue.size()
+
   val keyValueLimiter = LimitQueues.keyValueLimiter(10.mb, 5.seconds)
-  val fileOpenLimiter = LimitQueues.segmentOpenLimiter(100, 5.seconds)
+
+  val fileOpenLimiter: DBFile => Unit =
+    file => {
+      queue.add(file)
+      queueSize += 1
+      if (queueSize > 100)
+        queue.poll().close
+    }
 
 }

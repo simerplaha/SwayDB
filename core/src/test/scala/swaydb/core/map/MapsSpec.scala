@@ -25,6 +25,7 @@ import swaydb.core.TestBase
 import swaydb.core.data.{Memory, Value}
 import swaydb.core.level.zero.LevelZeroSkipListMerge
 import swaydb.core.util.Extension
+import swaydb.core.util.FileUtil._
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.config.RecoveryMode
 import swaydb.data.slice.Slice
@@ -32,10 +33,9 @@ import swaydb.data.util.StorageUnits._
 import swaydb.order.KeyOrder
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.core.util.FileUtil._
 
 import scala.collection.JavaConverters._
-import scala.util.{Failure, Success}
+import scala.concurrent.duration._
 
 class MapsSpec extends TestBase {
 
@@ -44,7 +44,7 @@ class MapsSpec extends TestBase {
   import swaydb.core.map.serializer.LevelZeroMapEntryReader._
   import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
 
-  implicit val skipListMerger = LevelZeroSkipListMerge
+  implicit val skipListMerger = LevelZeroSkipListMerge(10.seconds)
 
   "Maps.persistent" should {
     "initialise and recover on reopen" in {
@@ -109,10 +109,10 @@ class MapsSpec extends TestBase {
   "Maps" should {
     "initialise a new map if the current map is full" in {
       def test(maps: Maps[Slice[Byte], Memory]) = {
-        maps.write(MapEntry.Put(1, Memory.Put(1))).assertGet //entry size is 32.bytes
-        maps.write(MapEntry.Put(2: Slice[Byte], Memory.Range(2, 2, None, Value.Put(2)))).assertGet //another 45.bytes
+        maps.write(MapEntry.Put(1, Memory.Put(1))).assertGet //entry size is 36.bytes
+        maps.write(MapEntry.Put(2: Slice[Byte], Memory.Range(2, 2, None, Value.Update(2)))).assertGet //another 46.bytes
         maps.queuedMapsCountWithCurrent shouldBe 1
-        //another 45.bytes but map has total size of 77.bytes.
+        //another 32.bytes but map has total size of 82.bytes.
         //now since the Map is overflow a new should get created.
         maps.write(MapEntry.Put[Slice[Byte], Memory](3, Memory.Remove(3))).assertGet
         maps.queuedMapsCount shouldBe 1
@@ -121,13 +121,13 @@ class MapsSpec extends TestBase {
 
       //persistent
       val path = createRandomDir
-      val maps = Maps.persistent[Slice[Byte], Memory](path, mmap = false, 32.bytes + 45.bytes, Accelerator.brake(), RecoveryMode.ReportFailure).assertGet
+      val maps = Maps.persistent[Slice[Byte], Memory](path, mmap = false, 36.bytes + 46.bytes, Accelerator.brake(), RecoveryMode.ReportFailure).assertGet
       test(maps)
       //new map 1 gets created since the 3rd entry is overflow entry.
       path.folders.map(_.folderId) should contain only(0, 1)
 
       //in memory
-      test(Maps.memory(32.bytes + 45.bytes, Accelerator.brake()))
+      test(Maps.memory(36.bytes + 46.bytes, Accelerator.brake()))
     }
 
     "write a key value larger then the actual fileSize" in {
@@ -239,7 +239,7 @@ class MapsSpec extends TestBase {
 
     "continue recovery if one of the map is corrupted and recovery mode is DropCorruptedTailEntries" in {
       val path = createRandomDir
-      val maps = Maps.persistent[Slice[Byte], Memory](path, mmap = false, 70.byte, Accelerator.brake(), RecoveryMode.ReportFailure).assertGet
+      val maps = Maps.persistent[Slice[Byte], Memory](path, mmap = false, 100.bytes, Accelerator.brake(), RecoveryMode.ReportFailure).assertGet
       maps.write(MapEntry.Put(1, Memory.Put(1))).assertGet
       maps.write(MapEntry.Put(2, Memory.Put(2))).assertGet
       maps.write(MapEntry.Put(3, Memory.Put(3, 3))).assertGet
@@ -251,7 +251,7 @@ class MapsSpec extends TestBase {
       val secondMapsBytes = Files.readAllBytes(secondMapsPath)
       Files.write(secondMapsPath, secondMapsBytes.dropRight(1))
 
-      val recoveredMaps = Maps.persistent[Slice[Byte], Memory](path, mmap = false, 70.byte, Accelerator.brake(), RecoveryMode.DropCorruptedTailEntries).assertGet.maps.asScala
+      val recoveredMaps = Maps.persistent[Slice[Byte], Memory](path, mmap = false, 100.bytes, Accelerator.brake(), RecoveryMode.DropCorruptedTailEntries).assertGet.maps.asScala
       //recovered maps will still be 3 but since second maps second entry is corrupted, the first entry will still exists.
       recoveredMaps should have size 3
 
@@ -270,7 +270,7 @@ class MapsSpec extends TestBase {
 
     "continue recovery if one of the map is corrupted and recovery mode is DropCorruptedTailEntriesAndMaps" in {
       val path = createRandomDir
-      val maps = Maps.persistent[Slice[Byte], Memory](path, mmap = false, 70.bytes, Accelerator.brake(), RecoveryMode.ReportFailure).assertGet
+      val maps = Maps.persistent[Slice[Byte], Memory](path, mmap = false, 100.bytes, Accelerator.brake(), RecoveryMode.ReportFailure).assertGet
       maps.write(MapEntry.Put(1, Memory.Put(1))).assertGet
       maps.write(MapEntry.Put(2, Memory.Put(2, 2))).assertGet
       maps.write(MapEntry.Put(3, Memory.Put(3))).assertGet
@@ -282,7 +282,7 @@ class MapsSpec extends TestBase {
       val secondMapsBytes = Files.readAllBytes(secondMapsPath)
       Files.write(secondMapsPath, secondMapsBytes.dropRight(1))
 
-      val recoveredMaps = Maps.persistent[Slice[Byte], Memory](path, mmap = false, 70.bytes, Accelerator.brake(), RecoveryMode.DropCorruptedTailEntriesAndMaps).assertGet
+      val recoveredMaps = Maps.persistent[Slice[Byte], Memory](path, mmap = false, 100.bytes, Accelerator.brake(), RecoveryMode.DropCorruptedTailEntriesAndMaps).assertGet
       recoveredMaps.maps should have size 2
       //the last map is delete since the second last Map is found corrupted.
       maps.maps.asScala.last.exists shouldBe false
@@ -300,7 +300,7 @@ class MapsSpec extends TestBase {
 
     "start a new Map if writing an entry fails" in {
       val path = createRandomDir
-      val maps = Maps.persistent[Slice[Byte], Memory](path, mmap = false, 70.bytes, Accelerator.brake(), RecoveryMode.ReportFailure).assertGet
+      val maps = Maps.persistent[Slice[Byte], Memory](path, mmap = false, 100.bytes, Accelerator.brake(), RecoveryMode.ReportFailure).assertGet
       maps.write(MapEntry.Put(1, Memory.Put(1))).assertGet
       maps.queuedMapsCountWithCurrent shouldBe 1
       //delete the map

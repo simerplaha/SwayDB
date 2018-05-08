@@ -23,6 +23,7 @@ import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.slice.Slice
 
+import scala.concurrent.duration.FiniteDuration
 import scala.util.Try
 
 /**
@@ -49,6 +50,8 @@ private[swaydb] trait SwayDBAPI {
 
   def update(from: Slice[Byte], until: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter]
 
+  def remove(fromKey: Slice[Byte], toKey: Slice[Byte], after: FiniteDuration): Try[Level0Meter]
+
   def head: Try[Option[(Slice[Byte], Option[Slice[Byte]])]]
 
   def headKey: Try[Option[Slice[Byte]]]
@@ -72,6 +75,8 @@ private[swaydb] trait SwayDBAPI {
   def getKeyValue(key: Slice[Byte]): Try[Option[(Slice[Byte], Option[Slice[Byte]])]]
 
   def valueSize(key: Slice[Byte]): Try[Option[Int]]
+
+  def keySize(key: Slice[Byte]): Try[Option[Int]]
 
   def beforeKey(key: Slice[Byte]): Try[Option[Slice[Byte]]]
 

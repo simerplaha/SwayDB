@@ -35,6 +35,7 @@ import swaydb.data.util.StorageUnits._
 
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success, Try}
+import scala.concurrent.duration._
 
 private[swaydb] object AppendixRepairer extends LazyLogging {
 
@@ -44,7 +45,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
     val reader = AppendixMapEntryReader(false, false, false)(ordering, (_, _) => (), (_) => (), ec)
     import reader._
     import swaydb.core.map.serializer.AppendixMapEntryWriter._
-    import swaydb.core.level.Level.SkipListMerge$
+    import swaydb.core.level.Level.SkipListMerge
 
     Try(FileUtil.files(levelPath, Extension.Seg)) flatMap {
       files =>

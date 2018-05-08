@@ -27,5 +27,4 @@ object ByteSizeOf {
   val char = java.lang.Character.BYTES
   val double = java.lang.Double.BYTES
   val float = java.lang.Float.BYTES
-
 }
