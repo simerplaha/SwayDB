@@ -20,7 +20,6 @@
 package swaydb.core.level
 
 import java.nio.file.{FileAlreadyExistsException, Files, NoSuchFileException}
-import java.util.Timer
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.PrivateMethodTester
@@ -50,10 +49,7 @@ import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
 import scala.util.{Random, Success, Try}
 
-class LevelWriteSpec0 extends LevelWriteSpec
-
 //@formatter:off
-
 class LevelWriteSpec0 extends LevelWriteSpec
 
 class LevelWriteSpec1 extends LevelWriteSpec {
@@ -82,8 +78,8 @@ trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
   implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
   val keyValuesCount = 100
 
-  //  override def deleteFiles: Boolean =
-  //    false
+  //    override def deleteFiles: Boolean =
+  //      false
 
   implicit val maxSegmentsOpenCacheImplicitLimiter: DBFile => Unit = TestLimitQueues.fileOpenLimiter
   implicit val keyValuesLimitImplicitLimiter: (Persistent, Segment) => Unit = TestLimitQueues.keyValueLimiter
@@ -113,7 +109,7 @@ trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
         level.dirs.foreach(_.path.exists shouldBe true)
       }
 
-      level.segments shouldBe empty
+      level.segmentsInLevel() shouldBe empty
       level.removeDeletedRecords shouldBe true
     }
 
@@ -136,10 +132,10 @@ trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
     }
   }
 
-  "Level.deleteOrphanSegments" should {
+  "Level.deleteUncommittedSegments" should {
     "delete segments that are not in the appendix" in {
       if (memory) {
-        // memory Level do not have orphan Segments
+        // memory Level do not have uncommitted Segments
       } else {
         val level = TestLevel()
         level.putKeyValues(randomIntKeyValuesMemory()).assertGet
@@ -156,10 +152,10 @@ trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
             TestSegment(path = dir.path.resolve((currentSegmentId + 3).toSegmentFileId)).assertGet
             currentSegmentId + 3
         }
-        //every level folder has 3 orphan Segments plus 1 valid Segment
+        //every level folder has 3 uncommitted Segments plus 1 valid Segment
         level.segmentFilesOnDisk should have size (level.dirs.size * 3) + 1
 
-        val function = PrivateMethod[Unit]('deleteOrphanSegments)
+        val function = PrivateMethod[Unit]('deleteUncommittedSegments)
         level invokePrivate function()
 
         level.segmentFilesOnDisk should have size 1
@@ -172,15 +168,15 @@ trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
   "Level.currentLargestSegmentId" should {
     "get the largest segment in the Level when the Level is not empty" in {
       val level = TestLevel(segmentSize = 1.kb)
-      level.putKeyValues(randomIntKeyValuesMemory(2000)).assertGet
+      level.putKeyValues(randomizedIntKeyValues(2000)).assertGet
 
       val function = PrivateMethod[Long]('largestSegmentId)
       val largeSegmentId = level invokePrivate function()
 
-      largeSegmentId shouldBe level.segments.map(_.path.fileId.assertGet._1).max
+      largeSegmentId shouldBe level.segmentsInLevel().map(_.path.fileId.assertGet._1).max
     }
 
-    "return 0 when the Level empty" in {
+    "return 0 when the Level is empty" in {
       val level = TestLevel(segmentSize = 1.kb)
 
       val function = PrivateMethod[Int]('largestSegmentId)
@@ -214,7 +210,7 @@ trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
       replyTo.getMessage().result.assertGet
     }
 
-    "fail forward if lower level does not exists" in {
+    "fail forward if the current Level is the last Level" in {
       val level = TestLevel(segmentSize = 1.kb, pushForward = true, nextLevel = None)
 
       val replyTo = TestActor[PushSegmentsResponse]()
@@ -460,11 +456,11 @@ trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
 
         }
 
-        val appendixBeforePut = level.segments
+        val appendixBeforePut = level.segmentsInLevel()
         val levelFilesBeforePut = level.segmentFilesOnDisk
         level.put(segmentToMerge, segmentToCopy, Seq(targetSegment)).failed.assertGet shouldBe a[FileAlreadyExistsException]
         level.segmentFilesOnDisk shouldBe levelFilesBeforePut
-        level.segments.map(_.path) shouldBe appendixBeforePut.map(_.path)
+        level.segmentsInLevel().map(_.path) shouldBe appendixBeforePut.map(_.path)
       }
     }
   }
@@ -505,10 +501,14 @@ trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
       val level = TestLevel()
 
       //creating a Segment with existing string key-values
-      val existingKeyValues = Array(Memory.Put("one", "one"), Memory.Put("two", "two"), Memory.Put("three", "three"), Memory.Remove("four"))
+      val existingKeyValues = Array(Memory.Put("one", "one"), Memory.Put("two", "two"), Memory.Put("three", "three"))
 
       val sortedExistingKeyValues =
-        Slice(Array(Memory.Put("one", "one"), Memory.Put("two", "two"), Memory.Put("three", "three"), Memory.Remove("four")).sorted(ordering.on[KeyValue](_.key)))
+        Slice(
+          Array(
+            //also randomly set expired deadline for Remove.
+            Memory.Put("one", "one"), Memory.Put("two", "two"), Memory.Put("three", "three"), Memory.Remove("four", randomly(expiredDeadline()))
+          ).sorted(ordering.on[KeyValue](_.key)))
 
       level.putKeyValues(sortedExistingKeyValues).assertGet
 
@@ -525,18 +525,20 @@ trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
 
   "Level.put KeyValues" should {
     "write a key-values to the Level" in {
-      val level = TestLevel()
+      val level = TestLevel(throttle = (_) => Throttle(Duration.Zero, 0))
 
       val keyValues = randomIntKeyValuesMemory()
       level.putKeyValues(keyValues).assertGet
 
       level.putKeyValues(Slice(keyValues.head)).assertGet
 
-      if (persistent)
-        assertReads(keyValues, level.reopen)
+      if (persistent) {
+        val reopen = level.reopen
+        eventual(assertReads(keyValues, reopen))
+      }
     }
 
-    "return an empty level if all the key values in the Level were deleted and if Level is the only Level" in {
+    "return an empty level if all the key values in the Level were REMOVED and if Level is the only Level" in {
       val level = TestLevel(segmentSize = 1.kb, throttle = (_) => Throttle(Duration.Zero, 0))
 
       val keyValues = randomIntKeyValuesMemory(keyValuesCount)
@@ -552,7 +554,7 @@ trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
       val lastKeyValuesId = keyValues.last.key.read[Int] + 1
       (lastKeyValuesId until keyValues.size + lastKeyValuesId) foreach {
         id =>
-          deleteKeyValues add Memory.Remove(id)
+          deleteKeyValues add Memory.Remove(id, randomly(expiredDeadline()))
       }
 
       level.putKeyValues(deleteKeyValues).assertGet
@@ -565,7 +567,7 @@ trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
       }
     }
 
-    "not return an empty level if all the key values in the Level were deleted but it has lower level" in {
+    "not return an empty level if all the key values in the Level were REMOVED but it has lower level" in {
       val level = TestLevel(nextLevel = Some(TestLevel()))
 
       val keyValues = randomIntKeyValuesMemory()
@@ -582,6 +584,174 @@ trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
       keyValues foreach {
         keyValue =>
           level.get(keyValue.key).assertGetOpt shouldBe empty
+      }
+    }
+
+    "return an empty level if all the key values in the Level were REMOVED by RANGE and if Level is the only Level" in {
+      val level = TestLevel(segmentSize = 1.kb, throttle = (_) => Throttle(Duration.Zero, 0))
+
+      val keyValues = randomIntKeyValuesMemory(keyValuesCount)
+      level.putKeyValues(keyValues).assertGet
+
+      level.putKeyValues(Slice(Memory.Range(keyValues.head.key, keyValues.last.key.readInt() + 1, None, Value.Remove(None)))).assertGet
+      level.segmentFilesInAppendix shouldBe 0
+
+      level.isEmpty shouldBe true
+      if (persistent) {
+        level.reopen.isEmpty shouldBe true
+        level.segmentFilesOnDisk shouldBe empty
+      }
+    }
+
+    "not return an empty level if all the key values in the Level were REMOVED by RANGE but it has a lower Level" in {
+      val level = TestLevel(segmentSize = 1.kb, nextLevel = Some(TestLevel()), throttle = (_) => Throttle(Duration.Zero, 0))
+
+      val keyValues = randomIntKeyValuesMemory(keyValuesCount)
+      level.putKeyValues(keyValues).assertGet
+      val segmentsCountBeforeRemove = level.segmentFilesInAppendix
+
+      level.putKeyValues(Slice(Memory.Range(keyValues.head.key, keyValues.last.key.readInt() + 1, None, Value.Remove(None)))).assertGet
+      level.segmentFilesInAppendix shouldBe segmentsCountBeforeRemove
+
+      level.isEmpty shouldBe false
+      if (persistent) {
+        level.reopen.isEmpty shouldBe false
+        level.segmentFilesOnDisk should have size segmentsCountBeforeRemove
+      }
+    }
+
+    "return an empty level if all the key values in the Level were EXPIRED and if Level is the only Level" in {
+      val level = TestLevel(segmentSize = 1.kb, throttle = (_) => Throttle(Duration.Zero, 0))
+
+      val keyValues = randomIntKeyValuesMemory(keyValuesCount)
+      level.putKeyValues(keyValues).assertGet
+
+      val deleteKeyValues = Slice.create[KeyValue.ReadOnly](keyValues.size * 2)
+      keyValues foreach {
+        keyValue =>
+          deleteKeyValues add Memory.Remove(keyValue.key, 1.seconds)
+      }
+      //also add another set of Delete key-values where the keys do not belong to the Level but since there is no lower level
+      //these delete keys should also be removed
+      val lastKeyValuesId = keyValues.last.key.read[Int] + 1
+      (lastKeyValuesId until keyValues.size + lastKeyValuesId) foreach {
+        id =>
+          deleteKeyValues add Memory.Remove(id, randomly(expiredDeadline()))
+      }
+
+      level.nextLevel shouldBe empty
+
+      level.putKeyValues(deleteKeyValues).assertGet
+
+      //expired key-values return empty after 2.seconds
+      eventual(5.seconds) {
+        keyValues foreach {
+          keyValue =>
+            level.get(keyValue.key).assertGetOpt shouldBe empty
+        }
+      }
+
+      eventual(5.seconds) {
+        level.segmentFilesInAppendix shouldBe 0
+      }
+
+      level.isEmpty shouldBe true
+
+      if (persistent) {
+        level.reopen.isEmpty shouldBe true
+        level.segmentFilesOnDisk shouldBe empty
+      }
+    }
+
+    "not return an empty level if all the key values in the Level were EXPIRED and if Level has a lower Level" in {
+      val level = TestLevel(segmentSize = 1.kb, nextLevel = Some(TestLevel()), throttle = (_) => Throttle(Duration.Zero, 0))
+
+      val keyValues = randomIntKeyValuesMemory(keyValuesCount)
+      level.putKeyValues(keyValues).assertGet
+
+      val deleteKeyValues = Slice.create[KeyValue.ReadOnly](keyValues.size * 2)
+      keyValues foreach {
+        keyValue =>
+          deleteKeyValues add Memory.Remove(keyValue.key, 0.seconds)
+      }
+      //also add another set of Delete key-values where the keys do not belong to the Level but since there is no lower level
+      //these delete keys should also be removed
+      val lastKeyValuesId = keyValues.last.key.read[Int] + 1
+      (lastKeyValuesId until keyValues.size + lastKeyValuesId) foreach {
+        id =>
+          deleteKeyValues add Memory.Remove(id, randomly(expiredDeadline()))
+      }
+
+      level.putKeyValues(deleteKeyValues).assertGet
+
+      //expired key-values return empty.
+      keyValues foreach {
+        keyValue =>
+          level.get(keyValue.key).assertGetOpt shouldBe empty
+      }
+
+      //sleep for 2.seconds and Segments should still exists.
+      sleep(2.seconds)
+      level.isEmpty shouldBe false
+      level.segmentFilesInAppendix should be >= 1
+
+      if (persistent) {
+        level.reopen.isEmpty shouldBe false
+        level.segmentFilesOnDisk.size should be >= 1
+      }
+    }
+
+    "return an empty level if all the key values in the Level were EXPIRED by RANGE and if Level is the only Level" in {
+      val level = TestLevel(segmentSize = 1.kb, throttle = (_) => Throttle(Duration.Zero, 0))
+
+      val keyValues = randomIntKeyValuesMemory(keyValuesCount)
+      level.putKeyValues(keyValues).assertGet
+
+      level.putKeyValues(Slice(Memory.Range(keyValues.head.key, keyValues.last.key.readInt() + 1, None, Value.Remove(2.seconds.fromNow)))).assertGet
+
+      //expired key-values return empty after 2.seconds
+      eventual(5.seconds) {
+        keyValues foreach {
+          keyValue =>
+            level.get(keyValue.key).assertGetOpt shouldBe empty
+        }
+      }
+
+      eventual(5.seconds) {
+        level.segmentFilesInAppendix shouldBe 0
+      }
+
+      level.isEmpty shouldBe true
+
+      if (persistent) {
+        level.reopen.isEmpty shouldBe true
+        level.segmentFilesOnDisk shouldBe empty
+      }
+    }
+
+    "not return an empty level if all the key values in the Level were EXPIRED by RANGE and if Level has a last Level" in {
+      val level = TestLevel(segmentSize = 1.kb, nextLevel = Some(TestLevel()), throttle = (_) => Throttle(Duration.Zero, 0))
+
+      val keyValues = randomIntKeyValuesMemory(keyValuesCount)
+      level.putKeyValues(keyValues).assertGet
+
+      level.putKeyValues(Slice(Memory.Range(keyValues.head.key, keyValues.last.key.readInt() + 1, None, Value.Remove(2.seconds.fromNow)))).assertGet
+
+      //expired key-values return empty after 2.seconds
+      eventual(5.seconds) {
+        keyValues foreach {
+          keyValue =>
+            level.get(keyValue.key).assertGetOpt shouldBe empty
+        }
+      }
+
+      level.segmentFilesInAppendix should be >= 1
+
+      level.isEmpty shouldBe false
+
+      if (persistent) {
+        level.reopen.isEmpty shouldBe false
+        level.segmentFilesOnDisk.size should be >= 1
       }
     }
   }
@@ -643,7 +813,8 @@ trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
         }
         //can still read Segments
         assertReads(keyValues, reopenLevel)
-        assertReads(keyValues, reopenLevel.reopen)
+        val reopen2 = reopenLevel.reopen
+        eventual(assertReads(keyValues, reopen2))
       }
     }
   }
@@ -654,38 +825,33 @@ trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
       //Remove or expiring key-values should have the same result
       val level = TestLevel(segmentSize = 1.kb, throttle = (_) => Throttle(Duration.Zero, 0))
       val expiryAt = 2.seconds.fromNow
-      val keyValues = randomIntKeyValuesMemory(1000)
+      val keyValues = randomIntKeyValuesMemory(1000, nonValue = true)
       level.putKeyValues(keyValues).assertGet
       //dispatch another put request so that existing Segment gets split
       level.putKeyValues(Slice(keyValues.head)).assertGet
       val segmentCountBeforeDelete = level.segmentsCount()
       segmentCountBeforeDelete > 1 shouldBe true
 
-      val keyValuesNoDeleted = ListBuffer.empty[KeyValue]
-      val deleteEverySecond =
+      val keyValuesNotExpired = ListBuffer.empty[KeyValue]
+      val expireEverySecond =
         keyValues.zipWithIndex flatMap {
           case (keyValue, index) =>
             if (index % 2 == 0)
               Some(Memory.Remove(keyValue.key, expiryAt + index.millisecond))
             else {
-              keyValuesNoDeleted += keyValue
+              keyValuesNotExpired += keyValue
               None
             }
         }
 
       //delete half of the key values which will create small Segments
-      level.putKeyValues(Slice(deleteEverySecond.toArray)).assertGet
+      level.putKeyValues(Slice(expireEverySecond.toArray)).assertGet
 
+      sleep(5.seconds)
       level.collapseAllSmallSegments(1000).assertGet
-      level.segmentFilesInAppendix shouldBe segmentCountBeforeDelete
+      level.segmentFilesInAppendix shouldBe (segmentCountBeforeDelete / 2)
 
-      sleep(10.seconds)
-      level.collapseAllSmallSegments(1000).assertGet
-
-      eventual(10.seconds) {
-        level.segmentFilesInAppendix shouldBe (segmentCountBeforeDelete / 2)
-      }
-      assertReads(Slice(keyValuesNoDeleted.toArray), level)
+      assertReads(Slice(keyValuesNotExpired.toArray), level)
     }
   }
 
@@ -790,7 +956,7 @@ trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
       val level = TestLevel(segmentSize = 1.kb)
       level.putKeyValues(randomIntKeyValuesMemory(keyValuesCount)).assertGet
 
-      level.removeSegments(level.segments).assertGet
+      level.removeSegments(level.segmentsInLevel()).assertGet
 
       level.isEmpty shouldBe true
 

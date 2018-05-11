@@ -45,11 +45,11 @@ private[map] class MemoryMap[K, V: ClassTag](val skipList: ConcurrentSkipListMap
   override def write(entry: MapEntry[K, V]): Try[Boolean] =
     synchronized {
       if (flushOnOverflow || currentBytesWritten == 0 || ((currentBytesWritten + entry.totalByteSize) <= fileSize)) {
-        if (entry.hasUpdate || entry.hasRemoveDeadline || _hasRange) {
-          skipListMerger.insert(entry, skipList)
-        } else if (entry.hasRange) {
+        if (entry.hasRange) {
           skipListMerger.insert(entry, skipList)
           _hasRange = true
+        } else if (entry.hasUpdate || entry.hasRemoveDeadline || _hasRange) {
+          skipListMerger.insert(entry, skipList)
         } else {
           entry applyTo skipList
         }

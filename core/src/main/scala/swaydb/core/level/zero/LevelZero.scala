@@ -53,11 +53,11 @@ private[core] object LevelZero extends LazyLogging {
             nextLevel: LevelRef,
             acceleration: Level0Meter => Accelerator,
             readRetryLimit: Int,
-            graceTimeout: FiniteDuration)(implicit ordering: Ordering[Slice[Byte]],
-                                          ec: ExecutionContext): Try[LevelZero] = {
+            hasTimeLeftAtLeast: FiniteDuration)(implicit ordering: Ordering[Slice[Byte]],
+                                                ec: ExecutionContext): Try[LevelZero] = {
     import swaydb.core.map.serializer.LevelZeroMapEntryReader.Level0Reader
     import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
-    implicit val skipListMerger: SkipListMerge[Slice[Byte], Memory] = LevelZeroSkipListMerge(graceTimeout)
+    implicit val skipListMerger: SkipListMerge[Slice[Byte], Memory] = LevelZeroSkipListMerge(hasTimeLeftAtLeast)
     implicit val memoryOrdering: Ordering[Memory] = ordering.on[Memory](_.key)
     val mapsAndPathAndLock =
       storage match {
@@ -150,7 +150,7 @@ private[core] class LevelZero(val path: Path,
       maps.write(MapEntry.Put(key, Memory.Put(key, value)))
     }
 
-  def put(key: Slice[Byte], value: Slice[Byte], removeAt: Deadline): Try[Level0Meter] =
+  def put(key: Slice[Byte], value: Option[Slice[Byte]], removeAt: Deadline): Try[Level0Meter] =
     assertKey(key) {
       maps.write(MapEntry.Put(key, Memory.Put(key, value, removeAt)))
     }
@@ -173,17 +173,23 @@ private[core] class LevelZero(val path: Path,
       maps.write(MapEntry.Put[Slice[Byte], Memory.Remove](key, Memory.Remove(key, at)))
     }
 
-  def remove(fromKey: Slice[Byte], untilKey: Slice[Byte]): Try[Level0Meter] =
+  def remove(fromKey: Slice[Byte], to: Slice[Byte]): Try[Level0Meter] =
     assertKey(fromKey) {
-      assertKey(untilKey) {
-        maps.write(MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, untilKey, None, Value.Remove(None))))
+      assertKey(to) {
+        maps.write {
+          (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, to, None, Value.Remove(None))): MapEntry[Slice[Byte], Memory]) ++
+            MapEntry.Put[Slice[Byte], Memory.Remove](to, Memory.Remove(to))
+        }
       }
     }
 
-  def remove(fromKey: Slice[Byte], untilKey: Slice[Byte], at: Deadline): Try[Level0Meter] =
+  def remove(fromKey: Slice[Byte], to: Slice[Byte], at: Deadline): Try[Level0Meter] =
     assertKey(fromKey) {
-      assertKey(untilKey) {
-        maps.write(MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, untilKey, None, Value.Remove(at))))
+      assertKey(to) {
+        maps.write {
+          (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, to, None, Value.Remove(at))): MapEntry[Slice[Byte], Memory]) ++
+            MapEntry.Put[Slice[Byte], Memory.Remove](to, Memory.Remove(to, at))
+        }
       }
     }
 
@@ -197,13 +203,16 @@ private[core] class LevelZero(val path: Path,
       maps.write(MapEntry.Put(key, Memory.Update(key, value)))
     }
 
-  def update(fromKey: Slice[Byte], untilKey: Slice[Byte], value: Slice[Byte]): Try[Level0Meter] =
-    update(fromKey, untilKey, Some(value))
+  def update(fromKey: Slice[Byte], to: Slice[Byte], value: Slice[Byte]): Try[Level0Meter] =
+    update(fromKey, to, Some(value))
 
-  def update(fromKey: Slice[Byte], untilKey: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter] =
+  def update(fromKey: Slice[Byte], to: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter] =
     assertKey(fromKey) {
-      assertKey(untilKey) {
-        maps.write(MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, untilKey, None, Value.Update(value, None))))
+      assertKey(to) {
+        maps.write {
+          (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, to, None, Value.Update(value, None))): MapEntry[Slice[Byte], Memory]) ++
+            MapEntry.Put[Slice[Byte], Memory.Update](to, Memory.Update(to, value))
+        }
       }
     }
 
@@ -295,9 +304,9 @@ private[core] class LevelZero(val path: Path,
       matcher =
         map =>
           map.lastValue() map {
-            case fixed: Overwrite =>
+            case fixed: KeyValue.ReadOnly.Fixed =>
               fixed.key
-            case range: Range =>
+            case range: KeyValue.ReadOnly.Range =>
               range.toKey
           },
       reduce = MinMax.max(_, _)
@@ -521,8 +530,6 @@ private[core] class LevelZero(val path: Path,
         }
     }
 
-  def keySize(key: Slice[Byte]): Try[Option[Int]] = ???
-
   def keyValueCount: Try[Int] =
     withRetry {
       val keyValueCountInMaps = maps.keyValueCount.getOrElse(0)
@@ -548,7 +555,7 @@ private[core] class LevelZero(val path: Path,
     IO.exists(path)
 
   def close: Try[Unit] = {
-//    Delay.cancelTimer()
+    //    Delay.cancelTimer()
     maps.close.failed foreach {
       exception =>
         logger.error(s"$path: Failed to close maps", exception)

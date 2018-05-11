@@ -54,7 +54,7 @@ private[segment] class MemorySegment(val path: Path,
   override def put(newKeyValues: Slice[KeyValue.ReadOnly],
                    minSegmentSize: Long,
                    bloomFilterFalsePositiveRate: Double,
-                   graceTimeout: FiniteDuration,
+                   hasTimeLeftAtLeast: FiniteDuration,
                    targetPaths: PathsDistributor)(implicit idGenerator: IDGenerator): Try[Slice[Segment]] =
     if (deleted)
       Failure(new NoSuchFileException(path.toString))
@@ -68,7 +68,7 @@ private[segment] class MemorySegment(val path: Path,
             forInMemory = true,
             isLastLevel = removeDeletes,
             bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-            hasTimeLeftAtLeast = graceTimeout
+            hasTimeLeftAtLeast = hasTimeLeftAtLeast
           ) flatMap {
             splits =>
               splits.tryMap[Segment](
@@ -251,6 +251,6 @@ private[segment] class MemorySegment(val path: Path,
     Try(_hasRange)
 
   override def isFooterDefined: Boolean =
-    true
+    !deleted
 
 }

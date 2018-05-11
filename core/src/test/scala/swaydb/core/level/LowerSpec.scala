@@ -425,8 +425,8 @@ trait LevelLowerSpec extends TestBase with MockFactory with Benchmark {
           level.lower(key).assertGetOpt shouldBe empty
       }
 
-      lowerLevel.segments should have size 1
-      lowerLevel.segments.head.path.fileId.assertGet._1 shouldBe 100 //100 updates occurred
+      lowerLevel.segmentsInLevel() should have size 1
+      lowerLevel.segmentsInLevel().head.path.fileId.assertGet._1 shouldBe 100 //100 updates occurred
 
       //40 - 44  is remove in upper level, inserting put in lower level should still return empty
       (40 to 44) foreach {

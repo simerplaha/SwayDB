@@ -25,6 +25,7 @@ import swaydb.core.TestBase
 import swaydb.core.data.{Memory, Value}
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.MapEntry
+import swaydb.core.util.TryUtil
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 import swaydb.order.KeyOrder
@@ -40,8 +41,10 @@ class Level0MapEntrySpec extends TestBase {
   "MapEntryWriterLevel0 & MapEntryReaderLevel0" should {
 
     "write Put key value" in {
+      val put = Memory.Put(1, randomStringOption, randomDeadlineOption)
+
       import LevelZeroMapEntryWriter.Level0PutWriter
-      val addEntry = MapEntry.Put[Slice[Byte], Memory.Put](1, Memory.Put(1, 1))
+      val addEntry = MapEntry.Put[Slice[Byte], Memory.Put](1, put)
 
       val slice = Slice.create[Byte](addEntry.entryBytesSize)
       addEntry writeTo slice
@@ -61,12 +64,14 @@ class Level0MapEntrySpec extends TestBase {
       scalaSkipList should have size 1
       val (headKey, headValue) = scalaSkipList.head
       headKey shouldBe (1: Slice[Byte])
-      headValue shouldBe Memory.Put(1, 1)
+      headValue shouldBe put
     }
 
     "write remove key-value" in {
+      val remove = Memory.Remove(1, randomDeadlineOption)
+
       import LevelZeroMapEntryWriter.Level0RemoveWriter
-      val entry = MapEntry.Put[Slice[Byte], Memory.Remove](1, Memory.Remove(1))
+      val entry = MapEntry.Put[Slice[Byte], Memory.Remove](1, remove)
 
       val slice = Slice.create[Byte](entry.entryBytesSize)
       entry writeTo slice
@@ -86,12 +91,14 @@ class Level0MapEntrySpec extends TestBase {
       scalaSkipList should have size 1
       val (headKey, headValue) = scalaSkipList.head
       headKey shouldBe (1: Slice[Byte])
-      headValue shouldBe Memory.Remove(1)
+      headValue shouldBe remove
     }
 
     "write Update key value" in {
+      val update = Memory.Update(1, randomStringOption, randomDeadlineOption)
+
       import LevelZeroMapEntryWriter.Level0UpdateWriter
-      val addEntry = MapEntry.Put[Slice[Byte], Memory.Update](1, Memory.Update(1, 1))
+      val addEntry = MapEntry.Put[Slice[Byte], Memory.Update](1, update)
 
       val slice = Slice.create[Byte](addEntry.entryBytesSize)
       addEntry writeTo slice
@@ -111,7 +118,7 @@ class Level0MapEntrySpec extends TestBase {
       scalaSkipList should have size 1
       val (headKey, headValue) = scalaSkipList.head
       headKey shouldBe (1: Slice[Byte])
-      headValue shouldBe Memory.Update(1, 1)
+      headValue shouldBe update
     }
 
     "write range key-value" in {
@@ -153,21 +160,39 @@ class Level0MapEntrySpec extends TestBase {
       import LevelZeroMapEntryWriter.Level0RemoveWriter
       import LevelZeroMapEntryWriter.Level0RangeWriter
 
+      val put1 = Memory.Put(1, randomStringOption, randomDeadlineOption)
+      val put2 = Memory.Put(2, randomStringOption, randomDeadlineOption)
+      val put3 = Memory.Put(3, randomStringOption, randomDeadlineOption)
+      val put4 = Memory.Put(4, randomStringOption, randomDeadlineOption)
+      val put5 = Memory.Put(5, randomStringOption, randomDeadlineOption)
+
+      val remove1 = Memory.Remove(1, randomDeadlineOption)
+      val remove2 = Memory.Remove(2, randomDeadlineOption)
+
+      val update1 = Memory.Update(3, randomStringOption, randomDeadlineOption)
+
+      val range1 = randomRangeKeyValue(6, 7)
+      val range2 = randomRangeKeyValue(7, 8)
+      val range3 = randomRangeKeyValue(8, 9)
+      val range4 = randomRangeKeyValue(9, 10)
+      val range5 = randomRangeKeyValue(10, 11)
+      val range6 = randomRangeKeyValue(11, 12)
+
       val entry: MapEntry[Slice[Byte], Memory] =
-        (MapEntry.Put[Slice[Byte], Memory.Put](1, Memory.Put(1, 1)): MapEntry[Slice[Byte], Memory]) ++
-          MapEntry.Put[Slice[Byte], Memory.Put](2, Memory.Put(2, 2)) ++
-          MapEntry.Put[Slice[Byte], Memory.Remove](1, Memory.Remove(1)) ++
-          MapEntry.Put[Slice[Byte], Memory.Put](3, Memory.Put(3, 3)) ++
-          MapEntry.Put[Slice[Byte], Memory.Remove](2, Memory.Remove(2)) ++
-          MapEntry.Put[Slice[Byte], Memory.Put](4, Memory.Put(4, 4)) ++
-          MapEntry.Put[Slice[Byte], Memory.Put](5, Memory.Put(5, 5)) ++
-          MapEntry.Put[Slice[Byte], Memory.Update](3, Memory.Update(3, "three")) ++
-          MapEntry.Put[Slice[Byte], Memory.Range](6, Memory.Range(6, 7, None, Value.Update(6))) ++
-          MapEntry.Put[Slice[Byte], Memory.Range](7, Memory.Range(7, 8, Some(Value.Put("7")), Value.Update(7))) ++
-          MapEntry.Put[Slice[Byte], Memory.Range](8, Memory.Range(8, 9, Some(Value.Remove(None)), Value.Update(8))) ++
-          MapEntry.Put[Slice[Byte], Memory.Range](9, Memory.Range(9, 10, None, Value.Remove(None))) ++
-          MapEntry.Put[Slice[Byte], Memory.Range](10, Memory.Range(10, 11, Some(Value.Put("10")), Value.Remove(None))) ++
-          MapEntry.Put[Slice[Byte], Memory.Range](11, Memory.Range(11, 12, Some(Value.Remove(None)), Value.Remove(None)))
+        (MapEntry.Put[Slice[Byte], Memory.Put](1, put1): MapEntry[Slice[Byte], Memory]) ++
+          MapEntry.Put[Slice[Byte], Memory.Put](2, put2) ++
+          MapEntry.Put[Slice[Byte], Memory.Remove](1, remove1) ++
+          MapEntry.Put[Slice[Byte], Memory.Put](3, put3) ++
+          MapEntry.Put[Slice[Byte], Memory.Remove](2, remove2) ++
+          MapEntry.Put[Slice[Byte], Memory.Put](4, put4) ++
+          MapEntry.Put[Slice[Byte], Memory.Put](5, put5) ++
+          MapEntry.Put[Slice[Byte], Memory.Update](3, update1) ++
+          MapEntry.Put[Slice[Byte], Memory.Range](6, range1) ++
+          MapEntry.Put[Slice[Byte], Memory.Range](7, range2) ++
+          MapEntry.Put[Slice[Byte], Memory.Range](8, range3) ++
+          MapEntry.Put[Slice[Byte], Memory.Range](9, range4) ++
+          MapEntry.Put[Slice[Byte], Memory.Range](10, range5) ++
+          MapEntry.Put[Slice[Byte], Memory.Range](11, range6)
 
       val slice = Slice.create[Byte](entry.entryBytesSize)
       entry writeTo slice
@@ -184,24 +209,28 @@ class Level0MapEntrySpec extends TestBase {
 
       def assertSkipList() = {
         scalaSkipList should have size 11
-        scalaSkipList.get(1).assertGet shouldBe Memory.Remove(1)
-        scalaSkipList.get(2).assertGet shouldBe Memory.Remove(2)
-        scalaSkipList.get(3).assertGet shouldBe Memory.Update(3, "three")
-        scalaSkipList.get(4).assertGet shouldBe Memory.Put(4, 4)
-        scalaSkipList.get(5).assertGet shouldBe Memory.Put(5, 5)
-        scalaSkipList.get(6).assertGet shouldBe Memory.Range(6, 7, None, Value.Update(6))
-        scalaSkipList.get(7).assertGet shouldBe Memory.Range(7, 8, Some(Value.Put("7")), Value.Update(7))
-        scalaSkipList.get(8).assertGet shouldBe Memory.Range(8, 9, Some(Value.Remove(None)), Value.Update(8))
-        scalaSkipList.get(9).assertGet shouldBe Memory.Range(9, 10, None, Value.Remove(None))
-        scalaSkipList.get(10).assertGet shouldBe Memory.Range(10, 11, Some(Value.Put("10")), Value.Remove(None))
-        scalaSkipList.get(11).assertGet shouldBe Memory.Range(11, 12, Some(Value.Remove(None)), Value.Remove(None))
+        scalaSkipList.get(1).assertGet shouldBe remove1
+        scalaSkipList.get(2).assertGet shouldBe remove2
+        scalaSkipList.get(3).assertGet shouldBe update1
+        scalaSkipList.get(4).assertGet shouldBe put4
+        scalaSkipList.get(5).assertGet shouldBe put5
+        scalaSkipList.get(6).assertGet shouldBe range1
+        scalaSkipList.get(7).assertGet shouldBe range2
+        scalaSkipList.get(8).assertGet shouldBe range3
+        scalaSkipList.get(9).assertGet shouldBe range4
+        scalaSkipList.get(10).assertGet shouldBe range5
+        scalaSkipList.get(11).assertGet shouldBe range6
       }
       //write skip list to bytes should result in the same skip list as before
       import LevelZeroMapEntryWriter.Level0PutValueWriter
       val bytes = MapCodec.write[Slice[Byte], Memory](skipList)
-      val crcEntries = MapCodec.read[Slice[Byte], Memory](bytes, false).assertGet.item.assertGet
+      val recoveryResult = MapCodec.read[Slice[Byte], Memory](bytes, false).assertGet
+      recoveryResult.result shouldBe TryUtil.successUnit
+
+      val readEntries = recoveryResult.item.assertGet
+      //clear and apply new skipList and the result should be the same as previous.
       skipList.clear()
-      crcEntries applyTo skipList
+      readEntries applyTo skipList
       assertSkipList()
     }
   }

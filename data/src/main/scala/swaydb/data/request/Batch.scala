@@ -21,19 +21,27 @@ package swaydb.data.request
 
 import swaydb.data.slice.Slice
 
+import scala.concurrent.duration.Deadline
+
 private[swaydb] sealed trait Batch
 
 private[swaydb] object Batch {
 
   private[swaydb] case class Put(key: Slice[Byte],
-                                 value: Option[Slice[Byte]]) extends Batch
+                                 value: Option[Slice[Byte]],
+                                 expire: Option[Deadline]) extends Batch
 
-  private[swaydb] case class Remove(key: Slice[Byte]) extends Batch
+  private[swaydb] case class Remove(key: Slice[Byte],
+                                    expire: Option[Deadline]) extends Batch
+
+  private[swaydb] case class Update(key: Slice[Byte],
+                                    value: Option[Slice[Byte]]) extends Batch
 
   private[swaydb] case class UpdateRange(fromKey: Slice[Byte],
-                                         untilKey: Slice[Byte],
+                                         toKey: Slice[Byte],
                                          value: Option[Slice[Byte]]) extends Batch
 
   private[swaydb] case class RemoveRange(fromKey: Slice[Byte],
-                                         untilKey: Slice[Byte]) extends Batch
+                                         toKey: Slice[Byte],
+                                         expire: Option[Deadline]) extends Batch
 }

@@ -21,8 +21,6 @@ package swaydb.core.segment
 
 import java.nio.file._
 
-import swaydb.core.data.KeyValue.{ReadOnly, WriteOnly}
-import swaydb.core.data.Memory.Put
 import swaydb.core.data.Transient.Remove
 import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data.{Memory, Value, _}
@@ -67,7 +65,7 @@ class SegmentWriteSpec2 extends SegmentWriteSpec {
   override def appendixStorageMMAP = false
 }
 
-class SegmentWriteInMemorySpec extends SegmentWriteSpec {
+class SegmentWriteSpec3 extends SegmentWriteSpec {
   override def inMemoryStorage = true
 }
 //@formatter:on
@@ -86,14 +84,7 @@ trait SegmentWriteSpec extends TestBase with Benchmark {
 
     "create a Segment" in {
       assertOnSegment(
-        keyValues =
-          randomIntKeyValuesMemory(
-            count = keyValuesCount,
-            addRandomRemoves = Random.nextBoolean(),
-            addRandomRanges = Random.nextBoolean(),
-            addRandomPutDeadlines = Random.nextBoolean(),
-            addRandomRemoveDeadlines = Random.nextBoolean()
-          ),
+        keyValues = randomizedIntKeyValues(keyValuesCount).toMemory,
 
         assertionWithKeyValues =
           (keyValues, segment) => {
@@ -298,24 +289,29 @@ trait SegmentWriteSpec extends TestBase with Benchmark {
       }
 
       assertOnSegment(
-        keyValues = Slice(Memory.Put(0), Memory.Range(1, 10, None, Value.Remove(None))),
+        keyValues = Slice(Memory.Put(0), Memory.Range(1, 10, None, Value.Remove(randomDeadlineOption))),
         assertion = doAssert(_)
       )
 
       assertOnSegment(
-        keyValues = Slice(Memory.Put(0), Memory.Range(1, 10, Some(Value.Remove(None)), Value.Remove(None))),
+        keyValues = Slice(Memory.Put(0), Memory.Range(1, 10, Some(Value.Remove(None)), Value.Remove(randomDeadlineOption))),
         assertion = doAssert(_)
       )
 
       assertOnSegment(
-        keyValues = Slice(Memory.Put(0), Memory.Range(1, 10, Some(Value.Put(1)), Value.Remove(None))),
+        keyValues = Slice(Memory.Put(0), Memory.Range(1, 10, Some(Value.Update(None, randomDeadlineOption)), Value.Remove(randomDeadlineOption))),
+        assertion = doAssert(_)
+      )
+
+      assertOnSegment(
+        keyValues = Slice(Memory.Put(0), Memory.Range(1, 10, Some(Value.Put(Some(1), randomDeadlineOption)), Value.Remove(randomDeadlineOption))),
         assertion = doAssert(_)
       )
     }
 
-    "create bloomFilter if the Segment has no Remove range key-values but has update range key-values and set hasRange to true when there are Range key-value" in {
+    "create bloomFilter if the Segment has no Remove range key-values but has update range key-values. And set hasRange to true" in {
       assertOnSegment(
-        keyValues = Slice(Memory.Put(0), Memory.Put(1, 1), Memory.Remove(2)),
+        keyValues = Slice(Memory.Put(0), Memory.Put(1, 1), Memory.Remove(2, randomDeadlineOption)),
         assertion =
           segment => {
             segment.getBloomFilter.assertGetOpt shouldBe defined
@@ -325,7 +321,7 @@ trait SegmentWriteSpec extends TestBase with Benchmark {
       )
 
       assertOnSegment(
-        keyValues = Slice(Memory.Put(0), Memory.Range(1, 10, None, Value.Update(10))),
+        keyValues = Slice(Memory.Put(0), Memory.Range(1, 10, None, Value.Update(10, randomDeadlineOption))),
         assertion =
           segment => {
             segment.getBloomFilter.assertGetOpt shouldBe defined
@@ -425,10 +421,9 @@ trait SegmentWriteSpec extends TestBase with Benchmark {
       if (memory) {
         //memory Segments cannot re-initialise Segments after shutdown.
       } else {
-        val keyValues = randomIntKeyValues(keyValuesCount, addRandomRemoves = true, addRandomRanges = true)
-        val segmentFile = testSegmentFile
+        val keyValues = randomizedIntKeyValues(10000)
 
-        val segment = TestSegment(keyValues, path = segmentFile).assertGet
+        val segment = TestSegment(keyValues).assertGet
         val readSegment = Segment(segment.path, Random.nextBoolean(), Random.nextBoolean(), false, true).assertGet
 
         segment shouldBe readSegment
@@ -457,20 +452,23 @@ trait SegmentWriteSpec extends TestBase with Benchmark {
       deleted.assertGet shouldBe 3
 
       //files should be closed
-      if (persistent) {
-        segment1.isOpen shouldBe false
-        segment2.isOpen shouldBe false
-        segment3.isOpen shouldBe false
-        segment1.isFileDefined shouldBe false
-        segment2.isFileDefined shouldBe false
-        segment3.isFileDefined shouldBe false
-      }
+      segment1.isOpen shouldBe false
+      segment2.isOpen shouldBe false
+      segment3.isOpen shouldBe false
+
+      segment1.isFileDefined shouldBe false
+      segment2.isFileDefined shouldBe false
+      segment3.isFileDefined shouldBe false
+
+      segment1.existsOnDisk shouldBe false
+      segment2.existsOnDisk shouldBe false
+      segment3.existsOnDisk shouldBe false
     }
   }
 
   "Segment" should {
     "open a closed Segment on read and clear footer" in {
-      val keyValues = randomIntKeyValues(keyValuesCount)
+      val keyValues = randomIntKeyValues(50)
       val segment = TestSegment(keyValues).assertGet
 
       def close = {
@@ -1031,7 +1029,7 @@ trait SegmentWriteSpec extends TestBase with Benchmark {
   }
 
   "Segment.refresh" should {
-    "return new Segment with removed, Removed key-values" in {
+    "return new Segment with Removed key-values removed" in {
       if (persistent) {
         val keyValues1 = (1 to 100).map(key => Transient.Remove(key)).updateStats
         val segment = TestSegment(keyValues1).assertGet
@@ -1050,6 +1048,17 @@ trait SegmentWriteSpec extends TestBase with Benchmark {
 
       sleep(3.seconds)
       segment.refresh(1.mb, 0.1).assertGet shouldBe empty
+    }
+
+    "return all key-values when removeDeletes is false" in {
+      val keyValues1 = (1 to 100).map(key => Transient.Put(key, key, 1.second)).updateStats
+      val segment = TestSegment(keyValues1, removeDeletes = false).assertGet
+      segment.getKeyValueCount().assertGet shouldBe keyValues1.size
+
+      sleep(3.seconds)
+      val refresh = segment.refresh(1.mb, 0.1).assertGet
+      refresh should have size 1
+      refresh.head shouldContainAll keyValues1
     }
   }
 

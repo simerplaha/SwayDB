@@ -60,7 +60,7 @@ class SegmentMerger_Range_Into_Fixed extends WordSpec with CommonAssertions {
                   KeyValueMerger.applyValue(
                     newValue = newKeyValue.fromValue.getOrElse(newKeyValue.rangeValue),
                     oldValue = oldKeyValue,
-                    graceTimeout = atLeastTimeLeft
+                    hasTimeLeftAtLeast = atLeastTimeLeft
                   ).assertGet
 
                 val expectedKeyValue = Memory.Range(1, 10, expectedFromValue, newKeyValue.rangeValue)

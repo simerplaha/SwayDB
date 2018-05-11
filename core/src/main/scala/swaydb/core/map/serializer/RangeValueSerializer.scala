@@ -271,9 +271,6 @@ object RangeValueSerializer {
   def isRangeValue(id: Int): Boolean =
     id >= DataId.rangeIdMin.id && id <= DataId.rangeIdMax.id
 
-  def isRemoveRange(id: Int): Boolean =
-    DataId.removeRangeIds.exists(_.id == id)
-
   def write[F, R](fromValue: F, rangeValue: R)(bytes: Slice[Byte])(implicit serializer: RangeValueSerializer[F, R]): Unit =
     serializer.write(fromValue, rangeValue, bytes)
 

@@ -31,6 +31,7 @@ trait FutureBase extends Eventually {
   def sleep(time: FiniteDuration) = {
     println(s"Sleeping for: $time")
     Thread.sleep(time.toMillis)
+    println(s"Up from sleep: $time")
   }
 
   def eventual[A](code: => A): Unit =

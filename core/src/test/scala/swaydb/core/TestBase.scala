@@ -51,6 +51,8 @@ import scala.util.{Random, Try}
 
 trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeAndAfterAll with Eventually {
 
+  implicit def toMemory(slice: Slice[KeyValue.WriteOnly]) = slice.toMemory
+
   implicit val idGenerator = IDGenerator(0)
 
   private val currentLevelId = new AtomicInteger(10)
@@ -168,20 +170,20 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
     testFileDirectory.resolve(this.getClass.getSimpleName + "_MEMORY_DIR")
 
   def walkDeleteFolder(folder: Path): Unit =
-    if (deleteFiles && IO.exists(folder))
-      Files.walkFileTree(folder, new SimpleFileVisitor[Path]() {
-        @throws[IOException]
-        override def visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult = {
-          Files.delete(file)
-          FileVisitResult.CONTINUE
-        }
+      if (deleteFiles && IO.exists(folder))
+        Files.walkFileTree(folder, new SimpleFileVisitor[Path]() {
+          @throws[IOException]
+          override def visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult = {
+            IO.deleteIfExists(file)
+            FileVisitResult.CONTINUE
+          }
 
-        override def postVisitDirectory(dir: Path, exc: IOException): FileVisitResult = {
-          if (exc != null) throw exc
-          Files.delete(dir)
-          FileVisitResult.CONTINUE
-        }
-      })
+          override def postVisitDirectory(dir: Path, exc: IOException): FileVisitResult = {
+            if (exc != null) throw exc
+            IO.deleteIfExists(dir)
+            FileVisitResult.CONTINUE
+          }
+        })
 
   //
   //  sys.addShutdownHook {
@@ -290,7 +292,7 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
                 pushForward = level.pushForward,
                 bloomFilterFalsePositiveRate = 0.1,
                 throttle = level.throttle,
-                graceTimeout = 10.seconds
+                hasTimeLeftAtLeast = 10.seconds
               ).map(_.asInstanceOf[Level])
           }
       }
@@ -315,7 +317,7 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
                   nextLevel = level.nextLevel,
                   acceleration = Accelerator.brake(),
                   readRetryLimit = levelZeroReadRetryLimit,
-                  graceTimeout = 10.seconds
+                  hasTimeLeftAtLeast = 10.seconds
                 )
             }
         }
@@ -373,12 +375,12 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
               path: Path = testMapFile,
               flushOnOverflow: Boolean = false,
               mmap: Boolean = true,
-              graceTimeout: FiniteDuration = 10.seconds)(implicit ordering: Ordering[Slice[Byte]],
+              hasTimeLeftAtLeast: FiniteDuration = 10.seconds)(implicit ordering: Ordering[Slice[Byte]],
                                                          keyValueLimiter: (Persistent, Segment) => Unit = keyValueLimiter,
                                                          fileOpenLimited: DBFile => Unit = fileOpenLimiter): map.Map[Slice[Byte], Memory] = {
       import swaydb.core.map.serializer.LevelZeroMapEntryReader._
       import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
-      implicit val merger = swaydb.core.level.zero.LevelZeroSkipListMerge(graceTimeout)
+      implicit val merger = swaydb.core.level.zero.LevelZeroSkipListMerge(hasTimeLeftAtLeast)
 
       val testMap =
         if (levelStorage.memory)
@@ -459,7 +461,7 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
               pushForward: Boolean = false,
               throttle: LevelMeter => Throttle = testDefaultThrottle,
               bloomFilterFalsePositiveRate: Double = 0.01,
-              graceTimeout: FiniteDuration = 10.seconds)(implicit ordering: Ordering[Slice[Byte]],
+              hasTimeLeftAtLeast: FiniteDuration = 10.seconds)(implicit ordering: Ordering[Slice[Byte]],
                                                          keyValueLimiter: (Persistent, Segment) => Unit = keyValueLimiter,
                                                          fileOpenLimited: DBFile => Unit = fileOpenLimiter): Level =
       Level(
@@ -470,7 +472,7 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
         appendixStorage = appendixStorage,
         throttle = throttle,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-        graceTimeout = graceTimeout
+        hasTimeLeftAtLeast = hasTimeLeftAtLeast
       ).assertGet.asInstanceOf[Level]
   }
 
@@ -480,7 +482,7 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
               mapSize: Long = mapSize,
               brake: Level0Meter => Accelerator = Accelerator.brake(),
               readRetryLimit: Int = levelZeroReadRetryLimit,
-              graceTimeout: FiniteDuration = 10.seconds)(implicit ordering: Ordering[Slice[Byte]],
+              hasTimeLeftAtLeast: FiniteDuration = 10.seconds)(implicit ordering: Ordering[Slice[Byte]],
                                                          keyValueLimiter: (Persistent, Segment) => Unit = keyValueLimiter,
                                                          fileOpenLimited: DBFile => Unit = fileOpenLimiter): LevelZero =
       LevelZero(
@@ -489,7 +491,7 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
         nextLevel = nextLevel,
         acceleration = brake,
         readRetryLimit = readRetryLimit,
-        graceTimeout = graceTimeout
+        hasTimeLeftAtLeast = hasTimeLeftAtLeast
       ).assertGet
   }
 

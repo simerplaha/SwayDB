@@ -31,16 +31,16 @@ import scala.collection.JavaConverters._
 import scala.concurrent.duration.FiniteDuration
 
 object LevelZeroSkipListMerge {
-  def apply(graceTimeout: FiniteDuration): LevelZeroSkipListMerge =
-    new LevelZeroSkipListMerge(graceTimeout)
+  def apply(hasTimeLeftAtLeast: FiniteDuration): LevelZeroSkipListMerge =
+    new LevelZeroSkipListMerge(hasTimeLeftAtLeast)
 }
 
-class LevelZeroSkipListMerge(val graceTimeout: FiniteDuration) extends SkipListMerge[Slice[Byte], Memory] {
+class LevelZeroSkipListMerge(val hasTimeLeftAtLeast: FiniteDuration) extends SkipListMerge[Slice[Byte], Memory] {
 
   def applyValue(newKeyValue: Memory.Fixed,
                  oldKeyValue: Memory.Fixed,
-                 graceTimeout: FiniteDuration): Memory.Fixed =
-    KeyValueMerger.applyValue(newKeyValue, oldKeyValue, graceTimeout).get.asInstanceOf[Memory.Fixed]
+                 hasTimeLeftAtLeast: FiniteDuration): Memory.Fixed =
+    KeyValueMerger.applyValue(newKeyValue, oldKeyValue, hasTimeLeftAtLeast).get.asInstanceOf[Memory.Fixed]
 
   /**
     * Pre-requisite: splitKey should always be within range's fromKey and less than toKey.
@@ -121,7 +121,7 @@ class LevelZeroSkipListMerge(val graceTimeout: FiniteDuration) extends SkipListM
           //if floor entry for input Fixed entry & if they keys match, do applyValue else simply add the new key-value.
           case floor: Memory.Fixed =>
             if (floor.key equiv insert.key)
-              skipList.put(insert.key, applyValue(insert, floor, graceTimeout))
+              skipList.put(insert.key, applyValue(insert, floor, hasTimeLeftAtLeast))
             else
               skipList.put(insert.key, insert)
 
@@ -130,7 +130,7 @@ class LevelZeroSkipListMerge(val graceTimeout: FiniteDuration) extends SkipListM
           case floorRange: Memory.Range if insert.key < floorRange.toKey => //if the fixed key is smaller than the range's toKey then do a split.
             //Gah! performing a .get here. Although .get should never fail in this case because both the input key-values are in-memory and do not perform IO.
             //This should still be done properly.
-            split(insert.key, Some(KeyValueMerger.applyValue(insert, floorRange.fromValue.getOrElse(floorRange.rangeValue), graceTimeout).get), floorRange) match {
+            split(insert.key, Some(KeyValueMerger.applyValue(insert, floorRange.fromValue.getOrElse(floorRange.rangeValue), hasTimeLeftAtLeast).get), floorRange) match {
               case (left, right) =>
                 right foreach (right => skipList.put(right.fromKey, right))
                 skipList.put(left.fromKey, left)
@@ -225,9 +225,9 @@ class LevelZeroSkipListMerge(val graceTimeout: FiniteDuration) extends SkipListM
                         val conflictingKeyValue =
                           nextInsertRange.fromValue match {
                             case Some(nextInsertRangeFromValue) if conflicting.key equiv nextInsertRange.fromKey =>
-                              KeyValueMerger.applyValue(nextInsertRangeFromValue, conflicting, graceTimeout).get
+                              KeyValueMerger.applyValue(nextInsertRangeFromValue, conflicting, hasTimeLeftAtLeast).get
                             case _ =>
-                              KeyValueMerger.applyValue(nextInsertRange.rangeValue, conflicting, graceTimeout).get
+                              KeyValueMerger.applyValue(nextInsertRange.rangeValue, conflicting, hasTimeLeftAtLeast).get
                           }
 
                         val (left, right) = split(conflicting.key, Some(conflictingKeyValue), nextInsertRange)
@@ -241,20 +241,20 @@ class LevelZeroSkipListMerge(val graceTimeout: FiniteDuration) extends SkipListM
                           conflicting.fromValue map {
                             conflictingFromValue =>
                               if (conflicting.key equiv nextInsertRange.fromKey)
-                                KeyValueMerger.applyValue(nextInsertRange.fromValue.getOrElse(nextInsertRange.rangeValue), conflictingFromValue, graceTimeout).get
+                                KeyValueMerger.applyValue(nextInsertRange.fromValue.getOrElse(nextInsertRange.rangeValue), conflictingFromValue, hasTimeLeftAtLeast).get
                               else
-                                KeyValueMerger.applyValue(nextInsertRange.rangeValue, conflictingFromValue, graceTimeout).get
+                                KeyValueMerger.applyValue(nextInsertRange.rangeValue, conflictingFromValue, hasTimeLeftAtLeast).get
                           } orElse {
                             nextInsertRange.fromValue flatMap { //if fromValue of next insert range is set but not for existing Range.
                               nextInsertRangeFromValue =>
                                 if (conflicting.key equiv nextInsertRange.fromKey)
-                                  Some(KeyValueMerger.applyValue(nextInsertRangeFromValue, conflicting.fromValue.getOrElse(conflicting.rangeValue), graceTimeout).get)
+                                  Some(KeyValueMerger.applyValue(nextInsertRangeFromValue, conflicting.fromValue.getOrElse(conflicting.rangeValue), hasTimeLeftAtLeast).get)
                                 else //conflicting range is not overlapping nextInsertRange's fromValue. Return None.
                                   None
                             }
                           }
 
-                        val splitRangeValue: Value.RangeValue = KeyValueMerger.applyValue(nextInsertRange.rangeValue, conflicting.rangeValue, graceTimeout).get
+                        val splitRangeValue: Value.RangeValue = KeyValueMerger.applyValue(nextInsertRange.rangeValue, conflicting.rangeValue, hasTimeLeftAtLeast).get
 
                         split(conflictingFromKey, conflictingToKey, splitFromValue, nextInsertRange) match {
                           case (left, Some(mid), Some(right)) =>

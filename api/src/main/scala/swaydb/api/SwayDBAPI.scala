@@ -23,7 +23,7 @@ import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.slice.Slice
 
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration.Deadline
 import scala.util.Try
 
 /**
@@ -36,21 +36,38 @@ import scala.util.Try
   */
 private[swaydb] trait SwayDBAPI {
 
-  def put(key: Slice[Byte]): Try[Level0Meter]
+  /**
+    * WRITE API
+    */
 
-  def put(key: Slice[Byte], value: Slice[Byte]): Try[Level0Meter]
+  def put(key: Slice[Byte]): Try[Level0Meter]
 
   def put(key: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter]
 
-  def put(entry: Iterable[swaydb.data.request.Batch]): Try[Level0Meter]
+  def put(key: Slice[Byte], value: Option[Slice[Byte]], expireAt: Deadline): Try[Level0Meter]
 
   def remove(key: Slice[Byte]): Try[Level0Meter]
 
-  def remove(from: Slice[Byte], until: Slice[Byte]): Try[Level0Meter]
+  def remove(from: Slice[Byte], to: Slice[Byte]): Try[Level0Meter]
 
-  def update(from: Slice[Byte], until: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter]
+  def update(key: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter]
 
-  def remove(fromKey: Slice[Byte], toKey: Slice[Byte], after: FiniteDuration): Try[Level0Meter]
+  def update(from: Slice[Byte], to: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter]
+
+  def expire(key: Slice[Byte], at: Deadline): Try[Level0Meter]
+
+  def expire(from: Slice[Byte], to: Slice[Byte], at: Deadline): Try[Level0Meter]
+
+  def batch(entry: Iterable[swaydb.data.request.Batch]): Try[Level0Meter]
+
+  /**
+    * READ API
+    */
+  def get(key: Slice[Byte]): Try[Option[Option[Slice[Byte]]]]
+
+  def getKey(key: Slice[Byte]): Try[Option[Slice[Byte]]]
+
+  def getKeyValue(key: Slice[Byte]): Try[Option[(Slice[Byte], Option[Slice[Byte]])]]
 
   def head: Try[Option[(Slice[Byte], Option[Slice[Byte]])]]
 
@@ -68,15 +85,7 @@ private[swaydb] trait SwayDBAPI {
 
   def mightContain(key: Slice[Byte]): Try[Boolean]
 
-  def get(key: Slice[Byte]): Try[Option[Option[Slice[Byte]]]]
-
-  def getKey(key: Slice[Byte]): Try[Option[Slice[Byte]]]
-
-  def getKeyValue(key: Slice[Byte]): Try[Option[(Slice[Byte], Option[Slice[Byte]])]]
-
   def valueSize(key: Slice[Byte]): Try[Option[Int]]
-
-  def keySize(key: Slice[Byte]): Try[Option[Int]]
 
   def beforeKey(key: Slice[Byte]): Try[Option[Slice[Byte]]]
 

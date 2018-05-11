@@ -58,25 +58,25 @@ class SwayDBSet[T](api: SwayDBAPI)(implicit serializer: Serializer[T]) extends K
     batchAdd(elems)
 
   def batchAdd(elems: Iterable[T]): Try[Level0Meter] =
-    api.put(elems.map(request.Batch.Put(_, None)))
+    api.batch(elems.map(elem => request.Batch.Put(elem, None, None)))
 
   def batchRemove(elems: T*): Try[Level0Meter] =
     batchRemove(elems)
 
   def batchRemove(elems: Iterable[T]): Try[Level0Meter] =
-    api.put(elems.map(request.Batch.Remove(_)))
+    api.batch(elems.map(elem => request.Batch.Remove(elem, None)))
 
   def batch(batch: Batch[T, Nothing]*): Try[Level0Meter] =
-    api.put(batch)
+    api.batch(batch)
 
   def batch(batch: Iterable[Batch[T, Nothing]]): Try[Level0Meter] =
-    api.put(batch)
+    api.batch(batch)
 
   def remove(elem: T): Try[Level0Meter] =
     api.remove(elem)
 
-  def remove(from: T, until: T): Try[Level0Meter] =
-    api.remove(from, until)
+  def remove(from: T, to: T): Try[Level0Meter] =
+    api.remove(from, to)
 
   def level0Meter: Level0Meter =
     api.level0Meter

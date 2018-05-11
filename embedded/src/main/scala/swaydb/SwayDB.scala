@@ -486,37 +486,57 @@ private[swaydb] class SwayDB(api: CoreAPI) extends SwayDBAPI {
   override def put(key: Slice[Byte]) =
     api.put(key)
 
-  override def put(key: Slice[Byte], value: Slice[Byte]) =
-    api.put(key, value)
-
   override def put(key: Slice[Byte], value: Option[Slice[Byte]]) =
     api.put(key, value)
 
-  override def put(entries: Iterable[request.Batch]) =
+  override def put(key: Slice[Byte], value: Option[Slice[Byte]], expireAt: Deadline): Try[Level0Meter] =
+    api.put(key, value, expireAt)
+
+  override def update(key: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter] =
+    api.update(key, value)
+
+  override def update(from: Slice[Byte], to: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter] =
+    api.update(from, to, value)
+
+  override def expire(key: Slice[Byte], at: Deadline): Try[Level0Meter] =
+    api.remove(key, at)
+
+  override def expire(from: Slice[Byte], to: Slice[Byte], at: Deadline): Try[Level0Meter] =
+    api.remove(from, to, at)
+
+  override def remove(key: Slice[Byte]) =
+    api.remove(key)
+
+  override def remove(from: Slice[Byte], to: Slice[Byte]): Try[Level0Meter] =
+    api.remove(from, to)
+
+  override def batch(entries: Iterable[request.Batch]) =
     entries.foldLeft(Option.empty[MapEntry[Slice[Byte], Memory]]) {
       case (mapEntry, batchEntry) =>
         val nextEntry =
           batchEntry match {
-            case request.Batch.Put(key, value) =>
-              MapEntry.Put[Slice[Byte], Memory.Put](key, Memory.Put(key, value))(LevelZeroMapEntryWriter.Level0PutWriter)
+            case request.Batch.Put(key, value, expire) =>
+              MapEntry.Put[Slice[Byte], Memory.Put](key, Memory.Put(key, value, expire))(LevelZeroMapEntryWriter.Level0PutWriter)
 
-            case request.Batch.RemoveRange(fromKey, untilKey) =>
-              MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, untilKey, None, Value.Remove(None)))(LevelZeroMapEntryWriter.Level0RangeWriter)
+            case request.Batch.Remove(key, expire) =>
+              MapEntry.Put[Slice[Byte], Memory.Remove](key, Memory.Remove(key, expire))(LevelZeroMapEntryWriter.Level0RemoveWriter)
 
-            case request.Batch.UpdateRange(fromKey, untilKey, value) =>
-              MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, untilKey, None, Value.Update(value, None)))(LevelZeroMapEntryWriter.Level0RangeWriter)
+            case request.Batch.Update(key, value) =>
+              MapEntry.Put[Slice[Byte], Memory.Update](key, Memory.Update(key, value))(LevelZeroMapEntryWriter.Level0UpdateWriter)
 
-            case request.Batch.Remove(key) =>
-              MapEntry.Put[Slice[Byte], Memory.Remove](key, Memory.Remove(key))(LevelZeroMapEntryWriter.Level0RemoveWriter)
+            case request.Batch.RemoveRange(fromKey, toKey, expire) =>
+              (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, None, Value.Remove(expire)))(LevelZeroMapEntryWriter.Level0RangeWriter): MapEntry[Slice[Byte], Memory]) ++
+                MapEntry.Put[Slice[Byte], Memory.Remove](toKey, Memory.Remove(toKey, expire))(LevelZeroMapEntryWriter.Level0RemoveWriter)
+
+            case request.Batch.UpdateRange(fromKey, toKey, value) =>
+              (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, None, Value.Update(value, None)))(LevelZeroMapEntryWriter.Level0RangeWriter): MapEntry[Slice[Byte], Memory]) ++
+                MapEntry.Put[Slice[Byte], Memory.Update](toKey, Memory.Update(toKey))(LevelZeroMapEntryWriter.Level0UpdateWriter)
           }
         Some(mapEntry.map(_ ++ nextEntry) getOrElse nextEntry)
     } map {
       entry =>
         api.put(entry)
     } getOrElse Failure(new Exception("Cannot write empty batch"))
-
-  override def remove(key: Slice[Byte]) =
-    api.remove(key)
 
   override def head: Try[Option[(Slice[Byte], Option[Slice[Byte]])]] =
     api.head
@@ -572,18 +592,6 @@ private[swaydb] class SwayDB(api: CoreAPI) extends SwayDBAPI {
   override def levelMeter(levelNumber: Int): Option[LevelMeter] =
     api.levelMeter(levelNumber)
 
-  override def remove(fromKey: Slice[Byte], toKey: Slice[Byte], after: FiniteDuration): Try[Level0Meter] =
-    api.remove(fromKey, toKey, after.fromNow)
-
-  override def remove(from: Slice[Byte], until: Slice[Byte]): Try[Level0Meter] =
-    api.remove(from, until)
-
-  override def update(from: Slice[Byte], until: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter] =
-    api.update(from, until, value)
-
   override def valueSize(key: Slice[Byte]): Try[Option[Int]] =
     api.valueSize(key)
-
-  override def keySize(key: Slice[Byte]): Try[Option[Int]] =
-    api.keySize(key)
 }

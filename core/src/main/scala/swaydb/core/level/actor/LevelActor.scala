@@ -37,6 +37,7 @@ import scala.util.{Failure, Success}
 private[core] object LevelActor extends LazyLogging {
 
   val unexpectedFailureRetry = 3.seconds
+  val expiredKeyValuesRescheduleDelay = 1.second
 
   def apply(implicit ec: ExecutionContext, level: LevelActorAPI, ordering: Ordering[Slice[Byte]]): LevelActor =
     new LevelActor()
@@ -97,7 +98,7 @@ private[core] object LevelActor extends LazyLogging {
         logger.trace(s"{}: Deadline overdue: {}. Clearing expired key-values.", level.paths.head, newDeadline.timeLeft.asString)
         level.clearExpiredKeyValues() match {
           case Success(_) =>
-            logger.trace(s"{}: Key-values cleared.", level.paths.head)
+            logger.trace(s"{}: clearExpiredKeyValues execution complete.", level.paths.head)
             state.clearTask()
 
           case Failure(exception) =>
@@ -106,8 +107,10 @@ private[core] object LevelActor extends LazyLogging {
             state.setTask(task)
         }
       } else {
-        logger.trace(s"{}: Deadline is not overdue: {}", level.paths.head, newDeadline.timeLeft.asString)
-        val task = self.schedule(ClearExpiredKeyValues(newDeadline), newDeadline.timeLeft)
+        val scheduleTime = newDeadline.timeLeft + expiredKeyValuesRescheduleDelay
+        logger.trace(s"{}: Deadline: {} is not overdue. Re-scheduled with extra delay of: {}", level.paths.head, newDeadline.timeLeft.asString, expiredKeyValuesRescheduleDelay.asString)
+        //add some extra time to timeLeft. Scheduled delay should not be too low. Otherwise ClearExpiredKeyValues will be dispatched tooOfset.
+        val task = self.schedule(ClearExpiredKeyValues(newDeadline), scheduleTime)
         state.setTask(task)
       }
 

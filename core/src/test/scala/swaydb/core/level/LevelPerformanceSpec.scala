@@ -95,7 +95,7 @@ class LevelPerformanceSpec extends TestBase with Benchmark {
 
   def reopenLevel() = {
     println("Re-opening Level")
-    level.segments.foreach {
+    level.segmentsInLevel().foreach {
       segment =>
         segment.clearCache()
         segment.close.assertGet

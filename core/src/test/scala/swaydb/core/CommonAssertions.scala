@@ -528,10 +528,7 @@ trait CommonAssertions extends TryAssert with FutureBase with TestData {
     def shouldContainAll(keyValues: Slice[KeyValue]): Unit =
       keyValues.foreach {
         keyValue =>
-          val result = actual.get(keyValue.key).assertGet
-          result.key shouldBe keyValue.key
-          //          result.getOrFetchValue.assertGetOpt shouldBe keyValue.getOrFetchValue.assertGetOpt
-          ???
+          actual.get(keyValue.key).assertGet shouldBe keyValue
       }
   }
 
@@ -735,8 +732,7 @@ trait CommonAssertions extends TryAssert with FutureBase with TestData {
 
   def assertReads(keyValues: Iterable[KeyValue],
                   level: LevelRef) = {
-    //    val asserts = Seq(() => assertGet(keyValues, level), () => assertHigher(keyValues, level), () => assertLower(keyValues, level))
-    val asserts = Seq(() => assertGet(keyValues, level), () => assertHigher(keyValues, level))
+    val asserts = Seq(() => assertGet(keyValues, level), () => assertHigher(keyValues, level), () => assertLower(keyValues, level))
     Random.shuffle(asserts).foreach(_ ())
   }
 

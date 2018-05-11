@@ -34,7 +34,7 @@ private[core] trait LevelRef extends LevelActorAPI {
   val paths: PathsDistributor
   val throttle: LevelMeter => Throttle
 
-  val graceTimeout: FiniteDuration
+  val hasTimeLeftAtLeast: FiniteDuration
 
   def releaseLocks: Try[Unit]
 
@@ -42,7 +42,7 @@ private[core] trait LevelRef extends LevelActorAPI {
 
   def nextLevel: Option[LevelRef]
 
-  def segments: Iterable[Segment]
+  def segmentsInLevel(): Iterable[Segment]
 
   def hasNextLevel: Boolean
 

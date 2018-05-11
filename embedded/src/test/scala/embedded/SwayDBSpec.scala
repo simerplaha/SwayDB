@@ -30,12 +30,12 @@ import scala.annotation.tailrec
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
-class SwayDBPersistentSpec extends SwayDBSpec {
+class SwayDBSpec0 extends SwayDBSpec {
   override def newDB(): SwayDBMap[Int, String] =
     SwayDB.persistent[Int, String](randomDir).assertGet
 }
 
-class SwayDBPersistentSpecWith1ByteMapSize extends SwayDBSpec {
+class SwayDBSpec1 extends SwayDBSpec {
 
   import swaydb._
 
@@ -43,17 +43,17 @@ class SwayDBPersistentSpecWith1ByteMapSize extends SwayDBSpec {
     SwayDB.persistent[Int, String](randomDir, mapSize = 1.byte).assertGet
 }
 
-class SwayDBMemorySpec extends SwayDBSpec {
-  override def newDB(): SwayDBMap[Int, String] =
-    SwayDB.memory[Int, String]().assertGet
-}
-
-class SwayDBMemoryWith1ByteMapSizeSpec extends SwayDBSpec {
+class SwayDBSpec2 extends SwayDBSpec {
 
   import swaydb._
 
   override def newDB(): SwayDBMap[Int, String] =
     SwayDB.memory[Int, String](mapSize = 1.byte).assertGet
+}
+
+class SwayDBSpec3 extends SwayDBSpec {
+  override def newDB(): SwayDBMap[Int, String] =
+    SwayDB.memory[Int, String]().assertGet
 }
 
 sealed trait SwayDBSpec extends TestBase {
@@ -90,11 +90,10 @@ sealed trait SwayDBSpec extends TestBase {
           db.get(i).assertGet shouldBe i.toString
       }
 
-      (50 to 99) foreach {
+      (50 to 100) foreach {
         i =>
           db.get(i).assertGetOpt shouldBe empty
       }
-      db.get(100).assertGet shouldBe "100"
     }
 
     "update" in {
@@ -112,11 +111,10 @@ sealed trait SwayDBSpec extends TestBase {
           db.get(i).assertGet shouldBe i.toString
       }
 
-      (50 to 99) foreach {
+      (50 to 100) foreach {
         i =>
           db.get(i).assertGet shouldBe "updated"
       }
-      db.get(100).assertGet shouldBe "100"
     }
 
     "remove all but first and last" in {
@@ -127,7 +125,7 @@ sealed trait SwayDBSpec extends TestBase {
           db.put(i, i.toString).assertGet
       }
       println("Removing .... ")
-      db.remove(2, 1000)
+      db.remove(2, 999)
 
       db.toList should contain only((1, "1"), (1000, "1000"))
       db.head shouldBe ((1, "1"))
@@ -147,7 +145,7 @@ sealed trait SwayDBSpec extends TestBase {
           db.remove(i).assertGet
       }
 
-      db.update(1, 101, "updated").assertGet
+      db.update(1, 100, "updated").assertGet
 
       db.toList should contain only((1, "updated"), (100, "updated"))
       db.head shouldBe ((1, "updated"))
@@ -163,9 +161,9 @@ sealed trait SwayDBSpec extends TestBase {
           db.put(i, i.toString).assertGet
       }
 
-      db.remove(2, 100).assertGet
+      db.remove(2, 99).assertGet
 
-      db.update(1, 101, "updated").assertGet
+      db.update(1, 100, "updated").assertGet
 
       db.toList should contain only((1, "updated"), (100, "updated"))
       db.head shouldBe ((1, "updated"))
@@ -182,7 +180,7 @@ sealed trait SwayDBSpec extends TestBase {
 
       db.update(10, 90, "updated").assertGet
 
-      db.remove(50, 100).assertGet
+      db.remove(50, 99).assertGet
 
       val expectedUnchanged =
         (1 to 9) map {
@@ -254,7 +252,7 @@ sealed trait SwayDBSpec extends TestBase {
       db.toMap.values should contain only "updated"
 
       db.batch(Batch.Put(1, "one"), Batch.Put(2, "two"), Batch.Put(100, "hundred"), Batch.Remove(1, 100), Batch.Update(1, 1000, "updated")).assertGet
-      db.toList should contain only ((100, "updated"))
+      db.toList shouldBe empty
     }
 
     "perform from, until, before & after" in {
@@ -339,7 +337,7 @@ sealed trait SwayDBSpec extends TestBase {
           db.put(i, i.toString).assertGet
       }
 
-      db.remove(1, 2000001).assertGet
+      db.remove(1, 2000000).assertGet
 
       def pluralSegment(count: Int) = if (count == 1) "Segment" else "Segments"
 
@@ -364,7 +362,7 @@ sealed trait SwayDBSpec extends TestBase {
               println(s"Level $levelNumber. Submitting updated to trigger remove.")
               (1 to 500000) foreach { //submit multiple update range key-values so that a map gets submitted for compaction and to trigger merge on copied Segments in last Level.
                 i =>
-                  db.update(1, 1000001, "just triggering update to assert remove").assertGet
+                  db.update(1, 1000000, "just triggering update to assert remove").assertGet
                   if (i == 100000) sleep(2.seconds)
               }
               //update submitted, now expect the merge to get triggered on the Segments in the last Level and Compaction to remove all key-values.

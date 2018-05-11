@@ -114,7 +114,7 @@ private[core] object SegmentAssigner {
               nextSegmentMayBe match {
                 case Some(nextSegment) if keyValue.toKey > nextSegment.minKey =>
                   //if it's a gap Range key-value and it's flows onto the next Segment, just jump to the next Segment.
-                  assign(dropKeyValue(Some(keyValue)), Some(nextSegment), getNextSegmentMayBe())
+                  assign(remainingKeyValues, Some(nextSegment), getNextSegmentMayBe())
 
                 case _ =>
                   //ignore if a key-value is not already assigned to thisSegment. No point adding a single key-value to a Segment.

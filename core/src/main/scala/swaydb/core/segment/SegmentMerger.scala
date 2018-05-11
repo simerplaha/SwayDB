@@ -316,7 +316,7 @@ private[core] object SegmentMerger extends LazyLogging {
                 doMerge(newKeyValues, dropOldKeyValue())
 
               case Success((newRangeFromValue, newRangeRangeValue)) if newRangeKeyValue.fromKey equiv oldKeyValue.key =>
-                applyValue(newRangeFromValue.getOrElse(newRangeRangeValue), oldKeyValue, graceTimeout = hasTimeLeftAtLeast) match {
+                applyValue(newRangeFromValue.getOrElse(newRangeRangeValue), oldKeyValue, hasTimeLeftAtLeast = hasTimeLeftAtLeast) match {
                   case Success(newFromValue) =>
                     val newKeyValue =
                       Memory.Range(

@@ -34,5 +34,5 @@ trait SkipListMerge[K, V] {
   def insert(entry: MapEntry[K, V],
              skipList: ConcurrentSkipListMap[K, V])(implicit ordering: Ordering[K])
 
-  val graceTimeout: FiniteDuration
+  val hasTimeLeftAtLeast: FiniteDuration
 }

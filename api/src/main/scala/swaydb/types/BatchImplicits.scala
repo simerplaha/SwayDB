@@ -28,20 +28,23 @@ private[swaydb] object BatchImplicits {
   implicit def batchToRequest[K, V](batch: Batch[K, V])(implicit keySerializer: Serializer[K],
                                                         valueSerializer: Serializer[V]): request.Batch =
     batch match {
-      case Batch.Put(key, value) =>
-        request.Batch.Put(key, Some(value))
+      case Batch.Put(key, value, deadline) =>
+        request.Batch.Put(key, Some(value), deadline)
 
-      case Batch.Update(from, to, value) =>
+      case Batch.Remove(key, None, deadline) =>
+        request.Batch.Remove(key, deadline)
+
+      case Batch.Remove(from, Some(to), deadline) =>
+        request.Batch.RemoveRange(from, to, deadline)
+
+      case Batch.Update(from, Some(to), value) =>
         request.Batch.UpdateRange(from, to, Some(value))
 
-      case Batch.Add(key) =>
-        request.Batch.Put(key, None)
+      case Batch.Update(from, None, value) =>
+        request.Batch.Update(from, Some(value))
 
-      case Batch.Remove(key, None) =>
-        request.Batch.Remove(key)
-
-      case Batch.Remove(from, Some(to)) =>
-        request.Batch.RemoveRange(from, to)
+      case Batch.Add(key, deadline) =>
+        request.Batch.Put(key, None, deadline)
     }
 
   implicit def batchesToRequests[K, V](batches: Iterable[Batch[K, V]])(implicit keySerializer: Serializer[K],

@@ -39,6 +39,16 @@ class MapCodecSpec extends TestBase {
   val appendixReader = AppendixMapEntryReader(false, true, true)
 
   "MemoryMapCodec" should {
+    "write and read empty bytes" in {
+      import LevelZeroMapEntryWriter.Level0PutValueWriter
+      val map = new ConcurrentSkipListMap[Slice[Byte], Memory](ordering)
+      val bytes = MapCodec.write(map)
+      bytes.isFull shouldBe true
+
+      import LevelZeroMapEntryReader.Level0Reader
+      MapCodec.read[Slice[Byte], Memory](bytes, dropCorruptedTailEntries = false).assertGet.item shouldBe empty
+    }
+
     "write and read key values" in {
       import LevelZeroMapEntryWriter.Level0PutValueWriter
       val keyValues = randomIntKeyValues(1000, addRandomRemoves = true)

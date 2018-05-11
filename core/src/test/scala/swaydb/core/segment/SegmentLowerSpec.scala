@@ -29,7 +29,13 @@ import swaydb.serializers.Default._
 import swaydb.serializers._
 
 //@formatter:off
+class SegmentLowerSpec0 extends SegmentLowerSpec {
+  val keyValuesCount = 100
+}
+
 class SegmentLowerSpec1 extends SegmentLowerSpec {
+  val keyValuesCount = 100
+
   override def levelFoldersCount = 10
   override def mmapSegmentsOnWrite = true
   override def mmapSegmentsOnRead = true
@@ -38,6 +44,8 @@ class SegmentLowerSpec1 extends SegmentLowerSpec {
 }
 
 class SegmentLowerSpec2 extends SegmentLowerSpec {
+  val keyValuesCount = 100
+
   override def levelFoldersCount = 10
   override def mmapSegmentsOnWrite = false
   override def mmapSegmentsOnRead = false
@@ -46,14 +54,16 @@ class SegmentLowerSpec2 extends SegmentLowerSpec {
 }
 
 class SegmentLowerSpec3 extends SegmentLowerSpec {
+  val keyValuesCount = 1000
+
   override def inMemoryStorage = true
 }
 //@formatter:on
 
-class SegmentLowerSpec extends TestBase with ScalaFutures with PrivateMethodTester {
+trait SegmentLowerSpec extends TestBase with ScalaFutures with PrivateMethodTester {
 
   implicit val ordering = KeyOrder.default
-  val keyValuesCount = 100
+  val keyValuesCount: Int
 
   "Segment.lower" should {
     "get the lower key from the segment that has only 1 Remove key" in {

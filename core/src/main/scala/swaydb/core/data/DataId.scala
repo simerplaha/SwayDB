@@ -52,14 +52,6 @@ object DataId {
 
   val rangeIdMax = rangeIds.last
 
-  val removeRangeIds =
-    Seq(
-      RemoveRange,
-      RemoveRemoveRange,
-      PutRemoveRange,
-      UpdateRemoveRange
-    ) sortBy (_.id)
-
   def apply(id: Int): Try[DataId] =
     ids.find(_.id == id).map(Success(_)).getOrElse(Failure(new Exception(s"Invalid data id: $id")))
 

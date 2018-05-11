@@ -31,7 +31,7 @@ private[core] object KeyValueMerger {
     * Applies rules for merging Range key-values.
     *
     * If both new & old values have deadline set, a check is performed to see if new value's deadline is smaller then old.
-    * If true, new deadline is accepted or else if the new value's deadline is greater than old, then a graceTimeout
+    * If true, new deadline is accepted or else if the new value's deadline is greater than old, then a hasTimeLeftAtLeast
     * check is made on old value's deadline to see if enough time is available on old value to apply new deadline which accounts
     * for time required until the key-values are written to disk or in-memory.
     *
@@ -45,47 +45,47 @@ private[core] object KeyValueMerger {
     */
   def applyValue(newValue: KeyValue.ReadOnly.Fixed,
                  oldValue: Value,
-                 graceTimeout: FiniteDuration): Try[Value.FromValue] =
-    applyValue(newValue, oldValue.toMemory(Slice.emptyByteSlice), graceTimeout).flatMap(_.toFromValue)
+                 hasTimeLeftAtLeast: FiniteDuration): Try[Value.FromValue] =
+    applyValue(newValue, oldValue.toMemory(Slice.emptyByteSlice), hasTimeLeftAtLeast).flatMap(_.toFromValue)
 
   def applyValue(newValue: Value,
                  oldValue: KeyValue.ReadOnly.Fixed,
-                 graceTimeout: FiniteDuration): Try[Value.FromValue] =
-    applyValue(newValue.toMemory(Slice.emptyByteSlice), oldValue, graceTimeout).flatMap(_.toFromValue)
+                 hasTimeLeftAtLeast: FiniteDuration): Try[Value.FromValue] =
+    applyValue(newValue.toMemory(Slice.emptyByteSlice), oldValue, hasTimeLeftAtLeast).flatMap(_.toFromValue)
 
   def applyValue(newValue: Value.RangeValue,
                  oldValue: Value.RangeValue,
-                 graceTimeout: FiniteDuration): Try[Value.RangeValue] =
-    applyValue(newValue.toMemory(Slice.emptyByteSlice), oldValue.toMemory(Slice.emptyByteSlice), graceTimeout).flatMap(_.toRangeValue)
+                 hasTimeLeftAtLeast: FiniteDuration): Try[Value.RangeValue] =
+    applyValue(newValue.toMemory(Slice.emptyByteSlice), oldValue.toMemory(Slice.emptyByteSlice), hasTimeLeftAtLeast).flatMap(_.toRangeValue)
 
   def applyValue(newValue: Value.FromValue,
                  oldValue: Value.RangeValue,
-                 graceTimeout: FiniteDuration): Try[Value.FromValue] =
-    applyValue(newValue.toMemory(Slice.emptyByteSlice), oldValue.toMemory(Slice.emptyByteSlice), graceTimeout).flatMap(_.toFromValue)
+                 hasTimeLeftAtLeast: FiniteDuration): Try[Value.FromValue] =
+    applyValue(newValue.toMemory(Slice.emptyByteSlice), oldValue.toMemory(Slice.emptyByteSlice), hasTimeLeftAtLeast).flatMap(_.toFromValue)
 
   def applyValue(newValue: Value.RangeValue,
                  oldValue: Value.FromValue,
-                 graceTimeout: FiniteDuration): Try[Value.FromValue] =
-    applyValue(newValue.toMemory(Slice.emptyByteSlice), oldValue.toMemory(Slice.emptyByteSlice), graceTimeout).flatMap(_.toFromValue)
+                 hasTimeLeftAtLeast: FiniteDuration): Try[Value.FromValue] =
+    applyValue(newValue.toMemory(Slice.emptyByteSlice), oldValue.toMemory(Slice.emptyByteSlice), hasTimeLeftAtLeast).flatMap(_.toFromValue)
 
   def applyValue(newValue: Value,
                  oldValue: Value.FromValue,
-                 graceTimeout: FiniteDuration): Try[Value.FromValue] =
-    applyValue(newValue.toMemory(Slice.emptyByteSlice), oldValue.toMemory(Slice.emptyByteSlice), graceTimeout).flatMap(_.toFromValue)
+                 hasTimeLeftAtLeast: FiniteDuration): Try[Value.FromValue] =
+    applyValue(newValue.toMemory(Slice.emptyByteSlice), oldValue.toMemory(Slice.emptyByteSlice), hasTimeLeftAtLeast).flatMap(_.toFromValue)
 
   def applyValue(newValue: Value,
                  oldValue: Value,
-                 graceTimeout: FiniteDuration): Try[Value.FromValue] =
-    applyValue(newValue.toMemory(Slice.emptyByteSlice), oldValue.toMemory(Slice.emptyByteSlice), graceTimeout).flatMap(_.toFromValue)
+                 hasTimeLeftAtLeast: FiniteDuration): Try[Value.FromValue] =
+    applyValue(newValue.toMemory(Slice.emptyByteSlice), oldValue.toMemory(Slice.emptyByteSlice), hasTimeLeftAtLeast).flatMap(_.toFromValue)
 
   def applyValue(newValue: Value.FromValue,
                  oldValue: Value,
-                 graceTimeout: FiniteDuration): Try[Value.FromValue] =
-    applyValue(newValue.toMemory(Slice.emptyByteSlice), oldValue.toMemory(Slice.emptyByteSlice), graceTimeout).flatMap(_.toFromValue)
+                 hasTimeLeftAtLeast: FiniteDuration): Try[Value.FromValue] =
+    applyValue(newValue.toMemory(Slice.emptyByteSlice), oldValue.toMemory(Slice.emptyByteSlice), hasTimeLeftAtLeast).flatMap(_.toFromValue)
 
   def applyValue(newKeyValue: KeyValue.ReadOnly.Fixed,
                  oldKeyValue: KeyValue.ReadOnly.Fixed,
-                 graceTimeout: FiniteDuration): Try[KeyValue.ReadOnly.Fixed] =
+                 hasTimeLeftAtLeast: FiniteDuration): Try[KeyValue.ReadOnly.Fixed] =
     Try {
       newKeyValue match {
         //*** Put combinations ***
@@ -103,7 +103,7 @@ private[core] object KeyValueMerger {
               oldKeyValue
 
             case Memory.Remove(_, Some(_)) | Persistent.Remove(_, Some(_), _, _, _) => // Remove Some - Remove Some
-              if (newKeyValue.deadline.get <= oldKeyValue.deadline.get || oldKeyValue.hasTimeLeftAtLeast(graceTimeout))
+              if (newKeyValue.deadline.get <= oldKeyValue.deadline.get || oldKeyValue.hasTimeLeftAtLeast(hasTimeLeftAtLeast))
                 newKeyValue
               else
                 oldKeyValue
@@ -112,7 +112,7 @@ private[core] object KeyValueMerger {
               oldKeyValue.updateDeadline(deadline = newKeyValue.deadline.get)
 
             case Memory.Put(_, _, Some(_)) | Persistent.Put(_, Some(_), _, _, _, _, _, _) => //Remove Some - Put Some
-              if (newKeyValue.deadline.get <= oldKeyValue.deadline.get || oldKeyValue.hasTimeLeftAtLeast(graceTimeout))
+              if (newKeyValue.deadline.get <= oldKeyValue.deadline.get || oldKeyValue.hasTimeLeftAtLeast(hasTimeLeftAtLeast))
                 oldKeyValue.updateDeadline(deadline = newKeyValue.deadline.get)
               else
                 oldKeyValue
@@ -121,7 +121,7 @@ private[core] object KeyValueMerger {
               oldKeyValue.updateDeadline(deadline = newKeyValue.deadline.get)
 
             case Memory.Update(_, _, Some(_)) | Persistent.Update(_, Some(_), _, _, _, _, _, _) => //Remove Some - Update Some
-              if (newKeyValue.deadline.get <= oldKeyValue.deadline.get || oldKeyValue.hasTimeLeftAtLeast(graceTimeout))
+              if (newKeyValue.deadline.get <= oldKeyValue.deadline.get || oldKeyValue.hasTimeLeftAtLeast(hasTimeLeftAtLeast))
                 oldKeyValue.updateDeadline(deadline = newKeyValue.deadline.get)
               else
                 oldKeyValue
@@ -134,7 +134,7 @@ private[core] object KeyValueMerger {
               oldKeyValue
 
             case Memory.Remove(_, Some(_)) | Persistent.Remove(_, Some(_), _, _, _) => // Remove Some - Remove Some
-              if (oldKeyValue.hasTimeLeftAtLeast(graceTimeout))
+              if (oldKeyValue.hasTimeLeftAtLeast(hasTimeLeftAtLeast))
                 newKeyValue.updateDeadline(oldKeyValue.deadline.get)
               else
                 oldKeyValue
@@ -143,7 +143,7 @@ private[core] object KeyValueMerger {
               Memory.Put(newKeyValue.key, newKeyValue.getOrFetchValue.get, oldKeyValue.deadline)
 
             case Memory.Put(_, _, Some(_)) | Persistent.Put(_, Some(_), _, _, _, _, _, _) => //Put Some - Put Some
-              if (oldKeyValue.hasTimeLeftAtLeast(graceTimeout))
+              if (oldKeyValue.hasTimeLeftAtLeast(hasTimeLeftAtLeast))
                 Memory.Put(newKeyValue.key, newKeyValue.getOrFetchValue.get, oldKeyValue.deadline)
               else
                 oldKeyValue
@@ -152,7 +152,7 @@ private[core] object KeyValueMerger {
               newKeyValue
 
             case Memory.Update(_, _, Some(_)) | Persistent.Update(_, Some(_), _, _, _, _, _, _) => //Update Some - Update Some
-              if (oldKeyValue.hasTimeLeftAtLeast(graceTimeout))
+              if (oldKeyValue.hasTimeLeftAtLeast(hasTimeLeftAtLeast))
                 newKeyValue.updateDeadline(oldKeyValue.deadline.get)
               else
                 oldKeyValue
@@ -164,7 +164,7 @@ private[core] object KeyValueMerger {
               oldKeyValue
 
             case Memory.Remove(_, Some(_)) | Persistent.Remove(_, Some(_), _, _, _) => // Remove Some - Remove Some
-              if (newKeyValue.deadline.get <= oldKeyValue.deadline.get || oldKeyValue.hasTimeLeftAtLeast(graceTimeout))
+              if (newKeyValue.deadline.get <= oldKeyValue.deadline.get || oldKeyValue.hasTimeLeftAtLeast(hasTimeLeftAtLeast))
                 newKeyValue
               else
                 oldKeyValue
@@ -173,7 +173,7 @@ private[core] object KeyValueMerger {
               Memory.Put(newKeyValue.key, newKeyValue.getOrFetchValue.get, newKeyValue.deadline)
 
             case Memory.Put(_, _, Some(_)) | Persistent.Put(_, Some(_), _, _, _, _, _, _) => //Put Some - Put Some
-              if (newKeyValue.deadline.get <= oldKeyValue.deadline.get || oldKeyValue.hasTimeLeftAtLeast(graceTimeout))
+              if (newKeyValue.deadline.get <= oldKeyValue.deadline.get || oldKeyValue.hasTimeLeftAtLeast(hasTimeLeftAtLeast))
                 Memory.Put(newKeyValue.key, newKeyValue.getOrFetchValue.get, newKeyValue.deadline)
               else
                 oldKeyValue
@@ -182,7 +182,7 @@ private[core] object KeyValueMerger {
               newKeyValue
 
             case Memory.Update(_, _, Some(_)) | Persistent.Update(_, Some(_), _, _, _, _, _, _) => //Update Some - Update Some
-              if (newKeyValue.deadline.get <= oldKeyValue.deadline.get || oldKeyValue.hasTimeLeftAtLeast(graceTimeout))
+              if (newKeyValue.deadline.get <= oldKeyValue.deadline.get || oldKeyValue.hasTimeLeftAtLeast(hasTimeLeftAtLeast))
                 newKeyValue
               else
                 oldKeyValue

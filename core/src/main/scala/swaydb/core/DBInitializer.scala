@@ -39,7 +39,7 @@ import scala.concurrent.duration._
 
 private[core] object DBInitializer extends LazyLogging {
 
-  val graceTimeout = 10.seconds
+  val hasTimeLeftAtLeast = 10.seconds
 
   def apply(config: SwayDBConfig,
             maxSegmentsOpen: Int,
@@ -73,7 +73,7 @@ private[core] object DBInitializer extends LazyLogging {
             appendixStorage = AppendixStorage.Memory,
             bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
             throttle = throttle,
-            graceTimeout = graceTimeout
+            hasTimeLeftAtLeast = hasTimeLeftAtLeast
           )
 
         case PersistentLevelConfig(dir, otherDirs, segmentSize, mmapSegment, mmapAppendix, appendixFlushCheckpointSize, pushForward, bloomFilterFalsePositiveRate, throttle) =>
@@ -91,7 +91,7 @@ private[core] object DBInitializer extends LazyLogging {
             appendixStorage = AppendixStorage.Persistent(mmapAppendix, appendixFlushCheckpointSize),
             bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
             throttle = throttle,
-            graceTimeout = graceTimeout
+            hasTimeLeftAtLeast = hasTimeLeftAtLeast
           )
 
         case TrashLevelConfig =>
@@ -122,7 +122,7 @@ private[core] object DBInitializer extends LazyLogging {
         case Nil =>
           createLevel(1, previousLowerLevel, config.level1) flatMap {
             level1 =>
-              LevelZero(config.level0.mapSize, config.level0.storage, level1, config.level0.acceleration, 10000, graceTimeout) map {
+              LevelZero(config.level0.mapSize, config.level0.storage, level1, config.level0.acceleration, 10000, hasTimeLeftAtLeast) map {
                 zero =>
                   addShutdownHook(zero)
                   zero

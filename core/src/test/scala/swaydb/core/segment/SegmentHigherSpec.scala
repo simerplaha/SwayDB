@@ -22,16 +22,19 @@ package swaydb.core.segment
 import org.scalatest.PrivateMethodTester
 import org.scalatest.concurrent.ScalaFutures
 import swaydb.core.TestBase
-import swaydb.core.data.Transient.Remove
 import swaydb.core.data._
-import swaydb.core.map.serializer.RangeValueSerializers._
 import swaydb.data.slice.Slice
 import swaydb.order.KeyOrder
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
 //@formatter:off
+class SegmentHigherSpec0 extends SegmentHigherSpec {
+  val keyValuesCount: Int = 100
+}
+
 class SegmentHigherSpec1 extends SegmentHigherSpec {
+  val keyValuesCount: Int = 100
   override def levelFoldersCount = 10
   override def mmapSegmentsOnWrite = true
   override def mmapSegmentsOnRead = true
@@ -40,6 +43,8 @@ class SegmentHigherSpec1 extends SegmentHigherSpec {
 }
 
 class SegmentHigherSpec2 extends SegmentHigherSpec {
+  val keyValuesCount: Int = 100
+
   override def levelFoldersCount = 10
   override def mmapSegmentsOnWrite = false
   override def mmapSegmentsOnRead = false
@@ -48,22 +53,24 @@ class SegmentHigherSpec2 extends SegmentHigherSpec {
 }
 
 class SegmentHigherSpec3 extends SegmentHigherSpec {
+  val keyValuesCount: Int = 1000
   override def inMemoryStorage = true
 }
 //@formatter:on
 
-class SegmentHigherSpec extends TestBase with ScalaFutures with PrivateMethodTester {
+trait SegmentHigherSpec extends TestBase with ScalaFutures with PrivateMethodTester {
 
   implicit val ordering = KeyOrder.default
-  val keyValuesCount = 100
+  val keyValuesCount: Int
 
   "Segment.higher" should {
     "get the higher key from the segment that has only 1 Remove key" in {
+      val keyValue = Memory.Remove(1, randomDeadlineOption)
       assertOnSegment(
-        keyValues = Slice(Memory.Remove(1)),
+        keyValues = Slice(keyValue),
         assertion =
           segment => {
-            segment.higher(0).assertGet shouldBe Memory.Remove(1)
+            segment.higher(0).assertGet shouldBe keyValue
             segment.higher(1).assertGetOpt shouldBe empty
             segment.higher(2).assertGetOpt shouldBe empty
           }
@@ -71,11 +78,12 @@ class SegmentHigherSpec extends TestBase with ScalaFutures with PrivateMethodTes
     }
 
     "get the higher key from the segment that has only 1 Put key" in {
+      val keyValue = Memory.Put(1, randomStringOption, randomDeadlineOption)
       assertOnSegment(
-        keyValues = Slice(Memory.Put(1, 10)),
+        keyValues = Slice(keyValue),
         assertion =
           segment => {
-            segment.higher(0).assertGet shouldBe Memory.Put(1, 10)
+            segment.higher(0).assertGet shouldBe keyValue
             segment.higher(1).assertGetOpt shouldBe empty
             segment.higher(2).assertGetOpt shouldBe empty
           }
@@ -83,21 +91,24 @@ class SegmentHigherSpec extends TestBase with ScalaFutures with PrivateMethodTes
     }
 
     "get the higher key from the segment that has only 1 Range key" in {
-      assertOnSegment(
-        keyValues = Slice(Memory.Range(1, 10, None, Value.Update("ten"))),
-        assertion =
-          segment => {
-            (0 to 9) foreach {
-              i =>
-                segment.higher(i).assertGet shouldBe Memory.Range(1, 10, None, Value.Update("ten"))
-            }
+      runThis(50.times) {
+        val keyValue = randomRangeKeyValue(1, 10)
+        assertOnSegment(
+          keyValues = Slice(keyValue),
+          assertion =
+            segment => {
+              (0 to 9) foreach {
+                i =>
+                  segment.higher(i).assertGet shouldBe keyValue
+              }
 
-            (10 to 15) foreach {
-              i =>
-                segment.higher(i).assertGetOpt shouldBe empty
+              (10 to 15) foreach {
+                i =>
+                  segment.higher(i).assertGetOpt shouldBe empty
+              }
             }
-          }
-      )
+        )
+      }
     }
 
     "get the higher from the segment when there are no Range key-values" in {
@@ -184,7 +195,7 @@ class SegmentHigherSpec extends TestBase with ScalaFutures with PrivateMethodTes
 
     "get the higher key from the segment that has many keys" in {
       assertOnSegment(
-        keyValues = randomIntKeyValuesMemory(keyValuesCount, addRandomRemoves = true, addRandomRanges = true),
+        keyValues = randomIntKeyValues(keyValuesCount, addRandomRemoves = true, addRandomRanges = true, addRandomPutDeadlines = true, addRandomRemoveDeadlines = true).toMemory,
         assertionWithKeyValues = assertHigher(_, _)
       )
     }

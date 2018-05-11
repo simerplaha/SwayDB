@@ -112,11 +112,11 @@ private[map] object PersistentMap extends LazyLogging {
                           //Use the merger to write key-values to skipList if the there a range, update or remove(with deadline).
                           //else simply write the key-values to the skipList. This logic should be abstracted out to a common function.
                           //See MapSpec for tests.
-                          if (hasRange || entry.hasUpdate || entry.hasRemoveDeadline) {
-                            skipListMerger.insert(entry, skipList)
-                          } else if (entry.hasRange) {
+                          if (entry.hasRange) {
                             skipListMerger.insert(entry, skipList)
                             hasRange = true
+                          } else if (hasRange || entry.hasUpdate || entry.hasRemoveDeadline) {
+                            skipListMerger.insert(entry, skipList)
                           } else {
                             entry applyTo skipList
                           }
@@ -254,11 +254,11 @@ private[map] case class PersistentMap[K, V: ClassTag](path: Path,
       currentFile.append(MapCodec.write(entry)) map {
         _ =>
           //if this main contains range then use skipListMerge.
-          if (entry.hasUpdate || entry.hasRemoveDeadline || _hasRange) {
-            skipListMerger.insert(entry, skipList)
-          } else if (entry.hasRange) {
+          if (entry.hasRange) {
             skipListMerger.insert(entry, skipList)
             _hasRange = true
+          } else if (entry.hasUpdate || entry.hasRemoveDeadline || _hasRange) {
+            skipListMerger.insert(entry, skipList)
           } else {
             entry applyTo skipList
           }

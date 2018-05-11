@@ -57,7 +57,7 @@ private[core] object TrashLevel extends LevelRef {
   override val nextLevel: Option[LevelRef] =
     None
 
-  override val segments: Iterable[Segment] =
+  override val segmentsInLevel: Iterable[Segment] =
     Iterable.empty
 
   override val hasNextLevel: Boolean =
@@ -206,6 +206,6 @@ private[core] object TrashLevel extends LevelRef {
   override def clearExpiredKeyValues(): Try[Unit] =
     TryUtil.successUnit
 
-  override val graceTimeout: FiniteDuration =
+  override val hasTimeLeftAtLeast: FiniteDuration =
     0.seconds
 }

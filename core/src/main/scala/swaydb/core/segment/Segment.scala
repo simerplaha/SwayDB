@@ -47,75 +47,6 @@ import swaydb.core.util.PipeOps._
 
 private[core] object Segment extends LazyLogging {
 
-  def getNearestDeadline(previous: Option[Deadline],
-                         next: Option[Deadline]): Option[Deadline] =
-
-    (previous, next) match {
-      case (None, None) => None
-      case (previous @ Some(_), None) => previous
-      case (None, next @ Some(_)) => next
-      case (Some(previous), Some(next)) =>
-        if (previous < next)
-          Some(previous)
-        else
-          Some(next)
-    }
-
-  def getNearestDeadline(previous: Option[Deadline],
-                         keyValue: KeyValue): Try[Option[Deadline]] =
-    keyValue match {
-      case readOnly: KeyValue.ReadOnly.Fixed =>
-        Try(getNearestDeadline(previous, readOnly.deadline))
-
-      case writeOnly: KeyValue.WriteOnly.Fixed =>
-        Try(getNearestDeadline(previous, writeOnly.deadline))
-
-      case range: KeyValue.ReadOnly.Range =>
-        range.fetchFromAndRangeValue map {
-          case (Some(fromValue), rangeValue) =>
-            getNearestDeadline(previous, fromValue.deadline) ==> {
-              getNearestDeadline(_, rangeValue.deadline)
-            }
-          case (None, rangeValue) =>
-            getNearestDeadline(previous, rangeValue.deadline)
-        }
-
-      case range: KeyValue.WriteOnly.Range =>
-        range.fetchFromAndRangeValue map {
-          case (Some(fromValue), rangeValue) =>
-            getNearestDeadline(previous, fromValue.deadline) ==> {
-              getNearestDeadline(_, rangeValue.deadline)
-            }
-          case (None, rangeValue) =>
-            getNearestDeadline(previous, rangeValue.deadline)
-        }
-    }
-
-  def getNearestDeadline(keyValues: Iterable[KeyValue]): Try[Option[Deadline]] =
-    keyValues.tryFoldLeft(Option.empty[Deadline])(getNearestDeadline)
-
-  def getNearestDeadlineSegment(previous: Segment,
-                                next: Segment): Option[Segment] =
-    (previous.nearestExpiryDeadline, next.nearestExpiryDeadline) match {
-      case (None, None) => None
-      case (Some(_), None) => Some(previous)
-      case (None, Some(_)) => Some(next)
-      case (Some(previousDeadline), Some(nextDeadline)) =>
-        if (previousDeadline < nextDeadline)
-          Some(previous)
-        else
-          Some(next)
-    }
-
-  def getNearestDeadlineSegment(segments: Iterable[Segment]): Option[Segment] =
-    segments.foldLeft(Option.empty[Segment]) {
-      case (previous, next) =>
-        previous map {
-          previous =>
-            getNearestDeadlineSegment(previous, next)
-        } getOrElse Some(next)
-    }
-
   def memory(path: Path,
              keyValues: Iterable[KeyValue.WriteOnly],
              bloomFilterFalsePositiveRate: Double,
@@ -406,7 +337,7 @@ private[core] object Segment extends LazyLogging {
       isLastLevel = removeDeletes,
       forInMemory = true,
       bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate
-    ) tryMap { //recovery not required. On failure orphan Segments will be GC'd.
+    ) tryMap { //recovery not required. On failure, uncommitted Segments will be GC'd.
       keyValues =>
         Segment.memory(
           path = fetchNextPath,
@@ -688,6 +619,76 @@ private[core] object Segment extends LazyLogging {
         }
       }
     } getOrElse Success(false)
+
+  def getNearestDeadline(previous: Option[Deadline],
+                         next: Option[Deadline]): Option[Deadline] =
+
+    (previous, next) match {
+      case (None, None) => None
+      case (previous @ Some(_), None) => previous
+      case (None, next @ Some(_)) => next
+      case (Some(previous), Some(next)) =>
+        if (previous < next)
+          Some(previous)
+        else
+          Some(next)
+    }
+
+  def getNearestDeadline(previous: Option[Deadline],
+                         keyValue: KeyValue): Try[Option[Deadline]] =
+    keyValue match {
+      case readOnly: KeyValue.ReadOnly.Fixed =>
+        Try(getNearestDeadline(previous, readOnly.deadline))
+
+      case writeOnly: KeyValue.WriteOnly.Fixed =>
+        Try(getNearestDeadline(previous, writeOnly.deadline))
+
+      case range: KeyValue.ReadOnly.Range =>
+        range.fetchFromAndRangeValue map {
+          case (Some(fromValue), rangeValue) =>
+            getNearestDeadline(previous, fromValue.deadline) ==> {
+              getNearestDeadline(_, rangeValue.deadline)
+            }
+          case (None, rangeValue) =>
+            getNearestDeadline(previous, rangeValue.deadline)
+        }
+
+      case range: KeyValue.WriteOnly.Range =>
+        range.fetchFromAndRangeValue map {
+          case (Some(fromValue), rangeValue) =>
+            getNearestDeadline(previous, fromValue.deadline) ==> {
+              getNearestDeadline(_, rangeValue.deadline)
+            }
+          case (None, rangeValue) =>
+            getNearestDeadline(previous, rangeValue.deadline)
+        }
+    }
+
+  def getNearestDeadline(keyValues: Iterable[KeyValue]): Try[Option[Deadline]] =
+    keyValues.tryFoldLeft(Option.empty[Deadline])(getNearestDeadline)
+
+  def getNearestDeadlineSegment(previous: Segment,
+                                next: Segment): Option[Segment] =
+    (previous.nearestExpiryDeadline, next.nearestExpiryDeadline) match {
+      case (None, None) => None
+      case (Some(_), None) => Some(previous)
+      case (None, Some(_)) => Some(next)
+      case (Some(previousDeadline), Some(nextDeadline)) =>
+        if (previousDeadline < nextDeadline)
+          Some(previous)
+        else
+          Some(next)
+    }
+
+  def getNearestDeadlineSegment(segments: Iterable[Segment]): Option[Segment] =
+    segments.foldLeft(Option.empty[Segment]) {
+      case (previous, next) =>
+        previous map {
+          previous =>
+            getNearestDeadlineSegment(previous, next)
+        } getOrElse Some(next)
+    }
+
 }
 
 private[core] trait Segment {
@@ -705,7 +706,7 @@ private[core] trait Segment {
   def put(newKeyValues: Slice[KeyValue.ReadOnly],
           minSegmentSize: Long,
           bloomFilterFalsePositiveRate: Double,
-          graceTimeout: FiniteDuration,
+          hasTimeLeftAtLeast: FiniteDuration,
           targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Try[Slice[Segment]]
 
   def refresh(minSegmentSize: Long,

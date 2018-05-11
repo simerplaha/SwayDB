@@ -24,6 +24,7 @@ import java.util.concurrent.ConcurrentSkipListMap
 
 import swaydb.core.data.{Memory, Persistent, Transient, Value}
 import swaydb.core.io.file.DBFile
+import swaydb.core.level.AppendixSkipListMerger
 import swaydb.core.level.zero.LevelZeroSkipListMerge
 import swaydb.core.map.serializer._
 import swaydb.core.segment.Segment
@@ -35,6 +36,7 @@ import swaydb.data.util.StorageUnits._
 import swaydb.order.KeyOrder
 import swaydb.serializers.Default._
 import swaydb.serializers._
+
 import scala.collection.JavaConverters._
 import scala.concurrent.duration._
 import scala.util.Random
@@ -46,7 +48,7 @@ class MapSpec extends TestBase {
   implicit val keyValuesLimitImplicitLimiter: (Persistent, Segment) => Unit = TestLimitQueues.keyValueLimiter
   implicit val skipListMerger = LevelZeroSkipListMerge(10.seconds)
 
-  implicit val merger = swaydb.core.level.Level.SkipListMerge
+  implicit val merger = AppendixSkipListMerger
 
   val appendixReader = AppendixMapEntryReader(false, true, true)
 

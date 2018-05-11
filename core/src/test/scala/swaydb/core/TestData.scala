@@ -40,6 +40,12 @@ import scala.reflect.ClassTag
 
 trait TestData extends TryAssert {
 
+  def randomly[T](f: => T): Option[T] =
+    if (Random.nextBoolean())
+      Some(f)
+    else
+      None
+
   def randomStringOption: Option[Slice[Byte]] =
     if (Random.nextBoolean())
       Some(randomCharacters())

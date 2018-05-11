@@ -29,7 +29,7 @@ import swaydb.iterator.{DBIterator, KeysIterator}
 import swaydb.serializers.{Serializer, _}
 import swaydb.types.BatchImplicits._
 
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration.{Deadline, FiniteDuration}
 import scala.util.Try
 
 object SwayDBMap {
@@ -47,6 +47,62 @@ object SwayDBMap {
   */
 class SwayDBMap[K, V](api: SwayDBAPI)(implicit keySerializer: Serializer[K],
                                       valueSerializer: Serializer[V]) extends DBIterator[K, V](api, None) {
+
+  def put(key: K, value: V): Try[Level0Meter] =
+    api.put(key, Some(value))
+
+  def put(key: K, value: V, expireAfter: FiniteDuration): Try[Level0Meter] =
+    api.put(key, Some(value), expireAfter.fromNow)
+
+  def put(key: K, value: V, expireAt: Deadline): Try[Level0Meter] =
+    api.put(key, Some(value), expireAt)
+
+  def remove(key: K): Try[Level0Meter] =
+    api.remove(key)
+
+  def remove(from: K, to: K): Try[Level0Meter] =
+    api.remove(from, to)
+
+  def expire(key: K, after: FiniteDuration): Try[Level0Meter] =
+    api.expire(key, after.fromNow)
+
+  def expire(key: K, at: Deadline): Try[Level0Meter] =
+    api.expire(key, at)
+
+  def expire(from: K, to: K, after: FiniteDuration): Try[Level0Meter] =
+    api.expire(from, to, after.fromNow)
+
+  def expire(from: K, to: K, at: Deadline): Try[Level0Meter] =
+    api.expire(from, to, at)
+
+  def update(key: K, value: V): Try[Level0Meter] =
+    api.update(key, Some(value))
+
+  def update(from: K, to: K, value: V): Try[Level0Meter] =
+    api.update(from, to, Some(value))
+
+  def batch(batch: Batch[K, V]*): Try[Level0Meter] =
+    api.batch(batch)
+
+  def batch(batch: Iterable[Batch[K, V]]): Try[Level0Meter] =
+    api.batch(batch)
+
+  def batchPut(keyValues: (K, V)*): Try[Level0Meter] =
+    batchPut(keyValues)
+
+  def batchPut(keyValues: Iterable[(K, V)]): Try[Level0Meter] =
+    api.batch {
+      keyValues map {
+        case (key, value) =>
+          request.Batch.Put(key, Some(value), None)
+      }
+    }
+
+  def batchRemove(keys: K*): Try[Level0Meter] =
+    batchRemove(keys)
+
+  def batchRemove(keys: Iterable[K]): Try[Level0Meter] =
+    api.batch(keys.map(key => request.Batch.Remove(key, None)))
 
   /**
     * Returns target value for the input key.
@@ -67,47 +123,6 @@ class SwayDBMap[K, V](api: SwayDBAPI)(implicit keySerializer: Serializer[K],
       case (key, value) =>
         (key.read[K], value.read[V])
     })
-
-  def put(key: K, value: V): Try[Level0Meter] =
-    api.put(key, Some(value))
-
-  def put(key: K, value: V, expireAfter: FiniteDuration): Try[Level0Meter] =
-    api.put(key, Some(value))
-
-  def batch(batch: Batch[K, V]*): Try[Level0Meter] =
-    api.put(batch)
-
-  def batch(batch: Iterable[Batch[K, V]]): Try[Level0Meter] =
-    api.put(batch)
-
-  def batchPut(keyValues: (K, V)*): Try[Level0Meter] =
-    batchPut(keyValues)
-
-  def batchPut(keyValues: Iterable[(K, V)]): Try[Level0Meter] =
-    api.put {
-      keyValues map {
-        case (key, value) =>
-          request.Batch.Put(key, Some(value))
-      }
-    }
-
-  def batchRemove(keys: K*): Try[Level0Meter] =
-    batchRemove(keys)
-
-  def batchRemove(keys: Iterable[K]): Try[Level0Meter] =
-    api.put(keys.map(request.Batch.Remove(_)))
-
-  def remove(key: K): Try[Level0Meter] =
-    api.remove(key)
-
-  def remove(from: K, until: K): Try[Level0Meter] =
-    api.remove(from, until)
-
-  def remove(from: K, to: K, after: FiniteDuration): Try[Level0Meter] =
-    api.remove(from, to, after)
-
-  def update(from: K, until: K, value: V): Try[Level0Meter] =
-    api.update(from, until, Some(value))
 
   def contains(key: K): Try[Boolean] =
     api contains key
@@ -135,9 +150,6 @@ class SwayDBMap[K, V](api: SwayDBAPI)(implicit keySerializer: Serializer[K],
 
   def valueLength(value: V): Int =
     (value: Slice[Byte]).size
-
-  def keySize(key: K): Try[Option[Int]] =
-    api keySize key
 
   def valueSize(key: K): Try[Option[Int]] =
     api valueSize key

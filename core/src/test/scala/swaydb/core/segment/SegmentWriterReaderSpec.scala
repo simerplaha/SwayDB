@@ -37,6 +37,8 @@ class SegmentWriterReaderSpec extends TestBase {
 
   implicit val ordering = KeyOrder.default
 
+  val keyValueCount = 100
+
   import swaydb.core.map.serializer.RangeValueSerializers._
 
   "SegmentFormat" should {
@@ -50,7 +52,7 @@ class SegmentWriterReaderSpec extends TestBase {
       implicit val ordering = KeyOrder.default
 
       def test(keyValues: Slice[KeyValue.WriteOnly]) = {
-        val (bytes, nearestDeadline) = SegmentWriter.toSlice(keyValues, 0.1).assertGet
+        val (bytes, _) = SegmentWriter.toSlice(keyValues, 0.1).assertGet
         bytes.isFull shouldBe true
         //in memory
         assertReads(keyValues, Reader(bytes))
@@ -147,6 +149,7 @@ class SegmentWriterReaderSpec extends TestBase {
 
       val (bytes, deadline) = SegmentWriter.toSlice(keyValues, 0.1).assertGet
       bytes.isFull shouldBe true
+      deadline shouldBe empty
       //in memory
       assertReads(keyValues, Reader(bytes))
       //on disk
@@ -172,6 +175,7 @@ class SegmentWriterReaderSpec extends TestBase {
       ).updateStats
 
       keyValues.head.stats.commonBytes shouldBe 0
+      //every other key-values other than the first should have common bytes.
       keyValues.drop(1) foreach (_.stats.commonBytes shouldBe 3)
 
       val (bytes, _) = SegmentWriter.toSlice(keyValues, 0.1).assertGet
@@ -190,9 +194,9 @@ class SegmentWriterReaderSpec extends TestBase {
           Transient.Put(Slice(s"a$randomChars".getBytes()), value = randomChars),
           Transient.Remove(Slice(s"b$randomChars".getBytes())),
           Transient.Put(Slice(s"c$randomChars".getBytes()), value = randomChars, 1000.days),
-          Transient.Range[FromValue, RangeValue](fromKey = Slice(s"d$randomChars".getBytes()), toKey = Slice(s"e$randomChars".getBytes()), None, Value.Update(randomChars)),
+          Transient.Range[FromValue, RangeValue](fromKey = Slice(s"d$randomChars".getBytes()), toKey = Slice(s"e$randomChars".getBytes()), randomFromValueOption(), Value.Update(randomChars)),
           Transient.Range[FromValue, RangeValue](fromKey = Slice(s"f$randomChars".getBytes()), toKey = Slice(s"g$randomChars".getBytes()), Some(Value.Put(randomChars)), Value.Update(randomChars)),
-          Transient.Range[FromValue, RangeValue](fromKey = Slice(s"h$randomChars".getBytes()), toKey = Slice(s"i$randomChars".getBytes()), Some(Value.Remove(None)), Value.Update(randomChars))
+          Transient.Range[FromValue, RangeValue](fromKey = Slice(s"h$randomChars".getBytes()), toKey = Slice(s"i$randomChars".getBytes()), randomFromValueOption(), Value.Update(randomChars))
         ).updateStats
 
       val (bytes, _) = SegmentWriter.toSlice(keyValues, 0.1).assertGet
@@ -207,6 +211,17 @@ class SegmentWriterReaderSpec extends TestBase {
     "write and read Int min max key values" in {
       val keyValues = Slice(Transient.Put(Int.MaxValue, Int.MinValue), Transient.Put(Int.MinValue, Int.MaxValue)).updateStats
 
+      val (bytes, deadline) = SegmentWriter.toSlice(keyValues, 0.1).assertGet
+      deadline shouldBe empty
+
+      //in memory
+      assertReads(keyValues, Reader(bytes))
+      //on disk
+      assertReads(keyValues, createFileChannelReader(bytes))
+    }
+
+    "write and read 100 Fixed KeyValues to a Slice[Byte]" in {
+      val keyValues = randomIntKeyValues(keyValueCount)
       val (bytes, _) = SegmentWriter.toSlice(keyValues, 0.1).assertGet
 
       //in memory
@@ -215,8 +230,8 @@ class SegmentWriterReaderSpec extends TestBase {
       assertReads(keyValues, createFileChannelReader(bytes))
     }
 
-    "write and read 100 KeyValues to a Slice[Byte]" in {
-      val keyValues = randomIntKeyValues(100)
+    "write and read 100 Fixed & Range KeyValues to a Slice[Byte]" in {
+      val keyValues = randomIntKeyValues(count = keyValueCount, addRandomRanges = true, addRandomPutDeadlines = true, addRandomRemoveDeadlines = true, addRandomRemoves = true)
       val (bytes, _) = SegmentWriter.toSlice(keyValues, 0.1).assertGet
 
       //in memory
@@ -226,9 +241,11 @@ class SegmentWriterReaderSpec extends TestBase {
     }
 
     "write and read 100 Keys with None value to a Slice[Byte]" in {
-      val keyValues = randomIntKeys(100)
+      val keyValues = randomIntKeys(keyValueCount)
 
-      val (bytes, _) = SegmentWriter.toSlice(keyValues, 0.1).assertGet
+      val (bytes, deadline) = SegmentWriter.toSlice(keyValues, 0.1).assertGet
+
+      deadline shouldBe empty
 
       //in memory
       assertReads(keyValues, Reader(bytes))
@@ -239,10 +256,10 @@ class SegmentWriterReaderSpec extends TestBase {
     "read footer when Segment contains no Range key-value" in {
       val keyValues = Slice(Transient.Put(1, 1), Transient.Remove(2)).updateStats
 
-      val (bytes, _) = SegmentWriter.toSlice(keyValues, 0.1).assertGet
+      val (bytes, deadline) = SegmentWriter.toSlice(keyValues, 0.1).assertGet
+      deadline shouldBe empty
 
       val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).get
-      footer.keyValueCount shouldBe keyValues.size
       footer.keyValueCount shouldBe keyValues.size
       footer.startIndexOffset shouldBe keyValues.head.stats.toValueOffset + 1
       footer.hasRange shouldBe false
@@ -251,7 +268,7 @@ class SegmentWriterReaderSpec extends TestBase {
       footer.crc should be > 0L
     }
 
-    "read footer when Segment contains Put range key-value" in {
+    "read footer when Segment does not contains Remove range key-value" in {
       def doAssert(keyValues: Slice[KeyValue.WriteOnly]) = {
         val (bytes, _) = SegmentWriter.toSlice(keyValues, 0.1).assertGet
 
@@ -265,9 +282,9 @@ class SegmentWriterReaderSpec extends TestBase {
         footer.crc should be > 0L
       }
 
-      doAssert(Slice(Transient.Put(1, 1), Transient.Remove(2), Transient.Range[FromValue, RangeValue](3, 4, Some(Value.Put(3)), Value.Update(10))).updateStats)
-      doAssert(Slice(Transient.Remove(1), Transient.Put(2, 2), Transient.Range[FromValue, RangeValue](3, 4, None, Value.Update(10))).updateStats)
-      doAssert(Slice(Transient.Put(1, 1), Transient.Remove(2), Transient.Range[FromValue, RangeValue](3, 4, Some(Value.Remove(None)), Value.Update(10))).updateStats)
+      runThis(100.times) {
+        doAssert(Slice(Transient.Put(1, 1), Transient.Remove(2), Transient.Range[FromValue, RangeValue](3, 4, randomFromValueOption(), Value.Update(10))).updateStats)
+      }
     }
 
     "read footer when Segment contains Remove range key-value" in {
@@ -278,13 +295,14 @@ class SegmentWriterReaderSpec extends TestBase {
         footer.keyValueCount shouldBe keyValues.size
         footer.keyValueCount shouldBe keyValues.size
         footer.hasRange shouldBe true
+        //bloom filters do
         footer.bloomFilter shouldBe empty
         footer.crc should be > 0L
       }
 
-      doAssert(Slice(Transient.Put(1, 1), Transient.Remove(2), Transient.Range[FromValue, RangeValue](3, 4, Some(Value.Put(3)), Value.Remove(None))).updateStats)
-      doAssert(Slice(Transient.Remove(1), Transient.Put(2, 2), Transient.Range[FromValue, RangeValue](3, 4, None, Value.Remove(None))).updateStats)
-      doAssert(Slice(Transient.Put(1, 1), Transient.Remove(2), Transient.Range[FromValue, RangeValue](3, 4, Some(Value.Remove(None)), Value.Remove(None))).updateStats)
+      runThis(100.times) {
+        doAssert(Slice(Transient.Put(1, 1), Transient.Remove(2), Transient.Range[FromValue, RangeValue](3, 4, randomFromValueOption(), Value.Remove(None))).updateStats)
+      }
     }
 
     "report Segment corruption is CRC check does not match when reading the footer" in {

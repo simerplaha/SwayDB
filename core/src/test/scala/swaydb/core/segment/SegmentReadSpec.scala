@@ -41,7 +41,12 @@ import scala.concurrent.duration._
 import scala.util.Random
 
 //@formatter:off
+class SegmentReadSpec0 extends SegmentReadSpec {
+  val keyValuesCount = 100
+}
+
 class SegmentReadSpec1 extends SegmentReadSpec {
+  val keyValuesCount = 100
   override def levelFoldersCount = 10
   override def mmapSegmentsOnWrite = true
   override def mmapSegmentsOnRead = true
@@ -50,6 +55,7 @@ class SegmentReadSpec1 extends SegmentReadSpec {
 }
 
 class SegmentReadSpec2 extends SegmentReadSpec {
+  val keyValuesCount = 100
   override def levelFoldersCount = 10
   override def mmapSegmentsOnWrite = false
   override def mmapSegmentsOnRead = false
@@ -58,14 +64,15 @@ class SegmentReadSpec2 extends SegmentReadSpec {
 }
 
 class SegmentReadSpec3 extends SegmentReadSpec {
+  val keyValuesCount = 1000
   override def inMemoryStorage = true
 }
 //@formatter:on
 
-class SegmentReadSpec extends TestBase with ScalaFutures with PrivateMethodTester {
+trait SegmentReadSpec extends TestBase with ScalaFutures with PrivateMethodTester {
 
   implicit val ordering = KeyOrder.default
-  val keyValuesCount = 100
+  val keyValuesCount: Int
 
   "Segment.belongsTo" should {
     "return true if the input key-value belong to the Segment else false when the Segment contains no Range key-value" in {
@@ -76,13 +83,13 @@ class SegmentReadSpec extends TestBase with ScalaFutures with PrivateMethodTeste
       Segment.belongsTo(Transient.Put(1), segment) shouldBe true
       Segment.belongsTo(Transient.Put(2), segment) shouldBe true
       Segment.belongsTo(Remove(3), segment) shouldBe true
-      Segment.belongsTo(Transient.Range[FromValue, RangeValue](3, 10, None, Value.Remove(None)), segment) shouldBe true
+      Segment.belongsTo(Transient.Range[FromValue, RangeValue](3, 10, randomFromValueOption(), randomRangeValue()), segment) shouldBe true
       Segment.belongsTo(Transient.Put(4), segment) shouldBe true
       Segment.belongsTo(Remove(5), segment) shouldBe true
-      Segment.belongsTo(Transient.Range[FromValue, RangeValue](5, 10, Some(Value.Remove(None)), Value.Update(10)), segment) shouldBe true
+      Segment.belongsTo(Transient.Range[FromValue, RangeValue](5, 10, randomFromValueOption(), randomRangeValue()), segment) shouldBe true
 
       Segment.belongsTo(Remove(6), segment) shouldBe false
-      Segment.belongsTo(Transient.Range[FromValue, RangeValue](6, 10, Some(Value.Remove(None)), Value.Update(10)), segment) shouldBe false
+      Segment.belongsTo(Transient.Range[FromValue, RangeValue](6, 10, randomFromValueOption(), randomRangeValue()), segment) shouldBe false
 
       segment.close.assertGet
     }
@@ -95,15 +102,15 @@ class SegmentReadSpec extends TestBase with ScalaFutures with PrivateMethodTeste
       Segment.belongsTo(Transient.Put(1), segment) shouldBe true
       Segment.belongsTo(Transient.Put(2), segment) shouldBe true
       Segment.belongsTo(Remove(3), segment) shouldBe true
-      Segment.belongsTo(Transient.Range[FromValue, RangeValue](3, 10, None, Value.Remove(None)), segment) shouldBe true
+      Segment.belongsTo(Transient.Range[FromValue, RangeValue](3, 10, randomFromValueOption(), randomRangeValue()), segment) shouldBe true
       Segment.belongsTo(Transient.Put(4), segment) shouldBe true
       Segment.belongsTo(Remove(5), segment) shouldBe true
       Segment.belongsTo(Remove(6), segment) shouldBe true
       Segment.belongsTo(Remove(7), segment) shouldBe true
       Segment.belongsTo(Remove(10), segment) shouldBe false
 
-      Segment.belongsTo(Transient.Range[FromValue, RangeValue](9, 10, Some(Value.Remove(None)), Value.Update(10)), segment) shouldBe true
-      Segment.belongsTo(Transient.Range[FromValue, RangeValue](10, 11, Some(Value.Remove(None)), Value.Update(10)), segment) shouldBe false
+      Segment.belongsTo(Transient.Range[FromValue, RangeValue](9, 10, randomFromValueOption(), randomRangeValue()), segment) shouldBe true
+      Segment.belongsTo(Transient.Range[FromValue, RangeValue](10, 11, randomFromValueOption(), randomRangeValue()), segment) shouldBe false
 
       segment.close.assertGet
     }
@@ -123,8 +130,8 @@ class SegmentReadSpec extends TestBase with ScalaFutures with PrivateMethodTeste
       Segment.belongsTo(Remove(7), segment) shouldBe true
       Segment.belongsTo(Remove(10), segment) shouldBe true
 
-      Segment.belongsTo(Transient.Range[FromValue, RangeValue](9, 10, Some(Value.Remove(None)), Value.Update(10)), segment) shouldBe true
-      Segment.belongsTo(Transient.Range[FromValue, RangeValue](10, 11, Some(Value.Remove(None)), Value.Update(10)), segment) shouldBe true
+      Segment.belongsTo(Transient.Range[FromValue, RangeValue](9, 10, randomFromValueOption(), randomRangeValue()), segment) shouldBe true
+      Segment.belongsTo(Transient.Range[FromValue, RangeValue](10, 11, randomFromValueOption(), randomRangeValue()), segment) shouldBe true
 
       segment.close.assertGet
     }

@@ -46,16 +46,13 @@ class BloomFilterUtilSpec extends WordSpec with Matchers {
 
   "BloomFilterUtil.byteSize" should {
     "return the number of bytes required to store the Bloom filter" in {
-
       (1 to 1000) foreach {
         i =>
           val numberOfItems = i * 10
           val falsePositiveRate = 0.0 + (0 + "." + i.toString).toDouble
           val bloomFilter = BloomFilter[Slice[Byte]](numberOfItems, falsePositiveRate)
           bloomFilter.toBytes.length shouldBe BloomFilterUtil.byteSize(numberOfItems, falsePositiveRate)
-
       }
     }
   }
-
 }

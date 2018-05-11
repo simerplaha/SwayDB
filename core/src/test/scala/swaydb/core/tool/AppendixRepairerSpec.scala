@@ -26,11 +26,13 @@ import swaydb.core.io.file.{DBFile, IO}
 import swaydb.core.segment.Segment
 import swaydb.core.util.FileUtil._
 import swaydb.core.{TestBase, TestLimitQueues}
+import swaydb.data.compaction.Throttle
 import swaydb.data.repairAppendix.{AppendixRepairStrategy, OverlappingSegmentsException}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.order.KeyOrder
 
+import scala.concurrent.duration.Duration
 import scala.util.Random
 
 class AppendixRepairerSpec extends TestBase {
@@ -47,20 +49,20 @@ class AppendixRepairerSpec extends TestBase {
 
     "create new appendix file if all the Segments in the Level are non-overlapping Segments" in {
       val level = TestLevel(segmentSize = 1.kb)
-      level.putKeyValues(randomIntKeyValuesMemory(1000)).assertGet
+      level.putKeyValues(randomizedIntKeyValues(1000).toMemory).assertGet
 
       level.segmentsCount() should be > 2
-      val segmentsBeforeRepair = level.segments
+      val segmentsBeforeRepair = level.segmentsInLevel()
 
       //repair appendix
       AppendixRepairer(level.rootPath, AppendixRepairStrategy.ReportFailure).assertGet
       level.appendixPath.exists shouldBe true //appendix is created
 
       //reopen level and it should contain all the Segment
-      level.reopen.segments.map(_.path) shouldBe segmentsBeforeRepair.map(_.path)
+      level.reopen.segmentsInLevel().map(_.path) shouldBe segmentsBeforeRepair.map(_.path)
     }
 
-    "create empty appendix file is the Level is empty" in {
+    "create empty appendix file if the Level is empty" in {
       //create empty Level
       val level = TestLevel(segmentSize = 1.kb)
 
@@ -77,14 +79,15 @@ class AppendixRepairerSpec extends TestBase {
     }
 
     "report duplicate Segments" in {
-      val level = TestLevel(segmentSize = 1.kb)
+      //create a Level with a sub-level and disable throttling so that compaction does not delete expired key-values
+      val level = TestLevel(segmentSize = 1.kb, nextLevel = Some(TestLevel()), throttle = (_) => Throttle(Duration.Zero, 0))
 
-      val keyValues = randomIntKeyValuesMemory(1000)
+      val keyValues = randomizedIntKeyValues(1000).toMemory
       level.putKeyValues(keyValues).assertGet
 
       level.segmentsCount() should be > 2
-      val segmentsBeforeRepair = level.segments
-      level.segments.foldLeft(segmentsBeforeRepair.last.path.fileId.assertGet._1 + 1) {
+      val segmentsBeforeRepair = level.segmentsInLevel()
+      level.segmentsInLevel().foldLeft(segmentsBeforeRepair.last.path.fileId.assertGet._1 + 1) {
         case (segmentId, segment) =>
           //create a duplicate Segment
           val duplicateSegment = segment.path.getParent.resolve(segmentId.toSegmentFileId)
@@ -107,19 +110,19 @@ class AppendixRepairerSpec extends TestBase {
           segmentId + 1
       }
       //level still contains the same key-values
-      Segment.getAllKeyValues(0.1, level.reopen.segments).assertGet shouldBe keyValues
+      Segment.getAllKeyValues(0.1, level.reopen.segmentsInLevel()).assertGet shouldBe keyValues
     }
 
-    "report overlapping min & max key Segments & delete newer overlapping Segment if DeleteNext is selected" in {
+    "report overlapping min & max key Segments & delete newer overlapping Segment if KeepOld is selected" in {
       //create empty Level
-      val level = TestLevel(segmentSize = 1.kb)
+      val level = TestLevel(segmentSize = 1.kb, nextLevel = Some(TestLevel()), throttle = (_) => Throttle(Duration.Zero, 0))
 
       val keyValues = randomizedIntKeyValues(1000).toMemory
       level.putKeyValues(keyValues).assertGet
 
       level.segmentsCount() should be > 2
-      val segmentsBeforeRepair = level.segments
-      level.segments.foldLeft(segmentsBeforeRepair.last.path.fileId.assertGet._1 + 1) {
+      val segmentsBeforeRepair = level.segmentsInLevel()
+      level.segmentsInLevel().foldLeft(segmentsBeforeRepair.last.path.fileId.assertGet._1 + 1) {
         case (overlappingSegmentId, segment) =>
           val overlappingLevelSegmentPath = level.rootPath.resolve(overlappingSegmentId.toSegmentFileId)
 

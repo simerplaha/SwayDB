@@ -102,7 +102,7 @@ private[segment] class PersistentSegment(val file: DBFile,
   def put(newKeyValues: Slice[KeyValue.ReadOnly],
           minSegmentSize: Long,
           bloomFilterFalsePositiveRate: Double,
-          graceTimeout: FiniteDuration,
+          hasTimeLeftAtLeast: FiniteDuration,
           targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Try[Slice[Segment]] =
     getAll() flatMap {
       currentKeyValues =>
@@ -113,7 +113,7 @@ private[segment] class PersistentSegment(val file: DBFile,
           forInMemory = false,
           isLastLevel = removeDeletes,
           bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-          hasTimeLeftAtLeast = graceTimeout
+          hasTimeLeftAtLeast = hasTimeLeftAtLeast
         ) flatMap {
           splits =>
             splits.tryMap(

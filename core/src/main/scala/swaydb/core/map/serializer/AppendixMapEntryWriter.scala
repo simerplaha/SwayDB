@@ -97,18 +97,5 @@ object AppendixMapEntryWriter {
         maxKeyBytes.size +
         ByteUtilCore.sizeUnsignedLong(entry.value.nearestExpiryDeadline.map(_.time.toNanos).getOrElse(0L))
     }
-
-  }
-
-  implicit object AppendixMapEntry extends MapEntryWriter[MapEntry[Slice[Byte], Segment]] {
-
-    override val isRange: Boolean = false
-    override val isUpdate: Boolean = false
-
-    override def write(entry: MapEntry[Slice[Byte], Segment], bytes: Slice[Byte]): Unit =
-      entry.writeTo(bytes)
-
-    override def bytesRequired(entry: MapEntry[Slice[Byte], Segment]): Int =
-      entry.entryBytesSize
   }
 }

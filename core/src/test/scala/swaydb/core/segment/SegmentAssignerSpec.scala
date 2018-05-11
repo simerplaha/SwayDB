@@ -22,19 +22,24 @@ package swaydb.core.segment
 import swaydb.core.TestBase
 import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data.{Memory, Transient, Value}
+import swaydb.core.map.serializer.RangeValueSerializers._
 import swaydb.core.util.FileUtil._
+import swaydb.core.util.PipeOps._
 import swaydb.data.slice.Slice
 import swaydb.order.KeyOrder
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.core.map.serializer.RangeValueSerializers._
-import swaydb.core.util.PipeOps._
+
 import scala.concurrent.duration._
 
-import scala.util.Random
-
 //@formatter:off
+class SegmentAssignerSpec0 extends SegmentAssignerSpec {
+  val keyValueCount = 100
+}
+
 class SegmentAssignerSpec1 extends SegmentAssignerSpec {
+  val keyValueCount = 100
+
   override def levelFoldersCount = 10
   override def mmapSegmentsOnWrite = true
   override def mmapSegmentsOnRead = true
@@ -43,6 +48,8 @@ class SegmentAssignerSpec1 extends SegmentAssignerSpec {
 }
 
 class SegmentAssignerSpec2 extends SegmentAssignerSpec {
+  val keyValueCount = 100
+
   override def levelFoldersCount = 10
   override def mmapSegmentsOnWrite = false
   override def mmapSegmentsOnRead = false
@@ -51,26 +58,20 @@ class SegmentAssignerSpec2 extends SegmentAssignerSpec {
 }
 
 class SegmentAssignerSpec3 extends SegmentAssignerSpec {
+  val keyValueCount = 1000
   override def inMemoryStorage = true
 }
 //@formatter:on
 
-class SegmentAssignerSpec extends TestBase {
+trait SegmentAssignerSpec extends TestBase {
   implicit val ordering = KeyOrder.default
 
-  val keyValueCount = 1000
+  val keyValueCount: Int
 
   "SegmentAssign.assign" should {
 
     "assign KeyValues to the first Segment if there is only one Segment" in {
-      val keyValues =
-        randomIntKeyValues(
-          count = keyValueCount,
-          addRandomRemoves = Random.nextBoolean(),
-          addRandomRanges = Random.nextBoolean(),
-          addRandomPutDeadlines = Random.nextBoolean(),
-          addRandomRemoveDeadlines = Random.nextBoolean()
-        ).toMemory
+      val keyValues = randomizedIntKeyValues(keyValueCount).toMemory
 
       val segment = TestSegment().assertGet
 
@@ -109,7 +110,8 @@ class SegmentAssignerSpec extends TestBase {
       val keyValues =
         Slice(
           Memory.Put(1, 1),
-          Memory.Put(15)
+          Memory.Put(15),
+          Memory.Range(16, 20, None, Value.Update(16))
         )
 
       val result = SegmentAssigner.assign(keyValues, segments).assertGet
@@ -117,6 +119,7 @@ class SegmentAssignerSpec extends TestBase {
       result.keys.head.path shouldBe segment1.path
       result.values.head.toMemory shouldBe keyValues
     }
+
 
     "assign gap KeyValue to the second Segment if the first Segment has no key-value assigned to it" in {
       val segment1 = TestSegment(Slice(Transient.Put(1), Transient.Range[FromValue, RangeValue](2, 10, None, Value.Remove(1.second.fromNow))).updateStats).assertGet
@@ -126,7 +129,8 @@ class SegmentAssignerSpec extends TestBase {
       //15 is a gap key but no key-values are assigned to segment1 so segment2 will get this key-value.
       val keyValues =
         Slice(
-          Memory.Put(15)
+          Memory.Put(15),
+          Memory.Range(16, 100, None, Value.Update(16))
         )
 
       val result = SegmentAssigner.assign(keyValues, segments).assertGet
@@ -148,7 +152,8 @@ class SegmentAssignerSpec extends TestBase {
       val segment5 = TestSegment(Slice(Transient.Put(70), Transient.Remove(80)).updateStats).assertGet
       val segments = Seq(segment1, segment2, segment3, segment4, segment5)
 
-      //15 is a gap key but no key-values are assigned to segment1 so segment2 will get this key-value.
+      //15 is a gap key but no key-values are assigned to segment1 so segment2 will get this key-value an it will be split across.
+      //all next overlapping Segments.
       val keyValues =
         Slice(
           Memory.Range(15, 50, Some(Value.Remove(None)), Value.Update(10))

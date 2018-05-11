@@ -23,6 +23,7 @@ import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.io.file.IO
+import swaydb.core.level.AppendixSkipListMerger
 import swaydb.core.map.serializer.{AppendixMapEntryReader, MapEntryReader, MapEntryWriter}
 import swaydb.core.map.{Map, MapEntry, SkipListMerge}
 import swaydb.core.segment.Segment
@@ -45,7 +46,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
     val reader = AppendixMapEntryReader(false, false, false)(ordering, (_, _) => (), (_) => (), ec)
     import reader._
     import swaydb.core.map.serializer.AppendixMapEntryWriter._
-    import swaydb.core.level.Level.SkipListMerge
+    implicit val merger = AppendixSkipListMerger
 
     Try(FileUtil.files(levelPath, Extension.Seg)) flatMap {
       files =>

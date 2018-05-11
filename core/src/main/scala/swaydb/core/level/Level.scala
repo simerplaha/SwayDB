@@ -21,7 +21,6 @@ package swaydb.core.level
 
 import java.nio.channels.{FileChannel, FileLock}
 import java.nio.file.{Path, StandardOpenOption}
-import java.util.concurrent.ConcurrentSkipListMap
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data._
@@ -31,7 +30,7 @@ import swaydb.core.level.LevelException.ReceivedKeyValuesToMergeWithoutTargetSeg
 import swaydb.core.level.actor.LevelCommand.ClearExpiredKeyValues
 import swaydb.core.level.actor.{LevelAPI, LevelActor, LevelCommand}
 import swaydb.core.map.serializer._
-import swaydb.core.map.{Map, MapEntry, SkipListMerge}
+import swaydb.core.map.{Map, MapEntry}
 import swaydb.core.segment.SegmentException.SegmentFileMissing
 import swaydb.core.segment.{Segment, SegmentAssigner}
 import swaydb.core.util.ExceptionUtil._
@@ -48,24 +47,10 @@ import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext
-import scala.util.{Failure, Success, Try}
 import scala.concurrent.duration._
+import scala.util.{Failure, Success, Try}
 
 private[core] object Level extends LazyLogging {
-
-  implicit object SkipListMerge extends SkipListMerge[Slice[Byte], Segment] {
-    override def insert(insertKey: Slice[Byte],
-                        insertValue: Segment,
-                        skipList: ConcurrentSkipListMap[Slice[Byte], Segment])(implicit ordering: Ordering[Slice[Byte]]): Unit =
-      skipList.put(insertKey, insertValue)
-
-    //Appendixes do not use Range so there will be no conflicts. Need a type-safe way of handling this.
-    override def insert(entry: MapEntry[Slice[Byte], Segment],
-                        skipList: ConcurrentSkipListMap[Slice[Byte], Segment])(implicit ordering: Ordering[Slice[Byte]]): Unit =
-      entry applyTo skipList
-
-    override val graceTimeout: FiniteDuration = 10.seconds
-  }
 
   def acquireLock(levelStorage: LevelStorage): Try[Option[FileLock]] =
     if (levelStorage.persistent)
@@ -91,10 +76,10 @@ private[core] object Level extends LazyLogging {
             nextLevel: Option[LevelRef],
             pushForward: Boolean = false,
             throttle: LevelMeter => Throttle,
-            graceTimeout: FiniteDuration)(implicit ordering: Ordering[Slice[Byte]],
-                                          ec: ExecutionContext,
-                                          keyValueLimiter: (Persistent, Segment) => Unit,
-                                          fileOpenLimited: DBFile => Unit): Try[LevelRef] = {
+            hasTimeLeftAtLeast: FiniteDuration)(implicit ordering: Ordering[Slice[Byte]],
+                                                ec: ExecutionContext,
+                                                keyValueLimiter: (Persistent, Segment) => Unit,
+                                                fileOpenLimited: DBFile => Unit): Try[LevelRef] = {
     //acquire lock on folder
     acquireLock(levelStorage) flatMap {
       lock =>
@@ -111,6 +96,9 @@ private[core] object Level extends LazyLogging {
 
         import appendixReader._
 
+        //default merger
+        implicit val merger = AppendixSkipListMerger
+
         //initialise appendix
         val appendix: Try[Map[Slice[Byte], Segment]] =
           appendixStorage match {
@@ -122,6 +110,7 @@ private[core] object Level extends LazyLogging {
                 logger.info("{}: Failed to start Level. Appendix file is missing", appendixFolder)
                 Failure(new IllegalStateException(s"Failed to start Level. Appendix file is missing '$appendixFolder'."))
               } else {
+
                 IO createDirectoriesIfAbsent appendixFolder
                 Map.persistent[Slice[Byte], Segment](appendixFolder, mmap, flushOnOverflow = true, appendixFlushCheckpointSize, dropCorruptedTailEntries = false).map(_.item)
               }
@@ -162,7 +151,7 @@ private[core] object Level extends LazyLogging {
                     throttle = throttle,
                     nextLevel = nextLevel,
                     lock = lock,
-                    graceTimeout = graceTimeout
+                    hasTimeLeftAtLeast = hasTimeLeftAtLeast
                   ).init
                 )
             }
@@ -187,12 +176,12 @@ private[core] class Level(val dirs: Seq[Dir],
                           val nextLevel: Option[LevelRef],
                           appendix: Map[Slice[Byte], Segment],
                           lock: Option[FileLock],
-                          val graceTimeout: FiniteDuration)(implicit ordering: Ordering[Slice[Byte]],
-                                                            ec: ExecutionContext,
-                                                            removeWriter: MapEntryWriter[MapEntry.Remove[Slice[Byte]]],
-                                                            addWriter: MapEntryWriter[MapEntry.Put[Slice[Byte], Segment]],
-                                                            keyValueLimiter: (Persistent, Segment) => Unit,
-                                                            fileOpenLimited: DBFile => Unit) extends LevelRef with LazyLogging {
+                          val hasTimeLeftAtLeast: FiniteDuration)(implicit ordering: Ordering[Slice[Byte]],
+                                                                  ec: ExecutionContext,
+                                                                  removeWriter: MapEntryWriter[MapEntry.Remove[Slice[Byte]]],
+                                                                  addWriter: MapEntryWriter[MapEntry.Put[Slice[Byte], Segment]],
+                                                                  keyValueLimiter: (Persistent, Segment) => Unit,
+                                                                  fileOpenLimited: DBFile => Unit) extends LevelRef with LazyLogging {
 
   val paths: PathsDistributor = PathsDistributor(dirs, () => appendix.values().asScala)
 
@@ -220,7 +209,7 @@ private[core] class Level(val dirs: Seq[Dir],
         nextLevel.map(_.releaseLocks) getOrElse TryUtil.successUnit
     }
 
-  private def deleteOrphanSegments(): Unit =
+  private def deleteUncommittedSegments(): Unit =
     dirs.flatMap(_.path.files(Extension.Seg)) foreach {
       segmentToDelete =>
         val toDelete =
@@ -232,7 +221,7 @@ private[core] class Level(val dirs: Seq[Dir],
                 toDelete
           }
         if (toDelete) {
-          logger.info("SEGMENT {} not in appendix. Deleting orphan segment.", segmentToDelete)
+          logger.info("SEGMENT {} not in appendix. Deleting uncommitted segment.", segmentToDelete)
           IO.delete(segmentToDelete)
         }
     }
@@ -250,8 +239,9 @@ private[core] class Level(val dirs: Seq[Dir],
   private[level] implicit val segmentIDGenerator = IDGenerator(initial = largestSegmentId)
 
   def init: Level = {
-    if (existsOnDisk) deleteOrphanSegments()
-    if (nextLevel.isEmpty) actor ! ClearExpiredKeyValues(5.seconds.fromNow)
+    if (existsOnDisk) deleteUncommittedSegments()
+    //If this is the last level, dispatch initial message to start the process of clearing expired key-values.
+    if (nextLevel.isEmpty) actor ! ClearExpiredKeyValues(0.nanosecond.fromNow)
     this
   }
 
@@ -315,7 +305,7 @@ private[core] class Level(val dirs: Seq[Dir],
           Failure(LevelException.ContainsOverlappingBusySegments)
         } else { //only copy Segments if the both this Level and the Segments are persistent.
           val (segmentToMerge, segmentToCopy) = Segment.partitionOverlapping(segments, appendixValues)
-          put(segmentToMerge, segmentToCopy, appendixValues)
+          put(segmentToMerge, segmentToCopy, appendixValues).map(_ => alertActorForSegmentManagement())
         }
     }
   }
@@ -337,13 +327,11 @@ private[core] class Level(val dirs: Seq[Dir],
         copiedSegments =>
           buildNewMapEntry(copiedSegments, None, None) flatMap {
             copiedSegmentsEntry =>
-              val putResult =
+              val putResult: Try[Unit] =
                 if (segmentsToMerge.nonEmpty)
                   merge(segmentsToMerge, targetSegments, Some(copiedSegmentsEntry))
                 else
-                  appendix
-                    .write(copiedSegmentsEntry)
-                    .map(_ => alertActorForSegmentManagement(copiedSegments))
+                  appendix.write(copiedSegmentsEntry) map (_ => ())
 
               putResult recoverWith {
                 case exception =>
@@ -372,13 +360,15 @@ private[core] class Level(val dirs: Seq[Dir],
               newSegments =>
                 buildNewMapEntry(newSegments, None, None) flatMap {
                   entry =>
-                    //alertActorForSegmentManagement is not always required here because Map generally are received into higher Levels there Segments
-                    //will eventually get merged to lower Level anyway which therefore collapse and expire key-values will certainly happen eventually.
-                    //but the database contains only 1 Level then trigger Management.
-                    if (nextLevel.isEmpty) alertActorForSegmentManagement(newSegments)
                     appendix
                       .write(entry)
-                      .map(_ => ())
+                      .map {
+                        _ =>
+                          //alertActorForSegmentManagement is not always required here because Map generally are received into higher Levels there Segments
+                          //will eventually get merged to lower Level anyway which therefore collapse and expire key-values will certainly happen eventually.
+                          //but the database contains only 1 Level then trigger Management.
+                          if (nextLevel.isEmpty) alertActorForSegmentManagement()
+                      }
                 } recoverWith {
                   case exception =>
                     logFailure(s"${paths.head}: Failed to create a log entry for memory Segment.", exception)
@@ -460,7 +450,7 @@ private[core] class Level(val dirs: Seq[Dir],
   }
 
   override def clearExpiredKeyValues(): Try[Unit] = {
-    logger.trace("{}: Running clearExpiredKeyValues: '{}'.", paths.head)
+    logger.trace("{}: Running clearExpiredKeyValues.", paths.head)
     if (nextLevel.nonEmpty) { //only run this if it's the last Level.
       logger.error("{}: clearExpiredKeyValues ran a Level that is not the last Level.", paths.head)
       TryUtil.successUnit
@@ -480,7 +470,7 @@ private[core] class Level(val dirs: Seq[Dir],
                   entry =>
                     appendix.write(entry) flatMap {
                       _ =>
-                        alertActorForSegmentManagement(newSegments)
+                        alertActorForSegmentManagement()
                         segmentToClear.delete recoverWith {
                           case exception =>
                             logger.error(s"Failed to delete Segments '{}'. Manually delete these Segments or reboot the database.", segmentToClear.path, exception)
@@ -500,7 +490,10 @@ private[core] class Level(val dirs: Seq[Dir],
                 }
             }
           }
-      } getOrElse TryUtil.successUnit
+      } getOrElse {
+        logger.trace("{}: No expired key-values to clear.", paths.head)
+        TryUtil.successUnit
+      }
     }
   }
 
@@ -652,13 +645,12 @@ private[core] class Level(val dirs: Seq[Dir],
     }
   }
 
-  def putAssignedKeyValues(assignedSegments: mutable.Map[Segment, Slice[KeyValue.ReadOnly]]): Try[Slice[(Segment, Slice[Segment])]] =
+  private def putAssignedKeyValues(assignedSegments: mutable.Map[Segment, Slice[KeyValue.ReadOnly]]): Try[Slice[(Segment, Slice[Segment])]] =
     assignedSegments.tryMap[(Segment, Slice[Segment])](
       tryBlock = {
         case (targetSegment, assignedKeyValues) =>
-          targetSegment.put(assignedKeyValues, segmentSize, bloomFilterFalsePositiveRate, graceTimeout, paths.addPriorityPath(targetSegment.path.getParent)) map {
+          targetSegment.put(assignedKeyValues, segmentSize, bloomFilterFalsePositiveRate, hasTimeLeftAtLeast, paths.addPriorityPath(targetSegment.path.getParent)) map {
             newSegments =>
-              alertActorForSegmentManagement(newSegments)
               (targetSegment, newSegments)
           }
       },
@@ -680,13 +672,15 @@ private[core] class Level(val dirs: Seq[Dir],
     )
 
   //if there is a small segment in the new segments, alert the Actor to collapse the small segments before next Push
-  def alertActorForSegmentManagement(newSegments: Iterable[Segment]) = {
+  //this function can be achieved in single iteration.
+  def alertActorForSegmentManagement() = {
     //if there is no next Level do management check for all Segments in the Level.
-    val segments = if (nextLevel.isEmpty) this.segments else newSegments
     var collapseSegmentAlertSent = false
+    val segments = this.segmentsInLevel()
     segments foreachBreak {
       newSegment =>
         if (!collapseSegmentAlertSent && newSegment.segmentSize < segmentSize) {
+          logger.trace(s"{}: Found small Segment: '{}' of size: {}. Alerting Level actor to collapse Segments: {}.", paths.head, newSegment.path, newSegment.segmentSize)
           actor ! LevelCommand.CollapseSmallSegments
           collapseSegmentAlertSent = true
         }
@@ -694,10 +688,12 @@ private[core] class Level(val dirs: Seq[Dir],
     }
 
     if (nextLevel.isEmpty)
-      Segment.getNearestDeadlineSegment(appendix.values().asScala) foreach {
+      Segment.getNearestDeadlineSegment(segments) foreach {
         segment =>
+          logger.trace(s"{}: Next nearest expired key-value deadline {}.", paths.head, segment.nearestExpiryDeadline)
           segment.nearestExpiryDeadline foreach {
             deadline =>
+              logger.trace(s"{}: Alerting actor for next nearest expired deadline: {}.", paths.head, segment.nearestExpiryDeadline)
               actor ! LevelCommand.ClearExpiredKeyValues(deadline)
           }
       }
@@ -754,7 +750,7 @@ private[core] class Level(val dirs: Seq[Dir],
             logger.debug(s"{}: MapEntry delete Segments successfully written. Deleting physical Segments now: {}", paths.head, segments.map(_.path.toString))
             // If a delete fails that would be due OS permission issue.
             // But it's OK if it fails as long as appendix is updated with new segments. An error message will be logged
-            // asking to delete the orphan segments manually or do a database restart which will delete the orphan
+            // asking to delete the uncommitted segments manually or do a database restart which will delete the uncommitted
             // Segments on reboot.
             Segment.deleteSegments(segmentsToRemove) recoverWith {
               case exception =>
@@ -927,7 +923,7 @@ private[core] class Level(val dirs: Seq[Dir],
       nextLevel.map(_.getBusySegments()) match {
         case Some(nextLevelsBusySegments) if nextLevelsBusySegments.nonEmpty =>
           Segment.nonOverlapping(
-            segments1 = segments,
+            segments1 = segmentsInLevel(),
             segments2 = nextLevelsBusySegments,
             count = count
           )
@@ -955,7 +951,7 @@ private[core] class Level(val dirs: Seq[Dir],
   def foreach[T](f: (Slice[Byte], Segment) => T): Unit =
     appendix.foreach(f)
 
-  def segments: Iterable[Segment] =
+  def segmentsInLevel(): Iterable[Segment] =
     appendix.values().asScala
 
   def hasNextLevel: Boolean =
@@ -1009,7 +1005,7 @@ private[core] class Level(val dirs: Seq[Dir],
   }
 
   def closeSegments(): Try[Unit] = {
-    segments.tryForeach(_.close, failFast = false) foreach {
+    segmentsInLevel().tryForeach(_.close, failFast = false) foreach {
       case Failure(exception) =>
         logger.error("{}: Failed to close Segment file.", paths.head, exception)
     }
