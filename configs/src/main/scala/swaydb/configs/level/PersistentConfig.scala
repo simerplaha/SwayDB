@@ -42,6 +42,7 @@ object PersistentConfig {
             segmentSize: Int,
             appendixFlushCheckpointSize: Int,
             bloomFilterFalsePositiveRate: Double,
+            minTimeLeftToUpdateExpiration: FiniteDuration,
             acceleration: Level0Meter => Accelerator): SwayDBPersistentConfig =
     ConfigWizard
       .addPersistentLevel0(
@@ -49,6 +50,7 @@ object PersistentConfig {
         mapSize = mapSize,
         mmap = mmapMaps,
         recoveryMode = recoveryMode,
+        minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
         acceleration = acceleration
       )
       .addPersistentLevel1(
@@ -60,6 +62,7 @@ object PersistentConfig {
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
         pushForward = true,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+        minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
         throttle =
           levelMeter => {
             val delay = (10 - levelMeter.segmentsCount).seconds
@@ -76,6 +79,7 @@ object PersistentConfig {
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
         pushForward = true,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+        minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
         throttle =
           levelMeter => {
             val delay = (5 - levelMeter.segmentsCount).seconds
@@ -92,6 +96,7 @@ object PersistentConfig {
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
         pushForward = true,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+        minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
         throttle =
           levelMeter => {
             val delay = (5 - levelMeter.segmentsCount).seconds
@@ -108,6 +113,7 @@ object PersistentConfig {
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
         pushForward = false,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+        minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
         throttle =
           levelMeter => {
             val delay = (30 - levelMeter.segmentsCount).seconds
@@ -124,6 +130,7 @@ object PersistentConfig {
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
         pushForward = false,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+        minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
         throttle =
           levelMeter => {
             val delay = (40 - levelMeter.segmentsCount).seconds
@@ -140,6 +147,7 @@ object PersistentConfig {
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
         pushForward = false,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+        minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
         throttle =
           levelMeter => {
             val delay = (50 - levelMeter.segmentsCount).seconds
@@ -156,6 +164,7 @@ object PersistentConfig {
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
         pushForward = false,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+        minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
         throttle =
           levelMeter => {
             val delay = (10 - levelMeter.segmentsCount).seconds

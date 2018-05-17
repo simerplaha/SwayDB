@@ -35,7 +35,7 @@ class KeyValueMerger1_Update_Some_None_Into_Put_Spec extends WordSpec with Match
 
   "Update(Some, None) -> Put(None, None)" when {
     "Put(None, None)" in {
-      (Memory.Update(1, None, None), Memory.Put(1, None, None)).applyValue shouldBe Memory.Put(1, None, None)
+      (Memory.Update(1, 1, None), Memory.Put(1, None, None)).merge shouldBe Memory.Put(1, 1, None)
     }
   }
 
@@ -44,19 +44,14 @@ class KeyValueMerger1_Update_Some_None_Into_Put_Spec extends WordSpec with Match
     */
 
   "Update(Some, None) -> Put(None, Some)" when {
-    "Put(None, HasTimeLeft)" in {
-      val deadline = 20.seconds.fromNow
-      (Memory.Update(1, None, None), Memory.Put(1, None, deadline)).applyValue shouldBe Memory.Put(1, None, deadline)
-    }
-
-    "Put(None, HasNoTimeLeft)" in {
-      val deadline = 5.seconds.fromNow
-      (Memory.Update(1, None, None), Memory.Put(1, None, deadline)).applyValue shouldBe Memory.Put(1, None, deadline)
-    }
-
-    "Put(None, Expired)" in {
-      val deadline = expiredDeadline()
-      (Memory.Update(1, None, None), Memory.Put(1, None, deadline)).applyValue shouldBe Memory.Put(1, None, deadline)
+    "Put(None, Some)" in {
+      (1 to 20) foreach {
+        i =>
+          //deadline for newKeyValues are not validated. HasTimeLeft, HasNoTimeLeft or Expired does have any logic for newKeyValues during merge.
+          //the loop checks for all deadline conditions.
+          val deadline = i.seconds.fromNow - 10.seconds //10.seconds to also account for expired deadlines.
+          (Memory.Update(1, 1, deadline), Memory.Put(1, None, None)).merge shouldBe Memory.Put(1, 1, deadline)
+      }
     }
   }
 
@@ -66,24 +61,19 @@ class KeyValueMerger1_Update_Some_None_Into_Put_Spec extends WordSpec with Match
 
   "Update(Some, None) -> Put(Some, None)" when {
     "Put(Some, None)" in {
-      (Memory.Update(1, None, None), Memory.Put(1, "value", None)).applyValue shouldBe Memory.Put(1, None, None)
+      (Memory.Update(1, 1, None), Memory.Put(1, "value", None)).merge shouldBe Memory.Put(1, 1, None)
     }
   }
 
   "Update(Some, None) -> Put(Some, Some)" when {
-    "Put(None, HasTimeLeft)" in {
-      val deadline = 20.seconds.fromNow
-      (Memory.Update(1, None, None), Memory.Put(1, 1, deadline)).applyValue shouldBe Memory.Put(1, None, deadline)
-    }
-
-    "Put(None, HasNoTimeLeft)" in {
-      val deadline = 5.seconds.fromNow
-      (Memory.Update(1, None, None), Memory.Put(1, 1, deadline)).applyValue shouldBe Memory.Put(1, 1, deadline)
-    }
-
-    "Put(None, Expired)" in {
-      val deadline = expiredDeadline()
-      (Memory.Update(1, None, None), Memory.Put(1, 1, deadline)).applyValue shouldBe Memory.Put(1, 1, deadline)
+    "Put(Some, Some)" in {
+      (1 to 20) foreach {
+        i =>
+          //deadline for newKeyValues are not validated. HasTimeLeft, HasNoTimeLeft or Expired does have any logic for newKeyValues during merge.
+          //the loop checks for all deadline conditions.
+          val deadline = i.seconds.fromNow - 10.seconds //10.seconds to also account for expired deadlines.
+          (Memory.Update(1, 1, None), Memory.Put(1, None, deadline)).merge shouldBe Memory.Put(1, 1, deadline)
+      }
     }
   }
 

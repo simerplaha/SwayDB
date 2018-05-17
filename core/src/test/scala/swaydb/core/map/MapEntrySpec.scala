@@ -385,4 +385,53 @@ class MapEntrySpec extends TestBase {
       skipList.lastKey() shouldBe (4999: Slice[Byte])
     }
   }
+
+  "distinct" should {
+    "remove older entries when all key-values are duplicate" in {
+      import LevelZeroMapEntryWriter._
+
+      val oldEntries =
+        (MapEntry.Put[Slice[Byte], Memory.Put](1, Memory.Put(1, Some("old"))): MapEntry[Slice[Byte], Memory]) ++
+          MapEntry.Put[Slice[Byte], Memory.Put](2, Memory.Put(2, Some("old"))) ++
+          MapEntry.Put[Slice[Byte], Memory.Put](3, Memory.Put(3, Some("old"))) ++
+          MapEntry.Put[Slice[Byte], Memory.Remove](2, Memory.Remove("old")) ++
+          MapEntry.Put[Slice[Byte], Memory.Put](4, Memory.Put(4, Some("old")))
+
+      val newEntries =
+        (MapEntry.Put[Slice[Byte], Memory.Put](1, Memory.Put(1, Some("new"))): MapEntry[Slice[Byte], Memory]) ++
+          MapEntry.Put[Slice[Byte], Memory.Put](2, Memory.Put(2, Some("new"))) ++
+          MapEntry.Put[Slice[Byte], Memory.Put](3, Memory.Put(3, Some("new"))) ++
+          MapEntry.Put[Slice[Byte], Memory.Remove](2, Memory.Remove("new")) ++
+          MapEntry.Put[Slice[Byte], Memory.Put](4, Memory.Put(4, Some("new")))
+
+      MapEntry.distinct(newEntries, oldEntries).entries shouldBe newEntries.entries
+    }
+
+    "remove older duplicate entries" in {
+      import LevelZeroMapEntryWriter._
+
+      val oldEntries =
+        (MapEntry.Put[Slice[Byte], Memory.Put](1, Memory.Put(1, Some("old"))): MapEntry[Slice[Byte], Memory]) ++
+          MapEntry.Put[Slice[Byte], Memory.Put](2, Memory.Put(2, Some("old"))) ++
+          MapEntry.Put[Slice[Byte], Memory.Remove](2, Memory.Remove("old")) ++
+          MapEntry.Put[Slice[Byte], Memory.Put](5, Memory.Put(4, Some("old")))
+
+      val newEntries =
+        (MapEntry.Put[Slice[Byte], Memory.Put](1, Memory.Put(1, Some("new"))): MapEntry[Slice[Byte], Memory]) ++
+          MapEntry.Put[Slice[Byte], Memory.Put](2, Memory.Put(2, Some("new"))) ++
+          MapEntry.Put[Slice[Byte], Memory.Put](3, Memory.Put(3, Some("new"))) ++
+          MapEntry.Put[Slice[Byte], Memory.Remove](2, Memory.Remove("new")) ++
+          MapEntry.Put[Slice[Byte], Memory.Put](4, Memory.Put(4, Some("new")))
+
+      val expected =
+        (MapEntry.Put[Slice[Byte], Memory.Put](1, Memory.Put(1, Some("new"))): MapEntry[Slice[Byte], Memory]) ++
+          MapEntry.Put[Slice[Byte], Memory.Put](2, Memory.Put(2, Some("new"))) ++
+          MapEntry.Put[Slice[Byte], Memory.Put](3, Memory.Put(3, Some("new"))) ++
+          MapEntry.Put[Slice[Byte], Memory.Remove](2, Memory.Remove("new")) ++
+          MapEntry.Put[Slice[Byte], Memory.Put](4, Memory.Put(4, Some("new"))) ++
+          MapEntry.Put[Slice[Byte], Memory.Put](5, Memory.Put(4, Some("old")))
+
+      MapEntry.distinct(newEntries, oldEntries).entries shouldBe expected.entries
+    }
+  }
 }

@@ -38,8 +38,14 @@ private[swaydb] object CoreAPI {
             cacheSize: Long,
             cacheCheckDelay: FiniteDuration,
             segmentsOpenCheckDelay: FiniteDuration)(implicit ec: ExecutionContext,
-                                                    ordering: Ordering[Slice[Byte]]): Try[CoreAPI] =
-    DBInitializer(config, maxOpenSegments, cacheSize, cacheCheckDelay, segmentsOpenCheckDelay)
+                                                           ordering: Ordering[Slice[Byte]]): Try[CoreAPI] =
+    DBInitializer(
+      config = config,
+      maxSegmentsOpen = maxOpenSegments,
+      cacheSize = cacheSize,
+      keyValueQueueDelay = cacheCheckDelay,
+      segmentCloserDelay = segmentsOpenCheckDelay
+    )
 }
 
 private[swaydb] trait CoreAPI {
@@ -79,6 +85,8 @@ private[swaydb] trait CoreAPI {
   def lastKey: Try[Option[Slice[Byte]]]
 
   def keyValueCount: Try[Int]
+
+  def deadline(key: Slice[Byte]): Try[Option[Deadline]]
 
   def sizeOfSegments: Long
 

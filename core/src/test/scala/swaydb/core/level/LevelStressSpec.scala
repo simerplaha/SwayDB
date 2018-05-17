@@ -35,6 +35,8 @@ import scala.concurrent.duration._
 import scala.util.Failure
 
 //@formatter:off
+class LevelStressSpec10 extends LevelStressSpec
+
 class LevelStressSpec1 extends LevelStressSpec {
   override def levelFoldersCount = 10
   override def mmapSegmentsOnWrite = true
@@ -56,7 +58,7 @@ class LevelStressSpec3 extends LevelStressSpec {
 }
 //@formatter:on
 
-class LevelStressSpec extends TestBase with Benchmark {
+trait LevelStressSpec extends TestBase with Benchmark {
 
   implicit val ordering = KeyOrder.default
 

@@ -89,8 +89,8 @@ class SegmentMerger7_Update_Some_Some_Into_Put_Spec extends WordSpec with Common
       assertMerge(
         newKeyValue = Memory.Update(1, 1, deadline),
         oldKeyValue = Memory.Put(1, None, deadline2),
-        expected = Memory.Put(1, None, deadline2),
-        lastLevelExpect = Memory.Put(1, None, deadline2),
+        expected = Memory.Put(1, 1, deadline2),
+        lastLevelExpect = Memory.Put(1, 1, deadline2),
         hasTimeLeftAtLeast = 10.seconds
       )
     }
@@ -115,15 +115,15 @@ class SegmentMerger7_Update_Some_Some_Into_Put_Spec extends WordSpec with Common
       assertMerge(
         newKeyValue = Memory.Update(1, 1, deadline),
         oldKeyValue = Memory.Put(1, None, deadline2),
-        expected = Memory.Put(1, None, deadline2),
+        expected = Memory.Put(1, 1, deadline2),
         lastLevelExpect = None,
         hasTimeLeftAtLeast = 10.seconds
       )
     }
 
     "Put None Expired-Lesser" in {
-      val deadline = expiredDeadline() - 1.second
       val deadline2 = expiredDeadline()
+      val deadline = deadline2 - 1.second
 
       assertMerge(
         newKeyValue = Memory.Update(1, 1, deadline),
@@ -192,8 +192,8 @@ class SegmentMerger7_Update_Some_Some_Into_Put_Spec extends WordSpec with Common
       assertMerge(
         newKeyValue = Memory.Update(1, 1, deadline),
         oldKeyValue = Memory.Put(1, 2, deadline2),
-        expected = Memory.Put(1, 2, deadline2),
-        lastLevelExpect = Memory.Put(1, 2, deadline2),
+        expected = Memory.Put(1, 1, deadline2),
+        lastLevelExpect = Memory.Put(1, 1, deadline2),
         hasTimeLeftAtLeast = 10.seconds
       )
     }
@@ -218,15 +218,15 @@ class SegmentMerger7_Update_Some_Some_Into_Put_Spec extends WordSpec with Common
       assertMerge(
         newKeyValue = Memory.Update(1, 1, deadline),
         oldKeyValue = Memory.Put(1, 2, deadline2),
-        expected = Memory.Put(1, 2, deadline2),
+        expected = Memory.Put(1, 1, deadline2),
         lastLevelExpect = None,
         hasTimeLeftAtLeast = 10.seconds
       )
     }
 
     "Put Some Expired-Lesser" in {
-      val deadline = expiredDeadline() - 1.second
       val deadline2 = expiredDeadline()
+      val deadline = deadline2 - 1.second
 
       assertMerge(
         newKeyValue = Memory.Update(1, 1, deadline),

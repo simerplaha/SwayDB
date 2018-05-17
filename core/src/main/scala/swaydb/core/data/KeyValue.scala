@@ -420,6 +420,32 @@ private[core] sealed trait Transient extends KeyValue.WriteOnly {
 
 private[core] object Transient {
 
+  implicit class TransientImplicits(transient: Transient) {
+    def toMemory: Try[Memory] =
+      transient match {
+        case put: Transient.Put =>
+          put.getOrFetchValue map {
+            value =>
+              Memory.Put(put.key, value, put.deadline)
+          }
+
+        case remove: Transient.Remove =>
+          Success(Memory.Remove(remove.key, remove.deadline))
+
+        case update: Transient.Update =>
+          update.getOrFetchValue map {
+            value =>
+              Memory.Update(update.key, value, update.deadline)
+          }
+
+        case range: Transient.Range =>
+          range.fetchFromAndRangeValue map {
+            case (fromValue, rangeValue) =>
+              Memory.Range(range.fromKey, range.toKey, fromValue, rangeValue)
+          }
+      }
+  }
+
   object Remove {
     val id: Int = 0
 
@@ -711,7 +737,7 @@ private[core] object Transient {
             isRemoveRange = rangeValue.isRemove,
             isRange = true,
             previous = previous,
-            deadlines = rangeValue.deadline
+            deadlines = Seq.empty
           )
       )
     }
@@ -725,7 +751,7 @@ private[core] object Transient {
       val (bytesRequired, rangeId) = rangeValueSerializer.bytesRequiredAndRangeId(fromValue, rangeValue)
       val value = if (bytesRequired == 0) None else Some(Slice.create[Byte](bytesRequired))
       value.foreach(rangeValueSerializer.write(fromValue, rangeValue, _))
-      val fullKey = ByteUtilCore.compress(fromKey, toKey)
+      val fullKey: Slice[Byte] = ByteUtilCore.compress(fromKey, toKey)
 
       new Range(
         id = rangeId,
@@ -950,7 +976,7 @@ private[core] object Persistent {
 
     override def toPut(): Persistent.Put =
       Persistent.Put(
-        _key = _key,
+        _key = key,
         deadline = deadline,
         valueReader = valueReader,
         nextIndexOffset = nextIndexOffset,
@@ -962,7 +988,7 @@ private[core] object Persistent {
 
     override def toPut(deadline: Deadline): Persistent.Put =
       Persistent.Put(
-        _key = _key,
+        _key = key,
         deadline = Some(deadline),
         valueReader = valueReader,
         nextIndexOffset = nextIndexOffset,

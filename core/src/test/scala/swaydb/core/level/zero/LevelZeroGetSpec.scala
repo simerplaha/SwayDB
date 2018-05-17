@@ -99,7 +99,7 @@ class LevelZeroGetSpec extends TestBase with MockFactory with Benchmark {
 
       Random.shuffle(1 to 20) foreach {
         i =>
-          if (i >= 5 && i < 10) //5-9 should be updated
+          if (i >= 5 && i <= 10) //5-10 should be updated
             level0.get(i).assertGet should contain("updated": Slice[Byte])
           else
             level0.get(i).assertGet should contain(i: Slice[Byte])
@@ -123,7 +123,7 @@ class LevelZeroGetSpec extends TestBase with MockFactory with Benchmark {
 
       Random.shuffle(1 to 20) foreach {
         i =>
-          if (i >= 5 && i < 10) //5-9 should be updated
+          if (i >= 5 && i <= 10) //5-10 should be updated
             level0.get(i).assertGetOpt shouldBe empty
           else
             level0.get(i).assertGet should contain(i: Slice[Byte])

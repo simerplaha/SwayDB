@@ -27,25 +27,24 @@ import bloomfilter.mutable.BloomFilter
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data._
 import swaydb.core.level.PathsDistributor
+import swaydb.core.util.PipeOps._
 import swaydb.core.util.TryUtil._
 import swaydb.core.util._
 import swaydb.data.segment.MaxKey
-import swaydb.data.segment.MaxKey.{Fixed, Range}
 import swaydb.data.slice.Slice
-import PipeOps._
 
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 import scala.util.{Failure, Success, Try}
 
-private[segment] class MemorySegment(val path: Path,
-                                     val minKey: Slice[Byte],
-                                     val maxKey: MaxKey,
-                                     val segmentSize: Int,
-                                     val removeDeletes: Boolean,
-                                     val _hasRange: Boolean,
-                                     private[segment] val cache: ConcurrentSkipListMap[Slice[Byte], Memory],
-                                     val bloomFilter: Option[BloomFilter[Slice[Byte]]],
-                                     val nearestExpiryDeadline: Option[Deadline])(implicit ordering: Ordering[Slice[Byte]]) extends Segment with LazyLogging {
+private[segment] case class MemorySegment(path: Path,
+                                          minKey: Slice[Byte],
+                                          maxKey: MaxKey,
+                                          segmentSize: Int,
+                                          removeDeletes: Boolean,
+                                          _hasRange: Boolean,
+                                          private[segment] val cache: ConcurrentSkipListMap[Slice[Byte], Memory],
+                                          bloomFilter: Option[BloomFilter[Slice[Byte]]],
+                                          nearestExpiryDeadline: Option[Deadline])(implicit ordering: Ordering[Slice[Byte]]) extends Segment with LazyLogging {
 
   @volatile private var deleted = false
 
@@ -148,10 +147,10 @@ private[segment] class MemorySegment(val path: Path,
       TryUtil.successNone
     else
       maxKey match {
-        case Fixed(maxKey) if key > maxKey =>
+        case MaxKey.Fixed(maxKey) if key > maxKey =>
           TryUtil.successNone
 
-        case range: Range if key >= range.maxKey =>
+        case range: MaxKey.Range if key >= range.maxKey =>
           TryUtil.successNone
 
         case _ =>

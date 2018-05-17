@@ -58,6 +58,12 @@ object Batch {
     def apply[K](key: K, after: FiniteDuration): Remove[K] =
       new Remove(key, None, Some(after.fromNow))
 
+    def apply[K](from: K, to: K, after: FiniteDuration): Remove[K] =
+      new Remove(from, Some(to), Some(after.fromNow))
+
+    def apply[K](key: K, at: Deadline): Remove[K] =
+      new Remove(key, None, Some(at))
+
     def apply[K](from: K, to: K, at: Deadline): Remove[K] =
       new Remove(from, Some(to), Some(at))
   }

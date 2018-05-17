@@ -32,13 +32,13 @@ object Get {
             getFromNextLevel: Slice[Byte] => Try[Option[KeyValue.ReadOnly.Put]])(implicit ordering: Ordering[Slice[Byte]]): Try[Option[KeyValue.ReadOnly.Put]] = {
     import ordering._
 
-    def returnValue(current: Value): Try[Option[KeyValue.ReadOnly.Put]] =
+    def returnRangeValue(current: Value): Try[Option[KeyValue.ReadOnly.Put]] =
       current match {
-        case current @ Value.Remove(deadline) =>
+        case current @ Value.Remove(currentDeadline) =>
           if (current.hasTimeLeft())
             getFromNextLevel(key) map {
-              case Some(response) =>
-                deadline.map(response.updateDeadline) orElse Some(response)
+              case Some(next) =>
+                currentDeadline.map(next.updateDeadline) orElse Some(next)
 
               case None =>
                 None
@@ -47,12 +47,14 @@ object Get {
             TryUtil.successNone
 
         case current: Value.Put =>
+          
           if (current.hasTimeLeft())
             Success(Some(Memory.Put(key, current.value, current.deadline)))
           else
             TryUtil.successNone
 
         case current: Value.Update =>
+          
           if (current.hasTimeLeft())
             getFromNextLevel(key) map {
               case Some(next) =>
@@ -66,17 +68,18 @@ object Get {
       }
 
     getFromCurrentLevel(key) flatMap {
-      case Some(getFromCurrent) =>
-        getFromCurrent match {
+      case Some(current) =>
+        current match {
           case current: KeyValue.ReadOnly.Fixed =>
             current match {
               case current: KeyValue.ReadOnly.Remove =>
+
                 if (current.hasTimeLeft())
                   current.deadline map {
-                    removeDeadline =>
+                    currentDeadline =>
                       getFromNextLevel(key) map {
-                        response =>
-                          response.map(_.updateDeadline(removeDeadline))
+                        next =>
+                          next.map(_.updateDeadline(currentDeadline))
                       }
                   } getOrElse getFromNextLevel(key)
                 else
@@ -89,14 +92,15 @@ object Get {
                   TryUtil.successNone
 
               case current: KeyValue.ReadOnly.Update =>
+
                 if (current.hasTimeLeft())
                   getFromNextLevel(key) map {
-                    nextOption =>
-                      if (nextOption.isDefined) {
+                    next =>
+                      if (next.isDefined) {
                         if (current.deadline.isDefined)
                           Some(current.toPut())
                         else
-                          nextOption.flatMap(_.deadline).map(current.toPut) orElse Some(current.toPut())
+                          next.flatMap(_.deadline).map(current.toPut) orElse Some(current.toPut())
                       }
                       else
                         None
@@ -109,9 +113,9 @@ object Get {
             current.fetchFromAndRangeValue flatMap {
               case (fromValue, rangeValue) =>
                 if (current.fromKey equiv key)
-                  returnValue(fromValue getOrElse rangeValue)
+                  returnRangeValue(fromValue getOrElse rangeValue)
                 else
-                  returnValue(rangeValue)
+                  returnRangeValue(rangeValue)
             }
         }
 

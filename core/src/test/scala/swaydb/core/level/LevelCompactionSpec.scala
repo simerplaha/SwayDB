@@ -37,12 +37,13 @@ import swaydb.serializers._
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
+class LevelCompaction0Spec extends LevelCompactionSpec
 
-class LevelCompactionMemorySpec extends LevelCompactionSpec {
+class LevelCompaction1Spec extends LevelCompactionSpec {
   override def inMemoryStorage = true
 }
 
-class LevelCompactionSpec extends TestBase with MockFactory {
+trait LevelCompactionSpec extends TestBase with MockFactory {
 
   import TestLevel._
 

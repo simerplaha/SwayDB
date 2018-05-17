@@ -35,7 +35,7 @@ class KeyValueMerger0_Update_Some_None_Into_Update_Spec extends WordSpec with Ma
 
   "Update(Some, None) -> Update(None, None)" when {
     "Update(None, None)" in {
-      (Memory.Update(1, None, None), Memory.Update(1, None, None)).applyValue shouldBe Memory.Update(1, None, None)
+      (Memory.Update(1, 1, None), Memory.Update(1, None, None)).merge shouldBe Memory.Update(1, 1, None)
     }
   }
 
@@ -46,17 +46,17 @@ class KeyValueMerger0_Update_Some_None_Into_Update_Spec extends WordSpec with Ma
   "Update(Some, None) -> Update(None, Some)" when {
     "Update(None, HasTimeLeft)" in {
       val deadline = 20.seconds.fromNow
-      (Memory.Update(1, None, None), Memory.Update(1, None, deadline)).applyValue shouldBe Memory.Update(1, None, deadline)
+      (Memory.Update(1, 1, None), Memory.Update(1, None, deadline)).merge shouldBe Memory.Update(1, 1, deadline)
     }
 
     "Update(None, HasNoTimeLeft)" in {
       val deadline = 5.seconds.fromNow
-      (Memory.Update(1, None, None), Memory.Update(1, None, deadline)).applyValue shouldBe Memory.Update(1, None, deadline)
+      (Memory.Update(1, 1, None), Memory.Update(1, None, deadline)).merge shouldBe Memory.Update(1, 1, deadline)
     }
 
     "Update(None, Expired)" in {
       val deadline = expiredDeadline()
-      (Memory.Update(1, None, None), Memory.Update(1, None, deadline)).applyValue shouldBe Memory.Update(1, None, deadline)
+      (Memory.Update(1, 1, None), Memory.Update(1, None, deadline)).merge shouldBe Memory.Update(1, 1, deadline)
     }
   }
 
@@ -66,24 +66,24 @@ class KeyValueMerger0_Update_Some_None_Into_Update_Spec extends WordSpec with Ma
 
   "Update(Some, None) -> Update(Some, None)" when {
     "Update(Some, None)" in {
-      (Memory.Update(1, None, None), Memory.Update(1, "value", None)).applyValue shouldBe Memory.Update(1, None, None)
+      (Memory.Update(1, 1, None), Memory.Update(1, "value", None)).merge shouldBe Memory.Update(1, 1, None)
     }
   }
 
   "Update(Some, None) -> Update(Some, Some)" when {
     "Update(None, HasTimeLeft)" in {
       val deadline = 20.seconds.fromNow
-      (Memory.Update(1, None, None), Memory.Update(1, 1, deadline)).applyValue shouldBe Memory.Update(1, None, deadline)
+      (Memory.Update(1, 1, None), Memory.Update(1, 1, deadline)).merge shouldBe Memory.Update(1, 1, deadline)
     }
 
     "Update(None, HasNoTimeLeft)" in {
       val deadline = 5.seconds.fromNow
-      (Memory.Update(1, None, None), Memory.Update(1, 1, deadline)).applyValue shouldBe Memory.Update(1, 1, deadline)
+      (Memory.Update(1, 1, None), Memory.Update(1, 2, deadline)).merge shouldBe Memory.Update(1, 1, deadline)
     }
 
     "Update(None, Expired)" in {
       val deadline = expiredDeadline()
-      (Memory.Update(1, None, None), Memory.Update(1, 1, deadline)).applyValue shouldBe Memory.Update(1, 1, deadline)
+      (Memory.Update(1, 1, None), Memory.Update(1, 2, deadline)).merge shouldBe Memory.Update(1, 1, deadline)
     }
   }
 

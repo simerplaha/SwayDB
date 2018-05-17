@@ -37,7 +37,7 @@ class KeyValueMerger3_Remove_Some_Into_Remove_Spec extends WordSpec with Matcher
     "Remove(None)" in {
       val deadline = 20.seconds.fromNow
 
-      (Memory.Remove(1, deadline), Memory.Remove(1, None)).applyValue shouldBe Memory.Remove(1, None)
+      (Memory.Remove(1, deadline), Memory.Remove(1, None)).merge shouldBe Memory.Remove(1, None)
     }
   }
 
@@ -50,117 +50,49 @@ class KeyValueMerger3_Remove_Some_Into_Remove_Spec extends WordSpec with Matcher
       val deadline = 20.seconds.fromNow
       val deadline2 = 15.seconds.fromNow
 
-      (Memory.Remove(1, deadline), Memory.Remove(1, deadline2)).applyValue shouldBe Memory.Remove(1, deadline)
+      (Memory.Remove(1, deadline), Memory.Remove(1, deadline2)).merge shouldBe Memory.Remove(1, deadline)
     }
 
     "Remove(HasTimeLeft-Lesser)" in {
       val deadline = 10.seconds.fromNow
       val deadline2 = 15.seconds.fromNow
 
-      (Memory.Remove(1, deadline), Memory.Remove(1, deadline2)).applyValue shouldBe Memory.Remove(1, deadline)
+      (Memory.Remove(1, deadline), Memory.Remove(1, deadline2)).merge shouldBe Memory.Remove(1, deadline)
     }
 
     "Remove(HasTimeLeft-Expired)" in {
       val deadline = expiredDeadline()
       val deadline2 = 15.seconds.fromNow
 
-      (Memory.Remove(1, deadline), Memory.Remove(1, deadline2)).applyValue shouldBe Memory.Remove(1, deadline)
+      (Memory.Remove(1, deadline), Memory.Remove(1, deadline2)).merge shouldBe Memory.Remove(1, deadline)
     }
 
     "Remove(HasNoTimeLeft-Greater)" in {
       val deadline = 20.seconds.fromNow
       val deadline2 = 1.seconds.fromNow
 
-      (Memory.Remove(1, deadline), Memory.Remove(1, deadline2)).applyValue shouldBe Memory.Remove(1, deadline2)
+      (Memory.Remove(1, deadline), Memory.Remove(1, deadline2)).merge shouldBe Memory.Remove(1, deadline2)
     }
 
     "Remove(HasNoTimeLeft-Lesser)" in {
       val deadline = 1.seconds.fromNow
       val deadline2 = 2.seconds.fromNow
 
-      (Memory.Remove(1, deadline), Memory.Remove(1, deadline2)).applyValue shouldBe Memory.Remove(1, deadline)
+      (Memory.Remove(1, deadline), Memory.Remove(1, deadline2)).merge shouldBe Memory.Remove(1, deadline)
     }
 
     "Remove(Expired-Greater)" in {
       val deadline = 1.seconds.fromNow
       val deadline2 = expiredDeadline()
 
-      (Memory.Remove(1, deadline), Memory.Remove(1, deadline2)).applyValue shouldBe Memory.Remove(1, deadline2)
+      (Memory.Remove(1, deadline), Memory.Remove(1, deadline2)).merge shouldBe Memory.Remove(1, deadline2)
     }
 
     "Remove(Expired-Lesser)" in {
       val deadline2 = expiredDeadline()
       val deadline = deadline2 - 1.second
 
-      (Memory.Remove(1, deadline), Memory.Remove(1, deadline2)).applyValue shouldBe Memory.Remove(1, deadline)
+      (Memory.Remove(1, deadline), Memory.Remove(1, deadline2)).merge shouldBe Memory.Remove(1, deadline)
     }
   }
-
-  /**
-    * Remove(Some) -> Update(Some, None)
-    */
-
-  "Remove(Some) -> Update(Some, None)" when {
-    "Remove(None)" in {
-      val deadline = 20.seconds.fromNow
-
-      (Memory.Remove(1, deadline), Memory.Update(1, 1, None)).applyValue shouldBe Memory.Update(1, 1, deadline)
-    }
-  }
-
-  /**
-    * Remove(Some) -> Update(Some, Some)
-    */
-
-  "Remove(Some) -> Update(Some, Some)" when {
-    "Update(Some, HasTimeLeft-Greater)" in {
-      val deadline = 20.seconds.fromNow
-      val deadline2 = 15.seconds.fromNow
-
-      (Memory.Remove(1, deadline), Memory.Update(1, 1, deadline2)).applyValue shouldBe Memory.Update(1, 1, deadline)
-    }
-
-    "Remove(HasTimeLeft-Lesser)" in {
-      val deadline = 10.seconds.fromNow
-      val deadline2 = 15.seconds.fromNow
-
-      (Memory.Remove(1, deadline), Memory.Update(1, 1, deadline2)).applyValue shouldBe Memory.Update(1, 1, deadline)
-    }
-
-    "Remove(HasTimeLeft-Expired)" in {
-      val deadline = expiredDeadline()
-      val deadline2 = 15.seconds.fromNow
-
-      (Memory.Remove(1, deadline), Memory.Update(1, 1, deadline2)).applyValue shouldBe Memory.Update(1, 1, deadline)
-    }
-
-    "Remove(HasNoTimeLeft-Greater)" in {
-      val deadline = 20.seconds.fromNow
-      val deadline2 = 1.seconds.fromNow
-
-      (Memory.Remove(1, deadline), Memory.Update(1, 1, deadline2)).applyValue shouldBe Memory.Update(1, 1, deadline2)
-    }
-
-    "Remove(HasNoTimeLeft-Lesser)" in {
-      val deadline = 1.seconds.fromNow
-      val deadline2 = 2.seconds.fromNow
-
-      (Memory.Remove(1, deadline), Memory.Update(1, 1, deadline2)).applyValue shouldBe Memory.Update(1, 1, deadline)
-    }
-
-    "Remove(Expired-Greater)" in {
-      val deadline = 1.seconds.fromNow
-      val deadline2 = expiredDeadline()
-
-      (Memory.Remove(1, deadline), Memory.Update(1, 1, deadline2)).applyValue shouldBe Memory.Update(1, 1, deadline2)
-    }
-
-    "Remove(Expired-Lesser)" in {
-      val deadline2 = expiredDeadline()
-      val deadline = deadline2 - 1.second
-
-      (Memory.Remove(1, deadline), Memory.Update(1, 1, deadline2)).applyValue shouldBe Memory.Update(1, 1, deadline)
-    }
-  }
-
 }

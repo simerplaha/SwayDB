@@ -396,7 +396,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
     tryOrNone(maps.getLast)
 
   def removeLast(): Option[Try[Unit]] =
-    Option(maps.pollLast()).map {
+    Option(maps.pollLast()) map {
       removedMap =>
         removedMap.delete match {
           case Failure(exception) =>
@@ -434,4 +434,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
 
   def iterator =
     maps.iterator()
+
+  def queuedMaps =
+    maps.asScala
 }

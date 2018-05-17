@@ -35,7 +35,7 @@ class KeyValueMerger4_Put_Spec extends WordSpec with Matchers with CommonAsserti
           val newKeyValue = Memory.Put(i, randomStringOption, randomDeadlineOption)
           val oldKeyValue = randomFixedKeyValue(i)
 
-          (newKeyValue, oldKeyValue).applyValue shouldBe newKeyValue
+          (newKeyValue, oldKeyValue).merge shouldBe newKeyValue
       }
     }
   }

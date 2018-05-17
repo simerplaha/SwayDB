@@ -35,6 +35,7 @@ class SegmentMerger6_Remove_Some_Into_Remove_Spec extends WordSpec with CommonAs
   /**
     * Remove Some -> Remove None
     */
+
   "Remove Some -> Remove None" when {
     "Remove None" in {
       (1 to 20) foreach {
@@ -48,7 +49,6 @@ class SegmentMerger6_Remove_Some_Into_Remove_Spec extends WordSpec with CommonAs
             hasTimeLeftAtLeast = 10.seconds
           )
       }
-
     }
   }
 
@@ -79,6 +79,7 @@ class SegmentMerger6_Remove_Some_Into_Remove_Spec extends WordSpec with CommonAs
         hasTimeLeftAtLeast = 10.seconds
       )
     }
+
     "Remove HasNoTimeLeft-Greater" in {
       val deadline = 30.seconds.fromNow
       val deadline2 = 2.seconds.fromNow
@@ -94,6 +95,30 @@ class SegmentMerger6_Remove_Some_Into_Remove_Spec extends WordSpec with CommonAs
     "Remove HasNoTimeLeft-Lesser" in {
       val deadline = 1.seconds.fromNow
       val deadline2 = 2.seconds.fromNow
+      assertMerge(
+        newKeyValue = Memory.Remove(1, deadline),
+        oldKeyValue = Memory.Remove(1, deadline2),
+        expected = Memory.Remove(1, deadline),
+        lastLevelExpect = None,
+        hasTimeLeftAtLeast = 10.seconds
+      )
+    }
+
+    "Remove Expired-Greater" in {
+      val deadline = 30.seconds.fromNow
+      val deadline2 = expiredDeadline()
+      assertMerge(
+        newKeyValue = Memory.Remove(1, deadline),
+        oldKeyValue = Memory.Remove(1, deadline2),
+        expected = Memory.Remove(1, deadline2),
+        lastLevelExpect = None,
+        hasTimeLeftAtLeast = 10.seconds
+      )
+    }
+
+    "Remove Expired-Lesser" in {
+      val deadline2 = expiredDeadline()
+      val deadline = deadline2 - 1.seconds
       assertMerge(
         newKeyValue = Memory.Remove(1, deadline),
         oldKeyValue = Memory.Remove(1, deadline2),

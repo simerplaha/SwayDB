@@ -83,6 +83,7 @@ private[core] object KeyValueMerger {
                  hasTimeLeftAtLeast: FiniteDuration): Try[Value.FromValue] =
     applyValue(newValue.toMemory(Slice.emptyByteSlice), oldValue.toMemory(Slice.emptyByteSlice), hasTimeLeftAtLeast).flatMap(_.toFromValue)
 
+  //This code contains .get with a wrapper Try which should be replaced with flatMap.
   def applyValue(newKeyValue: KeyValue.ReadOnly.Fixed,
                  oldKeyValue: KeyValue.ReadOnly.Fixed,
                  hasTimeLeftAtLeast: FiniteDuration): Try[KeyValue.ReadOnly.Fixed] =
@@ -109,7 +110,10 @@ private[core] object KeyValueMerger {
                 oldKeyValue
 
             case Memory.Put(_, _, None) | Persistent.Put(_, None, _, _, _, _, _, _) => //Remove Some - Put None
-              oldKeyValue.updateDeadline(deadline = newKeyValue.deadline.get)
+              if (newKeyValue.hasTimeLeft())
+                oldKeyValue.updateDeadline(deadline = newKeyValue.deadline.get)
+              else
+                newKeyValue
 
             case Memory.Put(_, _, Some(_)) | Persistent.Put(_, Some(_), _, _, _, _, _, _) => //Remove Some - Put Some
               if (newKeyValue.deadline.get <= oldKeyValue.deadline.get || oldKeyValue.hasTimeLeftAtLeast(hasTimeLeftAtLeast))
@@ -134,28 +138,22 @@ private[core] object KeyValueMerger {
               oldKeyValue
 
             case Memory.Remove(_, Some(_)) | Persistent.Remove(_, Some(_), _, _, _) => // Remove Some - Remove Some
-              if (oldKeyValue.hasTimeLeftAtLeast(hasTimeLeftAtLeast))
+              if (oldKeyValue.hasTimeLeft())
                 newKeyValue.updateDeadline(oldKeyValue.deadline.get)
               else
                 oldKeyValue
 
             case Memory.Put(_, _, None) | Persistent.Put(_, None, _, _, _, _, _, _) => //Put Some - Put None
-              Memory.Put(newKeyValue.key, newKeyValue.getOrFetchValue.get, oldKeyValue.deadline)
+              Memory.Put(oldKeyValue.key, newKeyValue.getOrFetchValue.get, oldKeyValue.deadline)
 
             case Memory.Put(_, _, Some(_)) | Persistent.Put(_, Some(_), _, _, _, _, _, _) => //Put Some - Put Some
-              if (oldKeyValue.hasTimeLeftAtLeast(hasTimeLeftAtLeast))
-                Memory.Put(newKeyValue.key, newKeyValue.getOrFetchValue.get, oldKeyValue.deadline)
-              else
-                oldKeyValue
+              Memory.Put(oldKeyValue.key, newKeyValue.getOrFetchValue.get, oldKeyValue.deadline)
 
             case Memory.Update(_, _, None) | Persistent.Update(_, None, _, _, _, _, _, _) => //Update Some - Update None
               newKeyValue
 
             case Memory.Update(_, _, Some(_)) | Persistent.Update(_, Some(_), _, _, _, _, _, _) => //Update Some - Update Some
-              if (oldKeyValue.hasTimeLeftAtLeast(hasTimeLeftAtLeast))
-                newKeyValue.updateDeadline(oldKeyValue.deadline.get)
-              else
-                oldKeyValue
+              newKeyValue.updateDeadline(oldKeyValue.deadline.get)
           }
 
         case Memory.Update(_, _, Some(_)) | Persistent.Update(_, Some(_), _, _, _, _, _, _) => //Update Some without deadline always overwrites old key-value
@@ -164,19 +162,21 @@ private[core] object KeyValueMerger {
               oldKeyValue
 
             case Memory.Remove(_, Some(_)) | Persistent.Remove(_, Some(_), _, _, _) => // Remove Some - Remove Some
-              if (newKeyValue.deadline.get <= oldKeyValue.deadline.get || oldKeyValue.hasTimeLeftAtLeast(hasTimeLeftAtLeast))
+              if (oldKeyValue.isOverdue())
+                oldKeyValue
+              else if (newKeyValue.deadline.get <= oldKeyValue.deadline.get || oldKeyValue.hasTimeLeftAtLeast(hasTimeLeftAtLeast))
                 newKeyValue
               else
-                oldKeyValue
+                newKeyValue.updateDeadline(oldKeyValue.deadline.get)
 
             case Memory.Put(_, _, None) | Persistent.Put(_, None, _, _, _, _, _, _) => //Put Some - Put None
-              Memory.Put(newKeyValue.key, newKeyValue.getOrFetchValue.get, newKeyValue.deadline)
+              Memory.Put(oldKeyValue.key, newKeyValue.getOrFetchValue.get, newKeyValue.deadline)
 
             case Memory.Put(_, _, Some(_)) | Persistent.Put(_, Some(_), _, _, _, _, _, _) => //Put Some - Put Some
               if (newKeyValue.deadline.get <= oldKeyValue.deadline.get || oldKeyValue.hasTimeLeftAtLeast(hasTimeLeftAtLeast))
-                Memory.Put(newKeyValue.key, newKeyValue.getOrFetchValue.get, newKeyValue.deadline)
+                Memory.Put(oldKeyValue.key, newKeyValue.getOrFetchValue.get, newKeyValue.deadline)
               else
-                oldKeyValue
+                Memory.Put(oldKeyValue.key, newKeyValue.getOrFetchValue.get, oldKeyValue.deadline)
 
             case Memory.Update(_, _, None) | Persistent.Update(_, None, _, _, _, _, _, _) => //Update Some - Update None
               newKeyValue
@@ -185,7 +185,7 @@ private[core] object KeyValueMerger {
               if (newKeyValue.deadline.get <= oldKeyValue.deadline.get || oldKeyValue.hasTimeLeftAtLeast(hasTimeLeftAtLeast))
                 newKeyValue
               else
-                oldKeyValue
+                Memory.Update(oldKeyValue.key, newKeyValue.getOrFetchValue.get, oldKeyValue.deadline)
           }
       }
     }

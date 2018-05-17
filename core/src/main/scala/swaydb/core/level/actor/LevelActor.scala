@@ -46,15 +46,15 @@ private[core] object LevelActor extends LazyLogging {
              level: LevelActorAPI): Option[(LevelState, PushTask)] =
     state match {
       case _: PushScheduled =>
-        logger.trace(s"{}: Already scheduled.", level.paths.head)
+        logger.debug(s"{}: Already scheduled.", level.paths.head)
         None
 
       case _: Pushing =>
-        logger.trace(s"{}: Already pushing.", level.paths.head)
+        logger.debug(s"{}: Already pushing.", level.paths.head)
         None
 
       case _: WaitingPull =>
-        logger.trace(s"{}: Waiting pull.", level.paths.head)
+        logger.debug(s"{}: Waiting pull.", level.paths.head)
         None
 
       case state: Sleeping =>
@@ -62,10 +62,10 @@ private[core] object LevelActor extends LazyLogging {
         val hasSmallSegments = state.hasSmallSegments
         if (hasNextLevel || hasSmallSegments) {
           val delay = level.nextPushDelay
-          logger.trace(s"{}: Started. Scheduled with delay delay", level.paths.head, delay)
+          logger.debug(s"{}: Started. Scheduled with delay delay", level.paths.head, delay)
           Some(PushScheduled(state.hasSmallSegments, state.task), PushTask(delay, Push))
         } else {
-          logger.trace(s"{}: Not initialised. level.hasNextLevel = {} || state.hasSmallSegments = {}", level.paths.head, hasNextLevel, hasSmallSegments)
+          logger.debug(s"{}: Not initialised. level.hasNextLevel = {} || state.hasSmallSegments = {}", level.paths.head, hasNextLevel, hasSmallSegments)
           None
         }
     }
@@ -92,7 +92,6 @@ private[core] object LevelActor extends LazyLogging {
                                                    level: LevelActorAPI,
                                                    self: ActorRef[LevelCommand],
                                                    ec: ExecutionContext): LevelState = {
-
     def runOrScheduleTask(): LevelState =
       if (newDeadline.isOverdue()) {
         logger.trace(s"{}: Deadline overdue: {}. Clearing expired key-values.", level.paths.head, newDeadline.timeLeft.asString)
@@ -136,35 +135,35 @@ private[core] object LevelActor extends LazyLogging {
              state: LevelState): LevelState =
     state match {
       case _: Pushing =>
-        logger.trace(s"{}: Already pushing", level.paths.head)
+        logger.debug(s"{}: Already pushing", level.paths.head)
         state
 
       case _ =>
         if (state.hasSmallSegments) {
-          logger.trace(s"{}: Has small segments", level.paths.head)
+          logger.debug(s"{}: Has small segments", level.paths.head)
           val newState = collapseSmallSegments(state, self, level)
           doPush(self, level, newState)
         } else if (!level.hasNextLevel) {
-          logger.trace(s"{}: Has no lower Level", level.paths.head)
+          logger.debug(s"{}: Has no lower Level", level.paths.head)
           Sleeping(state.hasSmallSegments, state.task)
         } else {
           level.nextBatchSizeAndSegmentsCount ==> {
             case (_, segmentsCount) if segmentsCount == 0 =>
-              logger.trace(s"{}: Level is empty.", level.paths.head)
+              logger.debug(s"{}: Level is empty.", level.paths.head)
               Sleeping(state.hasSmallSegments, state.task)
 
             case (batchSize, _) if batchSize <= 0 =>
-              logger.trace(s"{}: BatchSize is {}. Going in sleep mode.", level.paths.head, batchSize)
+              logger.debug(s"{}: BatchSize is {}. Going in sleep mode.", level.paths.head, batchSize)
               Sleeping(state.hasSmallSegments, state.task)
 
             case (batchSize, _) =>
               val pickedSegments = level.pickSegmentsToPush(batchSize)
               if (pickedSegments.nonEmpty) {
-                logger.trace(s"{}: Push segments {}", level.paths.head, pickedSegments.map(_.path.toString))
+                logger.debug(s"{}: Push segments {}", level.paths.head, pickedSegments.map(_.path.toString))
                 level push PushSegments(pickedSegments, self)
                 LevelState.Pushing(pickedSegments.toList, state.hasSmallSegments, state.task, None)
               } else {
-                logger.trace(s"{}: No new Segments available to push. Sending PullRequest.", level.paths.head)
+                logger.debug(s"{}: No new Segments available to push. Sending PullRequest.", level.paths.head)
                 //              val segmentsToPush = level.take(batchSize)
                 level push PullRequest(self)
                 LevelState.WaitingPull(state.hasSmallSegments, state.task)
@@ -180,15 +179,18 @@ private[core] object LevelActor extends LazyLogging {
     def writeToSelf: LevelState =
       request match {
         case request @ PushSegments(segments, replyTo) =>
-          logger.trace(s"{}: level.put(segments) {}.", level.paths.head, segments.size)
-          val response = level.put(segments) map (_ => self ! WakeUp)
+          logger.debug(s"{}: level.put(segments) {}.", level.paths.head, segments.size)
+          val response = level.put(segments)
           replyTo ! PushSegmentsResponse(request, response)
+          response map (_ => self ! WakeUp)
           state
 
         case request @ PushMap(map, replyTo) =>
-          logger.trace(s"{}: level.putMap(map) {}.", level.paths.head, map.count())
-          val response = level.putMap(map) map (_ => self ! WakeUp)
+          logger.debug(s"{}: level.putMap(map) {}.", level.paths.head, map.count())
+          val response = level.putMap(map)
           replyTo ! PushMapResponse(request, response)
+          logger.debug(s"{}: Response sent.", level.paths.head)
+          response map (_ => self ! WakeUp)
           state
       }
 
@@ -278,10 +280,10 @@ private[core] class LevelActor(implicit level: LevelActorAPI,
 
   private def executeTask(task: PushTask)(implicit self: ActorRef[LevelCommand]) =
     if (task.delay.fromNow.isOverdue()) {
-      logger.trace(s"{}: PushTask overdue. Executing now.", dir.path)
+      logger.debug(s"{}: PushTask overdue. Executing now.", dir.path)
       self ! task.command
     } else {
-      logger.trace(s"{}: Scheduling next push with delay {}.", dir.path, task.delay.asString)
+      logger.debug(s"{}: Scheduling next push with delay {}.", dir.path, task.delay.asString)
       self.schedule(task.command, task.delay)
     }
 
@@ -294,7 +296,7 @@ private[core] class LevelActor(implicit level: LevelActorAPI,
     Actor[LevelCommand] {
       case (request, self) =>
         implicit val selfImplicit: ActorRef[LevelCommand] = self
-        logger.trace(s"{}: ** RECEIVED MESSAGE ** : {} ", dir, request.getClass.getSimpleName)
+        logger.debug(s"{}: ** RECEIVED MESSAGE ** : {} ", dir, request.getClass.getSimpleName)
         request match {
           case Pull =>
             self ! Push

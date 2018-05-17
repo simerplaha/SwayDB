@@ -87,7 +87,7 @@ private[core] class LevelZeroActor(zero: LevelZero)(implicit ec: ExecutionContex
                 on.set(false)
 
             }
-          case PushMapResponse(request, result) =>
+          case PushMapResponse(_, result) =>
             result match {
               case Success(_) =>
                 logger.debug(s"{}: Push successful.", zero.path)
@@ -96,7 +96,7 @@ private[core] class LevelZeroActor(zero: LevelZero)(implicit ec: ExecutionContex
                 // Do not trigger another Push. This will stop LevelZero from pushing new memory maps to Level1.
                 // Maps are ALWAYS required to be processed sequentially in the order of write. If there order if not
                 //maintained that may lead to inaccurate data being written which is should NOT be allowed.
-                maps.removeLast().foreach {
+                maps.removeLast() foreach {
                   case Success(_) =>
                     self ! Push
 

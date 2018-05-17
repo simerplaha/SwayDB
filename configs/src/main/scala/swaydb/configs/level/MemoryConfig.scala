@@ -35,16 +35,19 @@ object MemoryConfig {
   def apply(mapSize: Int,
             segmentSize: Int,
             bloomFilterFalsePositiveRate: Double,
+            minTimeLeftToUpdateExpiration: FiniteDuration,
             acceleration: Level0Meter => Accelerator): SwayDBMemoryConfig =
     ConfigWizard
       .addMemoryLevel0(
         mapSize = mapSize,
+        minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
         acceleration = acceleration
       )
       .addMemoryLevel1(
         segmentSize = segmentSize,
         pushForward = false,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+        minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
         throttle = (_) => Throttle(Duration.Zero, 10)
       )
 
@@ -62,16 +65,19 @@ object MemoryConfig {
             mmapPersistentSegments: MMAP,
             mmapPersistentAppendix: Boolean,
             bloomFilterFalsePositiveRate: Double,
+            minTimeLeftToUpdateExpiration: FiniteDuration,
             acceleration: Level0Meter => Accelerator): SwayDBPersistentConfig =
     ConfigWizard
       .addMemoryLevel0(
         mapSize = mapSize,
+        minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
         acceleration = acceleration
       )
       .addMemoryLevel1(
         segmentSize = memoryLevelSegmentSize,
         pushForward = false,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+        minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
         throttle =
           levelMeter => {
             if (levelMeter.levelSize > maxMemoryLevelSize)
@@ -89,6 +95,7 @@ object MemoryConfig {
         appendixFlushCheckpointSize = persistentLevelAppendixFlushCheckpointSize,
         pushForward = false,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+        minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
         throttle = (_) => Throttle(Duration.Zero, maxSegmentsToPush)
       )
 }

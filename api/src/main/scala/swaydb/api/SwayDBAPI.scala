@@ -100,4 +100,6 @@ private[swaydb] trait SwayDBAPI {
   def level1Meter: LevelMeter
 
   def levelMeter(levelNumber: Int): Option[LevelMeter]
+
+  def deadline(key: Slice[Byte]): Try[Option[Deadline]]
 }

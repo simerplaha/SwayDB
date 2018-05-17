@@ -39,13 +39,6 @@ import scala.concurrent.duration._
 import scala.reflect.ClassTag
 
 trait TestData extends TryAssert {
-
-  def randomly[T](f: => T): Option[T] =
-    if (Random.nextBoolean())
-      Some(f)
-    else
-      None
-
   def randomStringOption: Option[Slice[Byte]] =
     if (Random.nextBoolean())
       Some(randomCharacters())
@@ -54,12 +47,15 @@ trait TestData extends TryAssert {
 
   def randomDeadlineOption: Option[Deadline] =
     if (Random.nextBoolean())
-      Some(randomIntMax(30).seconds.fromNow)
-    else if (Random.nextBoolean())
-    //minus a minimum of 10.seconds for expired deadline. So test cases assertions to not fail if deadline has nanoseconds difference.
-      Some(0.seconds.fromNow - (randomIntMax(30) + 10).seconds)
+      Some(randomDeadline())
     else
       None
+
+  def randomDeadline(): Deadline =
+    if (Random.nextBoolean())
+      randomIntMax(30).seconds.fromNow
+    else
+      0.seconds.fromNow - (randomIntMax(30) + 10).seconds
 
   def randomFixedKeyValue(key: Slice[Byte]): Memory.Fixed =
     if (Random.nextBoolean())

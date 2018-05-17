@@ -137,8 +137,8 @@ class SegmentMerger6_Remove_Some_Into_Update_Spec extends WordSpec with CommonAs
     }
 
     "Update None Expired-Lesser" in {
-      val newDeadline = expiredDeadline() - 10.seconds
       val oldDeadline = expiredDeadline()
+      val newDeadline = oldDeadline - 10.seconds
       assertMerge(
         newKeyValue = Memory.Remove(1, newDeadline),
         oldKeyValue = Memory.Update(1, None, oldDeadline),
@@ -214,8 +214,8 @@ class SegmentMerger6_Remove_Some_Into_Update_Spec extends WordSpec with CommonAs
     }
 
     "Update Some Expired-Lesser" in {
-      val newDeadline = expiredDeadline() - 10.seconds
       val oldDeadline = expiredDeadline()
+      val newDeadline = oldDeadline - 10.seconds
       assertMerge(
         newKeyValue = Memory.Remove(1, newDeadline),
         oldKeyValue = Memory.Update(1, 1, oldDeadline),

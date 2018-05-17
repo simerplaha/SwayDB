@@ -67,8 +67,8 @@ class SegmentMerger7_Update_Some_None_Into_Put_Spec extends WordSpec with Common
       assertMerge(
         newKeyValue = Memory.Update(1, 1, None),
         oldKeyValue = Memory.Put(1, None, deadline),
-        expected = Memory.Put(1, None, deadline),
-        lastLevelExpect = Memory.Put(1, None, deadline),
+        expected = Memory.Put(1, 1, deadline),
+        lastLevelExpect = Memory.Put(1, 1, deadline),
         hasTimeLeftAtLeast = 10.seconds
       )
     }
@@ -78,7 +78,7 @@ class SegmentMerger7_Update_Some_None_Into_Put_Spec extends WordSpec with Common
       assertMerge(
         newKeyValue = Memory.Update(1, 1, None),
         oldKeyValue = Memory.Put(1, None, deadline),
-        expected = Memory.Put(1, None, deadline),
+        expected = Memory.Put(1, 1, deadline),
         lastLevelExpect = None,
         hasTimeLeftAtLeast = 10.seconds
       )
@@ -120,8 +120,8 @@ class SegmentMerger7_Update_Some_None_Into_Put_Spec extends WordSpec with Common
       assertMerge(
         newKeyValue = Memory.Update(1, 1, None),
         oldKeyValue = Memory.Put(1, 2, deadline),
-        expected = Memory.Put(1, 2, deadline),
-        lastLevelExpect = Memory.Put(1, 2, deadline),
+        expected = Memory.Put(1, 1, deadline),
+        lastLevelExpect = Memory.Put(1, 1, deadline),
         hasTimeLeftAtLeast = 10.seconds
       )
     }
@@ -131,7 +131,7 @@ class SegmentMerger7_Update_Some_None_Into_Put_Spec extends WordSpec with Common
       assertMerge(
         newKeyValue = Memory.Update(1, 1, None),
         oldKeyValue = Memory.Put(1, 2, deadline),
-        expected = Memory.Put(1, 2, deadline),
+        expected = Memory.Put(1, 1, deadline),
         lastLevelExpect = None,
         hasTimeLeftAtLeast = 10.seconds
       )

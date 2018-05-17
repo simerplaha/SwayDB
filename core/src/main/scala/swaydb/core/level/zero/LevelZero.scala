@@ -25,7 +25,6 @@ import java.util
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.KeyValue._
-import swaydb.core.data.Memory.{Overwrite, Range}
 import swaydb.core.data._
 import swaydb.core.finders.{Get, Higher, Lower}
 import swaydb.core.io.file.IO
@@ -35,12 +34,13 @@ import swaydb.core.level.actor.LevelZeroAPI
 import swaydb.core.map
 import swaydb.core.map.{MapEntry, Maps, SkipListMerge}
 import swaydb.core.retry.Retry
-import swaydb.core.util.{Delay, MinMax, TryUtil}
+import swaydb.core.util.{MinMax, TryUtil}
 import swaydb.data.accelerate.{Accelerator, Level0Meter}
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.slice.Slice
 import swaydb.data.storage.Level0Storage
 
+import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 import scala.concurrent.{ExecutionContext, Future}
@@ -216,15 +216,37 @@ private[core] class LevelZero(val path: Path,
       }
     }
 
+  @tailrec
   private def getFromMap(key: Slice[Byte],
-                         currentMap: map.Map[Slice[Byte], Memory]): Option[Memory] =
+                         currentMap: map.Map[Slice[Byte], Memory],
+                         preFetched: Option[Memory] = None): Option[Memory] =
     if (currentMap.hasRange)
-      currentMap.floor(key) match {
-        case floor @ Some(floorRange: Memory.Range) if key >= floorRange.fromKey && key < floorRange.toKey =>
+      preFetched orElse currentMap.floor(key) match {
+        case floor @ Some(floorRange: Memory.Range) if key < floorRange.toKey =>
           floor
 
-        case floor @ Some(floorFixed) if floorFixed.key equiv key =>
+        case floor @ Some(keyValue) if keyValue.key equiv key =>
           floor
+
+        case Some(range: Memory.Range) => //if it's still a range then check if the Map is performing concurrent updates and retry.
+          //This is a temporary solution to atomic writes issue in LevelZero.
+          //If a Map contains a Range key-value, inserting new Fixed key-values for the Range
+          //is not returning the previously inserted Range key-value (on floor) and is returning an invalid floor entry. This could be
+          //due to concurrent changes to the Map are also concurrently changing the level hierarchy of this skipList which is routing
+          //searching to key-values to invalid range entry or there is an issue with skipList merger.
+          //Temporary solution is to retry read. If the retried read returns a different result to existing that means that
+          //the current map is going through concurrent range updates and the read is retried.
+          val reFetched = currentMap.floor(key)
+          //          val fetchedRange = reFetched.map(_.asInstanceOf[Memory.Range])
+          //          println(s"Key: ${key.readInt()}")
+          //          println(s"Existing floor: fromKey : ${range.fromKey.readInt()} -> fromKey: ${range.toKey.readInt()}")
+          //          println(s"Re-fetch floor: fromKey : ${fetchedRange.map(_.fromKey.readInt())} -> fromKey: ${fetchedRange.map(_.toKey.readInt())}")
+          //          println
+          //if the re-fetched key-value is different to existing key-value retry else return None.
+          if (!reFetched.exists(_.key equiv range.key))
+            getFromMap(key, currentMap, reFetched)
+          else
+            None
 
         case _ =>
           None
@@ -233,7 +255,7 @@ private[core] class LevelZero(val path: Path,
       currentMap.get(key)
 
   private def getFromNextLevel(key: Slice[Byte],
-                               mapsIterator: util.Iterator[map.Map[Slice[Byte], Memory]]): Try[Option[KeyValue.ReadOnly.Put]] =
+                               mapsIterator: util.Iterator[map.Map[Slice[Byte], Memory]]): Try[Option[KeyValue.ReadOnly.Put]] = {
     if (mapsIterator.hasNext) {
       val next = mapsIterator.next()
       //println(s"Get for key: ${key.readInt()} in ${next.pathOption}")
@@ -242,10 +264,11 @@ private[core] class LevelZero(val path: Path,
       //println(s"Get for key: ${key.readInt()} in ${nextLevel.rootPath}")
       nextLevel get key
     }
+  }
 
   private def find(key: Slice[Byte],
                    currentMap: map.Map[Slice[Byte], Memory],
-                   mapsIterator: util.Iterator[map.Map[Slice[Byte], Memory]]): Try[Option[KeyValue.ReadOnly.Put]] =
+                   mapsIterator: util.Iterator[map.Map[Slice[Byte], Memory]]): Try[Option[KeyValue.ReadOnly.Put]] = {
     Get(
       key = key,
       getFromCurrentLevel =
@@ -255,6 +278,7 @@ private[core] class LevelZero(val path: Path,
         key =>
           getFromNextLevel(key, mapsIterator)
     )
+  }
 
   private def find(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Put]] =
     find(
@@ -384,12 +408,21 @@ private[core] class LevelZero(val path: Path,
           findLower(key, currentMap, otherMaps)
     }
 
+  @tailrec
   private def higherFromMap(key: Slice[Byte],
-                            currentMap: map.Map[Slice[Byte], Memory]): Option[Memory] =
+                            currentMap: map.Map[Slice[Byte], Memory],
+                            preFetched: Option[Memory] = None): Option[Memory] =
     if (currentMap.hasRange)
-      currentMap.floor(key) match {
+      preFetched orElse currentMap.floor(key) match {
         case floor @ Some(floorRange: Memory.Range) if key >= floorRange.fromKey && key < floorRange.toKey =>
           floor
+
+        case Some(range: Memory.Range) =>
+          val reFetched = currentMap.floor(key)
+          if (!reFetched.exists(_.key equiv range.key))
+            higherFromMap(key, currentMap, reFetched)
+          else
+            currentMap.higherValue(key)
 
         case _ =>
           currentMap.higherValue(key)
@@ -401,28 +434,29 @@ private[core] class LevelZero(val path: Path,
                             otherMaps: List[map.Map[Slice[Byte], Memory]]): Try[Option[KeyValue.ReadOnly.Put]] =
     otherMaps.headOption match {
       case Some(nextMap) =>
-        //println(s"Finding higher for key: ${key.readInt()} in ${nextMap.pathOption}")
+        //        println(s"Finding higher for key: ${key.readInt()} in Map: ${nextMap.pathOption}. Remaining map: ${otherMaps.size}")
         findHigher(key, nextMap, otherMaps.drop(1))
       case None =>
-        //println(s"Finding higher for key: ${key.readInt()} in ${nextLevel.rootPath}")
+        //        println(s"Finding higher for key: ${key.readInt()} in ${nextLevel.rootPath}")
         nextLevel higher key
     }
 
   def findHigher(key: Slice[Byte],
                  currentMap: map.Map[Slice[Byte], Memory],
-                 otherMaps: List[map.Map[Slice[Byte], Memory]]): Try[Option[KeyValue.ReadOnly.Put]] =
+                 otherMaps: List[map.Map[Slice[Byte], Memory]]): Try[Option[KeyValue.ReadOnly.Put]] = {
     Higher(
       key = key,
       higherFromCurrentLevel =
         key =>
           Try(higherFromMap(key, currentMap)),
-      ceiling =
+      get =
         key =>
-          ceiling(key, currentMap, otherMaps),
+          find(key, currentMap, otherMaps.asJava.iterator()),
       higherInNextLevel =
         key =>
           findHigherInNextLevel(key, otherMaps)
     )
+  }
 
   /**
     * Higher cannot use an iterator because a single Map can get read requests multiple times for cases where a Map contains a range
@@ -434,7 +468,7 @@ private[core] class LevelZero(val path: Path,
     findHigher(
       key = key,
       currentMap = maps.map,
-      otherMaps = maps.iterator.asScala.toList
+      otherMaps = maps.queuedMaps.toList
     )
 
   def higher(key: Slice[Byte]): Try[Option[KeyValueTuple]] =
@@ -456,9 +490,27 @@ private[core] class LevelZero(val path: Path,
       findHigher(key).map(_.map(_.key))
     }
 
+  @tailrec
   private def lowerFromMap(key: Slice[Byte],
-                           currentMap: map.Map[Slice[Byte], Memory]): Option[Memory] =
-    currentMap.lower(key).map(_._2)
+                           currentMap: map.Map[Slice[Byte], Memory],
+                           preFetched: Option[Memory] = None): Option[Memory] =
+    if (currentMap.hasRange)
+      preFetched orElse currentMap.floor(key) match {
+        case floor @ Some(floorRange: Memory.Range) if key > floorRange.fromKey && key <= floorRange.toKey =>
+          floor
+
+        case Some(range: Memory.Range) =>
+          val reFetched = currentMap.floor(key)
+          if (!reFetched.exists(_.key equiv range.key))
+            lowerFromMap(key, currentMap, reFetched)
+          else
+            currentMap.lowerValue(key)
+
+        case _ =>
+          currentMap.lowerValue(key)
+      }
+    else
+      currentMap.lower(key).map(_._2)
 
   def findLowerInNextLevel(key: Slice[Byte],
                            otherMaps: List[map.Map[Slice[Byte], Memory]]): Try[Option[KeyValue.ReadOnly.Put]] =
@@ -494,7 +546,7 @@ private[core] class LevelZero(val path: Path,
     findLower(
       key = key,
       currentMap = maps.map,
-      otherMaps = maps.iterator.asScala.toList
+      otherMaps = maps.queuedMaps.toList
     )
 
   def lower(key: Slice[Byte]): Try[Option[KeyValueTuple]] =
@@ -522,18 +574,31 @@ private[core] class LevelZero(val path: Path,
     }
 
   def valueSize(key: Slice[Byte]): Try[Option[Int]] =
-    find(key) map {
-      result =>
-        result map {
-          response =>
-            response.valueLength
-        }
+    withRetry {
+      find(key) map {
+        result =>
+          result map {
+            response =>
+              response.valueLength
+          }
+      }
     }
 
   def keyValueCount: Try[Int] =
     withRetry {
       val keyValueCountInMaps = maps.keyValueCount.getOrElse(0)
       nextLevel.keyValueCount.map(_ + keyValueCountInMaps)
+    }
+
+  def deadline(key: Slice[Byte]): Try[Option[Deadline]] =
+    withRetry {
+      find(key) map {
+        result =>
+          result flatMap {
+            response =>
+              response.deadline
+          }
+      }
     }
 
   override def sizeOfSegments: Long =

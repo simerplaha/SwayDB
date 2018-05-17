@@ -35,11 +35,8 @@ import swaydb.data.storage.{AppendixStorage, LevelStorage}
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
 import scala.util.{Success, Try}
-import scala.concurrent.duration._
 
 private[core] object DBInitializer extends LazyLogging {
-
-  val hasTimeLeftAtLeast = 10.seconds
 
   def apply(config: SwayDBConfig,
             maxSegmentsOpen: Int,
@@ -64,7 +61,7 @@ private[core] object DBInitializer extends LazyLogging {
                     nextLevel: Option[LevelRef],
                     config: LevelConfig): Try[LevelRef] =
       config match {
-        case MemoryLevelConfig(segmentSize, pushForward, bloomFilterFalsePositiveRate, throttle) =>
+        case MemoryLevelConfig(segmentSize, pushForward, bloomFilterFalsePositiveRate, minTimeLeftToUpdateExpiration, throttle) =>
           Level(
             levelStorage = LevelStorage.Memory(dir = Paths.get("MEMORY_LEVEL").resolve(id.toString)),
             segmentSize = segmentSize,
@@ -73,10 +70,10 @@ private[core] object DBInitializer extends LazyLogging {
             appendixStorage = AppendixStorage.Memory,
             bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
             throttle = throttle,
-            hasTimeLeftAtLeast = hasTimeLeftAtLeast
+            hasTimeLeftAtLeast = minTimeLeftToUpdateExpiration
           )
 
-        case PersistentLevelConfig(dir, otherDirs, segmentSize, mmapSegment, mmapAppendix, appendixFlushCheckpointSize, pushForward, bloomFilterFalsePositiveRate, throttle) =>
+        case PersistentLevelConfig(dir, otherDirs, segmentSize, mmapSegment, mmapAppendix, appendixFlushCheckpointSize, pushForward, bloomFilterFalsePositiveRate, minTimeLeftToUpdateExpiration, throttle) =>
           Level(
             levelStorage =
               LevelStorage.Persistent(
@@ -91,7 +88,7 @@ private[core] object DBInitializer extends LazyLogging {
             appendixStorage = AppendixStorage.Persistent(mmapAppendix, appendixFlushCheckpointSize),
             bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
             throttle = throttle,
-            hasTimeLeftAtLeast = hasTimeLeftAtLeast
+            hasTimeLeftAtLeast = minTimeLeftToUpdateExpiration
           )
 
         case TrashLevelConfig =>
@@ -122,7 +119,7 @@ private[core] object DBInitializer extends LazyLogging {
         case Nil =>
           createLevel(1, previousLowerLevel, config.level1) flatMap {
             level1 =>
-              LevelZero(config.level0.mapSize, config.level0.storage, level1, config.level0.acceleration, 10000, hasTimeLeftAtLeast) map {
+              LevelZero(config.level0.mapSize, config.level0.storage, level1, config.level0.acceleration, 10000, config.level0.minTimeLeftToUpdateExpiration) map {
                 zero =>
                   addShutdownHook(zero)
                   zero

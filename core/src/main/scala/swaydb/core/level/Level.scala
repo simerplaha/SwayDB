@@ -29,16 +29,18 @@ import swaydb.core.io.file.{DBFile, IO}
 import swaydb.core.level.LevelException.ReceivedKeyValuesToMergeWithoutTargetSegment
 import swaydb.core.level.actor.LevelCommand.ClearExpiredKeyValues
 import swaydb.core.level.actor.{LevelAPI, LevelActor, LevelCommand}
+import swaydb.core.map.MapEntry.{Put, Remove}
 import swaydb.core.map.serializer._
 import swaydb.core.map.{Map, MapEntry}
 import swaydb.core.segment.SegmentException.SegmentFileMissing
-import swaydb.core.segment.{Segment, SegmentAssigner}
+import swaydb.core.segment.{Segment, SegmentAssigner, SegmentMerger}
 import swaydb.core.util.ExceptionUtil._
 import swaydb.core.util.FileUtil._
 import swaydb.core.util.TryUtil._
 import swaydb.core.util.{MinMax, _}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.Dir
+import swaydb.data.segment.MaxKey.{Fixed, Range}
 import swaydb.data.slice.Slice
 import swaydb.data.slice.Slice._
 import swaydb.data.storage.{AppendixStorage, LevelStorage}
@@ -182,6 +184,8 @@ private[core] class Level(val dirs: Seq[Dir],
                                                                   addWriter: MapEntryWriter[MapEntry.Put[Slice[Byte], Segment]],
                                                                   keyValueLimiter: (Persistent, Segment) => Unit,
                                                                   fileOpenLimited: DBFile => Unit) extends LevelRef with LazyLogging {
+
+  import ordering._
 
   val paths: PathsDistributor = PathsDistributor(dirs, () => appendix.values().asScala)
 
@@ -355,30 +359,40 @@ private[core] class Level(val dirs: Seq[Dir],
           logger.debug("{}: Map '{}' contains key-values intersect with current busy segments: {}", paths.head, map.pathOption.map(_.toString), busySegs.map(_.path.toString))
           Failure(LevelException.ContainsOverlappingBusySegments)
         } else {
-          if (!Segment.overlaps(map, appendixValues)) {
+          if (!Segment.overlaps(map, appendixValues))
             copy(map) flatMap {
               newSegments =>
-                buildNewMapEntry(newSegments, None, None) flatMap {
-                  entry =>
-                    appendix
-                      .write(entry)
-                      .map {
-                        _ =>
-                          //alertActorForSegmentManagement is not always required here because Map generally are received into higher Levels there Segments
-                          //will eventually get merged to lower Level anyway which therefore collapse and expire key-values will certainly happen eventually.
-                          //but the database contains only 1 Level then trigger Management.
-                          if (nextLevel.isEmpty) alertActorForSegmentManagement()
-                      }
-                } recoverWith {
-                  case exception =>
-                    logFailure(s"${paths.head}: Failed to create a log entry for memory Segment.", exception)
-                    deleteCopiedSegments(newSegments)
-                    Failure(exception)
-                }
+                //maps can be submitted directly to last Level (if all levels have pushForward == true or if there are only two Levels (0 and 1)).
+                //If this Level is the last Level then copy can return empty List[Segments]. If this is not the last Level then continue execution regardless because
+                //upper Levels should ALWAYS return non-empty Segments on merge as key-values NEVER get removed/deleted from upper Levels.
+                //If the Segments are still empty, buildNewMapEntry will return a failure which is expected.
+                //Note: Logs can get spammed due to buildNewMapEntry's failure because LevelZeroActor will dispatch a PullRequest (for ANY failure),
+                //to which this Level will respond with a Push message to LevelZeroActor and the same failure will occur repeatedly since the error is not due to busy Segments.
+                //but this should not occur during runtime and if it's does occur the spam is OK because it's a crucial error and should be fixed immediately as this error would result
+                //to compaction coming to a halt.
+                if (nextLevel.isDefined || newSegments.nonEmpty)
+                  buildNewMapEntry(newSegments, None, None) flatMap {
+                    entry =>
+                      appendix
+                        .write(entry)
+                        .map {
+                          _ =>
+                            //Execute alertActorForSegmentManagement only if this is the last Level.
+                            //alertActorForSegmentManagement is not always required here because Map generally are submitted to higher Levels and higher Level Segments
+                            //always get merged to lower Level which will eventually collapse and expire key-values.
+                            if (nextLevel.isEmpty) alertActorForSegmentManagement()
+                        }
+                  } recoverWith {
+                    case exception =>
+                      logFailure(s"${paths.head}: Failed to create a log entry.", exception)
+                      deleteCopiedSegments(newSegments)
+                      Failure(exception)
+                  }
+                else
+                  TryUtil.successUnit
             }
-          } else {
+          else
             putKeyValues(Slice(map.values().toArray(new Array[Memory](map.skipList.size()))), appendixValues, None)
-          }
         }
     }
   }
@@ -450,22 +464,22 @@ private[core] class Level(val dirs: Seq[Dir],
   }
 
   override def clearExpiredKeyValues(): Try[Unit] = {
-    logger.trace("{}: Running clearExpiredKeyValues.", paths.head)
+    logger.debug("{}: Running clearExpiredKeyValues.", paths.head)
     if (nextLevel.nonEmpty) { //only run this if it's the last Level.
       logger.error("{}: clearExpiredKeyValues ran a Level that is not the last Level.", paths.head)
       TryUtil.successUnit
     } else {
       Segment.getNearestDeadlineSegment(appendix.values().asScala) map {
         segmentToClear =>
-          logger.trace("{}: Executing clearExpiredKeyValues on Segment: '{}'.", paths.head, segmentToClear.path)
+          logger.debug("{}: Executing clearExpiredKeyValues on Segment: '{}'.", paths.head, segmentToClear.path)
           val busySegments = getBusySegments()
           if (Segment.intersects(Seq(segmentToClear), busySegments)) {
-            logger.trace(s"{}: Clearing segments {} intersect with current busy segments: {}.", paths.head, segmentToClear.path, busySegments.map(_.path.toString))
+            logger.debug(s"{}: Clearing segments {} intersect with current busy segments: {}.", paths.head, segmentToClear.path, busySegments.map(_.path.toString))
             Failure(LevelException.ContainsOverlappingBusySegments)
           } else {
             segmentToClear.refresh(segmentSize, bloomFilterFalsePositiveRate, paths) flatMap {
               newSegments =>
-                logger.trace(s"{}: Segment {} successfully cleared of expired key-values. New Segments: {}.", paths.head, segmentToClear.path, newSegments.map(_.path).mkString(", "))
+                logger.debug(s"{}: Segment {} successfully cleared of expired key-values. New Segments: {}.", paths.head, segmentToClear.path, newSegments.map(_.path).mkString(", "))
                 buildNewMapEntry(newSegments, Some(segmentToClear), None) flatMap {
                   entry =>
                     appendix.write(entry) flatMap {
@@ -491,7 +505,8 @@ private[core] class Level(val dirs: Seq[Dir],
             }
           }
       } getOrElse {
-        logger.trace("{}: No expired key-values to clear.", paths.head)
+        logger.debug("{}: No expired key-values to clear.", paths.head)
+        alertActorForSegmentManagement()
         TryUtil.successUnit
       }
     }
@@ -551,20 +566,20 @@ private[core] class Level(val dirs: Seq[Dir],
           (segments.drop(1), firstSmallSegment)
         }
 
-      //create an initialEntry that will remove smaller segments from the appendix.
+      //create an appendEntry that will remove smaller segments from the appendix.
       //this entry will get applied only if the putSegments is successful orElse this entry will be discarded.
-      val initialEntry =
+      val appendEntry =
       segmentsToMerge.foldLeft(Option.empty[MapEntry[Slice[Byte], Segment]]) {
-        case (mapEntry, smallMap) =>
-          val entry = MapEntry.Remove(smallMap.minKey)
+        case (mapEntry, smallSegment) =>
+          val entry = MapEntry.Remove(smallSegment.minKey)
           mapEntry.map(_ ++ entry) orElse Some(entry)
       }
-      merge(segments, targetSegments, initialEntry) map {
+      merge(segmentsToMerge, targetSegments, appendEntry) map {
         _ =>
           //delete the segments merged with self.
           segmentsToMerge foreach {
             segment =>
-              segment.delete.failed.map {
+              segment.delete.failed map {
                 exception =>
                   logger.warn(s"{}: Failed to delete Segment {} after successful collapse", paths.head, segment.path, exception)
               }
@@ -576,39 +591,44 @@ private[core] class Level(val dirs: Seq[Dir],
 
   private def merge(segments: Iterable[Segment],
                     targetSegments: Iterable[Segment],
-                    initialEntry: Option[MapEntry[Slice[Byte], Segment]]): Try[Unit] = {
+                    appendEntry: Option[MapEntry[Slice[Byte], Segment]]): Try[Unit] = {
     logger.trace(s"{}: Merging segments {}", paths.head, segments.map(_.path.toString))
     Segment.getAllKeyValues(bloomFilterFalsePositiveRate, segments) flatMap {
-      putKeyValues(_, targetSegments, initialEntry)
+      putKeyValues(_, targetSegments, appendEntry)
     }
   }
 
   private def putKeyValues(keyValues: Slice[KeyValue.ReadOnly],
                            targetSegments: Iterable[Segment],
-                           initialEntry: Option[MapEntry[Slice[Byte], Segment]]): Try[Unit] = {
+                           appendEntry: Option[MapEntry[Slice[Byte], Segment]]): Try[Unit] = {
     logger.trace(s"{}: Merging {} KeyValues.", paths.head, keyValues.size)
     SegmentAssigner.assign(keyValues, targetSegments) flatMap {
       assignments =>
+
         val busySegments: Seq[Segment] = getBusySegments()
         //check to ensure that assigned Segments do not overlap with busy Segments.
         if (Segment.intersects(assignments.keys, busySegments)) {
           logger.trace(s"{}: Assigned segments {} intersect with current busy segments: {}.", paths.head, assignments.map(_._1.path.toString), busySegments.map(_.path.toString))
           Failure(LevelException.ContainsOverlappingBusySegments)
         } else {
-          logger.trace(s"{}: Assigned segments {} for KeyValues: {}.", paths.head, assignments.map(_._1.path.toString), keyValues.size)
+          logger.trace(s"{}: Assigned segments {} for {} KeyValues.", paths.head, assignments.map(_._1.path.toString), keyValues.size)
           if (assignments.isEmpty) {
             logger.error(s"{}: Assigned segments are empty. Cannot merge Segments to empty target Segments: {}.", paths.head, keyValues.size)
             Failure(ReceivedKeyValuesToMergeWithoutTargetSegment(keyValues.size))
           } else {
-            logger.debug(s"{}: Assigned segments {}. Merging KeyValues: {}.", paths.head, assignments.map(_._1.path.toString), keyValues.size)
+            logger.debug(s"{}: Assigned segments {}. Merging {} KeyValues.", paths.head, assignments.map(_._1.path.toString), keyValues.size)
             putAssignedKeyValues(assignments) flatMap {
               targetSegmentAndNewSegments =>
-                targetSegmentAndNewSegments.tryFoldLeft(initialEntry) {
+                targetSegmentAndNewSegments.tryFoldLeft(Option.empty[MapEntry[Slice[Byte], Segment]]) {
                   case (mapEntry, (targetSegment, newSegments)) =>
                     buildNewMapEntry(newSegments, Some(targetSegment), mapEntry).map(Some(_))
                 } flatMap {
                   case Some(mapEntry) =>
-                    (appendix write mapEntry) map {
+                    //also write appendEntry to this mapEntry before commiting entries to appendix.
+                    //Note: appendEntry should not overwrite new Segment's entries with same keys so perform distinct
+                    //which will remove oldEntries with duplicates with newer keys.
+                    val mapEntryToWrite = appendEntry.map(appendEntry => MapEntry.distinct(mapEntry, appendEntry)) getOrElse mapEntry
+                    (appendix write mapEntryToWrite) map {
                       _ =>
                         logger.debug(s"{}: putKeyValues successful. Deleting assigned Segments. {}.", paths.head, assignments.map(_._1.path.toString))
                         //delete assigned segments as they are replaced with new segments.
@@ -708,13 +728,13 @@ private[core] class Level(val dirs: Seq[Dir],
     var removeOriginalSegments = true
     val nextLogEntry =
       newSegments.foldLeft(initialMapEntry) {
-        case (loggerCommand, newMap) =>
+        case (logEntry, newSegment) =>
           //if one of the new segments have the same minKey as the original segment, remove is not required as 'put' will replace old key.
-          if (removeOriginalSegments && originalSegmentMayBe.exists(_.minKey equiv newMap.minKey))
+          if (removeOriginalSegments && originalSegmentMayBe.exists(_.minKey equiv newSegment.minKey))
             removeOriginalSegments = false
 
-          val nextLogEntry = MapEntry.Put(newMap.minKey, newMap)
-          loggerCommand.map(_ ++ nextLogEntry) orElse Some(nextLogEntry)
+          val nextLogEntry = MapEntry.Put(newSegment.minKey, newSegment)
+          logEntry.map(_ ++ nextLogEntry) orElse Some(nextLogEntry)
       }
     (originalSegmentMayBe match {
       case Some(originalMap) if removeOriginalSegments =>
@@ -858,7 +878,7 @@ private[core] class Level(val dirs: Seq[Dir],
     }
 
   override def higher(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Put]] =
-    Higher(key, higherInThisLevel, ceiling, higherInNextLevel)
+    Higher(key, higherInThisLevel, get, higherInNextLevel)
 
   /**
     * Does a quick appendix lookup.

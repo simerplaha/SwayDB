@@ -67,7 +67,7 @@ class SegmentMerger9_Update_Some_None_Into_Update_Spec extends WordSpec with Com
       assertMerge(
         newKeyValue = Memory.Update(1, 1, None),
         oldKeyValue = Memory.Update(1, None, deadline),
-        expected = Memory.Update(1, None, deadline),
+        expected = Memory.Update(1, 1, deadline),
         lastLevelExpect = None,
         hasTimeLeftAtLeast = 10.seconds
       )
@@ -78,7 +78,7 @@ class SegmentMerger9_Update_Some_None_Into_Update_Spec extends WordSpec with Com
       assertMerge(
         newKeyValue = Memory.Update(1, 1, None),
         oldKeyValue = Memory.Update(1, None, deadline),
-        expected = Memory.Update(1, None, deadline),
+        expected = Memory.Update(1, 1, deadline),
         lastLevelExpect = None,
         hasTimeLeftAtLeast = 10.seconds
       )
@@ -120,7 +120,7 @@ class SegmentMerger9_Update_Some_None_Into_Update_Spec extends WordSpec with Com
       assertMerge(
         newKeyValue = Memory.Update(1, 1, None),
         oldKeyValue = Memory.Update(1, 2, deadline),
-        expected = Memory.Update(1, 2, deadline),
+        expected = Memory.Update(1, 1, deadline),
         lastLevelExpect = None,
         hasTimeLeftAtLeast = 10.seconds
       )
@@ -131,7 +131,7 @@ class SegmentMerger9_Update_Some_None_Into_Update_Spec extends WordSpec with Com
       assertMerge(
         newKeyValue = Memory.Update(1, 1, None),
         oldKeyValue = Memory.Update(1, 2, deadline),
-        expected = Memory.Update(1, 2, deadline),
+        expected = Memory.Update(1, 1, deadline),
         lastLevelExpect = None,
         hasTimeLeftAtLeast = 10.seconds
       )

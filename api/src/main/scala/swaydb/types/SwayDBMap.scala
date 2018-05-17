@@ -98,11 +98,28 @@ class SwayDBMap[K, V](api: SwayDBAPI)(implicit keySerializer: Serializer[K],
       }
     }
 
+  def batchUpdate(keyValues: (K, V)*): Try[Level0Meter] =
+    batchUpdate(keyValues)
+
+  def batchUpdate(keyValues: Iterable[(K, V)]): Try[Level0Meter] =
+    api.batch {
+      keyValues map {
+        case (key, value) =>
+          request.Batch.Update(key, Some(value))
+      }
+    }
+
   def batchRemove(keys: K*): Try[Level0Meter] =
     batchRemove(keys)
 
   def batchRemove(keys: Iterable[K]): Try[Level0Meter] =
     api.batch(keys.map(key => request.Batch.Remove(key, None)))
+
+  def batchExpire(keys: (K, Deadline)*): Try[Level0Meter] =
+    batchExpire(keys)
+
+  def batchExpire(keys: Iterable[(K, Deadline)]): Try[Level0Meter] =
+    api.batch(keys.map(keyDeadline => request.Batch.Remove(keyDeadline._1, Some(keyDeadline._2))))
 
   /**
     * Returns target value for the input key.
@@ -153,4 +170,13 @@ class SwayDBMap[K, V](api: SwayDBAPI)(implicit keySerializer: Serializer[K],
 
   def valueSize(key: K): Try[Option[Int]] =
     api valueSize key
+
+  def deadline(key: K): Try[Option[Deadline]] =
+    api deadline key
+
+  def hasTimeLeft(key: K): Try[Option[Boolean]] =
+    deadline(key).map(_.map(_.hasTimeLeft()))
+
+  def timeLeft(key: K): Try[Option[FiniteDuration]] =
+    deadline(key).map(_.map(_.timeLeft))
 }

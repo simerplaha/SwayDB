@@ -22,6 +22,7 @@ View detailed benchmark results [here](http://swaydb.io/performance/macbook-pro-
 - Multiple disks, In-memory & periodically persistent
 - ACID like atomic writes with [Batch API](http://www.swaydb.io/api/write-api/batch/)
 - APIs similar to Scala collections.
+- Expiring key-value (TTL).
 - Key only iterations (Lazily fetched values)
 - Data storage formats
     - Key-value (`Map[K, V]`)
@@ -65,9 +66,12 @@ db
 - [SwayDB.stress](https://github.com/simerplaha/SwayDB.stress) - Stress tests.
 - [SwayDB.io](https://github.com/simerplaha/SwayDB.io) - Website code.
 
-## Backward compatibility
-Currently for versions `0.*` the code & file formats are going through rapid changes.
-Next few versions will require many changes in the file formats to improve data compression.
+## Status
+**Status: Beta**
+
+Next few versions require file formats changes to improve data compression.
 
 Backward compatible will be supported for versions `1.*` and after. 
 So please suggest features & improvements now while we are still in version `0.*`.
+
+Code coverage is required. 

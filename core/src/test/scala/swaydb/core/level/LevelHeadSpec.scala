@@ -29,6 +29,8 @@ import swaydb.serializers.Default._
 import swaydb.serializers._
 
 //@formatter:off
+class LevelHead0Spec extends LevelHeadSpec
+
 class LevelHeadSpec1 extends LevelHeadSpec {
   override def levelFoldersCount = 10
   override def mmapSegmentsOnWrite = true
@@ -50,7 +52,7 @@ class LevelHeadSpec3 extends LevelHeadSpec {
 }
 //@formatter:on
 
-class LevelHeadSpec extends TestBase with MockFactory with Benchmark {
+trait LevelHeadSpec extends TestBase with MockFactory with Benchmark {
 
   implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
   val keyValuesCount = 100

@@ -89,7 +89,7 @@ class SegmentMerger8_Update_Some_Some_Into_Remove_Spec extends WordSpec with Com
       assertMerge(
         newKeyValue = Memory.Update(1, 1, deadline),
         oldKeyValue = Memory.Remove(1, deadline2),
-        expected = Memory.Remove(1, deadline2),
+        expected = Memory.Update(1, 1, deadline2),
         lastLevelExpect = None,
         hasTimeLeftAtLeast = 10.seconds
       )
@@ -122,13 +122,13 @@ class SegmentMerger8_Update_Some_Some_Into_Remove_Spec extends WordSpec with Com
     }
 
     "Remove Expired-Lesser" in {
-      val deadline = expiredDeadline() - 2.seconds
       val deadline2 = expiredDeadline()
+      val deadline = deadline2 - 2.seconds
 
       assertMerge(
         newKeyValue = Memory.Update(1, 1, deadline),
         oldKeyValue = Memory.Remove(1, deadline2),
-        expected = Memory.Update(1, 1, deadline),
+        expected = Memory.Remove(1, deadline2),
         lastLevelExpect = None,
         hasTimeLeftAtLeast = 10.seconds
       )

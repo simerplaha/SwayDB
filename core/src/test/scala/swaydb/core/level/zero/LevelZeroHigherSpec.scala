@@ -30,7 +30,6 @@ import swaydb.order.KeyOrder
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
-import scala.collection.mutable
 import scala.concurrent.duration._
 import scala.util.Random
 
@@ -128,12 +127,12 @@ class LevelZeroHigherSpec extends TestBase with MockFactory with Benchmark {
 
       (1 to 99) foreach {
         i =>
-          if (i >= 9 && i < 15)
-            level0.higher(i).assertGetOpt should contain((15: Slice[Byte], Some(15: Slice[Byte])))
-          else if (i >= 17 && i < 20)
-            level0.higher(i).assertGetOpt should contain((20: Slice[Byte], Some(20: Slice[Byte])))
-          else if (i >= 49 && i < 60)
-            level0.higher(i).assertGetOpt should contain((60: Slice[Byte], Some(60: Slice[Byte])))
+          if (i >= 9 && i <= 15)
+            level0.higher(i).assertGetOpt should contain((16: Slice[Byte], Some(16: Slice[Byte])))
+          else if (i >= 17 && i <= 20)
+            level0.higher(i).assertGetOpt should contain((21: Slice[Byte], Some(21: Slice[Byte])))
+          else if (i >= 49 && i <= 60)
+            level0.higher(i).assertGetOpt should contain((61: Slice[Byte], Some(61: Slice[Byte])))
           else
             level0.higher(i).assertGetOpt should contain((i + 1: Slice[Byte], Some(i + 1: Slice[Byte])))
       }

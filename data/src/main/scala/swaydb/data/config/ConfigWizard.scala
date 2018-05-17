@@ -25,6 +25,8 @@ import swaydb.data.accelerate.{Accelerator, Level0Meter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.storage.Level0Storage
 
+import scala.concurrent.duration.FiniteDuration
+
 sealed trait PersistentConfig
 
 /**
@@ -35,23 +37,37 @@ object ConfigWizard {
                           dir: Path,
                           mmap: Boolean,
                           recoveryMode: RecoveryMode,
+                          minTimeLeftToUpdateExpiration: FiniteDuration,
                           acceleration: Level0Meter => Accelerator) =
-    Level0PersistentConfig(mapSize, Level0Storage.Persistent(mmap, dir, recoveryMode), acceleration)
+    Level0PersistentConfig(
+      mapSize = mapSize,
+      storage = Level0Storage.Persistent(mmap, dir, recoveryMode),
+      minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
+      acceleration = acceleration
+    )
 
   def addMemoryLevel0(mapSize: Long,
+                      minTimeLeftToUpdateExpiration: FiniteDuration,
                       acceleration: Level0Meter => Accelerator) =
-    Level0MemoryConfig(mapSize, Level0Storage.Memory, acceleration)
+    Level0MemoryConfig(
+      mapSize = mapSize,
+      storage = Level0Storage.Memory,
+      minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
+      acceleration = acceleration
+    )
 }
 
 sealed trait Level0Config {
   val mapSize: Long
   val storage: Level0Storage
+  val minTimeLeftToUpdateExpiration: FiniteDuration
 
   def acceleration: Level0Meter => Accelerator
 }
 
 case class Level0PersistentConfig(mapSize: Long,
                                   storage: Level0Storage,
+                                  minTimeLeftToUpdateExpiration: FiniteDuration,
                                   acceleration: Level0Meter => Accelerator) extends Level0Config {
   def addPersistentLevel1(dir: Path,
                           otherDirs: Seq[Dir],
@@ -61,6 +77,7 @@ case class Level0PersistentConfig(mapSize: Long,
                           appendixFlushCheckpointSize: Long,
                           pushForward: Boolean,
                           bloomFilterFalsePositiveRate: Double,
+                          minTimeLeftToUpdateExpiration: FiniteDuration,
                           throttle: LevelMeter => Throttle): SwayDBPersistentConfig =
     SwayDBPersistentConfig(
       level0 = this,
@@ -73,6 +90,7 @@ case class Level0PersistentConfig(mapSize: Long,
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
         pushForward = pushForward,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+        minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
         throttle = throttle
       ),
       otherLevels = List.empty
@@ -81,6 +99,7 @@ case class Level0PersistentConfig(mapSize: Long,
   def addMemoryLevel1(segmentSize: Int,
                       pushForward: Boolean,
                       bloomFilterFalsePositiveRate: Double,
+                      minTimeLeftToUpdateExpiration: FiniteDuration,
                       throttle: LevelMeter => Throttle) =
     SwayDBPersistentConfig(
       level0 = this,
@@ -88,6 +107,7 @@ case class Level0PersistentConfig(mapSize: Long,
         segmentSize = segmentSize,
         pushForward = pushForward,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+        minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
         throttle = throttle
       ),
       otherLevels = List.empty
@@ -96,6 +116,7 @@ case class Level0PersistentConfig(mapSize: Long,
 
 case class Level0MemoryConfig(mapSize: Long,
                               storage: Level0Storage,
+                              minTimeLeftToUpdateExpiration: FiniteDuration,
                               acceleration: Level0Meter => Accelerator) extends Level0Config {
 
   def addPersistentLevel1(dir: Path,
@@ -106,6 +127,7 @@ case class Level0MemoryConfig(mapSize: Long,
                           appendixFlushCheckpointSize: Long,
                           pushForward: Boolean,
                           bloomFilterFalsePositiveRate: Double,
+                          minTimeLeftToUpdateExpiration: FiniteDuration,
                           throttle: LevelMeter => Throttle): SwayDBPersistentConfig =
     SwayDBPersistentConfig(
       level0 = this,
@@ -118,6 +140,7 @@ case class Level0MemoryConfig(mapSize: Long,
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
         pushForward = pushForward,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+        minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
         throttle = throttle
       ),
       otherLevels = List.empty
@@ -126,6 +149,7 @@ case class Level0MemoryConfig(mapSize: Long,
   def addMemoryLevel1(segmentSize: Int,
                       pushForward: Boolean,
                       bloomFilterFalsePositiveRate: Double,
+                      minTimeLeftToUpdateExpiration: FiniteDuration,
                       throttle: LevelMeter => Throttle) =
     SwayDBMemoryConfig(
       level0 = this,
@@ -133,6 +157,7 @@ case class Level0MemoryConfig(mapSize: Long,
         segmentSize = segmentSize,
         pushForward = pushForward,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+        minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
         throttle = throttle
       ),
       otherLevels = List.empty
@@ -147,6 +172,7 @@ case object TrashLevelConfig extends LevelConfig
 case class MemoryLevelConfig(segmentSize: Int,
                              pushForward: Boolean,
                              bloomFilterFalsePositiveRate: Double,
+                             minTimeLeftToUpdateExpiration: FiniteDuration,
                              throttle: LevelMeter => Throttle) extends LevelConfig
 
 case class PersistentLevelConfig(dir: Path,
@@ -157,6 +183,7 @@ case class PersistentLevelConfig(dir: Path,
                                  appendixFlushCheckpointSize: Long,
                                  pushForward: Boolean,
                                  bloomFilterFalsePositiveRate: Double,
+                                 minTimeLeftToUpdateExpiration: FiniteDuration,
                                  throttle: LevelMeter => Throttle) extends LevelConfig
 
 sealed trait SwayDBConfig {
@@ -181,6 +208,7 @@ case class SwayDBMemoryConfig(level0: Level0MemoryConfig,
                          appendixFlushCheckpointSize: Long,
                          pushForward: Boolean,
                          bloomFilterFalsePositiveRate: Double,
+                         minTimeLeftToUpdateExpiration: FiniteDuration,
                          throttle: LevelMeter => Throttle): SwayDBPersistentConfig =
     SwayDBPersistentConfig(
       level0 = level0,
@@ -195,6 +223,7 @@ case class SwayDBMemoryConfig(level0: Level0MemoryConfig,
           appendixFlushCheckpointSize = appendixFlushCheckpointSize,
           pushForward = pushForward,
           bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+          minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
           throttle = throttle
         )
     )
@@ -202,6 +231,7 @@ case class SwayDBMemoryConfig(level0: Level0MemoryConfig,
   def addMemoryLevel(segmentSize: Int,
                      pushForward: Boolean,
                      bloomFilterFalsePositiveRate: Double,
+                     minTimeLeftToUpdateExpiration: FiniteDuration,
                      throttle: LevelMeter => Throttle): SwayDBMemoryConfig =
 
     copy(
@@ -210,6 +240,7 @@ case class SwayDBMemoryConfig(level0: Level0MemoryConfig,
           segmentSize = segmentSize,
           pushForward = pushForward,
           bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+          minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
           throttle = throttle
         )
     )
@@ -234,6 +265,7 @@ case class SwayDBPersistentConfig(level0: Level0Config,
                          appendixFlushCheckpointSize: Long,
                          pushForward: Boolean,
                          bloomFilterFalsePositiveRate: Double,
+                         minTimeLeftToUpdateExpiration: FiniteDuration,
                          throttle: LevelMeter => Throttle): SwayDBPersistentConfig =
     copy(
       otherLevels = otherLevels :+
@@ -246,6 +278,7 @@ case class SwayDBPersistentConfig(level0: Level0Config,
           appendixFlushCheckpointSize = appendixFlushCheckpointSize,
           pushForward = pushForward,
           bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+          minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
           throttle = throttle
         )
     )
@@ -253,6 +286,7 @@ case class SwayDBPersistentConfig(level0: Level0Config,
   def addMemoryLevel(segmentSize: Int,
                      pushForward: Boolean,
                      bloomFilterFalsePositiveRate: Double,
+                     minTimeLeftToUpdateExpiration: FiniteDuration,
                      throttle: LevelMeter => Throttle): SwayDBPersistentConfig =
 
     copy(
@@ -261,6 +295,7 @@ case class SwayDBPersistentConfig(level0: Level0Config,
           segmentSize = segmentSize,
           pushForward = pushForward,
           bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+          minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
           throttle = throttle
         )
     )

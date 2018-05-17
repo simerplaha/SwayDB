@@ -37,7 +37,7 @@ class KeyValueMerger1_Update_None_None_Into_Put_Spec extends WordSpec with Match
 
   "Update(None, None) -> Put(None, None)" when {
     "Put(None, None)" in {
-      (Memory.Update(1, None, None), Memory.Put(1, None, None)).applyValue shouldBe Memory.Put(1, None, None)
+      (Memory.Update(1, None, None), Memory.Put(1, None, None)).merge shouldBe Memory.Put(1, None, None)
     }
   }
 
@@ -48,17 +48,17 @@ class KeyValueMerger1_Update_None_None_Into_Put_Spec extends WordSpec with Match
   "Update(None, None) -> Put(None, Some)" when {
     "Put(None, HasTimeLeft)" in {
       val deadline = 20.seconds.fromNow
-      (Memory.Update(1, None, None), Memory.Put(1, None, deadline)).applyValue shouldBe Memory.Put(1, None, deadline)
+      (Memory.Update(1, None, None), Memory.Put(1, None, deadline)).merge shouldBe Memory.Put(1, None, deadline)
     }
 
     "Put(None, HasNoTimeLeft)" in {
       val deadline = 5.seconds.fromNow
-      (Memory.Update(1, None, None), Memory.Put(1, None, deadline)).applyValue shouldBe Memory.Put(1, None, deadline)
+      (Memory.Update(1, None, None), Memory.Put(1, None, deadline)).merge shouldBe Memory.Put(1, None, deadline)
     }
 
     "Put(None, Expired)" in {
       val deadline = expiredDeadline()
-      (Memory.Update(1, None, None), Memory.Put(1, None, deadline)).applyValue shouldBe Memory.Put(1, None, deadline)
+      (Memory.Update(1, None, None), Memory.Put(1, None, deadline)).merge shouldBe Memory.Put(1, None, deadline)
     }
   }
 
@@ -68,24 +68,24 @@ class KeyValueMerger1_Update_None_None_Into_Put_Spec extends WordSpec with Match
 
   "Update(None, None) -> Put(Some, None)" when {
     "Put(Some, None)" in {
-      (Memory.Update(1, None, None), Memory.Put(1, "value", None)).applyValue shouldBe Memory.Put(1, None, None)
+      (Memory.Update(1, None, None), Memory.Put(1, "value", None)).merge shouldBe Memory.Put(1, None, None)
     }
   }
 
   "Update(None, None) -> Put(Some, Some)" when {
     "Put(None, HasTimeLeft)" in {
       val deadline = 20.seconds.fromNow
-      (Memory.Update(1, None, None), Memory.Put(1, 1, deadline)).applyValue shouldBe Memory.Put(1, None, deadline)
+      (Memory.Update(1, None, None), Memory.Put(1, 1, deadline)).merge shouldBe Memory.Put(1, None, deadline)
     }
 
     "Put(None, HasNoTimeLeft)" in {
       val deadline = 5.seconds.fromNow
-      (Memory.Update(1, None, None), Memory.Put(1, 1, deadline)).applyValue shouldBe Memory.Put(1, 1, deadline)
+      (Memory.Update(1, None, None), Memory.Put(1, 1, deadline)).merge shouldBe Memory.Put(1, None, deadline)
     }
 
     "Put(None, Expired)" in {
       val deadline = expiredDeadline()
-      (Memory.Update(1, None, None), Memory.Put(1, 1, deadline)).applyValue shouldBe Memory.Put(1, 1, deadline)
+      (Memory.Update(1, None, None), Memory.Put(1, 1, deadline)).merge shouldBe Memory.Put(1, None, deadline)
     }
   }
 

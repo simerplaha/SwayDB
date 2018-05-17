@@ -21,23 +21,24 @@ package embedded
 
 import java.nio.charset.StandardCharsets
 
-import swaydb.{Batch, SwayDB}
-import swaydb.core.TestBase
 import swaydb.serializers.Default._
 import swaydb.types.SwayDBMap
+import swaydb.{Batch, SwayDB}
 
-import scala.annotation.tailrec
-import scala.concurrent.Future
 import scala.concurrent.duration._
 
 class SwayDBSpec0 extends SwayDBSpec {
   override def newDB(): SwayDBMap[Int, String] =
     SwayDB.persistent[Int, String](randomDir).assertGet
+
+  override val keyValueCount: Int = 100
 }
 
 class SwayDBSpec1 extends SwayDBSpec {
 
   import swaydb._
+
+  override val keyValueCount: Int = 100
 
   override def newDB(): SwayDBMap[Int, String] =
     SwayDB.persistent[Int, String](randomDir, mapSize = 1.byte).assertGet
@@ -47,76 +48,25 @@ class SwayDBSpec2 extends SwayDBSpec {
 
   import swaydb._
 
+  override val keyValueCount: Int = 100
+
   override def newDB(): SwayDBMap[Int, String] =
     SwayDB.memory[Int, String](mapSize = 1.byte).assertGet
 }
 
 class SwayDBSpec3 extends SwayDBSpec {
+
+  override val keyValueCount: Int = 100
+
   override def newDB(): SwayDBMap[Int, String] =
     SwayDB.memory[Int, String]().assertGet
 }
 
-sealed trait SwayDBSpec extends TestBase {
+sealed trait SwayDBSpec extends TestBaseEmbedded {
 
   def newDB(): SwayDBMap[Int, String]
 
   "SwayDB" should {
-    "get" in {
-
-      val db = newDB()
-
-      (1 to 100) foreach {
-        i =>
-          db.put(i, i.toString).assertGet
-      }
-
-      (1 to 100) foreach {
-        i =>
-          db.get(i).assertGet shouldBe i.toString
-      }
-    }
-
-    "remove range" in {
-      val db = newDB()
-      (1 to 100) foreach {
-        i =>
-          db.put(i, i.toString).assertGet
-      }
-
-      db.remove(50, 100).assertGet
-
-      (1 to 49) foreach {
-        i =>
-          db.get(i).assertGet shouldBe i.toString
-      }
-
-      (50 to 100) foreach {
-        i =>
-          db.get(i).assertGetOpt shouldBe empty
-      }
-    }
-
-    "update" in {
-      val db = newDB()
-
-      (1 to 100) foreach {
-        i =>
-          db.put(i, i.toString).assertGet
-      }
-
-      db.update(50, 100, "updated").assertGet
-
-      (1 to 49) foreach {
-        i =>
-          db.get(i).assertGet shouldBe i.toString
-      }
-
-      (50 to 100) foreach {
-        i =>
-          db.get(i).assertGet shouldBe "updated"
-      }
-    }
-
     "remove all but first and last" in {
       val db = newDB()
 
@@ -339,49 +289,35 @@ sealed trait SwayDBSpec extends TestBase {
 
       db.remove(1, 2000000).assertGet
 
-      def pluralSegment(count: Int) = if (count == 1) "Segment" else "Segments"
+      assertLevelsAreEmpty(db, submitUpdates = true)
 
-      //recursively go through all levels and assert they do no have any Segments.
-      //Note: Could change this test to use Future with delays instead of blocking but the blocking code is probably more easier to read.
-      @tailrec
-      def assertLevelsAreEmpty(db: SwayDBMap[Int, String], levelNumber: Int, expectedLastLevelEmpty: Boolean): Unit = {
-        db.levelMeter(levelNumber) match {
-          case Some(meter) if db.levelMeter(levelNumber + 1).nonEmpty => //is not the last Level. Check if this level contains no Segments.
-            db.isEmpty shouldBe true //isEmpty will always return true since all key-values were removed.
-            if (meter.segmentsCount == 0) { //this Level is empty, jump to next Level.
-              println(s"Level $levelNumber is empty.")
-              assertLevelsAreEmpty(db, levelNumber + 1, expectedLastLevelEmpty)
-            } else {
-              val interval = (levelNumber * 3).seconds //Level is not empty, try again with delay.
-              println(s"Level $levelNumber contains ${meter.segmentsCount} ${pluralSegment(meter.segmentsCount)}. Will check again after $interval.")
-              sleep(interval)
-              assertLevelsAreEmpty(db, levelNumber, expectedLastLevelEmpty)
-            }
-          case _ => //is the last Level which will contains Segments.
-            if (!expectedLastLevelEmpty) {
-              println(s"Level $levelNumber. Submitting updated to trigger remove.")
-              (1 to 500000) foreach { //submit multiple update range key-values so that a map gets submitted for compaction and to trigger merge on copied Segments in last Level.
-                i =>
-                  db.update(1, 1000000, "just triggering update to assert remove").assertGet
-                  if (i == 100000) sleep(2.seconds)
-              }
-              //update submitted, now expect the merge to get triggered on the Segments in the last Level and Compaction to remove all key-values.
-            }
+    }
 
-            db.isEmpty shouldBe true //isEmpty will always return true since all key-values were removed.
+    "eventually remove all Segments from the database when expire range is submitted" in {
+      val db = newDB()
 
-            val segmentsCount = db.levelMeter(levelNumber).map(_.segmentsCount) getOrElse -1
-            if (segmentsCount != 0) {
-              println(s"Level $levelNumber contains $segmentsCount ${pluralSegment(segmentsCount)}. Will check again after 8.seconds.")
-              sleep(8.seconds)
-              assertLevelsAreEmpty(db, levelNumber, true)
-            } else {
-              println(s"Compaction completed. Level $levelNumber is empty.\n")
-            }
-        }
+      (1 to 2000000) foreach {
+        i =>
+          db.put(i, i.toString).assertGet
       }
-      //this test might take a while depending on the Compaction speed but it should not run for too long hence the timeout.
-      Future(assertLevelsAreEmpty(db, 1, false)).await(10.minutes)
+
+      db.expire(1, 2000000, 5.minutes).assertGet
+      println("Expiry submitted.")
+
+      assertLevelsAreEmpty(db, submitUpdates = true)
+
+    }
+
+    "eventually remove all Segments from the database when put is submitted with expiry" in {
+      val db = newDB()
+
+      (1 to 2000000) foreach {
+        i =>
+          db.put(i, i.toString, 1.minute).assertGet
+      }
+
+      assertLevelsAreEmpty(db, submitUpdates = false)
+
     }
   }
 }

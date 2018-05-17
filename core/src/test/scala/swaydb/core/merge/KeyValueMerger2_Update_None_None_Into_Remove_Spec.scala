@@ -35,7 +35,7 @@ class KeyValueMerger2_Update_None_None_Into_Remove_Spec extends WordSpec with Ma
 
   "Update(None, None) -> Remove(None)" when {
     "Remove(None)" in {
-      (Memory.Update(1, None, None), Memory.Remove(1, None)).applyValue shouldBe Memory.Remove(1, None)
+      (Memory.Update(1, None, None), Memory.Remove(1, None)).merge shouldBe Memory.Remove(1, None)
     }
   }
 
@@ -46,17 +46,17 @@ class KeyValueMerger2_Update_None_None_Into_Remove_Spec extends WordSpec with Ma
   "Update(None, None) -> Remove(Some)" when {
     "Remove(HasTimeLeft)" in {
       val deadline = 20.seconds.fromNow
-      (Memory.Update(1, None, None), Memory.Remove(1, deadline)).applyValue shouldBe Memory.Update(1, None, deadline)
+      (Memory.Update(1, None, None), Memory.Remove(1, deadline)).merge shouldBe Memory.Update(1, None, deadline)
     }
 
     "Remove(HasNoTimeLeft)" in {
       val deadline = 5.seconds.fromNow
-      (Memory.Update(1, None, None), Memory.Remove(1, deadline)).applyValue shouldBe Memory.Remove(1, deadline)
+      (Memory.Update(1, None, None), Memory.Remove(1, deadline)).merge shouldBe Memory.Update(1, None, deadline)
     }
 
     "Remove(Expired)" in {
       val deadline = expiredDeadline()
-      (Memory.Update(1, None, None), Memory.Remove(1, deadline)).applyValue shouldBe Memory.Remove(1, deadline)
+      (Memory.Update(1, None, None), Memory.Remove(1, deadline)).merge shouldBe Memory.Remove(1, deadline)
     }
   }
 }

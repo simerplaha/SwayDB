@@ -44,7 +44,7 @@ import swaydb.serializers._
 
 import scala.collection.JavaConverters._
 import scala.concurrent.duration._
-import scala.util.Random
+import scala.util.{Random, Try}
 
 class SegmentWriteSpec0 extends SegmentWriteSpec
 
@@ -682,6 +682,12 @@ trait SegmentWriteSpec extends TestBase with Benchmark {
       def nextPath = levelPath.resolve(IDGenerator.segmentId(nextId))
 
       Files.createFile(levelPath.resolve(IDGenerator.segmentId(nextSegmentId + 4))) //path already taken.
+
+      levelStorage.dirs foreach {
+        dir =>
+          Files.createDirectories(dir.path)
+          Try(Files.createFile(dir.path.resolve(IDGenerator.segmentId(nextSegmentId + 4)))) //path already taken.
+      }
 
       val filesBeforeCopy = levelPath.files(Extension.Seg)
       filesBeforeCopy.size shouldBe 1

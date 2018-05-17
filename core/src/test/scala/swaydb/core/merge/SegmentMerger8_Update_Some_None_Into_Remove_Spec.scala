@@ -69,7 +69,7 @@ class SegmentMerger8_Update_Some_None_Into_Remove_Spec extends WordSpec with Com
       assertMerge(
         newKeyValue = Memory.Update(1, 1, None),
         oldKeyValue = Memory.Remove(1, deadline),
-        expected = Memory.Remove(1, deadline),
+        expected = Memory.Update(1, 1, deadline),
         lastLevelExpect = None,
         hasTimeLeftAtLeast = 10.seconds
       )

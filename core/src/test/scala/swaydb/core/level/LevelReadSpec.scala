@@ -55,7 +55,7 @@ class LevelReadSpec2 extends LevelReadSpec {
   override def appendixStorageMMAP = false
 }
 
-class LevelMemoryReadSpec extends LevelReadSpec {
+class LevelReadSpec3 extends LevelReadSpec {
   override def inMemoryStorage = true
 }
 //@formatter:on

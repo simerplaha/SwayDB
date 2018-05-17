@@ -121,8 +121,8 @@ class SegmentMerger9_Update_None_Some_Into_Update_Spec extends WordSpec with Com
     }
 
     "Update None Expired-Lesser" in {
-      val deadline = expiredDeadline() - 1.seconds
       val deadline2 = expiredDeadline()
+      val deadline = deadline2 - 1.seconds
 
       assertMerge(
         newKeyValue = Memory.Update(1, None, deadline),
@@ -171,7 +171,7 @@ class SegmentMerger9_Update_None_Some_Into_Update_Spec extends WordSpec with Com
       assertMerge(
         newKeyValue = Memory.Update(1, None, deadline),
         oldKeyValue = Memory.Update(1, 1, deadline2),
-        expected = Memory.Update(1, 1, deadline2),
+        expected = Memory.Update(1, None, deadline2),
         lastLevelExpect = None,
         hasTimeLeftAtLeast = 10.seconds
       )
@@ -197,7 +197,7 @@ class SegmentMerger9_Update_None_Some_Into_Update_Spec extends WordSpec with Com
       assertMerge(
         newKeyValue = Memory.Update(1, None, deadline),
         oldKeyValue = Memory.Update(1, 1, deadline2),
-        expected = Memory.Update(1, 1, deadline2),
+        expected = Memory.Update(1, None, deadline2),
         lastLevelExpect = None,
         hasTimeLeftAtLeast = 10.seconds
       )

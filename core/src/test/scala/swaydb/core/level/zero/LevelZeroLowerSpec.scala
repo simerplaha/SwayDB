@@ -128,11 +128,11 @@ class LevelZeroLowerSpec extends TestBase with MockFactory with Benchmark {
 
       (2 to 100) foreach {
         i =>
-          if (i >= 10 && i <= 15)
+          if (i >= 10 && i <= 16)
             level0.lower(i).assertGetOpt should contain((9: Slice[Byte], Some(9: Slice[Byte])))
-          else if (i >= 18 && i <= 20)
+          else if (i >= 18 && i <= 21)
             level0.lower(i).assertGetOpt should contain((17: Slice[Byte], Some(17: Slice[Byte])))
-          else if (i >= 50 && i <= 60)
+          else if (i >= 50 && i <= 61)
             level0.lower(i).assertGetOpt should contain((49: Slice[Byte], Some(49: Slice[Byte])))
           else
             level0.lower(i).assertGetOpt should contain((i - 1: Slice[Byte], Some(i - 1: Slice[Byte])))

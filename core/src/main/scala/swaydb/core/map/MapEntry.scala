@@ -33,10 +33,12 @@ import scala.collection.mutable.ListBuffer
   *
   * Batched MapEntries are checksum and persisted as one batch operation.
   *
+  * Batched MapEntries mutable (ListBuffer) to speed up boot-up time for Map recovery.
+  * It should be changed to immutable List. Need to fix this.
+  *
   * @tparam K Key type
   * @tparam V Value type
   */
-
 private[swaydb] sealed trait MapEntry[K, +V] { thisEntry =>
 
   def applyTo[T >: V](map: ConcurrentSkipListMap[K, T]): Unit
@@ -44,6 +46,8 @@ private[swaydb] sealed trait MapEntry[K, +V] { thisEntry =>
   val hasRange: Boolean
   val hasUpdate: Boolean
   val hasRemoveDeadline: Boolean
+
+  def entriesCount: Int
 
   /**
     * Each map entry computes the bytes required for the entry on creation.
@@ -80,11 +84,46 @@ private[swaydb] sealed trait MapEntry[K, +V] { thisEntry =>
 
 private[swaydb] object MapEntry {
 
+  /**
+    * Returns a combined Entry with duplicates removed from oldEntry, favouring newer duplicate entries.
+    */
+  def distinct[V](newEntry: MapEntry[Slice[Byte], V],
+                  oldEntry: MapEntry[Slice[Byte], V])(implicit ordering: Ordering[Slice[Byte]]): MapEntry[Slice[Byte], V] = {
+    import ordering._
+    (oldEntry.entries filterNot {
+      case MapEntry.Put(oldKey, _) =>
+        newEntry.entries.exists {
+          case MapEntry.Put(newKey, _) =>
+            newKey equiv oldKey
+          case MapEntry.Remove(newKey) =>
+            newKey equiv oldKey
+        }
+      case MapEntry.Remove(oldKey) =>
+        newEntry.entries.exists {
+          case MapEntry.Put(newKey, _) =>
+            newKey equiv oldKey
+          case MapEntry.Remove(newKey) =>
+            newKey equiv oldKey
+        }
+    }).foldLeft(newEntry) {
+      case (newEntry, oldEntry) =>
+        newEntry ++ {
+          oldEntry match {
+            case entry @ MapEntry.Put(newKey, _) =>
+              entry.copySingle()
+            case entry @ MapEntry.Remove(newKey) =>
+              entry.copySingle()
+          }
+        }
+    }
+  }
+
   implicit class MapEntriesBatch[K, V](left: MapEntry[K, V]) {
     def ++(right: MapEntry[K, V]): MapEntry[K, V] =
       new MapEntry[K, V] {
 
-        override protected val _entries = left._entries ++= right._entries
+        override protected val _entries =
+          left._entries ++= right._entries
 
         override def writeTo(slice: Slice[Byte]): Unit =
           _entries foreach (_.writeTo(slice))
@@ -106,10 +145,13 @@ private[swaydb] object MapEntry {
 
         override val hasRemoveDeadline: Boolean =
           left.hasRemoveDeadline || right.hasRemoveDeadline
+
+        def entriesCount: Int =
+          _entries.size
       }
 
-    def entries: ListBuffer[MapEntry[K, V]] =
-      left._entries.asInstanceOf[ListBuffer[MapEntry[K, V]]]
+    def entries: List[MapEntry[K, V]] =
+      left._entries.toList.asInstanceOf[List[MapEntry[K, V]]]
 
   }
 
@@ -133,6 +175,14 @@ private[swaydb] object MapEntry {
     override def applyTo[T >: V](map: ConcurrentSkipListMap[K, T]): Unit =
       map.put(key, value)
 
+    val entriesCount: Int =
+      1
+
+    //copy single creates a new Map entry clearing the ListBuffer. Immutable list is used here to speed boot-up
+    //times when recovery key-values from Level0's map files. This should be changed to be immutable.
+    def copySingle() =
+      copy()
+
   }
 
   case class Remove[K](key: K)(implicit serializer: MapEntryWriter[MapEntry.Remove[K]]) extends MapEntry[K, Nothing] {
@@ -149,6 +199,11 @@ private[swaydb] object MapEntry {
 
     override def applyTo[T >: Nothing](map: ConcurrentSkipListMap[K, T]): Unit =
       map.remove(key)
-  }
 
+    val entriesCount: Int =
+      1
+
+    def copySingle() =
+      copy()
+  }
 }

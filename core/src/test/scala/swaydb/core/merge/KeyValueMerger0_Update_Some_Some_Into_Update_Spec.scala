@@ -37,8 +37,8 @@ class KeyValueMerger0_Update_Some_Some_Into_Update_Spec extends WordSpec with Ma
     "Update(None, None)" in {
       (1 to 20) foreach {
         i =>
-          val deadline = i.seconds.fromNow - 2.seconds
-          (Memory.Update(1, 1, deadline), Memory.Update(1, None, None)).applyValue shouldBe Memory.Update(1, 1, deadline)
+          val deadline = i.seconds.fromNow - 10.seconds
+          (Memory.Update(1, 1, deadline), Memory.Update(1, None, None)).merge shouldBe Memory.Update(1, 1, deadline)
       }
     }
   }
@@ -51,37 +51,37 @@ class KeyValueMerger0_Update_Some_Some_Into_Update_Spec extends WordSpec with Ma
     "Update(None, HasTimeLeft-Greater)" in {
       val deadline = 30.seconds.fromNow
       val deadline2 = 20.seconds.fromNow
-      (Memory.Update(1, 1, deadline), Memory.Update(1, None, deadline2)).applyValue shouldBe Memory.Update(1, 1, deadline)
+      (Memory.Update(1, 1, deadline), Memory.Update(1, None, deadline2)).merge shouldBe Memory.Update(1, 1, deadline)
     }
 
     "Update(None, HasTimeLeft-Lesser)" in {
       val deadline = 10.seconds.fromNow
       val deadline2 = 20.seconds.fromNow
-      (Memory.Update(1, 1, deadline), Memory.Update(1, None, deadline2)).applyValue shouldBe Memory.Update(1, 1, deadline)
+      (Memory.Update(1, 1, deadline), Memory.Update(1, None, deadline2)).merge shouldBe Memory.Update(1, 1, deadline)
     }
 
     "Update(None, HasNoTimeLeft-Greater)" in {
       val deadline = 30.seconds.fromNow
       val deadline2 = 2.seconds.fromNow
-      (Memory.Update(1, 1, deadline), Memory.Update(1, None, deadline2)).applyValue shouldBe Memory.Update(1, None, deadline2)
+      (Memory.Update(1, 1, deadline), Memory.Update(1, None, deadline2)).merge shouldBe Memory.Update(1, 1, deadline2)
     }
 
     "Update(None, HasNoTimeLeft-Lesser)" in {
       val deadline = 1.seconds.fromNow
       val deadline2 = 2.seconds.fromNow
-      (Memory.Update(1, 1, deadline), Memory.Update(1, None, deadline2)).applyValue shouldBe Memory.Update(1, 1, deadline)
+      (Memory.Update(1, 1, deadline), Memory.Update(1, None, deadline2)).merge shouldBe Memory.Update(1, 1, deadline)
     }
 
     "Update(None, Expired-Greater)" in {
       val deadline = 30.seconds.fromNow
       val deadline2 = expiredDeadline()
-      (Memory.Update(1, 1, deadline), Memory.Update(1, None, deadline2)).applyValue shouldBe Memory.Update(1, None, deadline2)
+      (Memory.Update(1, 1, deadline), Memory.Update(1, None, deadline2)).merge shouldBe Memory.Update(1, 1, deadline2)
     }
 
     "Update(None, Expired-Lesser)" in {
       val deadline2 = expiredDeadline()
       val deadline = deadline2 - 1.seconds
-      (Memory.Update(1, 1, deadline), Memory.Update(1, None, deadline2)).applyValue shouldBe Memory.Update(1, 1, deadline)
+      (Memory.Update(1, 1, deadline), Memory.Update(1, None, deadline2)).merge shouldBe Memory.Update(1, 1, deadline)
     }
   }
 
@@ -93,8 +93,8 @@ class KeyValueMerger0_Update_Some_Some_Into_Update_Spec extends WordSpec with Ma
     "Update(Some, None)" in {
       (1 to 20) foreach {
         i =>
-          val deadline = i.seconds.fromNow - 2.seconds
-          (Memory.Update(1, 1, deadline), Memory.Update(1, "old value", None)).applyValue shouldBe Memory.Update(1, 1, deadline)
+          val deadline = i.seconds.fromNow - 10.seconds
+          (Memory.Update(1, 1, deadline), Memory.Update(1, "old value", None)).merge shouldBe Memory.Update(1, 1, deadline)
       }
     }
   }
@@ -107,37 +107,37 @@ class KeyValueMerger0_Update_Some_Some_Into_Update_Spec extends WordSpec with Ma
     "Update(Some, HasTimeLeft-Greater)" in {
       val deadline = 30.seconds.fromNow
       val deadline2 = 20.seconds.fromNow
-      (Memory.Update(1, 1, deadline), Memory.Update(1, 2, deadline2)).applyValue shouldBe Memory.Update(1, 1, deadline)
+      (Memory.Update(1, 1, deadline), Memory.Update(1, 2, deadline2)).merge shouldBe Memory.Update(1, 1, deadline)
     }
 
     "Update(Some, HasTimeLeft-Lesser)" in {
       val deadline = 10.seconds.fromNow
       val deadline2 = 20.seconds.fromNow
-      (Memory.Update(1, 1, deadline), Memory.Update(1, 2, deadline2)).applyValue shouldBe Memory.Update(1, 1, deadline)
+      (Memory.Update(1, 1, deadline), Memory.Update(1, 2, deadline2)).merge shouldBe Memory.Update(1, 1, deadline)
     }
 
     "Update(Some, HasNoTimeLeft-Greater)" in {
       val deadline = 30.seconds.fromNow
       val deadline2 = 2.seconds.fromNow
-      (Memory.Update(1, 1, deadline), Memory.Update(1, 2, deadline2)).applyValue shouldBe Memory.Update(1, 2, deadline2)
+      (Memory.Update(1, 1, deadline), Memory.Update(1, 2, deadline2)).merge shouldBe Memory.Update(1, 1, deadline2)
     }
 
     "Update(Some, HasNoTimeLeft-Lesser)" in {
       val deadline = 1.seconds.fromNow
       val deadline2 = 2.seconds.fromNow
-      (Memory.Update(1, 1, deadline), Memory.Update(1, 2, deadline2)).applyValue shouldBe Memory.Update(1, 1, deadline)
+      (Memory.Update(1, 1, deadline), Memory.Update(1, 2, deadline2)).merge shouldBe Memory.Update(1, 1, deadline)
     }
 
     "Update(Some, Expired-Greater)" in {
       val deadline = 30.seconds.fromNow
       val deadline2 = expiredDeadline()
-      (Memory.Update(1, 1, deadline), Memory.Update(1, 2, deadline2)).applyValue shouldBe Memory.Update(1, 2, deadline2)
+      (Memory.Update(1, 1, deadline), Memory.Update(1, 2, deadline2)).merge shouldBe Memory.Update(1, 1, deadline2)
     }
 
     "Update(Some, Expired-Lesser)" in {
       val deadline2 = expiredDeadline()
       val deadline = deadline2 - 1.seconds
-      (Memory.Update(1, 1, deadline), Memory.Update(1, 2, deadline2)).applyValue shouldBe Memory.Update(1, 1, deadline)
+      (Memory.Update(1, 1, deadline), Memory.Update(1, 2, deadline2)).merge shouldBe Memory.Update(1, 1, deadline)
     }
   }
 }

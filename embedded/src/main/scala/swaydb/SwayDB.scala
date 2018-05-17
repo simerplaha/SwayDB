@@ -111,6 +111,7 @@ object SwayDB extends LazyLogging {
                        cacheCheckDelay: FiniteDuration = 5.seconds,
                        segmentsOpenCheckDelay: FiniteDuration = 5.seconds,
                        bloomFilterFalsePositiveRate: Double = 0.01,
+                       minTimeLeftToUpdateExpiration: FiniteDuration = 10.seconds,
                        acceleration: Level0Meter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
                                                                                           valueSerializer: Serializer[V],
                                                                                           ordering: Ordering[Slice[Byte]] = KeyOrder.default,
@@ -126,6 +127,7 @@ object SwayDB extends LazyLogging {
         segmentSize = segmentSize,
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+        minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
         acceleration = acceleration
       ),
       maxOpenSegments = maxOpenSegments,
@@ -154,6 +156,7 @@ object SwayDB extends LazyLogging {
                        cacheCheckDelay: FiniteDuration = 5.seconds,
                        segmentsOpenCheckDelay: FiniteDuration = 5.seconds,
                        bloomFilterFalsePositiveRate: Double = 0.01,
+                       minTimeLeftToUpdateExpiration: FiniteDuration = 10.seconds,
                        acceleration: Level0Meter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[T],
                                                                                           ordering: Ordering[Slice[Byte]] = KeyOrder.default,
                                                                                           ec: ExecutionContext = defaultExecutionContext): Try[SwayDBSet[T]] =
@@ -169,6 +172,7 @@ object SwayDB extends LazyLogging {
         segmentSize = segmentSize,
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+        minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
         acceleration = acceleration
       ),
       maxOpenSegments = maxOpenSegments,
@@ -200,16 +204,18 @@ object SwayDB extends LazyLogging {
   def memory[K, V](mapSize: Int = 4.mb,
                    segmentSize: Int = 2.mb,
                    bloomFilterFalsePositiveRate: Double = 0.01,
+                   minTimeLeftToUpdateExpiration: FiniteDuration = 10.seconds,
                    acceleration: Level0Meter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
                                                                                       valueSerializer: Serializer[V],
                                                                                       ordering: Ordering[Slice[Byte]] = KeyOrder.default,
                                                                                       ec: ExecutionContext = defaultExecutionContext): Try[SwayDBMap[K, V]] =
     CoreAPI(
       config = MemoryConfig(
-        mapSize,
-        segmentSize,
-        bloomFilterFalsePositiveRate,
-        acceleration
+        mapSize = mapSize,
+        segmentSize = segmentSize,
+        bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+        minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
+        acceleration = acceleration
       ),
       maxOpenSegments = 0,
       cacheSize = 0,
@@ -226,15 +232,17 @@ object SwayDB extends LazyLogging {
   def memorySet[T](mapSize: Int = 4.mb,
                    segmentSize: Int = 2.mb,
                    bloomFilterFalsePositiveRate: Double = 0.01,
+                   minTimeLeftToUpdateExpiration: FiniteDuration = 10.seconds,
                    acceleration: Level0Meter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[T],
                                                                                       ordering: Ordering[Slice[Byte]] = KeyOrder.default,
                                                                                       ec: ExecutionContext = defaultExecutionContext): Try[SwayDBSet[T]] =
     CoreAPI(
       config = MemoryConfig(
-        mapSize,
-        segmentSize,
-        bloomFilterFalsePositiveRate,
-        acceleration
+        mapSize = mapSize,
+        segmentSize = segmentSize,
+        bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+        minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
+        acceleration = acceleration
       ),
       maxOpenSegments = 0,
       cacheSize = 0,
@@ -290,6 +298,7 @@ object SwayDB extends LazyLogging {
                              cacheCheckDelay: FiniteDuration = 5.seconds,
                              segmentsOpenCheckDelay: FiniteDuration = 5.seconds,
                              bloomFilterFalsePositiveRate: Double = 0.01,
+                             minTimeLeftToUpdateExpiration: FiniteDuration = 10.seconds,
                              acceleration: Level0Meter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
                                                                                                 valueSerializer: Serializer[V],
                                                                                                 ordering: Ordering[Slice[Byte]] = KeyOrder.default,
@@ -308,6 +317,7 @@ object SwayDB extends LazyLogging {
           mmapPersistentSegments = mmapPersistentSegments,
           mmapPersistentAppendix = mmapPersistentAppendix,
           bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+          minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
           acceleration = acceleration
         ),
       maxOpenSegments = maxOpenSegments,
@@ -337,6 +347,7 @@ object SwayDB extends LazyLogging {
                              cacheCheckDelay: FiniteDuration = 5.seconds,
                              segmentsOpenCheckDelay: FiniteDuration = 5.seconds,
                              bloomFilterFalsePositiveRate: Double = 0.01,
+                             minTimeLeftToUpdateExpiration: FiniteDuration = 10.seconds,
                              acceleration: Level0Meter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[T],
                                                                                                 ordering: Ordering[Slice[Byte]] = KeyOrder.default,
                                                                                                 ec: ExecutionContext = defaultExecutionContext): Try[SwayDBSet[T]] =
@@ -354,6 +365,7 @@ object SwayDB extends LazyLogging {
           mmapPersistentSegments = mmapPersistentSegments,
           mmapPersistentAppendix = mmapPersistentAppendix,
           bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+          minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
           acceleration = acceleration
         ),
       maxOpenSegments = maxOpenSegments,
@@ -594,4 +606,7 @@ private[swaydb] class SwayDB(api: CoreAPI) extends SwayDBAPI {
 
   override def valueSize(key: Slice[Byte]): Try[Option[Int]] =
     api.valueSize(key)
+
+  def deadline(key: Slice[Byte]): Try[Option[Deadline]] =
+    api.deadline(key)
 }

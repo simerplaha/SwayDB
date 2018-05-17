@@ -120,7 +120,7 @@ private[map] object PersistentMap extends LazyLogging {
                           } else {
                             entry applyTo skipList
                           }
-                          size + entry.entries.size
+                          size + entry.entriesCount
                       }
                     logger.info(s"{}: Recovered {} ${if (entriesRecovered > 1) "entries" else "entry"}.", path, entriesRecovered)
                     RecoveryResult(file, recovery.result)
@@ -255,8 +255,8 @@ private[map] case class PersistentMap[K, V: ClassTag](path: Path,
         _ =>
           //if this main contains range then use skipListMerge.
           if (entry.hasRange) {
+            _hasRange = true //set hasRange to true before inserting so that reads start looking for floor key-values as the inserts are occuring.
             skipListMerger.insert(entry, skipList)
-            _hasRange = true
           } else if (entry.hasUpdate || entry.hasRemoveDeadline || _hasRange) {
             skipListMerger.insert(entry, skipList)
           } else {

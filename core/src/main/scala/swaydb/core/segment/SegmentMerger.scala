@@ -33,6 +33,7 @@ import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
+import swaydb.data.util.StorageUnits._
 
 private[core] object SegmentMerger extends LazyLogging {
 
@@ -169,6 +170,23 @@ private[core] object SegmentMerger extends LazyLogging {
     }
     mergeSmallerSegmentWithPrevious(splits, minSegmentSize, forInMemory, bloomFilterFalsePositiveRate).filter(_.nonEmpty)
   }
+
+  /**
+    * TODO: Both inputs are Memory so temporarily it's OK to call .get because Memory key-values do not do IO. But this should be fixed and .get should be invoked.
+    *
+    * Need a type class implementation on executing side effects of merging key-values, one for Memory key-values and other for persistent.
+    *
+    */
+  def merge(newKeyValues: Slice[Memory],
+            oldKeyValues: Slice[Memory],
+            hasTimeLeftAtLeast: FiniteDuration)(implicit ordering: Ordering[Slice[Byte]]): ListBuffer[KeyValue.WriteOnly] =
+    merge(newKeyValues, oldKeyValues, 1000.gb, false, true, 0.1, hasTimeLeftAtLeast).get.flatten.asInstanceOf[ListBuffer[KeyValue.WriteOnly]]
+
+  def merge(newKeyValue: Memory,
+            oldKeyValue: Memory,
+            hasTimeLeftAtLeast: FiniteDuration)(implicit ordering: Ordering[Slice[Byte]]): ListBuffer[KeyValue.WriteOnly] =
+    merge(Slice(newKeyValue), Slice(oldKeyValue), 1000.gb, false, true, 0.1, hasTimeLeftAtLeast).get.flatten.asInstanceOf[ListBuffer[KeyValue.WriteOnly]]
+
 
   def merge(newKeyValues: Slice[KeyValue.ReadOnly],
             oldKeyValues: Slice[KeyValue.ReadOnly],

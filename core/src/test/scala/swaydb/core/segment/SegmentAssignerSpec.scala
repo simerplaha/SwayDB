@@ -19,9 +19,11 @@
 
 package swaydb.core.segment
 
+import java.nio.file.Path
+
 import swaydb.core.TestBase
 import swaydb.core.data.Value.{FromValue, RangeValue}
-import swaydb.core.data.{Memory, Transient, Value}
+import swaydb.core.data.{KeyValue, Memory, Transient, Value}
 import swaydb.core.map.serializer.RangeValueSerializers._
 import swaydb.core.util.FileUtil._
 import swaydb.core.util.PipeOps._
@@ -30,7 +32,9 @@ import swaydb.order.KeyOrder
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
+import scala.collection.mutable
 import scala.concurrent.duration._
+import scala.util.Random
 
 //@formatter:off
 class SegmentAssignerSpec0 extends SegmentAssignerSpec {
@@ -120,7 +124,6 @@ trait SegmentAssignerSpec extends TestBase {
       result.values.head.toMemory shouldBe keyValues
     }
 
-
     "assign gap KeyValue to the second Segment if the first Segment has no key-value assigned to it" in {
       val segment1 = TestSegment(Slice(Transient.Put(1), Transient.Range[FromValue, RangeValue](2, 10, None, Value.Remove(1.second.fromNow))).updateStats).assertGet
       val segment2 = TestSegment(Slice(Transient.Remove(20)).updateStats).assertGet
@@ -155,9 +158,9 @@ trait SegmentAssignerSpec extends TestBase {
       //15 is a gap key but no key-values are assigned to segment1 so segment2 will get this key-value an it will be split across.
       //all next overlapping Segments.
       val keyValues =
-        Slice(
-          Memory.Range(15, 50, Some(Value.Remove(None)), Value.Update(10))
-        )
+      Slice(
+        Memory.Range(15, 50, Some(Value.Remove(None)), Value.Update(10))
+      )
 
       val assignments = SegmentAssigner.assign(keyValues, segments).assertGet
       assignments.size shouldBe 3
@@ -198,6 +201,23 @@ trait SegmentAssignerSpec extends TestBase {
           assignments.find(_._1 == segment1).assertGet._2 should contain only Memory.Range(0, 4, Some(Value.Put(0)), Value.Remove(None))
           assignments.find(_._1 == segment2).assertGet._2 should contain only Memory.Range(4, 6, None, Value.Remove(None))
           assignments.find(_._1 == segment3).assertGet._2 should contain only Memory.Range(6, 20, None, Value.Remove(None))
+      }
+    }
+
+    "debugger" in {
+      val segment1 = TestSegment(Slice(Memory.Put(1), Memory.Range(26074, 26075, None, Value.Update(None, None))).toTransient).assertGet
+      val segment2 = TestSegment(Slice(Memory.Put(26075), Memory.Range(28122, 28123, None, Value.Update(None, None))).toTransient).assertGet
+      val segment3 = TestSegment(Slice(Memory.Put(28123), Memory.Range(32218, 32219, None, Value.Update(None, None))).toTransient).assertGet
+      val segment4 = TestSegment(Slice(Memory.Put(32219), Memory.Range(40410, 40411, None, Value.Update(None, None))).toTransient).assertGet
+      val segment5 = TestSegment(Slice(Memory.Put(74605), Memory.Put(100000)).toTransient).assertGet
+
+      val segments = Seq(segment1, segment2, segment3, segment4, segment5)
+
+      SegmentAssigner.assign(Slice(Memory.Put(1), Memory.Put(100000)), segments).assertGet ==> {
+        assignments =>
+          assignments.size shouldBe 2
+          assignments.find(_._1 == segment1).assertGet._2 should contain only Memory.Put(1)
+          assignments.find(_._1 == segment5).assertGet._2 should contain only Memory.Put(100000)
       }
     }
 

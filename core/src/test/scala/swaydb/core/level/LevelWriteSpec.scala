@@ -764,6 +764,7 @@ trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
       level.putKeyValues(keyValues).assertGet
       //dispatch another put request so that existing Segment gets split
       level.putKeyValues(Slice(keyValues.head)).assertGet
+
       val segmentCountBeforeDelete = level.segmentsCount()
       segmentCountBeforeDelete > 1 shouldBe true
 
@@ -975,7 +976,7 @@ trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester 
       val level = TestLevel()
 
       val map = TestSegment(Slice(Transient.Put(1, "value1"), Transient.Put(2, "value2")).updateStats).assertGet
-      val actualMapEntry = level.buildNewMapEntry(Slice(map), initialMapEntry = None).assertGet
+      val actualMapEntry = level.buildNewMapEntry(Slice(map), originalSegmentMayBe = None, initialMapEntry = None).assertGet
       val expectedMapEntry = MapEntry.Put[Slice[Byte], Segment](map.minKey, map)
 
       actualMapEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.maxKey.read[Int]) shouldBe

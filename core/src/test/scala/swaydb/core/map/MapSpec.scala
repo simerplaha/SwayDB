@@ -19,7 +19,7 @@
 
 package swaydb.core.map
 
-import java.nio.file.{FileAlreadyExistsException, Files, Path}
+import java.nio.file.{FileAlreadyExistsException, Files, Path, Paths}
 import java.util.concurrent.ConcurrentSkipListMap
 
 import swaydb.core.data.{Memory, Persistent, Transient, Value}
@@ -100,6 +100,13 @@ class MapSpec extends TestBase {
       map.write(MapEntry.Remove[Slice[Byte]](2)).assertGet shouldBe true
       map.get(1) shouldBe empty
       map.get(2) shouldBe empty
+    }
+
+    "dsads" in {
+      import LevelZeroMapEntryReader._
+      import LevelZeroMapEntryWriter._
+
+      val map = Map.persistent[Slice[Byte], Memory](Paths.get("/Users/simer/IdeaProjects/SwayDB.stress/target/TEST_DATABASES/142"), mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).assertGet.item
     }
 
     "initialise a persistent Level0 map and recover from it when it's empty" in {

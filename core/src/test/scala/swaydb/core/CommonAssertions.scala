@@ -44,9 +44,31 @@ import scala.util.{Random, Try}
 
 trait CommonAssertions extends TryAssert with FutureBase with TestData {
 
+  def randomly[T](f: => T): Option[T] =
+    if (Random.nextBoolean())
+      Some(f)
+    else
+      None
+
+  def eitherOne[T](left: => T, right: => T): T =
+    if (Random.nextBoolean())
+      left
+    else
+      right
+
+  def anyOrder[T](execution1: => T, execution2: => T): Unit =
+    if (Random.nextBoolean()) {
+      execution1
+      execution2
+    } else {
+      execution2
+      execution1
+    }
+
   def runThis(times: Int)(f: => Unit): Unit =
     (1 to times) foreach {
-      _ =>
+      i =>
+        println(s"Iteration number: $i")
         f
     }
 
@@ -81,7 +103,7 @@ trait CommonAssertions extends TryAssert with FutureBase with TestData {
   }
 
   implicit class ApplyValue(keyValues: (Memory.Fixed, Memory.Fixed)) {
-    def applyValue: ReadOnly.Fixed =
+    def merge: ReadOnly.Fixed =
       KeyValueMerger.applyValue(keyValues._1, keyValues._2, 10.seconds).assertGet
   }
 

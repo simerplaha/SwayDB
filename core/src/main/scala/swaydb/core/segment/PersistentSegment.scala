@@ -42,17 +42,17 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 import scala.util.{Failure, Success, Try}
 
-private[segment] class PersistentSegment(val file: DBFile,
-                                         mmapReads: Boolean,
-                                         mmapWrites: Boolean,
-                                         val minKey: Slice[Byte],
-                                         val maxKey: MaxKey,
-                                         val segmentSize: Int,
-                                         val removeDeletes: Boolean,
-                                         val nearestExpiryDeadline: Option[Deadline])(implicit ordering: Ordering[Slice[Byte]],
-                                                                                      keyValueLimiter: (Persistent, Segment) => Unit,
-                                                                                      fileOpenLimited: DBFile => Unit,
-                                                                                      ec: ExecutionContext) extends Segment with LazyLogging {
+private[segment] case class PersistentSegment(file: DBFile,
+                                              mmapReads: Boolean,
+                                              mmapWrites: Boolean,
+                                              minKey: Slice[Byte],
+                                              maxKey: MaxKey,
+                                              segmentSize: Int,
+                                              removeDeletes: Boolean,
+                                              nearestExpiryDeadline: Option[Deadline])(implicit ordering: Ordering[Slice[Byte]],
+                                                                                           keyValueLimiter: (Persistent, Segment) => Unit,
+                                                                                           fileOpenLimited: DBFile => Unit,
+                                                                                           ec: ExecutionContext) extends Segment with LazyLogging {
 
   import ordering._
 

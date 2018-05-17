@@ -23,16 +23,20 @@ import org.scalatest.concurrent.Eventually
 
 import scala.concurrent.duration.{FiniteDuration, _}
 import scala.concurrent.{Await, Future}
+import swaydb.core.util.FiniteDurationUtil._
 
 trait FutureBase extends Eventually {
 
   implicit val level0PushDownPool = TestExecutionContext.executionContext
 
-  def sleep(time: FiniteDuration) = {
-    println(s"Sleeping for: $time")
+  def sleep(time: FiniteDuration): Unit = {
+    println(s"Sleeping for: ${time.asString}")
     Thread.sleep(time.toMillis)
-    println(s"Up from sleep: $time")
+    println(s"Up from sleep: ${time.asString}")
   }
+
+  def sleep(time: Deadline): Unit =
+    if (time.hasTimeLeft()) sleep(time.timeLeft)
 
   def eventual[A](code: => A): Unit =
     eventual()(code)

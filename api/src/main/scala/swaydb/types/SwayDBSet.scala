@@ -28,6 +28,7 @@ import swaydb.iterator.KeysIterator
 import swaydb.serializers.{Serializer, _}
 import swaydb.types.BatchImplicits._
 
+import scala.concurrent.duration.{Deadline, FiniteDuration}
 import scala.util.Try
 
 object SwayDBSet {
@@ -54,6 +55,18 @@ class SwayDBSet[T](api: SwayDBAPI)(implicit serializer: Serializer[T]) extends K
   def add(elem: T): Try[Level0Meter] =
     api.put(elem)
 
+  def remove(elem: T): Try[Level0Meter] =
+    api.remove(elem)
+
+  def remove(from: T, to: T): Try[Level0Meter] =
+    api.remove(from, to)
+
+  def batch(batch: Batch[T, Nothing]*): Try[Level0Meter] =
+    api.batch(batch)
+
+  def batch(batch: Iterable[Batch[T, Nothing]]): Try[Level0Meter] =
+    api.batch(batch)
+
   def batchAdd(elems: T*): Try[Level0Meter] =
     batchAdd(elems)
 
@@ -66,17 +79,11 @@ class SwayDBSet[T](api: SwayDBAPI)(implicit serializer: Serializer[T]) extends K
   def batchRemove(elems: Iterable[T]): Try[Level0Meter] =
     api.batch(elems.map(elem => request.Batch.Remove(elem, None)))
 
-  def batch(batch: Batch[T, Nothing]*): Try[Level0Meter] =
-    api.batch(batch)
+  def batchExpire(elems: (T, Deadline)*): Try[Level0Meter] =
+    batchExpire(elems)
 
-  def batch(batch: Iterable[Batch[T, Nothing]]): Try[Level0Meter] =
-    api.batch(batch)
-
-  def remove(elem: T): Try[Level0Meter] =
-    api.remove(elem)
-
-  def remove(from: T, to: T): Try[Level0Meter] =
-    api.remove(from, to)
+  def batchExpire(elems: Iterable[(T, Deadline)]): Try[Level0Meter] =
+    api.batch(elems.map(elemWithExpire => request.Batch.Remove(elemWithExpire._1, Some(elemWithExpire._2))))
 
   def level0Meter: Level0Meter =
     api.level0Meter
@@ -92,4 +99,13 @@ class SwayDBSet[T](api: SwayDBAPI)(implicit serializer: Serializer[T]) extends K
 
   def valueSize(elem: T): Try[Option[Int]] =
     api valueSize elem
+
+  def deadline(elem: T): Try[Option[Deadline]] =
+    api deadline elem
+
+  def hasTimeLeft(elem: T): Try[Option[Boolean]] =
+    deadline(elem).map(_.map(_.hasTimeLeft()))
+
+  def timeLeft(elem: T): Try[Option[FiniteDuration]] =
+    deadline(elem).map(_.map(_.timeLeft))
 }

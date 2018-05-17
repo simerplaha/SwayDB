@@ -35,20 +35,34 @@ class SegmentMerger6_Remove_Some_Into_Put_Spec extends WordSpec with CommonAsser
   /**
     * Remove Some -> Put None None
     */
-  "Remove Some -> Put None None" when {
+
+  "Remove Expired -> Put None None" when {
     "Put None None" in {
       (1 to 20) foreach {
         i =>
-          val deadline = i.seconds.fromNow - 2.seconds
+          val deadline = i.seconds.fromNow - 21.seconds
+          assertMerge(
+            newKeyValue = Memory.Remove(1, deadline),
+            oldKeyValue = Memory.Put(1, None, None),
+            expected = Memory.Remove(1, deadline),
+            lastLevelExpect = None,
+            hasTimeLeftAtLeast = 10.seconds
+          )
+      }
+
+    }
+  }
+
+  "Remove HasTimeLeft -> Put None None" when {
+    "Put None None" in {
+      (1 to 20) foreach {
+        i =>
+          val deadline = i.seconds.fromNow
           assertMerge(
             newKeyValue = Memory.Remove(1, deadline),
             oldKeyValue = Memory.Put(1, None, None),
             expected = Memory.Put(1, None, deadline),
-            lastLevelExpect =
-              if (deadline.hasTimeLeft())
-                Some(Memory.Put(1, None, deadline))
-              else
-                None,
+            lastLevelExpect = Memory.Put(1, None, deadline),
             hasTimeLeftAtLeast = 10.seconds
           )
       }
@@ -59,20 +73,33 @@ class SegmentMerger6_Remove_Some_Into_Put_Spec extends WordSpec with CommonAsser
   /**
     * Remove Some -> Put Some None
     */
-  "Remove Some -> Put Some None" when {
-    "Put None None" in {
+  "Remove Expired -> Put Some None" when {
+    "Put Some None" in {
       (1 to 20) foreach {
         i =>
-          val deadline = i.seconds.fromNow - 2.seconds
+          val deadline = i.seconds.fromNow - 21.seconds
+          assertMerge(
+            newKeyValue = Memory.Remove(1, deadline),
+            oldKeyValue = Memory.Put(1, i.toString, None),
+            expected = Memory.Remove(1, deadline),
+            lastLevelExpect = None,
+            hasTimeLeftAtLeast = 10.seconds
+          )
+      }
+
+    }
+  }
+
+  "Remove HasTimeLeft -> Put Some None" when {
+    "Put Some None" in {
+      (1 to 20) foreach {
+        i =>
+          val deadline = i.seconds.fromNow
           assertMerge(
             newKeyValue = Memory.Remove(1, deadline),
             oldKeyValue = Memory.Put(1, i.toString, None),
             expected = Memory.Put(1, i.toString, deadline),
-            lastLevelExpect =
-              if (deadline.hasTimeLeft())
-                Some(Memory.Put(1, i.toString, deadline))
-              else
-                None,
+            lastLevelExpect = Memory.Put(1, i.toString, deadline),
             hasTimeLeftAtLeast = 10.seconds
           )
       }
@@ -132,7 +159,6 @@ class SegmentMerger6_Remove_Some_Into_Put_Spec extends WordSpec with CommonAsser
       )
     }
 
-
     "Put None Expired-Greater" in {
       val newDeadline = 20.seconds.fromNow
       val oldDeadline = expiredDeadline()
@@ -146,8 +172,8 @@ class SegmentMerger6_Remove_Some_Into_Put_Spec extends WordSpec with CommonAsser
     }
 
     "Put None Expired-Lesser" in {
-      val newDeadline = expiredDeadline() - 10.seconds
       val oldDeadline = expiredDeadline()
+      val newDeadline = oldDeadline - 10.seconds
       assertMerge(
         newKeyValue = Memory.Remove(1, newDeadline),
         oldKeyValue = Memory.Put(1, None, oldDeadline),
@@ -169,7 +195,7 @@ class SegmentMerger6_Remove_Some_Into_Put_Spec extends WordSpec with CommonAsser
         newKeyValue = Memory.Remove(1, newDeadline),
         oldKeyValue = Memory.Put(1, 1, oldDeadline),
         expected = Memory.Put(1, 1, newDeadline),
-        lastLevelExpect = Some(Memory.Put(1, 1, newDeadline)),
+        lastLevelExpect = Memory.Put(1, 1, newDeadline),
         hasTimeLeftAtLeast = 10.seconds
       )
     }
@@ -181,7 +207,7 @@ class SegmentMerger6_Remove_Some_Into_Put_Spec extends WordSpec with CommonAsser
         newKeyValue = Memory.Remove(1, newDeadline),
         oldKeyValue = Memory.Put(1, 1, oldDeadline),
         expected = Memory.Put(1, 1, newDeadline),
-        lastLevelExpect = Some(Memory.Put(1, 1, newDeadline)),
+        lastLevelExpect = Memory.Put(1, 1, newDeadline),
         hasTimeLeftAtLeast = 10.seconds
       )
     }
@@ -205,11 +231,10 @@ class SegmentMerger6_Remove_Some_Into_Put_Spec extends WordSpec with CommonAsser
         newKeyValue = Memory.Remove(1, newDeadline),
         oldKeyValue = Memory.Put(1, 1, oldDeadline),
         expected = Memory.Put(1, 1, newDeadline),
-        lastLevelExpect = Some(Memory.Put(1, 1, newDeadline)),
+        lastLevelExpect = Memory.Put(1, 1, newDeadline),
         hasTimeLeftAtLeast = 10.seconds
       )
     }
-
 
     "Put Some Expired-Greater" in {
       val newDeadline = 20.seconds.fromNow
@@ -224,8 +249,8 @@ class SegmentMerger6_Remove_Some_Into_Put_Spec extends WordSpec with CommonAsser
     }
 
     "Put Some Expired-Lesser" in {
-      val newDeadline = expiredDeadline() - 10.seconds
       val oldDeadline = expiredDeadline()
+      val newDeadline = oldDeadline - 10.seconds
       assertMerge(
         newKeyValue = Memory.Remove(1, newDeadline),
         oldKeyValue = Memory.Put(1, 1, oldDeadline),
