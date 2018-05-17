@@ -33,7 +33,7 @@ trait TestBaseEmbedded extends TestBase {
   def doAssertEmpty[V](db: SwayDBMap[Int, V]) =
     (1 to keyValueCount) foreach {
       i =>
-        db.deadline(i).assertGetOpt shouldBe empty
+        db.expiration(i).assertGetOpt shouldBe empty
         db.get(i).assertGetOpt shouldBe empty
     }
 

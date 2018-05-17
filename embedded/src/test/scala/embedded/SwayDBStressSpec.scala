@@ -114,7 +114,7 @@ sealed trait SwayDBStressSpec extends TestBase with TestBaseEmbedded {
       (1 to keyValueCount) foreach {
         i =>
           anyOrder(
-            execution1 = db.deadline(i).assertGet shouldBe deadline,
+            execution1 = db.expiration(i).assertGet shouldBe deadline,
             execution2 = db.get(i).assertGet shouldBe i.toString
           )
       }

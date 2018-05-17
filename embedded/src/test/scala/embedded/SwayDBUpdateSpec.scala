@@ -78,7 +78,7 @@ sealed trait SwayDBUpdateSpec extends TestBase with TestBaseEmbedded {
 
       (1 to keyValueCount) foreach {
         i =>
-          db.deadline(i).assertGetOpt shouldBe empty
+          db.expiration(i).assertGetOpt shouldBe empty
           db.get(i).assertGet shouldBe "updated"
       }
     }
@@ -101,7 +101,7 @@ sealed trait SwayDBUpdateSpec extends TestBase with TestBaseEmbedded {
       if (deadline.hasTimeLeft())
         (1 to keyValueCount) foreach {
           i =>
-            db.deadline(i).assertGet shouldBe deadline
+            db.expiration(i).assertGet shouldBe deadline
             db.get(i).assertGet shouldBe "updated"
         }
 
@@ -141,7 +141,7 @@ sealed trait SwayDBUpdateSpec extends TestBase with TestBaseEmbedded {
 
       (1 to keyValueCount) foreach {
         i =>
-          db.deadline(i).assertGetOpt shouldBe empty
+          db.expiration(i).assertGetOpt shouldBe empty
           db.get(i).assertGet shouldBe "updated again"
       }
     }
@@ -180,7 +180,7 @@ sealed trait SwayDBUpdateSpec extends TestBase with TestBaseEmbedded {
 
       (1 to keyValueCount) foreach {
         i =>
-          db.deadline(i).assertGetOpt shouldBe empty
+          db.expiration(i).assertGetOpt shouldBe empty
           db.get(i).assertGet shouldBe "updated"
       }
     }
@@ -282,7 +282,7 @@ sealed trait SwayDBUpdateSpec extends TestBase with TestBaseEmbedded {
 
       (1 to keyValueCount) foreach {
         i =>
-          db.deadline(i).assertGetOpt shouldBe empty
+          db.expiration(i).assertGetOpt shouldBe empty
           db.get(i).assertGet shouldBe "updated 2"
       }
     }
@@ -467,7 +467,7 @@ sealed trait SwayDBUpdateSpec extends TestBase with TestBaseEmbedded {
       def doAssert() =
       (1 to keyValueCount) foreach {
         i =>
-          db.deadline(i).assertGetOpt shouldBe empty
+          db.expiration(i).assertGetOpt shouldBe empty
           db.get(i).assertGet shouldBe "updated"
       }
 

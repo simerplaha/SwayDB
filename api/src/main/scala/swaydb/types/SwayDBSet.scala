@@ -24,6 +24,7 @@ import swaydb.api.SwayDBAPI
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.request
+import swaydb.data.slice.Slice
 import swaydb.iterator.KeysIterator
 import swaydb.serializers.{Serializer, _}
 import swaydb.types.BatchImplicits._
@@ -67,6 +68,18 @@ class SwayDBSet[T](api: SwayDBAPI)(implicit serializer: Serializer[T]) extends K
   def remove(from: T, to: T): Try[Level0Meter] =
     api.remove(from, to)
 
+  def expire(elem: T, after: FiniteDuration): Try[Level0Meter] =
+    api.expire(elem, after.fromNow)
+
+  def expire(elem: T, at: Deadline): Try[Level0Meter] =
+    api.expire(elem, at)
+
+  def expire(from: T, to: T, after: FiniteDuration): Try[Level0Meter] =
+    api.expire(from, to, after.fromNow)
+
+  def expire(from: T, to: T, at: Deadline): Try[Level0Meter] =
+    api.expire(from, to, at)
+
   def batch(batch: Batch[T, Nothing]*): Try[Level0Meter] =
     api.batch(batch)
 
@@ -103,15 +116,12 @@ class SwayDBSet[T](api: SwayDBAPI)(implicit serializer: Serializer[T]) extends K
   def sizeOfSegments: Long =
     api.sizeOfSegments
 
-  def valueSize(elem: T): Try[Option[Int]] =
-    api valueSize elem
+  def elemSize(elem: T): Int =
+    (elem: Slice[Byte]).size
 
-  def deadline(elem: T): Try[Option[Deadline]] =
+  def expiration(elem: T): Try[Option[Deadline]] =
     api deadline elem
 
-  def hasTimeLeft(elem: T): Try[Option[Boolean]] =
-    deadline(elem).map(_.map(_.hasTimeLeft()))
-
   def timeLeft(elem: T): Try[Option[FiniteDuration]] =
-    deadline(elem).map(_.map(_.timeLeft))
+    expiration(elem).map(_.map(_.timeLeft))
 }

@@ -121,7 +121,7 @@ sealed trait SwayDBExpireSpec extends TestBase with TestBaseEmbedded {
       if (deadline.hasTimeLeft())
         (1 to keyValueCount) foreach {
           i =>
-            db.deadline(i).assertGet shouldBe deadline
+            db.expiration(i).assertGet shouldBe deadline
             db.get(i).assertGet shouldBe "updated"
         }
 
@@ -149,7 +149,7 @@ sealed trait SwayDBExpireSpec extends TestBase with TestBaseEmbedded {
       if (deadline.hasTimeLeft() && deadline2.hasTimeLeft())
         (1 to keyValueCount) foreach {
           i =>
-            db.deadline(i).assertGetOpt shouldBe defined
+            db.expiration(i).assertGetOpt shouldBe defined
             db.get(i).assertGet shouldBe i.toString
         }
 
@@ -174,7 +174,7 @@ sealed trait SwayDBExpireSpec extends TestBase with TestBaseEmbedded {
       if (deadline.hasTimeLeft())
         (1 to keyValueCount) foreach {
           i =>
-            db.deadline(i).assertGet shouldBe deadline
+            db.expiration(i).assertGet shouldBe deadline
             db.get(i).assertGet shouldBe (i.toString + " replaced")
         }
 
@@ -295,7 +295,7 @@ sealed trait SwayDBExpireSpec extends TestBase with TestBaseEmbedded {
       if (deadline.hasTimeLeft())
         (1 to keyValueCount) foreach {
           i =>
-            db.deadline(i).assertGet shouldBe deadline
+            db.expiration(i).assertGet shouldBe deadline
             db.get(i).assertGet shouldBe i.toString
         }
 
@@ -415,7 +415,7 @@ sealed trait SwayDBExpireSpec extends TestBase with TestBaseEmbedded {
       if (deadline.hasTimeLeft())
         (1 to keyValueCount) foreach {
           i =>
-            db.deadline(i).assertGet shouldBe deadline
+            db.expiration(i).assertGet shouldBe deadline
             db.get(i).assertGet shouldBe i.toString
         }
 
@@ -543,7 +543,7 @@ sealed trait SwayDBExpireSpec extends TestBase with TestBaseEmbedded {
       if (deadline2.hasTimeLeft())
         (1 to keyValueCount) foreach {
           i =>
-            db.deadline(i).assertGet shouldBe deadline2
+            db.expiration(i).assertGet shouldBe deadline2
             db.get(i).assertGet shouldBe i.toString
         }
 

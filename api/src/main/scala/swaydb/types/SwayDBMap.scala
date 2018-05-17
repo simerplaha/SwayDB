@@ -162,21 +162,15 @@ class SwayDBMap[K, V](api: SwayDBAPI)(implicit keySerializer: Serializer[K],
   def sizeOfSegments: Long =
     api.sizeOfSegments
 
-  def keyLength(key: K): Int =
+  def keySize(key: K): Int =
     (key: Slice[Byte]).size
 
-  def valueLength(value: V): Int =
+  def valueSize(value: V): Int =
     (value: Slice[Byte]).size
 
-  def valueSize(key: K): Try[Option[Int]] =
-    api valueSize key
-
-  def deadline(key: K): Try[Option[Deadline]] =
+  def expiration(key: K): Try[Option[Deadline]] =
     api deadline key
 
-  def hasTimeLeft(key: K): Try[Option[Boolean]] =
-    deadline(key).map(_.map(_.hasTimeLeft()))
-
   def timeLeft(key: K): Try[Option[FiniteDuration]] =
-    deadline(key).map(_.map(_.timeLeft))
+    expiration(key).map(_.map(_.timeLeft))
 }

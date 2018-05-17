@@ -70,7 +70,7 @@ sealed trait SwayDBPutSpec extends TestBase with TestBaseEmbedded {
   def doGet(db: SwayDBMap[Int, String]) = {
     (1 to keyValueCount) foreach {
       i =>
-        db.deadline(i).assertGetOpt shouldBe empty
+        db.expiration(i).assertGetOpt shouldBe empty
         db.get(i).assertGet shouldBe s"$i new"
     }
   }
