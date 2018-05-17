@@ -19,7 +19,7 @@
 
 package swaydb.types
 
-import swaydb.Batch
+import swaydb.{Data, Batch}
 import swaydb.data.request
 import swaydb.serializers.{Serializer, _}
 
@@ -28,22 +28,22 @@ private[swaydb] object BatchImplicits {
   implicit def batchToRequest[K, V](batch: Batch[K, V])(implicit keySerializer: Serializer[K],
                                                         valueSerializer: Serializer[V]): request.Batch =
     batch match {
-      case Batch.Put(key, value, deadline) =>
+      case Data.Put(key, value, deadline) =>
         request.Batch.Put(key, Some(value), deadline)
 
-      case Batch.Remove(key, None, deadline) =>
+      case Data.Remove(key, None, deadline) =>
         request.Batch.Remove(key, deadline)
 
-      case Batch.Remove(from, Some(to), deadline) =>
+      case Data.Remove(from, Some(to), deadline) =>
         request.Batch.RemoveRange(from, to, deadline)
 
-      case Batch.Update(from, Some(to), value) =>
+      case Data.Update(from, Some(to), value) =>
         request.Batch.UpdateRange(from, to, Some(value))
 
-      case Batch.Update(from, None, value) =>
+      case Data.Update(from, None, value) =>
         request.Batch.Update(from, Some(value))
 
-      case Batch.Add(key, deadline) =>
+      case Data.Add(key, deadline) =>
         request.Batch.Put(key, None, deadline)
     }
 

@@ -55,6 +55,12 @@ class SwayDBSet[T](api: SwayDBAPI)(implicit serializer: Serializer[T]) extends K
   def add(elem: T): Try[Level0Meter] =
     api.put(elem)
 
+  def add(elem: T, expireAt: Deadline): Try[Level0Meter] =
+    api.put(elem, None, expireAt)
+
+  def add(elem: T, expireAfter: FiniteDuration): Try[Level0Meter] =
+    api.put(elem, None, expireAfter.fromNow)
+
   def remove(elem: T): Try[Level0Meter] =
     api.remove(elem)
 

@@ -19,6 +19,7 @@
 
 package swaydb
 
+import swaydb.Data._
 import swaydb.types._
 
 import scala.concurrent.duration.{Deadline, FiniteDuration}
@@ -40,8 +41,6 @@ object Batch {
     def apply[K, V](key: K, value: V, expireAt: Deadline) =
       new Put(key, value, Some(expireAt))
   }
-
-  private[swaydb] case class Put[K, V](key: K, value: V, deadline: Option[Deadline]) extends Batch[K, V]
 
   /**
     * Batch remove for [[SwayDBMap]] & [[SwayDBSet]]
@@ -68,8 +67,6 @@ object Batch {
       new Remove(from, Some(to), Some(at))
   }
 
-  private[swaydb] case class Remove[K](from: K, to: Option[K], deadline: Option[Deadline]) extends Batch[K, Nothing]
-
   /**
     * Batch Update key & value for a [[SwayDBMap]]
     */
@@ -80,8 +77,6 @@ object Batch {
     def apply[K, V](from: K, to: K, value: V) =
       new Update(from, Some(to), value)
   }
-
-  private[swaydb] case class Update[K, V](from: K, to: Option[K], value: V) extends Batch[K, V]
 
   /**
     * Batch Put key & value for a [[SwayDBSet]]
@@ -96,6 +91,12 @@ object Batch {
     def apply[T](elem: T, expireAt: Deadline) =
       new Add(elem, Some(expireAt))
   }
-  case class Add[T](elem: T, deadline: Option[Deadline]) extends Batch[T, Nothing]
 
+}
+
+private[swaydb] object Data {
+  private[swaydb] case class Put[K, V](key: K, value: V, deadline: Option[Deadline]) extends Batch[K, V]
+  private[swaydb] case class Remove[K](from: K, to: Option[K], deadline: Option[Deadline]) extends Batch[K, Nothing]
+  private[swaydb] case class Update[K, V](from: K, to: Option[K], value: V) extends Batch[K, V]
+  private[swaydb] case class Add[T](elem: T, deadline: Option[Deadline]) extends Batch[T, Nothing]
 }
