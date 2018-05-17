@@ -22,13 +22,14 @@ View detailed benchmark results [here](http://swaydb.io/performance/macbook-pro-
 - Multiple disks, In-memory & periodically persistent
 - ACID like atomic writes with [Batch API](http://www.swaydb.io/api/write-api/batch/)
 - APIs similar to Scala collections.
-- Expiring key-value (TTL).
+- Expiring key-value ([TTL](http://www.swaydb.io/api/write-api/expire/)).
+- Range [update, remove & expire](http://www.swaydb.io/api/write-api/).
 - Key only iterations (Lazily fetched values)
 - Data storage formats
     - Key-value (`Map[K, V]`)
     - Row (`Set[T]`)
 - In-built custom serialization API with [Slice](http://www.swaydb.io/slice/byte-slice/) 
-- Configurable Levels
+- [Configurable Levels](http://www.swaydb.io/configuring-levels/)
 - Configurable cache size
 - Concurrent level compaction
 - Optional Memory-mapped files
@@ -69,9 +70,11 @@ db
 ## Status
 **Status: Beta**
 
+All core APIs for SwayDB are implemented. See the [API](http://www.swaydb.io/api/) documentation.
+
 Next few versions require file formats changes to improve data compression.
 
-Backward compatible will be supported for versions `1.*` and after. 
+Backward compatible will be supported for versions `1.*` and after 
 So please suggest features & improvements now while we are still in version `0.*`.
 
-Code coverage is required. 
+TODO Code coverage & CI.

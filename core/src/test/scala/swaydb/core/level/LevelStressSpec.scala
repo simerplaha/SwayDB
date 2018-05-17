@@ -35,7 +35,7 @@ import scala.concurrent.duration._
 import scala.util.Failure
 
 //@formatter:off
-class LevelStressSpec10 extends LevelStressSpec
+class LevelStressSpec0 extends LevelStressSpec
 
 class LevelStressSpec1 extends LevelStressSpec {
   override def levelFoldersCount = 10

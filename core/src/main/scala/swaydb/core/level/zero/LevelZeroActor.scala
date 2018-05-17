@@ -80,7 +80,7 @@ private[core] class LevelZeroActor(zero: LevelZero)(implicit ec: ExecutionContex
             maps.last() match {
               case Some(lastMap) =>
                 logger.debug(s"{}: Sending PushMap to level1 for map {}", zero.path, lastMap.pathOption)
-//                nextLevel ! PushMap(lastMap, self)
+                nextLevel ! PushMap(lastMap, self)
 
               case None =>
                 logger.debug(s"{}: NO LAST MAP. No more maps to merge.", zero.path)

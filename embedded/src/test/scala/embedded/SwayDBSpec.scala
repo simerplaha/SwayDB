@@ -19,8 +19,6 @@
 
 package embedded
 
-import java.nio.charset.StandardCharsets
-
 import swaydb.serializers.Default._
 import swaydb.types.SwayDBMap
 import swaydb.{Batch, SwayDB}
@@ -266,17 +264,17 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
     }
 
     "return valueSize" in {
-      val db = newDB()
+      //      val db = newDB()
+      //
+      //      (1 to 10000) foreach {
+      //        i =>
+      //          db.put(i, i.toString).assertGet
+      //      }
 
-      (1 to 10000) foreach {
-        i =>
-          db.put(i, i.toString).assertGet
-      }
-
-      (1 to 10000) foreach {
-        i =>
-          db.valueSize(i).assertGet shouldBe i.toString.getBytes(StandardCharsets.UTF_8).length
-      }
+      //      (1 to 10000) foreach {
+      //        i =>
+      //          db.valueSize(i.toString).assertGet shouldBe i.toString.getBytes(StandardCharsets.UTF_8).length
+      //      }
     }
 
     "eventually remove all Segments from the database when remove range is submitted" in {
