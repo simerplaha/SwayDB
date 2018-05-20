@@ -28,9 +28,10 @@ import scala.util.{Success, Try}
 object Max {
 
   /**
-    * Given two key-values returns the lowest. If both are expired then it fetches the next lowest.
-    * This function never invokes lowerInNextLevel. 'next' should be pre-fetched and applied to the current Level's
-    * lowest Range key-value (if overlapping required) before invoking this function.
+    * Given two key-values returns the highest [[KeyValue.ReadOnly.Put]] else None.
+    *
+    * @return Maximum of both key-values. None is returned if the key-value(s) are expired or removed.
+    *
     */
   def apply(current: KeyValue.ReadOnly.Fixed,
             next: Option[KeyValue.ReadOnly.Put])(implicit ordering: Ordering[Slice[Byte]]): Try[Option[KeyValue.ReadOnly.Put]] = {

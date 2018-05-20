@@ -21,7 +21,7 @@ package swaydb.core.segment
 
 import swaydb.core.TestBase
 import swaydb.core.data.Value.{FromValue, RangeValue}
-import swaydb.core.data.{KeyValue, Persistent, Transient, Value}
+import swaydb.core.data._
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
 import swaydb.core.segment.format.one.{KeyMatcher, SegmentFooter, SegmentReader, SegmentWriter}
@@ -450,6 +450,22 @@ class SegmentWriterReaderSpec extends TestBase {
       foundKeyValue4FromKey.toKey shouldBe fourth.toKey
 
       SegmentReader.find(KeyMatcher.Higher(fourth.toKey), None, Reader(bytes)).assertGetOpt shouldBe empty
+    }
+
+    "return nearest deadline" in {
+      val deadline1 = 10.seconds.fromNow
+      val deadline2 = 20.seconds.fromNow
+      val deadline3 = 30.seconds.fromNow
+
+      SegmentWriter.toSlice(
+        keyValues = Slice(Memory.Put(1, 1, deadline1), Memory.Put(2, 2)).toTransient,
+        bloomFilterFalsePositiveRate = 0.1
+      ).assertGet._2 should contain(deadline1)
+
+      SegmentWriter.toSlice(
+        keyValues = Slice(Memory.Put(1, 1), Memory.Put(2, 2, deadline3), Memory.Put(3, 3, deadline1), Memory.Put(4, 4), Memory.Put(5, 5, deadline2)).toTransient,
+        bloomFilterFalsePositiveRate = 0.1
+      ).assertGet._2 should contain(deadline1)
     }
   }
 }

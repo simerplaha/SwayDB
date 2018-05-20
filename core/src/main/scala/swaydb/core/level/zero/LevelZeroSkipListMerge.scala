@@ -35,13 +35,15 @@ object LevelZeroSkipListMerge {
 }
 
 /**
-  * When inserting key-values that alert existing Range key-values in the skipList, they should be inserted into the skipList atomically and should only
+  * When inserting key-values that alter existing Range key-values in the skipList, they should be inserted into the skipList atomically and should only
   * replace existing keys if all the new inserts have overwritten all the key ranges in the conflicting Range key-value.
   *
-  * reverse on the merge results ensures that changes happen atomically without removing.
+  * reverse on the merge results ensures that changes happen atomically.
   */
 class LevelZeroSkipListMerge(val hasTimeLeftAtLeast: FiniteDuration) extends SkipListMerge[Slice[Byte], Memory] {
 
+  //.get is no good. Memory key-values will never result in failure since they do not perform IO (no side-effects).
+  //But this is a temporary solution until applyValue is updated to accept type classes to perform side effect.
   def applyValue(newKeyValue: Memory.Fixed,
                  oldKeyValue: Memory.Fixed,
                  hasTimeLeftAtLeast: FiniteDuration): Memory.Fixed =
@@ -107,8 +109,7 @@ class LevelZeroSkipListMerge(val hasTimeLeftAtLeast: FiniteDuration) extends Ski
       //while inserting also clear any conflicting key-values that are not replaced by new inserts.
       mergedKeyValues.reverse.foldLeft(Option.empty[Slice[Byte]]) {
         case (previousInsertedKey, transient: Transient) =>
-          val memory = transient.toMemory.get
-          skipList.put(transient.key, memory)
+          skipList.put(transient.key, transient.toMemory.get)
           //remove any entries that are greater than transient.key to the previously inserted entry.
           val toKey = previousInsertedKey.getOrElse(conflictingKeyValues.lastKey())
           if (transient.key < toKey)

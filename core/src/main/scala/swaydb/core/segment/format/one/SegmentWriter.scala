@@ -38,11 +38,10 @@ private[core] object SegmentWriter extends LazyLogging {
   /**
     * Rules for creating bloom filters
     *
-    * - If key-values contains a Remove range - bloom filters are not created
-    * - If key-value contains a Range - a flag is added to Appendix
-    * - if key-value contains an Update range - get does not consult
+    * If key-values contains:
+    * - A Remove range - bloom filters are not created
+    * - Any other Range - a flag is added to Appendix to indicate that the Segment contains a Range key-value.
     */
-
   def toSlice(keyValues: Iterable[KeyValue.WriteOnly], bloomFilterFalsePositiveRate: Double): Try[(Slice[Byte], Option[Deadline])] = {
     if (keyValues.isEmpty) {
       Success(Slice.create[Byte](0), None)

@@ -20,19 +20,17 @@
 package swaydb.core.finders
 
 import swaydb.core.data.KeyValue
-import swaydb.core.segment.KeyValueMerger
 import swaydb.core.util.TryUtil
 import swaydb.data.slice.Slice
-import scala.concurrent.duration._
 
 import scala.util.{Success, Try}
 
 object Min {
 
   /**
-    * Given two key-values returns the highest [[KeyValue.ReadOnly.Put]] else None.
+    * Given two key-values returns the smallest [[KeyValue.ReadOnly.Put]] else None.
     *
-    * @return Minimum of both key-values. None is returned if the key-value(s) are expired.
+    * @return Minimum of both key-values. None is returned if the key-value(s) are expired or removed.
     *
     */
   def apply(current: KeyValue.ReadOnly.Fixed,

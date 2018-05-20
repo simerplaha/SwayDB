@@ -30,5 +30,5 @@ object Reader {
     new FileReader(file)
 
   def apply(slice: Slice[Byte]): SliceReader =
-    new SliceReader(slice)
+    SliceReader(slice)
 }

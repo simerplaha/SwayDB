@@ -158,9 +158,6 @@ private[core] object Maps extends LazyLogging {
 
     /**
       * Start recovery for all the input maps.
-      *
-      * This is not tail recursive. The number of in-memory [[Map]]s in [[swaydb.core.level.zero.LevelZero]]
-      * are not expected to become too large that would result in a stack overflow.
       */
     @tailrec
     def doRecovery(maps: List[Path],

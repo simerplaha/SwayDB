@@ -128,7 +128,7 @@ private[core] object Segment extends LazyLogging {
 
         case Success(deadline) =>
           Success(
-            new MemorySegment(
+            MemorySegment(
               path = path,
               minKey = keyValues.head.key.unslice(),
               _hasRange = keyValues.last.stats.hasRange,
@@ -193,7 +193,7 @@ private[core] object Segment extends LazyLogging {
 
           writeResult map {
             file =>
-              new PersistentSegment(
+              PersistentSegment(
                 file = file,
                 mmapReads = mmapReads,
                 mmapWrites = mmapWrites,

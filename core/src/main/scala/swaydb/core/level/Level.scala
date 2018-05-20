@@ -694,29 +694,32 @@ private[core] class Level(val dirs: Seq[Dir],
   //if there is a small segment in the new segments, alert the Actor to collapse the small segments before next Push
   //this function can be achieved in single iteration.
   def alertActorForSegmentManagement() = {
+    logger.debug(s"{}: Executing check for small Segments.", paths.head)
     //if there is no next Level do management check for all Segments in the Level.
     var collapseSegmentAlertSent = false
     val segments = this.segmentsInLevel()
     segments foreachBreak {
       newSegment =>
         if (!collapseSegmentAlertSent && newSegment.segmentSize < segmentSize) {
-          logger.trace(s"{}: Found small Segment: '{}' of size: {}. Alerting Level actor to collapse Segments: {}.", paths.head, newSegment.path, newSegment.segmentSize)
+          logger.debug(s"{}: Found small Segment: '{}' of size: {}. Alerting Level actor to collapse Segment.", paths.head, newSegment.path, newSegment.segmentSize)
           actor ! LevelCommand.CollapseSmallSegments
           collapseSegmentAlertSent = true
         }
         collapseSegmentAlertSent
     }
 
-    if (nextLevel.isEmpty)
+    if (nextLevel.isEmpty) {
+      logger.debug(s"{}: Executing check for expired key-values.", paths.head)
       Segment.getNearestDeadlineSegment(segments) foreach {
         segment =>
-          logger.trace(s"{}: Next nearest expired key-value deadline {}.", paths.head, segment.nearestExpiryDeadline)
+          logger.debug(s"{}: Next nearest expired key-value deadline {}.", paths.head, segment.nearestExpiryDeadline)
           segment.nearestExpiryDeadline foreach {
             deadline =>
-              logger.trace(s"{}: Alerting actor for next nearest expired deadline: {}.", paths.head, segment.nearestExpiryDeadline)
+              logger.debug(s"{}: Alerting actor for next nearest expired deadline: {}.", paths.head, segment.nearestExpiryDeadline)
               actor ! LevelCommand.ClearExpiredKeyValues(deadline)
           }
       }
+    }
   }
 
   def buildNewMapEntry(newSegments: Iterable[Segment],
@@ -767,7 +770,7 @@ private[core] class Level(val dirs: Seq[Dir],
         logger.trace(s"{}: Built map entry to remove Segments {}", paths.head, segments.map(_.path.toString))
         (appendix write mapEntry) flatMap {
           _ =>
-            logger.debug(s"{}: MapEntry delete Segments successfully written. Deleting physical Segments now: {}", paths.head, segments.map(_.path.toString))
+            logger.debug(s"{}: MapEntry delete Segments successfully written. Deleting physical Segments: {}", paths.head, segments.map(_.path.toString))
             // If a delete fails that would be due OS permission issue.
             // But it's OK if it fails as long as appendix is updated with new segments. An error message will be logged
             // asking to delete the uncommitted segments manually or do a database restart which will delete the uncommitted

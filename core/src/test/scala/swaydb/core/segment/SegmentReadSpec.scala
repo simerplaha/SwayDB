@@ -845,6 +845,8 @@ trait SegmentReadSpec extends TestBase with ScalaFutures with PrivateMethodTeste
 
       Segment.getNearestDeadlineSegment(segment1, segment2).flatMap(_.nearestExpiryDeadline) should contain(deadline)
       Segment.getNearestDeadlineSegment(segment2, segment1).flatMap(_.nearestExpiryDeadline) should contain(deadline)
+      Segment.getNearestDeadlineSegment(Random.shuffle(Seq(segment2, segment1, segment2, segment2))).flatMap(_.nearestExpiryDeadline) should contain(deadline)
+      Segment.getNearestDeadlineSegment(Random.shuffle(Seq(segment1, segment2, segment2, segment2))).flatMap(_.nearestExpiryDeadline) should contain(deadline)
     }
 
     "return deadline" in {

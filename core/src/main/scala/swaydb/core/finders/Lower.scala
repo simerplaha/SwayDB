@@ -30,7 +30,7 @@ import scala.util.{Failure, Success, Try}
 object Lower {
 
   /**
-    * This function contains duplicate code to use tail recursion. Trampolining should be used instead. Need to re-visit this.
+    * TO-DO - Use trampolining instead to reduce repeated boilerplate code.
     */
   def apply(key: Slice[Byte],
             lowerFromCurrentLevel: Slice[Byte] => Try[Option[KeyValue.ReadOnly]],

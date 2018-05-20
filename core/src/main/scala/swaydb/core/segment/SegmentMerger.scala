@@ -172,10 +172,9 @@ private[core] object SegmentMerger extends LazyLogging {
   }
 
   /**
-    * TODO: Both inputs are Memory so temporarily it's OK to call .get because Memory key-values do not do IO. But this should be fixed and .get should be invoked.
+    * TODO: Both inputs are Memory so temporarily it's OK to call .get because Memory key-values do not do IO. But this should be fixed and .get should not be invoked.
     *
-    * Need a type class implementation on executing side effects of merging key-values, one for Memory key-values and other for persistent.
-    *
+    * Need a type class implementation on executing side effects of merging key-values, one for [[Memory]] key-values and other for [[Persistent]] key-value types.
     */
   def merge(newKeyValues: Slice[Memory],
             oldKeyValues: Slice[Memory],
@@ -186,7 +185,6 @@ private[core] object SegmentMerger extends LazyLogging {
             oldKeyValue: Memory,
             hasTimeLeftAtLeast: FiniteDuration)(implicit ordering: Ordering[Slice[Byte]]): ListBuffer[KeyValue.WriteOnly] =
     merge(Slice(newKeyValue), Slice(oldKeyValue), 1000.gb, false, true, 0.1, hasTimeLeftAtLeast).get.flatten.asInstanceOf[ListBuffer[KeyValue.WriteOnly]]
-
 
   def merge(newKeyValues: Slice[KeyValue.ReadOnly],
             oldKeyValues: Slice[KeyValue.ReadOnly],
@@ -256,21 +254,21 @@ private[core] object SegmentMerger extends LazyLogging {
           * If the input is an overwrite key-value and the existing is a range key-value.
           */
         case (Some(newKeyValue: KeyValue.ReadOnly.Fixed), Some(oldRangeKeyValue: ReadOnly.Range)) =>
-          if (newKeyValue.key < oldRangeKeyValue.fromKey) {
+          if (newKeyValue.key < oldRangeKeyValue.fromKey)
             add(newKeyValue) match {
               case Success(_) =>
                 doMerge(dropNewKeyValue(), oldKeyValues)
               case Failure(exception) =>
                 Failure(exception)
             }
-          } else if (newKeyValue.key >= oldRangeKeyValue.toKey) {
+          else if (newKeyValue.key >= oldRangeKeyValue.toKey)
             add(oldRangeKeyValue) match {
               case Success(_) =>
                 doMerge(newKeyValues, dropOldKeyValue())
               case Failure(exception) =>
                 Failure(exception)
             }
-          } else { //is in-range key
+          else //is in-range key
             oldRangeKeyValue.fetchFromAndRangeValue match {
               case Success((oldFromValue, oldRangeRangeValue)) if newKeyValue.key equiv oldRangeKeyValue.fromKey =>
                 applyValue(newKeyValue, oldFromValue.getOrElse(oldRangeRangeValue), hasTimeLeftAtLeast) match {
@@ -305,27 +303,26 @@ private[core] object SegmentMerger extends LazyLogging {
               case Failure(exception) =>
                 Failure(exception)
             }
-          }
 
         /**
           * If the input is a range and the existing is a fixed key-value.
           */
         case (Some(newRangeKeyValue: ReadOnly.Range), Some(oldKeyValue: KeyValue.ReadOnly.Fixed)) =>
-          if (oldKeyValue.key >= newRangeKeyValue.toKey) {
+          if (oldKeyValue.key >= newRangeKeyValue.toKey)
             add(newRangeKeyValue) match {
               case Success(_) =>
                 doMerge(dropNewKeyValue(), oldKeyValues)
               case Failure(exception) =>
                 Failure(exception)
             }
-          } else if (oldKeyValue.key < newRangeKeyValue.fromKey) {
+          else if (oldKeyValue.key < newRangeKeyValue.fromKey)
             add(oldKeyValue) match {
               case Success(_) =>
                 doMerge(newKeyValues, dropOldKeyValue())
               case Failure(exception) =>
                 Failure(exception)
             }
-          } else { //is in-range key
+          else //is in-range key
             newRangeKeyValue.fetchFromAndRangeValue match {
               case Success((None | Some(Value.Remove(None)) | Some(_: Value.Put), Value.Remove(None))) => //if input is remove range, drop old key-value
                 doMerge(newKeyValues, dropOldKeyValue())
@@ -367,13 +364,12 @@ private[core] object SegmentMerger extends LazyLogging {
               case Failure(exception) =>
                 Failure(exception)
             }
-          }
 
         /**
           * If both the key-values are ranges.
           */
         case (Some(newRangeKeyValue: ReadOnly.Range), Some(oldRangeKeyValue: ReadOnly.Range)) =>
-          if (newRangeKeyValue.toKey <= oldRangeKeyValue.fromKey) {
+          if (newRangeKeyValue.toKey <= oldRangeKeyValue.fromKey)
             add(newRangeKeyValue) match {
               case Success(_) =>
                 doMerge(dropNewKeyValue(), oldKeyValues)
@@ -381,14 +377,14 @@ private[core] object SegmentMerger extends LazyLogging {
                 Failure(exception)
             }
 
-          } else if (oldRangeKeyValue.toKey <= newRangeKeyValue.fromKey) {
+          else if (oldRangeKeyValue.toKey <= newRangeKeyValue.fromKey)
             add(oldRangeKeyValue) match {
               case Success(_) =>
                 doMerge(newKeyValues, dropOldKeyValue())
               case Failure(exception) =>
                 Failure(exception)
             }
-          } else {
+          else
             newRangeKeyValue.fetchFromAndRangeValue match {
               case Success((newRangeFromValue, newRangeRangeValue)) =>
                 oldRangeKeyValue.fetchFromAndRangeValue match {
@@ -554,7 +550,6 @@ private[core] object SegmentMerger extends LazyLogging {
               case Failure(exception) =>
                 Failure(exception)
             }
-          }
 
         //there are no more oldKeyValues. Add all remaining newKeyValues
         case (Some(newKeyValue), None) =>
