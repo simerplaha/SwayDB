@@ -26,6 +26,7 @@ import swaydb.data.compaction.LevelMeter
 import swaydb.data.request
 import swaydb.data.slice.Slice
 import swaydb.iterator.{DBIterator, KeysIterator}
+import swaydb.macros.UpdateFunction
 import swaydb.serializers.{Serializer, _}
 import swaydb.types.BatchImplicits._
 
@@ -78,8 +79,14 @@ class SwayDBMap[K, V](api: SwayDBAPI)(implicit keySerializer: Serializer[K],
   def update(key: K, value: V): Try[Level0Meter] =
     api.update(key, Some(value))
 
+  def update(key: K, updater: V => V)(implicit function: UpdateFunction[V]): Try[Level0Meter] =
+    api.update(key, function.className)
+
   def update(from: K, to: K, value: V): Try[Level0Meter] =
     api.update(from, to, Some(value))
+
+  def update(from: K, to: K, updater: V => V)(implicit function: UpdateFunction[V]): Try[Level0Meter] =
+    api.update(from, to, function.className)
 
   def batch(batch: Batch[K, V]*): Try[Level0Meter] =
     api.batch(batch)

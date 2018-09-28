@@ -196,6 +196,11 @@ private[core] class LevelZero(val path: Path,
       maps.write(MapEntry.Put(key, Memory.Update(key, value)))
     }
 
+  def update(key: Slice[Byte], className: String): Try[Level0Meter] =
+    assertKey(key) {
+      ???
+    }
+
   def update(fromKey: Slice[Byte], to: Slice[Byte], value: Slice[Byte]): Try[Level0Meter] =
     update(fromKey, to, Some(value))
 
@@ -206,6 +211,13 @@ private[core] class LevelZero(val path: Path,
           (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, to, None, Value.Update(value, None))): MapEntry[Slice[Byte], Memory.Response]) ++
             MapEntry.Put[Slice[Byte], Memory.Update](to, Memory.Update(to, value))
         }
+      }
+    }
+
+  def update(fromKey: Slice[Byte], to: Slice[Byte], className: String): Try[Level0Meter] =
+    assertKey(fromKey) {
+      assertKey(to) {
+        ???
       }
     }
 

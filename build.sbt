@@ -13,7 +13,6 @@ val bloomFilterVersion = "0.11.0"
 val scalaLoggingVersion = "3.8.0"
 val scalaMockVersion = "3.6.0"
 val scalaTestVersion = "3.0.5"
-val scalaReflectVersion = "2.12.6"
 
 parallelExecution in ThisBuild := false
 
@@ -135,7 +134,7 @@ lazy val compiler =
       libraryDependencies += "org.scala-lang" % "scala-reflect" % scala212,
       libraryDependencies += "org.scala-lang" % "scala-compiler" % scala212,
       libraryDependencies += "org.scalameta" %% "scalameta" % scalaMetaVersion
-    ).dependsOn(serializers, data)
+    )
 
 
 lazy val macros =
@@ -143,5 +142,5 @@ lazy val macros =
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(
-      libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaReflectVersion
-    )
+      libraryDependencies += "org.scala-lang" % "scala-reflect" % scala212
+    ).dependsOn(compiler)

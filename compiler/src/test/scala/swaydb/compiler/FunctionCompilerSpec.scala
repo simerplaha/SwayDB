@@ -23,30 +23,36 @@ import java.nio.file.{Files, Paths}
 
 import org.scalatest.{Matchers, WordSpec}
 
-class ScalaCompilerSpec extends WordSpec with Matchers with TryAssert {
+class FunctionCompilerSpec extends WordSpec with Matchers with TryAssert {
 
   val testDir =
     Paths.get(getClass.getClassLoader.getResource("").getPath)
       .getParent
       .resolve("DYNAMIC_CLASSES")
 
-  val compiler = new ScalaCompiler(testDir)
+  val compiler = new FunctionCompiler(testDir)
 
   "compile function" in {
     val source = "(variable: Int) => variable.toString"
-    val compiledFunction = compiler.compileFunction(source, "String").assertGet
+    val compiledFunction = compiler.compileFunction(source, None, "String").assertGet
+    compiler.getFunction1[Int, String](compiledFunction.className).assertGet(123) shouldBe "123"
+  }
+
+  "compile function with provided input Type" in {
+    val source = "variable => variable.toString"
+    val compiledFunction = compiler.compileFunction(source, Some(Seq("Int")), "String").assertGet
     compiler.getFunction1[Int, String](compiledFunction.className).assertGet(123) shouldBe "123"
   }
 
   "compile function in a block" in {
     val source = "{ (variable: String) => {variable.toInt} }"
-    val compiledFunction = compiler.compileFunction(source, "Int").assertGet
+    val compiledFunction = compiler.compileFunction(source, None, "Int").assertGet
     compiler.getFunction1[String, Int](compiledFunction.className).assertGet("123") shouldBe 123
   }
 
   "remove function" in {
     val source = "(variable: String, anotherInput: Int) => {variable.toInt}"
-    val compiledFunction = compiler.compileFunction(source, "Int").assertGet
+    val compiledFunction = compiler.compileFunction(source, None, "Int").assertGet
     compiler.getFunction2[String, Int, Int](compiledFunction.className).assertGet("123", 1) shouldBe 123
 
     Files.exists(testDir.resolve(compiledFunction.className + ".class")) shouldBe true
@@ -56,7 +62,5 @@ class ScalaCompilerSpec extends WordSpec with Matchers with TryAssert {
 
     Files.exists(testDir.resolve(compiledFunction.className + ".class")) shouldBe false
   }
-
-
 
 }

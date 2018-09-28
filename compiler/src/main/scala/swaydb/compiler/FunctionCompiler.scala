@@ -25,15 +25,15 @@ import java.util.concurrent.atomic.{AtomicBoolean, AtomicLong}
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.compiler.data.CompiledFunction
-import swaydb.data.util.PipeOps._
+import swaydb.compiler.util.PipeOps._
 
 import scala.annotation.tailrec
 import scala.reflect.io
 import scala.reflect.io.VirtualFile
 import scala.tools.nsc.{Global, Settings}
-import scala.util.{Failure, Try}
+import scala.util.{Failure, Success, Try}
 
-class ScalaCompiler(outputDir: Path) extends LazyLogging {
+class FunctionCompiler(outputDir: Path) extends LazyLogging {
 
   if (Files.notExists(outputDir)) Files.createDirectories(outputDir)
 
@@ -68,7 +68,7 @@ class ScalaCompiler(outputDir: Path) extends LazyLogging {
       }
 
   private val settings: Settings = {
-    val settings = new Settings(logger.error)
+    val settings = new Settings(logger.error(_))
     settings.classpath.tryToSet(List(scalaLibrary.toString))
     settings.outdir.tryToSet(List(outputDir.toString))
     settings
@@ -132,8 +132,22 @@ class ScalaCompiler(outputDir: Path) extends LazyLogging {
     }
   }
 
+  private def getInputs(params: Seq[scala.meta.Term.Param]): Try[Seq[(String, String)]] =
+    params.find(_.decltpe.isEmpty) match {
+      case Some(value) =>
+        Failure(new Exception(s"Missing type for function variable: ${value.name.toString()}"))
+      case None =>
+        Try {
+          params map {
+            param =>
+              (param.name.toString(), param.decltpe.get.toString())
+          }
+        }
+    }
+
   @tailrec
   final def compileFunction(function: String,
+                            inputTypes: Option[Seq[String]],
                             outputType: String): Try[CompiledFunction] = {
     import scala.meta._
     if (function.isEmpty)
@@ -145,18 +159,20 @@ class ScalaCompiler(outputDir: Path) extends LazyLogging {
         case Right(value) =>
           value match {
             case Term.Block(functionBlock) =>
-              compileFunction(functionBlock.head.syntax, outputType)
+              compileFunction(functionBlock.head.syntax, inputTypes, outputType)
 
             case q"(..$inputs) => $body" =>
-              val inputTypes = inputs map {
-                param =>
-                  (param.name.toString(), param.decltpe.get.toString())
-              }
-              compileFunction(
-                inputArguments = inputTypes,
-                returnType = outputType,
-                functionBody = body.syntax
-              )
+              inputTypes.map(inputTypes => Success(inputs.map(_.name.toString()).zip(inputTypes)))
+                .getOrElse(getInputs(inputs))
+                .flatMap {
+                  inputTypes =>
+                    compileFunction(
+                      inputArguments = inputTypes,
+                      returnType = outputType,
+                      functionBody = body.syntax
+                    )
+                }
+
             case _ =>
               Failure(new Exception("Invalid function syntax"))
           }
