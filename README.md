@@ -9,8 +9,8 @@ It's an implementation of [Log-structured merge-tree](https://en.wikipedia.org/w
 written in Scala with asynchronous Leveled Compaction based on push-pull strategy built on the 
 [Actor model](https://en.wikipedia.org/wiki/Actor_model).
 
-It supports configurable Graph like (http://www.swaydb.io/implementation/segment/group/) for faster 
-reads and has compression support for both [memory](http://www.swaydb.io/create-databases/memory/) 
+It supports configurable [Graph like](http://www.swaydb.io/implementation/segment/group/) 
+file format for faster reads and has compression support for both [memory](http://www.swaydb.io/create-databases/memory/) 
 & [persistent](http://www.swaydb.io/create-databases/persistent/) databases.
 
 Documentation: http://swaydb.io
