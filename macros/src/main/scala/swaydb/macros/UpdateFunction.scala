@@ -19,8 +19,6 @@
 
 package swaydb.macros
 
-import java.nio.file.Paths
-
 import swaydb.compiler.FunctionCompiler
 
 import scala.language.experimental.macros
@@ -30,13 +28,6 @@ import scala.util.{Failure, Success}
 class UpdateFunction[V](val className: String)
 
 object UpdateFunction {
-
-  val testDir =
-    Paths.get(getClass.getClassLoader.getResource("").getPath)
-      .getParent
-      .resolve("DYNAMIC_CLASSES")
-
-  val compiler = new FunctionCompiler(testDir)
 
   def apply[V](implicit className: String): UpdateFunction[V] =
     new UpdateFunction(className)
@@ -52,7 +43,7 @@ object UpdateFunction {
     val sourceString = SourceReader.readUpdateFunction(source, line)
     val valueTypeName = symbol.fullName.toString
 
-    compiler.compileFunction(sourceString, Some(Seq(valueTypeName)), valueTypeName) match {
+    FunctionCompiler.compileFunction(sourceString, Some(Seq(valueTypeName)), valueTypeName) match {
       case Success(compiledFunction) =>
         c.Expr[UpdateFunction[V]](q"""${c.prefix}(${compiledFunction.className})""")
       case Failure(exception) =>

@@ -33,7 +33,13 @@ import scala.reflect.io.VirtualFile
 import scala.tools.nsc.{Global, Settings}
 import scala.util.{Failure, Success, Try}
 
-class FunctionCompiler(outputDir: Path) extends LazyLogging {
+object FunctionCompiler extends LazyLogging {
+
+  //TODO - this should be set in application.conf
+  val outputDir: Path =
+    Paths.get(getClass.getClassLoader.getResource("").getPath)
+      .getParent
+      .resolve("DYNAMIC_CLASSES")
 
   if (Files.notExists(outputDir)) Files.createDirectories(outputDir)
 

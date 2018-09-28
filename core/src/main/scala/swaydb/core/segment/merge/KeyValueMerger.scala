@@ -20,6 +20,7 @@
 package swaydb.core.segment.merge
 
 import swaydb.core.data.{KeyValue, Memory, Persistent, Value}
+import swaydb.core.function.util.ComposeFunction
 import swaydb.data.slice.Slice
 
 import scala.concurrent.duration.FiniteDuration
@@ -186,6 +187,92 @@ private[core] object KeyValueMerger {
                 newKeyValue
               else
                 Memory.Update(oldKeyValue.key, newKeyValue.getOrFetchValue.get, oldKeyValue.deadline)
+          }
+
+        //*** Update function combinations ***
+        case Memory.UpdateFunction(_, _, None) | Persistent.UpdateFunction(_, None, _, _, _, _, _, _) => //Update None without deadline always overwrites old key-value
+          oldKeyValue match {
+            case Memory.Remove(_, None) | Persistent.Remove(_, None, _, _, _) => // Remove Some - Remove None
+              oldKeyValue
+
+            case Memory.Remove(_, Some(_)) | Persistent.Remove(_, Some(_), _, _, _) => // Remove Some - Remove Some
+              if (oldKeyValue.hasTimeLeft())
+                newKeyValue.updateDeadline(oldKeyValue.deadline.get)
+              else
+                oldKeyValue
+
+            case Memory.Put(_, _, None) | Persistent.Put(_, None, _, _, _, _, _, _) => //Put Some - Put None
+              val newValue = newKeyValue.asInstanceOf[KeyValue.ReadOnly.UpdateFunction].applyFunction(oldKeyValue.getOrFetchValue.get)
+              Memory.Put(oldKeyValue.key, newValue.get, oldKeyValue.deadline)
+
+            case Memory.Put(_, _, Some(_)) | Persistent.Put(_, Some(_), _, _, _, _, _, _) => //Put Some - Put Some
+              val newValue = newKeyValue.asInstanceOf[KeyValue.ReadOnly.UpdateFunction].applyFunction(oldKeyValue.getOrFetchValue.get)
+              Memory.Put(oldKeyValue.key, newValue.get, oldKeyValue.deadline)
+
+            case Memory.Update(_, _, None) | Persistent.Update(_, None, _, _, _, _, _, _) => //Update Some - Update None
+              val newValue = newKeyValue.asInstanceOf[KeyValue.ReadOnly.UpdateFunction].applyFunction(oldKeyValue.getOrFetchValue.get)
+              Memory.Update(oldKeyValue.key, newValue.get, oldKeyValue.deadline)
+
+            case Memory.Update(_, _, Some(_)) | Persistent.Update(_, Some(_), _, _, _, _, _, _) => //Update Some - Update Some
+              val newValue = newKeyValue.asInstanceOf[KeyValue.ReadOnly.UpdateFunction].applyFunction(oldKeyValue.getOrFetchValue.get)
+              Memory.Update(oldKeyValue.key, newValue.get, oldKeyValue.deadline)
+
+            case Memory.UpdateFunction(_, _, None) | Persistent.UpdateFunction(_, None, _, _, _, _, _, _) => //Update Some - Update None
+              val composedFunction = ComposeFunction(oldKeyValue.asInstanceOf[KeyValue.ReadOnly.UpdateFunction], newKeyValue.asInstanceOf[KeyValue.ReadOnly.UpdateFunction]).get
+              Memory.UpdateFunction(oldKeyValue.key, Slice(composedFunction.getBytes()))
+
+            case Memory.UpdateFunction(_, _, Some(_)) | Persistent.UpdateFunction(_, Some(_), _, _, _, _, _, _) => //Update Some - Update Some
+              val composedFunction = ComposeFunction(oldKeyValue.asInstanceOf[KeyValue.ReadOnly.UpdateFunction], newKeyValue.asInstanceOf[KeyValue.ReadOnly.UpdateFunction]).get
+              Memory.UpdateFunction(oldKeyValue.key, Slice(composedFunction.getBytes()), oldKeyValue.deadline)
+          }
+
+        case Memory.UpdateFunction(_, _, Some(_)) | Persistent.UpdateFunction(_, Some(_), _, _, _, _, _, _) => //Update Some without deadline always overwrites old key-value
+          oldKeyValue match {
+            case Memory.Remove(_, None) | Persistent.Remove(_, None, _, _, _) => // Remove Some - Remove None
+              oldKeyValue
+
+            case Memory.Remove(_, Some(_)) | Persistent.Remove(_, Some(_), _, _, _) => // Remove Some - Remove Some
+              if (oldKeyValue.isOverdue())
+                oldKeyValue
+              else if (newKeyValue.deadline.get <= oldKeyValue.deadline.get || oldKeyValue.hasTimeLeftAtLeast(hasTimeLeftAtLeast))
+                newKeyValue
+              else
+                newKeyValue.updateDeadline(oldKeyValue.deadline.get)
+
+            case Memory.Put(_, _, None) | Persistent.Put(_, None, _, _, _, _, _, _) => //Put Some - Put None
+              val newValue = newKeyValue.asInstanceOf[KeyValue.ReadOnly.UpdateFunction].applyFunction(oldKeyValue.getOrFetchValue.get)
+              Memory.Put(oldKeyValue.key, newValue.get, oldKeyValue.deadline)
+
+            case Memory.Put(_, _, Some(_)) | Persistent.Put(_, Some(_), _, _, _, _, _, _) => //Put Some - Put Some
+              val newValue = newKeyValue.asInstanceOf[KeyValue.ReadOnly.UpdateFunction].applyFunction(oldKeyValue.getOrFetchValue.get)
+
+              if (newKeyValue.deadline.get <= oldKeyValue.deadline.get || oldKeyValue.hasTimeLeftAtLeast(hasTimeLeftAtLeast))
+                Memory.Put(oldKeyValue.key, newValue.get, newKeyValue.deadline)
+              else
+                Memory.Put(oldKeyValue.key, newValue.get, oldKeyValue.deadline)
+
+            case Memory.Update(_, _, None) | Persistent.Update(_, None, _, _, _, _, _, _) => //Update Some - Update None
+              val newValue = newKeyValue.asInstanceOf[KeyValue.ReadOnly.UpdateFunction].applyFunction(oldKeyValue.getOrFetchValue.get)
+              Memory.Update(oldKeyValue.key, newValue.get, newKeyValue.deadline)
+
+            case Memory.Update(_, _, Some(_)) | Persistent.Update(_, Some(_), _, _, _, _, _, _) => //Update Some - Update Some
+              val newValue = newKeyValue.asInstanceOf[KeyValue.ReadOnly.UpdateFunction].applyFunction(oldKeyValue.getOrFetchValue.get)
+
+              if (newKeyValue.deadline.get <= oldKeyValue.deadline.get || oldKeyValue.hasTimeLeftAtLeast(hasTimeLeftAtLeast))
+                Memory.Update(oldKeyValue.key, newValue.get, newKeyValue.deadline)
+              else
+                Memory.Update(oldKeyValue.key, newValue.get, oldKeyValue.deadline)
+
+            case Memory.UpdateFunction(_, _, None) | Persistent.UpdateFunction(_, None, _, _, _, _, _, _) => //Update Some - Update None
+              val composedFunction = ComposeFunction(oldKeyValue.asInstanceOf[KeyValue.ReadOnly.UpdateFunction], newKeyValue.asInstanceOf[KeyValue.ReadOnly.UpdateFunction]).get
+              Memory.UpdateFunction(oldKeyValue.key, Slice(composedFunction.getBytes()), newKeyValue.deadline)
+
+            case Memory.UpdateFunction(_, _, Some(_)) | Persistent.UpdateFunction(_, Some(_), _, _, _, _, _, _) => //Update Some - Update Some
+              val composedFunction = ComposeFunction(oldKeyValue.asInstanceOf[KeyValue.ReadOnly.UpdateFunction], newKeyValue.asInstanceOf[KeyValue.ReadOnly.UpdateFunction]).get
+              if (newKeyValue.deadline.get <= oldKeyValue.deadline.get || oldKeyValue.hasTimeLeftAtLeast(hasTimeLeftAtLeast))
+                Memory.UpdateFunction(oldKeyValue.key, Slice(composedFunction.getBytes()), newKeyValue.deadline)
+              else
+                Memory.UpdateFunction(oldKeyValue.key, Slice(composedFunction.getBytes()), oldKeyValue.deadline)
           }
       }
     }

@@ -63,7 +63,7 @@ lazy val core =
     .settings(
       libraryDependencies ++=
         commonDependencies :+ "com.github.alexandrnikitin" %% "bloom-filter" % bloomFilterVersion
-    ).dependsOn(data, macros, compression, configs % Test, ordering % Test, serializers % Test)
+    ).dependsOn(data, compiler, macros, compression, configs % Test, ordering % Test, serializers % Test)
 
 lazy val api =
   crossProject(JSPlatform, JVMPlatform)

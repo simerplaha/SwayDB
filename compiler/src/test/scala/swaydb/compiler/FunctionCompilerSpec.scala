@@ -30,35 +30,33 @@ class FunctionCompilerSpec extends WordSpec with Matchers with TryAssert {
       .getParent
       .resolve("DYNAMIC_CLASSES")
 
-  val compiler = new FunctionCompiler(testDir)
-
   "compile function" in {
     val source = "(variable: Int) => variable.toString"
-    val compiledFunction = compiler.compileFunction(source, None, "String").assertGet
-    compiler.getFunction1[Int, String](compiledFunction.className).assertGet(123) shouldBe "123"
+    val compiledFunction = FunctionCompiler.compileFunction(source, None, "String").assertGet
+    FunctionCompiler.getFunction1[Int, String](compiledFunction.className).assertGet(123) shouldBe "123"
   }
 
   "compile function with provided input Type" in {
     val source = "variable => variable.toString"
-    val compiledFunction = compiler.compileFunction(source, Some(Seq("Int")), "String").assertGet
-    compiler.getFunction1[Int, String](compiledFunction.className).assertGet(123) shouldBe "123"
+    val compiledFunction = FunctionCompiler.compileFunction(source, Some(Seq("Int")), "String").assertGet
+    FunctionCompiler.getFunction1[Int, String](compiledFunction.className).assertGet(123) shouldBe "123"
   }
 
   "compile function in a block" in {
     val source = "{ (variable: String) => {variable.toInt} }"
-    val compiledFunction = compiler.compileFunction(source, None, "Int").assertGet
-    compiler.getFunction1[String, Int](compiledFunction.className).assertGet("123") shouldBe 123
+    val compiledFunction = FunctionCompiler.compileFunction(source, None, "Int").assertGet
+    FunctionCompiler.getFunction1[String, Int](compiledFunction.className).assertGet("123") shouldBe 123
   }
 
   "remove function" in {
     val source = "(variable: String, anotherInput: Int) => {variable.toInt}"
-    val compiledFunction = compiler.compileFunction(source, None, "Int").assertGet
-    compiler.getFunction2[String, Int, Int](compiledFunction.className).assertGet("123", 1) shouldBe 123
+    val compiledFunction = FunctionCompiler.compileFunction(source, None, "Int").assertGet
+    FunctionCompiler.getFunction2[String, Int, Int](compiledFunction.className).assertGet("123", 1) shouldBe 123
 
     Files.exists(testDir.resolve(compiledFunction.className + ".class")) shouldBe true
 
-    compiler.removeClass(compiledFunction.className)
-    compiler.getFunction2[String, Int, Int](compiledFunction.className).assertGetOpt shouldBe empty
+    FunctionCompiler.removeClass(compiledFunction.className)
+    FunctionCompiler.getFunction2[String, Int, Int](compiledFunction.className).assertGetOpt shouldBe empty
 
     Files.exists(testDir.resolve(compiledFunction.className + ".class")) shouldBe false
   }
