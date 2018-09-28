@@ -5,6 +5,15 @@ import xerial.sbt.Sonatype._
 
 val scala211 = "2.11.12"
 val scala212 = "2.12.6"
+val scalaMetaVersion = "4.0.0"
+val lz4Version = "1.4.1"
+val snappyVersion = "1.1.7"
+val logbackClassicVersion = "1.2.3"
+val bloomFilterVersion = "0.11.0"
+val scalaLoggingVersion = "3.8.0"
+val scalaMockVersion = "3.6.0"
+val scalaTestVersion = "3.0.5"
+val scalaReflectVersion = "2.12.6"
 
 parallelExecution in ThisBuild := false
 
@@ -30,14 +39,14 @@ val publishSettings = Seq[Setting[_]](
 
 val testDependencies =
   Seq(
-    "org.scalatest" %% "scalatest" % "3.0.5" % Test,
-    "org.scalamock" %% "scalamock-scalatest-support" % "3.6.0" % Test,
-    "ch.qos.logback" % "logback-classic" % "1.2.3" % Test
+    "org.scalatest" %% "scalatest" % scalaTestVersion % Test,
+    "org.scalamock" %% "scalamock-scalatest-support" % scalaMockVersion % Test,
+    "ch.qos.logback" % "logback-classic" % logbackClassicVersion % Test
   )
 
 val commonDependencies =
   Seq(
-    "com.typesafe.scala-logging" %% "scala-logging" % "3.8.0"
+    "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion
   ) ++ testDependencies
 
 lazy val SwayDB =
@@ -45,7 +54,7 @@ lazy val SwayDB =
     .settings(commonSettings)
     .settings(publishSettings)
     .dependsOn(embedded)
-    .aggregate(embedded, core, compression, apiJVM, data, ordering, configs, serializers)
+    .aggregate(embedded, core, compiler, compression, apiJVM, data, ordering, configs, serializers)
 
 lazy val core =
   project
@@ -54,7 +63,7 @@ lazy val core =
     .settings(publishSettings)
     .settings(
       libraryDependencies ++=
-        commonDependencies :+ "com.github.alexandrnikitin" %% "bloom-filter" % "0.10.1"
+        commonDependencies :+ "com.github.alexandrnikitin" %% "bloom-filter" % bloomFilterVersion
     ).dependsOn(data, macros, compression, configs % Test, ordering % Test, serializers % Test)
 
 lazy val api =
@@ -112,15 +121,27 @@ lazy val compression =
     .settings(
       libraryDependencies ++=
         commonDependencies
-          :+ "org.lz4" % "lz4-java" % "1.4.1"
-          :+ "org.xerial.snappy" % "snappy-java" % "1.1.7"
+          :+ "org.lz4" % "lz4-java" % lz4Version
+          :+ "org.xerial.snappy" % "snappy-java" % snappyVersion
     )
     .dependsOn(data, serializers % "compile->compile;test->test")
+
+lazy val compiler =
+  project
+    .settings(commonSettings)
+    .settings(publishSettings)
+    .settings(
+      libraryDependencies ++= commonDependencies,
+      libraryDependencies += "org.scala-lang" % "scala-reflect" % scala212,
+      libraryDependencies += "org.scala-lang" % "scala-compiler" % scala212,
+      libraryDependencies += "org.scalameta" %% "scalameta" % scalaMetaVersion
+    ).dependsOn(serializers, data)
+
 
 lazy val macros =
   project
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(
-      libraryDependencies += "org.scala-lang" % "scala-reflect" % "2.12.6"
+      libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaReflectVersion
     )
