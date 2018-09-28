@@ -33,7 +33,7 @@ import scala.reflect.io.VirtualFile
 import scala.tools.nsc.{Global, Settings}
 import scala.util.{Failure, Try}
 
-class ScalaCompiler(outputDir: Path) extends LazyLogging{
+class ScalaCompiler(outputDir: Path) extends LazyLogging {
 
   if (Files.notExists(outputDir)) Files.createDirectories(outputDir)
 
@@ -141,22 +141,27 @@ class ScalaCompiler(outputDir: Path) extends LazyLogging{
     else if (outputType.isEmpty)
       Failure(new Exception("Output type is required"))
     else
-      function.parse[Stat].get match {
-        case Term.Block(functionBlock) =>
-          compileFunction(functionBlock.head.syntax, outputType)
+      function.parse[Stat].toEither match {
+        case Right(value) =>
+          value match {
+            case Term.Block(functionBlock) =>
+              compileFunction(functionBlock.head.syntax, outputType)
 
-        case q"(..$inputs) => $body" =>
-          val inputTypes = inputs map {
-            param =>
-              (param.name.toString(), param.decltpe.get.toString())
+            case q"(..$inputs) => $body" =>
+              val inputTypes = inputs map {
+                param =>
+                  (param.name.toString(), param.decltpe.get.toString())
+              }
+              compileFunction(
+                inputArguments = inputTypes,
+                returnType = outputType,
+                functionBody = body.syntax
+              )
+            case _ =>
+              Failure(new Exception("Invalid function syntax"))
           }
-          compileFunction(
-            inputArguments = inputTypes,
-            returnType = outputType,
-            functionBody = body.syntax
-          )
-        case _ =>
-          Failure(new Exception("Invalid function syntax"))
+        case Left(value) =>
+          Failure(value.details)
       }
   }
 
