@@ -28,6 +28,22 @@ private[swaydb] sealed trait MaxKey {
 
 private[swaydb] object MaxKey {
 
+  implicit class MaxKeyImplicits(maxKey: MaxKey) {
+    def unslice() =
+      maxKey match {
+        case Fixed(maxKey) =>
+          Fixed(maxKey.unslice())
+
+        case Range(fromKey, maxKey) =>
+          Range(fromKey.unslice(), maxKey.unslice())
+      }
+
+    def lessThan(key: Slice[Byte])(implicit ordering: Ordering[Slice[Byte]]): Boolean = {
+      import ordering._
+      (maxKey.inclusive && maxKey.maxKey < key) || (!maxKey.inclusive && maxKey.maxKey <= key)
+    }
+  }
+
   private[swaydb] case class Fixed(maxKey: Slice[Byte]) extends MaxKey {
     override val inclusive: Boolean = true
   }

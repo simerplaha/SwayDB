@@ -29,14 +29,15 @@ import swaydb.core.util.FiniteDurationUtil._
 import swaydb.core.util.PipeOps._
 import swaydb.data.slice.Slice
 
-import scala.annotation.tailrec
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
 private[core] object LevelActor extends LazyLogging {
 
-  val unexpectedFailureRetry = 3.seconds
+  val unexpectedFailureReSchedule = 3.seconds
+  val unexpectedCollapseSmallSegmentsFailureReSchedule = 10.seconds
+  val tooManySegmentsToCollapseReSchedule = 5.seconds
   val expiredKeyValuesRescheduleDelay = 1.second
 
   def apply(implicit ec: ExecutionContext, level: LevelActorAPI, ordering: Ordering[Slice[Byte]]): LevelActor =
@@ -58,35 +59,53 @@ private[core] object LevelActor extends LazyLogging {
         None
 
       case state: Sleeping =>
-        val hasNextLevel = level.hasNextLevel
-        val hasSmallSegments = state.hasSmallSegments
-        if (hasNextLevel || hasSmallSegments) {
+        if (level.hasNextLevel) {
           val delay = level.nextPushDelay
           logger.debug(s"{}: Started. Scheduled with delay delay", level.paths.head, delay)
-          Some(PushScheduled(state.hasSmallSegments, state.task), PushTask(delay, Push))
+          Some(
+            PushScheduled(
+              collapseSmallSegmentsTaskScheduled = state.collapseSmallSegmentsTaskScheduled,
+              task = state.task
+            ),
+            PushTask(
+              delay = delay,
+              command = Push
+            )
+          )
         } else {
-          logger.debug(s"{}: Not initialised. level.hasNextLevel = {} || state.hasSmallSegments = {}", level.paths.head, hasNextLevel, hasSmallSegments)
+          logger.debug(s"{}: Not initialised. level.hasNextLevel = {}", level.paths.head, level.hasNextLevel)
           None
         }
     }
 
-  def collapseSmallSegments(implicit state: LevelState,
-                            self: ActorRef[LevelCommand],
-                            level: LevelActorAPI): LevelState =
-    level.collapseAllSmallSegments(level.nextBatchSize) map {
-      collapsedSegments =>
-        if (collapsedSegments == 0)
-          state.copyWithHasSmallSegments(hasSmallSegments = false)
-        else
-          state
-    } match {
-      case Success(state) =>
-        state
-
-      case Failure(_) =>
-        self.schedule(CollapseSmallSegments, unexpectedFailureRetry)
-        state.copyWithHasSmallSegments(hasSmallSegments = false)
+  def collapseSmallSegments(force: Boolean)(implicit state: LevelState,
+                                            self: ActorRef[LevelCommand],
+                                            level: LevelActorAPI): LevelState = {
+    logger.debug(s"{}: Collapsing small Segments. force = {}, collapseSmallSegmentsTaskScheduled = {}", level.paths.head, force, state.collapseSmallSegmentsTaskScheduled)
+    if (force || !state.collapseSmallSegmentsTaskScheduled) {
+      logger.debug(s"{}: Collapsing", level.paths.head)
+      level.collapseAllSmallSegments(level.nextBatchSize) map {
+        collapsedSegments =>
+          //If small Segments were not merged in one request, don't want to eagerly merge small Segments and take too much IO.
+          //Set a delay of 5.seconds.
+          if (collapsedSegments != 0) {
+            self.schedule(CollapseSmallSegmentsForce, tooManySegmentsToCollapseReSchedule)
+            state.setCollapseSmallSegmentScheduled(collapseSmallSegmentsTaskScheduled = true)
+          } else {
+            //successfully collapsed all small Segments
+            state.setCollapseSmallSegmentScheduled(collapseSmallSegmentsTaskScheduled = false)
+          }
+      } getOrElse {
+        //collapsing small Segments does not have to occur often in-case of failure as these Segments will eventually be merged to lower Levels.
+        //but schedule a task with longer delay in-case this is the last Level.
+        self.schedule(CollapseSmallSegmentsForce, unexpectedCollapseSmallSegmentsFailureReSchedule)
+        state.setCollapseSmallSegmentScheduled(collapseSmallSegmentsTaskScheduled = true)
+      }
+    } else {
+      logger.debug(s"{}: Collapse not required.", level.paths.head)
+      state
     }
+  }
 
   def clearExpiredKeyValues(newDeadline: Deadline)(implicit state: LevelState,
                                                    level: LevelActorAPI,
@@ -94,21 +113,21 @@ private[core] object LevelActor extends LazyLogging {
                                                    ec: ExecutionContext): LevelState = {
     def runOrScheduleTask(): LevelState =
       if (newDeadline.isOverdue()) {
-        logger.trace(s"{}: Deadline overdue: {}. Clearing expired key-values.", level.paths.head, newDeadline.timeLeft.asString)
+        logger.debug(s"{}: Deadline overdue: {}. Clearing expired key-values.", level.paths.head, newDeadline.timeLeft.asString)
         level.clearExpiredKeyValues() match {
           case Success(_) =>
-            logger.trace(s"{}: clearExpiredKeyValues execution complete.", level.paths.head)
+            logger.debug(s"{}: clearExpiredKeyValues execution complete.", level.paths.head)
             state.clearTask()
 
           case Failure(exception) =>
-            logger.debug(s"{}: Failed to expire key-values for deadline: {}. Rescheduling after: {}", level.paths.head, newDeadline.timeLeft.asString, unexpectedFailureRetry.asString, exception)
-            val task = self.schedule(ClearExpiredKeyValues(newDeadline), unexpectedFailureRetry)
+            logger.debug(s"{}: Failed to expire key-values for deadline: {}. Rescheduling after: {}", level.paths.head, newDeadline.timeLeft.asString, unexpectedFailureReSchedule.asString, exception)
+            val task = self.schedule(ClearExpiredKeyValues(newDeadline), unexpectedFailureReSchedule)
             state.setTask(task)
         }
       } else {
         val scheduleTime = newDeadline.timeLeft + expiredKeyValuesRescheduleDelay
-        logger.trace(s"{}: Deadline: {} is not overdue. Re-scheduled with extra delay of: {}", level.paths.head, newDeadline.timeLeft.asString, expiredKeyValuesRescheduleDelay.asString)
-        //add some extra time to timeLeft. Scheduled delay should not be too low. Otherwise ClearExpiredKeyValues will be dispatched tooOfset.
+        logger.debug(s"{}: Deadline: {} is not overdue. Re-scheduled with extra delay of: {}", level.paths.head, newDeadline.timeLeft.asString, expiredKeyValuesRescheduleDelay.asString)
+        //add some extra time to timeLeft. Scheduled delay should not be too low. Otherwise ClearExpiredKeyValues will be dispatched too often.
         val task = self.schedule(ClearExpiredKeyValues(newDeadline), scheduleTime)
         state.setTask(task)
       }
@@ -120,7 +139,7 @@ private[core] object LevelActor extends LazyLogging {
           currentScheduledTask.cancel()
           runOrScheduleTask()
         } else {
-          logger.trace(s"{}: New deadline: {} is not before existing scheduled deadline: {}", level.paths.head, newDeadline.timeLeft.asString, currentScheduledDeadline.timeLeft.asString)
+          logger.debug(s"{}: New deadline: {} is not before existing scheduled deadline: {}", level.paths.head, newDeadline.timeLeft.asString, currentScheduledDeadline.timeLeft.asString)
           state
         }
 
@@ -129,7 +148,6 @@ private[core] object LevelActor extends LazyLogging {
     }
   }
 
-  @tailrec
   def doPush(implicit self: ActorRef[LevelCommand],
              level: LevelActorAPI,
              state: LevelState): LevelState =
@@ -139,34 +157,30 @@ private[core] object LevelActor extends LazyLogging {
         state
 
       case _ =>
-        if (state.hasSmallSegments) {
-          logger.debug(s"{}: Has small segments", level.paths.head)
-          val newState = collapseSmallSegments(state, self, level)
-          doPush(self, level, newState)
-        } else if (!level.hasNextLevel) {
+        if (!level.hasNextLevel) {
           logger.debug(s"{}: Has no lower Level", level.paths.head)
-          Sleeping(state.hasSmallSegments, state.task)
+          Sleeping(state.collapseSmallSegmentsTaskScheduled, state.task)
         } else {
           level.nextBatchSizeAndSegmentsCount ==> {
             case (_, segmentsCount) if segmentsCount == 0 =>
               logger.debug(s"{}: Level is empty.", level.paths.head)
-              Sleeping(state.hasSmallSegments, state.task)
+              Sleeping(state.collapseSmallSegmentsTaskScheduled, state.task)
 
             case (batchSize, _) if batchSize <= 0 =>
               logger.debug(s"{}: BatchSize is {}. Going in sleep mode.", level.paths.head, batchSize)
-              Sleeping(state.hasSmallSegments, state.task)
+              Sleeping(state.collapseSmallSegmentsTaskScheduled, state.task)
 
             case (batchSize, _) =>
               val pickedSegments = level.pickSegmentsToPush(batchSize)
               if (pickedSegments.nonEmpty) {
                 logger.debug(s"{}: Push segments {}", level.paths.head, pickedSegments.map(_.path.toString))
                 level push PushSegments(pickedSegments, self)
-                LevelState.Pushing(pickedSegments.toList, state.hasSmallSegments, state.task, None)
+                LevelState.Pushing(pickedSegments.toList, state.collapseSmallSegmentsTaskScheduled, state.task, None)
               } else {
                 logger.debug(s"{}: No new Segments available to push. Sending PullRequest.", level.paths.head)
                 //              val segmentsToPush = level.take(batchSize)
                 level push PullRequest(self)
-                LevelState.WaitingPull(state.hasSmallSegments, state.task)
+                LevelState.WaitingPull(state.collapseSmallSegmentsTaskScheduled, state.task)
               }
           }
         }
@@ -221,7 +235,7 @@ private[core] object LevelActor extends LazyLogging {
       case Success(_) =>
         logger.trace(s"{}: Received successful put response. Segments pushed {}.", level.paths.head, response.request.segments.map(_.path.toString))
         level.removeSegments(response.request.segments)
-        (Sleeping(state.hasSmallSegments, state.task), Some(PushTask(level.nextPushDelay, Push)))
+        (Sleeping(state.collapseSmallSegmentsTaskScheduled, state.task), Some(PushTask(level.nextPushDelay, Push)))
 
       case Failure(exception) =>
         exception match {
@@ -232,7 +246,7 @@ private[core] object LevelActor extends LazyLogging {
           case ContainsOverlappingBusySegments =>
             logger.debug(s"{}: Contains busy Segments. Dispatching PullRequest", level.paths.head)
             level push PullRequest(self)
-            (WaitingPull(state.hasSmallSegments, state.task), None)
+            (WaitingPull(state.collapseSmallSegmentsTaskScheduled, state.task), None)
 
           //Unexpected failure, do not flood lower level with Push messages.
           // Dispatch with delay so lower level can recover from it's failure.
@@ -241,10 +255,10 @@ private[core] object LevelActor extends LazyLogging {
               "{}: Received unexpected Failure response for Pushing segments {}. Retrying next Push with delay {}",
               level.paths.head,
               response.request.segments.map(_.path.toString),
-              LevelActor.unexpectedFailureRetry.asString,
+              LevelActor.unexpectedFailureReSchedule.asString,
               exception
             )
-            (Sleeping(state.hasSmallSegments, state.task), Some(PushTask(LevelActor.unexpectedFailureRetry, Push)))
+            (Sleeping(state.collapseSmallSegmentsTaskScheduled, state.task), Some(PushTask(LevelActor.unexpectedFailureReSchedule, Push)))
         }
     }
 
@@ -261,7 +275,7 @@ private[core] class LevelActor(implicit level: LevelActorAPI,
 
   //State of this Actor is external to the Actor itself because it can be accessed outside the Actor by other threads.
   //and the Level's upper Level.
-  @volatile private implicit var state: LevelState = Sleeping(hasSmallSegments = true, task = None)
+  @volatile private implicit var state: LevelState = Sleeping(collapseSmallSegmentsTaskScheduled = false, task = None)
 
   def getBusySegments: List[Segment] =
     state.busySegments
@@ -319,8 +333,11 @@ private[core] class LevelActor(implicit level: LevelActorAPI,
             setState(nextState)
             nextTask foreach executeTask
 
+          case CollapseSmallSegmentsForce =>
+            LevelActor.collapseSmallSegments(force = true) ==> setState
+
           case CollapseSmallSegments =>
-            LevelActor.collapseSmallSegments ==> setState
+            LevelActor.collapseSmallSegments(force = false) ==> setState
 
           case ClearExpiredKeyValues(deadline) =>
             LevelActor.clearExpiredKeyValues(deadline) ==> setState
@@ -328,4 +345,5 @@ private[core] class LevelActor(implicit level: LevelActorAPI,
     }
 
   actor ! WakeUp
+  actor ! CollapseSmallSegments
 }

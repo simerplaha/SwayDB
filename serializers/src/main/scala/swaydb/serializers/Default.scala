@@ -92,12 +92,34 @@ object Default {
       data.readString(StandardCharsets.UTF_8)
   }
 
+  implicit object OptionStringSerializer extends Serializer[Option[String]] {
+    override def write(data: Option[String]): Slice[Byte] =
+      data.map(Slice.writeString(_)).getOrElse(Slice.empty)
+
+    override def read(data: Slice[Byte]): Option[String] =
+      if (data.isEmpty)
+        None
+      else
+        Some(data.readString(StandardCharsets.UTF_8))
+  }
+
   implicit object SliceSerializer extends Serializer[Slice[Byte]] {
     override def write(data: Slice[Byte]): Slice[Byte] =
       data
 
     override def read(data: Slice[Byte]): Slice[Byte] =
       data
+  }
+
+  implicit object SliceOptionSerializer extends Serializer[Option[Slice[Byte]]] {
+    override def write(data: Option[Slice[Byte]]): Slice[Byte] =
+      data.getOrElse(Slice.emptyBytes)
+
+    override def read(data: Slice[Byte]): Option[Slice[Byte]] =
+      if (data.isEmpty)
+        None
+      else
+        Some(data)
   }
 
   implicit object ArraySerializer extends Serializer[Array[Byte]] {
@@ -110,7 +132,7 @@ object Default {
 
   implicit object UnitSerializer extends Serializer[Unit] {
     override def write(data: Unit): Slice[Byte] =
-      emptySlice
+      Slice.emptyBytes
 
     override def read(data: Slice[Byte]): Unit =
       ()

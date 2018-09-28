@@ -68,6 +68,9 @@ object ByteUtil {
   def readLong(reader: Reader): Try[Long] =
     reader.read(ByteSizeOf.long) map readLong
 
+  def readBoolean(reader: Reader): Try[Boolean] =
+    reader.get() map (_ == 1)
+
   def readString(reader: Reader, charset: Charset): Try[String] =
     reader.size flatMap {
       size =>
@@ -182,7 +185,10 @@ object ByteUtil {
     }
   }
 
-  def readLastUnsignedInt(slice: Slice[Byte]): Try[Int] = {
+  /**
+    * @return Tuple where the first integer is the unsigned integer and the second is the number of bytes read.
+    */
+  def readLastUnsignedInt(slice: Slice[Byte]): Try[(Int, Int)] = {
     try {
       var index = slice.size - 1
       var i = 0
@@ -195,7 +201,7 @@ object ByteUtil {
         index -= 1
         require(i <= 35)
       } while ((read & 0x80) != 0)
-      Success(int)
+      Success(int, slice.size - index - 1)
     } catch {
       case ex: Exception =>
         Failure(ex)

@@ -22,11 +22,11 @@ package swaydb.core
 import java.nio.file.Paths
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.data.Persistent
+import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.io.file.DBFile
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, LevelRef, TrashLevel}
-import swaydb.core.segment.Segment
+import swaydb.core.queue.{KeyValueLimiter, SegmentOpenLimiter}
 import swaydb.core.util.FileUtil._
 import swaydb.data.config._
 import swaydb.data.slice.Slice
@@ -47,48 +47,49 @@ private[core] object DBInitializer extends LazyLogging {
 
     implicit val fileOpenLimiter: DBFile => Unit =
       if (config.persistent)
-        LimitQueues.segmentOpenLimiter(maxSegmentsOpen, segmentCloserDelay)
+        SegmentOpenLimiter(maxSegmentsOpen, segmentCloserDelay)
       else
         _ => throw new IllegalAccessError("fileOpenLimiter is not required for in-memory databases.")
 
-    implicit val keyValueLimiter: (Persistent, Segment) => Unit =
-      if (config.persistent)
-        LimitQueues.keyValueLimiter(cacheSize, keyValueQueueDelay)
-      else
-        (_, _) => throw new IllegalAccessError("keyValueLimiter is not required for in-memory databases.")
+    implicit val keyValueLimiter: KeyValueLimiter =
+      KeyValueLimiter(cacheSize, keyValueQueueDelay)
 
     def createLevel(id: Long,
                     nextLevel: Option[LevelRef],
                     config: LevelConfig): Try[LevelRef] =
       config match {
-        case MemoryLevelConfig(segmentSize, pushForward, bloomFilterFalsePositiveRate, minTimeLeftToUpdateExpiration, throttle) =>
+        case config: MemoryLevelConfig =>
+          implicit val compression: Option[KeyValueGroupingStrategyInternal] = config.groupingStrategy map KeyValueGroupingStrategyInternal.apply
           Level(
             levelStorage = LevelStorage.Memory(dir = Paths.get("MEMORY_LEVEL").resolve(id.toString)),
-            segmentSize = segmentSize,
+            segmentSize = config.segmentSize,
             nextLevel = nextLevel,
-            pushForward = pushForward,
+            pushForward = config.pushForward,
             appendixStorage = AppendixStorage.Memory,
-            bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-            throttle = throttle,
-            hasTimeLeftAtLeast = minTimeLeftToUpdateExpiration
+            bloomFilterFalsePositiveRate = config.bloomFilterFalsePositiveRate,
+            throttle = config.throttle,
+            hasTimeLeftAtLeast = config.minTimeLeftToUpdateExpiration,
+            compressDuplicateValues = config.compressDuplicateValues
           )
 
-        case PersistentLevelConfig(dir, otherDirs, segmentSize, mmapSegment, mmapAppendix, appendixFlushCheckpointSize, pushForward, bloomFilterFalsePositiveRate, minTimeLeftToUpdateExpiration, throttle) =>
+        case config: PersistentLevelConfig =>
+          implicit val compression: Option[KeyValueGroupingStrategyInternal] = config.groupingStrategy map KeyValueGroupingStrategyInternal.apply
           Level(
             levelStorage =
               LevelStorage.Persistent(
-                mmapSegmentsOnWrite = mmapSegment.mmapWrite,
-                mmapSegmentsOnRead = mmapSegment.mmapRead,
-                dir = dir.resolve(id.toString),
-                otherDirs = otherDirs.map(dir => dir.copy(path = dir.path.resolve(id.toString)))
+                mmapSegmentsOnWrite = config.mmapSegment.mmapWrite,
+                mmapSegmentsOnRead = config.mmapSegment.mmapRead,
+                dir = config.dir.resolve(id.toString),
+                otherDirs = config.otherDirs.map(dir => dir.copy(path = dir.path.resolve(id.toString)))
               ),
-            segmentSize = segmentSize,
+            segmentSize = config.segmentSize,
             nextLevel = nextLevel,
-            pushForward = pushForward,
-            appendixStorage = AppendixStorage.Persistent(mmapAppendix, appendixFlushCheckpointSize),
-            bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-            throttle = throttle,
-            hasTimeLeftAtLeast = minTimeLeftToUpdateExpiration
+            pushForward = config.pushForward,
+            appendixStorage = AppendixStorage.Persistent(config.mmapAppendix, config.appendixFlushCheckpointSize),
+            bloomFilterFalsePositiveRate = config.bloomFilterFalsePositiveRate,
+            throttle = config.throttle,
+            hasTimeLeftAtLeast = config.minTimeLeftToUpdateExpiration,
+            compressDuplicateValues = config.compressDuplicateValues
           )
 
         case TrashLevelConfig =>

@@ -21,12 +21,15 @@ package swaydb.core.segment
 
 import swaydb.core.data.{KeyValue, Persistent}
 import swaydb.core.io.file.DBFile
+import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestLimitQueues}
 import swaydb.data.segment.MaxKey
 import swaydb.order.KeyOrder
 
 //@formatter:off
+class SegmentPerformanceSpec0 extends SegmentPerformanceSpec
+
 class SegmentPerformanceSpec1 extends SegmentPerformanceSpec {
   override def levelFoldersCount = 10
   override def mmapSegmentsOnWrite = true
@@ -48,14 +51,15 @@ class SegmentPerformanceSpec3 extends SegmentPerformanceSpec {
 }
 
 
-class SegmentPerformanceSpec extends TestBase with Benchmark {
+sealed trait SegmentPerformanceSpec extends TestBase with Benchmark {
 
-  implicit val ordering = KeyOrder.default
-  val keyValuesCount = 100
+  override implicit val ordering = KeyOrder.default
+  implicit val compression = groupingStrategy
+  val keyValuesCount = 10000
 
 
   implicit val maxSegmentsOpenCacheImplicitLimiter: DBFile => Unit = TestLimitQueues.fileOpenLimiter
-  implicit val keyValuesLimitImplicitLimiter: (Persistent, Segment) => Unit = TestLimitQueues.keyValueLimiter
+  implicit val keyValuesLimitImplicitLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter
 
   val keyValues = randomIntKeyValues(keyValuesCount)
 

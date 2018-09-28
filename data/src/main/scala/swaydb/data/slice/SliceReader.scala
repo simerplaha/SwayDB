@@ -31,16 +31,19 @@ private[swaydb] case class SliceReader(slice: Slice[Byte]) extends Reader {
   override val size: Try[Long] =
     Try(slice.size.toLong)
 
-  def hasAtLeast(size: Long) =
+  def hasAtLeast(size: Long): Try[Boolean] =
     Try((slice.size - position) >= size)
 
-  def read(size: Int) = {
+  def read(size: Int): Try[Slice[Byte]] =
     Try {
-      val bytes = slice.slice(position, position + size - 1)
-      position += size
-      bytes
+      if (size == 0)
+        Slice.emptyBytes
+      else {
+        val bytes = slice.slice(position, position + size - 1)
+        position += size
+        bytes
+      }
     }
-  }
 
   def moveTo(newPosition: Long): Reader = {
     position = newPosition.toInt
@@ -60,15 +63,10 @@ private[swaydb] case class SliceReader(slice: Slice[Byte]) extends Reader {
   override def getPosition: Int =
     position
 
-  override def remaining =
-    size map {
-      size =>
-        size - position
-    }
-
   override def copy(): Reader =
-    new SliceReader(slice)
+    SliceReader(slice)
 
-  override def isLoaded =
-    Success(true)
+  override def readRemaining(): Try[Slice[Byte]] =
+    remaining flatMap read
+
 }

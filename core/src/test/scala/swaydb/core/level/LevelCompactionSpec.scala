@@ -43,11 +43,11 @@ class LevelCompaction1Spec extends LevelCompactionSpec {
   override def inMemoryStorage = true
 }
 
-trait LevelCompactionSpec extends TestBase with MockFactory {
+sealed trait LevelCompactionSpec extends TestBase with MockFactory {
 
   import TestLevel._
 
-  implicit val ordering = KeyOrder.default
+  override implicit val ordering = KeyOrder.default
 
   "Level" should {
     "merge all it's Segments to lower level" in {

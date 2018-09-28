@@ -26,6 +26,7 @@ import swaydb.core.data.Persistent
 import swaydb.core.io.file.DBFile
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.MapEntry
+import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.Segment
 import swaydb.core.{TestBase, TestLimitQueues}
 import swaydb.data.slice.Slice
@@ -37,9 +38,11 @@ import scala.collection.JavaConverters._
 
 class AppendixMapEntrySpec extends TestBase {
 
-  implicit val ordering = KeyOrder.default
+  override implicit val ordering = KeyOrder.default
   implicit val maxSegmentsOpenCacheImplicitLimiter: DBFile => Unit = TestLimitQueues.fileOpenLimiter
-  implicit val keyValuesLimitImplicitLimiter: (Persistent, Segment) => Unit = TestLimitQueues.keyValueLimiter
+  implicit val keyValuesLimitImplicitLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter
+
+  implicit val compression = groupingStrategy
   val appendixReader = AppendixMapEntryReader(false, true, true)
   val segment = TestSegment().assertGet
 

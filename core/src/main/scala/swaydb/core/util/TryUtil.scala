@@ -25,21 +25,29 @@ import scala.collection.mutable.ListBuffer
 import scala.concurrent.{ExecutionContext, Future}
 import scala.reflect.ClassTag
 import scala.util.{Failure, Success, Try}
+import CollectionUtil._
+import swaydb.core.io.reader.Reader
 
-private[core] object TryUtil {
+object TryUtil {
 
   val successUnit: Success[Unit] = Success()
-
   val successNone = Success(None)
+  val successFalse = Success(false)
+  val successTrue = Success(true)
+  val emptyReader = Success(Reader(Slice.emptyBytes))
+  val successZero = Success(0)
+
+  object Catch {
+    def apply[T](f: => Try[T]): Try[T] =
+      try
+        f
+      catch {
+        case ex: Exception =>
+          Failure(ex)
+      }
+  }
 
   implicit class IterableTryImplicit[T: ClassTag](iterable: Iterable[T]) {
-
-    def foreachBreak[R](f: T => Boolean): Unit = {
-      val it = iterable.iterator
-      var break: Boolean = false
-      while (it.hasNext && !break)
-        break = f(it.next())
-    }
 
     def tryForeach[R](f: T => Try[R], failFast: Boolean = true): Option[Failure[R]] = {
       val it = iterable.iterator
@@ -52,6 +60,25 @@ private[core] object TryUtil {
         }
       }
       failure
+    }
+
+    //returns the first Success(Some(_)).
+    def tryUntilSome[R](f: T => Try[Option[R]]): Try[Option[(R, T)]] = {
+      var result: Try[Option[(R, T)]] = TryUtil.successNone
+      iterable.iterator foreachBreak {
+        item =>
+          f(item) match {
+            case Success(Some(value)) =>
+              result = Success(Some(value, item))
+              true
+            case Success(None) =>
+              false
+            case Failure(exception) =>
+              result = Failure(exception)
+              true
+          }
+      }
+      result
     }
 
     def tryMap[R: ClassTag](tryBlock: T => Try[R],

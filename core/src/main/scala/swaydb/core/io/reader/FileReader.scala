@@ -21,7 +21,7 @@ package swaydb.core.io.reader
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.io.file.DBFile
-import swaydb.data.slice.Reader
+import swaydb.data.slice.{Reader, Slice}
 
 import scala.util.Try
 
@@ -44,7 +44,7 @@ private[core] class FileReader(file: DBFile) extends Reader with LazyLogging {
     file.fileSize.map(position <= _)
 
   def hasAtLeast(size: Long): Try[Boolean] =
-    file.fileSize.map {
+    file.fileSize map {
       fileSize =>
         (fileSize - position) >= size
     }
@@ -67,4 +67,7 @@ private[core] class FileReader(file: DBFile) extends Reader with LazyLogging {
         position += size
         bytes
     }
+
+  override def readRemaining(): Try[Slice[Byte]] =
+    remaining flatMap read
 }

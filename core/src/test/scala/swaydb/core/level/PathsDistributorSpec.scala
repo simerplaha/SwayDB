@@ -30,7 +30,7 @@ import swaydb.order.KeyOrder
 
 class PathsDistributorSpec extends TestBase with MockFactory {
 
-  implicit val ordering = KeyOrder.default
+  override implicit val ordering = KeyOrder.default
 
   implicit def stringToPath(string: String): Path = Paths.get(string)
 

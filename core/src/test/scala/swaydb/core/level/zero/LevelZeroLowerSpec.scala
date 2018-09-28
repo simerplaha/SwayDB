@@ -34,6 +34,8 @@ import scala.concurrent.duration._
 import scala.util.Random
 
 //@formatter:off
+class LevelZeroLowerSpec0 extends LevelZeroLowerSpec
+
 class LevelZeroLowerSpec1 extends LevelZeroLowerSpec {
   override def levelFoldersCount = 10
   override def mmapSegmentsOnWrite = true
@@ -55,9 +57,9 @@ class LevelZeroLowerSpec3 extends LevelZeroLowerSpec {
 }
 //@formatter:on
 
-class LevelZeroLowerSpec extends TestBase with MockFactory with Benchmark {
+sealed trait LevelZeroLowerSpec extends TestBase with MockFactory with Benchmark {
 
-  implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
+  override implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
 
   "Level0.lower" should {
 

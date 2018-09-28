@@ -24,7 +24,7 @@ import swaydb.data.slice.{Slice, SliceReader}
 
 object Reader {
 
-  val emptyReader = Reader(Slice.emptyByteSlice)
+  val empty = Reader(Slice.emptyBytes)
 
   def apply(file: DBFile): FileReader =
     new FileReader(file)

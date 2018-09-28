@@ -22,6 +22,7 @@ package swaydb.core.level
 import org.scalamock.scalatest.MockFactory
 import swaydb.core.TestBase
 import swaydb.core.data.{Memory, Value}
+import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.util.Benchmark
 import swaydb.data.slice.Slice
 import swaydb.order.KeyOrder
@@ -52,9 +53,10 @@ class LevelLastSpec3 extends LevelLastSpec {
 }
 //@formatter:on
 
-trait LevelLastSpec extends TestBase with MockFactory with Benchmark {
+sealed trait LevelLastSpec extends TestBase with MockFactory with Benchmark {
 
-  implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
+  override implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
+  implicit override val groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomCompressionTypeOption(keyValuesCount)
   val keyValuesCount = 100
 
   "Level.last when lower Level is empty" should {

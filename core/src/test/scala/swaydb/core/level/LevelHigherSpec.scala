@@ -22,6 +22,7 @@ package swaydb.core.level
 import org.scalamock.scalatest.MockFactory
 import swaydb.core.TestBase
 import swaydb.core.data.{Memory, Value}
+import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.util.Benchmark
 import swaydb.core.util.FileUtil._
 import swaydb.data.compaction.Throttle
@@ -56,10 +57,11 @@ class LevelHigherSpec3 extends LevelHigherSpec {
 }
 //@formatter:on
 
-trait LevelHigherSpec extends TestBase with MockFactory with Benchmark {
+sealed trait LevelHigherSpec extends TestBase with MockFactory with Benchmark {
 
-  implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
   val keyValuesCount = 100
+  override implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
+  implicit override val groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomCompressionTypeOption(keyValuesCount)
 
   "Level.higher when the lower Level is empty" should {
     "return None if the Level is empty" in {

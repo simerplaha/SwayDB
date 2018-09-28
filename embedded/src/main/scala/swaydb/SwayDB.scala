@@ -23,13 +23,14 @@ import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.api.SwayDBAPI
-import swaydb.configs.level.{MemoryConfig, PersistentConfig}
+import swaydb.configs.level.{DefaultGroupingStrategy, DefaultMemoryConfig, DefaultMemoryPersistentConfig, DefaultPersistentConfig}
 import swaydb.core.CoreAPI
 import swaydb.core.data.{Memory, Value}
 import swaydb.core.map.MapEntry
 import swaydb.core.map.serializer.LevelZeroMapEntryWriter
 import swaydb.core.tool.AppendixRepairer
 import swaydb.data.accelerate.{Accelerator, Level0Meter}
+import swaydb.data.api.grouping.KeyValueGroupingStrategy
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.config._
 import swaydb.data.repairAppendix.RepairResult.OverlappingSegments
@@ -99,7 +100,7 @@ object SwayDB extends LazyLogging {
 
   def persistent[K, V](dir: Path,
                        maxOpenSegments: Int = 1000,
-                       cacheSize: Long = 100.mb,
+                       cacheSize: Int = 100.mb,
                        mapSize: Int = 4.mb,
                        mmapMaps: Boolean = true,
                        recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
@@ -108,16 +109,17 @@ object SwayDB extends LazyLogging {
                        segmentSize: Int = 2.mb,
                        appendixFlushCheckpointSize: Int = 2.mb,
                        otherDirs: Seq[Dir] = Seq.empty,
-                       cacheCheckDelay: FiniteDuration = 5.seconds,
+                       cacheCheckDelay: FiniteDuration = 7.seconds,
                        segmentsOpenCheckDelay: FiniteDuration = 5.seconds,
                        bloomFilterFalsePositiveRate: Double = 0.01,
                        minTimeLeftToUpdateExpiration: FiniteDuration = 10.seconds,
+                       compressDuplicateValues: Boolean = true,
                        acceleration: Level0Meter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
                                                                                           valueSerializer: Serializer[V],
                                                                                           ordering: Ordering[Slice[Byte]] = KeyOrder.default,
                                                                                           ec: ExecutionContext = defaultExecutionContext): Try[SwayDBMap[K, V]] =
     CoreAPI(
-      config = PersistentConfig(
+      config = DefaultPersistentConfig(
         dir = dir,
         otherDirs = otherDirs,
         mapSize = mapSize, mmapMaps = mmapMaps,
@@ -128,6 +130,7 @@ object SwayDB extends LazyLogging {
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
         minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
+        compressDuplicateValues = compressDuplicateValues,
         acceleration = acceleration
       ),
       maxOpenSegments = maxOpenSegments,
@@ -144,7 +147,7 @@ object SwayDB extends LazyLogging {
     */
   def persistentSet[T](dir: Path,
                        maxOpenSegments: Int = 1000,
-                       cacheSize: Long = 100.mb,
+                       cacheSize: Int = 100.mb,
                        mapSize: Int = 4.mb,
                        mmapMaps: Boolean = true,
                        recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
@@ -153,15 +156,16 @@ object SwayDB extends LazyLogging {
                        segmentSize: Int = 2.mb,
                        appendixFlushCheckpointSize: Int = 2.mb,
                        otherDirs: Seq[Dir] = Seq.empty,
-                       cacheCheckDelay: FiniteDuration = 5.seconds,
+                       cacheCheckDelay: FiniteDuration = 7.seconds,
                        segmentsOpenCheckDelay: FiniteDuration = 5.seconds,
                        bloomFilterFalsePositiveRate: Double = 0.01,
                        minTimeLeftToUpdateExpiration: FiniteDuration = 10.seconds,
+                       compressDuplicateValues: Boolean = true,
                        acceleration: Level0Meter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[T],
                                                                                           ordering: Ordering[Slice[Byte]] = KeyOrder.default,
                                                                                           ec: ExecutionContext = defaultExecutionContext): Try[SwayDBSet[T]] =
     CoreAPI(
-      config = PersistentConfig(
+      config = DefaultPersistentConfig(
         dir = dir,
         otherDirs = otherDirs,
         recoveryMode = recoveryMode,
@@ -170,6 +174,7 @@ object SwayDB extends LazyLogging {
         mmapSegments = mmapSegments,
         mmapAppendix = mmapAppendix,
         segmentSize = segmentSize,
+        compressDuplicateValues = compressDuplicateValues,
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
         minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
@@ -203,50 +208,67 @@ object SwayDB extends LazyLogging {
 
   def memory[K, V](mapSize: Int = 4.mb,
                    segmentSize: Int = 2.mb,
+                   cacheSize: Int = 500.mb,
+                   cacheCheckDelay: FiniteDuration = 7.seconds,
                    bloomFilterFalsePositiveRate: Double = 0.01,
                    minTimeLeftToUpdateExpiration: FiniteDuration = 10.seconds,
+                   compressDuplicateValues: Boolean = false,
+                   groupingStrategy: Option[KeyValueGroupingStrategy] = None,
                    acceleration: Level0Meter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
                                                                                       valueSerializer: Serializer[V],
+                                                                                      valueType: scala.reflect.runtime.universe.TypeTag[V],
                                                                                       ordering: Ordering[Slice[Byte]] = KeyOrder.default,
-                                                                                      ec: ExecutionContext = defaultExecutionContext): Try[SwayDBMap[K, V]] =
+                                                                                      ec: ExecutionContext = defaultExecutionContext): Try[SwayDBMap[K, V]] = {
+
     CoreAPI(
-      config = MemoryConfig(
+      config = DefaultMemoryConfig(
         mapSize = mapSize,
         segmentSize = segmentSize,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
         minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
+        compressDuplicateValues = compressDuplicateValues,
+        groupingStrategy = groupingStrategy,
         acceleration = acceleration
       ),
       maxOpenSegments = 0,
-      cacheSize = 0,
-      cacheCheckDelay = Duration.Zero,
+      cacheSize = cacheSize,
+      cacheCheckDelay = cacheCheckDelay,
+      //memory Segments are never closed.
       segmentsOpenCheckDelay = Duration.Zero
     ) map {
       core =>
         SwayDBMap[K, V](new SwayDB(core))
     }
+  }
 
   /**
     * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
     */
   def memorySet[T](mapSize: Int = 4.mb,
                    segmentSize: Int = 2.mb,
+                   cacheSize: Int = 500.mb, //cacheSize for memory database is used for evicting decompressed key-values
+                   cacheCheckDelay: FiniteDuration = 7.seconds,
                    bloomFilterFalsePositiveRate: Double = 0.01,
                    minTimeLeftToUpdateExpiration: FiniteDuration = 10.seconds,
+                   compressDuplicateValues: Boolean = false,
+                   groupingStrategy: Option[KeyValueGroupingStrategy] = None,
                    acceleration: Level0Meter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[T],
                                                                                       ordering: Ordering[Slice[Byte]] = KeyOrder.default,
                                                                                       ec: ExecutionContext = defaultExecutionContext): Try[SwayDBSet[T]] =
     CoreAPI(
-      config = MemoryConfig(
+      config = DefaultMemoryConfig(
         mapSize = mapSize,
         segmentSize = segmentSize,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
         minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
+        compressDuplicateValues = compressDuplicateValues,
+        groupingStrategy = groupingStrategy,
         acceleration = acceleration
       ),
       maxOpenSegments = 0,
-      cacheSize = 0,
-      cacheCheckDelay = Duration.Zero,
+      cacheSize = cacheSize,
+      cacheCheckDelay = cacheCheckDelay,
+      //memory Segments are never closed.
       segmentsOpenCheckDelay = Duration.Zero
     ) map {
       core =>
@@ -287,25 +309,27 @@ object SwayDB extends LazyLogging {
                              maxOpenSegments: Int = 1000,
                              mapSize: Int = 4.mb,
                              maxMemoryLevelSize: Int = 100.mb,
-                             maxSegmentsToPush: Int = 10,
+                             maxSegmentsToPush: Int = 5,
                              memoryLevelSegmentSize: Int = 2.mb,
-                             persistentLevelSegmentSize: Int = 2.mb,
+                             persistentLevelSegmentSize: Int = 4.mb,
                              persistentLevelAppendixFlushCheckpointSize: Int = 2.mb,
                              mmapPersistentSegments: MMAP = MMAP.WriteAndRead,
                              mmapPersistentAppendix: Boolean = true,
-                             cacheSize: Long = 100.mb,
+                             cacheSize: Int = 100.mb, //cacheSize for memory database is used for evicting decompressed key-values & persistent key-values in-memory
                              otherDirs: Seq[Dir] = Seq.empty,
-                             cacheCheckDelay: FiniteDuration = 5.seconds,
+                             cacheCheckDelay: FiniteDuration = 7.seconds,
                              segmentsOpenCheckDelay: FiniteDuration = 5.seconds,
                              bloomFilterFalsePositiveRate: Double = 0.01,
                              minTimeLeftToUpdateExpiration: FiniteDuration = 10.seconds,
+                             compressDuplicateValues: Boolean = true,
+                             groupingStrategy: Option[KeyValueGroupingStrategy] = Some(DefaultGroupingStrategy()),
                              acceleration: Level0Meter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
                                                                                                 valueSerializer: Serializer[V],
                                                                                                 ordering: Ordering[Slice[Byte]] = KeyOrder.default,
                                                                                                 ec: ExecutionContext = defaultExecutionContext): Try[SwayDBMap[K, V]] =
     CoreAPI(
       config =
-        MemoryConfig(
+        DefaultMemoryPersistentConfig(
           dir = dir,
           otherDirs = otherDirs,
           mapSize = mapSize,
@@ -318,6 +342,8 @@ object SwayDB extends LazyLogging {
           mmapPersistentAppendix = mmapPersistentAppendix,
           bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
           minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
+          compressDuplicateValues = compressDuplicateValues,
+          groupingStrategy = groupingStrategy,
           acceleration = acceleration
         ),
       maxOpenSegments = maxOpenSegments,
@@ -336,24 +362,26 @@ object SwayDB extends LazyLogging {
                              maxOpenSegments: Int = 1000,
                              mapSize: Int = 4.mb,
                              maxMemoryLevelSize: Int = 100.mb,
-                             maxSegmentsToPush: Int = 10,
+                             maxSegmentsToPush: Int = 5,
                              memoryLevelSegmentSize: Int = 2.mb,
-                             persistentLevelSegmentSize: Int = 2.mb,
+                             persistentLevelSegmentSize: Int = 4.mb,
                              persistentLevelAppendixFlushCheckpointSize: Int = 2.mb,
                              mmapPersistentSegments: MMAP = MMAP.WriteAndRead,
                              mmapPersistentAppendix: Boolean = true,
-                             cacheSize: Long = 100.mb,
+                             cacheSize: Int = 100.mb,
                              otherDirs: Seq[Dir] = Seq.empty,
-                             cacheCheckDelay: FiniteDuration = 5.seconds,
+                             cacheCheckDelay: FiniteDuration = 7.seconds,
                              segmentsOpenCheckDelay: FiniteDuration = 5.seconds,
                              bloomFilterFalsePositiveRate: Double = 0.01,
                              minTimeLeftToUpdateExpiration: FiniteDuration = 10.seconds,
+                             compressDuplicateValues: Boolean = true,
+                             groupingStrategy: Option[KeyValueGroupingStrategy] = Some(DefaultGroupingStrategy()),
                              acceleration: Level0Meter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[T],
                                                                                                 ordering: Ordering[Slice[Byte]] = KeyOrder.default,
                                                                                                 ec: ExecutionContext = defaultExecutionContext): Try[SwayDBSet[T]] =
     CoreAPI(
       config =
-        MemoryConfig(
+        DefaultMemoryPersistentConfig(
           dir = dir,
           otherDirs = otherDirs,
           mapSize = mapSize,
@@ -366,6 +394,8 @@ object SwayDB extends LazyLogging {
           mmapPersistentAppendix = mmapPersistentAppendix,
           bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
           minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
+          compressDuplicateValues = compressDuplicateValues,
+          groupingStrategy = groupingStrategy,
           acceleration = acceleration
         ),
       maxOpenSegments = maxOpenSegments,
@@ -382,13 +412,13 @@ object SwayDB extends LazyLogging {
     *
     * @param config                 Configuration to use to create the database
     * @param maxSegmentsOpen        Number of concurrent opened Segments
-    * @param cacheSize              For persistent Levels only. This can property will be ignored for MemoryLevels.
-    *                               Size of in-memory key-values
-    * @param cacheCheckDelay        For persistent Levels only. This can property will be ignored for MemoryLevels.
-    *                               Sets the max interval at which key-values get dropped from the cache. The delays
+    * @param cacheSize              Size of in-memory key-values. For Memory database this set the size of uncompressed key-values.
+    *                               If compression is used for memory database the this field can be ignored.
+    * @param cacheCheckDelay        Sets the max interval at which key-values get dropped from the cache. The delays
     *                               are dynamically adjusted based on the current size of the cache to stay close the set
     *                               cacheSize.
-    * @param segmentsOpenCheckDelay For persistent Levels only. This can property will be ignored for MemoryLevels.
+    *                               If compression is not used for memory database the this field can be ignored.
+    * @param segmentsOpenCheckDelay For persistent Levels only. This can property is not used for databases.
     *                               Sets the max interval at which Segments get closed. The delays
     *                               are dynamically adjusted based on the current number of open Segments.
     * @param keySerializer          Converts keys to Bytes
@@ -401,42 +431,70 @@ object SwayDB extends LazyLogging {
     */
   def apply[K, V](config: SwayDBPersistentConfig,
                   maxSegmentsOpen: Int,
-                  cacheSize: Long,
+                  cacheSize: Int,
                   cacheCheckDelay: FiniteDuration,
                   segmentsOpenCheckDelay: FiniteDuration)(implicit keySerializer: Serializer[K],
                                                           valueSerializer: Serializer[V],
                                                           ordering: Ordering[Slice[Byte]],
                                                           ec: ExecutionContext): Try[SwayDBMap[K, V]] =
-    CoreAPI(config, maxSegmentsOpen, cacheSize, cacheCheckDelay, segmentsOpenCheckDelay) map {
+    CoreAPI(
+      config = config,
+      maxOpenSegments = maxSegmentsOpen,
+      cacheSize = cacheSize,
+      cacheCheckDelay = cacheCheckDelay,
+      segmentsOpenCheckDelay = segmentsOpenCheckDelay
+    ) map {
       core =>
         SwayDBMap[K, V](new SwayDB(core))
     }
 
   def apply[T](config: SwayDBPersistentConfig,
                maxSegmentsOpen: Int,
-               cacheSize: Long,
+               cacheSize: Int,
                cacheCheckDelay: FiniteDuration,
                segmentsOpenCheckDelay: FiniteDuration)(implicit serializer: Serializer[T],
                                                        ordering: Ordering[Slice[Byte]],
                                                        ec: ExecutionContext): Try[SwayDBSet[T]] =
-    CoreAPI(config, maxSegmentsOpen, cacheSize, cacheCheckDelay, segmentsOpenCheckDelay) map {
+    CoreAPI(
+      config = config,
+      maxOpenSegments = maxSegmentsOpen,
+      cacheSize = cacheSize,
+      cacheCheckDelay = cacheCheckDelay,
+      segmentsOpenCheckDelay = segmentsOpenCheckDelay
+    ) map {
       core =>
         SwayDBSet[T](new SwayDB(core))
     }
 
-  def apply[K, V](config: SwayDBMemoryConfig)(implicit keySerializer: Serializer[K],
-                                              valueSerializer: Serializer[V],
-                                              ordering: Ordering[Slice[Byte]],
-                                              ec: ExecutionContext): Try[SwayDBMap[K, V]] =
-    CoreAPI(config, 0, 0, Duration.Zero, Duration.Zero) map {
+  def apply[K, V](config: SwayDBMemoryConfig,
+                  cacheSize: Int,
+                  cacheCheckDelay: FiniteDuration)(implicit keySerializer: Serializer[K],
+                                                   valueSerializer: Serializer[V],
+                                                   ordering: Ordering[Slice[Byte]],
+                                                   ec: ExecutionContext): Try[SwayDBMap[K, V]] =
+    CoreAPI(
+      config = config,
+      maxOpenSegments = 0,
+      cacheSize = cacheSize,
+      cacheCheckDelay = cacheCheckDelay,
+      segmentsOpenCheckDelay = Duration.Zero
+    ) map {
       core =>
         SwayDBMap[K, V](new SwayDB(core))
     }
 
-  def apply[T](config: SwayDBMemoryConfig)(implicit serializer: Serializer[T],
-                                           ordering: Ordering[Slice[Byte]],
-                                           ec: ExecutionContext): Try[SwayDBSet[T]] =
-    CoreAPI(config, 0, 0, Duration.Zero, Duration.Zero) map {
+  def apply[T](config: SwayDBMemoryConfig,
+               cacheSize: Int,
+               cacheCheckDelay: FiniteDuration)(implicit serializer: Serializer[T],
+                                                ordering: Ordering[Slice[Byte]],
+                                                ec: ExecutionContext): Try[SwayDBSet[T]] =
+    CoreAPI(
+      config = config,
+      maxOpenSegments = 0,
+      cacheSize = cacheSize,
+      cacheCheckDelay = cacheCheckDelay,
+      segmentsOpenCheckDelay = Duration.Zero
+    ) map {
       core =>
         SwayDBSet[T](new SwayDB(core))
     }
@@ -494,7 +552,6 @@ object SwayDB extends LazyLogging {
 }
 
 private[swaydb] class SwayDB(api: CoreAPI) extends SwayDBAPI {
-
   override def put(key: Slice[Byte]) =
     api.put(key)
 
@@ -523,7 +580,7 @@ private[swaydb] class SwayDB(api: CoreAPI) extends SwayDBAPI {
     api.remove(from, to)
 
   override def batch(entries: Iterable[request.Batch]) =
-    entries.foldLeft(Option.empty[MapEntry[Slice[Byte], Memory]]) {
+    entries.foldLeft(Option.empty[MapEntry[Slice[Byte], Memory.Response]]) {
       case (mapEntry, batchEntry) =>
         val nextEntry =
           batchEntry match {
@@ -537,11 +594,11 @@ private[swaydb] class SwayDB(api: CoreAPI) extends SwayDBAPI {
               MapEntry.Put[Slice[Byte], Memory.Update](key, Memory.Update(key, value))(LevelZeroMapEntryWriter.Level0UpdateWriter)
 
             case request.Batch.RemoveRange(fromKey, toKey, expire) =>
-              (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, None, Value.Remove(expire)))(LevelZeroMapEntryWriter.Level0RangeWriter): MapEntry[Slice[Byte], Memory]) ++
+              (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, None, Value.Remove(expire)))(LevelZeroMapEntryWriter.Level0RangeWriter): MapEntry[Slice[Byte], Memory.Response]) ++
                 MapEntry.Put[Slice[Byte], Memory.Remove](toKey, Memory.Remove(toKey, expire))(LevelZeroMapEntryWriter.Level0RemoveWriter)
 
             case request.Batch.UpdateRange(fromKey, toKey, value) =>
-              (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, None, Value.Update(value, None)))(LevelZeroMapEntryWriter.Level0RangeWriter): MapEntry[Slice[Byte], Memory]) ++
+              (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, None, Value.Update(value, None)))(LevelZeroMapEntryWriter.Level0RangeWriter): MapEntry[Slice[Byte], Memory.Response]) ++
                 MapEntry.Put[Slice[Byte], Memory.Update](toKey, Memory.Update(toKey))(LevelZeroMapEntryWriter.Level0UpdateWriter)
           }
         Some(mapEntry.map(_ ++ nextEntry) getOrElse nextEntry)

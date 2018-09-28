@@ -24,7 +24,6 @@ import swaydb.data.slice.Slice
 package object serializers {
 
   val emptyArray = Array.empty[Byte]
-  val emptySlice = Slice.create[Byte](0)
 
   implicit def toSlice[T](data: T)(implicit code: Serializer[T]): Slice[Byte] =
     code.write(data)
@@ -39,6 +38,6 @@ package object serializers {
 
   implicit class DecodeOption(slice: Option[Slice[Byte]]) {
     def read[T](implicit code: Serializer[T]): T =
-      slice.map(slice => code.read(slice)) getOrElse code.read(emptySlice)
+      slice.map(slice => code.read(slice)) getOrElse code.read(Slice.emptyBytes)
   }
 }

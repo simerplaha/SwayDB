@@ -22,6 +22,7 @@ package swaydb.core.level
 import org.scalamock.scalatest.MockFactory
 import swaydb.core.TestBase
 import swaydb.core.data.Memory
+import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.util.Benchmark
 import swaydb.data.slice.Slice
 import swaydb.order.KeyOrder
@@ -31,9 +32,15 @@ import swaydb.serializers._
 import scala.util.Random
 
 //@formatter:off
-class Get_FromMultipleLevels_Spec0 extends Get_FromMultipleLevels_Spec
+class Get_FromMultipleLevels_Spec0 extends Get_FromMultipleLevels_Spec {
+  val keyValuesCount = 1000
+  val maxIterations = 100
+}
 
 class Get_FromMultipleLevels_Spec1 extends Get_FromMultipleLevels_Spec {
+  val keyValuesCount = 1000
+  val maxIterations = 10
+
   override def levelFoldersCount = 10
   override def mmapSegmentsOnWrite = true
   override def mmapSegmentsOnRead = true
@@ -42,6 +49,8 @@ class Get_FromMultipleLevels_Spec1 extends Get_FromMultipleLevels_Spec {
 }
 
 class Get_FromMultipleLevels_Spec2 extends Get_FromMultipleLevels_Spec {
+  val keyValuesCount = 1000
+  val maxIterations = 10
   override def levelFoldersCount = 10
   override def mmapSegmentsOnWrite = false
   override def mmapSegmentsOnRead = false
@@ -50,15 +59,20 @@ class Get_FromMultipleLevels_Spec2 extends Get_FromMultipleLevels_Spec {
 }
 
 class Get_FromMultipleLevels_Spec3 extends Get_FromMultipleLevels_Spec {
+  val keyValuesCount = 1000
+  val maxIterations = 1000
   override def inMemoryStorage = true
 }
 //@formatter:on
 
-trait Get_FromMultipleLevels_Spec extends TestBase with MockFactory with Benchmark {
+sealed trait Get_FromMultipleLevels_Spec extends TestBase with MockFactory with Benchmark {
 
-  implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
-  val keyValuesCount = 100
-  val maxIterations = 100
+  //@formatter:off
+  implicit override val groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomCompressionTypeOption(keyValuesCount)
+  override implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
+  def keyValuesCount: Int
+  def maxIterations: Int
+  //@formatter:on
 
   "Get" should {
     "empty Level" in {

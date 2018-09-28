@@ -30,7 +30,7 @@ import swaydb.data.slice.Slice
   */
 object KeyOrder {
 
-  implicit val default = new Ordering[Slice[Byte]] {
+  val default = new Ordering[Slice[Byte]] {
     def compare(a: Slice[Byte], b: Slice[Byte]): Int = {
       val minimum = java.lang.Math.min(a.written, b.written)
       var i = 0
@@ -42,5 +42,13 @@ object KeyOrder {
       }
       a.written - b.written
     }
+  }
+
+  /**
+    * Provides the default reverse ordering.
+    */
+  val reverse = new Ordering[Slice[Byte]] {
+    def compare(a: Slice[Byte], b: Slice[Byte]): Int =
+      default.compare(a, b) * -1
   }
 }

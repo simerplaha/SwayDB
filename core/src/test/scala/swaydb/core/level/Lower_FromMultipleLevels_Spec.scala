@@ -23,7 +23,8 @@ import org.scalamock.scalatest.MockFactory
 import swaydb.core.TestBase
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data.Memory
-import swaydb.core.segment.KeyValueMerger
+import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
+import swaydb.core.segment.merge.KeyValueMerger
 import swaydb.core.util.Benchmark
 import swaydb.data.slice.Slice
 import swaydb.order.KeyOrder
@@ -35,11 +36,11 @@ import scala.util.Random
 
 //@formatter:off
 class Lower_FromMultipleLevels_Spec0 extends Lower_FromMultipleLevels_Spec {
-  override val maxIterations: Int = 100
+  override val maxIterations: Int = 50
 }
 
 class Lower_FromMultipleLevels_Spec1 extends Lower_FromMultipleLevels_Spec {
-  override val maxIterations: Int = 100
+  override val maxIterations: Int = 10
 
   override def levelFoldersCount = 10
   override def mmapSegmentsOnWrite = true
@@ -49,7 +50,7 @@ class Lower_FromMultipleLevels_Spec1 extends Lower_FromMultipleLevels_Spec {
 }
 
 class Lower_FromMultipleLevels_Spec2 extends Lower_FromMultipleLevels_Spec {
-  override val maxIterations: Int = 100
+  override val maxIterations: Int = 10
 
   override def levelFoldersCount = 10
   override def mmapSegmentsOnWrite = false
@@ -64,10 +65,11 @@ class Lower_FromMultipleLevels_Spec3 extends Lower_FromMultipleLevels_Spec {
 }
 //@formatter:on
 
-trait Lower_FromMultipleLevels_Spec extends TestBase with MockFactory with Benchmark {
+sealed trait Lower_FromMultipleLevels_Spec extends TestBase with MockFactory with Benchmark {
 
-  implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
-  val maxIterations: Int
+  override implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
+  def maxIterations: Int
+  implicit override val groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomCompressionTypeOption(maxIterations)
 
   "Lower" should {
     "empty Level" in {

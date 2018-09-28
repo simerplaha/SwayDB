@@ -22,6 +22,7 @@ package swaydb.core.level
 import org.scalamock.scalatest.MockFactory
 import swaydb.core.TestBase
 import swaydb.core.data.{Memory, Value}
+import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.util.Benchmark
 import swaydb.data.slice.Slice
 import swaydb.order.KeyOrder
@@ -55,10 +56,11 @@ class Lower_FromSingleLevel_Spec3 extends Lower_FromSingleLevel_Spec {
 }
 //@formatter:on
 
-trait Lower_FromSingleLevel_Spec extends TestBase with MockFactory with Benchmark {
+sealed trait Lower_FromSingleLevel_Spec extends TestBase with MockFactory with Benchmark {
 
-  implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
+  override implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
   val keyValuesCount = 100
+  implicit override val groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomCompressionTypeOption(keyValuesCount)
 
   "Lower" should {
     "empty Level" in {

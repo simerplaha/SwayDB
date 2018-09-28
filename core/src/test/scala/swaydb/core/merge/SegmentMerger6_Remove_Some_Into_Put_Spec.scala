@@ -30,7 +30,8 @@ import scala.concurrent.duration._
 
 class SegmentMerger6_Remove_Some_Into_Put_Spec extends WordSpec with CommonAssertions {
 
-  implicit val ordering = KeyOrder.default
+  override implicit val ordering = KeyOrder.default
+  implicit val compression = groupingStrategy
 
   /**
     * Remove Some -> Put None None

@@ -200,4 +200,59 @@ class TryUtilSpec extends WordSpec with Matchers with MockFactory with FutureBas
       slice.slice(8, 11).createReader().readInt() shouldBe 789
     }
   }
+
+  "Slice.tryUntilSome" should {
+    "return on first Successful result that resulted in Some value" in {
+      val slice = Slice(1, 2, 3, 4)
+      var iterations = 0
+
+      val result: Try[Option[(Int, Int)]] =
+        slice.tryUntilSome {
+          item => {
+            iterations += 1
+            if (item == 3)
+              Success(Some(item))
+            else
+              TryUtil.successNone
+          }
+        }
+
+      result.assertGet shouldBe ((3, 3))
+      iterations shouldBe 3
+    }
+
+    "return None if all iterations return None" in {
+      val slice = Slice(1, 2, 3, 4)
+      var iterations = 0
+
+      val result: Try[Option[(Int, Int)]] =
+        slice.tryUntilSome {
+          _ => {
+            iterations += 1
+            TryUtil.successNone
+          }
+        }
+
+      result.assertGetOpt shouldBe empty
+      iterations shouldBe 4
+    }
+
+    "terminate early on failure" in {
+      val slice = Slice(1, 2, 3, 4)
+      var iterations = 0
+
+      val result: Try[Option[(Int, Int)]] =
+        slice.tryUntilSome {
+          item => {
+            iterations += 1
+            Failure(new Exception(s"Failed at $item"))
+          }
+        }
+
+      result.isFailure shouldBe true
+      result.failed.get.getMessage shouldBe "Failed at 1"
+      iterations shouldBe 1
+    }
+
+  }
 }

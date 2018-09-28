@@ -20,7 +20,7 @@
 package swaydb.core.finders
 
 import swaydb.core.data.KeyValue
-import swaydb.core.segment.KeyValueMerger
+import swaydb.core.segment.merge.KeyValueMerger
 import swaydb.data.slice.Slice
 
 import scala.annotation.tailrec

@@ -60,6 +60,9 @@ object LevelCommand {
   sealed trait CollapseSmallSegments extends LevelCommand
   case object CollapseSmallSegments extends CollapseSmallSegments
 
+  sealed trait CollapseSmallSegmentsForce extends LevelCommand
+  case object CollapseSmallSegmentsForce extends CollapseSmallSegmentsForce
+
   case class ClearExpiredKeyValues(nextDeadline: Deadline) extends LevelCommand
 
   case class PushSegments(segments: Iterable[Segment],
@@ -67,6 +70,6 @@ object LevelCommand {
 
   case class PullRequest(pullFrom: ActorRef[Pull]) extends LevelAPI
 
-  case class PushMap(map: Map[Slice[Byte], Memory],
+  case class PushMap(map: Map[Slice[Byte], Memory.Response],
                      replyTo: ActorRef[PushMapResponse]) extends LevelAPI
 }

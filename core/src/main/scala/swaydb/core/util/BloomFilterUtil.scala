@@ -24,6 +24,7 @@ import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
 import bloomfilter.hashing.MurmurHash3Generic
 import bloomfilter.mutable.BloomFilter
 import bloomfilter.{CanGenerateHashFrom, CanGetDataFrom}
+import swaydb.core.data.KeyValue
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 
@@ -72,4 +73,15 @@ private[core] object BloomFilterUtil {
     ((Math.ceil(numberOfBits / 64.0) * ByteSizeOf.long) + ByteSizeOf.long + ByteSizeOf.int).toInt
   }
 
+  def initBloomFilter(keyValues: Iterable[KeyValue.WriteOnly],
+                      bloomFilterFalsePositiveRate: Double): Option[BloomFilter[Slice[Byte]]] =
+    if (keyValues.last.stats.hasRemoveRange)
+      None
+    else
+      Some(
+        BloomFilter[Slice[Byte]](
+          numberOfItems = keyValues.last.stats.bloomFilterItemsCount,
+          falsePositiveRate = bloomFilterFalsePositiveRate
+        )
+      )
 }

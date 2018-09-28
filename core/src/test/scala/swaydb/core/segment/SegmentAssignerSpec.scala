@@ -24,6 +24,7 @@ import java.nio.file.Path
 import swaydb.core.TestBase
 import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data.{KeyValue, Memory, Transient, Value}
+import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.map.serializer.RangeValueSerializers._
 import swaydb.core.util.FileUtil._
 import swaydb.core.util.PipeOps._
@@ -67,10 +68,13 @@ class SegmentAssignerSpec3 extends SegmentAssignerSpec {
 }
 //@formatter:on
 
-trait SegmentAssignerSpec extends TestBase {
-  implicit val ordering = KeyOrder.default
+sealed trait SegmentAssignerSpec extends TestBase {
+  override implicit val ordering = KeyOrder.default
 
-  val keyValueCount: Int
+  def keyValueCount: Int
+
+  override val groupingStrategy: Option[KeyValueGroupingStrategyInternal] =
+    randomCompressionTypeOption(keyValueCount)
 
   "SegmentAssign.assign" should {
 
@@ -85,6 +89,20 @@ trait SegmentAssignerSpec extends TestBase {
       result.values.head shouldBe keyValues
     }
 
+    "assign a KeyValue and then a Group that spread over multiple Segments" in {
+      //this test asserts for when Group's expansion results in ArrayIndexOutOfBoundsException
+      //when inserting assigned key-values to a Segment in SegmentAssigner.
+      val fixed = randomFixedKeyValue(1)
+      val group = randomGroup(randomIntKeyValues(count = 1000, startId = Some(2))).toMemory
+      val newKeyValues = Seq(fixed, group).toTransient
+
+      val segment1 = TestSegment(randomIntKeyValues(startId = Some(1))).assertGet
+      val segment2 = TestSegment(randomIntKeyValues(startId = Some(10))).assertGet
+
+      val result = SegmentAssigner.assign(newKeyValues, List(segment1, segment2)).assertGet
+      result.size shouldBe 2
+    }
+
     "assign KeyValues to second Segment when none of the keys belong to the first Segment" in {
       val segment1 = TestSegment(Slice(Transient.Put(1), Transient.Range[FromValue, RangeValue](2, 10, None, Value.Remove(10.seconds.fromNow))).updateStats).assertGet
       val segment2 = TestSegment(Slice(Transient.Put(10)).updateStats).assertGet
@@ -96,7 +114,8 @@ trait SegmentAssignerSpec extends TestBase {
             Slice(
               Memory.Put(10),
               Memory.Range(11, 20, None, Value.Update(11)),
-              Memory.Remove(20)
+              Memory.Remove(20),
+              randomGroup(Slice(Memory.Remove(30), Memory.Range(40, 50, None, Value.Update("update"))).toTransient).toMemory
             ),
           segments = segments
         ).assertGet
@@ -115,6 +134,7 @@ trait SegmentAssignerSpec extends TestBase {
         Slice(
           Memory.Put(1, 1),
           Memory.Put(15),
+          randomGroup(Slice(Memory.Remove(16), Memory.Range(17, 18, None, Value.Update("update"))).toTransient).toMemory,
           Memory.Range(16, 20, None, Value.Update(16))
         )
 
@@ -133,7 +153,8 @@ trait SegmentAssignerSpec extends TestBase {
       val keyValues =
         Slice(
           Memory.Put(15),
-          Memory.Range(16, 100, None, Value.Update(16))
+          randomGroup(Slice(Memory.Remove(16), Memory.Range(17, 18, None, Value.Update("update"))).toTransient).toMemory,
+          Memory.Range(20, 100, None, Value.Update(20))
         )
 
       val result = SegmentAssigner.assign(keyValues, segments).assertGet
@@ -162,11 +183,19 @@ trait SegmentAssignerSpec extends TestBase {
         Memory.Range(15, 50, Some(Value.Remove(None)), Value.Update(10))
       )
 
-      val assignments = SegmentAssigner.assign(keyValues, segments).assertGet
-      assignments.size shouldBe 3
-      assignments.find(_._1 == segment2).assertGet._2 should contain only Memory.Range(15, 21, Some(Value.Remove(None)), Value.Update(10))
-      assignments.find(_._1 == segment3).assertGet._2 should contain only Memory.Range(21, 40, None, Value.Update(10))
-      assignments.find(_._1 == segment4).assertGet._2 should contain only Memory.Range(40, 50, None, Value.Update(10))
+      def assertResult(assignments: mutable.Map[Segment, Slice[KeyValue.ReadOnly]]) = {
+        assignments.size shouldBe 3
+        assignments.find(_._1 == segment2).assertGet._2 should contain only Memory.Range(15, 21, Some(Value.Remove(None)), Value.Update(10))
+        assignments.find(_._1 == segment3).assertGet._2 should contain only Memory.Range(21, 40, None, Value.Update(10))
+        assignments.find(_._1 == segment4).assertGet._2 should contain only Memory.Range(40, 50, None, Value.Update(10))
+      }
+
+      assertResult(SegmentAssigner.assign(keyValues, segments).assertGet)
+
+      //group should also result in same.
+      val grouped = randomGroup(keyValues.toTransient).toMemory
+      assertResult(SegmentAssigner.assign(Slice(grouped), segments).assertGet)
+
     }
 
     "assign key value to the first segment when the key is the new smallest" in {
@@ -248,6 +277,13 @@ trait SegmentAssignerSpec extends TestBase {
           result.keys.head.path shouldBe segment4.path
           result.values.head should contain only Memory.Range(10, 20, Some(Value.Put(10)), Value.Remove(None))
       }
+
+      SegmentAssigner.assign(Slice(randomGroup(Slice(Memory.Range(10, 20, Some(Value.Put(10)), Value.Remove(None))).toTransient).toMemory), segments).assertGet ==> {
+        result =>
+          result.size shouldBe 1
+          result.keys.head.path shouldBe segment4.path
+          unzipGroups(result.values.head).head shouldBe Memory.Range(10, 20, Some(Value.Put(10)), Value.Remove(None))
+      }
     }
 
     "assign all KeyValues to their target Segments" in {
@@ -286,5 +322,7 @@ trait SegmentAssignerSpec extends TestBase {
       resultArray(4)._2 should have size 1
       resultArray(4)._2.head.key shouldBe (5: Slice[Byte])
     }
+
   }
+
 }

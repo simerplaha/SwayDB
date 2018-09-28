@@ -53,12 +53,12 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
 
     "write empty bytes to a File" in {
       val testFile = randomFilePath
-      val bytes = Slice.create[Byte](0)
+      val bytes = Slice.emptyBytes
 
       DBFile.write(bytes, testFile).assertGet
       DBFile.mmapRead(testFile).assertGet ==> {
         file =>
-          file.readAll.assertGet.toArray shouldBe empty
+          file.readAll.assertGet shouldBe empty
           file.close.assertGet
       }
       IO.exists(testFile) shouldBe true
@@ -163,7 +163,7 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
       //file remains unchanged
       DBFile.channelRead(testFile).assertGet ==> {
         file =>
-          file.readAll.assertGet.toArray shouldBe empty
+          file.readAll.assertGet shouldBe empty
           file.close.assertGet
       }
     }
@@ -177,7 +177,7 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
       //opening a file should trigger the onOpen function
       val onOpen = mockFunction[DBFile, Unit]
       onOpen expects * onCall {
-        (dbFile: DBFile) =>
+        dbFile: DBFile =>
           dbFile.path shouldBe testFile
           dbFile.isOpen shouldBe true
           dbFile.file shouldBe defined
@@ -250,13 +250,13 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
 
       val expectedBytes = bytes ++ bytes2 ++ bytes3
 
-      file.readAll.assertGet.toArray shouldBe expectedBytes
+      file.readAll.assertGet shouldBe expectedBytes
 
       //close buffer
       file.close.assertGet
       file.isFileDefined shouldBe false
       file.isOpen shouldBe false
-      file.readAll.assertGet.toArray shouldBe expectedBytes
+      file.readAll.assertGet shouldBe expectedBytes
       file.isFileDefined shouldBe true
       file.isOpen shouldBe true
 
@@ -267,7 +267,7 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
       //open read only buffer
       DBFile.mmapRead(testFile, onOpen).assertGet ==> {
         file =>
-          file.readAll.assertGet.toArray shouldBe expectedBytes
+          file.readAll.assertGet shouldBe expectedBytes
           file.close.assertGet
       }
     }
@@ -349,7 +349,7 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
       file.append(bytes4).assertGet //overflow write, buffer gets extended
       file.isFull.assertGet shouldBe true
 
-      file.readAll.assertGet.toArray shouldBe (bytes1 ++ bytes2 ++ bytes3 ++ bytes4)
+      file.readAll.assertGet shouldBe (bytes1 ++ bytes2 ++ bytes3 ++ bytes4)
 
       file.close.assertGet
     }
@@ -485,16 +485,16 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
 
       file.close.assertGet
 
-      val expectedAllBytes = bytes.foldLeft(List.empty[Byte])(_ ++ _).toArray
+      val expectedAllBytes = bytes.foldLeft(List.empty[Byte])(_ ++ _).toSlice
 
       DBFile.channelRead(testFile).assertGet ==> {
         file =>
-          file.readAll.assertGet.toArray shouldBe expectedAllBytes
+          file.readAll.assertGet shouldBe expectedAllBytes
           file.close.assertGet
       }
       DBFile.mmapRead(testFile).assertGet ==> {
         file =>
-          file.readAll.assertGet.toArray shouldBe expectedAllBytes
+          file.readAll.assertGet shouldBe expectedAllBytes
           file.close.assertGet
       }
 
@@ -513,20 +513,20 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
       file.get(0).assertGet shouldBe bytes.head.head
       file.get(allBytesSize - 1).assertGet shouldBe bytes.last.last
 
-      val expectedAllBytes = bytes.foldLeft(List.empty[Byte])(_ ++ _).toArray
+      val expectedAllBytes = bytes.foldLeft(List.empty[Byte])(_ ++ _).toSlice
 
-      file.readAll.assertGet.toArray shouldBe expectedAllBytes
+      file.readAll.assertGet shouldBe expectedAllBytes
       file.close.assertGet //close
 
       //reopen
       DBFile.mmapRead(testFile).assertGet ==> {
         file =>
-          file.readAll.assertGet.toArray shouldBe expectedAllBytes
+          file.readAll.assertGet shouldBe expectedAllBytes
           file.close.assertGet
       }
       DBFile.channelRead(testFile).assertGet ==> {
         file =>
-          file.readAll.assertGet.toArray shouldBe expectedAllBytes
+          file.readAll.assertGet shouldBe expectedAllBytes
           file.close.assertGet
       }
     }
@@ -545,30 +545,30 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
       file.get(0).assertGet shouldBe bytes.head.head
       file.get(allBytesSize - 1).assertGet shouldBe bytes.last.last
 
-      val expectedAllBytes = bytes.foldLeft(List.empty[Byte])(_ ++ _).toArray
+      val expectedAllBytes = bytes.foldLeft(List.empty[Byte])(_ ++ _).toSlice
 
-      file.readAll.assertGet.toArray shouldBe expectedAllBytes
+      file.readAll.assertGet shouldBe expectedAllBytes
       file.close.assertGet //close
 
       //reopen
       DBFile.mmapRead(testFile).assertGet ==> {
         file =>
-          file.readAll.assertGet.toArray shouldBe expectedAllBytes
+          file.readAll.assertGet shouldBe expectedAllBytes
           file.close.assertGet
       }
       DBFile.channelRead(testFile).assertGet ==> {
         file =>
-          file.readAll.assertGet.toArray shouldBe expectedAllBytes
+          file.readAll.assertGet shouldBe expectedAllBytes
           file.close.assertGet
       }
     }
 
     "not fail when appending empty bytes to ChannelFile" in {
       val file = DBFile.channelWrite(randomFilePath).assertGet
-      file.append(Slice.create[Byte](0)).assertGet
+      file.append(Slice.emptyBytes).assertGet
       DBFile.channelRead(file.path).assertGet ==> {
         file =>
-          file.readAll.assertGet.toArray shouldBe empty
+          file.readAll.assertGet shouldBe empty
           file.close.assertGet
       }
       file.close.assertGet
@@ -576,13 +576,13 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
 
     "not fail when appending empty bytes to MMAPFile" in {
       val file = DBFile.mmapInit(randomFilePath, 100).assertGet
-      file.append(Slice.create[Byte](0)).assertGet
-      file.readAll.assertGet.toArray shouldBe Array.fill(file.fileSize.get.toInt)(0)
+      file.append(Slice.emptyBytes).assertGet
+      file.readAll.assertGet shouldBe Slice.fill(file.fileSize.get.toInt)(0)
       file.close.assertGet
 
       DBFile.mmapRead(file.path).assertGet ==> {
         file2 =>
-          file2.readAll.assertGet.toArray shouldBe Array.fill(file.fileSize.get.toInt)(0)
+          file2.readAll.assertGet shouldBe Slice.fill(file.fileSize.get.toInt)(0)
           file2.close.assertGet
       }
     }

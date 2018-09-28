@@ -3,7 +3,15 @@
 [gitter-badge]: https://badges.gitter.im/Join%20Chat.svg
 [gitter-link]: https://gitter.im/SwayDB-chat/Lobby
 
-Type-safe & non-blocking key-value storage library for single/multiple disks and in-memory storage.
+SwayDB is a type-safe & non-blocking key-value storage library for single/multiple disks and in-memory storage.
+
+It's an implementation of [Log-structured merge-tree](https://en.wikipedia.org/wiki/Log-structured_merge-tree) 
+written in Scala with asynchronous Leveled Compaction based on push-pull strategy built on the 
+[Actor model](https://en.wikipedia.org/wiki/Actor_model).
+
+It supports configurable Graph like (http://www.swaydb.io/implementation/segment/group/) for faster 
+reads and has compression support for both [memory](http://www.swaydb.io/create-databases/memory/) 
+& [persistent](http://www.swaydb.io/create-databases/persistent/) databases.
 
 Documentation: http://swaydb.io
 
@@ -19,19 +27,26 @@ View detailed benchmark results [here](http://swaydb.io/performance/macbook-pro-
 ## Features
 
 - Embeddable, Type-safe, non-blocking
-- Multiple disks, In-memory & periodically persistent
+- Single or multiple disks persistent, in-memory or periodically persistent
 - ACID like atomic writes with [Batch API](http://www.swaydb.io/api/write-api/batch/)
 - APIs similar to Scala collections.
-- Expiring key-value ([TTL](http://www.swaydb.io/api/write-api/expire/)).
-- Range [update, remove & expire](http://www.swaydb.io/api/write-api/).
+- Auto expiring key-value ([TTL](http://www.swaydb.io/api/write-api/expire/))
+- Range [update, remove & expire](http://www.swaydb.io/api/write-api/)
 - Key only iterations (Lazily fetched values)
 - Data storage formats
     - Key-value (`Map[K, V]`)
     - Row (`Set[T]`)
 - In-built custom serialization API with [Slice](http://www.swaydb.io/slice/byte-slice/) 
 - [Configurable Levels](http://www.swaydb.io/configuring-levels/)
-- Configurable cache size
+- Configurable [cacheSize](http://www.swaydb.io/configuring-levels/cacheSize/)
 - Concurrent level compaction
+- Duplicate values can be detected and written only ones with the configuration [compressDuplicateValues](http://www.swaydb.io/configuring-levels/compressDuplicateValues/).
+- Compression with [LZ4](https://github.com/lz4/lz4-java) & [Snappy](https://github.com/xerial/snappy-java) are fully supported
+for both [Persistent](http://www.swaydb.io/create-databases/persistent/) & [Memory](http://www.swaydb.io/create-databases/memory/) databases for each Level.
+- All LZ4 instances, compressors & decompressors are [configurable](http://www.swaydb.io/configuring-levels/groupingStrategy/).
+    - LZ4 Instances - `FastestInstance`, `FastestJavaInstance`, `NativeInstance`, `SafeInstance` & `UnsafeInstance`.
+    - LZ4 Compressors - `FastCompressor` & `HighCompressor`.
+    - LZ4 Decompressors - `FastDecompressor` & `SafeDecompressor`.
 - Optional Memory-mapped files
 - Scala Streams
 - Bloom filters
@@ -39,7 +54,7 @@ View detailed benchmark results [here](http://swaydb.io/performance/macbook-pro-
 
 [Read more](http://swaydb.io/).
 
-## Demo
+## Demo iteration API
 ```scala
 //Iteration: fetch all key-values withing range 10 to 90, update values and batch write updated key-values
 db
@@ -67,14 +82,7 @@ db
 - [SwayDB.stress](https://github.com/simerplaha/SwayDB.stress) - Stress tests.
 - [SwayDB.io](https://github.com/simerplaha/SwayDB.io) - Website code.
 
-## Status
-**Status: Beta**
+## Status: Beta
 
-All core APIs for SwayDB are implemented. See the [API](http://www.swaydb.io/api/) documentation.
-
-Next few versions require file formats changes to improve data compression.
-
-Backward compatible will be supported for versions `1.*` and after 
-So please suggest features & improvements now while we are still in version `0.*`.
-
-TODO Code coverage & CI.
+Backward compatible will be supported for versions `1` onwards. 
+So please suggest features & improvements now while we are still in version `0.+`.

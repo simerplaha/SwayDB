@@ -58,9 +58,9 @@ class TrashLevelSpec3 extends TrashLevelSpec {
 }
 //@formatter:on
 
-trait TrashLevelSpec extends TestBase with MockFactory with PrivateMethodTester {
+sealed trait TrashLevelSpec extends TestBase with MockFactory with PrivateMethodTester {
 
-  implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
+  override implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
   val keyValuesCount = 100
 
   //  override def deleteFiles: Boolean = false

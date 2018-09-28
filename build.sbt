@@ -1,5 +1,6 @@
-import sbt.Keys.{artifactPath, libraryDependencies, publishMavenStyle}
+import sbt.Keys.{libraryDependencies, publishMavenStyle}
 import sbt.url
+import sbtcrossproject.CrossPlugin.autoImport.{CrossType, crossProject}
 import xerial.sbt.Sonatype._
 
 val scala211 = "2.11.12"
@@ -9,7 +10,7 @@ parallelExecution in ThisBuild := false
 
 lazy val commonSettings = Seq(
   organization := "io.swaydb",
-  version := "0.3.1",
+  version := "0.4",
   scalaVersion := scala212
 )
 
@@ -39,13 +40,12 @@ val commonDependencies =
     "com.typesafe.scala-logging" %% "scala-logging" % "3.8.0"
   ) ++ testDependencies
 
-
 lazy val SwayDB =
   (project in file("."))
     .settings(commonSettings)
     .settings(publishSettings)
     .dependsOn(embedded)
-    .aggregate(embedded, core, apiJVM, data, ordering, configs, serializers)
+    .aggregate(embedded, core, compression, apiJVM, data, ordering, configs, serializers)
 
 lazy val core =
   project
@@ -53,16 +53,19 @@ lazy val core =
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(
-      libraryDependencies ++= (commonDependencies :+ "com.github.alexandrnikitin" %% "bloom-filter" % "0.10.1"),
-    ).dependsOn(data, configs % Test, ordering % Test, serializers % Test)
+      libraryDependencies ++=
+        commonDependencies :+ "com.github.alexandrnikitin" %% "bloom-filter" % "0.10.1"
+    ).dependsOn(data, macros, compression, configs % Test, ordering % Test, serializers % Test)
 
-lazy val api = crossProject
-  .crossType(CrossType.Pure)
-  .settings(publishSettings)
-  .settings(commonSettings)
+lazy val api =
+  crossProject(JSPlatform, JVMPlatform)
+    .crossType(CrossType.Pure)
+    .settings(publishSettings)
+    .settings(commonSettings)
 
 lazy val apiJVM = api.jvm.dependsOn(data, serializers)
 lazy val apiJS = api.js.dependsOn(data, serializers)
+
 
 lazy val data =
   project
@@ -71,7 +74,7 @@ lazy val data =
     .settings(publishSettings)
     .settings(
       libraryDependencies ++= testDependencies
-    )
+    ).dependsOn(macros)
 
 lazy val embedded =
   project
@@ -102,11 +105,22 @@ lazy val serializers =
     .settings(publishSettings)
     .dependsOn(data)
 
-lazy val javascript = project
-  .enablePlugins(ScalaJSPlugin)
-  .settings(commonSettings)
-  .settings(
-    artifactPath in(Compile, fastOptJS) := baseDirectory.value / "../swaydb.js" / "swaydb.js",
-    artifactPath in(Compile, fullOptJS) := baseDirectory.value / "../swaydb.js" / "swaydb.js"
-  )
-  .dependsOn(apiJS)
+lazy val compression =
+  project
+    .settings(commonSettings)
+    .settings(publishSettings)
+    .settings(
+      libraryDependencies ++=
+        commonDependencies
+          :+ "org.lz4" % "lz4-java" % "1.4.1"
+          :+ "org.xerial.snappy" % "snappy-java" % "1.1.7"
+    )
+    .dependsOn(data, serializers % "compile->compile;test->test")
+
+lazy val macros =
+  project
+    .settings(commonSettings)
+    .settings(publishSettings)
+    .settings(
+      libraryDependencies += "org.scala-lang" % "scala-reflect" % "2.12.6"
+    )

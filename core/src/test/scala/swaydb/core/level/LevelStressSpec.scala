@@ -23,6 +23,7 @@ import swaydb.core.TestBase
 import swaydb.core.actor.TestActor
 import swaydb.core.data.KeyValue
 import swaydb.core.data.KeyValue.WriteOnly
+import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.level.actor.LevelCommand
 import swaydb.core.level.actor.LevelCommand._
 import swaydb.core.util.Benchmark
@@ -58,9 +59,9 @@ class LevelStressSpec3 extends LevelStressSpec {
 }
 //@formatter:on
 
-trait LevelStressSpec extends TestBase with Benchmark {
+sealed trait LevelStressSpec extends TestBase with Benchmark {
 
-  implicit val ordering = KeyOrder.default
+  override implicit val ordering = KeyOrder.default
 
   "A 4 leveled database" should {
     "concurrently reads and write records that are written in batches and concurrently pushed to lower levels." +
@@ -69,6 +70,7 @@ trait LevelStressSpec extends TestBase with Benchmark {
       val keyValueCount = 1000
 //      val keyValueCount = 100000
       val iterations = 5
+      implicit val groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomCompressionTypeOption(keyValueCount)
 
       val level4 = TestLevel(segmentSize = 2.mb)
       val level3 = TestLevel(segmentSize = 2.mb, nextLevel = Some(level4))

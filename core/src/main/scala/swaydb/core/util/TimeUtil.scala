@@ -21,6 +21,8 @@ package swaydb.core.util
 
 import java.util.concurrent.TimeUnit
 
+import swaydb.data.slice.Slice
+
 import scala.concurrent.duration.Deadline
 
 object TimeUtil {
@@ -33,6 +35,12 @@ object TimeUtil {
   implicit class DeadlineImplicits(deadline: Deadline) {
     def toNanos: Long =
       deadline.time.toNanos
+
+    def toLongUnsignedBytes: Slice[Byte] =
+      Slice.writeLongUnsigned(toNanos)
+
+    def toBytes: Slice[Byte] =
+      Slice.writeLong(toNanos)
   }
 
   implicit class LongImplicits(deadline: Long) {
@@ -40,7 +48,7 @@ object TimeUtil {
       Deadline(deadline, TimeUnit.NANOSECONDS)
 
     def toDeadlineOption: Option[Deadline] =
-      Some(Deadline(deadline, TimeUnit.NANOSECONDS))
+      Some(toDeadline)
   }
 
 }

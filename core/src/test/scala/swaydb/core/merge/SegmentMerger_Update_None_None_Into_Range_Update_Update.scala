@@ -35,7 +35,8 @@ import scala.concurrent.duration._
   */
 class SegmentMerger_Update_None_None_Into_Range_Update_Update extends WordSpec with CommonAssertions {
 
-  implicit val ordering = KeyOrder.default
+  override implicit val ordering = KeyOrder.default
+  implicit val compression = groupingStrategy
 
   /**
     * Update None None -> _

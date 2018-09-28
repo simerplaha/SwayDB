@@ -33,7 +33,7 @@ import scala.concurrent.duration._
 
 class MapsPerformanceSpec extends TestBase with Benchmark {
 
-  implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
+  override implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
 
   import swaydb.core.map.serializer.LevelZeroMapEntryReader._
   import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
@@ -44,7 +44,7 @@ class MapsPerformanceSpec extends TestBase with Benchmark {
       //      val keyValues = randomIntKeyValues(2000000)
       val keyValues = randomIntKeyValues(2000)
 
-      def testWrite(maps: Maps[Slice[Byte], Memory]) =
+      def testWrite(maps: Maps[Slice[Byte], Memory.Response]) =
         keyValues foreach {
           keyValue =>
             maps.write {
@@ -52,7 +52,7 @@ class MapsPerformanceSpec extends TestBase with Benchmark {
             }.assertGet
         }
 
-      def testRead(maps: Maps[Slice[Byte], Memory]) =
+      def testRead(maps: Maps[Slice[Byte], Memory.Response]) =
         keyValues foreach {
           keyValue =>
             maps.get(keyValue.key)
@@ -61,7 +61,7 @@ class MapsPerformanceSpec extends TestBase with Benchmark {
 
       val dir1 = IO.createDirectoryIfAbsent(testDir.resolve(1.toString))
 
-      val map1 = Maps.persistent[Slice[Byte], Memory](dir1, mmap = true, 4.mb, Accelerator.noBrakes(), RecoveryMode.ReportFailure).assertGet
+      val map1 = Maps.persistent[Slice[Byte], Memory.Response](dir1, mmap = true, 4.mb, Accelerator.noBrakes(), RecoveryMode.ReportFailure).assertGet
       benchmark(s"MMAP = true - writing ${keyValues.size} keys") {
         testWrite(map1)
       }
@@ -70,7 +70,7 @@ class MapsPerformanceSpec extends TestBase with Benchmark {
       }
 
       val dir2 = IO.createDirectoryIfAbsent(testDir.resolve(2.toString))
-      val map2 = Maps.persistent[Slice[Byte], Memory](dir2, mmap = false, 4.mb, Accelerator.noBrakes(), RecoveryMode.ReportFailure).assertGet
+      val map2 = Maps.persistent[Slice[Byte], Memory.Response](dir2, mmap = false, 4.mb, Accelerator.noBrakes(), RecoveryMode.ReportFailure).assertGet
       benchmark(s"MMAP = false - writing ${keyValues.size} keys") {
         testWrite(map2)
       }

@@ -30,7 +30,7 @@ import scala.util.Random
 
 class PathsDistributorPerformanceSpec extends TestBase with Benchmark {
 
-  implicit val ordering = KeyOrder.default
+  override implicit val ordering = KeyOrder.default
 
   "PathsDistributorPerformanceSpec" in {
     val path = createNextLevelPath

@@ -57,7 +57,7 @@ class LevelZeroGetSpec3 extends LevelZeroGetSpec {
 
 class LevelZeroGetSpec extends TestBase with MockFactory with Benchmark {
 
-  implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
+  override implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
 
   "Level0" should {
 

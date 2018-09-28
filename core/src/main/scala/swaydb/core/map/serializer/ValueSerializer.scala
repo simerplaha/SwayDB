@@ -21,7 +21,7 @@ package swaydb.core.map.serializer
 
 import swaydb.core.data.Value
 import swaydb.core.io.reader.Reader
-import swaydb.core.util.ByteUtilCore
+import swaydb.core.util.Bytes
 import swaydb.core.util.TimeUtil._
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
@@ -76,7 +76,7 @@ object ValueSerializers {
       override def write(value: Value.Put, bytes: Slice[Byte]): Unit =
         bytes
           .addInt(value.value.map(_.size).getOrElse(0))
-          .addAll(value.value.getOrElse(Slice.emptyByteSlice))
+          .addAll(value.value.getOrElse(Slice.emptyBytes))
           .addLong(value.deadline.toNanos)
 
       override def bytesRequired(value: Value.Put): Int =
@@ -103,13 +103,12 @@ object ValueSerializers {
         }
     }
 
-
     implicit object UpdateSerializerLevelZero extends ValueSerializer[Value.Update] {
 
       override def write(value: Value.Update, bytes: Slice[Byte]): Unit =
         bytes
           .addInt(value.value.map(_.size).getOrElse(0))
-          .addAll(value.value.getOrElse(Slice.emptyByteSlice))
+          .addAll(value.value.getOrElse(Slice.emptyBytes))
           .addLong(value.deadline.toNanos)
 
       override def bytesRequired(value: Value.Update): Int =
@@ -135,7 +134,6 @@ object ValueSerializers {
               }
         }
     }
-
   }
 
   object Levels {
@@ -154,13 +152,13 @@ object ValueSerializers {
       override def write(value: Value.Put, bytes: Slice[Byte]): Unit =
         bytes
           .addIntUnsigned(value.value.map(_.size).getOrElse(0))
-          .addAll(value.value.getOrElse(Slice.emptyByteSlice))
+          .addAll(value.value.getOrElse(Slice.emptyBytes))
           .addLongUnsigned(value.deadline.toNanos)
 
       override def bytesRequired(value: Value.Put): Int =
-        ByteUtilCore.sizeUnsignedInt(value.value.map(_.size).getOrElse(0)) +
+        Bytes.sizeOf(value.value.map(_.size).getOrElse(0)) +
           value.value.map(_.size).getOrElse(0) +
-          ByteUtilCore.sizeUnsignedLong(value.deadline.toNanos)
+          Bytes.sizeOf(value.deadline.toNanos)
 
       override def read(reader: Reader): Try[Value.Put] =
         reader.readIntUnsigned() flatMap {
@@ -187,7 +185,7 @@ object ValueSerializers {
         bytes.addLongUnsigned(value.deadline.toNanos)
 
       override def bytesRequired(value: Value.Remove): Int =
-        ByteUtilCore.sizeUnsignedLong(value.deadline.toNanos)
+        Bytes.sizeOf(value.deadline.toNanos)
 
       override def read(reader: Reader): Try[Value.Remove] =
         readDeadlineLevels(reader) map {
@@ -201,13 +199,13 @@ object ValueSerializers {
       override def write(value: Value.Update, bytes: Slice[Byte]): Unit =
         bytes
           .addIntUnsigned(value.value.map(_.size).getOrElse(0))
-          .addAll(value.value.getOrElse(Slice.emptyByteSlice))
+          .addAll(value.value.getOrElse(Slice.emptyBytes))
           .addLongUnsigned(value.deadline.toNanos)
 
       override def bytesRequired(value: Value.Update): Int =
-        ByteUtilCore.sizeUnsignedInt(value.value.map(_.size).getOrElse(0)) +
+        Bytes.sizeOf(value.value.map(_.size).getOrElse(0)) +
           value.value.map(_.size).getOrElse(0) +
-          ByteUtilCore.sizeUnsignedLong(value.deadline.toNanos)
+          Bytes.sizeOf(value.deadline.toNanos)
 
       override def read(reader: Reader): Try[Value.Update] =
         reader.readIntUnsigned() flatMap {

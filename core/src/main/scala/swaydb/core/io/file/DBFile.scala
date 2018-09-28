@@ -80,7 +80,7 @@ object DBFile {
 
   def memory(path: Path, bytes: Slice[Byte])(implicit ec: ExecutionContext): Try[DBFile] =
     Try {
-      new DBFile(path = path, memoryMapped = false, onOpen = (_) => Unit, memory = true, file = Some(MemoryFile(path, bytes)))
+      new DBFile(path = path, memoryMapped = false, onOpen = _ => Unit, memory = true, file = Some(MemoryFile(path, bytes)))
     }
 }
 /**

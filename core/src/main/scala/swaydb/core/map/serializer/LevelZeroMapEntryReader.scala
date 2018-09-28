@@ -82,18 +82,17 @@ object LevelZeroMapEntryReader {
         fromKey <- reader.read(fromKeyLength).map(_.unslice())
         toKeyLength <- reader.readInt()
         toKey <- reader.read(toKeyLength).map(_.unslice())
-        rangeValueId <- reader.readInt()
         valueLength <- reader.readInt()
-        valueBytes <- if (valueLength == 0) Success(Slice.emptyByteSlice) else reader.read(valueLength)
-        (fromValue, rangeValue) <- RangeValueSerializer.read(rangeValueId, valueBytes)
+        valueBytes <- if (valueLength == 0) Success(Slice.emptyBytes) else reader.read(valueLength)
+        (fromValue, rangeValue) <- RangeValueSerializer.read(valueBytes)
       } yield {
         Some(MapEntry.Put(fromKey, Memory.Range(fromKey, toKey, fromValue, rangeValue))(LevelZeroMapEntryWriter.Level0RangeWriter))
       }
   }
 
-  implicit object Level0Reader extends MapEntryReader[MapEntry[Slice[Byte], Memory]] {
-    override def read(reader: Reader): Try[Option[MapEntry[Slice[Byte], Memory]]] =
-      reader.foldLeftTry(Option.empty[MapEntry[Slice[Byte], Memory]]) {
+  implicit object Level0Reader extends MapEntryReader[MapEntry[Slice[Byte], Memory.Response]] {
+    override def read(reader: Reader): Try[Option[MapEntry[Slice[Byte], Memory.Response]]] =
+      reader.foldLeftTry(Option.empty[MapEntry[Slice[Byte], Memory.Response]]) {
         case (previousEntry, reader) =>
           reader.readInt() flatMap {
             entryId =>

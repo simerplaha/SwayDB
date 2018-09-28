@@ -31,11 +31,12 @@ private[swaydb] trait Reader { self =>
 
   def get(): Try[Int]
 
+  def read(size: Long): Try[Slice[Byte]] =
+    read(size.toInt)
+
   def read(size: Int): Try[Slice[Byte]]
 
   def size: Try[Long]
-
-  def isLoaded: Try[Boolean]
 
   def hasMore: Try[Boolean]
 
@@ -45,8 +46,13 @@ private[swaydb] trait Reader { self =>
 
   def moveTo(position: Long): Reader
 
+  def readRemaining(): Try[Slice[Byte]]
+
   def skip(skip: Long): Reader =
     moveTo(getPosition + skip)
+
+  def readBoolean(): Try[Boolean] =
+    ByteUtil.readBoolean(self)
 
   def readInt(): Try[Int] =
     ByteUtil.readInt(self)

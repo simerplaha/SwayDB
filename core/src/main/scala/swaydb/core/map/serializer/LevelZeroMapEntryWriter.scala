@@ -58,7 +58,7 @@ object LevelZeroMapEntryWriter {
         .addInt(entry.value.key.size)
         .addAll(entry.value.key)
         .addInt(entry.value.value.map(_.size).getOrElse(0))
-        .addAll(entry.value.value.getOrElse(Slice.emptyByteSlice))
+        .addAll(entry.value.value.getOrElse(Slice.emptyBytes))
         .addLong(entry.value.deadline.map(_.time.toNanos).getOrElse(0))
 
     override def bytesRequired(entry: MapEntry.Put[Slice[Byte], Memory.Put]): Int =
@@ -85,7 +85,7 @@ object LevelZeroMapEntryWriter {
         .addInt(entry.value.key.size)
         .addAll(entry.value.key)
         .addInt(entry.value.value.map(_.size).getOrElse(0))
-        .addAll(entry.value.value.getOrElse(Slice.emptyByteSlice))
+        .addAll(entry.value.value.getOrElse(Slice.emptyBytes))
         .addLong(entry.value.deadline.map(_.time.toNanos).getOrElse(0))
 
     override def bytesRequired(entry: MapEntry.Put[Slice[Byte], Memory.Update]): Int =
@@ -101,7 +101,7 @@ object LevelZeroMapEntryWriter {
   }
 
   implicit object Level0RangeWriter extends MapEntryWriter[MapEntry.Put[Slice[Byte], Memory.Range]] {
-    val id = 3
+    val id = 4
 
     override val isRange: Boolean = true
     override val isUpdate: Boolean = false
@@ -109,7 +109,7 @@ object LevelZeroMapEntryWriter {
     import RangeValueSerializers._
 
     override def write(entry: MapEntry.Put[Slice[Byte], Memory.Range], bytes: Slice[Byte]): Unit = {
-      val (valueBytesRequired, rangeId) = RangeValueSerializer.bytesRequiredAndRangeId(entry.value.fromValue, entry.value.rangeValue)
+      val valueBytesRequired = RangeValueSerializer.bytesRequired(entry.value.fromValue, entry.value.rangeValue)
       RangeValueSerializer.write(entry.value.fromValue, entry.value.rangeValue) {
         bytes
           .addInt(id)
@@ -117,7 +117,6 @@ object LevelZeroMapEntryWriter {
           .addAll(entry.value.fromKey)
           .addInt(entry.value.toKey.size)
           .addAll(entry.value.toKey)
-          .addInt(rangeId)
           .addInt(valueBytesRequired)
       }
     }
@@ -132,16 +131,15 @@ object LevelZeroMapEntryWriter {
           ByteSizeOf.int +
           entry.value.toKey.size +
           ByteSizeOf.int +
-          ByteSizeOf.int +
-          RangeValueSerializer.bytesRequiredAndRangeId(entry.value.fromValue, entry.value.rangeValue)._1
+          RangeValueSerializer.bytesRequired(entry.value.fromValue, entry.value.rangeValue)
   }
 
-  implicit object Level0PutValueWriter extends MapEntryWriter[MapEntry.Put[Slice[Byte], Memory]] {
+  implicit object Level0PutValueWriter extends MapEntryWriter[MapEntry.Put[Slice[Byte], Memory.Response]] {
 
     override val isRange: Boolean = true
     override val isUpdate: Boolean = true
 
-    override def write(entry: MapEntry.Put[Slice[Byte], Memory], bytes: Slice[Byte]): Unit =
+    override def write(entry: MapEntry.Put[Slice[Byte], Memory.Response], bytes: Slice[Byte]): Unit =
       entry match {
         case entry @ MapEntry.Put(_, _: Memory.Put) =>
           MapEntryWriter.write(entry.asInstanceOf[MapEntry.Put[Slice[Byte], Memory.Put]], bytes)
@@ -156,7 +154,7 @@ object LevelZeroMapEntryWriter {
           MapEntryWriter.write(entry.asInstanceOf[MapEntry.Put[Slice[Byte], Memory.Range]], bytes)
       }
 
-    override def bytesRequired(entry: MapEntry.Put[Slice[Byte], Memory]): Int =
+    override def bytesRequired(entry: MapEntry.Put[Slice[Byte], Memory.Response]): Int =
       entry match {
         case entry @ MapEntry.Put(_, _: Memory.Put) =>
           MapEntryWriter.bytesRequired(entry.asInstanceOf[MapEntry.Put[Slice[Byte], Memory.Put]])

@@ -23,12 +23,13 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.Paths
 import java.util.concurrent.TimeUnit
 
-import swaydb.core.data.Persistent
+import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.io.file.DBFile
 import swaydb.core.map.MapEntry
+import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.Segment
+import swaydb.core.util.Bytes
 import swaydb.data.segment.MaxKey
-import swaydb.core.util.ByteUtilCore
 import swaydb.data.slice.{Reader, Slice}
 
 import scala.concurrent.ExecutionContext
@@ -39,8 +40,9 @@ object AppendixMapEntryReader {
   def apply(removeDeletes: Boolean,
             mmapSegmentsOnRead: Boolean,
             mmapSegmentsOnWrite: Boolean)(implicit ordering: Ordering[Slice[Byte]],
-                                          keyValueLimiter: (Persistent, Segment) => Unit,
+                                          keyValueLimiter: KeyValueLimiter,
                                           fileOpenLimiter: DBFile => Unit,
+                                          compression: Option[KeyValueGroupingStrategyInternal],
                                           ec: ExecutionContext): AppendixMapEntryReader =
     new AppendixMapEntryReader(
       removeDeletes = removeDeletes,
@@ -52,8 +54,9 @@ object AppendixMapEntryReader {
 class AppendixMapEntryReader(removeDeletes: Boolean,
                              mmapSegmentsOnRead: Boolean,
                              mmapSegmentsOnWrite: Boolean)(implicit ordering: Ordering[Slice[Byte]],
-                                                           keyValueLimiter: (Persistent, Segment) => Unit,
+                                                           keyValueLimiter: KeyValueLimiter,
                                                            fileOpenLimiter: DBFile => Unit,
+                                                           compression: Option[KeyValueGroupingStrategyInternal],
                                                            ec: ExecutionContext) {
 
   implicit object AppendixPutReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Segment]] {
@@ -72,7 +75,7 @@ class AppendixMapEntryReader(removeDeletes: Boolean,
           if (maxKeyId == 1)
             Success(MaxKey.Fixed(maxKeyBytes))
           else {
-            ByteUtilCore.uncompress(maxKeyBytes) map {
+            Bytes.decompressJoin(maxKeyBytes) map {
               case (fromKey, toKey) =>
                 MaxKey.Range(fromKey, toKey)
             }

@@ -24,6 +24,7 @@ sealed trait MaxKey[T] {
 }
 
 object MaxKey {
+
   case class Fixed[T](maxKey: T) extends MaxKey[T]
 
   case class Range[T](fromKey: T, maxKey: T) extends MaxKey[T]

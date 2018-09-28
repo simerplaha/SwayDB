@@ -20,7 +20,7 @@
 package swaydb.core.finders
 
 import swaydb.core.data.KeyValue
-import swaydb.core.segment.KeyValueMerger
+import swaydb.core.segment.merge.KeyValueMerger
 import swaydb.data.slice.Slice
 
 import scala.annotation.tailrec
@@ -34,8 +34,7 @@ object Lower {
     */
   def apply(key: Slice[Byte],
             lowerFromCurrentLevel: Slice[Byte] => Try[Option[KeyValue.ReadOnly]],
-            lowerFromNextLevel: Slice[Byte] => Try[Option[KeyValue.ReadOnly.Put]])(implicit ordering: Ordering[Slice[Byte]],
-                                                                                   keyValueOrdering: Ordering[KeyValue.ReadOnly.Fixed]): Try[Option[KeyValue.ReadOnly.Put]] = {
+            lowerFromNextLevel: Slice[Byte] => Try[Option[KeyValue.ReadOnly.Put]])(implicit ordering: Ordering[Slice[Byte]]): Try[Option[KeyValue.ReadOnly.Put]] = {
     import ordering._
 
     //    println(s"${rootPath}: Lower for key: " + key.readInt())
@@ -278,6 +277,9 @@ object Lower {
                                   case Failure(exception) =>
                                     Failure(exception)
                                 }
+
+                              case Failure(exception) =>
+                                Failure(exception)
                             }
                           case Failure(exception) =>
                             Failure(exception)

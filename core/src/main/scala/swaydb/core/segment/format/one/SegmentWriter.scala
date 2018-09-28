@@ -21,103 +21,140 @@ package swaydb.core.segment.format.one
 
 import bloomfilter.mutable.BloomFilter
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.data.KeyValue
+import swaydb.core.data.{KeyValue, Transient}
 import swaydb.core.segment.Segment
 import swaydb.core.util.BloomFilterUtil._
-import swaydb.core.util.CRC32
+import swaydb.core.util.{BloomFilterUtil, CRC32}
+import swaydb.core.util.PipeOps._
+import swaydb.core.util.TryUtil._
 import swaydb.data.slice.Slice
 import swaydb.data.slice.Slice._
 
 import scala.concurrent.duration.Deadline
-import scala.util.{Success, Try}
+import scala.util.{Failure, Success, Try}
 
 private[core] object SegmentWriter extends LazyLogging {
 
+  val formatId = 0
+
   val crcBytes: Int = 7
+
+  private def getNearestDeadlineAndAddToBloomFilter(bloomFilter: Option[BloomFilter[Slice[Byte]]],
+                                                    deadline: Option[Deadline],
+                                                    keyValue: KeyValue.WriteOnly): Option[Deadline] =
+    keyValue match {
+      case group: Transient.Group =>
+        group.keyValues.foldLeft(deadline) {
+          case (nearestDeadline, keyValue) =>
+            getNearestDeadlineAndAddToBloomFilter(bloomFilter, nearestDeadline, keyValue)
+        }
+      case _: Transient.Put | _: Transient.Remove | _: Transient.Update | _: Transient.Range =>
+        bloomFilter foreach (_ add keyValue.key)
+        Segment.getNearestDeadline(deadline, keyValue)
+    }
+
+  def write(keyValues: Iterable[KeyValue.WriteOnly],
+            indexSlice: Slice[Byte],
+            valuesSlice: Slice[Byte],
+            bloomFilter: Option[BloomFilter[Slice[Byte]]]): Try[Option[Deadline]] =
+    keyValues.tryFoldLeft(Option.empty[Deadline]) {
+      case (deadline, keyValue) =>
+        write(
+          keyValue = keyValue,
+          indexSlice = indexSlice,
+          valuesSlice = valuesSlice
+        ) map {
+          _ =>
+            getNearestDeadlineAndAddToBloomFilter(bloomFilter, deadline, keyValue)
+        }
+    } flatMap {
+      result =>
+        //ensure that all the slices are full.
+        if (!indexSlice.isFull)
+          Failure(new Exception(s"indexSlice is not full actual: ${indexSlice.written} - expected: ${indexSlice.size}"))
+        else if (!valuesSlice.isFull)
+          Failure(new Exception(s"valuesSlice is not full actual: ${valuesSlice.written} - expected: ${valuesSlice.size}"))
+        else
+          Success(result)
+    }
+
+  private def write(keyValue: KeyValue.WriteOnly,
+                    indexSlice: Slice[Byte],
+                    valuesSlice: Slice[Byte]): Try[Unit] =
+    Try {
+      indexSlice addIntUnsigned keyValue.stats.keySize
+      indexSlice addAll keyValue.indexEntryBytes
+      keyValue.valueEntryBytes foreach (valuesSlice addAll _)
+    }
 
   /**
     * Rules for creating bloom filters
     *
     * If key-values contains:
-    * - A Remove range - bloom filters are not created
-    * - Any other Range - a flag is added to Appendix to indicate that the Segment contains a Range key-value.
+    * 1. A Remove range - bloom filters are not created because 'mightContain' checks bloomFilters only and bloomFilters
+    * do not have range scans. BloomFilters are still created for Update ranges because even if boomFilter returns false,
+    * 'mightContain' will continue looking for the key in lower Levels but a remove Range should always return false.
+    *
+    * 2. Any other Range - a flag is added to Appendix indicating that the Segment contains a Range key-value so that
+    * Segment reads can take appropriate steps to fetch the right range key-value.
     */
-  def toSlice(keyValues: Iterable[KeyValue.WriteOnly], bloomFilterFalsePositiveRate: Double): Try[(Slice[Byte], Option[Deadline])] = {
-    if (keyValues.isEmpty) {
-      Success(Slice.create[Byte](0), None)
-    } else {
-      Try {
-        val bloomFilter =
-          if (keyValues.last.stats.hasRemoveRange)
-            None
-          else
-            Some(BloomFilter[Slice[Byte]](keyValues.size, bloomFilterFalsePositiveRate))
+  def write(keyValues: Iterable[KeyValue.WriteOnly],
+            bloomFilterFalsePositiveRate: Double): Try[(Slice[Byte], Option[Deadline])] =
+    if (keyValues.isEmpty)
+      Success(Slice.emptyBytes, None)
+    else {
+      val bloomFilter = BloomFilterUtil.initBloomFilter(keyValues, bloomFilterFalsePositiveRate)
 
-        val slice = Slice.create[Byte](keyValues.last.stats.segmentSize)
-        var deadline: Option[Deadline] = None
+      val slice = Slice.create[Byte](keyValues.last.stats.segmentSize)
 
-        val (valuesSlice, indexAndFooterSlice) = slice splitAt keyValues.last.stats.segmentValuesSize
-        keyValues foreach {
-          keyValue =>
-            keyValue.getOrFetchValue flatMap {
-              valueMayBe =>
-                Segment.getNearestDeadline(deadline, keyValue) map {
-                  nearestDeadline =>
-                    deadline = nearestDeadline
+      val (valuesSlice, indexSlice, footerSlice) =
+        slice.splitAt(keyValues.last.stats.segmentValuesSize) ==> {
+          case (valuesSlice, indexAndFooterSlice) =>
+            val (indexSlice, footerSlice) = indexAndFooterSlice splitAt keyValues.last.stats.indexSize
+            (valuesSlice, indexSlice, footerSlice)
+        }
 
-                    bloomFilter.foreach(_ add keyValue.key)
+      write(
+        keyValues = keyValues,
+        indexSlice = indexSlice,
+        valuesSlice = valuesSlice,
+        bloomFilter = bloomFilter
+      ) flatMap {
+        nearestDeadline =>
+          Try {
+            //this is a placeholder to store the format type of the Segment file written.
+            //currently there is only one format. So this is hardcoded but if there are a new file format then
+            //SegmentWriter and SegmentReader should be changed to be type classes with unique format types ids.
+            footerSlice addIntUnsigned SegmentWriter.formatId
+            footerSlice addBoolean keyValues.last.stats.hasRange
+            footerSlice addIntUnsigned indexSlice.fromOffset
 
-                    indexAndFooterSlice addIntUnsigned keyValue.stats.thisKeyValuesIndexSizeWithoutFooter
-                    indexAndFooterSlice addIntUnsigned keyValue.id
-                    indexAndFooterSlice addIntUnsigned keyValue.stats.commonBytes
-                    indexAndFooterSlice addIntUnsigned keyValue.stats.keyWithoutCommonBytes.size
-                    indexAndFooterSlice addAll keyValue.stats.keyWithoutCommonBytes
-                    keyValue match {
-                      case single: KeyValue.WriteOnly.Fixed =>
-                        indexAndFooterSlice addLongUnsigned single.deadline.map(_.time.toNanos).getOrElse(0L)
-                      case _: KeyValue.WriteOnly.Range =>
-                        indexAndFooterSlice addLongUnsigned 0L
-                    }
+            //do CRC
+            var indexBytesToCRC = indexSlice.take(SegmentWriter.crcBytes)
+            if (indexBytesToCRC.size < SegmentWriter.crcBytes) //if index does not have enough bytes, fill remaining from the footer.
+              indexBytesToCRC = indexBytesToCRC append footerSlice.take(SegmentWriter.crcBytes - indexBytesToCRC.size)
+            assert(indexBytesToCRC.size == SegmentWriter.crcBytes, s"Invalid CRC bytes size: ${indexBytesToCRC.size}. Required: ${SegmentWriter.crcBytes}")
+            footerSlice addLong CRC32.forBytes(indexBytesToCRC)
 
-                    valueMayBe match {
-                      case Some(value) if value.size > 0 =>
-                        assert(valuesSlice.written == keyValue.stats.valueOffset, s"Value offset is incorrect. actual: ${valuesSlice.written} - expected: ${keyValue.stats.valueOffset}")
-                        indexAndFooterSlice addIntUnsigned keyValue.stats.valueLength
-                        indexAndFooterSlice addIntUnsigned valuesSlice.written
-
-                        valuesSlice addAll value //value
-
-                      case _ =>
-                        indexAndFooterSlice addIntUnsigned 0
-                    }
-                }
+            //here the top Level key-values are used instead of Group's internal key-values because Group's internal key-values
+            //are read when the Group key-value is read.
+            footerSlice addIntUnsigned keyValues.size
+            //total number of actual key-values grouped or un-grouped
+            footerSlice addIntUnsigned keyValues.last.stats.bloomFilterItemsCount
+            bloomFilter match {
+              case Some(bloomFilter) =>
+                val bloomFilterBytes = bloomFilter.toBytes
+                footerSlice addIntUnsigned bloomFilterBytes.length
+                footerSlice addAll bloomFilterBytes
+              case None =>
+                footerSlice addIntUnsigned 0
             }
-        }
-
-        val footerStart = indexAndFooterSlice.written
-        //this is a placeholder to store the format type of the Segment file written.
-        //currently there is only one format. So this is hardcoded but if there are a new file format then
-        //SegmentWriter and SegmentReader should be changed to be type classes with unique format types ids.
-        indexAndFooterSlice addIntUnsigned 1
-        if (keyValues.last.stats.hasRange) indexAndFooterSlice addByte 1 else indexAndFooterSlice addByte 0
-        indexAndFooterSlice addIntUnsigned indexAndFooterSlice.fromOffset
-        indexAndFooterSlice addLong CRC32.forBytes(indexAndFooterSlice.take(SegmentWriter.crcBytes))
-        indexAndFooterSlice addIntUnsigned keyValues.size
-        bloomFilter match {
-          case Some(bloomFilter) =>
-            val bloomFilterBytes = bloomFilter.toBytes
-            indexAndFooterSlice addIntUnsigned bloomFilterBytes.length
-            indexAndFooterSlice addAll bloomFilterBytes
-          case None =>
-            indexAndFooterSlice addIntUnsigned 0
-        }
-        indexAndFooterSlice addInt (indexAndFooterSlice.written - footerStart)
-        assert(valuesSlice.isFull, "Values slice is not full")
-        assert(indexAndFooterSlice.isFull, s"Index and footer slice is not full. Size: ${indexAndFooterSlice.size} - Written: ${indexAndFooterSlice.written}")
-        val sliceArray = slice.toArray
-        assert(keyValues.last.stats.segmentSize == sliceArray.length, s"Invalid segment size. actual: ${sliceArray.length} - expected: ${keyValues.last.stats.segmentSize}")
-        (Slice(sliceArray), deadline)
+            footerSlice addInt footerSlice.size
+            assert(footerSlice.isFull, s"footerSlice is not full. Size: ${footerSlice.size} - Written: ${footerSlice.written}")
+            val segmentArray = slice.toArray
+            assert(keyValues.last.stats.segmentSize == segmentArray.length, s"Invalid segment size. actual: ${segmentArray.length} - expected: ${keyValues.last.stats.segmentSize}")
+            (Slice(segmentArray), nearestDeadline)
+          }
       }
     }
-  }
 }

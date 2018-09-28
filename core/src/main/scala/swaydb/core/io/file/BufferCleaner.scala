@@ -33,7 +33,7 @@ import scala.concurrent.duration._
 private[file] object BufferCleaner extends LazyLogging {
 
   private val started = new AtomicBoolean(false)
-  private var actor: ActorRef[(MappedByteBuffer, Path, Boolean)] = null
+  private var actor: ActorRef[(MappedByteBuffer, Path, Boolean)] = _
 
   private def createActor(implicit ec: ExecutionContext) = {
     logger.debug("Starting buffer cleaner.")

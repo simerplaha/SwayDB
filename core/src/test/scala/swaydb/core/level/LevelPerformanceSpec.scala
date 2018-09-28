@@ -25,6 +25,8 @@ import swaydb.data.slice.Slice
 import swaydb.order.KeyOrder
 
 //@formatter:off
+class LevelPerformanceSpec0 extends LevelPerformanceSpec
+
 class LevelPerformanceSpec1 extends LevelPerformanceSpec {
   override def levelFoldersCount = 10
   override def mmapSegmentsOnWrite = true
@@ -46,9 +48,9 @@ class LevelPerformanceSpec3 extends LevelPerformanceSpec {
 }
 //@formatter:on
 
-class LevelPerformanceSpec extends TestBase with Benchmark {
+sealed trait LevelPerformanceSpec extends TestBase with Benchmark {
 
-  implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
+  override implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
   val keyValuesCount = 100
 
   val keyValues = randomIntKeyValuesMemory(25000)

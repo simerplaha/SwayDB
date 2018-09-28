@@ -27,4 +27,5 @@ private[core] case class SegmentFooter(crc: Long,
                                        endIndexOffset: Int,
                                        keyValueCount: Int,
                                        hasRange: Boolean,
+                                       bloomFilterItemsCount: Int,
                                        bloomFilter: Option[BloomFilter[Slice[Byte]]])

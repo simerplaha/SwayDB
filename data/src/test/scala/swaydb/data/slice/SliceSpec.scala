@@ -227,7 +227,6 @@ class SliceSpec extends WordSpec with Matchers {
 
       (slice.slice(1, 3) take 2) should contain only(1, 2)
       (slice.slice(2, 4) takeRight 2) should contain only(3, 4)
-
     }
 
     "be splittable" in {
@@ -256,6 +255,12 @@ class SliceSpec extends WordSpec with Matchers {
       tail4.size shouldBe 1
       head4.underlyingArraySize shouldBe slice.size
       tail4.underlyingArraySize shouldBe slice.size
+
+      val (head5, tail5) = slice.splitAt(slice.size - 2)
+      head5.size shouldBe 2
+      tail5.size shouldBe 2
+      head5.underlyingArraySize shouldBe slice.size
+      tail5.underlyingArraySize shouldBe slice.size
     }
 
     "update original slice when splits are updated" in {
@@ -381,4 +386,25 @@ class SliceSpec extends WordSpec with Matchers {
     }
   }
 
+  "join multiple slices" in {
+    val slice = Slice(1, 2)
+
+    (slice join slice join slice).toList shouldBe List(1, 2, 1, 2, 1, 2)
+  }
+
+  "write multiple with addAll" in {
+    Slice.create[Int](4)
+      .add(1)
+      .add(2)
+      .addAll(Slice(3, 4)).toList shouldBe List(1, 2, 3, 4)
+  }
+
+  "addAll should fail if Slice does not have capacity" in {
+    assertThrows[ArrayIndexOutOfBoundsException] {
+      Slice.create[Int](3)
+        .add(1)
+        .add(2)
+        .addAll(Slice(3, 4))
+    }
+  }
 }

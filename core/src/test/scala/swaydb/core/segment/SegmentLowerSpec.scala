@@ -23,6 +23,7 @@ import org.scalatest.PrivateMethodTester
 import org.scalatest.concurrent.ScalaFutures
 import swaydb.core.TestBase
 import swaydb.core.data._
+import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.data.slice.Slice
 import swaydb.order.KeyOrder
 import swaydb.serializers.Default._
@@ -60,10 +61,14 @@ class SegmentLowerSpec3 extends SegmentLowerSpec {
 }
 //@formatter:on
 
-trait SegmentLowerSpec extends TestBase with ScalaFutures with PrivateMethodTester {
+sealed trait SegmentLowerSpec extends TestBase with ScalaFutures with PrivateMethodTester {
 
-  implicit val ordering = KeyOrder.default
-  val keyValuesCount: Int
+  override implicit val ordering = KeyOrder.default
+
+  def keyValuesCount: Int
+
+  implicit override val groupingStrategy: Option[KeyValueGroupingStrategyInternal] =
+    randomCompressionTypeOption(keyValuesCount)
 
   "Segment.lower" should {
     "get the lower key from the segment that has only 1 Remove key" in {

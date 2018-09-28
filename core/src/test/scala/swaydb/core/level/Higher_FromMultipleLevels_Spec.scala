@@ -23,7 +23,8 @@ import org.scalamock.scalatest.MockFactory
 import swaydb.core.TestBase
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data.Memory
-import swaydb.core.segment.KeyValueMerger
+import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
+import swaydb.core.segment.merge.KeyValueMerger
 import swaydb.core.util.Benchmark
 import swaydb.data.slice.Slice
 import swaydb.order.KeyOrder
@@ -49,7 +50,7 @@ class Higher_FromMultipleLevels_Spec1 extends Higher_FromMultipleLevels_Spec {
 }
 
 class Higher_FromMultipleLevels_Spec2 extends Higher_FromMultipleLevels_Spec {
-  override val maxIterations: Int = 100
+  override val maxIterations: Int = 10
 
   override def levelFoldersCount = 10
   override def mmapSegmentsOnWrite = false
@@ -64,10 +65,11 @@ class Higher_FromMultipleLevels_Spec3 extends Higher_FromMultipleLevels_Spec {
 }
 //@formatter:on
 
-trait Higher_FromMultipleLevels_Spec extends TestBase with MockFactory with Benchmark {
+sealed trait Higher_FromMultipleLevels_Spec extends TestBase with MockFactory with Benchmark {
 
-  implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
-  val maxIterations: Int
+  override implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
+  def maxIterations: Int
+  implicit override val groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomCompressionTypeOption(maxIterations)
 
   "Higher" should {
     "empty Level" in {

@@ -30,7 +30,8 @@ import scala.concurrent.duration._
 
 class SegmentMerger6_Remove_None_Spec extends WordSpec with CommonAssertions {
 
-  implicit val ordering = KeyOrder.default
+  override implicit val ordering = KeyOrder.default
+  implicit val compression = groupingStrategy
 
   "Merging Remove(None) into any existing key-value" should {
     "always remove the old key-value" in {

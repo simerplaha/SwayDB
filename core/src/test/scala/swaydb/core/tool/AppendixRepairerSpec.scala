@@ -21,8 +21,8 @@ package swaydb.core.tool
 
 import java.nio.file.NoSuchFileException
 
-import swaydb.core.data.Persistent
 import swaydb.core.io.file.{DBFile, IO}
+import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.Segment
 import swaydb.core.util.FileUtil._
 import swaydb.core.{TestBase, TestLimitQueues}
@@ -37,10 +37,10 @@ import scala.util.Random
 
 class AppendixRepairerSpec extends TestBase {
 
-  implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
+  override implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
 
   implicit val maxSegmentsOpenCacheImplicitLimiter: DBFile => Unit = TestLimitQueues.fileOpenLimiter
-  implicit val keyValuesLimitImplicitLimiter: (Persistent, Segment) => Unit = TestLimitQueues.keyValueLimiter
+  implicit val keyValuesLimitImplicitLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter
 
   "AppendixRepair" should {
     "fail if the input path does not exist" in {
@@ -49,7 +49,7 @@ class AppendixRepairerSpec extends TestBase {
 
     "create new appendix file if all the Segments in the Level are non-overlapping Segments" in {
       val level = TestLevel(segmentSize = 1.kb)
-      level.putKeyValues(randomizedIntKeyValues(1000).toMemory).assertGet
+      level.putKeyValues(randomizedIntKeyValues(10000).toMemory).assertGet
 
       level.segmentsCount() should be > 2
       val segmentsBeforeRepair = level.segmentsInLevel()
@@ -117,7 +117,7 @@ class AppendixRepairerSpec extends TestBase {
       //create empty Level
       val level = TestLevel(segmentSize = 1.kb, nextLevel = Some(TestLevel()), throttle = (_) => Throttle(Duration.Zero, 0))
 
-      val keyValues = randomizedIntKeyValues(1000).toMemory
+      val keyValues = randomizedIntKeyValues(10000).toMemory
       level.putKeyValues(keyValues).assertGet
 
       level.segmentsCount() should be > 2

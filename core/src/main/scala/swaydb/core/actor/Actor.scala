@@ -59,6 +59,15 @@ private[swaydb] sealed trait ActorRef[-T] {
 }
 
 private[swaydb] object Actor {
+
+  /**
+    * Basic stateless Actor that processes all incoming messages sequentially.
+    *
+    * On each message send (!) the Actor is woken up if it's not already running.
+    */
+  def apply[T](execution: (T, Actor[T, Unit]) => Unit)(implicit ec: ExecutionContext): ActorRef[T] =
+    apply[T, Unit]()(execution)
+
   /**
     * Basic stateful Actor that processes all incoming messages sequentially.
     *
@@ -76,12 +85,10 @@ private[swaydb] object Actor {
     )
 
   /**
-    * Basic stateless Actor that processes all incoming messages sequentially.
-    *
-    * On each message send (!) the Actor is woken up if it's not already running.
+    * Stateless [[timer]] actor
     */
-  def apply[T](execution: (T, Actor[T, Unit]) => Unit)(implicit ec: ExecutionContext): ActorRef[T] =
-    apply[T, Unit]()(execution)
+  def timer[T](fixedDelay: FiniteDuration)(execution: (T, Actor[T, Unit]) => Unit)(implicit ec: ExecutionContext): ActorRef[T] =
+    timer((), fixedDelay)(execution)
 
   /**
     * Processes messages at regular intervals.
@@ -102,13 +109,19 @@ private[swaydb] object Actor {
     )
 
   /**
+    * Stateless [[timerLoop]]
+    */
+  def timerLoop[T](initialDelay: FiniteDuration)(execution: (T, Actor[T, Unit]) => Unit)(implicit ec: ExecutionContext): ActorRef[T] =
+    timerLoop((), initialDelay)(execution)
+
+  /**
     * Checks the message queue for new messages at regular intervals
     * indefinitely and processes them if the queue is non-empty.
     *
-    * This actor is used when .submit is used instead of !.
+    * Use .submit instead of !. There should be a type-safe way of handling this but.
     */
   def timerLoop[T, S](state: S,
-                      initialDelay: FiniteDuration)(execution: (T, Actor[T, S]) => FiniteDuration)(implicit ec: ExecutionContext): ActorRef[T] =
+                      initialDelay: FiniteDuration)(execution: (T, Actor[T, S]) => Unit)(implicit ec: ExecutionContext): ActorRef[T] =
     new Actor[T, S](
       state = state,
       execution =
@@ -120,8 +133,8 @@ private[swaydb] object Actor {
 }
 
 private[swaydb] class Actor[T, +S](val state: S,
-                                   execution: (T, Actor[T, S]) => Option[FiniteDuration],
-                                   private var delay: Option[FiniteDuration])(implicit ec: ExecutionContext) extends ActorRef[T] with LazyLogging { self =>
+                                   execution: (T, Actor[T, S]) => Unit,
+                                   private val delay: Option[FiniteDuration])(implicit ec: ExecutionContext) extends ActorRef[T] with LazyLogging { self =>
 
   private val busy = new AtomicBoolean(false)
   private val queue = new ConcurrentLinkedQueue[T]
@@ -172,7 +185,7 @@ private[swaydb] class Actor[T, +S](val state: S,
       while (processed < max) {
         val message = queue.poll
         if (message != null) {
-          Try(execution(message, self)).foreach(delay = _)
+          Try(execution(message, self))
           processed += 1
         } else {
           processed = max

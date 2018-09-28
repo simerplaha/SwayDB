@@ -67,9 +67,9 @@ private[core] class LevelZeroActor(zero: LevelZero)(implicit ec: ExecutionContex
             if (on.compareAndSet(false, true)) {
               logger.debug(s"{}: Woken up.", zero.path)
               self ! Push
-            }
-            else
+            } else {
               logger.debug(s"{}: Already running.", zero.path)
+            }
 
           case Pull =>
             logger.debug(s"{}: Pull received. Executing WakeUp now.", zero.path)

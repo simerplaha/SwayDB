@@ -37,10 +37,7 @@ private[core] object SliceUtil {
     def memorySegmentSize: Int =
       slice.lastOption.map(_.stats.memorySegmentSize).getOrElse(0)
 
-
     def persistentSegmentSizeWithoutFooter: Int =
       slice.lastOption.map(_.stats.segmentSizeWithoutFooter).getOrElse(0)
   }
-
-
 }

@@ -30,7 +30,8 @@ import scala.concurrent.duration._
 
 class SegmentMerger5_Put_Spec extends WordSpec with CommonAssertions {
 
-  implicit val ordering = KeyOrder.default
+  override implicit val ordering = KeyOrder.default
+  implicit val compression = groupingStrategy
 
   "Merging Put into any existing key-value" should {
     "always return the new Put key-value" in {

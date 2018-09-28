@@ -39,7 +39,6 @@ private[swaydb] trait SwayDBAPI {
   /**
     * WRITE API
     */
-
   def put(key: Slice[Byte]): Try[Level0Meter]
 
   def put(key: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter]
@@ -60,9 +59,6 @@ private[swaydb] trait SwayDBAPI {
 
   def batch(entry: Iterable[swaydb.data.request.Batch]): Try[Level0Meter]
 
-  /**
-    * READ API
-    */
   def get(key: Slice[Byte]): Try[Option[Option[Slice[Byte]]]]
 
   def getKey(key: Slice[Byte]): Try[Option[Slice[Byte]]]

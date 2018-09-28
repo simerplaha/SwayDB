@@ -60,7 +60,7 @@ private[core] trait LevelActorAPI {
 
   def removeSegments(segments: Iterable[Segment]): Try[Int]
 
-  def putMap(map: Map[Slice[Byte], Memory]): Try[Unit]
+  def putMap(map: Map[Slice[Byte], Memory.Response]): Try[Unit]
 
   def put(segments: Iterable[Segment]): Try[Unit]
 

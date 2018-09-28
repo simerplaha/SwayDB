@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit
 
 import scala.concurrent.duration._
 
-private[core] object FiniteDurationUtil {
+object FiniteDurationUtil {
 
   implicit class FiniteDurationImplicits(duration: Duration) {
     def asString: String = {

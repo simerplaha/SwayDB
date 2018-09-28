@@ -28,5 +28,4 @@ private[core] object CRC32 {
     checksum.update(bytes.toByteBuffer)
     checksum.getValue
   }
-
 }

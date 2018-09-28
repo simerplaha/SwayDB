@@ -22,7 +22,7 @@ package swaydb.core.merge
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.core.CommonAssertions
 import swaydb.core.data.{Memory, Transient, Value}
-import swaydb.core.segment.SegmentMerger
+import swaydb.core.segment.merge.SegmentMerger
 import swaydb.data.slice.Slice
 import swaydb.order.KeyOrder
 import swaydb.serializers.Default._
@@ -34,6 +34,7 @@ import scala.concurrent.duration._
 class KeyValueMerger3_Remove_None_Spec extends WordSpec with Matchers with CommonAssertions {
 
   implicit val order = KeyOrder.default
+  implicit val compression = groupingStrategy
 
   "Merging Remove(None) in any other randomly selected key-value" should {
     "always remove old key-value" in {
@@ -72,7 +73,7 @@ class KeyValueMerger3_Remove_None_Spec extends WordSpec with Matchers with Commo
     }
 
     "Remove" in {
-      val removeRange: Memory = Memory.Range(1, 3, None, Value.Remove(None))
+      val removeRange: Memory.Response = Memory.Range(1, 3, None, Value.Remove(None))
       val remove = Memory.Remove(3)
 
       val puts =
@@ -93,7 +94,7 @@ class KeyValueMerger3_Remove_None_Spec extends WordSpec with Matchers with Commo
       val result =
       (Seq(remove) ++ puts ++ Seq(expireRange, expire, removeRange2, remove2) ++ puts ++ Seq(expireRange2, expire2)).foldLeft(Iterable(removeRange)) {
         case (oldKeyValues, newKeyValue) =>
-          SegmentMerger.merge(Slice(newKeyValue), Slice(oldKeyValues.toArray), 10.seconds).toMemory
+          SegmentMerger.merge(Slice(newKeyValue), Slice(oldKeyValues.toArray), 10.seconds).toMemoryResponse
       }
 
       result foreach println

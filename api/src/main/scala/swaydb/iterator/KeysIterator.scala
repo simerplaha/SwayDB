@@ -36,7 +36,7 @@ import scala.util.{Failure, Success, Try}
 case class KeysIterator[K](private val api: SwayDBAPI,
                            private val from: Option[From[K]],
                            private val reverse: Boolean = false,
-                           private val till: (K) => Boolean = (_: K) => true)(implicit serializer: Serializer[K]) extends Iterable[K] {
+                           private val till: K => Boolean = (_: K) => true)(implicit serializer: Serializer[K]) extends Iterable[K] {
 
   def from(key: K): KeysIterator[K] =
     copy(from = Some(From(key = key, orBefore = false, orAfter = false, before = false, after = false)))
@@ -185,7 +185,7 @@ case class KeysIterator[K](private val api: SwayDBAPI,
 
   override def foldRight[B](z: B)(op: (K, B) => B): B =
     copy(reverse = true).foldLeft(z) {
-      case (b, (k)) =>
+      case (b, k) =>
         op(k, b)
     }
 
@@ -197,19 +197,19 @@ case class KeysIterator[K](private val api: SwayDBAPI,
 
   override def reduceRight[B >: K](op: (K, B) => B): B =
     copy(reverse = true).reduceLeft[B] {
-      case (b, (k)) =>
+      case (b, k) =>
         op(k, b)
     }
 
   override def reduceRightOption[B >: K](op: (K, B) => B): Option[B] =
     copy(reverse = true).reduceLeftOption[B] {
-      case (b, (k)) =>
+      case (b, k) =>
         op(k, b)
     }
 
   override def scanRight[B, That](z: B)(op: (K, B) => B)(implicit bf: CanBuildFrom[Iterable[K], B, That]): That =
     copy(reverse = true).scanLeft(z) {
-      case (z, (k)) =>
+      case (z, k) =>
         op(k, z)
     }
 

@@ -31,14 +31,14 @@ import scala.concurrent.ExecutionContext
 package object map extends TryAssert {
 
   //cannot be added to TestBase because PersistentMap cannot leave the map package.
-  implicit class ReopenMap(map: PersistentMap[Slice[Byte], Memory]) {
+  implicit class ReopenMap(map: PersistentMap[Slice[Byte], Memory.Response]) {
     def reopen(implicit ordering: Ordering[Slice[Byte]],
                ec: ExecutionContext,
-               writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Memory]],
-               reader: MapEntryReader[MapEntry[Slice[Byte], Memory]],
-               skipListMerge: SkipListMerge[Slice[Byte], Memory]) = {
+               writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Memory.Response]],
+               reader: MapEntryReader[MapEntry[Slice[Byte], Memory.Response]],
+               skipListMerge: SkipListMerge[Slice[Byte], Memory.Response]) = {
       map.close().assertGet
-      Map.persistent[Slice[Byte], Memory](map.path, mmap = Random.nextBoolean(), flushOnOverflow = Random.nextBoolean(), 10.mb, dropCorruptedTailEntries = false).assertGet.item
+      Map.persistent[Slice[Byte], Memory.Response](map.path, mmap = Random.nextBoolean(), flushOnOverflow = Random.nextBoolean(), 10.mb, dropCorruptedTailEntries = false).assertGet.item
     }
   }
 }

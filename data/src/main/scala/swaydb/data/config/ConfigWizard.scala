@@ -22,6 +22,7 @@ package swaydb.data.config
 import java.nio.file.Path
 
 import swaydb.data.accelerate.{Accelerator, Level0Meter}
+import swaydb.data.api.grouping.KeyValueGroupingStrategy
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.storage.Level0Storage
 
@@ -78,6 +79,8 @@ case class Level0PersistentConfig(mapSize: Long,
                           pushForward: Boolean,
                           bloomFilterFalsePositiveRate: Double,
                           minTimeLeftToUpdateExpiration: FiniteDuration,
+                          compressDuplicateValues: Boolean,
+                          groupingStrategy: Option[KeyValueGroupingStrategy],
                           throttle: LevelMeter => Throttle): SwayDBPersistentConfig =
     SwayDBPersistentConfig(
       level0 = this,
@@ -91,6 +94,8 @@ case class Level0PersistentConfig(mapSize: Long,
         pushForward = pushForward,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
         minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
+        compressDuplicateValues = compressDuplicateValues,
+        groupingStrategy = groupingStrategy,
         throttle = throttle
       ),
       otherLevels = List.empty
@@ -100,6 +105,8 @@ case class Level0PersistentConfig(mapSize: Long,
                       pushForward: Boolean,
                       bloomFilterFalsePositiveRate: Double,
                       minTimeLeftToUpdateExpiration: FiniteDuration,
+                      compressDuplicateValues: Boolean,
+                      groupingStrategy: Option[KeyValueGroupingStrategy],
                       throttle: LevelMeter => Throttle) =
     SwayDBPersistentConfig(
       level0 = this,
@@ -108,6 +115,8 @@ case class Level0PersistentConfig(mapSize: Long,
         pushForward = pushForward,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
         minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
+        compressDuplicateValues = compressDuplicateValues,
+        groupingStrategy = groupingStrategy,
         throttle = throttle
       ),
       otherLevels = List.empty
@@ -128,6 +137,8 @@ case class Level0MemoryConfig(mapSize: Long,
                           pushForward: Boolean,
                           bloomFilterFalsePositiveRate: Double,
                           minTimeLeftToUpdateExpiration: FiniteDuration,
+                          compressDuplicateValues: Boolean,
+                          groupingStrategy: Option[KeyValueGroupingStrategy],
                           throttle: LevelMeter => Throttle): SwayDBPersistentConfig =
     SwayDBPersistentConfig(
       level0 = this,
@@ -141,6 +152,8 @@ case class Level0MemoryConfig(mapSize: Long,
         pushForward = pushForward,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
         minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
+        compressDuplicateValues = compressDuplicateValues,
+        groupingStrategy = groupingStrategy,
         throttle = throttle
       ),
       otherLevels = List.empty
@@ -150,6 +163,8 @@ case class Level0MemoryConfig(mapSize: Long,
                       pushForward: Boolean,
                       bloomFilterFalsePositiveRate: Double,
                       minTimeLeftToUpdateExpiration: FiniteDuration,
+                      compressDuplicateValues: Boolean,
+                      groupingStrategy: Option[KeyValueGroupingStrategy],
                       throttle: LevelMeter => Throttle) =
     SwayDBMemoryConfig(
       level0 = this,
@@ -158,6 +173,8 @@ case class Level0MemoryConfig(mapSize: Long,
         pushForward = pushForward,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
         minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
+        compressDuplicateValues = compressDuplicateValues,
+        groupingStrategy = groupingStrategy,
         throttle = throttle
       ),
       otherLevels = List.empty
@@ -173,6 +190,8 @@ case class MemoryLevelConfig(segmentSize: Int,
                              pushForward: Boolean,
                              bloomFilterFalsePositiveRate: Double,
                              minTimeLeftToUpdateExpiration: FiniteDuration,
+                             compressDuplicateValues: Boolean,
+                             groupingStrategy: Option[KeyValueGroupingStrategy],
                              throttle: LevelMeter => Throttle) extends LevelConfig
 
 case class PersistentLevelConfig(dir: Path,
@@ -184,6 +203,8 @@ case class PersistentLevelConfig(dir: Path,
                                  pushForward: Boolean,
                                  bloomFilterFalsePositiveRate: Double,
                                  minTimeLeftToUpdateExpiration: FiniteDuration,
+                                 compressDuplicateValues: Boolean,
+                                 groupingStrategy: Option[KeyValueGroupingStrategy],
                                  throttle: LevelMeter => Throttle) extends LevelConfig
 
 sealed trait SwayDBConfig {
@@ -209,6 +230,8 @@ case class SwayDBMemoryConfig(level0: Level0MemoryConfig,
                          pushForward: Boolean,
                          bloomFilterFalsePositiveRate: Double,
                          minTimeLeftToUpdateExpiration: FiniteDuration,
+                         compressDuplicateValues: Boolean,
+                         groupingStrategy: Option[KeyValueGroupingStrategy],
                          throttle: LevelMeter => Throttle): SwayDBPersistentConfig =
     SwayDBPersistentConfig(
       level0 = level0,
@@ -224,6 +247,8 @@ case class SwayDBMemoryConfig(level0: Level0MemoryConfig,
           pushForward = pushForward,
           bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
           minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
+          compressDuplicateValues = compressDuplicateValues,
+          groupingStrategy = groupingStrategy,
           throttle = throttle
         )
     )
@@ -232,6 +257,8 @@ case class SwayDBMemoryConfig(level0: Level0MemoryConfig,
                      pushForward: Boolean,
                      bloomFilterFalsePositiveRate: Double,
                      minTimeLeftToUpdateExpiration: FiniteDuration,
+                     compressDuplicateValues: Boolean,
+                     groupingStrategy: Option[KeyValueGroupingStrategy],
                      throttle: LevelMeter => Throttle): SwayDBMemoryConfig =
 
     copy(
@@ -241,6 +268,8 @@ case class SwayDBMemoryConfig(level0: Level0MemoryConfig,
           pushForward = pushForward,
           bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
           minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
+          compressDuplicateValues = compressDuplicateValues,
+          groupingStrategy = groupingStrategy,
           throttle = throttle
         )
     )
@@ -266,6 +295,8 @@ case class SwayDBPersistentConfig(level0: Level0Config,
                          pushForward: Boolean,
                          bloomFilterFalsePositiveRate: Double,
                          minTimeLeftToUpdateExpiration: FiniteDuration,
+                         compressDuplicateValues: Boolean,
+                         groupingStrategy: Option[KeyValueGroupingStrategy],
                          throttle: LevelMeter => Throttle): SwayDBPersistentConfig =
     copy(
       otherLevels = otherLevels :+
@@ -279,6 +310,8 @@ case class SwayDBPersistentConfig(level0: Level0Config,
           pushForward = pushForward,
           bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
           minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
+          compressDuplicateValues = compressDuplicateValues,
+          groupingStrategy = groupingStrategy,
           throttle = throttle
         )
     )
@@ -287,6 +320,8 @@ case class SwayDBPersistentConfig(level0: Level0Config,
                      pushForward: Boolean,
                      bloomFilterFalsePositiveRate: Double,
                      minTimeLeftToUpdateExpiration: FiniteDuration,
+                     compressDuplicateValues: Boolean,
+                     groupingStrategy: Option[KeyValueGroupingStrategy],
                      throttle: LevelMeter => Throttle): SwayDBPersistentConfig =
 
     copy(
@@ -296,6 +331,8 @@ case class SwayDBPersistentConfig(level0: Level0Config,
           pushForward = pushForward,
           bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
           minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
+          compressDuplicateValues = compressDuplicateValues,
+          groupingStrategy = groupingStrategy,
           throttle = throttle
         )
     )

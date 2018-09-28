@@ -22,7 +22,7 @@ package swaydb.core.merge
 import org.scalatest.WordSpec
 import swaydb.core.CommonAssertions
 import swaydb.core.data.{Memory, Transient, Value}
-import swaydb.core.segment.KeyValueMerger
+import swaydb.core.segment.merge.KeyValueMerger
 import swaydb.data.slice.Slice
 import swaydb.order.KeyOrder
 import swaydb.serializers.Default._
@@ -32,7 +32,8 @@ import scala.concurrent.duration._
 
 class SegmentMerger_Fixed_Into_Range extends WordSpec with CommonAssertions {
 
-  implicit val ordering = KeyOrder.default
+  override implicit val ordering = KeyOrder.default
+  implicit val compression = groupingStrategy
 
   "Single into Range" when {
     "left" in {
@@ -124,7 +125,7 @@ class SegmentMerger_Fixed_Into_Range extends WordSpec with CommonAssertions {
 
       //9, 10, 11, 15, 18,    23,      27,  30
       //   10      -     20        25   -   30
-      val newKeyValues: Slice[Memory] =
+      val newKeyValues: Slice[Memory.Response] =
       Slice(
         Memory.Put(9, 9),
         Memory.Put(10, 10),
@@ -138,13 +139,13 @@ class SegmentMerger_Fixed_Into_Range extends WordSpec with CommonAssertions {
         Memory.Put(30, 30)
       )
 
-      val oldKeyValues: Slice[Memory] =
+      val oldKeyValues: Slice[Memory.Response] =
         Slice(
           Memory.Range(10, 20, Option.empty[Value.Put], Value.Update("ranges value 1")),
           Memory.Range(25, 30, Some(Value.Put(25)), Value.Update("ranges value 2", deadline2))
         )
 
-      val expected: Slice[Memory] =
+      val expected: Slice[Memory.Response] =
         Slice(
           Memory.Put(9, 9),
           Memory.Range(10, 11, Some(Value.Put(10)), Value.Update("ranges value 1")),
@@ -159,7 +160,7 @@ class SegmentMerger_Fixed_Into_Range extends WordSpec with CommonAssertions {
         )
 
       //last level check
-      val expectedInLastLevel: Slice[Memory] =
+      val expectedInLastLevel: Slice[Memory.Response] =
         Slice(
           Memory.Put(9, 9),
           Memory.Put(10, 10),

@@ -24,7 +24,7 @@ import java.nio.charset.StandardCharsets
 import swaydb.core.map.MapEntry
 import swaydb.data.segment.MaxKey.{Fixed, Range}
 import swaydb.core.segment.Segment
-import swaydb.core.util.ByteUtilCore
+import swaydb.core.util.Bytes
 import swaydb.data.slice.Slice
 
 object AppendixMapEntryWriter {
@@ -42,8 +42,8 @@ object AppendixMapEntryWriter {
         .addAll(entry.key)
 
     override def bytesRequired(entry: MapEntry.Remove[Slice[Byte]]): Int =
-      ByteUtilCore.sizeUnsignedInt(id) +
-        ByteUtilCore.sizeUnsignedInt(entry.key.size) +
+      Bytes.sizeOf(id) +
+        Bytes.sizeOf(entry.key.size) +
         entry.key.size
   }
 
@@ -60,7 +60,7 @@ object AppendixMapEntryWriter {
           case Fixed(maxKey) =>
             (1, maxKey)
           case Range(fromKey, maxToKey) =>
-            (2, ByteUtilCore.compress(fromKey, maxToKey))
+            (2, Bytes.compressJoin(fromKey, maxToKey))
         }
       bytes
         .addIntUnsigned(id)
@@ -83,19 +83,19 @@ object AppendixMapEntryWriter {
           case Fixed(maxKey) =>
             (1, maxKey)
           case Range(fromKey, maxToKey) =>
-            (2, ByteUtilCore.compress(fromKey, maxToKey))
+            (2, Bytes.compressJoin(fromKey, maxToKey))
         }
 
-      ByteUtilCore.sizeUnsignedInt(id) +
-        ByteUtilCore.sizeUnsignedInt(segmentPath.length) +
+      Bytes.sizeOf(id) +
+        Bytes.sizeOf(segmentPath.length) +
         segmentPath.length +
-        ByteUtilCore.sizeUnsignedInt(entry.value.segmentSize) +
-        ByteUtilCore.sizeUnsignedInt(entry.key.size) +
+        Bytes.sizeOf(entry.value.segmentSize) +
+        Bytes.sizeOf(entry.key.size) +
         entry.key.size +
-        ByteUtilCore.sizeUnsignedInt(maxKeyId) +
-        ByteUtilCore.sizeUnsignedInt(maxKeyBytes.size) +
+        Bytes.sizeOf(maxKeyId) +
+        Bytes.sizeOf(maxKeyBytes.size) +
         maxKeyBytes.size +
-        ByteUtilCore.sizeUnsignedLong(entry.value.nearestExpiryDeadline.map(_.time.toNanos).getOrElse(0L))
+        Bytes.sizeOf(entry.value.nearestExpiryDeadline.map(_.time.toNanos).getOrElse(0L))
     }
   }
 }

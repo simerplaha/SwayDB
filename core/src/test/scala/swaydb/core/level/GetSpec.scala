@@ -22,6 +22,7 @@ package swaydb.core.level
 import org.scalamock.scalatest.MockFactory
 import swaydb.core.TestBase
 import swaydb.core.data.{Memory, Value}
+import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.util.Benchmark
 import swaydb.core.util.FileUtil._
 import swaydb.data.compaction.Throttle
@@ -60,9 +61,12 @@ class LevelGetSpec3 extends LevelGetSpec {
   * These test cases have been superseded by [[Get_FromMultipleLevels_Spec]] and
   * [[Get_FromSingleLevel_Spec]] and exist as archived test cases only.
   */
-trait LevelGetSpec extends TestBase with MockFactory with Benchmark {
+sealed trait LevelGetSpec extends TestBase with MockFactory with Benchmark {
 
-  implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
+  override implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
+
+  implicit override val groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomCompressionTypeOption(keyValuesCount)
+
   val keyValuesCount = 100
 
   "Level.get when only upper Level contains key-values" should {
@@ -115,7 +119,11 @@ trait LevelGetSpec extends TestBase with MockFactory with Benchmark {
       )
 
       assertOnLevel(
-        keyValues = randomIntKeyValuesMemory(keyValuesCount, addRandomRemoves = true).filter(_.isRemove),
+        keyValues =
+          randomIntKeyValuesMemory(keyValuesCount, addRandomRemoves = true) collect {
+            case remove: Memory.Remove =>
+              remove
+          } toSlice,
         assertionWithKeyValues =
           (keyValues, level) =>
             keyValues foreach {

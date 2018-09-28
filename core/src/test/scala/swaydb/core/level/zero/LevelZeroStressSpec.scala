@@ -31,6 +31,8 @@ import scala.util.Random
 import swaydb.serializers._
 
 //@formatter:off
+class LevelZeroStressSpec0 extends LevelZeroStressSpec
+
 class LevelZeroStressSpec1 extends LevelZeroStressSpec {
   override def levelFoldersCount = 10
   override def mmapSegmentsOnWrite = true
@@ -51,9 +53,9 @@ class LevelZeroStressSpec3 extends LevelZeroStressSpec {
   override def inMemoryStorage = true
 }
 
-class LevelZeroStressSpec extends TestBase with Benchmark {
+sealed trait LevelZeroStressSpec extends TestBase with Benchmark {
 
-  implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
+  override implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
 
 //  override def deleteFiles = false
 

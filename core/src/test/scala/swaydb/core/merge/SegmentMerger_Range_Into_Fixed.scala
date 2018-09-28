@@ -23,7 +23,7 @@ import org.scalatest.WordSpec
 import swaydb.core.CommonAssertions
 import swaydb.core.data.Value.Remove
 import swaydb.core.data.{Memory, Value}
-import swaydb.core.segment.KeyValueMerger
+import swaydb.core.segment.merge.KeyValueMerger
 import swaydb.data.slice.Slice
 import swaydb.order.KeyOrder
 import swaydb.serializers.Default._
@@ -33,7 +33,8 @@ import scala.concurrent.duration._
 
 class SegmentMerger_Range_Into_Fixed extends WordSpec with CommonAssertions {
 
-  implicit val ordering = KeyOrder.default
+  override implicit val ordering = KeyOrder.default
+  implicit val compression = groupingStrategy
 
   "Range into Single" when {
     "Left - when Single key-value matches Range's fromKey" in {
@@ -160,7 +161,7 @@ class SegmentMerger_Range_Into_Fixed extends WordSpec with CommonAssertions {
       //    2, 7, 10, 20
       val newKeyValues = Slice(Memory.Range(0, 25, Some(Value.Remove(None)), Value.Remove(None)))
 
-      val oldKeyValues: Slice[Memory] =
+      val oldKeyValues: Slice[Memory.Response] =
         Slice(
           Memory.Put(2, "new value value"),
           Memory.Put(7, "new value value"),
@@ -175,7 +176,7 @@ class SegmentMerger_Range_Into_Fixed extends WordSpec with CommonAssertions {
         newKeyValues = newKeyValues,
         oldKeyValues = oldKeyValues,
         expected = expected,
-        lastLevelExpect = Slice.empty[Memory],
+        lastLevelExpect = Slice.empty,
         hasTimeLeftAtLeast = 10.seconds
       )
     }

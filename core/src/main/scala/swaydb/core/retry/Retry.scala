@@ -25,6 +25,7 @@ import java.nio.file.NoSuchFileException
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.retry.RetryException.RetryFailedException
+import swaydb.core.segment.SegmentException
 import swaydb.core.segment.SegmentException.FailedToOpenFile
 import swaydb.core.util.TryUtil
 
@@ -42,6 +43,10 @@ object Retry extends LazyLogging {
         case _: FileNotFoundException => TryUtil.successUnit
         case _: AsynchronousCloseException => TryUtil.successUnit
         case _: ClosedChannelException => TryUtil.successUnit
+        case SegmentException.BusyDecompressingIndex => TryUtil.successUnit
+        case SegmentException.BusyDecompressionValues => TryUtil.successUnit
+        case SegmentException.BusyFetchingValue => TryUtil.successUnit
+        case SegmentException.BusyReadingHeader => TryUtil.successUnit
         //NullPointer exception occurs when the MMAP buffer is being prepared to be cleared, but the reads
         //are still being directed to that Segment. A retry should occur so that the request gets routed to
         //the new Segment or if the Segment was closed, a retry will re-opened it.
@@ -69,7 +74,7 @@ object Retry extends LazyLogging {
           tryBlock match {
             case failed @ Failure(exception) if timesLeft == 0 =>
               if (logger.underlying.isTraceEnabled)
-                logger.trace(s"{}: Failed retried {} time(s)", resourceId, maxRetryLimit - timesLeft, exception)
+                logger.error(s"{}: Failed retried {} time(s)", resourceId, maxRetryLimit - timesLeft, exception)
               else if (logger.underlying.isDebugEnabled)
                 logger.debug(s"{}: Failed retried {} time(s)", resourceId, maxRetryLimit - timesLeft)
 

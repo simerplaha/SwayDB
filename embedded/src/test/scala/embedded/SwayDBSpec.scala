@@ -19,10 +19,13 @@
 
 package embedded
 
+import swaydb.data.slice.Slice
+import swaydb.order.KeyOrder
 import swaydb.serializers.Default._
 import swaydb.types.SwayDBMap
 import swaydb.{Batch, SwayDB}
 
+import scala.concurrent.Future
 import scala.concurrent.duration._
 
 class SwayDBSpec0 extends SwayDBSpec {
@@ -311,11 +314,48 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
 
       (1 to 2000000) foreach {
         i =>
-          db.put(i, i.toString, 1.minute).assertGet
+          db.put(i, i.toString, 5.minute).assertGet
       }
 
       assertLevelsAreEmpty(db, submitUpdates = false)
 
     }
+  }
+
+  "debug" in {
+    val db = newDB()
+
+    def doRead() =
+      Future {
+        while (true) {
+          (1 to 2000000) foreach {
+            i =>
+              db.get(i).assertGet shouldBe i.toString
+              if (i % 100000 == 0)
+                println(s"Read $i")
+          }
+        }
+      }
+
+    def doWrite() = {
+      println("writing")
+      (1 to 2000000) foreach {
+        i =>
+          db.put(i, i.toString).assertGet
+          if (i % 100000 == 0)
+            println(s"Write $i")
+      }
+      println("writing end")
+    }
+
+    doWrite()
+    doRead()
+    sleep(1.minutes)
+    doWrite()
+    sleep(1.minutes)
+    doWrite()
+    sleep(1.minutes)
+    doWrite()
+    assertLevelsAreEmpty(db, submitUpdates = false)
   }
 }

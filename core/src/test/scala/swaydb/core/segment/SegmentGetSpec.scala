@@ -23,6 +23,7 @@ import org.scalatest.PrivateMethodTester
 import org.scalatest.concurrent.ScalaFutures
 import swaydb.core.TestBase
 import swaydb.core.data._
+import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.data.slice.Slice
 import swaydb.order.KeyOrder
 import swaydb.serializers.Default._
@@ -30,12 +31,13 @@ import swaydb.serializers._
 
 import scala.concurrent.duration._
 
-class SegmentGetSpec0 extends SegmentGetSpec {
-  val keyValuesCount = 100
-}
 //@formatter:off
+class SegmentGetSpec0 extends SegmentGetSpec {
+  val keyValuesCount = 1000
+}
+
 class SegmentGetSpec1 extends SegmentGetSpec {
-  val keyValuesCount = 100
+  val keyValuesCount = 1000
   override def levelFoldersCount = 10
   override def mmapSegmentsOnWrite = true
   override def mmapSegmentsOnRead = true
@@ -44,7 +46,7 @@ class SegmentGetSpec1 extends SegmentGetSpec {
 }
 
 class SegmentGetSpec2 extends SegmentGetSpec {
-  val keyValuesCount = 100
+  val keyValuesCount = 1000
   override def levelFoldersCount = 10
   override def mmapSegmentsOnWrite = false
   override def mmapSegmentsOnRead = false
@@ -58,10 +60,14 @@ class SegmentGetSpec3 extends SegmentGetSpec {
 }
 //@formatter:on
 
-trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMethodTester {
+sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMethodTester {
 
-  implicit val ordering = KeyOrder.default
-  val keyValuesCount: Int
+  override implicit val ordering = KeyOrder.default
+
+  def keyValuesCount: Int
+
+  implicit override val groupingStrategy: Option[KeyValueGroupingStrategyInternal] =
+    randomCompressionTypeOption(keyValuesCount)
 
   "Segment.get" should {
 
@@ -174,6 +180,20 @@ trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMethodTester
       }
     }
 
+    "get Group key-values" in {
+      //run this test randomly to possibly test all range key-value combinations
+      runThis(100.times) {
+        val groupKeyValues = randomizedIntKeyValues(keyValuesCount)
+        val keyValues = Slice(randomGroup(groupKeyValues)).toMemory
+        assertOnSegment(
+          keyValues = keyValues,
+          assertion =
+            level =>
+              assertGet(groupKeyValues, level)
+        )
+      }
+    }
+
     "get random key-values" in {
       val keyValues = randomizedIntKeyValues(keyValuesCount)
       val segment = TestSegment(keyValues).assertGet
@@ -230,10 +250,10 @@ trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMethodTester
     }
 
     "lazily load values" in {
-      val keyValues = randomIntKeyValues(keyValuesCount, addRandomRemoves = true, addRandomRanges = true, addRandomPutDeadlines = true, addRandomRemoveDeadlines = true)
+      val keyValues = randomizedIntKeyValues(keyValuesCount)
       val segment = TestSegment(keyValues).assertGet
 
-      keyValues foreach {
+      unzipGroups(keyValues) foreach {
         keyValue =>
           val readKeyValue = segment.get(keyValue.key).assertGet
 

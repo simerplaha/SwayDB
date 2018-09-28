@@ -20,6 +20,8 @@
 package swaydb.core.segment
 
 import swaydb.core.data.{KeyValue, Memory}
+import swaydb.core.queue.KeyValueLimiter
+import swaydb.core.segment.merge.MergeList
 import swaydb.core.util.TryUtil
 import swaydb.data.slice.Slice
 
@@ -28,6 +30,9 @@ import scala.collection.mutable
 import scala.util.{Failure, Success, Try}
 
 private[core] object SegmentAssigner {
+
+  //keyValueLimiter for when reading a Group's inner key-values.
+  implicit val keyValueLimiter = KeyValueLimiter.none
 
   def assignMinMaxOnlyForSegments(inputSegments: Iterable[Segment],
                                   targetSegments: Iterable[Segment])(implicit ordering: Ordering[Slice[Byte]]): Try[Iterable[Segment]] =
@@ -46,7 +51,26 @@ private[core] object SegmentAssigner {
                                 remainingKeyValues: Int): Unit =
       assignmentsMap.get(segment) match {
         case Some(currentAssignments) =>
-          assignmentsMap += (segment -> (currentAssignments add keyValue))
+          try
+            currentAssignments add keyValue
+          catch {
+            /**
+              * ArrayIndexOutOfBoundsException can occur when the size of an unopened Group's key-value was not accounted
+              * for at the time of Slice initialisation.
+              *
+              * This failure is not expected to occur often and it will be more efficient to extend the exiting assignments Slice
+              * whenever required.
+              */
+            case _: ArrayIndexOutOfBoundsException =>
+              val initial = Slice.create[KeyValue.ReadOnly](currentAssignments.size + remainingKeyValues + 1)
+              initial addAll currentAssignments
+              initial add keyValue
+              assignmentsMap += (segment -> initial)
+
+            case ex: Throwable =>
+              throw ex
+          }
+
         case None =>
           //+1 for cases when a Range might extend to the next Segment.
           val initial = Slice.create[KeyValue.ReadOnly](remainingKeyValues + 1)
@@ -54,29 +78,17 @@ private[core] object SegmentAssigner {
           assignmentsMap += (segment -> initial)
       }
 
-    var stashKeyValue = Option.empty[KeyValue.ReadOnly.Range]
-
     @tailrec
-    def assign(remainingKeyValues: Slice[KeyValue.ReadOnly],
+    def assign(remainingKeyValues: MergeList,
                thisSegmentMayBe: Option[Segment],
-               nextSegmentMayBe: Option[Segment]): Try[Unit] = {
-
-      def dropKeyValue(stash: Option[KeyValue.ReadOnly.Range] = None) =
-        if (stashKeyValue.isDefined) {
-          stashKeyValue = stash
-          remainingKeyValues
-        } else {
-          stashKeyValue = stash
-          remainingKeyValues.drop(1)
-        }
-
-      (stashKeyValue orElse remainingKeyValues.headOption, thisSegmentMayBe, nextSegmentMayBe) match {
+               nextSegmentMayBe: Option[Segment]): Try[Unit] =
+      (remainingKeyValues.headOption, thisSegmentMayBe, nextSegmentMayBe) match {
         //add this key-value if it is the new smallest key or if this key belong to this Segment or if there is no next Segment
         case (Some(keyValue: KeyValue), Some(thisSegment), _) if keyValue.key <= thisSegment.minKey || Segment.belongsTo(keyValue, thisSegment) || nextSegmentMayBe.isEmpty =>
           keyValue match {
             case keyValue: KeyValue.ReadOnly.Fixed =>
               assignKeyValueToSegment(thisSegment, keyValue, remainingKeyValues.size)
-              assign(dropKeyValue(), thisSegmentMayBe, nextSegmentMayBe)
+              assign(remainingKeyValues.dropHead(), thisSegmentMayBe, nextSegmentMayBe)
 
             case keyValue: KeyValue.ReadOnly.Range =>
               nextSegmentMayBe match {
@@ -87,7 +99,7 @@ private[core] object SegmentAssigner {
                       val nextSegmentsRange = Memory.Range(fromKey = nextSegment.minKey, toKey = keyValue.toKey, fromValue = None, rangeValue = rangeValue)
 
                       assignKeyValueToSegment(thisSegment, thisSegmentsRange, remainingKeyValues.size)
-                      assign(dropKeyValue(Some(nextSegmentsRange)), Some(nextSegment), getNextSegmentMayBe())
+                      assign(remainingKeyValues.dropPrepend(nextSegmentsRange), Some(nextSegment), getNextSegmentMayBe())
 
                     case Failure(exception) =>
                       Failure(exception)
@@ -95,7 +107,27 @@ private[core] object SegmentAssigner {
 
                 case _ =>
                   assignKeyValueToSegment(thisSegment, keyValue, remainingKeyValues.size)
-                  assign(dropKeyValue(), thisSegmentMayBe, nextSegmentMayBe)
+                  assign(remainingKeyValues.dropHead(), thisSegmentMayBe, nextSegmentMayBe)
+              }
+
+            case keyValue: KeyValue.ReadOnly.Group =>
+              nextSegmentMayBe match {
+                case None =>
+                  assignKeyValueToSegment(thisSegment, keyValue, remainingKeyValues.size)
+                  assign(remainingKeyValues.dropHead(), thisSegmentMayBe, nextSegmentMayBe)
+
+                case Some(nextSegment) if keyValue.maxKey lessThan nextSegment.minKey =>
+                  assignKeyValueToSegment(thisSegment, keyValue, remainingKeyValues.size)
+                  assign(remainingKeyValues.dropHead(), thisSegmentMayBe, nextSegmentMayBe)
+
+                case _ =>
+                  keyValue.segmentCache.getAll() match {
+                    case Success(groupsKeyValues) =>
+                      assign(MergeList(groupsKeyValues) append remainingKeyValues.dropHead(), thisSegmentMayBe, nextSegmentMayBe)
+
+                    case Failure(exception) =>
+                      Failure(exception)
+                  }
               }
           }
 
@@ -107,9 +139,10 @@ private[core] object SegmentAssigner {
               //ignore if a key-value is not already assigned to thisSegment. No point adding a single key-value to a Segment.
               if (assignmentsMap.contains(thisSegment)) {
                 assignKeyValueToSegment(thisSegment, keyValue, remainingKeyValues.size)
-                assign(dropKeyValue(), thisSegmentMayBe, nextSegmentMayBe)
-              } else
+                assign(remainingKeyValues.dropHead(), thisSegmentMayBe, nextSegmentMayBe)
+              } else {
                 assign(remainingKeyValues, Some(nextSegment), getNextSegmentMayBe())
+              }
 
             case keyValue: KeyValue.ReadOnly.Range =>
               nextSegmentMayBe match {
@@ -122,9 +155,36 @@ private[core] object SegmentAssigner {
                   //same code as above, need to push it to a common function.
                   if (assignmentsMap.contains(thisSegment)) {
                     assignKeyValueToSegment(thisSegment, keyValue, remainingKeyValues.size)
-                    assign(dropKeyValue(), thisSegmentMayBe, nextSegmentMayBe)
-                  } else
+                    assign(remainingKeyValues.dropHead(), thisSegmentMayBe, nextSegmentMayBe)
+                  } else {
                     assign(remainingKeyValues, Some(nextSegment), getNextSegmentMayBe())
+                  }
+              }
+
+            case keyValue: KeyValue.ReadOnly.Group =>
+              nextSegmentMayBe match {
+                case Some(nextSegment) if keyValue.maxKey lessThan nextSegment.minKey =>
+                  //ignore if a key-value is not already assigned to thisSegment. No point adding a single key-value to a Segment.
+                  //same code as above, need to push it to a common function.
+                  if (assignmentsMap.contains(thisSegment)) {
+                    assignKeyValueToSegment(thisSegment, keyValue, remainingKeyValues.size)
+                    assign(remainingKeyValues.dropHead(), thisSegmentMayBe, nextSegmentMayBe)
+                  } else {
+                    assign(remainingKeyValues, Some(nextSegment), getNextSegmentMayBe())
+                  }
+
+                case None =>
+                  assignKeyValueToSegment(thisSegment, keyValue, remainingKeyValues.size)
+                  assign(remainingKeyValues.dropHead(), thisSegmentMayBe, nextSegmentMayBe)
+
+                case _ =>
+                  keyValue.segmentCache.getAll() match {
+                    case Success(groupsKeyValues) =>
+                      assign(MergeList(groupsKeyValues) append remainingKeyValues.dropHead(), thisSegmentMayBe, nextSegmentMayBe)
+
+                    case Failure(exception) =>
+                      Failure(exception)
+                  }
               }
           }
 
@@ -134,12 +194,11 @@ private[core] object SegmentAssigner {
         case (_, _, _) =>
           TryUtil.successUnit
       }
-    }
 
     if (segments.size == 1)
       Success(mutable.Map((segments.head, keyValues)))
     else if (segmentsIterator.hasNext)
-      assign(keyValues, Some(segmentsIterator.next()), getNextSegmentMayBe()) map {
+      assign(MergeList(keyValues), Some(segmentsIterator.next()), getNextSegmentMayBe()) map {
         _ =>
           assignmentsMap map {
             case (segment, keyValues) =>

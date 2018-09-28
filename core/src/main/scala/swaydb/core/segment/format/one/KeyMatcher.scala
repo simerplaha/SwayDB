@@ -46,21 +46,31 @@ private[core] object KeyMatcher {
                        next: Option[Persistent],
                        hasMore: => Boolean): MatchResult =
       next.getOrElse(previous) match {
+        case fixed: Persistent.Fixed =>
+          val matchResult = ordering.compare(key, fixed.key)
+          if (matchResult == 0)
+            Matched(fixed)
+          else if (matchResult > 0 && hasMore)
+            Next
+          else
+            Stop
+
+        case group: Persistent.Group =>
+          val fromKeyMatch = ordering.compare(key, group.minKey)
+          val toKeyMatch: Int = ordering.compare(key, group.maxKey.maxKey)
+          if (fromKeyMatch >= 0 && ((group.maxKey.inclusive && toKeyMatch <= 0) || (!group.maxKey.inclusive && toKeyMatch < 0))) //is within the range
+            Matched(group)
+          else if (toKeyMatch >= 0 && hasMore)
+            Next
+          else
+            Stop
+
         case range: Persistent.Range =>
           val fromKeyMatch = ordering.compare(key, range.fromKey)
           val toKeyMatch = ordering.compare(key, range.toKey)
           if (fromKeyMatch >= 0 && toKeyMatch < 0) //is within the range
             Matched(range)
-          else if (fromKeyMatch > 0 && hasMore)
-            Next
-          else
-            Stop
-
-        case keyValue =>
-          val matchResult = ordering.compare(key, keyValue.key)
-          if (matchResult == 0)
-            Matched(keyValue)
-          else if (matchResult > 0 && hasMore)
+          else if (toKeyMatch >= 0 && hasMore)
             Next
           else
             Stop
@@ -71,7 +81,7 @@ private[core] object KeyMatcher {
 
     override def apply(previous: Persistent,
                        next: Option[Persistent],
-                       hasMore: => Boolean): MatchResult = {
+                       hasMore: => Boolean): MatchResult =
       next match {
         case Some(next) =>
           val nextCompare = ordering.compare(next.key, key)
@@ -81,11 +91,13 @@ private[core] object KeyMatcher {
               Matched(previous)
             else
               Stop
-          }
-          else if (nextCompare < 0)
+          } else if (nextCompare < 0) {
             if (hasMore)
               next match {
                 case range: Persistent.Range if ordering.compare(key, range.toKey) <= 0 =>
+                  Matched(next)
+
+                case group: Persistent.Group if ordering.compare(key, group.minKey) > 0 && ordering.compare(key, group.maxKey.maxKey) <= 0 =>
                   Matched(next)
 
                 case _ =>
@@ -93,8 +105,9 @@ private[core] object KeyMatcher {
               }
             else
               Matched(next)
-          else
+          } else {
             Stop
+          }
 
         case None =>
           val previousCompare = ordering.compare(previous.key, key)
@@ -106,6 +119,9 @@ private[core] object KeyMatcher {
                 case range: Persistent.Range if ordering.compare(key, range.toKey) <= 0 =>
                   Matched(previous)
 
+                case group: Persistent.Group if ordering.compare(key, group.minKey) > 0 && ordering.compare(key, group.maxKey.maxKey) <= 0 =>
+                  Matched(previous)
+
                 case _ =>
                   Next
               }
@@ -114,7 +130,6 @@ private[core] object KeyMatcher {
           else
             Stop
       }
-    }
   }
 
   case class Higher(key: Slice[Byte])(implicit ordering: Ordering[Slice[Byte]]) extends KeyMatcher {
@@ -129,6 +144,9 @@ private[core] object KeyMatcher {
       else if (nextCompare <= 0)
         keyValue match {
           case range: Persistent.Range if ordering.compare(key, range.toKey) < 0 =>
+            Matched(keyValue)
+
+          case group: Persistent.Group if ordering.compare(key, group.maxKey.maxKey) < 0 =>
             Matched(keyValue)
 
           case _ =>

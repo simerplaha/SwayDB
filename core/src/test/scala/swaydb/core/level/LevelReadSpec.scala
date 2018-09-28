@@ -22,6 +22,7 @@ package swaydb.core.level
 import org.scalamock.scalatest.MockFactory
 import swaydb.core.TestBase
 import swaydb.core.data.{Memory, Persistent, Transient, Value}
+import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.util.Benchmark
 import swaydb.core.util.FileUtil._
 import swaydb.core.util.PipeOps._
@@ -36,7 +37,6 @@ import swaydb.core.map.serializer.RangeValueSerializers._
 import scala.concurrent.duration._
 
 //@formatter:off
-
 class LevelReadSpec0 extends LevelReadSpec
 
 class LevelReadSpec1 extends LevelReadSpec {
@@ -60,9 +60,10 @@ class LevelReadSpec3 extends LevelReadSpec {
 }
 //@formatter:on
 
-trait LevelReadSpec extends TestBase with MockFactory with Benchmark {
+sealed trait LevelReadSpec extends TestBase with MockFactory with Benchmark {
 
-  implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
+  override implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
+  implicit override val groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomCompressionTypeOption(keyValuesCount)
   val keyValuesCount = 100
 
   "Level.mightContain" should {
@@ -163,7 +164,11 @@ trait LevelReadSpec extends TestBase with MockFactory with Benchmark {
     "return Level stats" in {
       val level = TestLevel()
 
-      val segment = TestSegment().assertGet
+      //refresh so that if there is a compression running, this Segment will compressed.
+      val segments = TestSegment().assertGet.refresh(100.mb, 0.1, true).assertGet
+      segments should have size 1
+      val segment = segments.head
+
       level.put(Seq(segment)).assertGet
 
       level.meter shouldBe LevelMeter(1, segment.segmentSize)
@@ -175,7 +180,11 @@ trait LevelReadSpec extends TestBase with MockFactory with Benchmark {
       val level2 = TestLevel()
       val level1 = TestLevel(nextLevel = Some(level2))
 
-      val segment = TestSegment().assertGet
+      //refresh so that if there is a compression running, this Segment will compressed.
+      val segments = TestSegment().assertGet.refresh(100.mb, 0.1, true).assertGet
+      segments should have size 1
+      val segment = segments.head
+
       level2.put(Seq(segment)).assertGet
 
       level1.meter shouldBe LevelMeter(0, 0)

@@ -27,6 +27,7 @@ import swaydb.data.util.{ByteSizeOf, ByteUtil}
 
 import scala.annotation.tailrec
 import scala.reflect.ClassTag
+import scala.util.Try
 
 /**
   *
@@ -34,14 +35,18 @@ import scala.reflect.ClassTag
   */
 object Slice {
 
+  def empty[T: ClassTag] =
+    Slice.create[T](0)
+
+  val emptyNothing = Slice.create[Nothing](0)
+
+  val emptyBytes = Slice.create[Byte](0)
+
   def fill[T: ClassTag](length: Int)(elem: => T): Slice[T] =
     new Slice(Array.fill(length)(elem), fromOffset = 0, toOffset = if (length == 0) -1 else length - 1, length)
 
   def create[T: ClassTag](length: Int): Slice[T] =
     new Slice(new Array[T](length), fromOffset = 0, toOffset = if (length == 0) -1 else length - 1, 0)
-
-  val emptyByteSlice: Slice[Byte] =
-    Slice.create[Byte](0)
 
   def apply[T: ClassTag](data: Array[T]): Slice[T] =
     if (data.length == 0)
@@ -49,14 +54,14 @@ object Slice {
     else
       new Slice[T](data, 0, data.length - 1, data.length)
 
-  def empty[T: ClassTag] =
-    Slice.create[T](0)
-
   def apply[T: ClassTag](data: T*): Slice[T] =
     Slice(data.toArray)
 
   def writeInt(int: Int): Slice[Byte] =
     Slice.create[Byte](ByteSizeOf.int).addInt(int)
+
+  def writeBoolean(boolean: Boolean): Slice[Byte] =
+    Slice.create[Byte](1).addBoolean(boolean)
 
   def writeIntUnsigned(int: Int): Slice[Byte] =
     Slice.create[Byte](ByteSizeOf.int + 1).addIntUnsigned(int).close()
@@ -108,7 +113,7 @@ object Slice {
       val newSlices = Slice.create[Slice[T]](slices.close().size)
       slices foreach {
         slice =>
-          newSlices.set(slice.close())
+          newSlices.insert(slice.close())
       }
       newSlices
     }
@@ -120,7 +125,7 @@ object Slice {
   implicit class ByteSliceImplicits(slice: Slice[Byte]) {
 
     def addByte(value: Byte): Slice[Byte] = {
-      slice set value
+      slice insert value
       slice
     }
 
@@ -128,6 +133,14 @@ object Slice {
       slice.addAll(anotherSlice)
       slice
     }
+
+    def addBoolean(boolean: Boolean): Slice[Byte] = {
+      slice insert (if (boolean) 1.toByte else 0.toByte)
+      slice
+    }
+
+    def readBoolean(): Boolean =
+      slice.get(0) == 1
 
     def addInt(int: Int): Slice[Byte] = {
       ByteUtil.writeInt(int, slice)
@@ -142,20 +155,16 @@ object Slice {
       slice
     }
 
-    def readIntSigned(int: Int): Slice[Byte] = {
+    def readIntSigned(int: Int): Try[Int] =
       ByteUtil.readSignedInt(slice)
-      slice
-    }
 
     def addIntUnsigned(int: Int): Slice[Byte] = {
       ByteUtil.writeUnsignedInt(int, slice)
       slice
     }
 
-    def readIntUnsigned(slice: Slice[Byte]): Slice[Byte] = {
+    def readIntUnsigned(): Try[Int] =
       ByteUtil.readUnsignedInt(slice)
-      slice
-    }
 
     def addLong(long: Long): Slice[Byte] = {
       ByteUtil.writeLong(long, slice)
@@ -170,20 +179,16 @@ object Slice {
       slice
     }
 
-    def readLongUnsigned(slice: Slice[Byte]): Slice[Byte] = {
+    def readLongUnsigned(): Try[Long] =
       ByteUtil.readUnsignedLong(slice)
-      slice
-    }
 
     def addLongSigned(long: Long): Slice[Byte] = {
       ByteUtil.writeSignedLong(long, slice)
       slice
     }
 
-    def readLongSigned(slice: Slice[Byte]): Slice[Byte] = {
+    def readLongSigned(): Try[Long] =
       ByteUtil.readSignedLong(slice)
-      slice
-    }
 
     def addString(string: String, charsets: Charset = StandardCharsets.UTF_8): Slice[Byte] = {
       string.getBytes(charsets) foreach slice.add
@@ -205,20 +210,38 @@ object Slice {
 
   implicit class SliceImplicit[T](slice: Slice[T]) {
     def add(value: T): Slice[T] = {
-      slice.set(value)
+      slice.insert(value)
       slice
     }
 
-    def addAll(value: Iterable[T]): Slice[T] = {
-      value foreach slice.set
+    def addAll(values: Iterable[T]): Slice[T] = {
+      if (values.nonEmpty) slice.insertAll(values)
       slice
     }
 
-    def addAll(value: Array[T]): Slice[T] = {
-      value foreach slice.set
+    def addAll(values: Array[T]): Slice[T] = {
+      if (values.nonEmpty) slice.insertAll(values)
       slice
+    }
+
+  }
+
+  implicit class SliceImplicitClassTag[T: ClassTag](slice: Slice[T]) {
+    def append(other: Slice[T]): Slice[T] = {
+      val merged = Slice.create[T](slice.size + other.size)
+      merged addAll slice
+      merged addAll other
+      merged
+    }
+
+    def append(other: T): Slice[T] = {
+      val merged = Slice.create[T](slice.size + 1)
+      merged addAll slice
+      merged add other
+      merged
     }
   }
+
 }
 /**
   * An Iterable type that holds offset references to an Array without creating copies of the original array when creating
@@ -233,7 +256,7 @@ object Slice {
 class Slice[+T: ClassTag](array: Array[T],
                           val fromOffset: Int,
                           val toOffset: Int,
-                          private var _written: Int) extends Iterable[T] {
+                          private var _written: Int) extends Slicer[T] {
 
   private var writePosition = fromOffset + _written
 
@@ -323,7 +346,7 @@ class Slice[+T: ClassTag](array: Array[T],
       slice(0, size - count - 1)
 
   override def take(count: Int): Slice[T] =
-    slice(0, count - 1)
+    slice(0, (size min count) - 1)
 
   override def takeRight(count: Int): Slice[T] =
     slice(size - count, size - 1)
@@ -374,11 +397,23 @@ class Slice[+T: ClassTag](array: Array[T],
     get(index)
 
   @throws[ArrayIndexOutOfBoundsException]
-  private[slice] def set(item: Any): Unit = {
+  private[slice] def insert(item: Any): Unit = {
     if (writePosition < fromOffset || writePosition > toOffset) throw new ArrayIndexOutOfBoundsException(writePosition)
     array(writePosition) = item.asInstanceOf[T]
     _written += 1
     writePosition += 1
+  }
+
+  @throws[ArrayIndexOutOfBoundsException]
+  private[slice] def insertAll(items: Iterable[Any]): Unit = {
+    val futurePosition = writePosition + items.size - 1
+    if (futurePosition < fromOffset || futurePosition > toOffset) throw new ArrayIndexOutOfBoundsException(futurePosition)
+    items foreach {
+      item =>
+        array(writePosition) = item.asInstanceOf[T]
+        _written += 1
+        writePosition += 1
+    }
   }
 
   private[slice] def toByteBuffer: ByteBuffer =
@@ -453,5 +488,4 @@ class Slice[+T: ClassTag](array: Array[T],
 
   override def hashCode(): Int =
     array.hashCode()
-
 }

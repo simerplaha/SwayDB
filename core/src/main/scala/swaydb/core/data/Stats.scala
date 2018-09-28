@@ -19,191 +19,33 @@
 
 package swaydb.core.data
 
-import swaydb.core.util.{BloomFilterUtil, ByteUtilCore}
+import swaydb.core.segment.format.one.SegmentWriter
+import swaydb.core.util.{BloomFilterUtil, Bytes}
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 
 import scala.concurrent.duration.Deadline
-import swaydb.core.util.TimeUtil._
 
-private[core] case class Stats(valueOffset: Int,
-                               valueLength: Int,
-                               segmentSize: Int,
-                               commonBytes: Int,
-                               position: Int,
-                               keyWithoutCommonBytes: Slice[Byte],
-                               segmentValuesSize: Int,
-                               segmentUncompressedKeysSize: Int,
-                               segmentSizeWithoutFooter: Int,
-                               thisKeyValuesUncompressedKeySize: Int,
-                               thisKeyValuesSegmentSizeWithoutFooter: Int,
-                               thisKeyValuesIndexSizeWithoutFooter: Int,
-                               hasRemoveRange: Boolean,
-                               hasRange: Boolean) {
-  def isNoneValue: Boolean =
-    valueLength == 0
-
-  def toValueOffset: Int =
-    if (valueLength == 0)
-      0
-    else
-      valueOffset + valueLength - 1
-
-  def memorySegmentSize =
-    segmentUncompressedKeysSize + segmentValuesSize
-
-  def thisKeyValueMemorySize =
-    thisKeyValuesUncompressedKeySize + valueLength
-
-}
 private[core] object Stats {
-
-  def apply(key: Slice[Byte],
-            falsePositiveRate: Double): Stats =
-    Stats(
-      key = key,
-      valueLength = 0,
-      valueOffset = 0,
-      falsePositiveRate = falsePositiveRate,
-      hasRemoveRange = false,
-      hasRange = false,
-      previous = None,
-      deadlines = Seq.empty
-    )
-
-  def apply(key: Slice[Byte],
-            falsePositiveRate: Double,
-            deadlines: Iterable[Deadline]): Stats =
-    Stats(
-      key = key,
-      valueLength = 0,
-      valueOffset = 0,
-      falsePositiveRate = falsePositiveRate,
-      hasRemoveRange = false,
-      hasRange = false,
-      previous = None,
-      deadlines = deadlines
-    )
-
-  def apply(key: Slice[Byte],
-            falsePositiveRate: Double,
-            previous: Option[KeyValue.WriteOnly],
-            deadlines: Iterable[Deadline]): Stats =
-    Stats(
-      key = key,
-      valueLength = 0,
-      valueOffset = 0,
-      falsePositiveRate = falsePositiveRate,
-      hasRemoveRange = false,
-      hasRange = false,
-      previous = previous,
-      deadlines = deadlines
-    )
-
-  def apply(key: Slice[Byte],
-            value: Slice[Byte],
-            falsePositiveRate: Double): Stats =
-    Stats(
-      key = key,
-      valueLength = value.size,
-      valueOffset = 0,
-      falsePositiveRate = falsePositiveRate,
-      hasRemoveRange = false,
-      hasRange = false,
-      previous = None,
-      deadlines = Seq.empty
-    )
-
-  def apply(key: Slice[Byte],
-            value: Slice[Byte],
-            falsePositiveRate: Double,
-            previous: Option[KeyValue.WriteOnly],
-            deadlines: Iterable[Deadline]): Stats =
-    Stats(
-      key = key,
-      value = Some(value),
-      falsePositiveRate = falsePositiveRate,
-      isRemoveRange = previous.exists(_.stats.hasRemoveRange),
-      isRange = previous.exists(_.stats.hasRange),
-      previous = previous,
-      deadlines = deadlines
-    )
 
   def apply(key: Slice[Byte],
             value: Option[Slice[Byte]],
             falsePositiveRate: Double,
             isRemoveRange: Boolean,
             isRange: Boolean,
+            isGroup: Boolean,
+            bloomFiltersItemCount: Int,
             previous: Option[KeyValue.WriteOnly],
-            deadlines: Iterable[Deadline]): Stats =
-    Stats(
-      key = key,
-      valueLength = value.map(_.size).getOrElse(0),
-      falsePositiveRate = falsePositiveRate,
-      isRemoveRange = isRemoveRange,
-      isRange = isRange,
-      previous = previous,
-      deadlines = deadlines
-    )
+            deadline: Option[Deadline]): Stats = {
 
-  def apply(key: Slice[Byte],
-            valueLength: Int,
-            falsePositiveRate: Double,
-            isRemoveRange: Boolean,
-            isRange: Boolean,
-            previous: Option[KeyValue.WriteOnly],
-            deadlines: Iterable[Deadline]): Stats = {
-    val valueOffset =
-      previous match {
-        case Some(previous) =>
-          if (previous.stats.valueLength > 0)
-            previous.stats.toValueOffset + 1
-          else
-          //if previous key-values's value is None, keep the valueOffset of the previous key-value's
-          //so that next key-value can continue from that offset.
-            previous.stats.valueOffset
-        case _ =>
-          0
-      }
+    val valueLength =
+      value.map(_.size).getOrElse(0)
 
-    Stats(
-      key = key,
-      valueLength = valueLength,
-      valueOffset = valueOffset,
-      falsePositiveRate = falsePositiveRate,
-      hasRemoveRange = isRemoveRange || previous.exists(_.stats.hasRemoveRange),
-      hasRange = isRemoveRange || isRange || previous.exists(_.stats.hasRange),
-      previous = previous,
-      deadlines = deadlines
-    )
-  }
+    val hasRemoveRange =
+      previous.exists(_.stats.hasRemoveRange) || isRemoveRange
 
-  private def apply(key: Slice[Byte],
-                    valueLength: Int,
-                    valueOffset: Int,
-                    falsePositiveRate: Double,
-                    hasRemoveRange: Boolean,
-                    hasRange: Boolean,
-                    previous: Option[KeyValue.WriteOnly],
-                    deadlines: Iterable[Deadline]): Stats = {
-
-    val commonBytes: Int =
-      previous.map {
-        case previousKeyValue: KeyValue.WriteOnly.Range =>
-          ByteUtilCore.commonPrefixBytes(previousKeyValue.fullKey, key)
-
-        case previousKeyValue =>
-          ByteUtilCore.commonPrefixBytes(previousKeyValue.key, key)
-      } getOrElse 0
-
-    val keyWithoutCommonBytes =
-      if (commonBytes != 0)
-        key.slice(commonBytes, key.size - 1)
-      else
-        key
-
-    val keyLengthWithoutCommonBytes =
-      keyWithoutCommonBytes.size
+    val hasRange =
+      previous.exists(_.stats.hasRange) || isRemoveRange || isRange
 
     val previousStats =
       previous.map(_.stats)
@@ -211,37 +53,19 @@ private[core] object Stats {
     val position =
       previousStats.map(_.position + 1) getOrElse 1
 
+    val groupsCount =
+      if (isGroup)
+        previousStats.map(_.groupsCount + 1) getOrElse 1
+      else
+        previousStats.map(_.groupsCount) getOrElse 0
+
+    //Items to add to BloomFilters is different to the position because a Group can contain
+    //multiple inner key-values but the Group's key itself does not get added to the BloomFilter.
+    val totalBloomFiltersItemsCount =
+    previousStats.map(_.bloomFilterItemsCount + bloomFiltersItemCount) getOrElse bloomFiltersItemCount
+
     val thisKeyValuesIndexSizeWithoutFooter =
-      if (valueLength == 0) {
-        val indexSize =
-          1 +
-            ByteUtilCore.sizeUnsignedInt(commonBytes) +
-            ByteUtilCore.sizeUnsignedInt(keyLengthWithoutCommonBytes) +
-            keyLengthWithoutCommonBytes +
-            ByteUtilCore.sizeUnsignedInt(0) + {
-            if (deadlines.isEmpty)
-              1
-            else
-              deadlines.foldLeft(0)((count, deadline) => count + ByteUtilCore.sizeUnsignedLong(deadline.toNanos))
-          }
-
-        ByteUtilCore.sizeUnsignedInt(indexSize) + indexSize
-      } else {
-        val indexSize =
-          1 +
-            ByteUtilCore.sizeUnsignedInt(commonBytes) +
-            ByteUtilCore.sizeUnsignedInt(keyLengthWithoutCommonBytes) +
-            keyLengthWithoutCommonBytes +
-            ByteUtilCore.sizeUnsignedInt(valueLength) +
-            ByteUtilCore.sizeUnsignedInt(valueOffset) + {
-            if (deadlines.isEmpty)
-              1
-            else
-              deadlines.foldLeft(0)((count, deadline) => count + ByteUtilCore.sizeUnsignedLong(deadline.toNanos))
-          }
-
-        ByteUtilCore.sizeUnsignedInt(indexSize) + indexSize
-      }
+      Bytes.sizeOf(key.size) + key.size
 
     val thisKeyValuesSegmentSizeWithoutFooter: Int =
       thisKeyValuesIndexSizeWithoutFooter + valueLength
@@ -249,23 +73,30 @@ private[core] object Stats {
     val segmentSizeWithoutFooter: Int =
       previousStats.map(_.segmentSizeWithoutFooter).getOrElse(0) + thisKeyValuesSegmentSizeWithoutFooter
 
+    //calculates the size of Segment after the last Group. This is used for size based grouping/compression.
+    val segmentSizeWithoutFooterForNextGroup: Int =
+      if (previous.exists(_.isGroup)) //if previous is a group, restart the size calculation
+        thisKeyValuesSegmentSizeWithoutFooter
+      else //if previous is not a group, add previous key-values set segment size since the last group to this key-values Segment size.
+        previousStats.map(_.segmentSizeWithoutFooterForNextGroup).getOrElse(0) + thisKeyValuesSegmentSizeWithoutFooter
+
     val segmentValuesSize: Int =
       previousStats.map(_.segmentValuesSize).getOrElse(0) + valueLength
 
     val footerSize =
-      1 + //1 byte for format
+      Bytes.sizeOf(SegmentWriter.formatId) + //1 byte for format
         1 + //for hasRange
         ByteSizeOf.long + //for CRC. This cannot be unsignedLong because the size of the crc long bytes is not fixed.
-        ByteUtilCore.sizeUnsignedInt(segmentValuesSize) + //index offset
-        ByteUtilCore.sizeUnsignedInt(position) + //key-values count
-        {
-          if (hasRemoveRange) { //BloomFilter is not created when hasRemoveRange is true.
-            1 //(1 for unsigned int 0)
-          } else {
-            val bloomFilterByteSize = BloomFilterUtil.byteSize(position, falsePositiveRate)
-            ByteUtilCore.sizeUnsignedInt(bloomFilterByteSize) + bloomFilterByteSize
-          }
+        Bytes.sizeOf(segmentValuesSize) + //index offset
+        Bytes.sizeOf(position) + //key-values count
+        Bytes.sizeOf(totalBloomFiltersItemsCount) + {
+        if (hasRemoveRange) { //BloomFilter is not created when hasRemoveRange is true.
+          1 //(1 for unsigned int 0)
+        } else {
+          val bloomFilterByteSize = BloomFilterUtil.byteSize(totalBloomFiltersItemsCount, falsePositiveRate)
+          Bytes.sizeOf(bloomFilterByteSize) + bloomFilterByteSize
         }
+      }
 
     val segmentSize: Int =
       segmentSizeWithoutFooter + footerSize + ByteSizeOf.int
@@ -274,20 +105,53 @@ private[core] object Stats {
       previousStats.map(_.segmentUncompressedKeysSize).getOrElse(0) + key.size
 
     new Stats(
-      valueOffset = valueOffset,
       valueLength = valueLength,
       segmentSize = segmentSize,
-      commonBytes = commonBytes,
       position = position,
-      keyWithoutCommonBytes = keyWithoutCommonBytes,
       segmentValuesSize = segmentValuesSize,
       segmentUncompressedKeysSize = segmentUncompressedKeysSize,
       segmentSizeWithoutFooter = segmentSizeWithoutFooter,
-      thisKeyValuesUncompressedKeySize = key.size,
+      segmentSizeWithoutFooterForNextGroup = segmentSizeWithoutFooterForNextGroup,
+      keySize = key.size,
       thisKeyValuesSegmentSizeWithoutFooter = thisKeyValuesSegmentSizeWithoutFooter,
       thisKeyValuesIndexSizeWithoutFooter = thisKeyValuesIndexSizeWithoutFooter,
       hasRemoveRange = hasRemoveRange,
-      hasRange = hasRange
+      bloomFilterItemsCount = totalBloomFiltersItemsCount,
+      groupsCount = groupsCount,
+      hasRange = hasRange,
+      isGroup = isGroup
     )
   }
+}
+
+private[core] case class Stats(valueLength: Int,
+                               segmentSize: Int,
+                               position: Int,
+                               groupsCount: Int,
+                               bloomFilterItemsCount: Int,
+                               segmentValuesSize: Int,
+                               segmentUncompressedKeysSize: Int,
+                               segmentSizeWithoutFooter: Int,
+                               segmentSizeWithoutFooterForNextGroup: Int,
+                               keySize: Int,
+                               thisKeyValuesSegmentSizeWithoutFooter: Int,
+                               thisKeyValuesIndexSizeWithoutFooter: Int,
+                               hasRemoveRange: Boolean,
+                               hasRange: Boolean,
+                               isGroup: Boolean) {
+  def isNoneValue: Boolean =
+    valueLength == 0
+
+  def hasGroup: Boolean =
+    groupsCount > 0
+
+  def memorySegmentSize =
+    segmentUncompressedKeysSize + segmentValuesSize
+
+  def thisKeyValueMemorySize =
+    keySize + valueLength
+
+  def indexSize =
+    segmentSizeWithoutFooter - segmentValuesSize
+
 }

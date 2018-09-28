@@ -37,6 +37,8 @@ import scala.util.{Failure, Success, Try}
   */
 object IO extends LazyLogging {
 
+  java.nio.file.Files.list(java.nio.file.Paths.get("."))
+
   def write(bytes: Slice[Byte],
             to: Path): Try[Path] =
     Try(Files.newByteChannel(to, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)) flatMap {

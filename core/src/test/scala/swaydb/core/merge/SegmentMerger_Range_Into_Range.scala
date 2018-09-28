@@ -22,7 +22,7 @@ package swaydb.core.merge
 import org.scalatest.WordSpec
 import swaydb.core.CommonAssertions
 import swaydb.core.data.Memory
-import swaydb.core.segment.KeyValueMerger
+import swaydb.core.segment.merge.KeyValueMerger
 import swaydb.data.slice.Slice
 import swaydb.order.KeyOrder
 import swaydb.serializers.Default._
@@ -32,7 +32,8 @@ import scala.concurrent.duration._
 
 class SegmentMerger_Range_Into_Range extends WordSpec with CommonAssertions {
 
-  implicit val ordering = KeyOrder.default
+  override implicit val ordering = KeyOrder.default
+  implicit val compression = groupingStrategy
 
   "Range into Range" when {
     "1" in {

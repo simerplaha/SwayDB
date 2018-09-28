@@ -27,7 +27,7 @@ import swaydb.core.TestBase
 import swaydb.core.data.Transient.Remove
 import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data._
-import swaydb.core.map.serializer.RangeValueSerializers
+import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.map.serializer.RangeValueSerializers._
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
 import swaydb.core.segment.format.one.SegmentWriter
@@ -69,10 +69,14 @@ class SegmentReadSpec3 extends SegmentReadSpec {
 }
 //@formatter:on
 
-trait SegmentReadSpec extends TestBase with ScalaFutures with PrivateMethodTester {
+sealed trait SegmentReadSpec extends TestBase with ScalaFutures with PrivateMethodTester {
 
-  implicit val ordering = KeyOrder.default
-  val keyValuesCount: Int
+  override implicit val ordering = KeyOrder.default
+
+  def keyValuesCount: Int
+
+  implicit override val groupingStrategy: Option[KeyValueGroupingStrategyInternal] =
+    randomCompressionTypeOption(keyValuesCount)
 
   "Segment.belongsTo" should {
     "return true if the input key-value belong to the Segment else false when the Segment contains no Range key-value" in {
@@ -90,6 +94,8 @@ trait SegmentReadSpec extends TestBase with ScalaFutures with PrivateMethodTeste
 
       Segment.belongsTo(Remove(6), segment) shouldBe false
       Segment.belongsTo(Transient.Range[FromValue, RangeValue](6, 10, randomFromValueOption(), randomRangeValue()), segment) shouldBe false
+
+      Segment.belongsTo(randomGroup(Slice(Memory.Remove(6), Memory.Put(10, 1)).toTransient), segment) shouldBe false
 
       segment.close.assertGet
     }
@@ -112,6 +118,12 @@ trait SegmentReadSpec extends TestBase with ScalaFutures with PrivateMethodTeste
       Segment.belongsTo(Transient.Range[FromValue, RangeValue](9, 10, randomFromValueOption(), randomRangeValue()), segment) shouldBe true
       Segment.belongsTo(Transient.Range[FromValue, RangeValue](10, 11, randomFromValueOption(), randomRangeValue()), segment) shouldBe false
 
+      Segment.belongsTo(randomGroup(Slice(Memory.Remove(6), Memory.Put(7, "value")).toTransient), segment) shouldBe true
+      Segment.belongsTo(randomGroup(Slice(Memory.Remove(6), Memory.Put(10, "value")).toTransient), segment) shouldBe true
+      Segment.belongsTo(randomGroup(Slice(Memory.Remove(6), Memory.Put(20, "value")).toTransient), segment) shouldBe true
+      Segment.belongsTo(randomGroup(Slice(Memory.Remove(10), Memory.Put(20, "value")).toTransient), segment) shouldBe false
+      Segment.belongsTo(randomGroup(Slice(Memory.Put(20, "value")).toTransient), segment) shouldBe false
+
       segment.close.assertGet
     }
 
@@ -132,6 +144,16 @@ trait SegmentReadSpec extends TestBase with ScalaFutures with PrivateMethodTeste
 
       Segment.belongsTo(Transient.Range[FromValue, RangeValue](9, 10, randomFromValueOption(), randomRangeValue()), segment) shouldBe true
       Segment.belongsTo(Transient.Range[FromValue, RangeValue](10, 11, randomFromValueOption(), randomRangeValue()), segment) shouldBe true
+
+      Segment.belongsTo(randomGroup(Slice(Memory.Remove(6), Memory.Put(7, "value")).toTransient), segment) shouldBe true
+      Segment.belongsTo(randomGroup(Slice(Memory.Remove(6), Memory.Put(10, "value")).toTransient), segment) shouldBe true
+      Segment.belongsTo(randomGroup(Slice(Memory.Remove(6), Memory.Put(20, "value")).toTransient), segment) shouldBe true
+      Segment.belongsTo(randomGroup(Slice(Memory.Remove(12), Memory.Put(20, "value")).toTransient), segment) shouldBe false
+      Segment.belongsTo(randomGroup(Slice(Memory.Put(20, "value")).toTransient), segment) shouldBe false
+      Segment.belongsTo(randomGroup(Slice(Memory.Range(0, 1, None, Value.Remove(None))).toTransient), segment) shouldBe false
+      Segment.belongsTo(randomGroup(Slice(Memory.Range(1, 2, None, Value.Remove(None))).toTransient), segment) shouldBe true
+      Segment.belongsTo(randomGroup(Slice(Memory.Range(11, 12, None, Value.Remove(None))).toTransient), segment) shouldBe true
+      Segment.belongsTo(randomGroup(Slice(Memory.Range(12, 20, None, Value.Remove(None))).toTransient), segment) shouldBe false
 
       segment.close.assertGet
     }
@@ -543,10 +565,10 @@ trait SegmentReadSpec extends TestBase with ScalaFutures with PrivateMethodTeste
 
   "Segment.tempMinMaxKeyValues" should {
     "return key-values with Segments min and max keys only" in {
-      val segment1 = TestSegment(randomIntKeyValues(keyValuesCount, addRandomRemoves = true, addRandomRanges = true)).assertGet
-      val segment2 = TestSegment(randomIntKeyValues(keyValuesCount, startId = Some(segment1.maxKey.maxKey.read[Int] + 1), addRandomRemoves = true, addRandomRanges = true)).assertGet
-      val segment3 = TestSegment(randomIntKeyValues(keyValuesCount, startId = Some(segment2.maxKey.maxKey.read[Int] + 1), addRandomRemoves = true, addRandomRanges = true)).assertGet
-      val segment4 = TestSegment(randomIntKeyValues(keyValuesCount, startId = Some(segment3.maxKey.maxKey.read[Int] + 1), addRandomRemoves = true, addRandomRanges = true)).assertGet
+      val segment1 = TestSegment(randomizedIntKeyValues(keyValuesCount)).assertGet
+      val segment2 = TestSegment(randomizedIntKeyValues(keyValuesCount, startId = Some(segment1.maxKey.maxKey.read[Int] + 1))).assertGet
+      val segment3 = TestSegment(randomizedIntKeyValues(keyValuesCount, startId = Some(segment2.maxKey.maxKey.read[Int] + 1))).assertGet
+      val segment4 = TestSegment(randomizedIntKeyValues(keyValuesCount, startId = Some(segment3.maxKey.maxKey.read[Int] + 1))).assertGet
 
       val segments = Seq(segment1, segment2, segment3, segment4)
 
@@ -696,7 +718,7 @@ trait SegmentReadSpec extends TestBase with ScalaFutures with PrivateMethodTeste
       val segment3 = TestSegment(keyValues3).assertGet
 
       val all = Slice((keyValues1 ++ keyValues2 ++ keyValues3).toArray).updateStats
-      val (slice, deadline) = SegmentWriter.toSlice(all, 0.1).assertGet
+      val (slice, deadline) = SegmentWriter.write(all, 0.1).assertGet
       slice.size shouldBe all.last.stats.segmentSize
       deadline shouldBe empty
 
@@ -765,7 +787,7 @@ trait SegmentReadSpec extends TestBase with ScalaFutures with PrivateMethodTeste
           //ensure that indexEntry's values are not already read as they are lazily fetched from the file.
           //values with Length 0 and non Range key-values always have isValueDefined set to true as they do not required disk seek.
           segmentKeyValue match {
-            case persistent: Persistent if !persistent.isRemove =>
+            case persistent: Persistent if !persistent.isInstanceOf[Persistent.Remove] =>
               persistent.isValueDefined shouldBe false
 
             case _ =>
@@ -851,13 +873,13 @@ trait SegmentReadSpec extends TestBase with ScalaFutures with PrivateMethodTeste
 
     "return deadline" in {
 
-      val keyValues1 = randomizedIntKeyValues(100)
-      val keyValues2 = randomizedIntKeyValues(100)
+      val keyValues1 = randomizedIntKeyValues(1000)
+      val keyValues2 = randomizedIntKeyValues(1000)
 
       val segment1 = TestSegment(keyValues1).assertGet
       val segment2 = TestSegment(keyValues2).assertGet
 
-      def nearest(previous: Option[Deadline], next: Option[Deadline]) =
+      def nearest(previous: Option[Deadline], next: Option[Deadline]): Option[Deadline] =
         (previous, next) match {
           case (None, None) => None
           case (None, next @ Some(_)) => next
@@ -871,18 +893,33 @@ trait SegmentReadSpec extends TestBase with ScalaFutures with PrivateMethodTeste
 
       val deadline =
         (keyValues1 ++ keyValues2).foldLeft(Option.empty[Deadline]) {
-          case (previous, keyValue) =>
-            keyValue match {
-              case fixed: KeyValue.WriteOnly.Fixed =>
-                nearest(previous, fixed.deadline)
-              case range: KeyValue.WriteOnly.Range =>
-                range.fetchFromAndRangeValue.assertGet match {
-                  case (Some(fromValue), rangeValue) =>
-                    nearest(nearest(previous, fromValue.deadline), rangeValue.deadline)
-                  case (None, rangeValue) =>
-                    nearest(previous, rangeValue.deadline)
-                }
-            }
+          case (nearestDeadline, keyValue) =>
+
+            def getDeadline(nearestDeadline: Option[Deadline],
+                            keyValue: KeyValue.WriteOnly): Option[Deadline] =
+              keyValue match {
+                case fixed: KeyValue.WriteOnly.Fixed =>
+                  nearest(nearestDeadline, fixed.deadline)
+
+                case range: KeyValue.WriteOnly.Range =>
+                  range.fetchFromAndRangeValue.assertGet match {
+                    case (Some(fromValue), rangeValue) =>
+                      nearest(nearest(nearestDeadline, fromValue.deadline), rangeValue.deadline)
+                    case (None, rangeValue) =>
+                      nearest(nearestDeadline, rangeValue.deadline)
+                  }
+
+                //if it's a group, fetch nearest deadline by looking up all key-values of the Group.
+                case range: KeyValue.WriteOnly.Group =>
+                  //instead of fetching the nearest deadline from the Group itself, fetch the nearest deadline from the,
+                  //groups key-values to get more coverage.
+                  range.keyValues.foldLeft(nearestDeadline) {
+                    case (previousDeadline, nextKeyValue) =>
+                      getDeadline(previousDeadline, nextKeyValue)
+                  }
+              }
+
+            getDeadline(nearestDeadline, keyValue)
         }
 
       Segment.getNearestDeadlineSegment(segment1, segment2).flatMap(_.nearestExpiryDeadline) shouldBe deadline
@@ -890,5 +927,4 @@ trait SegmentReadSpec extends TestBase with ScalaFutures with PrivateMethodTeste
       Segment.getNearestDeadlineSegment(segment1 :: segment2 :: Nil).flatMap(_.nearestExpiryDeadline) shouldBe deadline
     }
   }
-
 }

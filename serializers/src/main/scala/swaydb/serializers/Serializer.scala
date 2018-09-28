@@ -21,7 +21,6 @@ package swaydb.serializers
 
 import swaydb.data.slice.Slice
 
-
 trait Serializer[T] {
   def write(data: T): Slice[Byte]
 

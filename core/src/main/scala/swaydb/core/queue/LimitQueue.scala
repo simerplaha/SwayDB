@@ -55,7 +55,7 @@ private[core] class LimitQueue[T](limit: Long,
                                   defaultDelay: FiniteDuration,
                                   weigher: T => Long)(implicit ec: ExecutionContext) extends LazyLogging {
 
-//  logger.info(s"${this.getClass.getSimpleName} started with limit: {}, defaultDelay: {}", limit, defaultDelay)
+  //  logger.info(s"${this.getClass.getSimpleName} started with limit: {}, defaultDelay: {}", limit, defaultDelay)
 
   private val actor: ActorRef[T] =
     Actor.timerLoop[T, State[T]](new State(0, mutable.Queue()), defaultDelay) {
@@ -82,7 +82,6 @@ private[core] class LimitQueue[T](limit: Long,
             }
           }
         }
-        defaultDelay
     }
 
   def !(item: T): Unit =

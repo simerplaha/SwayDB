@@ -106,7 +106,7 @@ case class DBIterator[K, V](private val api: SwayDBAPI,
       }
 
     override def hasNext: Boolean =
-      if (started) {
+      if (started)
         if (nextKeyValueBytes == null)
           false
         else {
@@ -137,7 +137,7 @@ case class DBIterator[K, V](private val api: SwayDBAPI,
               throw exception
           }
         }
-      } else
+      else
         start match {
           case Success(value) =>
             started = true

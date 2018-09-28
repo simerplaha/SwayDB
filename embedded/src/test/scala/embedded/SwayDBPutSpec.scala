@@ -24,7 +24,6 @@ import swaydb.core.TestBase
 import swaydb.serializers.Default._
 import swaydb.types.SwayDBMap
 
-import scala.concurrent.Future
 import scala.concurrent.duration._
 
 class SwayDBPutSpec0 extends SwayDBPutSpec {

@@ -26,6 +26,7 @@ import swaydb.core.io.file.IO
 import swaydb.core.level.AppendixSkipListMerger
 import swaydb.core.map.serializer.{AppendixMapEntryReader, MapEntryReader, MapEntryWriter}
 import swaydb.core.map.{Map, MapEntry, SkipListMerge}
+import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.Segment
 import swaydb.core.util.TryUtil._
 import swaydb.core.util.{Extension, FileUtil, TryUtil}
@@ -36,21 +37,20 @@ import swaydb.data.util.StorageUnits._
 
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success, Try}
-import scala.concurrent.duration._
 
 private[swaydb] object AppendixRepairer extends LazyLogging {
 
   def apply(levelPath: Path,
             strategy: AppendixRepairStrategy)(implicit ordering: Ordering[Slice[Byte]],
                                               ec: ExecutionContext): Try[Unit] = {
-    val reader = AppendixMapEntryReader(false, false, false)(ordering, (_, _) => (), (_) => (), ec)
+    val reader = AppendixMapEntryReader(false, false, false)(ordering, KeyValueLimiter.none, _ => (), None, ec)
     import reader._
     import swaydb.core.map.serializer.AppendixMapEntryWriter._
     implicit val merger = AppendixSkipListMerger
 
     Try(FileUtil.files(levelPath, Extension.Seg)) flatMap {
       files =>
-        files.tryMap(Segment(_, false, false, false, true)(ordering, (_, _) => (), _ => (), ec))
+        files.tryMap(Segment(_, false, false, false, true)(ordering, KeyValueLimiter.none, _ => (), None, ec))
           .flatMap {
             segments =>
               checkOverlappingSegments(segments, strategy) flatMap {

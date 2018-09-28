@@ -19,164 +19,115 @@
 
 package swaydb.core.segment.format.one
 
-import java.util.concurrent.TimeUnit
-
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.data.{KeyValue, Persistent, Transient}
+import swaydb.core.data.{KeyValue, Persistent}
 import swaydb.core.io.reader.Reader
-import swaydb.core.map.serializer.RangeValueSerializer
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
+import swaydb.core.segment.format.one.entry.reader.EntryReader
 import swaydb.core.util.BloomFilterUtil._
 import swaydb.core.util.TryUtil._
-import swaydb.core.util.{ByteUtilCore, CRC32, TryUtil}
+import swaydb.core.util.{Bytes, CRC32, TryUtil}
 import swaydb.data.slice.Slice._
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
 
 import scala.annotation.tailrec
-import scala.concurrent.duration.Deadline
 import scala.util.{Failure, Success, Try}
 
 /**
   * All public APIs are wrapped around a try catch block because eager fetches on Try's results (.get).
-  * Eventually need to re-factor this code to use flatMap. Leaving as it is now because it's easier to read.
+  * Eventually need to re-factor this code to use for comprehension.
+  *
+  * Leaving as it is now because it's easier to read.
   */
 private[core] object SegmentReader extends LazyLogging {
 
-  private def readNextKeyValue[P <: Persistent](previous: P,
-                                                endIndexOffset: Int,
-                                                reader: Reader,
-                                                onPut: (Slice[Byte], Int, Int, Int, Int, Option[Deadline]) => P,
-                                                onUpdate: (Slice[Byte], Int, Int, Int, Int, Option[Deadline]) => P,
-                                                onRange: (Int, Slice[Byte], Int, Int, Int, Int) => Try[P],
-                                                onRemove: (Slice[Byte], Int, Int, Option[Deadline]) => P): Try[P] = {
-    reader moveTo previous.nextIndexOffset
+  private def readNextKeyValue(previous: Persistent,
+                               startIndexOffset: Int,
+                               endIndexOffset: Int,
+                               indexReader: Reader,
+                               valueReader: Reader)(implicit ordering: Ordering[Slice[Byte]]): Try[Persistent] = {
+    indexReader moveTo previous.nextIndexOffset
     readNextKeyValue(
       indexEntrySizeMayBe = Some(previous.nextIndexSize),
       adjustNextIndexOffsetBy = 0,
+      startIndexOffset = startIndexOffset,
       endIndexOffset = endIndexOffset,
-      reader = reader,
-      previous = Some(previous),
-      onPut = onPut,
-      onUpdate = onUpdate,
-      onRange = onRange,
-      onRemove = onRemove
+      indexReader = indexReader,
+      valueReader = valueReader,
+      previous = Some(previous)
     )
   }
 
-  private def readNextKeyValue[P <: Persistent](fromPosition: Int,
-                                                endIndexOffset: Int,
-                                                reader: Reader,
-                                                onPut: (Slice[Byte], Int, Int, Int, Int, Option[Deadline]) => P,
-                                                onUpdate: (Slice[Byte], Int, Int, Int, Int, Option[Deadline]) => P,
-                                                onRange: (Int, Slice[Byte], Int, Int, Int, Int) => Try[P],
-                                                onRemove: (Slice[Byte], Int, Int, Option[Deadline]) => P): Try[P] = {
-    reader moveTo fromPosition
+  private def readNextKeyValue(fromPosition: Int,
+                               startIndexOffset: Int,
+                               endIndexOffset: Int,
+                               indexReader: Reader,
+                               valueReader: Reader)(implicit ordering: Ordering[Slice[Byte]]): Try[Persistent] = {
+    indexReader moveTo fromPosition
     readNextKeyValue(
       indexEntrySizeMayBe = None,
       adjustNextIndexOffsetBy = 0,
+      startIndexOffset = startIndexOffset,
       endIndexOffset = endIndexOffset,
-      reader = reader,
-      previous = None,
-      onPut = onPut,
-      onUpdate = onUpdate,
-      onRange = onRange,
-      onRemove = onRemove
+      indexReader = indexReader,
+      valueReader = valueReader,
+      previous = None
     )
   }
 
   //Pre-requisite: The position of the index on the reader should be set.
-  private def readNextKeyValue[P <: Persistent](indexEntrySizeMayBe: Option[Int],
-                                                adjustNextIndexOffsetBy: Int, //the reader could be a sub slice. This is used to adjust next indexOffset size
-                                                endIndexOffset: Int,
-                                                reader: Reader,
-                                                previous: Option[P],
-                                                onPut: (Slice[Byte], Int, Int, Int, Int, Option[Deadline]) => P,
-                                                onUpdate: (Slice[Byte], Int, Int, Int, Int, Option[Deadline]) => P,
-                                                onRange: (Int, Slice[Byte], Int, Int, Int, Int) => Try[P],
-                                                onRemove: (Slice[Byte], Int, Int, Option[Deadline]) => P): Try[P] =
+  private def readNextKeyValue(indexEntrySizeMayBe: Option[Int],
+                               adjustNextIndexOffsetBy: Int, //the reader could be a sub slice. This is used to adjust next indexOffset size
+                               startIndexOffset: Int,
+                               endIndexOffset: Int,
+                               indexReader: Reader,
+                               valueReader: Reader,
+                               previous: Option[Persistent])(implicit ordering: Ordering[Slice[Byte]]): Try[Persistent] =
     try {
-      val positionBeforeRead = reader.getPosition
+      val positionBeforeRead = indexReader.getPosition
       //size of the index entry to read
       val indexSize =
         indexEntrySizeMayBe match {
           case Some(indexEntrySize) =>
-            reader skip ByteUtilCore.sizeUnsignedInt(indexEntrySize)
+            indexReader skip Bytes.sizeOf(indexEntrySize)
             indexEntrySize
 
           case None =>
-            reader.readIntUnsigned().get
+            indexReader.readIntUnsigned().get
         }
 
-      val (bytesToRead, hasMore) = {
-        val bytesRead = reader.getPosition - positionBeforeRead
-        val remainingBytesToRead = indexSize - bytesRead
-        val hasNext = reader.getPosition + remainingBytesToRead < endIndexOffset
-        if (hasNext)
-        //also read a minimum of 5 bytes to get the nextIndexSize in the same seek.
-          (remainingBytesToRead + 5, true)
-        else
-          (remainingBytesToRead, false)
-      }
+      val remainingIndexBytesTillEnd = endIndexOffset - (indexReader.getPosition - 1 + indexSize)
+      //5 extra bytes are read for each entry to fetch the next index's size.
+      val extraTailBytesToRead = remainingIndexBytesTillEnd min 5
+      val bytesToRead = indexSize + extraTailBytesToRead
 
-      val indexEntryReader = Reader((reader read bytesToRead).get)
+      //read all bytes for this index entry plus the next 5 bytes to fetch next index entry's size.
+      val indexEntryBytesAndNextIndexEntrySize = (indexReader read bytesToRead).get
 
-      val id = indexEntryReader.readIntUnsigned().get
-      val commonBytes = indexEntryReader.readIntUnsigned().get
-      val keyLength = indexEntryReader.readIntUnsigned().get
-      var key = (indexEntryReader read keyLength).get
-      //if this key has common bytes, build the full key.
-      if (commonBytes != 0)
-        previous foreach {
-          previous =>
-            val missingCommonBytes = previous.key.slice(0, commonBytes - 1)
-            val fullKey = new Array[Byte](commonBytes + key.size)
-            var i = 0
-            //could use fold here but this code is crucial for read performance.
-            while (i < commonBytes) {
-              fullKey(i) = missingCommonBytes(i)
-              i += 1
-            }
-            var x = 0
-            while (x < keyLength) {
-              fullKey(i) = key(x)
-              x += 1
-              i += 1
-            }
-            key = Slice(fullKey)
-        }
-
-      val deadlineLong = indexEntryReader.readLongUnsigned().get
-      val deadline = if (deadlineLong == 0) None else Some(Deadline(deadlineLong, TimeUnit.NANOSECONDS))
+      //take only the bytes required for this in entry and submit it for parsing/reading.
+      val indexEntryReader = Reader(indexEntryBytesAndNextIndexEntrySize.take(indexSize))
 
       //The above fetches another 5 bytes (unsigned int) along with previous index entry.
       //These 5 bytes contains the next index's size. Here the next key-values indexSize and indexOffset are read.
-      def nextIndexSizeAndOffset: (Int, Int) =
-        if (hasMore)
-          (indexEntryReader.readIntUnsigned().get, reader.getPosition - 5 + adjustNextIndexOffsetBy)
-        else
-          (0, -1)
-
-      val valueLength = indexEntryReader.readIntUnsigned().get
-
-      if (id == Transient.Put.id) {
-        val valueOffset = if (valueLength == 0) 0 else indexEntryReader.readIntUnsigned().get
-        val (nextIndexSize, nextIndexOffset) = nextIndexSizeAndOffset
-        Success(onPut(key, valueLength, valueOffset, nextIndexOffset, nextIndexSize, deadline))
-      } else if (id == Transient.Remove.id) {
-        val (nextIndexSize, nextIndexOffset) = nextIndexSizeAndOffset
-        Success(onRemove(key, nextIndexOffset, nextIndexSize, deadline))
-      } else if (id == Transient.Update.id) {
-        val valueOffset = if (valueLength == 0) 0 else indexEntryReader.readIntUnsigned().get
-        val (nextIndexSize, nextIndexOffset) = nextIndexSizeAndOffset
-        Success(onUpdate(key, valueLength, valueOffset, nextIndexOffset, nextIndexSize, deadline))
-      } else if (RangeValueSerializer.isRangeValue(id)) {
-        val valueOffset = if (valueLength == 0) 0 else indexEntryReader.readIntUnsigned().get
-        val (nextIndexSize, nextIndexOffset) = nextIndexSizeAndOffset
-        onRange(id, key, valueLength, valueOffset, nextIndexOffset, nextIndexSize)
+      val (nextIndexSize, nextIndexOffset) =
+      if (extraTailBytesToRead > 0) { //if extra tail byte were read this mean that this index has a next key-value.
+        //next indexEntrySize is only read if it's required.
+        val nextIndexEntrySize = Reader(indexEntryBytesAndNextIndexEntrySize.drop(indexSize))
+        (nextIndexEntrySize.readIntUnsigned().get, indexReader.getPosition - extraTailBytesToRead + adjustNextIndexOffsetBy)
       } else {
-        throw SegmentCorruptionException(s"Invalid indexEntry ID: $id. Segment file is corrupted.", new Exception("Segment corruption"))
+        //no next key-value, next size is 0 and set offset to -1.
+        (0, -1)
       }
+
+      EntryReader.read(
+        indexReader = indexEntryReader,
+        valueReader = valueReader,
+        indexOffset = positionBeforeRead,
+        nextIndexOffset = nextIndexOffset,
+        nextIndexSize = nextIndexSize,
+        previous = previous
+      )
     } catch {
       case exception: Exception =>
         exception match {
@@ -184,7 +135,7 @@ private[core] object SegmentReader extends LazyLogging {
             val atPosition: String = indexEntrySizeMayBe.map(size => s" of size $size") getOrElse ""
             Failure(
               SegmentCorruptionException(
-                s"Corrupted Segment: Failed to read index entry at reader position ${reader.getPosition}$atPosition}",
+                s"Corrupted Segment: Failed to read index entry at reader position ${indexReader.getPosition}$atPosition}",
                 exception
               )
             )
@@ -196,7 +147,7 @@ private[core] object SegmentReader extends LazyLogging {
 
   def readAll(footer: SegmentFooter,
               reader: Reader,
-              addTo: Option[Slice[KeyValue.ReadOnly]] = None): Try[Slice[KeyValue.ReadOnly]] =
+              addTo: Option[Slice[KeyValue.ReadOnly]] = None)(implicit ordering: Ordering[Slice[Byte]]): Try[Slice[KeyValue.ReadOnly]] =
     try {
       //since this is a index slice of the full Segment, adjustments for nextIndexOffset is required.
       val adjustNextIndexOffsetBy = footer.startIndexOffset
@@ -219,15 +170,13 @@ private[core] object SegmentReader extends LazyLogging {
           readNextKeyValue(
             indexEntrySizeMayBe = nextIndexSize,
             adjustNextIndexOffsetBy = adjustNextIndexOffsetBy,
+            startIndexOffset = previousMayBe.map(_.nextIndexOffset).getOrElse(footer.startIndexOffset),
             endIndexOffset = endIndexOffset,
-            reader = indexOnlyReader,
+            indexReader = indexOnlyReader,
+            valueReader = reader.copy(),
             //user entries.lastOption instead of previousMayBe because, addTo might already be pre-populated and the
             //last entry would of bethe.
-            previous = previousMayBe,
-            onPut = Persistent.Put(reader.copy(), previousMayBe.map(_.nextIndexOffset).getOrElse(footer.startIndexOffset)),
-            onUpdate = Persistent.Update(reader.copy(), previousMayBe.map(_.nextIndexOffset).getOrElse(footer.startIndexOffset)),
-            onRange = Persistent.Range(reader.copy(), previousMayBe.map(_.nextIndexOffset).getOrElse(footer.startIndexOffset)),
-            onRemove = Persistent.Remove(previousMayBe.map(_.nextIndexOffset).getOrElse(footer.startIndexOffset))
+            previous = previousMayBe
           ) map {
             next =>
               entries add next
@@ -245,19 +194,19 @@ private[core] object SegmentReader extends LazyLogging {
         }
     }
 
-  def getValue(valueOffset: Int, valueLength: Int, reader: Reader): Try[Option[Slice[Byte]]] =
+  def readBytes(fromOffset: Int, length: Int, reader: Reader): Try[Option[Slice[Byte]]] =
     try {
-      if (valueLength == 0)
+      if (length == 0)
         TryUtil.successNone
       else
-        (reader.copy() moveTo valueOffset read valueLength).map(Some(_))
+        (reader.copy() moveTo fromOffset read length).map(Some(_))
     } catch {
       case exception: Exception =>
         exception match {
           case _: ArrayIndexOutOfBoundsException | _: IndexOutOfBoundsException | _: IllegalArgumentException | _: NegativeArraySizeException =>
             Failure(
               SegmentCorruptionException(
-                s"Corrupted Segment: Failed to get values bytes of length $valueLength from offset $valueOffset",
+                s"Corrupted Segment: Failed to get bytes of length $length from offset $fromOffset",
                 exception
               )
             )
@@ -267,17 +216,19 @@ private[core] object SegmentReader extends LazyLogging {
         }
     }
 
-  def readFooter(reader: Reader): Try[SegmentFooter] = {
+  def readFooter(reader: Reader): Try[SegmentFooter] =
     try {
       val fileSize = reader.size.get
       val footerSize = reader.moveTo(fileSize - ByteSizeOf.int).readInt().get
-      val footerBytes = reader.moveTo(fileSize - footerSize - ByteSizeOf.int).read(footerSize)
+      val footerBytes = reader.moveTo(fileSize - footerSize).read(footerSize - ByteSizeOf.int)
       val footerReader = Reader(footerBytes.get)
-      footerReader.readIntUnsigned().get
-      val hasRange = if (footerReader.get().get == 1) true else false
+      val formatId = footerReader.readIntUnsigned().get
+      assert(formatId == SegmentWriter.formatId, s"Invalid Segment formatId: $formatId. Expected: ${SegmentWriter.formatId}")
+      val hasRange = footerReader.readBoolean().get
       val indexStartOffset = footerReader.readIntUnsigned().get
       val expectedCRC = footerReader.readLong().get
       val keyValueCount = footerReader.readIntUnsigned().get
+      val bloomFilterItemsCount = footerReader.readIntUnsigned().get
       val bloomFilterSize = footerReader.readIntUnsigned().get
       val bloomFilterSlice =
         if (bloomFilterSize == 0)
@@ -290,8 +241,18 @@ private[core] object SegmentReader extends LazyLogging {
       if (expectedCRC != crc) {
         Failure(SegmentCorruptionException(s"Corrupted Segment: CRC Check failed. $expectedCRC != $crc", new Exception("CRC check failed.")))
       } else {
-        val indexEndOffset = fileSize.toInt - footerSize - ByteSizeOf.int - 1
-        Success(SegmentFooter(expectedCRC, indexStartOffset, indexEndOffset, keyValueCount, hasRange = hasRange, bloomFilterSlice.map(_.toBloomFilter)))
+        val indexEndOffset = fileSize.toInt - footerSize - 1
+        Success(
+          SegmentFooter(
+            crc = expectedCRC,
+            startIndexOffset = indexStartOffset,
+            endIndexOffset = indexEndOffset,
+            keyValueCount = keyValueCount,
+            hasRange = hasRange,
+            bloomFilterItemsCount = bloomFilterItemsCount,
+            bloomFilter = bloomFilterSlice.map(_.toBloomFilter)
+          )
+        )
       }
     } catch {
       case exception: Exception =>
@@ -303,17 +264,16 @@ private[core] object SegmentReader extends LazyLogging {
             Failure(ex)
         }
     }
-  }
 
   def find(matcher: KeyMatcher,
            startFrom: Option[Persistent],
-           reader: Reader): Try[Option[Persistent]] =
+           reader: Reader)(implicit ordering: Ordering[Slice[Byte]]): Try[Option[Persistent]] =
     readFooter(reader) flatMap (find(matcher, startFrom, reader, _))
 
   def find(matcher: KeyMatcher,
            startFrom: Option[Persistent],
            reader: Reader,
-           footer: SegmentFooter): Try[Option[Persistent]] =
+           footer: SegmentFooter)(implicit ordering: Ordering[Slice[Byte]]): Try[Option[Persistent]] =
     try {
       startFrom match {
         case Some(startFrom) =>
@@ -323,12 +283,10 @@ private[core] object SegmentReader extends LazyLogging {
           else
             readNextKeyValue(
               previous = startFrom,
+              startIndexOffset = footer.startIndexOffset,
               endIndexOffset = footer.endIndexOffset,
-              reader = reader,
-              onPut = Persistent.Put(reader, startFrom.nextIndexOffset),
-              onUpdate = Persistent.Update(reader, startFrom.nextIndexOffset),
-              onRange = Persistent.Range(reader, startFrom.nextIndexOffset),
-              onRemove = Persistent.Remove(startFrom.nextIndexOffset)
+              indexReader = reader,
+              valueReader = reader,
             ) flatMap {
               keyValue =>
                 find(startFrom, Some(keyValue), matcher, reader, footer)
@@ -338,12 +296,10 @@ private[core] object SegmentReader extends LazyLogging {
         case None =>
           readNextKeyValue(
             fromPosition = footer.startIndexOffset,
+            startIndexOffset = footer.startIndexOffset,
             endIndexOffset = footer.endIndexOffset,
-            reader = reader,
-            onPut = Persistent.Put(reader, footer.startIndexOffset),
-            onUpdate = Persistent.Update(reader, footer.startIndexOffset),
-            onRange = Persistent.Range(reader, footer.startIndexOffset),
-            onRemove = Persistent.Remove(footer.startIndexOffset)
+            indexReader = reader,
+            valueReader = reader
           ) flatMap {
             keyValue =>
               find(keyValue, None, matcher, reader, footer)
@@ -359,18 +315,16 @@ private[core] object SegmentReader extends LazyLogging {
                    next: Option[Persistent],
                    matcher: KeyMatcher,
                    reader: Reader,
-                   footer: SegmentFooter): Try[Option[Persistent]] =
+                   footer: SegmentFooter)(implicit ordering: Ordering[Slice[Byte]]): Try[Option[Persistent]] =
     matcher(previous, next, hasMore = hasMore(next getOrElse previous, footer)) match {
       case MatchResult.Next =>
         val readFrom = next getOrElse previous
         readNextKeyValue(
           previous = readFrom,
+          startIndexOffset = footer.startIndexOffset,
           endIndexOffset = footer.endIndexOffset,
-          reader = reader,
-          onPut = Persistent.Put(reader, readFrom.nextIndexOffset),
-          onUpdate = Persistent.Update(reader, readFrom.nextIndexOffset),
-          onRange = Persistent.Range(reader, readFrom.nextIndexOffset),
-          onRemove = Persistent.Remove(readFrom.nextIndexOffset)
+          indexReader = reader,
+          valueReader = reader,
         ) match {
           case Success(nextNextKeyValue) =>
             find(readFrom, Some(nextNextKeyValue), matcher, reader, footer)

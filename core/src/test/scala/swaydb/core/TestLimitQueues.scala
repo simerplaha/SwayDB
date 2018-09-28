@@ -22,6 +22,7 @@ package swaydb.core
 import java.util.concurrent.ConcurrentLinkedQueue
 
 import swaydb.core.io.file.DBFile
+import swaydb.core.queue.KeyValueLimiter
 import swaydb.data.util.StorageUnits._
 
 import scala.concurrent.duration._
@@ -33,7 +34,7 @@ object TestLimitQueues {
   val queue = new ConcurrentLinkedQueue[DBFile]()
   @volatile var queueSize = queue.size()
 
-  val keyValueLimiter = LimitQueues.keyValueLimiter(10.mb, 5.seconds)
+  val keyValueLimiter = KeyValueLimiter(10.mb, 5.seconds)
 
   val fileOpenLimiter: DBFile => Unit =
     file => {
@@ -42,5 +43,4 @@ object TestLimitQueues {
       if (queueSize > 100)
         queue.poll().close
     }
-
 }

@@ -22,6 +22,7 @@ package swaydb.core.queue
 import java.util.concurrent.ConcurrentSkipListSet
 
 import swaydb.core.TestBase
+import swaydb.core.util.Benchmark
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Future
@@ -47,7 +48,7 @@ class LimitQueueSpec extends TestBase {
   //    LimitQueue.nextDelay(size = 0, limit = 200, currentDelay = 10.seconds, defaultDelay = 10.seconds) shouldBe 10.seconds
   //  }
 
-  "Limiter" should {
+  "LimitQueue" should {
     "evicted overflown items on concurrent writes" in {
       val evictedItems = new ConcurrentSkipListSet[String]()
       val limitQueue =
@@ -116,5 +117,25 @@ class LimitQueueSpec extends TestBase {
       evictedItems should have size 1
       evictedItems.flatMap(_.get) should contain only Item(11)
     }
+
+//    "benchmark" in {
+//
+//      //1.859036011 seconds.
+//      val limitQueue =
+//        LimitQueue[String](limit = 10000, 5.second, _ => 1) {
+//          evictedItem =>
+////            println(s"Evicted: $evictedItem")
+//        }
+//
+//      //
+//
+//      //9.428285501 seconds.
+//      Benchmark("LimitQueue") {
+//        (1 to 10000000) foreach {
+//          i =>
+//            limitQueue ! i.toString
+//        }
+//      }
+//    }
   }
 }

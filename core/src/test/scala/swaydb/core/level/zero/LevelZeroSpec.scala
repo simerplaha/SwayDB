@@ -36,6 +36,8 @@ import scala.concurrent.duration._
 import scala.util.Random
 
 //@formatter:off
+class LevelZeroSpec0 extends LevelZeroSpec
+
 class LevelZeroSpec1 extends LevelZeroSpec {
   override def levelFoldersCount = 10
   override def mmapSegmentsOnWrite = true
@@ -57,9 +59,9 @@ class LevelZeroSpec3 extends LevelZeroSpec {
 }
 //@formatter:on
 
-class LevelZeroSpec extends TestBase with MockFactory with Benchmark {
+sealed trait LevelZeroSpec extends TestBase with MockFactory with Benchmark {
 
-  implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
+  override implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
 
   import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
 
@@ -125,13 +127,13 @@ class LevelZeroSpec extends TestBase with MockFactory with Benchmark {
 
     "not write empty key-value" in {
       val zero = TestLevelZero(TestLevel())
-      zero.put(Slice.create[Byte](0), Slice.create[Byte](0)).failed.assertGet shouldBe a[IllegalArgumentException]
+      zero.put(Slice.empty, Slice.empty).failed.assertGet shouldBe a[IllegalArgumentException]
     }
 
     "write empty values" in {
       val zero = TestLevelZero(TestLevel())
-      zero.put(1, Slice.create[Byte](0)).assertGet
-      zero.get(1).assertGet.assertGet shouldBe Slice.create[Byte](0)
+      zero.put(1, Slice.empty).assertGet
+      zero.get(1).assertGet.assertGet shouldBe Slice.empty
     }
 
 //    "write large keys and values and reopen the database and re-read key-values" in {
@@ -190,7 +192,7 @@ class LevelZeroSpec extends TestBase with MockFactory with Benchmark {
 
     "batch writing empty keys should fail" in {
       if (persistent) {
-        val keyValues = Slice(Transient.Put(Slice.create[Byte](0), 1))
+        val keyValues = Slice(Transient.Put(Slice.empty, 1))
 
         val zero = TestLevelZero(TestLevel())
         assertThrows[Exception] {

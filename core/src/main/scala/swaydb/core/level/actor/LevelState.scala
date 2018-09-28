@@ -27,7 +27,7 @@ import swaydb.core.segment.Segment
 
 private[core] sealed trait LevelState {
 
-  val hasSmallSegments: Boolean
+  val collapseSmallSegmentsTaskScheduled: Boolean
 
   val task: Option[TimerTask]
 
@@ -41,7 +41,7 @@ private[core] sealed trait LevelState {
 
   val waitingPull: Option[ActorRef[Pull]]
 
-  def copyWithHasSmallSegments(hasSmallSegments: Boolean): LevelState
+  def setCollapseSmallSegmentScheduled(collapseSmallSegmentsTaskScheduled: Boolean): LevelState
 
   def setTask(task: TimerTask): LevelState
 
@@ -51,7 +51,7 @@ private[core] sealed trait LevelState {
 
 private[core] object LevelState {
   case class Pushing(busySegments: List[Segment],
-                     hasSmallSegments: Boolean,
+                     collapseSmallSegmentsTaskScheduled: Boolean,
                      task: Option[TimerTask],
                      waitingPull: Option[ActorRef[Pull]]) extends LevelState {
     override def isSleeping: Boolean = false
@@ -60,8 +60,8 @@ private[core] object LevelState {
 
     override def isScheduled: Boolean = false
 
-    override def copyWithHasSmallSegments(hasSmallSegments: Boolean): LevelState =
-      copy(hasSmallSegments = hasSmallSegments)
+    override def setCollapseSmallSegmentScheduled(collapseSmallSegmentsTaskScheduled: Boolean): LevelState =
+      copy(collapseSmallSegmentsTaskScheduled = collapseSmallSegmentsTaskScheduled)
 
     override def setTask(task: TimerTask): LevelState =
       copy(task = Some(task))
@@ -70,7 +70,7 @@ private[core] object LevelState {
       copy(task = None)
   }
 
-  case class PushScheduled(hasSmallSegments: Boolean,
+  case class PushScheduled(collapseSmallSegmentsTaskScheduled: Boolean,
                            task: Option[TimerTask]) extends LevelState {
     override def isSleeping: Boolean = false
 
@@ -82,8 +82,8 @@ private[core] object LevelState {
 
     override val waitingPull: Option[ActorRef[Pull]] = None
 
-    override def copyWithHasSmallSegments(hasSmallSegments: Boolean): LevelState =
-      copy(hasSmallSegments = hasSmallSegments)
+    override def setCollapseSmallSegmentScheduled(collapseSmallSegmentsTaskScheduled: Boolean): LevelState =
+      copy(collapseSmallSegmentsTaskScheduled = collapseSmallSegmentsTaskScheduled)
 
     override def setTask(expireKeyValueScheduled: TimerTask): LevelState =
       copy(task = Some(expireKeyValueScheduled))
@@ -92,7 +92,7 @@ private[core] object LevelState {
       copy(task = None)
   }
 
-  case class Sleeping(hasSmallSegments: Boolean,
+  case class Sleeping(collapseSmallSegmentsTaskScheduled: Boolean,
                       task: Option[TimerTask]) extends LevelState {
 
     override def isSleeping: Boolean = true
@@ -105,8 +105,8 @@ private[core] object LevelState {
 
     override val waitingPull: Option[ActorRef[Pull]] = None
 
-    override def copyWithHasSmallSegments(hasSmallSegments: Boolean): LevelState =
-      copy(hasSmallSegments = hasSmallSegments)
+    override def setCollapseSmallSegmentScheduled(collapseSmallSegmentsTaskScheduled: Boolean): LevelState =
+      copy(collapseSmallSegmentsTaskScheduled = collapseSmallSegmentsTaskScheduled)
 
     override def setTask(expireKeyValueScheduled: TimerTask): LevelState =
       copy(task = Some(expireKeyValueScheduled))
@@ -115,7 +115,7 @@ private[core] object LevelState {
       copy(task = None)
   }
 
-  case class WaitingPull(hasSmallSegments: Boolean,
+  case class WaitingPull(collapseSmallSegmentsTaskScheduled: Boolean,
                          task: Option[TimerTask]) extends LevelState {
 
     override def isSleeping: Boolean = true
@@ -128,8 +128,8 @@ private[core] object LevelState {
 
     override val waitingPull: Option[ActorRef[Pull]] = None
 
-    override def copyWithHasSmallSegments(hasSmallSegments: Boolean): LevelState =
-      copy(hasSmallSegments = hasSmallSegments)
+    override def setCollapseSmallSegmentScheduled(collapseSmallSegmentsTaskScheduled: Boolean): LevelState =
+      copy(collapseSmallSegmentsTaskScheduled = collapseSmallSegmentsTaskScheduled)
 
     override def setTask(expireKeyValueScheduled: TimerTask): LevelState =
       copy(task = Some(expireKeyValueScheduled))

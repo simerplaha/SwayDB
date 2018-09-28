@@ -32,4 +32,7 @@ trait Benchmark {
   }
 }
 
-object Benchmark extends Benchmark
+object Benchmark extends Benchmark {
+  def apply[R](message: String)(benchmarkThis: => R): R =
+    benchmark[R](message)(benchmarkThis)
+}
