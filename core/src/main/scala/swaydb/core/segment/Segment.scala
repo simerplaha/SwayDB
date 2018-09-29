@@ -142,6 +142,20 @@ private[core] object Segment extends LazyLogging {
                 Segment.getNearestDeadline(currentNearestDeadline, keyValue)
             }
 
+          case update: Transient.UpdateFunction =>
+            keyValue.getOrFetchValue flatMap {
+              value =>
+                val unslicedValue = value.map(_.unslice())
+                unslicedValue match {
+                  case Some(value) if value.nonEmpty =>
+                    skipList.put(keyUnsliced, Memory.UpdateFunction(key = keyUnsliced, function = value.unslice(), update.deadline))
+                    bloomFilter.foreach(_ add keyUnsliced)
+                    Segment.getNearestDeadline(currentNearestDeadline, keyValue)
+                  case _ =>
+                    Failure(new Exception("UpdateFunction contained no function value."))
+                }
+            }
+
           case range: KeyValue.WriteOnly.Range =>
             range.fetchFromAndRangeValue flatMap {
               case (fromValue, rangeValue) =>
@@ -269,10 +283,10 @@ private[core] object Segment extends LazyLogging {
                     minSegmentSize: Long,
                     bloomFilterFalsePositiveRate: Double,
                     compressDuplicateValues: Boolean)(implicit ordering: Ordering[Slice[Byte]],
-                                                          keyValueLimiter: KeyValueLimiter,
-                                                          fileOpenLimiter: DBFile => Unit,
-                                                          compression: Option[KeyValueGroupingStrategyInternal],
-                                                          ec: ExecutionContext): Try[Slice[Segment]] =
+                                                      keyValueLimiter: KeyValueLimiter,
+                                                      fileOpenLimiter: DBFile => Unit,
+                                                      compression: Option[KeyValueGroupingStrategyInternal],
+                                                      ec: ExecutionContext): Try[Slice[Segment]] =
     segment match {
       case segment: PersistentSegment =>
         val nextPath = fetchNextPath
@@ -322,10 +336,10 @@ private[core] object Segment extends LazyLogging {
                     minSegmentSize: Long,
                     bloomFilterFalsePositiveRate: Double,
                     compressDuplicateValues: Boolean)(implicit ordering: Ordering[Slice[Byte]],
-                                                          keyValueLimiter: KeyValueLimiter,
-                                                          fileOpenLimiter: DBFile => Unit,
-                                                          compression: Option[KeyValueGroupingStrategyInternal],
-                                                          ec: ExecutionContext): Try[Slice[Segment]] =
+                                                      keyValueLimiter: KeyValueLimiter,
+                                                      fileOpenLimiter: DBFile => Unit,
+                                                      compression: Option[KeyValueGroupingStrategyInternal],
+                                                      ec: ExecutionContext): Try[Slice[Segment]] =
     SegmentMerger.split(
       keyValues = keyValues,
       minSegmentSize = minSegmentSize,
@@ -365,9 +379,9 @@ private[core] object Segment extends LazyLogging {
                    minSegmentSize: Long,
                    bloomFilterFalsePositiveRate: Double,
                    compressDuplicateValues: Boolean)(implicit ordering: Ordering[Slice[Byte]],
-                                                         groupingStrategy: Option[KeyValueGroupingStrategyInternal],
-                                                         keyValueLimiter: KeyValueLimiter,
-                                                         ec: ExecutionContext): Try[Slice[Segment]] =
+                                                     groupingStrategy: Option[KeyValueGroupingStrategyInternal],
+                                                     keyValueLimiter: KeyValueLimiter,
+                                                     ec: ExecutionContext): Try[Slice[Segment]] =
     segment.getAll() flatMap {
       keyValues =>
         copyToMemory(
@@ -386,9 +400,9 @@ private[core] object Segment extends LazyLogging {
                    minSegmentSize: Long,
                    bloomFilterFalsePositiveRate: Double,
                    compressDuplicateValues: Boolean)(implicit ordering: Ordering[Slice[Byte]],
-                                                         groupingStrategy: Option[KeyValueGroupingStrategyInternal],
-                                                         keyValueLimiter: KeyValueLimiter,
-                                                         ec: ExecutionContext): Try[Slice[Segment]] =
+                                                     groupingStrategy: Option[KeyValueGroupingStrategyInternal],
+                                                     keyValueLimiter: KeyValueLimiter,
+                                                     ec: ExecutionContext): Try[Slice[Segment]] =
     SegmentMerger.split(
       keyValues = keyValues,
       minSegmentSize = minSegmentSize,

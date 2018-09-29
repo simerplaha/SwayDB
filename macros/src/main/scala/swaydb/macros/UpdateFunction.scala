@@ -46,6 +46,7 @@ object UpdateFunction {
     FunctionCompiler.compileFunction(sourceString, Some(Seq(valueTypeName)), valueTypeName) match {
       case Success(compiledFunction) =>
         c.Expr[UpdateFunction[V]](q"""${c.prefix}(${compiledFunction.className})""")
+
       case Failure(exception) =>
         throw exception
     }

@@ -408,6 +408,23 @@ private[merge] object SegmentGrouper extends LazyLogging {
                 else
                   TryUtil.successUnit
 
+              case Memory.UpdateFunction(key, function, deadline) =>
+                if (!isLastLevel)
+                  doAdd(Transient.UpdateFunction(key, function, bloomFilterFalsePositiveRate, _, deadline, compressDuplicateValues))
+                else
+                  TryUtil.successUnit
+
+              case update: Persistent.UpdateFunction =>
+                if (!isLastLevel)
+                  update.getOrFetchValue flatMap {
+                    case Some(function) =>
+                      doAdd(Transient.UpdateFunction(update.key, function, bloomFilterFalsePositiveRate, _, update.deadline, compressDuplicateValues))
+                    case None =>
+                      Failure(new Exception("UpdateFunction contains no function value."))
+                  }
+                else
+                  TryUtil.successUnit
+
             }
         case range: KeyValue.ReadOnly.Range =>
           if (isLastLevel)
@@ -422,7 +439,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                         else
                           TryUtil.successUnit
 
-                      case _: Value.Remove | _: Value.Update =>
+                      case _: Value.Remove | _: Value.Update | _: Value.UpdateFunction =>
                         TryUtil.successUnit
                     }
                   case None =>

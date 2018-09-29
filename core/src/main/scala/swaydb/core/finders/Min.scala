@@ -141,6 +141,50 @@ object Min {
           case None =>
             TryUtil.successNone
         }
+
+      case current: KeyValue.ReadOnly.UpdateFunction =>
+        next match {
+          case Some(next) =>
+            if (current.hasTimeLeft()) {
+              //    2
+              //    2
+              if (next.key equiv current.key)
+                if (current.deadline.isDefined)
+                  next.getOrFetchValue flatMap {
+                    value =>
+                      current.toPut(value) map (Some(_))
+                  }
+                else
+                  next.getOrFetchValue flatMap {
+                    value =>
+                      next.deadline.map(current.toPut(value, _).map(Some(_))) getOrElse current.toPut(value).map(Some(_))
+                  }
+              //    2
+              //0
+              else if (next.key < current.key)
+                Success(Some(next))
+
+              //    2
+              //         5
+              else
+                TryUtil.successNone
+            } else { //higher update from current is expired.
+              //    2
+              //0
+              //if the higher from next is smaller than current Remove. return it.
+              if (next.key < current.key)
+                Success(Some(next))
+              //     2
+              //     2 or 5
+              // else if next Level's higher is equal to greater than this Level's higher.
+              // equals should also be ignored because current Level's expired Update has deleted the Put from the lower Level.
+              else
+                TryUtil.successNone
+            }
+
+          case None =>
+            TryUtil.successNone
+        }
     }
   }
 }

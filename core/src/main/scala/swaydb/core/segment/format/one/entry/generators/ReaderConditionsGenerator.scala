@@ -94,13 +94,21 @@ object ReaderConditionsGenerator extends App {
       PutKeyUncompressedEntryId.keyIdsList,
       PutKeyFullyCompressedEntryId.keyIdsList,
       PutKeyPartiallyCompressedEntryId.keyIdsList,
+
       RemoveEntryId.keyIdsList,
+
       UpdateKeyUncompressedEntryId.keyIdsList,
       UpdateKeyFullyCompressedEntryId.keyIdsList,
       UpdateKeyPartiallyCompressedEntryId.keyIdsList,
+
+      UpdateFunctionKeyUncompressedEntryId.keyIdsList,
+      UpdateFunctionKeyFullyCompressedEntryId.keyIdsList,
+      UpdateFunctionKeyPartiallyCompressedEntryId.keyIdsList,
+
       RangeKeyUncompressedEntryId.keyIdsList,
       RangeKeyFullyCompressedEntryId.keyIdsList,
       RangeKeyPartiallyCompressedEntryId.keyIdsList,
+
       GroupKeyUncompressedEntryId.keyIdsList,
       GroupKeyFullyCompressedEntryId.keyIdsList,
       GroupKeyPartiallyCompressedEntryId.keyIdsList

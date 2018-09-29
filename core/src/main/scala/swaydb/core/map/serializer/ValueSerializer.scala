@@ -28,7 +28,7 @@ import swaydb.data.util.ByteSizeOf
 
 import scala.annotation.implicitNotFound
 import scala.concurrent.duration.Deadline
-import scala.util.Try
+import scala.util.{Failure, Try}
 
 @implicitNotFound("Type class implementation not found for ValueSerializer of type ${T}")
 trait ValueSerializer[T] {
@@ -134,6 +134,35 @@ object ValueSerializers {
               }
         }
     }
+
+    implicit object UpdateFunctionSerializerLevelZero extends ValueSerializer[Value.UpdateFunction] {
+
+      override def write(value: Value.UpdateFunction, bytes: Slice[Byte]): Unit =
+        bytes
+          .addInt(value.function.size)
+          .addAll(value.function)
+          .addLong(value.deadline.toNanos)
+
+      override def bytesRequired(value: Value.UpdateFunction): Int =
+        ByteSizeOf.int +
+          value.function.size +
+          ByteSizeOf.long
+
+      override def read(reader: Reader): Try[Value.UpdateFunction] =
+        reader.readInt() flatMap {
+          valueLength =>
+            if (valueLength == 0)
+              Failure(new Exception("No function"))
+            else
+              reader.read(valueLength) flatMap {
+                value =>
+                  readDeadlineLevelZero(reader) map {
+                    deadline =>
+                      Value.UpdateFunction(value, deadline)
+                  }
+              }
+        }
+    }
   }
 
   object Levels {
@@ -221,6 +250,35 @@ object ValueSerializers {
                   readDeadlineLevels(reader) map {
                     deadline =>
                       Value.Update(Some(value), deadline)
+                  }
+              }
+        }
+    }
+
+    implicit object UpdateFunctionSerializerLevels extends ValueSerializer[Value.UpdateFunction] {
+
+      override def write(value: Value.UpdateFunction, bytes: Slice[Byte]): Unit =
+        bytes
+          .addIntUnsigned(value.function.size)
+          .addAll(value.function)
+          .addLongUnsigned(value.deadline.toNanos)
+
+      override def bytesRequired(value: Value.UpdateFunction): Int =
+        Bytes.sizeOf(value.function.size) +
+          value.function.size +
+          Bytes.sizeOf(value.deadline.toNanos)
+
+      override def read(reader: Reader): Try[Value.UpdateFunction] =
+        reader.readIntUnsigned() flatMap {
+          valueLength =>
+            if (valueLength == 0)
+              Failure(new Exception("No function"))
+            else
+              reader.read(valueLength) flatMap {
+                function =>
+                  readDeadlineLevels(reader) map {
+                    deadline =>
+                      Value.UpdateFunction(function, deadline)
                   }
               }
         }

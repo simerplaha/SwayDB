@@ -54,7 +54,6 @@ object Get {
             TryUtil.successNone
 
         case current: Value.Update =>
-
           if (current.hasTimeLeft())
             getFromNextLevel(key) map {
               case Some(next) =>
@@ -62,6 +61,24 @@ object Get {
 
               case None =>
                 None
+            }
+          else
+            TryUtil.successNone
+
+        case current: Value.UpdateFunction =>
+          if (current.hasTimeLeft())
+            getFromNextLevel(key) flatMap {
+              case Some(next) =>
+                next.getOrFetchValue flatMap {
+                  nextValue =>
+                    current.applyFunction(nextValue) map {
+                      appliedValue =>
+                        Some(Memory.Put(key, appliedValue, current.deadline orElse next.deadline))
+                    }
+                }
+
+              case None =>
+                TryUtil.successNone
             }
           else
             TryUtil.successNone
@@ -104,6 +121,22 @@ object Get {
                       }
                       else
                         None
+                  }
+                else
+                  TryUtil.successNone
+
+              case current: KeyValue.ReadOnly.UpdateFunction =>
+                if (current.hasTimeLeft())
+                  getFromNextLevel(key) flatMap {
+                    nextOption =>
+                      nextOption map {
+                        _.getOrFetchValue flatMap {
+                          nextValue =>
+                            current.toPut(nextValue).map(Some(_))
+                        }
+                      } getOrElse {
+                        TryUtil.successNone
+                      }
                   }
                 else
                   TryUtil.successNone

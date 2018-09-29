@@ -114,6 +114,45 @@ object EntryReader {
               )
           }
         } orElse {
+          UpdateFunctionKeyPartiallyCompressedEntryId.contains(id) map {
+            id =>
+              UpdateFunctionKeyPartiallyCompressedReader.read(
+                id = id,
+                indexReader = indexReader,
+                valueReader = valueReader,
+                indexOffset = indexOffset,
+                nextIndexOffset = nextIndexOffset,
+                nextIndexSize = nextIndexSize,
+                previous = previous
+              )
+          }
+        } orElse {
+          UpdateFunctionKeyUncompressedEntryId.contains(id) map {
+            id =>
+              UpdateFunctionKeyUncompressedReader.read(
+                id = id,
+                indexReader = indexReader,
+                valueReader = valueReader,
+                indexOffset = indexOffset,
+                nextIndexOffset = nextIndexOffset,
+                nextIndexSize = nextIndexSize,
+                previous = previous
+              )
+          }
+        } orElse {
+          UpdateFunctionKeyFullyCompressedEntryId.contains(id) map {
+            id =>
+              UpdateFunctionKeyFullyCompressedReader.read(
+                id = id,
+                indexReader = indexReader,
+                valueReader = valueReader,
+                indexOffset = indexOffset,
+                nextIndexOffset = nextIndexOffset,
+                nextIndexSize = nextIndexSize,
+                previous = previous
+              )
+          }
+        } orElse {
           UpdateKeyPartiallyCompressedEntryId.contains(id) map {
             id =>
               UpdateKeyPartiallyCompressedReader.read(

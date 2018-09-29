@@ -29,7 +29,7 @@ import swaydb.serializers.Serializer
   * for [[KeyValue.ReadOnly.UpdateFunction]] types. Core will have to be changed a little and value serializers
   * should be passed in implicitly.
   */
-object ValueSerializerHolder {
+object ValueSerializerHolder_OH_SHIT {
 
   var valueType: String = _
   var valueSerializer: Serializer[_] = _

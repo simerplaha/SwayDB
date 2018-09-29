@@ -110,22 +110,31 @@ private[core] object KeyValueMerger {
               else
                 oldKeyValue
 
-            case Memory.Put(_, _, None) | Persistent.Put(_, None, _, _, _, _, _, _) => //Remove Some - Put None
+            case Memory.Put(_, _, None) | Persistent.Put(_, None, _, _, _, _, _, _) => //Put Some - Put None
               if (newKeyValue.hasTimeLeft())
                 oldKeyValue.updateDeadline(deadline = newKeyValue.deadline.get)
               else
                 newKeyValue
 
-            case Memory.Put(_, _, Some(_)) | Persistent.Put(_, Some(_), _, _, _, _, _, _) => //Remove Some - Put Some
+            case Memory.Put(_, _, Some(_)) | Persistent.Put(_, Some(_), _, _, _, _, _, _) => //Put Some - Put Some
               if (newKeyValue.deadline.get <= oldKeyValue.deadline.get || oldKeyValue.hasTimeLeftAtLeast(hasTimeLeftAtLeast))
                 oldKeyValue.updateDeadline(deadline = newKeyValue.deadline.get)
               else
                 oldKeyValue
 
-            case Memory.Update(_, _, None) | Persistent.Update(_, None, _, _, _, _, _, _) => //Remove Some - Update None
+            case Memory.Update(_, _, None) | Persistent.Update(_, None, _, _, _, _, _, _) => //Update Some - Update None
               oldKeyValue.updateDeadline(deadline = newKeyValue.deadline.get)
 
-            case Memory.Update(_, _, Some(_)) | Persistent.Update(_, Some(_), _, _, _, _, _, _) => //Remove Some - Update Some
+            case Memory.Update(_, _, Some(_)) | Persistent.Update(_, Some(_), _, _, _, _, _, _) => //Update Some - Update Some
+              if (newKeyValue.deadline.get <= oldKeyValue.deadline.get || oldKeyValue.hasTimeLeftAtLeast(hasTimeLeftAtLeast))
+                oldKeyValue.updateDeadline(deadline = newKeyValue.deadline.get)
+              else
+                oldKeyValue
+
+            case Memory.UpdateFunction(_, _, None) | Persistent.UpdateFunction(_, None, _, _, _, _, _, _) => //UpdateFunction Some - Update None
+              oldKeyValue.updateDeadline(deadline = newKeyValue.deadline.get)
+
+            case Memory.UpdateFunction(_, _, Some(_)) | Persistent.UpdateFunction(_, Some(_), _, _, _, _, _, _) => //UpdateFunction Some - Update Some
               if (newKeyValue.deadline.get <= oldKeyValue.deadline.get || oldKeyValue.hasTimeLeftAtLeast(hasTimeLeftAtLeast))
                 oldKeyValue.updateDeadline(deadline = newKeyValue.deadline.get)
               else
@@ -155,6 +164,12 @@ private[core] object KeyValueMerger {
 
             case Memory.Update(_, _, Some(_)) | Persistent.Update(_, Some(_), _, _, _, _, _, _) => //Update Some - Update Some
               newKeyValue.updateDeadline(oldKeyValue.deadline.get)
+
+            case Memory.UpdateFunction(_, _, None) | Persistent.UpdateFunction(_, None, _, _, _, _, _, _) => //UpdateFunction Some - Update None
+              newKeyValue
+
+            case Memory.UpdateFunction(_, _, Some(_)) | Persistent.UpdateFunction(_, Some(_), _, _, _, _, _, _) => //UpdateFunction Some - Update Some
+              newKeyValue.updateDeadline(oldKeyValue.deadline.get)
           }
 
         case Memory.Update(_, _, Some(_)) | Persistent.Update(_, Some(_), _, _, _, _, _, _) => //Update Some without deadline always overwrites old key-value
@@ -183,6 +198,15 @@ private[core] object KeyValueMerger {
               newKeyValue
 
             case Memory.Update(_, _, Some(_)) | Persistent.Update(_, Some(_), _, _, _, _, _, _) => //Update Some - Update Some
+              if (newKeyValue.deadline.get <= oldKeyValue.deadline.get || oldKeyValue.hasTimeLeftAtLeast(hasTimeLeftAtLeast))
+                newKeyValue
+              else
+                Memory.Update(oldKeyValue.key, newKeyValue.getOrFetchValue.get, oldKeyValue.deadline)
+
+            case Memory.UpdateFunction(_, _, None) | Persistent.UpdateFunction(_, None, _, _, _, _, _, _) => //UpdateFunction Some - Update None
+              newKeyValue
+
+            case Memory.UpdateFunction(_, _, Some(_)) | Persistent.UpdateFunction(_, Some(_), _, _, _, _, _, _) => //UpdateFunction Some - Update Some
               if (newKeyValue.deadline.get <= oldKeyValue.deadline.get || oldKeyValue.hasTimeLeftAtLeast(hasTimeLeftAtLeast))
                 newKeyValue
               else

@@ -39,7 +39,7 @@ object FunctionCompiler extends LazyLogging {
   val outputDir: Path =
     Paths.get(getClass.getClassLoader.getResource("").getPath)
       .getParent
-      .resolve("DYNAMIC_CLASSES")
+      .resolve("SwayDB-functions")
 
   if (Files.notExists(outputDir)) Files.createDirectories(outputDir)
 

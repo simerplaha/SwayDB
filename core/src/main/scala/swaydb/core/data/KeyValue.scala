@@ -105,6 +105,16 @@ private[core] object KeyValue {
           case update: Persistent.Update =>
             update.getOrFetchValue.map(Value.Update(_, update.deadline))
 
+          case update: Memory.UpdateFunction =>
+            Success(Value.UpdateFunction(update.function, update.deadline))
+
+          case update: Persistent.UpdateFunction =>
+            update.getOrFetchValue flatMap {
+              case Some(function) =>
+                Success(Value.UpdateFunction(function, update.deadline))
+              case None =>
+                Failure(new Exception("UpdateFunction contained no function value."))
+            }
         }
 
       def toRangeValue: Try[Value.RangeValue] =
@@ -123,6 +133,17 @@ private[core] object KeyValue {
 
           case update: Persistent.Update =>
             update.getOrFetchValue.map(Value.Update(_, update.deadline))
+
+          case put: Memory.UpdateFunction =>
+            Success(Value.UpdateFunction(put.function, put.deadline))
+
+          case update: Persistent.UpdateFunction =>
+            update.getOrFetchValue flatMap {
+              case Some(function) =>
+                Success(Value.UpdateFunction(function, update.deadline))
+              case None =>
+                Failure(new Exception("UpdateFunction contained no function value."))
+            }
 
         }
     }
@@ -339,6 +360,9 @@ private[swaydb] object Memory {
           Value.Update(update.value, update.deadline)
         case remove: Remove =>
           Value.Remove(remove.deadline)
+        case update: UpdateFunction =>
+          Value.UpdateFunction(update.function, update.deadline)
+
       }
 
     def toRangeValue: Value.RangeValue =
@@ -349,6 +373,8 @@ private[swaydb] object Memory {
           Value.Update(update.value, update.deadline)
         case remove: Remove =>
           Value.Remove(remove.deadline)
+        case update: UpdateFunction =>
+          Value.UpdateFunction(update.function, update.deadline)
       }
   }
 
@@ -655,6 +681,14 @@ private[core] object Transient {
               Memory.Update(update.key, value, update.deadline)
           }
 
+        case update: Transient.UpdateFunction =>
+          update.getOrFetchValue flatMap {
+            case Some(value) =>
+              Success(Memory.UpdateFunction(update.key, value, update.deadline))
+            case None =>
+              Failure(new Exception("UpdateFunction contains no function value."))
+          }
+
         case range: Transient.Range =>
           range.fetchFromAndRangeValue map {
             case (fromValue, rangeValue) =>
@@ -688,6 +722,14 @@ private[core] object Transient {
           update.getOrFetchValue map {
             value =>
               Memory.Update(update.key, value, update.deadline)
+          }
+
+        case update: Transient.UpdateFunction =>
+          update.getOrFetchValue flatMap {
+            case Some(value) =>
+              Success(Memory.UpdateFunction(update.key, value, update.deadline))
+            case None =>
+              Failure(new Exception("UpdateFunction contains no function value."))
           }
 
         case range: Transient.Range =>
@@ -1170,12 +1212,12 @@ private[core] object Transient {
   object UpdateFunction {
 
     def apply(key: Slice[Byte],
-              value: Option[Slice[Byte]],
+              function: Slice[Byte],
               falsePositiveRate: Double,
               previousMayBe: Option[KeyValue.WriteOnly]): UpdateFunction =
       new UpdateFunction(
         key = key,
-        value = value,
+        function = function,
         deadline = None,
         previous = previousMayBe,
         falsePositiveRate = falsePositiveRate,
@@ -1183,24 +1225,25 @@ private[core] object Transient {
       )
 
     def apply(key: Slice[Byte],
-              value: Option[Slice[Byte]],
+              function: Slice[Byte],
               falsePositiveRate: Double,
               previousMayBe: Option[KeyValue.WriteOnly],
               deadline: Option[Deadline],
               compressDuplicateValues: Boolean): UpdateFunction =
       new UpdateFunction(
         key = key,
-        value = value,
+        function = function,
         deadline = deadline,
         previous = previousMayBe,
         falsePositiveRate = falsePositiveRate,
         compressDuplicateValues = compressDuplicateValues
       )
 
-    def apply(key: Slice[Byte]): UpdateFunction =
+    def apply(key: Slice[Byte],
+              function: Slice[Byte]): UpdateFunction =
       new UpdateFunction(
         key = key,
-        value = None,
+        function = function,
         deadline = None,
         previous = None,
         falsePositiveRate = 0.1,
@@ -1208,22 +1251,11 @@ private[core] object Transient {
       )
 
     def apply(key: Slice[Byte],
-              value: Slice[Byte]): UpdateFunction =
-      new UpdateFunction(
-        key = key,
-        value = Some(value),
-        deadline = None,
-        previous = None,
-        falsePositiveRate = 0.1,
-        compressDuplicateValues = true
-      )
-
-    def apply(key: Slice[Byte],
-              value: Slice[Byte],
+              function: Slice[Byte],
               removeAfter: FiniteDuration): UpdateFunction =
       new UpdateFunction(
         key = key,
-        value = Some(value),
+        function = function,
         deadline = Some(removeAfter.fromNow),
         previous = None,
         falsePositiveRate = 0.1,
@@ -1231,34 +1263,24 @@ private[core] object Transient {
       )
 
     def apply(key: Slice[Byte],
-              value: Slice[Byte],
+              function: Slice[Byte],
               deadline: Deadline): UpdateFunction =
       new UpdateFunction(
         key = key,
-        value = Some(value),
+        function = function,
         deadline = Some(deadline),
         previous = None,
         falsePositiveRate = 0.1,
         compressDuplicateValues = true
       )
 
-    def apply(key: Slice[Byte],
-              removeAfter: FiniteDuration): UpdateFunction =
-      new UpdateFunction(
-        key = key,
-        value = None,
-        deadline = Some(removeAfter.fromNow),
-        previous = None,
-        falsePositiveRate = 0.1,
-        compressDuplicateValues = true
-      )
 
     def apply(key: Slice[Byte],
-              value: Slice[Byte],
+              function: Slice[Byte],
               removeAfter: Option[FiniteDuration]): UpdateFunction =
       new UpdateFunction(
         key = key,
-        value = Some(value),
+        function = function,
         deadline = removeAfter.map(_.fromNow),
         previous = None,
         falsePositiveRate = 0.1,
@@ -1266,48 +1288,26 @@ private[core] object Transient {
       )
 
     def apply(key: Slice[Byte],
-              value: Slice[Byte],
+              function: Slice[Byte],
               falsePositiveRate: Double): UpdateFunction =
       new UpdateFunction(
         key = key,
-        value = Some(value),
+        function = function,
         deadline = None,
         previous = None,
         falsePositiveRate = falsePositiveRate,
         compressDuplicateValues = true
       )
 
-    def apply(key: Slice[Byte],
-              falsePositiveRate: Double,
-              previous: Option[KeyValue.WriteOnly]): UpdateFunction =
-      UpdateFunction(
-        key = key,
-        value = None,
-        falsePositiveRate = falsePositiveRate,
-        previousMayBe = previous
-      )
 
     def apply(key: Slice[Byte],
-              previous: Option[KeyValue.WriteOnly],
-              deadline: Option[Deadline],
-              compressDuplicateValues: Boolean): UpdateFunction =
-      new UpdateFunction(
-        key = key,
-        value = None,
-        deadline = deadline,
-        previous = previous,
-        falsePositiveRate = 0.1,
-        compressDuplicateValues = compressDuplicateValues
-      )
-
-    def apply(key: Slice[Byte],
-              value: Slice[Byte],
+              function: Slice[Byte],
               falsePositiveRate: Double,
               previous: Option[KeyValue.WriteOnly],
               compressDuplicateValues: Boolean): UpdateFunction =
       new UpdateFunction(
         key = key,
-        value = Some(value),
+        function = function,
         deadline = None,
         previous = previous,
         falsePositiveRate = falsePositiveRate,
@@ -1316,7 +1316,7 @@ private[core] object Transient {
   }
 
   case class UpdateFunction(key: Slice[Byte],
-                            value: Option[Slice[Byte]],
+                            function: Slice[Byte],
                             deadline: Option[Deadline],
                             previous: Option[KeyValue.WriteOnly],
                             falsePositiveRate: Double,
@@ -1325,6 +1325,7 @@ private[core] object Transient {
     override val isRemoveRange = false
     override val isGroup: Boolean = false
     override val isRange: Boolean = false
+    override val value = Some(function)
 
     val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition): (Slice[Byte], Option[Slice[Byte]], Int, Int) =
       UpdateFunctionEntryWriter.write(current = this, compressDuplicateValues = compressDuplicateValues)
@@ -1600,6 +1601,20 @@ private[core] object Persistent {
                     value = value,
                     deadline = update.deadline
                   )
+              }
+
+            case update: Persistent.UpdateFunction =>
+              update.getOrFetchValue flatMap {
+                case Some(value) =>
+                  Success(
+                    Memory.UpdateFunction(
+                      key = update.key,
+                      function = value,
+                      update.deadline
+                    )
+                  )
+                case None =>
+                  Failure(new Exception("UpdateFunction contained no function value."))
               }
           }
         case range: Persistent.Range =>

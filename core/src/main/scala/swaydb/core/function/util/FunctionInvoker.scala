@@ -20,7 +20,7 @@
 package swaydb.core.function.util
 
 import swaydb.compiler.FunctionCompiler
-import swaydb.core.ValueSerializerHolder
+import swaydb.core.ValueSerializerHolder_OH_SHIT
 import swaydb.data.slice.Slice
 import swaydb.serializers.Serializer
 
@@ -34,13 +34,13 @@ object FunctionInvoker {
     oldValue map {
       oldValueBytes =>
         val classes = className.readString().split("\\|")
-        val oldValue = ValueSerializerHolder.valueSerializer.read(oldValueBytes)
+        val oldValue = ValueSerializerHolder_OH_SHIT.valueSerializer.read(oldValueBytes)
         classes.toList.tryFoldLeft(oldValue) {
           case (previousValue, nextFunction) =>
             applyClass(nextFunction, previousValue)
         } map {
           newValue =>
-            ValueSerializerHolder.valueSerializer.asInstanceOf[Serializer[Any]].write(newValue)
+            ValueSerializerHolder_OH_SHIT.valueSerializer.asInstanceOf[Serializer[Any]].write(newValue)
         } map {
           output =>
             Some(output)
