@@ -20,7 +20,6 @@
 package swaydb.core.data
 
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.compression.CompressionInternal
 import swaydb.core.CommonAssertions
 import swaydb.serializers.Default._
 import swaydb.serializers._

@@ -22,7 +22,7 @@ package swaydb.core.data
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data.`lazy`.{LazyRangeValue, LazyValue}
-import swaydb.core.function.util.FunctionInvoker
+import swaydb.core.function.FunctionInvoker
 import swaydb.core.group.compression.data.GroupHeader
 import swaydb.core.group.compression.{GroupCompressor, GroupDecompressor, GroupKeyCompressor}
 import swaydb.core.io.reader.Reader

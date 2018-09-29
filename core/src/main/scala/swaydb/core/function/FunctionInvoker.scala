@@ -17,7 +17,7 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.function.util
+package swaydb.core.function
 
 import swaydb.compiler.FunctionCompiler
 import swaydb.core.ValueSerializerHolder_OH_SHIT
@@ -37,7 +37,7 @@ object FunctionInvoker {
         val oldValue = ValueSerializerHolder_OH_SHIT.valueSerializer.read(oldValueBytes)
         classes.toList.tryFoldLeft(oldValue) {
           case (previousValue, nextFunction) =>
-            applyClass(nextFunction, previousValue)
+            applyFunction(function = nextFunction, oldValue = previousValue)
         } map {
           newValue =>
             ValueSerializerHolder_OH_SHIT.valueSerializer.asInstanceOf[Serializer[Any]].write(newValue)
@@ -49,8 +49,8 @@ object FunctionInvoker {
       Failure(new Exception("No old value specified"))
     }
 
-  private def applyClass(function: String,
-                         oldValue: Any): Try[Any] =
+  private def applyFunction(function: String,
+                            oldValue: Any): Try[Any] =
     FunctionCompiler.getFunction1[Any, Any](function) map {
       function =>
         function map {

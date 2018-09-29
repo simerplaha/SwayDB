@@ -20,7 +20,7 @@
 package swaydb.core.segment.merge
 
 import swaydb.core.data.{KeyValue, Memory, Persistent, Value}
-import swaydb.core.function.util.ComposeFunction
+import swaydb.core.function.ComposeFunction
 import swaydb.data.slice.Slice
 
 import scala.concurrent.duration.FiniteDuration

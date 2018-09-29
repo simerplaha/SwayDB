@@ -19,7 +19,7 @@
 
 package swaydb.core.data
 
-import swaydb.core.function.util.FunctionInvoker
+import swaydb.core.function.FunctionInvoker
 import swaydb.data.slice.Slice
 
 import scala.concurrent.duration.{Deadline, FiniteDuration}

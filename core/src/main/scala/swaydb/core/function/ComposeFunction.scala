@@ -17,7 +17,7 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.function.util
+package swaydb.core.function
 
 import swaydb.core.data.KeyValue
 
@@ -27,10 +27,10 @@ object ComposeFunction {
 
   def getFunctionClassName(function: KeyValue.ReadOnly.UpdateFunction): Try[String] =
     function.getOrFetchValue flatMap {
-      leftOption =>
-        leftOption map {
-          left =>
-            Success(left.readString())
+      functionClassNameOption =>
+        functionClassNameOption map {
+          className =>
+            Success(className.readString())
         } getOrElse {
           Failure(new Exception("No function"))
         }
