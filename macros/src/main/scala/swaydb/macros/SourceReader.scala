@@ -32,7 +32,13 @@ object SourceReader {
     code.parse[Source].get traverse {
       case tree if tree.pos.startLine + 1 == lineNumber =>
         tree match {
+          case q"$db.update($key, $name = $function)" =>
+            functionToApply = Some((function: Term).toString())
+
           case q"$db.update($key, $function)" =>
+            functionToApply = Some((function: Term).toString())
+
+          case q"$db.update($from, $to, $name = $function)" =>
             functionToApply = Some((function: Term).toString())
 
           case q"$db.update($from, $to, $function)" =>

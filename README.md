@@ -84,5 +84,4 @@ db
 
 ## Status: Beta
 
-Backward compatible will be supported for versions `1` onwards. 
-So please suggest features & improvements now while we are still in version `0.+`.
+Currently undergoing integration, stress & performance testing.
