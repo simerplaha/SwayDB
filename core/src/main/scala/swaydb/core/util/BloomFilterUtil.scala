@@ -70,7 +70,7 @@ private[core] object BloomFilterUtil {
 
   def byteSize(numberOfItems: Long, falsePositiveRate: Double): Int = {
     val numberOfBits = BloomFilter.optimalNumberOfBits(numberOfItems, falsePositiveRate)
-    ((Math.ceil(numberOfBits / 64.0) * ByteSizeOf.long) + ByteSizeOf.long + ByteSizeOf.int).toInt
+    ((Math.ceil(numberOfBits / 64.0) * ByteSizeOf.long) + ByteSizeOf.long + ByteSizeOf.long + ByteSizeOf.int).toInt
   }
 
   def initBloomFilter(keyValues: Iterable[KeyValue.WriteOnly],
