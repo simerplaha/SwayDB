@@ -35,10 +35,24 @@ import scala.util.{Failure, Success, Try}
 
 object FunctionCompiler extends LazyLogging {
 
-  private val outputDir: Path =
-    Paths.get(getClass.getClassLoader.getResource("").getPath)
-      .getParent
-      .resolve("functions")
+  /**
+    * System.getProperty("user.dir") is not return valid directory on my machine.
+    * The following directory might not work for other machines.
+    *
+    * TODO - This should be properly instantiated from Database config.
+    */
+  val outputDir: Path =
+    Paths
+      .get(getClass.getClassLoader.getResource("").getPath)
+      .toAbsolutePath
+      .toString
+      .split("\\/")
+      .takeWhile(_ != "target")
+      .mkString("/")
+      .==> {
+        path =>
+          Paths.get(path).resolve("functions")
+      }
 
   if (Files.notExists(outputDir)) Files.createDirectories(outputDir)
 
@@ -75,10 +89,10 @@ object FunctionCompiler extends LazyLogging {
   private val settings: Settings = {
     val settings = new Settings(logger.error(_))
     settings.classpath.tryToSet(List(scalaLibrary.toString))
-    settings.outdir.tryToSet(List(outputDir.toString))
-    //use this directory for memory databases.
-    //    val virtualDir = new io.VirtualDirectory("memory_functions", None)
-    //    settings.outputDirs.setSingleOutput(virtualDir)
+    settings.outputDirs.setSingleOutput(outputDir.toAbsolutePath.toString)
+    val actualOutputDir = settings.outputDirs.getSingleOutput
+    assert(actualOutputDir.isDefined, s"Unable to fetch function output directory ${outputDir.toString}")
+    assert(actualOutputDir.get.toString == outputDir.toString.trim, s"Unable to set function output directory. Actual $actualOutputDir. Expected ${outputDir.toString}")
     settings
   }
 
@@ -86,7 +100,7 @@ object FunctionCompiler extends LazyLogging {
     classLoader = CustomClassLoader(outputPath = outputDir)
 
   private def makeFile(src: Array[Byte]): VirtualFile = {
-    val singleFile = new io.VirtualFile("Function.scala")
+    val singleFile = new io.VirtualFile("Function.scala", outputDir.toAbsolutePath.toString)
     val output = singleFile.output
     output.write(src)
     output.close()
