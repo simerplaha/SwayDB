@@ -23,9 +23,9 @@ import swaydb.core.data.KeyValue
 import swaydb.serializers.Serializer
 
 /**
-  * Oh shit! A mutable setting.
+  * Oh shit! A mutable setting. This is no good! - Temporary solution.
   *
-  * TODO - Currently core does not understand Serializers. It only deals with raw bytes. But this is required
+  * Currently core does not understand Serializers. It only deals with raw bytes. But this is required
   * for [[KeyValue.ReadOnly.UpdateFunction]] types. Core will have to be changed a little and value serializers
   * should be passed in implicitly.
   */

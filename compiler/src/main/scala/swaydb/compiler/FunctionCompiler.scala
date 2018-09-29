@@ -35,11 +35,10 @@ import scala.util.{Failure, Success, Try}
 
 object FunctionCompiler extends LazyLogging {
 
-  //TODO - this should be set in application.conf
-  val outputDir: Path =
+  private val outputDir: Path =
     Paths.get(getClass.getClassLoader.getResource("").getPath)
       .getParent
-      .resolve("SwayDB-functions")
+      .resolve("functions")
 
   if (Files.notExists(outputDir)) Files.createDirectories(outputDir)
 
@@ -77,6 +76,9 @@ object FunctionCompiler extends LazyLogging {
     val settings = new Settings(logger.error(_))
     settings.classpath.tryToSet(List(scalaLibrary.toString))
     settings.outdir.tryToSet(List(outputDir.toString))
+    //use this directory for memory databases.
+    //    val virtualDir = new io.VirtualDirectory("memory_functions", None)
+    //    settings.outputDirs.setSingleOutput(virtualDir)
     settings
   }
 
@@ -167,6 +169,14 @@ object FunctionCompiler extends LazyLogging {
             case Term.Block(functionBlock) =>
               compileFunction(functionBlock.head.syntax, inputTypes, outputType)
 
+            case q"_ $operation $body" =>
+              val function = s"input => input ${operation.syntax} ${body.syntax}"
+              compileFunction(function, inputTypes, outputType)
+
+            case q"$body $operation _" =>
+              val function = s"input => ${body.syntax} ${operation.syntax} input"
+              compileFunction(function, inputTypes, outputType)
+
             case q"(..$inputs) => $body" =>
               inputTypes.map(inputTypes => Success(inputs.map(_.name.toString()).zip(inputTypes)))
                 .getOrElse(getInputs(inputs))
@@ -180,7 +190,7 @@ object FunctionCompiler extends LazyLogging {
                 }
 
             case _ =>
-              Failure(new Exception("Invalid function syntax"))
+              Failure(new Exception(s"Invalid function syntax: '$function'"))
           }
         case Left(value) =>
           Failure(value.details)

@@ -38,9 +38,11 @@ object FunctionInvoker {
         classes.toList.tryFoldLeft(oldValue) {
           case (previousValue, nextFunction) =>
             applyFunction(function = nextFunction, oldValue = previousValue)
-        } map {
-          newValue =>
-            ValueSerializerHolder_OH_SHIT.valueSerializer.asInstanceOf[Serializer[Any]].write(newValue)
+        } flatMap {
+          case Failure(failure) =>
+            Failure(failure)
+          case newValue =>
+            Try(ValueSerializerHolder_OH_SHIT.valueSerializer.asInstanceOf[Serializer[Any]].write(newValue))
         } map {
           output =>
             Some(output)
@@ -52,12 +54,12 @@ object FunctionInvoker {
   private def applyFunction(function: String,
                             oldValue: Any): Try[Any] =
     FunctionCompiler.getFunction1[Any, Any](function) map {
-      function =>
-        function map {
+      functionOption =>
+        functionOption map {
           function =>
             function(oldValue)
         } getOrElse {
-          Failure(new Exception(s"Function className: '$function' does not exist."))
+          Failure(new Exception(s"Function class: '$function' does not exist."))
         }
     }
 }
