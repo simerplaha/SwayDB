@@ -54,7 +54,7 @@ for both [Persistent](http://www.swaydb.io/create-databases/persistent/) & [Memo
 
 [Read more](http://swaydb.io/).
 
-## Demo iteration API
+## Demo API
 ```scala
 //Iteration: fetch all key-values withing range 10 to 90, update values and batch write updated key-values
 db
@@ -67,6 +67,9 @@ db
      updatedKeyValues =>
        db.batchPut(updatedKeyValues)
   }
+
+//update with a function
+db.update(from = 10, to = 90, updater = _ + "updated with function")
 ```
 ## Quick start
 [Quick start demo](http://swaydb.io/quick-start).
