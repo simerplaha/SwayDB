@@ -58,7 +58,7 @@ class SegmentGrouperSpec extends TestBase {
       val firstSegment = segments.head
       firstSegment(0).key equiv initialSegment.head.key
       firstSegment(1).key equiv initialSegment.last.key
-      firstSegment.last.stats.segmentSize shouldBe 60.bytes
+      firstSegment.last.stats.segmentSize shouldBe 69.bytes
 
       val secondSegment = segments.last
       secondSegment.head.key equiv keyValue.key
