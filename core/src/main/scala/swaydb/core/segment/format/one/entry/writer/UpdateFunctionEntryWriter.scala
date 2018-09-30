@@ -20,7 +20,7 @@
 package swaydb.core.segment.format.one.entry.writer
 
 import swaydb.core.data.Transient
-import swaydb.core.segment.format.one.entry.id.{UpdateKeyFullyCompressedEntryId, UpdateKeyPartiallyCompressedEntryId, UpdateKeyUncompressedEntryId}
+import swaydb.core.segment.format.one.entry.id.{UpdateFunctionKeyFullyCompressedEntryId, UpdateFunctionKeyPartiallyCompressedEntryId, UpdateFunctionKeyUncompressedEntryId}
 import swaydb.core.util.Bytes._
 import swaydb.data.slice.Slice
 
@@ -39,7 +39,7 @@ object UpdateFunctionEntryWriter {
               ValueWriter.write(
                 current = current,
                 compressDuplicateValues = compressDuplicateValues,
-                id = UpdateKeyFullyCompressedEntryId.KeyFullyCompressed,
+                id = UpdateFunctionKeyFullyCompressedEntryId.KeyFullyCompressed,
                 plusSize = sizeOf(current.key.size) //write the size of keys that were compressed.
               )
 
@@ -52,7 +52,7 @@ object UpdateFunctionEntryWriter {
               ValueWriter.write(
                 current = current,
                 compressDuplicateValues = compressDuplicateValues,
-                id = UpdateKeyPartiallyCompressedEntryId.KeyPartiallyCompressed,
+                id = UpdateFunctionKeyPartiallyCompressedEntryId.KeyPartiallyCompressed,
                 plusSize = sizeOf(commonBytes) + remainingBytes.size //write the size of keys compressed and also the uncompressed Bytes
               )
             (indexBytes.addIntUnsigned(commonBytes).addAll(remainingBytes), valueBytes, valueStartOffset, valueEndOffset)
@@ -63,7 +63,7 @@ object UpdateFunctionEntryWriter {
         ValueWriter.write(
           current = current,
           compressDuplicateValues = compressDuplicateValues,
-          id = UpdateKeyUncompressedEntryId.KeyUncompressed,
+          id = UpdateFunctionKeyUncompressedEntryId.KeyUncompressed,
           plusSize = current.key.size //write key bytes.
         )
       (indexBytes.addAll(current.key), valueBytes, valueStartOffset, valueEndOffset)

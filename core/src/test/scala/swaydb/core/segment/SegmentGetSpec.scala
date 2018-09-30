@@ -163,6 +163,36 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
       )
     }
 
+    "get an Update key-value" in {
+      assertOnSegment(
+        keyValues = Slice(Memory.Update(1, "updated value", None)),
+        assertion = _.get(1).assertGet shouldBe Memory.Update(1, "updated value", None)
+      )
+    }
+
+    "get an Update key-value with expiry" in {
+      val deadline = expiredDeadline()
+      assertOnSegment(
+        keyValues = Slice(Memory.Update(1, "updated value", deadline)),
+        assertion = _.get(1).assertGet shouldBe Memory.Update(1, "updated value", deadline)
+      )
+    }
+
+    "get an UpdateFunction key-value" in {
+      assertOnSegment(
+        keyValues = Slice(Memory.UpdateFunction(1, "functionId", None)),
+        assertion = _.get(1).assertGet shouldBe Memory.UpdateFunction(1, "functionId", None)
+      )
+    }
+
+    "get an UpdateFunction key-value with expiry" in {
+      val deadline = expiredDeadline()
+      assertOnSegment(
+        keyValues = Slice(Memory.UpdateFunction(1, "function id", deadline)),
+        assertion = _.get(1).assertGet shouldBe Memory.UpdateFunction(1, "function id", deadline)
+      )
+    }
+
     "get Range key-values" in {
       //run this test randomly to possibly test all range key-value combinations
       runThis(100.times) {
