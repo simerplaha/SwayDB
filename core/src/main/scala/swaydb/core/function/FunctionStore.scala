@@ -19,25 +19,37 @@
 
 package swaydb.core.function
 
-import swaydb.compiler.FunctionCompiler
+import java.util.concurrent.ConcurrentHashMap
+
 import swaydb.core.ValueSerializerHolder_OH_SHIT
+import swaydb.core.util.TryUtil._
 import swaydb.data.slice.Slice
 import swaydb.serializers.Serializer
 
 import scala.util.{Failure, Try}
-import swaydb.core.util.TryUtil._
 
-object FunctionInvoker {
+private[core] object FunctionStore {
+
+  private val cache = new ConcurrentHashMap[String, Any => Any]()
+
+  def putIfAbsent(id: String, function: Any => Any): Try[Unit] =
+    if (id.contains("==>"))
+      Failure(new Exception(s"""FunctionId: "$id" cannot contain reserved character '${ComposeFunction.functionSeparator}'"""))
+    else
+      Try(cache.putIfAbsent(id, function))
+
+  def get(id: String): Option[Any => Any] =
+    Option(cache.get(id))
 
   def apply(oldValue: Option[Slice[Byte]],
-            className: Slice[Byte]): Try[Option[Slice[Byte]]] =
+            functionId: Slice[Byte]): Try[Option[Slice[Byte]]] =
     oldValue map {
       oldValueBytes =>
-        val classes = className.readString().split("\\|")
+        val classes = functionId.readString().split(ComposeFunction.functionSeparatorRegex)
         val oldValue = ValueSerializerHolder_OH_SHIT.valueSerializer.read(oldValueBytes)
         classes.toList.tryFoldLeft(oldValue) {
           case (previousValue, nextFunction) =>
-            applyFunction(function = nextFunction, oldValue = previousValue)
+            applyFunction(functionId = nextFunction, oldValue = previousValue)
         } flatMap {
           case Failure(failure) =>
             Failure(failure)
@@ -51,15 +63,12 @@ object FunctionInvoker {
       Failure(new Exception("No old value specified"))
     }
 
-  private def applyFunction(function: String,
+  private def applyFunction(functionId: String,
                             oldValue: Any): Try[Any] =
-    FunctionCompiler.getFunction1[Any, Any](function) map {
-      functionOption =>
-        functionOption map {
-          function =>
-            function(oldValue)
-        } getOrElse {
-          Failure(new Exception(s"Function class: '$function' does not exist."))
-        }
+    get(functionId) map {
+      function =>
+        Try(function(oldValue))
+    } getOrElse {
+      Failure(new Exception(s"Function with functionId: '$functionId' does not exist."))
     }
 }

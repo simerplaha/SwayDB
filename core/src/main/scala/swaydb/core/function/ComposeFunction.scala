@@ -23,7 +23,11 @@ import swaydb.core.data.KeyValue
 
 import scala.util.{Failure, Success, Try}
 
-object ComposeFunction {
+private[core] object ComposeFunction {
+
+  val functionSeparator = "|"
+
+  val functionSeparatorRegex = "\\|"
 
   def getFunctionClassName(function: KeyValue.ReadOnly.UpdateFunction): Try[String] =
     function.getOrFetchValue flatMap {
@@ -42,6 +46,6 @@ object ComposeFunction {
       leftFunction <- getFunctionClassName(left)
       rightFunction <- getFunctionClassName(right)
     } yield {
-      s"$leftFunction|$rightFunction"
+      s"$leftFunction$functionSeparator$rightFunction"
     }
 }

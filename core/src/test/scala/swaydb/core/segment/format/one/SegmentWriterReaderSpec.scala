@@ -19,7 +19,6 @@
 
 package swaydb.core.segment.format.one
 
-import swaydb.compiler.FunctionCompiler
 import swaydb.core.TestBase
 import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data._

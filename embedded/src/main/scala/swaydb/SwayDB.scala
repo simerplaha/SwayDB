@@ -583,14 +583,14 @@ private[swaydb] class SwayDB(api: CoreAPI) extends SwayDBAPI {
   override def update(key: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter] =
     api.update(key, value)
 
-  override def update(key: Slice[Byte], className: String): Try[Level0Meter] =
-    api.update(key, className)
+  override def update(key: Slice[Byte], functionId: String, function: Any => Any): Try[Level0Meter] =
+    api.update(key, functionId, function)
 
   override def update(from: Slice[Byte], to: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter] =
     api.update(from, to, value)
 
-  override def update(from: Slice[Byte], to: Slice[Byte], className: String): Try[Level0Meter] =
-    api.update(from, to, className)
+  override def update(from: Slice[Byte], to: Slice[Byte], functionId: String, function: Any => Any): Try[Level0Meter] =
+    api.update(from, to, functionId, function)
 
   override def expire(key: Slice[Byte], at: Deadline): Try[Level0Meter] =
     api.remove(key, at)

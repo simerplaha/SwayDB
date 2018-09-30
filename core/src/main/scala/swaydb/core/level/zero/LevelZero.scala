@@ -27,6 +27,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.KeyValue._
 import swaydb.core.data._
 import swaydb.core.finders.{Get, Higher, Lower}
+import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.IO
 import swaydb.core.level.LevelRef
 import swaydb.core.level.actor.LevelCommand.WakeUp
@@ -196,9 +197,12 @@ private[core] class LevelZero(val path: Path,
       maps.write(MapEntry.Put(key, Memory.Update(key, value)))
     }
 
-  def update(key: Slice[Byte], className: String): Try[Level0Meter] =
+  def update(key: Slice[Byte], functionId: String, function: Any => Any): Try[Level0Meter] =
     assertKey(key) {
-      maps.write(MapEntry.Put(key, Memory.UpdateFunction(key, Slice.writeString(className))))
+      FunctionStore.putIfAbsent(functionId, function) flatMap {
+        _ =>
+          maps.write(MapEntry.Put(key, Memory.UpdateFunction(key, Slice.writeString(functionId))))
+      }
     }
 
   def update(fromKey: Slice[Byte], to: Slice[Byte], value: Slice[Byte]): Try[Level0Meter] =
@@ -214,13 +218,16 @@ private[core] class LevelZero(val path: Path,
       }
     }
 
-  def update(fromKey: Slice[Byte], to: Slice[Byte], className: String): Try[Level0Meter] =
+  def update(fromKey: Slice[Byte], to: Slice[Byte], functionId: String, function: Any => Any): Try[Level0Meter] =
     assertKey(fromKey) {
       assertKey(to) {
-        maps.write {
-          val functionBytes = Slice.writeString(className)
-          (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, to, None, Value.UpdateFunction(functionBytes, None))): MapEntry[Slice[Byte], Memory.Response]) ++
-            MapEntry.Put[Slice[Byte], Memory.UpdateFunction](to, Memory.UpdateFunction(to, functionBytes))
+        FunctionStore.putIfAbsent(functionId, function) flatMap {
+          _ =>
+            maps.write {
+              val functionBytes = Slice.writeString(functionId)
+              (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, to, None, Value.UpdateFunction(functionBytes, None))): MapEntry[Slice[Byte], Memory.Response]) ++
+                MapEntry.Put[Slice[Byte], Memory.UpdateFunction](to, Memory.UpdateFunction(to, functionBytes))
+            }
         }
       }
     }

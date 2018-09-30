@@ -19,7 +19,7 @@
 
 package swaydb.core.data
 
-import swaydb.core.function.FunctionInvoker
+import swaydb.core.function.FunctionStore
 import swaydb.data.slice.Slice
 
 import scala.concurrent.duration.{Deadline, FiniteDuration}
@@ -215,7 +215,7 @@ private[swaydb] object Value {
     override val isRemove: Boolean = false
 
     final def applyFunction(value: Option[Slice[Byte]]): Try[Option[Slice[Byte]]] =
-      FunctionInvoker(value, function)
+      FunctionStore(value, function)
 
     override def hasTimeLeft(): Boolean =
       deadline.forall(_.hasTimeLeft())

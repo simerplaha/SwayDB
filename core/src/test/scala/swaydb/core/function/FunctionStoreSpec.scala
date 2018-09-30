@@ -19,34 +19,35 @@
 
 package swaydb.core.function
 
-import swaydb.compiler.FunctionCompiler
 import swaydb.core.{TestBase, ValueSerializerHolder_OH_SHIT}
+import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
-class FunctionInvokerSpec extends TestBase {
+class FunctionStoreSpec extends TestBase {
 
   "FunctionInvoke" should {
     "apply function and return new updated value" in {
       ValueSerializerHolder_OH_SHIT.valueSerializer = IntSerializer
       ValueSerializerHolder_OH_SHIT.valueType = "Int"
 
-      val compiledFunction = FunctionCompiler.compileFunction("(int: Int) => int + 1", None, "Int").assertGet
+      FunctionStore.putIfAbsent("123", ((int: Int) => int + 1).asInstanceOf[Any => Any])
 
-      FunctionInvoker(Some(1), compiledFunction.className).assertGet.readInt() shouldBe 2
+      FunctionStore.apply(Some(Slice.writeInt(1)), "123").assertGet.readInt() shouldBe 2
+
     }
 
     "apply multiple functions and return new updated value" in {
       ValueSerializerHolder_OH_SHIT.valueSerializer = IntSerializer
       ValueSerializerHolder_OH_SHIT.valueType = "Int"
 
-      val compiledFunction1 = FunctionCompiler.compileFunction("(int: Int) => int + 1", None, "Int").assertGet.className
-      val compiledFunction2 = FunctionCompiler.compileFunction("(int: Int) => int + 2", None, "Int").assertGet.className
-      val compiledFunction3 = FunctionCompiler.compileFunction("(int: Int) => int + 3", None, "Int").assertGet.className
+      FunctionStore.putIfAbsent("1", ((int: Int) => int + 1).asInstanceOf[Any => Any])
+      FunctionStore.putIfAbsent("2", ((int: Int) => int + 2).asInstanceOf[Any => Any])
+      FunctionStore.putIfAbsent("3", ((int: Int) => int + 3).asInstanceOf[Any => Any])
 
-      val composedFunction = s"$compiledFunction1|$compiledFunction2|$compiledFunction3"
+      val composedFunction = Seq("1", "2", "3").mkString(ComposeFunction.functionSeparator)
 
-      FunctionInvoker(Some(1), composedFunction).assertGet.readInt() shouldBe 7
+      FunctionStore.apply(Some(1), composedFunction).assertGet.readInt() shouldBe 7
     }
   }
 }

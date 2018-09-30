@@ -53,7 +53,7 @@ lazy val SwayDB =
     .settings(commonSettings)
     .settings(publishSettings)
     .dependsOn(embedded)
-    .aggregate(embedded, core, compiler, compression, apiJVM, data, ordering, configs, serializers)
+    .aggregate(embedded, core, macros, compression, apiJVM, data, ordering, configs, serializers)
 
 lazy val core =
   project
@@ -63,7 +63,7 @@ lazy val core =
     .settings(
       libraryDependencies ++=
         commonDependencies :+ "com.github.alexandrnikitin" %% "bloom-filter" % bloomFilterVersion
-    ).dependsOn(data, compiler, macros, compression, configs % Test, ordering % Test, serializers % Test)
+    ).dependsOn(data, macros, compression, configs % Test, ordering % Test, serializers % Test)
 
 lazy val api =
   crossProject(JSPlatform, JVMPlatform)
@@ -73,7 +73,6 @@ lazy val api =
 
 lazy val apiJVM = api.jvm.dependsOn(data, serializers)
 lazy val apiJS = api.js.dependsOn(data, serializers)
-
 
 lazy val data =
   project
@@ -125,22 +124,10 @@ lazy val compression =
     )
     .dependsOn(data, serializers % "compile->compile;test->test")
 
-lazy val compiler =
-  project
-    .settings(commonSettings)
-    .settings(publishSettings)
-    .settings(
-      libraryDependencies ++= commonDependencies,
-      libraryDependencies += "org.scala-lang" % "scala-reflect" % scala212,
-      libraryDependencies += "org.scala-lang" % "scala-compiler" % scala212,
-      libraryDependencies += "org.scalameta" %% "scalameta" % scalaMetaVersion
-    )
-
-
 lazy val macros =
   project
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(
       libraryDependencies += "org.scala-lang" % "scala-reflect" % scala212
-    ).dependsOn(compiler)
+    )

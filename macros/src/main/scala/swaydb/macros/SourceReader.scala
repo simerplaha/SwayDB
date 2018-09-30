@@ -24,32 +24,24 @@ import scala.reflect.internal.util.SourceFile
 
 object SourceReader {
 
-  def readUpdateFunction(file: SourceFile,
-                         lineNumber: Int): String = {
+  def getFunctionId(file: SourceFile,
+                    lineNumber: Int): Option[String] = {
     val code = file.content.mkString
-    var functionToApply = Option.empty[String]
+    var functionIfFound = Option.empty[String]
 
     code.parse[Source].get traverse {
       case tree if tree.pos.startLine + 1 == lineNumber =>
         tree match {
-          case q"$db.update($key, $name = $function)" =>
-            functionToApply = Some((function: Term).toString())
+          case q"$db.update($key, ${Lit.String(functionId)}, $function)" =>
+            functionIfFound = Some(functionId)
 
-          case q"$db.update($key, $function)" =>
-            functionToApply = Some((function: Term).toString())
-
-          case q"$db.update($from, $to, $name = $function)" =>
-            functionToApply = Some((function: Term).toString())
-
-          case q"$db.update($from, $to, $function)" =>
-            functionToApply = Some((function: Term).toString())
+          case q"$db.update($from, $to, ${Lit.String(functionId)}, $function)" =>
+            functionIfFound = Some(functionId)
 
           case _ =>
             ()
         }
     }
-    functionToApply getOrElse {
-      throw new Exception(s"Failed to parse function at lineNumber: $lineNumber")
-    }
+    functionIfFound
   }
 }

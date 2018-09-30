@@ -19,36 +19,31 @@
 
 package swaydb.macros
 
-import swaydb.compiler.FunctionCompiler
-
 import scala.language.experimental.macros
 import scala.reflect.macros.blackbox
-import scala.util.{Failure, Success}
 
-class UpdateFunction[V](val className: String)
+class CheckId(val functionId: String)
 
-object UpdateFunction {
+object CheckId {
 
-  def apply[V](implicit className: String): UpdateFunction[V] =
-    new UpdateFunction(className)
+  def apply(implicit className: String): CheckId =
+    new CheckId(className)
 
-  implicit def compile[V]: UpdateFunction[V] = macro doCompile[V]
+  implicit def assertFunctionId: CheckId = macro assertFunctionIdImpl
 
-  def doCompile[V: c.WeakTypeTag](c: blackbox.Context): c.Expr[UpdateFunction[V]] = {
+  def assertFunctionIdImpl(c: blackbox.Context): c.Expr[CheckId] = {
     import c.universe._
 
-    val symbol = weakTypeOf[V].typeSymbol
     val source = c.enclosingPosition.source
     val line = c.enclosingPosition.line
-    val sourceString = SourceReader.readUpdateFunction(source, line)
-    val valueTypeName = symbol.fullName.toString
+    val functionId = SourceReader.getFunctionId(source, line)
 
-    FunctionCompiler.compileFunction(sourceString, Some(Seq(valueTypeName)), valueTypeName) match {
-      case Success(compiledFunction) =>
-        c.Expr[UpdateFunction[V]](q"""${c.prefix}(${compiledFunction.className})""")
-
-      case Failure(exception) =>
-        throw exception
-    }
+    if (functionId.exists(_.contains("|")))
+      c.abort(
+        c.enclosingPosition,
+        s"""functionIds cannot contain reserved character '|'. functionId = "${functionId.getOrElse("")}""""
+      )
+    else
+      c.Expr[CheckId](q"""${c.prefix}(${functionId.getOrElse("")})""")
   }
 }

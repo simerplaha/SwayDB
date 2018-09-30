@@ -22,7 +22,7 @@ package swaydb.core.data
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data.`lazy`.{LazyRangeValue, LazyValue}
-import swaydb.core.function.FunctionInvoker
+import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.data.GroupHeader
 import swaydb.core.group.compression.{GroupCompressor, GroupDecompressor, GroupKeyCompressor}
 import swaydb.core.io.reader.Reader
@@ -516,7 +516,7 @@ private[swaydb] object Memory {
                             deadline: Option[Deadline]) extends KeyValue.ReadOnly.UpdateFunction with Memory.Fixed {
 
     final def applyFunction(value: Option[Slice[Byte]]): Try[Option[Slice[Byte]]] =
-      FunctionInvoker(value, function)
+      FunctionStore(value, function)
 
     override def toPut(value: Option[Slice[Byte]]): Try[ReadOnly.Put] =
       applyFunction(value) map {
@@ -1843,7 +1843,7 @@ private[core] object Persistent {
         functionClassName =>
           functionClassName map {
             functionClassName =>
-              FunctionInvoker(oldValue, functionClassName)
+              FunctionStore(oldValue, functionClassName)
           } getOrElse {
             Failure(new Exception("Function does not exists"))
           }
