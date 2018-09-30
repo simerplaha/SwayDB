@@ -26,19 +26,6 @@ import swaydb.core.util.PipeOps._
 sealed abstract class RemoveEntryId(override val id: Int) extends EntryId(id)
 object RemoveEntryId {
 
-  def keyIdsList: List[RemoveEntryId] = SealedList.list[RemoveEntryId].sortBy(_.id)
-
-  private val (headId, lastId) = keyIdsList ==> {
-    keyIdsList =>
-      (keyIdsList.head.id, keyIdsList.last.id)
-  }
-
-  def contains(id: Int): Option[Int] =
-    if (id >= headId && id <= lastId)
-      Some(id)
-    else
-      None
-
   sealed trait KeyPartiallyCompressed extends Key.PartiallyCompressed {
     //@formatter:off
     //TO-DO instead of throwing exception this should be type safe
@@ -143,4 +130,17 @@ object RemoveEntryId {
       case object DeadlineUncompressed extends RemoveEntryId(29) with Deadline.Uncompressed with NoValue
     }
   }
+
+  def keyIdsList: List[RemoveEntryId] = SealedList.list[RemoveEntryId].sortBy(_.id)
+
+  private val (headId, lastId) = keyIdsList ==> {
+    keyIdsList =>
+      (keyIdsList.head.id, keyIdsList.last.id)
+  }
+
+  def contains(id: Int): Option[Int] =
+    if (id >= headId && id <= lastId)
+      Some(id)
+    else
+      None
 }

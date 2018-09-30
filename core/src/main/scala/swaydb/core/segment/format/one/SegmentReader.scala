@@ -286,7 +286,7 @@ private[core] object SegmentReader extends LazyLogging {
               startIndexOffset = footer.startIndexOffset,
               endIndexOffset = footer.endIndexOffset,
               indexReader = reader,
-              valueReader = reader,
+              valueReader = reader
             ) flatMap {
               keyValue =>
                 find(startFrom, Some(keyValue), matcher, reader, footer)
@@ -324,7 +324,7 @@ private[core] object SegmentReader extends LazyLogging {
           startIndexOffset = footer.startIndexOffset,
           endIndexOffset = footer.endIndexOffset,
           indexReader = reader,
-          valueReader = reader,
+          valueReader = reader
         ) match {
           case Success(nextNextKeyValue) =>
             find(readFrom, Some(nextNextKeyValue), matcher, reader, footer)

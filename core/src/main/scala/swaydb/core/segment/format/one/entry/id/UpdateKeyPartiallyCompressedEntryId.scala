@@ -41,19 +41,6 @@ import swaydb.core.util.PipeOps._
 sealed abstract class UpdateKeyPartiallyCompressedEntryId(override val id: Int) extends EntryId(id)
 object UpdateKeyPartiallyCompressedEntryId {
 
-  def keyIdsList: List[UpdateKeyPartiallyCompressedEntryId] = SealedList.list[UpdateKeyPartiallyCompressedEntryId].sortBy(_.id)
-
-  private val (headId, lastId) = keyIdsList ==> {
-    keyIdsList =>
-      (keyIdsList.head.id, keyIdsList.last.id)
-  }
-
-  def contains(id: Int): Option[Int] =
-    if (id >= headId && id <= lastId)
-      Some(id)
-    else
-      None
-
   sealed trait KeyPartiallyCompressed extends Key.PartiallyCompressed {
     override val valueFullyCompressed: Value.FullyCompressed = KeyPartiallyCompressed.ValueFullyCompressed
     override val valueUncompressed: Value.Uncompressed = KeyPartiallyCompressed.ValueUncompressed
@@ -676,4 +663,17 @@ object UpdateKeyPartiallyCompressedEntryId {
       }
     }
   }
+
+  def keyIdsList: List[UpdateKeyPartiallyCompressedEntryId] = SealedList.list[UpdateKeyPartiallyCompressedEntryId].sortBy(_.id)
+
+  private val (headId, lastId) = keyIdsList ==> {
+    keyIdsList =>
+      (keyIdsList.head.id, keyIdsList.last.id)
+  }
+
+  def contains(id: Int): Option[Int] =
+    if (id >= headId && id <= lastId)
+      Some(id)
+    else
+      None
 }

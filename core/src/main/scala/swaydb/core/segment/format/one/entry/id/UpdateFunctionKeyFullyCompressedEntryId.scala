@@ -41,19 +41,6 @@ import swaydb.core.util.PipeOps._
 sealed abstract class UpdateFunctionKeyFullyCompressedEntryId(override val id: Int) extends EntryId(id)
 object UpdateFunctionKeyFullyCompressedEntryId {
 
-  def keyIdsList: List[UpdateFunctionKeyFullyCompressedEntryId] = SealedList.list[UpdateFunctionKeyFullyCompressedEntryId].sortBy(_.id)
-
-  private val (headId, lastId) = keyIdsList ==> {
-    keyIdsList =>
-      (keyIdsList.head.id, keyIdsList.last.id)
-  }
-
-  def contains(id: Int): Option[Int] =
-    if (id >= headId && id <= lastId)
-      Some(id)
-    else
-      None
-
   sealed trait KeyFullyCompressed extends Key.FullyCompressed {
     override val valueFullyCompressed: Value.FullyCompressed = KeyFullyCompressed.ValueFullyCompressed
     override val valueUncompressed: Value.Uncompressed = KeyFullyCompressed.ValueUncompressed
@@ -676,4 +663,17 @@ object UpdateFunctionKeyFullyCompressedEntryId {
       }
     }
   }
+
+  def keyIdsList: List[UpdateFunctionKeyFullyCompressedEntryId] = SealedList.list[UpdateFunctionKeyFullyCompressedEntryId].sortBy(_.id)
+
+  private val (headId, lastId) = keyIdsList ==> {
+    keyIdsList =>
+      (keyIdsList.head.id, keyIdsList.last.id)
+  }
+
+  def contains(id: Int): Option[Int] =
+    if (id >= headId && id <= lastId)
+      Some(id)
+    else
+      None
 }

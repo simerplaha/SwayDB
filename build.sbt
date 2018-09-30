@@ -129,5 +129,7 @@ lazy val macros =
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(
-      libraryDependencies += "org.scala-lang" % "scala-reflect" % scala212
+      libraryDependencies += "org.scala-lang" % "scala-reflect" % scala212,
+      libraryDependencies += "org.scala-lang" % "scala-compiler" % scala212,
+      libraryDependencies += "org.scalameta" %% "scalameta" % scalaMetaVersion
     )

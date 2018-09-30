@@ -27,8 +27,71 @@ sealed trait RangeValueId {
   val id: Int
 }
 
-object RangeValueId {
+case object RemoveRange extends RangeValueId {
+  override val id: Int = 0
+}
 
+case object PutRange extends RangeValueId {
+  override val id: Int = 1
+}
+
+case object UpdateRange extends RangeValueId {
+  override val id: Int = 2
+}
+
+case object UpdateFunctionRange extends RangeValueId {
+  override val id: Int = 3
+}
+
+case object RemoveRemoveRange extends RangeValueId {
+  override val id: Int = 4
+}
+
+case object RemoveUpdateRange extends RangeValueId {
+  override val id: Int = 5
+}
+
+case object RemoveUpdateFunctionRange extends RangeValueId {
+  override val id: Int = 6
+}
+
+case object PutUpdateRange extends RangeValueId {
+  override val id: Int = 7
+}
+
+case object PutRemoveRange extends RangeValueId {
+  override val id: Int = 8
+}
+
+case object PutUpdateFunctionRange extends RangeValueId {
+  override val id: Int = 9
+}
+
+case object UpdateRemoveRange extends RangeValueId {
+  override val id: Int = 10
+}
+
+case object UpdateUpdateRange extends RangeValueId {
+  override val id: Int = 11
+}
+
+case object UpdateUpdateFunctionRange extends RangeValueId {
+  override val id: Int = 12
+}
+
+case object UpdateFunctionUpdateRange extends RangeValueId {
+  override val id: Int = 13
+}
+
+case object UpdateFunctionRemoveRange extends RangeValueId {
+  override val id: Int = 14
+}
+
+case object UpdateFunctionUpdateFunctionRange extends RangeValueId {
+  override val id: Int = 15
+}
+
+object RangeValueId {
   val ids = SealedList.list[RangeValueId] map {
     rangeId =>
       rangeId.id -> rangeId
@@ -36,68 +99,4 @@ object RangeValueId {
 
   def apply(id: Int): Try[RangeValueId] =
     ids.get(id).map(Success(_)).getOrElse(Failure(new Exception(s"Invalid ${this.getClass.getSimpleName}: $id")))
-
-  case object RemoveRange extends RangeValueId {
-    override val id: Int = 0
-  }
-
-  case object PutRange extends RangeValueId {
-    override val id: Int = 1
-  }
-
-  case object UpdateRange extends RangeValueId {
-    override val id: Int = 2
-  }
-
-  case object UpdateFunctionRange extends RangeValueId {
-    override val id: Int = 3
-  }
-
-  case object RemoveRemoveRange extends RangeValueId {
-    override val id: Int = 4
-  }
-
-  case object RemoveUpdateRange extends RangeValueId {
-    override val id: Int = 5
-  }
-
-  case object RemoveUpdateFunctionRange extends RangeValueId {
-    override val id: Int = 6
-  }
-
-  case object PutUpdateRange extends RangeValueId {
-    override val id: Int = 7
-  }
-
-  case object PutRemoveRange extends RangeValueId {
-    override val id: Int = 8
-  }
-
-  case object PutUpdateFunctionRange extends RangeValueId {
-    override val id: Int = 9
-  }
-
-  case object UpdateRemoveRange extends RangeValueId {
-    override val id: Int = 10
-  }
-
-  case object UpdateUpdateRange extends RangeValueId {
-    override val id: Int = 11
-  }
-
-  case object UpdateUpdateFunctionRange extends RangeValueId {
-    override val id: Int = 12
-  }
-
-  case object UpdateFunctionUpdateRange extends RangeValueId {
-    override val id: Int = 13
-  }
-
-  case object UpdateFunctionRemoveRange extends RangeValueId {
-    override val id: Int = 14
-  }
-
-  case object UpdateFunctionUpdateFunctionRange extends RangeValueId {
-    override val id: Int = 15
-  }
 }

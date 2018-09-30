@@ -502,11 +502,6 @@ private[swaydb] object Memory {
 
     def apply(key: Slice[Byte],
               function: Slice[Byte],
-              removeAt: Option[Deadline]): UpdateFunction =
-      new UpdateFunction(key, function, removeAt)
-
-    def apply(key: Slice[Byte],
-              function: Slice[Byte],
               removeAfter: FiniteDuration): UpdateFunction =
       new UpdateFunction(key, function, Some(removeAfter.fromNow))
   }
