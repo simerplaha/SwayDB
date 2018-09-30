@@ -68,9 +68,6 @@ db
      updatedKeyValues =>
        db.batchPut(updatedKeyValues)
   }
-
-//update with a function
-db.update(from = 10, to = 90, updater = _ + "updated with function")
 ```
 ## Quick start
 [Quick start demo](http://swaydb.io/quick-start).
