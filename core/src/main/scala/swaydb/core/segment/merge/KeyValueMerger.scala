@@ -265,7 +265,7 @@ private[core] object KeyValueMerger {
 
             case Memory.Put(_, _, None) | Persistent.Put(_, None, _, _, _, _, _, _) => //Put Some - Put None
               val newValue = newKeyValue.asInstanceOf[KeyValue.ReadOnly.UpdateFunction].applyFunction(oldKeyValue.getOrFetchValue.get)
-              Memory.Put(oldKeyValue.key, newValue.get, oldKeyValue.deadline)
+              Memory.Put(oldKeyValue.key, newValue.get, newKeyValue.deadline)
 
             case Memory.Put(_, _, Some(_)) | Persistent.Put(_, Some(_), _, _, _, _, _, _) => //Put Some - Put Some
               val newValue = newKeyValue.asInstanceOf[KeyValue.ReadOnly.UpdateFunction].applyFunction(oldKeyValue.getOrFetchValue.get)

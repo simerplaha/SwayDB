@@ -182,6 +182,9 @@ trait CommonAssertions extends TryAssert with FutureBase with TestData {
   implicit class ApplyValue(keyValues: (Memory.Fixed, Memory.Fixed)) {
     def merge: ReadOnly.Fixed =
       KeyValueMerger.applyValue(keyValues._1, keyValues._2, 10.seconds).assertGet
+
+    def mergeFailed: Throwable =
+      KeyValueMerger.applyValue(keyValues._1, keyValues._2, 10.seconds).failed.assertGet
   }
 
   implicit class KeyValueWriteOnlyImplicits(keyValues: Iterable[KeyValue.WriteOnly]) {
