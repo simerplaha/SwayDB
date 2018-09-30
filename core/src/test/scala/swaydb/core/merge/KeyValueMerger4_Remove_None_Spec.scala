@@ -31,7 +31,7 @@ import swaydb.serializers._
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
 
-class KeyValueMerger3_Remove_None_Spec extends WordSpec with Matchers with CommonAssertions {
+class KeyValueMerger4_Remove_None_Spec extends WordSpec with Matchers with CommonAssertions {
 
   implicit val order = KeyOrder.default
   implicit val compression = groupingStrategy

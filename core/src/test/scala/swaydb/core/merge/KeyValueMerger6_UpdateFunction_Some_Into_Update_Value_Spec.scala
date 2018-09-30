@@ -28,14 +28,11 @@ import swaydb.serializers._
 
 import scala.concurrent.duration._
 
-class KeyValueMerger5_UpdateFunction_Some_Into_Update_Value_Spec extends WordSpec with Matchers with CommonAssertions {
+class KeyValueMerger6_UpdateFunction_Some_Into_Update_Value_Spec extends WordSpec with Matchers with CommonAssertions {
 
   /**
     * UpdateFunction(Some) -> Update(None, None)
     */
-
-  val incrementBy1FunctionId = randomCharacters()
-  FunctionStore.put(incrementBy1FunctionId, inputBytes => inputBytes.readInt() + 1).assertGet shouldBe incrementBy1FunctionId
 
   "UpdateFunction(Some) -> Update(None, None)" when {
     "Update(None, None)" in {

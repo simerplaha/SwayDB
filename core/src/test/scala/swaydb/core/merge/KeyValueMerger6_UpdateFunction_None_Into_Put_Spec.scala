@@ -34,9 +34,6 @@ class KeyValueMerger6_UpdateFunction_None_Into_Put_Spec extends WordSpec with Ma
     * UpdateFunction(None) -> Put(None, None)
     */
 
-  val incrementBy1FunctionId = randomCharacters()
-  FunctionStore.put(incrementBy1FunctionId, inputBytes => inputBytes.readInt() + 1).assertGet shouldBe incrementBy1FunctionId
-
   "UpdateFunction(None) -> Put(None, None)" when {
     "Put(None, None)" in {
       (Memory.UpdateFunction(1, incrementBy1FunctionId, None), Memory.Put(1, None, None)).mergeFailed.getMessage shouldBe "No old value specified"

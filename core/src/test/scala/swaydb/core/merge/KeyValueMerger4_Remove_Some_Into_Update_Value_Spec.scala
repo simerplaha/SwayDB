@@ -27,7 +27,7 @@ import swaydb.serializers._
 
 import scala.concurrent.duration._
 
-class KeyValueMerger3_Remove_Some_Into_Update_Value_Spec extends WordSpec with Matchers with CommonAssertions {
+class KeyValueMerger4_Remove_Some_Into_Update_Value_Spec extends WordSpec with Matchers with CommonAssertions {
 
   /**
     * Remove(Some) -> Update(None, None)

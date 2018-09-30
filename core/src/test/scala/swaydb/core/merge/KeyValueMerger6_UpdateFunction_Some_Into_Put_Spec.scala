@@ -34,9 +34,6 @@ class KeyValueMerger6_UpdateFunction_Some_Into_Put_Spec extends WordSpec with Ma
     * UpdateFunction(Some) -> Put(None, None)
     */
 
-  val incrementBy1FunctionId = randomCharacters()
-  FunctionStore.put(incrementBy1FunctionId, inputBytes => inputBytes.readInt() + 1).assertGet shouldBe incrementBy1FunctionId
-
   "UpdateFunction(Some) -> Put(None, None)" when {
     "Put(None, None)" in {
       (1 to 20) foreach {
