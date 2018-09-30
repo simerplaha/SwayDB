@@ -28,7 +28,7 @@ import swaydb.core.data.{Memory, Value}
 import swaydb.core.map.MapEntry
 import swaydb.core.map.serializer.LevelZeroMapEntryWriter
 import swaydb.core.tool.AppendixRepairer
-import swaydb.core.{CoreAPI, ValueSerializerHolder_OH_SHIT}
+import swaydb.core.CoreAPI
 import swaydb.data.accelerate.{Accelerator, Level0Meter}
 import swaydb.data.api.grouping.KeyValueGroupingStrategy
 import swaydb.data.compaction.LevelMeter
@@ -115,12 +115,9 @@ object SwayDB extends LazyLogging {
                        minTimeLeftToUpdateExpiration: FiniteDuration = 10.seconds,
                        compressDuplicateValues: Boolean = true,
                        acceleration: Level0Meter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
-                                                                                          valueType: scala.reflect.runtime.universe.TypeTag[V],
                                                                                           valueSerializer: Serializer[V],
                                                                                           ordering: Ordering[Slice[Byte]] = KeyOrder.default,
-                                                                                          ec: ExecutionContext = defaultExecutionContext): Try[SwayDBMap[K, V]] = {
-    ValueSerializerHolder_OH_SHIT.valueType = valueType.tpe.toString
-    ValueSerializerHolder_OH_SHIT.valueSerializer = valueSerializer
+                                                                                          ec: ExecutionContext = defaultExecutionContext): Try[SwayDBMap[K, V]] =
     CoreAPI(
       config = DefaultPersistentConfig(
         dir = dir,
@@ -144,7 +141,6 @@ object SwayDB extends LazyLogging {
       core =>
         SwayDBMap[K, V](new SwayDB(core))
     }
-  }
 
   /**
     * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
@@ -221,12 +217,8 @@ object SwayDB extends LazyLogging {
                    groupingStrategy: Option[KeyValueGroupingStrategy] = None,
                    acceleration: Level0Meter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
                                                                                       valueSerializer: Serializer[V],
-                                                                                      valueType: scala.reflect.runtime.universe.TypeTag[V],
                                                                                       ordering: Ordering[Slice[Byte]] = KeyOrder.default,
-                                                                                      ec: ExecutionContext = defaultExecutionContext): Try[SwayDBMap[K, V]] = {
-
-    ValueSerializerHolder_OH_SHIT.valueType = valueType.tpe.toString
-    ValueSerializerHolder_OH_SHIT.valueSerializer = valueSerializer
+                                                                                      ec: ExecutionContext = defaultExecutionContext): Try[SwayDBMap[K, V]] =
     CoreAPI(
       config = DefaultMemoryConfig(
         mapSize = mapSize,
@@ -246,7 +238,6 @@ object SwayDB extends LazyLogging {
       core =>
         SwayDBMap[K, V](new SwayDB(core))
     }
-  }
 
   /**
     * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
@@ -332,11 +323,8 @@ object SwayDB extends LazyLogging {
                              groupingStrategy: Option[KeyValueGroupingStrategy] = Some(DefaultGroupingStrategy()),
                              acceleration: Level0Meter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
                                                                                                 valueSerializer: Serializer[V],
-                                                                                                valueType: scala.reflect.runtime.universe.TypeTag[V],
                                                                                                 ordering: Ordering[Slice[Byte]] = KeyOrder.default,
-                                                                                                ec: ExecutionContext = defaultExecutionContext): Try[SwayDBMap[K, V]] = {
-    ValueSerializerHolder_OH_SHIT.valueType = valueType.tpe.toString
-    ValueSerializerHolder_OH_SHIT.valueSerializer = valueSerializer
+                                                                                                ec: ExecutionContext = defaultExecutionContext): Try[SwayDBMap[K, V]] =
     CoreAPI(
       config =
         DefaultMemoryPersistentConfig(
@@ -364,7 +352,6 @@ object SwayDB extends LazyLogging {
       core =>
         SwayDBMap[K, V](new SwayDB(core))
     }
-  }
 
   /**
     * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
@@ -446,11 +433,8 @@ object SwayDB extends LazyLogging {
                   cacheCheckDelay: FiniteDuration,
                   segmentsOpenCheckDelay: FiniteDuration)(implicit keySerializer: Serializer[K],
                                                           valueSerializer: Serializer[V],
-                                                          valueType: scala.reflect.runtime.universe.TypeTag[V],
                                                           ordering: Ordering[Slice[Byte]],
-                                                          ec: ExecutionContext): Try[SwayDBMap[K, V]] = {
-    ValueSerializerHolder_OH_SHIT.valueType = valueType.tpe.toString
-    ValueSerializerHolder_OH_SHIT.valueSerializer = valueSerializer
+                                                          ec: ExecutionContext): Try[SwayDBMap[K, V]] =
     CoreAPI(
       config = config,
       maxOpenSegments = maxSegmentsOpen,
@@ -461,7 +445,6 @@ object SwayDB extends LazyLogging {
       core =>
         SwayDBMap[K, V](new SwayDB(core))
     }
-  }
 
   def apply[T](config: SwayDBPersistentConfig,
                maxSegmentsOpen: Int,
@@ -485,11 +468,8 @@ object SwayDB extends LazyLogging {
                   cacheSize: Int,
                   cacheCheckDelay: FiniteDuration)(implicit keySerializer: Serializer[K],
                                                    valueSerializer: Serializer[V],
-                                                   valueType: scala.reflect.runtime.universe.TypeTag[V],
                                                    ordering: Ordering[Slice[Byte]],
-                                                   ec: ExecutionContext): Try[SwayDBMap[K, V]] = {
-    ValueSerializerHolder_OH_SHIT.valueType = valueType.tpe.toString
-    ValueSerializerHolder_OH_SHIT.valueSerializer = valueSerializer
+                                                   ec: ExecutionContext): Try[SwayDBMap[K, V]] =
     CoreAPI(
       config = config,
       maxOpenSegments = 0,
@@ -500,7 +480,6 @@ object SwayDB extends LazyLogging {
       core =>
         SwayDBMap[K, V](new SwayDB(core))
     }
-  }
 
   def apply[T](config: SwayDBMemoryConfig,
                cacheSize: Int,
@@ -572,7 +551,7 @@ object SwayDB extends LazyLogging {
 
 private[swaydb] class SwayDB(api: CoreAPI) extends SwayDBAPI {
 
-  override def cacheFunction(functionId: String, function: Any => Any): Try[String] =
+  override def cacheFunction(functionId: String, function: Slice[Byte] => Slice[Byte]): Try[String] =
     api.cacheFunction(functionId, function)
 
   override def put(key: Slice[Byte]) =

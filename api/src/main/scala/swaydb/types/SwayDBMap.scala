@@ -50,7 +50,15 @@ class SwayDBMap[K, V](api: SwayDBAPI)(implicit keySerializer: Serializer[K],
                                       valueSerializer: Serializer[V]) extends DBIterator[K, V](api, None) {
 
   def cacheFunction(functionId: String, function: V => V)(implicit checkId: CheckId): Try[String] =
-    api.cacheFunction(functionId, function.asInstanceOf[Any => Any])
+    api.cacheFunction(
+      functionId = functionId,
+      function =
+        (oldValue: Slice[Byte]) => {
+          val oldValueTyped = valueSerializer.read(oldValue)
+          val newValue = function(oldValueTyped)
+          valueSerializer.write(newValue)
+        }
+    )
 
   def put(key: K, value: V): Try[Level0Meter] =
     api.put(key, Some(value))

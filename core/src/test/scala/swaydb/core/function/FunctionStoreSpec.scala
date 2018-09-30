@@ -19,7 +19,7 @@
 
 package swaydb.core.function
 
-import swaydb.core.{TestBase, ValueSerializerHolder_OH_SHIT}
+import swaydb.core.TestBase
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
@@ -28,22 +28,30 @@ class FunctionStoreSpec extends TestBase {
 
   "FunctionInvoke" should {
     "apply function and return new updated value" in {
-      ValueSerializerHolder_OH_SHIT.valueSerializer = IntSerializer
-      ValueSerializerHolder_OH_SHIT.valueType = "Int"
 
-      FunctionStore.put("123", ((int: Int) => int + 1).asInstanceOf[Any => Any])
+      val function: Slice[Byte] => Slice[Byte] =
+        (input: Slice[Byte]) => input.readInt() + 1
+
+      FunctionStore.put("123", function).assertGet
 
       FunctionStore.apply(Some(Slice.writeInt(1)), "123").assertGet.readInt() shouldBe 2
 
     }
 
     "apply multiple functions and return new updated value" in {
-      ValueSerializerHolder_OH_SHIT.valueSerializer = IntSerializer
-      ValueSerializerHolder_OH_SHIT.valueType = "Int"
+      val function1: Slice[Byte] => Slice[Byte] =
+        (input: Slice[Byte]) => input.readInt() + 1
 
-      FunctionStore.put("1", ((int: Int) => int + 1).asInstanceOf[Any => Any])
-      FunctionStore.put("2", ((int: Int) => int + 2).asInstanceOf[Any => Any])
-      FunctionStore.put("3", ((int: Int) => int + 3).asInstanceOf[Any => Any])
+      val function2: Slice[Byte] => Slice[Byte] =
+        (input: Slice[Byte]) => input.readInt() + 2
+
+      val function3: Slice[Byte] => Slice[Byte] =
+        (input: Slice[Byte]) => input.readInt() + 3
+
+
+      FunctionStore.put("1", function1).assertGet
+      FunctionStore.put("2", function2).assertGet
+      FunctionStore.put("3", function3).assertGet
 
       val composedFunction = Seq("1", "2", "3").mkString(ComposeFunction.functionSeparator)
 

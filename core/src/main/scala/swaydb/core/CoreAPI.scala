@@ -50,7 +50,7 @@ private[swaydb] object CoreAPI {
 
 private[swaydb] trait CoreAPI {
 
-  def cacheFunction(functionId: String, function: Any => Any): Try[String]
+  def cacheFunction(functionId: String, function: Slice[Byte] => Slice[Byte]): Try[String]
 
   def put(key: Slice[Byte]): Try[Level0Meter]
 

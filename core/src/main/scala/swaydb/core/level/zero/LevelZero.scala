@@ -134,7 +134,7 @@ private[core] class LevelZero(val path: Path,
     else
       block
 
-  override def cacheFunction(functionId: String, function: Any => Any): Try[String] =
+  override def cacheFunction(functionId: String, function: Slice[Byte] => Slice[Byte]): Try[String] =
     FunctionStore.put(functionId, function)
 
   def put(key: Slice[Byte]): Try[Level0Meter] =

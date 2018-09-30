@@ -21,18 +21,16 @@ package swaydb.core.function
 
 import java.util.concurrent.ConcurrentHashMap
 
-import swaydb.core.ValueSerializerHolder_OH_SHIT
 import swaydb.core.util.TryUtil._
 import swaydb.data.slice.Slice
-import swaydb.serializers.Serializer
 
 import scala.util.{Failure, Try}
 
 private[core] object FunctionStore {
 
-  private val cache = new ConcurrentHashMap[String, Any => Any]()
+  private val cache = new ConcurrentHashMap[String, Slice[Byte] => Slice[Byte]]()
 
-  def put(id: String, function: Any => Any): Try[String] =
+  def put(id: String, function: Slice[Byte] => Slice[Byte]): Try[String] =
     if (id.contains(ComposeFunction.functionSeparator))
       Failure(new Exception(s"""FunctionId: "$id" cannot contain reserved character '${ComposeFunction.functionSeparator}'"""))
     else
@@ -41,7 +39,7 @@ private[core] object FunctionStore {
           id
       }
 
-  def get(id: String): Option[Any => Any] =
+  def get(id: String): Option[Slice[Byte] => Slice[Byte]] =
     Option(cache.get(id))
 
   def containsKey(id: String): Boolean =
@@ -50,17 +48,11 @@ private[core] object FunctionStore {
   def apply(oldValue: Option[Slice[Byte]],
             functionId: Slice[Byte]): Try[Option[Slice[Byte]]] =
     oldValue map {
-      oldValueBytes =>
+      oldValue =>
         val classes = functionId.readString().split(ComposeFunction.functionSeparatorRegex)
-        val oldValue = ValueSerializerHolder_OH_SHIT.valueSerializer.read(oldValueBytes)
         classes.toList.tryFoldLeft(oldValue) {
           case (previousValue, nextFunction) =>
             applyFunction(functionId = nextFunction, oldValue = previousValue)
-        } flatMap {
-          case Failure(failure) =>
-            Failure(failure)
-          case newValue =>
-            Try(ValueSerializerHolder_OH_SHIT.valueSerializer.asInstanceOf[Serializer[Any]].write(newValue))
         } map {
           output =>
             Some(output)
@@ -70,7 +62,7 @@ private[core] object FunctionStore {
     }
 
   private def applyFunction(functionId: String,
-                            oldValue: Any): Try[Any] =
+                            oldValue: Slice[Byte]): Try[Slice[Byte]] =
     get(functionId) map {
       function =>
         Try(function(oldValue))

@@ -51,7 +51,7 @@ private[swaydb] trait SwayDBAPI {
 
   def update(key: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter]
 
-  def cacheFunction(functionId: String, function: Any => Any): Try[String]
+  def cacheFunction(functionId: String, function: Slice[Byte] => Slice[Byte]): Try[String]
 
   def update(key: Slice[Byte], functionId: String): Try[Level0Meter]
 
