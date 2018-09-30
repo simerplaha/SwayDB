@@ -31,7 +31,7 @@ class FunctionStoreSpec extends TestBase {
       ValueSerializerHolder_OH_SHIT.valueSerializer = IntSerializer
       ValueSerializerHolder_OH_SHIT.valueType = "Int"
 
-      FunctionStore.putIfAbsent("123", ((int: Int) => int + 1).asInstanceOf[Any => Any])
+      FunctionStore.put("123", ((int: Int) => int + 1).asInstanceOf[Any => Any])
 
       FunctionStore.apply(Some(Slice.writeInt(1)), "123").assertGet.readInt() shouldBe 2
 
@@ -41,9 +41,9 @@ class FunctionStoreSpec extends TestBase {
       ValueSerializerHolder_OH_SHIT.valueSerializer = IntSerializer
       ValueSerializerHolder_OH_SHIT.valueType = "Int"
 
-      FunctionStore.putIfAbsent("1", ((int: Int) => int + 1).asInstanceOf[Any => Any])
-      FunctionStore.putIfAbsent("2", ((int: Int) => int + 2).asInstanceOf[Any => Any])
-      FunctionStore.putIfAbsent("3", ((int: Int) => int + 3).asInstanceOf[Any => Any])
+      FunctionStore.put("1", ((int: Int) => int + 1).asInstanceOf[Any => Any])
+      FunctionStore.put("2", ((int: Int) => int + 2).asInstanceOf[Any => Any])
+      FunctionStore.put("3", ((int: Int) => int + 3).asInstanceOf[Any => Any])
 
       val composedFunction = Seq("1", "2", "3").mkString(ComposeFunction.functionSeparator)
 

@@ -78,7 +78,7 @@ sealed trait SwayDBStressSpec extends TestBase with TestBaseEmbedded {
         left = (1 to keyValueCount) foreach (i => db.remove(i).assertGet),
         right = db.remove(1, keyValueCount).assertGet
       )
-      (1 to keyValueCount) foreach (i => db.update(i, i.toString).assertGet)
+      (1 to keyValueCount) foreach (i => db.update(i, value = i.toString).assertGet)
       (1 to keyValueCount) foreach { i => db.put(i, i.toString).assertGet }
 
       eitherOne(
@@ -86,7 +86,7 @@ sealed trait SwayDBStressSpec extends TestBase with TestBaseEmbedded {
         right = db.expire(1, keyValueCount, deadline).assertGet
       )
 
-      Future((1 to keyValueCount) foreach (i => db.update(i, i.toString).assertGet))
+      Future((1 to keyValueCount) foreach (i => db.update(i, value = i.toString).assertGet))
       Future(
         eitherOne(
           left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).assertGet),

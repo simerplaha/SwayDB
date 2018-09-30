@@ -49,6 +49,9 @@ object SwayDBMap {
 class SwayDBMap[K, V](api: SwayDBAPI)(implicit keySerializer: Serializer[K],
                                       valueSerializer: Serializer[V]) extends DBIterator[K, V](api, None) {
 
+  def cacheFunction(functionId: String, function: V => V)(implicit checkId: CheckId): Try[String] =
+    api.cacheFunction(functionId, function.asInstanceOf[Any => Any])
+
   def put(key: K, value: V): Try[Level0Meter] =
     api.put(key, Some(value))
 
@@ -79,14 +82,14 @@ class SwayDBMap[K, V](api: SwayDBAPI)(implicit keySerializer: Serializer[K],
   def update(key: K, value: V): Try[Level0Meter] =
     api.update(key, Some(value))
 
-  def update(key: K, functionId: String, updater: V => V)(implicit checkId: CheckId): Try[Level0Meter] =
-    api.update(key, functionId, updater.asInstanceOf[Any => Any])
+  def update(key: K, functionId: String): Try[Level0Meter] =
+    api.update(key, functionId)
 
   def update(from: K, to: K, value: V): Try[Level0Meter] =
     api.update(from, to, Some(value))
 
-  def update(from: K, to: K, functionId: String, updater: V => V)(implicit checkId: CheckId): Try[Level0Meter] =
-    api.update(from, to, functionId, updater.asInstanceOf[Any => Any])
+  def update(from: K, to: K, functionId: String): Try[Level0Meter] =
+    api.update(from, to, functionId)
 
   def batch(batch: Batch[K, V]*): Try[Level0Meter] =
     api.batch(batch)

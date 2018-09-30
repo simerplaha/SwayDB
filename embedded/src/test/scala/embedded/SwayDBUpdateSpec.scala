@@ -72,8 +72,8 @@ sealed trait SwayDBUpdateSpec extends TestBase with TestBaseEmbedded {
 
       (1 to keyValueCount) foreach { i => db.put(i, i.toString).assertGet }
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, "updated").assertGet),
-        right = db.update(1, keyValueCount, "updated").assertGet
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").assertGet),
+        right = db.update(1, keyValueCount, value = "updated").assertGet
       )
 
       (1 to keyValueCount) foreach {
@@ -94,8 +94,8 @@ sealed trait SwayDBUpdateSpec extends TestBase with TestBaseEmbedded {
         right = db.expire(1, keyValueCount, deadline).assertGet
       )
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, "updated").assertGet),
-        right = db.update(1, keyValueCount, "updated").assertGet
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").assertGet),
+        right = db.update(1, keyValueCount, value = "updated").assertGet
       )
 
       if (deadline.hasTimeLeft())
@@ -119,8 +119,8 @@ sealed trait SwayDBUpdateSpec extends TestBase with TestBaseEmbedded {
         right = db.remove(1, keyValueCount).assertGet
       )
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, "updated").assertGet),
-        right = db.update(1, keyValueCount, "updated").assertGet
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").assertGet),
+        right = db.update(1, keyValueCount, value = "updated").assertGet
       )
 
       doAssertEmpty(db)
@@ -131,12 +131,12 @@ sealed trait SwayDBUpdateSpec extends TestBase with TestBaseEmbedded {
 
       (1 to keyValueCount) foreach { i => db.put(i, i.toString).assertGet }
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, "updated").assertGet),
-        right = db.update(1, keyValueCount, "updated").assertGet
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").assertGet),
+        right = db.update(1, keyValueCount, value = "updated").assertGet
       )
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, "updated again").assertGet),
-        right = db.update(1, keyValueCount, "updated again").assertGet
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated again").assertGet),
+        right = db.update(1, keyValueCount, value = "updated again").assertGet
       )
 
       (1 to keyValueCount) foreach {
@@ -157,8 +157,8 @@ sealed trait SwayDBUpdateSpec extends TestBase with TestBaseEmbedded {
       )
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, "updated").assertGet),
-        right = db.update(1, keyValueCount, "updated").assertGet
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").assertGet),
+        right = db.update(1, keyValueCount, value = "updated").assertGet
       )
 
       doAssertEmpty(db)
@@ -174,8 +174,8 @@ sealed trait SwayDBUpdateSpec extends TestBase with TestBaseEmbedded {
       (1 to keyValueCount) foreach { i => db.put(i, i.toString).assertGet }
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, "updated").assertGet),
-        right = db.update(1, keyValueCount, "updated").assertGet
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").assertGet),
+        right = db.update(1, keyValueCount, value = "updated").assertGet
       )
 
       (1 to keyValueCount) foreach {
@@ -193,13 +193,13 @@ sealed trait SwayDBUpdateSpec extends TestBase with TestBaseEmbedded {
         right = db.remove(1, keyValueCount).assertGet
       )
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, "updated").assertGet),
-        right = db.update(1, keyValueCount, "updated").assertGet
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").assertGet),
+        right = db.update(1, keyValueCount, value = "updated").assertGet
       )
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, "updated again").assertGet),
-        right = db.update(1, keyValueCount, "updated again").assertGet
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated again").assertGet),
+        right = db.update(1, keyValueCount, value = "updated again").assertGet
       )
 
       doAssertEmpty(db)
@@ -220,8 +220,8 @@ sealed trait SwayDBUpdateSpec extends TestBase with TestBaseEmbedded {
       )
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, "updated").assertGet),
-        right = db.update(1, keyValueCount, "updated").assertGet
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").assertGet),
+        right = db.update(1, keyValueCount, value = "updated").assertGet
       )
 
       doAssertEmpty(db)
@@ -241,8 +241,8 @@ sealed trait SwayDBUpdateSpec extends TestBase with TestBaseEmbedded {
       )
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, "updated").assertGet),
-        right = db.update(1, keyValueCount, "updated").assertGet
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").assertGet),
+        right = db.update(1, keyValueCount, value = "updated").assertGet
       )
 
       doAssertEmpty(db)
@@ -254,12 +254,12 @@ sealed trait SwayDBUpdateSpec extends TestBase with TestBaseEmbedded {
       val db = newDB()
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, "old updated").assertGet),
-        right = db.update(1, keyValueCount, "old updated").assertGet
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "old updated").assertGet),
+        right = db.update(1, keyValueCount, value = "old updated").assertGet
       )
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, "updated").assertGet),
-        right = db.update(1, keyValueCount, "updated").assertGet
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").assertGet),
+        right = db.update(1, keyValueCount, value = "updated").assertGet
       )
 
       doAssertEmpty(db)
@@ -269,15 +269,15 @@ sealed trait SwayDBUpdateSpec extends TestBase with TestBaseEmbedded {
       val db = newDB()
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, "updated").assertGet),
-        right = db.update(1, keyValueCount, "updated").assertGet
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").assertGet),
+        right = db.update(1, keyValueCount, value = "updated").assertGet
       )
 
       (1 to keyValueCount) foreach { i => db.put(i, i.toString).assertGet }
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, "updated 2").assertGet),
-        right = db.update(1, keyValueCount, "updated 2").assertGet
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated 2").assertGet),
+        right = db.update(1, keyValueCount, value = "updated 2").assertGet
       )
 
       (1 to keyValueCount) foreach {
@@ -291,18 +291,18 @@ sealed trait SwayDBUpdateSpec extends TestBase with TestBaseEmbedded {
       val db = newDB()
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, "updated 1").assertGet),
-        right = db.update(1, keyValueCount, "updated 1").assertGet
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated 1").assertGet),
+        right = db.update(1, keyValueCount, value = "updated 1").assertGet
       )
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, "updated 2").assertGet),
-        right = db.update(1, keyValueCount, "updated 2").assertGet
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated 2").assertGet),
+        right = db.update(1, keyValueCount, value = "updated 2").assertGet
       )
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, "updated again 3").assertGet),
-        right = db.update(1, keyValueCount, "updated again 3").assertGet
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated again 3").assertGet),
+        right = db.update(1, keyValueCount, value = "updated again 3").assertGet
       )
 
       doAssertEmpty(db)
@@ -314,8 +314,8 @@ sealed trait SwayDBUpdateSpec extends TestBase with TestBaseEmbedded {
       val deadline = eitherOne(2.seconds.fromNow, expiredDeadline())
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, "updated 1").assertGet),
-        right = db.update(1, keyValueCount, "updated 1").assertGet
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated 1").assertGet),
+        right = db.update(1, keyValueCount, value = "updated 1").assertGet
       )
 
       eitherOne(
@@ -324,8 +324,8 @@ sealed trait SwayDBUpdateSpec extends TestBase with TestBaseEmbedded {
       )
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, "updated 2").assertGet),
-        right = db.update(1, keyValueCount, "updated 2").assertGet
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated 2").assertGet),
+        right = db.update(1, keyValueCount, value = "updated 2").assertGet
       )
 
       doAssertEmpty(db)
@@ -335,8 +335,8 @@ sealed trait SwayDBUpdateSpec extends TestBase with TestBaseEmbedded {
       val db = newDB()
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, "updated 1").assertGet),
-        right = db.update(1, keyValueCount, "updated 1").assertGet
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated 1").assertGet),
+        right = db.update(1, keyValueCount, value = "updated 1").assertGet
       )
 
       eitherOne(
@@ -345,8 +345,8 @@ sealed trait SwayDBUpdateSpec extends TestBase with TestBaseEmbedded {
       )
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, "updated 2").assertGet),
-        right = db.update(1, keyValueCount, "updated 2").assertGet
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated 2").assertGet),
+        right = db.update(1, keyValueCount, value = "updated 2").assertGet
       )
 
       doAssertEmpty(db)
@@ -365,8 +365,8 @@ sealed trait SwayDBUpdateSpec extends TestBase with TestBaseEmbedded {
       )
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, "updated").assertGet),
-        right = db.update(1, keyValueCount, "updated").assertGet
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").assertGet),
+        right = db.update(1, keyValueCount, value = "updated").assertGet
       )
 
       doAssertEmpty(db)
@@ -388,8 +388,8 @@ sealed trait SwayDBUpdateSpec extends TestBase with TestBaseEmbedded {
         right = db.remove(1, keyValueCount).assertGet
       )
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, "updated").assertGet),
-        right = db.update(1, keyValueCount, "updated").assertGet
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").assertGet),
+        right = db.update(1, keyValueCount, value = "updated").assertGet
       )
 
       doAssertEmpty(db)
@@ -408,12 +408,12 @@ sealed trait SwayDBUpdateSpec extends TestBase with TestBaseEmbedded {
       )
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, "updated").assertGet),
-        right = db.update(1, keyValueCount, "updated").assertGet
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").assertGet),
+        right = db.update(1, keyValueCount, value = "updated").assertGet
       )
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, "updated").assertGet),
-        right = db.update(1, keyValueCount, "updated").assertGet
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").assertGet),
+        right = db.update(1, keyValueCount, value = "updated").assertGet
       )
 
       doAssertEmpty(db)
@@ -438,8 +438,8 @@ sealed trait SwayDBUpdateSpec extends TestBase with TestBaseEmbedded {
       )
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, "updated").assertGet),
-        right = db.update(1, keyValueCount, "updated").assertGet
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").assertGet),
+        right = db.update(1, keyValueCount, value = "updated").assertGet
       )
 
       doAssertEmpty(db)
@@ -460,8 +460,8 @@ sealed trait SwayDBUpdateSpec extends TestBase with TestBaseEmbedded {
       (1 to keyValueCount) foreach { i => db.put(i, i.toString).assertGet }
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, "updated").assertGet),
-        right = db.update(1, keyValueCount, "updated").assertGet
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").assertGet),
+        right = db.update(1, keyValueCount, value = "updated").assertGet
       )
 
       def doAssert() =

@@ -571,6 +571,10 @@ object SwayDB extends LazyLogging {
 }
 
 private[swaydb] class SwayDB(api: CoreAPI) extends SwayDBAPI {
+
+  override def cacheFunction(functionId: String, function: Any => Any): Try[String] =
+    api.cacheFunction(functionId, function)
+
   override def put(key: Slice[Byte]) =
     api.put(key)
 
@@ -583,14 +587,14 @@ private[swaydb] class SwayDB(api: CoreAPI) extends SwayDBAPI {
   override def update(key: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter] =
     api.update(key, value)
 
-  override def update(key: Slice[Byte], functionId: String, function: Any => Any): Try[Level0Meter] =
-    api.update(key, functionId, function)
+  override def update(key: Slice[Byte], functionId: String): Try[Level0Meter] =
+    api.update(key, functionId)
 
   override def update(from: Slice[Byte], to: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter] =
     api.update(from, to, value)
 
-  override def update(from: Slice[Byte], to: Slice[Byte], functionId: String, function: Any => Any): Try[Level0Meter] =
-    api.update(from, to, functionId, function)
+  override def update(from: Slice[Byte], to: Slice[Byte], functionId: String): Try[Level0Meter] =
+    api.update(from, to, functionId)
 
   override def expire(key: Slice[Byte], at: Deadline): Try[Level0Meter] =
     api.remove(key, at)

@@ -110,8 +110,8 @@ sealed trait SwayDBExpireSpec extends TestBase with TestBaseEmbedded {
 
       (1 to keyValueCount) foreach { i => db.put(i, i.toString).assertGet }
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, "updated").assertGet),
-        right = db.update(1, keyValueCount, "updated").assertGet
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").assertGet),
+        right = db.update(1, keyValueCount, value = "updated").assertGet
       )
       eitherOne(
         left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).assertGet),
@@ -191,8 +191,8 @@ sealed trait SwayDBExpireSpec extends TestBase with TestBaseEmbedded {
       val deadline = eitherOne(expiredDeadline(), 4.seconds.fromNow)
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, "updated").assertGet),
-        right = db.update(1, keyValueCount, "updated").assertGet
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").assertGet),
+        right = db.update(1, keyValueCount, value = "updated").assertGet
       )
       eitherOne(
         left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).assertGet),
@@ -210,8 +210,8 @@ sealed trait SwayDBExpireSpec extends TestBase with TestBaseEmbedded {
       val deadline = eitherOne(expiredDeadline(), 4.seconds.fromNow)
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, "updated").assertGet),
-        right = db.update(1, keyValueCount, "updated").assertGet
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").assertGet),
+        right = db.update(1, keyValueCount, value = "updated").assertGet
       )
       eitherOne(
         left = (1 to keyValueCount) foreach (i => db.remove(i).assertGet),
@@ -233,12 +233,12 @@ sealed trait SwayDBExpireSpec extends TestBase with TestBaseEmbedded {
       val deadline = eitherOne(expiredDeadline(), 4.seconds.fromNow)
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, "updated 1").assertGet),
-        right = db.update(1, keyValueCount, "updated 1").assertGet
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated 1").assertGet),
+        right = db.update(1, keyValueCount, value = "updated 1").assertGet
       )
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, "updated 2").assertGet),
-        right = db.update(1, keyValueCount, "updated 2").assertGet
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated 2").assertGet),
+        right = db.update(1, keyValueCount, value = "updated 2").assertGet
       )
       eitherOne(
         left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).assertGet),
@@ -257,8 +257,8 @@ sealed trait SwayDBExpireSpec extends TestBase with TestBaseEmbedded {
       val deadline2 = eitherOne(expiredDeadline(), 5.seconds.fromNow)
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, "updated 1").assertGet),
-        right = db.update(1, keyValueCount, "updated 1").assertGet
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated 1").assertGet),
+        right = db.update(1, keyValueCount, value = "updated 1").assertGet
       )
 
       eitherOne(
@@ -281,8 +281,8 @@ sealed trait SwayDBExpireSpec extends TestBase with TestBaseEmbedded {
       val deadline = eitherOne(expiredDeadline(), 3.seconds.fromNow)
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, "updated 1").assertGet),
-        right = db.update(1, keyValueCount, "updated 1").assertGet
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated 1").assertGet),
+        right = db.update(1, keyValueCount, value = "updated 1").assertGet
       )
 
       (1 to keyValueCount) foreach { i => db.put(i, i.toString).assertGet }
@@ -358,8 +358,8 @@ sealed trait SwayDBExpireSpec extends TestBase with TestBaseEmbedded {
         right = db.remove(1, keyValueCount).assertGet
       )
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, "updated").assertGet),
-        right = db.update(1, keyValueCount, "updated").assertGet
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").assertGet),
+        right = db.update(1, keyValueCount, value = "updated").assertGet
       )
       eitherOne(
         left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).assertGet),
@@ -482,8 +482,8 @@ sealed trait SwayDBExpireSpec extends TestBase with TestBaseEmbedded {
       )
 
       eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, "updated").assertGet),
-        right = db.update(1, keyValueCount, "updated").assertGet
+        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").assertGet),
+        right = db.update(1, keyValueCount, value = "updated").assertGet
       )
       eitherOne(
         left = (1 to keyValueCount) foreach (i => db.expire(i, deadline2).assertGet),

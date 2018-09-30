@@ -134,6 +134,9 @@ private[core] class LevelZero(val path: Path,
     else
       block
 
+  override def cacheFunction(functionId: String, function: Any => Any): Try[String] =
+    FunctionStore.put(functionId, function)
+
   def put(key: Slice[Byte]): Try[Level0Meter] =
     assertKey(key) {
       maps.write(MapEntry.Put[Slice[Byte], Memory.Response](key, Memory.Put(key)))
@@ -197,12 +200,12 @@ private[core] class LevelZero(val path: Path,
       maps.write(MapEntry.Put(key, Memory.Update(key, value)))
     }
 
-  def update(key: Slice[Byte], functionId: String, function: Any => Any): Try[Level0Meter] =
+  def update(key: Slice[Byte], functionId: String): Try[Level0Meter] =
     assertKey(key) {
-      FunctionStore.putIfAbsent(functionId, function) flatMap {
-        _ =>
-          maps.write(MapEntry.Put(key, Memory.UpdateFunction(key, Slice.writeString(functionId))))
-      }
+      if (FunctionStore.containsKey(functionId))
+        maps.write(MapEntry.Put(key, Memory.UpdateFunction(key, Slice.writeString(functionId))))
+      else
+        Failure(new Exception(s"functionId: $functionId does not exist."))
     }
 
   def update(fromKey: Slice[Byte], to: Slice[Byte], value: Slice[Byte]): Try[Level0Meter] =
@@ -218,17 +221,17 @@ private[core] class LevelZero(val path: Path,
       }
     }
 
-  def update(fromKey: Slice[Byte], to: Slice[Byte], functionId: String, function: Any => Any): Try[Level0Meter] =
+  def update(fromKey: Slice[Byte], to: Slice[Byte], functionId: String): Try[Level0Meter] =
     assertKey(fromKey) {
       assertKey(to) {
-        FunctionStore.putIfAbsent(functionId, function) flatMap {
-          _ =>
-            maps.write {
-              val functionBytes = Slice.writeString(functionId)
-              (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, to, None, Value.UpdateFunction(functionBytes, None))): MapEntry[Slice[Byte], Memory.Response]) ++
-                MapEntry.Put[Slice[Byte], Memory.UpdateFunction](to, Memory.UpdateFunction(to, functionBytes))
-            }
-        }
+        if (FunctionStore.containsKey(functionId))
+          maps.write {
+            val functionBytes = Slice.writeString(functionId)
+            (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, to, None, Value.UpdateFunction(functionBytes, None))): MapEntry[Slice[Byte], Memory.Response]) ++
+              MapEntry.Put[Slice[Byte], Memory.UpdateFunction](to, Memory.UpdateFunction(to, functionBytes))
+          }
+        else
+          Failure(new Exception(s"""functionId: "$functionId"" does not exist."""))
       }
     }
 

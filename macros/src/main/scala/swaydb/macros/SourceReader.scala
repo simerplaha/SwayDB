@@ -32,10 +32,10 @@ object SourceReader {
     code.parse[Source].get traverse {
       case tree if tree.pos.startLine + 1 == lineNumber =>
         tree match {
-          case q"$db.update($key, ${Lit.String(functionId)}, $function)" =>
+          case q"$db.cacheFunction(${Lit.String(functionId)}, $function)" =>
             functionIfFound = Some(functionId)
 
-          case q"$db.update($from, $to, ${Lit.String(functionId)}, $function)" =>
+          case q"$db.cacheFunction($name = ${Lit.String(functionId)}, $function)" =>
             functionIfFound = Some(functionId)
 
           case _ =>

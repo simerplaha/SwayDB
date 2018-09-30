@@ -32,14 +32,20 @@ private[core] object FunctionStore {
 
   private val cache = new ConcurrentHashMap[String, Any => Any]()
 
-  def putIfAbsent(id: String, function: Any => Any): Try[Unit] =
-    if (id.contains("==>"))
+  def put(id: String, function: Any => Any): Try[String] =
+    if (id.contains(ComposeFunction.functionSeparator))
       Failure(new Exception(s"""FunctionId: "$id" cannot contain reserved character '${ComposeFunction.functionSeparator}'"""))
     else
-      Try(cache.putIfAbsent(id, function))
+      Try(cache.putIfAbsent(id, function)) map {
+        _ =>
+          id
+      }
 
   def get(id: String): Option[Any => Any] =
     Option(cache.get(id))
+
+  def containsKey(id: String): Boolean =
+    cache.containsKey(id)
 
   def apply(oldValue: Option[Slice[Byte]],
             functionId: Slice[Byte]): Try[Option[Slice[Byte]]] =

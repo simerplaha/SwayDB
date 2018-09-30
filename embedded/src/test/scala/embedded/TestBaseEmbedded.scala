@@ -65,7 +65,7 @@ trait TestBaseEmbedded extends TestBase {
               println(s"Level $levelNumber. Submitting updated to trigger remove.")
               (1 to 500000) foreach { //submit multiple update range key-values so that a map gets submitted for compaction and to trigger merge on copied Segments in last Level.
                 i =>
-                  db.update(1, 1000000, "just triggering update to assert remove").assertGet
+                  db.update(1, 1000000, value = "just triggering update to assert remove").assertGet
                   if (i == 100000) sleep(2.seconds)
               }
             }

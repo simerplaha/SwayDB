@@ -51,11 +51,13 @@ private[swaydb] trait SwayDBAPI {
 
   def update(key: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter]
 
-  def update(key: Slice[Byte], functionId: String, function: Any => Any): Try[Level0Meter]
+  def cacheFunction(functionId: String, function: Any => Any): Try[String]
+
+  def update(key: Slice[Byte], functionId: String): Try[Level0Meter]
 
   def update(from: Slice[Byte], to: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter]
 
-  def update(from: Slice[Byte], to: Slice[Byte], functionId: String, function: Any => Any): Try[Level0Meter]
+  def update(from: Slice[Byte], to: Slice[Byte], functionId: String): Try[Level0Meter]
 
   def expire(key: Slice[Byte], at: Deadline): Try[Level0Meter]
 

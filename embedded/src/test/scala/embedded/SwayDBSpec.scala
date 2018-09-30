@@ -96,7 +96,7 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
           db.remove(i).assertGet
       }
 
-      db.update(1, 100, "updated").assertGet
+      db.update(1, 100, value = "updated").assertGet
 
       db.toList should contain only((1, "updated"), (100, "updated"))
       db.head shouldBe ((1, "updated"))
@@ -114,7 +114,7 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
 
       db.remove(2, 99).assertGet
 
-      db.update(1, 100, "updated").assertGet
+      db.update(1, 100, value = "updated").assertGet
 
       db.toList should contain only((1, "updated"), (100, "updated"))
       db.head shouldBe ((1, "updated"))
@@ -129,7 +129,7 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
           db.put(i, i.toString).assertGet
       }
 
-      db.update(10, 90, "updated").assertGet
+      db.update(10, 90, value = "updated").assertGet
 
       db.remove(50, 99).assertGet
 
@@ -154,7 +154,7 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
 
     "return empty for an empty database with update range" in {
       val db = newDB()
-      db.update(1, Int.MaxValue, "updated").assertGet
+      db.update(1, Int.MaxValue, value = "updated").assertGet
 
       db.isEmpty shouldBe true
 
