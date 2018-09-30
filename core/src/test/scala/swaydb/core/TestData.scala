@@ -64,12 +64,13 @@ trait TestData extends TryAssert {
     Memory.Remove(key, deadline)
 
   def randomFixedKeyValue(key: Slice[Byte],
-                          value: Option[Slice[Byte]] = randomStringOption): Memory.Fixed =
+                          value: Option[Slice[Byte]] = randomStringOption,
+                          addUpdateFunctions: Boolean = true): Memory.Fixed =
     if (Random.nextBoolean())
       Memory.Put(key, value, randomDeadlineOption)
     else if (Random.nextBoolean())
       Memory.Remove(key, randomDeadlineOption)
-    else if (Random.nextBoolean())
+    else if (addUpdateFunctions && Random.nextBoolean())
       Memory.UpdateFunction(key, incrementBy1FunctionId, randomDeadlineOption)
     else
       Memory.Update(key, value, randomDeadlineOption)

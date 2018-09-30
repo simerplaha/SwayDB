@@ -59,32 +59,4 @@ class KeyValueMerger3_Update_None_None_Into_UpdateFunction_Spec extends WordSpec
       (Memory.Update(1, None, None), Memory.UpdateFunction(1, incrementBy1FunctionId, deadline)).merge shouldBe Memory.Update(1, None, deadline)
     }
   }
-
-  /**
-    * Update(None, None) -> UpdateFunction(None)
-    */
-
-  "Update(None, None) -> UpdateFunction(None)" when {
-    "UpdateFunction(None)" in {
-      (Memory.Update(1, None, None), Memory.UpdateFunction(1, incrementBy1FunctionId, None)).merge shouldBe Memory.Update(1, None, None)
-    }
-  }
-
-  "Update(None, None) -> Update(Some, Some)" when {
-    "UpdateFunction(HasTimeLeft)" in {
-      val deadline = 20.seconds.fromNow
-      (Memory.Update(1, None, None), Memory.UpdateFunction(1, incrementBy1FunctionId, deadline)).merge shouldBe Memory.Update(1, None, deadline)
-    }
-
-    "UpdateFunction(HasNoTimeLeft)" in {
-      val deadline = 5.seconds.fromNow
-      (Memory.Update(1, None, None), Memory.UpdateFunction(1, incrementBy1FunctionId, deadline)).merge shouldBe Memory.Update(1, None, deadline)
-    }
-
-    "UpdateFunction(Expired)" in {
-      val deadline = expiredDeadline()
-      (Memory.Update(1, None, None), Memory.UpdateFunction(1, incrementBy1FunctionId, deadline)).merge shouldBe Memory.Update(1, None, deadline)
-    }
-  }
-
 }
