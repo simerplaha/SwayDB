@@ -34,7 +34,8 @@ class FunctionStoreSpec extends TestBase {
 
       FunctionStore.put("123", function).assertGet
 
-      FunctionStore.apply(Some(Slice.writeInt(1)), "123").assertGet.readInt() shouldBe 2
+      val value = FunctionValueSerializer.write("123")
+      FunctionStore.apply(Some(Slice.writeInt(1)), value).assertGet.readInt() shouldBe 2
 
     }
 
@@ -53,9 +54,13 @@ class FunctionStoreSpec extends TestBase {
       FunctionStore.put("2", function2).assertGet
       FunctionStore.put("3", function3).assertGet
 
-      val composedFunction = Seq("1", "2", "3").mkString(ComposeFunction.functionSeparator)
+      val oneFunction = FunctionValueSerializer.write("1")
+      val twoFunction = FunctionValueSerializer.write("2")
+      val threeFunction = FunctionValueSerializer.write("3")
+      val compose1 = FunctionValueSerializer.compose(oneFunction, twoFunction)
+      val compose2 = FunctionValueSerializer.compose(compose1, threeFunction)
 
-      FunctionStore.apply(Some(1), composedFunction).assertGet.readInt() shouldBe 7
+      FunctionStore.apply(Some(1), compose2).assertGet.readInt() shouldBe 7
     }
   }
 }

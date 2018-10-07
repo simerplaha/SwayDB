@@ -26,7 +26,6 @@ import swaydb.data.compaction.LevelMeter
 import swaydb.data.request
 import swaydb.data.slice.Slice
 import swaydb.iterator.{DBIterator, KeysIterator}
-import swaydb.macros.CheckId
 import swaydb.serializers.{Serializer, _}
 import swaydb.types.BatchImplicits._
 
@@ -49,7 +48,7 @@ object SwayDBMap {
 class SwayDBMap[K, V](api: SwayDBAPI)(implicit keySerializer: Serializer[K],
                                       valueSerializer: Serializer[V]) extends DBIterator[K, V](api, None) {
 
-  def cacheFunction(functionId: String, function: V => V)(implicit checkId: CheckId): Try[String] =
+  def cacheFunction(functionId: String, function: V => V): Try[String] =
     api.cacheFunction(
       functionId = functionId,
       function =

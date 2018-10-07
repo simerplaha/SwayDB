@@ -20,14 +20,16 @@
 package swaydb.core.level.zero
 
 import java.nio.channels.{FileChannel, FileLock}
+import java.nio.charset.StandardCharsets
 import java.nio.file.{Path, Paths, StandardOpenOption}
 import java.util
+import java.util.UUID
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.KeyValue._
 import swaydb.core.data._
 import swaydb.core.finders.{Get, Higher, Lower}
-import swaydb.core.function.FunctionStore
+import swaydb.core.function.{FunctionStore, FunctionValueSerializer}
 import swaydb.core.io.file.IO
 import swaydb.core.level.LevelRef
 import swaydb.core.level.actor.LevelCommand.WakeUp
@@ -35,7 +37,7 @@ import swaydb.core.level.actor.LevelZeroAPI
 import swaydb.core.map
 import swaydb.core.map.{MapEntry, Maps, SkipListMerge}
 import swaydb.core.retry.Retry
-import swaydb.core.util.{MinMax, TryUtil}
+import swaydb.core.util.{Bytes, MinMax, TryUtil, UUIDUtil}
 import swaydb.data.accelerate.{Accelerator, Level0Meter}
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.slice.Slice
@@ -203,7 +205,7 @@ private[core] class LevelZero(val path: Path,
   def update(key: Slice[Byte], functionId: String): Try[Level0Meter] =
     assertKey(key) {
       if (FunctionStore.containsKey(functionId))
-        maps.write(MapEntry.Put(key, Memory.UpdateFunction(key, Slice.writeString(functionId))))
+        maps.write(MapEntry.Put(key, Memory.UpdateFunction(key, FunctionValueSerializer.write(functionId))))
       else
         Failure(new Exception(s"functionId: $functionId does not exist."))
     }
@@ -226,9 +228,9 @@ private[core] class LevelZero(val path: Path,
       assertKey(to) {
         if (FunctionStore.containsKey(functionId))
           maps.write {
-            val functionBytes = Slice.writeString(functionId)
-            (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, to, None, Value.UpdateFunction(functionBytes, None))): MapEntry[Slice[Byte], Memory.Response]) ++
-              MapEntry.Put[Slice[Byte], Memory.UpdateFunction](to, Memory.UpdateFunction(to, functionBytes))
+            val functionValueBytes = FunctionValueSerializer.write(functionId)
+            (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, to, None, Value.UpdateFunction(functionValueBytes, None))): MapEntry[Slice[Byte], Memory.Response]) ++
+              MapEntry.Put[Slice[Byte], Memory.UpdateFunction](to, Memory.UpdateFunction(to, functionValueBytes))
           }
         else
           Failure(new Exception(s"""functionId: "$functionId"" does not exist."""))

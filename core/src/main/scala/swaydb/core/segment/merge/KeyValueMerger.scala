@@ -20,7 +20,7 @@
 package swaydb.core.segment.merge
 
 import swaydb.core.data.{KeyValue, Memory, Persistent, Value}
-import swaydb.core.function.ComposeFunction
+import swaydb.core.function.FunctionValueSerializer
 import swaydb.data.slice.Slice
 
 import scala.concurrent.duration.FiniteDuration
@@ -242,12 +242,12 @@ private[core] object KeyValueMerger {
               Memory.Update(oldKeyValue.key, newValue.get, oldKeyValue.deadline)
 
             case Memory.UpdateFunction(_, _, None) | Persistent.UpdateFunction(_, None, _, _, _, _, _, _) => //Update Some - Update None
-              val composedFunction = ComposeFunction(oldKeyValue.asInstanceOf[KeyValue.ReadOnly.UpdateFunction], newKeyValue.asInstanceOf[KeyValue.ReadOnly.UpdateFunction]).get
-              Memory.UpdateFunction(oldKeyValue.key, Slice(composedFunction.getBytes()))
+              val composedFunction = FunctionValueSerializer.compose(oldKeyValue.asInstanceOf[KeyValue.ReadOnly.UpdateFunction], newKeyValue.asInstanceOf[KeyValue.ReadOnly.UpdateFunction]).get
+              Memory.UpdateFunction(oldKeyValue.key, composedFunction)
 
             case Memory.UpdateFunction(_, _, Some(_)) | Persistent.UpdateFunction(_, Some(_), _, _, _, _, _, _) => //Update Some - Update Some
-              val composedFunction = ComposeFunction(oldKeyValue.asInstanceOf[KeyValue.ReadOnly.UpdateFunction], newKeyValue.asInstanceOf[KeyValue.ReadOnly.UpdateFunction]).get
-              Memory.UpdateFunction(oldKeyValue.key, Slice(composedFunction.getBytes()), oldKeyValue.deadline)
+              val composedFunction = FunctionValueSerializer.compose(oldKeyValue.asInstanceOf[KeyValue.ReadOnly.UpdateFunction], newKeyValue.asInstanceOf[KeyValue.ReadOnly.UpdateFunction]).get
+              Memory.UpdateFunction(oldKeyValue.key, composedFunction, oldKeyValue.deadline)
           }
 
         case Memory.UpdateFunction(_, _, Some(_)) | Persistent.UpdateFunction(_, Some(_), _, _, _, _, _, _) => //Update Some without deadline always overwrites old key-value
@@ -288,15 +288,15 @@ private[core] object KeyValueMerger {
                 Memory.Update(oldKeyValue.key, newValue.get, oldKeyValue.deadline)
 
             case Memory.UpdateFunction(_, _, None) | Persistent.UpdateFunction(_, None, _, _, _, _, _, _) => //Update Some - Update None
-              val composedFunction = ComposeFunction(oldKeyValue.asInstanceOf[KeyValue.ReadOnly.UpdateFunction], newKeyValue.asInstanceOf[KeyValue.ReadOnly.UpdateFunction]).get
-              Memory.UpdateFunction(oldKeyValue.key, Slice(composedFunction.getBytes()), newKeyValue.deadline)
+              val composedFunction = FunctionValueSerializer.compose(oldKeyValue.asInstanceOf[KeyValue.ReadOnly.UpdateFunction], newKeyValue.asInstanceOf[KeyValue.ReadOnly.UpdateFunction]).get
+              Memory.UpdateFunction(oldKeyValue.key, composedFunction, newKeyValue.deadline)
 
             case Memory.UpdateFunction(_, _, Some(_)) | Persistent.UpdateFunction(_, Some(_), _, _, _, _, _, _) => //Update Some - Update Some
-              val composedFunction = ComposeFunction(oldKeyValue.asInstanceOf[KeyValue.ReadOnly.UpdateFunction], newKeyValue.asInstanceOf[KeyValue.ReadOnly.UpdateFunction]).get
+              val composedFunction = FunctionValueSerializer.compose(oldKeyValue.asInstanceOf[KeyValue.ReadOnly.UpdateFunction], newKeyValue.asInstanceOf[KeyValue.ReadOnly.UpdateFunction]).get
               if (newKeyValue.deadline.get <= oldKeyValue.deadline.get || oldKeyValue.hasTimeLeftAtLeast(hasTimeLeftAtLeast))
-                Memory.UpdateFunction(oldKeyValue.key, Slice(composedFunction.getBytes()), newKeyValue.deadline)
+                Memory.UpdateFunction(oldKeyValue.key, composedFunction, newKeyValue.deadline)
               else
-                Memory.UpdateFunction(oldKeyValue.key, Slice(composedFunction.getBytes()), oldKeyValue.deadline)
+                Memory.UpdateFunction(oldKeyValue.key, composedFunction, oldKeyValue.deadline)
           }
       }
     }

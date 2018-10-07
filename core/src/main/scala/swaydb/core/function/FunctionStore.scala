@@ -31,13 +31,10 @@ private[core] object FunctionStore {
   private val cache = new ConcurrentHashMap[String, Slice[Byte] => Slice[Byte]]()
 
   def put(id: String, function: Slice[Byte] => Slice[Byte]): Try[String] =
-    if (id.contains(ComposeFunction.functionSeparator))
-      Failure(new Exception(s"""FunctionId: "$id" cannot contain reserved character '${ComposeFunction.functionSeparator}'"""))
-    else
-      Try(cache.putIfAbsent(id, function)) map {
-        _ =>
-          id
-      }
+    Try(cache.putIfAbsent(id, function)) map {
+      _ =>
+        id
+    }
 
   def get(id: String): Option[Slice[Byte] => Slice[Byte]] =
     Option(cache.get(id))
@@ -46,16 +43,18 @@ private[core] object FunctionStore {
     cache.containsKey(id)
 
   def apply(oldValue: Option[Slice[Byte]],
-            functionId: Slice[Byte]): Try[Option[Slice[Byte]]] =
+            functionValue: Slice[Byte]): Try[Option[Slice[Byte]]] =
     oldValue map {
       oldValue =>
-        val classes = functionId.readString().split(ComposeFunction.functionSeparatorRegex)
-        classes.toList.tryFoldLeft(oldValue) {
-          case (previousValue, nextFunction) =>
-            applyFunction(functionId = nextFunction, oldValue = previousValue)
-        } map {
-          output =>
-            Some(output)
+        FunctionValueSerializer.read(functionValue) flatMap {
+          functionIds =>
+            functionIds.tryFoldLeft(oldValue) {
+              case (previousValue, (nextFunctionInsertId, nextFunction)) =>
+                applyFunction(functionId = nextFunction, oldValue = previousValue)
+            } map {
+              output =>
+                Some(output)
+            }
         }
     } getOrElse {
       Failure(new Exception("No old value specified"))
