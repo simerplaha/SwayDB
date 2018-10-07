@@ -85,4 +85,6 @@ db
 
 ## Status: Beta
 
-Currently undergoing integration, stress & performance testing.
+Currently undergoing unit, integration, stress & performance testing.
+
+Backward compatible will be supported for versions `1` onwards.
