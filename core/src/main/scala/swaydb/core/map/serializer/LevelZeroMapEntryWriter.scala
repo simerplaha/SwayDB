@@ -100,34 +100,6 @@ object LevelZeroMapEntryWriter {
           ByteSizeOf.long
   }
 
-  implicit object Level0UpdateFunctionWriter extends MapEntryWriter[MapEntry.Put[Slice[Byte], Memory.UpdateFunction]] {
-    val id: Int = 3
-
-    override val isRange: Boolean = false
-    override val isUpdate: Boolean = true
-
-    override def write(entry: MapEntry.Put[Slice[Byte], Memory.UpdateFunction], bytes: Slice[Byte]): Unit = {
-      bytes
-        .addInt(id)
-        .addInt(entry.value.key.size)
-        .addAll(entry.value.key)
-        .addInt(entry.value.function.size)
-        .addAll(entry.value.function)
-        .addLong(entry.value.deadline.map(_.time.toNanos).getOrElse(0))
-    }
-
-    override def bytesRequired(entry: MapEntry.Put[Slice[Byte], Memory.UpdateFunction]): Int =
-      if (entry.value.key.isEmpty)
-        0
-      else
-        ByteSizeOf.int +
-          ByteSizeOf.int +
-          entry.value.key.size +
-          ByteSizeOf.int +
-          entry.value.function.size +
-          ByteSizeOf.long
-  }
-
   implicit object Level0RangeWriter extends MapEntryWriter[MapEntry.Put[Slice[Byte], Memory.Range]] {
     val id = 4
 
@@ -175,9 +147,6 @@ object LevelZeroMapEntryWriter {
         case entry @ MapEntry.Put(_, _: Memory.Update) =>
           MapEntryWriter.write(entry.asInstanceOf[MapEntry.Put[Slice[Byte], Memory.Update]], bytes)
 
-        case entry @ MapEntry.Put(_, _: Memory.UpdateFunction) =>
-          MapEntryWriter.write(entry.asInstanceOf[MapEntry.Put[Slice[Byte], Memory.UpdateFunction]], bytes)
-
         case entry @ MapEntry.Put(_, _: Memory.Remove) =>
           MapEntryWriter.write(entry.asInstanceOf[MapEntry.Put[Slice[Byte], Memory.Remove]], bytes)
 
@@ -192,9 +161,6 @@ object LevelZeroMapEntryWriter {
 
         case entry @ MapEntry.Put(_, _: Memory.Update) =>
           MapEntryWriter.bytesRequired(entry.asInstanceOf[MapEntry.Put[Slice[Byte], Memory.Update]])
-
-        case entry @ MapEntry.Put(_, _: Memory.UpdateFunction) =>
-          MapEntryWriter.bytesRequired(entry.asInstanceOf[MapEntry.Put[Slice[Byte], Memory.UpdateFunction]])
 
         case entry @ MapEntry.Put(_, _: Memory.Remove) =>
           MapEntryWriter.bytesRequired(entry.asInstanceOf[MapEntry.Put[Slice[Byte], Memory.Remove]])

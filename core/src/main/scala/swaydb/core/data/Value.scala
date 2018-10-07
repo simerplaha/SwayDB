@@ -19,11 +19,9 @@
 
 package swaydb.core.data
 
-import swaydb.core.function.FunctionStore
 import swaydb.data.slice.Slice
 
 import scala.concurrent.duration.{Deadline, FiniteDuration}
-import scala.util.Try
 
 private[swaydb] sealed trait Value {
 
@@ -62,9 +60,6 @@ private[swaydb] object Value {
 
         case update: Value.Update =>
           update.unslice()
-
-        case update: Value.UpdateFunction =>
-          update.unslice()
       }
   }
 
@@ -80,9 +75,6 @@ private[swaydb] object Value {
 
         case update: Value.Update =>
           update.unslice()
-
-        case update: Value.UpdateFunction =>
-          update.unslice()
       }
 
     def toMemory(key: Slice[Byte]): Memory.Fixed =
@@ -92,9 +84,6 @@ private[swaydb] object Value {
 
         case Value.Update(value, deadline) =>
           Memory.Update(key, value, deadline)
-
-        case Value.UpdateFunction(function, deadline) =>
-          Memory.UpdateFunction(key, function, deadline)
       }
   }
 
@@ -111,8 +100,6 @@ private[swaydb] object Value {
           Memory.Put(key, value, deadline)
         case Update(value, deadline) =>
           Memory.Update(key, value, deadline)
-        case UpdateFunction(value, deadline) =>
-          Memory.UpdateFunction(key, value, deadline)
       }
   }
 
@@ -207,23 +194,5 @@ private[swaydb] object Value {
       else
         Value.Update(unslicedValue, deadline)
     }
-  }
-
-  case class UpdateFunction(function: Slice[Byte],
-                            deadline: Option[Deadline]) extends FromValue with RangeValue {
-
-    override val isRemove: Boolean = false
-
-    final def applyFunction(value: Option[Slice[Byte]]): Try[Option[Slice[Byte]]] =
-      FunctionStore(value, function)
-
-    override def hasTimeLeft(): Boolean =
-      deadline.forall(_.hasTimeLeft())
-
-    override def hasTimeLeftWithGrace(grace: FiniteDuration): Boolean =
-      deadline.forall(deadline => (deadline - grace).hasTimeLeft())
-
-    def unslice(): Value.UpdateFunction =
-      copy(function.unslice(), deadline)
   }
 }

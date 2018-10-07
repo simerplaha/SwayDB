@@ -50,8 +50,6 @@ private[swaydb] object CoreAPI {
 
 private[swaydb] trait CoreAPI {
 
-  def cacheFunction(functionId: String, function: Slice[Byte] => Slice[Byte]): Try[String]
-
   def put(key: Slice[Byte]): Try[Level0Meter]
 
   def put(key: Slice[Byte], value: Slice[Byte]): Try[Level0Meter]
@@ -74,13 +72,9 @@ private[swaydb] trait CoreAPI {
 
   def update(key: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter]
 
-  def update(key: Slice[Byte], functionId: String): Try[Level0Meter]
-
   def update(fromKey: Slice[Byte], to: Slice[Byte], value: Slice[Byte]): Try[Level0Meter]
 
   def update(fromKey: Slice[Byte], to: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter]
-
-  def update(fromKey: Slice[Byte], to: Slice[Byte], functionId: String): Try[Level0Meter]
 
   def head: Try[Option[KeyValueTuple]]
 

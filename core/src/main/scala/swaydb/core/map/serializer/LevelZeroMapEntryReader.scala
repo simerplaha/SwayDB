@@ -74,20 +74,6 @@ object LevelZeroMapEntryReader {
       }
   }
 
-  implicit object Level0UpdateFunctionReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Memory.UpdateFunction]] {
-
-    override def read(reader: Reader): Try[Option[MapEntry.Put[Slice[Byte], Memory.UpdateFunction]]] =
-      for {
-        keyLength <- reader.readInt()
-        key <- reader.read(keyLength).map(_.unslice())
-        valueLength <- reader.readInt()
-        function <- if (valueLength == 0) Failure(new Exception("UpdateFunction's valueLength is 0")) else reader.read(valueLength)
-        after <- reader.readLong()
-      } yield {
-        val deadline = if (after == 0) None else Some(Deadline(after, TimeUnit.NANOSECONDS))
-        Some(MapEntry.Put(key, Memory.UpdateFunction(key, function, deadline))(LevelZeroMapEntryWriter.Level0UpdateFunctionWriter))
-      }
-  }
 
   implicit object Level0RangeReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Memory.Range]] {
 
@@ -137,14 +123,6 @@ object LevelZeroMapEntryReader {
                 }
               else if (entryId == LevelZeroMapEntryWriter.Level0UpdateWriter.id)
                 Level0UpdateReader.read(reader) map {
-                  nextEntry =>
-                    nextEntry flatMap {
-                      nextEntry =>
-                        previousEntry.map(_ ++ nextEntry) orElse Some(nextEntry)
-                    }
-                }
-              else if (entryId == LevelZeroMapEntryWriter.Level0UpdateFunctionWriter.id)
-                Level0UpdateFunctionReader.read(reader) map {
                   nextEntry =>
                     nextEntry flatMap {
                       nextEntry =>

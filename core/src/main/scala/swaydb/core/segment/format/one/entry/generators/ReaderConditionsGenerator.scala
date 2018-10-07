@@ -101,10 +101,6 @@ object ReaderConditionsGenerator extends App {
       UpdateKeyFullyCompressedEntryId.keyIdsList,
       UpdateKeyPartiallyCompressedEntryId.keyIdsList,
 
-      UpdateFunctionKeyUncompressedEntryId.keyIdsList,
-      UpdateFunctionKeyFullyCompressedEntryId.keyIdsList,
-      UpdateFunctionKeyPartiallyCompressedEntryId.keyIdsList,
-
       RangeKeyUncompressedEntryId.keyIdsList,
       RangeKeyFullyCompressedEntryId.keyIdsList,
       RangeKeyPartiallyCompressedEntryId.keyIdsList,

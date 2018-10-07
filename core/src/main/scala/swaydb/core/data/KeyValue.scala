@@ -22,13 +22,12 @@ package swaydb.core.data
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data.`lazy`.{LazyRangeValue, LazyValue}
-import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.data.GroupHeader
 import swaydb.core.group.compression.{GroupCompressor, GroupDecompressor, GroupKeyCompressor}
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.serializer.RangeValueSerializer
 import swaydb.core.queue.KeyValueLimiter
-import swaydb.core.segment.format.one.entry.writer.{UpdateFunctionEntryWriter, _}
+import swaydb.core.segment.format.one.entry.writer._
 import swaydb.core.segment.{SegmentCache, SegmentCacheInitializer}
 import swaydb.core.util.CollectionUtil._
 import swaydb.core.util.{Bytes, TryUtil}
@@ -108,17 +107,6 @@ private[core] object KeyValue {
 
           case update: Persistent.Update =>
             update.getOrFetchValue.map(Value.Update(_, update.deadline))
-
-          case update: Memory.UpdateFunction =>
-            Success(Value.UpdateFunction(update.function, update.deadline))
-
-          case update: Persistent.UpdateFunction =>
-            update.getOrFetchValue flatMap {
-              case Some(function) =>
-                Success(Value.UpdateFunction(function, update.deadline))
-              case None =>
-                Failure(new Exception("UpdateFunction contained no function value."))
-            }
         }
 
       def toRangeValue: Try[Value.RangeValue] =
@@ -137,18 +125,6 @@ private[core] object KeyValue {
 
           case update: Persistent.Update =>
             update.getOrFetchValue.map(Value.Update(_, update.deadline))
-
-          case put: Memory.UpdateFunction =>
-            Success(Value.UpdateFunction(put.function, put.deadline))
-
-          case update: Persistent.UpdateFunction =>
-            update.getOrFetchValue flatMap {
-              case Some(function) =>
-                Success(Value.UpdateFunction(function, update.deadline))
-              case None =>
-                Failure(new Exception("UpdateFunction contained no function value."))
-            }
-
         }
     }
 
@@ -364,8 +340,6 @@ private[swaydb] object Memory {
           Value.Update(update.value, update.deadline)
         case remove: Remove =>
           Value.Remove(remove.deadline)
-        case update: UpdateFunction =>
-          Value.UpdateFunction(update.function, update.deadline)
 
       }
 
@@ -377,8 +351,6 @@ private[swaydb] object Memory {
           Value.Update(update.value, update.deadline)
         case remove: Remove =>
           Value.Remove(remove.deadline)
-        case update: UpdateFunction =>
-          Value.UpdateFunction(update.function, update.deadline)
       }
   }
 
@@ -494,53 +466,6 @@ private[swaydb] object Memory {
       Memory.Put(key, value, deadline)
   }
 
-  object UpdateFunction {
-    def apply(key: Slice[Byte],
-              function: Slice[Byte]): UpdateFunction =
-      new UpdateFunction(key, function, None)
-
-    def apply(key: Slice[Byte],
-              function: Slice[Byte],
-              removeAt: Deadline): UpdateFunction =
-      new UpdateFunction(key, function, Some(removeAt))
-
-    def apply(key: Slice[Byte],
-              function: Slice[Byte],
-              removeAfter: FiniteDuration): UpdateFunction =
-      new UpdateFunction(key, function, Some(removeAfter.fromNow))
-  }
-
-  case class UpdateFunction(key: Slice[Byte],
-                            function: Slice[Byte],
-                            deadline: Option[Deadline]) extends KeyValue.ReadOnly.UpdateFunction with Memory.Fixed {
-
-    final def applyFunction(value: Option[Slice[Byte]]): Try[Option[Slice[Byte]]] =
-      FunctionStore(value, function)
-
-    override def toPut(value: Option[Slice[Byte]]): Try[ReadOnly.Put] =
-      applyFunction(value) map {
-        newValue =>
-          Memory.Put(key, newValue, deadline)
-      }
-
-    override def toPut(value: Option[Slice[Byte]], deadline: Deadline): Try[ReadOnly.Put] =
-      applyFunction(value) map {
-        newValue =>
-          Memory.Put(key, newValue, deadline)
-      }
-
-    override def getOrFetchValue: Try[Option[Slice[Byte]]] =
-      Success(Some(function))
-
-    override def hasTimeLeft(): Boolean =
-      deadline.forall(_.hasTimeLeft())
-
-    override def updateDeadline(deadline: Deadline): UpdateFunction =
-      copy(deadline = Some(deadline))
-
-    override def hasTimeLeftAtLeast(minus: FiniteDuration): Boolean =
-      deadline.forall(deadline => (deadline - minus).hasTimeLeft())
-  }
 
   object Remove {
     def apply(key: Slice[Byte]): Remove =
@@ -680,14 +605,6 @@ private[core] object Transient {
               Memory.Update(update.key, value, update.deadline)
           }
 
-        case update: Transient.UpdateFunction =>
-          update.getOrFetchValue flatMap {
-            case Some(value) =>
-              Success(Memory.UpdateFunction(update.key, value, update.deadline))
-            case None =>
-              Failure(new Exception("UpdateFunction contains no function value."))
-          }
-
         case range: Transient.Range =>
           range.fetchFromAndRangeValue map {
             case (fromValue, rangeValue) =>
@@ -721,14 +638,6 @@ private[core] object Transient {
           update.getOrFetchValue map {
             value =>
               Memory.Update(update.key, value, update.deadline)
-          }
-
-        case update: Transient.UpdateFunction =>
-          update.getOrFetchValue flatMap {
-            case Some(value) =>
-              Success(Memory.UpdateFunction(update.key, value, update.deadline))
-            case None =>
-              Failure(new Exception("UpdateFunction contains no function value."))
           }
 
         case range: Transient.Range =>
@@ -1208,150 +1117,6 @@ private[core] object Transient {
 
   }
 
-  object UpdateFunction {
-
-    def apply(key: Slice[Byte],
-              function: Slice[Byte],
-              falsePositiveRate: Double,
-              previousMayBe: Option[KeyValue.WriteOnly]): UpdateFunction =
-      new UpdateFunction(
-        key = key,
-        function = function,
-        deadline = None,
-        previous = previousMayBe,
-        falsePositiveRate = falsePositiveRate,
-        compressDuplicateValues = true
-      )
-
-    def apply(key: Slice[Byte],
-              function: Slice[Byte],
-              falsePositiveRate: Double,
-              previousMayBe: Option[KeyValue.WriteOnly],
-              deadline: Option[Deadline],
-              compressDuplicateValues: Boolean): UpdateFunction =
-      new UpdateFunction(
-        key = key,
-        function = function,
-        deadline = deadline,
-        previous = previousMayBe,
-        falsePositiveRate = falsePositiveRate,
-        compressDuplicateValues = compressDuplicateValues
-      )
-
-    def apply(key: Slice[Byte],
-              function: Slice[Byte]): UpdateFunction =
-      new UpdateFunction(
-        key = key,
-        function = function,
-        deadline = None,
-        previous = None,
-        falsePositiveRate = 0.1,
-        compressDuplicateValues = true
-      )
-
-    def apply(key: Slice[Byte],
-              function: Slice[Byte],
-              removeAfter: FiniteDuration): UpdateFunction =
-      new UpdateFunction(
-        key = key,
-        function = function,
-        deadline = Some(removeAfter.fromNow),
-        previous = None,
-        falsePositiveRate = 0.1,
-        compressDuplicateValues = true
-      )
-
-    def apply(key: Slice[Byte],
-              function: Slice[Byte],
-              deadline: Deadline): UpdateFunction =
-      new UpdateFunction(
-        key = key,
-        function = function,
-        deadline = Some(deadline),
-        previous = None,
-        falsePositiveRate = 0.1,
-        compressDuplicateValues = true
-      )
-
-    def apply(key: Slice[Byte],
-              function: Slice[Byte],
-              removeAfter: Option[FiniteDuration]): UpdateFunction =
-      new UpdateFunction(
-        key = key,
-        function = function,
-        deadline = removeAfter.map(_.fromNow),
-        previous = None,
-        falsePositiveRate = 0.1,
-        compressDuplicateValues = true
-      )
-
-    def apply(key: Slice[Byte],
-              function: Slice[Byte],
-              falsePositiveRate: Double): UpdateFunction =
-      new UpdateFunction(
-        key = key,
-        function = function,
-        deadline = None,
-        previous = None,
-        falsePositiveRate = falsePositiveRate,
-        compressDuplicateValues = true
-      )
-
-    def apply(key: Slice[Byte],
-              function: Slice[Byte],
-              falsePositiveRate: Double,
-              previous: Option[KeyValue.WriteOnly],
-              compressDuplicateValues: Boolean): UpdateFunction =
-      new UpdateFunction(
-        key = key,
-        function = function,
-        deadline = None,
-        previous = previous,
-        falsePositiveRate = falsePositiveRate,
-        compressDuplicateValues = compressDuplicateValues
-      )
-  }
-
-  case class UpdateFunction(key: Slice[Byte],
-                            function: Slice[Byte],
-                            deadline: Option[Deadline],
-                            previous: Option[KeyValue.WriteOnly],
-                            falsePositiveRate: Double,
-                            compressDuplicateValues: Boolean) extends Transient with KeyValue.WriteOnly.Fixed {
-    override val hasRemove: Boolean = previous.exists(_.hasRemove)
-    override val isRemoveRange = false
-    override val isGroup: Boolean = false
-    override val isRange: Boolean = false
-    override val value = Some(function)
-
-    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition): (Slice[Byte], Option[Slice[Byte]], Int, Int) =
-      UpdateFunctionEntryWriter.write(current = this, compressDuplicateValues = compressDuplicateValues)
-    override val hasValueEntryBytes: Boolean = previous.exists(_.hasValueEntryBytes) || valueEntryBytes.exists(_.nonEmpty)
-
-    val stats =
-      Stats(
-        key = indexEntryBytes,
-        value = valueEntryBytes,
-        falsePositiveRate = falsePositiveRate,
-        isRemoveRange = isRemoveRange,
-        isRange = isRange,
-        isGroup = isGroup,
-        bloomFiltersItemCount = 1,
-        previous = previous,
-        deadline = deadline
-      )
-
-    override def updateStats(falsePositiveRate: Double, previous: Option[KeyValue.WriteOnly]): Transient.UpdateFunction =
-      this.copy(falsePositiveRate = falsePositiveRate, previous = previous)
-
-    override def getOrFetchValue: Try[Option[Slice[Byte]]] =
-      Success(value)
-
-    override def hasTimeLeft(): Boolean =
-      deadline.forall(_.hasTimeLeft())
-
-  }
-
   object Range {
 
     def apply[F <: Value.FromValue, R <: Value.RangeValue](fromKey: Slice[Byte],
@@ -1599,20 +1364,6 @@ private[core] object Persistent {
                     deadline = update.deadline
                   )
               }
-
-            case update: Persistent.UpdateFunction =>
-              update.getOrFetchValue flatMap {
-                case Some(value) =>
-                  Success(
-                    Memory.UpdateFunction(
-                      key = update.key,
-                      function = value,
-                      update.deadline
-                    )
-                  )
-                case None =>
-                  Failure(new Exception("UpdateFunction contained no function value."))
-              }
           }
         case range: Persistent.Range =>
           range.fetchFromAndRangeValue map {
@@ -1806,73 +1557,6 @@ private[core] object Persistent {
       }
   }
 
-  object UpdateFunction {
-    def apply(valueReader: Reader,
-              indexOffset: Int)(key: Slice[Byte],
-                                valueLength: Int,
-                                valueOffset: Int,
-                                nextIndexOffset: Int,
-                                nextIndexSize: Int,
-                                deadline: Option[Deadline]): UpdateFunction =
-      UpdateFunction(
-        _key = key,
-        deadline = deadline,
-        valueReader = valueReader,
-        nextIndexOffset = nextIndexOffset,
-        nextIndexSize = nextIndexSize,
-        indexOffset = indexOffset,
-        valueOffset = valueOffset,
-        valueLength = valueLength
-      )
-  }
-
-  case class UpdateFunction(private var _key: Slice[Byte],
-                            deadline: Option[Deadline],
-                            valueReader: Reader,
-                            nextIndexOffset: Int,
-                            nextIndexSize: Int,
-                            indexOffset: Int,
-                            valueOffset: Int,
-                            valueLength: Int) extends Persistent.Fixed with LazyValue with KeyValue.ReadOnly.UpdateFunction {
-
-    final def applyFunction(oldValue: Option[Slice[Byte]]): Try[Option[Slice[Byte]]] =
-      getOrFetchValue flatMap {
-        functionClassName =>
-          functionClassName map {
-            functionClassName =>
-              FunctionStore(oldValue, functionClassName)
-          } getOrElse {
-            Failure(new Exception("Function does not exists"))
-          }
-      }
-
-    override def toPut(value: Option[Slice[Byte]]): Try[ReadOnly.Put] =
-      applyFunction(value) map {
-        newValue =>
-          Memory.Put(key, newValue, deadline)
-      }
-
-    override def toPut(value: Option[Slice[Byte]], deadline: Deadline): Try[ReadOnly.Put] =
-      applyFunction(value) map {
-        newValue =>
-          Memory.Put(key, newValue, deadline)
-      }
-
-    override def unsliceKey: Unit =
-      _key = _key.unslice()
-
-    override def key: Slice[Byte] =
-      _key
-
-    override def hasTimeLeft(): Boolean =
-      deadline.forall(_.hasTimeLeft())
-
-    override def updateDeadline(deadline: Deadline): UpdateFunction =
-      copy(deadline = Some(deadline))
-
-    override def hasTimeLeftAtLeast(minus: FiniteDuration): Boolean =
-      deadline.forall(deadline => (deadline - minus).hasTimeLeft())
-  }
 
   case class Range(private var _fromKey: Slice[Byte],
                    private var _toKey: Slice[Byte],

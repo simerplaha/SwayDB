@@ -22,7 +22,6 @@ package swaydb.core.segment.format.one
 import swaydb.core.TestBase
 import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data._
-import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.GroupCompressor
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.Segment
@@ -72,19 +71,12 @@ class SegmentWriterReaderSpec extends TestBase {
       test(Slice(Transient.Remove(1, 50.seconds, 0.1)))
       test(Slice(Transient.Update(1, 10)))
 
-      val functionId = randomCharacters()
-      FunctionStore.put(functionId, inputBytes => inputBytes.readInt() + 1).assertGet shouldBe functionId
-      test(Slice(Transient.UpdateFunction(1, functionId)))
-
       test(Slice(Transient.Range[FromValue, RangeValue](1, 10, None, Value.Remove(None))))
       test(Slice(Transient.Range[FromValue, RangeValue](1, 10, Some(Value.Remove(None)), Value.Remove(None))))
       test(Slice(Transient.Range[FromValue, RangeValue](1, 10, Some(Value.Put(1)), Value.Remove(None))))
       test(Slice(Transient.Range[FromValue, RangeValue](1, 10, None, Value.Update(1))))
       test(Slice(Transient.Range[FromValue, RangeValue](1, 10, Some(Value.Put(1)), Value.Update(10))))
       test(Slice(Transient.Range[FromValue, RangeValue](1, 10, Some(Value.Remove(None)), Value.Update(10))))
-      runThis(20.times) {
-        test(Slice(Transient.Range[FromValue, RangeValue](1, 10, randomFromValueOption(), Value.UpdateFunction(functionId, randomDeadlineOption))))
-      }
       test(Slice(Transient.Group(Slice(Transient.Put(1, value = 1)), randomCompression(), randomCompression(), 0.1, None).assertGet))
       test(Slice(Transient.Group(Slice(Transient.Remove(1, 10.seconds, 0.1)), randomCompression(), randomCompression(), 0.1, None).assertGet))
       test(Slice(Transient.Group(Slice(Transient.Update(1, 1.seconds)), randomCompression(), randomCompression(), 0.1, None).assertGet))

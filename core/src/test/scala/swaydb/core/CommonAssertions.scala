@@ -160,9 +160,6 @@ trait CommonAssertions extends TryAssert with FutureBase with TestData {
             None
         case _: Value.Update =>
           None
-        case _: Value.UpdateFunction =>
-          None
-
       }
   }
 
@@ -174,7 +171,7 @@ trait CommonAssertions extends TryAssert with FutureBase with TestData {
             true
           else
             false
-        case _: Memory.Update | _: Memory.UpdateFunction | _: Memory.Remove =>
+        case _: Memory.Update | _: Memory.Remove =>
           false
       }
   }
@@ -231,9 +228,6 @@ trait CommonAssertions extends TryAssert with FutureBase with TestData {
 
             case Transient.Update(key, value, deadline, previous, falsePositiveRate, compressDuplicateValues) =>
               Memory.Update(key, value, deadline)
-
-            case Transient.UpdateFunction(key, value, deadline, previous, falsePositiveRate, compressDuplicateValues) =>
-              Memory.UpdateFunction(key, value, deadline)
 
             case Transient.Put(key, value, deadline, previous, falsePositiveRate, compressDuplicateValues) =>
               Memory.Put(key, value, deadline)
@@ -332,9 +326,6 @@ trait CommonAssertions extends TryAssert with FutureBase with TestData {
                 case Memory.Update(key, value, deadline) =>
                   Transient.Update(key, value, 0.1, None, deadline, compressDuplicateValues = true)
 
-                case Memory.UpdateFunction(key, value, deadline) =>
-                  Transient.UpdateFunction(key, value, 0.1, None, deadline, compressDuplicateValues = true)
-
                 case Memory.Remove(key, deadline) =>
                   Transient.Remove(key, 0.1, None, deadline)
               }
@@ -361,9 +352,6 @@ trait CommonAssertions extends TryAssert with FutureBase with TestData {
 
                 case put @ Persistent.Update(key, deadline, valueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength) =>
                   Transient.Update(key, put.getOrFetchValue.assertGetOpt, 0.1, None, deadline, compressDuplicateValues = true)
-
-                case put @ Persistent.UpdateFunction(key, deadline, valueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength) =>
-                  Transient.UpdateFunction(key, put.getOrFetchValue.assertGet, 0.1, None, deadline, compressDuplicateValues = true)
 
                 case Persistent.Remove(_key, deadline, indexOffset, nextIndexOffset, nextIndexSize) =>
                   Transient.Remove(_key, 0.1, None, deadline)
@@ -426,9 +414,6 @@ trait CommonAssertions extends TryAssert with FutureBase with TestData {
                 case put @ Persistent.Update(key, deadline, valueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength) =>
                   Memory.Update(key, put.getOrFetchValue.assertGetOpt, deadline)
 
-                case put @ Persistent.UpdateFunction(key, deadline, valueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength) =>
-                  Memory.UpdateFunction(key, put.getOrFetchValue.assertGet, deadline)
-
                 case Persistent.Remove(_key, deadline, indexOffset, nextIndexOffset, nextIndexSize) =>
                   Memory.Remove(_key, deadline)
               }
@@ -455,8 +440,6 @@ trait CommonAssertions extends TryAssert with FutureBase with TestData {
           s"Put(${value.map(_.read[Int]).getOrElse("None")}, deadline = $deadline)"
         case Value.Update(value, deadline) =>
           s"Update(${value.map(_.read[Int]).getOrElse("None")}, deadline = $deadline)"
-        case Value.UpdateFunction(value, deadline) =>
-          s"UpdateFunction(${value.read[String]}, deadline = $deadline)"
       }
   }
 

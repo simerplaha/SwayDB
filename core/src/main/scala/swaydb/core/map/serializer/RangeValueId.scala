@@ -39,56 +39,28 @@ case object UpdateRange extends RangeValueId {
   override val id: Int = 2
 }
 
-case object UpdateFunctionRange extends RangeValueId {
+case object RemoveRemoveRange extends RangeValueId {
   override val id: Int = 3
 }
 
-case object RemoveRemoveRange extends RangeValueId {
+case object RemoveUpdateRange extends RangeValueId {
   override val id: Int = 4
 }
 
-case object RemoveUpdateRange extends RangeValueId {
+case object PutUpdateRange extends RangeValueId {
   override val id: Int = 5
 }
 
-case object RemoveUpdateFunctionRange extends RangeValueId {
+case object PutRemoveRange extends RangeValueId {
   override val id: Int = 6
 }
 
-case object PutUpdateRange extends RangeValueId {
+case object UpdateRemoveRange extends RangeValueId {
   override val id: Int = 7
 }
 
-case object PutRemoveRange extends RangeValueId {
-  override val id: Int = 8
-}
-
-case object PutUpdateFunctionRange extends RangeValueId {
-  override val id: Int = 9
-}
-
-case object UpdateRemoveRange extends RangeValueId {
-  override val id: Int = 10
-}
-
 case object UpdateUpdateRange extends RangeValueId {
-  override val id: Int = 11
-}
-
-case object UpdateUpdateFunctionRange extends RangeValueId {
-  override val id: Int = 12
-}
-
-case object UpdateFunctionUpdateRange extends RangeValueId {
-  override val id: Int = 13
-}
-
-case object UpdateFunctionRemoveRange extends RangeValueId {
-  override val id: Int = 14
-}
-
-case object UpdateFunctionUpdateFunctionRange extends RangeValueId {
-  override val id: Int = 15
+  override val id: Int = 8
 }
 
 object RangeValueId {

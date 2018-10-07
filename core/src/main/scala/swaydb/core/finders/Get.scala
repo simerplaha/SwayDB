@@ -65,23 +65,6 @@ object Get {
           else
             TryUtil.successNone
 
-        case current: Value.UpdateFunction =>
-          if (current.hasTimeLeft())
-            getFromNextLevel(key) flatMap {
-              case Some(next) =>
-                next.getOrFetchValue flatMap {
-                  nextValue =>
-                    current.applyFunction(nextValue) map {
-                      appliedValue =>
-                        Some(Memory.Put(key, appliedValue, current.deadline orElse next.deadline))
-                    }
-                }
-
-              case None =>
-                TryUtil.successNone
-            }
-          else
-            TryUtil.successNone
       }
 
     getFromCurrentLevel(key) flatMap {

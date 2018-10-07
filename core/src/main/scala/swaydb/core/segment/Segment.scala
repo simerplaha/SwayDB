@@ -142,20 +142,6 @@ private[core] object Segment extends LazyLogging {
                 Segment.getNearestDeadline(currentNearestDeadline, keyValue)
             }
 
-          case update: Transient.UpdateFunction =>
-            keyValue.getOrFetchValue flatMap {
-              value =>
-                val unslicedValue = value.map(_.unslice())
-                unslicedValue match {
-                  case Some(value) if value.nonEmpty =>
-                    skipList.put(keyUnsliced, Memory.UpdateFunction(key = keyUnsliced, function = value.unslice(), update.deadline))
-                    bloomFilter.foreach(_ add keyUnsliced)
-                    Segment.getNearestDeadline(currentNearestDeadline, keyValue)
-                  case _ =>
-                    Failure(new Exception("UpdateFunction contained no function value."))
-                }
-            }
-
           case range: KeyValue.WriteOnly.Range =>
             range.fetchFromAndRangeValue flatMap {
               case (fromValue, rangeValue) =>

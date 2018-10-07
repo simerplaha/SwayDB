@@ -32,7 +32,6 @@ View detailed benchmark results [here](http://swaydb.io/performance/macbook-pro-
 - APIs similar to Scala collections.
 - Auto expiring key-value ([TTL](http://www.swaydb.io/api/write-api/expire/))
 - Range [update, remove & expire](http://www.swaydb.io/api/write-api/)
-- Updating values using [functions](http://www.swaydb.io/api/write-api/cacheFunction/).
 - Key only iterations (Lazily fetched values)
 - Data storage formats
     - Key-value (`Map[K, V]`)

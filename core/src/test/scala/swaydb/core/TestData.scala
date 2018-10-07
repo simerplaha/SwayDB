@@ -23,7 +23,6 @@ import swaydb.compression.CompressionInternal
 import swaydb.core.data.Transient.Remove
 import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data.{Memory, _}
-import swaydb.core.function.FunctionStore
 import swaydb.core.map.serializer.RangeValueSerializers._
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
@@ -33,9 +32,6 @@ import scala.concurrent.duration._
 import scala.util.Random
 
 trait TestData extends TryAssert {
-
-  val incrementBy1FunctionId = randomCharacters()
-  FunctionStore.put(incrementBy1FunctionId, inputBytes => inputBytes.readInt() + 1).assertGet shouldBe incrementBy1FunctionId
 
   def randomStringOption: Option[Slice[Byte]] =
     if (Random.nextBoolean())
@@ -70,8 +66,6 @@ trait TestData extends TryAssert {
       Memory.Put(key, value, randomDeadlineOption)
     else if (Random.nextBoolean())
       Memory.Remove(key, randomDeadlineOption)
-    else if (addUpdateFunctions && Random.nextBoolean())
-      Memory.UpdateFunction(key, incrementBy1FunctionId, randomDeadlineOption)
     else
       Memory.Update(key, value, randomDeadlineOption)
 

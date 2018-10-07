@@ -79,7 +79,7 @@ object IdsGenerator extends App {
     maxId
   }
 
-  def entries = Seq("Put", "Group", "Range", "Update", "UpdateFunction")
+  def entries = Seq("Put", "Group", "Range", "Update")
   def keys = Seq("PartiallyCompressed", "Uncompressed", "FullyCompressed")
 
   def maxKey =

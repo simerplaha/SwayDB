@@ -48,7 +48,7 @@ private[core] object SegmentWriter extends LazyLogging {
           case (nearestDeadline, keyValue) =>
             getNearestDeadlineAndAddToBloomFilter(bloomFilter, nearestDeadline, keyValue)
         }
-      case _: Transient.Put | _: Transient.Remove | _: Transient.Update | _: Transient.UpdateFunction | _: Transient.Range =>
+      case _: Transient.Put | _: Transient.Remove | _: Transient.Update | _: Transient.Range =>
         bloomFilter foreach (_ add keyValue.key)
         Segment.getNearestDeadline(deadline, keyValue)
     }
