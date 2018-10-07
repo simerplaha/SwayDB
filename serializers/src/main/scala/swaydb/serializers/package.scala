@@ -23,8 +23,6 @@ import swaydb.data.slice.Slice
 
 package object serializers {
 
-  val emptyArray = Array.empty[Byte]
-
   implicit def toSlice[T](data: T)(implicit code: Serializer[T]): Slice[Byte] =
     code.write(data)
 

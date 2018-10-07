@@ -19,32 +19,12 @@
 
 package swaydb.core.util
 
-import scala.reflect.ClassTag
+object UUIDUtil {
 
-object CollectionUtil {
+  def randomId(): String =
+    java.util.UUID.randomUUID.toString
 
-  val emptyStringSeq = Seq.empty[String]
+  def randomIdNoHyphen(): String =
+    randomId().replace("-", "")
 
-  implicit class IterableImplicit[T: ClassTag](it: Iterator[T]) {
-
-    def foreachBreak(f: T => Boolean): Unit = {
-      var break: Boolean = false
-      while (it.hasNext && !break)
-        break = f(it.next())
-    }
-
-    /**
-      * Used for cases when multiple iterators over a list eg: collect & then fold is costly.
-      */
-    def foldLeftWhile[B](initial: B, condition: T => Boolean)(op: (B, T) => B): B = {
-      var result = initial
-      it foreachBreak {
-        item =>
-          val continue = condition(item)
-          if (continue) result = op(result, item)
-          !continue
-      }
-      result
-    }
-  }
 }

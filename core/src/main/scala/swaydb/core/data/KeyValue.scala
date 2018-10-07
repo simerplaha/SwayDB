@@ -72,7 +72,11 @@ private[core] object KeyValue {
   }
 
   object ReadOnly {
-
+    /**
+      * A API response type expected from a [[swaydb.core.map.Map]] or [[swaydb.core.segment.Segment]].
+      *
+      * Key-value types like [[Group]] are processed within [[swaydb.core.map.Map]] or [[swaydb.core.segment.Segment]].
+      */
     sealed trait Response extends KeyValue with ReadOnly
 
     sealed trait Fixed extends Response {
@@ -1269,7 +1273,6 @@ private[core] object Transient {
         compressDuplicateValues = true
       )
 
-
     def apply(key: Slice[Byte],
               function: Slice[Byte],
               removeAfter: Option[FiniteDuration]): UpdateFunction =
@@ -1293,7 +1296,6 @@ private[core] object Transient {
         falsePositiveRate = falsePositiveRate,
         compressDuplicateValues = true
       )
-
 
     def apply(key: Slice[Byte],
               function: Slice[Byte],
