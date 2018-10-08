@@ -4,7 +4,7 @@ import sbtcrossproject.CrossPlugin.autoImport.{CrossType, crossProject}
 import xerial.sbt.Sonatype._
 
 val scala211 = "2.11.12"
-val scala212 = "2.12.6"
+val scala212 = "2.12.7"
 val scalaMetaVersion = "4.0.0"
 val lz4Version = "1.5.0"
 val snappyVersion = "1.1.7"
@@ -18,7 +18,7 @@ parallelExecution in ThisBuild := false
 
 lazy val commonSettings = Seq(
   organization := "io.swaydb",
-  version := "0.4",
+  version := "0.5",
   scalaVersion := scala212
 )
 
