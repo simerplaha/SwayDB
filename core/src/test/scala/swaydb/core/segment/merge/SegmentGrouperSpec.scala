@@ -21,12 +21,17 @@ package swaydb.core.segment.merge
 
 import swaydb.core.TestBase
 import swaydb.core.data._
+import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
+import swaydb.core.io.reader.Reader
+import swaydb.core.segment.format.one.{SegmentReader, SegmentWriter}
+import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.order.KeyOrder
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
 import scala.collection.mutable.ListBuffer
+import scala.util.Random
 
 class SegmentGrouperSpec extends TestBase {
 
@@ -62,6 +67,122 @@ class SegmentGrouperSpec extends TestBase {
 
       val secondSegment = segments.last
       secondSegment.head.key equiv keyValue.key
+    }
+
+    "add KeyValue all key-values until Group count is reached" in {
+
+      implicit val groupingStrategy =
+        Some(
+          KeyValueGroupingStrategyInternal.Count(
+            count = 1000,
+            groupCompression = None,
+            indexCompression = randomCompression(),
+            valueCompression = randomCompression()
+          )
+        )
+
+      val segments = ListBuffer[ListBuffer[KeyValue.WriteOnly]](ListBuffer.empty)
+      val keyValues = randomIntKeyValuesMemory(1000)
+
+      keyValues foreach {
+        keyValue =>
+          SegmentGrouper.addKeyValue(
+            keyValueToAdd = keyValue,
+            splits = segments,
+            minSegmentSize = 100.mb,
+            forInMemory = Random.nextBoolean(),
+            bloomFilterFalsePositiveRate = 0.1,
+            isLastLevel = false,
+            compressDuplicateValues = true
+          )
+      }
+
+      segments should have size 1
+      segments.head should have size 1
+      val group = segments.head.head.asInstanceOf[Transient.Group]
+      group.keyValues shouldBe keyValues
+
+      val (segmentBytes, deadline) = SegmentWriter.write(Slice(group), 0.1).assertGet
+      val reader = Reader(segmentBytes)
+      val footer = SegmentReader.readFooter(reader.copy()).assertGet
+      val readKeyValues = SegmentReader.readAll(footer, reader).assertGet
+      readKeyValues shouldBe keyValues
+    }
+
+    "add KeyValue all key-values until Group size is reached" in {
+
+      val keyValues = randomIntKeyValues(1000)
+
+      implicit val groupingStrategy =
+        Some(
+          KeyValueGroupingStrategyInternal.Size(
+            size = keyValues.last.stats.segmentSizeWithoutFooter,
+            groupCompression = None,
+            indexCompression = randomCompression(),
+            valueCompression = randomCompression()
+          )
+        )
+
+      val segments = ListBuffer[ListBuffer[KeyValue.WriteOnly]](ListBuffer.empty)
+
+      keyValues foreach {
+        keyValue =>
+          SegmentGrouper.addKeyValue(
+            keyValueToAdd = keyValue.toMemoryResponse,
+            splits = segments,
+            minSegmentSize = 100.mb,
+            forInMemory = Random.nextBoolean(),
+            bloomFilterFalsePositiveRate = 0.1,
+            isLastLevel = false,
+            compressDuplicateValues = true
+          )
+      }
+
+      segments should have size 1
+      segments.head should have size 1
+      val group = segments.head.head.asInstanceOf[Transient.Group]
+      group.keyValues shouldBe keyValues
+
+      val (segmentBytes, deadline) = SegmentWriter.write(Slice(group), 0.1).assertGet
+      val reader = Reader(segmentBytes)
+      val footer = SegmentReader.readFooter(reader.copy()).assertGet
+      val readKeyValues = SegmentReader.readAll(footer, reader).assertGet
+      readKeyValues shouldBe keyValues
+    }
+
+    "add large number of key-values for Grouping" in {
+
+      val keyValues = randomizedIntKeyValues(100000, addRandomGroups = false)
+
+      val groupSize = keyValues.last.stats.segmentSizeWithoutFooter / 100
+
+      implicit val groupingStrategy =
+        Some(
+          KeyValueGroupingStrategyInternal.Size(
+            size = groupSize,
+            groupCompression = None,
+            indexCompression = randomCompression(),
+            valueCompression = randomCompression()
+          )
+        )
+
+      val segments = ListBuffer[ListBuffer[KeyValue.WriteOnly]](ListBuffer.empty)
+
+      keyValues foreach {
+        keyValue =>
+          SegmentGrouper.addKeyValue(
+            keyValueToAdd = keyValue.toMemoryResponse,
+            splits = segments,
+            minSegmentSize = 100.mb,
+            forInMemory = Random.nextBoolean(),
+            bloomFilterFalsePositiveRate = 0.1,
+            isLastLevel = false,
+            compressDuplicateValues = true
+          )
+      }
+
+      segments should have size 1
+      segments.head.size should be > 200
     }
   }
 }

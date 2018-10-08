@@ -25,7 +25,7 @@ import swaydb.core.data.{Memory, Persistent, Value, _}
 import swaydb.core.group.compression.data.{GroupGroupingStrategyInternal, GroupingStrategy, KeyValueGroupingStrategyInternal}
 import swaydb.core.map.serializer.RangeValueSerializers._
 import swaydb.core.queue.KeyValueLimiter
-import swaydb.core.util.{Benchmark, TryUtil}
+import swaydb.core.util.TryUtil
 import swaydb.core.util.TryUtil._
 import swaydb.data.slice.Slice
 
@@ -464,9 +464,8 @@ private[merge] object SegmentGrouper extends LazyLogging {
           }
       }
     } catch {
-      case ex: Exception =>
-        println(s"debug: $keyValueToAdd")
-        throw ex
+      case ex: Throwable =>
+        Failure(ex)
     }
   }
 }

@@ -108,16 +108,5 @@ class CompressionSpec extends WordSpec with Matchers with TryAssert {
         }
       }
     }
-
-    //    "Dadas" in {
-    //      val last = ()
-    //
-    //      val compressor = CompressorInternal.randomLZ4(minCompressionPercentage = 20)
-    //      val compressedBytes = compressor.compress(bytes).assertGet
-    //
-    //      CompressorInternal.isCompressionSatisfied(20, compressedBytes.size, bytes.size, compressor.getClass.getSimpleName) shouldBe true
-    //
-    //
-    //    }
   }
 }

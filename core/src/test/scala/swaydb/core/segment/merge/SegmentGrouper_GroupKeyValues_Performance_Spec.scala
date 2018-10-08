@@ -20,15 +20,10 @@
 package swaydb.core.segment.merge
 
 import swaydb.core.TestBase
-import swaydb.core.data.{KeyValue, Persistent, Transient}
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
-import swaydb.core.segment.format.one.SegmentWriter
 import swaydb.core.util.Benchmark
-import swaydb.data.slice.Slice
-import swaydb.data.util.StorageUnits._
 
 import scala.collection.mutable.ListBuffer
-import scala.util.Try
 
 class SegmentGrouper_GroupKeyValues_Performance_Count_Spec extends SegmentGrouper_GroupKeyValues_Performance_Spec {
   val useCount = true

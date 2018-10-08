@@ -40,53 +40,6 @@ class SegmentMergeSpec extends TestBase {
 
   import ordering._
 
-
-  "SegmentMerger.split" should {
-    "split key-values" in {
-      val keyValues: Slice[Memory] = Slice(Memory.Put(1, 1), Memory.Remove(2), Memory.Put(3, 3), Memory.Put(4, 4), Memory.Range(5, 10, Some(Value.Remove(None)), Value.Update(5)))
-
-      val split1 =
-        SegmentMerger.split(
-          keyValues = keyValues,
-          minSegmentSize = 1.byte,
-          isLastLevel = false,
-          forInMemory = false,
-          compressDuplicateValues = true,
-          bloomFilterFalsePositiveRate = 0.1
-        ).assertGet
-
-      split1 should have size 5
-      split1 should contain only
-        (ListBuffer(Transient.Put(1, 1)),
-          ListBuffer(Transient.Remove(2)),
-          ListBuffer(Transient.Put(3, 3)),
-          ListBuffer(Transient.Put(4, 4)), //51.byte Segment size
-          ListBuffer(Transient.Range[FromValue, RangeValue](5, 10, Some(Value.Remove(None)), Value.Update(5))) //56.bytes (segment size)
-        )
-
-      val split2 =
-        SegmentMerger.split(
-          keyValues = keyValues,
-          minSegmentSize = 255.bytes,
-          isLastLevel = false,
-          forInMemory = false,
-          compressDuplicateValues = true,
-          bloomFilterFalsePositiveRate = 0.1
-        )
-
-      val expected =
-        Seq(
-          Transient.Put(1, 1),
-          Transient.Remove(2),
-          Transient.Put(3, 3),
-          Transient.Put(4, 4), //51.byte Segment size
-          Transient.Range[FromValue, RangeValue](5, 10, Some(Value.Remove(None)), Value.Update(5)) //56.bytes (segment size)
-        ).updateStats
-
-      split2.assertGet.flatten shouldBe expected
-    }
-  }
-
   "SegmentMerger.completeMerge" should {
 
     "transfer the last segment's KeyValues to previous segment, if the last segment's segmentSize is < minSegmentSize for persistent key-values" in {
@@ -162,6 +115,52 @@ class SegmentMergeSpec extends TestBase {
 
       assert(SegmentMerger.merge(newKeyValues, oldKeyValues, minSegmentSize = 1.byte, isLastLevel = false, forInMemory = false, bloomFilterFalsePositiveRate = 0.1, hasTimeLeftAtLeast = 10.seconds, compressDuplicateValues = true).assertGet.toArray)
       assert(SegmentMerger.merge(newKeyValues, oldKeyValues, minSegmentSize = 1.byte, isLastLevel = false, forInMemory = true, bloomFilterFalsePositiveRate = 0.1, hasTimeLeftAtLeast = 10.seconds, compressDuplicateValues = true).assertGet.toArray)
+    }
+  }
+
+  "SegmentMerger.split" should {
+    "split key-values" in {
+      val keyValues: Slice[Memory] = Slice(Memory.Put(1, 1), Memory.Remove(2), Memory.Put(3, 3), Memory.Put(4, 4), Memory.Range(5, 10, Some(Value.Remove(None)), Value.Update(5)))
+
+      val split1 =
+        SegmentMerger.split(
+          keyValues = keyValues,
+          minSegmentSize = 1.byte,
+          isLastLevel = false,
+          forInMemory = false,
+          compressDuplicateValues = true,
+          bloomFilterFalsePositiveRate = 0.1
+        ).assertGet
+
+      split1 should have size 5
+      split1 should contain only
+        (ListBuffer(Transient.Put(1, 1)),
+          ListBuffer(Transient.Remove(2)),
+          ListBuffer(Transient.Put(3, 3)),
+          ListBuffer(Transient.Put(4, 4)), //51.byte Segment size
+          ListBuffer(Transient.Range[FromValue, RangeValue](5, 10, Some(Value.Remove(None)), Value.Update(5))) //56.bytes (segment size)
+        )
+
+      val split2 =
+        SegmentMerger.split(
+          keyValues = keyValues,
+          minSegmentSize = 255.bytes,
+          isLastLevel = false,
+          forInMemory = false,
+          compressDuplicateValues = true,
+          bloomFilterFalsePositiveRate = 0.1
+        )
+
+      val expected =
+        Seq(
+          Transient.Put(1, 1),
+          Transient.Remove(2),
+          Transient.Put(3, 3),
+          Transient.Put(4, 4), //51.byte Segment size
+          Transient.Range[FromValue, RangeValue](5, 10, Some(Value.Remove(None)), Value.Update(5)) //56.bytes (segment size)
+        ).updateStats
+
+      split2.assertGet.flatten shouldBe expected
     }
   }
 

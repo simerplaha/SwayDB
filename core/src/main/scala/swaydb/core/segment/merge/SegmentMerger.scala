@@ -549,7 +549,7 @@ private[core] object SegmentMerger extends LazyLogging {
             }
 
         /**
-          * When the input is a Fixed key-value and the existing is a range key-value.
+          * When the input is a Fixed key-value and the existing is a Group key-value.
           */
         case (Some(newKeyValue: KeyValue.ReadOnly.Fixed), Some(oldGroupKeyValue: ReadOnly.Group)) =>
           if (newKeyValue.key < oldGroupKeyValue.minKey)
@@ -603,7 +603,7 @@ private[core] object SegmentMerger extends LazyLogging {
             }
 
         /**
-          * When the input is a Fixed key-value and the existing is a range key-value.
+          * When the input is a Range key-value and the existing is a Group key-value.
           */
         case (Some(newRangeKeyValue: KeyValue.ReadOnly.Range), Some(oldGroupKeyValue: ReadOnly.Group)) =>
           if (newRangeKeyValue.toKey <= oldGroupKeyValue.minKey)
@@ -641,7 +641,7 @@ private[core] object SegmentMerger extends LazyLogging {
             }
 
         /**
-          * When the input is a Group and the existing is a Fixed key-value.
+          * When the input is a Group and the existing is a Range key-value.
           */
         case (Some(newGroupKeyValue: ReadOnly.Group), Some(oldRangeKeyValue: KeyValue.ReadOnly.Range)) =>
           if (newGroupKeyValue.maxKey lessThan oldRangeKeyValue.fromKey)
