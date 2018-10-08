@@ -97,10 +97,11 @@ class MergeListSpec extends WordSpec with Matchers with CommonAssertions with Te
 
   "merging multiple MergeLists" should {
     //mutate the state of this List and assert.
-    var list = MergeList(Slice[KeyValue.ReadOnly](1, 2)) append
-      MergeList(Slice[KeyValue.ReadOnly](3, 4)) append
-      MergeList(Slice[KeyValue.ReadOnly](5, 6)) append
-      MergeList(Slice[KeyValue.ReadOnly](7, 8))
+    var list =
+      MergeList(Slice[KeyValue.ReadOnly](1, 2)) append
+        MergeList(Slice[KeyValue.ReadOnly](3, 4)) append
+        MergeList(Slice[KeyValue.ReadOnly](5, 6)) append
+        MergeList(Slice[KeyValue.ReadOnly](7, 8))
 
     val range = Memory.Range(1, 2, None, Value.Update(1))
 

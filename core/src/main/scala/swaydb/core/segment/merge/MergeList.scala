@@ -47,7 +47,7 @@ private[core] sealed trait MergeList extends Iterable[KeyValue.ReadOnly] {
 private[core] object MergeList {
 
   val empty =
-    new Single(None, Slice.empty)
+    new Single(None, Slice.empty[KeyValue.ReadOnly])
 
   def apply(keyValues: Slice[KeyValue.ReadOnly]): MergeList =
     new Single(None, keyValues)
@@ -131,7 +131,7 @@ private[core] class Multiple(private var left: MergeList,
   override def dropPrepend(head: Memory.Range): MergeList =
     (left.isEmpty, right.isEmpty) match {
       case (true, true) =>
-        new Single(Some(head), Slice.empty)
+        new Single(Some(head), Slice.empty[KeyValue.ReadOnly])
       case (true, false) =>
         right.dropPrepend(head)
       case (false, true) =>

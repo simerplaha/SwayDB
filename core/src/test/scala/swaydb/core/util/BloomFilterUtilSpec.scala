@@ -20,13 +20,14 @@
 package swaydb.core.util
 
 import bloomfilter.mutable.BloomFilter
-import org.scalatest.{Matchers, WordSpec}
+import swaydb.core.TestBase
+import swaydb.core.data.{Transient, Value}
 import swaydb.core.util.BloomFilterUtil._
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
-class BloomFilterUtilSpec extends WordSpec with Matchers {
+class BloomFilterUtilSpec extends TestBase {
 
   "BloomFilterUtil.toBytes" should {
     "write bloom filter to bytes" in {
@@ -53,6 +54,27 @@ class BloomFilterUtilSpec extends WordSpec with Matchers {
           val bloomFilter = BloomFilter[Slice[Byte]](numberOfItems, falsePositiveRate)
           bloomFilter.toBytes.length shouldBe BloomFilterUtil.byteSize(numberOfItems, falsePositiveRate)
       }
+    }
+  }
+
+  "BloomFilterUtil.initBloomFilter" should {
+    "not initialise bloomFilter if it contain removeRange" in {
+      import swaydb.core.map.serializer.RangeValueSerializers._
+      BloomFilterUtil.initBloomFilter(
+        keyValues = Slice(Transient.Range[Value.FromValue, Value.RangeValue](1, 2, None, Value.Remove(None))),
+        bloomFilterFalsePositiveRate = 0.1
+      ) shouldBe empty
+
+      BloomFilterUtil.initBloomFilter(
+        keyValues = Slice(Transient.Range[Value.FromValue, Value.RangeValue](1, 2, None, Value.Remove(Some(randomDeadline())))),
+        bloomFilterFalsePositiveRate = 0.1
+      ) shouldBe empty
+
+      //fromValue is remove but it's not a remove ange
+      BloomFilterUtil.initBloomFilter(
+        keyValues = Slice(Transient.Range[Value.FromValue, Value.RangeValue](1, 2, Some(Value.Remove(None)), Value.Update(100))),
+        bloomFilterFalsePositiveRate = 0.1
+      ) shouldBe defined
     }
   }
 }

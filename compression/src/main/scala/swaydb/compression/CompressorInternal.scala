@@ -74,13 +74,13 @@ private[swaydb] object CompressorInternal extends LazyLogging {
   /**
     * @return true if the compression satisfies the minimum compression requirement else false.
     */
-  private def isCompressionSatisfied(minCompressionPercentage: Double,
-                                     compressedLength: Int,
-                                     originalLength: Int,
-                                     compressionName: String): Boolean = {
+  def isCompressionSatisfied(minCompressionPercentage: Double,
+                             compressedLength: Int,
+                             originalLength: Int,
+                             compressionName: String): Boolean = {
     val compressionSavedPercentage = (1D - (compressedLength.toDouble / originalLength.toDouble)) * 100
     if (compressionSavedPercentage < minCompressionPercentage) {
-      logger.debug(s"Uncompressed! $compressionName - $originalLength.bytes compressed to $compressedLength.bytes. Compression savings = $compressionSavedPercentage%. Required minimum $minCompressionPercentage%")
+      logger.warn(s"Uncompressed! $compressionName - $originalLength.bytes compressed to $compressedLength.bytes. Compression savings = $compressionSavedPercentage%. Required minimum $minCompressionPercentage%")
       false
     } else {
       logger.debug(s"Compressed! $compressionName - $originalLength.bytes compressed to $compressedLength.bytes. Compression savings = $compressionSavedPercentage%. Required minimum $minCompressionPercentage%")
@@ -93,10 +93,11 @@ private[swaydb] object CompressorInternal extends LazyLogging {
 
     override def compress(slice: Slice[Byte]): Try[Option[Slice[Byte]]] =
       Try {
-        val maxCompressedLength = compressor.maxCompressedLength(slice.size)
+        val sliceArray = slice.close().toArray
+        val maxCompressedLength = compressor.maxCompressedLength(sliceArray.length)
         val compressed = new Array[Byte](maxCompressedLength)
-        val compressedLength = compressor.compress(slice.toArray, 0, slice.size, compressed, 0, maxCompressedLength)
-        if (isCompressionSatisfied(minCompressionPercentage, compressedLength, slice.size, this.getClass.getSimpleName))
+        val compressedLength = compressor.compress(sliceArray, 0, sliceArray.length, compressed, 0, maxCompressedLength)
+        if (isCompressionSatisfied(minCompressionPercentage, compressedLength, sliceArray.length, this.getClass.getSimpleName))
           Some(Slice(compressed).slice(0, compressedLength - 1))
         else
           None
@@ -116,7 +117,7 @@ private[swaydb] object CompressorInternal extends LazyLogging {
   private[swaydb] case class Snappy(minCompressionPercentage: Double) extends CompressorInternal {
 
     override def compress(slice: Slice[Byte]): Try[Option[Slice[Byte]]] =
-      Try(snappy.Snappy.compress(slice.toArray)) map {
+      Try(snappy.Snappy.compress(slice.close().toArray)) map {
         compressedArray =>
           if (isCompressionSatisfied(minCompressionPercentage, compressedArray.length, slice.size, this.getClass.getSimpleName))
             Some(Slice(compressedArray))

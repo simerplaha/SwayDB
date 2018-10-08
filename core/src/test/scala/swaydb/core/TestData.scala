@@ -20,7 +20,6 @@
 package swaydb.core
 
 import swaydb.compression.CompressionInternal
-import swaydb.core.data.Transient.Remove
 import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data.{Memory, _}
 import swaydb.core.map.serializer.RangeValueSerializers._
@@ -60,8 +59,7 @@ trait TestData extends TryAssert {
     Memory.Remove(key, deadline)
 
   def randomFixedKeyValue(key: Slice[Byte],
-                          value: Option[Slice[Byte]] = randomStringOption,
-                          addUpdateFunctions: Boolean = true): Memory.Fixed =
+                          value: Option[Slice[Byte]] = randomStringOption): Memory.Fixed =
     if (Random.nextBoolean())
       Memory.Put(key, value, randomDeadlineOption)
     else if (Random.nextBoolean())
@@ -74,6 +72,9 @@ trait TestData extends TryAssert {
 
   def randomCompressionLZ4OrSnappy(minCompressionPercentage: Double = Double.MinValue): CompressionInternal =
     CompressionInternal.randomLZ4OrSnappy(minCompressionPercentage = minCompressionPercentage)
+
+  def randomCompressionLZ4(minCompressionPercentage: Double = Double.MinValue): CompressionInternal =
+    CompressionInternal.randomLZ4(minCompressionPercentage = minCompressionPercentage)
 
   def randomRangeKeyValue(from: Slice[Byte],
                           to: Slice[Byte],

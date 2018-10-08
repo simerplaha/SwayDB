@@ -117,7 +117,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
         }
       }
 
-      "there are enough key-values but compression's minimum requirement is not satisfied" in {
+      "there are enough key-values but key compression's minimum requirement is not satisfied" in {
         val keyValues = randomizedIntKeyValues(keyValueCount, addRandomGroups = false)
         val mutableKeyValues = ListBuffer(keyValues.toList: _*)
 
@@ -139,6 +139,35 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
                 groupCompression = None,
                 indexCompression = randomCompressionLZ4OrSnappy(100),
                 valueCompression = randomCompression()
+              )
+        ).assertGetOpt shouldBe empty
+
+        //no mutation occurs
+        mutableKeyValues shouldBe keyValues
+      }
+
+      "there are enough key-values but values compression's minimum requirement is not satisfied" in {
+        val keyValues = randomizedIntKeyValues(keyValueCount, addRandomGroups = false)
+        val mutableKeyValues = ListBuffer(keyValues.toList: _*)
+
+        SegmentGrouper.groupKeyValues(
+          segmentKeyValues = mutableKeyValues,
+          bloomFilterFalsePositiveRate = 0.1,
+          force = force,
+          groupingStrategy =
+            if (useCount)
+              KeyValueGroupingStrategyInternal.Count(
+                count = keyValueCount - 2,
+                groupCompression = None,
+                indexCompression = randomCompression(),
+                valueCompression = randomCompressionLZ4OrSnappy(100)
+              )
+            else
+              KeyValueGroupingStrategyInternal.Size(
+                size = keyValues.last.stats.segmentSizeWithoutFooter + 1,
+                groupCompression = None,
+                indexCompression = randomCompression(),
+                valueCompression = randomCompressionLZ4OrSnappy(100)
               )
         ).assertGetOpt shouldBe empty
 

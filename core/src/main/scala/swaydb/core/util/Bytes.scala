@@ -41,7 +41,11 @@ private[swaydb] object Bytes {
   def compress(key: Slice[Byte],
                previous: KeyValue,
                minimumCommonBytes: Int): Option[(Int, Slice[Byte])] =
-    Bytes.compress(previous.key, key, minimumCommonBytes)
+    compress(
+      previous = previous.key,
+      next = key,
+      minimumCommonBytes = minimumCommonBytes
+    )
 
   def compress(previous: Slice[Byte],
                next: Slice[Byte],
@@ -57,7 +61,10 @@ private[swaydb] object Bytes {
                    next: Slice[Byte]): Option[Done] =
     previous flatMap {
       previous =>
-        compressFull(previous, next)
+        compressFull(
+          previous = previous,
+          next = next
+        )
     }
 
   def compressFull(previous: Slice[Byte],
@@ -113,7 +120,7 @@ private[swaydb] object Bytes {
 
   def compressJoin(left: Slice[Byte],
                    right: Slice[Byte]): Slice[Byte] =
-    compressJoin(left, right, Slice.emptyNothing)
+    compressJoin(left, right, Slice.emptyBytes)
 
   def compressJoin(left: Slice[Byte],
                    right: Slice[Byte],

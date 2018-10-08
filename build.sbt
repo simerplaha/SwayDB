@@ -6,7 +6,7 @@ import xerial.sbt.Sonatype._
 val scala211 = "2.11.12"
 val scala212 = "2.12.6"
 val scalaMetaVersion = "4.0.0"
-val lz4Version = "1.4.1"
+val lz4Version = "1.5.0"
 val snappyVersion = "1.1.7"
 val logbackClassicVersion = "1.2.3"
 val bloomFilterVersion = "0.11.0"

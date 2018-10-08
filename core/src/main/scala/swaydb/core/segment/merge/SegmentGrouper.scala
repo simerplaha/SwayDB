@@ -22,10 +22,10 @@ package swaydb.core.segment.merge
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.Transient.Group
 import swaydb.core.data.{Memory, Persistent, Value, _}
-import swaydb.core.group.compression.data.{GroupingStrategy, GroupGroupingStrategyInternal, KeyValueGroupingStrategyInternal}
+import swaydb.core.group.compression.data.{GroupGroupingStrategyInternal, GroupingStrategy, KeyValueGroupingStrategyInternal}
 import swaydb.core.map.serializer.RangeValueSerializers._
 import swaydb.core.queue.KeyValueLimiter
-import swaydb.core.util.TryUtil
+import swaydb.core.util.{Benchmark, TryUtil}
 import swaydb.core.util.TryUtil._
 import swaydb.data.slice.Slice
 
@@ -71,7 +71,8 @@ private[merge] object SegmentGrouper extends LazyLogging {
           segmentKeyValues.last.stats.segmentSizeWithoutFooterForNextGroup >= size
 
         case KeyValueGroupingStrategyInternal.Count(count, _, _, _) =>
-          segmentKeyValues.size - segmentKeyValues.last.stats.groupsCount >= count
+          //use segmentKeyValues.last.stats.position instead of segmentKeyValues.size because position is pre-calculated.
+          segmentKeyValues.last.stats.position - segmentKeyValues.last.stats.groupsCount >= count
       }
 
   private def groupsToGroup(keyValues: Iterable[KeyValue.WriteOnly],
@@ -79,8 +80,11 @@ private[merge] object SegmentGrouper extends LazyLogging {
                             groupingStrategy: GroupGroupingStrategyInternal,
                             force: Boolean): Option[Slice[KeyValue.WriteOnly]] =
     if (shouldGroupGroups(segmentKeyValues = keyValues, groupingStrategy = groupingStrategy, force = force)) {
-      val keyValuesToGroup = Slice.create[KeyValue.WriteOnly](keyValues.size)
-      keyValues foreach (keyValuesToGroup add _.updateStats(bloomFilterFalsePositiveRate, keyValuesToGroup.lastOption))
+      //use segmentKeyValues.last.stats.position instead of keyValues.size because position is pre-calculated.
+      val keyValuesToGroup = Slice.create[KeyValue.WriteOnly](keyValues.last.stats.position)
+      //do not need to recalculate stats since all key-values are being groups.
+      //      keyValues foreach (keyValuesToGroup add _.updateStats(bloomFilterFalsePositiveRate, keyValuesToGroup.lastOption))
+      keyValues foreach (keyValuesToGroup add _)
       Some(keyValuesToGroup)
     } else {
       None
@@ -98,31 +102,39 @@ private[merge] object SegmentGrouper extends LazyLogging {
                                force: Boolean): Try[Option[(Iterable[KeyValue.WriteOnly], Option[Transient.Group])]] =
     if (shouldGroupKeyValues(segmentKeyValues = segmentKeyValues, groupingStrategy = groupingStrategy, force = force)) {
       //create a new list of key-values with stats updated.
-      val expectedGroupsKeyValueCount = segmentKeyValues.size - segmentKeyValues.last.stats.groupsCount
+      val expectedGroupsKeyValueCount = segmentKeyValues.last.stats.position - segmentKeyValues.last.stats.groupsCount
       if (expectedGroupsKeyValueCount == 0)
         TryUtil.successNone
       else {
         val keyValuesToGroup = Slice.create[KeyValue.WriteOnly](expectedGroupsKeyValueCount)
-        segmentKeyValues.tryFoldLeft(1) {
-          case (count, keyValue) =>
-            if (count > segmentKeyValues.last.stats.groupsCount) {
-              Try {
-                keyValuesToGroup add keyValue.updateStats(bloomFilterFalsePositiveRate, keyValuesToGroup.lastOption)
-                count + 1
-              }
-            } else if (!keyValue.isGroup) {
-              val exception = new Exception(s"Head key-values are not Groups. ${keyValue.getClass.getSimpleName} found, expected a Group.")
-              logger.error(exception.getMessage, exception)
-              Failure(exception)
-            } else {
-              Success(count + 1)
+        segmentKeyValues.tryFoldLeft((1, Option.empty[Transient.Group])) {
+          case ((count, lastGroup), keyValue) =>
+            keyValue match {
+              case keyValue if count > segmentKeyValues.last.stats.groupsCount =>
+                //this validation is not mandatory. It's expected that groupsCount is accurate and no other groups are following the head groups after the groupCount.
+                //                if (keyValue.isGroup) {
+                //                  val exception = new Exception(s"Post group key-value is a Group. ${keyValue.getClass.getSimpleName} found, expected a Fixed or Range.")
+                //                  logger.error(exception.getMessage, exception)
+                //                  Failure(exception)
+                //                } else {
+                Try {
+                  keyValuesToGroup add keyValue.updateStats(bloomFilterFalsePositiveRate, keyValuesToGroup.lastOption)
+                  (count + 1, lastGroup)
+                }
+              //                }
+              case group: Transient.Group =>
+                Success((count + 1, Some(group)))
+              case other =>
+                val exception = new Exception(s"Head key-values are not Groups. ${other.getClass.getSimpleName} found, expected a Group.")
+                logger.error(exception.getMessage, exception)
+                Failure(exception)
             }
         } flatMap {
-          _ =>
+          case (_, lastGroup) =>
             if (!keyValuesToGroup.isFull)
               Failure(new Exception(s"keyValuesToGroup is not full! actual: ${keyValuesToGroup.written} - expected: ${keyValuesToGroup.size}"))
             else
-              Success(Some(keyValuesToGroup, segmentKeyValues.lastGroup()))
+              Success(Some(keyValuesToGroup, lastGroup))
         }
       }
     } else {
@@ -149,7 +161,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
             } else {
               //remove all key-values that were added to the new Group.
               val removeFromIndex = lastGroup.map(_.stats.position).getOrElse(0)
-              segmentKeyValues.remove(removeFromIndex, newGroup.keyValues.size)
+              segmentKeyValues.remove(removeFromIndex, newGroup.keyValues.last.stats.position)
             }
             segmentKeyValues += newGroup
             newGroup

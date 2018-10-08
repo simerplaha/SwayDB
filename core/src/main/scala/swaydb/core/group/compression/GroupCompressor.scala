@@ -26,7 +26,7 @@ import swaydb.core.group.compression.data.{CompressionResult, ValueCompressionRe
 import swaydb.core.data.{KeyValue, Transient}
 import swaydb.core.segment.format.one.SegmentWriter
 import swaydb.core.util.TryUtil._
-import swaydb.core.util.{Bytes, TryUtil}
+import swaydb.core.util.{Benchmark, Bytes, TryUtil}
 import swaydb.data.segment.MaxKey
 import swaydb.data.slice.Slice
 
@@ -52,7 +52,7 @@ private[core] object GroupCompressor extends LazyLogging {
                           keyValueCount: Int): Try[Option[CompressionResult]] =
     indexCompressions.tryUntilSome(_.compressor.compress(indexBytes)) flatMap {
       case None =>
-        logger.debug(s"Unable to apply valid compressor for keyBytes: ${indexBytes.size}. Ignoring key & value compression for $keyValueCount key-values.")
+        logger.warn(s"Unable to apply valid compressor for keyBytes: ${indexBytes.size}. Ignoring key & value compression for $keyValueCount key-values.")
         TryUtil.successNone
 
       case Some((compressedKeys, keyCompression)) =>
@@ -71,7 +71,7 @@ private[core] object GroupCompressor extends LazyLogging {
         } else {
           valueCompressions.tryUntilSome(_.compressor.compress(valueBytes)) flatMap { //if values exists do compressed.
             case None => //if unable to compress values from all the input compression configurations, return None so that compression continues on larger key-value bytes.
-              logger.debug(s"Unable to apply valid compressor for valueBytes of ${valueBytes.size}.bytes. Ignoring value compression for $keyValueCount key-values.")
+              logger.warn(s"Unable to apply valid compressor for valueBytes of ${valueBytes.size}.bytes. Ignoring value compression for $keyValueCount key-values.")
               TryUtil.successNone //break out because values were not compressed.
 
             case Some((compressedValueBytes, valueCompression)) =>
@@ -81,12 +81,13 @@ private[core] object GroupCompressor extends LazyLogging {
                   CompressionResult(
                     compressedIndex = compressedKeys,
                     indexCompression = keyCompression,
-                    valuesCompressionResult = Some(
-                      ValueCompressionResult(
-                        compressedValues = compressedValueBytes,
-                        valuesCompression = valueCompression
+                    valuesCompressionResult =
+                      Some(
+                        ValueCompressionResult(
+                          compressedValues = compressedValueBytes,
+                          valuesCompression = valueCompression
+                        )
                       )
-                    )
                   )
                 )
               )

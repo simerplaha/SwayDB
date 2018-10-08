@@ -40,7 +40,7 @@ class SegmentMerger_Fixed_Into_Range extends WordSpec with CommonAssertions {
       val atLeastTimeLeft = 10.seconds
       (1 to 10000) foreach {
         _ =>
-          val newKeyValue = randomFixedKeyValue(1, addUpdateFunctions = false)
+          val newKeyValue = randomFixedKeyValue(1)
           val oldKeyValue = Memory.Range(1, 10, randomFromValueOption(), randomRangeValue())
           val expectedFromValue = KeyValueMerger.applyValue(newKeyValue, oldKeyValue.fromValue.getOrElse(oldKeyValue.rangeValue), atLeastTimeLeft).get
           val expectedKeyValue = Memory.Range(1, 10, expectedFromValue, oldKeyValue.rangeValue)
@@ -65,7 +65,7 @@ class SegmentMerger_Fixed_Into_Range extends WordSpec with CommonAssertions {
       val atLeastTimeLeft = 10.seconds
       (1 to 10000) foreach {
         _ =>
-          val newKeyValue = randomFixedKeyValue(5, addUpdateFunctions = false)
+          val newKeyValue = randomFixedKeyValue(5)
           val oldKeyValue = Memory.Range(1, 10, randomFromValueOption(), randomRangeValue())
           val expectedFromValue = KeyValueMerger.applyValue(newKeyValue, oldKeyValue.rangeValue, atLeastTimeLeft).get
           val expectedKeyValue =

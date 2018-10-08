@@ -163,10 +163,11 @@ class BytesSpec extends WordSpec with Matchers with TryAssert {
 
       val keys = List[(Slice[Byte], Slice[Byte])]((nextKey, nextKey), (nextKey, nextKey), (nextKey, nextKey), (nextKey, nextKey), (nextKey, nextKey))
       //This results in 200.bytes without any compression.
-      val totalByteSizeWithoutCompression = keys.foldLeft(0) {
-        case (size, (fromKey, toKey)) =>
-          size + fromKey.size + toKey.size
-      }
+      val totalByteSizeWithoutCompression =
+        keys.foldLeft(0) {
+          case (size, (fromKey, toKey)) =>
+            size + fromKey.size + toKey.size
+        }
       totalByteSizeWithoutCompression shouldBe 200.bytes
 
       //merge each (fromKey, toKey) pair extracting common bytes only for each pair.

@@ -21,6 +21,7 @@ package swaydb.compression
 
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.data.slice.Slice
+import swaydb.data.util.ByteSizeOf
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
@@ -66,6 +67,31 @@ class CompressionSpec extends WordSpec with Matchers with TryAssert {
       }
     }
 
+    "successfully compress large byte array" in {
+      val count = 10000
+      val slice = Slice.create[Byte]((count + 1) * ByteSizeOf.long)
+
+      val from = 1
+      (from to (from + count)) map {
+        long =>
+          slice addAll Slice.writeLong(long)
+      }
+
+      val compressor = CompressorInternal.randomLZ4(minCompressionPercentage = 20)
+
+      def doCompression() = {
+        val compressedBytes = compressor.compress(slice).assertGet
+        CompressorInternal.isCompressionSatisfied(20, compressedBytes.size, slice.size, compressor.getClass.getSimpleName) shouldBe true
+        compressedBytes.size should be < slice.size
+      }
+
+      (1 to 10) foreach {
+        _ =>
+          doCompression()
+      }
+
+    }
+
     "return None" when {
       "Snappy" in {
         assertUnsuccessfulCompression(CompressionInternal.Snappy(minCompressionPercentage = 100))
@@ -82,5 +108,16 @@ class CompressionSpec extends WordSpec with Matchers with TryAssert {
         }
       }
     }
+
+    //    "Dadas" in {
+    //      val last = ()
+    //
+    //      val compressor = CompressorInternal.randomLZ4(minCompressionPercentage = 20)
+    //      val compressedBytes = compressor.compress(bytes).assertGet
+    //
+    //      CompressorInternal.isCompressionSatisfied(20, compressedBytes.size, bytes.size, compressor.getClass.getSimpleName) shouldBe true
+    //
+    //
+    //    }
   }
 }
