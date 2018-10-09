@@ -21,7 +21,7 @@ package swaydb.core.level
 
 import java.nio.file.Path
 
-import swaydb.core.data.{KeyValue, Persistent}
+import swaydb.core.data.KeyValue
 import swaydb.core.level.actor.{LevelAPI, LevelActorAPI}
 import swaydb.core.segment.Segment
 import swaydb.data.compaction.{LevelMeter, Throttle}
@@ -73,7 +73,7 @@ private[core] trait LevelRef extends LevelActorAPI {
 
   def lastKey: Option[Slice[Byte]]
 
-  def keyValueCount: Try[Int]
+  def bloomFilterKeyValueCount: Try[Int]
 
   def isEmpty: Boolean
 

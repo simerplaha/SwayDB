@@ -325,7 +325,7 @@ private[segment] case class MemorySegment(path: Path,
   override val close: Try[Unit] =
     TryUtil.successUnit
 
-  override def getKeyValueCount(): Try[Int] =
+  override def getBloomFilterKeyValueCount(): Try[Int] =
     if (deleted)
       Failure(new NoSuchFileException(path.toString))
     else
@@ -338,6 +338,12 @@ private[segment] case class MemorySegment(path: Path,
               group.header() map (count + _.bloomFilterItemsCount)
           }
       }
+
+  override def getHeadKeyValueCount(): Try[Int] =
+    if (deleted)
+      Failure(new NoSuchFileException(path.toString))
+    else
+      Success(cache.size())
 
   override def isOpen: Boolean =
     !deleted

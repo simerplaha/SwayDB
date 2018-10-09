@@ -72,7 +72,7 @@ sealed trait SegmentKeyValueCount extends TestBase with ScalaFutures with Privat
     "return 1 when the Segment contains only 1 key-value" in {
       assertOnSegment(
         keyValues = Slice(Memory.Put(1, randomStringOption, randomDeadlineOption)),
-        assertion = _.getKeyValueCount().assertGet shouldBe 1
+        assertion = _.getHeadKeyValueCount().assertGet shouldBe 1
       )
     }
 
@@ -81,7 +81,7 @@ sealed trait SegmentKeyValueCount extends TestBase with ScalaFutures with Privat
         keyValues = randomizedIntKeyValues(keyValuesCount, addRandomGroups = false),
         assertionWithKeyValues =
           (keyValues, segment) =>
-            segment.getKeyValueCount().assertGet shouldBe keyValues.size
+            segment.getHeadKeyValueCount().assertGet shouldBe keyValues.size
       )
     }
 
@@ -89,7 +89,7 @@ sealed trait SegmentKeyValueCount extends TestBase with ScalaFutures with Privat
       val groupsKeyValues = randomizedIntKeyValues(keyValuesCount, addRandomGroups = false)
       assertOnSegment(
         keyValues = Slice(randomGroup(groupsKeyValues)).toMemory,
-        assertion = _.getKeyValueCount().assertGet shouldBe groupsKeyValues.size
+        assertion = _.getHeadKeyValueCount().assertGet shouldBe groupsKeyValues.size
       )
     }
 
@@ -112,17 +112,17 @@ sealed trait SegmentKeyValueCount extends TestBase with ScalaFutures with Privat
 
       assertOnSegment(
         keyValues = Slice(group4).toMemory,
-        assertion = _.getKeyValueCount().assertGet shouldBe group4KeyValues.size
+        assertion = _.getHeadKeyValueCount().assertGet shouldBe group4KeyValues.size
       )
 
       assertOnSegment(
         keyValues = Slice(group3).toMemory,
-        assertion = _.getKeyValueCount().assertGet shouldBe (group1KeyValues.size + group2KeyValues.size + group3KeyValues.size)
+        assertion = _.getHeadKeyValueCount().assertGet shouldBe (group1KeyValues.size + group2KeyValues.size + group3KeyValues.size)
       )
 
       assertOnSegment(
         keyValues = Slice(randomGroup(Slice(group3, group4).updateStats)).toMemory,
-        assertion = _.getKeyValueCount().assertGet shouldBe (group1KeyValues.size + group2KeyValues.size + group3KeyValues.size + group4KeyValues.size)
+        assertion = _.getHeadKeyValueCount().assertGet shouldBe (group1KeyValues.size + group2KeyValues.size + group3KeyValues.size + group4KeyValues.size)
       )
     }
   }

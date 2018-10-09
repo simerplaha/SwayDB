@@ -588,7 +588,7 @@ private[core] object Segment extends LazyLogging {
     else
       segments.tryFoldLeft(0) {
         case (total, segment) =>
-          segment.getKeyValueCount().map(_ + total)
+          segment.getHeadKeyValueCount().map(_ + total)
       } flatMap {
         totalKeyValues =>
           segments.tryFoldLeft(Slice.create[KeyValue.ReadOnly](totalKeyValues)) {
@@ -835,7 +835,9 @@ private[core] trait Segment {
 
   def close: Try[Unit]
 
-  def getKeyValueCount(): Try[Int]
+  def getHeadKeyValueCount(): Try[Int]
+
+  def getBloomFilterKeyValueCount(): Try[Int]
 
   def clearCache(): Unit =
     cache.clear()

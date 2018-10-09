@@ -591,12 +591,12 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
       val keyValues = randomizedIntKeyValues(keyValuesCount, addRandomGroups = false)
       val segment1 = TestSegment(keyValues)(ordering, keyValueLimiterImplicit, segmentOpenLimit).assertGet
 
-      segment1.getKeyValueCount().assertGet shouldBe keyValues.size
+      segment1.getHeadKeyValueCount().assertGet shouldBe keyValues.size
       segment1.isOpen shouldBe true
 
       //create another segment should close segment 1
       val segment2 = TestSegment(keyValues)(ordering, keyValueLimiterImplicit, segmentOpenLimit).assertGet
-      segment2.getKeyValueCount().assertGet shouldBe keyValues.size
+      segment2.getHeadKeyValueCount().assertGet shouldBe keyValues.size
 
       eventual(5.seconds) {
         //segment one is closed
@@ -1061,7 +1061,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
 
       val newSegments = segment.put(deleteKeyValues.toMemory, 4.mb, 0.1, 10.seconds, true).assertGet
       newSegments.size shouldBe 1
-      newSegments.head.getKeyValueCount().assertGet shouldBe 1
+      newSegments.head.getHeadKeyValueCount().assertGet shouldBe 1
 
       val newSegment = newSegments.head
       val keyValue = keyValues.head
@@ -1115,10 +1115,10 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
       if (persistent) {
         val keyValues1 = (1 to 100).map(key => Transient.Remove(key)).updateStats
         val segment = TestSegment(keyValues1).assertGet
-        segment.getKeyValueCount().assertGet shouldBe keyValues1.size
+        segment.getHeadKeyValueCount().assertGet shouldBe keyValues1.size
 
         val reopened = segment.reopen(segment.path, removeDeletes = true)
-        reopened.getKeyValueCount().assertGet shouldBe keyValues1.size
+        reopened.getHeadKeyValueCount().assertGet shouldBe keyValues1.size
         reopened.refresh(1.mb, 0.1, true).assertGet shouldBe empty
       }
     }
@@ -1126,7 +1126,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
     "return no new Segments if all the key-values in the Segment were expired" in {
       val keyValues1 = (1 to 100).map(key => Transient.Put(key, key, 1.second)).updateStats
       val segment = TestSegment(keyValues1, removeDeletes = true).assertGet
-      segment.getKeyValueCount().assertGet shouldBe keyValues1.size
+      segment.getHeadKeyValueCount().assertGet shouldBe keyValues1.size
 
       sleep(3.seconds)
       segment.refresh(1.mb, 0.1, true).assertGet shouldBe empty
@@ -1135,7 +1135,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
     "return all key-values when removeDeletes is false" in {
       val keyValues1 = (1 to 100).map(key => Transient.Put(key, key, 1.second)).updateStats
       val segment = TestSegment(keyValues1, removeDeletes = false).assertGet
-      segment.getKeyValueCount().assertGet shouldBe keyValues1.size
+      segment.getHeadKeyValueCount().assertGet shouldBe keyValues1.size
 
       sleep(3.seconds)
       val refresh = segment.refresh(1.mb, 0.1, true).assertGet

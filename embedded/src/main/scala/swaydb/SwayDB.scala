@@ -614,7 +614,7 @@ private[swaydb] class SwayDB(api: CoreAPI) extends SwayDBAPI {
     api.last
 
   override def keyValueCount: Try[Int] =
-    api.keyValueCount
+    api.bloomFilterKeyValueCount
 
   override def contains(key: Slice[Byte]): Try[Boolean] =
     api contains key

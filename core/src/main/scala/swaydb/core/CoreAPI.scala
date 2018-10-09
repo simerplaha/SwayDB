@@ -84,7 +84,7 @@ private[swaydb] trait CoreAPI {
 
   def lastKey: Try[Option[Slice[Byte]]]
 
-  def keyValueCount: Try[Int]
+  def bloomFilterKeyValueCount: Try[Int]
 
   def deadline(key: Slice[Byte]): Try[Option[Deadline]]
 

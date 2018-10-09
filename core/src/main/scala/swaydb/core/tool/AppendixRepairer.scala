@@ -80,9 +80,9 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
         overlappingSegment.delete
 
       case ReportFailure =>
-        segment.getKeyValueCount() flatMap {
+        segment.getBloomFilterKeyValueCount() flatMap {
           segmentKeyValueCount =>
-            overlappingSegment.getKeyValueCount() flatMap {
+            overlappingSegment.getBloomFilterKeyValueCount() flatMap {
               overlappingSegmentKeyValueCount =>
                 Failure(
                   OverlappingSegmentsException(

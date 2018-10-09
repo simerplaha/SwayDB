@@ -287,7 +287,10 @@ private[core] class SegmentCache(id: String,
         }
     }
 
-  def getKeyValueCount(): Try[Int] =
+  def getHeadKeyValueCount(): Try[Int] =
+    getFooter().map(_.keyValueCount)
+
+  def getBloomFilterKeyValueCount(): Try[Int] =
     getFooter().map(_.bloomFilterItemsCount)
 
   def footer() =

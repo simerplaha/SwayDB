@@ -935,16 +935,16 @@ private[core] class Level(val dirs: Seq[Dir],
   def containsSegmentWithMinKey(minKey: Slice[Byte]): Boolean =
     appendix contains minKey
 
-  override def keyValueCount: Try[Int] =
+  override def bloomFilterKeyValueCount: Try[Int] =
     appendix.foldLeft(Try(0)) {
       case (currentTotal, (_, segment)) =>
-        segment.getKeyValueCount() flatMap {
+        segment.getBloomFilterKeyValueCount() flatMap {
           segmentSize =>
             currentTotal.map(_ + segmentSize)
         }
     } flatMap {
-      thisLevelSize =>
-        nextLevel.map(_.keyValueCount).getOrElse(Success(0)) map (_ + thisLevelSize)
+      thisLevelCount =>
+        nextLevel.map(_.bloomFilterKeyValueCount).getOrElse(Success(0)) map (_ + thisLevelCount)
     }
 
   def getSegment(minKey: Slice[Byte]): Option[Segment] =

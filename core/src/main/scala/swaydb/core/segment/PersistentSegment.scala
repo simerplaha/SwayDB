@@ -223,8 +223,11 @@ private[segment] case class PersistentSegment(file: DBFile,
   override def hasRange: Try[Boolean] =
     segmentCache.hasRange
 
-  def getKeyValueCount(): Try[Int] =
-    segmentCache.getKeyValueCount()
+  def getHeadKeyValueCount(): Try[Int] =
+    segmentCache.getHeadKeyValueCount()
+
+  def getBloomFilterKeyValueCount(): Try[Int] =
+    segmentCache.getBloomFilterKeyValueCount()
 
   override def isFooterDefined: Boolean =
     footer.isDefined

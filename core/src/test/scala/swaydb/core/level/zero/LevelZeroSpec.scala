@@ -187,7 +187,7 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory with Benchmark {
       assertGet(keyValues, zero)
       assertHeadLast(keyValues, zero)
 
-      zero.keyValueCount.assertGet shouldBe keyValues.size
+      zero.bloomFilterKeyValueCount.assertGet shouldBe keyValues.size
     }
 
     "batch writing empty keys should fail" in {

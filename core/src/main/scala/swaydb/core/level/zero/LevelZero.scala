@@ -20,10 +20,8 @@
 package swaydb.core.level.zero
 
 import java.nio.channels.{FileChannel, FileLock}
-import java.nio.charset.StandardCharsets
 import java.nio.file.{Path, Paths, StandardOpenOption}
 import java.util
-import java.util.UUID
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.KeyValue._
@@ -36,7 +34,7 @@ import swaydb.core.level.actor.LevelZeroAPI
 import swaydb.core.map
 import swaydb.core.map.{MapEntry, Maps, SkipListMerge}
 import swaydb.core.retry.Retry
-import swaydb.core.util.{Bytes, MinMax, TryUtil, UUIDUtil}
+import swaydb.core.util.{MinMax, TryUtil}
 import swaydb.data.accelerate.{Accelerator, Level0Meter}
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.slice.Slice
@@ -579,10 +577,10 @@ private[core] class LevelZero(val path: Path,
       }
     }
 
-  def keyValueCount: Try[Int] =
+  def bloomFilterKeyValueCount: Try[Int] =
     withRetry {
       val keyValueCountInMaps = maps.keyValueCount.getOrElse(0)
-      nextLevel.keyValueCount.map(_ + keyValueCountInMaps)
+      nextLevel.bloomFilterKeyValueCount.map(_ + keyValueCountInMaps)
     }
 
   def deadline(key: Slice[Byte]): Try[Option[Deadline]] =
