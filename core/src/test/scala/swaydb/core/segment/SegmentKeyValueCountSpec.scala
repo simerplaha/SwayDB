@@ -89,7 +89,7 @@ sealed trait SegmentKeyValueCount extends TestBase with ScalaFutures with Privat
       val groupsKeyValues = randomizedIntKeyValues(keyValuesCount, addRandomGroups = false)
       assertOnSegment(
         keyValues = Slice(randomGroup(groupsKeyValues)).toMemory,
-        assertion = _.getHeadKeyValueCount().assertGet shouldBe groupsKeyValues.size
+        assertion = _.getBloomFilterKeyValueCount().assertGet shouldBe groupsKeyValues.size
       )
     }
 
@@ -112,17 +112,17 @@ sealed trait SegmentKeyValueCount extends TestBase with ScalaFutures with Privat
 
       assertOnSegment(
         keyValues = Slice(group4).toMemory,
-        assertion = _.getHeadKeyValueCount().assertGet shouldBe group4KeyValues.size
+        assertion = _.getBloomFilterKeyValueCount().assertGet shouldBe group4KeyValues.size
       )
 
       assertOnSegment(
         keyValues = Slice(group3).toMemory,
-        assertion = _.getHeadKeyValueCount().assertGet shouldBe (group1KeyValues.size + group2KeyValues.size + group3KeyValues.size)
+        assertion = _.getBloomFilterKeyValueCount().assertGet shouldBe (group1KeyValues.size + group2KeyValues.size + group3KeyValues.size)
       )
 
       assertOnSegment(
         keyValues = Slice(randomGroup(Slice(group3, group4).updateStats)).toMemory,
-        assertion = _.getHeadKeyValueCount().assertGet shouldBe (group1KeyValues.size + group2KeyValues.size + group3KeyValues.size + group4KeyValues.size)
+        assertion = _.getBloomFilterKeyValueCount().assertGet shouldBe (group1KeyValues.size + group2KeyValues.size + group3KeyValues.size + group4KeyValues.size)
       )
     }
   }
