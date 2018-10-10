@@ -169,20 +169,26 @@ private[core] class LevelZero(val path: Path,
   def remove(fromKey: Slice[Byte], to: Slice[Byte]): Try[Level0Meter] =
     assertKey(fromKey) {
       assertKey(to) {
-        maps.write {
-          (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, to, None, Value.Remove(None))): MapEntry[Slice[Byte], Memory.Response]) ++
-            MapEntry.Put[Slice[Byte], Memory.Remove](to, Memory.Remove(to))
-        }
+        if (fromKey >= to)
+          Failure(new Exception("fromKey should be less than toKey"))
+        else
+          maps.write {
+            (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, to, None, Value.Remove(None))): MapEntry[Slice[Byte], Memory.Response]) ++
+              MapEntry.Put[Slice[Byte], Memory.Remove](to, Memory.Remove(to))
+          }
       }
     }
 
   def remove(fromKey: Slice[Byte], to: Slice[Byte], at: Deadline): Try[Level0Meter] =
     assertKey(fromKey) {
       assertKey(to) {
-        maps.write {
-          (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, to, None, Value.Remove(at))): MapEntry[Slice[Byte], Memory.Response]) ++
-            MapEntry.Put[Slice[Byte], Memory.Remove](to, Memory.Remove(to, at))
-        }
+        if (fromKey >= to)
+          Failure(new Exception("fromKey should be less than toKey"))
+        else
+          maps.write {
+            (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, to, None, Value.Remove(at))): MapEntry[Slice[Byte], Memory.Response]) ++
+              MapEntry.Put[Slice[Byte], Memory.Remove](to, Memory.Remove(to, at))
+          }
       }
     }
 
@@ -202,10 +208,13 @@ private[core] class LevelZero(val path: Path,
   def update(fromKey: Slice[Byte], to: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter] =
     assertKey(fromKey) {
       assertKey(to) {
-        maps.write {
-          (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, to, None, Value.Update(value, None))): MapEntry[Slice[Byte], Memory.Response]) ++
-            MapEntry.Put[Slice[Byte], Memory.Update](to, Memory.Update(to, value))
-        }
+        if (fromKey >= to)
+          Failure(new Exception("fromKey should be less than toKey"))
+        else
+          maps.write {
+            (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, to, None, Value.Update(value, None))): MapEntry[Slice[Byte], Memory.Response]) ++
+              MapEntry.Put[Slice[Byte], Memory.Update](to, Memory.Update(to, value))
+          }
       }
     }
 

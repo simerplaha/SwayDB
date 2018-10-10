@@ -136,33 +136,33 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory with Benchmark {
       zero.get(1).assertGet.assertGet shouldBe Slice.empty
     }
 
-//    "write large keys and values and reopen the database and re-read key-values" in {
-//      //approx 2 mb key and values
-//
-//      val key1 = "a" + Random.nextString(750000): Slice[Byte]
-//      val key2 = "b" + Random.nextString(750000): Slice[Byte]
-//
-//      val value1 = Random.nextString(750000): Slice[Byte]
-//      val value2 = Random.nextString(750000): Slice[Byte]
-//
-//      def assertWrite(zero: LevelZero): Unit = {
-//        zero.put(key1, value1).assertGet
-//        zero.put(key2, value2).assertGet
-//      }
-//
-//      def assertRead(zero: LevelZero): Unit = {
-//        zero.get(key1).assertGet.assertGet shouldBe value1
-//        zero.get(key2).assertGet.assertGet shouldBe value2
-//      }
-//
-//      val zero = TestLevelZero(TestLevel(throttle = _ => Throttle(10.seconds, 0)))
-//      assertWrite(zero)
-//      assertRead(zero)
-//
-//      //allow compaction to do it's work
-//      sleep(2.seconds)
-//      if (persistent) assertRead(zero.reopen)
-//    }
+    //    "write large keys and values and reopen the database and re-read key-values" in {
+    //      //approx 2 mb key and values
+    //
+    //      val key1 = "a" + Random.nextString(750000): Slice[Byte]
+    //      val key2 = "b" + Random.nextString(750000): Slice[Byte]
+    //
+    //      val value1 = Random.nextString(750000): Slice[Byte]
+    //      val value2 = Random.nextString(750000): Slice[Byte]
+    //
+    //      def assertWrite(zero: LevelZero): Unit = {
+    //        zero.put(key1, value1).assertGet
+    //        zero.put(key2, value2).assertGet
+    //      }
+    //
+    //      def assertRead(zero: LevelZero): Unit = {
+    //        zero.get(key1).assertGet.assertGet shouldBe value1
+    //        zero.get(key2).assertGet.assertGet shouldBe value2
+    //      }
+    //
+    //      val zero = TestLevelZero(TestLevel(throttle = _ => Throttle(10.seconds, 0)))
+    //      assertWrite(zero)
+    //      assertRead(zero)
+    //
+    //      //allow compaction to do it's work
+    //      sleep(2.seconds)
+    //      if (persistent) assertRead(zero.reopen)
+    //    }
 
     "write keys only" in {
       val zero = TestLevelZero(TestLevel())
@@ -331,6 +331,22 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory with Benchmark {
       zero.remove(1).assertGet
       zero.last.assertGetOpt shouldBe empty
       zero.head.assertGetOpt shouldBe empty
+    }
+  }
+
+  "LevelZero.remove range" should {
+    "not allow from key to be > than to key" in {
+      val zero = TestLevelZero(TestLevel(), mapSize = 1.byte)
+      zero.remove(10, 1).failed.assertGet.getMessage shouldBe "fromKey should be less than toKey"
+      zero.remove(10, 10).failed.assertGet.getMessage shouldBe "fromKey should be less than toKey"
+    }
+  }
+
+  "LevelZero.update range" should {
+    "not allow from key to be > than to key" in {
+      val zero = TestLevelZero(TestLevel(), mapSize = 1.byte)
+      zero.update(10, 1, value = "value").failed.assertGet.getMessage shouldBe "fromKey should be less than toKey"
+      zero.update(10, 10, value = "value").failed.assertGet.getMessage shouldBe "fromKey should be less than toKey"
     }
   }
 

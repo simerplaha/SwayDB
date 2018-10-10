@@ -80,7 +80,7 @@ private[swaydb] object CompressorInternal extends LazyLogging {
                              compressionName: String): Boolean = {
     val compressionSavedPercentage = (1D - (compressedLength.toDouble / originalLength.toDouble)) * 100
     if (compressionSavedPercentage < minCompressionPercentage) {
-      logger.warn(s"Uncompressed! $compressionName - $originalLength.bytes compressed to $compressedLength.bytes. Compression savings = $compressionSavedPercentage%. Required minimum $minCompressionPercentage%")
+      logger.debug(s"Uncompressed! $compressionName - $originalLength.bytes compressed to $compressedLength.bytes. Compression savings = $compressionSavedPercentage%. Required minimum $minCompressionPercentage%")
       false
     } else {
       logger.debug(s"Compressed! $compressionName - $originalLength.bytes compressed to $compressedLength.bytes. Compression savings = $compressionSavedPercentage%. Required minimum $minCompressionPercentage%")

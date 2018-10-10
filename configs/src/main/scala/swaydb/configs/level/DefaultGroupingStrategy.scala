@@ -27,7 +27,7 @@ object DefaultGroupingStrategy {
 
   /**
     * Default grouping Strategy the last Level of the Persistent configuration. It uses 3 three compression types
-    * with minimum compression requirement of 15%.
+    * with minimum compression requirement of 10%.
     *
     * All there compression libraries are used and compressions are executed in their order until a successful compression is achieved.
     * 1. LZ4's fastest Java instance with Fast compressor and decompressor.
@@ -41,13 +41,13 @@ object DefaultGroupingStrategy {
     * By default currently nested Group compression is not used because the default file sizes are too small (2.mb) to be creating nested Groups.
     */
   def apply(groupKeyValuesAtSize: Int = 1.mb,
-            minCompressionPercentage: Double = 15.0) =
+            minCompressionPercentage: Double = 10.0) =
     KeyValueGroupingStrategy.Size( //Grouping strategy for key-values
       //when the size of keys and values reaches 1.mb, do grouping!
       size = groupKeyValuesAtSize,
       //specifies the number of key-values in a Segment before group. Grouping will be applies after every 1000th key-value.
       indexCompressions =
-        //try index compression with LZ4 first with 15% compression requirement then Snappy and finally if both LZ4 & Snappy compression fails
+        //try index compression with LZ4 first with 10% compression requirement then Snappy and finally if both LZ4 & Snappy compression fails
         //simply add the current keys as uncompressed Group.
         Seq(
           Compression.LZ4(
@@ -57,7 +57,7 @@ object DefaultGroupingStrategy {
           Compression.Snappy(minCompressionPercentage = minCompressionPercentage),
           Compression.UnCompressedGroup
         ),
-      //try values compression with LZ4 first with 15% compression requirement then Snappy and finally if both LZ4 & Snappy compression fails
+      //try values compression with LZ4 first with 10% compression requirement then Snappy and finally if both LZ4 & Snappy compression fails
       //simply add the current values as uncompressed Group.
       valueCompressions =
         Seq(

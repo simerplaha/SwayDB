@@ -22,11 +22,8 @@ package swaydb.configs.level
 import java.nio.file.Path
 
 import swaydb.data.accelerate.{Accelerator, Level0Meter}
-import swaydb.data.api.grouping.{Compression, KeyValueGroupingStrategy}
 import swaydb.data.compaction.Throttle
-import swaydb.data.compression.{LZ4Compressor, LZ4Decompressor, LZ4Instance}
 import swaydb.data.config._
-import swaydb.data.util.StorageUnits._
 
 import scala.concurrent.duration._
 
@@ -145,28 +142,7 @@ object DefaultPersistentConfig {
         minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
         compressDuplicateValues = compressDuplicateValues,
         groupingStrategy =
-          Some(
-            KeyValueGroupingStrategy.Size(
-              size = 1.mb,
-              indexCompressions =
-                Seq(
-                  Compression.LZ4(
-                    compressor = (LZ4Instance.FastestJavaInstance, LZ4Compressor.FastCompressor(minCompressionPercentage = 15)),
-                    decompressor = (LZ4Instance.FastestJavaInstance, LZ4Decompressor.FastDecompressor)
-                  ),
-                  Compression.UnCompressedGroup
-                ),
-              valueCompressions =
-                Seq(
-                  Compression.LZ4(
-                    compressor = (LZ4Instance.FastestJavaInstance, LZ4Compressor.FastCompressor(minCompressionPercentage = 15)),
-                    decompressor = (LZ4Instance.FastestJavaInstance, LZ4Decompressor.FastDecompressor)
-                  ),
-                  Compression.UnCompressedGroup
-                ),
-              groupGroupingStrategy = None
-            )
-          ),
+          None,
         throttle =
           levelMeter => {
             val delay = (40 - levelMeter.segmentsCount).seconds
@@ -177,9 +153,7 @@ object DefaultPersistentConfig {
       .addPersistentLevel( //level6
         dir = dir,
         otherDirs = otherDirs,
-        //double the size in last Levels so that if merge is not triggered(copied Segment),
-        // small Segment check will merge the segment into one of the other Segments and apply compression
-        segmentSize = segmentSize * 2,
+        segmentSize = segmentSize,
         mmapSegment = mmapSegments,
         mmapAppendix = mmapAppendix,
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
@@ -187,7 +161,7 @@ object DefaultPersistentConfig {
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
         minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
         compressDuplicateValues = compressDuplicateValues,
-        groupingStrategy = Some(DefaultGroupingStrategy()),
+        groupingStrategy = None,
         throttle =
           levelMeter => {
             val delay = (50 - levelMeter.segmentsCount).seconds

@@ -35,7 +35,7 @@ import scala.util.{Failure, Success, Try}
 private[core] case class GroupDecompressor(private val compressedGroupReader: Reader,
                                            groupStartOffset: Int) {
 
-  private val maxTimesToTryDecompress = 1000000
+  private val maxTimesToTryDecompress = 10000
   @volatile private var groupHeader: GroupHeader = _ //header for compressed Segment info
   @volatile private var decompressedIndexReader: GroupReader = _ //reader for keys bytes that contains function to read value bytes
   @volatile private var decompressedValuesReader: Reader = _ //value bytes reader.
