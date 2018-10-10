@@ -86,4 +86,4 @@ db
 
 Currently undergoing unit, integration, stress & performance testing.
 
-Backward compatibility will be supported for versions `1.+` onwards.
+Backward compatibility will be supported from version `1` onwards.
