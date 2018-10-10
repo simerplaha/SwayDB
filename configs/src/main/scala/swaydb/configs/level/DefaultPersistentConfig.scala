@@ -22,6 +22,7 @@ package swaydb.configs.level
 import java.nio.file.Path
 
 import swaydb.data.accelerate.{Accelerator, Level0Meter}
+import swaydb.data.api.grouping.KeyValueGroupingStrategy
 import swaydb.data.compaction.Throttle
 import swaydb.data.config._
 
@@ -44,6 +45,7 @@ object DefaultPersistentConfig {
             bloomFilterFalsePositiveRate: Double,
             minTimeLeftToUpdateExpiration: FiniteDuration,
             compressDuplicateValues: Boolean,
+            groupingStrategy: Option[KeyValueGroupingStrategy],
             acceleration: Level0Meter => Accelerator): SwayDBPersistentConfig =
     ConfigWizard
       .addPersistentLevel0( //level0
@@ -182,7 +184,7 @@ object DefaultPersistentConfig {
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
         minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
         compressDuplicateValues = compressDuplicateValues,
-        groupingStrategy = Some(DefaultGroupingStrategy()),
+        groupingStrategy = groupingStrategy,
         throttle =
           levelMeter => {
             val delay = (10 - levelMeter.segmentsCount).seconds

@@ -114,6 +114,7 @@ object SwayDB extends LazyLogging {
                        bloomFilterFalsePositiveRate: Double = 0.01,
                        minTimeLeftToUpdateExpiration: FiniteDuration = 10.seconds,
                        compressDuplicateValues: Boolean = true,
+                       lastLevelGroupingStrategy: Option[KeyValueGroupingStrategy] = Some(DefaultGroupingStrategy()),
                        acceleration: Level0Meter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
                                                                                           valueSerializer: Serializer[V],
                                                                                           ordering: Ordering[Slice[Byte]] = KeyOrder.default,
@@ -131,6 +132,7 @@ object SwayDB extends LazyLogging {
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
         minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
         compressDuplicateValues = compressDuplicateValues,
+        groupingStrategy = lastLevelGroupingStrategy,
         acceleration = acceleration
       ),
       maxOpenSegments = maxOpenSegments,
@@ -161,6 +163,7 @@ object SwayDB extends LazyLogging {
                        bloomFilterFalsePositiveRate: Double = 0.01,
                        minTimeLeftToUpdateExpiration: FiniteDuration = 10.seconds,
                        compressDuplicateValues: Boolean = true,
+                       lastLevelGroupingStrategy: Option[KeyValueGroupingStrategy] = Some(DefaultGroupingStrategy()),
                        acceleration: Level0Meter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[T],
                                                                                           ordering: Ordering[Slice[Byte]] = KeyOrder.default,
                                                                                           ec: ExecutionContext = defaultExecutionContext): Try[SwayDBSet[T]] = {
@@ -178,6 +181,7 @@ object SwayDB extends LazyLogging {
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
         minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
+        groupingStrategy = lastLevelGroupingStrategy,
         acceleration = acceleration
       ),
       maxOpenSegments = maxOpenSegments,
