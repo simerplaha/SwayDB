@@ -48,8 +48,8 @@ class GroupEntryReaderWriterSpec extends WordSpec with CommonAssertions {
 
       val next = randomGroup().updateStats(0.1, previous = Some(previous))
 
-      //      println("previous: " + previous)
-      //      println("next: " + next)
+      println("previous: " + previous)
+      println("next: " + next)
 
       val valueBytes = Slice((previous.valueEntryBytes ++ next.valueEntryBytes).flatten.toArray)
 
@@ -57,8 +57,8 @@ class GroupEntryReaderWriterSpec extends WordSpec with CommonAssertions {
       previousRead shouldBe previous
 
       val read = EntryReader.read(Reader(next.indexEntryBytes), Reader(valueBytes), 0, 0, 0, Some(previousRead)).assertGet
-      //      println("read:  " + read)
-      //      println
+      println("read:  " + read)
+      println
       read shouldBe next
     }
   }

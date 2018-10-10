@@ -31,7 +31,8 @@ object Slicer {
   }
 
   class SliceBuilder[T](sizeHint: Int) extends mutable.Builder[T, Slice[T]] {
-    protected var slice: Slice[T] = Slice.create[Nothing]((sizeHint * 2.5).toInt).asInstanceOf[Slice[T]]
+    //max is used to in-case sizeHit == 0 which is possible for cases where (None ++ Some(Slice[T](...)))
+    protected var slice: Slice[T] = Slice.create[Nothing](((sizeHint max 16) * 2.5).toInt).asInstanceOf[Slice[T]]
 
     def extendSlice(by: Int) = {
       val extendedSlice = Slice.create[Nothing](slice.size * by).asInstanceOf[Slice[T]]
@@ -62,7 +63,7 @@ object Slicer {
   implicit def canBuildFrom[T]: CanBuildFrom[Slicer[_], T, Slicer[T]] =
     new CanBuildFrom[Slicer[_], T, Slicer[T]] {
       def apply(from: Slicer[_]) =
-        new SliceBuilder[T](from.size)
+        new SliceBuilder[T](from.size max 16) //max is used in-case from.size == 0
 
       def apply() = new SliceBuilder[T](100)
     }
