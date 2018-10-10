@@ -112,17 +112,29 @@ sealed trait SegmentKeyValueCount extends TestBase with ScalaFutures with Privat
 
       assertOnSegment(
         keyValues = Slice(group4).toMemory,
-        assertion = _.getBloomFilterKeyValueCount().assertGet shouldBe group4KeyValues.size
+        assertion = {
+          segment =>
+            segment.getBloomFilterKeyValueCount().assertGet shouldBe group4KeyValues.size
+            segment.getHeadKeyValueCount().assertGet shouldBe 1
+        }
       )
 
       assertOnSegment(
         keyValues = Slice(group3).toMemory,
-        assertion = _.getBloomFilterKeyValueCount().assertGet shouldBe (group1KeyValues.size + group2KeyValues.size + group3KeyValues.size)
+        assertion =
+          segment => {
+            segment.getBloomFilterKeyValueCount().assertGet shouldBe (group1KeyValues.size + group2KeyValues.size + group3KeyValues.size)
+            segment.getHeadKeyValueCount().assertGet shouldBe 1
+          }
       )
 
       assertOnSegment(
         keyValues = Slice(randomGroup(Slice(group3, group4).updateStats)).toMemory,
-        assertion = _.getBloomFilterKeyValueCount().assertGet shouldBe (group1KeyValues.size + group2KeyValues.size + group3KeyValues.size + group4KeyValues.size)
+        assertion =
+          segment => {
+            segment.getBloomFilterKeyValueCount().assertGet shouldBe (group1KeyValues.size + group2KeyValues.size + group3KeyValues.size + group4KeyValues.size)
+            segment.getHeadKeyValueCount().assertGet shouldBe 1
+          }
       )
     }
   }

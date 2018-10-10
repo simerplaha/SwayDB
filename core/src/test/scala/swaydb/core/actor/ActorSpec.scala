@@ -112,15 +112,14 @@ class ActorSpec extends WordSpec with Matchers with FutureBase {
             if (int >= 6)
               ()
             else
-              self.schedule(int + 1, 100.millisecond)
+              self.schedule(int + 1, 500.millisecond)
         }
 
       actor ! 1
-      //sleep for 5.seconds
-      sleep(5.second)
+      sleep(7.second)
       //ensure that within those 5.second interval at least 3 and no more then 5 messages get processed.
       state.processed.size should be >= 3
-      state.processed.size should be <= 5
+      state.processed.size should be <= 6
     }
   }
 
