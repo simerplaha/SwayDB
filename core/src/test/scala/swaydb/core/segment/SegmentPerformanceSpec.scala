@@ -19,18 +19,29 @@
 
 package swaydb.core.segment
 
-import swaydb.core.data.{KeyValue, Persistent}
+import swaydb.configs.level.DefaultGroupingStrategy
+import swaydb.core.data.KeyValue
+import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.io.file.DBFile
 import swaydb.core.queue.KeyValueLimiter
+import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestLimitQueues}
 import swaydb.data.segment.MaxKey
+import swaydb.data.slice.Slice
+import swaydb.data.util.StorageUnits._
 import swaydb.order.KeyOrder
 
+import scala.util.Random
+
 //@formatter:off
-class SegmentPerformanceSpec0 extends SegmentPerformanceSpec
+class SegmentPerformanceSpec0 extends SegmentPerformanceSpec {
+  val testGroupedKeyValues: Boolean = false
+}
 
 class SegmentPerformanceSpec1 extends SegmentPerformanceSpec {
+  val testGroupedKeyValues: Boolean = false
+
   override def levelFoldersCount = 10
   override def mmapSegmentsOnWrite = true
   override def mmapSegmentsOnRead = true
@@ -39,6 +50,7 @@ class SegmentPerformanceSpec1 extends SegmentPerformanceSpec {
 }
 
 class SegmentPerformanceSpec2 extends SegmentPerformanceSpec {
+  val testGroupedKeyValues: Boolean = false
   override def levelFoldersCount = 10
   override def mmapSegmentsOnWrite = false
   override def mmapSegmentsOnRead = false
@@ -47,42 +59,99 @@ class SegmentPerformanceSpec2 extends SegmentPerformanceSpec {
 }
 
 class SegmentPerformanceSpec3 extends SegmentPerformanceSpec {
+  val testGroupedKeyValues: Boolean = false
   override def inMemoryStorage = true
 }
 
+class SegmentPerformanceGroupedKeyValuesSpec0 extends SegmentPerformanceSpec {
+  val testGroupedKeyValues: Boolean = true
+}
+
+class SegmentPerformanceGroupedKeyValuesSpec1 extends SegmentPerformanceSpec {
+  val testGroupedKeyValues: Boolean = true
+
+  override def levelFoldersCount = 10
+  override def mmapSegmentsOnWrite = true
+  override def mmapSegmentsOnRead = true
+  override def level0MMAP = true
+  override def appendixStorageMMAP = true
+}
+
+class SegmentPerformanceGroupedKeyValuesSpec2 extends SegmentPerformanceSpec {
+  val testGroupedKeyValues: Boolean = true
+  override def levelFoldersCount = 10
+  override def mmapSegmentsOnWrite = false
+  override def mmapSegmentsOnRead = false
+  override def level0MMAP = false
+  override def appendixStorageMMAP = false
+}
+
+class SegmentPerformanceGroupedKeyValuesSpec3 extends SegmentPerformanceSpec {
+  val testGroupedKeyValues: Boolean = true
+  override def inMemoryStorage = true
+}
+//@formatter:on
 
 sealed trait SegmentPerformanceSpec extends TestBase with Benchmark {
 
   override implicit val ordering = KeyOrder.default
   implicit val compression = groupingStrategy
-  val keyValuesCount = 10000
 
+  def testGroupedKeyValues: Boolean
+
+  val keyValuesCount = 1000000
 
   implicit val maxSegmentsOpenCacheImplicitLimiter: DBFile => Unit = TestLimitQueues.fileOpenLimiter
   implicit val keyValuesLimitImplicitLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter
 
-  val keyValues = randomIntKeyValues(keyValuesCount)
+  val unGroupedKeyValues: Slice[KeyValue.WriteOnly] =
+    randomIntKeyValues(keyValuesCount, startId = Some(1))
+
+  //  val unGroupedRandomKeyValues: List[KeyValue.WriteOnly] =
+  //    Random.shuffle(unGroupedKeyValues.toList)
+
+  val groupedKeyValues: Slice[KeyValue.WriteOnly] = {
+    val grouped =
+      SegmentMerger.split(
+        keyValues = unGroupedKeyValues,
+        minSegmentSize = 1000.mb,
+        isLastLevel = false,
+        forInMemory = false,
+        bloomFilterFalsePositiveRate = 0.1,
+        compressDuplicateValues = true
+      )(ordering = ordering, groupingStrategy = Some(KeyValueGroupingStrategyInternal(DefaultGroupingStrategy()))).assertGet
+
+    grouped should have size 1
+    grouped.head.toSlice
+  }
+
+  def keyValues = if (testGroupedKeyValues) groupedKeyValues else unGroupedKeyValues
 
   def assertGet(segment: Segment) =
-    keyValues.foreach(keyValue => segment.get(keyValue.key).assertGet shouldBe keyValue)
+    unGroupedKeyValues foreach {
+      keyValue =>
+        segment.get(keyValue.key).assertGet shouldBe keyValue
+    }
 
-  def assertHigher(segment: Segment) =
-    (0 until keyValues.size - 1) foreach {
+  def assertHigher(segment: Segment) = {
+    (0 until unGroupedKeyValues.size - 1) foreach {
       index =>
         //        segment.higherKey(keyValues(index).key)
         //        println(s"index: $index")
-        val keyValue = keyValues(index)
-        val expectedHigher = keyValues(index + 1)
+        val keyValue = unGroupedKeyValues(index)
+        val expectedHigher = unGroupedKeyValues(index + 1)
         segment.higher(keyValue.key).assertGet shouldBe expectedHigher
     }
 
+  }
+
   def assertLower(segment: Segment) =
-    (1 until keyValues.size) foreach {
+    (1 until unGroupedKeyValues.size) foreach {
       index =>
         //        println(s"index: $index")
         //        segment.lowerKeyValue(keyValues(index).key)
-        val keyValue = keyValues(index)
-        val expectedLower = keyValues(index - 1)
+        val keyValue = unGroupedKeyValues(index)
+        val expectedLower = unGroupedKeyValues(index - 1)
         segment.lower(keyValue.key).assertGet shouldBe expectedLower
     }
 
@@ -99,56 +168,50 @@ sealed trait SegmentPerformanceSpec extends TestBase with Benchmark {
       path = segment.path,
       mmapReads = levelStorage.mmapSegmentsOnRead,
       mmapWrites = levelStorage.mmapSegmentsOnWrite,
-      minKey = keyValues.head.key,
-      maxKey =
-      keyValues.last match {
-        case range: KeyValue.WriteOnly.Range =>
-          MaxKey.Range(range.fromKey, range.toKey)
-        case _ =>
-          MaxKey.Fixed(keyValues.last.key)
-      },
-      segmentSize = keyValues.last.stats.segmentSize,
+      minKey = segment.minKey,
+      maxKey = segment.maxKey,
+      segmentSize = segment.segmentSize,
       nearestExpiryDeadline = segment.nearestExpiryDeadline,
       removeDeletes = false
     ).assertGet
   }
 
-  "Segment read benchmark 1" in {
+  "Segment get benchmark 1" in {
     initSegment()
 
-    benchmark(s"read ${keyValues.size} key values when Segment memory = $memory, mmapSegmentWrites = ${levelStorage.mmapSegmentsOnWrite}, mmapSegmentReads = ${levelStorage.mmapSegmentsOnRead}") {
+    benchmark(s"get ${keyValues.size} key values when Segment memory = $memory, mmapSegmentWrites = ${levelStorage.mmapSegmentsOnWrite}, mmapSegmentReads = ${levelStorage.mmapSegmentsOnRead}") {
       assertGet(segment)
     }
   }
 
-  "Segment read benchmark 2" in {
-    benchmark(s"read ${keyValues.size} cached key values when Segment memory = $memory, mmapSegmentWrites = ${levelStorage.mmapSegmentsOnWrite}, mmapSegmentReads = ${levelStorage.mmapSegmentsOnRead}") {
+  "Segment get benchmark 2" in {
+    benchmark(s"get ${keyValues.size} cached key values when Segment memory = $memory, mmapSegmentWrites = ${levelStorage.mmapSegmentsOnWrite}, mmapSegmentReads = ${levelStorage.mmapSegmentsOnRead}") {
       assertGet(segment)
     }
   }
 
-  "Segment read benchmark 3" in {
+  "Segment lower benchmark 3" in {
     if (persistent) reopenSegment()
-    benchmark(s"read ${keyValues.size} lower keys when Segment memory = $memory, mmapSegmentWrites = ${levelStorage.mmapSegmentsOnWrite}, mmapSegmentReads = ${levelStorage.mmapSegmentsOnRead}") {
+    benchmark(s"lower ${keyValues.size} lower keys when Segment memory = $memory, mmapSegmentWrites = ${levelStorage.mmapSegmentsOnWrite}, mmapSegmentReads = ${levelStorage.mmapSegmentsOnRead}") {
       assertLower(segment)
     }
   }
 
-  "Segment read benchmark 4" in {
-    benchmark(s"read ${keyValues.size} cached lower keys when Segment memory = $memory, mmapSegmentWrites = ${levelStorage.mmapSegmentsOnWrite}, mmapSegmentReads = ${levelStorage.mmapSegmentsOnRead}") {
+  "Segment lower benchmark 4" in {
+    benchmark(s"lower ${keyValues.size} cached lower keys when Segment memory = $memory, mmapSegmentWrites = ${levelStorage.mmapSegmentsOnWrite}, mmapSegmentReads = ${levelStorage.mmapSegmentsOnRead}") {
       assertLower(segment)
     }
   }
 
-  "Segment read benchmark 5" in {
+  "Segment higher benchmark 5" in {
     if (persistent) reopenSegment()
-    benchmark(s"read ${keyValues.size} higher keys when Segment memory = $memory, mmapSegmentWrites = ${levelStorage.mmapSegmentsOnWrite}, mmapSegmentReads = ${levelStorage.mmapSegmentsOnRead}") {
+    benchmark(s"higher ${keyValues.size} higher keys when Segment memory = $memory, mmapSegmentWrites = ${levelStorage.mmapSegmentsOnWrite}, mmapSegmentReads = ${levelStorage.mmapSegmentsOnRead}") {
       assertHigher(segment)
     }
   }
 
-  "Segment read benchmark 6" in {
-    benchmark(s"read ${keyValues.size} cached higher keys when Segment memory = $memory, mmapSegmentWrites = ${levelStorage.mmapSegmentsOnWrite}, mmapSegmentReads = ${levelStorage.mmapSegmentsOnRead}") {
+  "Segment higher benchmark 6" in {
+    benchmark(s"higher ${keyValues.size} cached higher keys when Segment memory = $memory, mmapSegmentWrites = ${levelStorage.mmapSegmentsOnWrite}, mmapSegmentReads = ${levelStorage.mmapSegmentsOnRead}") {
       assertHigher(segment)
     }
   }

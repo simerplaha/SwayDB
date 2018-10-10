@@ -63,12 +63,16 @@ private[segment] case class MemorySegment(path: Path,
     *
     * This function is always invoked before reading the Group itself therefore if the header is not already
     * populated, it means that this is a newly fetched/decompressed Group and should be added to the [[keyValueLimiter]].
+    *
+    * REMOVED - KeyValueLimiter now does not decompresses a Group key-value before dropping it from the queue. For
+    * [[MemorySegment]]s head Group key-values (key-values at are top Level Groups) should never be dropped. SegmentCache's
+    * group key-values can be dropped.
     */
-  private def addToQueueMayBe(group: Memory.Group): Try[Unit] =
-    if (group.isHeaderDecompressed) //if the header is already decompressed then this Group is already in the Limit queue.
-      TryUtil.successUnit
-    else //else this is a new decompression, add to queue.
-      keyValueLimiter.add(group, cache)
+  //  private def addToQueueMayBe(group: Memory.Group): Try[Unit] =
+  //    if (group.isHeaderDecompressed) //if the header is already decompressed then this Group is already in the Limit queue.
+  //      TryUtil.successUnit
+  //    else //else this is a new decompression, add to queue.
+  //      keyValueLimiter.add(group, cache)
 
   override def put(newKeyValues: Slice[KeyValue.ReadOnly],
                    minSegmentSize: Long,
@@ -197,14 +201,11 @@ private[segment] case class MemorySegment(path: Path,
                 Success(Some(range))
 
               case Some(group: Memory.Group) if group contains key =>
-                addToQueueMayBe(group) flatMap {
-                  _ =>
-                    group.segmentCache.get(key) flatMap {
-                      case Some(persistent) =>
-                        persistent.toMemoryResponseOption()
-                      case None =>
-                        TryUtil.successNone
-                    }
+                group.segmentCache.get(key) flatMap {
+                  case Some(persistent) =>
+                    persistent.toMemoryResponseOption()
+                  case None =>
+                    TryUtil.successNone
                 }
 
               case _ =>
@@ -228,14 +229,11 @@ private[segment] case class MemorySegment(path: Path,
             case response: Memory.Response =>
               Success(Some(response))
             case group: Memory.Group =>
-              addToQueueMayBe(group) flatMap {
-                _ =>
-                  group.segmentCache.lower(key) flatMap {
-                    case Some(persistent) =>
-                      persistent.toMemoryResponseOption()
-                    case None =>
-                      TryUtil.successNone
-                  }
+              group.segmentCache.lower(key) flatMap {
+                case Some(persistent) =>
+                  persistent.toMemoryResponseOption()
+                case None =>
+                  TryUtil.successNone
               }
           }
       } getOrElse {
@@ -270,22 +268,19 @@ private[segment] case class MemorySegment(path: Path,
           Success(Some(floorRange))
 
         case floorGroup: Memory.Group if floorGroup containsHigher key =>
-          addToQueueMayBe(floorGroup) flatMap {
-            _ =>
-              floorGroup.segmentCache.higher(key) flatMap {
-                case Some(persistent) =>
-                  persistent.toMemoryResponseOption()
-                case None =>
-                  TryUtil.successNone
-              } flatMap {
-                higher =>
-                  //Group's last key-value can be inclusive or exclusive and fromKey & toKey can be the same.
-                  //So it's hard to know if the Group contain higher therefore a basicHigher is required if group returns None for higher.
-                  if (higher.isDefined)
-                    Success(higher)
-                  else
-                    doBasicHigher(key)
-              }
+          floorGroup.segmentCache.higher(key) flatMap {
+            case Some(persistent) =>
+              persistent.toMemoryResponseOption()
+            case None =>
+              TryUtil.successNone
+          } flatMap {
+            higher =>
+              //Group's last key-value can be inclusive or exclusive and fromKey & toKey can be the same.
+              //So it's hard to know if the Group contain higher therefore a basicHigher is required if group returns None for higher.
+              if (higher.isDefined)
+                Success(higher)
+              else
+                doBasicHigher(key)
           }
 
         case _ =>

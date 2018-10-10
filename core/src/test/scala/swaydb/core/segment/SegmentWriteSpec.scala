@@ -21,6 +21,7 @@ package swaydb.core.segment
 
 import java.nio.file._
 
+import swaydb.configs.level.DefaultGroupingStrategy
 import swaydb.core.data.Transient.Remove
 import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data.{Memory, Value, _}
@@ -1141,6 +1142,34 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
       val refresh = segment.refresh(1.mb, 0.1, true).assertGet
       refresh should have size 1
       refresh.head shouldContainAll keyValues1
+    }
+  }
+
+  "Segment.split & then write" should {
+    "succeed for non group key-values" in {
+      val keyValues = randomIntKeyValues(1000)
+      val result = SegmentMerger.split(keyValues, 100.mb, false, inMemoryStorage, 0.1, true).assertGet
+      result should have size 1
+      result.head should have size keyValues.size
+      val (bytes, deadline) = SegmentWriter.write(result.head, 0.1).assertGet
+      readAll(bytes).assertGet shouldBe keyValues
+    }
+
+    "succeed for grouped key-values" in {
+      val keyValues = randomIntKeyValues(1000)
+      val result = SegmentMerger.split(
+        keyValues = keyValues,
+        minSegmentSize = 100.mb,
+        isLastLevel = false,
+        forInMemory = inMemoryStorage,
+        bloomFilterFalsePositiveRate = 0.1,
+        compressDuplicateValues = true
+      )(ordering, Some(KeyValueGroupingStrategyInternal(DefaultGroupingStrategy()))).assertGet
+      result should have size 1
+      result.head should have size 1
+
+      val (bytes, deadline) = SegmentWriter.write(result.head, 0.1).assertGet
+      readAll(bytes).assertGet shouldBe keyValues
     }
   }
 

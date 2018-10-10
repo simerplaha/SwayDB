@@ -349,5 +349,4 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory with Benchmark {
       zero.update(10, 10, value = "value").failed.assertGet.getMessage shouldBe "fromKey should be less than toKey"
     }
   }
-
 }
