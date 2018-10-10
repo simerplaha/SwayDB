@@ -32,11 +32,11 @@ import swaydb.data.util.StorageUnits._
 import swaydb.order.KeyOrder
 
 //@formatter:off
-class SegmentPerformanceSpec0 extends SegmentPerformanceSpec {
+class SegmentReadPerformanceSpec0 extends SegmentReadPerformanceSpec {
   val testGroupedKeyValues: Boolean = false
 }
 
-class SegmentPerformanceSpec1 extends SegmentPerformanceSpec {
+class SegmentReadPerformanceSpec1 extends SegmentReadPerformanceSpec {
   val testGroupedKeyValues: Boolean = false
 
   override def levelFoldersCount = 10
@@ -46,7 +46,7 @@ class SegmentPerformanceSpec1 extends SegmentPerformanceSpec {
   override def appendixStorageMMAP = true
 }
 
-class SegmentPerformanceSpec2 extends SegmentPerformanceSpec {
+class SegmentReadPerformanceSpec2 extends SegmentReadPerformanceSpec {
   val testGroupedKeyValues: Boolean = false
   override def levelFoldersCount = 10
   override def mmapSegmentsOnWrite = false
@@ -55,16 +55,16 @@ class SegmentPerformanceSpec2 extends SegmentPerformanceSpec {
   override def appendixStorageMMAP = false
 }
 
-class SegmentPerformanceSpec3 extends SegmentPerformanceSpec {
+class SegmentReadPerformanceSpec3 extends SegmentReadPerformanceSpec {
   val testGroupedKeyValues: Boolean = false
   override def inMemoryStorage = true
 }
 
-class SegmentPerformanceGroupedKeyValuesSpec0 extends SegmentPerformanceSpec {
+class SegmentReadPerformanceGroupedKeyValuesSpec0 extends SegmentReadPerformanceSpec {
   val testGroupedKeyValues: Boolean = true
 }
 
-class SegmentPerformanceGroupedKeyValuesSpec1 extends SegmentPerformanceSpec {
+class SegmentReadPerformanceGroupedKeyValuesSpec1 extends SegmentReadPerformanceSpec {
   val testGroupedKeyValues: Boolean = true
 
   override def levelFoldersCount = 10
@@ -74,7 +74,7 @@ class SegmentPerformanceGroupedKeyValuesSpec1 extends SegmentPerformanceSpec {
   override def appendixStorageMMAP = true
 }
 
-class SegmentPerformanceGroupedKeyValuesSpec2 extends SegmentPerformanceSpec {
+class SegmentReadPerformanceGroupedKeyValuesSpec2 extends SegmentReadPerformanceSpec {
   val testGroupedKeyValues: Boolean = true
   override def levelFoldersCount = 10
   override def mmapSegmentsOnWrite = false
@@ -83,13 +83,13 @@ class SegmentPerformanceGroupedKeyValuesSpec2 extends SegmentPerformanceSpec {
   override def appendixStorageMMAP = false
 }
 
-class SegmentPerformanceGroupedKeyValuesSpec3 extends SegmentPerformanceSpec {
+class SegmentReadPerformanceGroupedKeyValuesSpec3 extends SegmentReadPerformanceSpec {
   val testGroupedKeyValues: Boolean = true
   override def inMemoryStorage = true
 }
 //@formatter:on
 
-sealed trait SegmentPerformanceSpec extends TestBase with Benchmark {
+sealed trait SegmentReadPerformanceSpec extends TestBase with Benchmark {
 
   override implicit val ordering = KeyOrder.default
   implicit val compression = groupingStrategy

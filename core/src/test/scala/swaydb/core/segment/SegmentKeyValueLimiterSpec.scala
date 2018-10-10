@@ -33,6 +33,9 @@ import swaydb.order.KeyOrder
 
 import scala.concurrent.duration._
 
+/**
+  * These class has tests to assert the behavior of [[KeyValueLimiter]] on [[Segment]]s.
+  */
 class SegmentKeyValueLimiterSpec extends TestBase with Benchmark {
 
   val keyValuesCount = 100
