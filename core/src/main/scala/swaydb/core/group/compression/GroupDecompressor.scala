@@ -215,6 +215,9 @@ private[core] case class GroupDecompressor(private val compressedGroupReader: Re
   def isValueDecompressed(): Boolean =
     decompressedValuesReader != null
 
+  def uncompress(): GroupDecompressor =
+    this.copy(compressedGroupReader = compressedGroupReader.copy())
+
   //GroupDecompressor does not need to be a case class. This is just a helper function for test cases.
   override def equals(that: scala.Any): Boolean =
     that match {

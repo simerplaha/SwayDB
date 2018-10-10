@@ -70,6 +70,6 @@ object LevelCommand {
 
   case class PullRequest(pullFrom: ActorRef[Pull]) extends LevelAPI
 
-  case class PushMap(map: Map[Slice[Byte], Memory.Response],
+  case class PushMap(map: Map[Slice[Byte], Memory.SegmentResponse],
                      replyTo: ActorRef[PushMapResponse]) extends LevelAPI
 }

@@ -196,8 +196,8 @@ trait CommonAssertions extends TryAssert with FutureBase with TestData {
       slice
     }
 
-    def toMemoryResponse: Slice[Memory.Response] = {
-      val slice = Slice.create[Memory.Response](keyValues.size)
+    def toMemoryResponse: Slice[Memory.SegmentResponse] = {
+      val slice = Slice.create[Memory.SegmentResponse](keyValues.size)
 
       keyValues foreach {
         keyValue =>
@@ -219,7 +219,7 @@ trait CommonAssertions extends TryAssert with FutureBase with TestData {
   }
 
   implicit class WriteOnlyToMemory(keyValue: KeyValue.WriteOnly) {
-    def toMemoryResponse: Memory.Response =
+    def toMemoryResponse: Memory.SegmentResponse =
       keyValue match {
         case fixed: KeyValue.WriteOnly.Fixed =>
           fixed match {
@@ -391,7 +391,7 @@ trait CommonAssertions extends TryAssert with FutureBase with TestData {
         case memory: Memory =>
           memory
 
-        case persistent: Persistent.Response =>
+        case persistent: Persistent.SegmentResponse =>
           persistent.toMemoryResponse
 
         case persistent: Persistent.Group =>
@@ -399,9 +399,9 @@ trait CommonAssertions extends TryAssert with FutureBase with TestData {
       }
     }
 
-    def toMemoryResponse: Memory.Response = {
+    def toMemoryResponse: Memory.SegmentResponse = {
       keyValue match {
-        case memory: Memory.Response =>
+        case memory: Memory.SegmentResponse =>
           memory
 
         case persistent: Persistent =>
@@ -443,33 +443,33 @@ trait CommonAssertions extends TryAssert with FutureBase with TestData {
       }
   }
 
-  def assertSkipListMerge(newKeyValues: Iterable[KeyValue.ReadOnly.Response],
-                          oldKeyValues: Iterable[KeyValue.ReadOnly.Response],
+  def assertSkipListMerge(newKeyValues: Iterable[KeyValue.ReadOnly.SegmentResponse],
+                          oldKeyValues: Iterable[KeyValue.ReadOnly.SegmentResponse],
                           expected: KeyValue.WriteOnly,
-                          hasTimeLeftAtLeast: FiniteDuration): ConcurrentSkipListMap[Slice[Byte], Memory.Response] =
+                          hasTimeLeftAtLeast: FiniteDuration): ConcurrentSkipListMap[Slice[Byte], Memory.SegmentResponse] =
     assertSkipListMerge(newKeyValues, oldKeyValues, Slice(expected), hasTimeLeftAtLeast)
 
-  def assertSkipListMerge(newKeyValues: Iterable[KeyValue.ReadOnly.Response],
-                          oldKeyValues: Iterable[KeyValue.ReadOnly.Response],
+  def assertSkipListMerge(newKeyValues: Iterable[KeyValue.ReadOnly.SegmentResponse],
+                          oldKeyValues: Iterable[KeyValue.ReadOnly.SegmentResponse],
                           expected: Iterable[KeyValue],
-                          hasTimeLeftAtLeast: FiniteDuration): ConcurrentSkipListMap[Slice[Byte], Memory.Response] = {
-    val skipList = new ConcurrentSkipListMap[Slice[Byte], Memory.Response](ordering)
+                          hasTimeLeftAtLeast: FiniteDuration): ConcurrentSkipListMap[Slice[Byte], Memory.SegmentResponse] = {
+    val skipList = new ConcurrentSkipListMap[Slice[Byte], Memory.SegmentResponse](ordering)
     (oldKeyValues ++ newKeyValues).map(_.toMemoryResponse) foreach (memory => LevelZeroSkipListMerge(hasTimeLeftAtLeast).insert(memory.key, memory, skipList))
     skipList.size() shouldBe expected.size
     skipList.asScala.toList shouldBe expected.map(keyValue => (keyValue.key, keyValue.toMemory))
     skipList
   }
 
-  def assertMerge(newKeyValue: KeyValue.ReadOnly.Response,
-                  oldKeyValue: KeyValue.ReadOnly.Response,
+  def assertMerge(newKeyValue: KeyValue.ReadOnly.SegmentResponse,
+                  oldKeyValue: KeyValue.ReadOnly.SegmentResponse,
                   expected: Slice[KeyValue.WriteOnly],
                   hasTimeLeftAtLeast: FiniteDuration,
                   isLastLevel: Boolean = false)(implicit ordering: Ordering[Slice[Byte]],
                                                 groupingStrategy: Option[KeyValueGroupingStrategyInternal]): Iterable[Iterable[KeyValue.WriteOnly]] =
     assertMerge(Slice(newKeyValue), Slice(oldKeyValue), expected, hasTimeLeftAtLeast, isLastLevel)
 
-  def assertMerge(newKeyValues: Slice[KeyValue.ReadOnly.Response],
-                  oldKeyValues: Slice[KeyValue.ReadOnly.Response],
+  def assertMerge(newKeyValues: Slice[KeyValue.ReadOnly.SegmentResponse],
+                  oldKeyValues: Slice[KeyValue.ReadOnly.SegmentResponse],
                   expected: Slice[KeyValue.WriteOnly],
                   hasTimeLeftAtLeast: FiniteDuration,
                   isLastLevel: Boolean)(implicit ordering: Ordering[Slice[Byte]],
@@ -485,16 +485,16 @@ trait CommonAssertions extends TryAssert with FutureBase with TestData {
     result
   }
 
-  def assertMerge(newKeyValue: KeyValue.ReadOnly.Response,
-                  oldKeyValue: KeyValue.ReadOnly.Response,
+  def assertMerge(newKeyValue: KeyValue.ReadOnly.SegmentResponse,
+                  oldKeyValue: KeyValue.ReadOnly.SegmentResponse,
                   expected: KeyValue.ReadOnly,
                   lastLevelExpect: KeyValue.ReadOnly,
                   hasTimeLeftAtLeast: FiniteDuration)(implicit ordering: Ordering[Slice[Byte]],
                                                       groupingStrategy: Option[KeyValueGroupingStrategyInternal]): Iterable[Iterable[KeyValue.WriteOnly]] =
     assertMerge(newKeyValue, oldKeyValue, Slice(expected), Slice(lastLevelExpect), hasTimeLeftAtLeast)
 
-  def assertMerge(newKeyValue: KeyValue.ReadOnly.Response,
-                  oldKeyValue: KeyValue.ReadOnly.Response,
+  def assertMerge(newKeyValue: KeyValue.ReadOnly.SegmentResponse,
+                  oldKeyValue: KeyValue.ReadOnly.SegmentResponse,
                   expected: KeyValue.ReadOnly,
                   lastLevelExpect: Option[KeyValue.ReadOnly],
                   hasTimeLeftAtLeast: FiniteDuration)(implicit ordering: Ordering[Slice[Byte]],
@@ -505,8 +505,8 @@ trait CommonAssertions extends TryAssert with FutureBase with TestData {
     assertSkipListMerge(Slice(newKeyValue), Slice(oldKeyValue), Slice(expected), hasTimeLeftAtLeast)
   }
 
-  def assertMerge(newKeyValues: Slice[KeyValue.ReadOnly.Response],
-                  oldKeyValues: Slice[KeyValue.ReadOnly.Response],
+  def assertMerge(newKeyValues: Slice[KeyValue.ReadOnly.SegmentResponse],
+                  oldKeyValues: Slice[KeyValue.ReadOnly.SegmentResponse],
                   expected: Slice[KeyValue.ReadOnly],
                   lastLevelExpect: Slice[KeyValue.ReadOnly],
                   hasTimeLeftAtLeast: FiniteDuration)(implicit ordering: Ordering[Slice[Byte]],
@@ -519,8 +519,8 @@ trait CommonAssertions extends TryAssert with FutureBase with TestData {
     assertSkipListMerge(newKeyValues, oldKeyValues, expected, hasTimeLeftAtLeast)
   }
 
-  def assertMerge(newKeyValue: KeyValue.ReadOnly.Response,
-                  oldKeyValue: KeyValue.ReadOnly.Response,
+  def assertMerge(newKeyValue: KeyValue.ReadOnly.SegmentResponse,
+                  oldKeyValue: KeyValue.ReadOnly.SegmentResponse,
                   expected: Slice[KeyValue.ReadOnly],
                   lastLevelExpect: Slice[KeyValue.ReadOnly],
                   hasTimeLeftAtLeast: FiniteDuration)(implicit ordering: Ordering[Slice[Byte]],
@@ -531,8 +531,8 @@ trait CommonAssertions extends TryAssert with FutureBase with TestData {
     assertMerge(Slice(newKeyValue), Slice(oldKeyValue), lastLevelExpect.toTransient, hasTimeLeftAtLeast, isLastLevel = true)
   }
 
-  def assertMerge(newKeyValues: Slice[KeyValue.ReadOnly.Response],
-                  oldKeyValues: Slice[KeyValue.ReadOnly.Response],
+  def assertMerge(newKeyValues: Slice[KeyValue.ReadOnly.SegmentResponse],
+                  oldKeyValues: Slice[KeyValue.ReadOnly.SegmentResponse],
                   expected: KeyValue.WriteOnly,
                   hasTimeLeftAtLeast: FiniteDuration,
                   isLastLevel: Boolean)(implicit ordering: Ordering[Slice[Byte]],
@@ -550,19 +550,19 @@ trait CommonAssertions extends TryAssert with FutureBase with TestData {
       }
     }
 
-    def toMapEntry(implicit serializer: MapEntryWriter[MapEntry.Put[Slice[Byte], Memory.Response]]) =
-      actual.foldLeft(Option.empty[MapEntry[Slice[Byte], Memory.Response]]) {
+    def toMapEntry(implicit serializer: MapEntryWriter[MapEntry.Put[Slice[Byte], Memory.SegmentResponse]]) =
+      actual.foldLeft(Option.empty[MapEntry[Slice[Byte], Memory.SegmentResponse]]) {
         case (mapEntry, keyValue) =>
-          val newEntry = MapEntry.Put[Slice[Byte], Memory.Response](keyValue.key, keyValue.toMemoryResponse)
+          val newEntry = MapEntry.Put[Slice[Byte], Memory.SegmentResponse](keyValue.key, keyValue.toMemoryResponse)
           mapEntry.map(_ ++ newEntry) orElse Some(newEntry)
       }
   }
 
-  implicit class MemoryImplicits(actual: Iterable[Memory.Response]) {
-    def toMapEntry(implicit serializer: MapEntryWriter[MapEntry.Put[Slice[Byte], Memory.Response]]) =
-      actual.foldLeft(Option.empty[MapEntry[Slice[Byte], Memory.Response]]) {
+  implicit class MemoryImplicits(actual: Iterable[Memory.SegmentResponse]) {
+    def toMapEntry(implicit serializer: MapEntryWriter[MapEntry.Put[Slice[Byte], Memory.SegmentResponse]]) =
+      actual.foldLeft(Option.empty[MapEntry[Slice[Byte], Memory.SegmentResponse]]) {
         case (mapEntry, keyValue) =>
-          val newEntry = MapEntry.Put[Slice[Byte], Memory.Response](keyValue.key, keyValue)
+          val newEntry = MapEntry.Put[Slice[Byte], Memory.SegmentResponse](keyValue.key, keyValue)
           mapEntry.map(_ ++ newEntry) orElse Some(newEntry)
       }
   }
@@ -603,7 +603,7 @@ trait CommonAssertions extends TryAssert with FutureBase with TestData {
         case writeOnly: WriteOnly => writeOnly.toMemory
       }
 
-    def toMemoryResponse: Memory.Response =
+    def toMemoryResponse: Memory.SegmentResponse =
       actual match {
         case readOnly: ReadOnly => readOnly.toMemoryResponse
         case writeOnly: WriteOnly => writeOnly.toMemoryResponse
@@ -727,14 +727,14 @@ trait CommonAssertions extends TryAssert with FutureBase with TestData {
       }
   }
 
-  implicit class MapEntryImplicits(actual: MapEntry[Slice[Byte], Memory.Response]) {
+  implicit class MapEntryImplicits(actual: MapEntry[Slice[Byte], Memory.SegmentResponse]) {
 
-    def shouldBe(expected: MapEntry[Slice[Byte], Memory.Response]): Unit = {
+    def shouldBe(expected: MapEntry[Slice[Byte], Memory.SegmentResponse]): Unit = {
       actual.entryBytesSize shouldBe expected.entryBytesSize
       actual.totalByteSize shouldBe expected.totalByteSize
       actual match {
         case MapEntry.Put(key, value) =>
-          val exp = expected.asInstanceOf[MapEntry.Put[Slice[Byte], Memory.Response]]
+          val exp = expected.asInstanceOf[MapEntry.Put[Slice[Byte], Memory.SegmentResponse]]
           key shouldBe exp.key
           value shouldBe exp.value
 
@@ -1130,7 +1130,7 @@ trait CommonAssertions extends TryAssert with FutureBase with TestData {
                                addRandomRemoves: Boolean = false,
                                addRandomRanges: Boolean = false,
                                addRandomRemoveDeadlines: Boolean = false,
-                               addRandomPutDeadlines: Boolean = false): Slice[Memory.Response] =
+                               addRandomPutDeadlines: Boolean = false): Slice[Memory.SegmentResponse] =
     randomIntKeyValues(
       count = count,
       startId = startId,
@@ -1140,7 +1140,7 @@ trait CommonAssertions extends TryAssert with FutureBase with TestData {
       addRandomRanges = addRandomRanges,
       addRandomRemoveDeadlines = addRandomRemoveDeadlines,
       addRandomPutDeadlines = addRandomPutDeadlines
-    ).toMemory.asInstanceOf[Slice[Memory.Response]]
+    ).toMemory.asInstanceOf[Slice[Memory.SegmentResponse]]
 
   def expiredDeadline(): Deadline = {
     val deadline = 0.nanosecond.fromNow - 100.millisecond

@@ -530,7 +530,7 @@ private[core] object Segment extends LazyLogging {
                segments: Iterable[Segment])(implicit ordering: Ordering[Slice[Byte]]): Boolean =
     segments.exists(segment => overlaps(minKey, maxKey, segment))
 
-  def overlaps(map: Map[Slice[Byte], Memory.Response],
+  def overlaps(map: Map[Slice[Byte], Memory.SegmentResponse],
                segments: Iterable[Segment])(implicit ordering: Ordering[Slice[Byte]]): Boolean =
     Segment.minMaxKey(map) exists {
       case (minKey, maxKey) =>
@@ -619,7 +619,7 @@ private[core] object Segment extends LazyLogging {
         }
     }
 
-  def tempMinMaxKeyValues(map: Map[Slice[Byte], Memory.Response]): Slice[Memory] = {
+  def tempMinMaxKeyValues(map: Map[Slice[Byte], Memory.SegmentResponse]): Slice[Memory] = {
     for {
       minKey <- map.headValue().map(memory => Memory.Put(memory.key, None))
       maxKey <- map.lastValue() map {
@@ -633,7 +633,7 @@ private[core] object Segment extends LazyLogging {
       Slice(minKey, maxKey)
   } getOrElse Slice.create[Memory](0)
 
-  def minMaxKey(map: Map[Slice[Byte], Memory.Response]): Option[(Slice[Byte], Slice[Byte])] =
+  def minMaxKey(map: Map[Slice[Byte], Memory.SegmentResponse]): Option[(Slice[Byte], Slice[Byte])] =
     for {
       minKey <- map.headValue().map(_.key)
       maxKey <- map.lastValue() map {
@@ -664,7 +664,7 @@ private[core] object Segment extends LazyLogging {
           ).nonEmpty
       }
 
-  def overlapsWithBusySegments(map: Map[Slice[Byte], Memory.Response],
+  def overlapsWithBusySegments(map: Map[Slice[Byte], Memory.SegmentResponse],
                                busySegments: Iterable[Segment],
                                appendixSegments: Iterable[Segment])(implicit ordering: Ordering[Slice[Byte]]): Try[Boolean] =
     if (busySegments.isEmpty)
@@ -823,11 +823,11 @@ private[core] trait Segment {
 
   def mightContain(key: Slice[Byte]): Try[Boolean]
 
-  def get(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Response]]
+  def get(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.SegmentResponse]]
 
-  def lower(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Response]]
+  def lower(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.SegmentResponse]]
 
-  def higher(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Response]]
+  def higher(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.SegmentResponse]]
 
   def getAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None): Try[Slice[KeyValue.ReadOnly]]
 

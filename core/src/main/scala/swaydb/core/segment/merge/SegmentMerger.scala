@@ -137,8 +137,8 @@ private[core] object SegmentMerger extends LazyLogging {
     *
     * Need a type class implementation on executing side effects of merging key-values, one for [[Memory]] key-values and other for [[Persistent]] key-value types.
     */
-  def merge(newKeyValues: Slice[Memory.Response],
-            oldKeyValues: Slice[Memory.Response],
+  def merge(newKeyValues: Slice[Memory.SegmentResponse],
+            oldKeyValues: Slice[Memory.SegmentResponse],
             hasTimeLeftAtLeast: FiniteDuration)(implicit ordering: Ordering[Slice[Byte]],
                                                 groupingStrategy: Option[KeyValueGroupingStrategyInternal]): ListBuffer[KeyValue.WriteOnly] =
     merge(
@@ -152,8 +152,8 @@ private[core] object SegmentMerger extends LazyLogging {
       compressDuplicateValues = false
     ).get.flatten.asInstanceOf[ListBuffer[KeyValue.WriteOnly]]
 
-  def merge(newKeyValue: Memory.Response,
-            oldKeyValue: Memory.Response,
+  def merge(newKeyValue: Memory.SegmentResponse,
+            oldKeyValue: Memory.SegmentResponse,
             hasTimeLeftAtLeast: FiniteDuration)(implicit ordering: Ordering[Slice[Byte]],
                                                 groupingStrategy: Option[KeyValueGroupingStrategyInternal]): ListBuffer[KeyValue.WriteOnly] =
     merge(

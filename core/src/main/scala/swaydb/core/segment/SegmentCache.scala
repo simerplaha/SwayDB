@@ -78,7 +78,7 @@ private[core] class SegmentCache(id: String,
 
   import ordering._
 
-  private def addToCache(keyValue: Persistent.Response): Unit = {
+  private def addToCache(keyValue: Persistent.SegmentResponse): Unit = {
     if (unsliceKey) keyValue.unsliceKey
     cache.put(keyValue.key, keyValue)
     keyValueLimiter.add(keyValue, cache)
@@ -114,7 +114,7 @@ private[core] class SegmentCache(id: String,
   def mightContain(key: Slice[Byte]): Try[Boolean] =
     getFooter().map(_.bloomFilter.forall(_.mightContain(key)))
 
-  def get(key: Slice[Byte]): Try[Option[Persistent.Response]] =
+  def get(key: Slice[Byte]): Try[Option[Persistent.SegmentResponse]] =
     maxKey match {
       case Fixed(maxKey) if key > maxKey =>
         TryUtil.successNone
@@ -129,7 +129,7 @@ private[core] class SegmentCache(id: String,
       case _ =>
         val floorValue = Option(cache.floorEntry(key)).map(_.getValue)
         floorValue match {
-          case Some(floor: Persistent.Response) if floor.key equiv key =>
+          case Some(floor: Persistent.SegmentResponse) if floor.key equiv key =>
             Success(Some(floor))
 
           //check if the key belongs to this group.
@@ -146,7 +146,7 @@ private[core] class SegmentCache(id: String,
                   TryUtil.successNone
                 else
                   find(KeyMatcher.Get(key), startFrom = floorValue, reader, footer) flatMap {
-                    case Some(response: Persistent.Response) =>
+                    case Some(response: Persistent.SegmentResponse) =>
                       addToCache(response)
                       Success(Some(response))
 
@@ -178,7 +178,7 @@ private[core] class SegmentCache(id: String,
             None
       }
 
-  def lower(key: Slice[Byte]): Try[Option[Persistent.Response]] =
+  def lower(key: Slice[Byte]): Try[Option[Persistent.SegmentResponse]] =
     if (key <= minKey)
       TryUtil.successNone
     else
@@ -193,7 +193,7 @@ private[core] class SegmentCache(id: String,
           val lowerKeyValue = Option(cache.lowerEntry(key)).map(_.getValue)
           val lowerFromCache = lowerKeyValue.flatMap(satisfyLowerFromCache(key, _))
           lowerFromCache map {
-            case response: Persistent.Response =>
+            case response: Persistent.SegmentResponse =>
               Success(Some(response))
 
             case group: Persistent.Group =>
@@ -202,7 +202,7 @@ private[core] class SegmentCache(id: String,
             prepareGet {
               (footer, reader) =>
                 find(KeyMatcher.Lower(key), startFrom = lowerKeyValue, reader, footer) flatMap {
-                  case Some(response: Persistent.Response) =>
+                  case Some(response: Persistent.SegmentResponse) =>
                     addToCache(response)
                     Success(Some(response))
 
@@ -238,7 +238,7 @@ private[core] class SegmentCache(id: String,
         }
     }
 
-  def higher(key: Slice[Byte]): Try[Option[Persistent.Response]] =
+  def higher(key: Slice[Byte]): Try[Option[Persistent.SegmentResponse]] =
     maxKey match {
       case Fixed(maxKey) if key >= maxKey =>
         TryUtil.successNone
@@ -251,7 +251,7 @@ private[core] class SegmentCache(id: String,
         val higherFromCache = floorKeyValue.flatMap(satisfyHigherFromCache(key, _))
 
         higherFromCache map {
-          case response: Persistent.Response =>
+          case response: Persistent.SegmentResponse =>
             Success(Some(response))
 
           case group: Persistent.Group =>
@@ -260,7 +260,7 @@ private[core] class SegmentCache(id: String,
           prepareGet {
             (footer, reader) =>
               find(KeyMatcher.Higher(key), startFrom = floorKeyValue, reader, footer) flatMap {
-                case Some(response: Persistent.Response) =>
+                case Some(response: Persistent.SegmentResponse) =>
                   addToCache(response)
                   Success(Some(response))
 

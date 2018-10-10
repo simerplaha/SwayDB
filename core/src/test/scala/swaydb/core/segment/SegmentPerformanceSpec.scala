@@ -27,12 +27,9 @@ import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestLimitQueues}
-import swaydb.data.segment.MaxKey
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.order.KeyOrder
-
-import scala.util.Random
 
 //@formatter:off
 class SegmentPerformanceSpec0 extends SegmentPerformanceSpec {

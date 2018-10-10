@@ -475,9 +475,9 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
 
     val map =
       if (persistent)
-        Map.persistent[Slice[Byte], Memory.Response](randomIntDirectory, true, true, 1.mb, dropCorruptedTailEntries = false).assertGet.item
+        Map.persistent[Slice[Byte], Memory.SegmentResponse](randomIntDirectory, true, true, 1.mb, dropCorruptedTailEntries = false).assertGet.item
       else
-        Map.memory[Slice[Byte], Memory.Response]()
+        Map.memory[Slice[Byte], Memory.SegmentResponse]()
 
     val keyValues = randomIntKeyValuesMemory(keyValuesCount, addRandomRemoves = true)
     keyValues foreach {

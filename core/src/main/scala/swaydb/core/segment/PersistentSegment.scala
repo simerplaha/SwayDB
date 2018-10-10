@@ -208,13 +208,13 @@ private[segment] case class PersistentSegment(file: DBFile,
   def mightContain(key: Slice[Byte]): Try[Boolean] =
     segmentCache mightContain key
 
-  def get(key: Slice[Byte]): Try[Option[Persistent.Response]] =
+  def get(key: Slice[Byte]): Try[Option[Persistent.SegmentResponse]] =
     segmentCache get key
 
-  def lower(key: Slice[Byte]): Try[Option[Persistent.Response]] =
+  def lower(key: Slice[Byte]): Try[Option[Persistent.SegmentResponse]] =
     segmentCache lower key
 
-  def higher(key: Slice[Byte]): Try[Option[Persistent.Response]] =
+  def higher(key: Slice[Byte]): Try[Option[Persistent.SegmentResponse]] =
     segmentCache higher key
 
   def getAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None): Try[Slice[KeyValue.ReadOnly]] =

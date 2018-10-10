@@ -28,7 +28,7 @@ import scala.util.{Success, Try}
 object Get {
 
   def apply(key: Slice[Byte],
-            getFromCurrentLevel: Slice[Byte] => Try[Option[KeyValue.ReadOnly.Response]],
+            getFromCurrentLevel: Slice[Byte] => Try[Option[KeyValue.ReadOnly.SegmentResponse]],
             getFromNextLevel: Slice[Byte] => Try[Option[KeyValue.ReadOnly.Put]])(implicit ordering: Ordering[Slice[Byte]]): Try[Option[KeyValue.ReadOnly.Put]] = {
     import ordering._
 
@@ -104,22 +104,6 @@ object Get {
                       }
                       else
                         None
-                  }
-                else
-                  TryUtil.successNone
-
-              case current: KeyValue.ReadOnly.UpdateFunction =>
-                if (current.hasTimeLeft())
-                  getFromNextLevel(key) flatMap {
-                    nextOption =>
-                      nextOption map {
-                        _.getOrFetchValue flatMap {
-                          nextValue =>
-                            current.toPut(nextValue).map(Some(_))
-                        }
-                      } getOrElse {
-                        TryUtil.successNone
-                      }
                   }
                 else
                   TryUtil.successNone

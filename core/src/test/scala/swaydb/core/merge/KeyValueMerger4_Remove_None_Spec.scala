@@ -73,7 +73,7 @@ class KeyValueMerger4_Remove_None_Spec extends WordSpec with Matchers with Commo
     }
 
     "Remove" in {
-      val removeRange: Memory.Response = Memory.Range(1, 3, None, Value.Remove(None))
+      val removeRange: Memory.SegmentResponse = Memory.Range(1, 3, None, Value.Remove(None))
       val remove = Memory.Remove(3)
 
       val puts =

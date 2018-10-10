@@ -1172,5 +1172,4 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
       readAll(bytes).assertGet shouldBe keyValues
     }
   }
-
 }

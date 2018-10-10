@@ -185,7 +185,7 @@ private[core] object TrashLevel extends LevelRef {
 
   override val isTrash: Boolean = true
 
-  override def putMap(map: Map[Slice[Byte], Memory.Response]): Try[Unit] =
+  override def putMap(map: Map[Slice[Byte], Memory.SegmentResponse]): Try[Unit] =
     TryUtil.successUnit
 
   override def ceiling(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Put]] =

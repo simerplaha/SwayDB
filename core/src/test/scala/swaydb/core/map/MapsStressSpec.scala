@@ -53,14 +53,14 @@ class MapsStressSpec extends TestBase {
           Accelerator(meter.currentMapSize, None)
         }
 
-      def testWrite(maps: Maps[Slice[Byte], Memory.Response]) = {
+      def testWrite(maps: Maps[Slice[Byte], Memory.SegmentResponse]) = {
         keyValues foreach {
           keyValue =>
             maps.write(MapEntry.Put(keyValue.key, Memory.Put(keyValue.key, keyValue.getOrFetchValue.assertGetOpt))).assertGet
         }
       }
 
-      def testRead(maps: Maps[Slice[Byte], Memory.Response]) = {
+      def testRead(maps: Maps[Slice[Byte], Memory.SegmentResponse]) = {
         keyValues foreach {
           keyValue =>
             maps.get(keyValue.key).assertGet shouldBe Memory.Put(keyValue.key, keyValue.getOrFetchValue.assertGetOpt)
@@ -70,11 +70,11 @@ class MapsStressSpec extends TestBase {
       val dir1 = IO.createDirectoryIfAbsent(testDir.resolve(1.toString))
       val dir2 = IO.createDirectoryIfAbsent(testDir.resolve(2.toString))
 
-      val map1 = Maps.persistent[Slice[Byte], Memory.Response](dir1, mmap = true, 1.byte, acceleration, RecoveryMode.ReportFailure).assertGet
+      val map1 = Maps.persistent[Slice[Byte], Memory.SegmentResponse](dir1, mmap = true, 1.byte, acceleration, RecoveryMode.ReportFailure).assertGet
       testWrite(map1)
       testRead(map1)
 
-      val map2 = Maps.persistent[Slice[Byte], Memory.Response](dir2, mmap = true, 1.byte, acceleration, RecoveryMode.ReportFailure).assertGet
+      val map2 = Maps.persistent[Slice[Byte], Memory.SegmentResponse](dir2, mmap = true, 1.byte, acceleration, RecoveryMode.ReportFailure).assertGet
       testWrite(map2)
       testRead(map2)
 
@@ -83,9 +83,9 @@ class MapsStressSpec extends TestBase {
       testRead(map3)
 
       def reopen = {
-        val open1 = Maps.persistent[Slice[Byte], Memory.Response](dir1, mmap = false, 1.byte, acceleration, RecoveryMode.ReportFailure).assertGet
+        val open1 = Maps.persistent[Slice[Byte], Memory.SegmentResponse](dir1, mmap = false, 1.byte, acceleration, RecoveryMode.ReportFailure).assertGet
         testRead(open1)
-        val open2 = Maps.persistent[Slice[Byte], Memory.Response](dir2, mmap = true, 1.byte, acceleration, RecoveryMode.ReportFailure).assertGet
+        val open2 = Maps.persistent[Slice[Byte], Memory.SegmentResponse](dir2, mmap = true, 1.byte, acceleration, RecoveryMode.ReportFailure).assertGet
         testRead(open2)
 
         open1.close.assertGet

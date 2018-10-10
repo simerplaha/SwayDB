@@ -131,46 +131,6 @@ object Max {
           case None =>
             TryUtil.successNone
         }
-
-      case current: KeyValue.ReadOnly.UpdateFunction =>
-        next match {
-          case Some(next) =>
-            if (current.hasTimeLeft()) {
-              //    2
-              //    2
-              if (next.key equiv current.key)
-                if (current.deadline.isDefined)
-                  next.getOrFetchValue flatMap {
-                    value =>
-                      current.toPut(value) map (Some(_))
-                  }
-                else
-                  next.getOrFetchValue flatMap {
-                    value =>
-                      next.deadline.map(current.toPut(value, _).map(Some(_))) getOrElse current.toPut(value).map(Some(_))
-                  }
-              //    2
-              //         5
-              else if (next.key > current.key)
-                Success(Some(next))
-              //    2
-              //0
-              else
-                TryUtil.successNone
-            } else { //lower update from current is expired.
-              //    2
-              //         5
-              if (next.key > current.key)
-                Success(Some(next))
-              //     2
-              //0 or 2
-              else
-                TryUtil.successNone
-            }
-
-          case None =>
-            TryUtil.successNone
-        }
     }
   }
 

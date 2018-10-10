@@ -39,7 +39,7 @@ private sealed trait Command {
 
 private object Command {
 
-  case class WeighAndAdd(keyValueRef: WeakReference[Persistent.Response],
+  case class WeighAndAdd(keyValueRef: WeakReference[Persistent.SegmentResponse],
                          skipListRef: WeakReference[ConcurrentSkipListMap[Slice[Byte], _]]) extends Command
 
   case class AddWeighed(keyValueRef: WeakReference[KeyValue.ReadOnly.Group],
@@ -59,7 +59,7 @@ private[core] object KeyValueLimiter {
 }
 
 private[core] sealed trait KeyValueLimiter {
-  def add(keyValue: Persistent.Response,
+  def add(keyValue: Persistent.SegmentResponse,
           skipList: ConcurrentSkipListMap[Slice[Byte], _]): Unit
 
   def add(keyValue: KeyValue.ReadOnly.Group,
@@ -93,11 +93,33 @@ private class KeyValueLimiterImpl(cacheSize: Long,
         skipList <- command.skipListRef.get
         keyValue <- command.keyValueRef.get
       } yield {
-        skipList.remove(keyValue.key)
+        keyValue match {
+          case persistentGroup: Persistent.Group =>
+
+            /**
+              * Before removing Persistent.Group, check if uncompressing it is enough,
+              * if it's already uncompressed only then remove or else uncompress and re-add to the queue.
+              * Header is not checked here because it's always going to be uncompressed since it's always pre-read before the Group is added to he Queue in [[add]].
+              */
+            if (persistentGroup.isIndexDecompressed || persistentGroup.isValueDecompressed) {
+              val uncompressedGroup = persistentGroup.uncompress()
+              skipList.asInstanceOf[ConcurrentSkipListMap[Slice[Byte], Persistent]].put(persistentGroup.key, uncompressedGroup)
+              add(uncompressedGroup, skipList)
+            } else {
+              skipList.remove(keyValue.key)
+            }
+
+          case _: Persistent.SegmentResponse =>
+            skipList.remove(keyValue.key)
+
+          //Memory.Group key-values are only uncompressed. DO NOT REMOVE THEM!
+          case memoryGroup: Memory.Group =>
+            skipList.asInstanceOf[ConcurrentSkipListMap[Slice[Byte], Memory]].put(memoryGroup.key, memoryGroup.uncompress())
+        }
       }
   }
 
-  def add(keyValue: Persistent.Response,
+  def add(keyValue: Persistent.SegmentResponse,
           skipList: ConcurrentSkipListMap[Slice[Byte], _]): Unit =
     queue ! Command.WeighAndAdd(new WeakReference(keyValue), new WeakReference[ConcurrentSkipListMap[Slice[Byte], _]](skipList))
 
@@ -116,7 +138,7 @@ private object NoneKeyValueLimiter extends KeyValueLimiter {
                    skipList: ConcurrentSkipListMap[Slice[Byte], _]): Try[Unit] =
     TryUtil.successUnit
 
-  override def add(keyValue: Persistent.Response,
+  override def add(keyValue: Persistent.SegmentResponse,
                    skipList: ConcurrentSkipListMap[Slice[Byte], _]): Unit =
     ()
 }

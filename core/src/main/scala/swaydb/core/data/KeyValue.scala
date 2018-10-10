@@ -62,7 +62,7 @@ private[core] object KeyValue {
     *
     * These key-values can remain in memory depending on the cacheSize and are dropped or uncompressed on overflow.
     *
-    * Only [[KeyValue.ReadOnly.Group]] && [[Persistent.Response]] key-values are [[CacheAble]].
+    * Only [[KeyValue.ReadOnly.Group]] && [[Persistent.SegmentResponse]] key-values are [[CacheAble]].
     *
     * Only [[Memory.Group]] key-values are uncompressed and every other key-value is dropped.
     */
@@ -76,9 +76,9 @@ private[core] object KeyValue {
       *
       * Key-value types like [[Group]] are processed within [[swaydb.core.map.Map]] or [[swaydb.core.segment.Segment]].
       */
-    sealed trait Response extends KeyValue with ReadOnly
+    sealed trait SegmentResponse extends KeyValue with ReadOnly
 
-    sealed trait Fixed extends Response {
+    sealed trait Fixed extends SegmentResponse {
 
       def hasTimeLeft(): Boolean
 
@@ -142,14 +142,6 @@ private[core] object KeyValue {
       def toPut(deadline: Deadline): KeyValue.ReadOnly.Put
     }
 
-    sealed trait UpdateFunction extends KeyValue.ReadOnly.Fixed {
-      def toPut(value: Option[Slice[Byte]]): Try[KeyValue.ReadOnly.Put]
-
-      def toPut(value: Option[Slice[Byte]], deadline: Deadline): Try[KeyValue.ReadOnly.Put]
-
-      def applyFunction(value: Option[Slice[Byte]]): Try[Option[Slice[Byte]]]
-    }
-
     object Range {
       implicit class RangeImplicit(range: KeyValue.ReadOnly.Range) {
         def contains(key: Slice[Byte])(implicit ordering: Ordering[Slice[Byte]]): Boolean = {
@@ -159,7 +151,7 @@ private[core] object KeyValue {
       }
     }
 
-    sealed trait Range extends KeyValue.ReadOnly with Response {
+    sealed trait Range extends KeyValue.ReadOnly with SegmentResponse {
       def fromKey: Slice[Byte]
 
       def toKey: Slice[Byte]
@@ -329,7 +321,7 @@ private[swaydb] sealed trait Memory extends KeyValue.ReadOnly {
 }
 
 private[swaydb] object Memory {
-  sealed trait Response extends Memory with KeyValue.ReadOnly.Response
+  sealed trait SegmentResponse extends Memory with KeyValue.ReadOnly.SegmentResponse
 
   implicit class MemoryImplicits(memory: Memory.Fixed) {
     def toFromValue: Value.FromValue =
@@ -354,7 +346,7 @@ private[swaydb] object Memory {
       }
   }
 
-  sealed trait Fixed extends Memory.Response with KeyValue.ReadOnly.Fixed
+  sealed trait Fixed extends Memory.SegmentResponse with KeyValue.ReadOnly.Fixed
 
   object Put {
     def apply(key: Slice[Byte],
@@ -466,7 +458,6 @@ private[swaydb] object Memory {
       Memory.Put(key, value, deadline)
   }
 
-
   object Remove {
     def apply(key: Slice[Byte]): Remove =
       new Remove(key, None)
@@ -505,7 +496,7 @@ private[swaydb] object Memory {
   case class Range(fromKey: Slice[Byte],
                    toKey: Slice[Byte],
                    fromValue: Option[Value.FromValue],
-                   rangeValue: Value.RangeValue) extends Memory.Response with KeyValue.ReadOnly.Range {
+                   rangeValue: Value.RangeValue) extends Memory.SegmentResponse with KeyValue.ReadOnly.Range {
 
     override val deadline: Option[Deadline] = None
 
@@ -579,6 +570,9 @@ private[swaydb] object Memory {
 
     def isValueDecompressed: Boolean =
       groupDecompressor.isValueDecompressed()
+
+    def uncompress(): Memory.Group =
+      copy(groupDecompressor = groupDecompressor.uncompress())
   }
 
 }
@@ -623,7 +617,7 @@ private[core] object Transient {
           }
       }
 
-    def toMemoryResponse: Try[Memory.Response] =
+    def toMemoryResponse: Try[Memory.SegmentResponse] =
       transient match {
         case put: Transient.Put =>
           put.getOrFetchValue map {
@@ -1330,11 +1324,11 @@ private[core] sealed trait Persistent extends KeyValue.ReadOnly with KeyValue.Ca
 
 private[core] object Persistent {
 
-  implicit class PersistentResponseImplicits(persistent: Persistent.Response) {
-    def toMemoryResponseOption(): Try[Option[Memory.Response]] =
+  implicit class PersistentResponseImplicits(persistent: Persistent.SegmentResponse) {
+    def toMemoryResponseOption(): Try[Option[Memory.SegmentResponse]] =
       toMemoryResponse() map (Some(_))
 
-    def toMemoryResponse(): Try[Memory.Response] =
+    def toMemoryResponse(): Try[Memory.SegmentResponse] =
       persistent match {
         case fixed: Persistent.Fixed =>
           fixed match {
@@ -1378,9 +1372,9 @@ private[core] object Persistent {
       }
   }
 
-  sealed trait Response extends KeyValue.ReadOnly.Response with Persistent
+  sealed trait SegmentResponse extends KeyValue.ReadOnly.SegmentResponse with Persistent
 
-  sealed trait Fixed extends Persistent.Response with KeyValue.ReadOnly.Fixed
+  sealed trait Fixed extends Persistent.SegmentResponse with KeyValue.ReadOnly.Fixed
 
   object Remove {
     def apply(indexOffset: Int)(key: Slice[Byte],
@@ -1557,7 +1551,6 @@ private[core] object Persistent {
       }
   }
 
-
   case class Range(private var _fromKey: Slice[Byte],
                    private var _toKey: Slice[Byte],
                    valueReader: Reader,
@@ -1565,7 +1558,7 @@ private[core] object Persistent {
                    nextIndexSize: Int,
                    indexOffset: Int,
                    valueOffset: Int,
-                   valueLength: Int) extends Persistent.Response with LazyRangeValue with KeyValue.ReadOnly.Range {
+                   valueLength: Int) extends Persistent.SegmentResponse with LazyRangeValue with KeyValue.ReadOnly.Range {
 
     def fromKey = _fromKey
 
@@ -1657,6 +1650,13 @@ private[core] object Persistent {
 
     def header() =
       groupDecompressor.header()
+
+    /**
+      * On uncompressed a new Group is returned. It would be much efficient if the Group's old [[SegmentCache]]'s skipList's
+      * key-values are also still passed to the new Group in a thread-safe manner.
+      */
+    def uncompress(): Persistent.Group =
+      copy(groupDecompressor = groupDecompressor.uncompress(), valueReader = valueReader.copy())
 
     def segmentCache(implicit ordering: Ordering[Slice[Byte]],
                      keyValueLimiter: KeyValueLimiter): SegmentCache =

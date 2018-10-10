@@ -161,7 +161,7 @@ class SegmentMerger_Range_Into_Fixed extends WordSpec with CommonAssertions {
       //    2, 7, 10, 20
       val newKeyValues = Slice(Memory.Range(0, 25, Some(Value.Remove(None)), Value.Remove(None)))
 
-      val oldKeyValues: Slice[Memory.Response] =
+      val oldKeyValues: Slice[Memory.SegmentResponse] =
         Slice(
           Memory.Put(2, "new value value"),
           Memory.Put(7, "new value value"),

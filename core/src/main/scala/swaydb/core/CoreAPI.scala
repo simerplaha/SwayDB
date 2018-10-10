@@ -58,7 +58,7 @@ private[swaydb] trait CoreAPI {
 
   def put(key: Slice[Byte], value: Option[Slice[Byte]], removeAt: Deadline): Try[Level0Meter]
 
-  def put(entry: MapEntry[Slice[Byte], Memory.Response]): Try[Level0Meter]
+  def put(entry: MapEntry[Slice[Byte], Memory.SegmentResponse]): Try[Level0Meter]
 
   def remove(key: Slice[Byte]): Try[Level0Meter]
 

@@ -125,7 +125,7 @@ class SegmentMerger_Fixed_Into_Range extends WordSpec with CommonAssertions {
 
       //9, 10, 11, 15, 18,    23,      27,  30
       //   10      -     20        25   -   30
-      val newKeyValues: Slice[Memory.Response] =
+      val newKeyValues: Slice[Memory.SegmentResponse] =
       Slice(
         Memory.Put(9, 9),
         Memory.Put(10, 10),
@@ -139,13 +139,13 @@ class SegmentMerger_Fixed_Into_Range extends WordSpec with CommonAssertions {
         Memory.Put(30, 30)
       )
 
-      val oldKeyValues: Slice[Memory.Response] =
+      val oldKeyValues: Slice[Memory.SegmentResponse] =
         Slice(
           Memory.Range(10, 20, Option.empty[Value.Put], Value.Update("ranges value 1")),
           Memory.Range(25, 30, Some(Value.Put(25)), Value.Update("ranges value 2", deadline2))
         )
 
-      val expected: Slice[Memory.Response] =
+      val expected: Slice[Memory.SegmentResponse] =
         Slice(
           Memory.Put(9, 9),
           Memory.Range(10, 11, Some(Value.Put(10)), Value.Update("ranges value 1")),
@@ -160,7 +160,7 @@ class SegmentMerger_Fixed_Into_Range extends WordSpec with CommonAssertions {
         )
 
       //last level check
-      val expectedInLastLevel: Slice[Memory.Response] =
+      val expectedInLastLevel: Slice[Memory.SegmentResponse] =
         Slice(
           Memory.Put(9, 9),
           Memory.Put(10, 10),

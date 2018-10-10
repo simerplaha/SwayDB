@@ -44,7 +44,7 @@ class MapsPerformanceSpec extends TestBase with Benchmark {
       //      val keyValues = randomIntKeyValues(2000000)
       val keyValues = randomIntKeyValues(2000)
 
-      def testWrite(maps: Maps[Slice[Byte], Memory.Response]) =
+      def testWrite(maps: Maps[Slice[Byte], Memory.SegmentResponse]) =
         keyValues foreach {
           keyValue =>
             maps.write {
@@ -52,7 +52,7 @@ class MapsPerformanceSpec extends TestBase with Benchmark {
             }.assertGet
         }
 
-      def testRead(maps: Maps[Slice[Byte], Memory.Response]) =
+      def testRead(maps: Maps[Slice[Byte], Memory.SegmentResponse]) =
         keyValues foreach {
           keyValue =>
             maps.get(keyValue.key)
@@ -61,7 +61,7 @@ class MapsPerformanceSpec extends TestBase with Benchmark {
 
       val dir1 = IO.createDirectoryIfAbsent(testDir.resolve(1.toString))
 
-      val map1 = Maps.persistent[Slice[Byte], Memory.Response](dir1, mmap = true, 4.mb, Accelerator.noBrakes(), RecoveryMode.ReportFailure).assertGet
+      val map1 = Maps.persistent[Slice[Byte], Memory.SegmentResponse](dir1, mmap = true, 4.mb, Accelerator.noBrakes(), RecoveryMode.ReportFailure).assertGet
       benchmark(s"MMAP = true - writing ${keyValues.size} keys") {
         testWrite(map1)
       }
@@ -70,7 +70,7 @@ class MapsPerformanceSpec extends TestBase with Benchmark {
       }
 
       val dir2 = IO.createDirectoryIfAbsent(testDir.resolve(2.toString))
-      val map2 = Maps.persistent[Slice[Byte], Memory.Response](dir2, mmap = false, 4.mb, Accelerator.noBrakes(), RecoveryMode.ReportFailure).assertGet
+      val map2 = Maps.persistent[Slice[Byte], Memory.SegmentResponse](dir2, mmap = false, 4.mb, Accelerator.noBrakes(), RecoveryMode.ReportFailure).assertGet
       benchmark(s"MMAP = false - writing ${keyValues.size} keys") {
         testWrite(map2)
       }

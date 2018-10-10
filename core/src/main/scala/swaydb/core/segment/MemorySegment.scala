@@ -25,7 +25,7 @@ import java.util.function.Consumer
 
 import bloomfilter.mutable.BloomFilter
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.data.Memory.{Group, Response}
+import swaydb.core.data.Memory.{Group, SegmentResponse}
 import swaydb.core.data._
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.level.PathsDistributor
@@ -64,15 +64,15 @@ private[segment] case class MemorySegment(path: Path,
     * This function is always invoked before reading the Group itself therefore if the header is not already
     * populated, it means that this is a newly fetched/decompressed Group and should be added to the [[keyValueLimiter]].
     *
-    * REMOVED - KeyValueLimiter now does not decompresses a Group key-value before dropping it from the queue. For
-    * [[MemorySegment]]s head Group key-values (key-values at are top Level Groups) should never be dropped. SegmentCache's
-    * group key-values can be dropped.
+    * [[keyValueLimiter]] never removes [[Memory.Group]] key-value but instead uncompressed and re-adds them to the skipList.
     */
-  //  private def addToQueueMayBe(group: Memory.Group): Try[Unit] =
-  //    if (group.isHeaderDecompressed) //if the header is already decompressed then this Group is already in the Limit queue.
-  //      TryUtil.successUnit
-  //    else //else this is a new decompression, add to queue.
-  //      keyValueLimiter.add(group, cache)
+  private def addToQueueMayBe(group: Memory.Group): Try[Unit] =
+  //if the header is already decompressed then this Group is already in the Limit queue as the queue always
+  //pre-reads the header
+    if (group.isHeaderDecompressed)
+      TryUtil.successUnit
+    else //else this is a new decompression, add to queue.
+      keyValueLimiter.add(group, cache)
 
   override def put(newKeyValues: Slice[KeyValue.ReadOnly],
                    minSegmentSize: Long,
@@ -171,9 +171,9 @@ private[segment] case class MemorySegment(path: Path,
     * Basic get does not perform floor checks on the cache which are only required if the Segment contains
     * range or groups.
     */
-  private def doBasicGet(key: Slice[Byte]): Try[Option[Memory.Response]] =
+  private def doBasicGet(key: Slice[Byte]): Try[Option[Memory.SegmentResponse]] =
     Option(cache.get(key)) map {
-      case response: Memory.Response =>
+      case response: Memory.SegmentResponse =>
         Success(Some(response))
       case _: Memory.Group =>
         Failure(new Exception("Get resulted in a Group when floorEntry should've fetched the Group instead."))
@@ -181,7 +181,7 @@ private[segment] case class MemorySegment(path: Path,
       TryUtil.successNone
     }
 
-  override def get(key: Slice[Byte]): Try[Option[Memory.Response]] =
+  override def get(key: Slice[Byte]): Try[Option[Memory.SegmentResponse]] =
     if (deleted)
       Failure(new NoSuchFileException(path.toString))
     else if (!_hasRange && !bloomFilter.forall(_.mightContain(key)))
@@ -201,11 +201,14 @@ private[segment] case class MemorySegment(path: Path,
                 Success(Some(range))
 
               case Some(group: Memory.Group) if group contains key =>
-                group.segmentCache.get(key) flatMap {
-                  case Some(persistent) =>
-                    persistent.toMemoryResponseOption()
-                  case None =>
-                    TryUtil.successNone
+                addToQueueMayBe(group) flatMap {
+                  _ =>
+                    group.segmentCache.get(key) flatMap {
+                      case Some(persistent) =>
+                        persistent.toMemoryResponseOption()
+                      case None =>
+                        TryUtil.successNone
+                    }
                 }
 
               case _ =>
@@ -219,21 +222,24 @@ private[segment] case class MemorySegment(path: Path,
   def mightContain(key: Slice[Byte]): Try[Boolean] =
     Try(bloomFilter.forall(_.mightContain(key)))
 
-  override def lower(key: Slice[Byte]): Try[Option[Memory.Response]] =
+  override def lower(key: Slice[Byte]): Try[Option[Memory.SegmentResponse]] =
     if (deleted)
       Failure(new NoSuchFileException(path.toString))
     else
       Option(cache.lowerEntry(key)) map {
         entry =>
           entry.getValue match {
-            case response: Memory.Response =>
+            case response: Memory.SegmentResponse =>
               Success(Some(response))
             case group: Memory.Group =>
-              group.segmentCache.lower(key) flatMap {
-                case Some(persistent) =>
-                  persistent.toMemoryResponseOption()
-                case None =>
-                  TryUtil.successNone
+              addToQueueMayBe(group) flatMap {
+                _ =>
+                  group.segmentCache.lower(key) flatMap {
+                    case Some(persistent) =>
+                      persistent.toMemoryResponseOption()
+                    case None =>
+                      TryUtil.successNone
+                  }
               }
           }
       } getOrElse {
@@ -244,9 +250,9 @@ private[segment] case class MemorySegment(path: Path,
     * Basic get does not perform floor checks on the cache which are only required if the Segment contains
     * range or groups.
     */
-  private def doBasicHigher(key: Slice[Byte]): Try[Option[Memory.Response]] =
+  private def doBasicHigher(key: Slice[Byte]): Try[Option[Memory.SegmentResponse]] =
     Option(cache.higherEntry(key)).map(_.getValue) map {
-      case response: Memory.Response =>
+      case response: Memory.SegmentResponse =>
         Success(Some(response))
       case group: Memory.Group =>
         group.segmentCache.higher(key) flatMap {
@@ -259,7 +265,7 @@ private[segment] case class MemorySegment(path: Path,
       TryUtil.successNone
     }
 
-  override def higher(key: Slice[Byte]): Try[Option[Memory.Response]] =
+  override def higher(key: Slice[Byte]): Try[Option[Memory.SegmentResponse]] =
     if (deleted)
       Failure(new NoSuchFileException(path.toString))
     else if (_hasRange || _hasGroup)
@@ -268,21 +274,23 @@ private[segment] case class MemorySegment(path: Path,
           Success(Some(floorRange))
 
         case floorGroup: Memory.Group if floorGroup containsHigher key =>
-          floorGroup.segmentCache.higher(key) flatMap {
-            case Some(persistent) =>
-              persistent.toMemoryResponseOption()
-            case None =>
-              TryUtil.successNone
-          } flatMap {
-            higher =>
-              //Group's last key-value can be inclusive or exclusive and fromKey & toKey can be the same.
-              //So it's hard to know if the Group contain higher therefore a basicHigher is required if group returns None for higher.
-              if (higher.isDefined)
-                Success(higher)
-              else
-                doBasicHigher(key)
+          addToQueueMayBe(floorGroup) flatMap {
+            _ =>
+              floorGroup.segmentCache.higher(key) flatMap {
+                case Some(persistent) =>
+                  persistent.toMemoryResponseOption()
+                case None =>
+                  TryUtil.successNone
+              } flatMap {
+                higher =>
+                  //Group's last key-value can be inclusive or exclusive and fromKey & toKey can be the same.
+                  //So it's hard to know if the Group contain higher therefore a basicHigher is required if group returns None for higher.
+                  if (higher.isDefined)
+                    Success(higher)
+                  else
+                    doBasicHigher(key)
+              }
           }
-
         case _ =>
           doBasicHigher(key)
       } getOrElse {
@@ -327,7 +335,7 @@ private[segment] case class MemorySegment(path: Path,
       cache.values().asScala.tryFoldLeft(0) {
         case (count, keyValue) =>
           keyValue match {
-            case _: Response =>
+            case _: SegmentResponse =>
               Success(count + 1)
             case group: Group =>
               group.header() map (count + _.bloomFilterItemsCount)

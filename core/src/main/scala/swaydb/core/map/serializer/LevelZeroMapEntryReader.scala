@@ -91,9 +91,9 @@ object LevelZeroMapEntryReader {
       }
   }
 
-  implicit object Level0Reader extends MapEntryReader[MapEntry[Slice[Byte], Memory.Response]] {
-    override def read(reader: Reader): Try[Option[MapEntry[Slice[Byte], Memory.Response]]] =
-      reader.foldLeftTry(Option.empty[MapEntry[Slice[Byte], Memory.Response]]) {
+  implicit object Level0Reader extends MapEntryReader[MapEntry[Slice[Byte], Memory.SegmentResponse]] {
+    override def read(reader: Reader): Try[Option[MapEntry[Slice[Byte], Memory.SegmentResponse]]] =
+      reader.foldLeftTry(Option.empty[MapEntry[Slice[Byte], Memory.SegmentResponse]]) {
         case (previousEntry, reader) =>
           reader.readInt() flatMap {
             entryId =>

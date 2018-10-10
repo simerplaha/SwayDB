@@ -182,7 +182,7 @@ class SegmentGrouperSpec extends TestBase {
       }
 
       segments should have size 1
-      segments.head.size should be > 200
+      segments.head.size should be > 10
     }
   }
 }

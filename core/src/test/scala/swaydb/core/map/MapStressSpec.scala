@@ -37,7 +37,7 @@ class MapStressSpec extends TestBase {
     "write entries when flushOnOverflow is true and map size is 1.kb" in {
       val keyValues = randomIntKeyValues(100)
 
-      def test(map: Map[Slice[Byte], Memory.Response]) = {
+      def test(map: Map[Slice[Byte], Memory.SegmentResponse]) = {
         keyValues foreach {
           keyValue =>
             val entry = MapEntry.Put[Slice[Byte], Memory.Put](keyValue.key, Memory.Put(keyValue.key, keyValue.getOrFetchValue.assertGetOpt))(Level0PutWriter)
@@ -47,7 +47,7 @@ class MapStressSpec extends TestBase {
         testRead(map)
       }
 
-      def testRead(map: Map[Slice[Byte], Memory.Response]) =
+      def testRead(map: Map[Slice[Byte], Memory.SegmentResponse]) =
         keyValues foreach {
           keyValue =>
             map.get(keyValue.key).assertGet shouldBe Memory.Put(keyValue.key, keyValue.getOrFetchValue.assertGetOpt)
@@ -59,21 +59,21 @@ class MapStressSpec extends TestBase {
       import swaydb.core.map.serializer.LevelZeroMapEntryReader.Level0Reader
       import swaydb.core.map.serializer.LevelZeroMapEntryWriter.Level0PutValueWriter
 
-      test(Map.persistent[Slice[Byte], Memory.Response](dir1, mmap = true, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).assertGet.item)
-      test(Map.persistent[Slice[Byte], Memory.Response](dir2, mmap = false, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).assertGet.item)
-      test(Map.memory[Slice[Byte], Memory.Response](flushOnOverflow = true, fileSize = 1.kb))
+      test(Map.persistent[Slice[Byte], Memory.SegmentResponse](dir1, mmap = true, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).assertGet.item)
+      test(Map.persistent[Slice[Byte], Memory.SegmentResponse](dir2, mmap = false, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).assertGet.item)
+      test(Map.memory[Slice[Byte], Memory.SegmentResponse](flushOnOverflow = true, fileSize = 1.kb))
 
       //reopen - all the entries should get recovered for persistent maps. Also switch mmap types.
-      testRead(Map.persistent[Slice[Byte], Memory.Response](dir1, mmap = false, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).assertGet.item)
-      testRead(Map.persistent[Slice[Byte], Memory.Response](dir2, mmap = true, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).assertGet.item)
+      testRead(Map.persistent[Slice[Byte], Memory.SegmentResponse](dir1, mmap = false, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).assertGet.item)
+      testRead(Map.persistent[Slice[Byte], Memory.SegmentResponse](dir2, mmap = true, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).assertGet.item)
 
       //write the same data again
-      test(Map.persistent[Slice[Byte], Memory.Response](dir1, mmap = true, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).assertGet.item)
-      test(Map.persistent[Slice[Byte], Memory.Response](dir2, mmap = false, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).assertGet.item)
+      test(Map.persistent[Slice[Byte], Memory.SegmentResponse](dir1, mmap = true, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).assertGet.item)
+      test(Map.persistent[Slice[Byte], Memory.SegmentResponse](dir2, mmap = false, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).assertGet.item)
 
       //read again
-      testRead(Map.persistent[Slice[Byte], Memory.Response](dir1, mmap = false, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).assertGet.item)
-      testRead(Map.persistent[Slice[Byte], Memory.Response](dir2, mmap = true, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).assertGet.item)
+      testRead(Map.persistent[Slice[Byte], Memory.SegmentResponse](dir1, mmap = false, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).assertGet.item)
+      testRead(Map.persistent[Slice[Byte], Memory.SegmentResponse](dir2, mmap = true, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).assertGet.item)
     }
   }
 }

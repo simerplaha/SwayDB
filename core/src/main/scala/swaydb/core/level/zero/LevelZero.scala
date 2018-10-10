@@ -57,7 +57,7 @@ private[core] object LevelZero extends LazyLogging {
                                                 ec: ExecutionContext): Try[LevelZero] = {
     import swaydb.core.map.serializer.LevelZeroMapEntryReader.Level0Reader
     import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
-    implicit val skipListMerger: SkipListMerge[Slice[Byte], Memory.Response] = LevelZeroSkipListMerge(hasTimeLeftAtLeast)
+    implicit val skipListMerger: SkipListMerge[Slice[Byte], Memory.SegmentResponse] = LevelZeroSkipListMerge(hasTimeLeftAtLeast)
     implicit val memoryOrdering: Ordering[Memory] = ordering.on[Memory](_.key)
     val mapsAndPathAndLock =
       storage match {
@@ -70,14 +70,14 @@ private[core] object LevelZero extends LazyLogging {
           Try(FileChannel.open(lockFile, StandardOpenOption.WRITE).tryLock()) flatMap {
             lock =>
               logger.info("{}: Recovering Maps.", path)
-              Maps.persistent[Slice[Byte], Memory.Response](path, mmap, mapSize, acceleration, recovery) map {
+              Maps.persistent[Slice[Byte], Memory.SegmentResponse](path, mmap, mapSize, acceleration, recovery) map {
                 maps =>
                   (maps, path, Some(lock))
               }
           }
 
         case Level0Storage.Memory =>
-          Success(Maps.memory[Slice[Byte], Memory.Response](mapSize, acceleration), Paths.get("MEMORY_DB").resolve(0.toString), None)
+          Success(Maps.memory[Slice[Byte], Memory.SegmentResponse](mapSize, acceleration), Paths.get("MEMORY_DB").resolve(0.toString), None)
       }
     mapsAndPathAndLock map {
       case (maps, path, lock: Option[FileLock]) =>
@@ -89,7 +89,7 @@ private[core] object LevelZero extends LazyLogging {
 private[core] class LevelZero(val path: Path,
                               mapSize: Long,
                               readRetryLimit: Int,
-                              val maps: Maps[Slice[Byte], Memory.Response],
+                              val maps: Maps[Slice[Byte], Memory.SegmentResponse],
                               val nextLevel: LevelRef,
                               lock: Option[FileLock])(implicit ordering: Ordering[Slice[Byte]],
                                                       memoryOrdering: Ordering[Memory],
@@ -135,7 +135,7 @@ private[core] class LevelZero(val path: Path,
 
   def put(key: Slice[Byte]): Try[Level0Meter] =
     assertKey(key) {
-      maps.write(MapEntry.Put[Slice[Byte], Memory.Response](key, Memory.Put(key)))
+      maps.write(MapEntry.Put[Slice[Byte], Memory.SegmentResponse](key, Memory.Put(key)))
     }
 
   def put(key: Slice[Byte], value: Slice[Byte]): Try[Level0Meter] =
@@ -153,7 +153,7 @@ private[core] class LevelZero(val path: Path,
       maps.write(MapEntry.Put(key, Memory.Put(key, value)))
     }
 
-  def put(entry: MapEntry[Slice[Byte], Memory.Response]): Try[Level0Meter] =
+  def put(entry: MapEntry[Slice[Byte], Memory.SegmentResponse]): Try[Level0Meter] =
     maps write entry
 
   def remove(key: Slice[Byte]): Try[Level0Meter] =
@@ -173,7 +173,7 @@ private[core] class LevelZero(val path: Path,
           Failure(new Exception("fromKey should be less than toKey"))
         else
           maps.write {
-            (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, to, None, Value.Remove(None))): MapEntry[Slice[Byte], Memory.Response]) ++
+            (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, to, None, Value.Remove(None))): MapEntry[Slice[Byte], Memory.SegmentResponse]) ++
               MapEntry.Put[Slice[Byte], Memory.Remove](to, Memory.Remove(to))
           }
       }
@@ -186,7 +186,7 @@ private[core] class LevelZero(val path: Path,
           Failure(new Exception("fromKey should be less than toKey"))
         else
           maps.write {
-            (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, to, None, Value.Remove(at))): MapEntry[Slice[Byte], Memory.Response]) ++
+            (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, to, None, Value.Remove(at))): MapEntry[Slice[Byte], Memory.SegmentResponse]) ++
               MapEntry.Put[Slice[Byte], Memory.Remove](to, Memory.Remove(to, at))
           }
       }
@@ -212,7 +212,7 @@ private[core] class LevelZero(val path: Path,
           Failure(new Exception("fromKey should be less than toKey"))
         else
           maps.write {
-            (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, to, None, Value.Update(value, None))): MapEntry[Slice[Byte], Memory.Response]) ++
+            (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, to, None, Value.Update(value, None))): MapEntry[Slice[Byte], Memory.SegmentResponse]) ++
               MapEntry.Put[Slice[Byte], Memory.Update](to, Memory.Update(to, value))
           }
       }
@@ -220,8 +220,8 @@ private[core] class LevelZero(val path: Path,
 
   @tailrec
   private def getFromMap(key: Slice[Byte],
-                         currentMap: map.Map[Slice[Byte], Memory.Response],
-                         preFetched: Option[Memory.Response] = None): Option[Memory.Response] =
+                         currentMap: map.Map[Slice[Byte], Memory.SegmentResponse],
+                         preFetched: Option[Memory.SegmentResponse] = None): Option[Memory.SegmentResponse] =
     if (currentMap.hasRange)
       preFetched orElse currentMap.floor(key) match {
         case floor @ Some(floorRange: Memory.Range) if key < floorRange.toKey =>
@@ -257,7 +257,7 @@ private[core] class LevelZero(val path: Path,
       currentMap.get(key)
 
   private def getFromNextLevel(key: Slice[Byte],
-                               mapsIterator: util.Iterator[map.Map[Slice[Byte], Memory.Response]]): Try[Option[KeyValue.ReadOnly.Put]] = {
+                               mapsIterator: util.Iterator[map.Map[Slice[Byte], Memory.SegmentResponse]]): Try[Option[KeyValue.ReadOnly.Put]] = {
     if (mapsIterator.hasNext) {
       val next = mapsIterator.next()
       //println(s"Get for key: ${key.readInt()} in ${next.pathOption}")
@@ -269,8 +269,8 @@ private[core] class LevelZero(val path: Path,
   }
 
   private def find(key: Slice[Byte],
-                   currentMap: map.Map[Slice[Byte], Memory.Response],
-                   mapsIterator: util.Iterator[map.Map[Slice[Byte], Memory.Response]]): Try[Option[KeyValue.ReadOnly.Put]] = {
+                   currentMap: map.Map[Slice[Byte], Memory.SegmentResponse],
+                   mapsIterator: util.Iterator[map.Map[Slice[Byte], Memory.SegmentResponse]]): Try[Option[KeyValue.ReadOnly.Put]] = {
     Get(
       key = key,
       getFromCurrentLevel =
@@ -386,8 +386,8 @@ private[core] class LevelZero(val path: Path,
     ceiling(key, maps.map, maps.iterator.asScala.toList)
 
   def ceiling(key: Slice[Byte],
-              currentMap: map.Map[Slice[Byte], Memory.Response],
-              otherMaps: List[map.Map[Slice[Byte], Memory.Response]]): Try[Option[KeyValue.ReadOnly.Put]] =
+              currentMap: map.Map[Slice[Byte], Memory.SegmentResponse],
+              otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]): Try[Option[KeyValue.ReadOnly.Put]] =
     find(key, currentMap, otherMaps.iterator.asJava) flatMap {
       found =>
         if (found.isDefined)
@@ -400,8 +400,8 @@ private[core] class LevelZero(val path: Path,
     floor(key, maps.map, maps.iterator.asScala.toList)
 
   def floor(key: Slice[Byte],
-            currentMap: map.Map[Slice[Byte], Memory.Response],
-            otherMaps: List[map.Map[Slice[Byte], Memory.Response]]): Try[Option[KeyValue.ReadOnly.Put]] =
+            currentMap: map.Map[Slice[Byte], Memory.SegmentResponse],
+            otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]): Try[Option[KeyValue.ReadOnly.Put]] =
     find(key, currentMap, otherMaps.iterator.asJava) flatMap {
       found =>
         if (found.isDefined)
@@ -412,7 +412,7 @@ private[core] class LevelZero(val path: Path,
 
   @tailrec
   private def higherFromMap(key: Slice[Byte],
-                            currentMap: map.Map[Slice[Byte], Memory.Response],
+                            currentMap: map.Map[Slice[Byte], Memory.SegmentResponse],
                             preFetched: Option[Memory] = None): Option[Memory] =
     if (currentMap.hasRange)
       preFetched orElse currentMap.floor(key) match {
@@ -433,7 +433,7 @@ private[core] class LevelZero(val path: Path,
       currentMap.higher(key).map(_._2)
 
   def findHigherInNextLevel(key: Slice[Byte],
-                            otherMaps: List[map.Map[Slice[Byte], Memory.Response]]): Try[Option[KeyValue.ReadOnly.Put]] =
+                            otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]): Try[Option[KeyValue.ReadOnly.Put]] =
     otherMaps.headOption match {
       case Some(nextMap) =>
         //        println(s"Finding higher for key: ${key.readInt()} in Map: ${nextMap.pathOption}. Remaining map: ${otherMaps.size}")
@@ -444,8 +444,8 @@ private[core] class LevelZero(val path: Path,
     }
 
   def findHigher(key: Slice[Byte],
-                 currentMap: map.Map[Slice[Byte], Memory.Response],
-                 otherMaps: List[map.Map[Slice[Byte], Memory.Response]]): Try[Option[KeyValue.ReadOnly.Put]] = {
+                 currentMap: map.Map[Slice[Byte], Memory.SegmentResponse],
+                 otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]): Try[Option[KeyValue.ReadOnly.Put]] = {
     Higher(
       key = key,
       higherFromCurrentLevel =
@@ -494,7 +494,7 @@ private[core] class LevelZero(val path: Path,
 
   @tailrec
   private def lowerFromMap(key: Slice[Byte],
-                           currentMap: map.Map[Slice[Byte], Memory.Response],
+                           currentMap: map.Map[Slice[Byte], Memory.SegmentResponse],
                            preFetched: Option[Memory] = None): Option[Memory] =
     if (currentMap.hasRange)
       preFetched orElse currentMap.floor(key) match {
@@ -515,7 +515,7 @@ private[core] class LevelZero(val path: Path,
       currentMap.lower(key).map(_._2)
 
   def findLowerInNextLevel(key: Slice[Byte],
-                           otherMaps: List[map.Map[Slice[Byte], Memory.Response]]): Try[Option[KeyValue.ReadOnly.Put]] =
+                           otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]): Try[Option[KeyValue.ReadOnly.Put]] =
     otherMaps.headOption match {
       case Some(nextMap) =>
         //println(s"Finding lower for key: ${key.readInt()} in ${nextMap.pathOption}")
@@ -526,8 +526,8 @@ private[core] class LevelZero(val path: Path,
     }
 
   def findLower(key: Slice[Byte],
-                currentMap: map.Map[Slice[Byte], Memory.Response],
-                otherMaps: List[map.Map[Slice[Byte], Memory.Response]]): Try[Option[KeyValue.ReadOnly.Put]] =
+                currentMap: map.Map[Slice[Byte], Memory.SegmentResponse],
+                otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]): Try[Option[KeyValue.ReadOnly.Put]] =
     Lower(
       key = key,
       lowerFromCurrentLevel =

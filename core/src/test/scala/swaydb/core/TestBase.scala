@@ -365,26 +365,26 @@ trait TestBase extends WordSpec with CommonAssertions with TestData with BeforeA
     createFileReader(createFile(bytes))
 
   object TestMap {
-    def apply(keyValues: Slice[Memory.Response],
+    def apply(keyValues: Slice[Memory.SegmentResponse],
               fileSize: Int = 4.mb,
               path: Path = testMapFile,
               flushOnOverflow: Boolean = false,
               mmap: Boolean = true,
               hasTimeLeftAtLeast: FiniteDuration = 10.seconds)(implicit ordering: Ordering[Slice[Byte]],
                                                                keyValueLimiter: KeyValueLimiter = keyValueLimiter,
-                                                               fileOpenLimiter: DBFile => Unit = fileOpenLimiter): map.Map[Slice[Byte], Memory.Response] = {
+                                                               fileOpenLimiter: DBFile => Unit = fileOpenLimiter): map.Map[Slice[Byte], Memory.SegmentResponse] = {
       import swaydb.core.map.serializer.LevelZeroMapEntryReader._
       import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
       implicit val merger = swaydb.core.level.zero.LevelZeroSkipListMerge(hasTimeLeftAtLeast)
 
       val testMap =
         if (levelStorage.memory)
-          map.Map.memory[Slice[Byte], Memory.Response](
+          map.Map.memory[Slice[Byte], Memory.SegmentResponse](
             fileSize = fileSize,
             flushOnOverflow = flushOnOverflow
           )
         else
-          map.Map.persistent[Slice[Byte], Memory.Response](
+          map.Map.persistent[Slice[Byte], Memory.SegmentResponse](
             folder = path,
             mmap = mmap,
             flushOnOverflow = flushOnOverflow,

@@ -347,7 +347,7 @@ private[core] class Level(val dirs: Seq[Dir],
     else
       merge(segmentsToMerge, targetSegments, None)
 
-  def putMap(map: Map[Slice[Byte], Memory.Response]): Try[Unit] = {
+  def putMap(map: Map[Slice[Byte], Memory.SegmentResponse]): Try[Unit] = {
     logger.trace("{}: PutMap '{}' Maps.", paths.head, map.count())
     //do an initial check to ensure that the Segments do not overlap with busy Segments
     val busySegs = getBusySegments()
@@ -396,7 +396,7 @@ private[core] class Level(val dirs: Seq[Dir],
     }
   }
 
-  private[level] def copy(map: Map[Slice[Byte], Memory.Response]): Try[Iterable[Segment]] = {
+  private[level] def copy(map: Map[Slice[Byte], Memory.SegmentResponse]): Try[Iterable[Segment]] = {
     logger.trace(s"{}: Copying {} Map", paths.head, map.pathOption)
 
     def targetSegmentPath = paths.next.resolve(IDGenerator.segmentId(segmentIDGenerator.nextID))
@@ -822,7 +822,7 @@ private[core] class Level(val dirs: Seq[Dir],
     } getOrElse Failure(LevelException.NoSegmentsRemoved)
   }
 
-  def getFromThisLevel(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Response]] =
+  def getFromThisLevel(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.SegmentResponse]] =
     appendix.floor(key) match {
       case Some(segment) =>
         segment get key
