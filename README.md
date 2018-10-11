@@ -82,8 +82,6 @@ db
 - [SwayDB.stress](https://github.com/simerplaha/SwayDB.stress) - Stress tests.
 - [SwayDB.io](https://github.com/simerplaha/SwayDB.io) - Website code.
 
-## Status: Beta
+# Status: Beta
 
-Currently undergoing unit, integration, stress & performance testing.
-
-Backward compatibility will be supported from version `1` onwards.
+Undergoing integration, stress & performance testing.

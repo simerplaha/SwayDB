@@ -17,24 +17,23 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.types
+package swaydb.data
 
-import swaydb.Batch
-import swaydb.api.SwayDBAPI
+import swaydb.data.BatchImplicits._
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
-import swaydb.data.request
 import swaydb.data.slice.Slice
 import swaydb.iterator.KeysIterator
 import swaydb.serializers.{Serializer, _}
-import swaydb.types.BatchImplicits._
+import swaydb.{Batch, SwayDB}
 
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 import scala.util.Try
 
-object SwayDBSet {
-  def apply[T](api: SwayDBAPI)(implicit serializer: Serializer[T]): SwayDBSet[T] =
-    new SwayDBSet(api)
+object Set {
+  def apply[T](api: SwayDB,
+               mapId: Option[Slice[Byte]])(implicit serializer: Serializer[T]): Set[T] =
+    new Set(api, mapId)
 }
 
 /**
@@ -42,85 +41,86 @@ object SwayDBSet {
   *
   * For documentation check - http://swaydb.io/api/
   */
-class SwayDBSet[T](api: SwayDBAPI)(implicit serializer: Serializer[T]) extends KeysIterator[T](api, None) {
+class Set[T](db: SwayDB,
+             mapId: Option[Slice[Byte]])(implicit serializer: Serializer[T]) extends KeysIterator[T](db, None) {
 
   def get(elem: T): Try[Option[T]] =
-    api.getKey(elem).map(_.map(_.read[T]))
+    db.getKey(elem).map(_.map(_.read[T]))
 
   def contains(elem: T): Try[Boolean] =
-    api contains elem
+    db contains elem
 
   def mightContain(elem: T): Try[Boolean] =
-    api mightContain elem
+    db mightContain elem
 
   def add(elem: T): Try[Level0Meter] =
-    api.put(elem)
+    db.put(key = elem)
 
   def add(elem: T, expireAt: Deadline): Try[Level0Meter] =
-    api.put(elem, None, expireAt)
+    db.put(elem, None, expireAt)
 
   def add(elem: T, expireAfter: FiniteDuration): Try[Level0Meter] =
-    api.put(elem, None, expireAfter.fromNow)
+    db.put(elem, None, expireAfter.fromNow)
 
   def remove(elem: T): Try[Level0Meter] =
-    api.remove(elem)
+    db.remove(elem)
 
   def remove(from: T, to: T): Try[Level0Meter] =
-    api.remove(from, to)
+    db.remove(from, to)
 
   def expire(elem: T, after: FiniteDuration): Try[Level0Meter] =
-    api.expire(elem, after.fromNow)
+    db.expire(elem, after.fromNow)
 
   def expire(elem: T, at: Deadline): Try[Level0Meter] =
-    api.expire(elem, at)
+    db.expire(elem, at)
 
   def expire(from: T, to: T, after: FiniteDuration): Try[Level0Meter] =
-    api.expire(from, to, after.fromNow)
+    db.expire(from, to, after.fromNow)
 
   def expire(from: T, to: T, at: Deadline): Try[Level0Meter] =
-    api.expire(from, to, at)
+    db.expire(from, to, at)
 
   def batch(batch: Batch[T, Nothing]*): Try[Level0Meter] =
-    api.batch(batch)
+    db.batch(batch)
 
   def batch(batch: Iterable[Batch[T, Nothing]]): Try[Level0Meter] =
-    api.batch(batch)
+    db.batch(batch)
 
   def batchAdd(elems: T*): Try[Level0Meter] =
     batchAdd(elems)
 
   def batchAdd(elems: Iterable[T]): Try[Level0Meter] =
-    api.batch(elems.map(elem => request.Batch.Put(elem, None, None)))
+    db.batch(elems.map(elem => request.Batch.Put(elem, None, None)))
 
   def batchRemove(elems: T*): Try[Level0Meter] =
     batchRemove(elems)
 
   def batchRemove(elems: Iterable[T]): Try[Level0Meter] =
-    api.batch(elems.map(elem => request.Batch.Remove(elem, None)))
+    db.batch(elems.map(elem => request.Batch.Remove(elem, None)))
 
   def batchExpire(elems: (T, Deadline)*): Try[Level0Meter] =
     batchExpire(elems)
 
   def batchExpire(elems: Iterable[(T, Deadline)]): Try[Level0Meter] =
-    api.batch(elems.map(elemWithExpire => request.Batch.Remove(elemWithExpire._1, Some(elemWithExpire._2))))
+    db.batch(elems.map(elemWithExpire => request.Batch.Remove(elemWithExpire._1, Some(elemWithExpire._2))))
 
   def level0Meter: Level0Meter =
-    api.level0Meter
+    db.level0Meter
 
   def level1Meter: LevelMeter =
-    api.level1Meter
+    db.level1Meter
 
   def levelMeter(levelNumber: Int): Option[LevelMeter] =
-    api.levelMeter(levelNumber)
+    db.levelMeter(levelNumber)
 
   def sizeOfSegments: Long =
-    api.sizeOfSegments
+    db.sizeOfSegments
 
   def elemSize(elem: T): Int =
     (elem: Slice[Byte]).size
 
   def expiration(elem: T): Try[Option[Deadline]] =
-    api deadline elem
+    db deadline elem
 
   def timeLeft(elem: T): Try[Option[FiniteDuration]] =
     expiration(elem).map(_.map(_.timeLeft))

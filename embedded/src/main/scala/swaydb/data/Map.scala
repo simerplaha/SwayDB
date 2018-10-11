@@ -17,26 +17,25 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.types
+package swaydb.data
 
-import swaydb.Batch
-import swaydb.api.SwayDBAPI
+import swaydb.data.BatchImplicits._
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
-import swaydb.data.request
 import swaydb.data.slice.Slice
 import swaydb.iterator.{DBIterator, KeysIterator}
 import swaydb.serializers.{Serializer, _}
-import swaydb.types.BatchImplicits._
+import swaydb.{Batch, SwayDB}
 
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 import scala.util.Try
 
-object SwayDBMap {
+object Map {
 
-  def apply[K, V](raw: SwayDBAPI)(implicit keySerializer: Serializer[K],
-                                  valueSerializer: Serializer[V]): SwayDBMap[K, V] = {
-    new SwayDBMap[K, V](raw)
+  def apply[K, V](db: SwayDB,
+                  offsets: Option[(Slice[Byte], Slice[Byte])])(implicit keySerializer: Serializer[K],
+                                                               valueSerializer: Serializer[V]): Map[K, V] = {
+    new Map[K, V](db, offsets)
   }
 }
 
@@ -45,53 +44,54 @@ object SwayDBMap {
   *
   * For documentation check - http://swaydb.io/api/
   */
-class SwayDBMap[K, V](api: SwayDBAPI)(implicit keySerializer: Serializer[K],
-                                      valueSerializer: Serializer[V]) extends DBIterator[K, V](api, None) {
+class Map[K, V](db: SwayDB,
+                offsets: Option[(Slice[Byte], Slice[Byte])])(implicit keySerializer: Serializer[K],
+                                                                   valueSerializer: Serializer[V]) extends DBIterator[K, V](db, None) {
 
   def put(key: K, value: V): Try[Level0Meter] =
-    api.put(key, Some(value))
+    db.put(key = key, value = Some(value))
 
   def put(key: K, value: V, expireAfter: FiniteDuration): Try[Level0Meter] =
-    api.put(key, Some(value), expireAfter.fromNow)
+    db.put(key, Some(value), expireAfter.fromNow)
 
   def put(key: K, value: V, expireAt: Deadline): Try[Level0Meter] =
-    api.put(key, Some(value), expireAt)
+    db.put(key, Some(value), expireAt)
 
   def remove(key: K): Try[Level0Meter] =
-    api.remove(key)
+    db.remove(key)
 
   def remove(from: K, to: K): Try[Level0Meter] =
-    api.remove(from, to)
+    db.remove(from, to)
 
   def expire(key: K, after: FiniteDuration): Try[Level0Meter] =
-    api.expire(key, after.fromNow)
+    db.expire(key, after.fromNow)
 
   def expire(key: K, at: Deadline): Try[Level0Meter] =
-    api.expire(key, at)
+    db.expire(key, at)
 
   def expire(from: K, to: K, after: FiniteDuration): Try[Level0Meter] =
-    api.expire(from, to, after.fromNow)
+    db.expire(from, to, after.fromNow)
 
   def expire(from: K, to: K, at: Deadline): Try[Level0Meter] =
-    api.expire(from, to, at)
+    db.expire(from, to, at)
 
   def update(key: K, value: V): Try[Level0Meter] =
-    api.update(key, Some(value))
+    db.update(key, Some(value))
 
   def update(from: K, to: K, value: V): Try[Level0Meter] =
-    api.update(from, to, Some(value))
+    db.update(from, to, Some(value))
 
   def batch(batch: Batch[K, V]*): Try[Level0Meter] =
-    api.batch(batch)
+    db.batch(batch)
 
   def batch(batch: Iterable[Batch[K, V]]): Try[Level0Meter] =
-    api.batch(batch)
+    db.batch(batch)
 
   def batchPut(keyValues: (K, V)*): Try[Level0Meter] =
     batchPut(keyValues)
 
   def batchPut(keyValues: Iterable[(K, V)]): Try[Level0Meter] =
-    api.batch {
+    db.batch {
       keyValues map {
         case (key, value) =>
           request.Batch.Put(key, Some(value), None)
@@ -102,7 +102,7 @@ class SwayDBMap[K, V](api: SwayDBAPI)(implicit keySerializer: Serializer[K],
     batchUpdate(keyValues)
 
   def batchUpdate(keyValues: Iterable[(K, V)]): Try[Level0Meter] =
-    api.batch {
+    db.batch {
       keyValues map {
         case (key, value) =>
           request.Batch.Update(key, Some(value))
@@ -113,19 +113,19 @@ class SwayDBMap[K, V](api: SwayDBAPI)(implicit keySerializer: Serializer[K],
     batchRemove(keys)
 
   def batchRemove(keys: Iterable[K]): Try[Level0Meter] =
-    api.batch(keys.map(key => request.Batch.Remove(key, None)))
+    db.batch(keys.map(key => request.Batch.Remove(key, None)))
 
   def batchExpire(keys: (K, Deadline)*): Try[Level0Meter] =
     batchExpire(keys)
 
   def batchExpire(keys: Iterable[(K, Deadline)]): Try[Level0Meter] =
-    api.batch(keys.map(keyDeadline => request.Batch.Remove(keyDeadline._1, Some(keyDeadline._2))))
+    db.batch(keys.map(keyDeadline => request.Batch.Remove(keyDeadline._1, Some(keyDeadline._2))))
 
   /**
     * Returns target value for the input key.
     */
   def get(key: K): Try[Option[V]] =
-    api.get(key).map(_.map(_.read[V]))
+    db.get(key).map(_.map(_.read[V]))
 
   /**
     * Returns target full key for the input partial key.
@@ -133,34 +133,34 @@ class SwayDBMap[K, V](api: SwayDBAPI)(implicit keySerializer: Serializer[K],
     * This function is mostly used for Set databases where partial ordering on the Key is provided.
     */
   def getKey(key: K): Try[Option[K]] =
-    api.getKey(key).map(_.map(_.read[K]))
+    db.getKey(key).map(_.map(_.read[K]))
 
   def getKeyValue(key: K): Try[Option[(K, V)]] =
-    api.getKeyValue(key).map(_.map {
+    db.getKeyValue(key).map(_.map {
       case (key, value) =>
         (key.read[K], value.read[V])
     })
 
   def contains(key: K): Try[Boolean] =
-    api contains key
+    db contains key
 
   def mightContain(key: K): Try[Boolean] =
-    api mightContain key
+    db mightContain key
 
   def keys: KeysIterator[K] =
-    KeysIterator[K](api, None)(keySerializer)
+    KeysIterator[K](db, None)(keySerializer)
 
   def level0Meter: Level0Meter =
-    api.level0Meter
+    db.level0Meter
 
   def level1Meter: LevelMeter =
-    api.level1Meter
+    db.level1Meter
 
   def levelMeter(levelNumber: Int): Option[LevelMeter] =
-    api.levelMeter(levelNumber)
+    db.levelMeter(levelNumber)
 
   def sizeOfSegments: Long =
-    api.sizeOfSegments
+    db.sizeOfSegments
 
   def keySize(key: K): Int =
     (key: Slice[Byte]).size
@@ -169,7 +169,7 @@ class SwayDBMap[K, V](api: SwayDBAPI)(implicit keySerializer: Serializer[K],
     (value: Slice[Byte]).size
 
   def expiration(key: K): Try[Option[Deadline]] =
-    api deadline key
+    db deadline key
 
   def timeLeft(key: K): Try[Option[FiniteDuration]] =
     expiration(key).map(_.map(_.timeLeft))

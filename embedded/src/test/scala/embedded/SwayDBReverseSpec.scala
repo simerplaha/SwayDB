@@ -24,14 +24,14 @@ import swaydb.core.TestBase
 import swaydb.data.slice.Slice
 import swaydb.order.KeyOrder
 import swaydb.serializers.Default._
-import swaydb.types.SwayDBMap
+import swaydb.data.Map
 
 class SwayDBReverse_Persistent_Spec extends SwayDBReverseSpec {
   implicit val order: Ordering[Slice[Byte]] = KeyOrder.reverse
 
   val keyValueCount: Int = 10000
 
-  override def newDB(): SwayDBMap[Int, String] =
+  override def newDB(): Map[Int, String] =
     SwayDB.persistent[Int, String](dir = randomDir).assertGet
 }
 
@@ -40,7 +40,7 @@ class SwayDBReverse_Memory_Spec extends SwayDBReverseSpec {
 
   val keyValueCount: Int = 100000
 
-  override def newDB(): SwayDBMap[Int, String] =
+  override def newDB(): Map[Int, String] =
     SwayDB.memory[Int, String]().assertGet
 }
 
@@ -48,7 +48,7 @@ sealed trait SwayDBReverseSpec extends TestBase with TestBaseEmbedded {
 
   val keyValueCount: Int
 
-  def newDB(): SwayDBMap[Int, String]
+  def newDB(): Map[Int, String]
 
   "Do reverse ordering" in {
     val db = newDB()

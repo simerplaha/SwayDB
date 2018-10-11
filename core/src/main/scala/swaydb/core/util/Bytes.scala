@@ -96,9 +96,9 @@ private[swaydb] object Bytes {
     Slice(fullKey)
   }
 
-  def sizeOf(v: Int): Int = {
+  def sizeOf(int: Int): Int = {
     var size = 0
-    var x = v
+    var x = int
     while ((x & 0xFFFFF80) != 0L) {
       size += 1
       x >>>= 7

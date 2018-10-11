@@ -20,7 +20,7 @@
 package embedded
 
 import swaydb.core.TestBase
-import swaydb.types.SwayDBMap
+import swaydb.data.Map
 
 import scala.annotation.tailrec
 import scala.concurrent.Future
@@ -30,7 +30,7 @@ trait TestBaseEmbedded extends TestBase {
 
   val keyValueCount: Int
 
-  def doAssertEmpty[V](db: SwayDBMap[Int, V]) =
+  def doAssertEmpty[V](db: Map[Int, V]) =
     (1 to keyValueCount) foreach {
       i =>
         db.expiration(i).assertGetOpt shouldBe empty
@@ -42,7 +42,7 @@ trait TestBaseEmbedded extends TestBase {
   //recursively go through all levels and assert they do no have any Segments.
   //Note: Could change this test to use Future with delays instead of blocking but the blocking code is probably more easier to read.
 
-  def assertLevelsAreEmpty(db: SwayDBMap[Int, String], submitUpdates: Boolean) = {
+  def assertLevelsAreEmpty(db: Map[Int, String], submitUpdates: Boolean) = {
     println("Checking levels are empty.")
 
     @tailrec

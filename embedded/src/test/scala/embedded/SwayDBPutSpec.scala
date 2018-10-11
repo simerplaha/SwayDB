@@ -22,14 +22,14 @@ package embedded
 import swaydb.SwayDB
 import swaydb.core.TestBase
 import swaydb.serializers.Default._
-import swaydb.types.SwayDBMap
+import swaydb.data.Map
 
 import scala.concurrent.duration._
 
 class SwayDBPutSpec0 extends SwayDBPutSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): SwayDBMap[Int, String] =
+  override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
     SwayDB.persistent[Int, String](dir = randomDir, minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration).assertGet
 }
 
@@ -39,7 +39,7 @@ class SwayDBPutSpec1 extends SwayDBPutSpec {
 
   import swaydb._
 
-  override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): SwayDBMap[Int, String] =
+  override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
     SwayDB.persistent[Int, String](randomDir, mapSize = 1.byte, minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration).assertGet
 }
 
@@ -49,14 +49,14 @@ class SwayDBPutSpec2 extends SwayDBPutSpec {
 
   import swaydb._
 
-  override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): SwayDBMap[Int, String] =
+  override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
     SwayDB.memory[Int, String](mapSize = 1.byte, minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration).assertGet
 }
 
 class SwayDBPutSpec3 extends SwayDBPutSpec {
   val keyValueCount: Int = 100000
 
-  override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): SwayDBMap[Int, String] =
+  override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
     SwayDB.memory[Int, String](minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration).assertGet
 }
 
@@ -64,9 +64,9 @@ sealed trait SwayDBPutSpec extends TestBase with TestBaseEmbedded {
 
   val keyValueCount: Int
 
-  def newDB(minTimeLeftToUpdateExpiration: FiniteDuration = 10.seconds): SwayDBMap[Int, String]
+  def newDB(minTimeLeftToUpdateExpiration: FiniteDuration = 10.seconds): Map[Int, String]
 
-  def doGet(db: SwayDBMap[Int, String]) = {
+  def doGet(db: Map[Int, String]) = {
     (1 to keyValueCount) foreach {
       i =>
         db.expiration(i).assertGetOpt shouldBe empty

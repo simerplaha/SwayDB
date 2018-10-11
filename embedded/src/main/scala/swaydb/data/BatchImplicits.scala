@@ -17,11 +17,10 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.types
+package swaydb.data
 
-import swaydb.{Data, Batch}
-import swaydb.data.request
 import swaydb.serializers.{Serializer, _}
+import swaydb.{Batch, Data}
 
 private[swaydb] object BatchImplicits {
 

@@ -19,10 +19,11 @@
 
 package swaydb.iterator
 
-import swaydb.api.SwayDBAPI
+import swaydb.SwayDB
 import swaydb.data.slice.Slice
 import swaydb.serializers.Serializer
 import swaydb.serializers._
+
 import scala.collection.generic.CanBuildFrom
 import scala.util.{Failure, Success, Try}
 
@@ -33,7 +34,7 @@ import scala.util.{Failure, Success, Try}
   *
   * This iterator and [[DBIterator]] share a lot of the same code. A higher type is required.
   */
-case class KeysIterator[K](private val api: SwayDBAPI,
+case class KeysIterator[K](private val db: SwayDB,
                            private val from: Option[From[K]],
                            private val reverse: Boolean = false,
                            private val till: K => Boolean = (_: K) => true)(implicit serializer: Serializer[K]) extends Iterable[K] {
@@ -67,29 +68,29 @@ case class KeysIterator[K](private val api: SwayDBAPI,
         case Some(from) =>
           val fromKeyBytes: Slice[Byte] = from.key
           if (from.before)
-            api.beforeKey(fromKeyBytes)
+            db.beforeKey(fromKeyBytes)
           else if (from.after)
-            api.afterKey(fromKeyBytes)
+            db.afterKey(fromKeyBytes)
           else
-            api.getKey(fromKeyBytes)
+            db.getKey(fromKeyBytes)
               .flatMap {
                 case Some(key) =>
                   Success(Some(key))
 
                 case _ =>
                   if (from.orAfter)
-                    api.afterKey(fromKeyBytes)
+                    db.afterKey(fromKeyBytes)
                   else if (from.orBefore)
-                    api.beforeKey(fromKeyBytes)
+                    db.beforeKey(fromKeyBytes)
                   else
                     Success(None)
               }
 
         case None =>
           if (reverse)
-            api.lastKey
+            db.lastKey
           else
-            api.headKey
+            db.headKey
       }
 
     override def hasNext: Boolean =
@@ -99,9 +100,9 @@ case class KeysIterator[K](private val api: SwayDBAPI,
         else {
           val next =
             if (reverse)
-              api.beforeKey(nextKeyBytes)
+              db.beforeKey(nextKeyBytes)
             else
-              api.afterKey(nextKeyBytes)
+              db.afterKey(nextKeyBytes)
 
           next match {
             case Success(key) =>
@@ -159,10 +160,10 @@ case class KeysIterator[K](private val api: SwayDBAPI,
     lastOption.get
 
   override def size: Int =
-    api.keyValueCount.get
+    db.keyValueCount.get
 
   override def isEmpty: Boolean =
-    api.headKey.get.isEmpty
+    db.headKey.get.isEmpty
 
   override def nonEmpty: Boolean =
     !isEmpty
@@ -171,10 +172,10 @@ case class KeysIterator[K](private val api: SwayDBAPI,
     if (from.isDefined)
       this.take(1).headOption
     else
-      api.headKey.map(_.map(_.read[K])).get
+      db.headKey.map(_.map(_.read[K])).get
 
   override def lastOption: Option[K] =
-    api.lastKey.map(_.map(_.read[K])).get
+    db.lastKey.map(_.map(_.read[K])).get
 
   def foreachRight[U](f: K => U): Unit =
     copy(reverse = true) foreach f

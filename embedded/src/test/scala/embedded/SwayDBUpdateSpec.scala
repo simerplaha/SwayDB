@@ -22,14 +22,14 @@ package embedded
 import swaydb.SwayDB
 import swaydb.core.TestBase
 import swaydb.serializers.Default._
-import swaydb.types.SwayDBMap
+import swaydb.data.Map
 
 import scala.concurrent.duration._
 
 class SwayDBUpdateSpec0 extends SwayDBUpdateSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): SwayDBMap[Int, String] =
+  override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
     SwayDB.persistent[Int, String](dir = randomDir, minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration).assertGet
 }
 
@@ -39,7 +39,7 @@ class SwayDBUpdateSpec1 extends SwayDBUpdateSpec {
 
   import swaydb._
 
-  override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): SwayDBMap[Int, String] =
+  override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
     SwayDB.persistent[Int, String](randomDir, mapSize = 1.byte, minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration).assertGet
 }
 
@@ -49,14 +49,14 @@ class SwayDBUpdateSpec2 extends SwayDBUpdateSpec {
 
   import swaydb._
 
-  override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): SwayDBMap[Int, String] =
+  override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
     SwayDB.memory[Int, String](mapSize = 1.byte, minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration).assertGet
 }
 
 class SwayDBUpdateSpec3 extends SwayDBUpdateSpec {
   val keyValueCount: Int = 10000
 
-  override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): SwayDBMap[Int, String] =
+  override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
     SwayDB.memory[Int, String](minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration).assertGet
 }
 
@@ -64,7 +64,7 @@ sealed trait SwayDBUpdateSpec extends TestBase with TestBaseEmbedded {
 
   val keyValueCount: Int
 
-  def newDB(minTimeLeftToUpdateExpiration: FiniteDuration = 10.seconds): SwayDBMap[Int, String]
+  def newDB(minTimeLeftToUpdateExpiration: FiniteDuration = 10.seconds): Map[Int, String]
 
   "Updating" when {
     "Put" in {

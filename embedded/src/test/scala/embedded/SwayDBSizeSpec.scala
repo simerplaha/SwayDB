@@ -22,19 +22,19 @@ package embedded
 import swaydb.SwayDB
 import swaydb.core.TestBase
 import swaydb.serializers.Default._
-import swaydb.types.SwayDBMap
+import swaydb.data.Map
 
 class SwayDBSize_Persistent_Spec extends SwayDBSizeSpec {
   val keyValueCount: Int = 10000000
 
-  override def newDB(): SwayDBMap[Int, String] =
+  override def newDB(): Map[Int, String] =
     SwayDB.persistent[Int, String](dir = randomDir).assertGet
 }
 
 class SwayDBSize_Memory_Spec extends SwayDBSizeSpec {
   val keyValueCount: Int = 10000000
 
-  override def newDB(): SwayDBMap[Int, String] =
+  override def newDB(): Map[Int, String] =
     SwayDB.memory[Int, String]().assertGet
 }
 
@@ -44,7 +44,7 @@ sealed trait SwayDBSizeSpec extends TestBase with TestBaseEmbedded {
 
   override def deleteFiles = false
 
-  def newDB(): SwayDBMap[Int, String]
+  def newDB(): Map[Int, String]
 
   "return the size of key-values" in {
     val db = newDB()

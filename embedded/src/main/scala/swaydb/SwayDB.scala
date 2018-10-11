@@ -22,7 +22,6 @@ package swaydb
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.api.SwayDBAPI
 import swaydb.configs.level.{DefaultGroupingStrategy, DefaultMemoryConfig, DefaultMemoryPersistentConfig, DefaultPersistentConfig}
 import swaydb.core.data.{Memory, Value}
 import swaydb.core.map.MapEntry
@@ -37,9 +36,10 @@ import swaydb.data.repairAppendix.RepairResult.OverlappingSegments
 import swaydb.data.repairAppendix._
 import swaydb.data.request
 import swaydb.data.slice.Slice
+import swaydb.nest.order.NestOrder
 import swaydb.order.KeyOrder
 import swaydb.serializers.Serializer
-import swaydb.types.{SwayDBMap, SwayDBSet}
+import swaydb.data.{Map, Set}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{FiniteDuration, _}
@@ -118,7 +118,7 @@ object SwayDB extends LazyLogging {
                        acceleration: Level0Meter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
                                                                                           valueSerializer: Serializer[V],
                                                                                           ordering: Ordering[Slice[Byte]] = KeyOrder.default,
-                                                                                          ec: ExecutionContext = defaultExecutionContext): Try[SwayDBMap[K, V]] =
+                                                                                          ec: ExecutionContext = defaultExecutionContext): Try[Map[K, V]] =
     CoreAPI(
       config = DefaultPersistentConfig(
         dir = dir,
@@ -141,7 +141,7 @@ object SwayDB extends LazyLogging {
       segmentsOpenCheckDelay = segmentsOpenCheckDelay
     ) map {
       core =>
-        SwayDBMap[K, V](new SwayDB(core))
+        Map[K, V](new SwayDB(core), None)
     }
 
   /**
@@ -166,7 +166,7 @@ object SwayDB extends LazyLogging {
                        lastLevelGroupingStrategy: Option[KeyValueGroupingStrategy] = Some(DefaultGroupingStrategy()),
                        acceleration: Level0Meter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[T],
                                                                                           ordering: Ordering[Slice[Byte]] = KeyOrder.default,
-                                                                                          ec: ExecutionContext = defaultExecutionContext): Try[SwayDBSet[T]] = {
+                                                                                          ec: ExecutionContext = defaultExecutionContext): Try[Set[T]] = {
     CoreAPI(
       config = DefaultPersistentConfig(
         dir = dir,
@@ -190,7 +190,7 @@ object SwayDB extends LazyLogging {
       segmentsOpenCheckDelay = segmentsOpenCheckDelay
     ) map {
       core =>
-        SwayDBSet[T](new SwayDB(core))
+        Set[T](new SwayDB(core), None)
     }
   }
 
@@ -222,7 +222,8 @@ object SwayDB extends LazyLogging {
                    acceleration: Level0Meter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
                                                                                       valueSerializer: Serializer[V],
                                                                                       ordering: Ordering[Slice[Byte]] = KeyOrder.default,
-                                                                                      ec: ExecutionContext = defaultExecutionContext): Try[SwayDBMap[K, V]] =
+                                                                                      ec: ExecutionContext = defaultExecutionContext): Try[Map[K, V]] = {
+    val order = NestOrder.ordering(customOrder = ordering)
     CoreAPI(
       config = DefaultMemoryConfig(
         mapSize = mapSize,
@@ -238,10 +239,11 @@ object SwayDB extends LazyLogging {
       cacheCheckDelay = cacheCheckDelay,
       //memory Segments are never closed.
       segmentsOpenCheckDelay = Duration.Zero
-    ) map {
+    )(ec, order) map {
       core =>
-        SwayDBMap[K, V](new SwayDB(core))
+        Map[K, V](new SwayDB(core), None)
     }
+  }
 
   /**
     * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
@@ -256,7 +258,7 @@ object SwayDB extends LazyLogging {
                    groupingStrategy: Option[KeyValueGroupingStrategy] = None,
                    acceleration: Level0Meter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[T],
                                                                                       ordering: Ordering[Slice[Byte]] = KeyOrder.default,
-                                                                                      ec: ExecutionContext = defaultExecutionContext): Try[SwayDBSet[T]] =
+                                                                                      ec: ExecutionContext = defaultExecutionContext): Try[Set[T]] =
     CoreAPI(
       config = DefaultMemoryConfig(
         mapSize = mapSize,
@@ -274,7 +276,7 @@ object SwayDB extends LazyLogging {
       segmentsOpenCheckDelay = Duration.Zero
     ) map {
       core =>
-        SwayDBSet[T](new SwayDB(core))
+        Set[T](new SwayDB(core), None)
     }
 
   /**
@@ -328,7 +330,7 @@ object SwayDB extends LazyLogging {
                              acceleration: Level0Meter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
                                                                                                 valueSerializer: Serializer[V],
                                                                                                 ordering: Ordering[Slice[Byte]] = KeyOrder.default,
-                                                                                                ec: ExecutionContext = defaultExecutionContext): Try[SwayDBMap[K, V]] =
+                                                                                                ec: ExecutionContext = defaultExecutionContext): Try[Map[K, V]] =
     CoreAPI(
       config =
         DefaultMemoryPersistentConfig(
@@ -354,7 +356,7 @@ object SwayDB extends LazyLogging {
       segmentsOpenCheckDelay = segmentsOpenCheckDelay
     ) map {
       core =>
-        SwayDBMap[K, V](new SwayDB(core))
+        Map[K, V](new SwayDB(core), None)
     }
 
   /**
@@ -380,7 +382,7 @@ object SwayDB extends LazyLogging {
                              groupingStrategy: Option[KeyValueGroupingStrategy] = Some(DefaultGroupingStrategy()),
                              acceleration: Level0Meter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[T],
                                                                                                 ordering: Ordering[Slice[Byte]] = KeyOrder.default,
-                                                                                                ec: ExecutionContext = defaultExecutionContext): Try[SwayDBSet[T]] =
+                                                                                                ec: ExecutionContext = defaultExecutionContext): Try[Set[T]] =
     CoreAPI(
       config =
         DefaultMemoryPersistentConfig(
@@ -406,7 +408,7 @@ object SwayDB extends LazyLogging {
       segmentsOpenCheckDelay = segmentsOpenCheckDelay
     ) map {
       core =>
-        SwayDBSet[T](new SwayDB(core))
+        Set[T](new SwayDB(core), None)
     }
 
   /**
@@ -438,7 +440,7 @@ object SwayDB extends LazyLogging {
                   segmentsOpenCheckDelay: FiniteDuration)(implicit keySerializer: Serializer[K],
                                                           valueSerializer: Serializer[V],
                                                           ordering: Ordering[Slice[Byte]],
-                                                          ec: ExecutionContext): Try[SwayDBMap[K, V]] =
+                                                          ec: ExecutionContext): Try[Map[K, V]] =
     CoreAPI(
       config = config,
       maxOpenSegments = maxSegmentsOpen,
@@ -447,7 +449,7 @@ object SwayDB extends LazyLogging {
       segmentsOpenCheckDelay = segmentsOpenCheckDelay
     ) map {
       core =>
-        SwayDBMap[K, V](new SwayDB(core))
+        Map[K, V](new SwayDB(core), None)
     }
 
   def apply[T](config: SwayDBPersistentConfig,
@@ -456,7 +458,7 @@ object SwayDB extends LazyLogging {
                cacheCheckDelay: FiniteDuration,
                segmentsOpenCheckDelay: FiniteDuration)(implicit serializer: Serializer[T],
                                                        ordering: Ordering[Slice[Byte]],
-                                                       ec: ExecutionContext): Try[SwayDBSet[T]] =
+                                                       ec: ExecutionContext): Try[Set[T]] =
     CoreAPI(
       config = config,
       maxOpenSegments = maxSegmentsOpen,
@@ -465,7 +467,7 @@ object SwayDB extends LazyLogging {
       segmentsOpenCheckDelay = segmentsOpenCheckDelay
     ) map {
       core =>
-        SwayDBSet[T](new SwayDB(core))
+        Set[T](new SwayDB(core), None)
     }
 
   def apply[K, V](config: SwayDBMemoryConfig,
@@ -473,7 +475,7 @@ object SwayDB extends LazyLogging {
                   cacheCheckDelay: FiniteDuration)(implicit keySerializer: Serializer[K],
                                                    valueSerializer: Serializer[V],
                                                    ordering: Ordering[Slice[Byte]],
-                                                   ec: ExecutionContext): Try[SwayDBMap[K, V]] =
+                                                   ec: ExecutionContext): Try[Map[K, V]] =
     CoreAPI(
       config = config,
       maxOpenSegments = 0,
@@ -482,14 +484,14 @@ object SwayDB extends LazyLogging {
       segmentsOpenCheckDelay = Duration.Zero
     ) map {
       core =>
-        SwayDBMap[K, V](new SwayDB(core))
+        Map[K, V](new SwayDB(core), None)
     }
 
   def apply[T](config: SwayDBMemoryConfig,
                cacheSize: Int,
                cacheCheckDelay: FiniteDuration)(implicit serializer: Serializer[T],
                                                 ordering: Ordering[Slice[Byte]],
-                                                ec: ExecutionContext): Try[SwayDBSet[T]] =
+                                                ec: ExecutionContext): Try[Set[T]] =
     CoreAPI(
       config = config,
       maxOpenSegments = 0,
@@ -498,7 +500,7 @@ object SwayDB extends LazyLogging {
       segmentsOpenCheckDelay = Duration.Zero
     ) map {
       core =>
-        SwayDBSet[T](new SwayDB(core))
+        Set[T](new SwayDB(core), None)
     }
 
   /**
@@ -553,37 +555,36 @@ object SwayDB extends LazyLogging {
     }
 }
 
-private[swaydb] class SwayDB(api: CoreAPI) extends SwayDBAPI {
+private[swaydb] class SwayDB(api: CoreAPI) {
 
-
-  override def put(key: Slice[Byte]) =
+  def put(key: Slice[Byte]) =
     api.put(key)
 
-  override def put(key: Slice[Byte], value: Option[Slice[Byte]]) =
+  def put(key: Slice[Byte], value: Option[Slice[Byte]]) =
     api.put(key, value)
 
-  override def put(key: Slice[Byte], value: Option[Slice[Byte]], expireAt: Deadline): Try[Level0Meter] =
+  def put(key: Slice[Byte], value: Option[Slice[Byte]], expireAt: Deadline): Try[Level0Meter] =
     api.put(key, value, expireAt)
 
-  override def update(key: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter] =
+  def update(key: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter] =
     api.update(key, value)
 
-  override def update(from: Slice[Byte], to: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter] =
+  def update(from: Slice[Byte], to: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter] =
     api.update(from, to, value)
 
-  override def expire(key: Slice[Byte], at: Deadline): Try[Level0Meter] =
+  def expire(key: Slice[Byte], at: Deadline): Try[Level0Meter] =
     api.remove(key, at)
 
-  override def expire(from: Slice[Byte], to: Slice[Byte], at: Deadline): Try[Level0Meter] =
+  def expire(from: Slice[Byte], to: Slice[Byte], at: Deadline): Try[Level0Meter] =
     api.remove(from, to, at)
 
-  override def remove(key: Slice[Byte]) =
+  def remove(key: Slice[Byte]) =
     api.remove(key)
 
-  override def remove(from: Slice[Byte], to: Slice[Byte]): Try[Level0Meter] =
+  def remove(from: Slice[Byte], to: Slice[Byte]): Try[Level0Meter] =
     api.remove(from, to)
 
-  override def batch(entries: Iterable[request.Batch]) =
+  def batch(entries: Iterable[request.Batch]) =
     entries.foldLeft(Option.empty[MapEntry[Slice[Byte], Memory.SegmentResponse]]) {
       case (mapEntry, batchEntry) =>
         val nextEntry =
@@ -611,61 +612,61 @@ private[swaydb] class SwayDB(api: CoreAPI) extends SwayDBAPI {
         api.put(entry)
     } getOrElse Failure(new Exception("Cannot write empty batch"))
 
-  override def head: Try[Option[(Slice[Byte], Option[Slice[Byte]])]] =
+  def head: Try[Option[(Slice[Byte], Option[Slice[Byte]])]] =
     api.head
 
-  override def last: Try[Option[(Slice[Byte], Option[Slice[Byte]])]] =
+  def last: Try[Option[(Slice[Byte], Option[Slice[Byte]])]] =
     api.last
 
-  override def keyValueCount: Try[Int] =
+  def keyValueCount: Try[Int] =
     api.bloomFilterKeyValueCount
 
-  override def contains(key: Slice[Byte]): Try[Boolean] =
+  def contains(key: Slice[Byte]): Try[Boolean] =
     api contains key
 
   def mightContain(key: Slice[Byte]): Try[Boolean] =
     api mightContain key
 
-  override def get(key: Slice[Byte]): Try[Option[Option[Slice[Byte]]]] =
+  def get(key: Slice[Byte]): Try[Option[Option[Slice[Byte]]]] =
     api.get(key)
 
-  override def getKey(key: Slice[Byte]): Try[Option[Slice[Byte]]] =
+  def getKey(key: Slice[Byte]): Try[Option[Slice[Byte]]] =
     api.getKey(key)
 
-  override def getKeyValue(key: Slice[Byte]): Try[Option[(Slice[Byte], Option[Slice[Byte]])]] =
+  def getKeyValue(key: Slice[Byte]): Try[Option[(Slice[Byte], Option[Slice[Byte]])]] =
     api.getKeyValue(key)
 
-  override def beforeKey(key: Slice[Byte]) =
+  def beforeKey(key: Slice[Byte]) =
     api.beforeKey(key)
 
-  override def before(key: Slice[Byte]) =
+  def before(key: Slice[Byte]) =
     api.before(key)
 
-  override def afterKey(key: Slice[Byte]) =
+  def afterKey(key: Slice[Byte]) =
     api.afterKey(key)
 
-  override def after(key: Slice[Byte]) =
+  def after(key: Slice[Byte]) =
     api.after(key)
 
-  override def headKey: Try[Option[Slice[Byte]]] =
+  def headKey: Try[Option[Slice[Byte]]] =
     api.headKey
 
-  override def lastKey: Try[Option[Slice[Byte]]] =
+  def lastKey: Try[Option[Slice[Byte]]] =
     api.lastKey
 
-  override def sizeOfSegments: Long =
+  def sizeOfSegments: Long =
     api.sizeOfSegments
 
-  override def level0Meter: Level0Meter =
+  def level0Meter: Level0Meter =
     api.level0Meter
 
-  override def level1Meter: LevelMeter =
+  def level1Meter: LevelMeter =
     api.level1Meter
 
-  override def levelMeter(levelNumber: Int): Option[LevelMeter] =
+  def levelMeter(levelNumber: Int): Option[LevelMeter] =
     api.levelMeter(levelNumber)
 
-  override def valueSize(key: Slice[Byte]): Try[Option[Int]] =
+  def valueSize(key: Slice[Byte]): Try[Option[Int]] =
     api.valueSize(key)
 
   def deadline(key: Slice[Byte]): Try[Option[Deadline]] =

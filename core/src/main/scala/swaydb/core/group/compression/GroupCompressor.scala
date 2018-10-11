@@ -21,12 +21,12 @@ package swaydb.core.group.compression
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.compression.CompressionInternal
+import swaydb.core.data.{KeyValue, Transient}
 import swaydb.core.group.compression.GroupCompressorFailure.InvalidGroupKeyValuesHeadPosition
 import swaydb.core.group.compression.data.{CompressionResult, ValueCompressionResult}
-import swaydb.core.data.{KeyValue, Transient}
 import swaydb.core.segment.format.one.SegmentWriter
 import swaydb.core.util.TryUtil._
-import swaydb.core.util.{Benchmark, Bytes, TryUtil}
+import swaydb.core.util.{Bytes, TryUtil}
 import swaydb.data.segment.MaxKey
 import swaydb.data.slice.Slice
 

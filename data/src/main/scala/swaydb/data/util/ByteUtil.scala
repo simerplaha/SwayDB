@@ -273,4 +273,26 @@ object ByteUtil {
       case ex: Exception =>
         Failure(ex)
     }
+
+  def sizeOf(int: Int): Int = {
+    var size = 0
+    var x = int
+    while ((x & 0xFFFFF80) != 0L) {
+      size += 1
+      x >>>= 7
+    }
+    size += 1
+    size
+  }
+
+  def sizeOf(long: Long): Int = {
+    var size = 0
+    var x = long
+    while ((x & 0xFFFFFFFFFFFFFF80L) != 0L) {
+      size += 1
+      x >>>= 7
+    }
+    size += 1
+    size
+  }
 }

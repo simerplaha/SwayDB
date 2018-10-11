@@ -20,7 +20,7 @@
 package swaydb
 
 import swaydb.Data._
-import swaydb.types._
+import swaydb.data._
 
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 
@@ -29,7 +29,7 @@ sealed trait Batch[K, +V]
 object Batch {
 
   /**
-    * Batch Put key & value for a [[SwayDBMap]]
+    * Batch Put key & value for a [[Map]]
     */
   object Put {
     def apply[K, V](key: K, value: V) =
@@ -43,7 +43,7 @@ object Batch {
   }
 
   /**
-    * Batch remove for [[SwayDBMap]] & [[SwayDBSet]]
+    * Batch remove for [[Map]] & [[Set]]
     */
   object Remove {
     def apply[K](key: K): Remove[K] =
@@ -68,7 +68,7 @@ object Batch {
   }
 
   /**
-    * Batch Update key & value for a [[SwayDBMap]]
+    * Batch Update key & value for a [[Map]]
     */
   object Update {
     def apply[K, V](key: K, value: V) =
@@ -79,7 +79,7 @@ object Batch {
   }
 
   /**
-    * Batch Put key & value for a [[SwayDBSet]]
+    * Batch Put key & value for a [[Set]]
     */
   object Add {
     def apply[T](elem: T) =

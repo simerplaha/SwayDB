@@ -1,6 +1,5 @@
 import sbt.Keys.{libraryDependencies, publishMavenStyle}
 import sbt.url
-import sbtcrossproject.CrossPlugin.autoImport.{CrossType, crossProject}
 import xerial.sbt.Sonatype._
 
 val scala211 = "2.11.12"
@@ -18,7 +17,7 @@ parallelExecution in ThisBuild := false
 
 lazy val commonSettings = Seq(
   organization := "io.swaydb",
-  version := "0.5",
+  version := "0.6",
   scalaVersion := scala212
 )
 
@@ -53,7 +52,7 @@ lazy val SwayDB =
     .settings(commonSettings)
     .settings(publishSettings)
     .dependsOn(embedded)
-    .aggregate(embedded, core, macros, compression, apiJVM, data, ordering, configs, serializers)
+    .aggregate(embedded, core, macros, compression, data, ordering, configs, serializers)
 
 lazy val core =
   project
@@ -64,15 +63,6 @@ lazy val core =
       libraryDependencies ++=
         commonDependencies :+ "com.github.alexandrnikitin" %% "bloom-filter" % bloomFilterVersion
     ).dependsOn(data, macros, compression, configs % Test, ordering % Test, serializers % Test)
-
-lazy val api =
-  crossProject(JSPlatform, JVMPlatform)
-    .crossType(CrossType.Pure)
-    .settings(publishSettings)
-    .settings(commonSettings)
-
-lazy val apiJVM = api.jvm.dependsOn(data, serializers)
-lazy val apiJS = api.js.dependsOn(data, serializers)
 
 lazy val data =
   project
@@ -89,7 +79,7 @@ lazy val embedded =
     .settings(publishSettings)
     .settings(
       libraryDependencies ++= commonDependencies
-    ).dependsOn(apiJVM, core, configs, ordering)
+    ).dependsOn(core, configs, ordering)
     .dependsOn(core % "compile->compile;test->test")
 
 lazy val ordering =
