@@ -36,10 +36,10 @@ import swaydb.data.repairAppendix.RepairResult.OverlappingSegments
 import swaydb.data.repairAppendix._
 import swaydb.data.request
 import swaydb.data.slice.Slice
-import swaydb.nest.order.NestOrder
 import swaydb.order.KeyOrder
 import swaydb.serializers.Serializer
 import swaydb.data.{SwayMap, SwaySet}
+import swaydb.table.Table
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{FiniteDuration, _}
@@ -50,6 +50,9 @@ import scala.util.{Failure, Success, Try}
   * Instance used for creating/initialising databases.
   */
 object SwayDB extends LazyLogging {
+
+  val rootTable =
+    Table.buildTable(Slice.writeIntUnsigned(0))
 
   /**
     * Default execution context for all databases.
@@ -141,7 +144,7 @@ object SwayDB extends LazyLogging {
       segmentsOpenCheckDelay = segmentsOpenCheckDelay
     ) map {
       core =>
-        SwayMap[K, V](new SwayDB(core), None)
+        SwayMap[K, V](new SwayDB(core), rootTable)
     }
 
   /**
@@ -190,7 +193,7 @@ object SwayDB extends LazyLogging {
       segmentsOpenCheckDelay = segmentsOpenCheckDelay
     ) map {
       core =>
-        SwaySet[T](new SwayDB(core), None)
+        SwaySet[T](new SwayDB(core), rootTable)
     }
   }
 
@@ -223,7 +226,7 @@ object SwayDB extends LazyLogging {
                                                                                       valueSerializer: Serializer[V],
                                                                                       ordering: Ordering[Slice[Byte]] = KeyOrder.default,
                                                                                       ec: ExecutionContext = defaultExecutionContext): Try[SwayMap[K, V]] = {
-    val order = NestOrder.ordering(customOrder = ordering)
+    val order = Table.ordering(customOrder = ordering)
     CoreAPI(
       config = DefaultMemoryConfig(
         mapSize = mapSize,
@@ -241,7 +244,7 @@ object SwayDB extends LazyLogging {
       segmentsOpenCheckDelay = Duration.Zero
     )(ec, order) map {
       core =>
-        SwayMap[K, V](new SwayDB(core), None)
+        SwayMap[K, V](new SwayDB(core), rootTable)
     }
   }
 
@@ -276,7 +279,7 @@ object SwayDB extends LazyLogging {
       segmentsOpenCheckDelay = Duration.Zero
     ) map {
       core =>
-        SwaySet[T](new SwayDB(core), None)
+        SwaySet[T](new SwayDB(core), rootTable)
     }
 
   /**
@@ -356,7 +359,7 @@ object SwayDB extends LazyLogging {
       segmentsOpenCheckDelay = segmentsOpenCheckDelay
     ) map {
       core =>
-        SwayMap[K, V](new SwayDB(core), None)
+        SwayMap[K, V](new SwayDB(core), rootTable)
     }
 
   /**
@@ -408,7 +411,7 @@ object SwayDB extends LazyLogging {
       segmentsOpenCheckDelay = segmentsOpenCheckDelay
     ) map {
       core =>
-        SwaySet[T](new SwayDB(core), None)
+        SwaySet[T](new SwayDB(core), rootTable)
     }
 
   /**
@@ -449,7 +452,7 @@ object SwayDB extends LazyLogging {
       segmentsOpenCheckDelay = segmentsOpenCheckDelay
     ) map {
       core =>
-        SwayMap[K, V](new SwayDB(core), None)
+        SwayMap[K, V](new SwayDB(core), rootTable)
     }
 
   def apply[T](config: SwayDBPersistentConfig,
@@ -467,7 +470,7 @@ object SwayDB extends LazyLogging {
       segmentsOpenCheckDelay = segmentsOpenCheckDelay
     ) map {
       core =>
-        SwaySet[T](new SwayDB(core), None)
+        SwaySet[T](new SwayDB(core), rootTable)
     }
 
   def apply[K, V](config: SwayDBMemoryConfig,
@@ -484,7 +487,7 @@ object SwayDB extends LazyLogging {
       segmentsOpenCheckDelay = Duration.Zero
     ) map {
       core =>
-        SwayMap[K, V](new SwayDB(core), None)
+        SwayMap[K, V](new SwayDB(core), rootTable)
     }
 
   def apply[T](config: SwayDBMemoryConfig,
@@ -500,7 +503,7 @@ object SwayDB extends LazyLogging {
       segmentsOpenCheckDelay = Duration.Zero
     ) map {
       core =>
-        SwaySet[T](new SwayDB(core), None)
+        SwaySet[T](new SwayDB(core), rootTable)
     }
 
   /**
@@ -557,54 +560,83 @@ object SwayDB extends LazyLogging {
 
 private[swaydb] class SwayDB(api: CoreAPI) {
 
-  def put(key: Slice[Byte]) =
-    api.put(key)
+  def subTable(key: Slice[Byte],
+               value: Option[Slice[Byte]])(implicit table: Table): Try[(Table, Level0Meter)] = {
+    val subTableEntry = Table.buildSubTableRow(key, table)
+    contains(subTableEntry) flatMap {
+      exists =>
+        if (exists) {
+          Success(Table.buildTable(key), api.level0Meter)
+        } else {
+          val subTableBatch = request.Batch.Put(subTableEntry, value, None)
 
-  def put(key: Slice[Byte], value: Option[Slice[Byte]]) =
-    api.put(key, value)
+          val subTable = Table.buildTable(key)
 
-  def put(key: Slice[Byte], value: Option[Slice[Byte]], expireAt: Deadline): Try[Level0Meter] =
-    api.put(key, value, expireAt)
+          val tableStart = request.Batch.Put(subTable.start, value, None)
+          val tableEnd = request.Batch.Put(subTable.end, value, None)
+          batch(Seq(subTableBatch, tableStart, tableEnd)) map {
+            meter =>
+              (subTable, meter)
+          }
+        }
+    }
+  }
 
-  def update(key: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter] =
-    api.update(key, value)
+  def put(key: Slice[Byte])(implicit table: Table) =
+    api.put(Table.buildRowKey(key, table))
 
-  def update(from: Slice[Byte], to: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter] =
-    api.update(from, to, value)
+  def put(key: Slice[Byte], value: Option[Slice[Byte]])(implicit table: Table) =
+    api.put(Table.buildRowKey(key, table), value)
 
-  def expire(key: Slice[Byte], at: Deadline): Try[Level0Meter] =
-    api.remove(key, at)
+  def put(key: Slice[Byte], value: Option[Slice[Byte]], expireAt: Deadline)(implicit table: Table): Try[Level0Meter] =
+    api.put(Table.buildRowKey(key, table), value, expireAt)
 
-  def expire(from: Slice[Byte], to: Slice[Byte], at: Deadline): Try[Level0Meter] =
-    api.remove(from, to, at)
+  def update(key: Slice[Byte], value: Option[Slice[Byte]])(implicit table: Table): Try[Level0Meter] =
+    api.update(Table.buildRowKey(key, table), value)
 
-  def remove(key: Slice[Byte]) =
-    api.remove(key)
+  def update(from: Slice[Byte], to: Slice[Byte], value: Option[Slice[Byte]])(implicit table: Table): Try[Level0Meter] =
+    api.update(Table.buildRowKey(from, table), Table.buildRowKey(to, table), value)
 
-  def remove(from: Slice[Byte], to: Slice[Byte]): Try[Level0Meter] =
-    api.remove(from, to)
+  def expire(key: Slice[Byte], at: Deadline)(implicit table: Table): Try[Level0Meter] =
+    api.remove(Table.buildRowKey(key, table), at)
 
-  def batch(entries: Iterable[request.Batch]) =
+  def expire(from: Slice[Byte], to: Slice[Byte], at: Deadline)(implicit table: Table): Try[Level0Meter] =
+    api.remove(Table.buildRowKey(from, table), Table.buildRowKey(to, table), at)
+
+  def remove(key: Slice[Byte])(implicit table: Table) =
+    api.remove(Table.buildRowKey(key, table))
+
+  def remove(from: Slice[Byte], to: Slice[Byte])(implicit table: Table): Try[Level0Meter] =
+    api.remove(Table.buildRowKey(from, table), Table.buildRowKey(to, table))
+
+  def batch(entries: Iterable[request.Batch])(implicit table: Table) =
     entries.foldLeft(Option.empty[MapEntry[Slice[Byte], Memory.SegmentResponse]]) {
       case (mapEntry, batchEntry) =>
         val nextEntry =
           batchEntry match {
             case request.Batch.Put(key, value, expire) =>
-              MapEntry.Put[Slice[Byte], Memory.Put](key, Memory.Put(key, value, expire))(LevelZeroMapEntryWriter.Level0PutWriter)
+              val rowKey = Table.buildRowKey(key, table)
+              MapEntry.Put[Slice[Byte], Memory.Put](rowKey, Memory.Put(rowKey, value, expire))(LevelZeroMapEntryWriter.Level0PutWriter)
 
             case request.Batch.Remove(key, expire) =>
-              MapEntry.Put[Slice[Byte], Memory.Remove](key, Memory.Remove(key, expire))(LevelZeroMapEntryWriter.Level0RemoveWriter)
+              val rowKey = Table.buildRowKey(key, table)
+              MapEntry.Put[Slice[Byte], Memory.Remove](rowKey, Memory.Remove(rowKey, expire))(LevelZeroMapEntryWriter.Level0RemoveWriter)
 
             case request.Batch.Update(key, value) =>
-              MapEntry.Put[Slice[Byte], Memory.Update](key, Memory.Update(key, value))(LevelZeroMapEntryWriter.Level0UpdateWriter)
+              val rowKey = Table.buildRowKey(key, table)
+              MapEntry.Put[Slice[Byte], Memory.Update](rowKey, Memory.Update(rowKey, value))(LevelZeroMapEntryWriter.Level0UpdateWriter)
 
             case request.Batch.RemoveRange(fromKey, toKey, expire) =>
-              (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, None, Value.Remove(expire)))(LevelZeroMapEntryWriter.Level0RangeWriter): MapEntry[Slice[Byte], Memory.SegmentResponse]) ++
-                MapEntry.Put[Slice[Byte], Memory.Remove](toKey, Memory.Remove(toKey, expire))(LevelZeroMapEntryWriter.Level0RemoveWriter)
+              val fromRowKey = Table.buildRowKey(fromKey, table)
+              val toRowKey = Table.buildRowKey(toKey, table)
+              (MapEntry.Put[Slice[Byte], Memory.Range](fromRowKey, Memory.Range(fromRowKey, toRowKey, None, Value.Remove(expire)))(LevelZeroMapEntryWriter.Level0RangeWriter): MapEntry[Slice[Byte], Memory.SegmentResponse]) ++
+                MapEntry.Put[Slice[Byte], Memory.Remove](toRowKey, Memory.Remove(toRowKey, expire))(LevelZeroMapEntryWriter.Level0RemoveWriter)
 
             case request.Batch.UpdateRange(fromKey, toKey, value) =>
-              (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, None, Value.Update(value, None)))(LevelZeroMapEntryWriter.Level0RangeWriter): MapEntry[Slice[Byte], Memory.SegmentResponse]) ++
-                MapEntry.Put[Slice[Byte], Memory.Update](toKey, Memory.Update(toKey))(LevelZeroMapEntryWriter.Level0UpdateWriter)
+              val fromRowKey = Table.buildRowKey(fromKey, table)
+              val toRowKey = Table.buildRowKey(toKey, table)
+              (MapEntry.Put[Slice[Byte], Memory.Range](fromRowKey, Memory.Range(fromRowKey, toRowKey, None, Value.Update(value, None)))(LevelZeroMapEntryWriter.Level0RangeWriter): MapEntry[Slice[Byte], Memory.SegmentResponse]) ++
+                MapEntry.Put[Slice[Byte], Memory.Update](toRowKey, Memory.Update(toRowKey))(LevelZeroMapEntryWriter.Level0UpdateWriter)
           }
         Some(mapEntry.map(_ ++ nextEntry) getOrElse nextEntry)
     } map {
@@ -612,47 +644,62 @@ private[swaydb] class SwayDB(api: CoreAPI) {
         api.put(entry)
     } getOrElse Failure(new Exception("Cannot write empty batch"))
 
-  def head: Try[Option[(Slice[Byte], Option[Slice[Byte]])]] =
-    api.head
+  def head(implicit table: Table): Try[Option[(Slice[Byte], Option[Slice[Byte]])]] =
+    api.after(table.start).map(_.map {
+      case (key, value) =>
+        (Table.dropTableBytes(key), value)
+    })
 
-  def last: Try[Option[(Slice[Byte], Option[Slice[Byte]])]] =
-    api.last
+  def last(implicit table: Table): Try[Option[(Slice[Byte], Option[Slice[Byte]])]] =
+    api.before(table.end).map(_.map {
+      case (key, value) =>
+        (Table.dropTableBytes(key), value)
+    })
 
   def keyValueCount: Try[Int] =
     api.bloomFilterKeyValueCount
 
-  def contains(key: Slice[Byte]): Try[Boolean] =
-    api contains key
+  def contains(key: Slice[Byte])(implicit table: Table): Try[Boolean] =
+    api contains Table.buildRowKey(key, table)
 
-  def mightContain(key: Slice[Byte]): Try[Boolean] =
-    api mightContain key
+  def mightContain(key: Slice[Byte])(implicit table: Table): Try[Boolean] =
+    api mightContain Table.buildRowKey(key, table)
 
-  def get(key: Slice[Byte]): Try[Option[Option[Slice[Byte]]]] =
-    api.get(key)
+  def get(key: Slice[Byte])(implicit table: Table): Try[Option[Option[Slice[Byte]]]] =
+    api get Table.buildRowKey(key, table)
 
-  def getKey(key: Slice[Byte]): Try[Option[Slice[Byte]]] =
-    api.getKey(key)
+  def getKey(key: Slice[Byte])(implicit table: Table): Try[Option[Slice[Byte]]] =
+    api.getKey(Table.buildRowKey(key, table)).map(_.map(Table.dropTableBytes))
 
-  def getKeyValue(key: Slice[Byte]): Try[Option[(Slice[Byte], Option[Slice[Byte]])]] =
-    api.getKeyValue(key)
+  def getKeyValue(key: Slice[Byte])(implicit table: Table): Try[Option[(Slice[Byte], Option[Slice[Byte]])]] =
+    api.getKeyValue(Table.buildRowKey(key, table)).map(_.map {
+      case (key, value) =>
+        (Table.dropTableBytes(key), value)
+    })
 
-  def beforeKey(key: Slice[Byte]) =
-    api.beforeKey(key)
+  def beforeKey(key: Slice[Byte])(implicit table: Table): Try[Option[Slice[Byte]]] =
+    api.beforeKey(Table.buildRowKey(key, table)).map(_.map(Table.dropTableBytes))
 
-  def before(key: Slice[Byte]) =
-    api.before(key)
+  def before(key: Slice[Byte])(implicit table: Table): Try[Option[(Slice[Byte], Option[Slice[Byte]])]] =
+    api.before(Table.buildRowKey(key, table)).map(_.map {
+      case (key, value) =>
+        (Table.dropTableBytes(key), value)
+    })
 
-  def afterKey(key: Slice[Byte]) =
-    api.afterKey(key)
+  def afterKey(key: Slice[Byte])(implicit table: Table): Try[Option[Slice[Byte]]] =
+    api.afterKey(Table.buildRowKey(key, table)).map(_.map(Table.dropTableBytes))
 
-  def after(key: Slice[Byte]) =
-    api.after(key)
+  def after(key: Slice[Byte])(implicit table: Table): Try[Option[(Slice[Byte], Option[Slice[Byte]])]] =
+    api.after(Table.buildRowKey(key, table)).map(_.map {
+      case (key, value) =>
+        (Table.dropTableBytes(key), value)
+    })
 
   def headKey: Try[Option[Slice[Byte]]] =
-    api.headKey
+    api.headKey.map(_.map(Table.dropTableBytes))
 
   def lastKey: Try[Option[Slice[Byte]]] =
-    api.lastKey
+    api.lastKey.map(_.map(Table.dropTableBytes))
 
   def sizeOfSegments: Long =
     api.sizeOfSegments

@@ -25,6 +25,7 @@ import swaydb.data.compaction.LevelMeter
 import swaydb.data.slice.Slice
 import swaydb.iterator.KeysIterator
 import swaydb.serializers.{Serializer, _}
+import swaydb.table.Table
 import swaydb.{Batch, SwayDB}
 
 import scala.concurrent.duration.{Deadline, FiniteDuration}
@@ -32,8 +33,8 @@ import scala.util.Try
 
 object SwaySet {
   def apply[T](api: SwayDB,
-               mapId: Option[Slice[Byte]])(implicit serializer: Serializer[T]): SwaySet[T] =
-    new SwaySet(api, mapId)
+               table: Table)(implicit serializer: Serializer[T]): SwaySet[T] =
+    new SwaySet(api)(serializer, table)
 }
 
 /**
@@ -41,8 +42,13 @@ object SwaySet {
   *
   * For documentation check - http://swaydb.io/api/
   */
-class SwaySet[T](db: SwayDB,
-                 mapId: Option[Slice[Byte]])(implicit serializer: Serializer[T]) extends KeysIterator[T](db, None) {
+class SwaySet[T](db: SwayDB)(implicit serializer: Serializer[T], table: Table) extends KeysIterator[T](db, None) {
+
+  def subSet(elem: T): Try[SwaySet[T]] =
+    db.subTable(elem, None) map {
+      case (subTable, _) =>
+        SwaySet[T](db, subTable)
+    }
 
   def get(elem: T): Try[Option[T]] =
     db.getKey(elem).map(_.map(_.read[T]))

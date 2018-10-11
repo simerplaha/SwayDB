@@ -25,6 +25,7 @@ import swaydb.data.compaction.LevelMeter
 import swaydb.data.slice.Slice
 import swaydb.iterator.{DBIterator, KeysIterator}
 import swaydb.serializers.{Serializer, _}
+import swaydb.table.Table
 import swaydb.{Batch, SwayDB}
 
 import scala.concurrent.duration.{Deadline, FiniteDuration}
@@ -33,10 +34,10 @@ import scala.util.Try
 object SwayMap {
 
   def apply[K, V](db: SwayDB,
-                  offsets: Option[(Slice[Byte], Slice[Byte])])(implicit keySerializer: Serializer[K],
-                                                               valueSerializer: Serializer[V]): SwayMap[K, V] = {
-    new SwayMap[K, V](db, offsets)
-  }
+                  table: Table)(implicit keySerializer: Serializer[K],
+                                valueSerializer: Serializer[V],
+                                ordering: Ordering[Slice[Byte]]): SwayMap[K, V] =
+    new SwayMap[K, V](db)(keySerializer, valueSerializer, ordering, table)
 }
 
 /**
@@ -44,9 +45,16 @@ object SwayMap {
   *
   * For documentation check - http://swaydb.io/api/
   */
-class SwayMap[K, V](db: SwayDB,
-                    offsets: Option[(Slice[Byte], Slice[Byte])])(implicit keySerializer: Serializer[K],
-                                                                   valueSerializer: Serializer[V]) extends DBIterator[K, V](db, None) {
+class SwayMap[K, V](db: SwayDB)(implicit keySerializer: Serializer[K],
+                                valueSerializer: Serializer[V],
+                                ordering: Ordering[Slice[Byte]],
+                                table: Table) extends DBIterator[K, V](db, None) {
+
+  def subMap(key: K, value: V): Try[SwayMap[K, V]] =
+    db.subTable(key, Some(value)) map {
+      case (subTable, _) =>
+        SwayMap[K, V](db, subTable)
+    }
 
   def put(key: K, value: V): Try[Level0Meter] =
     db.put(key = key, value = Some(value))
@@ -148,7 +156,7 @@ class SwayMap[K, V](db: SwayDB,
     db mightContain key
 
   def keys: KeysIterator[K] =
-    KeysIterator[K](db, None)(keySerializer)
+    KeysIterator[K](db, None)(keySerializer, table)
 
   def level0Meter: Level0Meter =
     db.level0Meter

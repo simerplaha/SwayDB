@@ -22,6 +22,7 @@ package swaydb.iterator
 import swaydb.SwayDB
 import swaydb.data.slice.Slice
 import swaydb.serializers._
+import swaydb.table.Table
 
 import scala.collection.generic.CanBuildFrom
 import scala.util.{Failure, Success, Try}
@@ -37,7 +38,9 @@ case class DBIterator[K, V](private val db: SwayDB,
                             private val from: Option[From[K]],
                             private val reverse: Boolean = false,
                             private val till: (K, V) => Boolean = (_: K, _: V) => true)(implicit keySerializer: Serializer[K],
-                                                                                        valueSerializer: Serializer[V]) extends Iterable[(K, V)] {
+                                                                                        valueSerializer: Serializer[V],
+                                                                                        ordering: Ordering[Slice[Byte]],
+                                                                                        table: Table) extends Iterable[(K, V)] {
 
   def from(key: K): DBIterator[K, V] =
     copy(from = Some(From(key = key, orBefore = false, orAfter = false, before = false, after = false)))

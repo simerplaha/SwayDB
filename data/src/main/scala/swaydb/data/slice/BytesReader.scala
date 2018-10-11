@@ -79,6 +79,12 @@ class BytesReader(slice: Slice[Byte]) {
   def readLongSigned(): Long =
     sliceReader.readLongSigned().get
 
+  def remaining(): Long =
+    sliceReader.remaining.get
+
+  def readRemaining(): Slice[Byte] =
+    sliceReader.readRemaining().get
+
   /**
     * Note: This function does not operate on the original Slice if the String being read is a
     * sub-slice of another Slice. Another copy of the Array that represent the String's bytes will be created.
@@ -94,6 +100,5 @@ class BytesReader(slice: Slice[Byte]) {
 
   def readString(size: Int, charset: Charset = StandardCharsets.UTF_8): String =
     sliceReader.readString(size, charset).get
-
 
 }
