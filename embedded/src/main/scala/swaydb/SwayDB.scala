@@ -39,7 +39,7 @@ import swaydb.data.slice.Slice
 import swaydb.nest.order.NestOrder
 import swaydb.order.KeyOrder
 import swaydb.serializers.Serializer
-import swaydb.data.{Map, Set}
+import swaydb.data.{SwayMap, SwaySet}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{FiniteDuration, _}
@@ -118,7 +118,7 @@ object SwayDB extends LazyLogging {
                        acceleration: Level0Meter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
                                                                                           valueSerializer: Serializer[V],
                                                                                           ordering: Ordering[Slice[Byte]] = KeyOrder.default,
-                                                                                          ec: ExecutionContext = defaultExecutionContext): Try[Map[K, V]] =
+                                                                                          ec: ExecutionContext = defaultExecutionContext): Try[SwayMap[K, V]] =
     CoreAPI(
       config = DefaultPersistentConfig(
         dir = dir,
@@ -141,7 +141,7 @@ object SwayDB extends LazyLogging {
       segmentsOpenCheckDelay = segmentsOpenCheckDelay
     ) map {
       core =>
-        Map[K, V](new SwayDB(core), None)
+        SwayMap[K, V](new SwayDB(core), None)
     }
 
   /**
@@ -166,7 +166,7 @@ object SwayDB extends LazyLogging {
                        lastLevelGroupingStrategy: Option[KeyValueGroupingStrategy] = Some(DefaultGroupingStrategy()),
                        acceleration: Level0Meter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[T],
                                                                                           ordering: Ordering[Slice[Byte]] = KeyOrder.default,
-                                                                                          ec: ExecutionContext = defaultExecutionContext): Try[Set[T]] = {
+                                                                                          ec: ExecutionContext = defaultExecutionContext): Try[SwaySet[T]] = {
     CoreAPI(
       config = DefaultPersistentConfig(
         dir = dir,
@@ -190,7 +190,7 @@ object SwayDB extends LazyLogging {
       segmentsOpenCheckDelay = segmentsOpenCheckDelay
     ) map {
       core =>
-        Set[T](new SwayDB(core), None)
+        SwaySet[T](new SwayDB(core), None)
     }
   }
 
@@ -222,7 +222,7 @@ object SwayDB extends LazyLogging {
                    acceleration: Level0Meter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
                                                                                       valueSerializer: Serializer[V],
                                                                                       ordering: Ordering[Slice[Byte]] = KeyOrder.default,
-                                                                                      ec: ExecutionContext = defaultExecutionContext): Try[Map[K, V]] = {
+                                                                                      ec: ExecutionContext = defaultExecutionContext): Try[SwayMap[K, V]] = {
     val order = NestOrder.ordering(customOrder = ordering)
     CoreAPI(
       config = DefaultMemoryConfig(
@@ -241,7 +241,7 @@ object SwayDB extends LazyLogging {
       segmentsOpenCheckDelay = Duration.Zero
     )(ec, order) map {
       core =>
-        Map[K, V](new SwayDB(core), None)
+        SwayMap[K, V](new SwayDB(core), None)
     }
   }
 
@@ -258,7 +258,7 @@ object SwayDB extends LazyLogging {
                    groupingStrategy: Option[KeyValueGroupingStrategy] = None,
                    acceleration: Level0Meter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[T],
                                                                                       ordering: Ordering[Slice[Byte]] = KeyOrder.default,
-                                                                                      ec: ExecutionContext = defaultExecutionContext): Try[Set[T]] =
+                                                                                      ec: ExecutionContext = defaultExecutionContext): Try[SwaySet[T]] =
     CoreAPI(
       config = DefaultMemoryConfig(
         mapSize = mapSize,
@@ -276,7 +276,7 @@ object SwayDB extends LazyLogging {
       segmentsOpenCheckDelay = Duration.Zero
     ) map {
       core =>
-        Set[T](new SwayDB(core), None)
+        SwaySet[T](new SwayDB(core), None)
     }
 
   /**
@@ -330,7 +330,7 @@ object SwayDB extends LazyLogging {
                              acceleration: Level0Meter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
                                                                                                 valueSerializer: Serializer[V],
                                                                                                 ordering: Ordering[Slice[Byte]] = KeyOrder.default,
-                                                                                                ec: ExecutionContext = defaultExecutionContext): Try[Map[K, V]] =
+                                                                                                ec: ExecutionContext = defaultExecutionContext): Try[SwayMap[K, V]] =
     CoreAPI(
       config =
         DefaultMemoryPersistentConfig(
@@ -356,7 +356,7 @@ object SwayDB extends LazyLogging {
       segmentsOpenCheckDelay = segmentsOpenCheckDelay
     ) map {
       core =>
-        Map[K, V](new SwayDB(core), None)
+        SwayMap[K, V](new SwayDB(core), None)
     }
 
   /**
@@ -382,7 +382,7 @@ object SwayDB extends LazyLogging {
                              groupingStrategy: Option[KeyValueGroupingStrategy] = Some(DefaultGroupingStrategy()),
                              acceleration: Level0Meter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[T],
                                                                                                 ordering: Ordering[Slice[Byte]] = KeyOrder.default,
-                                                                                                ec: ExecutionContext = defaultExecutionContext): Try[Set[T]] =
+                                                                                                ec: ExecutionContext = defaultExecutionContext): Try[SwaySet[T]] =
     CoreAPI(
       config =
         DefaultMemoryPersistentConfig(
@@ -408,7 +408,7 @@ object SwayDB extends LazyLogging {
       segmentsOpenCheckDelay = segmentsOpenCheckDelay
     ) map {
       core =>
-        Set[T](new SwayDB(core), None)
+        SwaySet[T](new SwayDB(core), None)
     }
 
   /**
@@ -440,7 +440,7 @@ object SwayDB extends LazyLogging {
                   segmentsOpenCheckDelay: FiniteDuration)(implicit keySerializer: Serializer[K],
                                                           valueSerializer: Serializer[V],
                                                           ordering: Ordering[Slice[Byte]],
-                                                          ec: ExecutionContext): Try[Map[K, V]] =
+                                                          ec: ExecutionContext): Try[SwayMap[K, V]] =
     CoreAPI(
       config = config,
       maxOpenSegments = maxSegmentsOpen,
@@ -449,7 +449,7 @@ object SwayDB extends LazyLogging {
       segmentsOpenCheckDelay = segmentsOpenCheckDelay
     ) map {
       core =>
-        Map[K, V](new SwayDB(core), None)
+        SwayMap[K, V](new SwayDB(core), None)
     }
 
   def apply[T](config: SwayDBPersistentConfig,
@@ -458,7 +458,7 @@ object SwayDB extends LazyLogging {
                cacheCheckDelay: FiniteDuration,
                segmentsOpenCheckDelay: FiniteDuration)(implicit serializer: Serializer[T],
                                                        ordering: Ordering[Slice[Byte]],
-                                                       ec: ExecutionContext): Try[Set[T]] =
+                                                       ec: ExecutionContext): Try[SwaySet[T]] =
     CoreAPI(
       config = config,
       maxOpenSegments = maxSegmentsOpen,
@@ -467,7 +467,7 @@ object SwayDB extends LazyLogging {
       segmentsOpenCheckDelay = segmentsOpenCheckDelay
     ) map {
       core =>
-        Set[T](new SwayDB(core), None)
+        SwaySet[T](new SwayDB(core), None)
     }
 
   def apply[K, V](config: SwayDBMemoryConfig,
@@ -475,7 +475,7 @@ object SwayDB extends LazyLogging {
                   cacheCheckDelay: FiniteDuration)(implicit keySerializer: Serializer[K],
                                                    valueSerializer: Serializer[V],
                                                    ordering: Ordering[Slice[Byte]],
-                                                   ec: ExecutionContext): Try[Map[K, V]] =
+                                                   ec: ExecutionContext): Try[SwayMap[K, V]] =
     CoreAPI(
       config = config,
       maxOpenSegments = 0,
@@ -484,14 +484,14 @@ object SwayDB extends LazyLogging {
       segmentsOpenCheckDelay = Duration.Zero
     ) map {
       core =>
-        Map[K, V](new SwayDB(core), None)
+        SwayMap[K, V](new SwayDB(core), None)
     }
 
   def apply[T](config: SwayDBMemoryConfig,
                cacheSize: Int,
                cacheCheckDelay: FiniteDuration)(implicit serializer: Serializer[T],
                                                 ordering: Ordering[Slice[Byte]],
-                                                ec: ExecutionContext): Try[Set[T]] =
+                                                ec: ExecutionContext): Try[SwaySet[T]] =
     CoreAPI(
       config = config,
       maxOpenSegments = 0,
@@ -500,7 +500,7 @@ object SwayDB extends LazyLogging {
       segmentsOpenCheckDelay = Duration.Zero
     ) map {
       core =>
-        Set[T](new SwayDB(core), None)
+        SwaySet[T](new SwayDB(core), None)
     }
 
   /**

@@ -30,12 +30,12 @@ import swaydb.{Batch, SwayDB}
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 import scala.util.Try
 
-object Map {
+object SwayMap {
 
   def apply[K, V](db: SwayDB,
                   offsets: Option[(Slice[Byte], Slice[Byte])])(implicit keySerializer: Serializer[K],
-                                                               valueSerializer: Serializer[V]): Map[K, V] = {
-    new Map[K, V](db, offsets)
+                                                               valueSerializer: Serializer[V]): SwayMap[K, V] = {
+    new SwayMap[K, V](db, offsets)
   }
 }
 
@@ -44,8 +44,8 @@ object Map {
   *
   * For documentation check - http://swaydb.io/api/
   */
-class Map[K, V](db: SwayDB,
-                offsets: Option[(Slice[Byte], Slice[Byte])])(implicit keySerializer: Serializer[K],
+class SwayMap[K, V](db: SwayDB,
+                    offsets: Option[(Slice[Byte], Slice[Byte])])(implicit keySerializer: Serializer[K],
                                                                    valueSerializer: Serializer[V]) extends DBIterator[K, V](db, None) {
 
   def put(key: K, value: V): Try[Level0Meter] =

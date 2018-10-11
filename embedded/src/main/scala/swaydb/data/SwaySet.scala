@@ -30,10 +30,10 @@ import swaydb.{Batch, SwayDB}
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 import scala.util.Try
 
-object Set {
+object SwaySet {
   def apply[T](api: SwayDB,
-               mapId: Option[Slice[Byte]])(implicit serializer: Serializer[T]): Set[T] =
-    new Set(api, mapId)
+               mapId: Option[Slice[Byte]])(implicit serializer: Serializer[T]): SwaySet[T] =
+    new SwaySet(api, mapId)
 }
 
 /**
@@ -41,8 +41,8 @@ object Set {
   *
   * For documentation check - http://swaydb.io/api/
   */
-class Set[T](db: SwayDB,
-             mapId: Option[Slice[Byte]])(implicit serializer: Serializer[T]) extends KeysIterator[T](db, None) {
+class SwaySet[T](db: SwayDB,
+                 mapId: Option[Slice[Byte]])(implicit serializer: Serializer[T]) extends KeysIterator[T](db, None) {
 
   def get(elem: T): Try[Option[T]] =
     db.getKey(elem).map(_.map(_.read[T]))

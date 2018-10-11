@@ -29,7 +29,7 @@ sealed trait Batch[K, +V]
 object Batch {
 
   /**
-    * Batch Put key & value for a [[Map]]
+    * Batch Put key & value for a [[SwayMap]]
     */
   object Put {
     def apply[K, V](key: K, value: V) =
@@ -43,7 +43,7 @@ object Batch {
   }
 
   /**
-    * Batch remove for [[Map]] & [[Set]]
+    * Batch remove for [[SwayMap]] & [[SwaySet]]
     */
   object Remove {
     def apply[K](key: K): Remove[K] =
@@ -68,7 +68,7 @@ object Batch {
   }
 
   /**
-    * Batch Update key & value for a [[Map]]
+    * Batch Update key & value for a [[SwayMap]]
     */
   object Update {
     def apply[K, V](key: K, value: V) =
@@ -79,7 +79,7 @@ object Batch {
   }
 
   /**
-    * Batch Put key & value for a [[Set]]
+    * Batch Put key & value for a [[SwaySet]]
     */
   object Add {
     def apply[T](elem: T) =

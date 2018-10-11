@@ -22,14 +22,14 @@ package embedded
 import swaydb.SwayDB
 import swaydb.core.TestBase
 import swaydb.serializers.Default._
-import swaydb.data.Map
+import swaydb.data.SwayMap
 
 import scala.concurrent.duration._
 
 class SwayDBRemoveSpec0 extends SwayDBRemoveSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
+  override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): SwayMap[Int, String] =
     SwayDB.persistent[Int, String](dir = randomDir, minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration).assertGet
 }
 
@@ -39,7 +39,7 @@ class SwayDBRemoveSpec1 extends SwayDBRemoveSpec {
 
   val keyValueCount: Int = 1000
 
-  override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
+  override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): SwayMap[Int, String] =
     SwayDB.persistent[Int, String](randomDir, mapSize = 1.byte, segmentSize = 10.bytes, minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration).assertGet
 }
 
@@ -49,14 +49,14 @@ class SwayDBRemoveSpec2 extends SwayDBRemoveSpec {
 
   val keyValueCount: Int = 10000
 
-  override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
+  override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): SwayMap[Int, String] =
     SwayDB.memory[Int, String](mapSize = 1.byte, segmentSize = 10.bytes, minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration).assertGet
 }
 
 class SwayDBRemoveSpec3 extends SwayDBRemoveSpec {
   val keyValueCount: Int = 10000
 
-  override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
+  override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): SwayMap[Int, String] =
     SwayDB.memory[Int, String](minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration).assertGet
 }
 
@@ -64,7 +64,7 @@ sealed trait SwayDBRemoveSpec extends TestBase with TestBaseEmbedded {
 
   val keyValueCount: Int
 
-  def newDB(minTimeLeftToUpdateExpiration: FiniteDuration = 10.seconds): Map[Int, String]
+  def newDB(minTimeLeftToUpdateExpiration: FiniteDuration = 10.seconds): SwayMap[Int, String]
 
   "Remove" when {
     "Put" in {
@@ -149,7 +149,7 @@ sealed trait SwayDBRemoveSpec extends TestBase with TestBaseEmbedded {
 
   "Remove" when {
     "Update" in {
-      val db: Map[Int, String] = newDB()
+      val db: SwayMap[Int, String] = newDB()
 
       eitherOne(
         left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").assertGet),
