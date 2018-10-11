@@ -22,7 +22,6 @@ package swaydb.iterator
 import swaydb.SwayDB
 import swaydb.data.slice.Slice
 import swaydb.serializers._
-import swaydb.table.Table
 
 import scala.collection.generic.CanBuildFrom
 import scala.util.{Failure, Success, Try}

@@ -23,7 +23,6 @@ import swaydb.SwayDB
 import swaydb.data.slice.Slice
 import swaydb.serializers.Serializer
 import swaydb.serializers._
-import swaydb.table.Table
 
 import scala.collection.generic.CanBuildFrom
 import scala.util.{Failure, Success, Try}
@@ -38,8 +37,7 @@ import scala.util.{Failure, Success, Try}
 case class KeysIterator[K](private val db: SwayDB,
                            private val from: Option[From[K]],
                            private val reverse: Boolean = false,
-                           private val till: K => Boolean = (_: K) => true)(implicit serializer: Serializer[K],
-                                                                            table: Table) extends Iterable[K] {
+                           private val till: K => Boolean = (_: K) => true)(implicit serializer: Serializer[K]) extends Iterable[K] {
 
   def from(key: K): KeysIterator[K] =
     copy(from = Some(From(key = key, orBefore = false, orAfter = false, before = false, after = false)))
