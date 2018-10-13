@@ -32,10 +32,9 @@ import scala.util.Try
 
 object SwayMap {
 
-  def apply[K, V](db: SwayDB,
-                  offsets: Option[(Slice[Byte], Slice[Byte])])(implicit keySerializer: Serializer[K],
-                                                               valueSerializer: Serializer[V]): SwayMap[K, V] = {
-    new SwayMap[K, V](db, offsets)
+  def apply[K, V](db: SwayDB)(implicit keySerializer: Serializer[K],
+                              valueSerializer: Serializer[V]): SwayMap[K, V] = {
+    new SwayMap[K, V](db)
   }
 }
 
@@ -44,9 +43,8 @@ object SwayMap {
   *
   * For documentation check - http://swaydb.io/api/
   */
-class SwayMap[K, V](db: SwayDB,
-                    offsets: Option[(Slice[Byte], Slice[Byte])])(implicit keySerializer: Serializer[K],
-                                                                   valueSerializer: Serializer[V]) extends DBIterator[K, V](db, None) {
+class SwayMap[K, V](db: SwayDB)(implicit keySerializer: Serializer[K],
+                                valueSerializer: Serializer[V]) extends DBIterator[K, V](db, None) {
 
   def put(key: K, value: V): Try[Level0Meter] =
     db.put(key = key, value = Some(value))

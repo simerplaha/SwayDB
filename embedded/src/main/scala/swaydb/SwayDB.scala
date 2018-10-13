@@ -140,7 +140,7 @@ object SwayDB extends LazyLogging {
       segmentsOpenCheckDelay = segmentsOpenCheckDelay
     ) map {
       core =>
-        SwayMap[K, V](new SwayDB(core), None)
+        SwayMap[K, V](new SwayDB(core))
     }
 
   /**
@@ -189,7 +189,7 @@ object SwayDB extends LazyLogging {
       segmentsOpenCheckDelay = segmentsOpenCheckDelay
     ) map {
       core =>
-        SwaySet[T](new SwayDB(core), None)
+        SwaySet[T](new SwayDB(core))
     }
   }
 
@@ -239,7 +239,7 @@ object SwayDB extends LazyLogging {
       segmentsOpenCheckDelay = Duration.Zero
     ) map {
       core =>
-        SwayMap[K, V](new SwayDB(core), None)
+        SwayMap[K, V](new SwayDB(core))
     }
 
   /**
@@ -273,7 +273,7 @@ object SwayDB extends LazyLogging {
       segmentsOpenCheckDelay = Duration.Zero
     ) map {
       core =>
-        SwaySet[T](new SwayDB(core), None)
+        SwaySet[T](new SwayDB(core))
     }
 
   /**
@@ -353,7 +353,7 @@ object SwayDB extends LazyLogging {
       segmentsOpenCheckDelay = segmentsOpenCheckDelay
     ) map {
       core =>
-        SwayMap[K, V](new SwayDB(core), None)
+        SwayMap[K, V](new SwayDB(core))
     }
 
   /**
@@ -405,7 +405,7 @@ object SwayDB extends LazyLogging {
       segmentsOpenCheckDelay = segmentsOpenCheckDelay
     ) map {
       core =>
-        SwaySet[T](new SwayDB(core), None)
+        SwaySet[T](new SwayDB(core))
     }
 
   /**
@@ -446,7 +446,7 @@ object SwayDB extends LazyLogging {
       segmentsOpenCheckDelay = segmentsOpenCheckDelay
     ) map {
       core =>
-        SwayMap[K, V](new SwayDB(core), None)
+        SwayMap[K, V](new SwayDB(core))
     }
 
   def apply[T](config: SwayDBPersistentConfig,
@@ -464,7 +464,7 @@ object SwayDB extends LazyLogging {
       segmentsOpenCheckDelay = segmentsOpenCheckDelay
     ) map {
       core =>
-        SwaySet[T](new SwayDB(core), None)
+        SwaySet[T](new SwayDB(core))
     }
 
   def apply[K, V](config: SwayDBMemoryConfig,
@@ -481,7 +481,7 @@ object SwayDB extends LazyLogging {
       segmentsOpenCheckDelay = Duration.Zero
     ) map {
       core =>
-        SwayMap[K, V](new SwayDB(core), None)
+        SwayMap[K, V](new SwayDB(core))
     }
 
   def apply[T](config: SwayDBMemoryConfig,
@@ -497,7 +497,7 @@ object SwayDB extends LazyLogging {
       segmentsOpenCheckDelay = Duration.Zero
     ) map {
       core =>
-        SwaySet[T](new SwayDB(core), None)
+        SwaySet[T](new SwayDB(core))
     }
 
   /**
