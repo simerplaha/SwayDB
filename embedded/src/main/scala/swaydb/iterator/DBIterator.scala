@@ -38,9 +38,7 @@ case class DBIterator[K, V](private val db: SwayDB,
                             private val from: Option[From[K]],
                             private val reverse: Boolean = false,
                             private val till: (K, V) => Boolean = (_: K, _: V) => true)(implicit keySerializer: Serializer[K],
-                                                                                        valueSerializer: Serializer[V],
-                                                                                        ordering: Ordering[Slice[Byte]],
-                                                                                        table: Table) extends Iterable[(K, V)] {
+                                                                                        valueSerializer: Serializer[V]) extends Iterable[(K, V)] {
 
   def from(key: K): DBIterator[K, V] =
     copy(from = Some(From(key = key, orBefore = false, orAfter = false, before = false, after = false)))

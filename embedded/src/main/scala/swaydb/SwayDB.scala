@@ -51,9 +51,6 @@ import scala.util.{Failure, Success, Try}
   */
 object SwayDB extends LazyLogging {
 
-  val rootTable =
-    Table.buildTable(Slice.writeIntUnsigned(0))
-
   /**
     * Default execution context for all databases.
     *
@@ -242,11 +239,10 @@ object SwayDB extends LazyLogging {
       cacheCheckDelay = cacheCheckDelay,
       //memory Segments are never closed.
       segmentsOpenCheckDelay = Duration.Zero
-    )(ec, order) map {
+    ) map {
       core =>
         SwayMap[K, V](new SwayDB(core), rootTable)
     }
-  }
 
   /**
     * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
@@ -615,28 +611,21 @@ private[swaydb] class SwayDB(api: CoreAPI) {
         val nextEntry =
           batchEntry match {
             case request.Batch.Put(key, value, expire) =>
-              val rowKey = Table.buildRowKey(key, table)
-              MapEntry.Put[Slice[Byte], Memory.Put](rowKey, Memory.Put(rowKey, value, expire))(LevelZeroMapEntryWriter.Level0PutWriter)
+              MapEntry.Put[Slice[Byte], Memory.Put](key, Memory.Put(key, value, expire))(LevelZeroMapEntryWriter.Level0PutWriter)
 
             case request.Batch.Remove(key, expire) =>
-              val rowKey = Table.buildRowKey(key, table)
-              MapEntry.Put[Slice[Byte], Memory.Remove](rowKey, Memory.Remove(rowKey, expire))(LevelZeroMapEntryWriter.Level0RemoveWriter)
+              MapEntry.Put[Slice[Byte], Memory.Remove](key, Memory.Remove(key, expire))(LevelZeroMapEntryWriter.Level0RemoveWriter)
 
             case request.Batch.Update(key, value) =>
-              val rowKey = Table.buildRowKey(key, table)
-              MapEntry.Put[Slice[Byte], Memory.Update](rowKey, Memory.Update(rowKey, value))(LevelZeroMapEntryWriter.Level0UpdateWriter)
+              MapEntry.Put[Slice[Byte], Memory.Update](key, Memory.Update(key, value))(LevelZeroMapEntryWriter.Level0UpdateWriter)
 
             case request.Batch.RemoveRange(fromKey, toKey, expire) =>
-              val fromRowKey = Table.buildRowKey(fromKey, table)
-              val toRowKey = Table.buildRowKey(toKey, table)
-              (MapEntry.Put[Slice[Byte], Memory.Range](fromRowKey, Memory.Range(fromRowKey, toRowKey, None, Value.Remove(expire)))(LevelZeroMapEntryWriter.Level0RangeWriter): MapEntry[Slice[Byte], Memory.SegmentResponse]) ++
-                MapEntry.Put[Slice[Byte], Memory.Remove](toRowKey, Memory.Remove(toRowKey, expire))(LevelZeroMapEntryWriter.Level0RemoveWriter)
+              (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, None, Value.Remove(expire)))(LevelZeroMapEntryWriter.Level0RangeWriter): MapEntry[Slice[Byte], Memory.SegmentResponse]) ++
+                MapEntry.Put[Slice[Byte], Memory.Remove](toKey, Memory.Remove(toKey, expire))(LevelZeroMapEntryWriter.Level0RemoveWriter)
 
             case request.Batch.UpdateRange(fromKey, toKey, value) =>
-              val fromRowKey = Table.buildRowKey(fromKey, table)
-              val toRowKey = Table.buildRowKey(toKey, table)
-              (MapEntry.Put[Slice[Byte], Memory.Range](fromRowKey, Memory.Range(fromRowKey, toRowKey, None, Value.Update(value, None)))(LevelZeroMapEntryWriter.Level0RangeWriter): MapEntry[Slice[Byte], Memory.SegmentResponse]) ++
-                MapEntry.Put[Slice[Byte], Memory.Update](toRowKey, Memory.Update(toRowKey))(LevelZeroMapEntryWriter.Level0UpdateWriter)
+              (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, None, Value.Update(value, None)))(LevelZeroMapEntryWriter.Level0RangeWriter): MapEntry[Slice[Byte], Memory.SegmentResponse]) ++
+                MapEntry.Put[Slice[Byte], Memory.Update](toKey, Memory.Update(toKey))(LevelZeroMapEntryWriter.Level0UpdateWriter)
           }
         Some(mapEntry.map(_ ++ nextEntry) getOrElse nextEntry)
     } map {
@@ -689,11 +678,8 @@ private[swaydb] class SwayDB(api: CoreAPI) {
   def afterKey(key: Slice[Byte])(implicit table: Table): Try[Option[Slice[Byte]]] =
     api.afterKey(Table.buildRowKey(key, table)).map(_.map(Table.dropTableBytes))
 
-  def after(key: Slice[Byte])(implicit table: Table): Try[Option[(Slice[Byte], Option[Slice[Byte]])]] =
-    api.after(Table.buildRowKey(key, table)).map(_.map {
-      case (key, value) =>
-        (Table.dropTableBytes(key), value)
-    })
+  def mightContain(key: Slice[Byte]): Try[Boolean] =
+    api mightContain key
 
   def headKey: Try[Option[Slice[Byte]]] =
     api.headKey.map(_.map(Table.dropTableBytes))
