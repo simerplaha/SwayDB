@@ -35,13 +35,13 @@ object SubMap {
                              valueSerializer: Serializer[V],
                              ordering: Ordering[Slice[Byte]]): SubMap[K, V] = {
     implicit val mapKeySerializer = MapKey.mapKeySerializer(keySerializer)
-    new SubMap[K, V](db, mapKey)
+    val map = Map[MapKey[K], V](db)
+    new SubMap[K, V](map, mapKey)
   }
 
   def subMap[K, V](parentMapKey: K,
                    mapKey: K,
-                   value: V)(implicit db: SwayDB,
-                             map: Map[MapKey[K], V],
+                   value: V)(implicit map: Map[MapKey[K], V],
                              keySerializer: Serializer[K],
                              valueSerializer: Serializer[V],
                              ordering: Ordering[Slice[Byte]]): Try[SubMap[K, V]] =
@@ -49,7 +49,7 @@ object SubMap {
       exists =>
         if (exists) {
           implicit val mapKeySerializer = MapKey.mapKeySerializer(keySerializer)
-          Success(new SubMap[K, V](db, mapKey))
+          Success(SubMap[K, V](map.db, mapKey))
         } else {
           map.batch(
             Batch.Put(MapKey.Start(mapKey), value),
@@ -58,7 +58,7 @@ object SubMap {
           ) map {
             _ =>
               implicit val mapKeySerializer = MapKey.mapKeySerializer(keySerializer)
-              new SubMap[K, V](db, mapKey)
+              SubMap[K, V](map.db, mapKey)
           }
         }
     }
@@ -69,16 +69,14 @@ object SubMap {
   *
   * For documentation check - http://swaydb.io/api/
   */
-class SubMap[K, V](db: SwayDB,
+class SubMap[K, V](map: Map[MapKey[K], V],
                    mapKey: K)(implicit keySerializer: Serializer[K],
                               mapKeySerializer: Serializer[MapKey[K]],
                               ordering: Ordering[Slice[Byte]],
-                              valueSerializer: Serializer[V]) extends SubMapIterator[K, V](db, mapKey, DBIterator[MapKey[K], V](db, Some(From(MapKey.Start(mapKey), false, false, false, true)))) {
-
-  private val map = new Map[MapKey[K], V](db)
+                              valueSerializer: Serializer[V]) extends SubMapIterator[K, V](mapKey, DBIterator[MapKey[K], V](map.db, Some(From(MapKey.Start(mapKey), false, false, false, true)))) {
 
   def subMap(key: K, value: V): Try[SubMap[K, V]] =
-    SubMap.subMap[K, V](mapKey, key, value)(db, map, keySerializer, valueSerializer, ordering)
+    SubMap.subMap[K, V](mapKey, key, value)(map, keySerializer, valueSerializer, ordering)
 
   def put(key: K, value: V): Try[Level0Meter] =
     map.put(key = MapKey.Row(mapKey, key), value = value)
@@ -184,35 +182,36 @@ class SubMap[K, V](db: SwayDB,
         (keySerializer.read(key), valueSerializer.read(value))
     })
 
-  def keys: KeysIterator[K] =
-    KeysIterator[K](db, None)(keySerializer)
+  def keys: KeysIterator[K] = ???
+
+  //    KeysIterator[K](db, None)(keySerializer)
 
   def contains(key: K): Try[Boolean] =
-    db contains key
+    map contains MapKey.Row(mapKey, key)
 
   def mightContain(key: K): Try[Boolean] =
-    db mightContain key
+    map mightContain MapKey.Row(mapKey, key)
 
   def level0Meter: Level0Meter =
-    db.level0Meter
+    map.level0Meter
 
   def level1Meter: LevelMeter =
-    db.level1Meter
+    map.level1Meter
 
   def levelMeter(levelNumber: Int): Option[LevelMeter] =
-    db.levelMeter(levelNumber)
+    map.levelMeter(levelNumber)
 
   def sizeOfSegments: Long =
-    db.sizeOfSegments
+    map.sizeOfSegments
 
   def keySize(key: K): Int =
-    (key: Slice[Byte]).size
+    map keySize MapKey.Row(mapKey, key)
 
   def valueSize(value: V): Int =
-    (value: Slice[Byte]).size
+    map valueSize value
 
   def expiration(key: K): Try[Option[Deadline]] =
-    db deadline key
+    map expiration MapKey.Row(mapKey, key)
 
   def timeLeft(key: K): Try[Option[FiniteDuration]] =
     expiration(key).map(_.map(_.timeLeft))

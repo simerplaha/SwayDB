@@ -19,15 +19,13 @@
 
 package swaydb.iterator
 
-import swaydb.SwayDB
-import swaydb.data.slice.Slice
 import swaydb.data.map.MapKey
+import swaydb.data.slice.Slice
 import swaydb.serializers.Serializer
 
 import scala.annotation.tailrec
 
-case class SubMapIterator[K, V](db: SwayDB,
-                                tableKey: K,
+case class SubMapIterator[K, V](tableKey: K,
                                 private val dbIterator: DBIterator[MapKey[K], V],
                                 private val till: (K, V) => Boolean = (_: K, _: V) => true)(implicit keySerializer: Serializer[K],
                                                                                             tableKeySerializer: Serializer[MapKey[K]],

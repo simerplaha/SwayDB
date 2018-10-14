@@ -43,8 +43,8 @@ object Map {
   *
   * For documentation check - http://swaydb.io/api/
   */
-class Map[K, V](db: SwayDB)(implicit keySerializer: Serializer[K],
-                            valueSerializer: Serializer[V]) extends DBIterator[K, V](db, None) {
+class Map[K, V](private[swaydb] val db: SwayDB)(implicit keySerializer: Serializer[K],
+                                                valueSerializer: Serializer[V]) extends DBIterator[K, V](db, None) {
 
   def put(key: K, value: V): Try[Level0Meter] =
     db.put(key = key, value = Some(value))

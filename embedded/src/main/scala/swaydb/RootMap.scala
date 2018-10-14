@@ -31,7 +31,10 @@ object RootMap {
                   mapKey: K)(implicit keySerializer: Serializer[K],
                              valueSerializer: Serializer[V],
                              ordering: Ordering[Slice[Byte]]): RootMap[K, V] = {
-    new RootMap[K, V](db, mapKey)
+    implicit val mapKeySerializer = MapKey.mapKeySerializer(keySerializer)
+    val map = new Map[MapKey[K], V](db)
+
+    new RootMap[K, V](map, mapKey)
   }
 }
 
@@ -40,15 +43,11 @@ object RootMap {
   * should contain a SubMap which is iterable.
   *
   */
-class RootMap[K, V](db: SwayDB,
+class RootMap[K, V](map: Map[MapKey[K], V],
                     mapKey: K)(implicit keySerializer: Serializer[K],
                                valueSerializer: Serializer[V],
                                ordering: Ordering[Slice[Byte]]) {
 
-  implicit val mapKeySerializer = MapKey.mapKeySerializer(keySerializer)
-
-  private val map = new Map[MapKey[K], V](db)
-
   def subMap(key: K, value: V): Try[SubMap[K, V]] =
-    SubMap.subMap[K, V](mapKey, key, value)(db, map, keySerializer, valueSerializer, ordering)
+    SubMap.subMap[K, V](mapKey, key, value)(map, keySerializer, valueSerializer, ordering)
 }

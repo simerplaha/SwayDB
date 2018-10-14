@@ -30,27 +30,26 @@ object EmptyMap {
   def apply[K, V](db: SwayDB)(implicit keySerializer: Serializer[K],
                               valueSerializer: Serializer[V],
                               ordering: Ordering[Slice[Byte]]): EmptyMap[K, V] = {
-    new EmptyMap[K, V](db)
+    implicit val mapKeySerializer = MapKey.mapKeySerializer(keySerializer)
+
+    val map = new Map[MapKey[K], V](db)
+    new EmptyMap[K, V](map)
   }
 }
 /**
   * An immutable empty Map used as a the head map to create child [[RootMap]]s.
   */
 
-class EmptyMap[K, V](db: SwayDB)(implicit keySerializer: Serializer[K],
-                                 valueSerializer: Serializer[V],
-                                 ordering: Ordering[Slice[Byte]]) {
-
-  implicit val mapKeySerializer = MapKey.mapKeySerializer(keySerializer)
-
-  private val map = new Map[MapKey[K], V](db)
+class EmptyMap[K, V](map: Map[MapKey[K], V])(implicit keySerializer: Serializer[K],
+                                             valueSerializer: Serializer[V],
+                                             ordering: Ordering[Slice[Byte]]) {
 
   def rootMap(key: K, value: V): Try[RootMap[K, V]] =
     map.contains(MapKey.Start(key)) flatMap {
       exists =>
         if (exists) {
           implicit val mapKeySerializer = MapKey.mapKeySerializer(keySerializer)
-          Success(new RootMap[K, V](db, key))
+          Success(new RootMap[K, V](map, key))
         } else {
           map.batch(
             Batch.Put(MapKey.Start(key), value),
@@ -58,7 +57,7 @@ class EmptyMap[K, V](db: SwayDB)(implicit keySerializer: Serializer[K],
           ) map {
             _ =>
               implicit val mapKeySerializer = MapKey.mapKeySerializer(keySerializer)
-              new RootMap[K, V](db, key)
+              new RootMap[K, V](map, key)
           }
         }
     }
