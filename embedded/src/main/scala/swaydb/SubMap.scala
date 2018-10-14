@@ -23,7 +23,7 @@ import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.slice.Slice
 import swaydb.data.map.MapKey
-import swaydb.iterator.{DBIterator, From, KeysIterator, SubMapIterator}
+import swaydb.iterator._
 import swaydb.serializers.{Serializer, _}
 
 import scala.concurrent.duration.{Deadline, FiniteDuration}
@@ -39,26 +39,26 @@ object SubMap {
     new SubMap[K, V](map, mapKey)
   }
 
-  def subMap[K, V](map: Map[MapKey[K], V],
+  def subMap[K, V](parentMap: Map[MapKey[K], V],
                    parentMapKey: K,
                    mapKey: K,
                    value: V)(implicit keySerializer: Serializer[K],
                              valueSerializer: Serializer[V],
                              ordering: Ordering[Slice[Byte]]): Try[SubMap[K, V]] =
-    map.contains(MapKey.Start(mapKey)) flatMap {
+    parentMap.contains(MapKey.Start(mapKey)) flatMap {
       exists =>
         if (exists) {
           implicit val mapKeySerializer = MapKey.mapKeySerializer(keySerializer)
-          Success(SubMap[K, V](map.db, mapKey))
+          Success(SubMap[K, V](parentMap.db, mapKey))
         } else {
-          map.batch(
+          parentMap.batch(
             Batch.Put(MapKey.Start(mapKey), value),
-            Batch.Put(MapKey.Row(parentMapKey, mapKey), value),
+            Batch.Put(MapKey.Entry(parentMapKey, mapKey), value),
             Batch.Put(MapKey.End(mapKey), value)
           ) map {
             _ =>
               implicit val mapKeySerializer = MapKey.mapKeySerializer(keySerializer)
-              SubMap[K, V](map.db, mapKey)
+              SubMap[K, V](parentMap.db, mapKey)
           }
         }
     }
@@ -79,37 +79,37 @@ class SubMap[K, V](map: Map[MapKey[K], V],
     SubMap.subMap[K, V](map, mapKey, key, value)
 
   def put(key: K, value: V): Try[Level0Meter] =
-    map.put(key = MapKey.Row(mapKey, key), value = value)
+    map.put(key = MapKey.Entry(mapKey, key), value = value)
 
   def put(key: K, value: V, expireAfter: FiniteDuration): Try[Level0Meter] =
-    map.put(MapKey.Row(mapKey, key), value, expireAfter.fromNow)
+    map.put(MapKey.Entry(mapKey, key), value, expireAfter.fromNow)
 
   def put(key: K, value: V, expireAt: Deadline): Try[Level0Meter] =
-    map.put(MapKey.Row(mapKey, key), value, expireAt)
+    map.put(MapKey.Entry(mapKey, key), value, expireAt)
 
   def remove(key: K): Try[Level0Meter] =
-    map.remove(MapKey.Row(mapKey, key))
+    map.remove(MapKey.Entry(mapKey, key))
 
   def remove(from: K, to: K): Try[Level0Meter] =
-    map.remove(MapKey.Row(mapKey, from), MapKey.Row(mapKey, to))
+    map.remove(MapKey.Entry(mapKey, from), MapKey.Entry(mapKey, to))
 
   def expire(key: K, after: FiniteDuration): Try[Level0Meter] =
-    map.expire(MapKey.Row(mapKey, key), after.fromNow)
+    map.expire(MapKey.Entry(mapKey, key), after.fromNow)
 
   def expire(key: K, at: Deadline): Try[Level0Meter] =
-    map.expire(MapKey.Row(mapKey, key), at)
+    map.expire(MapKey.Entry(mapKey, key), at)
 
   def expire(from: K, to: K, after: FiniteDuration): Try[Level0Meter] =
-    map.expire(MapKey.Row(mapKey, from), MapKey.Row(mapKey, to), after.fromNow)
+    map.expire(MapKey.Entry(mapKey, from), MapKey.Entry(mapKey, to), after.fromNow)
 
   def expire(from: K, to: K, at: Deadline): Try[Level0Meter] =
-    map.expire(MapKey.Row(mapKey, from), MapKey.Row(mapKey, to), at)
+    map.expire(MapKey.Entry(mapKey, from), MapKey.Entry(mapKey, to), at)
 
   def update(key: K, value: V): Try[Level0Meter] =
-    map.update(MapKey.Row(mapKey, key), value)
+    map.update(MapKey.Entry(mapKey, key), value)
 
   def update(from: K, to: K, value: V): Try[Level0Meter] =
-    map.update(MapKey.Row(mapKey, from), MapKey.Row(mapKey, to), value)
+    map.update(MapKey.Entry(mapKey, from), MapKey.Entry(mapKey, to), value)
 
   def batch(batch: Batch[K, V]*): Try[Level0Meter] =
     this.batch(batch)
@@ -118,13 +118,13 @@ class SubMap[K, V](map: Map[MapKey[K], V],
     map.batch(
       batch.map {
         case data @ Data.Put(_, _, _) =>
-          data.copy(MapKey.Row(mapKey, data.key))
+          data.copy(MapKey.Entry(mapKey, data.key))
         case data @ Data.Remove(_, to, _) =>
-          data.copy(from = MapKey.Row(mapKey, data.from), to = to.map(MapKey.Row(mapKey, _)))
+          data.copy(from = MapKey.Entry(mapKey, data.from), to = to.map(MapKey.Entry(mapKey, _)))
         case data @ Data.Update(_, to, _) =>
-          data.copy(from = MapKey.Row(mapKey, data.from), to = to.map(MapKey.Row(mapKey, _)))
+          data.copy(from = MapKey.Entry(mapKey, data.from), to = to.map(MapKey.Entry(mapKey, _)))
         case data @ Data.Add(_, _) =>
-          data.copy(elem = MapKey.Row(mapKey, data.elem))
+          data.copy(elem = MapKey.Entry(mapKey, data.elem))
       }
     )
 
@@ -135,7 +135,7 @@ class SubMap[K, V](map: Map[MapKey[K], V],
     map.batchPut {
       keyValues map {
         case (key, value) =>
-          (MapKey.Row(mapKey, key), value)
+          (MapKey.Entry(mapKey, key), value)
       }
     }
 
@@ -146,7 +146,7 @@ class SubMap[K, V](map: Map[MapKey[K], V],
     map.batchUpdate {
       keyValues map {
         case (key, value) =>
-          (MapKey.Row(mapKey, key), value)
+          (MapKey.Entry(mapKey, key), value)
       }
     }
 
@@ -154,19 +154,19 @@ class SubMap[K, V](map: Map[MapKey[K], V],
     batchRemove(keys)
 
   def batchRemove(keys: Iterable[K]): Try[Level0Meter] =
-    map.batchRemove(keys.map(key => MapKey.Row(mapKey, key)))
+    map.batchRemove(keys.map(key => MapKey.Entry(mapKey, key)))
 
   def batchExpire(keys: (K, Deadline)*): Try[Level0Meter] =
     batchExpire(keys)
 
   def batchExpire(keys: Iterable[(K, Deadline)]): Try[Level0Meter] =
-    map.batchExpire(keys.map(keyDeadline => (MapKey.Row(mapKey, keyDeadline._1), keyDeadline._2)))
+    map.batchExpire(keys.map(keyDeadline => (MapKey.Entry(mapKey, keyDeadline._1), keyDeadline._2)))
 
   /**
     * Returns target value for the input key.
     */
   def get(key: K): Try[Option[V]] =
-    map.get(MapKey.Row(mapKey, key)).map(_.map(value => valueSerializer.read(value)))
+    map.get(MapKey.Entry(mapKey, key)).map(_.map(value => valueSerializer.read(value)))
 
   /**
     * Returns target full key for the input partial key.
@@ -174,23 +174,22 @@ class SubMap[K, V](map: Map[MapKey[K], V],
     * This function is mostly used for Set databases where partial ordering on the Key is provided.
     */
   def getKey(key: K): Try[Option[K]] =
-    map.getKey(MapKey.Row(mapKey, key)).map(_.map(key => keySerializer.read(key)))
+    map.getKey(MapKey.Entry(mapKey, key)).map(_.map(key => keySerializer.read(key)))
 
   def getKeyValue(key: K): Try[Option[(K, V)]] =
-    map.getKeyValue(MapKey.Row(mapKey, key)).map(_.map {
+    map.getKeyValue(MapKey.Entry(mapKey, key)).map(_.map {
       case (key, value) =>
         (keySerializer.read(key), valueSerializer.read(value))
     })
 
-  def keys: KeysIterator[K] = ???
-
-  //    KeysIterator[K](db, None)(keySerializer)
+  def keys: SubMapKeysIterator[K] =
+    SubMapKeysIterator[K](mapKey, DBKeysIterator[MapKey[K]](map.db, Some(From(MapKey.Start(mapKey), false, false, false, true))))
 
   def contains(key: K): Try[Boolean] =
-    map contains MapKey.Row(mapKey, key)
+    map contains MapKey.Entry(mapKey, key)
 
   def mightContain(key: K): Try[Boolean] =
-    map mightContain MapKey.Row(mapKey, key)
+    map mightContain MapKey.Entry(mapKey, key)
 
   def level0Meter: Level0Meter =
     map.level0Meter
@@ -205,13 +204,13 @@ class SubMap[K, V](map: Map[MapKey[K], V],
     map.sizeOfSegments
 
   def keySize(key: K): Int =
-    map keySize MapKey.Row(mapKey, key)
+    map keySize MapKey.Entry(mapKey, key)
 
   def valueSize(value: V): Int =
     map valueSize value
 
   def expiration(key: K): Try[Option[Deadline]] =
-    map expiration MapKey.Row(mapKey, key)
+    map expiration MapKey.Entry(mapKey, key)
 
   def timeLeft(key: K): Try[Option[FiniteDuration]] =
     expiration(key).map(_.map(_.timeLeft))

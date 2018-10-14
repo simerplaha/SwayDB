@@ -17,39 +17,35 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package embedded
+package swaydb
 
 import swaydb.{Map, SwayDB}
 import swaydb.core.TestBase
-import swaydb.data.slice.Slice
-import swaydb.order.KeyOrder
 import swaydb.serializers.Default._
 
-class SwayDBReverse_Persistent_Spec extends SwayDBReverseSpec {
-  implicit val order: Ordering[Slice[Byte]] = KeyOrder.reverse
-
-  val keyValueCount: Int = 10000
+class SwayDBSize_Persistent_Spec extends SwayDBSizeSpec {
+  val keyValueCount: Int = 10000000
 
   override def newDB(): Map[Int, String] =
     SwayDB.persistent[Int, String](dir = randomDir).assertGet
 }
 
-class SwayDBReverse_Memory_Spec extends SwayDBReverseSpec {
-  implicit val order: Ordering[Slice[Byte]] = KeyOrder.reverse
-
-  val keyValueCount: Int = 100000
+class SwayDBSize_Memory_Spec extends SwayDBSizeSpec {
+  val keyValueCount: Int = 10000000
 
   override def newDB(): Map[Int, String] =
     SwayDB.memory[Int, String]().assertGet
 }
 
-sealed trait SwayDBReverseSpec extends TestBase with TestBaseEmbedded {
+sealed trait SwayDBSizeSpec extends TestBase with TestBaseEmbedded {
 
   val keyValueCount: Int
 
+  override def deleteFiles = false
+
   def newDB(): Map[Int, String]
 
-  "Do reverse ordering" in {
+  "return the size of key-values" in {
     val db = newDB()
 
     (1 to keyValueCount) foreach {
@@ -57,10 +53,7 @@ sealed trait SwayDBReverseSpec extends TestBase with TestBaseEmbedded {
         db.put(i, i.toString).assertGet
     }
 
-    db.keys.foldLeft(keyValueCount + 1) {
-      case (expected, actual) =>
-        actual shouldBe expected - 1
-        actual
-    }
+    db.size shouldBe keyValueCount
+
   }
 }

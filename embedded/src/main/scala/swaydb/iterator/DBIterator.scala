@@ -31,11 +31,11 @@ import scala.util.{Failure, Success, Try}
   *
   * Documentation on iteration API - http://www.swaydb.io/api/iteration-api
   *
-  * This iterator and [[KeysIterator]] share a lot of the same code. A higher type is required.
+  * This iterator and [[DBKeysIterator]] share a lot of the same code. A higher type is required.
   */
-case class DBIterator[K, V](private val db: SwayDB,
-                            private val from: Option[From[K]],
-                            private val reverse: Boolean = false,
+case class DBIterator[K, V](private[iterator] val db: SwayDB,
+                            private[iterator] val from: Option[From[K]],
+                            private[iterator] val reverse: Boolean = false,
                             private val till: (K, V) => Boolean = (_: K, _: V) => true)(implicit keySerializer: Serializer[K],
                                                                                         valueSerializer: Serializer[V]) extends Iterable[(K, V)] {
 

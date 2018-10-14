@@ -24,7 +24,7 @@ import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.request
 import swaydb.data.slice.Slice
-import swaydb.iterator.KeysIterator
+import swaydb.iterator.DBKeysIterator
 import swaydb.serializers.{Serializer, _}
 
 import scala.concurrent.duration.{Deadline, FiniteDuration}
@@ -40,7 +40,7 @@ object Set {
   *
   * For documentation check - http://swaydb.io/api/
   */
-class Set[T](db: SwayDB)(implicit serializer: Serializer[T]) extends KeysIterator[T](db, None) {
+class Set[T](db: SwayDB)(implicit serializer: Serializer[T]) extends DBKeysIterator[T](db, None) {
 
   def get(elem: T): Try[Option[T]] =
     db.getKey(elem).map(_.map(_.read[T]))

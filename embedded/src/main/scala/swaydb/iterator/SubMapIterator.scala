@@ -24,9 +24,9 @@ import swaydb.data.slice.Slice
 import swaydb.serializers.Serializer
 
 import scala.annotation.tailrec
-import scala.util.Try
+import scala.collection.generic.CanBuildFrom
 
-case class SubMapIterator[K, V](tableKey: K,
+case class SubMapIterator[K, V](mapKey: K,
                                 private val dbIterator: DBIterator[MapKey[K], V],
                                 private val till: (K, V) => Boolean = (_: K, _: V) => true)(implicit keySerializer: Serializer[K],
                                                                                             tableKeySerializer: Serializer[MapKey[K]],
@@ -35,22 +35,27 @@ case class SubMapIterator[K, V](tableKey: K,
 
   import ordering._
 
-  val tableKeyBytes = keySerializer.write(tableKey)
+  private val endKey = MapKey.End(mapKey)
+
+  val thisMapKeyBytes = keySerializer.write(mapKey)
 
   def from(key: K): SubMapIterator[K, V] =
-    copy(dbIterator = dbIterator.from(MapKey.Row(tableKey, key)))
+    copy(dbIterator = dbIterator.from(MapKey.Entry(mapKey, key)))
 
   def before(key: K): SubMapIterator[K, V] =
-    copy(dbIterator = dbIterator.before(MapKey.Row(tableKey, key)))
+    copy(dbIterator = dbIterator.before(MapKey.Entry(mapKey, key)))
 
   def fromOrBefore(key: K): SubMapIterator[K, V] =
-    copy(dbIterator = dbIterator.fromOrBefore(MapKey.Row(tableKey, key)))
+    copy(dbIterator = dbIterator.fromOrBefore(MapKey.Entry(mapKey, key)))
 
   def after(key: K): SubMapIterator[K, V] =
-    copy(dbIterator = dbIterator.after(MapKey.Row(tableKey, key)))
+    copy(dbIterator = dbIterator.after(MapKey.Entry(mapKey, key)))
 
   def fromOrAfter(key: K): SubMapIterator[K, V] =
-    copy(dbIterator = dbIterator.fromOrAfter(MapKey.Row(tableKey, key)))
+    copy(dbIterator = dbIterator.fromOrAfter(MapKey.Entry(mapKey, key)))
+
+  private def from(key: MapKey[K], reverse: Boolean): SubMapIterator[K, V] =
+    copy(dbIterator = dbIterator.copy(reverse = reverse).from(key))
 
   def till(condition: (K, V) => Boolean) =
     copy(till = condition)
@@ -80,8 +85,8 @@ case class SubMapIterator[K, V](tableKey: K,
       override def hasNext: Boolean =
         if (iter.hasNext) {
           val (tableId, value) = iter.next()
-          val thisTableKeyBytes = keySerializer.write(tableId.mapKey)
-          if (!(thisTableKeyBytes equiv tableKeyBytes)) //it's moved onto another table
+          val mapKeyBytes = keySerializer.write(tableId.mapKey)
+          if (!(mapKeyBytes equiv thisMapKeyBytes)) //it's moved onto another table
             false
           else {
             tableId match {
@@ -89,7 +94,7 @@ case class SubMapIterator[K, V](tableKey: K,
               case MapKey.Start(_) =>
                 hasNext
 
-              case MapKey.Row(_, dataKey) =>
+              case MapKey.Entry(_, dataKey) =>
                 if (till(dataKey, value)) {
                   nextKeyValue = (dataKey, value)
                   true
@@ -115,16 +120,14 @@ case class SubMapIterator[K, V](tableKey: K,
   }
 
   override def size: Int =
-    sizeTry.get
+    SubMapKeysIterator(mapKey, DBKeysIterator(dbIterator.db, dbIterator.from)).size
 
-  def sizeTry: Try[Int] =
-    dbIterator.sizeTry
-
-  override def isEmpty: Boolean =
-    dbIterator.isEmpty
-
-  override def nonEmpty: Boolean =
-    !isEmpty
+  //
+  //  override def isEmpty: Boolean =
+  //    dbIterator.isEmpty
+  //
+  //  override def nonEmpty: Boolean =
+  //    !isEmpty
 
   override def head: (K, V) =
     headOption.get
@@ -133,63 +136,57 @@ case class SubMapIterator[K, V](tableKey: K,
     lastOption.get
 
   override def headOption: Option[(K, V)] =
-    dbIterator.headOption map {
-      case (mapKey, value) =>
-        (mapKey.mapKey, value)
-    }
+    take(1).headOption
 
   override def lastOption: Option[(K, V)] =
-    dbIterator.lastOption map {
-      case (mapKey, value) =>
-        (mapKey.mapKey, value)
-    }
+    from(key = endKey, reverse = true).headOption
 
   def foreachRight[U](f: (K, V) => U): Unit =
-    dbIterator foreachRight {
+    from(key = endKey, reverse = true) foreach {
       case (key, value) =>
-        f(key.mapKey, value)
+        f(key, value)
     }
 
-  def mapRight[B, T](f: (K, V) => B): Iterable[B] =
-    dbIterator mapRight {
+  def mapRight[B, T](f: (K, V) => B)(implicit bf: CanBuildFrom[Iterable[(K, V)], B, T]): T =
+    from(key = endKey, reverse = true) map {
       case (key, value) =>
-        f(key.mapKey, value)
+        f(key, value)
     }
 
   override def foldRight[B](b: B)(op: ((K, V), B) => B): B =
-    dbIterator.foldRight(b) {
+    from(key = endKey, reverse = true).foldLeft(b) {
       case (prev, (key, value)) =>
         op((key, value), prev)
     }
 
   override def takeRight(n: Int): Iterable[(K, V)] =
-    dbIterator.takeRight(n) map {
+    from(key = endKey, reverse = true) map {
       case (key, value) =>
-        (key.mapKey, value)
+        (key, value)
     }
 
   override def dropRight(n: Int): Iterable[(K, V)] =
-    dbIterator.dropRight(n) map {
+    from(key = endKey, reverse = true).drop(n) map {
       case (key, value) =>
-        (key.mapKey, value)
+        (key, value)
     }
 
   override def reduceRight[B >: (K, V)](op: ((K, V), B) => B): B =
-    dbIterator.reduceRight {
-      case ((key, value), prev) =>
-        op((key.mapKey, value), prev)
+    from(key = endKey, reverse = true).reduce[B] {
+      case ((key: K, value: V), prev) =>
+        op((key, value), prev)
     }
 
   override def reduceRightOption[B >: (K, V)](op: ((K, V), B) => B): Option[B] =
-    dbIterator.reduceRightOption {
-      case ((key, value), prev) =>
-        op((key.mapKey, value), prev)
+    from(key = endKey, reverse = true).reduceOption[B] {
+      case ((key: K, value: V), prev: B) =>
+        op((key, value), prev)
     }
 
-  def scanRight[B, That](z: B)(op: ((K, V), B) => B): Iterable[B] =
-    dbIterator.scanRight(z) {
-      case ((key, value), prev) =>
-        op((key.mapKey, value), prev)
+  override def scanRight[B, That](z: B)(op: ((K, V), B) => B)(implicit bf: CanBuildFrom[Iterable[(K, V)], B, That]): That =
+    from(key = endKey, reverse = true).scanLeft(z) {
+      case (k, prev) =>
+        op(prev, k)
     }
 
   override def toString(): String =

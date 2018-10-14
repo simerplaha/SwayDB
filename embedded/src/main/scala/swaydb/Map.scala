@@ -24,7 +24,7 @@ import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.request
 import swaydb.data.slice.Slice
-import swaydb.iterator.{DBIterator, KeysIterator}
+import swaydb.iterator.{DBIterator, DBKeysIterator}
 import swaydb.serializers.{Serializer, _}
 
 import scala.concurrent.duration.{Deadline, FiniteDuration}
@@ -43,8 +43,8 @@ object Map {
   *
   * For documentation check - http://swaydb.io/api/
   */
-class Map[K, V](private[swaydb] val db: SwayDB)(implicit keySerializer: Serializer[K],
-                                                valueSerializer: Serializer[V]) extends DBIterator[K, V](db, None) {
+class Map[K, V](private[swaydb] override val db: SwayDB)(implicit keySerializer: Serializer[K],
+                                                         valueSerializer: Serializer[V]) extends DBIterator[K, V](db, None) {
 
   def put(key: K, value: V): Try[Level0Meter] =
     db.put(key = key, value = Some(value))
@@ -145,8 +145,8 @@ class Map[K, V](private[swaydb] val db: SwayDB)(implicit keySerializer: Serializ
   def mightContain(key: K): Try[Boolean] =
     db mightContain key
 
-  def keys: KeysIterator[K] =
-    KeysIterator[K](db, None)(keySerializer)
+  def keys: DBKeysIterator[K] =
+    DBKeysIterator[K](db, None)(keySerializer)
 
   def level0Meter: Level0Meter =
     db.level0Meter

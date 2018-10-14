@@ -34,12 +34,12 @@ import scala.util.{Failure, Success, Try}
   *
   * This iterator and [[DBIterator]] share a lot of the same code. A higher type is required.
   */
-case class KeysIterator[K](private val db: SwayDB,
-                           private val from: Option[From[K]],
-                           private val reverse: Boolean = false,
-                           private val till: K => Boolean = (_: K) => true)(implicit serializer: Serializer[K]) extends Iterable[K] {
+case class DBKeysIterator[K](private val db: SwayDB,
+                             private val from: Option[From[K]],
+                             private val reverse: Boolean = false,
+                             private val till: K => Boolean = (_: K) => true)(implicit serializer: Serializer[K]) extends Iterable[K] {
 
-  def from(key: K): KeysIterator[K] =
+  def from(key: K): DBKeysIterator[K] =
     copy(from = Some(From(key = key, orBefore = false, orAfter = false, before = false, after = false)))
 
   def before(key: K) =
@@ -150,7 +150,7 @@ case class KeysIterator[K](private val db: SwayDB,
       nextKeyTyped
 
     override def toString(): String =
-      classOf[KeysIterator[_]].getClass.getSimpleName
+      classOf[DBKeysIterator[_]].getClass.getSimpleName
   }
 
   override def head: K =
@@ -215,5 +215,5 @@ case class KeysIterator[K](private val db: SwayDB,
     }
 
   override def toString(): String =
-    classOf[KeysIterator[_]].getClass.getSimpleName
+    classOf[DBKeysIterator[_]].getClass.getSimpleName
 }

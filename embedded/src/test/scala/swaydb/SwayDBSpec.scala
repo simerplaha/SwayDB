@@ -17,7 +17,7 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package embedded
+package swaydb
 
 import swaydb.serializers.Default._
 import swaydb.{Batch, Map, SwayDB}

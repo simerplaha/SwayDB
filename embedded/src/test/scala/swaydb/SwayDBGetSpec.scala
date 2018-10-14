@@ -17,7 +17,7 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package embedded
+package swaydb
 
 import swaydb.{Map, SwayDB}
 import swaydb.core.TestBase
