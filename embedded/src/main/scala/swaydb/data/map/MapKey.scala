@@ -17,68 +17,68 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.data.submap
+package swaydb.data.map
 
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteUtil
 import swaydb.order.KeyOrder
 import swaydb.serializers.Serializer
 
-private[swaydb] sealed trait Table[K] {
-  val tableKey: K
+private[swaydb] sealed trait MapKey[K] {
+  val mapKey: K
 }
 
-private[swaydb] object Table {
-  case class Start[K](tableKey: K) extends Table[K]
-  case class Row[K](tableKey: K, dataKey: K) extends Table[K]
-  case class End[K](tableKey: K) extends Table[K]
+private[swaydb] object MapKey {
+  case class Start[K](mapKey: K) extends MapKey[K]
+  case class Row[K](mapKey: K, dataKey: K) extends MapKey[K]
+  case class End[K](mapKey: K) extends MapKey[K]
 
-  private val start = 1.toByte
-  private val row = 2.toByte
-  private val end = 50.toByte
+  private val start: Byte = "-128".toByte
+  private val row: Byte = "-127".toByte
+  private val end: Byte = 127.toByte
 
-  def tableKeySerializer[K](keySerializer: Serializer[K]): Serializer[Table[K]] =
-    new Serializer[Table[K]] {
-      override def write(data: Table[K]): Slice[Byte] =
+  def mapKeySerializer[K](keySerializer: Serializer[K]): Serializer[MapKey[K]] =
+    new Serializer[MapKey[K]] {
+      override def write(data: MapKey[K]): Slice[Byte] =
         data match {
-          case Table.Start(tableKey) =>
-            val keyBytes = keySerializer.write(tableKey)
+          case MapKey.Start(mapKey) =>
+            val keyBytes = keySerializer.write(mapKey)
 
             Slice.create[Byte](ByteUtil.sizeOf(keyBytes.size) + keyBytes.size + 1)
               .addIntUnsigned(keyBytes.size)
               .addAll(keyBytes)
-              .add(Table.start)
+              .add(MapKey.start)
 
-          case Table.Row(tableKey, dataKey) =>
-            val tableKeyBytes = keySerializer.write(tableKey)
+          case MapKey.Row(mapKey, dataKey) =>
+            val mapKeyBytes = keySerializer.write(mapKey)
             val dataKeyBytes = keySerializer.write(dataKey)
 
-            Slice.create[Byte](ByteUtil.sizeOf(tableKeyBytes.size) + tableKeyBytes.size + 1 + dataKeyBytes.size)
-              .addIntUnsigned(tableKeyBytes.size)
-              .addAll(tableKeyBytes)
-              .add(Table.row)
+            Slice.create[Byte](ByteUtil.sizeOf(mapKeyBytes.size) + mapKeyBytes.size + 1 + dataKeyBytes.size)
+              .addIntUnsigned(mapKeyBytes.size)
+              .addAll(mapKeyBytes)
+              .add(MapKey.row)
               .addAll(dataKeyBytes)
 
-          case Table.End(tableKey) =>
-            val keyBytes = keySerializer.write(tableKey)
+          case MapKey.End(mapKey) =>
+            val keyBytes = keySerializer.write(mapKey)
 
             Slice.create[Byte](ByteUtil.sizeOf(keyBytes.size) + keyBytes.size + 1)
               .addIntUnsigned(keyBytes.size)
               .addAll(keyBytes)
-              .add(Table.end)
+              .add(MapKey.end)
         }
 
-      override def read(data: Slice[Byte]): Table[K] = {
+      override def read(data: Slice[Byte]): MapKey[K] = {
         val reader = data.createReader()
         val keyBytes = reader.read(reader.readIntUnsigned())
         val key = keySerializer.read(keyBytes)
         val dataType = reader.get()
-        if (dataType == Table.start)
-          Table.Start(key)
-        else if (dataType == Table.row)
-          Table.Row(key, keySerializer.read(reader.readRemaining()))
-        else if (dataType == Table.end)
-          Table.End(key)
+        if (dataType == MapKey.start)
+          MapKey.Start(key)
+        else if (dataType == MapKey.row)
+          MapKey.Row(key, keySerializer.read(reader.readRemaining()))
+        else if (dataType == MapKey.end)
+          MapKey.End(key)
         else {
           throw new Exception(s"Invalid dataType: $dataType")
         }
@@ -97,8 +97,8 @@ private[swaydb] object Table {
       readerRight.skip(keySizeRight)
       val dataTypeRight = readerRight.get()
 
-      if (dataTypeLeft == Table.start || dataTypeLeft == Table.end ||
-        dataTypeRight == Table.start || dataTypeRight == Table.end) {
+      if (dataTypeLeft == MapKey.start || dataTypeLeft == MapKey.end ||
+        dataTypeRight == MapKey.start || dataTypeRight == MapKey.end) {
         KeyOrder.default.compare(a, b)
       } else if (dataTypeLeft == row) {
         val tableBytesLeft = a.take(1 + keySizeLeft + 1)

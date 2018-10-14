@@ -20,7 +20,7 @@
 package swaydb
 
 import swaydb.data.slice.Slice
-import swaydb.data.submap.Table
+import swaydb.data.map.MapKey
 import swaydb.serializers.Serializer
 
 import scala.util.Try
@@ -28,10 +28,10 @@ import scala.util.Try
 object RootMap {
 
   def apply[K, V](db: SwayDB,
-                  tableKey: K)(implicit keySerializer: Serializer[K],
-                               valueSerializer: Serializer[V],
-                               ordering: Ordering[Slice[Byte]]): RootMap[K, V] = {
-    new RootMap[K, V](db, tableKey)
+                  mapKey: K)(implicit keySerializer: Serializer[K],
+                             valueSerializer: Serializer[V],
+                             ordering: Ordering[Slice[Byte]]): RootMap[K, V] = {
+    new RootMap[K, V](db, mapKey)
   }
 }
 
@@ -41,14 +41,14 @@ object RootMap {
   *
   */
 class RootMap[K, V](db: SwayDB,
-                    tableKey: K)(implicit keySerializer: Serializer[K],
-                                 valueSerializer: Serializer[V],
-                                 ordering: Ordering[Slice[Byte]]) {
+                    mapKey: K)(implicit keySerializer: Serializer[K],
+                               valueSerializer: Serializer[V],
+                               ordering: Ordering[Slice[Byte]]) {
 
-  implicit val tableKeySerializer = Table.tableKeySerializer(keySerializer)
+  implicit val mapKeySerializer = MapKey.mapKeySerializer(keySerializer)
 
-  private val map = new Map[Table[K], V](db)
+  private val map = new Map[MapKey[K], V](db)
 
   def subMap(key: K, value: V): Try[SubMap[K, V]] =
-    SubMap.subMap[K, V](tableKey, key, value)(db, map, keySerializer, valueSerializer, ordering)
+    SubMap.subMap[K, V](mapKey, key, value)(db, map, keySerializer, valueSerializer, ordering)
 }

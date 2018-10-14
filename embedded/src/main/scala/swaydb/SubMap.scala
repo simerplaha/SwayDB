@@ -22,7 +22,7 @@ package swaydb
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.slice.Slice
-import swaydb.data.submap.Table
+import swaydb.data.map.MapKey
 import swaydb.iterator.{DBIterator, From, KeysIterator, SubMapIterator}
 import swaydb.serializers.{Serializer, _}
 
@@ -31,34 +31,34 @@ import scala.util.{Success, Try}
 
 object SubMap {
   def apply[K, V](db: SwayDB,
-                  tableKey: K)(implicit keySerializer: Serializer[K],
-                               valueSerializer: Serializer[V],
-                               ordering: Ordering[Slice[Byte]]): SubMap[K, V] = {
-    implicit val tableKeySerializer = Table.tableKeySerializer(keySerializer)
-    new SubMap[K, V](db, tableKey)
+                  mapKey: K)(implicit keySerializer: Serializer[K],
+                             valueSerializer: Serializer[V],
+                             ordering: Ordering[Slice[Byte]]): SubMap[K, V] = {
+    implicit val mapKeySerializer = MapKey.mapKeySerializer(keySerializer)
+    new SubMap[K, V](db, mapKey)
   }
 
-  def subMap[K, V](parentTableId: K,
-                   tableId: K,
+  def subMap[K, V](parentMapKey: K,
+                   mapKey: K,
                    value: V)(implicit db: SwayDB,
-                             map: Map[Table[K], V],
+                             map: Map[MapKey[K], V],
                              keySerializer: Serializer[K],
                              valueSerializer: Serializer[V],
                              ordering: Ordering[Slice[Byte]]): Try[SubMap[K, V]] =
-    map.contains(Table.Start(tableId)) flatMap {
+    map.contains(MapKey.Start(mapKey)) flatMap {
       exists =>
         if (exists) {
-          implicit val tableKeySerializer = Table.tableKeySerializer(keySerializer)
-          Success(new SubMap[K, V](db, tableId))
+          implicit val mapKeySerializer = MapKey.mapKeySerializer(keySerializer)
+          Success(new SubMap[K, V](db, mapKey))
         } else {
           map.batch(
-            Batch.Put(Table.Start(tableId), value),
-            Batch.Put(Table.Row(parentTableId, tableId), value),
-            Batch.Put(Table.End(tableId), value)
+            Batch.Put(MapKey.Start(mapKey), value),
+            Batch.Put(MapKey.Row(parentMapKey, mapKey), value),
+            Batch.Put(MapKey.End(mapKey), value)
           ) map {
             _ =>
-              implicit val tableKeySerializer = Table.tableKeySerializer(keySerializer)
-              new SubMap[K, V](db, tableId)
+              implicit val mapKeySerializer = MapKey.mapKeySerializer(keySerializer)
+              new SubMap[K, V](db, mapKey)
           }
         }
     }
@@ -70,48 +70,48 @@ object SubMap {
   * For documentation check - http://swaydb.io/api/
   */
 class SubMap[K, V](db: SwayDB,
-                   tableKey: K)(implicit keySerializer: Serializer[K],
-                                tableKeySerializer: Serializer[Table[K]],
-                                ordering: Ordering[Slice[Byte]],
-                                valueSerializer: Serializer[V]) extends SubMapIterator[K, V](db, tableKey, DBIterator[Table[K], V](db, Some(From(Table.Start(tableKey), false, false, false, true)))) {
+                   mapKey: K)(implicit keySerializer: Serializer[K],
+                              mapKeySerializer: Serializer[MapKey[K]],
+                              ordering: Ordering[Slice[Byte]],
+                              valueSerializer: Serializer[V]) extends SubMapIterator[K, V](db, mapKey, DBIterator[MapKey[K], V](db, Some(From(MapKey.Start(mapKey), false, false, false, true)))) {
 
-  private val map = new Map[Table[K], V](db)
+  private val map = new Map[MapKey[K], V](db)
 
   def subMap(key: K, value: V): Try[SubMap[K, V]] =
-    SubMap.subMap[K, V](tableKey, key, value)(db, map, keySerializer, valueSerializer, ordering)
+    SubMap.subMap[K, V](mapKey, key, value)(db, map, keySerializer, valueSerializer, ordering)
 
   def put(key: K, value: V): Try[Level0Meter] =
-    map.put(key = Table.Row(tableKey, key), value = value)
+    map.put(key = MapKey.Row(mapKey, key), value = value)
 
   def put(key: K, value: V, expireAfter: FiniteDuration): Try[Level0Meter] =
-    map.put(Table.Row(tableKey, key), value, expireAfter.fromNow)
+    map.put(MapKey.Row(mapKey, key), value, expireAfter.fromNow)
 
   def put(key: K, value: V, expireAt: Deadline): Try[Level0Meter] =
-    map.put(Table.Row(tableKey, key), value, expireAt)
+    map.put(MapKey.Row(mapKey, key), value, expireAt)
 
   def remove(key: K): Try[Level0Meter] =
-    map.remove(Table.Row(tableKey, key))
+    map.remove(MapKey.Row(mapKey, key))
 
   def remove(from: K, to: K): Try[Level0Meter] =
-    map.remove(Table.Row(tableKey, from), Table.Row(tableKey, to))
+    map.remove(MapKey.Row(mapKey, from), MapKey.Row(mapKey, to))
 
   def expire(key: K, after: FiniteDuration): Try[Level0Meter] =
-    map.expire(Table.Row(tableKey, key), after.fromNow)
+    map.expire(MapKey.Row(mapKey, key), after.fromNow)
 
   def expire(key: K, at: Deadline): Try[Level0Meter] =
-    map.expire(Table.Row(tableKey, key), at)
+    map.expire(MapKey.Row(mapKey, key), at)
 
   def expire(from: K, to: K, after: FiniteDuration): Try[Level0Meter] =
-    map.expire(Table.Row(tableKey, from), Table.Row(tableKey, to), after.fromNow)
+    map.expire(MapKey.Row(mapKey, from), MapKey.Row(mapKey, to), after.fromNow)
 
   def expire(from: K, to: K, at: Deadline): Try[Level0Meter] =
-    map.expire(Table.Row(tableKey, from), Table.Row(tableKey, to), at)
+    map.expire(MapKey.Row(mapKey, from), MapKey.Row(mapKey, to), at)
 
   def update(key: K, value: V): Try[Level0Meter] =
-    map.update(Table.Row(tableKey, key), value)
+    map.update(MapKey.Row(mapKey, key), value)
 
   def update(from: K, to: K, value: V): Try[Level0Meter] =
-    map.update(Table.Row(tableKey, from), Table.Row(tableKey, to), value)
+    map.update(MapKey.Row(mapKey, from), MapKey.Row(mapKey, to), value)
 
   def batch(batch: Batch[K, V]*): Try[Level0Meter] =
     this.batch(batch)
@@ -120,13 +120,13 @@ class SubMap[K, V](db: SwayDB,
     map.batch(
       batch.map {
         case data @ Data.Put(_, _, _) =>
-          data.copy(Table.Row(tableKey, data.key))
+          data.copy(MapKey.Row(mapKey, data.key))
         case data @ Data.Remove(_, to, _) =>
-          data.copy(from = Table.Row(tableKey, data.from), to = to.map(Table.Row(tableKey, _)))
+          data.copy(from = MapKey.Row(mapKey, data.from), to = to.map(MapKey.Row(mapKey, _)))
         case data @ Data.Update(_, to, _) =>
-          data.copy(from = Table.Row(tableKey, data.from), to = to.map(Table.Row(tableKey, _)))
+          data.copy(from = MapKey.Row(mapKey, data.from), to = to.map(MapKey.Row(mapKey, _)))
         case data @ Data.Add(_, _) =>
-          data.copy(elem = Table.Row(tableKey, data.elem))
+          data.copy(elem = MapKey.Row(mapKey, data.elem))
       }
     )
 
@@ -137,7 +137,7 @@ class SubMap[K, V](db: SwayDB,
     map.batchPut {
       keyValues map {
         case (key, value) =>
-          (Table.Row(tableKey, key), value)
+          (MapKey.Row(mapKey, key), value)
       }
     }
 
@@ -148,7 +148,7 @@ class SubMap[K, V](db: SwayDB,
     map.batchUpdate {
       keyValues map {
         case (key, value) =>
-          (Table.Row(tableKey, key), value)
+          (MapKey.Row(mapKey, key), value)
       }
     }
 
@@ -156,19 +156,19 @@ class SubMap[K, V](db: SwayDB,
     batchRemove(keys)
 
   def batchRemove(keys: Iterable[K]): Try[Level0Meter] =
-    map.batchRemove(keys.map(key => Table.Row(tableKey, key)))
+    map.batchRemove(keys.map(key => MapKey.Row(mapKey, key)))
 
   def batchExpire(keys: (K, Deadline)*): Try[Level0Meter] =
     batchExpire(keys)
 
   def batchExpire(keys: Iterable[(K, Deadline)]): Try[Level0Meter] =
-    map.batchExpire(keys.map(keyDeadline => (Table.Row(tableKey, keyDeadline._1), keyDeadline._2)))
+    map.batchExpire(keys.map(keyDeadline => (MapKey.Row(mapKey, keyDeadline._1), keyDeadline._2)))
 
   /**
     * Returns target value for the input key.
     */
   def get(key: K): Try[Option[V]] =
-    map.get(Table.Row(tableKey, key)).map(_.map(value => valueSerializer.read(value)))
+    map.get(MapKey.Row(mapKey, key)).map(_.map(value => valueSerializer.read(value)))
 
   /**
     * Returns target full key for the input partial key.
@@ -176,10 +176,10 @@ class SubMap[K, V](db: SwayDB,
     * This function is mostly used for Set databases where partial ordering on the Key is provided.
     */
   def getKey(key: K): Try[Option[K]] =
-    map.getKey(Table.Row(tableKey, key)).map(_.map(key => keySerializer.read(key)))
+    map.getKey(MapKey.Row(mapKey, key)).map(_.map(key => keySerializer.read(key)))
 
   def getKeyValue(key: K): Try[Option[(K, V)]] =
-    map.getKeyValue(Table.Row(tableKey, key)).map(_.map {
+    map.getKeyValue(MapKey.Row(mapKey, key)).map(_.map {
       case (key, value) =>
         (keySerializer.read(key), valueSerializer.read(value))
     })

@@ -20,7 +20,7 @@
 package swaydb
 
 import swaydb.data.slice.Slice
-import swaydb.data.submap.Table
+import swaydb.data.map.MapKey
 import swaydb.serializers.Serializer
 
 import scala.util.{Success, Try}
@@ -41,23 +41,23 @@ class EmptyMap[K, V](db: SwayDB)(implicit keySerializer: Serializer[K],
                                  valueSerializer: Serializer[V],
                                  ordering: Ordering[Slice[Byte]]) {
 
-  implicit val tableKeySerializer = Table.tableKeySerializer(keySerializer)
+  implicit val mapKeySerializer = MapKey.mapKeySerializer(keySerializer)
 
-  private val map = new Map[Table[K], V](db)
+  private val map = new Map[MapKey[K], V](db)
 
   def rootMap(key: K, value: V): Try[RootMap[K, V]] =
-    map.contains(Table.Start(key)) flatMap {
+    map.contains(MapKey.Start(key)) flatMap {
       exists =>
         if (exists) {
-          implicit val tableKeySerializer = Table.tableKeySerializer(keySerializer)
+          implicit val mapKeySerializer = MapKey.mapKeySerializer(keySerializer)
           Success(new RootMap[K, V](db, key))
         } else {
           map.batch(
-            Batch.Put(Table.Start(key), value),
-            Batch.Put(Table.End(key), value)
+            Batch.Put(MapKey.Start(key), value),
+            Batch.Put(MapKey.End(key), value)
           ) map {
             _ =>
-              implicit val tableKeySerializer = Table.tableKeySerializer(keySerializer)
+              implicit val mapKeySerializer = MapKey.mapKeySerializer(keySerializer)
               new RootMap[K, V](db, key)
           }
         }

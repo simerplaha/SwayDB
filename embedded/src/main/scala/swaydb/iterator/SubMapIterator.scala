@@ -21,16 +21,16 @@ package swaydb.iterator
 
 import swaydb.SwayDB
 import swaydb.data.slice.Slice
-import swaydb.data.submap.Table
+import swaydb.data.map.MapKey
 import swaydb.serializers.Serializer
 
 import scala.annotation.tailrec
 
 case class SubMapIterator[K, V](db: SwayDB,
                                 tableKey: K,
-                                private val dbIterator: DBIterator[Table[K], V],
+                                private val dbIterator: DBIterator[MapKey[K], V],
                                 private val till: (K, V) => Boolean = (_: K, _: V) => true)(implicit keySerializer: Serializer[K],
-                                                                                            tableKeySerializer: Serializer[Table[K]],
+                                                                                            tableKeySerializer: Serializer[MapKey[K]],
                                                                                             ordering: Ordering[Slice[Byte]],
                                                                                             valueSerializer: Serializer[V]) extends Iterable[(K, V)] {
 
@@ -39,19 +39,19 @@ case class SubMapIterator[K, V](db: SwayDB,
   val tableKeyBytes = keySerializer.write(tableKey)
 
   def from(key: K): SubMapIterator[K, V] =
-    copy(dbIterator = dbIterator.from(Table.Row(tableKey, key)))
+    copy(dbIterator = dbIterator.from(MapKey.Row(tableKey, key)))
 
   def before(key: K): SubMapIterator[K, V] =
-    copy(dbIterator = dbIterator.before(Table.Row(tableKey, key)))
+    copy(dbIterator = dbIterator.before(MapKey.Row(tableKey, key)))
 
   def fromOrBefore(key: K): SubMapIterator[K, V] =
-    copy(dbIterator = dbIterator.fromOrBefore(Table.Row(tableKey, key)))
+    copy(dbIterator = dbIterator.fromOrBefore(MapKey.Row(tableKey, key)))
 
   def after(key: K): SubMapIterator[K, V] =
-    copy(dbIterator = dbIterator.after(Table.Row(tableKey, key)))
+    copy(dbIterator = dbIterator.after(MapKey.Row(tableKey, key)))
 
   def fromOrAfter(key: K): SubMapIterator[K, V] =
-    copy(dbIterator = dbIterator.fromOrAfter(Table.Row(tableKey, key)))
+    copy(dbIterator = dbIterator.fromOrAfter(MapKey.Row(tableKey, key)))
 
   def till(condition: (K, V) => Boolean) =
     copy(till = condition)
@@ -81,16 +81,16 @@ case class SubMapIterator[K, V](db: SwayDB,
       override def hasNext: Boolean =
         if (iter.hasNext) {
           val (tableId, value) = iter.next()
-          val thisTableKeyBytes = keySerializer.write(tableId.tableKey)
+          val thisTableKeyBytes = keySerializer.write(tableId.mapKey)
           if (!(thisTableKeyBytes equiv tableKeyBytes)) //it's moved onto another table
             false
           else {
             tableId match {
               //if it's at the head of the table fetch the next key-value
-              case Table.Start(_) =>
+              case MapKey.Start(_) =>
                 hasNext
 
-              case Table.Row(_, dataKey) =>
+              case MapKey.Row(_, dataKey) =>
                 if (till(dataKey, value)) {
                   nextKeyValue = (dataKey, value)
                   true
@@ -99,7 +99,7 @@ case class SubMapIterator[K, V](db: SwayDB,
                 }
 
               //if it's at the end of the table fetch the next key-value
-              case Table.End(_) =>
+              case MapKey.End(_) =>
                 hasNext
             }
           }
