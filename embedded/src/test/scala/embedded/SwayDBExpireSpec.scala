@@ -19,17 +19,16 @@
 
 package embedded
 
-import swaydb.SwayDB
+import swaydb.{Map, SwayDB}
 import swaydb.core.TestBase
 import swaydb.serializers.Default._
-import swaydb.data.SwayMap
 
 import scala.concurrent.duration._
 
 class SwayDBExpireSpec0 extends SwayDBExpireSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): SwayMap[Int, String] =
+  override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
     SwayDB.persistent[Int, String](dir = randomDir, minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration).assertGet
 }
 
@@ -39,7 +38,7 @@ class SwayDBExpireSpec1 extends SwayDBExpireSpec {
 
   val keyValueCount: Int = 1000
 
-  override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): SwayMap[Int, String] =
+  override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
     SwayDB.persistent[Int, String](randomDir, mapSize = 1.byte, segmentSize = 10.bytes, minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration).assertGet
 }
 
@@ -49,14 +48,14 @@ class SwayDBExpireSpec2 extends SwayDBExpireSpec {
 
   val keyValueCount: Int = 10000
 
-  override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): SwayMap[Int, String] =
+  override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
     SwayDB.memory[Int, String](mapSize = 1.byte, minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration).assertGet
 }
 
 class SwayDBExpireSpec3 extends SwayDBExpireSpec {
   val keyValueCount: Int = 10000
 
-  override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): SwayMap[Int, String] =
+  override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
     SwayDB.memory[Int, String](minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration).assertGet
 }
 
@@ -64,7 +63,7 @@ sealed trait SwayDBExpireSpec extends TestBase with TestBaseEmbedded {
 
   val keyValueCount: Int
 
-  def newDB(minTimeLeftToUpdateExpiration: FiniteDuration = 10.seconds): SwayMap[Int, String]
+  def newDB(minTimeLeftToUpdateExpiration: FiniteDuration = 10.seconds): Map[Int, String]
 
   "Expire" when {
     "Put" in {
@@ -186,7 +185,7 @@ sealed trait SwayDBExpireSpec extends TestBase with TestBaseEmbedded {
 
   "Expire" when {
     "Update" in {
-      val db: SwayMap[Int, String] = newDB()
+      val db: Map[Int, String] = newDB()
 
       val deadline = eitherOne(expiredDeadline(), 4.seconds.fromNow)
 

@@ -22,14 +22,13 @@ package embedded
 import swaydb.data.slice.Slice
 import swaydb.order.KeyOrder
 import swaydb.serializers.Default._
-import swaydb.data.SwayMap
-import swaydb.{Batch, SwayDB}
+import swaydb.{Batch, Map, SwayDB}
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
 class SwayDBSpec0 extends SwayDBSpec {
-  override def newDB(): SwayMap[Int, String] =
+  override def newDB(): Map[Int, String] =
     SwayDB.persistent[Int, String](randomDir).assertGet
 
   override val keyValueCount: Int = 100
@@ -41,7 +40,7 @@ class SwayDBSpec1 extends SwayDBSpec {
 
   override val keyValueCount: Int = 100
 
-  override def newDB(): SwayMap[Int, String] =
+  override def newDB(): Map[Int, String] =
     SwayDB.persistent[Int, String](randomDir, mapSize = 1.byte).assertGet
 }
 
@@ -51,7 +50,7 @@ class SwayDBSpec2 extends SwayDBSpec {
 
   override val keyValueCount: Int = 100
 
-  override def newDB(): SwayMap[Int, String] =
+  override def newDB(): Map[Int, String] =
     SwayDB.memory[Int, String](mapSize = 1.byte).assertGet
 }
 
@@ -59,13 +58,13 @@ class SwayDBSpec3 extends SwayDBSpec {
 
   override val keyValueCount: Int = 100
 
-  override def newDB(): SwayMap[Int, String] =
+  override def newDB(): Map[Int, String] =
     SwayDB.memory[Int, String]().assertGet
 }
 
 sealed trait SwayDBSpec extends TestBaseEmbedded {
 
-  def newDB(): SwayMap[Int, String]
+  def newDB(): Map[Int, String]
 
   "SwayDB" should {
     "remove all but first and last" in {

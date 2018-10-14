@@ -17,22 +17,22 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.data
+package swaydb
 
-import swaydb.data.BatchImplicits._
+import swaydb.BatchImplicits._
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
+import swaydb.data.request
 import swaydb.data.slice.Slice
 import swaydb.iterator.KeysIterator
 import swaydb.serializers.{Serializer, _}
-import swaydb.{Batch, SwayDB}
 
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 import scala.util.Try
 
-object SwaySet {
-  def apply[T](api: SwayDB)(implicit serializer: Serializer[T]): SwaySet[T] =
-    new SwaySet(api)
+object Set {
+  def apply[T](api: SwayDB)(implicit serializer: Serializer[T]): Set[T] =
+    new Set(api)
 }
 
 /**
@@ -40,7 +40,7 @@ object SwaySet {
   *
   * For documentation check - http://swaydb.io/api/
   */
-class SwaySet[T](db: SwayDB)(implicit serializer: Serializer[T]) extends KeysIterator[T](db, None) {
+class Set[T](db: SwayDB)(implicit serializer: Serializer[T]) extends KeysIterator[T](db, None) {
 
   def get(elem: T): Try[Option[T]] =
     db.getKey(elem).map(_.map(_.read[T]))

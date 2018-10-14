@@ -19,15 +19,14 @@
 
 package embedded
 
-import swaydb.SwayDB
+import swaydb.{Map, SwayDB}
 import swaydb.core.TestBase
 import swaydb.serializers.Default._
-import swaydb.data.SwayMap
 
 import scala.concurrent.duration._
 
 class SwayDBGetSpec0 extends SwayDBGetSpec {
-  override def newDB(): SwayMap[Int, String] =
+  override def newDB(): Map[Int, String] =
     SwayDB.persistent[Int, String](randomDir).assertGet
 }
 
@@ -35,7 +34,7 @@ class SwayDBGetSpec1 extends SwayDBGetSpec {
 
   import swaydb._
 
-  override def newDB(): SwayMap[Int, String] =
+  override def newDB(): Map[Int, String] =
     SwayDB.persistent[Int, String](randomDir, mapSize = 1.byte).assertGet
 }
 
@@ -43,18 +42,18 @@ class SwayDBGetSpec2 extends SwayDBGetSpec {
 
   import swaydb._
 
-  override def newDB(): SwayMap[Int, String] =
+  override def newDB(): Map[Int, String] =
     SwayDB.memory[Int, String](mapSize = 1.byte).assertGet
 }
 
 class SwayDBGetSpec3 extends SwayDBGetSpec {
-  override def newDB(): SwayMap[Int, String] =
+  override def newDB(): Map[Int, String] =
     SwayDB.memory[Int, String]().assertGet
 }
 
 sealed trait SwayDBGetSpec extends TestBase {
 
-  def newDB(): SwayMap[Int, String]
+  def newDB(): Map[Int, String]
 
   "SwayDB" should {
     "get" in {
