@@ -24,6 +24,7 @@ import swaydb.data.slice.Slice
 import swaydb.serializers.Serializer
 
 import scala.annotation.tailrec
+import scala.util.Try
 
 case class SubMapIterator[K, V](tableKey: K,
                                 private val dbIterator: DBIterator[MapKey[K], V],
@@ -107,6 +108,90 @@ case class SubMapIterator[K, V](tableKey: K,
 
       override def next(): (K, V) =
         nextKeyValue
+
+      override def toString(): String =
+        classOf[SubMapIterator[_, _]].getClass.getSimpleName
     }
   }
+
+  override def size: Int =
+    sizeTry.get
+
+  def sizeTry: Try[Int] =
+    dbIterator.sizeTry
+
+  override def isEmpty: Boolean =
+    dbIterator.isEmpty
+
+  override def nonEmpty: Boolean =
+    !isEmpty
+
+  override def head: (K, V) =
+    headOption.get
+
+  override def last: (K, V) =
+    lastOption.get
+
+  override def headOption: Option[(K, V)] =
+    dbIterator.headOption map {
+      case (mapKey, value) =>
+        (mapKey.mapKey, value)
+    }
+
+  override def lastOption: Option[(K, V)] =
+    dbIterator.lastOption map {
+      case (mapKey, value) =>
+        (mapKey.mapKey, value)
+    }
+
+  def foreachRight[U](f: (K, V) => U): Unit =
+    dbIterator foreachRight {
+      case (key, value) =>
+        f(key.mapKey, value)
+    }
+
+  def mapRight[B, T](f: (K, V) => B): Iterable[B] =
+    dbIterator mapRight {
+      case (key, value) =>
+        f(key.mapKey, value)
+    }
+
+  override def foldRight[B](b: B)(op: ((K, V), B) => B): B =
+    dbIterator.foldRight(b) {
+      case (prev, (key, value)) =>
+        op((key, value), prev)
+    }
+
+  override def takeRight(n: Int): Iterable[(K, V)] =
+    dbIterator.takeRight(n) map {
+      case (key, value) =>
+        (key.mapKey, value)
+    }
+
+  override def dropRight(n: Int): Iterable[(K, V)] =
+    dbIterator.dropRight(n) map {
+      case (key, value) =>
+        (key.mapKey, value)
+    }
+
+  override def reduceRight[B >: (K, V)](op: ((K, V), B) => B): B =
+    dbIterator.reduceRight {
+      case ((key, value), prev) =>
+        op((key.mapKey, value), prev)
+    }
+
+  override def reduceRightOption[B >: (K, V)](op: ((K, V), B) => B): Option[B] =
+    dbIterator.reduceRightOption {
+      case ((key, value), prev) =>
+        op((key.mapKey, value), prev)
+    }
+
+  def scanRight[B, That](z: B)(op: ((K, V), B) => B): Iterable[B] =
+    dbIterator.scanRight(z) {
+      case ((key, value), prev) =>
+        op((key.mapKey, value), prev)
+    }
+
+  override def toString(): String =
+    classOf[SubMapIterator[_, _]].getClass.getSimpleName
 }

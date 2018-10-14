@@ -19,8 +19,6 @@
 
 package embedded
 
-import swaydb.data.slice.Slice
-import swaydb.order.KeyOrder
 import swaydb.serializers.Default._
 import swaydb.{Batch, Map, SwayDB}
 
@@ -75,7 +73,8 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
           db.put(i, i.toString).assertGet
       }
       println("Removing .... ")
-      db.remove(2, 999)
+      db.remove(2, 999).assertGet
+      println("Removed .... ")
 
       db.toList should contain only((1, "1"), (1000, "1000"))
       db.head shouldBe ((1, "1"))
