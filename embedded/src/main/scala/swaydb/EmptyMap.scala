@@ -36,10 +36,10 @@ object EmptyMap {
     new EmptyMap[K, V](map)
   }
 }
+
 /**
   * An immutable empty Map used as a the head map to create child [[RootMap]]s.
   */
-
 class EmptyMap[K, V](map: Map[MapKey[K], V])(implicit keySerializer: Serializer[K],
                                              valueSerializer: Serializer[V],
                                              ordering: Ordering[Slice[Byte]]) {

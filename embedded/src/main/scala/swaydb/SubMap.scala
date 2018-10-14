@@ -39,10 +39,10 @@ object SubMap {
     new SubMap[K, V](map, mapKey)
   }
 
-  def subMap[K, V](parentMapKey: K,
+  def subMap[K, V](map: Map[MapKey[K], V],
+                   parentMapKey: K,
                    mapKey: K,
-                   value: V)(implicit map: Map[MapKey[K], V],
-                             keySerializer: Serializer[K],
+                   value: V)(implicit keySerializer: Serializer[K],
                              valueSerializer: Serializer[V],
                              ordering: Ordering[Slice[Byte]]): Try[SubMap[K, V]] =
     map.contains(MapKey.Start(mapKey)) flatMap {
@@ -76,7 +76,7 @@ class SubMap[K, V](map: Map[MapKey[K], V],
                               valueSerializer: Serializer[V]) extends SubMapIterator[K, V](mapKey, DBIterator[MapKey[K], V](map.db, Some(From(MapKey.Start(mapKey), false, false, false, true)))) {
 
   def subMap(key: K, value: V): Try[SubMap[K, V]] =
-    SubMap.subMap[K, V](mapKey, key, value)(map, keySerializer, valueSerializer, ordering)
+    SubMap.subMap[K, V](map, mapKey, key, value)
 
   def put(key: K, value: V): Try[Level0Meter] =
     map.put(key = MapKey.Row(mapKey, key), value = value)

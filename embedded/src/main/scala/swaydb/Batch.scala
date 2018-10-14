@@ -20,7 +20,6 @@
 package swaydb
 
 import swaydb.Data._
-import swaydb.data._
 
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 

@@ -49,5 +49,5 @@ class RootMap[K, V](map: Map[MapKey[K], V],
                                ordering: Ordering[Slice[Byte]]) {
 
   def subMap(key: K, value: V): Try[SubMap[K, V]] =
-    SubMap.subMap[K, V](mapKey, key, value)(map, keySerializer, valueSerializer, ordering)
+    SubMap.subMap[K, V](map, mapKey, key, value)
 }
