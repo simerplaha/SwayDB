@@ -29,7 +29,7 @@ class SwayDBSubMapIterationSpec0 extends SwayDBSubMapIterationSpec {
   val keyValueCount: Int = 1000
 
   override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): EmptyMap[Int, String] =
-    SwayDB.extensions.subMap.persistent[Int, String](dir = randomDir, minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration).assertGet
+    SwayDB.enableExtensions.persistent[Int, String](dir = randomDir, minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration).assertGet
 }
 
 class SwayDBSubMapIterationSpec1 extends SwayDBSubMapIterationSpec {
@@ -39,7 +39,7 @@ class SwayDBSubMapIterationSpec1 extends SwayDBSubMapIterationSpec {
   import swaydb._
 
   override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): EmptyMap[Int, String] =
-    SwayDB.extensions.subMap.persistent[Int, String](randomDir, mapSize = 1.byte, minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration).assertGet
+    SwayDB.enableExtensions.persistent[Int, String](randomDir, mapSize = 1.byte, minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration).assertGet
 }
 
 class SwayDBSubMapIterationSpec2 extends SwayDBSubMapIterationSpec {
@@ -49,14 +49,14 @@ class SwayDBSubMapIterationSpec2 extends SwayDBSubMapIterationSpec {
   import swaydb._
 
   override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): EmptyMap[Int, String] =
-    SwayDB.extensions.subMap.memory[Int, String](mapSize = 1.byte, minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration).assertGet
+    SwayDB.enableExtensions.memory[Int, String](mapSize = 1.byte, minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration).assertGet
 }
 
 class SwayDBSubMapIterationSpec3 extends SwayDBSubMapIterationSpec {
   val keyValueCount: Int = 100000
 
   override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): EmptyMap[Int, String] =
-    SwayDB.extensions.subMap.memory[Int, String](minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration).assertGet
+    SwayDB.enableExtensions.memory[Int, String](minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration).assertGet
 }
 
 sealed trait SwayDBSubMapIterationSpec extends TestBase with TestBaseEmbedded {

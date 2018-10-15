@@ -29,7 +29,7 @@ class SwayDBSubMapFromSpec0 extends SwayDBSubMapFromSpec {
   val keyValueCount: Int = 1000
 
   override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): EmptyMap[Int, String] =
-    SwayDB.extensions.subMap.persistent[Int, String](dir = randomDir, minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration).assertGet
+    SwayDB.enableExtensions.persistent[Int, String](dir = randomDir, minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration).assertGet
 }
 
 class SwayDBSubMapFromSpec1 extends SwayDBSubMapFromSpec {
@@ -39,7 +39,7 @@ class SwayDBSubMapFromSpec1 extends SwayDBSubMapFromSpec {
   import swaydb._
 
   override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): EmptyMap[Int, String] =
-    SwayDB.extensions.subMap.persistent[Int, String](randomDir, mapSize = 1.byte, minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration).assertGet
+    SwayDB.enableExtensions.persistent[Int, String](randomDir, mapSize = 1.byte, minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration).assertGet
 }
 
 class SwayDBSubMapFromSpec2 extends SwayDBSubMapFromSpec {
@@ -49,14 +49,14 @@ class SwayDBSubMapFromSpec2 extends SwayDBSubMapFromSpec {
   import swaydb._
 
   override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): EmptyMap[Int, String] =
-    SwayDB.extensions.subMap.memory[Int, String](mapSize = 1.byte, minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration).assertGet
+    SwayDB.enableExtensions.memory[Int, String](mapSize = 1.byte, minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration).assertGet
 }
 
 class SwayDBSubMapFromSpec3 extends SwayDBSubMapFromSpec {
   val keyValueCount: Int = 100000
 
   override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): EmptyMap[Int, String] =
-    SwayDB.extensions.subMap.memory[Int, String](minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration).assertGet
+    SwayDB.enableExtensions.memory[Int, String](minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration).assertGet
 }
 
 sealed trait SwayDBSubMapFromSpec extends TestBase with TestBaseEmbedded {

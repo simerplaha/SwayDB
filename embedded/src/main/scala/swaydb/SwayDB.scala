@@ -50,6 +50,8 @@ import scala.util.{Failure, Success, Try}
   */
 object SwayDB extends LazyLogging {
 
+  val enableExtensions = Extensions
+
   /**
     * Default execution context for all databases.
     *
@@ -64,8 +66,6 @@ object SwayDB extends LazyLogging {
     def reportFailure(exception: Throwable): Unit =
       logger.error("Execution context failure", exception)
   }
-
-  val extensions = Extensions
 
   /**
     * A pre-configured, 8 Leveled, persistent database where Level1 accumulates a minimum of 10 Segments before

@@ -29,7 +29,7 @@ class SwayDBSubMapPutSpec0 extends SwayDBSubMapPutSpec {
   val keyValueCount: Int = 1000
 
   override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): EmptyMap[Int, String] =
-    SwayDB.extensions.subMap.persistent[Int, String](dir = randomDir, minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration).assertGet
+    SwayDB.enableExtensions.persistent[Int, String](dir = randomDir, minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration).assertGet
 }
 
 class SwayDBSubMapPutSpec1 extends SwayDBSubMapPutSpec {
@@ -39,7 +39,7 @@ class SwayDBSubMapPutSpec1 extends SwayDBSubMapPutSpec {
   import swaydb._
 
   override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): EmptyMap[Int, String] =
-    SwayDB.extensions.subMap.persistent[Int, String](randomDir, mapSize = 1.byte, minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration).assertGet
+    SwayDB.enableExtensions.persistent[Int, String](randomDir, mapSize = 1.byte, minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration).assertGet
 }
 
 class SwayDBSubMapPutSpec2 extends SwayDBSubMapPutSpec {
@@ -49,14 +49,14 @@ class SwayDBSubMapPutSpec2 extends SwayDBSubMapPutSpec {
   import swaydb._
 
   override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): EmptyMap[Int, String] =
-    SwayDB.extensions.subMap.memory[Int, String](mapSize = 1.byte, minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration).assertGet
+    SwayDB.enableExtensions.memory[Int, String](mapSize = 1.byte, minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration).assertGet
 }
 
 class SwayDBSubMapPutSpec3 extends SwayDBSubMapPutSpec {
   val keyValueCount: Int = 100000
 
   override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): EmptyMap[Int, String] =
-    SwayDB.extensions.subMap.memory[Int, String](minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration).assertGet
+    SwayDB.enableExtensions.memory[Int, String](minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration).assertGet
 }
 
 sealed trait SwayDBSubMapPutSpec extends TestBase with TestBaseEmbedded {
