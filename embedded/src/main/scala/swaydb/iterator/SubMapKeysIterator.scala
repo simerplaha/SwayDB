@@ -54,7 +54,7 @@ case class SubMapKeysIterator[K](mapKey: K,
     copy(keysIterator = keysIterator.fromOrAfter(MapKey.Entry(mapKey, key)))
 
   private def from(key: MapKey[K], reverse: Boolean): SubMapKeysIterator[K] =
-    copy(keysIterator = keysIterator.copy(reverse = reverse).from(key))
+    copy(keysIterator = keysIterator.from(key).copy(reverse = reverse))
 
   def till(condition: K => Boolean) =
     copy(till = condition)
@@ -69,12 +69,12 @@ case class SubMapKeysIterator[K](mapKey: K,
       @tailrec
       override def hasNext: Boolean =
         if (iter.hasNext) {
-          val tableId = iter.next()
-          val mapKeyBytes = keySerializer.write(tableId.mapKey)
+          val mapKey = iter.next()
+          val mapKeyBytes = keySerializer.write(mapKey.mapKey)
           if (!(mapKeyBytes equiv thisMapKeyBytes)) //it's moved onto another table
             false
           else {
-            tableId match {
+            mapKey match {
               //if it's at the head of the table fetch the next key-value
               case MapKey.Start(_) =>
                 hasNext
@@ -129,28 +129,28 @@ case class SubMapKeysIterator[K](mapKey: K,
     }
 
   override def takeRight(n: Int): Iterable[K] =
-    from(key = endKey, reverse = true)
+    from(key = endKey, reverse = true).take(n)
 
   override def dropRight(n: Int): Iterable[K] =
     from(key = endKey, reverse = true).drop(n)
 
   override def reduceRight[B >: K](op: (K, B) => B): B =
     from(key = endKey, reverse = true).reduce[B] {
-      case (key: K, prev: B) =>
-        op(key, prev)
+      case (left: B, right: K) =>
+        op(right, left)
     }
 
   override def reduceRightOption[B >: K](op: (K, B) => B): Option[B] =
     from(key = endKey, reverse = true).reduceOption[B] {
-      case (key: K, prev: B) =>
-        op(key, prev)
+      case (left: B, right: K) =>
+        op(right, left)
     }
 
   override def scanRight[B, That](z: B)(op: (K, B) => B)(implicit bf: CanBuildFrom[Iterable[K], B, That]): That =
-    from(key = endKey, reverse = true).scanLeft[B, That](z) {
-      case (z: B, k: K) =>
-        op(k, z)
-    }
+    from(key = endKey, reverse = true).scan(z) {
+      case (left: B, right: K) =>
+        op(right, left)
+    }.asInstanceOf[That]
 
   override def toString(): String =
     classOf[SubMapKeysIterator[_]].getClass.getSimpleName

@@ -138,9 +138,9 @@ sealed trait SwayDBSubMapFromSpec extends TestBase with TestBaseEmbedded {
       subMap1.after(2).toList shouldBe empty
       subMap1.from(1).toList should contain inOrderOnly((1, "one"), (2, "two"))
       subMap1.fromOrBefore(2).toList should contain only ((2, "two"))
-      subMap1.fromOrBefore(1).toList should contain only((1, "one"), (2, "two"))
-      subMap1.after(0).toList should contain only((1, "one"), (2, "two"))
-      subMap1.fromOrAfter(0).toList should contain only((1, "one"), (2, "two"))
+      subMap1.fromOrBefore(1).toList should contain inOrderOnly((1, "one"), (2, "two"))
+      subMap1.after(0).toList should contain inOrderOnly((1, "one"), (2, "two"))
+      subMap1.fromOrAfter(0).toList should contain inOrderOnly((1, "one"), (2, "two"))
       subMap1.size shouldBe 2
       subMap1.head shouldBe ((1, "one"))
       subMap1.last shouldBe ((2, "two"))
@@ -149,9 +149,9 @@ sealed trait SwayDBSubMapFromSpec extends TestBase with TestBaseEmbedded {
       subMap2.after(4).toList shouldBe empty
       subMap2.from(3).toList should contain inOrderOnly((3, "three"), (4, "four"))
       subMap2.fromOrBefore(5).toList should contain only ((4, "four"))
-      subMap2.fromOrBefore(3).toList should contain only((3, "three"), (4, "four"))
-      subMap2.after(0).toList should contain only((3, "three"), (4, "four"))
-      subMap2.fromOrAfter(1).toList should contain only((3, "three"), (4, "four"))
+      subMap2.fromOrBefore(3).toList should contain inOrderOnly((3, "three"), (4, "four"))
+      subMap2.after(0).toList should contain inOrderOnly((3, "three"), (4, "four"))
+      subMap2.fromOrAfter(1).toList should contain inOrderOnly((3, "three"), (4, "four"))
       subMap2.size shouldBe 2
       subMap2.head shouldBe ((3, "three"))
       subMap2.last shouldBe ((4, "four"))
@@ -173,10 +173,10 @@ sealed trait SwayDBSubMapFromSpec extends TestBase with TestBaseEmbedded {
       subMap1.from(4).toList shouldBe empty
       subMap1.after(3).toList shouldBe empty
       subMap1.from(1).toList should contain inOrderOnly((1, "one"), (2, "two"), (3, "sub map 2"))
-      subMap1.fromOrBefore(2).toList should contain only ((2, "two"), (3, "sub map 2"))
-      subMap1.fromOrBefore(1).toList should contain only((1, "one"), (2, "two"), (3, "sub map 2"))
-      subMap1.after(0).toList should contain only((1, "one"), (2, "two"), (3, "sub map 2"))
-      subMap1.fromOrAfter(0).toList should contain only((1, "one"), (2, "two"), (3, "sub map 2"))
+      subMap1.fromOrBefore(2).toList should contain inOrderOnly((2, "two"), (3, "sub map 2"))
+      subMap1.fromOrBefore(1).toList should contain inOrderOnly((1, "one"), (2, "two"), (3, "sub map 2"))
+      subMap1.after(0).toList should contain inOrderOnly((1, "one"), (2, "two"), (3, "sub map 2"))
+      subMap1.fromOrAfter(0).toList should contain inOrderOnly((1, "one"), (2, "two"), (3, "sub map 2"))
       subMap1.size shouldBe 3
       subMap1.head shouldBe ((1, "one"))
       subMap1.last shouldBe ((3, "sub map 2"))
@@ -185,9 +185,9 @@ sealed trait SwayDBSubMapFromSpec extends TestBase with TestBaseEmbedded {
       subMap2.after(4).toList shouldBe empty
       subMap2.from(3).toList should contain inOrderOnly((3, "three"), (4, "four"))
       subMap2.fromOrBefore(5).toList should contain only ((4, "four"))
-      subMap2.fromOrBefore(3).toList should contain only((3, "three"), (4, "four"))
-      subMap2.after(0).toList should contain only((3, "three"), (4, "four"))
-      subMap2.fromOrAfter(1).toList should contain only((3, "three"), (4, "four"))
+      subMap2.fromOrBefore(3).toList should contain inOrderOnly((3, "three"), (4, "four"))
+      subMap2.after(0).toList should contain inOrderOnly((3, "three"), (4, "four"))
+      subMap2.fromOrAfter(1).toList should contain inOrderOnly((3, "three"), (4, "four"))
       subMap2.size shouldBe 2
       subMap2.head shouldBe ((3, "three"))
       subMap2.last shouldBe ((4, "four"))

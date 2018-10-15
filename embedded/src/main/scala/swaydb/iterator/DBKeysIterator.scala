@@ -34,8 +34,8 @@ import scala.util.{Failure, Success, Try}
   *
   * This iterator and [[DBIterator]] share a lot of the same code. A higher type is required.
   */
-case class DBKeysIterator[K](private val db: SwayDB,
-                             private val from: Option[From[K]],
+case class DBKeysIterator[K](private[iterator] val db: SwayDB,
+                             private[iterator] val from: Option[From[K]],
                              private val reverse: Boolean = false,
                              private val till: K => Boolean = (_: K) => true)(implicit serializer: Serializer[K]) extends Iterable[K] {
 
