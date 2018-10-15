@@ -21,6 +21,7 @@ package swaydb
 
 import swaydb.data.slice.Slice
 import swaydb.data.map.MapKey
+import swaydb.iterator.{DBIterator, From, SubMapIterator}
 import swaydb.serializers.Serializer
 
 import scala.util.Try
@@ -45,8 +46,9 @@ object RootMap {
   */
 class RootMap[K, V](map: Map[MapKey[K], V],
                     mapKey: K)(implicit keySerializer: Serializer[K],
+                               mapKeySerializer: Serializer[MapKey[K]],
                                valueSerializer: Serializer[V],
-                               ordering: Ordering[Slice[Byte]]) {
+                               ordering: Ordering[Slice[Byte]]) extends SubMapIterator[K, V](mapKey, includeSubMapsBoolean = true, dbIterator = DBIterator[MapKey[K], V](map.db, Some(From(MapKey.Start(mapKey), false, false, false, true)))) {
 
   def subMap(key: K, value: V): Try[SubMap[K, V]] =
     SubMap.subMap[K, V](map, mapKey, key, value)

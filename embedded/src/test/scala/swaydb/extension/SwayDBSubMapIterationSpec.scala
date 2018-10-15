@@ -74,6 +74,8 @@ sealed trait SwayDBSubMapIterationSpec extends TestBase with TestBaseEmbedded {
       val subMap = firstMap.subMap(3, "sub map 3").assertGet
       val subMap2 = firstMap.subMap(4, "sub map 4").assertGet
 
+      rootMap.toList should contain only ((2, "first map"))
+
       firstMap.toList shouldBe empty
       firstMap
         .includeSubMaps()
@@ -88,6 +90,8 @@ sealed trait SwayDBSubMapIterationSpec extends TestBase with TestBaseEmbedded {
 
       val rootMap = db.rootMap(1, "rootMap").assertGet
       val firstMap: SubMap[Int, String] = rootMap.subMap(2, "first map").assertGet
+
+      rootMap.toList should contain only ((2, "first map"))
 
       firstMap.put(1, "one").assertGet
       firstMap.size shouldBe 1
@@ -159,13 +163,15 @@ sealed trait SwayDBSubMapIterationSpec extends TestBase with TestBaseEmbedded {
 
       val rootMap = db.rootMap(1, "rootMap1").assertGet
 
-      val subMap1: SubMap[Int, String] = rootMap.subMap(2, "sub map 2").assertGet
+      val subMap1: SubMap[Int, String] = rootMap.subMap(2, "sub map 1").assertGet
       subMap1.put(1, "one").assertGet
       subMap1.put(2, "two").assertGet
 
-      val subMap2: SubMap[Int, String] = rootMap.subMap(3, "sub map three").assertGet
+      val subMap2: SubMap[Int, String] = rootMap.subMap(3, "sub map 2").assertGet
       subMap2.put(3, "three").assertGet
       subMap2.put(4, "four").assertGet
+
+      rootMap.toList should contain only ((2, "sub map 1"), (3, "sub map 2"))
 
       //FIRST MAP ITERATIONS
       subMap1.size shouldBe 2
@@ -249,6 +255,8 @@ sealed trait SwayDBSubMapIterationSpec extends TestBase with TestBaseEmbedded {
       val subMap2: SubMap[Int, String] = subMap1.subMap(3, "sub map 2").assertGet
       subMap2.put(3, "three").assertGet
       subMap2.put(4, "four").assertGet
+
+      rootMap.toList should contain only ((2, "sub map 1"))
 
       //FIRST MAP ITERATIONS
       subMap1.size shouldBe 2

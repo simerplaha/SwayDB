@@ -41,10 +41,10 @@ case class SubMapKeysIterator[K](mapKey: K,
 
   private val thisMapKeyBytes = keySerializer.write(mapKey)
 
-  def includeSubMaps: SubMapKeysIterator[K] =
+  def includeSubMaps(): SubMapKeysIterator[K] =
     copy(includeSubMapsBoolean = true)
 
-  def subMapsOnly: SubMapKeysIterator[K] =
+  def subMapsOnly(): SubMapKeysIterator[K] =
     copy(subMapsOnlyBoolean = true)
 
   def from(key: K): SubMapKeysIterator[K] =
@@ -188,9 +188,6 @@ case class SubMapKeysIterator[K](mapKey: K,
         classOf[SubMapKeysIterator[_]].getClass.getSimpleName
     }
   }
-
-  override def size: Int =
-    SubMapKeysIterator(mapKey, keysIterator = DBKeysIterator(keysIterator.db, keysIterator.from)).size
 
   override def head: K =
     headOption.get
