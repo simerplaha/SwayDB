@@ -44,20 +44,24 @@ class EmptyMap[K, V](map: Map[MapKey[K], V])(implicit keySerializer: Serializer[
                                              valueSerializer: Serializer[V],
                                              ordering: Ordering[Slice[Byte]]) {
 
-  def rootMap(key: K, value: V): Try[RootMap[K, V]] =
+  def rootMap[KK <: K, VV <: V](key: KK, value: VV): Try[RootMap[KK, VV]] =
     map.contains(MapKey.Start(key)) flatMap {
       exists =>
         if (exists) {
           implicit val mapKeySerializer = MapKey.mapKeySerializer(keySerializer)
-          Success(new RootMap[K, V](map, key))
+          Success(new RootMap[K, V](map, key).asInstanceOf[RootMap[KK, VV]])
         } else {
           map.batch(
             Batch.Put(MapKey.Start(key), value),
+            Batch.Put(MapKey.EntriesStart(key), value),
+            Batch.Put(MapKey.EntriesEnd(key), value),
+            Batch.Put(MapKey.SubMapsStart(key), value),
+            Batch.Put(MapKey.SubMapsEnd(key), value),
             Batch.Put(MapKey.End(key), value)
           ) map {
             _ =>
               implicit val mapKeySerializer = MapKey.mapKeySerializer(keySerializer)
-              new RootMap[K, V](map, key)
+              new RootMap[K, V](map, key).asInstanceOf[RootMap[KK, VV]]
           }
         }
     }

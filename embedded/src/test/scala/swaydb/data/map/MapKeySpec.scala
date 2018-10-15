@@ -41,25 +41,45 @@ class MapKeySpec extends TestBaseEmbedded {
 
     "write & read MapKeys with Int keys" in {
       doAssert(MapKey.Start(1))
+      doAssert(MapKey.EntriesStart(1))
       doAssert(MapKey.Entry(1, 100))
+      doAssert(MapKey.EntriesEnd(1))
+      doAssert(MapKey.SubMapsStart(1))
+      doAssert(MapKey.SubMap(1, 1000))
+      doAssert(MapKey.SubMapsEnd(1))
       doAssert(MapKey.End(1))
     }
 
     "write & read MapKeys with Int String" in {
       doAssert(MapKey.Start("one"))
+      doAssert(MapKey.EntriesStart("one"))
       doAssert(MapKey.Entry("one", "one key"))
+      doAssert(MapKey.EntriesEnd("one"))
+      doAssert(MapKey.SubMapsStart("one"))
+      doAssert(MapKey.SubMap("one", "one sub map"))
+      doAssert(MapKey.SubMapsEnd("one"))
       doAssert(MapKey.End("three"))
     }
 
     "write & read MapKeys with large single value" in {
       doAssert(MapKey.Start(randomCharacters(100000)))
+      doAssert(MapKey.EntriesStart(randomCharacters(100000)))
+      doAssert(MapKey.EntriesEnd(randomCharacters(100000)))
       doAssert(MapKey.Entry(randomCharacters(100000), randomCharacters(100000)))
+      doAssert(MapKey.SubMapsStart(randomCharacters(100000)))
+      doAssert(MapKey.SubMap(randomCharacters(100000), randomCharacters(100000)))
+      doAssert(MapKey.SubMapsEnd(randomCharacters(100000)))
       doAssert(MapKey.End(randomCharacters(100000)))
     }
 
     "write & read MapKeys with Double" in {
       doAssert(MapKey.Start(Double.MinValue))
-      doAssert(MapKey.Entry(0.11, 1001.0))
+      doAssert(MapKey.EntriesStart(Double.MinValue))
+      doAssert(MapKey.Entry(Double.MinValue, Double.MaxValue))
+      doAssert(MapKey.EntriesEnd(Double.MinValue))
+      doAssert(MapKey.SubMapsStart(Double.MinValue))
+      doAssert(MapKey.SubMap(Double.MaxValue, Double.MaxValue))
+      doAssert(MapKey.SubMapsEnd(Double.MinValue))
       doAssert(MapKey.End(Double.MaxValue))
     }
 
@@ -73,19 +93,42 @@ class MapKeySpec extends TestBaseEmbedded {
 
       val keys = Seq(
         MapKey.Start(0),
+        MapKey.SubMapsStart(0),
+        MapKey.SubMapsEnd(0),
         MapKey.End(0),
+
         MapKey.Start(1),
+        MapKey.EntriesStart(1),
         MapKey.Entry(1, 1),
+        MapKey.EntriesEnd(1),
+        MapKey.SubMapsStart(1),
+        MapKey.SubMap(1, 1000),
+        MapKey.SubMapsEnd(1),
         MapKey.End(1),
+
         MapKey.Start(2),
+        MapKey.EntriesStart(2),
         MapKey.Entry(2, 2),
         MapKey.Entry(2, 3),
+        MapKey.EntriesEnd(2),
+        MapKey.SubMapsStart(2),
+        MapKey.SubMap(2, 1000),
+        MapKey.SubMap(2, 2000),
+        MapKey.SubMapsEnd(2),
         MapKey.End(2),
+
         MapKey.Start(100),
+        MapKey.EntriesStart(100),
         MapKey.Entry(100, 2),
         MapKey.Entry(100, 3),
         MapKey.Entry(100, 4),
         MapKey.Entry(100, 5),
+        MapKey.EntriesEnd(100),
+        MapKey.SubMapsStart(100),
+        MapKey.SubMap(100, 1000),
+        MapKey.SubMap(100, 2000),
+        MapKey.SubMap(100, 3000),
+        MapKey.SubMapsEnd(100),
         MapKey.End(100)
       )
 
@@ -111,12 +154,23 @@ class MapKeySpec extends TestBaseEmbedded {
 
       val keys = Seq(
         MapKey.Start(randomString1),
+        MapKey.SubMapsStart(randomString1),
+        MapKey.SubMapsEnd(randomString1),
         MapKey.End(randomString1),
+
         MapKey.Start(randomString2),
+        MapKey.EntriesStart(randomString2),
         MapKey.Entry(randomString2, randomString3),
         MapKey.Entry(randomString2, randomString4),
         MapKey.Entry(randomString2, randomString5),
+        MapKey.EntriesEnd(randomString2),
+        MapKey.SubMapsStart(randomString2),
+        MapKey.SubMap(randomString2, randomString3),
+        MapKey.SubMap(randomString2, randomString4),
+        MapKey.SubMap(randomString2, randomString5),
+        MapKey.SubMapsEnd(randomString2),
         MapKey.End(randomString2),
+
         MapKey.Start(randomString3),
         MapKey.Entry(randomString3, randomString3),
         MapKey.Entry(randomString3, randomString4),
@@ -138,14 +192,25 @@ class MapKeySpec extends TestBaseEmbedded {
 
       val keys = Seq(
         MapKey.Start(0),
+        MapKey.EntriesStart(0),
+        MapKey.EntriesEnd(0),
         MapKey.End(0),
         MapKey.Start(0),
+        MapKey.EntriesStart(0),
+        MapKey.EntriesEnd(0),
         MapKey.End(0),
-        MapKey.End(1),
+
         MapKey.Start(2),
+        MapKey.EntriesStart(2),
         MapKey.Entry(2, 2),
         MapKey.Entry(2, 2),
+        MapKey.EntriesEnd(2),
+        MapKey.SubMapsStart(2),
+        MapKey.SubMap(2, 1000),
+        MapKey.SubMap(2, 1000),
+        MapKey.SubMapsEnd(2),
         MapKey.End(2),
+
         MapKey.Start(100),
         MapKey.Entry(100, 4),
         MapKey.Entry(100, 5),
@@ -157,11 +222,19 @@ class MapKeySpec extends TestBaseEmbedded {
 
       val expected = Seq(
         MapKey.Start(0),
+        MapKey.EntriesStart(0),
+        MapKey.EntriesEnd(0),
         MapKey.End(0),
-        MapKey.End(1),
+
         MapKey.Start(2),
+        MapKey.EntriesStart(2),
         MapKey.Entry(2, 2),
+        MapKey.EntriesEnd(2),
+        MapKey.SubMapsStart(2),
+        MapKey.SubMap(2, 1000),
+        MapKey.SubMapsEnd(2),
         MapKey.End(2),
+
         MapKey.Start(100),
         MapKey.Entry(100, 4),
         MapKey.Entry(100, 5),

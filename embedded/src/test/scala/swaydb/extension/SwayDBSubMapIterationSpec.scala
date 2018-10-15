@@ -65,9 +65,25 @@ sealed trait SwayDBSubMapIterationSpec extends TestBase with TestBaseEmbedded {
 
   def newDB(minTimeLeftToUpdateExpiration: FiniteDuration = 10.seconds): EmptyMap[Int, String]
 
-  "From" should {
+  "Iteration" should {
+    "exclude & include subMap by default" in {
+      val db = newDB()
 
-    "if the map contains 1 element" in {
+      val rootMap = db.rootMap(1, "rootMap").assertGet
+      val firstMap: SubMap[Int, String] = rootMap.subMap(2, "first map").assertGet
+      val subMap = firstMap.subMap(3, "sub map 3").assertGet
+      val subMap2 = firstMap.subMap(4, "sub map 4").assertGet
+
+      firstMap.toList shouldBe empty
+      firstMap
+        .includeSubMaps()
+        .toList should contain only((3, "sub map 3"), (4, "sub map 4"))
+
+    }
+  }
+
+  "Iteration" when {
+    "the map contains 1 element" in {
       val db = newDB()
 
       val rootMap = db.rootMap(1, "rootMap").assertGet
@@ -94,7 +110,7 @@ sealed trait SwayDBSubMapIterationSpec extends TestBase with TestBaseEmbedded {
       firstMap.scanRight((-1, "minus")) { case ((key, value), _) => (key, value) } shouldBe List((-1, "minus"), (1, "one"))
     }
 
-    "if the map contains 2 elements" in {
+    "the map contains 2 elements" in {
       val db = newDB()
 
       val rootMap = db.rootMap(1, "rootMap").assertGet
@@ -235,35 +251,70 @@ sealed trait SwayDBSubMapIterationSpec extends TestBase with TestBaseEmbedded {
       subMap2.put(4, "four").assertGet
 
       //FIRST MAP ITERATIONS
-      subMap1.size shouldBe 3
+      subMap1.size shouldBe 2
       subMap1.head shouldBe ((1, "one"))
-      subMap1.last shouldBe ((3, "sub map 2"))
-      subMap1.map(keyValue => (keyValue._1, keyValue._2)) shouldBe List((1, "one"), (2, "two"), (3, "sub map 2"))
-      subMap1.foldLeft(List.empty[(Int, String)]) { case (previous, keyValue) => previous :+ keyValue } shouldBe List((1, "one"), (2, "two"), (3, "sub map 2"))
-      subMap1.foldRight(List.empty[(Int, String)]) { case (keyValue, previous) => previous :+ keyValue } shouldBe List((3, "sub map 2"), (2, "two"), (1, "one"))
-      subMap1 mapRight { case keyValue => keyValue } shouldBe List((3, "sub map 2"), (2, "two"), (1, "one"))
-      subMap1.takeRight(100) shouldBe List((3, "sub map 2"), (2, "two"), (1, "one"))
-      subMap1.takeRight(3) shouldBe List((3, "sub map 2"), (2, "two"), (1, "one"))
-      subMap1.takeRight(1) should contain only ((3, "sub map 2"))
-      subMap1.take(100) should contain only((1, "one"), (2, "two"), (3, "sub map 2"))
+      subMap1.last shouldBe ((2, "two"))
+      subMap1.includeSubMaps().last shouldBe ((3, "sub map 2"))
+      subMap1.map(keyValue => (keyValue._1, keyValue._2)) shouldBe List((1, "one"), (2, "two"))
+      subMap1.includeSubMaps().map(keyValue => (keyValue._1, keyValue._2)) shouldBe List((1, "one"), (2, "two"), (3, "sub map 2"))
+      subMap1.subMapsOnly().map(keyValue => (keyValue._1, keyValue._2)) shouldBe List((3, "sub map 2"))
+      subMap1.foldLeft(List.empty[(Int, String)]) { case (previous, keyValue) => previous :+ keyValue } shouldBe List((1, "one"), (2, "two"))
+      subMap1.includeSubMaps().foldLeft(List.empty[(Int, String)]) { case (previous, keyValue) => previous :+ keyValue } shouldBe List((1, "one"), (2, "two"), (3, "sub map 2"))
+      subMap1.subMapsOnly().foldLeft(List.empty[(Int, String)]) { case (previous, keyValue) => previous :+ keyValue } shouldBe List((3, "sub map 2"))
+      subMap1.foldRight(List.empty[(Int, String)]) { case (keyValue, previous) => previous :+ keyValue } shouldBe List((2, "two"), (1, "one"))
+      subMap1.includeSubMaps().foldRight(List.empty[(Int, String)]) { case (keyValue, previous) => previous :+ keyValue } shouldBe List((3, "sub map 2"), (2, "two"), (1, "one"))
+      subMap1.subMapsOnly().foldRight(List.empty[(Int, String)]) { case (keyValue, previous) => previous :+ keyValue } shouldBe List((3, "sub map 2"))
+      subMap1 mapRight { case keyValue => keyValue } shouldBe List((2, "two"), (1, "one"))
+      subMap1.includeSubMaps() mapRight { case keyValue => keyValue } shouldBe List((3, "sub map 2"), (2, "two"), (1, "one"))
+      subMap1.subMapsOnly() mapRight { case keyValue => keyValue } shouldBe List((3, "sub map 2"))
+      subMap1.takeRight(100) shouldBe List((2, "two"), (1, "one"))
+      subMap1.includeSubMaps().takeRight(100) shouldBe List((3, "sub map 2"), (2, "two"), (1, "one"))
+      subMap1.subMapsOnly().takeRight(100) shouldBe List((3, "sub map 2"))
+      subMap1.takeRight(3) shouldBe List((2, "two"), (1, "one"))
+      subMap1.includeSubMaps().takeRight(3) shouldBe List((3, "sub map 2"), (2, "two"), (1, "one"))
+      subMap1.subMapsOnly().takeRight(3) shouldBe List((3, "sub map 2"))
+      subMap1.takeRight(1) should contain only ((2, "two"))
+      subMap1.includeSubMaps().takeRight(1) should contain only ((3, "sub map 2"))
+      subMap1.subMapsOnly().takeRight(1) should contain only ((3, "sub map 2"))
+      subMap1.take(100) should contain only((1, "one"), (2, "two"))
+      subMap1.includeSubMaps().take(100) should contain only((1, "one"), (2, "two"), (3, "sub map 2"))
+      subMap1.subMapsOnly().take(100) should contain only ((3, "sub map 2"))
       subMap1.take(2) should contain only((1, "one"), (2, "two"))
+      subMap1.includeSubMaps().take(2) should contain only((1, "one"), (2, "two"))
+      subMap1.subMapsOnly().take(2) should contain only ((3, "sub map 2"))
       subMap1.take(1) should contain only ((1, "one"))
-      subMap1.dropRight(1) should contain only((1, "one"), (2, "two"))
-      subMap1.drop(1) should contain only((2, "two"), (3, "sub map 2"))
-      subMap1.dropRight(0) shouldBe List((3, "sub map 2"), (2, "two"), (1, "one"))
-      subMap1.drop(0) shouldBe List((1, "one"), (2, "two"), (3, "sub map 2"))
+      subMap1.includeSubMaps().take(1) should contain only ((1, "one"))
+      subMap1.subMapsOnly().take(1) should contain only ((3, "sub map 2"))
+      subMap1.dropRight(1) should contain only ((1, "one"))
+      subMap1.includeSubMaps().dropRight(1) should contain only((1, "one"), (2, "two"))
+      subMap1.subMapsOnly().dropRight(1) shouldBe empty
+      subMap1.drop(1) should contain only ((2, "two"))
+      subMap1.includeSubMaps().drop(1) should contain only((2, "two"), (3, "sub map 2"))
+      subMap1.subMapsOnly().drop(1) shouldBe empty
+      subMap1.dropRight(0) shouldBe List((2, "two"), (1, "one"))
+      subMap1.includeSubMaps().dropRight(0) shouldBe List((3, "sub map 2"), (2, "two"), (1, "one"))
+      subMap1.subMapsOnly().dropRight(0) shouldBe List((3, "sub map 2"))
+      subMap1.drop(0) shouldBe List((1, "one"), (2, "two"))
+      subMap1.includeSubMaps().drop(0) shouldBe List((1, "one"), (2, "two"), (3, "sub map 2"))
+      subMap1.subMapsOnly().drop(0) shouldBe List((3, "sub map 2"))
+
       subMap1.reduceRight[(Int, String)] {
+        case (left, right) =>
+          (left._1 + right._1, left._2 + right._2)
+      } shouldBe(3, "onetwo")
+
+      subMap1.includeSubMaps().reduceRight[(Int, String)] {
         case (left, right) =>
           (left._1 + right._1, left._2 + right._2)
       } shouldBe(6, "onetwosub map 2")
 
-      subMap1.reduceRightOption[(Int, String)] {
+      subMap1.includeSubMaps().reduceRightOption[(Int, String)] {
         case (left, right) =>
           //          println(left, right)
           (left._1 + right._1, left._2 + right._2)
       }.assertGet shouldBe(6, "onetwosub map 2")
 
-      subMap1.scanRight((0, "")) {
+      subMap1.includeSubMaps().scanRight((0, "")) {
         case ((key, value), (key2, value2)) =>
           (key + key2, value + value2)
       } shouldBe List((0, ""), (3, "sub map 2"), (5, "twosub map 2"), (6, "onetwosub map 2"))

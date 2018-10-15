@@ -52,8 +52,12 @@ object SubMap {
           Success(SubMap[K, V](parentMap.db, mapKey))
         } else {
           parentMap.batch(
+            Batch.Put(MapKey.SubMap(parentMapKey, mapKey), value), //add subMap entry to parent Map's key
             Batch.Put(MapKey.Start(mapKey), value),
-            Batch.Put(MapKey.Entry(parentMapKey, mapKey), value),
+            Batch.Put(MapKey.EntriesStart(mapKey), value),
+            Batch.Put(MapKey.EntriesEnd(mapKey), value),
+            Batch.Put(MapKey.SubMapsStart(mapKey), value),
+            Batch.Put(MapKey.SubMapsEnd(mapKey), value),
             Batch.Put(MapKey.End(mapKey), value)
           ) map {
             _ =>
@@ -73,7 +77,7 @@ class SubMap[K, V](map: Map[MapKey[K], V],
                    mapKey: K)(implicit keySerializer: Serializer[K],
                               mapKeySerializer: Serializer[MapKey[K]],
                               ordering: Ordering[Slice[Byte]],
-                              valueSerializer: Serializer[V]) extends SubMapIterator[K, V](mapKey, DBIterator[MapKey[K], V](map.db, Some(From(MapKey.Start(mapKey), false, false, false, true)))) {
+                              valueSerializer: Serializer[V]) extends SubMapIterator[K, V](mapKey, dbIterator = DBIterator[MapKey[K], V](map.db, Some(From(MapKey.Start(mapKey), false, false, false, true)))) {
 
   def subMap(key: K, value: V): Try[SubMap[K, V]] =
     SubMap.subMap[K, V](map, mapKey, key, value)
@@ -183,7 +187,7 @@ class SubMap[K, V](map: Map[MapKey[K], V],
     })
 
   def keys: SubMapKeysIterator[K] =
-    SubMapKeysIterator[K](mapKey, DBKeysIterator[MapKey[K]](map.db, Some(From(MapKey.Start(mapKey), orAfter = false, orBefore = false, before = false, after = true))))
+    SubMapKeysIterator[K](mapKey, keysIterator = DBKeysIterator[MapKey[K]](map.db, Some(From(MapKey.Start(mapKey), orAfter = false, orBefore = false, before = false, after = true))))
 
   def contains(key: K): Try[Boolean] =
     map contains MapKey.Entry(mapKey, key)

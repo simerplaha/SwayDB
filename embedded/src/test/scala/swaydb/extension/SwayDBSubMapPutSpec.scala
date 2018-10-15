@@ -153,10 +153,10 @@ sealed trait SwayDBSubMapPutSpec extends TestBase with TestBaseEmbedded {
       subMap4.put(7, "seven").assertGet
       subMap4.put(8, "eight").assertGet
 
-      subMap1.toList should contain inOrderOnly((1, "one"), (2, "two"), (3, "sub map three"))
-      subMap2.toList should contain inOrderOnly((3, "three"), (4, "four"), (5, "sub map five"))
-      subMap3.toList should contain inOrderOnly((5, "five"), (6, "six"), (7, "sub map seven"))
-      subMap4.toList should contain inOrderOnly((7, "seven"), (8, "eight"))
+      subMap1.includeSubMaps().toList should contain inOrderOnly((1, "one"), (2, "two"), (3, "sub map three"))
+      subMap2.includeSubMaps().toList should contain inOrderOnly((3, "three"), (4, "four"), (5, "sub map five"))
+      subMap3.includeSubMaps().toList should contain inOrderOnly((5, "five"), (6, "six"), (7, "sub map seven"))
+      subMap4.includeSubMaps().toList should contain inOrderOnly((7, "seven"), (8, "eight"))
     }
 
     "Initialise 5 sibling maps with 2 elements in each map" in {

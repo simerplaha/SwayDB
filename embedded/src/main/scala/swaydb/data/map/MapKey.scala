@@ -25,18 +25,32 @@ import swaydb.order.KeyOrder
 import swaydb.serializers.Serializer
 
 private[swaydb] sealed trait MapKey[K] {
-  val mapKey: K
+  def mapKey: K
 }
 
 private[swaydb] object MapKey {
 
   case class Start[K](mapKey: K) extends MapKey[K]
+  case class EntriesStart[K](mapKey: K) extends MapKey[K]
   case class Entry[K](mapKey: K, dataKey: K) extends MapKey[K]
+  case class EntriesEnd[K](mapKey: K) extends MapKey[K]
+  case class SubMapsStart[K](mapKey: K) extends MapKey[K]
+  case class SubMap[K](mapKey: K, subMapKey: K) extends MapKey[K]
+  case class SubMapsEnd[K](mapKey: K) extends MapKey[K]
   case class End[K](mapKey: K) extends MapKey[K]
 
+  //formatId for the serializers
   private val formatId: Byte = 0.toByte
+  //starting of the Map
   private val start: Byte = 1.toByte
-  private val entry: Byte = 2.toByte
+  //ids for entries block
+  private val entriesStart: Byte = 2.toByte
+  private val entry: Byte = 3.toByte
+  private val entriesEnd: Byte = 10.toByte
+  //ids for subMaps block
+  private val subMapsStart: Byte = 11.toByte
+  private val subMap: Byte = 12.toByte
+  private val subMapsEnd: Byte = 20.toByte
   //leave enough space to allow for adding other data like mapSize etc.
   private val end: Byte = 100.toByte
 
@@ -65,6 +79,15 @@ private[swaydb] object MapKey {
               .addAll(keyBytes)
               .add(MapKey.start)
 
+          case MapKey.EntriesStart(mapKey) =>
+            val keyBytes = keySerializer.write(mapKey)
+
+            Slice.create[Byte](1 + ByteUtil.sizeOf(keyBytes.size) + keyBytes.size + 1)
+              .add(formatId)
+              .addIntUnsigned(keyBytes.size)
+              .addAll(keyBytes)
+              .add(MapKey.entriesStart)
+
           case MapKey.Entry(mapKey, dataKey) =>
             val mapKeyBytes = keySerializer.write(mapKey)
             val dataKeyBytes = keySerializer.write(dataKey)
@@ -75,6 +98,44 @@ private[swaydb] object MapKey {
               .addAll(mapKeyBytes)
               .add(MapKey.entry)
               .addAll(dataKeyBytes)
+
+          case MapKey.EntriesEnd(mapKey) =>
+            val keyBytes = keySerializer.write(mapKey)
+
+            Slice.create[Byte](1 + ByteUtil.sizeOf(keyBytes.size) + keyBytes.size + 1)
+              .add(formatId)
+              .addIntUnsigned(keyBytes.size)
+              .addAll(keyBytes)
+              .add(MapKey.entriesEnd)
+
+          case MapKey.SubMapsStart(mapKey) =>
+            val keyBytes = keySerializer.write(mapKey)
+
+            Slice.create[Byte](1 + ByteUtil.sizeOf(keyBytes.size) + keyBytes.size + 1)
+              .add(formatId)
+              .addIntUnsigned(keyBytes.size)
+              .addAll(keyBytes)
+              .add(MapKey.subMapsStart)
+
+          case MapKey.SubMap(mapKey, subMapKey) =>
+            val mapKeyBytes = keySerializer.write(mapKey)
+            val dataKeyBytes = keySerializer.write(subMapKey)
+
+            Slice.create[Byte](1 + ByteUtil.sizeOf(mapKeyBytes.size) + mapKeyBytes.size + 1 + dataKeyBytes.size)
+              .add(formatId)
+              .addIntUnsigned(mapKeyBytes.size)
+              .addAll(mapKeyBytes)
+              .add(MapKey.subMap)
+              .addAll(dataKeyBytes)
+
+          case MapKey.SubMapsEnd(mapKey) =>
+            val keyBytes = keySerializer.write(mapKey)
+
+            Slice.create[Byte](1 + ByteUtil.sizeOf(keyBytes.size) + keyBytes.size + 1)
+              .add(formatId)
+              .addIntUnsigned(keyBytes.size)
+              .addAll(keyBytes)
+              .add(MapKey.subMapsEnd)
 
           case MapKey.End(mapKey) =>
             val keyBytes = keySerializer.write(mapKey)
@@ -94,8 +155,18 @@ private[swaydb] object MapKey {
         val dataType = reader.get()
         if (dataType == MapKey.start)
           MapKey.Start(key)
+        else if (dataType == MapKey.entriesStart)
+          MapKey.EntriesStart(key)
         else if (dataType == MapKey.entry)
           MapKey.Entry(key, keySerializer.read(reader.readRemaining()))
+        else if (dataType == MapKey.entriesEnd)
+          MapKey.EntriesEnd(key)
+        else if (dataType == MapKey.subMapsStart)
+          MapKey.SubMapsStart(key)
+        else if (dataType == MapKey.subMap)
+          MapKey.SubMap(key, keySerializer.read(reader.readRemaining()))
+        else if (dataType == MapKey.subMapsEnd)
+          MapKey.SubMapsEnd(key)
         else if (dataType == MapKey.end)
           MapKey.End(key)
         else {
@@ -123,10 +194,11 @@ private[swaydb] object MapKey {
         readerRight.skip(keySizeRight) //skip key size
         val dataTypeRight = readerRight.get() //read the data type to apply ordering (default or custom)
 
-        if (dataTypeLeft == MapKey.start || dataTypeLeft == MapKey.end ||
-          dataTypeRight == MapKey.start || dataTypeRight == MapKey.end) {
+        //use default sorting if the keys are pointer keys
+        if (dataTypeLeft == MapKey.start || dataTypeLeft == MapKey.end || dataTypeLeft == MapKey.subMapsStart || dataTypeLeft == MapKey.subMapsEnd || dataTypeLeft == MapKey.entriesStart || dataTypeLeft == MapKey.entriesEnd ||
+          dataTypeRight == MapKey.start || dataTypeRight == MapKey.end || dataTypeRight == MapKey.subMapsStart || dataTypeRight == MapKey.subMapsEnd || dataTypeRight == MapKey.entriesStart || dataTypeRight == MapKey.entriesEnd) {
           KeyOrder.default.compare(a, b)
-        } else if (dataTypeLeft == entry) {
+        } else if (dataTypeLeft == MapKey.entry || dataTypeLeft == MapKey.subMap) {
           val tableBytesLeft = a.take(1 + ByteUtil.sizeOf(keySizeLeft) + keySizeLeft + 1)
           val tableBytesRight = b.take(1 + ByteUtil.sizeOf(keySizeRight) + keySizeRight + 1)
 
