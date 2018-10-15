@@ -69,10 +69,10 @@ sealed trait SwayDBSubMapIterationSpec extends TestBase with TestBaseEmbedded {
     "exclude & include subMap by default" in {
       val db = newDB()
 
-      val rootMap = db.rootMap(1, "rootMap").assertGet
-      val firstMap: SubMap[Int, String] = rootMap.subMap(2, "first map").assertGet
-      val subMap = firstMap.subMap(3, "sub map 3").assertGet
-      val subMap2 = firstMap.subMap(4, "sub map 4").assertGet
+      val rootMap = db.putRootMap(1, "rootMap").assertGet
+      val firstMap: SubMap[Int, String] = rootMap.putSubMap(2, "first map").assertGet
+      val subMap = firstMap.putSubMap(3, "sub map 3").assertGet
+      val subMap2 = firstMap.putSubMap(4, "sub map 4").assertGet
 
       rootMap.toList should contain only ((2, "first map"))
 
@@ -88,8 +88,8 @@ sealed trait SwayDBSubMapIterationSpec extends TestBase with TestBaseEmbedded {
     "the map contains 1 element" in {
       val db = newDB()
 
-      val rootMap = db.rootMap(1, "rootMap").assertGet
-      val firstMap: SubMap[Int, String] = rootMap.subMap(2, "first map").assertGet
+      val rootMap = db.putRootMap(1, "rootMap").assertGet
+      val firstMap: SubMap[Int, String] = rootMap.putSubMap(2, "first map").assertGet
 
       rootMap.toList should contain only ((2, "first map"))
 
@@ -117,8 +117,8 @@ sealed trait SwayDBSubMapIterationSpec extends TestBase with TestBaseEmbedded {
     "the map contains 2 elements" in {
       val db = newDB()
 
-      val rootMap = db.rootMap(1, "rootMap").assertGet
-      val firstMap: SubMap[Int, String] = rootMap.subMap(2, "first map").assertGet
+      val rootMap = db.putRootMap(1, "rootMap").assertGet
+      val firstMap: SubMap[Int, String] = rootMap.putSubMap(2, "first map").assertGet
 
       firstMap.put(1, "one").assertGet
       firstMap.put(2, "two").assertGet
@@ -161,13 +161,13 @@ sealed trait SwayDBSubMapIterationSpec extends TestBase with TestBaseEmbedded {
     "Sibling maps" in {
       val db = newDB()
 
-      val rootMap = db.rootMap(1, "rootMap1").assertGet
+      val rootMap = db.putRootMap(1, "rootMap1").assertGet
 
-      val subMap1: SubMap[Int, String] = rootMap.subMap(2, "sub map 1").assertGet
+      val subMap1: SubMap[Int, String] = rootMap.putSubMap(2, "sub map 1").assertGet
       subMap1.put(1, "one").assertGet
       subMap1.put(2, "two").assertGet
 
-      val subMap2: SubMap[Int, String] = rootMap.subMap(3, "sub map 2").assertGet
+      val subMap2: SubMap[Int, String] = rootMap.putSubMap(3, "sub map 2").assertGet
       subMap2.put(3, "three").assertGet
       subMap2.put(4, "four").assertGet
 
@@ -246,13 +246,13 @@ sealed trait SwayDBSubMapIterationSpec extends TestBase with TestBaseEmbedded {
     "nested maps" in {
       val db = newDB()
 
-      val rootMap = db.rootMap(1, "rootMap1").assertGet
+      val rootMap = db.putRootMap(1, "rootMap1").assertGet
 
-      val subMap1: SubMap[Int, String] = rootMap.subMap(2, "sub map 1").assertGet
+      val subMap1: SubMap[Int, String] = rootMap.putSubMap(2, "sub map 1").assertGet
       subMap1.put(1, "one").assertGet
       subMap1.put(2, "two").assertGet
 
-      val subMap2: SubMap[Int, String] = subMap1.subMap(3, "sub map 2").assertGet
+      val subMap2: SubMap[Int, String] = subMap1.putSubMap(3, "sub map 2").assertGet
       subMap2.put(3, "three").assertGet
       subMap2.put(4, "four").assertGet
 

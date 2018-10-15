@@ -19,11 +19,11 @@
 
 package swaydb
 
-import swaydb.data.slice.Slice
 import swaydb.data.map.MapKey
+import swaydb.data.slice.Slice
 import swaydb.serializers.Serializer
 
-import scala.util.{Success, Try}
+import scala.util.Try
 
 object EmptyMap {
 
@@ -44,26 +44,29 @@ class EmptyMap[K, V](map: Map[MapKey[K], V])(implicit keySerializer: Serializer[
                                              valueSerializer: Serializer[V],
                                              ordering: Ordering[Slice[Byte]]) {
 
-  def rootMap[KK <: K, VV <: V](key: KK, value: VV): Try[RootMap[KK, VV]] =
-    map.contains(MapKey.Start(key)) flatMap {
+  def putRootMap(key: K, value: V): Try[RootMap[K, V]] =
+    map.batch(
+      Batch.Put(MapKey.Start(key), value),
+      Batch.Put(MapKey.EntriesStart(key), value),
+      Batch.Put(MapKey.EntriesEnd(key), value),
+      Batch.Put(MapKey.SubMapsStart(key), value),
+      Batch.Put(MapKey.SubMapsEnd(key), value),
+      Batch.Put(MapKey.End(key), value)
+    ) map {
+      _ =>
+        RootMap[K, V](map.db, key)
+    }
+
+  /**
+    * Returns target value for the input key.
+    */
+  def getRootMap(key: K): Try[Option[RootMap[K, V]]] =
+    map.contains(MapKey.Start(key)) map {
       exists =>
-        if (exists) {
-          implicit val mapKeySerializer = MapKey.mapKeySerializer(keySerializer)
-          Success(new RootMap[K, V](map, key).asInstanceOf[RootMap[KK, VV]])
-        } else {
-          map.batch(
-            Batch.Put(MapKey.Start(key), value),
-            Batch.Put(MapKey.EntriesStart(key), value),
-            Batch.Put(MapKey.EntriesEnd(key), value),
-            Batch.Put(MapKey.SubMapsStart(key), value),
-            Batch.Put(MapKey.SubMapsEnd(key), value),
-            Batch.Put(MapKey.End(key), value)
-          ) map {
-            _ =>
-              implicit val mapKeySerializer = MapKey.mapKeySerializer(keySerializer)
-              new RootMap[K, V](map, key).asInstanceOf[RootMap[KK, VV]]
-          }
-        }
+        if (exists)
+          Some(RootMap[K, V](map.db, key))
+        else
+          None
     }
 
   /**

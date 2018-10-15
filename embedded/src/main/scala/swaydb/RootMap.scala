@@ -50,6 +50,19 @@ class RootMap[K, V](map: Map[MapKey[K], V],
                                valueSerializer: Serializer[V],
                                ordering: Ordering[Slice[Byte]]) extends SubMapIterator[K, V](mapKey, includeSubMapsBoolean = true, dbIterator = DBIterator[MapKey[K], V](map.db, Some(From(MapKey.Start(mapKey), false, false, false, true)))) {
 
-  def subMap(key: K, value: V): Try[SubMap[K, V]] =
-    SubMap.subMap[K, V](map, mapKey, key, value)
+  def putSubMap(key: K, value: V): Try[SubMap[K, V]] =
+    SubMap.putSubMap[K, V](map, mapKey, key, value)
+
+  /**
+    * Returns target value for the input key.
+    */
+  def getSubMap(key: K): Try[Option[SubMap[K, V]]] =
+    map.contains(MapKey.Start(key)) map {
+      exists =>
+        if (exists)
+          Some(SubMap[K, V](map.db, key))
+        else
+          None
+    }
+
 }

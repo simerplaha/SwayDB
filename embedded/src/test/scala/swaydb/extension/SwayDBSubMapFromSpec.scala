@@ -70,8 +70,8 @@ sealed trait SwayDBSubMapFromSpec extends TestBase with TestBaseEmbedded {
     "return empty on an empty Map" in {
       val db = newDB()
 
-      val rootMap = db.rootMap(1, "rootMap").assertGet
-      val firstMap: SubMap[Int, String] = rootMap.subMap(2, "first map").assertGet
+      val rootMap = db.putRootMap(1, "rootMap").assertGet
+      val firstMap: SubMap[Int, String] = rootMap.putSubMap(2, "first map").assertGet
 
       firstMap
         .from(2)
@@ -82,8 +82,8 @@ sealed trait SwayDBSubMapFromSpec extends TestBase with TestBaseEmbedded {
     "if the map contains only 1 element" in {
       val db = newDB()
 
-      val rootMap = db.rootMap(1, "rootMap").assertGet
-      val firstMap: SubMap[Int, String] = rootMap.subMap(2, "first map").assertGet
+      val rootMap = db.putRootMap(1, "rootMap").assertGet
+      val firstMap: SubMap[Int, String] = rootMap.putSubMap(2, "first map").assertGet
 
       firstMap.put(1, "one").assertGet
 
@@ -124,13 +124,13 @@ sealed trait SwayDBSubMapFromSpec extends TestBase with TestBaseEmbedded {
     "Sibling maps" in {
       val db = newDB()
 
-      val rootMap = db.rootMap(1, "rootMap1").assertGet
+      val rootMap = db.putRootMap(1, "rootMap1").assertGet
 
-      val subMap1: SubMap[Int, String] = rootMap.subMap(2, "sub map 2").assertGet
+      val subMap1: SubMap[Int, String] = rootMap.putSubMap(2, "sub map 2").assertGet
       subMap1.put(1, "one").assertGet
       subMap1.put(2, "two").assertGet
 
-      val subMap2: SubMap[Int, String] = rootMap.subMap(3, "sub map three").assertGet
+      val subMap2: SubMap[Int, String] = rootMap.putSubMap(3, "sub map three").assertGet
       subMap2.put(3, "three").assertGet
       subMap2.put(4, "four").assertGet
 
@@ -160,13 +160,13 @@ sealed trait SwayDBSubMapFromSpec extends TestBase with TestBaseEmbedded {
     "nested maps" in {
       val db = newDB()
 
-      val rootMap = db.rootMap(1, "rootMap1").assertGet
+      val rootMap = db.putRootMap(1, "rootMap1").assertGet
 
-      val subMap1: SubMap[Int, String] = rootMap.subMap(2, "sub map 1").assertGet
+      val subMap1: SubMap[Int, String] = rootMap.putSubMap(2, "sub map 1").assertGet
       subMap1.put(1, "one").assertGet
       subMap1.put(2, "two").assertGet
 
-      val subMap2: SubMap[Int, String] = subMap1.subMap(3, "sub map 2").assertGet
+      val subMap2: SubMap[Int, String] = subMap1.putSubMap(3, "sub map 2").assertGet
       subMap2.put(3, "three").assertGet
       subMap2.put(4, "four").assertGet
 

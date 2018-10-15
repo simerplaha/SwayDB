@@ -19,6 +19,7 @@
 
 package swaydb
 
+import swaydb.core.util.TryUtil
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.slice.Slice
@@ -27,7 +28,7 @@ import swaydb.iterator._
 import swaydb.serializers.{Serializer, _}
 
 import scala.concurrent.duration.{Deadline, FiniteDuration}
-import scala.util.{Success, Try}
+import scala.util.{Failure, Success, Try}
 
 object SubMap {
   def apply[K, V](db: SwayDB,
@@ -39,32 +40,24 @@ object SubMap {
     new SubMap[K, V](map, mapKey)
   }
 
-  def subMap[K, V](parentMap: Map[MapKey[K], V],
-                   parentMapKey: K,
-                   mapKey: K,
-                   value: V)(implicit keySerializer: Serializer[K],
-                             valueSerializer: Serializer[V],
-                             ordering: Ordering[Slice[Byte]]): Try[SubMap[K, V]] =
-    parentMap.contains(MapKey.Start(mapKey)) flatMap {
-      exists =>
-        if (exists) {
-          implicit val mapKeySerializer = MapKey.mapKeySerializer(keySerializer)
-          Success(SubMap[K, V](parentMap.db, mapKey))
-        } else {
-          parentMap.batch(
-            Batch.Put(MapKey.SubMap(parentMapKey, mapKey), value), //add subMap entry to parent Map's key
-            Batch.Put(MapKey.Start(mapKey), value),
-            Batch.Put(MapKey.EntriesStart(mapKey), value),
-            Batch.Put(MapKey.EntriesEnd(mapKey), value),
-            Batch.Put(MapKey.SubMapsStart(mapKey), value),
-            Batch.Put(MapKey.SubMapsEnd(mapKey), value),
-            Batch.Put(MapKey.End(mapKey), value)
-          ) map {
-            _ =>
-              implicit val mapKeySerializer = MapKey.mapKeySerializer(keySerializer)
-              SubMap[K, V](parentMap.db, mapKey)
-          }
-        }
+  def putSubMap[K, V](parentMap: Map[MapKey[K], V],
+                      parentMapKey: K,
+                      mapKey: K,
+                      value: V)(implicit keySerializer: Serializer[K],
+                                valueSerializer: Serializer[V],
+                                ordering: Ordering[Slice[Byte]]): Try[SubMap[K, V]] =
+    parentMap.batch(
+      Batch.Put(MapKey.SubMap(parentMapKey, mapKey), value), //add subMap entry to parent Map's key
+      Batch.Put(MapKey.Start(mapKey), value),
+      Batch.Put(MapKey.EntriesStart(mapKey), value),
+      Batch.Put(MapKey.EntriesEnd(mapKey), value),
+      Batch.Put(MapKey.SubMapsStart(mapKey), value),
+      Batch.Put(MapKey.SubMapsEnd(mapKey), value),
+      Batch.Put(MapKey.End(mapKey), value)
+    ) map {
+      _ =>
+        implicit val mapKeySerializer = MapKey.mapKeySerializer(keySerializer)
+        SubMap[K, V](parentMap.db, mapKey)
     }
 }
 
@@ -79,8 +72,17 @@ class SubMap[K, V](map: Map[MapKey[K], V],
                               ordering: Ordering[Slice[Byte]],
                               valueSerializer: Serializer[V]) extends SubMapIterator[K, V](mapKey, dbIterator = DBIterator[MapKey[K], V](map.db, Some(From(MapKey.Start(mapKey), false, false, false, true)))) {
 
-  def subMap(key: K, value: V): Try[SubMap[K, V]] =
-    SubMap.subMap[K, V](map, mapKey, key, value)
+  def putSubMap(key: K, value: V): Try[SubMap[K, V]] =
+    SubMap.putSubMap[K, V](map, mapKey, key, value)
+
+  def getSubMap(key: K): Try[Option[SubMap[K, V]]] =
+    map.contains(MapKey.Start(key)) map {
+      exists =>
+        if (exists)
+          Some(SubMap[K, V](map.db, key))
+        else
+          None
+    }
 
   def put(key: K, value: V): Try[Level0Meter] =
     map.put(key = MapKey.Entry(mapKey, key), value = value)
@@ -120,7 +122,7 @@ class SubMap[K, V](map: Map[MapKey[K], V],
 
   def batch(batch: Iterable[Batch[K, V]]): Try[Level0Meter] =
     map.batch(
-      batch.map {
+      batch map {
         case data @ Data.Put(_, _, _) =>
           data.copy(MapKey.Entry(mapKey, data.key))
         case data @ Data.Remove(_, to, _) =>
@@ -170,7 +172,7 @@ class SubMap[K, V](map: Map[MapKey[K], V],
     * Returns target value for the input key.
     */
   def get(key: K): Try[Option[V]] =
-    map.get(MapKey.Entry(mapKey, key)).map(_.map(value => valueSerializer.read(value)))
+    map.get(MapKey.Entry(mapKey, key))
 
   /**
     * Returns target full key for the input partial key.
@@ -178,13 +180,42 @@ class SubMap[K, V](map: Map[MapKey[K], V],
     * This function is mostly used for Set databases where partial ordering on the Key is provided.
     */
   def getKey(key: K): Try[Option[K]] =
-    map.getKey(MapKey.Entry(mapKey, key)).map(_.map(key => keySerializer.read(key)))
+    map.getKey(MapKey.Entry(mapKey, key)) flatMap {
+      case Some(key) =>
+        key match {
+          case MapKey.Entry(_, dataKey) =>
+            Success(Some(dataKey))
+          case got =>
+            Failure(new Exception(s"Unable to fetch key. Got: $got expected MapKey.Entry"))
+        }
+      case None =>
+        TryUtil.successNone
+    }
 
   def getKeyValue(key: K): Try[Option[(K, V)]] =
-    map.getKeyValue(MapKey.Entry(mapKey, key)).map(_.map {
-      case (key, value) =>
-        (keySerializer.read(key), valueSerializer.read(value))
-    })
+    map.getKeyValue(MapKey.Entry(mapKey, key)) flatMap {
+      case Some((key, value)) =>
+        key match {
+          case MapKey.Entry(_, dataKey) =>
+            Success(Some(dataKey, value))
+          case got =>
+            Failure(new Exception(s"Unable to fetch keyValue. Got: $got expected MapKey.Entry"))
+        }
+      case None =>
+        TryUtil.successNone
+    }
+
+  /**
+    * Returns target value for the input key.
+    */
+  def getMap(key: K): Try[Option[SubMap[K, V]]] =
+    map.contains(MapKey.SubMap(mapKey, key)) map {
+      exists =>
+        if (exists)
+          Some(SubMap[K, V](map.db, mapKey))
+        else
+          None
+    }
 
   def keys: SubMapKeysIterator[K] =
     SubMapKeysIterator[K](mapKey, keysIterator = DBKeysIterator[MapKey[K]](map.db, Some(From(MapKey.Start(mapKey), orAfter = false, orBefore = false, before = false, after = true))))
