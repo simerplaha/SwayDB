@@ -172,14 +172,14 @@ sealed trait SwayDBSubMapFromSpec extends TestBase with TestBaseEmbedded {
 
       subMap1.from(4).toList shouldBe empty
       subMap1.after(3).toList shouldBe empty
-      subMap1.from(1).toList should contain inOrderOnly((1, "one"), (2, "two"), (3, "sub map 2"))
-      subMap1.fromOrBefore(2).toList should contain inOrderOnly((2, "two"), (3, "sub map 2"))
-      subMap1.fromOrBefore(1).toList should contain inOrderOnly((1, "one"), (2, "two"), (3, "sub map 2"))
-      subMap1.after(0).toList should contain inOrderOnly((1, "one"), (2, "two"), (3, "sub map 2"))
-      subMap1.fromOrAfter(0).toList should contain inOrderOnly((1, "one"), (2, "two"), (3, "sub map 2"))
-      subMap1.size shouldBe 3
+      subMap1.includeSubMaps().from(1).toList should contain inOrderOnly((1, "one"), (2, "two"), (3, "sub map 2"))
+      subMap1.includeSubMaps().fromOrBefore(2).toList should contain inOrderOnly((2, "two"), (3, "sub map 2"))
+      subMap1.includeSubMaps().fromOrBefore(1).toList should contain inOrderOnly((1, "one"), (2, "two"), (3, "sub map 2"))
+      subMap1.includeSubMaps().after(0).toList should contain inOrderOnly((1, "one"), (2, "two"), (3, "sub map 2"))
+      subMap1.includeSubMaps().fromOrAfter(0).toList should contain inOrderOnly((1, "one"), (2, "two"), (3, "sub map 2"))
+      subMap1.includeSubMaps().size shouldBe 3
       subMap1.head shouldBe ((1, "one"))
-      subMap1.last shouldBe ((3, "sub map 2"))
+      subMap1.includeSubMaps().last shouldBe ((3, "sub map 2"))
 
       subMap2.from(5).toList shouldBe empty
       subMap2.after(4).toList shouldBe empty
