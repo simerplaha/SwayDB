@@ -37,7 +37,7 @@ case class SubMapIterator[K, V](mapKey: K,
 
   private val endKey = MapKey.End(mapKey)
 
-  val thisMapKeyBytes = keySerializer.write(mapKey)
+  private val thisMapKeyBytes = keySerializer.write(mapKey)
 
   def from(key: K): SubMapIterator[K, V] =
     copy(dbIterator = dbIterator.from(MapKey.Entry(mapKey, key)))
@@ -121,13 +121,6 @@ case class SubMapIterator[K, V](mapKey: K,
 
   override def size: Int =
     SubMapKeysIterator(mapKey, DBKeysIterator(dbIterator.db, dbIterator.from)).size
-
-  //
-  //  override def isEmpty: Boolean =
-  //    dbIterator.isEmpty
-  //
-  //  override def nonEmpty: Boolean =
-  //    !isEmpty
 
   override def head: (K, V) =
     headOption.get

@@ -36,7 +36,7 @@ case class SubMapKeysIterator[K](mapKey: K,
 
   private val endKey = MapKey.End(mapKey)
 
-  val thisMapKeyBytes = keySerializer.write(mapKey)
+  private val thisMapKeyBytes = keySerializer.write(mapKey)
 
   def from(key: K): SubMapKeysIterator[K] =
     copy(keysIterator = keysIterator.from(MapKey.Entry(mapKey, key)))

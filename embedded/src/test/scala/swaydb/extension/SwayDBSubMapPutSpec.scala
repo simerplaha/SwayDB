@@ -19,9 +19,9 @@
 
 package swaydb.extension
 
-import swaydb.{EmptyMap, Map, RootMap, SubMap, SwayDB, TestBaseEmbedded}
 import swaydb.core.TestBase
 import swaydb.serializers.Default._
+import swaydb.{EmptyMap, RootMap, SubMap, SwayDB, TestBaseEmbedded}
 
 import scala.concurrent.duration._
 
@@ -78,7 +78,6 @@ sealed trait SwayDBSubMapPutSpec extends TestBase with TestBaseEmbedded {
       firstMap.put(4, "four again").assertGet
 
       firstMap.toList should contain inOrderOnly((3, "three"), (4, "four again"), (5, "five"))
-
     }
 
     "Initialise a RootMap & 2 SubMaps from EmptyMap" in {

@@ -34,18 +34,19 @@ private[swaydb] object MapKey {
   case class Entry[K](mapKey: K, dataKey: K) extends MapKey[K]
   case class End[K](mapKey: K) extends MapKey[K]
 
-  private val start: Byte = "-128".toByte
-  private val entry: Byte = "-127".toByte
+  private val formatId: Byte = 0.toByte
+  private val start: Byte = 1.toByte
+  private val entry: Byte = 2.toByte
   //leave enough space to allow for adding other data like mapSize etc.
-  private val end: Byte = "-100".toByte
+  private val end: Byte = 100.toByte
 
   /**
     * Serializer implementation for [[MapKey]] types.
     *
     * Formats:
-    * [[Start]] - mapKey.size|mapKey|dataType
-    * [[Entry]] - mapKey.size|mapKey|dataType|dataKey
-    * [[End]]   - mapKey.size|mapKey|dataType
+    * [[Start]] - formatId|mapKey.size|mapKey|dataType
+    * [[Entry]] - formatId|mapKey.size|mapKey|dataType|dataKey
+    * [[End]]   - formatId|mapKey.size|mapKey|dataType
     *
     * mapKey   - the unique id of the Map.
     * dataType - the type of [[MapKey]] which can be either one of [[start]], [[entry]] or [[end]]
@@ -58,7 +59,8 @@ private[swaydb] object MapKey {
           case MapKey.Start(mapKey) =>
             val keyBytes = keySerializer.write(mapKey)
 
-            Slice.create[Byte](ByteUtil.sizeOf(keyBytes.size) + keyBytes.size + 1)
+            Slice.create[Byte](1 + ByteUtil.sizeOf(keyBytes.size) + keyBytes.size + 1)
+              .add(formatId)
               .addIntUnsigned(keyBytes.size)
               .addAll(keyBytes)
               .add(MapKey.start)
@@ -67,7 +69,8 @@ private[swaydb] object MapKey {
             val mapKeyBytes = keySerializer.write(mapKey)
             val dataKeyBytes = keySerializer.write(dataKey)
 
-            Slice.create[Byte](ByteUtil.sizeOf(mapKeyBytes.size) + mapKeyBytes.size + 1 + dataKeyBytes.size)
+            Slice.create[Byte](1 + ByteUtil.sizeOf(mapKeyBytes.size) + mapKeyBytes.size + 1 + dataKeyBytes.size)
+              .add(formatId)
               .addIntUnsigned(mapKeyBytes.size)
               .addAll(mapKeyBytes)
               .add(MapKey.entry)
@@ -76,7 +79,8 @@ private[swaydb] object MapKey {
           case MapKey.End(mapKey) =>
             val keyBytes = keySerializer.write(mapKey)
 
-            Slice.create[Byte](ByteUtil.sizeOf(keyBytes.size) + keyBytes.size + 1)
+            Slice.create[Byte](1 + ByteUtil.sizeOf(keyBytes.size) + keyBytes.size + 1)
+              .add(formatId)
               .addIntUnsigned(keyBytes.size)
               .addAll(keyBytes)
               .add(MapKey.end)
@@ -84,6 +88,7 @@ private[swaydb] object MapKey {
 
       override def read(data: Slice[Byte]): MapKey[K] = {
         val reader = data.createReader()
+        reader.skip(1) //skip formatId
         val keyBytes = reader.read(reader.readIntUnsigned())
         val key = keySerializer.read(keyBytes)
         val dataType = reader.get()
@@ -107,21 +112,23 @@ private[swaydb] object MapKey {
     new Ordering[Slice[Byte]] {
       def compare(a: Slice[Byte], b: Slice[Byte]): Int = {
         val readerLeft = a.createReader()
+        readerLeft.skip(1) //skip formatId
         val keySizeLeft = readerLeft.readIntUnsigned()
         readerLeft.skip(keySizeLeft)
         val dataTypeLeft = readerLeft.get()
 
         val readerRight = a.createReader()
-        val keySizeRight = readerRight.readIntUnsigned()
-        readerRight.skip(keySizeRight)
-        val dataTypeRight = readerRight.get()
+        readerRight.skip(1) //skip formatId
+        val keySizeRight = readerRight.readIntUnsigned() //read the keySize
+        readerRight.skip(keySizeRight) //skip key size
+        val dataTypeRight = readerRight.get() //read the data type to apply ordering (default or custom)
 
         if (dataTypeLeft == MapKey.start || dataTypeLeft == MapKey.end ||
           dataTypeRight == MapKey.start || dataTypeRight == MapKey.end) {
           KeyOrder.default.compare(a, b)
         } else if (dataTypeLeft == entry) {
-          val tableBytesLeft = a.take(1 + keySizeLeft + 1)
-          val tableBytesRight = b.take(1 + keySizeRight + 1)
+          val tableBytesLeft = a.take(1 + ByteUtil.sizeOf(keySizeLeft) + keySizeLeft + 1)
+          val tableBytesRight = b.take(1 + ByteUtil.sizeOf(keySizeRight) + keySizeRight + 1)
 
           val defaultOrderResult = KeyOrder.default.compare(tableBytesLeft, tableBytesRight)
           if (defaultOrderResult == 0)

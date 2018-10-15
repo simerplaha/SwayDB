@@ -62,6 +62,9 @@ class EmptyMap[K, V](map: Map[MapKey[K], V])(implicit keySerializer: Serializer[
         }
     }
 
-  def keyValueCount: Try[Int] =
+  /**
+    * Returns the estimate keyValue count in the database.
+    */
+  def dbKeyValueCount: Try[Int] =
     map.db.keyValueCount
 }

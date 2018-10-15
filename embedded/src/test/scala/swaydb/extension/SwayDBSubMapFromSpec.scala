@@ -19,9 +19,9 @@
 
 package swaydb.extension
 
-import swaydb.{EmptyMap, Map, RootMap, SubMap, SwayDB, TestBaseEmbedded}
 import swaydb.core.TestBase
 import swaydb.serializers.Default._
+import swaydb.{EmptyMap, SubMap, SwayDB, TestBaseEmbedded}
 
 import scala.concurrent.duration._
 
@@ -121,86 +121,7 @@ sealed trait SwayDBSubMapFromSpec extends TestBase with TestBaseEmbedded {
       firstMap.last shouldBe ((1, "one"))
     }
 
-    "Initialise a RootMap & 2 SubMaps from EmptyMap" in {
-      val db = newDB()
-
-      def insert(firstMap: SubMap[Int, String]) = {
-        firstMap.put(3, "three").assertGet
-        firstMap.put(4, "four").assertGet
-        firstMap.put(5, "five").assertGet
-        firstMap.put(4, "four again").assertGet
-      }
-
-      val rootMap = db.rootMap(1, "rootMap").assertGet
-
-      val firstMap: SubMap[Int, String] = rootMap.subMap(2, "first map").assertGet
-      insert(firstMap)
-
-      val secondMap: SubMap[Int, String] = rootMap.subMap(3, "second map").assertGet
-      insert(secondMap)
-
-      firstMap.toList should contain inOrderOnly((3, "three"), (4, "four again"), (5, "five"))
-      secondMap.toList should contain inOrderOnly((3, "three"), (4, "four again"), (5, "five"))
-    }
-
-    "Initialise 2 RootMaps & 2 SubMaps under each SubMap" in {
-      val db = newDB()
-
-      def insertInMap(firstMap: SubMap[Int, String]) = {
-        firstMap.put(3, "three").assertGet
-        firstMap.put(4, "four").assertGet
-        firstMap.put(5, "five").assertGet
-        firstMap.put(4, "four again").assertGet
-      }
-
-      def insertInRoot(rootMap: RootMap[Int, String]) = {
-        val firstMap: SubMap[Int, String] = rootMap.subMap(2, "first map").assertGet
-        insertInMap(firstMap)
-
-        val secondMap: SubMap[Int, String] = rootMap.subMap(3, "second map").assertGet
-        insertInMap(secondMap)
-      }
-
-      val rootMap1 = db.rootMap(1, "rootMap1").assertGet
-      insertInRoot(rootMap1)
-
-      val rootMap2 = db.rootMap(2, "rootMap2").assertGet
-      insertInRoot(rootMap2)
-
-      rootMap1.subMap(2, "first map").assertGet.toList should contain inOrderOnly((3, "three"), (4, "four again"), (5, "five"))
-      rootMap1.subMap(3, "second map").assertGet.toList should contain inOrderOnly((3, "three"), (4, "four again"), (5, "five"))
-      rootMap2.subMap(2, "first map").assertGet.toList should contain inOrderOnly((3, "three"), (4, "four again"), (5, "five"))
-      rootMap2.subMap(3, "second map").assertGet.toList should contain inOrderOnly((3, "three"), (4, "four again"), (5, "five"))
-    }
-
-    "Initialise 5 nested maps with 2 elements in each map" in {
-      val db = newDB()
-
-      val rootMap = db.rootMap(1, "rootMap1").assertGet
-
-      val subMap1: SubMap[Int, String] = rootMap.subMap(2, "sub map 2").assertGet
-      subMap1.put(1, "one").assertGet
-      subMap1.put(2, "two").assertGet
-
-      val subMap2: SubMap[Int, String] = subMap1.subMap(3, "sub map three").assertGet
-      subMap2.put(3, "three").assertGet
-      subMap2.put(4, "four").assertGet
-
-      val subMap3: SubMap[Int, String] = subMap2.subMap(5, "sub map five").assertGet
-      subMap3.put(5, "five").assertGet
-      subMap3.put(6, "six").assertGet
-
-      val subMap4: SubMap[Int, String] = subMap3.subMap(7, "sub map seven").assertGet
-      subMap4.put(7, "seven").assertGet
-      subMap4.put(8, "eight").assertGet
-
-      subMap1.toList should contain inOrderOnly((1, "one"), (2, "two"), (3, "sub map three"))
-      subMap2.toList should contain inOrderOnly((3, "three"), (4, "four"), (5, "sub map five"))
-      subMap3.toList should contain inOrderOnly((5, "five"), (6, "six"), (7, "sub map seven"))
-      subMap4.toList should contain inOrderOnly((7, "seven"), (8, "eight"))
-    }
-
-    "Initialise 5 sibling maps with 2 elements in each map" in {
+    "Sibling maps" in {
       val db = newDB()
 
       val rootMap = db.rootMap(1, "rootMap1").assertGet
@@ -213,18 +134,63 @@ sealed trait SwayDBSubMapFromSpec extends TestBase with TestBaseEmbedded {
       subMap2.put(3, "three").assertGet
       subMap2.put(4, "four").assertGet
 
-      val subMap3: SubMap[Int, String] = rootMap.subMap(5, "sub map five").assertGet
-      subMap3.put(5, "five").assertGet
-      subMap3.put(6, "six").assertGet
+      subMap1.from(3).toList shouldBe empty
+      subMap1.after(2).toList shouldBe empty
+      subMap1.from(1).toList should contain inOrderOnly((1, "one"), (2, "two"))
+      subMap1.fromOrBefore(2).toList should contain only ((2, "two"))
+      subMap1.fromOrBefore(1).toList should contain only((1, "one"), (2, "two"))
+      subMap1.after(0).toList should contain only((1, "one"), (2, "two"))
+      subMap1.fromOrAfter(0).toList should contain only((1, "one"), (2, "two"))
+      subMap1.size shouldBe 2
+      subMap1.head shouldBe ((1, "one"))
+      subMap1.last shouldBe ((2, "two"))
 
-      val subMap4: SubMap[Int, String] = rootMap.subMap(7, "sub map seven").assertGet
-      subMap4.put(7, "seven").assertGet
-      subMap4.put(8, "eight").assertGet
+      subMap2.from(5).toList shouldBe empty
+      subMap2.after(4).toList shouldBe empty
+      subMap2.from(3).toList should contain inOrderOnly((3, "three"), (4, "four"))
+      subMap2.fromOrBefore(5).toList should contain only ((4, "four"))
+      subMap2.fromOrBefore(3).toList should contain only((3, "three"), (4, "four"))
+      subMap2.after(0).toList should contain only((3, "three"), (4, "four"))
+      subMap2.fromOrAfter(1).toList should contain only((3, "three"), (4, "four"))
+      subMap2.size shouldBe 2
+      subMap2.head shouldBe ((3, "three"))
+      subMap2.last shouldBe ((4, "four"))
+    }
 
-      subMap1.toList should contain inOrderOnly((1, "one"), (2, "two"))
-      subMap2.toList should contain inOrderOnly((3, "three"), (4, "four"))
-      subMap3.toList should contain inOrderOnly((5, "five"), (6, "six"))
-      subMap4.toList should contain inOrderOnly((7, "seven"), (8, "eight"))
+    "nested maps" in {
+      val db = newDB()
+
+      val rootMap = db.rootMap(1, "rootMap1").assertGet
+
+      val subMap1: SubMap[Int, String] = rootMap.subMap(2, "sub map 1").assertGet
+      subMap1.put(1, "one").assertGet
+      subMap1.put(2, "two").assertGet
+
+      val subMap2: SubMap[Int, String] = subMap1.subMap(3, "sub map 2").assertGet
+      subMap2.put(3, "three").assertGet
+      subMap2.put(4, "four").assertGet
+
+      subMap1.from(4).toList shouldBe empty
+      subMap1.after(3).toList shouldBe empty
+      subMap1.from(1).toList should contain inOrderOnly((1, "one"), (2, "two"), (3, "sub map 2"))
+      subMap1.fromOrBefore(2).toList should contain only ((2, "two"), (3, "sub map 2"))
+      subMap1.fromOrBefore(1).toList should contain only((1, "one"), (2, "two"), (3, "sub map 2"))
+      subMap1.after(0).toList should contain only((1, "one"), (2, "two"), (3, "sub map 2"))
+      subMap1.fromOrAfter(0).toList should contain only((1, "one"), (2, "two"), (3, "sub map 2"))
+      subMap1.size shouldBe 3
+      subMap1.head shouldBe ((1, "one"))
+      subMap1.last shouldBe ((3, "sub map 2"))
+
+      subMap2.from(5).toList shouldBe empty
+      subMap2.after(4).toList shouldBe empty
+      subMap2.from(3).toList should contain inOrderOnly((3, "three"), (4, "four"))
+      subMap2.fromOrBefore(5).toList should contain only ((4, "four"))
+      subMap2.fromOrBefore(3).toList should contain only((3, "three"), (4, "four"))
+      subMap2.after(0).toList should contain only((3, "three"), (4, "four"))
+      subMap2.fromOrAfter(1).toList should contain only((3, "three"), (4, "four"))
+      subMap2.size shouldBe 2
+      subMap2.head shouldBe ((3, "three"))
+      subMap2.last shouldBe ((4, "four"))
     }
   }
 }

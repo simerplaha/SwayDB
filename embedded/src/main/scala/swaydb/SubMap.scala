@@ -183,7 +183,7 @@ class SubMap[K, V](map: Map[MapKey[K], V],
     })
 
   def keys: SubMapKeysIterator[K] =
-    SubMapKeysIterator[K](mapKey, DBKeysIterator[MapKey[K]](map.db, Some(From(MapKey.Start(mapKey), false, false, false, true))))
+    SubMapKeysIterator[K](mapKey, DBKeysIterator[MapKey[K]](map.db, Some(From(MapKey.Start(mapKey), orAfter = false, orBefore = false, before = false, after = true))))
 
   def contains(key: K): Try[Boolean] =
     map contains MapKey.Entry(mapKey, key)
