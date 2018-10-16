@@ -36,7 +36,7 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{FiniteDuration, _}
 import scala.util.Try
 
-object Extensions extends LazyLogging {
+object Extension extends LazyLogging {
 
   /**
     * A pre-configured, 8 Leveled, persistent database where Level1 accumulates a minimum of 10 Segments before

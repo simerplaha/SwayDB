@@ -17,16 +17,17 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb
+package swaydb.extension
 
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.map.MapKey
 import swaydb.data.slice.Slice
 import swaydb.serializers.Serializer
+import swaydb.{Map, SwayDB}
 
 import scala.util.Try
 
-object Root {
+private[swaydb] object Root {
 
   def apply[K, V](db: SwayDB)(implicit keySerializer: Serializer[K],
                               valueSerializer: Serializer[V],
@@ -45,11 +46,13 @@ class Root[K, V](map: Map[MapKey[K], V])(implicit keySerializer: Serializer[K],
 
   def createMap(key: K, value: V): Try[SubMap[K, V]] = {
     val mapKey = Seq(key)
-    SubMap.putMap(
-      map = map,
-      mapKey = mapKey,
-      value = value
-    ) map {
+    map.batch {
+      SubMap.putMap(
+        map = map,
+        mapKey = mapKey,
+        value = value
+      )
+    } map {
       _ =>
         SubMap[K, V](
           db = map.db,

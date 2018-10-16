@@ -21,7 +21,7 @@ package swaydb.extension
 
 import swaydb.core.TestBase
 import swaydb.serializers.Default._
-import swaydb.{Root, SubMap, SwayDB, TestBaseEmbedded}
+import swaydb.{SwayDB, TestBaseEmbedded}
 
 import scala.concurrent.duration._
 

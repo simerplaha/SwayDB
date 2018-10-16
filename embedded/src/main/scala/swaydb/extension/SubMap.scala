@@ -17,7 +17,7 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb
+package swaydb.extension
 
 import swaydb.core.util.TryUtil
 import swaydb.data.accelerate.Level0Meter
@@ -26,6 +26,7 @@ import swaydb.data.map.MapKey
 import swaydb.data.slice.Slice
 import swaydb.iterator._
 import swaydb.serializers.Serializer
+import swaydb.{Batch, Data, Map, SwayDB}
 
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 import scala.util.{Failure, Success, Try}
@@ -88,7 +89,7 @@ private[swaydb] object SubMap {
                    value: V)(implicit keySerializer: Serializer[K],
                              mapKeySerializer: Serializer[MapKey[K]],
                              valueSerializer: Serializer[V],
-                             ordering: Ordering[Slice[Byte]]): Try[Level0Meter] = {
+                             ordering: Ordering[Slice[Byte]]): Iterable[Batch[MapKey[K], V]] = {
 
     //batch to remove all SubMaps.
     val removeSubMapsBatches =
@@ -114,36 +115,29 @@ private[swaydb] object SubMap {
         Batch.Put(MapKey.End(mapKey), value)
       ) ++ parentMapEntry
 
-    map.batch(removeSubMapsBatches ++ createMapBatch)
+    removeSubMapsBatches ++ createMapBatch
   }
 
-  def updateMapValue[K, V](map: Map[MapKey[K], V],
-                           mapKey: Seq[K],
+  def updateMapValue[K, V](mapKey: Seq[K],
                            value: V)(implicit keySerializer: Serializer[K],
                                      mapKeySerializer: Serializer[MapKey[K]],
                                      valueSerializer: Serializer[V],
-                                     ordering: Ordering[Slice[Byte]]): Try[Level0Meter] = {
-    //batch to create a new map.
-    val updateValue =
-      Seq(
-        Batch.Put(MapKey.SubMap(mapKey.dropRight(1), mapKey.last), value), //add subMap entry to parent Map's key
-        Batch.Put(MapKey.Start(mapKey), value),
-        Batch.Put(MapKey.EntriesStart(mapKey), value),
-        Batch.Put(MapKey.EntriesEnd(mapKey), value),
-        Batch.Put(MapKey.SubMapsStart(mapKey), value),
-        Batch.Put(MapKey.SubMapsEnd(mapKey), value),
-        Batch.Put(MapKey.End(mapKey), value)
-      )
-
-    map.batch(updateValue)
-  }
+                                     ordering: Ordering[Slice[Byte]]): Seq[Data.Put[MapKey[K], V]] =
+    Seq(
+      Batch.Put(MapKey.SubMap(mapKey.dropRight(1), mapKey.last), value), //add subMap entry to parent Map's key
+      Batch.Put(MapKey.Start(mapKey), value),
+      Batch.Put(MapKey.EntriesStart(mapKey), value),
+      Batch.Put(MapKey.EntriesEnd(mapKey), value),
+      Batch.Put(MapKey.SubMapsStart(mapKey), value),
+      Batch.Put(MapKey.SubMapsEnd(mapKey), value),
+      Batch.Put(MapKey.End(mapKey), value)
+    )
 
   def removeMap[K, V](map: Map[MapKey[K], V],
                       mapKey: Seq[K])(implicit keySerializer: Serializer[K],
                                       mapKeySerializer: Serializer[MapKey[K]],
                                       valueSerializer: Serializer[V],
                                       ordering: Ordering[Slice[Byte]]): Try[Level0Meter] =
-
     map.batch {
       Seq(
         Batch.Remove(MapKey.SubMap[K](mapKey.dropRight(1), mapKey.last)), //remove the subMap entry from parent Map i.e this
@@ -168,11 +162,13 @@ class SubMap[K, V](map: Map[MapKey[K], V],
 
   def putMap(key: K, value: V): Try[SubMap[K, V]] = {
     val subMapKey = mapKey :+ key
-    SubMap.putMap[K, V](
-      map = map,
-      mapKey = subMapKey,
-      value = value
-    ) map {
+    map.batch {
+      SubMap.putMap[K, V](
+        map = map,
+        mapKey = subMapKey,
+        value = value
+      )
+    } map {
       _ =>
         SubMap[K, V](
           db = map.db,
@@ -183,11 +179,12 @@ class SubMap[K, V](map: Map[MapKey[K], V],
 
   def updateMapValue(key: K, value: V): Try[SubMap[K, V]] = {
     val subMapKey = mapKey :+ key
-    SubMap.updateMapValue[K, V](
-      map = map,
-      mapKey = subMapKey,
-      value = value
-    ) map {
+    map.batch {
+      SubMap.updateMapValue[K, V](
+        mapKey = subMapKey,
+        value = value
+      )
+    } map {
       _ =>
         SubMap[K, V](
           db = map.db,
@@ -212,19 +209,19 @@ class SubMap[K, V](map: Map[MapKey[K], V],
     }
   }
 
-  def updateValue(value: V): Try[SubMap[K, V]] = {
-    SubMap.updateMapValue[K, V](
-      map = map,
-      mapKey = mapKey,
-      value = value
-    ) map {
+  def updateValue(value: V): Try[SubMap[K, V]] =
+    map.batch {
+      SubMap.updateMapValue[K, V](
+        mapKey = mapKey,
+        value = value
+      )
+    } map {
       _ =>
         SubMap[K, V](
           db = map.db,
           mapKey = mapKey
         )
     }
-  }
 
   def getMapValue(key: K): Try[Option[V]] =
     map.get(MapKey.Start(mapKey :+ key))
