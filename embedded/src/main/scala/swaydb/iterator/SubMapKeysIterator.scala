@@ -26,7 +26,7 @@ import swaydb.serializers.Serializer
 import scala.annotation.tailrec
 import scala.collection.generic.CanBuildFrom
 
-case class SubMapKeysIterator[K](mapKey: K,
+case class SubMapKeysIterator[K](mapKey: Seq[K],
                                  private val includeSubMapsBoolean: Boolean = false,
                                  private val subMapsOnlyBoolean: Boolean = false,
                                  private val keysIterator: DBKeysIterator[MapKey[K]],
@@ -39,7 +39,7 @@ case class SubMapKeysIterator[K](mapKey: K,
   private val endEntriesKey = MapKey.EntriesEnd(mapKey)
   private val endSubMapsKey = MapKey.SubMapsEnd(mapKey)
 
-  private val thisMapKeyBytes = keySerializer.write(mapKey)
+  private val thisMapKeyBytes = MapKey.writeKeys(mapKey, keySerializer)
 
   def includeSubMaps(): SubMapKeysIterator[K] =
     copy(includeSubMapsBoolean = true)
@@ -107,7 +107,7 @@ case class SubMapKeysIterator[K](mapKey: K,
       override def hasNext: Boolean =
         if (iter.hasNext) {
           val mapKey = iter.next()
-          val mapKeyBytes = keySerializer.write(mapKey.mapKey)
+          val mapKeyBytes = MapKey.writeKeys(mapKey.parentMapKeys, keySerializer)
           if (!(mapKeyBytes equiv thisMapKeyBytes)) //Exit because it's moved onto another map
             false
           else {

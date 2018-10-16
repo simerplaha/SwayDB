@@ -22,9 +22,9 @@ package swaydb
 import swaydb.data.slice.Slice
 import swaydb.serializers.Serializer
 
-abstract class TypedOrdering[T](implicit serializer: Serializer[T]) extends Ordering[Slice[Byte]] {
-  def compare(x: T, y: T): Int
+abstract class TypedOrdering[K](implicit serializer: Serializer[K]) extends Ordering[Slice[Byte]] {
+  def compare(left: K, right: K): Int
 
-  override def compare(x: Slice[Byte], y: Slice[Byte]): Int =
-    compare(serializer.read(x), serializer.read(y))
+  override def compare(left: Slice[Byte], right: Slice[Byte]): Int =
+    compare(serializer.read(left), serializer.read(right))
 }

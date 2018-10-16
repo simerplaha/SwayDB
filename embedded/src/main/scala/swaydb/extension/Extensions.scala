@@ -90,7 +90,7 @@ object Extensions extends LazyLogging {
                        acceleration: Level0Meter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
                                                                                           valueSerializer: Serializer[V],
                                                                                           ordering: Ordering[Slice[Byte]] = KeyOrder.default,
-                                                                                          ec: ExecutionContext = SwayDB.defaultExecutionContext): Try[EmptyMap[K, V]] =
+                                                                                          ec: ExecutionContext = SwayDB.defaultExecutionContext): Try[Root[K, V]] =
     CoreAPI(
       config = DefaultPersistentConfig(
         dir = dir,
@@ -113,7 +113,7 @@ object Extensions extends LazyLogging {
       segmentsOpenCheckDelay = segmentsOpenCheckDelay
     ) map {
       core =>
-        EmptyMap[K, V](new SwayDB(core))
+        Root[K, V](new SwayDB(core))
     }
 
   /**
@@ -194,7 +194,7 @@ object Extensions extends LazyLogging {
                    acceleration: Level0Meter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
                                                                                       valueSerializer: Serializer[V],
                                                                                       ordering: Ordering[Slice[Byte]] = KeyOrder.default,
-                                                                                      ec: ExecutionContext = SwayDB.defaultExecutionContext): Try[EmptyMap[K, V]] =
+                                                                                      ec: ExecutionContext = SwayDB.defaultExecutionContext): Try[Root[K, V]] =
     CoreAPI(
       config = DefaultMemoryConfig(
         mapSize = mapSize,
@@ -212,7 +212,7 @@ object Extensions extends LazyLogging {
       segmentsOpenCheckDelay = Duration.Zero
     ) map {
       core =>
-        EmptyMap[K, V](new SwayDB(core))
+        Root[K, V](new SwayDB(core))
     }
 
   /**
@@ -300,7 +300,7 @@ object Extensions extends LazyLogging {
                              acceleration: Level0Meter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
                                                                                                 valueSerializer: Serializer[V],
                                                                                                 ordering: Ordering[Slice[Byte]] = KeyOrder.default,
-                                                                                                ec: ExecutionContext = SwayDB.defaultExecutionContext): Try[EmptyMap[K, V]] =
+                                                                                                ec: ExecutionContext = SwayDB.defaultExecutionContext): Try[Root[K, V]] =
     CoreAPI(
       config =
         DefaultMemoryPersistentConfig(
@@ -326,7 +326,7 @@ object Extensions extends LazyLogging {
       segmentsOpenCheckDelay = segmentsOpenCheckDelay
     ) map {
       core =>
-        EmptyMap[K, V](new SwayDB(core))
+        Root[K, V](new SwayDB(core))
     }
 
   /**
@@ -410,7 +410,7 @@ object Extensions extends LazyLogging {
                   segmentsOpenCheckDelay: FiniteDuration)(implicit keySerializer: Serializer[K],
                                                           valueSerializer: Serializer[V],
                                                           ordering: Ordering[Slice[Byte]],
-                                                          ec: ExecutionContext): Try[EmptyMap[K, V]] =
+                                                          ec: ExecutionContext): Try[Root[K, V]] =
     CoreAPI(
       config = config,
       maxOpenSegments = maxSegmentsOpen,
@@ -419,7 +419,7 @@ object Extensions extends LazyLogging {
       segmentsOpenCheckDelay = segmentsOpenCheckDelay
     ) map {
       core =>
-        EmptyMap[K, V](new SwayDB(core))
+        Root[K, V](new SwayDB(core))
     }
 
   def apply[T](config: SwayDBPersistentConfig,
@@ -445,7 +445,7 @@ object Extensions extends LazyLogging {
                   cacheCheckDelay: FiniteDuration)(implicit keySerializer: Serializer[K],
                                                    valueSerializer: Serializer[V],
                                                    ordering: Ordering[Slice[Byte]],
-                                                   ec: ExecutionContext): Try[EmptyMap[K, V]] =
+                                                   ec: ExecutionContext): Try[Root[K, V]] =
     CoreAPI(
       config = config,
       maxOpenSegments = 0,
@@ -454,7 +454,7 @@ object Extensions extends LazyLogging {
       segmentsOpenCheckDelay = Duration.Zero
     ) map {
       core =>
-        EmptyMap[K, V](new SwayDB(core))
+        Root[K, V](new SwayDB(core))
     }
 
   def apply[T](config: SwayDBMemoryConfig,

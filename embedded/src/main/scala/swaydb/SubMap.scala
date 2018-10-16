@@ -22,42 +22,136 @@ package swaydb
 import swaydb.core.util.TryUtil
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
-import swaydb.data.slice.Slice
 import swaydb.data.map.MapKey
+import swaydb.data.slice.Slice
 import swaydb.iterator._
-import swaydb.serializers.{Serializer, _}
+import swaydb.serializers.Serializer
 
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 import scala.util.{Failure, Success, Try}
 
-object SubMap {
+private[swaydb] object SubMap {
   def apply[K, V](db: SwayDB,
-                  mapKey: K)(implicit keySerializer: Serializer[K],
-                             valueSerializer: Serializer[V],
-                             ordering: Ordering[Slice[Byte]]): SubMap[K, V] = {
+                  mapKey: Seq[K])(implicit keySerializer: Serializer[K],
+                                  valueSerializer: Serializer[V],
+                                  ordering: Ordering[Slice[Byte]]): SubMap[K, V] = {
     implicit val mapKeySerializer = MapKey.mapKeySerializer(keySerializer)
     val map = Map[MapKey[K], V](db)
     new SubMap[K, V](map, mapKey)
   }
 
-  def putSubMap[K, V](parentMap: Map[MapKey[K], V],
-                      parentMapKey: K,
-                      mapKey: K,
-                      value: V)(implicit keySerializer: Serializer[K],
-                                valueSerializer: Serializer[V],
-                                ordering: Ordering[Slice[Byte]]): Try[SubMap[K, V]] =
-    parentMap.batch(
-      Batch.Put(MapKey.SubMap(parentMapKey, mapKey), value), //add subMap entry to parent Map's key
-      Batch.Put(MapKey.Start(mapKey), value),
-      Batch.Put(MapKey.EntriesStart(mapKey), value),
-      Batch.Put(MapKey.EntriesEnd(mapKey), value),
-      Batch.Put(MapKey.SubMapsStart(mapKey), value),
-      Batch.Put(MapKey.SubMapsEnd(mapKey), value),
-      Batch.Put(MapKey.End(mapKey), value)
-    ) map {
-      _ =>
-        implicit val mapKeySerializer = MapKey.mapKeySerializer(keySerializer)
-        SubMap[K, V](parentMap.db, mapKey)
+  /**
+    * Creates the entries range for the [[SubMap]]'s mapKey/mapId.
+    */
+  def entriesRangeKeys[K](mapKey: Seq[K]): (MapKey.EntriesStart[K], MapKey.EntriesEnd[K]) =
+    (MapKey.EntriesStart(mapKey), MapKey.EntriesEnd(mapKey))
+
+  /**
+    * Fetches all range key-values for all [[SubMap]]s within this [[SubMap]].
+    *
+    * All key-values are stored in this format. This function creates all [[MapKey.Start]] to [[MapKey.End]]
+    * ranges for the current [[SubMap]] and all child [[SubMap]].
+    *
+    * MapKey.Start(Seq(1)),
+    *   MapKey.EntriesStart(Seq(1))
+    *     MapKey.Entry(Seq(1), 1)
+    *   MapKey.EntriesEnd(Seq(1))
+    *   MapKey.SubMapsStart(Seq(1))
+    *     MapKey.SubMap(Seq(1), 1000)
+    *   MapKey.SubMapsEnd(Seq(1))
+    * MapKey.End(Seq(1))
+    */
+  def childSubMapRanges[K, V](subMap: SubMap[K, V])(implicit keySerializer: Serializer[K],
+                                                    mapKeySerializer: Serializer[MapKey[K]],
+                                                    ordering: Ordering[Slice[Byte]],
+                                                    valueSerializer: Serializer[V]): List[(MapKey.Start[K], MapKey.End[K])] =
+    subMap.subMapsOnly().foldLeft(List.empty[(MapKey.Start[K], MapKey.End[K])]) {
+      case (previousList, (subMapKey, _)) => {
+        val subMapKeys = subMap.mapKey :+ subMapKey
+        previousList :+ (MapKey.Start(subMapKeys), MapKey.End(subMapKeys))
+      } ++ {
+        childSubMapRanges(SubMap[K, V](db = subMap.innerMap().db, mapKey = subMap.mapKey :+ subMapKey))
+      }
+    }
+
+  /**
+    * Build [[Batch.Remove]] for the input [[MapKey]] ranges.
+    */
+  def toBatchRemove[K](batches: Iterable[(MapKey[K], MapKey[K])]): Iterable[Data.Remove[MapKey[K]]] =
+    batches map {
+      case (start, end) =>
+        Batch.Remove(start, end)
+    }
+
+  def putMap[K, V](map: Map[MapKey[K], V],
+                   mapKey: Seq[K],
+                   value: V)(implicit keySerializer: Serializer[K],
+                             mapKeySerializer: Serializer[MapKey[K]],
+                             valueSerializer: Serializer[V],
+                             ordering: Ordering[Slice[Byte]]): Try[Level0Meter] = {
+
+    //batch to remove all SubMaps.
+    val removeSubMapsBatches =
+      toBatchRemove(childSubMapRanges(subMap = SubMap[K, V](map.db, mapKey)))
+
+    val (thisMapEntriesStart, thisMapEntriesEnd) = SubMap.entriesRangeKeys(mapKey)
+
+    val parentMapEntry =
+      if (mapKey.size > 1)
+        Some(Batch.Put(MapKey.SubMap(mapKey.dropRight(1), mapKey.last), value)) //add subMap entry to parent Map's key
+      else //if this is the rootMap then there is no need to create a SubMap entry.
+        None
+
+    //batch to create a new map.
+    val createMapBatch =
+      Seq(
+        Batch.Remove(thisMapEntriesStart, thisMapEntriesEnd), //remove all exiting entries
+        Batch.Put(MapKey.Start(mapKey), value),
+        Batch.Put(MapKey.EntriesStart(mapKey), value),
+        Batch.Put(MapKey.EntriesEnd(mapKey), value),
+        Batch.Put(MapKey.SubMapsStart(mapKey), value),
+        Batch.Put(MapKey.SubMapsEnd(mapKey), value),
+        Batch.Put(MapKey.End(mapKey), value)
+      ) ++ parentMapEntry
+
+    map.batch(removeSubMapsBatches ++ createMapBatch)
+  }
+
+  def updateMapValue[K, V](map: Map[MapKey[K], V],
+                           mapKey: Seq[K],
+                           value: V)(implicit keySerializer: Serializer[K],
+                                     mapKeySerializer: Serializer[MapKey[K]],
+                                     valueSerializer: Serializer[V],
+                                     ordering: Ordering[Slice[Byte]]): Try[Level0Meter] = {
+    //batch to create a new map.
+    val updateValue =
+      Seq(
+        Batch.Put(MapKey.SubMap(mapKey.dropRight(1), mapKey.last), value), //add subMap entry to parent Map's key
+        Batch.Put(MapKey.Start(mapKey), value),
+        Batch.Put(MapKey.EntriesStart(mapKey), value),
+        Batch.Put(MapKey.EntriesEnd(mapKey), value),
+        Batch.Put(MapKey.SubMapsStart(mapKey), value),
+        Batch.Put(MapKey.SubMapsEnd(mapKey), value),
+        Batch.Put(MapKey.End(mapKey), value)
+      )
+
+    map.batch(updateValue)
+  }
+
+  def removeMap[K, V](map: Map[MapKey[K], V],
+                      mapKey: Seq[K])(implicit keySerializer: Serializer[K],
+                                      mapKeySerializer: Serializer[MapKey[K]],
+                                      valueSerializer: Serializer[V],
+                                      ordering: Ordering[Slice[Byte]]): Try[Level0Meter] =
+
+    map.batch {
+      Seq(
+        Batch.Remove(MapKey.SubMap[K](mapKey.dropRight(1), mapKey.last)), //remove the subMap entry from parent Map i.e this
+        Batch.Remove(MapKey.Start[K](mapKey), MapKey.End[K](mapKey)) //remove the subMap itself
+      ) ++ {
+        //fetch all child subMaps from the subMap being removed and batch remove them.
+        SubMap.toBatchRemove[K](SubMap.childSubMapRanges[K, V](SubMap[K, V](map.db, mapKey)))
+      }
     }
 }
 
@@ -67,21 +161,86 @@ object SubMap {
   * For documentation check - http://swaydb.io/api/
   */
 class SubMap[K, V](map: Map[MapKey[K], V],
-                   mapKey: K)(implicit keySerializer: Serializer[K],
-                              mapKeySerializer: Serializer[MapKey[K]],
-                              ordering: Ordering[Slice[Byte]],
-                              valueSerializer: Serializer[V]) extends SubMapIterator[K, V](mapKey, dbIterator = DBIterator[MapKey[K], V](map.db, Some(From(MapKey.Start(mapKey), false, false, false, true)))) {
+                   mapKey: Seq[K])(implicit keySerializer: Serializer[K],
+                                   mapKeySerializer: Serializer[MapKey[K]],
+                                   ordering: Ordering[Slice[Byte]],
+                                   valueSerializer: Serializer[V]) extends SubMapIterator[K, V](mapKey, dbIterator = DBIterator[MapKey[K], V](map.db, Some(From(MapKey.Start(mapKey), orAfter = false, orBefore = false, before = false, after = true)))) {
 
-  def putSubMap(key: K, value: V): Try[SubMap[K, V]] =
-    SubMap.putSubMap[K, V](map, mapKey, key, value)
+  def putMap(key: K, value: V): Try[SubMap[K, V]] = {
+    val subMapKey = mapKey :+ key
+    SubMap.putMap[K, V](
+      map = map,
+      mapKey = subMapKey,
+      value = value
+    ) map {
+      _ =>
+        SubMap[K, V](
+          db = map.db,
+          mapKey = subMapKey
+        )
+    }
+  }
 
-  def getSubMap(key: K): Try[Option[SubMap[K, V]]] =
-    map.contains(MapKey.Start(key)) map {
+  def updateMapValue(key: K, value: V): Try[SubMap[K, V]] = {
+    val subMapKey = mapKey :+ key
+    SubMap.updateMapValue[K, V](
+      map = map,
+      mapKey = subMapKey,
+      value = value
+    ) map {
+      _ =>
+        SubMap[K, V](
+          db = map.db,
+          mapKey = subMapKey
+        )
+    }
+  }
+
+  def getMap(key: K): Try[Option[SubMap[K, V]]] = {
+    val subMapKey = mapKey :+ key
+    map.contains(MapKey.Start(subMapKey)) map {
       exists =>
         if (exists)
-          Some(SubMap[K, V](map.db, key))
+          Some(
+            SubMap[K, V](
+              db = map.db,
+              mapKey = subMapKey
+            )
+          )
         else
           None
+    }
+  }
+
+  def updateValue(value: V): Try[SubMap[K, V]] = {
+    SubMap.updateMapValue[K, V](
+      map = map,
+      mapKey = mapKey,
+      value = value
+    ) map {
+      _ =>
+        SubMap[K, V](
+          db = map.db,
+          mapKey = mapKey
+        )
+    }
+  }
+
+  def getMapValue(key: K): Try[Option[V]] =
+    map.get(MapKey.Start(mapKey :+ key))
+
+  def removeMap(key: K): Try[Level0Meter] =
+    SubMap.removeMap(map, mapKey :+ key)
+
+  def remove(): Try[Level0Meter] =
+    remove(List((MapKey.Start[K](mapKey), MapKey.End[K](mapKey))) ++ SubMap.childSubMapRanges[K, V](this))
+
+  private def remove(batches: Iterable[(MapKey[K], MapKey[K])]): Try[Level0Meter] =
+    map.batch {
+      batches map {
+        case (start, end) =>
+          Batch.Remove(start, end)
+      }
     }
 
   def put(key: K, value: V): Try[Level0Meter] =
@@ -98,6 +257,11 @@ class SubMap[K, V](map: Map[MapKey[K], V],
 
   def remove(from: K, to: K): Try[Level0Meter] =
     map.remove(MapKey.Entry(mapKey, from), MapKey.Entry(mapKey, to))
+
+  def removeKeyValues(): Try[Level0Meter] = {
+    val (start, end) = SubMap.entriesRangeKeys(mapKey)
+    map.remove(start, end)
+  }
 
   def expire(key: K, after: FiniteDuration): Try[Level0Meter] =
     map.expire(MapKey.Entry(mapKey, key), after.fromNow)
@@ -205,20 +369,15 @@ class SubMap[K, V](map: Map[MapKey[K], V],
         TryUtil.successNone
     }
 
-  /**
-    * Returns target value for the input key.
-    */
-  def getMap(key: K): Try[Option[SubMap[K, V]]] =
-    map.contains(MapKey.SubMap(mapKey, key)) map {
-      exists =>
-        if (exists)
-          Some(SubMap[K, V](map.db, mapKey))
-        else
-          None
-    }
-
   def keys: SubMapKeysIterator[K] =
-    SubMapKeysIterator[K](mapKey, keysIterator = DBKeysIterator[MapKey[K]](map.db, Some(From(MapKey.Start(mapKey), orAfter = false, orBefore = false, before = false, after = true))))
+    SubMapKeysIterator[K](
+      mapKey = mapKey,
+      keysIterator =
+        DBKeysIterator[MapKey[K]](
+          db = map.db,
+          from = Some(From(MapKey.Start(mapKey), orAfter = false, orBefore = false, before = false, after = true))
+        )
+    )
 
   def contains(key: K): Try[Boolean] =
     map contains MapKey.Entry(mapKey, key)
@@ -249,5 +408,8 @@ class SubMap[K, V](map: Map[MapKey[K], V],
 
   def timeLeft(key: K): Try[Option[FiniteDuration]] =
     expiration(key).map(_.map(_.timeLeft))
+
+  private[swaydb] def innerMap() =
+    map
 
 }

@@ -19,59 +19,75 @@
 
 package swaydb
 
+import swaydb.data.accelerate.Level0Meter
 import swaydb.data.map.MapKey
 import swaydb.data.slice.Slice
 import swaydb.serializers.Serializer
 
 import scala.util.Try
 
-object EmptyMap {
+object Root {
 
   def apply[K, V](db: SwayDB)(implicit keySerializer: Serializer[K],
                               valueSerializer: Serializer[V],
-                              ordering: Ordering[Slice[Byte]]): EmptyMap[K, V] = {
+                              ordering: Ordering[Slice[Byte]]): Root[K, V] = {
     implicit val mapKeySerializer = MapKey.mapKeySerializer(keySerializer)
 
     val map = new Map[MapKey[K], V](db)
-    new EmptyMap[K, V](map)
+    new Root[K, V](map)
   }
 }
 
-/**
-  * An immutable empty Map used as a the head map to create child [[RootMap]]s.
-  */
-class EmptyMap[K, V](map: Map[MapKey[K], V])(implicit keySerializer: Serializer[K],
-                                             valueSerializer: Serializer[V],
-                                             ordering: Ordering[Slice[Byte]]) {
+class Root[K, V](map: Map[MapKey[K], V])(implicit keySerializer: Serializer[K],
+                                         mapKeySerializer: Serializer[MapKey[K]],
+                                         valueSerializer: Serializer[V],
+                                         ordering: Ordering[Slice[Byte]]) {
 
-  def putRootMap(key: K, value: V): Try[RootMap[K, V]] =
-    map.batch(
-      Batch.Put(MapKey.Start(key), value),
-      Batch.Put(MapKey.EntriesStart(key), value),
-      Batch.Put(MapKey.EntriesEnd(key), value),
-      Batch.Put(MapKey.SubMapsStart(key), value),
-      Batch.Put(MapKey.SubMapsEnd(key), value),
-      Batch.Put(MapKey.End(key), value)
+  def createMap(key: K, value: V): Try[SubMap[K, V]] = {
+    val mapKey = Seq(key)
+    SubMap.putMap(
+      map = map,
+      mapKey = mapKey,
+      value = value
     ) map {
       _ =>
-        RootMap[K, V](map.db, key)
+        SubMap[K, V](
+          db = map.db,
+          mapKey = mapKey
+        )
     }
+  }
+
+  def removeMap(key: K): Try[Level0Meter] =
+    SubMap.removeMap(map, Seq(key))
 
   /**
     * Returns target value for the input key.
     */
-  def getRootMap(key: K): Try[Option[RootMap[K, V]]] =
-    map.contains(MapKey.Start(key)) map {
+  def getMap(key: K): Try[Option[SubMap[K, V]]] = {
+    val mapKey = Seq(key)
+    mapExists(key) map {
       exists =>
         if (exists)
-          Some(RootMap[K, V](map.db, key))
+          Some(SubMap[K, V](map.db, mapKey))
         else
           None
     }
+  }
+
+  def mapExists(key: K): Try[Boolean] =
+    map.contains(MapKey.Start(Seq(key)))
+
+  def getMapValue(key: K): Try[Option[V]] =
+    map.get(MapKey.Start(Seq(key)))
 
   /**
+    *
     * Returns the estimate keyValue count in the database.
     */
   def dbKeyValueCount: Try[Int] =
     map.db.keyValueCount
+
+  private[swaydb] def innerMap() =
+    map
 }
