@@ -17,12 +17,13 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb
+package swaydb.extension
 
+import swaydb.{SwayDB, TestBaseEmbedded}
 import swaydb.core.TestBase
 import swaydb.data.map.MapKey
-import swaydb.extension.Root
 import swaydb.serializers.Default._
+import swaydb.data.util.StorageUnits._
 
 import scala.concurrent.duration._
 
@@ -68,28 +69,28 @@ sealed trait RootSpec extends TestBase with TestBaseEmbedded {
     "create a map" in {
       val emptyMap = newDB()
 
-      emptyMap.createMap(1, "rootMap").assertGet
+      val rootMap = emptyMap.createMap(1, "rootMap").assertGet
 
-      emptyMap.mapExists(1).assertGet shouldBe true
+      emptyMap.containsMap(1).assertGet shouldBe true
       emptyMap.getMap(1).assertGetOpt shouldBe defined
-      emptyMap.getMapValue(1).assertGet shouldBe "rootMap"
+      rootMap.getValue().assertGet shouldBe "rootMap"
     }
 
     "remove a map" in {
       val emptyMap = newDB()
 
-      emptyMap.createMap(1, "rootMap").assertGet
-      emptyMap.mapExists(1).assertGet shouldBe true
+      val rootMap = emptyMap.createMap(1, "rootMap").assertGet
+      emptyMap.containsMap(1).assertGet shouldBe true
 
-      emptyMap.removeMap(1).assertGet
-      emptyMap.mapExists(1).assertGet shouldBe false
+      rootMap.remove().assertGet
+      emptyMap.containsMap(1).assertGet shouldBe false
     }
 
     "get a maps value" in {
       val emptyMap = newDB()
 
-      emptyMap.createMap(1, "rootMap").assertGet
-      emptyMap.getMapValue(1).assertGet shouldBe "rootMap"
+      val rootMap = emptyMap.createMap(1, "rootMap").assertGet
+      rootMap.getValue().assertGet shouldBe "rootMap"
     }
   }
 
@@ -100,13 +101,14 @@ sealed trait RootSpec extends TestBase with TestBaseEmbedded {
       //create subMaps
       (1 to 100) foreach {
         i =>
-          emptyMap.createMap(i, s"subMap$i").assertGet
+          val subMap = emptyMap.createMap(i, s"subMap$i").assertGet
+          subMap.getValue().assertGet shouldBe s"subMap$i"
 
           (1 to i) foreach {
             i =>
-              emptyMap.mapExists(i).assertGet shouldBe true
-              emptyMap.getMap(i).assertGetOpt shouldBe defined
-              emptyMap.getMapValue(i).assertGet shouldBe s"subMap$i"
+              emptyMap.containsMap(i).assertGet shouldBe true
+              val subMap = emptyMap.getMap(i).assertGet
+              subMap.getValue().assertGet shouldBe s"subMap$i"
           }
       }
 
@@ -116,13 +118,15 @@ sealed trait RootSpec extends TestBase with TestBaseEmbedded {
       //remove all maps
       (1 to 100) foreach {
         i =>
-          emptyMap.removeMap(i).assertGet
+          val subMap = emptyMap.getMap(i).assertGet
+          subMap.remove().assertGet
+          subMap.getValue().assertGetOpt shouldBe empty
+          subMap.exists().assertGet shouldBe false
 
           (1 to i) foreach {
             i =>
-              emptyMap.mapExists(i).assertGet shouldBe false
+              emptyMap.containsMap(i).assertGet shouldBe false
               emptyMap.getMap(i).assertGetOpt shouldBe empty
-              emptyMap.getMapValue(i).assertGetOpt shouldBe empty
           }
       }
 

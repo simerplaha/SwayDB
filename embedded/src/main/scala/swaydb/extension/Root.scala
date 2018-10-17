@@ -19,7 +19,6 @@
 
 package swaydb.extension
 
-import swaydb.data.accelerate.Level0Meter
 import swaydb.data.map.MapKey
 import swaydb.data.slice.Slice
 import swaydb.serializers.Serializer
@@ -44,45 +43,19 @@ class Root[K, V](map: Map[MapKey[K], V])(implicit keySerializer: Serializer[K],
                                          valueSerializer: Serializer[V],
                                          ordering: Ordering[Slice[Byte]]) {
 
-  def createMap(key: K, value: V): Try[SubMap[K, V]] = {
-    val mapKey = Seq(key)
-    map.batch {
-      SubMap.putMap(
-        map = map,
-        mapKey = mapKey,
-        value = value
-      )
-    } map {
-      _ =>
-        SubMap[K, V](
-          db = map.db,
-          mapKey = mapKey
-        )
-    }
-  }
+  private val subMap = SubMap[K, V](map.db, Seq.empty)
 
-  def removeMap(key: K): Try[Level0Meter] =
-    SubMap.removeMap(map, Seq(key))
+  def createMap(key: K, value: V): Try[SubMap[K, V]] =
+    subMap.putMap(key, value)
 
   /**
     * Returns target value for the input key.
     */
-  def getMap(key: K): Try[Option[SubMap[K, V]]] = {
-    val mapKey = Seq(key)
-    mapExists(key) map {
-      exists =>
-        if (exists)
-          Some(SubMap[K, V](map.db, mapKey))
-        else
-          None
-    }
-  }
+  def getMap(key: K): Try[Option[SubMap[K, V]]] =
+    subMap.getMap(key)
 
-  def mapExists(key: K): Try[Boolean] =
-    map.contains(MapKey.Start(Seq(key)))
-
-  def getMapValue(key: K): Try[Option[V]] =
-    map.get(MapKey.Start(Seq(key)))
+  def containsMap(key: K): Try[Boolean] =
+    subMap.containsMap(key)
 
   /**
     *
