@@ -111,7 +111,10 @@ private[swaydb] object SubMap {
 
     val parentMapEntry =
       if (mapKey.size > 1) //if's is not a rootMap, then also create a SubMap entry for parent Map for reference holding.
-        Some(Batch.Put(MapKey.SubMap(mapKey.dropRight(1), mapKey.last), value)) //add subMap entry to parent Map's key
+        mapKey.lastOption map {
+          last =>
+            Batch.Put(MapKey.SubMap(mapKey.dropRight(1), last), value) //add subMap entry to parent Map's key
+        }
       else //if this is the rootMap then there is no need to create a SubMap entry.
         None
 

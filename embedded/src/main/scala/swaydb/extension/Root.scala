@@ -19,6 +19,7 @@
 
 package swaydb.extension
 
+import swaydb.data.accelerate.Level0Meter
 import swaydb.data.map.MapKey
 import swaydb.data.slice.Slice
 import swaydb.serializers.Serializer
@@ -56,6 +57,9 @@ class Root[K, V](map: Map[MapKey[K], V])(implicit keySerializer: Serializer[K],
 
   def containsMap(key: K): Try[Boolean] =
     subMap.containsMap(key)
+
+  def removeMap(key: K): Try[Level0Meter] =
+    subMap.removeMap(key)
 
   /**
     *
