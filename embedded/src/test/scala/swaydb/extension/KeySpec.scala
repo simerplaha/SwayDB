@@ -38,6 +38,17 @@ class KeySpec extends WordSpec with Matchers with TestData {
       read shouldBe key
     }
 
+    "write & read empty keys" in {
+      doAssert(Key.Start(Seq.empty[Int]))
+      doAssert(Key.EntriesStart(Seq.empty[Int]))
+      doAssert(Key.Entry(Seq.empty[Int], 100))
+      doAssert(Key.EntriesEnd(Seq.empty[Int]))
+      doAssert(Key.SubMapsStart(Seq.empty[Int]))
+      doAssert(Key.SubMap(Seq.empty[Int], 1000))
+      doAssert(Key.SubMapsEnd(Seq.empty[Int]))
+      doAssert(Key.End(Seq.empty[Int]))
+    }
+
     "write & read MapKeys with Int key" in {
       doAssert(Key.Start(Seq(1)))
       doAssert(Key.EntriesStart(Seq(1)))
@@ -102,6 +113,11 @@ class KeySpec extends WordSpec with Matchers with TestData {
       implicit val mapKeyOrder = Ordering.by[Key[Int], Slice[Byte]](mapKeySerializer.write)(Key.ordering(order))
 
       val keys = Seq(
+        Key.Start(Seq.empty[Int]),
+        Key.SubMapsStart(Seq.empty[Int]),
+        Key.SubMapsEnd(Seq.empty[Int]),
+        Key.End(Seq.empty[Int]),
+
         Key.Start(Seq(0)),
         Key.SubMapsStart(Seq(0)),
         Key.SubMapsEnd(Seq(0)),

@@ -25,7 +25,7 @@ import swaydb.data.compaction.LevelMeter
 import swaydb.data.slice.Slice
 import swaydb.iterator._
 import swaydb.serializers.Serializer
-import swaydb.{Batch, Data, Map}
+import swaydb.{Batch, Data}
 
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 import scala.util.{Failure, Success, Try}
@@ -65,7 +65,7 @@ private[swaydb] object Map {
                                                     ordering: Ordering[Slice[Byte]],
                                                     valueSerializer: Serializer[V],
                                                     optionValueSerializer: Serializer[Option[V]]): List[(Key.SubMap[K], Key.Start[K], Key.End[K])] =
-    parentMap.subMapsOnly().foldLeft(List.empty[(Key.SubMap[K], Key.Start[K], Key.End[K])]) {
+    parentMap.mapsOnly().foldLeft(List.empty[(Key.SubMap[K], Key.Start[K], Key.End[K])]) {
       case (previousList, (subMapKey, _)) => {
         val subMapKeys = parentMap.mapKey :+ subMapKey
         //                  remove the subMap reference from parent         &        remove subMap block
@@ -74,7 +74,7 @@ private[swaydb] object Map {
       } ++ {
         childSubMapRanges(
           Map[K, V](
-            map = parentMap.innerMap(),
+            map = parentMap.baseMap(),
             mapKey = parentMap.mapKey :+ subMapKey
           )
         )
@@ -116,7 +116,7 @@ private[swaydb] object Map {
           removeSubMapsBatches ++
             Seq(
               //add subMap entry to parent Map's key
-              Batch.Put(Key.SubMap(mapKey.dropRight(1), last), None),
+              Batch.Put(Key.SubMap(mapKey.dropRight(1), last), value),
               Batch.Remove(thisMapEntriesStart, thisMapEntriesEnd), //remove all exiting entries
               //value only needs to be set for Start.
               Batch.Put(Key.Start(mapKey), value),
@@ -139,7 +139,16 @@ private[swaydb] object Map {
                                      mapKeySerializer: Serializer[Key[K]],
                                      valueSerializer: Serializer[V],
                                      ordering: Ordering[Slice[Byte]]): Seq[Data.Put[Key[K], Option[V]]] =
-    Seq(Batch.Put(Key.Start(mapKey), Some(value)))
+
+    mapKey.lastOption map {
+      last =>
+        Seq[Data.Put[Key[K], Option[V]]](
+          Batch.Put(Key.SubMap(mapKey.dropRight(1), last), Some(value)),
+          Batch.Put(Key.Start(mapKey), Option(value))
+        )
+    } getOrElse {
+      Seq(Batch.Put(Key.Start(mapKey), Option(value)))
+    }
 
   def removeMap[K, V](map: swaydb.Map[Key[K], Option[V]],
                       mapKey: Seq[K])(implicit keySerializer: Serializer[K],
@@ -166,7 +175,7 @@ class Map[K, V](map: swaydb.Map[Key[K], Option[V]],
                                 mapKeySerializer: Serializer[Key[K]],
                                 ordering: Ordering[Slice[Byte]],
                                 valueSerializerOption: Serializer[Option[V]],
-                                valueSerializer: Serializer[V]) extends SubMapIterator[K, Option[V]](mapKey, dbIterator = DBIterator[Key[K], Option[V]](map.db, Some(From(Key.Start(mapKey), orAfter = false, orBefore = false, before = false, after = true)))) {
+                                valueSerializer: Serializer[V]) extends SubMapIterator[K, V](mapKey, dbIterator = DBIterator[Key[K], Option[V]](map.db, Some(From(Key.Start(mapKey), orAfter = false, orBefore = false, before = false, after = true)))) {
 
   def putMap(key: K, value: V): Try[Map[K, V]] = {
     val subMapKey = mapKey :+ key
@@ -237,21 +246,17 @@ class Map[K, V](map: swaydb.Map[Key[K], Option[V]],
   def exists(): Try[Boolean] =
     map.contains(Key.Start(mapKey))
 
+  /**
+    * Returns None if the map does not exist or returns the value.
+    */
   def getValue(): Try[Option[V]] =
-    map.get(Key.Start(mapKey)) flatMap {
-      case Some(value) =>
-        Success(value)
-      case None =>
-        Failure(new Exception("Map does not exist."))
-    }
+    map.get(Key.Start(mapKey)).map(_.flatten)
 
+  /**
+    * Returns None if this map does not exist or returns the value.
+    */
   def getMapValue(key: K): Try[Option[V]] =
-    map.get(Key.Start(mapKey :+ key)) flatMap {
-      case Some(value) =>
-        Success(value)
-      case None =>
-        Failure(new Exception("Map does not exist."))
-    }
+    map.get(Key.Start(mapKey :+ key)).map(_.flatten)
 
   def removeMap(key: K): Try[Level0Meter] =
     map.batch(Map.removeMap(map, mapKey :+ key))
@@ -271,9 +276,17 @@ class Map[K, V](map: swaydb.Map[Key[K], Option[V]],
   def remove(from: K, to: K): Try[Level0Meter] =
     map.remove(Key.Entry(mapKey, from), Key.Entry(mapKey, to))
 
-  def removeKeyValues(): Try[Level0Meter] = {
+  /**
+    * Removes all key-values from the current Map. SubMaps and subMap's key-values or not altered.
+    */
+  def removeAllKeyValues(): Try[Level0Meter] = {
     val (start, end) = Map.entriesRangeKeys(mapKey)
-    map.remove(start, end)
+    map.batch(
+      //remove key-value entries, but also re-instead the start and end entries for the Map.
+      Batch.Remove(start, end),
+      Batch.Put(start, None),
+      Batch.Put(end, None)
+    )
   }
 
   def expire(key: K, after: FiniteDuration): Try[Level0Meter] =
@@ -347,13 +360,15 @@ class Map[K, V](map: swaydb.Map[Key[K], Option[V]],
 
   /**
     * Returns target value for the input key.
+    *
+    * @return Returns None is the key does not exist.
     */
   def get(key: K): Try[Option[V]] =
     map.get(Key.Entry(mapKey, key)) flatMap {
       case Some(value) =>
         Success(value)
       case None =>
-        Failure(new Exception("Map does not exist."))
+        TryUtil.successNone
     }
 
   /**
@@ -433,7 +448,6 @@ class Map[K, V](map: swaydb.Map[Key[K], Option[V]],
   def timeLeft(key: K): Try[Option[FiniteDuration]] =
     expiration(key).map(_.map(_.timeLeft))
 
-  private[swaydb] def innerMap() =
+  private[swaydb] def baseMap(): swaydb.Map[Key[K], Option[V]] =
     map
-
 }

@@ -19,6 +19,7 @@
 
 package swaydb.extension
 
+import swaydb.TypedOrdering
 import swaydb.core.io.reader.Reader
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteUtil
@@ -57,33 +58,48 @@ object Key {
   //leave enough space to allow for adding other data like mapSize etc.
   private val end: Byte = 100.toByte
 
-  def writeKeys[K](keys: Seq[K], keySerializer: Serializer[K]): Slice[Byte] = {
-    val slices = keys map keySerializer.write
-    val size = slices.foldLeft(0) {
-      case (size, bytes) =>
-        size + ByteUtil.sizeOf(bytes.size) + bytes.size
+  private[swaydb] def writeKeys[K](keys: Seq[K], keySerializer: Serializer[K]): Slice[Byte] = {
+    if (keys.isEmpty)
+      Slice.emptyBytes
+    else {
+      val slices = keys map keySerializer.write
+      val size = slices.foldLeft(0) {
+        case (size, bytes) =>
+          size + ByteUtil.sizeOf(bytes.size) + bytes.size
+      }
+      val slice = Slice.create[Byte](size)
+      slices foreach {
+        keySlice =>
+          slice addIntUnsigned keySlice.size
+          slice addAll keySlice
+      }
+      slice
     }
-    val slice = Slice.create[Byte](size)
-    slices foreach {
-      keySlice =>
-        slice addIntUnsigned keySlice.size
-        slice addAll keySlice
-    }
-    slice
   }
 
-  def readKeys[K](keys: Slice[Byte], keySerializer: Serializer[K]): Try[Seq[K]] = {
-    def readOne(reader: Reader) =
+  private def readKeys[K](keys: Slice[Byte], keySerializer: Serializer[K]): Try[Seq[K]] = {
+    def readOne(reader: Reader): Try[Option[K]] =
       reader
         .readIntUnsigned()
         .flatMap(reader.read)
-        .map(keySerializer.read)
+        .map {
+          bytes =>
+            if (bytes.isEmpty)
+              None
+            else
+              Some(keySerializer.read(bytes))
+        }
 
     Reader(keys).foldLeftTry(Seq.empty[K]) {
       case (keys, reader) =>
         readOne(reader) map {
           key =>
-            keys :+ key
+            key map {
+              key =>
+                keys :+ key
+            } getOrElse {
+              keys
+            }
         }
     }
   }
@@ -210,8 +226,11 @@ object Key {
     }
 
   /**
+    * Implements un-typed ordering for performance. This ordering can also be implemented used [[TypedOrdering]].
+    * See documentation at http://www.swaydb.io/custom-key-ordering/
+    *
     * Creates dual ordering on [[Key.parentMapKeys]]. Orders mapKey using the [[KeyOrder.default]] order
-    * and applies custom ordering to the user provided keys.
+    * and applies custom ordering on the user provided keys.
     */
   def ordering(customOrder: Ordering[Slice[Byte]]) =
     new Ordering[Slice[Byte]] {

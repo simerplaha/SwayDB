@@ -27,6 +27,10 @@ import scala.util.Try
 
 object Extend {
 
+  /**
+    * Wraps the input [[swaydb.Map]] instance and returns a new [[extension.Map]] instance
+    * which contains extended APIs to create nested Maps.
+    */
   def apply[K, V](map: swaydb.Map[Key[K], Option[V]])(implicit keySerializer: Serializer[K],
                                                       optionValueSerializer: Serializer[Option[V]],
                                                       ordering: Ordering[Slice[Byte]]): Try[extension.Map[K, V]] = {

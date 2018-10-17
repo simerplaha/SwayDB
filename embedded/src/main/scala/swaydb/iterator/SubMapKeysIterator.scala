@@ -21,31 +21,33 @@ package swaydb.iterator
 
 import swaydb.data.slice.Slice
 import swaydb.extension.Key
+import swaydb.order.KeyOrder
 import swaydb.serializers.Serializer
 
 import scala.annotation.tailrec
 import scala.collection.generic.CanBuildFrom
 
+/**
+  * TODO - [[SubMapIterator]] and [[SubMapKeysIterator]] are similar and need a higher type.
+  */
 case class SubMapKeysIterator[K](mapKey: Seq[K],
-                                 private val includeSubMapsBoolean: Boolean = false,
-                                 private val subMapsOnlyBoolean: Boolean = false,
+                                 private val includeMapsBoolean: Boolean = false,
+                                 private val mapsOnlyBoolean: Boolean = false,
                                  private val keysIterator: DBKeysIterator[Key[K]],
                                  private val till: K => Boolean = (_: K) => true)(implicit keySerializer: Serializer[K],
                                                                                   tableKeySerializer: Serializer[Key[K]],
                                                                                   ordering: Ordering[Slice[Byte]]) extends Iterable[K] {
-
-  import ordering._
 
   private val endEntriesKey = Key.EntriesEnd(mapKey)
   private val endSubMapsKey = Key.SubMapsEnd(mapKey)
 
   private val thisMapKeyBytes = Key.writeKeys(mapKey, keySerializer)
 
-  def includeSubMaps(): SubMapKeysIterator[K] =
-    copy(includeSubMapsBoolean = true)
+  def includeMaps(): SubMapKeysIterator[K] =
+    copy(includeMapsBoolean = true)
 
-  def subMapsOnly(): SubMapKeysIterator[K] =
-    copy(subMapsOnlyBoolean = true)
+  def mapsOnly(): SubMapKeysIterator[K] =
+    copy(mapsOnlyBoolean = true)
 
   def from(key: K): SubMapKeysIterator[K] =
     copy(keysIterator = keysIterator.from(Key.Entry(mapKey, key)))
@@ -63,19 +65,19 @@ case class SubMapKeysIterator[K](mapKey: Seq[K],
     copy(keysIterator = keysIterator.fromOrAfter(Key.Entry(mapKey, key)))
 
   def fromSubMap(key: K): SubMapKeysIterator[K] =
-    copy(keysIterator = keysIterator.from(Key.SubMap(mapKey, key)), includeSubMapsBoolean = true)
+    copy(keysIterator = keysIterator.from(Key.SubMap(mapKey, key)), includeMapsBoolean = true)
 
   def beforeSubMap(key: K): SubMapKeysIterator[K] =
-    copy(keysIterator = keysIterator.before(Key.SubMap(mapKey, key)), includeSubMapsBoolean = true)
+    copy(keysIterator = keysIterator.before(Key.SubMap(mapKey, key)), includeMapsBoolean = true)
 
   def fromOrBeforeSubMap(key: K): SubMapKeysIterator[K] =
-    copy(keysIterator = keysIterator.fromOrBefore(Key.SubMap(mapKey, key)), includeSubMapsBoolean = true)
+    copy(keysIterator = keysIterator.fromOrBefore(Key.SubMap(mapKey, key)), includeMapsBoolean = true)
 
   def afterSubMap(key: K): SubMapKeysIterator[K] =
-    copy(keysIterator = keysIterator.after(Key.SubMap(mapKey, key)), includeSubMapsBoolean = true)
+    copy(keysIterator = keysIterator.after(Key.SubMap(mapKey, key)), includeMapsBoolean = true)
 
   def fromOrAfterSubMap(key: K): SubMapKeysIterator[K] =
-    copy(keysIterator = keysIterator.fromOrAfter(Key.SubMap(mapKey, key)), includeSubMapsBoolean = true)
+    copy(keysIterator = keysIterator.fromOrAfter(Key.SubMap(mapKey, key)), includeMapsBoolean = true)
 
   private def before(key: Key[K], reverse: Boolean): SubMapKeysIterator[K] =
     copy(keysIterator = keysIterator.before(key).copy(reverse = reverse))
@@ -108,7 +110,7 @@ case class SubMapKeysIterator[K](mapKey: Seq[K],
         if (iter.hasNext) {
           val mapKey = iter.next()
           val mapKeyBytes = Key.writeKeys(mapKey.parentMapKeys, keySerializer)
-          if (!(mapKeyBytes equiv thisMapKeyBytes)) //Exit because it's moved onto another map
+          if (KeyOrder.default.compare(mapKeyBytes, thisMapKeyBytes) != 0) //Exit if it's moved onto another map
             false
           else {
             mapKey match {
@@ -125,35 +127,37 @@ case class SubMapKeysIterator[K](mapKey: Seq[K],
                   hasNext
 
               case Key.Entry(_, dataKey) =>
-                if (subMapsOnlyBoolean)
+                if (mapsOnlyBoolean) {
                   if (keysIterator.reverse) //Exit if it's fetching subMaps only it's already reached an entry means it's has already crossed subMaps block
                     false
                   else
                     hasNext
-                else if (till(dataKey)) {
-                  nextKeyValue = Some(dataKey)
-                  true
                 } else {
-                  false
+                  if (till(dataKey)) {
+                    nextKeyValue = Some(dataKey)
+                    true
+                  } else {
+                    false
+                  }
                 }
 
               case Key.EntriesEnd(_) =>
                 //if it's not going backwards and it's trying to fetch subMaps only then move forward
-                if (!keysIterator.reverse && !includeSubMapsBoolean && !subMapsOnlyBoolean)
+                if (!keysIterator.reverse && !includeMapsBoolean && !mapsOnlyBoolean)
                   false
                 else
                   hasNext
 
               case Key.SubMapsStart(_) =>
                 //if it's not going backward and it's trying to fetch subMaps only then move forward
-                if (!keysIterator.reverse && !includeSubMapsBoolean && !subMapsOnlyBoolean)
+                if (!keysIterator.reverse && !includeMapsBoolean && !mapsOnlyBoolean)
                   false
                 else
                   hasNext
 
               case Key.SubMap(_, dataKey) =>
                 //Exit if it's going forward and does not have subMaps included in the iteration.
-                if (!keysIterator.reverse && !subMapsOnlyBoolean && !includeSubMapsBoolean)
+                if (!keysIterator.reverse && !mapsOnlyBoolean && !includeMapsBoolean)
                   false
                 else if (till(dataKey)) {
                   nextKeyValue = Some(dataKey)
@@ -206,7 +210,7 @@ case class SubMapKeysIterator[K](mapKey: Seq[K],
     * else returns the starting point to be [[Key.EntriesEnd]] to fetch entries only.
     */
   private def reverseIterationStartingKey(): Key[K] =
-    if (includeSubMapsBoolean || subMapsOnlyBoolean)
+    if (includeMapsBoolean || mapsOnlyBoolean)
       endSubMapsKey
     else
       endEntriesKey
@@ -234,13 +238,13 @@ case class SubMapKeysIterator[K](mapKey: Seq[K],
 
   override def reduceRight[B >: K](op: (K, B) => B): B =
     before(key = reverseIterationStartingKey(), reverse = true).reduce[B] {
-      case (left: B, right: K) =>
+      case (left, right: K) =>
         op(right, left)
     }
 
   override def reduceRightOption[B >: K](op: (K, B) => B): Option[B] =
     before(key = reverseIterationStartingKey(), reverse = true).reduceOption[B] {
-      case (left: B, right: K) =>
+      case (left, right: K) =>
         op(right, left)
     }
 
