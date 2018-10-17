@@ -33,9 +33,9 @@ View detailed benchmark results [here](http://swaydb.io/performance/macbook-pro-
 - Auto expiring key-value ([TTL](http://www.swaydb.io/api/write-api/expire/))
 - Range [update, remove & expire](http://www.swaydb.io/api/write-api/)
 - Key only iterations (Lazily fetched values)
-- Data storage formats
-    - Key-value (`Map[K, V]`)
-    - Row (`Set[T]`)
+- Supported data types 
+    - `Map[K, V]`
+    - `Set[T]`
 - In-built custom serialization API with [Slice](http://www.swaydb.io/slice/byte-slice/) 
 - [Configurable Levels](http://www.swaydb.io/configuring-levels/)
 - Configurable [cacheSize](http://www.swaydb.io/configuring-levels/cacheSize/)
