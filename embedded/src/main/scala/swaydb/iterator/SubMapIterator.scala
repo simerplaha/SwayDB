@@ -20,7 +20,7 @@
 package swaydb.iterator
 
 import swaydb.data.slice.Slice
-import swaydb.extensions.Key
+import swaydb.extension.Key
 import swaydb.serializers.Serializer
 
 import scala.annotation.tailrec

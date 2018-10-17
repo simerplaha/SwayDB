@@ -17,7 +17,7 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.extensions
+package swaydb.extension
 
 import swaydb.core.io.reader.Reader
 import swaydb.data.slice.{Reader, Slice}
@@ -224,7 +224,7 @@ object Key {
 
         val readerRight = a.createReader()
         readerRight.skip(1) //skip formatId
-        val keySizeRight = readerRight.readIntUnsigned() //read the keySize
+        val keySizeRight = readerRight.readIntUnsigned() //read the keySize integer
         readerRight.skip(keySizeRight) //skip key size
         val dataTypeRight = readerRight.get() //read the data type to apply ordering (default or custom)
 

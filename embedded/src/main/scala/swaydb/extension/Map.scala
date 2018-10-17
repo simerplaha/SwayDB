@@ -17,7 +17,7 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.extensions
+package swaydb.extension
 
 import swaydb.core.util.TryUtil
 import swaydb.data.accelerate.Level0Meter

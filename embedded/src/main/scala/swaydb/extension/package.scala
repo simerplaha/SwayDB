@@ -24,12 +24,12 @@ import swaydb.serializers.Serializer
 
 import scala.util.Try
 
-package object extensions {
+package object extension {
 
   implicit class DefaultExtension[K, V](map: swaydb.Map[Key[K], Option[V]]) {
     def extend(implicit keySerializer: Serializer[K],
                optionValueSerializer: Serializer[Option[V]],
-               ordering: Ordering[Slice[Byte]]): Try[extensions.Map[K, V]] =
+               ordering: Ordering[Slice[Byte]]): Try[extension.Map[K, V]] =
       Extend(map = map)(
         keySerializer = keySerializer,
         optionValueSerializer = optionValueSerializer,

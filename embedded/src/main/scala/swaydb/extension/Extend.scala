@@ -17,19 +17,19 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.extensions
+package swaydb.extension
 
-import swaydb.{Batch, extensions}
+import swaydb.{Batch, extension}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Serializer
 
 import scala.util.Try
 
-private[swaydb] object Extend {
+object Extend {
 
   def apply[K, V](map: swaydb.Map[Key[K], Option[V]])(implicit keySerializer: Serializer[K],
                                                       optionValueSerializer: Serializer[Option[V]],
-                                                      ordering: Ordering[Slice[Byte]]): Try[extensions.Map[K, V]] = {
+                                                      ordering: Ordering[Slice[Byte]]): Try[extension.Map[K, V]] = {
     implicit val mapKeySerializer = Key.serializer(keySerializer)
 
     implicit val valueSerializer = new Serializer[V] {
@@ -38,7 +38,7 @@ private[swaydb] object Extend {
 
       override def read(data: Slice[Byte]): V =
         optionValueSerializer.read(data) getOrElse {
-          throw new Exception("optionValueSerializer returned None for valid value.")
+          throw new Exception("optionValueSerializer returned None for value bytes.")
         }
     }
     val rootMapKey = Seq.empty[K]

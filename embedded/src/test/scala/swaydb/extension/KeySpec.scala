@@ -17,20 +17,18 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.data.map
+package swaydb.extension
 
-import swaydb.TestBaseEmbedded
+import org.scalatest.{Matchers, WordSpec}
+import swaydb.core.TestData
 import swaydb.data.slice.Slice
-import swaydb.extensions.Key
 import swaydb.serializers.Default._
 import swaydb.serializers.Serializer
 
 import scala.collection.SortedSet
 import scala.util.Random
 
-class KeySpec extends TestBaseEmbedded {
-
-  override val keyValueCount: Int = 100
+class KeySpec extends WordSpec with Matchers with TestData {
 
   "mapKeySerializer" should {
     def doAssert[T](key: Key[T])(implicit serializer: Serializer[T]) = {
