@@ -31,7 +31,7 @@ sealed trait Key[+K] {
   def parentMapKeys: Seq[K]
 }
 
-private[swaydb] object Key {
+object Key {
 
   case class Start[K](parentMapKeys: Seq[K]) extends Key[K]
   case class EntriesStart[K](parentMapKeys: Seq[K]) extends Key[K]
@@ -42,7 +42,7 @@ private[swaydb] object Key {
   case class SubMapsEnd[K](parentMapKeys: Seq[K]) extends Key[K]
   case class End[K](parentMapKeys: Seq[K]) extends Key[K]
 
-  //formatId for the serializers
+  //formatId for the serializers. Each key is prepended with this formatId.
   private val formatId: Byte = 0.toByte
   //starting of the Map
   private val start: Byte = 1.toByte
