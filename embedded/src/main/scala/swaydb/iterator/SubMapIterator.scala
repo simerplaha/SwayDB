@@ -63,19 +63,19 @@ case class SubMapIterator[K, V](mapKey: Seq[K],
   def fromOrAfter(key: K): SubMapIterator[K, V] =
     copy(dbIterator = dbIterator.fromOrAfter(Key.Entry(mapKey, key)))
 
-  def fromSubMap(key: K): SubMapIterator[K, V] =
+  def fromMap(key: K): SubMapIterator[K, V] =
     copy(dbIterator = dbIterator.from(Key.SubMap(mapKey, key)), includeMapsBoolean = true)
 
-  def beforeSubMap(key: K): SubMapIterator[K, V] =
+  def beforeMap(key: K): SubMapIterator[K, V] =
     copy(dbIterator = dbIterator.before(Key.SubMap(mapKey, key)), includeMapsBoolean = true)
 
-  def fromOrBeforeSubMap(key: K): SubMapIterator[K, V] =
+  def fromOrBeforeMap(key: K): SubMapIterator[K, V] =
     copy(dbIterator = dbIterator.fromOrBefore(Key.SubMap(mapKey, key)), includeMapsBoolean = true)
 
-  def afterSubMap(key: K): SubMapIterator[K, V] =
+  def afterMap(key: K): SubMapIterator[K, V] =
     copy(dbIterator = dbIterator.after(Key.SubMap(mapKey, key)), includeMapsBoolean = true)
 
-  def fromOrAfterSubMap(key: K): SubMapIterator[K, V] =
+  def fromOrAfterMap(key: K): SubMapIterator[K, V] =
     copy(dbIterator = dbIterator.fromOrAfter(Key.SubMap(mapKey, key)), includeMapsBoolean = true)
 
   private def before(key: Key[K], reverse: Boolean): SubMapIterator[K, V] =

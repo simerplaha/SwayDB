@@ -64,19 +64,19 @@ case class SubMapKeysIterator[K](mapKey: Seq[K],
   def fromOrAfter(key: K): SubMapKeysIterator[K] =
     copy(keysIterator = keysIterator.fromOrAfter(Key.Entry(mapKey, key)))
 
-  def fromSubMap(key: K): SubMapKeysIterator[K] =
+  def fromMap(key: K): SubMapKeysIterator[K] =
     copy(keysIterator = keysIterator.from(Key.SubMap(mapKey, key)), includeMapsBoolean = true)
 
-  def beforeSubMap(key: K): SubMapKeysIterator[K] =
+  def beforeMap(key: K): SubMapKeysIterator[K] =
     copy(keysIterator = keysIterator.before(Key.SubMap(mapKey, key)), includeMapsBoolean = true)
 
-  def fromOrBeforeSubMap(key: K): SubMapKeysIterator[K] =
+  def fromOrBeforeMap(key: K): SubMapKeysIterator[K] =
     copy(keysIterator = keysIterator.fromOrBefore(Key.SubMap(mapKey, key)), includeMapsBoolean = true)
 
-  def afterSubMap(key: K): SubMapKeysIterator[K] =
+  def afterMap(key: K): SubMapKeysIterator[K] =
     copy(keysIterator = keysIterator.after(Key.SubMap(mapKey, key)), includeMapsBoolean = true)
 
-  def fromOrAfterSubMap(key: K): SubMapKeysIterator[K] =
+  def fromOrAfterMap(key: K): SubMapKeysIterator[K] =
     copy(keysIterator = keysIterator.fromOrAfter(Key.SubMap(mapKey, key)), includeMapsBoolean = true)
 
   private def before(key: Key[K], reverse: Boolean): SubMapKeysIterator[K] =

@@ -19,9 +19,9 @@
 
 package swaydb.extension
 
-import swaydb.{Batch, extension}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Serializer
+import swaydb.{Batch, extension}
 
 import scala.util.Try
 
