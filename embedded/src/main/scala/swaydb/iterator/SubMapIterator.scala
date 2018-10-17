@@ -19,8 +19,8 @@
 
 package swaydb.iterator
 
-import swaydb.data.map.MapKey
 import swaydb.data.slice.Slice
+import swaydb.extensions.Key
 import swaydb.serializers.Serializer
 
 import scala.annotation.tailrec
@@ -29,18 +29,18 @@ import scala.collection.generic.CanBuildFrom
 case class SubMapIterator[K, V](mapKey: Seq[K],
                                 private val includeSubMapsBoolean: Boolean = false,
                                 private val subMapsOnlyBoolean: Boolean = false,
-                                private val dbIterator: DBIterator[MapKey[K], V],
+                                private val dbIterator: DBIterator[Key[K], V],
                                 private val till: (K, V) => Boolean = (_: K, _: V) => true)(implicit keySerializer: Serializer[K],
-                                                                                            tableKeySerializer: Serializer[MapKey[K]],
+                                                                                            tableKeySerializer: Serializer[Key[K]],
                                                                                             ordering: Ordering[Slice[Byte]],
                                                                                             valueSerializer: Serializer[V]) extends Iterable[(K, V)] {
 
   import ordering._
 
-  private val endEntriesKey = MapKey.EntriesEnd(mapKey)
-  private val endSubMapsKey = MapKey.SubMapsEnd(mapKey)
+  private val endEntriesKey = Key.EntriesEnd(mapKey)
+  private val endSubMapsKey = Key.SubMapsEnd(mapKey)
 
-  private val thisMapKeyBytes = MapKey.writeKeys(mapKey, keySerializer)
+  private val thisMapKeyBytes = Key.writeKeys(mapKey, keySerializer)
 
   def includeSubMaps(): SubMapIterator[K, V] =
     copy(includeSubMapsBoolean = true)
@@ -49,36 +49,36 @@ case class SubMapIterator[K, V](mapKey: Seq[K],
     copy(subMapsOnlyBoolean = true)
 
   def from(key: K): SubMapIterator[K, V] =
-    copy(dbIterator = dbIterator.from(MapKey.Entry(mapKey, key)))
+    copy(dbIterator = dbIterator.from(Key.Entry(mapKey, key)))
 
   def before(key: K): SubMapIterator[K, V] =
-    copy(dbIterator = dbIterator.before(MapKey.Entry(mapKey, key)))
+    copy(dbIterator = dbIterator.before(Key.Entry(mapKey, key)))
 
   def fromOrBefore(key: K): SubMapIterator[K, V] =
-    copy(dbIterator = dbIterator.fromOrBefore(MapKey.Entry(mapKey, key)))
+    copy(dbIterator = dbIterator.fromOrBefore(Key.Entry(mapKey, key)))
 
   def after(key: K): SubMapIterator[K, V] =
-    copy(dbIterator = dbIterator.after(MapKey.Entry(mapKey, key)))
+    copy(dbIterator = dbIterator.after(Key.Entry(mapKey, key)))
 
   def fromOrAfter(key: K): SubMapIterator[K, V] =
-    copy(dbIterator = dbIterator.fromOrAfter(MapKey.Entry(mapKey, key)))
+    copy(dbIterator = dbIterator.fromOrAfter(Key.Entry(mapKey, key)))
 
   def fromSubMap(key: K): SubMapIterator[K, V] =
-    copy(dbIterator = dbIterator.from(MapKey.SubMap(mapKey, key)), includeSubMapsBoolean = true)
+    copy(dbIterator = dbIterator.from(Key.SubMap(mapKey, key)), includeSubMapsBoolean = true)
 
   def beforeSubMap(key: K): SubMapIterator[K, V] =
-    copy(dbIterator = dbIterator.before(MapKey.SubMap(mapKey, key)), includeSubMapsBoolean = true)
+    copy(dbIterator = dbIterator.before(Key.SubMap(mapKey, key)), includeSubMapsBoolean = true)
 
   def fromOrBeforeSubMap(key: K): SubMapIterator[K, V] =
-    copy(dbIterator = dbIterator.fromOrBefore(MapKey.SubMap(mapKey, key)), includeSubMapsBoolean = true)
+    copy(dbIterator = dbIterator.fromOrBefore(Key.SubMap(mapKey, key)), includeSubMapsBoolean = true)
 
   def afterSubMap(key: K): SubMapIterator[K, V] =
-    copy(dbIterator = dbIterator.after(MapKey.SubMap(mapKey, key)), includeSubMapsBoolean = true)
+    copy(dbIterator = dbIterator.after(Key.SubMap(mapKey, key)), includeSubMapsBoolean = true)
 
   def fromOrAfterSubMap(key: K): SubMapIterator[K, V] =
-    copy(dbIterator = dbIterator.fromOrAfter(MapKey.SubMap(mapKey, key)), includeSubMapsBoolean = true)
+    copy(dbIterator = dbIterator.fromOrAfter(Key.SubMap(mapKey, key)), includeSubMapsBoolean = true)
 
-  private def before(key: MapKey[K], reverse: Boolean): SubMapIterator[K, V] =
+  private def before(key: Key[K], reverse: Boolean): SubMapIterator[K, V] =
     copy(dbIterator = dbIterator.before(key).copy(reverse = reverse))
 
   def till(condition: (K, V) => Boolean) =
@@ -122,24 +122,24 @@ case class SubMapIterator[K, V](mapKey: Seq[K],
       override def hasNext: Boolean =
         if (iter.hasNext) {
           val (mapKey, value) = iter.next()
-          val mapKeyBytes = MapKey.writeKeys(mapKey.parentMapKeys, keySerializer)
+          val mapKeyBytes = Key.writeKeys(mapKey.parentMapKeys, keySerializer)
           if (!(mapKeyBytes equiv thisMapKeyBytes)) //Exit because it's moved onto another map
             false
           else {
             mapKey match {
-              case MapKey.Start(_) =>
+              case Key.Start(_) =>
                 if (dbIterator.reverse) //exit iteration if it's going backward since Start is the head key
                   false
                 else
                   hasNext
 
-              case MapKey.EntriesStart(_) =>
+              case Key.EntriesStart(_) =>
                 if (dbIterator.reverse) //exit iteration if it's going backward as previous entry is pointer entry Start
                   false
                 else
                   hasNext
 
-              case MapKey.Entry(_, dataKey) =>
+              case Key.Entry(_, dataKey) =>
                 if (subMapsOnlyBoolean)
                   if (dbIterator.reverse) //Exit if it's fetching subMaps only it's already reached an entry means it's has already crossed subMaps block
                     false
@@ -152,21 +152,21 @@ case class SubMapIterator[K, V](mapKey: Seq[K],
                   false
                 }
 
-              case MapKey.EntriesEnd(_) =>
+              case Key.EntriesEnd(_) =>
                 //if it's not going backwards and it's trying to fetch subMaps only then move forward
                 if (!dbIterator.reverse && !includeSubMapsBoolean && !subMapsOnlyBoolean)
                   false
                 else
                   hasNext
 
-              case MapKey.SubMapsStart(_) =>
+              case Key.SubMapsStart(_) =>
                 //if it's not going backward and it's trying to fetch subMaps only then move forward
                 if (!dbIterator.reverse && !includeSubMapsBoolean && !subMapsOnlyBoolean)
                   false
                 else
                   hasNext
 
-              case MapKey.SubMap(_, dataKey) =>
+              case Key.SubMap(_, dataKey) =>
                 //Exit if it's going forward and does not have subMaps included in the iteration.
                 if (!dbIterator.reverse && !subMapsOnlyBoolean && !includeSubMapsBoolean)
                   false
@@ -177,14 +177,14 @@ case class SubMapIterator[K, V](mapKey: Seq[K],
                   false
                 }
 
-              case MapKey.SubMapsEnd(_) =>
+              case Key.SubMapsEnd(_) =>
                 //Exit if it's not going forward.
                 if (!dbIterator.reverse)
                   false
                 else
                   hasNext
 
-              case MapKey.End(_) =>
+              case Key.End(_) =>
                 //Exit if it's not going in reverse.
                 if (!dbIterator.reverse)
                   false
@@ -216,11 +216,11 @@ case class SubMapIterator[K, V](mapKey: Seq[K],
   /**
     * Returns the start key when doing reverse iteration.
     *
-    * If subMaps are included then it will return the starting point to be [[MapKey.SubMapsEnd]]
-    * which will iterate backward until [[MapKey.EntriesStart]]
-    * else returns the starting point to be [[MapKey.EntriesEnd]] to fetch entries only.
+    * If subMaps are included then it will return the starting point to be [[Key.SubMapsEnd]]
+    * which will iterate backward until [[Key.EntriesStart]]
+    * else returns the starting point to be [[Key.EntriesEnd]] to fetch entries only.
     */
-  private def reverseIterationStartingKey(): MapKey[K] =
+  private def reverseIterationStartingKey(): Key[K] =
     if (includeSubMapsBoolean || subMapsOnlyBoolean)
       endSubMapsKey
     else

@@ -36,7 +36,6 @@ import swaydb.data.repairAppendix.RepairResult.OverlappingSegments
 import swaydb.data.repairAppendix._
 import swaydb.data.request
 import swaydb.data.slice.Slice
-import swaydb.extension.Extension
 import swaydb.order.KeyOrder
 import swaydb.serializers.Serializer
 
@@ -49,8 +48,6 @@ import scala.util.{Failure, Success, Try}
   * Instance used for creating/initialising databases.
   */
 object SwayDB extends LazyLogging {
-
-  val enableExtensions = Extension
 
   /**
     * Default execution context for all databases.
