@@ -17,9 +17,10 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.iterator
+package swaydb.extension.iterator
 
 import swaydb.extension.Key
+import swaydb.iterator.DBKeysIterator
 import swaydb.order.KeyOrder
 import swaydb.serializers.Serializer
 

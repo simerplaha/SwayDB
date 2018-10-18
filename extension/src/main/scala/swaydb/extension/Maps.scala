@@ -21,6 +21,7 @@ package swaydb.extension
 
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.slice.Slice
+import swaydb.extension.iterator.{SubMapIterator, SubMapKeysIterator}
 import swaydb.iterator._
 import swaydb.serializers.Serializer
 

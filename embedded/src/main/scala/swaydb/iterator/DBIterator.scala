@@ -35,7 +35,7 @@ import scala.util.{Failure, Success, Try}
   */
 case class DBIterator[K, V](private[iterator] val db: SwayDB,
                             private[iterator] val from: Option[From[K]],
-                            private[iterator] val reverse: Boolean = false,
+                            private[swaydb] val reverse: Boolean = false,
                             private val till: (K, V) => Boolean = (_: K, _: V) => true)(implicit keySerializer: Serializer[K],
                                                                                         valueSerializer: Serializer[V]) extends Iterable[(K, V)] {
 

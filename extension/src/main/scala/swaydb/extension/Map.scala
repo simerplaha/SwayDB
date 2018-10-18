@@ -23,6 +23,7 @@ import swaydb.core.util.TryUtil
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.slice.Slice
+import swaydb.extension.iterator.{SubMapIterator, SubMapKeysIterator}
 import swaydb.iterator._
 import swaydb.serializers.Serializer
 import swaydb.{Batch, Data}
