@@ -21,7 +21,7 @@ package swaydb.extension
 
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.slice.Slice
-import swaydb.extension.iterator.{SubMapIterator, SubMapKeysIterator}
+import swaydb.extension.iterator.{MapIterator, MapKeysIterator}
 import swaydb.iterator._
 import swaydb.serializers.Serializer
 
@@ -32,7 +32,7 @@ class Maps[K, V](map: swaydb.Map[Key[K], Option[V]],
                                  mapKeySerializer: Serializer[Key[K]],
                                  ordering: Ordering[Slice[Byte]],
                                  valueSerializerOption: Serializer[Option[V]],
-                                 valueSerializer: Serializer[V]) extends SubMapIterator[K, V](mapKey, mapsOnly = true, dbIterator = DBIterator[Key[K], Option[V]](map.db, Some(From(Key.SubMapsStart(mapKey), orAfter = false, orBefore = false, before = false, after = true)))) {
+                                 valueSerializer: Serializer[V]) extends MapIterator[K, V](mapKey, mapsOnly = true, dbIterator = DBIterator[Key[K], Option[V]](map.db, Some(From(Key.SubMapsStart(mapKey), orAfter = false, orBefore = false, before = false, after = true)))) {
 
   def put(key: K, value: V): Try[Map[K, V]] = {
     val subMapKey = mapKey :+ key
@@ -95,8 +95,8 @@ class Maps[K, V](map: swaydb.Map[Key[K], Option[V]],
   def getValue(key: K): Try[Option[V]] =
     map.get(Key.Start(mapKey :+ key)).map(_.flatten)
 
-  def keys: SubMapKeysIterator[K] =
-    SubMapKeysIterator[K](
+  def keys: MapKeysIterator[K] =
+    MapKeysIterator[K](
       mapKey = mapKey,
       mapsOnly = true,
       keysIterator =

@@ -28,7 +28,7 @@ import scala.annotation.tailrec
 import scala.collection.generic.CanBuildFrom
 
 /**
-  * TODO - [[SubMapKeysIterator]] and [[SubMapKeysIterator]] are similar and need a higher type.
+  * TODO - [[MapKeysIterator]] and [[MapKeysIterator]] are similar and need a higher type.
   *
   * Sample order
   *
@@ -41,11 +41,11 @@ import scala.collection.generic.CanBuildFrom
   *   MapKey.SubMapsEnd(1)
   * MapKey.End(1)
   **/
-case class SubMapKeysIterator[K](mapKey: Seq[K],
-                                 private val mapsOnly: Boolean = false,
-                                 private val userDefinedFrom: Boolean = false,
-                                 private val keysIterator: DBKeysIterator[Key[K]],
-                                 private val till: K => Boolean = (_: K) => true)(implicit keySerializer: Serializer[K],
+case class MapKeysIterator[K](mapKey: Seq[K],
+                              private val mapsOnly: Boolean = false,
+                              private val userDefinedFrom: Boolean = false,
+                              private val keysIterator: DBKeysIterator[Key[K]],
+                              private val till: K => Boolean = (_: K) => true)(implicit keySerializer: Serializer[K],
                                                                                   mapKeySerializer: Serializer[Key[K]]) extends Iterable[K] {
 
   private val endEntriesKey = Key.EntriesEnd(mapKey)
@@ -53,40 +53,40 @@ case class SubMapKeysIterator[K](mapKey: Seq[K],
 
   private val thisMapKeyBytes = Key.writeKeys(mapKey, keySerializer)
 
-  def from(key: K): SubMapKeysIterator[K] =
+  def from(key: K): MapKeysIterator[K] =
     if (mapsOnly)
       copy(keysIterator = keysIterator.from(Key.SubMap(mapKey, key)), mapsOnly = true, userDefinedFrom = true)
     else
       copy(keysIterator = keysIterator.from(Key.Entry(mapKey, key)), userDefinedFrom = true)
 
-  def before(key: K): SubMapKeysIterator[K] =
+  def before(key: K): MapKeysIterator[K] =
     if (mapsOnly)
       copy(keysIterator = keysIterator.before(Key.SubMap(mapKey, key)), mapsOnly = true, userDefinedFrom = true)
     else
       copy(keysIterator = keysIterator.before(Key.Entry(mapKey, key)), userDefinedFrom = true)
 
-  def fromOrBefore(key: K): SubMapKeysIterator[K] =
+  def fromOrBefore(key: K): MapKeysIterator[K] =
     if (mapsOnly)
       copy(keysIterator = keysIterator.fromOrBefore(Key.SubMap(mapKey, key)), mapsOnly = true, userDefinedFrom = true)
     else
       copy(keysIterator = keysIterator.fromOrBefore(Key.Entry(mapKey, key)), userDefinedFrom = true)
 
-  def after(key: K): SubMapKeysIterator[K] =
+  def after(key: K): MapKeysIterator[K] =
     if (mapsOnly)
       copy(keysIterator = keysIterator.after(Key.SubMap(mapKey, key)), mapsOnly = true, userDefinedFrom = true)
     else
       copy(keysIterator = keysIterator.after(Key.Entry(mapKey, key)), userDefinedFrom = true)
 
-  def fromOrAfter(key: K): SubMapKeysIterator[K] =
+  def fromOrAfter(key: K): MapKeysIterator[K] =
     if (mapsOnly)
       copy(keysIterator = keysIterator.fromOrAfter(Key.SubMap(mapKey, key)), mapsOnly = true, userDefinedFrom = true)
     else
       copy(keysIterator = keysIterator.fromOrAfter(Key.Entry(mapKey, key)), userDefinedFrom = true)
 
-  private def before(key: Key[K], reverse: Boolean): SubMapKeysIterator[K] =
+  private def before(key: Key[K], reverse: Boolean): MapKeysIterator[K] =
     copy(keysIterator = keysIterator.before(key).copy(reverse = reverse))
 
-  private def reverse(reverse: Boolean): SubMapKeysIterator[K] =
+  private def reverse(reverse: Boolean): MapKeysIterator[K] =
     copy(keysIterator = keysIterator.copy(reverse = reverse))
 
   def till(condition: K => Boolean) =
@@ -183,7 +183,7 @@ case class SubMapKeysIterator[K](mapKey: Seq[K],
         nextKeyValue.get
 
       override def toString(): String =
-        classOf[SubMapKeysIterator[_]].getClass.getSimpleName
+        classOf[MapKeysIterator[_]].getClass.getSimpleName
     }
   }
 
@@ -203,7 +203,7 @@ case class SubMapKeysIterator[K](mapKey: Seq[K],
     * which will iterate backward until [[Key.EntriesStart]]
     * else returns the starting point to be [[Key.EntriesEnd]] to fetch entries only.
     */
-  private def reverseIterator(): SubMapKeysIterator[K] =
+  private def reverseIterator(): MapKeysIterator[K] =
     if (userDefinedFrom) //if user has defined from then do not override it and just set reverse to true.
       reverse(reverse = true)
     else if (mapsOnly) //if from is not already set & map are included in the iteration then start from subMap's last key
@@ -256,5 +256,5 @@ case class SubMapKeysIterator[K](mapKey: Seq[K],
     }.asInstanceOf[That]
 
   override def toString(): String =
-    classOf[SubMapKeysIterator[_]].getClass.getSimpleName
+    classOf[MapKeysIterator[_]].getClass.getSimpleName
 }
