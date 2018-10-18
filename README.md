@@ -36,7 +36,7 @@ View detailed benchmark results [here](http://swaydb.io/performance/macbook-pro-
 - Supported data types 
     - `Map[K, V]`
     - `Set[T]`
-- Extend APIs via [extensions/plugins](http://www.swaydb.io/create-databases/extension/).
+- Extend APIs via [extensions/plugins](http://www.swaydb.io/extending-databases/).
 - In-built custom serialization API with [Slice](http://www.swaydb.io/slice/byte-slice/) 
 - [Configurable Levels](http://www.swaydb.io/configuring-levels/)
 - Configurable [cacheSize](http://www.swaydb.io/configuring-levels/cacheSize/)
