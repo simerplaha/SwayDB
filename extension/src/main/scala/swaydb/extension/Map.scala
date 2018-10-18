@@ -222,7 +222,7 @@ class Map[K, V](map: swaydb.Map[Key[K], Option[V]],
   /**
     * Removes all key-values from the current Map. SubMaps and subMap's key-values or not altered.
     */
-  def removeAllKeyValues(): Try[Level0Meter] = {
+  def clear(): Try[Level0Meter] = {
     val (start, end) = Map.entriesRangeKeys(mapKey)
     map.batch(
       //remove key-value entries, but also re-instead the start and end entries for the Map.
@@ -231,6 +231,7 @@ class Map[K, V](map: swaydb.Map[Key[K], Option[V]],
       Batch.Put(end, None)
     )
   }
+
 
   def expire(key: K, after: FiniteDuration): Try[Level0Meter] =
     map.expire(Key.Entry(mapKey, key), after.fromNow)

@@ -19,6 +19,7 @@
 
 package swaydb.extension
 
+import swaydb.Batch
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.slice.Slice
 import swaydb.extension.iterator.{MapIterator, MapKeysIterator}
@@ -91,6 +92,17 @@ class Maps[K, V](map: swaydb.Map[Key[K], Option[V]],
           None
     }
   }
+
+  /**
+    * Removes all key-values from the target Map.
+    */
+  def clear(key: K): Try[Level0Meter] =
+    get(key) flatMap {
+      case Some(map) =>
+        map.clear()
+      case None =>
+        Success(map.db.level0Meter)
+    }
 
   def contains(key: K): Try[Boolean] =
     map.contains(Key.Start(mapKey :+ key))

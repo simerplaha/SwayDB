@@ -177,8 +177,8 @@ sealed trait MapSpec extends TestBase with TestBaseEmbedded {
 
       eitherOne(
         left = {
-          rootMap.removeAllKeyValues().assertGet
-          subMap.removeAllKeyValues().assertGet
+          rootMap.clear().assertGet
+          subMap.clear().assertGet
         },
         right = {
           rootMap.remove(1, 2).assertGet
@@ -778,6 +778,31 @@ sealed trait MapSpec extends TestBase with TestBaseEmbedded {
 
         second.maps.contains(3).assertGet shouldBe false
         second.maps.contains(4).assertGet shouldBe false
+      }
+    }
+
+    "clear" should {
+      "remove all key-values from a map" in {
+
+        val root = newDB()
+        val first = root.maps.put(1, "first").assertGet
+        val second = first.maps.put(2, "second").assertGet
+        second.put(1, "second one").assertGet
+        second.put(2, "second two").assertGet
+        second.put(3, "second three").assertGet
+        //third map that is the child map of second map
+        val third = second.maps.put(3, "third").assertGet
+        third.put(1, "third one").assertGet
+        third.put(2, "third two").assertGet
+        third.put(3, "third three").assertGet
+
+        second should have size 3
+        second.clear().assertGet
+        second shouldBe empty
+
+        third should have size 3
+        second.maps.clear(3).assertGet
+        third shouldBe empty
       }
     }
   }
