@@ -30,8 +30,8 @@ import scala.collection.generic.CanBuildFrom
   * TODO - [[SubMapIterator]] and [[SubMapKeysIterator]] are similar and need a higher type.
   */
 case class SubMapIterator[K, V](mapKey: Seq[K],
-                                private val includeMapsBoolean: Boolean = false,
-                                private val mapsOnlyBoolean: Boolean = false,
+                                private val mapsOnly: Boolean = false,
+                                private val userDefinedFrom: Boolean = false,
                                 private val dbIterator: DBIterator[Key[K], Option[V]],
                                 private val till: (K, V) => Boolean = (_: K, _: V) => true)(implicit keySerializer: Serializer[K],
                                                                                             mapKeySerializer: Serializer[Key[K]],
@@ -42,44 +42,41 @@ case class SubMapIterator[K, V](mapKey: Seq[K],
 
   private val thisMapKeyBytes = Key.writeKeys(mapKey, keySerializer)
 
-  def includeMaps(): SubMapIterator[K, V] =
-    copy(includeMapsBoolean = true)
-
-  def mapsOnly(): SubMapIterator[K, V] =
-    copy(mapsOnlyBoolean = true)
-
   def from(key: K): SubMapIterator[K, V] =
-    copy(dbIterator = dbIterator.from(Key.Entry(mapKey, key)))
+    if (mapsOnly)
+      copy(dbIterator = dbIterator.from(Key.SubMap(mapKey, key)), mapsOnly = true, userDefinedFrom = true)
+    else
+      copy(dbIterator = dbIterator.from(Key.Entry(mapKey, key)), userDefinedFrom = true)
 
   def before(key: K): SubMapIterator[K, V] =
-    copy(dbIterator = dbIterator.before(Key.Entry(mapKey, key)))
+    if (mapsOnly)
+      copy(dbIterator = dbIterator.before(Key.SubMap(mapKey, key)), mapsOnly = true, userDefinedFrom = true)
+    else
+      copy(dbIterator = dbIterator.before(Key.Entry(mapKey, key)), userDefinedFrom = true)
 
   def fromOrBefore(key: K): SubMapIterator[K, V] =
-    copy(dbIterator = dbIterator.fromOrBefore(Key.Entry(mapKey, key)))
+    if (mapsOnly)
+      copy(dbIterator = dbIterator.fromOrBefore(Key.SubMap(mapKey, key)), mapsOnly = true, userDefinedFrom = true)
+    else
+      copy(dbIterator = dbIterator.fromOrBefore(Key.Entry(mapKey, key)), userDefinedFrom = true)
 
   def after(key: K): SubMapIterator[K, V] =
-    copy(dbIterator = dbIterator.after(Key.Entry(mapKey, key)))
+    if (mapsOnly)
+      copy(dbIterator = dbIterator.after(Key.SubMap(mapKey, key)), mapsOnly = true, userDefinedFrom = true)
+    else
+      copy(dbIterator = dbIterator.after(Key.Entry(mapKey, key)), userDefinedFrom = true)
 
   def fromOrAfter(key: K): SubMapIterator[K, V] =
-    copy(dbIterator = dbIterator.fromOrAfter(Key.Entry(mapKey, key)))
-
-  def fromMap(key: K): SubMapIterator[K, V] =
-    copy(dbIterator = dbIterator.from(Key.SubMap(mapKey, key)), includeMapsBoolean = true)
-
-  def beforeMap(key: K): SubMapIterator[K, V] =
-    copy(dbIterator = dbIterator.before(Key.SubMap(mapKey, key)), includeMapsBoolean = true)
-
-  def fromOrBeforeMap(key: K): SubMapIterator[K, V] =
-    copy(dbIterator = dbIterator.fromOrBefore(Key.SubMap(mapKey, key)), includeMapsBoolean = true)
-
-  def afterMap(key: K): SubMapIterator[K, V] =
-    copy(dbIterator = dbIterator.after(Key.SubMap(mapKey, key)), includeMapsBoolean = true)
-
-  def fromOrAfterMap(key: K): SubMapIterator[K, V] =
-    copy(dbIterator = dbIterator.fromOrAfter(Key.SubMap(mapKey, key)), includeMapsBoolean = true)
+    if (mapsOnly)
+      copy(dbIterator = dbIterator.fromOrAfter(Key.SubMap(mapKey, key)), mapsOnly = true, userDefinedFrom = true)
+    else
+      copy(dbIterator = dbIterator.fromOrAfter(Key.Entry(mapKey, key)), userDefinedFrom = true)
 
   private def before(key: Key[K], reverse: Boolean): SubMapIterator[K, V] =
     copy(dbIterator = dbIterator.before(key).copy(reverse = reverse))
+
+  private def reverse(reverse: Boolean): SubMapIterator[K, V] =
+    copy(dbIterator = dbIterator.copy(reverse = reverse))
 
   def till(condition: (K, V) => Boolean) =
     copy(till = condition)
@@ -140,7 +137,7 @@ case class SubMapIterator[K, V](mapKey: Seq[K],
                   hasNext
 
               case Key.Entry(_, dataKey) =>
-                if (mapsOnlyBoolean) {
+                if (mapsOnly) {
                   if (dbIterator.reverse) //Exit if it's fetching subMaps only it's already reached an entry means it's has already crossed subMaps block
                     false
                   else
@@ -161,22 +158,24 @@ case class SubMapIterator[K, V](mapKey: Seq[K],
 
               case Key.EntriesEnd(_) =>
                 //if it's not going backwards and it's trying to fetch subMaps only then move forward
-                if (!dbIterator.reverse && !includeMapsBoolean && !mapsOnlyBoolean)
+                if (!dbIterator.reverse && !mapsOnly)
                   false
                 else
                   hasNext
 
               case Key.SubMapsStart(_) =>
                 //if it's not going backward and it's trying to fetch subMaps only then move forward
-                if (!dbIterator.reverse && !includeMapsBoolean && !mapsOnlyBoolean)
+                if (!dbIterator.reverse && !mapsOnly)
                   false
                 else
                   hasNext
 
               case Key.SubMap(_, dataKey) =>
-                //Exit if it's going forward and does not have subMaps included in the iteration.
-                if (!dbIterator.reverse && !mapsOnlyBoolean && !includeMapsBoolean)
-                  false
+                if (!mapsOnly) //if subMaps are excluded
+                  if (dbIterator.reverse) //if subMaps are excluded & it's going in reverse continue iteration.
+                    hasNext
+                  else //if it's going forward with subMaps excluded then end iteration as it's already iterated all key-value entries.
+                    false
                 else
                   valueOption map {
                     value =>
@@ -233,53 +232,60 @@ case class SubMapIterator[K, V](mapKey: Seq[K],
     * which will iterate backward until [[Key.EntriesStart]]
     * else returns the starting point to be [[Key.EntriesEnd]] to fetch entries only.
     */
-  private def reverseIterationStartingKey(): Key[K] =
-    if (includeMapsBoolean || mapsOnlyBoolean)
-      endSubMapsKey
-    else
-      endEntriesKey
+  private def reverseIterator(): SubMapIterator[K, V] =
+    if (userDefinedFrom) //if user has defined from then do not override it and just set reverse to true.
+      reverse(reverse = true)
+    else if (mapsOnly) //if from is not already set & map are included in the iteration then start from subMap's last key
+      before(key = endSubMapsKey, reverse = true)
+    else //if subMaps are excluded, start from key's last key.
+      before(key = endEntriesKey, reverse = true)
 
+  /**
+    * lastOption should always force formKey to be the [[endSubMapsKey]]
+    * because from is always set in [[swaydb.extension.Maps]] and regardless from where the iteration starts the
+    * most efficient way to fetch the last is from the key [[endSubMapsKey]].
+    */
   override def lastOption: Option[(K, V)] =
-    before(key = reverseIterationStartingKey(), reverse = true).headOption
+    reverseIterator().headOption
 
   def foreachRight[U](f: (K, V) => U): Unit =
-    before(key = reverseIterationStartingKey(), reverse = true) foreach {
+    reverseIterator() foreach {
       case (key, value) =>
         f(key, value)
     }
 
   def mapRight[B, T](f: (K, V) => B)(implicit bf: CanBuildFrom[Iterable[(K, V)], B, T]): T =
-    before(key = reverseIterationStartingKey(), reverse = true) map {
+    reverseIterator() map {
       case (key, value) =>
         f(key, value)
     }
 
   override def foldRight[B](b: B)(op: ((K, V), B) => B): B =
-    before(key = reverseIterationStartingKey(), reverse = true).foldLeft(b) {
+    reverseIterator().foldLeft(b) {
       case (prev, (key, value)) =>
         op((key, value), prev)
     }
 
   override def takeRight(n: Int): Iterable[(K, V)] =
-    before(key = reverseIterationStartingKey(), reverse = true).take(n)
+    reverseIterator().take(n)
 
   override def dropRight(n: Int): Iterable[(K, V)] =
-    before(key = reverseIterationStartingKey(), reverse = true).drop(n)
+    reverseIterator().drop(n)
 
   override def reduceRight[B >: (K, V)](op: ((K, V), B) => B): B =
-    before(key = reverseIterationStartingKey(), reverse = true).reduce[B] {
+    reverseIterator().reduce[B] {
       case (left, right: (K, V)) =>
         op(right, left)
     }
 
   override def reduceRightOption[B >: (K, V)](op: ((K, V), B) => B): Option[B] =
-    before(key = reverseIterationStartingKey(), reverse = true).reduceOption[B] {
+    reverseIterator().reduceOption[B] {
       case (left, right: (K, V)) =>
         op(right, left)
     }
 
   override def scanRight[B, That](z: B)(op: ((K, V), B) => B)(implicit bf: CanBuildFrom[Iterable[(K, V)], B, That]): That =
-    before(key = reverseIterationStartingKey(), reverse = true).scan(z) {
+    reverseIterator().scan(z) {
       case (left: B, right: (K, V)) =>
         op(right, left)
     }.asInstanceOf[That]

@@ -356,4 +356,17 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
     doWrite()
     assertLevelsAreEmpty(db, submitUpdates = false)
   }
+
+  "debug before and mapRight" in {
+    val db = newDB()
+
+    (1 to 10) foreach {
+      i =>
+        db.put(i, i.toString).assertGet
+    }
+
+    //    db.before(5).toList foreach println
+    db.before(5).mapRight { case (k, v) => (k, v) } foreach println
+
+  }
 }

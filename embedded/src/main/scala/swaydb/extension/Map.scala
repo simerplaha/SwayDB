@@ -65,7 +65,7 @@ private[swaydb] object Map {
                                                     ordering: Ordering[Slice[Byte]],
                                                     valueSerializer: Serializer[V],
                                                     optionValueSerializer: Serializer[Option[V]]): List[(Key.SubMap[K], Key.Start[K], Key.End[K])] =
-    parentMap.mapsOnly().foldLeft(List.empty[(Key.SubMap[K], Key.Start[K], Key.End[K])]) {
+    parentMap.maps.foldLeft(List.empty[(Key.SubMap[K], Key.Start[K], Key.End[K])]) {
       case (previousList, (subMapKey, _)) => {
         val subMapKeys = parentMap.mapKey :+ subMapKey
         //                  remove the subMap reference from parent         &        remove subMap block
@@ -177,57 +177,17 @@ class Map[K, V](map: swaydb.Map[Key[K], Option[V]],
                                 valueSerializerOption: Serializer[Option[V]],
                                 valueSerializer: Serializer[V]) extends SubMapIterator[K, V](mapKey, dbIterator = DBIterator[Key[K], Option[V]](map.db, Some(From(Key.Start(mapKey), orAfter = false, orBefore = false, before = false, after = true)))) {
 
-  def putMap(key: K, value: V): Try[Map[K, V]] = {
-    val subMapKey = mapKey :+ key
-    Map.putMap[K, V](
-      map = map,
-      mapKey = subMapKey,
-      value = Some(value)
-    ) flatMap {
-      batches =>
-        map.batch(batches) map {
-          _ =>
-            Map[K, V](
-              map = map,
-              mapKey = subMapKey
-            )
-        }
-    }
-  }
+  def maps: Maps[K, V] =
+    new Maps[K, V](map, mapKey)
 
-  def updateMapValue(key: K, value: V): Try[Map[K, V]] = {
-    val subMapKey = mapKey :+ key
-    map.batch {
-      Map.updateMapValue[K, V](
-        mapKey = subMapKey,
-        value = value
-      )
-    } map {
-      _ =>
-        Map[K, V](
-          map = map,
-          mapKey = subMapKey
-        )
-    }
-  }
+  def exists(): Try[Boolean] =
+    map.contains(Key.Start(mapKey))
 
-  def getMap(key: K): Try[Option[Map[K, V]]] = {
-    containsMap(key) map {
-      exists =>
-        if (exists)
-          Some(
-            Map[K, V](
-              map = map,
-              mapKey = mapKey :+ key
-            )
-          )
-        else
-          None
-    }
-  }
-
-  def containsMap(key: K): Try[Boolean] =
-    map.contains(Key.Start(mapKey :+ key))
+  /**
+    * Returns None if the map does not exist or returns the value.
+    */
+  def getValue(): Try[Option[V]] =
+    map.get(Key.Start(mapKey)).map(_.flatten)
 
   def updateValue(value: V): Try[Map[K, V]] =
     map.batch {
@@ -242,24 +202,6 @@ class Map[K, V](map: swaydb.Map[Key[K], Option[V]],
           mapKey = mapKey
         )
     }
-
-  def exists(): Try[Boolean] =
-    map.contains(Key.Start(mapKey))
-
-  /**
-    * Returns None if the map does not exist or returns the value.
-    */
-  def getValue(): Try[Option[V]] =
-    map.get(Key.Start(mapKey)).map(_.flatten)
-
-  /**
-    * Returns None if this map does not exist or returns the value.
-    */
-  def getMapValue(key: K): Try[Option[V]] =
-    map.get(Key.Start(mapKey :+ key)).map(_.flatten)
-
-  def removeMap(key: K): Try[Level0Meter] =
-    map.batch(Map.removeMap(map, mapKey :+ key))
 
   def put(key: K, value: V): Try[Level0Meter] =
     map.put(key = Key.Entry(mapKey, key), value = Some(value))

@@ -66,8 +66,8 @@ sealed trait SwayDBSubMapFromSpec extends TestBase with TestBaseEmbedded {
     "return empty on an empty Map" in {
       val db = newDB()
 
-      val rootMap = db.putMap(1, "rootMap").assertGet
-      val firstMap = rootMap.putMap(2, "first map").assertGet
+      val rootMap = db.maps.put(1, "rootMap").assertGet
+      val firstMap = rootMap.maps.put(2, "first map").assertGet
 
       firstMap
         .from(2)
@@ -78,8 +78,8 @@ sealed trait SwayDBSubMapFromSpec extends TestBase with TestBaseEmbedded {
     "if the map contains only 1 element" in {
       val db = newDB()
 
-      val rootMap = db.putMap(1, "rootMap").assertGet
-      val firstMap = rootMap.putMap(2, "first map").assertGet
+      val rootMap = db.maps.put(1, "rootMap").assertGet
+      val firstMap = rootMap.maps.put(2, "first map").assertGet
 
       firstMap.put(1, "one").assertGet
 
@@ -120,13 +120,13 @@ sealed trait SwayDBSubMapFromSpec extends TestBase with TestBaseEmbedded {
     "Sibling maps" in {
       val db = newDB()
 
-      val rootMap = db.putMap(1, "rootMap1").assertGet
+      val rootMap = db.maps.put(1, "rootMap1").assertGet
 
-      val subMap1 = rootMap.putMap(2, "sub map 2").assertGet
+      val subMap1 = rootMap.maps.put(2, "sub map 2").assertGet
       subMap1.put(1, "one").assertGet
       subMap1.put(2, "two").assertGet
 
-      val subMap2 = rootMap.putMap(3, "sub map three").assertGet
+      val subMap2 = rootMap.maps.put(3, "sub map three").assertGet
       subMap2.put(3, "three").assertGet
       subMap2.put(4, "four").assertGet
 
@@ -156,26 +156,33 @@ sealed trait SwayDBSubMapFromSpec extends TestBase with TestBaseEmbedded {
     "nested maps" in {
       val db = newDB()
 
-      val rootMap = db.putMap(1, "rootMap1").assertGet
+      val rootMap = db.maps.put(1, "rootMap1").assertGet
 
-      val subMap1 = rootMap.putMap(2, "sub map 1").assertGet
+      val subMap1 = rootMap.maps.put(2, "sub map 1").assertGet
       subMap1.put(1, "one").assertGet
       subMap1.put(2, "two").assertGet
 
-      val subMap2 = subMap1.putMap(3, "sub map 2").assertGet
+      val subMap2 = subMap1.maps.put(3, "sub map 2").assertGet
       subMap2.put(3, "three").assertGet
       subMap2.put(4, "four").assertGet
 
       subMap1.from(4).toList shouldBe empty
       subMap1.after(3).toList shouldBe empty
-      subMap1.includeMaps().from(1).toList should contain inOrderOnly((1, "one"), (2, "two"), (3, "sub map 2"))
-      subMap1.includeMaps().fromOrBefore(2).toList should contain inOrderOnly((2, "two"), (3, "sub map 2"))
-      subMap1.includeMaps().fromOrBefore(1).toList should contain inOrderOnly((1, "one"), (2, "two"), (3, "sub map 2"))
-      subMap1.includeMaps().after(0).toList should contain inOrderOnly((1, "one"), (2, "two"), (3, "sub map 2"))
-      subMap1.includeMaps().fromOrAfter(0).toList should contain inOrderOnly((1, "one"), (2, "two"), (3, "sub map 2"))
-      subMap1.includeMaps().size shouldBe 3
+      subMap1.from(1).toList should contain inOrderOnly((1, "one"), (2, "two"))
+      subMap1.maps.from(1).toList shouldBe empty
+      subMap1.maps.after(1).toList should contain only ((3, "sub map 2"))
+      subMap1.fromOrBefore(2).toList should contain only ((2, "two"))
+      subMap1.maps.fromOrBefore(2).toList should contain only ((3, "sub map 2"))
+
+      subMap1.fromOrBefore(1).toList should contain inOrderOnly((1, "one"), (2, "two"))
+      subMap1.maps.fromOrBefore(1).toList should contain only ((3, "sub map 2"))
+      subMap1.after(0).toList should contain inOrderOnly((1, "one"), (2, "two"))
+      subMap1.maps.after(0).toList should contain only ((3, "sub map 2"))
+      subMap1.fromOrAfter(0).toList should contain inOrderOnly((1, "one"), (2, "two"))
+      subMap1.maps.fromOrAfter(0).toList should contain only ((3, "sub map 2"))
+      subMap1.size shouldBe 2
       subMap1.head shouldBe ((1, "one"))
-      subMap1.includeMaps().last shouldBe ((3, "sub map 2"))
+      subMap1.maps.last shouldBe ((3, "sub map 2"))
 
       subMap2.from(5).toList shouldBe empty
       subMap2.after(4).toList shouldBe empty
