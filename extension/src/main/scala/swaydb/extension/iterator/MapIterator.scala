@@ -19,6 +19,7 @@
 
 package swaydb.extension.iterator
 
+import swaydb.data.slice.Slice
 import swaydb.extension.Key
 import swaydb.iterator.DBIterator
 import swaydb.order.KeyOrder
@@ -47,8 +48,8 @@ case class MapIterator[K, V](mapKey: Seq[K],
                              private val userDefinedFrom: Boolean = false,
                              private val dbIterator: DBIterator[Key[K], Option[V]],
                              private val till: (K, V) => Boolean = (_: K, _: V) => true)(implicit keySerializer: Serializer[K],
-                                                                                            mapKeySerializer: Serializer[Key[K]],
-                                                                                            valueSerializer: Serializer[Option[V]]) extends Iterable[(K, V)] {
+                                                                                         mapKeySerializer: Serializer[Key[K]],
+                                                                                         optionValueSerializer: Serializer[Option[V]]) extends Iterable[(K, V)] {
 
   private val endEntriesKey = Key.EntriesEnd(mapKey)
   private val endSubMapsKey = Key.SubMapsEnd(mapKey)
@@ -120,6 +121,10 @@ case class MapIterator[K, V](mapKey: Seq[K],
       override def hasNext: Boolean =
         if (iter.hasNext) {
           val (mapKey, valueOption) = iter.next()
+          //type casting here because a value set by the User will/should always have a serializer. If the inner value if
+          //Option[V] then the full value would be Option[Option[V]] and the serializer is expected to handle serialization for
+          //the inner Option[V] which would be of the User's type V.
+          val value = valueOption.getOrElse(optionValueSerializer.read(Slice.emptyBytes).asInstanceOf[V])
           val mapKeyBytes = Key.writeKeys(mapKey.parentMapKeys, keySerializer)
           if (KeyOrder.default.compare(mapKeyBytes, thisMapKeyBytes) != 0) //Exit if it's moved onto another map
             false
@@ -144,16 +149,11 @@ case class MapIterator[K, V](mapKey: Seq[K],
                   else
                     hasNext
                 } else {
-                  valueOption map {
-                    value =>
-                      if (till(dataKey, value)) {
-                        nextKeyValue = (dataKey, value)
-                        true
-                      } else {
-                        false
-                      }
-                  } getOrElse {
-                    throw new Exception("No value set for key.")
+                  if (till(dataKey, value)) {
+                    nextKeyValue = (dataKey, value)
+                    true
+                  } else {
+                    false
                   }
                 }
 
@@ -177,18 +177,12 @@ case class MapIterator[K, V](mapKey: Seq[K],
                     hasNext
                   else //if it's going forward with subMaps excluded then end iteration as it's already iterated all key-value entries.
                     false
-                else
-                  valueOption map {
-                    value =>
-                      if (till(dataKey, value)) {
-                        nextKeyValue = (dataKey, value)
-                        true
-                      } else {
-                        false
-                      }
-                  } getOrElse {
-                    throw new Exception("No value set for key.")
-                  }
+                else if (till(dataKey, value)) {
+                  nextKeyValue = (dataKey, value)
+                  true
+                } else {
+                  false
+                }
 
               case Key.SubMapsEnd(_) =>
                 //Exit if it's not going forward.

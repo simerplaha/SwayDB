@@ -125,6 +125,19 @@ sealed trait MapPutSpec extends TestBase with TestBaseEmbedded {
     //      rootMap2.maps.put(3, "second map").assertGet.toList should contain inOrderOnly((3, "three"), (4, "four again"), (5, "five"))
     //    }
 
+    "putOrGet spec" in {
+      val db = newDB()
+
+      val map = db.maps.getOrPut(1, "firstMap").assertGet
+      map.exists().assertGet shouldBe true
+      map.getValue().assertGet shouldBe "firstMap"
+
+      val mapAgain = db.maps.getOrPut(1, "firstMap put again").assertGet
+      mapAgain.exists().assertGet shouldBe true
+      //value does not change as the map already exists.
+      mapAgain.getValue().assertGet shouldBe "firstMap"
+    }
+
     "Initialise 5 nested maps with 2 elements in each map" in {
       val db = newDB()
 

@@ -25,7 +25,7 @@ import swaydb.extension.iterator.{MapIterator, MapKeysIterator}
 import swaydb.iterator._
 import swaydb.serializers.Serializer
 
-import scala.util.Try
+import scala.util.{Success, Try}
 
 class Maps[K, V](map: swaydb.Map[Key[K], Option[V]],
                  mapKey: Seq[K])(implicit keySerializer: Serializer[K],
@@ -33,6 +33,12 @@ class Maps[K, V](map: swaydb.Map[Key[K], Option[V]],
                                  ordering: Ordering[Slice[Byte]],
                                  valueSerializerOption: Serializer[Option[V]],
                                  valueSerializer: Serializer[V]) extends MapIterator[K, V](mapKey, mapsOnly = true, dbIterator = DBIterator[Key[K], Option[V]](map.db, Some(From(Key.SubMapsStart(mapKey), orAfter = false, orBefore = false, before = false, after = true)))) {
+
+  def getOrPut(key: K, value: V): Try[Map[K, V]] =
+    get(key) flatMap {
+      got =>
+        got.map(Success(_)) getOrElse put(key, value)
+    }
 
   def put(key: K, value: V): Try[Map[K, V]] = {
     val subMapKey = mapKey :+ key
