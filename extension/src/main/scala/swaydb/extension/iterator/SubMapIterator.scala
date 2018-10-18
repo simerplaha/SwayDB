@@ -28,8 +28,20 @@ import scala.annotation.tailrec
 import scala.collection.generic.CanBuildFrom
 
 /**
-  * TODO - [[SubMapIterator]] and [[SubMapKeysIterator]] are similar and need a higher type.
-  */
+  * TODO - [[SubMapKeysIterator]] and [[SubMapKeysIterator]] are similar and need a higher type.
+  *
+  * Sample order
+  *
+  * MapKey.Start(1),
+  *   MapKey.EntriesStart(1)
+  *     MapKey.Entry(1, 1)
+  *   MapKey.EntriesEnd(1)
+  *   MapKey.SubMapsStart(1)
+  *     MapKey.SubMap(1, 1000)
+  *   MapKey.SubMapsEnd(1)
+  * MapKey.End(1)
+  **/
+
 case class SubMapIterator[K, V](mapKey: Seq[K],
                                 private val mapsOnly: Boolean = false,
                                 private val userDefinedFrom: Boolean = false,
@@ -97,24 +109,12 @@ case class SubMapIterator[K, V](mapKey: Seq[K],
     )
 
   override def iterator: Iterator[(K, V)] = {
-    val iter = dbIterator.iterator
-
-    var nextKeyValue: (K, V) = null
-
-    /**
-      * Sample order
-      *
-      * MapKey.Start(1),
-      *   MapKey.EntriesStart(1)
-      *     MapKey.Entry(1, 1)
-      *   MapKey.EntriesEnd(1)
-      *   MapKey.SubMapsStart(1)
-      *     MapKey.SubMap(1, 1000)
-      *   MapKey.SubMapsEnd(1)
-      * MapKey.End(1)
-      */
 
     new Iterator[(K, V)] {
+
+      val iter = dbIterator.iterator
+
+      var nextKeyValue: (K, V) = null
 
       @tailrec
       override def hasNext: Boolean =

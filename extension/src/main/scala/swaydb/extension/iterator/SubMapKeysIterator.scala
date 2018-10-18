@@ -29,7 +29,18 @@ import scala.collection.generic.CanBuildFrom
 
 /**
   * TODO - [[SubMapKeysIterator]] and [[SubMapKeysIterator]] are similar and need a higher type.
-  */
+  *
+  * Sample order
+  *
+  * MapKey.Start(1),
+  *   MapKey.EntriesStart(1)
+  *     MapKey.Entry(1, 1)
+  *   MapKey.EntriesEnd(1)
+  *   MapKey.SubMapsStart(1)
+  *     MapKey.SubMap(1, 1000)
+  *   MapKey.SubMapsEnd(1)
+  * MapKey.End(1)
+  **/
 case class SubMapKeysIterator[K](mapKey: Seq[K],
                                  private val mapsOnly: Boolean = false,
                                  private val userDefinedFrom: Boolean = false,
@@ -82,24 +93,11 @@ case class SubMapKeysIterator[K](mapKey: Seq[K],
     copy(till = condition)
 
   override def iterator: Iterator[K] = {
-    val iter = keysIterator.iterator
-
-    var nextKeyValue: Option[K] = null
-
-    /**
-      * Sample order
-      *
-      * MapKey.Start(1),
-      *   MapKey.EntriesStart(1)
-      *     MapKey.Entry(1, 1)
-      *   MapKey.EntriesEnd(1)
-      *   MapKey.SubMapsStart(1)
-      *     MapKey.SubMap(1, 1000)
-      *   MapKey.SubMapsEnd(1)
-      * MapKey.End(1)
-      */
-
     new Iterator[K] {
+
+      val iter = keysIterator.iterator
+
+      var nextKeyValue: Option[K] = null
 
       @tailrec
       override def hasNext: Boolean =
