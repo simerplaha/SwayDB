@@ -19,7 +19,6 @@
 
 package swaydb
 
-import swaydb.Map
 import swaydb.core.TestBase
 
 import scala.annotation.tailrec

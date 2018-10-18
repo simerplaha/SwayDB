@@ -51,8 +51,8 @@ lazy val SwayDB =
   (project in file("."))
     .settings(commonSettings)
     .settings(publishSettings)
-    .dependsOn(embedded)
-    .aggregate(embedded, core, macros, compression, data, ordering, configs, serializers)
+    .dependsOn(extension)
+    .aggregate(extension, embedded, core, macros, compression, data, ordering, configs, serializers)
 
 lazy val core =
   project
@@ -101,6 +101,15 @@ lazy val serializers =
     .settings(commonSettings)
     .settings(publishSettings)
     .dependsOn(data)
+
+
+lazy val extension =
+  project
+    .settings(commonSettings)
+    .settings(publishSettings)
+    .settings(
+      libraryDependencies ++= testDependencies
+    ).dependsOn(embedded)
 
 lazy val compression =
   project
