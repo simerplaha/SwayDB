@@ -40,7 +40,7 @@ import swaydb.core.segment.Segment
 import swaydb.core.segment.format.one._
 import swaydb.core.segment.merge.{KeyValueMerger, SegmentMerger}
 import swaydb.core.util.CollectionUtil._
-import swaydb.data.slice.{Reader, Slice, Slicer}
+import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.StorageUnits._
 import swaydb.order.KeyOrder
 
@@ -1250,7 +1250,7 @@ trait CommonAssertions extends TryAssert with FutureBase with TestData {
         printGroupHierarchy(segment.getAll().assertGet, 0)
     }
 
-  def openGroups(keyValues: Slice[KeyValue.ReadOnly]): Slicer[KeyValue.ReadOnly] =
+  def openGroups(keyValues: Slice[KeyValue.ReadOnly]): Slice[KeyValue.ReadOnly] =
     keyValues flatMap {
       case group: KeyValue.ReadOnly.Group =>
         openGroup(group)
@@ -1259,7 +1259,7 @@ trait CommonAssertions extends TryAssert with FutureBase with TestData {
         Slice(keyValue)
     }
 
-  def openGroup(group: KeyValue.ReadOnly.Group): Slicer[KeyValue.ReadOnly] = {
+  def openGroup(group: KeyValue.ReadOnly.Group): Slice[KeyValue.ReadOnly] = {
     val allKeyValues = group.segmentCache.getAll().assertGet
     allKeyValues flatMap {
       case group: KeyValue.ReadOnly.Group =>

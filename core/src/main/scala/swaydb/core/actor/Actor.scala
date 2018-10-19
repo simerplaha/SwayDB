@@ -139,7 +139,7 @@ private[swaydb] class Actor[T, +S](val state: S,
   private val busy = new AtomicBoolean(false)
   private val queue = new ConcurrentLinkedQueue[T]
 
-  val maxMessagesToProcessAtOnce = 1000000
+  val maxMessagesToProcessAtOnce = 10000
   //if initial delay is defined this actor will keep checking for messages at
   //regular interval. This interval can be updated via the execution function.
   val continueIfEmpty = delay.isDefined

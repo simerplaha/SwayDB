@@ -77,7 +77,7 @@ private[map] object PersistentMap extends LazyLogging {
     }
   }
 
-  private[map] def firstFile(folder: Path, memoryMapped: Boolean, fileSize: Long)(implicit ec: ExecutionContext) =
+  private[map] def firstFile(folder: Path, memoryMapped: Boolean, fileSize: Long)(implicit ec: ExecutionContext): Try[DBFile] =
     if (memoryMapped)
       DBFile.mmapInit(folder.resolve(0.toLogFileId), fileSize, _ => ())
     else

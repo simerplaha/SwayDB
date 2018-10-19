@@ -26,6 +26,8 @@ import java.nio.charset.{Charset, StandardCharsets}
 import swaydb.data.util.{ByteSizeOf, ByteUtil}
 
 import scala.annotation.tailrec
+import scala.collection.generic.CanBuildFrom
+import scala.collection.{IterableLike, mutable}
 import scala.reflect.ClassTag
 import scala.util.Try
 
@@ -242,6 +244,45 @@ object Slice {
     }
   }
 
+  class SliceBuilder[T: ClassTag](sizeHint: Int) extends mutable.Builder[T, Slice[T]] {
+    //max is used to in-case sizeHit == 0 which is possible for cases where (None ++ Some(Slice[T](...)))
+    protected var slice: Slice[T] = Slice.create[T](((sizeHint max 16) * 2.5).toInt)
+
+    def extendSlice(by: Int) = {
+      val extendedSlice = Slice.create[T](slice.size * by)
+      extendedSlice addAll slice
+      slice = extendedSlice
+    }
+
+    @tailrec
+    final def +=(x: T): this.type =
+      try {
+        slice add x
+        this
+      } catch {
+        case _: ArrayIndexOutOfBoundsException => //Extend slice.
+          extendSlice(by = 2)
+          +=(x)
+        case ex: Throwable =>
+          throw ex
+      }
+
+    def clear() =
+      slice = Slice.empty[T]
+
+    def result: Slice[T] =
+      slice.close()
+  }
+
+  implicit def canBuildFrom[T: ClassTag]: CanBuildFrom[Slice[_], T, Slice[T]] =
+    new CanBuildFrom[Slice[_], T, Slice[T]] {
+      def apply(from: Slice[_]) =
+        new SliceBuilder[T](from.size max 16) //max is used in-case from.size == 0
+
+      def apply() =
+        new SliceBuilder[T](100)
+    }
+
 }
 /**
   * An Iterable type that holds offset references to an Array without creating copies of the original array when creating
@@ -256,7 +297,7 @@ object Slice {
 class Slice[+T: ClassTag](array: Array[T],
                           val fromOffset: Int,
                           val toOffset: Int,
-                          private var _written: Int) extends Slicer[T] {
+                          private var _written: Int) extends Iterable[T] with IterableLike[T, Slice[T]] {
 
   private var writePosition = fromOffset + _written
 
@@ -475,6 +516,9 @@ class Slice[+T: ClassTag](array: Array[T],
 
   def underlyingArraySize =
     array.length
+
+  override protected[this] def newBuilder: scala.collection.mutable.Builder[T, Slice[T]] =
+    new Slice.SliceBuilder[T](100)
 
   override def equals(that: Any): Boolean =
     that match {
