@@ -35,7 +35,7 @@ View detailed benchmark results [here](http://swaydb.io/performance/macbook-pro-
 - Key only iterations (Lazily fetched values)
 - Supported data types 
     - `Map[K, V]`
-        - Nested maps similar to `Tables` in SQL with [extensions](http://www.swaydb.io/extending-databases/). 
+        - Nested maps similar to `Tables` with [extensions](http://www.swaydb.io/extending-databases/). 
     - `Set[T]`
 - In-built custom serialization API with [Slice](http://www.swaydb.io/slice/byte-slice/) 
 - [Configurable Levels](http://www.swaydb.io/configuring-levels/)
