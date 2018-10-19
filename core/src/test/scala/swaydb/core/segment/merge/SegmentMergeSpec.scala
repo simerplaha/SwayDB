@@ -23,6 +23,7 @@ import swaydb.core.TestBase
 import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data._
 import swaydb.core.map.serializer.RangeValueSerializers._
+import swaydb.core.util.Benchmark
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.order.KeyOrder
@@ -181,4 +182,10 @@ class SegmentMergeSpec extends TestBase {
     }
   }
 
+  "SegmentMerger performance" in {
+    val keyValues = randomIntKeyValues(10000)
+    Benchmark("benchy") {
+      SegmentMerger.merge(keyValues, keyValues, 100.mb, false, false, 0.1, 0.seconds, compressDuplicateValues = true).assertGet
+    }
+  }
 }
