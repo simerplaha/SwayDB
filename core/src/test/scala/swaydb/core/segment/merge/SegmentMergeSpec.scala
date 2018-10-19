@@ -183,8 +183,8 @@ class SegmentMergeSpec extends TestBase {
   }
 
   "SegmentMerger performance" in {
-    val keyValues = randomIntKeyValues(10000)
-    Benchmark("benchy") {
+    val keyValues = randomIntKeyValues(100000)
+    Benchmark("SegmentMerger performance") {
       SegmentMerger.merge(keyValues, keyValues, 100.mb, false, false, 0.1, 0.seconds, compressDuplicateValues = true).assertGet
     }
   }
