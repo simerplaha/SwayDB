@@ -82,7 +82,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
     if (shouldGroupGroups(segmentKeyValues = keyValues, groupingStrategy = groupingStrategy, force = force)) {
       //use segmentKeyValues.last.stats.position instead of keyValues.size because position is pre-calculated.
       val keyValuesToGroup = Slice.create[KeyValue.WriteOnly](keyValues.last.stats.position)
-      //do not need to recalculate stats since all key-values are being groups.
+      //do not need to recalculate stats since all key-values are being grouped.
       //      keyValues foreach (keyValuesToGroup add _.updateStats(bloomFilterFalsePositiveRate, keyValuesToGroup.lastOption))
       keyValues foreach (keyValuesToGroup add _)
       Some(keyValuesToGroup)
@@ -99,7 +99,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
   private def keyValuesToGroup(segmentKeyValues: Iterable[KeyValue.WriteOnly],
                                bloomFilterFalsePositiveRate: Double,
                                groupingStrategy: KeyValueGroupingStrategyInternal,
-                               force: Boolean): Try[Option[(Iterable[KeyValue.WriteOnly], Option[Transient.Group])]] =
+                               force: Boolean): Try[Option[(Slice[KeyValue.WriteOnly], Option[Transient.Group])]] =
     if (shouldGroupKeyValues(segmentKeyValues = segmentKeyValues, groupingStrategy = groupingStrategy, force = force)) {
       //create a new list of key-values with stats updated.
       val expectedGroupsKeyValueCount = segmentKeyValues.last.stats.position - segmentKeyValues.last.stats.groupsCount

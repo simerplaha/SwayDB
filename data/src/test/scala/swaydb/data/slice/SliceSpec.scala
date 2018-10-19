@@ -401,4 +401,35 @@ class SliceSpec extends WordSpec with Matchers {
         .addAll(Slice(3, 4))
     }
   }
+
+  "None ++ Some(Slice[T](...))" in {
+    val merged: Iterable[Slice[Int]] = Some(Slice[Int](1, 2, 3)) ++ None
+    merged.flatten
+      .toList should contain inOrderOnly(1, 2, 3)
+  }
+
+  "++ empty slices" in {
+    val merged: Slice[Int] = Slice.empty[Int] ++ Slice.empty[Int]
+    merged shouldBe empty
+    merged.written shouldBe 0
+    merged.isEmpty shouldBe true
+    merged.isFull shouldBe true
+  }
+
+  "++ empty and non empty slices" in {
+    val merged: Slice[Int] = Slice.empty[Int] ++ Slice(1)
+    merged should contain only 1
+    merged.written shouldBe 1
+    merged.isEmpty shouldBe false
+    merged.isFull shouldBe true
+  }
+
+  "++ non empty and empty slices" in {
+    val merged: Slice[Int] = Slice(1) ++ Slice.empty[Int]
+    merged should contain only 1
+    merged.written shouldBe 1
+    merged.isEmpty shouldBe false
+    merged.isFull shouldBe true
+  }
+
 }

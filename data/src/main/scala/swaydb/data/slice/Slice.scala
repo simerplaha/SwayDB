@@ -246,7 +246,7 @@ object Slice {
 
   class SliceBuilder[T: ClassTag](sizeHint: Int) extends mutable.Builder[T, Slice[T]] {
     //max is used to in-case sizeHit == 0 which is possible for cases where (None ++ Some(Slice[T](...)))
-    protected var slice: Slice[T] = Slice.create[T](((sizeHint max 16) * 2.5).toInt)
+    protected var slice: Slice[T] = Slice.create[T](((sizeHint max 100) * 2.5).toInt)
 
     def extendSlice(by: Int) = {
       val extendedSlice = Slice.create[T](slice.size * by)
@@ -277,7 +277,7 @@ object Slice {
   implicit def canBuildFrom[T: ClassTag]: CanBuildFrom[Slice[_], T, Slice[T]] =
     new CanBuildFrom[Slice[_], T, Slice[T]] {
       def apply(from: Slice[_]) =
-        new SliceBuilder[T](from.size max 16) //max is used in-case from.size == 0
+        new SliceBuilder[T](from.size max 100) //max is used in-case from.size == 0
 
       def apply() =
         new SliceBuilder[T](100)
@@ -518,7 +518,7 @@ class Slice[+T: ClassTag](array: Array[T],
     array.length
 
   override protected[this] def newBuilder: scala.collection.mutable.Builder[T, Slice[T]] =
-    new Slice.SliceBuilder[T](100)
+    new Slice.SliceBuilder[T](array.length max 100)
 
   override def equals(that: Any): Boolean =
     that match {
