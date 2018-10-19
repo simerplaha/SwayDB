@@ -34,8 +34,8 @@ class SegmentMergeStressSpec extends TestBase {
 
   override implicit val ordering = KeyOrder.default
 
-  val keyValueCount = 1000
-  val maxIteration = 50
+  val keyValueCount = 100
+  val maxIteration = 5
 
   /**
     * Result: Merging of grouped key-values is expensive and should be deferred to lower levels.

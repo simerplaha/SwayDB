@@ -105,13 +105,13 @@ class Maps[K, V](map: swaydb.Map[Key[K], Option[V]],
     }
 
   def contains(key: K): Try[Boolean] =
-    map.contains(Key.Start(mapKey :+ key))
+    map.contains(Key.MapStart(mapKey :+ key))
 
   /**
     * Returns None if this map does not exist or returns the value.
     */
   def getValue(key: K): Try[Option[V]] =
-    map.get(Key.Start(mapKey :+ key)).map(_.flatten)
+    map.get(Key.MapStart(mapKey :+ key)).map(_.flatten)
 
   def keys: MapKeysIterator[K] =
     MapKeysIterator[K](

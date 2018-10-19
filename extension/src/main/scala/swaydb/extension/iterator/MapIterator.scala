@@ -51,7 +51,7 @@ case class MapIterator[K, V](mapKey: Seq[K],
                                                                                          mapKeySerializer: Serializer[Key[K]],
                                                                                          optionValueSerializer: Serializer[Option[V]]) extends Iterable[(K, V)] {
 
-  private val endEntriesKey = Key.EntriesEnd(mapKey)
+  private val endEntriesKey = Key.MapEntriesEnd(mapKey)
   private val endSubMapsKey = Key.SubMapsEnd(mapKey)
 
   private val thisMapKeyBytes = Key.writeKeys(mapKey, keySerializer)
@@ -60,31 +60,31 @@ case class MapIterator[K, V](mapKey: Seq[K],
     if (mapsOnly)
       copy(dbIterator = dbIterator.from(Key.SubMap(mapKey, key)), mapsOnly = true, userDefinedFrom = true)
     else
-      copy(dbIterator = dbIterator.from(Key.Entry(mapKey, key)), userDefinedFrom = true)
+      copy(dbIterator = dbIterator.from(Key.MapEntry(mapKey, key)), userDefinedFrom = true)
 
   def before(key: K): MapIterator[K, V] =
     if (mapsOnly)
       copy(dbIterator = dbIterator.before(Key.SubMap(mapKey, key)), mapsOnly = true, userDefinedFrom = true)
     else
-      copy(dbIterator = dbIterator.before(Key.Entry(mapKey, key)), userDefinedFrom = true)
+      copy(dbIterator = dbIterator.before(Key.MapEntry(mapKey, key)), userDefinedFrom = true)
 
   def fromOrBefore(key: K): MapIterator[K, V] =
     if (mapsOnly)
       copy(dbIterator = dbIterator.fromOrBefore(Key.SubMap(mapKey, key)), mapsOnly = true, userDefinedFrom = true)
     else
-      copy(dbIterator = dbIterator.fromOrBefore(Key.Entry(mapKey, key)), userDefinedFrom = true)
+      copy(dbIterator = dbIterator.fromOrBefore(Key.MapEntry(mapKey, key)), userDefinedFrom = true)
 
   def after(key: K): MapIterator[K, V] =
     if (mapsOnly)
       copy(dbIterator = dbIterator.after(Key.SubMap(mapKey, key)), mapsOnly = true, userDefinedFrom = true)
     else
-      copy(dbIterator = dbIterator.after(Key.Entry(mapKey, key)), userDefinedFrom = true)
+      copy(dbIterator = dbIterator.after(Key.MapEntry(mapKey, key)), userDefinedFrom = true)
 
   def fromOrAfter(key: K): MapIterator[K, V] =
     if (mapsOnly)
       copy(dbIterator = dbIterator.fromOrAfter(Key.SubMap(mapKey, key)), mapsOnly = true, userDefinedFrom = true)
     else
-      copy(dbIterator = dbIterator.fromOrAfter(Key.Entry(mapKey, key)), userDefinedFrom = true)
+      copy(dbIterator = dbIterator.fromOrAfter(Key.MapEntry(mapKey, key)), userDefinedFrom = true)
 
   private def before(key: Key[K], reverse: Boolean): MapIterator[K, V] =
     copy(dbIterator = dbIterator.before(key).copy(reverse = reverse))
@@ -130,19 +130,19 @@ case class MapIterator[K, V](mapKey: Seq[K],
             false
           else {
             mapKey match {
-              case Key.Start(_) =>
+              case Key.MapStart(_) =>
                 if (dbIterator.reverse) //exit iteration if it's going backward since Start is the head key
                   false
                 else
                   hasNext
 
-              case Key.EntriesStart(_) =>
+              case Key.MapEntriesStart(_) =>
                 if (dbIterator.reverse) //exit iteration if it's going backward as previous entry is pointer entry Start
                   false
                 else
                   hasNext
 
-              case Key.Entry(_, dataKey) =>
+              case Key.MapEntry(_, dataKey) =>
                 if (mapsOnly) {
                   if (dbIterator.reverse) //Exit if it's fetching subMaps only it's already reached an entry means it's has already crossed subMaps block
                     false
@@ -157,7 +157,7 @@ case class MapIterator[K, V](mapKey: Seq[K],
                   }
                 }
 
-              case Key.EntriesEnd(_) =>
+              case Key.MapEntriesEnd(_) =>
                 //if it's not going backwards and it's trying to fetch subMaps only then move forward
                 if (!dbIterator.reverse && !mapsOnly)
                   false
@@ -191,7 +191,7 @@ case class MapIterator[K, V](mapKey: Seq[K],
                 else
                   hasNext
 
-              case Key.End(_) =>
+              case Key.MapEnd(_) =>
                 //Exit if it's not going in reverse.
                 if (!dbIterator.reverse)
                   false
@@ -224,8 +224,8 @@ case class MapIterator[K, V](mapKey: Seq[K],
     * Returns the start key when doing reverse iteration.
     *
     * If subMaps are included then it will return the starting point to be [[Key.SubMapsEnd]]
-    * which will iterate backward until [[Key.EntriesStart]]
-    * else returns the starting point to be [[Key.EntriesEnd]] to fetch entries only.
+    * which will iterate backward until [[Key.MapEntriesStart]]
+    * else returns the starting point to be [[Key.MapEntriesEnd]] to fetch entries only.
     */
   private def reverseIterator(): MapIterator[K, V] =
     if (userDefinedFrom) //if user has defined from then do not override it and just set reverse to true.

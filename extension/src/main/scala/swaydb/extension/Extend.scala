@@ -48,12 +48,12 @@ object Extend {
     val rootMapKey = Seq.empty[K]
 
     map.batch(
-      Batch.Put(Key.Start(rootMapKey), None),
-      Batch.Put(Key.EntriesStart(rootMapKey), None),
-      Batch.Put(Key.EntriesEnd(rootMapKey), None),
+      Batch.Put(Key.MapStart(rootMapKey), None),
+      Batch.Put(Key.MapEntriesStart(rootMapKey), None),
+      Batch.Put(Key.MapEntriesEnd(rootMapKey), None),
       Batch.Put(Key.SubMapsStart(rootMapKey), None),
       Batch.Put(Key.SubMapsEnd(rootMapKey), None),
-      Batch.Put(Key.End(rootMapKey), None)
+      Batch.Put(Key.MapEnd(rootMapKey), None)
     ) map {
       _ =>
         Map[K, V](

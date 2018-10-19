@@ -39,69 +39,69 @@ class KeySpec extends WordSpec with Matchers with TestData {
     }
 
     "write & read empty keys" in {
-      doAssert(Key.Start(Seq.empty[Int]))
-      doAssert(Key.EntriesStart(Seq.empty[Int]))
-      doAssert(Key.Entry(Seq.empty[Int], 100))
-      doAssert(Key.EntriesEnd(Seq.empty[Int]))
+      doAssert(Key.MapStart(Seq.empty[Int]))
+      doAssert(Key.MapEntriesStart(Seq.empty[Int]))
+      doAssert(Key.MapEntry(Seq.empty[Int], 100))
+      doAssert(Key.MapEntriesEnd(Seq.empty[Int]))
       doAssert(Key.SubMapsStart(Seq.empty[Int]))
       doAssert(Key.SubMap(Seq.empty[Int], 1000))
       doAssert(Key.SubMapsEnd(Seq.empty[Int]))
-      doAssert(Key.End(Seq.empty[Int]))
+      doAssert(Key.MapEnd(Seq.empty[Int]))
     }
 
     "write & read MapKeys with Int key" in {
-      doAssert(Key.Start(Seq(1)))
-      doAssert(Key.EntriesStart(Seq(1)))
-      doAssert(Key.Entry(Seq(1), 100))
-      doAssert(Key.EntriesEnd(Seq(1)))
+      doAssert(Key.MapStart(Seq(1)))
+      doAssert(Key.MapEntriesStart(Seq(1)))
+      doAssert(Key.MapEntry(Seq(1), 100))
+      doAssert(Key.MapEntriesEnd(Seq(1)))
       doAssert(Key.SubMapsStart(Seq(1)))
       doAssert(Key.SubMap(Seq(1), 1000))
       doAssert(Key.SubMapsEnd(Seq(1)))
-      doAssert(Key.End(Seq(1)))
+      doAssert(Key.MapEnd(Seq(1)))
     }
 
     "write & read MapKeys with multiple Int keys" in {
-      doAssert(Key.Start(Seq(1, 2, 3)))
-      doAssert(Key.EntriesStart(Seq(1, 2, 3)))
-      doAssert(Key.Entry(Seq(1, 2, 3), 100))
-      doAssert(Key.EntriesEnd(Seq(1, 2, 3)))
+      doAssert(Key.MapStart(Seq(1, 2, 3)))
+      doAssert(Key.MapEntriesStart(Seq(1, 2, 3)))
+      doAssert(Key.MapEntry(Seq(1, 2, 3), 100))
+      doAssert(Key.MapEntriesEnd(Seq(1, 2, 3)))
       doAssert(Key.SubMapsStart(Seq(1, 2, 3)))
       doAssert(Key.SubMap(Seq(1, 2, 3), 1000))
       doAssert(Key.SubMapsEnd(Seq(1, 2, 3)))
-      doAssert(Key.End(Seq(1, 2, 3)))
+      doAssert(Key.MapEnd(Seq(1, 2, 3)))
     }
 
     "write & read MapKeys with Int String" in {
-      doAssert(Key.Start(Seq("one")))
-      doAssert(Key.EntriesStart(Seq("one")))
-      doAssert(Key.Entry(Seq("one"), "one key"))
-      doAssert(Key.EntriesEnd(Seq("one")))
+      doAssert(Key.MapStart(Seq("one")))
+      doAssert(Key.MapEntriesStart(Seq("one")))
+      doAssert(Key.MapEntry(Seq("one"), "one key"))
+      doAssert(Key.MapEntriesEnd(Seq("one")))
       doAssert(Key.SubMapsStart(Seq("one")))
       doAssert(Key.SubMap(Seq("one"), "one sub map"))
       doAssert(Key.SubMapsEnd(Seq("one")))
-      doAssert(Key.End(Seq("one")))
+      doAssert(Key.MapEnd(Seq("one")))
     }
 
     "write & read MapKeys with large single value" in {
-      doAssert(Key.Start(Seq(randomCharacters(100000))))
-      doAssert(Key.EntriesStart(Seq(randomCharacters(100000))))
-      doAssert(Key.EntriesEnd(Seq(randomCharacters(100000))))
-      doAssert(Key.Entry(Seq(randomCharacters(100000)), randomCharacters(100000)))
+      doAssert(Key.MapStart(Seq(randomCharacters(100000))))
+      doAssert(Key.MapEntriesStart(Seq(randomCharacters(100000))))
+      doAssert(Key.MapEntriesEnd(Seq(randomCharacters(100000))))
+      doAssert(Key.MapEntry(Seq(randomCharacters(100000)), randomCharacters(100000)))
       doAssert(Key.SubMapsStart(Seq(randomCharacters(100000))))
       doAssert(Key.SubMap(Seq(randomCharacters(100000)), randomCharacters(100000)))
       doAssert(Key.SubMapsEnd(Seq(randomCharacters(100000))))
-      doAssert(Key.End(Seq(randomCharacters(100000))))
+      doAssert(Key.MapEnd(Seq(randomCharacters(100000))))
     }
 
     "write & read MapKeys with Double" in {
-      doAssert(Key.Start(Seq(Double.MinValue)))
-      doAssert(Key.EntriesStart(Seq(Double.MinValue)))
-      doAssert(Key.Entry(Seq(Double.MinValue), Double.MaxValue))
-      doAssert(Key.EntriesEnd(Seq(Double.MinValue)))
+      doAssert(Key.MapStart(Seq(Double.MinValue)))
+      doAssert(Key.MapEntriesStart(Seq(Double.MinValue)))
+      doAssert(Key.MapEntry(Seq(Double.MinValue), Double.MaxValue))
+      doAssert(Key.MapEntriesEnd(Seq(Double.MinValue)))
       doAssert(Key.SubMapsStart(Seq(Double.MinValue)))
       doAssert(Key.SubMap(Seq(Double.MinValue), Double.MaxValue))
       doAssert(Key.SubMapsEnd(Seq(Double.MinValue)))
-      doAssert(Key.End(Seq(Double.MinValue)))
+      doAssert(Key.MapEnd(Seq(Double.MinValue)))
     }
 
   }
@@ -113,49 +113,49 @@ class KeySpec extends WordSpec with Matchers with TestData {
       implicit val mapKeyOrder = Ordering.by[Key[Int], Slice[Byte]](mapKeySerializer.write)(Key.ordering(order))
 
       val keys = Seq(
-        Key.Start(Seq.empty[Int]),
+        Key.MapStart(Seq.empty[Int]),
         Key.SubMapsStart(Seq.empty[Int]),
         Key.SubMapsEnd(Seq.empty[Int]),
-        Key.End(Seq.empty[Int]),
+        Key.MapEnd(Seq.empty[Int]),
 
-        Key.Start(Seq(0)),
+        Key.MapStart(Seq(0)),
         Key.SubMapsStart(Seq(0)),
         Key.SubMapsEnd(Seq(0)),
-        Key.End(Seq(0)),
+        Key.MapEnd(Seq(0)),
 
-        Key.Start(Seq(1)),
-        Key.EntriesStart(Seq(1)),
-        Key.Entry(Seq(1), 1),
-        Key.EntriesEnd(Seq(1)),
+        Key.MapStart(Seq(1)),
+        Key.MapEntriesStart(Seq(1)),
+        Key.MapEntry(Seq(1), 1),
+        Key.MapEntriesEnd(Seq(1)),
         Key.SubMapsStart(Seq(1)),
         Key.SubMap(Seq(1), 1000),
         Key.SubMapsEnd(Seq(1)),
-        Key.End(Seq(1)),
+        Key.MapEnd(Seq(1)),
 
-        Key.Start(Seq(100)),
-        Key.EntriesStart(Seq(100)),
-        Key.Entry(Seq(100), 2),
-        Key.Entry(Seq(100), 3),
-        Key.Entry(Seq(100), 4),
-        Key.Entry(Seq(100), 5),
-        Key.EntriesEnd(Seq(100)),
+        Key.MapStart(Seq(100)),
+        Key.MapEntriesStart(Seq(100)),
+        Key.MapEntry(Seq(100), 2),
+        Key.MapEntry(Seq(100), 3),
+        Key.MapEntry(Seq(100), 4),
+        Key.MapEntry(Seq(100), 5),
+        Key.MapEntriesEnd(Seq(100)),
         Key.SubMapsStart(Seq(100)),
         Key.SubMap(Seq(100), 1000),
         Key.SubMap(Seq(100), 2000),
         Key.SubMap(Seq(100), 3000),
         Key.SubMapsEnd(Seq(100)),
-        Key.End(Seq(100)),
+        Key.MapEnd(Seq(100)),
 
-        Key.Start(Seq(2, 3)),
-        Key.EntriesStart(Seq(2, 3)),
-        Key.Entry(Seq(2, 3), 2),
-        Key.Entry(Seq(2, 3), 3),
-        Key.EntriesEnd(Seq(2, 3)),
+        Key.MapStart(Seq(2, 3)),
+        Key.MapEntriesStart(Seq(2, 3)),
+        Key.MapEntry(Seq(2, 3), 2),
+        Key.MapEntry(Seq(2, 3), 3),
+        Key.MapEntriesEnd(Seq(2, 3)),
         Key.SubMapsStart(Seq(2, 3)),
         Key.SubMap(Seq(2, 3), 1000),
         Key.SubMap(Seq(2, 3), 2000),
         Key.SubMapsEnd(Seq(2, 3)),
-        Key.End(Seq(2, 3))
+        Key.MapEnd(Seq(2, 3))
       )
 
       //shuffle and create a list
@@ -179,29 +179,29 @@ class KeySpec extends WordSpec with Matchers with TestData {
       val randomString5 = "e" + randomCharacters(stringLength)
 
       val keys = Seq(
-        Key.Start(Seq(randomString1)),
+        Key.MapStart(Seq(randomString1)),
         Key.SubMapsStart(Seq(randomString1)),
         Key.SubMapsEnd(Seq(randomString1)),
-        Key.End(Seq(randomString1)),
+        Key.MapEnd(Seq(randomString1)),
 
-        Key.Start(Seq(randomString2)),
-        Key.EntriesStart(Seq(randomString2)),
-        Key.Entry(Seq(randomString2), randomString3),
-        Key.Entry(Seq(randomString2), randomString4),
-        Key.Entry(Seq(randomString2), randomString5),
-        Key.EntriesEnd(Seq(randomString2)),
+        Key.MapStart(Seq(randomString2)),
+        Key.MapEntriesStart(Seq(randomString2)),
+        Key.MapEntry(Seq(randomString2), randomString3),
+        Key.MapEntry(Seq(randomString2), randomString4),
+        Key.MapEntry(Seq(randomString2), randomString5),
+        Key.MapEntriesEnd(Seq(randomString2)),
         Key.SubMapsStart(Seq(randomString2)),
         Key.SubMap(Seq(randomString2), randomString3),
         Key.SubMap(Seq(randomString2), randomString4),
         Key.SubMap(Seq(randomString2), randomString5),
         Key.SubMapsEnd(Seq(randomString2)),
-        Key.End(Seq(randomString2)),
+        Key.MapEnd(Seq(randomString2)),
 
-        Key.Start(Seq(randomString3)),
-        Key.Entry(Seq(randomString3), randomString3),
-        Key.Entry(Seq(randomString3), randomString4),
-        Key.Entry(Seq(randomString3), randomString5),
-        Key.End(Seq(randomString3))
+        Key.MapStart(Seq(randomString3)),
+        Key.MapEntry(Seq(randomString3), randomString3),
+        Key.MapEntry(Seq(randomString3), randomString4),
+        Key.MapEntry(Seq(randomString3), randomString5),
+        Key.MapEnd(Seq(randomString3))
       )
 
       //shuffle and create a list
@@ -217,54 +217,54 @@ class KeySpec extends WordSpec with Matchers with TestData {
       implicit val mapKeyOrder = Ordering.by[Key[Int], Slice[Byte]](mapKeySerializer.write)(Key.ordering(order))
 
       val keys = Seq(
-        Key.Start(Seq(0)),
-        Key.EntriesStart(Seq(0)),
-        Key.EntriesEnd(Seq(0)),
-        Key.End(Seq(0)),
-        Key.Start(Seq(0)),
-        Key.EntriesStart(Seq(0)),
-        Key.EntriesEnd(Seq(0)),
-        Key.End(Seq(0)),
+        Key.MapStart(Seq(0)),
+        Key.MapEntriesStart(Seq(0)),
+        Key.MapEntriesEnd(Seq(0)),
+        Key.MapEnd(Seq(0)),
+        Key.MapStart(Seq(0)),
+        Key.MapEntriesStart(Seq(0)),
+        Key.MapEntriesEnd(Seq(0)),
+        Key.MapEnd(Seq(0)),
 
-        Key.Start(Seq(2)),
-        Key.EntriesStart(Seq(2)),
-        Key.Entry(Seq(2), 2),
-        Key.Entry(Seq(2), 2),
-        Key.EntriesEnd(Seq(2)),
+        Key.MapStart(Seq(2)),
+        Key.MapEntriesStart(Seq(2)),
+        Key.MapEntry(Seq(2), 2),
+        Key.MapEntry(Seq(2), 2),
+        Key.MapEntriesEnd(Seq(2)),
         Key.SubMapsStart(Seq(2)),
         Key.SubMap(Seq(2), 1000),
         Key.SubMap(Seq(2), 1000),
         Key.SubMapsEnd(Seq(2)),
-        Key.End(Seq(2)),
+        Key.MapEnd(Seq(2)),
 
-        Key.Start(Seq(100)),
-        Key.Entry(Seq(100), 4),
-        Key.Entry(Seq(100), 5),
-        Key.End(Seq(100))
+        Key.MapStart(Seq(100)),
+        Key.MapEntry(Seq(100), 4),
+        Key.MapEntry(Seq(100), 5),
+        Key.MapEnd(Seq(100))
       )
 
       //shuffle and create a list
       val map = SortedSet[Key[Int]](Random.shuffle(keys): _*)(mapKeyOrder)
 
       val expected = Seq(
-        Key.Start(Seq(0)),
-        Key.EntriesStart(Seq(0)),
-        Key.EntriesEnd(Seq(0)),
-        Key.End(Seq(0)),
+        Key.MapStart(Seq(0)),
+        Key.MapEntriesStart(Seq(0)),
+        Key.MapEntriesEnd(Seq(0)),
+        Key.MapEnd(Seq(0)),
 
-        Key.Start(Seq(2)),
-        Key.EntriesStart(Seq(2)),
-        Key.Entry(Seq(2), 2),
-        Key.EntriesEnd(Seq(2)),
+        Key.MapStart(Seq(2)),
+        Key.MapEntriesStart(Seq(2)),
+        Key.MapEntry(Seq(2), 2),
+        Key.MapEntriesEnd(Seq(2)),
         Key.SubMapsStart(Seq(2)),
         Key.SubMap(Seq(2), 1000),
         Key.SubMapsEnd(Seq(2)),
-        Key.End(Seq(2)),
+        Key.MapEnd(Seq(2)),
 
-        Key.Start(Seq(100)),
-        Key.Entry(Seq(100), 4),
-        Key.Entry(Seq(100), 5),
-        Key.End(Seq(100))
+        Key.MapStart(Seq(100)),
+        Key.MapEntry(Seq(100), 4),
+        Key.MapEntry(Seq(100), 5),
+        Key.MapEnd(Seq(100))
       )
 
       //key-values should

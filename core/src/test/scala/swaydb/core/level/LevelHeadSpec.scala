@@ -30,7 +30,7 @@ import swaydb.serializers.Default._
 import swaydb.serializers._
 
 //@formatter:off
-class LevelHead0Spec extends LevelHeadSpec
+class LevelHeadSpec0 extends LevelHeadSpec
 
 class LevelHeadSpec1 extends LevelHeadSpec {
   override def levelFoldersCount = 10
