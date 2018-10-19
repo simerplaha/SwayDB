@@ -386,12 +386,6 @@ class SliceSpec extends WordSpec with Matchers {
     }
   }
 
-  "join multiple slices" in {
-    val slice = Slice(1, 2)
-
-    (slice addAll slice addAll slice).toList shouldBe List(1, 2, 1, 2, 1, 2)
-  }
-
   "write multiple with addAll" in {
     Slice.create[Int](4)
       .add(1)

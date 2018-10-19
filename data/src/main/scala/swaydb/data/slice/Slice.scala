@@ -449,9 +449,9 @@ class Slice[+T: ClassTag](array: Array[T],
   private[slice] def insertAll(items: Iterable[Any]): Unit = {
     val futurePosition = writePosition + items.size - 1
     if (futurePosition < fromOffset || futurePosition > toOffset) throw new ArrayIndexOutOfBoundsException(futurePosition)
-    items foreach {
+    items.asInstanceOf[Iterable[T]] foreach {
       item =>
-        array(writePosition) = item.asInstanceOf[T]
+        array(writePosition) = item
         _written += 1
         writePosition += 1
     }

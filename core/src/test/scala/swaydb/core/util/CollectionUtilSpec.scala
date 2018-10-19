@@ -21,14 +21,10 @@ package swaydb.core.util
 
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.core.TryAssert
+import swaydb.core.util.CollectionUtil._
 import swaydb.data.slice.Slice
-import swaydb.data.util.StorageUnits._
-import swaydb.serializers.Default._
-import swaydb.serializers._
-import CollectionUtil._
 
-import scala.collection.mutable.ListBuffer
-import scala.util.{Failure, Success}
+import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
 class CollectionUtilSpec extends WordSpec with Matchers with TryAssert {
 
@@ -108,6 +104,42 @@ class CollectionUtilSpec extends WordSpec with Matchers with TryAssert {
         case (fold, item) =>
           fold :+ item
       } shouldBe List.empty
+    }
+  }
+
+  "Performance" when {
+    val count = 100000
+    //inserting into slice is at least 3 times faster then using ListBuffer.
+    //Using Slice during merge instead of ListBuffer would result.
+    "ListBuffer" in {
+      Benchmark("ListBuffer benchmark") {
+        val buff = ListBuffer.empty[Int]
+        (1 to count) foreach {
+          i =>
+            buff += i
+        }
+      }
+    }
+
+    "ArrayBuffer" in {
+      Benchmark("ArrayBuffer benchmark") {
+        val buff = new ArrayBuffer[Int](count)
+        (1 to count) foreach {
+          i =>
+            buff += i
+        }
+      }
+    }
+
+
+    "Slice" in {
+      Benchmark("Slice benchmark") {
+        val buff = Slice.create[Int](count)
+        (1 to count) foreach {
+          i =>
+            buff add i
+        }
+      }
     }
   }
 
