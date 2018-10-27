@@ -28,7 +28,7 @@ import scala.annotation.tailrec
 import scala.collection.generic.CanBuildFrom
 
 /**
-  * TODO - [[MapKeysIterator]] and [[MapKeysIterator]] are similar and need a higher type.
+  * TODO - [[MapIterator]] and [[MapKeysIterator]] are similar and need a higher type.
   *
   * Sample order
   *
