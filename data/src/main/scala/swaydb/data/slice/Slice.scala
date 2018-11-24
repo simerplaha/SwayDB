@@ -106,6 +106,23 @@ object Slice {
     check(range1, range2) || check(range2, range1)
   }
 
+  /**
+    * Check if the key falls within the minKey and maxKey range.
+    */
+  def within(key: Slice[Byte],
+             minKey: Slice[Byte],
+             maxKey: swaydb.data.repairAppendix.MaxKey[Slice[Byte]])(implicit ordering: Ordering[Slice[Byte]]): Boolean = {
+    import ordering._
+    key >= minKey && {
+      maxKey match {
+        case swaydb.data.repairAppendix.MaxKey.Fixed(maxKey) =>
+          key <= maxKey
+        case swaydb.data.repairAppendix.MaxKey.Range(_, maxKey) =>
+          key < maxKey
+      }
+    }
+  }
+
   implicit class SlicesImplicits[T: ClassTag](slices: Slice[Slice[T]]) {
     /**
       * Closes this Slice and children Slices which disables
@@ -284,6 +301,7 @@ object Slice {
     }
 
 }
+
 /**
   * An Iterable type that holds offset references to an Array without creating copies of the original array when creating
   * sub-slices.

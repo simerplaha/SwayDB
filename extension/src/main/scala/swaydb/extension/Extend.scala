@@ -58,7 +58,7 @@ object Extend {
       _ =>
         Map[K, V](
           map = map,
-          mapKey = Seq.empty
+          mapKey = rootMapKey
         )
     }
   }

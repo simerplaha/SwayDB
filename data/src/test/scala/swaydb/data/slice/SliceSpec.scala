@@ -20,6 +20,7 @@
 package swaydb.data.slice
 
 import org.scalatest.{Matchers, WordSpec}
+import swaydb.data.repairAppendix.MaxKey
 import swaydb.data.util.ByteSizeOf
 
 import scala.util.Random
@@ -430,6 +431,58 @@ class SliceSpec extends WordSpec with Matchers {
     merged.written shouldBe 1
     merged.isEmpty shouldBe false
     merged.isFull shouldBe true
+  }
+
+  "within" when {
+    implicit def toSlice(int: Int): Slice[Byte] = Slice.writeInt(int)
+    implicit val order = Ordering.by[Slice[Byte], Int](_.readInt())(Ordering.Int)
+
+    "max key is Fixed" in {
+      //0
+      //  1 - 10
+      Slice.within(key = 0, minKey = 1, maxKey = MaxKey.Fixed(10)) shouldBe false
+      //  1
+      //  1 - 10
+      Slice.within(key = 1, minKey = 1, maxKey = MaxKey.Fixed(10)) shouldBe true
+      //    5
+      //  1 - 10
+      Slice.within(key = 5, minKey = 1, maxKey = MaxKey.Fixed(10)) shouldBe true
+      //      10
+      //  1 - 10
+      Slice.within(key = 10, minKey = 1, maxKey = MaxKey.Fixed(10)) shouldBe true
+      //        11
+      //  1 - 10
+      Slice.within(key = 11, minKey = 1, maxKey = MaxKey.Fixed(10)) shouldBe false
+
+    }
+
+    "max key is Range" in {
+      //0
+      //  1 - (10 - 20)
+      Slice.within(key = 0, minKey = 1, maxKey = MaxKey.Range(10, 20)) shouldBe false
+      //  1
+      //  1 - (10 - 20)
+      Slice.within(key = 1, minKey = 1, maxKey = MaxKey.Range(10, 20)) shouldBe true
+      //    5
+      //  1 - (10 - 20)
+      Slice.within(key = 5, minKey = 1, maxKey = MaxKey.Range(10, 20)) shouldBe true
+      //      10
+      //  1 - (10 - 20)
+      Slice.within(key = 10, minKey = 1, maxKey = MaxKey.Range(10, 20)) shouldBe true
+      //        11
+      //  1 - (10 - 20)
+      Slice.within(key = 11, minKey = 1, maxKey = MaxKey.Range(10, 20)) shouldBe true
+      //           19
+      //  1 - (10 - 20)
+      Slice.within(key = 19, minKey = 1, maxKey = MaxKey.Range(10, 20)) shouldBe true
+      //            20
+      //  1 - (10 - 20)
+      Slice.within(key = 20, minKey = 1, maxKey = MaxKey.Range(10, 20)) shouldBe false
+      //                21
+      //  1 - (10 - 20)
+      Slice.within(key = 21, minKey = 1, maxKey = MaxKey.Range(10, 20)) shouldBe false
+
+    }
   }
 
 }

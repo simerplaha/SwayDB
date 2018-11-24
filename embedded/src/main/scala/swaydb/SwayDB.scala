@@ -556,7 +556,7 @@ private[swaydb] class SwayDB(api: CoreAPI) {
   def put(key: Slice[Byte]) =
     api.put(key)
 
-  def put(key: Slice[Byte], value: Option[Slice[Byte]]) =
+  def put(key: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter] =
     api.put(key, value)
 
   def put(key: Slice[Byte], value: Option[Slice[Byte]], expireAt: Deadline): Try[Level0Meter] =
