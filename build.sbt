@@ -3,7 +3,7 @@ import sbt.url
 import xerial.sbt.Sonatype._
 
 val scala211 = "2.11.12"
-val scala212 = "2.12.7"
+val scala212 = "2.12.8"
 val scalaMetaVersion = "4.0.0"
 val lz4Version = "1.5.0"
 val snappyVersion = "1.1.7"
