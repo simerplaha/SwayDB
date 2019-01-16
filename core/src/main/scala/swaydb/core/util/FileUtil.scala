@@ -106,24 +106,29 @@ private[core] object FileUtil extends LazyLogging {
 
   def files(folder: Path,
             extension: Extension): List[Path] =
-    Files.newDirectoryStream(folder)
-      .iterator()
-      .asScala
-      .filter(isExtension(_, extension))
-      .toList
-      .sortBy(path => fileId(path).get._1)
+    IO.stream(folder) {
+      stream =>
+        stream
+          .iterator()
+          .asScala
+          .filter(isExtension(_, extension))
+          .toList
+          .sortBy(path => fileId(path).get._1)
+    }
 
   def folders(folder: Path): List[Path] =
-    Files.newDirectoryStream(folder)
-      .iterator()
-      .asScala
-      .filter(folder => Try(folderId(folder)).isSuccess)
-      .toList
-      .sortBy(folderId)
+    IO.stream(folder) {
+      stream =>
+        stream
+          .iterator()
+          .asScala
+          .filter(folder => Try(folderId(folder)).isSuccess)
+          .toList
+          .sortBy(folderId)
+    }
 
   def segmentFilesOnDisk(paths: Seq[Path]): Seq[Path] =
     paths
       .flatMap(_.files(Extension.Seg))
       .sortBy(_.getFileName.fileId.get._1)
-
 }

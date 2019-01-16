@@ -37,8 +37,6 @@ import scala.util.{Failure, Success, Try}
   */
 object IO extends LazyLogging {
 
-  java.nio.file.Files.list(java.nio.file.Paths.get("."))
-
   def write(bytes: Slice[Byte],
             to: Path): Try[Path] =
     Try(Files.newByteChannel(to, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)) flatMap {
@@ -134,4 +132,12 @@ object IO extends LazyLogging {
       case exception: Throwable =>
         Failure(exception)
     }
+
+  def stream[T](path: Path)(f: DirectoryStream[Path] => T): T = {
+    val stream: DirectoryStream[Path] = Files.newDirectoryStream(path)
+    try
+      f(stream)
+    finally
+      stream.close()
+  }
 }
