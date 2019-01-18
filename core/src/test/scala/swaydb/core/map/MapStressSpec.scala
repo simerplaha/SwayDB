@@ -19,28 +19,36 @@
 
 package swaydb.core.map
 
-import swaydb.core.TestBase
+import swaydb.core.{TestBase, TestTimeGenerator}
 import swaydb.core.data.Memory
-import swaydb.core.level.zero.LevelZeroSkipListMerge
+import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.map.serializer.LevelZeroMapEntryWriter.Level0PutWriter
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
-import swaydb.order.KeyOrder
+import swaydb.data.order.{KeyOrder, TimeOrder}
 import scala.concurrent.duration._
+import swaydb.core.TestData._
+import swaydb.core.CommonAssertions._
+import swaydb.core.RunThis._
+import swaydb.core.TryAssert._
 
 class MapStressSpec extends TestBase {
 
-  override implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
-  implicit val skipListMerger = LevelZeroSkipListMerge(10.seconds)
+  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
+
+  implicit val skipListMerger = LevelZeroSkipListMerger
+  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
+
+  implicit def timeGenerator: TestTimeGenerator = TestTimeGenerator.random
 
   "Map" should {
     "write entries when flushOnOverflow is true and map size is 1.kb" in {
-      val keyValues = randomIntKeyValues(100)
+      val keyValues = randomKeyValues(100)
 
       def test(map: Map[Slice[Byte], Memory.SegmentResponse]) = {
         keyValues foreach {
           keyValue =>
-            val entry = MapEntry.Put[Slice[Byte], Memory.Put](keyValue.key, Memory.Put(keyValue.key, keyValue.getOrFetchValue.assertGetOpt))(Level0PutWriter)
+            val entry = MapEntry.Put[Slice[Byte], Memory.Put](keyValue.key, Memory.put(keyValue.key, keyValue.getOrFetchValue))(Level0PutWriter)
             map.write(entry).assertGet shouldBe true
         }
 
@@ -50,14 +58,14 @@ class MapStressSpec extends TestBase {
       def testRead(map: Map[Slice[Byte], Memory.SegmentResponse]) =
         keyValues foreach {
           keyValue =>
-            map.get(keyValue.key).assertGet shouldBe Memory.Put(keyValue.key, keyValue.getOrFetchValue.assertGetOpt)
+            map.get(keyValue.key).assertGet shouldBe Memory.put(keyValue.key, keyValue.getOrFetchValue)
         }
 
       val dir1 = createRandomDir
       val dir2 = createRandomDir
 
       import swaydb.core.map.serializer.LevelZeroMapEntryReader.Level0Reader
-      import swaydb.core.map.serializer.LevelZeroMapEntryWriter.Level0PutValueWriter
+      import swaydb.core.map.serializer.LevelZeroMapEntryWriter.Level0MapEntryPutWriter
 
       test(Map.persistent[Slice[Byte], Memory.SegmentResponse](dir1, mmap = true, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).assertGet.item)
       test(Map.persistent[Slice[Byte], Memory.SegmentResponse](dir2, mmap = false, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).assertGet.item)

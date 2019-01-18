@@ -21,20 +21,25 @@ package swaydb.core.segment.merge
 
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.core.data.{KeyValue, Memory, Value}
-import swaydb.core.{CommonAssertions, TestData}
+import swaydb.core.{CommonAssertions, TestData, TestTimeGenerator}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.core.TestData._
+import swaydb.core.CommonAssertions._
+import swaydb.core.RunThis._
 
-class MergeListSpec extends WordSpec with Matchers with CommonAssertions with TestData {
+class MergeListSpec extends WordSpec with Matchers {
+
+  implicit def timeGenerator: TestTimeGenerator = TestTimeGenerator.random
 
   implicit def toPut(key: Int): Memory.Put =
-    Memory.Put(key)
+    Memory.put(key)
 
   "MergeList" should {
     //mutate the state of this List and assert.
-    var list = MergeList(Slice[KeyValue.ReadOnly](1, 2, 3))
-    val range = Memory.Range(1, 2, None, Value.Update(1))
+    var list = MergeList[KeyValue.ReadOnly.Range, KeyValue.ReadOnly](Slice[KeyValue.ReadOnly](1, 2, 3))
+    val range = Memory.Range(1, 2, None, Value.update(1))
 
     "store key-values" in {
       list.depth shouldBe 1
@@ -98,12 +103,12 @@ class MergeListSpec extends WordSpec with Matchers with CommonAssertions with Te
   "merging multiple MergeLists" should {
     //mutate the state of this List and assert.
     var list =
-      MergeList(Slice[KeyValue.ReadOnly](1, 2)) append
-        MergeList(Slice[KeyValue.ReadOnly](3, 4)) append
-        MergeList(Slice[KeyValue.ReadOnly](5, 6)) append
-        MergeList(Slice[KeyValue.ReadOnly](7, 8))
+      MergeList[KeyValue.ReadOnly.Range, KeyValue.ReadOnly](Slice[KeyValue.ReadOnly](1, 2)) append
+        MergeList[KeyValue.ReadOnly.Range, KeyValue.ReadOnly](Slice[KeyValue.ReadOnly](3, 4)) append
+        MergeList[KeyValue.ReadOnly.Range, KeyValue.ReadOnly](Slice[KeyValue.ReadOnly](5, 6)) append
+        MergeList[KeyValue.ReadOnly.Range, KeyValue.ReadOnly](Slice[KeyValue.ReadOnly](7, 8))
 
-    val range = Memory.Range(1, 2, None, Value.Update(1))
+    val range = Memory.Range(1, 2, None, Value.update(1))
 
     "store key-values" in {
       list.depth shouldBe 4
@@ -125,7 +130,7 @@ class MergeListSpec extends WordSpec with Matchers with CommonAssertions with Te
     }
 
     "merge" in {
-      list = MergeList(Slice[KeyValue.ReadOnly](9)) append list
+      list = MergeList[KeyValue.ReadOnly.Range, KeyValue.ReadOnly](Slice[KeyValue.ReadOnly](9)) append list
       list.depth shouldBe 5
       list.size shouldBe 8
       list.toSlice shouldBe Slice[KeyValue.ReadOnly](9, range, 3, 4, 5, 6, 7, 8)
@@ -166,7 +171,7 @@ class MergeListSpec extends WordSpec with Matchers with CommonAssertions with Te
       list.depth shouldBe 1
       list.size shouldBe 0
 
-      list = MergeList(Slice[KeyValue.ReadOnly](1)) append list append list append list append list
+      list = MergeList[KeyValue.ReadOnly.Range, KeyValue.ReadOnly](Slice[KeyValue.ReadOnly](1)) append list append list append list append list
       list.depth shouldBe 1
       list.size shouldBe 1
       list.toSlice shouldBe Slice[KeyValue.ReadOnly](1)

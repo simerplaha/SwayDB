@@ -23,6 +23,10 @@ import swaydb.core.TestBase
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.core.util.Benchmark
+import swaydb.core.TestData._
+import swaydb.core.CommonAssertions._
+import swaydb.core.RunThis._
+import swaydb.core.TryAssert._
 
 class DBFileWriteReadPerformanceSpec extends TestBase with Benchmark {
 
@@ -177,7 +181,7 @@ class DBFileWriteReadPerformanceSpec extends TestBase with Benchmark {
         * Benchmark memory file read
         *
         * Round 1: 0.07953418 seconds
-        * Round 2: 0.129407648 seconds
+        * Round 2: TestData.falsePositiveRate29407648 seconds
         * Round 3: 0.090982974 seconds
         */
       val memoryFile = DBFile.memory(file.path, allBytes).assertGet

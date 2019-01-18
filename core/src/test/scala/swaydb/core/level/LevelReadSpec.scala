@@ -20,7 +20,7 @@
 package swaydb.core.level
 
 import org.scalamock.scalatest.MockFactory
-import swaydb.core.TestBase
+import swaydb.core.{TestBase, TestData, TestTimeGenerator}
 import swaydb.core.data.{Memory, Persistent, Transient, Value}
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.util.Benchmark
@@ -29,11 +29,13 @@ import swaydb.core.util.PipeOps._
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
-import swaydb.order.KeyOrder
+import swaydb.data.order.KeyOrder
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.core.map.serializer.RangeValueSerializers._
-
+import swaydb.core.TestData._
+import swaydb.core.CommonAssertions._
+import swaydb.core.RunThis._
+import swaydb.core.TryAssert._
 import scala.concurrent.duration._
 
 //@formatter:off
@@ -62,13 +64,14 @@ class LevelReadSpec3 extends LevelReadSpec {
 
 sealed trait LevelReadSpec extends TestBase with MockFactory with Benchmark {
 
-  override implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
-  implicit override val groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomCompressionTypeOption(keyValuesCount)
+  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
+  implicit def timeGenerator: TestTimeGenerator = TestTimeGenerator.random
+  implicit val groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(keyValuesCount)
   val keyValuesCount = 100
 
   "Level.mightContain" should {
     "return true for key-values that exists or else false (bloom filter test on reboot)" in {
-      val keyValues = randomIntKeyValuesMemory(keyValuesCount)
+      val keyValues = randomPutKeyValues(keyValuesCount)
 
       def assert(level: Level) = {
         keyValues foreach {
@@ -92,7 +95,7 @@ sealed trait LevelReadSpec extends TestBase with MockFactory with Benchmark {
       //disable throttling so small segment compaction does not occur
       val level = TestLevel(segmentSize = 1.kb, nextLevel = None, throttle = (_) => Throttle(Duration.Zero, 0))
 
-      val keyValues = randomIntKeyValuesMemory(1000)
+      val keyValues = randomPutKeyValues(1000)
       level.putKeyValues(keyValues).assertGet
       //do another put so split occurs.
       level.putKeyValues(keyValues.headSlice).assertGet
@@ -113,11 +116,11 @@ sealed trait LevelReadSpec extends TestBase with MockFactory with Benchmark {
 
   "Level.pickSegmentsToPush" should {
     "return segments in sequence when there is no lower level (These picks are for collapsing segments within the level)" in {
-      val segments = (1 to 10) map (index => TestSegment(Slice(Transient.Put(index, index))).assertGet)
+      val segments = (1 to 10) map (index => TestSegment(Slice(Transient.put(index, index))).assertGet)
 
       val level = TestLevel(segmentSize = 1.byte)
       level.put(segments).assertGet
-      level.putKeyValues(Slice(Memory.Put(1, 1))).assertGet
+      level.putKeyValues(Slice(Memory.put(1, 1))).assertGet
 
       level.pickSegmentsToPush(0) shouldBe empty
       level.pickSegmentsToPush(5) shouldHaveSameKeyValuesAs segments.take(5)
@@ -126,13 +129,13 @@ sealed trait LevelReadSpec extends TestBase with MockFactory with Benchmark {
     }
 
     "return segments in sequence when there are busy segments in lower level" in {
-      val segments = (1 to 10) map (index => TestSegment(Slice(Transient.Put(index, index))).assertGet)
+      val segments = (1 to 10) map (index => TestSegment(Slice(Transient.put(index, index))).assertGet)
       val nextLevel = mock[LevelRef]
       nextLevel.isTrash _ expects() returning false repeat 2.times
 
       val level = TestLevel(segmentSize = 1.byte, nextLevel = Some(nextLevel), throttle = (_) => Throttle(Duration.Zero, 0))
       level.put(segments).assertGet
-      level.putKeyValues(Slice(Memory.Put(1, 1))).assertGet
+      level.putKeyValues(Slice(Memory.put(1, 1))).assertGet
 
       level.pickSegmentsToPush(0) shouldBe empty
 
@@ -165,7 +168,7 @@ sealed trait LevelReadSpec extends TestBase with MockFactory with Benchmark {
       val level = TestLevel()
 
       //refresh so that if there is a compression running, this Segment will compressed.
-      val segments = TestSegment().assertGet.refresh(100.mb, 0.1, true).assertGet
+      val segments = TestSegment().assertGet.refresh(100.mb, TestData.falsePositiveRate, true).assertGet
       segments should have size 1
       val segment = segments.head
 
@@ -181,7 +184,7 @@ sealed trait LevelReadSpec extends TestBase with MockFactory with Benchmark {
       val level1 = TestLevel(nextLevel = Some(level2))
 
       //refresh so that if there is a compression running, this Segment will compressed.
-      val segments = TestSegment().assertGet.refresh(100.mb, 0.1, true).assertGet
+      val segments = TestSegment().assertGet.refresh(100.mb, TestData.falsePositiveRate, true).assertGet
       segments should have size 1
       val segment = segments.head
 

@@ -151,9 +151,6 @@ class Map[K, V](private[swaydb] override val db: SwayDB)(implicit keySerializer:
   def level0Meter: Level0Meter =
     db.level0Meter
 
-  def level1Meter: LevelMeter =
-    db.level1Meter
-
   def levelMeter(levelNumber: Int): Option[LevelMeter] =
     db.levelMeter(levelNumber)
 

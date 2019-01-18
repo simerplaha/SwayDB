@@ -37,12 +37,14 @@ private[file] object BufferCleaner extends LazyLogging {
 
   private def createActor(implicit ec: ExecutionContext) = {
     logger.debug("Starting buffer cleaner.")
-    Actor.timer[(MappedByteBuffer, Path, Boolean), Unit]((), 2.seconds) {
+    Actor.timer[(MappedByteBuffer, Path, Boolean), Unit]((), 3.seconds) {
       case (message @ (buffer, path, isOverdue), self) =>
         if (isOverdue)
-          buffer.asInstanceOf[sun.nio.ch.DirectBuffer].cleaner.clean()
+        //FIXME - java.lang.NoSuchMethodError: sun.nio.ch.DirectBuffer.cleaner()Ljdk/internal/ref/Cleaner;
+        //        buffer.asInstanceOf[sun.nio.ch.DirectBuffer].cleaner.clean()
+          "do nothing - requires fix"
         else
-          self.schedule((message._1, path, true), 1.second)
+          self.schedule((message._1, path, true), 2.seconds)
     }
   }
 

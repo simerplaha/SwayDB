@@ -21,7 +21,7 @@ package swaydb.extension.iterator
 
 import swaydb.extension.Key
 import swaydb.iterator.DBKeysIterator
-import swaydb.order.KeyOrder
+import swaydb.data.order.KeyOrder
 import swaydb.serializers.Serializer
 
 import scala.annotation.tailrec
@@ -42,11 +42,11 @@ import scala.collection.generic.CanBuildFrom
   * MapKey.End(1)
   **/
 case class MapKeysIterator[K](mapKey: Seq[K],
-                              private val mapsOnly: Boolean = false,
-                              private val userDefinedFrom: Boolean = false,
-                              private val keysIterator: DBKeysIterator[Key[K]],
-                              private val till: K => Boolean = (_: K) => true)(implicit keySerializer: Serializer[K],
-                                                                                  mapKeySerializer: Serializer[Key[K]]) extends Iterable[K] {
+                              mapsOnly: Boolean = false,
+                              userDefinedFrom: Boolean = false,
+                              keysIterator: DBKeysIterator[Key[K]],
+                              till: K => Boolean = (_: K) => true)(implicit keySerializer: Serializer[K],
+                                                                   mapKeySerializer: Serializer[Key[K]]) extends Iterable[K] {
 
   private val endEntriesKey = Key.MapEntriesEnd(mapKey)
   private val endSubMapsKey = Key.SubMapsEnd(mapKey)

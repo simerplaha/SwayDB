@@ -97,5 +97,5 @@ private[core] class GroupReader(decompressedValuesSize: Int,
       }
 
   override def readRemaining(): Try[Slice[Byte]] =
-    Failure(new NotImplementedError("Function not supported!"))
+    Failure(new NotImplementedError(s"Function readRemaining() on ${this.getClass.getSimpleName} is not supported!"))
 }

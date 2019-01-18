@@ -19,7 +19,7 @@
 
 package swaydb.core.data
 
-import swaydb.core.segment.format.one.SegmentWriter
+import swaydb.core.segment.format.a.SegmentWriter
 import swaydb.core.util.{BloomFilterUtil, Bytes}
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
@@ -34,6 +34,7 @@ private[core] object Stats {
             isRemoveRange: Boolean,
             isRange: Boolean,
             isGroup: Boolean,
+            isPut: Boolean,
             bloomFiltersItemCount: Int,
             previous: Option[KeyValue.WriteOnly],
             deadline: Option[Deadline]): Stats = {
@@ -43,6 +44,9 @@ private[core] object Stats {
 
     val hasRemoveRange =
       previous.exists(_.stats.hasRemoveRange) || isRemoveRange
+
+    val hasPut =
+      previous.exists(_.stats.hasPut) || isPut
 
     val hasRange =
       previous.exists(_.stats.hasRange) || isRemoveRange || isRange
@@ -86,6 +90,7 @@ private[core] object Stats {
     val footerSize =
       Bytes.sizeOf(SegmentWriter.formatId) + //1 byte for format
         1 + //for hasRange
+        1 + //for hasPut
         ByteSizeOf.long + //for CRC. This cannot be unsignedLong because the size of the crc long bytes is not fixed.
         Bytes.sizeOf(segmentValuesSize) + //index offset
         Bytes.sizeOf(position) + //key-values count
@@ -118,6 +123,7 @@ private[core] object Stats {
       hasRemoveRange = hasRemoveRange,
       bloomFilterItemsCount = totalBloomFiltersItemsCount,
       groupsCount = groupsCount,
+      hasPut = hasPut,
       hasRange = hasRange,
       isGroup = isGroup
     )
@@ -138,6 +144,7 @@ private[core] case class Stats(valueLength: Int,
                                thisKeyValuesIndexSizeWithoutFooter: Int,
                                hasRemoveRange: Boolean,
                                hasRange: Boolean,
+                               hasPut: Boolean,
                                isGroup: Boolean) {
   def isNoneValue: Boolean =
     valueLength == 0

@@ -43,8 +43,7 @@ object DefaultPersistentConfig {
             segmentSize: Int,
             appendixFlushCheckpointSize: Int,
             bloomFilterFalsePositiveRate: Double,
-            minTimeLeftToUpdateExpiration: FiniteDuration,
-            compressDuplicateValues: Boolean,
+                        compressDuplicateValues: Boolean,
             groupingStrategy: Option[KeyValueGroupingStrategy],
             acceleration: Level0Meter => Accelerator): SwayDBPersistentConfig =
     ConfigWizard
@@ -53,8 +52,7 @@ object DefaultPersistentConfig {
         mapSize = mapSize,
         mmap = mmapMaps,
         recoveryMode = recoveryMode,
-        minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
-        acceleration = acceleration
+                acceleration = acceleration
       )
       .addPersistentLevel1( //level1
         dir = dir,
@@ -65,8 +63,7 @@ object DefaultPersistentConfig {
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
         pushForward = true,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-        minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
-        compressDuplicateValues = compressDuplicateValues,
+                compressDuplicateValues = compressDuplicateValues,
         groupingStrategy = None,
         throttle =
           levelMeter => {
@@ -84,8 +81,7 @@ object DefaultPersistentConfig {
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
         pushForward = true,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-        minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
-        compressDuplicateValues = compressDuplicateValues,
+                compressDuplicateValues = compressDuplicateValues,
         groupingStrategy = None,
         throttle =
           levelMeter => {
@@ -103,8 +99,7 @@ object DefaultPersistentConfig {
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
         pushForward = true,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-        minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
-        compressDuplicateValues = compressDuplicateValues,
+                compressDuplicateValues = compressDuplicateValues,
         groupingStrategy = None,
         throttle =
           levelMeter => {
@@ -122,8 +117,7 @@ object DefaultPersistentConfig {
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
         pushForward = false,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-        minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
-        compressDuplicateValues = compressDuplicateValues,
+                compressDuplicateValues = compressDuplicateValues,
         groupingStrategy = None,
         throttle =
           levelMeter => {
@@ -141,8 +135,7 @@ object DefaultPersistentConfig {
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
         pushForward = false,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-        minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
-        compressDuplicateValues = compressDuplicateValues,
+                compressDuplicateValues = compressDuplicateValues,
         groupingStrategy =
           None,
         throttle =
@@ -161,8 +154,7 @@ object DefaultPersistentConfig {
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
         pushForward = false,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-        minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
-        compressDuplicateValues = compressDuplicateValues,
+                compressDuplicateValues = compressDuplicateValues,
         groupingStrategy = None,
         throttle =
           levelMeter => {
@@ -182,8 +174,7 @@ object DefaultPersistentConfig {
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
         pushForward = false,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-        minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
-        compressDuplicateValues = compressDuplicateValues,
+                compressDuplicateValues = compressDuplicateValues,
         groupingStrategy = groupingStrategy,
         throttle =
           levelMeter => {

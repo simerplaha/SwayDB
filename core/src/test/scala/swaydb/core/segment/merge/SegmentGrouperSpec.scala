@@ -19,43 +19,47 @@
 
 package swaydb.core.segment.merge
 
-import swaydb.core.TestBase
+import swaydb.core.{TestBase, TestData, TestTimeGenerator}
 import swaydb.core.data._
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.io.reader.Reader
-import swaydb.core.segment.format.one.{SegmentReader, SegmentWriter}
+import swaydb.core.segment.format.a.{SegmentReader, SegmentWriter}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
-import swaydb.order.KeyOrder
+import swaydb.data.order.KeyOrder
 import swaydb.serializers.Default._
 import swaydb.serializers._
-
+import swaydb.core.TestData._
+import swaydb.core.CommonAssertions._
+import swaydb.core.RunThis._
 import scala.collection.mutable.ListBuffer
 import scala.util.Random
+import swaydb.core.TryAssert._
 
 class SegmentGrouperSpec extends TestBase {
 
-  override implicit val ordering = KeyOrder.default
-  implicit val compression = groupingStrategy
+  implicit val keyOrder = KeyOrder.default
+  implicit def timeGenerator: TestTimeGenerator = TestTimeGenerator.random
+  implicit def groupingStrategy = randomGroupingStrategyOption(randomNextInt(1000))
   val keyValueCount = 100
 
-  import ordering._
+  import keyOrder._
 
   "SegmentGrouper.addKeyValue" should {
     "add KeyValue to next split and close the split if the new key-value does not fit" in {
 
       val initialSegment = ListBuffer[KeyValue.WriteOnly]()
-      initialSegment += Transient.Put(key = 1, value = 1, previous = None, falsePositiveRate = 0.1, compressDuplicateValues = true)
-      initialSegment += Transient.Put(key = 2, value = 2, previous = initialSegment.lastOption, falsePositiveRate = 0.1, compressDuplicateValues = true) //total segmentSize is 60 bytes
+      initialSegment += Transient.put(key = 1, value = 1, previous = None, falsePositiveRate = TestData.falsePositiveRate, compressDuplicateValues = true)
+      initialSegment += Transient.put(key = 2, value = 2, previous = initialSegment.lastOption, falsePositiveRate = TestData.falsePositiveRate, compressDuplicateValues = true) //total segmentSize is 60 bytes
 
       val segments = ListBuffer[ListBuffer[KeyValue.WriteOnly]](initialSegment)
       //this KeyValue's segment size without footer is 13 bytes
-      val keyValue = Memory.Put(3, 3)
+      val keyValue = Memory.put(3, 3)
 
       //minSegmentSize is 69.bytes. Adding the above keyValues should create a segment of total size
       // 60 + 13 - 3 (common bytes between 2 and 3) which is over the limit = 70.bytes.
       // this should result is closing the existing segment and starting a new segment
-      SegmentGrouper.addKeyValue(keyValue, segments, 69.bytes, forInMemory = false, bloomFilterFalsePositiveRate = 0.1, isLastLevel = false, compressDuplicateValues = true)
+      SegmentGrouper.addKeyValue(keyValue, segments, 69.bytes, forInMemory = false, bloomFilterFalsePositiveRate = TestData.falsePositiveRate, isLastLevel = false, compressDuplicateValues = true)
 
       //the initialSegment should be closed and a new segment should get started
       segments.size shouldBe 2
@@ -82,7 +86,7 @@ class SegmentGrouperSpec extends TestBase {
         )
 
       val segments = ListBuffer[ListBuffer[KeyValue.WriteOnly]](ListBuffer.empty)
-      val keyValues = randomIntKeyValuesMemory(1000)
+      val keyValues = randomPutKeyValues(1000)
 
       keyValues foreach {
         keyValue =>
@@ -91,7 +95,7 @@ class SegmentGrouperSpec extends TestBase {
             splits = segments,
             minSegmentSize = 100.mb,
             forInMemory = Random.nextBoolean(),
-            bloomFilterFalsePositiveRate = 0.1,
+            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             isLastLevel = false,
             compressDuplicateValues = true
           )
@@ -102,7 +106,7 @@ class SegmentGrouperSpec extends TestBase {
       val group = segments.head.head.asInstanceOf[Transient.Group]
       group.keyValues shouldBe keyValues
 
-      val (segmentBytes, deadline) = SegmentWriter.write(Slice(group), 0.1).assertGet
+      val (segmentBytes, deadline) = SegmentWriter.write(Slice(group), TestData.falsePositiveRate).assertGet
       val reader = Reader(segmentBytes)
       val footer = SegmentReader.readFooter(reader.copy()).assertGet
       val readKeyValues = SegmentReader.readAll(footer, reader).assertGet
@@ -111,7 +115,7 @@ class SegmentGrouperSpec extends TestBase {
 
     "add KeyValue all key-values until Group size is reached" in {
 
-      val keyValues = randomIntKeyValues(1000)
+      val keyValues = randomKeyValues(1000)
 
       implicit val groupingStrategy =
         Some(
@@ -132,7 +136,7 @@ class SegmentGrouperSpec extends TestBase {
             splits = segments,
             minSegmentSize = 100.mb,
             forInMemory = Random.nextBoolean(),
-            bloomFilterFalsePositiveRate = 0.1,
+            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             isLastLevel = false,
             compressDuplicateValues = true
           )
@@ -143,7 +147,7 @@ class SegmentGrouperSpec extends TestBase {
       val group = segments.head.head.asInstanceOf[Transient.Group]
       group.keyValues shouldBe keyValues
 
-      val (segmentBytes, deadline) = SegmentWriter.write(Slice(group), 0.1).assertGet
+      val (segmentBytes, deadline) = SegmentWriter.write(Slice(group), TestData.falsePositiveRate).assertGet
       val reader = Reader(segmentBytes)
       val footer = SegmentReader.readFooter(reader.copy()).assertGet
       val readKeyValues = SegmentReader.readAll(footer, reader).assertGet
@@ -152,7 +156,7 @@ class SegmentGrouperSpec extends TestBase {
 
     "add large number of key-values for Grouping" in {
 
-      val keyValues = randomizedIntKeyValues(100000, addRandomGroups = false)
+      val keyValues = randomizedKeyValues(100000, addRandomGroups = false)
 
       val groupSize = keyValues.last.stats.segmentSizeWithoutFooter / 100
 
@@ -175,7 +179,7 @@ class SegmentGrouperSpec extends TestBase {
             splits = segments,
             minSegmentSize = 100.mb,
             forInMemory = Random.nextBoolean(),
-            bloomFilterFalsePositiveRate = 0.1,
+            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             isLastLevel = false,
             compressDuplicateValues = true
           )

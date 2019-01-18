@@ -20,13 +20,16 @@
 package swaydb.core.group.compression
 
 import swaydb.compression.CompressionInternal
-import swaydb.core.TestBase
+import swaydb.core.{TestBase, TestData, TestTimeGenerator}
 import swaydb.core.data._
 import swaydb.data.slice.Slice
-import swaydb.order.KeyOrder
+import swaydb.data.order.KeyOrder
 import swaydb.serializers.Default._
 import swaydb.serializers._
-
+import swaydb.core.TestData._
+import swaydb.core.CommonAssertions._
+import swaydb.core.RunThis._
+import swaydb.core.TryAssert._
 import scala.util.Random
 
 /**
@@ -36,7 +39,8 @@ import scala.util.Random
   */
 class GroupCompressorSpec extends TestBase {
 
-  override implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
+  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
+  implicit def timeGenerator: TestTimeGenerator = TestTimeGenerator.random
 
   val keyValueCount = 100
 
@@ -46,7 +50,7 @@ class GroupCompressorSpec extends TestBase {
         keyValues = Seq(),
         indexCompression = randomCompressionLZ4OrSnappy(Random.nextInt()),
         valueCompression = randomCompressionLZ4OrSnappy(Random.nextInt()),
-        falsePositiveRate = 0.1,
+        falsePositiveRate = TestData.falsePositiveRate,
         previous = None
       ).assertGetOpt shouldBe empty
     }
@@ -57,7 +61,7 @@ class GroupCompressorSpec extends TestBase {
           val keyValue =
             eitherOne(
               randomFixedKeyValue(1, eitherOne(None, Some(2))),
-              randomRangeKeyValue(1, 2, randomFromValueOption(), rangeValue = Value.Update(2, randomDeadlineOption))
+              randomRangeKeyValue(1, 2, randomFromValueOption(), rangeValue = Value.update(2, randomDeadlineOption))
             )
 
           //println("Testing for key-values: " + keyValue)
@@ -66,7 +70,7 @@ class GroupCompressorSpec extends TestBase {
             keyValues = Seq(keyValue).toTransient,
             indexCompression = randomCompressionLZ4OrSnappy(12),
             valueCompression = randomCompressionLZ4OrSnappy(12),
-            falsePositiveRate = 0.1,
+            falsePositiveRate = TestData.falsePositiveRate,
             previous = None
           ).assertGetOpt shouldBe empty
         }
@@ -77,7 +81,7 @@ class GroupCompressorSpec extends TestBase {
           val keyValue =
             eitherOne(
               randomFixedKeyValue("12345" * 20, eitherOne(None, Some("12345" * 20))),
-              randomRangeKeyValue("12345", "12345" * 20, randomFromValueOption(), rangeValue = Value.Update("12345" * 30, randomDeadlineOption))
+              randomRangeKeyValue("12345", "12345" * 20, randomFromValueOption(), rangeValue = Value.update("12345" * 30, randomDeadlineOption))
             )
 
           //println("Testing for key-values: " + keyValue)
@@ -91,13 +95,13 @@ class GroupCompressorSpec extends TestBase {
                 keyValues = Seq(keyValue).toTransient,
                 indexCompression = indexCompression,
                 valueCompression = valuesCompression,
-                falsePositiveRate = 0.1,
+                falsePositiveRate = TestData.falsePositiveRate,
                 previous = None
               ).assertGet,
             expectedIndexCompressionUsed = indexCompression,
             expectedValueCompressionUsed =
               //if either a Range of if the value is not None, then the compression will be used.
-              if (keyValue.isInstanceOf[Memory.Range] || keyValue.getOrFetchValue.assertGetOpt.isDefined)
+              if (keyValue.isInstanceOf[Memory.Range] || keyValue.getOrFetchValue.isDefined)
                 Some(valuesCompression)
               else
                 None
@@ -109,13 +113,13 @@ class GroupCompressorSpec extends TestBase {
     "create a group on multiple key-values" when {
       "compression does not satisfy min compression requirement" in {
         runThis(10.times) {
-          val keyValues = randomIntKeyValues(keyValueCount)
+          val keyValues = randomKeyValues(keyValueCount)
 
           Transient.Group(
             keyValues = keyValues,
             indexCompression = randomCompressionLZ4OrSnappy(12),
             valueCompression = randomCompressionLZ4OrSnappy(12),
-            falsePositiveRate = 0.1,
+            falsePositiveRate = TestData.falsePositiveRate,
             previous = None
           ).assertGetOpt shouldBe empty
         }
@@ -125,8 +129,8 @@ class GroupCompressorSpec extends TestBase {
         runThis(10.times) {
           val keyValues =
             eitherOne(
-              left = randomIntKeyValues(keyValueCount),
-              right = randomizedIntKeyValues(keyValueCount)
+              left = randomKeyValues(keyValueCount),
+              right = randomizedKeyValues(keyValueCount)
             )
 
           val indexCompression = randomCompression()
@@ -138,13 +142,13 @@ class GroupCompressorSpec extends TestBase {
                 keyValues = keyValues,
                 indexCompression = indexCompression,
                 valueCompression = valuesCompression,
-                falsePositiveRate = 0.1,
+                falsePositiveRate = TestData.falsePositiveRate,
                 previous = None
               ).assertGet,
             expectedIndexCompressionUsed = indexCompression,
             expectedValueCompressionUsed =
               //if either a Range of if the value is not None, then the compression will be used.
-              if (keyValues.exists(keyValue => keyValue.isRange || keyValue.getOrFetchValue.assertGetOpt.isDefined))
+              if (keyValues.exists(keyValue => keyValue.isRange || keyValue.getOrFetchValue.isDefined))
                 Some(valuesCompression)
               else
                 None
@@ -156,8 +160,8 @@ class GroupCompressorSpec extends TestBase {
         runThis(10.times) {
           val keyValues =
             eitherOne(
-              left = randomIntKeyValues(keyValueCount),
-              right = randomizedIntKeyValues(keyValueCount)
+              left = randomKeyValues(keyValueCount),
+              right = randomizedKeyValues(keyValueCount)
             )
 
           val indexCompressions = Seq(randomCompressionLZ4OrSnappy(80), randomCompressionLZ4OrSnappy(60), CompressionInternal.UnCompressedGroup)
@@ -169,13 +173,13 @@ class GroupCompressorSpec extends TestBase {
                 keyValues = keyValues,
                 indexCompressions = indexCompressions,
                 valueCompressions = valueCompressions,
-                falsePositiveRate = 0.1,
+                falsePositiveRate = TestData.falsePositiveRate,
                 previous = None
               ).assertGet,
             expectedIndexCompressionUsed = indexCompressions.last,
             expectedValueCompressionUsed =
               //if either a Range of if the value is not None, then the compression will be used.
-              if (keyValues.exists(keyValue => keyValue.isRange || keyValue.getOrFetchValue.assertGetOpt.isDefined))
+              if (keyValues.exists(keyValue => keyValue.isRange || keyValue.getOrFetchValue.isDefined))
                 Some(valueCompressions.last)
               else
                 None
@@ -190,23 +194,23 @@ class GroupCompressorSpec extends TestBase {
           //create an exiting Group
           val existingGroup =
             Transient.Group(
-              keyValues = randomIntKeyValues(keyValueCount),
+              keyValues = randomKeyValues(keyValueCount),
               indexCompression = randomCompression(),
               valueCompression = randomCompression(),
               previous = None,
-              falsePositiveRate = 0.1
+              falsePositiveRate = TestData.falsePositiveRate
             ).assertGet
 
           //add more key-values to existing group.
           val keyValues: Slice[KeyValue.WriteOnly] =
-            (Seq(existingGroup) ++ randomIntKeyValues(keyValueCount, startId = Some(existingGroup.keyValues.last.key.readInt() + 100000))).updateStats
+            (Seq(existingGroup) ++ randomKeyValues(keyValueCount, startId = Some(existingGroup.keyValues.last.key.readInt() + 100000))).updateStats
 
           //create a new Group from key-values that already has an existing Group.
           Transient.Group(
             keyValues = keyValues,
             indexCompression = randomCompressionLZ4OrSnappy(12),
             valueCompression = randomCompressionLZ4OrSnappy(12),
-            falsePositiveRate = 0.1,
+            falsePositiveRate = TestData.falsePositiveRate,
             previous = None
           ).assertGetOpt shouldBe empty
         }
@@ -218,18 +222,18 @@ class GroupCompressorSpec extends TestBase {
           //create an exiting Group
           val existingGroup =
             Transient.Group(
-              keyValues = randomIntKeyValues(keyValueCount),
+              keyValues = randomKeyValues(keyValueCount),
               indexCompression = randomCompression(),
               valueCompression = randomCompression(),
-              falsePositiveRate = 0.1,
+              falsePositiveRate = TestData.falsePositiveRate,
               previous = None
             ).assertGet
 
           //add more key-values to existing group.
           val keyValues: Slice[KeyValue.WriteOnly] =
             eitherOne(
-              left = (Seq(existingGroup) ++ randomIntKeyValues(keyValueCount, startId = Some(existingGroup.keyValues.last.key.readInt() + 100000))).updateStats,
-              right = (Seq(existingGroup) ++ randomizedIntKeyValues(keyValueCount, startId = Some(existingGroup.keyValues.last.key.readInt() + 100000))).updateStats
+              left = (Seq(existingGroup) ++ randomKeyValues(keyValueCount, startId = Some(existingGroup.keyValues.last.key.readInt() + 100000))).updateStats,
+              right = (Seq(existingGroup) ++ randomizedKeyValues(keyValueCount, startId = Some(existingGroup.keyValues.last.key.readInt() + 100000))).updateStats
             )
 
           val indexCompression = randomCompression()
@@ -241,13 +245,13 @@ class GroupCompressorSpec extends TestBase {
                 keyValues = keyValues,
                 indexCompression = indexCompression,
                 valueCompression = valueCompression,
-                falsePositiveRate = 0.1,
+                falsePositiveRate = TestData.falsePositiveRate,
                 previous = None
               ).assertGet,
             expectedIndexCompressionUsed = indexCompression,
             expectedValueCompressionUsed =
               //if either a Range of if the value is not None, then the compression will be used.
-              if (keyValues.exists(keyValue => keyValue.isRange || keyValue.getOrFetchValue.assertGetOpt.isDefined))
+              if (keyValues.exists(keyValue => keyValue.isRange || keyValue.getOrFetchValue.isDefined))
                 Some(valueCompression)
               else
                 None
@@ -259,8 +263,8 @@ class GroupCompressorSpec extends TestBase {
         runThis(10.times) {
           val keyValues =
             eitherOne(
-              left = randomIntKeyValues(keyValueCount),
-              right = randomizedIntKeyValues(keyValueCount)
+              left = randomKeyValues(keyValueCount),
+              right = randomizedKeyValues(keyValueCount)
             )
 
           val indexCompressions = Seq(randomCompressionLZ4OrSnappy(80), randomCompressionLZ4OrSnappy(60), CompressionInternal.UnCompressedGroup)
@@ -272,13 +276,13 @@ class GroupCompressorSpec extends TestBase {
                 keyValues = keyValues,
                 indexCompressions = indexCompressions,
                 valueCompressions = valueCompressions,
-                falsePositiveRate = 0.1,
+                falsePositiveRate = TestData.falsePositiveRate,
                 previous = None
               ).assertGet,
             expectedIndexCompressionUsed = indexCompressions.last,
             expectedValueCompressionUsed =
               //if either a Range of if the value is not None, then the compression will be used.
-              if (keyValues.exists(keyValue => keyValue.isRange || keyValue.getOrFetchValue.assertGetOpt.isDefined))
+              if (keyValues.exists(keyValue => keyValue.isRange || keyValue.getOrFetchValue.isDefined))
                 valueCompressions.lastOption
               else
                 None

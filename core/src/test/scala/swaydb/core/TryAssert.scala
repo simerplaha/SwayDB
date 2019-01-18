@@ -20,10 +20,9 @@
 package swaydb.core
 
 import org.scalatest.Matchers
-
 import scala.util.{Failure, Success, Try}
 
-trait TryAssert extends Matchers {
+object TryAssert extends Matchers {
 
   implicit class GetTryImplicit[T](getThis: Try[T]) {
     def assertGet: T =

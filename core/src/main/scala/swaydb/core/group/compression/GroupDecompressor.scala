@@ -25,7 +25,7 @@ import swaydb.compression.DecompressorInternal
 import swaydb.core.group.compression.data.{GroupHeader, ValueInfo}
 import swaydb.core.io.reader.{GroupReader, Reader}
 import swaydb.core.segment.SegmentException
-import swaydb.core.segment.format.one.SegmentFooter
+import swaydb.core.segment.format.a.SegmentFooter
 import swaydb.core.util.TryUtil
 import swaydb.data.slice.Reader
 
@@ -83,6 +83,7 @@ private[core] case class GroupDecompressor(private val compressedGroupReader: Re
       //format id ignored. Currently there is only one format.
       _ <- header.readIntUnsigned()
       hasRange <- header.readBoolean()
+      hasPut <- header.readBoolean()
       //this Compression instance is used for decompressing only so minCompressionPercentage is irrelevant
       keysCompression <- header.readIntUnsigned() flatMap (DecompressorInternal(_))
       keyValueCount <- header.readIntUnsigned()
@@ -98,6 +99,7 @@ private[core] case class GroupDecompressor(private val compressedGroupReader: Re
       GroupHeader(
         headerSize = headerSize,
         hasRange = hasRange,
+        hasPut = hasPut,
         indexDecompressor = keysCompression,
         keyValueCount = keyValueCount,
         bloomFilterItemsCount = bloomFilterItemsCount,

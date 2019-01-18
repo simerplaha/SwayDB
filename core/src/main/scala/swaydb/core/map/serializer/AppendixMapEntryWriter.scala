@@ -20,11 +20,10 @@
 package swaydb.core.map.serializer
 
 import java.nio.charset.StandardCharsets
-
 import swaydb.core.map.MapEntry
-import swaydb.data.segment.MaxKey.{Fixed, Range}
 import swaydb.core.segment.Segment
 import swaydb.core.util.Bytes
+import swaydb.data.repairAppendix.MaxKey
 import swaydb.data.slice.Slice
 
 object AppendixMapEntryWriter {
@@ -57,9 +56,9 @@ object AppendixMapEntryWriter {
       val segmentPath = Slice(entry.value.path.toString.getBytes(StandardCharsets.UTF_8))
       val (maxKeyId, maxKeyBytes) =
         entry.value.maxKey match {
-          case Fixed(maxKey) =>
+          case MaxKey.Fixed(maxKey) =>
             (1, maxKey)
-          case Range(fromKey, maxToKey) =>
+          case MaxKey.Range(fromKey, maxToKey) =>
             (2, Bytes.compressJoin(fromKey, maxToKey))
         }
       bytes
@@ -80,9 +79,9 @@ object AppendixMapEntryWriter {
 
       val (maxKeyId, maxKeyBytes) =
         entry.value.maxKey match {
-          case Fixed(maxKey) =>
+          case MaxKey.Fixed(maxKey) =>
             (1, maxKey)
-          case Range(fromKey, maxToKey) =>
+          case MaxKey.Range(fromKey, maxToKey) =>
             (2, Bytes.compressJoin(fromKey, maxToKey))
         }
 
@@ -98,4 +97,5 @@ object AppendixMapEntryWriter {
         Bytes.sizeOf(entry.value.nearestExpiryDeadline.map(_.time.toNanos).getOrElse(0L))
     }
   }
+
 }

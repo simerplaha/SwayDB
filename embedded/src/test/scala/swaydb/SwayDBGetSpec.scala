@@ -19,11 +19,12 @@
 
 package swaydb
 
-import swaydb.{Map, SwayDB}
+import scala.concurrent.duration._
 import swaydb.core.TestBase
 import swaydb.serializers.Default._
-
-import scala.concurrent.duration._
+import swaydb.core.TryAssert._
+import swaydb.core.CommonAssertions._
+import swaydb.core.RunThis._
 
 class SwayDBGetSpec0 extends SwayDBGetSpec {
   override def newDB(): Map[Int, String] =
@@ -32,15 +33,11 @@ class SwayDBGetSpec0 extends SwayDBGetSpec {
 
 class SwayDBGetSpec1 extends SwayDBGetSpec {
 
-  import swaydb._
-
   override def newDB(): Map[Int, String] =
     SwayDB.persistent[Int, String](randomDir, mapSize = 1.byte).assertGet
 }
 
 class SwayDBGetSpec2 extends SwayDBGetSpec {
-
-  import swaydb._
 
   override def newDB(): Map[Int, String] =
     SwayDB.memory[Int, String](mapSize = 1.byte).assertGet

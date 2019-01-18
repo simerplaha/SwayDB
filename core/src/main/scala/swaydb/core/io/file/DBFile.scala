@@ -29,6 +29,7 @@ import swaydb.core.util.TryUtil
 import swaydb.data.slice.Slice
 
 import scala.concurrent.ExecutionContext
+import scala.util.hashing.MurmurHash3
 import scala.util.{Failure, Success, Try}
 
 object DBFile {
@@ -228,5 +229,5 @@ class DBFile(val path: Path,
     }
 
   override def hashCode(): Int =
-    path.hashCode()
+    MurmurHash3.stringHash(path.toString)
 }

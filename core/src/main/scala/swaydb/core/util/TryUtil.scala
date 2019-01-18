@@ -19,14 +19,13 @@
 
 package swaydb.core.util
 
-import swaydb.data.slice.Slice
-
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.{ExecutionContext, Future}
 import scala.reflect.ClassTag
 import scala.util.{Failure, Success, Try}
-import CollectionUtil._
 import swaydb.core.io.reader.Reader
+import swaydb.core.util.CollectionUtil._
+import swaydb.data.slice.Slice
 
 object TryUtil {
 
@@ -36,6 +35,9 @@ object TryUtil {
   val successTrue = Success(true)
   val emptyReader = Success(Reader(Slice.emptyBytes))
   val successZero = Success(0)
+  val successEmptyBytes = Success(Slice.emptyBytes)
+  val successNoneTime = Success(None)
+  val successEmptySeqBytes = Success(Seq.empty[Slice[Byte]])
 
   object Catch {
     def apply[T](f: => Try[T]): Try[T] =

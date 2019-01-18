@@ -19,11 +19,11 @@
 
 package swaydb.extension
 
-import swaydb.TypedOrdering
+import swaydb.KeyOrderTyped
 import swaydb.core.io.reader.Reader
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteUtil
-import swaydb.order.KeyOrder
+import swaydb.data.order.KeyOrder
 import swaydb.serializers.Serializer
 
 import scala.util.Try
@@ -231,14 +231,14 @@ object Key {
     }
 
   /**
-    * Implements un-typed ordering for performance. This ordering can also be implemented used [[TypedOrdering]].
+    * Implements un-typed ordering for performance. This ordering can also be implemented used [[KeyOrderTyped]].
     * See documentation at http://www.swaydb.io/custom-key-ordering/
     *
     * Creates dual ordering on [[Key.parentMapKeys]]. Orders mapKey using the [[KeyOrder.default]] order
     * and applies custom ordering on the user provided keys.
     */
-  def ordering(customOrder: Ordering[Slice[Byte]]) =
-    new Ordering[Slice[Byte]] {
+  def ordering(customOrder: KeyOrder[Slice[Byte]]) =
+    new KeyOrder[Slice[Byte]] {
       def compare(a: Slice[Byte], b: Slice[Byte]): Int = {
         val readerLeft = a.createReader()
         readerLeft.skip(1) //skip formatId

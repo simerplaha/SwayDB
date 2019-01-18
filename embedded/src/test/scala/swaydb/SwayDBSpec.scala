@@ -19,11 +19,12 @@
 
 package swaydb
 
-import swaydb.serializers.Default._
-import swaydb.{Batch, Map, SwayDB}
-
 import scala.concurrent.Future
 import scala.concurrent.duration._
+import swaydb.serializers.Default._
+import swaydb.core.TryAssert._
+import swaydb.core.CommonAssertions._
+import swaydb.core.RunThis._
 
 class SwayDBSpec0 extends SwayDBSpec {
   override def newDB(): Map[Int, String] =
@@ -34,8 +35,6 @@ class SwayDBSpec0 extends SwayDBSpec {
 
 class SwayDBSpec1 extends SwayDBSpec {
 
-  import swaydb._
-
   override val keyValueCount: Int = 100
 
   override def newDB(): Map[Int, String] =
@@ -43,8 +42,6 @@ class SwayDBSpec1 extends SwayDBSpec {
 }
 
 class SwayDBSpec2 extends SwayDBSpec {
-
-  import swaydb._
 
   override val keyValueCount: Int = 100
 

@@ -19,6 +19,8 @@
 
 package swaydb.core.util
 
+import swaydb.data.slice.Slice
+
 object UUIDUtil {
 
   def randomId(): String =
@@ -26,5 +28,8 @@ object UUIDUtil {
 
   def randomIdNoHyphen(): String =
     randomId().replace("-", "")
+
+  def randomIdNoHyphenBytes(): Slice[Byte] =
+    Slice.writeString(randomIdNoHyphen())
 
 }

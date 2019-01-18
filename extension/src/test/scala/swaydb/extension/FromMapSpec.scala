@@ -23,6 +23,9 @@ import swaydb.core.TestBase
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.{SwayDB, TestBaseEmbedded}
+import swaydb.core.TryAssert._
+import swaydb.core.CommonAssertions._
+import swaydb.core.RunThis._
 
 import scala.concurrent.duration._
 
@@ -30,7 +33,7 @@ class FromMapSpec0 extends FromMapSpec {
   val keyValueCount: Int = 1000
 
   override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
-    SwayDB.persistent[Key[Int], Option[String]](dir = randomDir, minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration).assertGet.extend.assertGet
+    SwayDB.persistent[Key[Int], Option[String]](dir = randomDir).assertGet.extend.assertGet
 }
 
 class FromMapSpec1 extends FromMapSpec {
@@ -38,7 +41,7 @@ class FromMapSpec1 extends FromMapSpec {
   val keyValueCount: Int = 10000
 
   override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
-    SwayDB.persistent[Key[Int], Option[String]](randomDir, mapSize = 1.byte, minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration).assertGet.extend.assertGet
+    SwayDB.persistent[Key[Int], Option[String]](randomDir, mapSize = 1.byte).assertGet.extend.assertGet
 }
 
 class FromMapSpec2 extends FromMapSpec {
@@ -46,14 +49,14 @@ class FromMapSpec2 extends FromMapSpec {
   val keyValueCount: Int = 100000
 
   override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
-    SwayDB.memory[Key[Int], Option[String]](mapSize = 1.byte, minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration).assertGet.extend.assertGet
+    SwayDB.memory[Key[Int], Option[String]](mapSize = 1.byte).assertGet.extend.assertGet
 }
 
 class FromMapSpec3 extends FromMapSpec {
   val keyValueCount: Int = 100000
 
   override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
-    SwayDB.memory[Key[Int], Option[String]](minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration).assertGet.extend.assertGet
+    SwayDB.memory[Key[Int], Option[String]]().assertGet.extend.assertGet
 }
 
 sealed trait FromMapSpec extends TestBase with TestBaseEmbedded {

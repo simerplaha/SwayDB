@@ -94,7 +94,7 @@ object Default {
 
   implicit object OptionStringSerializer extends Serializer[Option[String]] {
     override def write(data: Option[String]): Slice[Byte] =
-      data.map(Slice.writeString(_)).getOrElse(Slice.empty)
+      data.map(Slice.writeString(_)).getOrElse(Slice.emptyBytes)
 
     override def read(data: Slice[Byte]): Option[String] =
       if (data.isEmpty)

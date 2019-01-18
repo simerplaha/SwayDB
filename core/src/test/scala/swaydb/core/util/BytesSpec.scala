@@ -26,8 +26,9 @@ import swaydb.data.util.ByteUtil
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.core.TryAssert._
 
-class BytesSpec extends WordSpec with Matchers with TryAssert {
+class BytesSpec extends WordSpec with Matchers {
 
   "compress and decompress with common bytes" should {
     "return common bytes" in {
@@ -72,12 +73,13 @@ class BytesSpec extends WordSpec with Matchers with TryAssert {
     }
   }
 
-  "compress full" should {
+  "compress full and exact" should {
     "compress when all bytes are compressed" in {
       val previous: Slice[Byte] = Slice(Array(1.toByte, 2.toByte, 3.toByte, 4.toByte))
       val next: Slice[Byte] = Slice(Array(1.toByte, 2.toByte, 3.toByte, 4.toByte))
 
       Bytes.compressFull(previous, next).assertGet shouldBe Done
+      Bytes.compressExact(previous, next).assertGet shouldBe Done
     }
 
     "return empty bytes when all the bytes were compressed and next key's size is smaller" in {
@@ -85,6 +87,7 @@ class BytesSpec extends WordSpec with Matchers with TryAssert {
       val next: Slice[Byte] = Slice(Array(1.toByte, 2.toByte, 3.toByte))
 
       Bytes.compressFull(previous, next).assertGet shouldBe Done
+      Bytes.compressExact(previous, next) shouldBe empty
     }
 
     "return empty bytes when all the bytes were compressed and previous key's size is smaller" in {
@@ -92,6 +95,7 @@ class BytesSpec extends WordSpec with Matchers with TryAssert {
       val next: Slice[Byte] = Slice(Array(1.toByte, 2.toByte, 3.toByte, 4.toByte))
 
       Bytes.compressFull(previous, next) shouldBe empty
+      Bytes.compressExact(previous, next) shouldBe empty
     }
 
     "return empty when not all bytes were compressed" in {
@@ -99,6 +103,7 @@ class BytesSpec extends WordSpec with Matchers with TryAssert {
       val next: Slice[Byte] = Slice(Array(1.toByte, 2.toByte, 3.toByte))
 
       Bytes.compressFull(previous, next) shouldBe empty
+      Bytes.compressExact(previous, next) shouldBe empty
     }
 
     "return empty when there are no common bytes" in {
@@ -106,6 +111,7 @@ class BytesSpec extends WordSpec with Matchers with TryAssert {
       val next: Slice[Byte] = Slice(Array(5.toByte, 6.toByte, 7.toByte, 8.toByte, 9.toByte, 10.toByte))
 
       Bytes.compressFull(previous, next) shouldBe empty
+      Bytes.compressExact(previous, next) shouldBe empty
     }
   }
 

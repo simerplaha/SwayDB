@@ -19,20 +19,23 @@
 
 package swaydb.core.segment.merge
 
-import swaydb.core.TestBase
+import scala.util.Random
+import swaydb.core.{TestBase, TestData}
 import swaydb.core.data._
 import swaydb.core.group.compression.data.{GroupGroupingStrategyInternal, KeyValueGroupingStrategyInternal}
 import swaydb.core.util.Benchmark
+import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
-import swaydb.order.KeyOrder
-
-import scala.concurrent.duration._
-import scala.util.Random
+import swaydb.core.TestData._
+import swaydb.core.CommonAssertions._
+import swaydb.core.RunThis._
+import swaydb.core.TryAssert._
 
 class SegmentMergeStressSpec extends TestBase {
 
-  override implicit val ordering = KeyOrder.default
+  implicit val keyOrder = KeyOrder.default
+  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
 
   val keyValueCount = 100
   val maxIteration = 5
@@ -48,7 +51,7 @@ class SegmentMergeStressSpec extends TestBase {
         case (oldKeyValues, index) =>
           println(s"Iteration: $index/$maxIteration")
 
-          val newKeyValues = randomizedIntKeyValues(count = keyValueCount, startId = Some(index * 200), addRandomGroups = Random.nextBoolean())
+          val newKeyValues = randomizedKeyValues(count = keyValueCount, startId = Some(index * 200))
 
           val groupGroupingStrategy =
             if (Random.nextBoolean())
@@ -94,7 +97,7 @@ class SegmentMergeStressSpec extends TestBase {
 
           val mergedKeyValues =
             Benchmark("Merge performance") {
-              SegmentMerger.merge(newKeyValues, oldKeyValues, 100.mb, false, false, 0.1, 0.seconds, compressDuplicateValues = true).assertGet
+              SegmentMerger.merge(newKeyValues, oldKeyValues, 100.mb, false, false, TestData.falsePositiveRate, compressDuplicateValues = true).assertGet
             }
           mergedKeyValues should have size 1
           val head = mergedKeyValues.head.toSlice

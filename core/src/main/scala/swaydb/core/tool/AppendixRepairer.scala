@@ -20,12 +20,11 @@
 package swaydb.core.tool
 
 import java.nio.file.Path
-
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.io.file.IO
 import swaydb.core.level.AppendixSkipListMerger
 import swaydb.core.map.serializer.{AppendixMapEntryReader, MapEntryReader, MapEntryWriter}
-import swaydb.core.map.{Map, MapEntry, SkipListMerge}
+import swaydb.core.map.{Map, MapEntry, SkipListMerger}
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.Segment
 import swaydb.core.util.TryUtil._
@@ -34,23 +33,26 @@ import swaydb.data.repairAppendix.AppendixRepairStrategy._
 import swaydb.data.repairAppendix.{AppendixRepairStrategy, OverlappingSegmentsException, SegmentInfoUnTyped}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
-
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success, Try}
+import swaydb.core.function.FunctionStore
+import swaydb.data.order.{KeyOrder, TimeOrder}
 
 private[swaydb] object AppendixRepairer extends LazyLogging {
 
   def apply(levelPath: Path,
-            strategy: AppendixRepairStrategy)(implicit ordering: Ordering[Slice[Byte]],
+            strategy: AppendixRepairStrategy)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                              timeOrder: TimeOrder[Slice[Byte]],
+                                              functionStore: FunctionStore,
                                               ec: ExecutionContext): Try[Unit] = {
-    val reader = AppendixMapEntryReader(false, false, false)(ordering, KeyValueLimiter.none, _ => (), None, ec)
+    val reader = AppendixMapEntryReader(false, false, false)(keyOrder, timeOrder, functionStore, KeyValueLimiter.none, _ => (), None, ec)
     import reader._
     import swaydb.core.map.serializer.AppendixMapEntryWriter._
     implicit val merger = AppendixSkipListMerger
 
     Try(FileUtil.files(levelPath, Extension.Seg)) flatMap {
       files =>
-        files.tryMap(Segment(_, false, false, false, true)(ordering, KeyValueLimiter.none, _ => (), None, ec))
+        files.tryMap(Segment(_, false, false, false, true)(keyOrder, timeOrder, functionStore, KeyValueLimiter.none, _ => (), None, ec))
           .flatMap {
             segments =>
               checkOverlappingSegments(segments, strategy) flatMap {
@@ -109,7 +111,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
     }
 
   def checkOverlappingSegments(segments: Slice[Segment],
-                               strategy: AppendixRepairStrategy)(implicit ordering: Ordering[Slice[Byte]]): Try[Int] =
+                               strategy: AppendixRepairStrategy)(implicit keyOrder: KeyOrder[Slice[Byte]]): Try[Int] =
     segments.tryFoldLeft(1) {
       case (position, segment) =>
         logger.info("Checking for overlapping Segments for Segment {}", segment.path)
@@ -132,14 +134,16 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
     }
 
   def buildAppendixMap(appendixDir: Path,
-                       segments: Slice[Segment])(implicit ordering: Ordering[Slice[Byte]],
+                       segments: Slice[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                 timeOrder: TimeOrder[Slice[Byte]],
+                                                 functionStore: FunctionStore,
                                                  writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Segment]],
                                                  mapReader: MapEntryReader[MapEntry[Slice[Byte], Segment]],
-                                                 skipListMerger: SkipListMerge[Slice[Byte], Segment],
+                                                 skipListMerger: SkipListMerger[Slice[Byte], Segment],
                                                  ec: ExecutionContext): Try[Unit] =
     IO.walkDelete(appendixDir) flatMap {
       _ =>
-        Map.persistent(appendixDir, false, flushOnOverflow = true, 1.gb) flatMap {
+        Map.persistent[Slice[Byte], Segment](appendixDir, false, flushOnOverflow = true, 1.gb) flatMap {
           appendix =>
             segments tryForeach {
               segment =>

@@ -28,10 +28,10 @@ import swaydb.core.segment.Segment
 import swaydb.core.util.FiniteDurationUtil._
 import swaydb.core.util.PipeOps._
 import swaydb.data.slice.Slice
-
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
+import swaydb.data.order.KeyOrder
 
 private[core] object LevelActor extends LazyLogging {
 
@@ -40,7 +40,7 @@ private[core] object LevelActor extends LazyLogging {
   val tooManySegmentsToCollapseReSchedule = 5.seconds
   val expiredKeyValuesRescheduleDelay = 1.second
 
-  def apply(implicit ec: ExecutionContext, level: LevelActorAPI, ordering: Ordering[Slice[Byte]]): LevelActor =
+  def apply(implicit ec: ExecutionContext, level: LevelActorAPI, keyOrder: KeyOrder[Slice[Byte]]): LevelActor =
     new LevelActor()
 
   def wakeUp(implicit state: LevelState,
@@ -267,7 +267,7 @@ private[core] object LevelActor extends LazyLogging {
 
 private[core] class LevelActor(implicit level: LevelActorAPI,
                                ec: ExecutionContext,
-                               ordering: Ordering[Slice[Byte]]) extends LazyLogging {
+                               keyOrder: KeyOrder[Slice[Byte]]) extends LazyLogging {
 
   def dir = level.paths.head
 
@@ -291,6 +291,11 @@ private[core] class LevelActor(implicit level: LevelActorAPI,
 
   def clearMessages() =
     actor.clearMessages()
+
+  def terminate() = {
+    logger.debug(s"{}: Terminating ${this.getClass.getSimpleName}.", dir.path)
+    actor.terminate()
+  }
 
   private def executeTask(task: PushTask)(implicit self: ActorRef[LevelCommand]) =
     if (task.delay.fromNow.isOverdue()) {

@@ -19,13 +19,13 @@
 
 package swaydb.core.finders
 
-import swaydb.core.data.KeyValue
-import swaydb.core.segment.merge.KeyValueMerger
-import swaydb.data.slice.Slice
-
 import scala.annotation.tailrec
-import scala.concurrent.duration.Duration
 import scala.util.{Failure, Success, Try}
+import swaydb.core.data.{KeyValue, Value}
+import swaydb.core.function.FunctionStore
+import swaydb.core.merge.FixedMerger
+import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.data.slice.Slice
 
 object Lower {
 
@@ -34,8 +34,10 @@ object Lower {
     */
   def apply(key: Slice[Byte],
             lowerFromCurrentLevel: Slice[Byte] => Try[Option[KeyValue.ReadOnly]],
-            lowerFromNextLevel: Slice[Byte] => Try[Option[KeyValue.ReadOnly.Put]])(implicit ordering: Ordering[Slice[Byte]]): Try[Option[KeyValue.ReadOnly.Put]] = {
-    import ordering._
+            lowerFromNextLevel: Slice[Byte] => Try[Option[KeyValue.ReadOnly.Put]])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                                   timeOrder: TimeOrder[Slice[Byte]],
+                                                                                   functionStore: FunctionStore): Try[Option[KeyValue.ReadOnly.Put]] = {
+    import keyOrder._
 
     //    println(s"${rootPath}: Lower for key: " + key.readInt())
     @tailrec
@@ -68,7 +70,7 @@ object Lower {
             case Some(current: KeyValue.ReadOnly.Range) if key <= current.toKey =>
               current.fetchFromAndRangeValue match {
                 case Success((fromValue, rangeValue)) =>
-                  if (rangeValue.hasTimeLeft()) //if the current range is active fetch the lowest from next Level and return lowest from both Levels.
+                  if (Value.hasTimeLeft(rangeValue)) //if the current range is active fetch the lowest from next Level and return lowest from both Levels.
                     lowerFromNextLevel(key) match {
                       case Success(next) =>
                         next match {
@@ -77,14 +79,14 @@ object Lower {
                             //10   -    20 (lower range)
                             //  11 -> 19   (lower possible keys from next)
                             if (next.key > current.fromKey) //if the lower in next Level falls within the range
-                              KeyValueMerger.applyValue(rangeValue.toMemory(next.key), next, Duration.Zero) match {
+                              FixedMerger(rangeValue.toMemory(next.key), next) match {
                                 case Success(current) =>
                                   Max(current, None) match {
                                     case found @ Success(Some(_)) =>
                                       found
 
                                     case Success(None) =>
-                                      lower(current.key)
+                                      lower(next.key)
 
                                     case Failure(exception) =>
                                       Failure(exception)
@@ -97,14 +99,14 @@ object Lower {
                             //10   -    20 (lower range)
                             //10
                             else if (next.key equiv current.fromKey)
-                              KeyValueMerger.applyValue(fromValue.getOrElse(rangeValue).toMemory(next.key), next, Duration.Zero) match {
+                              FixedMerger(fromValue.getOrElse(rangeValue).toMemory(next.key), next) match {
                                 case Success(current) =>
                                   Max(current, None) match {
                                     case found @ Success(Some(_)) =>
                                       found
 
                                     case Success(None) =>
-                                      lower(current.key)
+                                      lower(next.key)
 
                                     case Failure(exception) =>
                                       Failure(exception)
@@ -112,6 +114,7 @@ object Lower {
                                 case Failure(exception) =>
                                   Failure(exception)
                               }
+
 
 
                             //       11 ->   20 (input keys)
@@ -158,21 +161,21 @@ object Lower {
                   else
                     fromValue match {
                       case Some(fromValue) =>
-                        if (fromValue.hasTimeLeft())
+                        if (Value.hasTimeLeft(fromValue))
                           lowerFromNextLevel(key) match {
                             case Success(next) =>
                               next match {
                                 case Some(next) =>
                                   //check for equality from lower Level with fromValue only.
                                   if (current.key equiv next.key)
-                                    KeyValueMerger.applyValue(fromValue.toMemory(next.key), next, Duration.Zero) match {
+                                    FixedMerger(fromValue.toMemory(next.key), next) match {
                                       case Success(current) =>
                                         Max(current, None) match {
                                           case found @ Success(Some(_)) =>
                                             found
 
                                           case Success(None) =>
-                                            lower(current.key)
+                                            lower(next.key)
 
                                           case Failure(exception) =>
                                             Failure(exception)
@@ -180,6 +183,7 @@ object Lower {
                                       case Failure(exception) =>
                                         Failure(exception)
                                     }
+
                                   else
                                     Max(fromValue.toMemory(current.fromKey), None) match {
                                       case found @ Success(Some(_)) =>
@@ -240,14 +244,14 @@ object Lower {
                       else if (next.key > current.fromKey)
                         current.fetchRangeValue match {
                           case Success(rangeValue) =>
-                            KeyValueMerger.applyValue(rangeValue.toMemory(next.key), next, Duration.Zero) match {
+                            FixedMerger(rangeValue.toMemory(next.key), next) match {
                               case Success(current) =>
                                 Max(current, None) match {
                                   case found @ Success(Some(_)) =>
                                     found
 
                                   case Success(None) =>
-                                    lower(current.key)
+                                    lower(next.key)
 
                                   case Failure(exception) =>
                                     Failure(exception)
@@ -265,14 +269,14 @@ object Lower {
                       else if (next.key equiv current.fromKey) //if the lower in next Level falls within the range.
                         current.fetchFromOrElseRangeValue match {
                           case Success(fromOrElseRangeValue) =>
-                            KeyValueMerger.applyValue(fromOrElseRangeValue.toMemory(current.fromKey), next, Duration.Zero) match {
-                              case Success(current) =>
-                                Max(current, None) match {
+                            FixedMerger(fromOrElseRangeValue.toMemory(current.fromKey), next) match {
+                              case Success(merged) =>
+                                Max(merged, None) match {
                                   case found @ Success(Some(_)) =>
                                     found
 
                                   case Success(None) =>
-                                    lower(current.key)
+                                    lower(current.fromKey)
 
                                   case Failure(exception) =>
                                     Failure(exception)
@@ -281,6 +285,7 @@ object Lower {
                               case Failure(exception) =>
                                 Failure(exception)
                             }
+
                           case Failure(exception) =>
                             Failure(exception)
                         }

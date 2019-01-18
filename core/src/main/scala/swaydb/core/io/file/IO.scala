@@ -20,7 +20,7 @@
 package swaydb.core.io.file
 
 import java.io.IOException
-import java.nio.channels.WritableByteChannel
+import java.nio.channels.{FileLock, WritableByteChannel}
 import java.nio.file._
 import java.nio.file.attribute.BasicFileAttributes
 
@@ -133,6 +133,12 @@ object IO extends LazyLogging {
         Failure(exception)
     }
 
+  def release(lock: FileLock): Try[Unit] =
+    Try {
+      lock.release()
+      lock.close()
+    }
+
   def stream[T](path: Path)(f: DirectoryStream[Path] => T): T = {
     val stream: DirectoryStream[Path] = Files.newDirectoryStream(path)
     try
@@ -140,4 +146,8 @@ object IO extends LazyLogging {
     finally
       stream.close()
   }
+
+
+  def release(lock: Option[FileLock]): Try[Unit] =
+    lock.map(release).getOrElse(TryUtil.successUnit)
 }

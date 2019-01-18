@@ -19,11 +19,14 @@
 
 package swaydb.core.finders
 
+import scala.annotation.tailrec
+import scala.util.{Failure, Success, Try}
 import swaydb.core.data.KeyValue
+import swaydb.core.function.FunctionStore
+import swaydb.core.merge._
 import swaydb.core.util.TryUtil
+import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-
-import scala.util.{Success, Try}
 
 object Max {
 
@@ -33,17 +36,22 @@ object Max {
     * @return Maximum of both key-values. None is returned if the key-value(s) are expired or removed.
     *
     */
+  @tailrec
   def apply(current: KeyValue.ReadOnly.Fixed,
-            next: Option[KeyValue.ReadOnly.Put])(implicit ordering: Ordering[Slice[Byte]]): Try[Option[KeyValue.ReadOnly.Put]] = {
-    import ordering._
+            next: Option[KeyValue.ReadOnly.Put])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                 timeOrder: TimeOrder[Slice[Byte]],
+                                                 functionStore: FunctionStore): Try[Option[KeyValue.ReadOnly.Put]] = {
+    import keyOrder._
     current match {
       case current: KeyValue.ReadOnly.Put =>
         next match {
           case Some(next) =>
             if (current.hasTimeLeft()) {
-              //    2  or  5   (current)
+              if (current.key equiv next.key)
+                Try(Some(PutMerger(current, next)))
+              //      3  or  5 (current)
               //    2          (next)
-              if (current.key >= next.key)
+              else if (current.key > next.key)
                 Success(Some(current))
               //0          (current)
               //    2      (next)
@@ -74,7 +82,7 @@ object Max {
               //    2
               //    2
               if (current.key equiv next.key)
-                Success(current.deadline.map(next.updateDeadline) orElse Some(next))
+                Max(RemoveMerger(current, next), None)
               //    2
               //         5
               else if (next.key > current.key)
@@ -105,10 +113,8 @@ object Max {
               //    2
               //    2
               if (next.key equiv current.key)
-                if (current.deadline.isDefined)
-                  Success(Some(current.toPut()))
-                else
-                  Success(next.deadline.map(current.toPut) orElse Some(current.toPut()))
+                Max(UpdateMerger(current, next), None)
+
               //    2
               //         5
               else if (next.key > current.key)
@@ -127,6 +133,60 @@ object Max {
               else
                 TryUtil.successNone
             }
+
+          case None =>
+            TryUtil.successNone
+        }
+
+      case current: KeyValue.ReadOnly.Function =>
+        next match {
+          case Some(next) =>
+            //    2
+            //    2
+            if (next.key equiv current.key)
+              FunctionMerger(current, next) match {
+                case Success(mergedKeyValue) =>
+                  Max(mergedKeyValue, None)
+
+                case Failure(exception) =>
+                  Failure(exception)
+              }
+
+            //    2
+            //         5
+            else if (next.key > current.key)
+              Success(Some(next))
+            //    2
+            //0
+            else
+              TryUtil.successNone
+
+          case None =>
+            TryUtil.successNone
+        }
+
+      case current: KeyValue.ReadOnly.PendingApply =>
+        next match {
+          case Some(next) =>
+            //    2
+            //    2
+            if (next.key equiv current.key)
+              PendingApplyMerger(current, next) match {
+                case Success(mergedKeyValue) =>
+                  Max(mergedKeyValue, None)
+
+                case Failure(exception) =>
+                  Failure(exception)
+              }
+
+            //    2
+            //         5
+            else if (next.key > current.key)
+              Success(Some(next))
+            //    2
+            //0
+            else
+              TryUtil.successNone
 
           case None =>
             TryUtil.successNone

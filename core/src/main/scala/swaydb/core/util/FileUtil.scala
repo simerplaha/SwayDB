@@ -30,6 +30,8 @@ import swaydb.core.io.file.IO
 
 case class NotAnIntFile(path: Path) extends Throwable
 
+case class UnknownExtension(path: Path) extends Throwable
+
 private[core] object FileUtil extends LazyLogging {
 
   implicit class FileUtilImplicits(path: Path) {
@@ -87,7 +89,7 @@ private[core] object FileUtil extends LazyLogging {
     val extensionIndex = fileName.lastIndexOf(".")
     val extIndex = if (extensionIndex <= 0) fileName.length else extensionIndex
 
-    Try(fileName.substring(0, extIndex).toLong) flatMap {
+    Try(fileName.substring(0, extIndex).toLong) orElse Failure(NotAnIntFile(path)) flatMap {
       fileId =>
         val ext = fileName.substring(extIndex + 1, fileName.length)
         if (ext == Extension.Log.toString)
@@ -95,10 +97,10 @@ private[core] object FileUtil extends LazyLogging {
         else if (ext == Extension.Seg.toString)
           Success(fileId, Extension.Seg)
         else {
-          logger.error("Could not get extension for path {}", path)
-          Failure(NotAnIntFile(path))
+          logger.error("Unknown extension for file {}", path)
+          Failure(UnknownExtension(path))
         }
-    } orElse Failure(NotAnIntFile(path))
+    }
   }
 
   def isExtension(path: Path, ext: Extension): Boolean =
@@ -107,28 +109,25 @@ private[core] object FileUtil extends LazyLogging {
   def files(folder: Path,
             extension: Extension): List[Path] =
     IO.stream(folder) {
-      stream =>
-        stream
-          .iterator()
-          .asScala
-          .filter(isExtension(_, extension))
-          .toList
-          .sortBy(path => fileId(path).get._1)
+      _.iterator()
+        .asScala
+        .filter(isExtension(_, extension))
+        .toList
+        .sortBy(path => fileId(path).get._1)
     }
 
   def folders(folder: Path): List[Path] =
     IO.stream(folder) {
-      stream =>
-        stream
-          .iterator()
-          .asScala
-          .filter(folder => Try(folderId(folder)).isSuccess)
-          .toList
-          .sortBy(folderId)
+      _.iterator()
+        .asScala
+        .filter(folder => Try(folderId(folder)).isSuccess)
+        .toList
+        .sortBy(folderId)
     }
 
   def segmentFilesOnDisk(paths: Seq[Path]): Seq[Path] =
     paths
       .flatMap(_.files(Extension.Seg))
       .sortBy(_.getFileName.fileId.get._1)
+
 }

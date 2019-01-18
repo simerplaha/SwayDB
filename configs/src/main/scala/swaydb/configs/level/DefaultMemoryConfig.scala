@@ -34,21 +34,18 @@ object DefaultMemoryConfig {
   def apply(mapSize: Int,
             segmentSize: Int,
             bloomFilterFalsePositiveRate: Double,
-            minTimeLeftToUpdateExpiration: FiniteDuration,
             compressDuplicateValues: Boolean,
             groupingStrategy: Option[KeyValueGroupingStrategy],
             acceleration: Level0Meter => Accelerator): SwayDBMemoryConfig =
     ConfigWizard
       .addMemoryLevel0(
         mapSize = mapSize,
-        minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
         acceleration = acceleration
       )
       .addMemoryLevel1(
         segmentSize = segmentSize,
         pushForward = false,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-        minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration,
         compressDuplicateValues = compressDuplicateValues,
         groupingStrategy = groupingStrategy,
         throttle =

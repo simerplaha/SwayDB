@@ -19,14 +19,16 @@
 
 package swaydb
 
-import swaydb.{Map, SwayDB}
 import swaydb.core.TestBase
+import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.order.KeyOrder
 import swaydb.serializers.Default._
+import swaydb.core.TryAssert._
+import swaydb.core.CommonAssertions._
+import swaydb.core.RunThis._
 
 class SwayDBReverse_Persistent_Spec extends SwayDBReverseSpec {
-  implicit val order: Ordering[Slice[Byte]] = KeyOrder.reverse
+  implicit val order: KeyOrder[Slice[Byte]] = KeyOrder.reverse
 
   val keyValueCount: Int = 10000
 
@@ -35,7 +37,7 @@ class SwayDBReverse_Persistent_Spec extends SwayDBReverseSpec {
 }
 
 class SwayDBReverse_Memory_Spec extends SwayDBReverseSpec {
-  implicit val order: Ordering[Slice[Byte]] = KeyOrder.reverse
+  implicit val order: KeyOrder[Slice[Byte]] = KeyOrder.reverse
 
   val keyValueCount: Int = 100000
 

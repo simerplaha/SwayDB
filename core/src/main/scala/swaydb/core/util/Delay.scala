@@ -29,7 +29,7 @@ import scala.util.Try
 
 object Delay {
 
-  val timer = new Timer(true)
+  private val timer = new Timer(true)
 
   private def runWithDelay[T](delayFor: FiniteDuration)(block: => Future[T])(implicit ctx: ExecutionContext): Future[T] = {
     val promise = Promise[T]()
@@ -62,10 +62,10 @@ object Delay {
     runWithDelay(delayFor)(block)
 
   def future[T](delayFor: FiniteDuration)(block: => T)(implicit ctx: ExecutionContext): Future[T] =
-    runWithDelay(delayFor)(Future(block))
+    apply(delayFor)(Future(block))
 
   def futureFromTry[T](delayFor: FiniteDuration)(block: => Try[T])(implicit ctx: ExecutionContext): Future[T] =
-    runWithDelay(delayFor)(block.tryInFuture)
+    apply(delayFor)(block.tryInFuture)
 
   def task(delayFor: FiniteDuration)(block: => Unit): TimerTask =
     createTask(delayFor)(block)

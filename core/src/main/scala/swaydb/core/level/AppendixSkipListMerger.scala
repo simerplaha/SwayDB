@@ -20,28 +20,29 @@
 package swaydb.core.level
 
 import java.util.concurrent.ConcurrentSkipListMap
-
-import swaydb.core.map.{MapEntry, SkipListMerge}
+import swaydb.core.function.FunctionStore
+import swaydb.core.map.{MapEntry, SkipListMerger}
 import swaydb.core.segment.Segment
+import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
-import scala.concurrent.duration.{FiniteDuration, _}
-
 /**
-  * Default [[SkipListMerge]] implementation for Level's Appendix. Currently appendix does not implement
+  * Default [[SkipListMerger]] implementation for Level's Appendix. Currently appendix does not implement
   * Range APIs so merger should never be used.
   */
-object AppendixSkipListMerger extends SkipListMerge[Slice[Byte], Segment] {
-  override val hasTimeLeftAtLeast: FiniteDuration = 10.seconds
-
+object AppendixSkipListMerger extends SkipListMerger[Slice[Byte], Segment] {
   override def insert(insertKey: Slice[Byte],
                       insertValue: Segment,
-                      skipList: ConcurrentSkipListMap[Slice[Byte], Segment])(implicit ordering: Ordering[Slice[Byte]]): Unit =
+                      skipList: ConcurrentSkipListMap[Slice[Byte], Segment])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                             timeOrder: TimeOrder[Slice[Byte]],
+                                                                             functionStore: FunctionStore): Unit =
     throw new IllegalAccessException("Appendix does not require merger.")
 
   //Appendixes do not use Range so there will be no conflicts. Need a type-safe way of handling this.
   override def insert(entry: MapEntry[Slice[Byte], Segment],
-                      skipList: ConcurrentSkipListMap[Slice[Byte], Segment])(implicit ordering: Ordering[Slice[Byte]]): Unit =
+                      skipList: ConcurrentSkipListMap[Slice[Byte], Segment])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                             timeOrder: TimeOrder[Slice[Byte]],
+                                                                             functionStore: FunctionStore): Unit =
     throw new IllegalAccessException("Appendix does not require merger.")
 
 }

@@ -24,13 +24,12 @@ import swaydb.compression.CompressionInternal
 import swaydb.core.data.{KeyValue, Transient}
 import swaydb.core.group.compression.GroupCompressorFailure.InvalidGroupKeyValuesHeadPosition
 import swaydb.core.group.compression.data.{CompressionResult, ValueCompressionResult}
-import swaydb.core.segment.format.one.SegmentWriter
+import swaydb.core.segment.format.a.SegmentWriter
 import swaydb.core.util.TryUtil._
 import swaydb.core.util.{Bytes, TryUtil}
-import swaydb.data.segment.MaxKey
 import swaydb.data.slice.Slice
-
 import scala.util.{Failure, Success, Try}
+import swaydb.data.repairAppendix.MaxKey
 
 private[core] object GroupCompressor extends LazyLogging {
 
@@ -42,7 +41,7 @@ private[core] object GroupCompressor extends LazyLogging {
     *
     * Pre-requisite: keyValues should be non-empty.
     */
-  def buildCompressedKey(keyValues: Iterable[KeyValue.WriteOnly]): (Slice[Byte], MaxKey, Slice[Byte]) =
+  def buildCompressedKey(keyValues: Iterable[KeyValue.WriteOnly]): (Slice[Byte], MaxKey[Slice[Byte]], Slice[Byte]) =
     GroupKeyCompressor.compress(keyValues.headOption, keyValues.last)
 
   private def tryCompress(indexBytes: Slice[Byte],
@@ -138,6 +137,7 @@ private[core] object GroupCompressor extends LazyLogging {
               val headerSize =
                 Bytes.sizeOf(formatId) + //format id
                   1 + //for hasRange
+                  1 + //for hasPut
                   Bytes.sizeOf(indexCompression.decompressor.id) + //index compression id
                   //key-value count. Use the stats position because in the future a Group might also be compressed with other groups.
                   Bytes.sizeOf(keyValues.last.stats.position) +
@@ -165,6 +165,7 @@ private[core] object GroupCompressor extends LazyLogging {
                 .addIntUnsigned(headerSize) //write header size
                 .addIntUnsigned(formatId) //format
                 .addBoolean(keyValues.last.stats.hasRange)
+                .addBoolean(keyValues.last.stats.hasPut)
                 .addIntUnsigned(indexCompression.decompressor.id)
                 .addIntUnsigned(keyValues.last.stats.position)
                 .addIntUnsigned(keyValues.last.stats.bloomFilterItemsCount)

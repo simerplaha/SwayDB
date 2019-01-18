@@ -19,105 +19,128 @@
 
 package swaydb.core.finders
 
-import swaydb.core.data.{KeyValue, Memory, Value}
+import scala.annotation.tailrec
+import scala.util.{Failure, Success, Try}
+import swaydb.core.data.KeyValue
+import swaydb.core.data.KeyValue.ReadOnly
+import swaydb.core.function.FunctionStore
+import swaydb.core.merge.{FunctionMerger, PendingApplyMerger, RemoveMerger, UpdateMerger}
 import swaydb.core.util.TryUtil
+import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-
-import scala.util.{Success, Try}
 
 object Get {
 
   def apply(key: Slice[Byte],
             getFromCurrentLevel: Slice[Byte] => Try[Option[KeyValue.ReadOnly.SegmentResponse]],
-            getFromNextLevel: Slice[Byte] => Try[Option[KeyValue.ReadOnly.Put]])(implicit ordering: Ordering[Slice[Byte]]): Try[Option[KeyValue.ReadOnly.Put]] = {
-    import ordering._
+            getFromNextLevel: Slice[Byte] => Try[Option[KeyValue.ReadOnly.Put]])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                                 timeOrder: TimeOrder[Slice[Byte]],
+                                                                                 functionStore: FunctionStore): Try[Option[KeyValue.ReadOnly.Put]] = {
 
-    def returnRangeValue(current: Value): Try[Option[KeyValue.ReadOnly.Put]] =
+    import keyOrder._
+
+    @tailrec
+    def returnSegmentResponse(current: KeyValue.ReadOnly.SegmentResponse): Try[Option[ReadOnly.Put]] =
       current match {
-        case current @ Value.Remove(currentDeadline) =>
+        case current: KeyValue.ReadOnly.Remove =>
           if (current.hasTimeLeft())
             getFromNextLevel(key) map {
-              case Some(next) =>
-                currentDeadline.map(next.updateDeadline) orElse Some(next)
+              nextOption =>
+                nextOption flatMap {
+                  next =>
+                    RemoveMerger(current, next) match {
+                      case put: ReadOnly.Put if put.hasTimeLeft() =>
+                        Some(put)
 
-              case None =>
-                None
+                      case _: ReadOnly.Fixed =>
+                        None
+                    }
+                }
             }
           else
             TryUtil.successNone
 
-        case current: Value.Put =>
-
+        case current: KeyValue.ReadOnly.Put =>
           if (current.hasTimeLeft())
-            Success(Some(Memory.Put(key, current.value, current.deadline)))
+            Success(Some(current))
           else
             TryUtil.successNone
 
-        case current: Value.Update =>
+        case current: KeyValue.ReadOnly.Update =>
           if (current.hasTimeLeft())
             getFromNextLevel(key) map {
-              case Some(next) =>
-                Some(Memory.Put(key, current.value, current.deadline orElse next.deadline))
+              nextOption =>
+                nextOption flatMap {
+                  next =>
+                    UpdateMerger(current, next) match {
+                      case put: ReadOnly.Put if put.hasTimeLeft() =>
+                        Some(put)
 
-              case None =>
-                None
+                      case _: ReadOnly.Fixed =>
+                        None
+                    }
+                }
             }
           else
             TryUtil.successNone
 
+        case current: KeyValue.ReadOnly.Range => {
+          if (current.key equiv key)
+            current.fetchFromOrElseRangeValue
+          else
+            current.fetchRangeValue
+        } match {
+          case Success(currentValue) =>
+            returnSegmentResponse(currentValue.toMemory(key))
+
+          case Failure(exception) =>
+            Failure(exception)
+        }
+
+        case current: KeyValue.ReadOnly.Function =>
+          getFromNextLevel(key) flatMap {
+            nextOption =>
+              nextOption map {
+                next =>
+                  FunctionMerger(current, next) match {
+                    case Success(put: ReadOnly.Put) if put.hasTimeLeft() =>
+                      Success(Some(put))
+
+                    case Success(_: ReadOnly.Fixed) =>
+                      TryUtil.successNone
+
+                    case Failure(exception) =>
+                      Failure(exception)
+                  }
+              } getOrElse {
+                TryUtil.successNone
+              }
+          }
+
+        case current: KeyValue.ReadOnly.PendingApply =>
+          getFromNextLevel(key) flatMap {
+            nextOption =>
+              nextOption map {
+                next =>
+                  PendingApplyMerger(current, next) match {
+                    case Success(put: ReadOnly.Put) if put.hasTimeLeft() =>
+                      Success(Some(put))
+
+                    case Success(_: ReadOnly.Fixed) =>
+                      TryUtil.successNone
+
+                    case Failure(exception) =>
+                      Failure(exception)
+                  }
+              } getOrElse {
+                TryUtil.successNone
+              }
+          }
       }
 
     getFromCurrentLevel(key) flatMap {
       case Some(current) =>
-        current match {
-          case current: KeyValue.ReadOnly.Fixed =>
-            current match {
-              case current: KeyValue.ReadOnly.Remove =>
-
-                if (current.hasTimeLeft())
-                  current.deadline map {
-                    currentDeadline =>
-                      getFromNextLevel(key) map {
-                        next =>
-                          next.map(_.updateDeadline(currentDeadline))
-                      }
-                  } getOrElse getFromNextLevel(key)
-                else
-                  TryUtil.successNone
-
-              case current: KeyValue.ReadOnly.Put =>
-                if (current.hasTimeLeft())
-                  Success(Some(current))
-                else
-                  TryUtil.successNone
-
-              case current: KeyValue.ReadOnly.Update =>
-
-                if (current.hasTimeLeft())
-                  getFromNextLevel(key) map {
-                    next =>
-                      if (next.isDefined) {
-                        if (current.deadline.isDefined)
-                          Some(current.toPut())
-                        else
-                          next.flatMap(_.deadline).map(current.toPut) orElse Some(current.toPut())
-                      }
-                      else
-                        None
-                  }
-                else
-                  TryUtil.successNone
-            }
-
-          case current: KeyValue.ReadOnly.Range =>
-            current.fetchFromAndRangeValue flatMap {
-              case (fromValue, rangeValue) =>
-                if (current.fromKey equiv key)
-                  returnRangeValue(fromValue getOrElse rangeValue)
-                else
-                  returnRangeValue(rangeValue)
-            }
-        }
+        returnSegmentResponse(current)
 
       case None =>
         getFromNextLevel(key)

@@ -22,21 +22,24 @@ package swaydb.core
 import swaydb.core.data.Memory
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.data.slice.Slice
-
 import scala.util.Random
 import swaydb.data.util.StorageUnits._
-
 import scala.concurrent.ExecutionContext
+import swaydb.core.function.FunctionStore
+import swaydb.data.order.{KeyOrder, TimeOrder}
+import TryAssert._
 
-package object map extends TryAssert {
+package object map {
 
   //cannot be added to TestBase because PersistentMap cannot leave the map package.
   implicit class ReopenMap(map: PersistentMap[Slice[Byte], Memory.SegmentResponse]) {
-    def reopen(implicit ordering: Ordering[Slice[Byte]],
+    def reopen(implicit keyOrder: KeyOrder[Slice[Byte]],
+               timeOrder: TimeOrder[Slice[Byte]],
+               functionStore: FunctionStore,
                ec: ExecutionContext,
                writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Memory.SegmentResponse]],
                reader: MapEntryReader[MapEntry[Slice[Byte], Memory.SegmentResponse]],
-               skipListMerge: SkipListMerge[Slice[Byte], Memory.SegmentResponse]) = {
+               skipListMerge: SkipListMerger[Slice[Byte], Memory.SegmentResponse]) = {
       map.close().assertGet
       Map.persistent[Slice[Byte], Memory.SegmentResponse](map.path, mmap = Random.nextBoolean(), flushOnOverflow = Random.nextBoolean(), 10.mb, dropCorruptedTailEntries = false).assertGet.item
     }

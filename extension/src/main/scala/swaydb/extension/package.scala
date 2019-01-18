@@ -20,7 +20,7 @@
 package swaydb
 
 import swaydb.data.slice.Slice
-import swaydb.order.KeyOrder
+import swaydb.data.order.KeyOrder
 import swaydb.serializers.Serializer
 
 import scala.util.Try
@@ -30,11 +30,11 @@ package object extension {
   implicit class DefaultExtension[K, V](map: swaydb.Map[Key[K], Option[V]]) {
     def extend(implicit keySerializer: Serializer[K],
                optionValueSerializer: Serializer[Option[V]],
-               ordering: Ordering[Slice[Byte]] = KeyOrder.default): Try[extension.Map[K, V]] =
+               keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default): Try[extension.Map[K, V]] =
       Extend(map = map)(
         keySerializer = keySerializer,
         optionValueSerializer = optionValueSerializer,
-        ordering = Key.ordering(ordering)
+        keyOrder = Key.ordering(keyOrder)
       )
   }
 }

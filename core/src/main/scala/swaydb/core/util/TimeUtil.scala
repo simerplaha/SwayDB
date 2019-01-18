@@ -48,7 +48,10 @@ object TimeUtil {
       Deadline(deadline, TimeUnit.NANOSECONDS)
 
     def toDeadlineOption: Option[Deadline] =
-      Some(toDeadline)
+      if (deadline == 0L)
+        None
+      else
+        Some(toDeadline)
   }
 
 }

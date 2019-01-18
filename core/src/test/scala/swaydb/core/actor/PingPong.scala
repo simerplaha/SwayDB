@@ -19,10 +19,10 @@
 
 package swaydb.core.actor
 
-import swaydb.core.FutureBase
 import scala.concurrent.duration._
+import swaydb.core.RunThis._
 
-object PingPong extends FutureBase with App {
+object PingPong extends App {
 
   case class Pong(replyTo: ActorRef[Ping])
   case class Ping(replyTo: ActorRef[Pong])

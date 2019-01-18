@@ -20,16 +20,25 @@
 package swaydb.core.data
 
 import java.nio.file.Paths
-
-import swaydb.core.TestBase
+import swaydb.core.{TestBase, TestData, TestLimitQueues, TestTimeGenerator}
 import swaydb.core.segment.Segment
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.core.TestData._
+import swaydb.core.CommonAssertions._
+import swaydb.core.TryAssert._
+import swaydb.data.order.{KeyOrder, TimeOrder}
 
 class GroupSpec extends TestBase {
 
   val keyValueCount = 100
+
+  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
+  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
+  implicit def timeGenerator: TestTimeGenerator = TestTimeGenerator.random
+  implicit val keyValueLimiter = TestLimitQueues.keyValueLimiter
+
 
   "lastGroup on a list of WriteOnly key-values" should {
     "return empty if there are no groups" in {
@@ -39,10 +48,10 @@ class GroupSpec extends TestBase {
     "return last group if there is only one group" in {
       val group =
         Transient.Group(
-          keyValues = randomizedIntKeyValues(keyValueCount),
+          keyValues = randomizedKeyValues(keyValueCount),
           indexCompression = randomCompression(),
           valueCompression = randomCompression(),
-          falsePositiveRate = 0.1,
+          falsePositiveRate = TestData.falsePositiveRate,
           previous = None
         ).assertGet
 
@@ -54,10 +63,10 @@ class GroupSpec extends TestBase {
         (1 to 10) map {
           _ =>
             Transient.Group(
-              keyValues = randomizedIntKeyValues(keyValueCount),
+              keyValues = randomizedKeyValues(keyValueCount),
               indexCompression = randomCompression(),
               valueCompression = randomCompression(),
-              falsePositiveRate = 0.1,
+              falsePositiveRate = TestData.falsePositiveRate,
               previous = None
             ).assertGet
         }
@@ -70,13 +79,13 @@ class GroupSpec extends TestBase {
         (1 to 10) map {
           i =>
             if (i == 5)
-              Transient.Put(1) //on the 5th iteration add a Put key-values. The 4th group should be returned.
+              Transient.put(1) //on the 5th iteration add a Put key-values. The 4th group should be returned.
             else
               Transient.Group(
-                keyValues = randomizedIntKeyValues(keyValueCount),
+                keyValues = randomizedKeyValues(keyValueCount),
                 indexCompression = randomCompression(),
                 valueCompression = randomCompression(),
-                falsePositiveRate = 0.1,
+                falsePositiveRate = TestData.falsePositiveRate,
                 previous = None
               ).assertGet
         }
@@ -88,13 +97,13 @@ class GroupSpec extends TestBase {
   "uncompressing a Group" should {
     "return a new instance of uncompressed Persistent.Group" in {
       //create group key-values
-      val keyValues = randomIntKeyValues(keyValueCount)
+      val keyValues = randomPutKeyValues(keyValueCount)
       val group =
         Transient.Group(
-          keyValues = keyValues,
+          keyValues = keyValues.toTransient,
           indexCompression = randomCompression(),
           valueCompression = randomCompression(),
-          falsePositiveRate = 0.1,
+          falsePositiveRate = TestData.falsePositiveRate,
           previous = None
         ).assertGet
 
@@ -132,13 +141,13 @@ class GroupSpec extends TestBase {
     }
 
     "return a new instance of uncompressed Memory.Group" in {
-      val keyValues = randomIntKeyValues(keyValueCount)
+      val keyValues = randomKeyValues(keyValueCount)
       val group =
         Transient.Group(
           keyValues = keyValues,
           indexCompression = randomCompression(),
           valueCompression = randomCompression(),
-          falsePositiveRate = 0.1,
+          falsePositiveRate = TestData.falsePositiveRate,
           previous = None
         ).assertGet
 
@@ -148,7 +157,7 @@ class GroupSpec extends TestBase {
         Segment.memory(
           path = Paths.get("/test"),
           keyValues = Seq(group),
-          bloomFilterFalsePositiveRate = 0.1,
+          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           removeDeletes = false
         ).assertGet
 

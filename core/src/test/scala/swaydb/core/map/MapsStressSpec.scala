@@ -19,33 +19,38 @@
 
 package swaydb.core.map
 
-import swaydb.core.TestBase
+import swaydb.core.{TestBase, TestTimeGenerator}
 import swaydb.core.data.Memory
 import swaydb.core.io.file.IO
-import swaydb.core.level.zero.LevelZeroSkipListMerge
+import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.util.FileUtil._
 import swaydb.data.accelerate.{Accelerator, Level0Meter}
 import swaydb.data.config.RecoveryMode
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
-import swaydb.order.KeyOrder
-
+import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.core.TestData._
+import swaydb.core.CommonAssertions._
+import swaydb.core.RunThis._
+import swaydb.core.TryAssert._
 import scala.concurrent.duration._
 
 class MapsStressSpec extends TestBase {
 
-  override implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
+  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
+  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
+  implicit def timeGenerator: TestTimeGenerator = TestTimeGenerator.random
 
   import swaydb.core.map.serializer.LevelZeroMapEntryReader._
   import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
 
-  implicit val skipListMerger = LevelZeroSkipListMerge(10.seconds)
+  implicit val skipListMerger = LevelZeroSkipListMerger
 
   val keyValueCount = 100
 
   "Maps.persistent" should {
     "initialise and recover over 1000 maps persistent map and on reopening them should recover state all 1000 persisted maps" in {
-      val keyValues = randomIntKeyValues(keyValueCount)
+      val keyValues = randomKeyValues(keyValueCount)
 
       //disable braking
       val acceleration =
@@ -56,14 +61,14 @@ class MapsStressSpec extends TestBase {
       def testWrite(maps: Maps[Slice[Byte], Memory.SegmentResponse]) = {
         keyValues foreach {
           keyValue =>
-            maps.write(MapEntry.Put(keyValue.key, Memory.Put(keyValue.key, keyValue.getOrFetchValue.assertGetOpt))).assertGet
+            maps.write(MapEntry.Put(keyValue.key, Memory.put(keyValue.key, keyValue.getOrFetchValue))).assertGet
         }
       }
 
       def testRead(maps: Maps[Slice[Byte], Memory.SegmentResponse]) = {
         keyValues foreach {
           keyValue =>
-            maps.get(keyValue.key).assertGet shouldBe Memory.Put(keyValue.key, keyValue.getOrFetchValue.assertGetOpt)
+            maps.get(keyValue.key).assertGet shouldBe Memory.put(keyValue.key, keyValue.getOrFetchValue)
         }
       }
 

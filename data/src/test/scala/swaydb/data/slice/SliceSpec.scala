@@ -20,12 +20,14 @@
 package swaydb.data.slice
 
 import org.scalatest.{Matchers, WordSpec}
+import scala.util.Random
+import swaydb.data.order.KeyOrder
 import swaydb.data.repairAppendix.MaxKey
 import swaydb.data.util.ByteSizeOf
 
-import scala.util.Random
-
 class SliceSpec extends WordSpec with Matchers {
+
+  implicit val keyOrder = KeyOrder.default
 
   def randomByte() = (Random.nextInt(256) - 128).toByte
 
@@ -435,6 +437,7 @@ class SliceSpec extends WordSpec with Matchers {
 
   "within" when {
     implicit def toSlice(int: Int): Slice[Byte] = Slice.writeInt(int)
+
     implicit val order = Ordering.by[Slice[Byte], Int](_.readInt())(Ordering.Int)
 
     "max key is Fixed" in {
@@ -481,7 +484,43 @@ class SliceSpec extends WordSpec with Matchers {
       //                21
       //  1 - (10 - 20)
       Slice.within(key = 21, minKey = 1, maxKey = MaxKey.Range(10, 20)) shouldBe false
+    }
+  }
 
+  "reverse" should {
+    "iterate in reverse" in {
+      val slice = Slice(1, 2, 3, 4)
+      slice.reverse.toList should contain inOrderOnly(4, 3, 2, 1)
+    }
+
+    "iterate of slices" in {
+      val slice = Slice(1, 2, 3, 4, 5, 6)
+
+      slice.take(2).reverse.toList should contain inOrderOnly(2, 1)
+      slice.drop(2).take(2).reverse.toList should contain inOrderOnly(4, 3)
+      slice.drop(4).take(2).reverse.toList should contain inOrderOnly(6, 5)
+      slice.dropRight(2).reverse.toList should contain inOrderOnly(4, 3, 2, 1)
+      slice.dropRight(0).reverse.toList should contain inOrderOnly(6, 5, 4, 3, 2, 1)
+
+      slice.slice(0, 5).reverse.toList should contain inOrderOnly(6, 5, 4, 3, 2, 1)
+    }
+
+    "partially complete" in {
+      val slice = Slice.create[Int](10)
+      (1 to 6) foreach slice.add
+
+      slice.reverse.toList should contain inOrderOnly(6, 5, 4, 3, 2, 1)
+      val slice1 = slice.take(2)
+      val slice2 = slice.drop(2).take(2)
+      val slice3 = slice.drop(4).take(2)
+
+      slice1.reverse.toList should contain inOrderOnly(2, 1)
+      slice2.reverse.toList should contain inOrderOnly(4, 3)
+      slice3.reverse.toList should contain inOrderOnly(6, 5)
+    }
+
+    "on empty" in {
+      Slice.create[Int](10).reverse.toList shouldBe empty
     }
   }
 

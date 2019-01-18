@@ -20,13 +20,20 @@
 package swaydb.core.group.compression
 
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.core.CommonAssertions
+import swaydb.core.{CommonAssertions, TestLimitQueues, TryAssert}
 import swaydb.core.data.Transient
-import swaydb.data.segment.MaxKey
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.core.TestData._
+import swaydb.core.CommonAssertions._
+import swaydb.core.RunThis._
+import swaydb.data.order.KeyOrder
+import swaydb.core.TryAssert._
+import swaydb.data.repairAppendix.MaxKey
 
-class GroupKeyCompressorSpec extends WordSpec with Matchers with CommonAssertions {
+class GroupKeyCompressorSpec extends WordSpec with Matchers {
+
+  implicit val keyOrder = KeyOrder.default
 
   "None, Fixed" in {
     runThis(20.times) {
@@ -79,7 +86,7 @@ class GroupKeyCompressorSpec extends WordSpec with Matchers with CommonAssertion
 
   "Some(_), Range" in {
     runThis(20.times) {
-      val head = randomIntKeyValuesMemory(1, startId = Some(0)).head.toTransient
+      val head = randomPutKeyValues(1, startId = Some(0)).head.toTransient
       val last = randomRangeKeyValue(100, 200)
 
       val (minKey, maxKey, compressedKey) =
@@ -96,7 +103,7 @@ class GroupKeyCompressorSpec extends WordSpec with Matchers with CommonAssertion
 
   "None, Group" in {
     runThis(20.times) {
-      val last: Transient.Group = randomGroup(randomizedIntKeyValues(100))
+      val last: Transient.Group = randomGroup(randomizedKeyValues(100))
 
       val (minKey, maxKey, compressedKey) =
         GroupKeyCompressor.compress(
@@ -112,8 +119,8 @@ class GroupKeyCompressorSpec extends WordSpec with Matchers with CommonAssertion
 
   "Some(_), Group" in {
     runThis(20.times) {
-      val head = randomIntKeyValuesMemory(1, startId = Some(0)).head.toTransient
-      val last = randomGroup(randomizedIntKeyValues(100))
+      val head = randomPutKeyValues(1, startId = Some(0)).head.toTransient
+      val last = randomGroup(randomizedKeyValues(100))
 
       val (minKey, maxKey, compressedKey) =
         GroupKeyCompressor.compress(
@@ -126,6 +133,5 @@ class GroupKeyCompressorSpec extends WordSpec with Matchers with CommonAssertion
       GroupKeyCompressor.decompress(compressedKey).assertGet shouldBe ((head.key, last.maxKey))
     }
   }
-
 
 }

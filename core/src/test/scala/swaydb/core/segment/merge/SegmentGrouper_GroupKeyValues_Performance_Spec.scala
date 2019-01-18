@@ -19,11 +19,14 @@
 
 package swaydb.core.segment.merge
 
-import swaydb.core.TestBase
+import swaydb.core.{TestBase, TestData}
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.util.Benchmark
-
 import scala.collection.mutable.ListBuffer
+import swaydb.core.data.KeyValue
+import swaydb.core.TestData._
+import swaydb.core.CommonAssertions._
+import swaydb.core.RunThis._
 
 class SegmentGrouper_GroupKeyValues_Performance_Count_Spec extends SegmentGrouper_GroupKeyValues_Performance_Spec {
   val useCount = true
@@ -54,13 +57,14 @@ sealed trait SegmentGrouper_GroupKeyValues_Performance_Spec extends TestBase {
   "groupKeyValues" should {
     "benchmark" when {
       "there are not enough key-values" in {
-        val keyValues = randomizedIntKeyValues(1000000, addRandomGroups = false)
-        val mutableKeyValues = ListBuffer(keyValues.toList: _*)
+        val keyValues = randomizedKeyValues(1000000, addRandomGroups = false)
+        val mutableKeyValues = ListBuffer.empty[KeyValue.WriteOnly]
+        keyValues foreach (mutableKeyValues += _)
 
         Benchmark("there are not enough key-values") {
           SegmentGrouper.groupKeyValues(
             segmentKeyValues = mutableKeyValues,
-            bloomFilterFalsePositiveRate = 0.1,
+            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             force = force,
             groupingStrategy =
               if (useCount)
@@ -84,13 +88,14 @@ sealed trait SegmentGrouper_GroupKeyValues_Performance_Spec extends TestBase {
 
     "benchmark" when {
       "there are enough key-values" in {
-        val keyValues = randomizedIntKeyValues(1000000, addRandomGroups = false)
-        val mutableKeyValues = ListBuffer(keyValues.toList: _*)
+        val keyValues = randomizedKeyValues(1000000, addRandomGroups = false)
+        val mutableKeyValues = ListBuffer.empty[KeyValue.WriteOnly]
+        keyValues foreach (mutableKeyValues += _)
 
         Benchmark("there are enough key-values") {
           SegmentGrouper.groupKeyValues(
             segmentKeyValues = mutableKeyValues,
-            bloomFilterFalsePositiveRate = 0.1,
+            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             force = force,
             groupingStrategy =
               if (useCount)

@@ -20,13 +20,12 @@
 package swaydb.core.map
 
 import java.util.concurrent.ConcurrentSkipListMap
-
 import swaydb.core.data.Memory
 import swaydb.core.map.MapEntry.{Put, Remove}
 import swaydb.core.map.serializer.{MapCodec, MapEntryWriter}
 import swaydb.data.slice.Slice
-
 import scala.collection.mutable.ListBuffer
+import swaydb.data.order.KeyOrder
 
 /**
   * [[MapEntry]]s can be batched via ++ function.
@@ -88,8 +87,8 @@ private[swaydb] object MapEntry {
     * Returns a combined Entry with duplicates removed from oldEntry, favouring newer duplicate entries.
     */
   def distinct[V](newEntry: MapEntry[Slice[Byte], V],
-                  oldEntry: MapEntry[Slice[Byte], V])(implicit ordering: Ordering[Slice[Byte]]): MapEntry[Slice[Byte], V] = {
-    import ordering._
+                  oldEntry: MapEntry[Slice[Byte], V])(implicit keyOrder: KeyOrder[Slice[Byte]]): MapEntry[Slice[Byte], V] = {
+    import keyOrder._
     (oldEntry.entries filterNot {
       case MapEntry.Put(oldKey, _) =>
         newEntry.entries.exists {
@@ -162,7 +161,7 @@ private[swaydb] object MapEntry {
     val hasUpdate: Boolean = serializer.isUpdate
     val hasRemoveDeadline: Boolean =
       value match {
-        case Memory.Remove(_, Some(_)) => true
+        case Memory.Remove(_, Some(_), _) => true
         case _ => false
       }
 

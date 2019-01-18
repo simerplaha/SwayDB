@@ -21,7 +21,6 @@ package swaydb.core.segment
 
 import java.nio.file.Path
 import java.util.concurrent.ConcurrentSkipListMap
-
 import bloomfilter.mutable.BloomFilter
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
@@ -30,26 +29,29 @@ import swaydb.core.io.file.DBFile
 import swaydb.core.io.reader.Reader
 import swaydb.core.level.PathsDistributor
 import swaydb.core.queue.KeyValueLimiter
-import swaydb.core.segment.format.one.{SegmentFooter, SegmentReader}
+import swaydb.core.segment.format.a.{SegmentFooter, SegmentReader}
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util.TryUtil._
 import swaydb.core.util._
 import swaydb.data.config.Dir
-import swaydb.data.segment.MaxKey
 import swaydb.data.slice.{Reader, Slice}
-
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 import scala.util.{Failure, Success, Try}
+import swaydb.core.function.FunctionStore
+import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.data.repairAppendix.MaxKey
 
 private[segment] case class PersistentSegment(file: DBFile,
                                               mmapReads: Boolean,
                                               mmapWrites: Boolean,
                                               minKey: Slice[Byte],
-                                              maxKey: MaxKey,
+                                              maxKey: MaxKey[Slice[Byte]],
                                               segmentSize: Int,
                                               removeDeletes: Boolean,
-                                              nearestExpiryDeadline: Option[Deadline])(implicit ordering: Ordering[Slice[Byte]],
+                                              nearestExpiryDeadline: Option[Deadline])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                                       timeOrder: TimeOrder[Slice[Byte]],
+                                                                                       functionStore: FunctionStore,
                                                                                        keyValueLimiter: KeyValueLimiter,
                                                                                        fileOpenLimiter: DBFile => Unit,
                                                                                        compression: Option[KeyValueGroupingStrategyInternal],
@@ -57,7 +59,7 @@ private[segment] case class PersistentSegment(file: DBFile,
 
   def path = file.path
 
-  private[segment] val cache = new ConcurrentSkipListMap[Slice[Byte], Persistent](ordering)
+  private[segment] val cache = new ConcurrentSkipListMap[Slice[Byte], Persistent](keyOrder)
 
   @volatile private[segment] var footer = Option.empty[SegmentFooter]
 
@@ -108,7 +110,6 @@ private[segment] case class PersistentSegment(file: DBFile,
   def put(newKeyValues: Slice[KeyValue.ReadOnly],
           minSegmentSize: Long,
           bloomFilterFalsePositiveRate: Double,
-          hasTimeLeftAtLeast: FiniteDuration,
           compressDuplicateValues: Boolean,
           targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Try[Slice[Segment]] =
     getAll() flatMap {
@@ -120,7 +121,6 @@ private[segment] case class PersistentSegment(file: DBFile,
           forInMemory = false,
           isLastLevel = removeDeletes,
           bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-          hasTimeLeftAtLeast = hasTimeLeftAtLeast,
           compressDuplicateValues = compressDuplicateValues
         ) flatMap {
           splits =>
@@ -222,6 +222,9 @@ private[segment] case class PersistentSegment(file: DBFile,
 
   override def hasRange: Try[Boolean] =
     segmentCache.hasRange
+
+  override def hasPut: Try[Boolean] =
+    segmentCache.hasPut
 
   def getHeadKeyValueCount(): Try[Int] =
     segmentCache.getHeadKeyValueCount()

@@ -55,6 +55,9 @@ private[core] case class Distribution(path: Path,
 
 private[core] object PathsDistributor {
 
+  val empty =
+    PathsDistributor(Seq.empty, () => Iterable.empty)
+
   implicit val order: Ordering[Distribution] =
     new Ordering[Distribution] {
       override def compare(x: Distribution, y: Distribution): Int =

@@ -22,12 +22,11 @@ package swaydb.core.map.serializer
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.map.{MapEntry, RecoveryResult}
 import swaydb.core.util.CRC32
-import swaydb.core.util.SliceUtil._
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
-
 import scala.collection.JavaConverters._
 import scala.util.{Failure, Success, Try}
+import swaydb.core.io.reader.Reader
 
 private[core] object MapCodec extends LazyLogging {
 
@@ -63,7 +62,7 @@ private[core] object MapCodec extends LazyLogging {
   //Java style return statements are used to break out of the loop. Use functions instead.
   def read[K, V](bytes: Slice[Byte],
                  dropCorruptedTailEntries: Boolean)(implicit mapReader: MapEntryReader[MapEntry[K, V]]): Try[RecoveryResult[Option[MapEntry[K, V]]]] =
-    bytes.createReader().foldLeftTry(RecoveryResult(Option.empty[MapEntry[K, V]], Try())) {
+    Reader(bytes).foldLeftTry(RecoveryResult(Option.empty[MapEntry[K, V]], Try())) {
       case (recovery, reader) =>
         reader.hasAtLeast(ByteSizeOf.long) flatMap {
           case true =>
@@ -79,7 +78,7 @@ private[core] object MapCodec extends LazyLogging {
                     val checkCRC = CRC32 forBytes payload
                     //crc check.
                     if (crc == checkCRC) {
-                      mapReader.read(payload.createReader()) map {
+                      mapReader.read(Reader(payload)) map {
                         case Some(readMapEntry) =>
                           val nextEntry = recovery.item.map(_ ++ readMapEntry) orElse Some(readMapEntry)
                           RecoveryResult(nextEntry, recovery.result)

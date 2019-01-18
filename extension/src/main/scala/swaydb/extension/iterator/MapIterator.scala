@@ -22,7 +22,7 @@ package swaydb.extension.iterator
 import swaydb.data.slice.Slice
 import swaydb.extension.Key
 import swaydb.iterator.DBIterator
-import swaydb.order.KeyOrder
+import swaydb.data.order.KeyOrder
 import swaydb.serializers.Serializer
 
 import scala.annotation.tailrec
@@ -44,10 +44,10 @@ import scala.collection.generic.CanBuildFrom
   **/
 
 case class MapIterator[K, V](mapKey: Seq[K],
-                             private val mapsOnly: Boolean = false,
-                             private val userDefinedFrom: Boolean = false,
-                             private val dbIterator: DBIterator[Key[K], Option[V]],
-                             private val till: (K, V) => Boolean = (_: K, _: V) => true)(implicit keySerializer: Serializer[K],
+                             mapsOnly: Boolean = false,
+                             userDefinedFrom: Boolean = false,
+                             dbIterator: DBIterator[Key[K], Option[V]],
+                             till: (K, V) => Boolean = (_: K, _: V) => true)(implicit keySerializer: Serializer[K],
                                                                                          mapKeySerializer: Serializer[Key[K]],
                                                                                          optionValueSerializer: Serializer[Option[V]]) extends Iterable[(K, V)] {
 

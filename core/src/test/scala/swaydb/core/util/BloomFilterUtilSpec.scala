@@ -20,12 +20,14 @@
 package swaydb.core.util
 
 import bloomfilter.mutable.BloomFilter
-import swaydb.core.TestBase
+import swaydb.core.{TestBase, TestData, TestTimeGenerator}
 import swaydb.core.data.{Transient, Value}
 import swaydb.core.util.BloomFilterUtil._
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.core.TestData._
+import swaydb.core.data.Value.{FromValue, RangeValue}
 
 class BloomFilterUtilSpec extends TestBase {
 
@@ -59,21 +61,21 @@ class BloomFilterUtilSpec extends TestBase {
 
   "BloomFilterUtil.initBloomFilter" should {
     "not initialise bloomFilter if it contain removeRange" in {
-      import swaydb.core.map.serializer.RangeValueSerializers._
+      implicit val time = TestTimeGenerator.Incremental()
       BloomFilterUtil.initBloomFilter(
-        keyValues = Slice(Transient.Range[Value.FromValue, Value.RangeValue](1, 2, None, Value.Remove(None))),
-        bloomFilterFalsePositiveRate = 0.1
+        keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, None, Value.Remove(None, time.nextTime))),
+        bloomFilterFalsePositiveRate = TestData.falsePositiveRate
       ) shouldBe empty
 
       BloomFilterUtil.initBloomFilter(
-        keyValues = Slice(Transient.Range[Value.FromValue, Value.RangeValue](1, 2, None, Value.Remove(Some(randomDeadline())))),
-        bloomFilterFalsePositiveRate = 0.1
+        keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, None, Value.Remove(Some(randomDeadline()), time.nextTime))),
+        bloomFilterFalsePositiveRate = TestData.falsePositiveRate
       ) shouldBe empty
 
       //fromValue is remove but it's not a remove ange
       BloomFilterUtil.initBloomFilter(
-        keyValues = Slice(Transient.Range[Value.FromValue, Value.RangeValue](1, 2, Some(Value.Remove(None)), Value.Update(100))),
-        bloomFilterFalsePositiveRate = 0.1
+        keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, Some(Value.Remove(None, time.nextTime)), Value.update(100))),
+        bloomFilterFalsePositiveRate = TestData.falsePositiveRate
       ) shouldBe defined
     }
   }

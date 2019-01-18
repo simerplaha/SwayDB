@@ -22,19 +22,17 @@ package swaydb.core.level
 import java.nio.file.Path
 
 import swaydb.core.data.KeyValue
-import swaydb.core.level.actor.{LevelAPI, LevelActorAPI}
+import swaydb.core.level.actor.LevelAPI
 import swaydb.core.segment.Segment
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.slice.Slice
 
-import scala.concurrent.duration.FiniteDuration
 import scala.util.Try
 
-private[core] trait LevelRef extends LevelActorAPI {
-  val paths: PathsDistributor
-  val throttle: LevelMeter => Throttle
+private[core] trait LevelRef {
+  def paths: PathsDistributor
 
-  val hasTimeLeftAtLeast: FiniteDuration
+  def throttle: LevelMeter => Throttle
 
   def releaseLocks: Try[Unit]
 
@@ -69,9 +67,9 @@ private[core] trait LevelRef extends LevelActorAPI {
 
   def higher(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Put]]
 
-  def firstKey: Option[Slice[Byte]]
+  def headKey: Try[Option[Slice[Byte]]]
 
-  def lastKey: Option[Slice[Byte]]
+  def lastKey: Try[Option[Slice[Byte]]]
 
   def bloomFilterKeyValueCount: Try[Int]
 
@@ -110,6 +108,8 @@ private[core] trait LevelRef extends LevelActorAPI {
   def meter: LevelMeter
 
   def meterFor(levelNumber: Int): Option[LevelMeter]
+
+  def levelNumber: Long
 
   def isTrash: Boolean
 

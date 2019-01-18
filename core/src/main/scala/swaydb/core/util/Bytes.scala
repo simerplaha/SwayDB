@@ -19,13 +19,12 @@
 
 package swaydb.core.util
 
+import scala.util.{Success, Try}
 import swaydb.core.data.KeyValue
 import swaydb.core.io.reader.Reader
+import swaydb.core.util.PipeOps._
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteUtil
-
-import scala.util.{Success, Try}
-import PipeOps._
 
 private[swaydb] object Bytes {
 
@@ -76,6 +75,13 @@ private[swaydb] object Bytes {
         _ =>
           Done
       }
+
+  def compressExact(previous: Slice[Byte],
+                    next: Slice[Byte]): Option[Done] =
+    if (previous.size != next.size)
+      None
+    else
+      compressFull(previous, next)
 
   def decompress(previous: Slice[Byte],
                  next: Slice[Byte],
@@ -161,7 +167,6 @@ private[swaydb] object Bytes {
       compressedSlice addAll ByteUtil.writeUnsignedIntReversed(left.size) //store key1's byte size to the end to allow further merges with other keys.
       compressedSlice addAll tail
     }
-
   }
 
   def decompressJoin(bytes: Slice[Byte]): Try[(Slice[Byte], Slice[Byte])] =

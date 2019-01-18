@@ -20,21 +20,24 @@
 package swaydb.core.data
 
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.core.CommonAssertions
+import swaydb.core.{TestData, TestTimeGenerator}
+import swaydb.core.TestData._
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
-class TransientSpec extends WordSpec with Matchers with CommonAssertions {
+class TransientSpec extends WordSpec with Matchers {
 
   val keyValueCount = 100
 
+  implicit def timeGenerator: TestTimeGenerator = TestTimeGenerator.random
+
   "Transient" should {
     "be iterable" in {
-      val one = Transient.Remove(1)
-      val two = Transient.Remove(2, 0.1, Some(one))
-      val three = Transient.Put(key = 3, value = Some(3), falsePositiveRate = 0.1, previousMayBe = Some(two))
-      val four = Transient.Remove(4, 0.1, Some(three))
-      val five = Transient.Put(key = 5, value = Some(5), falsePositiveRate = 0.1, previousMayBe = Some(four))
+      val one = Transient.remove(1)
+      val two = Transient.remove(2, TestData.falsePositiveRate, Some(one))
+      val three = Transient.put(key = 3, value = Some(3), falsePositiveRate = TestData.falsePositiveRate, previousMayBe = Some(two))
+      val four = Transient.remove(4, TestData.falsePositiveRate, Some(three))
+      val five = Transient.put(key = 5, value = Some(5), falsePositiveRate = TestData.falsePositiveRate, previousMayBe = Some(four))
 
       five.reverseIterator.toList should contain inOrderOnly(five, four, three, two, one)
     }

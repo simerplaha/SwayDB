@@ -19,11 +19,12 @@
 
 package swaydb
 
-import swaydb.core.TestBase
-
 import scala.annotation.tailrec
 import scala.concurrent.Future
 import scala.concurrent.duration._
+import swaydb.core.RunThis._
+import swaydb.core.TestBase
+import swaydb.core.TryAssert._
 
 trait TestBaseEmbedded extends TestBase {
 

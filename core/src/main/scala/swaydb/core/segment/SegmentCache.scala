@@ -19,25 +19,23 @@
 
 package swaydb.core.segment
 
-import java.util.concurrent.ConcurrentSkipListMap
-import java.util.concurrent.atomic.AtomicBoolean
-
 import bloomfilter.mutable.BloomFilter
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.data.{Persistent, _}
-import swaydb.core.queue.KeyValueLimiter
-import swaydb.core.segment.format.one.SegmentReader._
-import swaydb.core.segment.format.one.{KeyMatcher, SegmentFooter, SegmentReader}
-import swaydb.core.util._
-import swaydb.data.segment.MaxKey
-import swaydb.data.segment.MaxKey.{Fixed, Range}
-import swaydb.data.slice.{Reader, Slice}
-
+import java.util.concurrent.ConcurrentSkipListMap
+import java.util.concurrent.atomic.AtomicBoolean
 import scala.annotation.tailrec
 import scala.util.{Failure, Success, Try}
+import swaydb.core.data.{Persistent, _}
+import swaydb.core.queue.KeyValueLimiter
+import swaydb.core.segment.format.a.SegmentReader._
+import swaydb.core.segment.format.a.{KeyMatcher, SegmentFooter, SegmentReader}
+import swaydb.core.util._
+import swaydb.data.order.KeyOrder
+import swaydb.data.repairAppendix.MaxKey
+import swaydb.data.slice.{Reader, Slice}
 
 private[core] class SegmentCacheInitializer(id: String,
-                                            maxKey: MaxKey,
+                                            maxKey: MaxKey[Slice[Byte]],
                                             minKey: Slice[Byte],
                                             unsliceKey: Boolean,
                                             getFooter: () => Try[SegmentFooter],
@@ -46,7 +44,7 @@ private[core] class SegmentCacheInitializer(id: String,
   @volatile private var cache: SegmentCache = _
 
   @tailrec
-  final def segmentCache(implicit ordering: Ordering[Slice[Byte]],
+  final def segmentCache(implicit keyOrder: KeyOrder[Slice[Byte]],
                          keyValueLimiter: KeyValueLimiter): SegmentCache =
     if (cache != null) {
       cache
@@ -56,7 +54,7 @@ private[core] class SegmentCacheInitializer(id: String,
           id = id,
           maxKey = maxKey,
           minKey = minKey,
-          cache = new ConcurrentSkipListMap[Slice[Byte], Persistent](ordering),
+          cache = new ConcurrentSkipListMap[Slice[Byte], Persistent](keyOrder),
           unsliceKey = unsliceKey,
           getFooter = getFooter,
           createReader = createReader
@@ -68,24 +66,24 @@ private[core] class SegmentCacheInitializer(id: String,
 }
 
 private[core] class SegmentCache(id: String,
-                                 maxKey: MaxKey,
+                                 maxKey: MaxKey[Slice[Byte]],
                                  minKey: Slice[Byte],
                                  cache: ConcurrentSkipListMap[Slice[Byte], Persistent],
                                  unsliceKey: Boolean,
                                  getFooter: () => Try[SegmentFooter],
-                                 createReader: () => Try[Reader])(implicit ordering: Ordering[Slice[Byte]],
+                                 createReader: () => Try[Reader])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                   keyValueLimiter: KeyValueLimiter) extends LazyLogging {
 
-  import ordering._
+  import keyOrder._
 
   private def addToCache(keyValue: Persistent.SegmentResponse): Unit = {
-    if (unsliceKey) keyValue.unsliceKey
+    if (unsliceKey) keyValue.unsliceIndexBytes
     cache.put(keyValue.key, keyValue)
     keyValueLimiter.add(keyValue, cache)
   }
 
   private def addToCache(group: Persistent.Group): Try[Unit] = {
-    if (unsliceKey) group.unsliceKey
+    if (unsliceKey) group.unsliceIndexBytes
     keyValueLimiter.add(group, cache) map {
       _ =>
         cache.put(group.key, group)
@@ -116,10 +114,10 @@ private[core] class SegmentCache(id: String,
 
   def get(key: Slice[Byte]): Try[Option[Persistent.SegmentResponse]] =
     maxKey match {
-      case Fixed(maxKey) if key > maxKey =>
+      case MaxKey.Fixed(maxKey) if key > maxKey =>
         TryUtil.successNone
 
-      case range: Range if key >= range.maxKey =>
+      case range: MaxKey.Range[Slice[Byte]] if key >= range.maxKey =>
         TryUtil.successNone
 
       //check for minKey inside the Segment is not required since Levels already do minKey check.
@@ -183,10 +181,10 @@ private[core] class SegmentCache(id: String,
       TryUtil.successNone
     else
       maxKey match {
-        case Fixed(maxKey) if key > maxKey =>
+        case MaxKey.Fixed(maxKey) if key > maxKey =>
           get(maxKey)
 
-        case Range(fromKey, _) if key > fromKey =>
+        case MaxKey.Range(fromKey, _) if key > fromKey =>
           get(fromKey)
 
         case _ =>
@@ -240,10 +238,10 @@ private[core] class SegmentCache(id: String,
 
   def higher(key: Slice[Byte]): Try[Option[Persistent.SegmentResponse]] =
     maxKey match {
-      case Fixed(maxKey) if key >= maxKey =>
+      case MaxKey.Fixed(maxKey) if key >= maxKey =>
         TryUtil.successNone
 
-      case Range(_, maxKey) if key >= maxKey =>
+      case MaxKey.Range(_, maxKey) if key >= maxKey =>
         TryUtil.successNone
 
       case _ =>
@@ -298,6 +296,9 @@ private[core] class SegmentCache(id: String,
 
   def hasRange: Try[Boolean] =
     getFooter().map(_.hasRange)
+
+  def hasPut: Try[Boolean] =
+    getFooter().map(_.hasPut)
 
   def isCacheEmpty =
     cache.isEmpty()

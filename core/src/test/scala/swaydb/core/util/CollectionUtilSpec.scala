@@ -26,7 +26,7 @@ import swaydb.data.slice.Slice
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
-class CollectionUtilSpec extends WordSpec with Matchers with TryAssert {
+class CollectionUtilSpec extends WordSpec with Matchers {
 
   "foreachBreak" should {
     "exit on break" in {

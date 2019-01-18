@@ -25,14 +25,16 @@ import java.util.concurrent.ConcurrentLinkedQueue
 import org.scalatest.Matchers
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatest.time.Span._
-import swaydb.core.FutureBase
 import swaydb.core.util.Delay
+import swaydb.core.TestData._
+import swaydb.core.CommonAssertions._
+import swaydb.core.RunThis._
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.reflect.ClassTag
 
-case class TestActor[T](implicit ec: ExecutionContext) extends Actor[T, Unit]((), (_, _) => None, None) with Eventually with Matchers with ScalaFutures with FutureBase {
+case class TestActor[T](implicit ec: ExecutionContext) extends Actor[T, Unit]((), (_, _) => None, None) with Eventually with Matchers with ScalaFutures {
 
   private val queue = new ConcurrentLinkedQueue[T]
 

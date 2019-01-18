@@ -56,6 +56,8 @@ private[swaydb] sealed trait ActorRef[-T] {
   def messageCount: Int
 
   def clearMessages(): Unit
+
+  def terminate(): Unit
 }
 
 private[swaydb] object Actor {
@@ -138,6 +140,7 @@ private[swaydb] class Actor[T, +S](val state: S,
 
   private val busy = new AtomicBoolean(false)
   private val queue = new ConcurrentLinkedQueue[T]
+  @volatile private var terminated = false
 
   val maxMessagesToProcessAtOnce = 10000
   //if initial delay is defined this actor will keep checking for messages at
@@ -146,10 +149,11 @@ private[swaydb] class Actor[T, +S](val state: S,
   //if initial detail is defined, trigger processMessages() to start the timer loop.
   if (continueIfEmpty) processMessages()
 
-  override def !(message: T): Unit = {
-    queue offer message
-    processMessages()
-  }
+  override def !(message: T): Unit =
+    if (!terminated) {
+      queue offer message
+      processMessages()
+    }
 
   override def clearMessages(): Unit =
     queue.clear()
@@ -165,6 +169,11 @@ private[swaydb] class Actor[T, +S](val state: S,
 
   override def submit(message: T): Unit =
     queue offer message
+
+  override def terminate(): Unit = {
+    logger.debug(s"${this.getClass.getSimpleName} terminated.")
+    terminated = true
+  }
 
   private def processMessages(): Unit =
     if ((continueIfEmpty || !queue.isEmpty) && busy.compareAndSet(false, true))
@@ -182,7 +191,7 @@ private[swaydb] class Actor[T, +S](val state: S,
   private def receive(max: Int): Unit = {
     var processed = 0
     try {
-      while (processed < max) {
+      while (!terminated && processed < max) {
         val message = queue.poll
         if (message != null) {
           Try(execution(message, self))

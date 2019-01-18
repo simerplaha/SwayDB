@@ -20,7 +20,7 @@
 package swaydb.core.group.compression.data
 
 import swaydb.compression.DecompressorInternal
-import swaydb.core.segment.format.one.SegmentFooter
+import swaydb.core.segment.format.a.SegmentFooter
 
 private[core] case class ValueInfo(valuesDecompressor: DecompressorInternal,
                                    valuesDecompressedLength: Int,
@@ -28,6 +28,7 @@ private[core] case class ValueInfo(valuesDecompressor: DecompressorInternal,
 
 private[core] case class GroupHeader(headerSize: Int,
                                      hasRange: Boolean,
+                                     hasPut: Boolean,
                                      indexDecompressor: DecompressorInternal,
                                      keyValueCount: Int,
                                      indexCompressedLength: Int,
@@ -45,6 +46,7 @@ private[core] case class GroupHeader(headerSize: Int,
       endIndexOffset = decompressedEndIndexOffset,
       keyValueCount = keyValueCount,
       hasRange = hasRange,
+      hasPut = hasPut,
       bloomFilterItemsCount = bloomFilterItemsCount,
       bloomFilter = None
     )

@@ -21,24 +21,28 @@ package swaydb.core.segment.merge
 
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.core.data.{KeyValue, Memory, Value}
-import swaydb.core.{CommonAssertions, TestData}
+import swaydb.core.{CommonAssertions, TestData, TestTimeGenerator}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
-
 import scala.collection.mutable.ListBuffer
 import scala.util.Random
+import swaydb.core.TestData._
+import swaydb.core.CommonAssertions._
+import swaydb.core.RunThis._
 
-class MergeListStressSpec extends WordSpec with Matchers with CommonAssertions with TestData {
+class MergeListStressSpec extends WordSpec with Matchers {
+
+  implicit def timeGenerator: TestTimeGenerator = TestTimeGenerator.random
 
   implicit def toPut(key: Int): Memory.Put =
-    Memory.Put(key)
+    Memory.put(key)
 
   "MergeList" should {
     "stress" in {
       val initialKeyValues = Slice[KeyValue.ReadOnly](1, 2, 3)
-      var list = MergeList(initialKeyValues)
-      val range = Memory.Range(1, 2, None, Value.Update(1))
+      var list = MergeList[KeyValue.ReadOnly.Range, KeyValue.ReadOnly](initialKeyValues)
+      val range = Memory.Range(1, 2, None, Value.update(1))
 
       val stateExpected = ListBuffer.empty[KeyValue.ReadOnly] ++ initialKeyValues
 

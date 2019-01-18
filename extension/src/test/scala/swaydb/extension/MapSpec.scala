@@ -23,14 +23,18 @@ import swaydb.core.TestBase
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.{Batch, SwayDB, TestBaseEmbedded}
-
+import swaydb.core.TryAssert._
+import swaydb.core.CommonAssertions._
+import swaydb.core.RunThis._
 import scala.concurrent.duration._
+import swaydb.data.order.KeyOrder
+import swaydb.data.slice.Slice
 
 class MapSpec0 extends MapSpec {
   val keyValueCount: Int = 1000
 
   override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
-    SwayDB.persistent[Key[Int], Option[String]](dir = randomDir, minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration).assertGet.extend.assertGet
+    SwayDB.persistent[Key[Int], Option[String]](dir = randomDir).assertGet.extend.assertGet
 }
 
 class MapSpec1 extends MapSpec {
@@ -38,7 +42,7 @@ class MapSpec1 extends MapSpec {
   val keyValueCount: Int = 10000
 
   override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
-    SwayDB.persistent[Key[Int], Option[String]](randomDir, mapSize = 1.byte, minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration).assertGet.extend.assertGet
+    SwayDB.persistent[Key[Int], Option[String]](randomDir, mapSize = 1.byte).assertGet.extend.assertGet
 }
 
 class MapSpec2 extends MapSpec {
@@ -46,14 +50,14 @@ class MapSpec2 extends MapSpec {
   val keyValueCount: Int = 100000
 
   override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
-    SwayDB.memory[Key[Int], Option[String]](mapSize = 1.byte, minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration).assertGet.extend.assertGet
+    SwayDB.memory[Key[Int], Option[String]](mapSize = 1.byte).assertGet.extend.assertGet
 }
 
 class MapSpec3 extends MapSpec {
   val keyValueCount: Int = 100000
 
   override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
-    SwayDB.memory[Key[Int], Option[String]](minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration).assertGet.extend.assertGet
+    SwayDB.memory[Key[Int], Option[String]]().assertGet.extend.assertGet
 }
 
 sealed trait MapSpec extends TestBase with TestBaseEmbedded {
@@ -63,6 +67,7 @@ sealed trait MapSpec extends TestBase with TestBaseEmbedded {
   def newDB(minTimeLeftToUpdateExpiration: FiniteDuration = 10.seconds): Map[Int, String]
 
   implicit val mapKeySerializer = Key.serializer(IntSerializer)
+  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
 
   "Extend" should {
     "initialise a rootMap" in {

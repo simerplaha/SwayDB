@@ -19,36 +19,42 @@
 
 package swaydb.core.map
 
-import swaydb.core.TestBase
+import swaydb.core.{TestBase, TestTimeGenerator}
 import swaydb.core.data.{Memory, Value}
 import swaydb.core.io.file.IO
-import swaydb.core.level.zero.LevelZeroSkipListMerge
+import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.util.Benchmark
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.config.RecoveryMode
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
-import swaydb.order.KeyOrder
+import swaydb.data.order.{KeyOrder, TimeOrder}
 import scala.concurrent.duration._
+import swaydb.core.TestData._
+import swaydb.core.CommonAssertions._
+import swaydb.core.RunThis._
+import swaydb.core.TryAssert._
 
 class MapsPerformanceSpec extends TestBase with Benchmark {
 
-  override implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
+  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
+  implicit def timeGenerator: TestTimeGenerator = TestTimeGenerator.random
+  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
 
   import swaydb.core.map.serializer.LevelZeroMapEntryReader._
   import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
-  implicit val skipListMerger = LevelZeroSkipListMerge(10.seconds)
+  implicit val skipListMerger = LevelZeroSkipListMerger
 
   "Maps" should {
     "write key values" in {
       //      val keyValues = randomIntKeyValues(2000000)
-      val keyValues = randomIntKeyValues(2000)
+      val keyValues = randomKeyValues(2000)
 
       def testWrite(maps: Maps[Slice[Byte], Memory.SegmentResponse]) =
         keyValues foreach {
           keyValue =>
             maps.write {
-              MapEntry.Put[Slice[Byte], Memory.Put](keyValue.key, Memory.Put(keyValue.key, keyValue.getOrFetchValue.assertGetOpt))(Level0PutWriter)
+              MapEntry.Put[Slice[Byte], Memory.Put](keyValue.key, Memory.put(keyValue.key, keyValue.getOrFetchValue))(Level0PutWriter)
             }.assertGet
         }
 

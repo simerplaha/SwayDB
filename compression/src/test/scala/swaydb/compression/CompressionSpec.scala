@@ -24,10 +24,11 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import TryAssert._
 
 import scala.util.Random
 
-class CompressionSpec extends WordSpec with Matchers with TryAssert {
+class CompressionSpec extends WordSpec with Matchers {
 
   def assertSuccessfulCompression(compression: CompressionInternal) = {
     val string = "12345-12345-12345-12345" * Math.abs(Random.nextInt(99) + 1)

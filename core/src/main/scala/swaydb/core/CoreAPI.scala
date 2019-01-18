@@ -21,10 +21,14 @@ package swaydb.core
 
 import swaydb.core.data.KeyValue._
 import swaydb.core.data.Memory
+import swaydb.core.function.FunctionStore
+import swaydb.core.level.zero.LevelZero
 import swaydb.core.map.MapEntry
+import swaydb.core.util.TryUtil
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.config.SwayDBConfig
+import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
 import scala.concurrent.ExecutionContext
@@ -38,7 +42,9 @@ private[swaydb] object CoreAPI {
             cacheSize: Long,
             cacheCheckDelay: FiniteDuration,
             segmentsOpenCheckDelay: FiniteDuration)(implicit ec: ExecutionContext,
-                                                           ordering: Ordering[Slice[Byte]]): Try[CoreAPI] =
+                                                    keyOrder: KeyOrder[Slice[Byte]],
+                                                    timeOrder: TimeOrder[Slice[Byte]],
+                                                    functionStore: FunctionStore): Try[CoreAPI] =
     DBInitializer(
       config = config,
       maxSegmentsOpen = maxOpenSegments,
@@ -48,71 +54,156 @@ private[swaydb] object CoreAPI {
     )
 }
 
-private[swaydb] trait CoreAPI {
+private[swaydb] case class CoreAPI(zero: LevelZero) {
 
-  def put(key: Slice[Byte]): Try[Level0Meter]
+  def put(key: Slice[Byte]): Try[Level0Meter] =
+    zero.put(key)
 
-  def put(key: Slice[Byte], value: Slice[Byte]): Try[Level0Meter]
+  def put(key: Slice[Byte], value: Slice[Byte]): Try[Level0Meter] =
+    zero.put(key, value)
 
-  def put(key: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter]
+  def put(key: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter] =
+    zero.put(key, value)
 
-  def put(key: Slice[Byte], value: Option[Slice[Byte]], removeAt: Deadline): Try[Level0Meter]
+  def put(key: Slice[Byte], value: Option[Slice[Byte]], removeAt: Deadline): Try[Level0Meter] =
+    zero.put(key, value, removeAt)
 
-  def put(entry: MapEntry[Slice[Byte], Memory.SegmentResponse]): Try[Level0Meter]
+  def put(entry: MapEntry[Slice[Byte], Memory.SegmentResponse]): Try[Level0Meter] =
+    zero.put(entry)
 
-  def remove(key: Slice[Byte]): Try[Level0Meter]
+  def remove(key: Slice[Byte]): Try[Level0Meter] =
+    zero.remove(key)
 
-  def remove(key: Slice[Byte], at: Deadline): Try[Level0Meter]
+  def remove(key: Slice[Byte], at: Deadline): Try[Level0Meter] =
+    zero.remove(key, at)
 
-  def remove(fromKey: Slice[Byte], to: Slice[Byte]): Try[Level0Meter]
+  def remove(fromKey: Slice[Byte], to: Slice[Byte]): Try[Level0Meter] =
+    zero.remove(fromKey, to)
 
-  def remove(fromKey: Slice[Byte], to: Slice[Byte], at: Deadline): Try[Level0Meter]
+  def remove(fromKey: Slice[Byte], to: Slice[Byte], at: Deadline): Try[Level0Meter] =
+    zero.remove(fromKey, to, at)
 
-  def update(key: Slice[Byte], value: Slice[Byte]): Try[Level0Meter]
+  def update(key: Slice[Byte], value: Slice[Byte]): Try[Level0Meter] =
+    zero.update(key, value)
 
-  def update(key: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter]
+  def update(key: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter] =
+    zero.update(key, value)
 
-  def update(fromKey: Slice[Byte], to: Slice[Byte], value: Slice[Byte]): Try[Level0Meter]
+  def update(fromKey: Slice[Byte], to: Slice[Byte], value: Slice[Byte]): Try[Level0Meter] =
+    zero.update(fromKey, to, value)
 
-  def update(fromKey: Slice[Byte], to: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter]
+  def update(fromKey: Slice[Byte], to: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter] =
+    zero.update(fromKey, to, value)
 
-  def head: Try[Option[KeyValueTuple]]
+  def head: Try[Option[KeyValueTuple]] =
+    zero.head flatMap {
+      result =>
+        result map {
+          response =>
+            response.getOrFetchValue map {
+              result =>
+                Some(response.key, result)
+            }
+        } getOrElse TryUtil.successNone
+    }
 
-  def headKey: Try[Option[Slice[Byte]]]
 
-  def last: Try[Option[KeyValueTuple]]
+  def headKey: Try[Option[Slice[Byte]]] =
+    zero.headKey
 
-  def lastKey: Try[Option[Slice[Byte]]]
+  def last: Try[Option[KeyValueTuple]] =
+    zero.last flatMap {
+      result =>
+        result map {
+          response =>
+            response.getOrFetchValue map {
+              result =>
+                Some(response.key, result)
+            }
+        } getOrElse TryUtil.successNone
+    }
 
-  def bloomFilterKeyValueCount: Try[Int]
+  def lastKey: Try[Option[Slice[Byte]]] =
+    zero.lastKey
 
-  def deadline(key: Slice[Byte]): Try[Option[Deadline]]
+  def bloomFilterKeyValueCount: Try[Int] =
+    zero.bloomFilterKeyValueCount
 
-  def sizeOfSegments: Long
+  def deadline(key: Slice[Byte]): Try[Option[Deadline]] =
+    zero.deadline(key)
 
-  def contains(key: Slice[Byte]): Try[Boolean]
+  def sizeOfSegments: Long =
+    zero.sizeOfSegments
 
-  def mightContain(key: Slice[Byte]): Try[Boolean]
+  def contains(key: Slice[Byte]): Try[Boolean] =
+    zero.contains(key)
 
-  def get(key: Slice[Byte]): Try[Option[Option[Slice[Byte]]]]
+  def mightContain(key: Slice[Byte]): Try[Boolean] =
+    zero.mightContain(key)
 
-  def getKey(key: Slice[Byte]): Try[Option[Slice[Byte]]]
+  def get(key: Slice[Byte]): Try[Option[Option[Slice[Byte]]]] =
+    zero.get(key) flatMap {
+      result =>
+        result map {
+          response =>
+            response.getOrFetchValue map {
+              result =>
+                Some(result)
+            }
+        } getOrElse TryUtil.successNone
+    }
 
-  def getKeyValue(key: Slice[Byte]): Try[Option[KeyValueTuple]]
+  def getKey(key: Slice[Byte]): Try[Option[Slice[Byte]]] =
+    zero.getKey(key)
 
-  def valueSize(key: Slice[Byte]): Try[Option[Int]]
+  def getKeyValue(key: Slice[Byte]): Try[Option[KeyValueTuple]] =
+    zero.get(key) flatMap {
+      result =>
+        result map {
+          response =>
+            response.getOrFetchValue map {
+              result =>
+                Some(response.key, result)
+            }
+        } getOrElse TryUtil.successNone
+    }
 
-  def beforeKey(key: Slice[Byte]): Try[Option[Slice[Byte]]]
+  def before(key: Slice[Byte]): Try[Option[KeyValueTuple]] =
+    zero.lower(key) flatMap {
+      result =>
+        result map {
+          response =>
+            response.getOrFetchValue map {
+              result =>
+                Some(response.key, result)
+            }
+        } getOrElse TryUtil.successNone
+    }
 
-  def before(key: Slice[Byte]): Try[Option[KeyValueTuple]]
+  def beforeKey(key: Slice[Byte]): Try[Option[Slice[Byte]]] =
+    zero.lower(key).map(_.map(_.key))
 
-  def afterKey(key: Slice[Byte]): Try[Option[Slice[Byte]]]
+  def after(key: Slice[Byte]): Try[Option[KeyValueTuple]] =
+    zero.higher(key) flatMap {
+      result =>
+        result map {
+          response =>
+            response.getOrFetchValue map {
+              result =>
+                Some(response.key, result)
+            }
+        } getOrElse TryUtil.successNone
+    }
 
-  def after(key: Slice[Byte]): Try[Option[KeyValueTuple]]
+  def afterKey(key: Slice[Byte]): Try[Option[Slice[Byte]]] =
+    zero.higher(key).map(_.map(_.key))
 
-  def level0Meter: Level0Meter
+  def valueSize(key: Slice[Byte]): Try[Option[Int]] =
+    zero.valueSize(key)
 
-  def level1Meter: LevelMeter
+  def level0Meter: Level0Meter =
+    zero.level0Meter
 
-  def levelMeter(levelNumber: Int): Option[LevelMeter]
+  def levelMeter(levelNumber: Int): Option[LevelMeter] =
+    zero.levelMeter(levelNumber)
 }

@@ -42,11 +42,11 @@ private[core] object MinMax {
       case (Some(key1), Some(key2)) =>
         Some(condition(key1, key2))
 
-      case (left @ Some(key1), None) =>
+      case (left @ Some(_), None) =>
         left
-      case (None, right @ Some(key2)) =>
+      case (None, right @ Some(_)) =>
         right
-      case _ =>
+      case (None, None) =>
         None
     }
 

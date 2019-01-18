@@ -19,22 +19,21 @@
 
 package swaydb.core.map
 
+import com.typesafe.scalalogging.LazyLogging
 import java.nio.file.Path
 import java.util.concurrent.ConcurrentSkipListMap
 import java.util.function.BiConsumer
-
-import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
-import swaydb.core.util.TryUtil
-import swaydb.core.util.TryUtil.tryOrNone
-import swaydb.data.slice.Slice
-import swaydb.data.util.StorageUnits._
-
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 import scala.concurrent.ExecutionContext
 import scala.reflect.ClassTag
 import scala.util.Try
+import swaydb.core.function.FunctionStore
+import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
+import swaydb.core.util.TryUtil.tryOrNone
+import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.data.slice.Slice
+import swaydb.data.util.StorageUnits._
 
 private[core] object Map extends LazyLogging {
 
@@ -42,29 +41,35 @@ private[core] object Map extends LazyLogging {
                                  mmap: Boolean,
                                  flushOnOverflow: Boolean,
                                  fileSize: Long,
-                                 dropCorruptedTailEntries: Boolean)(implicit ordering: Ordering[K],
+                                 dropCorruptedTailEntries: Boolean)(implicit keyOrder: KeyOrder[K],
+                                                                    timeOrder: TimeOrder[Slice[Byte]],
+                                                                    functionStore: FunctionStore,
                                                                     ec: ExecutionContext,
                                                                     writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                     reader: MapEntryReader[MapEntry[K, V]],
-                                                                    skipListMerge: SkipListMerge[K, V]): Try[RecoveryResult[PersistentMap[K, V]]] =
+                                                                    skipListMerge: SkipListMerger[K, V]): Try[RecoveryResult[PersistentMap[K, V]]] =
     PersistentMap(folder, mmap, flushOnOverflow, fileSize, dropCorruptedTailEntries)
 
   def persistent[K, V: ClassTag](folder: Path,
                                  mmap: Boolean,
                                  flushOnOverflow: Boolean,
-                                 fileSize: Long)(implicit ordering: Ordering[K],
+                                 fileSize: Long)(implicit keyOrder: KeyOrder[K],
+                                                 timeOrder: TimeOrder[Slice[Byte]],
+                                                 functionStore: FunctionStore,
                                                  ec: ExecutionContext,
                                                  reader: MapEntryReader[MapEntry[K, V]],
                                                  writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                 skipListMerger: SkipListMerge[K, V]): Try[PersistentMap[K, V]] =
+                                                 skipListMerger: SkipListMerger[K, V]): Try[PersistentMap[K, V]] =
     PersistentMap(folder, mmap, flushOnOverflow, fileSize)
 
   def memory[K, V: ClassTag](fileSize: Long = 0.byte,
-                             flushOnOverflow: Boolean = true)(implicit ordering: Ordering[K],
-                                                              skipListMerge: SkipListMerge[K, V],
+                             flushOnOverflow: Boolean = true)(implicit keyOrder: KeyOrder[K],
+                                                              timeOrder: TimeOrder[Slice[Byte]],
+                                                              functionStore: FunctionStore,
+                                                              skipListMerge: SkipListMerger[K, V],
                                                               writer: MapEntryWriter[MapEntry.Put[K, V]]): MemoryMap[K, V] =
     new MemoryMap[K, V](
-      skipList = new ConcurrentSkipListMap[K, V](ordering),
+      skipList = new ConcurrentSkipListMap[K, V](keyOrder),
       flushOnOverflow = flushOnOverflow,
       fileSize = fileSize
     )
@@ -151,7 +156,7 @@ private[core] trait Map[K, V] {
   def keys() =
     skipList.keySet()
 
-  def get(key: K)(implicit ordering: Ordering[K]): Option[V] =
+  def get(key: K)(implicit keyOrder: KeyOrder[K]): Option[V] =
     Option(skipList.get(key))
 
   def take(count: Int): Slice[V] = {
@@ -195,8 +200,7 @@ private[core] trait Map[K, V] {
   def pathOption: Option[Path] =
     None
 
-  def close(): Try[Unit] =
-    TryUtil.successUnit
+  def close(): Try[Unit]
 
   def fileId: Try[Long] =
     scala.util.Success(0)

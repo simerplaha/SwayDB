@@ -20,6 +20,7 @@
 package swaydb.core.util
 
 import bloomfilter.mutable.BloomFilter
+import swaydb.core.TestData
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default.LongSerializer
 import swaydb.core.util.BloomFilterUtil._
@@ -36,7 +37,7 @@ object BloomFilterMemoryUsage extends App {
         LongSerializer.write(key)
     }
 
-  val bloomFilter = BloomFilter[Slice[Byte]](1000000, 0.1)
+  val bloomFilter = BloomFilter[Slice[Byte]](1000000, TestData.falsePositiveRate)
   keys.foreach(bloomFilter.add)
 
 

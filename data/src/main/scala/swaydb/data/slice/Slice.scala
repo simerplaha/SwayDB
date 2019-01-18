@@ -22,14 +22,15 @@ package swaydb.data.slice
 import java.io.ByteArrayInputStream
 import java.nio.ByteBuffer
 import java.nio.charset.{Charset, StandardCharsets}
-
-import swaydb.data.util.{ByteSizeOf, ByteUtil}
-
 import scala.annotation.tailrec
 import scala.collection.generic.CanBuildFrom
 import scala.collection.{IterableLike, mutable}
 import scala.reflect.ClassTag
 import scala.util.Try
+import scala.util.hashing.MurmurHash3
+import swaydb.data.order.KeyOrder
+import swaydb.data.repairAppendix.MaxKey
+import swaydb.data.util.{ByteSizeOf, ByteUtil}
 
 /**
   *
@@ -40,9 +41,9 @@ object Slice {
   def empty[T: ClassTag] =
     Slice.create[T](0)
 
-  val emptyNothing = Slice.create[Nothing](0)
-
   val emptyBytes = Slice.create[Byte](0)
+
+  val someEmptyBytes = Some(emptyBytes)
 
   def fill[T: ClassTag](length: Int)(elem: => T): Slice[T] =
     new Slice(Array.fill(length)(elem), fromOffset = 0, toOffset = if (length == 0) -1 else length - 1, length)
@@ -81,6 +82,20 @@ object Slice {
                     range2: (Slice[T], Slice[T]))(implicit ordering: Ordering[Slice[T]]): Boolean =
     intersects((range1._1, range1._2, true), (range2._1, range2._2, true))
 
+  def within(key: Slice[Byte],
+             minKey: Slice[Byte],
+             maxKey: MaxKey[Slice[Byte]])(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean = {
+    import keyOrder._
+    key >= minKey && {
+      maxKey match {
+        case swaydb.data.repairAppendix.MaxKey.Fixed(maxKey) =>
+          key <= maxKey
+        case swaydb.data.repairAppendix.MaxKey.Range(_, maxKey) =>
+          key < maxKey
+      }
+    }
+  }
+
   /**
     * Boolean indicates if the toKey is inclusive.
     */
@@ -106,23 +121,6 @@ object Slice {
     check(range1, range2) || check(range2, range1)
   }
 
-  /**
-    * Check if the key falls within the minKey and maxKey range.
-    */
-  def within(key: Slice[Byte],
-             minKey: Slice[Byte],
-             maxKey: swaydb.data.repairAppendix.MaxKey[Slice[Byte]])(implicit ordering: Ordering[Slice[Byte]]): Boolean = {
-    import ordering._
-    key >= minKey && {
-      maxKey match {
-        case swaydb.data.repairAppendix.MaxKey.Fixed(maxKey) =>
-          key <= maxKey
-        case swaydb.data.repairAppendix.MaxKey.Range(_, maxKey) =>
-          key < maxKey
-      }
-    }
-  }
-
   implicit class SlicesImplicits[T: ClassTag](slices: Slice[Slice[T]]) {
     /**
       * Closes this Slice and children Slices which disables
@@ -136,6 +134,27 @@ object Slice {
       }
       newSlices
     }
+  }
+
+  implicit class OptionByteSliceImplicits(slice: Option[Slice[Byte]]) {
+
+    def unslice(): Option[Slice[Byte]] =
+      slice flatMap {
+        slice =>
+          if (slice.isEmpty)
+            None
+          else
+            Some(slice.unslice())
+      }
+  }
+
+  implicit class SeqByteSliceImplicits(slice: Seq[Slice[Byte]]) {
+
+    def unslice(): Seq[Slice[Byte]] =
+      if (slice.isEmpty)
+        slice
+      else
+        slice.map(_.unslice())
   }
 
   /**
@@ -174,7 +193,7 @@ object Slice {
       slice
     }
 
-    def readIntSigned(int: Int): Try[Int] =
+    def readIntSigned(): Try[Int] =
       ByteUtil.readSignedInt(slice)
 
     def addIntUnsigned(int: Int): Slice[Byte] = {
@@ -234,6 +253,11 @@ object Slice {
     }
 
     def addAll(values: Iterable[T]): Slice[T] = {
+      if (values.nonEmpty) slice.insertAll(values)
+      slice
+    }
+
+    def addAllWithSizeIntUnsigned(values: Iterable[T]): Slice[T] = {
       if (values.nonEmpty) slice.insertAll(values)
       slice
     }
@@ -513,6 +537,19 @@ class Slice[+T: ClassTag](array: Array[T],
     }
   }
 
+  def reverse: Iterator[T] = new Iterator[T] {
+    private var position = toOffset min (writePosition - 1)
+
+    override def hasNext: Boolean =
+      position >= fromOffset
+
+    override def next(): T = {
+      val next = array(position)
+      position -= 1
+      next
+    }
+  }
+
   override def filterNot(p: T => Boolean): Slice[T] = {
     val filtered = Slice.create[T](size)
     this.foreach {
@@ -549,5 +586,5 @@ class Slice[+T: ClassTag](array: Array[T],
     }
 
   override def hashCode(): Int =
-    array.hashCode()
+    MurmurHash3.orderedHash(this)
 }

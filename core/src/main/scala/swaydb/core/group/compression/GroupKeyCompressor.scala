@@ -19,13 +19,11 @@
 
 package swaydb.core.group.compression
 
+import scala.util.{Failure, Success, Try}
 import swaydb.core.data.KeyValue
 import swaydb.core.util.Bytes
-import swaydb.data.segment.MaxKey
-import swaydb.data.segment.MaxKey.{Fixed, Range}
+import swaydb.data.repairAppendix.MaxKey
 import swaydb.data.slice.Slice
-
-import scala.util.{Failure, Success, Try}
 
 private[core] object GroupKeyCompressor {
 
@@ -33,7 +31,7 @@ private[core] object GroupKeyCompressor {
     * @return (minKey, maxKey, fullKey)
     */
   def compress(head: Option[KeyValue.WriteOnly],
-               last: KeyValue.WriteOnly): (Slice[Byte], MaxKey, Slice[Byte]) =
+               last: KeyValue.WriteOnly): (Slice[Byte], MaxKey[Slice[Byte]], Slice[Byte]) =
     (head, last) match {
       case (Some(keyValue), fixed: KeyValue.WriteOnly.Fixed) =>
         val fullKey = Bytes.compressJoin(keyValue.key, fixed.key, 0.toByte)
@@ -46,11 +44,11 @@ private[core] object GroupKeyCompressor {
 
       case (Some(keyValue), group: KeyValue.WriteOnly.Group) =>
         group.maxKey match {
-          case fixed @ Fixed(maxKey) =>
+          case fixed @ MaxKey.Fixed(maxKey) =>
             val fullKey = Bytes.compressJoin(keyValue.key, maxKey, 0.toByte)
             (keyValue.key, fixed, fullKey)
 
-          case maxKeyRange @ Range(fromKey, maxKey) =>
+          case maxKeyRange @ MaxKey.Range(fromKey, maxKey) =>
             val maxKeyCompressed = Bytes.compressJoin(fromKey, maxKey)
             val fullKey = Bytes.compressJoin(keyValue.key, maxKeyCompressed, 1.toByte)
             (keyValue.key, maxKeyRange, fullKey)
@@ -67,7 +65,7 @@ private[core] object GroupKeyCompressor {
         (group.minKey, group.maxKey, group.fullKey)
     }
 
-  def decompress(key: Slice[Byte]): Try[(Slice[Byte], MaxKey)] =
+  def decompress(key: Slice[Byte]): Try[(Slice[Byte], MaxKey[Slice[Byte]])] =
     key.lastOption map {
       case 0 =>
         Bytes.decompressJoin(key.dropRight(1)) map {

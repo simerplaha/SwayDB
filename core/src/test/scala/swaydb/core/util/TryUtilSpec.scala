@@ -21,16 +21,27 @@ package swaydb.core.util
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.core.{FutureBase, TryAssert}
-import swaydb.core.util.TryUtil._
-import swaydb.data.slice.Slice
-import swaydb.data.util.ByteSizeOf
-
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
+import swaydb.core.TryAssert._
+import swaydb.core.util.TryUtil._
+import swaydb.data.slice.Slice
+import swaydb.data.util.ByteSizeOf
+import swaydb.core.RunThis._
 
-class TryUtilSpec extends WordSpec with Matchers with MockFactory with FutureBase with TryAssert {
+class TryUtilSpec extends WordSpec with Matchers with MockFactory {
+
+  "Catch" when {
+    "exception" in  {
+      val exception = new Exception("Failed")
+      Catch(throw exception).failed.assertGet shouldBe exception
+    }
+
+    "no exception" in  {
+      Catch(TryUtil.successNone).assertGetOpt shouldBe empty
+    }
+  }
 
   "runInFuture" should {
     "run the try in a new thread" in {
@@ -253,6 +264,16 @@ class TryUtilSpec extends WordSpec with Matchers with MockFactory with FutureBas
       result.failed.get.getMessage shouldBe "Failed at 1"
       iterations shouldBe 1
     }
-
   }
+
+  "tryOrNone" when {
+    "exception" in  {
+      tryOrNone(throw new Exception("Failed")) shouldBe empty
+    }
+
+    "no exception" in  {
+      tryOrNone("success").assertGet shouldBe "success"
+    }
+  }
+
 }

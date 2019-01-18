@@ -20,17 +20,20 @@
 package swaydb.core.level
 
 import org.scalamock.scalatest.MockFactory
-import swaydb.core.TestBase
+import swaydb.core.{TestBase, TestTimeGenerator}
 import swaydb.core.data.{Memory, Persistent, Value}
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.util.Benchmark
 import swaydb.core.util.FileUtil._
 import swaydb.data.compaction.Throttle
 import swaydb.data.slice.Slice
-import swaydb.order.KeyOrder
+import swaydb.data.order.KeyOrder
 import swaydb.serializers.Default._
 import swaydb.serializers._
-
+import swaydb.core.TestData._
+import swaydb.core.CommonAssertions._
+import swaydb.core.RunThis._
+import swaydb.core.TryAssert._
 import scala.concurrent.duration._
 
 class LevelLowerSpec0 extends LevelLowerSpec
@@ -59,8 +62,9 @@ class LevelLowerSpec3 extends LevelLowerSpec {
 
 sealed trait LevelLowerSpec extends TestBase with MockFactory with Benchmark {
 
-  override implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
-  implicit override val groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomCompressionTypeOption(keyValuesCount)
+  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
+  implicit def timeGenerator: TestTimeGenerator = TestTimeGenerator.random
+  implicit val groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(keyValuesCount)
   val keyValuesCount = 100
 
   "Level.lower" should {
@@ -84,7 +88,7 @@ sealed trait LevelLowerSpec extends TestBase with MockFactory with Benchmark {
     }
 
     "return None if the Level contains no lower" in {
-      val keyValues = Slice(Memory.Put(11, "eleven"))
+      val keyValues = Slice(Memory.put(11, "eleven"))
       val level = TestLevel()
       level.putKeyValues(keyValues).assertGet
 
@@ -105,7 +109,7 @@ sealed trait LevelLowerSpec extends TestBase with MockFactory with Benchmark {
     }
 
     "return None if the Level contains lower Remove" in {
-      val keyValues = Slice(Memory.Remove(0))
+      val keyValues = Slice(Memory.remove(0))
       val level = TestLevel(nextLevel = Some(TestLevel()), throttle = (_) => Throttle(Duration.Zero, 0))
       level.putKeyValues(keyValues).assertGet
 
@@ -131,8 +135,8 @@ sealed trait LevelLowerSpec extends TestBase with MockFactory with Benchmark {
       val lowerLevel = TestLevel(nextLevel = Some(TestLevel()), throttle = (_) => Throttle(Duration.Zero, 0))
       val level = TestLevel(nextLevel = Some(lowerLevel), throttle = (_) => Throttle(Duration.Zero, 0))
 
-      level.putKeyValues(Slice(Memory.Remove(1))).assertGet
-      lowerLevel.putKeyValues(Slice(Memory.Remove(2), Memory.Range(5, 10, Some(Value.Remove(None)), Value.Remove(None)))).assertGet
+      level.putKeyValues(Slice(Memory.remove(1))).assertGet
+      lowerLevel.putKeyValues(Slice(Memory.remove(2), Memory.Range(5, 10, Some(Value.remove(None)), Value.remove(None)))).assertGet
 
       def doAssert(level: Level) =
         (10 to 21) foreach {
@@ -155,7 +159,7 @@ sealed trait LevelLowerSpec extends TestBase with MockFactory with Benchmark {
     "return lower if the Level contains lower Put" in {
       val level = TestLevel()
 
-      val keyValues = Slice(Memory.Put(0, "zero"))
+      val keyValues = Slice(Memory.put(0, "zero"))
       level.putKeyValues(keyValues).assertGet
 
       def doAssert(level: Level) = {
@@ -166,11 +170,11 @@ sealed trait LevelLowerSpec extends TestBase with MockFactory with Benchmark {
         else
           lower should be(a[Memory.Put])
 
-        lower shouldBe Memory.Put(0, Some("zero"))
+        lower shouldBe Memory.put(0, Some("zero"))
 
         (1 to 10) foreach {
           key =>
-            level.lower(key).assertGet shouldBe Memory.Put(0, Some("zero"))
+            level.lower(key).assertGet shouldBe Memory.put(0, Some("zero"))
         }
       }
 
@@ -188,7 +192,7 @@ sealed trait LevelLowerSpec extends TestBase with MockFactory with Benchmark {
       //create a Level with lower level so that Range remove does not get deleted
       val level = TestLevel(nextLevel = Some(TestLevel()), throttle = (_) => Throttle(Duration.Zero, 0))
 
-      val keyValues = Slice(Memory.Range(1, 10, None, Value.Remove(None)))
+      val keyValues = Slice(Memory.Range(1, 10, None, Value.remove(None)))
       level.putKeyValues(keyValues).assertGet
       level.segmentsCount() shouldBe 1
 
@@ -212,7 +216,7 @@ sealed trait LevelLowerSpec extends TestBase with MockFactory with Benchmark {
       //create a Level with lower level so that Range remove does not get deleted
       val level = TestLevel(nextLevel = Some(TestLevel()), throttle = (_) => Throttle(Duration.Zero, 0))
 
-      val keyValues = Slice(Memory.Range(1, 10, None, Value.Update(10)))
+      val keyValues = Slice(Memory.Range(1, 10, None, Value.update(10)))
       level.putKeyValues(keyValues).assertGet
       level.segmentsCount() shouldBe 1
 
@@ -239,9 +243,9 @@ sealed trait LevelLowerSpec extends TestBase with MockFactory with Benchmark {
 
       val keyValues =
         Slice(
-          Memory.Remove(1),
-          Memory.Range(2, 10, None, Value.Remove(None)),
-          Memory.Range(10, 15, Some(Value.Remove(None)), Value.Remove(None))
+          Memory.remove(1),
+          Memory.Range(2, 10, None, Value.remove(None)),
+          Memory.Range(10, 15, Some(Value.remove(None)), Value.remove(None))
         )
 
       level.putKeyValues(keyValues).assertGet
@@ -268,9 +272,9 @@ sealed trait LevelLowerSpec extends TestBase with MockFactory with Benchmark {
 
       val keyValues =
         Slice(
-          Memory.Range(2, 10, None, Value.Update(10)),
-          Memory.Range(10, 15, None, Value.Update(15)),
-          Memory.Range(16, 20, None, Value.Update(20))
+          Memory.Range(2, 10, None, Value.update(10)),
+          Memory.Range(10, 15, None, Value.update(15)),
+          Memory.Range(16, 20, None, Value.update(20))
         )
 
       level.putKeyValues(keyValues).assertGet
@@ -297,13 +301,13 @@ sealed trait LevelLowerSpec extends TestBase with MockFactory with Benchmark {
 
       val keyValues =
         Slice(
-          Memory.Remove(1),
-          Memory.Range(2, 10, None, Value.Remove(None)),
-          Memory.Range(10, 20, Some(Value.Remove(None)), Value.Update(10)),
-          Memory.Range(25, 30, None, Value.Remove(None)),
-          Memory.Remove(30),
-          Memory.Range(31, 35, None, Value.Update(30)),
-          Memory.Range(40, 45, Some(Value.Remove(None)), Value.Remove(None))
+          Memory.remove(1),
+          Memory.Range(2, 10, None, Value.remove(None)),
+          Memory.Range(10, 20, Some(Value.remove(None)), Value.update(10)),
+          Memory.Range(25, 30, None, Value.remove(None)),
+          Memory.remove(30),
+          Memory.Range(31, 35, None, Value.update(30)),
+          Memory.Range(40, 45, Some(Value.remove(None)), Value.remove(None))
         )
 
       level.putKeyValues(keyValues).assertGet
@@ -332,14 +336,14 @@ sealed trait LevelLowerSpec extends TestBase with MockFactory with Benchmark {
 
       val keyValues =
         Slice(
-          Memory.Put(1),
-          Memory.Range(2, 10, None, Value.Remove(None)),
-          Memory.Range(10, 20, Some(Value.Remove(None)), Value.Update(10)),
-          Memory.Range(25, 30, None, Value.Remove(None)),
-          Memory.Remove(30),
-          Memory.Range(31, 35, None, Value.Update(30)),
-          Memory.Range(40, 45, Some(Value.Remove(None)), Value.Remove(None)),
-          Memory.Remove(100)
+          Memory.put(1),
+          Memory.Range(2, 10, None, Value.remove(None)),
+          Memory.Range(10, 20, Some(Value.remove(None)), Value.update(10)),
+          Memory.Range(25, 30, None, Value.remove(None)),
+          Memory.remove(30),
+          Memory.Range(31, 35, None, Value.update(30)),
+          Memory.Range(40, 45, Some(Value.remove(None)), Value.remove(None)),
+          Memory.remove(100)
         )
 
       level.putKeyValues(keyValues).assertGet
@@ -349,7 +353,7 @@ sealed trait LevelLowerSpec extends TestBase with MockFactory with Benchmark {
           key =>
             level.isEmpty shouldBe false
             level.nextLevel.assertGet.isEmpty shouldBe true
-            level.lower(key).assertGet shouldBe Memory.Put(1, None)
+            level.lower(key).assertGet shouldBe Memory.put(1, None)
         }
 
       doAssert(level)
@@ -369,25 +373,25 @@ sealed trait LevelLowerSpec extends TestBase with MockFactory with Benchmark {
 
       val keyValues =
         Slice(
-          Memory.Remove(1),
-          Memory.Range(2, 10, None, Value.Remove(None)),
-          Memory.Range(10, 20, Some(Value.Remove(None)), Value.Update(10)),
-          Memory.Range(25, 30, None, Value.Remove(None)),
-          Memory.Remove(30),
-          Memory.Range(31, 35, None, Value.Update(30)),
-          Memory.Range(40, 45, Some(Value.Remove(None)), Value.Remove(None))
+          Memory.remove(1),
+          Memory.Range(2, 10, None, Value.remove(None)),
+          Memory.Range(10, 20, Some(Value.remove(None)), Value.update(10)),
+          Memory.Range(25, 30, None, Value.remove(None)),
+          Memory.remove(30),
+          Memory.Range(31, 35, None, Value.update(30)),
+          Memory.Range(40, 45, Some(Value.remove(None)), Value.remove(None))
         )
 
       level.putKeyValues(keyValues).assertGet
 
-      lowerLevel.putKeyValues(Slice(Memory.Put(0))).assertGet
+      lowerLevel.putKeyValues(Slice(Memory.put(0))).assertGet
 
       def doAssert(level: Level) =
         (1 to 50) foreach {
           key =>
             level.isEmpty shouldBe false
             level.nextLevel.assertGet.isEmpty shouldBe false
-            level.lower(key).assertGet shouldBe Memory.Put(0, None)
+            level.lower(key).assertGet shouldBe Memory.put(0, None)
         }
 
       doAssert(level)
@@ -408,13 +412,13 @@ sealed trait LevelLowerSpec extends TestBase with MockFactory with Benchmark {
 
       val keyValues =
         Slice(
-          Memory.Remove(5),
-          Memory.Range(7, 10, None, Value.Remove(None)),
-          Memory.Range(10, 20, Some(Value.Remove(None)), Value.Update(10)),
-          Memory.Range(25, 30, None, Value.Remove(None)),
-          Memory.Remove(30),
-          Memory.Range(31, 35, None, Value.Update(30)),
-          Memory.Range(40, 45, Some(Value.Remove(None)), Value.Remove(None))
+          Memory.remove(5),
+          Memory.Range(7, 10, None, Value.remove(None)),
+          Memory.Range(10, 20, Some(Value.remove(None)), Value.update(10)),
+          Memory.Range(25, 30, None, Value.remove(None)),
+          Memory.remove(30),
+          Memory.Range(31, 35, None, Value.update(30)),
+          Memory.Range(40, 45, Some(Value.remove(None)), Value.remove(None))
         )
 
       level.putKeyValues(keyValues).assertGet
@@ -422,7 +426,7 @@ sealed trait LevelLowerSpec extends TestBase with MockFactory with Benchmark {
       //add remove for each 100 key-values in lower level and all key-value should still return empty
       (1 to 100) foreach {
         key =>
-          lowerLevel.putKeyValues(Slice(Memory.Remove(key - 1), Memory.Remove(key), Memory.Remove(key + 1))).assertGet
+          lowerLevel.putKeyValues(Slice(Memory.remove(key - 1), Memory.remove(key), Memory.remove(key + 1))).assertGet
           lowerLevel.isEmpty shouldBe false
           level.lower(key).assertGetOpt shouldBe empty
       }
@@ -433,40 +437,40 @@ sealed trait LevelLowerSpec extends TestBase with MockFactory with Benchmark {
       //40 - 44  is remove in upper level, inserting put in lower level should still return empty
       (40 to 44) foreach {
         key =>
-          lowerLevel.putKeyValues(Slice(Memory.Put(key))).assertGet
+          lowerLevel.putKeyValues(Slice(Memory.put(key))).assertGet
           level.lower(key).assertGetOpt shouldBe empty
       }
 
       //35 - 39 is empty, inserting put in lower level should return lower
       (35 to 39) foreach {
         key =>
-          lowerLevel.putKeyValues(Slice(Memory.Put(key))).assertGet
-          level.lower(key + 1).assertGet shouldBe Memory.Put(key)
+          lowerLevel.putKeyValues(Slice(Memory.put(key))).assertGet
+          level.lower(key + 1).assertGet shouldBe Memory.put(key)
       }
 
       //31 - 34 is Put(30), inserting put in lower level should return lower with put set from upper level.
       (31 to 34) foreach {
         key =>
-          lowerLevel.putKeyValues(Slice(Memory.Put(key))).assertGet
-          level.lower(key + 1).assertGet shouldBe Memory.Put(key, 30)
+          lowerLevel.putKeyValues(Slice(Memory.put(key))).assertGet
+          level.lower(key + 1).assertGet shouldBe Memory.put(key, 30)
       }
 
       //25 - 30 is Remove, inserting Put for these key-value to lower Level will still return empty.
       (25 to 30) foreach {
         key =>
-          lowerLevel.putKeyValues(Slice(Memory.Put(key))).assertGet
+          lowerLevel.putKeyValues(Slice(Memory.put(key))).assertGet
           level.lower(key + 1).assertGetOpt shouldBe empty
       }
 
       //upper Levels 10 is Remove.
-      lowerLevel.putKeyValues(Slice(Memory.Put(10, 10))).assertGet
+      lowerLevel.putKeyValues(Slice(Memory.put(10, 10))).assertGet
       level.lower(11).assertGetOpt shouldBe empty
 
       //11 - 19 is Put range, inserting Put for these key-value to lower Level will return lower with updated Put value
       (11 to 19) foreach {
         key =>
-          lowerLevel.putKeyValues(Slice(Memory.Put(key))).assertGet
-          level.lower(key + 1).assertGet shouldBe Memory.Put(key, 10)
+          lowerLevel.putKeyValues(Slice(Memory.put(key))).assertGet
+          level.lower(key + 1).assertGet shouldBe Memory.put(key, 10)
       }
 
     }

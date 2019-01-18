@@ -28,6 +28,10 @@ import scala.collection.mutable.ListBuffer
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.ref.WeakReference
+import swaydb.core.TestData._
+import swaydb.core.CommonAssertions._
+import swaydb.core.RunThis._
+import swaydb.core.TryAssert._
 
 case class Item(i: Int)
 class LimitQueueSpec extends TestBase {
@@ -118,24 +122,24 @@ class LimitQueueSpec extends TestBase {
       evictedItems.flatMap(_.get) should contain only Item(11)
     }
 
-//    "benchmark" in {
-//
-//      //1.859036011 seconds.
-//      val limitQueue =
-//        LimitQueue[String](limit = 10000, 5.second, _ => 1) {
-//          evictedItem =>
-////            println(s"Evicted: $evictedItem")
-//        }
-//
-//      //
-//
-//      //9.428285501 seconds.
-//      Benchmark("LimitQueue") {
-//        (1 to 10000000) foreach {
-//          i =>
-//            limitQueue ! i.toString
-//        }
-//      }
-//    }
+    //    "benchmark" in {
+    //
+    //      //1.859036011 seconds.
+    //      val limitQueue =
+    //        LimitQueue[String](limit = 10000, 5.second, _ => 1) {
+    //          evictedItem =>
+    ////            println(s"Evicted: $evictedItem")
+    //        }
+    //
+    //      //
+    //
+    //      //9.428285501 seconds.
+    //      Benchmark("LimitQueue") {
+    //        (1 to 10000000) foreach {
+    //          i =>
+    //            limitQueue ! i.toString
+    //        }
+    //      }
+    //    }
   }
 }

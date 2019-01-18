@@ -60,6 +60,12 @@ private[swaydb] trait Reader { self =>
   def readIntUnsigned(): Try[Int] =
     ByteUtil.readUnsignedInt(self)
 
+  def readIntUnsignedBytes(): Try[Slice[Byte]] =
+    ByteUtil.readUnsignedInt(self) flatMap {
+      size =>
+        read(size)
+    }
+
   def readIntSigned(): Try[Int] =
     ByteUtil.readSignedInt(self)
 

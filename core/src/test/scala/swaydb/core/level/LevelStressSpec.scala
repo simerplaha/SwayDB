@@ -29,11 +29,15 @@ import swaydb.core.level.actor.LevelCommand._
 import swaydb.core.util.Benchmark
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
-import swaydb.order.KeyOrder
+import swaydb.data.order.KeyOrder
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.Failure
+import swaydb.core.TestData._
+import swaydb.core.CommonAssertions._
+import swaydb.core.RunThis._
+import swaydb.core.TryAssert._
 
 //@formatter:off
 class LevelStressSpec0 extends LevelStressSpec
@@ -61,7 +65,7 @@ class LevelStressSpec3 extends LevelStressSpec {
 
 sealed trait LevelStressSpec extends TestBase with Benchmark {
 
-  override implicit val ordering = KeyOrder.default
+  implicit val keyOrder = KeyOrder.default
 
   "A 4 leveled database" should {
     "concurrently reads and write records that are written in batches and concurrently pushed to lower levels." +
@@ -70,7 +74,7 @@ sealed trait LevelStressSpec extends TestBase with Benchmark {
       val keyValueCount = 1000
 //      val keyValueCount = 100000
       val iterations = 5
-      implicit val groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomCompressionTypeOption(keyValueCount)
+      implicit val groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(keyValueCount)
 
       val level4 = TestLevel(segmentSize = 2.mb)
       val level3 = TestLevel(segmentSize = 2.mb, nextLevel = Some(level4))
@@ -80,7 +84,7 @@ sealed trait LevelStressSpec extends TestBase with Benchmark {
       val testSegmentsDir = createRandomIntDirectory
 
       def doPut: Unit = {
-        val keyValues: Slice[KeyValue.WriteOnly] = randomIntKeyValues(keyValueCount)
+        val keyValues: Slice[KeyValue.WriteOnly] = randomKeyValues(keyValueCount)
         val segment = TestSegment(keyValues, path = testSegmentsDir.resolve(nextSegmentId)).get
         val replyTo = TestActor[LevelCommand]()
         level1 ! PushSegments(Seq(segment), replyTo)

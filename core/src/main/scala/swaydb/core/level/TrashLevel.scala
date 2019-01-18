@@ -87,48 +87,6 @@ private[core] object TrashLevel extends LevelRef {
   override val getBusySegments: List[Segment] =
     List.empty
 
-  override val pushForward: Boolean =
-    false
-
-  override val nextBatchSize: Int =
-    0
-
-  /**
-    * Forward only occurs if lower level is empty and not busy.
-    */
-  override def forward(levelAPI: LevelAPI): Try[Unit] =
-    TryUtil.successUnit
-
-  override def push(levelAPI: LevelAPI): Unit =
-    this ! levelAPI
-
-  override def nextPushDelayAndSegmentsCount: (FiniteDuration, Int) =
-    (0.second, 0)
-
-  override def nextBatchSizeAndSegmentsCount: (Int, Int) =
-    (0, 0)
-
-  override def nextPushDelayAndBatchSize: Throttle =
-    Throttle(0.millisecond, 0)
-
-  override def nextPushDelay: FiniteDuration =
-    Duration.Zero
-
-  override def removeSegments(segments: Iterable[Segment]): Try[Int] =
-    Success(segments.size)
-
-  override def put(segments: Iterable[Segment]): Try[Unit] =
-    TryUtil.successUnit
-
-  override def put(segment: Segment): Try[Unit] =
-    TryUtil.successUnit
-
-  override def pickSegmentsToPush(count: Int): Iterable[Segment] =
-    Iterable.empty
-
-  override def collapseAllSmallSegments(batch: Int): Try[Int] =
-    Success(0)
-
   override val existsOnDisk =
     false
 
@@ -185,27 +143,20 @@ private[core] object TrashLevel extends LevelRef {
 
   override val isTrash: Boolean = true
 
-  override def putMap(map: Map[Slice[Byte], Memory.SegmentResponse]): Try[Unit] =
-    TryUtil.successUnit
-
   override def ceiling(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Put]] =
     TryUtil.successNone
 
   override def floor(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Put]] =
     TryUtil.successNone
 
-  override val firstKey: Option[Slice[Byte]] =
-    None
+  override val headKey: Try[Option[Slice[Byte]]] =
+    TryUtil.successNone
 
-  override val lastKey: Option[Slice[Byte]] =
-    None
+  override val lastKey: Try[Option[Slice[Byte]]] =
+    TryUtil.successNone
 
   override def closeSegments(): Try[Unit] =
     TryUtil.successUnit
 
-  override def clearExpiredKeyValues(): Try[Unit] =
-    TryUtil.successUnit
-
-  override val hasTimeLeftAtLeast: FiniteDuration =
-    0.seconds
+  override def levelNumber: Long = -1
 }

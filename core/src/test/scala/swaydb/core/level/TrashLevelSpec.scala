@@ -21,18 +21,19 @@ package swaydb.core.level
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.PrivateMethodTester
-import swaydb.core.TestBase
+import scala.concurrent.duration._
+import swaydb.core.{TestBase, TestData}
+import swaydb.core.TestData._
 import swaydb.core.actor.TestActor
-import swaydb.core.io.file.DBFile
 import swaydb.core.level.actor.LevelCommand.{PushSegments, PushSegmentsResponse}
 import swaydb.core.segment.Segment
-import swaydb.core.util.Delay
 import swaydb.data.compaction.Throttle
+import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.order.KeyOrder
-import swaydb.data.util.StorageUnits._
-
-import scala.concurrent.duration._
+import swaydb.core.TestData._
+import swaydb.core.CommonAssertions._
+import swaydb.core.RunThis._
+import swaydb.core.TryAssert._
 
 //@formatter:off
 class TrashLevelSpec0 extends TrashLevelSpec
@@ -60,7 +61,7 @@ class TrashLevelSpec3 extends TrashLevelSpec {
 
 sealed trait TrashLevelSpec extends TestBase with MockFactory with PrivateMethodTester {
 
-  override implicit val ordering: Ordering[Slice[Byte]] = KeyOrder.default
+  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   val keyValuesCount = 100
 
   //  override def deleteFiles: Boolean = false
@@ -70,7 +71,7 @@ sealed trait TrashLevelSpec extends TestBase with MockFactory with PrivateMethod
       val level = TestLevel(nextLevel = Some(TrashLevel), throttle = (_) => Throttle(1.seconds, 10))
 
       val replyTo = TestActor[PushSegmentsResponse]()
-      val segments = Seq(TestSegment(randomIntKeyValues(keyValuesCount)).assertGet, TestSegment(randomIntKeyStringValues(keyValuesCount)).assertGet)
+      val segments = Seq(TestSegment(randomKeyValues(keyValuesCount)).assertGet, TestSegment(randomIntKeyStringValues(keyValuesCount)).assertGet)
       level ! PushSegments(segments, replyTo)
       //segments successfully pushed
       replyTo.getMessage(10.seconds).result.assertGet
@@ -78,7 +79,7 @@ sealed trait TrashLevelSpec extends TestBase with MockFactory with PrivateMethod
       //throttle is Duration.Zero, Segments get merged to lower ExpiryLevel and deleted from Level.
       eventual(15.seconds)(level.isEmpty shouldBe true)
       //key values do not exist
-      Segment.getAllKeyValues(0.1, segments).assertGet foreach {
+      Segment.getAllKeyValues(TestData.falsePositiveRate, segments).assertGet foreach {
         keyValue =>
           level.get(keyValue.key).assertGetOpt shouldBe empty
       }

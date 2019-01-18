@@ -19,14 +19,18 @@
 
 package swaydb.core.segment.merge
 
-import swaydb.core.TestBase
+import swaydb.core.{TestBase, TestData, TestLimitQueues}
 import swaydb.core.data.{KeyValue, Persistent}
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
-import swaydb.core.segment.format.one.SegmentWriter
+import swaydb.core.segment.format.a.SegmentWriter
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
-
+import swaydb.core.TestData._
+import swaydb.core.CommonAssertions._
+import swaydb.core.TryAssert._
+import swaydb.core.RunThis._
 import scala.collection.mutable.ListBuffer
+import swaydb.data.order.KeyOrder
 
 class SegmentGrouper_GroupKeyValues_Count_Spec extends SegmentGrouper_GroupKeyValues_Spec {
   val useCount = true
@@ -50,6 +54,8 @@ class SegmentGrouper_GroupKeyValues_Size_Force_Spec extends SegmentGrouper_Group
 
 sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
 
+  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
+  implicit val keyValueLimiter = TestLimitQueues.keyValueLimiter
   val keyValueCount = 100
 
   def useCount: Boolean
@@ -61,7 +67,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
       "there are no key-values" in {
         SegmentGrouper.groupKeyValues(
           segmentKeyValues = ListBuffer.empty,
-          bloomFilterFalsePositiveRate = 0.1,
+          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           force = force,
           groupingStrategy =
             if (useCount)
@@ -82,13 +88,14 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
       }
 
       "there are not enough key-values" in {
-        val keyValues = randomizedIntKeyValues(keyValueCount, addRandomGroups = false)
-        val mutableKeyValues = ListBuffer(keyValues.toList: _*)
+        val keyValues = randomizedKeyValues(keyValueCount, addRandomGroups = false)
+        val mutableKeyValues = ListBuffer.empty[KeyValue.WriteOnly]
+        keyValues foreach (mutableKeyValues += _)
 
         val result =
           SegmentGrouper.groupKeyValues(
             segmentKeyValues = mutableKeyValues,
-            bloomFilterFalsePositiveRate = 0.1,
+            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             force = force,
             groupingStrategy =
               if (useCount)
@@ -112,18 +119,19 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
           //no mutation occurs
           mutableKeyValues shouldBe keyValues
         } else {
-          val (bytes, _) = SegmentWriter.write(Slice(result.assertGet), 0.1).assertGet
+          val (bytes, _) = SegmentWriter.write(Slice(result.assertGet), TestData.falsePositiveRate).assertGet
           readAll(bytes).assertGet.head.asInstanceOf[Persistent.Group].segmentCache.getAll().assertGet shouldBe keyValues
         }
       }
 
       "there are enough key-values but key compression's minimum requirement is not satisfied" in {
-        val keyValues = randomizedIntKeyValues(keyValueCount, addRandomGroups = false)
-        val mutableKeyValues = ListBuffer(keyValues.toList: _*)
+        val keyValues = randomizedKeyValues(keyValueCount, addRandomGroups = false)
+        val mutableKeyValues = ListBuffer.empty[KeyValue.WriteOnly]
+        keyValues foreach (mutableKeyValues += _)
 
         SegmentGrouper.groupKeyValues(
           segmentKeyValues = mutableKeyValues,
-          bloomFilterFalsePositiveRate = 0.1,
+          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           force = force,
           groupingStrategy =
             if (useCount)
@@ -147,12 +155,13 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
       }
 
       "there are enough key-values but values compression's minimum requirement is not satisfied" in {
-        val keyValues = randomizedIntKeyValues(keyValueCount, addRandomGroups = false)
-        val mutableKeyValues = ListBuffer(keyValues.toList: _*)
+        val keyValues = randomizedKeyValues(keyValueCount, addRandomGroups = false)
+        val mutableKeyValues = ListBuffer.empty[KeyValue.WriteOnly]
+        keyValues foreach (mutableKeyValues += _)
 
         SegmentGrouper.groupKeyValues(
           segmentKeyValues = mutableKeyValues,
-          bloomFilterFalsePositiveRate = 0.1,
+          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           force = force,
           groupingStrategy =
             if (useCount)
@@ -183,7 +192,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
 
             SegmentGrouper.groupKeyValues(
               segmentKeyValues = mutableKeyValues,
-              bloomFilterFalsePositiveRate = 0.1,
+              bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
               force = force,
               groupingStrategy =
                 if (useCount)
@@ -209,9 +218,9 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
       }
 
       "multiple Groups exists without any un-grouped key-values" in {
-        val group1 = randomGroup(randomizedIntKeyValues(keyValueCount))
-        val group2 = randomGroup(randomizedIntKeyValues(keyValueCount, startId = Some(group1.maxKey.maxKey.readInt() + 1)))
-        val group3 = randomGroup(randomizedIntKeyValues(keyValueCount, startId = Some(group2.maxKey.maxKey.readInt() + 1)))
+        val group1 = randomGroup(randomizedKeyValues(keyValueCount))
+        val group2 = randomGroup(randomizedKeyValues(keyValueCount, startId = Some(group1.maxKey.maxKey.readInt() + 1)))
+        val group3 = randomGroup(randomizedKeyValues(keyValueCount, startId = Some(group2.maxKey.maxKey.readInt() + 1)))
 
         val keyValues = Seq(group1, group2, group3).updateStats
         val mutableKeyValues = ListBuffer(keyValues.toList: _*)
@@ -220,7 +229,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
           minCount =>
             SegmentGrouper.groupKeyValues(
               segmentKeyValues = mutableKeyValues,
-              bloomFilterFalsePositiveRate = 0.1,
+              bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
               force = force,
               groupingStrategy =
                 if (useCount)
@@ -247,14 +256,14 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
       "a Group exists and there are not enough key-values" in {
         val group = randomGroup()
 
-        val otherKeyValues = randomizedIntKeyValues(20, startId = Some(group.maxKey.maxKey.readInt() + 1), addRandomGroups = false)
+        val otherKeyValues = randomizedKeyValues(20, startId = Some(group.maxKey.maxKey.readInt() + 1), addRandomGroups = false)
         val keyValues = (Seq(group) ++ otherKeyValues).updateStats
         val mutableKeyValues = ListBuffer(keyValues.toList: _*)
 
         val result =
           SegmentGrouper.groupKeyValues(
             segmentKeyValues = mutableKeyValues,
-            bloomFilterFalsePositiveRate = 0.1,
+            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             force = force,
             groupingStrategy =
               if (useCount)
@@ -278,24 +287,24 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
           //no mutation occurs
           mutableKeyValues shouldBe keyValues
         } else {
-          val (bytes, _) = SegmentWriter.write(Slice(result.assertGet).updateStats, 0.1).assertGet
+          val (bytes, _) = SegmentWriter.write(Slice(result.assertGet).updateStats, TestData.falsePositiveRate).assertGet
           readAll(bytes).assertGet.head.asInstanceOf[Persistent.Group].segmentCache.getAll().assertGet shouldBe otherKeyValues
         }
       }
 
       "multiple Groups exists and there are not enough key-values" in {
-        val group1 = randomGroup(randomizedIntKeyValues(keyValueCount))
-        val group2 = randomGroup(randomizedIntKeyValues(keyValueCount, startId = Some(group1.maxKey.maxKey.readInt() + 1)))
-        val group3 = randomGroup(randomizedIntKeyValues(keyValueCount, startId = Some(group2.maxKey.maxKey.readInt() + 1)))
+        val group1 = randomGroup(randomizedKeyValues(keyValueCount))
+        val group2 = randomGroup(randomizedKeyValues(keyValueCount, startId = Some(group1.maxKey.maxKey.readInt() + 1)))
+        val group3 = randomGroup(randomizedKeyValues(keyValueCount, startId = Some(group2.maxKey.maxKey.readInt() + 1)))
 
-        val otherKeyValues = randomizedIntKeyValues(19, startId = Some(group3.maxKey.maxKey.readInt() + 1), addRandomGroups = false)
+        val otherKeyValues = randomizedKeyValues(19, startId = Some(group3.maxKey.maxKey.readInt() + 1), addRandomGroups = false)
         val keyValues = (Seq(group1, group2, group3) ++ otherKeyValues).updateStats
         val mutableKeyValues = ListBuffer(keyValues.toList: _*)
 
         val result =
           SegmentGrouper.groupKeyValues(
             segmentKeyValues = mutableKeyValues,
-            bloomFilterFalsePositiveRate = 0.1,
+            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             force = force,
             groupingStrategy =
               if (useCount)
@@ -319,19 +328,20 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
           //no mutation occurs
           mutableKeyValues shouldBe keyValues
         } else {
-          val (bytes, _) = SegmentWriter.write(Slice(result.assertGet).updateStats, 0.1).assertGet
+          val (bytes, _) = SegmentWriter.write(Slice(result.assertGet).updateStats, TestData.falsePositiveRate).assertGet
           readAll(bytes).assertGet.head.asInstanceOf[Persistent.Group].segmentCache.getAll().assertGet shouldBe otherKeyValues
         }
       }
 
       "randomly generated key-values but grouping limit is not reached" in {
         runThis(100.times) {
-          val keyValues = randomizedIntKeyValues(keyValueCount, addRandomGroups = false)
-          val mutableKeyValues = ListBuffer(keyValues.toList: _*)
+          val keyValues = randomizedKeyValues(keyValueCount, addRandomGroups = false)
+          val mutableKeyValues = ListBuffer.empty[KeyValue.WriteOnly]
+          keyValues foreach (mutableKeyValues += _)
 
           SegmentGrouper.groupKeyValues(
             segmentKeyValues = mutableKeyValues,
-            bloomFilterFalsePositiveRate = 0.1,
+            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             force = force,
             groupingStrategy =
               if (useCount)
@@ -356,12 +366,13 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
 
     "return Compressed group (min compression requirement is satisfied - Successfully grouped)" when {
       "there are key-values" in {
-        val keyValues = randomizedIntKeyValues(20, addRandomGroups = false)
-        val mutableKeyValues = ListBuffer(keyValues.toList: _*)
+        val keyValues = randomizedKeyValues(20, addRandomGroups = false)
+        val mutableKeyValues = ListBuffer.empty[KeyValue.WriteOnly]
+        keyValues foreach (mutableKeyValues += _)
 
         SegmentGrouper.groupKeyValues(
           segmentKeyValues = mutableKeyValues,
-          bloomFilterFalsePositiveRate = 0.1,
+          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           force = force,
           groupingStrategy =
             if (useCount)
@@ -382,18 +393,18 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
 
         //all key-values are merged into one group.
         mutableKeyValues should have size 1
-        val (bytes, _) = SegmentWriter.write(mutableKeyValues, 0.1).assertGet
+        val (bytes, _) = SegmentWriter.write(mutableKeyValues, TestData.falsePositiveRate).assertGet
         readAll(bytes).assertGet.head.asInstanceOf[Persistent.Group].segmentCache.getAll().assertGet shouldBe keyValues
       }
 
       "a Group exists with key-values" in {
         val group = randomGroup()
-        val keyValues = randomizedIntKeyValues(20, startId = Some(group.maxKey.maxKey.readInt() + 1), addRandomGroups = false)
+        val keyValues = randomizedKeyValues(20, startId = Some(group.maxKey.maxKey.readInt() + 1), addRandomGroups = false)
         val mutableKeyValues = ListBuffer((Seq(group) ++ keyValues).updateStats.toList: _*)
 
         SegmentGrouper.groupKeyValues(
           segmentKeyValues = mutableKeyValues,
-          bloomFilterFalsePositiveRate = 0.1,
+          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           force = force,
           groupingStrategy =
             if (useCount)
@@ -413,23 +424,23 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
         ).assertGet
 
         mutableKeyValues should have size 2
-        val (bytes, _) = SegmentWriter.write(mutableKeyValues, 0.1).assertGet
+        val (bytes, _) = SegmentWriter.write(mutableKeyValues, TestData.falsePositiveRate).assertGet
         val readGroups = readAll(bytes).assertGet
         readGroups.head.asInstanceOf[Persistent.Group] shouldBe group
         readGroups.last.asInstanceOf[Persistent.Group].segmentCache.getAll().assertGet shouldBe keyValues
       }
 
       "multiple Groups exists with key-values" in {
-        val group1 = randomGroup(randomizedIntKeyValues(keyValueCount))
-        val group2 = randomGroup(randomizedIntKeyValues(keyValueCount, startId = Some(group1.maxKey.maxKey.readInt() + 1)))
-        val group3 = randomGroup(randomizedIntKeyValues(keyValueCount, startId = Some(group2.maxKey.maxKey.readInt() + 1)))
-        val keyValues = randomizedIntKeyValues(20, startId = Some(group3.maxKey.maxKey.readInt() + 1), addRandomGroups = false)
+        val group1 = randomGroup(randomizedKeyValues(keyValueCount))
+        val group2 = randomGroup(randomizedKeyValues(keyValueCount, startId = Some(group1.maxKey.maxKey.readInt() + 1)))
+        val group3 = randomGroup(randomizedKeyValues(keyValueCount, startId = Some(group2.maxKey.maxKey.readInt() + 1)))
+        val keyValues = randomizedKeyValues(20, startId = Some(group3.maxKey.maxKey.readInt() + 1), addRandomGroups = false)
 
         val mutableKeyValues = ListBuffer((Seq(group1, group2, group3) ++ keyValues).updateStats.toList: _*)
 
         SegmentGrouper.groupKeyValues(
           segmentKeyValues = mutableKeyValues,
-          bloomFilterFalsePositiveRate = 0.1,
+          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           force = force,
           groupingStrategy =
             if (useCount)
@@ -449,7 +460,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
         ).assertGet
 
         mutableKeyValues should have size 4
-        val (bytes, _) = SegmentWriter.write(mutableKeyValues, 0.1).assertGet
+        val (bytes, _) = SegmentWriter.write(mutableKeyValues, TestData.falsePositiveRate).assertGet
         val readGroups = readAll(bytes).assertGet
         readGroups.head.asInstanceOf[Persistent.Group] shouldBe group1
         readGroups(1).asInstanceOf[Persistent.Group] shouldBe group2
@@ -459,12 +470,13 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
 
       "randomly generated key-values but minimum compression requirement is met" in {
         runThis(100.times) {
-          val keyValues = randomizedIntKeyValues(keyValueCount, addRandomGroups = false)
-          val mutableKeyValues = ListBuffer(keyValues.toList: _*)
+          val keyValues = randomizedKeyValues(keyValueCount, addRandomGroups = false)
+          val mutableKeyValues = ListBuffer.empty[KeyValue.WriteOnly]
+          keyValues foreach (mutableKeyValues += _)
 
           SegmentGrouper.groupKeyValues(
             segmentKeyValues = mutableKeyValues,
-            bloomFilterFalsePositiveRate = 0.1,
+            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             force = force,
             groupingStrategy =
               if (useCount)
@@ -489,7 +501,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
 
           //all key-values are merged into one group.
           mutableKeyValues should have size 1
-          val (bytes, _) = SegmentWriter.write(mutableKeyValues, 0.1).assertGet
+          val (bytes, _) = SegmentWriter.write(mutableKeyValues, TestData.falsePositiveRate).assertGet
           readAll(bytes).assertGet.head.asInstanceOf[Persistent.Group].segmentCache.getAll().assertGet shouldBe keyValues
         }
       }

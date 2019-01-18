@@ -25,6 +25,10 @@ import swaydb.core.util.Benchmark
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import swaydb.data.util.StorageUnits._
+import swaydb.core.TestData._
+import swaydb.core.CommonAssertions._
+import swaydb.core.RunThis._
+import swaydb.core.TryAssert._
 
 class DBFileStressWriteSpec extends TestBase with Benchmark {
 

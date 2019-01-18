@@ -22,7 +22,6 @@ package swaydb.core.segment
 import java.nio.file.{NoSuchFileException, Path}
 import java.util.concurrent.ConcurrentSkipListMap
 import java.util.function.Consumer
-
 import bloomfilter.mutable.BloomFilter
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.Memory.{Group, SegmentResponse}
@@ -33,30 +32,34 @@ import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util.TryUtil._
 import swaydb.core.util._
-import swaydb.data.segment.MaxKey
 import swaydb.data.slice.Slice
-
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 import scala.util.{Failure, Success, Try}
 import scala.collection.JavaConverters._
+import swaydb.core.function.FunctionStore
+import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.data.repairAppendix.MaxKey
 
 private[segment] case class MemorySegment(path: Path,
                                           minKey: Slice[Byte],
-                                          maxKey: MaxKey,
+                                          maxKey: MaxKey[Slice[Byte]],
                                           segmentSize: Int,
                                           removeDeletes: Boolean,
                                           _hasRange: Boolean,
+                                          _hasPut: Boolean,
                                           //only Memory Segment's need to know if there is a Group. Persistent Segments always get floor from cache when reading.
                                           _hasGroup: Boolean,
                                           private[segment] val cache: ConcurrentSkipListMap[Slice[Byte], Memory],
                                           bloomFilter: Option[BloomFilter[Slice[Byte]]],
-                                          nearestExpiryDeadline: Option[Deadline])(implicit ordering: Ordering[Slice[Byte]],
+                                          nearestExpiryDeadline: Option[Deadline])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                                   timeOrder: TimeOrder[Slice[Byte]],
+                                                                                   functionStore: FunctionStore,
                                                                                    groupingStrategy: Option[KeyValueGroupingStrategyInternal],
                                                                                    keyValueLimiter: KeyValueLimiter) extends Segment with LazyLogging {
 
   @volatile private var deleted = false
 
-  import ordering._
+  import keyOrder._
 
   /**
     * Adds the new Group to the queue only if it is not already in the Queue.
@@ -77,7 +80,6 @@ private[segment] case class MemorySegment(path: Path,
   override def put(newKeyValues: Slice[KeyValue.ReadOnly],
                    minSegmentSize: Long,
                    bloomFilterFalsePositiveRate: Double,
-                   hasTimeLeftAtLeast: FiniteDuration,
                    compressDuplicateValues: Boolean,
                    targetPaths: PathsDistributor)(implicit idGenerator: IDGenerator): Try[Slice[Segment]] =
     if (deleted)
@@ -92,7 +94,6 @@ private[segment] case class MemorySegment(path: Path,
             forInMemory = true,
             isLastLevel = removeDeletes,
             bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-            hasTimeLeftAtLeast = hasTimeLeftAtLeast,
             compressDuplicateValues = compressDuplicateValues
           ) flatMap {
             splits =>
@@ -184,6 +185,7 @@ private[segment] case class MemorySegment(path: Path,
   override def get(key: Slice[Byte]): Try[Option[Memory.SegmentResponse]] =
     if (deleted)
       Failure(new NoSuchFileException(path.toString))
+
     else if (!_hasRange && !bloomFilter.forall(_.mightContain(key)))
       TryUtil.successNone
     else
@@ -191,7 +193,7 @@ private[segment] case class MemorySegment(path: Path,
         case MaxKey.Fixed(maxKey) if key > maxKey =>
           TryUtil.successNone
 
-        case range: MaxKey.Range if key >= range.maxKey =>
+        case range: MaxKey.Range[Slice[Byte]] if key >= range.maxKey =>
           TryUtil.successNone
 
         case _ =>
@@ -206,6 +208,7 @@ private[segment] case class MemorySegment(path: Path,
                     group.segmentCache.get(key) flatMap {
                       case Some(persistent) =>
                         persistent.toMemoryResponseOption()
+
                       case None =>
                         TryUtil.successNone
                     }
@@ -368,6 +371,9 @@ private[segment] case class MemorySegment(path: Path,
 
   override def hasRange: Try[Boolean] =
     Try(_hasRange)
+
+  override def hasPut: Try[Boolean] =
+    Try(_hasPut)
 
   override def isFooterDefined: Boolean =
     !deleted

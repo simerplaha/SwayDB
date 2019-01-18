@@ -19,9 +19,11 @@
 
 package swaydb
 
-import swaydb.{Map, SwayDB}
 import swaydb.core.TestBase
 import swaydb.serializers.Default._
+import swaydb.core.TryAssert._
+import swaydb.core.CommonAssertions._
+import swaydb.core.RunThis._
 
 class SwayDBSize_Persistent_Spec extends SwayDBSizeSpec {
   val keyValueCount: Int = 10000000

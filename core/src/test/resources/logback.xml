@@ -12,7 +12,7 @@
         </encoder>
     </appender>
 
-    <root level="info">
+    <root level="ERROR">
         <appender-ref ref="console"/>
         <!--<appender-ref ref="file"/>-->
     </root>

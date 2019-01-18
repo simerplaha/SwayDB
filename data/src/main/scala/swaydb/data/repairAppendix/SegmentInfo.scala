@@ -21,12 +21,11 @@ package swaydb.data.repairAppendix
 
 import java.nio.file.Path
 
-import swaydb.data.segment
 import swaydb.data.slice.Slice
 
 private[swaydb] case class SegmentInfoUnTyped(path: Path,
                                               minKey: Slice[Byte],
-                                              maxKey: segment.MaxKey,
+                                              maxKey: MaxKey[Slice[Byte]],
                                               segmentSize: Int,
                                               keyValueCount: Int)
 

@@ -19,44 +19,41 @@
 
 package swaydb
 
-import swaydb.{Map, SwayDB}
+import scala.concurrent.duration._
 import swaydb.core.TestBase
 import swaydb.serializers.Default._
-
-import scala.concurrent.duration._
+import swaydb.core.TryAssert._
+import swaydb.core.CommonAssertions._
+import swaydb.core.RunThis._
 
 class SwayDBPutSpec0 extends SwayDBPutSpec {
   val keyValueCount: Int = 1000
 
   override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
-    SwayDB.persistent[Int, String](dir = randomDir, minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration).assertGet
+    SwayDB.persistent[Int, String](dir = randomDir).assertGet
 }
 
 class SwayDBPutSpec1 extends SwayDBPutSpec {
 
   val keyValueCount: Int = 10000
 
-  import swaydb._
-
   override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
-    SwayDB.persistent[Int, String](randomDir, mapSize = 1.byte, minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration).assertGet
+    SwayDB.persistent[Int, String](randomDir, mapSize = 1.byte).assertGet
 }
 
 class SwayDBPutSpec2 extends SwayDBPutSpec {
 
   val keyValueCount: Int = 100000
 
-  import swaydb._
-
   override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
-    SwayDB.memory[Int, String](mapSize = 1.byte, minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration).assertGet
+    SwayDB.memory[Int, String](mapSize = 1.byte).assertGet
 }
 
 class SwayDBPutSpec3 extends SwayDBPutSpec {
   val keyValueCount: Int = 100000
 
   override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
-    SwayDB.memory[Int, String](minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration).assertGet
+    SwayDB.memory[Int, String]().assertGet
 }
 
 sealed trait SwayDBPutSpec extends TestBase with TestBaseEmbedded {

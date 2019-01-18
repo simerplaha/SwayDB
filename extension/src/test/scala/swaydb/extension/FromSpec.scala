@@ -24,12 +24,15 @@ import swaydb.serializers.Default._
 import swaydb.{SwayDB, TestBaseEmbedded}
 import swaydb.data.util.StorageUnits._
 import scala.concurrent.duration._
+import swaydb.core.TryAssert._
+import swaydb.core.CommonAssertions._
+import swaydb.core.RunThis._
 
 class FromSpec0 extends FromSpec {
   val keyValueCount: Int = 1000
 
   override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
-    SwayDB.persistent[Key[Int], Option[String]](dir = randomDir, minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration).assertGet.extend.assertGet
+    SwayDB.persistent[Key[Int], Option[String]](dir = randomDir).assertGet.extend.assertGet
 }
 
 class FromSpec1 extends FromSpec {
@@ -37,7 +40,7 @@ class FromSpec1 extends FromSpec {
   val keyValueCount: Int = 10000
 
   override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
-    SwayDB.persistent[Key[Int], Option[String]](randomDir, mapSize = 1.byte, minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration).assertGet.extend.assertGet
+    SwayDB.persistent[Key[Int], Option[String]](randomDir, mapSize = 1.byte).assertGet.extend.assertGet
 }
 
 class FromSpec2 extends FromSpec {
@@ -45,14 +48,14 @@ class FromSpec2 extends FromSpec {
   val keyValueCount: Int = 100000
 
   override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
-    SwayDB.memory[Key[Int], Option[String]](mapSize = 1.byte, minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration).assertGet.extend.assertGet
+    SwayDB.memory[Key[Int], Option[String]](mapSize = 1.byte).assertGet.extend.assertGet
 }
 
 class FromSpec3 extends FromSpec {
   val keyValueCount: Int = 100000
 
   override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
-    SwayDB.memory[Key[Int], Option[String]](minTimeLeftToUpdateExpiration = minTimeLeftToUpdateExpiration).assertGet.extend.assertGet
+    SwayDB.memory[Key[Int], Option[String]]().assertGet.extend.assertGet
 }
 
 sealed trait FromSpec extends TestBase with TestBaseEmbedded {

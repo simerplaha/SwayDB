@@ -19,9 +19,12 @@
 
 package swaydb.core
 
-import java.nio.file.Paths
-
 import com.typesafe.scalalogging.LazyLogging
+import java.nio.file.Paths
+import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.FiniteDuration
+import scala.util.{Success, Try}
+import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.io.file.DBFile
 import swaydb.core.level.zero.LevelZero
@@ -29,12 +32,9 @@ import swaydb.core.level.{Level, LevelRef, TrashLevel}
 import swaydb.core.queue.{KeyValueLimiter, SegmentOpenLimiter}
 import swaydb.core.util.FileUtil._
 import swaydb.data.config._
+import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.{AppendixStorage, LevelStorage}
-
-import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.FiniteDuration
-import scala.util.{Success, Try}
 
 private[core] object DBInitializer extends LazyLogging {
 
@@ -43,7 +43,9 @@ private[core] object DBInitializer extends LazyLogging {
             cacheSize: Long,
             keyValueQueueDelay: FiniteDuration,
             segmentCloserDelay: FiniteDuration)(implicit ec: ExecutionContext,
-                                                ordering: Ordering[Slice[Byte]]): Try[CoreAPI] = {
+                                                keyOrder: KeyOrder[Slice[Byte]],
+                                                timeOrder: TimeOrder[Slice[Byte]],
+                                                functionStore: FunctionStore): Try[CoreAPI] = {
 
     implicit val fileOpenLimiter: DBFile => Unit =
       if (config.persistent)
@@ -68,7 +70,6 @@ private[core] object DBInitializer extends LazyLogging {
             appendixStorage = AppendixStorage.Memory,
             bloomFilterFalsePositiveRate = config.bloomFilterFalsePositiveRate,
             throttle = config.throttle,
-            hasTimeLeftAtLeast = config.minTimeLeftToUpdateExpiration,
             compressDuplicateValues = config.compressDuplicateValues
           )
 
@@ -88,7 +89,6 @@ private[core] object DBInitializer extends LazyLogging {
             appendixStorage = AppendixStorage.Persistent(config.mmapAppendix, config.appendixFlushCheckpointSize),
             bloomFilterFalsePositiveRate = config.bloomFilterFalsePositiveRate,
             throttle = config.throttle,
-            hasTimeLeftAtLeast = config.minTimeLeftToUpdateExpiration,
             compressDuplicateValues = config.compressDuplicateValues
           )
 
@@ -120,21 +120,34 @@ private[core] object DBInitializer extends LazyLogging {
         case Nil =>
           createLevel(1, previousLowerLevel, config.level1) flatMap {
             level1 =>
-              LevelZero(config.level0.mapSize, config.level0.storage, level1, config.level0.acceleration, 10000, config.level0.minTimeLeftToUpdateExpiration) map {
+              LevelZero(
+                mapSize = config.level0.mapSize,
+                storage = config.level0.storage,
+                nextLevel = Some(level1), //TODO make level1 optional.
+                throttleOn = true,
+                acceleration = config.level0.acceleration,
+                readRetryLimit = 10000,
+              ) map {
                 zero =>
                   addShutdownHook(zero)
-                  zero
+                  CoreAPI(zero)
               }
           }
 
         case lowestLevelConfig :: upperLevelConfigs =>
-          val levelNumber: Long = previousLowerLevel.flatMap(_.paths.headOption.map(_.path.folderId - 1)).getOrElse(levelConfigs.size + 1)
+
+          val levelNumber: Long =
+            previousLowerLevel
+              .flatMap(_.paths.headOption.map(_.path.folderId - 1))
+              .getOrElse(levelConfigs.size + 1)
+
           createLevel(levelNumber, previousLowerLevel, lowestLevelConfig) flatMap {
             newLowerLevel =>
               createLevels(upperLevelConfigs, Some(newLowerLevel))
           }
       }
 
+    logger.info(s"Starting ${config.otherLevels.size} configured Levels.")
     createLevels(config.otherLevels.reverse, None)
   }
 

@@ -19,13 +19,37 @@
 
 package swaydb.data.repairAppendix
 
+import swaydb.data.order.KeyOrder
+import swaydb.data.slice.Slice
+
 sealed trait MaxKey[T] {
   val maxKey: T
+  val inclusive: Boolean
 }
 
 object MaxKey {
 
-  case class Fixed[T](maxKey: T) extends MaxKey[T]
+  implicit class MaxKeyImplicits(maxKey: MaxKey[Slice[Byte]]) {
+    def unslice() =
+      maxKey match {
+        case Fixed(maxKey) =>
+          Fixed(maxKey.unslice())
 
-  case class Range[T](fromKey: T, maxKey: T) extends MaxKey[T]
+        case Range(fromKey, maxKey) =>
+          Range(fromKey.unslice(), maxKey.unslice())
+      }
+
+    def lessThan(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean = {
+      import keyOrder._
+      (maxKey.inclusive && maxKey.maxKey < key) || (!maxKey.inclusive && maxKey.maxKey <= key)
+    }
+  }
+
+  case class Fixed[T](maxKey: T) extends MaxKey[T] {
+    override val inclusive: Boolean = true
+  }
+
+  case class Range[T](fromKey: T, maxKey: T) extends MaxKey[T] {
+    override val inclusive: Boolean = false
+  }
 }

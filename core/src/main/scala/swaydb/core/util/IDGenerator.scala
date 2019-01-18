@@ -35,13 +35,6 @@ private[core] class IDGenerator(initial: Long) {
   def nextID: Long =
     atomicID.incrementAndGet()
 
-  def set(id: Long) =
-    atomicID.set(id)
-
   def nextSegmentID: String =
     nextID + s".${Extension.Seg}"
-
-  def nextMapID: String =
-    nextID + s".${Extension.Log}"
-
 }

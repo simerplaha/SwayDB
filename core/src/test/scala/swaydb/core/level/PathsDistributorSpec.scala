@@ -26,11 +26,15 @@ import swaydb.core.TestBase
 import swaydb.core.io.file.IO
 import swaydb.core.segment.Segment
 import swaydb.data.config.Dir
-import swaydb.order.KeyOrder
+import swaydb.data.order.KeyOrder
+import swaydb.core.TestData._
+import swaydb.core.CommonAssertions._
+import swaydb.core.RunThis._
+import swaydb.core.TryAssert._
 
 class PathsDistributorSpec extends TestBase with MockFactory {
 
-  override implicit val ordering = KeyOrder.default
+  implicit val keyOrder = KeyOrder.default
 
   implicit def stringToPath(string: String): Path = Paths.get(string)
 

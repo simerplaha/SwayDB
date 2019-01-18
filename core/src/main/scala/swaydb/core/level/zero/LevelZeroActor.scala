@@ -24,27 +24,28 @@ import java.util.concurrent.atomic.AtomicBoolean
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.actor.{Actor, ActorRef}
 import swaydb.core.level.LevelException.ContainsOverlappingBusySegments
+import swaydb.core.level.LevelRef
 import swaydb.core.level.actor.LevelCommand._
 import swaydb.core.level.actor.{LevelZeroAPI, LevelZeroCommand}
 import swaydb.data.slice.Slice
 
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
+import swaydb.data.order.KeyOrder
 
 /**
   * Actor that glues multiple Levels starts exchanging Segments based to push delay.
   */
 private[core] object LevelZeroActor extends LazyLogging {
 
-  def apply(zero: LevelZero)(implicit ec: ExecutionContext,
-                             ordering: Ordering[Slice[Byte]]): LevelZeroActor =
-    new LevelZeroActor(zero)
+  def apply(zero: LevelZero, nextLevel: LevelRef)(implicit ec: ExecutionContext,
+                                                  keyOrder: KeyOrder[Slice[Byte]]): LevelZeroActor =
+    new LevelZeroActor(zero, nextLevel)
 }
 
-private[core] class LevelZeroActor(zero: LevelZero)(implicit ec: ExecutionContext,
-                                                    ordering: Ordering[Slice[Byte]]) extends LazyLogging {
-
-  private def nextLevel = zero.nextLevel
+private[core] class LevelZeroActor(zero: LevelZero,
+                                   nextLevel: LevelRef)(implicit ec: ExecutionContext,
+                                                        keyOrder: KeyOrder[Slice[Byte]]) extends LazyLogging {
 
   private def maps = zero.maps
 
@@ -57,6 +58,9 @@ private[core] class LevelZeroActor(zero: LevelZero)(implicit ec: ExecutionContex
 
   def !(command: LevelZeroAPI): Unit =
     actor ! command
+
+  def terminate() =
+    actor.terminate()
 
   val actor: ActorRef[LevelZeroAPI] =
     Actor[LevelZeroCommand] {

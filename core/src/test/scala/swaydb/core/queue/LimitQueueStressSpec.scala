@@ -19,10 +19,11 @@
 
 package swaydb.core.queue
 
-import swaydb.core.TestBase
-
 import scala.concurrent.Future
 import scala.concurrent.duration._
+import swaydb.core.RunThis._
+import swaydb.core.TestBase
+import swaydb.core.TryAssert._
 
 class LimitQueueStressSpec extends TestBase {
 

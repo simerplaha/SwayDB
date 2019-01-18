@@ -4,14 +4,15 @@ import xerial.sbt.Sonatype._
 
 val scala211 = "2.11.12"
 val scala212 = "2.12.8"
-val scalaMetaVersion = "4.0.0"
+val scalaMetaVersion = "4.1.0"
 val lz4Version = "1.5.0"
 val snappyVersion = "1.1.7"
 val logbackClassicVersion = "1.2.3"
 val bloomFilterVersion = "0.11.0"
-val scalaLoggingVersion = "3.8.0"
-val scalaMockVersion = "3.6.0"
+val scalaLoggingVersion = "3.9.0"
+val scalaMockVersion = "4.1.0"
 val scalaTestVersion = "3.0.5"
+val scalaCheckVersion = "1.14.0"
 
 parallelExecution in ThisBuild := false
 
@@ -38,7 +39,8 @@ val publishSettings = Seq[Setting[_]](
 val testDependencies =
   Seq(
     "org.scalatest" %% "scalatest" % scalaTestVersion % Test,
-    "org.scalamock" %% "scalamock-scalatest-support" % scalaMockVersion % Test,
+    "org.scalamock" %% "scalamock" % scalaMockVersion % Test,
+    "org.scalacheck" %% "scalacheck" % scalaCheckVersion % Test,
     "ch.qos.logback" % "logback-classic" % logbackClassicVersion % Test
   )
 
@@ -52,7 +54,7 @@ lazy val SwayDB =
     .settings(commonSettings)
     .settings(publishSettings)
     .dependsOn(extension)
-    .aggregate(extension, embedded, core, macros, compression, data, ordering, configs, serializers)
+    .aggregate(extension, embedded, core, macros, compression, data, configs, serializers)
 
 lazy val core =
   project
@@ -62,7 +64,7 @@ lazy val core =
     .settings(
       libraryDependencies ++=
         commonDependencies :+ "com.github.alexandrnikitin" %% "bloom-filter" % bloomFilterVersion
-    ).dependsOn(data, macros, compression, configs % Test, ordering % Test, serializers % Test)
+    ).dependsOn(data, macros, compression, configs % Test, serializers % Test)
 
 lazy val data =
   project
@@ -79,16 +81,8 @@ lazy val embedded =
     .settings(publishSettings)
     .settings(
       libraryDependencies ++= commonDependencies
-    ).dependsOn(core, configs, ordering)
+    ).dependsOn(core, configs)
     .dependsOn(core % "compile->compile;test->test")
-
-lazy val ordering =
-  project
-    .settings(commonSettings)
-    .settings(publishSettings)
-    .settings(
-      libraryDependencies ++= commonDependencies
-    ).dependsOn(data)
 
 lazy val configs =
   project
