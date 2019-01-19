@@ -886,13 +886,13 @@ private[core] class Level(val dirs: Seq[Dir],
   override def lower(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
     Lower(key, lowerInThisLevel, lowerFromNextLevel)
 
-  private def higherFromFloorSegment(key: Slice[Byte]) =
+  private def higherFromFloorSegment(key: Slice[Byte]): Try[Option[ReadOnly.SegmentResponse]] =
     appendix.floor(key).map(_.higher(key)) getOrElse TryUtil.successNone
 
-  private def higherFromHigherSegment(key: Slice[Byte]) =
+  private def higherFromHigherSegment(key: Slice[Byte]): Try[Option[ReadOnly.SegmentResponse]] =
     appendix.higherValue(key).map(_.higher(key)) getOrElse TryUtil.successNone
 
-  private def higherInThisLevel(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly]] =
+  private def higherInThisLevel(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.SegmentResponse]] =
     higherFromFloorSegment(key) flatMap {
       fromFloor =>
         if (fromFloor.isDefined)

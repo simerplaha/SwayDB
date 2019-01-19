@@ -218,4 +218,3 @@ sealed trait SegmentReadPerformanceSpec extends TestBase with Benchmark {
     }
   }
 }
-W

@@ -421,11 +421,11 @@ private[core] class LevelZero(val path: Path,
   @tailrec
   private def higherFromMap(key: Slice[Byte],
                             currentMap: map.Map[Slice[Byte], Memory.SegmentResponse],
-                            preFetched: Option[Memory] = None): Option[Memory] =
+                            preFetched: Option[Memory] = None): Option[Memory.SegmentResponse] =
     if (currentMap.hasRange)
       preFetched orElse currentMap.floor(key) match {
-        case floor @ Some(floorRange: Memory.Range) if key >= floorRange.fromKey && key < floorRange.toKey =>
-          floor
+        case Some(floorRange: Memory.Range) if key >= floorRange.fromKey && key < floorRange.toKey =>
+          Some(floorRange)
 
         case Some(range: Memory.Range) =>
           val reFetched = currentMap.floor(key)

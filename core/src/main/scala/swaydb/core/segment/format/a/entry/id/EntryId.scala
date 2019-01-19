@@ -185,9 +185,13 @@ object EntryId {
     val maxId = Put.maxId * 2
   }
 
+  /**
+    * Reserve 2 byte keys for Put and Group. All the following key-values
+    * disappear in last Level but [[Put]] and [[Group]] are kept unless deleted.
+    */
   object Range extends Id {
-    val minId = Group.maxId + 1
-    val maxId = Group.maxId * 2
+    val minId = 16384
+    val maxId = minId + 3000
   }
 
   object Remove extends Id {

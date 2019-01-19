@@ -918,8 +918,9 @@ object TestData {
                           includePendingApply: Boolean = true,
                           includeFunctions: Boolean = true,
                           includeRemoves: Boolean = true,
+                          includePuts: Boolean = true,
                           moveAppliesTimeBackward: Boolean = true)(implicit timeGenerator: TestTimeGenerator = TestTimeGenerator.Incremental()): Memory.Fixed =
-    if (Random.nextBoolean())
+    if (includePuts && Random.nextBoolean())
       Memory.Put(key, value, deadline, timeGenerator.nextTime)
     else if (Random.nextBoolean())
       Memory.Remove(key, deadline, timeGenerator.nextTime)
@@ -981,14 +982,12 @@ object TestData {
                             deadline: Option[Deadline] = randomDeadlineOption,
                             functionOutput: SwayFunctionOutput = randomFunctionOutput(),
                             addRemoves: Boolean = Random.nextBoolean(),
-                            addPutExpiredDeadlines: Boolean = Random.nextBoolean(),
                             addPut: Boolean = Random.nextBoolean())(implicit timeGenerator: TestTimeGenerator = TestTimeGenerator.Incremental()): Option[Value.FromValue] =
     if (Random.nextBoolean())
       Some(
         randomFromValue(
           value = value,
           addRandomRangeRemoves = addRemoves,
-          addRandomPutExpiredDeadline = addPutExpiredDeadlines,
           functionOutput = functionOutput,
           deadline = deadline,
           addPut = addPut
@@ -1007,7 +1006,6 @@ object TestData {
 
   def randomFromValue(value: Option[Slice[Byte]] = randomStringOption,
                       addRandomRangeRemoves: Boolean = Random.nextBoolean(),
-                      addRandomPutExpiredDeadline: Boolean = Random.nextBoolean(),
                       deadline: Option[Deadline] = randomDeadlineOption,
                       functionOutput: SwayFunctionOutput = randomFunctionOutput(),
                       addPut: Boolean = Random.nextBoolean())(implicit timeGenerator: TestTimeGenerator = TestTimeGenerator.Incremental()): Value.FromValue =
@@ -1951,7 +1949,6 @@ object TestData {
                     deadline = deadline,
                     addRemoves = false,
                     functionOutput = SwayFunctionOutput.Update(updatedValue, deadline),
-                    addPutExpiredDeadlines = false,
                     addPut = false
                   ),
                   rangeValue = randomRangeValue(
