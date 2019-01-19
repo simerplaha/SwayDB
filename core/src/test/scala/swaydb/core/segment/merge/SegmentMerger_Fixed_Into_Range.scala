@@ -22,7 +22,7 @@ package swaydb.core.segment.merge
 import org.scalatest.WordSpec
 import scala.concurrent.duration._
 import scala.util.Random
-import swaydb.core.data.{Memory, Value}
+import swaydb.core.data.{Memory, Time, Value}
 import swaydb.core.merge.FixedMerger
 import swaydb.core.{CommonAssertions, TestTimeGenerator}
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -38,6 +38,7 @@ class SegmentMerger_Fixed_Into_Range extends WordSpec {
 
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
+
   implicit def groupingStrategy = randomGroupingStrategyOption(randomNextInt(1000))
 
   "Single into Range" when {
@@ -47,13 +48,14 @@ class SegmentMerger_Fixed_Into_Range extends WordSpec {
       runThis(10000.times) {
         val oldKeyValue = Memory.Range(1, 10, randomFromValueOption(), randomRangeValue())
         val newKeyValue = randomFixedKeyValue(0)
+
         val expectedKeyValue = Slice(newKeyValue, oldKeyValue)
         val expectedLastLevel: Slice[Memory.Fixed] = expectedKeyValue.map(_.toLastLevelExpected).flatten.toSlice
 
-        //println
-        //println("newKeyValue: " + newKeyValue)
-        //println("oldKeyValue: " + oldKeyValue)
-        //println("expectedKeyValue: " + expectedKeyValue)
+        //        println
+        //        println("newKeyValue: " + newKeyValue)
+        //        println("oldKeyValue: " + oldKeyValue)
+        //        println("expectedKeyValue: " + expectedKeyValue)
 
         assertMerge(
           newKeyValue = newKeyValue,
@@ -88,7 +90,7 @@ class SegmentMerger_Fixed_Into_Range extends WordSpec {
     }
 
     "mid" in {
-      runThis(10000) {
+      runThis(10000.times) {
         implicit val timeGenerator = TestTimeGenerator.Incremental()
 
         val oldKeyValue = Memory.Range(1, 10, randomFromValueOption(), randomRangeValue())
@@ -145,7 +147,7 @@ class SegmentMerger_Fixed_Into_Range extends WordSpec {
     }
 
     "split the range if the input key-values key overlaps range's multiple keys (random mix test)" in {
-      implicit val timeGenerator = TestTimeGenerator.Incremental()
+      implicit val timeGenerator = TestTimeGenerator.Empty
 
       val deadline1 = 20.seconds.fromNow
       val deadline2 = 30.seconds.fromNow
@@ -201,7 +203,7 @@ class SegmentMerger_Fixed_Into_Range extends WordSpec {
       assertMerge(
         newKeyValues = newKeyValues,
         oldKeyValues = oldKeyValues,
-        expected = expected,
+        expected = expected.toTransient,
         lastLevelExpect = expectedInLastLevel
       )
     }

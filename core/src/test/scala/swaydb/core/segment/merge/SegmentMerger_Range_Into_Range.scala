@@ -39,7 +39,7 @@ class SegmentMerger_Range_Into_Range extends WordSpec {
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit def groupingStrategy = randomGroupingStrategyOption(randomNextInt(1000))
 
-  implicit val timeGenerator = TestTimeGenerator.Decremental()
+  implicit val timeGenerator = TestTimeGenerator.Empty
 
   "Range into Range" when {
     "1" in {

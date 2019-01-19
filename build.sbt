@@ -96,7 +96,6 @@ lazy val serializers =
     .settings(publishSettings)
     .dependsOn(data)
 
-
 lazy val extension =
   project
     .settings(commonSettings)
@@ -104,6 +103,22 @@ lazy val extension =
     .settings(
       libraryDependencies ++= testDependencies
     ).dependsOn(embedded)
+
+lazy val stress =
+  project
+    .settings(commonSettings)
+    .settings(publishSettings)
+    .settings(
+      libraryDependencies ++= testDependencies
+    ).dependsOn(core)
+
+lazy val performance =
+  project
+    .settings(commonSettings)
+    .settings(publishSettings)
+    .settings(
+      libraryDependencies ++= testDependencies
+    ).dependsOn(core)
 
 lazy val compression =
   project

@@ -39,13 +39,13 @@ import swaydb.core.TryAssert._
 class SegmentGrouperSpec extends TestBase {
 
   implicit val keyOrder = KeyOrder.default
-  implicit def timeGenerator: TestTimeGenerator = TestTimeGenerator.random
-  implicit def groupingStrategy = randomGroupingStrategyOption(randomNextInt(1000))
+  implicit def timeGenerator: TestTimeGenerator = TestTimeGenerator.Empty
+  implicit def groupingStrategy: Option[KeyValueGroupingStrategyInternal] = None
   val keyValueCount = 100
 
   import keyOrder._
 
-  "SegmentGrouper.addKeyValue" should {
+  "addKeyValue" should {
     "add KeyValue to next split and close the split if the new key-value does not fit" in {
 
       val initialSegment = ListBuffer[KeyValue.WriteOnly]()
@@ -59,7 +59,7 @@ class SegmentGrouperSpec extends TestBase {
       //minSegmentSize is 69.bytes. Adding the above keyValues should create a segment of total size
       // 60 + 13 - 3 (common bytes between 2 and 3) which is over the limit = 70.bytes.
       // this should result is closing the existing segment and starting a new segment
-      SegmentGrouper.addKeyValue(keyValue, segments, 69.bytes, forInMemory = false, bloomFilterFalsePositiveRate = TestData.falsePositiveRate, isLastLevel = false, compressDuplicateValues = true)
+      SegmentGrouper.addKeyValue(keyValue, segments, 70.bytes, forInMemory = false, bloomFilterFalsePositiveRate = TestData.falsePositiveRate, isLastLevel = false, compressDuplicateValues = true)
 
       //the initialSegment should be closed and a new segment should get started
       segments.size shouldBe 2
@@ -67,7 +67,7 @@ class SegmentGrouperSpec extends TestBase {
       val firstSegment = segments.head
       firstSegment(0).key equiv initialSegment.head.key
       firstSegment(1).key equiv initialSegment.last.key
-      firstSegment.last.stats.segmentSize shouldBe 69.bytes
+      firstSegment.last.stats.segmentSize shouldBe 70.bytes
 
       val secondSegment = segments.last
       secondSegment.head.key equiv keyValue.key

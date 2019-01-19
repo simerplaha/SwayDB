@@ -39,7 +39,7 @@ class SegmentMerger_Range_Into_Fixed extends WordSpec {
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit def groupingStrategy = randomGroupingStrategyOption(randomNextInt(1000))
 
-  implicit val timeGenerator = TestTimeGenerator.Decremental()
+  implicit val timeGenerator = TestTimeGenerator.Empty
 
   "Range into Single" when {
     "Left - when Single key-value matches Range's fromKey" in {
@@ -168,6 +168,8 @@ class SegmentMerger_Range_Into_Fixed extends WordSpec {
     }
 
     "remove all key-values within the range only when range's last key does overlaps and existing key" in {
+      implicit val timeGenerator = TestTimeGenerator.Empty
+
       //       3  -    20
       //  1, 2, 7, 10, 20
       val newKeyValues = Slice(Memory.Range(3, 20, None, Value.remove(None)))

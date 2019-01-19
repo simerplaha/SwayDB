@@ -31,7 +31,7 @@ import swaydb.core.RunThis._
 
 class MergeListSpec extends WordSpec with Matchers {
 
-  implicit def timeGenerator: TestTimeGenerator = TestTimeGenerator.random
+  implicit val timeGenerator: TestTimeGenerator = TestTimeGenerator.Empty
 
   implicit def toPut(key: Int): Memory.Put =
     Memory.put(key)

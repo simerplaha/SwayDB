@@ -422,8 +422,9 @@ object CommonAssertions {
       result shouldBe empty
     } else {
       result should have size 1
-      result.head should have size expected.size
-      result.head.toList should contain inOrderElementsOf expected
+      val ungrouped = unzipGroups(result.head)
+      ungrouped should have size expected.size
+      ungrouped.toList should contain inOrderElementsOf expected
     }
     result
   }
@@ -1084,7 +1085,7 @@ object CommonAssertions {
         unzipGroups(keyValue.segmentCache.getAll().assertGet)
       case keyValue: KeyValue =>
         Slice(keyValue)
-    }.toSlice
+    }.toMemory.toTransient
 
   def assertHigher(keyValues: Slice[KeyValue],
                    segment: Segment): Unit =
