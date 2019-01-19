@@ -193,6 +193,7 @@ sealed trait SegmentGroupReadSpec extends TestBase with ScalaFutures with Privat
         }
       }
 
+      keyValueLimiter.terminate()
     }
   }
 

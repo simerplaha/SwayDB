@@ -106,6 +106,8 @@ class SegmentKeyValueLimiterSpec extends TestBase with Benchmark {
         //wait to allow for limit to do it's clean up
         sleep(1.second)
       }
+
+      keyValueLimiter.terminate()
     }
   }
 
@@ -169,6 +171,7 @@ class SegmentKeyValueLimiterSpec extends TestBase with Benchmark {
   //      headGroupAgain.isIndexDecompressed shouldBe false
   //      headGroupAgain.segmentCache(ordering, keyValueLimiter).isCacheEmpty shouldBe true
   //    }
+  //  keyValueLimiter.terminate()
   //  }
 
 }

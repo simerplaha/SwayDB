@@ -73,7 +73,7 @@ class SegmentAssignerSpec3 extends SegmentAssignerSpec {
 
 sealed trait SegmentAssignerSpec extends TestBase {
   implicit val keyOrder = KeyOrder.default
-  implicit def timeGenerator: TestTimeGenerator = TestTimeGenerator.random
+  implicit val timeGenerator: TestTimeGenerator = TestTimeGenerator.Empty
 
   def keyValueCount: Int
 

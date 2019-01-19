@@ -122,6 +122,31 @@ class LimitQueueSpec extends TestBase {
       evictedItems.flatMap(_.get) should contain only Item(11)
     }
 
+    "stop loop if terminated" in {
+      val evictedItems = new ConcurrentSkipListSet[String]()
+      val limitQueue =
+        LimitQueue[String](limit = 1, 2.second, _ => 1) {
+          evictedItem =>
+            evictedItems.add(evictedItem)
+            println(s"Evicted: $evictedItem")
+        }
+
+      (1 to 1000) foreach {
+        i =>
+          limitQueue ! i.toString
+          if (i == 100)
+            limitQueue.terminate()
+
+      }
+      def assertNotLooping() = {
+        sleep(3.second)
+        evictedItems shouldBe empty
+      }
+
+      assertNotLooping()
+      assertNotLooping()
+    }
+
     //    "benchmark" in {
     //
     //      //1.859036011 seconds.

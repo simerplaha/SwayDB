@@ -1075,7 +1075,6 @@ object TestData {
   def randomIntMin(min: Int) =
     Math.abs(randomIntMax()) max min
 
-
   def randomIntMaxOption(max: Int = Int.MaxValue) =
     if (Random.nextBoolean())
       Some(randomIntMax(max))
@@ -1191,89 +1190,89 @@ object TestData {
     var key = startId getOrElse randomInt(minus = count)
     val until = key + count
     while (key < until) {
-//      if (addRandomGroups && Random.nextBoolean()) {
-//        //create a Random group with the inner key-values the same as count of this group.
-//        val groupKeyValues =
-//          randomKeyValues(
-//            count = randomIntMax((count max 10) max 50),
-//            startId = Some(key),
-//            valueSize = valueSize,
-//            addPut = addPut,
-//            addRandomRemoves = addRandomRemoves,
-//            addRandomRangeRemoves = addRandomRangeRemoves,
-//            addRandomFunctions = addRandomFunctions,
-//            addRandomUpdates = addRandomUpdates,
-//            addRandomRemoveDeadlines = addRandomRemoveDeadlines,
-//            addRandomExpiredPutDeadlines = addRandomExpiredPutDeadlines,
-//            addRandomPendingApply = addRandomPendingApply,
-//            addRandomPutDeadlines = addRandomPutDeadlines,
-//            addRandomUpdateDeadlines = addRandomUpdateDeadlines,
-//            addRandomRanges = addRandomRanges,
-//            addRandomGroups = false //do not create more inner groups.
-//          )
-//
-//        //could be possible that randomKeyValues returns empty if all generations were set to false.
-//        if (groupKeyValues.isEmpty) {
-//          if (Random.nextBoolean()) key += 1
-//        } else {
-//          Transient.Group(groupKeyValues, randomCompression(), randomCompression(), TestData.falsePositiveRate, previous = slice.lastOption).assertGetOpt match {
-//            case Some(group) =>
-//              slice add group
-//              //randomly skip the Group's toKey for the next key. Next key should not be the same as toKey so add a minimum of 1 to next key.
-//              if (Random.nextBoolean())
-//                key = group.maxKey.maxKey.readInt() + 1
-//              else
-//                key = group.maxKey.maxKey.readInt() + 1 + randomIntMax(5)
-//            case None =>
-//              //if it's empty randomly incrementing the key and continue.
-//              if (Random.nextBoolean())
-//                key += 1
-//          }
-//        }
-//
-//      } else if (addRandomRanges && Random.nextBoolean()) {
-//        val toKey = key + 10
-//        val fromValueValueBytes = eitherOne(None, Some(randomBytesSlice(valueSize)))
-//        val rangeValueValueBytes = eitherOne(None, Some(randomBytesSlice(valueSize)))
-//        val fromValueDeadline =
-//          if (addRandomPutDeadlines || addRandomRemoveDeadlines || addRandomUpdateDeadlines)
-//            randomDeadlineOption(addRandomExpiredPutDeadlines)
-//          else
-//            None
-//        val rangeValueDeadline = if (addRandomRemoveDeadlines || addRandomUpdateDeadlines) randomDeadlineOption else None
-//        slice add randomRangeKeyValue(
-//          from = key,
-//          to = toKey,
-//          fromValue = randomFromValueOption(value = fromValueValueBytes, deadline = fromValueDeadline, addPut = addPut),
-//          rangeValue = randomRangeValue(value = rangeValueValueBytes, addRemoves = addRandomRangeRemoves, deadline = rangeValueDeadline)
-//        ).toTransient(slice.lastOption)
-//        //randomly skip the Range's toKey for the next key.
-//        if (Random.nextBoolean())
-//          key = toKey
-//        else
-//          key = toKey + randomIntMax(5)
-//      } else if (addRandomRemoves && Random.nextBoolean()) {
-//        slice add randomRemoveKeyValue(key, if (addRandomRemoveDeadlines) randomDeadlineOption else None).toTransient(slice.lastOption)
-//        key = key + 1
-//      } else if (addRandomUpdates && Random.nextBoolean()) {
+      if (addRandomGroups && Random.nextBoolean()) {
+        //create a Random group with the inner key-values the same as count of this group.
+        val groupKeyValues =
+          randomKeyValues(
+            count = randomIntMax((count max 10) max 50),
+            startId = Some(key),
+            valueSize = valueSize,
+            addPut = addPut,
+            addRandomRemoves = addRandomRemoves,
+            addRandomRangeRemoves = addRandomRangeRemoves,
+            addRandomFunctions = addRandomFunctions,
+            addRandomUpdates = addRandomUpdates,
+            addRandomRemoveDeadlines = addRandomRemoveDeadlines,
+            addRandomExpiredPutDeadlines = addRandomExpiredPutDeadlines,
+            addRandomPendingApply = addRandomPendingApply,
+            addRandomPutDeadlines = addRandomPutDeadlines,
+            addRandomUpdateDeadlines = addRandomUpdateDeadlines,
+            addRandomRanges = addRandomRanges,
+            addRandomGroups = false //do not create more inner groups.
+          )
+
+        //could be possible that randomKeyValues returns empty if all generations were set to false.
+        if (groupKeyValues.isEmpty) {
+          if (Random.nextBoolean()) key += 1
+        } else {
+          Transient.Group(groupKeyValues, randomCompression(), randomCompression(), TestData.falsePositiveRate, previous = slice.lastOption).assertGetOpt match {
+            case Some(group) =>
+              slice add group
+              //randomly skip the Group's toKey for the next key. Next key should not be the same as toKey so add a minimum of 1 to next key.
+              if (Random.nextBoolean())
+                key = group.maxKey.maxKey.readInt() + 1
+              else
+                key = group.maxKey.maxKey.readInt() + 1 + randomIntMax(5)
+            case None =>
+              //if it's empty randomly incrementing the key and continue.
+              if (Random.nextBoolean())
+                key += 1
+          }
+        }
+
+      } else if (addRandomRanges && Random.nextBoolean()) {
+        val toKey = key + 10
+        val fromValueValueBytes = eitherOne(None, Some(randomBytesSlice(valueSize)))
+        val rangeValueValueBytes = eitherOne(None, Some(randomBytesSlice(valueSize)))
+        val fromValueDeadline =
+          if (addRandomPutDeadlines || addRandomRemoveDeadlines || addRandomUpdateDeadlines)
+            randomDeadlineOption(addRandomExpiredPutDeadlines)
+          else
+            None
+        val rangeValueDeadline = if (addRandomRemoveDeadlines || addRandomUpdateDeadlines) randomDeadlineOption else None
+        slice add randomRangeKeyValue(
+          from = key,
+          to = toKey,
+          fromValue = randomFromValueOption(value = fromValueValueBytes, deadline = fromValueDeadline, addPut = addPut),
+          rangeValue = randomRangeValue(value = rangeValueValueBytes, addRemoves = addRandomRangeRemoves, deadline = rangeValueDeadline)
+        ).toTransient(slice.lastOption)
+        //randomly skip the Range's toKey for the next key.
+        if (Random.nextBoolean())
+          key = toKey
+        else
+          key = toKey + randomIntMax(5)
+      } else if (addRandomRemoves && Random.nextBoolean()) {
+        slice add randomRemoveKeyValue(key, if (addRandomRemoveDeadlines) randomDeadlineOption else None).toTransient(slice.lastOption)
+        key = key + 1
+      } else if (addRandomUpdates && Random.nextBoolean()) {
         val valueBytes = if (valueSize == 0) None else eitherOne(None, Some(randomBytesSlice(valueSize)))
         slice add randomUpdateKeyValue(key = key: Slice[Byte], deadline = if (addRandomUpdateDeadlines) randomDeadlineOption else None, value = valueBytes).toTransient(slice.lastOption)
         key = key + 1
-//      } else if (addRandomFunctions && Random.nextBoolean()) {
-//        slice add randomFunctionKeyValue(key = key: Slice[Byte]).toTransient(slice.lastOption)
-//        key = key + 1
-//      } else if (addRandomPendingApply && Random.nextBoolean()) {
-//        val valueBytes = if (valueSize == 0) None else eitherOne(None, Some(randomBytesSlice(valueSize)))
-//        slice add randomPendingApplyKeyValue(key = key: Slice[Byte], deadline = if (addRandomUpdateDeadlines) randomDeadlineOption else None, value = valueBytes).toTransient(slice.lastOption)
-//        key = key + 1
-//      } else if (addPut) {
-//        val valueBytes = if (valueSize == 0) None else eitherOne(None, Some(randomBytesSlice(valueSize)))
-//        val deadline = if (addRandomPutDeadlines) randomDeadlineOption(addRandomExpiredPutDeadlines) else None
-//        slice add randomPutKeyValue(key = key: Slice[Byte], deadline = deadline, value = valueBytes).toTransient(slice.lastOption)
-//        key = key + 1
-//      } else {
-//        key = key + 1
-//      }
+      } else if (addRandomFunctions && Random.nextBoolean()) {
+        slice add randomFunctionKeyValue(key = key: Slice[Byte]).toTransient(slice.lastOption)
+        key = key + 1
+      } else if (addRandomPendingApply && Random.nextBoolean()) {
+        val valueBytes = if (valueSize == 0) None else eitherOne(None, Some(randomBytesSlice(valueSize)))
+        slice add randomPendingApplyKeyValue(key = key: Slice[Byte], deadline = if (addRandomUpdateDeadlines) randomDeadlineOption else None, value = valueBytes).toTransient(slice.lastOption)
+        key = key + 1
+      } else if (addPut) {
+        val valueBytes = if (valueSize == 0) None else eitherOne(None, Some(randomBytesSlice(valueSize)))
+        val deadline = if (addRandomPutDeadlines) randomDeadlineOption(addRandomExpiredPutDeadlines) else None
+        slice add randomPutKeyValue(key = key: Slice[Byte], deadline = deadline, value = valueBytes).toTransient(slice.lastOption)
+        key = key + 1
+      } else {
+        key = key + 1
+      }
     }
     slice.close()
   }

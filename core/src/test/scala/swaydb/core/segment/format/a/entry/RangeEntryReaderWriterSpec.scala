@@ -39,7 +39,7 @@ class RangeEntryReaderWriterSpec extends WordSpec {
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
 
   "write and read single Range entry" in {
-    runThis(1000.times) {
+    runThisParallel(1000.times) {
       val fromKey = randomIntMax()
       val toKey = randomIntMax() max (fromKey + 100)
       val entry = randomRangeKeyValue(from = fromKey, to = toKey, randomFromValueOption()(TestTimeGenerator.random), randomRangeValue()(TestTimeGenerator.random)).toTransient
@@ -52,7 +52,7 @@ class RangeEntryReaderWriterSpec extends WordSpec {
   }
 
   "write and read range entry with other entries" in {
-    runThis(1000.times) {
+    runThisParallel(1000.times) {
       val keyValues = randomizedKeyValues(count = 1, addRandomGroups = false)
       val previous = keyValues.head
 

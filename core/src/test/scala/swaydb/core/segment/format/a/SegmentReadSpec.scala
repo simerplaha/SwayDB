@@ -612,6 +612,8 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures with PrivateMeth
 
   "Segment.tempMinMaxKeyValues" should {
     "return key-values with Segments min and max keys only" in {
+      implicit def timeGenerator: TestTimeGenerator = TestTimeGenerator.Empty
+
       val segment1 = TestSegment(randomizedKeyValues(keyValuesCount)).assertGet
       val segment2 = TestSegment(randomizedKeyValues(keyValuesCount, startId = Some(segment1.maxKey.maxKey.read[Int] + 1))).assertGet
       val segment3 = TestSegment(randomizedKeyValues(keyValuesCount, startId = Some(segment2.maxKey.maxKey.read[Int] + 1))).assertGet
@@ -915,7 +917,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures with PrivateMeth
     }
 
     "return deadline if one of the Segments contains deadline" in {
-      runThis(100.times) {
+      runThisParallel(10.times) {
         val keyValues = randomizedKeyValues(keyValuesCount, addRandomPutDeadlines = false, addRandomRemoveDeadlines = false, addRandomUpdateDeadlines = false).toMemory
 
         //only a single key-value with a deadline.
@@ -949,59 +951,19 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures with PrivateMeth
     }
 
     "return deadline" in {
+      runThisParallel(10.times) {
+        val keyValues1 = randomizedKeyValues(1000)
+        val keyValues2 = randomizedKeyValues(1000)
 
-      val keyValues1 = randomizedKeyValues(1000)
-      val keyValues2 = randomizedKeyValues(1000)
+        val segment1 = TestSegment(keyValues1).assertGet
+        val segment2 = TestSegment(keyValues2).assertGet
 
-      val segment1 = TestSegment(keyValues1).assertGet
-      val segment2 = TestSegment(keyValues2).assertGet
+        val deadline = nearestDeadline(keyValues1 ++ keyValues2)
 
-      def nearest(previous: Option[Deadline], next: Option[Deadline]): Option[Deadline] =
-        (previous, next) match {
-          case (None, None) => None
-          case (None, next @ Some(_)) => next
-          case (previous @ Some(_), None) => previous
-          case (previous @ Some(deadline1), next @ Some(deadline2)) =>
-            if (deadline1 < deadline2)
-              previous
-            else
-              next
-        }
-
-      val deadline =
-        (keyValues1 ++ keyValues2).foldLeft(Option.empty[Deadline]) {
-          case (nearestDeadline, keyValue) =>
-
-            def getDeadline(nearestDeadline: Option[Deadline],
-                            keyValue: KeyValue.WriteOnly): Option[Deadline] =
-              keyValue match {
-                case fixed: KeyValue.WriteOnly.Fixed =>
-                  nearest(nearestDeadline, fixed.deadline)
-
-                case range: KeyValue.WriteOnly.Range =>
-                  range.fetchFromAndRangeValue.assertGet match {
-                    case (Some(fromValue), rangeValue) =>
-                      nearest(nearest(nearestDeadline, fromValue.deadline), rangeValue.deadline)
-                    case (None, rangeValue) =>
-                      nearest(nearestDeadline, rangeValue.deadline)
-                  }
-
-                //if it's a group, fetch nearest deadline by looking up all key-values of the Group.
-                case range: KeyValue.WriteOnly.Group =>
-                  //instead of fetching the nearest deadline from the Group itself, fetch the nearest deadline from the,
-                  //groups key-values to get more coverage.
-                  range.keyValues.foldLeft(nearestDeadline) {
-                    case (previousDeadline, nextKeyValue) =>
-                      getDeadline(previousDeadline, nextKeyValue)
-                  }
-              }
-
-            getDeadline(nearestDeadline, keyValue)
-        }
-
-      Segment.getNearestDeadlineSegment(segment1, segment2).flatMap(_.nearestExpiryDeadline) shouldBe deadline
-      Segment.getNearestDeadlineSegment(segment2, segment1).flatMap(_.nearestExpiryDeadline) shouldBe deadline
-      Segment.getNearestDeadlineSegment(segment1 :: segment2 :: Nil).flatMap(_.nearestExpiryDeadline) shouldBe deadline
+        Segment.getNearestDeadlineSegment(segment1, segment2).flatMap(_.nearestExpiryDeadline) shouldBe deadline
+        Segment.getNearestDeadlineSegment(segment2, segment1).flatMap(_.nearestExpiryDeadline) shouldBe deadline
+        Segment.getNearestDeadlineSegment(segment1 :: segment2 :: Nil).flatMap(_.nearestExpiryDeadline) shouldBe deadline
+      }
     }
   }
 }

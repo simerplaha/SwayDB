@@ -61,13 +61,18 @@ class SegmentWriterReaderSpec extends TestBase {
         val (bytes, _) = SegmentWriter.write(keyValues, TestData.falsePositiveRate).assertGet
         bytes.isFull shouldBe true
         //in memory
-        assertReads(keyValues, Reader(bytes))
+        try
+          assertReads(keyValues, Reader(bytes))
+        catch {
+          case exception: Exception =>
+            throw exception
+        }
         //on disk
         assertReads(keyValues, createFileChannelReader(bytes))
       }
 
       runThis(100.times) {
-        val count = randomIntMax(4) min 1
+        val count = randomIntMax(4) max 1
         test(randomizedKeyValues(count, addRandomGroups = true))
       }
     }
@@ -355,7 +360,13 @@ class SegmentWriterReaderSpec extends TestBase {
           Slice(
             randomFixedKeyValue(1).toTransient,
             randomFixedKeyValue(2).toTransient,
-            Transient.Group(Slice(randomPutKeyValue(10, Some("val")), randomRangeKeyValue(12, 15, rangeValue = Value.update(1))).toTransient, keyCompression, valueCompression, TestData.falsePositiveRate, None).assertGet
+            Transient.Group(
+              keyValues = Slice(randomPutKeyValue(10, Some("val")), randomRangeKeyValue(from = 12, to = 15, rangeValue = Value.update(1))).toTransient,
+              indexCompression = keyCompression,
+              valueCompression = valueCompression,
+              falsePositiveRate = TestData.falsePositiveRate,
+              previous = None
+            ).assertGet
           ).updateStats
         )
       }
@@ -637,8 +648,9 @@ class SegmentWriterReaderSpec extends TestBase {
 
   "writing key-values with duplicate values" should {
     "use the same valueOffset and not create duplicate values" in {
-      runThis(100.times) {
-        val fixedValue: Slice[Byte] = randomBytesSlice(randomIntMax(1000) min 1)
+      runThis(1000.times) {
+        //make sure the first byte in the value is not the same as the key (just for the this test).
+        val fixedValue: Slice[Byte] = Slice(11.toByte) ++ randomBytesSlice(randomIntMax(50)).drop(1)
 
         def fixed =
           Seq(

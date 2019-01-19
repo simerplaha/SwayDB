@@ -117,6 +117,8 @@ class GroupDecompressorSpec extends TestBase {
         }
         println("Cache is empty")
       }
+
+      keyValueLimiter.terminate()
     }
   }
 }

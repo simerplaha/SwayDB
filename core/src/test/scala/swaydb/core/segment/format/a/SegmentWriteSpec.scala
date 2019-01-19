@@ -124,13 +124,13 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
               segment.maxKey shouldBe {
                 keyValues.last match {
                   case _: Memory.Fixed =>
-                    MaxKey.Fixed(keyValues.last.key)
+                    MaxKey.Fixed[Slice[Byte]](keyValues.last.key)
 
                   case group: Memory.Group =>
                     group.maxKey
 
                   case range: Memory.Range =>
-                    MaxKey.Range(range.fromKey, range.toKey)
+                    MaxKey.Range[Slice[Byte]](range.fromKey, range.toKey)
                 }
               }
 
@@ -164,7 +164,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           assert =
             (keyValues, segment) => {
               segment.minKey shouldBe (1: Slice[Byte])
-              segment.maxKey shouldBe MaxKey.Fixed(11)
+              segment.maxKey shouldBe MaxKey.Fixed[Slice[Byte]](11)
               segment.close.assertGet
             }
         )
@@ -178,7 +178,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           assert =
             (keyValues, segment) => {
               segment.minKey shouldBe (0: Slice[Byte])
-              segment.maxKey shouldBe MaxKey.Range(1, 10)
+              segment.maxKey shouldBe MaxKey.Range[Slice[Byte]](1, 10)
               segment.close.assertGet
             }
         )
@@ -192,7 +192,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           assert =
             (keyValues, segment) => {
               segment.minKey shouldBe (0: Slice[Byte])
-              segment.maxKey shouldBe MaxKey.Range(5, 10)
+              segment.maxKey shouldBe MaxKey.Range[Slice[Byte]](5, 10)
               segment.close.assertGet
             }
         )
@@ -211,7 +211,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           assert =
             (keyValues, segment) => {
               segment.minKey shouldBe (0: Slice[Byte])
-              segment.maxKey shouldBe MaxKey.Fixed(20)
+              segment.maxKey shouldBe MaxKey.Fixed[Slice[Byte]](20)
               segment.close.assertGet
             }
         )
@@ -230,7 +230,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           assert =
             (keyValues, segment) => {
               segment.minKey shouldBe (0: Slice[Byte])
-              segment.maxKey shouldBe MaxKey.Range(5, 10)
+              segment.maxKey shouldBe MaxKey.Range[Slice[Byte]](5, 10)
               segment.close.assertGet
             }
         )
@@ -453,25 +453,29 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
       if (memory) {
         //memory Segments cannot re-initialise Segments after shutdown.
       } else {
-        assertOnSegment(
-          keyValues = randomizedKeyValues(keyValuesCount),
-          closeAfterCreate = true,
-          testWithCachePopulated = false,
-          assert =
-            (keyValues, segment) => {
-              segment.isOpen shouldBe false
-              segment.isFileDefined shouldBe false
-              segment.isCacheEmpty shouldBe true
-              assertReads(keyValues, segment)
-              segment.isOpen shouldBe true
-              segment.isFileDefined shouldBe true
-              segment.isCacheEmpty shouldBe false
+        runThisParallel(10.times) {
+          assertOnSegment(
+            keyValues = randomizedKeyValues(keyValuesCount),
+            closeAfterCreate = true,
+            testWithCachePopulated = false,
+            assert =
+              (keyValues, segment) => {
+                segment.isOpen shouldBe false
+                segment.isFileDefined shouldBe false
+                segment.isCacheEmpty shouldBe true
 
-              assertBloom(keyValues, segment.getBloomFilter.assertGet)
+                assertReads(keyValues, segment)
 
-              segment.close.assertGet
-            }
-        )
+                segment.isOpen shouldBe true
+                segment.isFileDefined shouldBe true
+                segment.isCacheEmpty shouldBe false
+
+                segment.getBloomFilter.assertGetOpt.foreach(bloom => assertBloom(keyValues, bloom))
+
+                segment.close.assertGet
+              }
+          )
+        }
       }
     }
 
@@ -998,11 +1002,13 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
     }
 
     "return new segment with updated KeyValues if all keys values were updated to None" in {
+      implicit val timeGenerator: TestTimeGenerator = TestTimeGenerator.Incremental()
+
       val keyValues = randomizedKeyValues(count = keyValuesCount, addRandomGroups = false)
       val segment = TestSegment(keyValues, removeDeletes = true).assertGet
 
       val updatedKeyValues = Slice.create[Memory](keyValues.size)
-      keyValues.foreach(keyValue => updatedKeyValues add Memory.put(keyValue.key))
+      keyValues.foreach(keyValue => updatedKeyValues add Memory.put(keyValue.key, None))
 
       val updatedSegments = segment.put(updatedKeyValues, 4.mb, TestData.falsePositiveRate, true).assertGet
       updatedSegments should have size 1
@@ -1015,6 +1021,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
 
     "merge existing segment file with new KeyValues returning new segment file with updated KeyValues" in {
       runThis(10.times) {
+        implicit val timeGenerator: TestTimeGenerator = TestTimeGenerator.Incremental()
         //ranges get split to make sure there are no ranges.
         val keyValues1 = randomizedKeyValues(count = keyValuesCount, addRandomRanges = false)
         val segment1 = TestSegment(keyValues1).assertGet
@@ -1065,6 +1072,8 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
     }
 
     "slice Put range into slice with fromValue set to Remove" in {
+      implicit val timeGenerator: TestTimeGenerator = TestTimeGenerator.Empty
+
       val keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 10, None, Value.update(10))).updateStats
       val segment = TestSegment(keyValues, removeDeletes = false).assertGet
 
@@ -1079,6 +1088,8 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
     }
 
     "return 1 new segment with only 1 key-value if all the KeyValues in the Segment were deleted but 1" in {
+      implicit val timeGenerator: TestTimeGenerator = TestTimeGenerator.Empty
+
       val keyValues = randomKeyValues(count = keyValuesCount)
       val segment = TestSegment(keyValues, removeDeletes = true).assertGet
 

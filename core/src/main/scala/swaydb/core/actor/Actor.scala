@@ -173,10 +173,11 @@ private[swaydb] class Actor[T, +S](val state: S,
   override def terminate(): Unit = {
     logger.debug(s"${this.getClass.getSimpleName} terminated.")
     terminated = true
+    clearMessages()
   }
 
   private def processMessages(): Unit =
-    if ((continueIfEmpty || !queue.isEmpty) && busy.compareAndSet(false, true))
+    if (!terminated && (continueIfEmpty || !queue.isEmpty) && busy.compareAndSet(false, true))
       delay match {
         case None =>
           Future(receive(maxMessagesToProcessAtOnce))

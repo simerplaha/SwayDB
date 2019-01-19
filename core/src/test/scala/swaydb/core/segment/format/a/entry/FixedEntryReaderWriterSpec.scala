@@ -38,7 +38,7 @@ class FixedEntryReaderWriterSpec extends WordSpec {
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
 
   "write and read single Fixed entry" in {
-    runThis(1000.times) {
+    runThisParallel(1000.times) {
       implicit val timeGenerator = TestTimeGenerator.random
       val entry = randomFixedKeyValue(key = randomIntMax(), value = randomStringOption).toTransient
       //      println("write: " + entry)
@@ -50,7 +50,7 @@ class FixedEntryReaderWriterSpec extends WordSpec {
   }
 
   "write and read two fixed entries" in {
-    runThis(1000.times) {
+    runThisParallel(1000.times) {
       implicit val timeGenerator = TestTimeGenerator.random
 
       val keyValues = randomizedKeyValues(count = 1, addRandomGroups = false)

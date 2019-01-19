@@ -96,11 +96,35 @@ class ActorSpec extends WordSpec with Matchers {
         state.processed should contain only(1, 3)
       }
     }
+
+    "stop processing messages on termination" in {
+      case class State(processed: ListBuffer[Int])
+      val state = State(ListBuffer.empty)
+
+      val actor =
+        Actor[Int, State](state) {
+          case (int, self) =>
+            self.state.processed += int
+        }
+
+      (1 to 3) foreach {
+        i =>
+          actor ! i
+          if (i == 2)
+            actor.terminate()
+      }
+      sleep(100.millisecond)
+      eventual {
+        state.processed.size shouldBe 2
+        //2nd message failed
+        state.processed should contain only(1, 2)
+      }
+    }
   }
 
   "Actor.timer" should {
 
-    "process all messages after a fixed interval" in {
+    "process all messages after a fixed interval and terminate" in {
 
       case class State(processed: ListBuffer[Int])
       val state = State(ListBuffer.empty)
@@ -122,37 +146,42 @@ class ActorSpec extends WordSpec with Matchers {
       //ensure that within those 5.second interval at least 3 and no more then 5 messages get processed.
       state.processed.size should be >= 3
       state.processed.size should be <= 6
+
+      actor.terminate() //terminate the actor
+      val countAfterTermination = state.processed.size //this is the current message count
+      sleep(2.second) //sleep
+      state.processed.size shouldBe countAfterTermination //no messages are processed after termination
     }
   }
 
-  //cannot run this test with other test cases as the timerLoop thread runs indefinitely.
-  //  "Actor.timerLoop" should {
-  //
-  //    "continue processing incoming messages at the next specified interval" in {
-  //      case class State(processed: ListBuffer[Int])
-  //      val state = State(ListBuffer.empty)
-  //
-  //      var actor =
-  //        Actor.timerLoop[Int, State](state, 1.second) {
-  //          case (int, self) =>
-  //            self.state.processed += int
-  //            //after 5 messages decrement time so that it's visible
-  //            val nextMessageAndDelay = if (state.processed.size <= 2) int + 1 else int - 1
-  //            println("nextMessageAndDelay: " + nextMessageAndDelay)
-  //
-  //            self.schedule(nextMessageAndDelay, 100.millisecond)
-  //            val nextDelay = int.second
-  //            println("nextDelay: " + nextDelay)
-  ////            if (int <= -5)
-  ////              null //stop this timer
-  ////            else
-  ////              nextDelay
-  //        }
-  //
-  //      actor ! 1
-  //      sleep(10.seconds)
-  //      state.processed.size should be >= 1
-  //      state.processed.size should be <= 10
-  //    }
-  //  }
+  "Actor.timerLoop" should {
+
+    "continue processing incoming messages at the next specified interval" in {
+      case class State(processed: ListBuffer[Int])
+      val state = State(ListBuffer.empty)
+
+      val actor =
+        Actor.timerLoop[Int, State](state, 1.second) {
+          case (int, self) =>
+            self.state.processed += int
+            //after 5 messages decrement time so that it's visible
+            val nextMessageAndDelay = if (state.processed.size <= 2) int + 1 else int - 1
+            println("nextMessageAndDelay: " + nextMessageAndDelay)
+
+            self.schedule(nextMessageAndDelay, 100.millisecond)
+            val nextDelay = int.second
+            println("nextDelay: " + nextDelay)
+        }
+
+      actor ! 1
+      sleep(10.seconds)
+      state.processed.size should be >= 1
+      state.processed.size should be <= 10
+      actor.terminate()
+      val sizeAfterTerminate = state.processed.size
+      sleep(1.second)
+      //after termination the size does not change. i.e. no new messages are processed and looper is stopped.
+      state.processed.size shouldBe sizeAfterTerminate
+    }
+  }
 }

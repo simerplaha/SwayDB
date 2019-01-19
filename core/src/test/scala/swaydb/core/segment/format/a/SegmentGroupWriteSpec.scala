@@ -58,18 +58,23 @@ sealed trait SegmentGroupWriteSpec extends TestBase with ScalaFutures with Priva
 
   def keyValuesCount: Int
 
-  implicit def timeGenerator: TestTimeGenerator = TestTimeGenerator.random
+  implicit def timeGenerator: TestTimeGenerator = TestTimeGenerator.Empty
 
   "Deleting all Grouped key-values" should {
     "return empty Segments" in {
       runThis(5.times) {
-        val keyValues = randomizedKeyValues(keyValuesCount)
+        val rightKeyValues = randomizedKeyValues(keyValuesCount)
+        //add another head key-value that is used to a merge split to occur.
+        val mergePut = randomPutKeyValue(rightKeyValues.head.key.readInt() - 1).toTransient
+
+        //all key-values to remove and assert
+        val keyValues = (Slice(mergePut) ++ rightKeyValues).updateStats
 
         implicit val groupingStrategy: Option[KeyValueGroupingStrategyInternal] = Some(randomGroupingStrategy(keyValuesCount))
         val segment = TestSegment(keyValues).assertGet
 
-        //write same key-values, it should result in merge with grouping.
-        val groupedSegments = segment.put(keyValues.toMemory, 10.mb, TestData.falsePositiveRate, true).assertGet
+        //write a head key-values so that it triggers merging and grouping
+        val groupedSegments = segment.put(Slice(mergePut.toMemory), 10.mb, TestData.falsePositiveRate, true).assertGet
         //        printGroupHierarchy(newSegments)
         groupedSegments should have size 1
         val newGroupedSegment = groupedSegments.head

@@ -64,6 +64,8 @@ private[core] sealed trait KeyValueLimiter {
 
   def add(keyValue: KeyValue.ReadOnly.Group,
           skipList: ConcurrentSkipListMap[Slice[Byte], _]): Try[Unit]
+
+  def terminate(): Unit
 }
 
 private class KeyValueLimiterImpl(cacheSize: Long,
@@ -119,6 +121,9 @@ private class KeyValueLimiterImpl(cacheSize: Long,
       }
   }
 
+  def terminate() =
+    queue.terminate()
+
   def add(keyValue: Persistent.SegmentResponse,
           skipList: ConcurrentSkipListMap[Slice[Byte], _]): Unit =
     queue ! Command.WeighAndAdd(new WeakReference(keyValue), new WeakReference[ConcurrentSkipListMap[Slice[Byte], _]](skipList))
@@ -141,4 +146,6 @@ private object NoneKeyValueLimiter extends KeyValueLimiter {
   override def add(keyValue: Persistent.SegmentResponse,
                    skipList: ConcurrentSkipListMap[Slice[Byte], _]): Unit =
     ()
+
+  override def terminate(): Unit = ()
 }

@@ -35,7 +35,7 @@ class GroupEntryReaderWriterSpec extends WordSpec {
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
 
   "write and read single Group entry" in {
-    runThis(1000.times) {
+    runThisParallel(1000.times) {
       implicit val timeGenerator = TestTimeGenerator.random
       val entry = randomGroup()
       //      println("write: " + entry)
@@ -47,7 +47,7 @@ class GroupEntryReaderWriterSpec extends WordSpec {
   }
 
   "write and read Group entries with other entries" in {
-    runThis(1000.times) {
+    runThisParallel(1000.times) {
       implicit val timeGenerator = TestTimeGenerator.random
 
       val keyValues = randomizedKeyValues(count = 1, addRandomGroups = false)

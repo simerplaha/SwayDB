@@ -1211,6 +1211,7 @@ object CommonAssertions {
 
     groupSegmentReader.readIntUnsigned().assertGet shouldBe GroupCompressor.formatId
     groupSegmentReader.readBoolean().assertGet shouldBe group.keyValues.last.stats.hasRange
+    groupSegmentReader.readBoolean().assertGet shouldBe group.keyValues.last.stats.hasPut
     groupSegmentReader.readIntUnsigned().assertGet shouldBe expectedIndexCompressionUsed.decompressor.id //key decompression id
     groupSegmentReader.readIntUnsigned().assertGet shouldBe groupKeyValues.size //key-value count
     groupSegmentReader.readIntUnsigned().assertGet shouldBe groupKeyValues.last.stats.bloomFilterItemsCount //bloomFilterItemsCount count
