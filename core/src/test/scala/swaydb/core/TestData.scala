@@ -623,7 +623,7 @@ object TestData {
     Memory.Remove(key, deadline, timeGenerator.nextTime)
 
   def randomRemoveAny(from: Slice[Byte],
-                      to: Slice[Byte])(implicit timeGenerator: TestTimeGenerator = TestTimeGenerator.Incremental()): Memory =
+                      to: Slice[Byte])(implicit timeGenerator: TestTimeGenerator = TestTimeGenerator.Incremental()): Memory.SegmentResponse =
     eitherOne(
       left = randomRemoveOrUpdateOrFunctionRemove(from),
       right = randomRemoveRange(from, to)

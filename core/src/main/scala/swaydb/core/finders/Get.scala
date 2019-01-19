@@ -21,7 +21,7 @@ package swaydb.core.finders
 
 import scala.annotation.tailrec
 import scala.util.{Failure, Success, Try}
-import swaydb.core.data.KeyValue
+import swaydb.core.data.{KeyValue, Value}
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.function.FunctionStore
 import swaydb.core.merge.{FunctionMerger, PendingApplyMerger, RemoveMerger, UpdateMerger}
@@ -48,13 +48,16 @@ object Get {
               nextOption =>
                 nextOption flatMap {
                   next =>
-                    RemoveMerger(current, next) match {
-                      case put: ReadOnly.Put if put.hasTimeLeft() =>
-                        Some(put)
+                    if (next.hasTimeLeft())
+                      RemoveMerger(current, next) match {
+                        case put: ReadOnly.Put if put.hasTimeLeft() =>
+                          Some(put)
 
-                      case _: ReadOnly.Fixed =>
-                        None
-                    }
+                        case _: ReadOnly.Fixed =>
+                          None
+                      }
+                    else
+                      None
                 }
             }
           else
@@ -72,13 +75,16 @@ object Get {
               nextOption =>
                 nextOption flatMap {
                   next =>
-                    UpdateMerger(current, next) match {
-                      case put: ReadOnly.Put if put.hasTimeLeft() =>
-                        Some(put)
+                    if (next.hasTimeLeft())
+                      UpdateMerger(current, next) match {
+                        case put: ReadOnly.Put if put.hasTimeLeft() =>
+                          Some(put)
 
-                      case _: ReadOnly.Fixed =>
-                        None
-                    }
+                        case _: ReadOnly.Fixed =>
+                          None
+                      }
+                    else
+                      None
                 }
             }
           else
@@ -91,7 +97,10 @@ object Get {
             current.fetchRangeValue
         } match {
           case Success(currentValue) =>
-            returnSegmentResponse(currentValue.toMemory(key))
+            if (Value.hasTimeLeft(currentValue))
+              returnSegmentResponse(currentValue.toMemory(key))
+            else
+              TryUtil.successNone
 
           case Failure(exception) =>
             Failure(exception)
@@ -102,16 +111,19 @@ object Get {
             nextOption =>
               nextOption map {
                 next =>
-                  FunctionMerger(current, next) match {
-                    case Success(put: ReadOnly.Put) if put.hasTimeLeft() =>
-                      Success(Some(put))
+                  if (next.hasTimeLeft())
+                    FunctionMerger(current, next) match {
+                      case Success(put: ReadOnly.Put) if put.hasTimeLeft() =>
+                        Success(Some(put))
 
-                    case Success(_: ReadOnly.Fixed) =>
-                      TryUtil.successNone
+                      case Success(_: ReadOnly.Fixed) =>
+                        TryUtil.successNone
 
-                    case Failure(exception) =>
-                      Failure(exception)
-                  }
+                      case Failure(exception) =>
+                        Failure(exception)
+                    }
+                  else
+                    TryUtil.successNone
               } getOrElse {
                 TryUtil.successNone
               }
@@ -122,16 +134,19 @@ object Get {
             nextOption =>
               nextOption map {
                 next =>
-                  PendingApplyMerger(current, next) match {
-                    case Success(put: ReadOnly.Put) if put.hasTimeLeft() =>
-                      Success(Some(put))
+                  if (next.hasTimeLeft())
+                    PendingApplyMerger(current, next) match {
+                      case Success(put: ReadOnly.Put) if put.hasTimeLeft() =>
+                        Success(Some(put))
 
-                    case Success(_: ReadOnly.Fixed) =>
-                      TryUtil.successNone
+                      case Success(_: ReadOnly.Fixed) =>
+                        TryUtil.successNone
 
-                    case Failure(exception) =>
-                      Failure(exception)
-                  }
+                      case Failure(exception) =>
+                        Failure(exception)
+                    }
+                  else
+                    TryUtil.successNone
               } getOrElse {
                 TryUtil.successNone
               }
