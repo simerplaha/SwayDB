@@ -43,7 +43,7 @@ import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 class MapEntrySpec extends TestBase {
 
   implicit val keyOrder = KeyOrder.default
-  implicit def timeGenerator: TestTimeGenerator = TestTimeGenerator.random
+  implicit def timeGenerator: TestTimeGenerator = TestTimeGenerator.Empty
   implicit val maxSegmentsOpenCacheImplicitLimiter: DBFile => Unit = TestLimitQueues.fileOpenLimiter
   implicit val keyValuesLimitImplicitLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter
   implicit def compression: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(randomNextInt(1000))

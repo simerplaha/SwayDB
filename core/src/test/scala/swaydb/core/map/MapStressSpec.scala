@@ -39,7 +39,7 @@ class MapStressSpec extends TestBase {
   implicit val skipListMerger = LevelZeroSkipListMerger
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
 
-  implicit def timeGenerator: TestTimeGenerator = TestTimeGenerator.random
+  implicit def timeGenerator: TestTimeGenerator = TestTimeGenerator.Empty
 
   "Map" should {
     "write entries when flushOnOverflow is true and map size is 1.kb" in {

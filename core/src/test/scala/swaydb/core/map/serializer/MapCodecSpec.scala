@@ -36,7 +36,7 @@ import swaydb.core.TryAssert._
 class MapCodecSpec extends TestBase {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
-  implicit def timeGenerator: TestTimeGenerator = TestTimeGenerator.random
+  implicit def timeGenerator: TestTimeGenerator = TestTimeGenerator.Empty
   implicit val maxSegmentsOpenCacheImplicitLimiter: DBFile => Unit = TestLimitQueues.fileOpenLimiter
   implicit val keyValuesLimitImplicitLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long

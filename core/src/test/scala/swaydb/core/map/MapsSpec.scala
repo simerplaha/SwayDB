@@ -20,31 +20,30 @@
 package swaydb.core.map
 
 import java.nio.file.{Files, NoSuchFileException}
-import swaydb.core.{TestBase, TestTimeGenerator}
+import scala.collection.JavaConverters._
+import swaydb.core.CommonAssertions._
+import swaydb.core.RunThis._
+import swaydb.core.TestData._
+import swaydb.core.TryAssert._
 import swaydb.core.data.{Memory, Value}
 import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.util.Extension
 import swaydb.core.util.FileUtil._
+import swaydb.core.{TestBase, TestTimeGenerator}
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.config.RecoveryMode
+import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
-import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.core.TestData._
-import swaydb.core.CommonAssertions._
-import swaydb.core.RunThis._
-import swaydb.core.TryAssert._
-import scala.collection.JavaConverters._
-import scala.concurrent.duration._
 
 class MapsSpec extends TestBase {
 
   implicit val keyOrder = KeyOrder.default
 
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
-  implicit def timeGenerator: TestTimeGenerator = TestTimeGenerator.random
+  implicit def timeGenerator: TestTimeGenerator = TestTimeGenerator.Empty
 
   import swaydb.core.map.serializer.LevelZeroMapEntryReader._
   import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
@@ -114,8 +113,8 @@ class MapsSpec extends TestBase {
   "Maps" should {
     "initialise a new map if the current map is full" in {
       def test(maps: Maps[Slice[Byte], Memory.SegmentResponse]) = {
-        maps.write(MapEntry.Put(1, Memory.put(1))).assertGet //entry size is 36.bytes
-        maps.write(MapEntry.Put(2: Slice[Byte], Memory.Range(2, 2, None, Value.update(2)))).assertGet //another 46.bytes
+        maps.write(MapEntry.Put(1, Memory.put(1))).assertGet //entry size is 40.bytes
+        maps.write(MapEntry.Put(2: Slice[Byte], Memory.Range(2, 2, None, Value.update(2)))).assertGet //another 43.bytes
         maps.queuedMapsCountWithCurrent shouldBe 1
         //another 32.bytes but map has total size of 82.bytes.
         //now since the Map is overflow a new should get created.
@@ -126,13 +125,13 @@ class MapsSpec extends TestBase {
 
       //persistent
       val path = createRandomDir
-      val maps = Maps.persistent[Slice[Byte], Memory.SegmentResponse](path, mmap = false, 36.bytes + 46.bytes, Accelerator.brake(), RecoveryMode.ReportFailure).assertGet
+      val maps = Maps.persistent[Slice[Byte], Memory.SegmentResponse](path, mmap = false, 40.bytes + 43.bytes, Accelerator.brake(), RecoveryMode.ReportFailure).assertGet
       test(maps)
       //new map 1 gets created since the 3rd entry is overflow entry.
       path.folders.map(_.folderId) should contain only(0, 1)
 
       //in memory
-      test(Maps.memory(36.bytes + 46.bytes, Accelerator.brake()))
+      test(Maps.memory(40.bytes + 43.bytes, Accelerator.brake()))
     }
 
     "write a key value larger then the actual fileSize" in {

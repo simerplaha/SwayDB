@@ -39,7 +39,7 @@ class MapsStressSpec extends TestBase {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
-  implicit def timeGenerator: TestTimeGenerator = TestTimeGenerator.random
+  implicit def timeGenerator: TestTimeGenerator = TestTimeGenerator.Empty
 
   import swaydb.core.map.serializer.LevelZeroMapEntryReader._
   import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
