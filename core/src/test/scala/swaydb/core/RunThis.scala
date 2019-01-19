@@ -42,16 +42,16 @@ object RunThis extends Eventually {
   def runThis(times: Int)(f: => Unit): Unit =
     (1 to times) foreach {
       i =>
-        println(s"Iteration number: $i")
+//        println(s"Iteration number: $i")
         f
     }
 
   def runThisParallel(times: Int)(f: => Unit): Unit =
     (1 to times).par foreach {
       i =>
-        println(s"Iteration number: $i")
+//        println(s"Iteration number: $i")
         f
-        println(s"Iteration done  : $i")
+//        println(s"Iteration done  : $i")
     }
 
   implicit val level0PushDownPool = TestExecutionContext.executionContext

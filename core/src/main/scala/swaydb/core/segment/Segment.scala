@@ -195,7 +195,7 @@ private[core] object Segment extends LazyLogging {
               keyUnsliced,
               Memory.PendingApply(
                 key = keyUnsliced,
-                applies = pendingApply.applies.map(_.unslice),
+                applies = pendingApply.applies.map(_.unslice)
               )
             )
 

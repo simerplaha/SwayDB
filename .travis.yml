@@ -4,7 +4,7 @@ scala:
   - 2.12.8
 
 script:
-  - sbt ++$TRAVIS_SCALA_VERSION compile
+  - sbt ++$TRAVIS_SCALA_VERSION clean compile
 
 notifications:
   email:

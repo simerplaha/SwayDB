@@ -126,7 +126,7 @@ private[core] object DBInitializer extends LazyLogging {
                 nextLevel = Some(level1), //TODO make level1 optional.
                 throttleOn = true,
                 acceleration = config.level0.acceleration,
-                readRetryLimit = 10000,
+                readRetryLimit = 10000
               ) map {
                 zero =>
                   addShutdownHook(zero)
