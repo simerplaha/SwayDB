@@ -13,6 +13,7 @@ val scalaLoggingVersion = "3.9.0"
 val scalaMockVersion = "4.1.0"
 val scalaTestVersion = "3.0.5"
 val scalaCheckVersion = "1.14.0"
+val actor = "0.3"
 
 parallelExecution in ThisBuild := false
 
@@ -104,7 +105,7 @@ lazy val extension =
       libraryDependencies ++= testDependencies
     ).dependsOn(embedded)
 
-lazy val stress =
+lazy val `core-stress` =
   project
     .settings(commonSettings)
     .settings(publishSettings)
@@ -112,7 +113,7 @@ lazy val stress =
       libraryDependencies ++= testDependencies
     ).dependsOn(core)
 
-lazy val performance =
+lazy val `core-performance` =
   project
     .settings(commonSettings)
     .settings(publishSettings)

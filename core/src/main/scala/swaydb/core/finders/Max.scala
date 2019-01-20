@@ -28,7 +28,7 @@ import swaydb.core.util.TryUtil
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
-object Max {
+private[core] object Max {
 
   /**
     * Given two key-values returns the highest [[KeyValue.ReadOnly.Put]] else None.

@@ -8,12 +8,12 @@ import swaydb.core.util.FiniteDurationUtil._
 
 object RunThis extends Eventually {
 
-  implicit class RunThisImplicits[T, R](f: => R) {
+  implicit class RunThisImplicits[R](f: => R) {
     def runThis(times: Int): Unit =
       for (i <- 1 to times) f
   }
 
-  implicit class FutureImplicits[T, R](f: => Future[T])(implicit ec: ExecutionContext) {
+  implicit class FutureImplicits[T](f: => Future[T])(implicit ec: ExecutionContext) {
     def runThis(times: Int): Future[Seq[T]] = {
       println(s"runThis $times times")
       val futures =

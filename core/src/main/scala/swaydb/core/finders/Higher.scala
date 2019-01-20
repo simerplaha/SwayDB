@@ -27,7 +27,7 @@ import swaydb.core.merge.FixedMerger
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
-object Higher {
+private[core] object Higher {
 
   //indicates that next Level was read but returned empty.
   //this marker is used to not read lower Level again.

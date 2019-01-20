@@ -27,7 +27,7 @@ import swaydb.core.merge.FixedMerger
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
-object Lower {
+private[core] object Lower {
 
   /**
     * TO-DO - Use trampolining instead to reduce repeated boilerplate code.

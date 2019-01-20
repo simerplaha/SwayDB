@@ -29,7 +29,7 @@ import swaydb.core.util.TryUtil
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
-object Get {
+private[core] object Get {
 
   def apply(key: Slice[Byte],
             getFromCurrentLevel: Slice[Byte] => Try[Option[KeyValue.ReadOnly.SegmentResponse]],
@@ -90,21 +90,17 @@ object Get {
           else
             TryUtil.successNone
 
-        case current: KeyValue.ReadOnly.Range => {
-          if (current.key equiv key)
-            current.fetchFromOrElseRangeValue
-          else
-            current.fetchRangeValue
-        } match {
-          case Success(currentValue) =>
-            if (Value.hasTimeLeft(currentValue))
-              returnSegmentResponse(currentValue.toMemory(key))
-            else
-              TryUtil.successNone
+        case current: KeyValue.ReadOnly.Range =>
+          (if (current.key equiv key) current.fetchFromOrElseRangeValue else current.fetchRangeValue) match {
+            case Success(currentValue) =>
+              if (Value.hasTimeLeft(currentValue))
+                returnSegmentResponse(currentValue.toMemory(key))
+              else
+                TryUtil.successNone
 
-          case Failure(exception) =>
-            Failure(exception)
-        }
+            case Failure(exception) =>
+              Failure(exception)
+          }
 
         case current: KeyValue.ReadOnly.Function =>
           getFromNextLevel(key) flatMap {

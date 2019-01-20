@@ -28,7 +28,7 @@ import swaydb.core.util.TryUtil
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
-object Min {
+private[core] object Min {
 
   /**
     * Given two key-values returns the smallest [[KeyValue.ReadOnly.Put]] else None.
