@@ -56,7 +56,51 @@ class HigherNoneSpec extends WordSpec with Matchers with MockFactory with Option
       }
     }
 
-    "input key is smaller than this Level's higher Range's fromKey and next Level returns None. It should only call next Level once." in {
+    //@formatter:off
+      "10->15  (input keys) " +
+      "10 - 15 (higher range from current Level) when next Level returns None" in
+    //@formatter:on
+        {
+          runThis(100.times) {
+            implicit val timeGenerator = TestTimeGenerator.random
+
+            val higherFromCurrentLevel = mockFunction[Slice[Byte], Try[Option[KeyValue.ReadOnly.SegmentResponse]]](FunctionName(Symbol("higherFromCurrentLevel")))
+            val get = mockFunction[Slice[Byte], Try[Option[KeyValue.ReadOnly.Put]]](FunctionName(Symbol("get")))
+            val higherInNextLevel = mockFunction[Slice[Byte], Try[Option[KeyValue.ReadOnly.Put]]](FunctionName(Symbol("higherInNextLevel")))
+
+            val firstRange = randomRangeKeyValue(from = 10, to = 15)
+            higherFromCurrentLevel expects (10: Slice[Byte]) returning Success(Some(firstRange))
+
+            //if range value is not expired
+            if (Value.hasTimeLeft(firstRange.fetchRangeValue.assertGet)) {
+              //if rangeValue is not expired then next 10 is fetched from next Level since it could contains a smaller key.
+              higherInNextLevel expects (10: Slice[Byte]) returning TryUtil.successNone
+
+              //if the rangeValue is expired get should not be invoked.
+              get expects (15: Slice[Byte]) returning
+                Try(Some(randomPutKeyValue(13, deadline = Some(expiredDeadline()))))
+
+              higherFromCurrentLevel expects (15: Slice[Byte]) returning TryUtil.successNone
+            }
+            //if range value is expired
+            else {
+              higherFromCurrentLevel expects (15: Slice[Byte]) returning TryUtil.successNone
+
+              get expects (15: Slice[Byte]) returning
+                Try(Some(randomPutKeyValue(13, deadline = Some(expiredDeadline()))))
+
+              //higherInNextLevel is not invoke on 10 if the current Levels rangeValue says it's expired.
+              higherInNextLevel expects (15: Slice[Byte]) returning TryUtil.successNone
+            }
+
+            Higher(10, higherFromCurrentLevel, get, higherInNextLevel).assertGetOpt shouldBe empty
+          }
+        }
+
+    """
+      |0           (input key)
+      |    10 - 20 (higher range)
+    """.stripMargin in {
       runThis(100.times) {
         implicit val timeGenerator = TestTimeGenerator.random
 
@@ -64,12 +108,15 @@ class HigherNoneSpec extends WordSpec with Matchers with MockFactory with Option
         val get = mockFunction[Slice[Byte], Try[Option[KeyValue.ReadOnly.Put]]]
         val higherInNextLevel = mockFunction[Slice[Byte], Try[Option[KeyValue.ReadOnly.Put]]]
 
-        //if the input key is smaller than this Level's higher Range's fromKey.
-        //example:
-        //0           (input key)
-        //    10 - 20 (higher range)
+        //read paths
+        //0
+        //    1 - 2
+        //        2
+        //        2 - 3
+        //            3
+        //              4 - 5
+        //                  5
 
-        //    1 - 2   (higher range)
         higherFromCurrentLevel expects (0: Slice[Byte]) returning
           Success(Some(randomRangeKeyValue(from = 1, to = 2, Some(randomFromValueWithDeadline(deadline = expiredDeadline())))))
 
