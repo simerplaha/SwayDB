@@ -32,7 +32,7 @@ class MapIterationSpec0 extends MapIterationSpec {
   val keyValueCount: Int = 1000
 
   override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
-    SwayDB.persistent[Key[Int], Option[String]](dir = randomDir).assertGet.extend.assertGet
+    swaydb.persistent.Map[Key[Int], Option[String]](dir = randomDir).assertGet.extend.assertGet
 }
 
 class MapIterationSpec1 extends MapIterationSpec {
@@ -40,7 +40,7 @@ class MapIterationSpec1 extends MapIterationSpec {
   val keyValueCount: Int = 10000
 
   override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
-    SwayDB.persistent[Key[Int], Option[String]](randomDir, mapSize = 1.byte).assertGet.extend.assertGet
+    swaydb.persistent.Map[Key[Int], Option[String]](randomDir, mapSize = 1.byte).assertGet.extend.assertGet
 }
 
 class MapIterationSpec2 extends MapIterationSpec {
@@ -48,14 +48,14 @@ class MapIterationSpec2 extends MapIterationSpec {
   val keyValueCount: Int = 100000
 
   override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
-    SwayDB.memory[Key[Int], Option[String]](mapSize = 1.byte).assertGet.extend.assertGet
+    swaydb.memory.Map[Key[Int], Option[String]](mapSize = 1.byte).assertGet.extend.assertGet
 }
 
 class MapIterationSpec3 extends MapIterationSpec {
   val keyValueCount: Int = 100000
 
   override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
-    SwayDB.memory[Key[Int], Option[String]]().assertGet.extend.assertGet
+    swaydb.memory.Map[Key[Int], Option[String]]().assertGet.extend.assertGet
 }
 
 sealed trait MapIterationSpec extends TestBase with TestBaseEmbedded {

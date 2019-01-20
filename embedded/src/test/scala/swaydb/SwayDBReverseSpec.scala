@@ -33,7 +33,7 @@ class SwayDBReverse_Persistent_Spec extends SwayDBReverseSpec {
   val keyValueCount: Int = 10000
 
   override def newDB(): Map[Int, String] =
-    SwayDB.persistent[Int, String](dir = randomDir).assertGet
+    swaydb.persistent.Map[Int, String](dir = randomDir).assertGet
 }
 
 class SwayDBReverse_Memory_Spec extends SwayDBReverseSpec {
@@ -42,7 +42,7 @@ class SwayDBReverse_Memory_Spec extends SwayDBReverseSpec {
   val keyValueCount: Int = 100000
 
   override def newDB(): Map[Int, String] =
-    SwayDB.memory[Int, String]().assertGet
+    swaydb.memory.Map[Int, String]().assertGet
 }
 
 sealed trait SwayDBReverseSpec extends TestBase with TestBaseEmbedded {

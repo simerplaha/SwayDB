@@ -30,7 +30,7 @@ class SwayDBPutSpec0 extends SwayDBPutSpec {
   val keyValueCount: Int = 1000
 
   override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
-    SwayDB.persistent[Int, String](dir = randomDir).assertGet
+    swaydb.persistent.Map[Int, String](dir = randomDir).assertGet
 }
 
 class SwayDBPutSpec1 extends SwayDBPutSpec {
@@ -38,7 +38,7 @@ class SwayDBPutSpec1 extends SwayDBPutSpec {
   val keyValueCount: Int = 10000
 
   override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
-    SwayDB.persistent[Int, String](randomDir, mapSize = 1.byte).assertGet
+    swaydb.persistent.Map[Int, String](randomDir, mapSize = 1.byte).assertGet
 }
 
 class SwayDBPutSpec2 extends SwayDBPutSpec {
@@ -46,14 +46,14 @@ class SwayDBPutSpec2 extends SwayDBPutSpec {
   val keyValueCount: Int = 100000
 
   override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
-    SwayDB.memory[Int, String](mapSize = 1.byte).assertGet
+    swaydb.memory.Map[Int, String](mapSize = 1.byte).assertGet
 }
 
 class SwayDBPutSpec3 extends SwayDBPutSpec {
   val keyValueCount: Int = 100000
 
   override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
-    SwayDB.memory[Int, String]().assertGet
+    swaydb.memory.Map[Int, String]().assertGet
 }
 
 sealed trait SwayDBPutSpec extends TestBase with TestBaseEmbedded {

@@ -28,24 +28,24 @@ import swaydb.core.RunThis._
 
 class SwayDBGetSpec0 extends SwayDBGetSpec {
   override def newDB(): Map[Int, String] =
-    SwayDB.persistent[Int, String](randomDir).assertGet
+    swaydb.persistent.Map[Int, String](randomDir).assertGet
 }
 
 class SwayDBGetSpec1 extends SwayDBGetSpec {
 
   override def newDB(): Map[Int, String] =
-    SwayDB.persistent[Int, String](randomDir, mapSize = 1.byte).assertGet
+    swaydb.persistent.Map[Int, String](randomDir, mapSize = 1.byte).assertGet
 }
 
 class SwayDBGetSpec2 extends SwayDBGetSpec {
 
   override def newDB(): Map[Int, String] =
-    SwayDB.memory[Int, String](mapSize = 1.byte).assertGet
+    swaydb.memory.Map[Int, String](mapSize = 1.byte).assertGet
 }
 
 class SwayDBGetSpec3 extends SwayDBGetSpec {
   override def newDB(): Map[Int, String] =
-    SwayDB.memory[Int, String]().assertGet
+    swaydb.memory.Map[Int, String]().assertGet
 }
 
 sealed trait SwayDBGetSpec extends TestBase {

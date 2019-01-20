@@ -30,7 +30,7 @@ class SwayDBExpireSpec0 extends SwayDBExpireSpec {
   val keyValueCount: Int = 1000
 
   override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
-    SwayDB.persistent[Int, String](dir = randomDir).assertGet
+    swaydb.persistent.Map[Int, String](dir = randomDir).assertGet
 }
 
 class SwayDBExpireSpec1 extends SwayDBExpireSpec {
@@ -38,7 +38,7 @@ class SwayDBExpireSpec1 extends SwayDBExpireSpec {
   val keyValueCount: Int = 1000
 
   override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
-    SwayDB.persistent[Int, String](randomDir, mapSize = 1.byte, segmentSize = 10.bytes).assertGet
+    swaydb.persistent.Map[Int, String](randomDir, mapSize = 1.byte, segmentSize = 10.bytes).assertGet
 }
 
 class SwayDBExpireSpec2 extends SwayDBExpireSpec {
@@ -46,14 +46,14 @@ class SwayDBExpireSpec2 extends SwayDBExpireSpec {
   val keyValueCount: Int = 10000
 
   override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
-    SwayDB.memory[Int, String](mapSize = 1.byte).assertGet
+    swaydb.memory.Map[Int, String](mapSize = 1.byte).assertGet
 }
 
 class SwayDBExpireSpec3 extends SwayDBExpireSpec {
   val keyValueCount: Int = 10000
 
   override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
-    SwayDB.memory[Int, String]().assertGet
+    swaydb.memory.Map[Int, String]().assertGet
 }
 
 sealed trait SwayDBExpireSpec extends TestBase with TestBaseEmbedded {

@@ -31,7 +31,7 @@
 //  val keyValueCount: Int = 100000
 //
 //  override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
-//    SwayDB.persistent[Int, String](dir = randomDir).assertGet
+//    swaydb.persistent.Map[Int, String](dir = randomDir).assertGet
 //}
 //
 //class SwayDBStressSpec1 extends SwayDBStressSpec {
@@ -39,7 +39,7 @@
 //  val keyValueCount: Int = 100000
 //
 //  override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
-//    SwayDB.persistent[Int, String](randomDir, mapSize = 1.byte).assertGet
+//    swaydb.persistent.Map[Int, String](randomDir, mapSize = 1.byte).assertGet
 //}
 //
 //class SwayDBStressSpec2 extends SwayDBStressSpec {
@@ -47,14 +47,14 @@
 //  val keyValueCount: Int = 100000
 //
 //  override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
-//    SwayDB.memory[Int, String](mapSize = 1.byte).assertGet
+//    swaydb.memory.Map[Int, String](mapSize = 1.byte).assertGet
 //}
 //
 //class SwayDBStressSpec3 extends SwayDBStressSpec {
 //  val keyValueCount: Int = 100000
 //
 //  override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
-//    SwayDB.memory[Int, String]().assertGet
+//    swaydb.memory.Map[Int, String]().assertGet
 //}
 //
 //sealed trait SwayDBStressSpec extends TestBase with TestBaseEmbedded {
@@ -69,7 +69,7 @@
 //
 //    runThis(100.times) {
 //      //add multiple Levels to Memory databases and the get fails
-//      //SwayDB.memory[Int, String](mapSize = 1.byte).assertGet
+//      //swaydb.memory.Map[Int, String](mapSize = 1.byte).assertGet
 //      eitherOne(
 //        left = (1 to keyValueCount) foreach (i => db.remove(i).assertGet),
 //        right = db.remove(1, keyValueCount).assertGet
