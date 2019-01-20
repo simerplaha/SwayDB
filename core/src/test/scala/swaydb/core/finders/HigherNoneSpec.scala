@@ -2,7 +2,7 @@ package swaydb.core.finders
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, OptionValues, WordSpec}
-import scala.util.{Success, Try}
+import scala.util.Try
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
@@ -22,130 +22,166 @@ class HigherNoneSpec extends WordSpec with Matchers with MockFactory with Option
   implicit val functionStore = TestData.functionStore
 
   "return None" when {
-    "current Level is returning SegmentResponse key-values and next Level returns None" in {
+
+    "current Level has higher expired or updated fixed key-value and next Level is empty" in {
+      /**
+        * 0, 2, 3, 4
+        * empty
+        */
+
       runThis(100.times) {
-        implicit val timeGenerator = TestTimeGenerator.random
+        implicit val timeGenerator = TestTimeGenerator.Decremental()
 
-        val higherFromCurrentLevel = mockFunction[Slice[Byte], Try[Option[KeyValue.ReadOnly.SegmentResponse]]]
-        val get = mockFunction[Slice[Byte], Try[Option[KeyValue.ReadOnly.Put]]]
-        val higherInNextLevel = mockFunction[Slice[Byte], Try[Option[KeyValue.ReadOnly.Put]]]
+        val higherFromCurrentLevel = mockFunction[Slice[Byte], Try[Option[KeyValue.ReadOnly.SegmentResponse]]](FunctionName(Symbol("higherFromCurrentLevel")))
+        val get = mockFunction[Slice[Byte], Try[Option[KeyValue.ReadOnly.Put]]](FunctionName(Symbol("get")))
+        val higherInNextLevel = mockFunction[Slice[Byte], Try[Option[KeyValue.ReadOnly.Put]]](FunctionName(Symbol("higherInNextLevel")))
 
-        val maxNextHigherFetches = 100
-        (0 to maxNextHigherFetches) foreach {
-          i =>
-            //if the max iteration is reached returning None so that higher fetches stop.
-            val nextKeyValue: Try[Option[Memory.SegmentResponse]] =
-              if (i == maxNextHigherFetches)
-                TryUtil.successNone
-              else
-                Success(
-                  Some(
-                    eitherOne(
-                      randomFixedKeyValue(i + 1, includePuts = false),
-                      randomPutKeyValue(i + 1, deadline = Some(expiredDeadline())),
-                    )
-                  )
-                ) //returning the next highest fixed key-value or a put key-value that is expire should always fetch the next highest.
-            higherFromCurrentLevel expects (i: Slice[Byte]) returning nextKeyValue
+        inSequence {
+          //@formatter:off
+          higherFromCurrentLevel expects (0: Slice[Byte]) returning Try(Some(randomDeadUpdateOrExpiredPut(2)))
+          higherInNextLevel      expects (0: Slice[Byte]) returning TryUtil.successNone
+          higherFromCurrentLevel expects (2: Slice[Byte]) returning Try(Some(randomDeadUpdateOrExpiredPut(3)))
+          higherFromCurrentLevel expects (3: Slice[Byte]) returning Try(Some(randomDeadUpdateOrExpiredPut(4)))
+          higherFromCurrentLevel expects (4: Slice[Byte]) returning TryUtil.successNone
+          //@formatter:on
         }
+        Higher(0, higherFromCurrentLevel, get, higherInNextLevel).assertGetOpt shouldBe empty
+      }
+    }
 
-        //next Level fetch should only be called 1 time. Since it's returning none it should not be read again.
-        higherInNextLevel expects (0: Slice[Byte]) returning TryUtil.successNone
+    "current Level has higher expired or updated fixed key-value and next Level is not empty empty" in {
+      runThis(100.times) {
+        implicit val timeGenerator = TestTimeGenerator.Decremental()
+
+        /**
+          * 0      2  3  4  5
+          * _  1   2        5  6
+          */
+
+        val higherFromCurrentLevel = mockFunction[Slice[Byte], Try[Option[KeyValue.ReadOnly.SegmentResponse]]](FunctionName(Symbol("higherFromCurrentLevel")))
+        val get = mockFunction[Slice[Byte], Try[Option[KeyValue.ReadOnly.Put]]](FunctionName(Symbol("get")))
+        val higherInNextLevel = mockFunction[Slice[Byte], Try[Option[KeyValue.ReadOnly.Put]]](FunctionName(Symbol("higherInNextLevel")))
+
+        inSequence {
+          //@formatter:off
+          higherFromCurrentLevel expects (0: Slice[Byte]) returning Try(Some(randomDeadUpdateOrExpiredPut(2)))
+          higherInNextLevel      expects (0: Slice[Byte]) returning Try(Some(randomExpiredPutKeyValue(1)))
+          higherFromCurrentLevel expects (2: Slice[Byte]) returning Try(Some(randomDeadUpdateOrExpiredPut(3)))
+          higherInNextLevel      expects (2: Slice[Byte]) returning Try(Some(randomExpiredPutKeyValue(5)))
+          higherFromCurrentLevel expects (3: Slice[Byte]) returning Try(Some(randomDeadUpdateOrExpiredPut(4)))
+          higherFromCurrentLevel expects (4: Slice[Byte]) returning Try(Some(randomDeadUpdateOrExpiredPut(5)))
+          higherFromCurrentLevel expects (5: Slice[Byte]) returning Try(Some(randomDeadUpdateOrExpiredPut(6)))
+          higherInNextLevel      expects (5: Slice[Byte]) returning Try(Some(randomExpiredPutKeyValue(6)))
+          higherFromCurrentLevel expects (6: Slice[Byte]) returning TryUtil.successNone
+          higherInNextLevel      expects (6: Slice[Byte]) returning TryUtil.successNone
+          //@formatter:on
+        }
 
         Higher(0, higherFromCurrentLevel, get, higherInNextLevel).assertGetOpt shouldBe empty
       }
     }
 
-    //@formatter:off
-      "10->15  (input keys) " +
-      "10 - 15 (higher range from current Level) when next Level returns None" in
-    //@formatter:on
-        {
-          runThis(100.times) {
-            implicit val timeGenerator = TestTimeGenerator.random
+    "ranges exists & next Level is empty" in {
+      runThis(1000.times) {
+        implicit val timeGenerator = TestTimeGenerator.Decremental()
 
-            val higherFromCurrentLevel = mockFunction[Slice[Byte], Try[Option[KeyValue.ReadOnly.SegmentResponse]]](FunctionName(Symbol("higherFromCurrentLevel")))
-            val get = mockFunction[Slice[Byte], Try[Option[KeyValue.ReadOnly.Put]]](FunctionName(Symbol("get")))
-            val higherInNextLevel = mockFunction[Slice[Byte], Try[Option[KeyValue.ReadOnly.Put]]](FunctionName(Symbol("higherInNextLevel")))
+        /**
+          * (input) - 10
+          * Level0  - 10-20, 20-30, 30, 35, 40-50
+          * Level1  - empty
+          */
 
-            val firstRange = randomRangeKeyValue(from = 10, to = 15)
-            higherFromCurrentLevel expects (10: Slice[Byte]) returning Success(Some(firstRange))
+        val higherFromCurrentLevel = mockFunction[Slice[Byte], Try[Option[KeyValue.ReadOnly.SegmentResponse]]](FunctionName(Symbol("higherFromCurrentLevel")))
+        val get = mockFunction[Slice[Byte], Try[Option[KeyValue.ReadOnly.Put]]](FunctionName(Symbol("get")))
+        val higherInNextLevel = mockFunction[Slice[Byte], Try[Option[KeyValue.ReadOnly.Put]]](FunctionName(Symbol("higherInNextLevel")))
 
-            //if range value is not expired
-            if (Value.hasTimeLeft(firstRange.fetchRangeValue.assertGet)) {
-              //if rangeValue is not expired then next 10 is fetched from next Level since it could contains a smaller key.
-              higherInNextLevel expects (10: Slice[Byte]) returning TryUtil.successNone
-
-              //if the rangeValue is expired get should not be invoked.
-              get expects (15: Slice[Byte]) returning
-                Try(Some(randomPutKeyValue(13, deadline = Some(expiredDeadline()))))
-
-              higherFromCurrentLevel expects (15: Slice[Byte]) returning TryUtil.successNone
-            }
-            //if range value is expired
-            else {
-              higherFromCurrentLevel expects (15: Slice[Byte]) returning TryUtil.successNone
-
-              get expects (15: Slice[Byte]) returning
-                Try(Some(randomPutKeyValue(13, deadline = Some(expiredDeadline()))))
-
-              //higherInNextLevel is not invoke on 10 if the current Levels rangeValue says it's expired.
-              higherInNextLevel expects (15: Slice[Byte]) returning TryUtil.successNone
-            }
-
-            Higher(10, higherFromCurrentLevel, get, higherInNextLevel).assertGetOpt shouldBe empty
-          }
+        //for initial range do not add deadline or Remove so that 10 key gets read from lower level.
+        inSequence {
+          //@formatter:off
+          higherFromCurrentLevel expects (10: Slice[Byte]) returning Try(Some(randomRangeKeyValueWithFromValueExpiredDeadline(10, 20, None, randomRangeValue(deadline = None, addRemoves = false))))
+          higherInNextLevel      expects (10: Slice[Byte]) returning TryUtil.successNone
+          get                    expects (20: Slice[Byte]) returning TryUtil.successNone
+          higherFromCurrentLevel expects (20: Slice[Byte]) returning Try(Some(randomRangeKeyValueWithFromValueExpiredDeadline(20, 30))) //fromValue is set it will
+          get                    expects (30: Slice[Byte]) returning Try(Some(randomExpiredPutKeyValue(30)))
+          higherFromCurrentLevel expects (30: Slice[Byte]) returning Try(Some(randomDeadUpdateOrExpiredPut(35)))
+          higherFromCurrentLevel expects (35: Slice[Byte]) returning Try(Some(randomRangeKeyValueWithFromValueExpiredDeadline(40, 50)))
+          get                    expects (50: Slice[Byte]) returning TryUtil.successNone
+          higherFromCurrentLevel expects (50: Slice[Byte]) returning TryUtil.successNone
+          //@formatter:on
         }
 
-    """
-      |0           (input key)
-      |    10 - 20 (higher range)
-    """.stripMargin in {
+        Higher(10, higherFromCurrentLevel, get, higherInNextLevel).assertGetOpt shouldBe empty
+      }
+    }
+
+    "ranges exists & next Level is non empty and key overlap with upper Levels ranges" in {
       runThis(100.times) {
-        implicit val timeGenerator = TestTimeGenerator.random
+        implicit val timeGenerator = TestTimeGenerator.Decremental()
 
-        val higherFromCurrentLevel = mockFunction[Slice[Byte], Try[Option[KeyValue.ReadOnly.SegmentResponse]]]
-        val get = mockFunction[Slice[Byte], Try[Option[KeyValue.ReadOnly.Put]]]
-        val higherInNextLevel = mockFunction[Slice[Byte], Try[Option[KeyValue.ReadOnly.Put]]]
+        /**
+          * (input) - 10
+          * Level0  - 10 - 20, 20-30, 31
+          * Level1  -  11 19   20     31
+          */
 
-        //read paths
-        //0
-        //    1 - 2
-        //        2
-        //        2 - 3
-        //            3
-        //              4 - 5
-        //                  5
+        val higherFromCurrentLevel = mockFunction[Slice[Byte], Try[Option[KeyValue.ReadOnly.SegmentResponse]]](FunctionName(Symbol("higherFromCurrentLevel")))
+        val get = mockFunction[Slice[Byte], Try[Option[KeyValue.ReadOnly.Put]]](FunctionName(Symbol("get")))
+        val higherInNextLevel = mockFunction[Slice[Byte], Try[Option[KeyValue.ReadOnly.Put]]](FunctionName(Symbol("higherInNextLevel")))
 
-        higherFromCurrentLevel expects (0: Slice[Byte]) returning
-          Success(Some(randomRangeKeyValue(from = 1, to = 2, Some(randomFromValueWithDeadline(deadline = expiredDeadline())))))
+        //for initial range do not add deadline or Remove so that 10 key gets read from lower level.
+        inSequence {
+          //@formatter:off
+          higherFromCurrentLevel expects (10: Slice[Byte]) returning Try(Some(randomRangeKeyValueWithFromValueExpiredDeadline(10, 20, None, randomRemoveFunctionValue())))
+          higherInNextLevel      expects (10: Slice[Byte]) returning Try(Some(randomPutKeyValue(11)))
+          higherInNextLevel      expects (11: Slice[Byte]) returning Try(Some(randomPutKeyValue(19)))
+          higherInNextLevel      expects (19: Slice[Byte]) returning Try(Some(randomPutKeyValue(20)))
+          get                    expects (20: Slice[Byte]) returning TryUtil.successNone
+          higherFromCurrentLevel expects (20: Slice[Byte]) returning Try(Some(randomRangeKeyValueWithFromValueExpiredDeadline(20, 30, None, randomFunctionValue(SwayFunctionOutput.Update(None, Some(expiredDeadline()))))))
+          higherInNextLevel      expects (20: Slice[Byte]) returning Try(Some(randomPutKeyValue(31)))
+          get                    expects (30: Slice[Byte]) returning TryUtil.successNone
+          higherFromCurrentLevel expects (30: Slice[Byte]) returning Try(Some(randomRemoveKeyValue(31, None)))
+          higherFromCurrentLevel expects (31: Slice[Byte]) returning TryUtil.successNone
+          higherInNextLevel      expects (31: Slice[Byte]) returning TryUtil.successNone
+          //@formatter:on
+        }
 
-        //next Level fetch should only be called 1 time. Since it's returning none it should not be read again.
-        higherInNextLevel expects (0: Slice[Byte]) returning TryUtil.successNone
+        Higher(10, higherFromCurrentLevel, get, higherInNextLevel).assertGetOpt shouldBe empty
+      }
+    }
 
-        get expects (2: Slice[Byte]) returning
-          Try(Some(randomPutKeyValue(2, deadline = Some(expiredDeadline()))))
+    "all key-values are range removed" in {
+      runThis(1000.times) {
+        implicit val timeGenerator = TestTimeGenerator.Decremental()
 
-        //        2 - 3   (higher range overlaps with previous range's toKey)
-        higherFromCurrentLevel expects (2: Slice[Byte]) returning
-          Success(Some(randomRangeKeyValue(from = 2, to = 3, Some(randomFromValueWithDeadline(deadline = expiredDeadline())))))
+        /**
+          * (input) - 10
+          * Level0  - 10-20 (remove)
+          * Level1  - empty
+          */
 
-        get expects (3: Slice[Byte]) returning
-          Try(Some(randomPutKeyValue(3, deadline = Some(expiredDeadline()))))
+        val higherFromCurrentLevel = mockFunction[Slice[Byte], Try[Option[KeyValue.ReadOnly.SegmentResponse]]](FunctionName(Symbol("higherFromCurrentLevel")))
+        val get = mockFunction[Slice[Byte], Try[Option[KeyValue.ReadOnly.Put]]](FunctionName(Symbol("get")))
+        val higherInNextLevel = mockFunction[Slice[Byte], Try[Option[KeyValue.ReadOnly.Put]]](FunctionName(Symbol("higherInNextLevel")))
 
-        //               4 - 5   (higher range does not overlap with previous range's toKey)
-        higherFromCurrentLevel expects (3: Slice[Byte]) returning
-          Success(Some(randomRangeKeyValue(from = 4, to = 5, Some(randomFromValueWithDeadline(deadline = expiredDeadline())))))
+        val removeValue =
+          eitherOne(
+            Value.remove(None),
+            Value.remove(Some(expiredDeadline())),
+            Value.update(None, Some(expiredDeadline()))
+          )
 
-        //get returned None but higher is still read.
-        get expects (5: Slice[Byte]) returning
-          TryUtil.successNone
 
-        //higher is still read.
-        higherFromCurrentLevel expects (5: Slice[Byte]) returning
-          TryUtil.successNone
+        //for initial range do not add deadline or Remove so that 10 key gets read from lower level.
+        inSequence {
+          //@formatter:off
+          higherFromCurrentLevel expects (10: Slice[Byte]) returning Try(Some(randomRangeKeyValueWithFromValueExpiredDeadline(10, 20, None, removeValue)))
+          get                    expects (20: Slice[Byte]) returning TryUtil.successNone
+          higherFromCurrentLevel expects (20: Slice[Byte]) returning TryUtil.successNone
+          higherInNextLevel      expects (20: Slice[Byte]) returning TryUtil.successNone
+          //@formatter:on
+        }
 
-        Higher(0, higherFromCurrentLevel, get, higherInNextLevel).assertGetOpt shouldBe empty
+        Higher(10, higherFromCurrentLevel, get, higherInNextLevel).assertGetOpt shouldBe empty
       }
     }
   }

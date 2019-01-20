@@ -608,10 +608,23 @@ object TestData {
   def randomBoolean =
     Random.nextBoolean()
 
+  def randomDeadUpdateOrExpiredPut(key: Slice[Byte]): Memory.Fixed =
+    eitherOne(
+      randomFixedKeyValue(key, includePuts = false),
+      randomPutKeyValue(key, deadline = Some(expiredDeadline())),
+    )
+
   def randomPutKeyValue(key: Slice[Byte],
                         value: Option[Slice[Byte]] = randomStringOption,
-                        deadline: Option[Deadline] = randomDeadlineOption)(implicit timeGenerator: TestTimeGenerator = TestTimeGenerator.Incremental()): Memory.Put =
-    Memory.Put(key, value, deadline, timeGenerator.nextTime)
+                        deadline: Option[Deadline] = randomDeadlineOption)(implicit timeGenerator: TestTimeGenerator = TestTimeGenerator.Incremental()): Memory.Put = {
+    val put = Memory.Put(key, value, deadline, timeGenerator.nextTime)
+    //println(put)
+    put
+  }
+
+  def randomExpiredPutKeyValue(key: Slice[Byte],
+                               value: Option[Slice[Byte]] = randomStringOption)(implicit timeGenerator: TestTimeGenerator = TestTimeGenerator.Incremental()): Memory.Put =
+    randomPutKeyValue(key, value, deadline = Some(expiredDeadline()))
 
   def randomUpdateKeyValue(key: Slice[Byte],
                            value: Option[Slice[Byte]] = randomStringOption,
@@ -631,6 +644,12 @@ object TestData {
 
   def randomRemoveOrUpdateOrFunctionRemoveValue()(implicit timeGenerator: TestTimeGenerator = TestTimeGenerator.Incremental()): RangeValue =
     randomRemoveOrUpdateOrFunctionRemove(Slice.emptyBytes).toRangeValue().assertGet
+
+  def randomRemoveFunctionValue()(implicit timeGenerator: TestTimeGenerator = TestTimeGenerator.Incremental()): Value.Function =
+    randomFunctionKeyValue(Slice.emptyBytes, SwayFunctionOutput.Remove).toRangeValue().assertGet
+
+  def randomFunctionValue(output: SwayFunctionOutput = randomFunctionOutput())(implicit timeGenerator: TestTimeGenerator = TestTimeGenerator.Incremental()): Value.Function =
+    randomFunctionKeyValue(Slice.emptyBytes, SwayFunctionOutput.Remove).toRangeValue().assertGet
 
   def randomRemoveOrUpdateOrFunctionRemoveValueOption()(implicit timeGenerator: TestTimeGenerator = TestTimeGenerator.Incremental()): Option[RangeValue] =
     eitherOne(
@@ -841,7 +860,7 @@ object TestData {
           case SwayFunctionOutput.Update(newValue, newDeadline) =>
             Memory.Update(key, newValue, newDeadline, time)
         }
-      println(s"outputFixed: $outputFixed")
+      //println(s"outputFixed: $outputFixed")
       outputFixed
     }
   }
@@ -953,14 +972,26 @@ object TestData {
   def randomRangeKeyValue(from: Slice[Byte],
                           to: Slice[Byte],
                           fromValue: Option[FromValue] = randomFromValueOption()(TestTimeGenerator.random),
-                          rangeValue: RangeValue = randomRangeValue()(TestTimeGenerator.random)): Memory.Range =
-    Memory.Range(from, to, fromValue, rangeValue)
+                          rangeValue: RangeValue = randomRangeValue()(TestTimeGenerator.random)): Memory.Range = {
+    val range = Memory.Range(from, to, fromValue, rangeValue)
+    //println(range)
+    range
+  }
 
   def randomRangeKeyValueWithDeadline(from: Slice[Byte],
                                       to: Slice[Byte],
                                       fromValue: Option[FromValue] = randomFromValueWithDeadlineOption()(TestTimeGenerator.random),
-                                      rangeValue: RangeValue = randomRangeValueWithDeadline()(TestTimeGenerator.random)): Memory.Range =
-    Memory.Range(from, to, fromValue, rangeValue)
+                                      rangeValue: RangeValue = randomRangeValueWithDeadline()(TestTimeGenerator.random)): Memory.Range = {
+    val range = Memory.Range(from, to, fromValue, rangeValue)
+    //println(range)
+    range
+  }
+
+  def randomRangeKeyValueWithFromValueExpiredDeadline(from: Slice[Byte],
+                                                      to: Slice[Byte],
+                                                      fromValue: Option[FromValue] = randomFromValueWithDeadlineOption(deadline = expiredDeadline())(TestTimeGenerator.random),
+                                                      rangeValue: RangeValue = randomRangeValueWithDeadline()(TestTimeGenerator.random)): Memory.Range =
+    randomRangeKeyValueWithDeadline(from, to, fromValue, rangeValue)
 
   def randomRangeKeyValueForDeadline(from: Slice[Byte],
                                      to: Slice[Byte],
@@ -987,7 +1018,7 @@ object TestData {
       Some(
         randomFromValue(
           value = value,
-          addRandomRangeRemoves = addRemoves,
+          addRemoves = addRemoves,
           functionOutput = functionOutput,
           deadline = deadline,
           addPut = addPut
@@ -1005,14 +1036,14 @@ object TestData {
       None
 
   def randomFromValue(value: Option[Slice[Byte]] = randomStringOption,
-                      addRandomRangeRemoves: Boolean = Random.nextBoolean(),
+                      addRemoves: Boolean = Random.nextBoolean(),
                       deadline: Option[Deadline] = randomDeadlineOption,
                       functionOutput: SwayFunctionOutput = randomFunctionOutput(),
                       addPut: Boolean = Random.nextBoolean())(implicit timeGenerator: TestTimeGenerator = TestTimeGenerator.Incremental()): Value.FromValue =
     if (addPut && Random.nextBoolean())
       Value.Put(value, deadline, timeGenerator.nextTime)
     else
-      randomRangeValue(value = value, addRemoves = addRandomRangeRemoves, functionOutput = functionOutput, deadline = deadline)
+      randomRangeValue(value = value, addRemoves = addRemoves, functionOutput = functionOutput, deadline = deadline)
 
   def randomRangeValue(value: Option[Slice[Byte]] = randomStringOption,
                        deadline: Option[Deadline] = randomDeadlineOption,

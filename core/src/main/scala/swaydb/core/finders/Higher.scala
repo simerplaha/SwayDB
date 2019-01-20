@@ -24,11 +24,14 @@ import scala.util.{Failure, Success, Try}
 import swaydb.core.data.{KeyValue, Value}
 import swaydb.core.function.FunctionStore
 import swaydb.core.merge.FixedMerger
-import swaydb.core.util.TryUtil
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
 object Higher {
+
+  //indicates that next Level was read but returned empty.
+  //this marker is used to not read lower Level again.
+  private val someNone = Some(None)
 
   /**
     * TO-DO - Use trampolining instead to reduce repeated boilerplate code.
@@ -42,13 +45,57 @@ object Higher {
 
     import keyOrder._
 
+    //stash next if it's key is larger than current's key so that the same next key can be used
+    //in next iteration instead of re-reading next Level again.
+    def stashNext(nextHigher: Option[Option[KeyValue.ReadOnly.Put]],
+                  next: Option[KeyValue.ReadOnly.Put],
+                  currentKey: Slice[Byte]): Option[Option[KeyValue.ReadOnly.Put]] =
+      if (nextHigher.contains(None)) //if nextHigher was already set to empty, it stays empty so that next Level does not get read.
+        nextHigher
+      else if (next.isEmpty) //if next is empty this means next level was read and it returned none so set it to Higher.someNone indicating it's empty.
+        Higher.someNone
+      else
+        next flatMap { //else next is defined so check if the next is still larger than current and keep stashing else set to None so next Level is re-read again.
+          next =>
+            //stash if next Level's key is still larger than current Levels. Don't need to check for time here because it will eventually get check during merge.
+            if (next.key > currentKey)
+              Some(Some(next))
+            else
+              None
+        }
+
+    //stash next if it's key is larger than current's key so that the same next key can be used
+    //in next iteration instead of re-reading next Level again.
+    def keepStashIfLargerKey(nextHigher: Option[Option[KeyValue.ReadOnly.Put]],
+                             currentKey: Slice[Byte]): Option[Option[KeyValue.ReadOnly.Put]] =
+      if (nextHigher.contains(None))
+        nextHigher
+      else
+        nextHigher flatMap {
+          next =>
+            next map {
+              next =>
+                if (next.key > currentKey)
+                  Some(next)
+                else
+                  None
+            }
+        }
+
     /**
-      * Sets isNextLevelEmpty to true if during an iteration a key returned None from next Level.
-      * There is no need to repeatedly read for higher from next Level if one iteration returns empty.
+      * This code is crucial to forward iteration performance. It should avoid any unnecessary seeks.
+      *
+      * @param currentRange      if set the current range is still the active highest in current Level and is
+      *                          being merged into next Level's keys to find the next highest.
+      * @param stashedNextHigher None(None) if higher from next level is not known and can be read.
+      *                     Higher.someNone if there are no higher keys in next Level.
+      *                          Some(Some) if higher from next Level is known but is too far off and does not overlap current. Stashed to process in next iteration.
       */
     @tailrec
-    def higher(key: Slice[Byte], isNextLevelEmpty: Boolean): Try[Option[KeyValue.ReadOnly.Put]] =
-      higherFromCurrentLevel(key) match {
+    def higher(key: Slice[Byte],
+               currentRange: Option[KeyValue.ReadOnly.Range],
+               stashedNextHigher: Option[Option[KeyValue.ReadOnly.Put]]): Try[Option[KeyValue.ReadOnly.Put]] =
+      currentRange.map(_ => Success(currentRange)) getOrElse higherFromCurrentLevel(key) match {
         case Success(current) =>
           current match {
             case Some(current) =>
@@ -56,14 +103,14 @@ object Higher {
                 /** HIGHER FIXED FROM CURRENT LEVEL **/
                 case current: KeyValue.ReadOnly.Fixed =>
                   //if the higher from the current Level is a Fixed key-value, fetch from next Level and return the highest.
-                  (if (isNextLevelEmpty) TryUtil.successNone else higherInNextLevel(key)) match {
+                  stashedNextHigher.map(Success(_)) getOrElse higherInNextLevel(key) match {
                     case Success(next) =>
                       Min(current, next) match {
-                        case found @ Success(Some(_)) =>
+                        case found @ Success(Some(put)) if put.hasTimeLeft() =>
                           found
 
-                        case Success(None) =>
-                          higher(current.key, next.isEmpty)
+                        case Success(_) =>
+                          higher(current.key, None, stashNext(stashedNextHigher, next, current.key))
 
                         case Failure(exception) =>
                           Failure(exception)
@@ -77,27 +124,27 @@ object Higher {
                 //example
                 //10->19  (input keys)
                 //10 - 20 (higher range from current Level)
-                case current: KeyValue.ReadOnly.Range if key >= current.fromKey =>
-                  current.fetchRangeValue match {
+                case currentRange: KeyValue.ReadOnly.Range if key >= currentRange.fromKey =>
+                  currentRange.fetchRangeValue match {
                     case Success(rangeValue) =>
                       //if the current range is active fetch the highest from next Level and return highest from both Levels.
                       if (Value.hasTimeLeft(rangeValue))
                       //if the higher from the current Level is a Fixed key-value, fetch from next Level and return the highest.
-                        (if (isNextLevelEmpty) TryUtil.successNone else higherInNextLevel(key)) match {
-                          case Success(Some(next)) =>
+                        stashedNextHigher.map(Success(_)) getOrElse higherInNextLevel(key) match {
+                          case Success(someNext @ Some(next)) =>
                             //10->20       (input keys)
                             //10   -    20 (higher range)
                             //  11 -> 19   (higher possible keys from next)
-                            if (next.key < current.toKey) //if the higher in next Level falls within the range
+                            if (next.key < currentRange.toKey) //if the higher in next Level falls within the range
                               FixedMerger(rangeValue.toMemory(next.key), next) match {
                                 case Success(current) =>
                                   //return applied value with next key-value as the current value.
                                   Min(current, None) match {
-                                    case found @ Success(Some(_)) =>
+                                    case found @ Success(Some(put)) if put.hasTimeLeft() =>
                                       found
 
-                                    case Success(None) =>
-                                      higher(next.key, isNextLevelEmpty = false) //current.key or next.key (either one! they both are the same here)
+                                    case Success(_) =>
+                                      higher(next.key, Some(currentRange), None) //current.key or next.key (either one! they both are the same here)
 
                                     case Failure(exception) =>
                                       Failure(exception)
@@ -111,24 +158,24 @@ object Higher {
                             //10 - 20
                             //     20 ----to----> ∞
                             else //else next Level's higher key doesn't fall in the Range, get ceiling of toKey
-                              get(current.toKey) match {
+                              get(currentRange.toKey) match {
                                 case Success(Some(ceiling)) if ceiling.hasTimeLeft() =>
                                   Success(Some(ceiling))
 
                                 case Success(_) =>
-                                  higher(current.toKey, isNextLevelEmpty = isNextLevelEmpty)
+                                  higher(currentRange.toKey, None, stashNext(stashedNextHigher, someNext, currentRange.toKey))
 
                                 case failed @ Failure(_) =>
                                   failed
                               }
 
                           case Success(None) => //if there is no underlying key in lower Levels, jump to the next highest key (toKey).
-                            get(current.toKey) match {
+                            get(currentRange.toKey) match {
                               case Success(Some(ceiling)) if ceiling.hasTimeLeft() =>
                                 Success(Some(ceiling))
 
                               case Success(_) =>
-                                higher(current.toKey, isNextLevelEmpty = true)
+                                higher(currentRange.toKey, None, Higher.someNone)
 
                               case failed @ Failure(_) =>
                                 failed
@@ -139,12 +186,12 @@ object Higher {
                         }
 
                       else //if the rangeValue is expired then the higher is ceiling of toKey
-                        get(current.toKey) match {
+                        get(currentRange.toKey) match {
                           case Success(Some(ceiling)) if ceiling.hasTimeLeft() =>
                             Success(Some(ceiling))
 
                           case Success(_) =>
-                            higher(current.toKey, isNextLevelEmpty = isNextLevelEmpty) //don't know! as it's not fetched.
+                            higher(currentRange.toKey, None, keepStashIfLargerKey(stashedNextHigher, currentRange.toKey)) //don't know! as it's not fetched.
 
                           case failed @ Failure(_) =>
                             failed
@@ -158,32 +205,32 @@ object Higher {
                 //example:
                 //0           (input key)
                 //    10 - 20 (higher range)
-                case current: KeyValue.ReadOnly.Range =>
+                case currentRange: KeyValue.ReadOnly.Range =>
                   //if the higher from the current Level is a Fixed key-value, fetch from next Level and return the highest.
-                  (if (isNextLevelEmpty) TryUtil.successNone else higherInNextLevel(key)) match {
+                  stashedNextHigher.map(Success(_)) getOrElse higherInNextLevel(key) match {
                     case Success(next) =>
                       next match {
                         case someNext @ Some(next) =>
                           //0
                           //      10 - 20
                           //  1
-                          if (next.key < current.fromKey)
+                          if (next.key < currentRange.fromKey)
                             Success(someNext)
 
                           //0
                           //      10 - 20
                           //      10
-                          else if (next.key equiv current.fromKey)
-                            current.fetchFromOrElseRangeValue match {
+                          else if (next.key equiv currentRange.fromKey)
+                            currentRange.fetchFromOrElseRangeValue match {
                               case Success(fromOrElseRangeValue) =>
-                                FixedMerger(fromOrElseRangeValue.toMemory(current.fromKey), next) match {
+                                FixedMerger(fromOrElseRangeValue.toMemory(currentRange.fromKey), next) match {
                                   case Success(mergedCurrent) =>
                                     Min(mergedCurrent, None) match { //return applied value with next key-value as the current value.
-                                      case found @ Success(Some(_)) =>
+                                      case found @ Success(Some(put)) if put.hasTimeLeft() =>
                                         found
 
-                                      case Success(None) =>
-                                        higher(next.key, isNextLevelEmpty = false) //current.key or next.key (either one! they both are the same here)
+                                      case Success(_) =>
+                                        higher(next.key, Some(currentRange), None) //current.key or next.key (either one! they both are the same here)
 
                                       case Failure(exception) =>
                                         Failure(exception)
@@ -199,22 +246,22 @@ object Higher {
                           //0
                           //      10  -  20
                           //        11-19
-                          else if (next.key < current.toKey) //if the higher in next Level falls within the range.
-                            current.fetchFromAndRangeValue match {
+                          else if (next.key < currentRange.toKey) //if the higher in next Level falls within the range.
+                            currentRange.fetchFromAndRangeValue match {
                               case Success((Some(fromValue), rangeValue)) => //if fromValue is set check if it qualifies as the next highest orElse return higher of fromKey
-                                Min(fromValue.toMemory(current.fromKey), None) match {
-                                  case found @ Success(Some(_)) =>
+                                Min(fromValue.toMemory(currentRange.fromKey), None) match {
+                                  case found @ Success(Some(put)) if put.hasTimeLeft() =>
                                     found
 
-                                  case Success(None) =>
+                                  case Success(_) =>
                                     FixedMerger(rangeValue.toMemory(next.key), next) match {
                                       case Success(currentValue) =>
                                         Min(currentValue, None) match { //return applied value with next key-value as the current value.
-                                          case found @ Success(Some(_)) =>
+                                          case found @ Success(Some(put)) if put.hasTimeLeft() =>
                                             found
 
-                                          case Success(None) =>
-                                            higher(current.key, isNextLevelEmpty = false)
+                                          case Success(_) =>
+                                            higher(currentRange.fromKey, Some(currentRange), None)
 
                                           case Failure(exception) =>
                                             Failure(exception)
@@ -228,15 +275,15 @@ object Higher {
                                     Failure(exception)
                                 }
 
-                              case Success((None, rangeValue)) => //if there is no frm key
+                              case Success((None, rangeValue)) => //if there is no from key
                                 FixedMerger(rangeValue.toMemory(next.key), next) match {
                                   case Success(current) =>
                                     Min(current, None) match { //return applied value with next key-value as the current value.
-                                      case found @ Success(Some(_)) =>
+                                      case found @ Success(Some(put)) if put.hasTimeLeft() =>
                                         found
 
-                                      case Success(None) =>
-                                        higher(next.key, isNextLevelEmpty = false)
+                                      case Success(_) =>
+                                        higher(next.key, Some(currentRange), None)
 
                                       case Failure(exception) =>
                                         Failure(exception)
@@ -254,23 +301,23 @@ object Higher {
                           //      10 - 20
                           //           20 ----to----> ∞
                           else //else if the higher in next Level does not fall within the range.
-                            current.fetchFromValue match {
+                            currentRange.fetchFromValue match {
                               case Success(maybeFromValue) =>
                                 maybeFromValue match {
                                   case Some(fromValue) =>
                                     //next does not need to supplied here because it's already know that 'next' is larger than fromValue and there is not the highest.
-                                    //returnHigher will execute higher on fromKey if the the current does not result to a valid higher key-value.
-                                    Min(fromValue.toMemory(current.fromKey), None) match { //return applied value with next key-value as the current value.
-                                      case found @ Success(Some(_)) =>
+                                    //Min will execute higher on fromKey if the the current does not result to a valid higher key-value.
+                                    Min(fromValue.toMemory(currentRange.fromKey), None) match { //return applied value with next key-value as the current value.
+                                      case found @ Success(Some(put)) if put.hasTimeLeft() =>
                                         found
 
-                                      case Success(None) =>
-                                        get(current.toKey) match {
+                                      case Success(_) =>
+                                        get(currentRange.toKey) match {
                                           case Success(Some(ceiling)) if ceiling.hasTimeLeft() =>
                                             Success(Some(ceiling))
 
                                           case Success(_) =>
-                                            higher(current.toKey, isNextLevelEmpty = false)
+                                            higher(currentRange.toKey, None, stashNext(stashedNextHigher, someNext, currentRange.toKey))
 
                                           case failed @ Failure(_) =>
                                             failed
@@ -281,12 +328,12 @@ object Higher {
                                     }
 
                                   case None =>
-                                    get(current.toKey) match {
+                                    get(currentRange.toKey) match {
                                       case Success(Some(ceiling)) if ceiling.hasTimeLeft() =>
                                         Success(Some(ceiling))
 
                                       case Success(_) =>
-                                        higher(current.toKey, isNextLevelEmpty = false)
+                                        higher(currentRange.toKey, None, stashNext(stashedNextHigher, someNext, currentRange.toKey))
 
                                       case failed @ Failure(_) =>
                                         failed
@@ -299,21 +346,21 @@ object Higher {
 
                         //no higher key-value in the next Level. Return fromValue orElse jump to toKey.
                         case None =>
-                          current.fetchFromValue match {
+                          currentRange.fetchFromValue match {
                             case Success(maybeFromValue) =>
                               maybeFromValue match {
                                 case Some(fromValue) =>
-                                  Min(fromValue.toMemory(current.fromKey), None) match {
-                                    case found @ Success(Some(_)) =>
+                                  Min(fromValue.toMemory(currentRange.fromKey), None) match {
+                                    case found @ Success(Some(put)) if put.hasTimeLeft() =>
                                       found
 
-                                    case Success(None) =>
-                                      get(current.toKey) match {
+                                    case Success(_) =>
+                                      get(currentRange.toKey) match {
                                         case Success(Some(ceiling)) if ceiling.hasTimeLeft() =>
                                           Success(Some(ceiling))
 
                                         case Success(_) =>
-                                          higher(current.toKey, isNextLevelEmpty = true)
+                                          higher(currentRange.toKey, None, Higher.someNone)
 
                                         case failed @ Failure(_) =>
                                           failed
@@ -323,12 +370,12 @@ object Higher {
                                       Failure(exception)
                                   }
                                 case None =>
-                                  get(current.toKey) match {
+                                  get(currentRange.toKey) match {
                                     case Success(Some(ceiling)) if ceiling.hasTimeLeft() =>
                                       Success(Some(ceiling))
 
                                     case Success(_) =>
-                                      higher(current.toKey, isNextLevelEmpty = true)
+                                      higher(currentRange.toKey, None, Higher.someNone)
 
                                     case failed @ Failure(_) =>
                                       failed
@@ -345,15 +392,13 @@ object Higher {
               }
 
             case None =>
-              if (isNextLevelEmpty)
-                TryUtil.successNone
-              else
-                higherInNextLevel(key)
+              stashedNextHigher.map(Success(_)) getOrElse higherInNextLevel(key)
+
           }
         case Failure(exception) =>
           Failure(exception)
       }
 
-    higher(key, isNextLevelEmpty = false)
+    higher(key, None, None)
   }
 }
