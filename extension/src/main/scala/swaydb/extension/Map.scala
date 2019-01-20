@@ -24,9 +24,8 @@ import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.slice.Slice
 import swaydb.extension.iterator.{MapIterator, MapKeysIterator}
-import swaydb.iterator._
 import swaydb.serializers.Serializer
-import swaydb.{Batch, Data}
+import swaydb.{Batch, Data, From}
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 import scala.util.{Failure, Success, Try}
 import swaydb.data.order.KeyOrder
@@ -176,7 +175,7 @@ class Map[K, V](map: swaydb.Map[Key[K], Option[V]],
                                 mapKeySerializer: Serializer[Key[K]],
                                 keyOrder: KeyOrder[Slice[Byte]],
                                 valueSerializerOption: Serializer[Option[V]],
-                                valueSerializer: Serializer[V]) extends MapIterator[K, V](mapKey, dbIterator = DBIterator[Key[K], Option[V]](map.db, Some(From(Key.MapStart(mapKey), orAfter = false, orBefore = false, before = false, after = true)))) {
+                                valueSerializer: Serializer[V]) extends MapIterator[K, V](mapKey, dbIterator = map.copy(map.db, Some(From(Key.MapStart(mapKey), orAfter = false, orBefore = false, before = false, after = true)))) {
 
   def maps: Maps[K, V] =
     new Maps[K, V](map, mapKey)
@@ -383,7 +382,7 @@ class Map[K, V](map: swaydb.Map[Key[K], Option[V]],
     MapKeysIterator[K](
       mapKey = mapKey,
       keysIterator =
-        DBKeysIterator[Key[K]](
+        new swaydb.Set[Key[K]](
           db = map.db,
           from = Some(From(Key.MapStart(mapKey), orAfter = false, orBefore = false, before = false, after = true))
         )

@@ -19,14 +19,12 @@
 
 package swaydb.extension.iterator
 
-import swaydb.data.slice.Slice
-import swaydb.extension.Key
-import swaydb.iterator.DBIterator
-import swaydb.data.order.KeyOrder
-import swaydb.serializers.Serializer
-
 import scala.annotation.tailrec
 import scala.collection.generic.CanBuildFrom
+import swaydb.data.order.KeyOrder
+import swaydb.data.slice.Slice
+import swaydb.extension.Key
+import swaydb.serializers.Serializer
 
 /**
   * TODO - [[MapIterator]] and [[MapKeysIterator]] are similar and need a higher type.
@@ -46,10 +44,10 @@ import scala.collection.generic.CanBuildFrom
 case class MapIterator[K, V](mapKey: Seq[K],
                              mapsOnly: Boolean = false,
                              userDefinedFrom: Boolean = false,
-                             dbIterator: DBIterator[Key[K], Option[V]],
+                             dbIterator: swaydb.Map[Key[K], Option[V]],
                              till: (K, V) => Boolean = (_: K, _: V) => true)(implicit keySerializer: Serializer[K],
-                                                                                         mapKeySerializer: Serializer[Key[K]],
-                                                                                         optionValueSerializer: Serializer[Option[V]]) extends Iterable[(K, V)] {
+                                                                             mapKeySerializer: Serializer[Key[K]],
+                                                                             optionValueSerializer: Serializer[Option[V]]) extends Iterable[(K, V)] {
 
   private val endEntriesKey = Key.MapEntriesEnd(mapKey)
   private val endSubMapsKey = Key.SubMapsEnd(mapKey)

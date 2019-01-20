@@ -19,11 +19,10 @@
 
 package swaydb.extension
 
-import swaydb.Batch
+import swaydb.{Batch, From}
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.slice.Slice
 import swaydb.extension.iterator.{MapIterator, MapKeysIterator}
-import swaydb.iterator._
 import swaydb.serializers.Serializer
 import scala.util.{Success, Try}
 import swaydb.data.order.KeyOrder
@@ -33,7 +32,7 @@ class Maps[K, V](map: swaydb.Map[Key[K], Option[V]],
                                  mapKeySerializer: Serializer[Key[K]],
                                  keyOrder: KeyOrder[Slice[Byte]],
                                  valueSerializerOption: Serializer[Option[V]],
-                                 valueSerializer: Serializer[V]) extends MapIterator[K, V](mapKey, mapsOnly = true, dbIterator = DBIterator[Key[K], Option[V]](map.db, Some(From(Key.SubMapsStart(mapKey), orAfter = false, orBefore = false, before = false, after = true)))) {
+                                 valueSerializer: Serializer[V]) extends MapIterator[K, V](mapKey, mapsOnly = true, dbIterator = map.copy(from = Some(From(Key.SubMapsStart(mapKey), orAfter = false, orBefore = false, before = false, after = true)))) {
 
   def getOrPut(key: K, value: V): Try[Map[K, V]] =
     get(key) flatMap {
@@ -118,7 +117,7 @@ class Maps[K, V](map: swaydb.Map[Key[K], Option[V]],
       mapKey = mapKey,
       mapsOnly = true,
       keysIterator =
-        DBKeysIterator[Key[K]](
+        new swaydb.Set[Key[K]](
           db = map.db,
           from = Some(From(Key.SubMapsStart(mapKey), orAfter = false, orBefore = false, before = false, after = true))
         )

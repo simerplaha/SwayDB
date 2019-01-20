@@ -20,7 +20,6 @@
 package swaydb.extension.iterator
 
 import swaydb.extension.Key
-import swaydb.iterator.DBKeysIterator
 import swaydb.data.order.KeyOrder
 import swaydb.serializers.Serializer
 
@@ -44,7 +43,7 @@ import scala.collection.generic.CanBuildFrom
 case class MapKeysIterator[K](mapKey: Seq[K],
                               mapsOnly: Boolean = false,
                               userDefinedFrom: Boolean = false,
-                              keysIterator: DBKeysIterator[Key[K]],
+                              keysIterator: swaydb.Set[Key[K]],
                               till: K => Boolean = (_: K) => true)(implicit keySerializer: Serializer[K],
                                                                    mapKeySerializer: Serializer[Key[K]]) extends Iterable[K] {
 
