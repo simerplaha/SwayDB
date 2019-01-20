@@ -15,7 +15,7 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Serializer
-import swaydb.{Set, SwayDB}
+import swaydb.SwayDB
 
 object Set extends LazyLogging {
 
@@ -25,26 +25,26 @@ object Set extends LazyLogging {
   /**
     * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
     */
-  def memoryPersistentSet[T](dir: Path,
-                             maxOpenSegments: Int = 1000,
-                             mapSize: Int = 4.mb,
-                             maxMemoryLevelSize: Int = 100.mb,
-                             maxSegmentsToPush: Int = 5,
-                             memoryLevelSegmentSize: Int = 2.mb,
-                             persistentLevelSegmentSize: Int = 4.mb,
-                             persistentLevelAppendixFlushCheckpointSize: Int = 2.mb,
-                             mmapPersistentSegments: MMAP = MMAP.WriteAndRead,
-                             mmapPersistentAppendix: Boolean = true,
-                             cacheSize: Int = 100.mb,
-                             otherDirs: Seq[Dir] = Seq.empty,
-                             cacheCheckDelay: FiniteDuration = 7.seconds,
-                             segmentsOpenCheckDelay: FiniteDuration = 5.seconds,
-                             bloomFilterFalsePositiveRate: Double = 0.01,
-                             compressDuplicateValues: Boolean = true,
-                             groupingStrategy: Option[KeyValueGroupingStrategy] = Some(DefaultGroupingStrategy()),
-                             acceleration: Level0Meter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[T],
-                                                                                                keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                                ec: ExecutionContext = SwayDB.defaultExecutionContext): Try[Set[T]] =
+  def apply[T](dir: Path,
+               maxOpenSegments: Int = 1000,
+               mapSize: Int = 4.mb,
+               maxMemoryLevelSize: Int = 100.mb,
+               maxSegmentsToPush: Int = 5,
+               memoryLevelSegmentSize: Int = 2.mb,
+               persistentLevelSegmentSize: Int = 4.mb,
+               persistentLevelAppendixFlushCheckpointSize: Int = 2.mb,
+               mmapPersistentSegments: MMAP = MMAP.WriteAndRead,
+               mmapPersistentAppendix: Boolean = true,
+               cacheSize: Int = 100.mb,
+               otherDirs: Seq[Dir] = Seq.empty,
+               cacheCheckDelay: FiniteDuration = 7.seconds,
+               segmentsOpenCheckDelay: FiniteDuration = 5.seconds,
+               bloomFilterFalsePositiveRate: Double = 0.01,
+               compressDuplicateValues: Boolean = true,
+               groupingStrategy: Option[KeyValueGroupingStrategy] = Some(DefaultGroupingStrategy()),
+               acceleration: Level0Meter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[T],
+                                                                                  keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                                                                  ec: ExecutionContext = SwayDB.defaultExecutionContext): Try[swaydb.Set[T]] =
     CoreAPI(
       config =
         DefaultMemoryPersistentConfig(
