@@ -1,6 +1,6 @@
 
 /*
- * Copyright (C) 2018 Simer Plaha (@simerplaha)
+ * Copyright (c) 2019 Simer Plaha (@simerplaha)
  *
  * This file is a part of SwayDB.
  *
