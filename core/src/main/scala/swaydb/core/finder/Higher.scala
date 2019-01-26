@@ -17,14 +17,13 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.finders
+package swaydb.core.finder
 
 import scala.annotation.tailrec
 import scala.util.{Failure, Success, Try}
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data.{KeyValue, Memory, Value}
-import swaydb.core.finders.Seek.Stash
-import swaydb.core.finders.reader.{CurrentReader, NextReader}
+import swaydb.core.finder.Seek.Stash
 import swaydb.core.function.FunctionStore
 import swaydb.core.merge._
 import swaydb.core.util.TryUtil
@@ -73,8 +72,8 @@ private[core] object Higher {
            nextSeek: NextSeek,
            keyOrder: KeyOrder[Slice[Byte]],
            timeOrder: TimeOrder[Slice[Byte]],
-           currentReader: CurrentReader,
-           nextReader: NextReader,
+           currentReader: CurrentFinder,
+           nextReader: NextFinder,
            functionStore: FunctionStore): Try[Option[KeyValue.ReadOnly.Put]] =
     Higher(key, currentSeek, nextSeek)(keyOrder, timeOrder, currentReader, nextReader, functionStore)
 
@@ -87,8 +86,8 @@ private[core] object Higher {
             currentSeek: CurrentSeek,
             nextSeek: NextSeek)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                 timeOrder: TimeOrder[Slice[Byte]],
-                                currentReader: CurrentReader,
-                                nextReader: NextReader,
+                                currentReader: CurrentFinder,
+                                nextReader: NextFinder,
                                 functionStore: FunctionStore): Try[Option[KeyValue.ReadOnly.Put]] = {
     import keyOrder._
 

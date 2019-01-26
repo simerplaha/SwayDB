@@ -24,7 +24,7 @@ import java.nio.file.{Path, StandardOpenOption}
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data._
-import swaydb.core.finders.{Get, Higher, Lower, Seek}
+import swaydb.core.finder._
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.io.file.{DBFile, IO}
 import swaydb.core.level.LevelException.ReceivedKeyValuesToMergeWithoutTargetSegment
@@ -52,7 +52,7 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
 import FiniteDurationUtil._
-import swaydb.core.finders.reader.{CurrentReader, NextReader}
+import swaydb.core.finder.NextFinder
 import swaydb.core.function.FunctionStore
 import swaydb.data.order.{KeyOrder, TimeOrder}
 
@@ -916,7 +916,7 @@ private[core] class Level(val dirs: Seq[Dir],
     }
 
   implicit val currentReader =
-    new CurrentReader {
+    new CurrentFinder {
       override def get(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
         self.get(key)
 
@@ -925,7 +925,7 @@ private[core] class Level(val dirs: Seq[Dir],
     }
 
   implicit val nextReader =
-    new NextReader {
+    new NextFinder {
       override def higher(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
         higherInNextLevel(key)
     }

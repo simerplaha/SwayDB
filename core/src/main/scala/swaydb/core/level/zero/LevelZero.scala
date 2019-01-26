@@ -30,8 +30,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 import swaydb.core.data.KeyValue._
 import swaydb.core.data._
-import swaydb.core.finders.reader.{CurrentReader, NextReader}
-import swaydb.core.finders.{Get, Higher, Lower, Seek}
+import swaydb.core.finder._
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.IO
 import swaydb.core.level.actor.LevelCommand.WakeUp
@@ -452,7 +451,7 @@ private[core] class LevelZero(val path: Path,
 
   def currentReader(currentMap: map.Map[Slice[Byte], Memory.SegmentResponse],
                     otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]) =
-    new CurrentReader {
+    new CurrentFinder {
       override def get(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
         find(key, currentMap, otherMaps.asJava.iterator())
 
@@ -461,7 +460,7 @@ private[core] class LevelZero(val path: Path,
     }
 
   def nextReader(otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]) =
-    new NextReader {
+    new NextFinder {
       override def higher(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
         findHigherInNextLevel(key, otherMaps)
     }

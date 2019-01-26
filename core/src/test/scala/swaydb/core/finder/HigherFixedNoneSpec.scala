@@ -17,7 +17,7 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.finders
+package swaydb.core.finder
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, OptionValues, WordSpec}
@@ -25,7 +25,6 @@ import scala.util.Try
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.TryAssert._
-import swaydb.core.finders.reader.{CurrentReader, NextReader}
 import swaydb.core.util.TryUtil
 import swaydb.core.{TestData, TestTimeGenerator}
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -49,8 +48,8 @@ class HigherFixedNoneSpec extends WordSpec with Matchers with MockFactory with O
 
       runThis(100.times) {
 
-        implicit val current = mock[CurrentReader]
-        implicit val next = mock[NextReader]
+        implicit val current = mock[CurrentFinder]
+        implicit val next = mock[NextFinder]
 
         inSequence {
           //@formatter:off
@@ -70,8 +69,8 @@ class HigherFixedNoneSpec extends WordSpec with Matchers with MockFactory with O
 
       runThis(100.times) {
 
-        implicit val current = mock[CurrentReader]
-        implicit val next = mock[NextReader]
+        implicit val current = mock[CurrentFinder]
+        implicit val next = mock[NextFinder]
 
         inSequence {
           //@formatter:off
@@ -92,8 +91,8 @@ class HigherFixedNoneSpec extends WordSpec with Matchers with MockFactory with O
 
       runThis(100.times) {
 
-        implicit val current = mock[CurrentReader]
-        implicit val next = mock[NextReader]
+        implicit val current = mock[CurrentFinder]
+        implicit val next = mock[NextFinder]
 
         inSequence {
           //@formatter:off
@@ -117,8 +116,8 @@ class HigherFixedNoneSpec extends WordSpec with Matchers with MockFactory with O
 
         implicit val timeGenerator = TestTimeGenerator.Empty
 
-        implicit val current = mock[CurrentReader]
-        implicit val next = mock[NextReader]
+        implicit val current = mock[CurrentFinder]
+        implicit val next = mock[NextFinder]
 
         inSequence {
           //@formatter:off

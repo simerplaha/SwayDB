@@ -17,7 +17,7 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.finders
+package swaydb.core.finder
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
@@ -27,7 +27,6 @@ import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.TryAssert._
 import swaydb.core.data._
-import swaydb.core.finders.reader.{CurrentReader, NextReader}
 import swaydb.core.util.TryUtil
 import swaydb.core.{TestData, TestTimeGenerator}
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -51,8 +50,8 @@ class HigherRangeSomeSpec extends WordSpec with Matchers with MockFactory {
       //in this test lower level is read for upper Level's higher toKey and the input key is not read since it's removed.
       runThis(100.times) {
 
-        implicit val current = mock[CurrentReader]
-        implicit val next = mock[NextReader]
+        implicit val current = mock[CurrentFinder]
+        implicit val next = mock[NextFinder]
 
         val upperRange = randomRangeKeyValue(0, 3, rangeValue = randomRemoveOrUpdateOrFunctionRemoveValue())
         val toKeyGet = randomPutKeyValue(1, deadline = randomDeadlineOption(false))
@@ -77,8 +76,8 @@ class HigherRangeSomeSpec extends WordSpec with Matchers with MockFactory {
       //in this test lower level is read for upper Level's higher toKey and the input key is not read since it's removed.
       runThis(100.times) {
 
-        implicit val current = mock[CurrentReader]
-        implicit val next = mock[NextReader]
+        implicit val current = mock[CurrentFinder]
+        implicit val next = mock[NextFinder]
 
         val upperRange = randomRangeKeyValue(0, 3, rangeValue = randomRemoveOrUpdateOrFunctionRemoveValue())
         val toKeyGet = randomPutKeyValue(1, deadline = randomDeadlineOption(false))
@@ -102,8 +101,8 @@ class HigherRangeSomeSpec extends WordSpec with Matchers with MockFactory {
       //in this test lower level is read for upper Level's higher toKey and the input key is not read since it's removed.
       runThis(100.times) {
 
-        implicit val current = mock[CurrentReader]
-        implicit val next = mock[NextReader]
+        implicit val current = mock[CurrentFinder]
+        implicit val next = mock[NextFinder]
 
         val upperRange = randomRangeKeyValue(0, 3, rangeValue = randomRemoveOrUpdateOrFunctionRemoveValue())
         val toKeyGet = randomPutKeyValue(1, deadline = randomDeadlineOption(false))
@@ -126,8 +125,8 @@ class HigherRangeSomeSpec extends WordSpec with Matchers with MockFactory {
       //in this test lower level is read for upper Level's higher toKey and the input key is not read since it's removed.
       runThis(100.times) {
 
-        implicit val current = mock[CurrentReader]
-        implicit val next = mock[NextReader]
+        implicit val current = mock[CurrentFinder]
+        implicit val next = mock[NextFinder]
 
         val result = randomPutKeyValue(4, deadline = randomDeadlineOption(false))
 

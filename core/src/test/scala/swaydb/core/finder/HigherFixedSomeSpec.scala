@@ -17,7 +17,7 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.finders
+package swaydb.core.finder
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, OptionValues, WordSpec}
@@ -25,8 +25,7 @@ import scala.util.Try
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.TryAssert._
-import swaydb.core.data.{KeyValue, Memory}
-import swaydb.core.finders.reader.{CurrentReader, NextReader}
+import swaydb.core.data.Memory
 import swaydb.core.merge.FixedMerger
 import swaydb.core.util.TryUtil
 import swaydb.core.{TestData, TestTimeGenerator}
@@ -51,8 +50,8 @@ class HigherFixedSomeSpec extends WordSpec with Matchers with MockFactory with O
 
       runThis(100.times) {
 
-        implicit val current = mock[CurrentReader]
-        implicit val next = mock[NextReader]
+        implicit val current = mock[CurrentFinder]
+        implicit val next = mock[NextFinder]
 
         val put = randomPutKeyValue(1, deadline = randomDeadlineOption(false))
 
@@ -73,8 +72,8 @@ class HigherFixedSomeSpec extends WordSpec with Matchers with MockFactory with O
 
       runThis(100.times) {
 
-        implicit val current = mock[CurrentReader]
-        implicit val next = mock[NextReader]
+        implicit val current = mock[CurrentFinder]
+        implicit val next = mock[NextFinder]
 
         val put = randomPutKeyValue(1, deadline = randomDeadlineOption(false))
 
@@ -96,8 +95,8 @@ class HigherFixedSomeSpec extends WordSpec with Matchers with MockFactory with O
 
       runThis(100.times) {
 
-        implicit val current = mock[CurrentReader]
-        implicit val next = mock[NextReader]
+        implicit val current = mock[CurrentFinder]
+        implicit val next = mock[NextFinder]
 
         val upperKeyValue = randomFixedKeyValue(1, includeRemoves = false, deadline = randomDeadlineOption(false), functionOutput = randomUpdateFunctionOutput())
         val lowerKeyValue = randomPutKeyValue(1, deadline = None)
@@ -121,8 +120,8 @@ class HigherFixedSomeSpec extends WordSpec with Matchers with MockFactory with O
 
       runThis(100.times) {
 
-        implicit val current = mock[CurrentReader]
-        implicit val next = mock[NextReader]
+        implicit val current = mock[CurrentFinder]
+        implicit val next = mock[NextFinder]
 
         val upperKeyValue = randomFixedKeyValue(1)
         val lowerKeyValue = randomPutKeyValue(2, deadline = randomDeadlineOption(false))
@@ -155,8 +154,8 @@ class HigherFixedSomeSpec extends WordSpec with Matchers with MockFactory with O
     "5" in {
       runThis(100.times) {
 
-        implicit val current = mock[CurrentReader]
-        implicit val next = mock[NextReader]
+        implicit val current = mock[CurrentFinder]
+        implicit val next = mock[NextFinder]
 
         val upperKeyValue = randomFixedKeyValue(2)
         val lowerKeyValue = randomPutKeyValue(1)

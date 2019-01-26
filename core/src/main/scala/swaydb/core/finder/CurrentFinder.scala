@@ -17,24 +17,16 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.finders.reader
+package swaydb.core.finder
 
 import scala.util.Try
 import swaydb.core.data.KeyValue
-import swaydb.core.data.KeyValue.ReadOnly
-import swaydb.core.util.TryUtil
 import swaydb.data.slice.Slice
 
-trait NextReader {
+trait CurrentFinder {
 
-  def higher(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Put]]
+  def get(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Put]]
 
-}
+  def higher(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.SegmentResponse]]
 
-object NextReader {
-  val empty =
-    new NextReader {
-      override def higher(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
-        TryUtil.successNone
-    }
 }

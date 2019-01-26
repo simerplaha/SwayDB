@@ -33,8 +33,7 @@ import swaydb.core.data.KeyValue.{ReadOnly, WriteOnly}
 import swaydb.core.data.Transient.Range
 import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data._
-import swaydb.core.finders.reader.{CurrentReader, NextReader}
-import swaydb.core.finders.{Higher, Seek}
+import swaydb.core.finder._
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.io.file.DBFile
@@ -2042,8 +2041,8 @@ object TestData {
   implicit class HigherImplicits(higher: Higher.type) {
     def apply(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                 timeOrder: TimeOrder[Slice[Byte]],
-                                currentReader: CurrentReader,
-                                nextReader: NextReader,
+                                currentReader: CurrentFinder,
+                                nextReader: NextFinder,
                                 functionStore: FunctionStore): Try[Option[KeyValue.ReadOnly.Put]] =
       Higher(key, Seek.Next, Seek.Next)
   }

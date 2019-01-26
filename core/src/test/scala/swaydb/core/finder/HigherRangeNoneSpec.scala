@@ -17,15 +17,14 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.finders
+package swaydb.core.finder
 
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.{Matchers, OptionValues, WordSpec}
+import org.scalatest.{Matchers, WordSpec}
 import scala.util.Try
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.TryAssert._
-import swaydb.core.finders.reader.{CurrentReader, NextReader}
 import swaydb.core.util.TryUtil
 import swaydb.core.{TestData, TestTimeGenerator}
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -53,8 +52,8 @@ class HigherRangeNoneSpec extends WordSpec with Matchers with MockFactory {
 
           (0 to 9) foreach {
             key =>
-              implicit val current = mock[CurrentReader]
-              implicit val next = mock[NextReader]
+              implicit val current = mock[CurrentFinder]
+              implicit val next = mock[NextFinder]
 
               inSequence {
                 //@formatter:off
@@ -80,8 +79,8 @@ class HigherRangeNoneSpec extends WordSpec with Matchers with MockFactory {
 
           (0 to 9) foreach {
             key =>
-              implicit val current = mock[CurrentReader]
-              implicit val next = mock[NextReader]
+              implicit val current = mock[CurrentFinder]
+              implicit val next = mock[NextFinder]
 
               inSequence {
                 //@formatter:off
@@ -107,8 +106,8 @@ class HigherRangeNoneSpec extends WordSpec with Matchers with MockFactory {
 
           implicit val timeGenerator = TestTimeGenerator.Empty
 
-          implicit val current = mock[CurrentReader]
-          implicit val next = mock[NextReader]
+          implicit val current = mock[CurrentFinder]
+          implicit val next = mock[NextFinder]
 
           inSequence {
             //@formatter:off
@@ -130,8 +129,8 @@ class HigherRangeNoneSpec extends WordSpec with Matchers with MockFactory {
         runThis(100.times) {
 
           implicit val timeGenerator = TestTimeGenerator.Empty
-          implicit val current = mock[CurrentReader]
-          implicit val next = mock[NextReader]
+          implicit val current = mock[CurrentFinder]
+          implicit val next = mock[NextFinder]
           inSequence {
             //@formatter:off
             current.higher _ expects (0: Slice[Byte]) returning Try(Some(randomRangeKeyValue(1, 10, randomRemoveOrUpdateOrFunctionRemoveValueOption(), randomRemoveOrUpdateOrFunctionRemoveValue(addFunctions = false))))
