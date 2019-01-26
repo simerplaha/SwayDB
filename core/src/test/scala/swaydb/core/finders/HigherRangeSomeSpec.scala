@@ -62,7 +62,7 @@ class HigherRangeSomeSpec extends WordSpec with Matchers with MockFactory {
           if (upperRange.rangeValue.isInstanceOf[Value.Function]) {
             next.higher _ expects (0: Slice[Byte]) returning Try(Some(randomPutKeyValue(1, deadline = randomDeadlineOption(false))))
             next.higher _ expects (1: Slice[Byte]) returning Try(Some(randomPutKeyValue(2, deadline = randomDeadlineOption(false))))
-            next.higher _ expects (2: Slice[Byte]) returning TryUtil.successNone
+            next.higher _ expects (2: Slice[Byte]) returning Try(Some(randomPutKeyValue(3, deadline = randomDeadlineOption(false))))
           }
           current.get _ expects (3: Slice[Byte]) returning Try(Some(toKeyGet))
         }
@@ -70,9 +70,9 @@ class HigherRangeSomeSpec extends WordSpec with Matchers with MockFactory {
       }
     }
 
-    //0
+    // 1
     //0  - 3
-    // 1,2,  4
+    // 1,2,3,4
     "2" in {
       //in this test lower level is read for upper Level's higher toKey and the input key is not read since it's removed.
       runThis(100.times) {
@@ -81,23 +81,61 @@ class HigherRangeSomeSpec extends WordSpec with Matchers with MockFactory {
         implicit val next = mock[NextReader]
 
         val upperRange = randomRangeKeyValue(0, 3, rangeValue = randomRemoveOrUpdateOrFunctionRemoveValue())
-        val lowerPut = randomPutKeyValue(4, deadline = randomDeadlineOption(false))
+        val toKeyGet = randomPutKeyValue(1, deadline = randomDeadlineOption(false))
 
         inSequence {
-          current.higher _ expects (0: Slice[Byte]) returning Try(Some(upperRange))
-          //if it's a function it will read all lower level keys within the range since the output is known without applying the function.
+          current.higher _ expects (1: Slice[Byte]) returning Try(Some(upperRange))
           if (upperRange.rangeValue.isInstanceOf[Value.Function]) {
-            next.higher _ expects (0: Slice[Byte]) returning Try(Some(randomPutKeyValue(1, deadline = randomDeadlineOption(false))))
             next.higher _ expects (1: Slice[Byte]) returning Try(Some(randomPutKeyValue(2, deadline = randomDeadlineOption(false))))
-            next.higher _ expects (2: Slice[Byte]) returning Try(Some(lowerPut))
+            next.higher _ expects (2: Slice[Byte]) returning Try(Some(randomPutKeyValue(3, deadline = randomDeadlineOption(false))))
           }
-          current.get _ expects (3: Slice[Byte]) returning TryUtil.successNone
-          current.higher _ expects (3: Slice[Byte]) returning TryUtil.successNone
-          if (!upperRange.rangeValue.isInstanceOf[Value.Function]) {
-            next.higher _ expects (3: Slice[Byte]) returning Try(Some(lowerPut))
-          }
+          current.get _ expects (3: Slice[Byte]) returning Try(Some(toKeyGet))
         }
-        Higher(0: Slice[Byte]).assertGet shouldBe lowerPut
+        Higher(1: Slice[Byte]).assertGet shouldBe toKeyGet
+      }
+    }
+
+    //   2
+    //0  - 3
+    // 1,2,3,4
+    "3" in {
+      //in this test lower level is read for upper Level's higher toKey and the input key is not read since it's removed.
+      runThis(100.times) {
+
+        implicit val current = mock[CurrentReader]
+        implicit val next = mock[NextReader]
+
+        val upperRange = randomRangeKeyValue(0, 3, rangeValue = randomRemoveOrUpdateOrFunctionRemoveValue())
+        val toKeyGet = randomPutKeyValue(1, deadline = randomDeadlineOption(false))
+
+        inSequence {
+          current.higher _ expects (2: Slice[Byte]) returning Try(Some(upperRange))
+          if (upperRange.rangeValue.isInstanceOf[Value.Function]) {
+            next.higher _ expects (2: Slice[Byte]) returning Try(Some(randomPutKeyValue(3, deadline = randomDeadlineOption(false))))
+          }
+          current.get _ expects (3: Slice[Byte]) returning Try(Some(toKeyGet))
+        }
+        Higher(2: Slice[Byte]).assertGet shouldBe toKeyGet
+      }
+    }
+
+    //     3
+    //0  - 3
+    // 1,2,3,4
+    "4" in {
+      //in this test lower level is read for upper Level's higher toKey and the input key is not read since it's removed.
+      runThis(100.times) {
+
+        implicit val current = mock[CurrentReader]
+        implicit val next = mock[NextReader]
+
+        val result = randomPutKeyValue(4, deadline = randomDeadlineOption(false))
+
+        inSequence {
+          current.higher _ expects (3: Slice[Byte]) returning TryUtil.successNone
+          next.higher _ expects (3: Slice[Byte]) returning Try(Some(result))
+        }
+        Higher(3: Slice[Byte]).assertGet shouldBe result
       }
     }
   }

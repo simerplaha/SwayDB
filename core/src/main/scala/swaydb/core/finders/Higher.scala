@@ -45,7 +45,6 @@ private[swaydb] object Seek {
     case class Current(current: KeyValue.ReadOnly.SegmentResponse) extends CurrentSeek
     case class Next(next: KeyValue.ReadOnly.Put) extends NextSeek
   }
-
 }
 
 private[core] object Higher {
@@ -412,8 +411,8 @@ private[core] object Higher {
                       case Failure(exception) =>
                         Failure(exception)
                     }
-
                 }
+
               case Failure(exception) =>
                 Failure(exception)
             }

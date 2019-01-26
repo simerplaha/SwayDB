@@ -2045,7 +2045,7 @@ object TestData {
                                 currentReader: CurrentReader,
                                 nextReader: NextReader,
                                 functionStore: FunctionStore): Try[Option[KeyValue.ReadOnly.Put]] =
-      Higher(key, Seek.Next, Seek.Next)(keyOrder, timeOrder, currentReader, nextReader, functionStore)
+      Higher(key, Seek.Next, Seek.Next)
   }
 }
 
