@@ -100,9 +100,9 @@ private[core] object Lower {
       case (currentStash @ Stash.Current(current), Seek.Next) =>
         //decide if it's necessary to read the next Level or not.
         current match {
-          //     20 (input key)
+          //   19   (input key - exclusive)
           //10 - 20 (lower range from current Level)
-          case currentRange: ReadOnly.Range if key <= currentRange.toKey =>
+          case currentRange: ReadOnly.Range if key < currentRange.toKey =>
             currentRange.fetchRangeValue match {
               case Success(rangeValue) =>
                 //if the current range is active fetch the lowest from next Level and return lowest from both Levels.
@@ -122,19 +122,19 @@ private[core] object Lower {
                 else
                   currentRange.fetchFromValue match {
                     case Success(maybeFromValue) =>
-                      //check if from value is the next lowest
+                      //check if from value is a put before reading the next Level.
                       lowerFromValue(key, currentRange.fromKey, maybeFromValue) match {
-                        case some @ Some(_) =>
+                        case some @ Some(_) => //yes it is!
                           Success(some)
 
-                        //if not, then fetch the lower from next Level and merge.
+                        //if not, then fetch lower of key in next Level.
                         case None =>
                           nextWalker.lower(key) match {
-                            case Success(Some(nextLower)) =>
-                              Lower(key, currentStash, Stash.Next(nextLower))
+                            case Success(Some(next)) =>
+                              Lower(key, currentStash, Stash.Next(next))
 
                             case Success(None) =>
-                              Lower(currentRange.fromKey, Seek.Next, Seek.Stop)
+                              Lower(key, currentStash, Seek.Stop)
 
                             case Failure(exception) =>
                               Failure(exception)
@@ -147,6 +147,22 @@ private[core] object Lower {
 
               case Failure(exception) =>
                 Failure(exception)
+            }
+
+          //     20 (input key - inclusive)
+          //10 - 20 (lower range from current Level)
+          case currentRange: ReadOnly.Range if key equiv currentRange.toKey =>
+            //lower level could also contain a toKey but toKey is exclusive to merge is not required but lower level is read is required.
+            nextWalker.lower(key) match {
+              case Success(Some(nextFromKey)) =>
+                Lower(key, currentStash, Stash.Next(nextFromKey))
+
+              case Success(None) =>
+                Lower(key, currentStash, Seek.Stop)
+
+              case Failure(exception) =>
+                Failure(exception)
+
             }
 
           //             22 (input key)
@@ -274,11 +290,12 @@ private[core] object Lower {
             else if (next.key > current.fromKey)
               current.fetchRangeValue match {
                 case Success(rangeValue) =>
-                  FixedMerger(rangeValue.toMemory(current.fromKey), next) match {
+                  FixedMerger(rangeValue.toMemory(next.key), next) match {
                     case Success(mergedCurrent) =>
                       mergedCurrent match {
                         case put: ReadOnly.Put if put.hasTimeLeft() =>
                           Success(Some(put))
+
                         case _ =>
                           //do need to check if range is expired because if it was then
                           //next would not have been read from next level in the first place.
@@ -307,10 +324,10 @@ private[core] object Lower {
 
                     //fromValue is not put, check if merging is required else return next.
                     case None =>
-                      val mergeValue =
+                      val mergeValue: Try[ReadOnly.Fixed] =
                         maybeFromValue
                           .map(fromValue => FixedMerger(fromValue.toMemory(next.key), next))
-                          .getOrElse(next)
+                          .getOrElse(Success(next))
 
                       mergeValue match {
                         case Success(mergedValue) =>

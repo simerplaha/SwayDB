@@ -224,18 +224,15 @@ private[core] class Level(val dirs: Seq[Dir],
 
       override def lower(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
         lowerFromNextLevel(key)
+
+      override def get(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
+        getFromNextLevel(key)
     }
 
   private implicit val currentGetter =
     new CurrentGetter {
       override def get(key: Slice[Byte]): Try[Option[ReadOnly.SegmentResponse]] =
         getFromThisLevel(key)
-    }
-
-  private implicit val nextGetter =
-    new NextGetter {
-      override def get(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
-        getFromNextLevel(key)
     }
 
   val removeDeletedRecords = Level.removeDeletes(nextLevel)

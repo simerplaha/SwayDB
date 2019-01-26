@@ -36,7 +36,13 @@ private[core] object Get {
            nextGetter: NextGetter)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                    timeOrder: TimeOrder[Slice[Byte]],
                                    functionStore: FunctionStore): Try[Option[KeyValue.ReadOnly.Put]] =
-    Get(key)(keyOrder = keyOrder, timeOrder = timeOrder, currentGetter, nextGetter, functionStore)
+    Get(key = key)(
+      keyOrder = keyOrder,
+      timeOrder = timeOrder,
+      currentGetter = currentGetter,
+      nextGetter = nextGetter,
+      functionStore = functionStore
+    )
 
   def apply(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]],
                               timeOrder: TimeOrder[Slice[Byte]],

@@ -301,14 +301,10 @@ private[core] class LevelZero(val path: Path,
 
   private def getFromNextLevel(key: Slice[Byte],
                                mapsIterator: util.Iterator[map.Map[Slice[Byte], Memory.SegmentResponse]]): Try[Option[KeyValue.ReadOnly.Put]] =
-    if (mapsIterator.hasNext) {
-      val next = mapsIterator.next()
-      //println(s"Get for key: ${key.readInt()} in ${next.pathOption}")
-      find(key, next, mapsIterator)
-    } else {
-      //println(s"Get for key: ${key.readInt()} in ${nextLevel.rootPath}")
+    if (mapsIterator.hasNext)
+      find(key, mapsIterator.next(), mapsIterator)
+    else
       nextLevel.map(_ get key) getOrElse TryUtil.successNone
-    }
 
   def currentGetter(currentMap: map.Map[Slice[Byte], Memory.SegmentResponse]) =
     new CurrentGetter {
@@ -477,6 +473,9 @@ private[core] class LevelZero(val path: Path,
 
       override def lower(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
         findLowerInNextLevel(key, otherMaps)
+
+      override def get(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
+        getFromNextLevel(key, otherMaps.iterator.asJava)
     }
 
   def findHigher(key: Slice[Byte],
