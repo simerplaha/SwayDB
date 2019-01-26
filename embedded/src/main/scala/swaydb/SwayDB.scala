@@ -26,7 +26,7 @@ import scala.concurrent.duration.{FiniteDuration, _}
 import scala.concurrent.forkjoin.ForkJoinPool
 import scala.util.{Failure, Success, Try}
 import swaydb.core.CoreAPI
-import swaydb.core.data.{Memory, Value}
+import swaydb.core.data.{Memory, Time, Value}
 import swaydb.core.function.FunctionStore
 import swaydb.core.map.MapEntry
 import swaydb.core.map.serializer.LevelZeroMapEntryWriter
@@ -61,8 +61,8 @@ object SwayDB extends LazyLogging {
       logger.error("Execution context failure", exception)
   }
 
-  implicit val timeOrder: TimeOrder[Slice[Byte]] = ???
-  implicit val functionStore: FunctionStore = ???
+  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
+  implicit val functionStore: FunctionStore = FunctionStore.memory()
 
 
   /**
@@ -244,21 +244,21 @@ private[swaydb] class SwayDB(api: CoreAPI) {
         val nextEntry =
           batchEntry match {
             case request.Batch.Put(key, value, expire) =>
-              MapEntry.Put[Slice[Byte], Memory.Put](key, Memory.Put(key, value, expire, ???))(LevelZeroMapEntryWriter.Level0PutWriter)
+              MapEntry.Put[Slice[Byte], Memory.Put](key, Memory.Put(key, value, expire, Time.empty))(LevelZeroMapEntryWriter.Level0PutWriter)
 
             case request.Batch.Remove(key, expire) =>
-              MapEntry.Put[Slice[Byte], Memory.Remove](key, Memory.Remove(key, expire, ???))(LevelZeroMapEntryWriter.Level0RemoveWriter)
+              MapEntry.Put[Slice[Byte], Memory.Remove](key, Memory.Remove(key, expire, Time.empty))(LevelZeroMapEntryWriter.Level0RemoveWriter)
 
             case request.Batch.Update(key, value) =>
-              MapEntry.Put[Slice[Byte], Memory.Update](key, Memory.Update(key, value, None, ???))(LevelZeroMapEntryWriter.Level0UpdateWriter)
+              MapEntry.Put[Slice[Byte], Memory.Update](key, Memory.Update(key, value, None, Time.empty))(LevelZeroMapEntryWriter.Level0UpdateWriter)
 
             case request.Batch.RemoveRange(fromKey, toKey, expire) =>
-              (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, None, Value.Remove(expire, ???)))(LevelZeroMapEntryWriter.Level0RangeWriter): MapEntry[Slice[Byte], Memory.SegmentResponse]) ++
-                MapEntry.Put[Slice[Byte], Memory.Remove](toKey, Memory.Remove(toKey, expire, ???))(LevelZeroMapEntryWriter.Level0RemoveWriter)
+              (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, None, Value.Remove(expire, Time.empty)))(LevelZeroMapEntryWriter.Level0RangeWriter): MapEntry[Slice[Byte], Memory.SegmentResponse]) ++
+                MapEntry.Put[Slice[Byte], Memory.Remove](toKey, Memory.Remove(toKey, expire, Time.empty))(LevelZeroMapEntryWriter.Level0RemoveWriter)
 
             case request.Batch.UpdateRange(fromKey, toKey, value) =>
-              (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, None, Value.Update(value, None, ???)))(LevelZeroMapEntryWriter.Level0RangeWriter): MapEntry[Slice[Byte], Memory.SegmentResponse]) ++
-                MapEntry.Put[Slice[Byte], Memory.Update](toKey, Memory.Update(toKey, None, None, ???))(LevelZeroMapEntryWriter.Level0UpdateWriter)
+              (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, None, Value.Update(value, None, Time.empty)))(LevelZeroMapEntryWriter.Level0RangeWriter): MapEntry[Slice[Byte], Memory.SegmentResponse]) ++
+                MapEntry.Put[Slice[Byte], Memory.Update](toKey, Memory.Update(toKey, None, None, Time.empty))(LevelZeroMapEntryWriter.Level0UpdateWriter)
           }
         Some(mapEntry.map(_ ++ nextEntry) getOrElse nextEntry)
     } map {
