@@ -24,7 +24,7 @@ import java.nio.file.{Path, StandardOpenOption}
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data._
-import swaydb.core.finders.{Get, Higher, Lower}
+import swaydb.core.finders.{Get, Higher, Lower, Seek}
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.io.file.{DBFile, IO}
 import swaydb.core.level.LevelException.ReceivedKeyValuesToMergeWithoutTargetSegment
@@ -199,7 +199,7 @@ private[core] class Level(val dirs: Seq[Dir],
                                                                 addWriter: MapEntryWriter[MapEntry.Put[Slice[Byte], Segment]],
                                                                 keyValueLimiter: KeyValueLimiter,
                                                                 fileOpenLimiter: DBFile => Unit,
-                                                                groupingStrategy: Option[KeyValueGroupingStrategyInternal]) extends LevelRef with LevelActorAPI with LazyLogging {
+                                                                groupingStrategy: Option[KeyValueGroupingStrategyInternal]) extends LevelRef with LevelActorAPI with LazyLogging { self =>
 
   val paths: PathsDistributor = PathsDistributor(dirs, () => appendix.values().asScala)
 
@@ -915,14 +915,26 @@ private[core] class Level(val dirs: Seq[Dir],
         failed
     }
 
+  implicit val currentReader =
+    new CurrentReader {
+      override def get(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
+        self.get(key)
+
+      override def higher(key: Slice[Byte]): Try[Option[ReadOnly.SegmentResponse]] =
+        higherInThisLevel(key)
+    }
+
+  implicit val nextReader =
+    new NextReader {
+      override def higher(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
+        higherInNextLevel(key)
+    }
+
   override def higher(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Put]] =
     Higher(
       key = key,
-      keyOrder = keyOrder,
-      timeOrder = timeOrder,
-      currentReader = this,
-      nextReader = nextLevel.getOrElse(NextReader.empty),
-      functionStore = functionStore
+      currentSeek = Seek.Next,
+      nextSeek = Seek.Next
     )
 
   /**

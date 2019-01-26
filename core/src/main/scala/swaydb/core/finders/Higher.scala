@@ -31,10 +31,10 @@ import swaydb.core.util.TryUtil
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
-private sealed trait CurrentSeek
-private sealed trait NextSeek
+private[swaydb] sealed trait CurrentSeek
+private[swaydb] sealed trait NextSeek
 
-private object Seek {
+private[swaydb] object Seek {
   sealed trait Stop extends CurrentSeek with NextSeek
   case object Stop extends Stop
 
@@ -69,26 +69,28 @@ private[core] object Higher {
       None
   }
 
-  def apply(key: Slice[Byte],
-            keyOrder: KeyOrder[Slice[Byte]],
-            timeOrder: TimeOrder[Slice[Byte]],
-            currentReader: CurrentReader,
-            nextReader: NextReader,
-            functionStore: FunctionStore): Try[Option[KeyValue.ReadOnly.Put]] =
-    Higher(key, Seek.Next, Seek.Next)(keyOrder, timeOrder, currentReader, nextReader, functionStore)
+  def seek(key: Slice[Byte],
+           currentSeek: CurrentSeek,
+           nextSeek: NextSeek,
+           keyOrder: KeyOrder[Slice[Byte]],
+           timeOrder: TimeOrder[Slice[Byte]],
+           currentReader: CurrentReader,
+           nextReader: NextReader,
+           functionStore: FunctionStore): Try[Option[KeyValue.ReadOnly.Put]] =
+    Higher(key, currentSeek, nextSeek)(keyOrder, timeOrder, currentReader, nextReader, functionStore)
 
   /**
     * May be use trampolining instead and split the matches into their own functions to reduce
     * repeated boilerplate code & if does not effect read performance or adds to GC workload.
     */
   @tailrec
-  private def apply(key: Slice[Byte],
-                    currentSeek: CurrentSeek,
-                    nextSeek: NextSeek)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                        timeOrder: TimeOrder[Slice[Byte]],
-                                        currentReader: CurrentReader,
-                                        nextReader: NextReader,
-                                        functionStore: FunctionStore): Try[Option[KeyValue.ReadOnly.Put]] = {
+  def apply(key: Slice[Byte],
+            currentSeek: CurrentSeek,
+            nextSeek: NextSeek)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                timeOrder: TimeOrder[Slice[Byte]],
+                                currentReader: CurrentReader,
+                                nextReader: NextReader,
+                                functionStore: FunctionStore): Try[Option[KeyValue.ReadOnly.Put]] = {
     import keyOrder._
 
     (currentSeek, nextSeek) match {

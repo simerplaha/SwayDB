@@ -25,17 +25,18 @@ import java.nio.file.{Path, Paths, StandardOpenOption}
 import java.util
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
-import scala.concurrent.duration.Deadline
+import scala.concurrent.duration.{Deadline, _}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 import swaydb.core.data.KeyValue._
 import swaydb.core.data._
-import swaydb.core.finders.{Get, Higher, Lower}
+import swaydb.core.finders.reader.{CurrentReader, NextReader}
+import swaydb.core.finders.{Get, Higher, Lower, Seek}
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.IO
-import swaydb.core.level.{LevelRef, PathsDistributor}
 import swaydb.core.level.actor.LevelCommand.WakeUp
 import swaydb.core.level.actor.{LevelAPI, LevelZeroAPI}
+import swaydb.core.level.{LevelRef, PathsDistributor}
 import swaydb.core.map
 import swaydb.core.map.{MapEntry, Maps, SkipListMerger}
 import swaydb.core.retry.Retry
@@ -46,8 +47,6 @@ import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.Level0Storage
-import scala.concurrent.duration._
-import swaydb.core.finders.reader.{CurrentReader, NextReader}
 
 private[core] object LevelZero extends LazyLogging {
 
@@ -470,8 +469,10 @@ private[core] class LevelZero(val path: Path,
   def findHigher(key: Slice[Byte],
                  currentMap: map.Map[Slice[Byte], Memory.SegmentResponse],
                  otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]): Try[Option[KeyValue.ReadOnly.Put]] =
-    Higher(
+    Higher.seek(
       key = key,
+      currentSeek = Seek.Next,
+      nextSeek = Seek.Next,
       currentReader = currentReader(currentMap, otherMaps),
       nextReader = nextReader(otherMaps),
       keyOrder = keyOrder,

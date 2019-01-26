@@ -33,8 +33,8 @@ import swaydb.core.data.KeyValue.{ReadOnly, WriteOnly}
 import swaydb.core.data.Transient.Range
 import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data._
-import swaydb.core.finders.Higher
 import swaydb.core.finders.reader.{CurrentReader, NextReader}
+import swaydb.core.finders.{Higher, Seek}
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.io.file.DBFile
@@ -2045,7 +2045,7 @@ object TestData {
                                 currentReader: CurrentReader,
                                 nextReader: NextReader,
                                 functionStore: FunctionStore): Try[Option[KeyValue.ReadOnly.Put]] =
-      Higher(key, keyOrder, timeOrder, currentReader, nextReader, functionStore)
+      Higher(key, Seek.Next, Seek.Next)(keyOrder, timeOrder, currentReader, nextReader, functionStore)
   }
 }
 
