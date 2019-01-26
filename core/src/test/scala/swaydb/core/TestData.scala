@@ -2046,5 +2046,14 @@ object TestData {
                                 functionStore: FunctionStore): Try[Option[KeyValue.ReadOnly.Put]] =
       Higher(key, Seek.Next, Seek.Next)
   }
+
+  implicit class LowerImplicits(higher: Lower.type) {
+    def apply(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                timeOrder: TimeOrder[Slice[Byte]],
+                                currentReader: CurrentWalker,
+                                nextReader: NextWalker,
+                                functionStore: FunctionStore): Try[Option[KeyValue.ReadOnly.Put]] =
+      Lower(key, Seek.Next, Seek.Next)
+  }
 }
 
