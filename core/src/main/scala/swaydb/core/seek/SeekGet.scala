@@ -17,7 +17,7 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.finder
+package swaydb.core.seek
 
 import scala.annotation.tailrec
 import scala.util.{Failure, Success, Try}
@@ -29,7 +29,7 @@ import swaydb.core.util.TryUtil
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
-private[core] object Get {
+private[core] object SeekGet {
 
   def apply(key: Slice[Byte],
             getFromCurrentLevel: Slice[Byte] => Try[Option[KeyValue.ReadOnly.SegmentResponse]],

@@ -17,7 +17,7 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.finder
+package swaydb.core.seek
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, OptionValues, WordSpec}
@@ -34,7 +34,7 @@ import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
-class HigherFixedSomeSpec extends WordSpec with Matchers with MockFactory with OptionValues {
+class SeekSeekHigherFixedSomeSpec extends WordSpec with Matchers with MockFactory with OptionValues {
 
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder = TimeOrder.long
@@ -50,8 +50,8 @@ class HigherFixedSomeSpec extends WordSpec with Matchers with MockFactory with O
 
       runThis(100.times) {
 
-        implicit val current = mock[CurrentFinder]
-        implicit val next = mock[NextFinder]
+        implicit val current = mock[CurrentSeeker]
+        implicit val next = mock[NextSeeker]
 
         val put = randomPutKeyValue(1, deadline = randomDeadlineOption(false))
 
@@ -61,7 +61,7 @@ class HigherFixedSomeSpec extends WordSpec with Matchers with MockFactory with O
           next.higher    _ expects (0: Slice[Byte]) returning TryUtil.successNone
           //@formatter:on
         }
-        Higher(0: Slice[Byte]).assertGet shouldBe put
+        SeekHigher(0: Slice[Byte]).assertGet shouldBe put
       }
     }
 
@@ -72,8 +72,8 @@ class HigherFixedSomeSpec extends WordSpec with Matchers with MockFactory with O
 
       runThis(100.times) {
 
-        implicit val current = mock[CurrentFinder]
-        implicit val next = mock[NextFinder]
+        implicit val current = mock[CurrentSeeker]
+        implicit val next = mock[NextSeeker]
 
         val put = randomPutKeyValue(1, deadline = randomDeadlineOption(false))
 
@@ -83,7 +83,7 @@ class HigherFixedSomeSpec extends WordSpec with Matchers with MockFactory with O
           next.higher    _ expects (0: Slice[Byte]) returning Try(Some(put))
           //@formatter:on
         }
-        Higher(0: Slice[Byte]).assertGet shouldBe put
+        SeekHigher(0: Slice[Byte]).assertGet shouldBe put
       }
     }
 
@@ -95,8 +95,8 @@ class HigherFixedSomeSpec extends WordSpec with Matchers with MockFactory with O
 
       runThis(100.times) {
 
-        implicit val current = mock[CurrentFinder]
-        implicit val next = mock[NextFinder]
+        implicit val current = mock[CurrentSeeker]
+        implicit val next = mock[NextSeeker]
 
         val upperKeyValue = randomFixedKeyValue(1, includeRemoves = false, deadline = randomDeadlineOption(false), functionOutput = randomUpdateFunctionOutput())
         val lowerKeyValue = randomPutKeyValue(1, deadline = None)
@@ -108,7 +108,7 @@ class HigherFixedSomeSpec extends WordSpec with Matchers with MockFactory with O
           next.higher    _ expects (0: Slice[Byte]) returning Try(Some(lowerKeyValue))
           //@formatter:on
         }
-        Higher(0: Slice[Byte]).assertGet shouldBe expected
+        SeekHigher(0: Slice[Byte]).assertGet shouldBe expected
       }
     }
 
@@ -120,8 +120,8 @@ class HigherFixedSomeSpec extends WordSpec with Matchers with MockFactory with O
 
       runThis(100.times) {
 
-        implicit val current = mock[CurrentFinder]
-        implicit val next = mock[NextFinder]
+        implicit val current = mock[CurrentSeeker]
+        implicit val next = mock[NextSeeker]
 
         val upperKeyValue = randomFixedKeyValue(1)
         val lowerKeyValue = randomPutKeyValue(2, deadline = randomDeadlineOption(false))
@@ -144,7 +144,7 @@ class HigherFixedSomeSpec extends WordSpec with Matchers with MockFactory with O
           if(!isUpperExpected) current.higher _ expects (1: Slice[Byte]) returning TryUtil.successNone
           //@formatter:on
         }
-        Higher(0: Slice[Byte]).assertGet shouldBe expected
+        SeekHigher(0: Slice[Byte]).assertGet shouldBe expected
       }
     }
 
@@ -154,8 +154,8 @@ class HigherFixedSomeSpec extends WordSpec with Matchers with MockFactory with O
     "5" in {
       runThis(100.times) {
 
-        implicit val current = mock[CurrentFinder]
-        implicit val next = mock[NextFinder]
+        implicit val current = mock[CurrentSeeker]
+        implicit val next = mock[NextSeeker]
 
         val upperKeyValue = randomFixedKeyValue(2)
         val lowerKeyValue = randomPutKeyValue(1)
@@ -166,7 +166,7 @@ class HigherFixedSomeSpec extends WordSpec with Matchers with MockFactory with O
           next.higher    _ expects (0: Slice[Byte]) returning Try(Some(lowerKeyValue))
           //@formatter:on
         }
-        Higher(0: Slice[Byte]).assertGet shouldBe lowerKeyValue
+        SeekHigher(0: Slice[Byte]).assertGet shouldBe lowerKeyValue
       }
     }
   }

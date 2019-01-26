@@ -17,7 +17,7 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.finder
+package swaydb.core.seek
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
@@ -32,7 +32,7 @@ import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
-class HigherRangeNoneSpec extends WordSpec with Matchers with MockFactory {
+class SeekSeekHigherRangeNoneSpec extends WordSpec with Matchers with MockFactory {
 
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder = TimeOrder.long
@@ -52,8 +52,8 @@ class HigherRangeNoneSpec extends WordSpec with Matchers with MockFactory {
 
           (0 to 9) foreach {
             key =>
-              implicit val current = mock[CurrentFinder]
-              implicit val next = mock[NextFinder]
+              implicit val current = mock[CurrentSeeker]
+              implicit val next = mock[NextSeeker]
 
               inSequence {
                 //@formatter:off
@@ -63,7 +63,7 @@ class HigherRangeNoneSpec extends WordSpec with Matchers with MockFactory {
                 current.higher _ expects (10: Slice[Byte]) returning TryUtil.successNone
                 //@formatter:on
               }
-              Higher(key: Slice[Byte]).assertGetOpt shouldBe empty
+              SeekHigher(key: Slice[Byte]).assertGetOpt shouldBe empty
           }
         }
       }
@@ -79,8 +79,8 @@ class HigherRangeNoneSpec extends WordSpec with Matchers with MockFactory {
 
           (0 to 9) foreach {
             key =>
-              implicit val current = mock[CurrentFinder]
-              implicit val next = mock[NextFinder]
+              implicit val current = mock[CurrentSeeker]
+              implicit val next = mock[NextSeeker]
 
               inSequence {
                 //@formatter:off
@@ -90,7 +90,7 @@ class HigherRangeNoneSpec extends WordSpec with Matchers with MockFactory {
                 next.higher    _ expects (10: Slice[Byte]) returning TryUtil.successNone
                 //@formatter:on
               }
-              Higher(key: Slice[Byte]).assertGetOpt shouldBe empty
+              SeekHigher(key: Slice[Byte]).assertGetOpt shouldBe empty
           }
         }
       }
@@ -106,8 +106,8 @@ class HigherRangeNoneSpec extends WordSpec with Matchers with MockFactory {
 
           implicit val timeGenerator = TestTimeGenerator.Empty
 
-          implicit val current = mock[CurrentFinder]
-          implicit val next = mock[NextFinder]
+          implicit val current = mock[CurrentSeeker]
+          implicit val next = mock[NextSeeker]
 
           inSequence {
             //@formatter:off
@@ -117,7 +117,7 @@ class HigherRangeNoneSpec extends WordSpec with Matchers with MockFactory {
             current.higher _ expects (10: Slice[Byte]) returning TryUtil.successNone
             //@formatter:on
           }
-          Higher(0: Slice[Byte]).assertGetOpt shouldBe empty
+          SeekHigher(0: Slice[Byte]).assertGetOpt shouldBe empty
         }
       }
 
@@ -129,8 +129,8 @@ class HigherRangeNoneSpec extends WordSpec with Matchers with MockFactory {
         runThis(100.times) {
 
           implicit val timeGenerator = TestTimeGenerator.Empty
-          implicit val current = mock[CurrentFinder]
-          implicit val next = mock[NextFinder]
+          implicit val current = mock[CurrentSeeker]
+          implicit val next = mock[NextSeeker]
           inSequence {
             //@formatter:off
             current.higher _ expects (0: Slice[Byte]) returning Try(Some(randomRangeKeyValue(1, 10, randomRemoveOrUpdateOrFunctionRemoveValueOption(), randomRemoveOrUpdateOrFunctionRemoveValue(addFunctions = false))))
@@ -139,7 +139,7 @@ class HigherRangeNoneSpec extends WordSpec with Matchers with MockFactory {
             current.higher _ expects (10: Slice[Byte]) returning TryUtil.successNone
             //@formatter:on
           }
-          Higher(0: Slice[Byte]).assertGetOpt shouldBe empty
+          SeekHigher(0: Slice[Byte]).assertGetOpt shouldBe empty
         }
       }
     }

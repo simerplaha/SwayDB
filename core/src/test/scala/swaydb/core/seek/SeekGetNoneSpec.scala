@@ -17,7 +17,7 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.finder
+package swaydb.core.seek
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, OptionValues, WordSpec}
@@ -34,7 +34,7 @@ import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
-class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionValues {
+class SeekGetNoneSpec extends WordSpec with Matchers with MockFactory with OptionValues {
 
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder = TimeOrder.long
@@ -50,7 +50,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
 
         getFromCurrentLevel expects (1: Slice[Byte]) returning Try(Some(randomPutKeyValue(1, deadline = Some(expiredDeadline()))))
 
-        Get(1, getFromCurrentLevel, getFromNextLevel).assertGetOpt shouldBe empty
+        SeekGet(1, getFromCurrentLevel, getFromNextLevel).assertGetOpt shouldBe empty
       }
     }
 
@@ -63,7 +63,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
 
         getFromCurrentLevel expects (1: Slice[Byte]) returning Try(Some(randomRemoveKeyValue(1, randomExpiredDeadlineOption())))
 
-        Get(1, getFromCurrentLevel, getFromNextLevel).assertGetOpt shouldBe empty
+        SeekGet(1, getFromCurrentLevel, getFromNextLevel).assertGetOpt shouldBe empty
       }
     }
 
@@ -77,7 +77,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         getFromCurrentLevel expects (1: Slice[Byte]) returning Try(Some(randomRemoveKeyValue(1, Some(randomDeadline(expired = false)))))
         getFromNextLevel expects (1: Slice[Byte]) returning TryUtil.successNone
 
-        Get(1, getFromCurrentLevel, getFromNextLevel).assertGetOpt shouldBe empty
+        SeekGet(1, getFromCurrentLevel, getFromNextLevel).assertGetOpt shouldBe empty
       }
     }
 
@@ -91,7 +91,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         getFromCurrentLevel expects (1: Slice[Byte]) returning Try(Some(randomRemoveKeyValue(1, Some(randomDeadline(expired = false)))))
         getFromNextLevel expects (1: Slice[Byte]) returning Try(Some(randomPutKeyValue(1, deadline = Some(expiredDeadline()))))
 
-        Get(1, getFromCurrentLevel, getFromNextLevel).assertGetOpt shouldBe empty
+        SeekGet(1, getFromCurrentLevel, getFromNextLevel).assertGetOpt shouldBe empty
       }
     }
 
@@ -105,7 +105,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         getFromCurrentLevel expects (1: Slice[Byte]) returning Try(Some(randomUpdateKeyValue(1, deadline = randomDeadlineOption(false))))
         getFromNextLevel expects (1: Slice[Byte]) returning TryUtil.successNone
 
-        Get(1, getFromCurrentLevel, getFromNextLevel).assertGetOpt shouldBe empty
+        SeekGet(1, getFromCurrentLevel, getFromNextLevel).assertGetOpt shouldBe empty
       }
     }
 
@@ -119,7 +119,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         getFromCurrentLevel expects (1: Slice[Byte]) returning Try(Some(randomUpdateKeyValue(1, deadline = randomDeadlineOption(false))))
         getFromNextLevel expects (1: Slice[Byte]) returning Try(Some(randomPutKeyValue(1, deadline = Some(expiredDeadline()))))
 
-        Get(1, getFromCurrentLevel, getFromNextLevel).assertGetOpt shouldBe empty
+        SeekGet(1, getFromCurrentLevel, getFromNextLevel).assertGetOpt shouldBe empty
       }
     }
 
@@ -133,7 +133,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         getFromCurrentLevel expects (1: Slice[Byte]) returning Try(Some(randomFunctionKeyValue(1)))
         getFromNextLevel expects (1: Slice[Byte]) returning TryUtil.successNone
 
-        Get(1, getFromCurrentLevel, getFromNextLevel).assertGetOpt shouldBe empty
+        SeekGet(1, getFromCurrentLevel, getFromNextLevel).assertGetOpt shouldBe empty
       }
     }
 
@@ -147,7 +147,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         getFromCurrentLevel expects (1: Slice[Byte]) returning Try(Some(randomFunctionKeyValue(1)))
         getFromNextLevel expects (1: Slice[Byte]) returning Try(Some(randomPutKeyValue(1, deadline = Some(expiredDeadline()))))
 
-        Get(1, getFromCurrentLevel, getFromNextLevel).assertGetOpt shouldBe empty
+        SeekGet(1, getFromCurrentLevel, getFromNextLevel).assertGetOpt shouldBe empty
       }
     }
 
@@ -161,7 +161,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         getFromCurrentLevel expects (1: Slice[Byte]) returning Try(Some(randomPendingApplyKeyValue(1)))
         getFromNextLevel expects (1: Slice[Byte]) returning TryUtil.successNone
 
-        Get(1, getFromCurrentLevel, getFromNextLevel).assertGetOpt shouldBe empty
+        SeekGet(1, getFromCurrentLevel, getFromNextLevel).assertGetOpt shouldBe empty
       }
     }
 
@@ -175,7 +175,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         getFromCurrentLevel expects (1: Slice[Byte]) returning Try(Some(randomPendingApplyKeyValue(1)))
         getFromNextLevel expects (1: Slice[Byte]) returning Try(Some(randomPutKeyValue(1, deadline = Some(expiredDeadline()))))
 
-        Get(1, getFromCurrentLevel, getFromNextLevel).assertGetOpt shouldBe empty
+        SeekGet(1, getFromCurrentLevel, getFromNextLevel).assertGetOpt shouldBe empty
       }
     }
 
@@ -201,7 +201,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         getFromCurrentLevel expects (1: Slice[Byte]) returning Try(Some(pendingApply))
         getFromNextLevel expects (1: Slice[Byte]) returning Try(Some(randomPutKeyValue(1, deadline = Some(expiredDeadline()))))
 
-        Get(1, getFromCurrentLevel, getFromNextLevel).assertGetOpt shouldBe empty
+        SeekGet(1, getFromCurrentLevel, getFromNextLevel).assertGetOpt shouldBe empty
       }
     }
 
@@ -221,7 +221,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
 
         getFromCurrentLevel expects (1: Slice[Byte]) returning Try(Some(randomRangeKeyValue(1, 10, Some(fromValues))))
 
-        Get(1, getFromCurrentLevel, getFromNextLevel).assertGetOpt shouldBe empty
+        SeekGet(1, getFromCurrentLevel, getFromNextLevel).assertGetOpt shouldBe empty
       }
     }
 
@@ -247,7 +247,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         //next level can return anything it will be removed.
         getFromNextLevel expects (1: Slice[Byte]) returning Try(Some(randomPutKeyValue(1)))
 
-        Get(1, getFromCurrentLevel, getFromNextLevel).assertGetOpt shouldBe empty
+        SeekGet(1, getFromCurrentLevel, getFromNextLevel).assertGetOpt shouldBe empty
       }
     }
   }

@@ -17,18 +17,22 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.finder
+package swaydb.core.seek
 
-import scala.util.Try
 import swaydb.core.data.KeyValue
-import swaydb.data.slice.Slice
 
-trait CurrentFinder {
+private[swaydb] sealed trait CurrentSeek
+private[swaydb] sealed trait NextSeek
 
-  def get(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Put]]
+private[swaydb] object Seek {
+  sealed trait Stop extends CurrentSeek with NextSeek
+  case object Stop extends Stop
 
-  def higher(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.SegmentResponse]]
+  sealed trait Next extends CurrentSeek with NextSeek
+  case object Next extends Next
 
-  def lower(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.SegmentResponse]]
-
+  object Stash {
+    case class Current(current: KeyValue.ReadOnly.SegmentResponse) extends CurrentSeek
+    case class Next(next: KeyValue.ReadOnly.Put) extends NextSeek
+  }
 }

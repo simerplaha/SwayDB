@@ -17,7 +17,7 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.finder
+package swaydb.core.seek
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, OptionValues, WordSpec}
@@ -32,7 +32,7 @@ import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
-class HigherFixedNoneSpec extends WordSpec with Matchers with MockFactory with OptionValues {
+class SeekSeekHigherFixedNoneSpec extends WordSpec with Matchers with MockFactory with OptionValues {
 
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder = TimeOrder.long
@@ -48,8 +48,8 @@ class HigherFixedNoneSpec extends WordSpec with Matchers with MockFactory with O
 
       runThis(100.times) {
 
-        implicit val current = mock[CurrentFinder]
-        implicit val next = mock[NextFinder]
+        implicit val current = mock[CurrentSeeker]
+        implicit val next = mock[NextSeeker]
 
         inSequence {
           //@formatter:off
@@ -57,7 +57,7 @@ class HigherFixedNoneSpec extends WordSpec with Matchers with MockFactory with O
           next.higher    _ expects (0: Slice[Byte]) returning TryUtil.successNone
           //@formatter:on
         }
-        Higher(0: Slice[Byte]).assertGetOpt shouldBe empty
+        SeekHigher(0: Slice[Byte]).assertGetOpt shouldBe empty
       }
     }
 
@@ -69,8 +69,8 @@ class HigherFixedNoneSpec extends WordSpec with Matchers with MockFactory with O
 
       runThis(100.times) {
 
-        implicit val current = mock[CurrentFinder]
-        implicit val next = mock[NextFinder]
+        implicit val current = mock[CurrentSeeker]
+        implicit val next = mock[NextSeeker]
 
         inSequence {
           //@formatter:off
@@ -79,7 +79,7 @@ class HigherFixedNoneSpec extends WordSpec with Matchers with MockFactory with O
           current.higher _ expects (1: Slice[Byte]) returning TryUtil.successNone
           //@formatter:on
         }
-        Higher(0: Slice[Byte]).assertGetOpt shouldBe empty
+        SeekHigher(0: Slice[Byte]).assertGetOpt shouldBe empty
       }
     }
 
@@ -91,8 +91,8 @@ class HigherFixedNoneSpec extends WordSpec with Matchers with MockFactory with O
 
       runThis(100.times) {
 
-        implicit val current = mock[CurrentFinder]
-        implicit val next = mock[NextFinder]
+        implicit val current = mock[CurrentSeeker]
+        implicit val next = mock[NextSeeker]
 
         inSequence {
           //@formatter:off
@@ -102,7 +102,7 @@ class HigherFixedNoneSpec extends WordSpec with Matchers with MockFactory with O
           next.higher    _ expects (1: Slice[Byte]) returning TryUtil.successNone
           //@formatter:on
         }
-        Higher(0: Slice[Byte]).assertGetOpt shouldBe empty
+        SeekHigher(0: Slice[Byte]).assertGetOpt shouldBe empty
       }
     }
 
@@ -116,8 +116,8 @@ class HigherFixedNoneSpec extends WordSpec with Matchers with MockFactory with O
 
         implicit val timeGenerator = TestTimeGenerator.Empty
 
-        implicit val current = mock[CurrentFinder]
-        implicit val next = mock[NextFinder]
+        implicit val current = mock[CurrentSeeker]
+        implicit val next = mock[NextSeeker]
 
         inSequence {
           //@formatter:off
@@ -128,13 +128,13 @@ class HigherFixedNoneSpec extends WordSpec with Matchers with MockFactory with O
           next.higher    _ expects (2: Slice[Byte]) returning TryUtil.successNone
           //@formatter:on
         }
-        Higher(0: Slice[Byte]).assertGetOpt shouldBe empty
+        SeekHigher(0: Slice[Byte]).assertGetOpt shouldBe empty
       }
     }
 
     //   0
     //       2
     //     1
-    //this test is not implemented as it would result in a put. See HigherFixedSomeSpec
+    //this test is not implemented as it would result in a put. See SeekHigherFixedSomeSpec
   }
 }

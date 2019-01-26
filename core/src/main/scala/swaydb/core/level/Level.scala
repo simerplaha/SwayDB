@@ -24,7 +24,7 @@ import java.nio.file.{Path, StandardOpenOption}
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data._
-import swaydb.core.finder._
+import swaydb.core.seek._
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.io.file.{DBFile, IO}
 import swaydb.core.level.LevelException.ReceivedKeyValuesToMergeWithoutTargetSegment
@@ -52,7 +52,7 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
 import FiniteDurationUtil._
-import swaydb.core.finder.NextFinder
+import swaydb.core.seek.NextSeeker
 import swaydb.core.function.FunctionStore
 import swaydb.data.order.{KeyOrder, TimeOrder}
 
@@ -206,7 +206,7 @@ private[core] class Level(val dirs: Seq[Dir],
   logger.info(s"{}: Level started.", paths)
 
   private implicit val currentReader =
-    new CurrentFinder {
+    new CurrentSeeker {
       override def get(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
         self get key
 
@@ -218,7 +218,7 @@ private[core] class Level(val dirs: Seq[Dir],
     }
 
   private implicit val nextReader =
-    new NextFinder {
+    new NextSeeker {
       override def higher(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
         higherInNextLevel(key)
 
@@ -862,7 +862,7 @@ private[core] class Level(val dirs: Seq[Dir],
     nextLevel.map(_.get(key)) getOrElse TryUtil.successNone
 
   override def get(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Put]] =
-    Get(key, getFromThisLevel, getFromNextLevel)
+    SeekGet(key, getFromThisLevel, getFromNextLevel)
 
   def mightContainInThisLevel(key: Slice[Byte]): Try[Boolean] =
     appendix.floor(key) match {
@@ -904,7 +904,9 @@ private[core] class Level(val dirs: Seq[Dir],
     }
 
   override def lower(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
-    Lower(key, lowerInThisLevel, lowerFromNextLevel)
+    ???
+
+  //    Lower(key, lowerInThisLevel, lowerFromNextLevel)
 
   private def higherFromFloorSegment(key: Slice[Byte]): Try[Option[ReadOnly.SegmentResponse]] =
     appendix.floor(key).map(_.higher(key)) getOrElse TryUtil.successNone
@@ -937,7 +939,7 @@ private[core] class Level(val dirs: Seq[Dir],
     }
 
   override def higher(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Put]] =
-    Higher(
+    SeekHigher(
       key = key,
       currentSeek = Seek.Next,
       nextSeek = Seek.Next

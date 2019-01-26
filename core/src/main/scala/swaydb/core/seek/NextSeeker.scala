@@ -17,7 +17,7 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.finder
+package swaydb.core.seek
 
 import scala.util.Try
 import swaydb.core.data.KeyValue
@@ -25,7 +25,7 @@ import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.util.TryUtil
 import swaydb.data.slice.Slice
 
-trait NextFinder {
+trait NextSeeker {
 
   def higher(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Put]]
 
@@ -33,9 +33,9 @@ trait NextFinder {
 
 }
 
-object NextFinder {
+object NextSeeker {
   val empty =
-    new NextFinder {
+    new NextSeeker {
       override def higher(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
         TryUtil.successNone
 

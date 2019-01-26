@@ -27,7 +27,6 @@ import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.TryAssert._
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
-import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._

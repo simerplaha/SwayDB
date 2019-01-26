@@ -30,7 +30,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 import swaydb.core.data.KeyValue._
 import swaydb.core.data._
-import swaydb.core.finder._
+import swaydb.core.seek._
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.IO
 import swaydb.core.level.actor.LevelCommand.WakeUp
@@ -313,7 +313,7 @@ private[core] class LevelZero(val path: Path,
   private def find(key: Slice[Byte],
                    currentMap: map.Map[Slice[Byte], Memory.SegmentResponse],
                    mapsIterator: util.Iterator[map.Map[Slice[Byte], Memory.SegmentResponse]]): Try[Option[KeyValue.ReadOnly.Put]] =
-    Get(
+    SeekGet(
       key = key,
       getFromCurrentLevel =
         key =>
@@ -449,9 +449,9 @@ private[core] class LevelZero(val path: Path,
         nextLevel.map(_.higher(key)) getOrElse TryUtil.successNone
     }
 
-  def currentReader(currentMap: map.Map[Slice[Byte], Memory.SegmentResponse],
+  def currentSeeker(currentMap: map.Map[Slice[Byte], Memory.SegmentResponse],
                     otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]) =
-    new CurrentFinder {
+    new CurrentSeeker {
       override def get(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
         find(key, currentMap, otherMaps.asJava.iterator())
 
@@ -462,8 +462,8 @@ private[core] class LevelZero(val path: Path,
         Try(lowerFromMap(key, currentMap))
     }
 
-  def nextReader(otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]) =
-    new NextFinder {
+  def nextSeeker(otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]) =
+    new NextSeeker {
       override def higher(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
         findHigherInNextLevel(key, otherMaps)
 
@@ -474,12 +474,12 @@ private[core] class LevelZero(val path: Path,
   def findHigher(key: Slice[Byte],
                  currentMap: map.Map[Slice[Byte], Memory.SegmentResponse],
                  otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]): Try[Option[KeyValue.ReadOnly.Put]] =
-    Higher.seek(
+    SeekHigher.seek(
       key = key,
       currentSeek = Seek.Next,
       nextSeek = Seek.Next,
-      currentReader = currentReader(currentMap, otherMaps),
-      nextReader = nextReader(otherMaps),
+      currentSeeker = currentSeeker(currentMap, otherMaps),
+      nextSeeker = nextSeeker(otherMaps),
       keyOrder = keyOrder,
       timeOrder = timeOrder,
       functionStore = functionStore
@@ -539,14 +539,15 @@ private[core] class LevelZero(val path: Path,
   def findLower(key: Slice[Byte],
                 currentMap: map.Map[Slice[Byte], Memory.SegmentResponse],
                 otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]): Try[Option[KeyValue.ReadOnly.Put]] =
-    Lower(
+    SeekLower.seek(
       key = key,
-      lowerFromCurrentLevel =
-        key =>
-          Try(lowerFromMap(key, currentMap)),
-      lowerFromNextLevel =
-        key =>
-          findLowerInNextLevel(key, otherMaps)
+      currentSeek = Seek.Next,
+      nextSeek = Seek.Next,
+      currentSeeker = currentSeeker(currentMap, otherMaps),
+      nextSeeker = nextSeeker(otherMaps),
+      keyOrder = keyOrder,
+      timeOrder = timeOrder,
+      functionStore = functionStore
     )
 
   /**

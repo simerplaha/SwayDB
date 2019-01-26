@@ -17,7 +17,7 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.finder
+package swaydb.core.seek
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
@@ -34,7 +34,7 @@ import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
-class HigherRangeSomeSpec extends WordSpec with Matchers with MockFactory {
+class SeekSeekHigherRangeSomeSpec extends WordSpec with Matchers with MockFactory {
 
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder = TimeOrder.long
@@ -50,8 +50,8 @@ class HigherRangeSomeSpec extends WordSpec with Matchers with MockFactory {
       //in this test lower level is read for upper Level's higher toKey and the input key is not read since it's removed.
       runThis(100.times) {
 
-        implicit val current = mock[CurrentFinder]
-        implicit val next = mock[NextFinder]
+        implicit val current = mock[CurrentSeeker]
+        implicit val next = mock[NextSeeker]
 
         val upperRange = randomRangeKeyValue(0, 3, rangeValue = randomRemoveOrUpdateOrFunctionRemoveValue())
         val toKeyGet = randomPutKeyValue(1, deadline = randomDeadlineOption(false))
@@ -65,7 +65,7 @@ class HigherRangeSomeSpec extends WordSpec with Matchers with MockFactory {
           }
           current.get _ expects (3: Slice[Byte]) returning Try(Some(toKeyGet))
         }
-        Higher(0: Slice[Byte]).assertGet shouldBe toKeyGet
+        SeekHigher(0: Slice[Byte]).assertGet shouldBe toKeyGet
       }
     }
 
@@ -76,8 +76,8 @@ class HigherRangeSomeSpec extends WordSpec with Matchers with MockFactory {
       //in this test lower level is read for upper Level's higher toKey and the input key is not read since it's removed.
       runThis(100.times) {
 
-        implicit val current = mock[CurrentFinder]
-        implicit val next = mock[NextFinder]
+        implicit val current = mock[CurrentSeeker]
+        implicit val next = mock[NextSeeker]
 
         val upperRange = randomRangeKeyValue(0, 3, rangeValue = randomRemoveOrUpdateOrFunctionRemoveValue())
         val toKeyGet = randomPutKeyValue(1, deadline = randomDeadlineOption(false))
@@ -90,7 +90,7 @@ class HigherRangeSomeSpec extends WordSpec with Matchers with MockFactory {
           }
           current.get _ expects (3: Slice[Byte]) returning Try(Some(toKeyGet))
         }
-        Higher(1: Slice[Byte]).assertGet shouldBe toKeyGet
+        SeekHigher(1: Slice[Byte]).assertGet shouldBe toKeyGet
       }
     }
 
@@ -101,8 +101,8 @@ class HigherRangeSomeSpec extends WordSpec with Matchers with MockFactory {
       //in this test lower level is read for upper Level's higher toKey and the input key is not read since it's removed.
       runThis(100.times) {
 
-        implicit val current = mock[CurrentFinder]
-        implicit val next = mock[NextFinder]
+        implicit val current = mock[CurrentSeeker]
+        implicit val next = mock[NextSeeker]
 
         val upperRange = randomRangeKeyValue(0, 3, rangeValue = randomRemoveOrUpdateOrFunctionRemoveValue())
         val toKeyGet = randomPutKeyValue(1, deadline = randomDeadlineOption(false))
@@ -114,7 +114,7 @@ class HigherRangeSomeSpec extends WordSpec with Matchers with MockFactory {
           }
           current.get _ expects (3: Slice[Byte]) returning Try(Some(toKeyGet))
         }
-        Higher(2: Slice[Byte]).assertGet shouldBe toKeyGet
+        SeekHigher(2: Slice[Byte]).assertGet shouldBe toKeyGet
       }
     }
 
@@ -125,8 +125,8 @@ class HigherRangeSomeSpec extends WordSpec with Matchers with MockFactory {
       //in this test lower level is read for upper Level's higher toKey and the input key is not read since it's removed.
       runThis(100.times) {
 
-        implicit val current = mock[CurrentFinder]
-        implicit val next = mock[NextFinder]
+        implicit val current = mock[CurrentSeeker]
+        implicit val next = mock[NextSeeker]
 
         val result = randomPutKeyValue(4, deadline = randomDeadlineOption(false))
 
@@ -134,7 +134,7 @@ class HigherRangeSomeSpec extends WordSpec with Matchers with MockFactory {
           current.higher _ expects (3: Slice[Byte]) returning TryUtil.successNone
           next.higher _ expects (3: Slice[Byte]) returning Try(Some(result))
         }
-        Higher(3: Slice[Byte]).assertGet shouldBe result
+        SeekHigher(3: Slice[Byte]).assertGet shouldBe result
       }
     }
   }

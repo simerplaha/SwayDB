@@ -17,7 +17,7 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.finder
+package swaydb.core.seek
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, OptionValues, WordSpec}
@@ -34,7 +34,7 @@ import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
-class GetSomeSpec extends WordSpec with Matchers with MockFactory with OptionValues {
+class SeekGetSomeSpec extends WordSpec with Matchers with MockFactory with OptionValues {
 
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder = TimeOrder.long
@@ -51,7 +51,7 @@ class GetSomeSpec extends WordSpec with Matchers with MockFactory with OptionVal
         val keyValue = randomPutKeyValue(1, deadline = randomDeadlineOption(false))
         getFromCurrentLevel expects (1: Slice[Byte]) returning Try(Some(keyValue))
 
-        Get(1, getFromCurrentLevel, getFromNextLevel).assertGet shouldBe keyValue
+        SeekGet(1, getFromCurrentLevel, getFromNextLevel).assertGet shouldBe keyValue
       }
     }
 
@@ -69,7 +69,7 @@ class GetSomeSpec extends WordSpec with Matchers with MockFactory with OptionVal
         getFromCurrentLevel expects (1: Slice[Byte]) returning Try(Some(remove))
         getFromNextLevel expects (1: Slice[Byte]) returning Try(Some(put))
 
-        Get(1, getFromCurrentLevel, getFromNextLevel).assertGet shouldBe expect
+        SeekGet(1, getFromCurrentLevel, getFromNextLevel).assertGet shouldBe expect
       }
     }
 
@@ -87,7 +87,7 @@ class GetSomeSpec extends WordSpec with Matchers with MockFactory with OptionVal
         getFromCurrentLevel expects (1: Slice[Byte]) returning Try(Some(update))
         getFromNextLevel expects (1: Slice[Byte]) returning Try(Some(put))
 
-        Get(1, getFromCurrentLevel, getFromNextLevel).assertGet shouldBe expect
+        SeekGet(1, getFromCurrentLevel, getFromNextLevel).assertGet shouldBe expect
       }
     }
 
@@ -114,7 +114,7 @@ class GetSomeSpec extends WordSpec with Matchers with MockFactory with OptionVal
         getFromCurrentLevel expects (1: Slice[Byte]) returning Try(Some(function))
         getFromNextLevel expects (1: Slice[Byte]) returning Try(Some(put))
 
-        Get(1, getFromCurrentLevel, getFromNextLevel).assertGet shouldBe expect
+        SeekGet(1, getFromCurrentLevel, getFromNextLevel).assertGet shouldBe expect
       }
     }
 
@@ -144,7 +144,7 @@ class GetSomeSpec extends WordSpec with Matchers with MockFactory with OptionVal
         getFromCurrentLevel expects (1: Slice[Byte]) returning Try(Some(pendingApply))
         getFromNextLevel expects (1: Slice[Byte]) returning Try(Some(put))
 
-        Get(1, getFromCurrentLevel, getFromNextLevel).assertGet shouldBe expected
+        SeekGet(1, getFromCurrentLevel, getFromNextLevel).assertGet shouldBe expected
       }
     }
 
@@ -161,7 +161,7 @@ class GetSomeSpec extends WordSpec with Matchers with MockFactory with OptionVal
 
         getFromCurrentLevel expects (1: Slice[Byte]) returning Try(Some(range))
 
-        Get(1, getFromCurrentLevel, getFromNextLevel).assertGet shouldBe fromValue.toMemory(1)
+        SeekGet(1, getFromCurrentLevel, getFromNextLevel).assertGet shouldBe fromValue.toMemory(1)
       }
     }
 
@@ -191,7 +191,7 @@ class GetSomeSpec extends WordSpec with Matchers with MockFactory with OptionVal
         //next level can return anything it will be removed.
         getFromNextLevel expects (1: Slice[Byte]) returning Try(Some(put))
 
-        Get(1, getFromCurrentLevel, getFromNextLevel).assertGet shouldBe expected
+        SeekGet(1, getFromCurrentLevel, getFromNextLevel).assertGet shouldBe expected
       }
     }
   }
