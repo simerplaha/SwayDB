@@ -48,8 +48,8 @@ class HigherFixedNoneSpec extends WordSpec with Matchers with MockFactory with O
 
       runThis(100.times) {
 
-        implicit val current = mock[CurrentSeeker]
-        implicit val next = mock[NextSeeker]
+        implicit val current = mock[CurrentWalker]
+        implicit val next = mock[NextWalker]
 
         inSequence {
           //@formatter:off
@@ -69,8 +69,8 @@ class HigherFixedNoneSpec extends WordSpec with Matchers with MockFactory with O
 
       runThis(100.times) {
 
-        implicit val current = mock[CurrentSeeker]
-        implicit val next = mock[NextSeeker]
+        implicit val current = mock[CurrentWalker]
+        implicit val next = mock[NextWalker]
 
         inSequence {
           //@formatter:off
@@ -91,8 +91,8 @@ class HigherFixedNoneSpec extends WordSpec with Matchers with MockFactory with O
 
       runThis(100.times) {
 
-        implicit val current = mock[CurrentSeeker]
-        implicit val next = mock[NextSeeker]
+        implicit val current = mock[CurrentWalker]
+        implicit val next = mock[NextWalker]
 
         inSequence {
           //@formatter:off
@@ -116,8 +116,8 @@ class HigherFixedNoneSpec extends WordSpec with Matchers with MockFactory with O
 
         implicit val timeGenerator = TestTimeGenerator.Empty
 
-        implicit val current = mock[CurrentSeeker]
-        implicit val next = mock[NextSeeker]
+        implicit val current = mock[CurrentWalker]
+        implicit val next = mock[NextWalker]
 
         inSequence {
           //@formatter:off

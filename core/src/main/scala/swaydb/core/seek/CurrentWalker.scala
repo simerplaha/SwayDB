@@ -21,25 +21,14 @@ package swaydb.core.seek
 
 import scala.util.Try
 import swaydb.core.data.KeyValue
-import swaydb.core.data.KeyValue.ReadOnly
-import swaydb.core.util.TryUtil
 import swaydb.data.slice.Slice
 
-trait NextSeeker {
+trait CurrentWalker {
 
-  def higher(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Put]]
+  def get(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Put]]
 
-  def lower(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Put]]
+  def higher(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.SegmentResponse]]
 
-}
+  def lower(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.SegmentResponse]]
 
-object NextSeeker {
-  val empty =
-    new NextSeeker {
-      override def higher(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
-        TryUtil.successNone
-
-      override def lower(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
-        TryUtil.successNone
-    }
 }

@@ -52,7 +52,7 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
 import FiniteDurationUtil._
-import swaydb.core.seek.NextSeeker
+import swaydb.core.seek.NextWalker
 import swaydb.core.function.FunctionStore
 import swaydb.data.order.{KeyOrder, TimeOrder}
 
@@ -205,8 +205,8 @@ private[core] class Level(val dirs: Seq[Dir],
 
   logger.info(s"{}: Level started.", paths)
 
-  private implicit val currentSeeker =
-    new CurrentSeeker {
+  private implicit val currentWalker =
+    new CurrentWalker {
       override def get(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
         self get key
 
@@ -217,8 +217,8 @@ private[core] class Level(val dirs: Seq[Dir],
         self lowerInThisLevel key
     }
 
-  private implicit val nextSeeker =
-    new NextSeeker {
+  private implicit val nextWalker =
+    new NextWalker {
       override def higher(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
         higherInNextLevel(key)
 
@@ -285,11 +285,11 @@ private[core] class Level(val dirs: Seq[Dir],
     if (existsOnDisk) deleteUncommittedSegments()
     //If this is the last level, dispatch initial message to start the process of clearing expired key-values.
     if (nextLevel.isEmpty) actor ! ClearExpiredKeyValues(0.nanosecond.fromNow)
-    this
+    self
   }
 
   private val actor =
-    LevelActor(ec, this, keyOrder)
+    LevelActor(ec, self, keyOrder)
 
   override def !(request: LevelAPI): Unit =
     actor ! request
@@ -770,7 +770,7 @@ private[core] class Level(val dirs: Seq[Dir],
   def alertActorForSegmentManagement() = {
     logger.debug(s"{}: Executing check for small Segments.", paths.head)
     //if there is no next Level do management check for all Segments in the Level.
-    val segments = this.segmentsInLevel()
+    val segments = self.segmentsInLevel()
     //only collapse if there are more than 1 Segment in the Level.
     var collapseSegmentAlertSent = false
     if (segments.size > 1)

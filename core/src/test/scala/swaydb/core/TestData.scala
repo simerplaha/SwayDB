@@ -2041,8 +2041,8 @@ object TestData {
   implicit class HigherImplicits(higher: Higher.type) {
     def apply(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                 timeOrder: TimeOrder[Slice[Byte]],
-                                currentReader: CurrentSeeker,
-                                nextReader: NextSeeker,
+                                currentReader: CurrentWalker,
+                                nextReader: NextWalker,
                                 functionStore: FunctionStore): Try[Option[KeyValue.ReadOnly.Put]] =
       Higher(key, Seek.Next, Seek.Next)
   }

@@ -50,8 +50,8 @@ class HigherFixedSomeSpec extends WordSpec with Matchers with MockFactory with O
 
       runThis(100.times) {
 
-        implicit val current = mock[CurrentSeeker]
-        implicit val next = mock[NextSeeker]
+        implicit val current = mock[CurrentWalker]
+        implicit val next = mock[NextWalker]
 
         val put = randomPutKeyValue(1, deadline = randomDeadlineOption(false))
 
@@ -72,8 +72,8 @@ class HigherFixedSomeSpec extends WordSpec with Matchers with MockFactory with O
 
       runThis(100.times) {
 
-        implicit val current = mock[CurrentSeeker]
-        implicit val next = mock[NextSeeker]
+        implicit val current = mock[CurrentWalker]
+        implicit val next = mock[NextWalker]
 
         val put = randomPutKeyValue(1, deadline = randomDeadlineOption(false))
 
@@ -95,8 +95,8 @@ class HigherFixedSomeSpec extends WordSpec with Matchers with MockFactory with O
 
       runThis(100.times) {
 
-        implicit val current = mock[CurrentSeeker]
-        implicit val next = mock[NextSeeker]
+        implicit val current = mock[CurrentWalker]
+        implicit val next = mock[NextWalker]
 
         val upperKeyValue = randomFixedKeyValue(1, includeRemoves = false, deadline = randomDeadlineOption(false), functionOutput = randomUpdateFunctionOutput())
         val lowerKeyValue = randomPutKeyValue(1, deadline = None)
@@ -120,8 +120,8 @@ class HigherFixedSomeSpec extends WordSpec with Matchers with MockFactory with O
 
       runThis(100.times) {
 
-        implicit val current = mock[CurrentSeeker]
-        implicit val next = mock[NextSeeker]
+        implicit val current = mock[CurrentWalker]
+        implicit val next = mock[NextWalker]
 
         val upperKeyValue = randomFixedKeyValue(1)
         val lowerKeyValue = randomPutKeyValue(2, deadline = randomDeadlineOption(false))
@@ -154,8 +154,8 @@ class HigherFixedSomeSpec extends WordSpec with Matchers with MockFactory with O
     "5" in {
       runThis(100.times) {
 
-        implicit val current = mock[CurrentSeeker]
-        implicit val next = mock[NextSeeker]
+        implicit val current = mock[CurrentWalker]
+        implicit val next = mock[NextWalker]
 
         val upperKeyValue = randomFixedKeyValue(2)
         val lowerKeyValue = randomPutKeyValue(1)

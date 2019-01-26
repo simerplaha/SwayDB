@@ -23,25 +23,6 @@ package swaydb.core.segment.format.a.entry.id
 abstract class EntryId(val id: Int)
 object EntryId {
 
-  //  val keyIdsList: List[EntryId] = SealedList.list[EntryId]
-
-  //  private def ids = keyIdsList.map(_.id)
-  //
-  //  //ensure that there are duplicate keys.
-  //  assert(ids.distinct.size == ids.size, s"EntryId contain duplicate ids '${ids.diff(ids.distinct).mkString(", ")}'")
-  //  //assert that all id integers are used.
-  //  ids.sorted.foldLeft(-1) {
-  //    case (previous, next) =>
-  //      assert(next - previous == 1, s"Missing ID: previous: $previous -> next: $next")
-  //      next
-  //  }
-  //
-  //  private val keyIdsMap: Map[Int, EntryId] =
-  //    keyIdsList map {
-  //      keyId =>
-  //        keyId.id -> keyId
-  //    } toMap
-
   trait EntryFormat {
     //@formatter:off
     def keyIdsList: List[EntryId]
@@ -186,7 +167,7 @@ object EntryId {
   }
 
   /**
-    * Reserve 2 byte keys for Put and Group. All the following key-values
+    * Reserve 1 & 2 bytes ids for Put and Group. All the following key-values
     * disappear in last Level but [[Put]] and [[Group]] are kept unless deleted.
     */
   object Range extends Id {

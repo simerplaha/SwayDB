@@ -56,10 +56,10 @@ private[core] object Higher {
            nextSeek: NextSeek,
            keyOrder: KeyOrder[Slice[Byte]],
            timeOrder: TimeOrder[Slice[Byte]],
-           currentSeeker: CurrentSeeker,
-           nextSeeker: NextSeeker,
+           currentWalker: CurrentWalker,
+           nextWalker: NextWalker,
            functionStore: FunctionStore): Try[Option[KeyValue.ReadOnly.Put]] =
-    Higher(key, currentSeek, nextSeek)(keyOrder, timeOrder, currentSeeker, nextSeeker, functionStore)
+    Higher(key, currentSeek, nextSeek)(keyOrder, timeOrder, currentWalker, nextWalker, functionStore)
 
   /**
     * May be use trampolining instead and split the matches into their own functions to reduce
@@ -73,8 +73,8 @@ private[core] object Higher {
             currentSeek: CurrentSeek,
             nextSeek: NextSeek)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                 timeOrder: TimeOrder[Slice[Byte]],
-                                currentSeeker: CurrentSeeker,
-                                nextSeeker: NextSeeker,
+                                currentWalker: CurrentWalker,
+                                nextWalker: NextWalker,
                                 functionStore: FunctionStore): Try[Option[KeyValue.ReadOnly.Put]] = {
     import keyOrder._
 
@@ -86,7 +86,7 @@ private[core] object Higher {
         * ********************************************************/
 
       case (Seek.Next, Seek.Next) =>
-        currentSeeker.higher(key) match {
+        currentWalker.higher(key) match {
           case Success(Some(higher)) =>
             Higher(key, Stash.Current(higher), nextSeek)
 
@@ -108,7 +108,7 @@ private[core] object Higher {
                 //if the current range is active fetch the highest from next Level and return highest from both Levels.
                 if (Value.hasTimeLeft(rangeValue))
                 //if the higher from the current Level is a Fixed key-value, fetch from next Level and return the highest.
-                  nextSeeker.higher(key) match {
+                  nextWalker.higher(key) match {
                     case Success(Some(next)) =>
                       Higher(key, currentStash, Stash.Next(next))
 
@@ -120,7 +120,7 @@ private[core] object Higher {
                   }
 
                 else //if the rangeValue is expired then the higher is ceiling of toKey
-                  currentSeeker.get(currentRange.toKey) match {
+                  currentWalker.get(currentRange.toKey) match {
                     case Success(Some(ceiling)) if ceiling.hasTimeLeft() =>
                       Success(Some(ceiling))
 
@@ -139,7 +139,7 @@ private[core] object Higher {
           //0           (input key)
           //    10 - 20 (higher range)
           case _: KeyValue.ReadOnly.Range =>
-            nextSeeker.higher(key) match {
+            nextWalker.higher(key) match {
               case Success(Some(next)) =>
                 Higher(key, currentStash, Stash.Next(next))
 
@@ -151,7 +151,7 @@ private[core] object Higher {
             }
 
           case _: ReadOnly.Fixed =>
-            nextSeeker.higher(key) match {
+            nextWalker.higher(key) match {
               case Success(Some(next)) =>
                 Higher(key, currentStash, Stash.Next(next))
 
@@ -164,7 +164,7 @@ private[core] object Higher {
         }
 
       case (Seek.Stop, Seek.Next) =>
-        nextSeeker.higher(key) match {
+        nextWalker.higher(key) match {
           case Success(Some(next)) =>
             Higher(key, currentSeek, Stash.Next(next))
 
@@ -188,7 +188,7 @@ private[core] object Higher {
           Higher(next.key, currentSeek, Seek.Next)
 
       case (Seek.Next, Stash.Next(_)) =>
-        currentSeeker.higher(key) match {
+        currentWalker.higher(key) match {
           case Success(Some(current)) =>
             Higher(key, Stash.Current(current), nextSeek)
 
@@ -321,7 +321,7 @@ private[core] object Higher {
                       Success(somePut)
 
                     case None =>
-                      currentSeeker.get(current.toKey) match {
+                      currentWalker.get(current.toKey) match {
                         case found @ Success(Some(put)) =>
                           if (put.hasTimeLeft())
                             found
@@ -348,7 +348,7 @@ private[core] object Higher {
         * ********************************************************/
 
       case (Seek.Next, Seek.Stop) =>
-        currentSeeker.higher(key) match {
+        currentWalker.higher(key) match {
           case Success(Some(current)) =>
             Higher(key, Stash.Current(current), nextSeek)
 
@@ -387,7 +387,7 @@ private[core] object Higher {
                     Success(somePut)
 
                   case None =>
-                    currentSeeker.get(current.toKey) match {
+                    currentWalker.get(current.toKey) match {
                       case Success(Some(put)) =>
                         Higher(key, Stash.Current(put), nextSeek)
 

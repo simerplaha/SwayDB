@@ -56,10 +56,10 @@ private[core] object Lower {
            nextSeek: NextSeek,
            keyOrder: KeyOrder[Slice[Byte]],
            timeOrder: TimeOrder[Slice[Byte]],
-           currentSeeker: CurrentSeeker,
-           nextSeeker: NextSeeker,
+           currentWalker: CurrentWalker,
+           nextWalker: NextWalker,
            functionStore: FunctionStore): Try[Option[KeyValue.ReadOnly.Put]] =
-    Lower(key, currentSeek, nextSeek)(keyOrder, timeOrder, currentSeeker, nextSeeker, functionStore)
+    Lower(key, currentSeek, nextSeek)(keyOrder, timeOrder, currentWalker, nextWalker, functionStore)
 
   /**
     * May be use trampolining instead and split the matches into their own functions to reduce
@@ -73,8 +73,8 @@ private[core] object Lower {
             currentSeek: CurrentSeek,
             nextSeek: NextSeek)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                 timeOrder: TimeOrder[Slice[Byte]],
-                                currentSeeker: CurrentSeeker,
-                                nextSeeker: NextSeeker,
+                                currentWalker: CurrentWalker,
+                                nextWalker: NextWalker,
                                 functionStore: FunctionStore): Try[Option[KeyValue.ReadOnly.Put]] = {
     import keyOrder._
 
@@ -86,7 +86,7 @@ private[core] object Lower {
         * ********************************************************/
 
       case (Seek.Next, Seek.Next) =>
-        currentSeeker.lower(key) match {
+        currentWalker.lower(key) match {
           case Success(Some(lower)) =>
             Lower(key, Stash.Current(lower), nextSeek)
 
@@ -107,7 +107,7 @@ private[core] object Lower {
               case Success(rangeValue) =>
                 //if the current range is active fetch the lowest from next Level and return lowest from both Levels.
                 if (Value.hasTimeLeft(rangeValue))
-                  nextSeeker.lower(key) match {
+                  nextWalker.lower(key) match {
                     case Success(Some(next)) =>
                       Lower(key, currentStash, Stash.Next(next))
 
@@ -129,7 +129,7 @@ private[core] object Lower {
 
                         //if not, then fetch the lower from next Level and merge.
                         case None =>
-                          nextSeeker.lower(key) match {
+                          nextWalker.lower(key) match {
                             case Success(Some(nextLower)) =>
                               Lower(key, currentStash, Stash.Next(nextLower))
 
@@ -152,7 +152,7 @@ private[core] object Lower {
           //             22 (input key)
           //    10 - 20     (lower range)
           case _: KeyValue.ReadOnly.Range =>
-            nextSeeker.lower(key) match {
+            nextWalker.lower(key) match {
               case Success(Some(next)) =>
                 Lower(key, currentStash, Stash.Next(next))
 
@@ -164,7 +164,7 @@ private[core] object Lower {
             }
 
           case _: ReadOnly.Fixed =>
-            nextSeeker.lower(key) match {
+            nextWalker.lower(key) match {
               case Success(Some(next)) =>
                 Lower(key, currentStash, Stash.Next(next))
 
@@ -177,7 +177,7 @@ private[core] object Lower {
         }
 
       case (Seek.Stop, Seek.Next) =>
-        nextSeeker.lower(key) match {
+        nextWalker.lower(key) match {
           case Success(Some(next)) =>
             Lower(key, currentSeek, Stash.Next(next))
 
@@ -201,7 +201,7 @@ private[core] object Lower {
           Lower(next.key, currentSeek, Seek.Next)
 
       case (Seek.Next, Stash.Next(_)) =>
-        currentSeeker.lower(key) match {
+        currentWalker.lower(key) match {
           case Success(Some(current)) =>
             Lower(key, Stash.Current(current), nextSeek)
 
@@ -358,7 +358,7 @@ private[core] object Lower {
         * ********************************************************/
 
       case (Seek.Next, Seek.Stop) =>
-        currentSeeker.lower(key) match {
+        currentWalker.lower(key) match {
           case Success(Some(current)) =>
             Lower(key, Stash.Current(current), nextSeek)
 

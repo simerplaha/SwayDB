@@ -50,8 +50,8 @@ class HigherRangeSomeSpec extends WordSpec with Matchers with MockFactory {
       //in this test lower level is read for upper Level's higher toKey and the input key is not read since it's removed.
       runThis(100.times) {
 
-        implicit val current = mock[CurrentSeeker]
-        implicit val next = mock[NextSeeker]
+        implicit val current = mock[CurrentWalker]
+        implicit val next = mock[NextWalker]
 
         val upperRange = randomRangeKeyValue(0, 3, rangeValue = randomRemoveOrUpdateOrFunctionRemoveValue())
         val toKeyGet = randomPutKeyValue(1, deadline = randomDeadlineOption(false))
@@ -76,8 +76,8 @@ class HigherRangeSomeSpec extends WordSpec with Matchers with MockFactory {
       //in this test lower level is read for upper Level's higher toKey and the input key is not read since it's removed.
       runThis(100.times) {
 
-        implicit val current = mock[CurrentSeeker]
-        implicit val next = mock[NextSeeker]
+        implicit val current = mock[CurrentWalker]
+        implicit val next = mock[NextWalker]
 
         val upperRange = randomRangeKeyValue(0, 3, rangeValue = randomRemoveOrUpdateOrFunctionRemoveValue())
         val toKeyGet = randomPutKeyValue(1, deadline = randomDeadlineOption(false))
@@ -101,8 +101,8 @@ class HigherRangeSomeSpec extends WordSpec with Matchers with MockFactory {
       //in this test lower level is read for upper Level's higher toKey and the input key is not read since it's removed.
       runThis(100.times) {
 
-        implicit val current = mock[CurrentSeeker]
-        implicit val next = mock[NextSeeker]
+        implicit val current = mock[CurrentWalker]
+        implicit val next = mock[NextWalker]
 
         val upperRange = randomRangeKeyValue(0, 3, rangeValue = randomRemoveOrUpdateOrFunctionRemoveValue())
         val toKeyGet = randomPutKeyValue(1, deadline = randomDeadlineOption(false))
@@ -125,8 +125,8 @@ class HigherRangeSomeSpec extends WordSpec with Matchers with MockFactory {
       //in this test lower level is read for upper Level's higher toKey and the input key is not read since it's removed.
       runThis(100.times) {
 
-        implicit val current = mock[CurrentSeeker]
-        implicit val next = mock[NextSeeker]
+        implicit val current = mock[CurrentWalker]
+        implicit val next = mock[NextWalker]
 
         val result = randomPutKeyValue(4, deadline = randomDeadlineOption(false))
 

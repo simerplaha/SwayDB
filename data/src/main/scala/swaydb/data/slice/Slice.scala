@@ -33,7 +33,6 @@ import swaydb.data.repairAppendix.MaxKey
 import swaydb.data.util.{ByteSizeOf, ByteUtil}
 
 /**
-  *
   * Documentation - http://swaydb.io/slice
   */
 object Slice {

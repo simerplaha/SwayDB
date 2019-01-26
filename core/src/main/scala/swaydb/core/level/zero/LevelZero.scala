@@ -310,15 +310,13 @@ private[core] class LevelZero(val path: Path,
       nextLevel.map(_ get key) getOrElse TryUtil.successNone
     }
 
-  def currentGetter(key: Slice[Byte],
-                    currentMap: map.Map[Slice[Byte], Memory.SegmentResponse]) =
+  def currentGetter(currentMap: map.Map[Slice[Byte], Memory.SegmentResponse]) =
     new CurrentGetter {
       override def get(key: Slice[Byte]): Try[Option[ReadOnly.SegmentResponse]] =
         Try(getFromMap(key, currentMap))
     }
 
-  def newGetter(key: Slice[Byte],
-                mapsIterator: util.Iterator[map.Map[Slice[Byte], Memory.SegmentResponse]]) =
+  def newGetter(mapsIterator: util.Iterator[map.Map[Slice[Byte], Memory.SegmentResponse]]) =
     new NextGetter {
       override def get(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
         getFromNextLevel(key, mapsIterator)
@@ -329,8 +327,8 @@ private[core] class LevelZero(val path: Path,
                    mapsIterator: util.Iterator[map.Map[Slice[Byte], Memory.SegmentResponse]]): Try[Option[KeyValue.ReadOnly.Put]] =
     Get.seek(
       key = key,
-      currentGetter = currentGetter(key, currentMap),
-      nextGetter = newGetter(key, mapsIterator)
+      currentGetter = currentGetter(currentMap),
+      nextGetter = newGetter(mapsIterator)
     )
 
   def get(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
@@ -459,9 +457,9 @@ private[core] class LevelZero(val path: Path,
         nextLevel.map(_.higher(key)) getOrElse TryUtil.successNone
     }
 
-  def currentSeeker(currentMap: map.Map[Slice[Byte], Memory.SegmentResponse],
+  def currentWalker(currentMap: map.Map[Slice[Byte], Memory.SegmentResponse],
                     otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]) =
-    new CurrentSeeker {
+    new CurrentWalker {
       override def get(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
         find(key, currentMap, otherMaps.asJava.iterator())
 
@@ -472,8 +470,8 @@ private[core] class LevelZero(val path: Path,
         Try(lowerFromMap(key, currentMap))
     }
 
-  def nextSeeker(otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]) =
-    new NextSeeker {
+  def nextWalker(otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]) =
+    new NextWalker {
       override def higher(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
         findHigherInNextLevel(key, otherMaps)
 
@@ -488,8 +486,8 @@ private[core] class LevelZero(val path: Path,
       key = key,
       currentSeek = Seek.Next,
       nextSeek = Seek.Next,
-      currentSeeker = currentSeeker(currentMap, otherMaps),
-      nextSeeker = nextSeeker(otherMaps),
+      currentWalker = currentWalker(currentMap, otherMaps),
+      nextWalker = nextWalker(otherMaps),
       keyOrder = keyOrder,
       timeOrder = timeOrder,
       functionStore = functionStore
@@ -553,8 +551,8 @@ private[core] class LevelZero(val path: Path,
       key = key,
       currentSeek = Seek.Next,
       nextSeek = Seek.Next,
-      currentSeeker = currentSeeker(currentMap, otherMaps),
-      nextSeeker = nextSeeker(otherMaps),
+      currentWalker = currentWalker(currentMap, otherMaps),
+      nextWalker = nextWalker(otherMaps),
       keyOrder = keyOrder,
       timeOrder = timeOrder,
       functionStore = functionStore
