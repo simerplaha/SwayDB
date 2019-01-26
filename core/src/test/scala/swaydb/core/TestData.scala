@@ -33,6 +33,8 @@ import swaydb.core.data.KeyValue.{ReadOnly, WriteOnly}
 import swaydb.core.data.Transient.Range
 import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data._
+import swaydb.core.finders.Higher
+import swaydb.core.finders.reader.{CurrentReader, NextReader}
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.io.file.DBFile
@@ -46,13 +48,12 @@ import swaydb.data.accelerate.Accelerator
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.{Dir, RecoveryMode}
 import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.data.repairAppendix.MaxKey
 import swaydb.data.slice.Slice
 import swaydb.data.storage.{AppendixStorage, Level0Storage, LevelStorage}
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import CommonAssertions._
-import swaydb.data.repairAppendix.MaxKey
 
 object TestData {
 
@@ -636,14 +637,18 @@ object TestData {
     Memory.Remove(key, deadline, timeGenerator.nextTime)
 
   def randomRemoveAny(from: Slice[Byte],
-                      to: Slice[Byte])(implicit timeGenerator: TestTimeGenerator = TestTimeGenerator.Incremental()): Memory.SegmentResponse =
+                      to: Slice[Byte],
+                      addFunctions: Boolean = true)(implicit timeGenerator: TestTimeGenerator = TestTimeGenerator.Incremental()): Memory.SegmentResponse =
     eitherOne(
-      left = randomRemoveOrUpdateOrFunctionRemove(from),
+      left = randomRemoveOrUpdateOrFunctionRemove(from, addFunctions),
       right = randomRemoveRange(from, to)
     )
 
-  def randomRemoveOrUpdateOrFunctionRemoveValue()(implicit timeGenerator: TestTimeGenerator = TestTimeGenerator.Incremental()): RangeValue =
-    randomRemoveOrUpdateOrFunctionRemove(Slice.emptyBytes).toRangeValue().assertGet
+  def randomRemoveOrUpdateOrFunctionRemoveValue(addFunctions: Boolean = true)(implicit timeGenerator: TestTimeGenerator = TestTimeGenerator.Incremental()): RangeValue = {
+    val value = randomRemoveOrUpdateOrFunctionRemove(Slice.emptyBytes, addFunctions).toRangeValue().assertGet
+    //println(value)
+    value
+  }
 
   def randomRemoveFunctionValue()(implicit timeGenerator: TestTimeGenerator = TestTimeGenerator.Incremental()): Value.Function =
     randomFunctionKeyValue(Slice.emptyBytes, SwayFunctionOutput.Remove).toRangeValue().assertGet
@@ -651,30 +656,45 @@ object TestData {
   def randomFunctionValue(output: SwayFunctionOutput = randomFunctionOutput())(implicit timeGenerator: TestTimeGenerator = TestTimeGenerator.Incremental()): Value.Function =
     randomFunctionKeyValue(Slice.emptyBytes, SwayFunctionOutput.Remove).toRangeValue().assertGet
 
-  def randomRemoveOrUpdateOrFunctionRemoveValueOption()(implicit timeGenerator: TestTimeGenerator = TestTimeGenerator.Incremental()): Option[RangeValue] =
+  def randomRemoveOrUpdateOrFunctionRemoveValueOption(addFunctions: Boolean = true)(implicit timeGenerator: TestTimeGenerator = TestTimeGenerator.Incremental()): Option[RangeValue] =
     eitherOne(
       left = None,
-      right = Some(randomRemoveOrUpdateOrFunctionRemoveValue())
+      right = Some(randomRemoveOrUpdateOrFunctionRemoveValue(addFunctions))
     )
 
   /**
     * Removes can occur by [[Memory.Remove]], [[Memory.Update]] with expiry or [[Memory.Function]] with remove output.
     */
-  def randomRemoveOrUpdateOrFunctionRemove(key: Slice[Byte])(implicit timeGenerator: TestTimeGenerator = TestTimeGenerator.Incremental()): Memory.Fixed =
+  def randomRemoveOrUpdateOrFunctionRemove(key: Slice[Byte],
+                                           addFunctions: Boolean = true)(implicit timeGenerator: TestTimeGenerator = TestTimeGenerator.Incremental()): Memory.Fixed =
     if (randomBoolean)
       randomRemoveKeyValue(key, randomExpiredDeadlineOption())
-    else if (randomBoolean)
-      randomUpdateKeyValue(key, None, Some(expiredDeadline()))
+    else if (randomBoolean && addFunctions)
+      randomFunctionKeyValue(key, randomRemoveFunctionOutput())
     else
-      randomFunctionKeyValue(key, eitherOne(SwayFunctionOutput.Remove, SwayFunctionOutput.Update(None, Some(expiredDeadline()))))
+      randomUpdateKeyValue(key, randomStringOption, Some(expiredDeadline()))
+
+  def randomRemoveFunctionOutput() =
+    eitherOne(
+      SwayFunctionOutput.Remove,
+      SwayFunctionOutput.Expire(expiredDeadline()),
+      SwayFunctionOutput.Update(randomStringOption, Some(expiredDeadline()))
+    )
+
+  def randomUpdateFunctionOutput() =
+    eitherOne(
+      SwayFunctionOutput.Expire(randomDeadline(false)),
+      SwayFunctionOutput.Update(randomStringOption, randomDeadlineOption(false))
+    )
 
   def randomRemoveRange(from: Slice[Byte],
-                        to: Slice[Byte])(implicit timeGenerator: TestTimeGenerator = TestTimeGenerator.Incremental()): Memory.Range =
+                        to: Slice[Byte],
+                        addFunctions: Boolean = true)(implicit timeGenerator: TestTimeGenerator = TestTimeGenerator.Incremental()): Memory.Range =
     randomRangeKeyValue(
       from = from,
       to = to,
-      fromValue = randomRemoveOrUpdateOrFunctionRemoveValueOption(),
-      rangeValue = randomRemoveOrUpdateOrFunctionRemoveValue()
+      fromValue = randomRemoveOrUpdateOrFunctionRemoveValueOption(addFunctions),
+      rangeValue = randomRemoveOrUpdateOrFunctionRemoveValue(addFunctions)
     )
 
   /**
@@ -941,10 +961,10 @@ object TestData {
                           moveAppliesTimeBackward: Boolean = true)(implicit timeGenerator: TestTimeGenerator = TestTimeGenerator.Incremental()): Memory.Fixed =
     if (includePuts && Random.nextBoolean())
       Memory.Put(key, value, deadline, timeGenerator.nextTime)
-    else if (Random.nextBoolean())
+    else if (includeRemoves && Random.nextBoolean())
       Memory.Remove(key, deadline, timeGenerator.nextTime)
-    else if (Random.nextBoolean())
-      Memory.Function(key, randomFunctionId(randomFunctionOutput()), timeGenerator.nextTime)
+    else if (includeFunctions && Random.nextBoolean())
+      Memory.Function(key, randomFunctionId(functionOutput), timeGenerator.nextTime)
     else if (includePendingApply && Random.nextBoolean())
       Memory.PendingApply(
         key,
@@ -1034,6 +1054,18 @@ object TestData {
       Some(randomFromValueWithDeadline(value, addRandomRangeRemoves, deadline))
     else
       None
+
+  def randomUpdateRangeValue(value: Option[Slice[Byte]] = randomStringOption,
+                             functionOutput: SwayFunctionOutput = randomUpdateFunctionOutput()) = {
+    val addRemoves = randomBoolean
+    val deadline =
+      if (addRemoves)
+        Some(randomDeadline(false))
+      else
+        randomDeadlineOption(false)
+
+    randomRangeValue(value = value, addRemoves = addRemoves, functionOutput = functionOutput, deadline = deadline)
+  }
 
   def randomFromValue(value: Option[Slice[Byte]] = randomStringOption,
                       addRemoves: Boolean = Random.nextBoolean(),
@@ -2005,6 +2037,15 @@ object TestData {
           None
         }
     } flatten
+  }
+
+  implicit class HigherImplicits(higher: Higher.type) {
+    def apply(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                timeOrder: TimeOrder[Slice[Byte]],
+                                currentReader: CurrentReader,
+                                nextReader: NextReader,
+                                functionStore: FunctionStore): Try[Option[KeyValue.ReadOnly.Put]] =
+      Higher(key, keyOrder, timeOrder, currentReader, nextReader, functionStore)
   }
 }
 

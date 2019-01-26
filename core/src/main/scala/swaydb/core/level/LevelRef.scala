@@ -20,16 +20,15 @@
 package swaydb.core.level
 
 import java.nio.file.Path
-
 import swaydb.core.data.KeyValue
 import swaydb.core.level.actor.LevelAPI
 import swaydb.core.segment.Segment
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.slice.Slice
-
 import scala.util.Try
+import swaydb.core.finders.reader.{CurrentReader, NextReader}
 
-private[core] trait LevelRef {
+private[core] trait LevelRef extends CurrentReader with NextReader {
   def paths: PathsDistributor
 
   def throttle: LevelMeter => Throttle

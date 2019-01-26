@@ -21,384 +21,404 @@ package swaydb.core.finders
 
 import scala.annotation.tailrec
 import scala.util.{Failure, Success, Try}
-import swaydb.core.data.{KeyValue, Value}
+import swaydb.core.data.KeyValue.ReadOnly
+import swaydb.core.data.{KeyValue, Memory, Value}
+import swaydb.core.finders.Seek.Stash
+import swaydb.core.finders.reader.{CurrentReader, NextReader}
 import swaydb.core.function.FunctionStore
-import swaydb.core.merge.FixedMerger
+import swaydb.core.merge._
+import swaydb.core.util.TryUtil
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
+private sealed trait CurrentSeek
+private sealed trait NextSeek
+
+private object Seek {
+  sealed trait Stop extends CurrentSeek with NextSeek
+  case object Stop extends Stop
+
+  sealed trait Next extends CurrentSeek with NextSeek
+  case object Next extends Next
+
+  object Stash {
+    case class Current(current: KeyValue.ReadOnly.SegmentResponse) extends CurrentSeek
+    case class Next(next: KeyValue.ReadOnly.Put) extends NextSeek
+  }
+
+}
+
 private[core] object Higher {
 
-  //indicates that next Level was read but returned empty.
-  //this marker is used to not read lower Level again.
-  private val someNone = Some(None)
+  private def higherFromValue(key: Slice[Byte],
+                              fromKey: Slice[Byte],
+                              fromValue: Option[Value.FromValue])(implicit keyOrder: KeyOrder[Slice[Byte]]): Option[Memory.Put] = {
+    import keyOrder._
+    if (key < fromKey)
+      fromValue flatMap {
+        fromValue =>
+          fromValue.toMemory(fromKey) match {
+            case put: Memory.Put if put.hasTimeLeft() =>
+              Some(put)
+
+            case _ =>
+              None
+          }
+      }
+    else
+      None
+  }
+
+  def apply(key: Slice[Byte],
+            keyOrder: KeyOrder[Slice[Byte]],
+            timeOrder: TimeOrder[Slice[Byte]],
+            currentReader: CurrentReader,
+            nextReader: NextReader,
+            functionStore: FunctionStore): Try[Option[KeyValue.ReadOnly.Put]] =
+    Higher(key, Seek.Next, Seek.Next)(keyOrder, timeOrder, currentReader, nextReader, functionStore)
 
   /**
-    * TO-DO - Use trampolining instead to reduce repeated boilerplate code.
+    * May be use trampolining instead and split the matches into their own functions to reduce
+    * repeated boilerplate code & if does not effect read performance or adds to GC workload.
     */
-  def apply(key: Slice[Byte],
-            higherFromCurrentLevel: Slice[Byte] => Try[Option[KeyValue.ReadOnly.SegmentResponse]],
-            get: Slice[Byte] => Try[Option[KeyValue.ReadOnly.Put]],
-            higherInNextLevel: Slice[Byte] => Try[Option[KeyValue.ReadOnly.Put]])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                  timeOrder: TimeOrder[Slice[Byte]],
-                                                                                  functionStore: FunctionStore): Try[Option[KeyValue.ReadOnly.Put]] = {
-
+  @tailrec
+  private def apply(key: Slice[Byte],
+                    currentSeek: CurrentSeek,
+                    nextSeek: NextSeek)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                        timeOrder: TimeOrder[Slice[Byte]],
+                                        currentReader: CurrentReader,
+                                        nextReader: NextReader,
+                                        functionStore: FunctionStore): Try[Option[KeyValue.ReadOnly.Put]] = {
     import keyOrder._
 
-    //stash next if it's key is larger than current's key so that the same next key can be used
-    //in next iteration instead of re-reading next Level again.
-    def stashNext(nextHigher: Option[Option[KeyValue.ReadOnly.Put]],
-                  next: Option[KeyValue.ReadOnly.Put],
-                  currentKey: Slice[Byte]): Option[Option[KeyValue.ReadOnly.Put]] =
-      if (nextHigher.contains(None)) //if nextHigher was already set to empty, it stays empty so that next Level does not get read.
-        nextHigher
-      else if (next.isEmpty) //if next is empty this means next level was read and it returned none so set it to Higher.someNone indicating it's empty.
-        Higher.someNone
-      else
-        next flatMap { //else next is defined so check if the next is still larger than current and keep stashing else set to None so next Level is re-read again.
-          next =>
-            //stash if next Level's key is still larger than current Levels. Don't need to check for time here because it will eventually get check during merge.
-            if (next.key > currentKey)
-              Some(Some(next))
-            else
-              None
+    (currentSeek, nextSeek) match {
+      /** ********************************************************
+        * ******************                   *******************
+        * ******************  Current on Next  *******************
+        * ******************                   *******************
+        * ********************************************************/
+
+      case (Seek.Next, Seek.Next) =>
+        currentReader.higher(key) match {
+          case Success(Some(higher)) =>
+            Higher(key, Stash.Current(higher), nextSeek)
+
+          case Success(None) =>
+            Higher(key, Seek.Stop, nextSeek)
+
+          case Failure(exception) =>
+            Failure(exception)
         }
 
-    //stash next if it's key is larger than current's key so that the same next key can be used
-    //in next iteration instead of re-reading next Level again.
-    def keepStashIfLargerKey(nextHigher: Option[Option[KeyValue.ReadOnly.Put]],
-                             currentKey: Slice[Byte]): Option[Option[KeyValue.ReadOnly.Put]] =
-      if (nextHigher.contains(None))
-        nextHigher
-      else
-        nextHigher flatMap {
-          next =>
-            next map {
-              next =>
-                if (next.key > currentKey)
-                  Some(next)
-                else
-                  None
+      case (currentStash @ Stash.Current(current), Seek.Next) =>
+        //decide if it's necessary to read the next Level or not.
+        current match {
+          //10->19  (input keys)
+          //10 - 20 (higher range from current Level)
+          case currentRange: ReadOnly.Range if key >= currentRange.fromKey =>
+            currentRange.fetchRangeValue match {
+              case Success(rangeValue) =>
+                //if the current range is active fetch the highest from next Level and return highest from both Levels.
+                if (Value.hasTimeLeft(rangeValue))
+                //if the higher from the current Level is a Fixed key-value, fetch from next Level and return the highest.
+                  nextReader.higher(key) match {
+                    case Success(Some(next)) =>
+                      Higher(key, currentStash, Stash.Next(next))
+
+                    case Success(None) =>
+                      Higher(key, currentStash, Seek.Stop)
+
+                    case Failure(exception) =>
+                      Failure(exception)
+                  }
+
+                else //if the rangeValue is expired then the higher is ceiling of toKey
+                  currentReader.get(currentRange.toKey) match {
+                    case Success(Some(ceiling)) if ceiling.hasTimeLeft() =>
+                      Success(Some(ceiling))
+
+                    case Success(_) =>
+                      Higher(currentRange.toKey, Seek.Next, nextSeek)
+
+                    case failed @ Failure(_) =>
+                      failed
+                  }
+
+              case Failure(exception) =>
+                Failure(exception)
+            }
+
+          //if the input key is smaller than this Level's higher Range's fromKey.
+          //0           (input key)
+          //    10 - 20 (higher range)
+          case _: KeyValue.ReadOnly.Range =>
+            nextReader.higher(key) match {
+              case Success(Some(next)) =>
+                Higher(key, currentStash, Stash.Next(next))
+
+              case Success(None) =>
+                Higher(key, currentStash, Seek.Stop)
+
+              case Failure(exception) =>
+                Failure(exception)
+            }
+
+          case _: ReadOnly.Fixed =>
+            nextReader.higher(key) match {
+              case Success(Some(next)) =>
+                Higher(key, currentStash, Stash.Next(next))
+
+              case Success(None) =>
+                Higher(key, currentStash, Seek.Stop)
+
+              case Failure(exception) =>
+                Failure(exception)
             }
         }
 
-    /**
-      * This code is crucial to forward iteration performance. It should avoid any unnecessary seeks.
-      *
-      * @param currentRange      if set the current range is still the active highest in current Level and is
-      *                          being merged into next Level's keys to find the next highest.
-      * @param stashedNextHigher None(None) if higher from next level is not known and can be read.
-      *                     Higher.someNone if there are no higher keys in next Level.
-      *                          Some(Some) if higher from next Level is known but is too far off and does not overlap current. Stashed to process in next iteration.
-      */
-    @tailrec
-    def higher(key: Slice[Byte],
-               currentRange: Option[KeyValue.ReadOnly.Range],
-               stashedNextHigher: Option[Option[KeyValue.ReadOnly.Put]]): Try[Option[KeyValue.ReadOnly.Put]] =
-      currentRange.map(_ => Success(currentRange)) getOrElse higherFromCurrentLevel(key) match {
-        case Success(current) =>
-          current match {
-            case Some(current) =>
-              current match {
-                /** HIGHER FIXED FROM CURRENT LEVEL **/
-                case current: KeyValue.ReadOnly.Fixed =>
-                  //if the higher from the current Level is a Fixed key-value, fetch from next Level and return the highest.
-                  stashedNextHigher.map(Success(_)) getOrElse higherInNextLevel(key) match {
-                    case Success(next) =>
-                      Min(current, next) match {
-                        case found @ Success(Some(put)) if put.hasTimeLeft() =>
-                          found
+      case (Seek.Stop, Seek.Next) =>
+        nextReader.higher(key) match {
+          case Success(Some(next)) =>
+            Higher(key, currentSeek, Stash.Next(next))
 
-                        case Success(_) =>
-                          higher(current.key, None, stashNext(stashedNextHigher, next, current.key))
+          case Success(None) =>
+            Higher(key, currentSeek, Seek.Stop)
+
+          case Failure(exception) =>
+            Failure(exception)
+        }
+
+      /** *********************************************************
+        * ******************                    *******************
+        * ******************  Current on Stash  *******************
+        * ******************                    *******************
+        * *********************************************************/
+
+      case (Seek.Stop, Stash.Next(next)) =>
+        if (next.hasTimeLeft())
+          Success(Some(next))
+        else
+          Higher(next.key, currentSeek, Seek.Next)
+
+      case (Seek.Next, Stash.Next(_)) =>
+        currentReader.higher(key) match {
+          case Success(Some(current)) =>
+            Higher(key, Stash.Current(current), nextSeek)
+
+          case Success(None) =>
+            Higher(key, Seek.Stop, nextSeek)
+
+          case Failure(exception) =>
+            Failure(exception)
+        }
+
+      case (currentStash @ Stash.Current(current), nextStash @ Stash.Next(next)) =>
+        (current, next) match {
+
+          /** **********************************************
+            * ******************         *******************
+            * ******************  Fixed  *******************
+            * ******************         *******************
+            * **********************************************/
+
+          case (current: KeyValue.ReadOnly.Fixed, next: KeyValue.ReadOnly.Fixed) =>
+            //    2
+            //    2
+            if (next.key equiv current.key)
+              FixedMerger(current, next) match {
+                case Success(merged) =>
+                  merged match {
+                    case put: ReadOnly.Put if put.hasTimeLeft() =>
+                      Success(Some(put))
+
+                    case _ =>
+                      //if it doesn't result in an unexpired put move forward.
+                      Higher(current.key, Seek.Next, Seek.Next)
+                  }
+                case Failure(exception) =>
+                  Failure(exception)
+              }
+            //    2
+            //      3  or  5
+            else if (next.key > current.key)
+              current match {
+                case put: ReadOnly.Put if put.hasTimeLeft() =>
+                  Success(Some(put))
+
+                //if it doesn't result in an unexpired put move forward.
+                case _ =>
+                  Higher(current.key, Seek.Next, nextStash)
+              }
+            //    2
+            //0
+            else //else higher from next is smaller
+              Success(Some(next))
+
+          /** *********************************************
+            * *********************************************
+            * ******************       ********************
+            * ****************** RANGE ********************
+            * ******************       ********************
+            * *********************************************
+            * *********************************************/
+          case (current: KeyValue.ReadOnly.Range, next: KeyValue.ReadOnly.Fixed) =>
+            //   10 - 20
+            //1
+            if (next.key < current.fromKey)
+              Success(Some(next))
+            //10 - 20
+            //10
+            else if (next.key equiv current.fromKey)
+              current.fetchFromOrElseRangeValue match {
+                case Success(fromOrElseRangeValue) =>
+                  FixedMerger(fromOrElseRangeValue.toMemory(current.fromKey), next) match {
+                    case Success(mergedCurrent) =>
+                      mergedCurrent match {
+                        case put: ReadOnly.Put if put.hasTimeLeft() =>
+                          Success(Some(put))
+                        case _ =>
+                          //do need to check if range is expired because if it was then
+                          //next would not have been read from next level in the first place.
+                          Higher(next.key, currentStash, Seek.Next)
+
+                      }
+
+                    case Failure(exception) =>
+                      Failure(exception)
+                  }
+
+                case Failure(exception) =>
+                  Failure(exception)
+              }
+
+            //10  -  20
+            //  11-19
+            else if (next.key < current.toKey) //if the higher in next Level falls within the range.
+              current.fetchFromAndRangeValue match {
+                //if fromValue is set check if it qualifies as the next highest orElse return higher of fromKey
+                case Success((fromValue, rangeValue)) =>
+                  higherFromValue(key, current.fromKey, fromValue) match {
+                    case Some(fromValuePut) =>
+                      Success(Some(fromValuePut))
+
+                    case None =>
+                      FixedMerger(rangeValue.toMemory(next.key), next) match {
+                        case Success(mergedValue) =>
+                          mergedValue match { //return applied value with next key-value as the current value.
+                            case put: Memory.Put if put.hasTimeLeft() =>
+                              Success(Some(put))
+
+                            case _ =>
+                              //fetch the next key keeping the current stash. next.key's higher is still current range
+                              //since it's < range's toKey
+                              Higher(next.key, currentStash, Seek.Next)
+                          }
 
                         case Failure(exception) =>
                           Failure(exception)
                       }
-
-                    case Failure(exception) =>
-                      Failure(exception)
                   }
 
-                /** HIGHER RANGE FROM CURRENT LEVEL **/
-                //example
-                //10->19  (input keys)
-                //10 - 20 (higher range from current Level)
-                case currentRange: KeyValue.ReadOnly.Range if key >= currentRange.fromKey =>
-                  currentRange.fetchRangeValue match {
-                    case Success(rangeValue) =>
-                      //if the current range is active fetch the highest from next Level and return highest from both Levels.
-                      if (Value.hasTimeLeft(rangeValue))
-                      //if the higher from the current Level is a Fixed key-value, fetch from next Level and return the highest.
-                        stashedNextHigher.map(Success(_)) getOrElse higherInNextLevel(key) match {
-                          case Success(someNext @ Some(next)) =>
-                            //10->20       (input keys)
-                            //10   -    20 (higher range)
-                            //  11 -> 19   (higher possible keys from next)
-                            if (next.key < currentRange.toKey) //if the higher in next Level falls within the range
-                              FixedMerger(rangeValue.toMemory(next.key), next) match {
-                                case Success(current) =>
-                                  //return applied value with next key-value as the current value.
-                                  Min(current, None) match {
-                                    case found @ Success(Some(put)) if put.hasTimeLeft() =>
-                                      found
-
-                                    case Success(_) =>
-                                      higher(next.key, Some(currentRange), None) //current.key or next.key (either one! they both are the same here)
-
-                                    case Failure(exception) =>
-                                      Failure(exception)
-                                  }
-                                case Failure(exception) =>
-                                  Failure(exception)
-                              }
-
-
-                            //10->19
-                            //10 - 20
-                            //     20 ----to----> ∞
-                            else //else next Level's higher key doesn't fall in the Range, get ceiling of toKey
-                              get(currentRange.toKey) match {
-                                case Success(Some(ceiling)) if ceiling.hasTimeLeft() =>
-                                  Success(Some(ceiling))
-
-                                case Success(_) =>
-                                  higher(currentRange.toKey, None, stashNext(stashedNextHigher, someNext, currentRange.toKey))
-
-                                case failed @ Failure(_) =>
-                                  failed
-                              }
-
-                          case Success(None) => //if there is no underlying key in lower Levels, jump to the next highest key (toKey).
-                            get(currentRange.toKey) match {
-                              case Success(Some(ceiling)) if ceiling.hasTimeLeft() =>
-                                Success(Some(ceiling))
-
-                              case Success(_) =>
-                                higher(currentRange.toKey, None, Higher.someNone)
-
-                              case failed @ Failure(_) =>
-                                failed
-                            }
-
-                          case Failure(exception) =>
-                            Failure(exception)
-                        }
-
-                      else //if the rangeValue is expired then the higher is ceiling of toKey
-                        get(currentRange.toKey) match {
-                          case Success(Some(ceiling)) if ceiling.hasTimeLeft() =>
-                            Success(Some(ceiling))
-
-                          case Success(_) =>
-                            higher(currentRange.toKey, None, keepStashIfLargerKey(stashedNextHigher, currentRange.toKey)) //don't know! as it's not fetched.
-
-                          case failed @ Failure(_) =>
-                            failed
-                        }
-
-                    case Failure(exception) =>
-                      Failure(exception)
-                  }
-
-                //if the input key is smaller than this Level's higher Range's fromKey.
-                //example:
-                //0           (input key)
-                //    10 - 20 (higher range)
-                case currentRange: KeyValue.ReadOnly.Range =>
-                  //if the higher from the current Level is a Fixed key-value, fetch from next Level and return the highest.
-                  stashedNextHigher.map(Success(_)) getOrElse higherInNextLevel(key) match {
-                    case Success(next) =>
-                      next match {
-                        case someNext @ Some(next) =>
-                          //0
-                          //      10 - 20
-                          //  1
-                          if (next.key < currentRange.fromKey)
-                            Success(someNext)
-
-                          //0
-                          //      10 - 20
-                          //      10
-                          else if (next.key equiv currentRange.fromKey)
-                            currentRange.fetchFromOrElseRangeValue match {
-                              case Success(fromOrElseRangeValue) =>
-                                FixedMerger(fromOrElseRangeValue.toMemory(currentRange.fromKey), next) match {
-                                  case Success(mergedCurrent) =>
-                                    Min(mergedCurrent, None) match { //return applied value with next key-value as the current value.
-                                      case found @ Success(Some(put)) if put.hasTimeLeft() =>
-                                        found
-
-                                      case Success(_) =>
-                                        higher(next.key, Some(currentRange), None) //current.key or next.key (either one! they both are the same here)
-
-                                      case Failure(exception) =>
-                                        Failure(exception)
-                                    }
-
-                                  case Failure(exception) =>
-                                    Failure(exception)
-                                }
-
-                              case Failure(exception) =>
-                                Failure(exception)
-                            }
-                          //0
-                          //      10  -  20
-                          //        11-19
-                          else if (next.key < currentRange.toKey) //if the higher in next Level falls within the range.
-                            currentRange.fetchFromAndRangeValue match {
-                              case Success((Some(fromValue), rangeValue)) => //if fromValue is set check if it qualifies as the next highest orElse return higher of fromKey
-                                Min(fromValue.toMemory(currentRange.fromKey), None) match {
-                                  case found @ Success(Some(put)) if put.hasTimeLeft() =>
-                                    found
-
-                                  case Success(_) =>
-                                    FixedMerger(rangeValue.toMemory(next.key), next) match {
-                                      case Success(currentValue) =>
-                                        Min(currentValue, None) match { //return applied value with next key-value as the current value.
-                                          case found @ Success(Some(put)) if put.hasTimeLeft() =>
-                                            found
-
-                                          case Success(_) =>
-                                            higher(currentRange.fromKey, Some(currentRange), None)
-
-                                          case Failure(exception) =>
-                                            Failure(exception)
-                                        }
-
-                                      case Failure(exception) =>
-                                        Failure(exception)
-                                    }
-
-                                  case Failure(exception) =>
-                                    Failure(exception)
-                                }
-
-                              case Success((None, rangeValue)) => //if there is no from key
-                                FixedMerger(rangeValue.toMemory(next.key), next) match {
-                                  case Success(current) =>
-                                    Min(current, None) match { //return applied value with next key-value as the current value.
-                                      case found @ Success(Some(put)) if put.hasTimeLeft() =>
-                                        found
-
-                                      case Success(_) =>
-                                        higher(next.key, Some(currentRange), None)
-
-                                      case Failure(exception) =>
-                                        Failure(exception)
-                                    }
-
-                                  case Failure(exception) =>
-                                    Failure(exception)
-                                }
-
-                              case Failure(exception) =>
-                                Failure(exception)
-                            }
-
-                          //0
-                          //      10 - 20
-                          //           20 ----to----> ∞
-                          else //else if the higher in next Level does not fall within the range.
-                            currentRange.fetchFromValue match {
-                              case Success(maybeFromValue) =>
-                                maybeFromValue match {
-                                  case Some(fromValue) =>
-                                    //next does not need to supplied here because it's already know that 'next' is larger than fromValue and there is not the highest.
-                                    //Min will execute higher on fromKey if the the current does not result to a valid higher key-value.
-                                    Min(fromValue.toMemory(currentRange.fromKey), None) match { //return applied value with next key-value as the current value.
-                                      case found @ Success(Some(put)) if put.hasTimeLeft() =>
-                                        found
-
-                                      case Success(_) =>
-                                        get(currentRange.toKey) match {
-                                          case Success(Some(ceiling)) if ceiling.hasTimeLeft() =>
-                                            Success(Some(ceiling))
-
-                                          case Success(_) =>
-                                            higher(currentRange.toKey, None, stashNext(stashedNextHigher, someNext, currentRange.toKey))
-
-                                          case failed @ Failure(_) =>
-                                            failed
-                                        }
-
-                                      case Failure(exception) =>
-                                        Failure(exception)
-                                    }
-
-                                  case None =>
-                                    get(currentRange.toKey) match {
-                                      case Success(Some(ceiling)) if ceiling.hasTimeLeft() =>
-                                        Success(Some(ceiling))
-
-                                      case Success(_) =>
-                                        higher(currentRange.toKey, None, stashNext(stashedNextHigher, someNext, currentRange.toKey))
-
-                                      case failed @ Failure(_) =>
-                                        failed
-                                    }
-                                }
-
-                              case Failure(exception) =>
-                                Failure(exception)
-                            }
-
-                        //no higher key-value in the next Level. Return fromValue orElse jump to toKey.
-                        case None =>
-                          currentRange.fetchFromValue match {
-                            case Success(maybeFromValue) =>
-                              maybeFromValue match {
-                                case Some(fromValue) =>
-                                  Min(fromValue.toMemory(currentRange.fromKey), None) match {
-                                    case found @ Success(Some(put)) if put.hasTimeLeft() =>
-                                      found
-
-                                    case Success(_) =>
-                                      get(currentRange.toKey) match {
-                                        case Success(Some(ceiling)) if ceiling.hasTimeLeft() =>
-                                          Success(Some(ceiling))
-
-                                        case Success(_) =>
-                                          higher(currentRange.toKey, None, Higher.someNone)
-
-                                        case failed @ Failure(_) =>
-                                          failed
-                                      }
-
-                                    case Failure(exception) =>
-                                      Failure(exception)
-                                  }
-                                case None =>
-                                  get(currentRange.toKey) match {
-                                    case Success(Some(ceiling)) if ceiling.hasTimeLeft() =>
-                                      Success(Some(ceiling))
-
-                                    case Success(_) =>
-                                      higher(currentRange.toKey, None, Higher.someNone)
-
-                                    case failed @ Failure(_) =>
-                                      failed
-                                  }
-                              }
-                            case Failure(exception) =>
-                              Failure(exception)
-                          }
-                      }
-
-                    case Failure(exception) =>
-                      Failure(exception)
-                  }
+                case Failure(exception) =>
+                  Failure(exception)
               }
 
-            case None =>
-              stashedNextHigher.map(Success(_)) getOrElse higherInNextLevel(key)
+            //10 - 20
+            //     20 ----to----> ∞
+            else //else if the higher in next Level does not fall within the range.
+              current.fetchFromValue match {
+                //if fromValue is set check if it qualifies as the next highest orElse return higher of fromKey
+                case Success(fromValue) =>
+                  higherFromValue(key, current.fromKey, fromValue) match {
+                    case somePut @ Some(_) =>
+                      Success(somePut)
 
-          }
-        case Failure(exception) =>
-          Failure(exception)
-      }
+                    case None =>
+                      currentReader.get(current.toKey) match {
+                        case found @ Success(Some(put)) =>
+                          if (put.hasTimeLeft())
+                            found
+                          else
+                            Higher(current.toKey, Seek.Next, nextStash)
 
-    higher(key, None, None)
+                        case Success(None) =>
+                          Higher(current.toKey, Seek.Next, nextStash)
+
+                        case Failure(exception) =>
+                          Failure(exception)
+                      }
+                  }
+
+                case Failure(exception) =>
+                  Failure(exception)
+              }
+        }
+
+      /** ********************************************************
+        * ******************                   *******************
+        * ******************  Current on Stop  *******************
+        * ******************                   *******************
+        * ********************************************************/
+
+      case (Seek.Next, Seek.Stop) =>
+        currentReader.higher(key) match {
+          case Success(Some(current)) =>
+            Higher(key, Stash.Current(current), nextSeek)
+
+          case Success(None) =>
+            Higher(key, Seek.Stop, nextSeek)
+
+          case Failure(exception) =>
+            Failure(exception)
+        }
+
+      case (Stash.Current(current), Seek.Stop) =>
+        current match {
+          case current: KeyValue.ReadOnly.Put =>
+            if (current.hasTimeLeft())
+              Success(Some(current))
+            else
+              Higher(current.key, Seek.Next, nextSeek)
+
+          case _: KeyValue.ReadOnly.Remove =>
+            Higher(current.key, Seek.Next, nextSeek)
+
+          case _: KeyValue.ReadOnly.Update =>
+            Higher(current.key, Seek.Next, nextSeek)
+
+          case _: KeyValue.ReadOnly.Function =>
+            Higher(current.key, Seek.Next, nextSeek)
+
+          case _: KeyValue.ReadOnly.PendingApply =>
+            Higher(current.key, Seek.Next, nextSeek)
+
+          case current: KeyValue.ReadOnly.Range =>
+            current.fetchFromValue match {
+              case Success(fromValue) =>
+                higherFromValue(key, current.fromKey, fromValue) match {
+                  case somePut @ Some(_) =>
+                    Success(somePut)
+
+                  case None =>
+                    currentReader.get(current.toKey) match {
+                      case Success(Some(put)) =>
+                        Higher(key, Stash.Current(put), nextSeek)
+
+                      case Success(None) =>
+                        Higher(current.toKey, Seek.Next, nextSeek)
+
+                      case Failure(exception) =>
+                        Failure(exception)
+                    }
+
+                }
+              case Failure(exception) =>
+                Failure(exception)
+            }
+        }
+
+      case (Seek.Stop, Seek.Stop) =>
+        TryUtil.successNone
+    }
   }
 }

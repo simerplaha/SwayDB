@@ -1,0 +1,148 @@
+/*
+ * Copyright (c) 2019 Simer Plaha (@simerplaha)
+ *
+ * This file is a part of SwayDB.
+ *
+ * SwayDB is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * SwayDB is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+package swaydb.core.finders
+
+import org.scalamock.scalatest.MockFactory
+import org.scalatest.{Matchers, OptionValues, WordSpec}
+import scala.util.Try
+import swaydb.core.RunThis._
+import swaydb.core.TestData._
+import swaydb.core.TryAssert._
+import swaydb.core.finders.reader.{CurrentReader, NextReader}
+import swaydb.core.util.TryUtil
+import swaydb.core.{TestData, TestTimeGenerator}
+import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.data.slice.Slice
+import swaydb.serializers.Default._
+import swaydb.serializers._
+
+class HigherRangeNoneSpec extends WordSpec with Matchers with MockFactory {
+
+  implicit val keyOrder = KeyOrder.default
+  implicit val timeOrder = TimeOrder.long
+  implicit val functionStore = TestData.functionStore
+
+  "return None" when {
+    implicit val timeGenerator = TestTimeGenerator.Decremental()
+
+    "1" when {
+      //0->9
+      //0 - 10
+      //x
+      "range value is not removed or expired" in {
+        runThis(100.times) {
+
+          implicit val timeGenerator = TestTimeGenerator.Empty
+
+          (0 to 9) foreach {
+            key =>
+              implicit val current = mock[CurrentReader]
+              implicit val next = mock[NextReader]
+
+              inSequence {
+                //@formatter:off
+                current.higher _ expects (key: Slice[Byte]) returning Try(Some(randomRangeKeyValue(0, 10, rangeValue = randomUpdateRangeValue())))
+                next.higher    _ expects (key: Slice[Byte]) returning TryUtil.successNone
+                current.get    _ expects (10: Slice[Byte]) returning TryUtil.successNone
+                current.higher _ expects (10: Slice[Byte]) returning TryUtil.successNone
+                //@formatter:on
+              }
+              Higher(key: Slice[Byte]).assertGetOpt shouldBe empty
+          }
+        }
+      }
+
+      //0->9
+      //0 - 10
+      // 1-9
+      "range value is removed or expired" in {
+        //in this test lower level is read for upper Level's higher toKey and the input key is not read since it's removed.
+        runThis(100.times) {
+
+          implicit val timeGenerator = TestTimeGenerator.Empty
+
+          (0 to 9) foreach {
+            key =>
+              implicit val current = mock[CurrentReader]
+              implicit val next = mock[NextReader]
+
+              inSequence {
+                //@formatter:off
+                current.higher _ expects (key: Slice[Byte]) returning Try(Some(randomRangeKeyValue(0, 10, None, randomRemoveOrUpdateOrFunctionRemoveValue(addFunctions = false))))
+                current.get    _ expects (10: Slice[Byte]) returning TryUtil.successNone
+                current.higher _ expects (10: Slice[Byte]) returning TryUtil.successNone
+                next.higher    _ expects (10: Slice[Byte]) returning TryUtil.successNone
+                //@formatter:on
+              }
+              Higher(key: Slice[Byte]).assertGetOpt shouldBe empty
+          }
+        }
+      }
+    }
+
+    "2" when {
+
+      //0
+      //  1 - 10
+      //  x
+      "range value is not removed or expired" in {
+        runThis(100.times) {
+
+          implicit val timeGenerator = TestTimeGenerator.Empty
+
+          implicit val current = mock[CurrentReader]
+          implicit val next = mock[NextReader]
+
+          inSequence {
+            //@formatter:off
+            current.higher _ expects (0: Slice[Byte]) returning Try(Some(randomRangeKeyValue(1, 10, randomFromValueOption(addPut = false), randomUpdateRangeValue())))
+            next.higher    _ expects (0: Slice[Byte]) returning TryUtil.successNone
+            current.get    _ expects (10: Slice[Byte]) returning TryUtil.successNone
+            current.higher _ expects (10: Slice[Byte]) returning TryUtil.successNone
+            //@formatter:on
+          }
+          Higher(0: Slice[Byte]).assertGetOpt shouldBe empty
+        }
+      }
+
+      //0
+      // 1 - 10
+      // 1-9
+      "range value is removed or expired" in {
+        //in this test lower level is read for upper Level's higher toKey and the input key is not read since it's removed.
+        runThis(100.times) {
+
+          implicit val timeGenerator = TestTimeGenerator.Empty
+          implicit val current = mock[CurrentReader]
+          implicit val next = mock[NextReader]
+          inSequence {
+            //@formatter:off
+            current.higher _ expects (0: Slice[Byte]) returning Try(Some(randomRangeKeyValue(1, 10, randomRemoveOrUpdateOrFunctionRemoveValueOption(), randomRemoveOrUpdateOrFunctionRemoveValue(addFunctions = false))))
+            next.higher    _ expects (0: Slice[Byte]) returning TryUtil.successNone
+            current.get    _ expects (10: Slice[Byte]) returning TryUtil.successNone
+            current.higher _ expects (10: Slice[Byte]) returning TryUtil.successNone
+            //@formatter:on
+          }
+          Higher(0: Slice[Byte]).assertGetOpt shouldBe empty
+        }
+      }
+    }
+  }
+}

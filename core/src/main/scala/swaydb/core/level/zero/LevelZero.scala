@@ -23,7 +23,6 @@ import com.typesafe.scalalogging.LazyLogging
 import java.nio.channels.{FileChannel, FileLock}
 import java.nio.file.{Path, Paths, StandardOpenOption}
 import java.util
-
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 import scala.concurrent.duration.Deadline
@@ -48,6 +47,7 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.Level0Storage
 import scala.concurrent.duration._
+import swaydb.core.finders.reader.{CurrentReader, NextReader}
 
 private[core] object LevelZero extends LazyLogging {
 
@@ -451,20 +451,32 @@ private[core] class LevelZero(val path: Path,
         nextLevel.map(_.higher(key)) getOrElse TryUtil.successNone
     }
 
+  def currentReader(currentMap: map.Map[Slice[Byte], Memory.SegmentResponse],
+                    otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]) =
+    new CurrentReader {
+      override def get(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
+        find(key, currentMap, otherMaps.asJava.iterator())
+
+      override def higher(key: Slice[Byte]): Try[Option[ReadOnly.SegmentResponse]] =
+        Try(higherFromMap(key, currentMap))
+    }
+
+  def nextReader(otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]) =
+    new NextReader {
+      override def higher(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
+        findHigherInNextLevel(key, otherMaps)
+    }
+
   def findHigher(key: Slice[Byte],
                  currentMap: map.Map[Slice[Byte], Memory.SegmentResponse],
                  otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]): Try[Option[KeyValue.ReadOnly.Put]] =
     Higher(
       key = key,
-      higherFromCurrentLevel =
-        key =>
-          Try(higherFromMap(key, currentMap)),
-      get =
-        key =>
-          find(key, currentMap, otherMaps.asJava.iterator()),
-      higherInNextLevel =
-        key =>
-          findHigherInNextLevel(key, otherMaps)
+      currentReader = currentReader(currentMap, otherMaps),
+      nextReader = nextReader(otherMaps),
+      keyOrder = keyOrder,
+      timeOrder = timeOrder,
+      functionStore = functionStore
     )
 
   /**

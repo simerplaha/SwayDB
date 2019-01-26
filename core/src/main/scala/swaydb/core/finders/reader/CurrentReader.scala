@@ -17,8 +17,16 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb
+package swaydb.core.finders.reader
 
-class Street {
+import scala.util.Try
+import swaydb.core.data.KeyValue
+import swaydb.data.slice.Slice
+
+trait CurrentReader {
+
+  def get(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Put]]
+
+  def higher(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.SegmentResponse]]
 
 }

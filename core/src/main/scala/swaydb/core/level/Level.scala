@@ -21,7 +21,6 @@ package swaydb.core.level
 
 import java.nio.channels.{FileChannel, FileLock}
 import java.nio.file.{Path, StandardOpenOption}
-
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data._
@@ -46,7 +45,6 @@ import swaydb.data.config.Dir
 import swaydb.data.slice.Slice
 import swaydb.data.slice.Slice._
 import swaydb.data.storage.{AppendixStorage, LevelStorage}
-
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 import scala.collection.mutable
@@ -54,6 +52,7 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
 import FiniteDurationUtil._
+import swaydb.core.finders.reader.{CurrentReader, NextReader}
 import swaydb.core.function.FunctionStore
 import swaydb.data.order.{KeyOrder, TimeOrder}
 
@@ -917,7 +916,14 @@ private[core] class Level(val dirs: Seq[Dir],
     }
 
   override def higher(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Put]] =
-    Higher(key, higherInThisLevel, get, higherInNextLevel)
+    Higher(
+      key = key,
+      keyOrder = keyOrder,
+      timeOrder = timeOrder,
+      currentReader = this,
+      nextReader = nextLevel.getOrElse(NextReader.empty),
+      functionStore = functionStore
+    )
 
   /**
     * Does a quick appendix lookup.

@@ -21,21 +21,16 @@ package swaydb.core.segment.format.a
 
 import swaydb.core.TestBase
 import swaydb.core.data.Persistent._
+import swaydb.core.data.{Persistent, Time}
 import swaydb.core.group.compression.GroupDecompressor
 import swaydb.core.io.reader.Reader
-import swaydb.core.segment.format.a.KeyMatcher
 import swaydb.core.segment.format.a.MatchResult._
 import swaydb.core.segment.format.a.entry.reader.value.{LazyGroupValueReader, LazyRangeValueReader, LazyValueReader}
 import swaydb.data.order.KeyOrder
+import swaydb.data.repairAppendix.MaxKey
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.core.TestData._
-import swaydb.core.CommonAssertions._
-import swaydb.core.RunThis._
-import swaydb.core.TryAssert._
-import swaydb.core.data.{Persistent, Time}
-import swaydb.data.repairAppendix.MaxKey
 
 class KeyMatcherSpec extends TestBase {
 
