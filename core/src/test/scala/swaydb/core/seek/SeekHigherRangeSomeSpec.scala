@@ -34,7 +34,7 @@ import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
-class SeekSeekHigherRangeSomeSpec extends WordSpec with Matchers with MockFactory {
+class HigherRangeSomeSpec extends WordSpec with Matchers with MockFactory {
 
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder = TimeOrder.long
@@ -65,7 +65,7 @@ class SeekSeekHigherRangeSomeSpec extends WordSpec with Matchers with MockFactor
           }
           current.get _ expects (3: Slice[Byte]) returning Try(Some(toKeyGet))
         }
-        SeekHigher(0: Slice[Byte]).assertGet shouldBe toKeyGet
+        Higher(0: Slice[Byte]).assertGet shouldBe toKeyGet
       }
     }
 
@@ -90,7 +90,7 @@ class SeekSeekHigherRangeSomeSpec extends WordSpec with Matchers with MockFactor
           }
           current.get _ expects (3: Slice[Byte]) returning Try(Some(toKeyGet))
         }
-        SeekHigher(1: Slice[Byte]).assertGet shouldBe toKeyGet
+        Higher(1: Slice[Byte]).assertGet shouldBe toKeyGet
       }
     }
 
@@ -114,7 +114,7 @@ class SeekSeekHigherRangeSomeSpec extends WordSpec with Matchers with MockFactor
           }
           current.get _ expects (3: Slice[Byte]) returning Try(Some(toKeyGet))
         }
-        SeekHigher(2: Slice[Byte]).assertGet shouldBe toKeyGet
+        Higher(2: Slice[Byte]).assertGet shouldBe toKeyGet
       }
     }
 
@@ -134,7 +134,7 @@ class SeekSeekHigherRangeSomeSpec extends WordSpec with Matchers with MockFactor
           current.higher _ expects (3: Slice[Byte]) returning TryUtil.successNone
           next.higher _ expects (3: Slice[Byte]) returning Try(Some(result))
         }
-        SeekHigher(3: Slice[Byte]).assertGet shouldBe result
+        Higher(3: Slice[Byte]).assertGet shouldBe result
       }
     }
   }

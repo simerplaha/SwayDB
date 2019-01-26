@@ -34,7 +34,7 @@ import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
-class SeekSeekHigherFixedSomeSpec extends WordSpec with Matchers with MockFactory with OptionValues {
+class HigherFixedSomeSpec extends WordSpec with Matchers with MockFactory with OptionValues {
 
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder = TimeOrder.long
@@ -61,7 +61,7 @@ class SeekSeekHigherFixedSomeSpec extends WordSpec with Matchers with MockFactor
           next.higher    _ expects (0: Slice[Byte]) returning TryUtil.successNone
           //@formatter:on
         }
-        SeekHigher(0: Slice[Byte]).assertGet shouldBe put
+        Higher(0: Slice[Byte]).assertGet shouldBe put
       }
     }
 
@@ -83,7 +83,7 @@ class SeekSeekHigherFixedSomeSpec extends WordSpec with Matchers with MockFactor
           next.higher    _ expects (0: Slice[Byte]) returning Try(Some(put))
           //@formatter:on
         }
-        SeekHigher(0: Slice[Byte]).assertGet shouldBe put
+        Higher(0: Slice[Byte]).assertGet shouldBe put
       }
     }
 
@@ -108,7 +108,7 @@ class SeekSeekHigherFixedSomeSpec extends WordSpec with Matchers with MockFactor
           next.higher    _ expects (0: Slice[Byte]) returning Try(Some(lowerKeyValue))
           //@formatter:on
         }
-        SeekHigher(0: Slice[Byte]).assertGet shouldBe expected
+        Higher(0: Slice[Byte]).assertGet shouldBe expected
       }
     }
 
@@ -144,7 +144,7 @@ class SeekSeekHigherFixedSomeSpec extends WordSpec with Matchers with MockFactor
           if(!isUpperExpected) current.higher _ expects (1: Slice[Byte]) returning TryUtil.successNone
           //@formatter:on
         }
-        SeekHigher(0: Slice[Byte]).assertGet shouldBe expected
+        Higher(0: Slice[Byte]).assertGet shouldBe expected
       }
     }
 
@@ -166,7 +166,7 @@ class SeekSeekHigherFixedSomeSpec extends WordSpec with Matchers with MockFactor
           next.higher    _ expects (0: Slice[Byte]) returning Try(Some(lowerKeyValue))
           //@formatter:on
         }
-        SeekHigher(0: Slice[Byte]).assertGet shouldBe lowerKeyValue
+        Higher(0: Slice[Byte]).assertGet shouldBe lowerKeyValue
       }
     }
   }

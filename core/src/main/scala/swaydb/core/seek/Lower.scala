@@ -30,7 +30,7 @@ import swaydb.core.util.TryUtil
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
-private[core] object SeekLower {
+private[core] object Lower {
 
   private def lowerFromValue(key: Slice[Byte],
                              fromKey: Slice[Byte],
@@ -59,13 +59,13 @@ private[core] object SeekLower {
            currentSeeker: CurrentSeeker,
            nextSeeker: NextSeeker,
            functionStore: FunctionStore): Try[Option[KeyValue.ReadOnly.Put]] =
-    SeekLower(key, currentSeek, nextSeek)(keyOrder, timeOrder, currentSeeker, nextSeeker, functionStore)
+    Lower(key, currentSeek, nextSeek)(keyOrder, timeOrder, currentSeeker, nextSeeker, functionStore)
 
   /**
     * May be use trampolining instead and split the matches into their own functions to reduce
     * repeated boilerplate code & if does not effect read performance or adds to GC workload.
     *
-    * This and [[SeekHigher]] share a lot of the same code for certain [[Seek]] steps. Again trampolining
+    * This and [[Higher]] share a lot of the same code for certain [[Seek]] steps. Again trampolining
     * could help share this code and removing duplicates but only if there is no performance penalty.
     */
   @tailrec
@@ -88,10 +88,10 @@ private[core] object SeekLower {
       case (Seek.Next, Seek.Next) =>
         currentSeeker.lower(key) match {
           case Success(Some(lower)) =>
-            SeekLower(key, Stash.Current(lower), nextSeek)
+            Lower(key, Stash.Current(lower), nextSeek)
 
           case Success(None) =>
-            SeekLower(key, Seek.Stop, nextSeek)
+            Lower(key, Seek.Stop, nextSeek)
 
           case Failure(exception) =>
             Failure(exception)
@@ -109,10 +109,10 @@ private[core] object SeekLower {
                 if (Value.hasTimeLeft(rangeValue))
                   nextSeeker.lower(key) match {
                     case Success(Some(next)) =>
-                      SeekLower(key, currentStash, Stash.Next(next))
+                      Lower(key, currentStash, Stash.Next(next))
 
                     case Success(None) =>
-                      SeekLower(key, currentStash, Seek.Stop)
+                      Lower(key, currentStash, Seek.Stop)
 
                     case Failure(exception) =>
                       Failure(exception)
@@ -131,10 +131,10 @@ private[core] object SeekLower {
                         case None =>
                           nextSeeker.lower(key) match {
                             case Success(Some(nextLower)) =>
-                              SeekLower(key, currentStash, Stash.Next(nextLower))
+                              Lower(key, currentStash, Stash.Next(nextLower))
 
                             case Success(None) =>
-                              SeekLower(currentRange.fromKey, Seek.Next, Seek.Stop)
+                              Lower(currentRange.fromKey, Seek.Next, Seek.Stop)
 
                             case Failure(exception) =>
                               Failure(exception)
@@ -154,10 +154,10 @@ private[core] object SeekLower {
           case _: KeyValue.ReadOnly.Range =>
             nextSeeker.lower(key) match {
               case Success(Some(next)) =>
-                SeekLower(key, currentStash, Stash.Next(next))
+                Lower(key, currentStash, Stash.Next(next))
 
               case Success(None) =>
-                SeekLower(key, currentStash, Seek.Stop)
+                Lower(key, currentStash, Seek.Stop)
 
               case Failure(exception) =>
                 Failure(exception)
@@ -166,10 +166,10 @@ private[core] object SeekLower {
           case _: ReadOnly.Fixed =>
             nextSeeker.lower(key) match {
               case Success(Some(next)) =>
-                SeekLower(key, currentStash, Stash.Next(next))
+                Lower(key, currentStash, Stash.Next(next))
 
               case Success(None) =>
-                SeekLower(key, currentStash, Seek.Stop)
+                Lower(key, currentStash, Seek.Stop)
 
               case Failure(exception) =>
                 Failure(exception)
@@ -179,10 +179,10 @@ private[core] object SeekLower {
       case (Seek.Stop, Seek.Next) =>
         nextSeeker.lower(key) match {
           case Success(Some(next)) =>
-            SeekLower(key, currentSeek, Stash.Next(next))
+            Lower(key, currentSeek, Stash.Next(next))
 
           case Success(None) =>
-            SeekLower(key, currentSeek, Seek.Stop)
+            Lower(key, currentSeek, Seek.Stop)
 
           case Failure(exception) =>
             Failure(exception)
@@ -198,15 +198,15 @@ private[core] object SeekLower {
         if (next.hasTimeLeft())
           Success(Some(next))
         else
-          SeekLower(next.key, currentSeek, Seek.Next)
+          Lower(next.key, currentSeek, Seek.Next)
 
       case (Seek.Next, Stash.Next(_)) =>
         currentSeeker.lower(key) match {
           case Success(Some(current)) =>
-            SeekLower(key, Stash.Current(current), nextSeek)
+            Lower(key, Stash.Current(current), nextSeek)
 
           case Success(None) =>
-            SeekLower(key, Seek.Stop, nextSeek)
+            Lower(key, Seek.Stop, nextSeek)
 
           case Failure(exception) =>
             Failure(exception)
@@ -233,7 +233,7 @@ private[core] object SeekLower {
 
                     case _ =>
                       //if it doesn't result in an unexpired put move forward.
-                      SeekLower(current.key, Seek.Next, Seek.Next)
+                      Lower(current.key, Seek.Next, Seek.Next)
                   }
                 case Failure(exception) =>
                   Failure(exception)
@@ -247,7 +247,7 @@ private[core] object SeekLower {
 
                 //if it doesn't result in an unexpired put move forward.
                 case _ =>
-                  SeekLower(current.key, Seek.Next, nextStash)
+                  Lower(current.key, Seek.Next, nextStash)
               }
             //0
             //    2
@@ -282,7 +282,7 @@ private[core] object SeekLower {
                         case _ =>
                           //do need to check if range is expired because if it was then
                           //next would not have been read from next level in the first place.
-                          SeekLower(next.key, currentStash, Seek.Next)
+                          Lower(next.key, currentStash, Seek.Next)
 
                       }
 
@@ -319,7 +319,7 @@ private[core] object SeekLower {
                               Success(Some(put))
 
                             case _ =>
-                              SeekLower(next.key, Seek.Next, Seek.Next)
+                              Lower(next.key, Seek.Next, Seek.Next)
                           }
 
                         case Failure(exception) =>
@@ -343,7 +343,7 @@ private[core] object SeekLower {
                       Success(somePut)
 
                     case None =>
-                      SeekLower(current.fromKey, Seek.Next, nextStash)
+                      Lower(current.fromKey, Seek.Next, nextStash)
                   }
 
                 case Failure(exception) =>
@@ -360,10 +360,10 @@ private[core] object SeekLower {
       case (Seek.Next, Seek.Stop) =>
         currentSeeker.lower(key) match {
           case Success(Some(current)) =>
-            SeekLower(key, Stash.Current(current), nextSeek)
+            Lower(key, Stash.Current(current), nextSeek)
 
           case Success(None) =>
-            SeekLower(key, Seek.Stop, nextSeek)
+            Lower(key, Seek.Stop, nextSeek)
 
           case Failure(exception) =>
             Failure(exception)
@@ -375,19 +375,19 @@ private[core] object SeekLower {
             if (current.hasTimeLeft())
               Success(Some(current))
             else
-              SeekLower(current.key, Seek.Next, nextSeek)
+              Lower(current.key, Seek.Next, nextSeek)
 
           case _: KeyValue.ReadOnly.Remove =>
-            SeekLower(current.key, Seek.Next, nextSeek)
+            Lower(current.key, Seek.Next, nextSeek)
 
           case _: KeyValue.ReadOnly.Update =>
-            SeekLower(current.key, Seek.Next, nextSeek)
+            Lower(current.key, Seek.Next, nextSeek)
 
           case _: KeyValue.ReadOnly.Function =>
-            SeekLower(current.key, Seek.Next, nextSeek)
+            Lower(current.key, Seek.Next, nextSeek)
 
           case _: KeyValue.ReadOnly.PendingApply =>
-            SeekLower(current.key, Seek.Next, nextSeek)
+            Lower(current.key, Seek.Next, nextSeek)
 
           case current: KeyValue.ReadOnly.Range =>
             current.fetchFromValue match {
@@ -397,7 +397,7 @@ private[core] object SeekLower {
                     Success(somePut)
 
                   case None =>
-                    SeekLower(current.fromKey, Seek.Next, nextSeek)
+                    Lower(current.fromKey, Seek.Next, nextSeek)
                 }
 
               case Failure(exception) =>

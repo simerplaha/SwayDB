@@ -30,7 +30,7 @@ import swaydb.core.util.TryUtil
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
-private[core] object SeekHigher {
+private[core] object Higher {
 
   private def higherFromValue(key: Slice[Byte],
                               fromKey: Slice[Byte],
@@ -59,13 +59,13 @@ private[core] object SeekHigher {
            currentSeeker: CurrentSeeker,
            nextSeeker: NextSeeker,
            functionStore: FunctionStore): Try[Option[KeyValue.ReadOnly.Put]] =
-    SeekHigher(key, currentSeek, nextSeek)(keyOrder, timeOrder, currentSeeker, nextSeeker, functionStore)
+    Higher(key, currentSeek, nextSeek)(keyOrder, timeOrder, currentSeeker, nextSeeker, functionStore)
 
   /**
     * May be use trampolining instead and split the matches into their own functions to reduce
     * repeated boilerplate code & if does not effect read performance or adds to GC workload.
     *
-    * This and [[SeekLower]] share a lot of the same code for certain [[Seek]] steps. Again trampolining
+    * This and [[Lower]] share a lot of the same code for certain [[Seek]] steps. Again trampolining
     * could help share this code and removing duplicates but only if there is no performance penalty.
     */
   @tailrec
@@ -88,10 +88,10 @@ private[core] object SeekHigher {
       case (Seek.Next, Seek.Next) =>
         currentSeeker.higher(key) match {
           case Success(Some(higher)) =>
-            SeekHigher(key, Stash.Current(higher), nextSeek)
+            Higher(key, Stash.Current(higher), nextSeek)
 
           case Success(None) =>
-            SeekHigher(key, Seek.Stop, nextSeek)
+            Higher(key, Seek.Stop, nextSeek)
 
           case Failure(exception) =>
             Failure(exception)
@@ -110,10 +110,10 @@ private[core] object SeekHigher {
                 //if the higher from the current Level is a Fixed key-value, fetch from next Level and return the highest.
                   nextSeeker.higher(key) match {
                     case Success(Some(next)) =>
-                      SeekHigher(key, currentStash, Stash.Next(next))
+                      Higher(key, currentStash, Stash.Next(next))
 
                     case Success(None) =>
-                      SeekHigher(key, currentStash, Seek.Stop)
+                      Higher(key, currentStash, Seek.Stop)
 
                     case Failure(exception) =>
                       Failure(exception)
@@ -125,7 +125,7 @@ private[core] object SeekHigher {
                       Success(Some(ceiling))
 
                     case Success(_) =>
-                      SeekHigher(currentRange.toKey, Seek.Next, nextSeek)
+                      Higher(currentRange.toKey, Seek.Next, nextSeek)
 
                     case failed @ Failure(_) =>
                       failed
@@ -141,10 +141,10 @@ private[core] object SeekHigher {
           case _: KeyValue.ReadOnly.Range =>
             nextSeeker.higher(key) match {
               case Success(Some(next)) =>
-                SeekHigher(key, currentStash, Stash.Next(next))
+                Higher(key, currentStash, Stash.Next(next))
 
               case Success(None) =>
-                SeekHigher(key, currentStash, Seek.Stop)
+                Higher(key, currentStash, Seek.Stop)
 
               case Failure(exception) =>
                 Failure(exception)
@@ -153,10 +153,10 @@ private[core] object SeekHigher {
           case _: ReadOnly.Fixed =>
             nextSeeker.higher(key) match {
               case Success(Some(next)) =>
-                SeekHigher(key, currentStash, Stash.Next(next))
+                Higher(key, currentStash, Stash.Next(next))
 
               case Success(None) =>
-                SeekHigher(key, currentStash, Seek.Stop)
+                Higher(key, currentStash, Seek.Stop)
 
               case Failure(exception) =>
                 Failure(exception)
@@ -166,10 +166,10 @@ private[core] object SeekHigher {
       case (Seek.Stop, Seek.Next) =>
         nextSeeker.higher(key) match {
           case Success(Some(next)) =>
-            SeekHigher(key, currentSeek, Stash.Next(next))
+            Higher(key, currentSeek, Stash.Next(next))
 
           case Success(None) =>
-            SeekHigher(key, currentSeek, Seek.Stop)
+            Higher(key, currentSeek, Seek.Stop)
 
           case Failure(exception) =>
             Failure(exception)
@@ -185,15 +185,15 @@ private[core] object SeekHigher {
         if (next.hasTimeLeft())
           Success(Some(next))
         else
-          SeekHigher(next.key, currentSeek, Seek.Next)
+          Higher(next.key, currentSeek, Seek.Next)
 
       case (Seek.Next, Stash.Next(_)) =>
         currentSeeker.higher(key) match {
           case Success(Some(current)) =>
-            SeekHigher(key, Stash.Current(current), nextSeek)
+            Higher(key, Stash.Current(current), nextSeek)
 
           case Success(None) =>
-            SeekHigher(key, Seek.Stop, nextSeek)
+            Higher(key, Seek.Stop, nextSeek)
 
           case Failure(exception) =>
             Failure(exception)
@@ -220,7 +220,7 @@ private[core] object SeekHigher {
 
                     case _ =>
                       //if it doesn't result in an unexpired put move forward.
-                      SeekHigher(current.key, Seek.Next, Seek.Next)
+                      Higher(current.key, Seek.Next, Seek.Next)
                   }
                 case Failure(exception) =>
                   Failure(exception)
@@ -234,7 +234,7 @@ private[core] object SeekHigher {
 
                 //if it doesn't result in an unexpired put move forward.
                 case _ =>
-                  SeekHigher(current.key, Seek.Next, nextStash)
+                  Higher(current.key, Seek.Next, nextStash)
               }
             //    2
             //0
@@ -266,7 +266,7 @@ private[core] object SeekHigher {
                         case _ =>
                           //do need to check if range is expired because if it was then
                           //next would not have been read from next level in the first place.
-                          SeekHigher(next.key, currentStash, Seek.Next)
+                          Higher(next.key, currentStash, Seek.Next)
 
                       }
 
@@ -298,7 +298,7 @@ private[core] object SeekHigher {
                             case _ =>
                               //fetch the next key keeping the current stash. next.key's higher is still current range
                               //since it's < range's toKey
-                              SeekHigher(next.key, currentStash, Seek.Next)
+                              Higher(next.key, currentStash, Seek.Next)
                           }
 
                         case Failure(exception) =>
@@ -326,10 +326,10 @@ private[core] object SeekHigher {
                           if (put.hasTimeLeft())
                             found
                           else
-                            SeekHigher(current.toKey, Seek.Next, nextStash)
+                            Higher(current.toKey, Seek.Next, nextStash)
 
                         case Success(None) =>
-                          SeekHigher(current.toKey, Seek.Next, nextStash)
+                          Higher(current.toKey, Seek.Next, nextStash)
 
                         case Failure(exception) =>
                           Failure(exception)
@@ -350,10 +350,10 @@ private[core] object SeekHigher {
       case (Seek.Next, Seek.Stop) =>
         currentSeeker.higher(key) match {
           case Success(Some(current)) =>
-            SeekHigher(key, Stash.Current(current), nextSeek)
+            Higher(key, Stash.Current(current), nextSeek)
 
           case Success(None) =>
-            SeekHigher(key, Seek.Stop, nextSeek)
+            Higher(key, Seek.Stop, nextSeek)
 
           case Failure(exception) =>
             Failure(exception)
@@ -365,19 +365,19 @@ private[core] object SeekHigher {
             if (current.hasTimeLeft())
               Success(Some(current))
             else
-              SeekHigher(current.key, Seek.Next, nextSeek)
+              Higher(current.key, Seek.Next, nextSeek)
 
           case _: KeyValue.ReadOnly.Remove =>
-            SeekHigher(current.key, Seek.Next, nextSeek)
+            Higher(current.key, Seek.Next, nextSeek)
 
           case _: KeyValue.ReadOnly.Update =>
-            SeekHigher(current.key, Seek.Next, nextSeek)
+            Higher(current.key, Seek.Next, nextSeek)
 
           case _: KeyValue.ReadOnly.Function =>
-            SeekHigher(current.key, Seek.Next, nextSeek)
+            Higher(current.key, Seek.Next, nextSeek)
 
           case _: KeyValue.ReadOnly.PendingApply =>
-            SeekHigher(current.key, Seek.Next, nextSeek)
+            Higher(current.key, Seek.Next, nextSeek)
 
           case current: KeyValue.ReadOnly.Range =>
             current.fetchFromValue match {
@@ -389,10 +389,10 @@ private[core] object SeekHigher {
                   case None =>
                     currentSeeker.get(current.toKey) match {
                       case Success(Some(put)) =>
-                        SeekHigher(key, Stash.Current(put), nextSeek)
+                        Higher(key, Stash.Current(put), nextSeek)
 
                       case Success(None) =>
-                        SeekHigher(current.toKey, Seek.Next, nextSeek)
+                        Higher(current.toKey, Seek.Next, nextSeek)
 
                       case Failure(exception) =>
                         Failure(exception)

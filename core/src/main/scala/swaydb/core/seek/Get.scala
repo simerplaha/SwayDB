@@ -29,13 +29,20 @@ import swaydb.core.util.TryUtil
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
-private[core] object SeekGet {
+private[core] object Get {
 
-  def apply(key: Slice[Byte],
-            getFromCurrentLevel: Slice[Byte] => Try[Option[KeyValue.ReadOnly.SegmentResponse]],
-            getFromNextLevel: Slice[Byte] => Try[Option[KeyValue.ReadOnly.Put]])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                 timeOrder: TimeOrder[Slice[Byte]],
-                                                                                 functionStore: FunctionStore): Try[Option[KeyValue.ReadOnly.Put]] = {
+  def seek(key: Slice[Byte],
+           currentGetter: CurrentGetter,
+           nextGetter: NextGetter)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                   timeOrder: TimeOrder[Slice[Byte]],
+                                   functionStore: FunctionStore): Try[Option[KeyValue.ReadOnly.Put]] =
+    Get(key)(keyOrder = keyOrder, timeOrder = timeOrder, currentGetter, nextGetter, functionStore)
+
+  def apply(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                              timeOrder: TimeOrder[Slice[Byte]],
+                              currentGetter: CurrentGetter,
+                              nextGetter: NextGetter,
+                              functionStore: FunctionStore): Try[Option[KeyValue.ReadOnly.Put]] = {
 
     import keyOrder._
 
@@ -44,7 +51,7 @@ private[core] object SeekGet {
       current match {
         case current: KeyValue.ReadOnly.Remove =>
           if (current.hasTimeLeft())
-            getFromNextLevel(key) map {
+            nextGetter.get(key) map {
               nextOption =>
                 nextOption flatMap {
                   next =>
@@ -71,7 +78,7 @@ private[core] object SeekGet {
 
         case current: KeyValue.ReadOnly.Update =>
           if (current.hasTimeLeft())
-            getFromNextLevel(key) map {
+            nextGetter.get(key) map {
               nextOption =>
                 nextOption flatMap {
                   next =>
@@ -103,7 +110,7 @@ private[core] object SeekGet {
           }
 
         case current: KeyValue.ReadOnly.Function =>
-          getFromNextLevel(key) flatMap {
+          nextGetter.get(key) flatMap {
             nextOption =>
               nextOption map {
                 next =>
@@ -126,7 +133,7 @@ private[core] object SeekGet {
           }
 
         case current: KeyValue.ReadOnly.PendingApply =>
-          getFromNextLevel(key) flatMap {
+          nextGetter.get(key) flatMap {
             nextOption =>
               nextOption map {
                 next =>
@@ -149,12 +156,12 @@ private[core] object SeekGet {
           }
       }
 
-    getFromCurrentLevel(key) flatMap {
+    currentGetter.get(key) flatMap {
       case Some(current) =>
         returnSegmentResponse(current)
 
       case None =>
-        getFromNextLevel(key)
+        nextGetter.get(key)
     }
   }
 }

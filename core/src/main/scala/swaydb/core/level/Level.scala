@@ -205,7 +205,7 @@ private[core] class Level(val dirs: Seq[Dir],
 
   logger.info(s"{}: Level started.", paths)
 
-  private implicit val currentReader =
+  private implicit val currentSeeker =
     new CurrentSeeker {
       override def get(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
         self get key
@@ -217,13 +217,25 @@ private[core] class Level(val dirs: Seq[Dir],
         self lowerInThisLevel key
     }
 
-  private implicit val nextReader =
+  private implicit val nextSeeker =
     new NextSeeker {
       override def higher(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
         higherInNextLevel(key)
 
       override def lower(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
         lowerFromNextLevel(key)
+    }
+
+  private implicit val currentGetter =
+    new CurrentGetter {
+      override def get(key: Slice[Byte]): Try[Option[ReadOnly.SegmentResponse]] =
+        getFromThisLevel(key)
+    }
+
+  private implicit val nextGetter =
+    new NextGetter {
+      override def get(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
+        getFromNextLevel(key)
     }
 
   val removeDeletedRecords = Level.removeDeletes(nextLevel)
@@ -862,7 +874,7 @@ private[core] class Level(val dirs: Seq[Dir],
     nextLevel.map(_.get(key)) getOrElse TryUtil.successNone
 
   override def get(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Put]] =
-    SeekGet(key, getFromThisLevel, getFromNextLevel)
+    Get(key)
 
   def mightContainInThisLevel(key: Slice[Byte]): Try[Boolean] =
     appendix.floor(key) match {
@@ -939,7 +951,7 @@ private[core] class Level(val dirs: Seq[Dir],
     }
 
   override def higher(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Put]] =
-    SeekHigher(
+    Higher(
       key = key,
       currentSeek = Seek.Next,
       nextSeek = Seek.Next

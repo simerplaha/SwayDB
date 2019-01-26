@@ -32,7 +32,7 @@ import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
-class SeekSeekHigherFixedNoneSpec extends WordSpec with Matchers with MockFactory with OptionValues {
+class HigherFixedNoneSpec extends WordSpec with Matchers with MockFactory with OptionValues {
 
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder = TimeOrder.long
@@ -57,7 +57,7 @@ class SeekSeekHigherFixedNoneSpec extends WordSpec with Matchers with MockFactor
           next.higher    _ expects (0: Slice[Byte]) returning TryUtil.successNone
           //@formatter:on
         }
-        SeekHigher(0: Slice[Byte]).assertGetOpt shouldBe empty
+        Higher(0: Slice[Byte]).assertGetOpt shouldBe empty
       }
     }
 
@@ -79,7 +79,7 @@ class SeekSeekHigherFixedNoneSpec extends WordSpec with Matchers with MockFactor
           current.higher _ expects (1: Slice[Byte]) returning TryUtil.successNone
           //@formatter:on
         }
-        SeekHigher(0: Slice[Byte]).assertGetOpt shouldBe empty
+        Higher(0: Slice[Byte]).assertGetOpt shouldBe empty
       }
     }
 
@@ -102,7 +102,7 @@ class SeekSeekHigherFixedNoneSpec extends WordSpec with Matchers with MockFactor
           next.higher    _ expects (1: Slice[Byte]) returning TryUtil.successNone
           //@formatter:on
         }
-        SeekHigher(0: Slice[Byte]).assertGetOpt shouldBe empty
+        Higher(0: Slice[Byte]).assertGetOpt shouldBe empty
       }
     }
 
@@ -128,13 +128,13 @@ class SeekSeekHigherFixedNoneSpec extends WordSpec with Matchers with MockFactor
           next.higher    _ expects (2: Slice[Byte]) returning TryUtil.successNone
           //@formatter:on
         }
-        SeekHigher(0: Slice[Byte]).assertGetOpt shouldBe empty
+        Higher(0: Slice[Byte]).assertGetOpt shouldBe empty
       }
     }
 
     //   0
     //       2
     //     1
-    //this test is not implemented as it would result in a put. See SeekHigherFixedSomeSpec
+    //this test is not implemented as it would result in a put. See HigherFixedSomeSpec
   }
 }

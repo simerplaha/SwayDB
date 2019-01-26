@@ -2038,13 +2038,13 @@ object TestData {
     } flatten
   }
 
-  implicit class HigherImplicits(higher: SeekHigher.type) {
+  implicit class HigherImplicits(higher: Higher.type) {
     def apply(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                 timeOrder: TimeOrder[Slice[Byte]],
                                 currentReader: CurrentSeeker,
                                 nextReader: NextSeeker,
                                 functionStore: FunctionStore): Try[Option[KeyValue.ReadOnly.Put]] =
-      SeekHigher(key, Seek.Next, Seek.Next)
+      Higher(key, Seek.Next, Seek.Next)
   }
 }
 

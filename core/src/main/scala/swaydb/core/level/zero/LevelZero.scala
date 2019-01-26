@@ -310,17 +310,27 @@ private[core] class LevelZero(val path: Path,
       nextLevel.map(_ get key) getOrElse TryUtil.successNone
     }
 
+  def currentGetter(key: Slice[Byte],
+                    currentMap: map.Map[Slice[Byte], Memory.SegmentResponse]) =
+    new CurrentGetter {
+      override def get(key: Slice[Byte]): Try[Option[ReadOnly.SegmentResponse]] =
+        Try(getFromMap(key, currentMap))
+    }
+
+  def newGetter(key: Slice[Byte],
+                mapsIterator: util.Iterator[map.Map[Slice[Byte], Memory.SegmentResponse]]) =
+    new NextGetter {
+      override def get(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
+        getFromNextLevel(key, mapsIterator)
+    }
+
   private def find(key: Slice[Byte],
                    currentMap: map.Map[Slice[Byte], Memory.SegmentResponse],
                    mapsIterator: util.Iterator[map.Map[Slice[Byte], Memory.SegmentResponse]]): Try[Option[KeyValue.ReadOnly.Put]] =
-    SeekGet(
+    Get.seek(
       key = key,
-      getFromCurrentLevel =
-        key =>
-          Try(getFromMap(key, currentMap)),
-      getFromNextLevel =
-        key =>
-          getFromNextLevel(key, mapsIterator)
+      currentGetter = currentGetter(key, currentMap),
+      nextGetter = newGetter(key, mapsIterator)
     )
 
   def get(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
@@ -474,7 +484,7 @@ private[core] class LevelZero(val path: Path,
   def findHigher(key: Slice[Byte],
                  currentMap: map.Map[Slice[Byte], Memory.SegmentResponse],
                  otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]): Try[Option[KeyValue.ReadOnly.Put]] =
-    SeekHigher.seek(
+    Higher.seek(
       key = key,
       currentSeek = Seek.Next,
       nextSeek = Seek.Next,
@@ -539,7 +549,7 @@ private[core] class LevelZero(val path: Path,
   def findLower(key: Slice[Byte],
                 currentMap: map.Map[Slice[Byte], Memory.SegmentResponse],
                 otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]): Try[Option[KeyValue.ReadOnly.Put]] =
-    SeekLower.seek(
+    Lower.seek(
       key = key,
       currentSeek = Seek.Next,
       nextSeek = Seek.Next,

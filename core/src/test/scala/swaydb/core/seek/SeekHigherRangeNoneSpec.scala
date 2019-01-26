@@ -32,7 +32,7 @@ import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
-class SeekSeekHigherRangeNoneSpec extends WordSpec with Matchers with MockFactory {
+class HigherRangeNoneSpec extends WordSpec with Matchers with MockFactory {
 
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder = TimeOrder.long
@@ -63,7 +63,7 @@ class SeekSeekHigherRangeNoneSpec extends WordSpec with Matchers with MockFactor
                 current.higher _ expects (10: Slice[Byte]) returning TryUtil.successNone
                 //@formatter:on
               }
-              SeekHigher(key: Slice[Byte]).assertGetOpt shouldBe empty
+              Higher(key: Slice[Byte]).assertGetOpt shouldBe empty
           }
         }
       }
@@ -90,7 +90,7 @@ class SeekSeekHigherRangeNoneSpec extends WordSpec with Matchers with MockFactor
                 next.higher    _ expects (10: Slice[Byte]) returning TryUtil.successNone
                 //@formatter:on
               }
-              SeekHigher(key: Slice[Byte]).assertGetOpt shouldBe empty
+              Higher(key: Slice[Byte]).assertGetOpt shouldBe empty
           }
         }
       }
@@ -117,7 +117,7 @@ class SeekSeekHigherRangeNoneSpec extends WordSpec with Matchers with MockFactor
             current.higher _ expects (10: Slice[Byte]) returning TryUtil.successNone
             //@formatter:on
           }
-          SeekHigher(0: Slice[Byte]).assertGetOpt shouldBe empty
+          Higher(0: Slice[Byte]).assertGetOpt shouldBe empty
         }
       }
 
@@ -139,7 +139,7 @@ class SeekSeekHigherRangeNoneSpec extends WordSpec with Matchers with MockFactor
             current.higher _ expects (10: Slice[Byte]) returning TryUtil.successNone
             //@formatter:on
           }
-          SeekHigher(0: Slice[Byte]).assertGetOpt shouldBe empty
+          Higher(0: Slice[Byte]).assertGetOpt shouldBe empty
         }
       }
     }

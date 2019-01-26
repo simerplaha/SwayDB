@@ -34,7 +34,7 @@ import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
-class SeekGetSomeSpec extends WordSpec with Matchers with MockFactory with OptionValues {
+class GetSomeSpec extends WordSpec with Matchers with MockFactory with OptionValues {
 
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder = TimeOrder.long
@@ -45,13 +45,13 @@ class SeekGetSomeSpec extends WordSpec with Matchers with MockFactory with Optio
       runThis(10.times) {
         implicit val timeGenerator = eitherOne(TestTimeGenerator.Decremental(), TestTimeGenerator.Empty)
 
-        val getFromCurrentLevel = mockFunction[Slice[Byte], Try[Option[KeyValue.ReadOnly.SegmentResponse]]]
-        val getFromNextLevel = mockFunction[Slice[Byte], Try[Option[KeyValue.ReadOnly.Put]]]
+        implicit val getFromCurrentLevel = mock[CurrentGetter]
+        implicit val getFromNextLevel = mock[NextGetter]
 
         val keyValue = randomPutKeyValue(1, deadline = randomDeadlineOption(false))
-        getFromCurrentLevel expects (1: Slice[Byte]) returning Try(Some(keyValue))
+        getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning Try(Some(keyValue))
 
-        SeekGet(1, getFromCurrentLevel, getFromNextLevel).assertGet shouldBe keyValue
+        Get(1).assertGet shouldBe keyValue
       }
     }
 
@@ -59,17 +59,17 @@ class SeekGetSomeSpec extends WordSpec with Matchers with MockFactory with Optio
       runThis(10.times) {
         implicit val timeGenerator = eitherOne(TestTimeGenerator.Decremental(), TestTimeGenerator.Empty)
 
-        val getFromCurrentLevel = mockFunction[Slice[Byte], Try[Option[KeyValue.ReadOnly.SegmentResponse]]]
-        val getFromNextLevel = mockFunction[Slice[Byte], Try[Option[KeyValue.ReadOnly.Put]]]
+        implicit val getFromCurrentLevel = mock[CurrentGetter]
+        implicit val getFromNextLevel = mock[NextGetter]
 
         val remove = randomRemoveKeyValue(1, Some(randomDeadline(expired = false)))
         val put = randomPutKeyValue(1, deadline = randomDeadlineOption(expired = false))
         val expect = put.copy(deadline = remove.deadline.orElse(put.deadline), time = remove.time)
 
-        getFromCurrentLevel expects (1: Slice[Byte]) returning Try(Some(remove))
-        getFromNextLevel expects (1: Slice[Byte]) returning Try(Some(put))
+        getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning Try(Some(remove))
+        getFromNextLevel.get _ expects (1: Slice[Byte]) returning Try(Some(put))
 
-        SeekGet(1, getFromCurrentLevel, getFromNextLevel).assertGet shouldBe expect
+        Get(1).assertGet shouldBe expect
       }
     }
 
@@ -77,17 +77,17 @@ class SeekGetSomeSpec extends WordSpec with Matchers with MockFactory with Optio
       runThis(10.times) {
         implicit val timeGenerator = eitherOne(TestTimeGenerator.Decremental(), TestTimeGenerator.Empty)
 
-        val getFromCurrentLevel = mockFunction[Slice[Byte], Try[Option[KeyValue.ReadOnly.SegmentResponse]]]
-        val getFromNextLevel = mockFunction[Slice[Byte], Try[Option[KeyValue.ReadOnly.Put]]]
+        implicit val getFromCurrentLevel = mock[CurrentGetter]
+        implicit val getFromNextLevel = mock[NextGetter]
 
         val update = randomUpdateKeyValue(1, deadline = randomDeadlineOption(expired = false))
         val put = randomPutKeyValue(1, deadline = randomDeadlineOption(expired = false))
         val expect = put.copy(deadline = update.deadline.orElse(put.deadline), value = update.value, time = update.time)
 
-        getFromCurrentLevel expects (1: Slice[Byte]) returning Try(Some(update))
-        getFromNextLevel expects (1: Slice[Byte]) returning Try(Some(put))
+        getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning Try(Some(update))
+        getFromNextLevel.get _ expects (1: Slice[Byte]) returning Try(Some(put))
 
-        SeekGet(1, getFromCurrentLevel, getFromNextLevel).assertGet shouldBe expect
+        Get(1).assertGet shouldBe expect
       }
     }
 
@@ -95,8 +95,8 @@ class SeekGetSomeSpec extends WordSpec with Matchers with MockFactory with Optio
       runThis(10.times) {
         implicit val timeGenerator = eitherOne(TestTimeGenerator.Decremental(), TestTimeGenerator.Empty)
 
-        val getFromCurrentLevel = mockFunction[Slice[Byte], Try[Option[KeyValue.ReadOnly.SegmentResponse]]]
-        val getFromNextLevel = mockFunction[Slice[Byte], Try[Option[KeyValue.ReadOnly.Put]]]
+        implicit val getFromCurrentLevel = mock[CurrentGetter]
+        implicit val getFromNextLevel = mock[NextGetter]
 
         val function =
           randomKeyValueFunctionKeyValue(
@@ -111,10 +111,10 @@ class SeekGetSomeSpec extends WordSpec with Matchers with MockFactory with Optio
         val put = randomPutKeyValue(1, deadline = randomDeadlineOption(expired = false))
         val expect = FunctionMerger(function, put).assertGet
 
-        getFromCurrentLevel expects (1: Slice[Byte]) returning Try(Some(function))
-        getFromNextLevel expects (1: Slice[Byte]) returning Try(Some(put))
+        getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning Try(Some(function))
+        getFromNextLevel.get _ expects (1: Slice[Byte]) returning Try(Some(put))
 
-        SeekGet(1, getFromCurrentLevel, getFromNextLevel).assertGet shouldBe expect
+        Get(1).assertGet shouldBe expect
       }
     }
 
@@ -122,8 +122,8 @@ class SeekGetSomeSpec extends WordSpec with Matchers with MockFactory with Optio
       runThis(10.times) {
         implicit val timeGenerator = eitherOne(TestTimeGenerator.Decremental(), TestTimeGenerator.Empty)
 
-        val getFromCurrentLevel = mockFunction[Slice[Byte], Try[Option[KeyValue.ReadOnly.SegmentResponse]]]
-        val getFromNextLevel = mockFunction[Slice[Byte], Try[Option[KeyValue.ReadOnly.Put]]]
+        implicit val getFromCurrentLevel = mock[CurrentGetter]
+        implicit val getFromNextLevel = mock[NextGetter]
 
         val pendingApply =
           randomPendingApplyKeyValue(
@@ -141,10 +141,10 @@ class SeekGetSomeSpec extends WordSpec with Matchers with MockFactory with Optio
 
         val expected = PendingApplyMerger(pendingApply, put).assertGet
 
-        getFromCurrentLevel expects (1: Slice[Byte]) returning Try(Some(pendingApply))
-        getFromNextLevel expects (1: Slice[Byte]) returning Try(Some(put))
+        getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning Try(Some(pendingApply))
+        getFromNextLevel.get _ expects (1: Slice[Byte]) returning Try(Some(put))
 
-        SeekGet(1, getFromCurrentLevel, getFromNextLevel).assertGet shouldBe expected
+        Get(1).assertGet shouldBe expected
       }
     }
 
@@ -152,16 +152,16 @@ class SeekGetSomeSpec extends WordSpec with Matchers with MockFactory with Optio
       runThis(10.times) {
         implicit val timeGenerator = eitherOne(TestTimeGenerator.Decremental(), TestTimeGenerator.Empty)
 
-        val getFromCurrentLevel = mockFunction[Slice[Byte], Try[Option[KeyValue.ReadOnly.SegmentResponse]]]
-        val getFromNextLevel = mockFunction[Slice[Byte], Try[Option[KeyValue.ReadOnly.Put]]]
+        implicit val getFromCurrentLevel = mock[CurrentGetter]
+        implicit val getFromNextLevel = mock[NextGetter]
 
         val fromValue = Value.put(None, randomDeadlineOption(false))
 
         val range = randomRangeKeyValue(1, 10, Some(fromValue))
 
-        getFromCurrentLevel expects (1: Slice[Byte]) returning Try(Some(range))
+        getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning Try(Some(range))
 
-        SeekGet(1, getFromCurrentLevel, getFromNextLevel).assertGet shouldBe fromValue.toMemory(1)
+        Get(1).assertGet shouldBe fromValue.toMemory(1)
       }
     }
 
@@ -169,8 +169,8 @@ class SeekGetSomeSpec extends WordSpec with Matchers with MockFactory with Optio
       runThis(30.times) {
         implicit val timeGenerator = eitherOne(TestTimeGenerator.Decremental(), TestTimeGenerator.Empty)
 
-        val getFromCurrentLevel = mockFunction[Slice[Byte], Try[Option[KeyValue.ReadOnly.SegmentResponse]]]
-        val getFromNextLevel = mockFunction[Slice[Byte], Try[Option[KeyValue.ReadOnly.Put]]]
+        implicit val getFromCurrentLevel = mock[CurrentGetter]
+        implicit val getFromNextLevel = mock[NextGetter]
 
         val functionValue =
           randomKeyValueFunctionKeyValue(
@@ -187,11 +187,11 @@ class SeekGetSomeSpec extends WordSpec with Matchers with MockFactory with Optio
 
         val expected = FixedMerger(functionValue, put).assertGet
 
-        getFromCurrentLevel expects (1: Slice[Byte]) returning Try(Some(range))
+        getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning Try(Some(range))
         //next level can return anything it will be removed.
-        getFromNextLevel expects (1: Slice[Byte]) returning Try(Some(put))
+        getFromNextLevel.get _ expects (1: Slice[Byte]) returning Try(Some(put))
 
-        SeekGet(1, getFromCurrentLevel, getFromNextLevel).assertGet shouldBe expected
+        Get(1).assertGet shouldBe expected
       }
     }
   }
