@@ -29,4 +29,6 @@ trait CurrentFinder {
 
   def higher(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.SegmentResponse]]
 
+  def lower(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.SegmentResponse]]
+
 }

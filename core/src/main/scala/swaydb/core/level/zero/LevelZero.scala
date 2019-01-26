@@ -457,12 +457,18 @@ private[core] class LevelZero(val path: Path,
 
       override def higher(key: Slice[Byte]): Try[Option[ReadOnly.SegmentResponse]] =
         Try(higherFromMap(key, currentMap))
+
+      override def lower(key: Slice[Byte]): Try[Option[ReadOnly.SegmentResponse]] =
+        Try(lowerFromMap(key, currentMap))
     }
 
   def nextReader(otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]) =
     new NextFinder {
       override def higher(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
         findHigherInNextLevel(key, otherMaps)
+
+      override def lower(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
+        findLowerInNextLevel(key, otherMaps)
     }
 
   def findHigher(key: Slice[Byte],
@@ -500,11 +506,11 @@ private[core] class LevelZero(val path: Path,
   @tailrec
   private def lowerFromMap(key: Slice[Byte],
                            currentMap: map.Map[Slice[Byte], Memory.SegmentResponse],
-                           preFetched: Option[Memory] = None): Option[Memory] =
+                           preFetched: Option[Memory] = None): Option[Memory.SegmentResponse] =
     if (currentMap.hasRange)
       preFetched orElse currentMap.floor(key) match {
-        case floor @ Some(floorRange: Memory.Range) if key > floorRange.fromKey && key <= floorRange.toKey =>
-          floor
+        case Some(floorRange: Memory.Range) if key > floorRange.fromKey && key <= floorRange.toKey =>
+          Some(floorRange)
 
         case Some(range: Memory.Range) =>
           val reFetched = currentMap.floor(key)

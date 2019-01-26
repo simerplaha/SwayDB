@@ -29,12 +29,17 @@ trait NextFinder {
 
   def higher(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Put]]
 
+  def lower(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Put]]
+
 }
 
 object NextFinder {
   val empty =
     new NextFinder {
       override def higher(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
+        TryUtil.successNone
+
+      override def lower(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
         TryUtil.successNone
     }
 }

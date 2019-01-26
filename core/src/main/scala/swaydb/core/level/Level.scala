@@ -205,6 +205,27 @@ private[core] class Level(val dirs: Seq[Dir],
 
   logger.info(s"{}: Level started.", paths)
 
+  private implicit val currentReader =
+    new CurrentFinder {
+      override def get(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
+        self get key
+
+      override def higher(key: Slice[Byte]): Try[Option[ReadOnly.SegmentResponse]] =
+        higherInThisLevel(key)
+
+      override def lower(key: Slice[Byte]): Try[Option[ReadOnly.SegmentResponse]] =
+        self lowerInThisLevel key
+    }
+
+  private implicit val nextReader =
+    new NextFinder {
+      override def higher(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
+        higherInNextLevel(key)
+
+      override def lower(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
+        lowerFromNextLevel(key)
+    }
+
   val removeDeletedRecords = Level.removeDeletes(nextLevel)
 
   def rootPath: Path =
@@ -891,7 +912,7 @@ private[core] class Level(val dirs: Seq[Dir],
   private def higherFromHigherSegment(key: Slice[Byte]): Try[Option[ReadOnly.SegmentResponse]] =
     appendix.higherValue(key).map(_.higher(key)) getOrElse TryUtil.successNone
 
-  private def higherInThisLevel(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.SegmentResponse]] =
+  private[core] def higherInThisLevel(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.SegmentResponse]] =
     higherFromFloorSegment(key) flatMap {
       fromFloor =>
         if (fromFloor.isDefined)
@@ -913,21 +934,6 @@ private[core] class Level(val dirs: Seq[Dir],
 
       case failed @ Failure(_) =>
         failed
-    }
-
-  implicit val currentReader =
-    new CurrentFinder {
-      override def get(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
-        self.get(key)
-
-      override def higher(key: Slice[Byte]): Try[Option[ReadOnly.SegmentResponse]] =
-        higherInThisLevel(key)
-    }
-
-  implicit val nextReader =
-    new NextFinder {
-      override def higher(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
-        higherInNextLevel(key)
     }
 
   override def higher(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Put]] =

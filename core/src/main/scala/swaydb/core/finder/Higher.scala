@@ -86,8 +86,8 @@ private[core] object Higher {
             currentSeek: CurrentSeek,
             nextSeek: NextSeek)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                 timeOrder: TimeOrder[Slice[Byte]],
-                                currentReader: CurrentFinder,
-                                nextReader: NextFinder,
+                                currentFinder: CurrentFinder,
+                                nextFinder: NextFinder,
                                 functionStore: FunctionStore): Try[Option[KeyValue.ReadOnly.Put]] = {
     import keyOrder._
 
@@ -99,7 +99,7 @@ private[core] object Higher {
         * ********************************************************/
 
       case (Seek.Next, Seek.Next) =>
-        currentReader.higher(key) match {
+        currentFinder.higher(key) match {
           case Success(Some(higher)) =>
             Higher(key, Stash.Current(higher), nextSeek)
 
@@ -121,7 +121,7 @@ private[core] object Higher {
                 //if the current range is active fetch the highest from next Level and return highest from both Levels.
                 if (Value.hasTimeLeft(rangeValue))
                 //if the higher from the current Level is a Fixed key-value, fetch from next Level and return the highest.
-                  nextReader.higher(key) match {
+                  nextFinder.higher(key) match {
                     case Success(Some(next)) =>
                       Higher(key, currentStash, Stash.Next(next))
 
@@ -133,7 +133,7 @@ private[core] object Higher {
                   }
 
                 else //if the rangeValue is expired then the higher is ceiling of toKey
-                  currentReader.get(currentRange.toKey) match {
+                  currentFinder.get(currentRange.toKey) match {
                     case Success(Some(ceiling)) if ceiling.hasTimeLeft() =>
                       Success(Some(ceiling))
 
@@ -152,7 +152,7 @@ private[core] object Higher {
           //0           (input key)
           //    10 - 20 (higher range)
           case _: KeyValue.ReadOnly.Range =>
-            nextReader.higher(key) match {
+            nextFinder.higher(key) match {
               case Success(Some(next)) =>
                 Higher(key, currentStash, Stash.Next(next))
 
@@ -164,7 +164,7 @@ private[core] object Higher {
             }
 
           case _: ReadOnly.Fixed =>
-            nextReader.higher(key) match {
+            nextFinder.higher(key) match {
               case Success(Some(next)) =>
                 Higher(key, currentStash, Stash.Next(next))
 
@@ -177,7 +177,7 @@ private[core] object Higher {
         }
 
       case (Seek.Stop, Seek.Next) =>
-        nextReader.higher(key) match {
+        nextFinder.higher(key) match {
           case Success(Some(next)) =>
             Higher(key, currentSeek, Stash.Next(next))
 
@@ -201,7 +201,7 @@ private[core] object Higher {
           Higher(next.key, currentSeek, Seek.Next)
 
       case (Seek.Next, Stash.Next(_)) =>
-        currentReader.higher(key) match {
+        currentFinder.higher(key) match {
           case Success(Some(current)) =>
             Higher(key, Stash.Current(current), nextSeek)
 
@@ -334,7 +334,7 @@ private[core] object Higher {
                       Success(somePut)
 
                     case None =>
-                      currentReader.get(current.toKey) match {
+                      currentFinder.get(current.toKey) match {
                         case found @ Success(Some(put)) =>
                           if (put.hasTimeLeft())
                             found
@@ -361,7 +361,7 @@ private[core] object Higher {
         * ********************************************************/
 
       case (Seek.Next, Seek.Stop) =>
-        currentReader.higher(key) match {
+        currentFinder.higher(key) match {
           case Success(Some(current)) =>
             Higher(key, Stash.Current(current), nextSeek)
 
@@ -400,7 +400,7 @@ private[core] object Higher {
                     Success(somePut)
 
                   case None =>
-                    currentReader.get(current.toKey) match {
+                    currentFinder.get(current.toKey) match {
                       case Success(Some(put)) =>
                         Higher(key, Stash.Current(put), nextSeek)
 
