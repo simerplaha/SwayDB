@@ -32,9 +32,12 @@ import swaydb.data.slice.Slice
 
 private[core] object Higher {
 
-  private def higherFromValue(key: Slice[Byte],
-                              fromKey: Slice[Byte],
-                              fromValue: Option[Value.FromValue])(implicit keyOrder: KeyOrder[Slice[Byte]]): Option[Memory.Put] = {
+  /**
+    * Check and returns the FromValue if it's a valid higher key-value for the input key
+    */
+  def higherFromValue(key: Slice[Byte],
+                      fromKey: Slice[Byte],
+                      fromValue: Option[Value.FromValue])(implicit keyOrder: KeyOrder[Slice[Byte]]): Option[Memory.Put] = {
     import keyOrder._
     fromValue flatMap {
       fromValue =>
