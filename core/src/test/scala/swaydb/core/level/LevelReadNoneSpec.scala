@@ -70,7 +70,11 @@ sealed trait LevelFindNoneSpec extends TestBase with MockFactory with Benchmark 
 
   implicit def groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(keyValuesCount)
 
+  //  override def deleteFiles = false
+
   val keyValuesCount = 1000
+
+  val times = 2
 
   "return None" when {
 
@@ -81,93 +85,88 @@ sealed trait LevelFindNoneSpec extends TestBase with MockFactory with Benchmark 
             Slice.empty,
 
         assertAllLevels =
-          (_, _, _, level) => {
-            runThisParallel(10.times) {
-              level.get(randomStringOption).assertGetOpt shouldBe empty
-              level.higher(randomStringOption).assertGetOpt shouldBe empty
-              level.lower(randomStringOption).assertGetOpt shouldBe empty
-              level.head.assertGetOpt shouldBe empty
-              level.last.assertGetOpt shouldBe empty
-            }
-          }
+          (_, _, _, level) =>
+            Seq(
+              () => level.get(randomStringOption).assertGetOpt shouldBe empty,
+              () => level.higher(randomStringOption).assertGetOpt shouldBe empty,
+              () => level.lower(randomStringOption).assertGetOpt shouldBe empty,
+              () => level.head.assertGetOpt shouldBe empty,
+              () => level.last.assertGetOpt shouldBe empty
+            ).runThisRandomlyInParallel
       )
     }
 
     "level is nonEmpty but contains no put" in {
-      runThisParallel(10.times) {
+      runThisParallel(times) {
         assertOnLevel(
           level0KeyValues =
             (_, _, timeGenerator) =>
               randomizedKeyValues(keyValuesCount, addPut = false, startId = Some(0))(timeGenerator).toMemory,
 
           assertAllLevels =
-            (level1KeyValues, _, _, level) => {
-              assertGetNone(level1KeyValues, level)
-              assertHigherNone(level1KeyValues, level)
-              ////assertLowerNone(level1KeyValues, level)
-            }
+            (level0KeyValues, _, _, level) =>
+              assertEmpty(level0KeyValues, level)
         )
       }
     }
 
     "level contains expired puts" in {
-      runThisParallel(10.times) {
+      runThisParallel(times) {
         assertOnLevel(
           level0KeyValues =
             (_, _, timeGenerator) =>
-              (1 to keyValuesCount).map({
+              (1 to keyValuesCount).map {
                 key =>
                   randomPutKeyValue(key, deadline = Some(expiredDeadline()))(timeGenerator)
-              })(collection.breakOut),
+              }(collection.breakOut),
 
           assertAllLevels =
-            (level1KeyValues, _, _, level) => {
-              assertGetNone(level1KeyValues, level)
-              assertHigherNone(level1KeyValues, level)
-              ////assertLowerNone(level1KeyValues, level)
-            }
+            (level0KeyValues, _, _, level) =>
+              assertEmpty(level0KeyValues, level)
         )
       }
     }
 
     "level is non empty but the searched key do not exist" in {
-      runThisParallel(10.times) {
+      runThisParallel(times) {
         assertOnLevel(
           level0KeyValues =
             (_, _, timeGenerator) =>
-              randomizedKeyValues(100, addRandomExpiredPutDeadlines = false, startId = Some(100))(timeGenerator).toMemory,
+              randomizedKeyValues(keyValuesCount)(timeGenerator).toMemory,
 
-          assertAllLevels =
-            (level1KeyValues, _, _, level) => {
-              val existing = unexpiredPuts(level1KeyValues)
+          assertLevel0 =
+            (level0KeyValues, _, _, level) => {
+              val existing = unexpiredPuts(level0KeyValues)
 
               import swaydb.data.order.KeyOrder.default._
               val nonExistingKeys: List[Int] =
-                (level1KeyValues.head.key.readInt() - 100 to getMaxKey(level1KeyValues.last.toTransient).maxKey.readInt() + 100)
+                (level0KeyValues.head.key.readInt() - 100 to getMaxKey(level0KeyValues.last.toTransient).maxKey.readInt() + 100)
                   .filterNot(intKey => existing.exists(_.key equiv Slice.writeInt(intKey)))
                   .toList
 
-              assertGetNone(nonExistingKeys, level)
-              assertHigher(existing, level)
-              //assertLower(existing, level)
-
-              nonExistingKeys foreach {
-                nonExistentKey =>
-                  val expectedHigher = existing.find(_.key.readInt() > nonExistentKey).map(_.key.readInt())
-                  level.higher(nonExistentKey).assertGetOpt.map(_.key.readInt()) shouldBe expectedHigher
-              }
-              nonExistingKeys foreach {
-                nonExistentKey =>
-                  val expectedLower = existing.reverse.find(_.key.readInt() < nonExistentKey).map(_.key.readInt())
-                  level.lower(nonExistentKey).assertGetOpt.map(_.key.readInt()) shouldBe expectedLower
-              }
+              Seq(
+                () => assertGetNone(nonExistingKeys, level),
+                () => assertReads(existing, level),
+                () =>
+                  nonExistingKeys foreach {
+                    nonExistentKey =>
+                      val expectedHigher = existing.find(_.key.readInt() > nonExistentKey).map(_.key.readInt())
+                      level.higher(nonExistentKey).withRetry.assertGetOpt.map(_.key.readInt()) shouldBe expectedHigher
+                  },
+                () =>
+                  nonExistingKeys foreach {
+                    nonExistentKey =>
+                      val expectedLower = existing.reverse.find(_.key.readInt() < nonExistentKey).map(_.key.readInt())
+                      level.lower(nonExistentKey).withRetry.assertGetOpt.map(_.key.readInt()) shouldBe expectedLower
+                  }
+              ).runThisRandomlyInParallel
             }
         )
       }
     }
 
     "for remove ranges with expired Put fromValue" in {
-      runThisParallel(10.times) {
+      runThisParallel(times) {
         assertOnLevel(
           level0KeyValues =
             (_, _, timeGenerator) => {
@@ -179,17 +178,14 @@ sealed trait LevelFindNoneSpec extends TestBase with MockFactory with Benchmark 
             },
 
           assertAllLevels =
-            (keyValues, _, _, level) => {
-              assertGetNone(keyValues, level)
-              assertHigherNone(keyValues, level)
-              ////assertLowerNone(keyValues, level)
-            }
+            (keyValues, _, _, level) =>
+              assertEmpty(keyValues, level)
         )
       }
     }
 
     "put existed but was removed or expired" in {
-      runThisParallel(10.times) {
+      runThisParallel(times) {
         assertOnLevel(
 
           level0KeyValues =
@@ -217,18 +213,12 @@ sealed trait LevelFindNoneSpec extends TestBase with MockFactory with Benchmark 
             },
 
           assertLevel0 =
-            (level0KeyValues, level1KeyValues, level2KeyValues, level) => {
-              assertGetNone(level1KeyValues, level)
-              assertHigherNone(level1KeyValues, level, Some(10))
-              ////assertLowerNone(level1KeyValues, level, Some(10))
-            },
+            (level0KeyValues, level1KeyValues, level2KeyValues, level) =>
+              assertEmpty(level1KeyValues, level),
 
           assertLevel1 =
-            (level1KeyValues, level2KeyValues, level) => {
+            (level1KeyValues, level2KeyValues, level) =>
               assertGet(level1KeyValues, level)
-              assertHigher(level1KeyValues, level)
-              //assertLower(level1KeyValues, level)
-            }
         )
       }
     }

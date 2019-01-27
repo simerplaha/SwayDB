@@ -23,6 +23,7 @@ import org.scalatest.concurrent.Eventually
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration._
+import scala.util.Random
 import swaydb.core.util.FiniteDurationUtil._
 
 object RunThis extends Eventually {
@@ -30,6 +31,14 @@ object RunThis extends Eventually {
   implicit class RunThisImplicits[R](f: => R) {
     def runThis(times: Int): Unit =
       for (i <- 1 to times) f
+  }
+
+  implicit class RunParallelSeq[T](input: Iterable[() => T]) {
+    def runThisRandomlyInParallel =
+      Random.shuffle(input).par.foreach(_ ())
+
+    def runThisRandomly =
+      Random.shuffle(input).foreach(_ ())
   }
 
   implicit class FutureImplicits[T](f: => Future[T])(implicit ec: ExecutionContext) {
@@ -61,16 +70,16 @@ object RunThis extends Eventually {
   def runThis(times: Int)(f: => Unit): Unit =
     (1 to times) foreach {
       i =>
-//        println(s"Iteration number: $i")
+        //        println(s"Iteration number: $i")
         f
     }
 
   def runThisParallel(times: Int)(f: => Unit): Unit =
     (1 to times).par foreach {
       i =>
-//        println(s"Iteration number: $i")
+        //        println(s"Iteration number: $i")
         f
-//        println(s"Iteration done  : $i")
+      //        println(s"Iteration done  : $i")
     }
 
   implicit val level0PushDownPool = TestExecutionContext.executionContext

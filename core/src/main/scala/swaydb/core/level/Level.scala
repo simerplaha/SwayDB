@@ -913,9 +913,11 @@ private[core] class Level(val dirs: Seq[Dir],
     }
 
   override def lower(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
-    ???
-
-  //    Lower(key, lowerInThisLevel, lowerFromNextLevel)
+    Lower(
+      key = key,
+      currentSeek = Seek.Next,
+      nextSeek = Seek.Next
+    )
 
   private def higherFromFloorSegment(key: Slice[Byte]): Try[Option[ReadOnly.SegmentResponse]] =
     appendix.floor(key).map(_.higher(key)) getOrElse TryUtil.successNone

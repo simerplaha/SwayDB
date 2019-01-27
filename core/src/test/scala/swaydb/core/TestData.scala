@@ -1058,7 +1058,7 @@ object TestData {
                              addRemoves: Boolean = randomBoolean,
                              functionOutput: SwayFunctionOutput = randomUpdateFunctionOutput())(implicit timeGenerator: TestTimeGenerator = TestTimeGenerator.Incremental()) = {
     val deadline =
-      //if removes are allowed make sure to set the deadline
+    //if removes are allowed make sure to set the deadline
       if (addRemoves)
         Some(randomDeadline(false))
       else
@@ -1976,7 +1976,6 @@ object TestData {
               Some(put)
             else
               None
-
         }
     }(collection.breakOut)
 

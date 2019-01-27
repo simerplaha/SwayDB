@@ -357,6 +357,11 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
     * The tests written only need to define a 3 level test case and this function will create a 4 level database
     * and run multiple passes for the test merging key-values from levels into lower levels asserting the results
     * are the same after merge.
+    *
+    * Note: Tests for decremental time is not required because in reality upper Level cannot have lower time key-values
+    * that are not merged into lower Level already. So there will never be a situation where upper Level's keys are
+    * ignored completely due to it having a lower or equal time to lower Level. If it has a lower or same time this means
+    * that it has already been merged into lower Levels already making the upper Level's read always valid.
     */
   def assertOnLevel(level0KeyValues: (Slice[Memory], Slice[Memory], TestTimeGenerator) => Slice[Memory] = (_, _, _) => Slice.empty,
                     assertLevel0: (Slice[Memory], Slice[Memory], Slice[Memory], LevelRef) => Unit = (_, _, _, _) => (),
@@ -365,23 +370,18 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
                     level2KeyValues: TestTimeGenerator => Slice[Memory] = _ => Slice.empty,
                     assertLevel2: (Slice[Memory], LevelRef) => Unit = (_, _) => (),
                     assertAllLevels: (Slice[Memory], Slice[Memory], Slice[Memory], LevelRef) => Unit = (_, _, _, _) => (),
-                    throttleOn: Boolean = false,
-                    incrementalTime: Boolean = true)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                     groupingStrategy: Option[KeyValueGroupingStrategyInternal]): Unit = {
+                    throttleOn: Boolean = false)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                                 groupingStrategy: Option[KeyValueGroupingStrategyInternal]): Unit = {
 
     def iterationMessage =
-      s"Thread: ${Thread.currentThread().getId} - (throttleOn, incrementalTime): ($throttleOn, $incrementalTime)"
+      s"Thread: ${Thread.currentThread().getId} - throttleOn: $throttleOn"
 
     println(iterationMessage)
 
     val noAssert =
       (_: LevelRef) => ()
 
-    val timeGenerator: TestTimeGenerator =
-      if (incrementalTime)
-        TestTimeGenerator.Incremental()
-      else
-        TestTimeGenerator.Decremental()
+    val timeGenerator: TestTimeGenerator = TestTimeGenerator.Incremental()
 
     /**
       * If [[throttleOn]] is true then enable fast throttling
@@ -434,103 +434,69 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
         }
       }
 
-    val incrementalAsserts =
-      Seq(
-        (
-          (level0KV, level0Assert),
-          (level1KV, level1Assert),
-          (level2KV, level2Assert),
-          (Slice.empty, noAssert),
-        ),
-        (
-          (level0KV, level0Assert),
-          (level1KV, level1Assert),
-          (Slice.empty, level2Assert),
-          (level2KV, level2Assert),
-        ),
-        (
-          (level0KV, level0Assert),
-          (Slice.empty, level1Assert),
-          (level1KV, level1Assert),
-          (level2KV, level2Assert),
-        ),
-        (
-          (Slice.empty, level0Assert),
-          (level0KV, level0Assert),
-          (level1KV, level1Assert),
-          (level2KV, level2Assert),
-        ),
-        (
-          (Slice.empty, level0Assert),
-          (Slice.empty, level0Assert),
-          (level0KV, level0Assert),
-          (level1KV, level1Assert)
-        ),
-        (
-          (Slice.empty, level0Assert),
-          (Slice.empty, level0Assert),
-          (Slice.empty, level0Assert),
-          (level0KV, level0Assert)
+    val asserts =
+      if (throttleOn)
+      //if throttle is only the top most Level's (Level0) assert should
+      // be executed because throttle behaviour is unknown during runtime
+      // and lower Level's key-values would change as compaction continues.
+        (1 to 5) map (
+          i =>
+            if (i == 1)
+              (
+                (level0KV, level0Assert),
+                (level1KV, noAssert),
+                (level2KV, noAssert),
+                (Slice.empty, noAssert),
+              )
+            else
+              (
+                (Slice.empty, level0Assert),
+                (Slice.empty, noAssert),
+                (Slice.empty, noAssert),
+                (Slice.empty, noAssert),
+              )
+          )
+      else
+        Seq(
+          (
+            (level0KV, level0Assert),
+            (level1KV, level1Assert),
+            (level2KV, level2Assert),
+            (Slice.empty, noAssert),
+          ),
+          (
+            (level0KV, level0Assert),
+            (level1KV, level1Assert),
+            (Slice.empty, level2Assert),
+            (level2KV, level2Assert),
+          ),
+          (
+            (level0KV, level0Assert),
+            (Slice.empty, level1Assert),
+            (level1KV, level1Assert),
+            (level2KV, level2Assert),
+          ),
+          (
+            (Slice.empty, level0Assert),
+            (level0KV, level0Assert),
+            (level1KV, level1Assert),
+            (level2KV, level2Assert),
+          ),
+          (
+            (Slice.empty, level0Assert),
+            (Slice.empty, level0Assert),
+            (level0KV, level0Assert),
+            (level1KV, level1Assert)
+          ),
+          (
+            (Slice.empty, level0Assert),
+            (Slice.empty, level0Assert),
+            (Slice.empty, level0Assert),
+            (level0KV, level0Assert)
+          )
         )
-      )
 
-    //If key-values at upper Levels are in decremental order then
-    // the only the last nonempty level's assert is valid since all the upper
-    //key-values being of older time are be ignored during merge.
-    val (lastNonEmptyLevel, lastValidAssertForDecrementalTimes) =
-    if (level2KV.nonEmpty)
-      (2, level2Assert)
-    else if (level1KV.nonEmpty)
-      (1, level1Assert)
-    else if (level0KV.nonEmpty)
-      (0, level0Assert)
-    else
-      (2, levelAllAssert) //this is still a valid assert for all Levels.
-
-    val decrementalAsserts =
-      Seq(
-        (
-          (level0KV, if (0 <= lastNonEmptyLevel) lastValidAssertForDecrementalTimes else noAssert),
-          (level1KV, if (1 <= lastNonEmptyLevel) lastValidAssertForDecrementalTimes else noAssert),
-          (level2KV, if (2 <= lastNonEmptyLevel) lastValidAssertForDecrementalTimes else noAssert),
-          (Slice.empty, noAssert)
-        ),
-        (
-          (level0KV, if (0 <= lastNonEmptyLevel) lastValidAssertForDecrementalTimes else noAssert),
-          (level1KV, if (1 <= lastNonEmptyLevel) lastValidAssertForDecrementalTimes else noAssert),
-          (Slice.empty, if (2 <= lastNonEmptyLevel) lastValidAssertForDecrementalTimes else noAssert),
-          (level2KV, if (2 <= lastNonEmptyLevel) lastValidAssertForDecrementalTimes else noAssert),
-        ),
-        (
-          (level0KV, if (0 <= lastNonEmptyLevel) lastValidAssertForDecrementalTimes else noAssert),
-          (Slice.empty, if (1 <= lastNonEmptyLevel) lastValidAssertForDecrementalTimes else noAssert),
-          (level1KV, if (1 <= lastNonEmptyLevel) lastValidAssertForDecrementalTimes else noAssert),
-          (level2KV, if (2 <= lastNonEmptyLevel) lastValidAssertForDecrementalTimes else noAssert),
-        ),
-        (
-          (Slice.empty, if (0 <= lastNonEmptyLevel) lastValidAssertForDecrementalTimes else noAssert),
-          (level0KV, if (0 <= lastNonEmptyLevel) lastValidAssertForDecrementalTimes else noAssert),
-          (level1KV, if (1 <= lastNonEmptyLevel) lastValidAssertForDecrementalTimes else noAssert),
-          (level2KV, if (2 <= lastNonEmptyLevel) lastValidAssertForDecrementalTimes else noAssert),
-        ),
-        (
-          (Slice.empty, if (0 <= lastNonEmptyLevel) lastValidAssertForDecrementalTimes else noAssert),
-          (Slice.empty, if (0 <= lastNonEmptyLevel) lastValidAssertForDecrementalTimes else noAssert),
-          (level0KV, if (0 <= lastNonEmptyLevel) lastValidAssertForDecrementalTimes else noAssert),
-          (level1KV, if (1 <= lastNonEmptyLevel) lastValidAssertForDecrementalTimes else noAssert)
-        ),
-        (
-          (Slice.empty, noAssert),
-          (Slice.empty, noAssert),
-          (Slice.empty, noAssert),
-          (level0KV, if (0 <= lastNonEmptyLevel) lastValidAssertForDecrementalTimes else noAssert)
-        )
-      )
-
-    if (incrementalTime)
-      runAsserts(incrementalAsserts)
-    else
-      runAsserts(decrementalAsserts)
+    runAsserts(asserts)
 
     level0.close.assertGet
 
@@ -543,21 +509,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
         level2KeyValues = level2KeyValues,
         assertLevel2 = assertLevel2,
         assertAllLevels = assertAllLevels,
-        throttleOn = true,
-        incrementalTime = incrementalTime
-      )
-
-    if (incrementalTime)
-      assertOnLevel(
-        level0KeyValues = level0KeyValues,
-        assertLevel0 = assertLevel0,
-        level1KeyValues = level1KeyValues,
-        assertLevel1 = assertLevel1,
-        level2KeyValues = level2KeyValues,
-        assertLevel2 = assertLevel2,
-        assertAllLevels = assertAllLevels,
-        throttleOn = false,
-        incrementalTime = false
+        throttleOn = true
       )
   }
 
@@ -580,25 +532,46 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
     if (level2KeyValues.nonEmpty) level2.putKeyValues(level2KeyValues).assertGet
     if (level1KeyValues.nonEmpty) level1.putKeyValues(level1KeyValues).assertGet
     if (level0KeyValues.nonEmpty) level0.putKeyValues(level0KeyValues).assertGet
+    import RunThis._
 
-    println("asserting Level3")
-    assertLevel3(level3)
-    println("asserting Level2")
-    assertLevel2(level2)
-    println("asserting Level1")
-    assertLevel1(level1)
-    println("asserting Level0")
-    assertLevel0(level0)
-    if (assertLevel3ForAllLevels) {
-      println("asserting all on Level3")
-      assertAllLevels(level3)
-    }
-    println("asserting all on Level2")
-    assertAllLevels(level2)
-    println("asserting all on Level1")
-    assertAllLevels(level1)
-    println("asserting all on Level0")
-    assertAllLevels(level0)
+    Seq(
+      () => {
+        println("asserting Level3")
+        assertLevel3(level3)
+      },
+      () => {
+        println("asserting Level2")
+        assertLevel2(level2)
+      },
+      () => {
+        println("asserting Level1")
+        assertLevel1(level1)
+      },
+
+      () => {
+        println("asserting Level0")
+        assertLevel0(level0)
+      },
+      () => {
+        if (assertLevel3ForAllLevels) {
+          println("asserting all on Level3")
+          assertAllLevels(level3)
+        }
+      },
+      () => {
+        println("asserting all on Level2")
+        assertAllLevels(level2)
+      },
+      () => {
+        println("asserting all on Level1")
+        assertAllLevels(level1)
+      },
+
+      () => {
+        println("asserting all on Level0")
+        assertAllLevels(level0)
+      }
+    ).runThisRandomlyInParallel
   }
 
   def assertOnSegment[T](keyValues: Slice[Memory],

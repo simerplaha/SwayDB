@@ -318,21 +318,16 @@ private[core] object Lower {
             //10   -    20 (lower range)
             //10
             else if (next.key equiv current.fromKey) //if the lower in next Level falls within the range.
-              current.fetchFromValue match {
+              current.fetchFromOrElseRangeValue match {
                 //if fromValue is set check if it qualifies as the next highest orElse return lower of fromKey
-                case Success(maybeFromValue) =>
-                  lowerFromValue(key, current.fromKey, maybeFromValue) match {
+                case Success(rangeValue) =>
+                  lowerFromValue(key, current.fromKey, Some(rangeValue)) match {
                     case lowerPut @ Some(_) =>
                       Success(lowerPut)
 
                     //fromValue is not put, check if merging is required else return next.
                     case None =>
-                      val mergeValue: Try[ReadOnly.Fixed] =
-                        maybeFromValue
-                          .map(fromValue => FixedMerger(fromValue.toMemory(next.key), next))
-                          .getOrElse(Success(next))
-
-                      mergeValue match {
+                      FixedMerger(rangeValue.toMemory(next.key), next) match {
                         case Success(mergedValue) =>
                           mergedValue match { //return applied value with next key-value as the current value.
                             case put: Memory.Put if put.hasTimeLeft() =>

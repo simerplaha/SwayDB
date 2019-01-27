@@ -40,7 +40,7 @@ object TestLimitQueues {
     file => {
       queue.add(file)
       queueSize += 1
-      if (queueSize > 1000) {
+      if (queueSize > 10000) {
         queue.poll().close
       }
     }
