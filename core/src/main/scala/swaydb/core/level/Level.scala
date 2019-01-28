@@ -19,42 +19,41 @@
 
 package swaydb.core.level
 
+import com.typesafe.scalalogging.LazyLogging
 import java.nio.channels.{FileChannel, FileLock}
 import java.nio.file.{Path, StandardOpenOption}
-import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.data.KeyValue.ReadOnly
-import swaydb.core.data._
-import swaydb.core.seek._
-import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
-import swaydb.core.io.file.{DBFile, IO}
-import swaydb.core.level.LevelException.ReceivedKeyValuesToMergeWithoutTargetSegment
-import swaydb.core.level.actor.LevelCommand.ClearExpiredKeyValues
-import swaydb.core.level.actor.{LevelAPI, LevelActor, LevelActorAPI, LevelCommand}
-import swaydb.core.map.serializer._
-import swaydb.core.map.{Map, MapEntry}
-import swaydb.core.queue.KeyValueLimiter
-import swaydb.core.segment.SegmentException.SegmentFileMissing
-import swaydb.core.segment.{Segment, SegmentAssigner}
-import swaydb.core.util.CollectionUtil._
-import swaydb.core.util.ExceptionUtil._
-import swaydb.core.util.FileUtil._
-import swaydb.core.util.TryUtil._
-import swaydb.core.util.{MinMax, _}
-import swaydb.data.compaction.{LevelMeter, Throttle}
-import swaydb.data.config.Dir
-import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice._
-import swaydb.data.storage.{AppendixStorage, LevelStorage}
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
-import FiniteDurationUtil._
-import swaydb.core.seek.NextWalker
+import swaydb.core.data.KeyValue.ReadOnly
+import swaydb.core.data._
 import swaydb.core.function.FunctionStore
+import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
+import swaydb.core.io.file.{DBFile, DBFileType, IO}
+import swaydb.core.level.LevelException.ReceivedKeyValuesToMergeWithoutTargetSegment
+import swaydb.core.level.actor.LevelCommand.ClearExpiredKeyValues
+import swaydb.core.level.actor.{LevelAPI, LevelActor, LevelActorAPI, LevelCommand}
+import swaydb.core.map.serializer._
+import swaydb.core.map.{Map, MapEntry}
+import swaydb.core.queue.KeyValueLimiter
+import swaydb.core.seek.{NextWalker, _}
+import swaydb.core.segment.SegmentException.SegmentFileMissing
+import swaydb.core.segment.{Segment, SegmentAssigner}
+import swaydb.core.util.CollectionUtil._
+import swaydb.core.util.ExceptionUtil._
+import swaydb.core.util.FileUtil._
+import swaydb.core.util.FiniteDurationUtil._
+import swaydb.core.util.TryUtil._
+import swaydb.core.util.{MinMax, _}
+import swaydb.data.compaction.{LevelMeter, Throttle}
+import swaydb.data.config.Dir
 import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
+import swaydb.data.storage.{AppendixStorage, LevelStorage}
 
 private[core] object Level extends LazyLogging {
 

@@ -34,9 +34,9 @@ import swaydb.serializers.Default._
 import swaydb.serializers._
 
 //@formatter:off
-class LevelFindNoneSpec0 extends LevelFindNoneSpec
+class LevelReadNoneSpec0 extends LevelReadNoneSpec
 
-class LevelFindNoneSpec1 extends LevelFindNoneSpec {
+class LevelReadNoneSpec1 extends LevelReadNoneSpec {
   override def levelFoldersCount = 10
 
   override def mmapSegmentsOnWrite = true
@@ -48,7 +48,7 @@ class LevelFindNoneSpec1 extends LevelFindNoneSpec {
   override def appendixStorageMMAP = true
 }
 
-class LevelFindNoneSpec2 extends LevelFindNoneSpec {
+class LevelReadNoneSpec2 extends LevelReadNoneSpec {
   override def levelFoldersCount = 10
 
   override def mmapSegmentsOnWrite = false
@@ -60,13 +60,13 @@ class LevelFindNoneSpec2 extends LevelFindNoneSpec {
   override def appendixStorageMMAP = false
 }
 
-class LevelFindNoneSpec3 extends LevelFindNoneSpec {
+class LevelReadNoneSpec3 extends LevelReadNoneSpec {
   override def inMemoryStorage = true
 }
 
 //@formatter:on
 
-sealed trait LevelFindNoneSpec extends TestBase with MockFactory with Benchmark {
+sealed trait LevelReadNoneSpec extends TestBase with MockFactory with Benchmark {
 
   implicit def groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(keyValuesCount)
 
@@ -194,7 +194,7 @@ sealed trait LevelFindNoneSpec extends TestBase with MockFactory with Benchmark 
               eitherOne(
                 //either do a range remove
                 left =
-                  randomRemoveRanges(level1KeyValues).toIterable.toSlice,
+                  randomRemoveRanges(level1KeyValues).toIterable,
                 //or do fixed removes via function or fixed.
                 right =
                   level1KeyValues map {

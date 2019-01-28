@@ -112,7 +112,7 @@ object TestData {
 
     import swaydb.core.util.TryUtil._
 
-    def putKeyValues(keyValues: Slice[KeyValue.ReadOnly]): Try[Unit] =
+    def putKeyValues(keyValues: Iterable[KeyValue.ReadOnly]): Try[Unit] =
       if (keyValues.isEmpty)
         TryUtil.successUnit
       else
@@ -192,7 +192,7 @@ object TestData {
       reopened.assertGet
     }
 
-    def putKeyValues(keyValues: Slice[KeyValue.ReadOnly]): Try[Unit] =
+    def putKeyValues(keyValues: Iterable[KeyValue.ReadOnly]): Try[Unit] =
       if (keyValues.isEmpty)
         TryUtil.successUnit
       else
@@ -1967,7 +1967,7 @@ object TestData {
         getMaxKey(last.keyValues.last)
     }
 
-  def unexpiredPuts(keyValues: Slice[KeyValue]): List[KeyValue.ReadOnly.Put] =
+  def unexpiredPuts(keyValues: Iterable[KeyValue]): List[KeyValue.ReadOnly.Put] =
     unzipGroups(keyValues).flatMap {
       keyValue =>
         keyValue.asPut flatMap {
@@ -1984,12 +1984,12 @@ object TestData {
     *
     * Used for testing all updates work for all existing put key-values.
     */
-  def randomUpdate(keyValues: Slice[Memory.Put],
+  def randomUpdate(keyValues: Iterable[KeyValue.ReadOnly.Put],
                    updatedValue: Option[Slice[Byte]],
                    deadline: Option[Deadline],
-                   randomlyDropUpdates: Boolean): Iterable[Memory] = {
+                   randomlyDropUpdates: Boolean)(implicit timeGenerator: TestTimeGenerator = TestTimeGenerator.Incremental()): Iterable[Memory] = {
     var keyUsed = keyValues.head.key.readInt() - 1
-    keyValues map {
+    keyValues flatMap {
       keyValue =>
         if (randomlyDropUpdates && Random.nextBoolean()) {
           keyUsed = keyValue.key.readInt()
@@ -2035,7 +2035,7 @@ object TestData {
         } else {
           None
         }
-    } flatten
+    }
   }
 
   implicit class HigherImplicits(higher: Higher.type) {

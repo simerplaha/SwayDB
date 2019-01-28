@@ -797,7 +797,7 @@ object CommonAssertions {
         val expectedLowerKeyValue = keyValues(index - 1)
         val lower = level.lower(keyValues(index).key).withRetry.assertGet
         lower.key shouldBe expectedLowerKeyValue.key
-        lower.getOrFetchValue.assertGetOpt shouldBe expectedLowerKeyValue.getOrFetchValue
+        lower.getOrFetchValue.withRetry.assertGetOpt shouldBe expectedLowerKeyValue.getOrFetchValue
         assertLowers(index + 1)
       }
     }
@@ -1474,7 +1474,7 @@ object CommonAssertions {
 
   implicit class WithRetry[T](tryBlock: => Try[T]) {
     def withRetry: Try[T] =
-      Retry[T](resourceId = randomString, maxRetryLimit = 1000, until = Retry.levelReadRetryUntil) {
+      Retry[T](resourceId = randomString, maxRetryLimit = 100, until = Retry.levelReadRetryUntil) {
         try
           tryBlock
         catch {

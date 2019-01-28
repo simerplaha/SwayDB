@@ -96,31 +96,34 @@ private[swaydb] case class CoreAPI(zero: LevelZero) {
     zero.update(fromKey, to, value)
 
   def head: Try[Option[KeyValueTuple]] =
-    zero.head flatMap {
-      result =>
-        result map {
-          response =>
-            response.getOrFetchValue map {
-              result =>
-                Some(response.key, result)
-            }
-        } getOrElse TryUtil.successNone
+    LevelZero.withRetry("CoreAPI.head", zero.readRetryLimit) {
+      zero.head flatMap {
+        result =>
+          result map {
+            response =>
+              response.getOrFetchValue map {
+                result =>
+                  Some(response.key, result)
+              }
+          } getOrElse TryUtil.successNone
+      }
     }
-
 
   def headKey: Try[Option[Slice[Byte]]] =
     zero.headKey
 
   def last: Try[Option[KeyValueTuple]] =
-    zero.last flatMap {
-      result =>
-        result map {
-          response =>
-            response.getOrFetchValue map {
-              result =>
-                Some(response.key, result)
-            }
-        } getOrElse TryUtil.successNone
+    LevelZero.withRetry("CoreAPI.last", zero.readRetryLimit) {
+      zero.last flatMap {
+        result =>
+          result map {
+            response =>
+              response.getOrFetchValue map {
+                result =>
+                  Some(response.key, result)
+              }
+          } getOrElse TryUtil.successNone
+      }
     }
 
   def lastKey: Try[Option[Slice[Byte]]] =
@@ -142,57 +145,65 @@ private[swaydb] case class CoreAPI(zero: LevelZero) {
     zero.mightContain(key)
 
   def get(key: Slice[Byte]): Try[Option[Option[Slice[Byte]]]] =
-    zero.get(key) flatMap {
-      result =>
-        result map {
-          response =>
-            response.getOrFetchValue map {
-              result =>
-                Some(result)
-            }
-        } getOrElse TryUtil.successNone
+    LevelZero.withRetry("CoreAPI.get", zero.readRetryLimit) {
+      zero.get(key) flatMap {
+        result =>
+          result map {
+            response =>
+              response.getOrFetchValue map {
+                result =>
+                  Some(result)
+              }
+          } getOrElse TryUtil.successNone
+      }
     }
 
   def getKey(key: Slice[Byte]): Try[Option[Slice[Byte]]] =
     zero.getKey(key)
 
   def getKeyValue(key: Slice[Byte]): Try[Option[KeyValueTuple]] =
-    zero.get(key) flatMap {
-      result =>
-        result map {
-          response =>
-            response.getOrFetchValue map {
-              result =>
-                Some(response.key, result)
-            }
-        } getOrElse TryUtil.successNone
+    LevelZero.withRetry("CoreAPI.getKeyValue", zero.readRetryLimit) {
+      zero.get(key) flatMap {
+        result =>
+          result map {
+            response =>
+              response.getOrFetchValue map {
+                result =>
+                  Some(response.key, result)
+              }
+          } getOrElse TryUtil.successNone
+      }
     }
 
   def before(key: Slice[Byte]): Try[Option[KeyValueTuple]] =
-    zero.lower(key) flatMap {
-      result =>
-        result map {
-          response =>
-            response.getOrFetchValue map {
-              result =>
-                Some(response.key, result)
-            }
-        } getOrElse TryUtil.successNone
+    LevelZero.withRetry("CoreAPI.before", zero.readRetryLimit) {
+      zero.lower(key) flatMap {
+        result =>
+          result map {
+            response =>
+              response.getOrFetchValue map {
+                result =>
+                  Some(response.key, result)
+              }
+          } getOrElse TryUtil.successNone
+      }
     }
 
   def beforeKey(key: Slice[Byte]): Try[Option[Slice[Byte]]] =
     zero.lower(key).map(_.map(_.key))
 
   def after(key: Slice[Byte]): Try[Option[KeyValueTuple]] =
-    zero.higher(key) flatMap {
-      result =>
-        result map {
-          response =>
-            response.getOrFetchValue map {
-              result =>
-                Some(response.key, result)
-            }
-        } getOrElse TryUtil.successNone
+    LevelZero.withRetry("CoreAPI.after", zero.readRetryLimit) {
+      zero.higher(key) flatMap {
+        result =>
+          result map {
+            response =>
+              response.getOrFetchValue map {
+                result =>
+                  Some(response.key, result)
+              }
+          } getOrElse TryUtil.successNone
+      }
     }
 
   def afterKey(key: Slice[Byte]): Try[Option[Slice[Byte]]] =

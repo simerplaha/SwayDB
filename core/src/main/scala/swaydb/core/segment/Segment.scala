@@ -449,7 +449,7 @@ private[core] object Segment extends LazyLogging {
         )
     }
 
-  def copyToMemory(keyValues: Slice[KeyValue.ReadOnly],
+  def copyToMemory(keyValues: Iterable[KeyValue.ReadOnly],
                    fetchNextPath: => Path,
                    removeDeletes: Boolean,
                    minSegmentSize: Long,
