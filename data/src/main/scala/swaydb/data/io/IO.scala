@@ -60,6 +60,7 @@ object IO {
 
   val successUnit: IO.Success[Unit] = IO.Success()
   val successNone = IO.Success(None)
+  val asyncNone = IO.Async(None)
   val successFalse = IO.Success(false)
   val successTrue = IO.Success(true)
   val successZero = IO.Success(0)
@@ -197,7 +198,7 @@ object IO {
         None
     }
 
-  final case class Failure[+T](exception: Throwable) extends IO[T] {
+  final case class Failure[+T](exception: Throwable) extends IO[T] with IO.Async[T] {
     override def isFailure: Boolean = true
     override def isSuccess: Boolean = false
     override def isAsync: Boolean = false
@@ -222,7 +223,7 @@ object IO {
     override def toTry: scala.util.Try[T] = scala.util.Failure(exception)
   }
 
-  final case class Success[+T](value: T) extends IO[T] {
+  final case class Success[+T](value: T) extends IO[T] with IO.Async[T] {
     override def isFailure: Boolean = false
     override def isSuccess: Boolean = true
     override def isAsync: Boolean = false
@@ -248,12 +249,30 @@ object IO {
 
   object Async {
     def apply[T](value: => T): Async[T] =
-      new Async(_ => value)
+      new AsyncIO(_ => value)
+  }
+  object AsyncIO {
+    def apply[T](value: => T): AsyncIO[T] =
+      new AsyncIO(_ => value)
   }
 
-  final case class Async[T](value: Unit => T) {
+  sealed trait Async[+T] {
+    def isFailure: Boolean
+    def isSuccess: Boolean
+    def isAsync: Boolean
+    def get: T
+    def getOrElse[U >: T](default: => U): U
+    def recover[U >: T](f: PartialFunction[Throwable, U]): IO[U]
+    def recoverWith[U >: T](f: PartialFunction[Throwable, IO[U]]): IO[U]
+    def failed: IO[Throwable]
+  }
+  final case class AsyncIO[T](value: Unit => T) extends Async[T] {
     private val listeners: mutable.Queue[T => Any] = mutable.Queue.empty
     @volatile private var _value: Option[T] = None
+
+    def isFailure: Boolean = false
+    def isSuccess: Boolean = false
+    def isAsync: Boolean = true
 
     def ready(): Unit =
       this.synchronized {
@@ -268,9 +287,6 @@ object IO {
         }
       }
 
-    def isFailure: Boolean = false
-    def isSuccess: Boolean = false
-    def isAsync: Boolean = true
     def get: T =
       _value getOrElse {
         val got = value()

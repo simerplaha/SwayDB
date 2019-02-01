@@ -266,50 +266,50 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
   }
 
 
-  "Async" should {
-    "flatMap on IO.Success" in {
-      val io =
-        IO.Async(1).flatMapIO {
-          int =>
-            IO.Success(int + 1)
-        }
-
-      io.get shouldBe 2
-
-      io.getOrListen(_ => ???).get shouldBe 2
-    }
-
-    "flatMap on IO.Failure" in {
-      val io: IO.Async[Int] =
-        IO.Async(1).flatMapIO {
-          _ =>
-            IO.Failure(new TestFailedException("Kaboom!", 0))
-        }
-
-      assertThrows[TestFailedException] {
-        io.get
-      }
-
-      io.getOrListen(_ => ???) shouldBe a[IO.Failure[_]]
-    }
-
-    "getOrListen on IO.Failure" in {
-      var returnFailure = true
-
-      val io =
-        IO.Async(1).flatMapIO {
-          i =>
-            if (returnFailure)
-              IO.Failure(new TestFailedException("Kaboom!", 0))
-            else
-              IO.Success(i)
-        }
-
-      val listener = mockFunction[Int, Unit]
-      listener expects 1 returning()
-      io.getOrListen(listener) shouldBe a[IO.Failure[_]]
-      returnFailure = false
-      io.ready()
-    }
-  }
+//  "Async" should {
+//    "flatMap on IO.Success" in {
+//      val io =
+//        IO.Async(1).flatMapIO {
+//          int =>
+//            IO.Success(int + 1)
+//        }
+//
+//      io.get shouldBe 2
+//
+//      io.getOrListen(_ => ???).get shouldBe 2
+//    }
+//
+//    "flatMap on IO.Failure" in {
+//      val io: IO.Async[Int] =
+//        IO.Async(1).flatMapIO {
+//          _ =>
+//            IO.Failure(new TestFailedException("Kaboom!", 0))
+//        }
+//
+//      assertThrows[TestFailedException] {
+//        io.get
+//      }
+//
+//      io.getOrListen(_ => ???) shouldBe a[IO.Failure[_]]
+//    }
+//
+//    "getOrListen on IO.Failure" in {
+//      var returnFailure = true
+//
+//      val io =
+//        IO.Async(1).flatMapIO {
+//          i =>
+//            if (returnFailure)
+//              IO.Failure(new TestFailedException("Kaboom!", 0))
+//            else
+//              IO.Success(i)
+//        }
+//
+//      val listener = mockFunction[Int, Unit]
+//      listener expects 1 returning()
+//      io.getOrListen(listener) shouldBe a[IO.Failure[_]]
+//      returnFailure = false
+//      io.ready()
+//    }
+//  }
 }
