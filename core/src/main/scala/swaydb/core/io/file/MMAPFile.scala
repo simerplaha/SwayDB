@@ -28,7 +28,6 @@ import java.util.concurrent.atomic.AtomicBoolean
 import scala.annotation.tailrec
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success, Try}
-import swaydb.core.io.IO
 import swaydb.core.util.TryUtil
 import swaydb.data.slice.Slice
 import swaydb.data.slice.Slice._
@@ -166,6 +165,6 @@ private[file] class MMAPFile(val path: Path,
   override def delete(): Try[Unit] =
     close flatMap {
       _ =>
-        IO.delete(path)
+        IOOps.delete(path)
     }
 }

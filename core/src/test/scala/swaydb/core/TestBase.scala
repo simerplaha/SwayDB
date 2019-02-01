@@ -33,7 +33,7 @@ import swaydb.core.TestLimitQueues.{fileOpenLimiter, _}
 import swaydb.core.actor.TestActor
 import swaydb.core.data.{KeyValue, Memory, Time}
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
-import swaydb.core.io.file.DBFile
+import swaydb.core.io.file.{DBFile, IOOps}
 import swaydb.core.io.reader.FileReader
 import swaydb.core.level.actor.LevelCommand.{PushSegments, PushSegmentsResponse}
 import swaydb.core.level.zero.LevelZero
@@ -50,7 +50,6 @@ import swaydb.data.slice.Slice
 import swaydb.data.storage.{AppendixStorage, Level0Storage, LevelStorage}
 import swaydb.data.util.StorageUnits._
 import swaydb.core.TryAssert._
-import swaydb.core.io.IO
 
 trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventually {
 
@@ -135,12 +134,12 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
 
   def createRandomIntDirectory: Path =
     if (persistent)
-      IO.createDirectoriesIfAbsent(randomIntDirectory)
+      IOOps.createDirectoriesIfAbsent(randomIntDirectory)
     else
       randomIntDirectory
 
   def createNextLevelPath: Path =
-    IO.createDirectoriesIfAbsent(nextLevelPath)
+    IOOps.createDirectoriesIfAbsent(nextLevelPath)
 
   def nextLevelPath: Path =
     testDir.resolve(nextLevelId.toString)
@@ -149,13 +148,13 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
     if (memory)
       randomIntDirectory.resolve(nextSegmentId)
     else
-      IO.createDirectoriesIfAbsent(randomIntDirectory).resolve(nextSegmentId)
+      IOOps.createDirectoriesIfAbsent(randomIntDirectory).resolve(nextSegmentId)
 
   def testMapFile: Path =
     if (memory)
       randomIntDirectory.resolve(nextId.toString + ".map")
     else
-      IO.createDirectoriesIfAbsent(randomIntDirectory).resolve(nextId.toString + ".map")
+      IOOps.createDirectoriesIfAbsent(randomIntDirectory).resolve(nextId.toString + ".map")
 
   def farOut = new Exception("Far out! Something went wrong")
 
@@ -164,24 +163,24 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
     if (inMemoryStorage)
       testDirPath
     else
-      IO.createDirectoriesIfAbsent(testDirPath)
+      IOOps.createDirectoriesIfAbsent(testDirPath)
   }
 
   def memoryTestDir =
     testFileDirectory.resolve(this.getClass.getSimpleName + "_MEMORY_DIR")
 
   def walkDeleteFolder(folder: Path): Unit =
-    if (deleteFiles && IO.exists(folder))
+    if (deleteFiles && IOOps.exists(folder))
       Files.walkFileTree(folder, new SimpleFileVisitor[Path]() {
         @throws[IOException]
         override def visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult = {
-          IO.deleteIfExists(file)
+          IOOps.deleteIfExists(file)
           FileVisitResult.CONTINUE
         }
 
         override def postVisitDirectory(dir: Path, exc: IOException): FileVisitResult = {
           if (exc != null) throw exc
-          IO.deleteIfExists(dir)
+          IOOps.deleteIfExists(dir)
           FileVisitResult.CONTINUE
         }
       })
@@ -340,7 +339,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
   }
 
   def createFile(bytes: Slice[Byte]): Path =
-    IO.write(bytes, testDir.resolve(nextSegmentId)).assertGet
+    IOOps.write(bytes, testDir.resolve(nextSegmentId)).assertGet
 
   def createFileReader(path: Path): FileReader = {
     implicit val limiter = fileOpenLimiter

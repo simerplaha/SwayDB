@@ -26,7 +26,6 @@ import org.scalamock.scalatest.MockFactory
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.TryAssert._
-import swaydb.core.io.IO
 import swaydb.core.queue.{FileLimiter, LimiterType}
 import swaydb.core.segment.SegmentException
 import swaydb.core.segment.SegmentException.CannotCopyInMemoryFiles
@@ -67,7 +66,7 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
           file.readAll.assertGet shouldBe empty
           file.close.assertGet
       }
-      IO.exists(testFile) shouldBe true
+      IOOps.exists(testFile) shouldBe true
     }
 
     "fail to write bytes if the Slice contains empty bytes" in {
@@ -189,7 +188,7 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
           ()
       } repeat 3.times
 
-      IO.write(bytes, testFile).assertGet
+      IOOps.write(bytes, testFile).assertGet
 
       val readFile = DBFile.channelRead(testFile, autoClose = true).assertGet
       //reading a file should load the file lazily

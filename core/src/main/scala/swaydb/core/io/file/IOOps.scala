@@ -17,19 +17,18 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.io
+package swaydb.core.io.file
 
 import com.typesafe.scalalogging.LazyLogging
 import java.io.IOException
 import java.nio.channels.{FileLock, WritableByteChannel}
 import java.nio.file._
 import java.nio.file.attribute.BasicFileAttributes
-import scala.collection.mutable
 import swaydb.core.segment.SegmentException
 import swaydb.core.util.TryUtil
 import swaydb.data.slice.Slice
 
-object IO extends LazyLogging {
+object IOOps extends LazyLogging {
 
   def write(bytes: Slice[Byte],
             to: Path): scala.util.Try[Path] =

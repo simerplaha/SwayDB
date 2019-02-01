@@ -23,7 +23,7 @@ import java.nio.file.Path
 import java.util.concurrent.ConcurrentSkipListMap
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.Memory
-import swaydb.core.io.file.DBFile
+import swaydb.core.io.file.{DBFile, IOOps}
 import swaydb.core.map.serializer.{MapCodec, MapEntryReader, MapEntryWriter}
 import swaydb.core.util.FileUtil._
 import swaydb.core.util.TryUtil._
@@ -35,7 +35,6 @@ import scala.concurrent.ExecutionContext
 import scala.reflect.ClassTag
 import scala.util.{Failure, Success, Try}
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.IO
 import swaydb.core.queue.FileLimiter
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -54,7 +53,7 @@ private[map] object PersistentMap extends LazyLogging {
                                                                             writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                             skipListMerger: SkipListMerger[K, V],
                                                                             ec: ExecutionContext): Try[RecoveryResult[PersistentMap[K, V]]] = {
-    IO.createDirectoryIfAbsent(folder)
+    IOOps.createDirectoryIfAbsent(folder)
     val skipList: ConcurrentSkipListMap[K, V] = new ConcurrentSkipListMap[K, V](keyOrder)
 
     recover(folder, mmap, fileSize, skipList, dropCorruptedTailEntries) map {
@@ -77,7 +76,7 @@ private[map] object PersistentMap extends LazyLogging {
                                                          writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                          skipListMerger: SkipListMerger[K, V],
                                                          ec: ExecutionContext): Try[PersistentMap[K, V]] = {
-    IO.createDirectoryIfAbsent(folder)
+    IOOps.createDirectoryIfAbsent(folder)
     val skipList: ConcurrentSkipListMap[K, V] = new ConcurrentSkipListMap[K, V](keyOrder)
 
     firstFile(folder, mmap, fileSize) map {
@@ -311,7 +310,7 @@ private[map] case class PersistentMap[K, V: ClassTag](path: Path,
   override def delete: Try[Unit] =
     currentFile.delete() flatMap {
       _ =>
-        IO.delete(path) map {
+        IOOps.delete(path) map {
           _ =>
             skipList.clear()
         }

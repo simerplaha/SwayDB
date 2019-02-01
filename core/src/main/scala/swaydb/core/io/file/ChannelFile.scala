@@ -24,7 +24,6 @@ import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
 import java.nio.file.{NoSuchFileException, Path, StandardOpenOption}
 import scala.util.{Failure, Success, Try}
-import swaydb.core.io.IO
 import swaydb.core.util.TryUtil
 import swaydb.data.slice.Slice
 
@@ -36,7 +35,7 @@ private[file] object ChannelFile {
     }
 
   def read(path: Path): Try[ChannelFile] =
-    if (IO.exists(path))
+    if (IOOps.exists(path))
       Try {
         val channel = FileChannel.open(path, StandardOpenOption.READ)
         new ChannelFile(path, channel)
@@ -55,7 +54,7 @@ private[file] class ChannelFile(val path: Path,
     }
 
   def append(slice: Slice[Byte]): Try[Unit] =
-    IO.write(slice, channel)
+    IOOps.write(slice, channel)
 
   def read(position: Int, size: Int): Try[Slice[Byte]] =
     Try {
@@ -95,7 +94,7 @@ private[file] class ChannelFile(val path: Path,
   override def delete(): Try[Unit] =
     close flatMap {
       _ =>
-        IO.delete(path)
+        IOOps.delete(path)
     }
 
   override def forceSave(): Try[Unit] =

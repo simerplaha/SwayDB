@@ -29,7 +29,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TryAssert._
 import scala.util.Random
-import swaydb.core.io.IO
+import swaydb.core.io.file.IOOps
 
 class PathsDistributorPerformanceSpec extends TestBase with Benchmark {
 
@@ -39,11 +39,11 @@ class PathsDistributorPerformanceSpec extends TestBase with Benchmark {
     val path = createNextLevelPath
 
     //create 5 paths to create randomly distributed Segments in
-    val path1 = IO.createDirectoriesIfAbsent(path.resolve("1"))
-    val path2 = IO.createDirectoriesIfAbsent(path.resolve("2"))
-    val path3 = IO.createDirectoriesIfAbsent(path.resolve("3"))
-    val path4 = IO.createDirectoriesIfAbsent(path.resolve("4"))
-    val path5 = IO.createDirectoriesIfAbsent(path.resolve("5"))
+    val path1 = IOOps.createDirectoriesIfAbsent(path.resolve("1"))
+    val path2 = IOOps.createDirectoriesIfAbsent(path.resolve("2"))
+    val path3 = IOOps.createDirectoriesIfAbsent(path.resolve("3"))
+    val path4 = IOOps.createDirectoriesIfAbsent(path.resolve("4"))
+    val path5 = IOOps.createDirectoriesIfAbsent(path.resolve("5"))
 
     val paths = Array(path1, path2, path3, path4, path5)
 

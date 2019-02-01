@@ -20,7 +20,7 @@
 package swaydb.core.tool
 
 import java.nio.file.NoSuchFileException
-import swaydb.core.io.file.DBFile
+import swaydb.core.io.file.{DBFile, IOOps}
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment
 import swaydb.core.util.FileUtil._
@@ -36,7 +36,6 @@ import swaydb.core.RunThis._
 import scala.concurrent.duration.Duration
 import scala.util.Random
 import swaydb.core.TryAssert._
-import swaydb.core.io.IO
 
 class AppendixRepairerSpec extends TestBase {
 
@@ -73,7 +72,7 @@ class AppendixRepairerSpec extends TestBase {
       val level = TestLevel(segmentSize = 1.kb)
 
       //delete appendix
-      IO.walkDelete(level.appendixPath).assertGet
+      IOOps.walkDelete(level.appendixPath).assertGet
       level.appendixPath.exists shouldBe false
 
       //repair appendix

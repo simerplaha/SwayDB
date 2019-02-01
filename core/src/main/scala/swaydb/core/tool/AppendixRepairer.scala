@@ -35,7 +35,7 @@ import swaydb.data.util.StorageUnits._
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success, Try}
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.IO
+import swaydb.core.io.file.IOOps
 import swaydb.data.order.{KeyOrder, TimeOrder}
 
 private[swaydb] object AppendixRepairer extends LazyLogging {
@@ -143,7 +143,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
                                                  mapReader: MapEntryReader[MapEntry[Slice[Byte], Segment]],
                                                  skipListMerger: SkipListMerger[Slice[Byte], Segment],
                                                  ec: ExecutionContext): Try[Unit] =
-    IO.walkDelete(appendixDir) flatMap {
+    IOOps.walkDelete(appendixDir) flatMap {
       _ =>
         Map.persistent[Slice[Byte], Segment](appendixDir, false, flushOnOverflow = true, 1.gb) flatMap {
           appendix =>

@@ -25,7 +25,7 @@ import org.scalatest.PrivateMethodTester
 import swaydb.core.actor.TestActor
 import swaydb.core.data._
 import swaydb.core.group.compression.data.{GroupGroupingStrategyInternal, KeyValueGroupingStrategyInternal}
-import swaydb.core.io.file.DBFile
+import swaydb.core.io.file.{DBFile, IOOps}
 import swaydb.core.level.LevelException.ReceivedKeyValuesToMergeWithoutTargetSegment
 import swaydb.core.level.actor.{LevelAPI, LevelCommand}
 import swaydb.core.level.actor.LevelCommand.{PushSegments, PushSegmentsResponse}
@@ -55,7 +55,6 @@ import swaydb.core.TestData._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TryAssert._
-import swaydb.core.io.IO
 
 //@formatter:off
 class LevelWriteSpec0 extends LevelWriteSpec
@@ -131,12 +130,12 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
         level.put(TestSegment(randomKeyValues(keyValuesCount)).assertGet).assertGet
 
         //delete the appendix file
-        level.paths.headPath.resolve("appendix").files(Extension.Log) map IO.delete
+        level.paths.headPath.resolve("appendix").files(Extension.Log) map IOOps.delete
         //expect failure when file does not exists
         level.tryReopen.failed.assertGet shouldBe a[IllegalStateException]
 
         //delete folder
-        IO.delete(level.paths.headPath.resolve("appendix")).assertGet
+        IOOps.delete(level.paths.headPath.resolve("appendix")).assertGet
         //expect failure when folder does not exist
         level.tryReopen.failed.assertGet shouldBe a[IllegalStateException]
       }
