@@ -92,7 +92,7 @@ private[core] object LevelZero extends LazyLogging {
           }
 
         case Level0Storage.Memory =>
-          IO.Success(Maps.memory[Slice[Byte], Memory.SegmentResponse](mapSize, acceleration), Paths.get("MEMORY_DB").resolve(0.toString), None)
+          IO.Sync(Maps.memory[Slice[Byte], Memory.SegmentResponse](mapSize, acceleration), Paths.get("MEMORY_DB").resolve(0.toString), None)
       }
     mapsAndPathAndLock map {
       case (maps, path, lock: Option[FileLock]) =>
@@ -406,7 +406,7 @@ private[core] class LevelZero(val path: Path,
     find(key, currentMap, otherMaps.iterator.asJava) flatMap {
       found =>
         if (found.isDefined)
-          IO.Success(found)
+          IO.Sync(found)
         else
           findHigher(key, currentMap, otherMaps)
     }
@@ -420,7 +420,7 @@ private[core] class LevelZero(val path: Path,
     find(key, currentMap, otherMaps.iterator.asJava) flatMap {
       found =>
         if (found.isDefined)
-          IO.Success(found)
+          IO.Sync(found)
         else
           findLower(key, currentMap, otherMaps)
     }
@@ -599,7 +599,7 @@ private[core] class LevelZero(val path: Path,
   def bloomFilterKeyValueCount: IO[Int] =
     withRetry {
       val keyValueCountInMaps = maps.keyValueCount.getOrElse(0)
-      nextLevel.map(_.bloomFilterKeyValueCount.map(_ + keyValueCountInMaps)) getOrElse IO.Success(keyValueCountInMaps)
+      nextLevel.map(_.bloomFilterKeyValueCount.map(_ + keyValueCountInMaps)) getOrElse IO.Sync(keyValueCountInMaps)
     }
 
   def deadline(key: Slice[Byte]): IO[Option[Deadline]] =
@@ -644,7 +644,7 @@ private[core] class LevelZero(val path: Path,
   def mightContain(key: Slice[Byte]): IO[Boolean] =
     withRetry {
       if (maps.contains(key))
-        IO.Success(true)
+        IO.Sync(true)
       else
         nextLevel.map(_.mightContain(key)) getOrElse IO.successTrue
     }

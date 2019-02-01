@@ -156,7 +156,7 @@ class DBFile(val path: Path,
       logger.trace(s"{}: Opening closed file.", path)
       val openResult =
         if (memory)
-          file.map(IO.Success(_)) getOrElse {
+          file.map(IO.Sync(_)) getOrElse {
             open.set(false)
             IO.Failure(new NoSuchFileException(path.toString))
           }
@@ -166,7 +166,7 @@ class DBFile(val path: Path,
           ChannelFile.read(path)
 
       openResult match {
-        case success @ IO.Success(fileOpened) =>
+        case success @ IO.Sync(fileOpened) =>
           file.foreach(_.close())
           file = Some(fileOpened)
           if (autoClose)
@@ -180,7 +180,7 @@ class DBFile(val path: Path,
     } else {
       file match {
         case Some(fileOpened) =>
-          IO.Success(fileOpened)
+          IO.Sync(fileOpened)
 
         case None =>
           IO.Failure(SegmentException.BusyOpeningFile(path))
@@ -190,7 +190,7 @@ class DBFile(val path: Path,
   private def openFile(): IO[DBFileType] =
     file match {
       case Some(openedFile) =>
-        IO.Success(openedFile)
+        IO.Sync(openedFile)
 
       case None =>
         tryOpen()
@@ -199,7 +199,7 @@ class DBFile(val path: Path,
   def append(slice: Slice[Byte]) =
     openFile() flatMap (_.append(slice))
 
-  def read(position: Int, size: Int) =
+  def read(position: Int, size: Int): IO[Slice[Byte]] =
     openFile() flatMap (_.read(position, size))
 
   def get(position: Int) =

@@ -84,7 +84,7 @@ private[core] object GroupKeyCompressor {
 
       case 2 =>
         val keyWithoutId = key.dropRight(1)
-        IO.Success(keyWithoutId, MaxKey.Fixed(keyWithoutId))
+        IO.Sync(keyWithoutId, MaxKey.Fixed(keyWithoutId))
 
       case 3 =>
         Bytes.decompressJoin(key.dropRight(1)) map {

@@ -243,7 +243,7 @@ private[core] object SegmentReader extends LazyLogging {
         IO.Failure(SegmentCorruptionException(s"Corrupted Segment: CRC Check failed. $expectedCRC != $crc", new Exception("CRC check failed.")))
       } else {
         val indexEndOffset = fileSize.toInt - footerSize - 1
-        IO.Success(
+        IO.Sync(
           SegmentFooter(
             crc = expectedCRC,
             startIndexOffset = indexStartOffset,
@@ -328,7 +328,7 @@ private[core] object SegmentReader extends LazyLogging {
           indexReader = reader,
           valueReader = reader
         ) match {
-          case IO.Success(nextNextKeyValue) =>
+          case IO.Sync(nextNextKeyValue) =>
             find(readFrom, Some(nextNextKeyValue), matcher, reader, footer)
 
           case IO.Failure(exception) =>
@@ -336,7 +336,7 @@ private[core] object SegmentReader extends LazyLogging {
         }
 
       case MatchResult.Matched(keyValue) =>
-        IO.Success(Some(keyValue))
+        IO.Sync(Some(keyValue))
 
       case MatchResult.Stop =>
         IO.successNone

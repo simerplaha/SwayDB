@@ -336,7 +336,7 @@ class Map[K, V](map: swaydb.Map[Key[K], Option[V]],
   def get(key: K): IO[Option[V]] =
     map.get(Key.MapEntry(mapKey, key)) flatMap {
       case Some(value) =>
-        IO.Success(value)
+        IO.Sync(value)
       case None =>
         IO.successNone
     }
@@ -351,7 +351,7 @@ class Map[K, V](map: swaydb.Map[Key[K], Option[V]],
       case Some(key) =>
         key match {
           case Key.MapEntry(_, dataKey) =>
-            IO.Success(Some(dataKey))
+            IO.Sync(Some(dataKey))
           case got =>
             IO.Failure(new Exception(s"Unable to fetch key. Got: $got expected MapKey.Entry"))
         }
@@ -366,7 +366,7 @@ class Map[K, V](map: swaydb.Map[Key[K], Option[V]],
           case Key.MapEntry(_, dataKey) =>
             value map {
               value =>
-                IO.Success(Some(dataKey, value))
+                IO.Sync(Some(dataKey, value))
             } getOrElse {
               IO.Failure(new Exception("Value does not exist."))
             }

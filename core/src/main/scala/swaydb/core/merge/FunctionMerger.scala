@@ -91,7 +91,7 @@ object FunctionMerger {
       }
 
     else
-      IO.Success(oldKeyValue)
+      IO.Sync(oldKeyValue)
   }
 
   def apply(newKeyValue: ReadOnly.Function,
@@ -177,7 +177,7 @@ object FunctionMerger {
           }
       }
     else
-      IO.Success(oldKeyValue)
+      IO.Sync(oldKeyValue)
   }
 
   def apply(newKeyValue: ReadOnly.Function,
@@ -207,7 +207,7 @@ object FunctionMerger {
         function =>
           oldKeyValue.deadline match {
             case None =>
-              IO.Success(oldKeyValue.copyWithTime(newKeyValue.time))
+              IO.Sync(oldKeyValue.copyWithTime(newKeyValue.time))
 
             case Some(_) =>
               functionStore.get(function) match {
@@ -236,7 +236,7 @@ object FunctionMerger {
       }
 
     else
-      IO.Success(oldKeyValue)
+      IO.Sync(oldKeyValue)
   }
 
   def apply(newKeyValue: ReadOnly.Function,
@@ -250,7 +250,7 @@ object FunctionMerger {
         Memory.PendingApply(newKeyValue.key, Slice(oldValue, newValue))
       }
     else
-      IO.Success(oldKeyValue)
+      IO.Sync(oldKeyValue)
 
   def apply(newKeyValue: ReadOnly.Function,
             oldKeyValue: ReadOnly.Fixed)(implicit timeOrder: TimeOrder[Slice[Byte]],
@@ -295,6 +295,6 @@ object FunctionMerger {
           FixedMerger(newKeyValue, oldApplies)
       }
     else
-      IO.Success(oldKeyValue)
+      IO.Sync(oldKeyValue)
 
 }

@@ -92,7 +92,7 @@ private[core] object DBInitializer extends LazyLogging {
           )
 
         case TrashLevelConfig =>
-          IO.Success(TrashLevel)
+          IO.Sync(TrashLevel)
       }
 
     /**

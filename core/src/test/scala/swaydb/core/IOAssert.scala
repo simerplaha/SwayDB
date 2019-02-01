@@ -30,7 +30,7 @@ object IOAssert extends Matchers {
         case IO.Failure(exception) =>
           fail(exception)
 
-        case IO.Success(value) =>
+        case IO.Sync(value) =>
           value
       }
   }
@@ -48,7 +48,7 @@ object IOAssert extends Matchers {
         case IO.Failure(exception) =>
           fail(exception)
 
-        case IO.Success(value) =>
+        case IO.Sync(value) =>
           value.assertGet
       }
 
@@ -57,7 +57,7 @@ object IOAssert extends Matchers {
         case IO.Failure(exception) =>
           fail(exception)
 
-        case IO.Success(value) =>
+        case IO.Sync(value) =>
           value
       }
   }

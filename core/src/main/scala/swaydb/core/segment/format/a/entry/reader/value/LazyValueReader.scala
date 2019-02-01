@@ -55,7 +55,7 @@ trait LazyValueReader {
           value
       }
     else
-      IO.Success(valueOption)
+      IO.Sync(valueOption)
 
   def getOrFetchValue: IO[Option[Slice[Byte]]] =
     fetchValue(valueReader)

@@ -228,7 +228,7 @@ private[core] object Segment extends LazyLogging {
           writeKeyValue(keyValue, deadline)
       } flatMap {
         nearestExpiryDeadline =>
-          IO.Success(
+          IO.Sync(
             MemorySegment(
               path = path,
               minKey = keyValues.head.key.unslice(),
@@ -660,7 +660,7 @@ private[core] object Segment extends LazyLogging {
     */
   def getAllKeyValues(bloomFilterFalsePositiveRate: Double, segments: Iterable[Segment]): IO[Slice[KeyValue.ReadOnly]] =
     if (segments.isEmpty)
-      IO.Success(Slice.create[KeyValue.ReadOnly](0))
+      IO.Sync(Slice.create[KeyValue.ReadOnly](0))
     else if (segments.size == 1)
       segments.head.getAll()
     else
@@ -729,7 +729,7 @@ private[core] object Segment extends LazyLogging {
                                busySegments: Iterable[Segment],
                                appendixSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Boolean] =
     if (busySegments.isEmpty)
-      IO.Success(false)
+      IO.Sync(false)
     else
       SegmentAssigner.assignMinMaxOnlyForSegments(
         inputSegments = inputSegments,
@@ -746,7 +746,7 @@ private[core] object Segment extends LazyLogging {
                                busySegments: Iterable[Segment],
                                appendixSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Boolean] =
     if (busySegments.isEmpty)
-      IO.Success(false)
+      IO.Sync(false)
     else {
       for {
         head <- map.headValue()
@@ -765,7 +765,7 @@ private[core] object Segment extends LazyLogging {
             ).nonEmpty
         }
       }
-    } getOrElse IO.Success(false)
+    } getOrElse IO.Sync(false)
 
   /**
     * Key-values such as Groups and Ranges can contain deadlines internally.
@@ -987,5 +987,4 @@ private[core] trait Segment {
   def persistent: Boolean
 
   def existsOnDisk: Boolean
-
 }

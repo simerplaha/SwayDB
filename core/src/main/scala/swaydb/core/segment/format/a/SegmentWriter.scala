@@ -75,7 +75,7 @@ private[core] object SegmentWriter extends LazyLogging {
         else if (!valuesSlice.isFull)
           IO.Failure(new Exception(s"valuesSlice is not full actual: ${valuesSlice.written} - expected: ${valuesSlice.size}"))
         else
-          IO.Success(result)
+          IO.Sync(result)
     }
 
   private def write(keyValue: KeyValue.WriteOnly,
@@ -101,7 +101,7 @@ private[core] object SegmentWriter extends LazyLogging {
   def write(keyValues: Iterable[KeyValue.WriteOnly],
             bloomFilterFalsePositiveRate: Double): IO[(Slice[Byte], Option[Deadline])] =
     if (keyValues.isEmpty)
-      IO.Success(Slice.emptyBytes, None)
+      IO.Sync(Slice.emptyBytes, None)
     else {
       val bloomFilter = BloomFilterUtil.initBloomFilter(keyValues, bloomFilterFalsePositiveRate)
 

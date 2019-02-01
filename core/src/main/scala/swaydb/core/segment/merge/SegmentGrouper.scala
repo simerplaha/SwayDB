@@ -122,7 +122,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                 }
               //                }
               case group: Transient.Group =>
-                IO.Success((count + 1, Some(group)))
+                IO.Sync((count + 1, Some(group)))
               case other =>
                 val exception = new Exception(s"Head key-values are not Groups. ${other.getClass.getSimpleName} found, expected a Group.")
                 logger.error(exception.getMessage, exception)
@@ -133,7 +133,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
             if (!keyValuesToGroup.isFull)
               IO.Failure(new Exception(s"keyValuesToGroup is not full! actual: ${keyValuesToGroup.written} - expected: ${keyValuesToGroup.size}"))
             else
-              IO.Success(Some(keyValuesToGroup, lastGroup))
+              IO.Sync(Some(keyValuesToGroup, lastGroup))
         }
       }
     } else {
@@ -258,7 +258,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
         keyValue match {
           case keyValue: KeyValue.ReadOnly.Group =>
             keyValue.segmentCache.getAll() match {
-              case IO.Success(groupKeyValues) =>
+              case IO.Sync(groupKeyValues) =>
                 addKeyValues(
                   keyValues = MergeList[Memory.Range, KeyValue.ReadOnly](groupKeyValues) append keyValues.dropHead(),
                   splits = splits,
@@ -282,7 +282,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
               bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
               compressDuplicateValues = compressDuplicateValues
             ) match {
-              case IO.Success(_) =>
+              case IO.Sync(_) =>
                 addKeyValues(
                   keyValues = keyValues.dropHead(),
                   splits = splits,
@@ -556,7 +556,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
         case range: KeyValue.ReadOnly.Range =>
           if (isLastLevel)
             range.fetchFromValue match {
-              case IO.Success(fromValue) =>
+              case IO.Sync(fromValue) =>
                 fromValue match {
                   case Some(fromValue) =>
                     fromValue match {

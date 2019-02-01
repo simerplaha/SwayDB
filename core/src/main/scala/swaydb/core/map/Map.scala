@@ -205,6 +205,6 @@ private[core] trait Map[K, V] {
   def close(): IO[Unit]
 
   def fileId: IO[Long] =
-    IO.Success(0)
+    IO.Sync(0)
 
 }

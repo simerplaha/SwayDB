@@ -54,7 +54,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
             if (item == 3)
               IO.Failure(new Exception(s"result at item $item"))
             else
-              IO.Success(item)
+              IO.Sync(item)
           }
         }
 
@@ -74,7 +74,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
             if (item == 3)
               IO.Failure(new Exception(s"result at item $item"))
             else {
-              IO.Success(item)
+              IO.Sync(item)
             }
           },
           failFast = false
@@ -91,7 +91,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
       val result: Option[IO.Failure[Int]] =
         slice.foreachIO {
           item =>
-            IO.Success(item)
+            IO.Sync(item)
         }
 
       result.isEmpty shouldBe true
@@ -106,7 +106,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
       val result: IO[Slice[Int]] =
         slice.mapIO {
           item =>
-            IO.Success(item + 1)
+            IO.Sync(item + 1)
         }
 
       result.get.toArray shouldBe Array(2, 3, 4, 5, 6)
@@ -119,7 +119,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
 
       val result: IO[Slice[Int]] =
         slice.mapIO(
-          ioBlock = item => if (item == 3) IO.Failure(new Exception(s"Failed at $item")) else IO.Success(item),
+          ioBlock = item => if (item == 3) IO.Failure(new Exception(s"Failed at $item")) else IO.Sync(item),
           recover = (ints: Slice[Int], _: IO.Failure[Slice[Int]]) => ints.foreach(intsCleanedUp += _)
         )
 
@@ -171,7 +171,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
             if (item == "two")
               IO.Failure(new Exception(s"Failed at $item"))
             else
-              IO.Success(count + 1)
+              IO.Sync(count + 1)
         }
 
       result.isFailure shouldBe true
@@ -184,7 +184,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
       val result: IO[Int] =
         slice.foldLeftIO(0) {
           case (count, _) =>
-            IO.Success(count + 1)
+            IO.Sync(count + 1)
         }
 
       result.isSuccess shouldBe true
@@ -211,7 +211,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
           item => {
             iterations += 1
             if (item == 3)
-              IO.Success(Some(item))
+              IO.Sync(Some(item))
             else
               IO.successNone
           }

@@ -94,7 +94,7 @@ private[core] object SegmentAssigner {
               nextSegmentMayBe match {
                 case Some(nextSegment) if keyValue.toKey > nextSegment.minKey =>
                   keyValue.fetchFromAndRangeValue match {
-                    case IO.Success((fromValue, rangeValue)) =>
+                    case IO.Sync((fromValue, rangeValue)) =>
                       val thisSegmentsRange = Memory.Range(fromKey = keyValue.fromKey, toKey = nextSegment.minKey, fromValue = fromValue, rangeValue = rangeValue)
                       val nextSegmentsRange = Memory.Range(fromKey = nextSegment.minKey, toKey = keyValue.toKey, fromValue = None, rangeValue = rangeValue)
 
@@ -122,7 +122,7 @@ private[core] object SegmentAssigner {
 
                 case _ =>
                   keyValue.segmentCache.getAll() match {
-                    case IO.Success(groupsKeyValues) =>
+                    case IO.Sync(groupsKeyValues) =>
                       assign(
                         MergeList[Memory.Range, KeyValue.ReadOnly](groupsKeyValues) append remainingKeyValues.dropHead(),
                         thisSegmentMayBe,
@@ -183,7 +183,7 @@ private[core] object SegmentAssigner {
 
                 case _ =>
                   keyValue.segmentCache.getAll() match {
-                    case IO.Success(groupsKeyValues) =>
+                    case IO.Sync(groupsKeyValues) =>
                       assign(
                         MergeList[Memory.Range, KeyValue.ReadOnly](groupsKeyValues) append remainingKeyValues.dropHead(),
                         thisSegmentMayBe,
@@ -204,7 +204,7 @@ private[core] object SegmentAssigner {
       }
 
     if (segments.size == 1)
-      IO.Success(mutable.Map((segments.head, keyValues)))
+      IO.Sync(mutable.Map((segments.head, keyValues)))
     else if (segmentsIterator.hasNext)
       assign(MergeList(keyValues), Some(segmentsIterator.next()), getNextSegmentMayBe()) map {
         _ =>
@@ -214,6 +214,6 @@ private[core] object SegmentAssigner {
           }
       }
     else
-      IO.Success(assignmentsMap)
+      IO.Sync(assignmentsMap)
   }
 }

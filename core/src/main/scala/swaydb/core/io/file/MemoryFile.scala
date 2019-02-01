@@ -52,16 +52,16 @@ private[file] class MemoryFile(val path: Path,
     IO(bytes.size)
 
   override def isMemoryMapped: IO[Boolean] =
-    IO.Success(false)
+    IO.Sync(false)
 
   override def isLoaded: IO[Boolean] =
-    IO.Success(true)
+    IO.Sync(true)
 
   override def isOpen: Boolean =
     true
 
   override def isFull: IO[Boolean] =
-    IO.Success(true)
+    IO.Sync(true)
 
   override def memory: Boolean = true
 

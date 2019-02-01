@@ -115,7 +115,7 @@ private[core] object LevelActor extends LazyLogging {
       if (newDeadline.isOverdue()) {
         logger.debug(s"{}: Deadline overdue: {}. Clearing expired key-values.", level.paths.head, newDeadline.timeLeft.asString)
         level.clearExpiredKeyValues() match {
-          case IO.Success(_) =>
+          case IO.Sync(_) =>
             logger.debug(s"{}: clearExpiredKeyValues execution complete.", level.paths.head)
             state.clearTask()
 
@@ -232,7 +232,7 @@ private[core] object LevelActor extends LazyLogging {
     state.waitingPull.foreach(_ ! Pull)
 
     response.result match {
-      case IO.Success(_) =>
+      case IO.Sync(_) =>
         logger.trace(s"{}: Received successful put response. Segments pushed {}.", level.paths.head, response.request.segments.map(_.path.toString))
         level.removeSegments(response.request.segments)
         (Sleeping(state.collapseSmallSegmentsTaskScheduled, state.task), Some(PushTask(level.nextPushDelay, Push)))

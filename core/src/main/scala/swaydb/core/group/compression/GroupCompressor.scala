@@ -58,7 +58,7 @@ private[core] object GroupCompressor extends LazyLogging {
         logger.debug(s"Keys successfully compressed with Compression: ${keyCompression.getClass.getSimpleName}. ${indexBytes.size}.bytes compressed to ${compressedKeys.size}.bytes")
         if (valueBytes.size == 0) { //if no values exist, result is success.
           logger.debug(s"No values in ${indexBytes.size}: key-values. Ignoring value compression for $keyValueCount key-values.")
-          IO.Success(
+          IO.Sync(
             Some(
               CompressionResult(
                 compressedIndex = compressedKeys,
@@ -75,7 +75,7 @@ private[core] object GroupCompressor extends LazyLogging {
 
             case Some((compressedValueBytes, valueCompression)) =>
               logger.debug(s"Values successfully compressed with Compression: ${valueCompression.getClass.getSimpleName}. ${valueBytes.size}.bytes compressed to ${compressedValueBytes.size}.bytes")
-              IO.Success(
+              IO.Sync(
                 Some(
                   CompressionResult(
                     compressedIndex = compressedKeys,

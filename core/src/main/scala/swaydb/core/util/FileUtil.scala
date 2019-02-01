@@ -91,9 +91,9 @@ private[core] object FileUtil extends LazyLogging {
       fileId =>
         val ext = fileName.substring(extIndex + 1, fileName.length)
         if (ext == Extension.Log.toString)
-          IO.Success(fileId, Extension.Log)
+          IO.Sync(fileId, Extension.Log)
         else if (ext == Extension.Seg.toString)
-          IO.Success(fileId, Extension.Seg)
+          IO.Sync(fileId, Extension.Seg)
         else {
           logger.error("Unknown extension for file {}", path)
           IO.Failure(UnknownExtension(path))

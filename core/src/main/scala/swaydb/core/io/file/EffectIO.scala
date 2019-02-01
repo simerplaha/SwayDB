@@ -82,7 +82,7 @@ object EffectIO extends LazyLogging {
 
   def createFileIfAbsent(path: Path): IO[Path] =
     if (exists(path))
-      IO.Success(path)
+      IO.Sync(path)
     else
       createFile(path)
 

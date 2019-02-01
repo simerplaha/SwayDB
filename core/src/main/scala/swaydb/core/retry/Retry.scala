@@ -77,7 +77,7 @@ object Retry extends LazyLogging {
         case IO.Failure(_) =>
           IO.Failure(previousFailure)
 
-        case IO.Success(_) =>
+        case IO.Sync(_) =>
           ioBlock match {
             case failed @ IO.Failure(exception) if timesLeft == 0 =>
               if (logger.underlying.isTraceEnabled)
@@ -91,7 +91,7 @@ object Retry extends LazyLogging {
               logger.debug(s"{}: Failed retried {} time(s)", resourceId, maxRetryLimit - timesLeft)
               doRetry(timesLeft - 1, exception)
 
-            case success @ IO.Success(_) =>
+            case success @ IO.Sync(_) =>
               logger.debug(s"{}: IO.Success retried {} time(s)", resourceId, maxRetryLimit - timesLeft)
               success
           }

@@ -78,7 +78,7 @@ private[core] object Get {
 
         case current: KeyValue.ReadOnly.Put =>
           if (current.hasTimeLeft())
-            IO.Success(Some(current))
+            IO.Sync(Some(current))
           else
             IO.successNone
 
@@ -105,7 +105,7 @@ private[core] object Get {
 
         case current: KeyValue.ReadOnly.Range =>
           (if (current.key equiv key) current.fetchFromOrElseRangeValue else current.fetchRangeValue) match {
-            case IO.Success(currentValue) =>
+            case IO.Sync(currentValue) =>
               if (Value.hasTimeLeft(currentValue))
                 returnSegmentResponse(currentValue.toMemory(key))
               else
@@ -122,10 +122,10 @@ private[core] object Get {
                 next =>
                   if (next.hasTimeLeft())
                     FunctionMerger(current, next) match {
-                      case IO.Success(put: ReadOnly.Put) if put.hasTimeLeft() =>
-                        IO.Success(Some(put))
+                      case IO.Sync(put: ReadOnly.Put) if put.hasTimeLeft() =>
+                        IO.Sync(Some(put))
 
-                      case IO.Success(_: ReadOnly.Fixed) =>
+                      case IO.Sync(_: ReadOnly.Fixed) =>
                         IO.successNone
 
                       case IO.Failure(exception) =>
@@ -145,10 +145,10 @@ private[core] object Get {
                 next =>
                   if (next.hasTimeLeft())
                     PendingApplyMerger(current, next) match {
-                      case IO.Success(put: ReadOnly.Put) if put.hasTimeLeft() =>
-                        IO.Success(Some(put))
+                      case IO.Sync(put: ReadOnly.Put) if put.hasTimeLeft() =>
+                        IO.Sync(Some(put))
 
-                      case IO.Success(_: ReadOnly.Fixed) =>
+                      case IO.Sync(_: ReadOnly.Fixed) =>
                         IO.successNone
 
                       case IO.Failure(exception) =>

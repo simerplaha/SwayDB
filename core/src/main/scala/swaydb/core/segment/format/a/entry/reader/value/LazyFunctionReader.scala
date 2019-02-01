@@ -40,7 +40,7 @@ trait LazyFunctionReader extends LazyValueReader {
   def getOrFetchFunction: IO[Slice[Byte]] =
     super.getOrFetchValue flatMap {
       case Some(value) =>
-        IO.Success(value)
+        IO.Sync(value)
       case None =>
         IO.Failure(new Exception("Empty functionId."))
     }

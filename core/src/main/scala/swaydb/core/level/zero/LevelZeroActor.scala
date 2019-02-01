@@ -93,7 +93,7 @@ private[core] class LevelZeroActor(zero: LevelZero,
             }
           case PushMapResponse(_, result) =>
             result match {
-              case IO.Success(_) =>
+              case IO.Sync(_) =>
                 logger.debug(s"{}: Push successful.", zero.path)
                 //if there is a failure removing the last map, maps will add the same map back into the queue and print
                 // error message to be handled by the User.
@@ -101,7 +101,7 @@ private[core] class LevelZeroActor(zero: LevelZero,
                 // Maps are ALWAYS required to be processed sequentially in the order of write. If there order if not
                 //maintained that may lead to inaccurate data being written which is should NOT be allowed.
                 maps.removeLast() foreach {
-                  case IO.Success(_) =>
+                  case IO.Sync(_) =>
                     self ! Push
 
                   case IO.Failure(exception) =>

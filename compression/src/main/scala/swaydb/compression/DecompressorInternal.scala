@@ -120,7 +120,7 @@ private[swaydb] object DecompressorInternal {
 
     override def decompress(slice: Slice[Byte],
                             decompressLength: Int): IO[Slice[Byte]] =
-      IO.Success(slice)
+      IO.Sync(slice)
   }
 
   private[swaydb] case object Snappy extends DecompressorInternal {

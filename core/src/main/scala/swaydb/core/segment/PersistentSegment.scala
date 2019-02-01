@@ -194,7 +194,7 @@ private[segment] case class PersistentSegment(file: DBFile,
     }
 
   def getFooter(): IO[SegmentFooter] =
-    footer.map(IO.Success(_)) getOrElse {
+    footer.map(IO.Sync(_)) getOrElse {
       SegmentReader.readFooter(createReader()) map {
         segmentFooter =>
           footer = Some(segmentFooter)

@@ -89,7 +89,7 @@ class LevelActorSpec extends TestBase with MockFactory {
       implicit val self = TestActor[LevelCommand]()
 
       level.nextBatchSize _ expects() returning 10
-      level.collapseAllSmallSegments _ expects 10 returning IO.Success(0)
+      level.collapseAllSmallSegments _ expects 10 returning IO.Sync(0)
 
       LevelActor.collapseSmallSegments(force = false) shouldBe Sleeping(collapseSmallSegmentsTaskScheduled = false, task = None)
     }
@@ -100,7 +100,7 @@ class LevelActorSpec extends TestBase with MockFactory {
       implicit val self = TestActor[LevelCommand]()
 
       level.nextBatchSize _ expects() returning 10
-      level.collapseAllSmallSegments _ expects 10 returning IO.Success(1)
+      level.collapseAllSmallSegments _ expects 10 returning IO.Sync(1)
 
       LevelActor.collapseSmallSegments(force = false) shouldBe Sleeping(collapseSmallSegmentsTaskScheduled = true, task = None)
       self.expectMessage[LevelCommand.CollapseSmallSegmentsForce](LevelActor.tooManySegmentsToCollapseReSchedule + 1.second)
@@ -127,7 +127,7 @@ class LevelActorSpec extends TestBase with MockFactory {
       implicit val self = TestActor[LevelCommand]()
 
       level.nextBatchSize _ expects() returning 10
-      level.collapseAllSmallSegments _ expects 10 returning IO.Success(0)
+      level.collapseAllSmallSegments _ expects 10 returning IO.Sync(0)
 
       LevelActor.collapseSmallSegments(force = true) shouldBe Sleeping(collapseSmallSegmentsTaskScheduled = false, task = None)
     }
@@ -138,7 +138,7 @@ class LevelActorSpec extends TestBase with MockFactory {
       implicit val self = TestActor[LevelCommand]()
 
       level.nextBatchSize _ expects() returning 10
-      level.collapseAllSmallSegments _ expects 10 returning IO.Success(1)
+      level.collapseAllSmallSegments _ expects 10 returning IO.Sync(1)
 
       LevelActor.collapseSmallSegments(force = true) shouldBe Sleeping(collapseSmallSegmentsTaskScheduled = true, task = None)
       self.expectMessage[LevelCommand.CollapseSmallSegmentsForce](LevelActor.tooManySegmentsToCollapseReSchedule + 1.second)
@@ -165,7 +165,7 @@ class LevelActorSpec extends TestBase with MockFactory {
       implicit val self = TestActor[LevelCommand]()
 
       //      level.paths _ expects() returning PathsDistributor(Seq(Dir(Paths.get("testPath"), 1)), () => Seq.empty) repeat 3.times
-      level.clearExpiredKeyValues _ expects() returning IO.Success()
+      level.clearExpiredKeyValues _ expects() returning IO.Sync()
 
       val deadline = 5.second.fromNow
       val newState = LevelActor.clearExpiredKeyValues(deadline)
@@ -191,7 +191,7 @@ class LevelActorSpec extends TestBase with MockFactory {
       implicit val self = TestActor[LevelCommand]()
 
       //      level.paths _ expects() returning PathsDistributor(Seq(Dir(Paths.get("testPath"), 1)), () => Seq.empty) repeat 2.times
-      level.clearExpiredKeyValues _ expects() returning IO.Success()
+      level.clearExpiredKeyValues _ expects() returning IO.Sync()
 
       val deadline = 0.second.fromNow
       val newState = LevelActor.clearExpiredKeyValues(deadline)
@@ -215,7 +215,7 @@ class LevelActorSpec extends TestBase with MockFactory {
       implicit val self = TestActor[LevelCommand]()
 
       //      level.paths _ expects() returning PathsDistributor(Seq(Dir(Paths.get("testPath"), 1)), () => Seq.empty) repeat 3.times
-      level.clearExpiredKeyValues _ expects() returning IO.Success()
+      level.clearExpiredKeyValues _ expects() returning IO.Sync()
 
       val deadline = 2.second.fromNow
       val newState = LevelActor.clearExpiredKeyValues(deadline)
@@ -457,7 +457,7 @@ class LevelActorSpec extends TestBase with MockFactory {
       level.removeSegments _ expects * onCall {
         segments: Iterable[Segment] =>
           segments shouldHaveSameInOrderedIds testSegments
-          IO.Success(testSegments.size)
+          IO.Sync(testSegments.size)
       }
 
       level.nextPushDelay _ expects() returns 1.second

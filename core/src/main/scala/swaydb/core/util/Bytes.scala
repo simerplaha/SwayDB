@@ -179,7 +179,7 @@ private[swaydb] object Bytes {
           hasMore <- reader.hasAtLeast(lastBytesRead + 1) //if there are more bytes to read.
           right <-
             if (!hasMore && commonBytes == leftBytesSize) //if right was fully compressed then right == left, return left.
-              IO.Success(left)
+              IO.Sync(left)
             else
               reader.readIntUnsigned() flatMap {
                 rightSize =>

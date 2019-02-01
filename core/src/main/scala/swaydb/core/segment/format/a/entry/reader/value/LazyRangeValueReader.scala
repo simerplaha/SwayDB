@@ -48,13 +48,13 @@ trait LazyRangeValueReader extends LazyValueReader {
     if (rangeValue == null)
       fetchFromAndRangeValue.map(_._2)
     else
-      IO.Success(rangeValue)
+      IO.Sync(rangeValue)
 
   def fetchFromValue: IO[Option[Value.FromValue]] =
     if (fromValue == null)
       fetchFromAndRangeValue.map(_._1)
     else
-      IO.Success(fromValue)
+      IO.Sync(fromValue)
 
   def fetchFromAndRangeValue: IO[(Option[Value.FromValue], Value.RangeValue)] =
     if (fromValue == null || rangeValue == null)
@@ -70,5 +70,5 @@ trait LazyRangeValueReader extends LazyValueReader {
           IO.Failure(new IllegalStateException(s"Failed to read range's value"))
       }
     else
-      IO.Success(fromValue, rangeValue)
+      IO.Sync(fromValue, rangeValue)
 }

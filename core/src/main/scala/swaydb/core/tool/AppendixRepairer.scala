@@ -131,7 +131,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
                 //do not jump to next Segment, continue checking for overlapping Segments for the current Segment.
                 return checkOverlappingSegments(segments.drop(position - 1).filter(_.existsOnDisk), strategy)
             }
-        } getOrElse IO.Success(position + 1)
+        } getOrElse IO.Sync(position + 1)
     }
 
   def buildAppendixMap(appendixDir: Path,

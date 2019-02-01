@@ -146,7 +146,7 @@ private[core] object Maps extends LazyLogging {
               otherMapsPaths foreachIO { //delete Maps after the corruption.
                 mapPath =>
                   EffectIO.walkDelete(mapPath) match {
-                    case IO.Success(_) =>
+                    case IO.Sync(_) =>
                       logger.info(s"{}: Deleted file after corruption. Recovery mode: {}", mapPath, recovery.name)
                       IO.successUnit
 
@@ -159,7 +159,7 @@ private[core] object Maps extends LazyLogging {
                   IO.Failure(exception)
 
                 case None =>
-                  IO.Success(recoveredMaps)
+                  IO.Sync(recoveredMaps)
               }
           }
 
@@ -175,22 +175,22 @@ private[core] object Maps extends LazyLogging {
                    recoveredMaps: ListBuffer[Map[K, V]]): IO[Seq[Map[K, V]]] =
       maps match {
         case Nil =>
-          IO.Success(recoveredMaps)
+          IO.Sync(recoveredMaps)
 
         case mapPath :: otherMapsPaths =>
           logger.info(s"{}: Recovering.", mapPath)
 
           Map.persistent[K, V](mapPath, mmap, flushOnOverflow = false, fileSize, recovery.drop) match {
-            case IO.Success(recoveredMap) =>
+            case IO.Sync(recoveredMap) =>
               //recovered immutable memory map's files should be closed after load as they are always read from in memory
               // and does not require the files to be opened.
               recoveredMap.item.close() match {
-                case IO.Success(_) =>
+                case IO.Sync(_) =>
                   recoveredMaps += recoveredMap.item //recoveredMap.item can also be partially recovered file based on RecoveryMode set.
                   //if the recoveredMap's recovery result is a failure (partially recovered file),
                   //apply corruption handling based on the value set for RecoveryMode.
                   recoveredMap.result match {
-                    case IO.Success(_) => //Recovery was successful. Recover next map.
+                    case IO.Sync(_) => //Recovery was successful. Recover next map.
                       doRecovery(otherMapsPaths, recoveredMaps)
 
                     case IO.Failure(exception) =>
@@ -227,7 +227,7 @@ private[core] object Maps extends LazyLogging {
         }
 
       case _ =>
-        IO.Success(Map.memory[K, V](nextMapSize, flushOnOverflow = false))
+        IO.Sync(Map.memory[K, V](nextMapSize, flushOnOverflow = false))
     }
 }
 
@@ -266,13 +266,13 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
   @tailrec
   private def persist(entry: MapEntry[K, V]): IO[Level0Meter] =
     currentMap.write(entry) match {
-      case IO.Success(writeSuccessful) =>
+      case IO.Sync(writeSuccessful) =>
         if (writeSuccessful)
-          IO.Success(meter)
+          IO.Sync(meter)
         else {
           val mapsSize = maps.size() + 1
           IO(acceleration(Level0Meter(fileSize, currentMap.fileSize, mapsSize))) match {
-            case IO.Success(accelerate) =>
+            case IO.Sync(accelerate) =>
               accelerate.brake match {
                 case Some(brake) =>
                   brakePedal = new BrakePedal(brake.brakeFor, brake.releaseRate)
@@ -283,7 +283,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
               val nextMapSize = accelerate.nextMapSize max entry.totalByteSize
               logger.debug(s"Next map size: {}.bytes", nextMapSize)
               Maps.nextMap(nextMapSize, currentMap) match {
-                case IO.Success(nextMap) =>
+                case IO.Sync(nextMap) =>
                   maps addFirst currentMap
                   currentMap = nextMap
                   meter = Level0Meter(fileSize, nextMapSize, mapsSize + 1)
@@ -304,7 +304,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
       case IO.Failure(writeException) =>
         logger.error("IO.Failure to write Map entry. Starting a new Map.", writeException)
         Maps.nextMap(fileSize, currentMap) match {
-          case IO.Success(nextMap) =>
+          case IO.Sync(nextMap) =>
             maps addFirst currentMap
             currentMap = nextMap
             onFullListener()
@@ -400,7 +400,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
             maps.addLast(removedMap)
             IO.Failure(exception)
 
-          case IO.Success(_) =>
+          case IO.Sync(_) =>
             IO.successUnit
         }
     }
