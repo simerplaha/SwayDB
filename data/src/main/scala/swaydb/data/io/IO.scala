@@ -53,6 +53,7 @@ sealed trait IO[+T] {
   def failed: IO[Throwable]
   def toEither: Either[Throwable, T]
   def toFuture: Future[T]
+  def toTry: scala.util.Try[T]
 }
 
 object IO {
@@ -218,6 +219,7 @@ object IO {
     override def toEither: Either[Throwable, T] = Left(exception)
     override def filter(p: T => Boolean): IO[T] = this
     override def toFuture: Future[T] = Future.failed(exception)
+    override def toTry: scala.util.Try[T] = scala.util.Failure(exception)
   }
 
   final case class Success[+T](value: T) extends IO[T] {
@@ -241,6 +243,7 @@ object IO {
     override def filter(p: T => Boolean): IO[T] =
       IO.Catch(if (p(value)) this else IO.Failure(new NoSuchElementException("Predicate does not hold for " + value)))
     override def toFuture: Future[T] = Future.successful(value)
+    override def toTry: scala.util.Try[T] = scala.util.Success(value)
   }
 
   object Async {
