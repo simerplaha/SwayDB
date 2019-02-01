@@ -35,7 +35,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
 
       io.get shouldBe 2
 
-      io.getOrListen(???).get shouldBe 2
+      io.getOrListen(_ => ???).get shouldBe 2
     }
 
     "flatMap on Failure" in {
@@ -49,7 +49,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
         io.get
       }
 
-      io.getOrListen(???) shouldBe a[IO.Failure[_]]
+      io.getOrListen(_ => ???) shouldBe a[IO.Failure[_]]
     }
 
     "getOrListen on Failure" in {
