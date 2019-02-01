@@ -26,7 +26,7 @@ import swaydb.core.level.actor.LevelAPI
 import swaydb.core.level.actor.LevelCommand._
 import swaydb.core.map.Map
 import swaydb.core.segment.Segment
-import swaydb.core.util.IOUtil
+
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.slice.Slice
 
@@ -47,9 +47,9 @@ private[core] object TrashLevel extends LevelRef {
   override def !(request: LevelAPI): Unit =
     request match {
       case request: PushSegments =>
-        request.replyTo ! PushSegmentsResponse(request, IOUtil.successUnit)
+        request.replyTo ! PushSegmentsResponse(request, IO.successUnit)
       case request: PushMap =>
-        request.replyTo ! PushMapResponse(request, IOUtil.successUnit)
+        request.replyTo ! PushMapResponse(request, IO.successUnit)
       case PullRequest(pullFrom) =>
         pullFrom ! Pull
     }
@@ -97,19 +97,19 @@ private[core] object TrashLevel extends LevelRef {
     (0, 0)
 
   override val head =
-    IOUtil.successNone
+    IO.successNone
 
   override val last =
-    IOUtil.successNone
+    IO.successNone
 
   override def get(key: Slice[Byte]) =
-    IOUtil.successNone
+    IO.successNone
 
   override def lower(key: Slice[Byte]) =
-    IOUtil.successNone
+    IO.successNone
 
   override def higher(key: Slice[Byte]) =
-    IOUtil.successNone
+    IO.successNone
 
   override val isEmpty: Boolean =
     true
@@ -127,10 +127,10 @@ private[core] object TrashLevel extends LevelRef {
     0
 
   override def releaseLocks: IO[Unit] =
-    IOUtil.successUnit
+    IO.successUnit
 
   override val close: IO[Unit] =
-    IOUtil.successUnit
+    IO.successUnit
 
   override val meter: LevelMeter =
     LevelMeter(0, 0)
@@ -144,19 +144,19 @@ private[core] object TrashLevel extends LevelRef {
   override val isTrash: Boolean = true
 
   override def ceiling(key: Slice[Byte]): IO[Option[KeyValue.ReadOnly.Put]] =
-    IOUtil.successNone
+    IO.successNone
 
   override def floor(key: Slice[Byte]): IO[Option[KeyValue.ReadOnly.Put]] =
-    IOUtil.successNone
+    IO.successNone
 
   override val headKey: IO[Option[Slice[Byte]]] =
-    IOUtil.successNone
+    IO.successNone
 
   override val lastKey: IO[Option[Slice[Byte]]] =
-    IOUtil.successNone
+    IO.successNone
 
   override def closeSegments(): IO[Unit] =
-    IOUtil.successUnit
+    IO.successUnit
 
   override def levelNumber: Long = -1
 }

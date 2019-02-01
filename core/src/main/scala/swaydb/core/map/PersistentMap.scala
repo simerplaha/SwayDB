@@ -19,23 +19,23 @@
 
 package swaydb.core.map
 
+import com.typesafe.scalalogging.LazyLogging
 import java.nio.file.Path
 import java.util.concurrent.ConcurrentSkipListMap
-import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.data.Memory
-import swaydb.core.io.file.{DBFile, IOOps}
-import swaydb.core.map.serializer.{MapCodec, MapEntryReader, MapEntryWriter}
-import swaydb.core.util.FileUtil._
-import swaydb.core.util.IOUtil._
-import swaydb.core.util.{Extension, IOUtil}
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 import scala.collection.concurrent
 import scala.concurrent.ExecutionContext
 import scala.reflect.ClassTag
-import swaydb.data.io.IO
+import swaydb.core.data.Memory
 import swaydb.core.function.FunctionStore
+import swaydb.core.io.file.{DBFile, IOOps}
+import swaydb.core.map.serializer.{MapCodec, MapEntryReader, MapEntryWriter}
 import swaydb.core.queue.FileLimiter
+import swaydb.core.util.Extension
+import swaydb.core.util.FileUtil._
+import swaydb.data.io.IO
+import swaydb.data.io.IO._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
@@ -147,7 +147,7 @@ private[map] object PersistentMap extends LazyLogging {
             (
               RecoveryResult(
                 item = file,
-                result = recoveredFiles.find(_.result.isFailure).map(_.result) getOrElse IOUtil.successUnit
+                result = recoveredFiles.find(_.result.isFailure).map(_.result) getOrElse IO.successUnit
               ),
               hasRange
             )

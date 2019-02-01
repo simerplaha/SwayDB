@@ -30,8 +30,8 @@ import swaydb.core.data._
 import swaydb.core.io.reader.Reader
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.retry.Retry
-import swaydb.core.util.IOUtil
-import swaydb.core.util.IOUtil._
+
+import swaydb.data.io.IO._
 import swaydb.core.{TestBase, TestData}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -101,7 +101,7 @@ class GroupDecompressorSpec extends TestBase {
                   case IO.Success(value) =>
                     try {
                       value.get.toMemory().assertGet shouldBe keyValue
-                      IOUtil.successUnit
+                      IO.successUnit
                     } catch {
                       case ex: Exception =>
                         IO.Failure(ex.getCause)

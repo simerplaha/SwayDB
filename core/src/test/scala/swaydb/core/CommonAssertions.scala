@@ -52,7 +52,7 @@ import IOAssert._
 import RunThis._
 import scala.util.Random
 import swaydb.core.retry.Retry
-import swaydb.core.util.IOUtil
+
 
 object CommonAssertions {
 
@@ -825,7 +825,7 @@ object CommonAssertions {
 
   def assertBloomNotContains(bloom: BloomFilter[Slice[Byte]]) =
     runThis(10.times) {
-      Retry("bloom false test", (_, _) => IOUtil.successUnit, 10) {
+      Retry("bloom false test", (_, _) => IO.successUnit, 10) {
         IO(bloom.mightContain(randomBytesSlice(randomIntMax(1000) min 100)) shouldBe false)
       }
     }

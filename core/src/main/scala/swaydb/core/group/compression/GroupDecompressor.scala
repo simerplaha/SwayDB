@@ -26,7 +26,6 @@ import swaydb.core.group.compression.data.{GroupHeader, ValueInfo}
 import swaydb.core.io.reader.{GroupReader, Reader}
 import swaydb.core.segment.SegmentException
 import swaydb.core.segment.format.a.SegmentFooter
-import swaydb.core.util.IOUtil
 import swaydb.data.slice.Reader
 
 import scala.annotation.tailrec
@@ -92,9 +91,9 @@ private[core] case class GroupDecompressor(private val compressedGroupReader: Re
       indexCompressedLength <- header.readIntUnsigned()
       hasValues <- header.hasMore //read values related header bytes only if header contains more data.
       //this Compression instance is used for decompressing only so minCompressionPercentage is irrelevant
-      valuesCompression <- if (hasValues) header.readIntUnsigned().flatMap(id => DecompressorInternal(id).map(Some(_))) else IOUtil.successNone
-      valuesDecompressedLength <- if (hasValues) header.readIntUnsigned() else IOUtil.successZero
-      valuesCompressedLength <- if (hasValues) header.readIntUnsigned() else IOUtil.successZero
+      valuesCompression <- if (hasValues) header.readIntUnsigned().flatMap(id => DecompressorInternal(id).map(Some(_))) else IO.successNone
+      valuesDecompressedLength <- if (hasValues) header.readIntUnsigned() else IO.successZero
+      valuesCompressedLength <- if (hasValues) header.readIntUnsigned() else IO.successZero
     } yield {
       GroupHeader(
         headerSize = headerSize,
@@ -166,7 +165,7 @@ private[core] case class GroupDecompressor(private val compressedGroupReader: Re
                   valuesCompression = valueInfo.valuesDecompressor,
                   maxTimesToIO = maxTimesToIODecompress
                 )
-            } getOrElse IOUtil.emptyReader, //Return empty reader if values are empty
+            } getOrElse IO.emptyReader, //Return empty reader if values are empty
         indexReader = Reader(keysDecompressedBytes)
       )
     }

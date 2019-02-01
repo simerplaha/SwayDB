@@ -19,14 +19,13 @@
 
 package swaydb.core.segment.format.a.entry.reader
 
+import scala.annotation.implicitNotFound
 import swaydb.core.data.Persistent
 import swaydb.core.segment.format.a.entry.id.EntryId
-import swaydb.core.util.{Bytes, IOUtil}
+import swaydb.core.util.Bytes
+import swaydb.data.io.IO
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
-
-import scala.annotation.implicitNotFound
-import swaydb.data.io.IO
 
 @implicitNotFound("Type class implementation not found for ValueOffsetReader of type ${T}")
 sealed trait ValueOffsetReader[-T] {
@@ -78,12 +77,12 @@ object ValueOffsetReader {
   implicit object ValueOffsetReaderNoValue extends ValueOffsetReader[EntryId.Value.NoValue] {
     override def read(indexReader: Reader,
                       previous: Option[Persistent]): IO[Int] =
-      IOUtil.successZero
+      IO.successZero
   }
 
   implicit object ValueOffsetReaderValueFullyCompressed extends ValueOffsetReader[EntryId.Value.FullyCompressed] {
     override def read(indexReader: Reader,
                       previous: Option[Persistent]): IO[Int] =
-      IOUtil.successZero
+      IO.successZero
   }
 }

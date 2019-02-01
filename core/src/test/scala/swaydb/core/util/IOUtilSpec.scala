@@ -25,7 +25,7 @@ import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
 import swaydb.data.io.IO
 import swaydb.core.IOAssert._
-import swaydb.core.util.IOUtil._
+import swaydb.data.io.IO._
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 import swaydb.core.RunThis._
@@ -39,7 +39,7 @@ class IOUtilSpec extends WordSpec with Matchers with MockFactory {
     }
 
     "no exception" in {
-      IO.Catch(IOUtil.successNone).assertGetOpt shouldBe empty
+      IO.Catch(IO.successNone).assertGetOpt shouldBe empty
     }
   }
 
@@ -214,7 +214,7 @@ class IOUtilSpec extends WordSpec with Matchers with MockFactory {
             if (item == 3)
               IO.Success(Some(item))
             else
-              IOUtil.successNone
+              IO.successNone
           }
         }
 
@@ -230,7 +230,7 @@ class IOUtilSpec extends WordSpec with Matchers with MockFactory {
         slice.tryUntilSome {
           _ => {
             iterations += 1
-            IOUtil.successNone
+            IO.successNone
           }
         }
 
@@ -258,11 +258,11 @@ class IOUtilSpec extends WordSpec with Matchers with MockFactory {
 
   "tryOrNone" when {
     "exception" in {
-      tryOrNone(throw new Exception("Failed")) shouldBe empty
+      orNone(throw new Exception("Failed")) shouldBe empty
     }
 
     "no exception" in {
-      tryOrNone("success").assertGet shouldBe "success"
+      orNone("success").assertGet shouldBe "success"
     }
   }
 

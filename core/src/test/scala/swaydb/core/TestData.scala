@@ -27,22 +27,21 @@ import scala.reflect.ClassTag
 import scala.util.Random
 import swaydb.compression.CompressionInternal
 import swaydb.core.CommonAssertions._
-import swaydb.core.TestLimitQueues.fileOpenLimiter
 import swaydb.core.IOAssert._
+import swaydb.core.TestLimitQueues.fileOpenLimiter
 import swaydb.core.data.KeyValue.{ReadOnly, WriteOnly}
 import swaydb.core.data.Transient.Range
 import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data._
-import swaydb.core.seek._
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
-import swaydb.core.io.file.DBFile
 import swaydb.core.level.Level
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.map.serializer.RangeValueSerializer
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
+import swaydb.core.seek._
 import swaydb.core.segment.Segment
-import swaydb.core.util.{IOUtil, UUIDUtil}
+import swaydb.core.util.UUIDUtil
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.{Dir, RecoveryMode}
@@ -111,11 +110,11 @@ object TestData {
                                            keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
                                            compression: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(randomNextInt(1000))) {
 
-    import swaydb.core.util.IOUtil._
+    import swaydb.data.io.IO._
 
     def putKeyValues(keyValues: Iterable[KeyValue.ReadOnly])(implicit fileLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter): IO[Unit] =
       if (keyValues.isEmpty)
-        IOUtil.successUnit
+        IO.successUnit
       else
         Segment.copyToMemory(keyValues, Paths.get("testMemorySegment"), false, 1000.mb, TestData.falsePositiveRate, true) flatMap {
           segments =>
@@ -196,13 +195,13 @@ object TestData {
 
     def putKeyValues(keyValues: Iterable[KeyValue.ReadOnly]): IO[Unit] =
       if (keyValues.isEmpty)
-        IOUtil.successUnit
+        IO.successUnit
       else
         keyValues.toMapEntry match {
           case Some(value) =>
             level.put(value) map (_ => ())
           case None =>
-            IOUtil.successUnit
+            IO.successUnit
         }
   }
 

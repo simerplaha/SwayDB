@@ -26,7 +26,7 @@ import swaydb.core.data.{KeyValue, Memory, Value}
 import swaydb.core.seek.Seek.Stash
 import swaydb.core.function.FunctionStore
 import swaydb.core.merge._
-import swaydb.core.util.IOUtil
+
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
@@ -408,7 +408,7 @@ private[core] object Higher {
         }
 
       case (Seek.Stop, Seek.Stop) =>
-        IOUtil.successNone
+        IO.successNone
     }
   }
 }

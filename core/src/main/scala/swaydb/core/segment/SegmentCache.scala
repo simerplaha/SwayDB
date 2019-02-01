@@ -115,14 +115,14 @@ private[core] class SegmentCache(id: String,
   def get(key: Slice[Byte]): IO[Option[Persistent.SegmentResponse]] =
     maxKey match {
       case MaxKey.Fixed(maxKey) if key > maxKey =>
-        IOUtil.successNone
+        IO.successNone
 
       case range: MaxKey.Range[Slice[Byte]] if key >= range.maxKey =>
-        IOUtil.successNone
+        IO.successNone
 
       //check for minKey inside the Segment is not required since Levels already do minKey check.
       //      case _ if key < minKey =>
-      //        IOUtil.successNone
+      //        IO.successNone
 
       case _ =>
         val floorValue = Option(cache.floorEntry(key)).map(_.getValue)
@@ -141,7 +141,7 @@ private[core] class SegmentCache(id: String,
             prepareGet {
               (footer, reader) =>
                 if (!footer.hasRange && !footer.bloomFilter.forall(_.mightContain(key)))
-                  IOUtil.successNone
+                  IO.successNone
                 else
                   find(KeyMatcher.Get(key), startFrom = floorValue, reader, footer) flatMap {
                     case Some(response: Persistent.SegmentResponse) =>
@@ -156,7 +156,7 @@ private[core] class SegmentCache(id: String,
                       }
 
                     case None =>
-                      IOUtil.successNone
+                      IO.successNone
                   }
             }
         }
@@ -178,7 +178,7 @@ private[core] class SegmentCache(id: String,
 
   def lower(key: Slice[Byte]): IO[Option[Persistent.SegmentResponse]] =
     if (key <= minKey)
-      IOUtil.successNone
+      IO.successNone
     else
       maxKey match {
         case MaxKey.Fixed(maxKey) if key > maxKey =>
@@ -211,7 +211,7 @@ private[core] class SegmentCache(id: String,
                     }
 
                   case None =>
-                    IOUtil.successNone
+                    IO.successNone
                 }
             }
           }
@@ -239,10 +239,10 @@ private[core] class SegmentCache(id: String,
   def higher(key: Slice[Byte]): IO[Option[Persistent.SegmentResponse]] =
     maxKey match {
       case MaxKey.Fixed(maxKey) if key >= maxKey =>
-        IOUtil.successNone
+        IO.successNone
 
       case MaxKey.Range(_, maxKey) if key >= maxKey =>
-        IOUtil.successNone
+        IO.successNone
 
       case _ =>
         val floorKeyValue = Option(cache.floorEntry(key)).map(_.getValue)
@@ -269,7 +269,7 @@ private[core] class SegmentCache(id: String,
                   }
 
                 case None =>
-                  IOUtil.successNone
+                  IO.successNone
               }
           }
         }

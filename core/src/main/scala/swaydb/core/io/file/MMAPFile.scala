@@ -28,7 +28,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import scala.annotation.tailrec
 import scala.concurrent.ExecutionContext
 import swaydb.data.io.IO
-import swaydb.core.util.IOUtil
+
 import swaydb.data.slice.Slice
 import swaydb.data.slice.Slice._
 
@@ -75,13 +75,13 @@ private[file] class MMAPFile(val path: Path,
       }
     } else {
       logger.trace("{}: Already closed.", path)
-      IOUtil.successUnit
+      IO.successUnit
     }
   }
 
   def forceSave(): IO[Unit] =
     if (mode == MapMode.READ_ONLY)
-      IOUtil.successUnit
+      IO.successUnit
     else
       IO(buffer.force())
 
@@ -107,7 +107,7 @@ private[file] class MMAPFile(val path: Path,
   final def append(slice: Slice[Byte]): IO[Unit] =
     IO(buffer.put(slice.toByteBuffer)) match {
       case _: IO.Success[_] =>
-        IOUtil.successUnit
+        IO.successUnit
 
       //Although this code extends the buffer, currently there is no implementation that requires this feature.
       //All the bytes requires for each write operation are pre-calculated EXACTLY and an overflow should NEVER occur.

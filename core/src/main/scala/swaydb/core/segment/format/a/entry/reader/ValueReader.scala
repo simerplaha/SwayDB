@@ -21,7 +21,7 @@ package swaydb.core.segment.format.a.entry.reader
 
 import swaydb.core.data.Persistent
 import swaydb.core.segment.format.a.entry.id.EntryId
-import swaydb.core.util.IOUtil
+
 import swaydb.data.slice.Reader
 
 import scala.annotation.implicitNotFound
@@ -41,7 +41,7 @@ object ValueReader {
     override def read[V](indexReader: Reader,
                          previous: Option[Persistent])(implicit valueOffsetReader: ValueOffsetReader[V],
                                                        valueLengthReader: ValueLengthReader[V]): IO[Option[(Int, Int)]] =
-      IOUtil.successNone
+      IO.successNone
   }
 
   implicit object ValueUncompressedReader extends ValueReader[EntryId.Value.Uncompressed] {

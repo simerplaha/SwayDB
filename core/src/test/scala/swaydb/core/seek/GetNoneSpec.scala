@@ -27,7 +27,7 @@ import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.IOAssert._
 import swaydb.core.data.{SwayFunctionOutput, Value}
-import swaydb.core.util.IOUtil
+
 import swaydb.core.{TestData, TestTimeGenerator}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -75,7 +75,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         implicit val getFromNextLevel = mock[NextGetter]
 
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomRemoveKeyValue(1, Some(randomDeadline(expired = false)))))
-        getFromNextLevel.get _ expects (1: Slice[Byte]) returning IOUtil.successNone
+        getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO.successNone
 
         Get(1).assertGetOpt shouldBe empty
       }
@@ -103,7 +103,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         implicit val getFromNextLevel = mock[NextGetter]
 
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomUpdateKeyValue(1, deadline = randomDeadlineOption(false))))
-        getFromNextLevel.get _ expects (1: Slice[Byte]) returning IOUtil.successNone
+        getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO.successNone
 
         Get(1).assertGetOpt shouldBe empty
       }
@@ -131,7 +131,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         implicit val getFromNextLevel = mock[NextGetter]
 
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomFunctionKeyValue(1)))
-        getFromNextLevel.get _ expects (1: Slice[Byte]) returning IOUtil.successNone
+        getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO.successNone
 
         Get(1).assertGetOpt shouldBe empty
       }
@@ -159,7 +159,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         implicit val getFromNextLevel = mock[NextGetter]
 
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomPendingApplyKeyValue(1)))
-        getFromNextLevel.get _ expects (1: Slice[Byte]) returning IOUtil.successNone
+        getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO.successNone
 
         Get(1).assertGetOpt shouldBe empty
       }

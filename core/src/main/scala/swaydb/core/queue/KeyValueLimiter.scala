@@ -24,7 +24,7 @@ import java.util.concurrent.ConcurrentSkipListMap
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.{KeyValue, Memory, Persistent}
 import swaydb.core.queue.Command.{WeighAndAdd, AddWeighed}
-import swaydb.core.util.IOUtil
+
 import swaydb.data.slice.Slice
 
 import scala.concurrent.ExecutionContext
@@ -141,7 +141,7 @@ private object NoneKeyValueLimiter extends KeyValueLimiter {
 
   override def add(keyValue: KeyValue.ReadOnly.Group,
                    skipList: ConcurrentSkipListMap[Slice[Byte], _]): IO[Unit] =
-    IOUtil.successUnit
+    IO.successUnit
 
   override def add(keyValue: Persistent.SegmentResponse,
                    skipList: ConcurrentSkipListMap[Slice[Byte], _]): Unit =

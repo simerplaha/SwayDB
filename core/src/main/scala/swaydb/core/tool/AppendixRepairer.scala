@@ -19,24 +19,24 @@
 
 package swaydb.core.tool
 
-import java.nio.file.Path
 import com.typesafe.scalalogging.LazyLogging
+import java.nio.file.Path
+import scala.concurrent.ExecutionContext
+import swaydb.core.function.FunctionStore
+import swaydb.core.io.file.IOOps
 import swaydb.core.level.AppendixSkipListMerger
 import swaydb.core.map.serializer.{AppendixMapEntryReader, MapEntryReader, MapEntryWriter}
 import swaydb.core.map.{Map, MapEntry, SkipListMerger}
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment
-import swaydb.core.util.IOUtil._
-import swaydb.core.util.{Extension, FileUtil, IOUtil}
+import swaydb.core.util.{Extension, FileUtil}
+import swaydb.data.io.IO
+import swaydb.data.io.IO._
+import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.repairAppendix.AppendixRepairStrategy._
 import swaydb.data.repairAppendix.{AppendixRepairStrategy, OverlappingSegmentsException, SegmentInfoUnTyped}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
-import scala.concurrent.ExecutionContext
-import swaydb.data.io.IO
-import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.IOOps
-import swaydb.data.order.{KeyOrder, TimeOrder}
 
 private[swaydb] object AppendixRepairer extends LazyLogging {
 
@@ -154,7 +154,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
               case Some(IO.Failure(exception)) =>
                 IO.Failure(exception)
               case None =>
-                IOUtil.successUnit
+                IO.successUnit
             }
         }
     }

@@ -25,7 +25,7 @@ import swaydb.data.io.IO
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.IOAssert._
-import swaydb.core.util.IOUtil
+
 import swaydb.core.{TestData, TestTimeGenerator}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -58,9 +58,9 @@ class HigherRangeNoneSpec extends WordSpec with Matchers with MockFactory {
               inSequence {
                 //@formatter:off
                 current.higher _ expects (key: Slice[Byte]) returning IO(Some(randomRangeKeyValue(0, 10, rangeValue = randomUpdateRangeValue())))
-                next.higher    _ expects (key: Slice[Byte]) returning IOUtil.successNone
-                current.get    _ expects (10: Slice[Byte]) returning IOUtil.successNone
-                current.higher _ expects (10: Slice[Byte]) returning IOUtil.successNone
+                next.higher    _ expects (key: Slice[Byte]) returning IO.successNone
+                current.get    _ expects (10: Slice[Byte]) returning IO.successNone
+                current.higher _ expects (10: Slice[Byte]) returning IO.successNone
                 //@formatter:on
               }
               Higher(key: Slice[Byte]).assertGetOpt shouldBe empty
@@ -85,9 +85,9 @@ class HigherRangeNoneSpec extends WordSpec with Matchers with MockFactory {
               inSequence {
                 //@formatter:off
                 current.higher _ expects (key: Slice[Byte]) returning IO(Some(randomRangeKeyValue(0, 10, None, randomRemoveOrUpdateOrFunctionRemoveValue(addFunctions = false))))
-                current.get    _ expects (10: Slice[Byte]) returning IOUtil.successNone
-                current.higher _ expects (10: Slice[Byte]) returning IOUtil.successNone
-                next.higher    _ expects (10: Slice[Byte]) returning IOUtil.successNone
+                current.get    _ expects (10: Slice[Byte]) returning IO.successNone
+                current.higher _ expects (10: Slice[Byte]) returning IO.successNone
+                next.higher    _ expects (10: Slice[Byte]) returning IO.successNone
                 //@formatter:on
               }
               Higher(key: Slice[Byte]).assertGetOpt shouldBe empty
@@ -112,9 +112,9 @@ class HigherRangeNoneSpec extends WordSpec with Matchers with MockFactory {
           inSequence {
             //@formatter:off
             current.higher _ expects (0: Slice[Byte]) returning IO(Some(randomRangeKeyValue(1, 10, randomFromValueOption(addPut = false), randomUpdateRangeValue())))
-            next.higher    _ expects (0: Slice[Byte]) returning IOUtil.successNone
-            current.get    _ expects (10: Slice[Byte]) returning IOUtil.successNone
-            current.higher _ expects (10: Slice[Byte]) returning IOUtil.successNone
+            next.higher    _ expects (0: Slice[Byte]) returning IO.successNone
+            current.get    _ expects (10: Slice[Byte]) returning IO.successNone
+            current.higher _ expects (10: Slice[Byte]) returning IO.successNone
             //@formatter:on
           }
           Higher(0: Slice[Byte]).assertGetOpt shouldBe empty
@@ -134,9 +134,9 @@ class HigherRangeNoneSpec extends WordSpec with Matchers with MockFactory {
           inSequence {
             //@formatter:off
             current.higher _ expects (0: Slice[Byte]) returning IO(Some(randomRangeKeyValue(1, 10, randomRemoveOrUpdateOrFunctionRemoveValueOption(), randomRemoveOrUpdateOrFunctionRemoveValue(addFunctions = false))))
-            next.higher    _ expects (0: Slice[Byte]) returning IOUtil.successNone
-            current.get    _ expects (10: Slice[Byte]) returning IOUtil.successNone
-            current.higher _ expects (10: Slice[Byte]) returning IOUtil.successNone
+            next.higher    _ expects (0: Slice[Byte]) returning IO.successNone
+            current.get    _ expects (10: Slice[Byte]) returning IO.successNone
+            current.higher _ expects (10: Slice[Byte]) returning IO.successNone
             //@formatter:on
           }
           Higher(0: Slice[Byte]).assertGetOpt shouldBe empty

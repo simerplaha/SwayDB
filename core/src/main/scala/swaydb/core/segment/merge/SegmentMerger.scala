@@ -29,7 +29,7 @@ import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.merge.{FixedMerger, ValueMerger}
 import swaydb.core.queue.KeyValueLimiter
-import swaydb.core.util.IOUtil._
+import swaydb.data.io.IO._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._

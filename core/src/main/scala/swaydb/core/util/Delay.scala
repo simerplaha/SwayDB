@@ -21,7 +21,7 @@ package swaydb.core.util
 
 import java.util.{Timer, TimerTask}
 
-import swaydb.core.util.IOUtil._
+import swaydb.data.io.IO._
 
 import scala.concurrent._
 import scala.concurrent.duration.FiniteDuration

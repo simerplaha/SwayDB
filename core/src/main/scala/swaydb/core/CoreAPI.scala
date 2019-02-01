@@ -24,7 +24,6 @@ import swaydb.core.data.Memory
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.map.MapEntry
-import swaydb.core.util.IOUtil
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.config.SwayDBConfig
@@ -105,7 +104,7 @@ private[swaydb] case class CoreAPI(zero: LevelZero) {
                 result =>
                   Some(response.key, result)
               }
-          } getOrElse IOUtil.successNone
+          } getOrElse IO.successNone
       }
     }
 
@@ -122,7 +121,7 @@ private[swaydb] case class CoreAPI(zero: LevelZero) {
                 result =>
                   Some(response.key, result)
               }
-          } getOrElse IOUtil.successNone
+          } getOrElse IO.successNone
       }
     }
 
@@ -154,7 +153,7 @@ private[swaydb] case class CoreAPI(zero: LevelZero) {
                 result =>
                   Some(result)
               }
-          } getOrElse IOUtil.successNone
+          } getOrElse IO.successNone
       }
     }
 
@@ -171,7 +170,7 @@ private[swaydb] case class CoreAPI(zero: LevelZero) {
                 result =>
                   Some(response.key, result)
               }
-          } getOrElse IOUtil.successNone
+          } getOrElse IO.successNone
       }
     }
 
@@ -185,7 +184,7 @@ private[swaydb] case class CoreAPI(zero: LevelZero) {
                 result =>
                   Some(response.key, result)
               }
-          } getOrElse IOUtil.successNone
+          } getOrElse IO.successNone
       }
     }
 
@@ -202,7 +201,7 @@ private[swaydb] case class CoreAPI(zero: LevelZero) {
                 result =>
                   Some(response.key, result)
               }
-          } getOrElse IOUtil.successNone
+          } getOrElse IO.successNone
       }
     }
 

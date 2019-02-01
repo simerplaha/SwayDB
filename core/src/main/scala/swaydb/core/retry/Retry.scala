@@ -27,7 +27,7 @@ import java.util.concurrent.ConcurrentHashMap
 import swaydb.core.retry.RetryException.RetryFailedException
 import swaydb.core.segment.SegmentException
 import swaydb.core.segment.SegmentException.BusyOpeningFile
-import swaydb.core.util.IOUtil
+
 import scala.annotation.tailrec
 import swaydb.data.io.IO
 
@@ -44,20 +44,20 @@ object Retry extends LazyLogging {
   val levelReadRetryUntil =
     (failure: Throwable, resourceId: String) =>
       failure match {
-        case _ @ RetryFailedException(exceptionResourceId, _, _, _) if exceptionResourceId != resourceId => IOUtil.successUnit
-        case _: BusyOpeningFile => IOUtil.successUnit
-        case _: NoSuchFileException => IOUtil.successUnit
-        case _: FileNotFoundException => IOUtil.successUnit
-        case _: AsynchronousCloseException => IOUtil.successUnit
-        case _: ClosedChannelException => IOUtil.successUnit
-        case SegmentException.BusyDecompressingIndex => IOUtil.successUnit
-        case SegmentException.BusyDecompressionValues => IOUtil.successUnit
-        case SegmentException.BusyFetchingValue => IOUtil.successUnit
-        case SegmentException.BusyReadingHeader => IOUtil.successUnit
+        case _ @ RetryFailedException(exceptionResourceId, _, _, _) if exceptionResourceId != resourceId => IO.successUnit
+        case _: BusyOpeningFile => IO.successUnit
+        case _: NoSuchFileException => IO.successUnit
+        case _: FileNotFoundException => IO.successUnit
+        case _: AsynchronousCloseException => IO.successUnit
+        case _: ClosedChannelException => IO.successUnit
+        case SegmentException.BusyDecompressingIndex => IO.successUnit
+        case SegmentException.BusyDecompressionValues => IO.successUnit
+        case SegmentException.BusyFetchingValue => IO.successUnit
+        case SegmentException.BusyReadingHeader => IO.successUnit
         //NullPointer exception occurs when the MMAP buffer is being prepared to be cleared, but the reads
         //are still being directed to that Segment. A retry should occur so that the request gets routed to
         //the new Segment or if the Segment was closed, a retry will re-opened it.
-        case _: NullPointerException => IOUtil.successUnit
+        case _: NullPointerException => IO.successUnit
         //Retry if RetryFailedException occurred at a lower level.
         //for all other exceptions do not retry and push failure back up.
         case exception =>

@@ -30,7 +30,6 @@ import scala.reflect.ClassTag
 import swaydb.core.function.FunctionStore
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.core.queue.FileLimiter
-import swaydb.core.util.IOUtil.tryOrNone
 import swaydb.data.io.IO
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -103,16 +102,16 @@ private[core] trait Map[K, V] {
     skipList.containsKey(key)
 
   def firstKey: Option[K] =
-    tryOrNone(skipList.firstKey())
+    IO.orNone(skipList.firstKey())
 
   def first: Option[(K, V)] =
-    tryOrNone(skipList.firstEntry()).map(keyValue => (keyValue.getKey, keyValue.getValue))
+    IO.orNone(skipList.firstEntry()).map(keyValue => (keyValue.getKey, keyValue.getValue))
 
   def last: Option[(K, V)] =
-    tryOrNone(skipList.lastEntry()).map(keyValue => (keyValue.getKey, keyValue.getValue))
+    IO.orNone(skipList.lastEntry()).map(keyValue => (keyValue.getKey, keyValue.getValue))
 
   def lastKey: Option[K] =
-    tryOrNone(skipList.lastKey())
+    IO.orNone(skipList.lastKey())
 
   def floor(key: K): Option[V] =
     Option(skipList.floorEntry(key)).map(_.getValue)

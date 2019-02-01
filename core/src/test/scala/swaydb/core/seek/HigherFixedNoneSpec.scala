@@ -25,7 +25,7 @@ import swaydb.data.io.IO
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.IOAssert._
-import swaydb.core.util.IOUtil
+
 import swaydb.core.{TestData, TestTimeGenerator}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -53,8 +53,8 @@ class HigherFixedNoneSpec extends WordSpec with Matchers with MockFactory with O
 
         inSequence {
           //@formatter:off
-          current.higher _ expects (0: Slice[Byte]) returning IOUtil.successNone
-          next.higher    _ expects (0: Slice[Byte]) returning IOUtil.successNone
+          current.higher _ expects (0: Slice[Byte]) returning IO.successNone
+          next.higher    _ expects (0: Slice[Byte]) returning IO.successNone
           //@formatter:on
         }
         Higher(0: Slice[Byte]).assertGetOpt shouldBe empty
@@ -75,8 +75,8 @@ class HigherFixedNoneSpec extends WordSpec with Matchers with MockFactory with O
         inSequence {
           //@formatter:off
           current.higher _ expects (0: Slice[Byte]) returning IO(Some(randomRemoveOrUpdateOrFunctionRemove(1)))
-          next.higher    _ expects (0: Slice[Byte]) returning IOUtil.successNone
-          current.higher _ expects (1: Slice[Byte]) returning IOUtil.successNone
+          next.higher    _ expects (0: Slice[Byte]) returning IO.successNone
+          current.higher _ expects (1: Slice[Byte]) returning IO.successNone
           //@formatter:on
         }
         Higher(0: Slice[Byte]).assertGetOpt shouldBe empty
@@ -98,8 +98,8 @@ class HigherFixedNoneSpec extends WordSpec with Matchers with MockFactory with O
           //@formatter:off
           current.higher _ expects (0: Slice[Byte]) returning IO(Some(randomRemoveOrUpdateOrFunctionRemove(1)))
           next.higher    _ expects (0: Slice[Byte]) returning IO(Some(randomPutKeyValue(1)))
-          current.higher _ expects (1: Slice[Byte]) returning IOUtil.successNone
-          next.higher    _ expects (1: Slice[Byte]) returning IOUtil.successNone
+          current.higher _ expects (1: Slice[Byte]) returning IO.successNone
+          next.higher    _ expects (1: Slice[Byte]) returning IO.successNone
           //@formatter:on
         }
         Higher(0: Slice[Byte]).assertGetOpt shouldBe empty
@@ -124,8 +124,8 @@ class HigherFixedNoneSpec extends WordSpec with Matchers with MockFactory with O
           current.higher _ expects (0: Slice[Byte]) returning IO(Some(randomRemoveOrUpdateOrFunctionRemove(1)))
           next.higher    _ expects (0: Slice[Byte]) returning IO(Some(randomPutKeyValue(2)))
           current.higher _ expects (1: Slice[Byte]) returning IO(Some(randomRemoveOrUpdateOrFunctionRemove(2)))
-          current.higher _ expects (2: Slice[Byte]) returning IOUtil.successNone
-          next.higher    _ expects (2: Slice[Byte]) returning IOUtil.successNone
+          current.higher _ expects (2: Slice[Byte]) returning IO.successNone
+          next.higher    _ expects (2: Slice[Byte]) returning IO.successNone
           //@formatter:on
         }
         Higher(0: Slice[Byte]).assertGetOpt shouldBe empty

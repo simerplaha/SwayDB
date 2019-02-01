@@ -30,7 +30,7 @@ import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.level.PathsDistributor
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter, LimiterType}
 import swaydb.core.segment.merge.SegmentMerger
-import swaydb.core.util.IOUtil._
+import swaydb.data.io.IO._
 import swaydb.core.util._
 import swaydb.data.slice.Slice
 import scala.concurrent.duration.{Deadline, FiniteDuration}
@@ -74,7 +74,7 @@ private[segment] case class MemorySegment(path: Path,
   //if the header is already decompressed then this Group is already in the Limit queue as the queue always
   //pre-reads the header
     if (group.isHeaderDecompressed)
-      IOUtil.successUnit
+      IO.successUnit
     else //else this is a new decompression, add to queue.
       keyValueLimiter.add(group, cache)
 
@@ -180,7 +180,7 @@ private[segment] case class MemorySegment(path: Path,
       case _: Memory.Group =>
         IO.Failure(new Exception("Get resulted in a Group when floorEntry should've fetched the Group instead."))
     } getOrElse {
-      IOUtil.successNone
+      IO.successNone
     }
 
   override def get(key: Slice[Byte]): IO[Option[Memory.SegmentResponse]] =
@@ -188,14 +188,14 @@ private[segment] case class MemorySegment(path: Path,
       IO.Failure(new NoSuchFileException(path.toString))
 
     else if (!_hasRange && !bloomFilter.forall(_.mightContain(key)))
-      IOUtil.successNone
+      IO.successNone
     else
       maxKey match {
         case MaxKey.Fixed(maxKey) if key > maxKey =>
-          IOUtil.successNone
+          IO.successNone
 
         case range: MaxKey.Range[Slice[Byte]] if key >= range.maxKey =>
-          IOUtil.successNone
+          IO.successNone
 
         case _ =>
           if (_hasRange || _hasGroup)
@@ -211,7 +211,7 @@ private[segment] case class MemorySegment(path: Path,
                         persistent.toMemoryResponseOption()
 
                       case None =>
-                        IOUtil.successNone
+                        IO.successNone
                     }
                 }
 
@@ -242,12 +242,12 @@ private[segment] case class MemorySegment(path: Path,
                     case Some(persistent) =>
                       persistent.toMemoryResponseOption()
                     case None =>
-                      IOUtil.successNone
+                      IO.successNone
                   }
               }
           }
       } getOrElse {
-        IOUtil.successNone
+        IO.successNone
       }
 
   /**
@@ -263,10 +263,10 @@ private[segment] case class MemorySegment(path: Path,
           case Some(persistent) =>
             persistent.toMemoryResponseOption()
           case None =>
-            IOUtil.successNone
+            IO.successNone
         }
     } getOrElse {
-      IOUtil.successNone
+      IO.successNone
     }
 
   override def higher(key: Slice[Byte]): IO[Option[Memory.SegmentResponse]] =
@@ -284,7 +284,7 @@ private[segment] case class MemorySegment(path: Path,
                 case Some(persistent) =>
                   persistent.toMemoryResponseOption()
                 case None =>
-                  IOUtil.successNone
+                  IO.successNone
               } flatMap {
                 higher =>
                   //Group's last key-value can be inclusive or exclusive and fromKey & toKey can be the same.
@@ -330,7 +330,7 @@ private[segment] case class MemorySegment(path: Path,
   }
 
   override val close: IO[Unit] =
-    IOUtil.successUnit
+    IO.successUnit
 
   override def getBloomFilterKeyValueCount(): IO[Int] =
     if (deleted)

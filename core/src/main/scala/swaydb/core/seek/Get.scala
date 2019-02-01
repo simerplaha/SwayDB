@@ -25,7 +25,7 @@ import swaydb.core.data.{KeyValue, Value}
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.function.FunctionStore
 import swaydb.core.merge.{FunctionMerger, PendingApplyMerger, RemoveMerger, UpdateMerger}
-import swaydb.core.util.IOUtil
+
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
@@ -74,13 +74,13 @@ private[core] object Get {
                 }
             }
           else
-            IOUtil.successNone
+            IO.successNone
 
         case current: KeyValue.ReadOnly.Put =>
           if (current.hasTimeLeft())
             IO.Success(Some(current))
           else
-            IOUtil.successNone
+            IO.successNone
 
         case current: KeyValue.ReadOnly.Update =>
           if (current.hasTimeLeft())
@@ -101,7 +101,7 @@ private[core] object Get {
                 }
             }
           else
-            IOUtil.successNone
+            IO.successNone
 
         case current: KeyValue.ReadOnly.Range =>
           (if (current.key equiv key) current.fetchFromOrElseRangeValue else current.fetchRangeValue) match {
@@ -109,7 +109,7 @@ private[core] object Get {
               if (Value.hasTimeLeft(currentValue))
                 returnSegmentResponse(currentValue.toMemory(key))
               else
-                IOUtil.successNone
+                IO.successNone
 
             case IO.Failure(exception) =>
               IO.Failure(exception)
@@ -126,15 +126,15 @@ private[core] object Get {
                         IO.Success(Some(put))
 
                       case IO.Success(_: ReadOnly.Fixed) =>
-                        IOUtil.successNone
+                        IO.successNone
 
                       case IO.Failure(exception) =>
                         IO.Failure(exception)
                     }
                   else
-                    IOUtil.successNone
+                    IO.successNone
               } getOrElse {
-                IOUtil.successNone
+                IO.successNone
               }
           }
 
@@ -149,15 +149,15 @@ private[core] object Get {
                         IO.Success(Some(put))
 
                       case IO.Success(_: ReadOnly.Fixed) =>
-                        IOUtil.successNone
+                        IO.successNone
 
                       case IO.Failure(exception) =>
                         IO.Failure(exception)
                     }
                   else
-                    IOUtil.successNone
+                    IO.successNone
               } getOrElse {
-                IOUtil.successNone
+                IO.successNone
               }
           }
       }

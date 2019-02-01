@@ -22,7 +22,7 @@ package swaydb.core.segment
 import swaydb.core.data.{KeyValue, Memory}
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.merge.MergeList
-import swaydb.core.util.IOUtil
+
 import swaydb.data.slice.Slice
 import scala.annotation.tailrec
 import scala.collection.mutable
@@ -200,7 +200,7 @@ private[core] object SegmentAssigner {
           assign(remainingKeyValues, Some(nextSegment), getNextSegmentMayBe())
 
         case (_, _, _) =>
-          IOUtil.successUnit
+          IO.successUnit
       }
 
     if (segments.size == 1)

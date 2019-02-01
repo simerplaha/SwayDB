@@ -27,8 +27,8 @@ import swaydb.core.data.Transient.Group
 import swaydb.core.data.{Memory, Persistent, Value, _}
 import swaydb.core.group.compression.data.{GroupGroupingStrategyInternal, GroupingStrategy, KeyValueGroupingStrategyInternal}
 import swaydb.core.queue.KeyValueLimiter
-import swaydb.core.util.IOUtil
-import swaydb.core.util.IOUtil._
+
+import swaydb.data.io.IO._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 
@@ -103,7 +103,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
       //create a new list of key-values with stats updated.
       val expectedGroupsKeyValueCount = segmentKeyValues.last.stats.position - segmentKeyValues.last.stats.groupsCount
       if (expectedGroupsKeyValueCount == 0)
-        IOUtil.successNone
+        IO.successNone
       else {
         val keyValuesToGroup = Slice.create[KeyValue.WriteOnly](expectedGroupsKeyValueCount)
         segmentKeyValues.tryFoldLeft((1, Option.empty[Transient.Group])) {
@@ -137,7 +137,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
         }
       }
     } else {
-      IOUtil.successNone
+      IO.successNone
     }
 
   private def createGroup(keyValuesToGroup: Iterable[KeyValue.WriteOnly],
@@ -186,7 +186,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
           groupingStrategy = groupingStrategy
         )
       case None =>
-        IOUtil.successNone
+        IO.successNone
     }
 
   private[segment] def groupGroups(groupKeyValues: ListBuffer[KeyValue.WriteOnly],
@@ -207,7 +207,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
           bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
           groupingStrategy = groupingStrategy
         )
-    } getOrElse IOUtil.successNone
+    } getOrElse IO.successNone
 
   /**
     * Mutates the input key-values by grouping them. Should not be accessed outside this class.
@@ -236,9 +236,9 @@ private[merge] object SegmentGrouper extends LazyLogging {
                 groupingStrategy = groupingStrategy,
                 force = force
               )
-          } getOrElse IOUtil.successNone
+          } getOrElse IO.successNone
         else
-          IOUtil.successNone
+          IO.successNone
 
     } yield {
       groupsGroup orElse keyValuesGroup
@@ -298,7 +298,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
 
         }
       case None =>
-        IOUtil.successUnit
+        IO.successUnit
     }
 
   def addKeyValue(keyValueToAdd: KeyValue.ReadOnly,
@@ -356,7 +356,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                   force = force
                 ) map (_ => ())
             }
-        } getOrElse IOUtil.successUnit
+        } getOrElse IO.successUnit
 
       def startNewSegment(): Unit =
         splits += ListBuffer[KeyValue.WriteOnly]()
@@ -368,14 +368,14 @@ private[merge] object SegmentGrouper extends LazyLogging {
         tryGrouping(force = true) flatMap {
           _ =>
             if (addToCurrentSplit(force = false)) {
-              IOUtil.successUnit //add successful after force grouping!
+              IO.successUnit //add successful after force grouping!
             } else {
               //if still unable to add to current split after force grouping, start a new Segment!
               //And then do force add just in-case the new key-value is larger than the minimum segmentSize
               //because a Segment should contain at least one key-value.
               startNewSegment()
               if (addToCurrentSplit(force = true))
-                IOUtil.successUnit
+                IO.successUnit
               else
                 IO.Failure(new Exception(s"Failed to add key-value to new Segment split. minSegmentSize: $minSegmentSize, splits: ${splits.size}, lastSplit: ${splits.lastOption.map(_.size)}"))
             }
@@ -388,7 +388,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
           fixed match {
             case put @ Memory.Put(key, value, deadline, time) =>
               if (isLastLevel && !put.hasTimeLeft())
-                IOUtil.successUnit
+                IO.successUnit
               else
                 doAdd(
                   Transient.Put(
@@ -404,7 +404,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
 
             case put: Persistent.Put =>
               if (isLastLevel && !put.hasTimeLeft())
-                IOUtil.successUnit
+                IO.successUnit
               else
                 put.getOrFetchValue flatMap {
                   value =>
@@ -423,7 +423,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
 
             case remove: Memory.Remove =>
               if (isLastLevel)
-                IOUtil.successUnit
+                IO.successUnit
               else
                 doAdd(
                   Transient.Remove(
@@ -437,7 +437,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
 
             case remove: Persistent.Remove =>
               if (isLastLevel)
-                IOUtil.successUnit
+                IO.successUnit
               else
                 doAdd(
                   Transient.Remove(
@@ -451,7 +451,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
 
             case Memory.Update(key, value, deadline, time) =>
               if (isLastLevel)
-                IOUtil.successUnit
+                IO.successUnit
               else
                 doAdd(
                   Transient.Update(
@@ -467,7 +467,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
 
             case update: Persistent.Update =>
               if (isLastLevel)
-                IOUtil.successUnit
+                IO.successUnit
               else
                 update.getOrFetchValue flatMap {
                   value =>
@@ -486,7 +486,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
 
             case Memory.Function(key, function, time) =>
               if (isLastLevel)
-                IOUtil.successUnit
+                IO.successUnit
               else
                 doAdd(
                   Transient.Function(
@@ -503,7 +503,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
 
             case function: Persistent.Function =>
               if (isLastLevel)
-                IOUtil.successUnit
+                IO.successUnit
               else
                 function.getOrFetchFunction flatMap {
                   functionId =>
@@ -523,7 +523,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
 
             case Memory.PendingApply(key, applies) =>
               if (isLastLevel)
-                IOUtil.successUnit
+                IO.successUnit
               else
                 doAdd(
                   Transient.PendingApply(
@@ -537,7 +537,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
 
             case pendingApply: Persistent.PendingApply =>
               if (isLastLevel)
-                IOUtil.successUnit
+                IO.successUnit
               else
                 pendingApply.getOrFetchApplies flatMap {
                   applies =>
@@ -574,13 +574,13 @@ private[merge] object SegmentGrouper extends LazyLogging {
                             )
                           )
                         else
-                          IOUtil.successUnit
+                          IO.successUnit
 
                       case _: Value.Remove | _: Value.Update | _: Value.Function | _: Value.PendingApply =>
-                        IOUtil.successUnit
+                        IO.successUnit
                     }
                   case None =>
-                    IOUtil.successUnit
+                    IO.successUnit
                 }
               case IO.Failure(exception) =>
                 IO.Failure(exception)

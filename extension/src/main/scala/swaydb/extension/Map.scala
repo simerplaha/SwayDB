@@ -19,7 +19,7 @@
 
 package swaydb.extension
 
-import swaydb.core.util.IOUtil
+
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.slice.Slice
@@ -338,7 +338,7 @@ class Map[K, V](map: swaydb.Map[Key[K], Option[V]],
       case Some(value) =>
         IO.Success(value)
       case None =>
-        IOUtil.successNone
+        IO.successNone
     }
 
   /**
@@ -356,7 +356,7 @@ class Map[K, V](map: swaydb.Map[Key[K], Option[V]],
             IO.Failure(new Exception(s"Unable to fetch key. Got: $got expected MapKey.Entry"))
         }
       case None =>
-        IOUtil.successNone
+        IO.successNone
     }
 
   def getKeyValue(key: K): IO[Option[(K, V)]] =
@@ -375,7 +375,7 @@ class Map[K, V](map: swaydb.Map[Key[K], Option[V]],
             IO.Failure(new Exception(s"Unable to fetch keyValue. Got: $got expected MapKey.Entry"))
         }
       case None =>
-        IOUtil.successNone
+        IO.successNone
     }
 
   def keys: MapKeysIterator[K] =

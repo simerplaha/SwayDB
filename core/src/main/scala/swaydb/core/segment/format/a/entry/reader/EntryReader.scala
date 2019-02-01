@@ -24,8 +24,8 @@ import swaydb.core.data.Persistent
 import swaydb.core.segment.SegmentException
 import swaydb.core.segment.format.a.entry.id._
 import swaydb.core.segment.format.a.entry.reader.base._
-import swaydb.core.util.IOUtil
-import swaydb.core.util.IOUtil._
+
+import swaydb.data.io.IO._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Reader, Slice}
 
@@ -78,7 +78,7 @@ object EntryReader {
           case Some(value) =>
             return value
           case None =>
-            IOUtil.successNone
+            IO.successNone
         }
     } flatMap {
       _ =>

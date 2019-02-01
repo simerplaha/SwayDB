@@ -24,12 +24,10 @@ import java.nio.file.{NoSuchFileException, Path}
 import java.util.concurrent.atomic.AtomicBoolean
 import scala.concurrent.ExecutionContext
 import scala.util.hashing.MurmurHash3
-import swaydb.data.io.IO
-import swaydb.core.io._
 import swaydb.core.queue.{FileLimiter, LimiterType}
 import swaydb.core.segment.SegmentException
 import swaydb.core.segment.SegmentException.CannotCopyInMemoryFiles
-import swaydb.core.util.IOUtil
+import swaydb.data.io.IO
 import swaydb.data.slice.Slice
 
 object DBFile {
@@ -136,7 +134,7 @@ class DBFile(val path: Path,
             //cannot lose reference to in-memory file on close. Only on delete, this in-memory file reference can be discarded.
             if (!memory) file = None
         }
-    } getOrElse IOUtil.successUnit
+    } getOrElse IO.successUnit
 
   //if it's an in memory files return failure as Memory files cannot be copied.
   def copyTo(toPath: Path): IO[Path] =
@@ -230,7 +228,7 @@ class DBFile(val path: Path,
     openFile() flatMap (_.isFull)
 
   def forceSave(): IO[Unit] =
-    file.map(_.forceSave()) getOrElse IOUtil.successUnit
+    file.map(_.forceSave()) getOrElse IO.successUnit
 
   def persistent: Boolean =
     !memory

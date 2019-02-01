@@ -25,7 +25,6 @@ import java.nio.channels.{FileLock, WritableByteChannel}
 import java.nio.file._
 import java.nio.file.attribute.BasicFileAttributes
 import swaydb.core.segment.SegmentException
-import swaydb.core.util.IOUtil
 import swaydb.data.io.IO
 import swaydb.data.slice.Slice
 
@@ -55,7 +54,7 @@ object IOOps extends LazyLogging {
       if (written != bytes.written)
         IO.Failure(SegmentException.FailedToWriteAllBytes(written, bytes.written, bytes.size))
       else
-        IOUtil.successUnit
+        IO.successUnit
     } catch {
       case exception: Exception =>
         IO.Failure(exception)
@@ -74,7 +73,7 @@ object IOOps extends LazyLogging {
     if (exists(path))
       delete(path)
     else
-      IOUtil.successUnit
+      IO.successUnit
 
   def createFile(path: Path): IO[Path] =
     IO {
@@ -121,7 +120,7 @@ object IOOps extends LazyLogging {
             FileVisitResult.CONTINUE
           }
         })
-      IOUtil.successUnit
+      IO.successUnit
     } catch {
       case exception: Throwable =>
         IO.Failure(exception)
@@ -142,5 +141,5 @@ object IOOps extends LazyLogging {
   }
 
   def release(lock: Option[FileLock]): IO[Unit] =
-    lock.map(release).getOrElse(IOUtil.successUnit)
+    lock.map(release).getOrElse(IO.successUnit)
 }

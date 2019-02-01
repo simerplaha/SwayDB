@@ -24,7 +24,7 @@ import scala.concurrent.duration.Deadline
 import swaydb.data.io.IO
 import swaydb.core.data.{Memory, Time, Value}
 import swaydb.core.map.MapEntry
-import swaydb.core.util.IOUtil
+
 import swaydb.data.slice.{Reader, Slice}
 
 object LevelZeroMapEntryReader {
@@ -53,7 +53,7 @@ object LevelZeroMapEntryReader {
         timeLength <- reader.readInt()
         time <- reader.read(timeLength).map(_.unslice())
         valueLength <- reader.readInt()
-        value <- if (valueLength == 0) IOUtil.successNone else reader.read(valueLength).map(Some(_))
+        value <- if (valueLength == 0) IO.successNone else reader.read(valueLength).map(Some(_))
         deadlineLong <- reader.readLong()
       } yield {
         val deadline = if (deadlineLong == 0) None else Some(Deadline(deadlineLong, TimeUnit.NANOSECONDS))
@@ -70,7 +70,7 @@ object LevelZeroMapEntryReader {
         timeLength <- reader.readInt()
         time <- reader.read(timeLength).map(_.unslice())
         valueLength <- reader.readInt()
-        value <- if (valueLength == 0) IOUtil.successNone else reader.read(valueLength).map(Some(_))
+        value <- if (valueLength == 0) IO.successNone else reader.read(valueLength).map(Some(_))
         deadlineLong <- reader.readLong()
       } yield {
         val deadline = if (deadlineLong == 0) None else Some(Deadline(deadlineLong, TimeUnit.NANOSECONDS))

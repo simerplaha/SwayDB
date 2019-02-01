@@ -41,7 +41,7 @@ import swaydb.core.map.{MapEntry, Maps, SkipListMerger}
 import swaydb.core.queue.FileLimiter
 import swaydb.core.retry.Retry
 import swaydb.core.segment.Segment
-import swaydb.core.util.{MinMax, IOUtil}
+import swaydb.core.util.MinMax
 import swaydb.data.accelerate.{Accelerator, Level0Meter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -156,7 +156,7 @@ private[core] class LevelZero(val path: Path,
   def releaseLocks: IO[Unit] =
     IOOps.release(lock) flatMap {
       _ =>
-        nextLevel.map(_.releaseLocks) getOrElse IOUtil.successUnit
+        nextLevel.map(_.releaseLocks) getOrElse IO.successUnit
     }
 
   def withRetry[T](tryBlock: => IO[T]): IO[T] =
@@ -309,7 +309,7 @@ private[core] class LevelZero(val path: Path,
     if (mapsIterator.hasNext)
       find(key, mapsIterator.next(), mapsIterator)
     else
-      nextLevel.map(_ get key) getOrElse IOUtil.successNone
+      nextLevel.map(_ get key) getOrElse IO.successNone
 
   def currentGetter(currentMap: map.Map[Slice[Byte], Memory.SegmentResponse]) =
     new CurrentGetter {
@@ -383,19 +383,19 @@ private[core] class LevelZero(val path: Path,
       nextLevel =>
         nextLevel.headKey flatMap {
           nextLevelFirstKey =>
-            MinMax.min(firstKeyFromMaps, nextLevelFirstKey)(keyOrder).map(ceiling) getOrElse IOUtil.successNone
+            MinMax.min(firstKeyFromMaps, nextLevelFirstKey)(keyOrder).map(ceiling) getOrElse IO.successNone
         }
-    } getOrElse IOUtil.successNone
+    } getOrElse IO.successNone
 
   def findLast: IO[Option[KeyValue.ReadOnly.Put]] =
     nextLevel map {
       nextLevel =>
         nextLevel.lastKey flatMap {
           nextLevelLastKey =>
-            MinMax.max(lastKeyFromMaps, nextLevelLastKey)(keyOrder).map(floor) getOrElse IOUtil.successNone
+            MinMax.max(lastKeyFromMaps, nextLevelLastKey)(keyOrder).map(floor) getOrElse IO.successNone
         }
 
-    } getOrElse IOUtil.successNone
+    } getOrElse IO.successNone
 
   def ceiling(key: Slice[Byte]): IO[Option[KeyValue.ReadOnly.Put]] =
     ceiling(key, maps.map, maps.iterator.asScala.toList)
@@ -455,7 +455,7 @@ private[core] class LevelZero(val path: Path,
         findHigher(key, nextMap, otherMaps.drop(1))
       case None =>
         //        println(s"Finding higher for key: ${key.readInt()} in ${nextLevel.rootPath}")
-        nextLevel.map(_.higher(key)) getOrElse IOUtil.successNone
+        nextLevel.map(_.higher(key)) getOrElse IO.successNone
     }
 
   def currentWalker(currentMap: map.Map[Slice[Byte], Memory.SegmentResponse],
@@ -545,7 +545,7 @@ private[core] class LevelZero(val path: Path,
         findLower(key, nextMap, otherMaps.drop(1))
       case None =>
         //println(s"Finding lower for key: ${key.readInt()} in ${nextLevel.rootPath}")
-        nextLevel.map(_.lower(key)) getOrElse IOUtil.successNone
+        nextLevel.map(_.lower(key)) getOrElse IO.successNone
     }
 
   def findLower(key: Slice[Byte],
@@ -626,14 +626,14 @@ private[core] class LevelZero(val path: Path,
         logger.error(s"$path: Failed to close maps", exception)
     }
     releaseLocks
-    nextLevel.map(_.close) getOrElse IOUtil.successUnit map {
+    nextLevel.map(_.close) getOrElse IO.successUnit map {
       _ =>
         actor.foreach(_.terminate())
     }
   }
 
   def closeSegments: IO[Unit] =
-    nextLevel.map(_.closeSegments()) getOrElse IOUtil.successUnit
+    nextLevel.map(_.closeSegments()) getOrElse IO.successUnit
 
   def level0Meter: Level0Meter =
     maps.getMeter
@@ -646,7 +646,7 @@ private[core] class LevelZero(val path: Path,
       if (maps.contains(key))
         IO.Success(true)
       else
-        nextLevel.map(_.mightContain(key)) getOrElse IOUtil.successTrue
+        nextLevel.map(_.mightContain(key)) getOrElse IO.successTrue
     }
 
   override def segmentsInLevel(): Iterable[Segment] =

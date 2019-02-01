@@ -20,7 +20,10 @@
 package swaydb.data.io
 
 import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 import scala.concurrent.Future
+import scala.reflect.ClassTag
+import swaydb.data.slice.{Slice, SliceReader}
 
 /**
   * Similar to [[scala.util.Try]] but adds another type [[IO.Async]].
@@ -54,6 +57,16 @@ sealed trait IO[+T] {
 
 object IO {
 
+  val successUnit: IO.Success[Unit] = IO.Success()
+  val successNone = IO.Success(None)
+  val successFalse = IO.Success(false)
+  val successTrue = IO.Success(true)
+  val successZero = IO.Success(0)
+  val emptyReader = IO.Success(SliceReader(Slice.emptyBytes))
+  val successEmptyBytes = IO.Success(Slice.emptyBytes)
+  val successNoneTime = IO.Success(None)
+  val successEmptySeqBytes = IO.Success(Seq.empty[Slice[Byte]])
+
   def apply[T](f: => T): IO[T] =
     try IO.Success(f) catch {
       case ex: Throwable =>
@@ -69,6 +82,119 @@ object IO {
           IO.Failure(ex)
       }
   }
+
+  implicit class IterableIOImplicit[T: ClassTag](iterable: Iterable[T]) {
+
+    def tryForeach[R](f: T => IO[R], failFast: Boolean = true): Option[IO.Failure[R]] = {
+      val it = iterable.iterator
+      var failure: Option[IO.Failure[R]] = None
+      while (it.hasNext && (failure.isEmpty || !failFast)) {
+        f(it.next()) match {
+          case failed @ IO.Failure(_) =>
+            failure = Some(failed)
+          case _ =>
+        }
+      }
+      failure
+    }
+
+    //returns the first IO.Success(Some(_)).
+    def tryUntilSome[R](f: T => IO[Option[R]]): IO[Option[(R, T)]] = {
+      iterable.iterator foreach {
+        item =>
+          f(item) match {
+            case IO.Success(Some(value)) =>
+              return IO.Success(Some(value, item))
+            case IO.Success(None) =>
+
+            case IO.Failure(exception) =>
+              return IO.Failure(exception)
+          }
+      }
+      IO.successNone
+    }
+
+    def tryMap[R: ClassTag](tryBlock: T => IO[R],
+                            recover: (Slice[R], IO.Failure[Slice[R]]) => Unit = (_: Slice[R], _: IO.Failure[Slice[R]]) => (),
+                            failFast: Boolean = true): IO[Slice[R]] = {
+      val it = iterable.iterator
+      var failure: Option[IO.Failure[Slice[R]]] = None
+      val results = Slice.create[R](iterable.size)
+      while ((!failFast || failure.isEmpty) && it.hasNext) {
+        tryBlock(it.next()) match {
+          case IO.Success(value) =>
+            results add value
+
+          case failed @ IO.Failure(_) =>
+            failure = Some(IO.Failure(failed.exception))
+        }
+      }
+      failure match {
+        case Some(value) =>
+          recover(results, value)
+          value
+        case None =>
+          IO.Success(results)
+      }
+    }
+
+    def tryFlattenIterable[R: ClassTag](tryBlock: T => IO[Iterable[R]],
+                                        recover: (Iterable[R], IO.Failure[Slice[R]]) => Unit = (_: Iterable[R], _: IO.Failure[Iterable[R]]) => (),
+                                        failFast: Boolean = true): IO[Iterable[R]] = {
+      val it = iterable.iterator
+      var failure: Option[IO.Failure[Slice[R]]] = None
+      val results = ListBuffer.empty[R]
+      while ((!failFast || failure.isEmpty) && it.hasNext) {
+        tryBlock(it.next()) match {
+          case IO.Success(value) =>
+            value foreach (results += _)
+
+          case failed @ IO.Failure(_) =>
+            failure = Some(IO.Failure(failed.exception))
+        }
+      }
+      failure match {
+        case Some(value) =>
+          recover(results, value)
+          value
+        case None =>
+          IO.Success(results)
+      }
+    }
+
+    def tryFoldLeft[R: ClassTag](r: R,
+                                 failFast: Boolean = true,
+                                 recover: (R, IO.Failure[R]) => Unit = (_: R, _: IO.Failure[R]) => ())(f: (R, T) => IO[R]): IO[R] = {
+      val it = iterable.iterator
+      var failure: Option[IO.Failure[R]] = None
+      var result: R = r
+      while ((!failFast || failure.isEmpty) && it.hasNext) {
+        f(result, it.next()) match {
+          case IO.Success(value) =>
+            if (failure.isEmpty)
+              result = value
+
+          case failed @ IO.Failure(_) =>
+            failure = Some(IO.Failure(failed.exception))
+        }
+      }
+      failure match {
+        case Some(failure) =>
+          recover(result, failure)
+          failure
+        case None =>
+          IO.Success(result)
+      }
+    }
+  }
+
+  def orNone[T](block: => T): Option[T] =
+    try
+      Option(block)
+    catch {
+      case _: Exception =>
+        None
+    }
 
   final case class Failure[+T](exception: Throwable) extends IO[T] {
     override def isFailure: Boolean = true

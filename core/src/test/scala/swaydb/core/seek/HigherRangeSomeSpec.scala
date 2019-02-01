@@ -27,7 +27,7 @@ import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.IOAssert._
 import swaydb.core.data._
-import swaydb.core.util.IOUtil
+
 import swaydb.core.{TestData, TestTimeGenerator}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -131,7 +131,7 @@ class HigherRangeSomeSpec extends WordSpec with Matchers with MockFactory {
         val result = randomPutKeyValue(4, deadline = randomDeadlineOption(false))
 
         inSequence {
-          current.higher _ expects (3: Slice[Byte]) returning IOUtil.successNone
+          current.higher _ expects (3: Slice[Byte]) returning IO.successNone
           next.higher _ expects (3: Slice[Byte]) returning IO(Some(result))
         }
         Higher(3: Slice[Byte]).assertGet shouldBe result

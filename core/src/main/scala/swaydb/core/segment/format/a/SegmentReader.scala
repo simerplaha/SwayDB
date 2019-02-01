@@ -20,19 +20,19 @@
 package swaydb.core.segment.format.a
 
 import com.typesafe.scalalogging.LazyLogging
+import scala.annotation.tailrec
 import swaydb.core.data.{KeyValue, Persistent}
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
 import swaydb.core.segment.format.a.entry.reader.EntryReader
 import swaydb.core.util.BloomFilterUtil._
-import swaydb.core.util.IOUtil._
-import swaydb.core.util.{Bytes, CRC32, IOUtil}
+import swaydb.core.util.{Bytes, CRC32}
+import swaydb.data.io.IO
+import swaydb.data.io.IO._
+import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice._
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
-import scala.annotation.tailrec
-import swaydb.data.io.IO
-import swaydb.data.order.KeyOrder
 
 /**
   * All public APIs are wrapped around a try catch block because eager fetches on IO's results (.get).
@@ -197,7 +197,7 @@ private[core] object SegmentReader extends LazyLogging {
   def readBytes(fromOffset: Int, length: Int, reader: Reader): IO[Option[Slice[Byte]]] =
     try {
       if (length == 0)
-        IOUtil.successNone
+        IO.successNone
       else
         (reader.copy() moveTo fromOffset read length).map(Some(_))
     } catch {
@@ -281,7 +281,7 @@ private[core] object SegmentReader extends LazyLogging {
         case Some(startFrom) =>
           //if startFrom is the last index entry, return None.
           if (startFrom.nextIndexSize == 0)
-            IOUtil.successNone
+            IO.successNone
           else
             readNextKeyValue(
               previous = startFrom,
@@ -339,7 +339,7 @@ private[core] object SegmentReader extends LazyLogging {
         IO.Success(Some(keyValue))
 
       case MatchResult.Stop =>
-        IOUtil.successNone
+        IO.successNone
 
     }
 

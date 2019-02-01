@@ -25,7 +25,7 @@ import swaydb.core.map.serializer.MapEntryWriter
 import scala.reflect.ClassTag
 import swaydb.data.io.IO
 import swaydb.core.function.FunctionStore
-import swaydb.core.util.IOUtil
+
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
@@ -64,5 +64,5 @@ private[map] class MemoryMap[K, V: ClassTag](val skipList: ConcurrentSkipListMap
     }
 
   override def close(): IO[Unit] =
-    IOUtil.successUnit
+    IO.successUnit
 }

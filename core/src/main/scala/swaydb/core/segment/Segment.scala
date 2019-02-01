@@ -40,7 +40,7 @@ import swaydb.core.segment.format.a.{SegmentReader, SegmentWriter}
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util.CollectionUtil._
 import swaydb.core.util.PipeOps._
-import swaydb.core.util.IOUtil._
+import swaydb.data.io.IO._
 import swaydb.core.util.{BloomFilterUtil, IDGenerator}
 import swaydb.data.config.Dir
 import swaydb.data.order.{KeyOrder, TimeOrder}

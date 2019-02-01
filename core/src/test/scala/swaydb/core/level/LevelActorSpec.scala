@@ -27,7 +27,7 @@ import swaydb.core.level.actor.LevelCommand._
 import swaydb.core.level.actor.LevelState.{PushScheduled, Pushing, Sleeping, WaitingPull}
 import swaydb.core.level.actor._
 import swaydb.core.segment.Segment
-import swaydb.core.util.{Delay, IOUtil}
+import swaydb.core.util.Delay
 import swaydb.data.order.KeyOrder
 import swaydb.core.TestData._
 import swaydb.core.CommonAssertions._
@@ -391,7 +391,7 @@ class LevelActorSpec extends TestBase with MockFactory {
           command match {
             case PushSegments(segments, replyTo) =>
               segments shouldHaveSameInOrderedIds testSegments
-              IOUtil.successUnit
+              IO.successUnit
           }
       }
 
@@ -410,7 +410,7 @@ class LevelActorSpec extends TestBase with MockFactory {
       val testSegments = Seq(TestSegment().assertGet, TestSegment().assertGet)
 
       level.forward _ expects * returning IO.Failure(new Exception("Failed"))
-      (level.put(_: Iterable[Segment])) expects * returns IOUtil.successUnit
+      (level.put(_: Iterable[Segment])) expects * returns IO.successUnit
 
       val sender = TestActor[LevelCommand]()
 
@@ -462,7 +462,7 @@ class LevelActorSpec extends TestBase with MockFactory {
 
       level.nextPushDelay _ expects() returns 1.second
 
-      LevelActor.doPushResponse(PushSegmentsResponse(request, IOUtil.successUnit)) shouldBe(Sleeping(false, None), Some(PushTask(1.second, Push)))
+      LevelActor.doPushResponse(PushSegmentsResponse(request, IO.successUnit)) shouldBe(Sleeping(false, None), Some(PushTask(1.second, Push)))
       self.expectNoMessage()
       sender.expectMessage[Pull]()
     }

@@ -25,8 +25,8 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.brake.BrakePedal
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.core.util.FileUtil._
-import swaydb.core.util.IOUtil
-import swaydb.core.util.IOUtil._
+
+import swaydb.data.io.IO._
 import swaydb.data.accelerate.{Accelerator, Level0Meter}
 import swaydb.data.config.RecoveryMode
 import scala.annotation.tailrec
@@ -148,7 +148,7 @@ private[core] object Maps extends LazyLogging {
                   IOOps.walkDelete(mapPath) match {
                     case IO.Success(_) =>
                       logger.info(s"{}: Deleted file after corruption. Recovery mode: {}", mapPath, recovery.name)
-                      IOUtil.successUnit
+                      IO.successUnit
 
                     case IO.Failure(exception) =>
                       logger.error(s"{}: IO.Failure to delete file after corruption file. Recovery mode: {}", mapPath, recovery.name)
@@ -387,7 +387,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
     reduce(matcher(currentMap), findAndReduce(matcher, reduce))
 
   def last(): Option[Map[K, V]] =
-    tryOrNone(maps.getLast)
+    orNone(maps.getLast)
 
   def removeLast(): Option[IO[Unit]] =
     Option(maps.pollLast()) map {
@@ -401,7 +401,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
             IO.Failure(exception)
 
           case IO.Success(_) =>
-            IOUtil.successUnit
+            IO.successUnit
         }
     }
 
@@ -423,7 +423,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
   def close: IO[Unit] =
     (Seq(currentMap) ++ maps.asScala)
       .tryForeach(f = _.close(), failFast = false)
-      .getOrElse(IOUtil.successUnit)
+      .getOrElse(IO.successUnit)
 
   def getMeter =
     Level0Meter(fileSize, currentMap.fileSize, maps.size() + 1)
