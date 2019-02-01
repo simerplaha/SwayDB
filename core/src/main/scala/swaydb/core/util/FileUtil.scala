@@ -118,7 +118,7 @@ private[core] object FileUtil extends LazyLogging {
     EffectIO.stream(folder) {
       _.iterator()
         .asScala
-        .filter(folder => IO(folderId(folder)).isSuccess)
+        .filter(folder => IO(folderId(folder)).isSync)
         .toList
         .sortBy(folderId)
     }

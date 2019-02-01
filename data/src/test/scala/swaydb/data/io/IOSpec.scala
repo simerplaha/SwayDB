@@ -187,7 +187,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
             IO.Sync(count + 1)
         }
 
-      result.isSuccess shouldBe true
+      result.isSync shouldBe true
       result.get shouldBe 3
     }
   }

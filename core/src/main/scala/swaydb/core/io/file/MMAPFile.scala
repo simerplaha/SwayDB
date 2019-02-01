@@ -117,7 +117,7 @@ private[file] class MMAPFile(val path: Path,
           path, requiredByteSize, buffer.remaining(), requiredByteSize, ex)
 
         val result = extendBuffer(requiredByteSize)
-        if (result.isSuccess)
+        if (result.isSync)
           append(slice)
         else
           result
