@@ -19,20 +19,19 @@
 
 package swaydb.core.io.file
 
+import com.typesafe.scalalogging.LazyLogging
 import java.nio.channels.FileChannel
 import java.nio.channels.FileChannel.MapMode
 import java.nio.file.{Path, StandardOpenOption}
 import java.nio.{BufferOverflowException, MappedByteBuffer}
 import java.util.concurrent.atomic.AtomicBoolean
-
-import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.util.TryUtil
-import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice._
-
 import scala.annotation.tailrec
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success, Try}
+import swaydb.core.io.IO
+import swaydb.core.util.TryUtil
+import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 
 private[file] object MMAPFile {
 

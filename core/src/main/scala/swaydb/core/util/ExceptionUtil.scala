@@ -26,7 +26,7 @@ import java.nio.file.NoSuchFileException
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.level.LevelException.ContainsOverlappingBusySegments
 import swaydb.core.segment.SegmentException
-import swaydb.core.segment.SegmentException.FailedToOpenFile
+import swaydb.core.segment.SegmentException.BusyOpeningFile
 
 private[core] object ExceptionUtil extends LazyLogging {
 
@@ -34,7 +34,7 @@ private[core] object ExceptionUtil extends LazyLogging {
     exception match {
       case _: NullPointerException |
            _: NoSuchFileException |
-           _: FailedToOpenFile |
+           _: BusyOpeningFile |
            _: FileNotFoundException |
            _: AsynchronousCloseException |
            _: ClosedChannelException |

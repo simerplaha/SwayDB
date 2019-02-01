@@ -23,6 +23,7 @@ import scala.collection.mutable.ListBuffer
 import scala.concurrent.{ExecutionContext, Future}
 import scala.reflect.ClassTag
 import scala.util.{Failure, Success, Try}
+import swaydb.core.io.IO
 import swaydb.core.io.reader.Reader
 import swaydb.core.util.CollectionUtil._
 import swaydb.data.slice.Slice

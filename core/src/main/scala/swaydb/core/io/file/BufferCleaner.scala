@@ -19,15 +19,13 @@
 
 package swaydb.core.io.file
 
+import com.typesafe.scalalogging.LazyLogging
 import java.nio.MappedByteBuffer
 import java.nio.file.Path
 import java.util.concurrent.atomic.AtomicBoolean
-
-import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.actor.{Actor, ActorRef}
-
 import scala.annotation.tailrec
 import scala.concurrent.ExecutionContext
+import swaydb.core.actor.{Actor, ActorRef}
 import scala.concurrent.duration._
 
 private[file] object BufferCleaner extends LazyLogging {

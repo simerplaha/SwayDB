@@ -31,11 +31,12 @@ import scala.util.{Failure, Success, Try}
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
-import swaydb.core.io.file.{DBFile, IO}
+import swaydb.core.io.IO
+import swaydb.core.io.file.DBFile
 import swaydb.core.io.reader.Reader
 import swaydb.core.level.PathsDistributor
 import swaydb.core.map.Map
-import swaydb.core.queue.KeyValueLimiter
+import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.format.a.{SegmentReader, SegmentWriter}
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util.CollectionUtil._
@@ -78,6 +79,7 @@ private[core] object Segment extends LazyLogging {
              removeDeletes: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                      timeOrder: TimeOrder[Slice[Byte]],
                                      functionStore: FunctionStore,
+                                     fileLimiter: FileLimiter,
                                      groupingStrategy: Option[KeyValueGroupingStrategyInternal],
                                      keyValueLimiter: KeyValueLimiter): Try[Segment] =
     if (keyValues.isEmpty) {
@@ -264,7 +266,7 @@ private[core] object Segment extends LazyLogging {
                                          timeOrder: TimeOrder[Slice[Byte]],
                                          functionStore: FunctionStore,
                                          keyValueLimiter: KeyValueLimiter,
-                                         fileOpenLimiter: DBFile => Unit,
+                                         fileOpenLimiter: FileLimiter,
                                          compression: Option[KeyValueGroupingStrategyInternal],
                                          ec: ExecutionContext): Try[Segment] =
     SegmentWriter.write(keyValues, bloomFilterFalsePositiveRate) flatMap {
@@ -275,27 +277,27 @@ private[core] object Segment extends LazyLogging {
           val writeResult =
           //if both read and writes are mmaped. Keep the file open.
             if (mmapWrites && mmapReads)
-              DBFile.mmapWriteAndRead(bytes, path, fileOpenLimiter)
+              DBFile.mmapWriteAndRead(bytes, path, autoClose = true)
             //if mmapReads is false, write bytes in mmaped mode and then close and re-open for read.
             else if (mmapWrites && !mmapReads)
-              DBFile.mmapWriteAndRead(bytes, path) flatMap {
+              DBFile.mmapWriteAndRead(bytes, path, autoClose = true) flatMap {
                 file =>
                   //close immediately to force flush the bytes to disk. Having mmapWrites == true and mmapReads == false,
                   //is probably not the most efficient and should be advised not to used.
                   file.close flatMap {
                     _ =>
-                      DBFile.channelRead(file.path, fileOpenLimiter)
+                      DBFile.channelRead(file.path, autoClose = true)
                   }
               }
             else if (!mmapWrites && mmapReads)
               DBFile.write(bytes, path) flatMap {
                 path =>
-                  DBFile.mmapRead(path, fileOpenLimiter)
+                  DBFile.mmapRead(path, autoClose = true)
               }
             else
               DBFile.write(bytes, path) flatMap {
                 path =>
-                  DBFile.channelRead(path, fileOpenLimiter)
+                  DBFile.channelRead(path, autoClose = true)
               }
 
           writeResult map {
@@ -335,7 +337,7 @@ private[core] object Segment extends LazyLogging {
                                                       timeOrder: TimeOrder[Slice[Byte]],
                                                       functionStore: FunctionStore,
                                                       keyValueLimiter: KeyValueLimiter,
-                                                      fileOpenLimiter: DBFile => Unit,
+                                                      fileOpenLimiter: FileLimiter,
                                                       compression: Option[KeyValueGroupingStrategyInternal],
                                                       ec: ExecutionContext): Try[Slice[Segment]] =
     segment match {
@@ -390,7 +392,7 @@ private[core] object Segment extends LazyLogging {
                                                       timeOrder: TimeOrder[Slice[Byte]],
                                                       functionStore: FunctionStore,
                                                       keyValueLimiter: KeyValueLimiter,
-                                                      fileOpenLimiter: DBFile => Unit,
+                                                      fileOpenLimiter: FileLimiter,
                                                       compression: Option[KeyValueGroupingStrategyInternal],
                                                       ec: ExecutionContext): Try[Slice[Segment]] =
     SegmentMerger.split(
@@ -434,6 +436,7 @@ private[core] object Segment extends LazyLogging {
                    compressDuplicateValues: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                      timeOrder: TimeOrder[Slice[Byte]],
                                                      functionStore: FunctionStore,
+                                                     fileLimiter: FileLimiter,
                                                      groupingStrategy: Option[KeyValueGroupingStrategyInternal],
                                                      keyValueLimiter: KeyValueLimiter,
                                                      ec: ExecutionContext): Try[Slice[Segment]] =
@@ -457,6 +460,7 @@ private[core] object Segment extends LazyLogging {
                    compressDuplicateValues: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                      timeOrder: TimeOrder[Slice[Byte]],
                                                      functionStore: FunctionStore,
+                                                     fileLimiter: FileLimiter,
                                                      groupingStrategy: Option[KeyValueGroupingStrategyInternal],
                                                      keyValueLimiter: KeyValueLimiter,
                                                      ec: ExecutionContext): Try[Slice[Segment]] =
@@ -492,15 +496,15 @@ private[core] object Segment extends LazyLogging {
                                          timeOrder: TimeOrder[Slice[Byte]],
                                          functionStore: FunctionStore,
                                          keyValueLimiter: KeyValueLimiter,
-                                         fileOpenLimiter: DBFile => Unit,
+                                         fileOpenLimiter: FileLimiter,
                                          compression: Option[KeyValueGroupingStrategyInternal],
                                          ec: ExecutionContext): Try[Segment] = {
 
     val file =
       if (mmapReads)
-        DBFile.mmapRead(path, fileOpenLimiter, checkExists)
+        DBFile.mmapRead(path = path, autoClose = true, checkExists = checkExists)
       else
-        DBFile.channelRead(path, fileOpenLimiter, checkExists)
+        DBFile.channelRead(path = path, autoClose = true, checkExists = checkExists)
 
     file map {
       file =>
@@ -533,15 +537,15 @@ private[core] object Segment extends LazyLogging {
                                   timeOrder: TimeOrder[Slice[Byte]],
                                   functionStore: FunctionStore,
                                   keyValueLimiter: KeyValueLimiter,
-                                  fileOpenLimiter: DBFile => Unit,
+                                  fileOpenLimiter: FileLimiter,
                                   compression: Option[KeyValueGroupingStrategyInternal],
                                   ec: ExecutionContext): Try[Segment] = {
 
     val file =
       if (mmapReads)
-        DBFile.mmapRead(path, fileOpenLimiter, checkExists)
+        DBFile.mmapRead(path = path, autoClose = false, checkExists = checkExists)
       else
-        DBFile.channelRead(path, fileOpenLimiter, checkExists)
+        DBFile.channelRead(path = path, autoClose = false, checkExists = checkExists)
 
     file flatMap {
       file =>
@@ -948,6 +952,8 @@ private[core] trait Segment {
   def getAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None): Try[Slice[KeyValue.ReadOnly]]
 
   def delete: Try[Unit]
+
+  def deleteSegmentsEventually: Unit
 
   def close: Try[Unit]
 

@@ -20,7 +20,6 @@
 package swaydb.core.level
 
 import swaydb.core.TestBase
-import swaydb.core.io.file.IO
 import swaydb.core.segment.Segment
 import swaydb.core.util.Benchmark
 import swaydb.data.config.Dir
@@ -29,8 +28,8 @@ import swaydb.core.TestData._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TryAssert._
-
 import scala.util.Random
+import swaydb.core.io.IO
 
 class PathsDistributorPerformanceSpec extends TestBase with Benchmark {
 

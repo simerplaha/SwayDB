@@ -22,7 +22,6 @@ package swaydb.core.segment.format.a
 import java.nio.file._
 import swaydb.core.data.{Memory, _}
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
-import swaydb.core.io.file.DBFile
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.util._
 import swaydb.core.{TestBase, TestData, TestLimitQueues}
@@ -34,6 +33,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TryAssert._
 import scala.concurrent.duration._
+import swaydb.core.io.file.DBFile
 import swaydb.core.segment.Segment
 
 /**
@@ -78,7 +78,7 @@ class SegmentKeyValueLimiterSpec extends TestBase with Benchmark {
           keyValues = mergedKeyValues,
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           removeDeletes = false
-        )(KeyOrder.default, timeOrder, functionStore, None, keyValueLimiter).assertGet
+        )(KeyOrder.default, timeOrder, functionStore, TestLimitQueues.fileOpenLimiter, None, keyValueLimiter).assertGet
 
       //perform reads multiple times and assert that while the key-values are getting drop, the group key-value does
       //not get dropped

@@ -20,13 +20,13 @@
 package swaydb.core.map
 
 import swaydb.data.config.RecoveryMode
-
 import scala.util.Try
+import swaydb.core.io.file.DBFile
 
 /**
   * Files can be partially recovered based on the value set for [[RecoveryMode]].
   *
-  * This instance stores the result of the recovery of the target [[swaydb.core.io.file.DBFile]]
+  * This instance stores the result of the recovery of the target [[DBFile]]
   * and the result of each partial recovery.
   *
   * This instance will only contain failure if the file was partially recovered. If there was a full failure then

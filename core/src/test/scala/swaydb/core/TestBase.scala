@@ -29,17 +29,17 @@ import scala.concurrent.duration._
 import scala.util.{Random, Try}
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
-import swaydb.core.TestLimitQueues._
+import swaydb.core.TestLimitQueues.{fileOpenLimiter, _}
 import swaydb.core.actor.TestActor
 import swaydb.core.data.{KeyValue, Memory, Time}
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
-import swaydb.core.io.file.{DBFile, IO}
+import swaydb.core.io.file.DBFile
 import swaydb.core.io.reader.FileReader
 import swaydb.core.level.actor.LevelCommand.{PushSegments, PushSegmentsResponse}
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, LevelRef}
 import swaydb.core.map.MapEntry
-import swaydb.core.queue.KeyValueLimiter
+import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment
 import swaydb.core.util.IDGenerator
 import swaydb.data.accelerate.{Accelerator, Level0Meter}
@@ -50,6 +50,7 @@ import swaydb.data.slice.Slice
 import swaydb.data.storage.{AppendixStorage, Level0Storage, LevelStorage}
 import swaydb.data.util.StorageUnits._
 import swaydb.core.TryAssert._
+import swaydb.core.io.IO
 
 trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventually {
 
@@ -201,7 +202,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
               flushOnOverflow: Boolean = false,
               mmap: Boolean = true)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                     keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
-                                    fileOpenLimiter: DBFile => Unit = TestLimitQueues.fileOpenLimiter,
+                                    fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter,
                                     timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long): map.Map[Slice[Byte], Memory.SegmentResponse] = {
       import swaydb.core.map.serializer.LevelZeroMapEntryReader._
       import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
@@ -235,7 +236,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
               path: Path = testSegmentFile,
               bloomFilterFalsePositiveRate: Double = TestData.falsePositiveRate)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                  keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
-                                                                                 fileOpenLimiter: DBFile => Unit = TestLimitQueues.fileOpenLimiter,
+                                                                                 fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter,
                                                                                  timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                                                  groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(randomIntMax(1000))): Try[Segment] =
       if (levelStorage.memory)
@@ -288,9 +289,10 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
               pushForward: Boolean = false,
               throttle: LevelMeter => Throttle = testDefaultThrottle,
               bloomFilterFalsePositiveRate: Double = 0.01,
-              compressDuplicateValues: Boolean = true)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+              compressDuplicateValues: Boolean = true,
+              deleteSegmentsEventually: Boolean = true)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                        keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
-                                                       fileOpenLimiter: DBFile => Unit = TestLimitQueues.fileOpenLimiter,
+                                                       fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter,
                                                        timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                        compression: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategy(randomNextInt(1000))): Level =
       Level(
@@ -301,7 +303,8 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
         appendixStorage = appendixStorage,
         throttle = throttle,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-        compressDuplicateValues = compressDuplicateValues
+        compressDuplicateValues = compressDuplicateValues,
+        deleteSegmentsEventually = deleteSegmentsEventually
       ).assertGet.asInstanceOf[Level]
   }
 
@@ -314,7 +317,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
               throttleOn: Boolean = true)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                           keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
                                           timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                          fileOpenLimiter: DBFile => Unit = TestLimitQueues.fileOpenLimiter): LevelZero =
+                                          fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter): LevelZero =
       LevelZero(
         mapSize = mapSize,
         storage = level0Storage,
@@ -339,13 +342,15 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
   def createFile(bytes: Slice[Byte]): Path =
     IO.write(bytes, testDir.resolve(nextSegmentId)).assertGet
 
-  def createFileReader(path: Path): FileReader =
+  def createFileReader(path: Path): FileReader = {
+    implicit val limiter = fileOpenLimiter
     new FileReader(
       if (Random.nextBoolean())
-        DBFile.channelRead(path, fileOpenLimiter).assertGet
+        DBFile.channelRead(path, autoClose = true).assertGet
       else
-        DBFile.mmapRead(path, fileOpenLimiter).assertGet
+        DBFile.mmapRead(path, autoClose = true).assertGet
     )
+  }
 
   def createFileChannelReader(bytes: Slice[Byte]): FileReader =
     createFileReader(createFile(bytes))

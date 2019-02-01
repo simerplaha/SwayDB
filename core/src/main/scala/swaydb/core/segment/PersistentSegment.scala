@@ -25,10 +25,9 @@ import bloomfilter.mutable.BloomFilter
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.data.{Persistent, _}
-import swaydb.core.io.file.DBFile
 import swaydb.core.io.reader.Reader
 import swaydb.core.level.PathsDistributor
-import swaydb.core.queue.KeyValueLimiter
+import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.format.a.{SegmentFooter, SegmentReader}
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util.TryUtil._
@@ -39,6 +38,7 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 import scala.util.{Failure, Success, Try}
 import swaydb.core.function.FunctionStore
+import swaydb.core.io.file.DBFile
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.repairAppendix.MaxKey
 
@@ -53,7 +53,7 @@ private[segment] case class PersistentSegment(file: DBFile,
                                                                                        timeOrder: TimeOrder[Slice[Byte]],
                                                                                        functionStore: FunctionStore,
                                                                                        keyValueLimiter: KeyValueLimiter,
-                                                                                       fileOpenLimiter: DBFile => Unit,
+                                                                                       fileOpenLimiter: FileLimiter,
                                                                                        compression: Option[KeyValueGroupingStrategyInternal],
                                                                                        ec: ExecutionContext) extends Segment with LazyLogging {
 
@@ -88,6 +88,9 @@ private[segment] case class PersistentSegment(file: DBFile,
 
   private def createReader(): Reader =
     Reader(file)
+
+  def deleteSegmentsEventually =
+    fileOpenLimiter.delete(file)
 
   def delete: Try[Unit] = {
     logger.trace(s"{}: DELETING FILE", path)

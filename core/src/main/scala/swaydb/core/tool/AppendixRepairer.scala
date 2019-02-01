@@ -21,11 +21,10 @@ package swaydb.core.tool
 
 import java.nio.file.Path
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.io.file.IO
 import swaydb.core.level.AppendixSkipListMerger
 import swaydb.core.map.serializer.{AppendixMapEntryReader, MapEntryReader, MapEntryWriter}
 import swaydb.core.map.{Map, MapEntry, SkipListMerger}
-import swaydb.core.queue.KeyValueLimiter
+import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment
 import swaydb.core.util.TryUtil._
 import swaydb.core.util.{Extension, FileUtil, TryUtil}
@@ -36,6 +35,7 @@ import swaydb.data.util.StorageUnits._
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success, Try}
 import swaydb.core.function.FunctionStore
+import swaydb.core.io.IO
 import swaydb.data.order.{KeyOrder, TimeOrder}
 
 private[swaydb] object AppendixRepairer extends LazyLogging {
@@ -43,16 +43,17 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
   def apply(levelPath: Path,
             strategy: AppendixRepairStrategy)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                               timeOrder: TimeOrder[Slice[Byte]],
+                                              fileOpenLimiter: FileLimiter,
                                               functionStore: FunctionStore,
                                               ec: ExecutionContext): Try[Unit] = {
-    val reader = AppendixMapEntryReader(false, false, false)(keyOrder, timeOrder, functionStore, KeyValueLimiter.none, _ => (), None, ec)
+    val reader = AppendixMapEntryReader(false, false, false)(keyOrder, timeOrder, functionStore, KeyValueLimiter.none, FileLimiter.empty, None, ec)
     import reader._
     import swaydb.core.map.serializer.AppendixMapEntryWriter._
     implicit val merger = AppendixSkipListMerger
 
     Try(FileUtil.files(levelPath, Extension.Seg)) flatMap {
       files =>
-        files.tryMap(Segment(_, false, false, false, true)(keyOrder, timeOrder, functionStore, KeyValueLimiter.none, _ => (), None, ec))
+        files.tryMap(Segment(_, false, false, false, true)(keyOrder, timeOrder, functionStore, KeyValueLimiter.none, FileLimiter.empty, None, ec))
           .flatMap {
             segments =>
               checkOverlappingSegments(segments, strategy) flatMap {
@@ -136,6 +137,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
   def buildAppendixMap(appendixDir: Path,
                        segments: Slice[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                  timeOrder: TimeOrder[Slice[Byte]],
+                                                 fileOpenLimiter: FileLimiter,
                                                  functionStore: FunctionStore,
                                                  writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Segment]],
                                                  mapReader: MapEntryReader[MapEntry[Slice[Byte], Segment]],

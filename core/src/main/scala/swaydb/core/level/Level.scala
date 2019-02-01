@@ -32,13 +32,13 @@ import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
-import swaydb.core.io.file.{DBFile, DBFileType, IO}
+import swaydb.core.io.IO
 import swaydb.core.level.LevelException.ReceivedKeyValuesToMergeWithoutTargetSegment
 import swaydb.core.level.actor.LevelCommand.ClearExpiredKeyValues
 import swaydb.core.level.actor.{LevelAPI, LevelActor, LevelActorAPI, LevelCommand}
 import swaydb.core.map.serializer._
 import swaydb.core.map.{Map, MapEntry}
-import swaydb.core.queue.KeyValueLimiter
+import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.seek.{NextWalker, _}
 import swaydb.core.segment.SegmentException.SegmentFileMissing
 import swaydb.core.segment.{Segment, SegmentAssigner}
@@ -81,13 +81,14 @@ private[core] object Level extends LazyLogging {
             nextLevel: Option[LevelRef],
             pushForward: Boolean = false,
             throttle: LevelMeter => Throttle,
-            compressDuplicateValues: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                              timeOrder: TimeOrder[Slice[Byte]],
-                                              functionStore: FunctionStore,
-                                              ec: ExecutionContext,
-                                              keyValueLimiter: KeyValueLimiter,
-                                              fileOpenLimiter: DBFile => Unit,
-                                              groupingStrategy: Option[KeyValueGroupingStrategyInternal]): Try[LevelRef] = {
+            compressDuplicateValues: Boolean,
+            deleteSegmentsEventually: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                       timeOrder: TimeOrder[Slice[Byte]],
+                                       functionStore: FunctionStore,
+                                       ec: ExecutionContext,
+                                       keyValueLimiter: KeyValueLimiter,
+                                       fileOpenLimiter: FileLimiter,
+                                       groupingStrategy: Option[KeyValueGroupingStrategyInternal]): Try[LevelRef] = {
     //acquire lock on folder
     acquireLock(levelStorage) flatMap {
       lock =>
@@ -165,7 +166,8 @@ private[core] object Level extends LazyLogging {
                     throttle = throttle,
                     nextLevel = nextLevel,
                     lock = lock,
-                    compressDuplicateValues = compressDuplicateValues
+                    compressDuplicateValues = compressDuplicateValues,
+                    deleteSegmentsEventually = deleteSegmentsEventually
                   ).init
                 )
             }
@@ -190,15 +192,16 @@ private[core] class Level(val dirs: Seq[Dir],
                           val nextLevel: Option[LevelRef],
                           appendix: Map[Slice[Byte], Segment],
                           lock: Option[FileLock],
-                          val compressDuplicateValues: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                timeOrder: TimeOrder[Slice[Byte]],
-                                                                functionStore: FunctionStore,
-                                                                ec: ExecutionContext,
-                                                                removeWriter: MapEntryWriter[MapEntry.Remove[Slice[Byte]]],
-                                                                addWriter: MapEntryWriter[MapEntry.Put[Slice[Byte], Segment]],
-                                                                keyValueLimiter: KeyValueLimiter,
-                                                                fileOpenLimiter: DBFile => Unit,
-                                                                groupingStrategy: Option[KeyValueGroupingStrategyInternal]) extends LevelRef with LevelActorAPI with LazyLogging { self =>
+                          val compressDuplicateValues: Boolean,
+                          val deleteSegmentsEventually: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                         timeOrder: TimeOrder[Slice[Byte]],
+                                                         functionStore: FunctionStore,
+                                                         ec: ExecutionContext,
+                                                         removeWriter: MapEntryWriter[MapEntry.Remove[Slice[Byte]]],
+                                                         addWriter: MapEntryWriter[MapEntry.Put[Slice[Byte], Segment]],
+                                                         keyValueLimiter: KeyValueLimiter,
+                                                         fileOpenLimiter: FileLimiter,
+                                                         groupingStrategy: Option[KeyValueGroupingStrategyInternal]) extends LevelRef with LevelActorAPI with LazyLogging { self =>
 
   val paths: PathsDistributor = PathsDistributor(dirs, () => appendix.values().asScala)
 
@@ -350,13 +353,16 @@ private[core] class Level(val dirs: Seq[Dir],
   }
 
   private def deleteCopiedSegments(copiedSegments: Iterable[Segment]) =
-    copiedSegments foreach {
-      segmentToDelete =>
-        segmentToDelete.delete.failed foreach {
-          exception =>
-            logger.error(s"{}: Failed to delete copied Segment '{}'", paths.head, segmentToDelete.path, exception)
-        }
-    }
+    if (deleteSegmentsEventually)
+      copiedSegments foreach (_.deleteSegmentsEventually)
+    else
+      copiedSegments foreach {
+        segmentToDelete =>
+          segmentToDelete.delete.failed foreach {
+            exception =>
+              logger.error(s"{}: Failed to delete copied Segment '{}'", paths.head, segmentToDelete.path, exception)
+          }
+      }
 
   private[level] def put(segmentsToMerge: Iterable[Segment],
                          segmentsToCopy: Iterable[Segment],
@@ -529,11 +535,14 @@ private[core] class Level(val dirs: Seq[Dir],
                     appendix.write(entry) flatMap {
                       _ =>
                         alertActorForSegmentManagement()
-                        segmentToClear.delete recoverWith {
-                          case exception =>
-                            logger.error(s"Failed to delete Segments '{}'. Manually delete these Segments or reboot the database.", segmentToClear.path, exception)
-                            TryUtil.successUnit
-                        }
+                        if (deleteSegmentsEventually)
+                          segmentToClear.deleteSegmentsEventually
+                        else
+                          segmentToClear.delete recover {
+                            case exception =>
+                              logger.error(s"Failed to delete Segments '{}'. Manually delete these Segments or reboot the database.", segmentToClear.path, exception)
+                          }
+                        TryUtil.successUnit
                     }
                 } recoverWith {
                   case exception =>
@@ -641,13 +650,16 @@ private[core] class Level(val dirs: Seq[Dir],
       merge(segmentsToMerge, targetSegments, appendEntry) map {
         _ =>
           //delete the segments merged with self.
-          segmentsToMerge foreach {
-            segment =>
-              segment.delete.failed map {
-                exception =>
-                  logger.warn(s"{}: Failed to delete Segment {} after successful collapse", paths.head, segment.path, exception)
-              }
-          }
+          if (deleteSegmentsEventually)
+            segmentsToMerge foreach (_.deleteSegmentsEventually)
+          else
+            segmentsToMerge foreach {
+              segment =>
+                segment.delete.failed map {
+                  exception =>
+                    logger.warn(s"{}: Failed to delete Segment {} after successful collapse", paths.head, segment.path, exception)
+                }
+            }
           segmentsToMerge.size
       }
     }
@@ -696,13 +708,16 @@ private[core] class Level(val dirs: Seq[Dir],
                       _ =>
                         logger.debug(s"{}: putKeyValues successful. Deleting assigned Segments. {}.", paths.head, assignments.map(_._1.path.toString))
                         //delete assigned segments as they are replaced with new segments.
-                        assignments foreach {
-                          case (segment, _) =>
-                            segment.delete.failed map {
-                              exception =>
-                                logger.error(s"{}: Failed to delete Segment {}", paths.head, segment.path, exception)
-                            }
-                        }
+                        if (deleteSegmentsEventually)
+                          assignments foreach (_._1.deleteSegmentsEventually)
+                        else
+                          assignments foreach {
+                            case (segment, _) =>
+                              segment.delete.failed map {
+                                exception =>
+                                  logger.error(s"{}: Failed to delete Segment {}", paths.head, segment.path, exception)
+                              }
+                          }
                     }
 
                   case None =>
@@ -848,11 +863,16 @@ private[core] class Level(val dirs: Seq[Dir],
             // But it's OK if it fails as long as appendix is updated with new segments. An error message will be logged
             // asking to delete the uncommitted segments manually or do a database restart which will delete the uncommitted
             // Segments on reboot.
-            Segment.deleteSegments(segmentsToRemove) recoverWith {
-              case exception =>
-                logger.error(s"Failed to delete Segments '{}'. Manually delete these Segments or reboot the database.", segmentsToRemove.map(_.path.toString).mkString(", "), exception)
-                Success(0)
+            if (deleteSegmentsEventually) {
+              segmentsToRemove foreach (_.deleteSegmentsEventually)
+              Success(0)
             }
+            else
+              Segment.deleteSegments(segmentsToRemove) recoverWith {
+                case exception =>
+                  logger.error(s"Failed to delete Segments '{}'. Manually delete these Segments or reboot the database.", segmentsToRemove.map(_.path.toString).mkString(", "), exception)
+                  Success(0)
+              }
         }
     } getOrElse Failure(LevelException.NoSegmentsRemoved)
   }

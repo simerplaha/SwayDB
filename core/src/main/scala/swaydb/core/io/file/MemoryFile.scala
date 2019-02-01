@@ -19,13 +19,11 @@
 
 package swaydb.core.io.file
 
-import java.nio.file.Path
-
 import com.typesafe.scalalogging.LazyLogging
+import java.nio.file.Path
+import scala.util.{Failure, Success, Try}
 import swaydb.core.util.TryUtil
 import swaydb.data.slice.Slice
-
-import scala.util.{Failure, Success, Try}
 
 private[file] object MemoryFile {
   def apply(path: Path, bytes: Slice[Byte]): DBFileType =

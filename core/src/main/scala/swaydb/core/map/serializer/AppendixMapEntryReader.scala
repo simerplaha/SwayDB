@@ -22,19 +22,18 @@ package swaydb.core.map.serializer
 import java.nio.charset.StandardCharsets
 import java.nio.file.Paths
 import java.util.concurrent.TimeUnit
-import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
-import swaydb.core.io.file.DBFile
-import swaydb.core.map.MapEntry
-import swaydb.core.queue.KeyValueLimiter
-import swaydb.core.segment.Segment
-import swaydb.core.util.Bytes
-import swaydb.data.slice.{Reader, Slice}
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.Deadline
 import scala.util.{Failure, Success, Try}
 import swaydb.core.function.FunctionStore
+import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
+import swaydb.core.map.MapEntry
+import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
+import swaydb.core.segment.Segment
+import swaydb.core.util.Bytes
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.repairAppendix.MaxKey
+import swaydb.data.slice.{Reader, Slice}
 
 object AppendixMapEntryReader {
   def apply(removeDeletes: Boolean,
@@ -43,7 +42,7 @@ object AppendixMapEntryReader {
                                           timeOrder: TimeOrder[Slice[Byte]],
                                           functionStore: FunctionStore,
                                           keyValueLimiter: KeyValueLimiter,
-                                          fileOpenLimiter: DBFile => Unit,
+                                          fileOpenLimiter: FileLimiter,
                                           compression: Option[KeyValueGroupingStrategyInternal],
                                           ec: ExecutionContext): AppendixMapEntryReader =
     new AppendixMapEntryReader(
@@ -59,7 +58,7 @@ class AppendixMapEntryReader(removeDeletes: Boolean,
                                                            timeOrder: TimeOrder[Slice[Byte]],
                                                            functionStore: FunctionStore,
                                                            keyValueLimiter: KeyValueLimiter,
-                                                           fileOpenLimiter: DBFile => Unit,
+                                                           fileOpenLimiter: FileLimiter,
                                                            compression: Option[KeyValueGroupingStrategyInternal],
                                                            ec: ExecutionContext) {
 

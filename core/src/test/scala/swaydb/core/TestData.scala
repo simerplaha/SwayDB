@@ -40,7 +40,7 @@ import swaydb.core.io.file.DBFile
 import swaydb.core.level.Level
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.map.serializer.RangeValueSerializer
-import swaydb.core.queue.KeyValueLimiter
+import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment
 import swaydb.core.util.{TryUtil, UUIDUtil}
 import swaydb.data.accelerate.Accelerator
@@ -72,7 +72,7 @@ object TestData {
   implicit class ReopenSegment(segment: Segment)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                  ec: ExecutionContext,
                                                  keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
-                                                 fileOpenLimiter: DBFile => Unit = fileOpenLimiter,
+                                                 fileOpenLimiter: FileLimiter = fileOpenLimiter,
                                                  timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                  groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(randomNextInt(1000))) {
 
@@ -112,7 +112,7 @@ object TestData {
 
     import swaydb.core.util.TryUtil._
 
-    def putKeyValues(keyValues: Iterable[KeyValue.ReadOnly]): Try[Unit] =
+    def putKeyValues(keyValues: Iterable[KeyValue.ReadOnly])(implicit fileLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter): Try[Unit] =
       if (keyValues.isEmpty)
         TryUtil.successUnit
       else
@@ -134,12 +134,12 @@ object TestData {
 
     def reopen(segmentSize: Long = level.segmentSize,
                throttle: LevelMeter => Throttle = level.throttle)(implicit keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
-                                                                  fileOpenLimiter: DBFile => Unit = fileOpenLimiter): Level =
+                                                                  fileOpenLimiter: FileLimiter = fileOpenLimiter): Level =
       tryReopen(segmentSize, throttle).assertGet
 
     def tryReopen(segmentSize: Long = level.segmentSize,
                   throttle: LevelMeter => Throttle = level.throttle)(implicit keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
-                                                                     fileOpenLimiter: DBFile => Unit = fileOpenLimiter): Try[Level] =
+                                                                     fileOpenLimiter: FileLimiter = fileOpenLimiter): Try[Level] =
       level.releaseLocks flatMap {
         _ =>
           level.closeSegments flatMap {
@@ -157,7 +157,8 @@ object TestData {
                 pushForward = level.pushForward,
                 bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
                 throttle = throttle,
-                compressDuplicateValues = level.compressDuplicateValues
+                compressDuplicateValues = level.compressDuplicateValues,
+                deleteSegmentsEventually = level.deleteSegmentsEventually
               ).map(_.asInstanceOf[Level])
           }
       }
@@ -173,7 +174,7 @@ object TestData {
 
     def reopen(mapSize: Long = level.maps.map.size)(implicit keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
                                                     timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                    fileOpenLimiter: DBFile => Unit = fileOpenLimiter): LevelZero = {
+                                                    fileOpenLimiter: FileLimiter = fileOpenLimiter): LevelZero = {
       val reopened =
         level.releaseLocks flatMap {
           _ =>

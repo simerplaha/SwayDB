@@ -21,10 +21,9 @@ package swaydb.core.map
 
 import java.util.concurrent.ConcurrentSkipListMap
 import swaydb.core.data.{Memory, Persistent, Value}
-import swaydb.core.io.file.DBFile
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.serializer._
-import swaydb.core.queue.KeyValueLimiter
+import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment
 import swaydb.core.{TestBase, TestLimitQueues, TestTimeGenerator}
 import swaydb.data.slice.Slice
@@ -39,12 +38,13 @@ import swaydb.core.TryAssert._
 import scala.concurrent.duration._
 import scala.collection.JavaConverters._
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
+import swaydb.core.io.file.DBFile
 
 class MapEntrySpec extends TestBase {
 
   implicit val keyOrder = KeyOrder.default
   implicit def timeGenerator: TestTimeGenerator = TestTimeGenerator.Empty
-  implicit val maxSegmentsOpenCacheImplicitLimiter: DBFile => Unit = TestLimitQueues.fileOpenLimiter
+  implicit val maxSegmentsOpenCacheImplicitLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
   implicit val keyValuesLimitImplicitLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter
   implicit def compression: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(randomNextInt(1000))
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long

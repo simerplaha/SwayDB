@@ -19,18 +19,19 @@
 
 package swaydb.core.io.file
 
-import swaydb.core.TestBase
-import swaydb.core.util.Benchmark
-
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import swaydb.data.util.StorageUnits._
-import swaydb.core.TestData._
-import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
+import swaydb.core.TestBase
+import swaydb.core.TestData._
+import swaydb.core.TestLimitQueues.fileOpenLimiter
 import swaydb.core.TryAssert._
+import swaydb.core.util.Benchmark
+import swaydb.data.util.StorageUnits._
 
 class DBFileStressWriteSpec extends TestBase with Benchmark {
+
+  implicit val limiter = fileOpenLimiter
 
   "DBFile" should {
     //use a larger size (200000) to test on larger data-set.
@@ -39,7 +40,7 @@ class DBFileStressWriteSpec extends TestBase with Benchmark {
     "write key values to a ChannelFile" in {
       val path = randomFilePath
 
-      val file = DBFile.channelWrite(path).assertGet
+      val file = DBFile.channelWrite(path, autoClose = false).assertGet
       benchmark("write 1 million key values to a ChannelFile") {
         bytes foreach {
           byteChunk =>
@@ -52,7 +53,7 @@ class DBFileStressWriteSpec extends TestBase with Benchmark {
     "write key values to a ChannelFile concurrently" in {
       val path = randomFilePath
 
-      val file = DBFile.channelWrite(path).assertGet
+      val file = DBFile.channelWrite(path, autoClose = false).assertGet
       benchmark("write 1 million key values to a ChannelFile concurrently") {
         Future.sequence {
           bytes map {
@@ -67,7 +68,7 @@ class DBFileStressWriteSpec extends TestBase with Benchmark {
     "write key values to a MMAPlFile" in {
       val path = randomFilePath
 
-      val file = DBFile.mmapInit(path, bytes.size * 50).assertGet
+      val file = DBFile.mmapInit(path, bytes.size * 50, autoClose = false).assertGet
       benchmark("write 1 million key values to a MMAPlFile") {
         bytes foreach {
           chunk =>
@@ -80,7 +81,7 @@ class DBFileStressWriteSpec extends TestBase with Benchmark {
     "write key values to a MMAPlFile concurrently" in {
       val path = randomFilePath
 
-      val file = DBFile.mmapInit(path, bytes.size * 50).assertGet
+      val file = DBFile.mmapInit(path, bytes.size * 50, autoClose = false).assertGet
       benchmark("write 1 million key values to a MMAPlFile concurrently") {
         Future.sequence {
           bytes map {

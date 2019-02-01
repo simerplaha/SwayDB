@@ -22,8 +22,7 @@ package swaydb.core.segment.format.a
 import swaydb.configs.level.DefaultGroupingStrategy
 import swaydb.core.data.KeyValue
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
-import swaydb.core.io.file.DBFile
-import swaydb.core.queue.KeyValueLimiter
+import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestData, TestLimitQueues}
@@ -34,6 +33,7 @@ import swaydb.core.TestData._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TryAssert._
+import swaydb.core.io.file.DBFile
 import swaydb.core.segment.Segment
 
 //@formatter:off
@@ -103,7 +103,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase with Benchmark {
 
   val keyValuesCount = 1000000
 
-  implicit val maxSegmentsOpenCacheImplicitLimiter: DBFile => Unit = TestLimitQueues.fileOpenLimiter
+  implicit val maxSegmentsOpenCacheImplicitLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
   implicit val keyValuesLimitImplicitLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter
 
   val unGroupedKeyValues: Slice[KeyValue.WriteOnly] =

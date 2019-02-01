@@ -22,11 +22,10 @@ package swaydb.core.map
 import java.nio.file.{FileAlreadyExistsException, Files, Path, Paths}
 import java.util.concurrent.ConcurrentSkipListMap
 import swaydb.core.data.{Memory, Persistent, Transient, Value}
-import swaydb.core.io.file.DBFile
 import swaydb.core.level.AppendixSkipListMerger
 import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.map.serializer._
-import swaydb.core.queue.KeyValueLimiter
+import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment
 import swaydb.core.util.Extension
 import swaydb.core.util.FileUtil._
@@ -43,6 +42,7 @@ import swaydb.core.TryAssert._
 import scala.collection.JavaConverters._
 import scala.concurrent.duration._
 import scala.util.Random
+import swaydb.core.io.file.DBFile
 
 class MapSpec extends TestBase {
 
@@ -50,7 +50,7 @@ class MapSpec extends TestBase {
 
   implicit def timeGenerator: TestTimeGenerator = TestTimeGenerator.Empty
 
-  implicit val maxSegmentsOpenCacheImplicitLimiter: DBFile => Unit = TestLimitQueues.fileOpenLimiter
+  implicit val maxSegmentsOpenCacheImplicitLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
   implicit val keyValuesLimitImplicitLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter
   implicit val skipListMerger = LevelZeroSkipListMerger
 
@@ -455,7 +455,7 @@ class MapSpec extends TestBase {
       val nextFile = PersistentMap.nextFile(currentFile, false, 4.mb, skipList).assertGet
 
       val nextFileSkipList = new ConcurrentSkipListMap[Slice[Byte], Memory.SegmentResponse](keyOrder)
-      val nextFileBytes = DBFile.channelRead(nextFile.path).assertGet.readAll.assertGet
+      val nextFileBytes = DBFile.channelRead(nextFile.path, autoClose = false).assertGet.readAll.assertGet
       val mapEntries = MapCodec.read(nextFileBytes, dropCorruptedTailEntries = false).assertGet.item.assertGet
       mapEntries applyTo nextFileSkipList
 

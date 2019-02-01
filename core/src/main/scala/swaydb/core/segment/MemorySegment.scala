@@ -28,7 +28,7 @@ import swaydb.core.data.Memory.{Group, SegmentResponse}
 import swaydb.core.data._
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.level.PathsDistributor
-import swaydb.core.queue.KeyValueLimiter
+import swaydb.core.queue.{FileLimiter, KeyValueLimiter, LimiterType}
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util.TryUtil._
 import swaydb.core.util._
@@ -55,7 +55,8 @@ private[segment] case class MemorySegment(path: Path,
                                                                                    timeOrder: TimeOrder[Slice[Byte]],
                                                                                    functionStore: FunctionStore,
                                                                                    groupingStrategy: Option[KeyValueGroupingStrategyInternal],
-                                                                                   keyValueLimiter: KeyValueLimiter) extends Segment with LazyLogging {
+                                                                                   keyValueLimiter: KeyValueLimiter,
+                                                                                   fileLimiter: FileLimiter) extends Segment with LimiterType with LazyLogging {
 
   @volatile private var deleted = false
 
@@ -323,7 +324,7 @@ private[segment] case class MemorySegment(path: Path,
     if (deleted)
       Failure(new NoSuchFileException(path.toString))
     else
-      Try {
+      Success {
         deleted = true
       }
   }
@@ -378,4 +379,6 @@ private[segment] case class MemorySegment(path: Path,
   override def isFooterDefined: Boolean =
     !deleted
 
+  override def deleteSegmentsEventually: Unit =
+    fileLimiter.delete(this)
 }

@@ -30,6 +30,7 @@ import swaydb.core.data.{Memory, Time, Value}
 import swaydb.core.function.FunctionStore
 import swaydb.core.map.MapEntry
 import swaydb.core.map.serializer.LevelZeroMapEntryWriter
+import swaydb.core.queue.FileLimiter
 import swaydb.core.tool.AppendixRepairer
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
@@ -162,6 +163,7 @@ object SwayDB extends LazyLogging {
     */
   def repairAppendix[K](levelPath: Path,
                         repairStrategy: AppendixRepairStrategy)(implicit serializer: Serializer[K],
+                                                                fileLimiter: FileLimiter,
                                                                 keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                 ec: ExecutionContext = defaultExecutionContext): Try[RepairResult[K]] =
   //convert to typed result.

@@ -37,6 +37,7 @@ class GroupSpec extends TestBase {
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit def timeGenerator: TestTimeGenerator = TestTimeGenerator.random
+  implicit val fileLimiter = TestLimitQueues.fileOpenLimiter
   implicit val keyValueLimiter = TestLimitQueues.keyValueLimiter
 
 

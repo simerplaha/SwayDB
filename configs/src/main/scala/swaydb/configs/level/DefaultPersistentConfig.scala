@@ -43,7 +43,8 @@ object DefaultPersistentConfig {
             segmentSize: Int,
             appendixFlushCheckpointSize: Int,
             bloomFilterFalsePositiveRate: Double,
-                        compressDuplicateValues: Boolean,
+            compressDuplicateValues: Boolean,
+            deleteSegmentsEventually: Boolean,
             groupingStrategy: Option[KeyValueGroupingStrategy],
             acceleration: Level0Meter => Accelerator): SwayDBPersistentConfig =
     ConfigWizard
@@ -52,7 +53,7 @@ object DefaultPersistentConfig {
         mapSize = mapSize,
         mmap = mmapMaps,
         recoveryMode = recoveryMode,
-                acceleration = acceleration
+        acceleration = acceleration
       )
       .addPersistentLevel1( //level1
         dir = dir,
@@ -63,7 +64,8 @@ object DefaultPersistentConfig {
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
         pushForward = true,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-                compressDuplicateValues = compressDuplicateValues,
+        compressDuplicateValues = compressDuplicateValues,
+        deleteSegmentsEventually = deleteSegmentsEventually,
         groupingStrategy = None,
         throttle =
           levelMeter => {
@@ -81,7 +83,8 @@ object DefaultPersistentConfig {
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
         pushForward = true,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-                compressDuplicateValues = compressDuplicateValues,
+        compressDuplicateValues = compressDuplicateValues,
+        deleteSegmentsEventually = deleteSegmentsEventually,
         groupingStrategy = None,
         throttle =
           levelMeter => {
@@ -99,7 +102,8 @@ object DefaultPersistentConfig {
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
         pushForward = true,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-                compressDuplicateValues = compressDuplicateValues,
+        compressDuplicateValues = compressDuplicateValues,
+        deleteSegmentsEventually = deleteSegmentsEventually,
         groupingStrategy = None,
         throttle =
           levelMeter => {
@@ -117,7 +121,8 @@ object DefaultPersistentConfig {
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
         pushForward = false,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-                compressDuplicateValues = compressDuplicateValues,
+        compressDuplicateValues = compressDuplicateValues,
+        deleteSegmentsEventually = deleteSegmentsEventually,
         groupingStrategy = None,
         throttle =
           levelMeter => {
@@ -135,7 +140,8 @@ object DefaultPersistentConfig {
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
         pushForward = false,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-                compressDuplicateValues = compressDuplicateValues,
+        compressDuplicateValues = compressDuplicateValues,
+        deleteSegmentsEventually = deleteSegmentsEventually,
         groupingStrategy =
           None,
         throttle =
@@ -154,7 +160,8 @@ object DefaultPersistentConfig {
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
         pushForward = false,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-                compressDuplicateValues = compressDuplicateValues,
+        compressDuplicateValues = compressDuplicateValues,
+        deleteSegmentsEventually = deleteSegmentsEventually,
         groupingStrategy = None,
         throttle =
           levelMeter => {
@@ -174,7 +181,8 @@ object DefaultPersistentConfig {
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
         pushForward = false,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-                compressDuplicateValues = compressDuplicateValues,
+        compressDuplicateValues = compressDuplicateValues,
+        deleteSegmentsEventually = deleteSegmentsEventually,
         groupingStrategy = groupingStrategy,
         throttle =
           levelMeter => {

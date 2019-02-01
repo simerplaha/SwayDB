@@ -27,7 +27,6 @@ import swaydb.core.{TestBase, TestTimeGenerator}
 import swaydb.core.TestData._
 import swaydb.core.TryAssert._
 import swaydb.core.data.{Memory, Transient}
-import swaydb.core.io.file.IO
 import swaydb.core.util.Benchmark
 import swaydb.data.compaction.Throttle
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -36,6 +35,7 @@ import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.core.TryAssert._
+import swaydb.core.io.IO
 
 //@formatter:off
 class LevelZeroSpec0 extends LevelZeroSpec

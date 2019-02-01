@@ -20,8 +20,8 @@
 package swaydb.core.tool
 
 import java.nio.file.NoSuchFileException
-import swaydb.core.io.file.{DBFile, IO}
-import swaydb.core.queue.KeyValueLimiter
+import swaydb.core.io.file.DBFile
+import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment
 import swaydb.core.util.FileUtil._
 import swaydb.core.{TestBase, TestData, TestLimitQueues}
@@ -36,13 +36,14 @@ import swaydb.core.RunThis._
 import scala.concurrent.duration.Duration
 import scala.util.Random
 import swaydb.core.TryAssert._
+import swaydb.core.io.IO
 
 class AppendixRepairerSpec extends TestBase {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
 
-  implicit val maxSegmentsOpenCacheImplicitLimiter: DBFile => Unit = TestLimitQueues.fileOpenLimiter
+  implicit val maxSegmentsOpenCacheImplicitLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
   implicit val keyValuesLimitImplicitLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter
 
   "AppendixRepair" should {

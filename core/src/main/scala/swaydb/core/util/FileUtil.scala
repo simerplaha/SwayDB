@@ -20,13 +20,11 @@
 package swaydb.core.util
 
 import java.nio.file.{Files, Path}
-
 import com.typesafe.scalalogging.LazyLogging
-
 import scala.collection.JavaConverters._
 import scala.util.{Failure, Success, Try}
 import PipeOps._
-import swaydb.core.io.file.IO
+import swaydb.core.io.IO
 
 case class NotAnIntFile(path: Path) extends Throwable
 

@@ -19,9 +19,8 @@
 
 package swaydb.core.map
 
-import swaydb.core.{TestBase, TestTimeGenerator}
+import swaydb.core.{TestBase, TestLimitQueues, TestTimeGenerator}
 import swaydb.core.data.{Memory, Value}
-import swaydb.core.io.file.IO
 import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.util.Benchmark
 import swaydb.data.accelerate.Accelerator
@@ -34,11 +33,14 @@ import swaydb.core.TestData._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TryAssert._
+import swaydb.core.io.IO
+import swaydb.core.queue.FileLimiter
 
 class MapsPerformanceSpec extends TestBase with Benchmark {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit def timeGenerator: TestTimeGenerator = TestTimeGenerator.random
+  implicit val fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
 
   import swaydb.core.map.serializer.LevelZeroMapEntryReader._

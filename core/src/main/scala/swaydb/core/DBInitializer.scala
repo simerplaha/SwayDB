@@ -29,7 +29,7 @@ import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.io.file.DBFile
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, LevelRef, TrashLevel}
-import swaydb.core.queue.{KeyValueLimiter, SegmentOpenLimiter}
+import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.util.FileUtil._
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -47,11 +47,8 @@ private[core] object DBInitializer extends LazyLogging {
                                                 timeOrder: TimeOrder[Slice[Byte]],
                                                 functionStore: FunctionStore): Try[CoreAPI] = {
 
-    implicit val fileOpenLimiter: DBFile => Unit =
-      if (config.persistent)
-        SegmentOpenLimiter(maxSegmentsOpen, segmentCloserDelay)
-      else
-        _ => throw new IllegalAccessError("fileOpenLimiter is not required for in-memory databases.")
+    implicit val fileOpenLimiter: FileLimiter =
+      FileLimiter(maxSegmentsOpen, segmentCloserDelay)
 
     implicit val keyValueLimiter: KeyValueLimiter =
       KeyValueLimiter(cacheSize, keyValueQueueDelay)
@@ -70,7 +67,8 @@ private[core] object DBInitializer extends LazyLogging {
             appendixStorage = AppendixStorage.Memory,
             bloomFilterFalsePositiveRate = config.bloomFilterFalsePositiveRate,
             throttle = config.throttle,
-            compressDuplicateValues = config.compressDuplicateValues
+            compressDuplicateValues = config.compressDuplicateValues,
+            deleteSegmentsEventually = config.deleteSegmentsEventually
           )
 
         case config: PersistentLevelConfig =>
@@ -89,7 +87,8 @@ private[core] object DBInitializer extends LazyLogging {
             appendixStorage = AppendixStorage.Persistent(config.mmapAppendix, config.appendixFlushCheckpointSize),
             bloomFilterFalsePositiveRate = config.bloomFilterFalsePositiveRate,
             throttle = config.throttle,
-            compressDuplicateValues = config.compressDuplicateValues
+            compressDuplicateValues = config.compressDuplicateValues,
+            deleteSegmentsEventually = config.deleteSegmentsEventually
           )
 
         case TrashLevelConfig =>

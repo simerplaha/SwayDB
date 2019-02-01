@@ -21,24 +21,31 @@ package swaydb.core.retry
 
 import java.io.FileNotFoundException
 import java.nio.channels.{AsynchronousCloseException, ClosedChannelException}
-import java.nio.file.NoSuchFileException
-
+import java.nio.file.{NoSuchFileException, Path}
 import com.typesafe.scalalogging.LazyLogging
+import java.util.concurrent.ConcurrentHashMap
 import swaydb.core.retry.RetryException.RetryFailedException
 import swaydb.core.segment.SegmentException
-import swaydb.core.segment.SegmentException.FailedToOpenFile
+import swaydb.core.segment.SegmentException.BusyOpeningFile
 import swaydb.core.util.TryUtil
-
 import scala.annotation.tailrec
 import scala.util.{Failure, Success, Try}
 
 object Retry extends LazyLogging {
 
+  val failedFileOpen = new ConcurrentHashMap[Path, Boolean]()
+
+  def registerFailedToOpen(path: Path): Unit =
+    failedFileOpen.put(path, true)
+
+  def clearRegisterFailedToOpen(path: Path) =
+    failedFileOpen.remove(path)
+
   val levelReadRetryUntil =
     (failure: Throwable, resourceId: String) =>
       failure match {
         case _ @ RetryFailedException(exceptionResourceId, _, _, _) if exceptionResourceId != resourceId => TryUtil.successUnit
-        case _: FailedToOpenFile => TryUtil.successUnit
+        case _: BusyOpeningFile => TryUtil.successUnit
         case _: NoSuchFileException => TryUtil.successUnit
         case _: FileNotFoundException => TryUtil.successUnit
         case _: AsynchronousCloseException => TryUtil.successUnit

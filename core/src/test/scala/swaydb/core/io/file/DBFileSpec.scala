@@ -22,19 +22,22 @@ package swaydb.core.io.file
 import java.nio.ReadOnlyBufferException
 import java.nio.channels.{NonReadableChannelException, NonWritableChannelException}
 import java.nio.file.{FileAlreadyExistsException, NoSuchFileException}
-
 import org.scalamock.scalatest.MockFactory
-import swaydb.core.TestBase
+import swaydb.core.RunThis._
+import swaydb.core.TestData._
+import swaydb.core.TryAssert._
+import swaydb.core.io.IO
+import swaydb.core.queue.{FileLimiter, LimiterType}
 import swaydb.core.segment.SegmentException
 import swaydb.core.segment.SegmentException.CannotCopyInMemoryFiles
 import swaydb.core.util.Benchmark
-import swaydb.data.slice.Slice
 import swaydb.core.util.PipeOps._
-import swaydb.core.TestData._
-import swaydb.core.RunThis._
-import swaydb.core.TryAssert._
+import swaydb.core.{TestBase, TestLimitQueues}
+import swaydb.data.slice.Slice
 
 class DBFileSpec extends TestBase with Benchmark with MockFactory {
+
+  implicit val fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
 
   "DBFile.write" should {
     "write bytes to a File" in {
@@ -42,12 +45,12 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
       val bytes = Slice(randomBytes())
 
       DBFile.write(bytes, testFile).assertGet
-      DBFile.mmapRead(testFile).assertGet ==> {
+      DBFile.mmapRead(testFile, autoClose = false).assertGet ==> {
         file =>
           file.readAll.assertGet shouldBe bytes
           file.close.assertGet
       }
-      DBFile.channelRead(testFile).assertGet ==> {
+      DBFile.channelRead(testFile, autoClose = false).assertGet ==> {
         file =>
           file.readAll.assertGet shouldBe bytes
           file.close.assertGet
@@ -59,7 +62,7 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
       val bytes = Slice.emptyBytes
 
       DBFile.write(bytes, testFile).assertGet
-      DBFile.mmapRead(testFile).assertGet ==> {
+      DBFile.mmapRead(testFile, autoClose = false).assertGet ==> {
         file =>
           file.readAll.assertGet shouldBe empty
           file.close.assertGet
@@ -85,7 +88,7 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
       DBFile.write(bytes, testFile).assertGet
       DBFile.write(bytes, testFile).failed.assertGet shouldBe a[FileAlreadyExistsException] //creating the same file again should fail
       //file remains unchanged
-      DBFile.channelRead(testFile).assertGet ==> {
+      DBFile.channelRead(testFile, autoClose = false).assertGet ==> {
         file =>
           file.readAll.assertGet shouldBe bytes
           file.close.assertGet
@@ -99,16 +102,16 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
       val bytes = randomBytesSlice()
 
       //opening a file should trigger the onOpen function
-      val onOpen = mockFunction[DBFile, Unit]
-      onOpen expects * onCall {
-        (dbFile: DBFile) =>
+      implicit val fileOpenLimiter = mock[FileLimiter]
+
+      fileOpenLimiter.close _ expects * onCall {
+        dbFile: LimiterType =>
           dbFile.path shouldBe testFile
           dbFile.isOpen shouldBe true
-          dbFile.file shouldBe defined
           ()
       } repeat 3.times
 
-      val file = DBFile.channelWrite(testFile, onOpen).assertGet
+      val file = DBFile.channelWrite(testFile, autoClose = true).assertGet
       //above onOpen is also invoked
       file.isFileDefined shouldBe true //file is set
       file.isOpen shouldBe true
@@ -132,7 +135,7 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
       file.close.assertGet
 
       //open new file channel for read.
-      DBFile.channelRead(testFile, onOpen).assertGet ==> {
+      DBFile.channelRead(testFile, autoClose = true).assertGet ==> {
         file =>
           file.readAll.assertGet shouldBe bytes
           file.close.assertGet
@@ -148,7 +151,7 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
 
       bytes.written shouldBe 2
 
-      val channelFile = DBFile.channelWrite(testFile).assertGet
+      val channelFile = DBFile.channelWrite(testFile, autoClose = true).assertGet
       channelFile.append(bytes).failed.assertGet shouldBe SegmentException.FailedToWriteAllBytes(10, 2, bytes.size)
       channelFile.close.assertGet
     }
@@ -156,15 +159,15 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
     "fail initialisation if the file already exists" in {
       val testFile = randomFilePath
 
-      DBFile.channelWrite(testFile).assertGet ==> {
+      DBFile.channelWrite(testFile, autoClose = true).assertGet ==> {
         file =>
           file.existsOnDisk shouldBe true
           file.close.assertGet
       }
       //creating the same file again should fail
-      DBFile.channelWrite(testFile).failed.assertGet.toString shouldBe new FileAlreadyExistsException(testFile.toString).toString
+      DBFile.channelWrite(testFile, autoClose = true).failed.assertGet.toString shouldBe new FileAlreadyExistsException(testFile.toString).toString
       //file remains unchanged
-      DBFile.channelRead(testFile).assertGet ==> {
+      DBFile.channelRead(testFile, autoClose = true).assertGet ==> {
         file =>
           file.readAll.assertGet shouldBe empty
           file.close.assertGet
@@ -178,18 +181,17 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
       val bytes = randomBytesSlice()
 
       //opening a file should trigger the onOpen function
-      val onOpen = mockFunction[DBFile, Unit]
-      onOpen expects * onCall {
-        dbFile: DBFile =>
+      implicit val fileOpenLimiter = mock[FileLimiter]
+      fileOpenLimiter.close _ expects * onCall {
+        dbFile: LimiterType =>
           dbFile.path shouldBe testFile
           dbFile.isOpen shouldBe true
-          dbFile.file shouldBe defined
           ()
       } repeat 3.times
 
       IO.write(bytes, testFile).assertGet
 
-      val readFile = DBFile.channelRead(testFile, onOpen).assertGet
+      val readFile = DBFile.channelRead(testFile, autoClose = true).assertGet
       //reading a file should load the file lazily
       readFile.isFileDefined shouldBe false
       readFile.isOpen shouldBe false
@@ -202,7 +204,7 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
       //writing fails since the file is readonly
       readFile.append(bytes).failed.assertGet shouldBe a[NonWritableChannelException]
       //data remain unchanged
-      DBFile.channelRead(testFile, onOpen).assertGet.readAll.assertGet shouldBe bytes
+      DBFile.channelRead(testFile, autoClose = true).assertGet.readAll.assertGet shouldBe bytes
 
       readFile.close.assertGet
       readFile.isOpen shouldBe false
@@ -218,7 +220,7 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
     }
 
     "fail initialisation if the file does not exists" in {
-      DBFile.channelRead(randomFilePath).failed.assertGet shouldBe a[NoSuchFileException]
+      DBFile.channelRead(randomFilePath, autoClose = true).failed.assertGet shouldBe a[NoSuchFileException]
     }
   }
 
@@ -228,16 +230,15 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
       val bytes = Slice("bytes one".getBytes())
 
       //opening a file should trigger the onOpen function
-      val onOpen = mockFunction[DBFile, Unit]
-      onOpen expects * onCall {
-        (dbFile: DBFile) =>
+      implicit val fileOpenLimiter = mock[FileLimiter]
+      fileOpenLimiter.close _ expects * onCall {
+        (dbFile: LimiterType) =>
           dbFile.path shouldBe testFile
           dbFile.isOpen shouldBe true
-          dbFile.file shouldBe defined
           ()
       } repeat 3.times
 
-      val file = DBFile.mmapWriteAndRead(bytes, testFile, onOpen).assertGet
+      val file = DBFile.mmapWriteAndRead(bytes, testFile, autoClose = true).assertGet
       file.readAll.assertGet shouldBe bytes
       file.isFull.assertGet shouldBe true
 
@@ -268,7 +269,7 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
       file.close.assertGet
 
       //open read only buffer
-      DBFile.mmapRead(testFile, onOpen).assertGet ==> {
+      DBFile.mmapRead(testFile, autoClose = true).assertGet ==> {
         file =>
           file.readAll.assertGet shouldBe expectedBytes
           file.close.assertGet
@@ -283,17 +284,17 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
 
       bytes.written shouldBe 2
 
-      DBFile.mmapWriteAndRead(bytes, testFile).failed.assertGet shouldBe SegmentException.FailedToWriteAllBytes(0, 2, bytes.size)
+      DBFile.mmapWriteAndRead(bytes, testFile, autoClose = true).failed.assertGet shouldBe SegmentException.FailedToWriteAllBytes(0, 2, bytes.size)
     }
 
     "fail to write if the file already exists" in {
       val testFile = randomFilePath
       val bytes = randomBytesSlice()
 
-      DBFile.mmapWriteAndRead(bytes, testFile).assertGet.close.assertGet
-      DBFile.mmapWriteAndRead(bytes, testFile).failed.assertGet shouldBe a[FileAlreadyExistsException] //creating the same file again should fail
+      DBFile.mmapWriteAndRead(bytes, testFile, autoClose = true).assertGet.close.assertGet
+      DBFile.mmapWriteAndRead(bytes, testFile, autoClose = true).failed.assertGet shouldBe a[FileAlreadyExistsException] //creating the same file again should fail
       //file remains unchanged
-      DBFile.mmapRead(testFile).assertGet ==> {
+      DBFile.mmapRead(testFile, autoClose = true).assertGet ==> {
         file =>
           file.readAll.assertGet shouldBe bytes
           file.close.assertGet
@@ -308,7 +309,7 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
 
       DBFile.write(bytes, testFile).assertGet
 
-      val readFile = DBFile.mmapRead(testFile).assertGet
+      val readFile = DBFile.mmapRead(testFile, autoClose = true).assertGet
 
       def doRead = {
         readFile.isFileDefined shouldBe false //reading a file should load the file lazily
@@ -330,7 +331,7 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
     }
 
     "fail to read if the file does not exists" in {
-      DBFile.mmapRead(randomFilePath).failed.assertGet shouldBe a[NoSuchFileException]
+      DBFile.mmapRead(randomFilePath, autoClose = true).failed.assertGet shouldBe a[NoSuchFileException]
     }
   }
 
@@ -342,7 +343,7 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
       val bytes3 = Slice("bytes three".getBytes())
       val bytes4 = Slice("bytes four".getBytes())
 
-      val file = DBFile.mmapInit(testFile, bytes1.size + bytes2.size + bytes3.size).assertGet
+      val file = DBFile.mmapInit(testFile, bytes1.size + bytes2.size + bytes3.size, autoClose = true).assertGet
       file.append(bytes1).assertGet
       file.isFull.assertGet shouldBe false
       file.append(bytes2).assertGet
@@ -361,7 +362,7 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
       val testFile = randomFilePath
       DBFile.write(Slice(randomBytes()), testFile).assertGet
 
-      DBFile.mmapInit(testFile, 10).failed.assertGet shouldBe a[FileAlreadyExistsException]
+      DBFile.mmapInit(testFile, 10, autoClose = true).failed.assertGet shouldBe a[FileAlreadyExistsException]
     }
   }
 
@@ -371,20 +372,19 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
       val bytes = randomBytesSlice()
 
       //opening a file should trigger the onOpen function
-      val onOpen = mockFunction[DBFile, Unit]
-      onOpen expects * onCall {
-        (dbFile: DBFile) =>
+      implicit val fileOpenLimiter = mock[FileLimiter]
+      fileOpenLimiter.close _ expects * onCall {
+        (dbFile: LimiterType) =>
           dbFile.path shouldBe testFile
           dbFile.isOpen shouldBe true
-          dbFile.file shouldBe defined
           ()
       } repeat 4.times
 
-      val file = DBFile.channelWrite(testFile, onOpen).assertGet
+      val file = DBFile.channelWrite(testFile, autoClose = true).assertGet
       file.append(bytes).assertGet
 
       def close = {
-        file.close().assertGet
+        file.close.assertGet
         file.isOpen shouldBe false
         file.isFileDefined shouldBe false
         file.existsOnDisk shouldBe true
@@ -414,11 +414,11 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
       val testFile = randomFilePath
       val bytes = randomBytesSlice()
 
-      val file = DBFile.mmapInit(testFile, bytes.size).assertGet
+      val file = DBFile.mmapInit(testFile, bytes.size, autoClose = true).assertGet
       file.append(bytes).assertGet
 
       def close = {
-        file.close().assertGet
+        file.close.assertGet
         file.isOpen shouldBe false
         file.isFileDefined shouldBe false
         file.existsOnDisk shouldBe true
@@ -450,7 +450,7 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
       val testFile = randomFilePath
       val bytes = randomBytesSlice()
 
-      val file = DBFile.channelWrite(testFile).assertGet
+      val file = DBFile.channelWrite(testFile, autoClose = true).assertGet
       file.append(bytes).assertGet
       file.close.assertGet
 
@@ -464,7 +464,7 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
       val testFile = randomFilePath
       val bytes = randomBytesSlice()
 
-      val file = DBFile.mmapInit(testFile, bytes.size).assertGet
+      val file = DBFile.mmapInit(testFile, bytes.size, autoClose = true).assertGet
       file.append(bytes).assertGet
       file.close.assertGet
 
@@ -480,7 +480,7 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
       val testFile = randomFilePath
       val bytes = List(randomBytesSlice(), randomBytesSlice(), randomBytesSlice())
 
-      val file = DBFile.channelWrite(testFile).assertGet
+      val file = DBFile.channelWrite(testFile, autoClose = true).assertGet
       file.append(bytes(0)).assertGet
       file.append(bytes(1)).assertGet
       file.append(bytes(2)).assertGet
@@ -490,12 +490,12 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
 
       val expectedAllBytes = bytes.foldLeft(List.empty[Byte])(_ ++ _).toSlice
 
-      DBFile.channelRead(testFile).assertGet ==> {
+      DBFile.channelRead(testFile, autoClose = true).assertGet ==> {
         file =>
           file.readAll.assertGet shouldBe expectedAllBytes
           file.close.assertGet
       }
-      DBFile.mmapRead(testFile).assertGet ==> {
+      DBFile.mmapRead(testFile, autoClose = true).assertGet ==> {
         file =>
           file.readAll.assertGet shouldBe expectedAllBytes
           file.close.assertGet
@@ -509,7 +509,7 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
       val bytes = List(randomBytesSlice(), randomBytesSlice(), randomBytesSlice())
 
       val allBytesSize = bytes.foldLeft(0)(_ + _.size)
-      val file = DBFile.mmapInit(testFile, allBytesSize).assertGet
+      val file = DBFile.mmapInit(testFile, allBytesSize, autoClose = true).assertGet
       file.append(bytes(0)).assertGet
       file.append(bytes(1)).assertGet
       file.append(bytes(2)).assertGet
@@ -522,12 +522,12 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
       file.close.assertGet //close
 
       //reopen
-      DBFile.mmapRead(testFile).assertGet ==> {
+      DBFile.mmapRead(testFile, autoClose = true).assertGet ==> {
         file =>
           file.readAll.assertGet shouldBe expectedAllBytes
           file.close.assertGet
       }
-      DBFile.channelRead(testFile).assertGet ==> {
+      DBFile.channelRead(testFile, autoClose = true).assertGet ==> {
         file =>
           file.readAll.assertGet shouldBe expectedAllBytes
           file.close.assertGet
@@ -539,7 +539,7 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
       val bytes = List(randomBytesSlice(), randomBytesSlice(), randomBytesSlice(), randomBytesSlice(), randomBytesSlice())
       val allBytesSize = bytes.foldLeft(0)(_ + _.size)
 
-      val file = DBFile.mmapInit(testFile, bytes.head.size).assertGet
+      val file = DBFile.mmapInit(testFile, bytes.head.size, autoClose = true).assertGet
       file.append(bytes(0)).assertGet
       file.append(bytes(1)).assertGet
       file.append(bytes(2)).assertGet
@@ -554,12 +554,12 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
       file.close.assertGet //close
 
       //reopen
-      DBFile.mmapRead(testFile).assertGet ==> {
+      DBFile.mmapRead(testFile, autoClose = true).assertGet ==> {
         file =>
           file.readAll.assertGet shouldBe expectedAllBytes
           file.close.assertGet
       }
-      DBFile.channelRead(testFile).assertGet ==> {
+      DBFile.channelRead(testFile, autoClose = true).assertGet ==> {
         file =>
           file.readAll.assertGet shouldBe expectedAllBytes
           file.close.assertGet
@@ -567,9 +567,9 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
     }
 
     "not fail when appending empty bytes to ChannelFile" in {
-      val file = DBFile.channelWrite(randomFilePath).assertGet
+      val file = DBFile.channelWrite(randomFilePath, autoClose = true).assertGet
       file.append(Slice.emptyBytes).assertGet
-      DBFile.channelRead(file.path).assertGet ==> {
+      DBFile.channelRead(file.path, autoClose = true).assertGet ==> {
         file =>
           file.readAll.assertGet shouldBe empty
           file.close.assertGet
@@ -578,12 +578,12 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
     }
 
     "not fail when appending empty bytes to MMAPFile" in {
-      val file = DBFile.mmapInit(randomFilePath, 100).assertGet
+      val file = DBFile.mmapInit(randomFilePath, 100, autoClose = true).assertGet
       file.append(Slice.emptyBytes).assertGet
       file.readAll.assertGet shouldBe Slice.fill(file.fileSize.get.toInt)(0)
       file.close.assertGet
 
-      DBFile.mmapRead(file.path).assertGet ==> {
+      DBFile.mmapRead(file.path, autoClose = true).assertGet ==> {
         file2 =>
           file2.readAll.assertGet shouldBe Slice.fill(file.fileSize.get.toInt)(0)
           file2.close.assertGet
@@ -596,13 +596,13 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
       val testFile = randomFilePath
       val bytes = randomBytesSlice(100)
 
-      val file = DBFile.channelWrite(testFile).assertGet
+      val file = DBFile.channelWrite(testFile, autoClose = true).assertGet
       file.append(bytes).assertGet
       file.read(0, 1).isFailure shouldBe true //not open for read
 
       file.close.assertGet
 
-      val readFile = DBFile.channelRead(testFile).assertGet
+      val readFile = DBFile.channelRead(testFile, autoClose = true).assertGet
 
       (0 until bytes.size) foreach {
         index =>
@@ -622,7 +622,7 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
       val path = randomFilePath
       val bytes = randomBytesSlice(100)
 
-      val file = DBFile.memory(path, bytes).assertGet
+      val file = DBFile.memory(path, bytes, autoClose = true).assertGet
       //cannot write to a memory file as it's immutable
       file.append(bytes).failed.assertGet shouldBe a[UnsupportedOperationException]
       file.isFull.assertGet shouldBe true
@@ -646,7 +646,7 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
       val path = randomFilePath
       val bytes = randomBytesSlice(100)
 
-      val file = DBFile.memory(path, bytes).assertGet
+      val file = DBFile.memory(path, bytes, autoClose = true).assertGet
       file.isFull.assertGet shouldBe true
       file.isOpen shouldBe true
       file.existsOnDisk shouldBe false
@@ -675,7 +675,7 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
     "delete a ChannelFile" in {
       val bytes = randomBytesSlice(100)
 
-      val file = DBFile.channelWrite(randomFilePath).assertGet
+      val file = DBFile.channelWrite(randomFilePath, autoClose = true).assertGet
       file.append(bytes).assertGet
 
       file.delete().assertGet
@@ -685,7 +685,7 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
     }
 
     "delete a MMAPFile" in {
-      val file = DBFile.mmapWriteAndRead(randomBytesSlice(), randomFilePath).assertGet
+      val file = DBFile.mmapWriteAndRead(randomBytesSlice(), randomFilePath, autoClose = true).assertGet
       file.close.assertGet
 
       file.delete().assertGet
@@ -695,7 +695,7 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
     }
 
     "delete a MemoryFile" in {
-      val file = DBFile.memory(randomFilePath, randomBytesSlice()).assertGet
+      val file = DBFile.memory(randomFilePath, randomBytesSlice(), autoClose = true).assertGet
       file.close.assertGet
 
       file.delete().assertGet
@@ -712,13 +712,13 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
     "copy a ChannelFile" in {
       val bytes = randomBytesSlice(100)
 
-      val file = DBFile.channelWrite(randomFilePath).assertGet
+      val file = DBFile.channelWrite(randomFilePath, autoClose = true).assertGet
       file.append(bytes).assertGet
 
       val targetFile = randomFilePath
       file.copyTo(targetFile).assertGet shouldBe targetFile
 
-      DBFile.channelRead(targetFile).assertGet ==> {
+      DBFile.channelRead(targetFile, autoClose = true).assertGet ==> {
         file =>
           file.readAll.assertGet shouldBe bytes
           file.close.assertGet
@@ -730,7 +730,7 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
     "copy a MMAPFile" in {
       val bytes = randomBytesSlice(100)
 
-      val file = DBFile.mmapInit(randomFilePath, bytes.size).assertGet
+      val file = DBFile.mmapInit(randomFilePath, bytes.size, autoClose = true).assertGet
       file.append(bytes).assertGet
       file.isFull.assertGet shouldBe true
       file.close.assertGet
@@ -738,7 +738,7 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
       val targetFile = randomFilePath
       file.copyTo(targetFile).assertGet shouldBe targetFile
 
-      DBFile.channelRead(targetFile).assertGet ==> {
+      DBFile.channelRead(targetFile, autoClose = true).assertGet ==> {
         file =>
           file.readAll.assertGet shouldBe bytes
           file.close.assertGet
@@ -747,7 +747,7 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
 
     "fail when copying a MemoryFile" in {
       val bytes = randomBytesSlice(100)
-      val file = DBFile.memory(randomFilePath, bytes).assertGet
+      val file = DBFile.memory(randomFilePath, bytes, autoClose = true).assertGet
 
       file.copyTo(randomFilePath).failed.assertGet shouldBe CannotCopyInMemoryFiles(file.path)
 

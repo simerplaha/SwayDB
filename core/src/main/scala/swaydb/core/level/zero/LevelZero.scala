@@ -32,12 +32,13 @@ import swaydb.core.data.KeyValue._
 import swaydb.core.data._
 import swaydb.core.seek._
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.IO
+import swaydb.core.io.IO
 import swaydb.core.level.actor.LevelCommand.WakeUp
 import swaydb.core.level.actor.{LevelAPI, LevelZeroAPI}
 import swaydb.core.level.{LevelRef, PathsDistributor}
 import swaydb.core.map
 import swaydb.core.map.{MapEntry, Maps, SkipListMerger}
+import swaydb.core.queue.FileLimiter
 import swaydb.core.retry.Retry
 import swaydb.core.segment.Segment
 import swaydb.core.util.{MinMax, TryUtil}
@@ -66,6 +67,7 @@ private[core] object LevelZero extends LazyLogging {
             readRetryLimit: Int,
             throttleOn: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                  timeOrder: TimeOrder[Slice[Byte]],
+                                 limiter: FileLimiter,
                                  functionStore: FunctionStore,
                                  ec: ExecutionContext): Try[LevelZero] = {
     import swaydb.core.map.serializer.LevelZeroMapEntryReader.Level0Reader

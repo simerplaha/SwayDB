@@ -62,6 +62,7 @@ object Map extends LazyLogging {
                   cacheCheckDelay: FiniteDuration = 7.seconds,
                   bloomFilterFalsePositiveRate: Double = 0.01,
                   compressDuplicateValues: Boolean = false,
+                  deleteSegmentsEventually: Boolean = true,
                   groupingStrategy: Option[KeyValueGroupingStrategy] = None,
                   acceleration: Level0Meter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
                                                                                      valueSerializer: Serializer[V],
@@ -73,6 +74,7 @@ object Map extends LazyLogging {
         segmentSize = segmentSize,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
         compressDuplicateValues = compressDuplicateValues,
+        deleteSegmentsEventually = deleteSegmentsEventually,
         groupingStrategy = groupingStrategy,
         acceleration = acceleration
       ),

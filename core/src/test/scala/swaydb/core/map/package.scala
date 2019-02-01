@@ -28,6 +28,7 @@ import scala.concurrent.ExecutionContext
 import swaydb.core.function.FunctionStore
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import TryAssert._
+import swaydb.core.queue.FileLimiter
 
 package object map {
 
@@ -36,6 +37,7 @@ package object map {
     def reopen(implicit keyOrder: KeyOrder[Slice[Byte]],
                timeOrder: TimeOrder[Slice[Byte]],
                functionStore: FunctionStore,
+               fileLimiter: FileLimiter,
                ec: ExecutionContext,
                writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Memory.SegmentResponse]],
                reader: MapEntryReader[MapEntry[Slice[Byte], Memory.SegmentResponse]],

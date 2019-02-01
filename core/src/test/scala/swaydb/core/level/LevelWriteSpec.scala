@@ -25,13 +25,13 @@ import org.scalatest.PrivateMethodTester
 import swaydb.core.actor.TestActor
 import swaydb.core.data._
 import swaydb.core.group.compression.data.{GroupGroupingStrategyInternal, KeyValueGroupingStrategyInternal}
-import swaydb.core.io.file.{DBFile, IO}
+import swaydb.core.io.file.DBFile
 import swaydb.core.level.LevelException.ReceivedKeyValuesToMergeWithoutTargetSegment
 import swaydb.core.level.actor.{LevelAPI, LevelCommand}
 import swaydb.core.level.actor.LevelCommand.{PushSegments, PushSegmentsResponse}
 import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.map.{Map, MapEntry, SkipListMerger}
-import swaydb.core.queue.KeyValueLimiter
+import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment
 import swaydb.core.util.{Extension, IDGenerator}
 import swaydb.core.util.FileUtil._
@@ -55,6 +55,7 @@ import swaydb.core.TestData._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TryAssert._
+import swaydb.core.io.IO
 
 //@formatter:off
 class LevelWriteSpec0 extends LevelWriteSpec
@@ -90,7 +91,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
   //  override def deleteFiles: Boolean =
   //    false
 
-  implicit val maxSegmentsOpenCacheImplicitLimiter: DBFile => Unit = TestLimitQueues.fileOpenLimiter
+  implicit val maxSegmentsOpenCacheImplicitLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
   implicit val keyValuesLimitImplicitLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter
   implicit val groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(keyValuesCount)
   implicit val skipListMerger = LevelZeroSkipListMerger

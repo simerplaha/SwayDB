@@ -23,7 +23,7 @@ import java.nio.file.Path
 import java.util.concurrent.ConcurrentSkipListMap
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.Memory
-import swaydb.core.io.file.{DBFile, IO}
+import swaydb.core.io.file.DBFile
 import swaydb.core.map.serializer.{MapCodec, MapEntryReader, MapEntryWriter}
 import swaydb.core.util.FileUtil._
 import swaydb.core.util.TryUtil._
@@ -35,6 +35,8 @@ import scala.concurrent.ExecutionContext
 import scala.reflect.ClassTag
 import scala.util.{Failure, Success, Try}
 import swaydb.core.function.FunctionStore
+import swaydb.core.io.IO
+import swaydb.core.queue.FileLimiter
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
@@ -47,6 +49,7 @@ private[map] object PersistentMap extends LazyLogging {
                                          dropCorruptedTailEntries: Boolean)(implicit keyOrder: KeyOrder[K],
                                                                             timeOrder: TimeOrder[Slice[Byte]],
                                                                             functionStore: FunctionStore,
+                                                                            limiter: FileLimiter,
                                                                             reader: MapEntryReader[MapEntry[K, V]],
                                                                             writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                             skipListMerger: SkipListMerger[K, V],
@@ -68,6 +71,7 @@ private[map] object PersistentMap extends LazyLogging {
                                          flushOnOverflow: Boolean,
                                          fileSize: Long)(implicit keyOrder: KeyOrder[K],
                                                          timeOrder: TimeOrder[Slice[Byte]],
+                                                         limiter: FileLimiter,
                                                          functionStore: FunctionStore,
                                                          reader: MapEntryReader[MapEntry[K, V]],
                                                          writer: MapEntryWriter[MapEntry.Put[K, V]],
@@ -82,11 +86,12 @@ private[map] object PersistentMap extends LazyLogging {
     }
   }
 
-  private[map] def firstFile(folder: Path, memoryMapped: Boolean, fileSize: Long)(implicit ec: ExecutionContext): Try[DBFile] =
+  private[map] def firstFile(folder: Path, memoryMapped: Boolean, fileSize: Long)(implicit ec: ExecutionContext,
+                                                                                  limiter: FileLimiter): Try[DBFile] =
     if (memoryMapped)
-      DBFile.mmapInit(folder.resolve(0.toLogFileId), fileSize, _ => ())
+      DBFile.mmapInit(folder.resolve(0.toLogFileId), fileSize, autoClose = false)
     else
-      DBFile.channelWrite(folder.resolve(0.toLogFileId), _ => ())
+      DBFile.channelWrite(folder.resolve(0.toLogFileId), autoClose = false)
 
   private[map] def recover[K, V](folder: Path,
                                  mmap: Boolean,
@@ -96,6 +101,7 @@ private[map] object PersistentMap extends LazyLogging {
                                                                     mapReader: MapEntryReader[MapEntry[K, V]],
                                                                     skipListMerger: SkipListMerger[K, V],
                                                                     keyOrder: KeyOrder[K],
+                                                                    limiter: FileLimiter,
                                                                     timeOrder: TimeOrder[Slice[Byte]],
                                                                     functionStore: FunctionStore,
                                                                     ec: ExecutionContext): Try[(RecoveryResult[DBFile], Boolean)] = {
@@ -104,7 +110,7 @@ private[map] object PersistentMap extends LazyLogging {
     folder.files(Extension.Log) tryMap {
       path =>
         logger.info("{}: Recovering with dropCorruptedTailEntries = {}.", path, dropCorruptedTailEntries)
-        DBFile.channelRead(path, _ => ()) flatMap {
+        DBFile.channelRead(path, autoClose = false) flatMap {
           file =>
             file.readAll flatMap {
               bytes =>
@@ -162,6 +168,7 @@ private[map] object PersistentMap extends LazyLogging {
                                   fileSize: Long,
                                   skipList: ConcurrentSkipListMap[K, V])(implicit reader: MapEntryReader[MapEntry[K, V]],
                                                                          writer: MapEntryWriter[MapEntry.Put[K, V]],
+                                                                         limiter: FileLimiter,
                                                                          ec: ExecutionContext): Option[Try[DBFile]] =
     oldFiles.lastOption map {
       lastFile =>
@@ -189,15 +196,16 @@ private[map] object PersistentMap extends LazyLogging {
                                   size: Long,
                                   skipList: ConcurrentSkipListMap[K, V])(implicit writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                          mapReader: MapEntryReader[MapEntry[K, V]],
+                                                                         limiter: FileLimiter,
                                                                          ec: ExecutionContext): Try[DBFile] =
     currentFile.path.incrementFileId flatMap {
       nextPath =>
         val bytes = MapCodec.write(skipList)
         val newFile =
           if (mmap)
-            DBFile.mmapInit(path = nextPath, bufferSize = bytes.size + size, _ => ())
+            DBFile.mmapInit(path = nextPath, bufferSize = bytes.size + size, autoClose = false)
           else
-            DBFile.channelWrite(nextPath, _ => ())
+            DBFile.channelWrite(nextPath, autoClose = false)
 
         newFile flatMap {
           newFile =>
@@ -219,6 +227,7 @@ private[map] case class PersistentMap[K, V: ClassTag](path: Path,
                                                       private var currentFile: DBFile,
                                                       private val hasRangeInitial: Boolean)(val skipList: ConcurrentSkipListMap[K, V])(implicit keyOrder: KeyOrder[K],
                                                                                                                                        timeOrder: TimeOrder[Slice[Byte]],
+                                                                                                                                       limiter: FileLimiter,
                                                                                                                                        functionStore: FunctionStore,
                                                                                                                                        reader: MapEntryReader[MapEntry[K, V]],
                                                                                                                                        writer: MapEntryWriter[MapEntry.Put[K, V]],

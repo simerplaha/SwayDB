@@ -19,15 +19,14 @@
 
 package swaydb.core.io.file
 
+import com.typesafe.scalalogging.LazyLogging
 import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
 import java.nio.file.{NoSuchFileException, Path, StandardOpenOption}
-
-import com.typesafe.scalalogging.LazyLogging
+import scala.util.{Failure, Success, Try}
+import swaydb.core.io.IO
 import swaydb.core.util.TryUtil
 import swaydb.data.slice.Slice
-
-import scala.util.{Failure, Success, Try}
 
 private[file] object ChannelFile {
   def write(path: Path): Try[ChannelFile] =

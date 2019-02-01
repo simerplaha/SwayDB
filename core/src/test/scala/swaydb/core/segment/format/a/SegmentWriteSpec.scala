@@ -36,7 +36,7 @@ import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.io.file.DBFile
 import swaydb.core.io.reader.Reader
 import swaydb.core.level.PathsDistributor
-import swaydb.core.queue.SegmentOpenLimiter
+import swaydb.core.queue.FileLimiter
 import swaydb.core.retry.Retry
 import swaydb.core.segment.Segment
 import swaydb.core.segment.SegmentException.CannotCopyInMemoryFiles
@@ -91,7 +91,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
 
   //  override def deleteFiles = false
 
-  implicit val fileOpenLimiter: DBFile => Unit = TestLimitQueues.fileOpenLimiter
+  implicit val fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
 
   "Segment" should {
 
@@ -533,7 +533,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
   "Segment" should {
     "open a closed Segment on read and clear footer" in {
       runThis(10.times) {
-        implicit val fileOpenLimiter: DBFile => Unit = _ => ()
+        implicit val fileOpenLimiter: FileLimiter = FileLimiter.empty
 
         val keyValues = randomizedKeyValues(keyValuesCount)
         val segment = TestSegment(keyValues).assertGet
@@ -588,7 +588,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
     if (memory) {
       //memory Segments do not get closed via
     } else {
-      implicit val segmentOpenLimit = SegmentOpenLimiter(1, 100.millisecond)
+      implicit val segmentOpenLimit = FileLimiter(1, 100.millisecond)
       val keyValues = randomizedKeyValues(keyValuesCount, addRandomGroups = false)
       val segment1 = TestSegment(keyValues)(keyOrder, keyValueLimiter, segmentOpenLimit).assertGet
 

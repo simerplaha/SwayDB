@@ -35,6 +35,7 @@ object DefaultMemoryConfig {
             segmentSize: Int,
             bloomFilterFalsePositiveRate: Double,
             compressDuplicateValues: Boolean,
+            deleteSegmentsEventually: Boolean,
             groupingStrategy: Option[KeyValueGroupingStrategy],
             acceleration: Level0Meter => Accelerator): SwayDBMemoryConfig =
     ConfigWizard
@@ -48,6 +49,7 @@ object DefaultMemoryConfig {
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
         compressDuplicateValues = compressDuplicateValues,
         groupingStrategy = groupingStrategy,
+        deleteSegmentsEventually = deleteSegmentsEventually,
         throttle =
           _ =>
             Throttle(5.seconds, 5)

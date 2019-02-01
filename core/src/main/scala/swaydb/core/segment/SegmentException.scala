@@ -23,7 +23,7 @@ import java.nio.file.Path
 
 object SegmentException {
   case class FailedToWriteAllBytes(written: Int, expected: Int, bytesSize: Int) extends Exception(s"Failed to write all bytes written: $written, expected : $expected, bytesSize: $bytesSize")
-  case class FailedToOpenFile(file: Path) extends Exception(s"Failed to open file $file")
+  case class BusyOpeningFile(file: Path) extends Exception(s"Failed to open file $file")
   case object BusyDecompressingIndex extends Exception(s"Failed to decompress index")
   case object BusyDecompressionValues extends Exception(s"Failed to decompress values")
   case object BusyReadingHeader extends Exception(s"Busy reading header")

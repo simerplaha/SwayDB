@@ -64,7 +64,8 @@ lazy val core =
     .settings(publishSettings)
     .settings(
       libraryDependencies ++=
-        commonDependencies :+ "com.github.alexandrnikitin" %% "bloom-filter" % bloomFilterVersion
+        commonDependencies 
+          :+ "com.github.alexandrnikitin" %% "bloom-filter" % bloomFilterVersion
     ).dependsOn(data, macros, compression, configs % Test, serializers % Test)
 
 lazy val data =

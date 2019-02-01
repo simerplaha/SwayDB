@@ -19,18 +19,18 @@
 
 package swaydb.core.io.file
 
+import com.typesafe.scalalogging.LazyLogging
 import java.nio.file.{NoSuchFileException, Path}
 import java.util.concurrent.atomic.AtomicBoolean
-
-import com.typesafe.scalalogging.LazyLogging
+import scala.concurrent.ExecutionContext
+import scala.util.hashing.MurmurHash3
+import scala.util.{Failure, Success, Try}
+import swaydb.core.io._
+import swaydb.core.queue.{FileLimiter, LimiterType}
 import swaydb.core.segment.SegmentException
 import swaydb.core.segment.SegmentException.CannotCopyInMemoryFiles
 import swaydb.core.util.TryUtil
 import swaydb.data.slice.Slice
-
-import scala.concurrent.ExecutionContext
-import scala.util.hashing.MurmurHash3
-import scala.util.{Failure, Success, Try}
 
 object DBFile {
 
@@ -38,26 +38,29 @@ object DBFile {
             path: Path): Try[Path] =
     IO.write(bytes, path)
 
-  def channelWrite(path: Path, onOpen: DBFile => Unit = _ => ())(implicit ec: ExecutionContext): Try[DBFile] =
+  def channelWrite(path: Path, autoClose: Boolean)(implicit ec: ExecutionContext,
+                                                   limiter: FileLimiter): Try[DBFile] =
     ChannelFile.write(path) map {
       file =>
-        new DBFile(path = path, memoryMapped = false, onOpen = onOpen, memory = false, file = Some(file))
+        new DBFile(path = path, memoryMapped = false, memory = false, autoClose = autoClose, file = Some(file))
     }
 
-  def channelRead(path: Path, onOpen: DBFile => Unit = _ => (), checkExists: Boolean = true)(implicit ec: ExecutionContext): Try[DBFile] =
+  def channelRead(path: Path, autoClose: Boolean, checkExists: Boolean = true)(implicit ec: ExecutionContext,
+                                                                               limiter: FileLimiter): Try[DBFile] =
     if (checkExists && IO.notExists(path))
       Failure(new NoSuchFileException(path.toString))
     else
-      Try(new DBFile(path = path, memoryMapped = false, onOpen = onOpen, memory = false, file = None))
+      Try(new DBFile(path = path, memoryMapped = false, memory = false, autoClose = autoClose, file = None))
 
   def mmapWriteAndRead(bytes: Slice[Byte],
                        path: Path,
-                       onOpen: DBFile => Unit = _ => ())(implicit ec: ExecutionContext): Try[DBFile] =
+                       autoClose: Boolean)(implicit ec: ExecutionContext,
+                                           limiter: FileLimiter): Try[DBFile] =
   //do not write bytes if the Slice has empty bytes.
     if (!bytes.isFull)
       Failure(SegmentException.FailedToWriteAllBytes(0, bytes.written, bytes.size))
     else
-      mmapInit(path, bytes.written, onOpen) flatMap {
+      mmapInit(path, bytes.written, autoClose = autoClose) flatMap {
         file =>
           file.append(bytes) map {
             _ =>
@@ -65,23 +68,28 @@ object DBFile {
           }
       }
 
-  def mmapRead(path: Path, onOpen: DBFile => Unit = _ => (), checkExists: Boolean = true)(implicit ec: ExecutionContext): Try[DBFile] =
+  def mmapRead(path: Path, autoClose: Boolean, checkExists: Boolean = true)(implicit ec: ExecutionContext,
+                                                                            limiter: FileLimiter): Try[DBFile] =
     if (checkExists && IO.notExists(path))
       Failure(new NoSuchFileException(path.toString))
     else
-      Try(new DBFile(path = path, memoryMapped = true, onOpen, memory = false, file = None))
+      Try(new DBFile(path = path, memoryMapped = true, memory = false, autoClose = autoClose, file = None))
 
   def mmapInit(path: Path,
                bufferSize: Long,
-               onOpen: DBFile => Unit = _ => ())(implicit ec: ExecutionContext): Try[DBFile] =
+               autoClose: Boolean)(implicit ec: ExecutionContext,
+                                   limiter: FileLimiter): Try[DBFile] =
     MMAPFile.write(path, bufferSize) map {
       file =>
-        new DBFile(path = path, memoryMapped = true, onOpen = onOpen, memory = false, file = Some(file))
+        new DBFile(path = path, memoryMapped = true, memory = false, autoClose = autoClose, file = Some(file))
     }
 
-  def memory(path: Path, bytes: Slice[Byte])(implicit ec: ExecutionContext): Try[DBFile] =
+  def memory(path: Path,
+             bytes: Slice[Byte],
+             autoClose: Boolean)(implicit ec: ExecutionContext,
+                                 limiter: FileLimiter): Try[DBFile] =
     Try {
-      new DBFile(path = path, memoryMapped = false, onOpen = _ => Unit, memory = true, file = Some(MemoryFile(path, bytes)))
+      new DBFile(path = path, memoryMapped = false, memory = true, autoClose = autoClose, file = Some(MemoryFile(path, bytes)))
     }
 }
 /**
@@ -91,13 +99,14 @@ object DBFile {
   */
 class DBFile(val path: Path,
              memoryMapped: Boolean,
-             onOpen: DBFile => Unit,
              val memory: Boolean,
-             @volatile var file: Option[DBFileType])(implicit ec: ExecutionContext) extends LazyLogging with DBFileType {
+             autoClose: Boolean,
+             @volatile var file: Option[DBFileType])(implicit ec: ExecutionContext,
+                                                     limiter: FileLimiter) extends LimiterType with LazyLogging {
 
   private val open = new AtomicBoolean(file.exists(_.isOpen))
 
-  if (open.get) onOpen(this)
+  if (autoClose && open.get) limiter.close(this)
 
   def existsOnDisk =
     IO.exists(path)
@@ -144,80 +153,87 @@ class DBFile(val path: Path,
       }
     }
 
+  private def tryOpen(): Try[DBFileType] =
+    if (open.compareAndSet(false, true)) {
+      logger.trace(s"{}: Opening closed file.", path)
+      val openResult =
+        if (memory)
+          file.map(Success(_)) getOrElse {
+            open.set(false)
+            Failure(new NoSuchFileException(path.toString))
+          }
+        else if (memoryMapped)
+          MMAPFile.read(path)
+        else
+          ChannelFile.read(path)
+
+      openResult match {
+        case success @ Success(fileOpened) =>
+          file.foreach(_.close())
+          file = Some(fileOpened)
+          if (autoClose)
+            limiter.close(this)
+          success
+
+        case failed @ Failure(_) =>
+          open.set(false)
+          failed
+      }
+    } else {
+      file match {
+        case Some(fileOpened) =>
+          Success(fileOpened)
+
+        case None =>
+          Failure(SegmentException.BusyOpeningFile(path))
+      }
+    }
+
   private def openFile(): Try[DBFileType] =
     file match {
       case Some(openedFile) =>
         Success(openedFile)
 
       case None =>
-        if (open.compareAndSet(false, true)) {
-          logger.trace(s"{}: Opening closed file.", path)
-          val openResult =
-            if (memory)
-              file.map(Success(_)) getOrElse {
-                open.set(false)
-                Failure(new NoSuchFileException(path.toString))
-              }
-            else if (memoryMapped)
-              MMAPFile.read(path)
-            else
-              ChannelFile.read(path)
-
-          openResult match {
-            case success @ Success(fileOpened) =>
-              file.foreach(_.close())
-              file = Some(fileOpened)
-              onOpen(this)
-              success
-
-            case failed @ Failure(_) =>
-              open.set(false)
-              failed
-          }
-        } else {
-          file match {
-            case Some(fileOpened) =>
-              Success(fileOpened)
-
-            case None =>
-              Failure(SegmentException.FailedToOpenFile(path))
-          }
-        }
+        tryOpen()
     }
 
-  override def append(slice: Slice[Byte]) =
+  def append(slice: Slice[Byte]) =
     openFile() flatMap (_.append(slice))
 
-  override def read(position: Int, size: Int) =
+  def read(position: Int, size: Int) =
     openFile() flatMap (_.read(position, size))
 
-  override def get(position: Int) =
+  def get(position: Int) =
     openFile() flatMap (_.get(position))
 
-  override def readAll =
+  def readAll =
     openFile() flatMap (_.readAll)
 
-  override def fileSize =
+  def fileSize =
     openFile() flatMap (_.fileSize)
 
   //memory files are never closed, if it's memory file return true.
-  override def isOpen =
+  def isOpen =
     open.get()
 
   def isFileDefined =
     file.isDefined
 
-  override def isMemoryMapped =
+  def isMemoryMapped =
     openFile() flatMap (_.isMemoryMapped)
 
-  override def isLoaded =
+  def isLoaded =
     openFile() flatMap (_.isLoaded)
 
-  override def isFull: Try[Boolean] =
+  def isFull: Try[Boolean] =
     openFile() flatMap (_.isFull)
 
-  override def forceSave(): Try[Unit] =
+  def forceSave(): Try[Unit] =
     file.map(_.forceSave()) getOrElse TryUtil.successUnit
+
+  def persistent: Boolean =
+    !memory
 
   override def equals(that: Any): Boolean =
     that match {

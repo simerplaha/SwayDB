@@ -30,6 +30,7 @@ import scala.reflect.ClassTag
 import scala.util.Try
 import swaydb.core.function.FunctionStore
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
+import swaydb.core.queue.FileLimiter
 import swaydb.core.util.TryUtil.tryOrNone
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -44,6 +45,7 @@ private[core] object Map extends LazyLogging {
                                  dropCorruptedTailEntries: Boolean)(implicit keyOrder: KeyOrder[K],
                                                                     timeOrder: TimeOrder[Slice[Byte]],
                                                                     functionStore: FunctionStore,
+                                                                    limiter: FileLimiter,
                                                                     ec: ExecutionContext,
                                                                     writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                     reader: MapEntryReader[MapEntry[K, V]],
@@ -56,6 +58,7 @@ private[core] object Map extends LazyLogging {
                                  fileSize: Long)(implicit keyOrder: KeyOrder[K],
                                                  timeOrder: TimeOrder[Slice[Byte]],
                                                  functionStore: FunctionStore,
+                                                 limiter: FileLimiter,
                                                  ec: ExecutionContext,
                                                  reader: MapEntryReader[MapEntry[K, V]],
                                                  writer: MapEntryWriter[MapEntry.Put[K, V]],

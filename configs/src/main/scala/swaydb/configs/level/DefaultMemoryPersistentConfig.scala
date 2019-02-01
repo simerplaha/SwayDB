@@ -44,19 +44,21 @@ object DefaultMemoryPersistentConfig {
             mmapPersistentSegments: MMAP,
             mmapPersistentAppendix: Boolean,
             bloomFilterFalsePositiveRate: Double,
-                        compressDuplicateValues: Boolean,
+            compressDuplicateValues: Boolean,
+            deleteSegmentsEventually: Boolean,
             groupingStrategy: Option[KeyValueGroupingStrategy],
             acceleration: Level0Meter => Accelerator): SwayDBPersistentConfig =
     ConfigWizard
       .addMemoryLevel0(
         mapSize = mapSize,
-                acceleration = acceleration
+        acceleration = acceleration
       )
       .addMemoryLevel1(
         segmentSize = memoryLevelSegmentSize,
         pushForward = false,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-                compressDuplicateValues = compressDuplicateValues,
+        compressDuplicateValues = compressDuplicateValues,
+        deleteSegmentsEventually = deleteSegmentsEventually,
         groupingStrategy = None,
         throttle =
           levelMeter => {
@@ -75,7 +77,8 @@ object DefaultMemoryPersistentConfig {
         appendixFlushCheckpointSize = persistentLevelAppendixFlushCheckpointSize,
         pushForward = false,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-                compressDuplicateValues = compressDuplicateValues,
+        compressDuplicateValues = compressDuplicateValues,
+        deleteSegmentsEventually = deleteSegmentsEventually,
         groupingStrategy = groupingStrategy,
         throttle = _ =>
           Throttle(
