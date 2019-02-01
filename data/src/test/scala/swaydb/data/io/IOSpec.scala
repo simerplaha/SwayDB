@@ -17,11 +17,11 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.io
+package swaydb.data.io
 
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.exceptions.TestFailedException
 import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.exceptions.TestFailedException
 
 class IOSpec extends WordSpec with Matchers with MockFactory {
 
@@ -49,7 +49,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
         io.get
       }
 
-      io.getOrListen(???) shouldBe a[IO.Failure[Int]]
+      io.getOrListen(???) shouldBe a[IO.Failure[_]]
     }
 
     "getOrListen on Failure" in {
@@ -66,7 +66,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
 
       val listener = mockFunction[Int, Unit]
       listener expects 1 returning()
-      io.getOrListen(listener) shouldBe a[IO.Failure[Int]]
+      io.getOrListen(listener) shouldBe a[IO.Failure[_]]
       returnFailure = false
       io.ready()
     }
