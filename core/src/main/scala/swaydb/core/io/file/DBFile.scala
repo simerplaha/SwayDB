@@ -34,7 +34,7 @@ object DBFile {
 
   def write(bytes: Slice[Byte],
             path: Path): IO[Path] =
-    IOOps.write(bytes, path)
+    EffectIO.write(bytes, path)
 
   def channelWrite(path: Path, autoClose: Boolean)(implicit ec: ExecutionContext,
                                                    limiter: FileLimiter): IO[DBFile] =
@@ -45,7 +45,7 @@ object DBFile {
 
   def channelRead(path: Path, autoClose: Boolean, checkExists: Boolean = true)(implicit ec: ExecutionContext,
                                                                                limiter: FileLimiter): IO[DBFile] =
-    if (checkExists && IOOps.notExists(path))
+    if (checkExists && EffectIO.notExists(path))
       IO.Failure(new NoSuchFileException(path.toString))
     else
       IO(new DBFile(path = path, memoryMapped = false, memory = false, autoClose = autoClose, file = None))
@@ -68,7 +68,7 @@ object DBFile {
 
   def mmapRead(path: Path, autoClose: Boolean, checkExists: Boolean = true)(implicit ec: ExecutionContext,
                                                                             limiter: FileLimiter): IO[DBFile] =
-    if (checkExists && IOOps.notExists(path))
+    if (checkExists && EffectIO.notExists(path))
       IO.Failure(new NoSuchFileException(path.toString))
     else
       IO(new DBFile(path = path, memoryMapped = true, memory = false, autoClose = autoClose, file = None))
@@ -107,7 +107,7 @@ class DBFile(val path: Path,
   if (autoClose && open.get) limiter.close(this)
 
   def existsOnDisk =
-    IOOps.exists(path)
+    EffectIO.exists(path)
 
   def existsInMemory =
     file.isDefined
@@ -119,7 +119,7 @@ class DBFile(val path: Path,
         //try delegating the delete to the file itself.
         //If the file is already closed, then delete it from disk.
         //memory files are never closed so the first statement will always be executed for memory files.
-        (file.map(_.delete()) getOrElse IOOps.deleteIfExists(path)) map {
+        (file.map(_.delete()) getOrElse EffectIO.deleteIfExists(path)) map {
           _ =>
             file = None
         }
@@ -143,7 +143,7 @@ class DBFile(val path: Path,
     else {
       forceSave() flatMap {
         _ =>
-          IOOps.copy(path, toPath) map {
+          EffectIO.copy(path, toPath) map {
             path =>
               logger.trace("{}: Copied: to {}", path, toPath)
               path

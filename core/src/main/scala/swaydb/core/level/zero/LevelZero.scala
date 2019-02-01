@@ -32,7 +32,7 @@ import swaydb.core.data.KeyValue._
 import swaydb.core.data._
 import swaydb.core.seek._
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.IOOps
+import swaydb.core.io.file.EffectIO
 import swaydb.core.level.actor.LevelCommand.WakeUp
 import swaydb.core.level.actor.{LevelAPI, LevelZeroAPI}
 import swaydb.core.level.{LevelRef, PathsDistributor}
@@ -78,10 +78,10 @@ private[core] object LevelZero extends LazyLogging {
       storage match {
         case Level0Storage.Persistent(mmap, databaseDirectory, recovery) =>
           val path = databaseDirectory.resolve(0.toString)
-          IOOps createDirectoriesIfAbsent path
+          EffectIO createDirectoriesIfAbsent path
           logger.info("{}: Acquiring lock.", path)
           val lockFile = path.resolve("LOCK")
-          IOOps createFileIfAbsent lockFile
+          EffectIO createFileIfAbsent lockFile
           IO(FileChannel.open(lockFile, StandardOpenOption.WRITE).tryLock()) flatMap {
             lock =>
               logger.info("{}: Recovering Maps.", path)
@@ -154,7 +154,7 @@ private[core] class LevelZero(val path: Path,
   }
 
   def releaseLocks: IO[Unit] =
-    IOOps.release(lock) flatMap {
+    EffectIO.release(lock) flatMap {
       _ =>
         nextLevel.map(_.releaseLocks) getOrElse IO.successUnit
     }
@@ -617,7 +617,7 @@ private[core] class LevelZero(val path: Path,
     nextLevel.map(_.sizeOfSegments) getOrElse 0L
 
   def existsOnDisk: Boolean =
-    IOOps.exists(path)
+    EffectIO.exists(path)
 
   def close: IO[Unit] = {
     //    Delay.cancelTimer()

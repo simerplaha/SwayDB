@@ -34,7 +34,7 @@ private[file] object ChannelFile {
     }
 
   def read(path: Path): IO[ChannelFile] =
-    if (IOOps.exists(path))
+    if (EffectIO.exists(path))
       IO {
         val channel = FileChannel.open(path, StandardOpenOption.READ)
         new ChannelFile(path, channel)
@@ -53,7 +53,7 @@ private[file] class ChannelFile(val path: Path,
     }
 
   def append(slice: Slice[Byte]): IO[Unit] =
-    IOOps.write(slice, channel)
+    EffectIO.write(slice, channel)
 
   def read(position: Int, size: Int): IO[Slice[Byte]] =
     IO {
@@ -93,7 +93,7 @@ private[file] class ChannelFile(val path: Path,
   override def delete(): IO[Unit] =
     close flatMap {
       _ =>
-        IOOps.delete(path)
+        EffectIO.delete(path)
     }
 
   override def forceSave(): IO[Unit] =

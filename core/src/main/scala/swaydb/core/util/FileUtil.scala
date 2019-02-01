@@ -24,7 +24,7 @@ import com.typesafe.scalalogging.LazyLogging
 import scala.collection.JavaConverters._
 import swaydb.data.io.IO
 import PipeOps._
-import swaydb.core.io.file.IOOps
+import swaydb.core.io.file.EffectIO
 
 case class NotAnIntFile(path: Path) extends Throwable
 
@@ -52,7 +52,7 @@ private[core] object FileUtil extends LazyLogging {
       FileUtil.folders(path)
 
     def exists =
-      IOOps.exists(path)
+      EffectIO.exists(path)
 
   }
 
@@ -106,7 +106,7 @@ private[core] object FileUtil extends LazyLogging {
 
   def files(folder: Path,
             extension: Extension): List[Path] =
-    IOOps.stream(folder) {
+    EffectIO.stream(folder) {
       _.iterator()
         .asScala
         .filter(isExtension(_, extension))
@@ -115,7 +115,7 @@ private[core] object FileUtil extends LazyLogging {
     }
 
   def folders(folder: Path): List[Path] =
-    IOOps.stream(folder) {
+    EffectIO.stream(folder) {
       _.iterator()
         .asScala
         .filter(folder => IO(folderId(folder)).isSuccess)

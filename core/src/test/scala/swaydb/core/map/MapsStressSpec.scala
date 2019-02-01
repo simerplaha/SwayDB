@@ -33,7 +33,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.IOAssert._
 import scala.concurrent.duration._
-import swaydb.core.io.file.IOOps
+import swaydb.core.io.file.EffectIO
 import swaydb.core.queue.FileLimiter
 
 class MapsStressSpec extends TestBase {
@@ -74,8 +74,8 @@ class MapsStressSpec extends TestBase {
         }
       }
 
-      val dir1 = IOOps.createDirectoryIfAbsent(testDir.resolve(1.toString))
-      val dir2 = IOOps.createDirectoryIfAbsent(testDir.resolve(2.toString))
+      val dir1 = EffectIO.createDirectoryIfAbsent(testDir.resolve(1.toString))
+      val dir2 = EffectIO.createDirectoryIfAbsent(testDir.resolve(2.toString))
 
       val map1 = Maps.persistent[Slice[Byte], Memory.SegmentResponse](dir1, mmap = true, 1.byte, acceleration, RecoveryMode.ReportFailure).assertGet
       testWrite(map1)

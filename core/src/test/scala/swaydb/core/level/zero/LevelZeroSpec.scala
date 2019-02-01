@@ -35,7 +35,7 @@ import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.core.IOAssert._
-import swaydb.core.io.file.IOOps
+import swaydb.core.io.file.EffectIO
 
 //@formatter:off
 class LevelZeroSpec0 extends LevelZeroSpec
@@ -81,7 +81,7 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory with Benchmark {
         zero.existsOnDisk shouldBe true
         nextLevel.existsOnDisk shouldBe true
         //maps folder is initialised
-        IOOps.exists(zero.path.resolve("0/0.log")) shouldBe true
+        EffectIO.exists(zero.path.resolve("0/0.log")) shouldBe true
         zero.reopen.existsOnDisk shouldBe true
       } else {
         zero.existsOnDisk shouldBe false

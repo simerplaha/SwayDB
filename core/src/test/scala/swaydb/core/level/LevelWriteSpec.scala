@@ -25,7 +25,7 @@ import org.scalatest.PrivateMethodTester
 import swaydb.core.actor.TestActor
 import swaydb.core.data._
 import swaydb.core.group.compression.data.{GroupGroupingStrategyInternal, KeyValueGroupingStrategyInternal}
-import swaydb.core.io.file.{DBFile, IOOps}
+import swaydb.core.io.file.{DBFile, EffectIO}
 import swaydb.core.level.LevelException.ReceivedKeyValuesToMergeWithoutTargetSegment
 import swaydb.core.level.actor.{LevelAPI, LevelCommand}
 import swaydb.core.level.actor.LevelCommand.{PushSegments, PushSegmentsResponse}
@@ -131,12 +131,12 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
         level.put(TestSegment(randomKeyValues(keyValuesCount)).assertGet).assertGet
 
         //delete the appendix file
-        level.paths.headPath.resolve("appendix").files(Extension.Log) map IOOps.delete
+        level.paths.headPath.resolve("appendix").files(Extension.Log) map EffectIO.delete
         //expect failure when file does not exists
         level.tryReopen.failed.assertGet shouldBe a[IllegalStateException]
 
         //delete folder
-        IOOps.delete(level.paths.headPath.resolve("appendix")).assertGet
+        EffectIO.delete(level.paths.headPath.resolve("appendix")).assertGet
         //expect failure when folder does not exist
         level.tryReopen.failed.assertGet shouldBe a[IllegalStateException]
       }

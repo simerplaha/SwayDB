@@ -32,7 +32,7 @@ import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
-import swaydb.core.io.file.IOOps
+import swaydb.core.io.file.EffectIO
 import swaydb.core.level.LevelException.ReceivedKeyValuesToMergeWithoutTargetSegment
 import swaydb.core.level.actor.LevelCommand.ClearExpiredKeyValues
 import swaydb.core.level.actor.{LevelAPI, LevelActor, LevelActorAPI, LevelCommand}
@@ -60,14 +60,14 @@ private[core] object Level extends LazyLogging {
   def acquireLock(levelStorage: LevelStorage): IO[Option[FileLock]] =
     if (levelStorage.persistent)
       IO {
-        IOOps createDirectoriesIfAbsent levelStorage.dir
+        EffectIO createDirectoriesIfAbsent levelStorage.dir
         val lockFile = levelStorage.dir.resolve("LOCK")
         logger.info("{}: Acquiring lock.", lockFile)
-        IOOps createFileIfAbsent lockFile
+        EffectIO createFileIfAbsent lockFile
         val lock = FileChannel.open(lockFile, StandardOpenOption.WRITE).tryLock()
         levelStorage.dirs foreach {
           dir =>
-            IOOps createDirectoriesIfAbsent dir.path
+            EffectIO createDirectoriesIfAbsent dir.path
         }
         Some(lock)
       }
@@ -115,12 +115,12 @@ private[core] object Level extends LazyLogging {
               logger.info("{}: Initialising appendix.", levelStorage.dir)
               val appendixFolder = levelStorage.dir.resolve("appendix")
               //check if appendix folder/file was deleted.
-              if ((!IOOps.exists(appendixFolder) || appendixFolder.files(Extension.Log).isEmpty) && FileUtil.segmentFilesOnDisk(levelStorage.dirs.pathsSet.toSeq).nonEmpty) {
+              if ((!EffectIO.exists(appendixFolder) || appendixFolder.files(Extension.Log).isEmpty) && FileUtil.segmentFilesOnDisk(levelStorage.dirs.pathsSet.toSeq).nonEmpty) {
                 logger.info("{}: Failed to start Level. Appendix file is missing", appendixFolder)
                 IO.Failure(new IllegalStateException(s"Failed to start Level. Appendix file is missing '$appendixFolder'."))
               } else {
 
-                IOOps createDirectoriesIfAbsent appendixFolder
+                EffectIO createDirectoriesIfAbsent appendixFolder
                 Map.persistent[Slice[Byte], Segment](
                   folder = appendixFolder,
                   mmap = mmap,
@@ -246,7 +246,7 @@ private[core] class Level(val dirs: Seq[Dir],
     rootPath.resolve("appendix")
 
   def releaseLocks: IO[Unit] =
-    IOOps.release(lock) flatMap {
+    EffectIO.release(lock) flatMap {
       _ =>
         nextLevel.map(_.releaseLocks) getOrElse IO.successUnit
     }
@@ -264,7 +264,7 @@ private[core] class Level(val dirs: Seq[Dir],
           }
         if (toDelete) {
           logger.info("SEGMENT {} not in appendix. Deleting uncommitted segment.", segmentToDelete)
-          IOOps.delete(segmentToDelete)
+          EffectIO.delete(segmentToDelete)
         }
     }
 

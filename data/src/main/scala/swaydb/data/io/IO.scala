@@ -250,11 +250,11 @@ object IO {
 
   object Async {
     def apply[T](value: => T): Async[T] =
-      new AsyncIO(_ => value)
+      new Later(_ => value)
   }
-  object AsyncIO {
-    def apply[T](value: => T): AsyncIO[T] =
-      new AsyncIO(_ => value)
+  object Later {
+    def apply[T](value: => T): Later[T] =
+      new Later(_ => value)
   }
 
   sealed trait Async[+T] {
@@ -268,7 +268,7 @@ object IO {
     def recoverWith[U >: T](f: PartialFunction[Throwable, IO[U]]): IO[U]
     def failed: IO[Throwable]
   }
-  final case class AsyncIO[T](value: Unit => T) extends Async[T] {
+  final case class Later[T](value: Unit => T) extends Async[T] {
     private val listeners: mutable.Queue[T => Any] = mutable.Queue.empty
     @volatile private var _value: Option[T] = None
 

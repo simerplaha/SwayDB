@@ -31,7 +31,7 @@ import swaydb.data.io.IO
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
-import swaydb.core.io.file.{DBFile, IOOps}
+import swaydb.core.io.file.{DBFile, EffectIO}
 import swaydb.core.io.reader.Reader
 import swaydb.core.level.PathsDistributor
 import swaydb.core.map.Map
@@ -356,7 +356,7 @@ private[core] object Segment extends LazyLogging {
             ) recoverWith {
               case exception =>
                 logger.error("Failed to copyToPersist Segment {}", segment.path, exception)
-                IOOps.deleteIfExists(nextPath).failed foreach {
+                EffectIO.deleteIfExists(nextPath).failed foreach {
                   exception =>
                     logger.error("Failed to delete copied persistent Segment {}", segment.path, exception)
                 }

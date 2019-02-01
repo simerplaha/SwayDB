@@ -66,7 +66,7 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
           file.readAll.assertGet shouldBe empty
           file.close.assertGet
       }
-      IOOps.exists(testFile) shouldBe true
+      EffectIO.exists(testFile) shouldBe true
     }
 
     "fail to write bytes if the Slice contains empty bytes" in {
@@ -188,7 +188,7 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
           ()
       } repeat 3.times
 
-      IOOps.write(bytes, testFile).assertGet
+      EffectIO.write(bytes, testFile).assertGet
 
       val readFile = DBFile.channelRead(testFile, autoClose = true).assertGet
       //reading a file should load the file lazily

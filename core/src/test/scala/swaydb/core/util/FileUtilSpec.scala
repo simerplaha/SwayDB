@@ -22,7 +22,7 @@ package swaydb.core.util
 import java.nio.file.Paths
 import swaydb.core.TestBase
 import swaydb.core.IOAssert._
-import swaydb.core.io.file.IOOps
+import swaydb.core.io.file.EffectIO
 
 class FileUtilSpec extends TestBase {
 
@@ -84,7 +84,7 @@ class FileUtilSpec extends TestBase {
         )
       actual.foreach {
         path =>
-          IOOps.createFile(path).assertGet
+          EffectIO.createFile(path).assertGet
       }
 
       val expect =
@@ -119,7 +119,7 @@ class FileUtilSpec extends TestBase {
         )
       actual.foreach {
         path =>
-          IOOps.createDirectoryIfAbsent(path)
+          EffectIO.createDirectoryIfAbsent(path)
       }
 
       val expect =
@@ -160,7 +160,7 @@ class FileUtilSpec extends TestBase {
             )
           actual.foreach {
             path =>
-              IOOps.createFileIfAbsent(path)
+              EffectIO.createFileIfAbsent(path)
           }
       }
 

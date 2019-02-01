@@ -33,7 +33,7 @@ import swaydb.core.TestData._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.IOAssert._
-import swaydb.core.io.file.IOOps
+import swaydb.core.io.file.EffectIO
 import swaydb.core.queue.FileLimiter
 
 class MapsPerformanceSpec extends TestBase with Benchmark {
@@ -67,7 +67,7 @@ class MapsPerformanceSpec extends TestBase with Benchmark {
           //            maps.get(keyValue.key).assertGet shouldBe ((ValueType.Add, keyValue.getOrFetchValue.assertGetOpt))
         }
 
-      val dir1 = IOOps.createDirectoryIfAbsent(testDir.resolve(1.toString))
+      val dir1 = EffectIO.createDirectoryIfAbsent(testDir.resolve(1.toString))
 
       val map1 = Maps.persistent[Slice[Byte], Memory.SegmentResponse](dir1, mmap = true, 4.mb, Accelerator.noBrakes(), RecoveryMode.ReportFailure).assertGet
       benchmark(s"MMAP = true - writing ${keyValues.size} keys") {
@@ -77,7 +77,7 @@ class MapsPerformanceSpec extends TestBase with Benchmark {
         testRead(map1)
       }
 
-      val dir2 = IOOps.createDirectoryIfAbsent(testDir.resolve(2.toString))
+      val dir2 = EffectIO.createDirectoryIfAbsent(testDir.resolve(2.toString))
       val map2 = Maps.persistent[Slice[Byte], Memory.SegmentResponse](dir2, mmap = false, 4.mb, Accelerator.noBrakes(), RecoveryMode.ReportFailure).assertGet
       benchmark(s"MMAP = false - writing ${keyValues.size} keys") {
         testWrite(map2)
