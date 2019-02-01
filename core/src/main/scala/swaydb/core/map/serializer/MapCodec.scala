@@ -70,7 +70,7 @@ private[core] object MapCodec extends LazyLogging {
               crc =>
                 // An unfilled MemoryMapped file can have trailing empty bytes which indicates EOF.
                 if (crc == 0)
-                  return IO.Sync(recovery)
+                  return IO.Success(recovery)
                 else {
                   try {
                     val length = reader.readInt().get
@@ -102,7 +102,7 @@ private[core] object MapCodec extends LazyLogging {
               case failure =>
                 if (dropCorruptedTailEntries) {
                   logger.error("Skipping WAL on failure at position {}", reader.getPosition)
-                  return IO.Sync(RecoveryResult(recovery.item, IO.Failure(failure)))
+                  return IO.Success(RecoveryResult(recovery.item, IO.Failure(failure)))
                 } else {
                   IO.Failure(failure)
                 }
@@ -110,7 +110,7 @@ private[core] object MapCodec extends LazyLogging {
 
           case false =>
             //MMAP files can be closed with empty bytes with < 8 bytes.
-            return IO.Sync(recovery)
+            return IO.Success(recovery)
         }
     }
 }

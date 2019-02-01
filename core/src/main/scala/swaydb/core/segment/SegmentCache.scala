@@ -128,14 +128,14 @@ private[core] class SegmentCache(id: String,
         val floorValue = Option(cache.floorEntry(key)).map(_.getValue)
         floorValue match {
           case Some(floor: Persistent.SegmentResponse) if floor.key equiv key =>
-            IO.Sync(Some(floor))
+            IO.Success(Some(floor))
 
           //check if the key belongs to this group.
           case Some(group: Persistent.Group) if group contains key =>
             group.segmentCache.get(key)
 
           case Some(floorRange: Persistent.Range) if floorRange contains key =>
-            IO.Sync(Some(floorRange))
+            IO.Success(Some(floorRange))
 
           case _ =>
             prepareGet {
@@ -146,7 +146,7 @@ private[core] class SegmentCache(id: String,
                   find(KeyMatcher.Get(key), startFrom = floorValue, reader, footer) flatMap {
                     case Some(response: Persistent.SegmentResponse) =>
                       addToCache(response)
-                      IO.Sync(Some(response))
+                      IO.Success(Some(response))
 
                     case Some(group: Persistent.Group) =>
                       addToCache(group) flatMap {
@@ -192,7 +192,7 @@ private[core] class SegmentCache(id: String,
           val lowerFromCache = lowerKeyValue.flatMap(satisfyLowerFromCache(key, _))
           lowerFromCache map {
             case response: Persistent.SegmentResponse =>
-              IO.Sync(Some(response))
+              IO.Success(Some(response))
 
             case group: Persistent.Group =>
               group.segmentCache.lower(key)
@@ -202,7 +202,7 @@ private[core] class SegmentCache(id: String,
                 find(KeyMatcher.Lower(key), startFrom = lowerKeyValue, reader, footer) flatMap {
                   case Some(response: Persistent.SegmentResponse) =>
                     addToCache(response)
-                    IO.Sync(Some(response))
+                    IO.Success(Some(response))
 
                   case Some(group: Persistent.Group) =>
                     addToCache(group) flatMap {
@@ -250,7 +250,7 @@ private[core] class SegmentCache(id: String,
 
         higherFromCache map {
           case response: Persistent.SegmentResponse =>
-            IO.Sync(Some(response))
+            IO.Success(Some(response))
 
           case group: Persistent.Group =>
             group.segmentCache.higher(key)
@@ -260,7 +260,7 @@ private[core] class SegmentCache(id: String,
               find(KeyMatcher.Higher(key), startFrom = floorKeyValue, reader, footer) flatMap {
                 case Some(response: Persistent.SegmentResponse) =>
                   addToCache(response)
-                  IO.Sync(Some(response))
+                  IO.Success(Some(response))
 
                 case Some(group: Persistent.Group) =>
                   addToCache(group) flatMap {

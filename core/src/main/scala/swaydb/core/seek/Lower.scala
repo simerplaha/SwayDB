@@ -90,10 +90,10 @@ private[core] object Lower {
 
       case (Seek.Next, Seek.Next) =>
         currentWalker.lower(key) match {
-          case IO.Sync(Some(lower)) =>
+          case IO.Success(Some(lower)) =>
             Lower(key, Stash.Current(lower), nextSeek)
 
-          case IO.Sync(None) =>
+          case IO.Success(None) =>
             Lower(key, Seek.Stop, nextSeek)
 
           case IO.Failure(exception) =>
@@ -107,14 +107,14 @@ private[core] object Lower {
           //10 - 20 (lower range from current Level)
           case currentRange: ReadOnly.Range if key < currentRange.toKey =>
             currentRange.fetchRangeValue match {
-              case IO.Sync(rangeValue) =>
+              case IO.Success(rangeValue) =>
                 //if the current range is active fetch the lowest from next Level and return lowest from both Levels.
                 if (Value.hasTimeLeft(rangeValue))
                   nextWalker.lower(key) match {
-                    case IO.Sync(Some(next)) =>
+                    case IO.Success(Some(next)) =>
                       Lower(key, currentStash, Stash.Next(next))
 
-                    case IO.Sync(None) =>
+                    case IO.Success(None) =>
                       Lower(key, currentStash, Seek.Stop)
 
                     case IO.Failure(exception) =>
@@ -124,19 +124,19 @@ private[core] object Lower {
                 //if the rangeValue is expired then check if fromValue is valid put else fetch from lower and merge.
                 else
                   currentRange.fetchFromValue match {
-                    case IO.Sync(maybeFromValue) =>
+                    case IO.Success(maybeFromValue) =>
                       //check if from value is a put before reading the next Level.
                       lowerFromValue(key, currentRange.fromKey, maybeFromValue) match {
                         case some @ Some(_) => //yes it is!
-                          IO.Sync(some)
+                          IO.Success(some)
 
                         //if not, then fetch lower of key in next Level.
                         case None =>
                           nextWalker.lower(key) match {
-                            case IO.Sync(Some(next)) =>
+                            case IO.Success(Some(next)) =>
                               Lower(key, currentStash, Stash.Next(next))
 
-                            case IO.Sync(None) =>
+                            case IO.Success(None) =>
                               Lower(key, currentStash, Seek.Stop)
 
                             case IO.Failure(exception) =>
@@ -157,10 +157,10 @@ private[core] object Lower {
           case currentRange: ReadOnly.Range if key equiv currentRange.toKey =>
             //lower level could also contain a toKey but toKey is exclusive to merge is not required but lower level is read is required.
             nextWalker.lower(key) match {
-              case IO.Sync(Some(nextFromKey)) =>
+              case IO.Success(Some(nextFromKey)) =>
                 Lower(key, currentStash, Stash.Next(nextFromKey))
 
-              case IO.Sync(None) =>
+              case IO.Success(None) =>
                 Lower(key, currentStash, Seek.Stop)
 
               case IO.Failure(exception) =>
@@ -172,10 +172,10 @@ private[core] object Lower {
           //    10 - 20     (lower range)
           case _: KeyValue.ReadOnly.Range =>
             nextWalker.lower(key) match {
-              case IO.Sync(Some(next)) =>
+              case IO.Success(Some(next)) =>
                 Lower(key, currentStash, Stash.Next(next))
 
-              case IO.Sync(None) =>
+              case IO.Success(None) =>
                 Lower(key, currentStash, Seek.Stop)
 
               case IO.Failure(exception) =>
@@ -184,10 +184,10 @@ private[core] object Lower {
 
           case _: ReadOnly.Fixed =>
             nextWalker.lower(key) match {
-              case IO.Sync(Some(next)) =>
+              case IO.Success(Some(next)) =>
                 Lower(key, currentStash, Stash.Next(next))
 
-              case IO.Sync(None) =>
+              case IO.Success(None) =>
                 Lower(key, currentStash, Seek.Stop)
 
               case IO.Failure(exception) =>
@@ -197,10 +197,10 @@ private[core] object Lower {
 
       case (Seek.Stop, Seek.Next) =>
         nextWalker.lower(key) match {
-          case IO.Sync(Some(next)) =>
+          case IO.Success(Some(next)) =>
             Lower(key, currentSeek, Stash.Next(next))
 
-          case IO.Sync(None) =>
+          case IO.Success(None) =>
             Lower(key, currentSeek, Seek.Stop)
 
           case IO.Failure(exception) =>
@@ -215,16 +215,16 @@ private[core] object Lower {
 
       case (Seek.Stop, Stash.Next(next)) =>
         if (next.hasTimeLeft())
-          IO.Sync(Some(next))
+          IO.Success(Some(next))
         else
           Lower(next.key, currentSeek, Seek.Next)
 
       case (Seek.Next, Stash.Next(_)) =>
         currentWalker.lower(key) match {
-          case IO.Sync(Some(current)) =>
+          case IO.Success(Some(current)) =>
             Lower(key, Stash.Current(current), nextSeek)
 
-          case IO.Sync(None) =>
+          case IO.Success(None) =>
             Lower(key, Seek.Stop, nextSeek)
 
           case IO.Failure(exception) =>
@@ -245,10 +245,10 @@ private[core] object Lower {
             //    2
             if (next.key equiv current.key)
               FixedMerger(current, next) match {
-                case IO.Sync(merged) =>
+                case IO.Success(merged) =>
                   merged match {
                     case put: ReadOnly.Put if put.hasTimeLeft() =>
-                      IO.Sync(Some(put))
+                      IO.Success(Some(put))
 
                     case _ =>
                       //if it doesn't result in an unexpired put move forward.
@@ -262,7 +262,7 @@ private[core] object Lower {
             else if (current.key > next.key)
               current match {
                 case put: ReadOnly.Put if put.hasTimeLeft() =>
-                  IO.Sync(Some(put))
+                  IO.Success(Some(put))
 
                 //if it doesn't result in an unexpired put move forward.
                 case _ =>
@@ -271,7 +271,7 @@ private[core] object Lower {
             //0
             //    2
             else //else lower from next is the lowest.
-              IO.Sync(Some(next))
+              IO.Success(Some(next))
 
           /** *********************************************
             * *********************************************
@@ -285,19 +285,19 @@ private[core] object Lower {
             //10 - 20         (current)
             //     20 - 21    (next)
             if (next.key >= current.toKey)
-              IO.Sync(Some(next))
+              IO.Success(Some(next))
 
             //  11 ->   20 (input keys)
             //10   -    20 (lower range)
             //  11 -> 19   (lower possible keys from next)
             else if (next.key > current.fromKey)
               current.fetchRangeValue match {
-                case IO.Sync(rangeValue) =>
+                case IO.Success(rangeValue) =>
                   FixedMerger(rangeValue.toMemory(next.key), next) match {
-                    case IO.Sync(mergedCurrent) =>
+                    case IO.Success(mergedCurrent) =>
                       mergedCurrent match {
                         case put: ReadOnly.Put if put.hasTimeLeft() =>
-                          IO.Sync(Some(put))
+                          IO.Success(Some(put))
 
                         case _ =>
                           //do need to check if range is expired because if it was then
@@ -320,18 +320,18 @@ private[core] object Lower {
             else if (next.key equiv current.fromKey) //if the lower in next Level falls within the range.
               current.fetchFromOrElseRangeValue match {
                 //if fromValue is set check if it qualifies as the next highest orElse return lower of fromKey
-                case IO.Sync(rangeValue) =>
+                case IO.Success(rangeValue) =>
                   lowerFromValue(key, current.fromKey, Some(rangeValue)) match {
                     case lowerPut @ Some(_) =>
-                      IO.Sync(lowerPut)
+                      IO.Success(lowerPut)
 
                     //fromValue is not put, check if merging is required else return next.
                     case None =>
                       FixedMerger(rangeValue.toMemory(next.key), next) match {
-                        case IO.Sync(mergedValue) =>
+                        case IO.Success(mergedValue) =>
                           mergedValue match { //return applied value with next key-value as the current value.
                             case put: Memory.Put if put.hasTimeLeft() =>
-                              IO.Sync(Some(put))
+                              IO.Success(Some(put))
 
                             case _ =>
                               Lower(next.key, Seek.Next, Seek.Next)
@@ -352,10 +352,10 @@ private[core] object Lower {
             else //else if the lower in next Level does not fall within the range.
               current.fetchFromValue match {
                 //if fromValue is set check if it qualifies as the next highest orElse return lower of fromKey
-                case IO.Sync(fromValue) =>
+                case IO.Success(fromValue) =>
                   lowerFromValue(key, current.fromKey, fromValue) match {
                     case somePut @ Some(_) =>
-                      IO.Sync(somePut)
+                      IO.Success(somePut)
 
                     case None =>
                       Lower(current.fromKey, Seek.Next, nextStash)
@@ -374,10 +374,10 @@ private[core] object Lower {
 
       case (Seek.Next, Seek.Stop) =>
         currentWalker.lower(key) match {
-          case IO.Sync(Some(current)) =>
+          case IO.Success(Some(current)) =>
             Lower(key, Stash.Current(current), nextSeek)
 
-          case IO.Sync(None) =>
+          case IO.Success(None) =>
             Lower(key, Seek.Stop, nextSeek)
 
           case IO.Failure(exception) =>
@@ -388,7 +388,7 @@ private[core] object Lower {
         current match {
           case current: KeyValue.ReadOnly.Put =>
             if (current.hasTimeLeft())
-              IO.Sync(Some(current))
+              IO.Success(Some(current))
             else
               Lower(current.key, Seek.Next, nextSeek)
 
@@ -406,10 +406,10 @@ private[core] object Lower {
 
           case current: KeyValue.ReadOnly.Range =>
             current.fetchFromValue match {
-              case IO.Sync(fromValue) =>
+              case IO.Success(fromValue) =>
                 lowerFromValue(key, current.fromKey, fromValue) match {
                   case somePut @ Some(_) =>
-                    IO.Sync(somePut)
+                    IO.Success(somePut)
 
                   case None =>
                     Lower(current.fromKey, Seek.Next, nextSeek)

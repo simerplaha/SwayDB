@@ -108,7 +108,7 @@ private[swaydb] object CompressorInternal extends LazyLogging {
 
     override def compress(slice: Slice[Byte]): IO[Option[Slice[Byte]]] = {
       logger.debug(s"Grouped {}.bytes with {}", slice.size, this.getClass.getSimpleName.dropRight(1))
-      IO.Sync(Some(slice))
+      IO.Success(Some(slice))
     }
 
     override val minCompressionPercentage: Double = Double.MinValue

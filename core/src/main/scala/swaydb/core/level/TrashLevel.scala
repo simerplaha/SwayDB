@@ -64,7 +64,7 @@ private[core] object TrashLevel extends LevelRef {
     false
 
   override val bloomFilterKeyValueCount: IO[Int] =
-    IO.Sync(0)
+    IO.Success(0)
 
   override val segmentsCount: Int =
     0
@@ -139,7 +139,7 @@ private[core] object TrashLevel extends LevelRef {
     None
 
   override def mightContain(key: Slice[Byte]): IO[Boolean] =
-    IO.Sync(false)
+    IO.Success(false)
 
   override val isTrash: Boolean = true
 

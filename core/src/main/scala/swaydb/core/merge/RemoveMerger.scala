@@ -75,7 +75,7 @@ object RemoveMerger {
     if (newKeyValue.time > oldKeyValue.time)
       newKeyValue.deadline match {
         case None =>
-          IO.Sync(newKeyValue)
+          IO.Success(newKeyValue)
 
         case Some(_) =>
           oldKeyValue.toFromValue() map {
@@ -84,7 +84,7 @@ object RemoveMerger {
           }
       }
     else
-      IO.Sync(oldKeyValue)
+      IO.Success(oldKeyValue)
 
   def apply(newKeyValue: ReadOnly.Remove,
             oldKeyValue: Value.Apply)(implicit timeOrder: TimeOrder[Slice[Byte]]): IO[ReadOnly.Fixed] =
@@ -117,10 +117,10 @@ object RemoveMerger {
           }
 
         case None =>
-          IO.Sync(newer)
+          IO.Success(newer)
       }
     else
-      IO.Sync(older)
+      IO.Success(older)
 
   def apply(newKeyValue: ReadOnly.Remove,
             oldKeyValue: ReadOnly.Fixed)(implicit timeOrder: TimeOrder[Slice[Byte]],

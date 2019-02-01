@@ -27,7 +27,7 @@ object Time {
 
   val empty = Time(Slice.emptyBytes)
   val someEmpty = Some(empty)
-  val successEmpty = IO.Sync(empty)
+  val successEmpty = IO.Success(empty)
 
   def >(upperTime: Time, lowerTime: Time)(implicit timeOrder: TimeOrder[Slice[Byte]]): Boolean = {
     import timeOrder._

@@ -123,7 +123,7 @@ private[core] case class GroupDecompressor(private val compressedGroupReader: Re
   @tailrec
   private def header(maxTimesToIO: Int): IO[GroupHeader] =
     if (groupHeader != null)
-      IO.Sync(groupHeader)
+      IO.Success(groupHeader)
     else if (maxTimesToIO <= 0)
       IO.Failure(SegmentException.BusyReadingHeader)
     else if (busyReadingHeader.compareAndSet(false, true))

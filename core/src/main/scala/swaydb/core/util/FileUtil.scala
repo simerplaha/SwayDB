@@ -91,9 +91,9 @@ private[core] object FileUtil extends LazyLogging {
       fileId =>
         val ext = fileName.substring(extIndex + 1, fileName.length)
         if (ext == Extension.Log.toString)
-          IO.Sync(fileId, Extension.Log)
+          IO.Success(fileId, Extension.Log)
         else if (ext == Extension.Seg.toString)
-          IO.Sync(fileId, Extension.Seg)
+          IO.Success(fileId, Extension.Seg)
         else {
           logger.error("Unknown extension for file {}", path)
           IO.Failure(UnknownExtension(path))
@@ -118,7 +118,7 @@ private[core] object FileUtil extends LazyLogging {
     EffectIO.stream(folder) {
       _.iterator()
         .asScala
-        .filter(folder => IO(folderId(folder)).isSync)
+        .filter(folder => IO(folderId(folder)).isSuccess)
         .toList
         .sortBy(folderId)
     }

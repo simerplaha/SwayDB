@@ -58,7 +58,7 @@ private[swaydb] case class SliceReader(slice: Slice[Byte]) extends Reader {
     }
 
   def hasMore =
-    IO.Sync(position < slice.size)
+    IO.Success(position < slice.size)
 
   override def getPosition: Int =
     position

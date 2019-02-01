@@ -49,7 +49,7 @@ object DeadlineReader {
         previous =>
           previous.indexEntryDeadline map {
             deadline =>
-              IO.Sync(Some(deadline))
+              IO.Success(Some(deadline))
           } getOrElse IO.Failure(EntryReaderFailure.NoPreviousDeadline)
       } getOrElse {
         IO.Failure(EntryReaderFailure.NoPreviousKeyValue)

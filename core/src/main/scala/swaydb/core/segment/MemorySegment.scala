@@ -176,7 +176,7 @@ private[segment] case class MemorySegment(path: Path,
   private def doBasicGet(key: Slice[Byte]): IO[Option[Memory.SegmentResponse]] =
     Option(cache.get(key)) map {
       case response: Memory.SegmentResponse =>
-        IO.Sync(Some(response))
+        IO.Success(Some(response))
       case _: Memory.Group =>
         IO.Failure(new Exception("Get resulted in a Group when floorEntry should've fetched the Group instead."))
     } getOrElse {
@@ -201,7 +201,7 @@ private[segment] case class MemorySegment(path: Path,
           if (_hasRange || _hasGroup)
             Option(cache.floorEntry(key)).map(_.getValue) match {
               case Some(range: Memory.Range) if range contains key =>
-                IO.Sync(Some(range))
+                IO.Success(Some(range))
 
               case Some(group: Memory.Group) if group contains key =>
                 addToQueueMayBe(group) flatMap {
@@ -234,7 +234,7 @@ private[segment] case class MemorySegment(path: Path,
         entry =>
           entry.getValue match {
             case response: Memory.SegmentResponse =>
-              IO.Sync(Some(response))
+              IO.Success(Some(response))
             case group: Memory.Group =>
               addToQueueMayBe(group) flatMap {
                 _ =>
@@ -257,7 +257,7 @@ private[segment] case class MemorySegment(path: Path,
   private def doBasicHigher(key: Slice[Byte]): IO[Option[Memory.SegmentResponse]] =
     Option(cache.higherEntry(key)).map(_.getValue) map {
       case response: Memory.SegmentResponse =>
-        IO.Sync(Some(response))
+        IO.Success(Some(response))
       case group: Memory.Group =>
         group.segmentCache.higher(key) flatMap {
           case Some(persistent) =>
@@ -275,7 +275,7 @@ private[segment] case class MemorySegment(path: Path,
     else if (_hasRange || _hasGroup)
       Option(cache.floorEntry(key)).map(_.getValue) map {
         case floorRange: Memory.Range if floorRange contains key =>
-          IO.Sync(Some(floorRange))
+          IO.Success(Some(floorRange))
 
         case floorGroup: Memory.Group if floorGroup containsHigher key =>
           addToQueueMayBe(floorGroup) flatMap {
@@ -290,7 +290,7 @@ private[segment] case class MemorySegment(path: Path,
                   //Group's last key-value can be inclusive or exclusive and fromKey & toKey can be the same.
                   //So it's hard to know if the Group contain higher therefore a basicHigher is required if group returns None for higher.
                   if (higher.isDefined)
-                    IO.Sync(higher)
+                    IO.Success(higher)
                   else
                     doBasicHigher(key)
               }
@@ -324,7 +324,7 @@ private[segment] case class MemorySegment(path: Path,
     if (deleted)
       IO.Failure(new NoSuchFileException(path.toString))
     else
-      IO.Sync {
+      IO.Success {
         deleted = true
       }
   }
@@ -340,7 +340,7 @@ private[segment] case class MemorySegment(path: Path,
         case (count, keyValue) =>
           keyValue match {
             case _: SegmentResponse =>
-              IO.Sync(count + 1)
+              IO.Success(count + 1)
             case group: Group =>
               group.header() map (count + _.bloomFilterItemsCount)
           }
@@ -350,7 +350,7 @@ private[segment] case class MemorySegment(path: Path,
     if (deleted)
       IO.Failure(new NoSuchFileException(path.toString))
     else
-      IO.Sync(cache.size())
+      IO.Success(cache.size())
 
   override def isOpen: Boolean =
     !deleted

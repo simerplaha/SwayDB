@@ -73,7 +73,7 @@ object ValueLengthReader {
                       previous: Option[Persistent]): IO[Int] =
       previous map {
         previous =>
-          IO.Sync(previous.valueLength)
+          IO.Success(previous.valueLength)
       } getOrElse IO.Failure(EntryReaderFailure.NoPreviousKeyValue)
   }
 

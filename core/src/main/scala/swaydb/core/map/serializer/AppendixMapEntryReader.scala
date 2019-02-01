@@ -76,7 +76,7 @@ class AppendixMapEntryReader(removeDeletes: Boolean,
         maxKeyBytes <- reader.read(maxKeyLength).map(_.unslice())
         maxKey <-
           if (maxKeyId == 1)
-            IO.Sync(MaxKey.Fixed(maxKeyBytes))
+            IO.Success(MaxKey.Fixed(maxKeyBytes))
           else {
             Bytes.decompressJoin(maxKeyBytes) map {
               case (fromKey, toKey) =>

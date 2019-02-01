@@ -37,7 +37,7 @@ class Maps[K, V](map: swaydb.Map[Key[K], Option[V]],
   def getOrPut(key: K, value: V): IO[Map[K, V]] =
     get(key) flatMap {
       got =>
-        got.map(IO.Sync(_)) getOrElse put(key, value)
+        got.map(IO.Success(_)) getOrElse put(key, value)
     }
 
   def put(key: K, value: V): IO[Map[K, V]] = {
@@ -100,7 +100,7 @@ class Maps[K, V](map: swaydb.Map[Key[K], Option[V]],
       case Some(map) =>
         map.clear()
       case None =>
-        IO.Sync(map.db.level0Meter)
+        IO.Success(map.db.level0Meter)
     }
 
   def contains(key: K): IO[Boolean] =

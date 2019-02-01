@@ -58,9 +58,9 @@ private[map] class MemoryMap[K, V: ClassTag](val skipList: ConcurrentSkipListMap
           entry applyTo skipList
         }
         currentBytesWritten += entry.totalByteSize
-        IO.Sync(true)
+        IO.Success(true)
       } else
-        IO.Sync(false)
+        IO.Success(false)
     }
 
   override def close(): IO[Unit] =

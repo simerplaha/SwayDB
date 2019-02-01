@@ -30,7 +30,7 @@ import swaydb.data.slice.{Slice, SliceReader}
   */
 sealed trait IO[+T] {
   def isFailure: Boolean
-  def isSync: Boolean
+  def isSuccess: Boolean
   def isAsync: Boolean
   def getOrElse[U >: T](default: => U): U
   def orElse[U >: T](default: => IO[U]): IO[U]
@@ -57,20 +57,19 @@ sealed trait IO[+T] {
 }
 
 object IO {
-
-  val successUnit: IO.Sync[Unit] = IO.Sync()
-  val successNone = IO.Sync(None)
+  val successUnit: IO.Success[Unit] = IO.Success()
+  val successNone = IO.Success(None)
   val asyncNone = IO.Async(None)
-  val successFalse = IO.Sync(false)
-  val successTrue = IO.Sync(true)
-  val successZero = IO.Sync(0)
-  val emptyReader = IO.Sync(SliceReader(Slice.emptyBytes))
-  val successEmptyBytes = IO.Sync(Slice.emptyBytes)
-  val successNoneTime = IO.Sync(None)
-  val successEmptySeqBytes = IO.Sync(Seq.empty[Slice[Byte]])
+  val successFalse = IO.Success(false)
+  val successTrue = IO.Success(true)
+  val successZero = IO.Success(0)
+  val emptyReader = IO.Success(SliceReader(Slice.emptyBytes))
+  val successEmptyBytes = IO.Success(Slice.emptyBytes)
+  val successNoneTime = IO.Success(None)
+  val successEmptySeqBytes = IO.Success(Seq.empty[Slice[Byte]])
 
   def apply[T](f: => T): IO[T] =
-    try IO.Sync(f) catch {
+    try IO.Success(f) catch {
       case ex: Throwable =>
         IO.Failure(ex)
     }
@@ -105,9 +104,9 @@ object IO {
       iterable.iterator foreach {
         item =>
           f(item) match {
-            case IO.Sync(Some(value)) =>
-              return IO.Sync(Some(value, item))
-            case IO.Sync(None) =>
+            case IO.Success(Some(value)) =>
+              return IO.Success(Some(value, item))
+            case IO.Success(None) =>
 
             case IO.Failure(exception) =>
               return IO.Failure(exception)
@@ -124,7 +123,7 @@ object IO {
       val results = Slice.create[R](iterable.size)
       while ((!failFast || failure.isEmpty) && it.hasNext) {
         ioBlock(it.next()) match {
-          case IO.Sync(value) =>
+          case IO.Success(value) =>
             results add value
 
           case failed @ IO.Failure(_) =>
@@ -136,7 +135,7 @@ object IO {
           recover(results, value)
           value
         case None =>
-          IO.Sync(results)
+          IO.Success(results)
       }
     }
 
@@ -148,7 +147,7 @@ object IO {
       val results = ListBuffer.empty[R]
       while ((!failFast || failure.isEmpty) && it.hasNext) {
         ioBlock(it.next()) match {
-          case IO.Sync(value) =>
+          case IO.Success(value) =>
             value foreach (results += _)
 
           case failed @ IO.Failure(_) =>
@@ -160,7 +159,7 @@ object IO {
           recover(results, value)
           value
         case None =>
-          IO.Sync(results)
+          IO.Success(results)
       }
     }
 
@@ -172,7 +171,7 @@ object IO {
       var result: R = r
       while ((!failFast || failure.isEmpty) && it.hasNext) {
         f(result, it.next()) match {
-          case IO.Sync(value) =>
+          case IO.Success(value) =>
             if (failure.isEmpty)
               result = value
 
@@ -185,7 +184,7 @@ object IO {
           recover(result, failure)
           failure
         case None =>
-          IO.Sync(result)
+          IO.Success(result)
       }
     }
   }
@@ -200,7 +199,7 @@ object IO {
 
   final case class Failure[+T](exception: Throwable) extends IO[T] with IO.Async[T] {
     override def isFailure: Boolean = true
-    override def isSync: Boolean = false
+    override def isSuccess: Boolean = false
     override def isAsync: Boolean = false
     override def get: T = throw exception
     override def getOrElse[U >: T](default: => U): U = default
@@ -211,12 +210,12 @@ object IO {
     override def foreach[U](f: T => U): Unit = ()
     override def map[U](f: T => U): IO[U] = this.asInstanceOf[IO[U]]
     override def recover[U >: T](f: PartialFunction[Throwable, U]): IO[U] =
-      IO.Catch(if (f isDefinedAt exception) Sync(f(exception)) else this)
+      IO.Catch(if (f isDefinedAt exception) Success(f(exception)) else this)
 
     override def recoverWith[U >: T](f: PartialFunction[Throwable, IO[U]]): IO[U] =
       IO.Catch(if (f isDefinedAt exception) f(exception) else this)
 
-    override def failed: IO[Throwable] = Sync(exception)
+    override def failed: IO[Throwable] = Success(exception)
     override def toOption: Option[T] = None
     override def toEither: Either[Throwable, T] = Left(exception)
     override def filter(p: T => Boolean): IO[T] = this
@@ -224,9 +223,9 @@ object IO {
     override def toTry: scala.util.Try[T] = scala.util.Failure(exception)
   }
 
-  final case class Sync[+T](value: T) extends IO[T] with IO.Async[T] {
+  final case class Success[+T](value: T) extends IO[T] with IO.Async[T] {
     override def isFailure: Boolean = false
-    override def isSync: Boolean = true
+    override def isSuccess: Boolean = true
     override def isAsync: Boolean = false
     override def get = value
     override def getOrElse[U >: T](default: => U): U = get
@@ -247,6 +246,7 @@ object IO {
     override def toTry: scala.util.Try[T] = scala.util.Success(value)
   }
 
+
   object Async {
     def apply[T](value: => T): Async[T] =
       new Later(_ => value)
@@ -258,7 +258,7 @@ object IO {
 
   sealed trait Async[+T] {
     def isFailure: Boolean
-    def isSync: Boolean
+    def isSuccess: Boolean
     def isAsync: Boolean
     def flatMap[U](f: T => Async[U]): Async[U]
     def get: T
@@ -272,7 +272,7 @@ object IO {
     @volatile private var _value: Option[T] = None
 
     def isFailure: Boolean = false
-    def isSync: Boolean = false
+    def isSuccess: Boolean = false
     def isAsync: Boolean = true
 
     def ready(): Unit =

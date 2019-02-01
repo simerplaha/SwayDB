@@ -98,9 +98,9 @@ private[swaydb] trait Reader { self =>
       case IO.Failure(exception) =>
         IO.Failure(exception)
 
-      case IO.Sync(yes) if yes =>
+      case IO.Success(yes) if yes =>
         f(result, self) match {
-          case IO.Sync(newResult) =>
+          case IO.Success(newResult) =>
             foldLeftIO(newResult)(f)
 
           case IO.Failure(exception) =>
@@ -108,6 +108,6 @@ private[swaydb] trait Reader { self =>
         }
 
       case _ =>
-        IO.Sync(result)
+        IO.Success(result)
     }
 }

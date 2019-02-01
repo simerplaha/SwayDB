@@ -185,7 +185,7 @@ private[map] object PersistentMap extends LazyLogging {
 
               case None =>
                 logger.info(s"Recovery successful")
-                IO.Sync(nextFile)
+                IO.Success(nextFile)
             }
         }
     }
@@ -212,7 +212,7 @@ private[map] object PersistentMap extends LazyLogging {
               _ =>
                 currentFile.delete() flatMap {
                   _ =>
-                    IO.Sync(newFile)
+                    IO.Success(newFile)
                 }
             }
         }
@@ -285,11 +285,11 @@ private[map] case class PersistentMap[K, V: ClassTag](path: Path,
       }
     //flushOnOverflow is executed if the current file is empty, even if flushOnOverflow = false.
     else if (!flushOnOverflow && bytesWritten != 0)
-      IO.Sync(false)
+      IO.Success(false)
     else {
       val nextFilesSize = entry.totalByteSize.toLong max fileSize
       PersistentMap.nextFile(currentFile, mmap, nextFilesSize, skipList) match {
-        case IO.Sync(newFile) =>
+        case IO.Success(newFile) =>
           currentFile = newFile
           actualFileSize = nextFilesSize
           bytesWritten = 0

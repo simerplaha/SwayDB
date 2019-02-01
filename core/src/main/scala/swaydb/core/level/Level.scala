@@ -153,7 +153,7 @@ private[core] object Level extends LazyLogging {
               case None =>
                 logger.info("{}: Starting level.", levelStorage.dir)
 
-                IO.Sync(
+                IO.Success(
                   new Level(
                     dirs = levelStorage.dirs,
                     bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
@@ -597,13 +597,13 @@ private[core] class Level(val dirs: Seq[Dir],
           logger.debug(s"{}: Too many small Segments to collapse {}.", paths.head, segmentsToCollapse.map(_.path.toString))
           //there are too many small Segments to collapse, return the remaining small Segments and let the Actor decide when
           //to continue collapsing.
-          IO.Sync(segmentsToCollapse.size)
+          IO.Success(segmentsToCollapse.size)
         } else {
           collapse(segmentsToCollapse, appendix.values().asScala) match {
-            case success @ IO.Sync(value) if value == 0 =>
+            case success @ IO.Success(value) if value == 0 =>
               success
 
-            case IO.Sync(_) =>
+            case IO.Success(_) =>
               run(timesToRun - 1)
 
             case IO.Failure(exception) =>
@@ -620,9 +620,9 @@ private[core] class Level(val dirs: Seq[Dir],
                appendix: Iterable[Segment]): IO[Int] = {
     logger.trace(s"{}: Collapsing '{}' segments", paths.head, segments.size)
     if (segments.isEmpty) {
-      IO.Sync(0)
+      IO.Success(0)
     } else if (appendix.size == 1) { //if there is only one Segment in this Level which is a small segment. No collapse required
-      IO.Sync(0)
+      IO.Success(0)
     } else {
       //other segments in the appendix that are not the input segments (segments to collapse).
       val targetAppendixSegments = appendix.filterNot(map => segments.exists(_.path == map.path))
@@ -835,7 +835,7 @@ private[core] class Level(val dirs: Seq[Dir],
         nextLogEntry
     }) match {
       case Some(value) =>
-        IO.Sync(value)
+        IO.Success(value)
       case None =>
         IO.Failure(new Exception("Failed to build map entry"))
     }
@@ -865,13 +865,13 @@ private[core] class Level(val dirs: Seq[Dir],
             // Segments on reboot.
             if (deleteSegmentsEventually) {
               segmentsToRemove foreach (_.deleteSegmentsEventually)
-              IO.Sync(0)
+              IO.Success(0)
             }
             else
               Segment.deleteSegments(segmentsToRemove) recoverWith {
                 case exception =>
                   logger.error(s"Failed to delete Segments '{}'. Manually delete these Segments or reboot the database.", segmentsToRemove.map(_.path.toString).mkString(", "), exception)
-                  IO.Sync(0)
+                  IO.Success(0)
               }
         }
     } getOrElse IO.Failure(LevelException.NoSegmentsRemoved)
@@ -898,16 +898,16 @@ private[core] class Level(val dirs: Seq[Dir],
         segment mightContain key
 
       case None =>
-        IO.Sync(false)
+        IO.Success(false)
     }
 
   override def mightContain(key: Slice[Byte]): IO[Boolean] =
     mightContainInThisLevel(key) flatMap {
       yes =>
         if (yes)
-          IO.Sync(yes)
+          IO.Success(yes)
         else
-          nextLevel.map(_.mightContain(key)) getOrElse IO.Sync(yes)
+          nextLevel.map(_.mightContain(key)) getOrElse IO.Success(yes)
     }
 
   def lowerInThisLevel(key: Slice[Byte]) =
@@ -918,13 +918,13 @@ private[core] class Level(val dirs: Seq[Dir],
 
   override def floor(key: Slice[Byte]): IO[Option[KeyValue.ReadOnly.Put]] =
     get(key) match {
-      case IO.Sync(Some(floor)) =>
+      case IO.Success(Some(floor)) =>
         if (floor.hasTimeLeft())
-          IO.Sync(Some(floor))
+          IO.Success(Some(floor))
         else
           lower(key)
 
-      case IO.Sync(None) =>
+      case IO.Success(None) =>
         lower(key)
 
       case failed @ IO.Failure(_) =>
@@ -948,7 +948,7 @@ private[core] class Level(val dirs: Seq[Dir],
     higherFromFloorSegment(key) flatMap {
       fromFloor =>
         if (fromFloor.isDefined)
-          IO.Sync(fromFloor)
+          IO.Success(fromFloor)
         else
           higherFromHigherSegment(key)
     }
@@ -958,10 +958,10 @@ private[core] class Level(val dirs: Seq[Dir],
 
   def ceiling(key: Slice[Byte]): IO[Option[KeyValue.ReadOnly.Put]] =
     get(key) match {
-      case IO.Sync(Some(ceiling)) =>
-        IO.Sync(Some(ceiling))
+      case IO.Success(Some(ceiling)) =>
+        IO.Success(Some(ceiling))
 
-      case IO.Sync(None) =>
+      case IO.Success(None) =>
         higher(key)
 
       case failed @ IO.Failure(_) =>
@@ -1019,7 +1019,7 @@ private[core] class Level(val dirs: Seq[Dir],
         }
     } flatMap {
       thisLevelCount =>
-        nextLevel.map(_.bloomFilterKeyValueCount).getOrElse(IO.Sync(0)) map (_ + thisLevelCount)
+        nextLevel.map(_.bloomFilterKeyValueCount).getOrElse(IO.Success(0)) map (_ + thisLevelCount)
     }
 
   def getSegment(minKey: Slice[Byte]): Option[Segment] =

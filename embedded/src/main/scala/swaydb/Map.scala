@@ -221,14 +221,14 @@ case class Map[K, V](private[swaydb] val db: SwayDB,
             db.getKeyValue(fromKeyBytes)
               .flatMap {
                 case Some((key, valueOption)) =>
-                  IO.Sync(Some(key, valueOption))
+                  IO.Success(Some(key, valueOption))
                 case _ =>
                   if (from.orAfter)
                     db.after(fromKeyBytes)
                   else if (from.orBefore)
                     db.before(fromKeyBytes)
                   else
-                    IO.Sync(None)
+                    IO.Success(None)
               }
 
         case None =>
@@ -250,7 +250,7 @@ case class Map[K, V](private[swaydb] val db: SwayDB,
               db.after(nextKeyValueBytes._1)
 
           next match {
-            case IO.Sync(value) =>
+            case IO.Success(value) =>
               value match {
                 case Some(keyValue @ (key, value)) =>
                   val keyT = key.read[K]
@@ -272,7 +272,7 @@ case class Map[K, V](private[swaydb] val db: SwayDB,
         }
       else
         start match {
-          case IO.Sync(value) =>
+          case IO.Success(value) =>
             started = true
             value match {
               case Some(keyValue @ (key, value)) =>

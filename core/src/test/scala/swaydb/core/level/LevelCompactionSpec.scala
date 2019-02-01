@@ -69,7 +69,7 @@ sealed trait LevelCompactionSpec extends TestBase with MockFactory {
               segments should have size 10
               testSegments shouldHaveSameKeyValuesAs segments
               //return successful response and expect upper level to have deleted the Segments
-              replyTo ! PushSegmentsResponse(request, IO.Sync())
+              replyTo ! PushSegmentsResponse(request, IO.Success())
           }
       }
 
@@ -105,7 +105,7 @@ sealed trait LevelCompactionSpec extends TestBase with MockFactory {
               val expectedBatch = testSegments.drop(requestsCount.get() * batchSize).take(10)
               segments shouldHaveSameKeyValuesAs expectedBatch
               requestsCount.incrementAndGet()
-              replyTo ! PushSegmentsResponse(request, IO.Sync())
+              replyTo ! PushSegmentsResponse(request, IO.Success())
           }
       } repeat 5.times
 
@@ -141,7 +141,7 @@ sealed trait LevelCompactionSpec extends TestBase with MockFactory {
               testSegments.last.maxKey shouldBe segments.head.maxKey
               //collapsed Segment should contain all KeyValues of test segments
               testSegments shouldHaveSameKeyValuesAs Seq(segments.head)
-              replyTo ! PushSegmentsResponse(request, IO.Sync())
+              replyTo ! PushSegmentsResponse(request, IO.Success())
           }
       }
 
@@ -179,7 +179,7 @@ sealed trait LevelCompactionSpec extends TestBase with MockFactory {
               //first request segments at indexes 5 to 10 are expected as the 0 to 4 are set to busy is lower level
               segments should have size 5
               testSegments.drop(5) shouldHaveSameKeyValuesAs segments
-              replyTo ! PushSegmentsResponse(request, IO.Sync())
+              replyTo ! PushSegmentsResponse(request, IO.Success())
           }
       }
 
@@ -194,7 +194,7 @@ sealed trait LevelCompactionSpec extends TestBase with MockFactory {
               //segments are re-dispatched to lower level.
               segments should have size 5
               testSegments.take(5) shouldHaveSameKeyValuesAs segments
-              replyTo ! PushSegmentsResponse(request, IO.Sync())
+              replyTo ! PushSegmentsResponse(request, IO.Success())
           }
       }
 
@@ -253,7 +253,7 @@ sealed trait LevelCompactionSpec extends TestBase with MockFactory {
               //all key values are expected
               testSegments shouldHaveSameKeyValuesAs segments
               //respond back with success and expect upper Level to have delete all it's Segments.
-              replyTo ! PushSegmentsResponse(request, IO.Sync())
+              replyTo ! PushSegmentsResponse(request, IO.Success())
           }
       }
 

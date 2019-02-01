@@ -106,7 +106,7 @@ private[file] class MMAPFile(val path: Path,
   @tailrec
   final def append(slice: Slice[Byte]): IO[Unit] =
     IO(buffer.put(slice.toByteBuffer)) match {
-      case _: IO.Sync[_] =>
+      case _: IO.Success[_] =>
         IO.successUnit
 
       //Although this code extends the buffer, currently there is no implementation that requires this feature.
@@ -117,7 +117,7 @@ private[file] class MMAPFile(val path: Path,
           path, requiredByteSize, buffer.remaining(), requiredByteSize, ex)
 
         val result = extendBuffer(requiredByteSize)
-        if (result.isSync)
+        if (result.isSuccess)
           append(slice)
         else
           result
@@ -143,7 +143,7 @@ private[file] class MMAPFile(val path: Path,
     }
 
   override def fileSize =
-    IO.Sync(channel.size())
+    IO.Success(channel.size())
 
   override def readAll: IO[Slice[Byte]] =
     read(0, channel.size().toInt)
@@ -152,13 +152,13 @@ private[file] class MMAPFile(val path: Path,
     channel.isOpen
 
   override def isMemoryMapped =
-    IO.Sync(true)
+    IO.Success(true)
 
   override def isLoaded: IO[Boolean] =
-    IO.Sync(buffer.isLoaded)
+    IO.Success(buffer.isLoaded)
 
   override def isFull: IO[Boolean] =
-    IO.Sync(buffer.remaining() == 0)
+    IO.Success(buffer.remaining() == 0)
 
   override def memory: Boolean = false
 

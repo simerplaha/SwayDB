@@ -37,7 +37,7 @@ object PendingApplyMerger {
     if (newKeyValue.time > oldKeyValue.time)
       oldKeyValue match {
         case oldKeyValue: ReadOnly.Remove if oldKeyValue.deadline.isEmpty =>
-          IO.Sync(oldKeyValue.copyWithTime(newKeyValue.time))
+          IO.Success(oldKeyValue.copyWithTime(newKeyValue.time))
 
         case _: ReadOnly.Fixed =>
           newKeyValue.getOrFetchApplies flatMap {
@@ -46,7 +46,7 @@ object PendingApplyMerger {
           }
       }
     else
-      IO.Sync(oldKeyValue)
+      IO.Success(oldKeyValue)
 
   def apply(newKeyValue: ReadOnly.PendingApply,
             oldKeyValue: ReadOnly.Remove)(implicit timeOrder: TimeOrder[Slice[Byte]],
@@ -54,13 +54,13 @@ object PendingApplyMerger {
     if (newKeyValue.time > oldKeyValue.time)
       oldKeyValue.deadline match {
         case None =>
-          IO.Sync(oldKeyValue)
+          IO.Success(oldKeyValue)
 
         case Some(_) =>
           PendingApplyMerger(newKeyValue, oldKeyValue: ReadOnly.Fixed)
       }
     else
-      IO.Sync(oldKeyValue)
+      IO.Success(oldKeyValue)
 
   def apply(newKeyValue: ReadOnly.PendingApply,
             oldKeyValue: Value.Apply)(implicit timeOrder: TimeOrder[Slice[Byte]],
@@ -68,5 +68,5 @@ object PendingApplyMerger {
     if (newKeyValue.time > oldKeyValue.time)
       PendingApplyMerger(newKeyValue, oldKeyValue.toMemory(newKeyValue.key))
     else
-      IO.Sync(oldKeyValue.toMemory(newKeyValue.key))
+      IO.Success(oldKeyValue.toMemory(newKeyValue.key))
 }

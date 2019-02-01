@@ -79,13 +79,13 @@ private[file] class ChannelFile(val path: Path,
     channel.isOpen
 
   override def isMemoryMapped =
-    IO.Sync(false)
+    IO.Success(false)
 
   override def isLoaded =
-    IO.Sync(false)
+    IO.Success(false)
 
   override def isFull =
-    IO.Sync(false)
+    IO.Success(false)
 
   override def memory: Boolean =
     false

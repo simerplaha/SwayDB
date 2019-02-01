@@ -207,7 +207,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
             case request @ PushSegments(segments, replyTo) =>
               segments should have size 1
               //return successful response and expect upper level to have deleted the Segments
-              replyTo ! PushSegmentsResponse(request, IO.Sync())
+              replyTo ! PushSegmentsResponse(request, IO.Success())
           }
       }
 

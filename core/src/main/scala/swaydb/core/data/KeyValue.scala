@@ -379,10 +379,10 @@ private[swaydb] object Memory {
       deadline.forall(deadline => (deadline - minus).hasTimeLeft())
 
     override def getOrFetchValue: IO[Option[Slice[Byte]]] =
-      IO.Sync(value)
+      IO.Success(value)
 
     override def toFromValue(): IO[Value.Put] =
-      IO.Sync(Value.Put(value, deadline, time))
+      IO.Success(Value.Put(value, deadline, time))
 
     override def copyWithDeadlineAndTime(deadline: Option[Deadline],
                                          time: Time): Put =
@@ -410,10 +410,10 @@ private[swaydb] object Memory {
       deadline.forall(deadline => (deadline - minus).hasTimeLeft())
 
     override def getOrFetchValue: IO[Option[Slice[Byte]]] =
-      IO.Sync(value)
+      IO.Success(value)
 
     override def toFromValue(): IO[Value.Update] =
-      IO.Sync(Value.Update(value, deadline, time))
+      IO.Success(Value.Update(value, deadline, time))
 
     override def copyWithDeadlineAndTime(deadline: Option[Deadline],
                                          time: Time): Update =
@@ -452,10 +452,10 @@ private[swaydb] object Memory {
     override def indexEntryDeadline: Option[Deadline] = None
 
     override def getOrFetchFunction: IO[Slice[Byte]] =
-      IO.Sync(function)
+      IO.Success(function)
 
     override def toFromValue(): IO[Value.Function] =
-      IO.Sync(Value.Function(function, time))
+      IO.Success(Value.Function(function, time))
 
     override def copyWithTime(time: Time): Function =
       copy(time = time)
@@ -475,10 +475,10 @@ private[swaydb] object Memory {
     def time = Time.fromApplies(applies)
 
     override def getOrFetchApplies: IO[Slice[Value.Apply]] =
-      IO.Sync(applies)
+      IO.Success(applies)
 
     override def toFromValue(): IO[Value.PendingApply] =
-      IO.Sync(Value.PendingApply(applies))
+      IO.Success(Value.PendingApply(applies))
 
     override def toRangeValue(): IO[Value.PendingApply] =
       toFromValue()
@@ -505,7 +505,7 @@ private[swaydb] object Memory {
       copy(time = time)
 
     override def toFromValue(): IO[Value.Remove] =
-      IO.Sync(toRemoveValue())
+      IO.Success(toRemoveValue())
 
     override def toRangeValue(): IO[Value.Remove] =
       toFromValue()
@@ -529,13 +529,13 @@ private[swaydb] object Memory {
     override def indexEntryDeadline: Option[Deadline] = None
 
     override def fetchFromValue: IO[Option[Value.FromValue]] =
-      IO.Sync(fromValue)
+      IO.Success(fromValue)
 
     override def fetchRangeValue: IO[Value.RangeValue] =
-      IO.Sync(rangeValue)
+      IO.Success(rangeValue)
 
     override def fetchFromAndRangeValue: IO[(Option[Value.FromValue], Value.RangeValue)] =
-      IO.Sync(fromValue, rangeValue)
+      IO.Success(fromValue, rangeValue)
 
   }
 
@@ -951,13 +951,13 @@ private[core] object Transient {
       this.copy(falsePositiveRate = falsePositiveRate, previous = previous)
 
     override def fetchFromValue: IO[Option[Value.FromValue]] =
-      IO.Sync(fromValue)
+      IO.Success(fromValue)
 
     override def fetchRangeValue: IO[Value.RangeValue] =
-      IO.Sync(rangeValue)
+      IO.Success(rangeValue)
 
     override def fetchFromAndRangeValue: IO[(Option[Value.FromValue], Value.RangeValue)] =
-      IO.Sync(fromValue, rangeValue)
+      IO.Success(fromValue, rangeValue)
 
     val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition) =
       EntryWriter.write(
@@ -1138,7 +1138,7 @@ private[core] object Persistent {
     override val valueOffset: Int = 0
 
     override def toMemory(): IO[Memory.Remove] =
-      IO.Sync {
+      IO.Success {
         Memory.Remove(
           key = key,
           deadline = deadline,
@@ -1150,7 +1150,7 @@ private[core] object Persistent {
       copy(_time = time)
 
     override def toFromValue(): IO[Value.Remove] =
-      IO.Sync(toRemoveValue())
+      IO.Success(toRemoveValue())
 
     override def toRangeValue(): IO[Value.Remove] =
       toFromValue()

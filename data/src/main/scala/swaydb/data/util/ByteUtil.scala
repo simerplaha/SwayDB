@@ -158,7 +158,7 @@ object ByteUtil {
         i += 7
         require(i <= 35)
       } while ((read & 0x80) != 0)
-      IO.Sync(int)
+      IO.Success(int)
     } catch {
       case ex: Exception =>
         IO.Failure(ex)
@@ -178,7 +178,7 @@ object ByteUtil {
         index += 1
         require(i <= 35)
       } while ((read & 0x80) != 0)
-      IO.Sync(int)
+      IO.Success(int)
     } catch {
       case ex: Exception =>
         IO.Failure(ex)
@@ -201,7 +201,7 @@ object ByteUtil {
         index -= 1
         require(i <= 35)
       } while ((read & 0x80) != 0)
-      IO.Sync(int, slice.size - index - 1)
+      IO.Success(int, slice.size - index - 1)
     } catch {
       case ex: Exception =>
         IO.Failure(ex)
@@ -249,7 +249,7 @@ object ByteUtil {
         i += 7
         require(i <= 70)
       } while ((read & 0x80L) != 0)
-      IO.Sync(long)
+      IO.Success(long)
     } catch {
       case ex: Exception =>
         IO.Failure(ex)
@@ -268,7 +268,7 @@ object ByteUtil {
         index += 1
         require(i <= 70)
       } while ((read & 0x80L) != 0)
-      IO.Sync(long)
+      IO.Success(long)
     } catch {
       case ex: Exception =>
         IO.Failure(ex)

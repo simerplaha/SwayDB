@@ -56,7 +56,7 @@ trait LazyPendingApplyValueReader extends LazyValueReader {
           IO.Failure(new IllegalStateException(s"Failed to read ApplyValue's value"))
       }
     else
-      IO.Sync(applyFunctions)
+      IO.Success(applyFunctions)
 }
 
 object ActivePendingApplyValueReader {
@@ -66,7 +66,7 @@ object ActivePendingApplyValueReader {
 
 class ActivePendingApplyValueReader(applies: Slice[Value.Apply]) extends LazyPendingApplyValueReader {
 
-  override def getOrFetchApplies: IO[Slice[Value.Apply]] = IO.Sync(applies)
+  override def getOrFetchApplies: IO[Slice[Value.Apply]] = IO.Success(applies)
 
   override def valueReader: Reader = {
     val bytesRequires = ValueSerializer.bytesRequired(applies)

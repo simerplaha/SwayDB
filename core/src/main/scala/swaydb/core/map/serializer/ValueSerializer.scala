@@ -299,7 +299,7 @@ object ValueSerializer {
           if (bytes.size != 2)
             IO.Failure(new Exception(TupleOfBytesSerializer.getClass.getSimpleName + s".read did not return a tuple. Size = ${bytes.size}"))
           else
-            IO.Sync(bytes.head, bytes.last)
+            IO.Success(bytes.head, bytes.last)
       }
   }
 
