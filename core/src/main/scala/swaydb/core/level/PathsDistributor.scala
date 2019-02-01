@@ -29,7 +29,7 @@ import swaydb.data.config.Dir
 
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
-import scala.util.Try
+import swaydb.data.io.IO
 
 private[core] case class Distribution(path: Path,
                                       distributionRatio: Int,
@@ -107,7 +107,7 @@ private[core] object PathsDistributor {
     @tailrec
     def doDistribute(size: Int,
                      currentDistribution: Int): Array[Distribution] =
-      Try(distributions(currentDistribution)).toOption match {
+      IO(distributions(currentDistribution)).toOption match {
         case Some(distribution) =>
           val (expectedSize, remainingSize) =
             if (size > distribution.distributionRatio)

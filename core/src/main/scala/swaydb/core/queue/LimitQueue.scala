@@ -25,7 +25,7 @@ import swaydb.core.actor.{Actor, ActorRef}
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
-import scala.util.Try
+import swaydb.data.io.IO
 
 private class State[T](var size: Long,
                        val queue: mutable.Queue[(T, Long)])
@@ -69,7 +69,7 @@ private[core] class LimitQueue[T](limit: Long,
           //        println("---------------- Total size: " + self.state.size)
           while (self.state.size > limit) {
             //          println("Running eviction. Limit: {}, currentSize: {}", limit, self.state.size)
-            Try(self.state.queue.dequeue) foreach {
+            IO(self.state.queue.dequeue) foreach {
               case (evictedItem, evictedItemSize) =>
                 //println(s"evictedItem: $evictedItem, evictedItemSize: $evictedItemSize")
                 self.state.size -= evictedItemSize

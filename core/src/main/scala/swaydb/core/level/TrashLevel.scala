@@ -26,12 +26,12 @@ import swaydb.core.level.actor.LevelAPI
 import swaydb.core.level.actor.LevelCommand._
 import swaydb.core.map.Map
 import swaydb.core.segment.Segment
-import swaydb.core.util.TryUtil
+import swaydb.core.util.IOUtil
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.slice.Slice
 
 import scala.concurrent.duration.{FiniteDuration, _}
-import scala.util.{Success, Try}
+import swaydb.data.io.IO
 
 private[core] object TrashLevel extends LevelRef {
 
@@ -47,9 +47,9 @@ private[core] object TrashLevel extends LevelRef {
   override def !(request: LevelAPI): Unit =
     request match {
       case request: PushSegments =>
-        request.replyTo ! PushSegmentsResponse(request, TryUtil.successUnit)
+        request.replyTo ! PushSegmentsResponse(request, IOUtil.successUnit)
       case request: PushMap =>
-        request.replyTo ! PushMapResponse(request, TryUtil.successUnit)
+        request.replyTo ! PushMapResponse(request, IOUtil.successUnit)
       case PullRequest(pullFrom) =>
         pullFrom ! Pull
     }
@@ -63,8 +63,8 @@ private[core] object TrashLevel extends LevelRef {
   override val hasNextLevel: Boolean =
     false
 
-  override val bloomFilterKeyValueCount: Try[Int] =
-    Success(0)
+  override val bloomFilterKeyValueCount: IO[Int] =
+    IO.Success(0)
 
   override val segmentsCount: Int =
     0
@@ -97,19 +97,19 @@ private[core] object TrashLevel extends LevelRef {
     (0, 0)
 
   override val head =
-    TryUtil.successNone
+    IOUtil.successNone
 
   override val last =
-    TryUtil.successNone
+    IOUtil.successNone
 
   override def get(key: Slice[Byte]) =
-    TryUtil.successNone
+    IOUtil.successNone
 
   override def lower(key: Slice[Byte]) =
-    TryUtil.successNone
+    IOUtil.successNone
 
   override def higher(key: Slice[Byte]) =
-    TryUtil.successNone
+    IOUtil.successNone
 
   override val isEmpty: Boolean =
     true
@@ -126,11 +126,11 @@ private[core] object TrashLevel extends LevelRef {
   override val sizeOfSegments: Long =
     0
 
-  override def releaseLocks: Try[Unit] =
-    TryUtil.successUnit
+  override def releaseLocks: IO[Unit] =
+    IOUtil.successUnit
 
-  override val close: Try[Unit] =
-    TryUtil.successUnit
+  override val close: IO[Unit] =
+    IOUtil.successUnit
 
   override val meter: LevelMeter =
     LevelMeter(0, 0)
@@ -138,25 +138,25 @@ private[core] object TrashLevel extends LevelRef {
   override def meterFor(levelNumber: Int): Option[LevelMeter] =
     None
 
-  override def mightContain(key: Slice[Byte]): Try[Boolean] =
-    Success(false)
+  override def mightContain(key: Slice[Byte]): IO[Boolean] =
+    IO.Success(false)
 
   override val isTrash: Boolean = true
 
-  override def ceiling(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Put]] =
-    TryUtil.successNone
+  override def ceiling(key: Slice[Byte]): IO[Option[KeyValue.ReadOnly.Put]] =
+    IOUtil.successNone
 
-  override def floor(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Put]] =
-    TryUtil.successNone
+  override def floor(key: Slice[Byte]): IO[Option[KeyValue.ReadOnly.Put]] =
+    IOUtil.successNone
 
-  override val headKey: Try[Option[Slice[Byte]]] =
-    TryUtil.successNone
+  override val headKey: IO[Option[Slice[Byte]]] =
+    IOUtil.successNone
 
-  override val lastKey: Try[Option[Slice[Byte]]] =
-    TryUtil.successNone
+  override val lastKey: IO[Option[Slice[Byte]]] =
+    IOUtil.successNone
 
-  override def closeSegments(): Try[Unit] =
-    TryUtil.successUnit
+  override def closeSegments(): IO[Unit] =
+    IOUtil.successUnit
 
   override def levelNumber: Long = -1
 }

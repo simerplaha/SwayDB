@@ -25,7 +25,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.{TestBase, TestTimeGenerator}
 import swaydb.core.TestData._
-import swaydb.core.TryAssert._
+import swaydb.core.IOAssert._
 import swaydb.core.data.{Memory, Transient}
 import swaydb.core.util.Benchmark
 import swaydb.data.compaction.Throttle
@@ -34,7 +34,7 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.core.TryAssert._
+import swaydb.core.IOAssert._
 import swaydb.core.io.file.IOOps
 
 //@formatter:off

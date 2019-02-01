@@ -21,7 +21,7 @@ package swaydb.core.util
 
 import java.nio.file.Paths
 import swaydb.core.TestBase
-import swaydb.core.TryAssert._
+import swaydb.core.IOAssert._
 import swaydb.core.io.file.IOOps
 
 class FileUtilSpec extends TestBase {

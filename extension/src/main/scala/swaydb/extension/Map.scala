@@ -19,7 +19,7 @@
 
 package swaydb.extension
 
-import swaydb.core.util.TryUtil
+import swaydb.core.util.IOUtil
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.slice.Slice
@@ -27,7 +27,7 @@ import swaydb.extension.iterator.{MapIterator, MapKeysIterator}
 import swaydb.serializers.Serializer
 import swaydb.{Batch, Data, From}
 import scala.concurrent.duration.{Deadline, FiniteDuration}
-import scala.util.{Failure, Success, Try}
+import swaydb.data.io.IO
 import swaydb.data.order.KeyOrder
 
 private[swaydb] object Map {
@@ -101,7 +101,7 @@ private[swaydb] object Map {
                                      mapKeySerializer: Serializer[Key[K]],
                                      valueSerializer: Serializer[V],
                                      optionValueSerializer: Serializer[Option[V]],
-                                     keyOrder: KeyOrder[Slice[Byte]]): Try[Iterable[Batch[Key[K], Option[V]]]] = {
+                                     keyOrder: KeyOrder[Slice[Byte]]): IO[Iterable[Batch[Key[K], Option[V]]]] = {
 
     //batch to remove all SubMaps.
     val removeSubMapsBatches =
@@ -112,7 +112,7 @@ private[swaydb] object Map {
     //mapKey should have at least one key. A mapKey with only 1 key indicates that it's for the rootMap.
     mapKey.lastOption map {
       last =>
-        Try {
+        IO {
           removeSubMapsBatches ++
             Seq(
               //add subMap entry to parent Map's key
@@ -130,7 +130,7 @@ private[swaydb] object Map {
             )
         }
     } getOrElse {
-      Failure(new Exception("Cannot put map with empty key."))
+      IO.Failure(new Exception("Cannot put map with empty key."))
     }
   }
 
@@ -180,16 +180,16 @@ class Map[K, V](map: swaydb.Map[Key[K], Option[V]],
   def maps: Maps[K, V] =
     new Maps[K, V](map, mapKey)
 
-  def exists(): Try[Boolean] =
+  def exists(): IO[Boolean] =
     map.contains(Key.MapStart(mapKey))
 
   /**
     * Returns None if the map does not exist or returns the value.
     */
-  def getValue(): Try[Option[V]] =
+  def getValue(): IO[Option[V]] =
     map.get(Key.MapStart(mapKey)).map(_.flatten)
 
-  def updateValue(value: V): Try[Map[K, V]] =
+  def updateValue(value: V): IO[Map[K, V]] =
     map.batch {
       Map.updateMapValue[K, V](
         mapKey = mapKey,
@@ -203,13 +203,13 @@ class Map[K, V](map: swaydb.Map[Key[K], Option[V]],
         )
     }
 
-  def put(key: K, value: V): Try[Level0Meter] =
+  def put(key: K, value: V): IO[Level0Meter] =
     map.put(key = Key.MapEntry(mapKey, key), value = Some(value))
 
-  def put(key: K, value: V, expireAfter: FiniteDuration): Try[Level0Meter] =
+  def put(key: K, value: V, expireAfter: FiniteDuration): IO[Level0Meter] =
     map.put(Key.MapEntry(mapKey, key), Some(value), expireAfter.fromNow)
 
-  def put(key: K, value: V, expireAt: Deadline): Try[Level0Meter] =
+  def put(key: K, value: V, expireAt: Deadline): IO[Level0Meter] =
     map.put(Key.MapEntry(mapKey, key), Some(value), expireAt)
 
   def preparePut(key: K, value: V): Batch[Key.MapEntry[K], Option[V]] =
@@ -224,10 +224,10 @@ class Map[K, V](map: swaydb.Map[Key[K], Option[V]],
   private def preparePut(key: K, value: V, deadline: Option[Deadline]): Batch[Key.MapEntry[K], Option[V]] =
     Data.Put(Key.MapEntry(mapKey, key), value = Some(value), deadline = deadline)
 
-  def remove(key: K): Try[Level0Meter] =
+  def remove(key: K): IO[Level0Meter] =
     map.remove(Key.MapEntry(mapKey, key))
 
-  def remove(from: K, to: K): Try[Level0Meter] =
+  def remove(from: K, to: K): IO[Level0Meter] =
     map.remove(Key.MapEntry(mapKey, from), Key.MapEntry(mapKey, to))
 
   def prepareRemove(key: K): Batch[Key.MapEntry[K], Option[V]] =
@@ -245,7 +245,7 @@ class Map[K, V](map: swaydb.Map[Key[K], Option[V]],
   /**
     * Removes all key-values from the current Map. SubMaps and subMap's key-values or not altered.
     */
-  def clear(): Try[Level0Meter] = {
+  def clear(): IO[Level0Meter] = {
     val (start, end) = Map.entriesRangeKeys(mapKey)
     map.batch(
       //remove key-value entries, but also re-insert the start and end entries for the Map.
@@ -255,25 +255,25 @@ class Map[K, V](map: swaydb.Map[Key[K], Option[V]],
     )
   }
 
-  def expire(key: K, after: FiniteDuration): Try[Level0Meter] =
+  def expire(key: K, after: FiniteDuration): IO[Level0Meter] =
     map.expire(Key.MapEntry(mapKey, key), after.fromNow)
 
-  def expire(key: K, at: Deadline): Try[Level0Meter] =
+  def expire(key: K, at: Deadline): IO[Level0Meter] =
     map.expire(Key.MapEntry(mapKey, key), at)
 
-  def expire(from: K, to: K, after: FiniteDuration): Try[Level0Meter] =
+  def expire(from: K, to: K, after: FiniteDuration): IO[Level0Meter] =
     map.expire(Key.MapEntry(mapKey, from), Key.MapEntry(mapKey, to), after.fromNow)
 
-  def expire(from: K, to: K, at: Deadline): Try[Level0Meter] =
+  def expire(from: K, to: K, at: Deadline): IO[Level0Meter] =
     map.expire(Key.MapEntry(mapKey, from), Key.MapEntry(mapKey, to), at)
 
-  def update(key: K, value: V): Try[Level0Meter] =
+  def update(key: K, value: V): IO[Level0Meter] =
     map.update(Key.MapEntry(mapKey, key), Some(value))
 
-  def update(from: K, to: K, value: V): Try[Level0Meter] =
+  def update(from: K, to: K, value: V): IO[Level0Meter] =
     map.update(Key.MapEntry(mapKey, from), Key.MapEntry(mapKey, to), Some(value))
 
-  def batch(batch: Batch[K, V]*): Try[Level0Meter] =
+  def batch(batch: Batch[K, V]*): IO[Level0Meter] =
     this.batch(batch)
 
   private def makeBatch(batch: Batch[K, V]): Batch[Key.MapEntry[K], Option[V]] =
@@ -291,13 +291,13 @@ class Map[K, V](map: swaydb.Map[Key[K], Option[V]],
   private def makeBatch(batch: Iterable[Batch[K, V]]): Iterable[Batch[Key.MapEntry[K], Option[V]]] =
     batch map makeBatch
 
-  def batch(batch: Iterable[Batch[K, V]]): Try[Level0Meter] =
+  def batch(batch: Iterable[Batch[K, V]]): IO[Level0Meter] =
     map.batch(makeBatch(batch))
 
-  def batchPut(keyValues: (K, V)*): Try[Level0Meter] =
+  def batchPut(keyValues: (K, V)*): IO[Level0Meter] =
     batchPut(keyValues)
 
-  def batchPut(keyValues: Iterable[(K, V)]): Try[Level0Meter] =
+  def batchPut(keyValues: Iterable[(K, V)]): IO[Level0Meter] =
     map.batchPut {
       keyValues map {
         case (key, value) =>
@@ -305,10 +305,10 @@ class Map[K, V](map: swaydb.Map[Key[K], Option[V]],
       }
     }
 
-  def batchUpdate(keyValues: (K, V)*): Try[Level0Meter] =
+  def batchUpdate(keyValues: (K, V)*): IO[Level0Meter] =
     batchUpdate(keyValues)
 
-  def batchUpdate(keyValues: Iterable[(K, V)]): Try[Level0Meter] =
+  def batchUpdate(keyValues: Iterable[(K, V)]): IO[Level0Meter] =
     map.batchUpdate {
       keyValues map {
         case (key, value) =>
@@ -316,16 +316,16 @@ class Map[K, V](map: swaydb.Map[Key[K], Option[V]],
       }
     }
 
-  def batchRemove(keys: K*): Try[Level0Meter] =
+  def batchRemove(keys: K*): IO[Level0Meter] =
     batchRemove(keys)
 
-  def batchRemove(keys: Iterable[K]): Try[Level0Meter] =
+  def batchRemove(keys: Iterable[K]): IO[Level0Meter] =
     map.batchRemove(keys.map(key => Key.MapEntry(mapKey, key)))
 
-  def batchExpire(keys: (K, Deadline)*): Try[Level0Meter] =
+  def batchExpire(keys: (K, Deadline)*): IO[Level0Meter] =
     batchExpire(keys)
 
-  def batchExpire(keys: Iterable[(K, Deadline)]): Try[Level0Meter] =
+  def batchExpire(keys: Iterable[(K, Deadline)]): IO[Level0Meter] =
     map.batchExpire(keys.map(keyDeadline => (Key.MapEntry(mapKey, keyDeadline._1), keyDeadline._2)))
 
   /**
@@ -333,12 +333,12 @@ class Map[K, V](map: swaydb.Map[Key[K], Option[V]],
     *
     * @return Returns None is the key does not exist.
     */
-  def get(key: K): Try[Option[V]] =
+  def get(key: K): IO[Option[V]] =
     map.get(Key.MapEntry(mapKey, key)) flatMap {
       case Some(value) =>
-        Success(value)
+        IO.Success(value)
       case None =>
-        TryUtil.successNone
+        IOUtil.successNone
     }
 
   /**
@@ -346,36 +346,36 @@ class Map[K, V](map: swaydb.Map[Key[K], Option[V]],
     *
     * This function is mostly used for Set databases where partial ordering on the Key is provided.
     */
-  def getKey(key: K): Try[Option[K]] =
+  def getKey(key: K): IO[Option[K]] =
     map.getKey(Key.MapEntry(mapKey, key)) flatMap {
       case Some(key) =>
         key match {
           case Key.MapEntry(_, dataKey) =>
-            Success(Some(dataKey))
+            IO.Success(Some(dataKey))
           case got =>
-            Failure(new Exception(s"Unable to fetch key. Got: $got expected MapKey.Entry"))
+            IO.Failure(new Exception(s"Unable to fetch key. Got: $got expected MapKey.Entry"))
         }
       case None =>
-        TryUtil.successNone
+        IOUtil.successNone
     }
 
-  def getKeyValue(key: K): Try[Option[(K, V)]] =
+  def getKeyValue(key: K): IO[Option[(K, V)]] =
     map.getKeyValue(Key.MapEntry(mapKey, key)) flatMap {
       case Some((key, value)) =>
         key match {
           case Key.MapEntry(_, dataKey) =>
             value map {
               value =>
-                Success(Some(dataKey, value))
+                IO.Success(Some(dataKey, value))
             } getOrElse {
-              Failure(new Exception("Value does not exist."))
+              IO.Failure(new Exception("Value does not exist."))
             }
 
           case got =>
-            Failure(new Exception(s"Unable to fetch keyValue. Got: $got expected MapKey.Entry"))
+            IO.Failure(new Exception(s"Unable to fetch keyValue. Got: $got expected MapKey.Entry"))
         }
       case None =>
-        TryUtil.successNone
+        IOUtil.successNone
     }
 
   def keys: MapKeysIterator[K] =
@@ -388,10 +388,10 @@ class Map[K, V](map: swaydb.Map[Key[K], Option[V]],
         )
     )
 
-  def contains(key: K): Try[Boolean] =
+  def contains(key: K): IO[Boolean] =
     map contains Key.MapEntry(mapKey, key)
 
-  def mightContain(key: K): Try[Boolean] =
+  def mightContain(key: K): IO[Boolean] =
     map mightContain Key.MapEntry(mapKey, key)
 
   def level0Meter: Level0Meter =
@@ -409,10 +409,10 @@ class Map[K, V](map: swaydb.Map[Key[K], Option[V]],
   def valueSize(value: V): Int =
     map valueSize Some(value)
 
-  def expiration(key: K): Try[Option[Deadline]] =
+  def expiration(key: K): IO[Option[Deadline]] =
     map expiration Key.MapEntry(mapKey, key)
 
-  def timeLeft(key: K): Try[Option[FiniteDuration]] =
+  def timeLeft(key: K): IO[Option[FiniteDuration]] =
     expiration(key).map(_.map(_.timeLeft))
 
   private[swaydb] def baseMap(): swaydb.Map[Key[K], Option[V]] =

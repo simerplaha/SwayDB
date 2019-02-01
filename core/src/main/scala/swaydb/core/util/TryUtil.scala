@@ -20,44 +20,33 @@
 package swaydb.core.util
 
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.{ExecutionContext, Future}
 import scala.reflect.ClassTag
-import scala.util.{Failure, Success, Try}
-import swaydb.core.io.file.IOOps
 import swaydb.core.io.reader.Reader
 import swaydb.core.util.CollectionUtil._
+import swaydb.data.io.IO
 import swaydb.data.slice.Slice
 
-object TryUtil {
+object IOUtil {
 
-  val successUnit: Success[Unit] = Success()
-  val successNone = Success(None)
-  val successFalse = Success(false)
-  val successTrue = Success(true)
-  val emptyReader = Success(Reader(Slice.emptyBytes))
-  val successZero = Success(0)
-  val successEmptyBytes = Success(Slice.emptyBytes)
-  val successNoneTime = Success(None)
-  val successEmptySeqBytes = Success(Seq.empty[Slice[Byte]])
+  val successUnit: IO.Success[Unit] = IO.Success()
+  val successNone = IO.Success(None)
+  val successFalse = IO.Success(false)
+  val successTrue = IO.Success(true)
+  val emptyReader = IO.Success(Reader(Slice.emptyBytes))
+  val successZero = IO.Success(0)
+  val successEmptyBytes = IO.Success(Slice.emptyBytes)
+  val successNoneTime = IO.Success(None)
+  val successEmptySeqBytes = IO.Success(Seq.empty[Slice[Byte]])
 
-  object Catch {
-    def apply[T](f: => Try[T]): Try[T] =
-      try
-        f
-      catch {
-        case ex: Exception =>
-          Failure(ex)
-      }
-  }
 
-  implicit class IterableTryImplicit[T: ClassTag](iterable: Iterable[T]) {
+  implicit class IterableIOImplicit[T: ClassTag](iterable: Iterable[T]) {
 
-    def tryForeach[R](f: T => Try[R], failFast: Boolean = true): Option[Failure[R]] = {
+    def tryForeach[R](f: T => IO[R], failFast: Boolean = true): Option[IO.Failure[R]] = {
       val it = iterable.iterator
-      var failure: Option[Failure[R]] = None
+      var failure: Option[IO.Failure[R]] = None
       while (it.hasNext && (failure.isEmpty || !failFast)) {
         f(it.next()) match {
-          case failed @ Failure(_) =>
+          case failed @ IO.Failure(_) =>
             failure = Some(failed)
           case _ =>
         }
@@ -65,38 +54,38 @@ object TryUtil {
       failure
     }
 
-    //returns the first Success(Some(_)).
-    def tryUntilSome[R](f: T => Try[Option[R]]): Try[Option[(R, T)]] = {
-      var result: Try[Option[(R, T)]] = TryUtil.successNone
+    //returns the first IO.Success(Some(_)).
+    def tryUntilSome[R](f: T => IO[Option[R]]): IO[Option[(R, T)]] = {
+      var result: IO[Option[(R, T)]] = IOUtil.successNone
       iterable.iterator foreachBreak {
         item =>
           f(item) match {
-            case Success(Some(value)) =>
-              result = Success(Some(value, item))
+            case IO.Success(Some(value)) =>
+              result = IO.Success(Some(value, item))
               true
-            case Success(None) =>
+            case IO.Success(None) =>
               false
-            case Failure(exception) =>
-              result = Failure(exception)
+            case IO.Failure(exception) =>
+              result = IO.Failure(exception)
               true
           }
       }
       result
     }
 
-    def tryMap[R: ClassTag](tryBlock: T => Try[R],
-                            recover: (Slice[R], Failure[Slice[R]]) => Unit = (_: Slice[R], _: Failure[Slice[R]]) => (),
-                            failFast: Boolean = true): Try[Slice[R]] = {
+    def tryMap[R: ClassTag](tryBlock: T => IO[R],
+                            recover: (Slice[R], IO.Failure[Slice[R]]) => Unit = (_: Slice[R], _: IO.Failure[Slice[R]]) => (),
+                            failFast: Boolean = true): IO[Slice[R]] = {
       val it = iterable.iterator
-      var failure: Option[Failure[Slice[R]]] = None
+      var failure: Option[IO.Failure[Slice[R]]] = None
       val results = Slice.create[R](iterable.size)
       while ((!failFast || failure.isEmpty) && it.hasNext) {
         tryBlock(it.next()) match {
-          case Success(value) =>
+          case IO.Success(value) =>
             results add value
 
-          case failed @ Failure(_) =>
-            failure = Some(Failure(failed.exception))
+          case failed @ IO.Failure(_) =>
+            failure = Some(IO.Failure(failed.exception))
         }
       }
       failure match {
@@ -104,23 +93,23 @@ object TryUtil {
           recover(results, value)
           value
         case None =>
-          Success(results)
+          IO.Success(results)
       }
     }
 
-    def tryFlattenIterable[R: ClassTag](tryBlock: T => Try[Iterable[R]],
-                                        recover: (Iterable[R], Failure[Slice[R]]) => Unit = (_: Iterable[R], _: Failure[Iterable[R]]) => (),
-                                        failFast: Boolean = true): Try[Iterable[R]] = {
+    def tryFlattenIterable[R: ClassTag](tryBlock: T => IO[Iterable[R]],
+                                        recover: (Iterable[R], IO.Failure[Slice[R]]) => Unit = (_: Iterable[R], _: IO.Failure[Iterable[R]]) => (),
+                                        failFast: Boolean = true): IO[Iterable[R]] = {
       val it = iterable.iterator
-      var failure: Option[Failure[Slice[R]]] = None
+      var failure: Option[IO.Failure[Slice[R]]] = None
       val results = ListBuffer.empty[R]
       while ((!failFast || failure.isEmpty) && it.hasNext) {
         tryBlock(it.next()) match {
-          case Success(value) =>
+          case IO.Success(value) =>
             value foreach (results += _)
 
-          case failed @ Failure(_) =>
-            failure = Some(Failure(failed.exception))
+          case failed @ IO.Failure(_) =>
+            failure = Some(IO.Failure(failed.exception))
         }
       }
       failure match {
@@ -128,24 +117,24 @@ object TryUtil {
           recover(results, value)
           value
         case None =>
-          Success(results)
+          IO.Success(results)
       }
     }
 
     def tryFoldLeft[R: ClassTag](r: R,
                                  failFast: Boolean = true,
-                                 recover: (R, Failure[R]) => Unit = (_: R, _: Failure[R]) => ())(f: (R, T) => Try[R]): Try[R] = {
+                                 recover: (R, IO.Failure[R]) => Unit = (_: R, _: IO.Failure[R]) => ())(f: (R, T) => IO[R]): IO[R] = {
       val it = iterable.iterator
-      var failure: Option[Failure[R]] = None
+      var failure: Option[IO.Failure[R]] = None
       var result: R = r
       while ((!failFast || failure.isEmpty) && it.hasNext) {
         f(result, it.next()) match {
-          case Success(value) =>
+          case IO.Success(value) =>
             if (failure.isEmpty)
               result = value
 
-          case failed @ Failure(_) =>
-            failure = Some(Failure(failed.exception))
+          case failed @ IO.Failure(_) =>
+            failure = Some(IO.Failure(failed.exception))
         }
       }
       failure match {
@@ -153,18 +142,9 @@ object TryUtil {
           recover(result, failure)
           failure
         case None =>
-          Success(result)
+          IO.Success(result)
       }
     }
-  }
-
-  implicit class TryImplicits[T](tryBlock: => Try[T]) {
-    /**
-      * Runs the tryBlock in a Future asynchronously and returns the result of
-      * the Try in Future.
-      */
-    def tryInFuture(implicit ec: ExecutionContext): Future[T] =
-      Future(tryBlock).flatMap(Future.fromTry)
   }
 
   def tryOrNone[T](tryThis: => T): Option[T] =

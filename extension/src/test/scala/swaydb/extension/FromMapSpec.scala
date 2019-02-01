@@ -23,7 +23,7 @@ import scala.concurrent.duration._
 import swaydb.TestBaseEmbedded
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
-import swaydb.core.TryAssert._
+import swaydb.core.IOAssert._
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 

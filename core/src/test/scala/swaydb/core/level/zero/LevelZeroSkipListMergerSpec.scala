@@ -28,7 +28,7 @@ import swaydb.core.data.{Memory, Value}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.core.TryAssert._
+import swaydb.core.IOAssert._
 import swaydb.data.order.TimeOrder
 
 class LevelZeroSkipListMergerSpec extends WordSpec with Matchers {

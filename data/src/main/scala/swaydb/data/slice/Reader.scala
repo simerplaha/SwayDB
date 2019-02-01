@@ -25,66 +25,66 @@ import swaydb.data.util.ByteUtil
 
 import scala.annotation.tailrec
 import scala.reflect.ClassTag
-import scala.util.{Failure, Success, Try}
+import swaydb.data.io.IO
 
 private[swaydb] trait Reader { self =>
 
-  def get(): Try[Int]
+  def get(): IO[Int]
 
-  def read(size: Long): Try[Slice[Byte]] =
+  def read(size: Long): IO[Slice[Byte]] =
     read(size.toInt)
 
-  def read(size: Int): Try[Slice[Byte]]
+  def read(size: Int): IO[Slice[Byte]]
 
-  def size: Try[Long]
+  def size: IO[Long]
 
-  def hasMore: Try[Boolean]
+  def hasMore: IO[Boolean]
 
-  def hasAtLeast(size: Long): Try[Boolean]
+  def hasAtLeast(size: Long): IO[Boolean]
 
   def getPosition: Int
 
   def moveTo(position: Long): Reader
 
-  def readRemaining(): Try[Slice[Byte]]
+  def readRemaining(): IO[Slice[Byte]]
 
   def skip(skip: Long): Reader =
     moveTo(getPosition + skip)
 
-  def readBoolean(): Try[Boolean] =
+  def readBoolean(): IO[Boolean] =
     ByteUtil.readBoolean(self)
 
-  def readInt(): Try[Int] =
+  def readInt(): IO[Int] =
     ByteUtil.readInt(self)
 
-  def readIntUnsigned(): Try[Int] =
+  def readIntUnsigned(): IO[Int] =
     ByteUtil.readUnsignedInt(self)
 
-  def readIntUnsignedBytes(): Try[Slice[Byte]] =
+  def readIntUnsignedBytes(): IO[Slice[Byte]] =
     ByteUtil.readUnsignedInt(self) flatMap {
       size =>
         read(size)
     }
 
-  def readIntSigned(): Try[Int] =
+  def readIntSigned(): IO[Int] =
     ByteUtil.readSignedInt(self)
 
-  def readLong(): Try[Long] =
+  def readLong(): IO[Long] =
     ByteUtil.readLong(self)
 
-  def readLongUnsigned(): Try[Long] =
+  def readLongUnsigned(): IO[Long] =
     ByteUtil.readUnsignedLong(self)
 
-  def readLongSigned(): Try[Long] =
+  def readLongSigned(): IO[Long] =
     ByteUtil.readSignedLong(self)
 
-  def readRemainingAsString(charset: Charset = StandardCharsets.UTF_8): Try[String] =
+  def readRemainingAsString(charset: Charset = StandardCharsets.UTF_8): IO[String] =
     ByteUtil.readString(self, charset)
 
-  def readString(size: Int, charset: Charset = StandardCharsets.UTF_8): Try[String] =
+  def readString(size: Int, charset: Charset = StandardCharsets.UTF_8): IO[String] =
     ByteUtil.readString(size, self, charset)
 
-  def remaining: Try[Long] =
+  def remaining: IO[Long] =
     size map {
       size =>
         size - getPosition
@@ -93,21 +93,21 @@ private[swaydb] trait Reader { self =>
   def copy(): Reader
 
   @tailrec
-  final def foldLeftTry[R: ClassTag](result: R)(f: (R, Reader) => Try[R]): Try[R] =
+  final def foldLeftIO[R: ClassTag](result: R)(f: (R, Reader) => IO[R]): IO[R] =
     hasMore match {
-      case Failure(exception) =>
-        Failure(exception)
+      case IO.Failure(exception) =>
+        IO.Failure(exception)
 
-      case Success(yes) if yes =>
+      case IO.Success(yes) if yes =>
         f(result, self) match {
-          case Success(newResult) =>
-            foldLeftTry(newResult)(f)
+          case IO.Success(newResult) =>
+            foldLeftIO(newResult)(f)
 
-          case Failure(exception) =>
-            Failure(exception)
+          case IO.Failure(exception) =>
+            IO.Failure(exception)
         }
 
       case _ =>
-        Success(result)
+        IO.Success(result)
     }
 }

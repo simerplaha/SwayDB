@@ -20,7 +20,11 @@
 package swaydb.data.io
 
 import scala.collection.mutable
+import scala.concurrent.Future
 
+/**
+  * Similar to [[scala.util.Try]] but adds another type [[IO.Async]].
+  */
 sealed trait IO[+T] {
   def isFailure: Boolean
   def isSuccess: Boolean
@@ -31,12 +35,21 @@ sealed trait IO[+T] {
   def foreach[U](f: T => U): Unit
   def flatMap[U](f: T => IO[U]): IO[U]
   def map[U](f: T => U): IO[U]
+  def filter(p: T => Boolean): IO[T]
+  @inline final def withFilter(p: T => Boolean): WithFilter = new WithFilter(p)
+  class WithFilter(p: T => Boolean) {
+    def map[U](f: T => U): IO[U] = IO.this filter p map f
+    def flatMap[U](f: T => IO[U]): IO[U] = IO.this filter p flatMap f
+    def foreach[U](f: T => U): Unit = IO.this filter p foreach f
+    def withFilter(q: T => Boolean): WithFilter = new WithFilter(x => p(x) && q(x))
+  }
   def recoverWith[U >: T](f: PartialFunction[Throwable, IO[U]]): IO[U]
   def recover[U >: T](f: PartialFunction[Throwable, U]): IO[U]
   def toOption: Option[T]
   def flatten[U](implicit ev: T <:< IO[U]): IO[U]
   def failed: IO[Throwable]
   def toEither: Either[Throwable, T]
+  def toFuture: Future[T]
 }
 
 object IO {
@@ -47,11 +60,15 @@ object IO {
         IO.Failure(ex)
     }
 
-  def safe[T](f: => IO[T]): IO[T] =
-    try f catch {
-      case ex: Throwable =>
-        IO.Failure(ex)
-    }
+  object Catch {
+    def apply[T](f: => IO[T]): IO[T] =
+      try
+        f
+      catch {
+        case ex: Exception =>
+          IO.Failure(ex)
+      }
+  }
 
   final case class Failure[+T](exception: Throwable) extends IO[T] {
     override def isFailure: Boolean = true
@@ -59,20 +76,22 @@ object IO {
     override def isAsync: Boolean = false
     override def get: T = throw exception
     override def getOrElse[U >: T](default: => U): U = default
-    override def orElse[U >: T](default: => IO[U]): IO[U] = IO.safe(default)
+    override def orElse[U >: T](default: => IO[U]): IO[U] = IO.Catch(default)
     override def flatMap[U](f: T => IO[U]): IO[U] = this.asInstanceOf[IO[U]]
     override def flatten[U](implicit ev: T <:< IO[U]): IO[U] = this.asInstanceOf[IO[U]]
     override def foreach[U](f: T => U): Unit = ()
     override def map[U](f: T => U): IO[U] = this.asInstanceOf[IO[U]]
     override def recover[U >: T](f: PartialFunction[Throwable, U]): IO[U] =
-      IO.safe(if (f isDefinedAt exception) Success(f(exception)) else this)
+      IO.Catch(if (f isDefinedAt exception) Success(f(exception)) else this)
 
     override def recoverWith[U >: T](f: PartialFunction[Throwable, IO[U]]): IO[U] =
-      IO.safe(if (f isDefinedAt exception) f(exception) else this)
+      IO.Catch(if (f isDefinedAt exception) f(exception) else this)
 
     override def failed: IO[Throwable] = Success(exception)
     override def toOption: Option[T] = None
     override def toEither: Either[Throwable, T] = Left(exception)
+    override def filter(p: T => Boolean): IO[T] = this
+    override def toFuture: Future[T] = Future.failed(exception)
   }
 
   final case class Success[+T](value: T) extends IO[T] {
@@ -83,7 +102,7 @@ object IO {
     override def getOrElse[U >: T](default: => U): U = get
     override def orElse[U >: T](default: => IO[U]): IO[U] = this
     override def flatMap[U](f: T => IO[U]): IO[U] =
-      IO.safe(f(value))
+      IO.Catch(f(value))
 
     override def flatten[U](implicit ev: T <:< IO[U]): IO[U] = value
     override def foreach[U](f: T => U): Unit = f(value)
@@ -93,6 +112,9 @@ object IO {
     override def failed: IO[Throwable] = Failure(new UnsupportedOperationException("IO.Success.failed"))
     override def toOption: Option[T] = Some(value)
     override def toEither: Either[Throwable, T] = Right(value)
+    override def filter(p: T => Boolean): IO[T] =
+      IO.Catch(if (p(value)) this else IO.Failure(new NoSuchElementException("Predicate does not hold for " + value)))
+    override def toFuture: Future[T] = Future.successful(value)
   }
 
   object Async {

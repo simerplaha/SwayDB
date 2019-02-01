@@ -25,7 +25,7 @@ import java.nio.file.{FileAlreadyExistsException, NoSuchFileException}
 import org.scalamock.scalatest.MockFactory
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.TryAssert._
+import swaydb.core.IOAssert._
 import swaydb.core.queue.{FileLimiter, LimiterType}
 import swaydb.core.segment.SegmentException
 import swaydb.core.segment.SegmentException.CannotCopyInMemoryFiles

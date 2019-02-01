@@ -23,7 +23,7 @@ import swaydb.TestBaseEmbedded
 import swaydb.core.TestBase
 import swaydb.data.slice.Slice
 import swaydb.serializers.Serializer
-import swaydb.core.TryAssert._
+import swaydb.core.IOAssert._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 

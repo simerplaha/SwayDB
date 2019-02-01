@@ -27,22 +27,22 @@ import java.nio.{BufferOverflowException, MappedByteBuffer}
 import java.util.concurrent.atomic.AtomicBoolean
 import scala.annotation.tailrec
 import scala.concurrent.ExecutionContext
-import scala.util.{Failure, Success, Try}
-import swaydb.core.util.TryUtil
+import swaydb.data.io.IO
+import swaydb.core.util.IOUtil
 import swaydb.data.slice.Slice
 import swaydb.data.slice.Slice._
 
 private[file] object MMAPFile {
 
-  def read(path: Path)(implicit ec: ExecutionContext): Try[MMAPFile] =
-    Try(FileChannel.open(path, StandardOpenOption.READ)) flatMap {
+  def read(path: Path)(implicit ec: ExecutionContext): IO[MMAPFile] =
+    IO(FileChannel.open(path, StandardOpenOption.READ)) flatMap {
       channel =>
         MMAPFile(path, channel, MapMode.READ_ONLY, channel.size())
     }
 
   def write(path: Path,
-            bufferSize: Long)(implicit ec: ExecutionContext): Try[MMAPFile] =
-    Try(FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)) flatMap {
+            bufferSize: Long)(implicit ec: ExecutionContext): IO[MMAPFile] =
+    IO(FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)) flatMap {
       channel =>
         MMAPFile(path, channel, MapMode.READ_WRITE, bufferSize)
     }
@@ -50,8 +50,8 @@ private[file] object MMAPFile {
   private def apply(path: Path,
                     channel: FileChannel,
                     mode: MapMode,
-                    bufferSize: Long)(implicit ec: ExecutionContext): Try[MMAPFile] =
-    Try {
+                    bufferSize: Long)(implicit ec: ExecutionContext): IO[MMAPFile] =
+    IO {
       val buff = channel.map(mode, 0, bufferSize)
       new MMAPFile(path, channel, mode, bufferSize, buff)
     }
@@ -65,25 +65,25 @@ private[file] class MMAPFile(val path: Path,
 
   private val open = new AtomicBoolean(true)
 
-  def close(): Try[Unit] = {
+  def close(): IO[Unit] = {
     //    logger.info(s"$path: Closing channel")
     if (open.compareAndSet(true, false)) {
-      Try {
+      IO {
         forceSave()
         clearBuffer()
         channel.close()
       }
     } else {
       logger.trace("{}: Already closed.", path)
-      TryUtil.successUnit
+      IOUtil.successUnit
     }
   }
 
-  def forceSave(): Try[Unit] =
+  def forceSave(): IO[Unit] =
     if (mode == MapMode.READ_ONLY)
-      TryUtil.successUnit
+      IOUtil.successUnit
     else
-      Try(buffer.force())
+      IO(buffer.force())
 
   private def clearBuffer(): Unit = {
     val swapBuffer = buffer
@@ -94,8 +94,8 @@ private[file] class MMAPFile(val path: Path,
     BufferCleaner ! (swapBuffer, path)
   }
 
-  private def extendBuffer(bufferSize: Long): Try[Unit] =
-    Try {
+  private def extendBuffer(bufferSize: Long): IO[Unit] =
+    IO {
       val positionBeforeClear = buffer.position()
       buffer.force()
       clearBuffer()
@@ -104,14 +104,14 @@ private[file] class MMAPFile(val path: Path,
     }
 
   @tailrec
-  final def append(slice: Slice[Byte]): Try[Unit] =
-    Try(buffer.put(slice.toByteBuffer)) match {
-      case _: Success[_] =>
-        TryUtil.successUnit
+  final def append(slice: Slice[Byte]): IO[Unit] =
+    IO(buffer.put(slice.toByteBuffer)) match {
+      case _: IO.Success[_] =>
+        IOUtil.successUnit
 
       //Although this code extends the buffer, currently there is no implementation that requires this feature.
       //All the bytes requires for each write operation are pre-calculated EXACTLY and an overflow should NEVER occur.
-      case Failure(ex: BufferOverflowException) =>
+      case IO.Failure(ex: BufferOverflowException) =>
         val requiredByteSize = slice.size.toLong
         logger.debug("{}: BufferOverflowException. Required bytes: {}. Remaining bytes: {}. Extending buffer with {} bytes.",
           path, requiredByteSize, buffer.remaining(), requiredByteSize, ex)
@@ -122,12 +122,12 @@ private[file] class MMAPFile(val path: Path,
         else
           result
 
-      case Failure(exception) =>
-        Failure(exception)
+      case IO.Failure(exception) =>
+        IO.Failure(exception)
     }
 
-  def read(position: Int, size: Int): Try[Slice[Byte]] =
-    Try {
+  def read(position: Int, size: Int): IO[Slice[Byte]] =
+    IO {
       val array = new Array[Byte](size)
       var i = 0
       while (i < size) {
@@ -137,32 +137,32 @@ private[file] class MMAPFile(val path: Path,
       Slice(array)
     }
 
-  def get(position: Int): Try[Byte] =
-    Try {
+  def get(position: Int): IO[Byte] =
+    IO {
       buffer.get(position)
     }
 
   override def fileSize =
-    Success(channel.size())
+    IO.Success(channel.size())
 
-  override def readAll: Try[Slice[Byte]] =
+  override def readAll: IO[Slice[Byte]] =
     read(0, channel.size().toInt)
 
   override def isOpen =
     channel.isOpen
 
   override def isMemoryMapped =
-    Success(true)
+    IO.Success(true)
 
-  override def isLoaded: Try[Boolean] =
-    Success(buffer.isLoaded)
+  override def isLoaded: IO[Boolean] =
+    IO.Success(buffer.isLoaded)
 
-  override def isFull: Try[Boolean] =
-    Success(buffer.remaining() == 0)
+  override def isFull: IO[Boolean] =
+    IO.Success(buffer.remaining() == 0)
 
   override def memory: Boolean = false
 
-  override def delete(): Try[Unit] =
+  override def delete(): IO[Unit] =
     close flatMap {
       _ =>
         IOOps.delete(path)

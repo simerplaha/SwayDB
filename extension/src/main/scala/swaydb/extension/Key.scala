@@ -26,7 +26,7 @@ import swaydb.data.util.ByteUtil
 import swaydb.data.order.KeyOrder
 import swaydb.serializers.Serializer
 
-import scala.util.Try
+import swaydb.data.io.IO
 
 sealed trait Key[+K] {
   def parentMapKeys: Seq[K]
@@ -82,8 +82,8 @@ object Key {
       slice
     }
 
-  private def readKeys[K](keys: Slice[Byte], keySerializer: Serializer[K]): Try[Seq[K]] = {
-    def readOne(reader: Reader): Try[Option[K]] =
+  private def readKeys[K](keys: Slice[Byte], keySerializer: Serializer[K]): IO[Seq[K]] = {
+    def readOne(reader: Reader): IO[Option[K]] =
       reader
         .readIntUnsigned()
         .flatMap(reader.read)
@@ -95,7 +95,7 @@ object Key {
               Some(keySerializer.read(bytes))
         }
 
-    Reader(keys).foldLeftTry(Seq.empty[K]) {
+    Reader(keys).foldLeftIO(Seq.empty[K]) {
       case (keys, reader) =>
         readOne(reader) map {
           key =>

@@ -24,7 +24,7 @@ import swaydb.core.data.Memory
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.map.MapEntry
-import swaydb.core.util.TryUtil
+import swaydb.core.util.IOUtil
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.config.SwayDBConfig
@@ -33,7 +33,7 @@ import swaydb.data.slice.Slice
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{Deadline, FiniteDuration}
-import scala.util.Try
+import swaydb.data.io.IO
 
 private[swaydb] object CoreAPI {
 
@@ -44,7 +44,7 @@ private[swaydb] object CoreAPI {
             segmentsOpenCheckDelay: FiniteDuration)(implicit ec: ExecutionContext,
                                                     keyOrder: KeyOrder[Slice[Byte]],
                                                     timeOrder: TimeOrder[Slice[Byte]],
-                                                    functionStore: FunctionStore): Try[CoreAPI] =
+                                                    functionStore: FunctionStore): IO[CoreAPI] =
     DBInitializer(
       config = config,
       maxSegmentsOpen = maxOpenSegments,
@@ -56,46 +56,46 @@ private[swaydb] object CoreAPI {
 
 private[swaydb] case class CoreAPI(zero: LevelZero) {
 
-  def put(key: Slice[Byte]): Try[Level0Meter] =
+  def put(key: Slice[Byte]): IO[Level0Meter] =
     zero.put(key)
 
-  def put(key: Slice[Byte], value: Slice[Byte]): Try[Level0Meter] =
+  def put(key: Slice[Byte], value: Slice[Byte]): IO[Level0Meter] =
     zero.put(key, value)
 
-  def put(key: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter] =
+  def put(key: Slice[Byte], value: Option[Slice[Byte]]): IO[Level0Meter] =
     zero.put(key, value)
 
-  def put(key: Slice[Byte], value: Option[Slice[Byte]], removeAt: Deadline): Try[Level0Meter] =
+  def put(key: Slice[Byte], value: Option[Slice[Byte]], removeAt: Deadline): IO[Level0Meter] =
     zero.put(key, value, removeAt)
 
-  def put(entry: MapEntry[Slice[Byte], Memory.SegmentResponse]): Try[Level0Meter] =
+  def put(entry: MapEntry[Slice[Byte], Memory.SegmentResponse]): IO[Level0Meter] =
     zero.put(entry)
 
-  def remove(key: Slice[Byte]): Try[Level0Meter] =
+  def remove(key: Slice[Byte]): IO[Level0Meter] =
     zero.remove(key)
 
-  def remove(key: Slice[Byte], at: Deadline): Try[Level0Meter] =
+  def remove(key: Slice[Byte], at: Deadline): IO[Level0Meter] =
     zero.remove(key, at)
 
-  def remove(fromKey: Slice[Byte], to: Slice[Byte]): Try[Level0Meter] =
+  def remove(fromKey: Slice[Byte], to: Slice[Byte]): IO[Level0Meter] =
     zero.remove(fromKey, to)
 
-  def remove(fromKey: Slice[Byte], to: Slice[Byte], at: Deadline): Try[Level0Meter] =
+  def remove(fromKey: Slice[Byte], to: Slice[Byte], at: Deadline): IO[Level0Meter] =
     zero.remove(fromKey, to, at)
 
-  def update(key: Slice[Byte], value: Slice[Byte]): Try[Level0Meter] =
+  def update(key: Slice[Byte], value: Slice[Byte]): IO[Level0Meter] =
     zero.update(key, value)
 
-  def update(key: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter] =
+  def update(key: Slice[Byte], value: Option[Slice[Byte]]): IO[Level0Meter] =
     zero.update(key, value)
 
-  def update(fromKey: Slice[Byte], to: Slice[Byte], value: Slice[Byte]): Try[Level0Meter] =
+  def update(fromKey: Slice[Byte], to: Slice[Byte], value: Slice[Byte]): IO[Level0Meter] =
     zero.update(fromKey, to, value)
 
-  def update(fromKey: Slice[Byte], to: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter] =
+  def update(fromKey: Slice[Byte], to: Slice[Byte], value: Option[Slice[Byte]]): IO[Level0Meter] =
     zero.update(fromKey, to, value)
 
-  def head: Try[Option[KeyValueTuple]] =
+  def head: IO[Option[KeyValueTuple]] =
     LevelZero.withRetry("CoreAPI.head", zero.readRetryLimit) {
       zero.head flatMap {
         result =>
@@ -105,14 +105,14 @@ private[swaydb] case class CoreAPI(zero: LevelZero) {
                 result =>
                   Some(response.key, result)
               }
-          } getOrElse TryUtil.successNone
+          } getOrElse IOUtil.successNone
       }
     }
 
-  def headKey: Try[Option[Slice[Byte]]] =
+  def headKey: IO[Option[Slice[Byte]]] =
     zero.headKey
 
-  def last: Try[Option[KeyValueTuple]] =
+  def last: IO[Option[KeyValueTuple]] =
     LevelZero.withRetry("CoreAPI.last", zero.readRetryLimit) {
       zero.last flatMap {
         result =>
@@ -122,29 +122,29 @@ private[swaydb] case class CoreAPI(zero: LevelZero) {
                 result =>
                   Some(response.key, result)
               }
-          } getOrElse TryUtil.successNone
+          } getOrElse IOUtil.successNone
       }
     }
 
-  def lastKey: Try[Option[Slice[Byte]]] =
+  def lastKey: IO[Option[Slice[Byte]]] =
     zero.lastKey
 
-  def bloomFilterKeyValueCount: Try[Int] =
+  def bloomFilterKeyValueCount: IO[Int] =
     zero.bloomFilterKeyValueCount
 
-  def deadline(key: Slice[Byte]): Try[Option[Deadline]] =
+  def deadline(key: Slice[Byte]): IO[Option[Deadline]] =
     zero.deadline(key)
 
   def sizeOfSegments: Long =
     zero.sizeOfSegments
 
-  def contains(key: Slice[Byte]): Try[Boolean] =
+  def contains(key: Slice[Byte]): IO[Boolean] =
     zero.contains(key)
 
-  def mightContain(key: Slice[Byte]): Try[Boolean] =
+  def mightContain(key: Slice[Byte]): IO[Boolean] =
     zero.mightContain(key)
 
-  def get(key: Slice[Byte]): Try[Option[Option[Slice[Byte]]]] =
+  def get(key: Slice[Byte]): IO[Option[Option[Slice[Byte]]]] =
     LevelZero.withRetry("CoreAPI.get", zero.readRetryLimit) {
       zero.get(key) flatMap {
         result =>
@@ -154,14 +154,14 @@ private[swaydb] case class CoreAPI(zero: LevelZero) {
                 result =>
                   Some(result)
               }
-          } getOrElse TryUtil.successNone
+          } getOrElse IOUtil.successNone
       }
     }
 
-  def getKey(key: Slice[Byte]): Try[Option[Slice[Byte]]] =
+  def getKey(key: Slice[Byte]): IO[Option[Slice[Byte]]] =
     zero.getKey(key)
 
-  def getKeyValue(key: Slice[Byte]): Try[Option[KeyValueTuple]] =
+  def getKeyValue(key: Slice[Byte]): IO[Option[KeyValueTuple]] =
     LevelZero.withRetry("CoreAPI.getKeyValue", zero.readRetryLimit) {
       zero.get(key) flatMap {
         result =>
@@ -171,11 +171,11 @@ private[swaydb] case class CoreAPI(zero: LevelZero) {
                 result =>
                   Some(response.key, result)
               }
-          } getOrElse TryUtil.successNone
+          } getOrElse IOUtil.successNone
       }
     }
 
-  def before(key: Slice[Byte]): Try[Option[KeyValueTuple]] =
+  def before(key: Slice[Byte]): IO[Option[KeyValueTuple]] =
     LevelZero.withRetry("CoreAPI.before", zero.readRetryLimit) {
       zero.lower(key) flatMap {
         result =>
@@ -185,14 +185,14 @@ private[swaydb] case class CoreAPI(zero: LevelZero) {
                 result =>
                   Some(response.key, result)
               }
-          } getOrElse TryUtil.successNone
+          } getOrElse IOUtil.successNone
       }
     }
 
-  def beforeKey(key: Slice[Byte]): Try[Option[Slice[Byte]]] =
+  def beforeKey(key: Slice[Byte]): IO[Option[Slice[Byte]]] =
     zero.lower(key).map(_.map(_.key))
 
-  def after(key: Slice[Byte]): Try[Option[KeyValueTuple]] =
+  def after(key: Slice[Byte]): IO[Option[KeyValueTuple]] =
     LevelZero.withRetry("CoreAPI.after", zero.readRetryLimit) {
       zero.higher(key) flatMap {
         result =>
@@ -202,14 +202,14 @@ private[swaydb] case class CoreAPI(zero: LevelZero) {
                 result =>
                   Some(response.key, result)
               }
-          } getOrElse TryUtil.successNone
+          } getOrElse IOUtil.successNone
       }
     }
 
-  def afterKey(key: Slice[Byte]): Try[Option[Slice[Byte]]] =
+  def afterKey(key: Slice[Byte]): IO[Option[Slice[Byte]]] =
     zero.higher(key).map(_.map(_.key))
 
-  def valueSize(key: Slice[Byte]): Try[Option[Int]] =
+  def valueSize(key: Slice[Byte]): IO[Option[Int]] =
     zero.valueSize(key)
 
   def level0Meter: Level0Meter =

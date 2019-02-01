@@ -21,18 +21,18 @@ package swaydb.core.segment.format.a.entry.reader
 
 import swaydb.core.data.Persistent
 import swaydb.core.segment.format.a.entry.id.EntryId
-import swaydb.core.util.{Bytes, TryUtil}
+import swaydb.core.util.{Bytes, IOUtil}
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
 
 import scala.annotation.implicitNotFound
-import scala.util.{Failure, Success, Try}
+import swaydb.data.io.IO
 
 @implicitNotFound("Type class implementation not found for ValueLengthReader of type ${T}")
 sealed trait ValueLengthReader[-T] {
 
   def read(indexReader: Reader,
-           previous: Option[Persistent]): Try[Int]
+           previous: Option[Persistent]): IO[Int]
 
 }
 
@@ -40,7 +40,7 @@ object ValueLengthReader {
 
   private def readLength(indexReader: Reader,
                          previous: Option[Persistent],
-                         commonBytes: Int): Try[Int] =
+                         commonBytes: Int): IO[Int] =
     previous.map(_.valueLength) map {
       previousValueLength =>
         indexReader.read(ByteSizeOf.int - commonBytes) map {
@@ -48,50 +48,50 @@ object ValueLengthReader {
             Bytes.decompress(Slice.writeInt(previousValueLength), valueLengthBytes, commonBytes).readInt()
         }
     } getOrElse {
-      Failure(EntryReaderFailure.NoPreviousKeyValue)
+      IO.Failure(EntryReaderFailure.NoPreviousKeyValue)
     }
 
   implicit object ValueLengthOneCompressed extends ValueLengthReader[EntryId.ValueLength.OneCompressed] {
     override def read(indexReader: Reader,
-                      previous: Option[Persistent]): Try[Int] =
+                      previous: Option[Persistent]): IO[Int] =
       readLength(indexReader, previous, 1)
   }
 
   implicit object ValueLengthTwoCompressed extends ValueLengthReader[EntryId.ValueLength.TwoCompressed] {
     override def read(indexReader: Reader,
-                      previous: Option[Persistent]): Try[Int] =
+                      previous: Option[Persistent]): IO[Int] =
       readLength(indexReader, previous, 2)
   }
 
   implicit object ValueLengthThreeCompressed extends ValueLengthReader[EntryId.ValueLength.ThreeCompressed] {
     override def read(indexReader: Reader,
-                      previous: Option[Persistent]): Try[Int] =
+                      previous: Option[Persistent]): IO[Int] =
       readLength(indexReader, previous, 3)
   }
 
   implicit object ValueLengthFullyCompressed extends ValueLengthReader[EntryId.ValueLength.FullyCompressed] {
     override def read(indexReader: Reader,
-                      previous: Option[Persistent]): Try[Int] =
+                      previous: Option[Persistent]): IO[Int] =
       previous map {
         previous =>
-          Success(previous.valueLength)
-      } getOrElse Failure(EntryReaderFailure.NoPreviousKeyValue)
+          IO.Success(previous.valueLength)
+      } getOrElse IO.Failure(EntryReaderFailure.NoPreviousKeyValue)
   }
 
   implicit object ValueLengthUncompressed extends ValueLengthReader[EntryId.ValueLength.Uncompressed] {
     override def read(indexReader: Reader,
-                      previous: Option[Persistent]): Try[Int] =
+                      previous: Option[Persistent]): IO[Int] =
       indexReader.readIntUnsigned()
   }
 
   implicit object ValueLengthReaderValueFullyCompressed extends ValueLengthReader[EntryId.Value.FullyCompressed] {
     override def read(indexReader: Reader,
-                      previous: Option[Persistent]): Try[Int] =
-      TryUtil.successZero
+                      previous: Option[Persistent]): IO[Int] =
+      IOUtil.successZero
   }
   implicit object NoValue extends ValueLengthReader[EntryId.Value.NoValue] {
     override def read(indexReader: Reader,
-                      previous: Option[Persistent]): Try[Int] =
-      TryUtil.successZero
+                      previous: Option[Persistent]): IO[Int] =
+      IOUtil.successZero
   }
 }

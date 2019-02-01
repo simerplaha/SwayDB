@@ -28,12 +28,12 @@ import swaydb.data.compression.LZ4Instance._
 import swaydb.data.slice.Slice
 import swaydb.data.util.PipeOps._
 
-import scala.util.{Success, Try}
+import swaydb.data.io.IO
 
 private[swaydb] sealed trait CompressorInternal {
   val minCompressionPercentage: Double
 
-  def compress(slice: Slice[Byte]): Try[Option[Slice[Byte]]]
+  def compress(slice: Slice[Byte]): IO[Option[Slice[Byte]]]
 }
 
 private[swaydb] object CompressorInternal extends LazyLogging {
@@ -91,8 +91,8 @@ private[swaydb] object CompressorInternal extends LazyLogging {
   private[swaydb] case class LZ4(minCompressionPercentage: Double,
                                  compressor: LZ4Compressor) extends CompressorInternal {
 
-    override def compress(slice: Slice[Byte]): Try[Option[Slice[Byte]]] =
-      Try {
+    override def compress(slice: Slice[Byte]): IO[Option[Slice[Byte]]] =
+      IO {
         val sliceArray = slice.close().toArray
         val maxCompressedLength = compressor.maxCompressedLength(sliceArray.length)
         val compressed = new Array[Byte](maxCompressedLength)
@@ -106,9 +106,9 @@ private[swaydb] object CompressorInternal extends LazyLogging {
 
   private[swaydb] case object UnCompressedGroup extends CompressorInternal {
 
-    override def compress(slice: Slice[Byte]): Try[Option[Slice[Byte]]] = {
+    override def compress(slice: Slice[Byte]): IO[Option[Slice[Byte]]] = {
       logger.debug(s"Grouped {}.bytes with {}", slice.size, this.getClass.getSimpleName.dropRight(1))
-      Success(Some(slice))
+      IO.Success(Some(slice))
     }
 
     override val minCompressionPercentage: Double = Double.MinValue
@@ -116,8 +116,8 @@ private[swaydb] object CompressorInternal extends LazyLogging {
 
   private[swaydb] case class Snappy(minCompressionPercentage: Double) extends CompressorInternal {
 
-    override def compress(slice: Slice[Byte]): Try[Option[Slice[Byte]]] =
-      Try(snappy.Snappy.compress(slice.close().toArray)) map {
+    override def compress(slice: Slice[Byte]): IO[Option[Slice[Byte]]] =
+      IO(snappy.Snappy.compress(slice.close().toArray)) map {
         compressedArray =>
           if (isCompressionSatisfied(minCompressionPercentage, compressedArray.length, slice.size, this.getClass.getSimpleName))
             Some(Slice(compressedArray))

@@ -26,7 +26,7 @@ import swaydb.core.{TestBase, TestData}
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.TryAssert._
+import swaydb.core.IOAssert._
 import swaydb.core.data.{Memory, Persistent, Transient}
 import swaydb.core.group.compression.data.{GroupGroupingStrategyInternal, KeyValueGroupingStrategyInternal}
 import swaydb.core.queue.KeyValueLimiter

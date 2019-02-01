@@ -19,7 +19,7 @@
 
 package swaydb.core.segment.format.a.entry.reader.base
 
-import scala.util.Try
+import swaydb.data.io.IO
 import swaydb.core.data.Persistent
 import swaydb.core.segment.format.a.entry.id.BaseEntryId
 import swaydb.core.segment.format.a.entry.reader.EntryReader
@@ -34,7 +34,7 @@ object BaseEntryReader7 extends BaseEntryReader {
               nextIndexOffset: Int,
               nextIndexSize: Int,
               previous: Option[Persistent],
-              reader: EntryReader[T]): Option[Try[T]] =
+              reader: EntryReader[T]): Option[IO[T]] =
 	//GENERATED CONDITIONS
 	if(id >= BaseEntryId.FormatA.KeyUncompressed.NoTime.ValueUncompressed.ValueOffsetOneCompressed.ValueLengthOneCompressed.NoDeadline.id && id <= BaseEntryId.FormatA.KeyUncompressed.NoTime.ValueFullyCompressed.DeadlineUncompressed.id)
 		if (id >= BaseEntryId.FormatA.KeyUncompressed.NoTime.ValueUncompressed.ValueOffsetOneCompressed.ValueLengthOneCompressed.NoDeadline.id && id <= BaseEntryId.FormatA.KeyUncompressed.NoTime.ValueUncompressed.ValueOffsetOneCompressed.ValueLengthTwoCompressed.DeadlineUncompressed.id)

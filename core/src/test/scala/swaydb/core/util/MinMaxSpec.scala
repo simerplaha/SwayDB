@@ -25,7 +25,7 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 import swaydb.serializers._
 import swaydb.serializers.Default._
-import swaydb.core.TryAssert._
+import swaydb.core.IOAssert._
 
 class MinMaxSpec extends WordSpec with Matchers {
 

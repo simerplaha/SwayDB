@@ -20,13 +20,13 @@
 package swaydb.core.seek
 
 import scala.annotation.tailrec
-import scala.util.{Failure, Success, Try}
+import swaydb.data.io.IO
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data.{KeyValue, Memory, Value}
 import swaydb.core.seek.Seek.Stash
 import swaydb.core.function.FunctionStore
 import swaydb.core.merge._
-import swaydb.core.util.TryUtil
+import swaydb.core.util.IOUtil
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
@@ -61,7 +61,7 @@ private[core] object Higher {
            timeOrder: TimeOrder[Slice[Byte]],
            currentWalker: CurrentWalker,
            nextWalker: NextWalker,
-           functionStore: FunctionStore): Try[Option[KeyValue.ReadOnly.Put]] =
+           functionStore: FunctionStore): IO[Option[KeyValue.ReadOnly.Put]] =
     Higher(key, currentSeek, nextSeek)(keyOrder, timeOrder, currentWalker, nextWalker, functionStore)
 
   /**
@@ -78,7 +78,7 @@ private[core] object Higher {
                                 timeOrder: TimeOrder[Slice[Byte]],
                                 currentWalker: CurrentWalker,
                                 nextWalker: NextWalker,
-                                functionStore: FunctionStore): Try[Option[KeyValue.ReadOnly.Put]] = {
+                                functionStore: FunctionStore): IO[Option[KeyValue.ReadOnly.Put]] = {
     import keyOrder._
 
     (currentSeek, nextSeek) match {
@@ -90,14 +90,14 @@ private[core] object Higher {
 
       case (Seek.Next, Seek.Next) =>
         currentWalker.higher(key) match {
-          case Success(Some(higher)) =>
+          case IO.Success(Some(higher)) =>
             Higher(key, Stash.Current(higher), nextSeek)
 
-          case Success(None) =>
+          case IO.Success(None) =>
             Higher(key, Seek.Stop, nextSeek)
 
-          case Failure(exception) =>
-            Failure(exception)
+          case IO.Failure(exception) =>
+            IO.Failure(exception)
         }
 
       case (currentStash @ Stash.Current(current), Seek.Next) =>
@@ -107,35 +107,35 @@ private[core] object Higher {
           //10 - 20 (higher range from current Level)
           case currentRange: ReadOnly.Range if key >= currentRange.fromKey =>
             currentRange.fetchRangeValue match {
-              case Success(rangeValue) =>
+              case IO.Success(rangeValue) =>
                 //if the current range is active fetch the highest from next Level and return highest from both Levels.
                 if (Value.hasTimeLeft(rangeValue))
                 //if the higher from the current Level is a Fixed key-value, fetch from next Level and return the highest.
                   nextWalker.higher(key) match {
-                    case Success(Some(next)) =>
+                    case IO.Success(Some(next)) =>
                       Higher(key, currentStash, Stash.Next(next))
 
-                    case Success(None) =>
+                    case IO.Success(None) =>
                       Higher(key, currentStash, Seek.Stop)
 
-                    case Failure(exception) =>
-                      Failure(exception)
+                    case IO.Failure(exception) =>
+                      IO.Failure(exception)
                   }
 
                 else //if the rangeValue is expired then the higher is ceiling of toKey
                   currentWalker.get(currentRange.toKey) match {
-                    case Success(Some(ceiling)) if ceiling.hasTimeLeft() =>
-                      Success(Some(ceiling))
+                    case IO.Success(Some(ceiling)) if ceiling.hasTimeLeft() =>
+                      IO.Success(Some(ceiling))
 
-                    case Success(_) =>
+                    case IO.Success(_) =>
                       Higher(currentRange.toKey, Seek.Next, nextSeek)
 
-                    case failed @ Failure(_) =>
+                    case failed @ IO.Failure(_) =>
                       failed
                   }
 
-              case Failure(exception) =>
-                Failure(exception)
+              case IO.Failure(exception) =>
+                IO.Failure(exception)
             }
 
           //if the input key is smaller than this Level's higher Range's fromKey.
@@ -143,39 +143,39 @@ private[core] object Higher {
           //    10 - 20 (higher range)
           case _: KeyValue.ReadOnly.Range =>
             nextWalker.higher(key) match {
-              case Success(Some(next)) =>
+              case IO.Success(Some(next)) =>
                 Higher(key, currentStash, Stash.Next(next))
 
-              case Success(None) =>
+              case IO.Success(None) =>
                 Higher(key, currentStash, Seek.Stop)
 
-              case Failure(exception) =>
-                Failure(exception)
+              case IO.Failure(exception) =>
+                IO.Failure(exception)
             }
 
           case _: ReadOnly.Fixed =>
             nextWalker.higher(key) match {
-              case Success(Some(next)) =>
+              case IO.Success(Some(next)) =>
                 Higher(key, currentStash, Stash.Next(next))
 
-              case Success(None) =>
+              case IO.Success(None) =>
                 Higher(key, currentStash, Seek.Stop)
 
-              case Failure(exception) =>
-                Failure(exception)
+              case IO.Failure(exception) =>
+                IO.Failure(exception)
             }
         }
 
       case (Seek.Stop, Seek.Next) =>
         nextWalker.higher(key) match {
-          case Success(Some(next)) =>
+          case IO.Success(Some(next)) =>
             Higher(key, currentSeek, Stash.Next(next))
 
-          case Success(None) =>
+          case IO.Success(None) =>
             Higher(key, currentSeek, Seek.Stop)
 
-          case Failure(exception) =>
-            Failure(exception)
+          case IO.Failure(exception) =>
+            IO.Failure(exception)
         }
 
       /** *********************************************************
@@ -186,20 +186,20 @@ private[core] object Higher {
 
       case (Seek.Stop, Stash.Next(next)) =>
         if (next.hasTimeLeft())
-          Success(Some(next))
+          IO.Success(Some(next))
         else
           Higher(next.key, currentSeek, Seek.Next)
 
       case (Seek.Next, Stash.Next(_)) =>
         currentWalker.higher(key) match {
-          case Success(Some(current)) =>
+          case IO.Success(Some(current)) =>
             Higher(key, Stash.Current(current), nextSeek)
 
-          case Success(None) =>
+          case IO.Success(None) =>
             Higher(key, Seek.Stop, nextSeek)
 
-          case Failure(exception) =>
-            Failure(exception)
+          case IO.Failure(exception) =>
+            IO.Failure(exception)
         }
 
       case (currentStash @ Stash.Current(current), nextStash @ Stash.Next(next)) =>
@@ -216,24 +216,24 @@ private[core] object Higher {
             //    2
             if (next.key equiv current.key)
               FixedMerger(current, next) match {
-                case Success(merged) =>
+                case IO.Success(merged) =>
                   merged match {
                     case put: ReadOnly.Put if put.hasTimeLeft() =>
-                      Success(Some(put))
+                      IO.Success(Some(put))
 
                     case _ =>
                       //if it doesn't result in an unexpired put move forward.
                       Higher(current.key, Seek.Next, Seek.Next)
                   }
-                case Failure(exception) =>
-                  Failure(exception)
+                case IO.Failure(exception) =>
+                  IO.Failure(exception)
               }
             //    2
             //      3  or  5
             else if (next.key > current.key)
               current match {
                 case put: ReadOnly.Put if put.hasTimeLeft() =>
-                  Success(Some(put))
+                  IO.Success(Some(put))
 
                 //if it doesn't result in an unexpired put move forward.
                 case _ =>
@@ -242,7 +242,7 @@ private[core] object Higher {
             //    2
             //0
             else //else higher from next is smaller
-              Success(Some(next))
+              IO.Success(Some(next))
 
           /** *********************************************
             * *********************************************
@@ -255,17 +255,17 @@ private[core] object Higher {
             //   10 - 20
             //1
             if (next.key < current.fromKey)
-              Success(Some(next))
+              IO.Success(Some(next))
             //10 - 20
             //10
             else if (next.key equiv current.fromKey)
               current.fetchFromOrElseRangeValue match {
-                case Success(fromOrElseRangeValue) =>
+                case IO.Success(fromOrElseRangeValue) =>
                   FixedMerger(fromOrElseRangeValue.toMemory(current.fromKey), next) match {
-                    case Success(mergedCurrent) =>
+                    case IO.Success(mergedCurrent) =>
                       mergedCurrent match {
                         case put: ReadOnly.Put if put.hasTimeLeft() =>
-                          Success(Some(put))
+                          IO.Success(Some(put))
                         case _ =>
                           //do need to check if range is expired because if it was then
                           //next would not have been read from next level in the first place.
@@ -273,12 +273,12 @@ private[core] object Higher {
 
                       }
 
-                    case Failure(exception) =>
-                      Failure(exception)
+                    case IO.Failure(exception) =>
+                      IO.Failure(exception)
                   }
 
-                case Failure(exception) =>
-                  Failure(exception)
+                case IO.Failure(exception) =>
+                  IO.Failure(exception)
               }
 
             //10  -  20
@@ -286,17 +286,17 @@ private[core] object Higher {
             else if (next.key < current.toKey) //if the higher in next Level falls within the range.
               current.fetchFromAndRangeValue match {
                 //if fromValue is set check if it qualifies as the next highest orElse return higher of fromKey
-                case Success((fromValue, rangeValue)) =>
+                case IO.Success((fromValue, rangeValue)) =>
                   higherFromValue(key, current.fromKey, fromValue) match {
                     case Some(fromValuePut) =>
-                      Success(Some(fromValuePut))
+                      IO.Success(Some(fromValuePut))
 
                     case None =>
                       FixedMerger(rangeValue.toMemory(next.key), next) match {
-                        case Success(mergedValue) =>
+                        case IO.Success(mergedValue) =>
                           mergedValue match { //return applied value with next key-value as the current value.
                             case put: Memory.Put if put.hasTimeLeft() =>
-                              Success(Some(put))
+                              IO.Success(Some(put))
 
                             case _ =>
                               //fetch the next key keeping the current stash. next.key's higher is still current range
@@ -304,13 +304,13 @@ private[core] object Higher {
                               Higher(next.key, currentStash, Seek.Next)
                           }
 
-                        case Failure(exception) =>
-                          Failure(exception)
+                        case IO.Failure(exception) =>
+                          IO.Failure(exception)
                       }
                   }
 
-                case Failure(exception) =>
-                  Failure(exception)
+                case IO.Failure(exception) =>
+                  IO.Failure(exception)
               }
 
             //10 - 20
@@ -318,29 +318,29 @@ private[core] object Higher {
             else //else if the higher in next Level does not fall within the range.
               current.fetchFromValue match {
                 //if fromValue is set check if it qualifies as the next highest orElse return higher of fromKey
-                case Success(fromValue) =>
+                case IO.Success(fromValue) =>
                   higherFromValue(key, current.fromKey, fromValue) match {
                     case somePut @ Some(_) =>
-                      Success(somePut)
+                      IO.Success(somePut)
 
                     case None =>
                       currentWalker.get(current.toKey) match {
-                        case found @ Success(Some(put)) =>
+                        case found @ IO.Success(Some(put)) =>
                           if (put.hasTimeLeft())
                             found
                           else
                             Higher(current.toKey, Seek.Next, nextStash)
 
-                        case Success(None) =>
+                        case IO.Success(None) =>
                           Higher(current.toKey, Seek.Next, nextStash)
 
-                        case Failure(exception) =>
-                          Failure(exception)
+                        case IO.Failure(exception) =>
+                          IO.Failure(exception)
                       }
                   }
 
-                case Failure(exception) =>
-                  Failure(exception)
+                case IO.Failure(exception) =>
+                  IO.Failure(exception)
               }
         }
 
@@ -352,21 +352,21 @@ private[core] object Higher {
 
       case (Seek.Next, Seek.Stop) =>
         currentWalker.higher(key) match {
-          case Success(Some(current)) =>
+          case IO.Success(Some(current)) =>
             Higher(key, Stash.Current(current), nextSeek)
 
-          case Success(None) =>
+          case IO.Success(None) =>
             Higher(key, Seek.Stop, nextSeek)
 
-          case Failure(exception) =>
-            Failure(exception)
+          case IO.Failure(exception) =>
+            IO.Failure(exception)
         }
 
       case (Stash.Current(current), Seek.Stop) =>
         current match {
           case current: KeyValue.ReadOnly.Put =>
             if (current.hasTimeLeft())
-              Success(Some(current))
+              IO.Success(Some(current))
             else
               Higher(current.key, Seek.Next, nextSeek)
 
@@ -384,31 +384,31 @@ private[core] object Higher {
 
           case current: KeyValue.ReadOnly.Range =>
             current.fetchFromValue match {
-              case Success(fromValue) =>
+              case IO.Success(fromValue) =>
                 higherFromValue(key, current.fromKey, fromValue) match {
                   case somePut @ Some(_) =>
-                    Success(somePut)
+                    IO.Success(somePut)
 
                   case None =>
                     currentWalker.get(current.toKey) match {
-                      case Success(Some(put)) =>
+                      case IO.Success(Some(put)) =>
                         Higher(key, Stash.Current(put), nextSeek)
 
-                      case Success(None) =>
+                      case IO.Success(None) =>
                         Higher(current.toKey, Seek.Next, nextSeek)
 
-                      case Failure(exception) =>
-                        Failure(exception)
+                      case IO.Failure(exception) =>
+                        IO.Failure(exception)
                     }
                 }
 
-              case Failure(exception) =>
-                Failure(exception)
+              case IO.Failure(exception) =>
+                IO.Failure(exception)
             }
         }
 
       case (Seek.Stop, Seek.Stop) =>
-        TryUtil.successNone
+        IOUtil.successNone
     }
   }
 }

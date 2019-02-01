@@ -23,9 +23,9 @@ import java.util.concurrent.ConcurrentSkipListMap
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.map.serializer.MapEntryWriter
 import scala.reflect.ClassTag
-import scala.util.{Success, Try}
+import swaydb.data.io.IO
 import swaydb.core.function.FunctionStore
-import swaydb.core.util.TryUtil
+import swaydb.core.util.IOUtil
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
@@ -43,10 +43,10 @@ private[map] class MemoryMap[K, V: ClassTag](val skipList: ConcurrentSkipListMap
 
   override def hasRange: Boolean = _hasRange
 
-  def delete: Try[Unit] =
-    Try(skipList.clear())
+  def delete: IO[Unit] =
+    IO(skipList.clear())
 
-  override def write(entry: MapEntry[K, V]): Try[Boolean] =
+  override def write(entry: MapEntry[K, V]): IO[Boolean] =
     synchronized {
       if (flushOnOverflow || currentBytesWritten == 0 || ((currentBytesWritten + entry.totalByteSize) <= fileSize)) {
         if (entry.hasRange) {
@@ -58,11 +58,11 @@ private[map] class MemoryMap[K, V: ClassTag](val skipList: ConcurrentSkipListMap
           entry applyTo skipList
         }
         currentBytesWritten += entry.totalByteSize
-        Success(true)
+        IO.Success(true)
       } else
-        Success(false)
+        IO.Success(false)
     }
 
-  override def close(): Try[Unit] =
-    TryUtil.successUnit
+  override def close(): IO[Unit] =
+    IOUtil.successUnit
 }

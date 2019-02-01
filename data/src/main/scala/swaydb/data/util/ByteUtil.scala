@@ -23,7 +23,7 @@ import java.nio.charset.Charset
 
 import swaydb.data.slice.{Reader, Slice}
 
-import scala.util.{Failure, Success, Try}
+import swaydb.data.io.IO
 
 object ByteUtil {
 
@@ -34,7 +34,7 @@ object ByteUtil {
     slice add int.toByte
   }
 
-  def readInt(reader: Reader): Try[Int] = {
+  def readInt(reader: Reader): IO[Int] = {
     reader.read(ByteSizeOf.int) map readInt
   }
 
@@ -65,13 +65,13 @@ object ByteUtil {
       ((bytes(6) & 0xffL) << 8) |
       bytes(7) & 0xffL
 
-  def readLong(reader: Reader): Try[Long] =
+  def readLong(reader: Reader): IO[Long] =
     reader.read(ByteSizeOf.long) map readLong
 
-  def readBoolean(reader: Reader): Try[Boolean] =
+  def readBoolean(reader: Reader): IO[Boolean] =
     reader.get() map (_ == 1)
 
-  def readString(reader: Reader, charset: Charset): Try[String] =
+  def readString(reader: Reader, charset: Charset): IO[String] =
     reader.size flatMap {
       size =>
         reader.read((size - reader.getPosition).toInt) map (readString(_, charset))
@@ -79,7 +79,7 @@ object ByteUtil {
 
   def readString(size: Int,
                  reader: Reader,
-                 charset: Charset): Try[String] =
+                 charset: Charset): IO[String] =
     reader.read(size) map (readString(_, charset))
 
   //TODO - readString is expensive. If the slice bytes are a sub-slice of another other Slice a copy of the array will be created.
@@ -105,7 +105,7 @@ object ByteUtil {
   def writeSignedInt(x: Int, slice: Slice[Byte]): Unit =
     writeUnsignedInt((x << 1) ^ (x >> 31), slice)
 
-  def readSignedInt(reader: Reader): Try[Int] = {
+  def readSignedInt(reader: Reader): IO[Int] = {
     readUnsignedInt(reader) map {
       unsigned =>
         // undo even odd mapping
@@ -115,7 +115,7 @@ object ByteUtil {
     }
   }
 
-  def readSignedInt(slice: Slice[Byte]): Try[Int] = {
+  def readSignedInt(slice: Slice[Byte]): IO[Int] = {
     readUnsignedInt(slice) map {
       unsigned =>
         // undo even odd mapping
@@ -147,7 +147,7 @@ object ByteUtil {
     Slice(array).slice(i, array.length - 1)
   }
 
-  def readUnsignedInt(reader: Reader): Try[Int] = {
+  def readUnsignedInt(reader: Reader): IO[Int] = {
     try {
       var i = 0
       var int = 0
@@ -158,14 +158,14 @@ object ByteUtil {
         i += 7
         require(i <= 35)
       } while ((read & 0x80) != 0)
-      Success(int)
+      IO.Success(int)
     } catch {
       case ex: Exception =>
-        Failure(ex)
+        IO.Failure(ex)
     }
   }
 
-  def readUnsignedInt(slice: Slice[Byte]): Try[Int] = {
+  def readUnsignedInt(slice: Slice[Byte]): IO[Int] = {
     try {
       var index = 0
       var i = 0
@@ -178,17 +178,17 @@ object ByteUtil {
         index += 1
         require(i <= 35)
       } while ((read & 0x80) != 0)
-      Success(int)
+      IO.Success(int)
     } catch {
       case ex: Exception =>
-        Failure(ex)
+        IO.Failure(ex)
     }
   }
 
   /**
     * @return Tuple where the first integer is the unsigned integer and the second is the number of bytes read.
     */
-  def readLastUnsignedInt(slice: Slice[Byte]): Try[(Int, Int)] = {
+  def readLastUnsignedInt(slice: Slice[Byte]): IO[(Int, Int)] = {
     try {
       var index = slice.size - 1
       var i = 0
@@ -201,17 +201,17 @@ object ByteUtil {
         index -= 1
         require(i <= 35)
       } while ((read & 0x80) != 0)
-      Success(int, slice.size - index - 1)
+      IO.Success(int, slice.size - index - 1)
     } catch {
       case ex: Exception =>
-        Failure(ex)
+        IO.Failure(ex)
     }
   }
 
   def writeSignedLong(long: Long, slice: Slice[Byte]): Unit =
     writeUnsignedLong((long << 1) ^ (long >> 63), slice)
 
-  def readSignedLong(reader: Reader): Try[Long] =
+  def readSignedLong(reader: Reader): IO[Long] =
     readUnsignedLong(reader) map {
       unsigned =>
         // undo even odd mapping
@@ -220,7 +220,7 @@ object ByteUtil {
         tmp ^ (unsigned & (1L << 63))
     }
 
-  def readSignedLong(slice: Slice[Byte]): Try[Long] =
+  def readSignedLong(slice: Slice[Byte]): IO[Long] =
     readUnsignedLong(slice) map {
       unsigned =>
         // undo even odd mapping
@@ -238,7 +238,7 @@ object ByteUtil {
     slice add (x & 0x7F).toByte
   }
 
-  def readUnsignedLong(reader: Reader): Try[Long] =
+  def readUnsignedLong(reader: Reader): IO[Long] =
     try {
       var i = 0
       var long = 0L
@@ -249,13 +249,13 @@ object ByteUtil {
         i += 7
         require(i <= 70)
       } while ((read & 0x80L) != 0)
-      Success(long)
+      IO.Success(long)
     } catch {
       case ex: Exception =>
-        Failure(ex)
+        IO.Failure(ex)
     }
 
-  def readUnsignedLong(slice: Slice[Byte]): Try[Long] =
+  def readUnsignedLong(slice: Slice[Byte]): IO[Long] =
     try {
       var index = 0
       var i = 0
@@ -268,10 +268,10 @@ object ByteUtil {
         index += 1
         require(i <= 70)
       } while ((read & 0x80L) != 0)
-      Success(long)
+      IO.Success(long)
     } catch {
       case ex: Exception =>
-        Failure(ex)
+        IO.Failure(ex)
     }
 
   def sizeOf(int: Int): Int = {

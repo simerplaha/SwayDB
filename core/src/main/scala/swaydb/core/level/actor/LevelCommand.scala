@@ -26,7 +26,7 @@ import swaydb.core.segment.Segment
 import swaydb.data.slice.Slice
 
 import scala.concurrent.duration.Deadline
-import scala.util.Try
+import swaydb.data.io.IO
 
 sealed trait LevelCommand
 sealed trait LevelZeroCommand
@@ -44,10 +44,10 @@ sealed trait LevelZeroResponse extends LevelZeroCommand
 object LevelCommand {
 
   case class PushSegmentsResponse(request: PushSegments,
-                                  result: Try[Unit]) extends LevelResponse
+                                  result: IO[Unit]) extends LevelResponse
 
   case class PushMapResponse(request: PushMap,
-                             result: Try[Unit]) extends LevelZeroResponse
+                             result: IO[Unit]) extends LevelZeroResponse
 
   sealed trait Push extends LevelCommand with LevelZeroCommand
   case object Push extends Push

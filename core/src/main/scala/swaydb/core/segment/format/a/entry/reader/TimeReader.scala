@@ -20,7 +20,7 @@
 package swaydb.core.segment.format.a.entry.reader
 
 import scala.annotation.implicitNotFound
-import scala.util.{Failure, Try}
+import swaydb.data.io.IO
 import swaydb.core.data.{KeyValue, Time}
 import swaydb.core.segment.format.a.entry.id.EntryId
 import swaydb.core.util.Bytes
@@ -29,7 +29,7 @@ import swaydb.data.slice.Reader
 @implicitNotFound("Type class implementation not found for TimeReader of type ${T}")
 sealed trait TimeReader[-T] {
   def read(indexReader: Reader,
-           previous: Option[KeyValue.ReadOnly]): Try[Time]
+           previous: Option[KeyValue.ReadOnly]): IO[Time]
 }
 
 /**
@@ -40,13 +40,13 @@ object TimeReader {
 
   implicit object NoTimeReader extends TimeReader[EntryId.Time.NoTime] {
     override def read(indexReader: Reader,
-                      previous: Option[KeyValue.ReadOnly]): Try[Time] =
+                      previous: Option[KeyValue.ReadOnly]): IO[Time] =
       Time.successEmpty
   }
 
   implicit object UnCompressedTimeReader extends TimeReader[EntryId.Time.Uncompressed] {
     override def read(indexReader: Reader,
-                      previous: Option[KeyValue.ReadOnly]): Try[Time] =
+                      previous: Option[KeyValue.ReadOnly]): IO[Time] =
       indexReader.readIntUnsigned() flatMap {
         timeSize =>
           indexReader.read(timeSize) map {
@@ -59,7 +59,7 @@ object TimeReader {
   implicit object PartiallyCompressedTimeReader extends TimeReader[EntryId.Time.PartiallyCompressed] {
 
     def readTime(indexReader: Reader,
-                 previousTime: Time): Try[Time] =
+                 previousTime: Time): IO[Time] =
       indexReader.readIntUnsigned() flatMap {
         commonBytes =>
           indexReader.readIntUnsigned() flatMap {
@@ -73,7 +73,7 @@ object TimeReader {
       }
 
     override def read(indexReader: Reader,
-                      previous: Option[KeyValue.ReadOnly]): Try[Time] =
+                      previous: Option[KeyValue.ReadOnly]): IO[Time] =
       previous map {
         case previous: KeyValue.ReadOnly.Put =>
           readTime(indexReader, previous.time)
@@ -91,23 +91,23 @@ object TimeReader {
           readTime(indexReader, previous.time)
 
         case _: KeyValue.ReadOnly.Range | _: KeyValue.ReadOnly.Group =>
-          Failure(EntryReaderFailure.PreviousIsNotFixedKeyValue)
+          IO.Failure(EntryReaderFailure.PreviousIsNotFixedKeyValue)
 
       } getOrElse {
-        Failure(EntryReaderFailure.NoPreviousKeyValue)
+        IO.Failure(EntryReaderFailure.NoPreviousKeyValue)
       }
   }
 
   implicit object TimeFullyCompressedTimeReader extends TimeReader[EntryId.Time.FullyCompressed] {
     def readTime(indexReader: Reader,
-                 previousTime: Time): Try[Time] =
+                 previousTime: Time): IO[Time] =
       indexReader.readIntUnsigned() map {
         commonBytes =>
           Time(previousTime.time.take(commonBytes))
       }
 
     override def read(indexReader: Reader,
-                      previous: Option[KeyValue.ReadOnly]): Try[Time] =
+                      previous: Option[KeyValue.ReadOnly]): IO[Time] =
       previous map {
         case previous: KeyValue.ReadOnly.Put =>
           readTime(indexReader, previous.time)
@@ -125,10 +125,10 @@ object TimeReader {
           readTime(indexReader, previous.time)
 
         case _: KeyValue.ReadOnly.Range | _: KeyValue.ReadOnly.Group =>
-          Failure(EntryReaderFailure.PreviousIsNotFixedKeyValue)
+          IO.Failure(EntryReaderFailure.PreviousIsNotFixedKeyValue)
 
       } getOrElse {
-        Failure(EntryReaderFailure.NoPreviousKeyValue)
+        IO.Failure(EntryReaderFailure.NoPreviousKeyValue)
       }
   }
 }

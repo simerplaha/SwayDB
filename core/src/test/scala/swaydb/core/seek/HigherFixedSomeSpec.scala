@@ -21,13 +21,13 @@ package swaydb.core.seek
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, OptionValues, WordSpec}
-import scala.util.Try
+import swaydb.data.io.IO
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.TryAssert._
+import swaydb.core.IOAssert._
 import swaydb.core.data.Memory
 import swaydb.core.merge.FixedMerger
-import swaydb.core.util.TryUtil
+import swaydb.core.util.IOUtil
 import swaydb.core.{TestData, TestTimeGenerator}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -57,8 +57,8 @@ class HigherFixedSomeSpec extends WordSpec with Matchers with MockFactory with O
 
         inSequence {
           //@formatter:off
-          current.higher _ expects (0: Slice[Byte]) returning Try(Some(put))
-          next.higher    _ expects (0: Slice[Byte]) returning TryUtil.successNone
+          current.higher _ expects (0: Slice[Byte]) returning IO(Some(put))
+          next.higher    _ expects (0: Slice[Byte]) returning IOUtil.successNone
           //@formatter:on
         }
         Higher(0: Slice[Byte]).assertGet shouldBe put
@@ -79,8 +79,8 @@ class HigherFixedSomeSpec extends WordSpec with Matchers with MockFactory with O
 
         inSequence {
           //@formatter:off
-          current.higher _ expects (0: Slice[Byte]) returning TryUtil.successNone
-          next.higher    _ expects (0: Slice[Byte]) returning Try(Some(put))
+          current.higher _ expects (0: Slice[Byte]) returning IOUtil.successNone
+          next.higher    _ expects (0: Slice[Byte]) returning IO(Some(put))
           //@formatter:on
         }
         Higher(0: Slice[Byte]).assertGet shouldBe put
@@ -104,8 +104,8 @@ class HigherFixedSomeSpec extends WordSpec with Matchers with MockFactory with O
 
         inSequence {
           //@formatter:off
-          current.higher _ expects (0: Slice[Byte]) returning Try(Some(upperKeyValue))
-          next.higher    _ expects (0: Slice[Byte]) returning Try(Some(lowerKeyValue))
+          current.higher _ expects (0: Slice[Byte]) returning IO(Some(upperKeyValue))
+          next.higher    _ expects (0: Slice[Byte]) returning IO(Some(lowerKeyValue))
           //@formatter:on
         }
         Higher(0: Slice[Byte]).assertGet shouldBe expected
@@ -139,9 +139,9 @@ class HigherFixedSomeSpec extends WordSpec with Matchers with MockFactory with O
 
         inSequence {
           //@formatter:off
-          current.higher _ expects (0: Slice[Byte]) returning Try(Some(upperKeyValue))
-          next.higher    _ expects (0: Slice[Byte]) returning Try(Some(lowerKeyValue))
-          if(!isUpperExpected) current.higher _ expects (1: Slice[Byte]) returning TryUtil.successNone
+          current.higher _ expects (0: Slice[Byte]) returning IO(Some(upperKeyValue))
+          next.higher    _ expects (0: Slice[Byte]) returning IO(Some(lowerKeyValue))
+          if(!isUpperExpected) current.higher _ expects (1: Slice[Byte]) returning IOUtil.successNone
           //@formatter:on
         }
         Higher(0: Slice[Byte]).assertGet shouldBe expected
@@ -162,8 +162,8 @@ class HigherFixedSomeSpec extends WordSpec with Matchers with MockFactory with O
 
         inSequence {
           //@formatter:off
-          current.higher _ expects (0: Slice[Byte]) returning Try(Some(upperKeyValue))
-          next.higher    _ expects (0: Slice[Byte]) returning Try(Some(lowerKeyValue))
+          current.higher _ expects (0: Slice[Byte]) returning IO(Some(upperKeyValue))
+          next.higher    _ expects (0: Slice[Byte]) returning IO(Some(lowerKeyValue))
           //@formatter:on
         }
         Higher(0: Slice[Byte]).assertGet shouldBe lowerKeyValue

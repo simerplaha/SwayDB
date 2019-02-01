@@ -19,7 +19,7 @@
 
 package swaydb.data.slice
 
-import scala.util.{Success, Try}
+import swaydb.data.io.IO
 
 /**
   * http://www.swaydb.io/slice/byte-slice
@@ -28,14 +28,14 @@ private[swaydb] case class SliceReader(slice: Slice[Byte]) extends Reader {
 
   private var position: Int = 0
 
-  override val size: Try[Long] =
-    Try(slice.size.toLong)
+  override val size: IO[Long] =
+    IO(slice.size.toLong)
 
-  def hasAtLeast(size: Long): Try[Boolean] =
-    Try((slice.size - position) >= size)
+  def hasAtLeast(size: Long): IO[Boolean] =
+    IO((slice.size - position) >= size)
 
-  def read(size: Int): Try[Slice[Byte]] =
-    Try {
+  def read(size: Int): IO[Slice[Byte]] =
+    IO {
       if (size == 0)
         Slice.emptyBytes
       else {
@@ -51,14 +51,14 @@ private[swaydb] case class SliceReader(slice: Slice[Byte]) extends Reader {
   }
 
   def get() =
-    Try {
+    IO {
       val byte = slice get position
       position += 1
       byte
     }
 
   def hasMore =
-    Success(position < slice.size)
+    IO.Success(position < slice.size)
 
   override def getPosition: Int =
     position
@@ -66,7 +66,7 @@ private[swaydb] case class SliceReader(slice: Slice[Byte]) extends Reader {
   override def copy(): Reader =
     SliceReader(slice)
 
-  override def readRemaining(): Try[Slice[Byte]] =
+  override def readRemaining(): IO[Slice[Byte]] =
     remaining flatMap read
 
 }

@@ -21,8 +21,8 @@ package swaydb.core.io.file
 
 import com.typesafe.scalalogging.LazyLogging
 import java.nio.file.Path
-import scala.util.{Failure, Success, Try}
-import swaydb.core.util.TryUtil
+import swaydb.data.io.IO
+import swaydb.core.util.IOUtil
 import swaydb.data.slice.Slice
 
 private[file] object MemoryFile {
@@ -33,45 +33,45 @@ private[file] object MemoryFile {
 private[file] class MemoryFile(val path: Path,
                                private var bytes: Slice[Byte]) extends LazyLogging with DBFileType {
 
-  override def close(): Try[Unit] =
-    TryUtil.successUnit
+  override def close(): IO[Unit] =
+    IOUtil.successUnit
 
-  override def append(slice: Slice[Byte]): Try[Unit] =
-    Failure(new UnsupportedOperationException("Memory files are immutable. Cannot append."))
+  override def append(slice: Slice[Byte]): IO[Unit] =
+    IO.Failure(new UnsupportedOperationException("Memory files are immutable. Cannot append."))
 
-  override def read(position: Int, size: Int): Try[Slice[Byte]] =
-    Try(bytes.slice(position, position + size - 1))
+  override def read(position: Int, size: Int): IO[Slice[Byte]] =
+    IO(bytes.slice(position, position + size - 1))
 
-  override def get(position: Int): Try[Byte] =
-    Try(bytes.get(position))
+  override def get(position: Int): IO[Byte] =
+    IO(bytes.get(position))
 
-  override def readAll: Try[Slice[Byte]] =
-    Try(bytes)
+  override def readAll: IO[Slice[Byte]] =
+    IO(bytes)
 
-  override def fileSize: Try[Long] =
-    Try(bytes.size)
+  override def fileSize: IO[Long] =
+    IO(bytes.size)
 
-  override def isMemoryMapped: Try[Boolean] =
-    Success(false)
+  override def isMemoryMapped: IO[Boolean] =
+    IO.Success(false)
 
-  override def isLoaded: Try[Boolean] =
-    Success(true)
+  override def isLoaded: IO[Boolean] =
+    IO.Success(true)
 
   override def isOpen: Boolean =
     true
 
-  override def isFull: Try[Boolean] =
-    Success(true)
+  override def isFull: IO[Boolean] =
+    IO.Success(true)
 
   override def memory: Boolean = true
 
-  override def delete(): Try[Unit] =
+  override def delete(): IO[Unit] =
     close map {
       _ =>
         //null bytes for GC
         bytes = null
     }
 
-  override def forceSave(): Try[Unit] =
-    TryUtil.successUnit
+  override def forceSave(): IO[Unit] =
+    IOUtil.successUnit
 }

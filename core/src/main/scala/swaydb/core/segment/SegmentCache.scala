@@ -24,7 +24,7 @@ import com.typesafe.scalalogging.LazyLogging
 import java.util.concurrent.ConcurrentSkipListMap
 import java.util.concurrent.atomic.AtomicBoolean
 import scala.annotation.tailrec
-import scala.util.{Failure, Success, Try}
+import swaydb.data.io.IO
 import swaydb.core.data.{Persistent, _}
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.format.a.SegmentReader._
@@ -38,8 +38,8 @@ private[core] class SegmentCacheInitializer(id: String,
                                             maxKey: MaxKey[Slice[Byte]],
                                             minKey: Slice[Byte],
                                             unsliceKey: Boolean,
-                                            getFooter: () => Try[SegmentFooter],
-                                            createReader: () => Try[Reader]) {
+                                            getFooter: () => IO[SegmentFooter],
+                                            createReader: () => IO[Reader]) {
   private val created = new AtomicBoolean(false)
   @volatile private var cache: SegmentCache = _
 
@@ -70,8 +70,8 @@ private[core] class SegmentCache(id: String,
                                  minKey: Slice[Byte],
                                  cache: ConcurrentSkipListMap[Slice[Byte], Persistent],
                                  unsliceKey: Boolean,
-                                 getFooter: () => Try[SegmentFooter],
-                                 createReader: () => Try[Reader])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                 getFooter: () => IO[SegmentFooter],
+                                 createReader: () => IO[Reader])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                   keyValueLimiter: KeyValueLimiter) extends LazyLogging {
 
   import keyOrder._
@@ -82,7 +82,7 @@ private[core] class SegmentCache(id: String,
     keyValueLimiter.add(keyValue, cache)
   }
 
-  private def addToCache(group: Persistent.Group): Try[Unit] = {
+  private def addToCache(group: Persistent.Group): IO[Unit] = {
     if (unsliceKey) group.unsliceIndexBytes
     keyValueLimiter.add(group, cache) map {
       _ =>
@@ -90,7 +90,7 @@ private[core] class SegmentCache(id: String,
     }
   }
 
-  private def prepareGet[T](getOperation: (SegmentFooter, Reader) => Try[T]): Try[T] =
+  private def prepareGet[T](getOperation: (SegmentFooter, Reader) => IO[T]): IO[T] =
     getFooter() flatMap {
       footer =>
         createReader() flatMap {
@@ -100,53 +100,53 @@ private[core] class SegmentCache(id: String,
     } recoverWith {
       case ex: Exception =>
         ExceptionUtil.logFailure(s"$id: Failed to read Segment.", ex)
-        Failure(ex)
+        IO.Failure(ex)
     }
 
-  def getBloomFilter: Try[Option[BloomFilter[Slice[Byte]]]] =
+  def getBloomFilter: IO[Option[BloomFilter[Slice[Byte]]]] =
     getFooter().map(_.bloomFilter)
 
   def getFromCache(key: Slice[Byte]): Option[Persistent] =
     Option(cache.get(key))
 
-  def mightContain(key: Slice[Byte]): Try[Boolean] =
+  def mightContain(key: Slice[Byte]): IO[Boolean] =
     getFooter().map(_.bloomFilter.forall(_.mightContain(key)))
 
-  def get(key: Slice[Byte]): Try[Option[Persistent.SegmentResponse]] =
+  def get(key: Slice[Byte]): IO[Option[Persistent.SegmentResponse]] =
     maxKey match {
       case MaxKey.Fixed(maxKey) if key > maxKey =>
-        TryUtil.successNone
+        IOUtil.successNone
 
       case range: MaxKey.Range[Slice[Byte]] if key >= range.maxKey =>
-        TryUtil.successNone
+        IOUtil.successNone
 
       //check for minKey inside the Segment is not required since Levels already do minKey check.
       //      case _ if key < minKey =>
-      //        TryUtil.successNone
+      //        IOUtil.successNone
 
       case _ =>
         val floorValue = Option(cache.floorEntry(key)).map(_.getValue)
         floorValue match {
           case Some(floor: Persistent.SegmentResponse) if floor.key equiv key =>
-            Success(Some(floor))
+            IO.Success(Some(floor))
 
           //check if the key belongs to this group.
           case Some(group: Persistent.Group) if group contains key =>
             group.segmentCache.get(key)
 
           case Some(floorRange: Persistent.Range) if floorRange contains key =>
-            Success(Some(floorRange))
+            IO.Success(Some(floorRange))
 
           case _ =>
             prepareGet {
               (footer, reader) =>
                 if (!footer.hasRange && !footer.bloomFilter.forall(_.mightContain(key)))
-                  TryUtil.successNone
+                  IOUtil.successNone
                 else
                   find(KeyMatcher.Get(key), startFrom = floorValue, reader, footer) flatMap {
                     case Some(response: Persistent.SegmentResponse) =>
                       addToCache(response)
-                      Success(Some(response))
+                      IO.Success(Some(response))
 
                     case Some(group: Persistent.Group) =>
                       addToCache(group) flatMap {
@@ -156,7 +156,7 @@ private[core] class SegmentCache(id: String,
                       }
 
                     case None =>
-                      TryUtil.successNone
+                      IOUtil.successNone
                   }
             }
         }
@@ -176,9 +176,9 @@ private[core] class SegmentCache(id: String,
             None
       }
 
-  def lower(key: Slice[Byte]): Try[Option[Persistent.SegmentResponse]] =
+  def lower(key: Slice[Byte]): IO[Option[Persistent.SegmentResponse]] =
     if (key <= minKey)
-      TryUtil.successNone
+      IOUtil.successNone
     else
       maxKey match {
         case MaxKey.Fixed(maxKey) if key > maxKey =>
@@ -192,7 +192,7 @@ private[core] class SegmentCache(id: String,
           val lowerFromCache = lowerKeyValue.flatMap(satisfyLowerFromCache(key, _))
           lowerFromCache map {
             case response: Persistent.SegmentResponse =>
-              Success(Some(response))
+              IO.Success(Some(response))
 
             case group: Persistent.Group =>
               group.segmentCache.lower(key)
@@ -202,7 +202,7 @@ private[core] class SegmentCache(id: String,
                 find(KeyMatcher.Lower(key), startFrom = lowerKeyValue, reader, footer) flatMap {
                   case Some(response: Persistent.SegmentResponse) =>
                     addToCache(response)
-                    Success(Some(response))
+                    IO.Success(Some(response))
 
                   case Some(group: Persistent.Group) =>
                     addToCache(group) flatMap {
@@ -211,7 +211,7 @@ private[core] class SegmentCache(id: String,
                     }
 
                   case None =>
-                    TryUtil.successNone
+                    IOUtil.successNone
                 }
             }
           }
@@ -236,13 +236,13 @@ private[core] class SegmentCache(id: String,
         }
     }
 
-  def higher(key: Slice[Byte]): Try[Option[Persistent.SegmentResponse]] =
+  def higher(key: Slice[Byte]): IO[Option[Persistent.SegmentResponse]] =
     maxKey match {
       case MaxKey.Fixed(maxKey) if key >= maxKey =>
-        TryUtil.successNone
+        IOUtil.successNone
 
       case MaxKey.Range(_, maxKey) if key >= maxKey =>
-        TryUtil.successNone
+        IOUtil.successNone
 
       case _ =>
         val floorKeyValue = Option(cache.floorEntry(key)).map(_.getValue)
@@ -250,7 +250,7 @@ private[core] class SegmentCache(id: String,
 
         higherFromCache map {
           case response: Persistent.SegmentResponse =>
-            Success(Some(response))
+            IO.Success(Some(response))
 
           case group: Persistent.Group =>
             group.segmentCache.higher(key)
@@ -260,7 +260,7 @@ private[core] class SegmentCache(id: String,
               find(KeyMatcher.Higher(key), startFrom = floorKeyValue, reader, footer) flatMap {
                 case Some(response: Persistent.SegmentResponse) =>
                   addToCache(response)
-                  Success(Some(response))
+                  IO.Success(Some(response))
 
                 case Some(group: Persistent.Group) =>
                   addToCache(group) flatMap {
@@ -269,35 +269,35 @@ private[core] class SegmentCache(id: String,
                   }
 
                 case None =>
-                  TryUtil.successNone
+                  IOUtil.successNone
               }
           }
         }
     }
 
-  def getAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None): Try[Slice[KeyValue.ReadOnly]] =
+  def getAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None): IO[Slice[KeyValue.ReadOnly]] =
     prepareGet {
       (footer, reader) =>
         SegmentReader.readAll(footer, reader, addTo) recoverWith {
           case exception =>
             logger.trace("{}: Reading index block failed. Segment file is corrupted.", id)
-            Failure(exception)
+            IO.Failure(exception)
         }
     }
 
-  def getHeadKeyValueCount(): Try[Int] =
+  def getHeadKeyValueCount(): IO[Int] =
     getFooter().map(_.keyValueCount)
 
-  def getBloomFilterKeyValueCount(): Try[Int] =
+  def getBloomFilterKeyValueCount(): IO[Int] =
     getFooter().map(_.bloomFilterItemsCount)
 
   def footer() =
     getFooter()
 
-  def hasRange: Try[Boolean] =
+  def hasRange: IO[Boolean] =
     getFooter().map(_.hasRange)
 
-  def hasPut: Try[Boolean] =
+  def hasPut: IO[Boolean] =
     getFooter().map(_.hasPut)
 
   def isCacheEmpty =

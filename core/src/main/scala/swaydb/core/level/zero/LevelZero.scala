@@ -27,7 +27,7 @@ import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 import scala.concurrent.duration.{Deadline, _}
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success, Try}
+import swaydb.data.io.IO
 import swaydb.core.data.KeyValue._
 import swaydb.core.data._
 import swaydb.core.seek._
@@ -41,7 +41,7 @@ import swaydb.core.map.{MapEntry, Maps, SkipListMerger}
 import swaydb.core.queue.FileLimiter
 import swaydb.core.retry.Retry
 import swaydb.core.segment.Segment
-import swaydb.core.util.{MinMax, TryUtil}
+import swaydb.core.util.{MinMax, IOUtil}
 import swaydb.data.accelerate.{Accelerator, Level0Meter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -50,13 +50,13 @@ import swaydb.data.storage.Level0Storage
 
 private[core] object LevelZero extends LazyLogging {
 
-  def withRetry[T](resourceId: String, readRetryLimit: Int)(tryBlock: => Try[T]): Try[T] =
+  def withRetry[T](resourceId: String, readRetryLimit: Int)(tryBlock: => IO[T]): IO[T] =
     Retry[T](resourceId = resourceId, maxRetryLimit = readRetryLimit, until = Retry.levelReadRetryUntil) {
       try
         tryBlock
       catch {
         case ex: Exception =>
-          Failure(ex)
+          IO.Failure(ex)
       }
     }
 
@@ -69,7 +69,7 @@ private[core] object LevelZero extends LazyLogging {
                                  timeOrder: TimeOrder[Slice[Byte]],
                                  limiter: FileLimiter,
                                  functionStore: FunctionStore,
-                                 ec: ExecutionContext): Try[LevelZero] = {
+                                 ec: ExecutionContext): IO[LevelZero] = {
     import swaydb.core.map.serializer.LevelZeroMapEntryReader.Level0Reader
     import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
     implicit val skipListMerger: SkipListMerger[Slice[Byte], Memory.SegmentResponse] = LevelZeroSkipListMerger
@@ -82,7 +82,7 @@ private[core] object LevelZero extends LazyLogging {
           logger.info("{}: Acquiring lock.", path)
           val lockFile = path.resolve("LOCK")
           IOOps createFileIfAbsent lockFile
-          Try(FileChannel.open(lockFile, StandardOpenOption.WRITE).tryLock()) flatMap {
+          IO(FileChannel.open(lockFile, StandardOpenOption.WRITE).tryLock()) flatMap {
             lock =>
               logger.info("{}: Recovering Maps.", path)
               Maps.persistent[Slice[Byte], Memory.SegmentResponse](path, mmap, mapSize, acceleration, recovery) map {
@@ -92,7 +92,7 @@ private[core] object LevelZero extends LazyLogging {
           }
 
         case Level0Storage.Memory =>
-          Success(Maps.memory[Slice[Byte], Memory.SegmentResponse](mapSize, acceleration), Paths.get("MEMORY_DB").resolve(0.toString), None)
+          IO.Success(Maps.memory[Slice[Byte], Memory.SegmentResponse](mapSize, acceleration), Paths.get("MEMORY_DB").resolve(0.toString), None)
       }
     mapsAndPathAndLock map {
       case (maps, path, lock: Option[FileLock]) =>
@@ -153,13 +153,13 @@ private[core] class LevelZero(val path: Path,
       }
   }
 
-  def releaseLocks: Try[Unit] =
+  def releaseLocks: IO[Unit] =
     IOOps.release(lock) flatMap {
       _ =>
-        nextLevel.map(_.releaseLocks) getOrElse TryUtil.successUnit
+        nextLevel.map(_.releaseLocks) getOrElse IOUtil.successUnit
     }
 
-  def withRetry[T](tryBlock: => Try[T]): Try[T] =
+  def withRetry[T](tryBlock: => IO[T]): IO[T] =
     LevelZero.withRetry(resourceId = path.toString, readRetryLimit = readRetryLimit)(tryBlock = tryBlock)
 
   def !(command: LevelZeroAPI): Unit =
@@ -168,50 +168,50 @@ private[core] class LevelZero(val path: Path,
   override def !(request: LevelAPI): Unit =
     nextLevel.foreach(_ ! request)
 
-  def assertKey(key: Slice[Byte])(block: => Try[Level0Meter]): Try[Level0Meter] =
+  def assertKey(key: Slice[Byte])(block: => IO[Level0Meter]): IO[Level0Meter] =
     if (key.isEmpty)
-      Failure(new IllegalArgumentException("Input key(s) cannot be empty."))
+      IO.Failure(new IllegalArgumentException("Input key(s) cannot be empty."))
     else
       block
 
-  def put(key: Slice[Byte]): Try[Level0Meter] =
+  def put(key: Slice[Byte]): IO[Level0Meter] =
     assertKey(key) {
       maps.write(MapEntry.Put[Slice[Byte], Memory.SegmentResponse](key, Memory.Put(key, None, None, Time.empty)))
     }
 
-  def put(key: Slice[Byte], value: Slice[Byte]): Try[Level0Meter] =
+  def put(key: Slice[Byte], value: Slice[Byte]): IO[Level0Meter] =
     assertKey(key) {
       maps.write(MapEntry.Put(key, Memory.Put(key, Some(value), None, Time.empty)))
     }
 
-  def put(key: Slice[Byte], value: Option[Slice[Byte]], removeAt: Deadline): Try[Level0Meter] =
+  def put(key: Slice[Byte], value: Option[Slice[Byte]], removeAt: Deadline): IO[Level0Meter] =
     assertKey(key) {
       maps.write(MapEntry.Put(key, Memory.Put(key, value, Some(removeAt), Time.empty)))
     }
 
-  def put(key: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter] =
+  def put(key: Slice[Byte], value: Option[Slice[Byte]]): IO[Level0Meter] =
     assertKey(key) {
       maps.write(MapEntry.Put(key, Memory.Put(key, value, None, Time.empty)))
     }
 
-  def put(entry: MapEntry[Slice[Byte], Memory.SegmentResponse]): Try[Level0Meter] =
+  def put(entry: MapEntry[Slice[Byte], Memory.SegmentResponse]): IO[Level0Meter] =
     maps write entry
 
-  def remove(key: Slice[Byte]): Try[Level0Meter] =
+  def remove(key: Slice[Byte]): IO[Level0Meter] =
     assertKey(key) {
       maps.write(MapEntry.Put[Slice[Byte], Memory.Remove](key, Memory.Remove(key, None, Time.empty)))
     }
 
-  def remove(key: Slice[Byte], at: Deadline): Try[Level0Meter] =
+  def remove(key: Slice[Byte], at: Deadline): IO[Level0Meter] =
     assertKey(key) {
       maps.write(MapEntry.Put[Slice[Byte], Memory.Remove](key, Memory.Remove(key, Some(at), Time.empty)))
     }
 
-  def remove(fromKey: Slice[Byte], to: Slice[Byte]): Try[Level0Meter] =
+  def remove(fromKey: Slice[Byte], to: Slice[Byte]): IO[Level0Meter] =
     assertKey(fromKey) {
       assertKey(to) {
         if (fromKey >= to)
-          Failure(new Exception("fromKey should be less than toKey"))
+          IO.Failure(new Exception("fromKey should be less than toKey"))
         else
           maps.write {
             (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, to, None, Value.Remove(None, Time.empty))): MapEntry[Slice[Byte], Memory.SegmentResponse]) ++
@@ -220,11 +220,11 @@ private[core] class LevelZero(val path: Path,
       }
     }
 
-  def remove(fromKey: Slice[Byte], to: Slice[Byte], at: Deadline): Try[Level0Meter] =
+  def remove(fromKey: Slice[Byte], to: Slice[Byte], at: Deadline): IO[Level0Meter] =
     assertKey(fromKey) {
       assertKey(to) {
         if (fromKey >= to)
-          Failure(new Exception("fromKey should be less than toKey"))
+          IO.Failure(new Exception("fromKey should be less than toKey"))
         else
           maps.write {
             (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, to, None, Value.Remove(Some(at), Time.empty))): MapEntry[Slice[Byte], Memory.SegmentResponse]) ++
@@ -233,24 +233,24 @@ private[core] class LevelZero(val path: Path,
       }
     }
 
-  def update(key: Slice[Byte], value: Slice[Byte]): Try[Level0Meter] =
+  def update(key: Slice[Byte], value: Slice[Byte]): IO[Level0Meter] =
     assertKey(key) {
       maps.write(MapEntry.Put(key, Memory.Update(key, Some(value), None, Time.empty)))
     }
 
-  def update(key: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter] =
+  def update(key: Slice[Byte], value: Option[Slice[Byte]]): IO[Level0Meter] =
     assertKey(key) {
       maps.write(MapEntry.Put(key, Memory.Update(key, value, None, Time.empty)))
     }
 
-  def update(fromKey: Slice[Byte], to: Slice[Byte], value: Slice[Byte]): Try[Level0Meter] =
+  def update(fromKey: Slice[Byte], to: Slice[Byte], value: Slice[Byte]): IO[Level0Meter] =
     update(fromKey, to, Some(value))
 
-  def update(fromKey: Slice[Byte], to: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter] =
+  def update(fromKey: Slice[Byte], to: Slice[Byte], value: Option[Slice[Byte]]): IO[Level0Meter] =
     assertKey(fromKey) {
       assertKey(to) {
         if (fromKey >= to)
-          Failure(new Exception("fromKey should be less than toKey"))
+          IO.Failure(new Exception("fromKey should be less than toKey"))
         else
           maps.write {
             (MapEntry.Put[Slice[Byte], Memory.Range](
@@ -305,34 +305,34 @@ private[core] class LevelZero(val path: Path,
       currentMap.get(key)(keyOrder)
 
   private def getFromNextLevel(key: Slice[Byte],
-                               mapsIterator: util.Iterator[map.Map[Slice[Byte], Memory.SegmentResponse]]): Try[Option[KeyValue.ReadOnly.Put]] =
+                               mapsIterator: util.Iterator[map.Map[Slice[Byte], Memory.SegmentResponse]]): IO[Option[KeyValue.ReadOnly.Put]] =
     if (mapsIterator.hasNext)
       find(key, mapsIterator.next(), mapsIterator)
     else
-      nextLevel.map(_ get key) getOrElse TryUtil.successNone
+      nextLevel.map(_ get key) getOrElse IOUtil.successNone
 
   def currentGetter(currentMap: map.Map[Slice[Byte], Memory.SegmentResponse]) =
     new CurrentGetter {
-      override def get(key: Slice[Byte]): Try[Option[ReadOnly.SegmentResponse]] =
-        Try(getFromMap(key, currentMap))
+      override def get(key: Slice[Byte]): IO[Option[ReadOnly.SegmentResponse]] =
+        IO(getFromMap(key, currentMap))
     }
 
   def newGetter(mapsIterator: util.Iterator[map.Map[Slice[Byte], Memory.SegmentResponse]]) =
     new NextGetter {
-      override def get(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
+      override def get(key: Slice[Byte]): IO[Option[ReadOnly.Put]] =
         getFromNextLevel(key, mapsIterator)
     }
 
   private def find(key: Slice[Byte],
                    currentMap: map.Map[Slice[Byte], Memory.SegmentResponse],
-                   mapsIterator: util.Iterator[map.Map[Slice[Byte], Memory.SegmentResponse]]): Try[Option[KeyValue.ReadOnly.Put]] =
+                   mapsIterator: util.Iterator[map.Map[Slice[Byte], Memory.SegmentResponse]]): IO[Option[KeyValue.ReadOnly.Put]] =
     Get.seek(
       key = key,
       currentGetter = currentGetter(currentMap),
       nextGetter = newGetter(mapsIterator)
     )
 
-  def get(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
+  def get(key: Slice[Byte]): IO[Option[ReadOnly.Put]] =
     withRetry {
       find(
         key = key,
@@ -341,7 +341,7 @@ private[core] class LevelZero(val path: Path,
       )
     }
 
-  def getKey(key: Slice[Byte]): Try[Option[Slice[Byte]]] =
+  def getKey(key: Slice[Byte]): IO[Option[Slice[Byte]]] =
     withRetry {
       get(key).map(_.map(_.key))
     }
@@ -362,65 +362,65 @@ private[core] class LevelZero(val path: Path,
       reduce = MinMax.max(_, _)(keyOrder)
     )
 
-  def head: Try[Option[ReadOnly.Put]] =
+  def head: IO[Option[ReadOnly.Put]] =
     withRetry {
       findHead
     }
 
-  def last: Try[Option[ReadOnly.Put]] =
+  def last: IO[Option[ReadOnly.Put]] =
     withRetry {
       findLast
     }
 
-  def lastKey: Try[Option[Slice[Byte]]] =
+  def lastKey: IO[Option[Slice[Byte]]] =
     last.map(_.map(_.key))
 
-  override def headKey: Try[Option[Slice[Byte]]] =
+  override def headKey: IO[Option[Slice[Byte]]] =
     head.map(_.map(_.key))
 
-  def findHead: Try[Option[KeyValue.ReadOnly.Put]] =
+  def findHead: IO[Option[KeyValue.ReadOnly.Put]] =
     nextLevel map {
       nextLevel =>
         nextLevel.headKey flatMap {
           nextLevelFirstKey =>
-            MinMax.min(firstKeyFromMaps, nextLevelFirstKey)(keyOrder).map(ceiling) getOrElse TryUtil.successNone
+            MinMax.min(firstKeyFromMaps, nextLevelFirstKey)(keyOrder).map(ceiling) getOrElse IOUtil.successNone
         }
-    } getOrElse TryUtil.successNone
+    } getOrElse IOUtil.successNone
 
-  def findLast: Try[Option[KeyValue.ReadOnly.Put]] =
+  def findLast: IO[Option[KeyValue.ReadOnly.Put]] =
     nextLevel map {
       nextLevel =>
         nextLevel.lastKey flatMap {
           nextLevelLastKey =>
-            MinMax.max(lastKeyFromMaps, nextLevelLastKey)(keyOrder).map(floor) getOrElse TryUtil.successNone
+            MinMax.max(lastKeyFromMaps, nextLevelLastKey)(keyOrder).map(floor) getOrElse IOUtil.successNone
         }
 
-    } getOrElse TryUtil.successNone
+    } getOrElse IOUtil.successNone
 
-  def ceiling(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Put]] =
+  def ceiling(key: Slice[Byte]): IO[Option[KeyValue.ReadOnly.Put]] =
     ceiling(key, maps.map, maps.iterator.asScala.toList)
 
   def ceiling(key: Slice[Byte],
               currentMap: map.Map[Slice[Byte], Memory.SegmentResponse],
-              otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]): Try[Option[KeyValue.ReadOnly.Put]] =
+              otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]): IO[Option[KeyValue.ReadOnly.Put]] =
     find(key, currentMap, otherMaps.iterator.asJava) flatMap {
       found =>
         if (found.isDefined)
-          Success(found)
+          IO.Success(found)
         else
           findHigher(key, currentMap, otherMaps)
     }
 
-  def floor(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Put]] =
+  def floor(key: Slice[Byte]): IO[Option[KeyValue.ReadOnly.Put]] =
     floor(key, maps.map, maps.iterator.asScala.toList)
 
   def floor(key: Slice[Byte],
             currentMap: map.Map[Slice[Byte], Memory.SegmentResponse],
-            otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]): Try[Option[KeyValue.ReadOnly.Put]] =
+            otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]): IO[Option[KeyValue.ReadOnly.Put]] =
     find(key, currentMap, otherMaps.iterator.asJava) flatMap {
       found =>
         if (found.isDefined)
-          Success(found)
+          IO.Success(found)
         else
           findLower(key, currentMap, otherMaps)
     }
@@ -448,44 +448,44 @@ private[core] class LevelZero(val path: Path,
       currentMap.higher(key).map(_._2)
 
   def findHigherInNextLevel(key: Slice[Byte],
-                            otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]): Try[Option[KeyValue.ReadOnly.Put]] =
+                            otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]): IO[Option[KeyValue.ReadOnly.Put]] =
     otherMaps.headOption match {
       case Some(nextMap) =>
         //        println(s"Finding higher for key: ${key.readInt()} in Map: ${nextMap.pathOption}. Remaining map: ${otherMaps.size}")
         findHigher(key, nextMap, otherMaps.drop(1))
       case None =>
         //        println(s"Finding higher for key: ${key.readInt()} in ${nextLevel.rootPath}")
-        nextLevel.map(_.higher(key)) getOrElse TryUtil.successNone
+        nextLevel.map(_.higher(key)) getOrElse IOUtil.successNone
     }
 
   def currentWalker(currentMap: map.Map[Slice[Byte], Memory.SegmentResponse],
                     otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]) =
     new CurrentWalker {
-      override def get(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
+      override def get(key: Slice[Byte]): IO[Option[ReadOnly.Put]] =
         find(key, currentMap, otherMaps.asJava.iterator())
 
-      override def higher(key: Slice[Byte]): Try[Option[ReadOnly.SegmentResponse]] =
-        Try(higherFromMap(key, currentMap))
+      override def higher(key: Slice[Byte]): IO[Option[ReadOnly.SegmentResponse]] =
+        IO(higherFromMap(key, currentMap))
 
-      override def lower(key: Slice[Byte]): Try[Option[ReadOnly.SegmentResponse]] =
-        Try(lowerFromMap(key, currentMap))
+      override def lower(key: Slice[Byte]): IO[Option[ReadOnly.SegmentResponse]] =
+        IO(lowerFromMap(key, currentMap))
     }
 
   def nextWalker(otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]) =
     new NextWalker {
-      override def higher(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
+      override def higher(key: Slice[Byte]): IO[Option[ReadOnly.Put]] =
         findHigherInNextLevel(key, otherMaps)
 
-      override def lower(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
+      override def lower(key: Slice[Byte]): IO[Option[ReadOnly.Put]] =
         findLowerInNextLevel(key, otherMaps)
 
-      override def get(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
+      override def get(key: Slice[Byte]): IO[Option[ReadOnly.Put]] =
         getFromNextLevel(key, otherMaps.iterator.asJava)
     }
 
   def findHigher(key: Slice[Byte],
                  currentMap: map.Map[Slice[Byte], Memory.SegmentResponse],
-                 otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]): Try[Option[KeyValue.ReadOnly.Put]] =
+                 otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]): IO[Option[KeyValue.ReadOnly.Put]] =
     Higher.seek(
       key = key,
       currentSeek = Seek.Next,
@@ -503,14 +503,14 @@ private[core] class LevelZero(val path: Path,
     *
     * Higher queries require iteration of all maps anyway so a full initial conversion to a List is acceptable.
     */
-  def findHigher(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Put]] =
+  def findHigher(key: Slice[Byte]): IO[Option[KeyValue.ReadOnly.Put]] =
     findHigher(
       key = key,
       currentMap = maps.map,
       otherMaps = maps.queuedMaps.toList
     )
 
-  def higher(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
+  def higher(key: Slice[Byte]): IO[Option[ReadOnly.Put]] =
     withRetry {
       findHigher(key)
     }
@@ -538,19 +538,19 @@ private[core] class LevelZero(val path: Path,
       currentMap.lower(key).map(_._2)
 
   def findLowerInNextLevel(key: Slice[Byte],
-                           otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]): Try[Option[KeyValue.ReadOnly.Put]] =
+                           otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]): IO[Option[KeyValue.ReadOnly.Put]] =
     otherMaps.headOption match {
       case Some(nextMap) =>
         //println(s"Finding lower for key: ${key.readInt()} in ${nextMap.pathOption}")
         findLower(key, nextMap, otherMaps.drop(1))
       case None =>
         //println(s"Finding lower for key: ${key.readInt()} in ${nextLevel.rootPath}")
-        nextLevel.map(_.lower(key)) getOrElse TryUtil.successNone
+        nextLevel.map(_.lower(key)) getOrElse IOUtil.successNone
     }
 
   def findLower(key: Slice[Byte],
                 currentMap: map.Map[Slice[Byte], Memory.SegmentResponse],
-                otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]): Try[Option[KeyValue.ReadOnly.Put]] =
+                otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]): IO[Option[KeyValue.ReadOnly.Put]] =
     Lower.seek(
       key = key,
       currentSeek = Seek.Next,
@@ -568,24 +568,24 @@ private[core] class LevelZero(val path: Path,
     *
     * Lower queries require iteration of all maps anyway so a full initial conversion to a List is acceptable.
     */
-  def findLower(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Put]] =
+  def findLower(key: Slice[Byte]): IO[Option[KeyValue.ReadOnly.Put]] =
     findLower(
       key = key,
       currentMap = maps.map,
       otherMaps = maps.queuedMaps.toList
     )
 
-  def lower(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
+  def lower(key: Slice[Byte]): IO[Option[ReadOnly.Put]] =
     withRetry {
       findLower(key)
     }
 
-  def contains(key: Slice[Byte]): Try[Boolean] =
+  def contains(key: Slice[Byte]): IO[Boolean] =
     withRetry {
       get(key).map(_.isDefined)
     }
 
-  def valueSize(key: Slice[Byte]): Try[Option[Int]] =
+  def valueSize(key: Slice[Byte]): IO[Option[Int]] =
     withRetry {
       get(key) map {
         result =>
@@ -596,13 +596,13 @@ private[core] class LevelZero(val path: Path,
       }
     }
 
-  def bloomFilterKeyValueCount: Try[Int] =
+  def bloomFilterKeyValueCount: IO[Int] =
     withRetry {
       val keyValueCountInMaps = maps.keyValueCount.getOrElse(0)
-      nextLevel.map(_.bloomFilterKeyValueCount.map(_ + keyValueCountInMaps)) getOrElse Success(keyValueCountInMaps)
+      nextLevel.map(_.bloomFilterKeyValueCount.map(_ + keyValueCountInMaps)) getOrElse IO.Success(keyValueCountInMaps)
     }
 
-  def deadline(key: Slice[Byte]): Try[Option[Deadline]] =
+  def deadline(key: Slice[Byte]): IO[Option[Deadline]] =
     withRetry {
       get(key) map {
         result =>
@@ -619,21 +619,21 @@ private[core] class LevelZero(val path: Path,
   def existsOnDisk: Boolean =
     IOOps.exists(path)
 
-  def close: Try[Unit] = {
+  def close: IO[Unit] = {
     //    Delay.cancelTimer()
     maps.close.failed foreach {
       exception =>
         logger.error(s"$path: Failed to close maps", exception)
     }
     releaseLocks
-    nextLevel.map(_.close) getOrElse TryUtil.successUnit map {
+    nextLevel.map(_.close) getOrElse IOUtil.successUnit map {
       _ =>
         actor.foreach(_.terminate())
     }
   }
 
-  def closeSegments: Try[Unit] =
-    nextLevel.map(_.closeSegments()) getOrElse TryUtil.successUnit
+  def closeSegments: IO[Unit] =
+    nextLevel.map(_.closeSegments()) getOrElse IOUtil.successUnit
 
   def level0Meter: Level0Meter =
     maps.getMeter
@@ -641,12 +641,12 @@ private[core] class LevelZero(val path: Path,
   def levelMeter(levelNumber: Int): Option[LevelMeter] =
     nextLevel.flatMap(_.meterFor(levelNumber))
 
-  def mightContain(key: Slice[Byte]): Try[Boolean] =
+  def mightContain(key: Slice[Byte]): IO[Boolean] =
     withRetry {
       if (maps.contains(key))
-        Success(true)
+        IO.Success(true)
       else
-        nextLevel.map(_.mightContain(key)) getOrElse TryUtil.successTrue
+        nextLevel.map(_.mightContain(key)) getOrElse IOUtil.successTrue
     }
 
   override def segmentsInLevel(): Iterable[Segment] =

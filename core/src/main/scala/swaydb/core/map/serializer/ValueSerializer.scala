@@ -22,7 +22,7 @@ package swaydb.core.map.serializer
 import scala.annotation.implicitNotFound
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.Deadline
-import scala.util.{Failure, Success, Try}
+import swaydb.data.io.IO
 import swaydb.core.data.{Time, Value}
 import swaydb.core.io.reader.Reader
 import swaydb.core.util.Bytes
@@ -34,9 +34,9 @@ sealed trait ValueSerializer[T] {
 
   def write(value: T, bytes: Slice[Byte]): Unit
 
-  def read(reader: Reader): Try[T]
+  def read(reader: Reader): IO[T]
 
-  def read(bytes: Slice[Byte]): Try[T] =
+  def read(bytes: Slice[Byte]): IO[T] =
     read(Reader(bytes))
 
   def bytesRequired(value: T): Int
@@ -44,7 +44,7 @@ sealed trait ValueSerializer[T] {
 
 object ValueSerializer {
 
-  def readDeadline(reader: Reader): Try[Option[Deadline]] =
+  def readDeadline(reader: Reader): IO[Option[Deadline]] =
     reader.readLongUnsigned() map {
       deadline =>
         if (deadline == 0)
@@ -53,7 +53,7 @@ object ValueSerializer {
           deadline.toDeadlineOption
     }
 
-  def readTime(reader: Reader): Try[Time] =
+  def readTime(reader: Reader): IO[Time] =
     reader.readIntUnsigned() flatMap {
       timeSize =>
         if (timeSize == 0)
@@ -62,7 +62,7 @@ object ValueSerializer {
           reader.read(timeSize) map (Time(_))
     }
 
-  def readRemainingTime(reader: Reader): Try[Time] =
+  def readRemainingTime(reader: Reader): IO[Time] =
     reader.readRemaining() map {
       remaining =>
         if (remaining.isEmpty)
@@ -71,7 +71,7 @@ object ValueSerializer {
           Time(remaining)
     }
 
-  def readValue(reader: Reader): Try[Option[Slice[Byte]]] =
+  def readValue(reader: Reader): IO[Option[Slice[Byte]]] =
     reader.readRemaining() map {
       remaining =>
         if (remaining.isEmpty)
@@ -95,7 +95,7 @@ object ValueSerializer {
         value.time.size +
         value.value.map(_.size).getOrElse(0)
 
-    override def read(reader: Reader): Try[Value.Put] =
+    override def read(reader: Reader): IO[Value.Put] =
       for {
         deadline <- readDeadline(reader)
         time <- readTime(reader)
@@ -120,7 +120,7 @@ object ValueSerializer {
         value.time.size +
         value.value.map(_.size).getOrElse(0)
 
-    override def read(reader: Reader): Try[Value.Update] =
+    override def read(reader: Reader): IO[Value.Update] =
       for {
         deadline <- readDeadline(reader)
         time <- readTime(reader)
@@ -141,7 +141,7 @@ object ValueSerializer {
       Bytes.sizeOf(value.deadline.toNanos) +
         value.time.size
 
-    override def read(reader: Reader): Try[Value.Remove] =
+    override def read(reader: Reader): IO[Value.Remove] =
       for {
         deadline <- readDeadline(reader)
         time <- readRemainingTime(reader)
@@ -157,7 +157,7 @@ object ValueSerializer {
     override def bytesRequired(value: Value.Function): Int =
       ValueSerializer.bytesRequired((value.function, value.time.time))(TupleOfBytesSerializer)
 
-    override def read(reader: Reader): Try[Value.Function] =
+    override def read(reader: Reader): IO[Value.Function] =
       ValueSerializer.read[(Slice[Byte], Slice[Byte])](reader) map {
         case (function, time) =>
           Value.Function(function, Time(time))
@@ -202,10 +202,10 @@ object ValueSerializer {
           }
       }
 
-    override def read(reader: Reader): Try[Slice[Value.Apply]] =
+    override def read(reader: Reader): IO[Slice[Value.Apply]] =
       reader.readIntUnsigned() flatMap {
         count =>
-          reader.foldLeftTry(Slice.create[Value.Apply](count)) {
+          reader.foldLeftIO(Slice.create[Value.Apply](count)) {
             case (applies, reader) =>
               reader.readIntUnsigned() flatMap {
                 id =>
@@ -230,7 +230,7 @@ object ValueSerializer {
                             applies
                         }
                       else
-                        Failure(new Exception(s"Invalid id:$id"))
+                        IO.Failure(new Exception(s"Invalid id:$id"))
                   }
 
               }
@@ -246,7 +246,7 @@ object ValueSerializer {
     override def bytesRequired(value: Value.PendingApply): Int =
       ValueSerializer.bytesRequired(value.applies)
 
-    override def read(reader: Reader): Try[Value.PendingApply] =
+    override def read(reader: Reader): IO[Value.PendingApply] =
       ValueSerializer.read[Slice[Value.Apply]](reader) map Value.PendingApply
   }
 
@@ -269,8 +269,8 @@ object ValueSerializer {
           size + Bytes.sizeOf(valueBytes.size) + valueBytes.size
       }
 
-    override def read(reader: Reader): Try[Seq[Slice[Byte]]] =
-      reader.foldLeftTry(ListBuffer.empty[Slice[Byte]]) {
+    override def read(reader: Reader): IO[Seq[Slice[Byte]]] =
+      reader.foldLeftIO(ListBuffer.empty[Slice[Byte]]) {
         case (result, reader) =>
           reader.readIntUnsigned() flatMap {
             size =>
@@ -293,13 +293,13 @@ object ValueSerializer {
     override def bytesRequired(value: (Slice[Byte], Slice[Byte])): Int =
       SeqOfBytesSerializer.bytesRequired(Seq(value._1, value._2))
 
-    override def read(reader: Reader): Try[(Slice[Byte], Slice[Byte])] =
+    override def read(reader: Reader): IO[(Slice[Byte], Slice[Byte])] =
       SeqOfBytesSerializer.read(reader) flatMap {
         bytes =>
           if (bytes.size != 2)
-            Failure(new Exception(TupleOfBytesSerializer.getClass.getSimpleName + s".read did not return a tuple. Size = ${bytes.size}"))
+            IO.Failure(new Exception(TupleOfBytesSerializer.getClass.getSimpleName + s".read did not return a tuple. Size = ${bytes.size}"))
           else
-            Success(bytes.head, bytes.last)
+            IO.Success(bytes.head, bytes.last)
       }
   }
 
@@ -328,7 +328,7 @@ object ValueSerializer {
             value._1.size
       }
 
-    override def read(reader: Reader): Try[(Slice[Byte], Option[Slice[Byte]])] =
+    override def read(reader: Reader): IO[(Slice[Byte], Option[Slice[Byte]])] =
       reader.readIntUnsigned() flatMap {
         id =>
           if (id == 0)
@@ -347,10 +347,10 @@ object ValueSerializer {
   def write[T](value: T)(bytes: Slice[Byte])(implicit serializer: ValueSerializer[T]): Unit =
     serializer.write(value, bytes)
 
-  def read[T](value: Slice[Byte])(implicit serializer: ValueSerializer[T]): Try[T] =
+  def read[T](value: Slice[Byte])(implicit serializer: ValueSerializer[T]): IO[T] =
     serializer.read(value)
 
-  def read[T](reader: Reader)(implicit serializer: ValueSerializer[T]): Try[T] =
+  def read[T](reader: Reader)(implicit serializer: ValueSerializer[T]): IO[T] =
     serializer.read(reader)
 
   def bytesRequired[T](value: T)(implicit serializer: ValueSerializer[T]): Int =

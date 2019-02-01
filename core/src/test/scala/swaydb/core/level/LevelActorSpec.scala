@@ -27,15 +27,15 @@ import swaydb.core.level.actor.LevelCommand._
 import swaydb.core.level.actor.LevelState.{PushScheduled, Pushing, Sleeping, WaitingPull}
 import swaydb.core.level.actor._
 import swaydb.core.segment.Segment
-import swaydb.core.util.{Delay, TryUtil}
+import swaydb.core.util.{Delay, IOUtil}
 import swaydb.data.order.KeyOrder
 import swaydb.core.TestData._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
-import swaydb.core.TryAssert._
-
+import swaydb.core.IOAssert._
 import scala.concurrent.duration._
-import scala.util.{Failure, Random, Success}
+import scala.util.Random
+import swaydb.data.io.IO
 
 /**
   * Unit tests for [[LevelActor]]'s functions.
@@ -89,7 +89,7 @@ class LevelActorSpec extends TestBase with MockFactory {
       implicit val self = TestActor[LevelCommand]()
 
       level.nextBatchSize _ expects() returning 10
-      level.collapseAllSmallSegments _ expects 10 returning Success(0)
+      level.collapseAllSmallSegments _ expects 10 returning IO.Success(0)
 
       LevelActor.collapseSmallSegments(force = false) shouldBe Sleeping(collapseSmallSegmentsTaskScheduled = false, task = None)
     }
@@ -100,7 +100,7 @@ class LevelActorSpec extends TestBase with MockFactory {
       implicit val self = TestActor[LevelCommand]()
 
       level.nextBatchSize _ expects() returning 10
-      level.collapseAllSmallSegments _ expects 10 returning Success(1)
+      level.collapseAllSmallSegments _ expects 10 returning IO.Success(1)
 
       LevelActor.collapseSmallSegments(force = false) shouldBe Sleeping(collapseSmallSegmentsTaskScheduled = true, task = None)
       self.expectMessage[LevelCommand.CollapseSmallSegmentsForce](LevelActor.tooManySegmentsToCollapseReSchedule + 1.second)
@@ -112,7 +112,7 @@ class LevelActorSpec extends TestBase with MockFactory {
       implicit val self = TestActor[LevelCommand]()
 
       level.nextBatchSize _ expects() returning 10
-      level.collapseAllSmallSegments _ expects 10 returning Failure(LevelException.ContainsOverlappingBusySegments)
+      level.collapseAllSmallSegments _ expects 10 returning IO.Failure(LevelException.ContainsOverlappingBusySegments)
 
       LevelActor.collapseSmallSegments(force = false) shouldBe state.setCollapseSmallSegmentScheduled(true)
 
@@ -127,7 +127,7 @@ class LevelActorSpec extends TestBase with MockFactory {
       implicit val self = TestActor[LevelCommand]()
 
       level.nextBatchSize _ expects() returning 10
-      level.collapseAllSmallSegments _ expects 10 returning Success(0)
+      level.collapseAllSmallSegments _ expects 10 returning IO.Success(0)
 
       LevelActor.collapseSmallSegments(force = true) shouldBe Sleeping(collapseSmallSegmentsTaskScheduled = false, task = None)
     }
@@ -138,7 +138,7 @@ class LevelActorSpec extends TestBase with MockFactory {
       implicit val self = TestActor[LevelCommand]()
 
       level.nextBatchSize _ expects() returning 10
-      level.collapseAllSmallSegments _ expects 10 returning Success(1)
+      level.collapseAllSmallSegments _ expects 10 returning IO.Success(1)
 
       LevelActor.collapseSmallSegments(force = true) shouldBe Sleeping(collapseSmallSegmentsTaskScheduled = true, task = None)
       self.expectMessage[LevelCommand.CollapseSmallSegmentsForce](LevelActor.tooManySegmentsToCollapseReSchedule + 1.second)
@@ -150,7 +150,7 @@ class LevelActorSpec extends TestBase with MockFactory {
       implicit val self = TestActor[LevelCommand]()
 
       level.nextBatchSize _ expects() returning 10
-      level.collapseAllSmallSegments _ expects 10 returning Failure(LevelException.ContainsOverlappingBusySegments)
+      level.collapseAllSmallSegments _ expects 10 returning IO.Failure(LevelException.ContainsOverlappingBusySegments)
 
       LevelActor.collapseSmallSegments(force = true) shouldBe state.setCollapseSmallSegmentScheduled(true)
 
@@ -165,7 +165,7 @@ class LevelActorSpec extends TestBase with MockFactory {
       implicit val self = TestActor[LevelCommand]()
 
       //      level.paths _ expects() returning PathsDistributor(Seq(Dir(Paths.get("testPath"), 1)), () => Seq.empty) repeat 3.times
-      level.clearExpiredKeyValues _ expects() returning Success()
+      level.clearExpiredKeyValues _ expects() returning IO.Success()
 
       val deadline = 5.second.fromNow
       val newState = LevelActor.clearExpiredKeyValues(deadline)
@@ -191,7 +191,7 @@ class LevelActorSpec extends TestBase with MockFactory {
       implicit val self = TestActor[LevelCommand]()
 
       //      level.paths _ expects() returning PathsDistributor(Seq(Dir(Paths.get("testPath"), 1)), () => Seq.empty) repeat 2.times
-      level.clearExpiredKeyValues _ expects() returning Success()
+      level.clearExpiredKeyValues _ expects() returning IO.Success()
 
       val deadline = 0.second.fromNow
       val newState = LevelActor.clearExpiredKeyValues(deadline)
@@ -215,7 +215,7 @@ class LevelActorSpec extends TestBase with MockFactory {
       implicit val self = TestActor[LevelCommand]()
 
       //      level.paths _ expects() returning PathsDistributor(Seq(Dir(Paths.get("testPath"), 1)), () => Seq.empty) repeat 3.times
-      level.clearExpiredKeyValues _ expects() returning Success()
+      level.clearExpiredKeyValues _ expects() returning IO.Success()
 
       val deadline = 2.second.fromNow
       val newState = LevelActor.clearExpiredKeyValues(deadline)
@@ -257,7 +257,7 @@ class LevelActorSpec extends TestBase with MockFactory {
       implicit val self = TestActor[LevelCommand]()
 
       //      level.paths _ expects() returning PathsDistributor(Seq(Dir(Paths.get("testPath"), 1)), () => Seq.empty)
-      level.clearExpiredKeyValues _ expects() returning Failure(LevelException.ContainsOverlappingBusySegments)
+      level.clearExpiredKeyValues _ expects() returning IO.Failure(LevelException.ContainsOverlappingBusySegments)
 
       val deadline = 0.second.fromNow
       val newState = LevelActor.clearExpiredKeyValues(deadline)
@@ -286,7 +286,7 @@ class LevelActorSpec extends TestBase with MockFactory {
     //      implicit val self = TestActor[LevelCommand]()
     //
     //      level.nextBatchSize _ expects() returning 10
-    //      level.collapseAllSmallSegments _ expects 10 returning Success(0)
+    //      level.collapseAllSmallSegments _ expects 10 returning IO.Success(0)
     //      level.hasNextLevel _ expects() returns false
     //
     //      LevelActor.doPush shouldBe Sleeping(collapseSmallSegmentsTaskScheduled = true, task = None)
@@ -391,7 +391,7 @@ class LevelActorSpec extends TestBase with MockFactory {
           command match {
             case PushSegments(segments, replyTo) =>
               segments shouldHaveSameInOrderedIds testSegments
-              TryUtil.successUnit
+              IOUtil.successUnit
           }
       }
 
@@ -409,8 +409,8 @@ class LevelActorSpec extends TestBase with MockFactory {
 
       val testSegments = Seq(TestSegment().assertGet, TestSegment().assertGet)
 
-      level.forward _ expects * returning Failure(new Exception("Failed"))
-      (level.put(_: Iterable[Segment])) expects * returns TryUtil.successUnit
+      level.forward _ expects * returning IO.Failure(new Exception("Failed"))
+      (level.put(_: Iterable[Segment])) expects * returns IOUtil.successUnit
 
       val sender = TestActor[LevelCommand]()
 
@@ -429,8 +429,8 @@ class LevelActorSpec extends TestBase with MockFactory {
 
       val testSegments = Seq(TestSegment().assertGet, TestSegment().assertGet)
 
-      level.forward _ expects * returning Failure(new Exception("Failed"))
-      (level.put(_: Iterable[Segment])) expects * returns Failure(new Exception("Failed"))
+      level.forward _ expects * returning IO.Failure(new Exception("Failed"))
+      (level.put(_: Iterable[Segment])) expects * returns IO.Failure(new Exception("Failed"))
 
       val sender = TestActor[LevelCommand]()
 
@@ -457,12 +457,12 @@ class LevelActorSpec extends TestBase with MockFactory {
       level.removeSegments _ expects * onCall {
         segments: Iterable[Segment] =>
           segments shouldHaveSameInOrderedIds testSegments
-          Success(testSegments.size)
+          IO.Success(testSegments.size)
       }
 
       level.nextPushDelay _ expects() returns 1.second
 
-      LevelActor.doPushResponse(PushSegmentsResponse(request, TryUtil.successUnit)) shouldBe(Sleeping(false, None), Some(PushTask(1.second, Push)))
+      LevelActor.doPushResponse(PushSegmentsResponse(request, IOUtil.successUnit)) shouldBe(Sleeping(false, None), Some(PushTask(1.second, Push)))
       self.expectNoMessage()
       sender.expectMessage[Pull]()
     }
@@ -479,7 +479,7 @@ class LevelActorSpec extends TestBase with MockFactory {
 
       level.push _ expects PullRequest(self) returning()
 
-      LevelActor.doPushResponse(PushSegmentsResponse(request, Failure(ContainsOverlappingBusySegments))) shouldBe(WaitingPull(true, None), None)
+      LevelActor.doPushResponse(PushSegmentsResponse(request, IO.Failure(ContainsOverlappingBusySegments))) shouldBe(WaitingPull(true, None), None)
       self.expectNoMessage()
     }
 
@@ -493,7 +493,7 @@ class LevelActorSpec extends TestBase with MockFactory {
       val sender = TestActor[LevelCommand]()
       val request = PushSegments(testSegments, sender)
 
-      LevelActor.doPushResponse(PushSegmentsResponse(request, Failure(farOut))) shouldBe(Sleeping(true, None), Some(PushTask(LevelActor.unexpectedFailureReSchedule, Push)))
+      LevelActor.doPushResponse(PushSegmentsResponse(request, IO.Failure(farOut))) shouldBe(Sleeping(true, None), Some(PushTask(LevelActor.unexpectedFailureReSchedule, Push)))
       self.expectNoMessage()
     }
   }

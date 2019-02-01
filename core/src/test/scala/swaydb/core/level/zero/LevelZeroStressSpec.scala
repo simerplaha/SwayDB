@@ -43,7 +43,7 @@
 //import swaydb.data.slice.Slice
 //import swaydb.data.order.KeyOrder
 //import swaydb.serializers.Default._
-//import swaydb.core.TryAssert._
+//import swaydb.core.IOAssert._
 //
 //import scala.concurrent.Future
 //import scala.concurrent.duration._

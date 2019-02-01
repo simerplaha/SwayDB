@@ -25,25 +25,25 @@ import swaydb.core.util.Bytes
 import swaydb.data.slice.{Reader, Slice}
 
 import scala.annotation.implicitNotFound
-import scala.util.{Failure, Try}
+import swaydb.data.io.IO
 
 @implicitNotFound("Type class implementation not found for KeyReader of type ${T}")
 sealed trait KeyReader[-T] {
   def read(indexReader: Reader,
-           previous: Option[KeyValue.ReadOnly]): Try[Slice[Byte]]
+           previous: Option[KeyValue.ReadOnly]): IO[Slice[Byte]]
 }
 
 object KeyReader {
 
   implicit object UnCompressedKeyReader extends KeyReader[EntryId.Key.Uncompressed] {
     override def read(indexReader: Reader,
-                      previous: Option[KeyValue.ReadOnly]): Try[Slice[Byte]] =
+                      previous: Option[KeyValue.ReadOnly]): IO[Slice[Byte]] =
       indexReader.readRemaining()
   }
 
   implicit object PartiallyCompressedKeyReader extends KeyReader[EntryId.Key.PartiallyCompressed] {
     override def read(indexReader: Reader,
-                      previous: Option[KeyValue.ReadOnly]): Try[Slice[Byte]] =
+                      previous: Option[KeyValue.ReadOnly]): IO[Slice[Byte]] =
       previous map {
         previous =>
           indexReader.readIntUnsigned() flatMap {
@@ -54,13 +54,13 @@ object KeyReader {
               }
           }
       } getOrElse {
-        Failure(EntryReaderFailure.NoPreviousKeyValue)
+        IO.Failure(EntryReaderFailure.NoPreviousKeyValue)
       }
   }
 
   implicit object KeyFullyCompressedReader extends KeyReader[EntryId.Key.FullyCompressed] {
     override def read(indexReader: Reader,
-                      previous: Option[KeyValue.ReadOnly]): Try[Slice[Byte]] =
+                      previous: Option[KeyValue.ReadOnly]): IO[Slice[Byte]] =
       previous map {
         previous =>
           indexReader.readIntUnsigned() map {
@@ -68,7 +68,7 @@ object KeyReader {
               previous.key.take(commonBytes)
           }
       } getOrElse {
-        Failure(EntryReaderFailure.NoPreviousKeyValue)
+        IO.Failure(EntryReaderFailure.NoPreviousKeyValue)
       }
   }
 }

@@ -21,11 +21,11 @@ package swaydb.core.seek
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, OptionValues, WordSpec}
-import scala.util.Try
+import swaydb.data.io.IO
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.TryAssert._
+import swaydb.core.IOAssert._
 import swaydb.core.data.{KeyValue, SwayFunctionOutput, Value}
 import swaydb.core.merge.{FixedMerger, FunctionMerger, PendingApplyMerger}
 import swaydb.core.{TestData, TestTimeGenerator}
@@ -49,7 +49,7 @@ class GetSomeSpec extends WordSpec with Matchers with MockFactory with OptionVal
         implicit val getFromNextLevel = mock[NextGetter]
 
         val keyValue = randomPutKeyValue(1, deadline = randomDeadlineOption(false))
-        getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning Try(Some(keyValue))
+        getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(keyValue))
 
         Get(1).assertGet shouldBe keyValue
       }
@@ -66,8 +66,8 @@ class GetSomeSpec extends WordSpec with Matchers with MockFactory with OptionVal
         val put = randomPutKeyValue(1, deadline = randomDeadlineOption(expired = false))
         val expect = put.copy(deadline = remove.deadline.orElse(put.deadline), time = remove.time)
 
-        getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning Try(Some(remove))
-        getFromNextLevel.get _ expects (1: Slice[Byte]) returning Try(Some(put))
+        getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(remove))
+        getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO(Some(put))
 
         Get(1).assertGet shouldBe expect
       }
@@ -84,8 +84,8 @@ class GetSomeSpec extends WordSpec with Matchers with MockFactory with OptionVal
         val put = randomPutKeyValue(1, deadline = randomDeadlineOption(expired = false))
         val expect = put.copy(deadline = update.deadline.orElse(put.deadline), value = update.value, time = update.time)
 
-        getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning Try(Some(update))
-        getFromNextLevel.get _ expects (1: Slice[Byte]) returning Try(Some(put))
+        getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(update))
+        getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO(Some(put))
 
         Get(1).assertGet shouldBe expect
       }
@@ -111,8 +111,8 @@ class GetSomeSpec extends WordSpec with Matchers with MockFactory with OptionVal
         val put = randomPutKeyValue(1, deadline = randomDeadlineOption(expired = false))
         val expect = FunctionMerger(function, put).assertGet
 
-        getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning Try(Some(function))
-        getFromNextLevel.get _ expects (1: Slice[Byte]) returning Try(Some(put))
+        getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(function))
+        getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO(Some(put))
 
         Get(1).assertGet shouldBe expect
       }
@@ -141,8 +141,8 @@ class GetSomeSpec extends WordSpec with Matchers with MockFactory with OptionVal
 
         val expected = PendingApplyMerger(pendingApply, put).assertGet
 
-        getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning Try(Some(pendingApply))
-        getFromNextLevel.get _ expects (1: Slice[Byte]) returning Try(Some(put))
+        getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(pendingApply))
+        getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO(Some(put))
 
         Get(1).assertGet shouldBe expected
       }
@@ -159,7 +159,7 @@ class GetSomeSpec extends WordSpec with Matchers with MockFactory with OptionVal
 
         val range = randomRangeKeyValue(1, 10, Some(fromValue))
 
-        getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning Try(Some(range))
+        getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(range))
 
         Get(1).assertGet shouldBe fromValue.toMemory(1)
       }
@@ -187,9 +187,9 @@ class GetSomeSpec extends WordSpec with Matchers with MockFactory with OptionVal
 
         val expected = FixedMerger(functionValue, put).assertGet
 
-        getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning Try(Some(range))
+        getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(range))
         //next level can return anything it will be removed.
-        getFromNextLevel.get _ expects (1: Slice[Byte]) returning Try(Some(put))
+        getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO(Some(put))
 
         Get(1).assertGet shouldBe expected
       }

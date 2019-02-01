@@ -27,11 +27,11 @@ import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 import scala.concurrent.ExecutionContext
 import scala.reflect.ClassTag
-import scala.util.Try
 import swaydb.core.function.FunctionStore
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.core.queue.FileLimiter
-import swaydb.core.util.TryUtil.tryOrNone
+import swaydb.core.util.IOUtil.tryOrNone
+import swaydb.data.io.IO
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
@@ -49,7 +49,7 @@ private[core] object Map extends LazyLogging {
                                                                     ec: ExecutionContext,
                                                                     writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                     reader: MapEntryReader[MapEntry[K, V]],
-                                                                    skipListMerge: SkipListMerger[K, V]): Try[RecoveryResult[PersistentMap[K, V]]] =
+                                                                    skipListMerge: SkipListMerger[K, V]): IO[RecoveryResult[PersistentMap[K, V]]] =
     PersistentMap(folder, mmap, flushOnOverflow, fileSize, dropCorruptedTailEntries)
 
   def persistent[K, V: ClassTag](folder: Path,
@@ -62,7 +62,7 @@ private[core] object Map extends LazyLogging {
                                                  ec: ExecutionContext,
                                                  reader: MapEntryReader[MapEntry[K, V]],
                                                  writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                 skipListMerger: SkipListMerger[K, V]): Try[PersistentMap[K, V]] =
+                                                 skipListMerger: SkipListMerger[K, V]): IO[PersistentMap[K, V]] =
     PersistentMap(folder, mmap, flushOnOverflow, fileSize)
 
   def memory[K, V: ClassTag](fileSize: Long = 0.byte,
@@ -86,9 +86,9 @@ private[core] trait Map[K, V] {
 
   val fileSize: Long
 
-  def write(mapEntry: MapEntry[K, V]): Try[Boolean]
+  def write(mapEntry: MapEntry[K, V]): IO[Boolean]
 
-  def delete: Try[Unit]
+  def delete: IO[Unit]
 
   def size: Int =
     skipList.size()
@@ -203,9 +203,9 @@ private[core] trait Map[K, V] {
   def pathOption: Option[Path] =
     None
 
-  def close(): Try[Unit]
+  def close(): IO[Unit]
 
-  def fileId: Try[Long] =
-    scala.util.Success(0)
+  def fileId: IO[Long] =
+    IO.Success(0)
 
 }

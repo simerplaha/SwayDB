@@ -19,7 +19,7 @@
 
 package swaydb.core.segment.format.a.entry.reader.value
 
-import scala.util.{Failure, Success, Try}
+import swaydb.data.io.IO
 import swaydb.core.data.Value
 import swaydb.core.map.serializer.RangeValueSerializer
 import swaydb.data.slice.Reader
@@ -44,19 +44,19 @@ trait LazyRangeValueReader extends LazyValueReader {
   @volatile private var fromValue: Option[Value.FromValue] = _
   @volatile private var rangeValue: Value.RangeValue = _
 
-  def fetchRangeValue: Try[Value.RangeValue] =
+  def fetchRangeValue: IO[Value.RangeValue] =
     if (rangeValue == null)
       fetchFromAndRangeValue.map(_._2)
     else
-      Success(rangeValue)
+      IO.Success(rangeValue)
 
-  def fetchFromValue: Try[Option[Value.FromValue]] =
+  def fetchFromValue: IO[Option[Value.FromValue]] =
     if (fromValue == null)
       fetchFromAndRangeValue.map(_._1)
     else
-      Success(fromValue)
+      IO.Success(fromValue)
 
-  def fetchFromAndRangeValue: Try[(Option[Value.FromValue], Value.RangeValue)] =
+  def fetchFromAndRangeValue: IO[(Option[Value.FromValue], Value.RangeValue)] =
     if (fromValue == null || rangeValue == null)
       getOrFetchValue flatMap {
         case Some(fromAndRangeValueBytes) =>
@@ -67,8 +67,8 @@ trait LazyRangeValueReader extends LazyValueReader {
               (this.fromValue, this.rangeValue)
           }
         case None =>
-          Failure(new IllegalStateException(s"Failed to read range's value"))
+          IO.Failure(new IllegalStateException(s"Failed to read range's value"))
       }
     else
-      Success(fromValue, rangeValue)
+      IO.Success(fromValue, rangeValue)
 }

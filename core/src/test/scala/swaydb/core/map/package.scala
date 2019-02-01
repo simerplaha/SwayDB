@@ -27,7 +27,7 @@ import swaydb.data.util.StorageUnits._
 import scala.concurrent.ExecutionContext
 import swaydb.core.function.FunctionStore
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import TryAssert._
+import IOAssert._
 import swaydb.core.queue.FileLimiter
 
 package object map {

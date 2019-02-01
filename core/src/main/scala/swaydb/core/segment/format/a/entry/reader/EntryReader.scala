@@ -19,13 +19,13 @@
 
 package swaydb.core.segment.format.a.entry.reader
 
-import scala.util.{Failure, Try}
+import swaydb.data.io.IO
 import swaydb.core.data.Persistent
 import swaydb.core.segment.SegmentException
 import swaydb.core.segment.format.a.entry.id._
 import swaydb.core.segment.format.a.entry.reader.base._
-import swaydb.core.util.TryUtil
-import swaydb.core.util.TryUtil._
+import swaydb.core.util.IOUtil
+import swaydb.core.util.IOUtil._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Reader, Slice}
 
@@ -41,7 +41,7 @@ trait EntryReader[E] {
                                                         deadlineReader: DeadlineReader[T],
                                                         valueOffsetReader: ValueOffsetReader[T],
                                                         valueLengthReader: ValueLengthReader[T],
-                                                        valueBytesReader: ValueReader[T]): Try[E]
+                                                        valueBytesReader: ValueReader[T]): IO[E]
 }
 
 object EntryReader {
@@ -62,7 +62,7 @@ object EntryReader {
               nextIndexOffset: Int,
               nextIndexSize: Int,
               previous: Option[Persistent],
-              entryReader: EntryReader[T])(implicit keyOrder: KeyOrder[Slice[Byte]]): Try[T] =
+              entryReader: EntryReader[T])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[T] =
     readers.tryFoldLeft(None) {
       case (_, reader) =>
         reader.read(
@@ -78,11 +78,11 @@ object EntryReader {
           case Some(value) =>
             return value
           case None =>
-            TryUtil.successNone
+            IOUtil.successNone
         }
     } flatMap {
       _ =>
-        Failure(SegmentException.InvalidEntryId(id))
+        IO.Failure(SegmentException.InvalidEntryId(id))
     }
 
   def read(indexReader: Reader,
@@ -90,7 +90,7 @@ object EntryReader {
            indexOffset: Int,
            nextIndexOffset: Int,
            nextIndexSize: Int,
-           previous: Option[Persistent])(implicit keyOrder: KeyOrder[Slice[Byte]]): Try[Persistent] =
+           previous: Option[Persistent])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Persistent] =
     indexReader.readIntUnsigned() flatMap {
       id =>
         if (EntryId.Put.hasId(id))
@@ -108,6 +108,6 @@ object EntryReader {
         else if (EntryId.PendingApply.hasId(id))
           EntryReader.read(EntryId.PendingApply.adjustToBaseId(id), indexReader, valueReader, indexOffset, nextIndexOffset, nextIndexSize, previous, PendingApplyReader)
         else
-          Failure(SegmentException.InvalidEntryId(id))
+          IO.Failure(SegmentException.InvalidEntryId(id))
     }
 }

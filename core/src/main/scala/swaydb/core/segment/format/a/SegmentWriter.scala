@@ -26,12 +26,12 @@ import swaydb.core.segment.Segment
 import swaydb.core.util.BloomFilterUtil._
 import swaydb.core.util.{BloomFilterUtil, CRC32}
 import swaydb.core.util.PipeOps._
-import swaydb.core.util.TryUtil._
+import swaydb.core.util.IOUtil._
 import swaydb.data.slice.Slice
 import swaydb.data.slice.Slice._
 
 import scala.concurrent.duration.Deadline
-import scala.util.{Failure, Success, Try}
+import swaydb.data.io.IO
 
 private[core] object SegmentWriter extends LazyLogging {
 
@@ -56,7 +56,7 @@ private[core] object SegmentWriter extends LazyLogging {
   def write(keyValues: Iterable[KeyValue.WriteOnly],
             indexSlice: Slice[Byte],
             valuesSlice: Slice[Byte],
-            bloomFilter: Option[BloomFilter[Slice[Byte]]]): Try[Option[Deadline]] =
+            bloomFilter: Option[BloomFilter[Slice[Byte]]]): IO[Option[Deadline]] =
     keyValues.tryFoldLeft(Option.empty[Deadline]) {
       case (deadline, keyValue) =>
         write(
@@ -71,17 +71,17 @@ private[core] object SegmentWriter extends LazyLogging {
       result =>
         //ensure that all the slices are full.
         if (!indexSlice.isFull)
-          Failure(new Exception(s"indexSlice is not full actual: ${indexSlice.written} - expected: ${indexSlice.size}"))
+          IO.Failure(new Exception(s"indexSlice is not full actual: ${indexSlice.written} - expected: ${indexSlice.size}"))
         else if (!valuesSlice.isFull)
-          Failure(new Exception(s"valuesSlice is not full actual: ${valuesSlice.written} - expected: ${valuesSlice.size}"))
+          IO.Failure(new Exception(s"valuesSlice is not full actual: ${valuesSlice.written} - expected: ${valuesSlice.size}"))
         else
-          Success(result)
+          IO.Success(result)
     }
 
   private def write(keyValue: KeyValue.WriteOnly,
                     indexSlice: Slice[Byte],
-                    valuesSlice: Slice[Byte]): Try[Unit] =
-    Try {
+                    valuesSlice: Slice[Byte]): IO[Unit] =
+    IO {
       indexSlice addIntUnsigned keyValue.stats.keySize
       indexSlice addAll keyValue.indexEntryBytes
       keyValue.valueEntryBytes foreach (valuesSlice addAll _)
@@ -99,9 +99,9 @@ private[core] object SegmentWriter extends LazyLogging {
     * Segment reads can take appropriate steps to fetch the right range key-value.
     */
   def write(keyValues: Iterable[KeyValue.WriteOnly],
-            bloomFilterFalsePositiveRate: Double): Try[(Slice[Byte], Option[Deadline])] =
+            bloomFilterFalsePositiveRate: Double): IO[(Slice[Byte], Option[Deadline])] =
     if (keyValues.isEmpty)
-      Success(Slice.emptyBytes, None)
+      IO.Success(Slice.emptyBytes, None)
     else {
       val bloomFilter = BloomFilterUtil.initBloomFilter(keyValues, bloomFilterFalsePositiveRate)
 
@@ -121,7 +121,7 @@ private[core] object SegmentWriter extends LazyLogging {
         bloomFilter = bloomFilter
       ) flatMap {
         nearestDeadline =>
-          Try {
+          IO {
             //this is a placeholder to store the format type of the Segment file written.
             //currently there is only one format. So this is hardcoded but if there are a new file format then
             //SegmentWriter and SegmentReader should be changed to be type classes with unique format types ids.

@@ -22,15 +22,15 @@ package swaydb.core.merge
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
-import swaydb.core.TryAssert._
+import swaydb.core.IOAssert._
 import swaydb.core.TestData._
-import swaydb.core.{TestTimeGenerator, TryAssert}
+import swaydb.core.{TestTimeGenerator, IOAssert}
 import swaydb.core.data.Memory
 import swaydb.data.slice.Slice
 import swaydb.core.TestData._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
-import swaydb.core.TryAssert._
+import swaydb.core.IOAssert._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 
 class FunctionMerger_PendingApply_Spec extends WordSpec with Matchers {

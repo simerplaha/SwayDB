@@ -19,7 +19,7 @@
 
 package swaydb.core.merge
 
-import scala.util.{Success, Try}
+import swaydb.data.io.IO
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data.{Memory, Value}
 import swaydb.core.function.FunctionStore
@@ -87,7 +87,7 @@ object UpdateMerger {
 
   def apply(newKeyValue: ReadOnly.Update,
             oldKeyValue: ReadOnly.Function)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                            functionStore: FunctionStore): Try[ReadOnly.Fixed] =
+                                            functionStore: FunctionStore): IO[ReadOnly.Fixed] =
     if (newKeyValue.time > oldKeyValue.time)
       for {
         oldValue <- oldKeyValue.toFromValue()
@@ -96,28 +96,28 @@ object UpdateMerger {
         Memory.PendingApply(newKeyValue.key, Slice(oldValue, newValue))
       }
     else
-      Success(oldKeyValue)
+      IO.Success(oldKeyValue)
 
   def apply(newKeyValue: ReadOnly.Update,
             oldKeyValue: Value.Apply)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                      functionStore: FunctionStore): Try[ReadOnly.Fixed] =
+                                      functionStore: FunctionStore): IO[ReadOnly.Fixed] =
     if (newKeyValue.time > oldKeyValue.time)
       oldKeyValue match {
         case oldKeyValue: Value.Remove =>
-          Try(UpdateMerger(newKeyValue, oldKeyValue.toMemory(newKeyValue.key)))
+          IO(UpdateMerger(newKeyValue, oldKeyValue.toMemory(newKeyValue.key)))
 
         case oldKeyValue: Value.Update =>
-          Try(UpdateMerger(newKeyValue, oldKeyValue.toMemory(newKeyValue.key)))
+          IO(UpdateMerger(newKeyValue, oldKeyValue.toMemory(newKeyValue.key)))
 
         case oldKeyValue: Value.Function =>
           UpdateMerger(newKeyValue, oldKeyValue.toMemory(newKeyValue.key))
       }
     else
-      Try(oldKeyValue.toMemory(newKeyValue.key))
+      IO(oldKeyValue.toMemory(newKeyValue.key))
 
   def apply(newKeyValue: ReadOnly.Update,
             oldKeyValue: ReadOnly.PendingApply)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                                functionStore: FunctionStore): Try[ReadOnly.Fixed] =
+                                                functionStore: FunctionStore): IO[ReadOnly.Fixed] =
     if (newKeyValue.time > oldKeyValue.time)
       oldKeyValue.getOrFetchApplies flatMap {
         olderApplies =>
@@ -127,16 +127,16 @@ object UpdateMerger {
           )
       }
     else
-      Success(oldKeyValue)
+      IO.Success(oldKeyValue)
 
   def apply(newKeyValue: ReadOnly.Update,
             oldKeyValue: ReadOnly.Fixed)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                         functionStore: FunctionStore): Try[ReadOnly.Fixed] =
+                                         functionStore: FunctionStore): IO[ReadOnly.Fixed] =
   //@formatter:off
     oldKeyValue match {
-      case oldKeyValue: ReadOnly.Put =>             Try(UpdateMerger(newKeyValue, oldKeyValue))
-      case oldKeyValue: ReadOnly.Remove =>          Try(UpdateMerger(newKeyValue, oldKeyValue))
-      case oldKeyValue: ReadOnly.Update =>          Try(UpdateMerger(newKeyValue, oldKeyValue))
+      case oldKeyValue: ReadOnly.Put =>             IO(UpdateMerger(newKeyValue, oldKeyValue))
+      case oldKeyValue: ReadOnly.Remove =>          IO(UpdateMerger(newKeyValue, oldKeyValue))
+      case oldKeyValue: ReadOnly.Update =>          IO(UpdateMerger(newKeyValue, oldKeyValue))
       case oldKeyValue: ReadOnly.Function =>        UpdateMerger(newKeyValue, oldKeyValue)
       case oldKeyValue: ReadOnly.PendingApply =>    UpdateMerger(newKeyValue, oldKeyValue)
     }

@@ -24,7 +24,7 @@ import scala.collection.JavaConverters._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.TryAssert._
+import swaydb.core.IOAssert._
 import swaydb.core.data.{Memory, Value}
 import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.queue.FileLimiter

@@ -25,14 +25,15 @@ import java.nio.channels.{FileLock, WritableByteChannel}
 import java.nio.file._
 import java.nio.file.attribute.BasicFileAttributes
 import swaydb.core.segment.SegmentException
-import swaydb.core.util.TryUtil
+import swaydb.core.util.IOUtil
+import swaydb.data.io.IO
 import swaydb.data.slice.Slice
 
 object IOOps extends LazyLogging {
 
   def write(bytes: Slice[Byte],
-            to: Path): scala.util.Try[Path] =
-    scala.util.Try(Files.newByteChannel(to, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)) flatMap {
+            to: Path): IO[Path] =
+    IO(Files.newByteChannel(to, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)) flatMap {
       channel =>
         try {
           write(bytes, channel) map {
@@ -45,44 +46,44 @@ object IOOps extends LazyLogging {
     }
 
   def write(bytes: Slice[Byte],
-            channel: WritableByteChannel): scala.util.Try[Unit] =
+            channel: WritableByteChannel): IO[Unit] =
     try {
       val written = channel write bytes.toByteBuffer
       // toByteBuffer uses size of Slice instead of written,
       // but here the check on written ensures that only the actually written bytes get written.
       // All the client code invoking writes to Disk using Slice should ensure that no Slice contains empty bytes.
       if (written != bytes.written)
-        scala.util.Failure(SegmentException.FailedToWriteAllBytes(written, bytes.written, bytes.size))
+        IO.Failure(SegmentException.FailedToWriteAllBytes(written, bytes.written, bytes.size))
       else
-        TryUtil.successUnit
+        IOUtil.successUnit
     } catch {
       case exception: Exception =>
-        scala.util.Failure(exception)
+        IO.Failure(exception)
     }
 
   def copy(copyFrom: Path,
-           copyTo: Path): scala.util.Try[Path] =
-    scala.util.Try {
+           copyTo: Path): IO[Path] =
+    IO {
       Files.copy(copyFrom, copyTo)
     }
 
-  def delete(path: Path): scala.util.Try[Unit] =
-    scala.util.Try(Files.delete(path))
+  def delete(path: Path): IO[Unit] =
+    IO(Files.delete(path))
 
-  def deleteIfExists(path: Path): scala.util.Try[Unit] =
+  def deleteIfExists(path: Path): IO[Unit] =
     if (exists(path))
       delete(path)
     else
-      TryUtil.successUnit
+      IOUtil.successUnit
 
-  def createFile(path: Path): scala.util.Try[Path] =
-    scala.util.Try {
+  def createFile(path: Path): IO[Path] =
+    IO {
       Files.createFile(path)
     }
 
-  def createFileIfAbsent(path: Path): scala.util.Try[Path] =
+  def createFileIfAbsent(path: Path): IO[Path] =
     if (exists(path))
-      scala.util.Success(path)
+      IO.Success(path)
     else
       createFile(path)
 
@@ -104,7 +105,7 @@ object IOOps extends LazyLogging {
     else
       Files.createDirectories(path)
 
-  def walkDelete(folder: Path): scala.util.Try[Unit] =
+  def walkDelete(folder: Path): IO[Unit] =
     try {
       if (exists(folder))
         Files.walkFileTree(folder, new SimpleFileVisitor[Path]() {
@@ -120,14 +121,14 @@ object IOOps extends LazyLogging {
             FileVisitResult.CONTINUE
           }
         })
-      TryUtil.successUnit
+      IOUtil.successUnit
     } catch {
       case exception: Throwable =>
-        scala.util.Failure(exception)
+        IO.Failure(exception)
     }
 
-  def release(lock: FileLock): scala.util.Try[Unit] =
-    scala.util.Try {
+  def release(lock: FileLock): IO[Unit] =
+    IO {
       lock.release()
       lock.close()
     }
@@ -140,6 +141,6 @@ object IOOps extends LazyLogging {
       stream.close()
   }
 
-  def release(lock: Option[FileLock]): scala.util.Try[Unit] =
-    lock.map(release).getOrElse(TryUtil.successUnit)
+  def release(lock: Option[FileLock]): IO[Unit] =
+    lock.map(release).getOrElse(IOUtil.successUnit)
 }

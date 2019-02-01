@@ -30,14 +30,14 @@ import swaydb.core.util.Benchmark
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.data.order.KeyOrder
-
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.util.Failure
+import swaydb.data.io.IO.Failure
 import swaydb.core.TestData._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
-import swaydb.core.TryAssert._
+import swaydb.core.IOAssert._
+import swaydb.data.io.IO
 
 //@formatter:off
 class LevelStressSpec0 extends LevelStressSpec
@@ -92,12 +92,12 @@ sealed trait LevelStressSpec extends TestBase with Benchmark {
           case PushSegmentsResponse(request, result) =>
             segment.delete.assertGet
             result match {
-              case Failure(LevelException.ContainsOverlappingBusySegments) =>
+              case IO.Failure(LevelException.ContainsOverlappingBusySegments) =>
                 println("BUSY SEGMENTS")
                 sleep(100.milliseconds)
                 doPut
 
-              case Failure(exception) =>
+              case IO.Failure(exception) =>
                 exception.printStackTrace()
                 fail(exception)
 

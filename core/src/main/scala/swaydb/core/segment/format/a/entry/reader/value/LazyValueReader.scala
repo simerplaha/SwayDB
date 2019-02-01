@@ -19,7 +19,7 @@
 
 package swaydb.core.segment.format.a.entry.reader.value
 
-import scala.util.{Success, Try}
+import swaydb.data.io.IO
 import swaydb.core.segment.format.a.SegmentReader
 import swaydb.data.slice.{Reader, Slice}
 
@@ -47,7 +47,7 @@ trait LazyValueReader {
   def valueOffset: Int
 
   //tries fetching the value from the given reader
-  private def fetchValue(reader: Reader): Try[Option[Slice[Byte]]] =
+  private def fetchValue(reader: Reader): IO[Option[Slice[Byte]]] =
     if (valueOption == null)
       SegmentReader.readBytes(valueOffset, valueLength, reader) map {
         value =>
@@ -55,9 +55,9 @@ trait LazyValueReader {
           value
       }
     else
-      Success(valueOption)
+      IO.Success(valueOption)
 
-  def getOrFetchValue: Try[Option[Slice[Byte]]] =
+  def getOrFetchValue: IO[Option[Slice[Byte]]] =
     fetchValue(valueReader)
 
   def isValueDefined: Boolean =

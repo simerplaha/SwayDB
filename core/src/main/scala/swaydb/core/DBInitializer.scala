@@ -23,7 +23,7 @@ import com.typesafe.scalalogging.LazyLogging
 import java.nio.file.Paths
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
-import scala.util.{Success, Try}
+import swaydb.data.io.IO
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.io.file.DBFile
@@ -45,7 +45,7 @@ private[core] object DBInitializer extends LazyLogging {
             segmentCloserDelay: FiniteDuration)(implicit ec: ExecutionContext,
                                                 keyOrder: KeyOrder[Slice[Byte]],
                                                 timeOrder: TimeOrder[Slice[Byte]],
-                                                functionStore: FunctionStore): Try[CoreAPI] = {
+                                                functionStore: FunctionStore): IO[CoreAPI] = {
 
     implicit val fileOpenLimiter: FileLimiter =
       FileLimiter(maxSegmentsOpen, segmentCloserDelay)
@@ -55,7 +55,7 @@ private[core] object DBInitializer extends LazyLogging {
 
     def createLevel(id: Long,
                     nextLevel: Option[LevelRef],
-                    config: LevelConfig): Try[LevelRef] =
+                    config: LevelConfig): IO[LevelRef] =
       config match {
         case config: MemoryLevelConfig =>
           implicit val compression: Option[KeyValueGroupingStrategyInternal] = config.groupingStrategy map KeyValueGroupingStrategyInternal.apply
@@ -92,7 +92,7 @@ private[core] object DBInitializer extends LazyLogging {
           )
 
         case TrashLevelConfig =>
-          Success(TrashLevel)
+          IO.Success(TrashLevel)
       }
 
     /**
@@ -114,7 +114,7 @@ private[core] object DBInitializer extends LazyLogging {
       }
 
     def createLevels(levelConfigs: List[LevelConfig],
-                     previousLowerLevel: Option[LevelRef]): Try[CoreAPI] =
+                     previousLowerLevel: Option[LevelRef]): IO[CoreAPI] =
       levelConfigs match {
         case Nil =>
           createLevel(1, previousLowerLevel, config.level1) flatMap {

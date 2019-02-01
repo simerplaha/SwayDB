@@ -20,7 +20,7 @@
 package swaydb.core.map
 
 import swaydb.data.config.RecoveryMode
-import scala.util.Try
+import swaydb.data.io.IO
 import swaydb.core.io.file.DBFile
 
 /**
@@ -30,6 +30,6 @@ import swaydb.core.io.file.DBFile
   * and the result of each partial recovery.
   *
   * This instance will only contain failure if the file was partially recovered. If there was a full failure then
-  * a [[Try]] outside this instance should return the failure.
+  * a [[IO]] outside this instance should return the failure.
   */
-sealed case class RecoveryResult[T](item: T, result: Try[Unit])
+sealed case class RecoveryResult[T](item: T, result: IO[Unit])

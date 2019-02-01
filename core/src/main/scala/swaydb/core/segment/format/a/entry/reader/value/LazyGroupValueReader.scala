@@ -19,7 +19,7 @@
 
 package swaydb.core.segment.format.a.entry.reader.value
 
-import scala.util.Try
+import swaydb.data.io.IO
 import swaydb.data.slice.{Reader, Slice}
 
 object LazyGroupValueReader {
@@ -37,7 +37,7 @@ object LazyGroupValueReader {
 
 trait LazyGroupValueReader extends LazyValueReader {
 
-  override def getOrFetchValue: Try[Option[Slice[Byte]]] =
+  override def getOrFetchValue: IO[Option[Slice[Byte]]] =
     super.getOrFetchValue
 
   override def isValueDefined: Boolean =

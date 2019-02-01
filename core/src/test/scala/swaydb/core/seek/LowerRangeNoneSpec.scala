@@ -21,11 +21,11 @@ package swaydb.core.seek
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
-import scala.util.Try
+import swaydb.data.io.IO
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.TryAssert._
-import swaydb.core.util.TryUtil
+import swaydb.core.IOAssert._
+import swaydb.core.util.IOUtil
 import swaydb.core.{TestData, TestTimeGenerator}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -57,9 +57,9 @@ class LowerRangeNoneSpec extends WordSpec with Matchers with MockFactory {
 
               inSequence {
                 //@formatter:off
-                current.lower _ expects (key: Slice[Byte]) returning Try(Some(randomRangeKeyValue(0, 10, randomFromValueOption(addPut = false), rangeValue = randomUpdateRangeValue())))
-                next.lower    _ expects (key: Slice[Byte]) returning TryUtil.successNone
-                current.lower _ expects (0: Slice[Byte]) returning TryUtil.successNone
+                current.lower _ expects (key: Slice[Byte]) returning IO(Some(randomRangeKeyValue(0, 10, randomFromValueOption(addPut = false), rangeValue = randomUpdateRangeValue())))
+                next.lower    _ expects (key: Slice[Byte]) returning IOUtil.successNone
+                current.lower _ expects (0: Slice[Byte]) returning IOUtil.successNone
                 //@formatter:on
               }
               Lower(key: Slice[Byte]).assertGetOpt shouldBe empty
@@ -83,9 +83,9 @@ class LowerRangeNoneSpec extends WordSpec with Matchers with MockFactory {
 
               inSequence {
                 //@formatter:off
-                current.lower     _ expects (key: Slice[Byte]) returning Try(Some(randomRangeKeyValue(0, 10, Some(randomRemoveOrUpdateOrFunctionRemoveValue(addFunctions = false)), randomRemoveOrUpdateOrFunctionRemoveValue(addFunctions = false))))
-                next.lower        _ expects (key: Slice[Byte]) returning TryUtil.successNone
-                current.lower     _ expects (0: Slice[Byte]) returning TryUtil.successNone
+                current.lower     _ expects (key: Slice[Byte]) returning IO(Some(randomRangeKeyValue(0, 10, Some(randomRemoveOrUpdateOrFunctionRemoveValue(addFunctions = false)), randomRemoveOrUpdateOrFunctionRemoveValue(addFunctions = false))))
+                next.lower        _ expects (key: Slice[Byte]) returning IOUtil.successNone
+                current.lower     _ expects (0: Slice[Byte]) returning IOUtil.successNone
                 //@formatter:on
               }
               Lower(key: Slice[Byte]).assertGetOpt shouldBe empty
@@ -111,9 +111,9 @@ class LowerRangeNoneSpec extends WordSpec with Matchers with MockFactory {
 
               inSequence {
                 //@formatter:off
-                current.lower   _ expects (key: Slice[Byte]) returning Try(Some(randomRangeKeyValue(1, 10, randomFromValueOption(addPut = false), randomUpdateRangeValue())))
-                next.lower      _ expects (key: Slice[Byte]) returning TryUtil.successNone
-                current.lower   _ expects (1: Slice[Byte]) returning TryUtil.successNone
+                current.lower   _ expects (key: Slice[Byte]) returning IO(Some(randomRangeKeyValue(1, 10, randomFromValueOption(addPut = false), randomUpdateRangeValue())))
+                next.lower      _ expects (key: Slice[Byte]) returning IOUtil.successNone
+                current.lower   _ expects (1: Slice[Byte]) returning IOUtil.successNone
                 //@formatter:on
               }
               Lower(key: Slice[Byte]).assertGetOpt shouldBe empty
@@ -135,9 +135,9 @@ class LowerRangeNoneSpec extends WordSpec with Matchers with MockFactory {
               implicit val next = mock[NextWalker]
               inSequence {
                 //@formatter:off
-                current.lower   _ expects (key: Slice[Byte]) returning Try(Some(randomRangeKeyValue(1, 10, Some(randomRemoveOrUpdateOrFunctionRemoveValue()), randomRemoveOrUpdateOrFunctionRemoveValue(addFunctions = false))))
-                next.lower      _ expects (key: Slice[Byte]) returning TryUtil.successNone
-                current.lower   _ expects (1: Slice[Byte]) returning TryUtil.successNone
+                current.lower   _ expects (key: Slice[Byte]) returning IO(Some(randomRangeKeyValue(1, 10, Some(randomRemoveOrUpdateOrFunctionRemoveValue()), randomRemoveOrUpdateOrFunctionRemoveValue(addFunctions = false))))
+                next.lower      _ expects (key: Slice[Byte]) returning IOUtil.successNone
+                current.lower   _ expects (1: Slice[Byte]) returning IOUtil.successNone
                 //@formatter:on
               }
               Lower(key: Slice[Byte]).assertGetOpt shouldBe empty
@@ -158,9 +158,9 @@ class LowerRangeNoneSpec extends WordSpec with Matchers with MockFactory {
           implicit val next = mock[NextWalker]
           inSequence {
             //@formatter:off
-            current.lower   _ expects (12: Slice[Byte]) returning Try(Some(randomRangeKeyValue(1, 10, Some(randomRemoveOrUpdateOrFunctionRemoveValue()), randomRemoveOrUpdateOrFunctionRemoveValue(addFunctions = false))))
-            next.lower      _ expects (12: Slice[Byte]) returning TryUtil.successNone
-            current.lower   _ expects (1: Slice[Byte])  returning TryUtil.successNone
+            current.lower   _ expects (12: Slice[Byte]) returning IO(Some(randomRangeKeyValue(1, 10, Some(randomRemoveOrUpdateOrFunctionRemoveValue()), randomRemoveOrUpdateOrFunctionRemoveValue(addFunctions = false))))
+            next.lower      _ expects (12: Slice[Byte]) returning IOUtil.successNone
+            current.lower   _ expects (1: Slice[Byte])  returning IOUtil.successNone
             //@formatter:on
           }
           Lower(12: Slice[Byte]).assertGetOpt shouldBe empty

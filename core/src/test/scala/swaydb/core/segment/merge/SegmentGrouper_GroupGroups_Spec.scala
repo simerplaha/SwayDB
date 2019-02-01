@@ -28,7 +28,7 @@ import swaydb.data.util.StorageUnits._
 import swaydb.core.TestData._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
-import swaydb.core.TryAssert._
+import swaydb.core.IOAssert._
 import scala.collection.mutable.ListBuffer
 import swaydb.data.order.KeyOrder
 
@@ -64,7 +64,7 @@ sealed trait SegmentGrouper_GroupGroups_Spec extends TestBase {
   def force: Boolean
 
   "groupGroups" should {
-    "return None (Failure to group)" when {
+    "return None (IO.Failure to group)" when {
       "there are no key-values" in {
         SegmentGrouper.groupGroups(
           groupKeyValues = ListBuffer.empty,

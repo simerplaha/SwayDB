@@ -24,7 +24,7 @@ import java.nio.file.Path
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{FiniteDuration, _}
 import scala.concurrent.forkjoin.ForkJoinPool
-import scala.util.{Failure, Success, Try}
+import swaydb.data.io.IO
 import swaydb.core.CoreAPI
 import swaydb.core.data.{Memory, Time, Value}
 import swaydb.core.function.FunctionStore
@@ -95,7 +95,7 @@ object SwayDB extends LazyLogging {
                   segmentsOpenCheckDelay: FiniteDuration)(implicit keySerializer: Serializer[K],
                                                           valueSerializer: Serializer[V],
                                                           keyOrder: KeyOrder[Slice[Byte]],
-                                                          ec: ExecutionContext): Try[Map[K, V]] =
+                                                          ec: ExecutionContext): IO[Map[K, V]] =
     CoreAPI(
       config = config,
       maxOpenSegments = maxSegmentsOpen,
@@ -113,7 +113,7 @@ object SwayDB extends LazyLogging {
                cacheCheckDelay: FiniteDuration,
                segmentsOpenCheckDelay: FiniteDuration)(implicit serializer: Serializer[T],
                                                        keyOrder: KeyOrder[Slice[Byte]],
-                                                       ec: ExecutionContext): Try[Set[T]] =
+                                                       ec: ExecutionContext): IO[Set[T]] =
     CoreAPI(
       config = config,
       maxOpenSegments = maxSegmentsOpen,
@@ -130,7 +130,7 @@ object SwayDB extends LazyLogging {
                   cacheCheckDelay: FiniteDuration)(implicit keySerializer: Serializer[K],
                                                    valueSerializer: Serializer[V],
                                                    keyOrder: KeyOrder[Slice[Byte]],
-                                                   ec: ExecutionContext): Try[Map[K, V]] =
+                                                   ec: ExecutionContext): IO[Map[K, V]] =
     CoreAPI(
       config = config,
       maxOpenSegments = 0,
@@ -146,7 +146,7 @@ object SwayDB extends LazyLogging {
                cacheSize: Int,
                cacheCheckDelay: FiniteDuration)(implicit serializer: Serializer[T],
                                                 keyOrder: KeyOrder[Slice[Byte]],
-                                                ec: ExecutionContext): Try[Set[T]] =
+                                                ec: ExecutionContext): IO[Set[T]] =
     CoreAPI(
       config = config,
       maxOpenSegments = 0,
@@ -165,11 +165,11 @@ object SwayDB extends LazyLogging {
                         repairStrategy: AppendixRepairStrategy)(implicit serializer: Serializer[K],
                                                                 fileLimiter: FileLimiter,
                                                                 keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                ec: ExecutionContext = defaultExecutionContext): Try[RepairResult[K]] =
+                                                                ec: ExecutionContext = defaultExecutionContext): IO[RepairResult[K]] =
   //convert to typed result.
     AppendixRepairer(levelPath, repairStrategy) match {
-      case Failure(OverlappingSegmentsException(segmentInfo, overlappingSegmentInfo)) =>
-        Success(
+      case IO.Failure(OverlappingSegmentsException(segmentInfo, overlappingSegmentInfo)) =>
+        IO.Success(
           OverlappingSegments[K](
             segmentInfo =
               SegmentInfo(
@@ -203,11 +203,11 @@ object SwayDB extends LazyLogging {
               )
           )
         )
-      case Failure(exception) =>
-        Failure(exception)
+      case IO.Failure(exception) =>
+        IO.Failure(exception)
 
-      case Success(_) =>
-        Success(RepairResult.Repaired)
+      case IO.Success(_) =>
+        IO.Success(RepairResult.Repaired)
     }
 }
 
@@ -216,28 +216,28 @@ private[swaydb] class SwayDB(api: CoreAPI) {
   def put(key: Slice[Byte]) =
     api.put(key)
 
-  def put(key: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter] =
+  def put(key: Slice[Byte], value: Option[Slice[Byte]]): IO[Level0Meter] =
     api.put(key, value)
 
-  def put(key: Slice[Byte], value: Option[Slice[Byte]], expireAt: Deadline): Try[Level0Meter] =
+  def put(key: Slice[Byte], value: Option[Slice[Byte]], expireAt: Deadline): IO[Level0Meter] =
     api.put(key, value, expireAt)
 
-  def update(key: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter] =
+  def update(key: Slice[Byte], value: Option[Slice[Byte]]): IO[Level0Meter] =
     api.update(key, value)
 
-  def update(from: Slice[Byte], to: Slice[Byte], value: Option[Slice[Byte]]): Try[Level0Meter] =
+  def update(from: Slice[Byte], to: Slice[Byte], value: Option[Slice[Byte]]): IO[Level0Meter] =
     api.update(from, to, value)
 
-  def expire(key: Slice[Byte], at: Deadline): Try[Level0Meter] =
+  def expire(key: Slice[Byte], at: Deadline): IO[Level0Meter] =
     api.remove(key, at)
 
-  def expire(from: Slice[Byte], to: Slice[Byte], at: Deadline): Try[Level0Meter] =
+  def expire(from: Slice[Byte], to: Slice[Byte], at: Deadline): IO[Level0Meter] =
     api.remove(from, to, at)
 
   def remove(key: Slice[Byte]) =
     api.remove(key)
 
-  def remove(from: Slice[Byte], to: Slice[Byte]): Try[Level0Meter] =
+  def remove(from: Slice[Byte], to: Slice[Byte]): IO[Level0Meter] =
     api.remove(from, to)
 
   def batch(entries: Iterable[request.Batch]) =
@@ -266,30 +266,30 @@ private[swaydb] class SwayDB(api: CoreAPI) {
     } map {
       entry =>
         api.put(entry)
-    } getOrElse Failure(new Exception("Cannot write empty batch"))
+    } getOrElse IO.Failure(new Exception("Cannot write empty batch"))
 
-  def head: Try[Option[(Slice[Byte], Option[Slice[Byte]])]] =
+  def head: IO[Option[(Slice[Byte], Option[Slice[Byte]])]] =
     api.head
 
-  def last: Try[Option[(Slice[Byte], Option[Slice[Byte]])]] =
+  def last: IO[Option[(Slice[Byte], Option[Slice[Byte]])]] =
     api.last
 
-  def keyValueCount: Try[Int] =
+  def keyValueCount: IO[Int] =
     api.bloomFilterKeyValueCount
 
-  def contains(key: Slice[Byte]): Try[Boolean] =
+  def contains(key: Slice[Byte]): IO[Boolean] =
     api contains key
 
-  def mightContain(key: Slice[Byte]): Try[Boolean] =
+  def mightContain(key: Slice[Byte]): IO[Boolean] =
     api mightContain key
 
-  def get(key: Slice[Byte]): Try[Option[Option[Slice[Byte]]]] =
+  def get(key: Slice[Byte]): IO[Option[Option[Slice[Byte]]]] =
     api.get(key)
 
-  def getKey(key: Slice[Byte]): Try[Option[Slice[Byte]]] =
+  def getKey(key: Slice[Byte]): IO[Option[Slice[Byte]]] =
     api.getKey(key)
 
-  def getKeyValue(key: Slice[Byte]): Try[Option[(Slice[Byte], Option[Slice[Byte]])]] =
+  def getKeyValue(key: Slice[Byte]): IO[Option[(Slice[Byte], Option[Slice[Byte]])]] =
     api.getKeyValue(key)
 
   def beforeKey(key: Slice[Byte]) =
@@ -304,10 +304,10 @@ private[swaydb] class SwayDB(api: CoreAPI) {
   def after(key: Slice[Byte]) =
     api.after(key)
 
-  def headKey: Try[Option[Slice[Byte]]] =
+  def headKey: IO[Option[Slice[Byte]]] =
     api.headKey
 
-  def lastKey: Try[Option[Slice[Byte]]] =
+  def lastKey: IO[Option[Slice[Byte]]] =
     api.lastKey
 
   def sizeOfSegments: Long =
@@ -319,9 +319,9 @@ private[swaydb] class SwayDB(api: CoreAPI) {
   def levelMeter(levelNumber: Int): Option[LevelMeter] =
     api.levelMeter(levelNumber)
 
-  def valueSize(key: Slice[Byte]): Try[Option[Int]] =
+  def valueSize(key: Slice[Byte]): IO[Option[Int]] =
     api.valueSize(key)
 
-  def deadline(key: Slice[Byte]): Try[Option[Deadline]] =
+  def deadline(key: Slice[Byte]): IO[Option[Deadline]] =
     api.deadline(key)
 }

@@ -25,10 +25,10 @@ import swaydb.core.data.{KeyValue, Transient}
 import swaydb.core.group.compression.GroupCompressorFailure.InvalidGroupKeyValuesHeadPosition
 import swaydb.core.group.compression.data.{CompressionResult, ValueCompressionResult}
 import swaydb.core.segment.format.a.SegmentWriter
-import swaydb.core.util.TryUtil._
-import swaydb.core.util.{Bytes, TryUtil}
+import swaydb.core.util.IOUtil._
+import swaydb.core.util.{Bytes, IOUtil}
 import swaydb.data.slice.Slice
-import scala.util.{Failure, Success, Try}
+import swaydb.data.io.IO
 import swaydb.data.repairAppendix.MaxKey
 
 private[core] object GroupCompressor extends LazyLogging {
@@ -48,17 +48,17 @@ private[core] object GroupCompressor extends LazyLogging {
                           indexCompressions: Seq[CompressionInternal],
                           valueBytes: Slice[Byte],
                           valueCompressions: Seq[CompressionInternal],
-                          keyValueCount: Int): Try[Option[CompressionResult]] =
+                          keyValueCount: Int): IO[Option[CompressionResult]] =
     indexCompressions.tryUntilSome(_.compressor.compress(indexBytes)) flatMap {
       case None =>
         logger.warn(s"Unable to apply valid compressor for keyBytes: ${indexBytes.size}. Ignoring key & value compression for $keyValueCount key-values.")
-        TryUtil.successNone
+        IOUtil.successNone
 
       case Some((compressedKeys, keyCompression)) =>
         logger.debug(s"Keys successfully compressed with Compression: ${keyCompression.getClass.getSimpleName}. ${indexBytes.size}.bytes compressed to ${compressedKeys.size}.bytes")
         if (valueBytes.size == 0) { //if no values exist, result is success.
           logger.debug(s"No values in ${indexBytes.size}: key-values. Ignoring value compression for $keyValueCount key-values.")
-          Success(
+          IO.Success(
             Some(
               CompressionResult(
                 compressedIndex = compressedKeys,
@@ -71,11 +71,11 @@ private[core] object GroupCompressor extends LazyLogging {
           valueCompressions.tryUntilSome(_.compressor.compress(valueBytes)) flatMap { //if values exists do compressed.
             case None => //if unable to compress values from all the input compression configurations, return None so that compression continues on larger key-value bytes.
               logger.warn(s"Unable to apply valid compressor for valueBytes of ${valueBytes.size}.bytes. Ignoring value compression for $keyValueCount key-values.")
-              TryUtil.successNone //break out because values were not compressed.
+              IOUtil.successNone //break out because values were not compressed.
 
             case Some((compressedValueBytes, valueCompression)) =>
               logger.debug(s"Values successfully compressed with Compression: ${valueCompression.getClass.getSimpleName}. ${valueBytes.size}.bytes compressed to ${compressedValueBytes.size}.bytes")
-              Success(
+              IO.Success(
                 Some(
                   CompressionResult(
                     compressedIndex = compressedKeys,
@@ -98,15 +98,15 @@ private[core] object GroupCompressor extends LazyLogging {
                indexCompressions: Seq[CompressionInternal],
                valueCompressions: Seq[CompressionInternal],
                falsePositiveRate: Double,
-               previous: Option[KeyValue.WriteOnly]): Try[Option[Transient.Group]] =
+               previous: Option[KeyValue.WriteOnly]): IO[Option[Transient.Group]] =
     if (keyValues.isEmpty) {
       logger.error(s"Ignoring compression. Cannot compress on empty key-values")
-      TryUtil.successNone
+      IOUtil.successNone
     } else if (keyValues.head.stats.position != 1) {
       //Cannot write key-values that belong to another Group or Segment. Groups key-values should have stats reset.
       val message = InvalidGroupKeyValuesHeadPosition(keyValues.head.stats.position)
       logger.error(message.getMessage)
-      Failure(message)
+      IO.Failure(message)
     } else {
       logger.debug(s"Compressing ${keyValues.size} key-values with previous key-value as ${previous.map(_.getClass.getSimpleName)}.")
 
@@ -184,9 +184,9 @@ private[core] object GroupCompressor extends LazyLogging {
               compressedKeyValueBytes.addAll(compressedIndexBytes)
 
               if (!compressedKeyValueBytes.isFull)
-                Failure(new IllegalArgumentException(s"compressedKeyValueBytes Slice is not full. actual: ${compressedKeyValueBytes.written}, expected: ${compressedKeyValueBytes.size}"))
+                IO.Failure(new IllegalArgumentException(s"compressedKeyValueBytes Slice is not full. actual: ${compressedKeyValueBytes.written}, expected: ${compressedKeyValueBytes.size}"))
               else
-                Try {
+                IO {
                   val (minKey, maxKey, fullKey) = buildCompressedKey(keyValues)
                   Some(
                     Transient.Group(
@@ -203,7 +203,7 @@ private[core] object GroupCompressor extends LazyLogging {
                 }
 
             case None =>
-              TryUtil.successNone
+              IOUtil.successNone
           }
       }
     }

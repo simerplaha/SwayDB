@@ -47,14 +47,15 @@ import swaydb.serializers.Default._
 import swaydb.serializers._
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
-import scala.util.{Random, Success, Try}
+import scala.util.Random
+import swaydb.data.io.IO
 import swaydb.core.TestData._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
-import swaydb.core.TryAssert._
+import swaydb.core.IOAssert._
 
 //@formatter:off
 class LevelWriteSpec0 extends LevelWriteSpec
@@ -206,7 +207,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
             case request @ PushSegments(segments, replyTo) =>
               segments should have size 1
               //return successful response and expect upper level to have deleted the Segments
-              replyTo ! PushSegmentsResponse(request, Success())
+              replyTo ! PushSegmentsResponse(request, IO.Success())
           }
       }
 
@@ -936,7 +937,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
       val targetSegment = TestSegment(keyValues = targetSegmentKeyValues, path = testSegmentFile.resolveSibling("10.seg")).assertGet
 
       val keyValues = randomPutKeyValues()
-      val function = PrivateMethod[Try[Unit]]('putKeyValues)
+      val function = PrivateMethod[IO[Unit]]('putKeyValues)
       (level invokePrivate function(keyValues, Seq(targetSegment), None)).assertGet
 
       targetSegment.existsOnDisk shouldBe false //target Segment should be deleted
@@ -963,7 +964,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
       keyValues.add(Memory.put(1234, 12345))
       keyValues.add(Persistent.Put(1235, None, null, Time.empty, 10, 10, 10, 10, 10)) //give it a null Reader so that it fails reading the value.
 
-      val function = PrivateMethod[Try[Unit]]('putKeyValues)
+      val function = PrivateMethod[IO[Unit]]('putKeyValues)
       val failed = level invokePrivate function(keyValues, Iterable(targetSegment), None)
       failed.isFailure shouldBe true
       failed.failed.get shouldBe a[NullPointerException]

@@ -23,33 +23,23 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
-import scala.util.{Failure, Success, Try}
-import swaydb.core.TryAssert._
-import swaydb.core.util.TryUtil._
+import swaydb.data.io.IO
+import swaydb.core.IOAssert._
+import swaydb.core.util.IOUtil._
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 import swaydb.core.RunThis._
 
-class TryUtilSpec extends WordSpec with Matchers with MockFactory {
+class IOUtilSpec extends WordSpec with Matchers with MockFactory {
 
   "Catch" when {
-    "exception" in  {
+    "exception" in {
       val exception = new Exception("Failed")
-      Catch(throw exception).failed.assertGet shouldBe exception
+      IO.Catch(throw exception).failed.assertGet shouldBe exception
     }
 
-    "no exception" in  {
-      Catch(TryUtil.successNone).assertGetOpt shouldBe empty
-    }
-  }
-
-  "runInFuture" should {
-    "run the try in a new thread" in {
-      def tryBlock: Try[Long] = Try(Thread.currentThread().getId)
-
-      val tryBlockThreadId = tryBlock.tryInFuture.await(1.second)
-
-      tryBlockThreadId should not be Thread.currentThread().getId
+    "no exception" in {
+      IO.Catch(IOUtil.successNone).assertGetOpt shouldBe empty
     }
   }
 
@@ -58,14 +48,14 @@ class TryUtilSpec extends WordSpec with Matchers with MockFactory {
       val slice = Slice(1, 2, 3, 4)
       var iterations = 0
 
-      val result: Option[Failure[Int]] =
+      val result: Option[IO.Failure[Int]] =
         slice.tryForeach {
           item => {
             iterations += 1
             if (item == 3)
-              Failure(new Exception(s"result at item $item"))
+              IO.Failure(new Exception(s"result at item $item"))
             else
-              Success(item)
+              IO.Success(item)
           }
         }
 
@@ -78,14 +68,14 @@ class TryUtilSpec extends WordSpec with Matchers with MockFactory {
       val slice = Slice(1, 2, 3, 4)
       var iterations = 0
 
-      val result: Option[Failure[Int]] =
+      val result: Option[IO.Failure[Int]] =
         slice.tryForeach(
           item => {
             iterations += 1
             if (item == 3)
-              Failure(new Exception(s"result at item $item"))
+              IO.Failure(new Exception(s"result at item $item"))
             else {
-              Success(item)
+              IO.Success(item)
             }
           },
           failFast = false
@@ -96,13 +86,13 @@ class TryUtilSpec extends WordSpec with Matchers with MockFactory {
       iterations shouldBe 4
     }
 
-    "finish iteration on Success Try's" in {
+    "finish iteration on IO.Success IO's" in {
       val slice = Slice(1, 2, 3, 4)
 
-      val result: Option[Failure[Int]] =
+      val result: Option[IO.Failure[Int]] =
         slice.tryForeach {
           item =>
-            Success(item)
+            IO.Success(item)
         }
 
       result.isEmpty shouldBe true
@@ -114,10 +104,10 @@ class TryUtilSpec extends WordSpec with Matchers with MockFactory {
     "allow map on Slice" in {
       val slice = Slice(1, 2, 3, 4, 5)
 
-      val result: Try[Slice[Int]] =
+      val result: IO[Slice[Int]] =
         slice.tryMap {
           item =>
-            Success(item + 1)
+            IO.Success(item + 1)
         }
 
       result.get.toArray shouldBe Array(2, 3, 4, 5, 6)
@@ -128,10 +118,10 @@ class TryUtilSpec extends WordSpec with Matchers with MockFactory {
 
       val intsCleanedUp = ListBuffer.empty[Int]
 
-      val result: Try[Slice[Int]] =
+      val result: IO[Slice[Int]] =
         slice.tryMap(
-          tryBlock = item => if (item == 3) Failure(new Exception(s"Failed at $item")) else Success(item),
-          recover = (ints: Slice[Int], _: Failure[Slice[Int]]) => ints.foreach(intsCleanedUp += _)
+          tryBlock = item => if (item == 3) IO.Failure(new Exception(s"Failed at $item")) else IO.Success(item),
+          recover = (ints: Slice[Int], _: IO.Failure[Slice[Int]]) => ints.foreach(intsCleanedUp += _)
         )
 
       result.isFailure shouldBe true
@@ -146,10 +136,10 @@ class TryUtilSpec extends WordSpec with Matchers with MockFactory {
     "return flattened list" in {
       val slice = Slice(1, 2, 3, 4, 5)
 
-      val result: Try[Iterable[String]] =
+      val result: IO[Iterable[String]] =
         slice.tryFlattenIterable {
           item =>
-            Try(Seq(item.toString))
+            IO(Seq(item.toString))
         }
 
       result.assertGet.toArray shouldBe Array("1", "2", "3", "4", "5")
@@ -158,14 +148,14 @@ class TryUtilSpec extends WordSpec with Matchers with MockFactory {
     "return failure" in {
       val slice = Slice(1, 2, 3, 4, 5)
 
-      val result: Try[Iterable[String]] =
+      val result: IO[Iterable[String]] =
         slice.tryFlattenIterable {
           item =>
             if (item < 3) {
-              Try(Seq(item.toString))
+              IO(Seq(item.toString))
             }
             else {
-              Failure(new Exception("Kaboom!"))
+              IO.Failure(new Exception("Kaboom!"))
             }
         }
       result.failed.assertGet.getMessage shouldBe "Kaboom!"
@@ -176,13 +166,13 @@ class TryUtilSpec extends WordSpec with Matchers with MockFactory {
     "allow fold, terminating at first failure returning the failure" in {
       val slice = Slice("one", "two", "three")
 
-      val result: Try[Int] =
+      val result: IO[Int] =
         slice.tryFoldLeft(0) {
           case (count, item) =>
             if (item == "two")
-              Failure(new Exception(s"Failed at $item"))
+              IO.Failure(new Exception(s"Failed at $item"))
             else
-              Success(count + 1)
+              IO.Success(count + 1)
         }
 
       result.isFailure shouldBe true
@@ -192,10 +182,10 @@ class TryUtilSpec extends WordSpec with Matchers with MockFactory {
     "allow fold on Slice" in {
       val slice = Slice("one", "two", "three")
 
-      val result: Try[Int] =
+      val result: IO[Int] =
         slice.tryFoldLeft(0) {
           case (count, _) =>
-            Success(count + 1)
+            IO.Success(count + 1)
         }
 
       result.isSuccess shouldBe true
@@ -217,14 +207,14 @@ class TryUtilSpec extends WordSpec with Matchers with MockFactory {
       val slice = Slice(1, 2, 3, 4)
       var iterations = 0
 
-      val result: Try[Option[(Int, Int)]] =
+      val result: IO[Option[(Int, Int)]] =
         slice.tryUntilSome {
           item => {
             iterations += 1
             if (item == 3)
-              Success(Some(item))
+              IO.Success(Some(item))
             else
-              TryUtil.successNone
+              IOUtil.successNone
           }
         }
 
@@ -236,11 +226,11 @@ class TryUtilSpec extends WordSpec with Matchers with MockFactory {
       val slice = Slice(1, 2, 3, 4)
       var iterations = 0
 
-      val result: Try[Option[(Int, Int)]] =
+      val result: IO[Option[(Int, Int)]] =
         slice.tryUntilSome {
           _ => {
             iterations += 1
-            TryUtil.successNone
+            IOUtil.successNone
           }
         }
 
@@ -252,11 +242,11 @@ class TryUtilSpec extends WordSpec with Matchers with MockFactory {
       val slice = Slice(1, 2, 3, 4)
       var iterations = 0
 
-      val result: Try[Option[(Int, Int)]] =
+      val result: IO[Option[(Int, Int)]] =
         slice.tryUntilSome {
           item => {
             iterations += 1
-            Failure(new Exception(s"Failed at $item"))
+            IO.Failure(new Exception(s"Failed at $item"))
           }
         }
 
@@ -267,11 +257,11 @@ class TryUtilSpec extends WordSpec with Matchers with MockFactory {
   }
 
   "tryOrNone" when {
-    "exception" in  {
+    "exception" in {
       tryOrNone(throw new Exception("Failed")) shouldBe empty
     }
 
-    "no exception" in  {
+    "no exception" in {
       tryOrNone("success").assertGet shouldBe "success"
     }
   }

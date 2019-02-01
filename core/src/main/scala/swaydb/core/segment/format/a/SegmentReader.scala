@@ -25,17 +25,17 @@ import swaydb.core.io.reader.Reader
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
 import swaydb.core.segment.format.a.entry.reader.EntryReader
 import swaydb.core.util.BloomFilterUtil._
-import swaydb.core.util.TryUtil._
-import swaydb.core.util.{Bytes, CRC32, TryUtil}
+import swaydb.core.util.IOUtil._
+import swaydb.core.util.{Bytes, CRC32, IOUtil}
 import swaydb.data.slice.Slice._
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
 import scala.annotation.tailrec
-import scala.util.{Failure, Success, Try}
+import swaydb.data.io.IO
 import swaydb.data.order.KeyOrder
 
 /**
-  * All public APIs are wrapped around a try catch block because eager fetches on Try's results (.get).
+  * All public APIs are wrapped around a try catch block because eager fetches on IO's results (.get).
   * Eventually need to re-factor this code to use for comprehension.
   *
   * Leaving as it is now because it's easier to read.
@@ -46,7 +46,7 @@ private[core] object SegmentReader extends LazyLogging {
                                startIndexOffset: Int,
                                endIndexOffset: Int,
                                indexReader: Reader,
-                               valueReader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]]): Try[Persistent] = {
+                               valueReader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Persistent] = {
     indexReader moveTo previous.nextIndexOffset
     readNextKeyValue(
       indexEntrySizeMayBe = Some(previous.nextIndexSize),
@@ -63,7 +63,7 @@ private[core] object SegmentReader extends LazyLogging {
                                startIndexOffset: Int,
                                endIndexOffset: Int,
                                indexReader: Reader,
-                               valueReader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]]): Try[Persistent] = {
+                               valueReader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Persistent] = {
     indexReader moveTo fromPosition
     readNextKeyValue(
       indexEntrySizeMayBe = None,
@@ -83,7 +83,7 @@ private[core] object SegmentReader extends LazyLogging {
                                endIndexOffset: Int,
                                indexReader: Reader,
                                valueReader: Reader,
-                               previous: Option[Persistent])(implicit keyOrder: KeyOrder[Slice[Byte]]): Try[Persistent] =
+                               previous: Option[Persistent])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Persistent] =
     try {
       val positionBeforeRead = indexReader.getPosition
       //size of the index entry to read
@@ -133,7 +133,7 @@ private[core] object SegmentReader extends LazyLogging {
         exception match {
           case _: ArrayIndexOutOfBoundsException | _: IndexOutOfBoundsException | _: IllegalArgumentException | _: NegativeArraySizeException =>
             val atPosition: String = indexEntrySizeMayBe.map(size => s" of size $size") getOrElse ""
-            Failure(
+            IO.Failure(
               SegmentCorruptionException(
                 s"Corrupted Segment: Failed to read index entry at reader position ${indexReader.getPosition}$atPosition}",
                 exception
@@ -141,13 +141,13 @@ private[core] object SegmentReader extends LazyLogging {
             )
 
           case ex: Exception =>
-            Failure(ex)
+            IO.Failure(ex)
         }
     }
 
   def readAll(footer: SegmentFooter,
               reader: Reader,
-              addTo: Option[Slice[KeyValue.ReadOnly]] = None)(implicit keyOrder: KeyOrder[Slice[Byte]]): Try[Slice[KeyValue.ReadOnly]] =
+              addTo: Option[Slice[KeyValue.ReadOnly]] = None)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Slice[KeyValue.ReadOnly]] =
     try {
       //since this is a index slice of the full Segment, adjustments for nextIndexOffset is required.
       val adjustNextIndexOffsetBy = footer.startIndexOffset
@@ -187,24 +187,24 @@ private[core] object SegmentReader extends LazyLogging {
       case exception: Exception =>
         exception match {
           case _: ArrayIndexOutOfBoundsException | _: IndexOutOfBoundsException | _: IllegalArgumentException | _: NegativeArraySizeException =>
-            Failure(SegmentCorruptionException(s"Corrupted Segment: Failed to read index bytes", exception))
+            IO.Failure(SegmentCorruptionException(s"Corrupted Segment: Failed to read index bytes", exception))
 
           case ex: Exception =>
-            Failure(ex)
+            IO.Failure(ex)
         }
     }
 
-  def readBytes(fromOffset: Int, length: Int, reader: Reader): Try[Option[Slice[Byte]]] =
+  def readBytes(fromOffset: Int, length: Int, reader: Reader): IO[Option[Slice[Byte]]] =
     try {
       if (length == 0)
-        TryUtil.successNone
+        IOUtil.successNone
       else
         (reader.copy() moveTo fromOffset read length).map(Some(_))
     } catch {
       case exception: Exception =>
         exception match {
           case _: ArrayIndexOutOfBoundsException | _: IndexOutOfBoundsException | _: IllegalArgumentException | _: NegativeArraySizeException =>
-            Failure(
+            IO.Failure(
               SegmentCorruptionException(
                 s"Corrupted Segment: Failed to get bytes of length $length from offset $fromOffset",
                 exception
@@ -212,11 +212,11 @@ private[core] object SegmentReader extends LazyLogging {
             )
 
           case ex: Exception =>
-            Failure(ex)
+            IO.Failure(ex)
         }
     }
 
-  def readFooter(reader: Reader): Try[SegmentFooter] =
+  def readFooter(reader: Reader): IO[SegmentFooter] =
     try {
       val fileSize = reader.size.get
       val footerSize = reader.moveTo(fileSize - ByteSizeOf.int).readInt().get
@@ -240,10 +240,10 @@ private[core] object SegmentReader extends LazyLogging {
       val crcBytes = reader.moveTo(indexStartOffset).read(SegmentWriter.crcBytes).get
       val crc = CRC32.forBytes(crcBytes)
       if (expectedCRC != crc) {
-        Failure(SegmentCorruptionException(s"Corrupted Segment: CRC Check failed. $expectedCRC != $crc", new Exception("CRC check failed.")))
+        IO.Failure(SegmentCorruptionException(s"Corrupted Segment: CRC Check failed. $expectedCRC != $crc", new Exception("CRC check failed.")))
       } else {
         val indexEndOffset = fileSize.toInt - footerSize - 1
-        Success(
+        IO.Success(
           SegmentFooter(
             crc = expectedCRC,
             startIndexOffset = indexStartOffset,
@@ -260,28 +260,28 @@ private[core] object SegmentReader extends LazyLogging {
       case exception: Exception =>
         exception match {
           case _: ArrayIndexOutOfBoundsException | _: IndexOutOfBoundsException | _: IllegalArgumentException | _: NegativeArraySizeException =>
-            Failure(SegmentCorruptionException("Corrupted Segment: Failed to read footer bytes", exception))
+            IO.Failure(SegmentCorruptionException("Corrupted Segment: Failed to read footer bytes", exception))
 
           case ex: Exception =>
-            Failure(ex)
+            IO.Failure(ex)
         }
     }
 
   def find(matcher: KeyMatcher,
            startFrom: Option[Persistent],
-           reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]]): Try[Option[Persistent]] =
+           reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
     readFooter(reader) flatMap (find(matcher, startFrom, reader, _))
 
   def find(matcher: KeyMatcher,
            startFrom: Option[Persistent],
            reader: Reader,
-           footer: SegmentFooter)(implicit keyOrder: KeyOrder[Slice[Byte]]): Try[Option[Persistent]] =
+           footer: SegmentFooter)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
     try {
       startFrom match {
         case Some(startFrom) =>
           //if startFrom is the last index entry, return None.
           if (startFrom.nextIndexSize == 0)
-            TryUtil.successNone
+            IOUtil.successNone
           else
             readNextKeyValue(
               previous = startFrom,
@@ -309,7 +309,7 @@ private[core] object SegmentReader extends LazyLogging {
       }
     } catch {
       case ex: Exception =>
-        Failure(ex)
+        IO.Failure(ex)
     }
 
   @tailrec
@@ -317,7 +317,7 @@ private[core] object SegmentReader extends LazyLogging {
                    next: Option[Persistent],
                    matcher: KeyMatcher,
                    reader: Reader,
-                   footer: SegmentFooter)(implicit keyOrder: KeyOrder[Slice[Byte]]): Try[Option[Persistent]] =
+                   footer: SegmentFooter)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
     matcher(previous, next, hasMore = hasMore(next getOrElse previous, footer)) match {
       case MatchResult.Next =>
         val readFrom = next getOrElse previous
@@ -328,18 +328,18 @@ private[core] object SegmentReader extends LazyLogging {
           indexReader = reader,
           valueReader = reader
         ) match {
-          case Success(nextNextKeyValue) =>
+          case IO.Success(nextNextKeyValue) =>
             find(readFrom, Some(nextNextKeyValue), matcher, reader, footer)
 
-          case Failure(exception) =>
-            Failure(exception)
+          case IO.Failure(exception) =>
+            IO.Failure(exception)
         }
 
       case MatchResult.Matched(keyValue) =>
-        Success(Some(keyValue))
+        IO.Success(Some(keyValue))
 
       case MatchResult.Stop =>
-        TryUtil.successNone
+        IOUtil.successNone
 
     }
 

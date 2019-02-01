@@ -19,7 +19,7 @@
 
 package swaydb.core.merge
 
-import scala.util.{Success, Try}
+import swaydb.data.io.IO
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data.Value
 import swaydb.core.function.FunctionStore
@@ -33,11 +33,11 @@ object PendingApplyMerger {
     */
   def apply(newKeyValue: ReadOnly.PendingApply,
             oldKeyValue: ReadOnly.Fixed)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                         functionStore: FunctionStore): Try[ReadOnly.Fixed] =
+                                         functionStore: FunctionStore): IO[ReadOnly.Fixed] =
     if (newKeyValue.time > oldKeyValue.time)
       oldKeyValue match {
         case oldKeyValue: ReadOnly.Remove if oldKeyValue.deadline.isEmpty =>
-          Success(oldKeyValue.copyWithTime(newKeyValue.time))
+          IO.Success(oldKeyValue.copyWithTime(newKeyValue.time))
 
         case _: ReadOnly.Fixed =>
           newKeyValue.getOrFetchApplies flatMap {
@@ -46,27 +46,27 @@ object PendingApplyMerger {
           }
       }
     else
-      Success(oldKeyValue)
+      IO.Success(oldKeyValue)
 
   def apply(newKeyValue: ReadOnly.PendingApply,
             oldKeyValue: ReadOnly.Remove)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                          functionStore: FunctionStore): Try[ReadOnly.Fixed] =
+                                          functionStore: FunctionStore): IO[ReadOnly.Fixed] =
     if (newKeyValue.time > oldKeyValue.time)
       oldKeyValue.deadline match {
         case None =>
-          Success(oldKeyValue)
+          IO.Success(oldKeyValue)
 
         case Some(_) =>
           PendingApplyMerger(newKeyValue, oldKeyValue: ReadOnly.Fixed)
       }
     else
-      Success(oldKeyValue)
+      IO.Success(oldKeyValue)
 
   def apply(newKeyValue: ReadOnly.PendingApply,
             oldKeyValue: Value.Apply)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                      functionStore: FunctionStore): Try[ReadOnly.Fixed] =
+                                      functionStore: FunctionStore): IO[ReadOnly.Fixed] =
     if (newKeyValue.time > oldKeyValue.time)
       PendingApplyMerger(newKeyValue, oldKeyValue.toMemory(newKeyValue.key))
     else
-      Success(oldKeyValue.toMemory(newKeyValue.key))
+      IO.Success(oldKeyValue.toMemory(newKeyValue.key))
 }

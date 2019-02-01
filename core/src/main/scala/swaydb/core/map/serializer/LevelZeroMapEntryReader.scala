@@ -21,17 +21,17 @@ package swaydb.core.map.serializer
 
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.Deadline
-import scala.util.{Failure, Success, Try}
+import swaydb.data.io.IO
 import swaydb.core.data.{Memory, Time, Value}
 import swaydb.core.map.MapEntry
-import swaydb.core.util.TryUtil
+import swaydb.core.util.IOUtil
 import swaydb.data.slice.{Reader, Slice}
 
 object LevelZeroMapEntryReader {
 
   implicit object Level0RemoveReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Memory.Remove]] {
 
-    override def read(reader: Reader): Try[Option[MapEntry.Put[Slice[Byte], Memory.Remove]]] =
+    override def read(reader: Reader): IO[Option[MapEntry.Put[Slice[Byte], Memory.Remove]]] =
       for {
         keyLength <- reader.readInt()
         key <- reader.read(keyLength).map(_.unslice())
@@ -46,14 +46,14 @@ object LevelZeroMapEntryReader {
 
   implicit object Level0PutReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Memory.Put]] {
 
-    override def read(reader: Reader): Try[Option[MapEntry.Put[Slice[Byte], Memory.Put]]] =
+    override def read(reader: Reader): IO[Option[MapEntry.Put[Slice[Byte], Memory.Put]]] =
       for {
         keyLength <- reader.readInt()
         key <- reader.read(keyLength).map(_.unslice())
         timeLength <- reader.readInt()
         time <- reader.read(timeLength).map(_.unslice())
         valueLength <- reader.readInt()
-        value <- if (valueLength == 0) TryUtil.successNone else reader.read(valueLength).map(Some(_))
+        value <- if (valueLength == 0) IOUtil.successNone else reader.read(valueLength).map(Some(_))
         deadlineLong <- reader.readLong()
       } yield {
         val deadline = if (deadlineLong == 0) None else Some(Deadline(deadlineLong, TimeUnit.NANOSECONDS))
@@ -63,14 +63,14 @@ object LevelZeroMapEntryReader {
 
   implicit object Level0UpdateReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Memory.Update]] {
 
-    override def read(reader: Reader): Try[Option[MapEntry.Put[Slice[Byte], Memory.Update]]] =
+    override def read(reader: Reader): IO[Option[MapEntry.Put[Slice[Byte], Memory.Update]]] =
       for {
         keyLength <- reader.readInt()
         key <- reader.read(keyLength).map(_.unslice())
         timeLength <- reader.readInt()
         time <- reader.read(timeLength).map(_.unslice())
         valueLength <- reader.readInt()
-        value <- if (valueLength == 0) TryUtil.successNone else reader.read(valueLength).map(Some(_))
+        value <- if (valueLength == 0) IOUtil.successNone else reader.read(valueLength).map(Some(_))
         deadlineLong <- reader.readLong()
       } yield {
         val deadline = if (deadlineLong == 0) None else Some(Deadline(deadlineLong, TimeUnit.NANOSECONDS))
@@ -80,7 +80,7 @@ object LevelZeroMapEntryReader {
 
   implicit object Level0FunctionReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Memory.Function]] {
 
-    override def read(reader: Reader): Try[Option[MapEntry.Put[Slice[Byte], Memory.Function]]] =
+    override def read(reader: Reader): IO[Option[MapEntry.Put[Slice[Byte], Memory.Function]]] =
       for {
         keyLength <- reader.readInt()
         key <- reader.read(keyLength).map(_.unslice())
@@ -95,14 +95,14 @@ object LevelZeroMapEntryReader {
 
   implicit object Level0RangeReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Memory.Range]] {
 
-    override def read(reader: Reader): Try[Option[MapEntry.Put[Slice[Byte], Memory.Range]]] =
+    override def read(reader: Reader): IO[Option[MapEntry.Put[Slice[Byte], Memory.Range]]] =
       for {
         fromKeyLength <- reader.readInt()
         fromKey <- reader.read(fromKeyLength).map(_.unslice())
         toKeyLength <- reader.readInt()
         toKey <- reader.read(toKeyLength).map(_.unslice())
         valueLength <- reader.readInt()
-        valueBytes <- if (valueLength == 0) Success(Slice.emptyBytes) else reader.read(valueLength)
+        valueBytes <- if (valueLength == 0) IO.Success(Slice.emptyBytes) else reader.read(valueLength)
         (fromValue, rangeValue) <- RangeValueSerializer.read(valueBytes)
       } yield {
         Some(MapEntry.Put(fromKey, Memory.Range(fromKey, toKey, fromValue, rangeValue))(LevelZeroMapEntryWriter.Level0RangeWriter))
@@ -111,7 +111,7 @@ object LevelZeroMapEntryReader {
 
   implicit object Level0PendingApplyReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Memory.PendingApply]] {
 
-    override def read(reader: Reader): Try[Option[MapEntry.Put[Slice[Byte], Memory.PendingApply]]] =
+    override def read(reader: Reader): IO[Option[MapEntry.Put[Slice[Byte], Memory.PendingApply]]] =
       for {
         keyLength <- reader.readInt()
         key <- reader.read(keyLength).map(_.unslice())
@@ -131,8 +131,8 @@ object LevelZeroMapEntryReader {
           previousEntry.map(_ ++ nextEntry) orElse Some(nextEntry)
       }
 
-    override def read(reader: Reader): Try[Option[MapEntry[Slice[Byte], Memory.SegmentResponse]]] =
-      reader.foldLeftTry(Option.empty[MapEntry[Slice[Byte], Memory.SegmentResponse]]) {
+    override def read(reader: Reader): IO[Option[MapEntry[Slice[Byte], Memory.SegmentResponse]]] =
+      reader.foldLeftIO(Option.empty[MapEntry[Slice[Byte], Memory.SegmentResponse]]) {
         case (previousEntry, reader) =>
           reader.readInt() flatMap {
             entryId =>
@@ -155,7 +155,7 @@ object LevelZeroMapEntryReader {
                 Level0RangeReader.read(reader) map (merge(_, previousEntry))
 
               else
-                Failure(new IllegalArgumentException(s"Invalid entry type $entryId."))
+                IO.Failure(new IllegalArgumentException(s"Invalid entry type $entryId."))
           }
       }
   }

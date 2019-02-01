@@ -30,7 +30,7 @@ import swaydb.core.level.actor.{LevelZeroAPI, LevelZeroCommand}
 import swaydb.data.slice.Slice
 
 import scala.concurrent.ExecutionContext
-import scala.util.{Failure, Success}
+import swaydb.data.io.IO
 import swaydb.data.order.KeyOrder
 
 /**
@@ -93,7 +93,7 @@ private[core] class LevelZeroActor(zero: LevelZero,
             }
           case PushMapResponse(_, result) =>
             result match {
-              case Success(_) =>
+              case IO.Success(_) =>
                 logger.debug(s"{}: Push successful.", zero.path)
                 //if there is a failure removing the last map, maps will add the same map back into the queue and print
                 // error message to be handled by the User.
@@ -101,10 +101,10 @@ private[core] class LevelZeroActor(zero: LevelZero,
                 // Maps are ALWAYS required to be processed sequentially in the order of write. If there order if not
                 //maintained that may lead to inaccurate data being written which is should NOT be allowed.
                 maps.removeLast() foreach {
-                  case Success(_) =>
+                  case IO.Success(_) =>
                     self ! Push
 
-                  case Failure(exception) =>
+                  case IO.Failure(exception) =>
                     val mapPath: String = maps.last().map(_.pathOption.map(_.toString).getOrElse("No path")).getOrElse("No map")
                     logger.error(
                       s"Failed to delete the oldest memory map '$mapPath'. The map is added back to the memory-maps queue to avoid " +
@@ -115,9 +115,9 @@ private[core] class LevelZeroActor(zero: LevelZero,
                     )
                 }
 
-              case Failure(exception) =>
+              case IO.Failure(exception) =>
                 exception match {
-                  //do not log the stack if the Failure to merge was ContainsOverlappingBusySegments.
+                  //do not log the stack if the IO.Failure to merge was ContainsOverlappingBusySegments.
                   case ContainsOverlappingBusySegments =>
                     logger.debug(s"{}: Failed to push. Waiting for pull. Cause - {}", zero.path, ContainsOverlappingBusySegments.getClass.getSimpleName.dropRight(1))
                   case _ =>
@@ -125,7 +125,7 @@ private[core] class LevelZeroActor(zero: LevelZero,
                 }
 
                 //wait for a Pull. But if a new maps gets added while waiting for a Pull.
-                //Try Push anyway, even if it's waiting for pull.
+                //IO Push anyway, even if it's waiting for pull.
                 nextLevel ! PullRequest(self)
                 on.set(false)
             }

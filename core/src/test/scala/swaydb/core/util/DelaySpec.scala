@@ -24,7 +24,7 @@ import org.scalatest.{Matchers, WordSpec}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.util.Try
+import swaydb.data.io.IO
 
 class DelaySpec extends WordSpec with Matchers with Eventually {
 
@@ -75,11 +75,11 @@ class DelaySpec extends WordSpec with Matchers with Eventually {
     }
   }
 
-  "futureFromTry" should {
+  "futureFromIO" should {
     "run in future and return result" in {
       @volatile var tryThread = ""
 
-      Delay.futureFromTry(100.millisecond)(Try(tryThread = Thread.currentThread().getName))
+      Delay.futureFromIO(100.millisecond)(IO(tryThread = Thread.currentThread().getName))
 
       val currentThread = Thread.currentThread().getName
 

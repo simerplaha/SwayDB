@@ -20,12 +20,12 @@
 package swaydb.core.seek
 
 import scala.annotation.tailrec
-import scala.util.{Failure, Success, Try}
+import swaydb.data.io.IO
 import swaydb.core.data.{KeyValue, Value}
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.function.FunctionStore
 import swaydb.core.merge.{FunctionMerger, PendingApplyMerger, RemoveMerger, UpdateMerger}
-import swaydb.core.util.TryUtil
+import swaydb.core.util.IOUtil
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
@@ -35,7 +35,7 @@ private[core] object Get {
            currentGetter: CurrentGetter,
            nextGetter: NextGetter)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                    timeOrder: TimeOrder[Slice[Byte]],
-                                   functionStore: FunctionStore): Try[Option[KeyValue.ReadOnly.Put]] =
+                                   functionStore: FunctionStore): IO[Option[KeyValue.ReadOnly.Put]] =
     Get(key = key)(
       keyOrder = keyOrder,
       timeOrder = timeOrder,
@@ -48,12 +48,12 @@ private[core] object Get {
                               timeOrder: TimeOrder[Slice[Byte]],
                               currentGetter: CurrentGetter,
                               nextGetter: NextGetter,
-                              functionStore: FunctionStore): Try[Option[KeyValue.ReadOnly.Put]] = {
+                              functionStore: FunctionStore): IO[Option[KeyValue.ReadOnly.Put]] = {
 
     import keyOrder._
 
     @tailrec
-    def returnSegmentResponse(current: KeyValue.ReadOnly.SegmentResponse): Try[Option[ReadOnly.Put]] =
+    def returnSegmentResponse(current: KeyValue.ReadOnly.SegmentResponse): IO[Option[ReadOnly.Put]] =
       current match {
         case current: KeyValue.ReadOnly.Remove =>
           if (current.hasTimeLeft())
@@ -74,13 +74,13 @@ private[core] object Get {
                 }
             }
           else
-            TryUtil.successNone
+            IOUtil.successNone
 
         case current: KeyValue.ReadOnly.Put =>
           if (current.hasTimeLeft())
-            Success(Some(current))
+            IO.Success(Some(current))
           else
-            TryUtil.successNone
+            IOUtil.successNone
 
         case current: KeyValue.ReadOnly.Update =>
           if (current.hasTimeLeft())
@@ -101,18 +101,18 @@ private[core] object Get {
                 }
             }
           else
-            TryUtil.successNone
+            IOUtil.successNone
 
         case current: KeyValue.ReadOnly.Range =>
           (if (current.key equiv key) current.fetchFromOrElseRangeValue else current.fetchRangeValue) match {
-            case Success(currentValue) =>
+            case IO.Success(currentValue) =>
               if (Value.hasTimeLeft(currentValue))
                 returnSegmentResponse(currentValue.toMemory(key))
               else
-                TryUtil.successNone
+                IOUtil.successNone
 
-            case Failure(exception) =>
-              Failure(exception)
+            case IO.Failure(exception) =>
+              IO.Failure(exception)
           }
 
         case current: KeyValue.ReadOnly.Function =>
@@ -122,19 +122,19 @@ private[core] object Get {
                 next =>
                   if (next.hasTimeLeft())
                     FunctionMerger(current, next) match {
-                      case Success(put: ReadOnly.Put) if put.hasTimeLeft() =>
-                        Success(Some(put))
+                      case IO.Success(put: ReadOnly.Put) if put.hasTimeLeft() =>
+                        IO.Success(Some(put))
 
-                      case Success(_: ReadOnly.Fixed) =>
-                        TryUtil.successNone
+                      case IO.Success(_: ReadOnly.Fixed) =>
+                        IOUtil.successNone
 
-                      case Failure(exception) =>
-                        Failure(exception)
+                      case IO.Failure(exception) =>
+                        IO.Failure(exception)
                     }
                   else
-                    TryUtil.successNone
+                    IOUtil.successNone
               } getOrElse {
-                TryUtil.successNone
+                IOUtil.successNone
               }
           }
 
@@ -145,19 +145,19 @@ private[core] object Get {
                 next =>
                   if (next.hasTimeLeft())
                     PendingApplyMerger(current, next) match {
-                      case Success(put: ReadOnly.Put) if put.hasTimeLeft() =>
-                        Success(Some(put))
+                      case IO.Success(put: ReadOnly.Put) if put.hasTimeLeft() =>
+                        IO.Success(Some(put))
 
-                      case Success(_: ReadOnly.Fixed) =>
-                        TryUtil.successNone
+                      case IO.Success(_: ReadOnly.Fixed) =>
+                        IOUtil.successNone
 
-                      case Failure(exception) =>
-                        Failure(exception)
+                      case IO.Failure(exception) =>
+                        IO.Failure(exception)
                     }
                   else
-                    TryUtil.successNone
+                    IOUtil.successNone
               } getOrElse {
-                TryUtil.successNone
+                IOUtil.successNone
               }
           }
       }

@@ -30,11 +30,11 @@ import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.level.PathsDistributor
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter, LimiterType}
 import swaydb.core.segment.merge.SegmentMerger
-import swaydb.core.util.TryUtil._
+import swaydb.core.util.IOUtil._
 import swaydb.core.util._
 import swaydb.data.slice.Slice
 import scala.concurrent.duration.{Deadline, FiniteDuration}
-import scala.util.{Failure, Success, Try}
+import swaydb.data.io.IO
 import scala.collection.JavaConverters._
 import swaydb.core.function.FunctionStore
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -70,11 +70,11 @@ private[segment] case class MemorySegment(path: Path,
     *
     * [[keyValueLimiter]] never removes [[Memory.Group]] key-value but instead uncompressed and re-adds them to the skipList.
     */
-  private def addToQueueMayBe(group: Memory.Group): Try[Unit] =
+  private def addToQueueMayBe(group: Memory.Group): IO[Unit] =
   //if the header is already decompressed then this Group is already in the Limit queue as the queue always
   //pre-reads the header
     if (group.isHeaderDecompressed)
-      TryUtil.successUnit
+      IOUtil.successUnit
     else //else this is a new decompression, add to queue.
       keyValueLimiter.add(group, cache)
 
@@ -82,9 +82,9 @@ private[segment] case class MemorySegment(path: Path,
                    minSegmentSize: Long,
                    bloomFilterFalsePositiveRate: Double,
                    compressDuplicateValues: Boolean,
-                   targetPaths: PathsDistributor)(implicit idGenerator: IDGenerator): Try[Slice[Segment]] =
+                   targetPaths: PathsDistributor)(implicit idGenerator: IDGenerator): IO[Slice[Segment]] =
     if (deleted)
-      Failure(new NoSuchFileException(path.toString))
+      IO.Failure(new NoSuchFileException(path.toString))
     else
       getAll() flatMap {
         currentKeyValues =>
@@ -110,7 +110,7 @@ private[segment] case class MemorySegment(path: Path,
                   },
 
                 recover =
-                  (segments: Slice[Segment], _: Failure[Iterable[Segment]]) =>
+                  (segments: Slice[Segment], _: IO.Failure[Iterable[Segment]]) =>
                     segments foreach {
                       segmentToDelete =>
                         segmentToDelete.delete.failed foreach {
@@ -125,9 +125,9 @@ private[segment] case class MemorySegment(path: Path,
   override def refresh(minSegmentSize: Long,
                        bloomFilterFalsePositiveRate: Double,
                        compressDuplicateValues: Boolean,
-                       targetPaths: PathsDistributor)(implicit idGenerator: IDGenerator): Try[Slice[Segment]] =
+                       targetPaths: PathsDistributor)(implicit idGenerator: IDGenerator): IO[Slice[Segment]] =
     if (deleted)
-      Failure(new NoSuchFileException(path.toString))
+      IO.Failure(new NoSuchFileException(path.toString))
     else
       getAll() flatMap {
         currentKeyValues =>
@@ -151,7 +151,7 @@ private[segment] case class MemorySegment(path: Path,
                     ),
 
                 recover =
-                  (segments: Slice[Segment], _: Failure[Iterable[Segment]]) =>
+                  (segments: Slice[Segment], _: IO.Failure[Iterable[Segment]]) =>
                     segments foreach {
                       segmentToDelete =>
                         segmentToDelete.delete.failed foreach {
@@ -163,8 +163,8 @@ private[segment] case class MemorySegment(path: Path,
           }
       }
 
-  override def copyTo(toPath: Path): Try[Path] =
-    Failure(SegmentException.CannotCopyInMemoryFiles(path))
+  override def copyTo(toPath: Path): IO[Path] =
+    IO.Failure(SegmentException.CannotCopyInMemoryFiles(path))
 
   override def getFromCache(key: Slice[Byte]): Option[KeyValue.ReadOnly] =
     Option(cache.get(key))
@@ -173,35 +173,35 @@ private[segment] case class MemorySegment(path: Path,
     * Basic get does not perform floor checks on the cache which are only required if the Segment contains
     * range or groups.
     */
-  private def doBasicGet(key: Slice[Byte]): Try[Option[Memory.SegmentResponse]] =
+  private def doBasicGet(key: Slice[Byte]): IO[Option[Memory.SegmentResponse]] =
     Option(cache.get(key)) map {
       case response: Memory.SegmentResponse =>
-        Success(Some(response))
+        IO.Success(Some(response))
       case _: Memory.Group =>
-        Failure(new Exception("Get resulted in a Group when floorEntry should've fetched the Group instead."))
+        IO.Failure(new Exception("Get resulted in a Group when floorEntry should've fetched the Group instead."))
     } getOrElse {
-      TryUtil.successNone
+      IOUtil.successNone
     }
 
-  override def get(key: Slice[Byte]): Try[Option[Memory.SegmentResponse]] =
+  override def get(key: Slice[Byte]): IO[Option[Memory.SegmentResponse]] =
     if (deleted)
-      Failure(new NoSuchFileException(path.toString))
+      IO.Failure(new NoSuchFileException(path.toString))
 
     else if (!_hasRange && !bloomFilter.forall(_.mightContain(key)))
-      TryUtil.successNone
+      IOUtil.successNone
     else
       maxKey match {
         case MaxKey.Fixed(maxKey) if key > maxKey =>
-          TryUtil.successNone
+          IOUtil.successNone
 
         case range: MaxKey.Range[Slice[Byte]] if key >= range.maxKey =>
-          TryUtil.successNone
+          IOUtil.successNone
 
         case _ =>
           if (_hasRange || _hasGroup)
             Option(cache.floorEntry(key)).map(_.getValue) match {
               case Some(range: Memory.Range) if range contains key =>
-                Success(Some(range))
+                IO.Success(Some(range))
 
               case Some(group: Memory.Group) if group contains key =>
                 addToQueueMayBe(group) flatMap {
@@ -211,7 +211,7 @@ private[segment] case class MemorySegment(path: Path,
                         persistent.toMemoryResponseOption()
 
                       case None =>
-                        TryUtil.successNone
+                        IOUtil.successNone
                     }
                 }
 
@@ -223,18 +223,18 @@ private[segment] case class MemorySegment(path: Path,
             doBasicGet(key)
       }
 
-  def mightContain(key: Slice[Byte]): Try[Boolean] =
-    Try(bloomFilter.forall(_.mightContain(key)))
+  def mightContain(key: Slice[Byte]): IO[Boolean] =
+    IO(bloomFilter.forall(_.mightContain(key)))
 
-  override def lower(key: Slice[Byte]): Try[Option[Memory.SegmentResponse]] =
+  override def lower(key: Slice[Byte]): IO[Option[Memory.SegmentResponse]] =
     if (deleted)
-      Failure(new NoSuchFileException(path.toString))
+      IO.Failure(new NoSuchFileException(path.toString))
     else
       Option(cache.lowerEntry(key)) map {
         entry =>
           entry.getValue match {
             case response: Memory.SegmentResponse =>
-              Success(Some(response))
+              IO.Success(Some(response))
             case group: Memory.Group =>
               addToQueueMayBe(group) flatMap {
                 _ =>
@@ -242,40 +242,40 @@ private[segment] case class MemorySegment(path: Path,
                     case Some(persistent) =>
                       persistent.toMemoryResponseOption()
                     case None =>
-                      TryUtil.successNone
+                      IOUtil.successNone
                   }
               }
           }
       } getOrElse {
-        TryUtil.successNone
+        IOUtil.successNone
       }
 
   /**
     * Basic get does not perform floor checks on the cache which are only required if the Segment contains
     * range or groups.
     */
-  private def doBasicHigher(key: Slice[Byte]): Try[Option[Memory.SegmentResponse]] =
+  private def doBasicHigher(key: Slice[Byte]): IO[Option[Memory.SegmentResponse]] =
     Option(cache.higherEntry(key)).map(_.getValue) map {
       case response: Memory.SegmentResponse =>
-        Success(Some(response))
+        IO.Success(Some(response))
       case group: Memory.Group =>
         group.segmentCache.higher(key) flatMap {
           case Some(persistent) =>
             persistent.toMemoryResponseOption()
           case None =>
-            TryUtil.successNone
+            IOUtil.successNone
         }
     } getOrElse {
-      TryUtil.successNone
+      IOUtil.successNone
     }
 
-  override def higher(key: Slice[Byte]): Try[Option[Memory.SegmentResponse]] =
+  override def higher(key: Slice[Byte]): IO[Option[Memory.SegmentResponse]] =
     if (deleted)
-      Failure(new NoSuchFileException(path.toString))
+      IO.Failure(new NoSuchFileException(path.toString))
     else if (_hasRange || _hasGroup)
       Option(cache.floorEntry(key)).map(_.getValue) map {
         case floorRange: Memory.Range if floorRange contains key =>
-          Success(Some(floorRange))
+          IO.Success(Some(floorRange))
 
         case floorGroup: Memory.Group if floorGroup containsHigher key =>
           addToQueueMayBe(floorGroup) flatMap {
@@ -284,13 +284,13 @@ private[segment] case class MemorySegment(path: Path,
                 case Some(persistent) =>
                   persistent.toMemoryResponseOption()
                 case None =>
-                  TryUtil.successNone
+                  IOUtil.successNone
               } flatMap {
                 higher =>
                   //Group's last key-value can be inclusive or exclusive and fromKey & toKey can be the same.
                   //So it's hard to know if the Group contain higher therefore a basicHigher is required if group returns None for higher.
                   if (higher.isDefined)
-                    Success(higher)
+                    IO.Success(higher)
                   else
                     doBasicHigher(key)
               }
@@ -303,11 +303,11 @@ private[segment] case class MemorySegment(path: Path,
     else
       doBasicHigher(key)
 
-  override def getAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None): Try[Slice[KeyValue.ReadOnly]] =
+  override def getAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None): IO[Slice[KeyValue.ReadOnly]] =
     if (deleted)
-      Failure(new NoSuchFileException(path.toString))
+      IO.Failure(new NoSuchFileException(path.toString))
     else
-      Try {
+      IO {
         val slice = addTo getOrElse Slice.create[KeyValue.ReadOnly](cache.size())
         cache.values() forEach {
           new Consumer[Memory] {
@@ -318,39 +318,39 @@ private[segment] case class MemorySegment(path: Path,
         slice
       }
 
-  override def delete: Try[Unit] = {
+  override def delete: IO[Unit] = {
     //cache should not be cleared.
     logger.trace(s"{}: DELETING FILE", path)
     if (deleted)
-      Failure(new NoSuchFileException(path.toString))
+      IO.Failure(new NoSuchFileException(path.toString))
     else
-      Success {
+      IO.Success {
         deleted = true
       }
   }
 
-  override val close: Try[Unit] =
-    TryUtil.successUnit
+  override val close: IO[Unit] =
+    IOUtil.successUnit
 
-  override def getBloomFilterKeyValueCount(): Try[Int] =
+  override def getBloomFilterKeyValueCount(): IO[Int] =
     if (deleted)
-      Failure(new NoSuchFileException(path.toString))
+      IO.Failure(new NoSuchFileException(path.toString))
     else
       cache.values().asScala.tryFoldLeft(0) {
         case (count, keyValue) =>
           keyValue match {
             case _: SegmentResponse =>
-              Success(count + 1)
+              IO.Success(count + 1)
             case group: Group =>
               group.header() map (count + _.bloomFilterItemsCount)
           }
       }
 
-  override def getHeadKeyValueCount(): Try[Int] =
+  override def getHeadKeyValueCount(): IO[Int] =
     if (deleted)
-      Failure(new NoSuchFileException(path.toString))
+      IO.Failure(new NoSuchFileException(path.toString))
     else
-      Success(cache.size())
+      IO.Success(cache.size())
 
   override def isOpen: Boolean =
     !deleted
@@ -367,14 +367,14 @@ private[segment] case class MemorySegment(path: Path,
   override val existsOnDisk: Boolean =
     false
 
-  override def getBloomFilter: Try[Option[BloomFilter[Slice[Byte]]]] =
-    Try(bloomFilter)
+  override def getBloomFilter: IO[Option[BloomFilter[Slice[Byte]]]] =
+    IO(bloomFilter)
 
-  override def hasRange: Try[Boolean] =
-    Try(_hasRange)
+  override def hasRange: IO[Boolean] =
+    IO(_hasRange)
 
-  override def hasPut: Try[Boolean] =
-    Try(_hasPut)
+  override def hasPut: IO[Boolean] =
+    IO(_hasPut)
 
   override def isFooterDefined: Boolean =
     !deleted

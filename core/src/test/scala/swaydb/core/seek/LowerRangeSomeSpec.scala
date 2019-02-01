@@ -21,11 +21,11 @@ package swaydb.core.seek
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
-import scala.util.Try
+import swaydb.data.io.IO
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.TryAssert._
+import swaydb.core.IOAssert._
 import swaydb.core.data.{Time, Value}
 import swaydb.core.merge.FixedMerger
 import swaydb.core.{TestData, TestTimeGenerator}
@@ -64,8 +64,8 @@ class LowerRangeSomeSpec extends WordSpec with Matchers with MockFactory {
 
             inSequence {
               //@formatter:off
-              current.lower _ expects (key: Slice[Byte]) returning Try(Some(upperLevel))
-              next.lower    _ expects (key: Slice[Byte]) returning Try(Some(lowerLower))
+              current.lower _ expects (key: Slice[Byte]) returning IO(Some(upperLevel))
+              next.lower    _ expects (key: Slice[Byte]) returning IO(Some(lowerLower))
               //@formatter:on
             }
             Lower(key: Slice[Byte]).assertGet shouldBe expected
@@ -96,8 +96,8 @@ class LowerRangeSomeSpec extends WordSpec with Matchers with MockFactory {
 
         inSequence {
           //@formatter:off
-          current.lower _ expects (1: Slice[Byte]) returning Try(Some(upperLevel))
-          next.lower    _ expects (1: Slice[Byte]) returning Try(Some(lowerLevel))
+          current.lower _ expects (1: Slice[Byte]) returning IO(Some(upperLevel))
+          next.lower    _ expects (1: Slice[Byte]) returning IO(Some(lowerLevel))
           //@formatter:on
         }
         Lower(1: Slice[Byte]).assertGet shouldBe expected
@@ -121,8 +121,8 @@ class LowerRangeSomeSpec extends WordSpec with Matchers with MockFactory {
 
             inSequence {
               //@formatter:off
-              current.lower _ expects (key: Slice[Byte]) returning Try(Some(randomRangeKeyValue(0, 10)))
-              next.lower    _ expects (key: Slice[Byte]) returning Try(Some(lowerLower))
+              current.lower _ expects (key: Slice[Byte]) returning IO(Some(randomRangeKeyValue(0, 10)))
+              next.lower    _ expects (key: Slice[Byte]) returning IO(Some(lowerLower))
               //@formatter:on
             }
             Lower(key: Slice[Byte]).assertGet shouldBe lowerLower
@@ -150,8 +150,8 @@ class LowerRangeSomeSpec extends WordSpec with Matchers with MockFactory {
 
             inSequence {
               //@formatter:off
-              current.lower _ expects (key: Slice[Byte]) returning Try(Some(randomRangeKeyValue(0, 10, rangeValue = currentRangeValue)))
-              next.lower    _ expects (key: Slice[Byte]) returning Try(Some(lowerLower))
+              current.lower _ expects (key: Slice[Byte]) returning IO(Some(randomRangeKeyValue(0, 10, rangeValue = currentRangeValue)))
+              next.lower    _ expects (key: Slice[Byte]) returning IO(Some(lowerLower))
               //@formatter:on
             }
             Lower(key: Slice[Byte]).assertGet shouldBe expected
@@ -176,8 +176,8 @@ class LowerRangeSomeSpec extends WordSpec with Matchers with MockFactory {
 
             inSequence {
               //@formatter:off
-              current.lower _ expects (key: Slice[Byte]) returning Try(Some(randomRangeKeyValue(1, 10, fromValue = None)))
-              next.lower    _ expects (key: Slice[Byte]) returning Try(Some(lowerLower))
+              current.lower _ expects (key: Slice[Byte]) returning IO(Some(randomRangeKeyValue(1, 10, fromValue = None)))
+              next.lower    _ expects (key: Slice[Byte]) returning IO(Some(lowerLower))
               //@formatter:on
             }
             Lower(key: Slice[Byte]).assertGet shouldBe lowerLower
@@ -202,8 +202,8 @@ class LowerRangeSomeSpec extends WordSpec with Matchers with MockFactory {
 
             inSequence {
               //@formatter:off
-              current.lower _ expects (key: Slice[Byte]) returning Try(Some(randomRangeKeyValue(1, 10, fromValue = Some(put))))
-              next.lower    _ expects (key: Slice[Byte]) returning Try(Some(randomPutKeyValue(eitherOne[Int](0, 1), deadline = None)))
+              current.lower _ expects (key: Slice[Byte]) returning IO(Some(randomRangeKeyValue(1, 10, fromValue = Some(put))))
+              next.lower    _ expects (key: Slice[Byte]) returning IO(Some(randomPutKeyValue(eitherOne[Int](0, 1), deadline = None)))
               //@formatter:on
             }
             Lower(key: Slice[Byte]).assertGet shouldBe put.toMemory(1)

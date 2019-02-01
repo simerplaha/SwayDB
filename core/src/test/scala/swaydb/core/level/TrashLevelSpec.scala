@@ -33,7 +33,7 @@ import swaydb.data.slice.Slice
 import swaydb.core.TestData._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
-import swaydb.core.TryAssert._
+import swaydb.core.IOAssert._
 
 //@formatter:off
 class TrashLevelSpec0 extends TrashLevelSpec

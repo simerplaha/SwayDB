@@ -26,7 +26,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import org.scalatest.concurrent.Eventually
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
 import scala.concurrent.duration._
-import scala.util.{Random, Try}
+import scala.util.Random
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.TestLimitQueues.{fileOpenLimiter, _}
@@ -49,7 +49,8 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.{AppendixStorage, Level0Storage, LevelStorage}
 import swaydb.data.util.StorageUnits._
-import swaydb.core.TryAssert._
+import swaydb.core.IOAssert._
+import swaydb.data.io.IO
 
 trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventually {
 
@@ -237,7 +238,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
                                                                                  keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
                                                                                  fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter,
                                                                                  timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                                                 groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(randomIntMax(1000))): Try[Segment] =
+                                                                                 groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(randomIntMax(1000))): IO[Segment] =
       if (levelStorage.memory)
         Segment.memory(
           path = path,

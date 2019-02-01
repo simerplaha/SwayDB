@@ -30,7 +30,7 @@ import swaydb.core.util.PipeOps._
 import swaydb.data.slice.Slice
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
-import scala.util.{Failure, Success}
+import swaydb.data.io.IO
 import swaydb.data.order.KeyOrder
 
 private[core] object LevelActor extends LazyLogging {
@@ -115,11 +115,11 @@ private[core] object LevelActor extends LazyLogging {
       if (newDeadline.isOverdue()) {
         logger.debug(s"{}: Deadline overdue: {}. Clearing expired key-values.", level.paths.head, newDeadline.timeLeft.asString)
         level.clearExpiredKeyValues() match {
-          case Success(_) =>
+          case IO.Success(_) =>
             logger.debug(s"{}: clearExpiredKeyValues execution complete.", level.paths.head)
             state.clearTask()
 
-          case Failure(exception) =>
+          case IO.Failure(exception) =>
             logger.debug(s"{}: Failed to expire key-values for deadline: {}. Rescheduling after: {}", level.paths.head, newDeadline.timeLeft.asString, unexpectedFailureReSchedule.asString, exception)
             val task = self.schedule(ClearExpiredKeyValues(newDeadline), unexpectedFailureReSchedule)
             state.setTask(task)
@@ -232,12 +232,12 @@ private[core] object LevelActor extends LazyLogging {
     state.waitingPull.foreach(_ ! Pull)
 
     response.result match {
-      case Success(_) =>
+      case IO.Success(_) =>
         logger.trace(s"{}: Received successful put response. Segments pushed {}.", level.paths.head, response.request.segments.map(_.path.toString))
         level.removeSegments(response.request.segments)
         (Sleeping(state.collapseSmallSegmentsTaskScheduled, state.task), Some(PushTask(level.nextPushDelay, Push)))
 
-      case Failure(exception) =>
+      case IO.Failure(exception) =>
         exception match {
           //Previously dispatched Push, although pre-filtered could still have overlapping busy segments.
           //This can occur if lower level has submitted a Push to it's lower level while this level's previous Push
@@ -252,7 +252,7 @@ private[core] object LevelActor extends LazyLogging {
           // Dispatch with delay so lower level can recover from it's failure.
           case _ =>
             logger.trace(
-              "{}: Received unexpected Failure response for Pushing segments {}. Retrying next Push with delay {}",
+              "{}: Received unexpected IO.Failure response for Pushing segments {}. Retrying next Push with delay {}",
               level.paths.head,
               response.request.segments.map(_.path.toString),
               LevelActor.unexpectedFailureReSchedule.asString,

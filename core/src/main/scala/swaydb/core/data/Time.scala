@@ -19,7 +19,7 @@
 
 package swaydb.core.data
 
-import scala.util.Success
+import swaydb.data.io.IO
 import swaydb.data.order.TimeOrder
 import swaydb.data.slice.Slice
 
@@ -27,7 +27,7 @@ object Time {
 
   val empty = Time(Slice.emptyBytes)
   val someEmpty = Some(empty)
-  val successEmpty = Success(empty)
+  val successEmpty = IO.Success(empty)
 
   def >(upperTime: Time, lowerTime: Time)(implicit timeOrder: TimeOrder[Slice[Byte]]): Boolean = {
     import timeOrder._

@@ -24,7 +24,7 @@ import java.nio.file.Paths
 import java.util.concurrent.TimeUnit
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.Deadline
-import scala.util.{Failure, Success, Try}
+import swaydb.data.io.IO
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.map.MapEntry
@@ -63,11 +63,11 @@ class AppendixMapEntryReader(removeDeletes: Boolean,
                                                            ec: ExecutionContext) {
 
   implicit object AppendixPutReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Segment]] {
-    override def read(reader: Reader): Try[Option[MapEntry.Put[Slice[Byte], Segment]]] =
+    override def read(reader: Reader): IO[Option[MapEntry.Put[Slice[Byte], Segment]]] =
       for {
         segmentPathLength <- reader.readIntUnsigned()
         segmentPathBytes <- reader.read(segmentPathLength).map(_.unslice())
-        segmentPath <- Try(Paths.get(new String(segmentPathBytes.toArray, StandardCharsets.UTF_8)))
+        segmentPath <- IO(Paths.get(new String(segmentPathBytes.toArray, StandardCharsets.UTF_8)))
         segmentSize <- reader.readIntUnsigned()
         minKeyLength <- reader.readIntUnsigned()
         minKey <- reader.read(minKeyLength).map(_.unslice())
@@ -76,7 +76,7 @@ class AppendixMapEntryReader(removeDeletes: Boolean,
         maxKeyBytes <- reader.read(maxKeyLength).map(_.unslice())
         maxKey <-
           if (maxKeyId == 1)
-            Success(MaxKey.Fixed(maxKeyBytes))
+            IO.Success(MaxKey.Fixed(maxKeyBytes))
           else {
             Bytes.decompressJoin(maxKeyBytes) map {
               case (fromKey, toKey) =>
@@ -108,7 +108,7 @@ class AppendixMapEntryReader(removeDeletes: Boolean,
   }
 
   implicit object AppendixRemoveReader extends MapEntryReader[MapEntry.Remove[Slice[Byte]]] {
-    override def read(reader: Reader): Try[Option[MapEntry.Remove[Slice[Byte]]]] =
+    override def read(reader: Reader): IO[Option[MapEntry.Remove[Slice[Byte]]]] =
       for {
         minKeyLength <- reader.readIntUnsigned()
         minKey <- reader.read(minKeyLength).map(_.unslice())
@@ -118,8 +118,8 @@ class AppendixMapEntryReader(removeDeletes: Boolean,
   }
 
   implicit object AppendixReader extends MapEntryReader[MapEntry[Slice[Byte], Segment]] {
-    override def read(reader: Reader): Try[Option[MapEntry[Slice[Byte], Segment]]] =
-      reader.foldLeftTry(Option.empty[MapEntry[Slice[Byte], Segment]]) {
+    override def read(reader: Reader): IO[Option[MapEntry[Slice[Byte], Segment]]] =
+      reader.foldLeftIO(Option.empty[MapEntry[Slice[Byte], Segment]]) {
         case (previousEntry, reader) =>
           reader.readIntUnsigned() flatMap {
             entryId =>
@@ -140,7 +140,7 @@ class AppendixMapEntryReader(removeDeletes: Boolean,
                     }
                 }
               else
-                Failure(new IllegalArgumentException(s"Invalid entry type $entryId."))
+                IO.Failure(new IllegalArgumentException(s"Invalid entry type $entryId."))
           }
       }
   }

@@ -27,9 +27,9 @@ import java.util.concurrent.ConcurrentHashMap
 import swaydb.core.retry.RetryException.RetryFailedException
 import swaydb.core.segment.SegmentException
 import swaydb.core.segment.SegmentException.BusyOpeningFile
-import swaydb.core.util.TryUtil
+import swaydb.core.util.IOUtil
 import scala.annotation.tailrec
-import scala.util.{Failure, Success, Try}
+import swaydb.data.io.IO
 
 object Retry extends LazyLogging {
 
@@ -44,55 +44,55 @@ object Retry extends LazyLogging {
   val levelReadRetryUntil =
     (failure: Throwable, resourceId: String) =>
       failure match {
-        case _ @ RetryFailedException(exceptionResourceId, _, _, _) if exceptionResourceId != resourceId => TryUtil.successUnit
-        case _: BusyOpeningFile => TryUtil.successUnit
-        case _: NoSuchFileException => TryUtil.successUnit
-        case _: FileNotFoundException => TryUtil.successUnit
-        case _: AsynchronousCloseException => TryUtil.successUnit
-        case _: ClosedChannelException => TryUtil.successUnit
-        case SegmentException.BusyDecompressingIndex => TryUtil.successUnit
-        case SegmentException.BusyDecompressionValues => TryUtil.successUnit
-        case SegmentException.BusyFetchingValue => TryUtil.successUnit
-        case SegmentException.BusyReadingHeader => TryUtil.successUnit
+        case _ @ RetryFailedException(exceptionResourceId, _, _, _) if exceptionResourceId != resourceId => IOUtil.successUnit
+        case _: BusyOpeningFile => IOUtil.successUnit
+        case _: NoSuchFileException => IOUtil.successUnit
+        case _: FileNotFoundException => IOUtil.successUnit
+        case _: AsynchronousCloseException => IOUtil.successUnit
+        case _: ClosedChannelException => IOUtil.successUnit
+        case SegmentException.BusyDecompressingIndex => IOUtil.successUnit
+        case SegmentException.BusyDecompressionValues => IOUtil.successUnit
+        case SegmentException.BusyFetchingValue => IOUtil.successUnit
+        case SegmentException.BusyReadingHeader => IOUtil.successUnit
         //NullPointer exception occurs when the MMAP buffer is being prepared to be cleared, but the reads
         //are still being directed to that Segment. A retry should occur so that the request gets routed to
         //the new Segment or if the Segment was closed, a retry will re-opened it.
-        case _: NullPointerException => TryUtil.successUnit
+        case _: NullPointerException => IOUtil.successUnit
         //Retry if RetryFailedException occurred at a lower level.
         //for all other exceptions do not retry and push failure back up.
         case exception =>
           logger.error("{}: Retry failed", resourceId, exception)
-          Failure(exception)
+          IO.Failure(exception)
       }
 
   private def retry[R](resourceId: String,
-                       until: (Throwable, String) => Try[_],
+                       until: (Throwable, String) => IO[_],
                        maxRetryLimit: Int,
-                       tryBlock: => Try[R],
-                       previousFailure: Throwable): Try[R] = {
+                       tryBlock: => IO[R],
+                       previousFailure: Throwable): IO[R] = {
 
     @tailrec
-    def doRetry(timesLeft: Int, previousFailure: Throwable): Try[R] = {
+    def doRetry(timesLeft: Int, previousFailure: Throwable): IO[R] = {
       until(previousFailure, resourceId) match {
-        case Failure(_) =>
-          Failure(previousFailure)
+        case IO.Failure(_) =>
+          IO.Failure(previousFailure)
 
-        case Success(_) =>
+        case IO.Success(_) =>
           tryBlock match {
-            case failed @ Failure(exception) if timesLeft == 0 =>
+            case failed @ IO.Failure(exception) if timesLeft == 0 =>
               if (logger.underlying.isTraceEnabled)
                 logger.error(s"{}: Failed retried {} time(s)", resourceId, maxRetryLimit - timesLeft, exception)
               else if (logger.underlying.isDebugEnabled)
                 logger.debug(s"{}: Failed retried {} time(s)", resourceId, maxRetryLimit - timesLeft)
 
-              Failure(RetryFailedException(resourceId, maxRetryLimit - timesLeft, maxRetryLimit, Some(failed)))
+              IO.Failure(RetryFailedException(resourceId, maxRetryLimit - timesLeft, maxRetryLimit, Some(failed)))
 
-            case Failure(exception) =>
+            case IO.Failure(exception) =>
               logger.debug(s"{}: Failed retried {} time(s)", resourceId, maxRetryLimit - timesLeft)
               doRetry(timesLeft - 1, exception)
 
-            case success @ Success(_) =>
-              logger.debug(s"{}: Success retried {} time(s)", resourceId, maxRetryLimit - timesLeft)
+            case success @ IO.Success(_) =>
+              logger.debug(s"{}: IO.Success retried {} time(s)", resourceId, maxRetryLimit - timesLeft)
               success
           }
       }
@@ -101,7 +101,7 @@ object Retry extends LazyLogging {
     doRetry(maxRetryLimit, previousFailure)
   }
 
-  def apply[R](resourceId: String, until: (Throwable, String) => Try[_], maxRetryLimit: Int)(tryBlock: => Try[R]): Try[R] =
+  def apply[R](resourceId: String, until: (Throwable, String) => IO[_], maxRetryLimit: Int)(tryBlock: => IO[R]): IO[R] =
     tryBlock recoverWith {
       case failure =>
         retry(resourceId, until = until, maxRetryLimit, tryBlock, failure)

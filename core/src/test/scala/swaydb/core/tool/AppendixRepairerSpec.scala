@@ -35,7 +35,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import scala.concurrent.duration.Duration
 import scala.util.Random
-import swaydb.core.TryAssert._
+import swaydb.core.IOAssert._
 
 class AppendixRepairerSpec extends TestBase {
 

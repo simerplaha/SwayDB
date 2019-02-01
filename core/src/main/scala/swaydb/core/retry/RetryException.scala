@@ -19,7 +19,7 @@
 
 package swaydb.core.retry
 
-import scala.util.Failure
+import swaydb.data.io.IO
 
 sealed trait RetryException extends Throwable
 
@@ -28,7 +28,7 @@ object RetryException {
   case class RetryFailedException[T](resourceId: String,
                                      retriedTimes: Int,
                                      totalRetries: Int,
-                                     failure: Option[Failure[T]]) extends RetryException {
+                                     failure: Option[IO.Failure[T]]) extends RetryException {
     override def getCause: Throwable = failure.map(_.exception) getOrElse this
   }
 }

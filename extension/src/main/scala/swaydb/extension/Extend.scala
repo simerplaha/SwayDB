@@ -22,7 +22,7 @@ package swaydb.extension
 import swaydb.data.slice.Slice
 import swaydb.serializers.Serializer
 import swaydb.{Batch, extension}
-import scala.util.Try
+import swaydb.data.io.IO
 import swaydb.data.order.KeyOrder
 
 object Extend {
@@ -33,7 +33,7 @@ object Extend {
     */
   def apply[K, V](map: swaydb.Map[Key[K], Option[V]])(implicit keySerializer: Serializer[K],
                                                       optionValueSerializer: Serializer[Option[V]],
-                                                      keyOrder: KeyOrder[Slice[Byte]]): Try[extension.Map[K, V]] = {
+                                                      keyOrder: KeyOrder[Slice[Byte]]): IO[extension.Map[K, V]] = {
     implicit val mapKeySerializer = Key.serializer(keySerializer)
 
     implicit val valueSerializer = new Serializer[V] {

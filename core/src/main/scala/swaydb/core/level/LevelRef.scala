@@ -20,7 +20,7 @@
 package swaydb.core.level
 
 import java.nio.file.Path
-import scala.util.Try
+import swaydb.data.io.IO
 import swaydb.core.data.KeyValue
 import swaydb.core.level.actor.LevelAPI
 import swaydb.core.segment.Segment
@@ -32,7 +32,7 @@ private[core] trait LevelRef {
 
   def throttle: LevelMeter => Throttle
 
-  def releaseLocks: Try[Unit]
+  def releaseLocks: IO[Unit]
 
   def !(request: LevelAPI): Unit
 
@@ -49,27 +49,27 @@ private[core] trait LevelRef {
   def takeSegments(size: Int,
                    condition: Segment => Boolean): Iterable[Segment]
 
-  def head: Try[Option[KeyValue.ReadOnly.Put]]
+  def head: IO[Option[KeyValue.ReadOnly.Put]]
 
-  def last: Try[Option[KeyValue.ReadOnly.Put]]
+  def last: IO[Option[KeyValue.ReadOnly.Put]]
 
-  def get(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Put]]
+  def get(key: Slice[Byte]): IO[Option[KeyValue.ReadOnly.Put]]
 
-  def ceiling(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Put]]
+  def ceiling(key: Slice[Byte]): IO[Option[KeyValue.ReadOnly.Put]]
 
-  def floor(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Put]]
+  def floor(key: Slice[Byte]): IO[Option[KeyValue.ReadOnly.Put]]
 
-  def mightContain(key: Slice[Byte]): Try[Boolean]
+  def mightContain(key: Slice[Byte]): IO[Boolean]
 
-  def lower(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Put]]
+  def lower(key: Slice[Byte]): IO[Option[KeyValue.ReadOnly.Put]]
 
-  def higher(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Put]]
+  def higher(key: Slice[Byte]): IO[Option[KeyValue.ReadOnly.Put]]
 
-  def headKey: Try[Option[Slice[Byte]]]
+  def headKey: IO[Option[Slice[Byte]]]
 
-  def lastKey: Try[Option[Slice[Byte]]]
+  def lastKey: IO[Option[Slice[Byte]]]
 
-  def bloomFilterKeyValueCount: Try[Int]
+  def bloomFilterKeyValueCount: IO[Int]
 
   def isEmpty: Boolean
 
@@ -99,9 +99,9 @@ private[core] trait LevelRef {
 
   def segmentCountAndLevelSize: (Int, Long)
 
-  def close: Try[Unit]
+  def close: IO[Unit]
 
-  def closeSegments(): Try[Unit]
+  def closeSegments(): IO[Unit]
 
   def meter: LevelMeter
 

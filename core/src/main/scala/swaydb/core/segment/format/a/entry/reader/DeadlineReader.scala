@@ -22,44 +22,44 @@ package swaydb.core.segment.format.a.entry.reader
 import swaydb.core.data.KeyValue
 import swaydb.core.segment.format.a.entry.id.EntryId
 import swaydb.core.util.TimeUtil._
-import swaydb.core.util.{Bytes, TryUtil}
+import swaydb.core.util.{Bytes, IOUtil}
 import swaydb.data.slice.Reader
 import swaydb.data.util.ByteSizeOf
 
 import scala.annotation.implicitNotFound
 import scala.concurrent.duration
-import scala.util.{Failure, Success, Try}
+import swaydb.data.io.IO
 
 @implicitNotFound("Type class implementation not found for DeadlineReader of type ${T}")
 sealed trait DeadlineReader[-T] {
   def read(indexReader: Reader,
-           previous: Option[KeyValue.ReadOnly]): Try[Option[duration.Deadline]]
+           previous: Option[KeyValue.ReadOnly]): IO[Option[duration.Deadline]]
 }
 
 object DeadlineReader {
   implicit object NoDeadlineReader extends DeadlineReader[EntryId.Deadline.NoDeadline] {
     override def read(indexReader: Reader,
-                      previous: Option[KeyValue.ReadOnly]): Try[Option[duration.Deadline]] =
-      TryUtil.successNone
+                      previous: Option[KeyValue.ReadOnly]): IO[Option[duration.Deadline]] =
+      IOUtil.successNone
   }
 
   implicit object DeadlineFullyCompressedReader extends DeadlineReader[EntryId.Deadline.FullyCompressed] {
     override def read(indexReader: Reader,
-                      previous: Option[KeyValue.ReadOnly]): Try[Option[duration.Deadline]] =
+                      previous: Option[KeyValue.ReadOnly]): IO[Option[duration.Deadline]] =
       previous map {
         previous =>
           previous.indexEntryDeadline map {
             deadline =>
-              Success(Some(deadline))
-          } getOrElse Failure(EntryReaderFailure.NoPreviousDeadline)
+              IO.Success(Some(deadline))
+          } getOrElse IO.Failure(EntryReaderFailure.NoPreviousDeadline)
       } getOrElse {
-        Failure(EntryReaderFailure.NoPreviousKeyValue)
+        IO.Failure(EntryReaderFailure.NoPreviousKeyValue)
       }
   }
 
   private def decompressDeadline(indexReader: Reader,
                                  commonBytes: Int,
-                                 previous: Option[KeyValue.ReadOnly]): Try[Option[duration.Deadline]] =
+                                 previous: Option[KeyValue.ReadOnly]): IO[Option[duration.Deadline]] =
     previous map {
       previous =>
         previous.indexEntryDeadline map {
@@ -68,60 +68,60 @@ object DeadlineReader {
             val remainingDeadlineBytes = ByteSizeOf.long - commonBytes
             indexReader.read(remainingDeadlineBytes) flatMap {
               rightDeadlineBytes =>
-                Try {
+                IO {
                   Bytes.decompress(previousDeadlineBytes, rightDeadlineBytes, commonBytes)
                     .readLong().toDeadlineOption
                 }
             }
         } getOrElse {
-          Failure(EntryReaderFailure.NoPreviousDeadline)
+          IO.Failure(EntryReaderFailure.NoPreviousDeadline)
         }
     } getOrElse {
-      Failure(EntryReaderFailure.NoPreviousKeyValue)
+      IO.Failure(EntryReaderFailure.NoPreviousKeyValue)
     }
 
   implicit object DeadlineOneCompressedReader extends DeadlineReader[EntryId.Deadline.OneCompressed] {
     override def read(indexReader: Reader,
-                      previous: Option[KeyValue.ReadOnly]): Try[Option[duration.Deadline]] =
+                      previous: Option[KeyValue.ReadOnly]): IO[Option[duration.Deadline]] =
       decompressDeadline(indexReader = indexReader, commonBytes = 1, previous = previous)
   }
 
   implicit object DeadlineTwoCompressedReader extends DeadlineReader[EntryId.Deadline.TwoCompressed] {
     override def read(indexReader: Reader,
-                      previous: Option[KeyValue.ReadOnly]): Try[Option[duration.Deadline]] =
+                      previous: Option[KeyValue.ReadOnly]): IO[Option[duration.Deadline]] =
       decompressDeadline(indexReader = indexReader, commonBytes = 2, previous = previous)
   }
   implicit object DeadlineThreeCompressedReader extends DeadlineReader[EntryId.Deadline.ThreeCompressed] {
     override def read(indexReader: Reader,
-                      previous: Option[KeyValue.ReadOnly]): Try[Option[duration.Deadline]] =
+                      previous: Option[KeyValue.ReadOnly]): IO[Option[duration.Deadline]] =
       decompressDeadline(indexReader = indexReader, commonBytes = 3, previous = previous)
   }
   implicit object DeadlineFourCompressedReader extends DeadlineReader[EntryId.Deadline.FourCompressed] {
     override def read(indexReader: Reader,
-                      previous: Option[KeyValue.ReadOnly]): Try[Option[duration.Deadline]] =
+                      previous: Option[KeyValue.ReadOnly]): IO[Option[duration.Deadline]] =
       decompressDeadline(indexReader = indexReader, commonBytes = 4, previous = previous)
   }
   implicit object DeadlineFiveCompressedReader extends DeadlineReader[EntryId.Deadline.FiveCompressed] {
     override def read(indexReader: Reader,
-                      previous: Option[KeyValue.ReadOnly]): Try[Option[duration.Deadline]] =
+                      previous: Option[KeyValue.ReadOnly]): IO[Option[duration.Deadline]] =
       decompressDeadline(indexReader = indexReader, commonBytes = 5, previous = previous)
   }
 
   implicit object DeadlineSixCompressedReader extends DeadlineReader[EntryId.Deadline.SixCompressed] {
     override def read(indexReader: Reader,
-                      previous: Option[KeyValue.ReadOnly]): Try[Option[duration.Deadline]] =
+                      previous: Option[KeyValue.ReadOnly]): IO[Option[duration.Deadline]] =
       decompressDeadline(indexReader = indexReader, commonBytes = 6, previous = previous)
   }
 
   implicit object DeadlineSevenCompressedReader extends DeadlineReader[EntryId.Deadline.SevenCompressed] {
     override def read(indexReader: Reader,
-                      previous: Option[KeyValue.ReadOnly]): Try[Option[duration.Deadline]] =
+                      previous: Option[KeyValue.ReadOnly]): IO[Option[duration.Deadline]] =
       decompressDeadline(indexReader = indexReader, commonBytes = 7, previous = previous)
   }
 
   implicit object DeadlineUncompressedReader extends DeadlineReader[EntryId.Deadline.Uncompressed] {
     override def read(indexReader: Reader,
-                      previous: Option[KeyValue.ReadOnly]): Try[Option[duration.Deadline]] =
+                      previous: Option[KeyValue.ReadOnly]): IO[Option[duration.Deadline]] =
       indexReader.readLongUnsigned() map (_.toDeadlineOption)
   }
 }

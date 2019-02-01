@@ -23,80 +23,80 @@ import com.typesafe.scalalogging.LazyLogging
 import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
 import java.nio.file.{NoSuchFileException, Path, StandardOpenOption}
-import scala.util.{Failure, Success, Try}
-import swaydb.core.util.TryUtil
+import swaydb.data.io.IO
+import swaydb.core.util.IOUtil
 import swaydb.data.slice.Slice
 
 private[file] object ChannelFile {
-  def write(path: Path): Try[ChannelFile] =
-    Try {
+  def write(path: Path): IO[ChannelFile] =
+    IO {
       val channel = FileChannel.open(path, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
       new ChannelFile(path, channel)
     }
 
-  def read(path: Path): Try[ChannelFile] =
+  def read(path: Path): IO[ChannelFile] =
     if (IOOps.exists(path))
-      Try {
+      IO {
         val channel = FileChannel.open(path, StandardOpenOption.READ)
         new ChannelFile(path, channel)
       }
     else
-      Failure(new NoSuchFileException(path.toString))
+      IO.Failure(new NoSuchFileException(path.toString))
 }
 
 private[file] class ChannelFile(val path: Path,
                                 channel: FileChannel) extends LazyLogging with DBFileType {
 
-  def close: Try[Unit] =
-    Try {
+  def close: IO[Unit] =
+    IO {
       //      logger.info(s"$path: Closing channel")
       channel.close()
     }
 
-  def append(slice: Slice[Byte]): Try[Unit] =
+  def append(slice: Slice[Byte]): IO[Unit] =
     IOOps.write(slice, channel)
 
-  def read(position: Int, size: Int): Try[Slice[Byte]] =
-    Try {
+  def read(position: Int, size: Int): IO[Slice[Byte]] =
+    IO {
       val buffer = ByteBuffer.allocate(size)
       channel.read(buffer, position)
       Slice(buffer.array())
     }
 
-  def get(position: Int): Try[Byte] =
+  def get(position: Int): IO[Byte] =
     read(position, 1).map(_.head)
 
-  def readAll: Try[Slice[Byte]] =
-    Try {
+  def readAll: IO[Slice[Byte]] =
+    IO {
       val bytes = new Array[Byte](channel.size().toInt)
       channel.read(ByteBuffer.wrap(bytes))
       Slice(bytes)
     }
 
   def fileSize =
-    Try(channel.size())
+    IO(channel.size())
 
   override def isOpen =
     channel.isOpen
 
   override def isMemoryMapped =
-    Success(false)
+    IO.Success(false)
 
   override def isLoaded =
-    Success(false)
+    IO.Success(false)
 
   override def isFull =
-    Success(false)
+    IO.Success(false)
 
   override def memory: Boolean =
     false
 
-  override def delete(): Try[Unit] =
+  override def delete(): IO[Unit] =
     close flatMap {
       _ =>
         IOOps.delete(path)
     }
 
-  override def forceSave(): Try[Unit] =
-    TryUtil.successUnit
+  override def forceSave(): IO[Unit] =
+    IOUtil.successUnit
 }

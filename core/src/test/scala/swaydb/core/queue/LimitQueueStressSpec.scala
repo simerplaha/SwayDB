@@ -23,7 +23,7 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
-import swaydb.core.TryAssert._
+import swaydb.core.IOAssert._
 
 class LimitQueueStressSpec extends TestBase {
 

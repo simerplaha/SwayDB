@@ -19,7 +19,7 @@
 
 package swaydb.core.segment.format.a.entry.reader.value
 
-import scala.util.{Failure, Success, Try}
+import swaydb.data.io.IO
 import swaydb.core.data.Value
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.serializer.ValueSerializer
@@ -43,7 +43,7 @@ trait LazyPendingApplyValueReader extends LazyValueReader {
 
   @volatile private var applyFunctions: Slice[Value.Apply] = _
 
-  def getOrFetchApplies: Try[Slice[Value.Apply]] =
+  def getOrFetchApplies: IO[Slice[Value.Apply]] =
     if (applyFunctions == null)
       getOrFetchValue flatMap {
         case Some(valueBytes) =>
@@ -53,10 +53,10 @@ trait LazyPendingApplyValueReader extends LazyValueReader {
               applyFunctions
           }
         case None =>
-          Failure(new IllegalStateException(s"Failed to read ApplyValue's value"))
+          IO.Failure(new IllegalStateException(s"Failed to read ApplyValue's value"))
       }
     else
-      Success(applyFunctions)
+      IO.Success(applyFunctions)
 }
 
 object ActivePendingApplyValueReader {
@@ -66,7 +66,7 @@ object ActivePendingApplyValueReader {
 
 class ActivePendingApplyValueReader(applies: Slice[Value.Apply]) extends LazyPendingApplyValueReader {
 
-  override def getOrFetchApplies: Try[Slice[Value.Apply]] = Success(applies)
+  override def getOrFetchApplies: IO[Slice[Value.Apply]] = IO.Success(applies)
 
   override def valueReader: Reader = {
     val bytesRequires = ValueSerializer.bytesRequired(applies)

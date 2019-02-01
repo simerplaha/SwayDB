@@ -21,7 +21,7 @@ package swaydb
 
 import scala.collection.generic.CanBuildFrom
 import scala.concurrent.duration.{Deadline, FiniteDuration}
-import scala.util.{Failure, Success, Try}
+import swaydb.data.io.IO
 import swaydb.BatchImplicits._
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
@@ -44,64 +44,64 @@ case class Set[T](private val db: SwayDB,
                   private[swaydb] val reverse: Boolean = false,
                   private val till: T => Boolean = (_: T) => true)(implicit serializer: Serializer[T]) extends Iterable[T] {
 
-  def get(elem: T): Try[Option[T]] =
+  def get(elem: T): IO[Option[T]] =
     db.getKey(elem).map(_.map(_.read[T]))
 
-  def contains(elem: T): Try[Boolean] =
+  def contains(elem: T): IO[Boolean] =
     db contains elem
 
-  def mightContain(elem: T): Try[Boolean] =
+  def mightContain(elem: T): IO[Boolean] =
     db mightContain elem
 
-  def add(elem: T): Try[Level0Meter] =
+  def add(elem: T): IO[Level0Meter] =
     db.put(key = elem)
 
-  def add(elem: T, expireAt: Deadline): Try[Level0Meter] =
+  def add(elem: T, expireAt: Deadline): IO[Level0Meter] =
     db.put(elem, None, expireAt)
 
-  def add(elem: T, expireAfter: FiniteDuration): Try[Level0Meter] =
+  def add(elem: T, expireAfter: FiniteDuration): IO[Level0Meter] =
     db.put(elem, None, expireAfter.fromNow)
 
-  def remove(elem: T): Try[Level0Meter] =
+  def remove(elem: T): IO[Level0Meter] =
     db.remove(elem)
 
-  def remove(from: T, to: T): Try[Level0Meter] =
+  def remove(from: T, to: T): IO[Level0Meter] =
     db.remove(from, to)
 
-  def expire(elem: T, after: FiniteDuration): Try[Level0Meter] =
+  def expire(elem: T, after: FiniteDuration): IO[Level0Meter] =
     db.expire(elem, after.fromNow)
 
-  def expire(elem: T, at: Deadline): Try[Level0Meter] =
+  def expire(elem: T, at: Deadline): IO[Level0Meter] =
     db.expire(elem, at)
 
-  def expire(from: T, to: T, after: FiniteDuration): Try[Level0Meter] =
+  def expire(from: T, to: T, after: FiniteDuration): IO[Level0Meter] =
     db.expire(from, to, after.fromNow)
 
-  def expire(from: T, to: T, at: Deadline): Try[Level0Meter] =
+  def expire(from: T, to: T, at: Deadline): IO[Level0Meter] =
     db.expire(from, to, at)
 
-  def batch(batch: Batch[T, Nothing]*): Try[Level0Meter] =
+  def batch(batch: Batch[T, Nothing]*): IO[Level0Meter] =
     db.batch(batch)
 
-  def batch(batch: Iterable[Batch[T, Nothing]]): Try[Level0Meter] =
+  def batch(batch: Iterable[Batch[T, Nothing]]): IO[Level0Meter] =
     db.batch(batch)
 
-  def batchAdd(elems: T*): Try[Level0Meter] =
+  def batchAdd(elems: T*): IO[Level0Meter] =
     batchAdd(elems)
 
-  def batchAdd(elems: Iterable[T]): Try[Level0Meter] =
+  def batchAdd(elems: Iterable[T]): IO[Level0Meter] =
     db.batch(elems.map(elem => request.Batch.Put(elem, None, None)))
 
-  def batchRemove(elems: T*): Try[Level0Meter] =
+  def batchRemove(elems: T*): IO[Level0Meter] =
     batchRemove(elems)
 
-  def batchRemove(elems: Iterable[T]): Try[Level0Meter] =
+  def batchRemove(elems: Iterable[T]): IO[Level0Meter] =
     db.batch(elems.map(elem => request.Batch.Remove(elem, None)))
 
-  def batchExpire(elems: (T, Deadline)*): Try[Level0Meter] =
+  def batchExpire(elems: (T, Deadline)*): IO[Level0Meter] =
     batchExpire(elems)
 
-  def batchExpire(elems: Iterable[(T, Deadline)]): Try[Level0Meter] =
+  def batchExpire(elems: Iterable[(T, Deadline)]): IO[Level0Meter] =
     db.batch(elems.map(elemWithExpire => request.Batch.Remove(elemWithExpire._1, Some(elemWithExpire._2))))
 
   def level0Meter: Level0Meter =
@@ -116,10 +116,10 @@ case class Set[T](private val db: SwayDB,
   def elemSize(elem: T): Int =
     (elem: Slice[Byte]).size
 
-  def expiration(elem: T): Try[Option[Deadline]] =
+  def expiration(elem: T): IO[Option[Deadline]] =
     db deadline elem
 
-  def timeLeft(elem: T): Try[Option[FiniteDuration]] =
+  def timeLeft(elem: T): IO[Option[FiniteDuration]] =
     expiration(elem).map(_.map(_.timeLeft))
 
   def from(key: T): Set[T] =
@@ -146,7 +146,7 @@ case class Set[T](private val db: SwayDB,
     private var nextKeyBytes: Slice[Byte] = _
     private var nextKeyTyped: T = _
 
-    private def start: Try[Option[Slice[Byte]]] =
+    private def start: IO[Option[Slice[Byte]]] =
       from match {
         case Some(from) =>
           val fromKeyBytes: Slice[Byte] = from.key
@@ -158,7 +158,7 @@ case class Set[T](private val db: SwayDB,
             db.getKey(fromKeyBytes)
               .flatMap {
                 case Some(key) =>
-                  Success(Some(key))
+                  IO.Success(Some(key))
 
                 case _ =>
                   if (from.orAfter)
@@ -166,7 +166,7 @@ case class Set[T](private val db: SwayDB,
                   else if (from.orBefore)
                     db.beforeKey(fromKeyBytes)
                   else
-                    Success(None)
+                    IO.Success(None)
               }
 
         case None =>
@@ -188,7 +188,7 @@ case class Set[T](private val db: SwayDB,
               db.afterKey(nextKeyBytes)
 
           next match {
-            case Success(key) =>
+            case IO.Success(key) =>
               key match {
                 case Some(key) =>
                   val keyT = key.read[T]
@@ -202,14 +202,14 @@ case class Set[T](private val db: SwayDB,
                 case _ =>
                   false
               }
-            case Failure(exception) =>
+            case IO.Failure(exception) =>
               System.err.println("Failed to iterate", exception)
               throw exception
           }
         }
       } else
         start match {
-          case Success(value) =>
+          case IO.Success(value) =>
             started = true
             value match {
               case Some(key) =>
@@ -224,7 +224,7 @@ case class Set[T](private val db: SwayDB,
               case _ =>
                 false
             }
-          case Failure(exception) =>
+          case IO.Failure(exception) =>
             System.err.println("Failed to start Key iterator", exception)
             throw exception
         }

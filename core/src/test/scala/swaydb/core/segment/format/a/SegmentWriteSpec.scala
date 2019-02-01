@@ -23,17 +23,16 @@ import java.nio.file._
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
-import scala.util.{Random, Try}
+import scala.util.Random
 import swaydb.configs.level.DefaultGroupingStrategy
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.TryAssert._
+import swaydb.core.IOAssert._
 import swaydb.core.data.Transient.Remove
 import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data.{Memory, Value, _}
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
-import swaydb.core.io.file.DBFile
 import swaydb.core.io.reader.Reader
 import swaydb.core.level.PathsDistributor
 import swaydb.core.queue.FileLimiter
@@ -45,6 +44,7 @@ import swaydb.core.util.FileUtil._
 import swaydb.core.util._
 import swaydb.core.{TestBase, TestData, TestLimitQueues, TestTimeGenerator}
 import swaydb.data.config.Dir
+import swaydb.data.io.IO
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.repairAppendix.MaxKey
 import swaydb.data.slice.Slice
@@ -764,7 +764,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
       levelStorage.dirs foreach {
         dir =>
           Files.createDirectories(dir.path)
-          Try(Files.createFile(dir.path.resolve(IDGenerator.segmentId(nextSegmentId + 4)))) //path already taken.
+          IO(Files.createFile(dir.path.resolve(IDGenerator.segmentId(nextSegmentId + 4)))) //path already taken.
       }
 
       val filesBeforeCopy = levelPath.files(Extension.Seg)
@@ -833,8 +833,8 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         segments.size should be >= 2 //ensures that splits occurs. Memory Segments do not get written to disk without splitting.
 
         //some key-values could get expired while unexpired key-values are being collected. So try again!
-        Retry("deadline trickery", (_, _) => TryUtil.successUnit, 10) {
-          Try {
+        Retry("deadline trickery", (_, _) => IOUtil.successUnit, 10) {
+          IO {
             Segment.getAllKeyValues(TestData.falsePositiveRate, segments).assertGet shouldBe unzipGroups(keyValues).collect {
               case keyValue: Transient.Put if keyValue.hasTimeLeft() =>
                 keyValue

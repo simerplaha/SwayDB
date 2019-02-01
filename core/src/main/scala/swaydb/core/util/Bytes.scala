@@ -19,7 +19,7 @@
 
 package swaydb.core.util
 
-import scala.util.{Success, Try}
+import swaydb.data.io.IO
 import swaydb.core.data.KeyValue
 import swaydb.core.io.reader.Reader
 import swaydb.core.util.PipeOps._
@@ -169,7 +169,7 @@ private[swaydb] object Bytes {
     }
   }
 
-  def decompressJoin(bytes: Slice[Byte]): Try[(Slice[Byte], Slice[Byte])] =
+  def decompressJoin(bytes: Slice[Byte]): IO[(Slice[Byte], Slice[Byte])] =
     Reader(bytes) ==> {
       reader =>
         for {
@@ -179,7 +179,7 @@ private[swaydb] object Bytes {
           hasMore <- reader.hasAtLeast(lastBytesRead + 1) //if there are more bytes to read.
           right <-
             if (!hasMore && commonBytes == leftBytesSize) //if right was fully compressed then right == left, return left.
-              Success(left)
+              IO.Success(left)
             else
               reader.readIntUnsigned() flatMap {
                 rightSize =>

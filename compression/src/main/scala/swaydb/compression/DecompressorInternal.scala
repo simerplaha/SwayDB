@@ -27,26 +27,26 @@ import swaydb.data.compression.{DecompressorId, LZ4Decompressor, LZ4Instance}
 import swaydb.data.slice.Slice
 import swaydb.data.util.PipeOps._
 
-import scala.util.{Failure, Success, Try}
+import swaydb.data.io.IO
 
 private[swaydb] sealed trait DecompressorInternal {
 
   val id: Int
 
   def decompress(slice: Slice[Byte],
-                 decompressLength: Int): Try[Slice[Byte]]
+                 decompressLength: Int): IO[Slice[Byte]]
 }
 
 private[swaydb] object DecompressorInternal {
 
   private[swaydb] sealed trait LZ4 extends DecompressorInternal
 
-  def apply(id: Int): Try[DecompressorInternal] =
+  def apply(id: Int): IO[DecompressorInternal] =
     DecompressorId(id) map {
       id =>
-        Try(apply(id))
+        IO(apply(id))
     } getOrElse {
-      Failure(DecompressException.InvalidDecompressorId(id))
+      IO.Failure(DecompressException.InvalidDecompressorId(id))
     }
 
   def apply(instance: LZ4Instance,
@@ -102,16 +102,16 @@ private[swaydb] object DecompressorInternal {
                                      decompressor: LZ4FastDecompressor) extends DecompressorInternal.LZ4 {
 
     override def decompress(slice: Slice[Byte],
-                            decompressLength: Int): Try[Slice[Byte]] =
-      Try(Slice(decompressor.decompress(slice.toArray, decompressLength)))
+                            decompressLength: Int): IO[Slice[Byte]] =
+      IO(Slice(decompressor.decompress(slice.toArray, decompressLength)))
   }
 
   private[swaydb] case class LZ4Safe(id: Int,
                                      decompressor: LZ4SafeDecompressor) extends DecompressorInternal.LZ4 {
 
     override def decompress(slice: Slice[Byte],
-                            decompressLength: Int): Try[Slice[Byte]] =
-      Try(Slice(decompressor.decompress(slice.toArray, decompressLength)))
+                            decompressLength: Int): IO[Slice[Byte]] =
+      IO(Slice(decompressor.decompress(slice.toArray, decompressLength)))
   }
 
   private[swaydb] case object UnCompressedGroup extends DecompressorInternal {
@@ -119,8 +119,8 @@ private[swaydb] object DecompressorInternal {
     override val id: Int = DecompressorId.UnCompressedGroup.id
 
     override def decompress(slice: Slice[Byte],
-                            decompressLength: Int): Try[Slice[Byte]] =
-      Success(slice)
+                            decompressLength: Int): IO[Slice[Byte]] =
+      IO.Success(slice)
   }
 
   private[swaydb] case object Snappy extends DecompressorInternal {
@@ -128,11 +128,11 @@ private[swaydb] object DecompressorInternal {
     override val id: Int = DecompressorId.Snappy.Default.id
 
     override def decompress(slice: Slice[Byte],
-                            decompressLength: Int): Try[Slice[Byte]] =
-      Try(snappy.Snappy.uncompress(slice.toArray)) map (Slice(_))
+                            decompressLength: Int): IO[Slice[Byte]] =
+      IO(snappy.Snappy.uncompress(slice.toArray)) map (Slice(_))
   }
 
-  def random(): Try[DecompressorInternal] =
+  def random(): IO[DecompressorInternal] =
     DecompressorInternal(DecompressorId.randomIntId())
 
   def randomLZ4(): DecompressorInternal.LZ4 =

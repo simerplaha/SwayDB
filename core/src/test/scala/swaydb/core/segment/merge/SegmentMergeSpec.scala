@@ -22,7 +22,7 @@ package swaydb.core.segment.merge
 import scala.collection.mutable.ListBuffer
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
-import swaydb.core.TryAssert._
+import swaydb.core.IOAssert._
 import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data._
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal

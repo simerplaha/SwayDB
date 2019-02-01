@@ -29,7 +29,7 @@ import swaydb.core.util.Delay
 import scala.concurrent.duration._
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.Try
+import swaydb.data.io.IO
 
 private[swaydb] sealed trait ActorRef[-T] {
   /**
@@ -195,7 +195,7 @@ private[swaydb] class Actor[T, +S](val state: S,
       while (!terminated && processed < max) {
         val message = queue.poll
         if (message != null) {
-          Try(execution(message, self))
+          IO(execution(message, self))
           processed += 1
         } else {
           processed = max

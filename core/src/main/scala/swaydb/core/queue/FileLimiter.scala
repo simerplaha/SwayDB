@@ -23,7 +23,7 @@ import java.nio.file.Path
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.ref.WeakReference
-import scala.util.Try
+import swaydb.data.io.IO
 
 trait FileLimiter {
 
@@ -36,9 +36,9 @@ trait FileLimiter {
 trait LimiterType {
   def path: Path
 
-  def delete(): Try[Unit]
+  def delete(): IO[Unit]
 
-  def close(): Try[Unit]
+  def close(): IO[Unit]
 
   def isOpen: Boolean
 }

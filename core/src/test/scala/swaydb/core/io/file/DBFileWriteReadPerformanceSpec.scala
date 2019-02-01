@@ -21,7 +21,7 @@ package swaydb.core.io.file
 
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.TryAssert._
+import swaydb.core.IOAssert._
 import swaydb.core.queue.FileLimiter
 import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestLimitQueues}

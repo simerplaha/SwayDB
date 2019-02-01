@@ -21,19 +21,20 @@ package swaydb.core.segment.format.a
 
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration._
-import scala.util.{Random, Try}
+import scala.util.Random
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.TryAssert._
+import swaydb.core.IOAssert._
 import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data._
 import swaydb.core.group.compression.GroupCompressor
 import swaydb.core.io.reader.Reader
 import swaydb.core.retry.Retry
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
-import swaydb.core.util.TryUtil
+import swaydb.core.util.IOUtil
 import swaydb.core.{TestBase, TestData, TestLimitQueues, TestTimeGenerator}
+import swaydb.data.io.IO
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
@@ -228,8 +229,8 @@ class SegmentWriterReaderSpec extends TestBase {
         footer.hasRange shouldBe true
         val bloomFilter = footer.bloomFilter.assertGet
         assertBloom(keyValues, bloomFilter)
-        Retry("test", (_, _) => TryUtil.successUnit, 10) {
-          Try(bloomFilter.mightContain(randomBytesSlice(100)) shouldBe false)
+        Retry("test", (_, _) => IOUtil.successUnit, 10) {
+          IO(bloomFilter.mightContain(randomBytesSlice(100)) shouldBe false)
         }
 
         footer.crc should be > 0L
@@ -282,8 +283,8 @@ class SegmentWriterReaderSpec extends TestBase {
         //bloom filters do
         val bloomFilter = footer.bloomFilter.assertGet
         assertBloom(keyValues, bloomFilter)
-        Retry("test", (_, _) => TryUtil.successUnit, 10) {
-          Try(bloomFilter.mightContain(randomBytesSlice(100)) shouldBe false)
+        Retry("test", (_, _) => IOUtil.successUnit, 10) {
+          IO(bloomFilter.mightContain(randomBytesSlice(100)) shouldBe false)
         }
         footer.crc should be > 0L
       }
@@ -312,8 +313,8 @@ class SegmentWriterReaderSpec extends TestBase {
         //bloom filters do
         val bloomFilter = footer.bloomFilter.assertGet
         assertBloom(keyValues, bloomFilter)
-        Retry("test", (_, _) => TryUtil.successUnit, 10) {
-          Try(bloomFilter.mightContain(randomBytesSlice(100)) shouldBe false)
+        Retry("test", (_, _) => IOUtil.successUnit, 10) {
+          IO(bloomFilter.mightContain(randomBytesSlice(100)) shouldBe false)
         }
         footer.crc should be > 0L
 
@@ -342,8 +343,8 @@ class SegmentWriterReaderSpec extends TestBase {
         //bloom filters do
         val bloomFilter = footer.bloomFilter.assertGet
         assertBloom(keyValues, bloomFilter)
-        Retry("test", (_, _) => TryUtil.successUnit, 10) {
-          Try(bloomFilter.mightContain(randomBytesSlice(100)) shouldBe false)
+        Retry("test", (_, _) => IOUtil.successUnit, 10) {
+          IO(bloomFilter.mightContain(randomBytesSlice(100)) shouldBe false)
         }
         footer.crc should be > 0L
 

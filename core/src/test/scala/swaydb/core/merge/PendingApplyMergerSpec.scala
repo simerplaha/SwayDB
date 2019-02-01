@@ -20,7 +20,7 @@
 package swaydb.core.merge
 
 import org.scalatest.{Matchers, WordSpec}
-import scala.util.Try
+import swaydb.data.io.IO
 import swaydb.core.data.Memory
 import swaydb.core.{CommonAssertions, TestTimeGenerator}
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -29,7 +29,7 @@ import swaydb.serializers._
 import swaydb.core.TestData._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
-import swaydb.core.TryAssert._
+import swaydb.core.IOAssert._
 import swaydb.data.slice.Slice
 
 class PendingApplyMergerSpec extends WordSpec with Matchers {
@@ -79,7 +79,7 @@ class PendingApplyMergerSpec extends WordSpec with Matchers {
 
           val oldKeyValue = randomPendingApplyKeyValue(key = key)
 
-          Try {
+          IO {
             //if applies were return the the result can contain just the inner single apply key-value.
             val expected = oldKeyValue.applies.head.toMemory(key)
             assertMerge(

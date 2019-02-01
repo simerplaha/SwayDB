@@ -25,7 +25,7 @@ import swaydb.core.{TestBase, TestTimeGenerator}
 import swaydb.core.data.Memory
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.MapEntry
-import swaydb.core.util.TryUtil
+import swaydb.core.util.IOUtil
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
@@ -34,7 +34,7 @@ import swaydb.serializers._
 import swaydb.core.TestData._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
-import swaydb.core.TryAssert._
+import swaydb.core.IOAssert._
 
 class LevelZeroMapEntrySpec extends TestBase {
 
@@ -291,7 +291,7 @@ class LevelZeroMapEntrySpec extends TestBase {
         import LevelZeroMapEntryWriter.Level0MapEntryPutWriter
         val bytes = MapCodec.write[Slice[Byte], Memory.SegmentResponse](skipList)
         val recoveryResult = MapCodec.read[Slice[Byte], Memory.SegmentResponse](bytes, false).assertGet
-        recoveryResult.result shouldBe TryUtil.successUnit
+        recoveryResult.result shouldBe IOUtil.successUnit
 
         val readEntries = recoveryResult.item.assertGet
         //clear and apply new skipList and the result should be the same as previous.

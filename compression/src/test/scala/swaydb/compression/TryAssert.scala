@@ -21,17 +21,17 @@ package swaydb.compression
 
 import org.scalatest.Matchers
 
-import scala.util.{Failure, Success, Try}
+import swaydb.data.io.IO
 
-object TryAssert extends Matchers {
+object IOAssert extends Matchers {
 
-  implicit class GetTryImplicit[T](getThis: Try[T]) {
+  implicit class GetIOImplicit[T](getThis: IO[T]) {
     def assertGet: T =
       getThis match {
-        case Failure(exception) =>
+        case IO.Failure(exception) =>
           fail(exception)
 
-        case Success(value) =>
+        case IO.Success(value) =>
           value
       }
   }
@@ -43,22 +43,22 @@ object TryAssert extends Matchers {
     }
   }
 
-  implicit class GetTryOptionImplicit[T](tryThis: Try[Option[T]]) {
+  implicit class GetIOOptionImplicit[T](tryThis: IO[Option[T]]) {
     def assertGet: T =
       tryThis match {
-        case Failure(exception) =>
+        case IO.Failure(exception) =>
           fail(exception)
 
-        case Success(value) =>
+        case IO.Success(value) =>
           value.assertGet
       }
 
     def assertGetOpt: Option[T] =
       tryThis match {
-        case Failure(exception) =>
+        case IO.Failure(exception) =>
           fail(exception)
 
-        case Success(value) =>
+        case IO.Success(value) =>
           value
       }
   }

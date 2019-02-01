@@ -31,7 +31,7 @@ import scala.ref.WeakReference
 import swaydb.core.TestData._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
-import swaydb.core.TryAssert._
+import swaydb.core.IOAssert._
 
 case class Item(i: Int)
 class LimitQueueSpec extends TestBase {

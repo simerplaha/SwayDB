@@ -24,11 +24,11 @@ import scala.annotation.tailrec
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.reflect.ClassTag
-import scala.util.{Random, Try}
+import scala.util.Random
 import swaydb.compression.CompressionInternal
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestLimitQueues.fileOpenLimiter
-import swaydb.core.TryAssert._
+import swaydb.core.IOAssert._
 import swaydb.core.data.KeyValue.{ReadOnly, WriteOnly}
 import swaydb.core.data.Transient.Range
 import swaydb.core.data.Value.{FromValue, RangeValue}
@@ -42,10 +42,11 @@ import swaydb.core.level.zero.LevelZero
 import swaydb.core.map.serializer.RangeValueSerializer
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment
-import swaydb.core.util.{TryUtil, UUIDUtil}
+import swaydb.core.util.{IOUtil, UUIDUtil}
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.{Dir, RecoveryMode}
+import swaydb.data.io.IO
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.repairAppendix.MaxKey
 import swaydb.data.slice.Slice
@@ -76,10 +77,10 @@ object TestData {
                                                  timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                  groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(randomNextInt(1000))) {
 
-    def tryReopen: Try[Segment] =
+    def tryReopen: IO[Segment] =
       tryReopen(segment.path)
 
-    def tryReopen(path: Path, removeDeletes: Boolean = segment.removeDeletes): Try[Segment] =
+    def tryReopen(path: Path, removeDeletes: Boolean = segment.removeDeletes): IO[Segment] =
       Segment(
         path = path,
         mmapReads = Random.nextBoolean(),
@@ -110,11 +111,11 @@ object TestData {
                                            keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
                                            compression: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(randomNextInt(1000))) {
 
-    import swaydb.core.util.TryUtil._
+    import swaydb.core.util.IOUtil._
 
-    def putKeyValues(keyValues: Iterable[KeyValue.ReadOnly])(implicit fileLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter): Try[Unit] =
+    def putKeyValues(keyValues: Iterable[KeyValue.ReadOnly])(implicit fileLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter): IO[Unit] =
       if (keyValues.isEmpty)
-        TryUtil.successUnit
+        IOUtil.successUnit
       else
         Segment.copyToMemory(keyValues, Paths.get("testMemorySegment"), false, 1000.mb, TestData.falsePositiveRate, true) flatMap {
           segments =>
@@ -129,7 +130,7 @@ object TestData {
     def reopen: Level =
       reopen()
 
-    def tryReopen: Try[Level] =
+    def tryReopen: IO[Level] =
       tryReopen()
 
     def reopen(segmentSize: Long = level.segmentSize,
@@ -139,7 +140,7 @@ object TestData {
 
     def tryReopen(segmentSize: Long = level.segmentSize,
                   throttle: LevelMeter => Throttle = level.throttle)(implicit keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
-                                                                     fileOpenLimiter: FileLimiter = fileOpenLimiter): Try[Level] =
+                                                                     fileOpenLimiter: FileLimiter = fileOpenLimiter): IO[Level] =
       level.releaseLocks flatMap {
         _ =>
           level.closeSegments flatMap {
@@ -193,15 +194,15 @@ object TestData {
       reopened.assertGet
     }
 
-    def putKeyValues(keyValues: Iterable[KeyValue.ReadOnly]): Try[Unit] =
+    def putKeyValues(keyValues: Iterable[KeyValue.ReadOnly]): IO[Unit] =
       if (keyValues.isEmpty)
-        TryUtil.successUnit
+        IOUtil.successUnit
       else
         keyValues.toMapEntry match {
           case Some(value) =>
             level.put(value) map (_ => ())
           case None =>
-            TryUtil.successUnit
+            IOUtil.successUnit
         }
   }
 
@@ -2044,7 +2045,7 @@ object TestData {
                                 timeOrder: TimeOrder[Slice[Byte]],
                                 currentReader: CurrentWalker,
                                 nextReader: NextWalker,
-                                functionStore: FunctionStore): Try[Option[KeyValue.ReadOnly.Put]] =
+                                functionStore: FunctionStore): IO[Option[KeyValue.ReadOnly.Put]] =
       Higher(key, Seek.Next, Seek.Next)
   }
 
@@ -2053,7 +2054,7 @@ object TestData {
                                 timeOrder: TimeOrder[Slice[Byte]],
                                 currentReader: CurrentWalker,
                                 nextReader: NextWalker,
-                                functionStore: FunctionStore): Try[Option[KeyValue.ReadOnly.Put]] =
+                                functionStore: FunctionStore): IO[Option[KeyValue.ReadOnly.Put]] =
       Lower(key, Seek.Next, Seek.Next)
   }
 }

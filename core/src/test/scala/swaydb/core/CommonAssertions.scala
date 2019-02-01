@@ -25,7 +25,7 @@ import org.scalatest.Assertion
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 import scala.concurrent.duration._
-import scala.util.{Failure, Random, Success, Try}
+import swaydb.data.io.IO
 import swaydb.compression.CompressionInternal
 import swaydb.core.TestData._
 import swaydb.core.data.KeyValue.{ReadOnly, WriteOnly}
@@ -48,10 +48,11 @@ import swaydb.core.util.CollectionUtil._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.StorageUnits._
-import TryAssert._
+import IOAssert._
 import RunThis._
+import scala.util.Random
 import swaydb.core.retry.Retry
-import swaydb.core.util.TryUtil
+import swaydb.core.util.IOUtil
 
 object CommonAssertions {
 
@@ -824,8 +825,8 @@ object CommonAssertions {
 
   def assertBloomNotContains(bloom: BloomFilter[Slice[Byte]]) =
     runThis(10.times) {
-      Retry("bloom false test", (_, _) => TryUtil.successUnit, 10) {
-        Try(bloom.mightContain(randomBytesSlice(randomIntMax(1000) min 100)) shouldBe false)
+      Retry("bloom false test", (_, _) => IOUtil.successUnit, 10) {
+        IO(bloom.mightContain(randomBytesSlice(randomIntMax(1000) min 100)) shouldBe false)
       }
     }
 
@@ -945,9 +946,9 @@ object CommonAssertions {
     keys.par foreach {
       key =>
         Retry("assertGetNone", Retry.levelReadRetryUntil, 1000) {
-          Try(level.get(Slice.writeInt(key)).assertGetOpt shouldBe empty) recoverWith {
+          IO(level.get(Slice.writeInt(key)).assertGetOpt shouldBe empty) recoverWith {
             case exception: Exception =>
-              Failure(exception.getCause)
+              IO.Failure(exception.getCause)
           }
         }
     }
@@ -1117,7 +1118,7 @@ object CommonAssertions {
     * Asserts that all key-values are returned in order when fetching higher in sequence.
     */
   def assertHigher(_keyValues: Iterable[KeyValue],
-                   getHigher: Slice[Byte] => Try[Option[KeyValue]]): Unit = {
+                   getHigher: Slice[Byte] => IO[Option[KeyValue]]): Unit = {
     import KeyOrder.default._
     val keyValues = _keyValues.toMemory.toArray
 
@@ -1191,7 +1192,7 @@ object CommonAssertions {
           assertLast(keyValues(index))
         } else {
           val next = keyValues(index + 1)
-          val nextNext = Try(keyValues(index + 2)).toOption
+          val nextNext = IO(keyValues(index + 2)).toOption
           assertNotLast(keyValues(index), next, nextNext)
         }
     }
@@ -1283,10 +1284,10 @@ object CommonAssertions {
     SegmentReader.readAll(footer, segmentReader.copy()).assertGet shouldBe Seq(group)
   }
 
-  def readAll(bytes: Slice[Byte]): Try[Slice[KeyValue.ReadOnly]] =
+  def readAll(bytes: Slice[Byte]): IO[Slice[KeyValue.ReadOnly]] =
     readAll(Reader(bytes))
 
-  def readAll(reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default): Try[Slice[KeyValue.ReadOnly]] =
+  def readAll(reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default): IO[Slice[KeyValue.ReadOnly]] =
     SegmentReader.readFooter(reader) flatMap {
       footer =>
         SegmentReader.readAll(footer, reader.copy())
@@ -1367,7 +1368,7 @@ object CommonAssertions {
     }
 
   def assertNotSliced(keyValue: KeyValue.ReadOnly): Unit =
-    Try(assertSliced(keyValue)).failed.assertGet
+    IO(assertSliced(keyValue)).failed.assertGet
 
   def assertSliced(value: Value): Unit =
     value match {
@@ -1472,14 +1473,14 @@ object CommonAssertions {
         }
     }
 
-  implicit class WithRetry[T](tryBlock: => Try[T]) {
-    def withRetry: Try[T] =
+  implicit class WithRetry[T](tryBlock: => IO[T]) {
+    def withRetry: IO[T] =
       Retry[T](resourceId = randomString, maxRetryLimit = 100, until = Retry.levelReadRetryUntil) {
         try
           tryBlock
         catch {
           case ex: Exception =>
-            Failure(ex)
+            IO.Failure(ex)
         }
       }
 

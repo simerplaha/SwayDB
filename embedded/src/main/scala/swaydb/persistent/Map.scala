@@ -23,7 +23,7 @@ import com.typesafe.scalalogging.LazyLogging
 import java.nio.file.Path
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{FiniteDuration, _}
-import scala.util.Try
+import swaydb.data.io.IO
 import swaydb.configs.level.{DefaultGroupingStrategy, DefaultPersistentConfig}
 import swaydb.core.CoreAPI
 import swaydb.core.function.FunctionStore
@@ -93,7 +93,7 @@ object Map extends LazyLogging {
                   acceleration: Level0Meter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
                                                                                      valueSerializer: Serializer[V],
                                                                                      keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                     ec: ExecutionContext = SwayDB.defaultExecutionContext): Try[Map[K, V]] =
+                                                                                     ec: ExecutionContext = SwayDB.defaultExecutionContext): IO[Map[K, V]] =
     CoreAPI(
       config = DefaultPersistentConfig(
         dir = dir,

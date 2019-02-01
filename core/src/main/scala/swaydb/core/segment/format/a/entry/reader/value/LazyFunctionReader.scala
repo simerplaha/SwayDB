@@ -19,7 +19,7 @@
 
 package swaydb.core.segment.format.a.entry.reader.value
 
-import scala.util.{Failure, Success, Try}
+import swaydb.data.io.IO
 import swaydb.data.slice.{Reader, Slice}
 
 object LazyFunctionReader {
@@ -37,12 +37,12 @@ object LazyFunctionReader {
 
 trait LazyFunctionReader extends LazyValueReader {
 
-  def getOrFetchFunction: Try[Slice[Byte]] =
+  def getOrFetchFunction: IO[Slice[Byte]] =
     super.getOrFetchValue flatMap {
       case Some(value) =>
-        Success(value)
+        IO.Success(value)
       case None =>
-        Failure(new Exception("Empty functionId."))
+        IO.Failure(new Exception("Empty functionId."))
     }
 
   override def isValueDefined: Boolean =

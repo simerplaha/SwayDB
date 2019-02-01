@@ -19,7 +19,7 @@
 
 package swaydb.core.group.compression
 
-import scala.util.{Failure, Success, Try}
+import swaydb.data.io.IO
 import swaydb.core.data.KeyValue
 import swaydb.core.util.Bytes
 import swaydb.data.repairAppendix.MaxKey
@@ -65,7 +65,7 @@ private[core] object GroupKeyCompressor {
         (group.minKey, group.maxKey, group.fullKey)
     }
 
-  def decompress(key: Slice[Byte]): Try[(Slice[Byte], MaxKey[Slice[Byte]])] =
+  def decompress(key: Slice[Byte]): IO[(Slice[Byte], MaxKey[Slice[Byte]])] =
     key.lastOption map {
       case 0 =>
         Bytes.decompressJoin(key.dropRight(1)) map {
@@ -84,7 +84,7 @@ private[core] object GroupKeyCompressor {
 
       case 2 =>
         val keyWithoutId = key.dropRight(1)
-        Success(keyWithoutId, MaxKey.Fixed(keyWithoutId))
+        IO.Success(keyWithoutId, MaxKey.Fixed(keyWithoutId))
 
       case 3 =>
         Bytes.decompressJoin(key.dropRight(1)) map {
@@ -93,7 +93,7 @@ private[core] object GroupKeyCompressor {
         }
 
     } getOrElse {
-      Failure(GroupCompressorFailure.GroupKeyIsEmpty)
+      IO.Failure(GroupCompressorFailure.GroupKeyIsEmpty)
     }
 
 }

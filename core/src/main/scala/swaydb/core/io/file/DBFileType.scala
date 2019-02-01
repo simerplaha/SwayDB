@@ -20,40 +20,40 @@
 package swaydb.core.io.file
 
 import java.nio.file.Path
-import scala.util.Try
+import swaydb.data.io.IO
 import swaydb.data.slice.Slice
 
 private[file] trait DBFileType {
 
-  def delete(): Try[Unit]
+  def delete(): IO[Unit]
 
-  def close(): Try[Unit]
+  def close(): IO[Unit]
 
-  def append(slice: Slice[Byte]): Try[Unit]
+  def append(slice: Slice[Byte]): IO[Unit]
 
-  def read(position: Int, size: Int): Try[Slice[Byte]]
+  def read(position: Int, size: Int): IO[Slice[Byte]]
 
-  def get(position: Int): Try[Byte]
+  def get(position: Int): IO[Byte]
 
-  def readAll: Try[Slice[Byte]]
+  def readAll: IO[Slice[Byte]]
 
-  def fileSize: Try[Long]
+  def fileSize: IO[Long]
 
-  def isMemoryMapped: Try[Boolean]
+  def isMemoryMapped: IO[Boolean]
 
-  def isLoaded: Try[Boolean]
+  def isLoaded: IO[Boolean]
 
   val path: Path
 
   def isOpen: Boolean
 
-  def isFull: Try[Boolean]
+  def isFull: IO[Boolean]
 
   def memory: Boolean
 
   def persistent: Boolean =
     !memory
 
-  def forceSave(): Try[Unit]
+  def forceSave(): IO[Unit]
 
 }

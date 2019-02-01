@@ -40,7 +40,7 @@ object IfConditionGenerator extends App {
     val allLines = Files.readAllLines(targetIdClass).asScala
     val writer = new PrintWriter(targetIdClass.toFile)
 
-    //    val failure = """scala.util.Failure(new Exception(this.getClass.getSimpleName + " - Reader not implemented for id: " + id))"""
+    //    val failure = """scala.util.IO.Failure(new Exception(this.getClass.getSimpleName + " - Reader not implemented for id: " + id))"""
     val notFound = "None"
 
     val defaultGroupSize = 20

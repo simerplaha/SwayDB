@@ -26,16 +26,16 @@ import swaydb.core.group.compression.data.{GroupHeader, ValueInfo}
 import swaydb.core.io.reader.{GroupReader, Reader}
 import swaydb.core.segment.SegmentException
 import swaydb.core.segment.format.a.SegmentFooter
-import swaydb.core.util.TryUtil
+import swaydb.core.util.IOUtil
 import swaydb.data.slice.Reader
 
 import scala.annotation.tailrec
-import scala.util.{Failure, Success, Try}
+import swaydb.data.io.IO
 
 private[core] case class GroupDecompressor(private val compressedGroupReader: Reader,
                                            groupStartOffset: Int) {
 
-  private val maxTimesToTryDecompress = 10000
+  private val maxTimesToIODecompress = 10000
   @volatile private var groupHeader: GroupHeader = _ //header for compressed Segment info
   @volatile private var decompressedIndexReader: GroupReader = _ //reader for keys bytes that contains function to read value bytes
   @volatile private var decompressedValuesReader: Reader = _ //value bytes reader.
@@ -54,11 +54,11 @@ private[core] case class GroupDecompressor(private val compressedGroupReader: Re
                                  valuesCompressedLength: Int,
                                  valuesDecompressedLength: Int,
                                  valuesCompression: DecompressorInternal,
-                                 maxTimesToTry: Int): Try[Reader] =
+                                 maxTimesToIO: Int): IO[Reader] =
     if (decompressedValuesReader != null) //if values are already decompressed, return values reader!
-      Try(decompressedValuesReader.copy())
-    else if (maxTimesToTry <= 0)
-      Failure(SegmentException.BusyDecompressionValues)
+      IO(decompressedValuesReader.copy())
+    else if (maxTimesToIO <= 0)
+      IO.Failure(SegmentException.BusyDecompressionValues)
     else if (busyValueDecompressing.compareAndSet(false, true)) //start values decompression.
       compressedGroupReader.copy().moveTo(groupStartOffset + headerSize + 1).read(valuesCompressedLength) flatMap { //move to the head of the compressed and read compressed value bytes.
         compressedValueBytes =>
@@ -70,14 +70,14 @@ private[core] case class GroupDecompressor(private val compressedGroupReader: Re
       } recoverWith {
         case ex =>
           busyValueDecompressing.set(false) //free decompressor
-          Failure(ex)
+          IO.Failure(ex)
       }
-    else //currently being decompressed by another thread. Try again!
-      valuesDecompressor(headerSize, valuesCompressedLength, valuesDecompressedLength, valuesCompression, maxTimesToTry - 1)
+    else //currently being decompressed by another thread. IO again!
+      valuesDecompressor(headerSize, valuesCompressedLength, valuesDecompressedLength, valuesCompression, maxTimesToIO - 1)
 
   private def readHeader() =
     for {
-      compressedReader <- Try(compressedGroupReader.copy().moveTo(groupStartOffset))
+      compressedReader <- IO(compressedGroupReader.copy().moveTo(groupStartOffset))
       headerSize <- compressedReader.readIntUnsigned()
       header <- compressedReader.read(headerSize) map (Reader(_))
       //format id ignored. Currently there is only one format.
@@ -92,9 +92,9 @@ private[core] case class GroupDecompressor(private val compressedGroupReader: Re
       indexCompressedLength <- header.readIntUnsigned()
       hasValues <- header.hasMore //read values related header bytes only if header contains more data.
       //this Compression instance is used for decompressing only so minCompressionPercentage is irrelevant
-      valuesCompression <- if (hasValues) header.readIntUnsigned().flatMap(id => DecompressorInternal(id).map(Some(_))) else TryUtil.successNone
-      valuesDecompressedLength <- if (hasValues) header.readIntUnsigned() else TryUtil.successZero
-      valuesCompressedLength <- if (hasValues) header.readIntUnsigned() else TryUtil.successZero
+      valuesCompression <- if (hasValues) header.readIntUnsigned().flatMap(id => DecompressorInternal(id).map(Some(_))) else IOUtil.successNone
+      valuesDecompressedLength <- if (hasValues) header.readIntUnsigned() else IOUtil.successZero
+      valuesCompressedLength <- if (hasValues) header.readIntUnsigned() else IOUtil.successZero
     } yield {
       GroupHeader(
         headerSize = headerSize,
@@ -122,11 +122,11 @@ private[core] case class GroupDecompressor(private val compressedGroupReader: Re
     }
 
   @tailrec
-  private def header(maxTimesToTry: Int): Try[GroupHeader] =
+  private def header(maxTimesToIO: Int): IO[GroupHeader] =
     if (groupHeader != null)
-      Success(groupHeader)
-    else if (maxTimesToTry <= 0)
-      Failure(SegmentException.BusyReadingHeader)
+      IO.Success(groupHeader)
+    else if (maxTimesToIO <= 0)
+      IO.Failure(SegmentException.BusyReadingHeader)
     else if (busyReadingHeader.compareAndSet(false, true))
       readHeader() map {
         header =>
@@ -135,15 +135,15 @@ private[core] case class GroupDecompressor(private val compressedGroupReader: Re
       } recoverWith {
         case ex: Exception =>
           busyReadingHeader.set(false)
-          Failure(ex)
+          IO.Failure(ex)
       }
     else
-      header(maxTimesToTry - 1)
+      header(maxTimesToIO - 1)
 
-  def header(): Try[GroupHeader] =
-    header(maxTimesToTryDecompress)
+  def header(): IO[GroupHeader] =
+    header(maxTimesToIODecompress)
 
-  private def decompressor(): Try[GroupReader] =
+  private def decompressor(): IO[GroupReader] =
     for {
       header <- header()
       keyCompressedBytes <- compressedGroupReader.copy().moveTo(header.compressedStartIndexOffset).read(header.indexCompressedLength)
@@ -164,9 +164,9 @@ private[core] case class GroupDecompressor(private val compressedGroupReader: Re
                   valuesCompressedLength = valueInfo.valuesCompressedLength,
                   valuesDecompressedLength = valueInfo.valuesDecompressedLength,
                   valuesCompression = valueInfo.valuesDecompressor,
-                  maxTimesToTry = maxTimesToTryDecompress
+                  maxTimesToIO = maxTimesToIODecompress
                 )
-            } getOrElse TryUtil.emptyReader, //Return empty reader if values are empty
+            } getOrElse IOUtil.emptyReader, //Return empty reader if values are empty
         indexReader = Reader(keysDecompressedBytes)
       )
     }
@@ -181,11 +181,11 @@ private[core] case class GroupDecompressor(private val compressedGroupReader: Re
     * It also initialises [[valuesDecompressor]] partial function which when invoked decompresses values in a thread-safe manner.
     */
   @tailrec
-  private def decompress(timesToTry: Int): Try[Reader] =
+  private def decompress(timesToIO: Int): IO[Reader] =
     if (decompressedIndexReader != null) //if keys are already decompressed, return!
-      Try(decompressedIndexReader.copy())
-    else if (timesToTry <= 0)
-      Failure(SegmentException.BusyDecompressingIndex)
+      IO(decompressedIndexReader.copy())
+    else if (timesToIO <= 0)
+      IO.Failure(SegmentException.BusyDecompressingIndex)
     else if (busyIndexDecompressing.compareAndSet(false, true)) //start decompressing keys.
       decompressor() map {
         reader =>
@@ -194,18 +194,18 @@ private[core] case class GroupDecompressor(private val compressedGroupReader: Re
       } recoverWith {
         case exception =>
           busyIndexDecompressing.set(false) //free decompressor
-          Failure(exception)
+          IO.Failure(exception)
       }
     else
-      decompress(timesToTry - 1) //currently being decompressed by another thread. Try again!
+      decompress(timesToIO - 1) //currently being decompressed by another thread. IO again!
 
-  def decompress(): Try[Reader] =
-    decompress(maxTimesToTryDecompress)
+  def decompress(): IO[Reader] =
+    decompress(maxTimesToIODecompress)
 
-  def footer(): Try[SegmentFooter] =
+  def footer(): IO[SegmentFooter] =
     header().map(_.footer)
 
-  def reader(): Try[Reader] =
+  def reader(): IO[Reader] =
     decompress()
 
   def isHeaderDecompressed(): Boolean =

@@ -24,7 +24,7 @@ import swaydb.data.accelerate.Level0Meter
 import swaydb.data.slice.Slice
 import swaydb.extension.iterator.{MapIterator, MapKeysIterator}
 import swaydb.serializers.Serializer
-import scala.util.{Success, Try}
+import swaydb.data.io.IO
 import swaydb.data.order.KeyOrder
 
 class Maps[K, V](map: swaydb.Map[Key[K], Option[V]],
@@ -34,13 +34,13 @@ class Maps[K, V](map: swaydb.Map[Key[K], Option[V]],
                                  valueSerializerOption: Serializer[Option[V]],
                                  valueSerializer: Serializer[V]) extends MapIterator[K, V](mapKey, mapsOnly = true, dbIterator = map.copy(from = Some(From(Key.SubMapsStart(mapKey), orAfter = false, orBefore = false, before = false, after = true)))) {
 
-  def getOrPut(key: K, value: V): Try[Map[K, V]] =
+  def getOrPut(key: K, value: V): IO[Map[K, V]] =
     get(key) flatMap {
       got =>
-        got.map(Success(_)) getOrElse put(key, value)
+        got.map(IO.Success(_)) getOrElse put(key, value)
     }
 
-  def put(key: K, value: V): Try[Map[K, V]] = {
+  def put(key: K, value: V): IO[Map[K, V]] = {
     val subMapKey = mapKey :+ key
     Map.putMap[K, V](
       map = map,
@@ -58,7 +58,7 @@ class Maps[K, V](map: swaydb.Map[Key[K], Option[V]],
     }
   }
 
-  def updateValue(key: K, value: V): Try[Map[K, V]] = {
+  def updateValue(key: K, value: V): IO[Map[K, V]] = {
     val subMapKey = mapKey :+ key
     map.batch {
       Map.updateMapValue[K, V](
@@ -74,10 +74,10 @@ class Maps[K, V](map: swaydb.Map[Key[K], Option[V]],
     }
   }
 
-  def remove(key: K): Try[Level0Meter] =
+  def remove(key: K): IO[Level0Meter] =
     map.batch(Map.removeMap(map, mapKey :+ key))
 
-  def get(key: K): Try[Option[Map[K, V]]] = {
+  def get(key: K): IO[Option[Map[K, V]]] = {
     contains(key) map {
       exists =>
         if (exists)
@@ -95,21 +95,21 @@ class Maps[K, V](map: swaydb.Map[Key[K], Option[V]],
   /**
     * Removes all key-values from the target Map.
     */
-  def clear(key: K): Try[Level0Meter] =
+  def clear(key: K): IO[Level0Meter] =
     get(key) flatMap {
       case Some(map) =>
         map.clear()
       case None =>
-        Success(map.db.level0Meter)
+        IO.Success(map.db.level0Meter)
     }
 
-  def contains(key: K): Try[Boolean] =
+  def contains(key: K): IO[Boolean] =
     map.contains(Key.MapStart(mapKey :+ key))
 
   /**
     * Returns None if this map does not exist or returns the value.
     */
-  def getValue(key: K): Try[Option[V]] =
+  def getValue(key: K): IO[Option[V]] =
     map.get(Key.MapStart(mapKey :+ key)).map(_.flatten)
 
   def keys: MapKeysIterator[K] =

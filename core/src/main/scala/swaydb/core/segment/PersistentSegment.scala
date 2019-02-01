@@ -30,13 +30,13 @@ import swaydb.core.level.PathsDistributor
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.format.a.{SegmentFooter, SegmentReader}
 import swaydb.core.segment.merge.SegmentMerger
-import swaydb.core.util.TryUtil._
+import swaydb.core.util.IOUtil._
 import swaydb.core.util._
 import swaydb.data.config.Dir
 import swaydb.data.slice.{Reader, Slice}
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{Deadline, FiniteDuration}
-import scala.util.{Failure, Success, Try}
+import swaydb.data.io.IO
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.DBFile
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -71,10 +71,10 @@ private[segment] case class PersistentSegment(file: DBFile,
       cache = cache,
       unsliceKey = true,
       getFooter = getFooter,
-      createReader = () => Try(createReader())
+      createReader = () => IO(createReader())
     )
 
-  def close: Try[Unit] =
+  def close: IO[Unit] =
     file.close map {
       _ =>
         footer = None
@@ -92,19 +92,19 @@ private[segment] case class PersistentSegment(file: DBFile,
   def deleteSegmentsEventually =
     fileOpenLimiter.delete(file)
 
-  def delete: Try[Unit] = {
+  def delete: IO[Unit] = {
     logger.trace(s"{}: DELETING FILE", path)
     file.delete() recoverWith {
       case exception =>
         logger.error(s"{}: Failed to delete Segment file.", path, exception)
-        Failure(exception)
+        IO.Failure(exception)
     } map {
       _ =>
         footer = None
     }
   }
 
-  def copyTo(toPath: Path): Try[Path] =
+  def copyTo(toPath: Path): IO[Path] =
     file copyTo toPath
 
   /**
@@ -114,7 +114,7 @@ private[segment] case class PersistentSegment(file: DBFile,
           minSegmentSize: Long,
           bloomFilterFalsePositiveRate: Double,
           compressDuplicateValues: Boolean,
-          targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Try[Slice[Segment]] =
+          targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): IO[Slice[Segment]] =
     getAll() flatMap {
       currentKeyValues =>
         SegmentMerger.merge(
@@ -141,7 +141,7 @@ private[segment] case class PersistentSegment(file: DBFile,
                 },
 
               recover =
-                (segments: Slice[Segment], _: Failure[Slice[Segment]]) =>
+                (segments: Slice[Segment], _: IO.Failure[Slice[Segment]]) =>
                   segments foreach {
                     segmentToDelete =>
                       segmentToDelete.delete.failed foreach {
@@ -156,7 +156,7 @@ private[segment] case class PersistentSegment(file: DBFile,
   def refresh(minSegmentSize: Long,
               bloomFilterFalsePositiveRate: Double,
               compressDuplicateValues: Boolean,
-              targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Try[Slice[Segment]] =
+              targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): IO[Slice[Segment]] =
     getAll() flatMap {
       currentKeyValues =>
         SegmentMerger.split(
@@ -181,7 +181,7 @@ private[segment] case class PersistentSegment(file: DBFile,
                   ),
 
               recover =
-                (segments: Slice[Segment], _: Failure[Slice[Segment]]) =>
+                (segments: Slice[Segment], _: IO.Failure[Slice[Segment]]) =>
                   segments foreach {
                     segmentToDelete =>
                       segmentToDelete.delete.failed foreach {
@@ -193,8 +193,8 @@ private[segment] case class PersistentSegment(file: DBFile,
         }
     }
 
-  def getFooter(): Try[SegmentFooter] =
-    footer.map(Success(_)) getOrElse {
+  def getFooter(): IO[SegmentFooter] =
+    footer.map(IO.Success(_)) getOrElse {
       SegmentReader.readFooter(createReader()) map {
         segmentFooter =>
           footer = Some(segmentFooter)
@@ -202,37 +202,37 @@ private[segment] case class PersistentSegment(file: DBFile,
       }
     }
 
-  override def getBloomFilter: Try[Option[BloomFilter[Slice[Byte]]]] =
+  override def getBloomFilter: IO[Option[BloomFilter[Slice[Byte]]]] =
     segmentCache.getBloomFilter
 
   def getFromCache(key: Slice[Byte]): Option[Persistent] =
     segmentCache getFromCache key
 
-  def mightContain(key: Slice[Byte]): Try[Boolean] =
+  def mightContain(key: Slice[Byte]): IO[Boolean] =
     segmentCache mightContain key
 
-  def get(key: Slice[Byte]): Try[Option[Persistent.SegmentResponse]] =
+  def get(key: Slice[Byte]): IO[Option[Persistent.SegmentResponse]] =
     segmentCache get key
 
-  def lower(key: Slice[Byte]): Try[Option[Persistent.SegmentResponse]] =
+  def lower(key: Slice[Byte]): IO[Option[Persistent.SegmentResponse]] =
     segmentCache lower key
 
-  def higher(key: Slice[Byte]): Try[Option[Persistent.SegmentResponse]] =
+  def higher(key: Slice[Byte]): IO[Option[Persistent.SegmentResponse]] =
     segmentCache higher key
 
-  def getAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None): Try[Slice[KeyValue.ReadOnly]] =
+  def getAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None): IO[Slice[KeyValue.ReadOnly]] =
     segmentCache getAll addTo
 
-  override def hasRange: Try[Boolean] =
+  override def hasRange: IO[Boolean] =
     segmentCache.hasRange
 
-  override def hasPut: Try[Boolean] =
+  override def hasPut: IO[Boolean] =
     segmentCache.hasPut
 
-  def getHeadKeyValueCount(): Try[Int] =
+  def getHeadKeyValueCount(): IO[Int] =
     segmentCache.getHeadKeyValueCount()
 
-  def getBloomFilterKeyValueCount(): Try[Int] =
+  def getBloomFilterKeyValueCount(): IO[Int] =
     segmentCache.getBloomFilterKeyValueCount()
 
   override def isFooterDefined: Boolean =

@@ -27,7 +27,7 @@ import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
-import scala.util.{Failure, Success, Try}
+import swaydb.data.io.IO
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
@@ -46,7 +46,7 @@ import swaydb.core.util.CollectionUtil._
 import swaydb.core.util.ExceptionUtil._
 import swaydb.core.util.FileUtil._
 import swaydb.core.util.FiniteDurationUtil._
-import swaydb.core.util.TryUtil._
+import swaydb.core.util.IOUtil._
 import swaydb.core.util.{MinMax, _}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.Dir
@@ -57,9 +57,9 @@ import swaydb.data.storage.{AppendixStorage, LevelStorage}
 
 private[core] object Level extends LazyLogging {
 
-  def acquireLock(levelStorage: LevelStorage): Try[Option[FileLock]] =
+  def acquireLock(levelStorage: LevelStorage): IO[Option[FileLock]] =
     if (levelStorage.persistent)
-      Try {
+      IO {
         IOOps createDirectoriesIfAbsent levelStorage.dir
         val lockFile = levelStorage.dir.resolve("LOCK")
         logger.info("{}: Acquiring lock.", lockFile)
@@ -72,7 +72,7 @@ private[core] object Level extends LazyLogging {
         Some(lock)
       }
     else
-      TryUtil.successNone
+      IOUtil.successNone
 
   def apply(segmentSize: Long,
             bloomFilterFalsePositiveRate: Double,
@@ -88,7 +88,7 @@ private[core] object Level extends LazyLogging {
                                        ec: ExecutionContext,
                                        keyValueLimiter: KeyValueLimiter,
                                        fileOpenLimiter: FileLimiter,
-                                       groupingStrategy: Option[KeyValueGroupingStrategyInternal]): Try[LevelRef] = {
+                                       groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[LevelRef] = {
     //acquire lock on folder
     acquireLock(levelStorage) flatMap {
       lock =>
@@ -109,7 +109,7 @@ private[core] object Level extends LazyLogging {
         implicit val merger = AppendixSkipListMerger
 
         //initialise appendix
-        val appendix: Try[Map[Slice[Byte], Segment]] =
+        val appendix: IO[Map[Slice[Byte], Segment]] =
           appendixStorage match {
             case AppendixStorage.Persistent(mmap, appendixFlushCheckpointSize) =>
               logger.info("{}: Initialising appendix.", levelStorage.dir)
@@ -117,7 +117,7 @@ private[core] object Level extends LazyLogging {
               //check if appendix folder/file was deleted.
               if ((!IOOps.exists(appendixFolder) || appendixFolder.files(Extension.Log).isEmpty) && FileUtil.segmentFilesOnDisk(levelStorage.dirs.pathsSet.toSeq).nonEmpty) {
                 logger.info("{}: Failed to start Level. Appendix file is missing", appendixFolder)
-                Failure(new IllegalStateException(s"Failed to start Level. Appendix file is missing '$appendixFolder'."))
+                IO.Failure(new IllegalStateException(s"Failed to start Level. Appendix file is missing '$appendixFolder'."))
               } else {
 
                 IOOps createDirectoriesIfAbsent appendixFolder
@@ -132,7 +132,7 @@ private[core] object Level extends LazyLogging {
 
             case AppendixStorage.Memory =>
               logger.info("{}: Initialising appendix for in-memory Level", levelStorage.dir)
-              Try(Map.memory[Slice[Byte], Segment]())
+              IO(Map.memory[Slice[Byte], Segment]())
           }
 
         //initialise Level
@@ -143,17 +143,17 @@ private[core] object Level extends LazyLogging {
             appendix.asScala tryForeach {
               case (_, segment) =>
                 if (segment.existsOnDisk)
-                  TryUtil.successUnit
+                  IOUtil.successUnit
                 else
-                  Failure(SegmentFileMissing(segment.path))
+                  IO.Failure(SegmentFileMissing(segment.path))
             } match {
-              case Some(Failure(exception)) =>
-                Failure(exception)
+              case Some(IO.Failure(exception)) =>
+                IO.Failure(exception)
 
               case None =>
                 logger.info("{}: Starting level.", levelStorage.dir)
 
-                Success(
+                IO.Success(
                   new Level(
                     dirs = levelStorage.dirs,
                     bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
@@ -209,31 +209,31 @@ private[core] class Level(val dirs: Seq[Dir],
 
   private implicit val currentWalker =
     new CurrentWalker {
-      override def get(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
+      override def get(key: Slice[Byte]): IO[Option[ReadOnly.Put]] =
         self get key
 
-      override def higher(key: Slice[Byte]): Try[Option[ReadOnly.SegmentResponse]] =
+      override def higher(key: Slice[Byte]): IO[Option[ReadOnly.SegmentResponse]] =
         higherInThisLevel(key)
 
-      override def lower(key: Slice[Byte]): Try[Option[ReadOnly.SegmentResponse]] =
+      override def lower(key: Slice[Byte]): IO[Option[ReadOnly.SegmentResponse]] =
         self lowerInThisLevel key
     }
 
   private implicit val nextWalker =
     new NextWalker {
-      override def higher(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
+      override def higher(key: Slice[Byte]): IO[Option[ReadOnly.Put]] =
         higherInNextLevel(key)
 
-      override def lower(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
+      override def lower(key: Slice[Byte]): IO[Option[ReadOnly.Put]] =
         lowerFromNextLevel(key)
 
-      override def get(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
+      override def get(key: Slice[Byte]): IO[Option[ReadOnly.Put]] =
         getFromNextLevel(key)
     }
 
   private implicit val currentGetter =
     new CurrentGetter {
-      override def get(key: Slice[Byte]): Try[Option[ReadOnly.SegmentResponse]] =
+      override def get(key: Slice[Byte]): IO[Option[ReadOnly.SegmentResponse]] =
         getFromThisLevel(key)
     }
 
@@ -245,10 +245,10 @@ private[core] class Level(val dirs: Seq[Dir],
   def appendixPath: Path =
     rootPath.resolve("appendix")
 
-  def releaseLocks: Try[Unit] =
+  def releaseLocks: IO[Unit] =
     IOOps.release(lock) flatMap {
       _ =>
-        nextLevel.map(_.releaseLocks) getOrElse TryUtil.successUnit
+        nextLevel.map(_.releaseLocks) getOrElse IOUtil.successUnit
     }
 
   private def deleteUncommittedSegments(): Unit =
@@ -293,17 +293,17 @@ private[core] class Level(val dirs: Seq[Dir],
   override def !(request: LevelAPI): Unit =
     actor ! request
 
-  override def forward(command: LevelAPI): Try[Unit] =
+  override def forward(command: LevelAPI): IO[Unit] =
     nextLevel map {
       nextLevel =>
         if (pushForward && isEmpty && nextLevel.isEmpty) {
           logger.debug("{}: Push forwarded.", paths)
           nextLevel ! command
-          TryUtil.successUnit
+          IOUtil.successUnit
         }
         else
-          Failure(LevelException.NotSentToNextLevel)
-    } getOrElse Failure(LevelException.NotSentToNextLevel)
+          IO.Failure(LevelException.NotSentToNextLevel)
+    } getOrElse IO.Failure(LevelException.NotSentToNextLevel)
 
   override def push(command: LevelAPI): Unit =
     nextLevel match {
@@ -332,10 +332,10 @@ private[core] class Level(val dirs: Seq[Dir],
     (throttle(stats).segmentsToPush, stats.segmentsCount)
   }
 
-  def put(segment: Segment): Try[Unit] =
+  def put(segment: Segment): IO[Unit] =
     put(Seq(segment))
 
-  def put(segments: Iterable[Segment]): Try[Unit] = {
+  def put(segments: Iterable[Segment]): IO[Unit] = {
     logger.trace(s"{}: Putting segments '{}' segments.", paths.head, segments.map(_.path.toString).toList)
     //check to ensure that the Segments do not overlap with busy Segments
     val busySegments = getBusySegments()
@@ -344,7 +344,7 @@ private[core] class Level(val dirs: Seq[Dir],
       overlaps =>
         if (overlaps) {
           logger.debug("{}: Segments '{}' intersect with current busy segments: {}", paths.head, segments.map(_.path.toString), busySegments.map(_.path.toString))
-          Failure(LevelException.ContainsOverlappingBusySegments)
+          IO.Failure(LevelException.ContainsOverlappingBusySegments)
         } else { //only copy Segments if the both this Level and the Segments are persistent.
           val (segmentToMerge, segmentToCopy) = Segment.partitionOverlapping(segments, appendixValues)
           put(segmentToMerge, segmentToCopy, appendixValues).map(_ => alertActorForSegmentManagement())
@@ -366,13 +366,13 @@ private[core] class Level(val dirs: Seq[Dir],
 
   private[level] def put(segmentsToMerge: Iterable[Segment],
                          segmentsToCopy: Iterable[Segment],
-                         targetSegments: Iterable[Segment]): Try[Unit] =
+                         targetSegments: Iterable[Segment]): IO[Unit] =
     if (segmentsToCopy.nonEmpty)
       copy(segmentsToCopy) flatMap {
         copiedSegments =>
           buildNewMapEntry(copiedSegments, None, None) flatMap {
             copiedSegmentsEntry =>
-              val putResult: Try[Unit] =
+              val putResult: IO[Unit] =
                 if (segmentsToMerge.nonEmpty)
                   merge(segmentsToMerge, targetSegments, Some(copiedSegmentsEntry))
                 else
@@ -382,14 +382,14 @@ private[core] class Level(val dirs: Seq[Dir],
                 case exception =>
                   logFailure(s"${paths.head}: Failed to create a log entry. Deleting ${copiedSegments.size} copied segments", exception)
                   deleteCopiedSegments(copiedSegments)
-                  Failure(exception)
+                  IO.Failure(exception)
               }
           }
       }
     else
       merge(segmentsToMerge, targetSegments, None)
 
-  def putMap(map: Map[Slice[Byte], Memory.SegmentResponse]): Try[Unit] = {
+  def putMap(map: Map[Slice[Byte], Memory.SegmentResponse]): IO[Unit] = {
     logger.trace("{}: PutMap '{}' Maps.", paths.head, map.count())
     //do an initial check to ensure that the Segments do not overlap with busy Segments
     val busySegs = getBusySegments()
@@ -398,7 +398,7 @@ private[core] class Level(val dirs: Seq[Dir],
       overlapsWithBusySegments =>
         if (overlapsWithBusySegments) {
           logger.debug("{}: Map '{}' contains key-values intersect with current busy segments: {}", paths.head, map.pathOption.map(_.toString), busySegs.map(_.path.toString))
-          Failure(LevelException.ContainsOverlappingBusySegments)
+          IO.Failure(LevelException.ContainsOverlappingBusySegments)
         } else {
           if (!Segment.overlaps(map, appendixValues))
             copy(map) flatMap {
@@ -427,10 +427,10 @@ private[core] class Level(val dirs: Seq[Dir],
                     case exception =>
                       logFailure(s"${paths.head}: Failed to create a log entry.", exception)
                       deleteCopiedSegments(newSegments)
-                      Failure(exception)
+                      IO.Failure(exception)
                   }
                 else
-                  TryUtil.successUnit
+                  IOUtil.successUnit
             }
           else
             putKeyValues(Slice(map.values().toArray(new Array[Memory](map.skipList.size()))), appendixValues, None)
@@ -438,7 +438,7 @@ private[core] class Level(val dirs: Seq[Dir],
     }
   }
 
-  private[level] def copy(map: Map[Slice[Byte], Memory.SegmentResponse]): Try[Iterable[Segment]] = {
+  private[level] def copy(map: Map[Slice[Byte], Memory.SegmentResponse]): IO[Iterable[Segment]] = {
     logger.trace(s"{}: Copying {} Map", paths.head, map.pathOption)
 
     def targetSegmentPath = paths.next.resolve(IDGenerator.segmentId(segmentIDGenerator.nextID))
@@ -466,7 +466,7 @@ private[core] class Level(val dirs: Seq[Dir],
       )
   }
 
-  private[level] def copy(segmentsToCopy: Iterable[Segment]): Try[Iterable[Segment]] = {
+  private[level] def copy(segmentsToCopy: Iterable[Segment]): IO[Iterable[Segment]] = {
     logger.trace(s"{}: Copying {} Segments", paths.head, segmentsToCopy.map(_.path.toString))
     segmentsToCopy.tryFlattenIterable[Segment](
       tryBlock =
@@ -508,11 +508,11 @@ private[core] class Level(val dirs: Seq[Dir],
     )
   }
 
-  override def clearExpiredKeyValues(): Try[Unit] = {
+  override def clearExpiredKeyValues(): IO[Unit] = {
     logger.debug("{}: Running clearExpiredKeyValues.", paths.head)
     if (nextLevel.nonEmpty) { //only run this if it's the last Level.
       logger.error("{}: clearExpiredKeyValues ran a Level that is not the last Level.", paths.head)
-      TryUtil.successUnit
+      IOUtil.successUnit
     } else {
       Segment.getNearestDeadlineSegment(appendix.values().asScala) map {
         segmentToClear =>
@@ -520,7 +520,7 @@ private[core] class Level(val dirs: Seq[Dir],
           val busySegments = getBusySegments()
           if (Segment.intersects(Seq(segmentToClear), busySegments)) {
             logger.debug(s"{}: Clearing segments {} intersect with current busy segments: {}.", paths.head, segmentToClear.path, busySegments.map(_.path.toString))
-            Failure(LevelException.ContainsOverlappingBusySegments)
+            IO.Failure(LevelException.ContainsOverlappingBusySegments)
           } else {
             segmentToClear.refresh(
               minSegmentSize = segmentSize,
@@ -542,7 +542,7 @@ private[core] class Level(val dirs: Seq[Dir],
                             case exception =>
                               logger.error(s"Failed to delete Segments '{}'. Manually delete these Segments or reboot the database.", segmentToClear.path, exception)
                           }
-                        TryUtil.successUnit
+                        IOUtil.successUnit
                     }
                 } recoverWith {
                   case exception =>
@@ -553,14 +553,14 @@ private[core] class Level(val dirs: Seq[Dir],
                             logger.error(s"{}: Failed to delete Segment {}", paths.head, segment.path, exception)
                         }
                     }
-                    Failure(exception)
+                    IO.Failure(exception)
                 }
             }
           }
       } getOrElse {
         logger.debug("{}: No expired key-values to clear.", paths.head)
         alertActorForSegmentManagement()
-        TryUtil.successUnit
+        IOUtil.successUnit
       }
     }
   }
@@ -571,10 +571,10 @@ private[core] class Level(val dirs: Seq[Dir],
   def isSmallSegment(segment: Segment): Boolean =
     segment.segmentSize < segmentSize * 0.60
 
-  def collapseAllSmallSegments(batch: Int): Try[Int] = {
+  def collapseAllSmallSegments(batch: Int): IO[Int] = {
     logger.trace("{}: Running collapseAllSmallSegments batch: '{}'.", paths.head, batch)
     if (batch <= 0)
-      TryUtil.successZero
+      IOUtil.successZero
     else
       collapseSegments(batch, isSmallSegment)
   }
@@ -582,32 +582,32 @@ private[core] class Level(val dirs: Seq[Dir],
   /**
     * @return remaining small Segment that were not collapsed.
     */
-  private def collapseSegments(count: Int, condition: Segment => Boolean): Try[Int] = {
+  private def collapseSegments(count: Int, condition: Segment => Boolean): IO[Int] = {
     @tailrec
-    def run(timesToRun: Int): Try[Int] = {
+    def run(timesToRun: Int): IO[Int] = {
       val segmentsToCollapse = takeSegments(count, condition)
       if (segmentsToCollapse.isEmpty) {
-        TryUtil.successZero
+        IOUtil.successZero
       } else {
         val busySegments = getBusySegments()
         if (Segment.intersects(segmentsToCollapse, busySegments)) {
           logger.debug(s"{}: Collapsing segments {} intersect with current busy segments: {}.", paths.head, segmentsToCollapse.map(_.path.toString), busySegments.map(_.path.toString))
-          Failure(LevelException.ContainsOverlappingBusySegments)
+          IO.Failure(LevelException.ContainsOverlappingBusySegments)
         } else if (timesToRun == 0) {
           logger.debug(s"{}: Too many small Segments to collapse {}.", paths.head, segmentsToCollapse.map(_.path.toString))
           //there are too many small Segments to collapse, return the remaining small Segments and let the Actor decide when
           //to continue collapsing.
-          Success(segmentsToCollapse.size)
+          IO.Success(segmentsToCollapse.size)
         } else {
           collapse(segmentsToCollapse, appendix.values().asScala) match {
-            case success @ Success(value) if value == 0 =>
+            case success @ IO.Success(value) if value == 0 =>
               success
 
-            case Success(_) =>
+            case IO.Success(_) =>
               run(timesToRun - 1)
 
-            case Failure(exception) =>
-              Failure(exception)
+            case IO.Failure(exception) =>
+              IO.Failure(exception)
           }
         }
       }
@@ -617,12 +617,12 @@ private[core] class Level(val dirs: Seq[Dir],
   }
 
   def collapse(segments: Iterable[Segment],
-               appendix: Iterable[Segment]): Try[Int] = {
+               appendix: Iterable[Segment]): IO[Int] = {
     logger.trace(s"{}: Collapsing '{}' segments", paths.head, segments.size)
     if (segments.isEmpty) {
-      Success(0)
+      IO.Success(0)
     } else if (appendix.size == 1) { //if there is only one Segment in this Level which is a small segment. No collapse required
-      Success(0)
+      IO.Success(0)
     } else {
       //other segments in the appendix that are not the input segments (segments to collapse).
       val targetAppendixSegments = appendix.filterNot(map => segments.exists(_.path == map.path))
@@ -667,7 +667,7 @@ private[core] class Level(val dirs: Seq[Dir],
 
   private def merge(segments: Iterable[Segment],
                     targetSegments: Iterable[Segment],
-                    appendEntry: Option[MapEntry[Slice[Byte], Segment]]): Try[Unit] = {
+                    appendEntry: Option[MapEntry[Slice[Byte], Segment]]): IO[Unit] = {
     logger.trace(s"{}: Merging segments {}", paths.head, segments.map(_.path.toString))
     Segment.getAllKeyValues(bloomFilterFalsePositiveRate, segments) flatMap {
       putKeyValues(_, targetSegments, appendEntry)
@@ -676,7 +676,7 @@ private[core] class Level(val dirs: Seq[Dir],
 
   private def putKeyValues(keyValues: Slice[KeyValue.ReadOnly],
                            targetSegments: Iterable[Segment],
-                           appendEntry: Option[MapEntry[Slice[Byte], Segment]]): Try[Unit] = {
+                           appendEntry: Option[MapEntry[Slice[Byte], Segment]]): IO[Unit] = {
     logger.trace(s"{}: Merging {} KeyValues.", paths.head, keyValues.size)
     SegmentAssigner.assign(keyValues, targetSegments) flatMap {
       assignments =>
@@ -685,12 +685,12 @@ private[core] class Level(val dirs: Seq[Dir],
         //check to ensure that assigned Segments do not overlap with busy Segments.
         if (Segment.intersects(assignments.keys, busySegments)) {
           logger.trace(s"{}: Assigned segments {} intersect with current busy segments: {}.", paths.head, assignments.map(_._1.path.toString), busySegments.map(_.path.toString))
-          Failure(LevelException.ContainsOverlappingBusySegments)
+          IO.Failure(LevelException.ContainsOverlappingBusySegments)
         } else {
           logger.trace(s"{}: Assigned segments {} for {} KeyValues.", paths.head, assignments.map(_._1.path.toString), keyValues.size)
           if (assignments.isEmpty) {
             logger.error(s"{}: Assigned segments are empty. Cannot merge Segments to empty target Segments: {}.", paths.head, keyValues.size)
-            Failure(ReceivedKeyValuesToMergeWithoutTargetSegment(keyValues.size))
+            IO.Failure(ReceivedKeyValuesToMergeWithoutTargetSegment(keyValues.size))
           } else {
             logger.debug(s"{}: Assigned segments {}. Merging {} KeyValues.", paths.head, assignments.map(_._1.path.toString), keyValues.size)
             putAssignedKeyValues(assignments) flatMap {
@@ -721,7 +721,7 @@ private[core] class Level(val dirs: Seq[Dir],
                     }
 
                   case None =>
-                    Failure(new Exception(s"${paths.head}: Failed to create map entry"))
+                    IO.Failure(new Exception(s"${paths.head}: Failed to create map entry"))
 
                 } recoverWith {
                   case exception =>
@@ -736,7 +736,7 @@ private[core] class Level(val dirs: Seq[Dir],
                             }
                         }
                     }
-                    Failure(exception)
+                    IO.Failure(exception)
                 }
             }
           }
@@ -744,7 +744,7 @@ private[core] class Level(val dirs: Seq[Dir],
     }
   }
 
-  private def putAssignedKeyValues(assignedSegments: mutable.Map[Segment, Slice[KeyValue.ReadOnly]]): Try[Slice[(Segment, Slice[Segment])]] =
+  private def putAssignedKeyValues(assignedSegments: mutable.Map[Segment, Slice[KeyValue.ReadOnly]]): IO[Slice[(Segment, Slice[Segment])]] =
     assignedSegments.tryMap[(Segment, Slice[Segment])](
       tryBlock = {
         case (targetSegment, assignedKeyValues) =>
@@ -812,7 +812,7 @@ private[core] class Level(val dirs: Seq[Dir],
 
   def buildNewMapEntry(newSegments: Iterable[Segment],
                        originalSegmentMayBe: Option[Segment] = None,
-                       initialMapEntry: Option[MapEntry[Slice[Byte], Segment]]): Try[MapEntry[Slice[Byte], Segment]] = {
+                       initialMapEntry: Option[MapEntry[Slice[Byte], Segment]]): IO[MapEntry[Slice[Byte], Segment]] = {
 
     import keyOrder._
 
@@ -835,13 +835,13 @@ private[core] class Level(val dirs: Seq[Dir],
         nextLogEntry
     }) match {
       case Some(value) =>
-        Success(value)
+        IO.Success(value)
       case None =>
-        Failure(new Exception("Failed to build map entry"))
+        IO.Failure(new Exception("Failed to build map entry"))
     }
   }
 
-  def removeSegments(segments: Iterable[Segment]): Try[Int] = {
+  def removeSegments(segments: Iterable[Segment]): IO[Int] = {
     //create this list which is a copy of segments. Segments can be iterable only once if it's a Java iterable.
     //this copy is for second read to delete the segments after the MapEntry is successfully created.
     logger.trace(s"{}: Removing Segments {}", paths.head, segments.map(_.path.toString))
@@ -865,110 +865,110 @@ private[core] class Level(val dirs: Seq[Dir],
             // Segments on reboot.
             if (deleteSegmentsEventually) {
               segmentsToRemove foreach (_.deleteSegmentsEventually)
-              Success(0)
+              IO.Success(0)
             }
             else
               Segment.deleteSegments(segmentsToRemove) recoverWith {
                 case exception =>
                   logger.error(s"Failed to delete Segments '{}'. Manually delete these Segments or reboot the database.", segmentsToRemove.map(_.path.toString).mkString(", "), exception)
-                  Success(0)
+                  IO.Success(0)
               }
         }
-    } getOrElse Failure(LevelException.NoSegmentsRemoved)
+    } getOrElse IO.Failure(LevelException.NoSegmentsRemoved)
   }
 
-  def getFromThisLevel(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.SegmentResponse]] =
+  def getFromThisLevel(key: Slice[Byte]): IO[Option[KeyValue.ReadOnly.SegmentResponse]] =
     appendix.floor(key) match {
       case Some(segment) =>
         segment get key
 
       case None =>
-        TryUtil.successNone
+        IOUtil.successNone
     }
 
-  def getFromNextLevel(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Put]] =
-    nextLevel.map(_.get(key)) getOrElse TryUtil.successNone
+  def getFromNextLevel(key: Slice[Byte]): IO[Option[KeyValue.ReadOnly.Put]] =
+    nextLevel.map(_.get(key)) getOrElse IOUtil.successNone
 
-  override def get(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Put]] =
+  override def get(key: Slice[Byte]): IO[Option[KeyValue.ReadOnly.Put]] =
     Get(key)
 
-  def mightContainInThisLevel(key: Slice[Byte]): Try[Boolean] =
+  def mightContainInThisLevel(key: Slice[Byte]): IO[Boolean] =
     appendix.floor(key) match {
       case Some(segment) =>
         segment mightContain key
 
       case None =>
-        Success(false)
+        IO.Success(false)
     }
 
-  override def mightContain(key: Slice[Byte]): Try[Boolean] =
+  override def mightContain(key: Slice[Byte]): IO[Boolean] =
     mightContainInThisLevel(key) flatMap {
       yes =>
         if (yes)
-          Success(yes)
+          IO.Success(yes)
         else
-          nextLevel.map(_.mightContain(key)) getOrElse Success(yes)
+          nextLevel.map(_.mightContain(key)) getOrElse IO.Success(yes)
     }
 
   def lowerInThisLevel(key: Slice[Byte]) =
-    appendix.lowerValue(key).map(_.lower(key)) getOrElse TryUtil.successNone
+    appendix.lowerValue(key).map(_.lower(key)) getOrElse IOUtil.successNone
 
   private def lowerFromNextLevel(key: Slice[Byte]) =
-    nextLevel.map(_.lower(key)) getOrElse TryUtil.successNone
+    nextLevel.map(_.lower(key)) getOrElse IOUtil.successNone
 
-  override def floor(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Put]] =
+  override def floor(key: Slice[Byte]): IO[Option[KeyValue.ReadOnly.Put]] =
     get(key) match {
-      case Success(Some(floor)) =>
+      case IO.Success(Some(floor)) =>
         if (floor.hasTimeLeft())
-          Success(Some(floor))
+          IO.Success(Some(floor))
         else
           lower(key)
 
-      case Success(None) =>
+      case IO.Success(None) =>
         lower(key)
 
-      case failed @ Failure(_) =>
+      case failed @ IO.Failure(_) =>
         failed
     }
 
-  override def lower(key: Slice[Byte]): Try[Option[ReadOnly.Put]] =
+  override def lower(key: Slice[Byte]): IO[Option[ReadOnly.Put]] =
     Lower(
       key = key,
       currentSeek = Seek.Next,
       nextSeek = Seek.Next
     )
 
-  private def higherFromFloorSegment(key: Slice[Byte]): Try[Option[ReadOnly.SegmentResponse]] =
-    appendix.floor(key).map(_.higher(key)) getOrElse TryUtil.successNone
+  private def higherFromFloorSegment(key: Slice[Byte]): IO[Option[ReadOnly.SegmentResponse]] =
+    appendix.floor(key).map(_.higher(key)) getOrElse IOUtil.successNone
 
-  private def higherFromHigherSegment(key: Slice[Byte]): Try[Option[ReadOnly.SegmentResponse]] =
-    appendix.higherValue(key).map(_.higher(key)) getOrElse TryUtil.successNone
+  private def higherFromHigherSegment(key: Slice[Byte]): IO[Option[ReadOnly.SegmentResponse]] =
+    appendix.higherValue(key).map(_.higher(key)) getOrElse IOUtil.successNone
 
-  private[core] def higherInThisLevel(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.SegmentResponse]] =
+  private[core] def higherInThisLevel(key: Slice[Byte]): IO[Option[KeyValue.ReadOnly.SegmentResponse]] =
     higherFromFloorSegment(key) flatMap {
       fromFloor =>
         if (fromFloor.isDefined)
-          Success(fromFloor)
+          IO.Success(fromFloor)
         else
           higherFromHigherSegment(key)
     }
 
-  private def higherInNextLevel(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Put]] =
-    nextLevel.map(_.higher(key)) getOrElse TryUtil.successNone
+  private def higherInNextLevel(key: Slice[Byte]): IO[Option[KeyValue.ReadOnly.Put]] =
+    nextLevel.map(_.higher(key)) getOrElse IOUtil.successNone
 
-  def ceiling(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Put]] =
+  def ceiling(key: Slice[Byte]): IO[Option[KeyValue.ReadOnly.Put]] =
     get(key) match {
-      case Success(Some(ceiling)) =>
-        Success(Some(ceiling))
+      case IO.Success(Some(ceiling)) =>
+        IO.Success(Some(ceiling))
 
-      case Success(None) =>
+      case IO.Success(None) =>
         higher(key)
 
-      case failed @ Failure(_) =>
+      case failed @ IO.Failure(_) =>
         failed
     }
 
-  override def higher(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Put]] =
+  override def higher(key: Slice[Byte]): IO[Option[KeyValue.ReadOnly.Put]] =
     Higher(
       key = key,
       currentSeek = Seek.Next,
@@ -979,8 +979,8 @@ private[core] class Level(val dirs: Seq[Dir],
     * Does a quick appendix lookup.
     * It does not check if the returned key is removed. Use [[Level.head]] instead.
     */
-  override def headKey: Try[Option[Slice[Byte]]] =
-    nextLevel.map(_.headKey) getOrElse TryUtil.successNone map {
+  override def headKey: IO[Option[Slice[Byte]]] =
+    nextLevel.map(_.headKey) getOrElse IOUtil.successNone map {
       nextLevelFirstKey =>
         MinMax.min(appendix.firstKey, nextLevelFirstKey)(keyOrder)
     }
@@ -989,8 +989,8 @@ private[core] class Level(val dirs: Seq[Dir],
     * Does a quick appendix lookup.
     * It does not check if the returned key is removed. Use [[Level.last]] instead.
     */
-  override def lastKey: Try[Option[Slice[Byte]]] =
-    nextLevel.map(_.lastKey) getOrElse TryUtil.successNone map {
+  override def lastKey: IO[Option[Slice[Byte]]] =
+    nextLevel.map(_.lastKey) getOrElse IOUtil.successNone map {
       nextLevelLastKey =>
         MinMax.max(appendix.lastValue().map(_.maxKey.maxKey), nextLevelLastKey)(keyOrder)
     }
@@ -998,20 +998,20 @@ private[core] class Level(val dirs: Seq[Dir],
   override def head =
     headKey flatMap {
       firstKey =>
-        firstKey.map(ceiling) getOrElse TryUtil.successNone
+        firstKey.map(ceiling) getOrElse IOUtil.successNone
     }
 
   override def last =
     lastKey flatMap {
       lastKey =>
-        lastKey.map(floor) getOrElse TryUtil.successNone
+        lastKey.map(floor) getOrElse IOUtil.successNone
     }
 
   def containsSegmentWithMinKey(minKey: Slice[Byte]): Boolean =
     appendix contains minKey
 
-  override def bloomFilterKeyValueCount: Try[Int] =
-    appendix.foldLeft(Try(0)) {
+  override def bloomFilterKeyValueCount: IO[Int] =
+    appendix.foldLeft(IO(0)) {
       case (currentTotal, (_, segment)) =>
         segment.getBloomFilterKeyValueCount() flatMap {
           segmentSize =>
@@ -1019,7 +1019,7 @@ private[core] class Level(val dirs: Seq[Dir],
         }
     } flatMap {
       thisLevelCount =>
-        nextLevel.map(_.bloomFilterKeyValueCount).getOrElse(Success(0)) map (_ + thisLevelCount)
+        nextLevel.map(_.bloomFilterKeyValueCount).getOrElse(IO.Success(0)) map (_ + thisLevelCount)
     }
 
   def getSegment(minKey: Slice[Byte]): Option[Segment] =
@@ -1125,8 +1125,8 @@ private[core] class Level(val dirs: Seq[Dir],
   override def takeSmallSegments(size: Int): Iterable[Segment] =
     appendix.values().asScala.filter(_.segmentSize < segmentSize) take size
 
-  def close: Try[Unit] =
-    (nextLevel.map(_.close) getOrElse TryUtil.successUnit) flatMap {
+  def close: IO[Unit] =
+    (nextLevel.map(_.close) getOrElse IOUtil.successUnit) flatMap {
       _ =>
         actor.terminate()
         appendix.close().failed foreach {
@@ -1142,16 +1142,16 @@ private[core] class Level(val dirs: Seq[Dir],
             logger.error("{}: Failed to release locks", paths.head, exception)
         }
 
-        TryUtil.successUnit
+        IOUtil.successUnit
     }
 
-  def closeSegments(): Try[Unit] = {
+  def closeSegments(): IO[Unit] = {
     segmentsInLevel().tryForeach(_.close, failFast = false) foreach {
-      case Failure(exception) =>
+      case IO.Failure(exception) =>
         logger.error("{}: Failed to close Segment file.", paths.head, exception)
     }
 
-    nextLevel.map(_.closeSegments()) getOrElse TryUtil.successUnit
+    nextLevel.map(_.closeSegments()) getOrElse IOUtil.successUnit
   }
 
   override val isTrash: Boolean =

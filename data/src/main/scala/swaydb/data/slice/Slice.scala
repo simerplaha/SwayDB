@@ -26,8 +26,8 @@ import scala.annotation.tailrec
 import scala.collection.generic.CanBuildFrom
 import scala.collection.{IterableLike, mutable}
 import scala.reflect.ClassTag
-import scala.util.Try
 import scala.util.hashing.MurmurHash3
+import swaydb.data.io.IO
 import swaydb.data.order.KeyOrder
 import swaydb.data.repairAppendix.MaxKey
 import swaydb.data.util.{ByteSizeOf, ByteUtil}
@@ -192,7 +192,7 @@ object Slice {
       slice
     }
 
-    def readIntSigned(): Try[Int] =
+    def readIntSigned(): IO[Int] =
       ByteUtil.readSignedInt(slice)
 
     def addIntUnsigned(int: Int): Slice[Byte] = {
@@ -200,7 +200,7 @@ object Slice {
       slice
     }
 
-    def readIntUnsigned(): Try[Int] =
+    def readIntUnsigned(): IO[Int] =
       ByteUtil.readUnsignedInt(slice)
 
     def addLong(long: Long): Slice[Byte] = {
@@ -216,7 +216,7 @@ object Slice {
       slice
     }
 
-    def readLongUnsigned(): Try[Long] =
+    def readLongUnsigned(): IO[Long] =
       ByteUtil.readUnsignedLong(slice)
 
     def addLongSigned(long: Long): Slice[Byte] = {
@@ -224,7 +224,7 @@ object Slice {
       slice
     }
 
-    def readLongSigned(): Try[Long] =
+    def readLongSigned(): IO[Long] =
       ByteUtil.readSignedLong(slice)
 
     def addString(string: String, charsets: Charset = StandardCharsets.UTF_8): Slice[Byte] = {

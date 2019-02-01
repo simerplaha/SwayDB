@@ -22,12 +22,12 @@ package swaydb.core.map.serializer
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.core.data.Value
 import swaydb.core.data.Value.{FromValue, RangeValue}
-import swaydb.core.{CommonAssertions, TestTimeGenerator, TryAssert}
+import swaydb.core.{CommonAssertions, TestTimeGenerator, IOAssert}
 import swaydb.data.slice.Slice
 import swaydb.core.TestData._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
-import swaydb.core.TryAssert._
+import swaydb.core.IOAssert._
 
 class RangeValueSerializerSpec extends WordSpec with Matchers {
 

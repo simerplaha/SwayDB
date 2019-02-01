@@ -20,17 +20,18 @@
 package swaydb.core.segment.format.a
 
 import scala.concurrent.duration._
-import scala.util.{Failure, Random, Success}
+import scala.util.Random
+import swaydb.data.io.IO
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.TryAssert._
+import swaydb.core.IOAssert._
 import swaydb.core.data._
 import swaydb.core.io.reader.Reader
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.retry.Retry
-import swaydb.core.util.TryUtil
-import swaydb.core.util.TryUtil._
+import swaydb.core.util.IOUtil
+import swaydb.core.util.IOUtil._
 import swaydb.core.{TestBase, TestData}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -81,7 +82,7 @@ class GroupDecompressorSpec extends TestBase {
         runThisParallel(100.times) {
 
           /**
-            * Reduce the number of retries in [[swaydb.core.group.compression.GroupDecompressor.maxTimesToTryDecompress]]
+            * Reduce the number of retries in [[swaydb.core.group.compression.GroupDecompressor.maxTimesToIODecompress]]
             * to see [[Retry]] in this test perform retries.
             *
             * Also disable pattern matching for exceptions relating to Groups from [[swaydb.core.util.ExceptionUtil.logFailure]]
@@ -94,16 +95,16 @@ class GroupDecompressorSpec extends TestBase {
             ) tryMap {
               keyValue =>
                 persistentGroup.segmentCache.get(keyValue.key) match {
-                  case Failure(exception) =>
-                    Failure(exception)
+                  case IO.Failure(exception) =>
+                    IO.Failure(exception)
 
-                  case Success(value) =>
+                  case IO.Success(value) =>
                     try {
                       value.get.toMemory().assertGet shouldBe keyValue
-                      TryUtil.successUnit
+                      IOUtil.successUnit
                     } catch {
                       case ex: Exception =>
-                        Failure(ex.getCause)
+                        IO.Failure(ex.getCause)
                     }
                 }
             }

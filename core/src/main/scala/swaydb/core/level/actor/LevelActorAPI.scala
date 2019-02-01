@@ -27,7 +27,7 @@ import swaydb.data.compaction.Throttle
 import swaydb.data.slice.Slice
 
 import scala.concurrent.duration.FiniteDuration
-import scala.util.Try
+import swaydb.data.io.IO
 
 /**
   * These API should only be used by the [[LevelActor]] of that Level only.
@@ -46,7 +46,7 @@ private[core] trait LevelActorAPI {
 
   def hasNextLevel: Boolean
 
-  def forward(levelAPI: LevelAPI): Try[Unit]
+  def forward(levelAPI: LevelAPI): IO[Unit]
 
   def push(levelAPI: LevelAPI): Unit
 
@@ -58,21 +58,21 @@ private[core] trait LevelActorAPI {
 
   def nextPushDelay: FiniteDuration
 
-  def removeSegments(segments: Iterable[Segment]): Try[Int]
+  def removeSegments(segments: Iterable[Segment]): IO[Int]
 
-  def putMap(map: Map[Slice[Byte], Memory.SegmentResponse]): Try[Unit]
+  def putMap(map: Map[Slice[Byte], Memory.SegmentResponse]): IO[Unit]
 
-  def put(segments: Iterable[Segment]): Try[Unit]
+  def put(segments: Iterable[Segment]): IO[Unit]
 
-  def put(segment: Segment): Try[Unit]
+  def put(segment: Segment): IO[Unit]
 
   def take(count: Int): Slice[Segment]
 
   def pickSegmentsToPush(count: Int): Iterable[Segment]
 
-  def collapseAllSmallSegments(batch: Int): Try[Int]
+  def collapseAllSmallSegments(batch: Int): IO[Int]
 
-  def clearExpiredKeyValues(): Try[Unit]
+  def clearExpiredKeyValues(): IO[Unit]
 
   def levelSize: Long
 

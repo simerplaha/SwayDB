@@ -25,7 +25,7 @@ import swaydb.core.util.CRC32
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 import scala.collection.JavaConverters._
-import scala.util.{Failure, Success, Try}
+import swaydb.data.io.IO
 import swaydb.core.io.reader.Reader
 
 private[core] object MapCodec extends LazyLogging {
@@ -61,8 +61,8 @@ private[core] object MapCodec extends LazyLogging {
 
   //Java style return statements are used to break out of the loop. Use functions instead.
   def read[K, V](bytes: Slice[Byte],
-                 dropCorruptedTailEntries: Boolean)(implicit mapReader: MapEntryReader[MapEntry[K, V]]): Try[RecoveryResult[Option[MapEntry[K, V]]]] =
-    Reader(bytes).foldLeftTry(RecoveryResult(Option.empty[MapEntry[K, V]], Try())) {
+                 dropCorruptedTailEntries: Boolean)(implicit mapReader: MapEntryReader[MapEntry[K, V]]): IO[RecoveryResult[Option[MapEntry[K, V]]]] =
+    Reader(bytes).foldLeftIO(RecoveryResult(Option.empty[MapEntry[K, V]], IO())) {
       case (recovery, reader) =>
         reader.hasAtLeast(ByteSizeOf.long) flatMap {
           case true =>
@@ -70,7 +70,7 @@ private[core] object MapCodec extends LazyLogging {
               crc =>
                 // An unfilled MemoryMapped file can have trailing empty bytes which indicates EOF.
                 if (crc == 0)
-                  return Success(recovery)
+                  return IO.Success(recovery)
                 else {
                   try {
                     val length = reader.readInt().get
@@ -90,27 +90,27 @@ private[core] object MapCodec extends LazyLogging {
                       val failureMessage =
                         s"File corruption! Failed to match CRC check for entry at position ${reader.getPosition}. CRC expected = $crc actual = $checkCRC. Skip on corruption = $dropCorruptedTailEntries."
                       logger.error(failureMessage)
-                      Failure(new IllegalStateException(failureMessage))
+                      IO.Failure(new IllegalStateException(failureMessage))
                     }
                   } catch {
                     case ex: Throwable =>
                       logger.error("File corruption! Unable to read entry at position {}. dropCorruptedTailEntries = {}.", reader.getPosition, dropCorruptedTailEntries, ex)
-                      Failure(new IllegalStateException(s"File corruption! Unable to read entry at position ${reader.getPosition}. dropCorruptedTailEntries = $dropCorruptedTailEntries.", ex))
+                      IO.Failure(new IllegalStateException(s"File corruption! Unable to read entry at position ${reader.getPosition}. dropCorruptedTailEntries = $dropCorruptedTailEntries.", ex))
                   }
                 }
             } recoverWith {
               case failure =>
                 if (dropCorruptedTailEntries) {
                   logger.error("Skipping WAL on failure at position {}", reader.getPosition)
-                  return Success(RecoveryResult(recovery.item, Failure(failure)))
+                  return IO.Success(RecoveryResult(recovery.item, IO.Failure(failure)))
                 } else {
-                  Failure(failure)
+                  IO.Failure(failure)
                 }
             }
 
           case false =>
             //MMAP files can be closed with empty bytes with < 8 bytes.
-            return Success(recovery)
+            return IO.Success(recovery)
         }
     }
 }

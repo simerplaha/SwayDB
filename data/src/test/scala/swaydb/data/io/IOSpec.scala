@@ -26,7 +26,7 @@ import org.scalatest.exceptions.TestFailedException
 class IOSpec extends WordSpec with Matchers with MockFactory {
 
   "Async" should {
-    "flatMap on Success" in {
+    "flatMap on IO.Success" in {
       val io =
         IO.Async(1).flatMapIO {
           int =>
@@ -38,7 +38,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
       io.getOrListen(_ => ???).get shouldBe 2
     }
 
-    "flatMap on Failure" in {
+    "flatMap on IO.Failure" in {
       val io: IO.Async[Int] =
         IO.Async(1).flatMapIO {
           _ =>
@@ -52,7 +52,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
       io.getOrListen(_ => ???) shouldBe a[IO.Failure[_]]
     }
 
-    "getOrListen on Failure" in {
+    "getOrListen on IO.Failure" in {
       var returnFailure = true
 
       val io =

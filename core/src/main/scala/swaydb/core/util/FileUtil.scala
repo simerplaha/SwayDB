@@ -22,7 +22,7 @@ package swaydb.core.util
 import java.nio.file.{Files, Path}
 import com.typesafe.scalalogging.LazyLogging
 import scala.collection.JavaConverters._
-import scala.util.{Failure, Success, Try}
+import swaydb.data.io.IO
 import PipeOps._
 import swaydb.core.io.file.IOOps
 
@@ -67,7 +67,7 @@ private[core] object FileUtil extends LazyLogging {
       s"$id.${Extension.Seg}"
   }
 
-  def incrementFileId(path: Path): Try[Path] =
+  def incrementFileId(path: Path): IO[Path] =
     fileId(path) map {
       case (id, ext) =>
         path.getParent.resolve((id + 1) + "." + ext.toString)
@@ -82,21 +82,21 @@ private[core] object FileUtil extends LazyLogging {
   def folderId(path: Path): Long =
     path.getFileName.toString.toLong
 
-  def fileId(path: Path): Try[(Long, Extension)] = {
+  def fileId(path: Path): IO[(Long, Extension)] = {
     val fileName = path.getFileName.toString
     val extensionIndex = fileName.lastIndexOf(".")
     val extIndex = if (extensionIndex <= 0) fileName.length else extensionIndex
 
-    Try(fileName.substring(0, extIndex).toLong) orElse Failure(NotAnIntFile(path)) flatMap {
+    IO(fileName.substring(0, extIndex).toLong) orElse IO.Failure(NotAnIntFile(path)) flatMap {
       fileId =>
         val ext = fileName.substring(extIndex + 1, fileName.length)
         if (ext == Extension.Log.toString)
-          Success(fileId, Extension.Log)
+          IO.Success(fileId, Extension.Log)
         else if (ext == Extension.Seg.toString)
-          Success(fileId, Extension.Seg)
+          IO.Success(fileId, Extension.Seg)
         else {
           logger.error("Unknown extension for file {}", path)
-          Failure(UnknownExtension(path))
+          IO.Failure(UnknownExtension(path))
         }
     }
   }
@@ -118,7 +118,7 @@ private[core] object FileUtil extends LazyLogging {
     IOOps.stream(folder) {
       _.iterator()
         .asScala
-        .filter(folder => Try(folderId(folder)).isSuccess)
+        .filter(folder => IO(folderId(folder)).isSuccess)
         .toList
         .sortBy(folderId)
     }

@@ -21,7 +21,7 @@ package swaydb
 
 import scala.collection.generic.CanBuildFrom
 import scala.concurrent.duration.{Deadline, FiniteDuration}
-import scala.util.{Failure, Success, Try}
+import swaydb.data.io.IO
 import swaydb.BatchImplicits._
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
@@ -48,49 +48,49 @@ case class Map[K, V](private[swaydb] val db: SwayDB,
                      private val till: (K, V) => Boolean = (_: K, _: V) => true)(implicit keySerializer: Serializer[K],
                                                                                  valueSerializer: Serializer[V]) extends Iterable[(K, V)] {
 
-  def put(key: K, value: V): Try[Level0Meter] =
+  def put(key: K, value: V): IO[Level0Meter] =
     db.put(key = key, value = Some(value))
 
-  def put(key: K, value: V, expireAfter: FiniteDuration): Try[Level0Meter] =
+  def put(key: K, value: V, expireAfter: FiniteDuration): IO[Level0Meter] =
     db.put(key, Some(value), expireAfter.fromNow)
 
-  def put(key: K, value: V, expireAt: Deadline): Try[Level0Meter] =
+  def put(key: K, value: V, expireAt: Deadline): IO[Level0Meter] =
     db.put(key, Some(value), expireAt)
 
-  def remove(key: K): Try[Level0Meter] =
+  def remove(key: K): IO[Level0Meter] =
     db.remove(key)
 
-  def remove(from: K, to: K): Try[Level0Meter] =
+  def remove(from: K, to: K): IO[Level0Meter] =
     db.remove(from, to)
 
-  def expire(key: K, after: FiniteDuration): Try[Level0Meter] =
+  def expire(key: K, after: FiniteDuration): IO[Level0Meter] =
     db.expire(key, after.fromNow)
 
-  def expire(key: K, at: Deadline): Try[Level0Meter] =
+  def expire(key: K, at: Deadline): IO[Level0Meter] =
     db.expire(key, at)
 
-  def expire(from: K, to: K, after: FiniteDuration): Try[Level0Meter] =
+  def expire(from: K, to: K, after: FiniteDuration): IO[Level0Meter] =
     db.expire(from, to, after.fromNow)
 
-  def expire(from: K, to: K, at: Deadline): Try[Level0Meter] =
+  def expire(from: K, to: K, at: Deadline): IO[Level0Meter] =
     db.expire(from, to, at)
 
-  def update(key: K, value: V): Try[Level0Meter] =
+  def update(key: K, value: V): IO[Level0Meter] =
     db.update(key, Some(value))
 
-  def update(from: K, to: K, value: V): Try[Level0Meter] =
+  def update(from: K, to: K, value: V): IO[Level0Meter] =
     db.update(from, to, Some(value))
 
-  def batch(batch: Batch[K, V]*): Try[Level0Meter] =
+  def batch(batch: Batch[K, V]*): IO[Level0Meter] =
     db.batch(batch)
 
-  def batch(batch: Iterable[Batch[K, V]]): Try[Level0Meter] =
+  def batch(batch: Iterable[Batch[K, V]]): IO[Level0Meter] =
     db.batch(batch)
 
-  def batchPut(keyValues: (K, V)*): Try[Level0Meter] =
+  def batchPut(keyValues: (K, V)*): IO[Level0Meter] =
     batchPut(keyValues)
 
-  def batchPut(keyValues: Iterable[(K, V)]): Try[Level0Meter] =
+  def batchPut(keyValues: Iterable[(K, V)]): IO[Level0Meter] =
     db.batch {
       keyValues map {
         case (key, value) =>
@@ -98,10 +98,10 @@ case class Map[K, V](private[swaydb] val db: SwayDB,
       }
     }
 
-  def batchUpdate(keyValues: (K, V)*): Try[Level0Meter] =
+  def batchUpdate(keyValues: (K, V)*): IO[Level0Meter] =
     batchUpdate(keyValues)
 
-  def batchUpdate(keyValues: Iterable[(K, V)]): Try[Level0Meter] =
+  def batchUpdate(keyValues: Iterable[(K, V)]): IO[Level0Meter] =
     db.batch {
       keyValues map {
         case (key, value) =>
@@ -109,22 +109,22 @@ case class Map[K, V](private[swaydb] val db: SwayDB,
       }
     }
 
-  def batchRemove(keys: K*): Try[Level0Meter] =
+  def batchRemove(keys: K*): IO[Level0Meter] =
     batchRemove(keys)
 
-  def batchRemove(keys: Iterable[K]): Try[Level0Meter] =
+  def batchRemove(keys: Iterable[K]): IO[Level0Meter] =
     db.batch(keys.map(key => request.Batch.Remove(key, None)))
 
-  def batchExpire(keys: (K, Deadline)*): Try[Level0Meter] =
+  def batchExpire(keys: (K, Deadline)*): IO[Level0Meter] =
     batchExpire(keys)
 
-  def batchExpire(keys: Iterable[(K, Deadline)]): Try[Level0Meter] =
+  def batchExpire(keys: Iterable[(K, Deadline)]): IO[Level0Meter] =
     db.batch(keys.map(keyDeadline => request.Batch.Remove(keyDeadline._1, Some(keyDeadline._2))))
 
   /**
     * Returns target value for the input key.
     */
-  def get(key: K): Try[Option[V]] =
+  def get(key: K): IO[Option[V]] =
     db.get(key).map(_.map(_.read[V]))
 
   /**
@@ -132,19 +132,19 @@ case class Map[K, V](private[swaydb] val db: SwayDB,
     *
     * This function is mostly used for Set databases where partial ordering on the Key is provided.
     */
-  def getKey(key: K): Try[Option[K]] =
+  def getKey(key: K): IO[Option[K]] =
     db.getKey(key).map(_.map(_.read[K]))
 
-  def getKeyValue(key: K): Try[Option[(K, V)]] =
+  def getKeyValue(key: K): IO[Option[(K, V)]] =
     db.getKeyValue(key).map(_.map {
       case (key, value) =>
         (key.read[K], value.read[V])
     })
 
-  def contains(key: K): Try[Boolean] =
+  def contains(key: K): IO[Boolean] =
     db contains key
 
-  def mightContain(key: K): Try[Boolean] =
+  def mightContain(key: K): IO[Boolean] =
     db mightContain key
 
   def keys: Set[K] =
@@ -165,10 +165,10 @@ case class Map[K, V](private[swaydb] val db: SwayDB,
   def valueSize(value: V): Int =
     (value: Slice[Byte]).size
 
-  def expiration(key: K): Try[Option[Deadline]] =
+  def expiration(key: K): IO[Option[Deadline]] =
     db deadline key
 
-  def timeLeft(key: K): Try[Option[FiniteDuration]] =
+  def timeLeft(key: K): IO[Option[FiniteDuration]] =
     expiration(key).map(_.map(_.timeLeft))
 
   def from(key: K): Map[K, V] =
@@ -209,7 +209,7 @@ case class Map[K, V](private[swaydb] val db: SwayDB,
     private var nextKeyValueBytes: (Slice[Byte], Option[Slice[Byte]]) = _
     private var nextKeyValueTyped: (K, V) = _
 
-    private def start: Try[Option[(Slice[Byte], Option[Slice[Byte]])]] =
+    private def start: IO[Option[(Slice[Byte], Option[Slice[Byte]])]] =
       from match {
         case Some(from) =>
           val fromKeyBytes: Slice[Byte] = from.key
@@ -221,14 +221,14 @@ case class Map[K, V](private[swaydb] val db: SwayDB,
             db.getKeyValue(fromKeyBytes)
               .flatMap {
                 case Some((key, valueOption)) =>
-                  Success(Some(key, valueOption))
+                  IO.Success(Some(key, valueOption))
                 case _ =>
                   if (from.orAfter)
                     db.after(fromKeyBytes)
                   else if (from.orBefore)
                     db.before(fromKeyBytes)
                   else
-                    Success(None)
+                    IO.Success(None)
               }
 
         case None =>
@@ -250,7 +250,7 @@ case class Map[K, V](private[swaydb] val db: SwayDB,
               db.after(nextKeyValueBytes._1)
 
           next match {
-            case Success(value) =>
+            case IO.Success(value) =>
               value match {
                 case Some(keyValue @ (key, value)) =>
                   val keyT = key.read[K]
@@ -265,14 +265,14 @@ case class Map[K, V](private[swaydb] val db: SwayDB,
                 case _ =>
                   false
               }
-            case Failure(exception) =>
+            case IO.Failure(exception) =>
               System.err.println("Failed to iterate", exception)
               throw exception
           }
         }
       else
         start match {
-          case Success(value) =>
+          case IO.Success(value) =>
             started = true
             value match {
               case Some(keyValue @ (key, value)) =>
@@ -288,7 +288,7 @@ case class Map[K, V](private[swaydb] val db: SwayDB,
               case _ =>
                 false
             }
-          case Failure(exception) =>
+          case IO.Failure(exception) =>
             System.err.println("Failed to start Key iterator", exception)
             throw exception
         }
@@ -301,9 +301,9 @@ case class Map[K, V](private[swaydb] val db: SwayDB,
   }
 
   override def size: Int =
-    sizeTry.get
+    sizeIO.get
 
-  def sizeTry: Try[Int] =
+  def sizeIO: IO[Int] =
     db.keyValueCount
 
   override def isEmpty: Boolean =
@@ -319,11 +319,11 @@ case class Map[K, V](private[swaydb] val db: SwayDB,
     lastOption.get
 
   override def headOption: Option[(K, V)] =
-    headOptionTry.get
+    headOptionIO.get
 
-  private def headOptionTry: Try[Option[(K, V)]] =
+  private def headOptionIO: IO[Option[(K, V)]] =
     if (from.isDefined)
-      Try(this.take(1).headOption)
+      IO(this.take(1).headOption)
     else
       db.head map {
         case Some((key, value)) =>
@@ -333,9 +333,9 @@ case class Map[K, V](private[swaydb] val db: SwayDB,
       }
 
   override def lastOption: Option[(K, V)] =
-    lastOptionTry.get
+    lastOptionIO.get
 
-  private def lastOptionTry: Try[Option[(K, V)]] =
+  private def lastOptionIO: IO[Option[(K, V)]] =
     db.last map {
       case Some((key, value)) =>
         Some(key.read[K], value.read[V])

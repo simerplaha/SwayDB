@@ -24,13 +24,13 @@ import java.util.concurrent.ConcurrentSkipListMap
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.{KeyValue, Memory, Persistent}
 import swaydb.core.queue.Command.{WeighAndAdd, AddWeighed}
-import swaydb.core.util.TryUtil
+import swaydb.core.util.IOUtil
 import swaydb.data.slice.Slice
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
 import scala.ref.WeakReference
-import scala.util.Try
+import swaydb.data.io.IO
 
 private sealed trait Command {
   val keyValueRef: WeakReference[KeyValue.CacheAble]
@@ -63,7 +63,7 @@ private[core] sealed trait KeyValueLimiter {
           skipList: ConcurrentSkipListMap[Slice[Byte], _]): Unit
 
   def add(keyValue: KeyValue.ReadOnly.Group,
-          skipList: ConcurrentSkipListMap[Slice[Byte], _]): Try[Unit]
+          skipList: ConcurrentSkipListMap[Slice[Byte], _]): IO[Unit]
 
   def terminate(): Unit
 }
@@ -129,7 +129,7 @@ private class KeyValueLimiterImpl(cacheSize: Long,
     queue ! Command.WeighAndAdd(new WeakReference(keyValue), new WeakReference[ConcurrentSkipListMap[Slice[Byte], _]](skipList))
 
   def add(keyValue: KeyValue.ReadOnly.Group,
-          skipList: ConcurrentSkipListMap[Slice[Byte], _]): Try[Unit] =
+          skipList: ConcurrentSkipListMap[Slice[Byte], _]): IO[Unit] =
     keyValue.header() map {
       header =>
         val weight = header.indexDecompressedLength + header.valueInfo.map(_.valuesDecompressedLength).getOrElse(0) + 264
@@ -140,8 +140,8 @@ private class KeyValueLimiterImpl(cacheSize: Long,
 private object NoneKeyValueLimiter extends KeyValueLimiter {
 
   override def add(keyValue: KeyValue.ReadOnly.Group,
-                   skipList: ConcurrentSkipListMap[Slice[Byte], _]): Try[Unit] =
-    TryUtil.successUnit
+                   skipList: ConcurrentSkipListMap[Slice[Byte], _]): IO[Unit] =
+    IOUtil.successUnit
 
   override def add(keyValue: Persistent.SegmentResponse,
                    skipList: ConcurrentSkipListMap[Slice[Byte], _]): Unit =

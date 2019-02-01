@@ -31,7 +31,7 @@ import swaydb.core.merge.{ApplyMerger, FixedMerger, ValueMerger}
 import swaydb.core.TestData._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
-import swaydb.core.TryAssert._
+import swaydb.core.IOAssert._
 
 class SegmentMerger_Range_Into_Range extends WordSpec {
 

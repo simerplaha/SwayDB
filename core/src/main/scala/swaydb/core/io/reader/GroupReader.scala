@@ -22,17 +22,17 @@ package swaydb.core.io.reader
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.data.slice.{Reader, Slice}
 
-import scala.util.{Failure, Try}
+import swaydb.data.io.IO
 
 private[core] class GroupReader(decompressedValuesSize: Int,
                                 startIndexOffset: Int,
                                 endIndexOffset: Int,
-                                valuesDecompressor: () => Try[Reader],
+                                valuesDecompressor: () => IO[Reader],
                                 indexReader: Reader) extends Reader with LazyLogging {
 
   private var position: Int = 0
 
-  override def size: Try[Long] =
+  override def size: IO[Long] =
     indexReader.size map (_ + decompressedValuesSize)
 
   def moveTo(newPosition: Long): Reader = {
@@ -40,10 +40,10 @@ private[core] class GroupReader(decompressedValuesSize: Int,
     this
   }
 
-  def hasMore: Try[Boolean] =
+  def hasMore: IO[Boolean] =
     size.map(position <= _)
 
-  def hasAtLeast(atLeastSize: Long): Try[Boolean] =
+  def hasAtLeast(atLeastSize: Long): IO[Boolean] =
     size map {
       size =>
         (size - position) >= atLeastSize
@@ -61,7 +61,7 @@ private[core] class GroupReader(decompressedValuesSize: Int,
   override def getPosition: Int =
     position
 
-  override def get(): Try[Int] =
+  override def get(): IO[Int] =
     if (position >= startIndexOffset) {
       indexReader.moveTo(position - startIndexOffset).get() map {
         byte =>
@@ -96,6 +96,6 @@ private[core] class GroupReader(decompressedValuesSize: Int,
           }
       }
 
-  override def readRemaining(): Try[Slice[Byte]] =
-    Failure(new NotImplementedError(s"Function readRemaining() on ${this.getClass.getSimpleName} is not supported!"))
+  override def readRemaining(): IO[Slice[Byte]] =
+    IO.Failure(new NotImplementedError(s"Function readRemaining() on ${this.getClass.getSimpleName} is not supported!"))
 }

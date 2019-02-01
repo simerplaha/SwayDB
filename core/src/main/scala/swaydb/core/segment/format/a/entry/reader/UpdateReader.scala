@@ -19,7 +19,7 @@
 
 package swaydb.core.segment.format.a.entry.reader
 
-import scala.util.Try
+import swaydb.data.io.IO
 import swaydb.core.data.Persistent
 import swaydb.core.segment.format.a.entry.id.EntryId
 import swaydb.core.segment.format.a.entry.reader.value.LazyValueReader
@@ -38,7 +38,7 @@ object UpdateReader extends EntryReader[Persistent.Update] {
                                                         deadlineReader: DeadlineReader[T],
                                                         valueOffsetReader: ValueOffsetReader[T],
                                                         valueLengthReader: ValueLengthReader[T],
-                                                        valueBytesReader: ValueReader[T]): Try[Persistent.Update] =
+                                                        valueBytesReader: ValueReader[T]): IO[Persistent.Update] =
     deadlineReader.read(indexReader, previous) flatMap {
       deadline =>
         valueBytesReader.read(indexReader, previous) flatMap {

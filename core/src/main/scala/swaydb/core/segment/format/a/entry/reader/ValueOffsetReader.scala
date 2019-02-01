@@ -21,18 +21,18 @@ package swaydb.core.segment.format.a.entry.reader
 
 import swaydb.core.data.Persistent
 import swaydb.core.segment.format.a.entry.id.EntryId
-import swaydb.core.util.{Bytes, TryUtil}
+import swaydb.core.util.{Bytes, IOUtil}
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
 
 import scala.annotation.implicitNotFound
-import scala.util.{Failure, Try}
+import swaydb.data.io.IO
 
 @implicitNotFound("Type class implementation not found for ValueOffsetReader of type ${T}")
 sealed trait ValueOffsetReader[-T] {
 
   def read(indexReader: Reader,
-           previous: Option[Persistent]): Try[Int]
+           previous: Option[Persistent]): IO[Int]
 
 }
 
@@ -40,7 +40,7 @@ object ValueOffsetReader {
 
   private def readOffset(indexReader: Reader,
                          previous: Option[Persistent],
-                         commonBytes: Int): Try[Int] =
+                         commonBytes: Int): IO[Int] =
     previous.map(_.valueOffset) map {
       previousValueOffset =>
         indexReader.read(ByteSizeOf.int - commonBytes) map {
@@ -48,42 +48,42 @@ object ValueOffsetReader {
             Bytes.decompress(Slice.writeInt(previousValueOffset), valueOffsetBytes, commonBytes).readInt()
         }
     } getOrElse {
-      Failure(EntryReaderFailure.NoPreviousKeyValue)
+      IO.Failure(EntryReaderFailure.NoPreviousKeyValue)
     }
 
   implicit object ValueOffsetOneCompressed extends ValueOffsetReader[EntryId.ValueOffset.OneCompressed] {
     override def read(indexReader: Reader,
-                      previous: Option[Persistent]): Try[Int] =
+                      previous: Option[Persistent]): IO[Int] =
       readOffset(indexReader, previous, 1)
   }
 
   implicit object ValueOffsetTwoCompressed extends ValueOffsetReader[EntryId.ValueOffset.TwoCompressed] {
     override def read(indexReader: Reader,
-                      previous: Option[Persistent]): Try[Int] =
+                      previous: Option[Persistent]): IO[Int] =
       readOffset(indexReader, previous, 2)
   }
 
   implicit object ValueOffsetThreeCompressed extends ValueOffsetReader[EntryId.ValueOffset.ThreeCompressed] {
     override def read(indexReader: Reader,
-                      previous: Option[Persistent]): Try[Int] =
+                      previous: Option[Persistent]): IO[Int] =
       readOffset(indexReader, previous, 3)
   }
 
   implicit object ValueOffsetUncompressed extends ValueOffsetReader[EntryId.ValueOffset.Uncompressed] {
     override def read(indexReader: Reader,
-                      previous: Option[Persistent]): Try[Int] =
+                      previous: Option[Persistent]): IO[Int] =
       indexReader.readIntUnsigned()
   }
 
   implicit object ValueOffsetReaderNoValue extends ValueOffsetReader[EntryId.Value.NoValue] {
     override def read(indexReader: Reader,
-                      previous: Option[Persistent]): Try[Int] =
-      TryUtil.successZero
+                      previous: Option[Persistent]): IO[Int] =
+      IOUtil.successZero
   }
 
   implicit object ValueOffsetReaderValueFullyCompressed extends ValueOffsetReader[EntryId.Value.FullyCompressed] {
     override def read(indexReader: Reader,
-                      previous: Option[Persistent]): Try[Int] =
-      TryUtil.successZero
+                      previous: Option[Persistent]): IO[Int] =
+      IOUtil.successZero
   }
 }

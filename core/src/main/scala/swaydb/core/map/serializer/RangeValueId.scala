@@ -21,7 +21,7 @@ package swaydb.core.map.serializer
 
 import swaydb.macros.SealedList
 
-import scala.util.{Failure, Success, Try}
+import swaydb.data.io.IO
 
 sealed trait RangeValueId {
   val id: Int
@@ -139,8 +139,8 @@ object RangeValueId {
       rangeId.id -> rangeId
   } toMap
 
-  def apply(id: Int): Try[RangeValueId] =
+  def apply(id: Int): IO[RangeValueId] =
     ids.get(id)
-      .map(Success(_))
-      .getOrElse(Failure(new Exception(s"Invalid ${this.getClass.getSimpleName}: $id")))
+      .map(IO.Success(_))
+      .getOrElse(IO.Failure(new Exception(s"Invalid ${this.getClass.getSimpleName}: $id")))
 }

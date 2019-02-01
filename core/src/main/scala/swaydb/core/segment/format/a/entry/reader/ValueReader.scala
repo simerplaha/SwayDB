@@ -21,18 +21,18 @@ package swaydb.core.segment.format.a.entry.reader
 
 import swaydb.core.data.Persistent
 import swaydb.core.segment.format.a.entry.id.EntryId
-import swaydb.core.util.TryUtil
+import swaydb.core.util.IOUtil
 import swaydb.data.slice.Reader
 
 import scala.annotation.implicitNotFound
-import scala.util.{Failure, Success, Try}
+import swaydb.data.io.IO
 
 @implicitNotFound("Type class implementation not found for ValueReader of type ${T}")
 sealed trait ValueReader[-T] {
 
   def read[V](indexReader: Reader,
               previous: Option[Persistent])(implicit valueOffsetReader: ValueOffsetReader[V],
-                                            valueLengthReader: ValueLengthReader[V]): Try[Option[(Int, Int)]]
+                                            valueLengthReader: ValueLengthReader[V]): IO[Option[(Int, Int)]]
 
 }
 
@@ -40,14 +40,14 @@ object ValueReader {
   implicit object NoValueReader extends ValueReader[EntryId.Value.NoValue] {
     override def read[V](indexReader: Reader,
                          previous: Option[Persistent])(implicit valueOffsetReader: ValueOffsetReader[V],
-                                                       valueLengthReader: ValueLengthReader[V]): Try[Option[(Int, Int)]] =
-      TryUtil.successNone
+                                                       valueLengthReader: ValueLengthReader[V]): IO[Option[(Int, Int)]] =
+      IOUtil.successNone
   }
 
   implicit object ValueUncompressedReader extends ValueReader[EntryId.Value.Uncompressed] {
     override def read[V](indexReader: Reader,
                          previous: Option[Persistent])(implicit valueOffsetReader: ValueOffsetReader[V],
-                                                       valueLengthReader: ValueLengthReader[V]): Try[Option[(Int, Int)]] =
+                                                       valueLengthReader: ValueLengthReader[V]): IO[Option[(Int, Int)]] =
       valueOffsetReader.read(indexReader, previous) flatMap {
         valueOffset =>
           valueLengthReader.read(indexReader, previous) map {
@@ -60,12 +60,12 @@ object ValueReader {
   implicit object ValueFullyCompressedReader extends ValueReader[EntryId.Value.FullyCompressed] {
     override def read[V](indexReader: Reader,
                          previous: Option[Persistent])(implicit valueOffsetReader: ValueOffsetReader[V],
-                                                       valueLengthReader: ValueLengthReader[V]): Try[Option[(Int, Int)]] =
+                                                       valueLengthReader: ValueLengthReader[V]): IO[Option[(Int, Int)]] =
       previous map {
         previous =>
-          Success(Some((previous.valueOffset, previous.valueLength)))
+          IO.Success(Some((previous.valueOffset, previous.valueLength)))
       } getOrElse {
-        Failure(EntryReaderFailure.NoPreviousKeyValue)
+        IO.Failure(EntryReaderFailure.NoPreviousKeyValue)
       }
   }
 }

@@ -19,12 +19,12 @@
 
 package swaydb.core.seek
 
-import scala.util.Try
+import swaydb.data.io.IO
 import swaydb.core.data.KeyValue
 import swaydb.data.slice.Slice
 
 trait NextGetter {
 
-  def get(key: Slice[Byte]): Try[Option[KeyValue.ReadOnly.Put]]
+  def get(key: Slice[Byte]): IO[Option[KeyValue.ReadOnly.Put]]
 
 }
