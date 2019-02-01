@@ -206,6 +206,7 @@ object IO {
     override def getOrElse[U >: T](default: => U): U = default
     override def orElse[U >: T](default: => IO[U]): IO[U] = IO.Catch(default)
     override def flatMap[U](f: T => IO[U]): IO[U] = this.asInstanceOf[IO[U]]
+    override def flatMap[U](f: T => Async[U]): Async[U] = this.asInstanceOf[Async[U]]
     override def flatten[U](implicit ev: T <:< IO[U]): IO[U] = this.asInstanceOf[IO[U]]
     override def foreach[U](f: T => U): Unit = ()
     override def map[U](f: T => U): IO[U] = this.asInstanceOf[IO[U]]
@@ -221,6 +222,7 @@ object IO {
     override def filter(p: T => Boolean): IO[T] = this
     override def toFuture: Future[T] = Future.failed(exception)
     override def toTry: scala.util.Try[T] = scala.util.Failure(exception)
+
   }
 
   final case class Success[+T](value: T) extends IO[T] with IO.Async[T] {
@@ -230,9 +232,8 @@ object IO {
     override def get = value
     override def getOrElse[U >: T](default: => U): U = get
     override def orElse[U >: T](default: => IO[U]): IO[U] = this
-    override def flatMap[U](f: T => IO[U]): IO[U] =
-      IO.Catch(f(value))
-
+    override def flatMap[U](f: T => IO[U]): IO[U] = IO.Catch(f(value))
+    override def flatMap[U](f: T => Async[U]): Async[U] = f(value)
     override def flatten[U](implicit ev: T <:< IO[U]): IO[U] = value
     override def foreach[U](f: T => U): Unit = f(value)
     override def map[U](f: T => U): IO[U] = IO[U](f(value))
@@ -260,6 +261,7 @@ object IO {
     def isFailure: Boolean
     def isSuccess: Boolean
     def isAsync: Boolean
+    def flatMap[U](f: T => Async[U]): Async[U]
     def get: T
     def getOrElse[U >: T](default: => U): U
     def recover[U >: T](f: PartialFunction[Throwable, U]): IO[U]
