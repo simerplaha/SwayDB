@@ -48,7 +48,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
       var iterations = 0
 
       val result: Option[IO.Failure[Int]] =
-        slice.tryForeach {
+        slice.foreachIO {
           item => {
             iterations += 1
             if (item == 3)
@@ -68,7 +68,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
       var iterations = 0
 
       val result: Option[IO.Failure[Int]] =
-        slice.tryForeach(
+        slice.foreachIO(
           item => {
             iterations += 1
             if (item == 3)
@@ -89,7 +89,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
       val slice = Slice(1, 2, 3, 4)
 
       val result: Option[IO.Failure[Int]] =
-        slice.tryForeach {
+        slice.foreachIO {
           item =>
             IO.Success(item)
         }
@@ -104,7 +104,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
       val slice = Slice(1, 2, 3, 4, 5)
 
       val result: IO[Slice[Int]] =
-        slice.tryMap {
+        slice.mapIO {
           item =>
             IO.Success(item + 1)
         }
@@ -118,8 +118,8 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
       val intsCleanedUp = ListBuffer.empty[Int]
 
       val result: IO[Slice[Int]] =
-        slice.tryMap(
-          tryBlock = item => if (item == 3) IO.Failure(new Exception(s"Failed at $item")) else IO.Success(item),
+        slice.mapIO(
+          ioBlock = item => if (item == 3) IO.Failure(new Exception(s"Failed at $item")) else IO.Success(item),
           recover = (ints: Slice[Int], _: IO.Failure[Slice[Int]]) => ints.foreach(intsCleanedUp += _)
         )
 
@@ -136,7 +136,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
       val slice = Slice(1, 2, 3, 4, 5)
 
       val result: IO[Iterable[String]] =
-        slice.tryFlattenIterable {
+        slice.flattenIterableIO {
           item =>
             IO(Seq(item.toString))
         }
@@ -148,7 +148,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
       val slice = Slice(1, 2, 3, 4, 5)
 
       val result: IO[Iterable[String]] =
-        slice.tryFlattenIterable {
+        slice.flattenIterableIO {
           item =>
             if (item < 3) {
               IO(Seq(item.toString))
@@ -166,7 +166,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
       val slice = Slice("one", "two", "three")
 
       val result: IO[Int] =
-        slice.tryFoldLeft(0) {
+        slice.foldLeftIO(0) {
           case (count, item) =>
             if (item == "two")
               IO.Failure(new Exception(s"Failed at $item"))
@@ -182,7 +182,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
       val slice = Slice("one", "two", "three")
 
       val result: IO[Int] =
-        slice.tryFoldLeft(0) {
+        slice.foldLeftIO(0) {
           case (count, _) =>
             IO.Success(count + 1)
         }
@@ -207,7 +207,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
       var iterations = 0
 
       val result: IO[Option[(Int, Int)]] =
-        slice.tryUntilSome {
+        slice.untilSome {
           item => {
             iterations += 1
             if (item == 3)
@@ -226,7 +226,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
       var iterations = 0
 
       val result: IO[Option[(Int, Int)]] =
-        slice.tryUntilSome {
+        slice.untilSome {
           _ => {
             iterations += 1
             IO.successNone
@@ -242,7 +242,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
       var iterations = 0
 
       val result: IO[Option[(Int, Int)]] =
-        slice.tryUntilSome {
+        slice.untilSome {
           item => {
             iterations += 1
             IO.Failure(new Exception(s"Failed at $item"))

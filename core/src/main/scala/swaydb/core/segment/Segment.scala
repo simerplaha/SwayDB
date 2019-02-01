@@ -56,7 +56,7 @@ private[core] object Segment extends LazyLogging {
   def writeBloomFilterAndGetNearestDeadline(group: KeyValue.WriteOnly.Group,
                                             bloomFilter: Option[BloomFilter[Slice[Byte]]],
                                             currentNearestDeadline: Option[Deadline]): IO[Option[Deadline]] =
-    group.keyValues.tryFoldLeft(currentNearestDeadline) {
+    group.keyValues.foldLeftIO(currentNearestDeadline) {
       case (currentNearestDeadline, childGroup: KeyValue.WriteOnly.Group) =>
         Segment.getNearestDeadline(currentNearestDeadline, childGroup) ==> {
           nearestDeadline =>
@@ -223,7 +223,7 @@ private[core] object Segment extends LazyLogging {
 
       //Note: WriteOnly key-values can be received from Persistent Segments in which case it's important that
       //all byte arrays are unsliced before writing them to Memory Segment.
-      keyValues.tryFoldLeft(Option.empty[Deadline]) {
+      keyValues.foldLeftIO(Option.empty[Deadline]) {
         case (deadline, keyValue) =>
           writeKeyValue(keyValue, deadline)
       } flatMap {
@@ -403,8 +403,8 @@ private[core] object Segment extends LazyLogging {
       compressDuplicateValues = compressDuplicateValues
     ) flatMap {
       splits =>
-        splits.tryMap(
-          tryBlock =
+        splits.mapIO(
+          ioBlock =
             keyValues =>
               Segment.persistent(
                 path = fetchNextPath,
@@ -472,7 +472,7 @@ private[core] object Segment extends LazyLogging {
       compressDuplicateValues = compressDuplicateValues
     ) flatMap { //recovery not required. On failure, uncommitted Segments will be GC'd as nothing holds references to them.
       keyValues =>
-        keyValues tryMap {
+        keyValues mapIO {
           keyValues =>
             Segment.memory(
               path = fetchNextPath,
@@ -664,19 +664,19 @@ private[core] object Segment extends LazyLogging {
     else if (segments.size == 1)
       segments.head.getAll()
     else
-      segments.tryFoldLeft(0) {
+      segments.foldLeftIO(0) {
         case (total, segment) =>
           segment.getHeadKeyValueCount().map(_ + total)
       } flatMap {
         totalKeyValues =>
-          segments.tryFoldLeft(Slice.create[KeyValue.ReadOnly](totalKeyValues)) {
+          segments.foldLeftIO(Slice.create[KeyValue.ReadOnly](totalKeyValues)) {
             case (allKeyValues, segment) =>
               segment getAll Some(allKeyValues)
           }
       }
 
   def deleteSegments(segments: Iterable[Segment]): IO[Int] =
-    segments.tryFoldLeft(0, failFast = false) {
+    segments.foldLeftIO(0, failFast = false) {
       case (deleteCount, segment) =>
         segment.delete map {
           _ =>
@@ -882,7 +882,7 @@ private[core] object Segment extends LazyLogging {
     }
 
   def getNearestDeadline(keyValues: Iterable[KeyValue]): IO[Option[Deadline]] =
-    keyValues.tryFoldLeft(Option.empty[Deadline])(getNearestDeadline)
+    keyValues.foldLeftIO(Option.empty[Deadline])(getNearestDeadline)
 
   def getNearestDeadlineSegment(previous: Segment,
                                 next: Segment): Option[Segment] =

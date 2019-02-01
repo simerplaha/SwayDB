@@ -1473,11 +1473,11 @@ object CommonAssertions {
         }
     }
 
-  implicit class WithRetry[T](tryBlock: => IO[T]) {
+  implicit class WithRetry[T](ioBlock: => IO[T]) {
     def withRetry: IO[T] =
       Retry[T](resourceId = randomString, maxRetryLimit = 100, until = Retry.levelReadRetryUntil) {
         try
-          tryBlock
+          ioBlock
         catch {
           case ex: Exception =>
             IO.Failure(ex)

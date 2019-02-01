@@ -50,10 +50,10 @@ import swaydb.data.storage.Level0Storage
 
 private[core] object LevelZero extends LazyLogging {
 
-  def withRetry[T](resourceId: String, readRetryLimit: Int)(tryBlock: => IO[T]): IO[T] =
+  def withRetry[T](resourceId: String, readRetryLimit: Int)(ioBlock: => IO[T]): IO[T] =
     Retry[T](resourceId = resourceId, maxRetryLimit = readRetryLimit, until = Retry.levelReadRetryUntil) {
       try
-        tryBlock
+        ioBlock
       catch {
         case ex: Exception =>
           IO.Failure(ex)
@@ -159,8 +159,8 @@ private[core] class LevelZero(val path: Path,
         nextLevel.map(_.releaseLocks) getOrElse IO.successUnit
     }
 
-  def withRetry[T](tryBlock: => IO[T]): IO[T] =
-    LevelZero.withRetry(resourceId = path.toString, readRetryLimit = readRetryLimit)(tryBlock = tryBlock)
+  def withRetry[T](ioBlock: => IO[T]): IO[T] =
+    LevelZero.withRetry(resourceId = path.toString, readRetryLimit = readRetryLimit)(ioBlock = ioBlock)
 
   def !(command: LevelZeroAPI): Unit =
     actor.foreach(_ ! command)

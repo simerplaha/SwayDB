@@ -49,7 +49,7 @@ private[core] object GroupCompressor extends LazyLogging {
                           valueBytes: Slice[Byte],
                           valueCompressions: Seq[CompressionInternal],
                           keyValueCount: Int): IO[Option[CompressionResult]] =
-    indexCompressions.tryUntilSome(_.compressor.compress(indexBytes)) flatMap {
+    indexCompressions.untilSome(_.compressor.compress(indexBytes)) flatMap {
       case None =>
         logger.warn(s"Unable to apply valid compressor for keyBytes: ${indexBytes.size}. Ignoring key & value compression for $keyValueCount key-values.")
         IO.successNone
@@ -68,7 +68,7 @@ private[core] object GroupCompressor extends LazyLogging {
             )
           )
         } else {
-          valueCompressions.tryUntilSome(_.compressor.compress(valueBytes)) flatMap { //if values exists do compressed.
+          valueCompressions.untilSome(_.compressor.compress(valueBytes)) flatMap { //if values exists do compressed.
             case None => //if unable to compress values from all the input compression configurations, return None so that compression continues on larger key-value bytes.
               logger.warn(s"Unable to apply valid compressor for valueBytes of ${valueBytes.size}.bytes. Ignoring value compression for $keyValueCount key-values.")
               IO.successNone //break out because values were not compressed.

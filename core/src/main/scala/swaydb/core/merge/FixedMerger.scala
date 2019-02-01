@@ -40,7 +40,7 @@ object FixedMerger {
   def apply(newer: ReadOnly.Fixed,
             oldApplies: Slice[Value.Apply])(implicit timeOrder: TimeOrder[Slice[Byte]],
                                             functionStore: FunctionStore): IO[ReadOnly.Fixed] =
-    oldApplies.reverse.toIterable.tryFoldLeft((newer, 0)) {
+    oldApplies.reverse.toIterable.foldLeftIO((newer, 0)) {
       case ((newerMerged, count), olderApply) =>
         newerMerged match {
           case newer: ReadOnly.Put =>

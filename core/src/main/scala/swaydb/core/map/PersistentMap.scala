@@ -106,7 +106,7 @@ private[map] object PersistentMap extends LazyLogging {
                                                                     ec: ExecutionContext): IO[(RecoveryResult[DBFile], Boolean)] = {
     //read all existing logs and populate skipList
     var hasRange: Boolean = false
-    folder.files(Extension.Log) tryMap {
+    folder.files(Extension.Log) mapIO {
       path =>
         logger.info("{}: Recovering with dropCorruptedTailEntries = {}.", path, dropCorruptedTailEntries)
         DBFile.channelRead(path, autoClose = false) flatMap {
@@ -174,7 +174,7 @@ private[map] object PersistentMap extends LazyLogging {
         nextFile(lastFile, mmap, fileSize, skipList) flatMap {
           nextFile =>
             //Next file successfully created. delete all old files without the last which gets deleted by nextFile.
-            oldFiles.dropRight(1).tryForeach(_.delete()) match {
+            oldFiles.dropRight(1).foreachIO(_.delete()) match {
               case Some(failure) =>
                 logger.error(
                   "Recovery successful but failed to delete old log file. Delete this file manually and every other file except '{}' and reboot.",

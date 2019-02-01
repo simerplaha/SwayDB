@@ -98,8 +98,8 @@ private[segment] case class MemorySegment(path: Path,
             compressDuplicateValues = compressDuplicateValues
           ) flatMap {
             splits =>
-              splits.tryMap[Segment](
-                tryBlock =
+              splits.mapIO[Segment](
+                ioBlock =
                   keyValues => {
                     Segment.memory(
                       path = targetPaths.next.resolve(idGenerator.nextSegmentID),
@@ -140,8 +140,8 @@ private[segment] case class MemorySegment(path: Path,
             compressDuplicateValues = compressDuplicateValues
           ) flatMap {
             splits =>
-              splits.tryMap[Segment](
-                tryBlock =
+              splits.mapIO[Segment](
+                ioBlock =
                   keyValues =>
                     Segment.memory(
                       path = targetPaths.next.resolve(idGenerator.nextSegmentID),
@@ -336,7 +336,7 @@ private[segment] case class MemorySegment(path: Path,
     if (deleted)
       IO.Failure(new NoSuchFileException(path.toString))
     else
-      cache.values().asScala.tryFoldLeft(0) {
+      cache.values().asScala.foldLeftIO(0) {
         case (count, keyValue) =>
           keyValue match {
             case _: SegmentResponse =>

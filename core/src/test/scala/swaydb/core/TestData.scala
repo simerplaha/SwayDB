@@ -118,7 +118,7 @@ object TestData {
       else
         Segment.copyToMemory(keyValues, Paths.get("testMemorySegment"), false, 1000.mb, TestData.falsePositiveRate, true) flatMap {
           segments =>
-            segments tryMap {
+            segments mapIO {
               segment =>
                 level.put(segment)
             } map {

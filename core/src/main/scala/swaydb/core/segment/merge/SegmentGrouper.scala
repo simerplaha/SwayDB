@@ -106,7 +106,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
         IO.successNone
       else {
         val keyValuesToGroup = Slice.create[KeyValue.WriteOnly](expectedGroupsKeyValueCount)
-        segmentKeyValues.tryFoldLeft((1, Option.empty[Transient.Group])) {
+        segmentKeyValues.foldLeftIO((1, Option.empty[Transient.Group])) {
           case ((count, lastGroup), keyValue) =>
             keyValue match {
               case keyValue if count > segmentKeyValues.last.stats.groupsCount =>

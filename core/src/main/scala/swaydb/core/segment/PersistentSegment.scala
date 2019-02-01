@@ -127,8 +127,8 @@ private[segment] case class PersistentSegment(file: DBFile,
           compressDuplicateValues = compressDuplicateValues
         ) flatMap {
           splits =>
-            splits.tryMap(
-              tryBlock =
+            splits.mapIO(
+              ioBlock =
                 keyValues => {
                   Segment.persistent(
                     path = targetPaths.next.resolve(idGenerator.nextSegmentID),
@@ -168,8 +168,8 @@ private[segment] case class PersistentSegment(file: DBFile,
           compressDuplicateValues = compressDuplicateValues
         ) flatMap {
           splits =>
-            splits.tryMap(
-              tryBlock =
+            splits.mapIO(
+              ioBlock =
                 keyValues =>
                   Segment.persistent(
                     path = targetPaths.next.resolve(idGenerator.nextSegmentID),

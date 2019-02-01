@@ -156,7 +156,7 @@ private[core] object SegmentReader extends LazyLogging {
       val endIndexOffset: Int = indexOnlyReader.size.get.toInt - 1
 
       val entries = addTo getOrElse Slice.create[Persistent](footer.keyValueCount)
-      (1 to footer.keyValueCount).tryFoldLeft(Option.empty[Persistent]) {
+      (1 to footer.keyValueCount).foldLeftIO(Option.empty[Persistent]) {
         case (previousMayBe, _) =>
           val nextIndexSize =
             previousMayBe map {

@@ -68,7 +68,7 @@ object Retry extends LazyLogging {
   private def retry[R](resourceId: String,
                        until: (Throwable, String) => IO[_],
                        maxRetryLimit: Int,
-                       tryBlock: => IO[R],
+                       ioBlock: => IO[R],
                        previousFailure: Throwable): IO[R] = {
 
     @tailrec
@@ -78,7 +78,7 @@ object Retry extends LazyLogging {
           IO.Failure(previousFailure)
 
         case IO.Success(_) =>
-          tryBlock match {
+          ioBlock match {
             case failed @ IO.Failure(exception) if timesLeft == 0 =>
               if (logger.underlying.isTraceEnabled)
                 logger.error(s"{}: Failed retried {} time(s)", resourceId, maxRetryLimit - timesLeft, exception)
@@ -101,9 +101,9 @@ object Retry extends LazyLogging {
     doRetry(maxRetryLimit, previousFailure)
   }
 
-  def apply[R](resourceId: String, until: (Throwable, String) => IO[_], maxRetryLimit: Int)(tryBlock: => IO[R]): IO[R] =
-    tryBlock recoverWith {
+  def apply[R](resourceId: String, until: (Throwable, String) => IO[_], maxRetryLimit: Int)(ioBlock: => IO[R]): IO[R] =
+    ioBlock recoverWith {
       case failure =>
-        retry(resourceId, until = until, maxRetryLimit, tryBlock, failure)
+        retry(resourceId, until = until, maxRetryLimit, ioBlock, failure)
     }
 }

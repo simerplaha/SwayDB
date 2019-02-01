@@ -85,7 +85,7 @@ object IO {
 
   implicit class IterableIOImplicit[T: ClassTag](iterable: Iterable[T]) {
 
-    def tryForeach[R](f: T => IO[R], failFast: Boolean = true): Option[IO.Failure[R]] = {
+    def foreachIO[R](f: T => IO[R], failFast: Boolean = true): Option[IO.Failure[R]] = {
       val it = iterable.iterator
       var failure: Option[IO.Failure[R]] = None
       while (it.hasNext && (failure.isEmpty || !failFast)) {
@@ -99,7 +99,7 @@ object IO {
     }
 
     //returns the first IO.Success(Some(_)).
-    def tryUntilSome[R](f: T => IO[Option[R]]): IO[Option[(R, T)]] = {
+    def untilSome[R](f: T => IO[Option[R]]): IO[Option[(R, T)]] = {
       iterable.iterator foreach {
         item =>
           f(item) match {
@@ -114,14 +114,14 @@ object IO {
       IO.successNone
     }
 
-    def tryMap[R: ClassTag](tryBlock: T => IO[R],
-                            recover: (Slice[R], IO.Failure[Slice[R]]) => Unit = (_: Slice[R], _: IO.Failure[Slice[R]]) => (),
-                            failFast: Boolean = true): IO[Slice[R]] = {
+    def mapIO[R: ClassTag](ioBlock: T => IO[R],
+                           recover: (Slice[R], IO.Failure[Slice[R]]) => Unit = (_: Slice[R], _: IO.Failure[Slice[R]]) => (),
+                           failFast: Boolean = true): IO[Slice[R]] = {
       val it = iterable.iterator
       var failure: Option[IO.Failure[Slice[R]]] = None
       val results = Slice.create[R](iterable.size)
       while ((!failFast || failure.isEmpty) && it.hasNext) {
-        tryBlock(it.next()) match {
+        ioBlock(it.next()) match {
           case IO.Success(value) =>
             results add value
 
@@ -138,14 +138,14 @@ object IO {
       }
     }
 
-    def tryFlattenIterable[R: ClassTag](tryBlock: T => IO[Iterable[R]],
-                                        recover: (Iterable[R], IO.Failure[Slice[R]]) => Unit = (_: Iterable[R], _: IO.Failure[Iterable[R]]) => (),
-                                        failFast: Boolean = true): IO[Iterable[R]] = {
+    def flattenIterableIO[R: ClassTag](ioBlock: T => IO[Iterable[R]],
+                                       recover: (Iterable[R], IO.Failure[Slice[R]]) => Unit = (_: Iterable[R], _: IO.Failure[Iterable[R]]) => (),
+                                       failFast: Boolean = true): IO[Iterable[R]] = {
       val it = iterable.iterator
       var failure: Option[IO.Failure[Slice[R]]] = None
       val results = ListBuffer.empty[R]
       while ((!failFast || failure.isEmpty) && it.hasNext) {
-        tryBlock(it.next()) match {
+        ioBlock(it.next()) match {
           case IO.Success(value) =>
             value foreach (results += _)
 
@@ -162,9 +162,9 @@ object IO {
       }
     }
 
-    def tryFoldLeft[R: ClassTag](r: R,
-                                 failFast: Boolean = true,
-                                 recover: (R, IO.Failure[R]) => Unit = (_: R, _: IO.Failure[R]) => ())(f: (R, T) => IO[R]): IO[R] = {
+    def foldLeftIO[R: ClassTag](r: R,
+                                failFast: Boolean = true,
+                                recover: (R, IO.Failure[R]) => Unit = (_: R, _: IO.Failure[R]) => ())(f: (R, T) => IO[R]): IO[R] = {
       val it = iterable.iterator
       var failure: Option[IO.Failure[R]] = None
       var result: R = r

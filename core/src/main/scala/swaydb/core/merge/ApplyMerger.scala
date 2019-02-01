@@ -117,7 +117,7 @@ object ApplyMerger {
   def apply(newApplies: Slice[Value.Apply],
             oldKeyValue: ReadOnly.Fixed)(implicit timeOrder: TimeOrder[Slice[Byte]],
                                          functionStore: FunctionStore): IO[ReadOnly.Fixed] =
-    newApplies.tryFoldLeft((oldKeyValue, 0)) {
+    newApplies.foldLeftIO((oldKeyValue, 0)) {
       case ((oldMerged, count), newApply) =>
         oldMerged match {
           case old: ReadOnly.Put =>

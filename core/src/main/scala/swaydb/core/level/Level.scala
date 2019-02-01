@@ -140,7 +140,7 @@ private[core] object Level extends LazyLogging {
           appendix =>
             logger.debug("{}: Checking Segments exist.", levelStorage.dir)
             //check that all existing Segments in appendix also exists on disk or else return error message.
-            appendix.asScala tryForeach {
+            appendix.asScala foreachIO {
               case (_, segment) =>
                 if (segment.existsOnDisk)
                   IO.successUnit
@@ -468,8 +468,8 @@ private[core] class Level(val dirs: Seq[Dir],
 
   private[level] def copy(segmentsToCopy: Iterable[Segment]): IO[Iterable[Segment]] = {
     logger.trace(s"{}: Copying {} Segments", paths.head, segmentsToCopy.map(_.path.toString))
-    segmentsToCopy.tryFlattenIterable[Segment](
-      tryBlock =
+    segmentsToCopy.flattenIterableIO[Segment](
+      ioBlock =
         segment => {
           def targetSegmentPath = paths.next.resolve(IDGenerator.segmentId(segmentIDGenerator.nextID))
 
@@ -695,7 +695,7 @@ private[core] class Level(val dirs: Seq[Dir],
             logger.debug(s"{}: Assigned segments {}. Merging {} KeyValues.", paths.head, assignments.map(_._1.path.toString), keyValues.size)
             putAssignedKeyValues(assignments) flatMap {
               targetSegmentAndNewSegments =>
-                targetSegmentAndNewSegments.tryFoldLeft(Option.empty[MapEntry[Slice[Byte], Segment]]) {
+                targetSegmentAndNewSegments.foldLeftIO(Option.empty[MapEntry[Slice[Byte], Segment]]) {
                   case (mapEntry, (targetSegment, newSegments)) =>
                     buildNewMapEntry(newSegments, Some(targetSegment), mapEntry).map(Some(_))
                 } flatMap {
@@ -745,8 +745,8 @@ private[core] class Level(val dirs: Seq[Dir],
   }
 
   private def putAssignedKeyValues(assignedSegments: mutable.Map[Segment, Slice[KeyValue.ReadOnly]]): IO[Slice[(Segment, Slice[Segment])]] =
-    assignedSegments.tryMap[(Segment, Slice[Segment])](
-      tryBlock = {
+    assignedSegments.mapIO[(Segment, Slice[Segment])](
+      ioBlock = {
         case (targetSegment, assignedKeyValues) =>
           targetSegment.put(
             newKeyValues = assignedKeyValues,
@@ -1146,7 +1146,7 @@ private[core] class Level(val dirs: Seq[Dir],
     }
 
   def closeSegments(): IO[Unit] = {
-    segmentsInLevel().tryForeach(_.close, failFast = false) foreach {
+    segmentsInLevel().foreachIO(_.close, failFast = false) foreach {
       case IO.Failure(exception) =>
         logger.error("{}: Failed to close Segment file.", paths.head, exception)
     }

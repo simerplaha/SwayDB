@@ -92,7 +92,7 @@ class GroupDecompressorSpec extends TestBase {
             eitherOne(
               left = Random.shuffle(unzipGroups(keyValues).toList),
               right = unzipGroups(keyValues)
-            ) tryMap {
+            ) mapIO {
               keyValue =>
                 persistentGroup.segmentCache.get(keyValue.key) match {
                   case IO.Failure(exception) =>

@@ -91,7 +91,7 @@ private[core] object Maps extends LazyLogging {
         //delete maps that are empty.
         val (emptyMaps, otherMaps) = recoveredMapsReversed.partition(_.isEmpty)
         if (emptyMaps.nonEmpty) logger.info(s"{}: Deleting empty {} maps {}.", path, emptyMaps.size, emptyMaps.flatMap(_.pathOption).map(_.toString).mkString(", "))
-        emptyMaps tryForeach (_.delete) match {
+        emptyMaps foreachIO (_.delete) match {
           case Some(IO.Failure(exception)) =>
             logger.error(s"{}: Failed to delete empty maps {}", path, emptyMaps.flatMap(_.pathOption).map(_.toString).mkString(", "))
             IO.Failure(exception)
@@ -143,7 +143,7 @@ private[core] object Maps extends LazyLogging {
               //skip and delete all the files after the corruption file and return the successfully recovered maps
               //if the files were deleted successfully.
               logger.info(s"{}: Skipping files after corrupted file. Recovery mode: {}", mapPath, recovery.name)
-              otherMapsPaths tryForeach { //delete Maps after the corruption.
+              otherMapsPaths foreachIO { //delete Maps after the corruption.
                 mapPath =>
                   IOOps.walkDelete(mapPath) match {
                     case IO.Success(_) =>
@@ -422,7 +422,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
 
   def close: IO[Unit] =
     (Seq(currentMap) ++ maps.asScala)
-      .tryForeach(f = _.close(), failFast = false)
+      .foreachIO(f = _.close(), failFast = false)
       .getOrElse(IO.successUnit)
 
   def getMeter =

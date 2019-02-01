@@ -57,7 +57,7 @@ private[core] object SegmentWriter extends LazyLogging {
             indexSlice: Slice[Byte],
             valuesSlice: Slice[Byte],
             bloomFilter: Option[BloomFilter[Slice[Byte]]]): IO[Option[Deadline]] =
-    keyValues.tryFoldLeft(Option.empty[Deadline]) {
+    keyValues.foldLeftIO(Option.empty[Deadline]) {
       case (deadline, keyValue) =>
         write(
           keyValue = keyValue,

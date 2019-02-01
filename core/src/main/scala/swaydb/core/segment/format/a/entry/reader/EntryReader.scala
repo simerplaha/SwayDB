@@ -63,7 +63,7 @@ object EntryReader {
               nextIndexSize: Int,
               previous: Option[Persistent],
               entryReader: EntryReader[T])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[T] =
-    readers.tryFoldLeft(None) {
+    readers.foldLeftIO(None) {
       case (_, reader) =>
         reader.read(
           id = id,

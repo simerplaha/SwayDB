@@ -106,7 +106,7 @@ private[core] object SegmentMerger extends LazyLogging {
             compressDuplicateValues: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                               groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Iterable[Iterable[KeyValue.WriteOnly]]] = {
     val splits = ListBuffer[ListBuffer[KeyValue.WriteOnly]](ListBuffer())
-    keyValues tryForeach {
+    keyValues foreachIO {
       keyValue =>
         SegmentGrouper.addKeyValue(
           keyValueToAdd = keyValue,
@@ -800,7 +800,7 @@ private[core] object SegmentMerger extends LazyLogging {
 
         //there are no more oldKeyValues. Add all remaining newKeyValues
         case (Some(_), None) =>
-          newKeyValues.tryForeach(add) match {
+          newKeyValues.foreachIO(add) match {
             case Some(IO.Failure(exception)) =>
               IO.Failure(exception)
             case None =>
@@ -809,7 +809,7 @@ private[core] object SegmentMerger extends LazyLogging {
 
         //there are no more newKeyValues. Add all remaining oldKeyValues
         case (None, Some(_)) =>
-          oldKeyValues.tryForeach(add) match {
+          oldKeyValues.foreachIO(add) match {
             case Some(IO.Failure(exception)) =>
               IO.Failure(exception)
             case None =>
