@@ -117,7 +117,7 @@ sealed trait LevelReadSomeSpec extends TestBase with MockFactory with Benchmark 
 //              level0KeyValues foreach {
 //                update =>
 //                  try {
-//                    val got = level.get(update.key).withRetry.assertGet
+//                    val got = level.get(update.key).assertGet
 //                    got.getOrFetchValue.assertGetOpt shouldBe updatedValue
 //                    //check if deadline was updated
 //                    deadline foreach {

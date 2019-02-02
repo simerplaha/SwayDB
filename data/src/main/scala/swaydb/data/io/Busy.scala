@@ -17,12 +17,20 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.level
+package swaydb.data.io
 
-sealed trait LevelException extends Throwable
-object LevelException {
-  case object NoSegmentsRemoved extends LevelException
-  case object ContainsOverlappingBusySegments extends LevelException
-  case object NotSentToNextLevel extends LevelException
-  case class ReceivedKeyValuesToMergeWithoutTargetSegment(keyValueCount: Int) extends LevelException
+import java.nio.file.Path
+import java.util.concurrent.atomic.AtomicBoolean
+
+sealed trait Busy {
+  def status: AtomicBoolean
+}
+object Busy {
+
+  case class OpeningFile(file: Path, status: AtomicBoolean) extends Busy
+  case class DecompressingIndex(status: AtomicBoolean) extends Busy
+  case class DecompressionValues(status: AtomicBoolean) extends Busy
+  case class ReadingHeader(status: AtomicBoolean) extends Busy
+  case class FetchingValue(status: AtomicBoolean) extends Busy
+
 }

@@ -151,13 +151,13 @@ sealed trait LevelReadNoneSpec extends TestBase with MockFactory with Benchmark 
                   nonExistingKeys foreach {
                     nonExistentKey =>
                       val expectedHigher = existing.find(_.key.readInt() > nonExistentKey).map(_.key.readInt())
-                      level.higher(nonExistentKey).withRetry.assertGetOpt.map(_.key.readInt()) shouldBe expectedHigher
+                      level.higher(nonExistentKey).assertGetOpt.map(_.key.readInt()) shouldBe expectedHigher
                   },
                 () =>
                   nonExistingKeys foreach {
                     nonExistentKey =>
                       val expectedLower = existing.reverse.find(_.key.readInt() < nonExistentKey).map(_.key.readInt())
-                      level.lower(nonExistentKey).withRetry.assertGetOpt.map(_.key.readInt()) shouldBe expectedLower
+                      level.lower(nonExistentKey).assertGetOpt.map(_.key.readInt()) shouldBe expectedLower
                   }
               ).runThisRandomlyInParallel
             }

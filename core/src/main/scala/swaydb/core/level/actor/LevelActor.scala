@@ -21,7 +21,6 @@ package swaydb.core.level.actor
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.actor.{Actor, ActorRef}
-import swaydb.core.level.LevelException.ContainsOverlappingBusySegments
 import swaydb.core.level.actor.LevelCommand._
 import swaydb.core.level.actor.LevelState.{PushScheduled, Pushing, Sleeping, WaitingPull}
 import swaydb.core.segment.Segment
@@ -119,8 +118,8 @@ private[core] object LevelActor extends LazyLogging {
             logger.debug(s"{}: clearExpiredKeyValues execution complete.", level.paths.head)
             state.clearTask()
 
-          case IO.Failure(exception) =>
-            logger.debug(s"{}: Failed to expire key-values for deadline: {}. Rescheduling after: {}", level.paths.head, newDeadline.timeLeft.asString, unexpectedFailureReSchedule.asString, exception)
+          case IO.Failure(error) =>
+            logger.debug(s"{}: Failed to expire key-values for deadline: {}. Rescheduling after: {}", level.paths.head, newDeadline.timeLeft.asString, unexpectedFailureReSchedule.asString, error.toException)
             val task = self.schedule(ClearExpiredKeyValues(newDeadline), unexpectedFailureReSchedule)
             state.setTask(task)
         }
@@ -237,13 +236,13 @@ private[core] object LevelActor extends LazyLogging {
         level.removeSegments(response.request.segments)
         (Sleeping(state.collapseSmallSegmentsTaskScheduled, state.task), Some(PushTask(level.nextPushDelay, Push)))
 
-      case IO.Failure(exception) =>
-        exception match {
+      case IO.Failure(error) =>
+        error match {
           //Previously dispatched Push, although pre-filtered could still have overlapping busy segments.
           //This can occur if lower level has submitted a Push to it's lower level while this level's previous Push
           //was in transit and did not see the updated lower level's busy segments. In this case, submit a PullRequest
           //to lower level.
-          case ContainsOverlappingBusySegments =>
+          case IO.Error.OverlappingPushSegment =>
             logger.debug(s"{}: Contains busy Segments. Dispatching PullRequest", level.paths.head)
             level push PullRequest(self)
             (WaitingPull(state.collapseSmallSegmentsTaskScheduled, state.task), None)
@@ -256,7 +255,7 @@ private[core] object LevelActor extends LazyLogging {
               level.paths.head,
               response.request.segments.map(_.path.toString),
               LevelActor.unexpectedFailureReSchedule.asString,
-              exception
+              error.toException
             )
             (Sleeping(state.collapseSmallSegmentsTaskScheduled, state.task), Some(PushTask(LevelActor.unexpectedFailureReSchedule, Push)))
         }

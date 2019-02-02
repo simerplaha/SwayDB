@@ -29,7 +29,6 @@ import swaydb.core.IOAssert._
 import swaydb.core.data._
 import swaydb.core.io.reader.Reader
 import swaydb.core.queue.KeyValueLimiter
-import swaydb.core.retry.Retry
 
 import swaydb.data.io.IO._
 import swaydb.core.{TestBase, TestData}
@@ -83,32 +82,29 @@ class GroupDecompressorSpec extends TestBase {
 
           /**
             * Reduce the number of retries in [[swaydb.core.group.compression.GroupDecompressor.maxTimesToIODecompress]]
-            * to see [[Retry]] in this test perform retries.
             *
             * Also disable pattern matching for exceptions relating to Groups from [[swaydb.core.util.ExceptionUtil.logFailure]]
             * to see Retries' log outputs by this test.
             */
-          Retry(resourceId = randomIntMax().toString, maxRetryLimit = 10000, until = Retry.levelReadRetryUntil) {
-            eitherOne(
-              left = Random.shuffle(unzipGroups(keyValues).toList),
-              right = unzipGroups(keyValues)
-            ) mapIO {
-              keyValue =>
-                persistentGroup.segmentCache.get(keyValue.key) match {
-                  case IO.Failure(exception) =>
-                    IO.Failure(exception)
+          eitherOne(
+            left = Random.shuffle(unzipGroups(keyValues).toList),
+            right = unzipGroups(keyValues)
+          ) mapIO {
+            keyValue =>
+              persistentGroup.segmentCache.get(keyValue.key) match {
+                case IO.Failure(exception) =>
+                  IO.Failure(exception)
 
-                  case IO.Success(value) =>
-                    try {
-                      value.get.toMemory().assertGet shouldBe keyValue
-                      IO.successUnit
-                    } catch {
-                      case ex: Exception =>
-                        IO.Failure(ex.getCause)
-                    }
-                }
-            }
-          }.assertGet
+                case IO.Success(value) =>
+                  try {
+                    value.get.toMemory().assertGet shouldBe keyValue
+                    IO.successUnit
+                  } catch {
+                    case ex: Exception =>
+                      IO.Failure(ex.getCause)
+                  }
+              }
+          } assertGet
         }
 
         println("Done reading.")

@@ -101,8 +101,8 @@ private[core] object SegmentAssigner {
                       assignKeyValueToSegment(thisSegment, thisSegmentsRange, remainingKeyValues.size)
                       assign(remainingKeyValues.dropPrepend(nextSegmentsRange), Some(nextSegment), getNextSegmentMayBe())
 
-                    case IO.Failure(exception) =>
-                      IO.Failure(exception)
+                    case IO.Failure(error) =>
+                      IO.Failure(error)
                   }
 
                 case _ =>
@@ -129,8 +129,8 @@ private[core] object SegmentAssigner {
                         nextSegmentMayBe
                       )
 
-                    case IO.Failure(exception) =>
-                      IO.Failure(exception)
+                    case IO.Failure(error) =>
+                      IO.Failure(error)
                   }
               }
           }
@@ -190,8 +190,8 @@ private[core] object SegmentAssigner {
                         nextSegmentMayBe
                       )
 
-                    case IO.Failure(exception) =>
-                      IO.Failure(exception)
+                    case IO.Failure(error) =>
+                      IO.Failure(error)
                   }
               }
           }

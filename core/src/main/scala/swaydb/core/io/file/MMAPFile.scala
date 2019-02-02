@@ -105,13 +105,13 @@ private[file] class MMAPFile(val path: Path,
 
   @tailrec
   final def append(slice: Slice[Byte]): IO[Unit] =
-    IO(buffer.put(slice.toByteBuffer)) match {
-      case _: IO.Success[_] =>
-        IO.successUnit
+    IO[Unit](buffer.put(slice.toByteBuffer)) match {
+      case success: IO.Success[_] =>
+        success
 
       //Although this code extends the buffer, currently there is no implementation that requires this feature.
       //All the bytes requires for each write operation are pre-calculated EXACTLY and an overflow should NEVER occur.
-      case IO.Failure(ex: BufferOverflowException) =>
+      case IO.Failure(IO.Error.System(ex: BufferOverflowException)) =>
         val requiredByteSize = slice.size.toLong
         logger.debug("{}: BufferOverflowException. Required bytes: {}. Remaining bytes: {}. Extending buffer with {} bytes.",
           path, requiredByteSize, buffer.remaining(), requiredByteSize, ex)
@@ -122,8 +122,8 @@ private[file] class MMAPFile(val path: Path,
         else
           result
 
-      case IO.Failure(exception) =>
-        IO.Failure(exception)
+      case failure: IO.Failure[_] =>
+        failure
     }
 
   def read(position: Int, size: Int): IO[Slice[Byte]] =
@@ -143,7 +143,7 @@ private[file] class MMAPFile(val path: Path,
     }
 
   override def fileSize =
-    IO.Success(channel.size())
+    IO(channel.size())
 
   override def readAll: IO[Slice[Byte]] =
     read(0, channel.size().toInt)

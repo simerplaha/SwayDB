@@ -28,7 +28,7 @@ import swaydb.core.data.Memory.{Group, SegmentResponse}
 import swaydb.core.data._
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.level.PathsDistributor
-import swaydb.core.queue.{FileLimiter, KeyValueLimiter, LimiterType}
+import swaydb.core.queue.{FileLimiter, KeyValueLimiter, FileLimiterItem}
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.data.io.IO._
 import swaydb.core.util._
@@ -56,7 +56,7 @@ private[segment] case class MemorySegment(path: Path,
                                                                                    functionStore: FunctionStore,
                                                                                    groupingStrategy: Option[KeyValueGroupingStrategyInternal],
                                                                                    keyValueLimiter: KeyValueLimiter,
-                                                                                   fileLimiter: FileLimiter) extends Segment with LimiterType with LazyLogging {
+                                                                                   fileLimiter: FileLimiter) extends Segment with FileLimiterItem with LazyLogging {
 
   @volatile private var deleted = false
 

@@ -83,6 +83,11 @@ db
 - [SwayDB.stress](https://github.com/simerplaha/SwayDB.stress) - Stress tests.
 - [SwayDB.io](https://github.com/simerplaha/SwayDB.io) - Website code.
 
-# Status: Beta
+# Project status: Beta
 
 Undergoing integration, stress & performance testing.
+
+# Master branch  status
+
+Development is done directly on master. So at times it will be unstable. 
+See the tags to get a more stable version.

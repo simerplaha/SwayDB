@@ -23,11 +23,6 @@ import java.nio.file.Path
 
 object SegmentException {
   case class FailedToWriteAllBytes(written: Int, expected: Int, bytesSize: Int) extends Exception(s"Failed to write all bytes written: $written, expected : $expected, bytesSize: $bytesSize")
-  case class BusyOpeningFile(file: Path) extends Exception(s"Failed to open file $file")
-  case object BusyDecompressingIndex extends Exception(s"Failed to decompress index")
-  case object BusyDecompressionValues extends Exception(s"Failed to decompress values")
-  case object BusyReadingHeader extends Exception(s"Busy reading header")
-  case object BusyFetchingValue extends Exception(s"Failed to lazily fetch value")
   case class CannotCopyInMemoryFiles(file: Path) extends Exception(s"Cannot copy in-memory files $file")
   case class SegmentCorruptionException(message: String, cause: Exception) extends Exception(message, cause)
   case class SegmentFileMissing(path: Path) extends Exception(s"$path: Segment file missing.")

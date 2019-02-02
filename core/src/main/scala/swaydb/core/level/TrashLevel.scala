@@ -143,16 +143,16 @@ private[core] object TrashLevel extends LevelRef {
 
   override val isTrash: Boolean = true
 
-  override def ceiling(key: Slice[Byte]): IO[Option[KeyValue.ReadOnly.Put]] =
+  override def ceiling(key: Slice[Byte]): IO.Async[Option[KeyValue.ReadOnly.Put]] =
     IO.successNone
 
-  override def floor(key: Slice[Byte]): IO[Option[KeyValue.ReadOnly.Put]] =
+  override def floor(key: Slice[Byte]): IO.Async[Option[KeyValue.ReadOnly.Put]] =
     IO.successNone
 
-  override val headKey: IO[Option[Slice[Byte]]] =
+  override val headKey: IO.Async[Option[Slice[Byte]]] =
     IO.successNone
 
-  override val lastKey: IO[Option[Slice[Byte]]] =
+  override val lastKey: IO.Async[Option[Slice[Byte]]] =
     IO.successNone
 
   override def closeSegments(): IO[Unit] =

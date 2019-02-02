@@ -24,7 +24,6 @@ import java.util.concurrent.atomic.AtomicBoolean
 import swaydb.compression.DecompressorInternal
 import swaydb.core.group.compression.data.{GroupHeader, ValueInfo}
 import swaydb.core.io.reader.{GroupReader, Reader}
-import swaydb.core.segment.SegmentException
 import swaydb.core.segment.format.a.SegmentFooter
 import swaydb.data.slice.Reader
 
@@ -34,7 +33,7 @@ import swaydb.data.io.IO
 private[core] case class GroupDecompressor(private val compressedGroupReader: Reader,
                                            groupStartOffset: Int) {
 
-  private val maxTimesToIODecompress = 10000
+  private val maxTimesToIODecompress = 2
   @volatile private var groupHeader: GroupHeader = _ //header for compressed Segment info
   @volatile private var decompressedIndexReader: GroupReader = _ //reader for keys bytes that contains function to read value bytes
   @volatile private var decompressedValuesReader: Reader = _ //value bytes reader.
@@ -57,7 +56,7 @@ private[core] case class GroupDecompressor(private val compressedGroupReader: Re
     if (decompressedValuesReader != null) //if values are already decompressed, return values reader!
       IO(decompressedValuesReader.copy())
     else if (maxTimesToIO <= 0)
-      IO.Failure(SegmentException.BusyDecompressionValues)
+      IO.Failure(IO.Error.DecompressionValues(busyValueDecompressing))
     else if (busyValueDecompressing.compareAndSet(false, true)) //start values decompression.
       compressedGroupReader.copy().moveTo(groupStartOffset + headerSize + 1).read(valuesCompressedLength) flatMap { //move to the head of the compressed and read compressed value bytes.
         compressedValueBytes =>
@@ -125,7 +124,7 @@ private[core] case class GroupDecompressor(private val compressedGroupReader: Re
     if (groupHeader != null)
       IO.Success(groupHeader)
     else if (maxTimesToIO <= 0)
-      IO.Failure(SegmentException.BusyReadingHeader)
+      IO.Failure(IO.Error.ReadingHeader(busyReadingHeader))
     else if (busyReadingHeader.compareAndSet(false, true))
       readHeader() map {
         header =>
@@ -184,16 +183,16 @@ private[core] case class GroupDecompressor(private val compressedGroupReader: Re
     if (decompressedIndexReader != null) //if keys are already decompressed, return!
       IO(decompressedIndexReader.copy())
     else if (timesToIO <= 0)
-      IO.Failure(SegmentException.BusyDecompressingIndex)
+      IO.Failure(IO.Error.DecompressingIndex(busyIndexDecompressing))
     else if (busyIndexDecompressing.compareAndSet(false, true)) //start decompressing keys.
       decompressor() map {
         reader =>
           decompressedIndexReader = reader
           reader.copy()
       } recoverWith {
-        case exception =>
+        case error =>
           busyIndexDecompressing.set(false) //free decompressor
-          IO.Failure(exception)
+          IO.Failure(error)
       }
     else
       decompress(timesToIO - 1) //currently being decompressed by another thread. IO again!

@@ -27,13 +27,13 @@ import swaydb.data.io.IO
 
 trait FileLimiter {
 
-  def close(file: LimiterType): Unit
+  def close(file: FileLimiterItem): Unit
 
-  def delete(file: LimiterType): Unit
+  def delete(file: FileLimiterItem): Unit
 
 }
 
-trait LimiterType {
+trait FileLimiterItem {
   def path: Path
 
   def delete(): IO[Unit]
@@ -53,16 +53,16 @@ private[core] object FileLimiter extends LazyLogging {
 
   val empty =
     new FileLimiter {
-      override def close(file: LimiterType): Unit = ()
+      override def close(file: FileLimiterItem): Unit = ()
 
-      override def delete(file: LimiterType): Unit = ()
+      override def delete(file: FileLimiterItem): Unit = ()
     }
 
-  private def weigher(entry: (WeakReference[LimiterType], Action)): Long =
+  private def weigher(entry: (WeakReference[FileLimiterItem], Action)): Long =
     entry._1.get.map(_ => 1L) getOrElse 0L
 
   def apply(maxSegmentsOpen: Long, delay: FiniteDuration)(implicit ex: ExecutionContext): FileLimiter = {
-    lazy val queue = LimitQueue[(WeakReference[LimiterType], Action)](maxSegmentsOpen, delay, weigher) {
+    lazy val queue = LimitQueue[(WeakReference[FileLimiterItem], Action)](maxSegmentsOpen, delay, weigher) {
       case (dbFile, action) =>
         action match {
           case Action.Delete =>
@@ -87,11 +87,11 @@ private[core] object FileLimiter extends LazyLogging {
     }
 
     new FileLimiter {
-      override def close(file: LimiterType): Unit =
-        queue ! (new WeakReference[LimiterType](file), Action.Close)
+      override def close(file: FileLimiterItem): Unit =
+        queue ! (new WeakReference[FileLimiterItem](file), Action.Close)
 
-      override def delete(file: LimiterType): Unit =
-        queue ! (new WeakReference[LimiterType](file), Action.Delete)
+      override def delete(file: FileLimiterItem): Unit =
+        queue ! (new WeakReference[FileLimiterItem](file), Action.Delete)
     }
   }
 }

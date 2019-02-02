@@ -92,14 +92,14 @@ sealed trait LevelStressSpec extends TestBase with Benchmark {
           case PushSegmentsResponse(request, result) =>
             segment.delete.assertGet
             result match {
-              case IO.Failure(LevelException.ContainsOverlappingBusySegments) =>
+              case IO.Failure(IO.Error.OverlappingPushSegment) =>
                 println("BUSY SEGMENTS")
                 sleep(100.milliseconds)
                 doPut
 
-              case IO.Failure(exception) =>
-                exception.printStackTrace()
-                fail(exception)
+              case IO.Failure(error) =>
+                error.toException.printStackTrace()
+                fail(error.toException)
 
               case _ =>
                 //dispatch a read future for the put.

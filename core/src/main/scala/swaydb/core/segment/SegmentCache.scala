@@ -72,7 +72,7 @@ private[core] class SegmentCache(id: String,
                                  unsliceKey: Boolean,
                                  getFooter: () => IO[SegmentFooter],
                                  createReader: () => IO[Reader])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                  keyValueLimiter: KeyValueLimiter) extends LazyLogging {
+                                                                 keyValueLimiter: KeyValueLimiter) extends LazyLogging {
 
   import keyOrder._
 
@@ -278,10 +278,9 @@ private[core] class SegmentCache(id: String,
   def getAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None): IO[Slice[KeyValue.ReadOnly]] =
     prepareGet {
       (footer, reader) =>
-        SegmentReader.readAll(footer, reader, addTo) recoverWith {
-          case exception =>
+        SegmentReader.readAll(footer, reader, addTo) onFailure {
+          _ =>
             logger.trace("{}: Reading index block failed. Segment file is corrupted.", id)
-            IO.Failure(exception)
         }
     }
 

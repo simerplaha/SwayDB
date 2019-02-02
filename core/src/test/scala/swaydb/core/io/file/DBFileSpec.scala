@@ -23,15 +23,17 @@ import java.nio.ReadOnlyBufferException
 import java.nio.channels.{NonReadableChannelException, NonWritableChannelException}
 import java.nio.file.{FileAlreadyExistsException, NoSuchFileException}
 import org.scalamock.scalatest.MockFactory
+import scala.concurrent.Future
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.IOAssert._
-import swaydb.core.queue.{FileLimiter, LimiterType}
+import swaydb.core.queue.{FileLimiter, FileLimiterItem}
 import swaydb.core.segment.SegmentException
 import swaydb.core.segment.SegmentException.CannotCopyInMemoryFiles
 import swaydb.core.util.Benchmark
 import swaydb.core.util.PipeOps._
 import swaydb.core.{TestBase, TestLimitQueues}
+import swaydb.data.io.IO
 import swaydb.data.slice.Slice
 
 class DBFileSpec extends TestBase with Benchmark with MockFactory {
@@ -104,7 +106,7 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
       implicit val fileOpenLimiter = mock[FileLimiter]
 
       fileOpenLimiter.close _ expects * onCall {
-        dbFile: LimiterType =>
+        dbFile: FileLimiterItem =>
           dbFile.path shouldBe testFile
           dbFile.isOpen shouldBe true
           ()
@@ -133,7 +135,6 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
 
       file.close.assertGet
 
-      //open new file channel for read.
       DBFile.channelRead(testFile, autoClose = true).assertGet ==> {
         file =>
           file.readAll.assertGet shouldBe bytes
@@ -182,7 +183,7 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
       //opening a file should trigger the onOpen function
       implicit val fileOpenLimiter = mock[FileLimiter]
       fileOpenLimiter.close _ expects * onCall {
-        dbFile: LimiterType =>
+        dbFile: FileLimiterItem =>
           dbFile.path shouldBe testFile
           dbFile.isOpen shouldBe true
           ()
@@ -231,7 +232,7 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
       //opening a file should trigger the onOpen function
       implicit val fileOpenLimiter = mock[FileLimiter]
       fileOpenLimiter.close _ expects * onCall {
-        (dbFile: LimiterType) =>
+        dbFile: FileLimiterItem =>
           dbFile.path shouldBe testFile
           dbFile.isOpen shouldBe true
           ()
@@ -373,7 +374,7 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
       //opening a file should trigger the onOpen function
       implicit val fileOpenLimiter = mock[FileLimiter]
       fileOpenLimiter.close _ expects * onCall {
-        (dbFile: LimiterType) =>
+        (dbFile: FileLimiterItem) =>
           dbFile.path shouldBe testFile
           dbFile.isOpen shouldBe true
           ()
@@ -656,7 +657,7 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
 
       file.isFull.assertGet shouldBe true
       //in memory files are never closed
-      file.isOpen shouldBe false
+      file.isOpen shouldBe true
       file.existsOnDisk shouldBe false
       //memory files are not remove from DBFile's reference when they closed.
       file.isFileDefined shouldBe true
@@ -753,4 +754,38 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
     }
   }
 
+  "Concurrently opening files" should {
+    "result in Busy exception" in {
+      //create a file
+      val bytes = Slice(randomBytes())
+      val file = DBFile.mmapInit(randomFilePath, bytes.size, autoClose = true).assertGet
+      file.append(bytes).assertGet
+
+      //concurrently close and read the same file.
+      val ios =
+        (1 to 500).par map {
+          _ =>
+            if (randomBoolean) Future(file.close)
+            file.readAll
+        }
+
+      //convert all failures to Async
+      val result: List[IO.Later[_]] =
+        ios.toList collect {
+          case io: IO.Failure[_] =>
+            io.recoverToAsync(IO.Async((), IO.Error.None)).asInstanceOf[IO.Later[_]]
+        }
+
+      result.size should be >= 1
+
+      //eventually all IO.Later instances will get busy set to false.
+      eventual {
+        result foreach {
+          result =>
+            result.error.busy.get() shouldBe false
+        }
+      }
+    }
+
+  }
 }

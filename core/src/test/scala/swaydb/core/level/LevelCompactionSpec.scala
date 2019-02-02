@@ -23,7 +23,6 @@ import java.util.concurrent.atomic.AtomicInteger
 import org.scalamock.scalatest.MockFactory
 import swaydb.core.{TestBase, TestTimeGenerator}
 import swaydb.core.data.Transient
-import swaydb.core.level.LevelException.ContainsOverlappingBusySegments
 import swaydb.core.level.actor.LevelAPI
 import swaydb.core.level.actor.LevelCommand.{Pull, PullRequest, PushSegments, PushSegmentsResponse}
 import swaydb.data.compaction.Throttle
@@ -229,7 +228,7 @@ sealed trait LevelCompactionSpec extends TestBase with MockFactory {
               segments should have size 5
               testSegments.drop(5) shouldHaveSameKeyValuesAs segments
               //for the first request respond back with Busy segments for all the segments
-              replyTo ! PushSegmentsResponse(request, IO.Failure(ContainsOverlappingBusySegments))
+              replyTo ! PushSegmentsResponse(request, IO.Failure.busyOverlappingPushSegments)
           }
       }
 

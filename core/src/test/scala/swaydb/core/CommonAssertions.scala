@@ -51,8 +51,6 @@ import swaydb.data.util.StorageUnits._
 import IOAssert._
 import RunThis._
 import scala.util.Random
-import swaydb.core.retry.Retry
-
 
 object CommonAssertions {
 
@@ -780,7 +778,8 @@ object CommonAssertions {
   def assertHigher(keyValuesIterable: Iterable[KeyValue],
                    level: LevelRef): Unit = {
     val keyValues = keyValuesIterable.toSlice
-    assertHigher(keyValues, getHigher = key => level.higher(key).withRetry)
+    //    assertHigher(keyValues, getHigher = key => level.higher(key))
+    ???
   }
 
   def assertLower(keyValuesIterable: Iterable[KeyValue],
@@ -792,13 +791,13 @@ object CommonAssertions {
       if (index > keyValues.size - 1) {
         //end
       } else if (index == 0) {
-        level.lower(keyValues(0).key).withRetry.assertGetOpt shouldBe empty
+        level.lower(keyValues(0).key).assertGetOpt shouldBe empty
         assertLowers(index + 1)
       } else {
         val expectedLowerKeyValue = keyValues(index - 1)
-        val lower = level.lower(keyValues(index).key).withRetry.assertGet
+        val lower = level.lower(keyValues(index).key).assertGet
         lower.key shouldBe expectedLowerKeyValue.key
-        lower.getOrFetchValue.withRetry.assertGetOpt shouldBe expectedLowerKeyValue.getOrFetchValue
+        lower.getOrFetchValue.assertGetOpt shouldBe expectedLowerKeyValue.getOrFetchValue
         assertLowers(index + 1)
       }
     }
@@ -825,9 +824,7 @@ object CommonAssertions {
 
   def assertBloomNotContains(bloom: BloomFilter[Slice[Byte]]) =
     runThis(10.times) {
-      Retry("bloom false test", (_, _) => IO.successUnit, 10) {
-        IO(bloom.mightContain(randomBytesSlice(randomIntMax(1000) min 100)) shouldBe false)
-      }
+      IO(bloom.mightContain(randomBytesSlice(randomIntMax(1000) min 100)) shouldBe false)
     }
 
   def assertReads(keyValues: Slice[KeyValue],
@@ -870,8 +867,8 @@ object CommonAssertions {
 
   def assertEmptyHeadAndLast(level: LevelRef) =
     Seq(
-      () => level.head.withRetry.assertGetOpt shouldBe empty,
-      () => level.last.withRetry.assertGetOpt shouldBe empty,
+      () => level.head.assertGetOpt shouldBe empty,
+      () => level.last.assertGetOpt shouldBe empty,
     ).runThisRandomlyInParallel
 
   def assertReads(keyValues: Slice[KeyValue.WriteOnly],
@@ -898,7 +895,7 @@ object CommonAssertions {
     unzipGroups(keyValues) foreach {
       keyValue =>
         try
-          level.get(keyValue.key).withRetry.assertGet shouldBe keyValue
+          level.get(keyValue.key).assertGet shouldBe keyValue
         catch {
           case ex: Exception =>
             println(
@@ -915,7 +912,7 @@ object CommonAssertions {
     unzipGroups(keyValues) foreach {
       keyValue =>
         try
-          level.get(keyValue.key).withRetry.assertGetOpt shouldBe empty
+          level.get(keyValue.key).assertGetOpt shouldBe empty
         catch {
           case ex: Exception =>
             println(
@@ -945,11 +942,9 @@ object CommonAssertions {
                     level: LevelRef) =
     keys.par foreach {
       key =>
-        Retry("assertGetNone", Retry.levelReadRetryUntil, 1000) {
-          IO(level.get(Slice.writeInt(key)).assertGetOpt shouldBe empty) recoverWith {
-            case exception: Exception =>
-              IO.Failure(exception.getCause)
-          }
+        IO(level.get(Slice.writeInt(key)).assertGetOpt shouldBe empty) recoverWith {
+          case error: Exception =>
+            IO.Failure(error.getCause)
         }
     }
 
@@ -957,13 +952,13 @@ object CommonAssertions {
                            level: LevelRef) = {
     unzipGroups(keyValues).dropRight(1).par foreach {
       keyValue =>
-        level.get(keyValue.key).withRetry.assertGetOpt shouldBe empty
+        level.get(keyValue.key).assertGetOpt shouldBe empty
     }
 
     keyValues
       .lastOption
       .map(_.key)
-      .flatMap(level.get(_).withRetry.assertGetOpt.map(_.toMemory)) shouldBe keyValues.lastOption
+      .flatMap(level.get(_).assertGetOpt.map(_.toMemory)) shouldBe keyValues.lastOption
   }
 
   def assertGetNoneFromThisLevelOnly(keyValues: Iterable[KeyValue],
@@ -987,7 +982,7 @@ object CommonAssertions {
       keyValue =>
         try {
           //          println(keyValue.key.readInt())
-          level.higher(keyValue.key).withRetry.assertGetOpt shouldBe empty
+          level.higher(keyValue.key).assertGetOpt shouldBe empty
           //          println
         } catch {
           case ex: Exception =>
@@ -1009,7 +1004,7 @@ object CommonAssertions {
     keyValuesToAssert foreach {
       keyValue =>
         try {
-          level.lower(keyValue.key).withRetry.assertGetOpt shouldBe empty
+          level.lower(keyValue.key).assertGetOpt shouldBe empty
         } catch {
           case ex: Exception =>
             println(
@@ -1112,7 +1107,7 @@ object CommonAssertions {
 
   def assertHigher(keyValues: Slice[KeyValue],
                    segment: Segment): Unit =
-    assertHigher(unzipGroups(keyValues), getHigher = key => segment.higher(key).withRetry)
+    assertHigher(unzipGroups(keyValues), getHigher = key => segment.higher(key))
 
   /**
     * Asserts that all key-values are returned in order when fetching higher in sequence.
@@ -1472,17 +1467,4 @@ object CommonAssertions {
 
         }
     }
-
-  implicit class WithRetry[T](ioBlock: => IO[T]) {
-    def withRetry: IO[T] =
-      Retry[T](resourceId = randomString, maxRetryLimit = 100, until = Retry.levelReadRetryUntil) {
-        try
-          ioBlock
-        catch {
-          case ex: Exception =>
-            IO.Failure(ex)
-        }
-      }
-
-  }
 }

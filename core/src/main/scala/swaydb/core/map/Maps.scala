@@ -92,9 +92,9 @@ private[core] object Maps extends LazyLogging {
         val (emptyMaps, otherMaps) = recoveredMapsReversed.partition(_.isEmpty)
         if (emptyMaps.nonEmpty) logger.info(s"{}: Deleting empty {} maps {}.", path, emptyMaps.size, emptyMaps.flatMap(_.pathOption).map(_.toString).mkString(", "))
         emptyMaps foreachIO (_.delete) match {
-          case Some(IO.Failure(exception)) =>
+          case Some(IO.Failure(error)) =>
             logger.error(s"{}: Failed to delete empty maps {}", path, emptyMaps.flatMap(_.pathOption).map(_.toString).mkString(", "))
-            IO.Failure(exception)
+            IO.Failure(error)
 
           case None =>
             logger.debug(s"{}: Creating next map with ID {} maps.", path, nextMapId)
@@ -150,13 +150,13 @@ private[core] object Maps extends LazyLogging {
                       logger.info(s"{}: Deleted file after corruption. Recovery mode: {}", mapPath, recovery.name)
                       IO.successUnit
 
-                    case IO.Failure(exception) =>
+                    case IO.Failure(error) =>
                       logger.error(s"{}: IO.Failure to delete file after corruption file. Recovery mode: {}", mapPath, recovery.name)
-                      IO.Failure(exception)
+                      IO.Failure(error)
                   }
               } match {
-                case Some(IO.Failure(exception)) =>
-                  IO.Failure(exception)
+                case Some(IO.Failure(error)) =>
+                  IO.Failure(error)
 
                 case None =>
                   IO.Success(recoveredMaps)
@@ -193,17 +193,17 @@ private[core] object Maps extends LazyLogging {
                     case IO.Success(_) => //Recovery was successful. Recover next map.
                       doRecovery(otherMapsPaths, recoveredMaps)
 
-                    case IO.Failure(exception) =>
-                      applyRecoveryMode(exception, mapPath, otherMapsPaths, recoveredMaps)
+                    case IO.Failure(error) =>
+                      applyRecoveryMode(error.toException, mapPath, otherMapsPaths, recoveredMaps)
                   }
 
-                case IO.Failure(exception) => //failed to close the file.
-                  IO.Failure(exception)
+                case IO.Failure(error) => //failed to close the file.
+                  IO.Failure(error)
               }
 
-            case IO.Failure(exception) =>
+            case IO.Failure(error) =>
               //if there was a full failure perform failure handling based on the value set for RecoveryMode.
-              applyRecoveryMode(exception, mapPath, otherMapsPaths, recoveredMaps)
+              applyRecoveryMode(error.toException, mapPath, otherMapsPaths, recoveredMaps)
           }
       }
 
@@ -290,11 +290,11 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
                   onFullListener()
                   persist(entry)
 
-                case IO.Failure(exception) =>
-                  IO.Failure(exception)
+                case IO.Failure(error) =>
+                  IO.Failure(error)
               }
-            case IO.Failure(exception) =>
-              IO.Failure(exception)
+            case IO.Failure(error) =>
+              IO.Failure(error)
           }
         }
 
@@ -302,7 +302,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
       //if the failure was due to a corruption in the current Map, all the new Entries do not get submitted
       //to the same Map file. They SHOULD be added to a new Map file that is not already unreadable.
       case IO.Failure(writeException) =>
-        logger.error("IO.Failure to write Map entry. Starting a new Map.", writeException)
+        logger.error("IO.Failure to write Map entry. Starting a new Map.", writeException.toException)
         Maps.nextMap(fileSize, currentMap) match {
           case IO.Success(nextMap) =>
             maps addFirst currentMap
@@ -311,7 +311,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
             IO.Failure(writeException)
 
           case IO.Failure(newMapException) =>
-            logger.error("Failed to create a new map on failure to write", newMapException)
+            logger.error("Failed to create a new map on failure to write", newMapException.toException)
             IO.Failure(writeException)
         }
     }
@@ -387,18 +387,18 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
     reduce(matcher(currentMap), findAndReduce(matcher, reduce))
 
   def last(): Option[Map[K, V]] =
-    orNone(maps.getLast)
+    getOrNone(maps.getLast)
 
   def removeLast(): Option[IO[Unit]] =
     Option(maps.pollLast()) map {
       removedMap =>
         removedMap.delete match {
-          case IO.Failure(exception) =>
+          case IO.Failure(error) =>
             //failed to delete file. Add it back to the queue.
             val mapPath: String = removedMap.pathOption.map(_.toString).getOrElse("No path")
             logger.error(s"Failed to delete map '$mapPath;. Adding it back to the queue.")
             maps.addLast(removedMap)
-            IO.Failure(exception)
+            IO.Failure(error)
 
           case IO.Success(_) =>
             IO.successUnit

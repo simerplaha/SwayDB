@@ -61,7 +61,7 @@ private[core] object Lower {
            timeOrder: TimeOrder[Slice[Byte]],
            currentWalker: CurrentWalker,
            nextWalker: NextWalker,
-           functionStore: FunctionStore): IO[Option[KeyValue.ReadOnly.Put]] =
+           functionStore: FunctionStore): IO.Async[Option[KeyValue.ReadOnly.Put]] =
     Lower(key, currentSeek, nextSeek)(keyOrder, timeOrder, currentWalker, nextWalker, functionStore)
 
   /**
@@ -78,7 +78,7 @@ private[core] object Lower {
                                 timeOrder: TimeOrder[Slice[Byte]],
                                 currentWalker: CurrentWalker,
                                 nextWalker: NextWalker,
-                                functionStore: FunctionStore): IO[Option[KeyValue.ReadOnly.Put]] = {
+                                functionStore: FunctionStore): IO.Async[Option[KeyValue.ReadOnly.Put]] = {
     import keyOrder._
 
     (currentSeek, nextSeek) match {
@@ -96,8 +96,8 @@ private[core] object Lower {
           case IO.Success(None) =>
             Lower(key, Seek.Stop, nextSeek)
 
-          case IO.Failure(exception) =>
-            IO.Failure(exception)
+          case IO.Failure(error) =>
+            IO.Failure(error)
         }
 
       case (currentStash @ Stash.Current(current), Seek.Next) =>
@@ -117,8 +117,8 @@ private[core] object Lower {
                     case IO.Success(None) =>
                       Lower(key, currentStash, Seek.Stop)
 
-                    case IO.Failure(exception) =>
-                      IO.Failure(exception)
+                    case IO.Failure(error) =>
+                      IO.Failure(error)
                   }
 
                 //if the rangeValue is expired then check if fromValue is valid put else fetch from lower and merge.
@@ -139,17 +139,17 @@ private[core] object Lower {
                             case IO.Success(None) =>
                               Lower(key, currentStash, Seek.Stop)
 
-                            case IO.Failure(exception) =>
-                              IO.Failure(exception)
+                            case IO.Failure(error) =>
+                              IO.Failure(error)
                           }
                       }
 
-                    case IO.Failure(exception) =>
-                      IO.Failure(exception)
+                    case IO.Failure(error) =>
+                      IO.Failure(error)
                   }
 
-              case IO.Failure(exception) =>
-                IO.Failure(exception)
+              case IO.Failure(error) =>
+                IO.Failure(error)
             }
 
           //     20 (input key - inclusive)
@@ -163,8 +163,8 @@ private[core] object Lower {
               case IO.Success(None) =>
                 Lower(key, currentStash, Seek.Stop)
 
-              case IO.Failure(exception) =>
-                IO.Failure(exception)
+              case IO.Failure(error) =>
+                IO.Failure(error)
 
             }
 
@@ -178,8 +178,8 @@ private[core] object Lower {
               case IO.Success(None) =>
                 Lower(key, currentStash, Seek.Stop)
 
-              case IO.Failure(exception) =>
-                IO.Failure(exception)
+              case IO.Failure(error) =>
+                IO.Failure(error)
             }
 
           case _: ReadOnly.Fixed =>
@@ -190,8 +190,8 @@ private[core] object Lower {
               case IO.Success(None) =>
                 Lower(key, currentStash, Seek.Stop)
 
-              case IO.Failure(exception) =>
-                IO.Failure(exception)
+              case IO.Failure(error) =>
+                IO.Failure(error)
             }
         }
 
@@ -203,8 +203,8 @@ private[core] object Lower {
           case IO.Success(None) =>
             Lower(key, currentSeek, Seek.Stop)
 
-          case IO.Failure(exception) =>
-            IO.Failure(exception)
+          case IO.Failure(error) =>
+            IO.Failure(error)
         }
 
       /** *********************************************************
@@ -227,8 +227,8 @@ private[core] object Lower {
           case IO.Success(None) =>
             Lower(key, Seek.Stop, nextSeek)
 
-          case IO.Failure(exception) =>
-            IO.Failure(exception)
+          case IO.Failure(error) =>
+            IO.Failure(error)
         }
 
       case (currentStash @ Stash.Current(current), nextStash @ Stash.Next(next)) =>
@@ -254,8 +254,8 @@ private[core] object Lower {
                       //if it doesn't result in an unexpired put move forward.
                       Lower(current.key, Seek.Next, Seek.Next)
                   }
-                case IO.Failure(exception) =>
-                  IO.Failure(exception)
+                case IO.Failure(error) =>
+                  IO.Failure(error)
               }
             //      3  or  5 (current)
             //    1          (next)
@@ -306,12 +306,12 @@ private[core] object Lower {
 
                       }
 
-                    case IO.Failure(exception) =>
-                      IO.Failure(exception)
+                    case IO.Failure(error) =>
+                      IO.Failure(error)
                   }
 
-                case IO.Failure(exception) =>
-                  IO.Failure(exception)
+                case IO.Failure(error) =>
+                  IO.Failure(error)
               }
 
             //  11 ->   20 (input keys)
@@ -337,13 +337,13 @@ private[core] object Lower {
                               Lower(next.key, Seek.Next, Seek.Next)
                           }
 
-                        case IO.Failure(exception) =>
-                          IO.Failure(exception)
+                        case IO.Failure(error) =>
+                          IO.Failure(error)
                       }
                   }
 
-                case IO.Failure(exception) =>
-                  IO.Failure(exception)
+                case IO.Failure(error) =>
+                  IO.Failure(error)
               }
 
             //       11 ->   20 (input keys)
@@ -361,8 +361,8 @@ private[core] object Lower {
                       Lower(current.fromKey, Seek.Next, nextStash)
                   }
 
-                case IO.Failure(exception) =>
-                  IO.Failure(exception)
+                case IO.Failure(error) =>
+                  IO.Failure(error)
               }
         }
 
@@ -380,8 +380,8 @@ private[core] object Lower {
           case IO.Success(None) =>
             Lower(key, Seek.Stop, nextSeek)
 
-          case IO.Failure(exception) =>
-            IO.Failure(exception)
+          case IO.Failure(error) =>
+            IO.Failure(error)
         }
 
       case (Stash.Current(current), Seek.Stop) =>
@@ -415,8 +415,8 @@ private[core] object Lower {
                     Lower(current.fromKey, Seek.Next, nextSeek)
                 }
 
-              case IO.Failure(exception) =>
-                IO.Failure(exception)
+              case IO.Failure(error) =>
+                IO.Failure(error)
             }
         }
 

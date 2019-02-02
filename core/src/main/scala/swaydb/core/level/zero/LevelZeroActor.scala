@@ -23,7 +23,6 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.actor.{Actor, ActorRef}
-import swaydb.core.level.LevelException.ContainsOverlappingBusySegments
 import swaydb.core.level.LevelRef
 import swaydb.core.level.actor.LevelCommand._
 import swaydb.core.level.actor.{LevelZeroAPI, LevelZeroCommand}
@@ -104,22 +103,22 @@ private[core] class LevelZeroActor(zero: LevelZero,
                   case IO.Success(_) =>
                     self ! Push
 
-                  case IO.Failure(exception) =>
+                  case IO.Failure(error) =>
                     val mapPath: String = maps.last().map(_.pathOption.map(_.toString).getOrElse("No path")).getOrElse("No map")
                     logger.error(
                       s"Failed to delete the oldest memory map '$mapPath'. The map is added back to the memory-maps queue to avoid " +
                         "inaccurate data being written. No more maps will be pushed to Level1 until this error is fixed " +
                         "as sequential conversion of memory-map files to Segments is required to maintain data accuracy. " +
                         "Please check file system permissions and ensure that SwayDB can delete files and reboot the database.",
-                      exception
+                      error.toException
                     )
                 }
 
               case IO.Failure(exception) =>
                 exception match {
                   //do not log the stack if the IO.Failure to merge was ContainsOverlappingBusySegments.
-                  case ContainsOverlappingBusySegments =>
-                    logger.debug(s"{}: Failed to push. Waiting for pull. Cause - {}", zero.path, ContainsOverlappingBusySegments.getClass.getSimpleName.dropRight(1))
+                  case IO.Error.OverlappingPushSegment =>
+                    logger.debug(s"{}: Failed to push. Waiting for pull. Cause - {}", zero.path, IO.Error.OverlappingPushSegment.getClass.getSimpleName.dropRight(1))
                   case _ =>
                     logger.debug(s"{}: Failed to push. Waiting for pull", zero.path, exception)
                 }

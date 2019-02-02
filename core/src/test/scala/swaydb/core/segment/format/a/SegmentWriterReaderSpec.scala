@@ -30,7 +30,6 @@ import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data._
 import swaydb.core.group.compression.GroupCompressor
 import swaydb.core.io.reader.Reader
-import swaydb.core.retry.Retry
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
 
 import swaydb.core.{TestBase, TestData, TestLimitQueues, TestTimeGenerator}
@@ -229,9 +228,7 @@ class SegmentWriterReaderSpec extends TestBase {
         footer.hasRange shouldBe true
         val bloomFilter = footer.bloomFilter.assertGet
         assertBloom(keyValues, bloomFilter)
-        Retry("test", (_, _) => IO.successUnit, 10) {
-          IO(bloomFilter.mightContain(randomBytesSlice(100)) shouldBe false)
-        }
+        IO(bloomFilter.mightContain(randomBytesSlice(100)) shouldBe false)
 
         footer.crc should be > 0L
       }
@@ -283,9 +280,7 @@ class SegmentWriterReaderSpec extends TestBase {
         //bloom filters do
         val bloomFilter = footer.bloomFilter.assertGet
         assertBloom(keyValues, bloomFilter)
-        Retry("test", (_, _) => IO.successUnit, 10) {
-          IO(bloomFilter.mightContain(randomBytesSlice(100)) shouldBe false)
-        }
+        IO(bloomFilter.mightContain(randomBytesSlice(100)) shouldBe false)
         footer.crc should be > 0L
       }
 
@@ -313,9 +308,7 @@ class SegmentWriterReaderSpec extends TestBase {
         //bloom filters do
         val bloomFilter = footer.bloomFilter.assertGet
         assertBloom(keyValues, bloomFilter)
-        Retry("test", (_, _) => IO.successUnit, 10) {
-          IO(bloomFilter.mightContain(randomBytesSlice(100)) shouldBe false)
-        }
+        IO(bloomFilter.mightContain(randomBytesSlice(100)) shouldBe false)
         footer.crc should be > 0L
 
       }
@@ -343,9 +336,7 @@ class SegmentWriterReaderSpec extends TestBase {
         //bloom filters do
         val bloomFilter = footer.bloomFilter.assertGet
         assertBloom(keyValues, bloomFilter)
-        Retry("test", (_, _) => IO.successUnit, 10) {
-          IO(bloomFilter.mightContain(randomBytesSlice(100)) shouldBe false)
-        }
+        IO(bloomFilter.mightContain(randomBytesSlice(100)) shouldBe false)
         footer.crc should be > 0L
 
         keyValues foreach {

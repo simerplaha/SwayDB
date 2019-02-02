@@ -20,12 +20,11 @@
 package swaydb.core.seek
 
 import scala.annotation.tailrec
-import swaydb.data.io.IO
-import swaydb.core.data.{KeyValue, Value}
 import swaydb.core.data.KeyValue.ReadOnly
+import swaydb.core.data.{KeyValue, Value}
 import swaydb.core.function.FunctionStore
 import swaydb.core.merge.{FunctionMerger, PendingApplyMerger, RemoveMerger, UpdateMerger}
-
+import swaydb.data.io.IO
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
@@ -35,7 +34,7 @@ private[core] object Get {
            currentGetter: CurrentGetter,
            nextGetter: NextGetter)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                    timeOrder: TimeOrder[Slice[Byte]],
-                                   functionStore: FunctionStore): IO[Option[KeyValue.ReadOnly.Put]] =
+                                   functionStore: FunctionStore): IO.Async[Option[KeyValue.ReadOnly.Put]] =
     Get(key = key)(
       keyOrder = keyOrder,
       timeOrder = timeOrder,
@@ -48,16 +47,16 @@ private[core] object Get {
                               timeOrder: TimeOrder[Slice[Byte]],
                               currentGetter: CurrentGetter,
                               nextGetter: NextGetter,
-                              functionStore: FunctionStore): IO[Option[KeyValue.ReadOnly.Put]] = {
+                              functionStore: FunctionStore): IO.Async[Option[KeyValue.ReadOnly.Put]] = {
 
     import keyOrder._
 
     @tailrec
-    def returnSegmentResponse(current: KeyValue.ReadOnly.SegmentResponse): IO[Option[ReadOnly.Put]] =
+    def returnSegmentResponse(current: KeyValue.ReadOnly.SegmentResponse): IO.Async[Option[ReadOnly.Put]] =
       current match {
         case current: KeyValue.ReadOnly.Remove =>
           if (current.hasTimeLeft())
-            nextGetter.get(key) map {
+            nextGetter.get(key) mapAsync {
               nextOption =>
                 nextOption flatMap {
                   next =>
@@ -84,7 +83,7 @@ private[core] object Get {
 
         case current: KeyValue.ReadOnly.Update =>
           if (current.hasTimeLeft())
-            nextGetter.get(key) map {
+            nextGetter.get(key) mapAsync {
               nextOption =>
                 nextOption flatMap {
                   next =>
@@ -111,8 +110,8 @@ private[core] object Get {
               else
                 IO.successNone
 
-            case IO.Failure(exception) =>
-              IO.Failure(exception)
+            case IO.Failure(error) =>
+              IO.Failure(error)
           }
 
         case current: KeyValue.ReadOnly.Function =>
@@ -128,8 +127,8 @@ private[core] object Get {
                       case IO.Success(_: ReadOnly.Fixed) =>
                         IO.successNone
 
-                      case IO.Failure(exception) =>
-                        IO.Failure(exception)
+                      case IO.Failure(error) =>
+                        IO.Failure(error)
                     }
                   else
                     IO.successNone
@@ -151,8 +150,8 @@ private[core] object Get {
                       case IO.Success(_: ReadOnly.Fixed) =>
                         IO.successNone
 
-                      case IO.Failure(exception) =>
-                        IO.Failure(exception)
+                      case IO.Failure(error) =>
+                        IO.Failure(error)
                     }
                   else
                     IO.successNone
@@ -162,12 +161,15 @@ private[core] object Get {
           }
       }
 
-    currentGetter.get(key) flatMap {
-      case Some(current) =>
+    currentGetter.get(key) match {
+      case IO.Success(Some(current)) =>
         returnSegmentResponse(current)
 
-      case None =>
+      case IO.Success(None) =>
         nextGetter.get(key)
+
+      case failure @ IO.Failure(_) =>
+        failure.recoverToAsync(Get(key))
     }
   }
 }

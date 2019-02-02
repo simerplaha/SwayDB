@@ -36,7 +36,6 @@ import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.io.reader.Reader
 import swaydb.core.level.PathsDistributor
 import swaydb.core.queue.FileLimiter
-import swaydb.core.retry.Retry
 import swaydb.core.segment.Segment
 import swaydb.core.segment.SegmentException.CannotCopyInMemoryFiles
 import swaydb.core.segment.merge.SegmentMerger
@@ -833,7 +832,6 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         segments.size should be >= 2 //ensures that splits occurs. Memory Segments do not get written to disk without splitting.
 
         //some key-values could get expired while unexpired key-values are being collected. So try again!
-        Retry("deadline trickery", (_, _) => IO.successUnit, 10) {
           IO {
             Segment.getAllKeyValues(TestData.falsePositiveRate, segments).assertGet shouldBe unzipGroups(keyValues).collect {
               case keyValue: Transient.Put if keyValue.hasTimeLeft() =>
@@ -842,7 +840,6 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
                 put.toMemory(fromKey).toTransient
             }.updateStats
           }
-        }
       }
     }
 

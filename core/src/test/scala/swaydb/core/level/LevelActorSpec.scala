@@ -22,7 +22,6 @@ package swaydb.core.level
 import org.scalamock.scalatest.MockFactory
 import swaydb.core.TestBase
 import swaydb.core.actor.TestActor
-import swaydb.core.level.LevelException.ContainsOverlappingBusySegments
 import swaydb.core.level.actor.LevelCommand._
 import swaydb.core.level.actor.LevelState.{PushScheduled, Pushing, Sleeping, WaitingPull}
 import swaydb.core.level.actor._
@@ -112,7 +111,7 @@ class LevelActorSpec extends TestBase with MockFactory {
       implicit val self = TestActor[LevelCommand]()
 
       level.nextBatchSize _ expects() returning 10
-      level.collapseAllSmallSegments _ expects 10 returning IO.Failure(LevelException.ContainsOverlappingBusySegments)
+      level.collapseAllSmallSegments _ expects 10 returning IO.Failure(IO.Error.OverlappingPushSegment)
 
       LevelActor.collapseSmallSegments(force = false) shouldBe state.setCollapseSmallSegmentScheduled(true)
 
@@ -150,7 +149,7 @@ class LevelActorSpec extends TestBase with MockFactory {
       implicit val self = TestActor[LevelCommand]()
 
       level.nextBatchSize _ expects() returning 10
-      level.collapseAllSmallSegments _ expects 10 returning IO.Failure(LevelException.ContainsOverlappingBusySegments)
+      level.collapseAllSmallSegments _ expects 10 returning IO.Failure(IO.Error.OverlappingPushSegment)
 
       LevelActor.collapseSmallSegments(force = true) shouldBe state.setCollapseSmallSegmentScheduled(true)
 
@@ -257,7 +256,7 @@ class LevelActorSpec extends TestBase with MockFactory {
       implicit val self = TestActor[LevelCommand]()
 
       //      level.paths _ expects() returning PathsDistributor(Seq(Dir(Paths.get("testPath"), 1)), () => Seq.empty)
-      level.clearExpiredKeyValues _ expects() returning IO.Failure(LevelException.ContainsOverlappingBusySegments)
+      level.clearExpiredKeyValues _ expects() returning IO.Failure(IO.Error.OverlappingPushSegment)
 
       val deadline = 0.second.fromNow
       val newState = LevelActor.clearExpiredKeyValues(deadline)
@@ -479,7 +478,7 @@ class LevelActorSpec extends TestBase with MockFactory {
 
       level.push _ expects PullRequest(self) returning()
 
-      LevelActor.doPushResponse(PushSegmentsResponse(request, IO.Failure(ContainsOverlappingBusySegments))) shouldBe(WaitingPull(true, None), None)
+      LevelActor.doPushResponse(PushSegmentsResponse(request, IO.Failure.busyOverlappingPushSegments)) shouldBe(WaitingPull(true, None), None)
       self.expectNoMessage()
     }
 

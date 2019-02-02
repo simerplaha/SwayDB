@@ -61,7 +61,7 @@ private[core] object Higher {
            timeOrder: TimeOrder[Slice[Byte]],
            currentWalker: CurrentWalker,
            nextWalker: NextWalker,
-           functionStore: FunctionStore): IO[Option[KeyValue.ReadOnly.Put]] =
+           functionStore: FunctionStore): IO.Async[Option[KeyValue.ReadOnly.Put]] =
     Higher(key, currentSeek, nextSeek)(keyOrder, timeOrder, currentWalker, nextWalker, functionStore)
 
   /**
@@ -78,7 +78,7 @@ private[core] object Higher {
                                 timeOrder: TimeOrder[Slice[Byte]],
                                 currentWalker: CurrentWalker,
                                 nextWalker: NextWalker,
-                                functionStore: FunctionStore): IO[Option[KeyValue.ReadOnly.Put]] = {
+                                functionStore: FunctionStore): IO.Async[Option[KeyValue.ReadOnly.Put]] = {
     import keyOrder._
 
     (currentSeek, nextSeek) match {
@@ -96,8 +96,8 @@ private[core] object Higher {
           case IO.Success(None) =>
             Higher(key, Seek.Stop, nextSeek)
 
-          case IO.Failure(exception) =>
-            IO.Failure(exception)
+          case IO.Failure(error) =>
+            IO.Failure(error)
         }
 
       case (currentStash @ Stash.Current(current), Seek.Next) =>
@@ -118,8 +118,8 @@ private[core] object Higher {
                     case IO.Success(None) =>
                       Higher(key, currentStash, Seek.Stop)
 
-                    case IO.Failure(exception) =>
-                      IO.Failure(exception)
+                    case IO.Failure(error) =>
+                      IO.Failure(error)
                   }
 
                 else //if the rangeValue is expired then the higher is ceiling of toKey
@@ -134,8 +134,8 @@ private[core] object Higher {
                       failed
                   }
 
-              case IO.Failure(exception) =>
-                IO.Failure(exception)
+              case IO.Failure(error) =>
+                IO.Failure(error)
             }
 
           //if the input key is smaller than this Level's higher Range's fromKey.
@@ -149,8 +149,8 @@ private[core] object Higher {
               case IO.Success(None) =>
                 Higher(key, currentStash, Seek.Stop)
 
-              case IO.Failure(exception) =>
-                IO.Failure(exception)
+              case IO.Failure(error) =>
+                IO.Failure(error)
             }
 
           case _: ReadOnly.Fixed =>
@@ -161,8 +161,8 @@ private[core] object Higher {
               case IO.Success(None) =>
                 Higher(key, currentStash, Seek.Stop)
 
-              case IO.Failure(exception) =>
-                IO.Failure(exception)
+              case IO.Failure(error) =>
+                IO.Failure(error)
             }
         }
 
@@ -174,8 +174,8 @@ private[core] object Higher {
           case IO.Success(None) =>
             Higher(key, currentSeek, Seek.Stop)
 
-          case IO.Failure(exception) =>
-            IO.Failure(exception)
+          case IO.Failure(error) =>
+            IO.Failure(error)
         }
 
       /** *********************************************************
@@ -198,8 +198,8 @@ private[core] object Higher {
           case IO.Success(None) =>
             Higher(key, Seek.Stop, nextSeek)
 
-          case IO.Failure(exception) =>
-            IO.Failure(exception)
+          case IO.Failure(error) =>
+            IO.Failure(error)
         }
 
       case (currentStash @ Stash.Current(current), nextStash @ Stash.Next(next)) =>
@@ -225,8 +225,8 @@ private[core] object Higher {
                       //if it doesn't result in an unexpired put move forward.
                       Higher(current.key, Seek.Next, Seek.Next)
                   }
-                case IO.Failure(exception) =>
-                  IO.Failure(exception)
+                case IO.Failure(error) =>
+                  IO.Failure(error)
               }
             //    2
             //      3  or  5
@@ -273,12 +273,12 @@ private[core] object Higher {
 
                       }
 
-                    case IO.Failure(exception) =>
-                      IO.Failure(exception)
+                    case IO.Failure(error) =>
+                      IO.Failure(error)
                   }
 
-                case IO.Failure(exception) =>
-                  IO.Failure(exception)
+                case IO.Failure(error) =>
+                  IO.Failure(error)
               }
 
             //10  -  20
@@ -304,13 +304,13 @@ private[core] object Higher {
                               Higher(next.key, currentStash, Seek.Next)
                           }
 
-                        case IO.Failure(exception) =>
-                          IO.Failure(exception)
+                        case IO.Failure(error) =>
+                          IO.Failure(error)
                       }
                   }
 
-                case IO.Failure(exception) =>
-                  IO.Failure(exception)
+                case IO.Failure(error) =>
+                  IO.Failure(error)
               }
 
             //10 - 20
@@ -334,13 +334,13 @@ private[core] object Higher {
                         case IO.Success(None) =>
                           Higher(current.toKey, Seek.Next, nextStash)
 
-                        case IO.Failure(exception) =>
-                          IO.Failure(exception)
+                        case IO.Failure(error) =>
+                          IO.Failure(error)
                       }
                   }
 
-                case IO.Failure(exception) =>
-                  IO.Failure(exception)
+                case IO.Failure(error) =>
+                  IO.Failure(error)
               }
         }
 
@@ -358,8 +358,8 @@ private[core] object Higher {
           case IO.Success(None) =>
             Higher(key, Seek.Stop, nextSeek)
 
-          case IO.Failure(exception) =>
-            IO.Failure(exception)
+          case IO.Failure(error) =>
+            IO.Failure(error)
         }
 
       case (Stash.Current(current), Seek.Stop) =>
@@ -397,13 +397,13 @@ private[core] object Higher {
                       case IO.Success(None) =>
                         Higher(current.toKey, Seek.Next, nextSeek)
 
-                      case IO.Failure(exception) =>
-                        IO.Failure(exception)
+                      case IO.Failure(error) =>
+                        IO.Failure(error)
                     }
                 }
 
-              case IO.Failure(exception) =>
-                IO.Failure(exception)
+              case IO.Failure(error) =>
+                IO.Failure(error)
             }
         }
 

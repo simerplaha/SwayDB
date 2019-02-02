@@ -49,25 +49,25 @@ private[core] trait LevelRef {
   def takeSegments(size: Int,
                    condition: Segment => Boolean): Iterable[Segment]
 
-  def head: IO[Option[KeyValue.ReadOnly.Put]]
+  def head: IO.Async[Option[KeyValue.ReadOnly.Put]]
 
-  def last: IO[Option[KeyValue.ReadOnly.Put]]
+  def last: IO.Async[Option[KeyValue.ReadOnly.Put]]
 
-  def get(key: Slice[Byte]): IO[Option[KeyValue.ReadOnly.Put]]
+  def get(key: Slice[Byte]): IO.Async[Option[KeyValue.ReadOnly.Put]]
 
-  def ceiling(key: Slice[Byte]): IO[Option[KeyValue.ReadOnly.Put]]
+  def ceiling(key: Slice[Byte]): IO.Async[Option[KeyValue.ReadOnly.Put]]
 
-  def floor(key: Slice[Byte]): IO[Option[KeyValue.ReadOnly.Put]]
+  def floor(key: Slice[Byte]): IO.Async[Option[KeyValue.ReadOnly.Put]]
 
   def mightContain(key: Slice[Byte]): IO[Boolean]
 
-  def lower(key: Slice[Byte]): IO[Option[KeyValue.ReadOnly.Put]]
+  def lower(key: Slice[Byte]): IO.Async[Option[KeyValue.ReadOnly.Put]]
 
-  def higher(key: Slice[Byte]): IO[Option[KeyValue.ReadOnly.Put]]
+  def higher(key: Slice[Byte]): IO.Async[Option[KeyValue.ReadOnly.Put]]
 
-  def headKey: IO[Option[Slice[Byte]]]
+  def headKey: IO.Async[Option[Slice[Byte]]]
 
-  def lastKey: IO[Option[Slice[Byte]]]
+  def lastKey: IO.Async[Option[Slice[Byte]]]
 
   def bloomFilterKeyValueCount: IO[Int]
 

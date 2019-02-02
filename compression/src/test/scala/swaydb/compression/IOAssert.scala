@@ -28,8 +28,8 @@ object IOAssert extends Matchers {
   implicit class GetIOImplicit[T](getThis: IO[T]) {
     def assertGet: T =
       getThis match {
-        case IO.Failure(exception) =>
-          fail(exception)
+        case IO.Failure(error) =>
+          fail(error.toException)
 
         case IO.Success(value) =>
           value
@@ -46,8 +46,8 @@ object IOAssert extends Matchers {
   implicit class GetIOOptionImplicit[T](tryThis: IO[Option[T]]) {
     def assertGet: T =
       tryThis match {
-        case IO.Failure(exception) =>
-          fail(exception)
+        case IO.Failure(error) =>
+          fail(error.toException)
 
         case IO.Success(value) =>
           value.assertGet
@@ -55,8 +55,8 @@ object IOAssert extends Matchers {
 
     def assertGetOpt: Option[T] =
       tryThis match {
-        case IO.Failure(exception) =>
-          fail(exception)
+        case IO.Failure(error) =>
+          fail(error.toException)
 
         case IO.Success(value) =>
           value

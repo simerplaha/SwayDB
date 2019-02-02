@@ -22,9 +22,10 @@ package swaydb.core.io.file
 import com.typesafe.scalalogging.LazyLogging
 import java.nio.file.{NoSuchFileException, Path}
 import java.util.concurrent.atomic.AtomicBoolean
+import scala.annotation.tailrec
 import scala.concurrent.ExecutionContext
 import scala.util.hashing.MurmurHash3
-import swaydb.core.queue.{FileLimiter, LimiterType}
+import swaydb.core.queue.{FileLimiter, FileLimiterItem}
 import swaydb.core.segment.SegmentException
 import swaydb.core.segment.SegmentException.CannotCopyInMemoryFiles
 import swaydb.data.io.IO
@@ -100,11 +101,11 @@ class DBFile(val path: Path,
              val memory: Boolean,
              autoClose: Boolean,
              @volatile var file: Option[DBFileType])(implicit ec: ExecutionContext,
-                                                     limiter: FileLimiter) extends LimiterType with LazyLogging {
+                                                     limiter: FileLimiter) extends FileLimiterItem with LazyLogging {
 
-  private val open = new AtomicBoolean(file.exists(_.isOpen))
+  private val busy = new AtomicBoolean(false)
 
-  if (autoClose && open.get) limiter.close(this)
+  if (autoClose && isOpen) limiter.close(this)
 
   def existsOnDisk =
     EffectIO.exists(path)
@@ -130,7 +131,6 @@ class DBFile(val path: Path,
       fileType =>
         fileType.close() map {
           _ =>
-            open.set(false)
             //cannot lose reference to in-memory file on close. Only on delete, this in-memory file reference can be discarded.
             if (!memory) file = None
         }
@@ -151,49 +151,51 @@ class DBFile(val path: Path,
       }
     }
 
+  /**
+    * Use [[openFile]] instead to disallow multiple concurrently opened files.
+    */
   private def tryOpen(): IO[DBFileType] =
-    if (open.compareAndSet(false, true)) {
-      logger.trace(s"{}: Opening closed file.", path)
-      val openResult =
-        if (memory)
-          file.map(IO.Success(_)) getOrElse {
-            open.set(false)
-            IO.Failure(new NoSuchFileException(path.toString))
-          }
-        else if (memoryMapped)
-          MMAPFile.read(path)
-        else
-          ChannelFile.read(path)
-
-      openResult match {
-        case success @ IO.Success(fileOpened) =>
-          file.foreach(_.close())
-          file = Some(fileOpened)
-          if (autoClose)
-            limiter.close(this)
-          success
-
-        case failed @ IO.Failure(_) =>
-          open.set(false)
-          failed
-      }
-    } else {
-      file match {
-        case Some(fileOpened) =>
-          IO.Success(fileOpened)
-
-        case None =>
-          IO.Failure(SegmentException.BusyOpeningFile(path))
-      }
-    }
-
-  private def openFile(): IO[DBFileType] =
     file match {
       case Some(openedFile) =>
         IO.Success(openedFile)
 
       case None =>
-        tryOpen()
+        logger.trace(s"{}: Opening closed file.", path)
+        val openResult =
+          if (memory)
+            file.map(IO.Success(_)) getOrElse {
+              IO.Failure(new NoSuchFileException(path.toString))
+            }
+          else if (memoryMapped)
+            MMAPFile.read(path)
+          else
+            ChannelFile.read(path)
+
+        openResult match {
+          case success @ IO.Success(fileOpened) =>
+            file.foreach(_.close())
+            file = Some(fileOpened)
+            if (autoClose) limiter.close(this)
+            success
+
+          case failed @ IO.Failure(_) =>
+            failed
+        }
+    }
+
+  @tailrec
+  private def openFile(maxTries: Int = 1): IO[DBFileType] =
+    file match {
+      case Some(openedFile) =>
+        IO.Success(openedFile)
+
+      case None =>
+        if (busy.compareAndSet(false, true))
+          try tryOpen() finally busy.set(false)
+        else if (maxTries == 0)
+          IO.Failure(IO.Error.OpeningFile(path, busy))
+        else
+          openFile(maxTries - 1)
     }
 
   def append(slice: Slice[Byte]) =
@@ -213,7 +215,7 @@ class DBFile(val path: Path,
 
   //memory files are never closed, if it's memory file return true.
   def isOpen =
-    open.get()
+    file.exists(_.isOpen)
 
   def isFileDefined =
     file.isDefined

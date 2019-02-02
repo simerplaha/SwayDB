@@ -21,7 +21,7 @@ package swaydb.core
 
 import java.util.concurrent.ConcurrentLinkedQueue
 import scala.concurrent.duration._
-import swaydb.core.queue.{FileLimiter, KeyValueLimiter, LimiterType}
+import swaydb.core.queue.{FileLimiter, KeyValueLimiter, FileLimiterItem}
 import swaydb.data.util.StorageUnits._
 
 object TestLimitQueues {
@@ -32,15 +32,15 @@ object TestLimitQueues {
   val keyValueLimiter = KeyValueLimiter(10.mb, 5.seconds)
 
 
-  val closeQueue = new ConcurrentLinkedQueue[LimiterType]()
+  val closeQueue = new ConcurrentLinkedQueue[FileLimiterItem]()
   @volatile var closeQueueSize = closeQueue.size()
 
-  val deleteQueue = new ConcurrentLinkedQueue[LimiterType]()
+  val deleteQueue = new ConcurrentLinkedQueue[FileLimiterItem]()
   @volatile var deleteQueueSize = closeQueue.size()
 
   val fileOpenLimiter: FileLimiter =
     new FileLimiter {
-      override def close(file: LimiterType): Unit = {
+      override def close(file: FileLimiterItem): Unit = {
         closeQueue.add(file)
         closeQueueSize += 1
         if (closeQueueSize > 10000) {
@@ -48,7 +48,7 @@ object TestLimitQueues {
         }
       }
 
-      override def delete(file: LimiterType): Unit = {
+      override def delete(file: FileLimiterItem): Unit = {
         deleteQueue.add(file)
         deleteQueueSize += 1
         if (deleteQueueSize > 10000) {

@@ -21,15 +21,12 @@ package swaydb.data.io
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
-import org.scalatest.exceptions.TestFailedException
 import scala.collection.mutable.ListBuffer
-import swaydb.data.io.IO.orNone
+import swaydb.data.io.IO.{getOrNone, _}
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
-import IO._
 
 class IOSpec extends WordSpec with Matchers with MockFactory {
-
 
   "Catch" when {
     "exception" in {
@@ -136,7 +133,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
       val slice = Slice(1, 2, 3, 4, 5)
 
       val result: IO[Iterable[String]] =
-        slice.flattenIterableIO {
+        slice.flattenIO {
           item =>
             IO(Seq(item.toString))
         }
@@ -148,7 +145,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
       val slice = Slice(1, 2, 3, 4, 5)
 
       val result: IO[Iterable[String]] =
-        slice.flattenIterableIO {
+        slice.flattenIO {
           item =>
             if (item < 3) {
               IO(Seq(item.toString))
@@ -257,28 +254,28 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
 
   "tryOrNone" when {
     "exception" in {
-      orNone(throw new Exception("Failed")) shouldBe empty
+      getOrNone(throw new Exception("Failed")) shouldBe empty
     }
 
     "no exception" in {
-      orNone("success").get shouldBe "success"
+      getOrNone("success").get shouldBe "success"
     }
   }
 
 
-//  "Async" should {
-//    "flatMap on IO.Success" in {
+  "Async" should {
+    "flatMap on IO.Success" in {
 //      val io =
-//        IO.Async(1).flatMapIO {
+//        IO.Async(1).flatMap {
 //          int =>
 //            IO.Success(int + 1)
 //        }
 //
 //      io.get shouldBe 2
-//
+
 //      io.getOrListen(_ => ???).get shouldBe 2
-//    }
-//
+    }
+
 //    "flatMap on IO.Failure" in {
 //      val io: IO.Async[Int] =
 //        IO.Async(1).flatMapIO {
@@ -311,5 +308,5 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
 //      returnFailure = false
 //      io.ready()
 //    }
-//  }
+  }
 }

@@ -265,9 +265,9 @@ case class Map[K, V](private[swaydb] val db: SwayDB,
                 case _ =>
                   false
               }
-            case IO.Failure(exception) =>
-              System.err.println("Failed to iterate", exception)
-              throw exception
+            case IO.Failure(error) =>
+              System.err.println("Failed to iterate", error)
+              throw error.toException
           }
         }
       else
@@ -288,9 +288,9 @@ case class Map[K, V](private[swaydb] val db: SwayDB,
               case _ =>
                 false
             }
-          case IO.Failure(exception) =>
-            System.err.println("Failed to start Key iterator", exception)
-            throw exception
+          case IO.Failure(error) =>
+            System.err.println("Failed to start Key iterator", error)
+            throw error.toException
         }
 
     override def next(): (K, V) =
