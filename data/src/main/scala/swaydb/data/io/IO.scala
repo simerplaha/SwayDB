@@ -85,6 +85,7 @@ object IO {
     def recover[U >: T](f: PartialFunction[Throwable, U]): IO[U]
     def recoverWith[U >: T](f: PartialFunction[Throwable, IO[U]]): IO[U]
     def failed: IO[Throwable]
+    def flatten[U](implicit ev: T <:< IO.Async[U]): IO.Async[U]
   }
 
   implicit class IterableIOImplicit[T: ClassTag](iterable: Iterable[T]) {
@@ -291,6 +292,7 @@ object IO {
     override def flatMap[U](f: T => IO[U]): IO[U] = IO.Catch(f(value))
     override def flatMap[U](f: T => Async[U]): Async[U] = f(value)
     override def flatten[U](implicit ev: T <:< IO[U]): IO[U] = value
+    override def flatten[U](implicit ev: T <:< IO.Async[U]): IO.Async[U] = value
     override def foreach[U](f: T => U): Unit = f(value)
     override def map[U](f: T => U): IO[U] = IO[U](f(value))
     override def mapAsync[U](f: T => U): IO.Async[U] = IO(f(get)).asInstanceOf[IO.Async[U]]
@@ -382,7 +384,7 @@ object IO {
         IO.Async.runSafe(get)
 
     def getOrElse[U >: T](default: => U): U =
-      IO(get).getOrElse(default)
+      IO(forceGet).getOrElse(default)
 
     def flatMap[U](f: T => IO.Async[U]): IO.Async[U] =
       IO.Async(
@@ -390,12 +392,12 @@ object IO {
         error = error
       )
 
-    def flatten[U](implicit ev: T <:< IO.Async[U]): IO.Async[U] = get
-    def map[U](f: T => U): IO.Async[U] = IO.Async[U](f(get), error)
+    def flatten[U](implicit ev: T <:< IO.Async[U]): IO.Async[U] = forceGet
+    def map[U](f: T => U): IO.Async[U] = IO.Async[U](f(forceGet), error)
     def mapAsync[U](f: T => U): IO.Async[U] = map(f)
-    def recover[U >: T](f: PartialFunction[Throwable, U]): IO[U] = IO(get).recover(f)
-    def recoverWith[U >: T](f: PartialFunction[Throwable, IO[U]]): IO[U] = IO(get).recoverWith(f)
-    def failed: IO[Throwable] = Failure(new UnsupportedOperationException("IO.Async.failed"))
+    def recover[U >: T](f: PartialFunction[Throwable, U]): IO[U] = IO(forceGet).recover(f)
+    def recoverWith[U >: T](f: PartialFunction[Throwable, IO[U]]): IO[U] = IO(forceGet).recoverWith(f)
+    def failed: IO[Throwable] = IO(forceGet).failed
   }
 
   object Failure {
@@ -416,6 +418,7 @@ object IO {
     override def flatMap[U](f: T => IO[U]): IO[U] = this.asInstanceOf[IO[U]]
     override def flatMap[U](f: T => IO.Async[U]): IO.Async[U] = this.asInstanceOf[Async[U]]
     override def flatten[U](implicit ev: T <:< IO[U]): IO[U] = this.asInstanceOf[IO[U]]
+    override def flatten[U](implicit ev: T <:< IO.Async[U]): IO.Async[U] = this.asInstanceOf[IO.Async[U]]
     override def foreach[U](f: T => U): Unit = ()
     override def map[U](f: T => U): IO[U] = this.asInstanceOf[IO[U]]
     override def mapAsync[U](f: T => U): IO.Async[U] = this.asInstanceOf[IO.Async[U]]
