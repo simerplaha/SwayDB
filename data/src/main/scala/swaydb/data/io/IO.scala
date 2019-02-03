@@ -61,6 +61,8 @@ sealed trait IO[+T] {
 }
 
 object IO {
+  object BusyException extends Exception("Is busy")
+
   val successUnit: IO.Success[Unit] = IO.Success()
   val successNone = IO.Success(None)
   val successFalse = IO.Success(false)
@@ -78,6 +80,7 @@ object IO {
     def flatMap[U](f: T => Async[U]): Async[U]
     def mapAsync[U](f: T => U): Async[U]
     def get: T
+    def safeGet: IO.Async[T]
     def getOrElse[U >: T](default: => U): U
     def recover[U >: T](f: PartialFunction[Throwable, U]): IO[U]
     def recoverWith[U >: T](f: PartialFunction[Throwable, IO[U]]): IO[U]
@@ -282,6 +285,7 @@ object IO {
     override def isSuccess: Boolean = true
     override def isLater: Boolean = false
     override def get = value
+    override def safeGet = this
     override def getOrElse[U >: T](default: => U): U = get
     override def orElse[U >: T](default: => IO[U]): IO[U] = this
     override def flatMap[U](f: T => IO[U]): IO[U] = IO.Catch(f(value))
@@ -326,6 +330,7 @@ object IO {
         //the following Exceptions will occur when a file was being read but
         //it was closed or deleted when it was being read. There is no AtomicBoolean busy
         //associated with these exception and should simply be retried.
+        case IO.BusyException => Async(operation, Error.None)
         case _: NoSuchFileException => Async(operation, Error.None)
         case _: FileNotFoundException => Async(operation, Error.None)
         case _: AsynchronousCloseException => Async(operation, Error.None)
@@ -343,7 +348,7 @@ object IO {
   }
 
   final case class Later[T](value: Unit => T,
-                            error: Error.Busy) extends Async[T] {
+                            error: Error.Busy) extends IO.Async[T] {
     @volatile private var _value: Option[T] = None
 
     def isFailure: Boolean = false
@@ -351,28 +356,42 @@ object IO {
     def isLater: Boolean = true
     def isBusy = error.busy.get()
 
-    def get: T =
+    def isValueDefined: Boolean =
+      _value.isDefined
+
+    def forceGet: T =
       _value getOrElse {
         val got = value()
         _value = Some(got)
         got
       }
 
-    def getOrElse[U >: T](default: => U): U = IO(get).getOrElse(default)
-    def flatMap[U](f: T => IO.Async[U]): IO.Async[U] =
+    def get: T =
       if (isBusy)
-        Async(
-          value = f(get).get,
-          error = error
-        )
+      //Well! this is not very nice! Throwing and catching exception looses the error in the current IO.Async instance
+      //but still works since the get function knows of the previous defined error instance. Although this works it needs a
+      //nicer solution instead of throwing and catching exceptions.
+        throw BusyException
       else
-        IO.Async.runSafe(get) flatMap {
-          got =>
-            f(got)
-        }
+        forceGet
 
-    def flatten[U](implicit ev: T <:< Async[U]): Async[U] = get
-    def map[U](f: T => U): Async[U] = IO.Async[U](f(get), error)
+    def safeGet: IO.Async[T] =
+      if (isBusy)
+        this
+      else
+        IO.Async.runSafe(get)
+
+    def getOrElse[U >: T](default: => U): U =
+      IO(get).getOrElse(default)
+
+    def flatMap[U](f: T => IO.Async[U]): IO.Async[U] =
+      IO.Async(
+        value = f(get).get,
+        error = error
+      )
+
+    def flatten[U](implicit ev: T <:< IO.Async[U]): IO.Async[U] = get
+    def map[U](f: T => U): IO.Async[U] = IO.Async[U](f(get), error)
     def mapAsync[U](f: T => U): IO.Async[U] = map(f)
     def recover[U >: T](f: PartialFunction[Throwable, U]): IO[U] = IO(get).recover(f)
     def recoverWith[U >: T](f: PartialFunction[Throwable, IO[U]]): IO[U] = IO(get).recoverWith(f)
@@ -391,14 +410,15 @@ object IO {
     override def isSuccess: Boolean = false
     override def isLater: Boolean = false
     override def get: T = throw error.toException
+    override def safeGet = this
     override def getOrElse[U >: T](default: => U): U = default
     override def orElse[U >: T](default: => IO[U]): IO[U] = IO.Catch(default)
     override def flatMap[U](f: T => IO[U]): IO[U] = this.asInstanceOf[IO[U]]
-    override def flatMap[U](f: T => Async[U]): Async[U] = this.asInstanceOf[Async[U]]
+    override def flatMap[U](f: T => IO.Async[U]): IO.Async[U] = this.asInstanceOf[Async[U]]
     override def flatten[U](implicit ev: T <:< IO[U]): IO[U] = this.asInstanceOf[IO[U]]
     override def foreach[U](f: T => U): Unit = ()
     override def map[U](f: T => U): IO[U] = this.asInstanceOf[IO[U]]
-    override def mapAsync[U](f: T => U): Async[U] = this.asInstanceOf[IO.Async[U]]
+    override def mapAsync[U](f: T => U): IO.Async[U] = this.asInstanceOf[IO.Async[U]]
     override def recover[U >: T](f: PartialFunction[Throwable, U]): IO[U] =
       IO.Catch(if (f isDefinedAt error.toException) Success(f(error.toException)) else this)
 

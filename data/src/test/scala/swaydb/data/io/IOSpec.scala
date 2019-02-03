@@ -19,6 +19,7 @@
 
 package swaydb.data.io
 
+import java.util.concurrent.atomic.AtomicBoolean
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
 import scala.collection.mutable.ListBuffer
@@ -262,51 +263,93 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
     }
   }
 
+  "IO.Async" should {
+    "flatMap on IO" in {
+      val io =
+        IO.Async(1, IO.Error.None) flatMap {
+          int =>
+            IO.Success(int + 1)
+        }
 
-  "Async" should {
-    "flatMap on IO.Success" in {
-//      val io =
-//        IO.Async(1).flatMap {
-//          int =>
-//            IO.Success(int + 1)
-//        }
-//
-//      io.get shouldBe 2
-
-//      io.getOrListen(_ => ???).get shouldBe 2
+      io.get shouldBe 2
     }
 
-//    "flatMap on IO.Failure" in {
-//      val io: IO.Async[Int] =
-//        IO.Async(1).flatMapIO {
-//          _ =>
-//            IO.Failure(new TestFailedException("Kaboom!", 0))
-//        }
-//
-//      assertThrows[TestFailedException] {
-//        io.get
-//      }
-//
-//      io.getOrListen(_ => ???) shouldBe a[IO.Failure[_]]
-//    }
-//
-//    "getOrListen on IO.Failure" in {
-//      var returnFailure = true
-//
-//      val io =
-//        IO.Async(1).flatMapIO {
-//          i =>
-//            if (returnFailure)
-//              IO.Failure(new TestFailedException("Kaboom!", 0))
-//            else
-//              IO.Success(i)
-//        }
-//
-//      val listener = mockFunction[Int, Unit]
-//      listener expects 1 returning()
-//      io.getOrListen(listener) shouldBe a[IO.Failure[_]]
-//      returnFailure = false
-//      io.ready()
-//    }
+    "flatMap on IO.Failure" in {
+      val io: IO.Async[Int] =
+        IO.Async(1, IO.Error.None) flatMap {
+          _ =>
+            IO.Failure(IO.Error.OverlappingPushSegment)
+        }
+
+      assertThrows[Exception] {
+        io.get
+      }
+    }
+
+    "safeGet on multiple when last is a failure should return failure" in {
+      val io: Async[Int] =
+        IO.Async(1, IO.Error.None) flatMap {
+          i =>
+            println("1")
+            IO.Async(i + 1, IO.Error.None) flatMap {
+              i =>
+                println("2")
+                IO.Failure(IO.Error.FetchingValue(new AtomicBoolean(false)))
+            }
+        }
+
+      io.safeGet shouldBe a[IO.Failure[_]]
+    }
+
+    "safeGet on multiple when last is Async should return last Async" in {
+      val busy1 = new AtomicBoolean(true)
+      val busy2 = new AtomicBoolean(true)
+      val busy3 = new AtomicBoolean(true)
+
+      val io: Async[Int] =
+        IO.Async(1, IO.Error.DecompressingIndex(busy1)) flatMap {
+          i =>
+            IO.Async(i + 1, IO.Error.DecompressionValues(busy2)) flatMap {
+              i =>
+                IO.Async(i + 1, IO.Error.ReadingHeader(busy3))
+            }
+        }
+
+      (1 to 100).par foreach {
+        _ =>
+          io.safeGet.asInstanceOf[IO.Later[_]].isValueDefined shouldBe false
+          io.asInstanceOf[IO.Later[_]].isValueDefined shouldBe false
+      }
+
+      val io0 = io.safeGet
+      io0 shouldBe io
+
+      //make first IO available
+      busy1.set(false)
+      val io1 = io.safeGet
+      io1 shouldBe a[IO.Async[_]]
+      io0.safeGet shouldBe a[IO.Async[_]]
+
+      //make second IO available
+      busy2.set(false)
+      val io2 = io.safeGet
+      io2 shouldBe a[IO.Async[_]]
+      io0.safeGet shouldBe a[IO.Async[_]]
+      io1.safeGet shouldBe a[IO.Async[_]]
+
+      //make third IO available. Now all IOs are ready, safeGet will result in Success.
+      busy3.set(false)
+      val io3 = io.safeGet
+      io3 shouldBe IO.Success(3)
+      io0.safeGet shouldBe IO.Success(3)
+      io1.safeGet shouldBe IO.Success(3)
+      io2.safeGet shouldBe IO.Success(3)
+
+      //value should be defined on all instances.
+      io0.asInstanceOf[IO.Later[_]].isValueDefined shouldBe true
+      io1.asInstanceOf[IO.Later[_]].isValueDefined shouldBe true
+      io2.asInstanceOf[IO.Later[_]].isValueDefined shouldBe true
+    }
+
   }
 }
