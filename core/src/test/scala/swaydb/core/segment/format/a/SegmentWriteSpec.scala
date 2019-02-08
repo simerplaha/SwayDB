@@ -616,7 +616,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
   "Segment.delete" should {
     "close the channel and delete the file" in {
       val keyValues = randomizedKeyValues(keyValuesCount)
-      val segment = TestSegment(keyValues).get
+      val segment = TestSegment(keyValues).unsafeGet
       assertReads(keyValues, segment) //populate the cache
 
       segment.cacheSize shouldBe keyValues.size
@@ -641,7 +641,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         val keyValues = randomizedKeyValues(keyValuesCount)
         val keyValuesReadOnly = keyValues
 
-        val segment = TestSegment(keyValues).get
+        val segment = TestSegment(keyValues).unsafeGet
         val targetPath = createRandomIntDirectory.resolve(nextId + s".${Extension.Seg}")
 
         segment.copyTo(targetPath).assertGet
@@ -936,7 +936,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
 
     "return multiple new segments with merged key values" in {
       val keyValues = randomizedKeyValues(10000)
-      val segment = TestSegment(keyValues).get
+      val segment = TestSegment(keyValues).unsafeGet
 
       val newKeyValues = randomizedKeyValues(10000)
       val newSegments = segment.put(newKeyValues.toMemory, 10.kb, TestData.falsePositiveRate, true).assertGet
@@ -958,11 +958,11 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
       } else {
 
         val keyValues = randomizedKeyValues(keyValuesCount)
-        val segment = TestSegment(keyValues).get
+        val segment = TestSegment(keyValues).unsafeGet
         val newKeyValues = randomizedKeyValues(10000)
 
         val tenthSegmentId = {
-          val segmentId = (segment.path.fileId.get._1 + 10).toSegmentFileId
+          val segmentId = (segment.path.fileId.unsafeGet._1 + 10).toSegmentFileId
           segment.path.getParent.resolve(segmentId)
         }
 
@@ -1019,7 +1019,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
     "merge existing segment file with new KeyValues returning new segment file with updated KeyValues" in {
       runThis(10.times) {
         implicit val timeGenerator: TestTimeGenerator = TestTimeGenerator.Incremental()
-        //ranges get split to make sure there are no ranges.
+        //ranges unsafeGet split to make sure there are no ranges.
         val keyValues1 = randomizedKeyValues(count = keyValuesCount, addRandomRanges = false)
         val segment1 = TestSegment(keyValues1).assertGet
 

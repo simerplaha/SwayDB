@@ -205,7 +205,7 @@ class SegmentWriterReaderSpec extends TestBase {
 
         val (bytes, deadline) = SegmentWriter.write(keyValues, TestData.falsePositiveRate).assertGet
 
-        val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).get
+        val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).unsafeGet
         footer.keyValueCount shouldBe keyValues.size
         //      footer.startIndexOffset shouldBe keyValues.head.stats.toValueOffset + 1
         footer.hasRange shouldBe false
@@ -221,7 +221,7 @@ class SegmentWriterReaderSpec extends TestBase {
 
         val (bytes, _) = SegmentWriter.write(keyValues, TestData.falsePositiveRate).assertGet
 
-        val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).get
+        val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).unsafeGet
         footer.keyValueCount shouldBe keyValues.size
         footer.keyValueCount shouldBe keyValues.size
         //        footer.startIndexOffset shouldBe keyValues.last.stats.toValueOffset + 1
@@ -244,7 +244,7 @@ class SegmentWriterReaderSpec extends TestBase {
 
         val (bytes, _) = SegmentWriter.write(keyValues, TestData.falsePositiveRate).assertGet
 
-        val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).get
+        val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).unsafeGet
         footer.keyValueCount shouldBe keyValues.size
         footer.keyValueCount shouldBe keyValues.size
         footer.hasRange shouldBe true
@@ -273,7 +273,7 @@ class SegmentWriterReaderSpec extends TestBase {
 
         val (bytes, _) = SegmentWriter.write(keyValues, TestData.falsePositiveRate).assertGet
 
-        val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).get
+        val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).unsafeGet
         footer.keyValueCount shouldBe keyValues.size
         footer.keyValueCount shouldBe keyValues.size
         footer.hasRange shouldBe true
@@ -301,7 +301,7 @@ class SegmentWriterReaderSpec extends TestBase {
 
         val (bytes, _) = SegmentWriter.write(keyValues, TestData.falsePositiveRate).assertGet
 
-        val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).get
+        val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).unsafeGet
         footer.keyValueCount shouldBe keyValues.size
         footer.keyValueCount shouldBe keyValues.size
         footer.hasRange shouldBe false
@@ -329,7 +329,7 @@ class SegmentWriterReaderSpec extends TestBase {
 
         val (bytes, _) = SegmentWriter.write(keyValues, TestData.falsePositiveRate).assertGet
 
-        val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).get
+        val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).unsafeGet
         footer.keyValueCount shouldBe keyValues.size
         footer.keyValueCount shouldBe keyValues.size
         footer.hasRange shouldBe true
@@ -373,7 +373,7 @@ class SegmentWriterReaderSpec extends TestBase {
 
         val (bytes, _) = SegmentWriter.write(keyValues, TestData.falsePositiveRate).assertGet
 
-        val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).get
+        val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).unsafeGet
         footer.keyValueCount shouldBe keyValues.size
         footer.keyValueCount shouldBe keyValues.size
         footer.hasRange shouldBe true

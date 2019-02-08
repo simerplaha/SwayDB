@@ -19,16 +19,13 @@
 
 package swaydb.core.group.compression
 
-import java.util.concurrent.atomic.AtomicBoolean
-
+import scala.annotation.tailrec
 import swaydb.compression.DecompressorInternal
 import swaydb.core.group.compression.data.{GroupHeader, ValueInfo}
 import swaydb.core.io.reader.{GroupReader, Reader}
 import swaydb.core.segment.format.a.SegmentFooter
+import swaydb.data.io.{BusyBoolean, IO}
 import swaydb.data.slice.Reader
-
-import scala.annotation.tailrec
-import swaydb.data.io.IO
 
 private[core] case class GroupDecompressor(private val compressedGroupReader: Reader,
                                            groupStartOffset: Int) {
@@ -38,9 +35,9 @@ private[core] case class GroupDecompressor(private val compressedGroupReader: Re
   @volatile private var decompressedIndexReader: GroupReader = _ //reader for keys bytes that contains function to read value bytes
   @volatile private var decompressedValuesReader: Reader = _ //value bytes reader.
 
-  private val busyReadingHeader = new AtomicBoolean(false) //atomic boolean for reading header
-  private val busyIndexDecompressing = new AtomicBoolean(false) //atomic boolean for decompressing key bytes
-  private val busyValueDecompressing = new AtomicBoolean(false) //atomic boolean for decompressing value bytes
+  private val busyReadingHeader = BusyBoolean(false) //atomic boolean for reading header
+  private val busyIndexDecompressing = BusyBoolean(false) //atomic boolean for decompressing key bytes
+  private val busyValueDecompressing = BusyBoolean(false) //atomic boolean for decompressing value bytes
 
   /**
     * Compressed values do not need to be read & decompressed by multiple thread concurrently. The responsibility
@@ -57,7 +54,7 @@ private[core] case class GroupDecompressor(private val compressedGroupReader: Re
       IO(decompressedValuesReader.copy())
     else if (maxTimesToIO <= 0)
       IO.Failure(IO.Error.DecompressionValues(busyValueDecompressing))
-    else if (busyValueDecompressing.compareAndSet(false, true)) //start values decompression.
+    else if (BusyBoolean.setBusy(busyValueDecompressing)) //start values decompression.
       compressedGroupReader.copy().moveTo(groupStartOffset + headerSize + 1).read(valuesCompressedLength) flatMap { //move to the head of the compressed and read compressed value bytes.
         compressedValueBytes =>
           valuesCompression.decompress(compressedValueBytes, valuesDecompressedLength) map { //do decompressing
@@ -67,7 +64,7 @@ private[core] case class GroupDecompressor(private val compressedGroupReader: Re
           }
       } recoverWith {
         case ex =>
-          busyValueDecompressing.set(false) //free decompressor
+          BusyBoolean.setFree(busyValueDecompressing) //free decompressor
           IO.Failure(ex)
       }
     else //currently being decompressed by another thread. IO again!
@@ -125,14 +122,14 @@ private[core] case class GroupDecompressor(private val compressedGroupReader: Re
       IO.Success(groupHeader)
     else if (maxTimesToIO <= 0)
       IO.Failure(IO.Error.ReadingHeader(busyReadingHeader))
-    else if (busyReadingHeader.compareAndSet(false, true))
+    else if (BusyBoolean.setBusy(busyReadingHeader))
       readHeader() map {
         header =>
           groupHeader = header
           header
       } recoverWith {
         case ex: Exception =>
-          busyReadingHeader.set(false)
+          BusyBoolean.setFree(busyReadingHeader)
           IO.Failure(ex)
       }
     else
@@ -184,14 +181,14 @@ private[core] case class GroupDecompressor(private val compressedGroupReader: Re
       IO(decompressedIndexReader.copy())
     else if (timesToIO <= 0)
       IO.Failure(IO.Error.DecompressingIndex(busyIndexDecompressing))
-    else if (busyIndexDecompressing.compareAndSet(false, true)) //start decompressing keys.
+    else if (BusyBoolean.setBusy(busyIndexDecompressing)) //start decompressing keys.
       decompressor() map {
         reader =>
           decompressedIndexReader = reader
           reader.copy()
       } recoverWith {
         case error =>
-          busyIndexDecompressing.set(false) //free decompressor
+          BusyBoolean.setFree(busyIndexDecompressing) //free decompressor
           IO.Failure(error)
       }
     else

@@ -19,24 +19,27 @@
 
 package swaydb.data.io
 
-import java.util.concurrent.atomic.AtomicBoolean
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
+import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
+import scala.concurrent.{Await, Future}
+import scala.util.Random
 import swaydb.data.io.IO.{getOrNone, _}
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
+import scala.concurrent.duration._
 
 class IOSpec extends WordSpec with Matchers with MockFactory {
 
   "Catch" when {
     "exception" in {
       val exception = new Exception("Failed")
-      IO.Catch(throw exception).failed.get shouldBe exception
+      IO.Catch(throw exception).failed.unsafeGet shouldBe exception
     }
 
     "no exception" in {
-      IO.Catch(IO.successNone).get shouldBe empty
+      IO.Catch(IO.successNone).unsafeGet shouldBe empty
     }
   }
 
@@ -107,7 +110,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
             IO.Success(item + 1)
         }
 
-      result.get.toArray shouldBe Array(2, 3, 4, 5, 6)
+      result.unsafeGet.toArray shouldBe Array(2, 3, 4, 5, 6)
     }
 
     "allow map on Slice, terminating at first failure returning the failure and cleanUp should be invoked" in {
@@ -122,7 +125,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
         )
 
       result.isFailure shouldBe true
-      result.failed.get.getMessage shouldBe "Failed at 3"
+      result.failed.unsafeGet.getMessage shouldBe "Failed at 3"
 
       intsCleanedUp should contain inOrderOnly(1, 2)
     }
@@ -139,7 +142,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
             IO(Seq(item.toString))
         }
 
-      result.get.toArray shouldBe Array("1", "2", "3", "4", "5")
+      result.unsafeGet.toArray shouldBe Array("1", "2", "3", "4", "5")
     }
 
     "return failure" in {
@@ -155,7 +158,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
               IO.Failure(new Exception("Kaboom!"))
             }
         }
-      result.failed.get.getMessage shouldBe "Kaboom!"
+      result.failed.unsafeGet.getMessage shouldBe "Kaboom!"
     }
   }
 
@@ -173,7 +176,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
         }
 
       result.isFailure shouldBe true
-      result.failed.get.getMessage shouldBe "Failed at two"
+      result.failed.unsafeGet.getMessage shouldBe "Failed at two"
     }
 
     "allow fold on Slice" in {
@@ -186,7 +189,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
         }
 
       result.isSuccess shouldBe true
-      result.get shouldBe 3
+      result.unsafeGet shouldBe 3
     }
   }
 
@@ -215,7 +218,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
           }
         }
 
-      result.get shouldBe ((3, 3))
+      result.unsafeGet shouldBe ((3, 3))
       iterations shouldBe 3
     }
 
@@ -231,7 +234,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
           }
         }
 
-      result.get shouldBe empty
+      result.unsafeGet shouldBe empty
       iterations shouldBe 4
     }
 
@@ -248,7 +251,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
         }
 
       result.isFailure shouldBe true
-      result.failed.get.getMessage shouldBe "Failed at 1"
+      result.failed.unsafeGet.getMessage shouldBe "Failed at 1"
       iterations shouldBe 1
     }
   }
@@ -271,7 +274,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
             IO.Success(int + 1)
         }
 
-      io.get shouldBe 2
+      io.unsafeGet shouldBe 2
     }
 
     "flatMap on IO.Failure" in {
@@ -282,7 +285,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
         }
 
       assertThrows[Exception] {
-        io.get
+        io.unsafeGet
       }
     }
 
@@ -294,7 +297,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
             IO.Async(i + 1, IO.Error.None) flatMap {
               i =>
                 println("2")
-                IO.Failure(IO.Error.FetchingValue(new AtomicBoolean(false)))
+                IO.Failure(IO.Error.FetchingValue(BusyBoolean(false)))
             }
         }
 
@@ -302,9 +305,9 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
     }
 
     "safeGet on multiple when last is Async should return last Async" in {
-      val busy1 = new AtomicBoolean(true)
-      val busy2 = new AtomicBoolean(true)
-      val busy3 = new AtomicBoolean(true)
+      val busy1 = BusyBoolean(true)
+      val busy2 = BusyBoolean(true)
+      val busy3 = BusyBoolean(true)
 
       val io: Async[Int] =
         IO.Async(1, IO.Error.DecompressingIndex(busy1)) flatMap {
@@ -325,20 +328,20 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
       io0 shouldBe io
 
       //make first IO available
-      busy1.set(false)
+      BusyBoolean.setFree(busy1)
       val io1 = io.safeGet
       io1 shouldBe a[IO.Async[_]]
       io0.safeGet shouldBe a[IO.Async[_]]
 
       //make second IO available
-      busy2.set(false)
+      BusyBoolean.setFree(busy2)
       val io2 = io.safeGet
       io2 shouldBe a[IO.Async[_]]
       io0.safeGet shouldBe a[IO.Async[_]]
       io1.safeGet shouldBe a[IO.Async[_]]
 
       //make third IO available. Now all IOs are ready, safeGet will result in Success.
-      busy3.set(false)
+      BusyBoolean.setFree(busy3)
       val io3 = io.safeGet
       io3 shouldBe IO.Success(3)
       io0.safeGet shouldBe IO.Success(3)
@@ -351,5 +354,33 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
       io2.asInstanceOf[IO.Later[_]].isValueDefined shouldBe true
     }
 
+    "safeGetBlocking & safeGetFuture" in {
+      import scala.concurrent.ExecutionContext.Implicits.global
+
+      (1 to 2) foreach {
+        i =>
+          val booleans = Array.fill(101)(BusyBoolean(true))
+
+          val io: Async[Int] = {
+            (0 to 100).foldLeft(IO.Async(1, IO.Error.DecompressingIndex(BusyBoolean(false)))) {
+              case (previous, i) =>
+                previous flatMap {
+                  output =>
+                    Future {
+                      if (Random.nextBoolean()) Thread.sleep(Random.nextInt(100))
+                      BusyBoolean.setFree(booleans(i))
+                    }
+                    IO.Async(output + 1, IO.Error.DecompressionValues(booleans(i)))
+                }
+            }
+          }
+
+          if (i == 1)
+            io.safeGetBlocking shouldBe IO.Success(102)
+          else
+            Await.result(io.safeGetFuture, 5.seconds) shouldBe IO.Success(102)
+      }
+
+    }
   }
 }

@@ -45,7 +45,7 @@ object IOAssert extends Matchers with OptionValues {
           value
 
         case later: IO.Later[T] =>
-          later.get
+          later.unsafeGet
       }
   }
 
@@ -82,7 +82,7 @@ object IOAssert extends Matchers with OptionValues {
         case IO.Success(value) =>
           value.assertGet
         case later @ IO.Later(value, error) =>
-          later.get.assertGet
+          later.unsafeGet.assertGet
       }
 
     def assertGetOpt: Option[T] =
@@ -94,7 +94,7 @@ object IOAssert extends Matchers with OptionValues {
           value
 
         case later: IO.Later[Option[T]] =>
-          later.get
+          later.unsafeGet
       }
   }
 }

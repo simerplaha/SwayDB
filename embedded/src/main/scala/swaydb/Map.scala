@@ -301,13 +301,13 @@ case class Map[K, V](private[swaydb] val db: SwayDB,
   }
 
   override def size: Int =
-    sizeIO.get
+    sizeIO.unsafeGet
 
   def sizeIO: IO[Int] =
     db.keyValueCount
 
   override def isEmpty: Boolean =
-    db.headKey.get.isEmpty
+    db.headKey.unsafeGet.isEmpty
 
   override def nonEmpty: Boolean =
     !isEmpty
@@ -319,7 +319,7 @@ case class Map[K, V](private[swaydb] val db: SwayDB,
     lastOption.get
 
   override def headOption: Option[(K, V)] =
-    headOptionIO.get
+    headOptionIO.unsafeGet
 
   private def headOptionIO: IO[Option[(K, V)]] =
     if (from.isDefined)
@@ -333,7 +333,7 @@ case class Map[K, V](private[swaydb] val db: SwayDB,
       }
 
   override def lastOption: Option[(K, V)] =
-    lastOptionIO.get
+    lastOptionIO.unsafeGet
 
   private def lastOptionIO: IO[Option[(K, V)]] =
     db.last map {

@@ -22,9 +22,10 @@ package swaydb.data.io
 import java.io.FileNotFoundException
 import java.nio.channels.{AsynchronousCloseException, ClosedChannelException}
 import java.nio.file.{NoSuchFileException, Path}
-import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
+import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.reflect.ClassTag
 import swaydb.data.slice.{Slice, SliceReader}
 
@@ -37,7 +38,7 @@ sealed trait IO[+T] {
   def isLater: Boolean
   def getOrElse[U >: T](default: => U): U
   def orElse[U >: T](default: => IO[U]): IO[U]
-  def get: T
+  def unsafeGet: T
   def foreach[U](f: T => U): Unit
   def flatMap[U](f: T => IO[U]): IO[U]
   def map[U](f: T => U): IO[U]
@@ -61,7 +62,7 @@ sealed trait IO[+T] {
 }
 
 object IO {
-  object BusyException extends Exception("Is busy")
+  case class BusyException(error: Error.Busy) extends Exception("Is busy")
 
   val successUnit: IO.Success[Unit] = IO.Success()
   val successNone = IO.Success(None)
@@ -79,8 +80,10 @@ object IO {
     def isLater: Boolean
     def flatMap[U](f: T => Async[U]): Async[U]
     def mapAsync[U](f: T => U): Async[U]
-    def get: T
+    def unsafeGet: T
     def safeGet: IO.Async[T]
+    def safeGetBlocking: IO[T]
+    def safeGetFuture(implicit ec: ExecutionContext): Future[IO[T]]
     def getOrElse[U >: T](default: => U): U
     def recover[U >: T](f: PartialFunction[Throwable, U]): IO[U]
     def recoverWith[U >: T](f: PartialFunction[Throwable, IO[U]]): IO[U]
@@ -199,36 +202,34 @@ object IO {
 
   object Error {
 
-    private val notBusy = new AtomicBoolean(false)
-
     sealed trait Busy extends Error {
-      def busy: AtomicBoolean
+      def busy: BusyBoolean
       def isFree: Boolean =
-        !busy.get()
+        !busy.isBusy
     }
 
     case object None extends Busy {
-      override def busy: AtomicBoolean = notBusy
+      override def busy: BusyBoolean = BusyBoolean.notBusy
       override def toException: Throwable = new Exception("Not busy")
     }
 
-    case class OpeningFile(file: Path, busy: AtomicBoolean) extends Busy {
+    case class OpeningFile(file: Path, busy: BusyBoolean) extends Busy {
       override def toException: Throwable = new Exception(s"Failed to open file $file")
     }
 
-    case class DecompressingIndex(busy: AtomicBoolean) extends Busy {
+    case class DecompressingIndex(busy: BusyBoolean) extends Busy {
       override def toException: Throwable = new Exception("Failed to decompress index")
     }
 
-    case class DecompressionValues(busy: AtomicBoolean) extends Busy {
+    case class DecompressionValues(busy: BusyBoolean) extends Busy {
       override def toException: Throwable = new Exception("Failed to decompress index")
     }
 
-    case class ReadingHeader(busy: AtomicBoolean) extends Busy {
+    case class ReadingHeader(busy: BusyBoolean) extends Busy {
       override def toException: Throwable = new Exception("Failed to decompress index")
     }
 
-    case class FetchingValue(busy: AtomicBoolean) extends Busy {
+    case class FetchingValue(busy: BusyBoolean) extends Busy {
       override def toException: Throwable = new Exception("Failed to decompress index")
     }
 
@@ -285,17 +286,19 @@ object IO {
     override def isFailure: Boolean = false
     override def isSuccess: Boolean = true
     override def isLater: Boolean = false
-    override def get = value
-    override def safeGet = this
-    override def getOrElse[U >: T](default: => U): U = get
-    override def orElse[U >: T](default: => IO[U]): IO[U] = this
+    override def unsafeGet: T = value
+    override def safeGet: IO.Success[T] = this
+    override def safeGetBlocking: IO.Success[T] = this
+    override def safeGetFuture(implicit ec: ExecutionContext): Future[IO.Success[T]] = Future.successful(this)
+    override def getOrElse[U >: T](default: => U): U = unsafeGet
+    override def orElse[U >: T](default: => IO[U]): IO.Success[U] = this
     override def flatMap[U](f: T => IO[U]): IO[U] = IO.Catch(f(value))
     override def flatMap[U](f: T => Async[U]): Async[U] = f(value)
     override def flatten[U](implicit ev: T <:< IO[U]): IO[U] = value
     override def flatten[U](implicit ev: T <:< IO.Async[U]): IO.Async[U] = value
     override def foreach[U](f: T => U): Unit = f(value)
     override def map[U](f: T => U): IO[U] = IO[U](f(value))
-    override def mapAsync[U](f: T => U): IO.Async[U] = IO(f(get)).asInstanceOf[IO.Async[U]]
+    override def mapAsync[U](f: T => U): IO.Async[U] = IO(f(unsafeGet)).asInstanceOf[IO.Async[U]]
     override def recover[U >: T](f: PartialFunction[Throwable, U]): IO[U] = this
     override def recoverWith[U >: T](f: PartialFunction[Throwable, IO[U]]): IO[U] = this
     override def failed: IO[Throwable] = Failure(new UnsupportedOperationException("IO.Success.failed"))
@@ -332,12 +335,12 @@ object IO {
         //the following Exceptions will occur when a file was being read but
         //it was closed or deleted when it was being read. There is no AtomicBoolean busy
         //associated with these exception and should simply be retried.
-        case IO.BusyException => Async(operation, Error.None)
-        case _: NoSuchFileException => Async(operation, Error.None)
-        case _: FileNotFoundException => Async(operation, Error.None)
-        case _: AsynchronousCloseException => Async(operation, Error.None)
-        case _: ClosedChannelException => Async(operation, Error.None)
-        case _: NullPointerException => Async(operation, Error.None)
+        case IO.BusyException(error) => IO.Later(operation, error)
+        case _: NoSuchFileException => IO.Later(operation, Error.None)
+        case _: FileNotFoundException => IO.Later(operation, Error.None)
+        case _: AsynchronousCloseException => IO.Later(operation, Error.None)
+        case _: ClosedChannelException => IO.Later(operation, Error.None)
+        case _: NullPointerException => IO.Later(operation, Error.None)
         case _ => IO.Failure(exception)
       }
 
@@ -351,49 +354,101 @@ object IO {
 
   final case class Later[T](value: Unit => T,
                             error: Error.Busy) extends IO.Async[T] {
-    @volatile private var _value: Option[T] = None
 
-    def isFailure: Boolean = false
-    def isSuccess: Boolean = false
-    def isLater: Boolean = true
-    def isBusy = error.busy.get()
+    @volatile private var _value: Option[T] = None
 
     def isValueDefined: Boolean =
       _value.isDefined
 
-    def forceGet: T =
+    def isValueEmpty: Boolean =
+      !isValueDefined
+
+    def isFailure: Boolean = false
+    def isSuccess: Boolean = false
+    def isLater: Boolean = true
+    def isBusy = error.busy.isBusy
+
+    /**
+      * Opens all [[IO.Async]] types to read the final value in a blocking manner.
+      */
+    def safeGetBlocking: IO[T] = {
+
+      @tailrec
+      def doGet(later: IO.Later[T]): IO[T] = {
+        BusyBoolean.blockUntilFree(later.error.busy)
+        later.safeGet match {
+          case success @ IO.Success(_) =>
+            success
+
+          case later: IO.Later[T] =>
+            doGet(later)
+
+          case failure @ IO.Failure(_) =>
+            failure
+        }
+      }
+
+      doGet(this)
+    }
+
+    /**
+      * Opens all [[IO.Async]] types to read the final value in a non-blocking manner.
+      */
+    def safeGetFuture(implicit ec: ExecutionContext): Future[IO[T]] = {
+
+      def doGet(later: IO.Later[T]): Future[IO[T]] =
+        BusyBoolean.future(later.error.busy).map(_ => later.safeGet) flatMap {
+          case success @ IO.Success(_) =>
+            Future.successful(success)
+
+          case later: IO.Later[T] =>
+            doGet(later)
+
+          case failure @ IO.Failure(_) =>
+            Future.successful(failure)
+        }
+
+      doGet(this)
+    }
+
+    /**
+      * Runs composed functions.
+      */
+    private def forceGet: T =
       _value getOrElse {
         val got = value()
         _value = Some(got)
         got
       }
 
-    def get: T =
-      if (isBusy)
-      //Well! this is not very nice! Throwing and catching exception looses the error in the current IO.Async instance
-      //but still works since the get function knows of the previous defined error instance. Although this works it needs a
-      //nicer solution instead of throwing and catching exceptions.
-        throw BusyException
-      else
+    /**
+      * If value is readable gets or fetches and return's the value or else throws [[BusyException]].
+      *
+      * Don't not call this function use [[safeGetFuture]] or [[safeGetBlocking]] instead.
+      */
+    def unsafeGet: T =
+      if (_value.isDefined || !isBusy)
         forceGet
+      else
+        throw BusyException(error)
 
     def safeGet: IO.Async[T] =
-      if (isBusy)
-        this
+      if (_value.isDefined || !isBusy)
+        IO.Async.runSafe(unsafeGet)
       else
-        IO.Async.runSafe(get)
+        this
 
     def getOrElse[U >: T](default: => U): U =
       IO(forceGet).getOrElse(default)
 
-    def flatMap[U](f: T => IO.Async[U]): IO.Async[U] =
-      IO.Async(
-        value = f(get).get,
+    def flatMap[U](f: T => IO.Async[U]): IO.Later[U] =
+      IO.Later(
+        value = _ => f(unsafeGet).unsafeGet,
         error = error
       )
 
     def flatten[U](implicit ev: T <:< IO.Async[U]): IO.Async[U] = forceGet
-    def map[U](f: T => U): IO.Async[U] = IO.Async[U](f(forceGet), error)
+    def map[U](f: T => U): IO.Async[U] = IO.Later[U]((_: Unit) => f(forceGet), error)
     def mapAsync[U](f: T => U): IO.Async[U] = map(f)
     def recover[U >: T](f: PartialFunction[Throwable, U]): IO[U] = IO(forceGet).recover(f)
     def recoverWith[U >: T](f: PartialFunction[Throwable, IO[U]]): IO[U] = IO(forceGet).recoverWith(f)
@@ -411,8 +466,10 @@ object IO {
     override def isFailure: Boolean = true
     override def isSuccess: Boolean = false
     override def isLater: Boolean = false
-    override def get: T = throw error.toException
-    override def safeGet = this
+    override def unsafeGet: T = throw error.toException
+    override def safeGet: IO.Failure[T] = this
+    override def safeGetBlocking: IO.Failure[T] = this
+    override def safeGetFuture(implicit ec: ExecutionContext): Future[IO.Failure[T]] = Future.successful(this)
     override def getOrElse[U >: T](default: => U): U = default
     override def orElse[U >: T](default: => IO[U]): IO[U] = IO.Catch(default)
     override def flatMap[U](f: T => IO[U]): IO[U] = this.asInstanceOf[IO[U]]

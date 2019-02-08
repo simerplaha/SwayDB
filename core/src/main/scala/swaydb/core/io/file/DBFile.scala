@@ -21,14 +21,13 @@ package swaydb.core.io.file
 
 import com.typesafe.scalalogging.LazyLogging
 import java.nio.file.{NoSuchFileException, Path}
-import java.util.concurrent.atomic.AtomicBoolean
 import scala.annotation.tailrec
 import scala.concurrent.ExecutionContext
 import scala.util.hashing.MurmurHash3
 import swaydb.core.queue.{FileLimiter, FileLimiterItem}
 import swaydb.core.segment.SegmentException
 import swaydb.core.segment.SegmentException.CannotCopyInMemoryFiles
-import swaydb.data.io.IO
+import swaydb.data.io.{BusyBoolean, IO}
 import swaydb.data.slice.Slice
 
 object DBFile {
@@ -103,7 +102,7 @@ class DBFile(val path: Path,
              @volatile var file: Option[DBFileType])(implicit ec: ExecutionContext,
                                                      limiter: FileLimiter) extends FileLimiterItem with LazyLogging {
 
-  private val busy = new AtomicBoolean(false)
+  private val busy = BusyBoolean(false)
 
   if (autoClose && isOpen) limiter.close(this)
 
@@ -190,8 +189,8 @@ class DBFile(val path: Path,
         IO.Success(openedFile)
 
       case None =>
-        if (busy.compareAndSet(false, true))
-          try tryOpen() finally busy.set(false)
+        if (BusyBoolean.setBusy(busy))
+          try tryOpen() finally BusyBoolean.setFree(busy)
         else if (maxTries == 0)
           IO.Failure(IO.Error.OpeningFile(path, busy))
         else

@@ -22,7 +22,7 @@ package swaydb.core.seek
 import java.util.concurrent.atomic.AtomicBoolean
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, OptionValues, WordSpec}
-import swaydb.data.io.IO
+import swaydb.data.io.{BusyBoolean, IO}
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
@@ -258,7 +258,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         implicit val getFromCurrentLevel = mock[CurrentGetter]
         implicit val getFromNextLevel = mock[NextGetter]
 
-        val busy = IO.Error.DecompressingIndex(new AtomicBoolean(true))
+        val busy = IO.Error.DecompressingIndex(BusyBoolean(true))
 
         getFromCurrentLevel.get _ expects (1: Slice[Byte]) returning IO(Some(randomPendingApplyKeyValue(1)))
         getFromNextLevel.get _ expects (1: Slice[Byte]) returning IO.Async(Some(randomPutKeyValue(1, deadline = Some(expiredDeadline()))), busy)
@@ -268,7 +268,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         val ioStillBusy = io.safeGet
         ioStillBusy.isSuccess shouldBe false
 
-        busy.busy.set(false)
+        BusyBoolean.setFree(busy.busy)
         io.safeGet.assertGetOpt shouldBe empty
       }
     }

@@ -35,7 +35,7 @@ import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
 
 /**
-  * All public APIs are wrapped around a try catch block because eager fetches on IO's results (.get).
+  * All public APIs are wrapped around a try catch block because eager fetches on IO's results (.unsafeGet).
   * Eventually need to re-factor this code to use for comprehension.
   *
   * Leaving as it is now because it's easier to read.
@@ -94,7 +94,7 @@ private[core] object SegmentReader extends LazyLogging {
             indexEntrySize
 
           case None =>
-            indexReader.readIntUnsigned().get
+            indexReader.readIntUnsigned().unsafeGet
         }
 
       val remainingIndexBytesTillEnd = endIndexOffset - (indexReader.getPosition - 1 + indexSize)
@@ -103,7 +103,7 @@ private[core] object SegmentReader extends LazyLogging {
       val bytesToRead = indexSize + extraTailBytesToRead
 
       //read all bytes for this index entry plus the next 5 bytes to fetch next index entry's size.
-      val indexEntryBytesAndNextIndexEntrySize = (indexReader read bytesToRead).get
+      val indexEntryBytesAndNextIndexEntrySize = (indexReader read bytesToRead).unsafeGet
 
       //take only the bytes required for this in entry and submit it for parsing/reading.
       val indexEntryReader = Reader(indexEntryBytesAndNextIndexEntrySize.take(indexSize))
@@ -114,7 +114,7 @@ private[core] object SegmentReader extends LazyLogging {
       if (extraTailBytesToRead > 0) { //if extra tail byte were read this mean that this index has a next key-value.
         //next indexEntrySize is only read if it's required.
         val nextIndexEntrySize = Reader(indexEntryBytesAndNextIndexEntrySize.drop(indexSize))
-        (nextIndexEntrySize.readIntUnsigned().get, indexReader.getPosition - extraTailBytesToRead + adjustNextIndexOffsetBy)
+        (nextIndexEntrySize.readIntUnsigned().unsafeGet, indexReader.getPosition - extraTailBytesToRead + adjustNextIndexOffsetBy)
       } else {
         //no next key-value, next size is 0 and set offset to -1.
         (0, -1)
@@ -152,8 +152,8 @@ private[core] object SegmentReader extends LazyLogging {
       //since this is a index slice of the full Segment, adjustments for nextIndexOffset is required.
       val adjustNextIndexOffsetBy = footer.startIndexOffset
       //read full index in one disk seek and Slice it to KeyValue chunks.
-      val indexOnlyReader = Reader((reader moveTo footer.startIndexOffset read (footer.endIndexOffset - footer.startIndexOffset + 1)).get)
-      val endIndexOffset: Int = indexOnlyReader.size.get.toInt - 1
+      val indexOnlyReader = Reader((reader moveTo footer.startIndexOffset read (footer.endIndexOffset - footer.startIndexOffset + 1)).unsafeGet)
+      val endIndexOffset: Int = indexOnlyReader.size.unsafeGet.toInt - 1
 
       val entries = addTo getOrElse Slice.create[Persistent](footer.keyValueCount)
       (1 to footer.keyValueCount).foldLeftIO(Option.empty[Persistent]) {
@@ -218,26 +218,26 @@ private[core] object SegmentReader extends LazyLogging {
 
   def readFooter(reader: Reader): IO[SegmentFooter] =
     try {
-      val fileSize = reader.size.get
-      val footerSize = reader.moveTo(fileSize - ByteSizeOf.int).readInt().get
+      val fileSize = reader.size.unsafeGet
+      val footerSize = reader.moveTo(fileSize - ByteSizeOf.int).readInt().unsafeGet
       val footerBytes = reader.moveTo(fileSize - footerSize).read(footerSize - ByteSizeOf.int)
-      val footerReader = Reader(footerBytes.get)
-      val formatId = footerReader.readIntUnsigned().get
+      val footerReader = Reader(footerBytes.unsafeGet)
+      val formatId = footerReader.readIntUnsigned().unsafeGet
       assert(formatId == SegmentWriter.formatId, s"Invalid Segment formatId: $formatId. Expected: ${SegmentWriter.formatId}")
-      val hasRange = footerReader.readBoolean().get
-      val hasPut = footerReader.readBoolean().get
-      val indexStartOffset = footerReader.readIntUnsigned().get
-      val expectedCRC = footerReader.readLong().get
-      val keyValueCount = footerReader.readIntUnsigned().get
-      val bloomFilterItemsCount = footerReader.readIntUnsigned().get
-      val bloomFilterSize = footerReader.readIntUnsigned().get
+      val hasRange = footerReader.readBoolean().unsafeGet
+      val hasPut = footerReader.readBoolean().unsafeGet
+      val indexStartOffset = footerReader.readIntUnsigned().unsafeGet
+      val expectedCRC = footerReader.readLong().unsafeGet
+      val keyValueCount = footerReader.readIntUnsigned().unsafeGet
+      val bloomFilterItemsCount = footerReader.readIntUnsigned().unsafeGet
+      val bloomFilterSize = footerReader.readIntUnsigned().unsafeGet
       val bloomFilterSlice =
         if (bloomFilterSize == 0)
           None
         else
-          Some(footerReader.read(bloomFilterSize).get)
+          Some(footerReader.read(bloomFilterSize).unsafeGet)
 
-      val crcBytes = reader.moveTo(indexStartOffset).read(SegmentWriter.crcBytes).get
+      val crcBytes = reader.moveTo(indexStartOffset).read(SegmentWriter.crcBytes).unsafeGet
       val crc = CRC32.forBytes(crcBytes)
       if (expectedCRC != crc) {
         IO.Failure(SegmentCorruptionException(s"Corrupted Segment: CRC Check failed. $expectedCRC != $crc", new Exception("CRC check failed.")))

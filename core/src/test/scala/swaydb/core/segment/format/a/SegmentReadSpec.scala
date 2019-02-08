@@ -555,8 +555,8 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures with PrivateMeth
     "return non overlapping Segments" in {
       //0-1, 2-3
       //         4-5, 6-7
-      var segments1 = List(TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1)).toTransient).get, TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)).toTransient).get)
-      var segments2 = List(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5)).toTransient).get, TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7)).toTransient).get)
+      var segments1 = List(TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1)).toTransient).unsafeGet, TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)).toTransient).unsafeGet)
+      var segments2 = List(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5)).toTransient).unsafeGet, TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7)).toTransient).unsafeGet)
       Segment.nonOverlapping(segments1, segments2).map(_.path) shouldBe segments1.map(_.path)
       Segment.nonOverlapping(segments2, segments1).map(_.path) shouldBe segments2.map(_.path)
       Segment.overlaps(segments1, segments2).map(_.path) shouldBe empty
@@ -565,8 +565,8 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures with PrivateMeth
 
       //2-3, 4-5
       //     4-5, 6-7
-      segments1 = List(TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)).toTransient).get, TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5)).toTransient).get)
-      segments2 = List(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5)).toTransient).get, TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7)).toTransient).get)
+      segments1 = List(TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)).toTransient).unsafeGet, TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5)).toTransient).unsafeGet)
+      segments2 = List(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5)).toTransient).unsafeGet, TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7)).toTransient).unsafeGet)
       Segment.nonOverlapping(segments1, segments2).map(_.path) should contain only segments1.head.path
       Segment.nonOverlapping(segments2, segments1).map(_.path) should contain only segments2.last.path
       Segment.overlaps(segments1, segments2).map(_.path) should contain only segments1.last.path
@@ -574,8 +574,8 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures with PrivateMeth
 
       //4-5, 6-7
       //4-5, 6-7
-      segments1 = List(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5)).toTransient).get, TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7)).toTransient).get)
-      segments2 = List(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5)).toTransient).get, TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7)).toTransient).get)
+      segments1 = List(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5)).toTransient).unsafeGet, TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7)).toTransient).unsafeGet)
+      segments2 = List(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5)).toTransient).unsafeGet, TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7)).toTransient).unsafeGet)
       Segment.nonOverlapping(segments1, segments2).map(_.path) shouldBe empty
       Segment.nonOverlapping(segments2, segments1).map(_.path) shouldBe empty
       Segment.overlaps(segments1, segments2).map(_.path) shouldBe segments1.map(_.path)
@@ -583,8 +583,8 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures with PrivateMeth
 
       //     6-7, 8-9
       //4-5, 6-7
-      segments1 = List(TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7)).toTransient).get, TestSegment(Slice(randomFixedKeyValue(8), randomFixedKeyValue(9)).toTransient).get)
-      segments2 = List(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5)).toTransient).get, TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7)).toTransient).get)
+      segments1 = List(TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7)).toTransient).unsafeGet, TestSegment(Slice(randomFixedKeyValue(8), randomFixedKeyValue(9)).toTransient).unsafeGet)
+      segments2 = List(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5)).toTransient).unsafeGet, TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7)).toTransient).unsafeGet)
       Segment.nonOverlapping(segments1, segments2).map(_.path) should contain only segments1.last.path
       Segment.nonOverlapping(segments2, segments1).map(_.path) should contain only segments2.head.path
       Segment.overlaps(segments1, segments2).map(_.path) should contain only segments1.head.path
@@ -592,8 +592,8 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures with PrivateMeth
 
       //         8-9, 10-11
       //4-5, 6-7
-      segments1 = List(TestSegment(Slice(randomFixedKeyValue(8), randomFixedKeyValue(9)).toTransient).get, TestSegment(Slice(randomFixedKeyValue(10), randomFixedKeyValue(11)).toTransient).get)
-      segments2 = List(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5)).toTransient).get, TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7)).toTransient).get)
+      segments1 = List(TestSegment(Slice(randomFixedKeyValue(8), randomFixedKeyValue(9)).toTransient).unsafeGet, TestSegment(Slice(randomFixedKeyValue(10), randomFixedKeyValue(11)).toTransient).unsafeGet)
+      segments2 = List(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5)).toTransient).unsafeGet, TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7)).toTransient).unsafeGet)
       Segment.nonOverlapping(segments1, segments2).map(_.path) should contain allElementsOf segments1.map(_.path)
       Segment.nonOverlapping(segments2, segments1).map(_.path) should contain allElementsOf segments2.map(_.path)
       Segment.overlaps(segments1, segments2).map(_.path) shouldBe empty
@@ -601,8 +601,8 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures with PrivateMeth
 
       //1-2            10-11
       //     4-5, 6-7
-      segments1 = List(TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2)).toTransient).get, TestSegment(Slice(randomFixedKeyValue(10), randomFixedKeyValue(11)).toTransient).get)
-      segments2 = List(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5)).toTransient).get, TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7)).toTransient).get)
+      segments1 = List(TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2)).toTransient).unsafeGet, TestSegment(Slice(randomFixedKeyValue(10), randomFixedKeyValue(11)).toTransient).unsafeGet)
+      segments2 = List(TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5)).toTransient).unsafeGet, TestSegment(Slice(randomFixedKeyValue(6), randomFixedKeyValue(7)).toTransient).unsafeGet)
       Segment.nonOverlapping(segments1, segments2).map(_.path) should contain allElementsOf segments1.map(_.path)
       Segment.nonOverlapping(segments2, segments1).map(_.path) should contain allElementsOf segments2.map(_.path)
       Segment.overlaps(segments1, segments2).map(_.path) shouldBe empty
@@ -757,7 +757,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures with PrivateMeth
   }
 
   "Segment.getAllKeyValues" should {
-    "get KeyValues from multiple Segments" in {
+    "unsafeGet KeyValues from multiple Segments" in {
       runThis(10.times) {
         val keyValues1 = randomizedKeyValues(keyValuesCount)
         val keyValues2 = randomizedKeyValues(keyValuesCount)

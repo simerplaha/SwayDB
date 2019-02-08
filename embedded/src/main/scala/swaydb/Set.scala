@@ -243,10 +243,10 @@ case class Set[T](private val db: SwayDB,
     lastOption.get
 
   override def size: Int =
-    db.keyValueCount.get
+    db.keyValueCount.unsafeGet
 
   override def isEmpty: Boolean =
-    db.headKey.get.isEmpty
+    db.headKey.unsafeGet.isEmpty
 
   override def nonEmpty: Boolean =
     !isEmpty
@@ -255,10 +255,10 @@ case class Set[T](private val db: SwayDB,
     if (from.isDefined)
       this.take(1).headOption
     else
-      db.headKey.map(_.map(_.read[T])).get
+      db.headKey.map(_.map(_.read[T])).unsafeGet
 
   override def lastOption: Option[T] =
-    db.lastKey.map(_.map(_.read[T])).get
+    db.lastKey.map(_.map(_.read[T])).unsafeGet
 
   def foreachRight[U](f: T => U): Unit =
     copy(reverse = true) foreach f
