@@ -19,38 +19,33 @@
 
 package swaydb.core.util
 
+import com.typesafe.scalalogging.LazyLogging
 import java.io.FileNotFoundException
 import java.nio.channels.{AsynchronousCloseException, ClosedChannelException}
 import java.nio.file.NoSuchFileException
-
-import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.segment.SegmentException
 
 private[core] object ExceptionUtil extends LazyLogging {
 
   def logFailure(message: => String, exception: Throwable) =
     exception match {
-      case _: NullPointerException |
-           _: NoSuchFileException |
+//      case _: NullPointerException |
+//           _: NoSuchFileException |
 //           _: BusyOpeningFile |
-           _: FileNotFoundException |
-           _: AsynchronousCloseException |
-           _: ClosedChannelException =>
+//           _: FileNotFoundException |
+//           _: AsynchronousCloseException |
+//           _: ClosedChannelException |
 //           SegmentException.BusyDecompressingIndex |
 //           SegmentException.BusyDecompressionValues |
 //           SegmentException.BusyFetchingValue |
-//           SegmentException.BusyReadingHeader =>
-        //           ContainsOverlappingBusySegments =>
-        if (logger.underlying.isTraceEnabled) {
-          logger.trace(message, exception)
-          ???
-        }
+//           SegmentException.BusyReadingHeader |
+//           ContainsOverlappingBusySegments =>
+//        if (logger.underlying.isTraceEnabled)
+//          logger.trace(message, exception)
 
       //      case _: ArrayIndexOutOfBoundsException | _: IndexOutOfBoundsException | _: IllegalArgumentException | _: NegativeArraySizeException =>
       //        logger.error(message + " Corruption.", exception)
-      case _ => {
+      case _ =>
         logger.error(message, exception)
-        ???
-      }
     }
 }

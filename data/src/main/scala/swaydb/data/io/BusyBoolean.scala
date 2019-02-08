@@ -34,6 +34,7 @@ class BusyBoolean(@volatile private var busy: Boolean,
 object BusyBoolean {
 
   private val unitTry = scala.util.Success()
+  private val unitFuture = Future.successful(())
 
   val notBusy = BusyBoolean(false)
 
@@ -58,7 +59,7 @@ object BusyBoolean {
         boolean.savePromise(promise)
         promise.future
       } else {
-        Future.unit
+        unitFuture
       }
     }
 
