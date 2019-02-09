@@ -76,8 +76,8 @@ object IO {
     def isFailure: Boolean
     def isSuccess: Boolean
     def isLater: Boolean
-    def flatMap[U](f: T => Async[U]): Async[U]
-    def mapAsync[U](f: T => U): Async[U]
+    def flatMap[U](f: T => IO.Async[U]): IO.Async[U]
+    def mapAsync[U](f: T => U): IO.Async[U]
     def unsafeGet: T
     def safeGet: IO.Async[T]
     def safeGetBlocking: IO[T]
@@ -199,10 +199,8 @@ object IO {
     * Exception types for all known [[IO.Error]]s that can occur. Each [[IO.Error]] can be converted to
     * Exception which which can then be converted back to [[IO.Error]].
     *
-    * These exception are just a handy way to convert batch to typed [[IO.Error]] from untyped Exceptions.
-    *
-    * [[IO.Error]] are always preferred since they are typed. But raw exception are helpful when converting an [[IO]]
-    * type to [[scala.util.Try]].
+    * SwayDB's code itself does not use these exception it uses [[IO.Error]] type. These types are handy when
+    * converting an [[IO]] type to [[scala.util.Try]] by the client using [[IO.toTry]].
     */
   object Exception {
     case class Busy(error: Error.Busy) extends Exception("Is busy")
@@ -356,22 +354,22 @@ object IO {
     override def safeGetFuture(implicit ec: ExecutionContext): Future[IO.Success[T]] = Future.successful(this)
     override def getOrElse[U >: T](default: => U): U = unsafeGet
     override def orElse[U >: T](default: => IO[U]): IO.Success[U] = this
-    override def flatMap[U](f: T => IO[U]): IO[U] = IO.Catch(f(value))
-    override def flatMap[U](f: T => Async[U]): Async[U] = f(value)
-    override def flatten[U](implicit ev: T <:< IO[U]): IO[U] = value
-    override def flatten[U](implicit ev: T <:< IO.Async[U]): IO.Async[U] = value
-    override def foreach[U](f: T => U): Unit = f(value)
-    override def map[U](f: T => U): IO[U] = IO[U](f(value))
+    override def flatMap[U](f: T => IO[U]): IO[U] = IO.Catch(f(unsafeGet))
+    override def flatMap[U](f: T => IO.Async[U]): IO.Async[U] = f(unsafeGet)
+    override def flatten[U](implicit ev: T <:< IO[U]): IO[U] = unsafeGet
+    override def flatten[U](implicit ev: T <:< IO.Async[U]): IO.Async[U] = unsafeGet
+    override def foreach[U](f: T => U): Unit = f(unsafeGet)
+    override def map[U](f: T => U): IO[U] = IO[U](f(unsafeGet))
     override def mapAsync[U](f: T => U): IO.Async[U] = IO(f(unsafeGet)).asInstanceOf[IO.Async[U]]
     override def recover[U >: T](f: PartialFunction[IO.Error, U]): IO[U] = this
     override def recoverWith[U >: T](f: PartialFunction[IO.Error, IO[U]]): IO[U] = this
     override def failed: IO[IO.Error] = Failure(Error.Fatal(new UnsupportedOperationException("IO.Success.failed")))
-    override def toOption: Option[T] = Some(value)
-    override def toEither: Either[IO.Error, T] = Right(value)
+    override def toOption: Option[T] = Some(unsafeGet)
+    override def toEither: Either[IO.Error, T] = Right(unsafeGet)
     override def filter(p: T => Boolean): IO[T] =
-      IO.Catch(if (p(value)) this else IO.Failure(Error.Fatal(new NoSuchElementException("Predicate does not hold for " + value))))
-    override def toFuture: Future[T] = Future.successful(value)
-    override def toTry: scala.util.Try[T] = scala.util.Success(value)
+      IO.Catch(if (p(unsafeGet)) this else IO.Failure(Error.Fatal(new NoSuchElementException("Predicate does not hold for " + unsafeGet))))
+    override def toFuture: Future[T] = Future.successful(unsafeGet)
+    override def toTry: scala.util.Try[T] = scala.util.Success(unsafeGet)
     override def onFailure[U >: T](f: IO.Failure[U] => Unit): IO[U] = this
   }
 
@@ -385,7 +383,7 @@ object IO {
     def recover[T](failure: IO.Failure[T], operation: => T): IO.Async[T] =
       failure.error match {
         case busy: Error.Busy =>
-          Async(operation, busy)
+          IO.Async(operation, busy)
 
         case Error.Fatal(system) =>
           recover(system, operation)
@@ -400,7 +398,7 @@ object IO {
         case other: Error => IO.Failure(other)
       }
 
-    def apply[T](value: => T, error: Error.Busy): Async[T] =
+    def apply[T](value: => T, error: Error.Busy): IO.Async[T] =
       new Later(_ => value, error)
   }
 

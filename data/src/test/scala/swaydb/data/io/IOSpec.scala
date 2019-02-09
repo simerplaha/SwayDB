@@ -27,6 +27,7 @@ import scala.concurrent.{Await, Future}
 import scala.util.Random
 import swaydb.data.io.IO.{getOrNone, _}
 import swaydb.data.slice.Slice
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class IOSpec extends WordSpec with Matchers with MockFactory {
 
@@ -252,6 +253,62 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
 
     "no exception" in {
       getOrNone("success").get shouldBe "success"
+    }
+  }
+
+  "IO.Success" should {
+    "set boolean" in {
+      val io = IO.Success(1)
+      io.isFailure shouldBe false
+      io.isLater shouldBe false
+      io.isSuccess shouldBe true
+    }
+
+    "get" in {
+      val io = IO.Success(1)
+
+      io.unsafeGet shouldBe 1
+      io.safeGet shouldBe io
+      io.safeGetBlocking shouldBe io
+      Await.result(io.safeGetFuture, 1.second) shouldBe io
+    }
+
+    "getOrElse & orElse return first io if both are successes" in {
+      val io1 = IO.Success(1)
+      val io2 = IO.Success(2)
+
+      io1 getOrElse io2 shouldBe 1
+
+      io1 orElse io2 shouldBe io1
+    }
+
+    "getOrElse return second io first is failure" in {
+      val io = IO.Failure(IO.Error.NoSuchFile(new Exception("")))
+
+      io getOrElse 2 shouldBe 2
+
+      io orElse IO.Success(2) shouldBe IO.Success(2)
+    }
+
+    "flatMap on failure" in {
+      val failure = IO.Failure(IO.Error.NoSuchFile(new Exception("")))
+
+      (IO.Success(1): IO[Int]) flatMap {
+        _ =>
+          failure
+      } shouldBe failure
+    }
+
+    "flatten" in {
+      val sss: IO[IO[IO[IO[Int]]]] = IO.Success(IO.Success(IO.Success(IO.Success(1))))
+
+      sss.flatten.flatten.flatten shouldBe IO.Success(1)
+    }
+
+    "flatten on successes with failure" in {
+      val sss: IO[IO[IO[IO[Int]]]] = IO.Success(IO.Success(IO.Success(IO.Failure(IO.Error.Fatal(new Exception("Kaboom!"))))))
+
+      sss.flatten.flatten.flatten.asInstanceOf[IO.Failure[Int]].exception.getMessage shouldBe "Kaboom!"
     }
   }
 
