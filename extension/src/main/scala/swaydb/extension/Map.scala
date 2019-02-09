@@ -338,7 +338,7 @@ class Map[K, V](map: swaydb.Map[Key[K], Option[V]],
       case Some(value) =>
         IO.Success(value)
       case None =>
-        IO.successNone
+        IO.none
     }
 
   /**
@@ -356,7 +356,7 @@ class Map[K, V](map: swaydb.Map[Key[K], Option[V]],
             IO.Failure(new Exception(s"Unable to fetch key. Got: $got expected MapKey.Entry"))
         }
       case None =>
-        IO.successNone
+        IO.none
     }
 
   def getKeyValue(key: K): IO[Option[(K, V)]] =
@@ -375,7 +375,7 @@ class Map[K, V](map: swaydb.Map[Key[K], Option[V]],
             IO.Failure(new Exception(s"Unable to fetch keyValue. Got: $got expected MapKey.Entry"))
         }
       case None =>
-        IO.successNone
+        IO.none
     }
 
   def keys: MapKeysIterator[K] =

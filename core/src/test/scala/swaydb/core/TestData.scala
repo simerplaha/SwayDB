@@ -114,7 +114,7 @@ object TestData {
 
     def putKeyValues(keyValues: Iterable[KeyValue.ReadOnly])(implicit fileLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter): IO[Unit] =
       if (keyValues.isEmpty)
-        IO.successUnit
+        IO.unit
       else
         Segment.copyToMemory(keyValues, Paths.get("testMemorySegment"), false, 1000.mb, TestData.falsePositiveRate, true) flatMap {
           segments =>
@@ -195,14 +195,14 @@ object TestData {
 
     def putKeyValues(keyValues: Iterable[KeyValue.ReadOnly]): IO[Unit] =
       if (keyValues.isEmpty)
-        IO.successUnit
+        IO.unit
       else
         keyValues.toMapEntry match {
           case Some(value) =>
 //            level.put(value) map (_ => ())
             ???
           case None =>
-            IO.successUnit
+            IO.unit
         }
   }
 

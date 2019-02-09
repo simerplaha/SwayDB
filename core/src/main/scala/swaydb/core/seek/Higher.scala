@@ -408,7 +408,7 @@ private[core] object Higher {
         }
 
       case (Seek.Stop, Seek.Stop) =>
-        IO.successNone
+        IO.none
     }
   }
 }

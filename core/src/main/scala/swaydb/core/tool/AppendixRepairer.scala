@@ -154,7 +154,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
               case Some(IO.Failure(exception)) =>
                 IO.Failure(exception)
               case None =>
-                IO.successUnit
+                IO.unit
             }
         }
     }

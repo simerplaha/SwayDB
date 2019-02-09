@@ -98,7 +98,7 @@ class GroupDecompressorSpec extends TestBase {
                 case IO.Success(value) =>
                   try {
                     value.get.toMemory().assertGet shouldBe keyValue
-                    IO.successUnit
+                    IO.unit
                   } catch {
                     case ex: Exception =>
                       IO.Failure(ex.getCause)

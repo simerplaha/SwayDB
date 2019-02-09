@@ -200,7 +200,7 @@ private[core] object SegmentAssigner {
           assign(remainingKeyValues, Some(nextSegment), getNextSegmentMayBe())
 
         case (_, _, _) =>
-          IO.successUnit
+          IO.unit
       }
 
     if (segments.size == 1)

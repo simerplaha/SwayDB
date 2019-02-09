@@ -39,7 +39,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
     }
 
     "no exception" in {
-      IO.Catch(IO.successNone).unsafeGet shouldBe empty
+      IO.Catch(IO.none).unsafeGet shouldBe empty
     }
   }
 
@@ -214,7 +214,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
             if (item == 3)
               IO.Success(Some(item))
             else
-              IO.successNone
+              IO.none
           }
         }
 
@@ -230,7 +230,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
         slice.untilSome {
           _ => {
             iterations += 1
-            IO.successNone
+            IO.none
           }
         }
 

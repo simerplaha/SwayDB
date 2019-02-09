@@ -47,9 +47,9 @@ private[core] object TrashLevel extends LevelRef {
   override def !(request: LevelAPI): Unit =
     request match {
       case request: PushSegments =>
-        request.replyTo ! PushSegmentsResponse(request, IO.successUnit)
+        request.replyTo ! PushSegmentsResponse(request, IO.unit)
       case request: PushMap =>
-        request.replyTo ! PushMapResponse(request, IO.successUnit)
+        request.replyTo ! PushMapResponse(request, IO.unit)
       case PullRequest(pullFrom) =>
         pullFrom ! Pull
     }
@@ -97,19 +97,19 @@ private[core] object TrashLevel extends LevelRef {
     (0, 0)
 
   override val head =
-    IO.successNone
+    IO.none
 
   override val last =
-    IO.successNone
+    IO.none
 
   override def get(key: Slice[Byte]) =
-    IO.successNone
+    IO.none
 
   override def lower(key: Slice[Byte]) =
-    IO.successNone
+    IO.none
 
   override def higher(key: Slice[Byte]) =
-    IO.successNone
+    IO.none
 
   override val isEmpty: Boolean =
     true
@@ -127,10 +127,10 @@ private[core] object TrashLevel extends LevelRef {
     0
 
   override def releaseLocks: IO[Unit] =
-    IO.successUnit
+    IO.unit
 
   override val close: IO[Unit] =
-    IO.successUnit
+    IO.unit
 
   override val meter: LevelMeter =
     LevelMeter(0, 0)
@@ -144,19 +144,19 @@ private[core] object TrashLevel extends LevelRef {
   override val isTrash: Boolean = true
 
   override def ceiling(key: Slice[Byte]): IO.Async[Option[KeyValue.ReadOnly.Put]] =
-    IO.successNone
+    IO.none
 
   override def floor(key: Slice[Byte]): IO.Async[Option[KeyValue.ReadOnly.Put]] =
-    IO.successNone
+    IO.none
 
   override val headKey: IO.Async[Option[Slice[Byte]]] =
-    IO.successNone
+    IO.none
 
   override val lastKey: IO.Async[Option[Slice[Byte]]] =
-    IO.successNone
+    IO.none
 
   override def closeSegments(): IO[Unit] =
-    IO.successUnit
+    IO.unit
 
   override def levelNumber: Long = -1
 }

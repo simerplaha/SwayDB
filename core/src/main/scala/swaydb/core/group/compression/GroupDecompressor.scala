@@ -87,9 +87,9 @@ private[core] case class GroupDecompressor(private val compressedGroupReader: Re
       indexCompressedLength <- header.readIntUnsigned()
       hasValues <- header.hasMore //read values related header bytes only if header contains more data.
       //this Compression instance is used for decompressing only so minCompressionPercentage is irrelevant
-      valuesCompression <- if (hasValues) header.readIntUnsigned().flatMap(id => DecompressorInternal(id).map(Some(_))) else IO.successNone
-      valuesDecompressedLength <- if (hasValues) header.readIntUnsigned() else IO.successZero
-      valuesCompressedLength <- if (hasValues) header.readIntUnsigned() else IO.successZero
+      valuesCompression <- if (hasValues) header.readIntUnsigned().flatMap(id => DecompressorInternal(id).map(Some(_))) else IO.none
+      valuesDecompressedLength <- if (hasValues) header.readIntUnsigned() else IO.zero
+      valuesCompressedLength <- if (hasValues) header.readIntUnsigned() else IO.zero
     } yield {
       GroupHeader(
         headerSize = headerSize,

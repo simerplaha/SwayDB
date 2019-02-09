@@ -63,15 +63,15 @@ sealed trait IO[+T] {
 object IO {
   case class BusyException(error: Error.Busy) extends Exception("Is busy")
 
-  val successUnit: IO.Success[Unit] = IO.Success()
-  val successNone = IO.Success(None)
-  val successFalse = IO.Success(false)
-  val successTrue = IO.Success(true)
-  val successZero = IO.Success(0)
+  val unit: IO.Success[Unit] = IO.Success()
+  val none = IO.Success(None)
+  val `false` = IO.Success(false)
+  val `true` = IO.Success(true)
+  val zero = IO.Success(0)
   val emptyReader = IO.Success(SliceReader(Slice.emptyBytes))
-  val successEmptyBytes = IO.Success(Slice.emptyBytes)
-  val successNoneTime = IO.Success(None)
-  val successEmptySeqBytes = IO.Success(Seq.empty[Slice[Byte]])
+  val emptyBytes = IO.Success(Slice.emptyBytes)
+  val noneTime = IO.Success(None)
+  val emptySeqBytes = IO.Success(Seq.empty[Slice[Byte]])
 
   sealed trait Async[+T] {
     def isFailure: Boolean
@@ -112,13 +112,14 @@ object IO {
           f(item) match {
             case IO.Success(Some(value)) =>
               return IO.Success(Some(value, item))
+
             case IO.Success(None) =>
 
             case IO.Failure(exception) =>
               return IO.Failure(exception)
           }
       }
-      IO.successNone
+      IO.none
     }
 
     def mapIO[R: ClassTag](ioBlock: T => IO[R],

@@ -41,7 +41,7 @@ object ValueReader {
     override def read[V](indexReader: Reader,
                          previous: Option[Persistent])(implicit valueOffsetReader: ValueOffsetReader[V],
                                                        valueLengthReader: ValueLengthReader[V]): IO[Option[(Int, Int)]] =
-      IO.successNone
+      IO.none
   }
 
   implicit object ValueUncompressedReader extends ValueReader[EntryId.Value.Uncompressed] {

@@ -75,13 +75,13 @@ private[file] class MMAPFile(val path: Path,
       }
     } else {
       logger.trace("{}: Already closed.", path)
-      IO.successUnit
+      IO.unit
     }
   }
 
   def forceSave(): IO[Unit] =
     if (mode == MapMode.READ_ONLY)
-      IO.successUnit
+      IO.unit
     else
       IO(buffer.force())
 

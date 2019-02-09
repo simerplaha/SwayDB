@@ -133,7 +133,7 @@ class DBFile(val path: Path,
             //cannot lose reference to in-memory file on close. Only on delete, this in-memory file reference can be discarded.
             if (!memory) file = None
         }
-    } getOrElse IO.successUnit
+    } getOrElse IO.unit
 
   //if it's an in memory files return failure as Memory files cannot be copied.
   def copyTo(toPath: Path): IO[Path] =
@@ -229,7 +229,7 @@ class DBFile(val path: Path,
     openFile() flatMap (_.isFull)
 
   def forceSave(): IO[Unit] =
-    file.map(_.forceSave()) getOrElse IO.successUnit
+    file.map(_.forceSave()) getOrElse IO.unit
 
   def persistent: Boolean =
     !memory

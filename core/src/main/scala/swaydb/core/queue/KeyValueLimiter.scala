@@ -141,7 +141,7 @@ private object NoneKeyValueLimiter extends KeyValueLimiter {
 
   override def add(keyValue: KeyValue.ReadOnly.Group,
                    skipList: ConcurrentSkipListMap[Slice[Byte], _]): IO[Unit] =
-    IO.successUnit
+    IO.unit
 
   override def add(keyValue: Persistent.SegmentResponse,
                    skipList: ConcurrentSkipListMap[Slice[Byte], _]): Unit =

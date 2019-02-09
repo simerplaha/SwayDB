@@ -291,7 +291,7 @@ class LevelZeroMapEntrySpec extends TestBase {
         import LevelZeroMapEntryWriter.Level0MapEntryPutWriter
         val bytes = MapCodec.write[Slice[Byte], Memory.SegmentResponse](skipList)
         val recoveryResult = MapCodec.read[Slice[Byte], Memory.SegmentResponse](bytes, false).assertGet
-        recoveryResult.result shouldBe IO.successUnit
+        recoveryResult.result shouldBe IO.unit
 
         val readEntries = recoveryResult.item.assertGet
         //clear and apply new skipList and the result should be the same as previous.

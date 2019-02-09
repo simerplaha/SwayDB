@@ -77,12 +77,12 @@ object ValueOffsetReader {
   implicit object ValueOffsetReaderNoValue extends ValueOffsetReader[EntryId.Value.NoValue] {
     override def read(indexReader: Reader,
                       previous: Option[Persistent]): IO[Int] =
-      IO.successZero
+      IO.zero
   }
 
   implicit object ValueOffsetReaderValueFullyCompressed extends ValueOffsetReader[EntryId.Value.FullyCompressed] {
     override def read(indexReader: Reader,
                       previous: Option[Persistent]): IO[Int] =
-      IO.successZero
+      IO.zero
   }
 }

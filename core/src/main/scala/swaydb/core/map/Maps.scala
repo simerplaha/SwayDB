@@ -148,7 +148,7 @@ private[core] object Maps extends LazyLogging {
                   EffectIO.walkDelete(mapPath) match {
                     case IO.Success(_) =>
                       logger.info(s"{}: Deleted file after corruption. Recovery mode: {}", mapPath, recovery.name)
-                      IO.successUnit
+                      IO.unit
 
                     case IO.Failure(error) =>
                       logger.error(s"{}: IO.Failure to delete file after corruption file. Recovery mode: {}", mapPath, recovery.name)
@@ -401,7 +401,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
             IO.Failure(error)
 
           case IO.Success(_) =>
-            IO.successUnit
+            IO.unit
         }
     }
 
@@ -423,7 +423,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
   def close: IO[Unit] =
     (Seq(currentMap) ++ maps.asScala)
       .foreachIO(f = _.close(), failFast = false)
-      .getOrElse(IO.successUnit)
+      .getOrElse(IO.unit)
 
   def getMeter =
     Level0Meter(fileSize, currentMap.fileSize, maps.size() + 1)

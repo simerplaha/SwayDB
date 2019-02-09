@@ -54,7 +54,7 @@ object EffectIO extends LazyLogging {
       if (written != bytes.written)
         IO.Failure(SegmentException.FailedToWriteAllBytes(written, bytes.written, bytes.size))
       else
-        IO.successUnit
+        IO.unit
     } catch {
       case exception: Exception =>
         IO.Failure(exception)
@@ -73,7 +73,7 @@ object EffectIO extends LazyLogging {
     if (exists(path))
       delete(path)
     else
-      IO.successUnit
+      IO.unit
 
   def createFile(path: Path): IO[Path] =
     IO {
@@ -120,7 +120,7 @@ object EffectIO extends LazyLogging {
             FileVisitResult.CONTINUE
           }
         })
-      IO.successUnit
+      IO.unit
     } catch {
       case exception: Throwable =>
         IO.Failure(exception)
@@ -141,5 +141,5 @@ object EffectIO extends LazyLogging {
   }
 
   def release(lock: Option[FileLock]): IO[Unit] =
-    lock.map(release).getOrElse(IO.successUnit)
+    lock.map(release).getOrElse(IO.unit)
 }

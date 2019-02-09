@@ -34,7 +34,7 @@ private[file] class MemoryFile(val path: Path,
                                private var bytes: Slice[Byte]) extends LazyLogging with DBFileType {
 
   override def close(): IO[Unit] =
-    IO.successUnit
+    IO.unit
 
   override def append(slice: Slice[Byte]): IO[Unit] =
     IO.Failure(new UnsupportedOperationException("Memory files are immutable. Cannot append."))
@@ -73,5 +73,5 @@ private[file] class MemoryFile(val path: Path,
     }
 
   override def forceSave(): IO[Unit] =
-    IO.successUnit
+    IO.unit
 }

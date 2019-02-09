@@ -52,7 +52,7 @@ private[core] object GroupCompressor extends LazyLogging {
     indexCompressions.untilSome(_.compressor.compress(indexBytes)) flatMap {
       case None =>
         logger.warn(s"Unable to apply valid compressor for keyBytes: ${indexBytes.size}. Ignoring key & value compression for $keyValueCount key-values.")
-        IO.successNone
+        IO.none
 
       case Some((compressedKeys, keyCompression)) =>
         logger.debug(s"Keys successfully compressed with Compression: ${keyCompression.getClass.getSimpleName}. ${indexBytes.size}.bytes compressed to ${compressedKeys.size}.bytes")
@@ -71,7 +71,7 @@ private[core] object GroupCompressor extends LazyLogging {
           valueCompressions.untilSome(_.compressor.compress(valueBytes)) flatMap { //if values exists do compressed.
             case None => //if unable to compress values from all the input compression configurations, return None so that compression continues on larger key-value bytes.
               logger.warn(s"Unable to apply valid compressor for valueBytes of ${valueBytes.size}.bytes. Ignoring value compression for $keyValueCount key-values.")
-              IO.successNone //break out because values were not compressed.
+              IO.none //break out because values were not compressed.
 
             case Some((compressedValueBytes, valueCompression)) =>
               logger.debug(s"Values successfully compressed with Compression: ${valueCompression.getClass.getSimpleName}. ${valueBytes.size}.bytes compressed to ${compressedValueBytes.size}.bytes")
@@ -101,7 +101,7 @@ private[core] object GroupCompressor extends LazyLogging {
                previous: Option[KeyValue.WriteOnly]): IO[Option[Transient.Group]] =
     if (keyValues.isEmpty) {
       logger.error(s"Ignoring compression. Cannot compress on empty key-values")
-      IO.successNone
+      IO.none
     } else if (keyValues.head.stats.position != 1) {
       //Cannot write key-values that belong to another Group or Segment. Groups key-values should have stats reset.
       val message = InvalidGroupKeyValuesHeadPosition(keyValues.head.stats.position)
@@ -203,7 +203,7 @@ private[core] object GroupCompressor extends LazyLogging {
                 }
 
             case None =>
-              IO.successNone
+              IO.none
           }
       }
     }

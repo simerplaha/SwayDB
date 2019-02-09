@@ -71,7 +71,7 @@ private[core] object Level extends LazyLogging {
         Some(lock)
       }
     else
-      IO.successNone
+      IO.none
 
   def apply(segmentSize: Long,
             bloomFilterFalsePositiveRate: Double,
@@ -142,7 +142,7 @@ private[core] object Level extends LazyLogging {
             appendix.asScala foreachIO {
               case (_, segment) =>
                 if (segment.existsOnDisk)
-                  IO.successUnit
+                  IO.unit
                 else
                   IO.Failure(SegmentFileMissing(segment.path))
             } match {
@@ -247,7 +247,7 @@ private[core] class Level(val dirs: Seq[Dir],
   def releaseLocks: IO[Unit] =
     EffectIO.release(lock) flatMap {
       _ =>
-        nextLevel.map(_.releaseLocks) getOrElse IO.successUnit
+        nextLevel.map(_.releaseLocks) getOrElse IO.unit
     }
 
   private def deleteUncommittedSegments(): Unit =
@@ -298,7 +298,7 @@ private[core] class Level(val dirs: Seq[Dir],
         if (pushForward && isEmpty && nextLevel.isEmpty) {
           logger.debug("{}: Push forwarded.", paths)
           nextLevel ! command
-          IO.successUnit
+          IO.unit
         }
         else
           IO.Failure(IO.Error.NotSentToNextLevel)
@@ -429,7 +429,7 @@ private[core] class Level(val dirs: Seq[Dir],
                       IO.Failure(exception)
                   }
                 else
-                  IO.successUnit
+                  IO.unit
             }
           else
             putKeyValues(Slice(map.values().toArray(new Array[Memory](map.skipList.size()))), appendixValues, None)
@@ -511,7 +511,7 @@ private[core] class Level(val dirs: Seq[Dir],
     logger.debug("{}: Running clearExpiredKeyValues.", paths.head)
     if (nextLevel.nonEmpty) { //only run this if it's the last Level.
       logger.error("{}: clearExpiredKeyValues ran a Level that is not the last Level.", paths.head)
-      IO.successUnit
+      IO.unit
     } else {
       Segment.getNearestDeadlineSegment(appendix.values().asScala) map {
         segmentToClear =>
@@ -541,7 +541,7 @@ private[core] class Level(val dirs: Seq[Dir],
                             case exception =>
                               logger.error(s"Failed to delete Segments '{}'. Manually delete these Segments or reboot the database.", segmentToClear.path, exception)
                           }
-                        IO.successUnit
+                        IO.unit
                     }
                 } recoverWith {
                   case exception =>
@@ -559,7 +559,7 @@ private[core] class Level(val dirs: Seq[Dir],
       } getOrElse {
         logger.debug("{}: No expired key-values to clear.", paths.head)
         alertActorForSegmentManagement()
-        IO.successUnit
+        IO.unit
       }
     }
   }
@@ -573,7 +573,7 @@ private[core] class Level(val dirs: Seq[Dir],
   def collapseAllSmallSegments(batch: Int): IO[Int] = {
     logger.trace("{}: Running collapseAllSmallSegments batch: '{}'.", paths.head, batch)
     if (batch <= 0)
-      IO.successZero
+      IO.zero
     else
       collapseSegments(batch, isSmallSegment)
   }
@@ -586,7 +586,7 @@ private[core] class Level(val dirs: Seq[Dir],
     def run(timesToRun: Int): IO[Int] = {
       val segmentsToCollapse = takeSegments(count, condition)
       if (segmentsToCollapse.isEmpty) {
-        IO.successZero
+        IO.zero
       } else {
         val busySegments = getBusySegments()
         if (Segment.intersects(segmentsToCollapse, busySegments)) {
@@ -882,11 +882,11 @@ private[core] class Level(val dirs: Seq[Dir],
         segment get key
 
       case None =>
-        IO.successNone
+        IO.none
     }
 
   def getFromNextLevel(key: Slice[Byte]): IO.Async[Option[KeyValue.ReadOnly.Put]] =
-    nextLevel.map(_.get(key)) getOrElse IO.successNone
+    nextLevel.map(_.get(key)) getOrElse IO.none
 
   override def get(key: Slice[Byte]): IO.Async[Option[KeyValue.ReadOnly.Put]] =
     Get(key)
@@ -910,10 +910,10 @@ private[core] class Level(val dirs: Seq[Dir],
     }
 
   private def lowerInThisLevel(key: Slice[Byte]): IO[Option[ReadOnly.SegmentResponse]] =
-    appendix.lowerValue(key).map(_.lower(key)) getOrElse IO.successNone
+    appendix.lowerValue(key).map(_.lower(key)) getOrElse IO.none
 
   private def lowerFromNextLevel(key: Slice[Byte]): IO.Async[Option[ReadOnly.Put]] =
-    nextLevel.map(_.lower(key)) getOrElse IO.successNone
+    nextLevel.map(_.lower(key)) getOrElse IO.none
 
   override def floor(key: Slice[Byte]): IO.Async[Option[KeyValue.ReadOnly.Put]] =
     get(key) match {
@@ -938,10 +938,10 @@ private[core] class Level(val dirs: Seq[Dir],
     )
 
   private def higherFromFloorSegment(key: Slice[Byte]): IO[Option[ReadOnly.SegmentResponse]] =
-    appendix.floor(key).map(_.higher(key)) getOrElse IO.successNone
+    appendix.floor(key).map(_.higher(key)) getOrElse IO.none
 
   private def higherFromHigherSegment(key: Slice[Byte]): IO[Option[ReadOnly.SegmentResponse]] =
-    appendix.higherValue(key).map(_.higher(key)) getOrElse IO.successNone
+    appendix.higherValue(key).map(_.higher(key)) getOrElse IO.none
 
   private[core] def higherInThisLevel(key: Slice[Byte]): IO[Option[KeyValue.ReadOnly.SegmentResponse]] =
     higherFromFloorSegment(key) flatMap {
@@ -953,7 +953,7 @@ private[core] class Level(val dirs: Seq[Dir],
     }
 
   private def higherInNextLevel(key: Slice[Byte]): IO.Async[Option[KeyValue.ReadOnly.Put]] =
-    nextLevel.map(_.higher(key)) getOrElse IO.successNone
+    nextLevel.map(_.higher(key)) getOrElse IO.none
 
   def ceiling(key: Slice[Byte]): IO.Async[Option[KeyValue.ReadOnly.Put]] =
     get(key) match {
@@ -982,7 +982,7 @@ private[core] class Level(val dirs: Seq[Dir],
     * It does not check if the returned key is removed. Use [[Level.head]] instead.
     */
   override def headKey: IO.Async[Option[Slice[Byte]]] =
-    nextLevel.map(_.headKey) getOrElse IO.successNone mapAsync {
+    nextLevel.map(_.headKey) getOrElse IO.none mapAsync {
       nextLevelFirstKey =>
         MinMax.min(appendix.firstKey, nextLevelFirstKey)(keyOrder)
     }
@@ -992,7 +992,7 @@ private[core] class Level(val dirs: Seq[Dir],
     * It does not check if the returned key is removed. Use [[Level.last]] instead.
     */
   override def lastKey: IO.Async[Option[Slice[Byte]]] =
-    nextLevel.map(_.lastKey) getOrElse IO.successNone mapAsync {
+    nextLevel.map(_.lastKey) getOrElse IO.none mapAsync {
       nextLevelLastKey =>
         MinMax.max(appendix.lastValue().map(_.maxKey.maxKey), nextLevelLastKey)(keyOrder)
     }
@@ -1000,12 +1000,12 @@ private[core] class Level(val dirs: Seq[Dir],
   override def head: IO.Async[Option[KeyValue.ReadOnly.Put]] =
     headKey match {
       case IO.Success(firstKey) =>
-        firstKey.map(ceiling) getOrElse IO.successNone
+        firstKey.map(ceiling) getOrElse IO.none
 
       case later @ IO.Later(_, _) =>
         later flatMap {
           firstKey =>
-            firstKey.map(ceiling) getOrElse IO.successNone
+            firstKey.map(ceiling) getOrElse IO.none
         }
 
       case IO.Failure(error) =>
@@ -1015,12 +1015,12 @@ private[core] class Level(val dirs: Seq[Dir],
   override def last =
     lastKey match {
       case IO.Success(lastKey) =>
-        lastKey.map(floor) getOrElse IO.successNone
+        lastKey.map(floor) getOrElse IO.none
 
       case later @ IO.Later(_, _) =>
         later flatMap {
           lastKey =>
-            lastKey.map(floor) getOrElse IO.successNone
+            lastKey.map(floor) getOrElse IO.none
         }
 
       case IO.Failure(error) =>
@@ -1146,7 +1146,7 @@ private[core] class Level(val dirs: Seq[Dir],
     appendix.values().asScala.filter(_.segmentSize < segmentSize) take size
 
   def close: IO[Unit] =
-    (nextLevel.map(_.close) getOrElse IO.successUnit) flatMap {
+    (nextLevel.map(_.close) getOrElse IO.unit) flatMap {
       _ =>
         actor.terminate()
         appendix.close().failed foreach {
@@ -1162,7 +1162,7 @@ private[core] class Level(val dirs: Seq[Dir],
             logger.error("{}: Failed to release locks", paths.head, exception)
         }
 
-        IO.successUnit
+        IO.unit
     }
 
   def closeSegments(): IO[Unit] = {
@@ -1171,7 +1171,7 @@ private[core] class Level(val dirs: Seq[Dir],
         logger.error("{}: Failed to close Segment file.", paths.head, error.toException)
     }
 
-    nextLevel.map(_.closeSegments()) getOrElse IO.successUnit
+    nextLevel.map(_.closeSegments()) getOrElse IO.unit
   }
 
   override val isTrash: Boolean =

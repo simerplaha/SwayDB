@@ -73,13 +73,13 @@ private[core] object Get {
                 }
             }
           else
-            IO.successNone
+            IO.none
 
         case current: KeyValue.ReadOnly.Put =>
           if (current.hasTimeLeft())
             IO.Success(Some(current))
           else
-            IO.successNone
+            IO.none
 
         case current: KeyValue.ReadOnly.Update =>
           if (current.hasTimeLeft())
@@ -100,7 +100,7 @@ private[core] object Get {
                 }
             }
           else
-            IO.successNone
+            IO.none
 
         case current: KeyValue.ReadOnly.Range =>
           (if (current.key equiv key) current.fetchFromOrElseRangeValue else current.fetchRangeValue) match {
@@ -108,7 +108,7 @@ private[core] object Get {
               if (Value.hasTimeLeft(currentValue))
                 returnSegmentResponse(currentValue.toMemory(key))
               else
-                IO.successNone
+                IO.none
 
             case IO.Failure(error) =>
               IO.Failure(error)
@@ -125,15 +125,15 @@ private[core] object Get {
                         IO.Success(Some(put))
 
                       case IO.Success(_: ReadOnly.Fixed) =>
-                        IO.successNone
+                        IO.none
 
                       case IO.Failure(error) =>
                         IO.Failure(error)
                     }
                   else
-                    IO.successNone
+                    IO.none
               } getOrElse {
-                IO.successNone
+                IO.none
               }
           }
 
@@ -148,15 +148,15 @@ private[core] object Get {
                         IO.Success(Some(put))
 
                       case IO.Success(_: ReadOnly.Fixed) =>
-                        IO.successNone
+                        IO.none
 
                       case IO.Failure(error) =>
                         IO.Failure(error)
                     }
                   else
-                    IO.successNone
+                    IO.none
               } getOrElse {
-                IO.successNone
+                IO.none
               }
           }
       }

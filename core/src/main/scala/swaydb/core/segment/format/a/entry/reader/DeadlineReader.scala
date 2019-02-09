@@ -39,7 +39,7 @@ object DeadlineReader {
   implicit object NoDeadlineReader extends DeadlineReader[EntryId.Deadline.NoDeadline] {
     override def read(indexReader: Reader,
                       previous: Option[KeyValue.ReadOnly]): IO[Option[duration.Deadline]] =
-      IO.successNone
+      IO.none
   }
 
   implicit object DeadlineFullyCompressedReader extends DeadlineReader[EntryId.Deadline.FullyCompressed] {

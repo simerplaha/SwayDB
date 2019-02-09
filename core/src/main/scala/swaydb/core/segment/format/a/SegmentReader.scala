@@ -197,7 +197,7 @@ private[core] object SegmentReader extends LazyLogging {
   def readBytes(fromOffset: Int, length: Int, reader: Reader): IO[Option[Slice[Byte]]] =
     try {
       if (length == 0)
-        IO.successNone
+        IO.none
       else
         (reader.copy() moveTo fromOffset read length).map(Some(_))
     } catch {
@@ -281,7 +281,7 @@ private[core] object SegmentReader extends LazyLogging {
         case Some(startFrom) =>
           //if startFrom is the last index entry, return None.
           if (startFrom.nextIndexSize == 0)
-            IO.successNone
+            IO.none
           else
             readNextKeyValue(
               previous = startFrom,
@@ -339,7 +339,7 @@ private[core] object SegmentReader extends LazyLogging {
         IO.Success(Some(keyValue))
 
       case MatchResult.Stop =>
-        IO.successNone
+        IO.none
 
     }
 

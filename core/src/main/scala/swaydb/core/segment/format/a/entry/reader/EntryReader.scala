@@ -78,7 +78,7 @@ object EntryReader {
           case Some(value) =>
             return value
           case None =>
-            IO.successNone
+            IO.none
         }
     } flatMap {
       _ =>

@@ -64,5 +64,5 @@ private[map] class MemoryMap[K, V: ClassTag](val skipList: ConcurrentSkipListMap
     }
 
   override def close(): IO[Unit] =
-    IO.successUnit
+    IO.unit
 }

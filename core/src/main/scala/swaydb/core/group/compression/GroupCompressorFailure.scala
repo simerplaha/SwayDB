@@ -24,5 +24,5 @@ private[core] object GroupCompressorFailure {
   case class FailedToCompressValues(values: Int) extends Exception(s"Failed to compress values: $values.bytes")
   case class InvalidGroupCompressorFormatId(formatId: Int) extends Exception(s"Invalid GroupCompressor formatId: $formatId")
   case class InvalidGroupKeyValuesHeadPosition(position: Int) extends Exception(s"Group key-values have invalid position $position. Expected 1")
-  case object GroupKeyIsEmpty extends Exception(s"Group key is empty")
+  case object GroupKeyIsEmpty extends Exception("Group key is empty")
 }

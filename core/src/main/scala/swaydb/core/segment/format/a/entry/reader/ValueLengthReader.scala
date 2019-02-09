@@ -86,11 +86,11 @@ object ValueLengthReader {
   implicit object ValueLengthReaderValueFullyCompressed extends ValueLengthReader[EntryId.Value.FullyCompressed] {
     override def read(indexReader: Reader,
                       previous: Option[Persistent]): IO[Int] =
-      IO.successZero
+      IO.zero
   }
   implicit object NoValue extends ValueLengthReader[EntryId.Value.NoValue] {
     override def read(indexReader: Reader,
                       previous: Option[Persistent]): IO[Int] =
-      IO.successZero
+      IO.zero
   }
 }

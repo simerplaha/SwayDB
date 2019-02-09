@@ -390,7 +390,7 @@ class LevelActorSpec extends TestBase with MockFactory {
           command match {
             case PushSegments(segments, replyTo) =>
               segments shouldHaveSameInOrderedIds testSegments
-              IO.successUnit
+              IO.unit
           }
       }
 
@@ -409,7 +409,7 @@ class LevelActorSpec extends TestBase with MockFactory {
       val testSegments = Seq(TestSegment().assertGet, TestSegment().assertGet)
 
       level.forward _ expects * returning IO.Failure(new Exception("Failed"))
-      (level.put(_: Iterable[Segment])) expects * returns IO.successUnit
+      (level.put(_: Iterable[Segment])) expects * returns IO.unit
 
       val sender = TestActor[LevelCommand]()
 
@@ -461,7 +461,7 @@ class LevelActorSpec extends TestBase with MockFactory {
 
       level.nextPushDelay _ expects() returns 1.second
 
-      LevelActor.doPushResponse(PushSegmentsResponse(request, IO.successUnit)) shouldBe(Sleeping(false, None), Some(PushTask(1.second, Push)))
+      LevelActor.doPushResponse(PushSegmentsResponse(request, IO.unit)) shouldBe(Sleeping(false, None), Some(PushTask(1.second, Push)))
       self.expectNoMessage()
       sender.expectMessage[Pull]()
     }

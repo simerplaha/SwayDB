@@ -145,7 +145,7 @@ private[core] class LevelZero(val path: Path,
   def releaseLocks: IO[Unit] =
     EffectIO.release(lock) flatMap {
       _ =>
-        nextLevel.map(_.releaseLocks) getOrElse IO.successUnit
+        nextLevel.map(_.releaseLocks) getOrElse IO.unit
     }
 
   def !(command: LevelZeroAPI): Unit =
@@ -295,7 +295,7 @@ private[core] class LevelZero(val path: Path,
     if (mapsIterator.hasNext)
       find(key, mapsIterator.next(), mapsIterator)
     else
-      nextLevel.map(_ get key) getOrElse IO.successNone
+      nextLevel.map(_ get key) getOrElse IO.none
 
   def currentGetter(currentMap: map.Map[Slice[Byte], Memory.SegmentResponse]) =
     new CurrentGetter {
@@ -355,19 +355,19 @@ private[core] class LevelZero(val path: Path,
       nextLevel =>
         nextLevel.headKey flatMap {
           nextLevelFirstKey =>
-            MinMax.min(firstKeyFromMaps, nextLevelFirstKey)(keyOrder).map(ceiling) getOrElse IO.successNone
+            MinMax.min(firstKeyFromMaps, nextLevelFirstKey)(keyOrder).map(ceiling) getOrElse IO.none
         }
-    } getOrElse IO.successNone
+    } getOrElse IO.none
 
   def last: IO.Async[Option[KeyValue.ReadOnly.Put]] =
     nextLevel map {
       nextLevel =>
         nextLevel.lastKey flatMap {
           nextLevelLastKey =>
-            MinMax.max(lastKeyFromMaps, nextLevelLastKey)(keyOrder).map(floor) getOrElse IO.successNone
+            MinMax.max(lastKeyFromMaps, nextLevelLastKey)(keyOrder).map(floor) getOrElse IO.none
         }
 
-    } getOrElse IO.successNone
+    } getOrElse IO.none
 
   def ceiling(key: Slice[Byte]): IO.Async[Option[KeyValue.ReadOnly.Put]] =
     ceiling(key, maps.map, maps.iterator.asScala.toList)
@@ -427,7 +427,7 @@ private[core] class LevelZero(val path: Path,
         findHigher(key, nextMap, otherMaps.drop(1))
       case None =>
         //        println(s"Finding higher for key: ${key.readInt()} in ${nextLevel.rootPath}")
-        nextLevel.map(_.higher(key)) getOrElse IO.successNone
+        nextLevel.map(_.higher(key)) getOrElse IO.none
     }
 
   def currentWalker(currentMap: map.Map[Slice[Byte], Memory.SegmentResponse],
@@ -512,7 +512,7 @@ private[core] class LevelZero(val path: Path,
         findLower(key, nextMap, otherMaps.drop(1))
       case None =>
         //println(s"Finding lower for key: ${key.readInt()} in ${nextLevel.rootPath}")
-        nextLevel.map(_.lower(key)) getOrElse IO.successNone
+        nextLevel.map(_.lower(key)) getOrElse IO.none
     }
 
   def findLower(key: Slice[Byte],
@@ -581,14 +581,14 @@ private[core] class LevelZero(val path: Path,
         logger.error(s"$path: Failed to close maps", exception)
     }
     releaseLocks
-    nextLevel.map(_.close) getOrElse IO.successUnit map {
+    nextLevel.map(_.close) getOrElse IO.unit map {
       _ =>
         actor.foreach(_.terminate())
     }
   }
 
   def closeSegments: IO[Unit] =
-    nextLevel.map(_.closeSegments()) getOrElse IO.successUnit
+    nextLevel.map(_.closeSegments()) getOrElse IO.unit
 
   def level0Meter: Level0Meter =
     maps.getMeter
@@ -600,7 +600,7 @@ private[core] class LevelZero(val path: Path,
     if (maps.contains(key))
       IO.Success(true)
     else
-      nextLevel.map(_.mightContain(key)) getOrElse IO.successTrue
+      nextLevel.map(_.mightContain(key)) getOrElse IO.`true`
 
   override def segmentsInLevel(): Iterable[Segment] =
     nextLevel.map(_.segmentsInLevel()) getOrElse Iterable.empty

@@ -147,7 +147,7 @@ private[map] object PersistentMap extends LazyLogging {
             (
               RecoveryResult(
                 item = file,
-                result = recoveredFiles.find(_.result.isFailure).map(_.result) getOrElse IO.successUnit
+                result = recoveredFiles.find(_.result.isFailure).map(_.result) getOrElse IO.unit
               ),
               hasRange
             )

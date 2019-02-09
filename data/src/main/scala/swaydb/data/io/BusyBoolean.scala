@@ -20,7 +20,7 @@
 package swaydb.data.io
 
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.{ExecutionContext, Future, Promise}
+import scala.concurrent.{Future, Promise}
 
 class BusyBoolean(@volatile private var busy: Boolean,
                   private[io] val promises: ListBuffer[Promise[Unit]]) {
@@ -52,7 +52,7 @@ object BusyBoolean {
     boolean.promises.foreach(_.tryComplete(unitTry))
   }
 
-  def future(boolean: BusyBoolean)(implicit ex: ExecutionContext): Future[Unit] =
+  def future(boolean: BusyBoolean): Future[Unit] =
     boolean.synchronized {
       if (boolean.isBusy) {
         val promise = Promise[Unit]

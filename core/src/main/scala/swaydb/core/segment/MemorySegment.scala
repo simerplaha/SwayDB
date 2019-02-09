@@ -74,7 +74,7 @@ private[segment] case class MemorySegment(path: Path,
   //if the header is already decompressed then this Group is already in the Limit queue as the queue always
   //pre-reads the header
     if (group.isHeaderDecompressed)
-      IO.successUnit
+      IO.unit
     else //else this is a new decompression, add to queue.
       keyValueLimiter.add(group, cache)
 
@@ -180,7 +180,7 @@ private[segment] case class MemorySegment(path: Path,
       case _: Memory.Group =>
         IO.Failure(new Exception("Get resulted in a Group when floorEntry should've fetched the Group instead."))
     } getOrElse {
-      IO.successNone
+      IO.none
     }
 
   override def get(key: Slice[Byte]): IO[Option[Memory.SegmentResponse]] =
@@ -188,14 +188,14 @@ private[segment] case class MemorySegment(path: Path,
       IO.Failure(new NoSuchFileException(path.toString))
 
     else if (!_hasRange && !bloomFilter.forall(_.mightContain(key)))
-      IO.successNone
+      IO.none
     else
       maxKey match {
         case MaxKey.Fixed(maxKey) if key > maxKey =>
-          IO.successNone
+          IO.none
 
         case range: MaxKey.Range[Slice[Byte]] if key >= range.maxKey =>
-          IO.successNone
+          IO.none
 
         case _ =>
           if (_hasRange || _hasGroup)
@@ -211,7 +211,7 @@ private[segment] case class MemorySegment(path: Path,
                         persistent.toMemoryResponseOption()
 
                       case None =>
-                        IO.successNone
+                        IO.none
                     }
                 }
 
@@ -242,12 +242,12 @@ private[segment] case class MemorySegment(path: Path,
                     case Some(persistent) =>
                       persistent.toMemoryResponseOption()
                     case None =>
-                      IO.successNone
+                      IO.none
                   }
               }
           }
       } getOrElse {
-        IO.successNone
+        IO.none
       }
 
   /**
@@ -263,10 +263,10 @@ private[segment] case class MemorySegment(path: Path,
           case Some(persistent) =>
             persistent.toMemoryResponseOption()
           case None =>
-            IO.successNone
+            IO.none
         }
     } getOrElse {
-      IO.successNone
+      IO.none
     }
 
   override def higher(key: Slice[Byte]): IO[Option[Memory.SegmentResponse]] =
@@ -284,7 +284,7 @@ private[segment] case class MemorySegment(path: Path,
                 case Some(persistent) =>
                   persistent.toMemoryResponseOption()
                 case None =>
-                  IO.successNone
+                  IO.none
               } flatMap {
                 higher =>
                   //Group's last key-value can be inclusive or exclusive and fromKey & toKey can be the same.
@@ -330,7 +330,7 @@ private[segment] case class MemorySegment(path: Path,
   }
 
   override val close: IO[Unit] =
-    IO.successUnit
+    IO.unit
 
   override def getBloomFilterKeyValueCount(): IO[Int] =
     if (deleted)
