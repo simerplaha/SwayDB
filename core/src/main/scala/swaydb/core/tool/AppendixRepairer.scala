@@ -124,14 +124,19 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
             else
               logger.trace(s"Is overlapping with {} = {}", targetSegment.path, overlaps)
             overlaps
-        } map {
-          overlappingSegment =>
-            applyRecovery(segment, overlappingSegment, strategy) map {
-              _ =>
-                //do not jump to next Segment, continue checking for overlapping Segments for the current Segment.
+        } match {
+          case Some(overlappingSegment) =>
+            applyRecovery(segment, overlappingSegment, strategy) match {
+              case IO.Success(_) =>
                 return checkOverlappingSegments(segments.drop(position - 1).filter(_.existsOnDisk), strategy)
+
+              case IO.Failure(error) =>
+                IO.Failure(error)
             }
-        } getOrElse IO.Success(position + 1)
+
+          case None =>
+            IO.Success(position + 1)
+        }
     }
 
   def buildAppendixMap(appendixDir: Path,

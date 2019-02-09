@@ -20,22 +20,22 @@
 package swaydb.core.tool
 
 import java.nio.file.NoSuchFileException
-import swaydb.core.io.file.{DBFile, EffectIO}
+import scala.concurrent.duration.Duration
+import scala.util.Random
+import swaydb.core.CommonAssertions._
+import swaydb.core.IOAssert._
+import swaydb.core.RunThis._
+import swaydb.core.TestData._
+import swaydb.core.io.file.EffectIO
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment
 import swaydb.core.util.FileUtil._
 import swaydb.core.{TestBase, TestData, TestLimitQueues}
 import swaydb.data.compaction.Throttle
+import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.repairAppendix.{AppendixRepairStrategy, OverlappingSegmentsException}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
-import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.core.TestData._
-import swaydb.core.CommonAssertions._
-import swaydb.core.RunThis._
-import scala.concurrent.duration.Duration
-import scala.util.Random
-import swaydb.core.IOAssert._
 
 class AppendixRepairerSpec extends TestBase {
 
@@ -47,7 +47,7 @@ class AppendixRepairerSpec extends TestBase {
 
   "AppendixRepair" should {
     "fail if the input path does not exist" in {
-      AppendixRepairer(nextLevelPath, AppendixRepairStrategy.ReportFailure).failed.assertGet shouldBe a[NoSuchFileException]
+      AppendixRepairer(nextLevelPath, AppendixRepairStrategy.ReportFailure).failed.assertGet.exception shouldBe a[NoSuchFileException]
     }
 
     "create new appendix file if all the Segments in the Level are non-overlapping Segments" in {
@@ -100,7 +100,7 @@ class AppendixRepairerSpec extends TestBase {
           val duplicateSegment = segment.path.getParent.resolve(segmentId.toSegmentFileId)
           segment.copyTo(duplicateSegment).assertGet
           //perform repair
-          AppendixRepairer(level.rootPath, AppendixRepairStrategy.ReportFailure).failed.assertGet shouldBe a[OverlappingSegmentsException]
+          AppendixRepairer(level.rootPath, AppendixRepairStrategy.ReportFailure).failed.assertGet.exception shouldBe a[OverlappingSegmentsException]
           //perform repair with DeleteNext. This will delete the newest duplicate Segment.
           AppendixRepairer(level.rootPath, AppendixRepairStrategy.KeepOld).assertGet
           //newer duplicate Segment is deleted
@@ -146,7 +146,7 @@ class AppendixRepairerSpec extends TestBase {
 
           createOverlappingSegment()
           //perform repair with Report
-          AppendixRepairer(level.rootPath, AppendixRepairStrategy.ReportFailure).failed.assertGet shouldBe a[OverlappingSegmentsException]
+          AppendixRepairer(level.rootPath, AppendixRepairStrategy.ReportFailure).failed.assertGet.exception shouldBe a[OverlappingSegmentsException]
           //perform repair with DeleteNext. This will delete the newest overlapping Segment.
           AppendixRepairer(level.rootPath, AppendixRepairStrategy.KeepOld).assertGet
           //overlapping Segment does not exist.

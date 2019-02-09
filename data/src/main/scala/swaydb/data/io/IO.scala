@@ -555,7 +555,7 @@ object IO {
     override def toFuture: Future[T] = Future.failed(error.exception)
     override def toTry: scala.util.Try[T] = scala.util.Failure(error.exception)
     override def onFailure[U >: T](f: IO.Failure[U] => Unit): IO[U] = {
-      f(this)
+      try f(this) finally {}
       this
     }
     def exception: Throwable = error.exception
