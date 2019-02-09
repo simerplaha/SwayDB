@@ -290,10 +290,17 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
       io orElse IO.Success(2) shouldBe IO.Success(2)
     }
 
+    "flatMap on Success" in {
+      IO.Success(1) flatMap {
+        i =>
+          IO.Success(i + 1)
+      } shouldBe IO.Success(2)
+    }
+
     "flatMap on failure" in {
       val failure = IO.Failure(IO.Error.NoSuchFile(new Exception("")))
 
-      (IO.Success(1): IO[Int]) flatMap {
+      IO.Success(1) flatMap {
         _ =>
           failure
       } shouldBe failure
@@ -312,10 +319,72 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
     }
   }
 
+  "IO.Failure" should {
+    "set boolean" in {
+      val io = IO.Success(1)
+      io.isFailure shouldBe true
+      io.isLater shouldBe false
+      io.isSuccess shouldBe false
+    }
+
+    "get" in {
+      val io = IO.Failure[Int](new IllegalAccessError)
+
+      assertThrows[IllegalAccessError] {
+        io.unsafeGet
+      }
+      io.safeGet shouldBe io
+      io.safeGetBlocking shouldBe io
+      Await.result(io.safeGetFuture, 1.second) shouldBe io
+    }
+
+    "getOrElse & orElse return first io if both are Failures" in {
+      val io1 = IO.Failure(new IllegalAccessError)
+      val io2 = IO.Failure(new IllegalArgumentException)
+
+      (io1 getOrElse io2).exception shouldBe a[IllegalArgumentException]
+
+      io1 orElse io2 shouldBe io2
+    }
+
+    "flatMap on Success" in {
+      val failIO = IO.Failure(new IllegalThreadStateException)
+      failIO flatMap {
+        i =>
+          IO.Success(1)
+      } shouldBe failIO
+    }
+
+    "flatMap on failure" in {
+      val failure = IO.Failure(IO.Error.NoSuchFile(new Exception("")))
+
+      failure flatMap {
+        _ =>
+          IO.Failure(new IllegalThreadStateException)
+      } shouldBe failure
+    }
+
+    "flatten on successes with failure" in {
+      val sss: IO[IO[Int]] = IO.Success(IO.Failure(IO.Error.Fatal(new Exception("Kaboom!"))))
+
+      sss.flatten.asInstanceOf[IO.Failure[Int]].exception.getMessage shouldBe "Kaboom!"
+    }
+
+    "flatten on failure with success" in {
+      val io: IO[IO[Int]] =
+        (IO.Failure(IO.Error.Fatal(new Exception("Kaboom!"))): IO[Int]) map {
+          _ =>
+            IO.Success(11)
+        }
+
+      io.flatten.asInstanceOf[IO.Failure[Int]].exception.getMessage shouldBe "Kaboom!"
+    }
+  }
+
   "IO.Async" should {
     "flatMap on IO" in {
       val io =
-        IO.Async(1, IO.Error.DecompressionValues(BusyBoolean(false))) flatMap {
+        IO.Async(1, IO.Error.DecompressionValues(BusyBoolean(false))) flatMapAsync {
           int =>
             IO.Success(int + 1)
         }
@@ -325,7 +394,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
 
     "flatMap on IO.Failure" in {
       val io: IO.Async[Int] =
-        IO.Async(1, IO.Error.DecompressionValues(BusyBoolean(false))) flatMap {
+        IO.Async(1, IO.Error.DecompressionValues(BusyBoolean(false))) flatMapAsync {
           _ =>
             IO.Failure(IO.Error.OverlappingPushSegment)
         }
@@ -337,9 +406,9 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
 
     "safeGet on multiple when last is a failure should return failure" in {
       val io: Async[Int] =
-        IO.Async(1, IO.Error.DecompressingIndex(BusyBoolean(false))) flatMap {
+        IO.Async(1, IO.Error.DecompressingIndex(BusyBoolean(false))) flatMapAsync {
           i =>
-            IO.Async(i + 1, IO.Error.ReadingHeader(BusyBoolean(false))) flatMap {
+            IO.Async(i + 1, IO.Error.ReadingHeader(BusyBoolean(false))) flatMapAsync {
               _ =>
                 IO.Failure(IO.Error.NoSuchFile(new Exception("Not such file")))
             }
@@ -354,9 +423,9 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
       val busy3 = BusyBoolean(true)
 
       val io: Async[Int] =
-        IO.Async(1, IO.Error.DecompressingIndex(busy1)) flatMap {
+        IO.Async(1, IO.Error.DecompressingIndex(busy1)) flatMapAsync {
           i =>
-            IO.Async(i + 1, IO.Error.DecompressionValues(busy2)) flatMap {
+            IO.Async(i + 1, IO.Error.DecompressionValues(busy2)) flatMapAsync {
               i =>
                 IO.Async(i + 1, IO.Error.ReadingHeader(busy3))
             }
@@ -408,7 +477,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
           val io: Async[Int] = {
             (0 to 100).foldLeft(IO.Async(1, IO.Error.DecompressingIndex(BusyBoolean(false)))) {
               case (previous, i) =>
-                previous flatMap {
+                previous flatMapAsync {
                   output =>
                     Future {
                       if (Random.nextBoolean()) Thread.sleep(Random.nextInt(100))

@@ -353,7 +353,7 @@ private[core] class LevelZero(val path: Path,
   def head: IO.Async[Option[KeyValue.ReadOnly.Put]] =
     nextLevel map {
       nextLevel =>
-        nextLevel.headKey flatMap {
+        nextLevel.headKey flatMapAsync {
           nextLevelFirstKey =>
             MinMax.min(firstKeyFromMaps, nextLevelFirstKey)(keyOrder).map(ceiling) getOrElse IO.none
         }
@@ -362,7 +362,7 @@ private[core] class LevelZero(val path: Path,
   def last: IO.Async[Option[KeyValue.ReadOnly.Put]] =
     nextLevel map {
       nextLevel =>
-        nextLevel.lastKey flatMap {
+        nextLevel.lastKey flatMapAsync {
           nextLevelLastKey =>
             MinMax.max(lastKeyFromMaps, nextLevelLastKey)(keyOrder).map(floor) getOrElse IO.none
         }
@@ -375,7 +375,7 @@ private[core] class LevelZero(val path: Path,
   def ceiling(key: Slice[Byte],
               currentMap: map.Map[Slice[Byte], Memory.SegmentResponse],
               otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]): IO.Async[Option[KeyValue.ReadOnly.Put]] =
-    find(key, currentMap, otherMaps.iterator.asJava) flatMap {
+    find(key, currentMap, otherMaps.iterator.asJava) flatMapAsync {
       found =>
         if (found.isDefined)
           IO.Success(found)
@@ -389,7 +389,7 @@ private[core] class LevelZero(val path: Path,
   def floor(key: Slice[Byte],
             currentMap: map.Map[Slice[Byte], Memory.SegmentResponse],
             otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]): IO.Async[Option[KeyValue.ReadOnly.Put]] =
-    find(key, currentMap, otherMaps.iterator.asJava) flatMap {
+    find(key, currentMap, otherMaps.iterator.asJava) flatMapAsync {
       found =>
         if (found.isDefined)
           IO.Success(found)

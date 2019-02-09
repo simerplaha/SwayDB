@@ -76,7 +76,7 @@ object IO {
     def isFailure: Boolean
     def isSuccess: Boolean
     def isLater: Boolean
-    def flatMap[U](f: T => IO.Async[U]): IO.Async[U]
+    def flatMapAsync[U](f: T => IO.Async[U]): IO.Async[U]
     def mapAsync[U](f: T => U): IO.Async[U]
     def unsafeGet: T
     def safeGet: IO.Async[T]
@@ -355,7 +355,7 @@ object IO {
     override def getOrElse[U >: T](default: => U): U = unsafeGet
     override def orElse[U >: T](default: => IO[U]): IO.Success[U] = this
     override def flatMap[U](f: T => IO[U]): IO[U] = IO.Catch(f(unsafeGet))
-    override def flatMap[U](f: T => IO.Async[U]): IO.Async[U] = f(unsafeGet)
+    override def flatMapAsync[U](f: T => IO.Async[U]): IO.Async[U] = f(unsafeGet)
     override def flatten[U](implicit ev: T <:< IO[U]): IO[U] = unsafeGet
     override def flatten[U](implicit ev: T <:< IO.Async[U]): IO.Async[U] = unsafeGet
     override def foreach[U](f: T => U): Unit = f(unsafeGet)
@@ -497,7 +497,7 @@ object IO {
     def getOrElse[U >: T](default: => U): U =
       IO(forceGet).getOrElse(default)
 
-    def flatMap[U](f: T => IO.Async[U]): IO.Later[U] =
+    def flatMapAsync[U](f: T => IO.Async[U]): IO.Later[U] =
       IO.Later(
         value = _ => f(unsafeGet).unsafeGet,
         error = error
@@ -529,7 +529,7 @@ object IO {
     override def getOrElse[U >: T](default: => U): U = default
     override def orElse[U >: T](default: => IO[U]): IO[U] = IO.Catch(default)
     override def flatMap[U](f: T => IO[U]): IO[U] = this.asInstanceOf[IO[U]]
-    override def flatMap[U](f: T => IO.Async[U]): IO.Async[U] = this.asInstanceOf[Async[U]]
+    override def flatMapAsync[U](f: T => IO.Async[U]): IO.Async[U] = this.asInstanceOf[Async[U]]
     override def flatten[U](implicit ev: T <:< IO[U]): IO[U] = this.asInstanceOf[IO[U]]
     override def flatten[U](implicit ev: T <:< IO.Async[U]): IO.Async[U] = this.asInstanceOf[IO.Async[U]]
     override def foreach[U](f: T => U): Unit = ()
@@ -554,7 +554,7 @@ object IO {
     def exception: Throwable = error.exception
     //    def toAsync[U >: T](operation: => U): IO.Async[U] = IO.Failure.async(this, operation)
     def recoverToAsync[U](operation: => IO.Async[U]): IO.Async[U] =
-      IO.Async.recover(this, ()) flatMap {
+      IO.Async.recover(this, ()) flatMapAsync {
         _ =>
           operation
       }
