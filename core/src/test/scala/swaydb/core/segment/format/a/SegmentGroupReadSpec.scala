@@ -187,9 +187,10 @@ sealed trait SegmentGroupReadSpec extends TestBase with ScalaFutures with Privat
           }
           //Memory Groups are NEVER removed.
           println("Checking Memory Group is not removed.")
-          sleep(10.seconds)
-          segment.isCacheEmpty shouldBe false
-          segment.cache.firstEntry().getValue.isInstanceOf[Memory.Group] shouldBe true
+          eventual(10.seconds) {
+            segment.isCacheEmpty shouldBe false
+            segment.cache.firstEntry().getValue.isInstanceOf[Memory.Group] shouldBe true
+          }
         }
       }
 

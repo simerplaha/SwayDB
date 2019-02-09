@@ -358,13 +358,13 @@ private[segment] case class MemorySegment(path: Path,
   override def isFileDefined: Boolean =
     !deleted
 
-  override val memory: Boolean =
+  override def memory: Boolean =
     true
 
-  override val persistent: Boolean =
+  override def persistent: Boolean =
     false
 
-  override val existsOnDisk: Boolean =
+  override def existsOnDisk: Boolean =
     false
 
   override def getBloomFilter: IO[Option[BloomFilter[Slice[Byte]]]] =

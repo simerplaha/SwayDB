@@ -64,7 +64,7 @@ class SegmentReadSpec2 extends SegmentReadSpec {
 }
 
 class SegmentReadSpec3 extends SegmentReadSpec {
-  val keyValuesCount = 1000
+  val keyValuesCount = 100
   override def inMemoryStorage = true
 }
 //@formatter:on
@@ -79,7 +79,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures with PrivateMeth
   implicit val groupingStrategy: Option[KeyValueGroupingStrategyInternal] =
     randomGroupingStrategyOption(keyValuesCount)
 
-  "Segment.belongsTo" should {
+  "belongsTo" should {
     "return true if the input key-value belong to the Segment else false when the Segment contains no Range key-value" in {
       val segment = TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(5)).toTransient).assertGet
 
@@ -208,7 +208,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures with PrivateMeth
     }
   }
 
-  "Segment.rangeBelongsTo" should {
+  "rangeBelongsTo" should {
     "return true for overlapping KeyValues else false for Segments if the Segment's last key-value is not a Range" in {
       val segment = TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(5)).toTransient).assertGet
 
@@ -364,7 +364,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures with PrivateMeth
     }
   }
 
-  "Segment.partitionOverlapping" should {
+  "partitionOverlapping" should {
     "partition overlapping and non-overlapping Segments" in {
       //0-1, 2-3
       //         4-5, 6-7
@@ -411,7 +411,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures with PrivateMeth
     }
   }
 
-  "Segment.overlaps" should {
+  "overlaps" should {
     "return true for overlapping Segments else false for Segments without Ranges" in {
       //0 1
       //    2 3
@@ -553,7 +553,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures with PrivateMeth
     }
   }
 
-  "Segment.nonOverlapping and overlapping" should {
+  "nonOverlapping and overlapping" should {
     "return non overlapping Segments" in {
       //0-1, 2-3
       //         4-5, 6-7
@@ -612,7 +612,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures with PrivateMeth
     }
   }
 
-  "Segment.tempMinMaxKeyValues" should {
+  "tempMinMaxKeyValues" should {
     "return key-values with Segments min and max keys only" in {
       implicit def timeGenerator: TestTimeGenerator = TestTimeGenerator.Empty
 
@@ -638,7 +638,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures with PrivateMeth
     }
   }
 
-  "Segment.overlapsWithBusySegments" should {
+  "overlapsWithBusySegments" should {
     "return true or false if input Segments overlap or do not overlap with busy Segments respectively" in {
 
       val targetSegments = {
@@ -758,7 +758,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures with PrivateMeth
     }
   }
 
-  "Segment.getAllKeyValues" should {
+  "getAllKeyValues" should {
     "unsafeGet KeyValues from multiple Segments" in {
       runThis(10.times) {
         val keyValues1 = randomizedKeyValues(keyValuesCount)
@@ -825,7 +825,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures with PrivateMeth
     }
   }
 
-  "Segment.getAll" should {
+  "getAll" should {
     "read full index" in {
       runThis(10.times) {
         //ensure groups are not added because ones read their values are populated in memory
@@ -862,7 +862,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures with PrivateMeth
     }
   }
 
-  "Segment.getNearestDeadline" should {
+  "getNearestDeadline" should {
     "return None for empty deadlines" in {
       Segment.getNearestDeadline(None, None) shouldBe empty
     }
@@ -903,7 +903,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures with PrivateMeth
     }
   }
 
-  "Segment.getNearestDeadlineSegment" should {
+  "getNearestDeadlineSegment" should {
     "return None deadline if non of the key-values in the Segments contains deadline" in {
 
       runThis(100.times) {

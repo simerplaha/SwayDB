@@ -538,23 +538,23 @@ object IO {
     override def safeGetFuture(implicit ec: ExecutionContext): Future[IO.Failure[T]] = Future.successful(this)
     override def getOrElse[U >: T](default: => U): U = default
     override def orElse[U >: T](default: => IO[U]): IO[U] = IO.Catch(default)
-    override def flatMap[U](f: T => IO[U]): IO[U] = this.asInstanceOf[IO[U]]
-    override def flatMap[U](f: T => IO.Async[U]): IO.Async[U] = this.asInstanceOf[Async[U]]
-    override def flatten[U](implicit ev: T <:< IO[U]): IO[U] = this.asInstanceOf[IO[U]]
+    override def flatMap[U](f: T => IO[U]): IO.Failure[U] = this.asInstanceOf[IO.Failure[U]]
+    override def flatMap[U](f: T => IO.Async[U]): IO.Async[U] = this.asInstanceOf[IO.Async[U]]
+    override def flatten[U](implicit ev: T <:< IO[U]): IO.Failure[U] = this.asInstanceOf[IO.Failure[U]]
     override def flattenAsync[U](implicit ev: T <:< IO.Async[U]): IO.Async[U] = this.asInstanceOf[IO.Async[U]]
     override def foreach[U](f: T => U): Unit = ()
-    override def map[U](f: T => U): IO[U] = this.asInstanceOf[IO[U]]
+    override def map[U](f: T => U): IO.Failure[U] = this.asInstanceOf[IO.Failure[U]]
     override def mapAsync[U](f: T => U): IO.Async[U] = this.asInstanceOf[IO.Async[U]]
     override def recover[U >: T](f: PartialFunction[IO.Error, U]): IO[U] =
-      IO.Catch(if (f isDefinedAt error) Success(f(error)) else this)
+      IO.Catch(if (f isDefinedAt error) IO.Success(f(error)) else this)
 
     override def recoverWith[U >: T](f: PartialFunction[IO.Error, IO[U]]): IO[U] =
       IO.Catch(if (f isDefinedAt error) f(error) else this)
 
-    override def failed: IO[IO.Error] = Success(error)
+    override def failed: IO[IO.Error] = IO.Success(error)
     override def toOption: Option[T] = None
     override def toEither: Either[IO.Error, T] = Left(error)
-    override def filter(p: T => Boolean): IO[T] = this
+    override def filter(p: T => Boolean): IO.Failure[T] = this
     override def toFuture: Future[T] = Future.failed(error.exception)
     override def toTry: scala.util.Try[T] = scala.util.Failure(error.exception)
     override def onFailure[U >: T](f: IO.Failure[U] => Unit): IO[U] = {

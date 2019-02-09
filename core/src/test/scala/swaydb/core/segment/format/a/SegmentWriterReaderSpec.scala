@@ -42,7 +42,7 @@ import swaydb.serializers._
 
 class SegmentWriterReaderSpec extends TestBase {
 
-  val keyValueCount = 1000
+  val keyValueCount = 100
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit val keyValueLimiter = TestLimitQueues.keyValueLimiter
@@ -61,19 +61,15 @@ class SegmentWriterReaderSpec extends TestBase {
         val (bytes, _) = SegmentWriter.write(keyValues, TestData.falsePositiveRate).assertGet
         bytes.isFull shouldBe true
         //in memory
-        try
-          assertReads(keyValues, Reader(bytes))
-        catch {
-          case exception: Exception =>
-            throw exception
-        }
+        assertReads(keyValues, Reader(bytes))
         //on disk
         assertReads(keyValues, createFileChannelReader(bytes))
       }
 
       runThis(100.times) {
         val count = randomIntMax(4) max 1
-        test(randomizedKeyValues(count, addRandomGroups = true))
+        val keyValues = randomizedKeyValues(count, addRandomGroups = true)
+        if (keyValues.nonEmpty) test(keyValues)
       }
     }
 
@@ -167,24 +163,22 @@ class SegmentWriterReaderSpec extends TestBase {
     }
 
     "write and read Keys with None value to a Slice[Byte]" in {
-      runThis(10.times) {
-        val setDeadlines = Random.nextBoolean()
-        val keyValues = randomFixedNoneValue(keyValueCount, addRandomPutDeadlines = setDeadlines, addRandomUpdateDeadlines = setDeadlines, addRandomRemoveDeadlines = setDeadlines)
+      val setDeadlines = Random.nextBoolean()
+      val keyValues = randomFixedNoneValue(keyValueCount, addRandomPutDeadlines = setDeadlines, addRandomUpdateDeadlines = setDeadlines, addRandomRemoveDeadlines = setDeadlines)
 
-        keyValues foreach {
-          keyValue =>
-            keyValue.valueEntryBytes shouldBe empty
-        }
-
-        val (bytes, deadline) = SegmentWriter.write(keyValues, TestData.falsePositiveRate).assertGet
-
-        if (!setDeadlines) deadline shouldBe empty
-
-        //in memory
-        assertReads(keyValues, Reader(bytes))
-        //on disk
-        assertReads(keyValues, createFileChannelReader(bytes))
+      keyValues foreach {
+        keyValue =>
+          keyValue.valueEntryBytes shouldBe empty
       }
+
+      val (bytes, deadline) = SegmentWriter.write(keyValues, TestData.falsePositiveRate).assertGet
+
+      if (!setDeadlines) deadline shouldBe empty
+
+      //in memory
+      assertReads(keyValues, Reader(bytes))
+      //on disk
+      assertReads(keyValues, createFileChannelReader(bytes))
     }
 
     "report Segment corruption if CRC check does not match when reading the footer" in {
@@ -192,9 +186,9 @@ class SegmentWriterReaderSpec extends TestBase {
 
       val (bytes, _) = SegmentWriter.write(keyValues, TestData.falsePositiveRate).assertGet
 
-      SegmentReader.readFooter(Reader(bytes.drop(1))).failed.assertGet shouldBe a[SegmentCorruptionException]
-      SegmentReader.readFooter(Reader(bytes.dropRight(1))).failed.assertGet shouldBe a[SegmentCorruptionException]
-      SegmentReader.readFooter(Reader(bytes.slice(10, 20))).failed.assertGet shouldBe a[SegmentCorruptionException]
+      SegmentReader.readFooter(Reader(bytes.drop(1))).failed.assertGet.exception shouldBe a[SegmentCorruptionException]
+      SegmentReader.readFooter(Reader(bytes.dropRight(1))).failed.assertGet.exception shouldBe a[SegmentCorruptionException]
+      SegmentReader.readFooter(Reader(bytes.slice(10, 20))).failed.assertGet.exception shouldBe a[SegmentCorruptionException]
     }
   }
 

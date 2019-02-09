@@ -30,7 +30,6 @@ import swaydb.data.slice.Reader
 private[core] case class GroupDecompressor(private val compressedGroupReader: Reader,
                                            groupStartOffset: Int) {
 
-  private val maxTimesToIODecompress = 2
   @volatile private var groupHeader: GroupHeader = _ //header for compressed Segment info
   @volatile private var decompressedIndexReader: GroupReader = _ //reader for keys bytes that contains function to read value bytes
   @volatile private var decompressedValuesReader: Reader = _ //value bytes reader.
@@ -44,31 +43,26 @@ private[core] case class GroupDecompressor(private val compressedGroupReader: Re
     * of decompression is delegated to the first thread and the others will read from the same thread-safe [[decompressedValuesReader]]
     */
 
-  @tailrec
   private def valuesDecompressor(headerSize: Int,
                                  valuesCompressedLength: Int,
                                  valuesDecompressedLength: Int,
-                                 valuesCompression: DecompressorInternal,
-                                 maxTimesToIO: Int): IO[Reader] =
+                                 valuesCompression: DecompressorInternal): IO[Reader] =
     if (decompressedValuesReader != null) //if values are already decompressed, return values reader!
       IO(decompressedValuesReader.copy())
-    else if (maxTimesToIO <= 0)
-      IO.Failure(IO.Error.DecompressionValues(busyValueDecompressing))
     else if (BusyBoolean.setBusy(busyValueDecompressing)) //start values decompression.
-      compressedGroupReader.copy().moveTo(groupStartOffset + headerSize + 1).read(valuesCompressedLength) flatMap { //move to the head of the compressed and read compressed value bytes.
-        compressedValueBytes =>
-          valuesCompression.decompress(compressedValueBytes, valuesDecompressedLength) map { //do decompressing
-            valueDecompressedBytes =>
-              decompressedValuesReader = Reader(valueDecompressedBytes) //set decompressed bytes so other threads can read concurrently.
-              decompressedValuesReader.copy() //return new decompressed value reader. Do a copy to be thread-safe.
-          }
-      } recoverWith {
-        case ex =>
-          BusyBoolean.setFree(busyValueDecompressing) //free decompressor
-          IO.Failure(ex)
-      }
+      try
+        compressedGroupReader.copy().moveTo(groupStartOffset + headerSize + 1).read(valuesCompressedLength) flatMap { //move to the head of the compressed and read compressed value bytes.
+          compressedValueBytes =>
+            valuesCompression.decompress(compressedValueBytes, valuesDecompressedLength) map { //do decompressing
+              valueDecompressedBytes =>
+                decompressedValuesReader = Reader(valueDecompressedBytes) //set decompressed bytes so other threads can read concurrently.
+                decompressedValuesReader.copy() //return new decompressed value reader. Do a copy to be thread-safe.
+            }
+        }
+      finally
+        BusyBoolean.setFree(busyValueDecompressing)
     else //currently being decompressed by another thread. IO again!
-      valuesDecompressor(headerSize, valuesCompressedLength, valuesDecompressedLength, valuesCompression, maxTimesToIO - 1)
+      IO.Failure(IO.Error.DecompressionValues(busyValueDecompressing))
 
   private def readHeader() =
     for {
@@ -116,26 +110,20 @@ private[core] case class GroupDecompressor(private val compressedGroupReader: Re
       )
     }
 
-  @tailrec
-  private def header(maxTimesToIO: Int): IO[GroupHeader] =
+  def header(): IO[GroupHeader] =
     if (groupHeader != null)
       IO.Success(groupHeader)
-    else if (maxTimesToIO <= 0)
-      IO.Failure(IO.Error.ReadingHeader(busyReadingHeader))
     else if (BusyBoolean.setBusy(busyReadingHeader))
-      readHeader() map {
-        header =>
-          groupHeader = header
-          header
-      } onFailure {
-        _ =>
-          BusyBoolean.setFree(busyReadingHeader)
-      }
+      try
+        readHeader() map {
+          header =>
+            groupHeader = header
+            header
+        }
+      finally
+        BusyBoolean.setFree(busyReadingHeader)
     else
-      header(maxTimesToIO - 1)
-
-  def header(): IO[GroupHeader] =
-    header(maxTimesToIODecompress)
+      IO.Failure(IO.Error.ReadingHeader(busyReadingHeader))
 
   private def decompressor(): IO[GroupReader] =
     for {
@@ -157,8 +145,7 @@ private[core] case class GroupDecompressor(private val compressedGroupReader: Re
                   headerSize = header.headerSize,
                   valuesCompressedLength = valueInfo.valuesCompressedLength,
                   valuesDecompressedLength = valueInfo.valuesDecompressedLength,
-                  valuesCompression = valueInfo.valuesDecompressor,
-                  maxTimesToIO = maxTimesToIODecompress
+                  valuesCompression = valueInfo.valuesDecompressor
                 )
             } getOrElse IO.emptyReader, //Return empty reader if values are empty
         indexReader = Reader(keysDecompressedBytes)
@@ -174,27 +161,20 @@ private[core] case class GroupDecompressor(private val compressedGroupReader: Re
     *
     * It also initialises [[valuesDecompressor]] partial function which when invoked decompresses values in a thread-safe manner.
     */
-  @tailrec
-  private def decompress(timesToIO: Int): IO[Reader] =
+  def decompress(): IO[Reader] =
     if (decompressedIndexReader != null) //if keys are already decompressed, return!
       IO(decompressedIndexReader.copy())
-    else if (timesToIO <= 0)
-      IO.Failure(IO.Error.DecompressingIndex(busyIndexDecompressing))
     else if (BusyBoolean.setBusy(busyIndexDecompressing)) //start decompressing keys.
-      decompressor() map {
-        reader =>
-          decompressedIndexReader = reader
-          reader.copy()
-      } recoverWith {
-        case error =>
-          BusyBoolean.setFree(busyIndexDecompressing) //free decompressor
-          IO.Failure(error)
-      }
+      try
+        decompressor() map {
+          reader =>
+            decompressedIndexReader = reader
+            reader.copy()
+        }
+      finally
+        BusyBoolean.setFree(busyIndexDecompressing)
     else
-      decompress(timesToIO - 1) //currently being decompressed by another thread. IO again!
-
-  def decompress(): IO[Reader] =
-    decompress(maxTimesToIODecompress)
+      IO.Failure(IO.Error.DecompressingIndex(busyIndexDecompressing))
 
   def footer(): IO[SegmentFooter] =
     header().map(_.footer)

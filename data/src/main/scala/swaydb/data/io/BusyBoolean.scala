@@ -44,10 +44,9 @@ object BusyBoolean {
   def blockUntilFree(boolean: BusyBoolean): Unit =
     boolean.synchronized {
       while (boolean.busy) boolean.wait()
-      doFree(boolean)
     }
 
-  private def doFree(boolean: BusyBoolean): Unit = {
+  private def notifyBlocking(boolean: BusyBoolean): Unit = {
     boolean.notifyAll()
     boolean.promises.foreach(_.tryComplete(unitTry))
   }
@@ -69,7 +68,6 @@ object BusyBoolean {
         boolean.busy = true
         true
       } else {
-        doFree(boolean)
         false
       }
     }
@@ -77,7 +75,7 @@ object BusyBoolean {
   def setFree(boolean: BusyBoolean): Unit =
     boolean.synchronized {
       boolean.busy = false
-      doFree(boolean)
+      notifyBlocking(boolean)
     }
 }
 

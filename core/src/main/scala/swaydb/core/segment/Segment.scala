@@ -27,7 +27,6 @@ import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.Deadline
-import swaydb.data.io.IO
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
@@ -40,9 +39,10 @@ import swaydb.core.segment.format.a.{SegmentReader, SegmentWriter}
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util.CollectionUtil._
 import swaydb.core.util.PipeOps._
-import swaydb.data.io.IO._
 import swaydb.core.util.{BloomFilterUtil, IDGenerator}
 import swaydb.data.config.Dir
+import swaydb.data.io.IO
+import swaydb.data.io.IO._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.repairAppendix.MaxKey
 import swaydb.data.slice.Slice
@@ -228,7 +228,7 @@ private[core] object Segment extends LazyLogging {
           writeKeyValue(keyValue, deadline)
       } flatMap {
         nearestExpiryDeadline =>
-          IO.Success(
+          IO {
             MemorySegment(
               path = path,
               minKey = keyValues.head.key.unslice(),
@@ -252,7 +252,7 @@ private[core] object Segment extends LazyLogging {
               cache = skipList,
               nearestExpiryDeadline = nearestExpiryDeadline
             )
-          )
+          }
       }
     }
 
@@ -499,13 +499,13 @@ private[core] object Segment extends LazyLogging {
                                          compression: Option[KeyValueGroupingStrategyInternal],
                                          ec: ExecutionContext): IO[Segment] = {
 
-    val file =
+    val fileIO =
       if (mmapReads)
         DBFile.mmapRead(path = path, autoClose = true, checkExists = checkExists)
       else
         DBFile.channelRead(path = path, autoClose = true, checkExists = checkExists)
 
-    file map {
+    fileIO map {
       file =>
         PersistentSegment(
           file = file,

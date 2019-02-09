@@ -486,7 +486,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           keyValues = randomizedKeyValues(keyValuesCount),
           assert =
             (keyValues, segment) => {
-              val readSegment = Segment(segment.path, Random.nextBoolean(), Random.nextBoolean(), false, true).assertGet
+              val readSegment = Segment(segment.path, randomBoolean, randomBoolean, false, true).assertGet
               readSegment shouldBe segment
             }
         )
@@ -505,7 +505,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
     }
   }
 
-  "Segment.deleteSegments" should {
+  "deleteSegments" should {
     "delete multiple segments" in {
       val segment1 = TestSegment(randomizedKeyValues(keyValuesCount)).assertGet
       val segment2 = TestSegment(randomizedKeyValues(keyValuesCount)).assertGet
@@ -613,7 +613,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
     }
   }
 
-  "Segment.delete" should {
+  "delete" should {
     "close the channel and delete the file" in {
       val keyValues = randomizedKeyValues(keyValuesCount)
       val segment = TestSegment(keyValues).unsafeGet
@@ -632,11 +632,11 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
     }
   }
 
-  "Segment.copyTo" should {
+  "copyTo" should {
     "copy the segment to a target path without deleting the original" in {
       if (memory) {
         val segment = TestSegment(randomizedKeyValues(keyValuesCount)).assertGet
-        segment.copyTo(randomFilePath).failed.assertGet shouldBe CannotCopyInMemoryFiles(segment.path)
+        segment.copyTo(randomFilePath).failed.assertGet.exception shouldBe CannotCopyInMemoryFiles(segment.path)
       } else {
         val keyValues = randomizedKeyValues(keyValuesCount)
         val keyValuesReadOnly = keyValues
@@ -657,7 +657,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
     }
   }
 
-  "Segment.copyToPersist" should {
+  "copyToPersist" should {
     "copy the segment and persist it to disk" in {
       val keyValues = randomizedKeyValues(keyValuesCount)
       val segment = TestSegment(keyValues).assertGet
@@ -785,7 +785,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
     }
   }
 
-  "Segment.copyToMemory" should {
+  "copyToMemory" should {
     "copy persistent segment and store it in Memory" in {
 
       val keyValues = randomizedKeyValues(keyValuesCount)
@@ -832,20 +832,20 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         segments.size should be >= 2 //ensures that splits occurs. Memory Segments do not get written to disk without splitting.
 
         //some key-values could get expired while unexpired key-values are being collected. So try again!
-          IO {
-            Segment.getAllKeyValues(TestData.falsePositiveRate, segments).assertGet shouldBe unzipGroups(keyValues).collect {
-              case keyValue: Transient.Put if keyValue.hasTimeLeft() =>
-                keyValue
-              case Transient.Range(fromKey, _, _, Some(put @ Value.Put(_, deadline, _)), _, _, _, _) if deadline.forall(_.hasTimeLeft()) =>
-                put.toMemory(fromKey).toTransient
-            }.updateStats
-          }
+        IO {
+          Segment.getAllKeyValues(TestData.falsePositiveRate, segments).assertGet shouldBe unzipGroups(keyValues).collect {
+            case keyValue: Transient.Put if keyValue.hasTimeLeft() =>
+              keyValue
+            case Transient.Range(fromKey, _, _, Some(put @ Value.Put(_, deadline, _)), _, _, _, _) if deadline.forall(_.hasTimeLeft()) =>
+              put.toMemory(fromKey).toTransient
+          }.updateStats
+        }
       }
     }
 
   }
 
-  "Segment.put" should {
+  "put" should {
     "return None for empty byte arrays for values" in {
       runThis(10.times) {
         val keyValuesWithEmptyValues = ListBuffer.empty[Memory]
@@ -977,12 +977,14 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
     }
 
     "return new segment with deleted KeyValues if all keys were deleted and removeDeletes is false" in {
+      implicit def timeGenerator: TestTimeGenerator = TestTimeGenerator.Empty
+
       val keyValues = Slice(
         Transient.put(1),
         Transient.put(2),
         Transient.put(3),
         Transient.put(4),
-        Transient.Range.create[FromValue, RangeValue](5, 10, None, randomRangeValue())
+        Transient.Range.create[FromValue, RangeValue](5, 10, None, Value.Update(None, None, timeGenerator.nextTime))
       ).updateStats
       val segment = TestSegment(keyValues, removeDeletes = false).assertGet
       assertGet(keyValues, segment)
@@ -1144,7 +1146,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
     }
   }
 
-  "Segment.refresh" should {
+  "refresh" should {
     "return new Segment with Removed key-values removed" in {
       if (persistent) {
         val keyValues1 = (1 to 100).map(key => eitherOne(randomRemoveKeyValue(key), randomRangeKeyValue(key, key + 1, None, randomRangeValue()))).toTransient
@@ -1178,7 +1180,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
     }
   }
 
-  "Segment.split & then write" should {
+  "split & then write" should {
     "succeed for non group key-values" in {
       implicit val groupingStrategy: Option[KeyValueGroupingStrategyInternal] = None
       val keyValues = randomizedKeyValues(1000, addRandomGroups = false)
