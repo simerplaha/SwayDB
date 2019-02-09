@@ -86,7 +86,7 @@ object IO {
     def recover[U >: T](f: PartialFunction[IO.Error, U]): IO[U]
     def recoverWith[U >: T](f: PartialFunction[IO.Error, IO[U]]): IO[U]
     def failed: IO[IO.Error]
-    def flatten[U](implicit ev: T <:< IO.Async[U]): IO.Async[U]
+    def flattenAsync[U](implicit ev: T <:< IO.Async[U]): IO.Async[U]
   }
 
   implicit class IterableIOImplicit[T: ClassTag](iterable: Iterable[T]) {
@@ -204,6 +204,7 @@ object IO {
     */
   object Exception {
     case class Busy(error: Error.Busy) extends Exception("Is busy")
+    case class OpeningFile(file: Path, busy: BusyBoolean) extends Exception(s"Failed to open file $file")
     case class DecompressingIndex(busy: BusyBoolean) extends Exception("Failed to decompress index")
     case class DecompressionValues(busy: BusyBoolean) extends Exception("Failed to decompress values")
     case class FetchingValue(busy: BusyBoolean) extends Exception("Failed to fetch value")
@@ -224,6 +225,7 @@ object IO {
       exception match {
         //known Exception that can occur which can return their typed Error version.
         case exception: IO.Exception.Busy => exception.error
+        case exception: IO.Exception.OpeningFile => Error.OpeningFile(exception.file, exception.busy)
         case exception: IO.Exception.DecompressingIndex => Error.DecompressingIndex(exception.busy)
         case exception: IO.Exception.DecompressionValues => Error.DecompressionValues(exception.busy)
         case exception: IO.Exception.FetchingValue => Error.FetchingValue(exception.busy)
@@ -252,43 +254,43 @@ object IO {
     }
 
     case class OpeningFile(file: Path, busy: BusyBoolean) extends Busy {
-      override def exception: Throwable = new Exception(s"Failed to open file $file")
+      override def exception: IO.Exception.OpeningFile = IO.Exception.OpeningFile(file, busy)
     }
 
-    case class NoSuchFile(exception: Throwable) extends Busy {
+    case class NoSuchFile(exception: NoSuchFileException) extends Busy {
       override def busy: BusyBoolean = BusyBoolean.notBusy
     }
 
-    case class FileNotFound(exception: Throwable) extends Busy {
+    case class FileNotFound(exception: FileNotFoundException) extends Busy {
       override def busy: BusyBoolean = BusyBoolean.notBusy
     }
 
-    case class AsynchronousClose(exception: Throwable) extends Busy {
+    case class AsynchronousClose(exception: AsynchronousCloseException) extends Busy {
       override def busy: BusyBoolean = BusyBoolean.notBusy
     }
 
-    case class ClosedChannel(exception: Throwable) extends Busy {
+    case class ClosedChannel(exception: ClosedChannelException) extends Busy {
       override def busy: BusyBoolean = BusyBoolean.notBusy
     }
 
-    case class NullPointer(exception: Throwable) extends Busy {
+    case class NullPointer(exception: NullPointerException) extends Busy {
       override def busy: BusyBoolean = BusyBoolean.notBusy
     }
 
     case class DecompressingIndex(busy: BusyBoolean) extends Busy {
-      override def exception: Throwable = IO.Exception.DecompressingIndex(busy)
+      override def exception: IO.Exception.DecompressingIndex = IO.Exception.DecompressingIndex(busy)
     }
 
     case class DecompressionValues(busy: BusyBoolean) extends Busy {
-      override def exception: Throwable = IO.Exception.DecompressionValues(busy)
+      override def exception: IO.Exception.DecompressionValues = IO.Exception.DecompressionValues(busy)
     }
 
     case class ReadingHeader(busy: BusyBoolean) extends Busy {
-      override def exception: Throwable = IO.Exception.ReadingHeader(busy)
+      override def exception: IO.Exception.ReadingHeader = IO.Exception.ReadingHeader(busy)
     }
 
     case class FetchingValue(busy: BusyBoolean) extends Busy {
-      override def exception: Throwable = IO.Exception.FetchingValue(busy)
+      override def exception: IO.Exception.FetchingValue = IO.Exception.FetchingValue(busy)
     }
 
     /**
@@ -308,7 +310,8 @@ object IO {
     }
 
     case class ReceivedKeyValuesToMergeWithoutTargetSegment(keyValueCount: Int) extends Error {
-      override def exception: Throwable = IO.Exception.ReceivedKeyValuesToMergeWithoutTargetSegment(keyValueCount)
+      override def exception: IO.Exception.ReceivedKeyValuesToMergeWithoutTargetSegment =
+        IO.Exception.ReceivedKeyValuesToMergeWithoutTargetSegment(keyValueCount)
     }
 
     /**
@@ -357,7 +360,7 @@ object IO {
     override def flatMap[U](f: T => IO[U]): IO[U] = IO.Catch(f(unsafeGet))
     override def flatMapAsync[U](f: T => IO.Async[U]): IO.Async[U] = f(unsafeGet)
     override def flatten[U](implicit ev: T <:< IO[U]): IO[U] = unsafeGet
-    override def flatten[U](implicit ev: T <:< IO.Async[U]): IO.Async[U] = unsafeGet
+    override def flattenAsync[U](implicit ev: T <:< IO.Async[U]): IO.Async[U] = unsafeGet
     override def foreach[U](f: T => U): Unit = f(unsafeGet)
     override def map[U](f: T => U): IO[U] = IO[U](f(unsafeGet))
     override def mapAsync[U](f: T => U): IO.Async[U] = IO(f(unsafeGet)).asInstanceOf[IO.Async[U]]
@@ -503,7 +506,7 @@ object IO {
         error = error
       )
 
-    def flatten[U](implicit ev: T <:< IO.Async[U]): IO.Async[U] = forceGet
+    def flattenAsync[U](implicit ev: T <:< IO.Async[U]): IO.Async[U] = forceGet
     def map[U](f: T => U): IO.Async[U] = IO.Later[U]((_: Unit) => f(forceGet), error)
     def mapAsync[U](f: T => U): IO.Async[U] = map(f)
     def recover[U >: T](f: PartialFunction[IO.Error, U]): IO[U] = IO(forceGet).recover(f)
@@ -531,7 +534,7 @@ object IO {
     override def flatMap[U](f: T => IO[U]): IO[U] = this.asInstanceOf[IO[U]]
     override def flatMapAsync[U](f: T => IO.Async[U]): IO.Async[U] = this.asInstanceOf[Async[U]]
     override def flatten[U](implicit ev: T <:< IO[U]): IO[U] = this.asInstanceOf[IO[U]]
-    override def flatten[U](implicit ev: T <:< IO.Async[U]): IO.Async[U] = this.asInstanceOf[IO.Async[U]]
+    override def flattenAsync[U](implicit ev: T <:< IO.Async[U]): IO.Async[U] = this.asInstanceOf[IO.Async[U]]
     override def foreach[U](f: T => U): Unit = ()
     override def map[U](f: T => U): IO[U] = this.asInstanceOf[IO[U]]
     override def mapAsync[U](f: T => U): IO.Async[U] = this.asInstanceOf[IO.Async[U]]

@@ -19,6 +19,7 @@
 
 package swaydb.data.io
 
+import java.nio.file.{NoSuchFileException, Paths}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
 import scala.collection.mutable.ListBuffer
@@ -30,6 +31,11 @@ import swaydb.data.slice.Slice
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class IOSpec extends WordSpec with Matchers with MockFactory {
+
+  implicit class AwaitImplicits[T](f: Future[T]) {
+    def await =
+      Await.result(f, 10.seconds)
+  }
 
   "Catch" when {
     "exception" in {
@@ -270,7 +276,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
       io.unsafeGet shouldBe 1
       io.safeGet shouldBe io
       io.safeGetBlocking shouldBe io
-      Await.result(io.safeGetFuture, 1.second) shouldBe io
+      io.safeGetFuture.await shouldBe io
     }
 
     "getOrElse & orElse return first io if both are successes" in {
@@ -283,7 +289,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
     }
 
     "getOrElse return second io first is failure" in {
-      val io = IO.Failure(IO.Error.NoSuchFile(new Exception("")))
+      val io = IO.Failure(IO.Error.NoSuchFile(new NoSuchFileException("")))
 
       io getOrElse 2 shouldBe 2
 
@@ -298,7 +304,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
     }
 
     "flatMap on failure" in {
-      val failure = IO.Failure(IO.Error.NoSuchFile(new Exception("")))
+      val failure = IO.Failure(IO.Error.NoSuchFile(new NoSuchFileException("")))
 
       IO.Success(1) flatMap {
         _ =>
@@ -321,7 +327,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
 
   "IO.Failure" should {
     "set boolean" in {
-      val io = IO.Success(1)
+      val io = IO.Failure(Error.OpeningFile(Paths.get(""), BusyBoolean(false)))
       io.isFailure shouldBe true
       io.isLater shouldBe false
       io.isSuccess shouldBe false
@@ -335,7 +341,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
       }
       io.safeGet shouldBe io
       io.safeGetBlocking shouldBe io
-      Await.result(io.safeGetFuture, 1.second) shouldBe io
+      io.safeGetFuture.await shouldBe io
     }
 
     "getOrElse & orElse return first io if both are Failures" in {
@@ -356,7 +362,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
     }
 
     "flatMap on failure" in {
-      val failure = IO.Failure(IO.Error.NoSuchFile(new Exception("")))
+      val failure = IO.Failure(IO.Error.NoSuchFile(new NoSuchFileException("")))
 
       failure flatMap {
         _ =>
@@ -365,13 +371,13 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
     }
 
     "flatten on successes with failure" in {
-      val sss: IO[IO[Int]] = IO.Success(IO.Failure(IO.Error.Fatal(new Exception("Kaboom!"))))
+      val io = IO.Success(IO.Failure(IO.Error.Fatal(new Exception("Kaboom!"))))
 
-      sss.flatten.asInstanceOf[IO.Failure[Int]].exception.getMessage shouldBe "Kaboom!"
+      io.flatten.asInstanceOf[IO.Failure[Int]].exception.getMessage shouldBe "Kaboom!"
     }
 
     "flatten on failure with success" in {
-      val io: IO[IO[Int]] =
+      val io =
         (IO.Failure(IO.Error.Fatal(new Exception("Kaboom!"))): IO[Int]) map {
           _ =>
             IO.Success(11)
@@ -390,31 +396,41 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
         }
 
       io.unsafeGet shouldBe 2
+      io.safeGet shouldBe IO.Success(2)
+      io.safeGetBlocking shouldBe IO.Success(2)
+      io.safeGetFuture.await shouldBe IO.Success(2)
     }
 
     "flatMap on IO.Failure" in {
+      val boolean = BusyBoolean(false)
+
       val io: IO.Async[Int] =
         IO.Async(1, IO.Error.DecompressionValues(BusyBoolean(false))) flatMapAsync {
           _ =>
-            IO.Failure(IO.Error.OverlappingPushSegment)
+            IO.Failure(IO.Error.OpeningFile(Paths.get(""), boolean))
         }
 
-      assertThrows[Exception] {
+      assertThrows[IO.Exception.OpeningFile] {
         io.unsafeGet
       }
+
+      io.safeGet.asInstanceOf[IO.Later[_]].error shouldBe IO.Error.OpeningFile(Paths.get(""), boolean)
+
     }
 
     "safeGet on multiple when last is a failure should return failure" in {
+      val failure = IO.Failure(IO.Error.NoSuchFile(new NoSuchFileException("Not such file")))
+
       val io: Async[Int] =
         IO.Async(1, IO.Error.DecompressingIndex(BusyBoolean(false))) flatMapAsync {
           i =>
             IO.Async(i + 1, IO.Error.ReadingHeader(BusyBoolean(false))) flatMapAsync {
               _ =>
-                IO.Failure(IO.Error.NoSuchFile(new Exception("Not such file")))
+                failure
             }
         }
 
-      io.safeGet shouldBe a[IO.Failure[_]]
+      io.safeGet.asInstanceOf[IO.Later[_]].error shouldBe failure.error
     }
 
     "safeGet on multiple when last is Async should return last Async" in {
@@ -491,7 +507,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
           if (i == 1)
             io.safeGetBlocking shouldBe IO.Success(102)
           else
-            Await.result(io.safeGetFuture, 5.seconds) shouldBe IO.Success(102)
+            io.safeGetFuture.await shouldBe IO.Success(102)
       }
 
     }
