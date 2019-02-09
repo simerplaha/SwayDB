@@ -59,7 +59,9 @@ private[core] object MapCodec extends LazyLogging {
     finalSlice
   }
 
-  //Java style return statements are used to break out of the loop. Use functions instead.
+  /**
+    * THIS FUNCTION NEED REFACTORING.
+    */
   def read[K, V](bytes: Slice[Byte],
                  dropCorruptedTailEntries: Boolean)(implicit mapReader: MapEntryReader[MapEntry[K, V]]): IO[RecoveryResult[Option[MapEntry[K, V]]]] =
     Reader(bytes).foldLeftIO(RecoveryResult(Option.empty[MapEntry[K, V]], IO.unit)) {
