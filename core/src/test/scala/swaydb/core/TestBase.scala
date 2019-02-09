@@ -579,10 +579,10 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
     ).runThisRandomlyInParallel
   }
 
-  def assertOnSegment[T](keyValues: Slice[Memory],
-                         assert: (Slice[Memory], Segment) => T,
-                         testWithCachePopulated: Boolean = true,
-                         closeAfterCreate: Boolean = false)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+  def assertSegment[T](keyValues: Slice[Memory],
+                       assert: (Slice[Memory], Segment) => T,
+                       testWithCachePopulated: Boolean = true,
+                       closeAfterCreate: Boolean = false)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                             groupingStrategy: Option[KeyValueGroupingStrategyInternal]) = {
     val segment = TestSegment(keyValues.toTransient).assertGet
     if (closeAfterCreate) segment.close.assertGet

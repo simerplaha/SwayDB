@@ -31,7 +31,7 @@ import swaydb.core.data.Value.{FromValue, RangeValue}
 
 class BloomFilterUtilSpec extends TestBase {
 
-  "BloomFilterUtil.toBytes" should {
+  "toBytes" should {
     "write bloom filter to bytes" in {
 
       val bloomFilter = BloomFilter[Slice[Byte]](10, 0.01)
@@ -47,7 +47,7 @@ class BloomFilterUtilSpec extends TestBase {
     }
   }
 
-  "BloomFilterUtil.byteSize" should {
+  "byteSize" should {
     "return the number of bytes required to store the Bloom filter" in {
       (1 to 1000) foreach {
         i =>
@@ -59,21 +59,25 @@ class BloomFilterUtilSpec extends TestBase {
     }
   }
 
-  "BloomFilterUtil.initBloomFilter" should {
+  "init" should {
     "not initialise bloomFilter if it contain removeRange" in {
       implicit val time = TestTimeGenerator.Incremental()
-      BloomFilterUtil.initBloomFilter(
+      BloomFilterUtil.init(
         keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, None, Value.Remove(None, time.nextTime))),
         bloomFilterFalsePositiveRate = TestData.falsePositiveRate
       ) shouldBe empty
 
-      BloomFilterUtil.initBloomFilter(
+      BloomFilterUtil.init(
         keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, None, Value.Remove(Some(randomDeadline()), time.nextTime))),
         bloomFilterFalsePositiveRate = TestData.falsePositiveRate
       ) shouldBe empty
 
+    }
+
+    "initialise bloomFilter when from value is remove but range value is not" in {
+      implicit val time = TestTimeGenerator.Incremental()
       //fromValue is remove but it's not a remove ange
-      BloomFilterUtil.initBloomFilter(
+      BloomFilterUtil.init(
         keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, Some(Value.Remove(None, time.nextTime)), Value.update(100))),
         bloomFilterFalsePositiveRate = TestData.falsePositiveRate
       ) shouldBe defined

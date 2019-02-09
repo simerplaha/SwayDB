@@ -77,7 +77,7 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
 
     "fixed key-value" in {
       runThis(100.times) {
-        assertOnSegment(
+        assertSegment(
           keyValues = Slice(randomFixedKeyValue(1)),
           assert =
             (keyValues, segment) =>
@@ -90,7 +90,7 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
               ).foreach(_ ())
         )
 
-        assertOnSegment(
+        assertSegment(
           keyValues = Slice(randomFixedKeyValue(1), randomFixedKeyValue(2)),
           assert =
             (keyValues, segment) =>
@@ -107,7 +107,7 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
 
     "range-value" in {
       runThis(100.times) {
-        assertOnSegment(
+        assertSegment(
           keyValues = Slice(randomRangeKeyValue(1, 10)),
           assert =
             (keyValues, segment) =>
@@ -125,7 +125,7 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
               ).foreach(_ ())
         )
 
-        assertOnSegment(
+        assertSegment(
           keyValues =
             Slice(randomRangeKeyValue(1, 10), randomRangeKeyValue(10, 20)),
           assert =
@@ -156,7 +156,7 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
       runThis(100.times) {
         val groupKeyValues = randomizedKeyValues(keyValuesCount)
         val keyValues = Slice(randomGroup(groupKeyValues)).toMemory
-        assertOnSegment(
+        assertSegment(
           keyValues = keyValues,
           assert =
             (_, segment) =>
@@ -172,7 +172,7 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
     }
 
     "add unsliced key-values to Segment's caches" in {
-      assertOnSegment(
+      assertSegment(
         keyValues = randomizedKeyValues(keyValuesCount, addRandomGroups = false),
         testWithCachePopulated = false,
         assert =
@@ -201,7 +201,7 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
 
     "add read key values to cache" in {
       runThis(100.times) {
-        assertOnSegment(
+        assertSegment(
           keyValues = randomizedKeyValues(keyValuesCount, addRandomGroups = false),
           testWithCachePopulated = false,
           assert =
@@ -218,7 +218,7 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
 
     "read value from a closed ValueReader" in {
       runThis(100.times) {
-        assertOnSegment(
+        assertSegment(
           keyValues = Slice(randomFixedKeyValue(1), randomFixedKeyValue(2)).toTransient,
           assert =
             (keyValues, segment) =>
@@ -234,7 +234,7 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
 
     "lazily load values" in {
       runThis(100.times) {
-        assertOnSegment(
+        assertSegment(
           keyValues = randomizedKeyValues(keyValuesCount),
           testWithCachePopulated = false,
           assert =

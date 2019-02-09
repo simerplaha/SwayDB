@@ -98,7 +98,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
       runThis(10.times) {
         val keyValues = randomizedKeyValues(keyValuesCount)
         val group = randomGroup(keyValues)
-        val bloom = BloomFilterUtil.initBloomFilter(keyValues, TestData.falsePositiveRate)
+        val bloom = BloomFilterUtil.init(keyValues, TestData.falsePositiveRate)
         val deadline = Segment.writeBloomFilterAndGetNearestDeadline(group, bloom, None)
 
         if (keyValues.last.stats.hasRemoveRange)
@@ -112,7 +112,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
 
     "create a Segment" in {
       runThis(100.times) {
-        assertOnSegment(
+        assertSegment(
           keyValues =
             randomizedKeyValues(randomIntMax(keyValuesCount) max 1).toMemory,
 
@@ -157,7 +157,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
 
     "set minKey & maxKey to be Fixed if the last key-value is a Fixed key-value" in {
       runThis(100.times) {
-        assertOnSegment(
+        assertSegment(
           keyValues =
             Slice(randomRangeKeyValue(1, 10), randomFixedKeyValue(11)),
           assert =
@@ -172,7 +172,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
 
     "set minKey & maxKey to be Range if the last key-value is a Range key-value" in {
       runThis(100.times) {
-        assertOnSegment(
+        assertSegment(
           keyValues = Slice(randomFixedKeyValue(0), randomRangeKeyValue(1, 10)),
           assert =
             (keyValues, segment) => {
@@ -186,7 +186,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
 
     "set minKey & maxKey to be Range if the last key-value is a Group and the Group's last key-value is Range" in {
       runThis(100.times) {
-        assertOnSegment(
+        assertSegment(
           keyValues = Slice(randomFixedKeyValue(0), randomGroup(Slice(randomFixedKeyValue(2), randomRangeKeyValue(5, 10)).toTransient)).toMemory,
           assert =
             (keyValues, segment) => {
@@ -200,7 +200,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
 
     "set minKey & maxKey to be Range if the last key-value is a Group and the Group's last key-value is Fixed" in {
       runThis(10.times) {
-        assertOnSegment(
+        assertSegment(
           keyValues =
             Slice(
               randomFixedKeyValue(0),
@@ -219,7 +219,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
 
     "set minKey & maxKey to be Range if the last key-value is a Group and the Group's last key-value is also another Group with range last key-Value" in {
       runThis(10.times) {
-        assertOnSegment(
+        assertSegment(
           keyValues =
             Slice(
               randomFixedKeyValue(0),
@@ -267,7 +267,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         readKeyValues foreach assertNotSliced
 
         //Create Segment with sub-slice key-values and assert min & maxKey and also check that cached key-values are un-sliced.
-        assertOnSegment(
+        assertSegment(
           keyValues = readKeyValues,
           assert =
             (keyValues, segment) => {
@@ -314,35 +314,35 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         segment.close.assertGet
       }
 
-      assertOnSegment(
+      assertSegment(
         keyValues = Slice(Memory.put(0), Memory.Range(1, 10, None, Value.remove(randomDeadlineOption, Time.empty))),
         assert = doAssert
       )
 
-      assertOnSegment(
+      assertSegment(
         keyValues = Slice(Memory.put(0), Memory.Range(1, 10, Some(Value.remove(None, Time.empty)), Value.remove(randomDeadlineOption, Time.empty))),
         assert = doAssert
       )
 
-      assertOnSegment(
+      assertSegment(
         keyValues = Slice(Memory.put(0), Memory.Range(1, 10, Some(Value.update(None, randomDeadlineOption, Time.empty)), Value.remove(randomDeadlineOption, Time.empty))),
         assert = doAssert
       )
 
-      assertOnSegment(
+      assertSegment(
         keyValues = Slice(Memory.put(0), Memory.Range(1, 10, Some(Value.put(Some(1), randomDeadlineOption, Time.empty)), Value.remove(randomDeadlineOption, Time.empty))),
         assert = doAssert
       )
 
       //group can also have a range key-value which should have the same effect.
-      assertOnSegment(
+      assertSegment(
         keyValues = Slice(Memory.put(0), randomGroup(Slice(Memory.Range(1, 10, Some(Value.put(Some(1), randomDeadlineOption, Time.empty)), Value.remove(randomDeadlineOption, Time.empty))).toTransient).toMemory),
         assert = doAssert
       )
     }
 
     "create bloomFilter if the Segment has no Remove range key-values but has update range key-values. And set hasRange to true" in {
-      assertOnSegment(
+      assertSegment(
         keyValues = Slice(Memory.put(0), Memory.put(1, 1), Memory.remove(2, randomDeadlineOption)),
         assert =
           (keyValues, segment) => {
@@ -352,7 +352,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           }
       )
 
-      assertOnSegment(
+      assertSegment(
         keyValues = Slice(Memory.put(0), Memory.Range(1, 10, None, Value.update(10, randomDeadlineOption))),
         assert =
           (keyValues, segment) => {
@@ -362,7 +362,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           }
       )
 
-      assertOnSegment(
+      assertSegment(
         keyValues =
           Slice(
             Memory.put(0),
@@ -384,42 +384,42 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         segment.close.assertGet
       }
 
-      assertOnSegment(
+      assertSegment(
         keyValues = Slice(Memory.put(0), Memory.Range(1, 10, None, Value.update(10))),
         assert = doAssert
       )
 
-      assertOnSegment(
+      assertSegment(
         keyValues = Slice(Memory.put(0), Memory.Range(1, 10, Some(Value.remove(None, Time.empty)), Value.update(10))),
         assert = doAssert
       )
 
-      assertOnSegment(
+      assertSegment(
         keyValues = Slice(Memory.put(0), Memory.Range(1, 10, Some(Value.put(1)), Value.update(10))),
         assert = doAssert
       )
 
-      assertOnSegment(
+      assertSegment(
         keyValues = Slice(Memory.put(0), Memory.Range(1, 10, None, Value.remove(None, Time.empty))),
         assert = doAssert
       )
 
-      assertOnSegment(
+      assertSegment(
         keyValues = Slice(Memory.put(0), Memory.Range(1, 10, Some(Value.remove(10.seconds.fromNow)), Value.remove(None, Time.empty))),
         assert = doAssert
       )
 
-      assertOnSegment(
+      assertSegment(
         keyValues = Slice(Memory.put(0), Memory.Range(1, 10, Some(Value.put(1)), Value.remove(None, Time.empty))),
         assert = doAssert
       )
 
-      assertOnSegment(
+      assertSegment(
         keyValues = randomPutKeyValues(keyValuesCount, addRandomRemoves = true, addRandomRanges = true, addRandomPutDeadlines = true, addRandomRemoveDeadlines = true),
         assert = doAssert
       )
 
-      assertOnSegment(
+      assertSegment(
         keyValues = Slice(randomGroup(Slice(Memory.Range(1, 10, Some(Value.put(Some(1), randomDeadlineOption, Time.empty)), Value.update(1, randomDeadlineOption))).toTransient).toMemory),
         assert = doAssert
       )
@@ -429,7 +429,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
       if (memory) {
         //memory Segments do not check for overwrite. No tests required
       } else {
-        assertOnSegment(
+        assertSegment(
           keyValues =
             randomPutKeyValues(keyValuesCount),
           assert =
@@ -453,7 +453,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         //memory Segments cannot re-initialise Segments after shutdown.
       } else {
         runThisParallel(10.times) {
-          assertOnSegment(
+          assertSegment(
             keyValues = randomizedKeyValues(keyValuesCount),
             closeAfterCreate = true,
             testWithCachePopulated = false,
@@ -482,7 +482,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
       if (memory) {
         //memory Segments cannot re-initialise Segments after shutdown.
       } else {
-        assertOnSegment(
+        assertSegment(
           keyValues = randomizedKeyValues(keyValuesCount),
           assert =
             (keyValues, segment) => {

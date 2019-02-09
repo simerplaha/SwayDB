@@ -247,6 +247,9 @@ object IO {
         case exception: AsynchronousCloseException => Error.AsynchronousClose(exception)
         case exception: ClosedChannelException => Error.ClosedChannel(exception)
         case exception: NullPointerException => Error.NullPointer(exception)
+
+        //Fatal error. This error is not expected to occur on a healthy database. This error would indicate corruption.
+        //AppendixRepairer can be used to repair map files.
         case exception => Error.Fatal(exception)
       }
 

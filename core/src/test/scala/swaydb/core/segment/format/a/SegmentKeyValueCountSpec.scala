@@ -73,7 +73,7 @@ sealed trait SegmentKeyValueCount extends TestBase with ScalaFutures with Privat
 
     "return 1 when the Segment contains only 1 key-value" in {
       runThis(100.times) {
-        assertOnSegment(
+        assertSegment(
           keyValues = randomizedKeyValues(1, addRandomGroups = false),
           assert =
             (keyValues, segment) => {
@@ -86,7 +86,7 @@ sealed trait SegmentKeyValueCount extends TestBase with ScalaFutures with Privat
 
     "return the number of randomly generated key-values where there are no Groups" in {
       runThis(10.times) {
-        assertOnSegment(
+        assertSegment(
           keyValues = randomizedKeyValues(keyValuesCount, addRandomGroups = false),
           assert =
             (keyValues, segment) => {
@@ -100,7 +100,7 @@ sealed trait SegmentKeyValueCount extends TestBase with ScalaFutures with Privat
     "return the number key-values in a single Group" in {
       runThis(10.times) {
         val groupsKeyValues = randomizedKeyValues(keyValuesCount, addRandomGroups = false)
-        assertOnSegment(
+        assertSegment(
           keyValues = Slice(randomGroup(groupsKeyValues)).toMemory,
           assert =
             (keyValues, segment) => {
@@ -134,7 +134,7 @@ sealed trait SegmentKeyValueCount extends TestBase with ScalaFutures with Privat
         val group4 = randomGroup(group4KeyValues)
         group4.stats.bloomFilterItemsCount shouldBe group4KeyValues.size
 
-        assertOnSegment(
+        assertSegment(
           keyValues = Slice(group4).toMemory,
           assert = {
             (_, segment) => {
@@ -144,7 +144,7 @@ sealed trait SegmentKeyValueCount extends TestBase with ScalaFutures with Privat
           }
         )
 
-        assertOnSegment(
+        assertSegment(
           keyValues = Slice(group3).toMemory,
           assert =
             (keyValues, segment) => {
@@ -153,7 +153,7 @@ sealed trait SegmentKeyValueCount extends TestBase with ScalaFutures with Privat
             }
         )
 
-        assertOnSegment(
+        assertSegment(
           keyValues = Slice(randomGroup(Slice(group3, group4).updateStats)).toMemory,
           assert =
             (keyValues, segment) => {

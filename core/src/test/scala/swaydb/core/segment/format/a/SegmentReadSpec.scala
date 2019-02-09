@@ -186,7 +186,8 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures with PrivateMeth
         //inner
         innerKeyRange foreach {
           i =>
-            randomizedKeyValues(keyValuesCount, startId = Some(i)) foreach {
+            val keyValues = randomizedKeyValues(keyValuesCount, startId = Some(i))
+            keyValues foreach {
               keyValue =>
                 if (keyValue.key.readInt() <= innerKeyRange.last)
                   Segment.belongsTo(keyValue, segment) shouldBe true
@@ -196,7 +197,8 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures with PrivateMeth
         //outer
         rightOutKeyRange foreach {
           i =>
-            randomizedKeyValues(keyValuesCount, startId = Some(i)) foreach {
+            val keyValues = randomizedKeyValues(keyValuesCount, startId = Some(i))
+            keyValues foreach {
               keyValue =>
                 Segment.belongsTo(keyValue, segment) shouldBe false
             }
@@ -464,91 +466,91 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures with PrivateMeth
       segment2.close.assertGet
     }
 
-      "return true for overlapping Segments if the target Segment's maxKey is a Range key" in {
-        //0 1
-        //    2 3
-        var segment1 = TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1)).toTransient).assertGet
-        var segment2 = TestSegment(Slice(randomRangeKeyValue(2, 3)).toTransient).assertGet
-        Segment.overlaps(segment1, segment2) shouldBe false
-        Segment.overlaps(segment2, segment1) shouldBe false
-        //range over range
-        segment1 = TestSegment(Slice(randomRangeKeyValue(0, 1)).toTransient).assertGet
-        Segment.overlaps(segment1, segment2) shouldBe false
-        Segment.overlaps(segment2, segment1) shouldBe false
-  
-        //1 2
-        //  2 3
-        segment1 = TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2)).toTransient).assertGet
-        segment2 = TestSegment(Slice(randomRangeKeyValue(2, 3)).toTransient).assertGet
-        Segment.overlaps(segment1, segment2) shouldBe true
-        Segment.overlaps(segment2, segment1) shouldBe true
-        segment1 = TestSegment(Slice(randomRangeKeyValue(1, 2)).toTransient).assertGet
-        Segment.overlaps(segment1, segment2) shouldBe false
-        Segment.overlaps(segment2, segment1) shouldBe false
-  
-        //1   3
-        //  2 3
-        segment1 = TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(3)).toTransient).assertGet
-        segment2 = TestSegment(Slice(randomRangeKeyValue(2, 3)).toTransient).assertGet
-        Segment.overlaps(segment1, segment2) shouldBe true
-        Segment.overlaps(segment2, segment1) shouldBe true
-        segment1 = TestSegment(Slice(randomRangeKeyValue(1, 3)).toTransient).assertGet
-        Segment.overlaps(segment1, segment2) shouldBe true
-        Segment.overlaps(segment2, segment1) shouldBe true
-  
-        //2 3
-        //2 3
-        segment1 = TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)).toTransient).assertGet
-        segment2 = TestSegment(Slice(randomRangeKeyValue(2, 3)).toTransient).assertGet
-        Segment.overlaps(segment1, segment2) shouldBe true
-        Segment.overlaps(segment2, segment1) shouldBe true
-        segment1 = TestSegment(Slice(randomRangeKeyValue(2, 3)).toTransient).assertGet
-        Segment.overlaps(segment1, segment2) shouldBe true
-        Segment.overlaps(segment2, segment1) shouldBe true
-  
-        //  3 4
-        //2 3
-        segment1 = TestSegment(Slice(randomFixedKeyValue(3), randomFixedKeyValue(4)).toTransient).assertGet
-        segment2 = TestSegment(Slice(randomRangeKeyValue(2, 3)).toTransient).assertGet
-        Segment.overlaps(segment1, segment2) shouldBe false
-        Segment.overlaps(segment2, segment1) shouldBe false
-        segment1 = TestSegment(Slice(randomRangeKeyValue(3, 4)).toTransient).assertGet
-        Segment.overlaps(segment1, segment2) shouldBe false
-        Segment.overlaps(segment2, segment1) shouldBe false
-  
-        //    4 5
-        //2 3
-        segment1 = TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5)).toTransient).assertGet
-        segment2 = TestSegment(Slice(randomRangeKeyValue(2, 3)).toTransient).assertGet
-        Segment.overlaps(segment1, segment2) shouldBe false
-        Segment.overlaps(segment2, segment1) shouldBe false
-        segment1 = TestSegment(Slice(randomRangeKeyValue(4, 5)).toTransient).assertGet
-        Segment.overlaps(segment1, segment2) shouldBe false
-        Segment.overlaps(segment2, segment1) shouldBe false
-  
-        //0       10
-        //   2 3
-        segment1 = TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(10)).toTransient).assertGet
-        segment2 = TestSegment(Slice(randomRangeKeyValue(2, 3)).toTransient).assertGet
-        Segment.overlaps(segment1, segment2) shouldBe true
-        Segment.overlaps(segment2, segment1) shouldBe true
-        segment1 = TestSegment(Slice(randomRangeKeyValue(0, 10)).toTransient).assertGet
-        Segment.overlaps(segment1, segment2) shouldBe true
-        Segment.overlaps(segment2, segment1) shouldBe true
-  
-        //   2 3
-        //0       10
-        segment1 = TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)).toTransient).assertGet
-        segment2 = TestSegment(Slice(randomRangeKeyValue(0, 10)).toTransient).assertGet
-        Segment.overlaps(segment1, segment2) shouldBe true
-        Segment.overlaps(segment2, segment1) shouldBe true
-        segment1 = TestSegment(Slice(randomRangeKeyValue(2, 3)).toTransient).assertGet
-        Segment.overlaps(segment1, segment2) shouldBe true
-        Segment.overlaps(segment2, segment1) shouldBe true
-  
-        segment1.close.assertGet
-        segment2.close.assertGet
-      }
+    "return true for overlapping Segments if the target Segment's maxKey is a Range key" in {
+      //0 1
+      //    2 3
+      var segment1 = TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(1)).toTransient).assertGet
+      var segment2 = TestSegment(Slice(randomRangeKeyValue(2, 3)).toTransient).assertGet
+      Segment.overlaps(segment1, segment2) shouldBe false
+      Segment.overlaps(segment2, segment1) shouldBe false
+      //range over range
+      segment1 = TestSegment(Slice(randomRangeKeyValue(0, 1)).toTransient).assertGet
+      Segment.overlaps(segment1, segment2) shouldBe false
+      Segment.overlaps(segment2, segment1) shouldBe false
+
+      //1 2
+      //  2 3
+      segment1 = TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2)).toTransient).assertGet
+      segment2 = TestSegment(Slice(randomRangeKeyValue(2, 3)).toTransient).assertGet
+      Segment.overlaps(segment1, segment2) shouldBe true
+      Segment.overlaps(segment2, segment1) shouldBe true
+      segment1 = TestSegment(Slice(randomRangeKeyValue(1, 2)).toTransient).assertGet
+      Segment.overlaps(segment1, segment2) shouldBe false
+      Segment.overlaps(segment2, segment1) shouldBe false
+
+      //1   3
+      //  2 3
+      segment1 = TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(3)).toTransient).assertGet
+      segment2 = TestSegment(Slice(randomRangeKeyValue(2, 3)).toTransient).assertGet
+      Segment.overlaps(segment1, segment2) shouldBe true
+      Segment.overlaps(segment2, segment1) shouldBe true
+      segment1 = TestSegment(Slice(randomRangeKeyValue(1, 3)).toTransient).assertGet
+      Segment.overlaps(segment1, segment2) shouldBe true
+      Segment.overlaps(segment2, segment1) shouldBe true
+
+      //2 3
+      //2 3
+      segment1 = TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)).toTransient).assertGet
+      segment2 = TestSegment(Slice(randomRangeKeyValue(2, 3)).toTransient).assertGet
+      Segment.overlaps(segment1, segment2) shouldBe true
+      Segment.overlaps(segment2, segment1) shouldBe true
+      segment1 = TestSegment(Slice(randomRangeKeyValue(2, 3)).toTransient).assertGet
+      Segment.overlaps(segment1, segment2) shouldBe true
+      Segment.overlaps(segment2, segment1) shouldBe true
+
+      //  3 4
+      //2 3
+      segment1 = TestSegment(Slice(randomFixedKeyValue(3), randomFixedKeyValue(4)).toTransient).assertGet
+      segment2 = TestSegment(Slice(randomRangeKeyValue(2, 3)).toTransient).assertGet
+      Segment.overlaps(segment1, segment2) shouldBe false
+      Segment.overlaps(segment2, segment1) shouldBe false
+      segment1 = TestSegment(Slice(randomRangeKeyValue(3, 4)).toTransient).assertGet
+      Segment.overlaps(segment1, segment2) shouldBe false
+      Segment.overlaps(segment2, segment1) shouldBe false
+
+      //    4 5
+      //2 3
+      segment1 = TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5)).toTransient).assertGet
+      segment2 = TestSegment(Slice(randomRangeKeyValue(2, 3)).toTransient).assertGet
+      Segment.overlaps(segment1, segment2) shouldBe false
+      Segment.overlaps(segment2, segment1) shouldBe false
+      segment1 = TestSegment(Slice(randomRangeKeyValue(4, 5)).toTransient).assertGet
+      Segment.overlaps(segment1, segment2) shouldBe false
+      Segment.overlaps(segment2, segment1) shouldBe false
+
+      //0       10
+      //   2 3
+      segment1 = TestSegment(Slice(randomFixedKeyValue(0), randomFixedKeyValue(10)).toTransient).assertGet
+      segment2 = TestSegment(Slice(randomRangeKeyValue(2, 3)).toTransient).assertGet
+      Segment.overlaps(segment1, segment2) shouldBe true
+      Segment.overlaps(segment2, segment1) shouldBe true
+      segment1 = TestSegment(Slice(randomRangeKeyValue(0, 10)).toTransient).assertGet
+      Segment.overlaps(segment1, segment2) shouldBe true
+      Segment.overlaps(segment2, segment1) shouldBe true
+
+      //   2 3
+      //0       10
+      segment1 = TestSegment(Slice(randomFixedKeyValue(2), randomFixedKeyValue(3)).toTransient).assertGet
+      segment2 = TestSegment(Slice(randomRangeKeyValue(0, 10)).toTransient).assertGet
+      Segment.overlaps(segment1, segment2) shouldBe true
+      Segment.overlaps(segment2, segment1) shouldBe true
+      segment1 = TestSegment(Slice(randomRangeKeyValue(2, 3)).toTransient).assertGet
+      Segment.overlaps(segment1, segment2) shouldBe true
+      Segment.overlaps(segment2, segment1) shouldBe true
+
+      segment1.close.assertGet
+      segment2.close.assertGet
+    }
   }
 
   "Segment.nonOverlapping and overlapping" should {
@@ -789,7 +791,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures with PrivateMeth
 
       segment3.delete.assertGet //delete a segment so that there is a failure.
 
-      Segment.getAllKeyValues(TestData.falsePositiveRate, Seq(segment1, segment2, segment3)).failed.assertGet shouldBe a[NoSuchFileException]
+      Segment.getAllKeyValues(TestData.falsePositiveRate, Seq(segment1, segment2, segment3)).failed.assertGet.exception shouldBe a[NoSuchFileException]
     }
 
     "fail read if reading any one Segment file is corrupted" in {
@@ -806,16 +808,16 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures with PrivateMeth
           val bytes = Files.readAllBytes(segment2.path)
 
           Files.write(segment2.path, bytes.drop(1))
-          Segment.getAllKeyValues(TestData.falsePositiveRate, Seq(segment1, segment2, segment3)).failed.assertGet shouldBe a[SegmentCorruptionException]
+          Segment.getAllKeyValues(TestData.falsePositiveRate, Seq(segment1, segment2, segment3)).failed.assertGet.exception shouldBe a[SegmentCorruptionException]
 
           Files.write(segment2.path, bytes.dropRight(1))
-          Segment.getAllKeyValues(TestData.falsePositiveRate, Seq(segment2)).failed.assertGet shouldBe a[SegmentCorruptionException]
+          Segment.getAllKeyValues(TestData.falsePositiveRate, Seq(segment2)).failed.assertGet.exception shouldBe a[SegmentCorruptionException]
 
           Files.write(segment2.path, bytes.drop(10))
-          Segment.getAllKeyValues(TestData.falsePositiveRate, Seq(segment1, segment2, segment3)).failed.assertGet shouldBe a[SegmentCorruptionException]
+          Segment.getAllKeyValues(TestData.falsePositiveRate, Seq(segment1, segment2, segment3)).failed.assertGet.exception shouldBe a[SegmentCorruptionException]
 
           Files.write(segment2.path, bytes.dropRight(1))
-          Segment.getAllKeyValues(TestData.falsePositiveRate, Seq(segment1, segment2, segment3)).failed.assertGet shouldBe a[SegmentCorruptionException]
+          Segment.getAllKeyValues(TestData.falsePositiveRate, Seq(segment1, segment2, segment3)).failed.assertGet.exception shouldBe a[SegmentCorruptionException]
         }
       } else {
         //memory files do not require this test

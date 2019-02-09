@@ -103,7 +103,7 @@ private[core] object SegmentWriter extends LazyLogging {
     if (keyValues.isEmpty)
       IO.Success(Slice.emptyBytes, None)
     else {
-      val bloomFilter = BloomFilterUtil.initBloomFilter(keyValues, bloomFilterFalsePositiveRate)
+      val bloomFilter = BloomFilterUtil.init(keyValues, bloomFilterFalsePositiveRate)
 
       val slice = Slice.create[Byte](keyValues.last.stats.segmentSize)
 

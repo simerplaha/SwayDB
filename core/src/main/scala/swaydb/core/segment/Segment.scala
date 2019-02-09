@@ -87,7 +87,7 @@ private[core] object Segment extends LazyLogging {
       val skipList = new ConcurrentSkipListMap[Slice[Byte], Memory](keyOrder)
 
       val bloomFilter =
-        BloomFilterUtil.initBloomFilter(keyValues, bloomFilterFalsePositiveRate)
+        BloomFilterUtil.init(keyValues, bloomFilterFalsePositiveRate)
 
       def writeKeyValue(keyValue: KeyValue.WriteOnly,
                         currentNearestDeadline: Option[Deadline]): IO[Option[Deadline]] = {

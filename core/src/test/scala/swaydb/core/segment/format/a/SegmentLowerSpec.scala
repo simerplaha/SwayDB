@@ -76,7 +76,7 @@ sealed trait SegmentLowerSpec extends TestBase with ScalaFutures with PrivateMet
 
   "Segment.lower" should {
     "get the lower key from the segment that has only 1 fixed key-value" in {
-      assertOnSegment(
+      assertSegment(
         keyValues = Slice(randomFixedKeyValue(1)),
         assert =
           (keyValues, segment) => {
@@ -89,7 +89,7 @@ sealed trait SegmentLowerSpec extends TestBase with ScalaFutures with PrivateMet
 
     "get the lower from the segment when there are no Range key-values" in {
       //1, 2, 3
-      assertOnSegment(
+      assertSegment(
         keyValues = Slice(randomFixedKeyValue(1), randomFixedKeyValue(2), randomFixedKeyValue(3)),
         assert =
           (keyValues, segment) => {
@@ -109,7 +109,7 @@ sealed trait SegmentLowerSpec extends TestBase with ScalaFutures with PrivateMet
     "get the lower from the segment when there are Range key-values" in {
       //1, (2 - 5), 10, (11 - 20), (20 - 30)
       runThis(10.times) {
-        assertOnSegment(
+        assertSegment(
           keyValues = Slice(
             randomFixedKeyValue(1),
             randomRangeKeyValue(2, 5),
@@ -173,7 +173,7 @@ sealed trait SegmentLowerSpec extends TestBase with ScalaFutures with PrivateMet
     }
 
     "random" in {
-      assertOnSegment(
+      assertSegment(
         keyValues = randomizedKeyValues(keyValuesCount),
         assert = assertLower(_, _)
       )

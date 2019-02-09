@@ -73,8 +73,8 @@ private[core] object BloomFilterUtil {
     ((Math.ceil(numberOfBits / 64.0) * ByteSizeOf.long) + ByteSizeOf.long + ByteSizeOf.long + ByteSizeOf.int).toInt
   }
 
-  def initBloomFilter(keyValues: Iterable[KeyValue.WriteOnly],
-                      bloomFilterFalsePositiveRate: Double): Option[BloomFilter[Slice[Byte]]] =
+  def init(keyValues: Iterable[KeyValue.WriteOnly],
+           bloomFilterFalsePositiveRate: Double): Option[BloomFilter[Slice[Byte]]] =
     if (keyValues.last.stats.hasRemoveRange)
       None
     else

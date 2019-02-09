@@ -71,7 +71,7 @@ sealed trait SegmentHigherSpec extends TestBase with ScalaFutures with PrivateMe
   "Segment.higher" should {
     "get the higher key from the segment that has only 1 Remove key" in {
       runThis(50.times) {
-        assertOnSegment(
+        assertSegment(
           keyValues = Slice(randomFixedKeyValue(1)),
           assert =
             (keyValue, segment) => {
@@ -85,7 +85,7 @@ sealed trait SegmentHigherSpec extends TestBase with ScalaFutures with PrivateMe
 
     "get the higher key from the segment that has only 1 Range key" in {
       runThis(50.times) {
-        assertOnSegment(
+        assertSegment(
           keyValues = Slice(randomRangeKeyValue(1, 10)),
           assert =
             (keyValue, segment) => {
@@ -105,7 +105,7 @@ sealed trait SegmentHigherSpec extends TestBase with ScalaFutures with PrivateMe
 
     "get the higher from the segment when there are no Range key-values" in {
       //1, 2, 3
-      assertOnSegment(
+      assertSegment(
         keyValues = Slice(randomFixedKeyValue(1), randomFixedKeyValue(2), randomFixedKeyValue(3)),
         assert =
           (keyValues, segment) => {
@@ -122,7 +122,7 @@ sealed trait SegmentHigherSpec extends TestBase with ScalaFutures with PrivateMe
 
     "get the higher from the segment when there are Range key-values" in {
       //1, (2 - 5), 10, (11 - 20), (20 - 30)
-      assertOnSegment(
+      assertSegment(
         keyValues = Slice(
           randomFixedKeyValue(1),
           randomRangeKeyValue(2, 5),
@@ -185,7 +185,7 @@ sealed trait SegmentHigherSpec extends TestBase with ScalaFutures with PrivateMe
     }
 
     "random" in {
-      assertOnSegment(
+      assertSegment(
         keyValues = randomizedKeyValues(keyValuesCount).toMemory,
         assert = assertHigher(_, _)
       )
