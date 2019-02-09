@@ -390,8 +390,8 @@ object IO {
         case busy: Error.Busy =>
           IO.Async(operation, busy)
 
-        case Error.Fatal(system) =>
-          recover(system, operation)
+        case Error.Fatal(exception) =>
+          recover(exception, operation)
 
         case Error.OverlappingPushSegment | Error.OverlappingPushSegment | Error.NoSegmentsRemoved | Error.NotSentToNextLevel | _: Error.ReceivedKeyValuesToMergeWithoutTargetSegment =>
           failure
@@ -557,7 +557,6 @@ object IO {
       this
     }
     def exception: Throwable = error.exception
-    //    def toAsync[U >: T](operation: => U): IO.Async[U] = IO.Failure.async(this, operation)
     def recoverToAsync[U](operation: => IO.Async[U]): IO.Async[U] =
       IO.Async.recover(this, ()) flatMapAsync {
         _ =>
