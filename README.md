@@ -91,3 +91,7 @@ Undergoing integration, stress & performance testing.
 
 Development is done directly on master. So at times it will be unstable. 
 See the tags to get a more stable version.
+
+# Project support
+<a href="https://www.jetbrains.com/?from=SwayDB" target="_blank"><img src="/docs/jetbrains.png" 
+alt="Jetbrains support" height="150" border="10" /></a>
