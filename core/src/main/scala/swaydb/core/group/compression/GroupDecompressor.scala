@@ -127,10 +127,9 @@ private[core] case class GroupDecompressor(private val compressedGroupReader: Re
         header =>
           groupHeader = header
           header
-      } recoverWith {
-        case ex: Exception =>
+      } onFailure {
+        _ =>
           BusyBoolean.setFree(busyReadingHeader)
-          IO.Failure(ex)
       }
     else
       header(maxTimesToIO - 1)

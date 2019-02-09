@@ -495,7 +495,7 @@ private[core] class Level(val dirs: Seq[Dir],
         },
       recover =
         (segments, failure) => {
-          logFailure(s"${paths.head}: Failed to copy Segments. Deleting partially copied Segments ${segments.size} Segments", failure.exception)
+          logFailure(s"${paths.head}: Failed to copy Segments. Deleting partially copied Segments ${segments.size} Segments", failure)
           segments foreach {
             segment =>
               segment.delete.failed foreach {
@@ -760,7 +760,7 @@ private[core] class Level(val dirs: Seq[Dir],
       },
       recover =
         (targetSegmentAndNewSegments, failure) => {
-          logFailure(s"${paths.head}: Failed to do putAssignedKeyValues, Reverting and deleting written ${targetSegmentAndNewSegments.size} segments", failure.exception)
+          logFailure(s"${paths.head}: Failed to do putAssignedKeyValues, Reverting and deleting written ${targetSegmentAndNewSegments.size} segments", failure)
           targetSegmentAndNewSegments foreach {
             case (_, newSegments) =>
               newSegments foreach {

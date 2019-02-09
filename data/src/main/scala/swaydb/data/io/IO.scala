@@ -50,12 +50,12 @@ sealed trait IO[+T] {
     def withFilter(q: T => Boolean): WithFilter = new WithFilter(x => p(x) && q(x))
   }
   def onFailure[U >: T](f: IO.Failure[U] => Unit): IO[U]
-  def recoverWith[U >: T](f: PartialFunction[Throwable, IO[U]]): IO[U]
-  def recover[U >: T](f: PartialFunction[Throwable, U]): IO[U]
+  def recoverWith[U >: T](f: PartialFunction[IO.Error, IO[U]]): IO[U]
+  def recover[U >: T](f: PartialFunction[IO.Error, U]): IO[U]
   def toOption: Option[T]
   def flatten[U](implicit ev: T <:< IO[U]): IO[U]
-  def failed: IO[Throwable]
-  def toEither: Either[Throwable, T]
+  def failed: IO[IO.Error]
+  def toEither: Either[IO.Error, T]
   def toFuture: Future[T]
   def toTry: scala.util.Try[T]
 }
@@ -84,9 +84,9 @@ object IO {
     def safeGetBlocking: IO[T]
     def safeGetFuture(implicit ec: ExecutionContext): Future[IO[T]]
     def getOrElse[U >: T](default: => U): U
-    def recover[U >: T](f: PartialFunction[Throwable, U]): IO[U]
-    def recoverWith[U >: T](f: PartialFunction[Throwable, IO[U]]): IO[U]
-    def failed: IO[Throwable]
+    def recover[U >: T](f: PartialFunction[IO.Error, U]): IO[U]
+    def recoverWith[U >: T](f: PartialFunction[IO.Error, IO[U]]): IO[U]
+    def failed: IO[IO.Error]
     def flatten[U](implicit ev: T <:< IO.Async[U]): IO.Async[U]
   }
 
@@ -202,19 +202,48 @@ object IO {
 
   object Error {
 
+    def apply[T](exception: Throwable): IO.Error =
+      exception match {
+        //the following Exceptions will occur when a file was being read but
+        //it was closed or deleted when it was being read. There is no AtomicBoolean busy
+        //associated with these exception and should simply be retried.
+        case exception: IO.BusyException => exception.error
+        case exception: NoSuchFileException => Error.NoSuchFile(exception)
+        case exception: FileNotFoundException => Error.FileNotFound(exception)
+        case exception: AsynchronousCloseException => Error.AsynchronousClose(exception)
+        case exception: ClosedChannelException => Error.ClosedChannel(exception)
+        case exception: NullPointerException => Error.NullPointer(exception)
+        case exception => Error.System(exception)
+      }
+
     sealed trait Busy extends Error {
       def busy: BusyBoolean
       def isFree: Boolean =
         !busy.isBusy
     }
 
-    case object None extends Busy {
-      override def busy: BusyBoolean = BusyBoolean.notBusy
-      override def toException: Throwable = new Exception("Not busy")
-    }
-
     case class OpeningFile(file: Path, busy: BusyBoolean) extends Busy {
       override def toException: Throwable = new Exception(s"Failed to open file $file")
+    }
+
+    case class NoSuchFile(toException: Throwable) extends Busy {
+      override def busy: BusyBoolean = BusyBoolean.notBusy
+    }
+
+    case class FileNotFound(toException: Throwable) extends Busy {
+      override def busy: BusyBoolean = BusyBoolean.notBusy
+    }
+
+    case class AsynchronousClose(toException: Throwable) extends Busy {
+      override def busy: BusyBoolean = BusyBoolean.notBusy
+    }
+
+    case class ClosedChannel(toException: Throwable) extends Busy {
+      override def busy: BusyBoolean = BusyBoolean.notBusy
+    }
+
+    case class NullPointer(toException: Throwable) extends Busy {
+      override def busy: BusyBoolean = BusyBoolean.notBusy
     }
 
     case class DecompressingIndex(busy: BusyBoolean) extends Busy {
@@ -299,13 +328,13 @@ object IO {
     override def foreach[U](f: T => U): Unit = f(value)
     override def map[U](f: T => U): IO[U] = IO[U](f(value))
     override def mapAsync[U](f: T => U): IO.Async[U] = IO(f(unsafeGet)).asInstanceOf[IO.Async[U]]
-    override def recover[U >: T](f: PartialFunction[Throwable, U]): IO[U] = this
-    override def recoverWith[U >: T](f: PartialFunction[Throwable, IO[U]]): IO[U] = this
-    override def failed: IO[Throwable] = Failure(new UnsupportedOperationException("IO.Success.failed"))
+    override def recover[U >: T](f: PartialFunction[IO.Error, U]): IO[U] = this
+    override def recoverWith[U >: T](f: PartialFunction[IO.Error, IO[U]]): IO[U] = this
+    override def failed: IO[IO.Error] = Failure(Error.System(new UnsupportedOperationException("IO.Success.failed")))
     override def toOption: Option[T] = Some(value)
-    override def toEither: Either[Throwable, T] = Right(value)
+    override def toEither: Either[IO.Error, T] = Right(value)
     override def filter(p: T => Boolean): IO[T] =
-      IO.Catch(if (p(value)) this else IO.Failure(new NoSuchElementException("Predicate does not hold for " + value)))
+      IO.Catch(if (p(value)) this else IO.Failure(Error.System(new NoSuchElementException("Predicate does not hold for " + value))))
     override def toFuture: Future[T] = Future.successful(value)
     override def toTry: scala.util.Try[T] = scala.util.Success(value)
     override def onFailure[U >: T](f: IO.Failure[U] => Unit): IO[U] = this
@@ -331,22 +360,15 @@ object IO {
       }
 
     def recover[T](exception: Throwable, operation: => T): IO.Async[T] =
-      exception match {
-        //the following Exceptions will occur when a file was being read but
-        //it was closed or deleted when it was being read. There is no AtomicBoolean busy
-        //associated with these exception and should simply be retried.
-        case IO.BusyException(error) => IO.Later(operation, error)
-        case _: NoSuchFileException => IO.Later(operation, Error.None)
-        case _: FileNotFoundException => IO.Later(operation, Error.None)
-        case _: AsynchronousCloseException => IO.Later(operation, Error.None)
-        case _: ClosedChannelException => IO.Later(operation, Error.None)
-        case _: NullPointerException => IO.Later(operation, Error.None)
-        case _ => IO.Failure(exception)
+      Error(exception) match {
+        case error: Error.Busy => IO.Later(operation, error)
+        case other: Error => IO.Failure(other)
       }
 
     def apply[T](value: => T, error: Error.Busy): Async[T] =
       new Later(_ => value, error)
   }
+
   object Later {
     def apply[T](value: => T, error: Error.Busy): Later[T] =
       new Later(_ => value, error)
@@ -450,16 +472,16 @@ object IO {
     def flatten[U](implicit ev: T <:< IO.Async[U]): IO.Async[U] = forceGet
     def map[U](f: T => U): IO.Async[U] = IO.Later[U]((_: Unit) => f(forceGet), error)
     def mapAsync[U](f: T => U): IO.Async[U] = map(f)
-    def recover[U >: T](f: PartialFunction[Throwable, U]): IO[U] = IO(forceGet).recover(f)
-    def recoverWith[U >: T](f: PartialFunction[Throwable, IO[U]]): IO[U] = IO(forceGet).recoverWith(f)
-    def failed: IO[Throwable] = IO(forceGet).failed
+    def recover[U >: T](f: PartialFunction[IO.Error, U]): IO[U] = IO(forceGet).recover(f)
+    def recoverWith[U >: T](f: PartialFunction[IO.Error, IO[U]]): IO[U] = IO(forceGet).recoverWith(f)
+    def failed: IO[IO.Error] = IO(forceGet).failed
   }
 
   object Failure {
-    def apply[T](exception: Throwable): IO.Failure[T] =
-      IO.Failure(Error.System(exception))
-
     val busyOverlappingPushSegments = IO.Failure(IO.Error.OverlappingPushSegment)
+
+    def apply[T](exception: Throwable): IO.Failure[T] =
+      IO.Failure[T](IO.Error(exception))
   }
 
   final case class Failure[+T](error: Error) extends IO[T] with IO.Async[T] {
@@ -479,15 +501,15 @@ object IO {
     override def foreach[U](f: T => U): Unit = ()
     override def map[U](f: T => U): IO[U] = this.asInstanceOf[IO[U]]
     override def mapAsync[U](f: T => U): IO.Async[U] = this.asInstanceOf[IO.Async[U]]
-    override def recover[U >: T](f: PartialFunction[Throwable, U]): IO[U] =
-      IO.Catch(if (f isDefinedAt error.toException) Success(f(error.toException)) else this)
+    override def recover[U >: T](f: PartialFunction[IO.Error, U]): IO[U] =
+      IO.Catch(if (f isDefinedAt error) Success(f(error)) else this)
 
-    override def recoverWith[U >: T](f: PartialFunction[Throwable, IO[U]]): IO[U] =
-      IO.Catch(if (f isDefinedAt error.toException) f(error.toException) else this)
+    override def recoverWith[U >: T](f: PartialFunction[IO.Error, IO[U]]): IO[U] =
+      IO.Catch(if (f isDefinedAt error) f(error) else this)
 
-    override def failed: IO[Throwable] = Success(error.toException)
+    override def failed: IO[IO.Error] = Success(error)
     override def toOption: Option[T] = None
-    override def toEither: Either[Throwable, T] = Left(error.toException)
+    override def toEither: Either[IO.Error, T] = Left(error)
     override def filter(p: T => Boolean): IO[T] = this
     override def toFuture: Future[T] = Future.failed(error.toException)
     override def toTry: scala.util.Try[T] = scala.util.Failure(error.toException)

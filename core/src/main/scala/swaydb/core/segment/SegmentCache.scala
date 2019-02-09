@@ -97,10 +97,9 @@ private[core] class SegmentCache(id: String,
           reader =>
             getOperation(footer, reader)
         }
-    } recoverWith {
-      case ex: Exception =>
-        ExceptionUtil.logFailure(s"$id: Failed to read Segment.", ex)
-        IO.Failure(ex)
+    } onFailure {
+      failure: IO.Failure[_] =>
+        ExceptionUtil.logFailure(s"$id: Failed to read Segment.", failure)
     }
 
   def getBloomFilter: IO[Option[BloomFilter[Slice[Byte]]]] =

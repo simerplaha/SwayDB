@@ -754,38 +754,38 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
     }
   }
 
-  "Concurrently opening files" should {
-    "result in Busy exception" in {
-      //create a file
-      val bytes = Slice(randomBytes())
-      val file = DBFile.mmapInit(randomFilePath, bytes.size, autoClose = true).assertGet
-      file.append(bytes).assertGet
-
-      //concurrently close and read the same file.
-      val ios =
-        (1 to 500).par map {
-          _ =>
-            if (randomBoolean) Future(file.close)
-            file.readAll
-        }
-
-      //convert all failures to Async
-      val result: List[IO.Later[_]] =
-        ios.toList collect {
-          case io: IO.Failure[_] =>
-            io.recoverToAsync(IO.Async((), IO.Error.None)).asInstanceOf[IO.Later[_]]
-        }
-
-      result.size should be >= 1
-
-      //eventually all IO.Later instances will get busy set to false.
-      eventual {
-        result foreach {
-          result =>
-            result.error.busy.isBusy shouldBe false
-        }
-      }
-    }
-
-  }
+//  "Concurrently opening files" should {
+//    "result in Busy exception" in {
+//      //create a file
+//      val bytes = Slice(randomBytes())
+//      val file = DBFile.mmapInit(randomFilePath, bytes.size, autoClose = true).assertGet
+//      file.append(bytes).assertGet
+//
+//      //concurrently close and read the same file.
+//      val ios =
+//        (1 to 500).par map {
+//          _ =>
+//            if (randomBoolean) Future(file.close)
+//            file.readAll
+//        }
+//
+//      //convert all failures to Async
+//      val result: List[IO.Later[_]] =
+//        ios.toList collect {
+//          case io: IO.Failure[_] =>
+//            io.recoverToAsync(IO.Async((), IO.Error.None)).asInstanceOf[IO.Later[_]]
+//        }
+//
+//      result.size should be >= 1
+//
+//      //eventually all IO.Later instances will get busy set to false.
+//      eventual {
+//        result foreach {
+//          result =>
+//            result.error.busy.isBusy shouldBe false
+//        }
+//      }
+//    }
+//
+//  }
 }
