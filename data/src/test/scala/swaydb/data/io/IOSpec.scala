@@ -297,7 +297,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
     }
 
     "flatMap on Success" in {
-      IO.Success(1) flatMap {
+      IO.Success(1).asAsync flatMap {
         i =>
           IO.Success(i + 1)
       } shouldBe IO.Success(2)
@@ -306,7 +306,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
     "flatMap on failure" in {
       val failure = IO.Failure(IO.Error.NoSuchFile(new NoSuchFileException("")))
 
-      IO.Success(1) flatMap {
+      IO.Success(1).asAsync flatMap {
         _ =>
           failure
       } shouldBe failure
@@ -355,7 +355,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
 
     "flatMap on Success" in {
       val failIO = IO.Failure(new IllegalThreadStateException)
-      failIO flatMap {
+      failIO.asAsync flatMap {
         i =>
           IO.Success(1)
       } shouldBe failIO
@@ -364,7 +364,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
     "flatMap on failure" in {
       val failure = IO.Failure(IO.Error.NoSuchFile(new NoSuchFileException("")))
 
-      failure flatMap {
+      failure.asAsync flatMap {
         _ =>
           IO.Failure(new IllegalThreadStateException)
       } shouldBe failure
@@ -390,7 +390,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
   "IO.Async" should {
     "flatMap on IO" in {
       val io =
-        IO.Async(1, IO.Error.DecompressionValues(BusyBoolean(false))) flatMapAsync {
+        IO.Async(1, IO.Error.DecompressionValues(BusyBoolean(false))) flatMap {
           int =>
             IO.Success(int + 1)
         }
@@ -405,7 +405,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
       val boolean = BusyBoolean(false)
 
       val io: IO.Async[Int] =
-        IO.Async(1, IO.Error.DecompressionValues(BusyBoolean(false))) flatMapAsync {
+        IO.Async(1, IO.Error.DecompressionValues(BusyBoolean(false))) flatMap {
           _ =>
             IO.Failure(IO.Error.OpeningFile(Paths.get(""), boolean))
         }
@@ -422,9 +422,9 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
       val failure = IO.Failure(IO.Error.NoSuchFile(new NoSuchFileException("Not such file")))
 
       val io: Async[Int] =
-        IO.Async(1, IO.Error.DecompressingIndex(BusyBoolean(false))) flatMapAsync {
+        IO.Async(1, IO.Error.DecompressingIndex(BusyBoolean(false))) flatMap {
           i =>
-            IO.Async(i + 1, IO.Error.ReadingHeader(BusyBoolean(false))) flatMapAsync {
+            IO.Async(i + 1, IO.Error.ReadingHeader(BusyBoolean(false))) flatMap {
               _ =>
                 failure
             }
@@ -439,9 +439,9 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
       val busy3 = BusyBoolean(true)
 
       val io: Async[Int] =
-        IO.Async(1, IO.Error.DecompressingIndex(busy1)) flatMapAsync {
+        IO.Async(1, IO.Error.DecompressingIndex(busy1)) flatMap {
           i =>
-            IO.Async(i + 1, IO.Error.DecompressionValues(busy2)) flatMapAsync {
+            IO.Async(i + 1, IO.Error.DecompressionValues(busy2)) flatMap {
               i =>
                 IO.Async(i + 1, IO.Error.ReadingHeader(busy3))
             }
@@ -493,7 +493,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
           val io: Async[Int] = {
             (0 to 100).foldLeft(IO.Async(1, IO.Error.DecompressingIndex(BusyBoolean(false)))) {
               case (previous, i) =>
-                previous flatMapAsync {
+                previous flatMap {
                   output =>
                     Future {
                       if (Random.nextBoolean()) Thread.sleep(Random.nextInt(100))

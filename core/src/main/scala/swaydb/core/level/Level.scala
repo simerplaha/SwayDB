@@ -1003,7 +1003,7 @@ private[core] class Level(val dirs: Seq[Dir],
         firstKey.map(ceiling) getOrElse IO.none
 
       case later @ IO.Later(_, _) =>
-        later flatMapAsync {
+        later flatMap {
           firstKey =>
             firstKey.map(ceiling) getOrElse IO.none
         }
@@ -1018,7 +1018,7 @@ private[core] class Level(val dirs: Seq[Dir],
         lastKey.map(floor) getOrElse IO.none
 
       case later @ IO.Later(_, _) =>
-        later flatMapAsync {
+        later flatMap {
           lastKey =>
             lastKey.map(floor) getOrElse IO.none
         }

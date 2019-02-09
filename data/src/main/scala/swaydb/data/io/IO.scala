@@ -42,6 +42,7 @@ sealed trait IO[+T] {
   def unsafeGet: T
   def foreach[U](f: T => U): Unit
   def flatMap[U](f: T => IO[U]): IO[U]
+  def asAsync: IO.Async[T]
   def map[U](f: T => U): IO[U]
   def filter(p: T => Boolean): IO[T]
   @inline final def withFilter(p: T => Boolean): WithFilter = new WithFilter(p)
@@ -78,7 +79,7 @@ object IO {
     def isFailure: Boolean
     def isSuccess: Boolean
     def isLater: Boolean
-    def flatMapAsync[U](f: T => IO.Async[U]): IO.Async[U]
+    def flatMap[U](f: T => IO.Async[U]): IO.Async[U]
     def mapAsync[U](f: T => U): IO.Async[U]
     def unsafeGet: T
     def safeGet: IO.Async[T]
@@ -360,7 +361,7 @@ object IO {
     override def getOrElse[U >: T](default: => U): U = unsafeGet
     override def orElse[U >: T](default: => IO[U]): IO.Success[U] = this
     override def flatMap[U](f: T => IO[U]): IO[U] = IO.Catch(f(unsafeGet))
-    override def flatMapAsync[U](f: T => IO.Async[U]): IO.Async[U] = f(unsafeGet)
+    override def flatMap[U](f: T => IO.Async[U]): IO.Async[U] = f(unsafeGet)
     override def flatten[U](implicit ev: T <:< IO[U]): IO[U] = unsafeGet
     override def flattenAsync[U](implicit ev: T <:< IO.Async[U]): IO.Async[U] = unsafeGet
     override def foreach[U](f: T => U): Unit = f(unsafeGet)
@@ -376,6 +377,7 @@ object IO {
     override def toFuture: Future[T] = Future.successful(unsafeGet)
     override def toTry: scala.util.Try[T] = scala.util.Success(unsafeGet)
     override def onFailure[U >: T](f: IO.Failure[U] => Unit): IO[U] = this
+    override def asAsync: IO.Async[T] = this
   }
 
   object Async {
@@ -429,6 +431,16 @@ object IO {
     def isBusy = error.busy.isBusy
 
     /**
+      * Runs composed functions does not perform any recovery.
+      */
+    private def forceGet: T =
+      _value getOrElse {
+        val got = value()
+        _value = Some(got)
+        got
+      }
+
+    /**
       * Opens all [[IO.Async]] types to read the final value in a blocking manner.
       */
     def safeGetBlocking: IO[T] = {
@@ -472,16 +484,6 @@ object IO {
     }
 
     /**
-      * Runs composed functions.
-      */
-    private def forceGet: T =
-      _value getOrElse {
-        val got = value()
-        _value = Some(got)
-        got
-      }
-
-    /**
       * If value is readable gets or fetches and return's the value or else throws [[IO.Exception.Busy]].
       *
       * @throws [[IO.Exception.Busy]]. Used for Java API.
@@ -502,7 +504,7 @@ object IO {
     def getOrElse[U >: T](default: => U): U =
       IO(forceGet).getOrElse(default)
 
-    def flatMapAsync[U](f: T => IO.Async[U]): IO.Later[U] =
+    def flatMap[U](f: T => IO.Async[U]): IO.Later[U] =
       IO.Later(
         value = _ => f(unsafeGet).unsafeGet,
         error = error
@@ -534,7 +536,7 @@ object IO {
     override def getOrElse[U >: T](default: => U): U = default
     override def orElse[U >: T](default: => IO[U]): IO[U] = IO.Catch(default)
     override def flatMap[U](f: T => IO[U]): IO[U] = this.asInstanceOf[IO[U]]
-    override def flatMapAsync[U](f: T => IO.Async[U]): IO.Async[U] = this.asInstanceOf[Async[U]]
+    override def flatMap[U](f: T => IO.Async[U]): IO.Async[U] = this.asInstanceOf[Async[U]]
     override def flatten[U](implicit ev: T <:< IO[U]): IO[U] = this.asInstanceOf[IO[U]]
     override def flattenAsync[U](implicit ev: T <:< IO.Async[U]): IO.Async[U] = this.asInstanceOf[IO.Async[U]]
     override def foreach[U](f: T => U): Unit = ()
@@ -558,9 +560,11 @@ object IO {
     }
     def exception: Throwable = error.exception
     def recoverToAsync[U](operation: => IO.Async[U]): IO.Async[U] =
-      IO.Async.recover(this, ()) flatMapAsync {
+      IO.Async.recover(this, ()) flatMap {
         _ =>
           operation
       }
+
+    override def asAsync: IO.Async[T] = this
   }
 }

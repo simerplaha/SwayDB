@@ -115,7 +115,7 @@ private[core] object Get {
           }
 
         case current: KeyValue.ReadOnly.Function =>
-          nextGetter.get(key) flatMapAsync {
+          nextGetter.get(key) flatMap {
             nextOption =>
               nextOption map {
                 next =>
@@ -138,7 +138,7 @@ private[core] object Get {
           }
 
         case current: KeyValue.ReadOnly.PendingApply =>
-          nextGetter.get(key) flatMapAsync {
+          nextGetter.get(key) flatMap {
             nextOption =>
               nextOption map {
                 next =>
