@@ -33,7 +33,7 @@ import swaydb.data.io.IO
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
-private[swaydb] object CoreAPI {
+private[swaydb] object CoreBlockingAPI {
 
   def apply(config: SwayDBConfig,
             maxOpenSegments: Int,
@@ -42,7 +42,7 @@ private[swaydb] object CoreAPI {
             segmentsOpenCheckDelay: FiniteDuration)(implicit ec: ExecutionContext,
                                                     keyOrder: KeyOrder[Slice[Byte]],
                                                     timeOrder: TimeOrder[Slice[Byte]],
-                                                    functionStore: FunctionStore): IO[CoreAPI] =
+                                                    functionStore: FunctionStore): IO[CoreBlockingAPI] =
     DBInitializer(
       config = config,
       maxSegmentsOpen = maxOpenSegments,
@@ -52,184 +52,155 @@ private[swaydb] object CoreAPI {
     )
 }
 
-private[swaydb] case class CoreAPI(zero: LevelZero) {
+private[swaydb] case class CoreBlockingAPI(zero: LevelZero) {
 
   def put(key: Slice[Byte]): IO[Level0Meter] =
-  //    zero.put(key)
-    ???
+    zero.put(key)
 
   def put(key: Slice[Byte], value: Slice[Byte]): IO[Level0Meter] =
-  //    zero.put(key, value)
-    ???
+    zero.put(key, value)
 
   def put(key: Slice[Byte], value: Option[Slice[Byte]]): IO[Level0Meter] =
-  //    zero.put(key, value)
-    ???
+    zero.put(key, value)
 
   def put(key: Slice[Byte], value: Option[Slice[Byte]], removeAt: Deadline): IO[Level0Meter] =
-  //    zero.put(key, value, removeAt)
-    ???
+    zero.put(key, value, removeAt)
 
   def put(entry: MapEntry[Slice[Byte], Memory.SegmentResponse]): IO[Level0Meter] =
-  //    zero.put(entry)
-    ???
+    zero.put(entry)
 
   def remove(key: Slice[Byte]): IO[Level0Meter] =
-  //    zero.remove(key)
-    ???
+    zero.remove(key)
 
   def remove(key: Slice[Byte], at: Deadline): IO[Level0Meter] =
-  //    zero.remove(key, at)
-    ???
+    zero.remove(key, at)
 
   def remove(fromKey: Slice[Byte], to: Slice[Byte]): IO[Level0Meter] =
-  //    zero.remove(fromKey, to)
-    ???
+    zero.remove(fromKey, to)
 
   def remove(fromKey: Slice[Byte], to: Slice[Byte], at: Deadline): IO[Level0Meter] =
-  //    zero.remove(fromKey, to, at)
-    ???
+    zero.remove(fromKey, to, at)
 
   def update(key: Slice[Byte], value: Slice[Byte]): IO[Level0Meter] =
-  //    zero.update(key, value)
-    ???
+    zero.update(key, value)
 
   def update(key: Slice[Byte], value: Option[Slice[Byte]]): IO[Level0Meter] =
-  //    zero.update(key, value)
-    ???
+    zero.update(key, value)
 
   def update(fromKey: Slice[Byte], to: Slice[Byte], value: Slice[Byte]): IO[Level0Meter] =
-  //    zero.update(fromKey, to, value)
-    ???
+    zero.update(fromKey, to, value)
 
   def update(fromKey: Slice[Byte], to: Slice[Byte], value: Option[Slice[Byte]]): IO[Level0Meter] =
-  //    zero.update(fromKey, to, value)
-    ???
+    zero.update(fromKey, to, value)
 
   def head: IO[Option[KeyValueTuple]] =
-  //    zero.head flatMap {
-  //      result =>
-  //        result map {
-  //          response =>
-  //            response.getOrFetchValue map {
-  //              result =>
-  //                Some(response.key, result)
-  //            }
-  //        } getOrElse IO.successNone
-  //    }
-    ???
+    zero.head.safeGetBlocking flatMap {
+      result =>
+        result map {
+          response =>
+            response.getOrFetchValue map {
+              result =>
+                Some(response.key, result)
+            }
+        } getOrElse IO.none
+    }
 
   def headKey: IO[Option[Slice[Byte]]] =
-    ???
-  //    zero.headKey
+    zero.headKey.safeGetBlocking
 
   def last: IO[Option[KeyValueTuple]] =
-  //    zero.last flatMap {
-  //      result =>
-  //        result map {
-  //          response =>
-  //            response.getOrFetchValue map {
-  //              result =>
-  //                Some(response.key, result)
-  //            }
-  //        } getOrElse IO.successNone
-  //    }
-    ???
+    zero.last.safeGetBlocking flatMap {
+      result =>
+        result map {
+          response =>
+            response.getOrFetchValue map {
+              result =>
+                Some(response.key, result)
+            }
+        } getOrElse IO.none
+    }
 
   def lastKey: IO[Option[Slice[Byte]]] =
-    ???
-  //    zero.lastKey
+    zero.lastKey.safeGetBlocking
 
   def bloomFilterKeyValueCount: IO[Int] =
     zero.bloomFilterKeyValueCount
 
   def deadline(key: Slice[Byte]): IO[Option[Deadline]] =
-  //    zero.deadline(key)
-    ???
+    zero.deadline(key).safeGetBlocking
 
   def sizeOfSegments: Long =
     zero.sizeOfSegments
 
   def contains(key: Slice[Byte]): IO[Boolean] =
-  //    zero.contains(key)
-    ???
+    zero.contains(key).safeGetBlocking
 
   def mightContain(key: Slice[Byte]): IO[Boolean] =
     zero.mightContain(key)
 
   def get(key: Slice[Byte]): IO[Option[Option[Slice[Byte]]]] =
-  //    zero.get(key) flatMap {
-  //      result =>
-  //        result map {
-  //          response =>
-  //            response.getOrFetchValue map {
-  //              result =>
-  //                Some(result)
-  //            }
-  //        } getOrElse IO.successNone
-  //    }
-    ???
+    zero.get(key).safeGetBlocking flatMap {
+      result =>
+        result map {
+          response =>
+            response.getOrFetchValue map {
+              result =>
+                Some(result)
+            }
+        } getOrElse IO.none
+    }
 
   def getKey(key: Slice[Byte]): IO[Option[Slice[Byte]]] =
-  //    zero.getKey(key)
-    ???
+    zero.getKey(key).safeGetBlocking
 
   def getKeyValue(key: Slice[Byte]): IO[Option[KeyValueTuple]] =
-  //    zero.get(key) flatMap {
-  //      result =>
-  //        result map {
-  //          response =>
-  //            response.getOrFetchValue map {
-  //              result =>
-  //                Some(response.key, result)
-  //            }
-  //        } getOrElse IO.successNone
-  //    }
-    ???
+    zero.get(key).safeGetBlocking flatMap {
+      result =>
+        result map {
+          response =>
+            response.getOrFetchValue map {
+              result =>
+                Some(response.key, result)
+            }
+        } getOrElse IO.none
+    }
 
   def before(key: Slice[Byte]): IO[Option[KeyValueTuple]] =
-  //    zero.lower(key) flatMap {
-  //      result =>
-  //        result map {
-  //          response =>
-  //            response.getOrFetchValue map {
-  //              result =>
-  //                Some(response.key, result)
-  //            }
-  //        } getOrElse IO.successNone
-  //    }
-    ???
+    zero.lower(key).safeGetBlocking flatMap {
+      result =>
+        result map {
+          response =>
+            response.getOrFetchValue map {
+              result =>
+                Some(response.key, result)
+            }
+        } getOrElse IO.none
+    }
 
   def beforeKey(key: Slice[Byte]): IO[Option[Slice[Byte]]] =
-  //    zero.lower(key).map(_.map(_.key))
-    ???
+    zero.lower(key).safeGetBlocking.map(_.map(_.key))
 
   def after(key: Slice[Byte]): IO[Option[KeyValueTuple]] =
-  //    zero.higher(key) flatMap {
-  //      result =>
-  //        result map {
-  //          response =>
-  //            response.getOrFetchValue map {
-  //              result =>
-  //                Some(response.key, result)
-  //            }
-  //        } getOrElse IO.successNone
-  //    }
-    ???
+    zero.higher(key).safeGetBlocking flatMap {
+      result =>
+        result map {
+          response =>
+            response.getOrFetchValue map {
+              result =>
+                Some(response.key, result)
+            }
+        } getOrElse IO.none
+    }
 
   def afterKey(key: Slice[Byte]): IO[Option[Slice[Byte]]] =
-  //    zero.higher(key).map(_.map(_.key))
-    ???
+    zero.higher(key).safeGetBlocking.map(_.map(_.key))
 
   def valueSize(key: Slice[Byte]): IO[Option[Int]] =
-  //    zero.valueSize(key)
-    ???
+    zero.valueSize(key).safeGetBlocking
 
   def level0Meter: Level0Meter =
-  //    zero.level0Meter
-    ???
+    zero.level0Meter
 
   def levelMeter(levelNumber: Int): Option[LevelMeter] =
-  //    zero.levelMeter(levelNumber)
-    ???
+    zero.levelMeter(levelNumber)
 }

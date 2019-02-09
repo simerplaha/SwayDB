@@ -45,8 +45,7 @@ private[core] object DBInitializer extends LazyLogging {
             segmentCloserDelay: FiniteDuration)(implicit ec: ExecutionContext,
                                                 keyOrder: KeyOrder[Slice[Byte]],
                                                 timeOrder: TimeOrder[Slice[Byte]],
-                                                functionStore: FunctionStore): IO[CoreAPI] = {
-
+                                                functionStore: FunctionStore): IO[CoreBlockingAPI] = {
     implicit val fileOpenLimiter: FileLimiter =
       FileLimiter(maxSegmentsOpen, segmentCloserDelay)
 
@@ -114,7 +113,7 @@ private[core] object DBInitializer extends LazyLogging {
       }
 
     def createLevels(levelConfigs: List[LevelConfig],
-                     previousLowerLevel: Option[LevelRef]): IO[CoreAPI] =
+                     previousLowerLevel: Option[LevelRef]): IO[CoreBlockingAPI] =
       levelConfigs match {
         case Nil =>
           createLevel(1, previousLowerLevel, config.level1) flatMap {
@@ -129,7 +128,7 @@ private[core] object DBInitializer extends LazyLogging {
               ) map {
                 zero =>
                   addShutdownHook(zero)
-                  CoreAPI(zero)
+                  CoreBlockingAPI(zero)
               }
           }
 

@@ -29,7 +29,9 @@ import scala.reflect.ClassTag
 import swaydb.data.slice.{Slice, SliceReader}
 
 /**
-  * Similar to [[scala.util.Try]] but adds another type [[IO.Async]].
+  * [[IO.Success]] and [[IO.Failure]] are similar to types in [[scala.util.Try]].
+  *
+  * [[IO.Async]] is for performing synchronous and asynchronous IO.
   */
 sealed trait IO[+T] {
   def isFailure: Boolean
