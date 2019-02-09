@@ -240,7 +240,7 @@ class MapsSpec extends TestBase {
       val secondMapsBytes = Files.readAllBytes(secondMapsPath)
       Files.write(secondMapsPath, secondMapsBytes.dropRight(1))
 
-      Maps.persistent[Slice[Byte], Memory.SegmentResponse](path, mmap = true, 1.byte, Accelerator.brake(), RecoveryMode.ReportFailure).failed.assertGet shouldBe a[IllegalStateException]
+      Maps.persistent[Slice[Byte], Memory.SegmentResponse](path, mmap = true, 1.byte, Accelerator.brake(), RecoveryMode.ReportFailure).failed.assertGet.exception shouldBe a[IllegalStateException]
     }
 
     "continue recovery if one of the map is corrupted and recovery mode is DropCorruptedTailEntries" in {
@@ -314,7 +314,7 @@ class MapsSpec extends TestBase {
 
       //failure because the file is deleted. The Map will NOT try to re-write this entry again because
       //it should be an indication that something is wrong with the file system permissions.
-      maps.write(MapEntry.Put(2, Memory.put(2))).failed.assertGet shouldBe a[NoSuchFileException]
+      maps.write(MapEntry.Put(2, Memory.put(2))).failed.assertGet.exception shouldBe a[NoSuchFileException]
 
       //new Map file is created. Now this write will succeed.
       maps.write(MapEntry.Put(2, Memory.put(2))).assertGet

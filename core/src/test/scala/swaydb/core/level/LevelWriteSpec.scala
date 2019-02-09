@@ -133,12 +133,12 @@
 //        //delete the appendix file
 //        level.paths.headPath.resolve("appendix").files(Extension.Log) map EffectIO.delete
 //        //expect failure when file does not exists
-//        level.tryReopen.failed.assertGet shouldBe a[IllegalStateException]
+//        level.tryReopen.failed.assertGet.exception shouldBe a[IllegalStateException]
 //
 //        //delete folder
 //        EffectIO.delete(level.paths.headPath.resolve("appendix")).assertGet
 //        //expect failure when folder does not exist
-//        level.tryReopen.failed.assertGet shouldBe a[IllegalStateException]
+//        level.tryReopen.failed.assertGet.exception shouldBe a[IllegalStateException]
 //      }
 //    }
 //  }
@@ -427,7 +427,7 @@
 //        }
 //        val levelFilesBeforePut = level.segmentFilesOnDisk
 //
-//        level.put(Seq.empty, segmentToCopy, Seq.empty).failed.assertGet shouldBe a[FileAlreadyExistsException]
+//        level.put(Seq.empty, segmentToCopy, Seq.empty).failed.assertGet.exception shouldBe a[FileAlreadyExistsException]
 //
 //        level.isEmpty shouldBe true
 //        level.segmentFilesOnDisk shouldBe levelFilesBeforePut
@@ -469,7 +469,7 @@
 //
 //        val appendixBeforePut = level.segmentsInLevel()
 //        val levelFilesBeforePut = level.segmentFilesOnDisk
-//        level.put(segmentToMerge, segmentToCopy, Seq(targetSegment)).failed.assertGet shouldBe a[FileAlreadyExistsException]
+//        level.put(segmentToMerge, segmentToCopy, Seq(targetSegment)).failed.assertGet.exception shouldBe a[FileAlreadyExistsException]
 //        level.segmentFilesOnDisk shouldBe levelFilesBeforePut
 //        level.segmentsInLevel().map(_.path) shouldBe appendixBeforePut.map(_.path)
 //      }
@@ -905,7 +905,7 @@
 //      segment2.delete.assertGet // delete segment2 so there is a failure in copying Segments
 //
 //      val segments = Iterable(segment1, segment2)
-//      level.copy(segments).failed.assertGet shouldBe a[NoSuchFileException]
+//      level.copy(segments).failed.assertGet.exception shouldBe a[NoSuchFileException]
 //
 //      level.isEmpty shouldBe true
 //      if (persistent) level.reopen.isEmpty shouldBe true

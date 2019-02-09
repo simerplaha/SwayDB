@@ -62,55 +62,67 @@ private[core] object MapCodec extends LazyLogging {
   //Java style return statements are used to break out of the loop. Use functions instead.
   def read[K, V](bytes: Slice[Byte],
                  dropCorruptedTailEntries: Boolean)(implicit mapReader: MapEntryReader[MapEntry[K, V]]): IO[RecoveryResult[Option[MapEntry[K, V]]]] =
-    Reader(bytes).foldLeftIO(RecoveryResult(Option.empty[MapEntry[K, V]], IO())) {
+    Reader(bytes).foldLeftIO(RecoveryResult(Option.empty[MapEntry[K, V]], IO.unit)) {
       case (recovery, reader) =>
-        reader.hasAtLeast(ByteSizeOf.long) flatMap {
-          case true =>
-            reader.readLong() flatMap {
-              crc =>
-                // An unfilled MemoryMapped file can have trailing empty bytes which indicates EOF.
-                if (crc == 0)
-                  return IO.Success(recovery)
-                else {
-                  try {
-                    val length = reader.readInt().unsafeGet
-                    val payload = (reader read length).unsafeGet
-                    val checkCRC = CRC32 forBytes payload
-                    //crc check.
-                    if (crc == checkCRC) {
-                      mapReader.read(Reader(payload)) map {
-                        case Some(readMapEntry) =>
-                          val nextEntry = recovery.item.map(_ ++ readMapEntry) orElse Some(readMapEntry)
-                          RecoveryResult(nextEntry, recovery.result)
+        reader.hasAtLeast(ByteSizeOf.long) match {
+          case IO.Success(hasMore) =>
+            if (hasMore) {
+              val result =
+                reader.readLong() match {
+                  case IO.Success(crc) =>
+                    // An unfilled MemoryMapped file can have trailing empty bytes which indicates EOF.
+                    if (crc == 0)
+                      return IO.Success(recovery)
+                    else
+                      try {
+                        val length = reader.readInt().unsafeGet
+                        val payload = (reader read length).unsafeGet
+                        val checkCRC = CRC32 forBytes payload
+                        //crc check.
+                        if (crc == checkCRC) {
+                          mapReader.read(Reader(payload)) map {
+                            case Some(readMapEntry) =>
+                              val nextEntry = recovery.item.map(_ ++ readMapEntry) orElse Some(readMapEntry)
+                              RecoveryResult(nextEntry, recovery.result)
 
-                        case None =>
-                          recovery
+                            case None =>
+                              recovery
+                          }
+                        } else {
+                          val failureMessage =
+                            s"File corruption! Failed to match CRC check for entry at position ${reader.getPosition}. CRC expected = $crc actual = $checkCRC. Skip on corruption = $dropCorruptedTailEntries."
+                          logger.error(failureMessage)
+                          IO.Failure(new IllegalStateException(failureMessage))
+                        }
+                      } catch {
+                        case ex: Throwable =>
+                          logger.error("File corruption! Unable to read entry at position {}. dropCorruptedTailEntries = {}.", reader.getPosition, dropCorruptedTailEntries, ex)
+                          IO.Failure(new IllegalStateException(s"File corruption! Unable to read entry at position ${reader.getPosition}. dropCorruptedTailEntries = $dropCorruptedTailEntries.", ex))
                       }
-                    } else {
-                      val failureMessage =
-                        s"File corruption! Failed to match CRC check for entry at position ${reader.getPosition}. CRC expected = $crc actual = $checkCRC. Skip on corruption = $dropCorruptedTailEntries."
-                      logger.error(failureMessage)
-                      IO.Failure(new IllegalStateException(failureMessage))
-                    }
-                  } catch {
-                    case ex: Throwable =>
-                      logger.error("File corruption! Unable to read entry at position {}. dropCorruptedTailEntries = {}.", reader.getPosition, dropCorruptedTailEntries, ex)
-                      IO.Failure(new IllegalStateException(s"File corruption! Unable to read entry at position ${reader.getPosition}. dropCorruptedTailEntries = $dropCorruptedTailEntries.", ex))
+
+                  case IO.Failure(failure) =>
+                    IO.Failure(failure)
+                }
+
+              result match {
+                case IO.Success(value) =>
+                  IO.Success(value)
+
+                case IO.Failure(failure) =>
+                  if (dropCorruptedTailEntries) {
+                    logger.error("Skipping WAL on failure at position {}", reader.getPosition)
+                    return IO.Success(RecoveryResult(recovery.item, IO.Failure(failure)))
+                  } else {
+                    IO.Failure(failure)
                   }
-                }
-            } recoverWith {
-              case failure =>
-                if (dropCorruptedTailEntries) {
-                  logger.error("Skipping WAL on failure at position {}", reader.getPosition)
-                  return IO.Success(RecoveryResult(recovery.item, IO.Failure(failure)))
-                } else {
-                  IO.Failure(failure)
-                }
+              }
+            } else {
+              //MMAP files can be closed with empty bytes with < 8 bytes.
+              return IO.Success(recovery)
             }
 
-          case false =>
-            //MMAP files can be closed with empty bytes with < 8 bytes.
-            return IO.Success(recovery)
+          case IO.Failure(error) =>
+            IO.Failure(error)
         }
     }
 }

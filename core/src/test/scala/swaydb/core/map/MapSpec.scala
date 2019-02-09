@@ -297,7 +297,7 @@ class MapSpec extends TestBase {
       val map = Map.persistent[Slice[Byte], Memory.SegmentResponse](createRandomDir, mmap = false, flushOnOverflow = false, 1.mb).assertGet
 
       //fails because the file already exists.
-      Map.persistent[Slice[Byte], Memory.SegmentResponse](map.path, mmap = false, flushOnOverflow = false, 1.mb).failed.assertGet shouldBe a[FileAlreadyExistsException]
+      Map.persistent[Slice[Byte], Memory.SegmentResponse](map.path, mmap = false, flushOnOverflow = false, 1.mb).failed.assertGet.exception shouldBe a[FileAlreadyExistsException]
 
       //recovers because the recovery is provided
       Map.persistent[Slice[Byte], Memory.SegmentResponse](map.path, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).assertGet
@@ -485,7 +485,7 @@ class MapSpec extends TestBase {
     "fail if the WAL file is corrupted and and when dropCorruptedTailEntries = false" in {
 
       def assertRecover =
-        Map.persistent[Slice[Byte], Memory.SegmentResponse](map.currentFilePath.getParent, mmap = false, flushOnOverflow = false, fileSize = 4.mb, dropCorruptedTailEntries = false).failed.assertGet shouldBe a[IllegalStateException]
+        Map.persistent[Slice[Byte], Memory.SegmentResponse](map.currentFilePath.getParent, mmap = false, flushOnOverflow = false, fileSize = 4.mb, dropCorruptedTailEntries = false).failed.assertGet.exception shouldBe a[IllegalStateException]
 
       //drop last byte
       Files.write(map.currentFilePath, allBytes.dropRight(1))
@@ -541,7 +541,7 @@ class MapSpec extends TestBase {
     "fail recovery if first map is corrupted" in {
       //corrupt 0.log bytes
       Files.write(log0, log0Bytes.drop(1))
-      Map.persistent[Slice[Byte], Memory.SegmentResponse](map1.path, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).failed.assertGet shouldBe a[IllegalStateException]
+      Map.persistent[Slice[Byte], Memory.SegmentResponse](map1.path, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).failed.assertGet.exception shouldBe a[IllegalStateException]
       Files.write(log0, log0Bytes) //fix log0 bytes
     }
 
@@ -550,7 +550,7 @@ class MapSpec extends TestBase {
       Files.write(log0, log0Bytes.dropRight(1))
       val recoveredMapWith0LogCorrupted = Map.persistent[Slice[Byte], Memory.SegmentResponse](map1.path, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = true).assertGet
       //recovery state contains failure because the WAL file is partially recovered.
-      recoveredMapWith0LogCorrupted.result.failed.assertGet shouldBe a[IllegalStateException]
+      recoveredMapWith0LogCorrupted.result.failed.assertGet.exception shouldBe a[IllegalStateException]
       recoveredMapWith0LogCorrupted.item.size shouldBe 5 //5 because the 3rd entry in 0.log is corrupted
 
       //checking the recovered entries
@@ -590,7 +590,7 @@ class MapSpec extends TestBase {
     "fail recovery if one of two WAL files of the map is corrupted" in {
       //corrupt 1.log bytes
       Files.write(log1, log1Bytes.drop(1))
-      Map.persistent[Slice[Byte], Memory.SegmentResponse](map1.path, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).failed.assertGet shouldBe a[IllegalStateException]
+      Map.persistent[Slice[Byte], Memory.SegmentResponse](map1.path, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).failed.assertGet.exception shouldBe a[IllegalStateException]
       Files.write(log1, log1Bytes) //fix log1 bytes
     }
 
@@ -599,7 +599,7 @@ class MapSpec extends TestBase {
       Files.write(log1, log1Bytes.dropRight(1))
       val recoveredMapWith0LogCorrupted = Map.persistent[Slice[Byte], Memory.SegmentResponse](map1.path, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = true).assertGet
       //recovery state contains failure because the WAL file is partially recovered.
-      recoveredMapWith0LogCorrupted.result.failed.assertGet shouldBe a[IllegalStateException]
+      recoveredMapWith0LogCorrupted.result.failed.assertGet.exception shouldBe a[IllegalStateException]
       recoveredMapWith0LogCorrupted.item.size shouldBe 5 //5 because the 3rd entry in 1.log is corrupted
 
       //checking the recovered entries

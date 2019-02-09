@@ -131,7 +131,7 @@
 //    //
 //    //    "not write empty key-value" in {
 //    //      val zero = TestLevelZero(TestLevel())
-//    //      zero.put(Slice.empty, Slice.empty).failed.assertGet shouldBe a[IllegalArgumentException]
+//    //      zero.put(Slice.empty, Slice.empty).failed.assertGet.exception shouldBe a[IllegalArgumentException]
 //    //    }
 //    //
 //    //    "write empty values" in {
