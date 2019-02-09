@@ -121,7 +121,7 @@ private[core] class SegmentCache(id: String,
 
       //check for minKey inside the Segment is not required since Levels already do minKey check.
       //      case _ if key < minKey =>
-      //        IO.successNone
+      //        IO.none
 
       case _ =>
         val floorValue = Option(cache.floorEntry(key)).map(_.getValue)

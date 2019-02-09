@@ -199,7 +199,7 @@ object TestData {
       else
         keyValues.toMapEntry match {
           case Some(value) =>
-//            level.put(value) map (_ => ())
+            //            level.put(value) map (_ => ())
             ???
           case None =>
             IO.unit
@@ -2046,8 +2046,7 @@ object TestData {
                                 currentReader: CurrentWalker,
                                 nextReader: NextWalker,
                                 functionStore: FunctionStore): IO[Option[KeyValue.ReadOnly.Put]] =
-//      Higher(key, Seek.Next, Seek.Next)
-    ???
+      Higher(key, Seek.Next, Seek.Next).safeGetBlocking
   }
 
   implicit class LowerImplicits(higher: Lower.type) {
@@ -2056,8 +2055,7 @@ object TestData {
                                 currentReader: CurrentWalker,
                                 nextReader: NextWalker,
                                 functionStore: FunctionStore): IO[Option[KeyValue.ReadOnly.Put]] =
-//      Lower(key, Seek.Next, Seek.Next)
-    ???
+      Lower(key, Seek.Next, Seek.Next).safeGetBlocking
   }
 }
 
