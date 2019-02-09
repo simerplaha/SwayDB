@@ -316,8 +316,8 @@ object IO {
     /**
       * Error that are not known and indicate something unexpected went wrong like a file corruption.
       *
-      * Pre-cautions and implemented in place to even recover from these failures such as [[AppendixRepairer]] and
-      * this Error is not expected to occur on a healthy database.
+      * Pre-cautions and implemented in place to even recover from these failures using tools like AppendixRepairer.
+      * This Error is not expected to occur on healthy databases.
       */
     case class Fatal(exception: Throwable) extends Error
   }
