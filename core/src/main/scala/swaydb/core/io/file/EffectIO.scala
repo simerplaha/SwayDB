@@ -52,7 +52,7 @@ object EffectIO extends LazyLogging {
       // but here the check on written ensures that only the actually written bytes get written.
       // All the client code invoking writes to Disk using Slice should ensure that no Slice contains empty bytes.
       if (written != bytes.written)
-        IO.Failure(SegmentException.FailedToWriteAllBytes(written, bytes.written, bytes.size))
+        IO.Failure(IO.Error.Fatal(SegmentException.FailedToWriteAllBytes(written, bytes.written, bytes.size)))
       else
         IO.unit
     } catch {

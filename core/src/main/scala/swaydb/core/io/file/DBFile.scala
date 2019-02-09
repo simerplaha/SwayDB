@@ -56,7 +56,7 @@ object DBFile {
                                            limiter: FileLimiter): IO[DBFile] =
   //do not write bytes if the Slice has empty bytes.
     if (!bytes.isFull)
-      IO.Failure(SegmentException.FailedToWriteAllBytes(0, bytes.written, bytes.size))
+      IO.Failure(IO.Error.Fatal(SegmentException.FailedToWriteAllBytes(0, bytes.written, bytes.size)))
     else
       mmapInit(path, bytes.written, autoClose = autoClose) flatMap {
         file =>
@@ -138,7 +138,7 @@ class DBFile(val path: Path,
   //if it's an in memory files return failure as Memory files cannot be copied.
   def copyTo(toPath: Path): IO[Path] =
     if (file.map(_.memory).getOrElse(false))
-      IO.Failure(CannotCopyInMemoryFiles(path))
+      IO.Failure(IO.Error.Fatal(CannotCopyInMemoryFiles(path)))
     else {
       forceSave() flatMap {
         _ =>

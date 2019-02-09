@@ -144,7 +144,7 @@ private[core] object Level extends LazyLogging {
                 if (segment.existsOnDisk)
                   IO.unit
                 else
-                  IO.Failure(SegmentFileMissing(segment.path))
+                  IO.Failure(IO.Error.Fatal(SegmentFileMissing(segment.path)))
             } match {
               case Some(IO.Failure(error)) =>
                 IO.Failure(error)

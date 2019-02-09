@@ -82,7 +82,7 @@ object EntryReader {
         }
     } flatMap {
       _ =>
-        IO.Failure(SegmentException.InvalidEntryId(id))
+        IO.Failure(IO.Error.Fatal(SegmentException.InvalidEntryId(id)))
     }
 
   def read(indexReader: Reader,
@@ -108,6 +108,6 @@ object EntryReader {
         else if (EntryId.PendingApply.hasId(id))
           EntryReader.read(EntryId.PendingApply.adjustToBaseId(id), indexReader, valueReader, indexOffset, nextIndexOffset, nextIndexSize, previous, PendingApplyReader)
         else
-          IO.Failure(SegmentException.InvalidEntryId(id))
+          IO.Failure(IO.Error.Fatal(SegmentException.InvalidEntryId(id)))
     }
 }

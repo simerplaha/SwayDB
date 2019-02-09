@@ -244,7 +244,7 @@ object IO {
         case exception: AsynchronousCloseException => Error.AsynchronousClose(exception)
         case exception: ClosedChannelException => Error.ClosedChannel(exception)
         case exception: NullPointerException => Error.NullPointer(exception)
-        case exception => Error.System(exception)
+        case exception => Error.Fatal(exception)
       }
 
     sealed trait Busy extends Error {
@@ -313,14 +313,20 @@ object IO {
       override def exception: Throwable = IO.Exception.ReceivedKeyValuesToMergeWithoutTargetSegment(keyValueCount)
     }
 
-    case class System(exception: Throwable) extends Error
+    /**
+      * Error that are not known and indicate something unexpected went wrong like a file corruption.
+      *
+      * Pre-cautions and implemented in place to even recover from these failures such as [[AppendixRepairer]] and
+      * this Error is not expected to occur on a healthy database.
+      */
+    case class Fatal(exception: Throwable) extends Error
   }
 
   def getOrNone[T](block: => T): Option[T] =
     try
       Option(block)
     catch {
-      case _: Exception =>
+      case _: Throwable =>
         None
     }
 
@@ -335,7 +341,7 @@ object IO {
       try
         f
       catch {
-        case ex: Exception =>
+        case ex: Throwable =>
           IO.Failure(IO.Error(ex))
       }
   }
@@ -359,11 +365,11 @@ object IO {
     override def mapAsync[U](f: T => U): IO.Async[U] = IO(f(unsafeGet)).asInstanceOf[IO.Async[U]]
     override def recover[U >: T](f: PartialFunction[IO.Error, U]): IO[U] = this
     override def recoverWith[U >: T](f: PartialFunction[IO.Error, IO[U]]): IO[U] = this
-    override def failed: IO[IO.Error] = Failure(Error.System(new UnsupportedOperationException("IO.Success.failed")))
+    override def failed: IO[IO.Error] = Failure(Error.Fatal(new UnsupportedOperationException("IO.Success.failed")))
     override def toOption: Option[T] = Some(value)
     override def toEither: Either[IO.Error, T] = Right(value)
     override def filter(p: T => Boolean): IO[T] =
-      IO.Catch(if (p(value)) this else IO.Failure(Error.System(new NoSuchElementException("Predicate does not hold for " + value))))
+      IO.Catch(if (p(value)) this else IO.Failure(Error.Fatal(new NoSuchElementException("Predicate does not hold for " + value))))
     override def toFuture: Future[T] = Future.successful(value)
     override def toTry: scala.util.Try[T] = scala.util.Success(value)
     override def onFailure[U >: T](f: IO.Failure[U] => Unit): IO[U] = this
@@ -381,7 +387,7 @@ object IO {
         case busy: Error.Busy =>
           Async(operation, busy)
 
-        case Error.System(system) =>
+        case Error.Fatal(system) =>
           recover(system, operation)
 
         case Error.OverlappingPushSegment | Error.OverlappingPushSegment | Error.NoSegmentsRemoved | Error.NotSentToNextLevel | _: Error.ReceivedKeyValuesToMergeWithoutTargetSegment =>

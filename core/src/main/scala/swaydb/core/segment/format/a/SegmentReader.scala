@@ -134,9 +134,11 @@ private[core] object SegmentReader extends LazyLogging {
           case _: ArrayIndexOutOfBoundsException | _: IndexOutOfBoundsException | _: IllegalArgumentException | _: NegativeArraySizeException =>
             val atPosition: String = indexEntrySizeMayBe.map(size => s" of size $size") getOrElse ""
             IO.Failure(
-              SegmentCorruptionException(
-                s"Corrupted Segment: Failed to read index entry at reader position ${indexReader.getPosition}$atPosition}",
-                exception
+              IO.Error.Fatal(
+                SegmentCorruptionException(
+                  s"Corrupted Segment: Failed to read index entry at reader position ${indexReader.getPosition}$atPosition}",
+                  exception
+                )
               )
             )
 
@@ -187,7 +189,11 @@ private[core] object SegmentReader extends LazyLogging {
       case exception: Exception =>
         exception match {
           case _: ArrayIndexOutOfBoundsException | _: IndexOutOfBoundsException | _: IllegalArgumentException | _: NegativeArraySizeException =>
-            IO.Failure(SegmentCorruptionException(s"Corrupted Segment: Failed to read index bytes", exception))
+            IO.Failure(
+              IO.Error.Fatal(
+                SegmentCorruptionException(s"Corrupted Segment: Failed to read index bytes", exception)
+              )
+            )
 
           case ex: Exception =>
             IO.Failure(ex)
@@ -205,9 +211,11 @@ private[core] object SegmentReader extends LazyLogging {
         exception match {
           case _: ArrayIndexOutOfBoundsException | _: IndexOutOfBoundsException | _: IllegalArgumentException | _: NegativeArraySizeException =>
             IO.Failure(
-              SegmentCorruptionException(
-                s"Corrupted Segment: Failed to get bytes of length $length from offset $fromOffset",
-                exception
+              IO.Error.Fatal(
+                SegmentCorruptionException(
+                  s"Corrupted Segment: Failed to get bytes of length $length from offset $fromOffset",
+                  exception
+                )
               )
             )
 
@@ -260,7 +268,11 @@ private[core] object SegmentReader extends LazyLogging {
       case exception: Exception =>
         exception match {
           case _: ArrayIndexOutOfBoundsException | _: IndexOutOfBoundsException | _: IllegalArgumentException | _: NegativeArraySizeException =>
-            IO.Failure(SegmentCorruptionException("Corrupted Segment: Failed to read footer bytes", exception))
+            IO.Failure(
+              IO.Error.Fatal(
+                SegmentCorruptionException("Corrupted Segment: Failed to read footer bytes", exception)
+              )
+            )
 
           case ex: Exception =>
             IO.Failure(ex)
@@ -276,7 +288,7 @@ private[core] object SegmentReader extends LazyLogging {
            startFrom: Option[Persistent],
            reader: Reader,
            footer: SegmentFooter)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
-    try {
+    Catch {
       startFrom match {
         case Some(startFrom) =>
           //if startFrom is the last index entry, return None.
@@ -307,9 +319,6 @@ private[core] object SegmentReader extends LazyLogging {
               find(keyValue, None, matcher, reader, footer)
           }
       }
-    } catch {
-      case ex: Exception =>
-        IO.Failure(ex)
     }
 
   @tailrec

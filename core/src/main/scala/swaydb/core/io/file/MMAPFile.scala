@@ -111,7 +111,7 @@ private[file] class MMAPFile(val path: Path,
 
       //Although this code extends the buffer, currently there is no implementation that requires this feature.
       //All the bytes requires for each write operation are pre-calculated EXACTLY and an overflow should NEVER occur.
-      case IO.Failure(IO.Error.System(ex: BufferOverflowException)) =>
+      case IO.Failure(IO.Error.Fatal(ex: BufferOverflowException)) =>
         val requiredByteSize = slice.size.toLong
         logger.debug("{}: BufferOverflowException. Required bytes: {}. Remaining bytes: {}. Extending buffer with {} bytes.",
           path, requiredByteSize, buffer.remaining(), requiredByteSize, ex)

@@ -30,7 +30,7 @@ private[core] object ExceptionUtil extends LazyLogging {
 
   def logFailure(message: => String, error: IO.Error): Unit =
     error match {
-      case Error.System(exception) =>
+      case Error.Fatal(exception) =>
         logger.error(message + " Corruption.", exception)
       case _: Error =>
         if (logger.underlying.isTraceEnabled) logger.trace(message, error.exception)
