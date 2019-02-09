@@ -204,7 +204,7 @@ case class Set[T](private val db: SwayDB,
               }
             case IO.Failure(error) =>
               System.err.println("Failed to iterate", error)
-              throw error.toException
+              throw error.exception
           }
         }
       } else
@@ -226,7 +226,7 @@ case class Set[T](private val db: SwayDB,
             }
           case IO.Failure(error) =>
             System.err.println("Failed to start Key iterator", error)
-            throw error.toException
+            throw error.exception
         }
 
     override def next(): T =

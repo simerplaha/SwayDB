@@ -197,7 +197,7 @@ object IO {
   }
 
   sealed trait Error {
-    def toException: Throwable
+    def exception: Throwable
   }
 
   object Error {
@@ -223,43 +223,43 @@ object IO {
     }
 
     case class OpeningFile(file: Path, busy: BusyBoolean) extends Busy {
-      override def toException: Throwable = new Exception(s"Failed to open file $file")
+      override def exception: Throwable = new Exception(s"Failed to open file $file")
     }
 
-    case class NoSuchFile(toException: Throwable) extends Busy {
+    case class NoSuchFile(exception: Throwable) extends Busy {
       override def busy: BusyBoolean = BusyBoolean.notBusy
     }
 
-    case class FileNotFound(toException: Throwable) extends Busy {
+    case class FileNotFound(exception: Throwable) extends Busy {
       override def busy: BusyBoolean = BusyBoolean.notBusy
     }
 
-    case class AsynchronousClose(toException: Throwable) extends Busy {
+    case class AsynchronousClose(exception: Throwable) extends Busy {
       override def busy: BusyBoolean = BusyBoolean.notBusy
     }
 
-    case class ClosedChannel(toException: Throwable) extends Busy {
+    case class ClosedChannel(exception: Throwable) extends Busy {
       override def busy: BusyBoolean = BusyBoolean.notBusy
     }
 
-    case class NullPointer(toException: Throwable) extends Busy {
+    case class NullPointer(exception: Throwable) extends Busy {
       override def busy: BusyBoolean = BusyBoolean.notBusy
     }
 
     case class DecompressingIndex(busy: BusyBoolean) extends Busy {
-      override def toException: Throwable = new Exception("Failed to decompress index")
+      override def exception: Throwable = new Exception("Failed to decompress index")
     }
 
     case class DecompressionValues(busy: BusyBoolean) extends Busy {
-      override def toException: Throwable = new Exception("Failed to decompress index")
+      override def exception: Throwable = new Exception("Failed to decompress index")
     }
 
     case class ReadingHeader(busy: BusyBoolean) extends Busy {
-      override def toException: Throwable = new Exception("Failed to decompress index")
+      override def exception: Throwable = new Exception("Failed to decompress index")
     }
 
     case class FetchingValue(busy: BusyBoolean) extends Busy {
-      override def toException: Throwable = new Exception("Failed to decompress index")
+      override def exception: Throwable = new Exception("Failed to decompress index")
     }
 
     /**
@@ -267,24 +267,22 @@ object IO {
       * there are no more overlapping Segments.
       */
     case object OverlappingPushSegment extends Error {
-      override def toException: Throwable = new Exception("Contains overlapping busy Segments")
+      override def exception: Throwable = new Exception("Contains overlapping busy Segments")
     }
 
     case object NoSegmentsRemoved extends Error {
-      override def toException: Throwable = new Exception("No Segments Removed")
+      override def exception: Throwable = new Exception("No Segments Removed")
     }
 
     case object NotSentToNextLevel extends Error {
-      override def toException: Throwable = new Exception("Not sent to next Level")
+      override def exception: Throwable = new Exception("Not sent to next Level")
     }
 
     case class ReceivedKeyValuesToMergeWithoutTargetSegment(keyValueCount: Int) extends Error {
-      override def toException: Throwable = new Exception(s"Received key-values to merge without target Segment - keyValueCount: $keyValueCount")
+      override def exception: Throwable = new Exception(s"Received key-values to merge without target Segment - keyValueCount: $keyValueCount")
     }
 
-    case class System(exception: Throwable) extends Error {
-      override def toException: Throwable = exception
-    }
+    case class System(exception: Throwable) extends Error
   }
 
   def getOrNone[T](block: => T): Option[T] =
@@ -488,7 +486,7 @@ object IO {
     override def isFailure: Boolean = true
     override def isSuccess: Boolean = false
     override def isLater: Boolean = false
-    override def unsafeGet: T = throw error.toException
+    override def unsafeGet: T = throw error.exception
     override def safeGet: IO.Failure[T] = this
     override def safeGetBlocking: IO.Failure[T] = this
     override def safeGetFuture(implicit ec: ExecutionContext): Future[IO.Failure[T]] = Future.successful(this)
@@ -511,13 +509,13 @@ object IO {
     override def toOption: Option[T] = None
     override def toEither: Either[IO.Error, T] = Left(error)
     override def filter(p: T => Boolean): IO[T] = this
-    override def toFuture: Future[T] = Future.failed(error.toException)
-    override def toTry: scala.util.Try[T] = scala.util.Failure(error.toException)
+    override def toFuture: Future[T] = Future.failed(error.exception)
+    override def toTry: scala.util.Try[T] = scala.util.Failure(error.exception)
     override def onFailure[U >: T](f: IO.Failure[U] => Unit): IO[U] = {
       f(this)
       this
     }
-    def exception: Throwable = error.toException
+    def exception: Throwable = error.exception
     //    def toAsync[U >: T](operation: => U): IO.Async[U] = IO.Failure.async(this, operation)
     def recoverToAsync[U](operation: => IO.Async[U]): IO.Async[U] =
       IO.Async.recover(this, ()) flatMap {

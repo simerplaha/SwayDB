@@ -28,7 +28,7 @@ object IOAssert extends Matchers with OptionValues {
     def assertGet: T =
       getThis match {
         case IO.Failure(error) =>
-          fail(error.toException)
+          fail(error.exception)
 
         case IO.Success(value) =>
           value
@@ -39,7 +39,7 @@ object IOAssert extends Matchers with OptionValues {
     def assertGet: T =
       getThis match {
         case IO.Failure(error) =>
-          fail(error.toException)
+          fail(error.exception)
 
         case IO.Success(value) =>
           value
@@ -58,7 +58,7 @@ object IOAssert extends Matchers with OptionValues {
     def assertGet: T =
       tryThis match {
         case IO.Failure(error) =>
-          fail(error.toException)
+          fail(error.exception)
 
         case IO.Success(value) =>
           value.assertGet
@@ -67,7 +67,7 @@ object IOAssert extends Matchers with OptionValues {
     def assertGetOpt: Option[T] =
       tryThis match {
         case IO.Failure(error) =>
-          fail(error.toException)
+          fail(error.exception)
 
         case IO.Success(value) =>
           value
@@ -78,7 +78,7 @@ object IOAssert extends Matchers with OptionValues {
     def assertGet: T =
       tryThis match {
         case IO.Failure(error) =>
-          fail(error.toException)
+          fail(error.exception)
         case IO.Success(value) =>
           value.assertGet
         case later @ IO.Later(value, error) =>
@@ -88,7 +88,7 @@ object IOAssert extends Matchers with OptionValues {
     def assertGetOpt: Option[T] =
       tryThis match {
         case IO.Failure(error) =>
-          fail(error.toException)
+          fail(error.exception)
 
         case IO.Success(value) =>
           value

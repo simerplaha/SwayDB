@@ -119,7 +119,7 @@ private[core] object LevelActor extends LazyLogging {
             state.clearTask()
 
           case IO.Failure(error) =>
-            logger.debug(s"{}: Failed to expire key-values for deadline: {}. Rescheduling after: {}", level.paths.head, newDeadline.timeLeft.asString, unexpectedFailureReSchedule.asString, error.toException)
+            logger.debug(s"{}: Failed to expire key-values for deadline: {}. Rescheduling after: {}", level.paths.head, newDeadline.timeLeft.asString, unexpectedFailureReSchedule.asString, error.exception)
             val task = self.schedule(ClearExpiredKeyValues(newDeadline), unexpectedFailureReSchedule)
             state.setTask(task)
         }
@@ -255,7 +255,7 @@ private[core] object LevelActor extends LazyLogging {
               level.paths.head,
               response.request.segments.map(_.path.toString),
               LevelActor.unexpectedFailureReSchedule.asString,
-              error.toException
+              error.exception
             )
             (Sleeping(state.collapseSmallSegmentsTaskScheduled, state.task), Some(PushTask(LevelActor.unexpectedFailureReSchedule, Push)))
         }

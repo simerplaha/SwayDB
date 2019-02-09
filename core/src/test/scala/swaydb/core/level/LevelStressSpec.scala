@@ -98,8 +98,8 @@ sealed trait LevelStressSpec extends TestBase with Benchmark {
                 doPut
 
               case IO.Failure(error) =>
-                error.toException.printStackTrace()
-                fail(error.toException)
+                error.exception.printStackTrace()
+                fail(error.exception)
 
               case _ =>
                 //dispatch a read future for the put.

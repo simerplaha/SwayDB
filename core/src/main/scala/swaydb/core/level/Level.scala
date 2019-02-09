@@ -1168,7 +1168,7 @@ private[core] class Level(val dirs: Seq[Dir],
   def closeSegments(): IO[Unit] = {
     segmentsInLevel().foreachIO(_.close, failFast = false) foreach {
       case IO.Failure(error) =>
-        logger.error("{}: Failed to close Segment file.", paths.head, error.toException)
+        logger.error("{}: Failed to close Segment file.", paths.head, error.exception)
     }
 
     nextLevel.map(_.closeSegments()) getOrElse IO.unit

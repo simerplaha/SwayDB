@@ -33,7 +33,7 @@ private[core] object ExceptionUtil extends LazyLogging {
       case Error.System(exception) =>
         logger.error(message + " Corruption.", exception)
       case _: Error =>
-        if (logger.underlying.isTraceEnabled) logger.trace(message, error.toException)
+        if (logger.underlying.isTraceEnabled) logger.trace(message, error.exception)
     }
 
 }

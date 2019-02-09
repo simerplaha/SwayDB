@@ -194,7 +194,7 @@ private[core] object Maps extends LazyLogging {
                       doRecovery(otherMapsPaths, recoveredMaps)
 
                     case IO.Failure(error) =>
-                      applyRecoveryMode(error.toException, mapPath, otherMapsPaths, recoveredMaps)
+                      applyRecoveryMode(error.exception, mapPath, otherMapsPaths, recoveredMaps)
                   }
 
                 case IO.Failure(error) => //failed to close the file.
@@ -203,7 +203,7 @@ private[core] object Maps extends LazyLogging {
 
             case IO.Failure(error) =>
               //if there was a full failure perform failure handling based on the value set for RecoveryMode.
-              applyRecoveryMode(error.toException, mapPath, otherMapsPaths, recoveredMaps)
+              applyRecoveryMode(error.exception, mapPath, otherMapsPaths, recoveredMaps)
           }
       }
 
@@ -302,7 +302,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
       //if the failure was due to a corruption in the current Map, all the new Entries do not get submitted
       //to the same Map file. They SHOULD be added to a new Map file that is not already unreadable.
       case IO.Failure(writeException) =>
-        logger.error("IO.Failure to write Map entry. Starting a new Map.", writeException.toException)
+        logger.error("IO.Failure to write Map entry. Starting a new Map.", writeException.exception)
         Maps.nextMap(fileSize, currentMap) match {
           case IO.Success(nextMap) =>
             maps addFirst currentMap
@@ -311,7 +311,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
             IO.Failure(writeException)
 
           case IO.Failure(newMapException) =>
-            logger.error("Failed to create a new map on failure to write", newMapException.toException)
+            logger.error("Failed to create a new map on failure to write", newMapException.exception)
             IO.Failure(writeException)
         }
     }

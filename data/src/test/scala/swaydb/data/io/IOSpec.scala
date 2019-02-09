@@ -125,7 +125,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
         )
 
       result.isFailure shouldBe true
-      result.failed.unsafeGet.toException shouldBe "Failed at 3"
+      result.failed.unsafeGet.exception shouldBe "Failed at 3"
 
       intsCleanedUp should contain inOrderOnly(1, 2)
     }
@@ -158,7 +158,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
               IO.Failure(new Exception("Kaboom!"))
             }
         }
-      result.failed.unsafeGet.toException shouldBe "Kaboom!"
+      result.failed.unsafeGet.exception shouldBe "Kaboom!"
     }
   }
 
@@ -176,7 +176,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
         }
 
       result.isFailure shouldBe true
-      result.failed.unsafeGet.toException shouldBe "Failed at two"
+      result.failed.unsafeGet.exception shouldBe "Failed at two"
     }
 
     "allow fold on Slice" in {
@@ -251,7 +251,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
         }
 
       result.isFailure shouldBe true
-      result.failed.unsafeGet.toException shouldBe "Failed at 1"
+      result.failed.unsafeGet.exception shouldBe "Failed at 1"
       iterations shouldBe 1
     }
   }

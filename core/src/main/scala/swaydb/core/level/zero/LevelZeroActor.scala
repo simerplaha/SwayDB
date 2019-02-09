@@ -110,7 +110,7 @@ private[core] class LevelZeroActor(zero: LevelZero,
                         "inaccurate data being written. No more maps will be pushed to Level1 until this error is fixed " +
                         "as sequential conversion of memory-map files to Segments is required to maintain data accuracy. " +
                         "Please check file system permissions and ensure that SwayDB can delete files and reboot the database.",
-                      error.toException
+                      error.exception
                     )
                 }
 

@@ -296,7 +296,7 @@ private[map] case class PersistentMap[K, V: ClassTag](path: Path,
           persist(entry)
 
         case IO.Failure(error) =>
-          logger.error("{}: Failed to replace with new file", currentFile.path, error.toException)
+          logger.error("{}: Failed to replace with new file", currentFile.path, error.exception)
           IO.Failure(error)
       }
     }
