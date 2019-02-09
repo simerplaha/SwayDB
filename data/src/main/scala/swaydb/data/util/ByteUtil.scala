@@ -147,8 +147,8 @@ object ByteUtil {
     Slice(array).slice(i, array.length - 1)
   }
 
-  def readUnsignedInt(reader: Reader): IO[Int] = {
-    try {
+  def readUnsignedInt(reader: Reader): IO[Int] =
+    IO {
       var i = 0
       var int = 0
       var read = 0
@@ -158,15 +158,11 @@ object ByteUtil {
         i += 7
         require(i <= 35)
       } while ((read & 0x80) != 0)
-      IO.Success(int)
-    } catch {
-      case ex: Exception =>
-        IO.Failure(ex)
+      int
     }
-  }
 
-  def readUnsignedInt(slice: Slice[Byte]): IO[Int] = {
-    try {
+  def readUnsignedInt(slice: Slice[Byte]): IO[Int] =
+    IO {
       var index = 0
       var i = 0
       var int = 0
@@ -178,18 +174,15 @@ object ByteUtil {
         index += 1
         require(i <= 35)
       } while ((read & 0x80) != 0)
-      IO.Success(int)
-    } catch {
-      case ex: Exception =>
-        IO.Failure(ex)
+
+      int
     }
-  }
 
   /**
     * @return Tuple where the first integer is the unsigned integer and the second is the number of bytes read.
     */
-  def readLastUnsignedInt(slice: Slice[Byte]): IO[(Int, Int)] = {
-    try {
+  def readLastUnsignedInt(slice: Slice[Byte]): IO[(Int, Int)] =
+    IO {
       var index = slice.size - 1
       var i = 0
       var int = 0
@@ -201,12 +194,8 @@ object ByteUtil {
         index -= 1
         require(i <= 35)
       } while ((read & 0x80) != 0)
-      IO.Success(int, slice.size - index - 1)
-    } catch {
-      case ex: Exception =>
-        IO.Failure(ex)
+      (int, slice.size - index - 1)
     }
-  }
 
   def writeSignedLong(long: Long, slice: Slice[Byte]): Unit =
     writeUnsignedLong((long << 1) ^ (long >> 63), slice)
@@ -239,7 +228,7 @@ object ByteUtil {
   }
 
   def readUnsignedLong(reader: Reader): IO[Long] =
-    try {
+    IO {
       var i = 0
       var long = 0L
       var read = 0L
@@ -249,14 +238,12 @@ object ByteUtil {
         i += 7
         require(i <= 70)
       } while ((read & 0x80L) != 0)
-      IO.Success(long)
-    } catch {
-      case ex: Exception =>
-        IO.Failure(ex)
+
+      long
     }
 
   def readUnsignedLong(slice: Slice[Byte]): IO[Long] =
-    try {
+    IO {
       var index = 0
       var i = 0
       var long = 0L
@@ -268,10 +255,7 @@ object ByteUtil {
         index += 1
         require(i <= 70)
       } while ((read & 0x80L) != 0)
-      IO.Success(long)
-    } catch {
-      case ex: Exception =>
-        IO.Failure(ex)
+      long
     }
 
   def sizeOf(int: Int): Int = {

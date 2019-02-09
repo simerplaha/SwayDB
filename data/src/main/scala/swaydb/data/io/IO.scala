@@ -61,7 +61,6 @@ sealed trait IO[+T] {
 }
 
 object IO {
-  case class BusyException(error: Error.Busy) extends Exception("Is busy")
 
   val unit: IO.Success[Unit] = IO.Success()
   val none = IO.Success(None)
@@ -196,6 +195,27 @@ object IO {
     }
   }
 
+  /**
+    * Exception types for all known [[IO.Error]]s that can occur. Each [[IO.Error]] can be converted to
+    * Exception which which can then be converted back to [[IO.Error]].
+    *
+    * These exception are just a handy way to convert batch to typed [[IO.Error]] from untyped Exceptions.
+    *
+    * [[IO.Error]] are always preferred since they are typed. But raw exception are helpful when converting an [[IO]]
+    * type to [[scala.util.Try]].
+    */
+  object Exception {
+    case class Busy(error: Error.Busy) extends Exception("Is busy")
+    case class DecompressingIndex(busy: BusyBoolean) extends Exception("Failed to decompress index")
+    case class DecompressionValues(busy: BusyBoolean) extends Exception("Failed to decompress values")
+    case class FetchingValue(busy: BusyBoolean) extends Exception("Failed to fetch value")
+    case class ReadingHeader(busy: BusyBoolean) extends Exception("Failed to read header")
+    case object OverlappingPushSegment extends Exception("Contains overlapping busy Segments")
+    case object NoSegmentsRemoved extends Exception("No Segments Removed")
+    case object NotSentToNextLevel extends Exception("Not sent to next Level")
+    case class ReceivedKeyValuesToMergeWithoutTargetSegment(keyValueCount: Int) extends Exception(s"Received key-values to merge without target Segment - keyValueCount: $keyValueCount")
+  }
+
   sealed trait Error {
     def exception: Throwable
   }
@@ -204,10 +224,21 @@ object IO {
 
     def apply[T](exception: Throwable): IO.Error =
       exception match {
+        //known Exception that can occur which can return their typed Error version.
+        case exception: IO.Exception.Busy => exception.error
+        case exception: IO.Exception.DecompressingIndex => Error.DecompressingIndex(exception.busy)
+        case exception: IO.Exception.DecompressionValues => Error.DecompressionValues(exception.busy)
+        case exception: IO.Exception.FetchingValue => Error.FetchingValue(exception.busy)
+        case exception: IO.Exception.ReadingHeader => Error.ReadingHeader(exception.busy)
+        case exception: IO.Exception.ReceivedKeyValuesToMergeWithoutTargetSegment => Error.ReceivedKeyValuesToMergeWithoutTargetSegment(exception.keyValueCount)
+
+        case IO.Exception.OverlappingPushSegment => Error.OverlappingPushSegment
+        case IO.Exception.NoSegmentsRemoved => Error.NoSegmentsRemoved
+        case IO.Exception.NotSentToNextLevel => Error.NotSentToNextLevel
+
         //the following Exceptions will occur when a file was being read but
         //it was closed or deleted when it was being read. There is no AtomicBoolean busy
         //associated with these exception and should simply be retried.
-        case exception: IO.BusyException => exception.error
         case exception: NoSuchFileException => Error.NoSuchFile(exception)
         case exception: FileNotFoundException => Error.FileNotFound(exception)
         case exception: AsynchronousCloseException => Error.AsynchronousClose(exception)
@@ -247,19 +278,19 @@ object IO {
     }
 
     case class DecompressingIndex(busy: BusyBoolean) extends Busy {
-      override def exception: Throwable = new Exception("Failed to decompress index")
+      override def exception: Throwable = IO.Exception.DecompressingIndex(busy)
     }
 
     case class DecompressionValues(busy: BusyBoolean) extends Busy {
-      override def exception: Throwable = new Exception("Failed to decompress index")
+      override def exception: Throwable = IO.Exception.DecompressionValues(busy)
     }
 
     case class ReadingHeader(busy: BusyBoolean) extends Busy {
-      override def exception: Throwable = new Exception("Failed to decompress index")
+      override def exception: Throwable = IO.Exception.ReadingHeader(busy)
     }
 
     case class FetchingValue(busy: BusyBoolean) extends Busy {
-      override def exception: Throwable = new Exception("Failed to decompress index")
+      override def exception: Throwable = IO.Exception.FetchingValue(busy)
     }
 
     /**
@@ -267,19 +298,19 @@ object IO {
       * there are no more overlapping Segments.
       */
     case object OverlappingPushSegment extends Error {
-      override def exception: Throwable = new Exception("Contains overlapping busy Segments")
+      override def exception: Throwable = IO.Exception.OverlappingPushSegment
     }
 
     case object NoSegmentsRemoved extends Error {
-      override def exception: Throwable = new Exception("No Segments Removed")
+      override def exception: Throwable = IO.Exception.NoSegmentsRemoved
     }
 
     case object NotSentToNextLevel extends Error {
-      override def exception: Throwable = new Exception("Not sent to next Level")
+      override def exception: Throwable = IO.Exception.NotSentToNextLevel
     }
 
     case class ReceivedKeyValuesToMergeWithoutTargetSegment(keyValueCount: Int) extends Error {
-      override def exception: Throwable = new Exception(s"Received key-values to merge without target Segment - keyValueCount: $keyValueCount")
+      override def exception: Throwable = IO.Exception.ReceivedKeyValuesToMergeWithoutTargetSegment(keyValueCount)
     }
 
     case class System(exception: Throwable) extends Error
@@ -296,7 +327,7 @@ object IO {
   def apply[T](f: => T): IO[T] =
     try IO.Success(f) catch {
       case ex: Throwable =>
-        IO.Failure(Error.System(ex))
+        IO.Failure(IO.Error(ex))
     }
 
   object Catch {
@@ -305,7 +336,7 @@ object IO {
         f
       catch {
         case ex: Exception =>
-          IO.Failure(Error.System(ex))
+          IO.Failure(IO.Error(ex))
       }
   }
 
@@ -442,15 +473,16 @@ object IO {
       }
 
     /**
-      * If value is readable gets or fetches and return's the value or else throws [[BusyException]].
+      * If value is readable gets or fetches and return's the value or else throws [[IO.Exception.Busy]].
       *
-      * Don't not call this function use [[safeGetFuture]] or [[safeGetBlocking]] instead.
+      * @throws [[IO.Exception.Busy]]. Used for Java API.
       */
+    @throws[IO.Exception.Busy]
     def unsafeGet: T =
       if (_value.isDefined || !isBusy)
         forceGet
       else
-        throw BusyException(error)
+        throw IO.Exception.Busy(error)
 
     def safeGet: IO.Async[T] =
       if (_value.isDefined || !isBusy)
