@@ -228,6 +228,12 @@ private[core] class Level(val dirs: Seq[Dir],
 
       override def get(key: Slice[Byte]): IO.Async[Option[ReadOnly.Put]] =
         getFromNextLevel(key)
+
+      override def hasStateChanged(previousState: Long): Boolean =
+        appendix.stateID != previousState
+
+      override def stateID: Long =
+        appendix.stateID
     }
 
   private implicit val currentGetter =
@@ -928,8 +934,8 @@ private[core] class Level(val dirs: Seq[Dir],
   override def lower(key: Slice[Byte]): IO.Async[Option[ReadOnly.Put]] =
     Lower(
       key = key,
-      currentSeek = Seek.Next,
-      nextSeek = Seek.Next
+      currentSeek = Seek.Read,
+      nextSeek = Seek.Read
     )
 
   private def higherFromFloorSegment(key: Slice[Byte]): IO[Option[ReadOnly.SegmentResponse]] =
@@ -968,8 +974,8 @@ private[core] class Level(val dirs: Seq[Dir],
   override def higher(key: Slice[Byte]): IO.Async[Option[KeyValue.ReadOnly.Put]] =
     Higher(
       key = key,
-      currentSeek = Seek.Next,
-      nextSeek = Seek.Next
+      currentSeek = Seek.Read,
+      nextSeek = Seek.Read
     )
 
   /**
@@ -1171,5 +1177,4 @@ private[core] class Level(val dirs: Seq[Dir],
 
   override val isTrash: Boolean =
     false
-
 }

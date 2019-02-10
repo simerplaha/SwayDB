@@ -21,18 +21,19 @@ package swaydb.core.seek
 
 import swaydb.core.data.KeyValue
 
-private[swaydb] sealed trait CurrentSeek
-private[swaydb] sealed trait NextSeek
-
 private[swaydb] object Seek {
-  sealed trait Stop extends CurrentSeek with NextSeek
-  case object Stop extends Stop
 
-  sealed trait Next extends CurrentSeek with NextSeek
-  case object Next extends Next
-
-  object Stash {
-    case class Current(current: KeyValue.ReadOnly.SegmentResponse) extends CurrentSeek
-    case class Next(next: KeyValue.ReadOnly.Put) extends NextSeek
+  sealed trait Current
+  object Current {
+    case object Stop extends Seek.Current
+    case class Stash(current: KeyValue.ReadOnly.SegmentResponse) extends Seek.Current
   }
+
+  sealed trait Next
+  object Next {
+    case class Stop(stateID: Long) extends Seek.Next
+    case class Stash(next: KeyValue.ReadOnly.Put) extends Seek.Next
+  }
+
+  case object Read extends Seek.Current with Seek.Next
 }

@@ -43,6 +43,11 @@ private[map] class MemoryMap[K, V: ClassTag](val skipList: ConcurrentSkipListMap
 
   override def hasRange: Boolean = _hasRange
 
+  @volatile private var writeCount: Long = 0L
+
+  def stateID: Long =
+    writeCount
+
   def delete: IO[Unit] =
     IO(skipList.clear())
 
@@ -50,7 +55,7 @@ private[map] class MemoryMap[K, V: ClassTag](val skipList: ConcurrentSkipListMap
     synchronized {
       if (flushOnOverflow || currentBytesWritten == 0 || ((currentBytesWritten + entry.totalByteSize) <= fileSize)) {
         if (entry.hasRange) {
-          _hasRange = true //set hasRange to true before inserting so that reads start looking for floor key-values as the inserts are occuring.
+          _hasRange = true //set hasRange to true before inserting so that reads start looking for floor key-values as the inserts are occurring.
           skipListMerger.insert(entry, skipList)
         } else if (entry.hasUpdate || entry.hasRemoveDeadline || _hasRange) {
           skipListMerger.insert(entry, skipList)
@@ -58,9 +63,11 @@ private[map] class MemoryMap[K, V: ClassTag](val skipList: ConcurrentSkipListMap
           entry applyTo skipList
         }
         currentBytesWritten += entry.totalByteSize
+        writeCount += 1
         IO.Success(true)
-      } else
+      } else {
         IO.Success(false)
+      }
     }
 
   override def close(): IO[Unit] =

@@ -31,4 +31,8 @@ trait NextWalker extends NextGetter {
 
   def get(key: Slice[Byte]): IO.Async[Option[KeyValue.ReadOnly.Put]]
 
+  def hasStateChanged(previousState: Long): Boolean
+
+  def stateID: Long
+
 }

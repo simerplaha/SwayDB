@@ -389,6 +389,7 @@ object IO {
   }
 
   object Async {
+
     def runSafe[T](f: => T): IO.Async[T] =
       try IO.Success(f) catch {
         case ex: Throwable =>

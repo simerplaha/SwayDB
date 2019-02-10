@@ -23,7 +23,6 @@ import scala.annotation.tailrec
 import swaydb.data.io.IO
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data.{KeyValue, Memory, Value}
-import swaydb.core.seek.Seek.Stash
 import swaydb.core.function.FunctionStore
 import swaydb.core.merge._
 
@@ -55,14 +54,23 @@ private[core] object Lower {
   }
 
   def seek(key: Slice[Byte],
-           currentSeek: CurrentSeek,
-           nextSeek: NextSeek,
+           currentSeek: Seek.Current,
+           nextSeek: Seek.Next,
            keyOrder: KeyOrder[Slice[Byte]],
            timeOrder: TimeOrder[Slice[Byte]],
            currentWalker: CurrentWalker,
            nextWalker: NextWalker,
            functionStore: FunctionStore): IO.Async[Option[KeyValue.ReadOnly.Put]] =
     Lower(key, currentSeek, nextSeek)(keyOrder, timeOrder, currentWalker, nextWalker, functionStore)
+
+  def seeker(key: Slice[Byte],
+             currentSeek: Seek.Current,
+             nextSeek: Seek.Next)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                  timeOrder: TimeOrder[Slice[Byte]],
+                                  currentWalker: CurrentWalker,
+                                  nextWalker: NextWalker,
+                                  functionStore: FunctionStore): IO.Async[Option[KeyValue.ReadOnly.Put]] =
+    Lower(key, currentSeek, nextSeek)
 
   /**
     * May be use trampolining instead and split the matches into their own functions to reduce
@@ -73,12 +81,12 @@ private[core] object Lower {
     */
   @tailrec
   def apply(key: Slice[Byte],
-            currentSeek: CurrentSeek,
-            nextSeek: NextSeek)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                timeOrder: TimeOrder[Slice[Byte]],
-                                currentWalker: CurrentWalker,
-                                nextWalker: NextWalker,
-                                functionStore: FunctionStore): IO.Async[Option[KeyValue.ReadOnly.Put]] = {
+            currentSeek: Seek.Current,
+            nextSeek: Seek.Next)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                 timeOrder: TimeOrder[Slice[Byte]],
+                                 currentWalker: CurrentWalker,
+                                 nextWalker: NextWalker,
+                                 functionStore: FunctionStore): IO.Async[Option[KeyValue.ReadOnly.Put]] = {
     import keyOrder._
 
     (currentSeek, nextSeek) match {
@@ -88,19 +96,22 @@ private[core] object Lower {
         * ******************                   *******************
         * ********************************************************/
 
-      case (Seek.Next, Seek.Next) =>
+      case (Seek.Read, Seek.Read) =>
         currentWalker.lower(key) match {
           case IO.Success(Some(lower)) =>
-            Lower(key, Stash.Current(lower), nextSeek)
+            Lower(key, Seek.Current.Stash(lower), nextSeek)
 
           case IO.Success(None) =>
-            Lower(key, Seek.Stop, nextSeek)
+            Lower(key, Seek.Current.Stop, nextSeek)
 
-          case IO.Failure(error) =>
-            IO.Failure(error)
+          case failure @ IO.Failure(_) =>
+            failure
+              .recoverToAsync(
+                Lower.seeker(key, currentSeek, nextSeek)
+              )
         }
 
-      case (currentStash @ Stash.Current(current), Seek.Next) =>
+      case (currentStash @ Seek.Current.Stash(current), Seek.Read) =>
         //decide if it's necessary to read the next Level or not.
         current match {
           //   19   (input key - exclusive)
@@ -109,17 +120,28 @@ private[core] object Lower {
             currentRange.fetchRangeValue match {
               case IO.Success(rangeValue) =>
                 //if the current range is active fetch the lowest from next Level and return lowest from both Levels.
-                if (Value.hasTimeLeft(rangeValue))
+                if (Value.hasTimeLeft(rangeValue)) {
+                  val nextStateID = nextWalker.stateID
                   nextWalker.lower(key) match {
                     case IO.Success(Some(next)) =>
-                      Lower(key, currentStash, Stash.Next(next))
+                      Lower(key, currentStash, Seek.Next.Stash(next))
 
                     case IO.Success(None) =>
-                      Lower(key, currentStash, Seek.Stop)
+                      Lower(key, currentStash, Seek.Next.Stop(nextStateID))
 
-                    case IO.Failure(error) =>
-                      IO.Failure(error)
+                    case later @ IO.Later(_, _) =>
+                      later flatMap {
+                        case Some(next) =>
+                          Lower.seeker(key, currentStash, Seek.Next.Stash(next))
+
+                        case None =>
+                          Lower.seeker(key, currentStash, Seek.Next.Stop(nextStateID))
+                      }
+
+                    case failure @ IO.Failure(_) =>
+                      failure
                   }
+                }
 
                 //if the rangeValue is expired then check if fromValue is valid put else fetch from lower and merge.
                 else
@@ -131,80 +153,137 @@ private[core] object Lower {
                           IO.Success(some)
 
                         //if not, then fetch lower of key in next Level.
-                        case None =>
+                        case None => {
+                          val nextStateID = nextWalker.stateID
                           nextWalker.lower(key) match {
                             case IO.Success(Some(next)) =>
-                              Lower(key, currentStash, Stash.Next(next))
+                              Lower(key, currentStash, Seek.Next.Stash(next))
 
                             case IO.Success(None) =>
-                              Lower(key, currentStash, Seek.Stop)
+                              Lower(key, currentStash, Seek.Next.Stop(nextStateID))
 
-                            case IO.Failure(error) =>
-                              IO.Failure(error)
+                            case later @ IO.Later(_, _) =>
+                              later flatMap {
+                                case Some(next) =>
+                                  Lower.seeker(key, currentStash, Seek.Next.Stash(next))
+
+                                case None =>
+                                  Lower.seeker(key, currentStash, Seek.Next.Stop(nextStateID))
+                              }
+
+                            case failure @ IO.Failure(_) =>
+                              failure
                           }
+                        }
                       }
 
-                    case IO.Failure(error) =>
-                      IO.Failure(error)
+                    case failure @ IO.Failure(_) =>
+                      failure
+                        .recoverToAsync(
+                          Lower.seeker(key, currentSeek, nextSeek)
+                        )
                   }
 
-              case IO.Failure(error) =>
-                IO.Failure(error)
+              case failure @ IO.Failure(_) =>
+                failure
+                  .recoverToAsync(
+                    Lower.seeker(key, currentSeek, nextSeek)
+                  )
             }
 
           //     20 (input key - inclusive)
           //10 - 20 (lower range from current Level)
           case currentRange: ReadOnly.Range if key equiv currentRange.toKey =>
+            val nextStateID = nextWalker.stateID
             //lower level could also contain a toKey but toKey is exclusive to merge is not required but lower level is read is required.
             nextWalker.lower(key) match {
               case IO.Success(Some(nextFromKey)) =>
-                Lower(key, currentStash, Stash.Next(nextFromKey))
+                Lower(key, currentStash, Seek.Next.Stash(nextFromKey))
 
               case IO.Success(None) =>
-                Lower(key, currentStash, Seek.Stop)
+                Lower(key, currentStash, Seek.Next.Stop(nextStateID))
 
-              case IO.Failure(error) =>
-                IO.Failure(error)
+              case later @ IO.Later(_, _) =>
+                later flatMap {
+                  case Some(nextFromKey) =>
+                    Lower.seeker(key, currentStash, Seek.Next.Stash(nextFromKey))
+
+                  case None =>
+                    Lower.seeker(key, currentStash, Seek.Next.Stop(nextStateID))
+                }
+
+              case failure @ IO.Failure(_) =>
+                failure
 
             }
 
           //             22 (input key)
           //    10 - 20     (lower range)
           case _: KeyValue.ReadOnly.Range =>
+            val nextStateID = nextWalker.stateID
             nextWalker.lower(key) match {
               case IO.Success(Some(next)) =>
-                Lower(key, currentStash, Stash.Next(next))
+                Lower(key, currentStash, Seek.Next.Stash(next))
 
               case IO.Success(None) =>
-                Lower(key, currentStash, Seek.Stop)
+                Lower(key, currentStash, Seek.Next.Stop(nextStateID))
 
-              case IO.Failure(error) =>
-                IO.Failure(error)
+              case later @ IO.Later(_, _) =>
+                later flatMap {
+                  case Some(next) =>
+                    Lower.seeker(key, currentStash, Seek.Next.Stash(next))
+
+                  case None =>
+                    Lower.seeker(key, currentStash, Seek.Next.Stop(nextStateID))
+                }
+
+              case failure @ IO.Failure(_) =>
+                failure
             }
 
           case _: ReadOnly.Fixed =>
+            val nextStateID = nextWalker.stateID
             nextWalker.lower(key) match {
               case IO.Success(Some(next)) =>
-                Lower(key, currentStash, Stash.Next(next))
+                Lower(key, currentStash, Seek.Next.Stash(next))
 
               case IO.Success(None) =>
-                Lower(key, currentStash, Seek.Stop)
+                Lower(key, currentStash, Seek.Next.Stop(nextStateID))
 
-              case IO.Failure(error) =>
-                IO.Failure(error)
+              case later @ IO.Later(_, _) =>
+                later flatMap {
+                  case Some(next) =>
+                    Lower.seeker(key, currentStash, Seek.Next.Stash(next))
+
+                  case None =>
+                    Lower.seeker(key, currentStash, Seek.Next.Stop(nextStateID))
+                }
+
+              case failure @ IO.Failure(_) =>
+                failure
             }
         }
 
-      case (Seek.Stop, Seek.Next) =>
+      case (Seek.Current.Stop, Seek.Read) =>
+        val nextStateID = nextWalker.stateID
         nextWalker.lower(key) match {
           case IO.Success(Some(next)) =>
-            Lower(key, currentSeek, Stash.Next(next))
+            Lower(key, currentSeek, Seek.Next.Stash(next))
 
           case IO.Success(None) =>
-            Lower(key, currentSeek, Seek.Stop)
+            Lower(key, currentSeek, Seek.Next.Stop(nextStateID))
 
-          case IO.Failure(error) =>
-            IO.Failure(error)
+          case later @ IO.Later(_, _) =>
+            later flatMap {
+              case Some(next) =>
+                Lower.seeker(key, currentSeek, Seek.Next.Stash(next))
+
+              case None =>
+                Lower.seeker(key, currentSeek, Seek.Next.Stop(nextStateID))
+            }
+
+          case failure @ IO.Failure(_) =>
+            failure
         }
 
       /** *********************************************************
@@ -213,25 +292,28 @@ private[core] object Lower {
         * ******************                    *******************
         * *********************************************************/
 
-      case (Seek.Stop, Stash.Next(next)) =>
+      case (Seek.Current.Stop, Seek.Next.Stash(next)) =>
         if (next.hasTimeLeft())
           IO.Success(Some(next))
         else
-          Lower(next.key, currentSeek, Seek.Next)
+          Lower(next.key, currentSeek, Seek.Read)
 
-      case (Seek.Next, Stash.Next(_)) =>
+      case (Seek.Read, Seek.Next.Stash(_)) =>
         currentWalker.lower(key) match {
           case IO.Success(Some(current)) =>
-            Lower(key, Stash.Current(current), nextSeek)
+            Lower(key, Seek.Current.Stash(current), nextSeek)
 
           case IO.Success(None) =>
-            Lower(key, Seek.Stop, nextSeek)
+            Lower(key, Seek.Current.Stop, nextSeek)
 
-          case IO.Failure(error) =>
-            IO.Failure(error)
+          case failure @ IO.Failure(_) =>
+            failure
+              .recoverToAsync(
+                Lower.seeker(key, currentSeek, nextSeek)
+              )
         }
 
-      case (currentStash @ Stash.Current(current), nextStash @ Stash.Next(next)) =>
+      case (currentStash @ Seek.Current.Stash(current), nextStash @ Seek.Next.Stash(next)) =>
         (current, next) match {
 
           /** **********************************************
@@ -252,10 +334,13 @@ private[core] object Lower {
 
                     case _ =>
                       //if it doesn't result in an unexpired put move forward.
-                      Lower(current.key, Seek.Next, Seek.Next)
+                      Lower(current.key, Seek.Read, Seek.Read)
                   }
-                case IO.Failure(error) =>
-                  IO.Failure(error)
+                case failure @ IO.Failure(_) =>
+                  failure
+                    .recoverToAsync(
+                      Lower.seeker(key, currentSeek, nextSeek)
+                    )
               }
             //      3  or  5 (current)
             //    1          (next)
@@ -266,7 +351,7 @@ private[core] object Lower {
 
                 //if it doesn't result in an unexpired put move forward.
                 case _ =>
-                  Lower(current.key, Seek.Next, nextStash)
+                  Lower(current.key, Seek.Read, nextStash)
               }
             //0
             //    2
@@ -302,16 +387,22 @@ private[core] object Lower {
                         case _ =>
                           //do need to check if range is expired because if it was then
                           //next would not have been read from next level in the first place.
-                          Lower(next.key, currentStash, Seek.Next)
+                          Lower(next.key, currentStash, Seek.Read)
 
                       }
 
-                    case IO.Failure(error) =>
-                      IO.Failure(error)
+                    case failure @ IO.Failure(_) =>
+                      failure
+                        .recoverToAsync(
+                          Lower.seeker(key, currentSeek, nextSeek)
+                        )
                   }
 
-                case IO.Failure(error) =>
-                  IO.Failure(error)
+                case failure @ IO.Failure(_) =>
+                  failure
+                    .recoverToAsync(
+                      Lower.seeker(key, currentSeek, nextSeek)
+                    )
               }
 
             //  11 ->   20 (input keys)
@@ -334,16 +425,22 @@ private[core] object Lower {
                               IO.Success(Some(put))
 
                             case _ =>
-                              Lower(next.key, Seek.Next, Seek.Next)
+                              Lower(next.key, Seek.Read, Seek.Read)
                           }
 
-                        case IO.Failure(error) =>
-                          IO.Failure(error)
+                        case failure @ IO.Failure(_) =>
+                          failure
+                            .recoverToAsync(
+                              Lower.seeker(key, currentSeek, nextSeek)
+                            )
                       }
                   }
 
-                case IO.Failure(error) =>
-                  IO.Failure(error)
+                case failure @ IO.Failure(_) =>
+                  failure
+                    .recoverToAsync(
+                      Lower.seeker(key, currentSeek, nextSeek)
+                    )
               }
 
             //       11 ->   20 (input keys)
@@ -358,11 +455,14 @@ private[core] object Lower {
                       IO.Success(somePut)
 
                     case None =>
-                      Lower(current.fromKey, Seek.Next, nextStash)
+                      Lower(current.fromKey, Seek.Read, nextStash)
                   }
 
-                case IO.Failure(error) =>
-                  IO.Failure(error)
+                case failure @ IO.Failure(_) =>
+                  failure
+                    .recoverToAsync(
+                      Lower.seeker(key, currentSeek, nextSeek)
+                    )
               }
         }
 
@@ -372,56 +472,71 @@ private[core] object Lower {
         * ******************                   *******************
         * ********************************************************/
 
-      case (Seek.Next, Seek.Stop) =>
-        currentWalker.lower(key) match {
-          case IO.Success(Some(current)) =>
-            Lower(key, Stash.Current(current), nextSeek)
+      case (Seek.Read, Seek.Next.Stop(nextStateID)) =>
+        if (nextWalker.hasStateChanged(nextStateID))
+          Lower(key, currentSeek, Seek.Read)
+        else
+          currentWalker.lower(key) match {
+            case IO.Success(Some(current)) =>
+              Lower(key, Seek.Current.Stash(current), nextSeek)
 
-          case IO.Success(None) =>
-            Lower(key, Seek.Stop, nextSeek)
+            case IO.Success(None) =>
+              Lower(key, Seek.Current.Stop, nextSeek)
 
-          case IO.Failure(error) =>
-            IO.Failure(error)
-        }
+            case failure @ IO.Failure(_) =>
+              failure
+                .recoverToAsync(
+                  Lower.seeker(key, currentSeek, nextSeek)
+                )
+          }
 
-      case (Stash.Current(current), Seek.Stop) =>
-        current match {
-          case current: KeyValue.ReadOnly.Put =>
-            if (current.hasTimeLeft())
-              IO.Success(Some(current))
-            else
-              Lower(current.key, Seek.Next, nextSeek)
+      case (Seek.Current.Stash(current), Seek.Next.Stop(nextStateID)) =>
+        if (nextWalker.hasStateChanged(nextStateID))
+          Lower(key, currentSeek, Seek.Read)
+        else
+          current match {
+            case current: KeyValue.ReadOnly.Put =>
+              if (current.hasTimeLeft())
+                IO.Success(Some(current))
+              else
+                Lower(current.key, Seek.Read, nextSeek)
 
-          case _: KeyValue.ReadOnly.Remove =>
-            Lower(current.key, Seek.Next, nextSeek)
+            case _: KeyValue.ReadOnly.Remove =>
+              Lower(current.key, Seek.Read, nextSeek)
 
-          case _: KeyValue.ReadOnly.Update =>
-            Lower(current.key, Seek.Next, nextSeek)
+            case _: KeyValue.ReadOnly.Update =>
+              Lower(current.key, Seek.Read, nextSeek)
 
-          case _: KeyValue.ReadOnly.Function =>
-            Lower(current.key, Seek.Next, nextSeek)
+            case _: KeyValue.ReadOnly.Function =>
+              Lower(current.key, Seek.Read, nextSeek)
 
-          case _: KeyValue.ReadOnly.PendingApply =>
-            Lower(current.key, Seek.Next, nextSeek)
+            case _: KeyValue.ReadOnly.PendingApply =>
+              Lower(current.key, Seek.Read, nextSeek)
 
-          case current: KeyValue.ReadOnly.Range =>
-            current.fetchFromValue match {
-              case IO.Success(fromValue) =>
-                lowerFromValue(key, current.fromKey, fromValue) match {
-                  case somePut @ Some(_) =>
-                    IO.Success(somePut)
+            case current: KeyValue.ReadOnly.Range =>
+              current.fetchFromValue match {
+                case IO.Success(fromValue) =>
+                  lowerFromValue(key, current.fromKey, fromValue) match {
+                    case somePut @ Some(_) =>
+                      IO.Success(somePut)
 
-                  case None =>
-                    Lower(current.fromKey, Seek.Next, nextSeek)
-                }
+                    case None =>
+                      Lower(current.fromKey, Seek.Read, nextSeek)
+                  }
 
-              case IO.Failure(error) =>
-                IO.Failure(error)
-            }
-        }
+                case failure @ IO.Failure(_) =>
+                  failure
+                    .recoverToAsync(
+                      Lower.seeker(key, currentSeek, nextSeek)
+                    )
+              }
+          }
 
-      case (Seek.Stop, Seek.Stop) =>
-        IO.none
+      case (Seek.Current.Stop, Seek.Next.Stop(nextStateID)) =>
+        if (nextWalker.hasStateChanged(nextStateID))
+          Lower(key, currentSeek, Seek.Read)
+        else
+          IO.none
     }
   }
 }

@@ -85,6 +85,8 @@ private[core] trait Map[K, V] {
 
   val fileSize: Long
 
+  def stateID: Long
+
   def write(mapEntry: MapEntry[K, V]): IO[Boolean]
 
   def delete: IO[Unit]

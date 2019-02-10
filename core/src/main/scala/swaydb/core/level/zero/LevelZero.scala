@@ -453,6 +453,15 @@ private[core] class LevelZero(val path: Path,
 
       override def get(key: Slice[Byte]): IO.Async[Option[ReadOnly.Put]] =
         getFromNextLevel(key, otherMaps.iterator.asJava)
+
+      //maps are always changing and not merged into one another. Forcing the state change to
+      //always return true ensure reads are never stopped for Maps.
+      override def hasStateChanged(previousState: Long): Boolean =
+        true
+
+      override def stateID: Long =
+        //Level0's
+        -1
     }
 
   def findHigher(key: Slice[Byte],
@@ -460,8 +469,8 @@ private[core] class LevelZero(val path: Path,
                  otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]): IO.Async[Option[KeyValue.ReadOnly.Put]] =
     Higher.seek(
       key = key,
-      currentSeek = Seek.Next,
-      nextSeek = Seek.Next,
+      currentSeek = Seek.Read,
+      nextSeek = Seek.Read,
       currentWalker = currentWalker(currentMap, otherMaps),
       nextWalker = nextWalker(otherMaps),
       keyOrder = keyOrder,
@@ -520,8 +529,8 @@ private[core] class LevelZero(val path: Path,
                 otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]): IO.Async[Option[KeyValue.ReadOnly.Put]] =
     Lower.seek(
       key = key,
-      currentSeek = Seek.Next,
-      nextSeek = Seek.Next,
+      currentSeek = Seek.Read,
+      nextSeek = Seek.Read,
       currentWalker = currentWalker(currentMap, otherMaps),
       nextWalker = nextWalker(otherMaps),
       keyOrder = keyOrder,
