@@ -52,7 +52,8 @@ sealed trait IO[+T] {
     def foreach[U](f: T => U): Unit = IO.this filter p foreach f
     def withFilter(q: T => Boolean): WithFilter = new WithFilter(x => p(x) && q(x))
   }
-  def onFailure[U >: T](f: IO.Failure[U] => Unit): IO[U]
+  def onFailureSideEffect(f: IO.Failure[T] => Unit): IO[T]
+  def onSuccessSideEffect(f: IO.Success[T] => Unit): IO[T]
   def recoverWith[U >: T](f: PartialFunction[IO.Error, IO[U]]): IO[U]
   def recover[U >: T](f: PartialFunction[IO.Error, U]): IO[U]
   def toOption: Option[T]
@@ -379,7 +380,11 @@ object IO {
       IO.Catch(if (p(unsafeGet)) this else IO.Failure(Error.Fatal(new NoSuchElementException("Predicate does not hold for " + unsafeGet))))
     override def toFuture: Future[T] = Future.successful(unsafeGet)
     override def toTry: scala.util.Try[T] = scala.util.Success(unsafeGet)
-    override def onFailure[U >: T](f: IO.Failure[U] => Unit): IO[U] = this
+    override def onFailureSideEffect(f: IO.Failure[T] => Unit): IO.Success[T] = this
+    override def onSuccessSideEffect(f: IO.Success[T] => Unit): IO.Success[T] = {
+      try f(this) finally {}
+      this
+    }
     override def asAsync: IO.Async[T] = this
   }
 
@@ -557,10 +562,11 @@ object IO {
     override def filter(p: T => Boolean): IO.Failure[T] = this
     override def toFuture: Future[T] = Future.failed(error.exception)
     override def toTry: scala.util.Try[T] = scala.util.Failure(error.exception)
-    override def onFailure[U >: T](f: IO.Failure[U] => Unit): IO[U] = {
+    override def onFailureSideEffect(f: IO.Failure[T] => Unit): IO.Failure[T] = {
       try f(this) finally {}
       this
     }
+    override def onSuccessSideEffect(f: Success[T] => Unit): IO.Failure[T] = this
     def exception: Throwable = error.exception
     def recoverToAsync[U](operation: => IO.Async[U]): IO.Async[U] =
       IO.Async.recover(this, ()) flatMap {
@@ -569,5 +575,6 @@ object IO {
       }
 
     override def asAsync: IO.Async[T] = this
+
   }
 }

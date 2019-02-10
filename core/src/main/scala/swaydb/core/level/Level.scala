@@ -377,11 +377,10 @@ private[core] class Level(val dirs: Seq[Dir],
                 else
                   appendix.write(copiedSegmentsEntry) map (_ => ())
 
-              putResult recoverWith {
-                case exception =>
-                  logFailure(s"${paths.head}: Failed to create a log entry. Deleting ${copiedSegments.size} copied segments", exception)
+              putResult onFailureSideEffect {
+                failure =>
+                  logFailure(s"${paths.head}: Failed to create a log entry. Deleting ${copiedSegments.size} copied segments", failure)
                   deleteCopiedSegments(copiedSegments)
-                  IO.Failure(exception)
               }
           }
       }
@@ -422,11 +421,10 @@ private[core] class Level(val dirs: Seq[Dir],
                             //always get merged to lower Level which will eventually collapse and expire key-values.
                             if (nextLevel.isEmpty) alertActorForSegmentManagement()
                         }
-                  } recoverWith {
-                    case exception =>
-                      logFailure(s"${paths.head}: Failed to create a log entry.", exception)
+                  } onFailureSideEffect {
+                    failure =>
+                      logFailure(s"${paths.head}: Failed to create a log entry.", failure)
                       deleteCopiedSegments(newSegments)
-                      IO.Failure(exception)
                   }
                 else
                   IO.unit
@@ -543,8 +541,8 @@ private[core] class Level(val dirs: Seq[Dir],
                           }
                         IO.unit
                     }
-                } recoverWith {
-                  case exception =>
+                } onFailureSideEffect {
+                  _ =>
                     newSegments foreach {
                       segment =>
                         segment.delete.failed foreach {
@@ -552,7 +550,6 @@ private[core] class Level(val dirs: Seq[Dir],
                             logger.error(s"{}: Failed to delete Segment {}", paths.head, segment.path, exception)
                         }
                     }
-                    IO.Failure(exception)
                 }
             }
           }
@@ -699,7 +696,7 @@ private[core] class Level(val dirs: Seq[Dir],
                     buildNewMapEntry(newSegments, Some(targetSegment), mapEntry).map(Some(_))
                 } flatMap {
                   case Some(mapEntry) =>
-                    //also write appendEntry to this mapEntry before commiting entries to appendix.
+                    //also write appendEntry to this mapEntry before committing entries to appendix.
                     //Note: appendEntry should not overwrite new Segment's entries with same keys so perform distinct
                     //which will remove oldEntries with duplicates with newer keys.
                     val mapEntryToWrite = appendEntry.map(appendEntry => MapEntry.distinct(mapEntry, appendEntry)) getOrElse mapEntry
@@ -722,8 +719,8 @@ private[core] class Level(val dirs: Seq[Dir],
                   case None =>
                     IO.Failure(new Exception(s"${paths.head}: Failed to create map entry"))
 
-                } recoverWith {
-                  case exception =>
+                } onFailureSideEffect {
+                  exception =>
                     logFailure(s"${paths.head}: Failed to write key-values. Reverting", exception)
                     targetSegmentAndNewSegments foreach {
                       case (_, newSegments) =>
@@ -735,7 +732,6 @@ private[core] class Level(val dirs: Seq[Dir],
                             }
                         }
                     }
-                    IO.Failure(exception)
                 }
             }
           }

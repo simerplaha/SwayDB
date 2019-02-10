@@ -97,7 +97,7 @@ private[core] class SegmentCache(id: String,
           reader =>
             getOperation(footer, reader)
         }
-    } onFailure {
+    } onFailureSideEffect {
       failure: IO.Failure[_] =>
         ExceptionUtil.logFailure(s"$id: Failed to read Segment.", failure)
     }
@@ -277,7 +277,7 @@ private[core] class SegmentCache(id: String,
   def getAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None): IO[Slice[KeyValue.ReadOnly]] =
     prepareGet {
       (footer, reader) =>
-        SegmentReader.readAll(footer, reader, addTo) onFailure {
+        SegmentReader.readAll(footer, reader, addTo) onFailureSideEffect {
           _ =>
             logger.trace("{}: Reading index block failed. Segment file is corrupted.", id)
         }
