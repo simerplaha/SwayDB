@@ -535,9 +535,9 @@ private[core] class Level(val dirs: Seq[Dir],
                         if (deleteSegmentsEventually)
                           segmentToClear.deleteSegmentsEventually
                         else
-                          segmentToClear.delete recover {
-                            case exception =>
-                              logger.error(s"Failed to delete Segments '{}'. Manually delete these Segments or reboot the database.", segmentToClear.path, exception)
+                          segmentToClear.delete onFailureSideEffect {
+                            failure =>
+                              logger.error(s"Failed to delete Segments '{}'. Manually delete these Segments or reboot the database.", segmentToClear.path, failure)
                           }
                         IO.unit
                     }
