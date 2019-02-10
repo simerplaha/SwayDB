@@ -357,9 +357,9 @@ private[core] class Level(val dirs: Seq[Dir],
     else
       copiedSegments foreach {
         segmentToDelete =>
-          segmentToDelete.delete.failed foreach {
-            exception =>
-              logger.error(s"{}: Failed to delete copied Segment '{}'", paths.head, segmentToDelete.path, exception)
+          segmentToDelete.delete onFailureSideEffect {
+            failure =>
+              logger.error(s"{}: Failed to delete copied Segment '{}'", paths.head, segmentToDelete.path, failure)
           }
       }
 
@@ -496,9 +496,9 @@ private[core] class Level(val dirs: Seq[Dir],
           logFailure(s"${paths.head}: Failed to copy Segments. Deleting partially copied Segments ${segments.size} Segments", failure)
           segments foreach {
             segment =>
-              segment.delete.failed foreach {
-                exception =>
-                  logger.error(s"{}: Failed to delete copied Segment '{}'", paths.head, segment.path, exception)
+              segment.delete onFailureSideEffect {
+                failure =>
+                  logger.error(s"{}: Failed to delete copied Segment '{}'", paths.head, segment.path, failure)
               }
           }
         }
@@ -529,7 +529,7 @@ private[core] class Level(val dirs: Seq[Dir],
                 logger.debug(s"{}: Segment {} successfully cleared of expired key-values. New Segments: {}.", paths.head, segmentToClear.path, newSegments.map(_.path).mkString(", "))
                 buildNewMapEntry(newSegments, Some(segmentToClear), None) flatMap {
                   entry =>
-                    appendix.write(entry) flatMap {
+                    appendix.write(entry).map(_ => ()) onSuccessSideEffect {
                       _ =>
                         alertActorForSegmentManagement()
                         if (deleteSegmentsEventually)
@@ -539,15 +539,14 @@ private[core] class Level(val dirs: Seq[Dir],
                             failure =>
                               logger.error(s"Failed to delete Segments '{}'. Manually delete these Segments or reboot the database.", segmentToClear.path, failure)
                           }
-                        IO.unit
                     }
                 } onFailureSideEffect {
                   _ =>
                     newSegments foreach {
                       segment =>
-                        segment.delete.failed foreach {
-                          exception =>
-                            logger.error(s"{}: Failed to delete Segment {}", paths.head, segment.path, exception)
+                        segment.delete onFailureSideEffect {
+                          failure =>
+                            logger.error(s"{}: Failed to delete Segment {}", paths.head, segment.path, failure)
                         }
                     }
                 }
@@ -720,8 +719,8 @@ private[core] class Level(val dirs: Seq[Dir],
                     IO.Failure(new Exception(s"${paths.head}: Failed to create map entry"))
 
                 } onFailureSideEffect {
-                  exception =>
-                    logFailure(s"${paths.head}: Failed to write key-values. Reverting", exception)
+                  failure =>
+                    logFailure(s"${paths.head}: Failed to write key-values. Reverting", failure)
                     targetSegmentAndNewSegments foreach {
                       case (_, newSegments) =>
                         newSegments foreach {

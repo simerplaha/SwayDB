@@ -94,10 +94,9 @@ private[segment] case class PersistentSegment(file: DBFile,
 
   def delete: IO[Unit] = {
     logger.trace(s"{}: DELETING FILE", path)
-    file.delete() recoverWith {
-      case exception =>
-        logger.error(s"{}: Failed to delete Segment file.", path, exception)
-        IO.Failure(exception)
+    file.delete() onFailureSideEffect {
+      failure =>
+        logger.error(s"{}: Failed to delete Segment file.", path, failure)
     } map {
       _ =>
         footer = None
