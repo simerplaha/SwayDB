@@ -21,7 +21,7 @@ package swaydb.core.seek
 
 import scala.annotation.tailrec
 import swaydb.core.data.KeyValue.ReadOnly
-import swaydb.core.data.{KeyValue, Value}
+import swaydb.core.data.{KeyValue, Memory, Value}
 import swaydb.core.function.FunctionStore
 import swaydb.core.merge._
 import swaydb.data.io.IO
@@ -35,13 +35,13 @@ private[core] object Higher {
     */
   def higherFromValue(key: Slice[Byte],
                       fromKey: Slice[Byte],
-                      fromValue: Option[Value.FromValue])(implicit keyOrder: KeyOrder[Slice[Byte]]): Option[ReadOnly.Put] = {
+                      fromValue: Option[Value.FromValue])(implicit keyOrder: KeyOrder[Slice[Byte]]): Option[Memory.Put] = {
     import keyOrder._
     fromValue flatMap {
       fromValue =>
         if (fromKey > key)
           fromValue.toMemory(fromKey) match {
-            case put: ReadOnly.Put if put.hasTimeLeft() =>
+            case put: Memory.Put if put.hasTimeLeft() =>
               Some(put)
 
             case _ =>

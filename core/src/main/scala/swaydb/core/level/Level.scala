@@ -1150,26 +1150,24 @@ private[core] class Level(val dirs: Seq[Dir],
     (nextLevel.map(_.close) getOrElse IO.unit) flatMap {
       _ =>
         actor.terminate()
-        appendix.close().failed foreach {
-          exception =>
-            logger.error("{}: Failed to close appendix", paths.head, exception)
+        appendix.close() onFailureSideEffect {
+          failure =>
+            logger.error("{}: Failed to close appendix", paths.head, failure)
         }
-        closeSegments().failed foreach {
-          exception =>
-            logger.error("{}: Failed to close segments", paths.head, exception)
+        closeSegments() onFailureSideEffect {
+          failure =>
+            logger.error("{}: Failed to close segments", paths.head, failure)
         }
-        releaseLocks.failed foreach {
-          exception =>
-            logger.error("{}: Failed to release locks", paths.head, exception)
+        releaseLocks onFailureSideEffect {
+          failure =>
+            logger.error("{}: Failed to release locks", paths.head, failure)
         }
-
-        IO.unit
     }
 
   def closeSegments(): IO[Unit] = {
     segmentsInLevel().foreachIO(_.close, failFast = false) foreach {
-      case IO.Failure(error) =>
-        logger.error("{}: Failed to close Segment file.", paths.head, error.exception)
+      failure =>
+        logger.error("{}: Failed to close Segment file.", paths.head, failure.exception)
     }
 
     nextLevel.map(_.closeSegments()) getOrElse IO.unit
