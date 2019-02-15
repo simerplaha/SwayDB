@@ -209,10 +209,12 @@ object IO {
   object Exception {
     case class Busy(error: Error.Busy) extends Exception("Is busy")
     case class OpeningFile(file: Path, busy: BusyBoolean) extends Exception(s"Failed to open file $file")
+
     case class DecompressingIndex(busy: BusyBoolean) extends Exception("Failed to decompress index")
     case class DecompressionValues(busy: BusyBoolean) extends Exception("Failed to decompress values")
     case class FetchingValue(busy: BusyBoolean) extends Exception("Failed to fetch value")
     case class ReadingHeader(busy: BusyBoolean) extends Exception("Failed to read header")
+
     case object OverlappingPushSegment extends Exception("Contains overlapping busy Segments")
     case object NoSegmentsRemoved extends Exception("No Segments Removed")
     case object NotSentToNextLevel extends Exception("Not sent to next Level")
@@ -264,8 +266,23 @@ object IO {
       override def exception: IO.Exception.OpeningFile = IO.Exception.OpeningFile(file, busy)
     }
 
-    case class NoSuchFile(exception: NoSuchFileException) extends Busy {
+    object NoSuchFile {
+      def apply(exception: NoSuchFileException) =
+        new NoSuchFile(None, Some(exception))
+
+      def apply(path: Path) =
+        new NoSuchFile(Some(path), None)
+    }
+    case class NoSuchFile(path: Option[Path], exp: Option[NoSuchFileException]) extends Busy {
       override def busy: BusyBoolean = BusyBoolean.notBusy
+      override def exception: Throwable = exp getOrElse {
+        path match {
+          case Some(path) =>
+            new NoSuchFileException(path.toString)
+          case None =>
+            new NoSuchFileException("No path set.")
+        }
+      }
     }
 
     case class FileNotFound(exception: FileNotFoundException) extends Busy {

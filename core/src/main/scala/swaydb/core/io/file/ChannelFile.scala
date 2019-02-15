@@ -22,7 +22,7 @@ package swaydb.core.io.file
 import com.typesafe.scalalogging.LazyLogging
 import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
-import java.nio.file.{NoSuchFileException, Path, StandardOpenOption}
+import java.nio.file.{Path, StandardOpenOption}
 import swaydb.data.io.IO
 import swaydb.data.slice.Slice
 
@@ -40,7 +40,7 @@ private[file] object ChannelFile {
         new ChannelFile(path, channel)
       }
     else
-      IO.Failure(new NoSuchFileException(path.toString))
+      IO.Failure(IO.Error.NoSuchFile(path))
 }
 
 private[file] class ChannelFile(val path: Path,

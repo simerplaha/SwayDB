@@ -19,26 +19,26 @@
 
 package swaydb.core.segment
 
-import java.nio.file.{NoSuchFileException, Path}
-import java.util.concurrent.ConcurrentSkipListMap
-import java.util.function.Consumer
 import bloomfilter.mutable.BloomFilter
 import com.typesafe.scalalogging.LazyLogging
+import java.nio.file.Path
+import java.util.concurrent.ConcurrentSkipListMap
+import java.util.function.Consumer
+import scala.collection.JavaConverters._
+import scala.concurrent.duration.Deadline
 import swaydb.core.data.Memory.{Group, SegmentResponse}
 import swaydb.core.data._
+import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.level.PathsDistributor
-import swaydb.core.queue.{FileLimiter, KeyValueLimiter, FileLimiterItem}
+import swaydb.core.queue.{FileLimiter, FileLimiterItem, KeyValueLimiter}
 import swaydb.core.segment.merge.SegmentMerger
-import swaydb.data.io.IO._
 import swaydb.core.util._
-import swaydb.data.slice.Slice
-import scala.concurrent.duration.{Deadline, FiniteDuration}
 import swaydb.data.io.IO
-import scala.collection.JavaConverters._
-import swaydb.core.function.FunctionStore
+import swaydb.data.io.IO._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.repairAppendix.MaxKey
+import swaydb.data.slice.Slice
 
 private[segment] case class MemorySegment(path: Path,
                                           minKey: Slice[Byte],
@@ -84,7 +84,7 @@ private[segment] case class MemorySegment(path: Path,
                    compressDuplicateValues: Boolean,
                    targetPaths: PathsDistributor)(implicit idGenerator: IDGenerator): IO[Slice[Segment]] =
     if (deleted)
-      IO.Failure(new NoSuchFileException(path.toString))
+      IO.Failure(IO.Error.NoSuchFile(path))
     else
       getAll() flatMap {
         currentKeyValues =>
@@ -127,7 +127,7 @@ private[segment] case class MemorySegment(path: Path,
                        compressDuplicateValues: Boolean,
                        targetPaths: PathsDistributor)(implicit idGenerator: IDGenerator): IO[Slice[Segment]] =
     if (deleted)
-      IO.Failure(new NoSuchFileException(path.toString))
+      IO.Failure(IO.Error.NoSuchFile(path))
     else
       getAll() flatMap {
         currentKeyValues =>
@@ -185,7 +185,7 @@ private[segment] case class MemorySegment(path: Path,
 
   override def get(key: Slice[Byte]): IO[Option[Memory.SegmentResponse]] =
     if (deleted)
-      IO.Failure(new NoSuchFileException(path.toString))
+      IO.Failure(IO.Error.NoSuchFile(path))
 
     else if (!_hasRange && !bloomFilter.forall(_.mightContain(key)))
       IO.none
@@ -228,7 +228,7 @@ private[segment] case class MemorySegment(path: Path,
 
   override def lower(key: Slice[Byte]): IO[Option[Memory.SegmentResponse]] =
     if (deleted)
-      IO.Failure(new NoSuchFileException(path.toString))
+      IO.Failure(IO.Error.NoSuchFile(path))
     else
       Option(cache.lowerEntry(key)) map {
         entry =>
@@ -271,7 +271,7 @@ private[segment] case class MemorySegment(path: Path,
 
   override def higher(key: Slice[Byte]): IO[Option[Memory.SegmentResponse]] =
     if (deleted)
-      IO.Failure(new NoSuchFileException(path.toString))
+      IO.Failure(IO.Error.NoSuchFile(path))
     else if (_hasRange || _hasGroup)
       Option(cache.floorEntry(key)).map(_.getValue) map {
         case floorRange: Memory.Range if floorRange contains key =>
@@ -305,7 +305,7 @@ private[segment] case class MemorySegment(path: Path,
 
   override def getAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None): IO[Slice[KeyValue.ReadOnly]] =
     if (deleted)
-      IO.Failure(new NoSuchFileException(path.toString))
+      IO.Failure(IO.Error.NoSuchFile(path))
     else
       IO {
         val slice = addTo getOrElse Slice.create[KeyValue.ReadOnly](cache.size())
@@ -322,7 +322,7 @@ private[segment] case class MemorySegment(path: Path,
     //cache should not be cleared.
     logger.trace(s"{}: DELETING FILE", path)
     if (deleted)
-      IO.Failure(new NoSuchFileException(path.toString))
+      IO.Failure(IO.Error.NoSuchFile(path))
     else
       IO.Success {
         deleted = true
@@ -334,7 +334,7 @@ private[segment] case class MemorySegment(path: Path,
 
   override def getBloomFilterKeyValueCount(): IO[Int] =
     if (deleted)
-      IO.Failure(new NoSuchFileException(path.toString))
+      IO.Failure(IO.Error.NoSuchFile(path))
     else
       cache.values().asScala.foldLeftIO(0) {
         case (count, keyValue) =>
@@ -348,7 +348,7 @@ private[segment] case class MemorySegment(path: Path,
 
   override def getHeadKeyValueCount(): IO[Int] =
     if (deleted)
-      IO.Failure(new NoSuchFileException(path.toString))
+      IO.Failure(IO.Error.NoSuchFile(path))
     else
       IO.Success(cache.size())
 

@@ -20,7 +20,7 @@
 package swaydb.core.io.file
 
 import com.typesafe.scalalogging.LazyLogging
-import java.nio.file.{NoSuchFileException, Path}
+import java.nio.file.Path
 import scala.annotation.tailrec
 import scala.concurrent.ExecutionContext
 import scala.util.hashing.MurmurHash3
@@ -46,7 +46,7 @@ object DBFile {
   def channelRead(path: Path, autoClose: Boolean, checkExists: Boolean = true)(implicit ec: ExecutionContext,
                                                                                limiter: FileLimiter): IO[DBFile] =
     if (checkExists && EffectIO.notExists(path))
-      IO.Failure(new NoSuchFileException(path.toString))
+      IO.Failure(IO.Error.NoSuchFile(path))
     else
       IO(new DBFile(path = path, memoryMapped = false, memory = false, autoClose = autoClose, file = None))
 
@@ -69,7 +69,7 @@ object DBFile {
   def mmapRead(path: Path, autoClose: Boolean, checkExists: Boolean = true)(implicit ec: ExecutionContext,
                                                                             limiter: FileLimiter): IO[DBFile] =
     if (checkExists && EffectIO.notExists(path))
-      IO.Failure(new NoSuchFileException(path.toString))
+      IO.Failure(IO.Error.NoSuchFile(path))
     else
       IO(new DBFile(path = path, memoryMapped = true, memory = false, autoClose = autoClose, file = None))
 
@@ -163,7 +163,7 @@ class DBFile(val path: Path,
         val openResult =
           if (memory)
             file.map(IO.Success(_)) getOrElse {
-              IO.Failure(new NoSuchFileException(path.toString))
+              IO.Failure(IO.Error.NoSuchFile(path))
             }
           else if (memoryMapped)
             MMAPFile.read(path)

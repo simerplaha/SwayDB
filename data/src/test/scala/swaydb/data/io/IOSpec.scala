@@ -252,7 +252,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
     }
   }
 
-  "tryOrNone" when {
+  "getOrNone" when {
     "exception" in {
       getOrNone(throw new Exception("Failed")) shouldBe empty
     }
@@ -263,7 +263,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
   }
 
   "IO.Success" should {
-    "set boolean" in {
+    "set booleans" in {
       val io = IO.Success(1)
       io.isFailure shouldBe false
       io.isLater shouldBe false
