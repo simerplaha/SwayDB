@@ -110,8 +110,8 @@ private[core] object Get {
               else
                 IO.none
 
-            case IO.Failure(error) =>
-              IO.Failure(error)
+            case failure: IO.Failure[_] =>
+              failure.recoverToAsync(Get(key))
           }
 
         case current: KeyValue.ReadOnly.Function =>
@@ -127,8 +127,8 @@ private[core] object Get {
                       case IO.Success(_: ReadOnly.Fixed) =>
                         IO.none
 
-                      case IO.Failure(error) =>
-                        IO.Failure(error)
+                      case failure: IO.Failure[_] =>
+                        failure.recoverToAsync(Get(key))
                     }
                   else
                     IO.none
@@ -150,8 +150,8 @@ private[core] object Get {
                       case IO.Success(_: ReadOnly.Fixed) =>
                         IO.none
 
-                      case IO.Failure(error) =>
-                        IO.Failure(error)
+                      case failure: IO.Failure[_] =>
+                        failure.recoverToAsync(Get(key))
                     }
                   else
                     IO.none

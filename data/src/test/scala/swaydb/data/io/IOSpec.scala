@@ -313,15 +313,15 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
     }
 
     "flatten" in {
-      val sss: IO[IO[IO[IO[Int]]]] = IO.Success(IO.Success(IO.Success(IO.Success(1))))
+      val nested: IO[IO[IO[IO[Int]]]] = IO.Success(IO.Success(IO.Success(IO.Success(1))))
 
-      sss.flatten.flatten.flatten shouldBe IO.Success(1)
+      nested.flatten.flatten.flatten shouldBe IO.Success(1)
     }
 
     "flatten on successes with failure" in {
-      val sss: IO[IO[IO[IO[Int]]]] = IO.Success(IO.Success(IO.Success(IO.Failure(IO.Error.Fatal(new Exception("Kaboom!"))))))
+      val nested: IO[IO[IO[IO[Int]]]] = IO.Success(IO.Success(IO.Success(IO.Failure(IO.Error.Fatal(new Exception("Kaboom!"))))))
 
-      sss.flatten.flatten.flatten.asInstanceOf[IO.Failure[Int]].exception.getMessage shouldBe "Kaboom!"
+      nested.flatten.flatten.flatten.asInstanceOf[IO.Failure[Int]].exception.getMessage shouldBe "Kaboom!"
     }
   }
 
