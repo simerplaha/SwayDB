@@ -124,7 +124,7 @@ private[core] object Lower {
                   val nextStateID = nextWalker.stateID
                   nextWalker.lower(key) match {
                     case IO.Success(Some(next)) =>
-                      Lower(key, currentStash, Seek.Next.Stash(next))
+                      Lower(key, currentStash, Seek.Next.Stash(next, nextStateID))
 
                     case IO.Success(None) =>
                       Lower(key, currentStash, Seek.Next.Stop(nextStateID))
@@ -132,7 +132,7 @@ private[core] object Lower {
                     case later @ IO.Later(_, _) =>
                       later flatMap {
                         case Some(next) =>
-                          Lower.seeker(key, currentStash, Seek.Next.Stash(next))
+                          Lower.seeker(key, currentStash, Seek.Next.Stash(next, nextStateID))
 
                         case None =>
                           Lower.seeker(key, currentStash, Seek.Next.Stop(nextStateID))
@@ -157,7 +157,7 @@ private[core] object Lower {
                           val nextStateID = nextWalker.stateID
                           nextWalker.lower(key) match {
                             case IO.Success(Some(next)) =>
-                              Lower(key, currentStash, Seek.Next.Stash(next))
+                              Lower(key, currentStash, Seek.Next.Stash(next, nextStateID))
 
                             case IO.Success(None) =>
                               Lower(key, currentStash, Seek.Next.Stop(nextStateID))
@@ -165,7 +165,7 @@ private[core] object Lower {
                             case later @ IO.Later(_, _) =>
                               later flatMap {
                                 case Some(next) =>
-                                  Lower.seeker(key, currentStash, Seek.Next.Stash(next))
+                                  Lower.seeker(key, currentStash, Seek.Next.Stash(next, nextStateID))
 
                                 case None =>
                                   Lower.seeker(key, currentStash, Seek.Next.Stop(nextStateID))
@@ -198,7 +198,7 @@ private[core] object Lower {
             //lower level could also contain a toKey but toKey is exclusive to merge is not required but lower level is read is required.
             nextWalker.lower(key) match {
               case IO.Success(Some(nextFromKey)) =>
-                Lower(key, currentStash, Seek.Next.Stash(nextFromKey))
+                Lower(key, currentStash, Seek.Next.Stash(nextFromKey, nextStateID))
 
               case IO.Success(None) =>
                 Lower(key, currentStash, Seek.Next.Stop(nextStateID))
@@ -206,7 +206,7 @@ private[core] object Lower {
               case later @ IO.Later(_, _) =>
                 later flatMap {
                   case Some(nextFromKey) =>
-                    Lower.seeker(key, currentStash, Seek.Next.Stash(nextFromKey))
+                    Lower.seeker(key, currentStash, Seek.Next.Stash(nextFromKey, nextStateID))
 
                   case None =>
                     Lower.seeker(key, currentStash, Seek.Next.Stop(nextStateID))
@@ -223,7 +223,7 @@ private[core] object Lower {
             val nextStateID = nextWalker.stateID
             nextWalker.lower(key) match {
               case IO.Success(Some(next)) =>
-                Lower(key, currentStash, Seek.Next.Stash(next))
+                Lower(key, currentStash, Seek.Next.Stash(next, nextStateID))
 
               case IO.Success(None) =>
                 Lower(key, currentStash, Seek.Next.Stop(nextStateID))
@@ -231,7 +231,7 @@ private[core] object Lower {
               case later @ IO.Later(_, _) =>
                 later flatMap {
                   case Some(next) =>
-                    Lower.seeker(key, currentStash, Seek.Next.Stash(next))
+                    Lower.seeker(key, currentStash, Seek.Next.Stash(next, nextStateID))
 
                   case None =>
                     Lower.seeker(key, currentStash, Seek.Next.Stop(nextStateID))
@@ -245,7 +245,7 @@ private[core] object Lower {
             val nextStateID = nextWalker.stateID
             nextWalker.lower(key) match {
               case IO.Success(Some(next)) =>
-                Lower(key, currentStash, Seek.Next.Stash(next))
+                Lower(key, currentStash, Seek.Next.Stash(next, nextStateID))
 
               case IO.Success(None) =>
                 Lower(key, currentStash, Seek.Next.Stop(nextStateID))
@@ -253,7 +253,7 @@ private[core] object Lower {
               case later @ IO.Later(_, _) =>
                 later flatMap {
                   case Some(next) =>
-                    Lower.seeker(key, currentStash, Seek.Next.Stash(next))
+                    Lower.seeker(key, currentStash, Seek.Next.Stash(next, nextStateID))
 
                   case None =>
                     Lower.seeker(key, currentStash, Seek.Next.Stop(nextStateID))
@@ -268,7 +268,7 @@ private[core] object Lower {
         val nextStateID = nextWalker.stateID
         nextWalker.lower(key) match {
           case IO.Success(Some(next)) =>
-            Lower(key, currentSeek, Seek.Next.Stash(next))
+            Lower(key, currentSeek, Seek.Next.Stash(next, nextStateID))
 
           case IO.Success(None) =>
             Lower(key, currentSeek, Seek.Next.Stop(nextStateID))
@@ -276,7 +276,7 @@ private[core] object Lower {
           case later @ IO.Later(_, _) =>
             later flatMap {
               case Some(next) =>
-                Lower.seeker(key, currentSeek, Seek.Next.Stash(next))
+                Lower.seeker(key, currentSeek, Seek.Next.Stash(next, nextStateID))
 
               case None =>
                 Lower.seeker(key, currentSeek, Seek.Next.Stop(nextStateID))
@@ -292,13 +292,13 @@ private[core] object Lower {
         * ******************                    *******************
         * *********************************************************/
 
-      case (Seek.Current.Stop, Seek.Next.Stash(next)) =>
+      case (Seek.Current.Stop, Seek.Next.Stash(next, nextStateID)) =>
         if (next.hasTimeLeft())
           IO.Success(Some(next))
         else
           Lower(next.key, currentSeek, Seek.Read)
 
-      case (Seek.Read, Seek.Next.Stash(_)) =>
+      case (Seek.Read, Seek.Next.Stash(_, nextStateID)) =>
         currentWalker.lower(key) match {
           case IO.Success(Some(current)) =>
             Lower(key, Seek.Current.Stash(current), nextSeek)
@@ -313,7 +313,7 @@ private[core] object Lower {
               )
         }
 
-      case (currentStash @ Seek.Current.Stash(current), nextStash @ Seek.Next.Stash(next)) =>
+      case (currentStash @ Seek.Current.Stash(current), nextStash @ Seek.Next.Stash(next, nextStateID)) =>
         (current, next) match {
 
           /** **********************************************

@@ -47,7 +47,6 @@ class HigherFixedSomeSpec extends WordSpec with Matchers with MockFactory with O
     //     1
     //     x
     "1" in {
-
       runThis(100.times) {
 
         implicit val current = mock[CurrentWalker]
@@ -57,8 +56,10 @@ class HigherFixedSomeSpec extends WordSpec with Matchers with MockFactory with O
 
         inSequence {
           //@formatter:off
-          current.higher _ expects (0: Slice[Byte]) returning IO(Some(put))
-          next.higher    _ expects (0: Slice[Byte]) returning IO.none
+          current.higher        _ expects (0: Slice[Byte])  returning IO(Some(put))
+          next.stateID          _ expects ()                returning 1
+          next.higher           _ expects (0: Slice[Byte])  returning IO.none
+          next.hasStateChanged  _ expects 1                 returning false
           //@formatter:on
         }
         Higher(0: Slice[Byte]).assertGet shouldBe put
@@ -79,8 +80,10 @@ class HigherFixedSomeSpec extends WordSpec with Matchers with MockFactory with O
 
         inSequence {
           //@formatter:off
-          current.higher _ expects (0: Slice[Byte]) returning IO.none
-          next.higher    _ expects (0: Slice[Byte]) returning IO(Some(put)).asAsync
+          current.higher        _ expects (0: Slice[Byte])  returning IO.none
+          next.stateID          _ expects ()                returning 1
+          next.higher           _ expects (0: Slice[Byte])  returning IO(Some(put)).asAsync
+          next.hasStateChanged  _ expects 1                 returning false
           //@formatter:on
         }
         Higher(0: Slice[Byte]).assertGet shouldBe put
@@ -92,7 +95,6 @@ class HigherFixedSomeSpec extends WordSpec with Matchers with MockFactory with O
     //     1
     //     1
     "3" in {
-
       runThis(100.times) {
 
         implicit val current = mock[CurrentWalker]
@@ -104,8 +106,10 @@ class HigherFixedSomeSpec extends WordSpec with Matchers with MockFactory with O
 
         inSequence {
           //@formatter:off
-          current.higher _ expects (0: Slice[Byte]) returning IO(Some(upperKeyValue))
-          next.higher    _ expects (0: Slice[Byte]) returning IO(Some(lowerKeyValue)).asAsync
+          current.higher        _ expects (0: Slice[Byte])  returning IO(Some(upperKeyValue))
+          next.stateID          _ expects ()                returning 1
+          next.higher           _ expects (0: Slice[Byte])  returning IO(Some(lowerKeyValue)).asAsync
+          next.hasStateChanged  _ expects 1                 returning false
           //@formatter:on
         }
         Higher(0: Slice[Byte]).assertGet shouldBe expected
@@ -139,9 +143,15 @@ class HigherFixedSomeSpec extends WordSpec with Matchers with MockFactory with O
 
         inSequence {
           //@formatter:off
-          current.higher _ expects (0: Slice[Byte]) returning IO(Some(upperKeyValue))
-          next.higher    _ expects (0: Slice[Byte]) returning IO(Some(lowerKeyValue)).asAsync
-          if(!isUpperExpected) current.higher _ expects (1: Slice[Byte]) returning IO.none
+          current.higher        _ expects (0: Slice[Byte])  returning IO(Some(upperKeyValue))
+          next.stateID          _ expects ()                returning 1
+          next.higher           _ expects (0: Slice[Byte])  returning IO(Some(lowerKeyValue)).asAsync
+          next.hasStateChanged  _ expects 1                 returning false
+          if(!isUpperExpected) {
+            next.hasStateChanged  _ expects 1                 returning false
+            current.higher        _ expects (1: Slice[Byte])  returning IO.none
+            next.hasStateChanged  _ expects 1                 returning false
+          }
           //@formatter:on
         }
         Higher(0: Slice[Byte]).assertGet shouldBe expected
@@ -162,8 +172,10 @@ class HigherFixedSomeSpec extends WordSpec with Matchers with MockFactory with O
 
         inSequence {
           //@formatter:off
-          current.higher _ expects (0: Slice[Byte]) returning IO(Some(upperKeyValue))
-          next.higher    _ expects (0: Slice[Byte]) returning IO(Some(lowerKeyValue)).asAsync
+          current.higher        _ expects (0: Slice[Byte])  returning IO(Some(upperKeyValue))
+          next.stateID          _ expects ()                returning 1
+          next.higher           _ expects (0: Slice[Byte])  returning IO(Some(lowerKeyValue)).asAsync
+          next.hasStateChanged  _ expects 1                 returning false
           //@formatter:on
         }
         Higher(0: Slice[Byte]).assertGet shouldBe lowerKeyValue

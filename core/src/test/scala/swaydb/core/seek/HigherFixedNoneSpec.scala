@@ -46,43 +46,41 @@ class HigherFixedNoneSpec extends WordSpec with Matchers with MockFactory with O
     //   x
     "1" in {
 
-      runThis(100.times) {
+      implicit val current = mock[CurrentWalker]
+      implicit val next = mock[NextWalker]
 
-        implicit val current = mock[CurrentWalker]
-        implicit val next = mock[NextWalker]
-
-        inSequence {
-          //@formatter:off
-          current.higher _ expects (0: Slice[Byte]) returning IO.none
-          next.higher    _ expects (0: Slice[Byte]) returning IO.none
-          //@formatter:on
-        }
-        Higher(0: Slice[Byte]).assertGetOpt shouldBe empty
+      inSequence {
+        //@formatter:off
+        current.higher        _ expects (0: Slice[Byte])  returning IO.none
+        next.stateID          _ expects ()                returning 1
+        next.higher           _ expects (0: Slice[Byte])  returning IO.none
+        next.hasStateChanged  _ expects 1                 returning false
+        //@formatter:on
       }
+      Higher(0: Slice[Byte]).assertGetOpt shouldBe empty
     }
-
 
     //   0
     //     1
     //     x
     "2" in {
-
       runThis(100.times) {
-
         implicit val current = mock[CurrentWalker]
         implicit val next = mock[NextWalker]
 
         inSequence {
           //@formatter:off
-          current.higher _ expects (0: Slice[Byte]) returning IO(Some(randomRemoveOrUpdateOrFunctionRemove(1)))
-          next.higher    _ expects (0: Slice[Byte]) returning IO.none
-          current.higher _ expects (1: Slice[Byte]) returning IO.none
+          current.higher        _ expects (0: Slice[Byte])  returning IO(Some(randomRemoveOrUpdateOrFunctionRemove(1)))
+          next.stateID          _ expects ()                returning 1
+          next.higher           _ expects (0: Slice[Byte])  returning IO.none
+          next.hasStateChanged  _ expects 1                 returning false repeat 2.times
+          current.higher        _ expects (1: Slice[Byte])  returning IO.none
+          next.hasStateChanged  _ expects 1                 returning false
           //@formatter:on
         }
         Higher(0: Slice[Byte]).assertGetOpt shouldBe empty
       }
     }
-
 
     //   0
     //     1
@@ -96,16 +94,19 @@ class HigherFixedNoneSpec extends WordSpec with Matchers with MockFactory with O
 
         inSequence {
           //@formatter:off
-          current.higher _ expects (0: Slice[Byte]) returning IO(Some(randomRemoveOrUpdateOrFunctionRemove(1)))
-          next.higher    _ expects (0: Slice[Byte]) returning IO(Some(randomPutKeyValue(1))).asAsync
-          current.higher _ expects (1: Slice[Byte]) returning IO.none
-          next.higher    _ expects (1: Slice[Byte]) returning IO.none
+          current.higher        _ expects (0: Slice[Byte])  returning IO(Some(randomRemoveOrUpdateOrFunctionRemove(1)))
+          next.stateID          _ expects ()                returning 1
+          next.higher           _ expects (0: Slice[Byte])  returning IO(Some(randomPutKeyValue(1))).asAsync
+          next.hasStateChanged  _ expects 1                 returning false
+          current.higher        _ expects (1: Slice[Byte])  returning IO.none
+          next.stateID          _ expects ()                returning 2
+          next.higher           _ expects (1: Slice[Byte])  returning IO.none
+          next.hasStateChanged  _ expects 2                 returning false
           //@formatter:on
         }
         Higher(0: Slice[Byte]).assertGetOpt shouldBe empty
       }
     }
-
 
     //   0
     //     1 2
@@ -121,11 +122,16 @@ class HigherFixedNoneSpec extends WordSpec with Matchers with MockFactory with O
 
         inSequence {
           //@formatter:off
-          current.higher _ expects (0: Slice[Byte]) returning IO(Some(randomRemoveOrUpdateOrFunctionRemove(1)))
-          next.higher    _ expects (0: Slice[Byte]) returning IO(Some(randomPutKeyValue(2))).asAsync
-          current.higher _ expects (1: Slice[Byte]) returning IO(Some(randomRemoveOrUpdateOrFunctionRemove(2)))
-          current.higher _ expects (2: Slice[Byte]) returning IO.none
-          next.higher    _ expects (2: Slice[Byte]) returning IO.none
+          current.higher        _ expects (0: Slice[Byte])  returning IO(Some(randomRemoveOrUpdateOrFunctionRemove(1)))
+          next.stateID          _ expects ()                returning 1
+          next.higher           _ expects (0: Slice[Byte])  returning IO(Some(randomPutKeyValue(2))).asAsync
+          next.hasStateChanged  _ expects 1                 returning false repeat 2.times
+          current.higher        _ expects (1: Slice[Byte])  returning IO(Some(randomRemoveOrUpdateOrFunctionRemove(2)))
+          next.hasStateChanged  _ expects 1                 returning false
+          current.higher        _ expects (2: Slice[Byte])  returning IO.none
+          next.stateID          _ expects ()                returning 2
+          next.higher           _ expects (2: Slice[Byte])  returning IO.none
+          next.hasStateChanged  _ expects 2                 returning false
           //@formatter:on
         }
         Higher(0: Slice[Byte]).assertGetOpt shouldBe empty

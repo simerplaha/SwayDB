@@ -32,7 +32,7 @@ private[swaydb] object Seek {
   sealed trait Next
   object Next {
     case class Stop(stateID: Long) extends Seek.Next
-    case class Stash(next: KeyValue.ReadOnly.Put) extends Seek.Next
+    case class Stash(next: KeyValue.ReadOnly.Put, stateID: Long) extends Seek.Next
   }
 
   case object Read extends Seek.Current with Seek.Next

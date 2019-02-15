@@ -57,10 +57,14 @@ class HigherRangeNoneSpec extends WordSpec with Matchers with MockFactory {
 
               inSequence {
                 //@formatter:off
-                current.higher _ expects (key: Slice[Byte]) returning IO(Some(randomRangeKeyValue(0, 10, rangeValue = randomUpdateRangeValue())))
-                next.higher    _ expects (key: Slice[Byte]) returning IO.none
-                current.get    _ expects (10: Slice[Byte]) returning IO.none
-                current.higher _ expects (10: Slice[Byte]) returning IO.none
+                current.higher        _ expects (key: Slice[Byte])  returning IO(Some(randomRangeKeyValue(0, 10, rangeValue = randomUpdateRangeValue())))
+                next.stateID          _ expects ()                  returning 1
+                next.higher           _ expects (key: Slice[Byte])  returning IO.none
+                next.hasStateChanged  _ expects 1                   returning false
+                current.get           _ expects (10: Slice[Byte])   returning IO.none
+                next.hasStateChanged  _ expects 1                   returning false
+                current.higher        _ expects (10: Slice[Byte])   returning IO.none
+                next.hasStateChanged  _ expects 1                   returning false
                 //@formatter:on
               }
               Higher(key: Slice[Byte]).assertGetOpt shouldBe empty
@@ -84,10 +88,12 @@ class HigherRangeNoneSpec extends WordSpec with Matchers with MockFactory {
 
               inSequence {
                 //@formatter:off
-                current.higher _ expects (key: Slice[Byte]) returning IO(Some(randomRangeKeyValue(0, 10, None, randomRemoveOrUpdateOrFunctionRemoveValue(addFunctions = false))))
-                current.get    _ expects (10: Slice[Byte]) returning IO.none
-                current.higher _ expects (10: Slice[Byte]) returning IO.none
-                next.higher    _ expects (10: Slice[Byte]) returning IO.none
+                current.higher        _ expects (key: Slice[Byte])  returning IO(Some(randomRangeKeyValue(0, 10, None, randomRemoveOrUpdateOrFunctionRemoveValue(addFunctions = false))))
+                current.get           _ expects (10: Slice[Byte])   returning IO.none
+                current.higher        _ expects (10: Slice[Byte])   returning IO.none
+                next.stateID          _ expects ()                  returning 1
+                next.higher           _ expects (10: Slice[Byte])   returning IO.none
+                next.hasStateChanged  _ expects 1                   returning false
                 //@formatter:on
               }
               Higher(key: Slice[Byte]).assertGetOpt shouldBe empty
@@ -111,10 +117,14 @@ class HigherRangeNoneSpec extends WordSpec with Matchers with MockFactory {
 
           inSequence {
             //@formatter:off
-            current.higher _ expects (0: Slice[Byte]) returning IO(Some(randomRangeKeyValue(1, 10, randomFromValueOption(addPut = false), randomUpdateRangeValue())))
-            next.higher    _ expects (0: Slice[Byte]) returning IO.none
-            current.get    _ expects (10: Slice[Byte]) returning IO.none
-            current.higher _ expects (10: Slice[Byte]) returning IO.none
+            current.higher        _ expects (0: Slice[Byte])    returning IO(Some(randomRangeKeyValue(1, 10, randomFromValueOption(addPut = false), randomUpdateRangeValue())))
+            next.stateID          _ expects ()                  returning 1
+            next.higher           _ expects (0: Slice[Byte])    returning IO.none
+            next.hasStateChanged  _ expects 1                   returning false
+            current.get           _ expects (10: Slice[Byte])   returning IO.none
+            next.hasStateChanged  _ expects 1                   returning false
+            current.higher        _ expects (10: Slice[Byte])   returning IO.none
+            next.hasStateChanged  _ expects 1                   returning false
             //@formatter:on
           }
           Higher(0: Slice[Byte]).assertGetOpt shouldBe empty
@@ -131,12 +141,19 @@ class HigherRangeNoneSpec extends WordSpec with Matchers with MockFactory {
           implicit val timeGenerator = TestTimeGenerator.Empty
           implicit val current = mock[CurrentWalker]
           implicit val next = mock[NextWalker]
+
+          val currentHigher = randomRangeKeyValue(1, 10, randomRemoveOrUpdateOrFunctionRemoveValueOption(), randomRemoveOrUpdateOrFunctionRemoveValue(addFunctions = false))
+
           inSequence {
             //@formatter:off
-            current.higher _ expects (0: Slice[Byte]) returning IO(Some(randomRangeKeyValue(1, 10, randomRemoveOrUpdateOrFunctionRemoveValueOption(), randomRemoveOrUpdateOrFunctionRemoveValue(addFunctions = false))))
-            next.higher    _ expects (0: Slice[Byte]) returning IO.none
-            current.get    _ expects (10: Slice[Byte]) returning IO.none
-            current.higher _ expects (10: Slice[Byte]) returning IO.none
+            current.higher        _ expects (0: Slice[Byte])    returning IO(Some(currentHigher))
+            next.stateID          _ expects ()                  returning 1
+            next.higher           _ expects (0: Slice[Byte])    returning IO.none
+            next.hasStateChanged  _ expects 1                   returning false
+            current.get           _ expects (10: Slice[Byte])   returning IO.none
+            next.hasStateChanged  _ expects 1                   returning false
+            current.higher        _ expects (10: Slice[Byte])   returning IO.none
+            next.hasStateChanged  _ expects 1                   returning false
             //@formatter:on
           }
           Higher(0: Slice[Byte]).assertGetOpt shouldBe empty
