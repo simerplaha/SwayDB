@@ -106,7 +106,7 @@ private[core] object Higher {
           case IO.Success(None) =>
             Higher(key, Seek.Current.Stop, nextSeek)
 
-          case failure @ IO.Failure(_) =>
+          case failure: IO.Failure[_] =>
             failure
               .recoverToAsync(
                 Higher.seeker(key, currentSeek, nextSeek)
@@ -141,7 +141,7 @@ private[core] object Higher {
                           Higher.seeker(key, currentStash, Seek.Next.Stop(nextStateID))
                       }
 
-                    case failure @ IO.Failure(_) =>
+                    case failure: IO.Failure[_] =>
                       failure
                   }
                 }
@@ -161,7 +161,7 @@ private[core] object Higher {
                         )
                   }
 
-              case failure @ IO.Failure(_) =>
+              case failure: IO.Failure[_] =>
                 failure
                   .recoverToAsync(
                     Higher.seeker(key, currentSeek, nextSeek)
@@ -189,7 +189,7 @@ private[core] object Higher {
                     Higher.seeker(key, currentStash, Seek.Next.Stop(nextStateID))
                 }
 
-              case failure @ IO.Failure(_) =>
+              case failure: IO.Failure[_] =>
                 failure
             }
 
@@ -211,7 +211,7 @@ private[core] object Higher {
                     Higher.seeker(key, currentStash, Seek.Next.Stop(nextStateID))
                 }
 
-              case failure @ IO.Failure(_) =>
+              case failure: IO.Failure[_] =>
                 failure
             }
         }
@@ -234,7 +234,7 @@ private[core] object Higher {
                 Higher.seeker(key, currentSeek, Seek.Next.Stop(nextStateID))
             }
 
-          case failure @ IO.Failure(_) =>
+          case failure: IO.Failure[_] =>
             failure
         }
 
@@ -258,7 +258,7 @@ private[core] object Higher {
           case IO.Success(None) =>
             Higher(key, Seek.Current.Stop, nextSeek)
 
-          case failure @ IO.Failure(_) =>
+          case failure: IO.Failure[_] =>
             failure
               .recoverToAsync(
                 Higher.seeker(key, currentSeek, nextSeek)
@@ -376,7 +376,7 @@ private[core] object Higher {
                               Higher(next.key, currentStash, Seek.Read)
                           }
 
-                        case failure @ IO.Failure(_) =>
+                        case failure: IO.Failure[_] =>
                           failure
                             .recoverToAsync(
                               Higher.seeker(key, currentSeek, nextSeek)
@@ -384,7 +384,7 @@ private[core] object Higher {
                       }
                   }
 
-                case failure @ IO.Failure(_) =>
+                case failure: IO.Failure[_] =>
                   failure
                     .recoverToAsync(
                       Higher.seeker(key, currentSeek, nextSeek)
@@ -421,7 +421,7 @@ private[core] object Higher {
                               Higher.seeker(current.toKey, Seek.Read, nextStash)
                           }
 
-                        case failure @ IO.Failure(_) =>
+                        case failure: IO.Failure[_] =>
                           failure
                             .recoverToAsync(
                               Higher.seeker(key, currentSeek, nextSeek)
@@ -429,7 +429,7 @@ private[core] object Higher {
                       }
                   }
 
-                case failure @ IO.Failure(_) =>
+                case failure: IO.Failure[_] =>
                   failure
                     .recoverToAsync(
                       Higher.seeker(key, currentSeek, nextSeek)
@@ -454,7 +454,7 @@ private[core] object Higher {
             case IO.Success(None) =>
               Higher(key, Seek.Current.Stop, nextSeek)
 
-            case failure @ IO.Failure(_) =>
+            case failure: IO.Failure[_] =>
               failure
                 .recoverToAsync(
                   Higher.seeker(key, currentSeek, nextSeek)
@@ -508,12 +508,12 @@ private[core] object Higher {
                               Higher.seeker(current.toKey, Seek.Read, nextSeek)
                           }
 
-                        case failure @ IO.Failure(_) =>
+                        case failure: IO.Failure[_] =>
                           failure
                       }
                   }
 
-                case failure @ IO.Failure(_) =>
+                case failure: IO.Failure[_] =>
                   failure
                     .recoverToAsync(
                       Higher.seeker(key, currentStash, nextSeek)

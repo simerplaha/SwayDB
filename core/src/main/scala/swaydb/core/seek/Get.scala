@@ -168,7 +168,7 @@ private[core] object Get {
       case IO.Success(None) =>
         nextGetter.get(key)
 
-      case failure @ IO.Failure(_) =>
+      case failure: IO.Failure[_] =>
         failure.recoverToAsync(Get(key))
     }
   }

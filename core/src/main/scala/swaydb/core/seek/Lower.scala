@@ -104,7 +104,7 @@ private[core] object Lower {
           case IO.Success(None) =>
             Lower(key, Seek.Current.Stop, nextSeek)
 
-          case failure @ IO.Failure(_) =>
+          case failure: IO.Failure[_] =>
             failure
               .recoverToAsync(
                 Lower.seeker(key, currentSeek, nextSeek)
@@ -138,7 +138,7 @@ private[core] object Lower {
                           Lower.seeker(key, currentStash, Seek.Next.Stop(nextStateID))
                       }
 
-                    case failure @ IO.Failure(_) =>
+                    case failure: IO.Failure[_] =>
                       failure
                   }
                 }
@@ -171,20 +171,20 @@ private[core] object Lower {
                                   Lower.seeker(key, currentStash, Seek.Next.Stop(nextStateID))
                               }
 
-                            case failure @ IO.Failure(_) =>
+                            case failure: IO.Failure[_] =>
                               failure
                           }
                         }
                       }
 
-                    case failure @ IO.Failure(_) =>
+                    case failure: IO.Failure[_] =>
                       failure
                         .recoverToAsync(
                           Lower.seeker(key, currentSeek, nextSeek)
                         )
                   }
 
-              case failure @ IO.Failure(_) =>
+              case failure: IO.Failure[_] =>
                 failure
                   .recoverToAsync(
                     Lower.seeker(key, currentSeek, nextSeek)
@@ -212,7 +212,7 @@ private[core] object Lower {
                     Lower.seeker(key, currentStash, Seek.Next.Stop(nextStateID))
                 }
 
-              case failure @ IO.Failure(_) =>
+              case failure: IO.Failure[_] =>
                 failure
 
             }
@@ -237,7 +237,7 @@ private[core] object Lower {
                     Lower.seeker(key, currentStash, Seek.Next.Stop(nextStateID))
                 }
 
-              case failure @ IO.Failure(_) =>
+              case failure: IO.Failure[_] =>
                 failure
             }
 
@@ -259,7 +259,7 @@ private[core] object Lower {
                     Lower.seeker(key, currentStash, Seek.Next.Stop(nextStateID))
                 }
 
-              case failure @ IO.Failure(_) =>
+              case failure: IO.Failure[_] =>
                 failure
             }
         }
@@ -282,7 +282,7 @@ private[core] object Lower {
                 Lower.seeker(key, currentSeek, Seek.Next.Stop(nextStateID))
             }
 
-          case failure @ IO.Failure(_) =>
+          case failure: IO.Failure[_] =>
             failure
         }
 
@@ -306,7 +306,7 @@ private[core] object Lower {
           case IO.Success(None) =>
             Lower(key, Seek.Current.Stop, nextSeek)
 
-          case failure @ IO.Failure(_) =>
+          case failure: IO.Failure[_] =>
             failure
               .recoverToAsync(
                 Lower.seeker(key, currentSeek, nextSeek)
@@ -336,7 +336,7 @@ private[core] object Lower {
                       //if it doesn't result in an unexpired put move forward.
                       Lower(current.key, Seek.Read, Seek.Read)
                   }
-                case failure @ IO.Failure(_) =>
+                case failure: IO.Failure[_] =>
                   failure
                     .recoverToAsync(
                       Lower.seeker(key, currentSeek, nextSeek)
@@ -391,14 +391,14 @@ private[core] object Lower {
 
                       }
 
-                    case failure @ IO.Failure(_) =>
+                    case failure: IO.Failure[_] =>
                       failure
                         .recoverToAsync(
                           Lower.seeker(key, currentSeek, nextSeek)
                         )
                   }
 
-                case failure @ IO.Failure(_) =>
+                case failure: IO.Failure[_] =>
                   failure
                     .recoverToAsync(
                       Lower.seeker(key, currentSeek, nextSeek)
@@ -428,7 +428,7 @@ private[core] object Lower {
                               Lower(next.key, Seek.Read, Seek.Read)
                           }
 
-                        case failure @ IO.Failure(_) =>
+                        case failure: IO.Failure[_] =>
                           failure
                             .recoverToAsync(
                               Lower.seeker(key, currentSeek, nextSeek)
@@ -436,7 +436,7 @@ private[core] object Lower {
                       }
                   }
 
-                case failure @ IO.Failure(_) =>
+                case failure: IO.Failure[_] =>
                   failure
                     .recoverToAsync(
                       Lower.seeker(key, currentSeek, nextSeek)
@@ -458,7 +458,7 @@ private[core] object Lower {
                       Lower(current.fromKey, Seek.Read, nextStash)
                   }
 
-                case failure @ IO.Failure(_) =>
+                case failure: IO.Failure[_] =>
                   failure
                     .recoverToAsync(
                       Lower.seeker(key, currentSeek, nextSeek)
@@ -483,7 +483,7 @@ private[core] object Lower {
             case IO.Success(None) =>
               Lower(key, Seek.Current.Stop, nextSeek)
 
-            case failure @ IO.Failure(_) =>
+            case failure: IO.Failure[_] =>
               failure
                 .recoverToAsync(
                   Lower.seeker(key, currentSeek, nextSeek)
@@ -524,7 +524,7 @@ private[core] object Lower {
                       Lower(current.fromKey, Seek.Read, nextSeek)
                   }
 
-                case failure @ IO.Failure(_) =>
+                case failure: IO.Failure[_] =>
                   failure
                     .recoverToAsync(
                       Lower.seeker(key, currentSeek, nextSeek)
