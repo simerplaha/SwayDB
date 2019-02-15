@@ -64,8 +64,10 @@ class LowerRangeSomeSpec extends WordSpec with Matchers with MockFactory {
 
             inSequence {
               //@formatter:off
-              current.lower _ expects (key: Slice[Byte]) returning IO(Some(upperLevel))
-              next.lower    _ expects (key: Slice[Byte]) returning IO(Some(lowerLower)).asAsync
+              current.lower         _ expects (key: Slice[Byte])  returning IO(Some(upperLevel))
+              next.stateID          _ expects ()                  returning 1
+              next.lower            _ expects (key: Slice[Byte])  returning IO(Some(lowerLower)).asAsync
+              next.hasStateChanged  _ expects 1                   returning false
               //@formatter:on
             }
             Lower(key: Slice[Byte]).assertGet shouldBe expected
@@ -96,8 +98,10 @@ class LowerRangeSomeSpec extends WordSpec with Matchers with MockFactory {
 
         inSequence {
           //@formatter:off
-          current.lower _ expects (1: Slice[Byte]) returning IO(Some(upperLevel))
-          next.lower    _ expects (1: Slice[Byte]) returning IO(Some(lowerLevel)).asAsync
+          current.lower         _ expects (1: Slice[Byte])    returning IO(Some(upperLevel))
+          next.stateID          _ expects ()                  returning 1
+          next.lower            _ expects (1: Slice[Byte])    returning IO(Some(lowerLevel)).asAsync
+          next.hasStateChanged  _ expects 1                   returning false
           //@formatter:on
         }
         Lower(1: Slice[Byte]).assertGet shouldBe expected
@@ -121,8 +125,10 @@ class LowerRangeSomeSpec extends WordSpec with Matchers with MockFactory {
 
             inSequence {
               //@formatter:off
-              current.lower _ expects (key: Slice[Byte]) returning IO(Some(randomRangeKeyValue(0, 10)))
-              next.lower    _ expects (key: Slice[Byte]) returning IO(Some(lowerLower)).asAsync
+              current.lower         _ expects (key: Slice[Byte])  returning IO(Some(randomRangeKeyValue(0, 10)))
+              next.stateID          _ expects ()                  returning 1
+              next.lower            _ expects (key: Slice[Byte])  returning IO(Some(lowerLower)).asAsync
+              next.hasStateChanged  _ expects 1                   returning false
               //@formatter:on
             }
             Lower(key: Slice[Byte]).assertGet shouldBe lowerLower
@@ -150,8 +156,10 @@ class LowerRangeSomeSpec extends WordSpec with Matchers with MockFactory {
 
             inSequence {
               //@formatter:off
-              current.lower _ expects (key: Slice[Byte]) returning IO(Some(randomRangeKeyValue(0, 10, rangeValue = currentRangeValue)))
-              next.lower    _ expects (key: Slice[Byte]) returning IO(Some(lowerLower)).asAsync
+              current.lower         _ expects (key: Slice[Byte])  returning IO(Some(randomRangeKeyValue(0, 10, rangeValue = currentRangeValue)))
+              next.stateID          _ expects ()                  returning 1
+              next.lower            _ expects (key: Slice[Byte])  returning IO(Some(lowerLower)).asAsync
+              next.hasStateChanged  _ expects 1                   returning false
               //@formatter:on
             }
             Lower(key: Slice[Byte]).assertGet shouldBe expected
@@ -179,8 +187,10 @@ class LowerRangeSomeSpec extends WordSpec with Matchers with MockFactory {
 
             inSequence {
               //@formatter:off
-              current.lower _ expects (key: Slice[Byte]) returning IO(Some(randomRangeKeyValue(1, 10, fromValue = None, rangeValue)))
-              next.lower    _ expects (key: Slice[Byte]) returning IO(Some(lowerLower)).asAsync
+              current.lower         _ expects (key: Slice[Byte])  returning IO(Some(randomRangeKeyValue(1, 10, fromValue = None, rangeValue)))
+              next.stateID          _ expects ()                  returning 1
+              next.lower            _ expects (key: Slice[Byte])  returning IO(Some(lowerLower)).asAsync
+              next.hasStateChanged  _ expects 1                   returning false
               //@formatter:on
             }
             Lower(key: Slice[Byte]).assertGet shouldBe expected
@@ -205,8 +215,10 @@ class LowerRangeSomeSpec extends WordSpec with Matchers with MockFactory {
 
             inSequence {
               //@formatter:off
-              current.lower _ expects (key: Slice[Byte]) returning IO(Some(randomRangeKeyValue(1, 10, fromValue = Some(put))))
-              next.lower    _ expects (key: Slice[Byte]) returning IO(Some(randomPutKeyValue(eitherOne[Int](0, 1), deadline = None))).asAsync
+              current.lower         _ expects (key: Slice[Byte])  returning IO(Some(randomRangeKeyValue(1, 10, fromValue = Some(put))))
+              next.stateID          _ expects ()                  returning 1
+              next.lower            _ expects (key: Slice[Byte])  returning IO(Some(randomPutKeyValue(eitherOne[Int](0, 1), deadline = None))).asAsync
+              next.hasStateChanged  _ expects 1                   returning false
               //@formatter:on
             }
             Lower(key: Slice[Byte]).assertGet shouldBe put.toMemory(1)

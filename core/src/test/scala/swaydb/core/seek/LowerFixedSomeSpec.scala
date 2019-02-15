@@ -57,8 +57,10 @@ class LowerFixedSomeSpec extends WordSpec with Matchers with MockFactory with Op
 
         inSequence {
           //@formatter:off
-          current.lower _ expects (1: Slice[Byte]) returning IO(Some(put))
-          next.lower    _ expects (1: Slice[Byte]) returning IO.none
+          current.lower         _ expects (1: Slice[Byte])  returning IO(Some(put))
+          next.stateID          _ expects ()                returning 1
+          next.lower            _ expects (1: Slice[Byte])  returning IO.none
+          next.hasStateChanged  _ expects 1                 returning false
           //@formatter:on
         }
         Lower(1: Slice[Byte]).assertGet shouldBe put
@@ -79,8 +81,10 @@ class LowerFixedSomeSpec extends WordSpec with Matchers with MockFactory with Op
 
         inSequence {
           //@formatter:off
-          current.lower _ expects (1: Slice[Byte]) returning IO.none
-          next.lower    _ expects (1: Slice[Byte]) returning IO(Some(put)).asAsync
+          current.lower         _ expects (1: Slice[Byte])  returning IO.none
+          next.stateID          _ expects ()                returning 1
+          next.lower            _ expects (1: Slice[Byte])  returning IO(Some(put)).asAsync
+          next.hasStateChanged  _ expects 1                 returning false
           //@formatter:on
         }
         Lower(1: Slice[Byte]).assertGet shouldBe put
@@ -104,8 +108,10 @@ class LowerFixedSomeSpec extends WordSpec with Matchers with MockFactory with Op
 
         inSequence {
           //@formatter:off
-          current.lower _ expects (1: Slice[Byte]) returning IO(Some(upperKeyValue))
-          next.lower    _ expects (1: Slice[Byte]) returning IO(Some(lowerKeyValue)).asAsync
+          current.lower         _ expects (1: Slice[Byte])  returning IO(Some(upperKeyValue))
+          next.stateID          _ expects ()                returning 1
+          next.lower            _ expects (1: Slice[Byte])  returning IO(Some(lowerKeyValue)).asAsync
+          next.hasStateChanged  _ expects 1                 returning false
           //@formatter:on
         }
         Lower(1: Slice[Byte]).assertGet shouldBe expected
@@ -139,9 +145,15 @@ class LowerFixedSomeSpec extends WordSpec with Matchers with MockFactory with Op
 
         inSequence {
           //@formatter:off
-          current.lower _ expects (2: Slice[Byte]) returning IO(Some(upperKeyValue))
-          next.lower    _ expects (2: Slice[Byte]) returning IO(Some(lowerKeyValue)).asAsync
-          if(!isUpperExpected) current.lower _ expects (1: Slice[Byte]) returning IO.none
+          current.lower         _ expects (2: Slice[Byte])  returning IO(Some(upperKeyValue))
+          next.stateID          _ expects ()                returning 1
+          next.lower            _ expects (2: Slice[Byte])  returning IO(Some(lowerKeyValue)).asAsync
+          next.hasStateChanged  _ expects 1                 returning false
+          if(!isUpperExpected) {
+            next.hasStateChanged  _ expects 1                 returning false
+            current.lower         _ expects (1: Slice[Byte])  returning IO.none
+            next.hasStateChanged  _ expects 1                 returning false
+          }
           //@formatter:on
         }
         Lower(2: Slice[Byte]).assertGet shouldBe expected
@@ -162,8 +174,10 @@ class LowerFixedSomeSpec extends WordSpec with Matchers with MockFactory with Op
 
         inSequence {
           //@formatter:off
-          current.lower _ expects (2: Slice[Byte]) returning IO(Some(upperKeyValue))
-          next.lower    _ expects (2: Slice[Byte]) returning IO(Some(lowerKeyValue)).asAsync
+          current.lower         _ expects (2: Slice[Byte]) returning IO(Some(upperKeyValue))
+          next.stateID          _ expects ()                returning 1
+          next.lower            _ expects (2: Slice[Byte]) returning IO(Some(lowerKeyValue)).asAsync
+          next.hasStateChanged  _ expects 1                 returning false
           //@formatter:on
         }
         Lower(2: Slice[Byte]).assertGet shouldBe lowerKeyValue
