@@ -19,10 +19,10 @@
 
 package swaydb.core
 
-import org.scalatest.{Matchers, OptionValues}
+import org.scalatest.Matchers
 import swaydb.data.io.IO
 
-object IOAssert extends Matchers with OptionValues {
+object IOAssert extends Matchers {
 
   implicit class GetIOImplicit[T](getThis: IO[T]) {
     def assertGet: T =
@@ -51,7 +51,7 @@ object IOAssert extends Matchers with OptionValues {
 
   implicit class GetOptionImplicit[T](getThis: Option[T]) {
     def assertGet: T =
-      getThis.value
+      getThis.get
   }
 
   implicit class GetIOOptionImplicit[T](tryThis: IO[Option[T]]) {

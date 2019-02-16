@@ -216,6 +216,9 @@ private[core] class Level(val dirs: Seq[Dir],
 
       override def lower(key: Slice[Byte]): IO[Option[ReadOnly.SegmentResponse]] =
         self lowerInThisLevel key
+
+      override def levelNumber: String =
+        "Level: " + self.levelNumber
     }
 
   private implicit val nextWalker =
@@ -234,6 +237,9 @@ private[core] class Level(val dirs: Seq[Dir],
 
       override def stateID: Long =
         appendix.stateID
+
+      override def levelNumber: String =
+        "Level: " + self.levelNumber
     }
 
   private implicit val currentGetter =

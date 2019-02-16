@@ -303,7 +303,7 @@ private[core] class LevelZero(val path: Path,
         IO(getFromMap(key, currentMap))
     }
 
-  def newGetter(mapsIterator: util.Iterator[map.Map[Slice[Byte], Memory.SegmentResponse]]) =
+  def nextGetter(mapsIterator: util.Iterator[map.Map[Slice[Byte], Memory.SegmentResponse]]) =
     new NextGetter {
       override def get(key: Slice[Byte]): IO.Async[Option[ReadOnly.Put]] =
         getFromNextLevel(key, mapsIterator)
@@ -315,7 +315,7 @@ private[core] class LevelZero(val path: Path,
     Get.seek(
       key = key,
       currentGetter = currentGetter(currentMap),
-      nextGetter = newGetter(mapsIterator)
+      nextGetter = nextGetter(mapsIterator)
     )
 
   def get(key: Slice[Byte]): IO.Async[Option[ReadOnly.Put]] =
@@ -441,6 +441,9 @@ private[core] class LevelZero(val path: Path,
 
       override def lower(key: Slice[Byte]): IO[Option[ReadOnly.SegmentResponse]] =
         IO(lowerFromMap(key, currentMap))
+
+      override def levelNumber: String =
+        "current"
     }
 
   def nextWalker(otherMaps: List[map.Map[Slice[Byte], Memory.SegmentResponse]]) =
@@ -454,14 +457,14 @@ private[core] class LevelZero(val path: Path,
       override def get(key: Slice[Byte]): IO.Async[Option[ReadOnly.Put]] =
         getFromNextLevel(key, otherMaps.iterator.asJava)
 
-      //maps are always changing and not merged into one another. Forcing the state change to
-      //always return true ensure reads are never stopped for Maps.
       override def hasStateChanged(previousState: Long): Boolean =
-        true
+        false
 
       override def stateID: Long =
-        //Level0's
         -1
+
+      override def levelNumber: String =
+        "map"
     }
 
   def findHigher(key: Slice[Byte],

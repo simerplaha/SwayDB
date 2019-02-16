@@ -35,12 +35,12 @@ class FileUtilSpec extends TestBase {
 
     "fail if the file's name is not an integer" in {
       val path = Paths.get("/one/notInt.log")
-      FileUtil.fileId(path).failed.assertGet shouldBe NotAnIntFile(path)
+      FileUtil.fileId(path).failed.assertGet.exception shouldBe NotAnIntFile(path)
     }
 
     "fail if the file has invalid extension" in {
       val path = Paths.get("/one/1.txt")
-      FileUtil.fileId(path).failed.assertGet shouldBe UnknownExtension(path)
+      FileUtil.fileId(path).failed.assertGet.exception shouldBe UnknownExtension(path)
     }
   }
 

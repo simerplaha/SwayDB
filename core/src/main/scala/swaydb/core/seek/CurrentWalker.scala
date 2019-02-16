@@ -25,6 +25,8 @@ import swaydb.data.slice.Slice
 
 trait CurrentWalker {
 
+  def levelNumber: String
+
   def get(key: Slice[Byte]): IO.Async[Option[KeyValue.ReadOnly.Put]]
 
   def higher(key: Slice[Byte]): IO[Option[KeyValue.ReadOnly.SegmentResponse]]

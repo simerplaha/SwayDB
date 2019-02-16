@@ -25,6 +25,8 @@ import swaydb.data.slice.Slice
 
 trait NextWalker extends NextGetter {
 
+  def levelNumber: String
+
   def higher(key: Slice[Byte]): IO.Async[Option[KeyValue.ReadOnly.Put]]
 
   def lower(key: Slice[Byte]): IO.Async[Option[KeyValue.ReadOnly.Put]]

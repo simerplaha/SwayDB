@@ -72,7 +72,7 @@ sealed trait LevelReadNoneSpec extends TestBase with MockFactory with Benchmark 
 
   //  override def deleteFiles = false
 
-  val keyValuesCount = 1000
+  val keyValuesCount = 10000
 
   val times = 2
 
@@ -92,7 +92,7 @@ sealed trait LevelReadNoneSpec extends TestBase with MockFactory with Benchmark 
               () => level.lower(randomStringOption).assertGetOpt shouldBe empty,
               () => level.head.assertGetOpt shouldBe empty,
               () => level.last.assertGetOpt shouldBe empty
-            ).runThisRandomlyInParallel
+            ).runThisRandomly
       )
     }
 
@@ -146,17 +146,19 @@ sealed trait LevelReadNoneSpec extends TestBase with MockFactory with Benchmark 
 
               Seq(
                 () => assertGetNone(nonExistingKeys, level),
+                () => assertGet(existing, level),
+                () => assertReads(existing, level),
                 () => assertReads(existing, level),
                 () =>
                   nonExistingKeys foreach {
                     nonExistentKey =>
-                      val expectedHigher = existing.find(_.key.readInt() > nonExistentKey).map(_.key.readInt())
+                      val expectedHigher = existing.find(put => put.hasTimeLeft() && put.key.readInt() > nonExistentKey).map(_.key.readInt())
                       level.higher(nonExistentKey).assertGetOpt.map(_.key.readInt()) shouldBe expectedHigher
                   },
                 () =>
                   nonExistingKeys foreach {
                     nonExistentKey =>
-                      val expectedLower = existing.reverse.find(_.key.readInt() < nonExistentKey).map(_.key.readInt())
+                      val expectedLower = existing.reverse.find(put => put.hasTimeLeft() && put.key.readInt() < nonExistentKey).map(_.key.readInt())
                       level.lower(nonExistentKey).assertGetOpt.map(_.key.readInt()) shouldBe expectedLower
                   }
               ).runThisRandomlyInParallel
@@ -185,7 +187,7 @@ sealed trait LevelReadNoneSpec extends TestBase with MockFactory with Benchmark 
     }
 
     "put existed but was removed or expired" in {
-      runThisParallel(times) {
+      runThisParallel(1) {
         assertOnLevel(
 
           level0KeyValues =
