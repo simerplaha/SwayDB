@@ -91,7 +91,7 @@ private[core] object Higher {
                                  functionStore: FunctionStore): IO.Async[Option[KeyValue.ReadOnly.Put]] = {
     import keyOrder._
 
-//    println(s"Current walker: ${currentWalker.levelNumber} - ${key.readInt()}")
+    //    println(s"Current walker: ${currentWalker.levelNumber} - ${key.readInt()}")
 
     (currentSeek, nextSeek) match {
       /** *********************************************************
@@ -155,6 +155,15 @@ private[core] object Higher {
 
                     case IO.Success(_) =>
                       Higher(currentRange.toKey, Seek.Read, nextSeek)
+
+                    case later @ IO.Later(_, _) =>
+                      later flatMap {
+                        case Some(ceiling) if ceiling.hasTimeLeft() =>
+                          IO.Success(Some(ceiling))
+
+                        case Some(_) | None =>
+                          Higher.seeker(currentRange.toKey, Seek.Read, nextSeek)
+                      }
 
                     case failed @ IO.Failure(_) =>
                       failed

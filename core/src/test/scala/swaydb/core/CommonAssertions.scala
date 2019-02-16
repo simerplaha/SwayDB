@@ -855,8 +855,8 @@ object CommonAssertions {
       Seq(
         () => assertGetNone(keyValues, level),
         () => assertHigherNone(keyValues, level),
-        //        () => assertLowerNone(keyValues, level),
-        //        () => assertEmptyHeadAndLast(level)
+        () => assertLowerNone(keyValues, level),
+        () => assertEmptyHeadAndLast(level)
       )
     Random.shuffle(asserts).par.foreach(_ ())
   }
@@ -871,8 +871,8 @@ object CommonAssertions {
 
   def assertEmptyHeadAndLast(level: LevelRef) =
     Seq(
-      () => level.head.assertGetOpt shouldBe empty,
-      () => level.last.assertGetOpt shouldBe empty,
+      () => level.head.safeGetBlocking.unsafeGet shouldBe empty,
+      () => level.last.safeGetBlocking.unsafeGet shouldBe empty,
     ).runThisRandomlyInParallel
 
   def assertReads(keyValues: Slice[KeyValue.WriteOnly],
@@ -1052,7 +1052,7 @@ object CommonAssertions {
     keyValuesToAssert foreach {
       keyValue =>
         try {
-//          println(keyValue.key.readInt())
+          //          println(keyValue.key.readInt())
           level.higher(keyValue.key).assertGetOpt shouldBe empty
           //          println
         } catch {

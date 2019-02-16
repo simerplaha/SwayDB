@@ -72,9 +72,9 @@ sealed trait LevelReadNoneSpec extends TestBase with MockFactory with Benchmark 
 
   //  override def deleteFiles = false
 
-  val keyValuesCount = 10000
+  val keyValuesCount = 1000
 
-  val times = 2
+  val times = 10
 
   "return None" when {
 
@@ -187,7 +187,7 @@ sealed trait LevelReadNoneSpec extends TestBase with MockFactory with Benchmark 
     }
 
     "put existed but was removed or expired" in {
-      runThisParallel(1) {
+      runThisParallel(times) {
         assertOnLevel(
 
           level0KeyValues =
