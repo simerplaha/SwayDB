@@ -19,7 +19,7 @@
 
 package swaydb
 
-import swaydb.serializers.{Serializer, _}
+import swaydb.serializers._
 
 private[swaydb] object BatchImplicits {
 

@@ -12,8 +12,6 @@ val bloomFilterVersion = "0.11.0"
 val scalaLoggingVersion = "3.9.0"
 val scalaMockVersion = "4.1.0"
 val scalaTestVersion = "3.0.5"
-val scalaCheckVersion = "1.14.0"
-val actor = "0.3"
 
 parallelExecution in ThisBuild := false
 
@@ -41,7 +39,6 @@ val testDependencies =
   Seq(
     "org.scalatest" %% "scalatest" % scalaTestVersion % Test,
     "org.scalamock" %% "scalamock" % scalaMockVersion % Test,
-    "org.scalacheck" %% "scalacheck" % scalaCheckVersion % Test,
     "ch.qos.logback" % "logback-classic" % logbackClassicVersion % Test
   )
 
@@ -64,7 +61,7 @@ lazy val core =
     .settings(publishSettings)
     .settings(
       libraryDependencies ++=
-        commonDependencies 
+        commonDependencies
           :+ "com.github.alexandrnikitin" %% "bloom-filter" % bloomFilterVersion
     ).dependsOn(data, macros, compression, configs % Test, serializers % Test)
 
@@ -84,7 +81,7 @@ lazy val embedded =
     .settings(
       libraryDependencies ++= commonDependencies
     ).dependsOn(core, configs)
-    .dependsOn(core % "compile->compile;test->test")
+    .dependsOn(serializers, core % Test)
 
 lazy val configs =
   project
@@ -132,7 +129,7 @@ lazy val compression =
           :+ "org.lz4" % "lz4-java" % lz4Version
           :+ "org.xerial.snappy" % "snappy-java" % snappyVersion
     )
-    .dependsOn(data, serializers % "compile->compile;test->test")
+    .dependsOn(data, serializers % Test)
 
 lazy val macros =
   project

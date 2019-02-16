@@ -80,7 +80,7 @@ private[file] object BufferCleaner extends LazyLogging {
             } onFailureSideEffect {
               error =>
                 logger.error("ByteBuffer cleaner not initialised.", error.exception)
-                throw error.exception //also to write to std.out in-case logging is not enabled.
+                throw error.exception //also throw to output to stdout in-case logging is not enabled.
             }
           }
         else
