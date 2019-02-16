@@ -33,38 +33,27 @@ import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
-//@formatter:off
 class LevelReadNoneSpec0 extends LevelReadNoneSpec
 
 class LevelReadNoneSpec1 extends LevelReadNoneSpec {
   override def levelFoldersCount = 10
-
   override def mmapSegmentsOnWrite = true
-
   override def mmapSegmentsOnRead = true
-
   override def level0MMAP = true
-
   override def appendixStorageMMAP = true
 }
 
 class LevelReadNoneSpec2 extends LevelReadNoneSpec {
   override def levelFoldersCount = 10
-
   override def mmapSegmentsOnWrite = false
-
   override def mmapSegmentsOnRead = false
-
   override def level0MMAP = false
-
   override def appendixStorageMMAP = false
 }
 
 class LevelReadNoneSpec3 extends LevelReadNoneSpec {
   override def inMemoryStorage = true
 }
-
-//@formatter:on
 
 sealed trait LevelReadNoneSpec extends TestBase with MockFactory with Benchmark {
 

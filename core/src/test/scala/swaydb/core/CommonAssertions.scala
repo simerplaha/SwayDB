@@ -22,7 +22,6 @@ package swaydb.core
 import bloomfilter.mutable.BloomFilter
 import java.nio.file.Paths
 import java.util.concurrent.ConcurrentSkipListMap
-import org.scalatest.Assertion
 import org.scalatest.exceptions.TestFailedException
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
@@ -328,50 +327,6 @@ object CommonAssertions {
       }
   }
 
-  implicit class MergeKeyValues(keyValues: (Memory.Fixed, Memory.Fixed)) {
-    def merge: ReadOnly.Fixed =
-    //      KeyValueMerger(
-    //        key = Some(keyValues._1.key),
-    //        newKeyValue = keyValues._1.toValue().assertGet,
-    //        oldKeyValue = keyValues._2.toValue().assertGet
-    //      ).assertGet.toMemory(keyValues._1.key)
-      ???
-
-    def mergeFailed: Throwable =
-    //      KeyValueMerger(
-    //        key = Some(keyValues._1.key),
-    //        newKeyValue = keyValues._1.toValue().assertGet,
-    //        oldKeyValue = keyValues._2.toValue().assertGet
-    //      ).failed.assertGet
-      ???
-  }
-
-  implicit class MergeKeyValue(newKeyValue: Memory.Fixed) {
-    def merge(oldKeyValue: Memory.Fixed): ReadOnly.Fixed =
-    //      KeyValueMerger(
-    //        key = Some(newKeyValue.key),
-    //        newKeyValue = newKeyValue.toValue().assertGet,
-    //        oldKeyValue = oldKeyValue.toValue().assertGet
-    //      ).assertGet.toMemory(newKeyValue.key)
-      ???
-
-    def mergeNoKey(oldKeyValue: Memory.Fixed): ReadOnly.Fixed =
-    //      KeyValueMerger(
-    //        key = None,
-    //        newKeyValue = newKeyValue.toValue().assertGet,
-    //        oldKeyValue = oldKeyValue.toValue().assertGet
-    //      ).assertGet.toMemory(newKeyValue.key)
-      ???
-
-    def mergeFailed(oldKeyValue: Memory.Fixed): Throwable =
-    //      KeyValueMerger(
-    //        key = Some(newKeyValue.key),
-    //        newKeyValue = newKeyValue.toValue().assertGet,
-    //        oldKeyValue = oldKeyValue.toValue().assertGet
-    //      ).failed.assertGet
-      ???
-  }
-
   implicit class PrintSkipList(skipList: ConcurrentSkipListMap[Slice[Byte], Memory]) {
 
     import swaydb.serializers.Default._
@@ -664,49 +619,12 @@ object CommonAssertions {
   implicit class PersistentReadOnlyKeyValueImplicits(actual: Persistent) {
     def shouldBe(expected: KeyValue.WriteOnly) = {
       actual.toMemory shouldBe expected.toMemory
-      //      expected match {
-      //        case expectedRange: KeyValue.WriteOnly.Range =>
-      //          actual should be(a[Persistent.Range])
-      //          val actualRange = actual.asInstanceOf[Persistent.Range]
-      //          actualRange.fromKey shouldBe expectedRange.fromKey
-      //          actualRange.toKey shouldBe expectedRange.toKey
-      //          actualRange.fetchFromAndRangeValue.assertGet shouldBe expectedRange.fetchFromAndRangeValue.assertGet
-      //          actualRange.fetchFromValue.assertGetOpt shouldBe expectedRange.fetchFromValue.assertGetOpt
-      //          actualRange.fetchRangeValue.assertGet shouldBe expectedRange.fetchRangeValue.assertGet
-      //
-      //        case expectedGroup: KeyValue.WriteOnly.Group =>
-      //          actual should be(a[Persistent.Group])
-      //          actual.asInstanceOf[Persistent.Group].segmentCache.getAll().assertGet shouldBe expectedGroup.keyValues
-      //
-      //        case expected: KeyValue.WriteOnly.Fixed =>
-      //          actual.key shouldBe expected.key
-      //          actual.getOrFetchValue shouldBe expected.getOrFetchValue
-      //          actual.indexEntryDeadline shouldBe expected.deadline
-      //      }
-
     }
   }
 
   implicit class PersistentReadOnlyImplicits(actual: Persistent) {
     def shouldBe(expected: Persistent) =
       actual.toMemory shouldBe expected.toMemory
-  }
-
-  implicit class StatsImplicits(actual: Stats) {
-
-    def shouldBe(expected: Stats, ignoreValueOffset: Boolean = false): Assertion = {
-      actual.segmentSize shouldBe expected.segmentSize
-      actual.valueLength shouldBe expected.valueLength
-      if (!ignoreValueOffset && actual.valueLength != 0) {
-        //        actual.valueOffset shouldBe expected.valueOffset
-        //        actual.toValueOffset shouldBe expected.toValueOffset
-        ???
-      }
-      actual.segmentSizeWithoutFooter shouldBe expected.segmentSizeWithoutFooter
-      actual.segmentValuesSize shouldBe expected.segmentValuesSize
-      actual.thisKeyValuesIndexSizeWithoutFooter shouldBe expected.thisKeyValuesIndexSizeWithoutFooter
-      actual.thisKeyValuesSegmentSizeWithoutFooter shouldBe expected.thisKeyValuesSegmentSizeWithoutFooter
-    }
   }
 
   implicit class SegmentImplicits(actual: Segment) {
@@ -837,9 +755,7 @@ object CommonAssertions {
 
   def assertReads(keyValues: Iterable[KeyValue],
                   level: LevelRef) = {
-    //        val asserts = Seq(() => assertGet(keyValues, level), () => assertHigher(keyValues, level), () => assertLower(keyValues, level))
-    val asserts = Seq(() => assertGet(keyValues, level), () => assertHigher(keyValues, level))
-    //    val asserts = Seq(() => assertGet(keyValues, level))
+    val asserts = Seq(() => assertGet(keyValues, level), () => assertHigher(keyValues, level), () => assertLower(keyValues, level))
     Random.shuffle(asserts).par.foreach(_ ())
   }
 
