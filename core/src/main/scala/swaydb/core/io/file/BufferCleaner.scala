@@ -34,11 +34,11 @@ private[this] sealed trait Cleaner {
   def clean(byteBuffer: ByteBuffer): Unit
 }
 private[this] case object Cleaner {
-  case class Java9(handle: MethodHandle) extends Cleaner {
+  case class PostJava9(handle: MethodHandle) extends Cleaner {
     override def clean(byteBuffer: ByteBuffer): Unit =
       handle.invoke(byteBuffer)
   }
-  case object Java9Minus extends Cleaner {
+  case object PreJava9 extends Cleaner {
     override def clean(byteBuffer: ByteBuffer): Unit =
       byteBuffer.asInstanceOf[sun.nio.ch.DirectBuffer].cleaner.clean()
   }
@@ -49,7 +49,7 @@ private[file] object BufferCleaner extends LazyLogging {
   private val started = new AtomicBoolean(false)
   private var actor: ActorRef[(MappedByteBuffer, Path, Boolean)] = _
 
-  def java9Cleaner(): MethodHandle = {
+  private def java9Cleaner(): MethodHandle = {
     val unsafeClass = Class.forName("sun.misc.Unsafe")
     val theUnsafe = unsafeClass.getDeclaredField("theUnsafe")
     theUnsafe.setAccessible(true)
@@ -68,13 +68,13 @@ private[file] object BufferCleaner extends LazyLogging {
               logger.info("Trying to initialise Java9 ByteBuffer cleaner.")
               val cleaner = java9Cleaner()
               cleaner.invoke(buffer)
-              self.state.cleaner = Some(Cleaner.Java9(cleaner))
+              self.state.cleaner = Some(Cleaner.PostJava9(cleaner))
               logger.info("Initialised Java9 ByteBuffer.")
             } orElse {
               IO {
                 logger.info("Trying to initialise pre Java9 ByteBuffer cleaner.")
-                Cleaner.Java9Minus.clean(buffer)
-                self.state.cleaner = Some(Cleaner.Java9Minus)
+                Cleaner.PreJava9.clean(buffer)
+                self.state.cleaner = Some(Cleaner.PreJava9)
                 logger.info("Initialised pre Java9 ByteBuffer cleaner.")
               }
             } onFailureSideEffect {
@@ -84,7 +84,7 @@ private[file] object BufferCleaner extends LazyLogging {
             }
           }
         else
-          self.schedule((message._1, path, true), 2.seconds)
+          self.schedule((message._1, path, true), 3.seconds)
     }
   }
 
