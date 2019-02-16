@@ -62,7 +62,6 @@ private[core] object LevelZero extends LazyLogging {
     import swaydb.core.map.serializer.LevelZeroMapEntryReader.Level0Reader
     import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
     implicit val skipListMerger: SkipListMerger[Slice[Byte], Memory.SegmentResponse] = LevelZeroSkipListMerger
-    implicit val memoryOrdering: Ordering[Memory] = keyOrder.on[Memory](_.key)
     val mapsAndPathAndLock =
       storage match {
         case Level0Storage.Persistent(mmap, databaseDirectory, recovery) =>
@@ -107,7 +106,6 @@ private[core] class LevelZero(val path: Path,
                               lock: Option[FileLock])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                       timeOrder: TimeOrder[Slice[Byte]],
                                                       functionStore: FunctionStore,
-                                                      memoryOrdering: Ordering[Memory],
                                                       ec: ExecutionContext) extends LevelRef with LazyLogging {
 
   logger.info("{}: Level0 started.", path)
