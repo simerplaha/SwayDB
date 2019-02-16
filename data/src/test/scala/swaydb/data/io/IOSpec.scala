@@ -20,17 +20,16 @@
 package swaydb.data.io
 
 import java.nio.file.{NoSuchFileException, Paths}
-import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
 import scala.collection.mutable.ListBuffer
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.util.Random
 import swaydb.data.io.IO.{getOrNone, _}
 import swaydb.data.slice.Slice
-import scala.concurrent.ExecutionContext.Implicits.global
 
-class IOSpec extends WordSpec with Matchers with MockFactory {
+class IOSpec extends WordSpec with Matchers {
 
   implicit class AwaitImplicits[T](f: Future[T]) {
     def await =

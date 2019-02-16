@@ -105,7 +105,7 @@ object IOEffect extends LazyLogging {
       Files.createDirectories(path)
 
   def walkDelete(folder: Path): IO[Unit] =
-    try {
+    IO {
       if (exists(folder))
         Files.walkFileTree(folder, new SimpleFileVisitor[Path]() {
           @throws[IOException]
@@ -120,10 +120,6 @@ object IOEffect extends LazyLogging {
             FileVisitResult.CONTINUE
           }
         })
-      IO.unit
-    } catch {
-      case exception: Throwable =>
-        IO.Failure(exception)
     }
 
   def release(lock: FileLock): IO[Unit] =
@@ -141,5 +137,5 @@ object IOEffect extends LazyLogging {
   }
 
   def release(lock: Option[FileLock]): IO[Unit] =
-    lock.map(release).getOrElse(IO.unit)
+    lock.map(release) getOrElse IO.unit
 }
