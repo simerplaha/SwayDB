@@ -20,18 +20,15 @@
 package swaydb.core.level
 
 import org.scalamock.scalatest.MockFactory
-import scala.util.Random
 import swaydb.core.CommonAssertions._
+import swaydb.core.IOAssert._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
-import swaydb.core.IOAssert._
-import swaydb.core.data.{Memory, Time, Value}
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.util.Benchmark
+import swaydb.data.io.IO
 import swaydb.data.slice.Slice
-import swaydb.serializers.Default._
-import swaydb.serializers._
 
 //@formatter:off
 class LevelReadSomeSpec0 extends LevelReadSomeSpec
@@ -64,7 +61,7 @@ sealed trait LevelReadSomeSpec extends TestBase with MockFactory with Benchmark 
 
   //  override def deleteFiles = false
 
-  val keyValuesCount = 10000
+  val keyValuesCount = 1000
 
   val times = 10
 
@@ -84,48 +81,47 @@ sealed trait LevelReadSomeSpec extends TestBase with MockFactory with Benchmark 
       }
     }
 
-    //    "contains put that were updated" in {
-    //      runThisParallel(times) {
-    //        val updatedValue = randomStringOption
-    //        val deadline = randomDeadlineOption(false)
-    //
-    //        assertOnLevel(
-    //          level0KeyValues =
-    //            (level1KeyValues, level2KeyValues, timeGenerator) => {
-    //              val puts = unexpiredPuts(level2KeyValues ++ level1KeyValues)
-    //              randomUpdate(puts, updatedValue, deadline, false)(timeGenerator)
-    //            },
-    //
-    //          level1KeyValues =
-    //            (level2KeyValues, timeGenerator) =>
-    //              randomizedKeyValues(keyValuesCount, startId = Some(maxKey(Slice(level2KeyValues.last.toTransient)).maxKey.readInt() + 10000))(timeGenerator).toMemory,
-    //
-    //          level2KeyValues =
-    //            timeGenerator =>
-    //              randomizedKeyValues(keyValuesCount, startId = Some(0))(timeGenerator).toMemory,
-    //
-    //          assertLevel0 =
-    //            (level0KeyValues, level1KeyValues, _, level) =>
-    //              level0KeyValues foreach {
-    //                update =>
-    //                  try {
-    //                    val got = level.get(update.key).assertGet
-    //                    got.getOrFetchValue.assertGetOpt shouldBe updatedValue
-    //                    //check if deadline was updated
-    //                    deadline foreach {
-    //                      deadline =>
-    //                        got.deadline should contain(deadline)
-    //                    }
-    //                  } catch {
-    //                    case exception: Exception =>
-    //                      println("debug")
-    //                      throw exception
-    //                  }
-    //              }
-    //
-    //        )
-    //      }
-    //    }
+    "contains put that were updated" in {
+      runThis(times) {
+        val updatedValue = randomStringOption
+        val deadline = randomDeadlineOption(false)
+
+        assertOnLevel(
+          level0KeyValues =
+            (level1KeyValues, level2KeyValues, timeGenerator) => {
+              val puts = unexpiredPuts(level2KeyValues ++ level1KeyValues)
+              randomUpdate(puts, updatedValue, deadline, false)(timeGenerator)
+            },
+
+          level1KeyValues =
+            (level2KeyValues, timeGenerator) =>
+              randomizedKeyValues(keyValuesCount, startId = Some(maxKey(Slice(level2KeyValues.last.toTransient)).maxKey.readInt() + 10000))(timeGenerator).toMemory,
+
+          level2KeyValues =
+            timeGenerator =>
+              randomizedKeyValues(keyValuesCount, startId = Some(0))(timeGenerator).toMemory,
+
+          assertLevel0 =
+            (level0KeyValues, level1KeyValues, _, level) =>
+              level0KeyValues foreach {
+                update =>
+                  val (gotValue, gotDeadline) = level.get(update.key) mapAsync {
+                    case Some(put) =>
+                      val value = IO.Async.runSafe(put.getOrFetchValue.get).safeGetBlocking.assertGetOpt
+                      (value, put.deadline)
+
+                    case None =>
+                      (None, None)
+
+                  } assertGet
+
+                  gotValue shouldBe updatedValue
+                //check if deadline was updated
+                //                    gotDeadline shouldBe deadline
+              }
+        )
+      }
+    }
 
   }
 }

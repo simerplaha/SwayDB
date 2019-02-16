@@ -20,6 +20,7 @@
 package swaydb.data.io
 
 import java.io.FileNotFoundException
+import java.nio.ReadOnlyBufferException
 import java.nio.channels.{AsynchronousCloseException, ClosedChannelException}
 import java.nio.file.{NoSuchFileException, Path}
 import scala.annotation.tailrec
@@ -250,6 +251,7 @@ object IO {
         case exception: AsynchronousCloseException => Error.AsynchronousClose(exception)
         case exception: ClosedChannelException => Error.ClosedChannel(exception)
         case exception: NullPointerException => Error.NullPointer(exception)
+        case exception: ReadOnlyBufferException => Error.ReadOnlyBuffer(exception)
 
         //Fatal error. This error is not expected to occur on a healthy database. This error would indicate corruption.
         //AppendixRepairer can be used to repair map files.
@@ -338,6 +340,8 @@ object IO {
         IO.Exception.ReceivedKeyValuesToMergeWithoutTargetSegment(keyValueCount)
     }
 
+    case class ReadOnlyBuffer(exception: ReadOnlyBufferException) extends Error
+
     /**
       * Error that are not known and indicate something unexpected went wrong like a file corruption.
       *
@@ -421,7 +425,12 @@ object IO {
         case Error.Fatal(exception) =>
           recover(exception, operation)
 
-        case Error.OverlappingPushSegment | Error.OverlappingPushSegment | Error.NoSegmentsRemoved | Error.NotSentToNextLevel | _: Error.ReceivedKeyValuesToMergeWithoutTargetSegment =>
+        case Error.OverlappingPushSegment |
+             Error.OverlappingPushSegment |
+             Error.NoSegmentsRemoved |
+             Error.NotSentToNextLevel |
+             _: Error.ReceivedKeyValuesToMergeWithoutTargetSegment |
+             _: Error.ReadOnlyBuffer =>
           failure
       }
 
