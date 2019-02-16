@@ -40,7 +40,7 @@ object LevelZeroSkipListMerger extends SkipListMerger[Slice[Byte], Memory.Segmen
 
   implicit val groupingStrategy: Option[KeyValueGroupingStrategyInternal] = None
 
-  //.unsafeGet is no good. Memory key-values will never result in failure since they do not perform IO (no side-effects).
+  //.get is no good. Memory key-values will never result in failure since they do not perform IO (no side-effects).
   //But this is a temporary solution until applyValue is updated to accept type classes to perform side effect.
   def applyValue(newKeyValue: Memory.Fixed,
                  oldKeyValue: Memory.Fixed)(implicit timeOrder: TimeOrder[Slice[Byte]],
@@ -48,7 +48,7 @@ object LevelZeroSkipListMerger extends SkipListMerger[Slice[Byte], Memory.Segmen
     FixedMerger(
       newKeyValue = newKeyValue,
       oldKeyValue = oldKeyValue
-    ).unsafeGet.asInstanceOf[Memory.Fixed]
+    ).get.asInstanceOf[Memory.Fixed]
 
   /**
     * Inserts a [[Memory.Fixed]] key-value into skipList.
@@ -67,7 +67,7 @@ object LevelZeroSkipListMerger extends SkipListMerger[Slice[Byte], Memory.Segmen
 
           //if the floor entry is a range try to do a merge.
           case floorRange: Memory.Range if insert.key < floorRange.toKey =>
-            //Gah! performing a .unsafeGet here. Although .unsafeGet should never fail in this case because both the input key-values are in-memory and do not perform IO.
+            //Gah! performing a .get here. Although .get should never fail in this case because both the input key-values are in-memory and do not perform IO.
             //This should still be done properly.
             SegmentMerger.merge(insert, floorRange).reverse foreach {
               case transient: Transient =>

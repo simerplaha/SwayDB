@@ -40,11 +40,11 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
   "Catch" when {
     "exception" in {
       val exception = new Exception("Failed")
-      IO.Catch(throw exception).failed.unsafeGet shouldBe IO.Error.Fatal(exception)
+      IO.Catch(throw exception).failed.get shouldBe IO.Error.Fatal(exception)
     }
 
     "no exception" in {
-      IO.Catch(IO.none).unsafeGet shouldBe empty
+      IO.Catch(IO.none).get shouldBe empty
     }
   }
 
@@ -115,7 +115,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
             IO.Success(item + 1)
         }
 
-      result.unsafeGet.toArray shouldBe Array(2, 3, 4, 5, 6)
+      result.get.toArray shouldBe Array(2, 3, 4, 5, 6)
     }
 
     "allow map on Slice, terminating at first failure returning the failure and cleanUp should be invoked" in {
@@ -130,7 +130,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
         )
 
       result.isFailure shouldBe true
-      result.failed.unsafeGet.exception.getMessage shouldBe "Failed at 3"
+      result.failed.get.exception.getMessage shouldBe "Failed at 3"
 
       intsCleanedUp should contain inOrderOnly(1, 2)
     }
@@ -147,7 +147,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
             IO(Seq(item.toString))
         }
 
-      result.unsafeGet.toArray shouldBe Array("1", "2", "3", "4", "5")
+      result.get.toArray shouldBe Array("1", "2", "3", "4", "5")
     }
 
     "return failure" in {
@@ -163,7 +163,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
               IO.Failure(new Exception("Kaboom!"))
             }
         }
-      result.failed.unsafeGet.exception.getMessage shouldBe "Kaboom!"
+      result.failed.get.exception.getMessage shouldBe "Kaboom!"
     }
   }
 
@@ -181,7 +181,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
         }
 
       result.isFailure shouldBe true
-      result.failed.unsafeGet.exception.getMessage shouldBe "Failed at two"
+      result.failed.get.exception.getMessage shouldBe "Failed at two"
     }
 
     "allow fold on Slice" in {
@@ -194,7 +194,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
         }
 
       result.isSuccess shouldBe true
-      result.unsafeGet shouldBe 3
+      result.get shouldBe 3
     }
   }
 
@@ -214,7 +214,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
           }
         }
 
-      result.unsafeGet should contain((3, 3))
+      result.get should contain((3, 3))
       iterations shouldBe 3
     }
 
@@ -230,7 +230,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
           }
         }
 
-      result.unsafeGet shouldBe empty
+      result.get shouldBe empty
       iterations shouldBe 4
     }
 
@@ -247,7 +247,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
         }
 
       result.isFailure shouldBe true
-      result.failed.unsafeGet.exception.getMessage shouldBe "Failed at 1"
+      result.failed.get.exception.getMessage shouldBe "Failed at 1"
       iterations shouldBe 1
     }
   }
@@ -273,7 +273,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
     "get" in {
       val io = IO.Success(1)
 
-      io.unsafeGet shouldBe 1
+      io.get shouldBe 1
       io.safeGet shouldBe io
       io.safeGetBlocking shouldBe io
       io.safeGetFuture.await shouldBe io
@@ -337,7 +337,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
       val io = IO.Failure[Int](new IllegalAccessError)
 
       assertThrows[IllegalAccessError] {
-        io.unsafeGet
+        io.get
       }
       io.safeGet shouldBe io
       io.safeGetBlocking shouldBe io
@@ -395,7 +395,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
             IO.Success(int + 1)
         }
 
-      io.unsafeGet shouldBe 2
+      io.get shouldBe 2
       io.safeGet shouldBe IO.Success(2)
       io.safeGetBlocking shouldBe IO.Success(2)
       io.safeGetFuture.await shouldBe IO.Success(2)
@@ -411,7 +411,7 @@ class IOSpec extends WordSpec with Matchers with MockFactory {
         }
 
       assertThrows[IO.Exception.OpeningFile] {
-        io.unsafeGet
+        io.get
       }
 
       io.safeGet.asInstanceOf[IO.Later[_]].error shouldBe IO.Error.OpeningFile(Paths.get(""), boolean)

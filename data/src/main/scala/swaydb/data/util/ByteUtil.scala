@@ -153,7 +153,7 @@ object ByteUtil {
       var int = 0
       var read = 0
       do {
-        read = reader.get().unsafeGet
+        read = reader.get().get
         int |= (read & 0x7F) << i
         i += 7
         require(i <= 35)
@@ -233,7 +233,7 @@ object ByteUtil {
       var long = 0L
       var read = 0L
       do {
-        read = reader.get().unsafeGet
+        read = reader.get().get
         long |= (read & 0x7F) << i
         i += 7
         require(i <= 70)

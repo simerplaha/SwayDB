@@ -282,7 +282,7 @@ private[core] class Level(val dirs: Seq[Dir],
   private def largestSegmentId: Long =
     appendix.foldLeft(0L) {
       case (initialId, (_, segment)) =>
-        val segmentId = segment.path.fileId.unsafeGet._1
+        val segmentId = segment.path.fileId.get._1
         if (initialId > segmentId)
           initialId
         else

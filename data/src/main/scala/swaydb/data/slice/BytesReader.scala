@@ -31,13 +31,13 @@ class BytesReader(slice: Slice[Byte]) {
   private val sliceReader = new SliceReader(slice)
 
   val size: Long =
-    sliceReader.size.unsafeGet
+    sliceReader.size.get
 
   def hasAtLeast(size: Long): Boolean =
-    sliceReader.hasAtLeast(size).unsafeGet
+    sliceReader.hasAtLeast(size).get
 
   def read(size: Int): Slice[Byte] =
-    sliceReader.read(size).unsafeGet
+    sliceReader.read(size).get
 
   def moveTo(newPosition: Long): BytesReader = {
     sliceReader.moveTo(newPosition)
@@ -45,10 +45,10 @@ class BytesReader(slice: Slice[Byte]) {
   }
 
   def get(): Int =
-    sliceReader.get().unsafeGet
+    sliceReader.get().get
 
   def hasMore: Boolean =
-    sliceReader.hasMore.unsafeGet
+    sliceReader.hasMore.get
 
   def getPosition: Int =
     sliceReader.getPosition
@@ -62,28 +62,28 @@ class BytesReader(slice: Slice[Byte]) {
   }
 
   def readInt(): Int =
-    sliceReader.readInt().unsafeGet
+    sliceReader.readInt().get
 
   def readIntUnsigned(): Int =
-    sliceReader.readIntUnsigned().unsafeGet
+    sliceReader.readIntUnsigned().get
 
   def readIntSigned(): Int =
-    sliceReader.readIntSigned().unsafeGet
+    sliceReader.readIntSigned().get
 
   def readLong(): Long =
-    sliceReader.readLong().unsafeGet
+    sliceReader.readLong().get
 
   def readLongUnsigned(): Long =
-    sliceReader.readLongUnsigned().unsafeGet
+    sliceReader.readLongUnsigned().get
 
   def readLongSigned(): Long =
-    sliceReader.readLongSigned().unsafeGet
+    sliceReader.readLongSigned().get
 
   def remaining(): Long =
-    sliceReader.remaining.unsafeGet
+    sliceReader.remaining.get
 
   def readRemaining(): Slice[Byte] =
-    sliceReader.readRemaining().unsafeGet
+    sliceReader.readRemaining().get
 
   /**
     * Note: This function does not operate on the original Slice if the String being read is a
@@ -96,9 +96,9 @@ class BytesReader(slice: Slice[Byte]) {
     * requires an Array and not an Iterable. Slice currently does not expose the internal Array.
     */
   def readRemainingAsString(charset: Charset = StandardCharsets.UTF_8): String =
-    sliceReader.readRemainingAsString(charset).unsafeGet
+    sliceReader.readRemainingAsString(charset).get
 
   def readString(size: Int, charset: Charset = StandardCharsets.UTF_8): String =
-    sliceReader.readString(size, charset).unsafeGet
+    sliceReader.readString(size, charset).get
 
 }

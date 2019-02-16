@@ -91,13 +91,13 @@ class GroupDecompressorSpec extends TestBase {
             right = unzipGroups(keyValues)
           ) mapIO {
             keyValue =>
-              IO.Async.runSafe(persistentGroup.segmentCache.get(keyValue.key).unsafeGet).safeGetBlocking match {
+              IO.Async.runSafe(persistentGroup.segmentCache.get(keyValue.key).get).safeGetBlocking match {
                 case IO.Failure(exception) =>
                   IO.Failure(exception)
 
                 case IO.Success(value) =>
                   try {
-                    IO.Async.runSafe(value.get.toMemory().unsafeGet).safeGetBlocking.assertGet shouldBe keyValue
+                    IO.Async.runSafe(value.get.toMemory().get).safeGetBlocking.assertGet shouldBe keyValue
                     IO.unit
                   } catch {
                     case ex: Exception =>

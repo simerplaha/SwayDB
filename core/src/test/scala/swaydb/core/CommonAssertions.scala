@@ -871,8 +871,8 @@ object CommonAssertions {
 
   def assertEmptyHeadAndLast(level: LevelRef) =
     Seq(
-      () => level.head.safeGetBlocking.unsafeGet shouldBe empty,
-      () => level.last.safeGetBlocking.unsafeGet shouldBe empty,
+      () => level.head.safeGetBlocking.get shouldBe empty,
+      () => level.last.safeGetBlocking.get shouldBe empty,
     ).runThisRandomlyInParallel
 
   def assertReads(keyValues: Slice[KeyValue.WriteOnly],
@@ -899,7 +899,7 @@ object CommonAssertions {
       segments map {
         segment =>
           val stringInfos =
-            unzipGroups(segment.getAll().unsafeGet) map {
+            unzipGroups(segment.getAll().get) map {
               keyValue =>
                 keyValue.toMemory match {
                   case response: Memory.SegmentResponse =>
@@ -947,7 +947,7 @@ object CommonAssertions {
         val data =
           Seq(s"\nLevel: ${levelRef.paths}\n") ++
             dump(levelRef.segmentsInLevel())
-        IOEffect.write(Slice.writeString(data.mkString("\n")), Paths.get(s"/Users/simerplaha/IdeaProjects/SwayDB/core/target/dump_Level_${levelRef.levelNumber}.txt")).unsafeGet
+        IOEffect.write(Slice.writeString(data.mkString("\n")), Paths.get(s"/Users/simerplaha/IdeaProjects/SwayDB/core/target/dump_Level_${levelRef.levelNumber}.txt")).get
 
         dump(nextLevel)
 
@@ -955,7 +955,7 @@ object CommonAssertions {
         val data =
           Seq(s"\nLevel: ${levelRef.paths}\n") ++
             dump(levelRef.segmentsInLevel())
-        IOEffect.write(Slice.writeString(data.mkString("\n")), Paths.get(s"/Users/simerplaha/IdeaProjects/SwayDB/core/target/dump_Level_${levelRef.levelNumber}.txt")).unsafeGet
+        IOEffect.write(Slice.writeString(data.mkString("\n")), Paths.get(s"/Users/simerplaha/IdeaProjects/SwayDB/core/target/dump_Level_${levelRef.levelNumber}.txt")).get
     }
 
   def assertGet(keyValues: Iterable[KeyValue],
@@ -963,7 +963,7 @@ object CommonAssertions {
     unzipGroups(keyValues) foreach {
       keyValue =>
         try
-          level.get(keyValue.key).safeGetBlocking.unsafeGet match {
+          level.get(keyValue.key).safeGetBlocking.get match {
             case Some(got) =>
               got shouldBe keyValue
 
@@ -986,7 +986,7 @@ object CommonAssertions {
     unzipGroups(keyValues) foreach {
       keyValue =>
         try
-          level.get(keyValue.key).safeGetBlocking.unsafeGet shouldBe empty
+          level.get(keyValue.key).safeGetBlocking.get shouldBe empty
         catch {
           case ex: Exception =>
             println(
@@ -1016,7 +1016,7 @@ object CommonAssertions {
                     level: LevelRef) =
     keys.par foreach {
       key =>
-        level.get(Slice.writeInt(key)).safeGetBlocking.unsafeGet shouldBe empty
+        level.get(Slice.writeInt(key)).safeGetBlocking.get shouldBe empty
     }
 
   def assertGetNoneButLast(keyValues: Iterable[KeyValue],

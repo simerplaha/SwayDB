@@ -39,7 +39,7 @@ sealed trait IO[+T] {
   def isLater: Boolean
   def getOrElse[U >: T](default: => U): U
   def orElse[U >: T](default: => IO[U]): IO[U]
-  def unsafeGet: T
+  def get: T
   def foreach[U](f: T => U): Unit
   def flatMap[U](f: T => IO[U]): IO[U]
   def asAsync: IO.Async[T]
@@ -82,7 +82,7 @@ object IO {
     def isLater: Boolean
     def flatMap[U](f: T => IO.Async[U]): IO.Async[U]
     def mapAsync[U](f: T => U): IO.Async[U]
-    def unsafeGet: T
+    def get: T
     def safeGet: IO.Async[T]
     def safeGetBlocking: IO[T]
     def safeGetFuture(implicit ec: ExecutionContext): Future[IO[T]]
@@ -375,28 +375,28 @@ object IO {
     override def isFailure: Boolean = false
     override def isSuccess: Boolean = true
     override def isLater: Boolean = false
-    override def unsafeGet: T = value
+    override def get: T = value
     override def safeGet: IO.Success[T] = this
     override def safeGetBlocking: IO.Success[T] = this
     override def safeGetFuture(implicit ec: ExecutionContext): Future[IO.Success[T]] = Future.successful(this)
-    override def getOrElse[U >: T](default: => U): U = unsafeGet
+    override def getOrElse[U >: T](default: => U): U = get
     override def orElse[U >: T](default: => IO[U]): IO.Success[U] = this
-    override def flatMap[U](f: T => IO[U]): IO[U] = IO.Catch(f(unsafeGet))
-    override def flatMap[U](f: T => IO.Async[U]): IO.Async[U] = f(unsafeGet)
-    override def flatten[U](implicit ev: T <:< IO[U]): IO[U] = unsafeGet
-    override def flattenAsync[U](implicit ev: T <:< IO.Async[U]): IO.Async[U] = unsafeGet
-    override def foreach[U](f: T => U): Unit = f(unsafeGet)
-    override def map[U](f: T => U): IO[U] = IO[U](f(unsafeGet))
-    override def mapAsync[U](f: T => U): IO.Async[U] = IO(f(unsafeGet)).asInstanceOf[IO.Async[U]]
+    override def flatMap[U](f: T => IO[U]): IO[U] = IO.Catch(f(get))
+    override def flatMap[U](f: T => IO.Async[U]): IO.Async[U] = f(get)
+    override def flatten[U](implicit ev: T <:< IO[U]): IO[U] = get
+    override def flattenAsync[U](implicit ev: T <:< IO.Async[U]): IO.Async[U] = get
+    override def foreach[U](f: T => U): Unit = f(get)
+    override def map[U](f: T => U): IO[U] = IO[U](f(get))
+    override def mapAsync[U](f: T => U): IO.Async[U] = IO(f(get)).asInstanceOf[IO.Async[U]]
     override def recover[U >: T](f: PartialFunction[IO.Error, U]): IO[U] = this
     override def recoverWith[U >: T](f: PartialFunction[IO.Error, IO[U]]): IO[U] = this
     override def failed: IO[IO.Error] = Failure(Error.Fatal(new UnsupportedOperationException("IO.Success.failed")))
-    override def toOption: Option[T] = Some(unsafeGet)
-    override def toEither: Either[IO.Error, T] = Right(unsafeGet)
+    override def toOption: Option[T] = Some(get)
+    override def toEither: Either[IO.Error, T] = Right(get)
     override def filter(p: T => Boolean): IO[T] =
-      IO.Catch(if (p(unsafeGet)) this else IO.Failure(Error.Fatal(new NoSuchElementException("Predicate does not hold for " + unsafeGet))))
-    override def toFuture: Future[T] = Future.successful(unsafeGet)
-    override def toTry: scala.util.Try[T] = scala.util.Success(unsafeGet)
+      IO.Catch(if (p(get)) this else IO.Failure(Error.Fatal(new NoSuchElementException("Predicate does not hold for " + get))))
+    override def toFuture: Future[T] = Future.successful(get)
+    override def toTry: scala.util.Try[T] = scala.util.Success(get)
     override def onFailureSideEffect(f: IO.Failure[T] => Unit): IO.Success[T] = this
     override def onSuccessSideEffect(f: IO.Success[T] => Unit): IO.Success[T] = {
       try f(this) finally {}
@@ -515,7 +515,7 @@ object IO {
       * @throws [[IO.Exception.Busy]]. Used for Java API.
       */
     @throws[IO.Exception.Busy]
-    def unsafeGet: T =
+    def get: T =
       if (_value.isDefined || !isBusy)
         forceGet
       else
@@ -523,7 +523,7 @@ object IO {
 
     def safeGet: IO.Async[T] =
       if (_value.isDefined || !isBusy)
-        IO.Async.runSafe(unsafeGet)
+        IO.Async.runSafe(get)
       else
         this
 
@@ -532,7 +532,7 @@ object IO {
 
     def flatMap[U](f: T => IO.Async[U]): IO.Later[U] =
       IO.Later(
-        value = _ => f(unsafeGet).unsafeGet,
+        value = _ => f(get).get,
         error = error
       )
 
@@ -555,7 +555,7 @@ object IO {
     override def isFailure: Boolean = true
     override def isSuccess: Boolean = false
     override def isLater: Boolean = false
-    override def unsafeGet: T = throw error.exception
+    override def get: T = throw error.exception
     override def safeGet: IO.Failure[T] = this
     override def safeGetBlocking: IO.Failure[T] = this
     override def safeGetFuture(implicit ec: ExecutionContext): Future[IO.Failure[T]] = Future.successful(this)

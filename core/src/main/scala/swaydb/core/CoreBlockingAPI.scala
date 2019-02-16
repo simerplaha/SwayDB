@@ -98,7 +98,7 @@ private[swaydb] case class CoreBlockingAPI(zero: LevelZero) {
       result =>
         result map {
           response =>
-            IO.Async.runSafe(response.getOrFetchValue.unsafeGet).safeGetBlocking map {
+            IO.Async.runSafe(response.getOrFetchValue.get).safeGetBlocking map {
               result =>
                 Some(response.key, result)
             }
@@ -113,7 +113,7 @@ private[swaydb] case class CoreBlockingAPI(zero: LevelZero) {
       result =>
         result map {
           response =>
-            IO.Async.runSafe(response.getOrFetchValue.unsafeGet).safeGetBlocking map {
+            IO.Async.runSafe(response.getOrFetchValue.get).safeGetBlocking map {
               result =>
                 Some(response.key, result)
             }
@@ -143,7 +143,7 @@ private[swaydb] case class CoreBlockingAPI(zero: LevelZero) {
       result =>
         result map {
           response =>
-            IO.Async.runSafe(response.getOrFetchValue.unsafeGet).safeGetBlocking map {
+            IO.Async.runSafe(response.getOrFetchValue.get).safeGetBlocking map {
               result =>
                 Some(result)
             }
@@ -158,7 +158,7 @@ private[swaydb] case class CoreBlockingAPI(zero: LevelZero) {
       result =>
         result map {
           response =>
-            IO.Async.runSafe(response.getOrFetchValue.unsafeGet).safeGetBlocking map {
+            IO.Async.runSafe(response.getOrFetchValue.get).safeGetBlocking map {
               result =>
                 Some(response.key, result)
             }
@@ -170,7 +170,7 @@ private[swaydb] case class CoreBlockingAPI(zero: LevelZero) {
       result =>
         result map {
           response =>
-            IO.Async.runSafe(response.getOrFetchValue.unsafeGet).safeGetBlocking map {
+            IO.Async.runSafe(response.getOrFetchValue.get).safeGetBlocking map {
               result =>
                 Some(response.key, result)
             }
@@ -185,7 +185,7 @@ private[swaydb] case class CoreBlockingAPI(zero: LevelZero) {
       result =>
         result map {
           response =>
-            IO.Async.runSafe(response.getOrFetchValue.unsafeGet).safeGetBlocking map {
+            IO.Async.runSafe(response.getOrFetchValue.get).safeGetBlocking map {
               result =>
                 Some(response.key, result)
             }

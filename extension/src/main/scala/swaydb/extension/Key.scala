@@ -206,7 +206,7 @@ object Key {
         val reader = data.createReader()
         reader.skip(1) //skip formatId
         val keyBytes = reader.read(reader.readIntUnsigned())
-        val keys = readKeys(keyBytes, keySerializer).unsafeGet
+        val keys = readKeys(keyBytes, keySerializer).get
         val dataType = reader.get()
         if (dataType == Key.mapStart)
           Key.MapStart(keys)

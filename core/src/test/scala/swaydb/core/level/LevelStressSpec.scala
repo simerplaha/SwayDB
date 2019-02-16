@@ -85,7 +85,7 @@ sealed trait LevelStressSpec extends TestBase with Benchmark {
 
       def doPut: Unit = {
         val keyValues: Slice[KeyValue.WriteOnly] = randomKeyValues(keyValueCount)
-        val segment = TestSegment(keyValues, path = testSegmentsDir.resolve(nextSegmentId)).unsafeGet
+        val segment = TestSegment(keyValues, path = testSegmentsDir.resolve(nextSegmentId)).get
         val replyTo = TestActor[LevelCommand]()
         level1 ! PushSegments(Seq(segment), replyTo)
         replyTo.getMessage(20.seconds) match {

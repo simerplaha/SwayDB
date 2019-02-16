@@ -580,12 +580,12 @@ class DBFileSpec extends TestBase with Benchmark with MockFactory {
     "not fail when appending empty bytes to MMAPFile" in {
       val file = DBFile.mmapInit(randomFilePath, 100, autoClose = true).assertGet
       file.append(Slice.emptyBytes).assertGet
-      file.readAll.assertGet shouldBe Slice.fill(file.fileSize.unsafeGet.toInt)(0)
+      file.readAll.assertGet shouldBe Slice.fill(file.fileSize.get.toInt)(0)
       file.close.assertGet
 
       DBFile.mmapRead(file.path, autoClose = true).assertGet ==> {
         file2 =>
-          file2.readAll.assertGet shouldBe Slice.fill(file.fileSize.unsafeGet.toInt)(0)
+          file2.readAll.assertGet shouldBe Slice.fill(file.fileSize.get.toInt)(0)
           file2.close.assertGet
       }
     }

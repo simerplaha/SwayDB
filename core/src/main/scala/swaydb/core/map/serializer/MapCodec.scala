@@ -77,8 +77,8 @@ private[core] object MapCodec extends LazyLogging {
                       return IO.Success(recovery)
                     else
                       try {
-                        val length = reader.readInt().unsafeGet
-                        val payload = (reader read length).unsafeGet
+                        val length = reader.readInt().get
+                        val payload = (reader read length).get
                         val checkCRC = CRC32 forBytes payload
                         //crc check.
                         if (crc == checkCRC) {

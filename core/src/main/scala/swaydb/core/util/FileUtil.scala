@@ -111,7 +111,7 @@ private[core] object FileUtil extends LazyLogging {
         .asScala
         .filter(isExtension(_, extension))
         .toList
-        .sortBy(path => fileId(path).unsafeGet._1)
+        .sortBy(path => fileId(path).get._1)
     }
 
   def folders(folder: Path): List[Path] =
@@ -126,6 +126,6 @@ private[core] object FileUtil extends LazyLogging {
   def segmentFilesOnDisk(paths: Seq[Path]): Seq[Path] =
     paths
       .flatMap(_.files(Extension.Seg))
-      .sortBy(_.getFileName.fileId.unsafeGet._1)
+      .sortBy(_.getFileName.fileId.get._1)
 
 }
