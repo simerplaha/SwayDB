@@ -22,8 +22,8 @@ package swaydb.data.io
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.{Future, Promise}
 
-class BusyBoolean(@volatile private var busy: Boolean,
-                  private[io] val promises: ListBuffer[Promise[Unit]]) {
+private[swaydb] class BusyBoolean(@volatile private var busy: Boolean,
+                                  private[io] val promises: ListBuffer[Promise[Unit]]) {
   def savePromise(promise: Promise[Unit]): Unit =
     promises += promise
 
@@ -31,7 +31,7 @@ class BusyBoolean(@volatile private var busy: Boolean,
     busy
 }
 
-object BusyBoolean {
+private[swaydb] object BusyBoolean {
 
   private val unitTry = scala.util.Success()
   private val unitFuture = Future.successful(())
