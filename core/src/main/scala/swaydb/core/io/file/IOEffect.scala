@@ -28,7 +28,7 @@ import swaydb.core.segment.SegmentException
 import swaydb.data.io.IO
 import swaydb.data.slice.Slice
 
-object EffectIO extends LazyLogging {
+object IOEffect extends LazyLogging {
 
   def write(bytes: Slice[Byte],
             to: Path): IO[Path] =

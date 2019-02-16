@@ -29,7 +29,7 @@ import scala.concurrent.ExecutionContext
 import scala.reflect.ClassTag
 import swaydb.core.data.Memory
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.{DBFile, EffectIO}
+import swaydb.core.io.file.{DBFile, IOEffect}
 import swaydb.core.map.serializer.{MapCodec, MapEntryReader, MapEntryWriter}
 import swaydb.core.queue.FileLimiter
 import swaydb.core.util.Extension
@@ -53,7 +53,7 @@ private[map] object PersistentMap extends LazyLogging {
                                                                             writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                             skipListMerger: SkipListMerger[K, V],
                                                                             ec: ExecutionContext): IO[RecoveryResult[PersistentMap[K, V]]] = {
-    EffectIO.createDirectoryIfAbsent(folder)
+    IOEffect.createDirectoryIfAbsent(folder)
     val skipList: ConcurrentSkipListMap[K, V] = new ConcurrentSkipListMap[K, V](keyOrder)
 
     recover(folder, mmap, fileSize, skipList, dropCorruptedTailEntries) map {
@@ -76,7 +76,7 @@ private[map] object PersistentMap extends LazyLogging {
                                                          writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                          skipListMerger: SkipListMerger[K, V],
                                                          ec: ExecutionContext): IO[PersistentMap[K, V]] = {
-    EffectIO.createDirectoryIfAbsent(folder)
+    IOEffect.createDirectoryIfAbsent(folder)
     val skipList: ConcurrentSkipListMap[K, V] = new ConcurrentSkipListMap[K, V](keyOrder)
 
     firstFile(folder, mmap, fileSize) map {
@@ -318,7 +318,7 @@ private[map] case class PersistentMap[K, V: ClassTag](path: Path,
   override def delete: IO[Unit] =
     currentFile.delete() flatMap {
       _ =>
-        EffectIO.delete(path) map {
+        IOEffect.delete(path) map {
           _ =>
             skipList.clear()
         }

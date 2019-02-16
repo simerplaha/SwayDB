@@ -165,6 +165,6 @@ private[file] class MMAPFile(val path: Path,
   override def delete(): IO[Unit] =
     close flatMap {
       _ =>
-        EffectIO.delete(path)
+        IOEffect.delete(path)
     }
 }

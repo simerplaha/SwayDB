@@ -36,7 +36,7 @@ import scala.concurrent.ExecutionContext
 import scala.reflect.ClassTag
 import swaydb.data.io.IO
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.EffectIO
+import swaydb.core.io.file.IOEffect
 import swaydb.core.queue.FileLimiter
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -145,7 +145,7 @@ private[core] object Maps extends LazyLogging {
               logger.info(s"{}: Skipping files after corrupted file. Recovery mode: {}", mapPath, recovery.name)
               otherMapsPaths foreachIO { //delete Maps after the corruption.
                 mapPath =>
-                  EffectIO.walkDelete(mapPath) match {
+                  IOEffect.walkDelete(mapPath) match {
                     case IO.Success(_) =>
                       logger.info(s"{}: Deleted file after corruption. Recovery mode: {}", mapPath, recovery.name)
                       IO.unit

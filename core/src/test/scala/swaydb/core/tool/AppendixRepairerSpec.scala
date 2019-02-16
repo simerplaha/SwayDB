@@ -26,7 +26,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.IOAssert._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.io.file.EffectIO
+import swaydb.core.io.file.IOEffect
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment
 import swaydb.core.util.FileUtil._
@@ -72,7 +72,7 @@ class AppendixRepairerSpec extends TestBase {
       val level = TestLevel(segmentSize = 1.kb)
 
       //delete appendix
-      EffectIO.walkDelete(level.appendixPath).assertGet
+      IOEffect.walkDelete(level.appendixPath).assertGet
       level.appendixPath.exists shouldBe false
 
       //repair appendix

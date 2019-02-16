@@ -38,7 +38,7 @@ import swaydb.core.data.Value.FromValue
 import swaydb.core.data.{Memory, Value, _}
 import swaydb.core.group.compression.GroupCompressor
 import swaydb.core.group.compression.data.{GroupGroupingStrategyInternal, KeyValueGroupingStrategyInternal}
-import swaydb.core.io.file.EffectIO
+import swaydb.core.io.file.IOEffect
 import swaydb.core.io.reader.Reader
 import swaydb.core.level.zero.{LevelZero, LevelZeroSkipListMerger}
 import swaydb.core.level.{Level, LevelRef}
@@ -947,7 +947,7 @@ object CommonAssertions {
         val data =
           Seq(s"\nLevel: ${levelRef.paths}\n") ++
             dump(levelRef.segmentsInLevel())
-        EffectIO.write(Slice.writeString(data.mkString("\n")), Paths.get(s"/Users/simerplaha/IdeaProjects/SwayDB/core/target/dump_Level_${levelRef.levelNumber}.txt")).unsafeGet
+        IOEffect.write(Slice.writeString(data.mkString("\n")), Paths.get(s"/Users/simerplaha/IdeaProjects/SwayDB/core/target/dump_Level_${levelRef.levelNumber}.txt")).unsafeGet
 
         dump(nextLevel)
 
@@ -955,7 +955,7 @@ object CommonAssertions {
         val data =
           Seq(s"\nLevel: ${levelRef.paths}\n") ++
             dump(levelRef.segmentsInLevel())
-        EffectIO.write(Slice.writeString(data.mkString("\n")), Paths.get(s"/Users/simerplaha/IdeaProjects/SwayDB/core/target/dump_Level_${levelRef.levelNumber}.txt")).unsafeGet
+        IOEffect.write(Slice.writeString(data.mkString("\n")), Paths.get(s"/Users/simerplaha/IdeaProjects/SwayDB/core/target/dump_Level_${levelRef.levelNumber}.txt")).unsafeGet
     }
 
   def assertGet(keyValues: Iterable[KeyValue],

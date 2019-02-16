@@ -23,7 +23,7 @@ import com.typesafe.scalalogging.LazyLogging
 import java.nio.file.Path
 import scala.concurrent.ExecutionContext
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.EffectIO
+import swaydb.core.io.file.IOEffect
 import swaydb.core.level.AppendixSkipListMerger
 import swaydb.core.map.serializer.{AppendixMapEntryReader, MapEntryReader, MapEntryWriter}
 import swaydb.core.map.{Map, MapEntry, SkipListMerger}
@@ -148,7 +148,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
                                                  mapReader: MapEntryReader[MapEntry[Slice[Byte], Segment]],
                                                  skipListMerger: SkipListMerger[Slice[Byte], Segment],
                                                  ec: ExecutionContext): IO[Unit] =
-    EffectIO.walkDelete(appendixDir) flatMap {
+    IOEffect.walkDelete(appendixDir) flatMap {
       _ =>
         Map.persistent[Slice[Byte], Segment](appendixDir, false, flushOnOverflow = true, 1.gb) flatMap {
           appendix =>
