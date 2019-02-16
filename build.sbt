@@ -101,7 +101,7 @@ lazy val extension =
     .settings(publishSettings)
     .settings(
       libraryDependencies ++= testDependencies
-    ).dependsOn(embedded)
+    ).dependsOn(embedded, core % Test)
 
 lazy val `core-stress` =
   project

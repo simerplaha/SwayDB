@@ -65,7 +65,6 @@ object SwayDB extends LazyLogging {
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit val functionStore: FunctionStore = FunctionStore.memory()
 
-
   /**
     * Creates a database based on the input config.
     *
