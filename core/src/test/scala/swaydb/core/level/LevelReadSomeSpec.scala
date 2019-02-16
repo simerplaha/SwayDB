@@ -38,25 +38,17 @@ class LevelReadSomeSpec0 extends LevelReadSomeSpec
 
 class LevelReadSomeSpec1 extends LevelReadSomeSpec {
   override def levelFoldersCount = 10
-
   override def mmapSegmentsOnWrite = true
-
   override def mmapSegmentsOnRead = true
-
   override def level0MMAP = true
-
   override def appendixStorageMMAP = true
 }
 
 class LevelReadSomeSpec2 extends LevelReadSomeSpec {
   override def levelFoldersCount = 10
-
   override def mmapSegmentsOnWrite = false
-
   override def mmapSegmentsOnRead = false
-
   override def level0MMAP = false
-
   override def appendixStorageMMAP = false
 }
 
@@ -92,48 +84,48 @@ sealed trait LevelReadSomeSpec extends TestBase with MockFactory with Benchmark 
       }
     }
 
-//    "contains put that were updated" in {
-//      runThisParallel(times) {
-//        val updatedValue = randomStringOption
-//        val deadline = randomDeadlineOption(false)
-//
-//        assertOnLevel(
-//          level0KeyValues =
-//            (level1KeyValues, level2KeyValues, timeGenerator) => {
-//              val puts = unexpiredPuts(level2KeyValues ++ level1KeyValues)
-//              randomUpdate(puts, updatedValue, deadline, false)(timeGenerator)
-//            },
-//
-//          level1KeyValues =
-//            (level2KeyValues, timeGenerator) =>
-//              randomizedKeyValues(keyValuesCount, startId = Some(maxKey(Slice(level2KeyValues.last.toTransient)).maxKey.readInt() + 10000))(timeGenerator).toMemory,
-//
-//          level2KeyValues =
-//            timeGenerator =>
-//              randomizedKeyValues(keyValuesCount, startId = Some(0))(timeGenerator).toMemory,
-//
-//          assertLevel0 =
-//            (level0KeyValues, level1KeyValues, _, level) =>
-//              level0KeyValues foreach {
-//                update =>
-//                  try {
-//                    val got = level.get(update.key).assertGet
-//                    got.getOrFetchValue.assertGetOpt shouldBe updatedValue
-//                    //check if deadline was updated
-//                    deadline foreach {
-//                      deadline =>
-//                        got.deadline should contain(deadline)
-//                    }
-//                  } catch {
-//                    case exception: Exception =>
-//                      println("debug")
-//                      throw exception
-//                  }
-//              }
-//
-//        )
-//      }
-//    }
+    //    "contains put that were updated" in {
+    //      runThisParallel(times) {
+    //        val updatedValue = randomStringOption
+    //        val deadline = randomDeadlineOption(false)
+    //
+    //        assertOnLevel(
+    //          level0KeyValues =
+    //            (level1KeyValues, level2KeyValues, timeGenerator) => {
+    //              val puts = unexpiredPuts(level2KeyValues ++ level1KeyValues)
+    //              randomUpdate(puts, updatedValue, deadline, false)(timeGenerator)
+    //            },
+    //
+    //          level1KeyValues =
+    //            (level2KeyValues, timeGenerator) =>
+    //              randomizedKeyValues(keyValuesCount, startId = Some(maxKey(Slice(level2KeyValues.last.toTransient)).maxKey.readInt() + 10000))(timeGenerator).toMemory,
+    //
+    //          level2KeyValues =
+    //            timeGenerator =>
+    //              randomizedKeyValues(keyValuesCount, startId = Some(0))(timeGenerator).toMemory,
+    //
+    //          assertLevel0 =
+    //            (level0KeyValues, level1KeyValues, _, level) =>
+    //              level0KeyValues foreach {
+    //                update =>
+    //                  try {
+    //                    val got = level.get(update.key).assertGet
+    //                    got.getOrFetchValue.assertGetOpt shouldBe updatedValue
+    //                    //check if deadline was updated
+    //                    deadline foreach {
+    //                      deadline =>
+    //                        got.deadline should contain(deadline)
+    //                    }
+    //                  } catch {
+    //                    case exception: Exception =>
+    //                      println("debug")
+    //                      throw exception
+    //                  }
+    //              }
+    //
+    //        )
+    //      }
+    //    }
 
   }
 }

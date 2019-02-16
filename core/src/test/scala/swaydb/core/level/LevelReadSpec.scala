@@ -65,7 +65,7 @@ class LevelReadSpec3 extends LevelReadSpec {
 sealed trait LevelReadSpec extends TestBase with MockFactory with Benchmark {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
-  implicit def timeGenerator: TestTimeGenerator = TestTimeGenerator.random
+  implicit def timeGenerator: TestTimeGenerator = TestTimeGenerator.Empty
   implicit val groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(keyValuesCount)
   val keyValuesCount = 100
 
@@ -167,8 +167,9 @@ sealed trait LevelReadSpec extends TestBase with MockFactory with Benchmark {
     "return Level stats" in {
       val level = TestLevel()
 
+      val putKeyValues = randomPutKeyValues(keyValuesCount).toTransient
       //refresh so that if there is a compression running, this Segment will compressed.
-      val segments = TestSegment().assertGet.refresh(100.mb, TestData.falsePositiveRate, true).assertGet
+      val segments = TestSegment(putKeyValues).assertGet.refresh(100.mb, TestData.falsePositiveRate, true).assertGet
       segments should have size 1
       val segment = segments.head
 
@@ -183,8 +184,9 @@ sealed trait LevelReadSpec extends TestBase with MockFactory with Benchmark {
       val level2 = TestLevel()
       val level1 = TestLevel(nextLevel = Some(level2))
 
+      val putKeyValues = randomPutKeyValues(keyValuesCount).toTransient
       //refresh so that if there is a compression running, this Segment will compressed.
-      val segments = TestSegment().assertGet.refresh(100.mb, TestData.falsePositiveRate, true).assertGet
+      val segments = TestSegment(putKeyValues).assertGet.refresh(100.mb, TestData.falsePositiveRate, true).assertGet
       segments should have size 1
       val segment = segments.head
 
@@ -201,7 +203,8 @@ sealed trait LevelReadSpec extends TestBase with MockFactory with Benchmark {
       val level2 = TestLevel()
       val level1 = TestLevel(nextLevel = Some(level2))
 
-      val segment = TestSegment().assertGet
+      val putKeyValues = randomPutKeyValues(keyValuesCount).toTransient
+      val segment = TestSegment(putKeyValues).assertGet
       level2.put(Seq(segment)).assertGet
 
       level1.meterFor(3) shouldBe empty

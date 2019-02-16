@@ -19,14 +19,13 @@
 
 package swaydb.core.level
 
-import swaydb.core.TestBase
-import swaydb.core.util.Benchmark
-import swaydb.data.slice.Slice
-import swaydb.data.order.KeyOrder
-import swaydb.core.TestData._
-import swaydb.core.CommonAssertions._
-import swaydb.core.RunThis._
 import swaydb.core.IOAssert._
+import swaydb.core.RunThis._
+import swaydb.core.TestBase
+import swaydb.core.TestData._
+import swaydb.core.util.Benchmark
+import swaydb.data.order.KeyOrder
+import swaydb.data.slice.Slice
 
 //@formatter:off
 class LevelPerformanceSpec0 extends LevelPerformanceSpec
