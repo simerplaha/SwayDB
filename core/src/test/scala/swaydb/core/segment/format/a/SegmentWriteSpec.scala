@@ -381,6 +381,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
 
       def doAssert(keyValues: Slice[KeyValue], segment: Segment): Unit = {
         segment.hasRange.assertGet shouldBe true
+        segment.hasPut.assertGet shouldBe true
         segment.close.assertGet
       }
 

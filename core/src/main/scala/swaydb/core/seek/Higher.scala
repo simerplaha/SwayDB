@@ -91,6 +91,8 @@ private[core] object Higher {
                                  functionStore: FunctionStore): IO.Async[Option[KeyValue.ReadOnly.Put]] = {
     import keyOrder._
 
+//    println(s"Current walker: ${currentWalker.levelNumber} - ${key.readInt()}")
+
     (currentSeek, nextSeek) match {
       /** *********************************************************
         * ******************                    *******************

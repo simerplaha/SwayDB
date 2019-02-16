@@ -291,10 +291,10 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
               bloomFilterFalsePositiveRate: Double = 0.01,
               compressDuplicateValues: Boolean = true,
               deleteSegmentsEventually: Boolean = true)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                       keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
-                                                       fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter,
-                                                       timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                       compression: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategy(randomNextInt(1000))): Level =
+                                                        keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
+                                                        fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter,
+                                                        timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
+                                                        compression: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategy(randomNextInt(1000))): Level =
       Level(
         levelStorage = levelStorage,
         segmentSize = segmentSize,
@@ -583,7 +583,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
                        assert: (Slice[Memory], Segment) => T,
                        testWithCachePopulated: Boolean = true,
                        closeAfterCreate: Boolean = false)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                            groupingStrategy: Option[KeyValueGroupingStrategyInternal]) = {
+                                                          groupingStrategy: Option[KeyValueGroupingStrategyInternal]) = {
     val segment = TestSegment(keyValues.toTransient).assertGet
     if (closeAfterCreate) segment.close.assertGet
 

@@ -199,8 +199,8 @@ object TestData {
       else
         keyValues.toMapEntry match {
           case Some(value) =>
-            //            level.put(value) map (_ => ())
-            ???
+            level.put(value) map (_ => ())
+
           case None =>
             IO.unit
         }
@@ -1979,6 +1979,12 @@ object TestData {
             else
               None
         }
+    }(collection.breakOut)
+
+  def getPuts(keyValues: Iterable[KeyValue]): List[KeyValue.ReadOnly.Put] =
+    unzipGroups(keyValues).flatMap {
+      keyValue =>
+        keyValue.asPut
     }(collection.breakOut)
 
   /**

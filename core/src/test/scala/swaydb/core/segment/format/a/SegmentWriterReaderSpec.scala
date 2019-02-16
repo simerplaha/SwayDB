@@ -205,6 +205,7 @@ class SegmentWriterReaderSpec extends TestBase {
         footer.hasRange shouldBe false
         val bloomFilter = footer.bloomFilter.assertGet
         assertBloom(keyValues, bloomFilter)
+
         footer.crc should be > 0L
       }
     }

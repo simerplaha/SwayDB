@@ -216,6 +216,9 @@ private[segment] case class PersistentSegment(file: DBFile,
   def lower(key: Slice[Byte]): IO[Option[Persistent.SegmentResponse]] =
     segmentCache lower key
 
+  def floorHigherHint(key: Slice[Byte]): IO[Option[Slice[Byte]]] =
+    segmentCache floorHigherHint key
+
   def higher(key: Slice[Byte]): IO[Option[Persistent.SegmentResponse]] =
     segmentCache higher key
 

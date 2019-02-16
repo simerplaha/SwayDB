@@ -235,6 +235,20 @@ private[core] class SegmentCache(id: String,
         }
     }
 
+  def floorHigherHint(key: Slice[Byte]): IO[Option[Slice[Byte]]] =
+    hasPut map {
+      hasPut =>
+        if (hasPut)
+          if (key < minKey)
+            Some(minKey)
+          else if (key < maxKey.maxKey)
+            Some(key)
+          else
+            None
+        else
+          None
+    }
+
   def higher(key: Slice[Byte]): IO[Option[Persistent.SegmentResponse]] =
     maxKey match {
       case MaxKey.Fixed(maxKey) if key >= maxKey =>

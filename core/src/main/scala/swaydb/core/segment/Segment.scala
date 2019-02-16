@@ -948,6 +948,8 @@ private[core] trait Segment {
 
   def higher(key: Slice[Byte]): IO[Option[KeyValue.ReadOnly.SegmentResponse]]
 
+  def floorHigherHint(key: Slice[Byte]): IO[Option[Slice[Byte]]]
+
   def getAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None): IO[Slice[KeyValue.ReadOnly]]
 
   def delete: IO[Unit]

@@ -269,6 +269,23 @@ private[segment] case class MemorySegment(path: Path,
       IO.none
     }
 
+  def floorHigherHint(key: Slice[Byte]): IO[Option[Slice[Byte]]] =
+    if (deleted)
+      IO.Failure(IO.Error.NoSuchFile(path))
+    else
+      hasPut map {
+        hasPut =>
+          if (hasPut)
+            if (key < minKey)
+              Some(minKey)
+            else if (key < maxKey.maxKey)
+              Some(key)
+            else
+              None
+          else
+            None
+      }
+
   override def higher(key: Slice[Byte]): IO[Option[Memory.SegmentResponse]] =
     if (deleted)
       IO.Failure(IO.Error.NoSuchFile(path))
