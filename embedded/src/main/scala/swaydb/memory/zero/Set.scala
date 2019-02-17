@@ -48,7 +48,7 @@ object Set extends LazyLogging {
       config = DefaultMemoryZeroConfig(
         mapSize = mapSize,
         acceleration = acceleration
-      ),
+      )
     ) map {
       core =>
         swaydb.Set[T](new SwayDB(core))

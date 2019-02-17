@@ -50,7 +50,7 @@ object Map extends LazyLogging {
       config = DefaultMemoryZeroConfig(
         mapSize = mapSize,
         acceleration = acceleration
-      ),
+      )
     ) map {
       core =>
         swaydb.Map[K, V](new SwayDB(core))
