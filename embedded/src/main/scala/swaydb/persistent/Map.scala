@@ -93,7 +93,7 @@ object Map extends LazyLogging {
                   acceleration: Level0Meter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
                                                                                      valueSerializer: Serializer[V],
                                                                                      keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                     ec: ExecutionContext = SwayDB.defaultExecutionContext): IO[Map[K, V]] =
+                                                                                     ec: ExecutionContext = SwayDB.defaultExecutionContext): IO[swaydb.Map[K, V]] =
     CoreBlockingAPI(
       config = DefaultPersistentConfig(
         dir = dir,

@@ -49,7 +49,13 @@ private[core] object Map extends LazyLogging {
                                                                     writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                     reader: MapEntryReader[MapEntry[K, V]],
                                                                     skipListMerge: SkipListMerger[K, V]): IO[RecoveryResult[PersistentMap[K, V]]] =
-    PersistentMap(folder, mmap, flushOnOverflow, fileSize, dropCorruptedTailEntries)
+    PersistentMap(
+      folder = folder,
+      mmap = mmap,
+      flushOnOverflow = flushOnOverflow,
+      fileSize = fileSize,
+      dropCorruptedTailEntries = dropCorruptedTailEntries
+    )
 
   def persistent[K, V: ClassTag](folder: Path,
                                  mmap: Boolean,
@@ -62,7 +68,12 @@ private[core] object Map extends LazyLogging {
                                                  reader: MapEntryReader[MapEntry[K, V]],
                                                  writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                  skipListMerger: SkipListMerger[K, V]): IO[PersistentMap[K, V]] =
-    PersistentMap(folder, mmap, flushOnOverflow, fileSize)
+    PersistentMap(
+      folder = folder,
+      mmap = mmap,
+      flushOnOverflow = flushOnOverflow,
+      fileSize = fileSize
+    )
 
   def memory[K, V: ClassTag](fileSize: Long = 0.byte,
                              flushOnOverflow: Boolean = true)(implicit keyOrder: KeyOrder[K],
