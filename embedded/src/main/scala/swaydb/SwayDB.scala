@@ -94,7 +94,7 @@ object SwayDB extends LazyLogging {
                   segmentsOpenCheckDelay: FiniteDuration)(implicit keySerializer: Serializer[K],
                                                           valueSerializer: Serializer[V],
                                                           keyOrder: KeyOrder[Slice[Byte]],
-                                                          ec: ExecutionContext): IO[Map[K, V]] =
+                                                          ec: ExecutionContext): IO[swaydb.Map[K, V]] =
     CoreBlockingAPI(
       config = config,
       maxOpenSegments = maxSegmentsOpen,
@@ -103,7 +103,7 @@ object SwayDB extends LazyLogging {
       segmentsOpenCheckDelay = segmentsOpenCheckDelay
     ) map {
       core =>
-        Map[K, V](new SwayDB(core))
+        swaydb.Map[K, V](new SwayDB(core))
     }
 
   def apply[T](config: SwayDBPersistentConfig,
@@ -112,7 +112,7 @@ object SwayDB extends LazyLogging {
                cacheCheckDelay: FiniteDuration,
                segmentsOpenCheckDelay: FiniteDuration)(implicit serializer: Serializer[T],
                                                        keyOrder: KeyOrder[Slice[Byte]],
-                                                       ec: ExecutionContext): IO[Set[T]] =
+                                                       ec: ExecutionContext): IO[swaydb.Set[T]] =
     CoreBlockingAPI(
       config = config,
       maxOpenSegments = maxSegmentsOpen,
@@ -121,7 +121,7 @@ object SwayDB extends LazyLogging {
       segmentsOpenCheckDelay = segmentsOpenCheckDelay
     ) map {
       core =>
-        Set[T](new SwayDB(core))
+        swaydb.Set[T](new SwayDB(core))
     }
 
   def apply[K, V](config: SwayDBMemoryConfig,
@@ -129,7 +129,7 @@ object SwayDB extends LazyLogging {
                   cacheCheckDelay: FiniteDuration)(implicit keySerializer: Serializer[K],
                                                    valueSerializer: Serializer[V],
                                                    keyOrder: KeyOrder[Slice[Byte]],
-                                                   ec: ExecutionContext): IO[Map[K, V]] =
+                                                   ec: ExecutionContext): IO[swaydb.Map[K, V]] =
     CoreBlockingAPI(
       config = config,
       maxOpenSegments = 0,
@@ -138,14 +138,14 @@ object SwayDB extends LazyLogging {
       segmentsOpenCheckDelay = Duration.Zero
     ) map {
       core =>
-        Map[K, V](new SwayDB(core))
+        swaydb.Map[K, V](new SwayDB(core))
     }
 
   def apply[T](config: SwayDBMemoryConfig,
                cacheSize: Int,
                cacheCheckDelay: FiniteDuration)(implicit serializer: Serializer[T],
                                                 keyOrder: KeyOrder[Slice[Byte]],
-                                                ec: ExecutionContext): IO[Set[T]] =
+                                                ec: ExecutionContext): IO[swaydb.Set[T]] =
     CoreBlockingAPI(
       config = config,
       maxOpenSegments = 0,
@@ -154,17 +154,17 @@ object SwayDB extends LazyLogging {
       segmentsOpenCheckDelay = Duration.Zero
     ) map {
       core =>
-        Set[T](new SwayDB(core))
+        swaydb.Set[T](new SwayDB(core))
     }
 
   def apply[T](config: LevelZeroConfig)(implicit serializer: Serializer[T],
                                         keyOrder: KeyOrder[Slice[Byte]],
-                                        ec: ExecutionContext): IO[Set[T]] =
+                                        ec: ExecutionContext): IO[swaydb.Set[T]] =
     CoreBlockingAPI(
       config = config
     ) map {
       core =>
-        Set[T](new SwayDB(core))
+        swaydb.Set[T](new SwayDB(core))
     }
 
   /**
@@ -249,6 +249,12 @@ private[swaydb] class SwayDB(api: CoreBlockingAPI) {
   def remove(from: Slice[Byte], to: Slice[Byte]): IO[Level0Meter] =
     api.remove(from, to)
 
+  def function(key: Slice[Byte], function: Slice[Byte]) =
+    api.function(key, function)
+
+  def function(from: Slice[Byte], to: Slice[Byte], function: Slice[Byte]): IO[Level0Meter] =
+    api.function(from, to, function)
+
   def batch(entries: Iterable[request.Batch]) =
     entries.foldLeft(Option.empty[MapEntry[Slice[Byte], Memory.SegmentResponse]]) {
       case (mapEntry, batchEntry) =>
@@ -263,6 +269,9 @@ private[swaydb] class SwayDB(api: CoreBlockingAPI) {
             case request.Batch.Update(key, value) =>
               MapEntry.Put[Slice[Byte], Memory.Update](key, Memory.Update(key, value, None, Time.empty))(LevelZeroMapEntryWriter.Level0UpdateWriter)
 
+            case request.Batch.Function(key, function) =>
+              MapEntry.Put[Slice[Byte], Memory.Function](key, Memory.Function(key, function, Time.empty))(LevelZeroMapEntryWriter.Level0FunctionWriter)
+
             case request.Batch.RemoveRange(fromKey, toKey, expire) =>
               (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, None, Value.Remove(expire, Time.empty)))(LevelZeroMapEntryWriter.Level0RangeWriter): MapEntry[Slice[Byte], Memory.SegmentResponse]) ++
                 MapEntry.Put[Slice[Byte], Memory.Remove](toKey, Memory.Remove(toKey, expire, Time.empty))(LevelZeroMapEntryWriter.Level0RemoveWriter)
@@ -270,6 +279,10 @@ private[swaydb] class SwayDB(api: CoreBlockingAPI) {
             case request.Batch.UpdateRange(fromKey, toKey, value) =>
               (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, None, Value.Update(value, None, Time.empty)))(LevelZeroMapEntryWriter.Level0RangeWriter): MapEntry[Slice[Byte], Memory.SegmentResponse]) ++
                 MapEntry.Put[Slice[Byte], Memory.Update](toKey, Memory.Update(toKey, None, None, Time.empty))(LevelZeroMapEntryWriter.Level0UpdateWriter)
+
+            case request.Batch.FunctionRange(fromKey, toKey, function) =>
+              (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, None, Value.Function(function, Time.empty)))(LevelZeroMapEntryWriter.Level0RangeWriter): MapEntry[Slice[Byte], Memory.SegmentResponse]) ++
+                MapEntry.Put[Slice[Byte], Memory.Function](toKey, Memory.Function(toKey, function, Time.empty))(LevelZeroMapEntryWriter.Level0FunctionWriter)
           }
         Some(mapEntry.map(_ ++ nextEntry) getOrElse nextEntry)
     } map {

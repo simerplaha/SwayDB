@@ -22,9 +22,9 @@ package swaydb.core.data
 import scala.concurrent.duration.Deadline
 import swaydb.data.slice.Slice
 
-sealed trait SwayFunction
+private[swaydb] sealed trait SwayFunction
 
-object SwayFunction {
+private[swaydb] object SwayFunction {
   sealed trait RequiresKey extends SwayFunction
   sealed trait RequiresValue extends SwayFunction
   sealed trait RequiresDeadline extends SwayFunction
@@ -33,15 +33,15 @@ object SwayFunction {
   case class KeyDeadline(f: (Slice[Byte], Option[Deadline]) => SwayFunctionOutput) extends RequiresKey with RequiresDeadline
   case class KeyValue(f: (Slice[Byte], Option[Slice[Byte]]) => SwayFunctionOutput) extends RequiresKey with RequiresValue
 
-  case class KeyValueDeadline(f: (Slice[Byte], Option[Slice[Byte]], Option[Deadline]) => SwayFunctionOutput) extends RequiresKey with RequiresValue  with RequiresDeadline
+  case class KeyValueDeadline(f: (Slice[Byte], Option[Slice[Byte]], Option[Deadline]) => SwayFunctionOutput) extends RequiresKey with RequiresValue with RequiresDeadline
   case class Value(f: Option[Slice[Byte]] => SwayFunctionOutput) extends RequiresValue
-  case class ValueDeadline(f: (Option[Slice[Byte]], Option[Deadline]) => SwayFunctionOutput) extends RequiresValue  with RequiresDeadline
+  case class ValueDeadline(f: (Option[Slice[Byte]], Option[Deadline]) => SwayFunctionOutput) extends RequiresValue with RequiresDeadline
 }
 
-sealed trait SwayFunctionOutput {
+private[swaydb] sealed trait SwayFunctionOutput {
   def toValue(time: Time): Value.RangeValue
 }
-object SwayFunctionOutput {
+private[swaydb] object SwayFunctionOutput {
 
   case object Remove extends SwayFunctionOutput {
     def toValue(time: Time): Value.Remove =

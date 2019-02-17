@@ -250,6 +250,30 @@ private[core] class LevelZero(val path: Path,
       }
     }
 
+  def function(key: Slice[Byte], function: Slice[Byte]): IO[Level0Meter] =
+    if (!functionStore.exists(function))
+      IO.Failure(new Exception("Function does not exists in function store."))
+    else
+      assertKey(key) {
+        maps.write(MapEntry.Put[Slice[Byte], Memory.Function](key, Memory.Function(key, function, Time.empty)))
+      }
+
+  def function(fromKey: Slice[Byte], to: Slice[Byte], function: Slice[Byte]): IO[Level0Meter] =
+    if (!functionStore.exists(function))
+      IO.Failure(new Exception("Function does not exists in function store."))
+    else
+      assertKey(fromKey) {
+        assertKey(to) {
+          if (fromKey >= to)
+            IO.Failure(new Exception("fromKey should be less than toKey"))
+          else
+            maps.write {
+              (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, to, None, Value.Function(function, Time.empty))): MapEntry[Slice[Byte], Memory.SegmentResponse]) ++
+                MapEntry.Put[Slice[Byte], Memory.Function](to, Memory.Function(to, function, Time.empty))
+            }
+        }
+      }
+
   @tailrec
   private def getFromMap(key: Slice[Byte],
                          currentMap: map.Map[Slice[Byte], Memory.SegmentResponse],

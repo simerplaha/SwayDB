@@ -81,11 +81,11 @@ private[swaydb] case class CoreBlockingAPI(zero: LevelZero) {
   def remove(key: Slice[Byte], at: Deadline): IO[Level0Meter] =
     zero.remove(key, at)
 
-  def remove(fromKey: Slice[Byte], to: Slice[Byte]): IO[Level0Meter] =
-    zero.remove(fromKey, to)
+  def remove(from: Slice[Byte], to: Slice[Byte]): IO[Level0Meter] =
+    zero.remove(from, to)
 
-  def remove(fromKey: Slice[Byte], to: Slice[Byte], at: Deadline): IO[Level0Meter] =
-    zero.remove(fromKey, to, at)
+  def remove(from: Slice[Byte], to: Slice[Byte], at: Deadline): IO[Level0Meter] =
+    zero.remove(from, to, at)
 
   def update(key: Slice[Byte], value: Slice[Byte]): IO[Level0Meter] =
     zero.update(key, value)
@@ -98,6 +98,12 @@ private[swaydb] case class CoreBlockingAPI(zero: LevelZero) {
 
   def update(fromKey: Slice[Byte], to: Slice[Byte], value: Option[Slice[Byte]]): IO[Level0Meter] =
     zero.update(fromKey, to, value)
+
+  def function(key: Slice[Byte], function: Slice[Byte]): IO[Level0Meter] =
+    zero.function(key, function)
+
+  def function(from: Slice[Byte], to: Slice[Byte], function: Slice[Byte]): IO[Level0Meter] =
+    zero.function(from, to, function)
 
   def head: IO[Option[KeyValueTuple]] =
     zero.head.safeGetBlocking flatMap {

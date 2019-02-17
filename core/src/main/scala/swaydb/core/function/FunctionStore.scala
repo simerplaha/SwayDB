@@ -19,16 +19,17 @@
 
 package swaydb.core.function
 
-import java.util.concurrent.{ConcurrentHashMap, ConcurrentSkipListMap}
-
+import java.util.concurrent.ConcurrentHashMap
 import swaydb.core.data.SwayFunction
-import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 
 trait FunctionStore {
   def get(functionId: Slice[Byte]): Option[SwayFunction]
 
   def put(functionId: Slice[Byte], function: SwayFunction): SwayFunction
+
+  def exists(functionId: Slice[Byte]): Boolean
+
 }
 
 object FunctionStore {
@@ -41,11 +42,13 @@ object FunctionStore {
 class MemoryStore extends FunctionStore {
 
   private val functions = new ConcurrentHashMap[Slice[Byte], SwayFunction]()
-  //  private val functions = new ConcurrentSkipListMap[Slice[Byte], SwayFunction](KeyOrder.default)
 
   override def get(functionId: Slice[Byte]): Option[SwayFunction] =
     Option(functions.get(functionId))
 
   override def put(functionId: Slice[Byte], function: SwayFunction): SwayFunction =
     functions.put(functionId, function)
+
+  override def exists(functionId: Slice[Byte]): Boolean =
+    functions.contains(functionId)
 }

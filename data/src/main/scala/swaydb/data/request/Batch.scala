@@ -37,6 +37,9 @@ private[swaydb] object Batch {
   private[swaydb] case class Update(key: Slice[Byte],
                                     value: Option[Slice[Byte]]) extends Batch
 
+  private[swaydb] case class Function(key: Slice[Byte],
+                                      function: Slice[Byte]) extends Batch
+
   private[swaydb] case class UpdateRange(fromKey: Slice[Byte],
                                          toKey: Slice[Byte],
                                          value: Option[Slice[Byte]]) extends Batch
@@ -44,4 +47,9 @@ private[swaydb] object Batch {
   private[swaydb] case class RemoveRange(fromKey: Slice[Byte],
                                          toKey: Slice[Byte],
                                          expire: Option[Deadline]) extends Batch
+
+  private[swaydb] case class FunctionRange(fromKey: Slice[Byte],
+                                           toKey: Slice[Byte],
+                                           function: Slice[Byte]) extends Batch
+
 }

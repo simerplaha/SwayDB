@@ -80,6 +80,12 @@ case class Set[T](private val db: SwayDB,
   def expire(from: T, to: T, at: Deadline): IO[Level0Meter] =
     db.expire(from, to, at)
 
+  def update(from: T, to: T, function: T): IO[Level0Meter] =
+    db.function(from, to, function)
+
+  def update(elem: T, function: T): IO[Level0Meter] =
+    db.function(elem, function)
+
   def batch(batch: Batch[T, Nothing]*): IO[Level0Meter] =
     db.batch(batch)
 
