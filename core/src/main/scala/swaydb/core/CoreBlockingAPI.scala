@@ -28,7 +28,7 @@ import swaydb.core.level.zero.LevelZero
 import swaydb.core.map.MapEntry
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
-import swaydb.data.config.SwayDBConfig
+import swaydb.data.config.{LevelZeroConfig, SwayDBConfig}
 import swaydb.data.io.IO
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -50,6 +50,12 @@ private[swaydb] object CoreBlockingAPI {
       keyValueQueueDelay = cacheCheckDelay,
       segmentCloserDelay = segmentsOpenCheckDelay
     )
+
+  def apply(config: LevelZeroConfig)(implicit ec: ExecutionContext,
+                                     keyOrder: KeyOrder[Slice[Byte]],
+                                     timeOrder: TimeOrder[Slice[Byte]],
+                                     functionStore: FunctionStore): IO[CoreBlockingAPI] =
+    DBInitializer(config = config)
 }
 
 private[swaydb] case class CoreBlockingAPI(zero: LevelZero) {

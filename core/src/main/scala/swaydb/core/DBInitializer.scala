@@ -23,20 +23,56 @@ import com.typesafe.scalalogging.LazyLogging
 import java.nio.file.Paths
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
-import swaydb.data.io.IO
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
-import swaydb.core.io.file.DBFile
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, LevelRef, TrashLevel}
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.util.FileUtil._
 import swaydb.data.config._
+import swaydb.data.io.IO
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.{AppendixStorage, LevelStorage}
 
 private[core] object DBInitializer extends LazyLogging {
+
+  /**
+    * Closes all the open files and releases the locks on database folders.
+    */
+  private def addShutdownHook(zero: LevelZero): Unit =
+    sys.addShutdownHook {
+      logger.info("Closing files.")
+      zero.close.failed foreach {
+        exception =>
+          logger.error("Failed to close Levels.", exception)
+      }
+
+      logger.info("Releasing database locks.")
+      zero.releaseLocks.failed foreach {
+        exception =>
+          logger.error("Failed to release locks.", exception)
+      }
+    }
+
+  def apply(config: LevelZeroConfig)(implicit ec: ExecutionContext,
+                                     keyOrder: KeyOrder[Slice[Byte]],
+                                     timeOrder: TimeOrder[Slice[Byte]],
+                                     functionStore: FunctionStore): IO[CoreBlockingAPI] = {
+    implicit val fileLimiter = FileLimiter.empty
+    LevelZero(
+      mapSize = config.mapSize,
+      storage = config.storage,
+      nextLevel = None,
+      throttleOn = false,
+      acceleration = config.acceleration,
+      readRetryLimit = 10000
+    ) map {
+      zero =>
+        addShutdownHook(zero)
+        CoreBlockingAPI(zero)
+    }
+  }
 
   def apply(config: SwayDBConfig,
             maxSegmentsOpen: Int,
@@ -94,24 +130,6 @@ private[core] object DBInitializer extends LazyLogging {
           IO.Success(TrashLevel)
       }
 
-    /**
-      * Closes all the open files and releases the locks on database folders.
-      */
-    def addShutdownHook(zero: LevelZero): Unit =
-      sys.addShutdownHook {
-        logger.info("Closing files.")
-        zero.close.failed foreach {
-          exception =>
-            logger.error("Failed to close Levels.", exception)
-        }
-
-        logger.info("Releasing database locks.")
-        zero.releaseLocks.failed foreach {
-          exception =>
-            logger.error("Failed to release locks.", exception)
-        }
-      }
-
     def createLevels(levelConfigs: List[LevelConfig],
                      previousLowerLevel: Option[LevelRef]): IO[CoreBlockingAPI] =
       levelConfigs match {
@@ -121,7 +139,7 @@ private[core] object DBInitializer extends LazyLogging {
               LevelZero(
                 mapSize = config.level0.mapSize,
                 storage = config.level0.storage,
-                nextLevel = Some(level1), //TODO make level1 optional.
+                nextLevel = Some(level1),
                 throttleOn = true,
                 acceleration = config.level0.acceleration,
                 readRetryLimit = 10000

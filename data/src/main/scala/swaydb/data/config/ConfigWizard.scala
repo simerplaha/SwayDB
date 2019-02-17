@@ -36,7 +36,7 @@ object ConfigWizard {
                           mmap: Boolean,
                           recoveryMode: RecoveryMode,
                           acceleration: Level0Meter => Accelerator) =
-    Level0PersistentConfig(
+    LevelZeroPersistentConfig(
       mapSize = mapSize,
       storage = Level0Storage.Persistent(mmap, dir, recoveryMode),
       acceleration = acceleration
@@ -44,23 +44,23 @@ object ConfigWizard {
 
   def addMemoryLevel0(mapSize: Long,
                       acceleration: Level0Meter => Accelerator) =
-    Level0MemoryConfig(
+    LevelZeroMemoryConfig(
       mapSize = mapSize,
       storage = Level0Storage.Memory,
       acceleration = acceleration
     )
 }
 
-sealed trait Level0Config {
+sealed trait LevelZeroConfig {
   val mapSize: Long
   val storage: Level0Storage
 
   def acceleration: Level0Meter => Accelerator
 }
 
-case class Level0PersistentConfig(mapSize: Long,
-                                  storage: Level0Storage,
-                                  acceleration: Level0Meter => Accelerator) extends Level0Config {
+case class LevelZeroPersistentConfig(mapSize: Long,
+                                     storage: Level0Storage,
+                                     acceleration: Level0Meter => Accelerator) extends LevelZeroConfig {
   def addPersistentLevel1(dir: Path,
                           otherDirs: Seq[Dir],
                           segmentSize: Int,
@@ -114,9 +114,9 @@ case class Level0PersistentConfig(mapSize: Long,
     )
 }
 
-case class Level0MemoryConfig(mapSize: Long,
-                              storage: Level0Storage,
-                              acceleration: Level0Meter => Accelerator) extends Level0Config {
+case class LevelZeroMemoryConfig(mapSize: Long,
+                                 storage: Level0Storage,
+                                 acceleration: Level0Meter => Accelerator) extends LevelZeroConfig {
 
   def addPersistentLevel1(dir: Path,
                           otherDirs: Seq[Dir],
@@ -198,7 +198,7 @@ case class PersistentLevelConfig(dir: Path,
                                  throttle: LevelMeter => Throttle) extends LevelConfig
 
 sealed trait SwayDBConfig {
-  val level0: Level0Config
+  val level0: LevelZeroConfig
   val level1: LevelConfig
   val otherLevels: List[LevelConfig]
 
@@ -207,7 +207,7 @@ sealed trait SwayDBConfig {
   def memory: Boolean = !persistent
 }
 
-case class SwayDBMemoryConfig(level0: Level0MemoryConfig,
+case class SwayDBMemoryConfig(level0: LevelZeroMemoryConfig,
                               level1: LevelConfig,
                               otherLevels: List[LevelConfig]) extends SwayDBConfig {
 
@@ -272,7 +272,7 @@ case class SwayDBMemoryConfig(level0: Level0MemoryConfig,
   override def persistent: Boolean = false
 }
 
-case class SwayDBPersistentConfig(level0: Level0Config,
+case class SwayDBPersistentConfig(level0: LevelZeroConfig,
                                   level1: LevelConfig,
                                   otherLevels: List[LevelConfig]) extends SwayDBConfig {
 

@@ -157,6 +157,16 @@ object SwayDB extends LazyLogging {
         Set[T](new SwayDB(core))
     }
 
+  def apply[T](config: LevelZeroConfig)(implicit serializer: Serializer[T],
+                                        keyOrder: KeyOrder[Slice[Byte]],
+                                        ec: ExecutionContext): IO[Set[T]] =
+    CoreBlockingAPI(
+      config = config,
+    ) map {
+      core =>
+        Set[T](new SwayDB(core))
+    }
+
   /**
     * Documentation: http://www.swaydb.io/api/repairAppendix
     */
