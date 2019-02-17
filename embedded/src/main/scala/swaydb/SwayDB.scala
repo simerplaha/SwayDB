@@ -34,8 +34,7 @@ import swaydb.core.tool.AppendixRepairer
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.config._
-import swaydb.data.function.MapFunction
-import swaydb.data.function.MapFunction.Output
+import swaydb.MapFunction.Output
 import swaydb.data.io.IO
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.repairAppendix.RepairResult.OverlappingSegments
@@ -169,7 +168,7 @@ object SwayDB extends LazyLogging {
         swaydb.Set[T](new SwayDB(core))
     }
 
-  private def toCoreFunctionOutput[V](output: swaydb.data.function.MapFunction.Output[V])(implicit valueSerializer: Serializer[V]): SwayFunctionOutput =
+  private def toCoreFunctionOutput[V](output: swaydb.MapFunction.Output[V])(implicit valueSerializer: Serializer[V]): SwayFunctionOutput =
     output match {
       case Output.Remove =>
         SwayFunctionOutput.Remove
@@ -182,7 +181,7 @@ object SwayDB extends LazyLogging {
         SwayFunctionOutput.Update(Some(untypedValue), update.deadline)
     }
 
-  private[swaydb] def toCoreFunction[K, V](function: swaydb.data.function.MapFunction[K, V])(implicit keySerializer: Serializer[K],
+  private[swaydb] def toCoreFunction[K, V](function: MapFunction[K, V])(implicit keySerializer: Serializer[K],
                                                                                              valueSerializer: Serializer[V]): swaydb.core.data.SwayFunction = {
     import swaydb.serializers._
     implicit val unit = swaydb.serializers.Default.UnitSerializer

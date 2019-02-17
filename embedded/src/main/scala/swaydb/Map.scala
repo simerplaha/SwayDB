@@ -24,7 +24,6 @@ import scala.concurrent.duration.{Deadline, FiniteDuration}
 import swaydb.BatchImplicits._
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
-import swaydb.data.function.MapFunction
 import swaydb.data.io.IO
 import swaydb.data.request
 import swaydb.data.slice.Slice

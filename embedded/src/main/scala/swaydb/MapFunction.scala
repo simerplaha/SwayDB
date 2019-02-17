@@ -17,7 +17,7 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.data.function
+package swaydb
 
 import scala.concurrent.duration.Deadline
 
