@@ -21,11 +21,11 @@ package swaydb
 
 import scala.collection.generic.CanBuildFrom
 import scala.concurrent.duration.{Deadline, FiniteDuration}
-import swaydb.data.io.IO
 import swaydb.BatchImplicits._
-import swaydb.core.function.FunctionStore
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
+import swaydb.data.function.MapFunction
+import swaydb.data.io.IO
 import swaydb.data.request
 import swaydb.data.slice.Slice
 import swaydb.serializers.{Serializer, _}
@@ -39,7 +39,7 @@ object Map {
 }
 
 /**
-  * Key-value or Map database API.
+  * Map database API.
   *
   * For documentation check - http://swaydb.io/api/
   */
@@ -81,6 +81,9 @@ case class Map[K, V](private[swaydb] val db: SwayDB,
 
   def update(from: K, to: K, value: V): IO[Level0Meter] =
     db.update(from, to, Some(value))
+
+  def registerFunction(functionID: K, function: MapFunction[K, V]) =
+    db.registerFunction(functionID, SwayDB.toCoreFunction(function))
 
   def function(key: K, function: K): IO[Level0Meter] =
     db.function(key, function)

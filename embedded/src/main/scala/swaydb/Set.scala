@@ -21,10 +21,10 @@ package swaydb
 
 import scala.collection.generic.CanBuildFrom
 import scala.concurrent.duration.{Deadline, FiniteDuration}
-import swaydb.data.io.IO
 import swaydb.BatchImplicits._
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
+import swaydb.data.io.IO
 import swaydb.data.request
 import swaydb.data.slice.Slice
 import swaydb.serializers.{Serializer, _}
@@ -80,10 +80,10 @@ case class Set[T](private val db: SwayDB,
   def expire(from: T, to: T, at: Deadline): IO[Level0Meter] =
     db.expire(from, to, at)
 
-  def update(from: T, to: T, function: T): IO[Level0Meter] =
+  def function(from: T, to: T, function: T): IO[Level0Meter] =
     db.function(from, to, function)
 
-  def update(elem: T, function: T): IO[Level0Meter] =
+  def function(elem: T, function: T): IO[Level0Meter] =
     db.function(elem, function)
 
   def batch(batch: Batch[T, Nothing]*): IO[Level0Meter] =

@@ -22,7 +22,7 @@ package swaydb.core
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 import swaydb.core.data.KeyValue._
-import swaydb.core.data.Memory
+import swaydb.core.data.{Memory, SwayFunction}
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.map.MapEntry
@@ -104,6 +104,9 @@ private[swaydb] case class CoreBlockingAPI(zero: LevelZero) {
 
   def function(from: Slice[Byte], to: Slice[Byte], function: Slice[Byte]): IO[Level0Meter] =
     zero.function(from, to, function)
+
+  def registerFunction(functionID: Slice[Byte], function: SwayFunction): SwayFunction =
+    zero.registerFunction(functionID, function)
 
   def head: IO[Option[KeyValueTuple]] =
     zero.head.safeGetBlocking flatMap {

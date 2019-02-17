@@ -24,9 +24,8 @@ import java.nio.file.Path
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{FiniteDuration, _}
 import scala.concurrent.forkjoin.ForkJoinPool
-import swaydb.data.io.IO
 import swaydb.core.CoreBlockingAPI
-import swaydb.core.data.{Memory, Time, Value}
+import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.map.MapEntry
 import swaydb.core.map.serializer.LevelZeroMapEntryWriter
@@ -35,6 +34,9 @@ import swaydb.core.tool.AppendixRepairer
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.config._
+import swaydb.data.function.MapFunction
+import swaydb.data.function.MapFunction.Output
+import swaydb.data.io.IO
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.repairAppendix.RepairResult.OverlappingSegments
 import swaydb.data.repairAppendix._
@@ -167,6 +169,64 @@ object SwayDB extends LazyLogging {
         swaydb.Set[T](new SwayDB(core))
     }
 
+  private def toCoreFunctionOutput[V](output: swaydb.data.function.MapFunction.Output[V])(implicit valueSerializer: Serializer[V]): SwayFunctionOutput =
+    output match {
+      case Output.Remove =>
+        SwayFunctionOutput.Remove
+
+      case Output.Expire(deadline) =>
+        SwayFunctionOutput.Expire(deadline)
+
+      case update: Output.Update[V] =>
+        val untypedValue: Slice[Byte] = valueSerializer.write(update.value)
+        SwayFunctionOutput.Update(Some(untypedValue), update.deadline)
+    }
+
+  private[swaydb] def toCoreFunction[K, V](function: swaydb.data.function.MapFunction[K, V])(implicit keySerializer: Serializer[K],
+                                                                                             valueSerializer: Serializer[V]): swaydb.core.data.SwayFunction = {
+    import swaydb.serializers._
+    implicit val unit = swaydb.serializers.Default.UnitSerializer
+
+
+    function match {
+      case MapFunction.Key(f) =>
+        def function(key: Slice[Byte]) =
+          toCoreFunctionOutput(f(key.read[K]))
+
+        swaydb.core.data.SwayFunction.Key(function)
+
+      case MapFunction.KeyDeadline(f) =>
+        def function(key: Slice[Byte], deadline: Option[Deadline]) =
+          toCoreFunctionOutput(f(key.read[K], deadline))
+
+        swaydb.core.data.SwayFunction.KeyDeadline(function)
+
+      case MapFunction.KeyValue(f) =>
+        def function(key: Slice[Byte], value: Option[Slice[Byte]]) =
+          toCoreFunctionOutput(f(key.read[K], value.read[V]))
+
+        swaydb.core.data.SwayFunction.KeyValue(function)
+
+      case MapFunction.KeyValueDeadline(f) =>
+        def function(key: Slice[Byte], value: Option[Slice[Byte]], deadline: Option[Deadline]) =
+          toCoreFunctionOutput(f(key.read[K], value.read[V], deadline))
+
+        swaydb.core.data.SwayFunction.KeyValueDeadline(function)
+
+      case swayFunction: MapFunction.Value[V] =>
+        def function(value: Option[Slice[Byte]]) =
+          toCoreFunctionOutput[V](swayFunction.f(value.read[V]))
+
+        swaydb.core.data.SwayFunction.Value(function)
+
+      case swayFunction: MapFunction.ValueDeadline[V] =>
+        def function(value: Option[Slice[Byte]], deadline: Option[Deadline]) =
+          toCoreFunctionOutput[V](swayFunction.f(value.read[V], deadline))
+
+        swaydb.core.data.SwayFunction.ValueDeadline(function)
+    }
+  }
+
   /**
     * Documentation: http://www.swaydb.io/api/repairAppendix
     */
@@ -254,6 +314,9 @@ private[swaydb] class SwayDB(api: CoreBlockingAPI) {
 
   def function(from: Slice[Byte], to: Slice[Byte], function: Slice[Byte]): IO[Level0Meter] =
     api.function(from, to, function)
+
+  def registerFunction(functionID: Slice[Byte], function: swaydb.core.data.SwayFunction): swaydb.core.data.SwayFunction =
+    api.registerFunction(functionID, function)
 
   def batch(entries: Iterable[request.Batch]) =
     entries.foldLeft(Option.empty[MapEntry[Slice[Byte], Memory.SegmentResponse]]) {

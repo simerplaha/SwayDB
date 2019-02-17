@@ -250,6 +250,9 @@ private[core] class LevelZero(val path: Path,
       }
     }
 
+  def registerFunction(functionID: Slice[Byte], function: SwayFunction): SwayFunction =
+    functionStore.put(functionID, function)
+
   def function(key: Slice[Byte], function: Slice[Byte]): IO[Level0Meter] =
     if (!functionStore.exists(function))
       IO.Failure(new Exception("Function does not exists in function store."))
