@@ -20,6 +20,8 @@
 package swaydb.core.level
 
 import org.scalamock.scalatest.MockFactory
+import org.scalatest.exceptions.TestFailedException
+import scala.util.{Failure, Success, Try}
 import swaydb.core.CommonAssertions._
 import swaydb.core.IOAssert._
 import swaydb.core.RunThis._
@@ -28,9 +30,9 @@ import swaydb.core.TestData._
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.util.Benchmark
 import swaydb.data.io.IO
+import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
-//@formatter:off
 class LevelReadSomeSpec0 extends LevelReadSomeSpec
 
 class LevelReadSomeSpec1 extends LevelReadSomeSpec {
@@ -53,15 +55,13 @@ class LevelReadSomeSpec3 extends LevelReadSomeSpec {
   override def inMemoryStorage = true
 }
 
-//@formatter:on
-
 sealed trait LevelReadSomeSpec extends TestBase with MockFactory with Benchmark {
 
   implicit def groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(keyValuesCount)
 
   //  override def deleteFiles = false
 
-  val keyValuesCount = 1000
+  val keyValuesCount = 5000
 
   val times = 10
 
@@ -69,7 +69,7 @@ sealed trait LevelReadSomeSpec extends TestBase with MockFactory with Benchmark 
 
     "level has valid puts" in {
       runThisParallel(times) {
-        assertOnLevel(
+        assertLevel(
           level0KeyValues =
             (_, _, timeGenerator) =>
               randomPutKeyValues(keyValuesCount)(timeGenerator),
@@ -82,15 +82,16 @@ sealed trait LevelReadSomeSpec extends TestBase with MockFactory with Benchmark 
     }
 
     "contains put that were updated" in {
-      runThis(times) {
+      runThisParallel(times) {
         val updatedValue = randomStringOption
-        val deadline = randomDeadlineOption(false)
+        //also update the deadline so that no puts are expired
+        val updatedDeadline = eitherOne(None, randomDeadlineOption(false))
 
-        assertOnLevel(
+        assertLevel(
           level0KeyValues =
             (level1KeyValues, level2KeyValues, timeGenerator) => {
               val puts = unexpiredPuts(level2KeyValues ++ level1KeyValues)
-              randomUpdate(puts, updatedValue, deadline, false)(timeGenerator)
+              randomUpdate(puts, updatedValue, updatedDeadline, false)(timeGenerator)
             },
 
           level1KeyValues =
@@ -102,7 +103,7 @@ sealed trait LevelReadSomeSpec extends TestBase with MockFactory with Benchmark 
               randomizedKeyValues(keyValuesCount, startId = Some(0))(timeGenerator).toMemory,
 
           assertLevel0 =
-            (level0KeyValues, level1KeyValues, _, level) =>
+            (level0KeyValues, level1KeyValues, level2KeyValues, level) =>
               level0KeyValues foreach {
                 update =>
                   val (gotValue, gotDeadline) = level.get(update.key) mapAsync {
@@ -115,9 +116,34 @@ sealed trait LevelReadSomeSpec extends TestBase with MockFactory with Benchmark 
 
                   } assertGet
 
-                  gotValue shouldBe updatedValue
-                //check if deadline was updated
-                //                    gotDeadline shouldBe deadline
+                  Try(gotValue shouldBe updatedValue) match {
+                    case Failure(testException: TestFailedException) =>
+                      //if test failed check merging all key-values result in the key returning none.
+                      implicit val keyOrder = KeyOrder.default
+                      implicit val timeOrder = TimeOrder.long
+                      val level: Level = TestLevel()
+                      level.putKeyValues(level2KeyValues).assertGet
+                      level.putKeyValues(level1KeyValues).assertGet
+                      level.putKeyValues(level0KeyValues).assertGet
+
+                      //if after merging into a single Level the result is not empty then print all the failed exceptions.
+                      Try(level.get(update.key).safeGetBlocking.assertGetOpt shouldBe empty).failed foreach {
+                        exception =>
+                          exception.printStackTrace()
+                          throw testException
+                      }
+
+                    case Failure(exception) =>
+                      throw exception
+
+                    case Success(_) =>
+                    //todo - this is failing randomly. Need to debug.
+                    //on successful get check deadline is updated.
+                    //                      updatedDeadline foreach {
+                    //                        updatedDeadline =>
+                    //                          gotDeadline should contain(updatedDeadline)
+                    //                      }
+                  }
               }
         )
       }

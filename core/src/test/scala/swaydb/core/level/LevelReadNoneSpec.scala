@@ -68,7 +68,7 @@ sealed trait LevelReadNoneSpec extends TestBase with MockFactory with Benchmark 
   "return None" when {
 
     "level is empty" in {
-      assertOnLevel(
+      assertLevel(
         level0KeyValues =
           (_, _, _) =>
             Slice.empty,
@@ -87,7 +87,7 @@ sealed trait LevelReadNoneSpec extends TestBase with MockFactory with Benchmark 
 
     "level is nonEmpty but contains no put" in {
       runThisParallel(times) {
-        assertOnLevel(
+        assertLevel(
           level0KeyValues =
             (_, _, timeGenerator) =>
               randomizedKeyValues(keyValuesCount, addPut = false, startId = Some(0))(timeGenerator).toMemory,
@@ -101,7 +101,7 @@ sealed trait LevelReadNoneSpec extends TestBase with MockFactory with Benchmark 
 
     "level contains expired puts" in {
       runThisParallel(times) {
-        assertOnLevel(
+        assertLevel(
           level0KeyValues =
             (_, _, timeGenerator) =>
               (1 to keyValuesCount).map {
@@ -118,7 +118,7 @@ sealed trait LevelReadNoneSpec extends TestBase with MockFactory with Benchmark 
 
     "level is non empty but the searched key do not exist" in {
       runThisParallel(times) {
-        assertOnLevel(
+        assertLevel(
           level0KeyValues =
             (_, _, timeGenerator) =>
               randomizedKeyValues(keyValuesCount)(timeGenerator).toMemory,
@@ -158,7 +158,7 @@ sealed trait LevelReadNoneSpec extends TestBase with MockFactory with Benchmark 
 
     "for remove ranges with expired Put fromValue" in {
       runThisParallel(times) {
-        assertOnLevel(
+        assertLevel(
           level0KeyValues =
             (_, _, timeGenerator) => {
               implicit val time = timeGenerator
@@ -177,7 +177,7 @@ sealed trait LevelReadNoneSpec extends TestBase with MockFactory with Benchmark 
 
     "put existed but was removed or expired" in {
       runThisParallel(times) {
-        assertOnLevel(
+        assertLevel(
 
           level0KeyValues =
             (level1KeyValues, _, timeGenerator) => {

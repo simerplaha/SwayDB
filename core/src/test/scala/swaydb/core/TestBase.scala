@@ -368,14 +368,14 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
     * ignored completely due to it having a lower or equal time to lower Level. If it has a lower or same time this means
     * that it has already been merged into lower Levels already making the upper Level's read always valid.
     */
-  def assertOnLevel(level0KeyValues: (Iterable[Memory], Iterable[Memory], TestTimeGenerator) => Iterable[Memory] = (_, _, _) => Iterable.empty,
-                    assertLevel0: (Iterable[Memory], Iterable[Memory], Iterable[Memory], LevelRef) => Unit = (_, _, _, _) => (),
-                    level1KeyValues: (Iterable[Memory], TestTimeGenerator) => Iterable[Memory] = (_, _) => Iterable.empty,
-                    assertLevel1: (Iterable[Memory], Iterable[Memory], LevelRef) => Unit = (_, _, _) => (),
-                    level2KeyValues: TestTimeGenerator => Iterable[Memory] = _ => Iterable.empty,
-                    assertLevel2: (Iterable[Memory], LevelRef) => Unit = (_, _) => (),
-                    assertAllLevels: (Iterable[Memory], Iterable[Memory], Iterable[Memory], LevelRef) => Unit = (_, _, _, _) => (),
-                    throttleOn: Boolean = false)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+  def assertLevel(level0KeyValues: (Iterable[Memory], Iterable[Memory], TestTimeGenerator) => Iterable[Memory] = (_, _, _) => Iterable.empty,
+                  assertLevel0: (Iterable[Memory], Iterable[Memory], Iterable[Memory], LevelRef) => Unit = (_, _, _, _) => (),
+                  level1KeyValues: (Iterable[Memory], TestTimeGenerator) => Iterable[Memory] = (_, _) => Iterable.empty,
+                  assertLevel1: (Iterable[Memory], Iterable[Memory], LevelRef) => Unit = (_, _, _) => (),
+                  level2KeyValues: TestTimeGenerator => Iterable[Memory] = _ => Iterable.empty,
+                  assertLevel2: (Iterable[Memory], LevelRef) => Unit = (_, _) => (),
+                  assertAllLevels: (Iterable[Memory], Iterable[Memory], Iterable[Memory], LevelRef) => Unit = (_, _, _, _) => (),
+                  throttleOn: Boolean = false)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                  groupingStrategy: Option[KeyValueGroupingStrategyInternal]): Unit = {
 
     def iterationMessage =
@@ -394,20 +394,27 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
       */
     val throttle: LevelMeter => Throttle = if (throttleOn) _ => Throttle(Duration.Zero, randomNextInt(3) max 1) else _ => Throttle(Duration.Zero, 0)
 
+    println("Starting levels")
+
     val level4 = TestLevel(throttle = throttle)
     val level3 = TestLevel(nextLevel = Some(level4), throttle = throttle)
     val level2 = TestLevel(nextLevel = Some(level3), throttle = throttle)
     val level1 = TestLevel(nextLevel = Some(level2), throttle = throttle)
     val level0 = TestLevelZero(nextLevel = Some(level1), throttleOn = throttleOn)
 
+    println("Levels started")
+
     //start with a default timeGenerator.
     val level2KV = level2KeyValues(timeGenerator)
+    println("level2KV created.")
 
     //if upper levels should insert key-values at an older time start the timeGenerator to use older time
     val level1KV = level1KeyValues(level2KV, timeGenerator)
+    println("level1KV created.")
 
     //if upper levels should insert key-values at an older time start the timeGenerator to use older time
     val level0KV = level0KeyValues(level1KV, level2KV, timeGenerator)
+    println("level0KV created.")
 
     val level0Assert: LevelRef => Unit = assertLevel0(level0KV, level1KV, level2KV, _)
     val level1Assert: LevelRef => Unit = assertLevel1(level1KV, level2KV, _)
@@ -506,7 +513,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
     level0.close.assertGet
 
     if (!throttleOn)
-      assertOnLevel(
+      assertLevel(
         level0KeyValues = level0KeyValues,
         assertLevel0 = assertLevel0,
         level1KeyValues = level1KeyValues,
@@ -533,9 +540,13 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
                               assertAllLevels: LevelRef => Unit,
                               assertLevel3ForAllLevels: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                  groupingStrategy: Option[KeyValueGroupingStrategyInternal]): Unit = {
+    println("level3.putKeyValues")
     if (level3KeyValues.nonEmpty) level3.putKeyValues(level3KeyValues).assertGet
+    println("level2.putKeyValues")
     if (level2KeyValues.nonEmpty) level2.putKeyValues(level2KeyValues).assertGet
+    println("level1.putKeyValues")
     if (level1KeyValues.nonEmpty) level1.putKeyValues(level1KeyValues).assertGet
+    println("level0.putKeyValues")
     if (level0KeyValues.nonEmpty) level0.putKeyValues(level0KeyValues).assertGet
     import RunThis._
 

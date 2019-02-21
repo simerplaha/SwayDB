@@ -35,6 +35,9 @@ object FunctionMerger {
 
     def applyOutput(output: SwayFunctionOutput) =
       output match {
+        case SwayFunctionOutput.Nothing =>
+          oldKeyValue
+
         case SwayFunctionOutput.Remove =>
           Memory.Remove(oldKeyValue.key, None, newKeyValue.time)
 
@@ -100,6 +103,9 @@ object FunctionMerger {
 
     def applyOutput(output: SwayFunctionOutput) =
       output match {
+        case SwayFunctionOutput.Nothing =>
+          oldKeyValue
+
         case SwayFunctionOutput.Remove =>
           Memory.Remove(oldKeyValue.key, None, newKeyValue.time)
 
@@ -186,6 +192,9 @@ object FunctionMerger {
 
     def applyOutput(output: SwayFunctionOutput) =
       output match {
+        case SwayFunctionOutput.Nothing =>
+          oldKeyValue
+
         case SwayFunctionOutput.Remove =>
           Memory.Remove(oldKeyValue.key, None, newKeyValue.time)
 

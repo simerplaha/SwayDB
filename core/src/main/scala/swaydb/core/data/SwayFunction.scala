@@ -38,23 +38,11 @@ private[swaydb] object SwayFunction {
   case class ValueDeadline(f: (Option[Slice[Byte]], Option[Deadline]) => SwayFunctionOutput) extends RequiresValue with RequiresDeadline
 }
 
-private[swaydb] sealed trait SwayFunctionOutput {
-  def toValue(time: Time): Value.RangeValue
-}
+private[swaydb] sealed trait SwayFunctionOutput
 private[swaydb] object SwayFunctionOutput {
 
-  case object Remove extends SwayFunctionOutput {
-    def toValue(time: Time): Value.Remove =
-      Value.Remove(None, time)
-  }
-
-  case class Expire(deadline: Deadline) extends SwayFunctionOutput {
-    def toValue(time: Time): Value.Remove =
-      Value.Remove(Some(deadline), time)
-  }
-
-  case class Update(value: Option[Slice[Byte]], deadline: Option[Deadline]) extends SwayFunctionOutput {
-    def toValue(time: Time): Value.Update =
-      Value.Update(value, deadline, time)
-  }
+  case object Nothing extends SwayFunctionOutput
+  case object Remove extends SwayFunctionOutput
+  case class Expire(deadline: Deadline) extends SwayFunctionOutput
+  case class Update(value: Option[Slice[Byte]], deadline: Option[Deadline]) extends SwayFunctionOutput
 }

@@ -34,7 +34,6 @@ import swaydb.core.tool.AppendixRepairer
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.config._
-import swaydb.MapFunction.Output
 import swaydb.data.io.IO
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.repairAppendix.RepairResult.OverlappingSegments
@@ -168,62 +167,49 @@ object SwayDB extends LazyLogging {
         swaydb.Set[T](new SwayDB(core))
     }
 
-  private def toCoreFunctionOutput[V](output: swaydb.MapFunction.Output[V])(implicit valueSerializer: Serializer[V]): SwayFunctionOutput =
+  private def toCoreFunctionOutput[V](output: swaydb.Apply[V])(implicit valueSerializer: Serializer[V]): SwayFunctionOutput =
     output match {
-      case Output.Remove =>
+      case Apply.Nothing =>
+        SwayFunctionOutput.Nothing
+
+      case Apply.Remove =>
         SwayFunctionOutput.Remove
 
-      case Output.Expire(deadline) =>
+      case Apply.Expire(deadline) =>
         SwayFunctionOutput.Expire(deadline)
 
-      case update: Output.Update[V] =>
+      case update: Apply.Update[V] =>
         val untypedValue: Slice[Byte] = valueSerializer.write(update.value)
         SwayFunctionOutput.Update(Some(untypedValue), update.deadline)
     }
 
-  private[swaydb] def toCoreFunction[K, V](function: MapFunction[K, V])(implicit keySerializer: Serializer[K],
-                                                                                             valueSerializer: Serializer[V]): swaydb.core.data.SwayFunction = {
+  private[swaydb] def toCoreFunction[K, V](f: (K, Option[Deadline]) => Apply[V])(implicit keySerializer: Serializer[K],
+                                                                                 valueSerializer: Serializer[V]): swaydb.core.data.SwayFunction = {
     import swaydb.serializers._
-    implicit val unit = swaydb.serializers.Default.UnitSerializer
 
+    def function(key: Slice[Byte], deadline: Option[Deadline]) =
+      toCoreFunctionOutput(f(key.read[K], deadline))
 
-    function match {
-      case MapFunction.Key(f) =>
-        def function(key: Slice[Byte]) =
-          toCoreFunctionOutput(f(key.read[K]))
+    swaydb.core.data.SwayFunction.KeyDeadline(function)
+  }
 
-        swaydb.core.data.SwayFunction.Key(function)
+  private[swaydb] def toCoreFunction[K, V](f: (K, V, Option[Deadline]) => Apply[V])(implicit keySerializer: Serializer[K],
+                                                                                    valueSerializer: Serializer[V]): swaydb.core.data.SwayFunction = {
+    import swaydb.serializers._
 
-      case MapFunction.KeyDeadline(f) =>
-        def function(key: Slice[Byte], deadline: Option[Deadline]) =
-          toCoreFunctionOutput(f(key.read[K], deadline))
+    def function(key: Slice[Byte], value: Option[Slice[Byte]], deadline: Option[Deadline]) =
+      toCoreFunctionOutput(f(key.read[K], value.read[V], deadline))
 
-        swaydb.core.data.SwayFunction.KeyDeadline(function)
+    swaydb.core.data.SwayFunction.KeyValueDeadline(function)
+  }
 
-      case MapFunction.KeyValue(f) =>
-        def function(key: Slice[Byte], value: Option[Slice[Byte]]) =
-          toCoreFunctionOutput(f(key.read[K], value.read[V]))
+  private[swaydb] def toCoreFunction[K, V](f: V => Apply[V])(implicit valueSerializer: Serializer[V]): swaydb.core.data.SwayFunction = {
+    import swaydb.serializers._
 
-        swaydb.core.data.SwayFunction.KeyValue(function)
+    def function(value: Option[Slice[Byte]]) =
+      toCoreFunctionOutput(f(value.read[V]))
 
-      case MapFunction.KeyValueDeadline(f) =>
-        def function(key: Slice[Byte], value: Option[Slice[Byte]], deadline: Option[Deadline]) =
-          toCoreFunctionOutput(f(key.read[K], value.read[V], deadline))
-
-        swaydb.core.data.SwayFunction.KeyValueDeadline(function)
-
-      case swayFunction: MapFunction.Value[V] =>
-        def function(value: Option[Slice[Byte]]) =
-          toCoreFunctionOutput[V](swayFunction.f(value.read[V]))
-
-        swaydb.core.data.SwayFunction.Value(function)
-
-      case swayFunction: MapFunction.ValueDeadline[V] =>
-        def function(value: Option[Slice[Byte]], deadline: Option[Deadline]) =
-          toCoreFunctionOutput[V](swayFunction.f(value.read[V], deadline))
-
-        swaydb.core.data.SwayFunction.ValueDeadline(function)
-    }
+    swaydb.core.data.SwayFunction.Value(function)
   }
 
   /**

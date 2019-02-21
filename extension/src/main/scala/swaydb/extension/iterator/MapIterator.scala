@@ -113,7 +113,7 @@ case class MapIterator[K, V](mapKey: Seq[K],
 
       val iter = dbIterator.iterator
 
-      var nextKeyValue: (K, V) = null
+      var nextKeyValue: (K, V) = _
 
       @tailrec
       override def hasNext: Boolean =

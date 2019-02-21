@@ -22,6 +22,7 @@ package swaydb
 import scala.collection.generic.CanBuildFrom
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 import swaydb.BatchImplicits._
+import swaydb.core.data.SwayFunction
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.io.IO
@@ -81,14 +82,26 @@ case class Map[K, V](private[swaydb] val db: SwayDB,
   def update(from: K, to: K, value: V): IO[Level0Meter] =
     db.update(from, to, Some(value))
 
-  def registerFunction(functionID: K, function: MapFunction[K, V]) =
+  def registerFunction(functionID: K, function: V => Apply[V]): K = {
     db.registerFunction(functionID, SwayDB.toCoreFunction(function))
+    functionID
+  }
 
-  def function(key: K, function: K): IO[Level0Meter] =
-    db.function(key, function)
+  def registerFunction(functionID: K, function: (K, Option[Deadline]) => Apply[V]): K = {
+    db.registerFunction(functionID, SwayDB.toCoreFunction(function))
+    functionID
+  }
 
-  def function(from: K, to: K, function: K): IO[Level0Meter] =
-    db.function(from, to, function)
+  def registerFunction(functionID: K, function: (K, V, Option[Deadline]) => Apply[V]): K = {
+    db.registerFunction(functionID, SwayDB.toCoreFunction(function))
+    functionID
+  }
+
+  def applyFunction(key: K, functionID: K): IO[Level0Meter] =
+    db.function(key, functionID)
+
+  def applyFunction(from: K, to: K, functionID: K): IO[Level0Meter] =
+    db.function(from, to, functionID)
 
   def batch(batch: Batch[K, V]*): IO[Level0Meter] =
     db.batch(batch)
