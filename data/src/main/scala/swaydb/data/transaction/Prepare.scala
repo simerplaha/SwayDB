@@ -111,6 +111,6 @@ object Prepare {
   case class Put[K, V](key: K, value: V, deadline: Option[Deadline]) extends Prepare[K, V]
   case class Remove[K](from: K, to: Option[K], deadline: Option[Deadline]) extends Prepare[K, Nothing]
   case class Update[K, V](from: K, to: Option[K], value: V) extends Prepare[K, V]
-  case class Function[K, V](from: K, to: Option[K], function: K) extends Prepare[K, Nothing]
+  case class Function[K](from: K, to: Option[K], function: K) extends Prepare[K, Nothing]
   case class Add[T](elem: T, deadline: Option[Deadline]) extends Prepare[T, Nothing]
 }

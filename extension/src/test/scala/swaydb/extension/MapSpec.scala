@@ -385,13 +385,13 @@ sealed trait MapSpec extends TestBase with TestBaseEmbedded {
 
     "batch put" in {
       val rootMap = newDB()
-      rootMap.batch(
+      rootMap.commitPrepared(
         Prepare.Put(1, "one"),
         Prepare.Put(2, "two")
       ).assertGet
 
       val subMap = rootMap.maps.put(1, "sub map").assertGet
-      subMap.batch(
+      subMap.commitPrepared(
         Prepare.Put(1, "one one"),
         Prepare.Put(2, "two two")
       ).assertGet
@@ -404,23 +404,23 @@ sealed trait MapSpec extends TestBase with TestBaseEmbedded {
 
     "batch update" in {
       val rootMap = newDB()
-      rootMap.batch(
+      rootMap.commitPrepared(
         Prepare.Put(1, "one"),
         Prepare.Put(2, "two")
       ).assertGet
 
-      rootMap.batch(
+      rootMap.commitPrepared(
         Prepare.Update(1, "one updated"),
         Prepare.Update(2, "two updated")
       ).assertGet
 
       val subMap = rootMap.maps.put(1, "sub map").assertGet
-      subMap.batch(
+      subMap.commitPrepared(
         Prepare.Put(1, "one one"),
         Prepare.Put(2, "two two")
       ).assertGet
 
-      subMap.batch(
+      subMap.commitPrepared(
         Prepare.Update(1, "one one updated"),
         Prepare.Update(2, "two two updated")
       ).assertGet
@@ -433,23 +433,23 @@ sealed trait MapSpec extends TestBase with TestBaseEmbedded {
 
     "batch expire" in {
       val rootMap = newDB()
-      rootMap.batch(
+      rootMap.commitPrepared(
         Prepare.Put(1, "one"),
         Prepare.Put(2, "two")
       ).assertGet
 
-      rootMap.batch(
+      rootMap.commitPrepared(
         Prepare.Expire(1, 100.millisecond),
         Prepare.Expire(2, 100.millisecond)
       ).assertGet
 
       val subMap = rootMap.maps.put(1, "sub map").assertGet
-      subMap.batch(
+      subMap.commitPrepared(
         Prepare.Put(1, "one one"),
         Prepare.Put(2, "two two")
       ).assertGet
 
-      subMap.batch(
+      subMap.commitPrepared(
         Prepare.Expire(1, 100.millisecond),
         Prepare.Expire(2, 100.millisecond)
       ).assertGet
@@ -462,10 +462,10 @@ sealed trait MapSpec extends TestBase with TestBaseEmbedded {
 
     "batchPut" in {
       val rootMap = newDB()
-      rootMap.batchPut((1, "one"), (2, "two")).assertGet
+      rootMap.put((1, "one"), (2, "two")).assertGet
 
       val subMap = rootMap.maps.put(1, "sub map").assertGet
-      subMap.batchPut((1, "one one"), (2, "two two"))
+      subMap.put((1, "one one"), (2, "two two"))
 
       rootMap.toList shouldBe List((1, "one"), (2, "two"))
       subMap.toList shouldBe List((1, "one one"), (2, "two two"))
@@ -473,12 +473,12 @@ sealed trait MapSpec extends TestBase with TestBaseEmbedded {
 
     "batchUpdate" in {
       val rootMap = newDB()
-      rootMap.batchPut((1, "one"), (2, "two")).assertGet
-      rootMap.batchUpdate((1, "one updated"), (2, "two updated")).assertGet
+      rootMap.put((1, "one"), (2, "two")).assertGet
+      rootMap.update((1, "one updated"), (2, "two updated")).assertGet
 
       val subMap = rootMap.maps.put(1, "sub map").assertGet
-      subMap.batchPut((1, "one one"), (2, "two two"))
-      subMap.batchUpdate((1, "one one updated"), (2, "two two updated")).assertGet
+      subMap.put((1, "one one"), (2, "two two"))
+      subMap.update((1, "one one updated"), (2, "two two updated")).assertGet
 
       rootMap.toList shouldBe List((1, "one updated"), (2, "two updated"))
       subMap.toList shouldBe List((1, "one one updated"), (2, "two two updated"))
@@ -487,12 +487,12 @@ sealed trait MapSpec extends TestBase with TestBaseEmbedded {
 
     "batchRemove" in {
       val rootMap = newDB()
-      rootMap.batchPut((1, "one"), (2, "two")).assertGet
-      rootMap.batchRemove(1, 2).assertGet
+      rootMap.put((1, "one"), (2, "two")).assertGet
+      rootMap.remove(1, 2).assertGet
 
       val subMap = rootMap.maps.put(1, "sub map").assertGet
-      subMap.batchPut((1, "one one"), (2, "two two"))
-      subMap.batchRemove(1, 2).assertGet
+      subMap.put((1, "one one"), (2, "two two"))
+      subMap.remove(1, 2).assertGet
 
       rootMap.toList shouldBe empty
       subMap.toList shouldBe empty
@@ -501,12 +501,12 @@ sealed trait MapSpec extends TestBase with TestBaseEmbedded {
 
     "batchExpire" in {
       val rootMap = newDB()
-      rootMap.batchPut((1, "one"), (2, "two")).assertGet
-      rootMap.batchExpire((1, 1.second.fromNow)).assertGet
+      rootMap.put((1, "one"), (2, "two")).assertGet
+      rootMap.expire((1, 1.second.fromNow)).assertGet
 
       val subMap = rootMap.maps.put(1, "sub map").assertGet
-      subMap.batchPut((1, "one one"), (2, "two two"))
-      subMap.batchExpire((1, 1.second.fromNow), (2, 1.second.fromNow)).assertGet
+      subMap.put((1, "one one"), (2, "two two"))
+      subMap.expire((1, 1.second.fromNow), (2, 1.second.fromNow)).assertGet
 
       eventual {
         rootMap.toList should contain only ((2, "two"))
@@ -516,10 +516,10 @@ sealed trait MapSpec extends TestBase with TestBaseEmbedded {
 
     "get" in {
       val rootMap = newDB()
-      rootMap.batchPut((1, "one"), (2, "two")).assertGet
+      rootMap.put((1, "one"), (2, "two")).assertGet
 
       val subMap = rootMap.maps.put(1, "sub map").assertGet
-      subMap.batchPut((1, "one one"), (2, "two two"))
+      subMap.put((1, "one one"), (2, "two two"))
 
       rootMap.get(1).assertGet shouldBe "one"
       rootMap.get(2).assertGet shouldBe "two"
@@ -537,10 +537,10 @@ sealed trait MapSpec extends TestBase with TestBaseEmbedded {
 
     "get when sub map is removed" in {
       val rootMap = newDB()
-      rootMap.batchPut((1, "one"), (2, "two")).assertGet
+      rootMap.put((1, "one"), (2, "two")).assertGet
 
       val subMap = rootMap.maps.put(1, "sub map").assertGet
-      subMap.batchPut((1, "one one"), (2, "two two"))
+      subMap.put((1, "one one"), (2, "two two"))
 
       rootMap.get(1).assertGet shouldBe "one"
       rootMap.get(2).assertGet shouldBe "two"
@@ -558,10 +558,10 @@ sealed trait MapSpec extends TestBase with TestBaseEmbedded {
 
     "getKey" in {
       val rootMap = newDB()
-      rootMap.batchPut((1, "one"), (2, "two")).assertGet
+      rootMap.put((1, "one"), (2, "two")).assertGet
 
       val subMap = rootMap.maps.put(1, "sub map").assertGet
-      subMap.batchPut((11, "one one"), (22, "two two"))
+      subMap.put((11, "one one"), (22, "two two"))
 
       rootMap.getKey(1).assertGet shouldBe 1
       rootMap.getKey(2).assertGet shouldBe 2
@@ -579,10 +579,10 @@ sealed trait MapSpec extends TestBase with TestBaseEmbedded {
 
     "getKeyValue" in {
       val rootMap = newDB()
-      rootMap.batchPut((1, "one"), (2, "two")).assertGet
+      rootMap.put((1, "one"), (2, "two")).assertGet
 
       val subMap = rootMap.maps.put(1, "sub map").assertGet
-      subMap.batchPut((11, "one one"), (22, "two two"))
+      subMap.put((11, "one one"), (22, "two two"))
 
       rootMap.getKeyValue(1).assertGet shouldBe(1, "one")
       rootMap.getKeyValue(2).assertGet shouldBe(2, "two")
@@ -600,10 +600,10 @@ sealed trait MapSpec extends TestBase with TestBaseEmbedded {
 
     "keys" in {
       val rootMap = newDB()
-      rootMap.batchPut((1, "one"), (2, "two")).assertGet
+      rootMap.put((1, "one"), (2, "two")).assertGet
 
       val subMap = rootMap.maps.put(1, "sub map").assertGet
-      subMap.batchPut((11, "one one"), (22, "two two"))
+      subMap.put((11, "one one"), (22, "two two"))
 
       rootMap.keys.toList should contain inOrderOnly(1, 2)
       subMap.keys.toList should contain inOrderOnly(11, 22)
