@@ -19,16 +19,16 @@
 
 package swaydb.extension
 
-
+import scala.concurrent.duration.{Deadline, FiniteDuration}
+import swaydb.From
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
-import swaydb.data.slice.Slice
-import swaydb.extension.iterator.{MapIterator, MapKeysIterator}
-import swaydb.serializers.Serializer
-import swaydb.{Batch, Data, From}
-import scala.concurrent.duration.{Deadline, FiniteDuration}
 import swaydb.data.io.IO
 import swaydb.data.order.KeyOrder
+import swaydb.data.slice.Slice
+import swaydb.data.transaction.Prepare
+import swaydb.extension.iterator.{MapIterator, MapKeysIterator}
+import swaydb.serializers.Serializer
 
 private[swaydb] object Map {
   def apply[K, V](map: swaydb.Map[Key[K], Option[V]],
@@ -82,12 +82,12 @@ private[swaydb] object Map {
     }
 
   /**
-    * Build [[Batch.Remove]] for the input [[Key]] ranges.
+    * Build [[Prepare.Remove]] for the input [[Key]] ranges.
     */
-  def toBatchRemove[K](batches: Iterable[(Key.SubMap[K], Key.MapStart[K], Key.MapEnd[K])]): Iterable[Data.Remove[Key[K]]] =
+  def toBatchRemove[K](batches: Iterable[(Key.SubMap[K], Key.MapStart[K], Key.MapEnd[K])]): Iterable[Prepare.Remove[Key[K]]] =
     batches flatMap {
       case (subMap, start, end) =>
-        Seq(Batch.Remove(subMap: Key[K]), Batch.Remove(start: Key[K], end: Key[K]))
+        Seq(Prepare.Remove(subMap: Key[K]), Prepare.Remove(start: Key[K], end: Key[K]))
     }
 
   /**
@@ -101,7 +101,7 @@ private[swaydb] object Map {
                                      mapKeySerializer: Serializer[Key[K]],
                                      valueSerializer: Serializer[V],
                                      optionValueSerializer: Serializer[Option[V]],
-                                     keyOrder: KeyOrder[Slice[Byte]]): IO[Iterable[Batch[Key[K], Option[V]]]] = {
+                                     keyOrder: KeyOrder[Slice[Byte]]): IO[Iterable[Prepare[Key[K], Option[V]]]] = {
 
     //batch to remove all SubMaps.
     val removeSubMapsBatches =
@@ -116,17 +116,17 @@ private[swaydb] object Map {
           removeSubMapsBatches ++
             Seq(
               //add subMap entry to parent Map's key
-              Batch.Put(Key.SubMap(mapKey.dropRight(1), last), value),
-              Batch.Remove(thisMapEntriesStart, thisMapEntriesEnd), //remove all exiting entries
+              Prepare.Put(Key.SubMap(mapKey.dropRight(1), last), value),
+              Prepare.Remove(thisMapEntriesStart, thisMapEntriesEnd), //remove all exiting entries
               //value only needs to be set for Start.
-              Batch.Put(Key.MapStart(mapKey), value),
+              Prepare.Put(Key.MapStart(mapKey), value),
               //values should be None for the following batch entries because they are iteration purposes only and values for
               //entries are never read.
-              Batch.Put(Key.MapEntriesStart(mapKey), None),
-              Batch.Put(Key.MapEntriesEnd(mapKey), None),
-              Batch.Put(Key.SubMapsStart(mapKey), None),
-              Batch.Put(Key.SubMapsEnd(mapKey), None),
-              Batch.Put(Key.MapEnd(mapKey), None)
+              Prepare.Put(Key.MapEntriesStart(mapKey), None),
+              Prepare.Put(Key.MapEntriesEnd(mapKey), None),
+              Prepare.Put(Key.SubMapsStart(mapKey), None),
+              Prepare.Put(Key.SubMapsEnd(mapKey), None),
+              Prepare.Put(Key.MapEnd(mapKey), None)
             )
         }
     } getOrElse {
@@ -138,16 +138,16 @@ private[swaydb] object Map {
                            value: V)(implicit keySerializer: Serializer[K],
                                      mapKeySerializer: Serializer[Key[K]],
                                      valueSerializer: Serializer[V],
-                                     keyOrder: KeyOrder[Slice[Byte]]): Seq[Data.Put[Key[K], Option[V]]] =
+                                     keyOrder: KeyOrder[Slice[Byte]]): Seq[Prepare.Put[Key[K], Option[V]]] =
 
     mapKey.lastOption map {
       last =>
-        Seq[Data.Put[Key[K], Option[V]]](
-          Batch.Put(Key.SubMap(mapKey.dropRight(1), last), Some(value)),
-          Batch.Put(Key.MapStart(mapKey), Option(value))
+        Seq[Prepare.Put[Key[K], Option[V]]](
+          Prepare.Put(Key.SubMap(mapKey.dropRight(1), last), Some(value)),
+          Prepare.Put(Key.MapStart(mapKey), Option(value))
         )
     } getOrElse {
-      Seq(Batch.Put(Key.MapStart(mapKey), Option(value)))
+      Seq(Prepare.Put(Key.MapStart(mapKey), Option(value)))
     }
 
   def removeMap[K, V](map: swaydb.Map[Key[K], Option[V]],
@@ -155,10 +155,10 @@ private[swaydb] object Map {
                                       mapKeySerializer: Serializer[Key[K]],
                                       valueSerializer: Serializer[V],
                                       optionValueSerializer: Serializer[Option[V]],
-                                      keyOrder: KeyOrder[Slice[Byte]]): Seq[Data.Remove[Key[K]]] =
-    Seq[Data.Remove[Key[K]]](
-      Batch.Remove(Key.SubMap[K](mapKey.dropRight(1), mapKey.last)), //remove the subMap entry from parent Map i.e this
-      Batch.Remove(Key.MapStart[K](mapKey), Key.MapEnd[K](mapKey)) //remove the subMap itself
+                                      keyOrder: KeyOrder[Slice[Byte]]): Seq[Prepare.Remove[Key[K]]] =
+    Seq[Prepare.Remove[Key[K]]](
+      Prepare.Remove(Key.SubMap[K](mapKey.dropRight(1), mapKey.last)), //remove the subMap entry from parent Map i.e this
+      Prepare.Remove(Key.MapStart[K](mapKey), Key.MapEnd[K](mapKey)) //remove the subMap itself
     ) ++ {
       //fetch all child subMaps from the subMap being removed and batch remove them.
       Map.toBatchRemove(Map.childSubMapRanges(Map[K, V](map, mapKey)))
@@ -190,7 +190,7 @@ class Map[K, V](map: swaydb.Map[Key[K], Option[V]],
     map.get(Key.MapStart(mapKey)).map(_.flatten)
 
   def updateValue(value: V): IO[Map[K, V]] =
-    map.batch {
+    map.commit {
       Map.updateMapValue[K, V](
         mapKey = mapKey,
         value = value
@@ -212,17 +212,17 @@ class Map[K, V](map: swaydb.Map[Key[K], Option[V]],
   def put(key: K, value: V, expireAt: Deadline): IO[Level0Meter] =
     map.put(Key.MapEntry(mapKey, key), Some(value), expireAt)
 
-  def preparePut(key: K, value: V): Batch[Key.MapEntry[K], Option[V]] =
+  def preparePut(key: K, value: V): Prepare[Key.MapEntry[K], Option[V]] =
     preparePut(key, value, None)
 
-  def preparePut(key: K, value: V, expireAfter: FiniteDuration): Batch[Key.MapEntry[K], Option[V]] =
+  def preparePut(key: K, value: V, expireAfter: FiniteDuration): Prepare[Key.MapEntry[K], Option[V]] =
     preparePut(key, value, Some(expireAfter.fromNow))
 
-  def preparePut(key: K, value: V, deadline: Deadline): Batch[Key.MapEntry[K], Option[V]] =
+  def preparePut(key: K, value: V, deadline: Deadline): Prepare[Key.MapEntry[K], Option[V]] =
     preparePut(key, value, Some(deadline))
 
-  private def preparePut(key: K, value: V, deadline: Option[Deadline]): Batch[Key.MapEntry[K], Option[V]] =
-    Data.Put(Key.MapEntry(mapKey, key), value = Some(value), deadline = deadline)
+  private def preparePut(key: K, value: V, deadline: Option[Deadline]): Prepare[Key.MapEntry[K], Option[V]] =
+    Prepare.Put(Key.MapEntry(mapKey, key), value = Some(value), deadline = deadline)
 
   def remove(key: K): IO[Level0Meter] =
     map.remove(Key.MapEntry(mapKey, key))
@@ -230,28 +230,28 @@ class Map[K, V](map: swaydb.Map[Key[K], Option[V]],
   def remove(from: K, to: K): IO[Level0Meter] =
     map.remove(Key.MapEntry(mapKey, from), Key.MapEntry(mapKey, to))
 
-  def prepareRemove(key: K): Batch[Key.MapEntry[K], Option[V]] =
+  def prepareRemove(key: K): Prepare[Key.MapEntry[K], Option[V]] =
     makeRemoveBatch(key, None, None)
 
-  def prepareRemove(from: K, to: K): Batch[Key.MapEntry[K], Option[V]] =
+  def prepareRemove(from: K, to: K): Prepare[Key.MapEntry[K], Option[V]] =
     makeRemoveBatch(from, Some(to), None)
 
-  def commit(entries: Batch[Key.MapEntry[K], Option[V]]*) =
-    baseMap().batch(entries)
+  def commit(entries: Prepare[Key.MapEntry[K], Option[V]]*) =
+    baseMap().commit(entries)
 
-  private def makeRemoveBatch(from: K, to: Option[K], deadline: Option[Deadline]): Batch[Key.MapEntry[K], Option[V]] =
-    Data.Remove(from = Key.MapEntry(mapKey, from), to = to.map(Key.MapEntry(mapKey, _)), deadline = deadline)
+  private def makeRemoveBatch(from: K, to: Option[K], deadline: Option[Deadline]): Prepare[Key.MapEntry[K], Option[V]] =
+    Prepare.Remove(from = Key.MapEntry(mapKey, from), to = to.map(Key.MapEntry(mapKey, _)), deadline = deadline)
 
   /**
     * Removes all key-values from the current Map. SubMaps and subMap's key-values or not altered.
     */
   def clear(): IO[Level0Meter] = {
     val (start, end) = Map.entriesRangeKeys(mapKey)
-    map.batch(
+    map.commit(
       //remove key-value entries, but also re-insert the start and end entries for the Map.
-      Batch.Remove(start, end),
-      Batch.Put(start, None),
-      Batch.Put(end, None)
+      Prepare.Remove(start, end),
+      Prepare.Put(start, None),
+      Prepare.Put(end, None)
     )
   }
 
@@ -273,32 +273,35 @@ class Map[K, V](map: swaydb.Map[Key[K], Option[V]],
   def update(from: K, to: K, value: V): IO[Level0Meter] =
     map.update(Key.MapEntry(mapKey, from), Key.MapEntry(mapKey, to), Some(value))
 
-  def batch(batch: Batch[K, V]*): IO[Level0Meter] =
+  def batch(batch: Prepare[K, V]*): IO[Level0Meter] =
     this.batch(batch)
 
-  private def makeBatch(batch: Batch[K, V]): Batch[Key.MapEntry[K], Option[V]] =
+  private def makeBatch(batch: Prepare[K, V]): Prepare[Key.MapEntry[K], Option[V]] =
     batch match {
-      case Data.Put(key, value, deadline) =>
+      case Prepare.Put(key, value, deadline) =>
         preparePut(key, value, deadline)
-      case Data.Remove(from, to, deadline) =>
-        Data.Remove(from = Key.MapEntry(mapKey, from), to = to.map(Key.MapEntry(mapKey, _)), deadline = deadline)
-      case Data.Update(from, to, value) =>
-        Data.Update(from = Key.MapEntry(mapKey, from), to = to.map(Key.MapEntry(mapKey, _)), value = Some(value))
-      case Data.Add(elem, deadline) =>
-        Data.Add(elem = Key.MapEntry(mapKey, elem), deadline = deadline)
+
+      case Prepare.Remove(from, to, deadline) =>
+        Prepare.Remove(from = Key.MapEntry(mapKey, from), to = to.map(Key.MapEntry(mapKey, _)), deadline = deadline)
+
+      case Prepare.Update(from, to, value) =>
+        Prepare.Update(from = Key.MapEntry(mapKey, from), to = to.map(Key.MapEntry(mapKey, _)), value = Some(value))
+
+      case Prepare.Add(elem, deadline) =>
+        Prepare.Add(elem = Key.MapEntry(mapKey, elem), deadline = deadline)
     }
 
-  private def makeBatch(batch: Iterable[Batch[K, V]]): Iterable[Batch[Key.MapEntry[K], Option[V]]] =
+  private def makeBatch(batch: Iterable[Prepare[K, V]]): Iterable[Prepare[Key.MapEntry[K], Option[V]]] =
     batch map makeBatch
 
-  def batch(batch: Iterable[Batch[K, V]]): IO[Level0Meter] =
-    map.batch(makeBatch(batch))
+  def batch(batch: Iterable[Prepare[K, V]]): IO[Level0Meter] =
+    map.commit(makeBatch(batch))
 
   def batchPut(keyValues: (K, V)*): IO[Level0Meter] =
     batchPut(keyValues)
 
   def batchPut(keyValues: Iterable[(K, V)]): IO[Level0Meter] =
-    map.batchPut {
+    map.put {
       keyValues map {
         case (key, value) =>
           (Key.MapEntry(mapKey, key), Some(value))
@@ -309,7 +312,7 @@ class Map[K, V](map: swaydb.Map[Key[K], Option[V]],
     batchUpdate(keyValues)
 
   def batchUpdate(keyValues: Iterable[(K, V)]): IO[Level0Meter] =
-    map.batchUpdate {
+    map.update {
       keyValues map {
         case (key, value) =>
           (Key.MapEntry(mapKey, key), Some(value))
@@ -320,13 +323,13 @@ class Map[K, V](map: swaydb.Map[Key[K], Option[V]],
     batchRemove(keys)
 
   def batchRemove(keys: Iterable[K]): IO[Level0Meter] =
-    map.batchRemove(keys.map(key => Key.MapEntry(mapKey, key)))
+    map.remove(keys.map(key => Key.MapEntry(mapKey, key)))
 
   def batchExpire(keys: (K, Deadline)*): IO[Level0Meter] =
     batchExpire(keys)
 
   def batchExpire(keys: Iterable[(K, Deadline)]): IO[Level0Meter] =
-    map.batchExpire(keys.map(keyDeadline => (Key.MapEntry(mapKey, keyDeadline._1), keyDeadline._2)))
+    map.expire(keys.map(keyDeadline => (Key.MapEntry(mapKey, keyDeadline._1), keyDeadline._2)))
 
   /**
     * Returns target value for the input key.

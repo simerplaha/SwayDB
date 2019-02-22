@@ -36,8 +36,8 @@ import swaydb.data.io.IO
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.repairAppendix.RepairResult.OverlappingSegments
 import swaydb.data.repairAppendix._
-import swaydb.data.request
 import swaydb.data.slice.Slice
+import swaydb.data.transaction.Prepare
 import swaydb.serializers.Serializer
 
 /**
@@ -301,8 +301,8 @@ private[swaydb] class SwayDB(api: CoreBlockingAPI) {
   def registerFunction(functionID: Slice[Byte], function: swaydb.core.data.SwayFunction): swaydb.core.data.SwayFunction =
     api.registerFunction(functionID, function)
 
-  def batch(entries: Iterable[request.Batch]) =
-    api.put(entries)
+  def commit(prepare: Iterable[Prepare[Slice[Byte], Option[Slice[Byte]]]]) =
+    api.put(prepare)
 
   def head: IO[Option[(Slice[Byte], Option[Slice[Byte]])]] =
     api.head

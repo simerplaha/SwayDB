@@ -19,36 +19,32 @@
 
 package swaydb
 
+import swaydb.data.slice.Slice
+import swaydb.data.transaction.Prepare
 import swaydb.serializers._
 
 private[swaydb] object BatchImplicits {
 
-  implicit def batchToRequest[K, V](batch: Batch[K, V])(implicit keySerializer: Serializer[K],
-                                                        valueSerializer: Serializer[V]): swaydb.data.request.Batch =
+  implicit def batchToRequest[K, V](batch: Prepare[K, V])(implicit keySerializer: Serializer[K],
+                                                          valueSerializer: Serializer[V]): Prepare[Slice[Byte], Option[Slice[Byte]]] =
     batch match {
-      case Data.Put(key, value, deadline) =>
-        swaydb.data.request.Batch.Put(key, Some(value), deadline)
+      case Prepare.Put(key, value, deadline) =>
+        Prepare.Put[Slice[Byte], Option[Slice[Byte]]](key, Some(value), deadline)
 
-      case Data.Remove(key, None, deadline) =>
-        swaydb.data.request.Batch.Remove(key, deadline)
+      case Prepare.Remove(from, to, deadline) =>
+        Prepare.Remove[Slice[Byte]](from, to, deadline)
 
-      case Data.Remove(from, Some(to), deadline) =>
-        swaydb.data.request.Batch.RemoveRange(from, to, deadline)
+      case Prepare.Update(from, to, value) =>
+        Prepare.Update[Slice[Byte], Option[Slice[Byte]]](from, to, Some(value))
 
-      case Data.Update(from, Some(to), value) =>
-        swaydb.data.request.Batch.UpdateRange(from, to, Some(value))
-
-      case Data.Update(from, None, value) =>
-        swaydb.data.request.Batch.Update(from, Some(value))
-
-      case Data.Add(key, deadline) =>
-        swaydb.data.request.Batch.Put(key, None, deadline)
+      case Prepare.Add(key, deadline) =>
+        Prepare.Add[Slice[Byte]](key, deadline)
     }
 
-  implicit def batchesToRequests[K, V](batches: Iterable[Batch[K, V]])(implicit keySerializer: Serializer[K],
-                                                                       valueSerializer: Serializer[V]): Iterable[swaydb.data.request.Batch] =
+  implicit def batchesToRequests[K, V](batches: Iterable[Prepare[K, V]])(implicit keySerializer: Serializer[K],
+                                                                         valueSerializer: Serializer[V]): Iterable[Prepare[Slice[Byte], Option[Slice[Byte]]]] =
     batches.map(batch => batchToRequest(batch)(keySerializer, valueSerializer))
 
-  implicit def batchesToRequests[T](batches: Iterable[Batch[T, Nothing]])(implicit serializer: Serializer[T]): Iterable[swaydb.data.request.Batch] =
+  implicit def batchesToRequests[T](batches: Iterable[Prepare[T, Nothing]])(implicit serializer: Serializer[T]): Iterable[Prepare[Slice[Byte], Option[Slice[Byte]]]] =
     batches.map(batch => batchToRequest(batch)(serializer, Default.UnitSerializer))
 }

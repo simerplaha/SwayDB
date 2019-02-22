@@ -19,13 +19,13 @@
 
 package swaydb.extension
 
-import swaydb.{Batch, From}
+import swaydb.From
 import swaydb.data.accelerate.Level0Meter
+import swaydb.data.io.IO
+import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.extension.iterator.{MapIterator, MapKeysIterator}
 import swaydb.serializers.Serializer
-import swaydb.data.io.IO
-import swaydb.data.order.KeyOrder
 
 class Maps[K, V](map: swaydb.Map[Key[K], Option[V]],
                  mapKey: Seq[K])(implicit keySerializer: Serializer[K],
@@ -48,7 +48,7 @@ class Maps[K, V](map: swaydb.Map[Key[K], Option[V]],
       value = Some(value)
     ) flatMap {
       batches =>
-        map.batch(batches) map {
+        map.commit(batches) map {
           _ =>
             Map[K, V](
               map = map,
@@ -60,7 +60,7 @@ class Maps[K, V](map: swaydb.Map[Key[K], Option[V]],
 
   def updateValue(key: K, value: V): IO[Map[K, V]] = {
     val subMapKey = mapKey :+ key
-    map.batch {
+    map.commit {
       Map.updateMapValue[K, V](
         mapKey = subMapKey,
         value = value
@@ -75,7 +75,7 @@ class Maps[K, V](map: swaydb.Map[Key[K], Option[V]],
   }
 
   def remove(key: K): IO[Level0Meter] =
-    map.batch(Map.removeMap(map, mapKey :+ key))
+    map.commit(Map.removeMap(map, mapKey :+ key))
 
   def get(key: K): IO[Option[Map[K, V]]] = {
     contains(key) map {

@@ -19,11 +19,12 @@
 
 package swaydb.extension
 
-import swaydb.data.slice.Slice
-import swaydb.serializers.Serializer
-import swaydb.{Batch, extension}
 import swaydb.data.io.IO
 import swaydb.data.order.KeyOrder
+import swaydb.data.slice.Slice
+import swaydb.data.transaction.Prepare
+import swaydb.extension
+import swaydb.serializers.Serializer
 
 object Extend {
 
@@ -47,13 +48,13 @@ object Extend {
     }
     val rootMapKey = Seq.empty[K]
 
-    map.batch(
-      Batch.Put(Key.MapStart(rootMapKey), None),
-      Batch.Put(Key.MapEntriesStart(rootMapKey), None),
-      Batch.Put(Key.MapEntriesEnd(rootMapKey), None),
-      Batch.Put(Key.SubMapsStart(rootMapKey), None),
-      Batch.Put(Key.SubMapsEnd(rootMapKey), None),
-      Batch.Put(Key.MapEnd(rootMapKey), None)
+    map.commit(
+      Prepare.Put(Key.MapStart(rootMapKey), None),
+      Prepare.Put(Key.MapEntriesStart(rootMapKey), None),
+      Prepare.Put(Key.MapEntriesEnd(rootMapKey), None),
+      Prepare.Put(Key.SubMapsStart(rootMapKey), None),
+      Prepare.Put(Key.SubMapsEnd(rootMapKey), None),
+      Prepare.Put(Key.MapEnd(rootMapKey), None)
     ) map {
       _ =>
         Map[K, V](

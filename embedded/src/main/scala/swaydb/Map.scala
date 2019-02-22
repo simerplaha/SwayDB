@@ -25,8 +25,8 @@ import swaydb.BatchImplicits._
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.io.IO
-import swaydb.data.request
 import swaydb.data.slice.Slice
+import swaydb.data.transaction.Prepare
 import swaydb.serializers.{Serializer, _}
 
 object Map {
@@ -57,11 +57,28 @@ case class Map[K, V](private[swaydb] val db: SwayDB,
   def put(key: K, value: V, expireAt: Deadline): IO[Level0Meter] =
     db.put(key, Some(value), expireAt)
 
+  def put(keyValues: (K, V)*): IO[Level0Meter] =
+    put(keyValues)
+
+  def put(keyValues: Iterable[(K, V)]): IO[Level0Meter] =
+    db.commit {
+      keyValues map {
+        case (key, value) =>
+          Prepare.Put(keySerializer.write(key), Some(valueSerializer.write(value)), None)
+      }
+    }
+
   def remove(key: K): IO[Level0Meter] =
     db.remove(key)
 
   def remove(from: K, to: K): IO[Level0Meter] =
     db.remove(from, to)
+
+  def remove(keys: K*): IO[Level0Meter] =
+    remove(keys)
+
+  def remove(keys: Iterable[K]): IO[Level0Meter] =
+    db.commit(keys.map(key => Prepare.Remove(keySerializer.write(key))))
 
   def expire(key: K, after: FiniteDuration): IO[Level0Meter] =
     db.expire(key, after.fromNow)
@@ -75,11 +92,37 @@ case class Map[K, V](private[swaydb] val db: SwayDB,
   def expire(from: K, to: K, at: Deadline): IO[Level0Meter] =
     db.expire(from, to, at)
 
+  def expire(keys: (K, Deadline)*): IO[Level0Meter] =
+    expire(keys)
+
+  def expire(keys: Iterable[(K, Deadline)]): IO[Level0Meter] =
+    db.commit {
+      keys map {
+        keyDeadline =>
+          Prepare.Remove(
+            from = keySerializer.write(keyDeadline._1),
+            to = None,
+            deadline = Some(keyDeadline._2)
+          )
+      }
+    }
+
   def update(key: K, value: V): IO[Level0Meter] =
     db.update(key, Some(value))
 
   def update(from: K, to: K, value: V): IO[Level0Meter] =
     db.update(from, to, Some(value))
+
+  def update(keyValues: (K, V)*): IO[Level0Meter] =
+    update(keyValues)
+
+  def update(keyValues: Iterable[(K, V)]): IO[Level0Meter] =
+    db.commit {
+      keyValues map {
+        case (key, value) =>
+          Prepare.Update(keySerializer.write(key), Some(valueSerializer.write(value)))
+      }
+    }
 
   def registerFunction(functionID: K, function: V => Apply[V]): K = {
     db.registerFunction(functionID, SwayDB.toCoreFunction(function))
@@ -102,45 +145,11 @@ case class Map[K, V](private[swaydb] val db: SwayDB,
   def applyFunction(from: K, to: K, functionID: K): IO[Level0Meter] =
     db.function(from, to, functionID)
 
-  def batch(batch: Batch[K, V]*): IO[Level0Meter] =
-    db.batch(batch)
+  def commit(prepare: Prepare[K, V]*): IO[Level0Meter] =
+    db.commit(prepare)
 
-  def batch(batch: Iterable[Batch[K, V]]): IO[Level0Meter] =
-    db.batch(batch)
-
-  def batchPut(keyValues: (K, V)*): IO[Level0Meter] =
-    batchPut(keyValues)
-
-  def batchPut(keyValues: Iterable[(K, V)]): IO[Level0Meter] =
-    db.batch {
-      keyValues map {
-        case (key, value) =>
-          request.Batch.Put(key, Some(value), None)
-      }
-    }
-
-  def batchUpdate(keyValues: (K, V)*): IO[Level0Meter] =
-    batchUpdate(keyValues)
-
-  def batchUpdate(keyValues: Iterable[(K, V)]): IO[Level0Meter] =
-    db.batch {
-      keyValues map {
-        case (key, value) =>
-          request.Batch.Update(key, Some(value))
-      }
-    }
-
-  def batchRemove(keys: K*): IO[Level0Meter] =
-    batchRemove(keys)
-
-  def batchRemove(keys: Iterable[K]): IO[Level0Meter] =
-    db.batch(keys.map(key => request.Batch.Remove(key, None)))
-
-  def batchExpire(keys: (K, Deadline)*): IO[Level0Meter] =
-    batchExpire(keys)
-
-  def batchExpire(keys: Iterable[(K, Deadline)]): IO[Level0Meter] =
-    db.batch(keys.map(keyDeadline => request.Batch.Remove(keyDeadline._1, Some(keyDeadline._2))))
+  def commit(prepare: Iterable[Prepare[K, V]]): IO[Level0Meter] =
+    db.commit(prepare)
 
   /**
     * Returns target value for the input key.

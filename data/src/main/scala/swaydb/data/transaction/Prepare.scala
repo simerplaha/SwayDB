@@ -17,15 +17,32 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb
+package swaydb.data.transaction
 
-import swaydb.Data._
+/*
+ * Copyright (c) 2019 Simer Plaha (@simerplaha)
+ *
+ * This file is a part of SwayDB.
+ *
+ * SwayDB is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * SwayDB is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
+ */
 
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 
-sealed trait Batch[+K, +V]
+sealed trait Prepare[+K, +V]
 
-object Batch {
+object Prepare {
 
   /**
     * Batch Put key & value for a [[Map]]
@@ -91,11 +108,9 @@ object Batch {
       new Add(elem, Some(expireAt))
   }
 
-}
-
-private[swaydb] object Data {
-  private[swaydb] case class Put[K, V](key: K, value: V, deadline: Option[Deadline]) extends Batch[K, V]
-  private[swaydb] case class Remove[K](from: K, to: Option[K], deadline: Option[Deadline]) extends Batch[K, Nothing]
-  private[swaydb] case class Update[K, V](from: K, to: Option[K], value: V) extends Batch[K, V]
-  private[swaydb] case class Add[T](elem: T, deadline: Option[Deadline]) extends Batch[T, Nothing]
+  case class Put[K, V](key: K, value: V, deadline: Option[Deadline]) extends Prepare[K, V]
+  case class Remove[K](from: K, to: Option[K], deadline: Option[Deadline]) extends Prepare[K, Nothing]
+  case class Update[K, V](from: K, to: Option[K], value: V) extends Prepare[K, V]
+  case class Function[K, V](from: K, to: Option[K], function: K) extends Prepare[K, Nothing]
+  case class Add[T](elem: T, deadline: Option[Deadline]) extends Prepare[T, Nothing]
 }

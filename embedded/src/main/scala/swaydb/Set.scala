@@ -25,8 +25,8 @@ import swaydb.BatchImplicits._
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.io.IO
-import swaydb.data.request
 import swaydb.data.slice.Slice
+import swaydb.data.transaction.Prepare
 import swaydb.serializers.{Serializer, _}
 
 object Set {
@@ -86,29 +86,38 @@ case class Set[T](private val db: SwayDB,
   def function(elem: T, function: T): IO[Level0Meter] =
     db.function(elem, function)
 
-  def batch(batch: Batch[T, Nothing]*): IO[Level0Meter] =
-    db.batch(batch)
+  def batch(batch: Prepare[T, Nothing]*): IO[Level0Meter] =
+    db.commit(batch)
 
-  def batch(batch: Iterable[Batch[T, Nothing]]): IO[Level0Meter] =
-    db.batch(batch)
+  def batch(batch: Iterable[Prepare[T, Nothing]]): IO[Level0Meter] =
+    db.commit(batch)
 
   def batchAdd(elems: T*): IO[Level0Meter] =
     batchAdd(elems)
 
   def batchAdd(elems: Iterable[T]): IO[Level0Meter] =
-    db.batch(elems.map(elem => request.Batch.Put(elem, None, None)))
+    db.commit(elems.map(elem => Prepare.Put(key = serializer.write(elem), value = None, deadline = None)))
 
   def batchRemove(elems: T*): IO[Level0Meter] =
     batchRemove(elems)
 
   def batchRemove(elems: Iterable[T]): IO[Level0Meter] =
-    db.batch(elems.map(elem => request.Batch.Remove(elem, None)))
+    db.commit(elems.map(elem => Prepare.Remove(serializer.write(elem))))
 
   def batchExpire(elems: (T, Deadline)*): IO[Level0Meter] =
     batchExpire(elems)
 
   def batchExpire(elems: Iterable[(T, Deadline)]): IO[Level0Meter] =
-    db.batch(elems.map(elemWithExpire => request.Batch.Remove(elemWithExpire._1, Some(elemWithExpire._2))))
+    db.commit {
+      elems map {
+        elemWithExpire =>
+          Prepare.Remove(
+            from = serializer.write(elemWithExpire._1),
+            to = None,
+            deadline = Some(elemWithExpire._2)
+          )
+      }
+    }
 
   def level0Meter: Level0Meter =
     db.level0Meter

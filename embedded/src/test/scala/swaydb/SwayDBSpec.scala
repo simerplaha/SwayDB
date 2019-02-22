@@ -25,6 +25,7 @@ import swaydb.serializers.Default._
 import swaydb.core.IOAssert._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
+import swaydb.data.transaction.Prepare
 
 class SwayDBSpec0 extends SwayDBSpec {
   override def newDB(): Map[Int, String] =
@@ -174,30 +175,30 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
     "batch put, remove, update & range remove key-values" in {
       val db = newDB()
 
-      db.batch(Batch.Put(1, "one"), Batch.Remove(1)).assertGet
+      db.commit(Prepare.Put(1, "one"), Prepare.Remove(1)).assertGet
       db.get(1).assertGetOpt shouldBe empty
 
       //      remove and then put should return Put's value
-      db.batch(Batch.Remove(1), Batch.Put(1, "one")).assertGet
+      db.commit(Prepare.Remove(1), Prepare.Put(1, "one")).assertGet
       db.get(1).assertGet shouldBe "one"
 
       //remove range and put should return Put's value
-      db.batch(Batch.Remove(1, 100), Batch.Put(1, "one")).assertGet
+      db.commit(Prepare.Remove(1, 100), Prepare.Put(1, "one")).assertGet
       db.get(1).assertGet shouldBe "one"
 
-      db.batch(Batch.Put(1, "one"), Batch.Put(2, "two"), Batch.Put(1, "one one"), Batch.Update(1, 100, "updated"), Batch.Remove(1, 100)).assertGet
+      db.commit(Prepare.Put(1, "one"), Prepare.Put(2, "two"), Prepare.Put(1, "one one"), Prepare.Update(1, 100, "updated"), Prepare.Remove(1, 100)).assertGet
       db.get(1).assertGetOpt shouldBe empty
       db.isEmpty shouldBe true
       //
-      db.batch(Batch.Put(1, "one"), Batch.Put(2, "two"), Batch.Put(1, "one one"), Batch.Remove(1, 100), Batch.Update(1, 100, "updated")).assertGet
+      db.commit(Prepare.Put(1, "one"), Prepare.Put(2, "two"), Prepare.Put(1, "one one"), Prepare.Remove(1, 100), Prepare.Update(1, 100, "updated")).assertGet
       db.get(1).assertGetOpt shouldBe empty
       db.isEmpty shouldBe true
 
-      db.batch(Batch.Put(1, "one"), Batch.Put(2, "two"), Batch.Put(1, "one again"), Batch.Update(1, 100, "updated")).assertGet
+      db.commit(Prepare.Put(1, "one"), Prepare.Put(2, "two"), Prepare.Put(1, "one again"), Prepare.Update(1, 100, "updated")).assertGet
       db.get(1).assertGet shouldBe "updated"
       db.toMap.values should contain only "updated"
 
-      db.batch(Batch.Put(1, "one"), Batch.Put(2, "two"), Batch.Put(100, "hundred"), Batch.Remove(1, 100), Batch.Update(1, 1000, "updated")).assertGet
+      db.commit(Prepare.Put(1, "one"), Prepare.Put(2, "two"), Prepare.Put(100, "hundred"), Prepare.Remove(1, 100), Prepare.Update(1, 1000, "updated")).assertGet
       db.toList shouldBe empty
     }
 

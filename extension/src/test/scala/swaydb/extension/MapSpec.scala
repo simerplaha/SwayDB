@@ -19,16 +19,17 @@
 
 package swaydb.extension
 
-import swaydb.core.TestBase
-import swaydb.data.util.StorageUnits._
-import swaydb.serializers.Default._
-import swaydb.{Batch, SwayDB, TestBaseEmbedded}
-import swaydb.core.IOAssert._
-import swaydb.core.CommonAssertions._
-import swaydb.core.RunThis._
 import scala.concurrent.duration._
+import swaydb.TestBaseEmbedded
+import swaydb.core.CommonAssertions._
+import swaydb.core.IOAssert._
+import swaydb.core.RunThis._
+import swaydb.core.TestBase
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
+import swaydb.data.transaction.Prepare
+import swaydb.data.util.StorageUnits._
+import swaydb.serializers.Default._
 
 class MapSpec0 extends MapSpec {
   val keyValueCount: Int = 1000
@@ -385,14 +386,14 @@ sealed trait MapSpec extends TestBase with TestBaseEmbedded {
     "batch put" in {
       val rootMap = newDB()
       rootMap.batch(
-        Batch.Put(1, "one"),
-        Batch.Put(2, "two")
+        Prepare.Put(1, "one"),
+        Prepare.Put(2, "two")
       ).assertGet
 
       val subMap = rootMap.maps.put(1, "sub map").assertGet
       subMap.batch(
-        Batch.Put(1, "one one"),
-        Batch.Put(2, "two two")
+        Prepare.Put(1, "one one"),
+        Prepare.Put(2, "two two")
       ).assertGet
 
       rootMap.get(1).assertGet shouldBe "one"
@@ -404,24 +405,24 @@ sealed trait MapSpec extends TestBase with TestBaseEmbedded {
     "batch update" in {
       val rootMap = newDB()
       rootMap.batch(
-        Batch.Put(1, "one"),
-        Batch.Put(2, "two")
+        Prepare.Put(1, "one"),
+        Prepare.Put(2, "two")
       ).assertGet
 
       rootMap.batch(
-        Batch.Update(1, "one updated"),
-        Batch.Update(2, "two updated")
+        Prepare.Update(1, "one updated"),
+        Prepare.Update(2, "two updated")
       ).assertGet
 
       val subMap = rootMap.maps.put(1, "sub map").assertGet
       subMap.batch(
-        Batch.Put(1, "one one"),
-        Batch.Put(2, "two two")
+        Prepare.Put(1, "one one"),
+        Prepare.Put(2, "two two")
       ).assertGet
 
       subMap.batch(
-        Batch.Update(1, "one one updated"),
-        Batch.Update(2, "two two updated")
+        Prepare.Update(1, "one one updated"),
+        Prepare.Update(2, "two two updated")
       ).assertGet
 
       rootMap.get(1).assertGet shouldBe "one updated"
@@ -433,24 +434,24 @@ sealed trait MapSpec extends TestBase with TestBaseEmbedded {
     "batch expire" in {
       val rootMap = newDB()
       rootMap.batch(
-        Batch.Put(1, "one"),
-        Batch.Put(2, "two")
+        Prepare.Put(1, "one"),
+        Prepare.Put(2, "two")
       ).assertGet
 
       rootMap.batch(
-        Batch.Expire(1, 100.millisecond),
-        Batch.Expire(2, 100.millisecond)
+        Prepare.Expire(1, 100.millisecond),
+        Prepare.Expire(2, 100.millisecond)
       ).assertGet
 
       val subMap = rootMap.maps.put(1, "sub map").assertGet
       subMap.batch(
-        Batch.Put(1, "one one"),
-        Batch.Put(2, "two two")
+        Prepare.Put(1, "one one"),
+        Prepare.Put(2, "two two")
       ).assertGet
 
       subMap.batch(
-        Batch.Expire(1, 100.millisecond),
-        Batch.Expire(2, 100.millisecond)
+        Prepare.Expire(1, 100.millisecond),
+        Prepare.Expire(2, 100.millisecond)
       ).assertGet
 
       eventual {
