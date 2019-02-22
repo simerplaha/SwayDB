@@ -44,6 +44,7 @@ sealed trait IO[+T] {
   def foreach[U](f: T => U): Unit
   def flatMap[U](f: T => IO[U]): IO[U]
   def asAsync: IO.Async[T]
+  def asIO: IO[T]
   def map[U](f: T => U): IO[U]
   def filter(p: T => Boolean): IO[T]
   @inline final def withFilter(p: T => Boolean): WithFilter = new WithFilter(p)
@@ -111,6 +112,7 @@ object IO {
 
     //returns the first IO.Success(Some(_)).
     def untilSome[R](f: T => IO[Option[R]]): IO[Option[(R, T)]] = {
+      //probably not a good Scala implementation using return statements. Needs improvement.
       iterable.iterator foreach {
         item =>
           f(item) match {
@@ -118,6 +120,7 @@ object IO {
               return IO.Success(Some(value, item))
 
             case IO.Success(None) =>
+            //continue reading
 
             case IO.Failure(exception) =>
               return IO.Failure(exception)
@@ -150,7 +153,7 @@ object IO {
       }
     }
 
-    def flattenIO[R: ClassTag](ioBlock: T => IO[Iterable[R]],
+    def flatMapIO[R: ClassTag](ioBlock: T => IO[Iterable[R]],
                                recover: (Iterable[R], IO.Failure[Slice[R]]) => Unit = (_: Iterable[R], _: IO.Failure[Iterable[R]]) => (),
                                failFast: Boolean = true): IO[Iterable[R]] = {
       val it = iterable.iterator
@@ -169,6 +172,7 @@ object IO {
         case Some(value) =>
           recover(results, value)
           value
+
         case None =>
           IO.Success(results)
       }
@@ -234,7 +238,7 @@ object IO {
         case exception: IO.Exception.Busy => exception.error
         case exception: IO.Exception.OpeningFile => Error.OpeningFile(exception.file, exception.busy)
         case exception: IO.Exception.DecompressingIndex => Error.DecompressingIndex(exception.busy)
-        case exception: IO.Exception.DecompressionValues => Error.DecompressionValues(exception.busy)
+        case exception: IO.Exception.DecompressionValues => Error.DecompressingValues(exception.busy)
         case exception: IO.Exception.FetchingValue => Error.FetchingValue(exception.busy)
         case exception: IO.Exception.ReadingHeader => Error.ReadingHeader(exception.busy)
         case exception: IO.Exception.ReceivedKeyValuesToMergeWithoutTargetSegment => Error.ReceivedKeyValuesToMergeWithoutTargetSegment(exception.keyValueCount)
@@ -307,7 +311,7 @@ object IO {
       override def exception: IO.Exception.DecompressingIndex = IO.Exception.DecompressingIndex(busy)
     }
 
-    case class DecompressionValues(busy: BusyBoolean) extends Busy {
+    case class DecompressingValues(busy: BusyBoolean) extends Busy {
       override def exception: IO.Exception.DecompressionValues = IO.Exception.DecompressionValues(busy)
     }
 
@@ -345,7 +349,7 @@ object IO {
     /**
       * Error that are not known and indicate something unexpected went wrong like a file corruption.
       *
-      * Pre-cautions and implemented in place to even recover from these failures using tools like AppendixRepairer.
+      * Pre-cautions are implemented in place to even recover from these failures using tools like AppendixRepairer.
       * This Error is not expected to occur on healthy databases.
       */
     case class Fatal(exception: Throwable) extends Error
@@ -407,6 +411,7 @@ object IO {
       this
     }
     override def asAsync: IO.Async[T] = this
+    override def asIO: IO[T] = this
   }
 
   object Async {
@@ -596,12 +601,13 @@ object IO {
     override def onSuccessSideEffect(f: Success[T] => Unit): IO.Failure[T] = this
     def exception: Throwable = error.exception
     def recoverToAsync[U](operation: => IO.Async[U]): IO.Async[U] =
+    //it's already know it's a failure, do not run it again on recovery, just flatMap onto operation.
       IO.Async.recover(this, ()) flatMap {
         _ =>
           operation
       }
 
     override def asAsync: IO.Async[T] = this
-
+    override def asIO: IO[T] = this
   }
 }

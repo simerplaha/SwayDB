@@ -477,7 +477,7 @@ private[core] class Level(val dirs: Seq[Dir],
 
   private[level] def copy(segmentsToCopy: Iterable[Segment]): IO[Iterable[Segment]] = {
     logger.trace(s"{}: Copying {} Segments", paths.head, segmentsToCopy.map(_.path.toString))
-    segmentsToCopy.flattenIO[Segment](
+    segmentsToCopy.flatMapIO[Segment](
       ioBlock =
         segment => {
           def targetSegmentPath = paths.next.resolve(IDGenerator.segmentId(segmentIDGenerator.nextID))

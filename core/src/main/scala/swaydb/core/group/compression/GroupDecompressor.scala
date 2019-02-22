@@ -62,7 +62,7 @@ private[core] case class GroupDecompressor(private val compressedGroupReader: Re
       finally
         BusyBoolean.setFree(busyValueDecompressing)
     else //currently being decompressed by another thread. IO again!
-      IO.Failure(IO.Error.DecompressionValues(busyValueDecompressing))
+      IO.Failure(IO.Error.DecompressingValues(busyValueDecompressing))
 
   private def readHeader() =
     for {

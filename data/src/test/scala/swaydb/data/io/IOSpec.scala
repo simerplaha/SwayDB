@@ -19,22 +19,12 @@
 
 package swaydb.data.io
 
-import java.nio.file.{NoSuchFileException, Paths}
 import org.scalatest.{Matchers, WordSpec}
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
-import scala.util.Random
 import swaydb.data.io.IO.{getOrNone, _}
 import swaydb.data.slice.Slice
 
 class IOSpec extends WordSpec with Matchers {
-
-  implicit class AwaitImplicits[T](f: Future[T]) {
-    def await =
-      Await.result(f, 10.seconds)
-  }
 
   "Catch" when {
     "exception" in {
@@ -135,13 +125,13 @@ class IOSpec extends WordSpec with Matchers {
     }
   }
 
-  "flattenIO" should {
+  "flatMapIO" should {
 
     "return flattened list" in {
       val slice = Slice(1, 2, 3, 4, 5)
 
       val result: IO[Iterable[String]] =
-        slice.flattenIO {
+        slice flatMapIO {
           item =>
             IO(Seq(item.toString))
         }
@@ -153,10 +143,10 @@ class IOSpec extends WordSpec with Matchers {
       val slice = Slice(1, 2, 3, 4, 5)
 
       val result: IO[Iterable[String]] =
-        slice.flattenIO {
+        slice flatMapIO {
           item =>
             if (item < 3) {
-              IO(Seq(item.toString))
+              IO(List(item.toString))
             }
             else {
               IO.Failure(new Exception("Kaboom!"))
@@ -198,12 +188,47 @@ class IOSpec extends WordSpec with Matchers {
   }
 
   "untilSome" should {
-    "return on first Successful result that resulted in Some value" in {
+    "return first as success" in {
       val slice = Slice(1, 2, 3, 4)
       var iterations = 0
 
       val result: IO[Option[(Int, Int)]] =
-        slice.untilSome {
+        slice untilSome {
+          item => {
+            iterations += 1
+            IO.Success(Some(item))
+          }
+        }
+
+      result.get should contain((1, 1))
+      iterations shouldBe 1
+    }
+
+    "return last as success" in {
+      val slice = Slice(1, 2, 3, 4)
+      var iterations = 0
+
+      val result: IO[Option[(Int, Int)]] =
+        slice untilSome {
+          item => {
+            iterations += 1
+            if (item == 4)
+              IO.Success(Some(item))
+            else
+              IO.none
+          }
+        }
+
+      result.get should contain((4, 4))
+      iterations shouldBe 4
+    }
+
+    "return mid result that resulted in Some value" in {
+      val slice = Slice(1, 2, 3, 4)
+      var iterations = 0
+
+      val result: IO[Option[(Int, Int)]] =
+        slice untilSome {
           item => {
             iterations += 1
             if (item == 3)
@@ -222,7 +247,7 @@ class IOSpec extends WordSpec with Matchers {
       var iterations = 0
 
       val result: IO[Option[(Int, Int)]] =
-        slice.untilSome {
+        slice untilSome {
           _ => {
             iterations += 1
             IO.none
@@ -238,7 +263,7 @@ class IOSpec extends WordSpec with Matchers {
       var iterations = 0
 
       val result: IO[Option[(Int, Int)]] =
-        slice.untilSome {
+        slice untilSome {
           item => {
             iterations += 1
             IO.Failure(new Exception(s"Failed at $item"))
@@ -258,257 +283,6 @@ class IOSpec extends WordSpec with Matchers {
 
     "no exception" in {
       getOrNone("success").get shouldBe "success"
-    }
-  }
-
-  "IO.Success" should {
-    "set booleans" in {
-      val io = IO.Success(1)
-      io.isFailure shouldBe false
-      io.isLater shouldBe false
-      io.isSuccess shouldBe true
-    }
-
-    "get" in {
-      val io = IO.Success(1)
-
-      io.get shouldBe 1
-      io.safeGet shouldBe io
-      io.safeGetBlocking shouldBe io
-      io.safeGetFuture.await shouldBe io
-    }
-
-    "getOrElse & orElse return first io if both are successes" in {
-      val io1 = IO.Success(1)
-      val io2 = IO.Success(2)
-
-      io1 getOrElse io2 shouldBe 1
-
-      io1 orElse io2 shouldBe io1
-    }
-
-    "getOrElse return second io first is failure" in {
-      val io = IO.Failure(IO.Error.NoSuchFile(new NoSuchFileException("")))
-
-      io getOrElse 2 shouldBe 2
-
-      io orElse IO.Success(2) shouldBe IO.Success(2)
-    }
-
-    "flatMap on Success" in {
-      IO.Success(1).asAsync flatMap {
-        i =>
-          IO.Success(i + 1)
-      } shouldBe IO.Success(2)
-    }
-
-    "flatMap on failure" in {
-      val failure = IO.Failure(IO.Error.NoSuchFile(new NoSuchFileException("")))
-
-      IO.Success(1).asAsync flatMap {
-        _ =>
-          failure
-      } shouldBe failure
-    }
-
-    "flatten" in {
-      val nested: IO[IO[IO[IO[Int]]]] = IO.Success(IO.Success(IO.Success(IO.Success(1))))
-
-      nested.flatten.flatten.flatten shouldBe IO.Success(1)
-    }
-
-    "flatten on successes with failure" in {
-      val nested: IO[IO[IO[IO[Int]]]] = IO.Success(IO.Success(IO.Success(IO.Failure(IO.Error.Fatal(new Exception("Kaboom!"))))))
-
-      nested.flatten.flatten.flatten.asInstanceOf[IO.Failure[Int]].exception.getMessage shouldBe "Kaboom!"
-    }
-  }
-
-  "IO.Failure" should {
-    "set boolean" in {
-      val io = IO.Failure(Error.OpeningFile(Paths.get(""), BusyBoolean(false)))
-      io.isFailure shouldBe true
-      io.isLater shouldBe false
-      io.isSuccess shouldBe false
-    }
-
-    "get" in {
-      val io = IO.Failure[Int](new IllegalAccessError)
-
-      assertThrows[IllegalAccessError] {
-        io.get
-      }
-      io.safeGet shouldBe io
-      io.safeGetBlocking shouldBe io
-      io.safeGetFuture.await shouldBe io
-    }
-
-    "getOrElse & orElse return first io if both are Failures" in {
-      val io1 = IO.Failure(new IllegalAccessError)
-      val io2 = IO.Failure(new IllegalArgumentException)
-
-      (io1 getOrElse io2).exception shouldBe a[IllegalArgumentException]
-
-      io1 orElse io2 shouldBe io2
-    }
-
-    "flatMap on Success" in {
-      val failIO = IO.Failure(new IllegalThreadStateException)
-      failIO.asAsync flatMap {
-        i =>
-          IO.Success(1)
-      } shouldBe failIO
-    }
-
-    "flatMap on failure" in {
-      val failure = IO.Failure(IO.Error.NoSuchFile(new NoSuchFileException("")))
-
-      failure.asAsync flatMap {
-        _ =>
-          IO.Failure(new IllegalThreadStateException)
-      } shouldBe failure
-    }
-
-    "flatten on successes with failure" in {
-      val io = IO.Success(IO.Failure(IO.Error.Fatal(new Exception("Kaboom!"))))
-
-      io.flatten.asInstanceOf[IO.Failure[Int]].exception.getMessage shouldBe "Kaboom!"
-    }
-
-    "flatten on failure with success" in {
-      val io =
-        (IO.Failure(IO.Error.Fatal(new Exception("Kaboom!"))): IO[Int]) map {
-          _ =>
-            IO.Success(11)
-        }
-
-      io.flatten.asInstanceOf[IO.Failure[Int]].exception.getMessage shouldBe "Kaboom!"
-    }
-  }
-
-  "IO.Async" should {
-    "flatMap on IO" in {
-      val io =
-        IO.Async(1, IO.Error.DecompressionValues(BusyBoolean(false))) flatMap {
-          int =>
-            IO.Success(int + 1)
-        }
-
-      io.get shouldBe 2
-      io.safeGet shouldBe IO.Success(2)
-      io.safeGetBlocking shouldBe IO.Success(2)
-      io.safeGetFuture.await shouldBe IO.Success(2)
-    }
-
-    "flatMap on IO.Failure" in {
-      val boolean = BusyBoolean(false)
-
-      val io: IO.Async[Int] =
-        IO.Async(1, IO.Error.DecompressionValues(BusyBoolean(false))) flatMap {
-          _ =>
-            IO.Failure(IO.Error.OpeningFile(Paths.get(""), boolean))
-        }
-
-      assertThrows[IO.Exception.OpeningFile] {
-        io.get
-      }
-
-      io.safeGet.asInstanceOf[IO.Later[_]].error shouldBe IO.Error.OpeningFile(Paths.get(""), boolean)
-
-    }
-
-    "safeGet on multiple when last is a failure should return failure" in {
-      val failure = IO.Failure(IO.Error.NoSuchFile(new NoSuchFileException("Not such file")))
-
-      val io: Async[Int] =
-        IO.Async(1, IO.Error.DecompressingIndex(BusyBoolean(false))) flatMap {
-          i =>
-            IO.Async(i + 1, IO.Error.ReadingHeader(BusyBoolean(false))) flatMap {
-              _ =>
-                failure
-            }
-        }
-
-      io.safeGet.asInstanceOf[IO.Later[_]].error shouldBe failure.error
-    }
-
-    "safeGet on multiple when last is Async should return last Async" in {
-      val busy1 = BusyBoolean(true)
-      val busy2 = BusyBoolean(true)
-      val busy3 = BusyBoolean(true)
-
-      val io: Async[Int] =
-        IO.Async(1, IO.Error.DecompressingIndex(busy1)) flatMap {
-          i =>
-            IO.Async(i + 1, IO.Error.DecompressionValues(busy2)) flatMap {
-              i =>
-                IO.Async(i + 1, IO.Error.ReadingHeader(busy3))
-            }
-        }
-
-      (1 to 100).par foreach {
-        _ =>
-          io.safeGet.asInstanceOf[IO.Later[_]].isValueDefined shouldBe false
-          io.asInstanceOf[IO.Later[_]].isValueDefined shouldBe false
-      }
-
-      val io0 = io.safeGet
-      io0 shouldBe io
-
-      //make first IO available
-      BusyBoolean.setFree(busy1)
-      val io1 = io.safeGet
-      io1 shouldBe a[IO.Async[_]]
-      io0.safeGet shouldBe a[IO.Async[_]]
-
-      //make second IO available
-      BusyBoolean.setFree(busy2)
-      val io2 = io.safeGet
-      io2 shouldBe a[IO.Async[_]]
-      io0.safeGet shouldBe a[IO.Async[_]]
-      io1.safeGet shouldBe a[IO.Async[_]]
-
-      //make third IO available. Now all IOs are ready, safeGet will result in Success.
-      BusyBoolean.setFree(busy3)
-      val io3 = io.safeGet
-      io3 shouldBe IO.Success(3)
-      io0.safeGet shouldBe IO.Success(3)
-      io1.safeGet shouldBe IO.Success(3)
-      io2.safeGet shouldBe IO.Success(3)
-
-      //value should be defined on all instances.
-      io0.asInstanceOf[IO.Later[_]].isValueDefined shouldBe true
-      io1.asInstanceOf[IO.Later[_]].isValueDefined shouldBe true
-      io2.asInstanceOf[IO.Later[_]].isValueDefined shouldBe true
-    }
-
-    "safeGetBlocking & safeGetFuture" in {
-      import scala.concurrent.ExecutionContext.Implicits.global
-
-      (1 to 2) foreach {
-        i =>
-          val booleans = Array.fill(101)(BusyBoolean(true))
-
-          val io: Async[Int] = {
-            (0 to 100).foldLeft(IO.Async(1, IO.Error.DecompressingIndex(BusyBoolean(false)))) {
-              case (previous, i) =>
-                previous flatMap {
-                  output =>
-                    Future {
-                      if (Random.nextBoolean()) Thread.sleep(Random.nextInt(100))
-                      BusyBoolean.setFree(booleans(i))
-                    }
-                    IO.Async(output + 1, IO.Error.DecompressionValues(booleans(i)))
-                }
-            }
-          }
-
-          if (i == 1)
-            io.safeGetBlocking shouldBe IO.Success(102)
-          else
-            io.safeGetFuture.await shouldBe IO.Success(102)
-      }
-
     }
   }
 }

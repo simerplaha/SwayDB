@@ -250,7 +250,6 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
       val request = PushSegments(Seq(TestSegment().assertGet), replyTo)
       level.forward(request).failed.assertGet.exception shouldBe IO.Exception.NotSentToNextLevel
     }
-
   }
 
   "Level.put segments" should {
