@@ -77,10 +77,10 @@ private[swaydb] case class CoreBlockingAPI(zero: LevelZero) {
   def put(entry: MapEntry[Slice[Byte], Memory.SegmentResponse]): IO[Level0Meter] =
     zero.put(entry)
 
-  def put(entries: Iterable[Prepare[Slice[Byte], Option[Slice[Byte]]]]): IO[Level0Meter] =
+  def put(entries: Iterable[Prepare[Slice[Byte], Option[Slice[Byte]]]]): IO[Level0Meter] = {
+    val time = Time.localNano
     entries.foldLeft(Option.empty[MapEntry[Slice[Byte], Memory.SegmentResponse]]) {
       case (mapEntry, prepare) =>
-        val time = Time.localNano
         val nextEntry =
           prepare match {
             case Prepare.Put(key, value, expire) =>
@@ -121,6 +121,7 @@ private[swaydb] case class CoreBlockingAPI(zero: LevelZero) {
       entry =>
         put(entry)
     } getOrElse IO.Failure(new Exception("Cannot write empty batch"))
+  }
 
   def remove(key: Slice[Byte]): IO[Level0Meter] =
     zero.remove(key)
