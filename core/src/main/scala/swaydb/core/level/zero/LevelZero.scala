@@ -160,22 +160,22 @@ private[core] class LevelZero(val path: Path,
 
   def put(key: Slice[Byte]): IO[Level0Meter] =
     assertKey(key) {
-      maps.write(MapEntry.Put[Slice[Byte], Memory.SegmentResponse](key, Memory.Put(key, None, None, Time.empty)))
+      maps.write(MapEntry.Put[Slice[Byte], Memory.SegmentResponse](key, Memory.Put(key, None, None, Time.localNano)))
     }
 
   def put(key: Slice[Byte], value: Slice[Byte]): IO[Level0Meter] =
     assertKey(key) {
-      maps.write(MapEntry.Put(key, Memory.Put(key, Some(value), None, Time.empty)))
+      maps.write(MapEntry.Put(key, Memory.Put(key, Some(value), None, Time.localNano)))
     }
 
   def put(key: Slice[Byte], value: Option[Slice[Byte]], removeAt: Deadline): IO[Level0Meter] =
     assertKey(key) {
-      maps.write(MapEntry.Put(key, Memory.Put(key, value, Some(removeAt), Time.empty)))
+      maps.write(MapEntry.Put(key, Memory.Put(key, value, Some(removeAt), Time.localNano)))
     }
 
   def put(key: Slice[Byte], value: Option[Slice[Byte]]): IO[Level0Meter] =
     assertKey(key) {
-      maps.write(MapEntry.Put(key, Memory.Put(key, value, None, Time.empty)))
+      maps.write(MapEntry.Put(key, Memory.Put(key, value, None, Time.localNano)))
     }
 
   def put(entry: MapEntry[Slice[Byte], Memory.SegmentResponse]): IO[Level0Meter] =
@@ -183,12 +183,12 @@ private[core] class LevelZero(val path: Path,
 
   def remove(key: Slice[Byte]): IO[Level0Meter] =
     assertKey(key) {
-      maps.write(MapEntry.Put[Slice[Byte], Memory.Remove](key, Memory.Remove(key, None, Time.empty)))
+      maps.write(MapEntry.Put[Slice[Byte], Memory.Remove](key, Memory.Remove(key, None, Time.localNano)))
     }
 
   def remove(key: Slice[Byte], at: Deadline): IO[Level0Meter] =
     assertKey(key) {
-      maps.write(MapEntry.Put[Slice[Byte], Memory.Remove](key, Memory.Remove(key, Some(at), Time.empty)))
+      maps.write(MapEntry.Put[Slice[Byte], Memory.Remove](key, Memory.Remove(key, Some(at), Time.localNano)))
     }
 
   def remove(fromKey: Slice[Byte], to: Slice[Byte]): IO[Level0Meter] =
@@ -198,8 +198,8 @@ private[core] class LevelZero(val path: Path,
           IO.Failure(new Exception("fromKey should be less than toKey"))
         else
           maps.write {
-            (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, to, None, Value.Remove(None, Time.empty))): MapEntry[Slice[Byte], Memory.SegmentResponse]) ++
-              MapEntry.Put[Slice[Byte], Memory.Remove](to, Memory.Remove(to, None, Time.empty))
+            (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, to, None, Value.Remove(None, Time.localNano))): MapEntry[Slice[Byte], Memory.SegmentResponse]) ++
+              MapEntry.Put[Slice[Byte], Memory.Remove](to, Memory.Remove(to, None, Time.localNano))
           }
       }
     }
@@ -211,20 +211,20 @@ private[core] class LevelZero(val path: Path,
           IO.Failure(new Exception("fromKey should be less than toKey"))
         else
           maps.write {
-            (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, to, None, Value.Remove(Some(at), Time.empty))): MapEntry[Slice[Byte], Memory.SegmentResponse]) ++
-              MapEntry.Put[Slice[Byte], Memory.Remove](to, Memory.Remove(to, Some(at), Time.empty))
+            (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, to, None, Value.Remove(Some(at), Time.localNano))): MapEntry[Slice[Byte], Memory.SegmentResponse]) ++
+              MapEntry.Put[Slice[Byte], Memory.Remove](to, Memory.Remove(to, Some(at), Time.localNano))
           }
       }
     }
 
   def update(key: Slice[Byte], value: Slice[Byte]): IO[Level0Meter] =
     assertKey(key) {
-      maps.write(MapEntry.Put(key, Memory.Update(key, Some(value), None, Time.empty)))
+      maps.write(MapEntry.Put(key, Memory.Update(key, Some(value), None, Time.localNano)))
     }
 
   def update(key: Slice[Byte], value: Option[Slice[Byte]]): IO[Level0Meter] =
     assertKey(key) {
-      maps.write(MapEntry.Put(key, Memory.Update(key, value, None, Time.empty)))
+      maps.write(MapEntry.Put(key, Memory.Update(key, value, None, Time.localNano)))
     }
 
   def update(fromKey: Slice[Byte], to: Slice[Byte], value: Slice[Byte]): IO[Level0Meter] =
@@ -243,9 +243,9 @@ private[core] class LevelZero(val path: Path,
                 fromKey = fromKey,
                 toKey = to,
                 fromValue = None,
-                rangeValue = Value.Update(value, None, Time.empty)
+                rangeValue = Value.Update(value, None, Time.localNano)
               )
-            ): MapEntry[Slice[Byte], Memory.SegmentResponse]) ++ MapEntry.Put[Slice[Byte], Memory.Update](to, Memory.Update(to, value, None, Time.empty))
+            ): MapEntry[Slice[Byte], Memory.SegmentResponse]) ++ MapEntry.Put[Slice[Byte], Memory.Update](to, Memory.Update(to, value, None, Time.localNano))
           }
       }
     }
@@ -258,7 +258,7 @@ private[core] class LevelZero(val path: Path,
       IO.Failure(new Exception("Function does not exists in function store."))
     else
       assertKey(key) {
-        maps.write(MapEntry.Put[Slice[Byte], Memory.Function](key, Memory.Function(key, function, Time.empty)))
+        maps.write(MapEntry.Put[Slice[Byte], Memory.Function](key, Memory.Function(key, function, Time.localNano)))
       }
 
   def function(fromKey: Slice[Byte], to: Slice[Byte], function: Slice[Byte]): IO[Level0Meter] =
@@ -271,8 +271,8 @@ private[core] class LevelZero(val path: Path,
             IO.Failure(new Exception("fromKey should be less than toKey"))
           else
             maps.write {
-              (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, to, None, Value.Function(function, Time.empty))): MapEntry[Slice[Byte], Memory.SegmentResponse]) ++
-                MapEntry.Put[Slice[Byte], Memory.Function](to, Memory.Function(to, function, Time.empty))
+              (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, to, None, Value.Function(function, Time.localNano))): MapEntry[Slice[Byte], Memory.SegmentResponse]) ++
+                MapEntry.Put[Slice[Byte], Memory.Function](to, Memory.Function(to, function, Time.localNano))
             }
         }
       }

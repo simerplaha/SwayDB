@@ -27,8 +27,6 @@ import scala.concurrent.forkjoin.ForkJoinPool
 import swaydb.core.CoreBlockingAPI
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
-import swaydb.core.map.MapEntry
-import swaydb.core.map.serializer.LevelZeroMapEntryWriter
 import swaydb.core.queue.FileLimiter
 import swaydb.core.tool.AppendixRepairer
 import swaydb.data.accelerate.Level0Meter
@@ -47,6 +45,9 @@ import swaydb.serializers.Serializer
   */
 object SwayDB extends LazyLogging {
 
+  private implicit val memoryFunctionStore: FunctionStore = FunctionStore.memory()
+  private implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
+
   /**
     * Default execution context for all databases.
     *
@@ -61,9 +62,6 @@ object SwayDB extends LazyLogging {
     def reportFailure(exception: Throwable): Unit =
       logger.error("Execution context failure", exception)
   }
-
-  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
-  implicit val functionStore: FunctionStore = FunctionStore.memory()
 
   /**
     * Creates a database based on the input config.
@@ -304,39 +302,7 @@ private[swaydb] class SwayDB(api: CoreBlockingAPI) {
     api.registerFunction(functionID, function)
 
   def batch(entries: Iterable[request.Batch]) =
-    entries.foldLeft(Option.empty[MapEntry[Slice[Byte], Memory.SegmentResponse]]) {
-      case (mapEntry, batchEntry) =>
-        val nextEntry =
-          batchEntry match {
-            case request.Batch.Put(key, value, expire) =>
-              MapEntry.Put[Slice[Byte], Memory.Put](key, Memory.Put(key, value, expire, Time.empty))(LevelZeroMapEntryWriter.Level0PutWriter)
-
-            case request.Batch.Remove(key, expire) =>
-              MapEntry.Put[Slice[Byte], Memory.Remove](key, Memory.Remove(key, expire, Time.empty))(LevelZeroMapEntryWriter.Level0RemoveWriter)
-
-            case request.Batch.Update(key, value) =>
-              MapEntry.Put[Slice[Byte], Memory.Update](key, Memory.Update(key, value, None, Time.empty))(LevelZeroMapEntryWriter.Level0UpdateWriter)
-
-            case request.Batch.Function(key, function) =>
-              MapEntry.Put[Slice[Byte], Memory.Function](key, Memory.Function(key, function, Time.empty))(LevelZeroMapEntryWriter.Level0FunctionWriter)
-
-            case request.Batch.RemoveRange(fromKey, toKey, expire) =>
-              (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, None, Value.Remove(expire, Time.empty)))(LevelZeroMapEntryWriter.Level0RangeWriter): MapEntry[Slice[Byte], Memory.SegmentResponse]) ++
-                MapEntry.Put[Slice[Byte], Memory.Remove](toKey, Memory.Remove(toKey, expire, Time.empty))(LevelZeroMapEntryWriter.Level0RemoveWriter)
-
-            case request.Batch.UpdateRange(fromKey, toKey, value) =>
-              (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, None, Value.Update(value, None, Time.empty)))(LevelZeroMapEntryWriter.Level0RangeWriter): MapEntry[Slice[Byte], Memory.SegmentResponse]) ++
-                MapEntry.Put[Slice[Byte], Memory.Update](toKey, Memory.Update(toKey, None, None, Time.empty))(LevelZeroMapEntryWriter.Level0UpdateWriter)
-
-            case request.Batch.FunctionRange(fromKey, toKey, function) =>
-              (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, None, Value.Function(function, Time.empty)))(LevelZeroMapEntryWriter.Level0RangeWriter): MapEntry[Slice[Byte], Memory.SegmentResponse]) ++
-                MapEntry.Put[Slice[Byte], Memory.Function](toKey, Memory.Function(toKey, function, Time.empty))(LevelZeroMapEntryWriter.Level0FunctionWriter)
-          }
-        Some(mapEntry.map(_ ++ nextEntry) getOrElse nextEntry)
-    } map {
-      entry =>
-        api.put(entry)
-    } getOrElse IO.Failure(new Exception("Cannot write empty batch"))
+    api.put(entries)
 
   def head: IO[Option[(Slice[Byte], Option[Slice[Byte]])]] =
     api.head

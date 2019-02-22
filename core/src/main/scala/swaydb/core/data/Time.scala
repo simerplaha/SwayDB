@@ -23,11 +23,14 @@ import swaydb.data.io.IO
 import swaydb.data.order.TimeOrder
 import swaydb.data.slice.Slice
 
-object Time {
+private[core] object Time {
 
   val empty = Time(Slice.emptyBytes)
   val someEmpty = Some(empty)
   val successEmpty = IO.Success(empty)
+
+  def localNano: Time =
+    Time(Slice.writeLong(System.nanoTime()))
 
   def >(upperTime: Time, lowerTime: Time)(implicit timeOrder: TimeOrder[Slice[Byte]]): Boolean = {
     import timeOrder._
@@ -50,7 +53,7 @@ object Time {
       .getOrElse(Time.empty)
 }
 
-case class Time(time: Slice[Byte]) {
+private[core] case class Time(time: Slice[Byte]) {
   def unslice(): Time =
     Time(time.unslice())
 

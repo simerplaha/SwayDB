@@ -22,7 +22,6 @@ package swaydb
 import scala.collection.generic.CanBuildFrom
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 import swaydb.BatchImplicits._
-import swaydb.core.data.SwayFunction
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.io.IO
