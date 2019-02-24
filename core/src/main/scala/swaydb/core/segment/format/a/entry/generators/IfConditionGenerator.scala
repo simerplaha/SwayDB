@@ -35,7 +35,7 @@ object IfConditionGenerator extends App {
   }
 
   def write(fileNumber: Int, ids: List[EntryId]): Unit = {
-    val targetIdClass = Paths.get(s"${System.getProperty("user.dir")}/core/src/main/scala/swaydb/core/segment/format/a/entry/reader/matchers/BaseKeyReader$fileNumber.scala")
+    val targetIdClass = Paths.get(s"${System.getProperty("user.dir")}/core/src/main/scala/swaydb/core/segment/format/a/entry/reader/base/BaseEntryReader$fileNumber.scala")
     val allLines = Files.readAllLines(targetIdClass).asScala
     val writer = new PrintWriter(targetIdClass.toFile)
 
@@ -100,21 +100,15 @@ object IfConditionGenerator extends App {
         4
     }
 
-  Seq(
-    BaseEntryId.keyIdsList
-  ) foreach {
-    keyIds =>
-      val groups: Map[Int, List[EntryId]] =
-        keyIds.groupBy {
-          case key: Key.PartiallyCompressed => 1 + groupTime(key)
-          case key: Key.Uncompressed => 6 + groupTime(key)
-          case key: Key.FullyCompressed => 11 + groupTime(key)
-        }
+  def keyIdsGrouped: Map[Int, List[EntryId]] =
+    BaseEntryId.keyIdsList groupBy {
+      case key: Key.PartiallyCompressed => 1 + groupTime(key)
+      case key: Key.Uncompressed => 6 + groupTime(key)
+      case key: Key.FullyCompressed => 11 + groupTime(key)
+    }
 
-      groups foreach {
-        case (keyCompressionType, ids) =>
-          write(keyCompressionType, ids)
-      }
+  keyIdsGrouped foreach {
+    case (keyCompressionType, ids) =>
+      write(keyCompressionType, ids)
   }
-
 }
