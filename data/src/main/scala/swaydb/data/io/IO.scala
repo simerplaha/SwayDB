@@ -86,7 +86,9 @@ object IO {
     def mapAsync[U](f: T => U): IO.Async[U]
     def get: T
     def safeGet: IO.Async[T]
+    def safeGetIfFileExists: IO.Async[T]
     def safeGetBlocking: IO[T]
+    def safeGetBlockingIfFileExists: IO[T]
     def safeGetFuture(implicit ec: ExecutionContext): Future[IO[T]]
     def getOrElse[U >: T](default: => U): U
     def recover[U >: T](f: PartialFunction[IO.Error, U]): IO[U]
@@ -397,7 +399,9 @@ object IO {
     override def isLater: Boolean = false
     override def get: T = value
     override def safeGet: IO.Success[T] = this
+    override def safeGetIfFileExists: Async[T] = this
     override def safeGetBlocking: IO.Success[T] = this
+    override def safeGetBlockingIfFileExists: IO[T] = this
     override def safeGetFuture(implicit ec: ExecutionContext): Future[IO.Success[T]] = Future.successful(this)
     override def getOrElse[U >: T](default: => U): U = get
     override def orElse[U >: T](default: => IO[U]): IO.Success[U] = this
@@ -424,6 +428,7 @@ object IO {
     }
     override def asAsync: IO.Async[T] = this
     override def asIO: IO[T] = this
+
   }
 
   object Async {
@@ -434,7 +439,13 @@ object IO {
           recover(ex, f)
       }
 
-    @inline final def recover[T](failure: IO.Failure[T], operation: => T): IO.Async[T] =
+    @inline final def runSafeIfFileExists[T](f: => T): IO.Async[T] =
+      try IO.Success(f) catch {
+        case ex: Throwable =>
+          recoverIfFileExists(ex, f)
+      }
+
+    def recover[T](failure: IO.Failure[T], operation: => T): IO.Async[T] =
       failure.error match {
         case busy: Error.Busy =>
           IO.Async(operation, busy)
@@ -451,10 +462,23 @@ object IO {
           failure
       }
 
-    @inline final def recover[T](exception: Throwable, operation: => T): IO.Async[T] =
+    def recover[T](exception: Throwable, operation: => T): IO.Async[T] =
       Error(exception) match {
-        case error: Error.Busy => IO.Later(operation, error)
-        case other: Error => IO.Failure(other)
+        //@formatter:off
+        case error: Error.Busy  => IO.Later(operation, error)
+        case other: Error       => IO.Failure(other)
+        //@formatter:on
+      }
+
+    def recoverIfFileExists[T](exception: Throwable, operation: => T): IO.Async[T] =
+      Error(exception) match {
+        //@formatter:off
+        case error: Error.FileNotFound  => IO.Failure(error)
+        case error: Error.NoSuchFile    => IO.Failure(error)
+        case error: Error.NullPointer   => IO.Failure(error)
+        case error: Error.Busy          => IO.Later(operation, error)
+        case other: Error               => IO.Failure(other)
+        //@formatter:on
       }
 
     @inline final def apply[T](value: => T, error: Error.Busy): IO.Async[T] =
@@ -491,6 +515,25 @@ object IO {
         _value = Some(got)
         got
       }
+
+    override def safeGetBlockingIfFileExists: IO[T] = {
+      @tailrec
+      def doGet(later: IO.Later[T]): IO[T] = {
+        BusyBoolean.blockUntilFree(later.error.busy)
+        later.safeGetIfFileExists match {
+          case success @ IO.Success(_) =>
+            success
+
+          case later: IO.Later[T] =>
+            doGet(later)
+
+          case failure @ IO.Failure(_) =>
+            failure
+        }
+      }
+
+      doGet(this)
+    }
 
     /**
       * Opens all [[IO.Async]] types to read the final value in a blocking manner.
@@ -536,6 +579,26 @@ object IO {
     }
 
     /**
+      * Opens all [[IO.Async]] types to read the final value in a non-blocking manner.
+      */
+    def safeGetFutureIfFileExists(implicit ec: ExecutionContext): Future[IO[T]] = {
+
+      def doGet(later: IO.Later[T]): Future[IO[T]] =
+        BusyBoolean.future(later.error.busy).map(_ => later.safeGetIfFileExists) flatMap {
+          case success @ IO.Success(_) =>
+            Future.successful(success)
+
+          case later: IO.Later[T] =>
+            doGet(later)
+
+          case failure @ IO.Failure(_) =>
+            Future.successful(failure)
+        }
+
+      doGet(this)
+    }
+
+    /**
       * If value is readable gets or fetches and return's the value or else throws [[IO.Exception.Busy]].
       *
       * @throws [[IO.Exception.Busy]]. Used for Java API.
@@ -550,6 +613,12 @@ object IO {
     def safeGet: IO.Async[T] =
       if (_value.isDefined || !isBusy)
         IO.Async.runSafe(get)
+      else
+        this
+
+    def safeGetIfFileExists: IO.Async[T] =
+      if (_value.isDefined || !isBusy)
+        IO.Async.runSafeIfFileExists(get)
       else
         this
 
@@ -583,7 +652,9 @@ object IO {
     override def isLater: Boolean = false
     override def get: T = throw error.exception
     override def safeGet: IO.Failure[T] = this
+    override def safeGetIfFileExists: Async[T] = this
     override def safeGetBlocking: IO.Failure[T] = this
+    override def safeGetBlockingIfFileExists: IO[T] = this
     override def safeGetFuture(implicit ec: ExecutionContext): Future[IO.Failure[T]] = Future.successful(this)
     override def getOrElse[U >: T](default: => U): U = default
     override def orElse[U >: T](default: => IO[U]): IO[U] = IO.Catch(default)

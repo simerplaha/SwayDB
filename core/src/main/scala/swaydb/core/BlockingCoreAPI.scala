@@ -35,8 +35,9 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.transaction.Prepare
 import swaydb.core.util.PipeOps._
+import swaydb.data.io.IO.Error
 
-private[swaydb] object CoreBlockingAPI {
+private[swaydb] object BlockingCoreAPI {
 
   def apply(config: SwayDBConfig,
             maxOpenSegments: Int,
@@ -45,7 +46,7 @@ private[swaydb] object CoreBlockingAPI {
             segmentsOpenCheckDelay: FiniteDuration)(implicit ec: ExecutionContext,
                                                     keyOrder: KeyOrder[Slice[Byte]],
                                                     timeOrder: TimeOrder[Slice[Byte]],
-                                                    functionStore: FunctionStore): IO[CoreBlockingAPI] =
+                                                    functionStore: FunctionStore): IO[BlockingCoreAPI] =
     DBInitializer(
       config = config,
       maxSegmentsOpen = maxOpenSegments,
@@ -57,11 +58,11 @@ private[swaydb] object CoreBlockingAPI {
   def apply(config: LevelZeroConfig)(implicit ec: ExecutionContext,
                                      keyOrder: KeyOrder[Slice[Byte]],
                                      timeOrder: TimeOrder[Slice[Byte]],
-                                     functionStore: FunctionStore): IO[CoreBlockingAPI] =
+                                     functionStore: FunctionStore): IO[BlockingCoreAPI] =
     DBInitializer(config = config)
 }
 
-private[swaydb] case class CoreBlockingAPI(zero: LevelZero) {
+private[swaydb] case class BlockingCoreAPI(zero: LevelZero) {
 
   def put(key: Slice[Byte]): IO[Level0Meter] =
     zero.put(key)
@@ -169,9 +170,18 @@ private[swaydb] case class CoreBlockingAPI(zero: LevelZero) {
       result =>
         result map {
           response =>
-            IO.Async.runSafe(response.getOrFetchValue.get).safeGetBlocking map {
+            IO.Async.runSafeIfFileExists(response.getOrFetchValue.get).safeGetBlockingIfFileExists map {
               result =>
                 Some(response.key, result)
+            } recoverWith {
+              case error =>
+                error match {
+                  case _: Error.Busy =>
+                    head
+
+                  case failure =>
+                    IO.Failure(failure)
+                }
             }
         } getOrElse IO.none
     }
@@ -184,9 +194,18 @@ private[swaydb] case class CoreBlockingAPI(zero: LevelZero) {
       result =>
         result map {
           response =>
-            IO.Async.runSafe(response.getOrFetchValue.get).safeGetBlocking map {
+            IO.Async.runSafeIfFileExists(response.getOrFetchValue.get).safeGetBlockingIfFileExists map {
               result =>
                 Some(response.key, result)
+            } recoverWith {
+              case error =>
+                error match {
+                  case _: Error.Busy =>
+                    last
+
+                  case failure =>
+                    IO.Failure(failure)
+                }
             }
         } getOrElse IO.none
     }
@@ -214,9 +233,18 @@ private[swaydb] case class CoreBlockingAPI(zero: LevelZero) {
       result =>
         result map {
           response =>
-            IO.Async.runSafe(response.getOrFetchValue.get).safeGetBlocking map {
+            IO.Async.runSafeIfFileExists(response.getOrFetchValue.get).safeGetBlockingIfFileExists map {
               result =>
                 Some(result)
+            } recoverWith {
+              case error =>
+                error match {
+                  case _: Error.Busy =>
+                    get(key)
+
+                  case failure =>
+                    IO.Failure(failure)
+                }
             }
         } getOrElse IO.none
     }
@@ -229,9 +257,18 @@ private[swaydb] case class CoreBlockingAPI(zero: LevelZero) {
       result =>
         result map {
           response =>
-            IO.Async.runSafe(response.getOrFetchValue.get).safeGetBlocking map {
+            IO.Async.runSafeIfFileExists(response.getOrFetchValue.get).safeGetBlockingIfFileExists map {
               result =>
                 Some(response.key, result)
+            } recoverWith {
+              case error =>
+                error match {
+                  case _: Error.Busy =>
+                    getKeyValue(key)
+
+                  case failure =>
+                    IO.Failure(failure)
+                }
             }
         } getOrElse IO.none
     }
@@ -241,9 +278,18 @@ private[swaydb] case class CoreBlockingAPI(zero: LevelZero) {
       result =>
         result map {
           response =>
-            IO.Async.runSafe(response.getOrFetchValue.get).safeGetBlocking map {
+            IO.Async.runSafeIfFileExists(response.getOrFetchValue.get).safeGetBlockingIfFileExists map {
               result =>
                 Some(response.key, result)
+            } recoverWith {
+              case error =>
+                error match {
+                  case _: Error.Busy =>
+                    before(key)
+
+                  case failure =>
+                    IO.Failure(failure)
+                }
             }
         } getOrElse IO.none
     }
@@ -256,9 +302,18 @@ private[swaydb] case class CoreBlockingAPI(zero: LevelZero) {
       result =>
         result map {
           response =>
-            IO.Async.runSafe(response.getOrFetchValue.get).safeGetBlocking map {
+            IO.Async.runSafeIfFileExists(response.getOrFetchValue.get).safeGetBlockingIfFileExists map {
               result =>
                 Some(response.key, result)
+            } recoverWith {
+              case error =>
+                error match {
+                  case _: Error.Busy =>
+                    after(key)
+
+                  case failure =>
+                    IO.Failure(failure)
+                }
             }
         } getOrElse IO.none
     }

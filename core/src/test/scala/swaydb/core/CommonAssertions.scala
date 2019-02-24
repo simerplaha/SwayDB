@@ -56,6 +56,11 @@ import swaydb.data.util.StorageUnits._
 
 object CommonAssertions {
 
+  implicit class RunSafe[T](input: => T) {
+    def safeGetBlocking(): T =
+      IO.Async.runSafe(input).safeGetBlocking.get
+  }
+
   implicit class KeyValueImplicits(actual: KeyValue) {
 
     def asPut: Option[KeyValue.ReadOnly.Put] =
@@ -120,10 +125,10 @@ object CommonAssertions {
             case keyValue: Memory.Update =>
               keyValue.value
             case keyValue: Memory.Function =>
-              Some(keyValue.getOrFetchFunction.assertGet)
+              Some(keyValue.getOrFetchFunction.safeGetBlocking().assertGet)
             case keyValue: Memory.PendingApply =>
-              val bytes = Slice.create[Byte](ValueSerializer.bytesRequired(keyValue.getOrFetchApplies.assertGet))
-              ValueSerializer.write(keyValue.getOrFetchApplies.assertGet)(bytes)
+              val bytes = Slice.create[Byte](ValueSerializer.bytesRequired(keyValue.getOrFetchApplies.safeGetBlocking().assertGet))
+              ValueSerializer.write(keyValue.getOrFetchApplies.safeGetBlocking().assertGet)(bytes)
               Some(bytes)
             case keyValue: Memory.Remove =>
               None
@@ -155,19 +160,19 @@ object CommonAssertions {
         case keyValue: Persistent =>
           keyValue match {
             case keyValue: Persistent.Put =>
-              keyValue.getOrFetchValue.assertGetOpt
+              keyValue.getOrFetchValue.safeGetBlocking().assertGetOpt
             case keyValue: Persistent.Update =>
-              keyValue.getOrFetchValue.assertGetOpt
+              keyValue.getOrFetchValue.safeGetBlocking().assertGetOpt
             case keyValue: Persistent.Function =>
-              Some(keyValue.getOrFetchFunction.assertGet)
+              Some(keyValue.getOrFetchFunction.safeGetBlocking().assertGet)
             case keyValue: Persistent.PendingApply =>
-              keyValue.lazyValueReader.getOrFetchValue.assertGetOpt
+              keyValue.lazyValueReader.getOrFetchValue.safeGetBlocking().assertGetOpt
             case _: Persistent.Remove =>
               None
             case keyValue: Persistent.Range =>
-              keyValue.lazyRangeValueReader.getOrFetchValue.assertGetOpt
+              keyValue.lazyRangeValueReader.getOrFetchValue.safeGetBlocking().assertGetOpt
             case keyValue: Persistent.Group =>
-              keyValue.lazyGroupValueReader.getOrFetchValue.assertGetOpt
+              keyValue.lazyGroupValueReader.getOrFetchValue.safeGetBlocking().assertGetOpt
           }
       }
   }
@@ -717,7 +722,7 @@ object CommonAssertions {
         val expectedLowerKeyValue = keyValues(index - 1)
         val lower = level.lower(keyValues(index).key).assertGet
         lower.key shouldBe expectedLowerKeyValue.key
-        lower.getOrFetchValue.assertGetOpt shouldBe expectedLowerKeyValue.getOrFetchValue
+        IO.Async.runSafe(lower.getOrFetchValue).safeGetBlockingIfFileExists.get.assertGetOpt shouldBe IO.Async.runSafe(expectedLowerKeyValue.getOrFetchValue).safeGetBlockingIfFileExists.get
         assertLowers(index + 1)
       }
     }
@@ -782,7 +787,7 @@ object CommonAssertions {
     keyValues foreach {
       keyValue =>
         val actual = level.getFromThisLevel(keyValue.key).assertGet
-        actual.getOrFetchValue shouldBe keyValue.getOrFetchValue
+        actual.getOrFetchValue.safeGetBlocking() shouldBe keyValue.getOrFetchValue.safeGetBlocking()
     }
 
   def assertEmptyHeadAndLast(level: LevelRef) =
@@ -1337,7 +1342,7 @@ object CommonAssertions {
             //merge as though applies were normal fixed key-values. The result should be the same.
             FixedMerger(newer, older.toMemory(newKeyValue.key)).assertGet match {
               case newPendingApply: ReadOnly.PendingApply =>
-                val resultApplies = newPendingApply.getOrFetchApplies.assertGet.reverse.toList ++ reveredApplied.drop(count)
+                val resultApplies = newPendingApply.getOrFetchApplies.safeGetBlocking().assertGet.reverse.toList ++ reveredApplied.drop(count)
                 val result =
                   if (resultApplies.size == 1)
                     resultApplies.head.toMemory(newKeyValue.key)
@@ -1426,22 +1431,22 @@ object CommonAssertions {
           case Persistent.Put(_key, deadline, lazyValueReader, _time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength) =>
             _key.shouldBeSliced()
             _time.time.shouldBeSliced()
-            lazyValueReader.getOrFetchValue.assertGetOpt.shouldBeSliced()
+            lazyValueReader.getOrFetchValue.safeGetBlocking().assertGetOpt.shouldBeSliced()
 
           case Persistent.Update(_key, deadline, lazyValueReader, _time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength) =>
             _key.shouldBeSliced()
             _time.time.shouldBeSliced()
-            lazyValueReader.getOrFetchValue.assertGetOpt.shouldBeSliced()
+            lazyValueReader.getOrFetchValue.safeGetBlocking().assertGetOpt.shouldBeSliced()
 
           case Persistent.Function(_key, lazyFunctionReader, _time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength) =>
             _key.shouldBeSliced()
             _time.time.shouldBeSliced()
-            lazyFunctionReader.getOrFetchFunction.assertGet.shouldBeSliced()
+            lazyFunctionReader.getOrFetchFunction.safeGetBlocking().assertGet.shouldBeSliced()
 
           case Persistent.PendingApply(_key, _time, deadline, lazyValueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength) =>
             _key.shouldBeSliced()
             _time.time.shouldBeSliced()
-            lazyValueReader.getOrFetchApplies.assertGet foreach assertSliced
+            lazyValueReader.getOrFetchApplies.safeGetBlocking().assertGet foreach assertSliced
 
           case Persistent.Range(_fromKey, _toKey, lazyRangeValueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength) =>
             _fromKey.shouldBeSliced()
@@ -1452,7 +1457,7 @@ object CommonAssertions {
           case Persistent.Group(_minKey, _maxKey, groupDecompressor, lazyGroupValueReader, valueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, deadline) =>
             _minKey.shouldBeSliced()
             _maxKey.maxKey.shouldBeSliced()
-            lazyGroupValueReader.getOrFetchValue.assertGet.shouldBeSliced()
+            lazyGroupValueReader.getOrFetchValue.safeGetBlocking().assertGet.shouldBeSliced()
 
         }
     }

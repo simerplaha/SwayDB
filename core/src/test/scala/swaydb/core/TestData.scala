@@ -559,23 +559,23 @@ object TestData {
             case persistent: Persistent.Fixed =>
               persistent match {
                 case put @ Persistent.Put(key, deadline, valueReader, time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength) =>
-                  Memory.Put(key, put.getOrFetchValue.assertGetOpt, deadline, time)
+                  Memory.Put(key, IO.Async.runSafe(put.getOrFetchValue.get).safeGetBlocking.get, deadline, time)
 
                 case put @ Persistent.Update(key, deadline, valueReader, time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength) =>
-                  Memory.Update(key, put.getOrFetchValue.assertGetOpt, deadline, time)
+                  Memory.Update(key, IO.Async.runSafe(put.getOrFetchValue.get).safeGetBlocking.get, deadline, time)
 
                 case function @ Persistent.Function(key, lazyFunctionReader, time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength) =>
-                  Memory.Function(key, function.getOrFetchFunction.assertGet, time)
+                  Memory.Function(key, IO.Async.runSafe(function.getOrFetchFunction.get).safeGetBlocking.get, time)
 
                 case pendingApply @ Persistent.PendingApply(key, time, deadline, lazyPendingApplyValueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength) =>
-                  Memory.PendingApply(key, pendingApply.getOrFetchApplies.assertGet)
+                  Memory.PendingApply(key, IO.Async.runSafe(pendingApply.getOrFetchApplies.get).safeGetBlocking.get)
 
                 case Persistent.Remove(_key, deadline, time, indexOffset, nextIndexOffset, nextIndexSize) =>
                   Memory.Remove(_key, deadline, time)
               }
 
             case range @ Persistent.Range(_fromKey, _toKey, _, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength) =>
-              val (fromValue, rangeValue) = range.fetchFromAndRangeValue.assertGet
+              val (fromValue, rangeValue) = IO.Async.runSafe(range.fetchFromAndRangeValue.get).safeGetBlocking.get
               Memory.Range(_fromKey, _toKey, fromValue, rangeValue)
           }
       }

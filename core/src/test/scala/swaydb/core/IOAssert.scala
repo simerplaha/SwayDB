@@ -67,7 +67,7 @@ object IOAssert extends Matchers {
     def assertGetOpt: Option[T] =
       tryThis match {
         case IO.Failure(error) =>
-          fail(error.exception)
+          fail(s"Failed Error: $error", error.exception)
 
         case IO.Success(value) =>
           value

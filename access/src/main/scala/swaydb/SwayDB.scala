@@ -24,7 +24,7 @@ import java.nio.file.Path
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{FiniteDuration, _}
 import scala.concurrent.forkjoin.ForkJoinPool
-import swaydb.core.CoreBlockingAPI
+import swaydb.core.BlockingCoreAPI
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.queue.FileLimiter
@@ -94,7 +94,7 @@ object SwayDB extends LazyLogging {
                                                           valueSerializer: Serializer[V],
                                                           keyOrder: KeyOrder[Slice[Byte]],
                                                           ec: ExecutionContext): IO[swaydb.Map[K, V]] =
-    CoreBlockingAPI(
+    BlockingCoreAPI(
       config = config,
       maxOpenSegments = maxSegmentsOpen,
       cacheSize = cacheSize,
@@ -112,7 +112,7 @@ object SwayDB extends LazyLogging {
                segmentsOpenCheckDelay: FiniteDuration)(implicit serializer: Serializer[T],
                                                        keyOrder: KeyOrder[Slice[Byte]],
                                                        ec: ExecutionContext): IO[swaydb.Set[T]] =
-    CoreBlockingAPI(
+    BlockingCoreAPI(
       config = config,
       maxOpenSegments = maxSegmentsOpen,
       cacheSize = cacheSize,
@@ -129,7 +129,7 @@ object SwayDB extends LazyLogging {
                                                    valueSerializer: Serializer[V],
                                                    keyOrder: KeyOrder[Slice[Byte]],
                                                    ec: ExecutionContext): IO[swaydb.Map[K, V]] =
-    CoreBlockingAPI(
+    BlockingCoreAPI(
       config = config,
       maxOpenSegments = 0,
       cacheSize = cacheSize,
@@ -145,7 +145,7 @@ object SwayDB extends LazyLogging {
                cacheCheckDelay: FiniteDuration)(implicit serializer: Serializer[T],
                                                 keyOrder: KeyOrder[Slice[Byte]],
                                                 ec: ExecutionContext): IO[swaydb.Set[T]] =
-    CoreBlockingAPI(
+    BlockingCoreAPI(
       config = config,
       maxOpenSegments = 0,
       cacheSize = cacheSize,
@@ -159,7 +159,7 @@ object SwayDB extends LazyLogging {
   def apply[T](config: LevelZeroConfig)(implicit serializer: Serializer[T],
                                         keyOrder: KeyOrder[Slice[Byte]],
                                         ec: ExecutionContext): IO[swaydb.Set[T]] =
-    CoreBlockingAPI(
+    BlockingCoreAPI(
       config = config
     ) map {
       core =>
@@ -264,7 +264,7 @@ object SwayDB extends LazyLogging {
     }
 }
 
-private[swaydb] class SwayDB(api: CoreBlockingAPI) {
+private[swaydb] class SwayDB(api: BlockingCoreAPI) {
 
   def put(key: Slice[Byte]) =
     api.put(key)

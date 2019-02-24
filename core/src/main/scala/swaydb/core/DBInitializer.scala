@@ -58,7 +58,7 @@ private[core] object DBInitializer extends LazyLogging {
   def apply(config: LevelZeroConfig)(implicit ec: ExecutionContext,
                                      keyOrder: KeyOrder[Slice[Byte]],
                                      timeOrder: TimeOrder[Slice[Byte]],
-                                     functionStore: FunctionStore): IO[CoreBlockingAPI] = {
+                                     functionStore: FunctionStore): IO[BlockingCoreAPI] = {
     implicit val fileLimiter = FileLimiter.empty
     LevelZero(
       mapSize = config.mapSize,
@@ -69,7 +69,7 @@ private[core] object DBInitializer extends LazyLogging {
     ) map {
       zero =>
         addShutdownHook(zero)
-        CoreBlockingAPI(zero)
+        BlockingCoreAPI(zero)
     }
   }
 
@@ -80,7 +80,7 @@ private[core] object DBInitializer extends LazyLogging {
             segmentCloserDelay: FiniteDuration)(implicit ec: ExecutionContext,
                                                 keyOrder: KeyOrder[Slice[Byte]],
                                                 timeOrder: TimeOrder[Slice[Byte]],
-                                                functionStore: FunctionStore): IO[CoreBlockingAPI] = {
+                                                functionStore: FunctionStore): IO[BlockingCoreAPI] = {
     implicit val fileOpenLimiter: FileLimiter =
       FileLimiter(maxSegmentsOpen, segmentCloserDelay)
 
@@ -130,7 +130,7 @@ private[core] object DBInitializer extends LazyLogging {
       }
 
     def createLevels(levelConfigs: List[LevelConfig],
-                     previousLowerLevel: Option[LevelRef]): IO[CoreBlockingAPI] =
+                     previousLowerLevel: Option[LevelRef]): IO[BlockingCoreAPI] =
       levelConfigs match {
         case Nil =>
           createLevel(1, previousLowerLevel, config.level1) flatMap {
@@ -144,7 +144,7 @@ private[core] object DBInitializer extends LazyLogging {
               ) map {
                 zero =>
                   addShutdownHook(zero)
-                  CoreBlockingAPI(zero)
+                  BlockingCoreAPI(zero)
               }
           }
 

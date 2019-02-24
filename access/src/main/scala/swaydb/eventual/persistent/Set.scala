@@ -25,7 +25,7 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{FiniteDuration, _}
 import swaydb.data.io.IO
 import swaydb.configs.level.{DefaultGroupingStrategy, DefaultMemoryPersistentConfig}
-import swaydb.core.CoreBlockingAPI
+import swaydb.core.BlockingCoreAPI
 import swaydb.core.function.FunctionStore
 import swaydb.data.accelerate.{Accelerator, Level0Meter}
 import swaydb.data.api.grouping.KeyValueGroupingStrategy
@@ -65,7 +65,7 @@ object Set extends LazyLogging {
                acceleration: Level0Meter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[T],
                                                                                   keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                   ec: ExecutionContext = SwayDB.defaultExecutionContext): IO[swaydb.Set[T]] =
-    CoreBlockingAPI(
+    BlockingCoreAPI(
       config =
         DefaultMemoryPersistentConfig(
           dir = dir,
