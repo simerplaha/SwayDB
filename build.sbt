@@ -83,6 +83,7 @@ lazy val access =
     ).dependsOn(core, configs)
     .dependsOn(serializers, core % Test)
 
+
 lazy val configs =
   project
     .settings(commonSettings)
@@ -140,3 +141,15 @@ lazy val macros =
       libraryDependencies += "org.scala-lang" % "scala-compiler" % scala212,
       libraryDependencies += "org.scalameta" %% "scalameta" % scalaMetaVersion
     )
+
+lazy val `access-stress` =
+  project
+    .settings(commonSettings)
+    .settings(publishSettings)
+    .settings(
+      libraryDependencies ++=
+        commonDependencies
+          :+ "com.github.simerplaha" %% "actor" % "0.3"
+          :+ "io.suzaku" %% "boopickle" % "1.3.0"
+    ).dependsOn(core, configs)
+    .dependsOn(access, core % Test)
