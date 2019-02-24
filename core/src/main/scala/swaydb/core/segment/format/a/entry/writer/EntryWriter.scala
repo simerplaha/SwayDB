@@ -38,7 +38,7 @@ object EntryWriter {
     *
     * Note: No extra bytes are required to differentiate between a key that has meta or no meta block.
     *
-    * @param id                    [[EntryFormat]] for this key-value's type.
+    * @param id                      [[EntryFormat]] for this key-value's type.
     * @param compressDuplicateValues Compresses duplicate values if set to true.
     * @return indexEntry, valueBytes, valueOffsetBytes, nextValuesOffsetPosition
     */

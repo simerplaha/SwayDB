@@ -224,6 +224,18 @@ object IO {
     case object NoSegmentsRemoved extends Exception("No Segments Removed")
     case object NotSentToNextLevel extends Exception("Not sent to next Level")
     case class ReceivedKeyValuesToMergeWithoutTargetSegment(keyValueCount: Int) extends Exception(s"Received key-values to merge without target Segment - keyValueCount: $keyValueCount")
+
+    /**
+      * Does not have any direct [[IO.Error]] type associated with it since missing functions should be considered as [[IO.Error.Fatal]]
+      * and should be resolved otherwise compaction will fail and pause for that Segment and will only continue ones this function
+      * is available in function store.
+      *
+      * [[functionID]] itself is not logged or printed to console since it may contain sensitive data but instead this Exception
+      * with the [[functionID]] is returned to the client for reads and the exception's string message is only logged.
+      *
+      * @param functionID the id of the missing function.
+      */
+    case class FunctionNotFound(functionID: Slice[Byte]) extends Exception("Function not found for ID.")
   }
 
   sealed trait Error {

@@ -24,7 +24,7 @@ import swaydb.core.data.Persistent
 import swaydb.core.segment.format.a.entry.id.EntryId
 import swaydb.data.slice.Reader
 
-object RemoveReader extends EntryReader[Persistent.Remove]{
+object RemoveReader extends EntryReader[Persistent.Remove] {
 
   def apply[T <: EntryId](id: T,
                           indexReader: Reader,

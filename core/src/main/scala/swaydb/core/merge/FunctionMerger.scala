@@ -23,7 +23,6 @@ import swaydb.data.io.IO
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data.{SwayFunctionOutput, Memory, SwayFunction, Value}
 import swaydb.core.function.FunctionStore
-import swaydb.core.segment.merge.MergeException
 import swaydb.data.order.TimeOrder
 import swaydb.data.slice.Slice
 
@@ -89,7 +88,7 @@ object FunctionMerger {
               }
 
             case None =>
-              IO.Failure(MergeException.FunctionNotFound(function))
+              IO.Failure(IO.Exception.FunctionNotFound(function))
           }
       }
 
@@ -179,7 +178,7 @@ object FunctionMerger {
               }
 
             case None =>
-              IO.Failure(MergeException.FunctionNotFound(function))
+              IO.Failure(IO.Exception.FunctionNotFound(function))
           }
       }
     else
@@ -238,7 +237,7 @@ object FunctionMerger {
                   }
 
                 case None =>
-                  IO.Failure(MergeException.FunctionNotFound(function))
+                  IO.Failure(IO.Exception.FunctionNotFound(function))
               }
 
           }
