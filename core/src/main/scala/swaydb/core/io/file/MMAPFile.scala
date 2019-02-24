@@ -91,7 +91,7 @@ private[file] class MMAPFile(val path: Path,
     //the resulting NullPointerException will re-route request to the new Segment.
     //TO-DO: Use Option here instead. Test using Option does not have read performance impact.
     buffer = null
-    BufferCleaner ! (swapBuffer, path)
+    BufferCleaner.clean(swapBuffer, path)
   }
 
   private def extendBuffer(bufferSize: Long): IO[Unit] =

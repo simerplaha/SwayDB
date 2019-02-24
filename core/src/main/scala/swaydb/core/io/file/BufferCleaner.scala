@@ -88,17 +88,17 @@ private[file] object BufferCleaner extends LazyLogging {
             }
           }
         else
-          self.schedule((message._1, path, true), 3.seconds)
+          self.schedule((message._1, path, true), 5.seconds)
     }
   }
 
   @tailrec
-  def !(message: (MappedByteBuffer, Path))(implicit ec: ExecutionContext): Unit =
+  def clean(buffer: MappedByteBuffer, path: Path)(implicit ec: ExecutionContext): Unit =
     if (started.compareAndSet(false, true)) {
       actor = createActor
-      actor ! (message._1, message._2, false)
+      actor ! (buffer, path, false)
     } else if (actor == null)
-      this ! message
+      clean(buffer, path)
     else
-      actor ! (message._1, message._2, false)
+      actor ! (buffer, path, false)
 }
