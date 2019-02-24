@@ -33,6 +33,7 @@ private[swaydb] class BusyBoolean(@volatile private var busy: Boolean,
 
 private[swaydb] object BusyBoolean {
 
+  val futureUnit = Future.successful(())
   val notBusy = BusyBoolean(false)
 
   def apply(boolean: Boolean): BusyBoolean =
@@ -55,7 +56,7 @@ private[swaydb] object BusyBoolean {
         boolean.savePromise(promise)
         promise.future
       } else {
-        Future.unit
+        futureUnit
       }
     }
 
