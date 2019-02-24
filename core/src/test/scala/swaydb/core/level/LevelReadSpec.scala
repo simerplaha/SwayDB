@@ -24,7 +24,7 @@ import swaydb.core.{TestBase, TestData, TestTimeGenerator}
 import swaydb.core.data.{Memory, Persistent, Transient, Value}
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.util.Benchmark
-import swaydb.core.util.FileUtil._
+import swaydb.core.io.file.IOEffect._
 import swaydb.core.util.PipeOps._
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.slice.Slice

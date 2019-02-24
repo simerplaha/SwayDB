@@ -29,7 +29,7 @@ import swaydb.core.data.{Memory, Value}
 import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.queue.FileLimiter
 import swaydb.core.util.Extension
-import swaydb.core.util.FileUtil._
+import swaydb.core.io.file.IOEffect._
 import swaydb.core.{TestBase, TestLimitQueues, TestTimeGenerator}
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.config.RecoveryMode

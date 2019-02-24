@@ -28,7 +28,7 @@ import swaydb.core.map.serializer._
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment
 import swaydb.core.util.Extension
-import swaydb.core.util.FileUtil._
+import swaydb.core.io.file.IOEffect._
 import swaydb.core.{TestBase, TestData, TestLimitQueues, TestTimeGenerator}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._

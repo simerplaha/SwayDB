@@ -17,58 +17,58 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.util
+package swaydb.core.io.file
 
 import java.nio.file.Paths
-import swaydb.core.TestBase
 import swaydb.core.IOAssert._
-import swaydb.core.io.file.IOEffect
+import swaydb.core.TestBase
+import swaydb.core.util.Extension
 
-class FileUtilSpec extends TestBase {
+class IOEffectSpec extends TestBase {
 
-  "FileUtil.fileId" should {
+  "IOEffect.fileId" should {
     "get the file id" in {
-      FileUtil.fileId(Paths.get("/one/1.log")).assertGet shouldBe(1, Extension.Log)
-      FileUtil.fileId(Paths.get("/one/two/10.log")).assertGet shouldBe(10, Extension.Log)
-      FileUtil.fileId(Paths.get("/one/two/three/1000.seg")).assertGet shouldBe(1000, Extension.Seg)
+      IOEffect.fileId(Paths.get("/one/1.log")).assertGet shouldBe(1, Extension.Log)
+      IOEffect.fileId(Paths.get("/one/two/10.log")).assertGet shouldBe(10, Extension.Log)
+      IOEffect.fileId(Paths.get("/one/two/three/1000.seg")).assertGet shouldBe(1000, Extension.Seg)
     }
 
     "fail if the file's name is not an integer" in {
       val path = Paths.get("/one/notInt.log")
-      FileUtil.fileId(path).failed.assertGet.exception shouldBe NotAnIntFile(path)
+      IOEffect.fileId(path).failed.assertGet.exception shouldBe NotAnIntFile(path)
     }
 
     "fail if the file has invalid extension" in {
       val path = Paths.get("/one/1.txt")
-      FileUtil.fileId(path).failed.assertGet.exception shouldBe UnknownExtension(path)
+      IOEffect.fileId(path).failed.assertGet.exception shouldBe UnknownExtension(path)
     }
   }
 
-  "FileUtil.folderId" should {
+  "IOEffect.folderId" should {
     "get the folderId" in {
-      FileUtil.folderId(Paths.get("/one/1")) shouldBe 1
-      FileUtil.folderId(Paths.get("/one/two/10")) shouldBe 10
-      FileUtil.folderId(Paths.get("/one/two/three/1000")) shouldBe 1000
+      IOEffect.folderId(Paths.get("/one/1")) shouldBe 1
+      IOEffect.folderId(Paths.get("/one/two/10")) shouldBe 10
+      IOEffect.folderId(Paths.get("/one/two/three/1000")) shouldBe 1000
     }
   }
 
-  "FileUtil.incrementFileId" should {
+  "IOEffect.incrementFileId" should {
     "return a new file path with incremented file id" in {
-      FileUtil.incrementFileId(Paths.get("/one/1.log")).assertGet shouldBe Paths.get("/one/2.log")
-      FileUtil.incrementFileId(Paths.get("/one/two/10.log")).assertGet shouldBe Paths.get("/one/two/11.log")
-      FileUtil.incrementFileId(Paths.get("/one/two/three/1000.seg")).assertGet shouldBe Paths.get("/one/two/three/1001.seg")
+      IOEffect.incrementFileId(Paths.get("/one/1.log")).assertGet shouldBe Paths.get("/one/2.log")
+      IOEffect.incrementFileId(Paths.get("/one/two/10.log")).assertGet shouldBe Paths.get("/one/two/11.log")
+      IOEffect.incrementFileId(Paths.get("/one/two/three/1000.seg")).assertGet shouldBe Paths.get("/one/two/three/1001.seg")
     }
   }
 
-  "FileUtil.incrementFolderId" should {
+  "IOEffect.incrementFolderId" should {
     "return a new file path with incremented folder id" in {
-      FileUtil.incrementFolderId(Paths.get("/one/1")) shouldBe Paths.get("/one/2")
-      FileUtil.incrementFolderId(Paths.get("/one/two/10")) shouldBe Paths.get("/one/two/11")
-      FileUtil.incrementFolderId(Paths.get("/one/two/three/1000")) shouldBe Paths.get("/one/two/three/1001")
+      IOEffect.incrementFolderId(Paths.get("/one/1")) shouldBe Paths.get("/one/2")
+      IOEffect.incrementFolderId(Paths.get("/one/two/10")) shouldBe Paths.get("/one/two/11")
+      IOEffect.incrementFolderId(Paths.get("/one/two/three/1000")) shouldBe Paths.get("/one/two/three/1001")
     }
   }
 
-  "FileUtil.files" should {
+  "IOEffect.files" should {
     "fetch all the files in sorted order" in {
       val dir = createRandomIntDirectory
       val actual =
@@ -99,11 +99,11 @@ class FileUtilSpec extends TestBase {
           dir.resolve(s"299.${Extension.Log}")
         )
 
-      FileUtil.files(dir, Extension.Log) shouldBe expect
+      IOEffect.files(dir, Extension.Log) shouldBe expect
     }
   }
 
-  "FileUtil.folders" should {
+  "IOEffect.folders" should {
     "fetch all the folders in sorted order" in {
       val dir = createRandomIntDirectory
       val actual =
@@ -134,11 +134,11 @@ class FileUtilSpec extends TestBase {
           dir.resolve("7676")
         )
 
-      FileUtil.folders(dir) shouldBe expect
+      IOEffect.folders(dir) shouldBe expect
     }
   }
 
-  "FileUtil.segmentFilesOnDisk" should {
+  "IOEffect.segmentFilesOnDisk" should {
     "fetch all segment files in order" in {
       val dir1 = createRandomIntDirectory
       val dir2 = createRandomIntDirectory
@@ -192,7 +192,7 @@ class FileUtilSpec extends TestBase {
           dir3.resolve("7676.seg")
         )
 
-      FileUtil.segmentFilesOnDisk(dirs) shouldBe expect
+      IOEffect.segmentFilesOnDisk(dirs) shouldBe expect
     }
   }
 }

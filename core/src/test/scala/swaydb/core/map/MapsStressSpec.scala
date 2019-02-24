@@ -22,7 +22,7 @@ package swaydb.core.map
 import swaydb.core.{TestBase, TestLimitQueues, TestTimeGenerator}
 import swaydb.core.data.Memory
 import swaydb.core.level.zero.LevelZeroSkipListMerger
-import swaydb.core.util.FileUtil._
+import swaydb.core.io.file.IOEffect._
 import swaydb.data.accelerate.{Accelerator, Level0Meter}
 import swaydb.data.config.RecoveryMode
 import swaydb.data.slice.Slice

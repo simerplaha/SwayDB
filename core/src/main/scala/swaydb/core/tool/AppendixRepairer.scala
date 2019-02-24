@@ -29,7 +29,7 @@ import swaydb.core.map.serializer.{AppendixMapEntryReader, MapEntryReader, MapEn
 import swaydb.core.map.{Map, MapEntry, SkipListMerger}
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment
-import swaydb.core.util.{Extension, FileUtil}
+import swaydb.core.util.Extension
 import swaydb.data.io.IO
 import swaydb.data.io.IO._
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -51,7 +51,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
     import swaydb.core.map.serializer.AppendixMapEntryWriter._
     implicit val merger = AppendixSkipListMerger
 
-    IO(FileUtil.files(levelPath, Extension.Seg)) flatMap {
+    IO(IOEffect.files(levelPath, Extension.Seg)) flatMap {
       files =>
         files.mapIO(Segment(_, false, false, false, true)(keyOrder, timeOrder, functionStore, KeyValueLimiter.none, FileLimiter.empty, None, ec))
           .flatMap {

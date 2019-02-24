@@ -25,10 +25,40 @@ import java.nio.channels.{FileLock, WritableByteChannel}
 import java.nio.file._
 import java.nio.file.attribute.BasicFileAttributes
 import swaydb.core.segment.SegmentException
+import swaydb.core.util.Extension
 import swaydb.data.io.IO
 import swaydb.data.slice.Slice
+import scala.collection.JavaConverters._
+import swaydb.core.util.PipeOps._
+
+case class NotAnIntFile(path: Path) extends Throwable
+
+case class UnknownExtension(path: Path) extends Throwable
 
 object IOEffect extends LazyLogging {
+
+  implicit class PathExtensionImplicits(path: Path) {
+    def fileId =
+      IOEffect.fileId(path)
+
+    def incrementFileId =
+      IOEffect.incrementFileId(path)
+
+    def incrementFolderId =
+      IOEffect.incrementFolderId(path)
+
+    def folderId =
+      IOEffect.folderId(path)
+
+    def files(extension: Extension) =
+      IOEffect.files(path, extension)
+
+    def folders =
+      IOEffect.folders(path)
+
+    def exists =
+      IOEffect.exists(path)
+  }
 
   def write(bytes: Slice[Byte],
             to: Path): IO[Path] =
@@ -138,4 +168,77 @@ object IOEffect extends LazyLogging {
 
   def release(lock: Option[FileLock]): IO[Unit] =
     lock.map(release) getOrElse IO.unit
+
+  implicit class FileIdImplicits(id: Long) {
+    def toLogFileId =
+      s"$id.${Extension.Log}"
+
+    def toFolderId =
+      s"$id"
+
+    def toSegmentFileId =
+      s"$id.${Extension.Seg}"
+  }
+
+  def incrementFileId(path: Path): IO[Path] =
+    fileId(path) map {
+      case (id, ext) =>
+        path.getParent.resolve((id + 1) + "." + ext.toString)
+    }
+
+  def incrementFolderId(path: Path): Path =
+    folderId(path) ==> {
+      currentFolderId =>
+        path.getParent.resolve((currentFolderId + 1).toString)
+    }
+
+  def folderId(path: Path): Long =
+    path.getFileName.toString.toLong
+
+  def fileId(path: Path): IO[(Long, Extension)] = {
+    val fileName = path.getFileName.toString
+    val extensionIndex = fileName.lastIndexOf(".")
+    val extIndex = if (extensionIndex <= 0) fileName.length else extensionIndex
+
+    IO(fileName.substring(0, extIndex).toLong) orElse IO.Failure(NotAnIntFile(path)) flatMap {
+      fileId =>
+        val ext = fileName.substring(extIndex + 1, fileName.length)
+        if (ext == Extension.Log.toString)
+          IO.Success(fileId, Extension.Log)
+        else if (ext == Extension.Seg.toString)
+          IO.Success(fileId, Extension.Seg)
+        else {
+          logger.error("Unknown extension for file {}", path)
+          IO.Failure(UnknownExtension(path))
+        }
+    }
+  }
+
+  def isExtension(path: Path, ext: Extension): Boolean =
+    fileId(path).map(_._2 == ext) getOrElse false
+
+  def files(folder: Path,
+            extension: Extension): List[Path] =
+    IOEffect.stream(folder) {
+      _.iterator()
+        .asScala
+        .filter(isExtension(_, extension))
+        .toList
+        .sortBy(path => fileId(path).get._1)
+    }
+
+  def folders(folder: Path): List[Path] =
+    IOEffect.stream(folder) {
+      _.iterator()
+        .asScala
+        .filter(folder => IO(folderId(folder)).isSuccess)
+        .toList
+        .sortBy(folderId)
+    }
+
+  def segmentFilesOnDisk(paths: Seq[Path]): Seq[Path] =
+    paths
+      .flatMap(_.files(Extension.Seg))
+      .sortBy(_.getFileName.fileId.get._1)
+
 }

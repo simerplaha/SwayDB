@@ -24,7 +24,7 @@ import java.util.concurrent.ConcurrentLinkedDeque
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.brake.BrakePedal
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
-import swaydb.core.util.FileUtil._
+import swaydb.core.io.file.IOEffect._
 
 import swaydb.data.io.IO._
 import swaydb.data.accelerate.{Accelerator, Level0Meter}

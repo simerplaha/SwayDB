@@ -43,7 +43,7 @@ import swaydb.core.segment.SegmentException.SegmentFileMissing
 import swaydb.core.segment.{Segment, SegmentAssigner}
 import swaydb.core.util.CollectionUtil._
 import swaydb.core.util.ExceptionUtil._
-import swaydb.core.util.FileUtil._
+import swaydb.core.io.file.IOEffect._
 import swaydb.core.util.FiniteDurationUtil._
 import swaydb.data.io.IO._
 import swaydb.core.util.{MinMax, _}
@@ -114,7 +114,7 @@ private[core] object Level extends LazyLogging {
               logger.info("{}: Initialising appendix.", levelStorage.dir)
               val appendixFolder = levelStorage.dir.resolve("appendix")
               //check if appendix folder/file was deleted.
-              if ((!IOEffect.exists(appendixFolder) || appendixFolder.files(Extension.Log).isEmpty) && FileUtil.segmentFilesOnDisk(levelStorage.dirs.pathsSet.toSeq).nonEmpty) {
+              if ((!IOEffect.exists(appendixFolder) || appendixFolder.files(Extension.Log).isEmpty) && IOEffect.segmentFilesOnDisk(levelStorage.dirs.pathsSet.toSeq).nonEmpty) {
                 logger.info("{}: Failed to start Level. Appendix file is missing", appendixFolder)
                 IO.Failure(new IllegalStateException(s"Failed to start Level. Appendix file is missing '$appendixFolder'."))
               } else {
@@ -1097,7 +1097,7 @@ private[core] class Level(val dirs: Seq[Dir],
     actor.isPushing
 
   def segmentFilesOnDisk: Seq[Path] =
-    FileUtil.segmentFilesOnDisk(dirs.map(_.path))
+    IOEffect.segmentFilesOnDisk(dirs.map(_.path))
 
   def segmentFilesInAppendix: Int =
     appendix.count()

@@ -39,7 +39,7 @@ import swaydb.core.queue.FileLimiter
 import swaydb.core.segment.Segment
 import swaydb.core.segment.SegmentException.CannotCopyInMemoryFiles
 import swaydb.core.segment.merge.SegmentMerger
-import swaydb.core.util.FileUtil._
+import swaydb.core.io.file.IOEffect._
 import swaydb.core.util._
 import swaydb.core.{TestBase, TestData, TestLimitQueues, TestTimeGenerator}
 import swaydb.data.MaxKey

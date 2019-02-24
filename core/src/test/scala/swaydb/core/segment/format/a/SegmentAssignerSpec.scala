@@ -38,7 +38,7 @@ import swaydb.core.RunThis._
 import swaydb.core.IOAssert._
 import swaydb.core.IOAssert._
 import swaydb.core.util.PipeOps._
-import swaydb.core.util.FileUtil._
+import swaydb.core.io.file.IOEffect._
 
 //@formatter:off
 class SegmentAssignerSpec0 extends SegmentAssignerSpec {
