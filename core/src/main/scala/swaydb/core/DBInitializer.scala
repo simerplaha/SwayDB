@@ -65,8 +65,7 @@ private[core] object DBInitializer extends LazyLogging {
       storage = config.storage,
       nextLevel = None,
       throttleOn = false,
-      acceleration = config.acceleration,
-      readRetryLimit = 10000
+      acceleration = config.acceleration
     ) map {
       zero =>
         addShutdownHook(zero)
@@ -141,8 +140,7 @@ private[core] object DBInitializer extends LazyLogging {
                 storage = config.level0.storage,
                 nextLevel = Some(level1),
                 throttleOn = true,
-                acceleration = config.level0.acceleration,
-                readRetryLimit = 10000
+                acceleration = config.level0.acceleration
               ) map {
                 zero =>
                   addShutdownHook(zero)

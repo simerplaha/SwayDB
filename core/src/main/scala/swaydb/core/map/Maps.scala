@@ -247,7 +247,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
   //this listener is invoked when currentMap is full.
   private var onFullListener: () => Unit = () => ()
   // This is crucial for write performance use null instead of Option.
-  private var brakePedal: BrakePedal = null
+  private var brakePedal: BrakePedal = _
 
   def setOnFullListener(event: () => Unit) =
     onFullListener = event

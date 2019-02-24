@@ -53,7 +53,6 @@ private[core] object LevelZero extends LazyLogging {
             storage: Level0Storage,
             nextLevel: Option[LevelRef],
             acceleration: Level0Meter => Accelerator,
-            readRetryLimit: Int,
             throttleOn: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                  timeOrder: TimeOrder[Slice[Byte]],
                                  limiter: FileLimiter,
@@ -87,7 +86,6 @@ private[core] object LevelZero extends LazyLogging {
         new LevelZero(
           path = path,
           mapSize = mapSize,
-          readRetryLimit = readRetryLimit,
           maps = maps,
           throttleOn = throttleOn,
           nextLevel = nextLevel,
@@ -99,7 +97,6 @@ private[core] object LevelZero extends LazyLogging {
 
 private[core] class LevelZero(val path: Path,
                               mapSize: Long,
-                              val readRetryLimit: Int,
                               val maps: Maps[Slice[Byte], Memory.SegmentResponse],
                               val throttleOn: Boolean,
                               val nextLevel: Option[LevelRef],

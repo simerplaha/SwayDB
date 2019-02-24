@@ -66,8 +66,6 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
 
   //default setting, these can be overridden to apply different settings for test cases.
 
-  val levelZeroReadRetryLimit = 1000
-
   def segmentSize: Long = 2.mb
 
   def mapSize: Long = 4.mb
@@ -313,7 +311,6 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
     def apply(nextLevel: Option[LevelRef],
               mapSize: Long = mapSize,
               brake: Level0Meter => Accelerator = Accelerator.brake(),
-              readRetryLimit: Int = levelZeroReadRetryLimit,
               throttleOn: Boolean = true)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                           keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
                                           timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
@@ -324,7 +321,6 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
         nextLevel = nextLevel,
         throttleOn = throttleOn,
         acceleration = brake,
-        readRetryLimit = readRetryLimit,
       ).assertGet
   }
 

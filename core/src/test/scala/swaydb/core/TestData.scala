@@ -185,7 +185,6 @@ object TestData {
                   storage = Level0Storage.Persistent(true, level.path.getParent, RecoveryMode.ReportFailure),
                   nextLevel = level.nextLevel,
                   acceleration = Accelerator.brake(),
-                  readRetryLimit = 10000,
                   throttleOn = level.throttleOn
                 )
             }
