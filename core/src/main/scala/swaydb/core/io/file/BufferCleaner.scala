@@ -69,17 +69,15 @@ private[file] object BufferCleaner extends LazyLogging {
         if (isOverdue)
           self.state.cleaner.map(_.clean(buffer)) getOrElse {
             IO {
-              logger.info("Trying to initialise Java9 ByteBuffer cleaner.")
               val cleaner = java9Cleaner()
               cleaner.invoke(buffer)
               self.state.cleaner = Some(Cleaner.PostJava9(cleaner))
-              logger.info("Initialised Java9 ByteBuffer.")
+              logger.info("Initialised Java 9 ByteBuffer cleaner.")
             } orElse {
               IO {
-                logger.info("Trying to initialise pre Java9 ByteBuffer cleaner.")
                 Cleaner.PreJava9.clean(buffer)
                 self.state.cleaner = Some(Cleaner.PreJava9)
-                logger.info("Initialised pre Java9 ByteBuffer cleaner.")
+                logger.info("Initialised pre Java 9 ByteBuffer cleaner.")
               }
             } onFailureSideEffect {
               error =>
