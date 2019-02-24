@@ -20,11 +20,10 @@
 package swaydb
 
 import scala.concurrent.duration._
+import swaydb.core.IOAssert._
+import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.serializers.Default._
-import swaydb.core.IOAssert._
-import swaydb.core.CommonAssertions._
-import swaydb.core.RunThis._
 
 class SwayDBGetSpec0 extends SwayDBGetSpec {
   override def newDB(): Map[Int, String] =
@@ -46,6 +45,17 @@ class SwayDBGetSpec2 extends SwayDBGetSpec {
 class SwayDBGetSpec3 extends SwayDBGetSpec {
   override def newDB(): Map[Int, String] =
     swaydb.memory.Map[Int, String]().assertGet
+}
+
+class SwayDBGetSpec4 extends SwayDBGetSpec {
+
+  override def newDB(): Map[Int, String] =
+    swaydb.memory.zero.Map[Int, String](mapSize = 1.byte).assertGet
+}
+
+class SwayDBGetSpec5 extends SwayDBGetSpec {
+  override def newDB(): Map[Int, String] =
+    swaydb.memory.zero.Map[Int, String]().assertGet
 }
 
 sealed trait SwayDBGetSpec extends TestBase {

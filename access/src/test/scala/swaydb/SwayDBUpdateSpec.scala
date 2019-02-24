@@ -56,6 +56,21 @@ class SwayDBUpdateSpec3 extends SwayDBUpdateSpec {
     swaydb.memory.Map[Int, String]().assertGet
 }
 
+class SwayDBUpdateSpec4 extends SwayDBUpdateSpec {
+
+  val keyValueCount: Int = 10000
+
+  override def newDB(): Map[Int, String] =
+    swaydb.memory.zero.Map[Int, String](mapSize = 1.byte).assertGet
+}
+
+class SwayDBUpdateSpec5 extends SwayDBUpdateSpec {
+  val keyValueCount: Int = 10000
+
+  override def newDB(): Map[Int, String] =
+    swaydb.memory.zero.Map[Int, String]().assertGet
+}
+
 sealed trait SwayDBUpdateSpec extends TestBase with TestBaseEmbedded {
 
   val keyValueCount: Int
@@ -461,11 +476,11 @@ sealed trait SwayDBUpdateSpec extends TestBase with TestBaseEmbedded {
       )
 
       def doAssert() =
-      (1 to keyValueCount) foreach {
-        i =>
-          db.expiration(i).assertGetOpt shouldBe empty
-          db.get(i).assertGet shouldBe "updated"
-      }
+        (1 to keyValueCount) foreach {
+          i =>
+            db.expiration(i).assertGetOpt shouldBe empty
+            db.get(i).assertGet shouldBe "updated"
+        }
 
       doAssert()
       sleep(deadline)

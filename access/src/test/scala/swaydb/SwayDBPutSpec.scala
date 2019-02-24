@@ -43,17 +43,32 @@ class SwayDBPutSpec1 extends SwayDBPutSpec {
 
 class SwayDBPutSpec2 extends SwayDBPutSpec {
 
-  val keyValueCount: Int = 100000
+  val keyValueCount: Int = 10000
 
   override def newDB(): Map[Int, String] =
     swaydb.memory.Map[Int, String](mapSize = 1.byte).assertGet
 }
 
 class SwayDBPutSpec3 extends SwayDBPutSpec {
-  val keyValueCount: Int = 100000
+  val keyValueCount: Int = 10000
 
   override def newDB(): Map[Int, String] =
     swaydb.memory.Map[Int, String]().assertGet
+}
+
+class SwayDBPutSpec4 extends SwayDBPutSpec {
+
+  val keyValueCount: Int = 10000
+
+  override def newDB(): Map[Int, String] =
+    swaydb.memory.zero.Map[Int, String](mapSize = 1.byte).assertGet
+}
+
+class SwayDBPutSpec5 extends SwayDBPutSpec {
+  val keyValueCount: Int = 10000
+
+  override def newDB(): Map[Int, String] =
+    swaydb.memory.zero.Map[Int, String]().assertGet
 }
 
 sealed trait SwayDBPutSpec extends TestBase with TestBaseEmbedded {
@@ -83,7 +98,8 @@ sealed trait SwayDBPutSpec extends TestBase with TestBaseEmbedded {
     "Put & Expire" in {
       val db = newDB()
 
-      val deadline = eitherOne(4.seconds.fromNow, expiredDeadline())
+      val deadline =
+        eitherOne(4.seconds.fromNow, expiredDeadline())
 
       (1 to keyValueCount) foreach { i => db.put(i, i.toString).assertGet }
       eitherOne(

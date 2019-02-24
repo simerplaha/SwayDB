@@ -379,7 +379,9 @@ private[core] class LevelZero(val path: Path,
           nextLevelFirstKey =>
             MinMax.min(firstKeyFromMaps, nextLevelFirstKey)(keyOrder).map(ceiling) getOrElse IO.none
         }
-    } getOrElse IO.none
+    } getOrElse {
+      firstKeyFromMaps.map(ceiling) getOrElse IO.none
+    }
 
   def last: IO.Async[Option[KeyValue.ReadOnly.Put]] =
     nextLevel map {
@@ -389,7 +391,9 @@ private[core] class LevelZero(val path: Path,
             MinMax.max(lastKeyFromMaps, nextLevelLastKey)(keyOrder).map(floor) getOrElse IO.none
         }
 
-    } getOrElse IO.none
+    } getOrElse {
+      lastKeyFromMaps.map(floor) getOrElse IO.none
+    }
 
   def ceiling(key: Slice[Byte]): IO.Async[Option[KeyValue.ReadOnly.Put]] =
     ceiling(key, maps.map, maps.iterator.asScala.toList)

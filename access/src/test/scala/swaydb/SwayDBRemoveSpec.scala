@@ -56,6 +56,21 @@ class SwayDBRemoveSpec3 extends SwayDBRemoveSpec {
     swaydb.memory.Map[Int, String]().assertGet
 }
 
+class SwayDBRemoveSpec4 extends SwayDBRemoveSpec {
+
+  val keyValueCount: Int = 10000
+
+  override def newDB(): Map[Int, String] =
+    swaydb.memory.zero.Map[Int, String](mapSize = 1.byte).assertGet
+}
+
+class SwayDBRemoveSpec5 extends SwayDBRemoveSpec {
+  val keyValueCount: Int = 10000
+
+  override def newDB(): Map[Int, String] =
+    swaydb.memory.zero.Map[Int, String]().assertGet
+}
+
 sealed trait SwayDBRemoveSpec extends TestBase with TestBaseEmbedded {
 
   val keyValueCount: Int

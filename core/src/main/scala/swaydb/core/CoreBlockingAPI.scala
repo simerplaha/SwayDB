@@ -34,6 +34,7 @@ import swaydb.data.io.IO
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.transaction.Prepare
+import swaydb.core.util.PipeOps._
 
 private[swaydb] object CoreBlockingAPI {
 
@@ -77,51 +78,58 @@ private[swaydb] case class CoreBlockingAPI(zero: LevelZero) {
   def put(entry: MapEntry[Slice[Byte], Memory.SegmentResponse]): IO[Level0Meter] =
     zero.put(entry)
 
-  def put(entries: Iterable[Prepare[Slice[Byte], Option[Slice[Byte]]]]): IO[Level0Meter] = {
-    val time = Time.localNano
-    entries.foldLeft(Option.empty[MapEntry[Slice[Byte], Memory.SegmentResponse]]) {
-      case (mapEntry, prepare) =>
+  /**
+    * Each [[Prepare]] requires a new next [[Time]] for cases where a batch contains overriding keys.
+    *
+    * Same time indicates that the later Prepare in this batch with the same time as newer Prepare has already applied
+    * to the newer prepare therefore ignoring the newer prepare.
+    *
+    * NOTE: If the default time order [[TimeOrder.long]] is used
+    * Times should always be unique and in incremental order for *ALL* key values.
+    */
+  def put(entries: Iterable[Prepare[Slice[Byte], Option[Slice[Byte]]]]): IO[Level0Meter] =
+    entries.foldLeft(Option.empty[MapEntry[Slice[Byte], Memory.SegmentResponse]], System.nanoTime()) {
+      case ((mapEntry, nanoTime), prepare) =>
         val nextEntry =
           prepare match {
             case Prepare.Put(key, value, expire) =>
-              MapEntry.Put[Slice[Byte], Memory.Put](key, Memory.Put(key, value, expire, time))(LevelZeroMapEntryWriter.Level0PutWriter)
+              MapEntry.Put[Slice[Byte], Memory.Put](key, Memory.Put(key, value, expire, Time(nanoTime)))(LevelZeroMapEntryWriter.Level0PutWriter)
 
             case Prepare.Add(key, expire) =>
-              MapEntry.Put[Slice[Byte], Memory.Put](key, Memory.Put(key, None, expire, time))(LevelZeroMapEntryWriter.Level0PutWriter)
+              MapEntry.Put[Slice[Byte], Memory.Put](key, Memory.Put(key, None, expire, Time(nanoTime)))(LevelZeroMapEntryWriter.Level0PutWriter)
 
             case Prepare.Remove(key, toKey, expire) =>
               toKey map {
                 toKey =>
-                  (MapEntry.Put[Slice[Byte], Memory.Range](key, Memory.Range(key, toKey, None, Value.Remove(expire, time)))(LevelZeroMapEntryWriter.Level0RangeWriter): MapEntry[Slice[Byte], Memory.SegmentResponse]) ++
-                    MapEntry.Put[Slice[Byte], Memory.Remove](toKey, Memory.Remove(toKey, expire, time))(LevelZeroMapEntryWriter.Level0RemoveWriter)
+                  (MapEntry.Put[Slice[Byte], Memory.Range](key, Memory.Range(key, toKey, None, Value.Remove(expire, Time(nanoTime))))(LevelZeroMapEntryWriter.Level0RangeWriter): MapEntry[Slice[Byte], Memory.SegmentResponse]) ++
+                    MapEntry.Put[Slice[Byte], Memory.Remove](toKey, Memory.Remove(toKey, expire, Time(nanoTime)))(LevelZeroMapEntryWriter.Level0RemoveWriter)
               } getOrElse {
-                MapEntry.Put[Slice[Byte], Memory.Remove](key, Memory.Remove(key, expire, time))(LevelZeroMapEntryWriter.Level0RemoveWriter)
+                MapEntry.Put[Slice[Byte], Memory.Remove](key, Memory.Remove(key, expire, Time(nanoTime)))(LevelZeroMapEntryWriter.Level0RemoveWriter)
               }
 
             case Prepare.Update(key, toKey, value) =>
               toKey map {
                 toKey =>
-                  (MapEntry.Put[Slice[Byte], Memory.Range](key, Memory.Range(key, toKey, None, Value.Update(value, None, time)))(LevelZeroMapEntryWriter.Level0RangeWriter): MapEntry[Slice[Byte], Memory.SegmentResponse]) ++
-                    MapEntry.Put[Slice[Byte], Memory.Update](toKey, Memory.Update(toKey, None, None, time))(LevelZeroMapEntryWriter.Level0UpdateWriter)
+                  (MapEntry.Put[Slice[Byte], Memory.Range](key, Memory.Range(key, toKey, None, Value.Update(value, None, Time(nanoTime))))(LevelZeroMapEntryWriter.Level0RangeWriter): MapEntry[Slice[Byte], Memory.SegmentResponse]) ++
+                    MapEntry.Put[Slice[Byte], Memory.Update](toKey, Memory.Update(toKey, None, None, Time(nanoTime)))(LevelZeroMapEntryWriter.Level0UpdateWriter)
               } getOrElse {
-                MapEntry.Put[Slice[Byte], Memory.Update](key, Memory.Update(key, value, None, time))(LevelZeroMapEntryWriter.Level0UpdateWriter)
+                MapEntry.Put[Slice[Byte], Memory.Update](key, Memory.Update(key, value, None, Time(nanoTime)))(LevelZeroMapEntryWriter.Level0UpdateWriter)
               }
 
             case Prepare.Function(key, toKey, function) =>
               toKey map {
                 toKey =>
-                  (MapEntry.Put[Slice[Byte], Memory.Range](key, Memory.Range(key, toKey, None, Value.Function(function, time)))(LevelZeroMapEntryWriter.Level0RangeWriter): MapEntry[Slice[Byte], Memory.SegmentResponse]) ++
-                    MapEntry.Put[Slice[Byte], Memory.Function](toKey, Memory.Function(toKey, function, time))(LevelZeroMapEntryWriter.Level0FunctionWriter)
+                  (MapEntry.Put[Slice[Byte], Memory.Range](key, Memory.Range(key, toKey, None, Value.Function(function, Time(nanoTime))))(LevelZeroMapEntryWriter.Level0RangeWriter): MapEntry[Slice[Byte], Memory.SegmentResponse]) ++
+                    MapEntry.Put[Slice[Byte], Memory.Function](toKey, Memory.Function(toKey, function, Time(nanoTime)))(LevelZeroMapEntryWriter.Level0FunctionWriter)
               } getOrElse {
-                MapEntry.Put[Slice[Byte], Memory.Function](key, Memory.Function(key, function, time))(LevelZeroMapEntryWriter.Level0FunctionWriter)
+                MapEntry.Put[Slice[Byte], Memory.Function](key, Memory.Function(key, function, Time(nanoTime)))(LevelZeroMapEntryWriter.Level0FunctionWriter)
               }
           }
-        Some(mapEntry.map(_ ++ nextEntry) getOrElse nextEntry)
-    } map {
-      entry =>
-        put(entry)
-    } getOrElse IO.Failure(new Exception("Cannot write empty batch"))
-  }
+        (Some(mapEntry.map(_ ++ nextEntry) getOrElse nextEntry), nanoTime + 1)
+    } ==> {
+      case (entry, _) =>
+        entry.map(put) getOrElse IO.Failure(new Exception("Cannot write empty batch"))
+    }
 
   def remove(key: Slice[Byte]): IO[Level0Meter] =
     zero.remove(key)

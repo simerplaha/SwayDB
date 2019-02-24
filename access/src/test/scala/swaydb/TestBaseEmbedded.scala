@@ -33,7 +33,13 @@ trait TestBaseEmbedded extends TestBase {
   def doAssertEmpty[V](db: Map[Int, V]) =
     (1 to keyValueCount) foreach {
       i =>
-        db.expiration(i).assertGetOpt shouldBe empty
+        db.expiration(i).assertGetOpt match {
+          case Some(value) =>
+            value.hasTimeLeft() shouldBe false
+
+          case None =>
+
+        }
         db.get(i).assertGetOpt shouldBe empty
     }
 

@@ -32,6 +32,9 @@ private[core] object Time {
   def localNano: Time =
     Time(Slice.writeLong(System.nanoTime()))
 
+  def apply(time: Long): Time =
+    new Time(Slice.writeLong(time))
+
   def >(upperTime: Time, lowerTime: Time)(implicit timeOrder: TimeOrder[Slice[Byte]]): Boolean = {
     import timeOrder._
     if (upperTime.nonEmpty && lowerTime.nonEmpty)
