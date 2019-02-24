@@ -26,8 +26,8 @@ import swaydb.core.group.compression.GroupDecompressor
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.MatchResult._
 import swaydb.core.segment.format.a.entry.reader.value.{LazyGroupValueReader, LazyRangeValueReader, LazyValueReader}
+import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
-import swaydb.data.repairAppendix.MaxKey
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._

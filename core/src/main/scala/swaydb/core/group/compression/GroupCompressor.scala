@@ -26,10 +26,10 @@ import swaydb.core.group.compression.GroupCompressorFailure.InvalidGroupKeyValue
 import swaydb.core.group.compression.data.{CompressionResult, ValueCompressionResult}
 import swaydb.core.segment.format.a.SegmentWriter
 import swaydb.core.util.Bytes
+import swaydb.data.MaxKey
 import swaydb.data.io.IO
 import swaydb.data.slice.Slice
 import swaydb.data.io.IO._
-import swaydb.data.repairAppendix.MaxKey
 
 private[core] object GroupCompressor extends LazyLogging {
 

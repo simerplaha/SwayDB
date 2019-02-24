@@ -30,8 +30,8 @@ import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.format.a.SegmentReader._
 import swaydb.core.segment.format.a.{KeyMatcher, SegmentFooter, SegmentReader}
 import swaydb.core.util._
+import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
-import swaydb.data.repairAppendix.MaxKey
 import swaydb.data.slice.{Reader, Slice}
 
 private[core] class SegmentCacheInitializer(id: String,

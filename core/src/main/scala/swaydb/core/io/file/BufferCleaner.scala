@@ -53,7 +53,11 @@ private[file] object BufferCleaner extends LazyLogging {
     val unsafeClass = Class.forName("sun.misc.Unsafe")
     val theUnsafe = unsafeClass.getDeclaredField("theUnsafe")
     theUnsafe.setAccessible(true)
-    MethodHandles.lookup.findVirtual(unsafeClass, "invokeCleaner", MethodType.methodType(classOf[Unit], classOf[ByteBuffer])).bindTo(theUnsafe.get(null))
+
+    MethodHandles
+      .lookup
+      .findVirtual(unsafeClass, "invokeCleaner", MethodType.methodType(classOf[Unit], classOf[ByteBuffer]))
+      .bindTo(theUnsafe.get(null))
   }
 
   private case class State(var cleaner: Option[Cleaner])

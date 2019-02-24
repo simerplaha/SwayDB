@@ -22,7 +22,7 @@ package swaydb.core.group.compression
 import swaydb.data.io.IO
 import swaydb.core.data.KeyValue
 import swaydb.core.util.Bytes
-import swaydb.data.repairAppendix.MaxKey
+import swaydb.data.MaxKey
 import swaydb.data.slice.Slice
 
 private[core] object GroupKeyCompressor {

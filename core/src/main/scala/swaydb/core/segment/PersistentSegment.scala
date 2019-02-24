@@ -39,8 +39,8 @@ import scala.concurrent.duration.{Deadline, FiniteDuration}
 import swaydb.data.io.IO
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.DBFile
+import swaydb.data.MaxKey
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.repairAppendix.MaxKey
 
 private[segment] case class PersistentSegment(file: DBFile,
                                               mmapReads: Boolean,

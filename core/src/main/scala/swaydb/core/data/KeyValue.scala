@@ -33,8 +33,8 @@ import swaydb.core.segment.format.a.entry.writer._
 import swaydb.core.segment.{Segment, SegmentCache, SegmentCacheInitializer}
 import swaydb.core.util.Bytes
 import swaydb.core.util.CollectionUtil._
+import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
-import swaydb.data.repairAppendix.MaxKey
 import swaydb.data.slice.{Reader, Slice}
 
 private[core] sealed trait KeyValue {

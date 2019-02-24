@@ -34,8 +34,8 @@ import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.segment.Segment
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
 import swaydb.core.{TestBase, TestData, TestTimeGenerator}
+import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
-import swaydb.data.repairAppendix.MaxKey
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._

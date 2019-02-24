@@ -42,10 +42,10 @@ import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util.FileUtil._
 import swaydb.core.util._
 import swaydb.core.{TestBase, TestData, TestLimitQueues, TestTimeGenerator}
+import swaydb.data.MaxKey
 import swaydb.data.config.Dir
 import swaydb.data.io.IO
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.repairAppendix.MaxKey
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._

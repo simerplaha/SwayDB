@@ -42,12 +42,12 @@ import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.seek._
 import swaydb.core.segment.Segment
 import swaydb.core.util.UUIDUtil
+import swaydb.data.MaxKey
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.{Dir, RecoveryMode}
 import swaydb.data.io.IO
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.repairAppendix.MaxKey
 import swaydb.data.slice.Slice
 import swaydb.data.storage.{AppendixStorage, Level0Storage, LevelStorage}
 import swaydb.data.util.StorageUnits._

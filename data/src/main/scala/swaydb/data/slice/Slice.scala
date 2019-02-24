@@ -27,9 +27,9 @@ import scala.collection.generic.CanBuildFrom
 import scala.collection.{IterableLike, mutable}
 import scala.reflect.ClassTag
 import scala.util.hashing.MurmurHash3
+import swaydb.data.MaxKey
 import swaydb.data.io.IO
 import swaydb.data.order.KeyOrder
-import swaydb.data.repairAppendix.MaxKey
 import swaydb.data.util.{ByteSizeOf, ByteUtil}
 
 /**
@@ -87,9 +87,9 @@ object Slice {
     import keyOrder._
     key >= minKey && {
       maxKey match {
-        case swaydb.data.repairAppendix.MaxKey.Fixed(maxKey) =>
+        case swaydb.data.MaxKey.Fixed(maxKey) =>
           key <= maxKey
-        case swaydb.data.repairAppendix.MaxKey.Range(_, maxKey) =>
+        case swaydb.data.MaxKey.Range(_, maxKey) =>
           key < maxKey
       }
     }

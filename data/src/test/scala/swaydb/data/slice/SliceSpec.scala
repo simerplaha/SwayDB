@@ -21,8 +21,8 @@ package swaydb.data.slice
 
 import org.scalatest.{Matchers, WordSpec}
 import scala.util.Random
+import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
-import swaydb.data.repairAppendix.MaxKey
 import swaydb.data.util.ByteSizeOf
 
 class SliceSpec extends WordSpec with Matchers {

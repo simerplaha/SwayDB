@@ -17,14 +17,14 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.data.repairAppendix
+package swaydb.data
 
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 
 sealed trait MaxKey[T] {
-  val maxKey: T
-  val inclusive: Boolean
+  def maxKey: T
+  def inclusive: Boolean
 }
 
 object MaxKey {
@@ -46,10 +46,10 @@ object MaxKey {
   }
 
   case class Fixed[T](maxKey: T) extends MaxKey[T] {
-    override val inclusive: Boolean = true
+    override def inclusive: Boolean = true
   }
 
   case class Range[T](fromKey: T, maxKey: T) extends MaxKey[T] {
-    override val inclusive: Boolean = false
+    override def inclusive: Boolean = false
   }
 }

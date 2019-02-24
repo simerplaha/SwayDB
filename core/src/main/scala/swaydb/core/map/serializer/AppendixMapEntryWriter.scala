@@ -23,7 +23,7 @@ import java.nio.charset.StandardCharsets
 import swaydb.core.map.MapEntry
 import swaydb.core.segment.Segment
 import swaydb.core.util.Bytes
-import swaydb.data.repairAppendix.MaxKey
+import swaydb.data.MaxKey
 import swaydb.data.slice.Slice
 
 object AppendixMapEntryWriter {

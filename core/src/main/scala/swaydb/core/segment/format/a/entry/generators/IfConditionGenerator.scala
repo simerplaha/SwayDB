@@ -35,12 +35,10 @@ object IfConditionGenerator extends App {
   }
 
   def write(fileNumber: Int, ids: List[EntryId]): Unit = {
-//    val className = ids.head.getClass.getName.replaceAll("swaydb.core.segment.format.a.entry.id.", "").split("\\$").head.replace("EntryId", s"KeyEntryReader")
     val targetIdClass = Paths.get(s"${System.getProperty("user.dir")}/core/src/main/scala/swaydb/core/segment/format/a/entry/reader/matchers/BaseKeyReader$fileNumber.scala")
     val allLines = Files.readAllLines(targetIdClass).asScala
     val writer = new PrintWriter(targetIdClass.toFile)
 
-    //    val failure = """scala.util.IO.Failure(new Exception(this.getClass.getSimpleName + " - Reader not implemented for id: " + id))"""
     val notFound = "None"
 
     val defaultGroupSize = 20

@@ -34,10 +34,10 @@ import swaydb.core.level.PathsDistributor
 import swaydb.core.queue.{FileLimiter, FileLimiterItem, KeyValueLimiter}
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util._
+import swaydb.data.MaxKey
 import swaydb.data.io.IO
 import swaydb.data.io.IO._
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.repairAppendix.MaxKey
 import swaydb.data.slice.Slice
 
 private[segment] case class MemorySegment(path: Path,

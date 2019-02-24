@@ -20,7 +20,7 @@
 package swaydb.core.group.compression
 
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.core.{CommonAssertions, TestLimitQueues, IOAssert}
+import swaydb.core.{CommonAssertions, IOAssert, TestLimitQueues}
 import swaydb.core.data.Transient
 import swaydb.serializers.Default._
 import swaydb.serializers._
@@ -29,7 +29,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.data.order.KeyOrder
 import swaydb.core.IOAssert._
-import swaydb.data.repairAppendix.MaxKey
+import swaydb.data.MaxKey
 
 class GroupKeyCompressorSpec extends WordSpec with Matchers {
 
