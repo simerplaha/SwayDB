@@ -355,7 +355,7 @@ object IO {
     case class Fatal(exception: Throwable) extends Error
   }
 
-  def getOrNone[T](block: => T): Option[T] =
+  @inline final def getOrNone[T](block: => T): Option[T] =
     try
       Option(block)
     catch {
@@ -363,14 +363,14 @@ object IO {
         None
     }
 
-  def apply[T](f: => T): IO[T] =
+  @inline final def apply[T](f: => T): IO[T] =
     try IO.Success(f) catch {
       case ex: Throwable =>
         IO.Failure(IO.Error(ex))
     }
 
   object Catch {
-    def apply[T](f: => IO[T]): IO[T] =
+    @inline final def apply[T](f: => IO[T]): IO[T] =
       try
         f
       catch {
@@ -416,13 +416,13 @@ object IO {
 
   object Async {
 
-    def runSafe[T](f: => T): IO.Async[T] =
+    @inline final def runSafe[T](f: => T): IO.Async[T] =
       try IO.Success(f) catch {
         case ex: Throwable =>
           recover(ex, f)
       }
 
-    def recover[T](failure: IO.Failure[T], operation: => T): IO.Async[T] =
+    @inline final def recover[T](failure: IO.Failure[T], operation: => T): IO.Async[T] =
       failure.error match {
         case busy: Error.Busy =>
           IO.Async(operation, busy)
@@ -439,18 +439,18 @@ object IO {
           failure
       }
 
-    def recover[T](exception: Throwable, operation: => T): IO.Async[T] =
+    @inline final def recover[T](exception: Throwable, operation: => T): IO.Async[T] =
       Error(exception) match {
         case error: Error.Busy => IO.Later(operation, error)
         case other: Error => IO.Failure(other)
       }
 
-    def apply[T](value: => T, error: Error.Busy): IO.Async[T] =
+    @inline final def apply[T](value: => T, error: Error.Busy): IO.Async[T] =
       new Later(_ => value, error)
   }
 
   object Later {
-    def apply[T](value: => T, error: Error.Busy): Later[T] =
+    @inline final def apply[T](value: => T, error: Error.Busy): Later[T] =
       new Later(_ => value, error)
   }
 
@@ -561,7 +561,7 @@ object IO {
   object Failure {
     val busyOverlappingPushSegments = IO.Failure(IO.Error.OverlappingPushSegment)
 
-    def apply[T](exception: Throwable): IO.Failure[T] =
+    @inline final def apply[T](exception: Throwable): IO.Failure[T] =
       IO.Failure[T](IO.Error(exception))
   }
 
