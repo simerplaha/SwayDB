@@ -63,7 +63,7 @@ sealed trait LevelReadSomeSpec extends TestBase with MockFactory with Benchmark 
 
   val keyValuesCount = 5000
 
-  val times = 10
+  val times = 5
 
   "return Put" when {
 
@@ -137,17 +137,15 @@ sealed trait LevelReadSomeSpec extends TestBase with MockFactory with Benchmark 
                       throw exception
 
                     case Success(_) =>
-                    //todo - this is failing randomly. Need to debug.
-                    //on successful get check deadline is updated.
-                    //                      updatedDeadline foreach {
-                    //                        updatedDeadline =>
-                    //                          gotDeadline should contain(updatedDeadline)
-                    //                      }
+                      //on successful get check deadline is updated.
+                      updatedDeadline foreach {
+                        updatedDeadline =>
+                          gotDeadline should contain(updatedDeadline)
+                      }
                   }
               }
         )
       }
     }
-
   }
 }
