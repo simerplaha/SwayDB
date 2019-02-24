@@ -42,14 +42,14 @@ object BaseEntryId extends EntryFormat {
     }
     object KeyPartiallyCompressed extends KeyPartiallyCompressed {
 
-      trait NoTime extends Time.NoTime with KeyPartiallyCompressed {
-        override def noValue: Value.NoValue = NoTime.NoValue
-        override def valueFullyCompressed: Value.FullyCompressed = NoTime.ValueFullyCompressed
-        override def valueUncompressed: Value.Uncompressed = NoTime.ValueUncompressed
+      trait TimePartiallyCompressed extends Time.PartiallyCompressed with KeyPartiallyCompressed {
+        override def noValue: Value.NoValue = TimePartiallyCompressed.NoValue
+        override def valueFullyCompressed: Value.FullyCompressed = TimePartiallyCompressed.ValueFullyCompressed
+        override def valueUncompressed: Value.Uncompressed = TimePartiallyCompressed.ValueUncompressed
       }
-      object NoTime extends NoTime {
+      object TimePartiallyCompressed extends TimePartiallyCompressed {
 
-        trait ValueUncompressed extends Value.Uncompressed with NoTime {
+        trait ValueUncompressed extends Value.Uncompressed with TimePartiallyCompressed {
           override def valueOffsetOneCompressed: ValueOffset.OneCompressed = ValueUncompressed.ValueOffsetOneCompressed
           override def valueOffsetTwoCompressed: ValueOffset.TwoCompressed = ValueUncompressed.ValueOffsetTwoCompressed
           override def valueOffsetThreeCompressed: ValueOffset.ThreeCompressed = ValueUncompressed.ValueOffsetThreeCompressed
@@ -614,7 +614,7 @@ object BaseEntryId extends EntryFormat {
           }
         }
 
-        trait NoValue extends Value.NoValue with NoTime {
+        trait NoValue extends Value.NoValue with TimePartiallyCompressed {
           override def noDeadline: Deadline.NoDeadline = NoValue.NoDeadline
           override def deadlineOneCompressed: Deadline.OneCompressed = NoValue.DeadlineOneCompressed
           override def deadlineTwoCompressed: Deadline.TwoCompressed = NoValue.DeadlineTwoCompressed
@@ -639,7 +639,7 @@ object BaseEntryId extends EntryFormat {
           object DeadlineUncompressed extends BaseEntryId(209) with Deadline.Uncompressed with NoValue
         }
 
-        trait ValueFullyCompressed extends Value.FullyCompressed with NoTime {
+        trait ValueFullyCompressed extends Value.FullyCompressed with TimePartiallyCompressed {
           override def noDeadline: Deadline.NoDeadline = ValueFullyCompressed.NoDeadline
           override def deadlineOneCompressed: Deadline.OneCompressed = ValueFullyCompressed.DeadlineOneCompressed
           override def deadlineTwoCompressed: Deadline.TwoCompressed = ValueFullyCompressed.DeadlineTwoCompressed
@@ -1288,14 +1288,14 @@ object BaseEntryId extends EntryFormat {
         }
       }
 
-      trait TimePartiallyCompressed extends Time.PartiallyCompressed with KeyPartiallyCompressed {
-        override def noValue: Value.NoValue = TimePartiallyCompressed.NoValue
-        override def valueFullyCompressed: Value.FullyCompressed = TimePartiallyCompressed.ValueFullyCompressed
-        override def valueUncompressed: Value.Uncompressed = TimePartiallyCompressed.ValueUncompressed
+      trait TimeUncompressed extends Time.Uncompressed with KeyPartiallyCompressed {
+        override def noValue: Value.NoValue = TimeUncompressed.NoValue
+        override def valueFullyCompressed: Value.FullyCompressed = TimeUncompressed.ValueFullyCompressed
+        override def valueUncompressed: Value.Uncompressed = TimeUncompressed.ValueUncompressed
       }
-      object TimePartiallyCompressed extends TimePartiallyCompressed {
+      object TimeUncompressed extends TimeUncompressed {
 
-        trait ValueUncompressed extends Value.Uncompressed with TimePartiallyCompressed {
+        trait ValueUncompressed extends Value.Uncompressed with TimeUncompressed {
           override def valueOffsetOneCompressed: ValueOffset.OneCompressed = ValueUncompressed.ValueOffsetOneCompressed
           override def valueOffsetTwoCompressed: ValueOffset.TwoCompressed = ValueUncompressed.ValueOffsetTwoCompressed
           override def valueOffsetThreeCompressed: ValueOffset.ThreeCompressed = ValueUncompressed.ValueOffsetThreeCompressed
@@ -1860,7 +1860,7 @@ object BaseEntryId extends EntryFormat {
           }
         }
 
-        trait NoValue extends Value.NoValue with TimePartiallyCompressed {
+        trait NoValue extends Value.NoValue with TimeUncompressed {
           override def noDeadline: Deadline.NoDeadline = NoValue.NoDeadline
           override def deadlineOneCompressed: Deadline.OneCompressed = NoValue.DeadlineOneCompressed
           override def deadlineTwoCompressed: Deadline.TwoCompressed = NoValue.DeadlineTwoCompressed
@@ -1885,7 +1885,7 @@ object BaseEntryId extends EntryFormat {
           object DeadlineUncompressed extends BaseEntryId(649) with Deadline.Uncompressed with NoValue
         }
 
-        trait ValueFullyCompressed extends Value.FullyCompressed with TimePartiallyCompressed {
+        trait ValueFullyCompressed extends Value.FullyCompressed with TimeUncompressed {
           override def noDeadline: Deadline.NoDeadline = ValueFullyCompressed.NoDeadline
           override def deadlineOneCompressed: Deadline.OneCompressed = ValueFullyCompressed.DeadlineOneCompressed
           override def deadlineTwoCompressed: Deadline.TwoCompressed = ValueFullyCompressed.DeadlineTwoCompressed
@@ -1911,14 +1911,14 @@ object BaseEntryId extends EntryFormat {
         }
       }
 
-      trait TimeUncompressed extends Time.Uncompressed with KeyPartiallyCompressed {
-        override def noValue: Value.NoValue = TimeUncompressed.NoValue
-        override def valueFullyCompressed: Value.FullyCompressed = TimeUncompressed.ValueFullyCompressed
-        override def valueUncompressed: Value.Uncompressed = TimeUncompressed.ValueUncompressed
+      trait NoTime extends Time.NoTime with KeyPartiallyCompressed {
+        override def noValue: Value.NoValue = NoTime.NoValue
+        override def valueFullyCompressed: Value.FullyCompressed = NoTime.ValueFullyCompressed
+        override def valueUncompressed: Value.Uncompressed = NoTime.ValueUncompressed
       }
-      object TimeUncompressed extends TimeUncompressed {
+      object NoTime extends NoTime {
 
-        trait ValueUncompressed extends Value.Uncompressed with TimeUncompressed {
+        trait ValueUncompressed extends Value.Uncompressed with NoTime {
           override def valueOffsetOneCompressed: ValueOffset.OneCompressed = ValueUncompressed.ValueOffsetOneCompressed
           override def valueOffsetTwoCompressed: ValueOffset.TwoCompressed = ValueUncompressed.ValueOffsetTwoCompressed
           override def valueOffsetThreeCompressed: ValueOffset.ThreeCompressed = ValueUncompressed.ValueOffsetThreeCompressed
@@ -2483,7 +2483,7 @@ object BaseEntryId extends EntryFormat {
           }
         }
 
-        trait NoValue extends Value.NoValue with TimeUncompressed {
+        trait NoValue extends Value.NoValue with NoTime {
           override def noDeadline: Deadline.NoDeadline = NoValue.NoDeadline
           override def deadlineOneCompressed: Deadline.OneCompressed = NoValue.DeadlineOneCompressed
           override def deadlineTwoCompressed: Deadline.TwoCompressed = NoValue.DeadlineTwoCompressed
@@ -2508,7 +2508,7 @@ object BaseEntryId extends EntryFormat {
           object DeadlineUncompressed extends BaseEntryId(869) with Deadline.Uncompressed with NoValue
         }
 
-        trait ValueFullyCompressed extends Value.FullyCompressed with TimeUncompressed {
+        trait ValueFullyCompressed extends Value.FullyCompressed with NoTime {
           override def noDeadline: Deadline.NoDeadline = ValueFullyCompressed.NoDeadline
           override def deadlineOneCompressed: Deadline.OneCompressed = ValueFullyCompressed.DeadlineOneCompressed
           override def deadlineTwoCompressed: Deadline.TwoCompressed = ValueFullyCompressed.DeadlineTwoCompressed
@@ -2543,14 +2543,14 @@ object BaseEntryId extends EntryFormat {
     }
     object KeyFullyCompressed extends KeyFullyCompressed {
 
-      trait NoTime extends Time.NoTime with KeyFullyCompressed {
-        override def noValue: Value.NoValue = NoTime.NoValue
-        override def valueFullyCompressed: Value.FullyCompressed = NoTime.ValueFullyCompressed
-        override def valueUncompressed: Value.Uncompressed = NoTime.ValueUncompressed
+      trait TimePartiallyCompressed extends Time.PartiallyCompressed with KeyFullyCompressed {
+        override def noValue: Value.NoValue = TimePartiallyCompressed.NoValue
+        override def valueFullyCompressed: Value.FullyCompressed = TimePartiallyCompressed.ValueFullyCompressed
+        override def valueUncompressed: Value.Uncompressed = TimePartiallyCompressed.ValueUncompressed
       }
-      object NoTime extends NoTime {
+      object TimePartiallyCompressed extends TimePartiallyCompressed {
 
-        trait ValueUncompressed extends Value.Uncompressed with NoTime {
+        trait ValueUncompressed extends Value.Uncompressed with TimePartiallyCompressed {
           override def valueOffsetOneCompressed: ValueOffset.OneCompressed = ValueUncompressed.ValueOffsetOneCompressed
           override def valueOffsetTwoCompressed: ValueOffset.TwoCompressed = ValueUncompressed.ValueOffsetTwoCompressed
           override def valueOffsetThreeCompressed: ValueOffset.ThreeCompressed = ValueUncompressed.ValueOffsetThreeCompressed
@@ -3115,7 +3115,7 @@ object BaseEntryId extends EntryFormat {
           }
         }
 
-        trait NoValue extends Value.NoValue with NoTime {
+        trait NoValue extends Value.NoValue with TimePartiallyCompressed {
           override def noDeadline: Deadline.NoDeadline = NoValue.NoDeadline
           override def deadlineOneCompressed: Deadline.OneCompressed = NoValue.DeadlineOneCompressed
           override def deadlineTwoCompressed: Deadline.TwoCompressed = NoValue.DeadlineTwoCompressed
@@ -3140,7 +3140,7 @@ object BaseEntryId extends EntryFormat {
           object DeadlineUncompressed extends BaseEntryId(1089) with Deadline.Uncompressed with NoValue
         }
 
-        trait ValueFullyCompressed extends Value.FullyCompressed with NoTime {
+        trait ValueFullyCompressed extends Value.FullyCompressed with TimePartiallyCompressed {
           override def noDeadline: Deadline.NoDeadline = ValueFullyCompressed.NoDeadline
           override def deadlineOneCompressed: Deadline.OneCompressed = ValueFullyCompressed.DeadlineOneCompressed
           override def deadlineTwoCompressed: Deadline.TwoCompressed = ValueFullyCompressed.DeadlineTwoCompressed
@@ -3789,14 +3789,14 @@ object BaseEntryId extends EntryFormat {
         }
       }
 
-      trait TimePartiallyCompressed extends Time.PartiallyCompressed with KeyFullyCompressed {
-        override def noValue: Value.NoValue = TimePartiallyCompressed.NoValue
-        override def valueFullyCompressed: Value.FullyCompressed = TimePartiallyCompressed.ValueFullyCompressed
-        override def valueUncompressed: Value.Uncompressed = TimePartiallyCompressed.ValueUncompressed
+      trait TimeUncompressed extends Time.Uncompressed with KeyFullyCompressed {
+        override def noValue: Value.NoValue = TimeUncompressed.NoValue
+        override def valueFullyCompressed: Value.FullyCompressed = TimeUncompressed.ValueFullyCompressed
+        override def valueUncompressed: Value.Uncompressed = TimeUncompressed.ValueUncompressed
       }
-      object TimePartiallyCompressed extends TimePartiallyCompressed {
+      object TimeUncompressed extends TimeUncompressed {
 
-        trait ValueUncompressed extends Value.Uncompressed with TimePartiallyCompressed {
+        trait ValueUncompressed extends Value.Uncompressed with TimeUncompressed {
           override def valueOffsetOneCompressed: ValueOffset.OneCompressed = ValueUncompressed.ValueOffsetOneCompressed
           override def valueOffsetTwoCompressed: ValueOffset.TwoCompressed = ValueUncompressed.ValueOffsetTwoCompressed
           override def valueOffsetThreeCompressed: ValueOffset.ThreeCompressed = ValueUncompressed.ValueOffsetThreeCompressed
@@ -4361,7 +4361,7 @@ object BaseEntryId extends EntryFormat {
           }
         }
 
-        trait NoValue extends Value.NoValue with TimePartiallyCompressed {
+        trait NoValue extends Value.NoValue with TimeUncompressed {
           override def noDeadline: Deadline.NoDeadline = NoValue.NoDeadline
           override def deadlineOneCompressed: Deadline.OneCompressed = NoValue.DeadlineOneCompressed
           override def deadlineTwoCompressed: Deadline.TwoCompressed = NoValue.DeadlineTwoCompressed
@@ -4386,7 +4386,7 @@ object BaseEntryId extends EntryFormat {
           object DeadlineUncompressed extends BaseEntryId(1529) with Deadline.Uncompressed with NoValue
         }
 
-        trait ValueFullyCompressed extends Value.FullyCompressed with TimePartiallyCompressed {
+        trait ValueFullyCompressed extends Value.FullyCompressed with TimeUncompressed {
           override def noDeadline: Deadline.NoDeadline = ValueFullyCompressed.NoDeadline
           override def deadlineOneCompressed: Deadline.OneCompressed = ValueFullyCompressed.DeadlineOneCompressed
           override def deadlineTwoCompressed: Deadline.TwoCompressed = ValueFullyCompressed.DeadlineTwoCompressed
@@ -4412,14 +4412,14 @@ object BaseEntryId extends EntryFormat {
         }
       }
 
-      trait TimeUncompressed extends Time.Uncompressed with KeyFullyCompressed {
-        override def noValue: Value.NoValue = TimeUncompressed.NoValue
-        override def valueFullyCompressed: Value.FullyCompressed = TimeUncompressed.ValueFullyCompressed
-        override def valueUncompressed: Value.Uncompressed = TimeUncompressed.ValueUncompressed
+      trait NoTime extends Time.NoTime with KeyFullyCompressed {
+        override def noValue: Value.NoValue = NoTime.NoValue
+        override def valueFullyCompressed: Value.FullyCompressed = NoTime.ValueFullyCompressed
+        override def valueUncompressed: Value.Uncompressed = NoTime.ValueUncompressed
       }
-      object TimeUncompressed extends TimeUncompressed {
+      object NoTime extends NoTime {
 
-        trait ValueUncompressed extends Value.Uncompressed with TimeUncompressed {
+        trait ValueUncompressed extends Value.Uncompressed with NoTime {
           override def valueOffsetOneCompressed: ValueOffset.OneCompressed = ValueUncompressed.ValueOffsetOneCompressed
           override def valueOffsetTwoCompressed: ValueOffset.TwoCompressed = ValueUncompressed.ValueOffsetTwoCompressed
           override def valueOffsetThreeCompressed: ValueOffset.ThreeCompressed = ValueUncompressed.ValueOffsetThreeCompressed
@@ -4984,7 +4984,7 @@ object BaseEntryId extends EntryFormat {
           }
         }
 
-        trait NoValue extends Value.NoValue with TimeUncompressed {
+        trait NoValue extends Value.NoValue with NoTime {
           override def noDeadline: Deadline.NoDeadline = NoValue.NoDeadline
           override def deadlineOneCompressed: Deadline.OneCompressed = NoValue.DeadlineOneCompressed
           override def deadlineTwoCompressed: Deadline.TwoCompressed = NoValue.DeadlineTwoCompressed
@@ -5009,7 +5009,7 @@ object BaseEntryId extends EntryFormat {
           object DeadlineUncompressed extends BaseEntryId(1749) with Deadline.Uncompressed with NoValue
         }
 
-        trait ValueFullyCompressed extends Value.FullyCompressed with TimeUncompressed {
+        trait ValueFullyCompressed extends Value.FullyCompressed with NoTime {
           override def noDeadline: Deadline.NoDeadline = ValueFullyCompressed.NoDeadline
           override def deadlineOneCompressed: Deadline.OneCompressed = ValueFullyCompressed.DeadlineOneCompressed
           override def deadlineTwoCompressed: Deadline.TwoCompressed = ValueFullyCompressed.DeadlineTwoCompressed
@@ -5044,14 +5044,14 @@ object BaseEntryId extends EntryFormat {
     }
     object KeyUncompressed extends KeyUncompressed {
 
-      trait NoTime extends Time.NoTime with KeyUncompressed {
-        override def noValue: Value.NoValue = NoTime.NoValue
-        override def valueFullyCompressed: Value.FullyCompressed = NoTime.ValueFullyCompressed
-        override def valueUncompressed: Value.Uncompressed = NoTime.ValueUncompressed
+      trait TimePartiallyCompressed extends Time.PartiallyCompressed with KeyUncompressed {
+        override def noValue: Value.NoValue = TimePartiallyCompressed.NoValue
+        override def valueFullyCompressed: Value.FullyCompressed = TimePartiallyCompressed.ValueFullyCompressed
+        override def valueUncompressed: Value.Uncompressed = TimePartiallyCompressed.ValueUncompressed
       }
-      object NoTime extends NoTime {
+      object TimePartiallyCompressed extends TimePartiallyCompressed {
 
-        trait ValueUncompressed extends Value.Uncompressed with NoTime {
+        trait ValueUncompressed extends Value.Uncompressed with TimePartiallyCompressed {
           override def valueOffsetOneCompressed: ValueOffset.OneCompressed = ValueUncompressed.ValueOffsetOneCompressed
           override def valueOffsetTwoCompressed: ValueOffset.TwoCompressed = ValueUncompressed.ValueOffsetTwoCompressed
           override def valueOffsetThreeCompressed: ValueOffset.ThreeCompressed = ValueUncompressed.ValueOffsetThreeCompressed
@@ -5616,7 +5616,7 @@ object BaseEntryId extends EntryFormat {
           }
         }
 
-        trait NoValue extends Value.NoValue with NoTime {
+        trait NoValue extends Value.NoValue with TimePartiallyCompressed {
           override def noDeadline: Deadline.NoDeadline = NoValue.NoDeadline
           override def deadlineOneCompressed: Deadline.OneCompressed = NoValue.DeadlineOneCompressed
           override def deadlineTwoCompressed: Deadline.TwoCompressed = NoValue.DeadlineTwoCompressed
@@ -5641,7 +5641,7 @@ object BaseEntryId extends EntryFormat {
           object DeadlineUncompressed extends BaseEntryId(1969) with Deadline.Uncompressed with NoValue
         }
 
-        trait ValueFullyCompressed extends Value.FullyCompressed with NoTime {
+        trait ValueFullyCompressed extends Value.FullyCompressed with TimePartiallyCompressed {
           override def noDeadline: Deadline.NoDeadline = ValueFullyCompressed.NoDeadline
           override def deadlineOneCompressed: Deadline.OneCompressed = ValueFullyCompressed.DeadlineOneCompressed
           override def deadlineTwoCompressed: Deadline.TwoCompressed = ValueFullyCompressed.DeadlineTwoCompressed
@@ -6290,14 +6290,14 @@ object BaseEntryId extends EntryFormat {
         }
       }
 
-      trait TimePartiallyCompressed extends Time.PartiallyCompressed with KeyUncompressed {
-        override def noValue: Value.NoValue = TimePartiallyCompressed.NoValue
-        override def valueFullyCompressed: Value.FullyCompressed = TimePartiallyCompressed.ValueFullyCompressed
-        override def valueUncompressed: Value.Uncompressed = TimePartiallyCompressed.ValueUncompressed
+      trait TimeUncompressed extends Time.Uncompressed with KeyUncompressed {
+        override def noValue: Value.NoValue = TimeUncompressed.NoValue
+        override def valueFullyCompressed: Value.FullyCompressed = TimeUncompressed.ValueFullyCompressed
+        override def valueUncompressed: Value.Uncompressed = TimeUncompressed.ValueUncompressed
       }
-      object TimePartiallyCompressed extends TimePartiallyCompressed {
+      object TimeUncompressed extends TimeUncompressed {
 
-        trait ValueUncompressed extends Value.Uncompressed with TimePartiallyCompressed {
+        trait ValueUncompressed extends Value.Uncompressed with TimeUncompressed {
           override def valueOffsetOneCompressed: ValueOffset.OneCompressed = ValueUncompressed.ValueOffsetOneCompressed
           override def valueOffsetTwoCompressed: ValueOffset.TwoCompressed = ValueUncompressed.ValueOffsetTwoCompressed
           override def valueOffsetThreeCompressed: ValueOffset.ThreeCompressed = ValueUncompressed.ValueOffsetThreeCompressed
@@ -6862,7 +6862,7 @@ object BaseEntryId extends EntryFormat {
           }
         }
 
-        trait NoValue extends Value.NoValue with TimePartiallyCompressed {
+        trait NoValue extends Value.NoValue with TimeUncompressed {
           override def noDeadline: Deadline.NoDeadline = NoValue.NoDeadline
           override def deadlineOneCompressed: Deadline.OneCompressed = NoValue.DeadlineOneCompressed
           override def deadlineTwoCompressed: Deadline.TwoCompressed = NoValue.DeadlineTwoCompressed
@@ -6887,7 +6887,7 @@ object BaseEntryId extends EntryFormat {
           object DeadlineUncompressed extends BaseEntryId(2409) with Deadline.Uncompressed with NoValue
         }
 
-        trait ValueFullyCompressed extends Value.FullyCompressed with TimePartiallyCompressed {
+        trait ValueFullyCompressed extends Value.FullyCompressed with TimeUncompressed {
           override def noDeadline: Deadline.NoDeadline = ValueFullyCompressed.NoDeadline
           override def deadlineOneCompressed: Deadline.OneCompressed = ValueFullyCompressed.DeadlineOneCompressed
           override def deadlineTwoCompressed: Deadline.TwoCompressed = ValueFullyCompressed.DeadlineTwoCompressed
@@ -6913,14 +6913,14 @@ object BaseEntryId extends EntryFormat {
         }
       }
 
-      trait TimeUncompressed extends Time.Uncompressed with KeyUncompressed {
-        override def noValue: Value.NoValue = TimeUncompressed.NoValue
-        override def valueFullyCompressed: Value.FullyCompressed = TimeUncompressed.ValueFullyCompressed
-        override def valueUncompressed: Value.Uncompressed = TimeUncompressed.ValueUncompressed
+      trait NoTime extends Time.NoTime with KeyUncompressed {
+        override def noValue: Value.NoValue = NoTime.NoValue
+        override def valueFullyCompressed: Value.FullyCompressed = NoTime.ValueFullyCompressed
+        override def valueUncompressed: Value.Uncompressed = NoTime.ValueUncompressed
       }
-      object TimeUncompressed extends TimeUncompressed {
+      object NoTime extends NoTime {
 
-        trait ValueUncompressed extends Value.Uncompressed with TimeUncompressed {
+        trait ValueUncompressed extends Value.Uncompressed with NoTime {
           override def valueOffsetOneCompressed: ValueOffset.OneCompressed = ValueUncompressed.ValueOffsetOneCompressed
           override def valueOffsetTwoCompressed: ValueOffset.TwoCompressed = ValueUncompressed.ValueOffsetTwoCompressed
           override def valueOffsetThreeCompressed: ValueOffset.ThreeCompressed = ValueUncompressed.ValueOffsetThreeCompressed
@@ -7485,7 +7485,7 @@ object BaseEntryId extends EntryFormat {
           }
         }
 
-        trait NoValue extends Value.NoValue with TimeUncompressed {
+        trait NoValue extends Value.NoValue with NoTime {
           override def noDeadline: Deadline.NoDeadline = NoValue.NoDeadline
           override def deadlineOneCompressed: Deadline.OneCompressed = NoValue.DeadlineOneCompressed
           override def deadlineTwoCompressed: Deadline.TwoCompressed = NoValue.DeadlineTwoCompressed
@@ -7510,7 +7510,7 @@ object BaseEntryId extends EntryFormat {
           object DeadlineUncompressed extends BaseEntryId(2629) with Deadline.Uncompressed with NoValue
         }
 
-        trait ValueFullyCompressed extends Value.FullyCompressed with TimeUncompressed {
+        trait ValueFullyCompressed extends Value.FullyCompressed with NoTime {
           override def noDeadline: Deadline.NoDeadline = ValueFullyCompressed.NoDeadline
           override def deadlineOneCompressed: Deadline.OneCompressed = ValueFullyCompressed.DeadlineOneCompressed
           override def deadlineTwoCompressed: Deadline.TwoCompressed = ValueFullyCompressed.DeadlineTwoCompressed

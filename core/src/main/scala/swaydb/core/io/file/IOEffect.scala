@@ -74,6 +74,20 @@ private[core] object IOEffect extends LazyLogging {
         }
     }
 
+  def replace(bytes: Slice[Byte],
+              to: Path): IO[Path] =
+    IO(Files.newByteChannel(to, StandardOpenOption.WRITE, StandardOpenOption.CREATE)) flatMap {
+      channel =>
+        try {
+          write(bytes, channel) map {
+            _ =>
+              to
+          }
+        } finally {
+          channel.close()
+        }
+    }
+
   def write(bytes: Slice[Byte],
             channel: WritableByteChannel): IO[Unit] =
     try {
