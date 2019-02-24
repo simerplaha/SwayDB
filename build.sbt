@@ -52,7 +52,7 @@ lazy val SwayDB =
     .settings(commonSettings)
     .settings(publishSettings)
     .dependsOn(extension)
-    .aggregate(extension, api, core, macros, compression, data, configs, serializers)
+    .aggregate(extension, access, core, macros, compression, data, configs, serializers)
 
 lazy val core =
   project
@@ -74,7 +74,7 @@ lazy val data =
       libraryDependencies ++= testDependencies
     ).dependsOn(macros)
 
-lazy val api =
+lazy val access =
   project
     .settings(commonSettings)
     .settings(publishSettings)
@@ -101,7 +101,7 @@ lazy val extension =
     .settings(publishSettings)
     .settings(
       libraryDependencies ++= testDependencies
-    ).dependsOn(api, core % Test)
+    ).dependsOn(access, core % Test)
 
 lazy val `core-stress` =
   project
