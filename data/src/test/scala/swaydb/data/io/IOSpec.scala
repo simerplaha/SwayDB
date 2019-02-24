@@ -21,7 +21,7 @@ package swaydb.data.io
 
 import org.scalatest.{Matchers, WordSpec}
 import scala.collection.mutable.ListBuffer
-import swaydb.data.io.IO.{getOrNone, _}
+import swaydb.data.io.IO._
 import swaydb.data.slice.Slice
 
 class IOSpec extends WordSpec with Matchers {
@@ -276,13 +276,13 @@ class IOSpec extends WordSpec with Matchers {
     }
   }
 
-  "getOrNone" when {
+  "tryOrNone" when {
     "exception" in {
-      getOrNone(throw new Exception("Failed")) shouldBe empty
+      IO.tryOrNone(throw new Exception("Failed")) shouldBe empty
     }
 
     "no exception" in {
-      getOrNone("success").get shouldBe "success"
+      IO.tryOrNone("success").get shouldBe "success"
     }
   }
 }

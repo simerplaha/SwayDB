@@ -115,16 +115,16 @@ private[core] trait Map[K, V] {
     skipList.containsKey(key)
 
   def firstKey: Option[K] =
-    IO.getOrNone(skipList.firstKey())
+    IO.tryOrNone(skipList.firstKey())
 
   def first: Option[(K, V)] =
-    IO.getOrNone(skipList.firstEntry()).map(keyValue => (keyValue.getKey, keyValue.getValue))
+    IO.tryOrNone(skipList.firstEntry()).map(keyValue => (keyValue.getKey, keyValue.getValue))
 
   def last: Option[(K, V)] =
-    IO.getOrNone(skipList.lastEntry()).map(keyValue => (keyValue.getKey, keyValue.getValue))
+    IO.tryOrNone(skipList.lastEntry()).map(keyValue => (keyValue.getKey, keyValue.getValue))
 
   def lastKey: Option[K] =
-    IO.getOrNone(skipList.lastKey())
+    IO.tryOrNone(skipList.lastKey())
 
   def floor(key: K): Option[V] =
     Option(skipList.floorEntry(key)).map(_.getValue)

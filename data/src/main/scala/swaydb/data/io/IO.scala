@@ -355,7 +355,7 @@ object IO {
     case class Fatal(exception: Throwable) extends Error
   }
 
-  @inline final def getOrNone[T](block: => T): Option[T] =
+  @inline final def tryOrNone[T](block: => T): Option[T] =
     try
       Option(block)
     catch {

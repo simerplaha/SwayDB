@@ -35,7 +35,7 @@ case class NotAnIntFile(path: Path) extends Throwable
 
 case class UnknownExtension(path: Path) extends Throwable
 
-object IOEffect extends LazyLogging {
+private[core] object IOEffect extends LazyLogging {
 
   implicit class PathExtensionImplicits(path: Path) {
     def fileId =
@@ -240,5 +240,4 @@ object IOEffect extends LazyLogging {
     paths
       .flatMap(_.files(Extension.Seg))
       .sortBy(_.getFileName.fileId.get._1)
-
 }

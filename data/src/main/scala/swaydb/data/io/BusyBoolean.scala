@@ -33,9 +33,6 @@ private[swaydb] class BusyBoolean(@volatile private var busy: Boolean,
 
 private[swaydb] object BusyBoolean {
 
-  private val unitTry = scala.util.Success()
-  private val unitFuture = Future.successful(())
-
   val notBusy = BusyBoolean(false)
 
   def apply(boolean: Boolean): BusyBoolean =
@@ -48,7 +45,7 @@ private[swaydb] object BusyBoolean {
 
   private def notifyBlocking(boolean: BusyBoolean): Unit = {
     boolean.notifyAll()
-    boolean.promises.foreach(_.tryComplete(unitTry))
+    boolean.promises.foreach(_.success())
   }
 
   def future(boolean: BusyBoolean): Future[Unit] =
@@ -58,7 +55,7 @@ private[swaydb] object BusyBoolean {
         boolean.savePromise(promise)
         promise.future
       } else {
-        unitFuture
+        Future.unit
       }
     }
 

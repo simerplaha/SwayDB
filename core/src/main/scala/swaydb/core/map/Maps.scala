@@ -387,7 +387,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
     reduce(matcher(currentMap), findAndReduce(matcher, reduce))
 
   def last(): Option[Map[K, V]] =
-    getOrNone(maps.getLast)
+    IO.tryOrNone(maps.getLast)
 
   def removeLast(): Option[IO[Unit]] =
     Option(maps.pollLast()) map {
