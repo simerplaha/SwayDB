@@ -804,6 +804,8 @@ object TestData {
   def randomFunctionOutput(addRemoves: Boolean = randomBoolean, expiredDeadline: Boolean = randomBoolean): SwayFunctionOutput =
     if (addRemoves && Random.nextBoolean())
       SwayFunctionOutput.Remove
+    else if (randomBoolean)
+      SwayFunctionOutput.Nothing
     else
       randomFunctionUpdateOutput(expiredDeadline)
 

@@ -67,6 +67,9 @@ class FunctionMerger_Update_Spec extends WordSpec with Matchers with MockFactory
               case SwayFunctionOutput.Remove =>
                 Memory.Remove(key, None, newKeyValue.time)
 
+              case SwayFunctionOutput.Nothing =>
+                oldKeyValue
+
               case SwayFunctionOutput.Expire(deadline) =>
                 oldKeyValue.copy(deadline = Some(deadline), time = newKeyValue.time)
 
@@ -88,10 +91,9 @@ class FunctionMerger_Update_Spec extends WordSpec with Matchers with MockFactory
   "Merging SwayFunction that requires deadline KeyDeadline/KeyValueDeadline/ValueDeadline into Update" when {
     "times are in order" should {
       "always return new key-value" in {
-
-        implicit val timeGenerator: TestTimeGenerator = eitherOne(TestTimeGenerator.Incremental(), TestTimeGenerator.Empty)
-
         runThis(1000.times) {
+
+          implicit val timeGenerator: TestTimeGenerator = eitherOne(TestTimeGenerator.Incremental(), TestTimeGenerator.Empty)
           val key = randomBytesSlice()
 
           val oldKeyValue = randomUpdateKeyValue(key = key)(timeGenerator)
@@ -113,6 +115,9 @@ class FunctionMerger_Update_Spec extends WordSpec with Matchers with MockFactory
               functionOutput match {
                 case SwayFunctionOutput.Remove =>
                   Memory.Remove(key, None, newKeyValue.time)
+
+                case SwayFunctionOutput.Nothing =>
+                  oldKeyValue.copy(time = newKeyValue.time)
 
                 case SwayFunctionOutput.Expire(deadline) =>
                   oldKeyValue.copy(deadline = Some(deadline), time = newKeyValue.time)

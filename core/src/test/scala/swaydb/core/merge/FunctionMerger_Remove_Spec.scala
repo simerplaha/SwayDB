@@ -40,17 +40,15 @@ class FunctionMerger_Remove_Spec extends WordSpec with Matchers {
   "Merging a key function into Remove" when {
     "times are in order" should {
       "always return new key-value" in {
-
-        implicit val timeGenerator = eitherOne(TestTimeGenerator.Incremental(), TestTimeGenerator.Empty)
-
         runThis(1000.times) {
+          implicit val timeGenerator = eitherOne(TestTimeGenerator.Incremental(), TestTimeGenerator.Empty)
           val key = randomBytesSlice()
 
           val oldKeyValue = randomRemoveKeyValue(key = key)(timeGenerator)
 
           val functionOutput = randomFunctionOutput()
           val newKeyValue = createFunction(key = key, randomRequiresKeyOnlyWithOptionDeadlineFunction(functionOutput))
-
+          //
           //          println(s"oldKeyValue: $oldKeyValue")
           //          println(s"newKeyValue: $newKeyValue")
           //          println(s"function: ${functionStore.get(newKeyValue.function)}")
@@ -60,6 +58,9 @@ class FunctionMerger_Remove_Spec extends WordSpec with Matchers {
             functionOutput match {
               case SwayFunctionOutput.Remove =>
                 Memory.Remove(key, None, newKeyValue.time)
+
+              case SwayFunctionOutput.Nothing =>
+                oldKeyValue.copy(time = newKeyValue.time)
 
               case SwayFunctionOutput.Expire(deadline) =>
                 if (oldKeyValue.deadline.isEmpty)

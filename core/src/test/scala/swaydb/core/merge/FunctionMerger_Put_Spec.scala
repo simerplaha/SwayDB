@@ -40,10 +40,9 @@ class FunctionMerger_Put_Spec extends WordSpec with Matchers {
   "Merging any function into Put" when {
     "times are in order" should {
       "always return new key-value" in {
-
-        implicit val timeGenerator = eitherOne(TestTimeGenerator.Incremental(), TestTimeGenerator.Empty)
-
         runThis(1000.times) {
+
+          implicit val timeGenerator = eitherOne(TestTimeGenerator.Incremental(), TestTimeGenerator.Empty)
           val key = randomBytesSlice()
 
           val oldKeyValue = randomPutKeyValue(key = key)(timeGenerator)
@@ -60,6 +59,9 @@ class FunctionMerger_Put_Spec extends WordSpec with Matchers {
             functionOutput match {
               case SwayFunctionOutput.Remove =>
                 Memory.Remove(key, None, newKeyValue.time)
+
+              case SwayFunctionOutput.Nothing =>
+                oldKeyValue.copy(time = newKeyValue.time)
 
               case SwayFunctionOutput.Expire(deadline) =>
                 oldKeyValue.copy(deadline = Some(deadline), time = newKeyValue.time)
