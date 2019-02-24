@@ -25,7 +25,7 @@ import swaydb.core.data.KeyValue._
 import swaydb.core.data.{Memory, SwayFunction, Time, Value}
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.zero.LevelZero
-import swaydb.core.map.MapEntry
+import swaydb.core.map.{MapEntry, Timer}
 import swaydb.core.map.serializer.LevelZeroMapEntryWriter
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
@@ -76,8 +76,46 @@ private[swaydb] case class BlockingCoreAPI(zero: LevelZero) {
   def put(key: Slice[Byte], value: Option[Slice[Byte]], removeAt: Deadline): IO[Level0Meter] =
     zero.put(key, value, removeAt)
 
-  def put(entry: MapEntry[Slice[Byte], Memory.SegmentResponse]): IO[Level0Meter] =
-    zero.put(entry)
+  private def prepareToMapEntry(entries: Iterable[Prepare[Slice[Byte], Option[Slice[Byte]]]])(timer: Timer): Option[MapEntry[Slice[Byte], Memory.SegmentResponse]] =
+    entries.foldLeft(Option.empty[MapEntry[Slice[Byte], Memory.SegmentResponse]]) {
+      case (mapEntry, prepare) =>
+        val nextEntry =
+          prepare match {
+            case Prepare.Put(key, value, expire) =>
+              MapEntry.Put[Slice[Byte], Memory.Put](key, Memory.Put(key, value, expire, timer.next))(LevelZeroMapEntryWriter.Level0PutWriter)
+
+            case Prepare.Add(key, expire) =>
+              MapEntry.Put[Slice[Byte], Memory.Put](key, Memory.Put(key, None, expire, timer.next))(LevelZeroMapEntryWriter.Level0PutWriter)
+
+            case Prepare.Remove(key, toKey, expire) =>
+              toKey map {
+                toKey =>
+                  (MapEntry.Put[Slice[Byte], Memory.Range](key, Memory.Range(key, toKey, None, Value.Remove(expire, timer.next)))(LevelZeroMapEntryWriter.Level0RangeWriter): MapEntry[Slice[Byte], Memory.SegmentResponse]) ++
+                    MapEntry.Put[Slice[Byte], Memory.Remove](toKey, Memory.Remove(toKey, expire, timer.next))(LevelZeroMapEntryWriter.Level0RemoveWriter)
+              } getOrElse {
+                MapEntry.Put[Slice[Byte], Memory.Remove](key, Memory.Remove(key, expire, timer.next))(LevelZeroMapEntryWriter.Level0RemoveWriter)
+              }
+
+            case Prepare.Update(key, toKey, value) =>
+              toKey map {
+                toKey =>
+                  (MapEntry.Put[Slice[Byte], Memory.Range](key, Memory.Range(key, toKey, None, Value.Update(value, None, timer.next)))(LevelZeroMapEntryWriter.Level0RangeWriter): MapEntry[Slice[Byte], Memory.SegmentResponse]) ++
+                    MapEntry.Put[Slice[Byte], Memory.Update](toKey, Memory.Update(toKey, None, None, timer.next))(LevelZeroMapEntryWriter.Level0UpdateWriter)
+              } getOrElse {
+                MapEntry.Put[Slice[Byte], Memory.Update](key, Memory.Update(key, value, None, timer.next))(LevelZeroMapEntryWriter.Level0UpdateWriter)
+              }
+
+            case Prepare.Function(key, toKey, function) =>
+              toKey map {
+                toKey =>
+                  (MapEntry.Put[Slice[Byte], Memory.Range](key, Memory.Range(key, toKey, None, Value.Function(function, timer.next)))(LevelZeroMapEntryWriter.Level0RangeWriter): MapEntry[Slice[Byte], Memory.SegmentResponse]) ++
+                    MapEntry.Put[Slice[Byte], Memory.Function](toKey, Memory.Function(toKey, function, timer.next))(LevelZeroMapEntryWriter.Level0FunctionWriter)
+              } getOrElse {
+                MapEntry.Put[Slice[Byte], Memory.Function](key, Memory.Function(key, function, timer.next))(LevelZeroMapEntryWriter.Level0FunctionWriter)
+              }
+          }
+        Some(mapEntry.map(_ ++ nextEntry) getOrElse nextEntry)
+    }
 
   /**
     * Each [[Prepare]] requires a new next [[Time]] for cases where a batch contains overriding keys.
@@ -89,48 +127,10 @@ private[swaydb] case class BlockingCoreAPI(zero: LevelZero) {
     * Times should always be unique and in incremental order for *ALL* key values.
     */
   def put(entries: Iterable[Prepare[Slice[Byte], Option[Slice[Byte]]]]): IO[Level0Meter] =
-    entries.foldLeft(Option.empty[MapEntry[Slice[Byte], Memory.SegmentResponse]], System.nanoTime()) {
-      case ((mapEntry, nanoTime), prepare) =>
-        val nextEntry =
-          prepare match {
-            case Prepare.Put(key, value, expire) =>
-              MapEntry.Put[Slice[Byte], Memory.Put](key, Memory.Put(key, value, expire, Time(nanoTime)))(LevelZeroMapEntryWriter.Level0PutWriter)
-
-            case Prepare.Add(key, expire) =>
-              MapEntry.Put[Slice[Byte], Memory.Put](key, Memory.Put(key, None, expire, Time(nanoTime)))(LevelZeroMapEntryWriter.Level0PutWriter)
-
-            case Prepare.Remove(key, toKey, expire) =>
-              toKey map {
-                toKey =>
-                  (MapEntry.Put[Slice[Byte], Memory.Range](key, Memory.Range(key, toKey, None, Value.Remove(expire, Time(nanoTime))))(LevelZeroMapEntryWriter.Level0RangeWriter): MapEntry[Slice[Byte], Memory.SegmentResponse]) ++
-                    MapEntry.Put[Slice[Byte], Memory.Remove](toKey, Memory.Remove(toKey, expire, Time(nanoTime)))(LevelZeroMapEntryWriter.Level0RemoveWriter)
-              } getOrElse {
-                MapEntry.Put[Slice[Byte], Memory.Remove](key, Memory.Remove(key, expire, Time(nanoTime)))(LevelZeroMapEntryWriter.Level0RemoveWriter)
-              }
-
-            case Prepare.Update(key, toKey, value) =>
-              toKey map {
-                toKey =>
-                  (MapEntry.Put[Slice[Byte], Memory.Range](key, Memory.Range(key, toKey, None, Value.Update(value, None, Time(nanoTime))))(LevelZeroMapEntryWriter.Level0RangeWriter): MapEntry[Slice[Byte], Memory.SegmentResponse]) ++
-                    MapEntry.Put[Slice[Byte], Memory.Update](toKey, Memory.Update(toKey, None, None, Time(nanoTime)))(LevelZeroMapEntryWriter.Level0UpdateWriter)
-              } getOrElse {
-                MapEntry.Put[Slice[Byte], Memory.Update](key, Memory.Update(key, value, None, Time(nanoTime)))(LevelZeroMapEntryWriter.Level0UpdateWriter)
-              }
-
-            case Prepare.Function(key, toKey, function) =>
-              toKey map {
-                toKey =>
-                  (MapEntry.Put[Slice[Byte], Memory.Range](key, Memory.Range(key, toKey, None, Value.Function(function, Time(nanoTime))))(LevelZeroMapEntryWriter.Level0RangeWriter): MapEntry[Slice[Byte], Memory.SegmentResponse]) ++
-                    MapEntry.Put[Slice[Byte], Memory.Function](toKey, Memory.Function(toKey, function, Time(nanoTime)))(LevelZeroMapEntryWriter.Level0FunctionWriter)
-              } getOrElse {
-                MapEntry.Put[Slice[Byte], Memory.Function](key, Memory.Function(key, function, Time(nanoTime)))(LevelZeroMapEntryWriter.Level0FunctionWriter)
-              }
-          }
-        (Some(mapEntry.map(_ ++ nextEntry) getOrElse nextEntry), nanoTime + 1)
-    } ==> {
-      case (entry, _) =>
-        entry.map(put) getOrElse IO.Failure(new Exception("Cannot write empty batch"))
-    }
+    if (entries.isEmpty)
+      IO.Failure(new Exception("Cannot write empty batch"))
+    else
+      zero.put(prepareToMapEntry(entries)(_).get) //Gah .get! hmm.
 
   def remove(key: Slice[Byte]): IO[Level0Meter] =
     zero.remove(key)

@@ -19,6 +19,7 @@
 
 package swaydb.core.data
 
+import java.util.concurrent.atomic.AtomicLong
 import swaydb.data.io.IO
 import swaydb.data.order.TimeOrder
 import swaydb.data.slice.Slice
@@ -29,8 +30,10 @@ private[core] object Time {
   val someEmpty = Some(empty)
   val successEmpty = IO.Success(empty)
 
+  val long = new AtomicLong(System.nanoTime())
+
   def localNano: Time =
-    Time(Slice.writeLong(System.nanoTime()))
+    Time(Slice.writeLong(long.incrementAndGet()))
 
   def apply(time: Long): Time =
     new Time(Slice.writeLong(time))

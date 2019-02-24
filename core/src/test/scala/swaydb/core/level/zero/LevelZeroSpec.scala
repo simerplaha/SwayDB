@@ -186,7 +186,7 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory with Benchmark {
       val keyValues = randomIntKeyStringValues(keyValuesCount)
 
       val zero = TestLevelZero(Some(TestLevel()))
-      zero.put(keyValues.toMapEntry.get).assertGet
+      zero.put(_ => keyValues.toMapEntry.get).assertGet
 
       assertGet(keyValues, zero)
 
@@ -199,7 +199,7 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory with Benchmark {
 
         val zero = TestLevelZero(Some(TestLevel()))
         assertThrows[Exception] {
-          zero.put(keyValues.toMapEntry.get)
+          zero.put(_ => keyValues.toMapEntry.get)
         }
       } else {
         //Currently this test does not apply for in-memory. Empty keys should NEVER be written.
@@ -232,12 +232,12 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory with Benchmark {
     "batch remove key-values" in {
       val keyValues = randomIntKeyStringValues(keyValuesCount)
       val zero = TestLevelZero(Some(TestLevel()))
-      zero.put(keyValues.toMapEntry.get).assertGet
+      zero.put(_ => keyValues.toMapEntry.get).assertGet
 
       assertGet(keyValues, zero)
 
       val removeKeyValues = Slice(keyValues.map(keyValue => Memory.remove(keyValue.key)).toArray)
-      zero.put(removeKeyValues.toMapEntry.get).assertGet
+      zero.put(_ => removeKeyValues.toMapEntry.get).assertGet
 
       assertGetNone(keyValues, zero)
       zero.head.assertGetOpt shouldBe empty

@@ -25,7 +25,6 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.brake.BrakePedal
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.core.io.file.IOEffect._
-
 import swaydb.data.io.IO._
 import swaydb.data.accelerate.{Accelerator, Level0Meter}
 import swaydb.data.config.RecoveryMode
@@ -34,6 +33,7 @@ import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext
 import scala.reflect.ClassTag
+import swaydb.core.data.Time
 import swaydb.data.io.IO
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.IOEffect
@@ -249,13 +249,15 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
   // This is crucial for write performance use null instead of Option.
   private var brakePedal: BrakePedal = _
 
+  private val timer = Timer(System.nanoTime())
+
   def setOnFullListener(event: () => Unit) =
     onFullListener = event
 
-  def write(mapEntry: MapEntry[K, V]): IO[Level0Meter] =
+  def write(mapEntry: Timer => MapEntry[K, V]): IO[Level0Meter] =
     synchronized {
       if (brakePedal != null && brakePedal.applyBrakes()) brakePedal = null
-      persist(mapEntry)
+      persist(mapEntry(timer))
     }
 
   /**

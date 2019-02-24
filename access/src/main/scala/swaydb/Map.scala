@@ -139,10 +139,10 @@ case class Map[K, V](private[swaydb] val db: SwayDB,
     functionID
   }
 
-  def function(key: K, functionID: K): IO[Level0Meter] =
+  def applyFunction(key: K, functionID: K): IO[Level0Meter] =
     db.function(key, functionID)
 
-  def function(from: K, to: K, functionID: K): IO[Level0Meter] =
+  def applyFunction(from: K, to: K, functionID: K): IO[Level0Meter] =
     db.function(from, to, functionID)
 
   def commit(prepare: Prepare[K, V]*): IO[Level0Meter] =

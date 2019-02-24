@@ -45,6 +45,7 @@ class MapsPerformanceSpec extends TestBase with Benchmark {
 
   import swaydb.core.map.serializer.LevelZeroMapEntryReader._
   import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
+
   implicit val skipListMerger = LevelZeroSkipListMerger
 
   "Maps" should {
@@ -56,7 +57,8 @@ class MapsPerformanceSpec extends TestBase with Benchmark {
         keyValues foreach {
           keyValue =>
             maps.write {
-              MapEntry.Put[Slice[Byte], Memory.Put](keyValue.key, Memory.put(keyValue.key, keyValue.getOrFetchValue))(Level0PutWriter)
+              time =>
+                MapEntry.Put[Slice[Byte], Memory.Put](keyValue.key, Memory.Put(keyValue.key, keyValue.getOrFetchValue, None, time.next))(Level0PutWriter)
             }.assertGet
         }
 

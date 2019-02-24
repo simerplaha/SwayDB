@@ -117,10 +117,10 @@ case class Set[T](private val db: SwayDB,
     functionID
   }
 
-  def function(from: T, to: T, function: T): IO[Level0Meter] =
+  def applyFunction(from: T, to: T, function: T): IO[Level0Meter] =
     db.function(from, to, function)
 
-  def function(elem: T, function: T): IO[Level0Meter] =
+  def applyFunction(elem: T, function: T): IO[Level0Meter] =
     db.function(elem, function)
 
   def commit(prepare: Prepare[T, Nothing]*): IO[Level0Meter] =

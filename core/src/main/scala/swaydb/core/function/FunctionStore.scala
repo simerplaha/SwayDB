@@ -46,9 +46,11 @@ class MemoryStore extends FunctionStore {
   override def get(functionId: Slice[Byte]): Option[SwayFunction] =
     Option(functions.get(functionId))
 
-  override def put(functionId: Slice[Byte], function: SwayFunction): SwayFunction =
+  override def put(functionId: Slice[Byte], function: SwayFunction): SwayFunction = {
     functions.put(functionId, function)
+    function
+  }
 
   override def exists(functionId: Slice[Byte]): Boolean =
-    functions.contains(functionId)
+    get(functionId).isDefined
 }

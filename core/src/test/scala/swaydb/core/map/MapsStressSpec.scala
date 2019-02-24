@@ -63,7 +63,7 @@ class MapsStressSpec extends TestBase {
       def testWrite(maps: Maps[Slice[Byte], Memory.SegmentResponse]) = {
         keyValues foreach {
           keyValue =>
-            maps.write(MapEntry.Put(keyValue.key, Memory.put(keyValue.key, keyValue.getOrFetchValue))).assertGet
+            maps.write(time => MapEntry.Put(keyValue.key, Memory.Put(keyValue.key, keyValue.getOrFetchValue, None, time.next))).assertGet
         }
       }
 
