@@ -21,7 +21,7 @@ package swaydb
 
 import scala.collection.generic.CanBuildFrom
 import scala.concurrent.duration.{Deadline, FiniteDuration}
-import swaydb.BatchImplicits._
+import swaydb.PrepareImplicits._
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.io.IO
@@ -139,10 +139,10 @@ case class Map[K, V](private[swaydb] val db: SwayDB,
     functionID
   }
 
-  def applyFunction(key: K, functionID: K): IO[Level0Meter] =
+  def function(key: K, functionID: K): IO[Level0Meter] =
     db.function(key, functionID)
 
-  def applyFunction(from: K, to: K, functionID: K): IO[Level0Meter] =
+  def function(from: K, to: K, functionID: K): IO[Level0Meter] =
     db.function(from, to, functionID)
 
   def commit(prepare: Prepare[K, V]*): IO[Level0Meter] =
