@@ -25,6 +25,8 @@ import swaydb.data.slice.Slice
 
 private[file] trait DBFileType {
 
+  def path: Path
+
   def delete(): IO[Unit]
 
   def close(): IO[Unit]
@@ -43,8 +45,6 @@ private[file] trait DBFileType {
 
   def isLoaded: IO[Boolean]
 
-  val path: Path
-
   def isOpen: Boolean
 
   def isFull: IO[Boolean]
@@ -55,5 +55,4 @@ private[file] trait DBFileType {
     !memory
 
   def forceSave(): IO[Unit]
-
 }

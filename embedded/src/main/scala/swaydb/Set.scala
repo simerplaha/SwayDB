@@ -62,11 +62,23 @@ case class Set[T](private val db: SwayDB,
   def add(elem: T, expireAfter: FiniteDuration): IO[Level0Meter] =
     db.put(elem, None, expireAfter.fromNow)
 
+  def add(elems: T*): IO[Level0Meter] =
+    add(elems)
+
+  def add(elems: Iterable[T]): IO[Level0Meter] =
+    db.commit(elems.map(elem => Prepare.Put(key = serializer.write(elem), value = None, deadline = None)))
+
   def remove(elem: T): IO[Level0Meter] =
     db.remove(elem)
 
   def remove(from: T, to: T): IO[Level0Meter] =
     db.remove(from, to)
+
+  def remove(elems: T*): IO[Level0Meter] =
+    remove(elems)
+
+  def remove(elems: Iterable[T]): IO[Level0Meter] =
+    db.commit(elems.map(elem => Prepare.Remove(serializer.write(elem))))
 
   def expire(elem: T, after: FiniteDuration): IO[Level0Meter] =
     db.expire(elem, after.fromNow)
@@ -80,34 +92,10 @@ case class Set[T](private val db: SwayDB,
   def expire(from: T, to: T, at: Deadline): IO[Level0Meter] =
     db.expire(from, to, at)
 
-  def function(from: T, to: T, function: T): IO[Level0Meter] =
-    db.function(from, to, function)
+  def expire(elems: (T, Deadline)*): IO[Level0Meter] =
+    expire(elems)
 
-  def function(elem: T, function: T): IO[Level0Meter] =
-    db.function(elem, function)
-
-  def batch(batch: Prepare[T, Nothing]*): IO[Level0Meter] =
-    db.commit(batch)
-
-  def batch(batch: Iterable[Prepare[T, Nothing]]): IO[Level0Meter] =
-    db.commit(batch)
-
-  def batchAdd(elems: T*): IO[Level0Meter] =
-    batchAdd(elems)
-
-  def batchAdd(elems: Iterable[T]): IO[Level0Meter] =
-    db.commit(elems.map(elem => Prepare.Put(key = serializer.write(elem), value = None, deadline = None)))
-
-  def batchRemove(elems: T*): IO[Level0Meter] =
-    batchRemove(elems)
-
-  def batchRemove(elems: Iterable[T]): IO[Level0Meter] =
-    db.commit(elems.map(elem => Prepare.Remove(serializer.write(elem))))
-
-  def batchExpire(elems: (T, Deadline)*): IO[Level0Meter] =
-    batchExpire(elems)
-
-  def batchExpire(elems: Iterable[(T, Deadline)]): IO[Level0Meter] =
+  def expire(elems: Iterable[(T, Deadline)]): IO[Level0Meter] =
     db.commit {
       elems map {
         elemWithExpire =>
@@ -118,6 +106,28 @@ case class Set[T](private val db: SwayDB,
           )
       }
     }
+
+  def registerFunction(functionID: T, function: T => Apply.Set[T]): T = {
+    db.registerFunction(functionID, SwayDB.toCoreFunction(function))
+    functionID
+  }
+
+  def registerFunction(functionID: T, function: (T, Option[Deadline]) => Apply.Set[T]): T = {
+    db.registerFunction(functionID, SwayDB.toCoreFunction(function))
+    functionID
+  }
+
+  def function(from: T, to: T, function: T): IO[Level0Meter] =
+    db.function(from, to, function)
+
+  def function(elem: T, function: T): IO[Level0Meter] =
+    db.function(elem, function)
+
+  def commit(prepare: Prepare[T, Nothing]*): IO[Level0Meter] =
+    db.commit(prepare)
+
+  def commit(prepare: Iterable[Prepare[T, Nothing]]): IO[Level0Meter] =
+    db.commit(prepare)
 
   def level0Meter: Level0Meter =
     db.level0Meter

@@ -124,17 +124,17 @@ case class Map[K, V](private[swaydb] val db: SwayDB,
       }
     }
 
-  def registerFunction(functionID: K, function: V => Apply[V]): K = {
+  def registerFunction(functionID: K, function: V => Apply.Map[V]): K = {
     db.registerFunction(functionID, SwayDB.toCoreFunction(function))
     functionID
   }
 
-  def registerFunction(functionID: K, function: (K, Option[Deadline]) => Apply[V]): K = {
+  def registerFunction(functionID: K, function: (K, Option[Deadline]) => Apply.Map[V]): K = {
     db.registerFunction(functionID, SwayDB.toCoreFunction(function))
     functionID
   }
 
-  def registerFunction(functionID: K, function: (K, V, Option[Deadline]) => Apply[V]): K = {
+  def registerFunction(functionID: K, function: (K, V, Option[Deadline]) => Apply.Map[V]): K = {
     db.registerFunction(functionID, SwayDB.toCoreFunction(function))
     functionID
   }

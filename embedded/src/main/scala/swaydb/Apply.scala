@@ -27,9 +27,19 @@ import scala.concurrent.duration.Deadline
 sealed trait Apply[+V]
 object Apply {
 
-  case object Nothing extends Apply[Nothing]
-  case object Remove extends Apply[Nothing]
-  case class Expire(deadline: Deadline) extends Apply[Nothing]
+  /**
+    * Function outputs for Map
+    */
+  sealed trait Map[+V] extends Apply[V]
+
+  /**
+    * Function outputs for Set
+    */
+  sealed trait Set[+V] extends Apply[V]
+
+  case object Nothing extends Map[Nothing] with Set[Nothing]
+  case object Remove extends Map[Nothing] with Set[Nothing]
+  case class Expire(deadline: Deadline) extends Map[Nothing] with Set[Nothing]
 
   object Update {
     def apply[V](value: V): Update[V] =
@@ -39,5 +49,5 @@ object Apply {
       new Update(value, Some(deadline))
   }
 
-  case class Update[V](value: V, deadline: Option[Deadline]) extends Apply[V]
+  case class Update[V](value: V, deadline: Option[Deadline]) extends Map[V] with Set[V]
 }
