@@ -25,8 +25,8 @@ import swaydb.data.slice.{Reader, Slice}
 object LazyPutValueReader {
   def apply(reader: Reader,
             offset: Int,
-            length: Int): LazyGroupValueReader =
-    new LazyGroupValueReader {
+            length: Int): LazyPutValueReader =
+    new LazyPutValueReader {
       override val valueReader: Reader = reader
 
       override def valueLength: Int = length

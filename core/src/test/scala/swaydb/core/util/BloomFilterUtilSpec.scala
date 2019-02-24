@@ -28,6 +28,7 @@ import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.core.TestData._
 import swaydb.core.data.Value.{FromValue, RangeValue}
+import swaydb.core.RunThis._
 
 class BloomFilterUtilSpec extends TestBase {
 
@@ -61,26 +62,29 @@ class BloomFilterUtilSpec extends TestBase {
 
   "init" should {
     "not initialise bloomFilter if it contain removeRange" in {
-      implicit val time = TestTimeGenerator.Incremental()
-      BloomFilterUtil.init(
-        keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, None, Value.Remove(None, time.nextTime))),
-        bloomFilterFalsePositiveRate = TestData.falsePositiveRate
-      ) shouldBe empty
+      runThisParallel(10.times) {
+        implicit val time = TestTimeGenerator.random
+        BloomFilterUtil.init(
+          keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, None, Value.Remove(None, time.nextTime))),
+          bloomFilterFalsePositiveRate = TestData.falsePositiveRate
+        ) shouldBe empty
 
-      BloomFilterUtil.init(
-        keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, None, Value.Remove(Some(randomDeadline()), time.nextTime))),
-        bloomFilterFalsePositiveRate = TestData.falsePositiveRate
-      ) shouldBe empty
-
+        BloomFilterUtil.init(
+          keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, None, Value.Remove(Some(randomDeadline()), time.nextTime))),
+          bloomFilterFalsePositiveRate = TestData.falsePositiveRate
+        ) shouldBe empty
+      }
     }
 
     "initialise bloomFilter when from value is remove but range value is not" in {
-      implicit val time = TestTimeGenerator.Incremental()
-      //fromValue is remove but it's not a remove ange
-      BloomFilterUtil.init(
-        keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, Some(Value.Remove(None, time.nextTime)), Value.update(100))),
-        bloomFilterFalsePositiveRate = TestData.falsePositiveRate
-      ) shouldBe defined
+      runThisParallel(10.times) {
+        implicit val time = TestTimeGenerator.random
+        //fromValue is remove but it's not a remove ange
+        BloomFilterUtil.init(
+          keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, Some(Value.Remove(None, time.nextTime)), Value.update(100))),
+          bloomFilterFalsePositiveRate = TestData.falsePositiveRate
+        ) shouldBe defined
+      }
     }
   }
 }
