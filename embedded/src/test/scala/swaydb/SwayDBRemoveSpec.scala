@@ -29,7 +29,7 @@ import swaydb.core.RunThis._
 class SwayDBRemoveSpec0 extends SwayDBRemoveSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
+  override def newDB(): Map[Int, String] =
     swaydb.persistent.Map[Int, String](dir = randomDir).assertGet
 }
 
@@ -37,7 +37,7 @@ class SwayDBRemoveSpec1 extends SwayDBRemoveSpec {
 
   val keyValueCount: Int = 1000
 
-  override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
+  override def newDB(): Map[Int, String] =
     swaydb.persistent.Map[Int, String](randomDir, mapSize = 1.byte, segmentSize = 10.bytes).assertGet
 }
 
@@ -45,14 +45,14 @@ class SwayDBRemoveSpec2 extends SwayDBRemoveSpec {
 
   val keyValueCount: Int = 10000
 
-  override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
+  override def newDB(): Map[Int, String] =
     swaydb.memory.Map[Int, String](mapSize = 1.byte, segmentSize = 10.bytes).assertGet
 }
 
 class SwayDBRemoveSpec3 extends SwayDBRemoveSpec {
   val keyValueCount: Int = 10000
 
-  override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
+  override def newDB(): Map[Int, String] =
     swaydb.memory.Map[Int, String]().assertGet
 }
 
@@ -60,7 +60,7 @@ sealed trait SwayDBRemoveSpec extends TestBase with TestBaseEmbedded {
 
   val keyValueCount: Int
 
-  def newDB(minTimeLeftToUpdateExpiration: FiniteDuration = 10.seconds): Map[Int, String]
+  def newDB(): Map[Int, String]
 
   "Remove" when {
     "Put" in {

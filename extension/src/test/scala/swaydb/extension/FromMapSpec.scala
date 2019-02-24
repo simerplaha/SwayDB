@@ -30,7 +30,7 @@ import swaydb.serializers.Default._
 class FromMapSpec0 extends FromMapSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
+  override def newDB(): Map[Int, String] =
     swaydb.persistent.Map[Key[Int], Option[String]](dir = randomDir).assertGet.extend.assertGet
 }
 
@@ -38,7 +38,7 @@ class FromMapSpec1 extends FromMapSpec {
 
   val keyValueCount: Int = 10000
 
-  override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
+  override def newDB(): Map[Int, String] =
     swaydb.persistent.Map[Key[Int], Option[String]](randomDir, mapSize = 1.byte).assertGet.extend.assertGet
 }
 
@@ -46,14 +46,14 @@ class FromMapSpec2 extends FromMapSpec {
 
   val keyValueCount: Int = 100000
 
-  override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
+  override def newDB(): Map[Int, String] =
     swaydb.memory.Map[Key[Int], Option[String]](mapSize = 1.byte).assertGet.extend.assertGet
 }
 
 class FromMapSpec3 extends FromMapSpec {
   val keyValueCount: Int = 100000
 
-  override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
+  override def newDB(): Map[Int, String] =
     swaydb.memory.Map[Key[Int], Option[String]]().assertGet.extend.assertGet
 }
 
@@ -61,7 +61,7 @@ sealed trait FromMapSpec extends TestBase with TestBaseEmbedded {
 
   val keyValueCount: Int
 
-  def newDB(minTimeLeftToUpdateExpiration: FiniteDuration = 10.seconds): Map[Int, String]
+  def newDB(): Map[Int, String]
 
   "From" should {
 

@@ -32,7 +32,7 @@ import swaydb.core.RunThis._
 class MapPutSpec0 extends MapPutSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
+  override def newDB(): Map[Int, String] =
     swaydb.persistent.Map[Key[Int], Option[String]](dir = randomDir).assertGet.extend.assertGet
 }
 
@@ -40,7 +40,7 @@ class MapPutSpec1 extends MapPutSpec {
 
   val keyValueCount: Int = 10000
 
-  override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
+  override def newDB(): Map[Int, String] =
     swaydb.persistent.Map[Key[Int], Option[String]](randomDir, mapSize = 1.byte).assertGet.extend.assertGet
 }
 
@@ -48,14 +48,14 @@ class MapPutSpec2 extends MapPutSpec {
 
   val keyValueCount: Int = 100000
 
-  override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
+  override def newDB(): Map[Int, String] =
     swaydb.memory.Map[Key[Int], Option[String]](mapSize = 1.byte).assertGet.extend.assertGet
 }
 
 class MapPutSpec3 extends MapPutSpec {
   val keyValueCount: Int = 100000
 
-  override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
+  override def newDB(): Map[Int, String] =
     swaydb.memory.Map[Key[Int], Option[String]]().assertGet.extend.assertGet
 }
 
@@ -63,7 +63,7 @@ sealed trait MapPutSpec extends TestBase with TestBaseEmbedded {
 
   val keyValueCount: Int
 
-  def newDB(minTimeLeftToUpdateExpiration: FiniteDuration = 10.seconds): Map[Int, String]
+  def newDB(): Map[Int, String]
 
   "Root" should {
     "Initialise a RootMap & SubMap from Root" in {

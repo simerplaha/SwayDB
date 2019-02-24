@@ -131,7 +131,7 @@ class IOAsyncSpec extends WordSpec with Matchers {
 
       (1 to 2) foreach {
         i =>
-          val io: Async[Int] = {
+          val io: Async[Int] =
             (0 to 100).foldLeft(IO.Async(1, IO.Error.DecompressingIndex(BusyBoolean(false)))) {
               case (previous, i) =>
                 previous flatMap {
@@ -144,7 +144,6 @@ class IOAsyncSpec extends WordSpec with Matchers {
                     IO.Async(output + 1, Base.randomBusyException(boolean))
                 }
             }
-          }
 
           if (i == 1)
             io.safeGetBlocking shouldBe IO.Success(102)

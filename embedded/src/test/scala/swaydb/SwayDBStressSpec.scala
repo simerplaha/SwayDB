@@ -49,7 +49,7 @@
 //class SwayDBStressSpec0 extends SwayDBStressSpec {
 //  val keyValueCount: Int = 100000
 //
-//  override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
+//  override def newDB(): Map[Int, String] =
 //    swaydb.persistent.Map[Int, String](dir = randomDir).assertGet
 //}
 //
@@ -57,7 +57,7 @@
 //
 //  val keyValueCount: Int = 100000
 //
-//  override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
+//  override def newDB(): Map[Int, String] =
 //    swaydb.persistent.Map[Int, String](randomDir, mapSize = 1.byte).assertGet
 //}
 //
@@ -65,14 +65,14 @@
 //
 //  val keyValueCount: Int = 100000
 //
-//  override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
+//  override def newDB(): Map[Int, String] =
 //    swaydb.memory.Map[Int, String](mapSize = 1.byte).assertGet
 //}
 //
 //class SwayDBStressSpec3 extends SwayDBStressSpec {
 //  val keyValueCount: Int = 100000
 //
-//  override def newDB(minTimeLeftToUpdateExpiration: FiniteDuration): Map[Int, String] =
+//  override def newDB(): Map[Int, String] =
 //    swaydb.memory.Map[Int, String]().assertGet
 //}
 //
@@ -80,7 +80,7 @@
 //
 //  val keyValueCount: Int
 //
-//  def newDB(minTimeLeftToUpdateExpiration: FiniteDuration = 10.seconds): Map[Int, String]
+//  def newDB(): Map[Int, String]
 //
 //  "Test case that eventually fails due to collapsing of small Segments" in {
 //    val db = newDB()
