@@ -19,6 +19,7 @@
 
 package swaydb.core.map.timer
 
+import com.typesafe.scalalogging.LazyLogging
 import java.nio.file.Path
 import java.util.concurrent.ConcurrentSkipListMap
 import java.util.concurrent.atomic.AtomicLong
@@ -32,7 +33,7 @@ import swaydb.data.IO
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
-private[core] object PersistentTimer {
+private[core] object PersistentTimer extends LazyLogging {
 
   private implicit object TimerSkipListMerger extends SkipListMerger[Slice[Byte], Slice[Byte]] {
     override def insert(insertKey: Slice[Byte],
@@ -103,22 +104,52 @@ private[core] object PersistentTimer {
 
     }
   }
+
+  /**
+    * Stores next checkpoint time to Map.
+    *
+    * Why throw exceptions?
+    * Writes are ALWAYS expected to succeed but unexpected failures can still occur.
+    * Since nextTime is called for each written key-value having an IO wrapper
+    * for each [[PersistentTimer.next]] call can increase in-memory objects which can cause
+    * performance issues.
+    *
+    * Throwing exception on failure here is ok since failures are not expected and if failure does occur
+    * it would be due to file system permission issue.
+    *
+    * Possibly needs a better solution.
+    */
+  private[timer] def checkpoint(nextTime: Long,
+                                mod: Long,
+                                map: PersistentMap[Slice[Byte], Slice[Byte]])(implicit writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]]) =
+    map.write(MapEntry.Put(Timer.defaultKey, Slice.writeLong(nextTime + mod))) onFailureSideEffect {
+      failed =>
+        val message = s"Failed to write timer entry: $nextTime"
+        logger.error(message, failed.exception)
+        throw new Exception(message)
+    } foreach {
+      wrote =>
+        if (!wrote) {
+          val message = s"Failed to write timer entry: $nextTime"
+          logger.error(message)
+          throw new Exception(message)
+        }
+    }
 }
 
 private[core] class PersistentTimer(mod: Long,
                                     startID: Long,
-                                    map: PersistentMap[Slice[Byte], Slice[Byte]])(implicit writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]]) extends Timer {
+                                    map: PersistentMap[Slice[Byte], Slice[Byte]])(implicit writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]]) extends Timer with LazyLogging {
 
   private val time = new AtomicLong(startID)
 
   override def next: Time =
     synchronized {
       val nextTime = time.incrementAndGet()
-      if (nextTime % mod == 0) //todo IO needs to be returned
-        map.write(MapEntry.Put(Timer.defaultKey, Slice.writeLong(nextTime + mod)))
-
+      if (nextTime % mod == 0) PersistentTimer.checkpoint(nextTime, mod, map)
       Time(nextTime)
     }
+
   override def close: IO[Unit] =
     map.close()
 }
