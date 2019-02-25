@@ -3,7 +3,7 @@
 [gitter-badge]: https://badges.gitter.im/Join%20Chat.svg
 [gitter-link]: https://gitter.im/SwayDB-chat/Lobby
 
-SwayDB is a type-safe & non-blocking key-value storage library for single/multiple disks and in-memory storage.
+Non-blocking key-value storage library for single/multiple disks and in-memory.
 
 Documentation: http://swaydb.io
 
@@ -18,9 +18,8 @@ View detailed benchmark results [here](http://swaydb.io/performance/macbook-pro-
 
 ## Features
 
-- Embeddable, Type-safe, non-blocking
 - Single or multiple disks persistent, in-memory or periodically persistent
-- Atomic updates and inserts with [Batch API](http://www.swaydb.io/api/write-api/batch/)
+- Atomic updates and inserts.
 - APIs similar to Scala collections.
 - Auto expiring key-value ([TTL](http://www.swaydb.io/api/write-api/expire/))
 - Range [update, remove & expire](http://www.swaydb.io/api/write-api/)

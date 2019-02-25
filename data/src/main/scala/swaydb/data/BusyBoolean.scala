@@ -21,6 +21,7 @@ package swaydb.data
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.{Future, Promise}
+import scala.concurrent.duration._
 
 private[swaydb] class BusyBoolean(@volatile private var busy: Boolean,
                                   private[data] val promises: ListBuffer[Promise[Unit]]) {
@@ -32,8 +33,9 @@ private[swaydb] class BusyBoolean(@volatile private var busy: Boolean,
 }
 
 private[swaydb] object BusyBoolean {
+  private val blockingTimeout = 30.seconds.toMillis
+  private val futureUnit = Future.successful(())
 
-  val futureUnit = Future.successful(())
   val notBusy = BusyBoolean(false)
 
   def apply(boolean: Boolean): BusyBoolean =
@@ -41,7 +43,12 @@ private[swaydb] object BusyBoolean {
 
   def blockUntilFree(boolean: BusyBoolean): Unit =
     boolean.synchronized {
-      while (boolean.busy) boolean.wait()
+      try {
+        while (boolean.busy) boolean.wait(blockingTimeout)
+      } catch {
+        case _: InterruptedException =>
+          blockUntilFree(boolean)
+      }
     }
 
   private def notifyBlocking(boolean: BusyBoolean): Unit = {
