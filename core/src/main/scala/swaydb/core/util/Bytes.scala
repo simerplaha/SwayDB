@@ -19,10 +19,10 @@
 
 package swaydb.core.util
 
-import swaydb.data.io.IO
 import swaydb.core.data.KeyValue
 import swaydb.core.io.reader.Reader
 import swaydb.core.util.PipeOps._
+import swaydb.data.IO
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteUtil
 

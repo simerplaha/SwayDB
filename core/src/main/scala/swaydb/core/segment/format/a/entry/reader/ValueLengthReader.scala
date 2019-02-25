@@ -23,7 +23,7 @@ import scala.annotation.implicitNotFound
 import swaydb.core.data.Persistent
 import swaydb.core.segment.format.a.entry.id.EntryId
 import swaydb.core.util.Bytes
-import swaydb.data.io.IO
+import swaydb.data.IO
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
 

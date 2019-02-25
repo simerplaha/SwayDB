@@ -21,10 +21,9 @@ package swaydb.core.map.serializer
 
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.Deadline
-import swaydb.data.io.IO
 import swaydb.core.data.{Memory, Time, Value}
 import swaydb.core.map.MapEntry
-
+import swaydb.data.IO
 import swaydb.data.slice.{Reader, Slice}
 
 object LevelZeroMapEntryReader {

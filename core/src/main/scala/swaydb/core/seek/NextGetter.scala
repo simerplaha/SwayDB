@@ -19,8 +19,8 @@
 
 package swaydb.core.seek
 
-import swaydb.data.io.IO
 import swaydb.core.data.KeyValue
+import swaydb.data.IO
 import swaydb.data.slice.Slice
 
 trait NextGetter {

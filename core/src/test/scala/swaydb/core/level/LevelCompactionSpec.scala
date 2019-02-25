@@ -36,7 +36,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.IOAssert._
 import scala.concurrent.duration._
-import swaydb.data.io.IO
+import swaydb.data.IO
 
 class LevelCompaction0Spec extends LevelCompactionSpec
 

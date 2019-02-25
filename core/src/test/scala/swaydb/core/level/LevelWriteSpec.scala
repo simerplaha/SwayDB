@@ -47,7 +47,6 @@ import swaydb.serializers._
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
 import scala.util.Random
-import swaydb.data.io.IO
 import swaydb.core.TestData._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
@@ -55,6 +54,7 @@ import swaydb.core.TestData._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.IOAssert._
+import swaydb.data.IO
 
 //@formatter:off
 class LevelWriteSpec0 extends LevelWriteSpec

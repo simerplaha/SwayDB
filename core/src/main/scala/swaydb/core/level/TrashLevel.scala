@@ -20,18 +20,15 @@
 package swaydb.core.level
 
 import java.nio.file.{Path, Paths}
-
 import swaydb.core.data.{KeyValue, Memory}
 import swaydb.core.level.actor.LevelAPI
 import swaydb.core.level.actor.LevelCommand._
 import swaydb.core.map.Map
 import swaydb.core.segment.Segment
-
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.slice.Slice
-
 import scala.concurrent.duration.{FiniteDuration, _}
-import swaydb.data.io.IO
+import swaydb.data.IO
 
 private[core] object TrashLevel extends LevelRef {
 

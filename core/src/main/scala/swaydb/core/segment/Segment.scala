@@ -40,10 +40,9 @@ import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util.CollectionUtil._
 import swaydb.core.util.PipeOps._
 import swaydb.core.util.{BloomFilterUtil, IDGenerator}
-import swaydb.data.MaxKey
+import swaydb.data.{IO, MaxKey}
 import swaydb.data.config.Dir
-import swaydb.data.io.IO
-import swaydb.data.io.IO._
+import swaydb.data.IO._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 

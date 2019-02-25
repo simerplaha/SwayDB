@@ -19,7 +19,7 @@
 
 package swaydb.core.segment.format.a.entry.reader.value
 
-import swaydb.data.io.IO
+import swaydb.data.IO
 import swaydb.data.slice.{Reader, Slice}
 
 object LazyGroupValueReader {

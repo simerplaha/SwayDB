@@ -23,9 +23,8 @@ import java.util.concurrent.ConcurrentSkipListMap
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.map.serializer.MapEntryWriter
 import scala.reflect.ClassTag
-import swaydb.data.io.IO
 import swaydb.core.function.FunctionStore
-
+import swaydb.data.IO
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 

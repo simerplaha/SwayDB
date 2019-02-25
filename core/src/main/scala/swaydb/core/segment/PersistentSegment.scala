@@ -30,16 +30,15 @@ import swaydb.core.level.PathsDistributor
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.format.a.{SegmentFooter, SegmentReader}
 import swaydb.core.segment.merge.SegmentMerger
-import swaydb.data.io.IO._
+import swaydb.data.IO._
 import swaydb.core.util._
 import swaydb.data.config.Dir
 import swaydb.data.slice.{Reader, Slice}
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{Deadline, FiniteDuration}
-import swaydb.data.io.IO
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.DBFile
-import swaydb.data.MaxKey
+import swaydb.data.{IO, MaxKey}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 
 private[segment] case class PersistentSegment(file: DBFile,

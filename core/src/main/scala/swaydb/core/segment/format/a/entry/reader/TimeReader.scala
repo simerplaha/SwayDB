@@ -20,10 +20,10 @@
 package swaydb.core.segment.format.a.entry.reader
 
 import scala.annotation.implicitNotFound
-import swaydb.data.io.IO
 import swaydb.core.data.{KeyValue, Time}
 import swaydb.core.segment.format.a.entry.id.EntryId
 import swaydb.core.util.Bytes
+import swaydb.data.IO
 import swaydb.data.slice.Reader
 
 @implicitNotFound("Type class implementation not found for TimeReader of type ${T}")

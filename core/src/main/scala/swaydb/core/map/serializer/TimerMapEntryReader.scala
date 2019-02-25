@@ -20,7 +20,7 @@
 package swaydb.core.map.serializer
 
 import swaydb.core.map.MapEntry
-import swaydb.data.io.IO
+import swaydb.data.IO
 import swaydb.data.slice.{Reader, Slice}
 
 object TimerMapEntryReader {

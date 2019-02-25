@@ -25,8 +25,8 @@ import swaydb.SwayDB
 import swaydb.configs.level.DefaultMemoryZeroConfig
 import swaydb.core.BlockingCoreAPI
 import swaydb.core.function.FunctionStore
+import swaydb.data.IO
 import swaydb.data.accelerate.{Accelerator, Level0Meter}
-import swaydb.data.io.IO
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._

@@ -26,10 +26,10 @@ import java.nio.file._
 import java.nio.file.attribute.BasicFileAttributes
 import swaydb.core.segment.SegmentException
 import swaydb.core.util.Extension
-import swaydb.data.io.IO
 import swaydb.data.slice.Slice
 import scala.collection.JavaConverters._
 import swaydb.core.util.PipeOps._
+import swaydb.data.IO
 
 case class NotAnIntFile(path: Path) extends Throwable
 

@@ -27,8 +27,7 @@ import scala.collection.generic.CanBuildFrom
 import scala.collection.{IterableLike, mutable}
 import scala.reflect.ClassTag
 import scala.util.hashing.MurmurHash3
-import swaydb.data.MaxKey
-import swaydb.data.io.IO
+import swaydb.data.{IO, MaxKey}
 import swaydb.data.order.KeyOrder
 import swaydb.data.util.{ByteSizeOf, ByteUtil}
 

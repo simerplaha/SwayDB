@@ -34,7 +34,7 @@ import swaydb.core.TestData._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.IOAssert._
-import swaydb.data.io.IO
+import swaydb.data.IO
 
 class LevelZeroMapEntrySpec extends TestBase {
 

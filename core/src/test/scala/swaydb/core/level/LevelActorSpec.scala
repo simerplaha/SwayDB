@@ -34,7 +34,7 @@ import swaydb.core.RunThis._
 import swaydb.core.IOAssert._
 import scala.concurrent.duration._
 import scala.util.Random
-import swaydb.data.io.IO
+import swaydb.data.IO
 
 /**
   * Unit tests for [[LevelActor]]'s functions.

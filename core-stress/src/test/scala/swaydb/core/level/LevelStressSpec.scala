@@ -32,7 +32,7 @@ import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.level.actor.LevelCommand
 import swaydb.core.level.actor.LevelCommand._
 import swaydb.core.util.Benchmark
-import swaydb.data.io.IO
+import swaydb.data.IO
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._

@@ -20,12 +20,10 @@
 package swaydb.data.slice
 
 import java.nio.charset.{Charset, StandardCharsets}
-
 import swaydb.data.util.ByteUtil
-
 import scala.annotation.tailrec
 import scala.reflect.ClassTag
-import swaydb.data.io.IO
+import swaydb.data.IO
 
 private[swaydb] trait Reader { self =>
 

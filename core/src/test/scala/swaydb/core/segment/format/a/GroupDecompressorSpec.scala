@@ -21,7 +21,6 @@ package swaydb.core.segment.format.a
 
 import scala.concurrent.duration._
 import scala.util.Random
-import swaydb.data.io.IO
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
@@ -29,9 +28,9 @@ import swaydb.core.IOAssert._
 import swaydb.core.data._
 import swaydb.core.io.reader.Reader
 import swaydb.core.queue.KeyValueLimiter
-
-import swaydb.data.io.IO._
+import swaydb.data.IO._
 import swaydb.core.{TestBase, TestData}
+import swaydb.data.IO
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._

@@ -31,9 +31,8 @@ import swaydb.core.data._
 import swaydb.core.group.compression.GroupCompressor
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
-
 import swaydb.core.{TestBase, TestData, TestLimitQueues, TestTimer}
-import swaydb.data.io.IO
+import swaydb.data.IO
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._

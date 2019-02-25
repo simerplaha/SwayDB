@@ -19,8 +19,8 @@
 
 package swaydb.core.segment.format.a.entry.reader.value
 
-import swaydb.data.io.IO
 import swaydb.core.segment.format.a.SegmentReader
+import swaydb.data.IO
 import swaydb.data.slice.{Reader, Slice}
 
 object LazyValueReader {

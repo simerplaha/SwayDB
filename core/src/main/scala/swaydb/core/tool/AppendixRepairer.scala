@@ -30,8 +30,8 @@ import swaydb.core.map.{Map, MapEntry, SkipListMerger}
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment
 import swaydb.core.util.Extension
-import swaydb.data.io.IO
-import swaydb.data.io.IO._
+import swaydb.data.IO
+import swaydb.data.IO._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.repairAppendix.AppendixRepairStrategy._
 import swaydb.data.repairAppendix.{AppendixRepairStrategy, OverlappingSegmentsException, SegmentInfoUnTyped}

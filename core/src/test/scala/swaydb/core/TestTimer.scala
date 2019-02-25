@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicLong
 import scala.util.Random
 import swaydb.core.data.Time
 import swaydb.core.map.timer.Timer
-import swaydb.data.io.IO
+import swaydb.data.IO
 import swaydb.data.slice.Slice
 import swaydb.macros.SealedList
 

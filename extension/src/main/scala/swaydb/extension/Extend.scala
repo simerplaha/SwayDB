@@ -19,7 +19,7 @@
 
 package swaydb.extension
 
-import swaydb.data.io.IO
+import swaydb.data.IO
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.transaction.Prepare

@@ -20,8 +20,8 @@
 package swaydb.extension
 
 import swaydb.From
+import swaydb.data.IO
 import swaydb.data.accelerate.Level0Meter
-import swaydb.data.io.IO
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.extension.iterator.{MapIterator, MapKeysIterator}

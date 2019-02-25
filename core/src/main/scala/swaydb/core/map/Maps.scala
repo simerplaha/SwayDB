@@ -34,10 +34,10 @@ import swaydb.core.io.file.IOEffect._
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.core.map.timer.Timer
 import swaydb.core.queue.FileLimiter
+import swaydb.data.IO
 import swaydb.data.accelerate.{Accelerator, Level0Meter}
 import swaydb.data.config.RecoveryMode
-import swaydb.data.io.IO
-import swaydb.data.io.IO._
+import swaydb.data.IO._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 

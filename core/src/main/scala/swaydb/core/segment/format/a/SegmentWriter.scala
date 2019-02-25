@@ -28,10 +28,9 @@ import swaydb.core.util.{BloomFilterUtil, CRC32}
 import swaydb.core.util.PipeOps._
 import swaydb.data.slice.Slice
 import swaydb.data.slice.Slice._
-
 import scala.concurrent.duration.Deadline
-import swaydb.data.io.IO
-import swaydb.data.io.IO._
+import swaydb.data.IO
+import swaydb.data.IO._
 
 private[core] object SegmentWriter extends LazyLogging {
 

@@ -19,13 +19,12 @@
 
 package swaydb.core.segment.format.a.entry.reader
 
-import swaydb.data.io.IO
 import swaydb.core.data.Persistent
 import swaydb.core.segment.SegmentException
 import swaydb.core.segment.format.a.entry.id._
 import swaydb.core.segment.format.a.entry.reader.base._
-
-import swaydb.data.io.IO._
+import swaydb.data.IO
+import swaydb.data.IO._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Reader, Slice}
 

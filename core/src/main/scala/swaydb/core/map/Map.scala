@@ -30,7 +30,7 @@ import scala.reflect.ClassTag
 import swaydb.core.function.FunctionStore
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.core.queue.FileLimiter
-import swaydb.data.io.IO
+import swaydb.data.IO
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._

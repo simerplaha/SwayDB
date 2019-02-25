@@ -21,11 +21,11 @@ package swaydb.core.level
 
 import java.nio.file.Path
 import scala.annotation.tailrec
-import swaydb.data.io.IO
 import swaydb.core.data.KeyValue
 import swaydb.core.level.actor.LevelAPI
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.segment.Segment
+import swaydb.data.IO
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.slice.Slice
 

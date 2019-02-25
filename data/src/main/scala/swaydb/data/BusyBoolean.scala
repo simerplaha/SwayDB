@@ -17,13 +17,13 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.data.io
+package swaydb.data
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.{Future, Promise}
 
 private[swaydb] class BusyBoolean(@volatile private var busy: Boolean,
-                                  private[io] val promises: ListBuffer[Promise[Unit]]) {
+                                  private[data] val promises: ListBuffer[Promise[Unit]]) {
   def savePromise(promise: Promise[Unit]): Unit =
     promises += promise
 

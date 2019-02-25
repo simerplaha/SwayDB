@@ -22,14 +22,12 @@ package swaydb.core.actor
 import java.util.TimerTask
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicBoolean
-
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.util.Delay
-
 import scala.concurrent.duration._
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
-import swaydb.data.io.IO
+import swaydb.data.IO
 
 private[swaydb] sealed trait ActorRef[-T] {
   /**

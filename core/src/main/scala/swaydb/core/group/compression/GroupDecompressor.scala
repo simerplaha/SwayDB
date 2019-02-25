@@ -19,13 +19,12 @@
 
 package swaydb.core.group.compression
 
-import scala.annotation.tailrec
 import swaydb.compression.DecompressorInternal
 import swaydb.core.group.compression.data.{GroupHeader, ValueInfo}
 import swaydb.core.io.reader.{GroupReader, Reader}
 import swaydb.core.segment.format.a.SegmentFooter
-import swaydb.data.io.{BusyBoolean, IO}
 import swaydb.data.slice.Reader
+import swaydb.data.{BusyBoolean, IO}
 
 private[core] case class GroupDecompressor(private val compressedGroupReader: Reader,
                                            groupStartOffset: Int) {

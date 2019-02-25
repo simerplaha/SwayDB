@@ -17,7 +17,7 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.data.io
+package swaydb.data
 
 import java.io.FileNotFoundException
 import java.nio.ReadOnlyBufferException

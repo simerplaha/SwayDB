@@ -29,7 +29,7 @@ import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.util.Benchmark
-import swaydb.data.io.IO
+import swaydb.data.IO
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 

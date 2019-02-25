@@ -42,9 +42,8 @@ import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.io.file.IOEffect._
 import swaydb.core.util._
 import swaydb.core.{TestBase, TestData, TestLimitQueues, TestTimer}
-import swaydb.data.MaxKey
+import swaydb.data.{IO, MaxKey}
 import swaydb.data.config.Dir
-import swaydb.data.io.IO
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._

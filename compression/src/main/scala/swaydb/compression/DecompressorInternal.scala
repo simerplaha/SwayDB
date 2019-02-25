@@ -21,13 +21,12 @@ package swaydb.compression
 
 import net.jpountz.lz4.{LZ4Factory, LZ4FastDecompressor, LZ4SafeDecompressor}
 import org.xerial.snappy
+import swaydb.data.IO
 import swaydb.data.compression.LZ4Decompressor.{FastDecompressor, SafeDecompressor}
 import swaydb.data.compression.LZ4Instance._
 import swaydb.data.compression.{DecompressorId, LZ4Decompressor, LZ4Instance}
 import swaydb.data.slice.Slice
 import swaydb.data.util.PipeOps._
-
-import swaydb.data.io.IO
 
 private[swaydb] sealed trait DecompressorInternal {
 

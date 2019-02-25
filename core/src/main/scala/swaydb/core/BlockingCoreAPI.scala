@@ -28,11 +28,11 @@ import swaydb.core.level.zero.LevelZero
 import swaydb.core.map.serializer.LevelZeroMapEntryWriter
 import swaydb.core.map.MapEntry
 import swaydb.core.map.timer.Timer
+import swaydb.data.IO
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.config.{LevelZeroConfig, SwayDBConfig}
-import swaydb.data.io.IO
-import swaydb.data.io.IO.Error
+import swaydb.data.IO.Error
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.transaction.Prepare

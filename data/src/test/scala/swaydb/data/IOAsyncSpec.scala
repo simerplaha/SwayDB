@@ -17,16 +17,14 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.data.io
+package swaydb.data
 
 import java.nio.file.{NoSuchFileException, Paths}
 import org.scalatest.{Matchers, WordSpec}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.Random
-import swaydb.data.Base
 import swaydb.data.Base._
-import swaydb.data.io.IO._
 
 class IOAsyncSpec extends WordSpec with Matchers {
 
@@ -64,7 +62,7 @@ class IOAsyncSpec extends WordSpec with Matchers {
     "safeGet on multiple when last is a failure should return failure" in {
       val failure = IO.Failure(IO.Error.NoSuchFile(new NoSuchFileException("Not such file")))
 
-      val io: Async[Int] =
+      val io: IO.Async[Int] =
         IO.Async(1, IO.Error.DecompressingIndex(BusyBoolean(false))) flatMap {
           i =>
             IO.Async(i + 1, IO.Error.ReadingHeader(BusyBoolean(false))) flatMap {
@@ -81,7 +79,7 @@ class IOAsyncSpec extends WordSpec with Matchers {
       val busy2 = BusyBoolean(true)
       val busy3 = BusyBoolean(true)
 
-      val io: Async[Int] =
+      val io: IO.Async[Int] =
         IO.Async(1, IO.Error.DecompressingIndex(busy1)) flatMap {
           i =>
             IO.Async(i + 1, IO.Error.DecompressingValues(busy2)) flatMap {
@@ -131,7 +129,7 @@ class IOAsyncSpec extends WordSpec with Matchers {
 
       (1 to 2) foreach {
         i =>
-          val io: Async[Int] =
+          val io: IO.Async[Int] =
             (0 to 100).foldLeft(IO.Async(1, IO.Error.DecompressingIndex(BusyBoolean(false)))) {
               case (previous, i) =>
                 previous flatMap {

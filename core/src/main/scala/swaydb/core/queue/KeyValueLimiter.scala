@@ -20,17 +20,14 @@
 package swaydb.core.queue
 
 import java.util.concurrent.ConcurrentSkipListMap
-
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.{KeyValue, Memory, Persistent}
-import swaydb.core.queue.Command.{WeighAndAdd, AddWeighed}
-
+import swaydb.core.queue.Command.{AddWeighed, WeighAndAdd}
 import swaydb.data.slice.Slice
-
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
 import scala.ref.WeakReference
-import swaydb.data.io.IO
+import swaydb.data.IO
 
 private sealed trait Command {
   val keyValueRef: WeakReference[KeyValue.CacheAble]

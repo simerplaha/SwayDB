@@ -24,13 +24,12 @@ import com.typesafe.scalalogging.LazyLogging
 import java.util.concurrent.ConcurrentSkipListMap
 import java.util.concurrent.atomic.AtomicBoolean
 import scala.annotation.tailrec
-import swaydb.data.io.IO
 import swaydb.core.data.{Persistent, _}
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.format.a.SegmentReader._
 import swaydb.core.segment.format.a.{KeyMatcher, SegmentFooter, SegmentReader}
 import swaydb.core.util._
-import swaydb.data.MaxKey
+import swaydb.data.{IO, MaxKey}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Reader, Slice}
 

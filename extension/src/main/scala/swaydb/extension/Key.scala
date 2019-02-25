@@ -21,12 +21,11 @@ package swaydb.extension
 
 import swaydb.KeyOrderTyped
 import swaydb.core.io.reader.Reader
+import swaydb.data.IO
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteUtil
 import swaydb.data.order.KeyOrder
 import swaydb.serializers.Serializer
-
-import swaydb.data.io.IO
 
 sealed trait Key[+K] {
   def parentMapKeys: Seq[K]

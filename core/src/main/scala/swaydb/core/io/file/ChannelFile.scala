@@ -23,7 +23,7 @@ import com.typesafe.scalalogging.LazyLogging
 import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
 import java.nio.file.{Path, StandardOpenOption}
-import swaydb.data.io.IO
+import swaydb.data.IO
 import swaydb.data.slice.Slice
 
 private[file] object ChannelFile {

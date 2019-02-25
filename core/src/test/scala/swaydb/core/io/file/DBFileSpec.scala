@@ -33,7 +33,7 @@ import swaydb.core.segment.SegmentException.CannotCopyInMemoryFiles
 import swaydb.core.util.Benchmark
 import swaydb.core.util.PipeOps._
 import swaydb.core.{TestBase, TestLimitQueues}
-import swaydb.data.io.IO
+import swaydb.data.IO
 import swaydb.data.slice.Slice
 
 class DBFileSpec extends TestBase with Benchmark with MockFactory {

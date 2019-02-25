@@ -19,7 +19,7 @@
 
 package swaydb.data.slice
 
-import swaydb.data.io.IO
+import swaydb.data.IO
 
 /**
   * http://www.swaydb.io/slice/byte-slice

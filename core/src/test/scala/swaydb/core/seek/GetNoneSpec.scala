@@ -27,7 +27,7 @@ import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.{SwayFunctionOutput, Value}
 import swaydb.core.{TestData, TestTimer}
-import swaydb.data.io.{BusyBoolean, IO}
+import swaydb.data.{BusyBoolean, IO}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._

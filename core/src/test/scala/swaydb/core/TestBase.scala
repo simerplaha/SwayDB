@@ -50,7 +50,7 @@ import swaydb.data.slice.Slice
 import swaydb.data.storage.{AppendixStorage, Level0Storage, LevelStorage}
 import swaydb.data.util.StorageUnits._
 import swaydb.core.IOAssert._
-import swaydb.data.io.IO
+import swaydb.data.IO
 
 trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventually {
 

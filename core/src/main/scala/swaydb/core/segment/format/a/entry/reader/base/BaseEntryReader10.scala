@@ -19,10 +19,10 @@
 
 package swaydb.core.segment.format.a.entry.reader.base
 
-import swaydb.data.io.IO
 import swaydb.core.data.Persistent
 import swaydb.core.segment.format.a.entry.id.BaseEntryId
 import swaydb.core.segment.format.a.entry.reader.EntryReader
+import swaydb.data.IO
 import swaydb.data.slice.Reader
 
 object BaseEntryReader10 extends BaseEntryReader {

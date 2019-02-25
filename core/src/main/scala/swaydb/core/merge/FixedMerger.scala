@@ -19,11 +19,11 @@
 
 package swaydb.core.merge
 
-import swaydb.data.io.IO
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data.{Memory, Value}
 import swaydb.core.function.FunctionStore
-import swaydb.data.io.IO._
+import swaydb.data.IO
+import swaydb.data.IO._
 import swaydb.data.order.TimeOrder
 import swaydb.data.slice.Slice
 

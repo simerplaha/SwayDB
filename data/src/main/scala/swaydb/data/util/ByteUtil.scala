@@ -20,10 +20,8 @@
 package swaydb.data.util
 
 import java.nio.charset.Charset
-
+import swaydb.data.IO
 import swaydb.data.slice.{Reader, Slice}
-
-import swaydb.data.io.IO
 
 object ByteUtil {
 

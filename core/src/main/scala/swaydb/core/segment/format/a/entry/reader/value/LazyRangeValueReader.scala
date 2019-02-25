@@ -19,9 +19,9 @@
 
 package swaydb.core.segment.format.a.entry.reader.value
 
-import swaydb.data.io.IO
 import swaydb.core.data.Value
 import swaydb.core.map.serializer.RangeValueSerializer
+import swaydb.data.IO
 import swaydb.data.slice.Reader
 
 object LazyRangeValueReader {

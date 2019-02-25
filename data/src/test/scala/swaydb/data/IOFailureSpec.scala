@@ -17,20 +17,18 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.data.io
+package swaydb.data
 
 import java.nio.file.{NoSuchFileException, Paths}
 import org.scalatest.{Matchers, WordSpec}
 import scala.concurrent.ExecutionContext.Implicits.global
-import swaydb.data.Base
 import swaydb.data.Base._
-import swaydb.data.io.IO._
 
 class IOFailureSpec extends WordSpec with Matchers {
 
   "IO.Failure" should {
     "set boolean" in {
-      val io = IO.Failure(Error.OpeningFile(Paths.get(""), BusyBoolean(false)))
+      val io = IO.Failure(IO.Error.OpeningFile(Paths.get(""), BusyBoolean(false)))
       io.isFailure shouldBe true
       io.isLater shouldBe false
       io.isSuccess shouldBe false

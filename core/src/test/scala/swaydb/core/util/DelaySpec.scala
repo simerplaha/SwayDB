@@ -24,7 +24,7 @@ import org.scalatest.{Matchers, WordSpec}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import swaydb.data.io.IO
+import swaydb.data.IO
 
 class DelaySpec extends WordSpec with Matchers with Eventually {
 

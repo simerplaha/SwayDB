@@ -25,8 +25,8 @@ import swaydb.core.util.CRC32
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 import scala.collection.JavaConverters._
-import swaydb.data.io.IO
 import swaydb.core.io.reader.Reader
+import swaydb.data.IO
 
 private[core] object MapCodec extends LazyLogging {
 

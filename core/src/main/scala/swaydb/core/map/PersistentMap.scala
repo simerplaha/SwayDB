@@ -34,8 +34,8 @@ import swaydb.core.map.serializer.{MapCodec, MapEntryReader, MapEntryWriter}
 import swaydb.core.queue.FileLimiter
 import swaydb.core.util.Extension
 import swaydb.core.io.file.IOEffect._
-import swaydb.data.io.IO
-import swaydb.data.io.IO._
+import swaydb.data.IO
+import swaydb.data.IO._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 

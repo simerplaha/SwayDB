@@ -20,7 +20,6 @@
 package swaydb.core.data
 
 import scala.concurrent.duration.{Deadline, FiniteDuration}
-import swaydb.data.io.IO
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.group.compression.data.GroupHeader
@@ -33,7 +32,7 @@ import swaydb.core.segment.format.a.entry.writer._
 import swaydb.core.segment.{Segment, SegmentCache, SegmentCacheInitializer}
 import swaydb.core.util.Bytes
 import swaydb.core.util.CollectionUtil._
-import swaydb.data.MaxKey
+import swaydb.data.{IO, MaxKey}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Reader, Slice}
 

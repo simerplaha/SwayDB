@@ -17,12 +17,12 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.data.io
+package swaydb.data
 
 import org.scalatest.{Matchers, WordSpec}
 import scala.collection.mutable.ListBuffer
-import swaydb.data.io.IO._
 import swaydb.data.slice.Slice
+import IO._
 
 class IOSpec extends WordSpec with Matchers {
 

@@ -23,7 +23,7 @@ import java.nio.file.Path
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.ref.WeakReference
-import swaydb.data.io.IO
+import swaydb.data.IO
 
 trait FileLimiter {
 

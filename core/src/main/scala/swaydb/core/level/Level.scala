@@ -27,7 +27,6 @@ import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
-import swaydb.data.io.IO
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
@@ -45,8 +44,9 @@ import swaydb.core.util.CollectionUtil._
 import swaydb.core.util.ExceptionUtil._
 import swaydb.core.io.file.IOEffect._
 import swaydb.core.util.FiniteDurationUtil._
-import swaydb.data.io.IO._
+import swaydb.data.IO._
 import swaydb.core.util.{MinMax, _}
+import swaydb.data.IO
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.Dir
 import swaydb.data.order.{KeyOrder, TimeOrder}

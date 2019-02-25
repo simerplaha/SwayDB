@@ -24,7 +24,7 @@ import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data.{KeyValue, Value}
 import swaydb.core.function.FunctionStore
 import swaydb.core.merge.{FunctionMerger, PendingApplyMerger, RemoveMerger, UpdateMerger}
-import swaydb.data.io.IO
+import swaydb.data.IO
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 

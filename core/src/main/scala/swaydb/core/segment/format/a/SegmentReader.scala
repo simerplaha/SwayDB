@@ -27,8 +27,8 @@ import swaydb.core.segment.SegmentException.SegmentCorruptionException
 import swaydb.core.segment.format.a.entry.reader.EntryReader
 import swaydb.core.util.BloomFilterUtil._
 import swaydb.core.util.{Bytes, CRC32}
-import swaydb.data.io.IO
-import swaydb.data.io.IO._
+import swaydb.data.IO
+import swaydb.data.IO._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice._
 import swaydb.data.slice.{Reader, Slice}

@@ -24,9 +24,8 @@ import swaydb.core.data.Memory
 import swaydb.core.map.Map
 import swaydb.core.segment.Segment
 import swaydb.data.slice.Slice
-
 import scala.concurrent.duration.Deadline
-import swaydb.data.io.IO
+import swaydb.data.IO
 
 sealed trait LevelCommand
 sealed trait LevelZeroCommand

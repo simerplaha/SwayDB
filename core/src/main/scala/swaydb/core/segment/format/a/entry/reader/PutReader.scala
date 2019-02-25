@@ -19,10 +19,10 @@
 
 package swaydb.core.segment.format.a.entry.reader
 
-import swaydb.data.io.IO
 import swaydb.core.data.Persistent
 import swaydb.core.segment.format.a.entry.id.EntryId
 import swaydb.core.segment.format.a.entry.reader.value.LazyValueReader
+import swaydb.data.IO
 import swaydb.data.slice.Reader
 
 object PutReader extends EntryReader[Persistent.Put] {

@@ -29,11 +29,10 @@ import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.queue.FileLimiter
 import swaydb.core.tool.AppendixRepairer
-import swaydb.data.MaxKey
+import swaydb.data.{IO, MaxKey}
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.config._
-import swaydb.data.io.IO
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.repairAppendix.RepairResult.OverlappingSegments
 import swaydb.data.repairAppendix._

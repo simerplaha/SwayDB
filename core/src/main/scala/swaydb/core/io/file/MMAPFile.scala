@@ -27,8 +27,7 @@ import java.nio.{BufferOverflowException, MappedByteBuffer}
 import java.util.concurrent.atomic.AtomicBoolean
 import scala.annotation.tailrec
 import scala.concurrent.ExecutionContext
-import swaydb.data.io.IO
-
+import swaydb.data.IO
 import swaydb.data.slice.Slice
 import swaydb.data.slice.Slice._
 

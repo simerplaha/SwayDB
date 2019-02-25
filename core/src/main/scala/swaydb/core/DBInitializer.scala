@@ -29,8 +29,8 @@ import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, LevelRef, TrashLevel}
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.io.file.IOEffect._
+import swaydb.data.IO
 import swaydb.data.config._
-import swaydb.data.io.IO
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.{AppendixStorage, LevelStorage}

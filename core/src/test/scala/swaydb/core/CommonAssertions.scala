@@ -49,7 +49,7 @@ import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.{KeyMatcher, SegmentFooter, SegmentReader, SegmentWriter}
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util.CollectionUtil._
-import swaydb.data.io.IO
+import swaydb.data.IO
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.StorageUnits._

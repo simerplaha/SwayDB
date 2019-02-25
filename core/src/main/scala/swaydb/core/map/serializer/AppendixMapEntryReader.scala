@@ -24,14 +24,13 @@ import java.nio.file.Paths
 import java.util.concurrent.TimeUnit
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.Deadline
-import swaydb.data.io.IO
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.map.MapEntry
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment
 import swaydb.core.util.Bytes
-import swaydb.data.MaxKey
+import swaydb.data.{IO, MaxKey}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Reader, Slice}
 

@@ -20,8 +20,7 @@
 package swaydb.compression
 
 import org.scalatest.Matchers
-
-import swaydb.data.io.IO
+import swaydb.data.IO
 
 object IOAssert extends Matchers {
 

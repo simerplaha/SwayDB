@@ -21,11 +21,10 @@ package swaydb.core.queue
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.actor.{Actor, ActorRef}
-
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
-import swaydb.data.io.IO
+import swaydb.data.IO
 
 private class State[T](var size: Long,
                        val queue: mutable.Queue[(T, Long)])

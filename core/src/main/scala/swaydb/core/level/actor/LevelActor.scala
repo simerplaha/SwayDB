@@ -29,7 +29,7 @@ import swaydb.core.util.PipeOps._
 import swaydb.data.slice.Slice
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
-import swaydb.data.io.IO
+import swaydb.data.IO
 import swaydb.data.order.KeyOrder
 
 private[core] object LevelActor extends LazyLogging {

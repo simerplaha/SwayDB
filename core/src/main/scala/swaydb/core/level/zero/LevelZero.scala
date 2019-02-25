@@ -42,9 +42,9 @@ import swaydb.core.queue.FileLimiter
 import swaydb.core.seek._
 import swaydb.core.segment.Segment
 import swaydb.core.util.MinMax
+import swaydb.data.IO
 import swaydb.data.accelerate.{Accelerator, Level0Meter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
-import swaydb.data.io.IO
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.Level0Storage

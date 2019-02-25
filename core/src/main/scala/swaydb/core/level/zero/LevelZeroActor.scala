@@ -20,16 +20,14 @@
 package swaydb.core.level.zero
 
 import java.util.concurrent.atomic.AtomicBoolean
-
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.actor.{Actor, ActorRef}
 import swaydb.core.level.LevelRef
 import swaydb.core.level.actor.LevelCommand._
 import swaydb.core.level.actor.{LevelZeroAPI, LevelZeroCommand}
 import swaydb.data.slice.Slice
-
 import scala.concurrent.ExecutionContext
-import swaydb.data.io.IO
+import swaydb.data.IO
 import swaydb.data.order.KeyOrder
 
 /**

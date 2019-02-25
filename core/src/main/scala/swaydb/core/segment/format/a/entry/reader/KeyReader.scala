@@ -23,9 +23,8 @@ import swaydb.core.data.KeyValue
 import swaydb.core.segment.format.a.entry.id.EntryId
 import swaydb.core.util.Bytes
 import swaydb.data.slice.{Reader, Slice}
-
 import scala.annotation.implicitNotFound
-import swaydb.data.io.IO
+import swaydb.data.IO
 
 @implicitNotFound("Type class implementation not found for KeyReader of type ${T}")
 sealed trait KeyReader[-T] {

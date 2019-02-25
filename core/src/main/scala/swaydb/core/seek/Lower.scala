@@ -20,12 +20,11 @@
 package swaydb.core.seek
 
 import scala.annotation.tailrec
-import swaydb.data.io.IO
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data.{KeyValue, Memory, Value}
 import swaydb.core.function.FunctionStore
 import swaydb.core.merge._
-
+import swaydb.data.IO
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 

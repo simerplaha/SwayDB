@@ -20,8 +20,8 @@
 package swaydb.core.map
 
 import swaydb.data.config.RecoveryMode
-import swaydb.data.io.IO
 import swaydb.core.io.file.DBFile
+import swaydb.data.IO
 
 /**
   * Files can be partially recovered based on the value set for [[RecoveryMode]].

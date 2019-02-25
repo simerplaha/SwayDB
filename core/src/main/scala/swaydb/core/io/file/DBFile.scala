@@ -27,7 +27,7 @@ import scala.util.hashing.MurmurHash3
 import swaydb.core.queue.{FileLimiter, FileLimiterItem}
 import swaydb.core.segment.SegmentException
 import swaydb.core.segment.SegmentException.CannotCopyInMemoryFiles
-import swaydb.data.io.{BusyBoolean, IO}
+import swaydb.data.{BusyBoolean, IO}
 import swaydb.data.slice.Slice
 
 object DBFile {

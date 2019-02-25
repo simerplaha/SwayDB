@@ -28,7 +28,7 @@ import scala.annotation.tailrec
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import swaydb.core.actor.{Actor, ActorRef}
-import swaydb.data.io.IO
+import swaydb.data.IO
 
 private[this] sealed trait Cleaner {
   def clean(byteBuffer: ByteBuffer): Unit

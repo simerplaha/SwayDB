@@ -19,11 +19,10 @@
 
 package swaydb
 
+import swaydb.data.IO
 import swaydb.data.slice.Slice
 import swaydb.data.order.KeyOrder
 import swaydb.serializers.Serializer
-
-import swaydb.data.io.IO
 
 package object extension {
 

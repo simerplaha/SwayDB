@@ -22,9 +22,8 @@ package swaydb.core.map.serializer
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.MapEntry
 import swaydb.data.slice.{Reader, Slice}
-
 import scala.annotation.implicitNotFound
-import swaydb.data.io.IO
+import swaydb.data.IO
 
 @implicitNotFound("Type class implementation not found for MapEntryReader of type ${T}")
 trait MapEntryReader[T <: MapEntry[_, _]] {

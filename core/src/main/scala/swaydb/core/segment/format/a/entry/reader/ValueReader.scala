@@ -21,11 +21,9 @@ package swaydb.core.segment.format.a.entry.reader
 
 import swaydb.core.data.Persistent
 import swaydb.core.segment.format.a.entry.id.EntryId
-
 import swaydb.data.slice.Reader
-
 import scala.annotation.implicitNotFound
-import swaydb.data.io.IO
+import swaydb.data.IO
 
 @implicitNotFound("Type class implementation not found for ValueReader of type ${T}")
 sealed trait ValueReader[-T] {

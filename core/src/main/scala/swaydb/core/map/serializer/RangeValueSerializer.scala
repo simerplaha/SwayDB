@@ -24,10 +24,9 @@ import swaydb.core.data.Value
 import swaydb.core.io.reader.Reader
 import swaydb.core.util.Bytes
 import swaydb.data.slice.{Reader, Slice}
-
 import scala.annotation.implicitNotFound
-import swaydb.data.io.IO
 import swaydb.core.util.PipeOps._
+import swaydb.data.IO
 
 @implicitNotFound("Type class implementation not found for RangeValueSerializer of type [${F}, ${R}]")
 sealed trait RangeValueSerializer[F, R] {

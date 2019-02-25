@@ -25,9 +25,8 @@ import swaydb.core.map.Map
 import swaydb.core.segment.Segment
 import swaydb.data.compaction.Throttle
 import swaydb.data.slice.Slice
-
 import scala.concurrent.duration.FiniteDuration
-import swaydb.data.io.IO
+import swaydb.data.IO
 
 /**
   * These API should only be used by the [[LevelActor]] of that Level only.

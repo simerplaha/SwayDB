@@ -20,9 +20,8 @@
 package swaydb.core.io.reader
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.data.IO
 import swaydb.data.slice.{Reader, Slice}
-
-import swaydb.data.io.IO
 
 private[core] class GroupReader(decompressedValuesSize: Int,
                                 startIndexOffset: Int,
