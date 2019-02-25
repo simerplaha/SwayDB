@@ -5,14 +5,6 @@
 
 SwayDB is a type-safe & non-blocking key-value storage library for single/multiple disks and in-memory storage.
 
-It's an implementation of [Log-structured merge-tree](https://en.wikipedia.org/wiki/Log-structured_merge-tree) 
-written in Scala with asynchronous Leveled Compaction based on push-pull strategy built on the 
-[Actor model](https://en.wikipedia.org/wiki/Actor_model).
-
-It supports configurable [Graph like](http://www.swaydb.io/implementation/segment/group/) 
-file format for faster reads and has compression support for both [memory](http://www.swaydb.io/create-databases/memory/) 
-& [persistent](http://www.swaydb.io/create-databases/persistent/) databases.
-
 Documentation: http://swaydb.io
 
 ## Performance
@@ -28,7 +20,7 @@ View detailed benchmark results [here](http://swaydb.io/performance/macbook-pro-
 
 - Embeddable, Type-safe, non-blocking
 - Single or multiple disks persistent, in-memory or periodically persistent
-- ACID like atomic writes with [Batch API](http://www.swaydb.io/api/write-api/batch/)
+- Atomic updates and inserts with [Batch API](http://www.swaydb.io/api/write-api/batch/)
 - APIs similar to Scala collections.
 - Auto expiring key-value ([TTL](http://www.swaydb.io/api/write-api/expire/))
 - Range [update, remove & expire](http://www.swaydb.io/api/write-api/)
@@ -51,7 +43,6 @@ for both [Persistent](http://www.swaydb.io/create-databases/persistent/) & [Memo
 - Optional Memory-mapped files
 - Scala Streams
 - Bloom filters
-- Fault tolerant
 
 [Read more](http://swaydb.io/).
 
