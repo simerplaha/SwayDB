@@ -25,17 +25,16 @@ import swaydb.core.data.KeyValue._
 import swaydb.core.data.{Memory, SwayFunction, Time, Value}
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.zero.LevelZero
-import swaydb.core.map.{MapEntry, Timer}
 import swaydb.core.map.serializer.LevelZeroMapEntryWriter
+import swaydb.core.map.{MapEntry, Timer}
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.config.{LevelZeroConfig, SwayDBConfig}
 import swaydb.data.io.IO
+import swaydb.data.io.IO.Error
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.transaction.Prepare
-import swaydb.core.util.PipeOps._
-import swaydb.data.io.IO.Error
 
 private[swaydb] object BlockingCoreAPI {
 

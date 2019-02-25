@@ -70,7 +70,10 @@ class MapsStressSpec extends TestBase {
       def testRead(maps: Maps[Slice[Byte], Memory.SegmentResponse]) = {
         keyValues foreach {
           keyValue =>
-            maps.get(keyValue.key).assertGet shouldBe Memory.put(keyValue.key, keyValue.getOrFetchValue)
+            val got = maps.get(keyValue.key).assertGet
+            got.isInstanceOf[Memory.Put] shouldBe true
+            got.key shouldBe keyValue.key
+            got.getOrFetchValue shouldBe keyValue.getOrFetchValue
         }
       }
 

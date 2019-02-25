@@ -71,12 +71,12 @@ sealed trait SwayDBFunctionSpec extends TestBase {
 
       val functionID = db.registerFunction(1, value => Apply.Update(value + 1))
 
-      (1 to 100).par foreach {
+      (1 to 1000).par foreach {
         _ =>
           db.applyFunction(1, functionID).get
       }
 
-      db.get(1).get should contain(100)
+      db.get(1).get should contain(1000)
 
     }
 
@@ -99,7 +99,7 @@ sealed trait SwayDBFunctionSpec extends TestBase {
           }
       }
 
-      (1 to 1000) foreach {
+      (1 to 1000).par foreach {
         i =>
           db.get(i).get should contain(100)
       }
