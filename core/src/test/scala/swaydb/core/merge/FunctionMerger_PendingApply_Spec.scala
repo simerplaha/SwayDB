@@ -24,7 +24,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.IOAssert._
 import swaydb.core.TestData._
-import swaydb.core.{TestTimeGenerator, IOAssert}
+import swaydb.core.{TestTimer, IOAssert}
 import swaydb.core.data.Memory
 import swaydb.data.slice.Slice
 import swaydb.core.TestData._
@@ -46,7 +46,7 @@ class FunctionMerger_PendingApply_Spec extends WordSpec with Matchers {
 
       "always return the same result as the Function being merged into Fixed" in {
 
-        implicit val timeGenerator = TestTimeGenerator.Incremental()
+        implicit val testTimer = TestTimer.Incremental()
 
         runThis(1000.times) {
           val key = randomBytesSlice()
@@ -83,7 +83,7 @@ class FunctionMerger_PendingApply_Spec extends WordSpec with Matchers {
 
       "always return the same result as the Function being merged into Fixed" in {
 
-        implicit val timeGenerator = TestTimeGenerator.Incremental()
+        implicit val testTimer = TestTimer.Incremental()
 
         runThis(1000.times) {
           val key = eitherOne(randomBytesSlice(), Slice.emptyBytes)

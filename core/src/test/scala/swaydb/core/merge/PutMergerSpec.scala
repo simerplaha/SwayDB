@@ -23,7 +23,7 @@ import org.scalatest.{Matchers, WordSpec}
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.TestTimeGenerator
+import swaydb.core.TestTimer
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
@@ -39,14 +39,14 @@ class PutMergerSpec extends WordSpec with Matchers {
     "times are in order" should {
       "always return new key-value" in {
 
-        implicit val timeGenerator = TestTimeGenerator.Incremental()
+        implicit val testTimer = TestTimer.Incremental()
 
         runThis(1000.times) {
           val key = randomStringOption
 
-          val oldKeyValue = randomFixedKeyValue(key = key)(eitherOne(timeGenerator, TestTimeGenerator.Empty))
+          val oldKeyValue = randomFixedKeyValue(key = key)(eitherOne(testTimer, TestTimer.Empty))
 
-          val newKeyValue = randomPutKeyValue(key = key)(eitherOne(timeGenerator, TestTimeGenerator.Empty))
+          val newKeyValue = randomPutKeyValue(key = key)(eitherOne(testTimer, TestTimer.Empty))
 
           assertMerge(
             newKeyValue = newKeyValue,
@@ -61,7 +61,7 @@ class PutMergerSpec extends WordSpec with Matchers {
     "times are not in order" should {
       "always return old key-value" in {
 
-        implicit val timeGenerator = TestTimeGenerator.Incremental()
+        implicit val testTimer = TestTimer.Incremental()
 
         runThis(1000.times) {
           val key = randomStringOption

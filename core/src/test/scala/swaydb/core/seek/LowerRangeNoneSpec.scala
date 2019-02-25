@@ -26,7 +26,7 @@ import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.IOAssert._
 
-import swaydb.core.{TestData, TestTimeGenerator}
+import swaydb.core.{TestData, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
@@ -39,7 +39,7 @@ class LowerRangeNoneSpec extends WordSpec with Matchers with MockFactory {
   implicit val functionStore = TestData.functionStore
 
   "return None" when {
-    implicit val timeGenerator = TestTimeGenerator.Decremental()
+    implicit val testTimer = TestTimer.Decremental()
 
     "1" when {
       //0   ->   20
@@ -48,7 +48,7 @@ class LowerRangeNoneSpec extends WordSpec with Matchers with MockFactory {
       "range value is not removed or expired and fromValue is None" in {
         runThis(100.times) {
 
-          implicit val timeGenerator = TestTimeGenerator.Empty
+          implicit val testTimer = TestTimer.Empty
 
           (0 to 20).reverse foreach {
             key =>
@@ -77,7 +77,7 @@ class LowerRangeNoneSpec extends WordSpec with Matchers with MockFactory {
         //in this test lower level is read for upper Level's lower toKey and the input key is not read since it's removed.
         runThis(100.times) {
 
-          implicit val timeGenerator = TestTimeGenerator.Empty
+          implicit val testTimer = TestTimer.Empty
 
           (1 to 10).reverse foreach {
             key =>
@@ -108,7 +108,7 @@ class LowerRangeNoneSpec extends WordSpec with Matchers with MockFactory {
       "range value is not removed or expired" in {
         runThis(1.times) {
 
-          implicit val timeGenerator = TestTimeGenerator.Empty
+          implicit val testTimer = TestTimer.Empty
 
           (1 to 20).reverse foreach {
             key =>
@@ -137,7 +137,7 @@ class LowerRangeNoneSpec extends WordSpec with Matchers with MockFactory {
         //in this test lower level is read for upper Level's lower toKey and the input key is not read since it's removed.
         runThis(100.times) {
 
-          implicit val timeGenerator = TestTimeGenerator.Empty
+          implicit val testTimer = TestTimer.Empty
           (2 to 10).reverse foreach {
             key =>
               implicit val current = mock[CurrentWalker]
@@ -165,7 +165,7 @@ class LowerRangeNoneSpec extends WordSpec with Matchers with MockFactory {
         //in this test lower level is read for upper Level's lower toKey and the input key is not read since it's removed.
         runThis(100.times) {
 
-          implicit val timeGenerator = TestTimeGenerator.Empty
+          implicit val testTimer = TestTimer.Empty
           implicit val current = mock[CurrentWalker]
           implicit val next = mock[NextWalker]
           inSequence {

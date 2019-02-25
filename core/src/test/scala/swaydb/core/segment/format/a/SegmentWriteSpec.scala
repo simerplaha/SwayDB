@@ -41,7 +41,7 @@ import swaydb.core.segment.SegmentException.CannotCopyInMemoryFiles
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.io.file.IOEffect._
 import swaydb.core.util._
-import swaydb.core.{TestBase, TestData, TestLimitQueues, TestTimeGenerator}
+import swaydb.core.{TestBase, TestData, TestLimitQueues, TestTimer}
 import swaydb.data.MaxKey
 import swaydb.data.config.Dir
 import swaydb.data.io.IO
@@ -79,7 +79,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
 
   val keyValuesCount = 100
 
-  implicit def timeGenerator: TestTimeGenerator = TestTimeGenerator.random
+  implicit def testTimer: TestTimer = TestTimer.random
 
   implicit def groupingStrategy: Option[KeyValueGroupingStrategyInternal] =
     randomGroupingStrategyOption(keyValuesCount)
@@ -978,14 +978,14 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
     }
 
     "return new segment with deleted KeyValues if all keys were deleted and removeDeletes is false" in {
-      implicit def timeGenerator: TestTimeGenerator = TestTimeGenerator.Empty
+      implicit def testTimer: TestTimer = TestTimer.Empty
 
       val keyValues = Slice(
         Transient.put(1),
         Transient.put(2),
         Transient.put(3),
         Transient.put(4),
-        Transient.Range.create[FromValue, RangeValue](5, 10, None, Value.Update(None, None, timeGenerator.nextTime))
+        Transient.Range.create[FromValue, RangeValue](5, 10, None, Value.Update(None, None, testTimer.next))
       ).updateStats
       val segment = TestSegment(keyValues, removeDeletes = false).assertGet
       assertGet(keyValues, segment)
@@ -1002,7 +1002,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
     }
 
     "return new segment with updated KeyValues if all keys values were updated to None" in {
-      implicit val timeGenerator: TestTimeGenerator = TestTimeGenerator.Incremental()
+      implicit val testTimer: TestTimer = TestTimer.Incremental()
 
       val keyValues = randomizedKeyValues(count = keyValuesCount, addRandomGroups = false)
       val segment = TestSegment(keyValues, removeDeletes = true).assertGet
@@ -1021,7 +1021,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
 
     "merge existing segment file with new KeyValues returning new segment file with updated KeyValues" in {
       runThis(10.times) {
-        implicit val timeGenerator: TestTimeGenerator = TestTimeGenerator.Incremental()
+        implicit val testTimer: TestTimer = TestTimer.Incremental()
         //ranges get split to make sure there are no ranges.
         val keyValues1 = randomizedKeyValues(count = keyValuesCount, addRandomRanges = false)
         val segment1 = TestSegment(keyValues1).assertGet
@@ -1072,7 +1072,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
     }
 
     "slice Put range into slice with fromValue set to Remove" in {
-      implicit val timeGenerator: TestTimeGenerator = TestTimeGenerator.Empty
+      implicit val testTimer: TestTimer = TestTimer.Empty
 
       val keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 10, None, Value.update(10))).updateStats
       val segment = TestSegment(keyValues, removeDeletes = false).assertGet
@@ -1088,7 +1088,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
     }
 
     "return 1 new segment with only 1 key-value if all the KeyValues in the Segment were deleted but 1" in {
-      implicit val timeGenerator: TestTimeGenerator = TestTimeGenerator.Empty
+      implicit val testTimer: TestTimer = TestTimer.Empty
 
       val keyValues = randomKeyValues(count = keyValuesCount)
       val segment = TestSegment(keyValues, removeDeletes = true).assertGet

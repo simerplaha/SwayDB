@@ -21,7 +21,7 @@ package swaydb.core.level
 
 import java.util.concurrent.atomic.AtomicInteger
 import org.scalamock.scalatest.MockFactory
-import swaydb.core.{TestBase, TestTimeGenerator}
+import swaydb.core.{TestBase, TestTimer}
 import swaydb.core.data.Transient
 import swaydb.core.level.actor.LevelAPI
 import swaydb.core.level.actor.LevelCommand.{Pull, PullRequest, PushSegments, PushSegmentsResponse}
@@ -49,7 +49,7 @@ sealed trait LevelCompactionSpec extends TestBase with MockFactory {
   import TestLevel._
 
   implicit val keyOrder = KeyOrder.default
-  implicit def timeGenerator: TestTimeGenerator = TestTimeGenerator.random
+  implicit def testTimer: TestTimer = TestTimer.random
 
   "Level" should {
     "merge all it's Segments to lower level" in {

@@ -35,7 +35,9 @@ import swaydb.core.level.actor.LevelCommand.WakeUp
 import swaydb.core.level.actor.{LevelAPI, LevelZeroAPI}
 import swaydb.core.level.{LevelRef, PathsDistributor}
 import swaydb.core.map
-import swaydb.core.map.{MapEntry, Maps, SkipListMerger, Timer}
+import swaydb.core.map.serializer.{TimerMapEntryReader, TimerMapEntryWriter}
+import swaydb.core.map.timer.Timer
+import swaydb.core.map.{MapEntry, Maps, SkipListMerger}
 import swaydb.core.queue.FileLimiter
 import swaydb.core.seek._
 import swaydb.core.segment.Segment
@@ -46,6 +48,7 @@ import swaydb.data.io.IO
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.Level0Storage
+import swaydb.data.util.StorageUnits._
 
 private[core] object LevelZero extends LazyLogging {
 
@@ -60,26 +63,47 @@ private[core] object LevelZero extends LazyLogging {
                                  ec: ExecutionContext): IO[LevelZero] = {
     import swaydb.core.map.serializer.LevelZeroMapEntryReader.Level0Reader
     import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
+    implicit val timerReader = TimerMapEntryReader.TimerPutMapEntryReader
+    implicit val timerWriter = TimerMapEntryWriter.TimerPutMapEntryWriter
+
     implicit val skipListMerger: SkipListMerger[Slice[Byte], Memory.SegmentResponse] = LevelZeroSkipListMerger
     val mapsAndPathAndLock =
       storage match {
         case Level0Storage.Persistent(mmap, databaseDirectory, recovery) =>
-          val path = databaseDirectory.resolve(0.toString)
-          IOEffect createDirectoriesIfAbsent path
-          logger.info("{}: Acquiring lock.", path)
-          val lockFile = path.resolve("LOCK")
-          IOEffect createFileIfAbsent lockFile
-          IO(FileChannel.open(lockFile, StandardOpenOption.WRITE).tryLock()) flatMap {
-            lock =>
-              logger.info("{}: Recovering Maps.", path)
-              Maps.persistent[Slice[Byte], Memory.SegmentResponse](path, mmap, mapSize, acceleration, recovery) map {
-                maps =>
-                  (maps, path, Some(lock))
+          val timerDir = databaseDirectory.resolve("0").resolve("timer")
+          Timer.persistent(timerDir, mmap, 100000, 1.mb) flatMap {
+            implicit timer =>
+              val path = databaseDirectory.resolve(0.toString)
+              IOEffect createDirectoriesIfAbsent path
+              logger.info("{}: Acquiring lock.", path)
+              val lockFile = path.resolve("LOCK")
+              IOEffect createFileIfAbsent lockFile
+              IO(FileChannel.open(lockFile, StandardOpenOption.WRITE).tryLock()) flatMap {
+                lock =>
+                  logger.info("{}: Recovering Maps.", path)
+                  Maps.persistent[Slice[Byte], Memory.SegmentResponse](path, mmap, mapSize, acceleration, recovery) map {
+                    maps =>
+                      (maps, path, Some(lock))
+                  }
               }
           }
 
         case Level0Storage.Memory =>
-          IO.Success(Maps.memory[Slice[Byte], Memory.SegmentResponse](mapSize, acceleration), Paths.get("MEMORY_DB").resolve(0.toString), None)
+          val timer =
+            LevelRef.firstPersistentPath(nextLevel) match {
+              case Some(persistentPath) =>
+                val timerPath = persistentPath.getParent.resolve("0").resolve("timer")
+                Timer.persistent(timerPath, LevelRef.hasMMAP(nextLevel), 100000, 1.mb)
+
+              case None =>
+                IO.Success(Timer.memory())
+            }
+
+          timer map {
+            implicit timer =>
+              val map = Maps.memory[Slice[Byte], Memory.SegmentResponse](mapSize, acceleration)
+              (map, Paths.get("MEMORY_DB").resolve(0.toString), None)
+          }
       }
     mapsAndPathAndLock map {
       case (maps, path, lock: Option[FileLock]) =>
@@ -89,6 +113,7 @@ private[core] object LevelZero extends LazyLogging {
           maps = maps,
           throttleOn = throttleOn,
           nextLevel = nextLevel,
+          inMemory = storage.memory,
           lock = lock
         )
     }
@@ -100,6 +125,7 @@ private[core] class LevelZero(val path: Path,
                               val maps: Maps[Slice[Byte], Memory.SegmentResponse],
                               val throttleOn: Boolean,
                               val nextLevel: Option[LevelRef],
+                              val inMemory: Boolean,
                               lock: Option[FileLock])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                       timeOrder: TimeOrder[Slice[Byte]],
                                                       functionStore: FunctionStore,
@@ -707,4 +733,5 @@ private[core] class LevelZero(val path: Path,
     false
 
   override def levelNumber: Long = 0
+
 }

@@ -20,20 +20,20 @@
 package swaydb.core.segment.merge
 
 import org.scalatest.{Matchers, WordSpec}
+import scala.collection.mutable.ListBuffer
+import scala.util.Random
+import swaydb.core.CommonAssertions._
+import swaydb.core.RunThis._
+import swaydb.core.TestData._
+import swaydb.core.TestTimer
 import swaydb.core.data.{KeyValue, Memory, Value}
-import swaydb.core.{CommonAssertions, TestData, TestTimeGenerator}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import scala.collection.mutable.ListBuffer
-import scala.util.Random
-import swaydb.core.TestData._
-import swaydb.core.CommonAssertions._
-import swaydb.core.RunThis._
 
 class MergeListStressSpec extends WordSpec with Matchers {
 
-  implicit def timeGenerator: TestTimeGenerator = TestTimeGenerator.random
+  implicit def testTimer: TestTimer = TestTimer.random
 
   implicit def toPut(key: Int): Memory.Put =
     Memory.put(key)

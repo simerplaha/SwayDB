@@ -20,7 +20,7 @@
 package swaydb.core.segment.format.a.entry
 
 import org.scalatest.WordSpec
-import swaydb.core.{CommonAssertions, TestData, TestTimeGenerator}
+import swaydb.core.{CommonAssertions, TestData, TestTimer}
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.entry.reader.EntryReader
 import swaydb.data.slice.Slice
@@ -36,7 +36,7 @@ class GroupEntryReaderWriterSpec extends WordSpec {
 
   "write and read single Group entry" in {
     runThisParallel(1000.times) {
-      implicit val timeGenerator = TestTimeGenerator.random
+      implicit val testTimer = TestTimer.random
       val entry = randomGroup()
       //      println("write: " + entry)
 
@@ -48,7 +48,7 @@ class GroupEntryReaderWriterSpec extends WordSpec {
 
   "write and read Group entries with other entries" in {
     runThisParallel(1000.times) {
-      implicit val timeGenerator = TestTimeGenerator.random
+      implicit val testTimer = TestTimer.random
 
       val keyValues = randomizedKeyValues(count = 1, addRandomGroups = false)
       val previous = keyValues.head

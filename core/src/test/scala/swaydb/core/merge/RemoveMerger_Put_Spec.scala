@@ -22,7 +22,7 @@ package swaydb.core.merge
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data.{KeyValue, Memory}
-import swaydb.core.{CommonAssertions, TestTimeGenerator}
+import swaydb.core.{CommonAssertions, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.serializers.Default._
 import swaydb.serializers._
@@ -44,14 +44,14 @@ class RemoveMerger_Put_Spec extends WordSpec with Matchers {
 
       "always return new key-value" in {
 
-        implicit val timeGenerator = TestTimeGenerator.Incremental()
+        implicit val testTimer = TestTimer.Incremental()
 
         runThis(1000.times) {
           val key = randomStringOption
 
-          val oldKeyValue = randomPutKeyValue(key = key)(eitherOne(timeGenerator, TestTimeGenerator.Empty))
+          val oldKeyValue = randomPutKeyValue(key = key)(eitherOne(testTimer, TestTimer.Empty))
 
-          val newKeyValue = randomRemoveKeyValue(key = key)(eitherOne(timeGenerator, TestTimeGenerator.Empty))
+          val newKeyValue = randomRemoveKeyValue(key = key)(eitherOne(testTimer, TestTimer.Empty))
 
           //          println(s"oldKeyValue: $oldKeyValue")
           //          println(s"newKeyValue: $newKeyValue")

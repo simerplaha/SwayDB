@@ -20,14 +20,18 @@
 package swaydb.core.level
 
 import java.nio.file.Path
+import scala.annotation.tailrec
 import swaydb.data.io.IO
 import swaydb.core.data.KeyValue
 import swaydb.core.level.actor.LevelAPI
+import swaydb.core.level.zero.LevelZero
 import swaydb.core.segment.Segment
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.slice.Slice
 
 private[core] trait LevelRef {
+  def inMemory: Boolean
+
   def paths: PathsDistributor
 
   def throttle: LevelMeter => Throttle
@@ -111,4 +115,31 @@ private[core] trait LevelRef {
 
   def isTrash: Boolean
 
+}
+
+object LevelRef {
+
+  @tailrec
+  def firstPersistentLevel(level: Option[LevelRef]): Option[LevelRef] =
+    level match {
+      case Some(level) =>
+        if (level.inMemory)
+          firstPersistentLevel(level.nextLevel)
+        else
+          Some(level)
+      case None =>
+        None
+    }
+
+  def firstPersistentPath(level: Option[LevelRef]): Option[Path] =
+    firstPersistentLevel(level).map(_.rootPath)
+
+  def hasMMAP(level: Option[LevelRef]): Boolean =
+    firstPersistentLevel(level) exists {
+      case level: Level =>
+        level.mmapSegmentsOnRead || level.mmapSegmentsOnWrite
+
+      case _: LevelZero =>
+        false
+    }
 }

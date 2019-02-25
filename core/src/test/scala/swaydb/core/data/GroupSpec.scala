@@ -20,7 +20,7 @@
 package swaydb.core.data
 
 import java.nio.file.Paths
-import swaydb.core.{TestBase, TestData, TestLimitQueues, TestTimeGenerator}
+import swaydb.core.{TestBase, TestData, TestLimitQueues, TestTimer}
 import swaydb.core.segment.Segment
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
@@ -36,7 +36,7 @@ class GroupSpec extends TestBase {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
-  implicit def timeGenerator: TestTimeGenerator = TestTimeGenerator.random
+  implicit def testTimer: TestTimer = TestTimer.random
   implicit val fileLimiter = TestLimitQueues.fileOpenLimiter
   implicit val keyValueLimiter = TestLimitQueues.keyValueLimiter
 

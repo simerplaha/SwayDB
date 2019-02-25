@@ -21,7 +21,7 @@ package swaydb.core.segment.merge
 
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.core.data.{KeyValue, Memory, Value}
-import swaydb.core.{CommonAssertions, TestData, TestTimeGenerator}
+import swaydb.core.{CommonAssertions, TestData, TestTimer}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
@@ -31,7 +31,7 @@ import swaydb.core.RunThis._
 
 class MergeListSpec extends WordSpec with Matchers {
 
-  implicit val timeGenerator: TestTimeGenerator = TestTimeGenerator.Empty
+  implicit val testTimer: TestTimer = TestTimer.Empty
 
   implicit def toPut(key: Int): Memory.Put =
     Memory.put(key)

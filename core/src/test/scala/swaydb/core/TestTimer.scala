@@ -22,66 +22,77 @@ package swaydb.core
 import java.util.concurrent.atomic.AtomicLong
 import scala.util.Random
 import swaydb.core.data.Time
+import swaydb.core.map.timer.Timer
+import swaydb.data.io.IO
 import swaydb.data.slice.Slice
 import swaydb.macros.SealedList
-import swaydb.serializers.Default.LongSerializer
-import swaydb.serializers._
 
-sealed trait TestTimeGenerator {
-  def nextTime: Time
+sealed trait TestTimer extends Timer
 
-  def startTime: Long
-}
+object TestTimer {
 
-object TestTimeGenerator {
-
-  case class Incremental(startTime: Long = 0) extends TestTimeGenerator {
+  case class Incremental(startTime: Long = 0) extends TestTimer {
     val timer = new AtomicLong(startTime)
 
-    override def nextTime: Time =
+    override def next: Time =
       Time(timer.incrementAndGet())
+
+    override def close: IO[Unit] =
+      IO.unit
   }
 
-  object IncrementalRandom extends TestTimeGenerator {
-    override val startTime: Long = 0
+  object IncrementalRandom extends TestTimer {
+    val startTime: Long = 0
     private val timer = new AtomicLong(startTime)
 
-    override def nextTime: Time =
+    override def next: Time =
       if (Random.nextBoolean())
         Time(timer.incrementAndGet())
       else
         Time.empty
 
+    override def close: IO[Unit] =
+      IO.unit
   }
 
-  case class Decremental(startTime: Long = 100) extends TestTimeGenerator {
+  case class Decremental(startTime: Long = 100) extends TestTimer {
     val timer = new AtomicLong(startTime)
 
-    override def nextTime: Time =
+    override def next: Time =
       Time(timer.decrementAndGet())
+
+    override def close: IO[Unit] =
+      IO.unit
   }
 
-  object DecrementalRandom extends TestTimeGenerator {
-    override val startTime: Long = 100
+  object DecrementalRandom extends TestTimer {
+    val startTime: Long = 100
     private val timer = new AtomicLong(startTime)
 
-    override def nextTime: Time =
+    override def next: Time =
       if (Random.nextBoolean())
         Time(timer.decrementAndGet())
       else
         Time.empty
+
+    override def close: IO[Unit] =
+      IO.unit
   }
 
-  object Empty extends TestTimeGenerator {
-    override val startTime: Long = 0
-    override val nextTime: Time =
+  object Empty extends TestTimer {
+    val startTime: Long = 0
+
+    override val next: Time =
       Time(Slice.emptyBytes)
+
+    override def close: IO[Unit] =
+      IO.unit
   }
 
   val all =
-    SealedList.list[TestTimeGenerator]
+    SealedList.list[TestTimer]
 
-  def random: TestTimeGenerator =
+  def random: TestTimer =
     Random.shuffle(all).head
 
 }

@@ -29,7 +29,7 @@ import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment
 import swaydb.core.util.Extension
 import swaydb.core.io.file.IOEffect._
-import swaydb.core.{TestBase, TestData, TestLimitQueues, TestTimeGenerator}
+import swaydb.core.{TestBase, TestData, TestLimitQueues, TestTimer}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -48,7 +48,7 @@ class MapSpec extends TestBase {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
 
-  implicit def timeGenerator: TestTimeGenerator = TestTimeGenerator.Empty
+  implicit def testTimer: TestTimer = TestTimer.Empty
 
   implicit val maxSegmentsOpenCacheImplicitLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
   implicit val keyValuesLimitImplicitLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter

@@ -21,7 +21,7 @@ package swaydb.core.map.serializer
 
 import java.util.concurrent.ConcurrentSkipListMap
 import scala.collection.JavaConverters._
-import swaydb.core.{TestBase, TestTimeGenerator}
+import swaydb.core.{TestBase, TestTimer}
 import swaydb.core.data.Memory
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.MapEntry
@@ -40,7 +40,7 @@ class LevelZeroMapEntrySpec extends TestBase {
 
   implicit val keyOrder = KeyOrder.default
 
-  implicit def timeGenerator: TestTimeGenerator = TestTimeGenerator.random
+  implicit def testTimer: TestTimer = TestTimer.random
 
   "MapEntryWriterLevel0 & MapEntryReaderLevel0" should {
 

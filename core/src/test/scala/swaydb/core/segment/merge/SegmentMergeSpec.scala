@@ -27,7 +27,7 @@ import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data._
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.util.Benchmark
-import swaydb.core.{TestBase, TestData, TestTimeGenerator}
+import swaydb.core.{TestBase, TestData, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
@@ -38,7 +38,7 @@ class SegmentMergeSpec extends TestBase {
 
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
-  implicit val timeGenerator: TestTimeGenerator = TestTimeGenerator.Empty
+  implicit val testTimer: TestTimer = TestTimer.Empty
   implicit val groupingStrategy: Option[KeyValueGroupingStrategyInternal] = None
 
   val keyValueCount = 100
@@ -48,7 +48,7 @@ class SegmentMergeSpec extends TestBase {
   "completeMerge" should {
 
     "transfer the last segment's KeyValues to previous segment, if the last segment's segmentSize is < minSegmentSize for persistent key-values" in {
-      implicit val timeGenerator: TestTimeGenerator = TestTimeGenerator.Empty
+      implicit val testTimer: TestTimer = TestTimer.Empty
       implicit val groupingStrategy: Option[KeyValueGroupingStrategyInternal] = None
 
       val segment1 = ListBuffer.empty[KeyValue.WriteOnly]

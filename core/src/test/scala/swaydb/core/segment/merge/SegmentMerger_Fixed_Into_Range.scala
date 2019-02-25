@@ -24,7 +24,7 @@ import scala.concurrent.duration._
 import scala.util.Random
 import swaydb.core.data.{Memory, Time, Value}
 import swaydb.core.merge.FixedMerger
-import swaydb.core.{CommonAssertions, TestTimeGenerator}
+import swaydb.core.{CommonAssertions, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
@@ -44,7 +44,7 @@ class SegmentMerger_Fixed_Into_Range extends WordSpec {
   "Single into Range" when {
 
     "left out" in {
-      implicit val timeGenerator = TestTimeGenerator.Incremental()
+      implicit val testTimer = TestTimer.Incremental()
       runThis(10000.times) {
         val oldKeyValue = Memory.Range(1, 10, randomFromValueOption(), randomRangeValue())
         val newKeyValue = randomFixedKeyValue(0)
@@ -67,7 +67,7 @@ class SegmentMerger_Fixed_Into_Range extends WordSpec {
     }
 
     "left" in {
-      implicit val timeGenerator = TestTimeGenerator.Incremental()
+      implicit val testTimer = TestTimer.Incremental()
       runThis(10000.times) {
         val oldKeyValue = Memory.Range(1, 10, randomFromValueOption(), randomRangeValue())
         val newKeyValue = randomFixedKeyValue(1)
@@ -91,7 +91,7 @@ class SegmentMerger_Fixed_Into_Range extends WordSpec {
 
     "mid" in {
       runThis(10000.times) {
-        implicit val timeGenerator = TestTimeGenerator.Incremental()
+        implicit val testTimer = TestTimer.Incremental()
 
         val oldKeyValue = Memory.Range(1, 10, randomFromValueOption(), randomRangeValue())
         val midKey = Random.shuffle((2 to 9).toList).head
@@ -122,7 +122,7 @@ class SegmentMerger_Fixed_Into_Range extends WordSpec {
 
     "right" in {
       runThis(10000.times) {
-        implicit val timeGenerator = TestTimeGenerator.Incremental()
+        implicit val testTimer = TestTimer.Incremental()
 
         val oldKeyValue = Memory.Range(1, 10, randomFromValueOption(), randomRangeValue())
         val newKeyValue = randomFixedKeyValue(10)
@@ -147,7 +147,7 @@ class SegmentMerger_Fixed_Into_Range extends WordSpec {
     }
 
     "split the range if the input key-values key overlaps range's multiple keys (random mix test)" in {
-      implicit val timeGenerator = TestTimeGenerator.Empty
+      implicit val testTimer = TestTimer.Empty
 
       val deadline1 = 20.seconds.fromNow
       val deadline2 = 30.seconds.fromNow

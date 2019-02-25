@@ -19,25 +19,25 @@
 
 package swaydb.core.map
 
+import com.typesafe.scalalogging.LazyLogging
 import java.nio.file.Path
 import java.util.concurrent.ConcurrentLinkedDeque
-import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.brake.BrakePedal
-import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
-import swaydb.core.io.file.IOEffect._
-import swaydb.data.io.IO._
-import swaydb.data.accelerate.{Accelerator, Level0Meter}
-import swaydb.data.config.RecoveryMode
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext
 import scala.reflect.ClassTag
-import swaydb.core.data.Time
-import swaydb.data.io.IO
+import swaydb.core.brake.BrakePedal
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.IOEffect
+import swaydb.core.io.file.IOEffect._
+import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
+import swaydb.core.map.timer.Timer
 import swaydb.core.queue.FileLimiter
+import swaydb.data.accelerate.{Accelerator, Level0Meter}
+import swaydb.data.config.RecoveryMode
+import swaydb.data.io.IO
+import swaydb.data.io.IO._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
@@ -51,6 +51,7 @@ private[core] object Maps extends LazyLogging {
                                                                        mapReader: MapEntryReader[MapEntry[K, V]],
                                                                        writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                        skipListMerger: SkipListMerger[K, V],
+                                                                       timer: Timer,
                                                                        ec: ExecutionContext): Maps[K, V] =
     new Maps[K, V](
       maps = new ConcurrentLinkedDeque[Map[K, V]](),
@@ -70,6 +71,7 @@ private[core] object Maps extends LazyLogging {
                                                          writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                          reader: MapEntryReader[MapEntry[K, V]],
                                                          skipListMerger: SkipListMerger[K, V],
+                                                         timer: Timer,
                                                          ec: ExecutionContext): IO[Maps[K, V]] = {
     logger.debug("{}: Maps persistent started. Initialising recovery.", path)
     //reverse to keep the newest maps at the top.
@@ -241,6 +243,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
                                                                                       mapReader: MapEntryReader[MapEntry[K, V]],
                                                                                       writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                                       skipListMerger: SkipListMerger[K, V],
+                                                                                      timer: Timer,
                                                                                       ec: ExecutionContext) extends LazyLogging {
 
   private var meter = Level0Meter(fileSize, currentMap.fileSize, maps.size() + 1)
@@ -248,8 +251,6 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
   private var onFullListener: () => Unit = () => ()
   // This is crucial for write performance use null instead of Option.
   private var brakePedal: BrakePedal = _
-
-  private val timer = Timer(System.nanoTime())
 
   def setOnFullListener(event: () => Unit) =
     onFullListener = event

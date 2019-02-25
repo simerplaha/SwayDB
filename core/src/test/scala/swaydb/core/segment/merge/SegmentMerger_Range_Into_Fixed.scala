@@ -23,7 +23,7 @@ import org.scalatest.WordSpec
 import scala.util.Random
 import swaydb.core.data.{Memory, Value}
 import swaydb.core.merge.FixedMerger
-import swaydb.core.{CommonAssertions, TestTimeGenerator}
+import swaydb.core.{CommonAssertions, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
@@ -39,7 +39,7 @@ class SegmentMerger_Range_Into_Fixed extends WordSpec {
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit def groupingStrategy = randomGroupingStrategyOption(randomNextInt(1000))
 
-  implicit val timeGenerator = TestTimeGenerator.Empty
+  implicit val testTimer = TestTimer.Empty
 
   "Range into Single" when {
     "Left - when Single key-value matches Range's fromKey" in {
@@ -168,7 +168,7 @@ class SegmentMerger_Range_Into_Fixed extends WordSpec {
     }
 
     "remove all key-values within the range only when range's last key does overlaps and existing key" in {
-      implicit val timeGenerator = TestTimeGenerator.Empty
+      implicit val testTimer = TestTimer.Empty
 
       //       3  -    20
       //  1, 2, 7, 10, 20

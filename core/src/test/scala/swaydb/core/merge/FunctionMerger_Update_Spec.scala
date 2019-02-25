@@ -22,7 +22,7 @@ package swaydb.core.merge
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.core.data._
-import swaydb.core.{CommonAssertions, TestTimeGenerator, IOAssert}
+import swaydb.core.{CommonAssertions, TestTimer, IOAssert}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
@@ -43,12 +43,12 @@ class FunctionMerger_Update_Spec extends WordSpec with Matchers with MockFactory
     "times are in order" should {
       "always return new key-value" in {
 
-        implicit val timeGenerator: TestTimeGenerator = eitherOne(TestTimeGenerator.Incremental(), TestTimeGenerator.Empty)
+        implicit val testTimer: TestTimer = eitherOne(TestTimer.Incremental(), TestTimer.Empty)
 
         runThis(1000.times) {
           val key = randomBytesSlice()
 
-          val oldKeyValue = randomUpdateKeyValue(key = key)(timeGenerator)
+          val oldKeyValue = randomUpdateKeyValue(key = key)(testTimer)
 
           val functionOutput = randomFunctionOutput()
 
@@ -93,10 +93,10 @@ class FunctionMerger_Update_Spec extends WordSpec with Matchers with MockFactory
       "always return new key-value" in {
         runThis(1000.times) {
 
-          implicit val timeGenerator: TestTimeGenerator = eitherOne(TestTimeGenerator.Incremental(), TestTimeGenerator.Empty)
+          implicit val testTimer: TestTimer = eitherOne(TestTimer.Incremental(), TestTimer.Empty)
           val key = randomBytesSlice()
 
-          val oldKeyValue = randomUpdateKeyValue(key = key)(timeGenerator)
+          val oldKeyValue = randomUpdateKeyValue(key = key)(testTimer)
 
           val functionOutput = randomFunctionOutput()
 
@@ -144,7 +144,7 @@ class FunctionMerger_Update_Spec extends WordSpec with Matchers with MockFactory
       "stash the updates" in {
         runThis(100.times) {
           //mock functions are never called
-          implicit val timeGenerator = TestTimeGenerator.Incremental()
+          implicit val testTimer = TestTimer.Incremental()
           Seq(
             mock[SwayFunction.Key],
             mock[SwayFunction.KeyDeadline],
@@ -170,7 +170,7 @@ class FunctionMerger_Update_Spec extends WordSpec with Matchers with MockFactory
       "stash the updates" in {
         runThis(100.times) {
           //mock functions are never called
-          implicit val timeGenerator = TestTimeGenerator.Incremental()
+          implicit val testTimer = TestTimer.Incremental()
           Seq(
             mock[SwayFunction.ValueDeadline]
           ) foreach {
@@ -193,7 +193,7 @@ class FunctionMerger_Update_Spec extends WordSpec with Matchers with MockFactory
       "success when key, deadline and value is set" in {
         runThis(100.times) {
           //mock functions are never called
-          implicit val timeGenerator = TestTimeGenerator.Incremental()
+          implicit val testTimer = TestTimer.Incremental()
           val output = SwayFunctionOutput.Update(randomStringOption, Some(randomDeadline()))
 
           Seq(

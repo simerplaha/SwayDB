@@ -82,8 +82,8 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
 
   def inMemoryStorage = false
 
-  def nextTime(implicit timeGenerator: TestTimeGenerator): Time =
-    timeGenerator.nextTime
+  def nextTime(implicit testTimer: TestTimer): Time =
+    testTimer.next
 
   def levelStorage: LevelStorage =
     if (inMemoryStorage)
@@ -229,7 +229,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
   }
 
   object TestSegment {
-    def apply(keyValues: Slice[KeyValue.WriteOnly] = randomizedKeyValues()(TestTimeGenerator.Incremental(), KeyOrder.default, keyValueLimiter),
+    def apply(keyValues: Slice[KeyValue.WriteOnly] = randomizedKeyValues()(TestTimer.Incremental(), KeyOrder.default, keyValueLimiter),
               removeDeletes: Boolean = false,
               path: Path = testSegmentFile,
               bloomFilterFalsePositiveRate: Double = TestData.falsePositiveRate)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
@@ -364,11 +364,11 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
     * ignored completely due to it having a lower or equal time to lower Level. If it has a lower or same time this means
     * that it has already been merged into lower Levels already making the upper Level's read always valid.
     */
-  def assertLevel(level0KeyValues: (Iterable[Memory], Iterable[Memory], TestTimeGenerator) => Iterable[Memory] = (_, _, _) => Iterable.empty,
+  def assertLevel(level0KeyValues: (Iterable[Memory], Iterable[Memory], TestTimer) => Iterable[Memory] = (_, _, _) => Iterable.empty,
                   assertLevel0: (Iterable[Memory], Iterable[Memory], Iterable[Memory], LevelRef) => Unit = (_, _, _, _) => (),
-                  level1KeyValues: (Iterable[Memory], TestTimeGenerator) => Iterable[Memory] = (_, _) => Iterable.empty,
+                  level1KeyValues: (Iterable[Memory], TestTimer) => Iterable[Memory] = (_, _) => Iterable.empty,
                   assertLevel1: (Iterable[Memory], Iterable[Memory], LevelRef) => Unit = (_, _, _) => (),
-                  level2KeyValues: TestTimeGenerator => Iterable[Memory] = _ => Iterable.empty,
+                  level2KeyValues: TestTimer => Iterable[Memory] = _ => Iterable.empty,
                   assertLevel2: (Iterable[Memory], LevelRef) => Unit = (_, _) => (),
                   assertAllLevels: (Iterable[Memory], Iterable[Memory], Iterable[Memory], LevelRef) => Unit = (_, _, _, _) => (),
                   throttleOn: Boolean = false)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
@@ -382,7 +382,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
     val noAssert =
       (_: LevelRef) => ()
 
-    val timeGenerator: TestTimeGenerator = TestTimeGenerator.Incremental()
+    val testTimer: TestTimer = TestTimer.Incremental()
 
     /**
       * If [[throttleOn]] is true then enable fast throttling
@@ -400,16 +400,16 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
 
     println("Levels started")
 
-    //start with a default timeGenerator.
-    val level2KV = level2KeyValues(timeGenerator)
+    //start with a default testTimer.
+    val level2KV = level2KeyValues(testTimer)
     println("level2KV created.")
 
-    //if upper levels should insert key-values at an older time start the timeGenerator to use older time
-    val level1KV = level1KeyValues(level2KV, timeGenerator)
+    //if upper levels should insert key-values at an older time start the testTimer to use older time
+    val level1KV = level1KeyValues(level2KV, testTimer)
     println("level1KV created.")
 
-    //if upper levels should insert key-values at an older time start the timeGenerator to use older time
-    val level0KV = level0KeyValues(level1KV, level2KV, timeGenerator)
+    //if upper levels should insert key-values at an older time start the testTimer to use older time
+    val level0KV = level0KeyValues(level1KV, level2KV, testTimer)
     println("level0KV created.")
 
     val level0Assert: LevelRef => Unit = assertLevel0(level0KV, level1KV, level2KV, _)

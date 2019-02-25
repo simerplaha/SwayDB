@@ -89,8 +89,8 @@ sealed trait LevelReadNoneSpec extends TestBase with MockFactory with Benchmark 
       runThisParallel(times) {
         assertLevel(
           level0KeyValues =
-            (_, _, timeGenerator) =>
-              randomizedKeyValues(keyValuesCount, addPut = false, startId = Some(0))(timeGenerator).toMemory,
+            (_, _, testTimer) =>
+              randomizedKeyValues(keyValuesCount, addPut = false, startId = Some(0))(testTimer).toMemory,
 
           assertAllLevels =
             (level0KeyValues, _, _, level) =>
@@ -103,10 +103,10 @@ sealed trait LevelReadNoneSpec extends TestBase with MockFactory with Benchmark 
       runThisParallel(times) {
         assertLevel(
           level0KeyValues =
-            (_, _, timeGenerator) =>
+            (_, _, testTimer) =>
               (1 to keyValuesCount).map {
                 key =>
-                  randomPutKeyValue(key, deadline = Some(expiredDeadline()))(timeGenerator)
+                  randomPutKeyValue(key, deadline = Some(expiredDeadline()))(testTimer)
               }(collection.breakOut),
 
           assertAllLevels =
@@ -120,8 +120,8 @@ sealed trait LevelReadNoneSpec extends TestBase with MockFactory with Benchmark 
       runThisParallel(times) {
         assertLevel(
           level0KeyValues =
-            (_, _, timeGenerator) =>
-              randomizedKeyValues(keyValuesCount)(timeGenerator).toMemory,
+            (_, _, testTimer) =>
+              randomizedKeyValues(keyValuesCount)(testTimer).toMemory,
 
           assertLevel0 =
             (level0KeyValues, _, _, level) => {
@@ -160,8 +160,8 @@ sealed trait LevelReadNoneSpec extends TestBase with MockFactory with Benchmark 
       runThisParallel(times) {
         assertLevel(
           level0KeyValues =
-            (_, _, timeGenerator) => {
-              implicit val time = timeGenerator
+            (_, _, testTimer) => {
+              implicit val time = testTimer
               Slice(
                 Memory.Range(1, 10, Some(Value.put(1, expiredDeadline())), Value.remove(None)),
                 Memory.Range(20, 30, Some(Value.put(2, expiredDeadline())), Value.remove(None))
@@ -180,8 +180,8 @@ sealed trait LevelReadNoneSpec extends TestBase with MockFactory with Benchmark 
         assertLevel(
 
           level0KeyValues =
-            (level1KeyValues, _, timeGenerator) => {
-              implicit val time = timeGenerator
+            (level1KeyValues, _, testTimer) => {
+              implicit val time = testTimer
               eitherOne(
                 //either do a range remove
                 left =
@@ -196,8 +196,8 @@ sealed trait LevelReadNoneSpec extends TestBase with MockFactory with Benchmark 
             },
 
           level1KeyValues =
-            (level2KeyValues, timeGenerator) => {
-              implicit val time = timeGenerator
+            (level2KeyValues, testTimer) => {
+              implicit val time = testTimer
               level2KeyValues should have size 0
 
               randomPutKeyValues(keyValuesCount, startId = Some(0), addRandomPutDeadlines = false, addRandomExpiredPutDeadlines = false)

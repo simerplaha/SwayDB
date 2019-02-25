@@ -28,7 +28,7 @@ import swaydb.core.TestData._
 import swaydb.core.IOAssert._
 import swaydb.core.data._
 
-import swaydb.core.{TestData, TestTimeGenerator}
+import swaydb.core.{TestData, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
@@ -39,7 +39,7 @@ class HigherRangeSomeSpec extends WordSpec with Matchers with MockFactory {
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder = TimeOrder.long
   implicit val functionStore = TestData.functionStore
-  implicit val timeGenerator = TestTimeGenerator.Empty
+  implicit val testTimer = TestTimer.Empty
 
   "return Some" when {
 

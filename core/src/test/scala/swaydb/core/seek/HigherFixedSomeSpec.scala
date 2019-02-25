@@ -28,7 +28,7 @@ import swaydb.core.IOAssert._
 import swaydb.core.data.Memory
 import swaydb.core.merge.FixedMerger
 
-import swaydb.core.{TestData, TestTimeGenerator}
+import swaydb.core.{TestData, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
@@ -41,7 +41,7 @@ class HigherFixedSomeSpec extends WordSpec with Matchers with MockFactory with O
   implicit val functionStore = TestData.functionStore
 
   "return Some" when {
-    implicit val timeGenerator = TestTimeGenerator.Decremental()
+    implicit val testTimer = TestTimer.Decremental()
 
     //   0
     //     1

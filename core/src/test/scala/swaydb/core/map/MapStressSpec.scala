@@ -19,7 +19,7 @@
 
 package swaydb.core.map
 
-import swaydb.core.{TestBase, TestLimitQueues, TestTimeGenerator}
+import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
 import swaydb.core.data.Memory
 import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.map.serializer.LevelZeroMapEntryWriter.Level0PutWriter
@@ -41,7 +41,7 @@ class MapStressSpec extends TestBase {
   implicit val fileLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
 
-  implicit def timeGenerator: TestTimeGenerator = TestTimeGenerator.Empty
+  implicit def testTimer: TestTimer = TestTimer.Empty
 
   "Map" should {
     "write entries when flushOnOverflow is true and map size is 1.kb" in {

@@ -20,7 +20,7 @@
 package swaydb.core.level
 
 import org.scalamock.scalatest.MockFactory
-import swaydb.core.{TestBase, TestData, TestTimeGenerator}
+import swaydb.core.{TestBase, TestData, TestTimer}
 import swaydb.core.data.{Memory, Persistent, Transient, Value}
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.util.Benchmark
@@ -65,7 +65,7 @@ class LevelReadSpec3 extends LevelReadSpec {
 sealed trait LevelReadSpec extends TestBase with MockFactory with Benchmark {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
-  implicit def timeGenerator: TestTimeGenerator = TestTimeGenerator.Empty
+  implicit def testTimer: TestTimer = TestTimer.Empty
   implicit val groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(keyValuesCount)
   val keyValuesCount = 100
 

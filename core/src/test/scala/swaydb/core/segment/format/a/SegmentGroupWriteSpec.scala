@@ -21,7 +21,7 @@ package swaydb.core.segment.format.a
 
 import org.scalatest.PrivateMethodTester
 import org.scalatest.concurrent.ScalaFutures
-import swaydb.core.{TestBase, TestData, TestTimeGenerator}
+import swaydb.core.{TestBase, TestData, TestTimer}
 import swaydb.core.data._
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.data.slice.Slice
@@ -58,7 +58,7 @@ sealed trait SegmentGroupWriteSpec extends TestBase with ScalaFutures with Priva
 
   def keyValuesCount: Int
 
-  implicit def timeGenerator: TestTimeGenerator = TestTimeGenerator.Empty
+  implicit def testTimer: TestTimer = TestTimer.Empty
 
   "Deleting all Grouped key-values" should {
     "return empty Segments" in {

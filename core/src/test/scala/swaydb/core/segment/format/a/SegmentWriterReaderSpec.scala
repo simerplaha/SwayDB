@@ -32,7 +32,7 @@ import swaydb.core.group.compression.GroupCompressor
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
 
-import swaydb.core.{TestBase, TestData, TestLimitQueues, TestTimeGenerator}
+import swaydb.core.{TestBase, TestData, TestLimitQueues, TestTimer}
 import swaydb.data.io.IO
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -47,7 +47,7 @@ class SegmentWriterReaderSpec extends TestBase {
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit val keyValueLimiter = TestLimitQueues.keyValueLimiter
 
-  implicit def timeGenerator: TestTimeGenerator = TestTimeGenerator.random
+  implicit def testTimer: TestTimer = TestTimer.random
 
   "SegmentWriter" should {
     "convert empty KeyValues and not throw exception but return empty bytes" in {

@@ -26,7 +26,8 @@ import swaydb.core.data.{Memory, SwayFunction, Time, Value}
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.map.serializer.LevelZeroMapEntryWriter
-import swaydb.core.map.{MapEntry, Timer}
+import swaydb.core.map.MapEntry
+import swaydb.core.map.timer.Timer
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.config.{LevelZeroConfig, SwayDBConfig}

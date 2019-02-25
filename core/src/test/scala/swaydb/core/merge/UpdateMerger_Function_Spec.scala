@@ -21,7 +21,7 @@ package swaydb.core.merge
 
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.core.data.Memory
-import swaydb.core.{CommonAssertions, TestTimeGenerator}
+import swaydb.core.{CommonAssertions, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
@@ -41,16 +41,16 @@ class UpdateMerger_Function_Spec extends WordSpec with Matchers {
   "Merging update into Function" when {
     "times are in order" in {
 
-      implicit val timeGenerator = TestTimeGenerator.Incremental()
+      implicit val testTimer = TestTimer.Incremental()
 
       runThis(1000.times) {
         val key = randomStringOption
 
         val output = randomFunctionOutput()
 
-        val oldKeyValue = randomFunctionKeyValue(key = key, output)(eitherOne(timeGenerator, TestTimeGenerator.Empty))
+        val oldKeyValue = randomFunctionKeyValue(key = key, output)(eitherOne(testTimer, TestTimer.Empty))
 
-        val newKeyValue = randomUpdateKeyValue(key = key)(eitherOne(timeGenerator, TestTimeGenerator.Empty))
+        val newKeyValue = randomUpdateKeyValue(key = key)(eitherOne(testTimer, TestTimer.Empty))
 
         //          println(s"oldKeyValue: $oldKeyValue")
         //          println(s"newKeyValue: $newKeyValue")

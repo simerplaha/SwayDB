@@ -20,7 +20,7 @@
 package swaydb.core.data
 
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.core.{TestData, TestTimeGenerator}
+import swaydb.core.{TestData, TestTimer}
 import swaydb.core.TestData._
 import swaydb.serializers.Default._
 import swaydb.serializers._
@@ -29,7 +29,7 @@ class TransientSpec extends WordSpec with Matchers {
 
   val keyValueCount = 100
 
-  implicit def timeGenerator: TestTimeGenerator = TestTimeGenerator.random
+  implicit def testTimer: TestTimer = TestTimer.random
 
   "Transient" should {
     "be iterable" in {

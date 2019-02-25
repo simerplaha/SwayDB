@@ -23,7 +23,7 @@ import org.scalatest.WordSpec
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.{TestData, TestTimeGenerator}
+import swaydb.core.{TestData, TestTimer}
 import swaydb.core.IOAssert._
 import swaydb.core.data.Transient
 import swaydb.core.data.Value.{FromValue, RangeValue}
@@ -42,7 +42,7 @@ class RangeEntryReaderWriterSpec extends WordSpec {
     runThisParallel(1000.times) {
       val fromKey = randomIntMax()
       val toKey = randomIntMax() max (fromKey + 100)
-      val entry = randomRangeKeyValue(from = fromKey, to = toKey, randomFromValueOption()(TestTimeGenerator.random), randomRangeValue()(TestTimeGenerator.random)).toTransient
+      val entry = randomRangeKeyValue(from = fromKey, to = toKey, randomFromValueOption()(TestTimer.random), randomRangeValue()(TestTimer.random)).toTransient
       //      println("write: " + entry)
 
       val read = EntryReader.read(Reader(entry.indexEntryBytes), entry.valueEntryBytes.map(Reader(_)).getOrElse(Reader.empty), 0, 0, 0, None).assertGet
@@ -62,8 +62,8 @@ class RangeEntryReaderWriterSpec extends WordSpec {
         Transient.Range[FromValue, RangeValue](
           fromKey = fromKey,
           toKey = toKey,
-          fromValue = randomFromValueOption()(TestTimeGenerator.random),
-          rangeValue = randomRangeValue()(TestTimeGenerator.random),
+          fromValue = randomFromValueOption()(TestTimer.random),
+          rangeValue = randomRangeValue()(TestTimer.random),
           falsePositiveRate = TestData.falsePositiveRate,
           previous = Some(previous)
         )

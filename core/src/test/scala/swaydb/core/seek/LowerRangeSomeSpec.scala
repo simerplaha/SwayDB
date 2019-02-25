@@ -28,7 +28,7 @@ import swaydb.core.TestData._
 import swaydb.core.IOAssert._
 import swaydb.core.data.{Time, Value}
 import swaydb.core.merge.FixedMerger
-import swaydb.core.{TestData, TestTimeGenerator}
+import swaydb.core.{TestData, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
@@ -41,7 +41,7 @@ class LowerRangeSomeSpec extends WordSpec with Matchers with MockFactory {
   implicit val functionStore = TestData.functionStore
 
   "return Some" when {
-    implicit val timeGenerator = TestTimeGenerator.Empty
+    implicit val testTimer = TestTimer.Empty
 
     //  2<- 10
     //0  -  10
@@ -49,7 +49,7 @@ class LowerRangeSomeSpec extends WordSpec with Matchers with MockFactory {
     "1" in {
       runThis(100.times) {
 
-        implicit val timeGenerator = TestTimeGenerator.Empty
+        implicit val testTimer = TestTimer.Empty
 
         (5 to 10).reverse foreach {
           key =>
@@ -81,7 +81,7 @@ class LowerRangeSomeSpec extends WordSpec with Matchers with MockFactory {
     "1a" in {
       runThis(100.times) {
 
-        implicit val timeGenerator = TestTimeGenerator.Empty
+        implicit val testTimer = TestTimer.Empty
 
         implicit val current = mock[CurrentWalker]
         implicit val next = mock[NextWalker]
@@ -114,7 +114,7 @@ class LowerRangeSomeSpec extends WordSpec with Matchers with MockFactory {
     "2" in {
       runThis(100.times) {
 
-        implicit val timeGenerator = TestTimeGenerator.Empty
+        implicit val testTimer = TestTimer.Empty
 
         implicit val current = mock[CurrentWalker]
         implicit val next = mock[NextWalker]
@@ -142,7 +142,7 @@ class LowerRangeSomeSpec extends WordSpec with Matchers with MockFactory {
     "3" in {
       runThis(100.times) {
 
-        implicit val timeGenerator = TestTimeGenerator.Empty
+        implicit val testTimer = TestTimer.Empty
 
         (10 to 15).reverse foreach {
           key =>
@@ -173,7 +173,7 @@ class LowerRangeSomeSpec extends WordSpec with Matchers with MockFactory {
     "4" in {
       runThis(100.times) {
 
-        implicit val timeGenerator = TestTimeGenerator.Empty
+        implicit val testTimer = TestTimer.Empty
 
         (10 to 15).reverse foreach {
           key =>
@@ -204,7 +204,7 @@ class LowerRangeSomeSpec extends WordSpec with Matchers with MockFactory {
     "5" in {
       runThis(100.times) {
 
-        implicit val timeGenerator = TestTimeGenerator.Empty
+        implicit val testTimer = TestTimer.Empty
 
         (10 to 15).reverse foreach {
           key =>

@@ -22,7 +22,7 @@ package swaydb.core.segment.format.a
 import scala.collection.mutable
 import scala.concurrent.duration._
 import swaydb.core.CommonAssertions._
-import swaydb.core.{TestBase, TestTimeGenerator}
+import swaydb.core.{TestBase, TestTimer}
 import swaydb.core.TestData._
 import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data.{KeyValue, Memory, Transient, Value}
@@ -73,7 +73,7 @@ class SegmentAssignerSpec3 extends SegmentAssignerSpec {
 
 sealed trait SegmentAssignerSpec extends TestBase {
   implicit val keyOrder = KeyOrder.default
-  implicit val timeGenerator: TestTimeGenerator = TestTimeGenerator.Empty
+  implicit val testTimer: TestTimer = TestTimer.Empty
 
   def keyValueCount: Int
 

@@ -22,7 +22,7 @@ package swaydb.core.map.serializer
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.core.data.Value
 import swaydb.core.data.Value.{FromValue, RangeValue}
-import swaydb.core.{CommonAssertions, TestTimeGenerator, IOAssert}
+import swaydb.core.{CommonAssertions, TestTimer, IOAssert}
 import swaydb.data.slice.Slice
 import swaydb.core.TestData._
 import swaydb.core.CommonAssertions._
@@ -59,7 +59,7 @@ class RangeValueSerializerSpec extends WordSpec with Matchers {
   "Serialize range values" in {
 
     runThis(1000.times) {
-      implicit val timeGenerator = TestTimeGenerator.random
+      implicit val testTimer = TestTimer.random
 
       randomRangeValue() match {
         case rangeValue: Value.Remove =>
@@ -104,7 +104,7 @@ class RangeValueSerializerSpec extends WordSpec with Matchers {
   "Serialize from values and range values" in {
 
     runThis(1000.times) {
-      implicit val timeGenerator = TestTimeGenerator.random
+      implicit val testTimer = TestTimer.random
 
       (randomFromValue(), randomRangeValue()) match {
         case (fromValue: Value.Remove, rangeValue: Value.Remove) => doAssert(fromValue, rangeValue)

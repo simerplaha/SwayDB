@@ -29,7 +29,7 @@ import swaydb.core.TestData._
 import swaydb.core.data.{Memory, Transient}
 import swaydb.core.io.file.IOEffect
 import swaydb.core.util.Benchmark
-import swaydb.core.{TestBase, TestTimeGenerator}
+import swaydb.core.{TestBase, TestTimer}
 import swaydb.data.compaction.Throttle
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -64,7 +64,7 @@ class LevelZeroSpec3 extends LevelZeroSpec {
 sealed trait LevelZeroSpec extends TestBase with MockFactory with Benchmark {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
-  implicit val timeGenerator: TestTimeGenerator = TestTimeGenerator.Empty
+  implicit val testTimer: TestTimer = TestTimer.Empty
   implicit val timeOrder = TimeOrder.long
 
   import swaydb.core.map.serializer.LevelZeroMapEntryWriter._

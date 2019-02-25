@@ -20,7 +20,7 @@
 package swaydb.core.group.compression
 
 import swaydb.compression.CompressionInternal
-import swaydb.core.{TestBase, TestData, TestTimeGenerator}
+import swaydb.core.{TestBase, TestData, TestTimer}
 import swaydb.core.data._
 import swaydb.data.slice.Slice
 import swaydb.data.order.KeyOrder
@@ -40,7 +40,7 @@ import scala.util.Random
 class GroupCompressorSpec extends TestBase {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
-  implicit def timeGenerator: TestTimeGenerator = TestTimeGenerator.random
+  implicit def testTimer: TestTimer = TestTimer.random
 
   val keyValueCount = 100
 

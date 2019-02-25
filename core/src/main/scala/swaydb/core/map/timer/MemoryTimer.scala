@@ -17,19 +17,22 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.map
+package swaydb.core.map.timer
 
 import java.util.concurrent.atomic.AtomicLong
 import swaydb.core.data.Time
+import swaydb.data.io.IO
 
-object Timer {
-  def apply(start: Long): Timer =
-    new Timer(new AtomicLong(start))
+private[core] object MemoryTimer {
+  def apply(): MemoryTimer =
+    new MemoryTimer(new AtomicLong(0))
 }
 
-class Timer(time: AtomicLong) {
+private[core] class MemoryTimer(time: AtomicLong) extends Timer {
 
-  def next =
+  def next: Time =
     Time(time.incrementAndGet())
 
+  override def close: IO[Unit] =
+    IO.unit
 }

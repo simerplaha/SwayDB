@@ -33,7 +33,7 @@ import swaydb.core.data._
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.segment.Segment
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
-import swaydb.core.{TestBase, TestData, TestTimeGenerator}
+import swaydb.core.{TestBase, TestData, TestTimer}
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -72,7 +72,7 @@ class SegmentReadSpec3 extends SegmentReadSpec {
 sealed trait SegmentReadSpec extends TestBase with ScalaFutures with PrivateMethodTester {
 
   implicit val keyOrder = KeyOrder.default
-  implicit def timeGenerator: TestTimeGenerator = TestTimeGenerator.random
+  implicit def testTimer: TestTimer = TestTimer.random
 
   def keyValuesCount: Int
 
@@ -614,7 +614,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures with PrivateMeth
 
   "tempMinMaxKeyValues" should {
     "return key-values with Segments min and max keys only" in {
-      implicit def timeGenerator: TestTimeGenerator = TestTimeGenerator.Empty
+      implicit def testTimer: TestTimer = TestTimer.Empty
 
       val segment1 = TestSegment(randomizedKeyValues(keyValuesCount)).assertGet
       val segment2 = TestSegment(randomizedKeyValues(keyValuesCount, startId = Some(segment1.maxKey.maxKey.read[Int] + 1))).assertGet

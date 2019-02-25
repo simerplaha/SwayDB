@@ -71,8 +71,8 @@ sealed trait LevelReadSomeSpec extends TestBase with MockFactory with Benchmark 
       runThisParallel(times) {
         assertLevel(
           level0KeyValues =
-            (_, _, timeGenerator) =>
-              randomPutKeyValues(keyValuesCount)(timeGenerator),
+            (_, _, testTimer) =>
+              randomPutKeyValues(keyValuesCount)(testTimer),
 
           assertLevel0 =
             (level0KeyValues, _, _, level) =>
@@ -89,18 +89,18 @@ sealed trait LevelReadSomeSpec extends TestBase with MockFactory with Benchmark 
 
         assertLevel(
           level0KeyValues =
-            (level1KeyValues, level2KeyValues, timeGenerator) => {
+            (level1KeyValues, level2KeyValues, testTimer) => {
               val puts = unexpiredPuts(level2KeyValues ++ level1KeyValues)
-              randomUpdate(puts, updatedValue, updatedDeadline, false)(timeGenerator)
+              randomUpdate(puts, updatedValue, updatedDeadline, false)(testTimer)
             },
 
           level1KeyValues =
-            (level2KeyValues, timeGenerator) =>
-              randomizedKeyValues(keyValuesCount, startId = Some(maxKey(Slice(level2KeyValues.last.toTransient)).maxKey.readInt() + 10000))(timeGenerator).toMemory,
+            (level2KeyValues, testTimer) =>
+              randomizedKeyValues(keyValuesCount, startId = Some(maxKey(Slice(level2KeyValues.last.toTransient)).maxKey.readInt() + 10000))(testTimer).toMemory,
 
           level2KeyValues =
-            timeGenerator =>
-              randomizedKeyValues(keyValuesCount, startId = Some(0))(timeGenerator).toMemory,
+            testTimer =>
+              randomizedKeyValues(keyValuesCount, startId = Some(0))(testTimer).toMemory,
 
           assertLevel0 =
             (level0KeyValues, level1KeyValues, level2KeyValues, level) =>

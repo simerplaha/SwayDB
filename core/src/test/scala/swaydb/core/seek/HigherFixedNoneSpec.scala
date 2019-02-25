@@ -26,7 +26,7 @@ import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.IOAssert._
 
-import swaydb.core.{TestData, TestTimeGenerator}
+import swaydb.core.{TestData, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
@@ -39,7 +39,7 @@ class HigherFixedNoneSpec extends WordSpec with Matchers with MockFactory with O
   implicit val functionStore = TestData.functionStore
 
   "return None" when {
-    implicit val timeGenerator = TestTimeGenerator.Decremental()
+    implicit val testTimer = TestTimer.Decremental()
 
     //   0
     //   x
@@ -115,7 +115,7 @@ class HigherFixedNoneSpec extends WordSpec with Matchers with MockFactory with O
 
       runThis(100.times) {
 
-        implicit val timeGenerator = TestTimeGenerator.Empty
+        implicit val testTimer = TestTimer.Empty
 
         implicit val current = mock[CurrentWalker]
         implicit val next = mock[NextWalker]

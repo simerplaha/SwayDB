@@ -24,7 +24,7 @@ import scala.util.Random
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.TestTimeGenerator
+import swaydb.core.TestTimer
 import swaydb.core.IOAssert._
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.entry.reader.EntryReader
@@ -39,7 +39,7 @@ class FixedEntryReaderWriterSpec extends WordSpec {
 
   "write and read single Fixed entry" in {
     runThisParallel(1000.times) {
-      implicit val timeGenerator = TestTimeGenerator.random
+      implicit val testTimer = TestTimer.random
       val entry = randomFixedKeyValue(key = randomIntMax(), value = randomStringOption).toTransient
       //      println("write: " + entry)
 
@@ -51,7 +51,7 @@ class FixedEntryReaderWriterSpec extends WordSpec {
 
   "write and read two fixed entries" in {
     runThisParallel(1000.times) {
-      implicit val timeGenerator = TestTimeGenerator.random
+      implicit val testTimer = TestTimer.random
 
       val keyValues = randomizedKeyValues(count = 1, addRandomGroups = false)
       val previous = keyValues.head

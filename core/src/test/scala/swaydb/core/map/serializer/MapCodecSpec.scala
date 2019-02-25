@@ -22,7 +22,7 @@ package swaydb.core.map.serializer
 import java.util.concurrent.ConcurrentSkipListMap
 import swaydb.core.data._
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
-import swaydb.core.{TestBase, TestLimitQueues, TestTimeGenerator}
+import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
@@ -36,7 +36,7 @@ import swaydb.core.io.file.DBFile
 class MapCodecSpec extends TestBase {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
-  implicit def timeGenerator: TestTimeGenerator = TestTimeGenerator.Empty
+  implicit def testTimer: TestTimer = TestTimer.Empty
   implicit val maxSegmentsOpenCacheImplicitLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
   implicit val keyValuesLimitImplicitLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long

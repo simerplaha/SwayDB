@@ -170,7 +170,6 @@ private[core] object Level extends LazyLogging {
                   ).init
                 )
             }
-
         }
     }
   }

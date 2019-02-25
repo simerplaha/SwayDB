@@ -20,7 +20,7 @@
 package swaydb.core.segment.merge
 
 import org.scalatest.WordSpec
-import swaydb.core.{CommonAssertions, TestTimeGenerator}
+import swaydb.core.{CommonAssertions, TestTimer}
 import swaydb.core.data.{Memory, Value}
 import swaydb.data.slice.Slice
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -39,7 +39,7 @@ class SegmentMerger_Range_Into_Range extends WordSpec {
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit def groupingStrategy = randomGroupingStrategyOption(randomNextInt(1000))
 
-  implicit val timeGenerator = TestTimeGenerator.Empty
+  implicit val testTimer = TestTimer.Empty
 
   "Range into Range" when {
     "1" in {

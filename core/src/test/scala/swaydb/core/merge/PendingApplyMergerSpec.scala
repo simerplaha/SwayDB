@@ -22,7 +22,7 @@ package swaydb.core.merge
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.data.io.IO
 import swaydb.core.data.Memory
-import swaydb.core.{CommonAssertions, TestTimeGenerator}
+import swaydb.core.{CommonAssertions, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.serializers.Default._
 import swaydb.serializers._
@@ -41,7 +41,7 @@ class PendingApplyMergerSpec extends WordSpec with Matchers {
   "Merging PendingApply into any other fixed key-value" when {
     "times are in order" in {
 
-      implicit val timeGenerator = TestTimeGenerator.Incremental()
+      implicit val testTimer = TestTimer.Incremental()
 
       runThis(1000.times) {
         val key = randomStringOption
@@ -70,7 +70,7 @@ class PendingApplyMergerSpec extends WordSpec with Matchers {
 
       "always return old key-value" in {
 
-        implicit val timeGenerator = TestTimeGenerator.Incremental()
+        implicit val testTimer = TestTimer.Incremental()
 
         runThis(1000.times) {
           val key = randomStringOption

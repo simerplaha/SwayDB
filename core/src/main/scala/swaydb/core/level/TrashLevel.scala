@@ -159,4 +159,6 @@ private[core] object TrashLevel extends LevelRef {
     IO.unit
 
   override def levelNumber: Long = -1
+
+  override def inMemory: Boolean = true
 }

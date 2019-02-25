@@ -21,7 +21,7 @@ package swaydb.core.merge
 
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.core.data._
-import swaydb.core.{CommonAssertions, TestTimeGenerator, IOAssert}
+import swaydb.core.{CommonAssertions, TestTimer, IOAssert}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
@@ -41,10 +41,10 @@ class FunctionMerger_Remove_Spec extends WordSpec with Matchers {
     "times are in order" should {
       "always return new key-value" in {
         runThis(1000.times) {
-          implicit val timeGenerator = eitherOne(TestTimeGenerator.Incremental(), TestTimeGenerator.Empty)
+          implicit val testTimer = eitherOne(TestTimer.Incremental(), TestTimer.Empty)
           val key = randomBytesSlice()
 
-          val oldKeyValue = randomRemoveKeyValue(key = key)(timeGenerator)
+          val oldKeyValue = randomRemoveKeyValue(key = key)(testTimer)
 
           val functionOutput = randomFunctionOutput()
           val newKeyValue = createFunction(key = key, randomRequiresKeyOnlyWithOptionDeadlineFunction(functionOutput))
@@ -90,12 +90,12 @@ class FunctionMerger_Remove_Spec extends WordSpec with Matchers {
     "times are in order" should {
       "always return new key-value" in {
 
-        implicit val timeGenerator = TestTimeGenerator.Incremental()
+        implicit val testTimer = TestTimer.Incremental()
 
         runThis(1000.times) {
           val key = randomBytesSlice()
 
-          val oldKeyValue = randomRemoveKeyValue(key = key)(timeGenerator)
+          val oldKeyValue = randomRemoveKeyValue(key = key)(testTimer)
 
           val functionOutput = randomFunctionOutput()
 

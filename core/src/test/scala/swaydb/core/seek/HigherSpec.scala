@@ -25,7 +25,7 @@ import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.IOAssert._
 import swaydb.core.data.Value
-import swaydb.core.{TestData, TestTimeGenerator}
+import swaydb.core.{TestData, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.serializers.Default._
 import swaydb.serializers._
@@ -35,7 +35,7 @@ class HigherSpec extends WordSpec with Matchers {
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder = TimeOrder.long
   implicit val functionStore = TestData.functionStore
-  implicit val time = TestTimeGenerator.Empty
+  implicit val time = TestTimer.Empty
 
   "higherFromValue" in {
     runThis(100.times) {

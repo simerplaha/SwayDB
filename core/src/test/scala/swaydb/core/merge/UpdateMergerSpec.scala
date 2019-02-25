@@ -20,7 +20,7 @@
 package swaydb.core.merge
 
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.core.{CommonAssertions, TestTimeGenerator}
+import swaydb.core.{CommonAssertions, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.serializers.Default._
 import swaydb.serializers._
@@ -41,7 +41,7 @@ class UpdateMergerSpec extends WordSpec with Matchers {
 
       "always return old key-value" in {
 
-        implicit val timeGenerator = TestTimeGenerator.Incremental()
+        implicit val testTimer = TestTimer.Incremental()
 
         runThis(1000.times) {
           val key = randomStringOption

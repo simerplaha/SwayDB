@@ -19,7 +19,7 @@
 
 package swaydb.core.map
 
-import swaydb.core.{TestBase, TestLimitQueues, TestTimeGenerator}
+import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
 import swaydb.core.data.Memory
 import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.io.file.IOEffect._
@@ -40,7 +40,7 @@ class MapsStressSpec extends TestBase {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
-  implicit def timeGenerator: TestTimeGenerator = TestTimeGenerator.Empty
+  implicit def testTimer: TestTimer = TestTimer.Empty
   implicit val fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
 
   import swaydb.core.map.serializer.LevelZeroMapEntryReader._

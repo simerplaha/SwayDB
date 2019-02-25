@@ -35,7 +35,7 @@ import swaydb.core.segment.Segment
 import swaydb.core.util.{Extension, IDGenerator}
 import swaydb.core.io.file.IOEffect._
 import swaydb.core.util.PipeOps._
-import swaydb.core.{TestBase, TestData, TestLimitQueues, TestTimeGenerator}
+import swaydb.core.{TestBase, TestData, TestLimitQueues, TestTimer}
 import swaydb.data.compaction.Throttle
 import swaydb.data.config.Dir
 import swaydb.data.slice.Slice
@@ -83,7 +83,7 @@ class LevelWriteSpec3 extends LevelWriteSpec {
 sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
-  implicit def timeGenerator: TestTimeGenerator = TestTimeGenerator.Empty
+  implicit def testTimer: TestTimer = TestTimer.Empty
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   val keyValuesCount = 100
 

@@ -19,7 +19,7 @@
 
 package swaydb.core.segment.merge
 
-import swaydb.core.{TestBase, TestData, TestTimeGenerator}
+import swaydb.core.{TestBase, TestData, TestTimer}
 import swaydb.core.data._
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.io.reader.Reader
@@ -39,7 +39,7 @@ import swaydb.core.IOAssert._
 class SegmentGrouperSpec extends TestBase {
 
   implicit val keyOrder = KeyOrder.default
-  implicit def timeGenerator: TestTimeGenerator = TestTimeGenerator.Empty
+  implicit def testTimer: TestTimer = TestTimer.Empty
   implicit def groupingStrategy: Option[KeyValueGroupingStrategyInternal] = None
   val keyValueCount = 100
 

@@ -25,7 +25,7 @@ import swaydb.core.io.reader.Reader
 import swaydb.core.map.serializer._
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment
-import swaydb.core.{TestBase, TestLimitQueues, TestTimeGenerator}
+import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -43,7 +43,7 @@ import swaydb.core.io.file.DBFile
 class MapEntrySpec extends TestBase {
 
   implicit val keyOrder = KeyOrder.default
-  implicit def timeGenerator: TestTimeGenerator = TestTimeGenerator.Empty
+  implicit def testTimer: TestTimer = TestTimer.Empty
   implicit val maxSegmentsOpenCacheImplicitLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
   implicit val keyValuesLimitImplicitLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter
   implicit def compression: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(randomNextInt(1000))
