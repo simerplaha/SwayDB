@@ -93,7 +93,7 @@ private[core] object PersistentTimer {
                     new PersistentTimer(
                       mod = mod,
                       startID = 0,
-                      map = map,
+                      map = map
                     )
                   }
                 else
