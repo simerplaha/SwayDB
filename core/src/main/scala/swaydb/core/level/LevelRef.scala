@@ -30,6 +30,7 @@ import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.slice.Slice
 
 private[core] trait LevelRef {
+
   def inMemory: Boolean
 
   def paths: PathsDistributor
@@ -140,6 +141,7 @@ object LevelRef {
         level.mmapSegmentsOnRead || level.mmapSegmentsOnWrite
 
       case _: LevelZero =>
+        //not true. LevelZero can also be mmap.
         false
     }
 }
