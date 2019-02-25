@@ -288,7 +288,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
               throttle: LevelMeter => Throttle = testDefaultThrottle,
               bloomFilterFalsePositiveRate: Double = TestData.falsePositiveRate,
               compressDuplicateValues: Boolean = true,
-              deleteSegmentsEventually: Boolean = true)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+              deleteSegmentsEventually: Boolean = false)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                         keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
                                                         fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter,
                                                         timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,

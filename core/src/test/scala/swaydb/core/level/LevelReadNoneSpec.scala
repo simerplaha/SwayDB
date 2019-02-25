@@ -63,7 +63,7 @@ sealed trait LevelReadNoneSpec extends TestBase with MockFactory with Benchmark 
 
   val keyValuesCount = 1000
 
-  val times = 5
+  val times = 2
 
   "return None" when {
 

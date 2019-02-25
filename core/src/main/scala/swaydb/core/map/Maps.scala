@@ -423,10 +423,15 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
   def map: Map[K, V] =
     currentMap
 
-  def close: IO[Unit] =
+  def close: IO[Unit] = {
+    timer.close onFailureSideEffect {
+      failure =>
+        logger.error("Failed to close timer file", failure.exception)
+    }
     (Seq(currentMap) ++ maps.asScala)
       .foreachIO(f = _.close(), failFast = false)
       .getOrElse(IO.unit)
+  }
 
   def getMeter =
     Level0Meter(fileSize, currentMap.fileSize, maps.size() + 1)

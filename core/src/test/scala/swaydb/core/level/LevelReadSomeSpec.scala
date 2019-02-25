@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Simer Plaha (@simerplaha) 
+ * Copyright (c) 2019 Simer Plaha (@simerplaha)
  *
  * This file is a part of SwayDB.
  *
@@ -63,7 +63,7 @@ sealed trait LevelReadSomeSpec extends TestBase with MockFactory with Benchmark 
 
   val keyValuesCount = 5000
 
-  val times = 5
+  val times = 2
 
   "return Put" when {
 

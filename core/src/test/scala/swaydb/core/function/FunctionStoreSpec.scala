@@ -32,7 +32,7 @@ class FunctionStoreSpec extends FlatSpec with Matchers {
 
     (1 to 100) foreach {
       i =>
-        val function = SwayFunction.Key(key => SwayFunctionOutput.Update(Some(i), None))
+        val function = SwayFunction.Key(_ => SwayFunctionOutput.Update(Some(i), None))
 
         store.put(i, function)
         store.exists(i) should be

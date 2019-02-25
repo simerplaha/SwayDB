@@ -218,7 +218,8 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory with Benchmark {
           zero.put(keyValue.key, keyValue.getOrFetchValue).assertGet
       }
 
-      assertGet(keyValues, zero)
+      if (unexpiredPuts(keyValues).nonEmpty)
+        zero.head.safeGetBlocking.get shouldBe defined
 
       keyValues foreach {
         keyValue =>

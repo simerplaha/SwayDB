@@ -71,10 +71,10 @@ private[core] object LevelZero extends LazyLogging {
       storage match {
         case Level0Storage.Persistent(mmap, databaseDirectory, recovery) =>
           val timerDir = databaseDirectory.resolve("0").resolve("timer")
+          IOEffect createDirectoriesIfAbsent timerDir
           Timer.persistent(timerDir, mmap, 100000, 1.mb) flatMap {
             implicit timer =>
-              val path = databaseDirectory.resolve(0.toString)
-              IOEffect createDirectoriesIfAbsent path
+              val path = databaseDirectory.resolve("0")
               logger.info("{}: Acquiring lock.", path)
               val lockFile = path.resolve("LOCK")
               IOEffect createFileIfAbsent lockFile

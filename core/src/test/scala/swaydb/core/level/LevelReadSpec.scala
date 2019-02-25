@@ -71,7 +71,7 @@ sealed trait LevelReadSpec extends TestBase with MockFactory with Benchmark {
 
   "Level.mightContain" should {
     "return true for key-values that exists or else false (bloom filter test on reboot)" in {
-      val keyValues = randomPutKeyValues(keyValuesCount)
+      val keyValues = randomPutKeyValues(keyValuesCount, addRandomPutDeadlines = false)
 
       def assert(level: Level) = {
         keyValues foreach {
