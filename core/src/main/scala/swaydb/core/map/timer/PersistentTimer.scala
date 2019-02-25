@@ -70,25 +70,23 @@ private[core] object PersistentTimer {
       map =>
         map.headValue() match {
           case Some(usedID) =>
-            usedID.readLongUnsigned() flatMap {
-              nextID =>
-                map.write(MapEntry.Put(Timer.defaultKey, Slice.writeLongUnsigned(nextID + mod))) flatMap {
-                  wrote =>
-                    if (wrote)
-                      IO {
-                        new PersistentTimer(
-                          mod = mod,
-                          startID = nextID,
-                          map = map
-                        )
-                      }
-                    else
-                      IO.Failure(IO.Error.Fatal(new Exception("Failed to initialise PersistentTimer.")))
-                }
+            val startId = usedID.readLong()
+            map.write(MapEntry.Put(Timer.defaultKey, Slice.writeLong(startId + mod))) flatMap {
+              wrote =>
+                if (wrote)
+                  IO {
+                    new PersistentTimer(
+                      mod = mod,
+                      startID = startId,
+                      map = map
+                    )
+                  }
+                else
+                  IO.Failure(IO.Error.Fatal(new Exception("Failed to initialise PersistentTimer.")))
             }
 
           case None =>
-            map.write(MapEntry.Put(Timer.defaultKey, Slice.writeLongUnsigned(mod))) flatMap {
+            map.write(MapEntry.Put(Timer.defaultKey, Slice.writeLong(mod))) flatMap {
               wrote =>
                 if (wrote)
                   IO {
@@ -113,13 +111,14 @@ private[core] class PersistentTimer(mod: Long,
 
   private val time = new AtomicLong(startID)
 
-  override def next: Time = {
-    val nextTime = time.incrementAndGet()
-    if (nextTime % mod == 0) //todo IO needs to be returned
-      map.write(MapEntry.Put(Timer.defaultKey, Slice.writeLongUnsigned(nextTime + mod)))
+  override def next: Time =
+    synchronized {
+      val nextTime = time.incrementAndGet()
+      if (nextTime % mod == 0) //todo IO needs to be returned
+        map.write(MapEntry.Put(Timer.defaultKey, Slice.writeLong(nextTime + mod)))
 
-    Time(nextTime)
-  }
+      Time(nextTime)
+    }
   override def close: IO[Unit] =
     map.close()
 }
