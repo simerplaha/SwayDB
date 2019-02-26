@@ -33,7 +33,7 @@ private[swaydb] class BusyBoolean(@volatile private var busy: Boolean,
 }
 
 private[swaydb] object BusyBoolean {
-  private val blockingTimeout = 30.seconds.toMillis
+  private val blockingTimeout = 5.seconds.toMillis
   private val futureUnit = Future.successful(())
 
   val notBusy = BusyBoolean(false)
@@ -43,12 +43,7 @@ private[swaydb] object BusyBoolean {
 
   def blockUntilFree(boolean: BusyBoolean): Unit =
     boolean.synchronized {
-      try {
-        while (boolean.busy) boolean.wait(blockingTimeout)
-      } catch {
-        case _: InterruptedException =>
-          blockUntilFree(boolean)
-      }
+      while (boolean.busy) boolean.wait(blockingTimeout)
     }
 
   private def notifyBlocking(boolean: BusyBoolean): Unit = {

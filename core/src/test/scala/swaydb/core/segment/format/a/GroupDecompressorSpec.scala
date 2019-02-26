@@ -76,15 +76,8 @@ class GroupDecompressorSpec extends TestBase {
         readKeyValues should have size 1
         val persistentGroup = readKeyValues.head.asInstanceOf[Persistent.Group]
 
-        //concurrently with 100 threads read randomly all key-values from the Group.
+        //concurrently with 100 threads read randomly all key-values from the Group. Hammer away!
         runThisParallel(100.times) {
-
-          /**
-            * Reduce the number of retries in [[swaydb.core.group.compression.GroupDecompressor.maxTimesToIODecompress]]
-            *
-            * Also disable pattern matching for exceptions relating to Groups from [[swaydb.core.util.ExceptionUtil.logFailure]]
-            * to see Retries' log outputs by this test.
-            */
           eitherOne(
             left = Random.shuffle(unzipGroups(keyValues).toList),
             right = unzipGroups(keyValues)
@@ -108,7 +101,7 @@ class GroupDecompressorSpec extends TestBase {
 
         println("Done reading.")
         //cache should eventually be empty.
-        eventual(10.seconds) {
+        eventual(20.seconds) {
           persistentGroup.segmentCache.isCacheEmpty shouldBe true
         }
         println("Cache is empty")
