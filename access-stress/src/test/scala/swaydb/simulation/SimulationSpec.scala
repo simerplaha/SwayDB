@@ -24,19 +24,19 @@ import com.typesafe.scalalogging.LazyLogging
 import java.util.concurrent.atomic.AtomicInteger
 import org.scalatest.WordSpec
 import scala.collection.mutable
-import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
 import scala.util.{Random, Try}
+import swaydb.Apply
 import swaydb.configs.level.DefaultGroupingStrategy
 import swaydb.core.TestBase
+import swaydb.core.TestData._
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.config.MMAP
+import swaydb.serializers.Default._
 import swaydb.simulation.Domain._
 import swaydb.simulation.ProductCommand._
-import swaydb.core.TestData._
-import RemoveAsserted._
-import swaydb.serializers._
-import swaydb.serializers.Default._
+import swaydb.simulation.RemoveAsserted._
 
 sealed trait RemoveAsserted
 object RemoveAsserted {
@@ -87,6 +87,7 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
   def db: swaydb.Map[Long, Domain]
 
   val ids = new AtomicInteger(0)
+  val functionIDs = new AtomicInteger(0)
 
   case class UserState(userId: Int,
                        var nextProductId: Long,
@@ -151,7 +152,7 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
             self.schedule(AssertState(removeAsserted = RemoveAsserted.RemoveNone), 3.seconds)
 
           //also schedule a Create to repeatedly keep creating more Products by this User.
-          self.schedule(Create, 3.seconds)
+          self.schedule(Create, 1.second)
           //                  self ! Create
           //reset the counter as the assertion is triggered.
           state.productsCreatedCountBeforeAssertion = 0
@@ -185,7 +186,23 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
           //update a random single product
           val (productId, (product, deadline)) = randomCreatedProducts.head
           val updatedProduct = product.copy(name = product.name + "-" + s"updated_${System.nanoTime()}")
-          db.update(productId, updatedProduct).get
+
+          if (randomBoolean)
+            db.update(productId, updatedProduct).get
+          else {
+            val functionID =
+              db.registerFunction(
+                functionID = functionIDs.incrementAndGet(),
+                function =
+                  (key, _) =>
+                    if (key == productId)
+                      Apply.Update(updatedProduct)
+                    else
+                      Apply.Nothing
+              )
+            db.applyFunction(productId, functionID)
+          }
+
           state.products.put(productId, (updatedProduct, deadline))
         }
       case Expire =>
@@ -198,7 +215,20 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
           //update a random single product
           val (productId, (product, deadline)) = randomCreatedProducts.head
           val newDeadline = deadline.map(_ - 1.second) getOrElse 1.hour.fromNow
-          db.expire(productId, newDeadline).get
+
+          if (randomBoolean)
+            db.expire(productId, newDeadline).get
+          else {
+            val functionID =
+              db.registerFunction(
+                functionID = functionIDs.incrementAndGet(),
+                function =
+                  (_, _) =>
+                    Apply.Expire(newDeadline)
+              )
+            db.applyFunction(productId, functionID)
+          }
+
           state.products.put(productId, (product, Some(newDeadline)))
         }
 
@@ -283,7 +313,19 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
 
           //state.updateRangeCount indicates the number of times UpdateRang is invoked on the key-value.
           val updatedProduct = Product(s"update_range_${System.nanoTime()}")
-          db.update(from, to, updatedProduct).get
+
+          if (randomBoolean)
+            db.update(from, to, updatedProduct).get
+          else {
+            val functionID =
+              db.registerFunction(
+                functionID = functionIDs.incrementAndGet(),
+                function =
+                  (_, _) =>
+                    Apply.Update(updatedProduct)
+              )
+            db.applyFunction(from, to, functionID)
+          }
 
           (from to to) foreach {
             updatedProductId =>
@@ -310,7 +352,18 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
             else
               1.hour.fromNow
 
-          db.expire(from, to, newDeadline).get
+          if (randomBoolean)
+            db.expire(from, to, newDeadline).get
+          else {
+            val functionID =
+              db.registerFunction(
+                functionID = functionIDs.incrementAndGet(),
+                function =
+                  (_, _) =>
+                    Apply.Expire(newDeadline)
+              )
+            db.applyFunction(from, to, functionID)
+          }
 
           (from to to) foreach {
             updatedProductId =>
@@ -329,7 +382,20 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
 
           //delete random single product
           val (productToRemoveId, productToRemove) = randomCreatedProducts.head
-          db.remove(productToRemoveId).get
+
+          if (randomBoolean)
+            db.remove(productToRemoveId).get
+          else {
+            val functionID =
+              db.registerFunction(
+                functionID = functionIDs.incrementAndGet(),
+                function =
+                  (_, _) =>
+                    Apply.Remove
+              )
+            db.applyFunction(productToRemoveId, functionID)
+          }
+
           state.products remove productToRemoveId
           state.removedProducts add productToRemoveId
         }
@@ -367,7 +433,18 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
             System.exit(0)
           }
 
-          db.remove(from, to).get
+          if (randomBoolean)
+            db.remove(from, to).get
+          else {
+            val functionID =
+              db.registerFunction(
+                functionID = functionIDs.incrementAndGet(),
+                function =
+                  (_, _) =>
+                    Apply.Remove
+              )
+            db.applyFunction(from, to, functionID)
+          }
 
           (from to to) foreach {
             removedProductId =>
@@ -450,7 +527,7 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
     }
 
     "concurrently Create, Update, Read & Delete (CRUD) Products" in {
-      val maxUsers: Int = 100
+      val maxUsers: Int = 10
       val runFor = 10.minutes
 
       (1 to maxUsers) map { //create Users in the database

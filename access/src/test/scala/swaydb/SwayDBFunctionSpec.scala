@@ -19,7 +19,6 @@
 
 package swaydb
 
-import scala.concurrent.duration._
 import swaydb.core.IOAssert._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
