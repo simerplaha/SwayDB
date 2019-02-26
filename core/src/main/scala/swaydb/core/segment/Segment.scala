@@ -352,14 +352,13 @@ private[core] object Segment extends LazyLogging {
               segmentSize = segment.segmentSize,
               nearestExpiryDeadline = segment.nearestExpiryDeadline,
               removeDeletes = removeDeletes
-            ) recoverWith {
+            ) onFailureSideEffect {
               case exception =>
                 logger.error("Failed to copyToPersist Segment {}", segment.path, exception)
-                IOEffect.deleteIfExists(nextPath).failed foreach {
+                IOEffect.deleteIfExists(nextPath) onFailureSideEffect {
                   exception =>
                     logger.error("Failed to delete copied persistent Segment {}", segment.path, exception)
                 }
-                IO.Failure(exception)
             }
         } map {
           segment =>
@@ -418,7 +417,7 @@ private[core] object Segment extends LazyLogging {
             (segments: Slice[Segment], _: IO.Failure[Slice[Segment]]) =>
               segments foreach {
                 segmentToDelete =>
-                  segmentToDelete.delete.failed foreach {
+                  segmentToDelete.delete onFailureSideEffect {
                     exception =>
                       logger.error(s"Failed to delete Segment '{}' in recover due to failed copyToPersist", segmentToDelete.path, exception)
                   }

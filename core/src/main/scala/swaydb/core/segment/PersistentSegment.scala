@@ -142,7 +142,7 @@ private[segment] case class PersistentSegment(file: DBFile,
                 (segments: Slice[Segment], _: IO.Failure[Slice[Segment]]) =>
                   segments foreach {
                     segmentToDelete =>
-                      segmentToDelete.delete.failed foreach {
+                      segmentToDelete.delete onFailureSideEffect {
                         exception =>
                           logger.error(s"{}: Failed to delete Segment '{}' in recover due to failed put", path, segmentToDelete.path, exception)
                       }
@@ -182,7 +182,7 @@ private[segment] case class PersistentSegment(file: DBFile,
                 (segments: Slice[Segment], _: IO.Failure[Slice[Segment]]) =>
                   segments foreach {
                     segmentToDelete =>
-                      segmentToDelete.delete.failed foreach {
+                      segmentToDelete.delete onFailureSideEffect {
                         exception =>
                           logger.error(s"{}: Failed to delete Segment '{}' in recover due to failed refresh", path, segmentToDelete.path, exception)
                       }

@@ -645,7 +645,7 @@ private[core] class LevelZero(val path: Path,
 
   def close: IO[Unit] = {
     //    Delay.cancelTimer()
-    maps.close.failed foreach {
+    maps.close onFailureSideEffect {
       exception =>
         logger.error(s"$path: Failed to close maps", exception)
     }

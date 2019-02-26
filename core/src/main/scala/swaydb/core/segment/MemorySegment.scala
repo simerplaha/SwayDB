@@ -112,7 +112,7 @@ private[segment] case class MemorySegment(path: Path,
                   (segments: Slice[Segment], _: IO.Failure[Iterable[Segment]]) =>
                     segments foreach {
                       segmentToDelete =>
-                        segmentToDelete.delete.failed foreach {
+                        segmentToDelete.delete onFailureSideEffect {
                           exception =>
                             logger.error(s"{}: Failed to delete Segment '{}' in recover due to failed put", path, segmentToDelete.path, exception)
                         }
@@ -153,7 +153,7 @@ private[segment] case class MemorySegment(path: Path,
                   (segments: Slice[Segment], _: IO.Failure[Iterable[Segment]]) =>
                     segments foreach {
                       segmentToDelete =>
-                        segmentToDelete.delete.failed foreach {
+                        segmentToDelete.delete onFailureSideEffect {
                           exception =>
                             logger.error(s"{}: Failed to delete Segment '{}' in recover due to failed put", path, segmentToDelete.path, exception)
                         }

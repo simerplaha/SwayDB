@@ -661,7 +661,7 @@ private[core] class Level(val dirs: Seq[Dir],
           else
             segmentsToMerge foreach {
               segment =>
-                segment.delete.failed map {
+                segment.delete onFailureSideEffect {
                   exception =>
                     logger.warn(s"{}: Failed to delete Segment {} after successful collapse", paths.head, segment.path, exception)
                 }
@@ -719,7 +719,7 @@ private[core] class Level(val dirs: Seq[Dir],
                         else
                           assignments foreach {
                             case (segment, _) =>
-                              segment.delete.failed map {
+                              segment.delete onFailureSideEffect {
                                 exception =>
                                   logger.error(s"{}: Failed to delete Segment {}", paths.head, segment.path, exception)
                               }
@@ -736,7 +736,7 @@ private[core] class Level(val dirs: Seq[Dir],
                       case (_, newSegments) =>
                         newSegments foreach {
                           segment =>
-                            segment.delete.failed map {
+                            segment.delete onFailureSideEffect {
                               exception =>
                                 logger.error(s"{}: Failed to delete Segment {}", paths.head, segment.path, exception)
                             }
@@ -771,7 +771,7 @@ private[core] class Level(val dirs: Seq[Dir],
             case (_, newSegments) =>
               newSegments foreach {
                 segment =>
-                  segment.delete.failed foreach {
+                  segment.delete onFailureSideEffect {
                     exception =>
                       logger.error(s"{}: Failed to delete Segment '{}' in recovery for putAssignedKeyValues", paths.head, segment.path, exception)
                   }
