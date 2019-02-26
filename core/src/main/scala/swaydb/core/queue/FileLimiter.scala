@@ -52,14 +52,23 @@ private[core] object FileLimiter extends LazyLogging {
       override def delete(file: FileLimiterItem): Unit = ()
     }
 
-  private sealed trait Action
+  private sealed trait Action {
+    def isDelete: Boolean
+  }
   private object Action {
-    case class Delete(file: FileLimiterItem) extends Action
-    case class Close(file: WeakReference[FileLimiterItem]) extends Action
+    case class Delete(file: FileLimiterItem) extends Action {
+      def isDelete: Boolean = true
+    }
+    case class Close(file: WeakReference[FileLimiterItem]) extends Action {
+      def isDelete: Boolean = false
+    }
   }
 
+  def weigher(action: Action) =
+    if (action.isDelete) 10 else 1
+
   def apply(maxSegmentsOpen: Long, delay: FiniteDuration)(implicit ex: ExecutionContext): FileLimiter = {
-    lazy val queue = LimitQueue[Action](maxSegmentsOpen, delay, _ => 1) {
+    lazy val queue = LimitQueue[Action](maxSegmentsOpen, delay, weigher) {
       case Action.Delete(file) =>
         file.delete() onFailureSideEffect {
           error =>
