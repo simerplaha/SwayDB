@@ -25,7 +25,7 @@ import scala.concurrent.duration._
 import scala.ref.WeakReference
 import swaydb.data.IO
 
-trait FileLimiter {
+private[core] trait FileLimiter {
 
   def close(file: FileLimiterItem): Unit
 
@@ -33,7 +33,7 @@ trait FileLimiter {
 
 }
 
-trait FileLimiterItem {
+private[core] trait FileLimiterItem {
   def path: Path
 
   def delete(): IO[Unit]
@@ -68,22 +68,21 @@ private[core] object FileLimiter extends LazyLogging {
           case Action.Delete =>
             dbFile.get foreach {
               file =>
-                file.delete().failed foreach {
-                  exception =>
-                    logger.error(s"Failed to delete file. ${file.path}", exception)
+                file.delete() onFailureSideEffect {
+                  error =>
+                    logger.error(s"Failed to delete file. ${file.path}", error.exception)
                 }
             }
 
           case Action.Close =>
             dbFile.get foreach {
               file =>
-                file.close.failed foreach {
-                  exception =>
-                    logger.error(s"Failed to close file. ${file.path}", exception)
+                file.close onFailureSideEffect {
+                  error =>
+                    logger.error(s"Failed to close file. ${file.path}", error.exception)
                 }
             }
         }
-
     }
 
     new FileLimiter {

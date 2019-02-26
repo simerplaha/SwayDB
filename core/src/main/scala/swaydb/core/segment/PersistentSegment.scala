@@ -89,7 +89,7 @@ private[segment] case class PersistentSegment(file: DBFile,
     Reader(file)
 
   def deleteSegmentsEventually =
-    fileOpenLimiter.delete(file)
+    fileOpenLimiter.delete(this)
 
   def delete: IO[Unit] = {
     logger.trace(s"{}: DELETING FILE", path)

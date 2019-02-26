@@ -20,21 +20,19 @@
 package swaydb.core.segment.format.a
 
 import java.nio.file._
+import scala.concurrent.duration._
+import swaydb.core.CommonAssertions._
+import swaydb.core.IOAssert._
+import swaydb.core.RunThis._
+import swaydb.core.TestData._
 import swaydb.core.data.{Memory, _}
-import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
-import swaydb.core.queue.KeyValueLimiter
+import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
+import swaydb.core.segment.Segment
 import swaydb.core.util._
 import swaydb.core.{TestBase, TestData, TestLimitQueues}
+import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
-import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.core.TestData._
-import swaydb.core.CommonAssertions._
-import swaydb.core.RunThis._
-import swaydb.core.IOAssert._
-import scala.concurrent.duration._
-import swaydb.core.io.file.DBFile
-import swaydb.core.segment.Segment
 
 /**
   * These class has tests to assert the behavior of [[KeyValueLimiter]] on [[swaydb.core.segment.Segment]]s.
@@ -83,95 +81,92 @@ class SegmentKeyValueLimiterSpec extends TestBase with Benchmark {
       //perform reads multiple times and assert that while the key-values are getting drop, the group key-value does
       //not get dropped
       runThis(10.times) {
-        //cache should only contain the uncompressed Group and other non group key-values
-        segment.cache.size() shouldBe (nonGroupKeyValues.size + 1)
+        eventual(5.seconds) {
+          //cache should only contain the uncompressed Group and other non group key-values
+          segment.cache.size() shouldBe (nonGroupKeyValues.size + 1)
 
-        //assert that group always exists and that it does not get dropped from the cache.
-        val headGroup = segment.cache.firstEntry().getValue.asInstanceOf[Memory.Group]
-        headGroup.isHeaderDecompressed shouldBe false
-        headGroup.isValueDecompressed shouldBe false
-        headGroup.isIndexDecompressed shouldBe false
-        //since no key-values are read the group's key-values should be empty
-        headGroup.segmentCache(KeyOrder.default, keyValueLimiter).isCacheEmpty shouldBe true
+          //assert that group always exists and that it does not get dropped from the cache.
+          val headGroup = segment.cache.firstEntry().getValue.asInstanceOf[Memory.Group]
+          headGroup.isHeaderDecompressed shouldBe false
+          headGroup.isValueDecompressed shouldBe false
+          headGroup.isIndexDecompressed shouldBe false
+          //since no key-values are read the group's key-values should be empty
+          headGroup.segmentCache(KeyOrder.default, keyValueLimiter).isCacheEmpty shouldBe true
 
-        //read all key-values and this should trigger dropping of key-values
-        assertGet(nonGroupKeyValues, segment)
-        assertGet(groupKeyValues, segment)
+          //read all key-values and this should trigger dropping of key-values
+          assertGet(nonGroupKeyValues, segment)
+          assertGet(groupKeyValues, segment)
 
-        //after the key-values are read, Group is decompressed and the groups cache is not empty
-        headGroup.isHeaderDecompressed shouldBe true
-        headGroup.isValueDecompressed shouldBe true
-        headGroup.isIndexDecompressed shouldBe true
-        headGroup.segmentCache(KeyOrder.default, keyValueLimiter).isCacheEmpty shouldBe false
-        //wait to allow for limit to do it's clean up
-        sleep(1.second)
+          //after the key-values are read, Group is decompressed and the groups cache is not empty
+          headGroup.isHeaderDecompressed shouldBe true
+          headGroup.isValueDecompressed shouldBe true
+          headGroup.isIndexDecompressed shouldBe true
+          headGroup.segmentCache(KeyOrder.default, keyValueLimiter).isCacheEmpty shouldBe false
+          //wait to allow for limit to do it's clean up
+          sleep(1.second)
+        }
       }
 
       keyValueLimiter.terminate()
     }
   }
 
-  /**
-    * This test is hard to get accurate and is commented out because
-    * it's difficult to determine the behavior of [[KeyValueLimiter]] during runtime but this test can
-    * used to debug the behavior of [[KeyValueLimiter]] on [[Persistent.Group]].
-    *
-    * It tests that [[Persistent.Group]] is always uncompressed before it get dropped from the Segment's cache.
-    */
-  //  "PersistentSegment" should {
-  //    "drop Group key-value only after it's been decompressed" in {
-  //      //create a group
-  //      val groupKeyValues = randomIntKeyValues(1000)
-  //      val group =
-  //        Transient.Group(
-  //          keyValues = groupKeyValues,
-  //          indexCompression = randomCompression(),
-  //          valueCompression = randomCompression(),
-  //          falsePositiveRate = TestData.falsePositiveRate,
-  //          previous = None
-  //        ).assertGet
-  //
-  //      //add key-values to the right of the group
-  //      val nonGroupKeyValues = randomIntKeyValues(count = 1000, startId = Some(groupKeyValues.last.key.readInt() + 1))
-  //
-  //      //Segment's key-values
-  //      val mergedKeyValues = (Seq(group) ++ nonGroupKeyValues).updateStats
-  //
-  //      //set the limiter to drop key-values fast
-  //      implicit val keyValueLimiter = KeyValueLimiter(4000.byte, 2.second)
-  //
-  //      //create persistent Segment
-  //      val segment = TestSegment(mergedKeyValues)(ordering, keyValueLimiter, fileOpenLimiterImplicit, None).assertGet
-  //
-  //      //initially Segment's cache is empty
-  //      segment.isCacheEmpty shouldBe true
-  //
-  //      //read all key-values and this should trigger dropping of key-values
-  //      assertGet(nonGroupKeyValues, segment)
-  //      assertGet(groupKeyValues, segment)
-  //
-  //      //Group is cached into the Segment
-  //      val headGroup = segment.cache.firstEntry().getValue.asInstanceOf[Persistent.Group]
-  //
-  //      //since all key-values are read, the Group should be decompressed.
-  //      headGroup.isHeaderDecompressed shouldBe true
-  //      headGroup.isValueDecompressed shouldBe true
-  //      headGroup.isIndexDecompressed shouldBe true
-  //      //the Groups's cache is not empty as all it's key-values are read.
-  //      headGroup.segmentCache(ordering, keyValueLimiter).isCacheEmpty shouldBe false
-  //
-  //      //eventually the cache has dropped all key-values other then Group key-values. Group key-value is only decompressed
-  //      eventual(2.seconds)(segment.cacheSize shouldBe 1)
-  //
-  //      //fetch the head Group key-value from the Segment's cache and assert that it actually is decompressed and it's cache is empty.
-  //      val headGroupAgain = segment.cache.firstEntry().getValue.asInstanceOf[Persistent.Group]
-  //      //header is always decompressed because it's added back into the queue and header is read to fetch the decompressed size.
-  //      //      headGroupAgain.isHeaderDecompressed shouldBe false
-  //      headGroupAgain.isValueDecompressed shouldBe false
-  //      headGroupAgain.isIndexDecompressed shouldBe false
-  //      headGroupAgain.segmentCache(ordering, keyValueLimiter).isCacheEmpty shouldBe true
-  //    }
-  //  keyValueLimiter.terminate()
-  //  }
+  "PersistentSegment" should {
+    "drop Group key-value only after it's been decompressed" in {
+      //create a group
+      val groupKeyValues = randomKeyValues(10000)
+      val group =
+        Transient.Group(
+          keyValues = groupKeyValues,
+          indexCompression = randomCompression(),
+          valueCompression = randomCompression(),
+          falsePositiveRate = TestData.falsePositiveRate,
+          previous = None
+        ).assertGet
+
+      //add key-values to the right of the group
+      val nonGroupKeyValues = randomKeyValues(count = 1000, startId = Some(groupKeyValues.last.key.readInt() + 1))
+
+      //Segment's key-values
+      val mergedKeyValues = (Seq(group) ++ nonGroupKeyValues).updateStats
+
+      //set the limiter to drop key-values fast
+      implicit val keyValueLimiter = KeyValueLimiter(4000.byte, 2.second)
+
+      //create persistent Segment
+      val segment = TestSegment(mergedKeyValues)(KeyOrder.default, keyValueLimiter, FileLimiter.empty, timeOrder, None).assertGet
+
+      //initially Segment's cache is empty
+      segment.isCacheEmpty shouldBe true
+
+      //read all key-values and this should trigger dropping of key-values
+      assertGet(nonGroupKeyValues, segment)
+      assertGet(groupKeyValues, segment)
+
+      //Group is cached into the Segment
+      val headGroup = segment.cache.firstEntry().getValue.asInstanceOf[Persistent.Group]
+
+      //since all key-values are read, the Group should be decompressed.
+      headGroup.isHeaderDecompressed shouldBe true
+      headGroup.isValueDecompressed shouldBe true
+      headGroup.isIndexDecompressed shouldBe true
+      //the Groups's cache is not empty as all it's key-values are read.
+      headGroup.segmentCache(KeyOrder.default, keyValueLimiter).isCacheEmpty shouldBe false
+
+      //eventually the cache has dropped all key-values other then Group key-values. Group key-value is only decompressed
+      eventual(2.seconds)(segment.cacheSize shouldBe 1)
+
+      //fetch the head Group key-value from the Segment's cache and assert that it actually is decompressed and it's cache is empty.
+      val headGroupAgain = segment.cache.firstEntry().getValue.asInstanceOf[Persistent.Group]
+      //header is always decompressed because it's added back into the queue and header is read to fetch the decompressed size.
+//      headGroupAgain.isHeaderDecompressed shouldBe false
+      headGroupAgain.isValueDecompressed shouldBe false
+      headGroupAgain.isIndexDecompressed shouldBe false
+      headGroupAgain.segmentCache(KeyOrder.default, keyValueLimiter).isCacheEmpty shouldBe true
+      keyValueLimiter.terminate()
+
+      segment.close.assertGet
+    }
+  }
 
 }

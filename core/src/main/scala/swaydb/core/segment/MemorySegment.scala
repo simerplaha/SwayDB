@@ -55,7 +55,7 @@ private[segment] case class MemorySegment(path: Path,
                                                                                    functionStore: FunctionStore,
                                                                                    groupingStrategy: Option[KeyValueGroupingStrategyInternal],
                                                                                    keyValueLimiter: KeyValueLimiter,
-                                                                                   fileLimiter: FileLimiter) extends Segment with FileLimiterItem with LazyLogging {
+                                                                                   fileLimiter: FileLimiter) extends Segment with LazyLogging {
 
   @volatile private var deleted = false
 

@@ -34,7 +34,7 @@ import swaydb.core.io.file.{DBFile, IOEffect}
 import swaydb.core.io.reader.Reader
 import swaydb.core.level.PathsDistributor
 import swaydb.core.map.Map
-import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
+import swaydb.core.queue.{FileLimiter, FileLimiterItem, KeyValueLimiter}
 import swaydb.core.segment.format.a.{SegmentReader, SegmentWriter}
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util.CollectionUtil._
@@ -912,7 +912,7 @@ private[core] object Segment extends LazyLogging {
 
 }
 
-private[core] trait Segment {
+private[core] trait Segment extends FileLimiterItem {
   private[segment] val cache: ConcurrentSkipListMap[Slice[Byte], _]
   val minKey: Slice[Byte]
   val maxKey: MaxKey[Slice[Byte]]
