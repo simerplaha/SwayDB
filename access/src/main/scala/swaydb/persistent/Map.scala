@@ -84,7 +84,7 @@ object Map extends LazyLogging {
                   segmentSize: Int = 2.mb,
                   appendixFlushCheckpointSize: Int = 2.mb,
                   otherDirs: Seq[Dir] = Seq.empty,
-                  cacheCheckDelay: FiniteDuration = 7.seconds,
+                  cacheCheckDelay: FiniteDuration = 5.seconds,
                   segmentsOpenCheckDelay: FiniteDuration = 5.seconds,
                   bloomFilterFalsePositiveRate: Double = 0.01,
                   compressDuplicateValues: Boolean = true,

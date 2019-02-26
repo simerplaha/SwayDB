@@ -83,7 +83,7 @@ object Map extends LazyLogging {
                   mmapPersistentAppendix: Boolean = true,
                   cacheSize: Int = 100.mb, //cacheSize for memory database is used for evicting decompressed key-values & persistent key-values in-memory
                   otherDirs: Seq[Dir] = Seq.empty,
-                  cacheCheckDelay: FiniteDuration = 7.seconds,
+                  cacheCheckDelay: FiniteDuration = 5.seconds,
                   segmentsOpenCheckDelay: FiniteDuration = 5.seconds,
                   bloomFilterFalsePositiveRate: Double = 0.01,
                   compressDuplicateValues: Boolean = true,

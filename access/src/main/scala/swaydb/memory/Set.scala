@@ -45,7 +45,7 @@ object Set extends LazyLogging {
   def apply[T](mapSize: Int = 4.mb,
                segmentSize: Int = 2.mb,
                cacheSize: Int = 500.mb, //cacheSize for memory database is used for evicting decompressed key-values
-               cacheCheckDelay: FiniteDuration = 7.seconds,
+               cacheCheckDelay: FiniteDuration = 5.seconds,
                bloomFilterFalsePositiveRate: Double = 0.01,
                compressDuplicateValues: Boolean = false,
                deleteSegmentsEventually: Boolean = false,

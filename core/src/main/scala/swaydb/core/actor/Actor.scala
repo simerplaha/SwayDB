@@ -145,12 +145,12 @@ private[swaydb] class Actor[T, +S](val state: S,
   //regular interval. This interval can be updated via the execution function.
   val continueIfEmpty = delay.isDefined
   //if initial detail is defined, trigger processMessages() to start the timer loop.
-  if (continueIfEmpty) processMessages()
+  if (continueIfEmpty) processMessages(false)
 
   override def !(message: T): Unit =
     if (!terminated) {
       queue offer message
-      processMessages()
+      processMessages(false)
     }
 
   override def clearMessages(): Unit =
@@ -174,20 +174,29 @@ private[swaydb] class Actor[T, +S](val state: S,
     clearMessages()
   }
 
-  private def processMessages(): Unit =
+  private def processMessages(tooManyMessages: Boolean): Unit =
     if (!terminated && (continueIfEmpty || !queue.isEmpty) && busy.compareAndSet(false, true))
       delay match {
         case None =>
-          Future(receive(maxMessagesToProcessAtOnce))
+          Future(receive(maxMessagesToProcessAtOnce, false))
 
         case Some(interval) if interval.fromNow.isOverdue() =>
-          Future(receive(maxMessagesToProcessAtOnce))
+          Future(receive(maxMessagesToProcessAtOnce, tooManyMessages))
 
         case Some(interval) =>
-          Delay.future(interval max 500.milliseconds)(receive(maxMessagesToProcessAtOnce))
+          //if there are too many messages process instantly also let the next interval known so that
+          //next interval is adjusted to a shorter delay time.
+          val messageCount = queue.size()
+          if (messageCount >= maxMessagesToProcessAtOnce + maxMessagesToProcessAtOnce * 0.4) {
+            //process most messages leaving approximately half messages in the inbox maxMessagesToProcessAtOnce
+            Future(receive(messageCount - (maxMessagesToProcessAtOnce / 2), true))
+          } else {
+            val adjustedInterval = if (tooManyMessages) interval / 2 else interval
+            Delay.future(adjustedInterval max 100.milliseconds)(receive(maxMessagesToProcessAtOnce, false))
+          }
       }
 
-  private def receive(max: Int): Unit = {
+  private def receive(max: Int, tooManyMessages: Boolean): Unit = {
     var processed = 0
     try {
       while (!terminated && processed < max) {
@@ -201,7 +210,7 @@ private[swaydb] class Actor[T, +S](val state: S,
       }
     } finally {
       busy.set(false)
-      processMessages()
+      processMessages(tooManyMessages)
     }
   }
 }

@@ -62,9 +62,11 @@ object Start {
     println
 
     val dir = Paths.get(Start.getClass.getProtectionDomain.getCodeSource.getLocation.toURI.getPath).getParent.resolve("speedDB")
+
     sys.addShutdownHook {
-      // deleteDir(dir)
+      deleteDir(dir)
     }
+
     val test: Test =
       if (databaseType == 1) {
         if (testNumber == 1)
