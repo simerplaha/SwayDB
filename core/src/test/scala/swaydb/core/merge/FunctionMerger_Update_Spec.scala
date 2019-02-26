@@ -43,7 +43,7 @@ class FunctionMerger_Update_Spec extends WordSpec with Matchers with MockFactory
     "times are in order" should {
       "always return new key-value" in {
 
-        implicit val testTimer: TestTimer = eitherOne(TestTimer.Incremental(), TestTimer.Empty)
+        implicit val testTimer: TestTimer = TestTimer.Empty
 
         runThis(1000.times) {
           val key = randomBytesSlice()
@@ -68,7 +68,7 @@ class FunctionMerger_Update_Spec extends WordSpec with Matchers with MockFactory
                 Memory.Remove(key, None, newKeyValue.time)
 
               case SwayFunctionOutput.Nothing =>
-                oldKeyValue
+                oldKeyValue.copy(time = newKeyValue.time)
 
               case SwayFunctionOutput.Expire(deadline) =>
                 oldKeyValue.copy(deadline = Some(deadline), time = newKeyValue.time)

@@ -73,21 +73,21 @@ class SwayDBSpec3 extends SwayDBSpec {
     swaydb.memory.Map[Int, String]().assertGet
 }
 
-class SwayDB_Zero_Spec2 extends SwayDBSpec {
-
-  override val keyValueCount: Int = 100
-
-  override def newDB(): Map[Int, String] =
-    swaydb.memory.zero.Map[Int, String](mapSize = 1.byte).assertGet
-}
-
-class SwayDB_Zero_Spec3 extends SwayDBSpec {
-
-  override val keyValueCount: Int = 100
-
-  override def newDB(): Map[Int, String] =
-    swaydb.memory.zero.Map[Int, String]().assertGet
-}
+//class SwayDB_Zero_Spec2 extends SwayDBSpec {
+//
+//  override val keyValueCount: Int = 100
+//
+//  override def newDB(): Map[Int, String] =
+//    swaydb.memory.zero.Map[Int, String](mapSize = 1.byte).assertGet
+//}
+//
+//class SwayDB_Zero_Spec3 extends SwayDBSpec {
+//
+//  override val keyValueCount: Int = 100
+//
+//  override def newDB(): Map[Int, String] =
+//    swaydb.memory.zero.Map[Int, String]().assertGet
+//}
 
 sealed trait SwayDBSpec extends TestBaseEmbedded {
 
