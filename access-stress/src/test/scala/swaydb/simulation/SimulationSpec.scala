@@ -129,7 +129,7 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
         val maxProductsToCreateBeforeAssertion = 1000
         //do updates and delete every 1000th product added and continue Creating more products
         if (state.productsCreatedCountBeforeAssertion >= maxProductsToCreateBeforeAssertion) {
-          logger.info(s"UserId: $userId - Created ${state.productsCreatedCountBeforeAssertion} products, state.products = ${state.products.size}, state.removedProducts = ${state.removedProducts.size} - ProductId: $productId1")
+          println(s"UserId: $userId - Created ${state.productsCreatedCountBeforeAssertion} products, state.products = ${state.products.size}, state.removedProducts = ${state.removedProducts.size} - ProductId: $productId1")
           self ! AssertState(removeAsserted = RemoveAsserted.RemoveNone)
           self.schedule(Put, (randomNextInt(2) + 1).seconds)
           self.schedule(BatchPut, (randomNextInt(2) + 1).seconds)
@@ -155,7 +155,7 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
           //                  self ! Create
           //reset the counter as the assertion is triggered.
           state.productsCreatedCountBeforeAssertion = 0
-          logger.info(s"UserId: $userId - Reset created product counter to ${state.productsCreatedCountBeforeAssertion} products")
+          println(s"UserId: $userId - Reset created product counter to ${state.productsCreatedCountBeforeAssertion} products")
         } else {
           //keep on Creating more Products.
           self ! Create
@@ -164,7 +164,7 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
       case Put =>
         if (state.products.nonEmpty) {
           //single
-          logger.info(s"UserId: $userId - Put")
+          println(s"UserId: $userId - Put")
 
           val randomCreatedProducts = Random.shuffle(state.products)
 
@@ -178,7 +178,7 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
       case Update =>
         if (state.products.nonEmpty) {
           //single
-          logger.info(s"UserId: $userId - Update")
+          println(s"UserId: $userId - Update")
 
           val randomCreatedProducts = Random.shuffle(state.products)
 
@@ -191,7 +191,7 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
       case Expire =>
         if (state.products.nonEmpty) {
           //single
-          logger.info(s"UserId: $userId - Expire")
+          println(s"UserId: $userId - Expire")
 
           val randomCreatedProducts = Random.shuffle(state.products)
 
@@ -205,7 +205,7 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
       case BatchPut =>
         if (state.products.nonEmpty) {
           //single
-          logger.info(s"UserId: $userId - BatchUpdate")
+          println(s"UserId: $userId - BatchUpdate")
 
           val randomCreatedProducts = Random.shuffle(state.products)
 
@@ -239,7 +239,7 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
       case BatchExpire =>
         if (state.products.nonEmpty) {
           //single
-          logger.info(s"UserId: $userId - BatchExpire")
+          println(s"UserId: $userId - BatchExpire")
 
           val randomCreatedProducts = Random.shuffle(state.products)
 
@@ -269,7 +269,7 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
           //need to revisit this test.
           //For example here is a result from a product. 'update_range_2' is an old update but the test is
           //Some(Product(update_range_2_PAqH4mCSQ1_batch_put)) did not contain element Product(update_range_2)
-          logger.info(s"UserId: $userId - UpdateRange")
+          println(s"UserId: $userId - UpdateRange")
 
           val randomCreatedProducts = Random.shuffle(state.products)
 
@@ -296,7 +296,7 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
 
       case ExpireRange =>
         if (state.products.size >= 60) {
-          logger.info(s"UserId: $userId - ExpireRange")
+          println(s"UserId: $userId - ExpireRange")
 
           val randomCreatedProducts = Random.shuffle(state.products)
 
@@ -323,7 +323,7 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
 
       case Delete =>
         if (state.products.nonEmpty) {
-          logger.info(s"UserId: $userId - Delete")
+          println(s"UserId: $userId - Delete")
 
           val randomCreatedProducts = Random.shuffle(state.products)
 
@@ -336,7 +336,7 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
 
       case BatchDelete =>
         if (state.products.nonEmpty) {
-          logger.info(s"UserId: $userId - BatchDelete")
+          println(s"UserId: $userId - BatchDelete")
 
           val randomCreatedProducts = Random.shuffle(state.products)
 
@@ -346,7 +346,7 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
           db.remove(batchRemove).get
           batchProductsToRemove foreach {
             case (productId, _) =>
-              //                    logger.info(s"UserId: $userId - Batch remove product: $productId")
+              //                    println(s"UserId: $userId - Batch remove product: $productId")
               state.products remove productId
               state.removedProducts add productId
           }
@@ -355,7 +355,7 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
 
       case DeleteRange =>
         if (state.products.size >= 60) {
-          logger.info(s"UserId: $userId - RangeDelete")
+          println(s"UserId: $userId - RangeDelete")
 
           val randomCreatedProducts = Random.shuffle(state.products)
 
@@ -377,11 +377,11 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
 
         }
       case AssertState(removeAsserted) =>
-        logger.info(s"UserId: $userId - AssertState. Asserting User.")
+        println(s"UserId: $userId - AssertState. Asserting User.")
         //assert the state of the User itself. This is a static record and does not mutate.
         db.get(state.userId).get should contain(state.user)
         val shuffledCreatedProducts = Random.shuffle(state.products)
-        logger.info(s"UserId: $userId - start asserting ${shuffledCreatedProducts.size} createdProducts. removeAsserted = $removeAsserted.")
+        println(s"UserId: $userId - start asserting ${shuffledCreatedProducts.size} createdProducts. removeAsserted = $removeAsserted.")
         //assert the state of created products in the User's state and remove products from state if required.
         val removedProducts =
           shuffledCreatedProducts.foldLeft(0) {
@@ -407,10 +407,10 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
                   removeCount
               }
           }
-        logger.info(s"UserId: $userId - finished asserting ${shuffledCreatedProducts.size} createdProducts. removedProducts = $removedProducts, removeAsserted = $removeAsserted.")
+        println(s"UserId: $userId - finished asserting ${shuffledCreatedProducts.size} createdProducts. removedProducts = $removedProducts, removeAsserted = $removeAsserted.")
 
         val shuffledRemovedProducts = Random.shuffle(state.removedProducts)
-        logger.info(s"UserId: $userId - start asserting ${shuffledRemovedProducts.size} removedProducts. removeAsserted = $removeAsserted.")
+        println(s"UserId: $userId - start asserting ${shuffledRemovedProducts.size} removedProducts. removeAsserted = $removeAsserted.")
         //assert the state of removed products in the User's state and remove products from state if required.
         val removedRemovedProducts =
           shuffledRemovedProducts.foldLeft(0) {
@@ -437,8 +437,8 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
               }
           }
 
-        logger.info(s"UserId: $userId - finished asserting ${shuffledRemovedProducts.size} removedProducts. removedProducts = $removedRemovedProducts, removeAsserted = $removeAsserted.")
-        logger.info(s"UserId: $userId - after Assertion - state.products = ${state.products.size}, state.removedProducts = ${state.removedProducts.size}, removeAsserted = $removeAsserted.")
+        println(s"UserId: $userId - finished asserting ${shuffledRemovedProducts.size} removedProducts. removedProducts = $removedRemovedProducts, removeAsserted = $removeAsserted.")
+        println(s"UserId: $userId - after Assertion - state.products = ${state.products.size}, state.removedProducts = ${state.removedProducts.size}, removeAsserted = $removeAsserted.")
 
     }
   }

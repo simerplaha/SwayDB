@@ -48,7 +48,7 @@ private[swaydb] object BusyBoolean {
 
   private def notifyBlocking(boolean: BusyBoolean): Unit = {
     boolean.notifyAll()
-    boolean.promises.foreach(_.success())
+    boolean.promises.foreach(_.trySuccess(()))
   }
 
   def future(boolean: BusyBoolean): Future[Unit] =

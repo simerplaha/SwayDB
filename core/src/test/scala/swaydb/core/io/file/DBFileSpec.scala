@@ -23,21 +23,20 @@ import java.nio.ReadOnlyBufferException
 import java.nio.channels.{NonReadableChannelException, NonWritableChannelException}
 import java.nio.file.{FileAlreadyExistsException, NoSuchFileException}
 import org.scalamock.scalatest.MockFactory
-import scala.concurrent.Future
+import swaydb.core.IOAssert._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.IOAssert._
 import swaydb.core.queue.{FileLimiter, FileLimiterItem}
 import swaydb.core.segment.SegmentException
 import swaydb.core.segment.SegmentException.CannotCopyInMemoryFiles
 import swaydb.core.util.Benchmark
 import swaydb.core.util.PipeOps._
-import swaydb.core.{TestBase, TestLimitQueues}
-import swaydb.data.IO
+import swaydb.core.{RunThis, TestBase, TestLimitQueues}
 import swaydb.data.slice.Slice
 
 class DBFileSpec extends TestBase with Benchmark with MockFactory {
 
+  implicit val ec = RunThis.level0PushDownPool
   implicit val fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
 
   "DBFile.write" should {
