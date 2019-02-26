@@ -28,7 +28,7 @@ import swaydb.core.util.FiniteDurationUtil._
 
 object RunThis extends Eventually {
 
-  val level0PushDownPool = TestExecutionContext.executionContext
+  implicit val level0PushDownPool = TestExecutionContext.executionContext
 
   implicit class RunThisImplicits[R](f: => R) {
     def runThis(times: Int): Unit =

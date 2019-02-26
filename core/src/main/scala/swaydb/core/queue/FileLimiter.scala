@@ -25,7 +25,7 @@ import scala.concurrent.duration._
 import scala.ref.WeakReference
 import swaydb.data.IO
 
-private[core] trait FileLimiter {
+private[swaydb] trait FileLimiter {
 
   def close(file: FileLimiterItem): Unit
 

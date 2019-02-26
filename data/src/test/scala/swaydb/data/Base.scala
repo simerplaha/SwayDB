@@ -25,7 +25,6 @@ import java.nio.file.Paths
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.util.Random
-import swaydb.data.IO
 
 object Base {
 

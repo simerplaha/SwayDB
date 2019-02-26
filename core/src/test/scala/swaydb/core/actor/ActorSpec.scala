@@ -20,13 +20,9 @@
 package swaydb.core.actor
 
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.core.util.Benchmark
-
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import swaydb.core.TestData._
-import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 
 class ActorSpec extends WordSpec with Matchers {

@@ -21,10 +21,10 @@ package swaydb.weather
 
 import com.typesafe.scalalogging.LazyLogging
 import org.scalatest.BeforeAndAfterAll
-import scala.concurrent.{Await, Future}
+import scala.concurrent.Future
 import scala.concurrent.duration._
-import swaydb.SwayDB
 import swaydb.configs.level.DefaultGroupingStrategy
+import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.util.Benchmark
@@ -52,8 +52,6 @@ sealed trait WeatherDataSpec extends TestBase with LazyLogging with Benchmark wi
 
   //  override protected def afterAll(): Unit =
   //    walkDeleteFolder(dir)
-
-  implicit val ec = SwayDB.defaultExecutionContext
 
   val db: swaydb.Map[Int, WeatherData]
 
@@ -260,7 +258,6 @@ sealed trait WeatherDataSpec extends TestBase with LazyLogging with Benchmark wi
     )
 
   "concurrently write 1 million weather data entries using BookPickle and read using multiple APIs concurrently" in {
-    import swaydb.core.RunThis._
     //do initial put or batch (whichever one) to ensure that data exists for readRequests.
     //    doPut
     doBatch(inBatchesOf = 100000 min keyValueCount)

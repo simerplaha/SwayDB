@@ -60,7 +60,7 @@ object Set extends LazyLogging {
                segmentsOpenCheckDelay: FiniteDuration = 5.seconds,
                bloomFilterFalsePositiveRate: Double = 0.01,
                compressDuplicateValues: Boolean = true,
-               deleteSegmentsEventually: Boolean = true,
+               deleteSegmentsEventually: Boolean = false,
                groupingStrategy: Option[KeyValueGroupingStrategy] = Some(DefaultGroupingStrategy()),
                acceleration: Level0Meter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[T],
                                                                                   keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,

@@ -36,7 +36,6 @@ import swaydb.data.slice.Slice
 
 class DBFileSpec extends TestBase with Benchmark with MockFactory {
 
-  implicit val ec = RunThis.level0PushDownPool
   implicit val fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
 
   "DBFile.write" should {

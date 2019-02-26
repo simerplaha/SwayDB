@@ -48,7 +48,7 @@ object Set extends LazyLogging {
                cacheCheckDelay: FiniteDuration = 7.seconds,
                bloomFilterFalsePositiveRate: Double = 0.01,
                compressDuplicateValues: Boolean = false,
-               deleteSegmentsEventually: Boolean = true,
+               deleteSegmentsEventually: Boolean = false,
                groupingStrategy: Option[KeyValueGroupingStrategy] = None,
                acceleration: Level0Meter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[T],
                                                                                   keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
