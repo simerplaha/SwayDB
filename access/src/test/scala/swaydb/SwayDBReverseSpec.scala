@@ -84,5 +84,7 @@ sealed trait SwayDBReverseSpec extends TestBase with TestBaseEmbedded {
         actual shouldBe expected - 1
         actual
     }
+
+    db.closeDatabase().get
   }
 }

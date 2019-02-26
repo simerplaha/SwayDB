@@ -360,4 +360,7 @@ private[swaydb] class SwayDB(api: BlockingCoreAPI) {
 
   def deadline(key: Slice[Byte]): IO[Option[Deadline]] =
     api.deadline(key)
+
+  def close(): IO[Unit] =
+    api.close()
 }

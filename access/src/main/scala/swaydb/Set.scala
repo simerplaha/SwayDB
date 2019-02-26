@@ -322,6 +322,9 @@ case class Set[T](private val db: SwayDB,
         op(k, z)
     }
 
+  def closeDatabase(): IO[Unit] =
+    db.close
+
   override def toString(): String =
     classOf[Map[_, _]].getClass.getSimpleName
 }

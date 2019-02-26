@@ -92,6 +92,8 @@ sealed trait SwayDBUpdateSpec extends TestBase with TestBaseEmbedded {
           db.expiration(i).assertGetOpt shouldBe empty
           db.get(i).assertGet shouldBe "updated"
       }
+
+      db.closeDatabase().get
     }
 
     "Put & Expire" in {
@@ -119,6 +121,8 @@ sealed trait SwayDBUpdateSpec extends TestBase with TestBaseEmbedded {
       if (deadline.hasTimeLeft()) sleep(deadline.timeLeft)
 
       doAssertEmpty(db)
+
+      db.closeDatabase().get
     }
 
     "Put & Remove" in {
@@ -135,6 +139,8 @@ sealed trait SwayDBUpdateSpec extends TestBase with TestBaseEmbedded {
       )
 
       doAssertEmpty(db)
+
+      db.closeDatabase().get
     }
 
     "Put & Update" in {
@@ -155,6 +161,8 @@ sealed trait SwayDBUpdateSpec extends TestBase with TestBaseEmbedded {
           db.expiration(i).assertGetOpt shouldBe empty
           db.get(i).assertGet shouldBe "updated again"
       }
+
+      db.closeDatabase().get
     }
   }
 
@@ -173,6 +181,8 @@ sealed trait SwayDBUpdateSpec extends TestBase with TestBaseEmbedded {
       )
 
       doAssertEmpty(db)
+
+      db.closeDatabase().get
     }
 
     "Remove & Put" in {
@@ -194,6 +204,8 @@ sealed trait SwayDBUpdateSpec extends TestBase with TestBaseEmbedded {
           db.expiration(i).assertGetOpt shouldBe empty
           db.get(i).assertGet shouldBe "updated"
       }
+
+      db.closeDatabase().get
     }
 
     "Remove & Update" in {
@@ -214,6 +226,8 @@ sealed trait SwayDBUpdateSpec extends TestBase with TestBaseEmbedded {
       )
 
       doAssertEmpty(db)
+
+      db.closeDatabase().get
     }
 
     "Remove & Expire" in {
@@ -236,6 +250,8 @@ sealed trait SwayDBUpdateSpec extends TestBase with TestBaseEmbedded {
       )
 
       doAssertEmpty(db)
+
+      db.closeDatabase().get
     }
 
     "Remove & Remove" in {
@@ -257,6 +273,8 @@ sealed trait SwayDBUpdateSpec extends TestBase with TestBaseEmbedded {
       )
 
       doAssertEmpty(db)
+
+      db.closeDatabase().get
     }
   }
 
@@ -274,6 +292,8 @@ sealed trait SwayDBUpdateSpec extends TestBase with TestBaseEmbedded {
       )
 
       doAssertEmpty(db)
+
+      db.closeDatabase().get
     }
 
     "Update & Put" in {
@@ -296,6 +316,8 @@ sealed trait SwayDBUpdateSpec extends TestBase with TestBaseEmbedded {
           db.expiration(i).assertGetOpt shouldBe empty
           db.get(i).assertGet shouldBe "updated 2"
       }
+
+      db.closeDatabase().get
     }
 
     "Update & Update" in {
@@ -317,6 +339,8 @@ sealed trait SwayDBUpdateSpec extends TestBase with TestBaseEmbedded {
       )
 
       doAssertEmpty(db)
+
+      db.closeDatabase().get
     }
 
     "Update & Expire" in {
@@ -340,6 +364,8 @@ sealed trait SwayDBUpdateSpec extends TestBase with TestBaseEmbedded {
       )
 
       doAssertEmpty(db)
+
+      db.closeDatabase().get
     }
 
     "Update & Remove" in {
@@ -361,6 +387,8 @@ sealed trait SwayDBUpdateSpec extends TestBase with TestBaseEmbedded {
       )
 
       doAssertEmpty(db)
+
+      db.closeDatabase().get
     }
   }
 
@@ -383,6 +411,8 @@ sealed trait SwayDBUpdateSpec extends TestBase with TestBaseEmbedded {
       doAssertEmpty(db)
       sleep(deadline)
       doAssertEmpty(db)
+
+      db.closeDatabase().get
     }
 
     "Expire & Remove" in {
@@ -406,6 +436,8 @@ sealed trait SwayDBUpdateSpec extends TestBase with TestBaseEmbedded {
       doAssertEmpty(db)
       sleep(deadline)
       doAssertEmpty(db)
+
+      db.closeDatabase().get
     }
 
     "Expire & Update" in {
@@ -430,6 +462,8 @@ sealed trait SwayDBUpdateSpec extends TestBase with TestBaseEmbedded {
       doAssertEmpty(db)
       sleep(deadline)
       doAssertEmpty(db)
+
+      db.closeDatabase().get
     }
 
     "Expire & Expire" in {
@@ -456,6 +490,8 @@ sealed trait SwayDBUpdateSpec extends TestBase with TestBaseEmbedded {
       doAssertEmpty(db)
       sleep(deadline2)
       doAssertEmpty(db)
+
+      db.closeDatabase().get
     }
 
     "Expire & Put" in {
@@ -485,6 +521,8 @@ sealed trait SwayDBUpdateSpec extends TestBase with TestBaseEmbedded {
       doAssert()
       sleep(deadline)
       doAssert()
+
+      db.closeDatabase().get
     }
   }
 }

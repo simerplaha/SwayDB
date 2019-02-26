@@ -76,6 +76,8 @@ sealed trait SwayDBGetSpec extends TestBase {
         i =>
           db.get(i).assertGet shouldBe i.toString
       }
+
+      db.closeDatabase().get
     }
 
     "return empty for removed key-value" in {
@@ -106,6 +108,8 @@ sealed trait SwayDBGetSpec extends TestBase {
         i =>
           db.get(i).assertGet shouldBe i.toString
       }
+
+      db.closeDatabase().get
     }
 
     "return empty for expired key-value" in {
@@ -132,6 +136,8 @@ sealed trait SwayDBGetSpec extends TestBase {
       (91 to 100) foreach { i => db.get(i).assertGet shouldBe i.toString }
 
       db.keys.toList shouldBe ((1 to 9) ++ (91 to 100))
+
+      db.closeDatabase().get
     }
 
     "return empty for range expired key-value" in {
@@ -153,6 +159,8 @@ sealed trait SwayDBGetSpec extends TestBase {
       (10 to 90) foreach { i => db.get(i).assertGetOpt shouldBe empty }
       (1 to 9) foreach { i => db.get(i).assertGet shouldBe i.toString }
       (91 to 100) foreach { i => db.get(i).assertGet shouldBe i.toString }
+
+      db.closeDatabase().get
     }
   }
 }

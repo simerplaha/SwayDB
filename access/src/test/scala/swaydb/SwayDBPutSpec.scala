@@ -93,6 +93,8 @@ sealed trait SwayDBPutSpec extends TestBase with TestBaseEmbedded {
       (1 to keyValueCount) foreach { i => db.put(i, s"$i new").assertGet }
 
       doGet(db)
+
+      db.closeDatabase().get
     }
 
     "Put & Expire" in {
@@ -111,6 +113,8 @@ sealed trait SwayDBPutSpec extends TestBase with TestBaseEmbedded {
       doGet(db)
       sleep(deadline)
       doGet(db)
+
+      db.closeDatabase().get
     }
 
     "Put & Remove" in {
@@ -124,6 +128,8 @@ sealed trait SwayDBPutSpec extends TestBase with TestBaseEmbedded {
       (1 to keyValueCount) foreach { i => db.put(i, s"$i new").assertGet }
 
       doGet(db)
+
+      db.closeDatabase().get
     }
 
     "Put & Update" in {
@@ -152,6 +158,8 @@ sealed trait SwayDBPutSpec extends TestBase with TestBaseEmbedded {
       (1 to keyValueCount) foreach { i => db.put(i, s"$i new").assertGet }
 
       doGet(db)
+
+      db.closeDatabase().get
     }
 
     "Remove & Put" in {
@@ -165,6 +173,8 @@ sealed trait SwayDBPutSpec extends TestBase with TestBaseEmbedded {
       (1 to keyValueCount) foreach { i => db.put(i, s"$i new").assertGet }
 
       doGet(db)
+
+      db.closeDatabase().get
     }
 
     "Remove & Update" in {
@@ -182,6 +192,8 @@ sealed trait SwayDBPutSpec extends TestBase with TestBaseEmbedded {
       (1 to keyValueCount) foreach { i => db.put(i, s"$i new").assertGet }
 
       doGet(db)
+
+      db.closeDatabase().get
     }
 
     "Remove & Expire" in {
@@ -201,6 +213,8 @@ sealed trait SwayDBPutSpec extends TestBase with TestBaseEmbedded {
       (1 to keyValueCount) foreach { i => db.put(i, s"$i new").assertGet }
 
       doGet(db)
+
+      db.closeDatabase().get
     }
 
     "Remove & Remove" in {
@@ -219,6 +233,8 @@ sealed trait SwayDBPutSpec extends TestBase with TestBaseEmbedded {
       (1 to keyValueCount) foreach { i => db.put(i, s"$i new").assertGet }
 
       doGet(db)
+
+      db.closeDatabase().get
     }
   }
 
@@ -233,6 +249,8 @@ sealed trait SwayDBPutSpec extends TestBase with TestBaseEmbedded {
       (1 to keyValueCount) foreach { i => db.put(i, s"$i new").assertGet }
 
       doGet(db)
+
+      db.closeDatabase().get
     }
 
     "Update & Put" in {
@@ -248,6 +266,8 @@ sealed trait SwayDBPutSpec extends TestBase with TestBaseEmbedded {
       (1 to keyValueCount) foreach { i => db.put(i, s"$i new").assertGet }
 
       doGet(db)
+
+      db.closeDatabase().get
     }
 
     "Update & Update" in {
@@ -267,6 +287,7 @@ sealed trait SwayDBPutSpec extends TestBase with TestBaseEmbedded {
 
       doGet(db)
 
+      db.closeDatabase().get
     }
 
     "Update & Expire" in {
@@ -287,6 +308,8 @@ sealed trait SwayDBPutSpec extends TestBase with TestBaseEmbedded {
       (1 to keyValueCount) foreach { i => db.put(i, s"$i new").assertGet }
 
       doGet(db)
+
+      db.closeDatabase().get
     }
 
     "Update & Remove" in {
@@ -301,6 +324,8 @@ sealed trait SwayDBPutSpec extends TestBase with TestBaseEmbedded {
 
       (1 to keyValueCount) foreach { i => db.put(i, s"$i new").assertGet }
       doGet(db)
+
+      db.closeDatabase().get
     }
   }
 
@@ -318,6 +343,8 @@ sealed trait SwayDBPutSpec extends TestBase with TestBaseEmbedded {
       (1 to keyValueCount) foreach { i => db.put(i, s"$i new").assertGet }
 
       doGet(db)
+
+      db.closeDatabase().get
     }
 
     "Expire & Remove" in {
@@ -336,6 +363,8 @@ sealed trait SwayDBPutSpec extends TestBase with TestBaseEmbedded {
       (1 to keyValueCount) foreach { i => db.put(i, s"$i new").assertGet }
 
       doGet(db)
+
+      db.closeDatabase().get
     }
 
     "Expire & Update" in {
@@ -355,6 +384,8 @@ sealed trait SwayDBPutSpec extends TestBase with TestBaseEmbedded {
       (1 to keyValueCount) foreach { i => db.put(i, s"$i new").assertGet }
 
       doGet(db)
+
+      db.closeDatabase().get
     }
 
     "Expire & Expire" in {
@@ -376,6 +407,8 @@ sealed trait SwayDBPutSpec extends TestBase with TestBaseEmbedded {
       (1 to keyValueCount) foreach { i => db.put(i, s"$i new").assertGet }
 
       doGet(db)
+
+      db.closeDatabase().get
     }
 
     "Expire & Put" in {
@@ -393,6 +426,8 @@ sealed trait SwayDBPutSpec extends TestBase with TestBaseEmbedded {
       (1 to keyValueCount) foreach { i => db.put(i, s"$i new").assertGet }
 
       doGet(db)
+
+      db.closeDatabase().get
     }
   }
 }

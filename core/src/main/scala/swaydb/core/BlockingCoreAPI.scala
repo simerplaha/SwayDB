@@ -329,4 +329,7 @@ private[swaydb] case class BlockingCoreAPI(zero: LevelZero) {
 
   def levelMeter(levelNumber: Int): Option[LevelMeter] =
     zero.levelMeter(levelNumber)
+
+  def close(): IO[Unit] =
+    zero.close
 }
