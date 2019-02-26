@@ -45,12 +45,6 @@ private[core] trait FileLimiterItem {
 
 private[core] object FileLimiter extends LazyLogging {
 
-  private sealed trait Action
-  private object Action {
-    case object Delete extends Action
-    case object Close extends Action
-  }
-
   val empty =
     new FileLimiter {
       override def close(file: FileLimiterItem): Unit = ()
@@ -58,39 +52,40 @@ private[core] object FileLimiter extends LazyLogging {
       override def delete(file: FileLimiterItem): Unit = ()
     }
 
-  private def weigher(entry: (WeakReference[FileLimiterItem], Action)): Long =
-    entry._1.get.map(_ => 1L) getOrElse 0L
+  private sealed trait Action
+  private object Action {
+    case class Delete(file: FileLimiterItem) extends Action
+    case class Close(file: WeakReference[FileLimiterItem]) extends Action
+  }
 
   def apply(maxSegmentsOpen: Long, delay: FiniteDuration)(implicit ex: ExecutionContext): FileLimiter = {
-    lazy val queue = LimitQueue[(WeakReference[FileLimiterItem], Action)](maxSegmentsOpen, delay, weigher) {
-      case (dbFile, action) =>
-        action match {
-          case Action.Delete =>
-            dbFile.get foreach {
-              file =>
-                file.delete() onFailureSideEffect {
-                  error =>
-                    logger.error(s"Failed to delete file. ${file.path}", error.exception)
-                }
-            }
+    lazy val queue = LimitQueue[Action](maxSegmentsOpen, delay, _ => 1) {
+      case Action.Delete(file) =>
+        file.delete() onFailureSideEffect {
+          error =>
+            logger.error(s"Failed to delete file. ${file.path}", error.exception)
+        }
 
-          case Action.Close =>
-            dbFile.get foreach {
-              file =>
-                file.close onFailureSideEffect {
-                  error =>
-                    logger.error(s"Failed to close file. ${file.path}", error.exception)
-                }
+      case Action.Close(file) =>
+        file.get foreach {
+          file =>
+            file.close onFailureSideEffect {
+              error =>
+                logger.error(s"Failed to close file. ${file.path}", error.exception)
             }
         }
     }
 
     new FileLimiter {
       override def close(file: FileLimiterItem): Unit =
-        queue ! (new WeakReference[FileLimiterItem](file), Action.Close)
+        queue ! Action.Close(new WeakReference[FileLimiterItem](file))
 
+      //Delete should not be a WeakReference because Levels can
+      //remove references to the file after eventualDelete is invoked.
+      //If the file gets garbage collected due to it being WeakReference before
+      //delete on the file is triggered, the physical file will remain on disk.
       override def delete(file: FileLimiterItem): Unit =
-        queue ! (new WeakReference[FileLimiterItem](file), Action.Delete)
+        queue ! Action.Delete(file)
     }
   }
 }
