@@ -95,7 +95,7 @@ sealed trait LevelReadSpec extends TestBase with MockFactory with Benchmark {
       //disable throttling so small segment compaction does not occur
       val level = TestLevel(segmentSize = 1.kb, nextLevel = None, throttle = (_) => Throttle(Duration.Zero, 0))
 
-      val keyValues = randomPutKeyValues(1000)
+      val keyValues = randomPutKeyValues(1000, addRandomPutDeadlines = false)
       level.putKeyValues(keyValues).assertGet
       //do another put so split occurs.
       level.putKeyValues(keyValues.headSlice).assertGet

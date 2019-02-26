@@ -722,7 +722,7 @@ object CommonAssertions {
         val expectedLowerKeyValue = keyValues(index - 1)
         val lower = level.lower(keyValues(index).key).assertGet
         lower.key shouldBe expectedLowerKeyValue.key
-        IO.Async.runSafe(lower.getOrFetchValue).safeGetBlockingIfFileExists.get.assertGetOpt shouldBe IO.Async.runSafe(expectedLowerKeyValue.getOrFetchValue).safeGetBlockingIfFileExists.get
+        IO.Async.runSafe(lower.getOrFetchValue).safeGetBlocking.get.assertGetOpt shouldBe IO.Async.runSafe(expectedLowerKeyValue.getOrFetchValue).safeGetBlocking.get
         assertLowers(index + 1)
       }
     }

@@ -274,7 +274,8 @@ sealed trait WeatherDataSpec extends TestBase with LazyLogging with Benchmark wi
     //        sleep(5.seconds)
     //      }
     //    }
-    Await.result(readRequests.runThisInFuture(20.times), 10.minutes)
+
+    readRequests runThis 10.times await 10.minutes
     doDeleteAll
     println("************************* DONE *************************")
   }

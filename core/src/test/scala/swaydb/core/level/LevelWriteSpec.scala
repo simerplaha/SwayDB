@@ -485,7 +485,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
       else
         Map.memory[Slice[Byte], Memory.SegmentResponse]()
 
-    val keyValues = randomPutKeyValues(keyValuesCount, addRandomRemoves = true)
+    val keyValues = randomPutKeyValues(keyValuesCount, addRandomRemoves = true, addRandomPutDeadlines = false)
     keyValues foreach {
       keyValue =>
         map.write(MapEntry.Put(keyValue.key, keyValue.asInstanceOf[Memory.SegmentResponse]))
@@ -782,7 +782,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
         keyValues.zipWithIndex flatMap {
           case (keyValue, index) =>
             if (index % 2 == 0)
-              Some(Memory.remove(keyValue.key))
+              Some(Memory.Remove(keyValue.key, None, Time.empty))
             else {
               keyValuesNoDeleted += keyValue
               None
@@ -793,7 +793,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
 
       level.collapseAllSmallSegments(1000).assertGet
       //since every second key-value was delete, the number of Segments is reduced to half
-      level.segmentFilesInAppendix shouldBe <=(segmentCountBeforeDelete / 2)
+      level.segmentFilesInAppendix shouldBe <=((segmentCountBeforeDelete / 2) + 1) //+1 for odd number of key-values
       assertReads(Slice(keyValuesNoDeleted.toArray), level)
 
     }
@@ -850,7 +850,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
         keyValues.zipWithIndex flatMap {
           case (keyValue, index) =>
             if (index % 2 == 0)
-              Some(Memory.remove(keyValue.key, expiryAt + index.millisecond))
+              Some(Memory.Remove(keyValue.key, Some(expiryAt + index.millisecond), Time.empty))
             else {
               keyValuesNotExpired += keyValue
               None
@@ -865,7 +865,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
             level.get(keyValue.key).assertGet.deadline should contain(expiryAt + index.millisecond)
       }
 
-      sleep(10.seconds)
+      sleep(20.seconds)
       level.collapseAllSmallSegments(1000).assertGet
       level.segmentFilesInAppendix should be <= 3
 

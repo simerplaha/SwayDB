@@ -28,6 +28,8 @@ import swaydb.core.util.FiniteDurationUtil._
 
 object RunThis extends Eventually {
 
+  val level0PushDownPool = TestExecutionContext.executionContext
+
   implicit class RunThisImplicits[R](f: => R) {
     def runThis(times: Int): Unit =
       for (i <- 1 to times) f
@@ -41,11 +43,11 @@ object RunThis extends Eventually {
       Random.shuffle(input).foreach(_ ())
   }
 
-  implicit class FutureImplicits[T](f: => Future[T])(implicit ec: ExecutionContext) {
-    def runThis(times: Int): Future[Seq[T]] = {
+  implicit class FutureImplicits[T](f: => Future[T]) {
+    def runThis(times: Int)(implicit ec: ExecutionContext): Future[Seq[T]] = {
       println(s"runThis $times times")
       val futures =
-        Range.inclusive(1, times).map {
+        Range.inclusive(1, times) map {
           _ =>
             f
         }
@@ -57,6 +59,14 @@ object RunThis extends Eventually {
 
     def await: T =
       Await.result(f, 1.second)
+  }
+
+  implicit class FutureAwait2[T](f: => T)(implicit ec: ExecutionContext) {
+    def runThisInFuture(times: Int): Future[Seq[T]] = {
+      println(s"runThis $times times")
+      val futures = Range.inclusive(1, times) map { _ => Future(f) }
+      Future.sequence(futures)
+    }
   }
 
   val once = 1
@@ -82,8 +92,6 @@ object RunThis extends Eventually {
       //        println(s"Iteration done  : $i")
     }
 
-  implicit val level0PushDownPool = TestExecutionContext.executionContext
-
   def sleep(time: FiniteDuration): Unit = {
     println(s"Sleeping for: ${time.asString}")
     Thread.sleep(time.toMillis)
@@ -98,13 +106,5 @@ object RunThis extends Eventually {
 
   def eventual[A](after: FiniteDuration = 1.second)(code: => A): Unit =
     eventually(timeout(after))(code)
-
-  implicit class FutureAwait2[T](f: => T) {
-    def runThisInFuture(times: Int): Future[Seq[T]] = {
-      println(s"runThis $times times")
-      val futures = Range.inclusive(1, times) map { _ => Future(f) }
-      Future.sequence(futures)
-    }
-  }
 
 }
