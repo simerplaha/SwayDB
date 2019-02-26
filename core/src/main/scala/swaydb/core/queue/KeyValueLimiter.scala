@@ -75,9 +75,9 @@ private class KeyValueLimiterImpl(cacheSize: Long,
           keyValue =>
             val otherBytes = (Math.ceil(keyValue.key.size + keyValue.valueLength / 8.0) - 1.0) * 8
             //        if (keyValue.isRemove) (168 + otherBytes).toLong else (264 + otherBytes).toLong
-            (264 + otherBytes).toLong
+            ((264 * 2) + otherBytes).toLong
 
-        } getOrElse 0L
+        } getOrElse 264L //264L for the weight of WeakReference itself.
 
       case custom: AddWeighed =>
         custom.weight
@@ -129,7 +129,7 @@ private class KeyValueLimiterImpl(cacheSize: Long,
           skipList: ConcurrentSkipListMap[Slice[Byte], _]): IO[Unit] =
     keyValue.header() map {
       header =>
-        val weight = header.indexDecompressedLength + header.valueInfo.map(_.valuesDecompressedLength).getOrElse(0) + 264
+        val weight = header.indexDecompressedLength + header.valueInfo.map(_.valuesDecompressedLength).getOrElse(0) + (264 * 2)
         queue ! Command.AddWeighed(new WeakReference(keyValue), new WeakReference[ConcurrentSkipListMap[Slice[Byte], _]](skipList), weight)
     }
 }
