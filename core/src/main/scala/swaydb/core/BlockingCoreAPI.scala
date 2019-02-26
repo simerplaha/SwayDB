@@ -214,7 +214,7 @@ private[swaydb] case class BlockingCoreAPI(zero: LevelZero) {
     zero.lastKey.safeGetBlocking
 
   def bloomFilterKeyValueCount: IO[Int] =
-    zero.bloomFilterKeyValueCount
+    IO.Async.runSafe(zero.bloomFilterKeyValueCount.get).safeGetBlocking
 
   def deadline(key: Slice[Byte]): IO[Option[Deadline]] =
     zero.deadline(key).safeGetBlocking
@@ -226,7 +226,7 @@ private[swaydb] case class BlockingCoreAPI(zero: LevelZero) {
     zero.contains(key).safeGetBlocking
 
   def mightContain(key: Slice[Byte]): IO[Boolean] =
-    zero.mightContain(key)
+    IO.Async.runSafe(zero.mightContain(key).get).safeGetBlocking
 
   def get(key: Slice[Byte]): IO[Option[Option[Slice[Byte]]]] =
     zero.get(key).safeGetBlocking flatMap {
