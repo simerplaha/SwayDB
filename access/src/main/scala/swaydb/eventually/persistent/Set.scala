@@ -17,7 +17,7 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.eventual.persistent
+package swaydb.eventually.persistent
 
 import com.typesafe.scalalogging.LazyLogging
 import java.nio.file.Path

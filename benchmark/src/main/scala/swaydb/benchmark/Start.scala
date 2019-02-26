@@ -54,6 +54,15 @@ object Start {
     print("Select test number (hit Enter for 1): ")
     val testNumber = Try(readInt()) getOrElse 1
 
+    println(
+      """
+        |1. Map[Long, String]
+        |2. Set[(Long, String)]
+        |""".stripMargin)
+
+    print("Select data type (hit Enter for 1): ")
+    val dataTypeInt = Try(readInt()) getOrElse 1
+    val map = if (dataTypeInt == 1) true else false
     println
 
     print("Enter test key-value count (hit Enter for 1 million): ")
@@ -70,17 +79,17 @@ object Start {
     val test: Test =
       if (databaseType == 1) {
         if (testNumber == 1)
-          MemoryTest(keyValueCount = keyValueCount, randomWrite = false, randomRead = false, forwardIteration = false, reverseIteration = false)
+          MemoryTest(keyValueCount = keyValueCount, randomWrite = false, randomRead = false, forwardIteration = false, reverseIteration = false, map = map)
         else if (testNumber == 2)
-          MemoryTest(keyValueCount = keyValueCount, randomWrite = true, randomRead = true, forwardIteration = false, reverseIteration = false)
+          MemoryTest(keyValueCount = keyValueCount, randomWrite = true, randomRead = true, forwardIteration = false, reverseIteration = false, map = map)
         else if (testNumber == 3)
-          MemoryTest(keyValueCount = keyValueCount, randomWrite = false, randomRead = true, forwardIteration = false, reverseIteration = false)
+          MemoryTest(keyValueCount = keyValueCount, randomWrite = false, randomRead = true, forwardIteration = false, reverseIteration = false, map = map)
         else if (testNumber == 4)
-          MemoryTest(keyValueCount = keyValueCount, randomWrite = true, randomRead = false, forwardIteration = false, reverseIteration = false)
+          MemoryTest(keyValueCount = keyValueCount, randomWrite = true, randomRead = false, forwardIteration = false, reverseIteration = false, map = map)
         else if (testNumber == 5)
-          MemoryTest(keyValueCount = keyValueCount, randomWrite = false, randomRead = false, forwardIteration = true, reverseIteration = false)
+          MemoryTest(keyValueCount = keyValueCount, randomWrite = false, randomRead = false, forwardIteration = true, reverseIteration = false, map = map)
         else if (testNumber == 6)
-          MemoryTest(keyValueCount = keyValueCount, randomWrite = false, randomRead = false, forwardIteration = false, reverseIteration = true)
+          MemoryTest(keyValueCount = keyValueCount, randomWrite = false, randomRead = false, forwardIteration = false, reverseIteration = true, map = map)
         else {
           throw new Exception(s"Invalid test number '$testNumber'.")
         }
@@ -88,34 +97,34 @@ object Start {
 
       else if (databaseType == 2) {
         if (testNumber == 1)
-          PersistentTest(dir = dir, mmap = true, keyValueCount = keyValueCount, randomWrite = false, randomRead = false, forwardIteration = false, reverseIteration = false)
+          PersistentTest(dir = dir, mmap = true, keyValueCount = keyValueCount, randomWrite = false, randomRead = false, forwardIteration = false, reverseIteration = false, map = map)
         else if (testNumber == 2)
-          PersistentTest(dir = dir, mmap = true, keyValueCount = keyValueCount, randomWrite = true, randomRead = true, forwardIteration = false, reverseIteration = false)
+          PersistentTest(dir = dir, mmap = true, keyValueCount = keyValueCount, randomWrite = true, randomRead = true, forwardIteration = false, reverseIteration = false, map = map)
         else if (testNumber == 3)
-          PersistentTest(dir = dir, mmap = true, keyValueCount = keyValueCount, randomWrite = false, randomRead = true, forwardIteration = false, reverseIteration = false)
+          PersistentTest(dir = dir, mmap = true, keyValueCount = keyValueCount, randomWrite = false, randomRead = true, forwardIteration = false, reverseIteration = false, map = map)
         else if (testNumber == 4)
-          PersistentTest(dir = dir, mmap = true, keyValueCount = keyValueCount, randomWrite = true, randomRead = false, forwardIteration = false, reverseIteration = false)
+          PersistentTest(dir = dir, mmap = true, keyValueCount = keyValueCount, randomWrite = true, randomRead = false, forwardIteration = false, reverseIteration = false, map = map)
         else if (testNumber == 5)
-          PersistentTest(dir = dir, mmap = true, keyValueCount = keyValueCount, randomWrite = false, randomRead = false, forwardIteration = true, reverseIteration = false)
+          PersistentTest(dir = dir, mmap = true, keyValueCount = keyValueCount, randomWrite = false, randomRead = false, forwardIteration = true, reverseIteration = false, map = map)
         else if (testNumber == 6)
-          PersistentTest(dir = dir, mmap = true, keyValueCount = keyValueCount, randomWrite = false, randomRead = false, forwardIteration = false, reverseIteration = true)
+          PersistentTest(dir = dir, mmap = true, keyValueCount = keyValueCount, randomWrite = false, randomRead = false, forwardIteration = false, reverseIteration = true, map = map)
         else
           throw new Exception(s"Invalid test number '$testNumber'.")
       }
 
       else if (databaseType == 3) {
         if (testNumber == 1)
-          PersistentTest(dir = dir, mmap = false, keyValueCount = keyValueCount, randomWrite = false, randomRead = false, forwardIteration = false, reverseIteration = false)
+          PersistentTest(dir = dir, mmap = false, keyValueCount = keyValueCount, randomWrite = false, randomRead = false, forwardIteration = false, reverseIteration = false, map = map)
         else if (testNumber == 2)
-          PersistentTest(dir = dir, mmap = false, keyValueCount = keyValueCount, randomWrite = true, randomRead = true, forwardIteration = false, reverseIteration = false)
+          PersistentTest(dir = dir, mmap = false, keyValueCount = keyValueCount, randomWrite = true, randomRead = true, forwardIteration = false, reverseIteration = false, map = map)
         else if (testNumber == 3)
-          PersistentTest(dir = dir, mmap = false, keyValueCount = keyValueCount, randomWrite = false, randomRead = true, forwardIteration = false, reverseIteration = false)
+          PersistentTest(dir = dir, mmap = false, keyValueCount = keyValueCount, randomWrite = false, randomRead = true, forwardIteration = false, reverseIteration = false, map = map)
         else if (testNumber == 4)
-          PersistentTest(dir = dir, mmap = false, keyValueCount = keyValueCount, randomWrite = true, randomRead = false, forwardIteration = false, reverseIteration = false)
+          PersistentTest(dir = dir, mmap = false, keyValueCount = keyValueCount, randomWrite = true, randomRead = false, forwardIteration = false, reverseIteration = false, map = map)
         else if (testNumber == 5)
-          PersistentTest(dir = dir, mmap = false, keyValueCount = keyValueCount, randomWrite = false, randomRead = false, forwardIteration = true, reverseIteration = false)
+          PersistentTest(dir = dir, mmap = false, keyValueCount = keyValueCount, randomWrite = false, randomRead = false, forwardIteration = true, reverseIteration = false, map = map)
         else if (testNumber == 6)
-          PersistentTest(dir = dir, mmap = false, keyValueCount = keyValueCount, randomWrite = false, randomRead = false, forwardIteration = false, reverseIteration = true)
+          PersistentTest(dir = dir, mmap = false, keyValueCount = keyValueCount, randomWrite = false, randomRead = false, forwardIteration = false, reverseIteration = true, map = map)
         else
           throw new Exception(s"Invalid test number '$testNumber'.")
       }

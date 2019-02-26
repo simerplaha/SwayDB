@@ -106,5 +106,32 @@ sealed trait SwayDBFunctionSpec extends TestBase {
 
       db.closeDatabase().get
     }
+
+    "Nothing should not update data" in {
+
+      val db = newDB()
+
+      (1 to 1000) foreach {
+        i =>
+          db.put(i, 0).get
+      }
+
+      val functionID = db.registerFunction(1, value => Apply.Nothing)
+
+      (1 to 100).par foreach {
+        _ =>
+          (1 to 1000).par foreach {
+            i =>
+              db.applyFunction(i, functionID).get
+          }
+      }
+
+      (1 to 1000).par foreach {
+        i =>
+          db.get(i).get should contain(0)
+      }
+
+      db.closeDatabase().get
+    }
   }
 }

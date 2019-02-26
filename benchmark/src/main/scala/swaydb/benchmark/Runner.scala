@@ -29,7 +29,7 @@ import swaydb.serializers.Default.{LongSerializer, StringSerializer}
 
 case class Runner(test: Test) extends Benchmark with LazyLogging {
 
-  private val db: swaydb.Map[Slice[Byte], Slice[Byte]] = test.db
+  private val db: swaydb.Map[Slice[Byte], Option[Slice[Byte]]] = test.db
   private val randomWrite: Boolean = test.randomWrite
   private val randomRead: Boolean = test.randomRead
   private val forwardIteration: Boolean = test.forwardIteration
@@ -39,10 +39,22 @@ case class Runner(test: Test) extends Benchmark with LazyLogging {
   def run = {
     println(s"\nCreating $keyValueCount test key-values.\n")
 
-    val keys =
-      (0L to keyValueCount).map(LongSerializer.write)
+    val valueBytes = StringSerializer.write("Test value of 60 bytes for benchmarking SwayDB's performance")
 
-    val testValue = StringSerializer.write("Test value of 60 bytes for benchmarking SwayDB's performance")
+    val testValue =
+      if (test.map)
+        Some(valueBytes)
+      else
+        None
+
+    val keys =
+      if (test.map)
+        (0L to keyValueCount).map(LongSerializer.write)
+      else
+        (0L to keyValueCount) map {
+          key =>
+            LongSerializer.write(key) ++ valueBytes
+        }
 
     lazy val shuffledKeys = Random.shuffle(keys)
 
@@ -63,16 +75,16 @@ case class Runner(test: Test) extends Benchmark with LazyLogging {
 
     if (forwardIteration)
       benchmark("Forward iteration benchmark during compaction") {
-        db.foreach {
+        db foreach {
           keyValue =>
             val key = keyValue._1.readLong()
             if (key % 10000 == 0)
-              println(key + " -> " + keyValue._2.readString())
+              println(key + " -> " + keyValue._2.map(_.readString()))
         }
       }
     else if (reverseIteration)
       benchmark("Reverse iteration benchmark during compaction") {
-        db.foreachRight {
+        db foreachRight {
           case (key, _) =>
             println(s"${LongSerializer.read(key)}")
         }
@@ -82,11 +94,11 @@ case class Runner(test: Test) extends Benchmark with LazyLogging {
       benchmark("Read benchmark during compaction") {
         readKeys foreach {
           key =>
-            //            db.get(key)
-            val value = db.get(key).get.get
-            val longKey = key.readLong()
-            if (longKey % 10000 == 0)
-              println(longKey + " -> " + value.readString())
+            db.get(key)
+          //            val value = db.get(key).get.get
+          //            val longKey = key.readLong()
+          //            if (longKey % 10000 == 0)
+          //              println(longKey + " -> " + value.map(_.readString()))
         }
       }
     }
@@ -131,11 +143,11 @@ case class Runner(test: Test) extends Benchmark with LazyLogging {
       benchmark("Read benchmark after compaction") {
         readKeys foreach {
           key =>
-            //            db.get(key)
-            val value = db.get(key).get.get
-            val longKey = key.readLong()
-            if (longKey % 10000 == 0)
-              println(longKey + " -> " + value.readString())
+            db.get(key)
+          //            val value = db.get(key).get.get
+          //            val longKey = key.readLong()
+          //            if (longKey % 10000 == 0)
+          //              println(longKey + " -> " + value.map(_.readString()))
         }
       }
     }

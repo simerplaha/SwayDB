@@ -25,9 +25,10 @@ import swaydb._
 import swaydb.data.config.MMAP
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default.SliceSerializer
+import swaydb.serializers.Default.SliceOptionSerializer
 
 sealed trait Test {
-  val db: swaydb.Map[Slice[Byte], Slice[Byte]]
+  val db: swaydb.Map[Slice[Byte], Option[Slice[Byte]]]
 
   def randomWrite: Boolean
 
@@ -38,14 +39,17 @@ sealed trait Test {
   def reverseIteration: Boolean
 
   def keyValueCount: Long
+
+  def map: Boolean
 }
 
 case class MemoryTest(keyValueCount: Long,
                       randomWrite: Boolean,
                       randomRead: Boolean,
                       forwardIteration: Boolean,
-                      reverseIteration: Boolean) extends Test {
-  override val db = memory.Map[Slice[Byte], Slice[Byte]]().get
+                      reverseIteration: Boolean,
+                      map: Boolean) extends Test {
+  override val db = memory.Map[Slice[Byte], Option[Slice[Byte]]]().get
 }
 
 case class PersistentTest(dir: Path,
@@ -54,10 +58,11 @@ case class PersistentTest(dir: Path,
                           randomWrite: Boolean,
                           randomRead: Boolean,
                           forwardIteration: Boolean,
-                          reverseIteration: Boolean) extends Test {
+                          reverseIteration: Boolean,
+                          map: Boolean) extends Test {
   override val db =
     if (mmap)
-      persistent.Map[Slice[Byte], Slice[Byte]](dir = dir).get
+      persistent.Map[Slice[Byte], Option[Slice[Byte]]](dir = dir).get
     else
-      persistent.Map[Slice[Byte], Slice[Byte]](dir = dir, mmapMaps = false, mmapAppendix = false, mmapSegments = MMAP.Disable).get
+      persistent.Map[Slice[Byte], Option[Slice[Byte]]](dir = dir, mmapMaps = false, mmapAppendix = false, mmapSegments = MMAP.Disable).get
 }
