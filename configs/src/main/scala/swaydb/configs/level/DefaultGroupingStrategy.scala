@@ -51,10 +51,9 @@ object DefaultGroupingStrategy {
         //simply add the current keys as uncompressed Group.
         Seq(
           Compression.LZ4(
-            compressor = (LZ4Instance.FastestJavaInstance, LZ4Compressor.FastCompressor(minCompressionPercentage = minCompressionPercentage)),
-            decompressor = (LZ4Instance.FastestJavaInstance, LZ4Decompressor.FastDecompressor)
+            compressor = (LZ4Instance.FastestInstance, LZ4Compressor.FastCompressor(minCompressionPercentage = minCompressionPercentage)),
+            decompressor = (LZ4Instance.FastestInstance, LZ4Decompressor.FastDecompressor)
           ),
-          Compression.Snappy(minCompressionPercentage = minCompressionPercentage),
           Compression.UnCompressedGroup
         ),
       //try values compression with LZ4 first with 10% compression requirement then Snappy and finally if both LZ4 & Snappy compression fails
@@ -62,10 +61,9 @@ object DefaultGroupingStrategy {
       valueCompressions =
         Seq(
           Compression.LZ4(
-            compressor = (LZ4Instance.FastestJavaInstance, LZ4Compressor.FastCompressor(minCompressionPercentage = minCompressionPercentage)),
-            decompressor = (LZ4Instance.FastestJavaInstance, LZ4Decompressor.FastDecompressor)
+            compressor = (LZ4Instance.FastestInstance, LZ4Compressor.FastCompressor(minCompressionPercentage = minCompressionPercentage)),
+            decompressor = (LZ4Instance.FastestInstance, LZ4Decompressor.FastDecompressor)
           ),
-          Compression.Snappy(minCompressionPercentage = minCompressionPercentage),
           Compression.UnCompressedGroup
         ),
       //this groups existing Groups into a parent Group.

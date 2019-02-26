@@ -153,3 +153,12 @@ lazy val `access-stress` =
           :+ "io.suzaku" %% "boopickle" % "1.3.0"
     ).dependsOn(core, configs)
     .dependsOn(access, core % Test)
+
+lazy val `benchmark` =
+  project
+    .settings(commonSettings)
+    .settings(publishSettings)
+    .settings(
+      libraryDependencies ++= commonDependencies
+    ).dependsOn(core, configs)
+    .dependsOn(access, core % Test)
