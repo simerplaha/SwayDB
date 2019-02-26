@@ -3,7 +3,7 @@
 [gitter-badge]: https://badges.gitter.im/Join%20Chat.svg
 [gitter-link]: https://gitter.im/SwayDB-chat/Lobby
 
-Non-blocking key-value storage library for single/multiple disks and in-memory.
+Key-value storage library for single/multiple disks and in-memory.
 
 Documentation: http://swaydb.io
 
@@ -18,6 +18,7 @@ View detailed benchmark results [here](http://swaydb.io/performance/macbook-pro-
 
 ## Features
 
+- Non-blocking
 - Single or multiple disks persistent, in-memory or periodically persistent
 - Atomic updates and inserts.
 - APIs similar to Scala collections.
