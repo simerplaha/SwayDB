@@ -25,9 +25,6 @@ sealed trait Prepare[+K, +V]
 
 object Prepare {
 
-  /**
-    * Batch Put key & value for a [[Map]]
-    */
   object Put {
     def apply[K, V](key: K, value: V) =
       new Put(key, value, None)
@@ -39,9 +36,6 @@ object Prepare {
       new Put(key, value, Some(expireAt))
   }
 
-  /**
-    * Batch remove for [[Map]] & [[Set]]
-    */
   object Remove {
     def apply[K](key: K): Remove[K] =
       new Remove(key, None, None)
@@ -64,9 +58,6 @@ object Prepare {
       new Remove(from, Some(to), Some(at))
   }
 
-  /**
-    * Batch Update key & value for a [[Map]]
-    */
   object Update {
     def apply[K, V](key: K, value: V) =
       new Update(key, None, value)
@@ -75,9 +66,14 @@ object Prepare {
       new Update(from, Some(to), value)
   }
 
-  /**
-    * Batch Put key & value for a [[Set]]
-    */
+  object Function {
+    def apply[K, V](key: K, functionID: K) =
+      new Function(key, None, functionID)
+
+    def apply[K, V](from: K, to: K, functionID: K) =
+      new Function(from, Some(to), functionID)
+  }
+
   object Add {
     def apply[T](elem: T) =
       new Add(elem, None)
@@ -92,6 +88,6 @@ object Prepare {
   case class Put[K, V](key: K, value: V, deadline: Option[Deadline]) extends Prepare[K, V]
   case class Remove[K](from: K, to: Option[K], deadline: Option[Deadline]) extends Prepare[K, Nothing]
   case class Update[K, V](from: K, to: Option[K], value: V) extends Prepare[K, V]
-  case class Function[K](from: K, to: Option[K], function: K) extends Prepare[K, Nothing]
+  case class Function[K](from: K, to: Option[K], functionID: K) extends Prepare[K, Nothing]
   case class Add[T](elem: T, deadline: Option[Deadline]) extends Prepare[T, Nothing]
 }
