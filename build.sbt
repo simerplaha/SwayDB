@@ -4,7 +4,6 @@ import xerial.sbt.Sonatype._
 
 val scala211 = "2.11.12"
 val scala212 = "2.12.8"
-val scalaMetaVersion = "4.1.0"
 val lz4Version = "1.5.0"
 val snappyVersion = "1.1.7"
 val logbackClassicVersion = "1.2.3"
@@ -18,7 +17,7 @@ parallelExecution in ThisBuild := false
 lazy val commonSettings = Seq(
   organization := "io.swaydb",
   version := "0.7",
-  scalaVersion := scala212
+  scalaVersion := scalaVersion.value
 )
 
 val publishSettings = Seq[Setting[_]](
@@ -52,7 +51,7 @@ lazy val SwayDB =
     .settings(commonSettings)
     .settings(publishSettings)
     .dependsOn(extension)
-    .aggregate(extension, access, core, macros, compression, data, configs, serializers)
+    .aggregate(extension, access, core, compression, data, configs, serializers)
 
 lazy val core =
   project
@@ -63,7 +62,7 @@ lazy val core =
       libraryDependencies ++=
         commonDependencies
           :+ "com.github.alexandrnikitin" %% "bloom-filter" % bloomFilterVersion
-    ).dependsOn(data, macros, compression, configs % Test, serializers % Test)
+    ).dependsOn(data, macros % "compile-internal", compression, configs % Test, serializers % Test)
 
 lazy val data =
   project
@@ -72,7 +71,7 @@ lazy val data =
     .settings(publishSettings)
     .settings(
       libraryDependencies ++= testDependencies
-    ).dependsOn(macros)
+    ).dependsOn(macros % "compile-internal")
 
 lazy val access =
   project
@@ -82,7 +81,6 @@ lazy val access =
       libraryDependencies ++= commonDependencies
     ).dependsOn(core, configs)
     .dependsOn(serializers, core % Test)
-
 
 lazy val configs =
   project
@@ -137,9 +135,7 @@ lazy val macros =
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(
-      libraryDependencies += "org.scala-lang" % "scala-reflect" % scala212,
-      libraryDependencies += "org.scala-lang" % "scala-compiler" % scala212,
-      libraryDependencies += "org.scalameta" %% "scalameta" % scalaMetaVersion
+      libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaVersion.value
     )
 
 lazy val `access-stress` =
@@ -149,12 +145,12 @@ lazy val `access-stress` =
     .settings(
       libraryDependencies ++=
         commonDependencies
-          :+ "com.github.simerplaha" %% "actor" % "0.3"
-          :+ "io.suzaku" %% "boopickle" % "1.3.0"
+          :+ "com.github.simerplaha" %% "actor" % "0.3" % Test
+          :+ "io.suzaku" %% "boopickle" % "1.3.0" % Test
     ).dependsOn(core, configs)
     .dependsOn(access, core % Test)
 
-lazy val `benchmark` =
+lazy val benchmark =
   project
     .settings(commonSettings)
     .settings(publishSettings)

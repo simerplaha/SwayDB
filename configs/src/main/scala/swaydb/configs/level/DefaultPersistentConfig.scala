@@ -66,7 +66,7 @@ object DefaultPersistentConfig {
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
         compressDuplicateValues = compressDuplicateValues,
         deleteSegmentsEventually = deleteSegmentsEventually,
-        groupingStrategy = None,
+        groupingStrategy = groupingStrategy,
         throttle =
           levelMeter => {
             val delay = (10 - levelMeter.segmentsCount).seconds
@@ -85,7 +85,7 @@ object DefaultPersistentConfig {
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
         compressDuplicateValues = compressDuplicateValues,
         deleteSegmentsEventually = deleteSegmentsEventually,
-        groupingStrategy = None,
+        groupingStrategy = groupingStrategy,
         throttle =
           levelMeter => {
             val delay = (5 - levelMeter.segmentsCount).seconds
@@ -104,7 +104,7 @@ object DefaultPersistentConfig {
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
         compressDuplicateValues = compressDuplicateValues,
         deleteSegmentsEventually = deleteSegmentsEventually,
-        groupingStrategy = None,
+        groupingStrategy = groupingStrategy,
         throttle =
           levelMeter => {
             val delay = (5 - levelMeter.segmentsCount).seconds
@@ -123,7 +123,7 @@ object DefaultPersistentConfig {
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
         compressDuplicateValues = compressDuplicateValues,
         deleteSegmentsEventually = deleteSegmentsEventually,
-        groupingStrategy = None,
+        groupingStrategy = groupingStrategy,
         throttle =
           levelMeter => {
             val delay = (30 - levelMeter.segmentsCount).seconds
@@ -142,8 +142,7 @@ object DefaultPersistentConfig {
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
         compressDuplicateValues = compressDuplicateValues,
         deleteSegmentsEventually = deleteSegmentsEventually,
-        groupingStrategy =
-          None,
+        groupingStrategy = groupingStrategy,
         throttle =
           levelMeter => {
             val delay = (40 - levelMeter.segmentsCount).seconds
@@ -162,7 +161,7 @@ object DefaultPersistentConfig {
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
         compressDuplicateValues = compressDuplicateValues,
         deleteSegmentsEventually = deleteSegmentsEventually,
-        groupingStrategy = None,
+        groupingStrategy = groupingStrategy,
         throttle =
           levelMeter => {
             val delay = (50 - levelMeter.segmentsCount).seconds
