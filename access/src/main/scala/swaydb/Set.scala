@@ -107,18 +107,13 @@ case class Set[T](private val db: SwayDB,
       }
     }
 
-  def registerFunction(functionID: T, function: T => Apply.Set[T]): T = {
-    db.registerFunction(functionID, SwayDB.toCoreFunction(function))
-    functionID
-  }
-
   def registerFunction(functionID: T, function: (T, Option[Deadline]) => Apply.Set[T]): T = {
     db.registerFunction(functionID, SwayDB.toCoreFunction(function))
     functionID
   }
 
-  def applyFunction(from: T, to: T, function: T): IO[Level0Meter] =
-    db.function(from, to, function)
+  def applyFunction(from: T, to: T, functionID: T): IO[Level0Meter] =
+    db.function(from, to, functionID)
 
   def applyFunction(elem: T, function: T): IO[Level0Meter] =
     db.function(elem, function)

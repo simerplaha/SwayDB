@@ -49,5 +49,5 @@ object Apply {
       new Update(value, Some(deadline))
   }
 
-  case class Update[V](value: V, deadline: Option[Deadline]) extends Map[V] with Set[V]
+  case class Update[V](value: V, deadline: Option[Deadline]) extends Map[V]
 }
