@@ -20,14 +20,13 @@
 package swaydb.extension
 
 import scala.concurrent.duration._
-import swaydb.TestBaseEmbedded
+import swaydb.{Prepare, TestBaseEmbedded}
 import swaydb.core.CommonAssertions._
 import swaydb.core.IOAssert._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.data.transaction.Prepare
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 

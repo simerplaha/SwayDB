@@ -26,7 +26,6 @@ import swaydb.data.IO
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.slice.Slice
-import swaydb.data.transaction.Prepare
 import swaydb.serializers.{Serializer, _}
 
 object Set {

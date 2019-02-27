@@ -20,7 +20,6 @@
 package swaydb
 
 import swaydb.data.slice.Slice
-import swaydb.data.transaction.Prepare
 import swaydb.serializers._
 
 private[swaydb] object PrepareImplicits {

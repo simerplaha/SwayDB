@@ -22,8 +22,7 @@ package swaydb.extension
 import swaydb.data.IO
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.data.transaction.Prepare
-import swaydb.extension
+import swaydb.{Prepare, extension}
 import swaydb.serializers.Serializer
 
 object Extend {

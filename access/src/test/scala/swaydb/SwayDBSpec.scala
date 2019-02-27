@@ -21,11 +21,9 @@ package swaydb
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import swaydb.serializers.Default._
 import swaydb.core.IOAssert._
-import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
-import swaydb.data.transaction.Prepare
+import swaydb.serializers.Default._
 
 class SwayDBSpec0 extends SwayDBSpec {
   override def newDB(): Map[Int, String] =

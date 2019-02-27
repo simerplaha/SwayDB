@@ -37,7 +37,6 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.repairAppendix.RepairResult.OverlappingSegments
 import swaydb.data.repairAppendix._
 import swaydb.data.slice.Slice
-import swaydb.data.transaction.Prepare
 import swaydb.serializers.Serializer
 
 /**

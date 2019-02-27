@@ -21,6 +21,7 @@ package swaydb.core
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{Deadline, FiniteDuration}
+import swaydb.Prepare
 import swaydb.core.data.KeyValue._
 import swaydb.core.data.{Memory, SwayFunction, Time, Value}
 import swaydb.core.function.FunctionStore
@@ -35,7 +36,6 @@ import swaydb.data.config.{LevelZeroConfig, SwayDBConfig}
 import swaydb.data.IO.Error
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-import swaydb.data.transaction.Prepare
 
 private[swaydb] object BlockingCoreAPI {
 
