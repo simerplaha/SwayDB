@@ -320,8 +320,8 @@ class Map[K, V](map: swaydb.Map[Key[K], Option[V]],
       case Prepare.Update(from, to, value) =>
         Prepare.Update(from = Key.MapEntry(mapKey, from), to = to.map(Key.MapEntry(mapKey, _)), value = Some(value))
 
-      case Prepare.Function(from, to, function) =>
-        Prepare.Function(Key.MapEntry(mapKey, from), to.map(Key.MapEntry(mapKey, _)), functionID = Key.MapEntry(Seq.empty, function))
+      case Prepare.ApplyFunction(from, to, function) =>
+        Prepare.ApplyFunction(Key.MapEntry(mapKey, from), to.map(Key.MapEntry(mapKey, _)), functionID = Key.MapEntry(Seq.empty, function))
 
       case Prepare.Add(elem, deadline) =>
         Prepare.Add(elem = Key.MapEntry(mapKey, elem), deadline = deadline)

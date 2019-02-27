@@ -19,7 +19,6 @@
 
 package swaydb.extension
 
-import swaydb.KeyOrderTyped
 import swaydb.core.io.reader.Reader
 import swaydb.data.IO
 import swaydb.data.slice.{Reader, Slice}
@@ -230,7 +229,7 @@ object Key {
     }
 
   /**
-    * Implements un-typed ordering for performance. This ordering can also be implemented used [[KeyOrderTyped]].
+    * Implements un-typed ordering for performance. This ordering can also be implemented using types.
     * See documentation at http://www.swaydb.io/custom-key-ordering/
     *
     * Creates dual ordering on [[Key.parentMapKeys]]. Orders mapKey using the [[KeyOrder.default]] order

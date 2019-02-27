@@ -44,7 +44,7 @@ class Persistent_WeatherDataSpec extends WeatherDataSpec {
   override val db = swaydb.persistent.Map[Int, WeatherData](randomDir, cacheSize = 10.mb, acceleration = Accelerator.brake()).get
 }
 
-class MemoryPersistent_WeatherDataSpec extends WeatherDataSpec {
+class EventuallyPersistent_WeatherDataSpec extends WeatherDataSpec {
   override val db = swaydb.eventually.persistent.Map[Int, WeatherData](randomDir, maxOpenSegments = 10, cacheSize = 10.mb, maxMemoryLevelSize = 500.mb).get
 }
 

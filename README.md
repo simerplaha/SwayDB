@@ -3,7 +3,7 @@
 [gitter-badge]: https://badges.gitter.im/Join%20Chat.svg
 [gitter-link]: https://gitter.im/SwayDB-chat/Lobby
 
-Key-value storage library for single/multiple disks and in-memory.
+SwayDB is an embeddable database for single/multiple disks and in-memory storage.
 
 Documentation: http://swaydb.io
 

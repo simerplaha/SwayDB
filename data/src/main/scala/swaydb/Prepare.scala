@@ -66,12 +66,12 @@ object Prepare {
       new Update(from, Some(to), value)
   }
 
-  object Function {
+  object ApplyFunction {
     def apply[K, V](key: K, functionID: K) =
-      new Function(key, None, functionID)
+      new ApplyFunction(key, None, functionID)
 
     def apply[K, V](from: K, to: K, functionID: K) =
-      new Function(from, Some(to), functionID)
+      new ApplyFunction(from, Some(to), functionID)
   }
 
   object Add {
@@ -88,6 +88,6 @@ object Prepare {
   case class Put[K, V](key: K, value: V, deadline: Option[Deadline]) extends Prepare[K, V]
   case class Remove[K](from: K, to: Option[K], deadline: Option[Deadline]) extends Prepare[K, Nothing]
   case class Update[K, V](from: K, to: Option[K], value: V) extends Prepare[K, V]
-  case class Function[K](from: K, to: Option[K], functionID: K) extends Prepare[K, Nothing]
+  case class ApplyFunction[K](from: K, to: Option[K], functionID: K) extends Prepare[K, Nothing]
   case class Add[T](elem: T, deadline: Option[Deadline]) extends Prepare[T, Nothing]
 }

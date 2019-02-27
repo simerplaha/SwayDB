@@ -105,7 +105,7 @@ private[swaydb] case class BlockingCoreAPI(zero: LevelZero) {
                 MapEntry.Put[Slice[Byte], Memory.Update](key, Memory.Update(key, value, None, timer.next))(LevelZeroMapEntryWriter.Level0UpdateWriter)
               }
 
-            case Prepare.Function(key, toKey, function) =>
+            case Prepare.ApplyFunction(key, toKey, function) =>
               toKey map {
                 toKey =>
                   (MapEntry.Put[Slice[Byte], Memory.Range](key, Memory.Range(key, toKey, None, Value.Function(function, timer.next)))(LevelZeroMapEntryWriter.Level0RangeWriter): MapEntry[Slice[Byte], Memory.SegmentResponse]) ++
