@@ -64,5 +64,5 @@ case class PersistentTest(dir: Path,
     if (mmap)
       persistent.Map[Slice[Byte], Option[Slice[Byte]]](dir = dir).get
     else
-      persistent.Map[Slice[Byte], Option[Slice[Byte]]](dir = dir, mmapMaps = false, mmapAppendix = false, mmapSegments = MMAP.Disable).get
+      persistent.Map[Slice[Byte], Option[Slice[Byte]]](dir = dir, mmapMaps = false, mmapAppendix = false, mmapSegments = MMAP.Disabled).get
 }

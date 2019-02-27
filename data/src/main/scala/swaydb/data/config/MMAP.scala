@@ -32,7 +32,7 @@ object MMAP {
     override val mmapRead: Boolean = true
     override val mmapWrite: Boolean = false
   }
-  case object Disable extends MMAP {
+  case object Disabled extends MMAP {
     override val mmapRead: Boolean = false
     override val mmapWrite: Boolean = false
   }

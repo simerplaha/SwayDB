@@ -795,7 +795,6 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
       //since every second key-value was delete, the number of Segments is reduced to half
       level.segmentFilesInAppendix shouldBe <=((segmentCountBeforeDelete / 2) + 1) //+1 for odd number of key-values
       assertReads(Slice(keyValuesNoDeleted.toArray), level)
-
     }
 
     "collapse all small Segments into one of the existing small Segments, if the Segment was reopened with a larger segment size" in {
