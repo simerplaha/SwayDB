@@ -23,7 +23,7 @@ import com.typesafe.scalalogging.LazyLogging
 import java.nio.file.Path
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{FiniteDuration, _}
-import swaydb.configs.level.{DefaultGroupingStrategy, DefaultMemoryPersistentConfig}
+import swaydb.configs.level.{DefaultGroupingStrategy, DefaultEventuallyPersistentConfig}
 import swaydb.core.BlockingCoreAPI
 import swaydb.core.function.FunctionStore
 import swaydb.data.accelerate.{Accelerator, Level0Meter}
@@ -67,7 +67,7 @@ object Set extends LazyLogging {
                                                                                   ec: ExecutionContext = SwayDB.defaultExecutionContext): IO[swaydb.Set[T]] =
     BlockingCoreAPI(
       config =
-        DefaultMemoryPersistentConfig(
+        DefaultEventuallyPersistentConfig(
           dir = dir,
           otherDirs = otherDirs,
           mapSize = mapSize,

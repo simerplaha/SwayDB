@@ -28,7 +28,7 @@ import swaydb.data.config._
 
 import scala.concurrent.duration._
 
-object DefaultMemoryPersistentConfig {
+object DefaultEventuallyPersistentConfig {
 
   /**
     * Default configuration for in-memory 3 leveled database that is persistent for the 3rd Level.
