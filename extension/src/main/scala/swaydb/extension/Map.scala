@@ -420,6 +420,9 @@ class Map[K, V](map: swaydb.Map[Key[K], Option[V]],
   def timeLeft(key: K): IO[Option[FiniteDuration]] =
     expiration(key).map(_.map(_.timeLeft))
 
+  def closeDatabase(): IO[Unit] =
+    baseMap().closeDatabase()
+
   private[swaydb] def baseMap(): swaydb.Map[Key[K], Option[V]] =
     map
 }

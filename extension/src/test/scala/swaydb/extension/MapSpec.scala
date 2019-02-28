@@ -86,6 +86,7 @@ sealed trait MapSpec extends TestBase with TestBaseEmbedded {
           (Key.MapEnd(Seq.empty), None)
         )
 
+      rootMap.closeDatabase().get
     }
 
     "update a rootMaps value" in {
@@ -105,6 +106,8 @@ sealed trait MapSpec extends TestBase with TestBaseEmbedded {
           (Key.SubMapsEnd(Seq.empty), None),
           (Key.MapEnd(Seq.empty), None)
         )
+
+      rootMap.closeDatabase().get
     }
 
     "insert key-values to rootMap" in {
@@ -126,6 +129,8 @@ sealed trait MapSpec extends TestBase with TestBaseEmbedded {
           (Key.SubMapsEnd(Seq.empty), None),
           (Key.MapEnd(Seq.empty), None)
         )
+
+      rootMap.closeDatabase().get
     }
 
     "insert a subMap" in {
@@ -168,6 +173,8 @@ sealed trait MapSpec extends TestBase with TestBaseEmbedded {
           (Key.SubMapsEnd(Seq(1)), None),
           (Key.MapEnd(Seq(1)), None)
         )
+
+      rootMap.closeDatabase().get
     }
 
     "remove all entries from rootMap and subMap" in {
@@ -209,6 +216,8 @@ sealed trait MapSpec extends TestBase with TestBaseEmbedded {
 //          (Key.SubMapsEnd(Seq(1)), None),
 //          (Key.End(Seq(1)), None)
 //        )
+
+      rootMap.closeDatabase().get
     }
 
     "update a subMap's value" in {
@@ -237,6 +246,8 @@ sealed trait MapSpec extends TestBase with TestBaseEmbedded {
 //          (Key.SubMapsEnd(Seq(1)), None),
 //          (Key.End(Seq(1)), None)
 //        )
+
+      rootMap.closeDatabase().get
     }
 
     "getMap, containsMap, exists & getMapValue" in {
@@ -262,6 +273,8 @@ sealed trait MapSpec extends TestBase with TestBaseEmbedded {
       rootMap.exists().assertGet shouldBe true
       subMap.exists().assertGet shouldBe false
       rootMap.maps.getValue(1).assertGetOpt shouldBe empty //is deleted
+
+      rootMap.closeDatabase().get
     }
 
     "expire key" in {
@@ -302,6 +315,8 @@ sealed trait MapSpec extends TestBase with TestBaseEmbedded {
       //          (Key.SubMapsEnd(Seq(1)), None),
       //          (Key.End(Seq(1)), None)
       //        )
+
+      rootMap.closeDatabase().get
     }
 
     "expire range keys" in {
@@ -349,6 +364,8 @@ sealed trait MapSpec extends TestBase with TestBaseEmbedded {
       //          (Key.SubMapsEnd(Seq(1)), None),
       //          (Key.End(Seq(1)), None)
       //        )
+
+      rootMap.closeDatabase().get
     }
 
     "update range keys" in {
@@ -380,6 +397,8 @@ sealed trait MapSpec extends TestBase with TestBaseEmbedded {
       rootMap.get(2).assertGet shouldBe "updated"
       subMap.get(2).assertGet shouldBe "updated"
       subMap.get(3).assertGet shouldBe "updated"
+
+      rootMap.closeDatabase().get
     }
 
     "batch put" in {
@@ -399,6 +418,8 @@ sealed trait MapSpec extends TestBase with TestBaseEmbedded {
       rootMap.get(2).assertGet shouldBe "two"
       subMap.get(1).assertGet shouldBe "one one"
       subMap.get(2).assertGet shouldBe "two two"
+
+      rootMap.closeDatabase().get
     }
 
     "batch update" in {
@@ -428,6 +449,8 @@ sealed trait MapSpec extends TestBase with TestBaseEmbedded {
       rootMap.get(2).assertGet shouldBe "two updated"
       subMap.get(1).assertGet shouldBe "one one updated"
       subMap.get(2).assertGet shouldBe "two two updated"
+
+      rootMap.closeDatabase().get
     }
 
     "batch expire" in {
@@ -457,6 +480,8 @@ sealed trait MapSpec extends TestBase with TestBaseEmbedded {
         rootMap shouldBe empty
         subMap shouldBe empty
       }
+
+      rootMap.closeDatabase().get
     }
 
     "batchPut" in {
@@ -468,6 +493,8 @@ sealed trait MapSpec extends TestBase with TestBaseEmbedded {
 
       rootMap.toList shouldBe List((1, "one"), (2, "two"))
       subMap.toList shouldBe List((1, "one one"), (2, "two two"))
+
+      rootMap.closeDatabase().get
     }
 
     "batchUpdate" in {
@@ -482,6 +509,7 @@ sealed trait MapSpec extends TestBase with TestBaseEmbedded {
       rootMap.toList shouldBe List((1, "one updated"), (2, "two updated"))
       subMap.toList shouldBe List((1, "one one updated"), (2, "two two updated"))
 
+      rootMap.closeDatabase().get
     }
 
     "batchRemove" in {
@@ -496,6 +524,7 @@ sealed trait MapSpec extends TestBase with TestBaseEmbedded {
       rootMap.toList shouldBe empty
       subMap.toList shouldBe empty
 
+      rootMap.closeDatabase().get
     }
 
     "batchExpire" in {
@@ -511,6 +540,8 @@ sealed trait MapSpec extends TestBase with TestBaseEmbedded {
         rootMap.toList should contain only ((2, "two"))
         subMap.toList shouldBe empty
       }
+
+      rootMap.closeDatabase().get
     }
 
     "get" in {
@@ -532,6 +563,8 @@ sealed trait MapSpec extends TestBase with TestBaseEmbedded {
       rootMap.get(2).assertGetOpt shouldBe empty
       subMap.get(1).assertGetOpt shouldBe empty
       subMap.get(2).assertGetOpt shouldBe empty
+
+      rootMap.closeDatabase().get
     }
 
     "get when sub map is removed" in {
@@ -553,6 +586,8 @@ sealed trait MapSpec extends TestBase with TestBaseEmbedded {
       rootMap.get(2).assertGetOpt shouldBe empty
       subMap.get(1).assertGetOpt shouldBe empty
       subMap.get(2).assertGetOpt shouldBe empty
+
+      rootMap.closeDatabase().get
     }
 
     "getKey" in {
@@ -574,6 +609,8 @@ sealed trait MapSpec extends TestBase with TestBaseEmbedded {
       rootMap.get(2).assertGetOpt shouldBe empty
       subMap.get(11).assertGetOpt shouldBe empty
       subMap.get(22).assertGetOpt shouldBe empty
+
+      rootMap.closeDatabase().get
     }
 
     "getKeyValue" in {
@@ -595,6 +632,8 @@ sealed trait MapSpec extends TestBase with TestBaseEmbedded {
       rootMap.getKeyValue(2).assertGetOpt shouldBe empty
       subMap.getKeyValue(11).assertGetOpt shouldBe empty
       subMap.getKeyValue(22).assertGetOpt shouldBe empty
+
+      rootMap.closeDatabase().get
     }
 
     "keys" in {
@@ -606,6 +645,8 @@ sealed trait MapSpec extends TestBase with TestBaseEmbedded {
 
       rootMap.keys.toList should contain inOrderOnly(1, 2)
       subMap.keys.toList should contain inOrderOnly(11, 22)
+
+      rootMap.closeDatabase().get
     }
   }
 
@@ -621,6 +662,7 @@ sealed trait MapSpec extends TestBase with TestBaseEmbedded {
       val rootMap = db.maps.put(1, "rootMap").assertGet
       Map.childSubMapRanges(rootMap) shouldBe empty
 
+      db.closeDatabase().get
     }
 
     "return subMap that has only one child subMap" in {
@@ -631,6 +673,8 @@ sealed trait MapSpec extends TestBase with TestBaseEmbedded {
 
       Map.childSubMapRanges(firstMap) should contain only ((Key.SubMap(Seq(1), 2), Key.MapStart(Seq(1, 2)), Key.MapEnd(Seq(1, 2))))
       Map.childSubMapRanges(secondMap) shouldBe empty
+
+      rootMap.closeDatabase().get
     }
 
     "return subMaps of 3 nested maps" in {
@@ -643,6 +687,8 @@ sealed trait MapSpec extends TestBase with TestBaseEmbedded {
       Map.childSubMapRanges(firstMap) should contain inOrderOnly((Key.SubMap(Seq(1), 2), Key.MapStart(Seq(1, 2)), Key.MapEnd(Seq(1, 2))), (Key.SubMap(Seq(1, 2), 2), Key.MapStart(Seq(1, 2, 2)), Key.MapEnd(Seq(1, 2, 2))))
       Map.childSubMapRanges(secondMap) should contain only ((Key.SubMap(Seq(1, 2), 2), Key.MapStart(Seq(1, 2, 2)), Key.MapEnd(Seq(1, 2, 2))))
       Map.childSubMapRanges(thirdMap) shouldBe empty
+
+      db.closeDatabase().get
     }
 
     "returns multiple child subMap that also contains nested subMaps" in {
@@ -677,6 +723,8 @@ sealed trait MapSpec extends TestBase with TestBaseEmbedded {
 
       Map.childSubMapRanges(firstMap) shouldBe mapHierarchy
       Map.childSubMapRanges(secondMap) shouldBe mapHierarchy.drop(1)
+
+      db.closeDatabase().get
     }
   }
 
@@ -690,6 +738,7 @@ sealed trait MapSpec extends TestBase with TestBaseEmbedded {
         first.maps.get(2).assertGetOpt shouldBe defined
         second.maps.get(2).assertGetOpt shouldBe empty
 
+        root.closeDatabase().get
       }
     }
 
@@ -705,6 +754,8 @@ sealed trait MapSpec extends TestBase with TestBaseEmbedded {
         first.maps.getValue(2).assertGet shouldBe "second again"
         second.getValue().assertGet shouldBe "second again"
         secondAgain.getValue().assertGet shouldBe "second again"
+
+        root.closeDatabase().get
       }
 
       "replace existing map and all it's entries" in {
@@ -728,6 +779,8 @@ sealed trait MapSpec extends TestBase with TestBaseEmbedded {
         secondAgain.getValue().assertGet shouldBe "second again"
         //all the old entries are removed
         second.toList shouldBe empty
+
+        root.closeDatabase().get
       }
 
       "replace existing map and all it's entries and also all existing maps subMap and all their entries" in {
@@ -783,6 +836,8 @@ sealed trait MapSpec extends TestBase with TestBaseEmbedded {
 
         second.maps.contains(3).assertGet shouldBe false
         second.maps.contains(4).assertGet shouldBe false
+
+        root.closeDatabase().get
       }
     }
 
@@ -808,6 +863,8 @@ sealed trait MapSpec extends TestBase with TestBaseEmbedded {
         third should have size 3
         second.maps.clear(3).assertGet
         third shouldBe empty
+
+        root.closeDatabase().get
       }
     }
   }

@@ -75,6 +75,8 @@ sealed trait FromMapSpec extends TestBase with TestBaseEmbedded {
       rootMap.maps.after(1).toList shouldBe empty
       rootMap.fromOrBefore(1).toList shouldBe empty
       rootMap.fromOrAfter(1).toList shouldBe empty
+
+      db.closeDatabase().get
     }
 
     "if the map contains only 1 empty subMap" in {
@@ -101,6 +103,8 @@ sealed trait FromMapSpec extends TestBase with TestBaseEmbedded {
 
       rootMap.maps.head shouldBe ((2, "sub map"))
       rootMap.maps.last shouldBe ((2, "sub map"))
+
+      db.closeDatabase().get
     }
 
     "if the map contains multiple non empty subMap" in {
@@ -173,6 +177,8 @@ sealed trait FromMapSpec extends TestBase with TestBaseEmbedded {
       firstMap.from(44).mapRight { case (key, value) => (key, value) } shouldBe List((44, "four four"), (33, "three three"), (22, "two two"), (11, "one one"))
 
       firstMap.maps shouldBe empty
+
+      db.closeDatabase().get
     }
   }
 }

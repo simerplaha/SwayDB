@@ -78,6 +78,8 @@ sealed trait MapPutSpec extends TestBase with TestBaseEmbedded {
       firstMap.put(4, "four again").assertGet
 
       firstMap.toList should contain inOrderOnly((3, "three"), (4, "four again"), (5, "five"))
+
+      db.closeDatabase().get
     }
 
     "Initialise a RootMap & 2 SubMaps from Root" in {
@@ -100,6 +102,8 @@ sealed trait MapPutSpec extends TestBase with TestBaseEmbedded {
 
       secondMap.toList should contain inOrderOnly((3, "three"), (4, "four again"), (5, "five"))
       thirdMap.toList should contain inOrderOnly((3, "three"), (4, "four again"), (5, "five"))
+
+      db.closeDatabase().get
     }
 
     //    "Initialise 2 RootMaps & 2 SubMaps under each SubMap" in {
@@ -139,6 +143,8 @@ sealed trait MapPutSpec extends TestBase with TestBaseEmbedded {
       mapAgain.exists().assertGet shouldBe true
       //value does not change as the map already exists.
       mapAgain.getValue().assertGet shouldBe "firstMap"
+
+      db.closeDatabase().get
     }
 
     "Initialise 5 nested maps with 2 elements in each map" in {
@@ -169,6 +175,8 @@ sealed trait MapPutSpec extends TestBase with TestBaseEmbedded {
       subMap3.toList should contain inOrderOnly((5, "five"), (6, "six"))
       subMap3.maps.toList should contain only ((7, "sub map seven"))
       subMap4.toList should contain inOrderOnly((7, "seven"), (8, "eight"))
+
+      db.closeDatabase().get
     }
 
     "Initialise 5 sibling maps with 2 elements in each map" in {
@@ -196,6 +204,8 @@ sealed trait MapPutSpec extends TestBase with TestBaseEmbedded {
       subMap2.toList should contain inOrderOnly((3, "three"), (4, "four"))
       subMap3.toList should contain inOrderOnly((5, "five"), (6, "six"))
       subMap4.toList should contain inOrderOnly((7, "seven"), (8, "eight"))
+
+      db.closeDatabase().get
     }
   }
 }

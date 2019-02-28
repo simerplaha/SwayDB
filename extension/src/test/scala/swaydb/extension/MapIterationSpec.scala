@@ -82,6 +82,7 @@ sealed trait MapIterationSpec extends TestBase with TestBaseEmbedded {
       subMap1.toList shouldBe empty
       subMap2.toList shouldBe empty
 
+      db.closeDatabase().get
     }
   }
 
@@ -114,6 +115,8 @@ sealed trait MapIterationSpec extends TestBase with TestBaseEmbedded {
       secondMap.dropRight(0) should contain only ((1, "one"))
       secondMap.drop(0) should contain only ((1, "one"))
       secondMap.scanRight((-1, "minus")) { case ((key, value), _) => (key, value) } shouldBe List((-1, "minus"), (1, "one"))
+
+      db.closeDatabase().get
     }
 
     "the map contains 2 elements" in {
@@ -158,6 +161,8 @@ sealed trait MapIterationSpec extends TestBase with TestBaseEmbedded {
         case ((key, value), (key2, value2)) =>
           (key + key2, value + value2)
       } shouldBe List((0, ""), (2, "two"), (3, "onetwo"))
+
+      db.closeDatabase().get
     }
 
     "Sibling maps" in {
@@ -244,6 +249,8 @@ sealed trait MapIterationSpec extends TestBase with TestBaseEmbedded {
           //          println(((key, value), (key2, value2)))
           (key + key2, value + value2)
       } shouldBe List((0, ""), (4, "four"), (7, "threefour"))
+
+      db.closeDatabase().get
     }
 
     "nested maps" in {
@@ -361,6 +368,8 @@ sealed trait MapIterationSpec extends TestBase with TestBaseEmbedded {
           //          println(((key, value), (key2, value2)))
           (key + key2, value + value2)
       } shouldBe List((0, ""), (4, "four"), (7, "threefour"))
+
+      db.closeDatabase().get
     }
   }
 }

@@ -76,6 +76,8 @@ sealed trait FromSpec extends TestBase with TestBaseEmbedded {
         .from(2)
         .toList shouldBe empty
 
+      db.closeDatabase().get
+
     }
 
     "if the map contains only 1 element" in {
@@ -118,6 +120,8 @@ sealed trait FromSpec extends TestBase with TestBaseEmbedded {
 
       firstMap.head shouldBe ((1, "one"))
       firstMap.last shouldBe ((1, "one"))
+
+      db.closeDatabase().get
     }
 
     "Sibling maps" in {
@@ -154,6 +158,8 @@ sealed trait FromSpec extends TestBase with TestBaseEmbedded {
       subMap2.size shouldBe 2
       subMap2.head shouldBe ((3, "three"))
       subMap2.last shouldBe ((4, "four"))
+
+      db.closeDatabase().get
     }
 
     "nested maps" in {
@@ -197,6 +203,8 @@ sealed trait FromSpec extends TestBase with TestBaseEmbedded {
       subMap2.size shouldBe 2
       subMap2.head shouldBe ((3, "three"))
       subMap2.last shouldBe ((4, "four"))
+
+      db.closeDatabase().get
     }
   }
 }
