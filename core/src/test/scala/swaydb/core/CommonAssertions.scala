@@ -722,7 +722,7 @@ object CommonAssertions {
         val expectedLowerKeyValue = keyValues(index - 1)
         val lower = level.lower(keyValues(index).key).assertGet
         lower.key shouldBe expectedLowerKeyValue.key
-        IO.Async.runSafe(lower.getOrFetchValue).safeGetBlocking.get.assertGetOpt shouldBe IO.Async.runSafe(expectedLowerKeyValue.getOrFetchValue).safeGetBlocking.get
+        IO.Async.runSafe(lower.getOrFetchValue.get).safeGetBlocking.get shouldBe IO.Async.runSafe(expectedLowerKeyValue.getOrFetchValue).safeGetBlocking.get
         assertLowers(index + 1)
       }
     }
@@ -812,7 +812,7 @@ object CommonAssertions {
                 segment: Segment) =
     unzipGroups(keyValues) foreach {
       keyValue =>
-        segment.get(keyValue.key).assertGet shouldBe keyValue
+        segment.get(keyValue.key).safeGetBlocking().assertGet shouldBe keyValue
     }
 
   def dump(segments: Iterable[Segment]): Iterable[String] =
@@ -1071,7 +1071,7 @@ object CommonAssertions {
         val expectedLower = keyValues(index - 1)
         val keyValue = keyValues(index)
         try {
-          val lower = segment.lower(keyValue.key).assertGet
+          val lower = segment.lower(keyValue.key).safeGetBlocking().assertGet
           lower shouldBe expectedLower
         } catch {
           case x: Exception =>

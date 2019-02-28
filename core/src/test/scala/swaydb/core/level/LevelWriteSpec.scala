@@ -866,7 +866,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
 
       sleep(20.seconds)
       level.collapseAllSmallSegments(1000).assertGet
-      level.segmentFilesInAppendix should be <= 3
+      level.segmentFilesInAppendix should be <= 4
 
       assertReads(Slice(keyValuesNotExpired.toArray), level)
     }

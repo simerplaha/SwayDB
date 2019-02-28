@@ -19,6 +19,7 @@
 
 package swaydb.core.actor
 
+import java.util.concurrent.{ConcurrentLinkedQueue, ConcurrentSkipListSet}
 import org.scalatest.{Matchers, WordSpec}
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Future
@@ -94,13 +95,13 @@ class ActorSpec extends WordSpec with Matchers {
     }
 
     "stop processing messages on termination" in {
-      case class State(processed: ListBuffer[Int])
-      val state = State(ListBuffer.empty)
+      case class State(processed: ConcurrentSkipListSet[Int])
+      val state = State(new ConcurrentSkipListSet[Int]())
 
       val actor =
         Actor[Int, State](state) {
           case (int, self) =>
-            self.state.processed += int
+            self.state.processed add int
         }
 
       (1 to 3) foreach {
@@ -109,8 +110,7 @@ class ActorSpec extends WordSpec with Matchers {
           if (i == 2)
             actor.terminate()
       }
-      sleep(100.millisecond)
-      eventual {
+      eventual(10.seconds) {
         state.processed.size shouldBe 2
         //2nd message failed
         state.processed should contain only(1, 2)
