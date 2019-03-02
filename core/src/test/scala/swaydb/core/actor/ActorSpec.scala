@@ -19,7 +19,7 @@
 
 package swaydb.core.actor
 
-import java.util.concurrent.{ConcurrentLinkedQueue, ConcurrentSkipListSet}
+import java.util.concurrent.ConcurrentSkipListSet
 import org.scalatest.{Matchers, WordSpec}
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Future
@@ -118,7 +118,7 @@ class ActorSpec extends WordSpec with Matchers {
     }
   }
 
-  "Actor.timer" should {
+  "timer" should {
 
     "process all messages after a fixed interval and terminate" in {
 
@@ -150,7 +150,7 @@ class ActorSpec extends WordSpec with Matchers {
     }
   }
 
-  "Actor.timerLoop" should {
+  "timerLoop" should {
 
     "continue processing incoming messages at the next specified interval" in {
       case class State(processed: ListBuffer[Int])
@@ -178,6 +178,67 @@ class ActorSpec extends WordSpec with Matchers {
       sleep(1.second)
       //after termination the size does not change. i.e. no new messages are processed and looper is stopped.
       state.processed.size shouldBe sizeAfterTerminate
+    }
+  }
+
+  "adjustDelay" should {
+    "not increment delay if there is no overflow" in {
+      (1 to 100) foreach {
+        queueSize =>
+          Actor.adjustDelay(
+            currentQueueSize = queueSize,
+            defaultQueueSize = 100,
+            previousDelay = 10.seconds,
+            defaultDelay = 10.seconds
+          ) shouldBe 10.seconds
+      }
+    }
+
+    "adjust delay if the overflow is half" in {
+      Actor.adjustDelay(
+        currentQueueSize = 101,
+        defaultQueueSize = 100,
+        previousDelay = 10.seconds,
+        defaultDelay = 10.seconds
+      ) shouldBe 9.9.seconds
+
+      Actor.adjustDelay(
+        currentQueueSize = 200,
+        defaultQueueSize = 100,
+        previousDelay = 10.seconds,
+        defaultDelay = 10.seconds
+      ) shouldBe 5.seconds
+
+      Actor.adjustDelay(
+        currentQueueSize = 1000,
+        defaultQueueSize = 100,
+        previousDelay = 10.seconds,
+        defaultDelay = 10.seconds
+      ) shouldBe 1.second
+    }
+
+    "start increment adjusted delay when overflow is controlled" in {
+      (1 to 100) foreach {
+        queueSize =>
+          Actor.adjustDelay(
+            currentQueueSize = queueSize,
+            defaultQueueSize = 100,
+            previousDelay = 5.seconds,
+            defaultDelay = 10.seconds
+          ) shouldBe 5.seconds + Actor.incrementDelayBy
+      }
+    }
+
+    "reset to default when overflow is controlled" in {
+      (1 to 100) foreach {
+        queueSize =>
+          Actor.adjustDelay(
+            currentQueueSize = queueSize,
+            defaultQueueSize = 100,
+            previousDelay = 9.9.seconds,
+            defaultDelay = 10.seconds
+          ) shouldBe 10.seconds
+      }
     }
   }
 }

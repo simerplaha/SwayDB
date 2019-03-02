@@ -57,7 +57,7 @@ db
       (key, value + "_updated")
   } andThen {
      updatedKeyValues =>
-       db.batchPut(updatedKeyValues)
+       db.put(updatedKeyValues)
   }
 ```
 ## Quick start
@@ -74,7 +74,7 @@ db
 - [SwayDB.stress](https://github.com/simerplaha/SwayDB.stress) - Stress tests.
 - [SwayDB.io](https://github.com/simerplaha/SwayDB.io) - Website code.
 
-# Project status: Beta
+# Project status
 
 Undergoing integration, stress & performance testing.
 
