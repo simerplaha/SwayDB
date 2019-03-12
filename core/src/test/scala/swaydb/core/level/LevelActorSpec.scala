@@ -88,7 +88,7 @@ class LevelActorSpec extends TestBase with MockFactory {
       implicit val self = TestActor[LevelCommand]()
 
       level.nextBatchSize _ expects() returning 10
-      level.collapseAllSmallSegments _ expects 10 returning IO.Success(0)
+      level.collapseAllSmallSegments _ expects 10 returning IO.zero
 
       LevelActor.collapseSmallSegments(force = false) shouldBe Sleeping(collapseSmallSegmentsTaskScheduled = false, task = None)
     }
@@ -126,7 +126,7 @@ class LevelActorSpec extends TestBase with MockFactory {
       implicit val self = TestActor[LevelCommand]()
 
       level.nextBatchSize _ expects() returning 10
-      level.collapseAllSmallSegments _ expects 10 returning IO.Success(0)
+      level.collapseAllSmallSegments _ expects 10 returning IO.zero
 
       LevelActor.collapseSmallSegments(force = true) shouldBe Sleeping(collapseSmallSegmentsTaskScheduled = false, task = None)
     }
@@ -285,7 +285,7 @@ class LevelActorSpec extends TestBase with MockFactory {
     //      implicit val self = TestActor[LevelCommand]()
     //
     //      level.nextBatchSize _ expects() returning 10
-    //      level.collapseAllSmallSegments _ expects 10 returning IO.Success(0)
+    //      level.collapseAllSmallSegments _ expects 10 returning IO.zero
     //      level.hasNextLevel _ expects() returns false
     //
     //      LevelActor.doPush shouldBe Sleeping(collapseSmallSegmentsTaskScheduled = true, task = None)

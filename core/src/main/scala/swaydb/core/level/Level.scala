@@ -349,15 +349,15 @@ private[core] class Level(val dirs: Seq[Dir],
     logger.trace(s"{}: Putting segments '{}' segments.", paths.head, segments.map(_.path.toString).toList)
     //check to ensure that the Segments do not overlap with busy Segments
     val busySegments = getBusySegments()
-    val appendixValues = appendix.values().asScala
-    Segment.overlapsWithBusySegments(segments, busySegments, appendixValues) flatMap {
+    val appendixSegments = appendix.values().asScala
+    Segment.overlapsWithBusySegments(segments, busySegments, appendixSegments) flatMap {
       overlaps =>
         if (overlaps) {
           logger.debug("{}: Segments '{}' intersect with current busy segments: {}", paths.head, segments.map(_.path.toString), busySegments.map(_.path.toString))
           IO.Failure(IO.Error.OverlappingPushSegment)
         } else { //only copy Segments if the both this Level and the Segments are persistent.
-          val (segmentToMerge, segmentToCopy) = Segment.partitionOverlapping(segments, appendixValues)
-          put(segmentToMerge, segmentToCopy, appendixValues).map(_ => alertActorForSegmentManagement())
+          val (segmentToMerge, segmentToCopy) = Segment.partitionOverlapping(segments, appendixSegments)
+          put(segmentToMerge, segmentToCopy, appendixSegments).map(_ => alertActorForSegmentManagement())
         }
     }
   }
@@ -626,9 +626,9 @@ private[core] class Level(val dirs: Seq[Dir],
                appendix: Iterable[Segment]): IO[Int] = {
     logger.trace(s"{}: Collapsing '{}' segments", paths.head, segments.size)
     if (segments.isEmpty) {
-      IO.Success(0)
+      IO.zero
     } else if (appendix.size == 1) { //if there is only one Segment in this Level which is a small segment. No collapse required
-      IO.Success(0)
+      IO.zero
     } else {
       //other segments in the appendix that are not the input segments (segments to collapse).
       val targetAppendixSegments = appendix.filterNot(map => segments.exists(_.path == map.path))
@@ -636,8 +636,7 @@ private[core] class Level(val dirs: Seq[Dir],
         if (targetAppendixSegments.nonEmpty) {
           logger.trace(s"{}: Target appendix segments {}", paths.head, targetAppendixSegments.size)
           (segments, targetAppendixSegments)
-        }
-        else {
+        } else {
           //If appendix without the small Segments is empty.
           // Then pick the first segment from the smallest segments and merge other small segments into it.
           val firstSmallSegment = Iterable(segments.head)
@@ -686,7 +685,6 @@ private[core] class Level(val dirs: Seq[Dir],
     logger.trace(s"{}: Merging {} KeyValues.", paths.head, keyValues.size)
     SegmentAssigner.assign(keyValues, targetSegments) flatMap {
       assignments =>
-
         val busySegments: Seq[Segment] = getBusySegments()
         //check to ensure that assigned Segments do not overlap with busy Segments.
         if (Segment.intersects(assignments.keys, busySegments)) {
@@ -870,13 +868,13 @@ private[core] class Level(val dirs: Seq[Dir],
             // Segments on reboot.
             if (deleteSegmentsEventually) {
               segmentsToRemove foreach (_.deleteSegmentsEventually)
-              IO.Success(0)
+              IO.zero
             }
             else
               Segment.deleteSegments(segmentsToRemove) recoverWith {
                 case exception =>
                   logger.error(s"Failed to delete Segments '{}'. Manually delete these Segments or reboot the database.", segmentsToRemove.map(_.path.toString).mkString(", "), exception)
-                  IO.Success(0)
+                  IO.zero
               }
         }
     } getOrElse IO.Failure(IO.Error.NoSegmentsRemoved)
@@ -903,7 +901,7 @@ private[core] class Level(val dirs: Seq[Dir],
         segment mightContain key
 
       case None =>
-        IO.Success(false)
+        IO.`false`
     }
 
   override def mightContain(key: Slice[Byte]): IO[Boolean] =
@@ -1045,7 +1043,7 @@ private[core] class Level(val dirs: Seq[Dir],
         }
     } flatMap {
       thisLevelCount =>
-        nextLevel.map(_.bloomFilterKeyValueCount).getOrElse(IO.Success(0)) map (_ + thisLevelCount)
+        nextLevel.map(_.bloomFilterKeyValueCount).getOrElse(IO.zero) map (_ + thisLevelCount)
     }
 
   def getSegment(minKey: Slice[Byte]): Option[Segment] =

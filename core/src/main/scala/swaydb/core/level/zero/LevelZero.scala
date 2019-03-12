@@ -667,7 +667,7 @@ private[core] class LevelZero(val path: Path,
 
   def mightContain(key: Slice[Byte]): IO[Boolean] =
     if (maps.contains(key))
-      IO.Success(true)
+      IO.`true`
     else
       nextLevel.map(_.mightContain(key)) getOrElse IO.`true`
 

@@ -75,7 +75,6 @@ object IO {
   val zero = IO.Success(0)
   val emptyReader = IO.Success(SliceReader(Slice.emptyBytes))
   val emptyBytes = IO.Success(Slice.emptyBytes)
-  val noneTime = IO.Success(None)
   val emptySeqBytes = IO.Success(Seq.empty[Slice[Byte]])
 
   sealed trait Async[+T] {
@@ -89,7 +88,8 @@ object IO {
     def safeGetIfFileExists: IO.Async[T]
     def safeGetBlocking: IO[T]
     def safeGetBlockingIfFileExists: IO[T]
-    def safeGetFuture(implicit ec: ExecutionContext): Future[IO[T]]
+    def safeGetFuture(implicit ec: ExecutionContext): Future[T]
+    def safeGetFutureIfFileExists(implicit ec: ExecutionContext): Future[T]
     def getOrElse[U >: T](default: => U): U
     def recover[U >: T](f: PartialFunction[IO.Error, U]): IO[U]
     def recoverWith[U >: T](f: PartialFunction[IO.Error, IO[U]]): IO[U]
@@ -402,7 +402,8 @@ object IO {
     override def safeGetIfFileExists: Async[T] = this
     override def safeGetBlocking: IO.Success[T] = this
     override def safeGetBlockingIfFileExists: IO[T] = this
-    override def safeGetFuture(implicit ec: ExecutionContext): Future[IO.Success[T]] = Future.successful(this)
+    override def safeGetFutureIfFileExists(implicit ec: ExecutionContext): Future[T] = Future.successful(value)
+    override def safeGetFuture(implicit ec: ExecutionContext): Future[T] = Future.successful(value)
     override def getOrElse[U >: T](default: => U): U = get
     override def orElse[U >: T](default: => IO[U]): IO.Success[U] = this
     override def flatMap[U](f: T => IO[U]): IO[U] = IO.Catch(f(get))
@@ -561,18 +562,18 @@ object IO {
     /**
       * Opens all [[IO.Async]] types to read the final value in a non-blocking manner.
       */
-    def safeGetFuture(implicit ec: ExecutionContext): Future[IO[T]] = {
+    def safeGetFuture(implicit ec: ExecutionContext): Future[T] = {
 
-      def doGet(later: IO.Later[T]): Future[IO[T]] =
+      def doGet(later: IO.Later[T]): Future[T] =
         BusyBoolean.future(later.error.busy).map(_ => later.safeGet) flatMap {
-          case success @ IO.Success(_) =>
-            Future.successful(success)
+          case IO.Success(value) =>
+            Future.successful(value)
 
           case later: IO.Later[T] =>
             doGet(later)
 
-          case failure @ IO.Failure(_) =>
-            Future.successful(failure)
+          case IO.Failure(error) =>
+            Future.failed(error.exception)
         }
 
       doGet(this)
@@ -581,18 +582,18 @@ object IO {
     /**
       * Opens all [[IO.Async]] types to read the final value in a non-blocking manner.
       */
-    def safeGetFutureIfFileExists(implicit ec: ExecutionContext): Future[IO[T]] = {
+    def safeGetFutureIfFileExists(implicit ec: ExecutionContext): Future[T] = {
 
-      def doGet(later: IO.Later[T]): Future[IO[T]] =
+      def doGet(later: IO.Later[T]): Future[T] =
         BusyBoolean.future(later.error.busy).map(_ => later.safeGetIfFileExists) flatMap {
-          case success @ IO.Success(_) =>
-            Future.successful(success)
+          case IO.Success(value) =>
+            Future.successful(value)
 
           case later: IO.Later[T] =>
             doGet(later)
 
-          case failure @ IO.Failure(_) =>
-            Future.successful(failure)
+          case IO.Failure(error) =>
+            Future.failed(error.exception)
         }
 
       doGet(this)
@@ -655,7 +656,8 @@ object IO {
     override def safeGetIfFileExists: Async[T] = this
     override def safeGetBlocking: IO.Failure[T] = this
     override def safeGetBlockingIfFileExists: IO[T] = this
-    override def safeGetFuture(implicit ec: ExecutionContext): Future[IO.Failure[T]] = Future.successful(this)
+    override def safeGetFutureIfFileExists(implicit ec: ExecutionContext): Future[T] = Future.failed(error.exception)
+    override def safeGetFuture(implicit ec: ExecutionContext): Future[T] = Future.failed(error.exception)
     override def getOrElse[U >: T](default: => U): U = default
     override def orElse[U >: T](default: => IO[U]): IO[U] = IO.Catch(default)
     override def flatMap[U](f: T => IO[U]): IO.Failure[U] = this.asInstanceOf[IO.Failure[U]]

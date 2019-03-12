@@ -727,7 +727,7 @@ private[core] object Segment extends LazyLogging {
                                busySegments: Iterable[Segment],
                                appendixSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Boolean] =
     if (busySegments.isEmpty)
-      IO.Success(false)
+      IO.`false`
     else
       SegmentAssigner.assignMinMaxOnlyForSegments(
         inputSegments = inputSegments,
@@ -744,7 +744,7 @@ private[core] object Segment extends LazyLogging {
                                busySegments: Iterable[Segment],
                                appendixSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Boolean] =
     if (busySegments.isEmpty)
-      IO.Success(false)
+      IO.`false`
     else {
       for {
         head <- map.headValue()
@@ -763,7 +763,7 @@ private[core] object Segment extends LazyLogging {
             ).nonEmpty
         }
       }
-    } getOrElse IO.Success(false)
+    } getOrElse IO.`false`
 
   /**
     * Key-values such as Groups and Ranges can contain deadlines internally.

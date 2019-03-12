@@ -22,6 +22,7 @@ package swaydb
 import scala.collection.generic.CanBuildFrom
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 import swaydb.PrepareImplicits._
+import swaydb.core.Core
 import swaydb.data.IO
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
@@ -29,7 +30,7 @@ import swaydb.data.slice.Slice
 import swaydb.serializers.{Serializer, _}
 
 object Set {
-  def apply[T](api: SwayDB)(implicit serializer: Serializer[T]): Set[T] =
+  def apply[T](api: Core[IO])(implicit serializer: Serializer[T]): Set[T] =
     new Set(api, None)
 }
 
@@ -38,7 +39,7 @@ object Set {
   *
   * For documentation check - http://swaydb.io/api/
   */
-case class Set[T](private val db: SwayDB,
+case class Set[T](private val db: Core[IO],
                   private val from: Option[From[T]],
                   private[swaydb] val reverse: Boolean = false,
                   private val till: T => Boolean = (_: T) => true)(implicit serializer: Serializer[T]) extends Iterable[T] {
@@ -65,7 +66,7 @@ case class Set[T](private val db: SwayDB,
     add(elems)
 
   def add(elems: Iterable[T]): IO[Level0Meter] =
-    db.commit(elems.map(elem => Prepare.Put(key = serializer.write(elem), value = None, deadline = None)))
+    db.put(elems.map(elem => Prepare.Put(key = serializer.write(elem), value = None, deadline = None)))
 
   def remove(elem: T): IO[Level0Meter] =
     db.remove(elem)
@@ -77,25 +78,25 @@ case class Set[T](private val db: SwayDB,
     remove(elems)
 
   def remove(elems: Iterable[T]): IO[Level0Meter] =
-    db.commit(elems.map(elem => Prepare.Remove(serializer.write(elem))))
+    db.put(elems.map(elem => Prepare.Remove(serializer.write(elem))))
 
   def expire(elem: T, after: FiniteDuration): IO[Level0Meter] =
-    db.expire(elem, after.fromNow)
+    db.remove(elem, after.fromNow)
 
   def expire(elem: T, at: Deadline): IO[Level0Meter] =
-    db.expire(elem, at)
+    db.remove(elem, at)
 
   def expire(from: T, to: T, after: FiniteDuration): IO[Level0Meter] =
-    db.expire(from, to, after.fromNow)
+    db.remove(from, to, after.fromNow)
 
   def expire(from: T, to: T, at: Deadline): IO[Level0Meter] =
-    db.expire(from, to, at)
+    db.remove(from, to, at)
 
   def expire(elems: (T, Deadline)*): IO[Level0Meter] =
     expire(elems)
 
   def expire(elems: Iterable[(T, Deadline)]): IO[Level0Meter] =
-    db.commit {
+    db.put {
       elems map {
         elemWithExpire =>
           Prepare.Remove(
@@ -118,10 +119,10 @@ case class Set[T](private val db: SwayDB,
     db.function(elem, function)
 
   def commit(prepare: Prepare[T, Nothing]*): IO[Level0Meter] =
-    db.commit(prepare)
+    db.put(prepare)
 
   def commit(prepare: Iterable[Prepare[T, Nothing]]): IO[Level0Meter] =
-    db.commit(prepare)
+    db.put(prepare)
 
   def level0Meter: Level0Meter =
     db.level0Meter
@@ -185,7 +186,7 @@ case class Set[T](private val db: SwayDB,
                   else if (from.orBefore)
                     db.beforeKey(fromKeyBytes)
                   else
-                    IO.Success(None)
+                    IO.none
               }
 
         case None =>
@@ -262,7 +263,7 @@ case class Set[T](private val db: SwayDB,
     lastOption.get
 
   override def size: Int =
-    db.keyValueCount.get
+    db.bloomFilterKeyValueCount.get
 
   override def isEmpty: Boolean =
     db.headKey.get.isEmpty
@@ -317,7 +318,7 @@ case class Set[T](private val db: SwayDB,
     }
 
   def closeDatabase(): IO[Unit] =
-    db.close
+    db.close()
 
   override def toString(): String =
     classOf[Map[_, _]].getClass.getSimpleName

@@ -151,7 +151,7 @@ private[file] class MMAPFile(val path: Path,
     channel.isOpen
 
   override def isMemoryMapped =
-    IO.Success(true)
+    IO.`true`
 
   override def isLoaded: IO[Boolean] =
     IO.Success(buffer.isLoaded)

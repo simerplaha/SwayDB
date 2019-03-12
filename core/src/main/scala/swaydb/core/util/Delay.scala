@@ -27,6 +27,8 @@ import swaydb.data.IO
 
 object Delay {
 
+  val futureNone = Future.successful(None)
+
   private val timer = new Timer(true)
 
   private def runWithDelay[T](delayFor: FiniteDuration)(block: => Future[T])(implicit ctx: ExecutionContext): Future[T] = {

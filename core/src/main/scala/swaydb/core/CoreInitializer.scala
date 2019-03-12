@@ -35,7 +35,7 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.{AppendixStorage, LevelStorage}
 
-private[core] object DBInitializer extends LazyLogging {
+private[core] object CoreInitializer extends LazyLogging {
 
   /**
     * Closes all the open files and releases the locks on database folders.
@@ -58,7 +58,7 @@ private[core] object DBInitializer extends LazyLogging {
   def apply(config: LevelZeroConfig)(implicit ec: ExecutionContext,
                                      keyOrder: KeyOrder[Slice[Byte]],
                                      timeOrder: TimeOrder[Slice[Byte]],
-                                     functionStore: FunctionStore): IO[BlockingCoreAPI] = {
+                                     functionStore: FunctionStore): IO[BlockingCore] = {
     implicit val fileLimiter = FileLimiter.empty
     LevelZero(
       mapSize = config.mapSize,
@@ -69,7 +69,7 @@ private[core] object DBInitializer extends LazyLogging {
     ) map {
       zero =>
         addShutdownHook(zero)
-        BlockingCoreAPI(zero)
+        BlockingCore(zero)
     }
   }
 
@@ -80,7 +80,7 @@ private[core] object DBInitializer extends LazyLogging {
             segmentCloserDelay: FiniteDuration)(implicit ec: ExecutionContext,
                                                 keyOrder: KeyOrder[Slice[Byte]],
                                                 timeOrder: TimeOrder[Slice[Byte]],
-                                                functionStore: FunctionStore): IO[BlockingCoreAPI] = {
+                                                functionStore: FunctionStore): IO[BlockingCore] = {
     implicit val fileOpenLimiter: FileLimiter =
       FileLimiter(maxSegmentsOpen, segmentCloserDelay)
 
@@ -130,7 +130,7 @@ private[core] object DBInitializer extends LazyLogging {
       }
 
     def createLevels(levelConfigs: List[LevelConfig],
-                     previousLowerLevel: Option[LevelRef]): IO[BlockingCoreAPI] =
+                     previousLowerLevel: Option[LevelRef]): IO[BlockingCore] =
       levelConfigs match {
         case Nil =>
           createLevel(1, previousLowerLevel, config.level1) flatMap {
@@ -144,7 +144,7 @@ private[core] object DBInitializer extends LazyLogging {
               ) map {
                 zero =>
                   addShutdownHook(zero)
-                  BlockingCoreAPI(zero)
+                  BlockingCore(zero)
               }
           }
 

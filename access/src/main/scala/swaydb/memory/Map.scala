@@ -24,7 +24,7 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{FiniteDuration, _}
 import swaydb.SwayDB
 import swaydb.configs.level.DefaultMemoryConfig
-import swaydb.core.BlockingCoreAPI
+import swaydb.core.BlockingCore
 import swaydb.core.function.FunctionStore
 import swaydb.data.IO
 import swaydb.data.accelerate.{Accelerator, Level0Meter}
@@ -68,7 +68,7 @@ object Map extends LazyLogging {
                                                                                      valueSerializer: Serializer[V],
                                                                                      keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                      ec: ExecutionContext = SwayDB.defaultExecutionContext): IO[swaydb.Map[K, V]] =
-    BlockingCoreAPI(
+    BlockingCore(
       config = DefaultMemoryConfig(
         mapSize = mapSize,
         segmentSize = segmentSize,
@@ -84,8 +84,8 @@ object Map extends LazyLogging {
       //memory Segments are never closed.
       segmentsOpenCheckDelay = Duration.Zero
     ) map {
-      core =>
-        swaydb.Map[K, V](new SwayDB(core))
+      db =>
+        swaydb.Map[K, V](db)
     }
 
 }

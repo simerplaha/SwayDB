@@ -293,7 +293,7 @@ private[map] case class PersistentMap[K, V: ClassTag](path: Path,
       }
     //flushOnOverflow is executed if the current file is empty, even if flushOnOverflow = false.
     else if (!flushOnOverflow && bytesWritten != 0)
-      IO.Success(false)
+      IO.`false`
     else {
       val nextFilesSize = entry.totalByteSize.toLong max fileSize
       PersistentMap.nextFile(currentFile, mmap, nextFilesSize, skipList) match {

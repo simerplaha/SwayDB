@@ -101,7 +101,7 @@ object LevelZeroMapEntryReader {
         toKeyLength <- reader.readInt()
         toKey <- reader.read(toKeyLength).map(_.unslice())
         valueLength <- reader.readInt()
-        valueBytes <- if (valueLength == 0) IO.Success(Slice.emptyBytes) else reader.read(valueLength)
+        valueBytes <- if (valueLength == 0) IO.emptyBytes else reader.read(valueLength)
         (fromValue, rangeValue) <- RangeValueSerializer.read(valueBytes)
       } yield {
         Some(MapEntry.Put(fromKey, Memory.Range(fromKey, toKey, fromValue, rangeValue))(LevelZeroMapEntryWriter.Level0RangeWriter))

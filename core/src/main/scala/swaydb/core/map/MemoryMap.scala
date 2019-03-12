@@ -63,9 +63,9 @@ private[map] class MemoryMap[K, V: ClassTag](val skipList: ConcurrentSkipListMap
         }
         currentBytesWritten += entry.totalByteSize
         writeCount += 1
-        IO.Success(true)
+        IO.`true`
       } else {
-        IO.Success(false)
+        IO.`false`
       }
     }
 

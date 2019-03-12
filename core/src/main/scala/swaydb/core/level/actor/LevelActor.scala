@@ -62,7 +62,7 @@ private[core] object LevelActor extends LazyLogging {
           val delay = level.nextPushDelay
           logger.debug(s"{}: Started. Scheduled with delay delay", level.paths.head, delay)
           Some(
-            PushScheduled(
+            LevelState.PushScheduled(
               collapseSmallSegmentsTaskScheduled = state.collapseSmallSegmentsTaskScheduled,
               task = state.task
             ),

@@ -37,7 +37,7 @@ import swaydb.data.IO.Error
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
-private[swaydb] object BlockingCoreAPI {
+private[swaydb] object BlockingCore {
 
   def apply(config: SwayDBConfig,
             maxOpenSegments: Int,
@@ -46,8 +46,8 @@ private[swaydb] object BlockingCoreAPI {
             segmentsOpenCheckDelay: FiniteDuration)(implicit ec: ExecutionContext,
                                                     keyOrder: KeyOrder[Slice[Byte]],
                                                     timeOrder: TimeOrder[Slice[Byte]],
-                                                    functionStore: FunctionStore): IO[BlockingCoreAPI] =
-    DBInitializer(
+                                                    functionStore: FunctionStore): IO[BlockingCore] =
+    CoreInitializer(
       config = config,
       maxSegmentsOpen = maxOpenSegments,
       cacheSize = cacheSize,
@@ -58,23 +58,8 @@ private[swaydb] object BlockingCoreAPI {
   def apply(config: LevelZeroConfig)(implicit ec: ExecutionContext,
                                      keyOrder: KeyOrder[Slice[Byte]],
                                      timeOrder: TimeOrder[Slice[Byte]],
-                                     functionStore: FunctionStore): IO[BlockingCoreAPI] =
-    DBInitializer(config = config)
-}
-
-private[swaydb] case class BlockingCoreAPI(zero: LevelZero) {
-
-  def put(key: Slice[Byte]): IO[Level0Meter] =
-    zero.put(key)
-
-  def put(key: Slice[Byte], value: Slice[Byte]): IO[Level0Meter] =
-    zero.put(key, value)
-
-  def put(key: Slice[Byte], value: Option[Slice[Byte]]): IO[Level0Meter] =
-    zero.put(key, value)
-
-  def put(key: Slice[Byte], value: Option[Slice[Byte]], removeAt: Deadline): IO[Level0Meter] =
-    zero.put(key, value, removeAt)
+                                     functionStore: FunctionStore): IO[BlockingCore] =
+    CoreInitializer(config = config)
 
   private def prepareToMapEntry(entries: Iterable[Prepare[Slice[Byte], Option[Slice[Byte]]]])(timer: Timer): Option[MapEntry[Slice[Byte], Memory.SegmentResponse]] =
     entries.foldLeft(Option.empty[MapEntry[Slice[Byte], Memory.SegmentResponse]]) {
@@ -116,6 +101,21 @@ private[swaydb] case class BlockingCoreAPI(zero: LevelZero) {
           }
         Some(mapEntry.map(_ ++ nextEntry) getOrElse nextEntry)
     }
+}
+
+private[swaydb] case class BlockingCore(zero: LevelZero) extends Core[IO] {
+
+  def put(key: Slice[Byte]): IO[Level0Meter] =
+    zero.put(key)
+
+  def put(key: Slice[Byte], value: Slice[Byte]): IO[Level0Meter] =
+    zero.put(key, value)
+
+  def put(key: Slice[Byte], value: Option[Slice[Byte]]): IO[Level0Meter] =
+    zero.put(key, value)
+
+  def put(key: Slice[Byte], value: Option[Slice[Byte]], removeAt: Deadline): IO[Level0Meter] =
+    zero.put(key, value, removeAt)
 
   /**
     * Each [[Prepare]] requires a new next [[Time]] for cases where a batch contains overriding keys.
@@ -130,7 +130,7 @@ private[swaydb] case class BlockingCoreAPI(zero: LevelZero) {
     if (entries.isEmpty)
       IO.Failure(new Exception("Cannot write empty batch"))
     else
-      zero.put(prepareToMapEntry(entries)(_).get) //Gah .get! hmm.
+      zero.put(BlockingCore.prepareToMapEntry(entries)(_).get) //Gah .get! hmm.
 
   def remove(key: Slice[Byte]): IO[Level0Meter] =
     zero.remove(key)

@@ -23,7 +23,7 @@ import com.typesafe.scalalogging.LazyLogging
 import scala.concurrent.ExecutionContext
 import swaydb.SwayDB
 import swaydb.configs.level.DefaultMemoryZeroConfig
-import swaydb.core.BlockingCoreAPI
+import swaydb.core.BlockingCore
 import swaydb.core.function.FunctionStore
 import swaydb.data.IO
 import swaydb.data.accelerate.{Accelerator, Level0Meter}
@@ -44,13 +44,13 @@ object Set extends LazyLogging {
                acceleration: Level0Meter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[T],
                                                                                   keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                   ec: ExecutionContext = SwayDB.defaultExecutionContext): IO[swaydb.Set[T]] =
-    BlockingCoreAPI(
+    BlockingCore(
       config = DefaultMemoryZeroConfig(
         mapSize = mapSize,
         acceleration = acceleration
       )
     ) map {
-      core =>
-        swaydb.Set[T](new SwayDB(core))
+      db =>
+        swaydb.Set[T](db)
     }
 }
