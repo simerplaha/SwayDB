@@ -252,4 +252,5 @@ private[swaydb] case class AsyncCore(zero: LevelZero)(implicit ec: ExecutionCont
   def valueSize(key: Slice[Byte]): Future[Option[Int]] =
     zero.valueSize(key).safeGetFuture
 
+  override def async()(implicit ec: ExecutionContext): Core[Future] = this
 }

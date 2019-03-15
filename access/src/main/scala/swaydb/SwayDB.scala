@@ -89,7 +89,7 @@ object SwayDB extends LazyLogging {
                   segmentsOpenCheckDelay: FiniteDuration)(implicit keySerializer: Serializer[K],
                                                           valueSerializer: Serializer[V],
                                                           keyOrder: KeyOrder[Slice[Byte]],
-                                                          ec: ExecutionContext): IO[swaydb.Map[K, V]] =
+                                                          ec: ExecutionContext): IO[swaydb.Map[K, V, IO]] =
     BlockingCore(
       config = config,
       maxOpenSegments = maxSegmentsOpen,
@@ -98,7 +98,7 @@ object SwayDB extends LazyLogging {
       segmentsOpenCheckDelay = segmentsOpenCheckDelay
     ) map {
       db =>
-        swaydb.Map[K, V](db)
+        swaydb.Map[K, V, IO](db)
     }
 
   def apply[T](config: SwayDBPersistentConfig,
@@ -107,7 +107,7 @@ object SwayDB extends LazyLogging {
                cacheCheckDelay: FiniteDuration,
                segmentsOpenCheckDelay: FiniteDuration)(implicit serializer: Serializer[T],
                                                        keyOrder: KeyOrder[Slice[Byte]],
-                                                       ec: ExecutionContext): IO[swaydb.Set[T]] =
+                                                       ec: ExecutionContext): IO[swaydb.Set[T, IO]] =
     BlockingCore(
       config = config,
       maxOpenSegments = maxSegmentsOpen,
@@ -124,7 +124,7 @@ object SwayDB extends LazyLogging {
                   cacheCheckDelay: FiniteDuration)(implicit keySerializer: Serializer[K],
                                                    valueSerializer: Serializer[V],
                                                    keyOrder: KeyOrder[Slice[Byte]],
-                                                   ec: ExecutionContext): IO[swaydb.Map[K, V]] =
+                                                   ec: ExecutionContext): IO[swaydb.Map[K, V, IO]] =
     BlockingCore(
       config = config,
       maxOpenSegments = 0,
@@ -133,14 +133,14 @@ object SwayDB extends LazyLogging {
       segmentsOpenCheckDelay = Duration.Zero
     ) map {
       db =>
-        swaydb.Map[K, V](db)
+        swaydb.Map[K, V, IO](db)
     }
 
   def apply[T](config: SwayDBMemoryConfig,
                cacheSize: Int,
                cacheCheckDelay: FiniteDuration)(implicit serializer: Serializer[T],
                                                 keyOrder: KeyOrder[Slice[Byte]],
-                                                ec: ExecutionContext): IO[swaydb.Set[T]] =
+                                                ec: ExecutionContext): IO[swaydb.Set[T, IO]] =
     BlockingCore(
       config = config,
       maxOpenSegments = 0,
@@ -154,7 +154,7 @@ object SwayDB extends LazyLogging {
 
   def apply[T](config: LevelZeroConfig)(implicit serializer: Serializer[T],
                                         keyOrder: KeyOrder[Slice[Byte]],
-                                        ec: ExecutionContext): IO[swaydb.Set[T]] =
+                                        ec: ExecutionContext): IO[swaydb.Set[T, IO]] =
     BlockingCore(
       config = config
     ) map {

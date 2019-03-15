@@ -11,12 +11,13 @@ val bloomFilterVersion = "0.11.0"
 val scalaLoggingVersion = "3.9.0"
 val scalaMockVersion = "4.1.0"
 val scalaTestVersion = "3.0.5"
+val reactiveStreamsVersion = "1.0.2"
 
 parallelExecution in ThisBuild := false
 
 lazy val commonSettings = Seq(
   organization := "io.swaydb",
-  version := "0.7",
+  version := "0.7.1",
   scalaVersion := scalaVersion.value
 )
 

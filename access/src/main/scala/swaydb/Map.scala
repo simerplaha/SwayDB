@@ -19,84 +19,77 @@
 
 package swaydb
 
-import scala.collection.generic.CanBuildFrom
 import scala.concurrent.duration.{Deadline, FiniteDuration}
+import scala.concurrent.{ExecutionContext, Future}
 import swaydb.PrepareImplicits._
+import swaydb.Wrap._
 import swaydb.core.Core
-import swaydb.data.IO
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.slice.Slice
 import swaydb.serializers.{Serializer, _}
 
-object Map {
-
-  def apply[K, V](db: Core[IO])(implicit keySerializer: Serializer[K],
-                                valueSerializer: Serializer[V]): Map[K, V] = {
-    new Map[K, V](db, None)
-  }
-}
-
 /**
   * Map database API.
   *
-  * For documentation check - http://swaydb.io/api/
+  * For documentation check - http://swaydb.io/wrap/
   */
-case class Map[K, V](private[swaydb] val db: Core[IO],
-                     private val from: Option[From[K]],
-                     private[swaydb] val reverse: Boolean = false,
-                     private val till: (K, V) => Boolean = (_: K, _: V) => true)(implicit keySerializer: Serializer[K],
-                                                                                 valueSerializer: Serializer[V]) extends Iterable[(K, V)] {
+case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
+                           private val from: Option[From[K]] = None,
+                           private[swaydb] val reverse: Boolean = false,
+                           private val till: (K, V) => Boolean = (_: K, _: V) => true)(implicit keySerializer: Serializer[K],
+                                                                                       valueSerializer: Serializer[V],
+                                                                                       wrap: Wrap[W]) extends Stream[(K, V), W] {
 
-  def put(key: K, value: V): IO[Level0Meter] =
-    db.put(key = key, value = Some(value))
+  def put(key: K, value: V): W[Level0Meter] =
+    core.put(key = key, value = Some(value))
 
-  def put(key: K, value: V, expireAfter: FiniteDuration): IO[Level0Meter] =
-    db.put(key, Some(value), expireAfter.fromNow)
+  def put(key: K, value: V, expireAfter: FiniteDuration): W[Level0Meter] =
+    core.put(key, Some(value), expireAfter.fromNow)
 
-  def put(key: K, value: V, expireAt: Deadline): IO[Level0Meter] =
-    db.put(key, Some(value), expireAt)
+  def put(key: K, value: V, expireAt: Deadline): W[Level0Meter] =
+    core.put(key, Some(value), expireAt)
 
-  def put(keyValues: (K, V)*): IO[Level0Meter] =
+  def put(keyValues: (K, V)*): W[Level0Meter] =
     put(keyValues)
 
-  def put(keyValues: Iterable[(K, V)]): IO[Level0Meter] =
-    db.put {
+  def put(keyValues: Iterable[(K, V)]): W[Level0Meter] =
+    core.put {
       keyValues map {
         case (key, value) =>
           Prepare.Put(keySerializer.write(key), Some(valueSerializer.write(value)), None)
       }
     }
 
-  def remove(key: K): IO[Level0Meter] =
-    db.remove(key)
+  def remove(key: K): W[Level0Meter] =
+    core.remove(key)
 
-  def remove(from: K, to: K): IO[Level0Meter] =
-    db.remove(from, to)
+  def remove(from: K, to: K): W[Level0Meter] =
+    core.remove(from, to)
 
-  def remove(keys: K*): IO[Level0Meter] =
+  def remove(keys: K*): W[Level0Meter] =
     remove(keys)
 
-  def remove(keys: Iterable[K]): IO[Level0Meter] =
-    db.put(keys.map(key => Prepare.Remove(keySerializer.write(key))))
+  def remove(keys: Iterable[K]): W[Level0Meter] =
+    core.put(keys.map(key => Prepare.Remove(keySerializer.write(key))))
 
-  def expire(key: K, after: FiniteDuration): IO[Level0Meter] =
-    db.remove(key, after.fromNow)
+  def expire(key: K, after: FiniteDuration): W[Level0Meter] =
+    core.remove(key, after.fromNow)
 
-  def expire(key: K, at: Deadline): IO[Level0Meter] =
-    db.remove(key, at)
+  def expire(key: K, at: Deadline): W[Level0Meter] =
+    core.remove(key, at)
 
-  def expire(from: K, to: K, after: FiniteDuration): IO[Level0Meter] =
-    db.remove(from, to, after.fromNow)
+  def expire(from: K, to: K, after: FiniteDuration): W[Level0Meter] =
+    core.remove(from, to, after.fromNow)
 
-  def expire(from: K, to: K, at: Deadline): IO[Level0Meter] =
-    db.remove(from, to, at)
+  def expire(from: K, to: K, at: Deadline): W[Level0Meter] =
+    core.remove(from, to, at)
 
-  def expire(keys: (K, Deadline)*): IO[Level0Meter] =
+  def expire(keys: (K, Deadline)*): W[Level0Meter] =
     expire(keys)
 
-  def expire(keys: Iterable[(K, Deadline)]): IO[Level0Meter] =
-    db.put {
+  def expire(keys: Iterable[(K, Deadline)]): W[Level0Meter] =
+    core.put {
       keys map {
         keyDeadline =>
           Prepare.Remove(
@@ -107,17 +100,17 @@ case class Map[K, V](private[swaydb] val db: Core[IO],
       }
     }
 
-  def update(key: K, value: V): IO[Level0Meter] =
-    db.update(key, Some(value))
+  def update(key: K, value: V): W[Level0Meter] =
+    core.update(key, Some(value))
 
-  def update(from: K, to: K, value: V): IO[Level0Meter] =
-    db.update(from, to, Some(value))
+  def update(from: K, to: K, value: V): W[Level0Meter] =
+    core.update(from, to, Some(value))
 
-  def update(keyValues: (K, V)*): IO[Level0Meter] =
+  def update(keyValues: (K, V)*): W[Level0Meter] =
     update(keyValues)
 
-  def update(keyValues: Iterable[(K, V)]): IO[Level0Meter] =
-    db.put {
+  def update(keyValues: Iterable[(K, V)]): W[Level0Meter] =
+    core.put {
       keyValues map {
         case (key, value) =>
           Prepare.Update(keySerializer.write(key), Some(valueSerializer.write(value)))
@@ -125,69 +118,69 @@ case class Map[K, V](private[swaydb] val db: Core[IO],
     }
 
   def registerFunction(functionID: K, function: V => Apply.Map[V]): K = {
-    db.registerFunction(functionID, SwayDB.toCoreFunction(function))
+    core.registerFunction(functionID, SwayDB.toCoreFunction(function))
     functionID
   }
 
   def registerFunction(functionID: K, function: (K, Option[Deadline]) => Apply.Map[V]): K = {
-    db.registerFunction(functionID, SwayDB.toCoreFunction(function))
+    core.registerFunction(functionID, SwayDB.toCoreFunction(function))
     functionID
   }
 
   def registerFunction(functionID: K, function: (K, V, Option[Deadline]) => Apply.Map[V]): K = {
-    db.registerFunction(functionID, SwayDB.toCoreFunction(function))
+    core.registerFunction(functionID, SwayDB.toCoreFunction(function))
     functionID
   }
 
-  def applyFunction(key: K, functionID: K): IO[Level0Meter] =
-    db.function(key, functionID)
+  def applyFunction(key: K, functionID: K): W[Level0Meter] =
+    core.function(key, functionID)
 
-  def applyFunction(from: K, to: K, functionID: K): IO[Level0Meter] =
-    db.function(from, to, functionID)
+  def applyFunction(from: K, to: K, functionID: K): W[Level0Meter] =
+    core.function(from, to, functionID)
 
-  def commit(prepare: Prepare[K, V]*): IO[Level0Meter] =
-    db.put(prepare)
+  def commit(prepare: Prepare[K, V]*): W[Level0Meter] =
+    core.put(prepare)
 
-  def commit(prepare: Iterable[Prepare[K, V]]): IO[Level0Meter] =
-    db.put(prepare)
+  def commit(prepare: Iterable[Prepare[K, V]]): W[Level0Meter] =
+    core.put(prepare)
 
   /**
     * Returns target value for the input key.
     */
-  def get(key: K): IO[Option[V]] =
-    db.get(key).map(_.map(_.read[V]))
+  def get(key: K): W[Option[V]] =
+    core.get(key).map(_.map(_.read[V]))
 
   /**
     * Returns target full key for the input partial key.
     *
     * This function is mostly used for Set databases where partial ordering on the Key is provided.
     */
-  def getKey(key: K): IO[Option[K]] =
-    db.getKey(key).map(_.map(_.read[K]))
+  def getKey(key: K): W[Option[K]] =
+    core.getKey(key).map(_.map(_.read[K]))
 
-  def getKeyValue(key: K): IO[Option[(K, V)]] =
-    db.getKeyValue(key).map(_.map {
+  def getKeyValue(key: K): W[Option[(K, V)]] =
+    core.getKeyValue(key).map(_.map {
       case (key, value) =>
         (key.read[K], value.read[V])
     })
 
-  def contains(key: K): IO[Boolean] =
-    db contains key
+  def contains(key: K): W[Boolean] =
+    core contains key
 
-  def mightContain(key: K): IO[Boolean] =
-    db mightContain key
+  def mightContain(key: K): W[Boolean] =
+    core mightContain key
 
-  def keys: Set[K] =
-    Set[K](db, None)(keySerializer)
+  def keys: Set[K, W] =
+    Set[K, W](core, None)(keySerializer, wrap)
 
   def level0Meter: Level0Meter =
-    db.level0Meter
+    core.level0Meter
 
   def levelMeter(levelNumber: Int): Option[LevelMeter] =
-    db.levelMeter(levelNumber)
+    core.levelMeter(levelNumber)
 
   def sizeOfSegments: Long =
-    db.sizeOfSegments
+    core.sizeOfSegments
 
   def keySize(key: K): Int =
     (key: Slice[Byte]).size
@@ -195,13 +188,13 @@ case class Map[K, V](private[swaydb] val db: Core[IO],
   def valueSize(value: V): Int =
     (value: Slice[Byte]).size
 
-  def expiration(key: K): IO[Option[Deadline]] =
-    db deadline key
+  def expiration(key: K): W[Option[Deadline]] =
+    core deadline key
 
-  def timeLeft(key: K): IO[Option[FiniteDuration]] =
+  def timeLeft(key: K): W[Option[FiniteDuration]] =
     expiration(key).map(_.map(_.timeLeft))
 
-  def from(key: K): Map[K, V] =
+  def from(key: K): Map[K, V, W] =
     copy(from = Some(From(key = key, orBefore = false, orAfter = false, before = false, after = false)))
 
   def before(key: K) =
@@ -233,192 +226,65 @@ case class Map[K, V](private[swaydb] val db: Core[IO],
           condition(value)
     )
 
-  override def iterator = new Iterator[(K, V)] {
-
-    private var started: Boolean = false
-    private var nextKeyValueBytes: (Slice[Byte], Option[Slice[Byte]]) = _
-    private var nextKeyValueTyped: (K, V) = _
-
-    private def start: IO[Option[(Slice[Byte], Option[Slice[Byte]])]] =
-      from match {
-        case Some(from) =>
-          val fromKeyBytes: Slice[Byte] = from.key
-          if (from.before)
-            db.before(fromKeyBytes)
-          else if (from.after)
-            db.after(fromKeyBytes)
-          else
-            db.getKeyValue(fromKeyBytes)
-              .flatMap {
-                case Some((key, valueOption)) =>
-                  IO.Success(Some(key, valueOption))
-                case _ =>
-                  if (from.orAfter)
-                    db.after(fromKeyBytes)
-                  else if (from.orBefore)
-                    db.before(fromKeyBytes)
-                  else
-                    IO.Success(None)
-              }
-
-        case None =>
-          if (reverse)
-            db.last
-          else
-            db.head
-      }
-
-    override def hasNext: Boolean =
-      if (started)
-        if (nextKeyValueBytes == null)
-          false
-        else {
-          val next =
-            if (reverse)
-              db.before(nextKeyValueBytes._1)
-            else
-              db.after(nextKeyValueBytes._1)
-
-          next match {
-            case IO.Success(value) =>
-              value match {
-                case Some(keyValue @ (key, value)) =>
-                  val keyT = key.read[K]
-                  val valueT = value.read[V]
-                  if (till(keyT, valueT)) {
-                    nextKeyValueBytes = keyValue
-                    nextKeyValueTyped = (keyT, valueT)
-                    true
-                  } else
-                    false
-
-                case _ =>
-                  false
-              }
-            case IO.Failure(error) =>
-              System.err.println("Failed to iterate", error)
-              throw error.exception
-          }
-        }
-      else
-        start match {
-          case IO.Success(value) =>
-            started = true
-            value match {
-              case Some(keyValue @ (key, value)) =>
-                val keyT = key.read[K]
-                val valueT = value.read[V]
-                if (till(keyT, valueT)) {
-                  nextKeyValueBytes = keyValue
-                  nextKeyValueTyped = (keyT, valueT)
-                  true
-                } else
-                  false
-
-              case _ =>
-                false
-            }
-          case IO.Failure(error) =>
-            System.err.println("Failed to start Key iterator", error)
-            throw error.exception
-        }
-
-    override def next(): (K, V) =
-      nextKeyValueTyped
-
-    override def toString(): String =
-      classOf[Map[_, _]].getClass.getSimpleName
-  }
+  override def hasNext: W[Boolean] = ???
+  override def next(): W[(K, V)] = ???
 
   override def size: Int =
     sizeIO.get
 
-  def sizeIO: IO[Int] =
-    db.bloomFilterKeyValueCount
+  def sizeIO: W[Int] =
+    core.bloomFilterKeyValueCount
 
   override def isEmpty: Boolean =
-    db.headKey.get.isEmpty
+    core.headKey.get.isEmpty
 
   override def nonEmpty: Boolean =
     !isEmpty
 
-  override def head: (K, V) =
-    headOption.get
+  override def headOption: Option[W[(K, V)]] =
+    throw new UnsupportedOperationException("headOption is not supported")
 
-  override def last: (K, V) =
-    lastOption.get
+  override def lastOption: Option[W[(K, V)]] =
+    throw new UnsupportedOperationException("lastOption is not supported")
 
-  override def headOption: Option[(K, V)] =
-    headOptionIO.get
+  def foreachRight[U](f: W[(K, V)] => U): Unit =
+    copy(reverse = true) foreach f
 
-  private def headOptionIO: IO[Option[(K, V)]] =
-    if (from.isDefined)
-      IO(this.take(1).headOption)
-    else
-      db.head map {
-        case Some((key, value)) =>
-          Some(key.read[K], value.read[V])
-        case _ =>
-          None
-      }
+  def mapRight[B, T](f: W[(K, V)] => B): Traversable[B] =
+    copy(reverse = true) map f
 
-  override def lastOption: Option[(K, V)] =
-    lastOptionIO.get
-
-  private def lastOptionIO: IO[Option[(K, V)]] =
-    db.last map {
-      case Some((key, value)) =>
-        Some(key.read[K], value.read[V])
-      case _ =>
-        None
-    }
-
-  def foreachRight[U](f: (K, V) => U): Unit =
-    copy(reverse = true) foreach {
-      case (k, v) =>
-        f(k, v)
-    }
-
-  def mapRight[B, T](f: (K, V) => B)(implicit bf: CanBuildFrom[Iterable[(K, V)], B, T]): T = {
-    copy(reverse = true) map {
-      case (k, v) =>
-        f(k, v)
-    }
-  }
-
-  override def foldRight[B](z: B)(op: ((K, V), B) => B): B =
+  override def foldRight[B](z: B)(op: (W[(K, V)], B) => B): B =
     copy(reverse = true).foldLeft(z) {
-      case (b, (k, v)) =>
-        op((k, v), b)
+      case (b, container) =>
+        op(container, b)
     }
 
-  override def takeRight(n: Int): Iterable[(K, V)] =
+  def takeRight(n: Int): Traversable[W[(K, V)]] =
     copy(reverse = true).take(n)
 
-  override def dropRight(n: Int): Iterable[(K, V)] =
+  def dropRight(n: Int): Traversable[W[(K, V)]] =
     copy(reverse = true).drop(n)
 
-  override def reduceRight[B >: (K, V)](op: ((K, V), B) => B): B =
+  override def reduceRight[B >: W[(K, V)]](op: (W[(K, V)], B) => B): B =
     copy(reverse = true).reduceLeft[B] {
-      case (b, (k, v)) =>
-        op((k, v), b)
+      case (b, container) =>
+        op(container, b)
     }
 
-  override def reduceRightOption[B >: (K, V)](op: ((K, V), B) => B): Option[B] =
+  override def reduceRightOption[B >: W[(K, V)]](op: (W[(K, V)], B) => B): Option[B] =
     copy(reverse = true).reduceLeftOption[B] {
-      case (b, (k, v)) =>
-        op((k, v), b)
+      case (b, container) =>
+        op(container, b)
     }
 
-  override def scanRight[B, That](z: B)(op: ((K, V), B) => B)(implicit bf: CanBuildFrom[Iterable[(K, V)], B, That]): That =
-    copy(reverse = true).scanLeft(z) {
-      case (z, (k, v)) =>
-        op((k, v), z)
-    }
+  def closeDatabase(): W[Unit] =
+    core.close()
 
-  def closeDatabase(): IO[Unit] =
-    db.close()
+  def futureAPI(implicit futureWrap: Wrap[Future],
+                ec: ExecutionContext) =
+    copy(core = core.async())
 
   override def toString(): String =
-    classOf[Map[_, _]].getClass.getSimpleName
+    classOf[Map[_, _, W]].getClass.getSimpleName
+
 }

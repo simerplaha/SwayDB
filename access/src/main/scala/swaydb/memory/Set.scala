@@ -52,7 +52,7 @@ object Set extends LazyLogging {
                groupingStrategy: Option[KeyValueGroupingStrategy] = None,
                acceleration: Level0Meter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[T],
                                                                                   keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                  ec: ExecutionContext = SwayDB.defaultExecutionContext): IO[swaydb.Set[T]] =
+                                                                                  ec: ExecutionContext = SwayDB.defaultExecutionContext): IO[swaydb.Set[T, IO]] =
     BlockingCore(
       config = DefaultMemoryConfig(
         mapSize = mapSize,

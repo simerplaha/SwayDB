@@ -43,7 +43,7 @@ object Set extends LazyLogging {
   def apply[T](mapSize: Int = 4.mb,
                acceleration: Level0Meter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[T],
                                                                                   keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                  ec: ExecutionContext = SwayDB.defaultExecutionContext): IO[swaydb.Set[T]] =
+                                                                                  ec: ExecutionContext = SwayDB.defaultExecutionContext): IO[swaydb.Set[T, IO]] =
     BlockingCore(
       config = DefaultMemoryZeroConfig(
         mapSize = mapSize,

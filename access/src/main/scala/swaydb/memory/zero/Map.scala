@@ -45,7 +45,7 @@ object Map extends LazyLogging {
                   acceleration: Level0Meter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
                                                                                      valueSerializer: Serializer[V],
                                                                                      keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                     ec: ExecutionContext = SwayDB.defaultExecutionContext): IO[swaydb.Map[K, V]] =
+                                                                                     ec: ExecutionContext = SwayDB.defaultExecutionContext): IO[swaydb.Map[K, V, IO]] =
     BlockingCore(
       config = DefaultMemoryZeroConfig(
         mapSize = mapSize,
@@ -53,7 +53,7 @@ object Map extends LazyLogging {
       )
     ) map {
       db =>
-        swaydb.Map[K, V](db)
+        swaydb.Map[K, V, IO](db)
     }
 
 }
