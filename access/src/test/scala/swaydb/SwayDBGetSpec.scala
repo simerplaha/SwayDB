@@ -19,7 +19,6 @@
 
 package swaydb
 
-import scala.concurrent.Future
 import scala.concurrent.duration._
 import swaydb.core.IOAssert._
 import swaydb.core.RunThis._
@@ -28,160 +27,141 @@ import swaydb.data.IO
 import swaydb.serializers.Default._
 
 class SwayDBGetSpec0 extends SwayDBGetSpec {
-
-  override def newDB(): Map[Int, String, Future] =
-    swaydb.persistent.Map[Int, String](randomDir).assertGet.async
+  override def newDB(): Map[Int, String, IO] =
+    swaydb.persistent.Map[Int, String](randomDir).assertGet
 }
-//
-//class SwayDBGetSpec1 extends SwayDBGetSpec {
-//
-//  override def newDB(): Map[Int, String, IO] =
-//    swaydb.persistent.Map[Int, String](randomDir, mapSize = 1.byte).assertGet
-//}
-//
-//class SwayDBGetSpec2 extends SwayDBGetSpec {
-//
-//  override def newDB(): Map[Int, String, IO] =
-//    swaydb.memory.Map[Int, String](mapSize = 1.byte).assertGet
-//}
-//
-//class SwayDBGetSpec3 extends SwayDBGetSpec {
-//  override def newDB(): Map[Int, String, IO] =
-//    swaydb.memory.Map[Int, String]().assertGet
-//}
-//
-//class SwayDBGetSpec4 extends SwayDBGetSpec {
-//
-//  override def newDB(): Map[Int, String, IO] =
-//    swaydb.memory.zero.Map[Int, String](mapSize = 1.byte).assertGet
-//}
-//
-//class SwayDBGetSpec5 extends SwayDBGetSpec {
-//  override def newDB(): Map[Int, String, IO] =
-//    swaydb.memory.zero.Map[Int, String]().assertGet
-//}
+
+class SwayDBGetSpec1 extends SwayDBGetSpec {
+
+  override def newDB(): Map[Int, String, IO] =
+    swaydb.persistent.Map[Int, String](randomDir, mapSize = 1.byte).assertGet
+}
+
+class SwayDBGetSpec2 extends SwayDBGetSpec {
+
+  override def newDB(): Map[Int, String, IO] =
+    swaydb.memory.Map[Int, String](mapSize = 1.byte).assertGet
+}
+
+class SwayDBGetSpec3 extends SwayDBGetSpec {
+  override def newDB(): Map[Int, String, IO] =
+    swaydb.memory.Map[Int, String]().assertGet
+}
+
+class SwayDBGetSpec4 extends SwayDBGetSpec {
+
+  override def newDB(): Map[Int, String, IO] =
+    swaydb.memory.zero.Map[Int, String](mapSize = 1.byte).assertGet
+}
+
+class SwayDBGetSpec5 extends SwayDBGetSpec {
+  override def newDB(): Map[Int, String, IO] =
+    swaydb.memory.zero.Map[Int, String]().assertGet
+}
 
 sealed trait SwayDBGetSpec extends TestBase {
 
-  def newDB(): Map[Int, String, Future]
+  def newDB(): Map[Int, String, IO]
 
   "SwayDB" should {
     "get" in {
 
       val db = newDB()
 
-      (1 to 100000) foreach {
+      (1 to 100) foreach {
         i =>
-          db.put(i, i.toString)
+          db.put(i, i.toString).assertGet
       }
 
-      db foreach {
+      (1 to 100) foreach {
         i =>
-          if (i._1 % 1000 == 0)
-            println(i)
+          db.get(i).assertGet shouldBe i.toString
       }
 
-      sleep(2.seconds)
-
-      //      (1 to 100) foreach {
-      //        i =>
-      //          db.get(i).assertGet shouldBe i.toString
-      //      }
-
-      //      val future: Iterable[(Int, String)] = Future.sequence(db.toList).await
-      //      future foreach println
-
-      //      db foreach {
-      //        int =>
-      //          println("int: " + int.await)
-      //      }
-
-      //      println("Head: " + db.headOption.get.await(10.seconds))
-
-      db.closeDatabase().await
+      db.closeDatabase().get
     }
 
-    //    "return empty for removed key-value" in {
-    //
-    //      val db = newDB()
-    //
-    //      (1 to 100) foreach {
-    //        i =>
-    //          db.put(i, i.toString).assertGet
-    //      }
-    //
-    //      (10 to 90) foreach {
-    //        i =>
-    //          db.remove(i).assertGet
-    //      }
-    //
-    //      (1 to 9) foreach {
-    //        i =>
-    //          db.get(i).assertGet shouldBe i.toString
-    //      }
-    //
-    //      (10 to 90) foreach {
-    //        i =>
-    //          db.get(i).assertGetOpt shouldBe empty
-    //      }
-    //
-    //      (91 to 100) foreach {
-    //        i =>
-    //          db.get(i).assertGet shouldBe i.toString
-    //      }
-    //
-    //      db.closeDatabase().get
-    //    }
-    //
-    //    "return empty for expired key-value" in {
-    //      val db = newDB()
-    //
-    //      (1 to 100) foreach {
-    //        i =>
-    //          db.put(i, i.toString).assertGet
-    //      }
-    //
-    //      val expire = 2.second.fromNow
-    //
-    //      (10 to 90) foreach {
-    //        i =>
-    //          db.expire(i, expire).assertGet
-    //      }
-    //
-    //      (1 to 100) foreach { i => db.get(i).assertGet shouldBe i.toString }
-    //
-    //      sleep(expire.timeLeft)
-    //
-    //      (10 to 90) foreach { i => db.get(i).assertGetOpt shouldBe empty }
-    //      (1 to 9) foreach { i => db.get(i).assertGet shouldBe i.toString }
-    //      (91 to 100) foreach { i => db.get(i).assertGet shouldBe i.toString }
-    //
-    //      db.keys.toList shouldBe ((1 to 9) ++ (91 to 100))
-    //
-    //      db.closeDatabase().get
-    //    }
-    //
-    //    "return empty for range expired key-value" in {
-    //      val db = newDB()
-    //
-    //      (1 to 100) foreach {
-    //        i =>
-    //          db.put(i, i.toString).assertGet
-    //      }
-    //
-    //      val expire = 2.second.fromNow
-    //
-    //      db.expire(10, 90, expire).assertGet
-    //
-    //      (1 to 100) foreach { i => db.get(i).assertGet shouldBe i.toString }
-    //
-    //      sleep(expire.timeLeft)
-    //
-    //      (10 to 90) foreach { i => db.get(i).assertGetOpt shouldBe empty }
-    //      (1 to 9) foreach { i => db.get(i).assertGet shouldBe i.toString }
-    //      (91 to 100) foreach { i => db.get(i).assertGet shouldBe i.toString }
-    //
-    //      db.closeDatabase().get
-    //    }
+    "return empty for removed key-value" in {
+
+      val db = newDB()
+
+      (1 to 100) foreach {
+        i =>
+          db.put(i, i.toString).assertGet
+      }
+
+      (10 to 90) foreach {
+        i =>
+          db.remove(i).assertGet
+      }
+
+      (1 to 9) foreach {
+        i =>
+          db.get(i).assertGet shouldBe i.toString
+      }
+
+      (10 to 90) foreach {
+        i =>
+          db.get(i).assertGetOpt shouldBe empty
+      }
+
+      (91 to 100) foreach {
+        i =>
+          db.get(i).assertGet shouldBe i.toString
+      }
+
+      db.closeDatabase().get
+    }
+
+    "return empty for expired key-value" in {
+      val db = newDB()
+
+      (1 to 100) foreach {
+        i =>
+          db.put(i, i.toString).assertGet
+      }
+
+      val expire = 2.second.fromNow
+
+      (10 to 90) foreach {
+        i =>
+          db.expire(i, expire).assertGet
+      }
+
+      (1 to 100) foreach { i => db.get(i).assertGet shouldBe i.toString }
+
+      sleep(expire.timeLeft)
+
+      (10 to 90) foreach { i => db.get(i).assertGetOpt shouldBe empty }
+      (1 to 9) foreach { i => db.get(i).assertGet shouldBe i.toString }
+      (91 to 100) foreach { i => db.get(i).assertGet shouldBe i.toString }
+
+      db.keys.toList shouldBe ((1 to 9) ++ (91 to 100))
+
+      db.closeDatabase().get
+    }
+
+    "return empty for range expired key-value" in {
+      val db = newDB()
+
+      (1 to 100) foreach {
+        i =>
+          db.put(i, i.toString).assertGet
+      }
+
+      val expire = 2.second.fromNow
+
+      db.expire(10, 90, expire).assertGet
+
+      (1 to 100) foreach { i => db.get(i).assertGet shouldBe i.toString }
+
+      sleep(expire.timeLeft)
+
+      (10 to 90) foreach { i => db.get(i).assertGetOpt shouldBe empty }
+      (1 to 9) foreach { i => db.get(i).assertGet shouldBe i.toString }
+      (91 to 100) foreach { i => db.get(i).assertGet shouldBe i.toString }
+
+      db.closeDatabase().get
+    }
   }
 }

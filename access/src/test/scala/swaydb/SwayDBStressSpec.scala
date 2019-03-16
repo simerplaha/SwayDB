@@ -49,7 +49,7 @@
 //class SwayDBStressSpec0 extends SwayDBStressSpec {
 //  val keyValueCount: Int = 100000
 //
-//  override def newDB(): Map[Int, String] =
+//  override def newDB(): Map[Int, String, IO] =
 //    swaydb.persistent.Map[Int, String](dir = randomDir).assertGet
 //}
 //
@@ -57,7 +57,7 @@
 //
 //  val keyValueCount: Int = 100000
 //
-//  override def newDB(): Map[Int, String] =
+//  override def newDB(): Map[Int, String, IO] =
 //    swaydb.persistent.Map[Int, String](randomDir, mapSize = 1.byte).assertGet
 //}
 //
@@ -65,14 +65,14 @@
 //
 //  val keyValueCount: Int = 100000
 //
-//  override def newDB(): Map[Int, String] =
+//  override def newDB(): Map[Int, String, IO] =
 //    swaydb.memory.Map[Int, String](mapSize = 1.byte).assertGet
 //}
 //
 //class SwayDBStressSpec3 extends SwayDBStressSpec {
 //  val keyValueCount: Int = 100000
 //
-//  override def newDB(): Map[Int, String] =
+//  override def newDB(): Map[Int, String, IO] =
 //    swaydb.memory.Map[Int, String]().assertGet
 //}
 //
@@ -80,14 +80,14 @@
 //
 //  val keyValueCount: Int
 //
-//  def newDB(): Map[Int, String]
+//  def newDB(): Map[Int, String, IO]
 //
 //  "Test case that eventually fails due to collapsing of small Segments" in {
 //    val db = newDB()
 //    val deadline = 1.hour.fromNow
 //
 //    runThis(100.times) {
-//      //add multiple Levels to Memory databases and the unsafeGet fails
+//      //add multiple Levels to Memory databases and the get fails
 //      //swaydb.memory.Map[Int, String](mapSize = 1.byte).assertGet
 //      eitherOne(
 //        left = (1 to keyValueCount) foreach (i => db.remove(i).assertGet),
@@ -130,7 +130,7 @@
 //        i =>
 //          anyOrder(
 //            left = db.expiration(i).assertGet shouldBe deadline,
-//            right = db.unsafeGet(i).assertGet shouldBe i.toString
+//            right = db.get(i).assertGet shouldBe i.toString
 //          )
 //      }
 //
