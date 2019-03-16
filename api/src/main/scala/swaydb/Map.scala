@@ -286,16 +286,19 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
   }
 
   override def size: Int =
-    sizeIO.get
-
-  def sizeIO: W[Int] =
-    core.bloomFilterKeyValueCount
+    core.bloomFilterKeyValueCount.get
 
   override def isEmpty: Boolean =
-    core.headKey.get.isEmpty
+    isEmptyW.get
+
+  def isEmptyW: W[Boolean] =
+    core.headKey.map(_.isEmpty)
 
   override def nonEmpty: Boolean =
     !isEmpty
+
+  def nonEmptyW: W[Boolean] =
+    isEmptyW.map(!_)
 
   override def head: (K, V) =
     headOption.get
@@ -304,9 +307,9 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
     lastOption.get
 
   override def headOption: Option[(K, V)] =
-    headOptionIO.get
+    headOptionW.get
 
-  private def headOptionIO: W[Option[(K, V)]] =
+  def headOptionW: W[Option[(K, V)]] =
     if (from.isDefined)
       wrap(this.take(1).headOption)
     else
@@ -318,9 +321,9 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
       }
 
   override def lastOption: Option[(K, V)] =
-    lastOptionIO.get
+    lastOptionW.get
 
-  private def lastOptionIO: W[Option[(K, V)]] =
+  def lastOptionW: W[Option[(K, V)]] =
     core.last map {
       case Some((key, value)) =>
         Some(key.read[K], value.read[V])
