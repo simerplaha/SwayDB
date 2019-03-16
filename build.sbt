@@ -79,7 +79,10 @@ lazy val api =
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(
-      libraryDependencies ++= commonDependencies
+      libraryDependencies ++=
+        commonDependencies
+          :+ "org.reactivestreams" % "reactive-streams" % "1.0.2"
+
     ).dependsOn(core, configs)
     .dependsOn(serializers, core % Test)
 

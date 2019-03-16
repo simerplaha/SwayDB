@@ -42,7 +42,7 @@ trait Wrap[W[_]] {
 
 object Wrap {
   implicit val tryWrap = new Wrap[Try] {
-    val unit = Success(())
+    private val unit = Success(())
 
     override def apply[A](a: => A): Try[A] = Try(a)
     override def map[A, B](a: A)(f: A => B): Try[B] = Try(f(a))

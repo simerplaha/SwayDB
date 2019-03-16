@@ -21,7 +21,7 @@ package swaydb
 
 import org.scalatest.{Matchers, WordSpec}
 import scala.concurrent.Future
-import scala.util.{Success, Try}
+import scala.util.Try
 import swaydb.Wrap._
 import swaydb.core.RunThis._
 import swaydb.data.IO
