@@ -30,7 +30,7 @@ import swaydb.serializers.Default._
 class SwayDBGetSpec0 extends SwayDBGetSpec {
 
   override def newDB(): Map[Int, String, Future] =
-    swaydb.persistent.Map[Int, String](randomDir).assertGet.futureAPI
+    swaydb.persistent.Map[Int, String](randomDir).assertGet.async
 }
 //
 //class SwayDBGetSpec1 extends SwayDBGetSpec {
@@ -70,22 +70,26 @@ sealed trait SwayDBGetSpec extends TestBase {
 
       val db = newDB()
 
-      (1 to 10) foreach {
+      (1 to 100000) foreach {
         i =>
           db.put(i, i.toString)
       }
 
-      Thread.sleep(1000)
+      db foreach {
+        i =>
+          if (i._1 % 1000 == 0)
+            println(i)
+      }
 
-      db.foreach(future => println(future))
+      sleep(2.seconds)
 
       //      (1 to 100) foreach {
       //        i =>
       //          db.get(i).assertGet shouldBe i.toString
       //      }
 
-//      val future: Iterable[(Int, String)] = Future.sequence(db.toList).await
-//      future foreach println
+      //      val future: Iterable[(Int, String)] = Future.sequence(db.toList).await
+      //      future foreach println
 
       //      db foreach {
       //        int =>

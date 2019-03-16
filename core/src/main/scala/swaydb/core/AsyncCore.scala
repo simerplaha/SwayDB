@@ -21,6 +21,7 @@ package swaydb.core
 
 import scala.concurrent.duration.Deadline
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Try
 import swaydb.Prepare
 import swaydb.core.data.KeyValue._
 import swaydb.core.data.SwayFunction
@@ -253,4 +254,6 @@ private[swaydb] case class AsyncCore(zero: LevelZero)(implicit ec: ExecutionCont
     zero.valueSize(key).safeGetFuture
 
   override def async()(implicit ec: ExecutionContext): Core[Future] = this
+  override def syncTry()(implicit ec: ExecutionContext): Core[Try] = ???
+  override def syncIO()(implicit ec: ExecutionContext): Core[IO] = ???
 }
