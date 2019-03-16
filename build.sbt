@@ -51,8 +51,8 @@ lazy val SwayDB =
   (project in file("."))
     .settings(commonSettings)
     .settings(publishSettings)
-    .dependsOn(extension)
-    .aggregate(extension, access, core, compression, data, configs, serializers)
+    .dependsOn(`api-extension`)
+    .aggregate(`api-extension`, api, core, compression, data, configs, serializers)
 
 lazy val core =
   project
@@ -74,7 +74,7 @@ lazy val data =
       libraryDependencies ++= testDependencies
     ).dependsOn(macros % "compile-internal")
 
-lazy val access =
+lazy val api =
   project
     .settings(commonSettings)
     .settings(publishSettings)
@@ -95,13 +95,13 @@ lazy val serializers =
     .settings(publishSettings)
     .dependsOn(data)
 
-lazy val extension =
+lazy val `api-extension` =
   project
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(
       libraryDependencies ++= testDependencies
-    ).dependsOn(access, core % Test)
+    ).dependsOn(api, core % Test)
 
 lazy val `core-stress` =
   project
@@ -139,7 +139,7 @@ lazy val macros =
       libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaVersion.value
     )
 
-lazy val `access-stress` =
+lazy val `api-stress` =
   project
     .settings(commonSettings)
     .settings(publishSettings)
@@ -149,7 +149,7 @@ lazy val `access-stress` =
           :+ "com.github.simerplaha" %% "actor" % "0.3" % Test
           :+ "io.suzaku" %% "boopickle" % "1.3.0" % Test
     ).dependsOn(core, configs)
-    .dependsOn(access, core % Test)
+    .dependsOn(api, core % Test)
 
 lazy val benchmark =
   project
@@ -158,4 +158,4 @@ lazy val benchmark =
     .settings(
       libraryDependencies ++= commonDependencies
     ).dependsOn(core, configs)
-    .dependsOn(access, core % Test)
+    .dependsOn(api, core % Test)
