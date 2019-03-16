@@ -41,9 +41,11 @@ object Set {
   */
 case class Set[T, W[_]](private val core: Core[W],
                         private val from: Option[From[T]],
+                        skip: Int = 0,
+                        count: Option[Int] = None,
                         private[swaydb] val reverseIteration: Boolean = false,
                         private val till: T => Boolean = (_: T) => true)(implicit serializer: Serializer[T],
-                                                                         wrap: Wrap[W]) extends Stream[T, W](0, None) {
+                                                                         wrap: Wrap[W]) extends Stream[T, W] {
 
   def wrapCall[T](f: => W[T]): W[T] =
     wrap(()).flatMap(_ => f)
@@ -217,6 +219,9 @@ case class Set[T, W[_]](private val core: Core[W],
       })
     }
 
+  override def restart: Stream[T, W] =
+    copy()
+
   def size: W[Int] =
     wrapCall(core.bloomFilterKeyValueCount)
 
@@ -237,5 +242,4 @@ case class Set[T, W[_]](private val core: Core[W],
 
   override def toString(): String =
     classOf[Map[_, _, W]].getClass.getSimpleName
-
 }

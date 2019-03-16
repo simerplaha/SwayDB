@@ -24,8 +24,32 @@ import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import swaydb.Stream.StreamBuilder
 import swaydb.Wrap._
+import swaydb.data.{BusyBoolean, IO}
 
 object Stream {
+
+  def apply[T, W[_]](seq: Seq[T])(implicit wrap: Wrap[W]): Stream[T, W] =
+    new Stream[T, W] {
+
+      var index = 0
+
+      def step(): W[Option[T]] =
+        if (index < seq.size) {
+          wrap(seq(index)) map {
+            item =>
+              index += 1
+              Some(item)
+          }
+        }
+        else
+          wrap.none
+
+      override def headOption(): W[Option[T]] = step()
+      override def next(previous: T): W[Option[T]] = step()
+      override def restart: Stream[T, W] = apply[T, W](seq)
+      override def skip: Int = 0
+      override def count: Option[Int] = None
+    }
 
   class StreamBuilder[T, W[_]](implicit wrap: Wrap[W]) extends mutable.Builder[T, Stream[T, W]] {
     protected var items: ListBuffer[T] = ListBuffer.empty[T]
@@ -42,17 +66,25 @@ object Stream {
       items.clear()
 
     def result: Stream[T, W] =
-      new Stream[T, W](0, None) {
-        val iterator = items.iterator
+      new Stream[T, W] {
+
+        var index = 0
 
         def step(): W[Option[T]] =
-          if (iterator.hasNext)
-            wrap.success(Some(iterator.next()))
+          if (index < items.size)
+            wrap(items(index)) map {
+              item =>
+                index += 1
+                Some(item)
+            }
           else
             wrap.none
 
         override def headOption: W[Option[T]] = step()
         override def next(previous: T): W[Option[T]] = step()
+        override def restart: Stream[T, W] = result
+        override def skip: Int = 0
+        override def count: Option[Int] = None
       }
   }
 
@@ -66,14 +98,13 @@ object Stream {
     }
 }
 
-abstract class Stream[A, W[_]](skip: Int, count: Option[Int])(implicit wrap: Wrap[W]) {
+abstract class Stream[A, W[_]](implicit wrap: Wrap[W]) {
 
   def headOption: W[Option[A]]
-
   def next(previous: A): W[Option[A]]
-
-  private def thisHeadOption = headOption
-  private def thisNext(previous: A) = next(previous)
+  def restart: Stream[A, W]
+  def skip: Int
+  def count: Option[Int]
 
   def map[B](f: A => B): W[Stream[B, W]] =
     wrap(()) flatMap {
@@ -96,24 +127,6 @@ abstract class Stream[A, W[_]](skip: Int, count: Option[Int])(implicit wrap: Wra
           .map(_ => result)
     }
 
-  def take(count: Int): W[Stream[A, W]] =
-    wrap(()) map {
-      _ =>
-        new Stream[A, W](skip, Some(count)) {
-          override def headOption: W[Option[A]] = thisHeadOption
-          override def next(previous: A): W[Option[A]] = thisNext(previous)
-        }
-    }
-
-  def drop(count: Int): W[Stream[A, W]] =
-    wrap(()) map {
-      _ =>
-        new Stream[A, W](count, this.count) {
-          override def headOption: W[Option[A]] = thisHeadOption
-          override def next(previous: A): W[Option[A]] = thisNext(previous)
-        }
-    }
-
   def toSeq: W[Seq[A]] =
     wrap(()) flatMap {
       _ =>
@@ -128,4 +141,5 @@ abstract class Stream[A, W[_]](skip: Int, count: Option[Int])(implicit wrap: Wra
       _ =>
         wrap.foreachStream(this, skip, count)(f)
     }
+
 }

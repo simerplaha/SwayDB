@@ -58,7 +58,7 @@ object Wrap {
         else
           stream.next(previous) match {
             case Success(Some(next)) =>
-              if (skip >= currentSize) {
+              if (skip >= 1) {
                 doForeach(next, skip - 1, currentSize)
               } else {
                 try {
@@ -118,7 +118,7 @@ object Wrap {
         else
           stream.next(previous) match {
             case IO.Success(Some(next)) =>
-              if (skip >= currentSize) {
+              if (skip >= 1) {
                 doForeach(next, skip - 1, currentSize)
               } else {
                 try {
@@ -182,7 +182,7 @@ object Wrap {
             .next(previous)
             .flatMap {
               case Some(next) =>
-                if (skip >= currentSize) {
+                if (skip >= 1) {
                   doForeach(next, skip - 1, currentSize)
                 } else {
                   try {

@@ -31,33 +31,18 @@ class StreamSpec extends WordSpec with Matchers {
 
     "iterate future" in {
 
-      val futures =
-        (1 to 10000) map {
-          i =>
-            () => Future(i)
-        }
+      def stream =
+        Stream[Int, Future](1 to 1000)
+          .map(_ + " one")
+          .flatMap(_.map(_ + " two"))
+          .flatMap(_.map(_ + " three"))
+          .await
 
-      val stream = new Stream[Int, Future](0, None) {
-        val iterator = futures.iterator
+      def assert() =
+        stream.toSeq.await shouldBe (1 to 1000).map(_ + " one two three")
 
-        def step() =
-          if (iterator.hasNext)
-            iterator.next()().map(Some(_))
-          else
-            Future.successful(None)
-
-        override def headOption(): Future[Option[Int]] = step()
-        override def next(previous: Int): Future[Option[Int]] = step()
-      }
-
-      stream map {
-        future =>
-          future + " future"
-      } map {
-        future =>
-          future foreach println
-      }
-      Thread.sleep(2000)
+      assert()
+      assert() //assert again, streams can be re-read.
     }
 
     "try" in {
@@ -68,17 +53,18 @@ class StreamSpec extends WordSpec with Matchers {
             Success(i)
         }
 
-      val stream = new Stream[Int, Try](0, None) {
-        val iterator = items.iterator
-        override def headOption(): Try[Option[Int]] = Try(items.headOption.map(_.get))
-        override def next(previous: Int): Try[Option[Int]] = Try(Option(iterator.next().get))
-      }
-
-      stream foreach {
-        future =>
-          if (future % 100 == 0)
-            println(future)
-      }
+      //      val stream = new Stream[Int, Try] {
+      //        val iterator = items.iterator
+      //        override def headOption(): Try[Option[Int]] = Try(items.headOption.map(_.get))
+      //        override def next(previous: Int): Try[Option[Int]] = Try(Option(iterator.next().get))
+      //        override def restart: Stream[Int, Try] = ???
+      //      }
+      //
+      //      stream foreach {
+      //        future =>
+      //          if (future % 100 == 0)
+      //            println(future)
+      //      }
 
     }
   }
