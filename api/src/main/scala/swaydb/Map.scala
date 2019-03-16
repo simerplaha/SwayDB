@@ -43,79 +43,88 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
                                                                                        valueSerializer: Serializer[V],
                                                                                        wrap: Wrap[W]) extends Stream[(K, V), W](0, None) {
 
+  def wrapCall[T](f: => W[T]): W[T] =
+    wrap(()).flatMap(_ => f)
+
   def put(key: K, value: V): W[Level0Meter] =
-    core.put(key = key, value = Some(value))
+    wrapCall(core.put(key = key, value = Some(value)))
 
   def put(key: K, value: V, expireAfter: FiniteDuration): W[Level0Meter] =
-    core.put(key, Some(value), expireAfter.fromNow)
+    wrapCall(core.put(key, Some(value), expireAfter.fromNow))
 
   def put(key: K, value: V, expireAt: Deadline): W[Level0Meter] =
-    core.put(key, Some(value), expireAt)
+    wrapCall(core.put(key, Some(value), expireAt))
 
   def put(keyValues: (K, V)*): W[Level0Meter] =
-    put(keyValues)
+    wrapCall(put(keyValues))
 
   def put(keyValues: Iterable[(K, V)]): W[Level0Meter] =
-    core.put {
-      keyValues map {
-        case (key, value) =>
-          Prepare.Put(keySerializer.write(key), Some(valueSerializer.write(value)), None)
+    wrapCall {
+      core.put {
+        keyValues map {
+          case (key, value) =>
+            Prepare.Put(keySerializer.write(key), Some(valueSerializer.write(value)), None)
+        }
       }
     }
 
   def remove(key: K): W[Level0Meter] =
-    core.remove(key)
+    wrapCall(core.remove(key))
 
   def remove(from: K, to: K): W[Level0Meter] =
-    core.remove(from, to)
+    wrapCall(core.remove(from, to))
 
   def remove(keys: K*): W[Level0Meter] =
-    remove(keys)
+    wrapCall(remove(keys))
 
   def remove(keys: Iterable[K]): W[Level0Meter] =
-    core.put(keys.map(key => Prepare.Remove(keySerializer.write(key))))
+    wrapCall(core.put(keys.map(key => Prepare.Remove(keySerializer.write(key)))))
 
   def expire(key: K, after: FiniteDuration): W[Level0Meter] =
-    core.remove(key, after.fromNow)
+    wrapCall(core.remove(key, after.fromNow))
 
   def expire(key: K, at: Deadline): W[Level0Meter] =
-    core.remove(key, at)
+    wrapCall(core.remove(key, at))
 
   def expire(from: K, to: K, after: FiniteDuration): W[Level0Meter] =
-    core.remove(from, to, after.fromNow)
+    wrapCall(core.remove(from, to, after.fromNow))
 
   def expire(from: K, to: K, at: Deadline): W[Level0Meter] =
-    core.remove(from, to, at)
+    wrapCall(core.remove(from, to, at))
 
   def expire(keys: (K, Deadline)*): W[Level0Meter] =
-    expire(keys)
+    wrapCall(expire(keys))
 
   def expire(keys: Iterable[(K, Deadline)]): W[Level0Meter] =
-    core.put {
-      keys map {
-        keyDeadline =>
-          Prepare.Remove(
-            from = keySerializer.write(keyDeadline._1),
-            to = None,
-            deadline = Some(keyDeadline._2)
-          )
+    wrapCall {
+      core.put {
+        keys map {
+          keyDeadline =>
+            Prepare.Remove(
+              from = keySerializer.write(keyDeadline._1),
+              to = None,
+              deadline = Some(keyDeadline._2)
+            )
+        }
       }
     }
 
   def update(key: K, value: V): W[Level0Meter] =
-    core.update(key, Some(value))
+    wrapCall(core.update(key, Some(value)))
 
   def update(from: K, to: K, value: V): W[Level0Meter] =
-    core.update(from, to, Some(value))
+    wrapCall(core.update(from, to, Some(value)))
 
   def update(keyValues: (K, V)*): W[Level0Meter] =
-    update(keyValues)
+    wrapCall(update(keyValues))
 
   def update(keyValues: Iterable[(K, V)]): W[Level0Meter] =
-    core.put {
-      keyValues map {
-        case (key, value) =>
-          Prepare.Update(keySerializer.write(key), Some(valueSerializer.write(value)))
+    wrapCall {
+      core.put {
+        keyValues map {
+          case (key, value) =>
+            Prepare.Update(keySerializer.write(key), Some(valueSerializer.write(value)))
+        }
       }
     }
 
@@ -135,22 +144,22 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
   }
 
   def applyFunction(key: K, functionID: K): W[Level0Meter] =
-    core.function(key, functionID)
+    wrapCall(core.function(key, functionID))
 
   def applyFunction(from: K, to: K, functionID: K): W[Level0Meter] =
-    core.function(from, to, functionID)
+    wrapCall(core.function(from, to, functionID))
 
   def commit(prepare: Prepare[K, V]*): W[Level0Meter] =
-    core.put(prepare)
+    wrapCall(core.put(prepare))
 
   def commit(prepare: Iterable[Prepare[K, V]]): W[Level0Meter] =
-    core.put(prepare)
+    wrapCall(core.put(prepare))
 
   /**
     * Returns target value for the input key.
     */
   def get(key: K): W[Option[V]] =
-    core.get(key).map(_.map(_.read[V]))
+    wrapCall(core.get(key).map(_.map(_.read[V])))
 
   /**
     * Returns target full key for the input partial key.
@@ -158,19 +167,21 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
     * This function is mostly used for Set databases where partial ordering on the Key is provided.
     */
   def getKey(key: K): W[Option[K]] =
-    core.getKey(key).map(_.map(_.read[K]))
+    wrapCall(core.getKey(key).map(_.map(_.read[K])))
 
   def getKeyValue(key: K): W[Option[(K, V)]] =
-    core.getKeyValue(key).map(_.map {
-      case (key, value) =>
-        (key.read[K], value.read[V])
-    })
+    wrapCall {
+      core.getKeyValue(key).map(_.map {
+        case (key, value) =>
+          (key.read[K], value.read[V])
+      })
+    }
 
   def contains(key: K): W[Boolean] =
-    core contains key
+    wrapCall(core contains key)
 
   def mightContain(key: K): W[Boolean] =
-    core mightContain key
+    wrapCall(core mightContain key)
 
   def keys: Set[K, W] =
     Set[K, W](core, None)(keySerializer, wrap)
@@ -191,10 +202,10 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
     (value: Slice[Byte]).size
 
   def expiration(key: K): W[Option[Deadline]] =
-    core deadline key
+    wrapCall(core deadline key)
 
   def timeLeft(key: K): W[Option[FiniteDuration]] =
-    expiration(key).map(_.map(_.timeLeft))
+    wrapCall(expiration(key).map(_.map(_.timeLeft)))
 
   def from(key: K): Map[K, V, W] =
     copy(from = Some(From(key = key, orBefore = false, orAfter = false, before = false, after = false)))
@@ -229,94 +240,100 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
     )
 
   override def headOption: W[Option[(K, V)]] =
-    from match {
-      case Some(from) =>
-        val fromKeyBytes: Slice[Byte] = from.key
+    wrapCall {
+      from match {
+        case Some(from) =>
+          val fromKeyBytes: Slice[Byte] = from.key
 
-        val first =
-          if (from.before)
-            core.before(fromKeyBytes)
-          else if (from.after)
-            core.after(fromKeyBytes)
-          else
-            core.getKeyValue(fromKeyBytes)
-              .flatMap {
-                case some @ Some(_) =>
-                  wrap.success(some): W[Option[(Slice[Byte], Option[Slice[Byte]])]]
+          val first =
+            if (from.before)
+              core.before(fromKeyBytes)
+            else if (from.after)
+              core.after(fromKeyBytes)
+            else
+              core.getKeyValue(fromKeyBytes)
+                .flatMap {
+                  case some @ Some(_) =>
+                    wrap.success(some): W[Option[(Slice[Byte], Option[Slice[Byte]])]]
 
-                case _ =>
-                  if (from.orAfter)
-                    core.after(fromKeyBytes)
-                  else if (from.orBefore)
-                    core.before(fromKeyBytes)
-                  else
-                    wrap.success(None): W[Option[(Slice[Byte], Option[Slice[Byte]])]]
-              }
+                  case _ =>
+                    if (from.orAfter)
+                      core.after(fromKeyBytes)
+                    else if (from.orBefore)
+                      core.before(fromKeyBytes)
+                    else
+                      wrap.success(None): W[Option[(Slice[Byte], Option[Slice[Byte]])]]
+                }
 
-        first.map(_.flatMap {
-          case (key, value) =>
-            Some(key.read[K], value.read[V])
-        })
+          first.map(_.flatMap {
+            case (key, value) =>
+              Some(key.read[K], value.read[V])
+          })
 
-      case None =>
-        val first = if (reverseIteration) core.last else core.head
-        first.map(_.flatMap {
-          case (key, value) =>
-            Some(key.read[K], value.read[V])
-        })
+        case None =>
+          val first = if (reverseIteration) core.last else core.head
+          first.map(_.flatMap {
+            case (key, value) =>
+              Some(key.read[K], value.read[V])
+          })
+      }
     }
 
-  override def next(previous: (K, V)): W[Option[(K, V)]] = {
-    val next =
-      if (reverseIteration)
-        core.before(keySerializer.write(previous._1))
-      else
-        core.after(keySerializer.write(previous._1))
+  override def next(previous: (K, V)): W[Option[(K, V)]] =
+    wrapCall {
+      val next =
+        if (reverseIteration)
+          core.before(keySerializer.write(previous._1))
+        else
+          core.after(keySerializer.write(previous._1))
 
-    next.map(_.flatMap {
-      case (key, value) =>
-        val keyT = key.read[K]
-        val valueT = value.read[V]
-        if (till(keyT, valueT)) {
-          Some(keyT, valueT)
-        } else
-          None
-    })
-  }
+      next.map(_.flatMap {
+        case (key, value) =>
+          val keyT = key.read[K]
+          val valueT = value.read[V]
+          if (till(keyT, valueT)) {
+            Some(keyT, valueT)
+          } else {
+            None
+          }
+      })
+    }
 
   def size: W[Int] =
-    core.bloomFilterKeyValueCount
+    wrapCall(core.bloomFilterKeyValueCount)
 
   def isEmpty: W[Boolean] =
-    core.headKey.map(_.isEmpty)
+    wrapCall(core.headKey.map(_.isEmpty))
 
   def nonEmpty: W[Boolean] =
     isEmpty.map(!_)
 
   def lastOption: W[Option[(K, V)]] =
-    core.last map {
-      case Some((key, value)) =>
-        Some(key.read[K], value.read[V])
-      case _ =>
-        None
+    wrapCall {
+      core.last map {
+        case Some((key, value)) =>
+          Some(key.read[K], value.read[V])
+        case _ =>
+          None
+      }
     }
 
   def reverse =
     copy(reverseIteration = true)
 
   def closeDatabase(): W[Unit] =
-    core.close()
+    wrapCall(core.close())
 
   def async(implicit futureWrap: Wrap[Future],
-            ec: ExecutionContext) =
+            ec: ExecutionContext): Map[K, V, Future] =
     copy(core = core.async())
 
   def syncTry(implicit tryWrap: Wrap[Try],
-              ec: ExecutionContext) =
+              ec: ExecutionContext): Map[K, V, Try] =
     copy(core = core.syncTry())
 
   def syncIO(implicit ioWrap: Wrap[IO],
-             ec: ExecutionContext) =
+             ec: ExecutionContext): Map[K, V, IO] =
     copy(core = core.syncIO())
 
   override def toString(): String =

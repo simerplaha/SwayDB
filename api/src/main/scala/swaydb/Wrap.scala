@@ -82,16 +82,16 @@ object Wrap {
       else
         stream.headOption match {
           case Success(Some(first)) =>
-            try {
-              if (skip >= 1)
-                doForeach(first, skip - 1, 0)
-              else {
+            if (skip >= 1)
+              doForeach(first, skip - 1, 0)
+            else {
+              try {
                 f(first)
-                doForeach(first, skip, 1)
+              } catch {
+                case throwable: Throwable =>
+                  return Failure(throwable)
               }
-            } catch {
-              case throwable: Throwable =>
-                Failure(throwable)
+              doForeach(first, skip, 1)
             }
 
           case Success(None) =>
@@ -142,16 +142,16 @@ object Wrap {
       else
         stream.headOption match {
           case IO.Success(Some(first)) =>
-            try {
-              if (skip >= 1)
-                doForeach(first, skip - 1, 0)
-              else {
+            if (skip >= 1) {
+              doForeach(first, skip - 1, 0)
+            } else {
+              try {
                 f(first)
-                doForeach(first, skip, 1)
+              } catch {
+                case throwable: Throwable =>
+                  return IO.Failure(throwable)
               }
-            } catch {
-              case throwable: Throwable =>
-                IO.Failure(throwable)
+              doForeach(first, skip, 1)
             }
 
           case IO.Success(None) =>
@@ -182,16 +182,16 @@ object Wrap {
             .next(previous)
             .flatMap {
               case Some(next) =>
-                try {
-                  if (skip >= currentSize) {
-                    doForeach(next, skip - 1, currentSize)
-                  } else {
+                if (skip >= currentSize) {
+                  doForeach(next, skip - 1, currentSize)
+                } else {
+                  try {
                     f(next)
                     doForeach(next, skip, currentSize + 1)
+                  } catch {
+                    case throwable: Throwable =>
+                      Future.failed(throwable)
                   }
-                } catch {
-                  case throwable: Throwable =>
-                    Future.failed(throwable)
                 }
 
               case None =>
@@ -203,17 +203,16 @@ object Wrap {
       else
         stream.headOption flatMap {
           case Some(first) =>
-            try {
-              if (skip >= 1) {
-                doForeach(first, skip - 1, 0)
-              } else {
+            if (skip >= 1) {
+              doForeach(first, skip - 1, 0)
+            } else {
+              try {
                 f(first)
                 doForeach(first, skip, 1)
+              } catch {
+                case throwable: Throwable =>
+                  Future.failed(throwable)
               }
-
-            } catch {
-              case throwable: Throwable =>
-                Future.failed(throwable)
             }
 
           case None =>

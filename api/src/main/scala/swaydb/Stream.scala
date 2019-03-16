@@ -23,7 +23,7 @@ import scala.collection.generic.CanBuildFrom
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import swaydb.Stream.StreamBuilder
-import Wrap._
+import swaydb.Wrap._
 
 object Stream {
 
@@ -124,5 +124,8 @@ abstract class Stream[A, W[_]](skip: Int, count: Option[Int])(implicit wrap: Wra
     }
 
   def foreach[U](f: A => U): W[Unit] =
-    wrap.foreachStream(this, skip, count)(f)
+    wrap(()) flatMap {
+      _ =>
+        wrap.foreachStream(this, skip, count)(f)
+    }
 }
