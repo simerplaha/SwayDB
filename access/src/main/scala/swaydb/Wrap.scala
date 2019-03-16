@@ -24,6 +24,7 @@ import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 import swaydb.data.IO
 import scala.concurrent.duration._
+import swaydb.core.util.Delay
 
 /**
   * New Wrappers can be implemented by extending this trait.
@@ -127,7 +128,6 @@ object Wrap {
     override def none[A]: Future[Option[A]] = Future.successful(None)
     override def foreach[A, B](a: A)(f: A => B): Unit = f(a)
     override def foreachStream[A, U](stream: Stream[A, Future])(f: A => U): Unit = {
-
       def doForeach(previous: A): Future[Option[A]] =
         stream
           .next(previous)
@@ -146,7 +146,7 @@ object Wrap {
           doForeach(first)
 
         case None =>
-          Future.unit
+          Delay.futureUnit
 
       } recoverWith {
         case exception =>

@@ -20,7 +20,6 @@
 package swaydb.core.util
 
 import java.util.{Timer, TimerTask}
-import swaydb.data.IO._
 import scala.concurrent._
 import scala.concurrent.duration.FiniteDuration
 import swaydb.data.IO
@@ -28,6 +27,8 @@ import swaydb.data.IO
 object Delay {
 
   val futureNone = Future.successful(None)
+
+  val futureUnit = Future.successful(())
 
   private val timer = new Timer(true)
 
