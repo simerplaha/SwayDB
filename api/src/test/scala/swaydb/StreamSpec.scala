@@ -24,6 +24,7 @@ import scala.concurrent.Future
 import scala.util.{Success, Try}
 import swaydb.Wrap._
 import swaydb.core.RunThis._
+import swaydb.data.IO
 
 class StreamSpec extends WordSpec with Matchers {
 
@@ -47,26 +48,35 @@ class StreamSpec extends WordSpec with Matchers {
 
     "try" in {
 
-      val items =
-        (1 to 1000000) map {
-          i =>
-            Success(i)
-        }
+      def stream =
+        Stream[Int, Try](1 to 1000)
+          .map(_ + " one")
+          .flatMap(_.map(_ + " two"))
+          .flatMap(_.map(_ + " three"))
+          .get
 
-      //      val stream = new Stream[Int, Try] {
-      //        val iterator = items.iterator
-      //        override def headOption(): Try[Option[Int]] = Try(items.headOption.map(_.get))
-      //        override def next(previous: Int): Try[Option[Int]] = Try(Option(iterator.next().get))
-      //        override def restart: Stream[Int, Try] = ???
-      //      }
-      //
-      //      stream foreach {
-      //        future =>
-      //          if (future % 100 == 0)
-      //            println(future)
-      //      }
+      def assert() =
+        stream.toSeq.get shouldBe (1 to 1000).map(_ + " one two three")
+
+      assert()
+      assert() //assert again, streams can be re-read.
 
     }
-  }
 
+    "IO" in {
+
+      def stream =
+        Stream[Int, IO](1 to 1000)
+          .map(_ + " one")
+          .flatMap(_.map(_ + " two"))
+          .flatMap(_.map(_ + " three"))
+          .get
+
+      def assert() =
+        stream.toSeq.get shouldBe (1 to 1000).map(_ + " one two three")
+
+      assert()
+      assert() //assert again, streams can be re-read.
+    }
+  }
 }

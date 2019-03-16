@@ -37,8 +37,8 @@ import swaydb.serializers.{Serializer, _}
   * For documentation check - http://swaydb.io/wrap/
   */
 case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
-                           count: Option[Int] = None,
-                           skip: Int = 0,
+                           private[swaydb] val count: Option[Int] = None,
+                           private[swaydb] val skip: Int = 0,
                            private val from: Option[From[K]] = None,
                            private[swaydb] val reverseIteration: Boolean = false,
                            private val till: (K, V) => Boolean = (_: K, _: V) => true)(implicit keySerializer: Serializer[K],

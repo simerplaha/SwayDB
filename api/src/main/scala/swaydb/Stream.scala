@@ -24,7 +24,6 @@ import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import swaydb.Stream.StreamBuilder
 import swaydb.Wrap._
-import swaydb.data.{BusyBoolean, IO}
 
 object Stream {
 
@@ -100,11 +99,12 @@ object Stream {
 
 abstract class Stream[A, W[_]](implicit wrap: Wrap[W]) {
 
+  private[swaydb] def skip: Int
+  private[swaydb] def count: Option[Int]
+
   def headOption: W[Option[A]]
   def next(previous: A): W[Option[A]]
   def restart: Stream[A, W]
-  def skip: Int
-  def count: Option[Int]
 
   def map[B](f: A => B): W[Stream[B, W]] =
     wrap(()) flatMap {
@@ -127,6 +127,12 @@ abstract class Stream[A, W[_]](implicit wrap: Wrap[W]) {
           .map(_ => result)
     }
 
+  def foreach[U](f: A => U): W[Unit] =
+    wrap(()) flatMap {
+      _ =>
+        wrap.foreachStream(this, skip, count)(f)
+    }
+
   def toSeq: W[Seq[A]] =
     wrap(()) flatMap {
       _ =>
@@ -135,11 +141,4 @@ abstract class Stream[A, W[_]](implicit wrap: Wrap[W]) {
           .foreach(item => builder += item)
           .map(_ => builder.asSeq)
     }
-
-  def foreach[U](f: A => U): W[Unit] =
-    wrap(()) flatMap {
-      _ =>
-        wrap.foreachStream(this, skip, count)(f)
-    }
-
 }

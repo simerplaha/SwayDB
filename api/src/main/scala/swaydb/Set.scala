@@ -41,8 +41,8 @@ object Set {
   */
 case class Set[T, W[_]](private val core: Core[W],
                         private val from: Option[From[T]],
-                        skip: Int = 0,
-                        count: Option[Int] = None,
+                        private[swaydb] val skip: Int = 0,
+                        private[swaydb] val count: Option[Int] = None,
                         private[swaydb] val reverseIteration: Boolean = false,
                         private val till: T => Boolean = (_: T) => true)(implicit serializer: Serializer[T],
                                                                          wrap: Wrap[W]) extends Stream[T, W] {
