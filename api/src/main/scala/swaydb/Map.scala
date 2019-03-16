@@ -19,7 +19,6 @@
 
 package swaydb
 
-import scala.collection.generic.CanBuildFrom
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
@@ -39,10 +38,10 @@ import swaydb.serializers.{Serializer, _}
   */
 case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
                            private val from: Option[From[K]] = None,
-                           private[swaydb] val reverse: Boolean = false,
+                           private[swaydb] val reverseIteration: Boolean = false,
                            private val till: (K, V) => Boolean = (_: K, _: V) => true)(implicit keySerializer: Serializer[K],
                                                                                        valueSerializer: Serializer[V],
-                                                                                       wrap: Wrap[W]) extends Stream[(K, V), W] {
+                                                                                       wrap: Wrap[W]) extends Stream[(K, V), W](0, None) {
 
   def put(key: K, value: V): W[Level0Meter] =
     core.put(key = key, value = Some(value))
@@ -229,7 +228,7 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
           condition(value)
     )
 
-  override def first(): W[Option[(K, V)]] =
+  override def headOption: W[Option[(K, V)]] =
     from match {
       case Some(from) =>
         val fromKeyBytes: Slice[Byte] = from.key
@@ -260,7 +259,7 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
         })
 
       case None =>
-        val first = if (reverse) core.last else core.head
+        val first = if (reverseIteration) core.last else core.head
         first.map(_.flatMap {
           case (key, value) =>
             Some(key.read[K], value.read[V])
@@ -269,7 +268,7 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
 
   override def next(previous: (K, V)): W[Option[(K, V)]] = {
     val next =
-      if (reverse)
+      if (reverseIteration)
         core.before(keySerializer.write(previous._1))
       else
         core.after(keySerializer.write(previous._1))
@@ -285,45 +284,16 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
     })
   }
 
-  override def size: Int =
-    core.bloomFilterKeyValueCount.get
+  def size: W[Int] =
+    core.bloomFilterKeyValueCount
 
-  override def isEmpty: Boolean =
-    isEmptyW.get
-
-  def isEmptyW: W[Boolean] =
+  def isEmpty: W[Boolean] =
     core.headKey.map(_.isEmpty)
 
-  override def nonEmpty: Boolean =
-    !isEmpty
+  def nonEmpty: W[Boolean] =
+    isEmpty.map(!_)
 
-  def nonEmptyW: W[Boolean] =
-    isEmptyW.map(!_)
-
-  override def head: (K, V) =
-    headOption.get
-
-  override def last: (K, V) =
-    lastOption.get
-
-  override def headOption: Option[(K, V)] =
-    headOptionW.get
-
-  def headOptionW: W[Option[(K, V)]] =
-    if (from.isDefined)
-      wrap(this.take(1).headOption)
-    else
-      core.head map {
-        case Some((key, value)) =>
-          Some(key.read[K], value.read[V])
-        case _ =>
-          None
-      }
-
-  override def lastOption: Option[(K, V)] =
-    lastOptionW.get
-
-  def lastOptionW: W[Option[(K, V)]] =
+  def lastOption: W[Option[(K, V)]] =
     core.last map {
       case Some((key, value)) =>
         Some(key.read[K], value.read[V])
@@ -331,47 +301,8 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
         None
     }
 
-  def foreachRight[U](f: (K, V) => U): Unit =
-    copy(reverse = true) foreach {
-      case (k, v) =>
-        f(k, v)
-    }
-
-  def mapRight[B, T](f: (K, V) => B)(implicit bf: CanBuildFrom[Iterable[(K, V)], B, T]): Stream[B, W] =
-    copy(reverse = true).map({
-      case (k, v) =>
-        f(k, v)
-    })(collection.breakOut)
-
-  override def foldRight[B](z: B)(op: ((K, V), B) => B): B =
-    copy(reverse = true).foldLeft(z) {
-      case (b, (k, v)) =>
-        op((k, v), b)
-    }
-
-  def takeRight(n: Int): Traversable[(K, V)] =
-    copy(reverse = true).take(n)
-
-  def dropRight(n: Int): Traversable[(K, V)] =
-    copy(reverse = true).drop(n)
-
-  override def reduceRight[B >: (K, V)](op: ((K, V), B) => B): B =
-    copy(reverse = true).reduceLeft[B] {
-      case (b, (k, v)) =>
-        op((k, v), b)
-    }
-
-  override def reduceRightOption[B >: (K, V)](op: ((K, V), B) => B): Option[B] =
-    copy(reverse = true).reduceLeftOption[B] {
-      case (b, (k, v)) =>
-        op((k, v), b)
-    }
-
-  override def scanRight[B, That](z: B)(op: ((K, V), B) => B)(implicit bf: CanBuildFrom[Stream[(K, V), W], B, That]): That =
-    copy(reverse = true).scanLeft(z) {
-      case (z, (k, v)) =>
-        op((k, v), z)
-    }
+  def reverse =
+    copy(reverseIteration = true)
 
   def closeDatabase(): W[Unit] =
     core.close()

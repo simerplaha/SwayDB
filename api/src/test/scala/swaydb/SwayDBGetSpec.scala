@@ -136,7 +136,7 @@ sealed trait SwayDBGetSpec extends TestBase {
       (1 to 9) foreach { i => db.get(i).assertGet shouldBe i.toString }
       (91 to 100) foreach { i => db.get(i).assertGet shouldBe i.toString }
 
-      db.keys.toList shouldBe ((1 to 9) ++ (91 to 100))
+      db.keys.toSeq.get shouldBe ((1 to 9) ++ (91 to 100))
 
       db.closeDatabase().get
     }

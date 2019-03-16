@@ -20,8 +20,10 @@
 package swaydb
 
 import scala.collection.generic.CanBuildFrom
+import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
-import scala.collection.{TraversableLike, mutable}
+import swaydb.Stream.StreamBuilder
+import Wrap._
 
 object Stream {
 
@@ -33,11 +35,14 @@ object Stream {
       this
     }
 
+    def asSeq: Seq[T] =
+      items
+
     def clear() =
       items.clear()
 
     def result: Stream[T, W] =
-      new Stream[T, W]() {
+      new Stream[T, W](0, None) {
         val iterator = items.iterator
 
         def step(): W[Option[T]] =
@@ -46,7 +51,7 @@ object Stream {
           else
             wrap.none
 
-        override def first(): W[Option[T]] = step()
+        override def headOption: W[Option[T]] = step()
         override def next(previous: T): W[Option[T]] = step()
       }
   }
@@ -61,15 +66,63 @@ object Stream {
     }
 }
 
-abstract class Stream[T, W[_]](implicit wrap: Wrap[W]) extends Traversable[T] with TraversableLike[T, Stream[T, W]] {
+abstract class Stream[A, W[_]](skip: Int, count: Option[Int])(implicit wrap: Wrap[W]) {
 
-  def first(): W[Option[T]]
+  def headOption: W[Option[A]]
 
-  def next(previous: T): W[Option[T]]
+  def next(previous: A): W[Option[A]]
 
-  override def foreach[U](f: T => U): Unit =
-    wrap.foreachStream(this)(f)
+  private def thisHeadOption = headOption
+  private def thisNext(previous: A) = next(previous)
 
-  override protected[this] def newBuilder: mutable.Builder[T, Stream[T, W]] =
-    new Stream.StreamBuilder[T, W]()
+  def map[B](f: A => B): W[Stream[B, W]] =
+    wrap(()) flatMap {
+      _ =>
+        val builder = new StreamBuilder[B, W]()
+        this
+          .foreach(item => builder += f(item))
+          .map(_ => builder.result)
+    }
+
+  def foldLeft[B](initial: B)(f: (B, A) => B): W[B] =
+    wrap(()) flatMap {
+      _ =>
+        var result = initial
+        this
+          .foreach {
+            item =>
+              result = f(result, item)
+          }
+          .map(_ => result)
+    }
+
+  def take(count: Int): W[Stream[A, W]] =
+    wrap(()) map {
+      _ =>
+        new Stream[A, W](skip, Some(count)) {
+          override def headOption: W[Option[A]] = thisHeadOption
+          override def next(previous: A): W[Option[A]] = thisNext(previous)
+        }
+    }
+
+  def drop(count: Int): W[Stream[A, W]] =
+    wrap(()) map {
+      _ =>
+        new Stream[A, W](count, this.count) {
+          override def headOption: W[Option[A]] = thisHeadOption
+          override def next(previous: A): W[Option[A]] = thisNext(previous)
+        }
+    }
+
+  def toSeq: W[Seq[A]] =
+    wrap(()) flatMap {
+      _ =>
+        val builder = new StreamBuilder[A, W]()
+        this
+          .foreach(item => builder += item)
+          .map(_ => builder.asSeq)
+    }
+
+  def foreach[U](f: A => U): W[Unit] =
+    wrap.foreachStream(this, skip, count)(f)
 }

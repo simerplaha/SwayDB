@@ -104,9 +104,9 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
       db.remove(2, 999).assertGet
       println("Removed .... ")
 
-      db.toList should contain only((1, "1"), (1000, "1000"))
-      db.head shouldBe ((1, "1"))
-      db.last shouldBe ((1000, "1000"))
+      db.toSeq.get should contain only((1, "1"), (1000, "1000"))
+      db.headOption.assertGet shouldBe ((1, "1"))
+      db.lastOption.assertGet shouldBe ((1000, "1000"))
 
       db.closeDatabase().get
     }
@@ -126,9 +126,9 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
 
       db.update(1, 100, value = "updated").assertGet
 
-      db.toList should contain only((1, "updated"), (100, "updated"))
-      db.head shouldBe ((1, "updated"))
-      db.last shouldBe ((100, "updated"))
+      db.toSeq.get should contain only((1, "updated"), (100, "updated"))
+      db.headOption.assertGet shouldBe ((1, "updated"))
+      db.lastOption.assertGet shouldBe ((100, "updated"))
 
       db.closeDatabase().get
     }
@@ -145,9 +145,9 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
 
       db.update(1, 100, value = "updated").assertGet
 
-      db.toList should contain only((1, "updated"), (100, "updated"))
-      db.head shouldBe ((1, "updated"))
-      db.last shouldBe ((100, "updated"))
+      db.toSeq.get should contain only((1, "updated"), (100, "updated"))
+      db.headOption.assertGet shouldBe ((1, "updated"))
+      db.lastOption.assertGet shouldBe ((100, "updated"))
 
       db.closeDatabase().get
     }
@@ -178,9 +178,9 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
 
       val expected = expectedUnchanged ++ expectedUpdated :+ (100, "100")
 
-      db.toList shouldBe expected
-      db.head shouldBe ((1, "1"))
-      db.last shouldBe ((100, "100"))
+      db.toSeq.get shouldBe expected
+      db.headOption.assertGet shouldBe ((1, "1"))
+      db.lastOption.assertGet shouldBe ((100, "100"))
 
       db.closeDatabase().get
     }
@@ -189,12 +189,12 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
       val db = newDB()
       db.update(1, Int.MaxValue, value = "updated").assertGet
 
-      db.isEmpty shouldBe true
+      db.isEmpty.get shouldBe true
 
-      db.toList shouldBe empty
+      db.toSeq.get shouldBe empty
 
-      db.headOption shouldBe empty
-      db.lastOption shouldBe empty
+      db.headOption.get shouldBe empty
+      db.lastOption.get shouldBe empty
 
       db.closeDatabase().get
     }
@@ -203,12 +203,12 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
       val db = newDB()
       db.remove(1, Int.MaxValue).assertGet
 
-      db.isEmpty shouldBe true
+      db.isEmpty.get shouldBe true
 
-      db.toList shouldBe empty
+      db.toSeq.get shouldBe empty
 
-      db.headOption shouldBe empty
-      db.lastOption shouldBe empty
+      db.headOption.get shouldBe empty
+      db.lastOption.get shouldBe empty
 
       db.closeDatabase().get
     }
@@ -229,18 +229,18 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
 
       db.commit(Prepare.Put(1, "one"), Prepare.Put(2, "two"), Prepare.Put(1, "one one"), Prepare.Update(1, 100, "updated"), Prepare.Remove(1, 100)).assertGet
       db.get(1).assertGetOpt shouldBe empty
-      db.isEmpty shouldBe true
+      db.isEmpty.get shouldBe true
       //
       db.commit(Prepare.Put(1, "one"), Prepare.Put(2, "two"), Prepare.Put(1, "one one"), Prepare.Remove(1, 100), Prepare.Update(1, 100, "updated")).assertGet
       db.get(1).assertGetOpt shouldBe empty
-      db.isEmpty shouldBe true
+      db.isEmpty.get shouldBe true
 
       db.commit(Prepare.Put(1, "one"), Prepare.Put(2, "two"), Prepare.Put(1, "one again"), Prepare.Update(1, 100, "updated")).assertGet
       db.get(1).assertGet shouldBe "updated"
-      db.toMap.values should contain only "updated"
+      db.toSeq.map(_.toMap).assertGet.values should contain only "updated"
 
       db.commit(Prepare.Put(1, "one"), Prepare.Put(2, "two"), Prepare.Put(100, "hundred"), Prepare.Remove(1, 100), Prepare.Update(1, 1000, "updated")).assertGet
-      db.toList shouldBe empty
+      db.toSeq.get shouldBe empty
 
       db.closeDatabase().get
     }
@@ -253,17 +253,17 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
           db.put(i, i.toString).assertGet
       }
 
-      db.from(9999).toList should contain only((9999, "9999"), (10000, "10000"))
-      db.from(9999).drop(1).take(1).toList should contain only ((10000, "10000"))
-      db.before(9999).take(1).toList should contain only ((9998, "9998"))
-      db.after(9999).take(1).toList should contain only ((10000, "10000"))
-      db.after(9999).drop(1).toList shouldBe empty
+      db.from(9999).toSeq.assertGet should contain only((9999, "9999"), (10000, "10000"))
+      db.from(9998).drop(1).get.take(1).get.toSeq.get should contain only ((10000, "10000"))
+      db.before(9999).take(1).get.toSeq.get should contain only ((9998, "9998"))
+      db.after(9999).take(1).get.toSeq.get should contain only ((10000, "10000"))
+      db.after(9999).drop(1).get.toSeq.get shouldBe empty
 
-      db.after(10).tillKey(_ <= 11).toList should contain only ((11, "11"))
-      db.after(10).tillKey(_ <= 11).drop(1).toList shouldBe empty
+      db.after(10).tillKey(_ <= 11).toSeq.get should contain only ((11, "11"))
+      db.after(10).tillKey(_ <= 11).drop(1).get.toSeq.get shouldBe empty
 
-      db.fromOrBefore(0).toList shouldBe empty
-      db.fromOrAfter(0).take(1).toList should contain only ((1, "1"))
+      db.fromOrBefore(0).toSeq.get shouldBe empty
+      db.fromOrAfter(0).take(1).get.toSeq.get should contain only ((1, "1"))
 
       db.closeDatabase().get
     }
@@ -416,7 +416,7 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
     }
 
     //    db.before(5).toList foreach println
-    db.before(5).mapRight { case (k, v) => (k, v) } foreach println
+    db.before(5).reverse.map { case (k, v) => (k, v) } foreach println
 
     db.closeDatabase().get
   }

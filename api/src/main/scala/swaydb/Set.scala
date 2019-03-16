@@ -42,9 +42,9 @@ object Set {
   */
 case class Set[T, W[_]](private val core: Core[W],
                         private val from: Option[From[T]],
-                        private[swaydb] val reverse: Boolean = false,
+                        private[swaydb] val reverseIteration: Boolean = false,
                         private val till: T => Boolean = (_: T) => true)(implicit serializer: Serializer[T],
-                                                                         wrap: Wrap[W]) extends Stream[T, W] {
+                                                                         wrap: Wrap[W]) extends Stream[T, W](0, None) {
   def get(elem: T): W[Option[T]] =
     core.getKey(elem).map(_.map(_.read[T]))
 
@@ -161,7 +161,7 @@ case class Set[T, W[_]](private val core: Core[W],
   def till(condition: T => Boolean) =
     copy(till = condition)
 
-  override def first(): W[Option[T]] = {
+  override def headOption(): W[Option[T]] = {
     from match {
       case Some(from) =>
         val fromKeyBytes: Slice[Byte] = from.key
@@ -188,14 +188,14 @@ case class Set[T, W[_]](private val core: Core[W],
         first.map(_.map(_.read[T]))
 
       case None =>
-        val first = if (reverse) core.lastKey else core.headKey
+        val first = if (reverseIteration) core.lastKey else core.headKey
         first.map(_.map(_.read[T]))
     }
   }
 
   override def next(previous: T): W[Option[T]] = {
     val next =
-      if (reverse)
+      if (reverseIteration)
         core.beforeKey(serializer.write(previous))
       else
         core.afterKey(serializer.write(previous))
@@ -210,66 +210,20 @@ case class Set[T, W[_]](private val core: Core[W],
     })
   }
 
-  override def head: T =
-    headOption.get
+  def size: W[Int] =
+    core.bloomFilterKeyValueCount
 
-  override def last: T =
-    lastOption.get
+  def isEmpty: W[Boolean] =
+    core.headKey.map(_.isEmpty)
 
-  override def size: Int =
-    core.bloomFilterKeyValueCount.get
+  def nonEmpty: W[Boolean] =
+    isEmpty.map(!_)
 
-  override def isEmpty: Boolean =
-    core.headKey.get.isEmpty
+  def lastOption: W[Option[T]] =
+    core.lastKey.map(_.map(_.read[T]))
 
-  override def nonEmpty: Boolean =
-    !isEmpty
-
-  override def headOption: Option[T] =
-    if (from.isDefined)
-      this.take(1).headOption
-    else
-      core.headKey.map(_.map(_.read[T])).get
-
-  override def lastOption: Option[T] =
-    core.lastKey.map(_.map(_.read[T])).get
-
-  def foreachRight[U](f: T => U): Unit =
-    copy(reverse = true) foreach f
-
-  def mapRight[B, C](f: T => B)(implicit bf: CanBuildFrom[Iterable[T], B, C]): C = {
-    copy(reverse = true).map(f)(collection.breakOut)
-  }
-
-  override def foldRight[B](z: B)(op: (T, B) => B): B =
-    copy(reverse = true).foldLeft(z) {
-      case (b, k) =>
-        op(k, b)
-    }
-
-  def takeRight(n: Int): Stream[T, W] =
-    copy(reverse = true).take(n)
-
-  def dropRight(n: Int): Stream[T, W] =
-    copy(reverse = true).drop(n)
-
-  override def reduceRight[B >: T](op: (T, B) => B): B =
-    copy(reverse = true).reduceLeft[B] {
-      case (b, k) =>
-        op(k, b)
-    }
-
-  override def reduceRightOption[B >: T](op: (T, B) => B): Option[B] =
-    copy(reverse = true).reduceLeftOption[B] {
-      case (b, k) =>
-        op(k, b)
-    }
-
-  override def scanRight[B, That](z: B)(op: (T, B) => B)(implicit bf: CanBuildFrom[Stream[T, W], B, That]): That =
-    copy(reverse = true).scanLeft(z) {
-      case (z, k) =>
-        op(k, z)
-    }
+  def reverse =
+    copy(reverseIteration = true)
 
   def closeDatabase(): W[Unit] =
     core.close

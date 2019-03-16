@@ -28,15 +28,16 @@ import swaydb.core.RunThis._
 class StreamSpec extends WordSpec with Matchers {
 
   "Stream" should {
+
     "iterate future" in {
 
       val futures =
-        (1 to 100) map {
+        (1 to 10000) map {
           i =>
             () => Future(i)
         }
 
-      val stream = new Stream[Int, Future]() {
+      val stream = new Stream[Int, Future](0, None) {
         val iterator = futures.iterator
 
         def step() =
@@ -45,37 +46,39 @@ class StreamSpec extends WordSpec with Matchers {
           else
             Future.successful(None)
 
-        override def first(): Future[Option[Int]] = step()
+        override def headOption(): Future[Option[Int]] = step()
         override def next(previous: Int): Future[Option[Int]] = step()
       }
 
-      stream foreach {
+      stream map {
         future =>
-//          if (future % 100 == 0)
-            println(future)
+          future + " future"
+      } map {
+        future =>
+          future foreach println
       }
-      Thread.sleep(5000)
+      Thread.sleep(2000)
     }
 
     "try" in {
 
-      val futures =
-        (1 to 1000) map {
+      val items =
+        (1 to 1000000) map {
           i =>
-            () => Success(i)
+            Success(i)
         }
 
-      //      val stream = new Stream[Int, Try]() {
-      //        val streamBuilder = futures.iterator
-      //        override def hasNext: Try[Boolean] = Success(streamBuilder.hasNext)
-      //        override def next(): Try[Int] = streamBuilder.next()()
-      //      }
-      //
-      //      (stream ++ stream) foreach {
-      //        future =>
-      //          if (future % 100 == 0)
-      //            println(future)
-      //      }
+      val stream = new Stream[Int, Try](0, None) {
+        val iterator = items.iterator
+        override def headOption(): Try[Option[Int]] = Try(items.headOption.map(_.get))
+        override def next(previous: Int): Try[Option[Int]] = Try(Option(iterator.next().get))
+      }
+
+      stream foreach {
+        future =>
+          if (future % 100 == 0)
+            println(future)
+      }
 
     }
   }

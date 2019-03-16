@@ -34,48 +34,72 @@ trait Wrap[W[_]] {
   def foreach[A, B](a: A)(f: A => B): Unit
   def map[A, B](a: A)(f: A => B): W[B]
   def flatMap[A, B](fa: W[A])(f: A => W[B]): W[B]
-  def unsafeGet[A](b: W[A]): A
   def success[A](value: A): W[A]
   def none[A]: W[Option[A]]
-  def foreachStream[A, U](stream: Stream[A, W])(f: A => U): Unit
+  def foreachStream[A, U](stream: Stream[A, W], skip: Int, size: Option[Int])(f: A => U): W[Unit]
   private[swaydb] def terminate[A]: W[A] = none.asInstanceOf[W[A]]
 }
 
 object Wrap {
   implicit val tryWrap = new Wrap[Try] {
+    val unit = Success(())
+
     override def apply[A](a: => A): Try[A] = Try(a)
     override def map[A, B](a: A)(f: A => B): Try[B] = Try(f(a))
     override def foreach[A, B](a: A)(f: A => B): Unit = f(a)
     override def flatMap[A, B](fa: Try[A])(f: A => Try[B]): Try[B] = fa.flatMap(f)
-    override def unsafeGet[A](b: Try[A]): A = b.get
     override def success[A](value: A): Try[A] = scala.util.Success(value)
     override def none[A]: Try[Option[A]] = scala.util.Success(None)
-    override def foreachStream[A, U](stream: Stream[A, Try])(f: A => U): Unit = {
+    override def foreachStream[A, U](stream: Stream[A, Try], skip: Int, size: Option[Int])(f: A => U): Try[Unit] = {
       @tailrec
-      def doForeach(previous: A): Unit =
-        stream.next(previous) match {
-          case Success(Some(next)) =>
-            f(next)
-            doForeach(next)
+      def doForeach(previous: A, skip: Int, currentSize: Int): Try[Unit] =
+        if (size.contains(currentSize))
+          unit
+        else
+          stream.next(previous) match {
+            case Success(Some(next)) =>
+              if (skip >= currentSize) {
+                doForeach(next, skip - 1, currentSize)
+              } else {
+                try {
+                  f(next)
+                } catch {
+                  case exception: Throwable =>
+                    return Failure(exception)
+                }
+                doForeach(next, skip, currentSize + 1)
+              }
+
+            case Success(None) =>
+              unit
+
+            case Failure(exception) =>
+              Failure(exception)
+          }
+
+      if (size.contains(0))
+        unit
+      else
+        stream.headOption match {
+          case Success(Some(first)) =>
+            try {
+              if (skip >= 1)
+                doForeach(first, skip - 1, 0)
+              else {
+                f(first)
+                doForeach(first, skip, 1)
+              }
+            } catch {
+              case throwable: Throwable =>
+                Failure(throwable)
+            }
 
           case Success(None) =>
-            ()
+            unit
 
           case Failure(exception) =>
-            throw exception
+            Failure(exception)
         }
-
-      stream.first() match {
-        case Success(Some(first)) =>
-          f(first)
-          doForeach(first)
-
-        case Success(None) =>
-          ()
-
-        case Failure(exception) =>
-          throw exception
-      }
     }
   }
 
@@ -85,34 +109,57 @@ object Wrap {
     override def foreach[A, B](a: A)(f: A => B): Unit = f(a)
     override def flatMap[A, B](fa: IO[A])(f: A => IO[B]): IO[B] = fa.flatMap(f)
     override def success[A](value: A): IO[A] = IO.Success(value)
-    override def unsafeGet[A](b: IO[A]): A = b.get
     override def none[A]: IO[Option[A]] = IO.none
-    override def foreachStream[A, U](stream: Stream[A, IO])(f: A => U): Unit = {
+    override def foreachStream[A, U](stream: Stream[A, IO], skip: Int, size: Option[Int])(f: A => U): IO[Unit] = {
       @tailrec
-      def doForeach(previous: A): Unit =
-        stream.next(previous) match {
-          case IO.Success(Some(next)) =>
-            f(next)
-            doForeach(next)
+      def doForeach(previous: A, skip: Int, currentSize: Int): IO[Unit] =
+        if (size.contains(currentSize))
+          IO.unit
+        else
+          stream.next(previous) match {
+            case IO.Success(Some(next)) =>
+              if (skip >= currentSize) {
+                doForeach(next, skip - 1, currentSize)
+              } else {
+                try {
+                  f(next)
+                } catch {
+                  case exception: Throwable =>
+                    return IO.Failure(exception)
+                }
+                doForeach(next, skip, currentSize + 1)
+              }
+
+            case IO.Success(None) =>
+              IO.unit
+
+            case IO.Failure(exception) =>
+              IO.Failure(exception)
+          }
+
+      if (size.contains(0))
+        IO.unit
+      else
+        stream.headOption match {
+          case IO.Success(Some(first)) =>
+            try {
+              if (skip >= 1)
+                doForeach(first, skip - 1, 0)
+              else {
+                f(first)
+                doForeach(first, skip, 1)
+              }
+            } catch {
+              case throwable: Throwable =>
+                IO.Failure(throwable)
+            }
 
           case IO.Success(None) =>
-            ()
+            IO.unit
 
-          case IO.Failure(error) =>
-            throw error.exception
+          case IO.Failure(exception) =>
+            IO.Failure(exception)
         }
-
-      stream.first() match {
-        case IO.Success(Some(first)) =>
-          f(first)
-          doForeach(first)
-
-        case IO.Success(None) =>
-          ()
-
-        case IO.Failure(error) =>
-          throw error.exception
-      }
     }
   }
 
@@ -123,37 +170,57 @@ object Wrap {
     override def apply[A](a: => A): Future[A] = Future(a)
     override def map[A, B](a: A)(f: A => B): Future[B] = Future(f(a))
     override def flatMap[A, B](fa: Future[A])(f: A => Future[B]): Future[B] = fa.flatMap(f)
-    override def unsafeGet[A](b: Future[A]): A = Await.result(b, timeout)
     override def success[A](value: A): Future[A] = Future.successful(value)
     override def none[A]: Future[Option[A]] = Future.successful(None)
     override def foreach[A, B](a: A)(f: A => B): Unit = f(a)
-    override def foreachStream[A, U](stream: Stream[A, Future])(f: A => U): Unit = {
-      def doForeach(previous: A): Future[Option[A]] =
-        stream
-          .next(previous)
-          .flatMap {
-            case Some(next) =>
-              f(next)
-              doForeach(next)
+    override def foreachStream[A, U](stream: Stream[A, Future], skip: Int, size: Option[Int])(f: A => U): Future[Unit] = {
+      def doForeach(previous: A, skip: Int, currentSize: Int): Future[Option[A]] =
+        if (size.contains(currentSize))
+          Delay.futureNone
+        else
+          stream
+            .next(previous)
+            .flatMap {
+              case Some(next) =>
+                try {
+                  if (skip >= currentSize) {
+                    doForeach(next, skip - 1, currentSize)
+                  } else {
+                    f(next)
+                    doForeach(next, skip, currentSize + 1)
+                  }
+                } catch {
+                  case throwable: Throwable =>
+                    Future.failed(throwable)
+                }
 
-            case None =>
-              Future.successful(None)
-          }
+              case None =>
+                Delay.futureNone
+            }
 
-      stream.first() flatMap {
-        case Some(first) =>
-          f(first)
-          doForeach(first)
+      if (size.contains(0))
+        Delay.futureUnit
+      else
+        stream.headOption flatMap {
+          case Some(first) =>
+            try {
+              if (skip >= 1) {
+                doForeach(first, skip - 1, 0)
+              } else {
+                f(first)
+                doForeach(first, skip, 1)
+              }
 
-        case None =>
-          Delay.futureUnit
+            } catch {
+              case throwable: Throwable =>
+                Future.failed(throwable)
+            }
 
-      } recoverWith {
-        case exception =>
-          //This is not very nice but TraversableLike requires a foreach as well so
-          //this needs to be caught at a higher place
-          throw exception
-      }
+          case None =>
+            Delay.futureUnit
+        } map {
+          _ => ()
+        }
     }
   }
 
@@ -166,8 +233,5 @@ object Wrap {
 
     @inline def flatMap[B](f: A => W[B]): W[B] =
       wrap.flatMap(a)(f)
-
-    @inline def get: A =
-      wrap.unsafeGet(a)
   }
 }
