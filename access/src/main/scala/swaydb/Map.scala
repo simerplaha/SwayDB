@@ -229,6 +229,107 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
   override def hasNext: W[Boolean] = ???
   override def next(): W[(K, V)] = ???
 
+//  override def iterator = new Iterator[W[(K, V)]] {
+//
+//    private var hasMore: Boolean = true
+//    private var started: Boolean = false
+//    private var stashedKeyValueBytes: W[(Slice[Byte], Option[Slice[Byte]])] = _
+//    private var stashedKeyValueTyped: W[(K, V)] = _
+//
+//    private def start: W[Option[(Slice[Byte], Option[Slice[Byte]])]] =
+//      from match {
+//        case Some(from) =>
+//          val fromKeyBytes: Slice[Byte] = from.key
+//          if (from.before)
+//            core.before(fromKeyBytes)
+//          else if (from.after)
+//            core.after(fromKeyBytes)
+//          else
+//            core.getKeyValue(fromKeyBytes) flatMap {
+//              case Some((key, valueOption)) =>
+//                wrap.success(Some(key, valueOption))
+//              case _ =>
+//                if (from.orAfter)
+//                  core.after(fromKeyBytes)
+//                else if (from.orBefore)
+//                  core.before(fromKeyBytes)
+//                else
+//                  wrap.none
+//            }
+//
+//        case None =>
+//          if (reverse)
+//            core.last
+//          else
+//            core.head
+//      }
+//
+//    override def hasNext: Boolean =
+//      hasMore
+//
+//    override def next(): W[(K, V)] =
+//      if (started) {
+//        started = true
+//        if (stashedKeyValueBytes == null) {
+//          hasMore = false
+//          wrap.terminate
+//        } else {
+//          stashedKeyValueBytes flatMap {
+//            previous =>
+//              val next =
+//                if (reverse)
+//                  core.before(previous._1)
+//                else
+//                  core.after(previous._1)
+//
+//              next flatMap {
+//                case Some(keyValue @ (key, value)) =>
+//                  val keyT = key.read[K]
+//                  val valueT = value.read[V]
+//                  if (till(keyT, valueT)) {
+//                    stashedKeyValueBytes = wrap.success(keyValue)
+//                    stashedKeyValueTyped = wrap.success(keyT, valueT)
+//                    hasMore = true
+//                    stashedKeyValueTyped
+//                  } else {
+//                    hasMore = false
+//                    wrap.terminate
+//                  }
+//
+//                case _ =>
+//                  hasMore = false
+//                  wrap.terminate
+//              }
+//          }
+//        }
+//      } else {
+//        start flatMap {
+//          start =>
+//            started = true
+//            start match {
+//              case Some(keyValue @ (key, value)) =>
+//                val keyT = key.read[K]
+//                val valueT = value.read[V]
+//                if (till(keyT, valueT)) {
+//                  stashedKeyValueBytes = wrap.success(keyValue)
+//                  stashedKeyValueTyped = wrap.success(keyT, valueT)
+//                  stashedKeyValueTyped
+//                } else {
+//                  hasMore = false
+//                  wrap.terminate
+//                }
+//
+//              case _ =>
+//                hasMore = false
+//                wrap.terminate
+//            }
+//        }
+//      }
+//
+//    override def toString(): String =
+//      classOf[Map[_, _, W]].getClass.getSimpleName
+//  }
+
   override def size: Int =
     sizeIO.get
 
@@ -241,41 +342,41 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
   override def nonEmpty: Boolean =
     !isEmpty
 
-  override def headOption: Option[W[(K, V)]] =
-    throw new UnsupportedOperationException("headOption is not supported")
-
-  override def lastOption: Option[W[(K, V)]] =
-    throw new UnsupportedOperationException("lastOption is not supported")
-
-  def foreachRight[U](f: W[(K, V)] => U): Unit =
-    copy(reverse = true) foreach f
-
-  def mapRight[B, T](f: W[(K, V)] => B): Traversable[B] =
-    copy(reverse = true) map f
-
-  override def foldRight[B](z: B)(op: (W[(K, V)], B) => B): B =
-    copy(reverse = true).foldLeft(z) {
-      case (b, container) =>
-        op(container, b)
-    }
-
-  def takeRight(n: Int): Traversable[W[(K, V)]] =
-    copy(reverse = true).take(n)
-
-  def dropRight(n: Int): Traversable[W[(K, V)]] =
-    copy(reverse = true).drop(n)
-
-  override def reduceRight[B >: W[(K, V)]](op: (W[(K, V)], B) => B): B =
-    copy(reverse = true).reduceLeft[B] {
-      case (b, container) =>
-        op(container, b)
-    }
-
-  override def reduceRightOption[B >: W[(K, V)]](op: (W[(K, V)], B) => B): Option[B] =
-    copy(reverse = true).reduceLeftOption[B] {
-      case (b, container) =>
-        op(container, b)
-    }
+//  override def headOption: Option[W[(K, V)]] =
+//    throw new UnsupportedOperationException("headOption is not supported")
+//
+//  override def lastOption: Option[W[(K, V)]] =
+//    throw new UnsupportedOperationException("lastOption is not supported")
+//
+//  def foreachRight[U](f: W[(K, V)] => U): Unit =
+//    copy(reverse = true) foreach f
+//
+//  def mapRight[B, T](f: W[(K, V)] => B): Traversable[B] =
+//    copy(reverse = true) map f
+//
+//  override def foldRight[B](z: B)(op: (W[(K, V)], B) => B): B =
+//    copy(reverse = true).foldLeft(z) {
+//      case (b, container) =>
+//        op(container, b)
+//    }
+//
+//  def takeRight(n: Int): Traversable[W[(K, V)]] =
+//    copy(reverse = true).take(n)
+//
+//  def dropRight(n: Int): Traversable[W[(K, V)]] =
+//    copy(reverse = true).drop(n)
+//
+//  override def reduceRight[B >: W[(K, V)]](op: (W[(K, V)], B) => B): B =
+//    copy(reverse = true).reduceLeft[B] {
+//      case (b, container) =>
+//        op(container, b)
+//    }
+//
+//  override def reduceRightOption[B >: W[(K, V)]](op: (W[(K, V)], B) => B): Option[B] =
+//    copy(reverse = true).reduceLeftOption[B] {
+//      case (b, container) =>
+//        op(container, b)
+//    }
 
   def closeDatabase(): W[Unit] =
     core.close()

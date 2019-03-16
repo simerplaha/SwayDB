@@ -21,6 +21,7 @@ package swaydb
 
 import org.scalatest.{Matchers, WordSpec}
 import scala.concurrent.Future
+import scala.util.{Success, Try}
 import swaydb.Wrap._
 import swaydb.core.RunThis._
 
@@ -30,7 +31,7 @@ class StreamSpec extends WordSpec with Matchers {
     "iterate future" in {
 
       val futures =
-        (1 to 1000) map {
+        (1 to 100000000) map {
           i =>
             () => Future(i)
         }
@@ -43,10 +44,31 @@ class StreamSpec extends WordSpec with Matchers {
 
       stream foreach {
         future =>
-          println(future.await)
+          if (future % 100000 == 0)
+            println(future)
+      }
+      Thread.sleep(20000)
+    }
+
+    "try" in {
+
+      val futures =
+        (1 to 1000) map {
+          i =>
+            () => Success(i)
+        }
+
+      val stream = new Stream[Int, Try]() {
+        val iterator = futures.iterator
+        override def hasNext: Try[Boolean] = Success(iterator.hasNext)
+        override def next(): Try[Int] = iterator.next()()
       }
 
-      Thread.sleep(3000)
+      (stream ++ stream) foreach {
+        future =>
+          if (future % 100 == 0)
+            println(future)
+      }
 
     }
   }

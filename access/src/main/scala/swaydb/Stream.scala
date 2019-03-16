@@ -22,14 +22,13 @@ package swaydb
 import scala.collection.generic.CanBuildFrom
 import scala.collection.mutable.ListBuffer
 import scala.collection.{TraversableLike, mutable}
-import Wrap._
 
 object Stream {
 
-  class StreamBuilder[T, F[_]](implicit wrap: Wrap[F]) extends mutable.Builder[F[T], Stream[T, F]] {
-    protected var items: ListBuffer[F[T]] = ListBuffer.empty[F[T]]
+  class StreamBuilder[T, F[_]](implicit wrap: Wrap[F]) extends mutable.Builder[T, Stream[T, F]] {
+    protected var items: ListBuffer[T] = ListBuffer.empty[T]
 
-    override def +=(x: F[T]): this.type = {
+    override def +=(x: T): this.type = {
       items += x
       this
     }
@@ -42,40 +41,29 @@ object Stream {
         val iterator = items.iterator
 
         override def hasNext: F[Boolean] = wrap(iterator.hasNext)
-        override def next(): F[T] = iterator.next()
+        override def next(): F[T] = wrap(iterator.next())
       }
   }
 
-  implicit def canBuildFrom[T, F[_]](implicit wrap: Wrap[F]): CanBuildFrom[Stream[T, F], F[T], Stream[T, F]] =
-    new CanBuildFrom[Stream[T, F], F[T], Stream[T, F]] {
+  implicit def canBuildFrom[T, F[_]](implicit wrap: Wrap[F]): CanBuildFrom[Stream[T, F], T, Stream[T, F]] =
+    new CanBuildFrom[Stream[T, F], T, Stream[T, F]] {
       override def apply(from: Stream[T, F]) =
         new StreamBuilder()
 
-      override def apply(): mutable.Builder[F[T], Stream[T, F]] =
+      override def apply(): mutable.Builder[T, Stream[T, F]] =
         new StreamBuilder()
     }
 }
 
-abstract class Stream[T, F[_]](implicit wrap: Wrap[F]) extends Traversable[F[T]] with TraversableLike[F[T], Stream[T, F]] {
+abstract class Stream[T, F[_]](implicit wrap: Wrap[F]) extends Traversable[T] with TraversableLike[T, Stream[T, F]] {
 
   def hasNext: F[Boolean]
 
   def next(): F[T]
 
-  override def foreach[U](f: F[T] => U): Unit = {
-    //todo make stack-safe
-    def doForeach(): Unit =
-      hasNext foreach {
-        hasNext =>
-          if (hasNext) {
-            f(next())
-            doForeach()
-          }
-      }
+  override def foreach[U](f: T => U): Unit =
+    wrap.foreachStream(this)(f)
 
-    doForeach()
-  }
-
-  override protected[this] def newBuilder: mutable.Builder[F[T], Stream[T, F]] =
+  override protected[this] def newBuilder: mutable.Builder[T, Stream[T, F]] =
     new Stream.StreamBuilder[T, F]()
 }

@@ -19,8 +19,9 @@
 
 package swaydb
 
+import scala.annotation.tailrec
 import scala.concurrent.{Await, ExecutionContext, Future}
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 import swaydb.data.IO
 import scala.concurrent.duration._
 
@@ -35,6 +36,7 @@ trait Wrap[W[_]] {
   def unsafeGet[A](b: W[A]): A
   def success[A](value: A): W[A]
   def none[A]: W[Option[A]]
+  def foreachStream[A, U](stream: Stream[A, W])(f: A => U): Unit
   private[swaydb] def terminate[A]: W[A] = none.asInstanceOf[W[A]]
 }
 
@@ -47,6 +49,30 @@ object Wrap {
     override def unsafeGet[A](b: Try[A]): A = b.get
     override def success[A](value: A): Try[A] = scala.util.Success(value)
     override def none[A]: Try[Option[A]] = scala.util.Success(None)
+    override def foreachStream[A, U](stream: Stream[A, Try])(f: A => U): Unit = {
+      @tailrec
+      def doForeach(): Unit = {
+        stream.hasNext match {
+          case Success(hasNext) =>
+            if (hasNext)
+              stream.next() match {
+                case Success(value) =>
+                  f(value)
+                  doForeach()
+
+                case Failure(exception) =>
+                  throw exception
+              }
+
+          case Failure(exception) =>
+            //This is not very nice but TraversableLike requires a foreach as well so
+            //this needs to be caught at a higher place
+            throw exception
+        }
+      }
+
+      doForeach()
+    }
   }
 
   implicit val ioWrap = new Wrap[IO] {
@@ -57,6 +83,31 @@ object Wrap {
     override def success[A](value: A): IO[A] = IO.Success(value)
     override def unsafeGet[A](b: IO[A]): A = b.get
     override def none[A]: IO[Option[A]] = IO.none
+    override def foreachStream[A, U](stream: Stream[A, IO])(f: A => U): Unit = {
+      @tailrec
+      def doForeach(): Unit = {
+        stream.hasNext match {
+          case IO.Success(hasNext) =>
+            if (hasNext)
+              stream.next() match {
+                case IO.Success(value) =>
+                  f(value)
+                  doForeach()
+
+                case IO.Failure(error) =>
+                  //This is not very nice but TraversableLike requires a foreach as well so
+                  //this needs to be caught at a higher place
+                  throw error.exception
+              }
+
+          case IO.Failure(error) =>
+            throw error.exception
+        }
+      }
+
+      doForeach()
+    }
+
   }
 
   implicit def futureWrap(implicit ec: ExecutionContext): Wrap[Future] =
@@ -70,6 +121,23 @@ object Wrap {
     override def success[A](value: A): Future[A] = Future.successful(value)
     override def none[A]: Future[Option[A]] = Future.successful(None)
     override def foreach[A, B](a: A)(f: A => B): Unit = f(a)
+    override def foreachStream[A, U](stream: Stream[A, Future])(f: A => U): Unit = {
+      stream.hasNext flatMap {
+        hasNext =>
+          if (hasNext)
+            stream.next().map(f) map {
+              _ =>
+                foreachStream(stream)(f)
+            }
+          else
+            Future.unit
+      } recoverWith {
+        case exception =>
+          //This is not very nice but TraversableLike requires a foreach as well so
+          //this needs to be caught at a higher place
+          throw exception
+      }
+    }
   }
 
   implicit class WrapImplicits[A, W[_] : Wrap](a: W[A])(implicit wrap: Wrap[W]) {

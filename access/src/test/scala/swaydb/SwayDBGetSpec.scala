@@ -77,7 +77,7 @@ sealed trait SwayDBGetSpec extends TestBase {
 
       Thread.sleep(1000)
 
-      db.view.foreach(future => println(future.await))
+      db.foreach(future => println(future))
 
       //      (1 to 100) foreach {
       //        i =>
