@@ -44,8 +44,8 @@ case class Set[T, W[_]](private val core: Core[W],
                         private[swaydb] val skip: Int = 0,
                         private[swaydb] val count: Option[Int] = None,
                         private[swaydb] val reverseIteration: Boolean = false,
-                        private val till: T => Boolean = (_: T) => true)(implicit serializer: Serializer[T],
-                                                                         wrap: Wrap[W]) extends Stream[T, W] {
+                        private val takeWhileCondition: Option[T => Boolean] = None)(implicit serializer: Serializer[T],
+                                                                                     wrap: Wrap[W]) extends Stream[T, W] {
 
   def wrapCall[T](f: => W[T]): W[T] =
     wrap(()).flatMap(_ => f)
@@ -165,8 +165,16 @@ case class Set[T, W[_]](private val core: Core[W],
   def fromOrAfter(key: T) =
     copy(from = Some(From(key = key, orBefore = false, orAfter = true, before = false, after = false)))
 
-  def till(condition: T => Boolean) =
-    copy(till = condition)
+  def takeWhile(condition: T => Boolean) =
+    copy(takeWhileCondition = Some(condition))
+
+  def checkTakeWhile(key: Slice[Byte]): Option[T] = {
+    val keyT = key.read[T]
+    if (takeWhileCondition.forall(_ (keyT)))
+      Some(keyT)
+    else
+      None
+  }
 
   override def headOption(): W[Option[T]] =
     wrapCall {
@@ -193,11 +201,11 @@ case class Set[T, W[_]](private val core: Core[W],
                       wrap.success(None): W[Option[Slice[Byte]]]
                 }
 
-          first.map(_.map(_.read[T]))
+          first.map(_.flatMap(checkTakeWhile))
 
         case None =>
           val first = if (reverseIteration) core.lastKey else core.headKey
-          first.map(_.map(_.read[T]))
+          first.map(_.flatMap(checkTakeWhile))
       }
     }
 
@@ -209,14 +217,7 @@ case class Set[T, W[_]](private val core: Core[W],
         else
           core.afterKey(serializer.write(previous))
 
-      next.map(_.flatMap {
-        key =>
-          val keyTyped = serializer.read(key)
-          if (till(keyTyped))
-            Some(keyTyped)
-          else
-            None
-      })
+      next.map(_.flatMap(checkTakeWhile))
     }
 
   override def restart: Stream[T, W] =
@@ -232,7 +233,12 @@ case class Set[T, W[_]](private val core: Core[W],
     isEmpty.map(!_)
 
   def lastOption: W[Option[T]] =
-    wrapCall(core.lastKey.map(_.map(_.read[T])))
+    if (takeWhileCondition.isDefined)
+      wrapCall(toSeq.map(_.lastOption))
+    else if (reverseIteration)
+      wrapCall(core.headKey.map(_.map(_.read[T])))
+    else
+      wrapCall(core.lastKey.map(_.map(_.read[T])))
 
   def reverse =
     copy(reverseIteration = true)

@@ -142,7 +142,7 @@ sealed trait WeatherDataSpec extends TestBase with LazyLogging with Benchmark wi
 
     took.toSeq.get should have size 100
     took.headOption.get.get._1 shouldBe startFrom
-    took.lastOption.get.get._1 shouldBe (startFrom + 100 - 1)
+    took.lastOption.get.get._1 shouldBe (startFrom + 99)
   }
 
   def doHeadAndLast = {
@@ -247,16 +247,16 @@ sealed trait WeatherDataSpec extends TestBase with LazyLogging with Benchmark wi
   def readRequests: Future[Seq[Any]] =
     Future.sequence(
       Seq(
-//        Future(doForeach),
-//        Future(doGet),
-//        Future(doHeadAndLast),
-//        Future(doFoldLeft),
+        Future(doForeach),
+        Future(doGet),
+        Future(doHeadAndLast),
+        Future(doFoldLeft),
         Future(doTakeWhile),
-//        Future(doMapRight),
-//        Future(doTake),
-//        Future(doDrop),
-//        Future(doTakeRight),
-//        Future(doCount)
+        Future(doMapRight),
+        Future(doTake),
+        Future(doDrop),
+        Future(doTakeRight),
+        Future(doCount)
       )
     )
 
@@ -264,10 +264,9 @@ sealed trait WeatherDataSpec extends TestBase with LazyLogging with Benchmark wi
     //do initial put or batch (whichever one) to ensure that data exists for readRequests.
     //    doPut
     doBatch(inBatchesOf = 100000 min keyValueCount)
-//    putRequest runThis 4.times
-//    batchRandomRequest runThis 2.times
-//    batchRequest(inBatchesOf = 10000 min keyValueCount)
-    doTakeWhile
+    putRequest runThis 4.times
+    batchRandomRequest runThis 2.times
+    batchRequest(inBatchesOf = 10000 min keyValueCount)
     //    Future {
     //      while (true) {
     //        println("db.level0Meter.mapsCount:     " + db.level0Meter.mapsCount)
@@ -276,8 +275,8 @@ sealed trait WeatherDataSpec extends TestBase with LazyLogging with Benchmark wi
     //      }
     //    }
 
-//    readRequests runThis 10.times await 10.minutes
-//    doDeleteAll
+    //    readRequests runThis 10.times await 10.minutes
+    //    doDeleteAll
     println("************************* DONE *************************")
   }
 }

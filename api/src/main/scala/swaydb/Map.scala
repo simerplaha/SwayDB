@@ -41,9 +41,9 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
                            private[swaydb] val skip: Int = 0,
                            private val from: Option[From[K]] = None,
                            private[swaydb] val reverseIteration: Boolean = false,
-                           private val till: (K, V) => Boolean = (_: K, _: V) => true)(implicit keySerializer: Serializer[K],
-                                                                                       valueSerializer: Serializer[V],
-                                                                                       wrap: Wrap[W]) extends Stream[(K, V), W] {
+                           private val takeWhileCondition: Option[(K, V) => Boolean] = None)(implicit keySerializer: Serializer[K],
+                                                                                             valueSerializer: Serializer[V],
+                                                                                             wrap: Wrap[W]) extends Stream[(K, V), W] {
 
   def wrapCall[T](f: => W[T]): W[T] =
     wrap(()).flatMap(_ => f)
@@ -225,26 +225,30 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
     copy(from = Some(From(key = key, orBefore = false, orAfter = true, before = false, after = false)))
 
   def takeWhile(condition: (K, V) => Boolean) =
-    copy(till = condition)
+    copy(takeWhileCondition = Some(condition))
 
   def takeWhileKey(condition: K => Boolean) =
     copy(
-      till =
-        (key: K, _: V) =>
-          condition(key)
+      takeWhileCondition =
+        Some(
+          (key: K, _: V) =>
+            condition(key)
+        )
     )
 
   def takeWhileValue(condition: V => Boolean) =
     copy(
-      till =
-        (_: K, value: V) =>
-          condition(value)
+      takeWhileCondition =
+        Some(
+          (_: K, value: V) =>
+            condition(value)
+        )
     )
 
   def checkTakeWhile(key: Slice[Byte], value: Option[Slice[Byte]]): Option[(K, V)] = {
     val keyT = key.read[K]
     val valueT = value.read[V]
-    if (till(keyT, valueT))
+    if (takeWhileCondition.forall(_ (keyT, valueT)))
       Some(keyT, valueT)
     else
       None
@@ -323,14 +327,26 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
     isEmpty.map(!_)
 
   def lastOption: W[Option[(K, V)]] =
-    wrapCall {
-      core.last map {
-        case Some((key, value)) =>
-          Some(key.read[K], value.read[V])
-        case _ =>
-          None
+    if (takeWhileCondition.isDefined)
+      wrapCall(toSeq.map(_.lastOption))
+    else if (reverseIteration)
+      wrapCall {
+        core.head map {
+          case Some((key, value)) =>
+            Some(key.read[K], value.read[V])
+          case _ =>
+            None
+        }
       }
-    }
+    else
+      wrapCall {
+        core.last map {
+          case Some((key, value)) =>
+            Some(key.read[K], value.read[V])
+          case _ =>
+            None
+        }
+      }
 
   def reverse =
     copy(reverseIteration = true)
