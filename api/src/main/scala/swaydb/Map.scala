@@ -224,22 +224,31 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
   def fromOrAfter(key: K) =
     copy(from = Some(From(key = key, orBefore = false, orAfter = true, before = false, after = false)))
 
-  def till(condition: (K, V) => Boolean) =
+  def takeWhile(condition: (K, V) => Boolean) =
     copy(till = condition)
 
-  def tillKey(condition: K => Boolean) =
+  def takeWhileKey(condition: K => Boolean) =
     copy(
       till =
         (key: K, _: V) =>
           condition(key)
     )
 
-  def tillValue(condition: V => Boolean) =
+  def takeWhileValue(condition: V => Boolean) =
     copy(
       till =
         (_: K, value: V) =>
           condition(value)
     )
+
+  def checkTakeWhile(key: Slice[Byte], value: Option[Slice[Byte]]): Option[(K, V)] = {
+    val keyT = key.read[K]
+    val valueT = value.read[V]
+    if (till(keyT, valueT))
+      Some(keyT, valueT)
+    else
+      None
+  }
 
   override def headOption: W[Option[(K, V)]] =
     wrapCall {
@@ -269,14 +278,14 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
 
           first.map(_.flatMap {
             case (key, value) =>
-              Some(key.read[K], value.read[V])
+              checkTakeWhile(key, value)
           })
 
         case None =>
           val first = if (reverseIteration) core.last else core.head
           first.map(_.flatMap {
             case (key, value) =>
-              Some(key.read[K], value.read[V])
+              checkTakeWhile(key, value)
           })
       }
     }
@@ -291,13 +300,7 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
 
       next.map(_.flatMap {
         case (key, value) =>
-          val keyT = key.read[K]
-          val valueT = value.read[V]
-          if (till(keyT, valueT)) {
-            Some(keyT, valueT)
-          } else {
-            None
-          }
+          checkTakeWhile(key, value)
       })
     }
 

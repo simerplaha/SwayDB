@@ -240,10 +240,8 @@ case class MapStream[K, V](mapKey: Seq[K],
         IO.Failure(error)
     }
 
-  override def next(previous: (K, V)): IO[Option[(K, V)]] = {
-    val stepped = step((Key.MapEntry(mapKey, previous._1), Some(previous._2)))
-    stepped
-  }
+  override def next(previous: (K, V)): IO[Option[(K, V)]] =
+    step((Key.MapEntry(mapKey, previous._1), Some(previous._2)))
 
   override def restart: Stream[(K, V), IO] =
     copy()
