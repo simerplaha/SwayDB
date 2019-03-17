@@ -234,7 +234,7 @@ case class Set[T, W[_]](private val core: Core[W],
 
   def lastOption: W[Option[T]] =
     if (takeWhileCondition.isDefined)
-      wrapCall(toSeq.map(_.lastOption))
+      wrapCall(lastOptionStream)
     else if (reverseIteration)
       wrapCall(core.headKey.map(_.map(_.read[T])))
     else

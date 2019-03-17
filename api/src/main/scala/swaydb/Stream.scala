@@ -133,6 +133,12 @@ abstract class Stream[A, W[_]](implicit wrap: Wrap[W]) {
         wrap.foreachStream(this, skip, count)(f)
     }
 
+  def lastOptionStream: W[Option[A]] =
+    foldLeft(Option.empty[A]) {
+      case (_, next) =>
+        Some(next)
+    }
+
   def toSeq: W[Seq[A]] =
     wrap(()) flatMap {
       _ =>
@@ -141,4 +147,5 @@ abstract class Stream[A, W[_]](implicit wrap: Wrap[W]) {
           .foreach(item => builder += item)
           .map(_ => builder.asSeq)
     }
+
 }

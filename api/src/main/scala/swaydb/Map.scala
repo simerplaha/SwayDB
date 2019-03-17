@@ -328,7 +328,7 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
 
   def lastOption: W[Option[(K, V)]] =
     if (takeWhileCondition.isDefined)
-      wrapCall(toSeq.map(_.lastOption))
+      wrapCall(lastOptionStream)
     else if (reverseIteration)
       wrapCall {
         core.head map {
