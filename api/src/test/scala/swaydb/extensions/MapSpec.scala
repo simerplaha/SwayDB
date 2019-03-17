@@ -17,7 +17,7 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.extension
+package swaydb.extensions
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
@@ -35,7 +35,7 @@ class MapSpec0 extends MapSpec {
   val keyValueCount: Int = 1000
 
   override def newDB(): Map[Int, String] =
-    swaydb.persistent.Map[Key[Int], Option[String]](dir = randomDir).assertGet.extend.assertGet
+    swaydb.extensions.persistent.Map[Int, String](dir = randomDir).assertGet
 }
 
 class MapSpec1 extends MapSpec {
@@ -43,7 +43,7 @@ class MapSpec1 extends MapSpec {
   val keyValueCount: Int = 10000
 
   override def newDB(): Map[Int, String] =
-    swaydb.persistent.Map[Key[Int], Option[String]](randomDir, mapSize = 1.byte).assertGet.extend.assertGet
+    swaydb.extensions.persistent.Map[Int, String](randomDir, mapSize = 1.byte).assertGet
 }
 
 class MapSpec2 extends MapSpec {
@@ -51,14 +51,14 @@ class MapSpec2 extends MapSpec {
   val keyValueCount: Int = 100000
 
   override def newDB(): Map[Int, String] =
-    swaydb.memory.Map[Key[Int], Option[String]](mapSize = 1.byte).assertGet.extend.assertGet
+    swaydb.extensions.memory.Map[Int, String](mapSize = 1.byte).assertGet
 }
 
 class MapSpec3 extends MapSpec {
   val keyValueCount: Int = 100000
 
   override def newDB(): Map[Int, String] =
-    swaydb.memory.Map[Key[Int], Option[String]]().assertGet.extend.assertGet
+    swaydb.extensions.memory.Map[Int, String]().assertGet
 }
 
 sealed trait MapSpec extends TestBase with TestBaseEmbedded {
@@ -202,24 +202,24 @@ sealed trait MapSpec extends TestBase with TestBaseEmbedded {
         }
       )
       //assert
-//      rootMap.baseMap().toList shouldBe
-//        List(
-//          (Key.Start(Seq.empty), None),
-//          (Key.EntriesStart(Seq.empty), None),
-//          (Key.EntriesEnd(Seq.empty), None),
-//          (Key.SubMapsStart(Seq.empty), None),
-//          (Key.SubMap(Seq.empty, 1), Some("sub map")),
-//          (Key.SubMapsEnd(Seq.empty), None),
-//          (Key.End(Seq.empty), None),
-//
-//          //subMaps entries
-//          (Key.Start(Seq(1)), Some("sub map")),
-//          (Key.EntriesStart(Seq(1)), None),
-//          (Key.EntriesEnd(Seq(1)), None),
-//          (Key.SubMapsStart(Seq(1)), None),
-//          (Key.SubMapsEnd(Seq(1)), None),
-//          (Key.End(Seq(1)), None)
-//        )
+      //      rootMap.baseMap().toList shouldBe
+      //        List(
+      //          (Key.Start(Seq.empty), None),
+      //          (Key.EntriesStart(Seq.empty), None),
+      //          (Key.EntriesEnd(Seq.empty), None),
+      //          (Key.SubMapsStart(Seq.empty), None),
+      //          (Key.SubMap(Seq.empty, 1), Some("sub map")),
+      //          (Key.SubMapsEnd(Seq.empty), None),
+      //          (Key.End(Seq.empty), None),
+      //
+      //          //subMaps entries
+      //          (Key.Start(Seq(1)), Some("sub map")),
+      //          (Key.EntriesStart(Seq(1)), None),
+      //          (Key.EntriesEnd(Seq(1)), None),
+      //          (Key.SubMapsStart(Seq(1)), None),
+      //          (Key.SubMapsEnd(Seq(1)), None),
+      //          (Key.End(Seq(1)), None)
+      //        )
 
       rootMap.closeDatabase().get
     }
@@ -232,24 +232,24 @@ sealed trait MapSpec extends TestBase with TestBaseEmbedded {
       rootMap.maps.contains(1).assertGet shouldBe true
 
       //assert
-//      rootMap.baseMap().toList shouldBe
-//        List(
-//          (Key.Start(Seq.empty), None),
-//          (Key.EntriesStart(Seq.empty), None),
-//          (Key.EntriesEnd(Seq.empty), None),
-//          (Key.SubMapsStart(Seq.empty), None),
-//          (Key.SubMap(Seq.empty, 1), Some("sub map updated")),
-//          (Key.SubMapsEnd(Seq.empty), None),
-//          (Key.End(Seq.empty), None),
-//
-//          //subMaps entries
-//          (Key.Start(Seq(1)), Some("sub map updated")),
-//          (Key.EntriesStart(Seq(1)), None),
-//          (Key.EntriesEnd(Seq(1)), None),
-//          (Key.SubMapsStart(Seq(1)), None),
-//          (Key.SubMapsEnd(Seq(1)), None),
-//          (Key.End(Seq(1)), None)
-//        )
+      //      rootMap.baseMap().toList shouldBe
+      //        List(
+      //          (Key.Start(Seq.empty), None),
+      //          (Key.EntriesStart(Seq.empty), None),
+      //          (Key.EntriesEnd(Seq.empty), None),
+      //          (Key.SubMapsStart(Seq.empty), None),
+      //          (Key.SubMap(Seq.empty, 1), Some("sub map updated")),
+      //          (Key.SubMapsEnd(Seq.empty), None),
+      //          (Key.End(Seq.empty), None),
+      //
+      //          //subMaps entries
+      //          (Key.Start(Seq(1)), Some("sub map updated")),
+      //          (Key.EntriesStart(Seq(1)), None),
+      //          (Key.EntriesEnd(Seq(1)), None),
+      //          (Key.SubMapsStart(Seq(1)), None),
+      //          (Key.SubMapsEnd(Seq(1)), None),
+      //          (Key.End(Seq(1)), None)
+      //        )
 
       rootMap.closeDatabase().get
     }
@@ -676,7 +676,7 @@ sealed trait MapSpec extends TestBase with TestBaseEmbedded {
       val secondMap = firstMap.maps.put(2, "second map").assertGet
 
       Map.childSubMapRanges(firstMap).get should contain only ((Key.SubMap(Seq(1), 2), Key.MapStart(Seq(1, 2)), Key.MapEnd(Seq(1, 2))))
-//      Map.childSubMapRanges(secondMap).get shouldBe empty
+      //      Map.childSubMapRanges(secondMap).get shouldBe empty
 
       rootMap.closeDatabase().get
     }

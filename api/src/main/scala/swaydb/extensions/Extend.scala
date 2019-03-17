@@ -17,23 +17,23 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.extension
+package swaydb.extensions
 
+import swaydb.Prepare
 import swaydb.data.IO
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.{Prepare, extension}
 import swaydb.serializers.Serializer
 
-object Extend {
+private[extensions] object Extend {
 
   /**
-    * Wraps the input [[swaydb.Map]] instance and returns a new [[extension.Map]] instance
+    * Wraps the input [[swaydb.Map]] instance and returns a new [[Map]] instance
     * which contains extended APIs to create nested Maps.
     */
   def apply[K, V](map: swaydb.Map[Key[K], Option[V], IO])(implicit keySerializer: Serializer[K],
-                                                      optionValueSerializer: Serializer[Option[V]],
-                                                      keyOrder: KeyOrder[Slice[Byte]]): IO[extension.Map[K, V]] = {
+                                                          optionValueSerializer: Serializer[Option[V]],
+                                                          keyOrder: KeyOrder[Slice[Byte]]): IO[Map[K, V]] = {
     implicit val mapKeySerializer = Key.serializer(keySerializer)
 
     implicit val valueSerializer = new Serializer[V] {

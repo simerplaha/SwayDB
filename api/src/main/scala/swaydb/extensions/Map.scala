@@ -17,19 +17,19 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.extension
+package swaydb.extensions
 
 import scala.concurrent.duration.{Deadline, FiniteDuration}
-import swaydb.{From, Prepare}
 import swaydb.data.IO
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.extension.stream.{MapStream, MapKeysStream}
+import swaydb.extensions.stream.{MapKeysStream, MapStream}
 import swaydb.serializers.Serializer
+import swaydb.{From, Prepare}
 
-private[swaydb] object Map {
+private[extensions] object Map {
   def apply[K, V](map: swaydb.Map[Key[K], Option[V], IO],
                   mapKey: Seq[K])(implicit keySerializer: Serializer[K],
                                   valueSerializer: Serializer[V],

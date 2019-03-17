@@ -17,14 +17,14 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.extension.stream
+package swaydb.extensions.stream
 
 import scala.annotation.tailrec
 import swaydb.Stream
 import swaydb.data.IO
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.extension.Key
+import swaydb.extensions.Key
 import swaydb.serializers.Serializer
 
 /**
@@ -263,7 +263,7 @@ case class MapStream[K, V](mapKey: Seq[K],
 
   /**
     * lastOption should always force formKey to be the [[endSubMapsKey]]
-    * because from is always set in [[swaydb.extension.Maps]] and regardless from where the iteration starts the
+    * because from is always set in [[swaydb.extensions.Maps]] and regardless from where the iteration starts the
     * most efficient way to fetch the last is from the key [[endSubMapsKey]].
     */
   def lastOption: IO[Option[(K, V)]] =

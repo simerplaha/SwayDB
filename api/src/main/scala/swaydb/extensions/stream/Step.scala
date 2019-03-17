@@ -17,23 +17,11 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb
+package swaydb.extensions.stream
 
-import swaydb.data.IO
-import swaydb.data.slice.Slice
-import swaydb.data.order.KeyOrder
-import swaydb.serializers.Serializer
-
-package object extension {
-
-  implicit class DefaultExtension[K, V](map: swaydb.Map[Key[K], Option[V], IO]) {
-    def extend(implicit keySerializer: Serializer[K],
-               optionValueSerializer: Serializer[Option[V]],
-               keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default): IO[extension.Map[K, V]] =
-      Extend(map = map)(
-        keySerializer = keySerializer,
-        optionValueSerializer = optionValueSerializer,
-        keyOrder = Key.ordering(keyOrder)
-      )
-  }
+sealed trait Step[+K, +V]
+object Step {
+  case object Stop extends Step[Nothing, Nothing]
+  case object Next extends Step[Nothing, Nothing]
+  case class KeyValue[K, V](key: K, value: V) extends Step[K, V]
 }

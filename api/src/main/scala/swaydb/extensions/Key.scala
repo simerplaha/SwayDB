@@ -17,19 +17,19 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.extension
+package swaydb.extensions
 
 import swaydb.core.io.reader.Reader
 import swaydb.data.IO
+import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteUtil
-import swaydb.data.order.KeyOrder
 import swaydb.serializers.Serializer
 
-sealed trait Key[+K] {
+private[extensions] sealed trait Key[+K] {
   def parentMapKeys: Seq[K]
 }
-object Key {
+private[extensions] object Key {
 
   //map start
   case class MapStart[K](parentMapKeys: Seq[K]) extends Key[K]

@@ -17,14 +17,14 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.extension
+package swaydb.extensions
 
 import swaydb.From
 import swaydb.data.IO
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.extension.stream.{MapStream, MapKeysStream}
+import swaydb.extensions.stream.{MapKeysStream, MapStream}
 import swaydb.serializers.Serializer
 
 class Maps[K, V](map: swaydb.Map[Key[K], Option[V], IO],
