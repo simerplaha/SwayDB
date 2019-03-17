@@ -39,7 +39,7 @@ class IOSuccessSpec extends WordSpec with Matchers {
       io.get shouldBe 1
       io.safeGet shouldBe io
       io.safeGetBlocking shouldBe io
-      io.safeGetFuture.await shouldBe io
+      io.safeGetFuture.await shouldBe 1
     }
 
     "getOrElse & orElse return first io if both are successes" in {

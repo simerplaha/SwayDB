@@ -22,6 +22,7 @@ package swaydb.data
 import java.nio.file.{NoSuchFileException, Paths}
 import org.scalatest.{Matchers, WordSpec}
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.util.Try
 import swaydb.data.Base._
 
 class IOFailureSpec extends WordSpec with Matchers {
@@ -42,7 +43,7 @@ class IOFailureSpec extends WordSpec with Matchers {
       }
       io.safeGet shouldBe io
       io.safeGetBlocking shouldBe io
-      io.safeGetFuture.await shouldBe io
+      Try(io.safeGetFuture.await).failed.get.getCause shouldBe a[IllegalAccessError]
     }
 
     "getOrElse & orElse return first io if both are Failures" in {

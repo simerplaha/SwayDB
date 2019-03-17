@@ -29,7 +29,7 @@ import scala.util.Random
 object Base {
 
   implicit class AwaitImplicits[T](f: Future[T]) {
-    def await =
+    def await: T =
       Await.result(f, 10.seconds)
   }
 

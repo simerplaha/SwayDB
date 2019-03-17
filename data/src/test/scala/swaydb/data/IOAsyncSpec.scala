@@ -39,7 +39,7 @@ class IOAsyncSpec extends WordSpec with Matchers {
       io.get shouldBe 2
       io.safeGet shouldBe IO.Success(2)
       io.safeGetBlocking shouldBe IO.Success(2)
-      io.safeGetFuture.await shouldBe IO.Success(2)
+      io.safeGetFuture.await shouldBe 2
     }
 
     "flatMap on IO.Failure" in {
@@ -146,7 +146,7 @@ class IOAsyncSpec extends WordSpec with Matchers {
           if (i == 1)
             io.safeGetBlocking shouldBe IO.Success(102)
           else
-            io.safeGetFuture.await shouldBe IO.Success(102)
+            io.safeGetFuture.await shouldBe 102
       }
 
     }
