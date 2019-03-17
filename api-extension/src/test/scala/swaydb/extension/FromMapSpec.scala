@@ -33,7 +33,7 @@
 //  override def newDB(): Map[Int, String] =
 //    swaydb.persistent.Map[Key[Int], Option[String]](dir = randomDir).assertGet.extend.assertGet
 //}
-//
+//W
 //class FromMapSpec1 extends FromMapSpec {
 //
 //  val keyValueCount: Int = 10000

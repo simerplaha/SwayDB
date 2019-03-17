@@ -24,7 +24,7 @@ import swaydb.data.IO
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.extension.iterator.{MapIterator, MapKeysIterator}
+import swaydb.extension.stream.{MapStream, MapKeysStream}
 import swaydb.serializers.Serializer
 
 class Maps[K, V](map: swaydb.Map[Key[K], Option[V], IO],
@@ -32,7 +32,7 @@ class Maps[K, V](map: swaydb.Map[Key[K], Option[V], IO],
                                  mapKeySerializer: Serializer[Key[K]],
                                  keyOrder: KeyOrder[Slice[Byte]],
                                  valueSerializerOption: Serializer[Option[V]],
-                                 valueSerializer: Serializer[V]) extends MapIterator[K, V](mapKey, mapsOnly = true, dbIterator = map.copy(from = Some(From(Key.SubMapsStart(mapKey), orAfter = false, orBefore = false, before = false, after = true)))) {
+                                 valueSerializer: Serializer[V]) extends MapStream[K, V](mapKey, mapsOnly = true, map = map.copy(from = Some(From(Key.SubMapsStart(mapKey), orAfter = false, orBefore = false, before = false, after = true)))) {
 
   def getOrPut(key: K, value: V): IO[Map[K, V]] =
     get(key) flatMap {
@@ -75,7 +75,7 @@ class Maps[K, V](map: swaydb.Map[Key[K], Option[V], IO],
   }
 
   def remove(key: K): IO[Level0Meter] =
-    map.commit(Map.removeMap(map, mapKey :+ key))
+    Map.removeMap(map, mapKey :+ key) flatMap map.commit
 
   def get(key: K): IO[Option[Map[K, V]]] = {
     contains(key) map {
@@ -112,8 +112,8 @@ class Maps[K, V](map: swaydb.Map[Key[K], Option[V], IO],
   def getValue(key: K): IO[Option[V]] =
     map.get(Key.MapStart(mapKey :+ key)).map(_.flatten)
 
-  def keys: MapKeysIterator[K] =
-    MapKeysIterator[K](
+  def keys: MapKeysStream[K] =
+    MapKeysStream[K](
       mapKey = mapKey,
       mapsOnly = true,
       keysIterator =

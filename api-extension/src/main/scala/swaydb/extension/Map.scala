@@ -26,7 +26,7 @@ import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.extension.iterator.{MapIterator, MapKeysIterator}
+import swaydb.extension.stream.{MapStream, MapKeysStream}
 import swaydb.serializers.Serializer
 
 private[swaydb] object Map {
@@ -36,7 +36,10 @@ private[swaydb] object Map {
                                   mapKeySerializer: Serializer[Key[K]],
                                   optionValueSerializer: Serializer[Option[V]],
                                   keyOrder: KeyOrder[Slice[Byte]]): Map[K, V] =
-    new Map[K, V](map, mapKey)
+    new Map[K, V](
+      mapKey = mapKey,
+      map = map
+    )
 
   /**
     * Creates the entries range for the [[Map]]'s mapKey/mapId.
@@ -63,21 +66,23 @@ private[swaydb] object Map {
                                                     mapKeySerializer: Serializer[Key[K]],
                                                     keyOrder: KeyOrder[Slice[Byte]],
                                                     valueSerializer: Serializer[V],
-                                                    optionValueSerializer: Serializer[Option[V]]): List[(Key.SubMap[K], Key.MapStart[K], Key.MapEnd[K])] =
-    parentMap.maps.foldLeft(List.empty[(Key.SubMap[K], Key.MapStart[K], Key.MapEnd[K])]) {
-      case (previousList, (subMapKey, _)) => {
-        val subMapKeys = parentMap.mapKey :+ subMapKey
-        //                  remove the subMap reference from parent         &        remove subMap block
-        val keysToRemove = (Key.SubMap(parentMap.mapKey, subMapKey), Key.MapStart(subMapKeys), Key.MapEnd(subMapKeys))
-        previousList :+ keysToRemove
-      } ++ {
-        childSubMapRanges(
-          Map[K, V](
-            map = parentMap.baseMap(),
-            mapKey = parentMap.mapKey :+ subMapKey
-          )
-        )
-      }
+                                                    optionValueSerializer: Serializer[Option[V]]): IO[List[(Key.SubMap[K], Key.MapStart[K], Key.MapEnd[K])]] =
+    IO { //FIXME - ok a little weird with .get.
+      parentMap.maps.foldLeft(List.empty[(Key.SubMap[K], Key.MapStart[K], Key.MapEnd[K])]) {
+        case (previousList, (subMapKey, _)) => {
+          val subMapKeys = parentMap.mapKey :+ subMapKey
+          //                  remove the subMap reference from parent         &        remove subMap block
+          val keysToRemove = (Key.SubMap(parentMap.mapKey, subMapKey), Key.MapStart(subMapKeys), Key.MapEnd(subMapKeys))
+          previousList :+ keysToRemove
+        } ++ {
+          childSubMapRanges(
+            Map[K, V](
+              map = parentMap.baseMap(),
+              mapKey = parentMap.mapKey :+ subMapKey
+            )
+          ).get
+        }
+      }.get
     }
 
   /**
@@ -100,38 +105,36 @@ private[swaydb] object Map {
                                      mapKeySerializer: Serializer[Key[K]],
                                      valueSerializer: Serializer[V],
                                      optionValueSerializer: Serializer[Option[V]],
-                                     keyOrder: KeyOrder[Slice[Byte]]): IO[Iterable[Prepare[Key[K], Option[V]]]] = {
+                                     keyOrder: KeyOrder[Slice[Byte]]): IO[Iterable[Prepare[Key[K], Option[V]]]] =
+  //batch to remove all SubMaps.
+    childSubMapRanges(parentMap = Map[K, V](map, mapKey)).map(toPrepareRemove) flatMap {
+      removeSubMapsBatches =>
+        val (thisMapEntriesStart, thisMapEntriesEnd) = Map.entriesRangeKeys(mapKey)
 
-    //batch to remove all SubMaps.
-    val removeSubMapsBatches =
-      toPrepareRemove(childSubMapRanges(parentMap = Map[K, V](map, mapKey)))
-
-    val (thisMapEntriesStart, thisMapEntriesEnd) = Map.entriesRangeKeys(mapKey)
-
-    //mapKey should have at least one key. A mapKey with only 1 key indicates that it's for the rootMap.
-    mapKey.lastOption map {
-      last =>
-        IO {
-          removeSubMapsBatches ++
-            Seq(
-              //add subMap entry to parent Map's key
-              Prepare.Put(Key.SubMap(mapKey.dropRight(1), last), value),
-              Prepare.Remove(thisMapEntriesStart, thisMapEntriesEnd), //remove all exiting entries
-              //value only needs to be set for Start.
-              Prepare.Put(Key.MapStart(mapKey), value),
-              //values should be None for the following batch entries because they are iteration purposes only and values for
-              //entries are never read.
-              Prepare.Put(Key.MapEntriesStart(mapKey), None),
-              Prepare.Put(Key.MapEntriesEnd(mapKey), None),
-              Prepare.Put(Key.SubMapsStart(mapKey), None),
-              Prepare.Put(Key.SubMapsEnd(mapKey), None),
-              Prepare.Put(Key.MapEnd(mapKey), None)
-            )
+        //mapKey should have at least one key. A mapKey with only 1 key indicates that it's for the rootMap.
+        mapKey.lastOption map {
+          last =>
+            IO {
+              removeSubMapsBatches ++
+                Seq(
+                  //add subMap entry to parent Map's key
+                  Prepare.Put(Key.SubMap(mapKey.dropRight(1), last), value),
+                  Prepare.Remove(thisMapEntriesStart, thisMapEntriesEnd), //remove all exiting entries
+                  //value only needs to be set for Start.
+                  Prepare.Put(Key.MapStart(mapKey), value),
+                  //values should be None for the following batch entries because they are iteration purposes only and values for
+                  //entries are never read.
+                  Prepare.Put(Key.MapEntriesStart(mapKey), None),
+                  Prepare.Put(Key.MapEntriesEnd(mapKey), None),
+                  Prepare.Put(Key.SubMapsStart(mapKey), None),
+                  Prepare.Put(Key.SubMapsEnd(mapKey), None),
+                  Prepare.Put(Key.MapEnd(mapKey), None)
+                )
+            }
+        } getOrElse {
+          IO.Failure(new Exception("Cannot put map with empty key."))
         }
-    } getOrElse {
-      IO.Failure(new Exception("Cannot put map with empty key."))
     }
-  }
 
   def updateMapValue[K, V](mapKey: Seq[K],
                            value: V)(implicit keySerializer: Serializer[K],
@@ -154,13 +157,14 @@ private[swaydb] object Map {
                                       mapKeySerializer: Serializer[Key[K]],
                                       valueSerializer: Serializer[V],
                                       optionValueSerializer: Serializer[Option[V]],
-                                      keyOrder: KeyOrder[Slice[Byte]]): Seq[Prepare.Remove[Key[K]]] =
-    Seq[Prepare.Remove[Key[K]]](
-      Prepare.Remove(Key.SubMap[K](mapKey.dropRight(1), mapKey.last)), //remove the subMap entry from parent Map i.e this
-      Prepare.Remove(Key.MapStart[K](mapKey), Key.MapEnd[K](mapKey)) //remove the subMap itself
-    ) ++ {
-      //fetch all child subMaps from the subMap being removed and batch remove them.
-      Map.toPrepareRemove(Map.childSubMapRanges(Map[K, V](map, mapKey)))
+                                      keyOrder: KeyOrder[Slice[Byte]]): IO[Seq[Prepare.Remove[Key[K]]]] =
+  //fetch all child subMaps from the subMap being removed and batch remove them.
+    Map.childSubMapRanges(Map[K, V](map, mapKey)) map {
+      childSubMapRanges =>
+        List[Prepare.Remove[Key[K]]](
+          Prepare.Remove(Key.SubMap[K](mapKey.dropRight(1), mapKey.last)), //remove the subMap entry from parent Map i.e this
+          Prepare.Remove(Key.MapStart[K](mapKey), Key.MapEnd[K](mapKey)) //remove the subMap itself
+        ) ++ Map.toPrepareRemove(childSubMapRanges)
     }
 }
 
@@ -169,12 +173,12 @@ private[swaydb] object Map {
   *
   * For documentation check - http://swaydb.io/api/
   */
-class Map[K, V](map: swaydb.Map[Key[K], Option[V], IO],
-                mapKey: Seq[K])(implicit keySerializer: Serializer[K],
-                                mapKeySerializer: Serializer[Key[K]],
-                                keyOrder: KeyOrder[Slice[Byte]],
-                                valueSerializerOption: Serializer[Option[V]],
-                                valueSerializer: Serializer[V]) extends MapIterator[K, V](mapKey, dbIterator = map.copy(map.core, from = Some(From(Key.MapStart(mapKey), orAfter = false, orBefore = false, before = false, after = true)))) {
+class Map[K, V](mapKey: Seq[K],
+                map: swaydb.Map[Key[K], Option[V], IO])(implicit keySerializer: Serializer[K],
+                                                        mapKeySerializer: Serializer[Key[K]],
+                                                        keyOrder: KeyOrder[Slice[Byte]],
+                                                        valueSerializerOption: Serializer[Option[V]],
+                                                        valueSerializer: Serializer[V]) extends MapStream[K, V](mapKey, map = map.copy(map.core, from = Some(From(Key.MapStart(mapKey), orAfter = false, orBefore = false, before = false, after = true)))) {
 
   def maps: Maps[K, V] =
     new Maps[K, V](map, mapKey)
@@ -383,8 +387,8 @@ class Map[K, V](map: swaydb.Map[Key[K], Option[V], IO],
         IO.none
     }
 
-  def keys: MapKeysIterator[K] =
-    MapKeysIterator[K](
+  def keys: MapKeysStream[K] =
+    MapKeysStream[K](
       mapKey = mapKey,
       keysIterator =
         new swaydb.Set[Key[K], IO](

@@ -44,6 +44,8 @@ class StreamSpec extends WordSpec with Matchers {
 
       assert()
       assert() //assert again, streams can be re-read.
+
+      stream.foldLeft(0)(_ + _.takeWhile(_.isDigit).toInt).await shouldBe (1 to 1000).sum
     }
 
     "try" in {
@@ -61,6 +63,8 @@ class StreamSpec extends WordSpec with Matchers {
       assert()
       assert() //assert again, streams can be re-read.
 
+      stream.foldLeft(0)(_ + _.takeWhile(_.isDigit).toInt).get shouldBe (1 to 1000).sum
+
     }
 
     "IO" in {
@@ -77,6 +81,8 @@ class StreamSpec extends WordSpec with Matchers {
 
       assert()
       assert() //assert again, streams can be re-read.
+
+      stream.foldLeft(0)(_ + _.takeWhile(_.isDigit).toInt).get shouldBe (1 to 1000).sum
     }
   }
 }

@@ -17,7 +17,7 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.extension.iterator
+package swaydb.extension.stream
 
 import swaydb.extension.Key
 import swaydb.data.order.KeyOrder
@@ -27,7 +27,7 @@ import scala.collection.generic.CanBuildFrom
 import swaydb.data.IO
 
 /**
-  * TODO - [[MapIterator]] and [[MapKeysIterator]] are similar and need a higher type.
+  * TODO - [[MapStream]] and [[MapKeysStream]] are similar and need a higher type.
   *
   * Sample order
   *
@@ -40,150 +40,150 @@ import swaydb.data.IO
   *   MapKey.SubMapsEnd(1)
   * MapKey.End(1)
   **/
-case class MapKeysIterator[K](mapKey: Seq[K],
-                              mapsOnly: Boolean = false,
-                              userDefinedFrom: Boolean = false,
-                              keysIterator: swaydb.Set[Key[K], IO],
-                              till: K => Boolean = (_: K) => true)(implicit keySerializer: Serializer[K],
-                                                                   mapKeySerializer: Serializer[Key[K]]) extends Iterable[K] {
+case class MapKeysStream[K](mapKey: Seq[K],
+                            mapsOnly: Boolean = false,
+                            userDefinedFrom: Boolean = false,
+                            keysIterator: swaydb.Set[Key[K], IO],
+                            till: K => Boolean = (_: K) => true)(implicit keySerializer: Serializer[K],
+                                                                 mapKeySerializer: Serializer[Key[K]]) extends Iterable[K] {
 
   private val endEntriesKey = Key.MapEntriesEnd(mapKey)
   private val endSubMapsKey = Key.SubMapsEnd(mapKey)
 
   private val thisMapKeyBytes = Key.writeKeys(mapKey, keySerializer)
 
-  def from(key: K): MapKeysIterator[K] =
+  def from(key: K): MapKeysStream[K] =
     if (mapsOnly)
       copy(keysIterator = keysIterator.from(Key.SubMap(mapKey, key)), mapsOnly = true, userDefinedFrom = true)
     else
       copy(keysIterator = keysIterator.from(Key.MapEntry(mapKey, key)), userDefinedFrom = true)
 
-  def before(key: K): MapKeysIterator[K] =
+  def before(key: K): MapKeysStream[K] =
     if (mapsOnly)
       copy(keysIterator = keysIterator.before(Key.SubMap(mapKey, key)), mapsOnly = true, userDefinedFrom = true)
     else
       copy(keysIterator = keysIterator.before(Key.MapEntry(mapKey, key)), userDefinedFrom = true)
 
-  def fromOrBefore(key: K): MapKeysIterator[K] =
+  def fromOrBefore(key: K): MapKeysStream[K] =
     if (mapsOnly)
       copy(keysIterator = keysIterator.fromOrBefore(Key.SubMap(mapKey, key)), mapsOnly = true, userDefinedFrom = true)
     else
       copy(keysIterator = keysIterator.fromOrBefore(Key.MapEntry(mapKey, key)), userDefinedFrom = true)
 
-  def after(key: K): MapKeysIterator[K] =
+  def after(key: K): MapKeysStream[K] =
     if (mapsOnly)
       copy(keysIterator = keysIterator.after(Key.SubMap(mapKey, key)), mapsOnly = true, userDefinedFrom = true)
     else
       copy(keysIterator = keysIterator.after(Key.MapEntry(mapKey, key)), userDefinedFrom = true)
 
-  def fromOrAfter(key: K): MapKeysIterator[K] =
+  def fromOrAfter(key: K): MapKeysStream[K] =
     if (mapsOnly)
       copy(keysIterator = keysIterator.fromOrAfter(Key.SubMap(mapKey, key)), mapsOnly = true, userDefinedFrom = true)
     else
       copy(keysIterator = keysIterator.fromOrAfter(Key.MapEntry(mapKey, key)), userDefinedFrom = true)
 
-  private def before(key: Key[K], reverse: Boolean): MapKeysIterator[K] =
+  private def before(key: Key[K], reverse: Boolean): MapKeysStream[K] =
     copy(keysIterator = keysIterator.before(key).copy(reverseIteration = reverse))
 
-  private def reverse(reverse: Boolean): MapKeysIterator[K] =
+  private def reverse(reverse: Boolean): MapKeysStream[K] =
     copy(keysIterator = keysIterator.copy(reverseIteration = reverse))
 
   def till(condition: K => Boolean) =
     copy(till = condition)
 
   override def iterator: Iterator[K] = {
-//    new Iterator[K] {
-//
-//      val iter = keysIterator.iterator
-//
-//      var nextKeyValue: Option[K] = null
-//
-//      @tailrec
-//      override def hasNext: Boolean =
-//        if (iter.hasNext) {
-//          val mapKey = iter.next()
-//          val mapKeyBytes = Key.writeKeys(mapKey.parentMapKeys, keySerializer)
-//          if (KeyOrder.default.compare(mapKeyBytes, thisMapKeyBytes) != 0) //Exit if it's moved onto another map
-//            false
-//          else {
-//            mapKey match {
-//              case Key.MapStart(_) =>
-//                if (keysIterator.reverseIteration) //exit iteration if it's going backward since Start is the head key
-//                  false
-//                else
-//                  hasNext
-//
-//              case Key.MapEntriesStart(_) =>
-//                if (keysIterator.reverseIteration) //exit iteration if it's going backward as previous entry is pointer entry Start
-//                  false
-//                else
-//                  hasNext
-//
-//              case Key.MapEntry(_, dataKey) =>
-//                if (mapsOnly) {
-//                  if (keysIterator.reverseIteration) //Exit if it's fetching subMaps only it's already reached an entry means it's has already crossed subMaps block
-//                    false
-//                  else
-//                    hasNext
-//                } else if (till(dataKey)) {
-//                  nextKeyValue = Some(dataKey)
-//                  true
-//                } else {
-//                  false
-//                }
-//
-//              case Key.MapEntriesEnd(_) =>
-//                //if it's not going backwards and it's trying to fetch subMaps only then move forward
-//                if (!keysIterator.reverseIteration && !mapsOnly)
-//                  false
-//                else
-//                  hasNext
-//
-//              case Key.SubMapsStart(_) =>
-//                //if it's not going backward and it's trying to fetch subMaps only then move forward
-//                if (!keysIterator.reverseIteration && !mapsOnly)
-//                  false
-//                else
-//                  hasNext
-//
-//              case Key.SubMap(_, dataKey) =>
-//                if (!mapsOnly) //if subMaps are excluded
-//                  if (keysIterator.reverseIteration) //if subMaps are excluded & it's going in reverse continue iteration.
-//                    hasNext
-//                  else //if it's going forward with subMaps excluded then end iteration as it's already iterated all key-value entries.
-//                    false
-//                else if (till(dataKey)) {
-//                  nextKeyValue = Some(dataKey)
-//                  true
-//                } else {
-//                  false
-//                }
-//
-//              case Key.SubMapsEnd(_) =>
-//                //Exit if it's not going forward.
-//                if (!keysIterator.reverseIteration)
-//                  false
-//                else
-//                  hasNext
-//
-//              case Key.MapEnd(_) =>
-//                //Exit if it's not going in reverse.
-//                if (!keysIterator.reverseIteration)
-//                  false
-//                else
-//                  hasNext
-//            }
-//          }
-//        } else {
-//          false
-//        }
-//
-//      override def next(): K =
-//        nextKeyValue.get
-//
-//      override def toString(): String =
-//        classOf[MapKeysIterator[_]].getClass.getSimpleName
-//    }
+    //    new Iterator[K] {
+    //
+    //      val iter = keysIterator.iterator
+    //
+    //      var nextKeyValue: Option[K] = null
+    //
+    //      @tailrec
+    //      override def hasNext: Boolean =
+    //        if (iter.hasNext) {
+    //          val mapKey = iter.next()
+    //          val mapKeyBytes = Key.writeKeys(mapKey.parentMapKeys, keySerializer)
+    //          if (KeyOrder.default.compare(mapKeyBytes, thisMapKeyBytes) != 0) //Exit if it's moved onto another map
+    //            false
+    //          else {
+    //            mapKey match {
+    //              case Key.MapStart(_) =>
+    //                if (keysIterator.reverseIteration) //exit iteration if it's going backward since Start is the head key
+    //                  false
+    //                else
+    //                  hasNext
+    //
+    //              case Key.MapEntriesStart(_) =>
+    //                if (keysIterator.reverseIteration) //exit iteration if it's going backward as previous entry is pointer entry Start
+    //                  false
+    //                else
+    //                  hasNext
+    //
+    //              case Key.MapEntry(_, dataKey) =>
+    //                if (mapsOnly) {
+    //                  if (keysIterator.reverseIteration) //Exit if it's fetching subMaps only it's already reached an entry means it's has already crossed subMaps block
+    //                    false
+    //                  else
+    //                    hasNext
+    //                } else if (till(dataKey)) {
+    //                  nextKeyValue = Some(dataKey)
+    //                  true
+    //                } else {
+    //                  false
+    //                }
+    //
+    //              case Key.MapEntriesEnd(_) =>
+    //                //if it's not going backwards and it's trying to fetch subMaps only then move forward
+    //                if (!keysIterator.reverseIteration && !mapsOnly)
+    //                  false
+    //                else
+    //                  hasNext
+    //
+    //              case Key.SubMapsStart(_) =>
+    //                //if it's not going backward and it's trying to fetch subMaps only then move forward
+    //                if (!keysIterator.reverseIteration && !mapsOnly)
+    //                  false
+    //                else
+    //                  hasNext
+    //
+    //              case Key.SubMap(_, dataKey) =>
+    //                if (!mapsOnly) //if subMaps are excluded
+    //                  if (keysIterator.reverseIteration) //if subMaps are excluded & it's going in reverse continue iteration.
+    //                    hasNext
+    //                  else //if it's going forward with subMaps excluded then end iteration as it's already iterated all key-value entries.
+    //                    false
+    //                else if (till(dataKey)) {
+    //                  nextKeyValue = Some(dataKey)
+    //                  true
+    //                } else {
+    //                  false
+    //                }
+    //
+    //              case Key.SubMapsEnd(_) =>
+    //                //Exit if it's not going forward.
+    //                if (!keysIterator.reverseIteration)
+    //                  false
+    //                else
+    //                  hasNext
+    //
+    //              case Key.MapEnd(_) =>
+    //                //Exit if it's not going in reverse.
+    //                if (!keysIterator.reverseIteration)
+    //                  false
+    //                else
+    //                  hasNext
+    //            }
+    //          }
+    //        } else {
+    //          false
+    //        }
+    //
+    //      override def next(): K =
+    //        nextKeyValue.get
+    //
+    //      override def toString(): String =
+    //        classOf[MapKeysIterator[_]].getClass.getSimpleName
+    //    }
     ???
   }
 
@@ -203,7 +203,7 @@ case class MapKeysIterator[K](mapKey: Seq[K],
     * which will iterate backward until [[Key.MapEntriesStart]]
     * else returns the starting point to be [[Key.MapEntriesEnd]] to fetch entries only.
     */
-  private def reverseIterator(): MapKeysIterator[K] =
+  private def reverseIterator(): MapKeysStream[K] =
     if (userDefinedFrom) //if user has defined from then do not override it and just set reverse to true.
       reverse(reverse = true)
     else if (mapsOnly) //if from is not already set & map are included in the iteration then start from subMap's last key
@@ -256,5 +256,5 @@ case class MapKeysIterator[K](mapKey: Seq[K],
     }.asInstanceOf[That]
 
   override def toString(): String =
-    classOf[MapKeysIterator[_]].getClass.getSimpleName
+    classOf[MapKeysStream[_]].getClass.getSimpleName
 }
