@@ -26,8 +26,7 @@ import swaydb.data.slice.Slice
 private[swaydb] sealed trait Value {
 
   //@formatter:off
-  def isRemove: Boolean
-  def notRemove: Boolean = !isRemove
+  def hasRemoveMayBe: Boolean
   def unslice: Value
   def time: Time
   //@formatter:on
@@ -76,7 +75,7 @@ private[swaydb] object Value {
   case class Remove(deadline: Option[Deadline],
                     time: Time) extends RangeValue with Apply {
 
-    override val isRemove: Boolean = true
+    override val hasRemoveMayBe: Boolean = true
 
     def unslice(): Value.Remove =
       Remove(deadline = deadline, time = time.unslice())
@@ -95,7 +94,7 @@ private[swaydb] object Value {
                  deadline: Option[Deadline],
                  time: Time) extends FromValue {
 
-    override val isRemove: Boolean = false
+    override val hasRemoveMayBe: Boolean = false
 
     def unslice(): Value.Put =
       Put(value = value.unslice(), deadline, time.unslice())
@@ -114,7 +113,7 @@ private[swaydb] object Value {
                     deadline: Option[Deadline],
                     time: Time) extends RangeValue with Apply {
 
-    override val isRemove: Boolean = false
+    override val hasRemoveMayBe: Boolean = false
 
     def unslice(): Value.Update =
       Update(value = value.unslice(), deadline, time.unslice())
@@ -132,7 +131,7 @@ private[swaydb] object Value {
   case class Function(function: Slice[Byte],
                       time: Time) extends RangeValue with Apply {
 
-    override val isRemove: Boolean = false
+    override val hasRemoveMayBe: Boolean = true
 
     def unslice(): Function =
       Function(function.unslice(), time.unslice())
@@ -148,7 +147,7 @@ private[swaydb] object Value {
     * Applies are in ascending order where the head apply is the oldest.
     */
   case class PendingApply(applies: Slice[Value.Apply]) extends RangeValue {
-    override val isRemove: Boolean = false
+    override def hasRemoveMayBe: Boolean = applies.exists(_.hasRemoveMayBe)
 
     override def time = Time.fromApplies(applies)
 

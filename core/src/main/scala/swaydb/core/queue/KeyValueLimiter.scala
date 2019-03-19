@@ -74,7 +74,7 @@ private class KeyValueLimiterImpl(cacheSize: Long,
         keyValue.get map {
           keyValue =>
             val otherBytes = (Math.ceil(keyValue.key.size + keyValue.valueLength / 8.0) - 1.0) * 8
-            //        if (keyValue.isRemove) (168 + otherBytes).toLong else (264 + otherBytes).toLong
+            //        if (keyValue.hasRemoveMayBe) (168 + otherBytes).toLong else (264 + otherBytes).toLong
             ((264 * 2) + otherBytes).toLong
 
         } getOrElse 264L //264L for the weight of WeakReference itself.

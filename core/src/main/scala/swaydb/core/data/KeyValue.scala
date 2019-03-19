@@ -943,7 +943,7 @@ private[core] object Transient {
     def key = fromKey
 
     override val hasRemove: Boolean = previous.exists(_.hasRemove)
-    override val isRemoveRange = rangeValue.isRemove
+    override val isRemoveRange = rangeValue.hasRemoveMayBe
     override val isGroup: Boolean = false
     override val deadline: Option[Deadline] = None
     override def updateStats(falsePositiveRate: Double, previous: Option[KeyValue.WriteOnly]): Transient.Range =
