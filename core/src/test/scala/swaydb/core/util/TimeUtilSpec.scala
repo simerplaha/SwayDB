@@ -59,11 +59,7 @@ class TimeUtilSpec extends WordSpec with Matchers {
   "toDeadline" should {
     "convert long to deadline" in {
       val duration = 10.seconds
-      duration.toNanos.toDeadline shouldBe Deadline(duration)
-    }
-
-    "convert 0 to deadline" in {
-      0L.toDeadline shouldBe Deadline(0.nanosecond)
+      duration.toNanos.toDeadlineOption should contain(Deadline(duration))
     }
 
     "convert 0 to None" in {

@@ -70,6 +70,7 @@ class SegmentMerger_Range_Into_Range extends WordSpec {
               rangeValue = oldKeyValue.rangeValue
             )
           )
+
         val expectedLastLevel = expectedKeyValue.flatMap(keyValue => keyValue.fromValue.flatMap(_.toExpectedLastLevelKeyValue(keyValue.key))).toSlice
 
         //        println

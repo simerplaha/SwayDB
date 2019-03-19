@@ -30,7 +30,7 @@ import swaydb.core.IOAssert._
 
 class BytesSpec extends WordSpec with Matchers {
 
-  "compress and decompress with common bytes" should {
+  "compress and decompress" should {
     "return common bytes" in {
       val previous: Slice[Byte] = Slice(Array(1.toByte, 2.toByte, 3.toByte, 4.toByte))
       val next: Slice[Byte] = Slice(Array(1.toByte, 2.toByte, 3.toByte, 4.toByte, 5.toByte, 6.toByte))
@@ -73,7 +73,7 @@ class BytesSpec extends WordSpec with Matchers {
     }
   }
 
-  "compress full and exact" should {
+  "compressFull and compressExact" should {
     "compress when all bytes are compressed" in {
       val previous: Slice[Byte] = Slice(Array(1.toByte, 2.toByte, 3.toByte, 4.toByte))
       val next: Slice[Byte] = Slice(Array(1.toByte, 2.toByte, 3.toByte, 4.toByte))
@@ -115,8 +115,8 @@ class BytesSpec extends WordSpec with Matchers {
     }
   }
 
-  "compress and decompress join" should {
-    "when there are no common byte" in {
+  "compressJoin & decompressJoin" when {
+    "there are no common bytes" in {
       val bytes1: Slice[Byte] = 12345
       val bytes2: Slice[Byte] = "abcde"
       val mergedBytes = Bytes.compressJoin(bytes1, bytes2)

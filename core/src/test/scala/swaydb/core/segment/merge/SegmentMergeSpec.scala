@@ -33,13 +33,14 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.core.RunThis._
 
 class SegmentMergeSpec extends TestBase {
 
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit val testTimer: TestTimer = TestTimer.Empty
-  implicit val groupingStrategy: Option[KeyValueGroupingStrategyInternal] = None
+  implicit def groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(10)
 
   val keyValueCount = 100
 
@@ -48,60 +49,70 @@ class SegmentMergeSpec extends TestBase {
   "completeMerge" should {
 
     "transfer the last segment's KeyValues to previous segment, if the last segment's segmentSize is < minSegmentSize for persistent key-values" in {
-      implicit val testTimer: TestTimer = TestTimer.Empty
-      implicit val groupingStrategy: Option[KeyValueGroupingStrategyInternal] = None
+      runThisParallel(10.times) {
+        implicit val testTimer: TestTimer = TestTimer.Empty
 
-      val segment1 = ListBuffer.empty[KeyValue.WriteOnly]
-      segment1.+=(Transient.put(key = 1, value = 1, previous = segment1.lastOption, falsePositiveRate = TestData.falsePositiveRate, compressDuplicateValues = true))
-      segment1.+=(Transient.put(key = 2, value = 2, previous = segment1.lastOption, falsePositiveRate = TestData.falsePositiveRate, compressDuplicateValues = true)) //total segmentSize is 70.bytes
+        val segment1 = ListBuffer.empty[KeyValue.WriteOnly]
+        segment1.+=(Transient.put(key = 1, value = 1, previous = segment1.lastOption, falsePositiveRate = TestData.falsePositiveRate, compressDuplicateValues = true))
+        segment1.+=(Transient.put(key = 2, value = 2, previous = segment1.lastOption, falsePositiveRate = TestData.falsePositiveRate, compressDuplicateValues = true)) //total segmentSize is 70.bytes
 
-      val smallerLastSegment = ListBuffer.empty[KeyValue.WriteOnly]
-      smallerLastSegment.+=(Transient.put(key = 1, value = 1, previous = None, falsePositiveRate = TestData.falsePositiveRate, compressDuplicateValues = true)) //total segmentSize is 60.bytes
+        val smallerLastSegment = ListBuffer.empty[KeyValue.WriteOnly]
+        smallerLastSegment.+=(Transient.put(key = 1, value = 1, previous = None, falsePositiveRate = TestData.falsePositiveRate, compressDuplicateValues = true)) //total segmentSize is 60.bytes
 
-      val segments = ListBuffer[ListBuffer[KeyValue.WriteOnly]](segment1, smallerLastSegment)
+        val segments = ListBuffer[ListBuffer[KeyValue.WriteOnly]](segment1, smallerLastSegment)
 
-      //minSegmentSize is 70.bytes but lastSegment size is 60.bytes. Expected result should move lastSegment's KeyValues to previous segment
-      val newSegments = SegmentMerger.completeMerge(segments, 70.bytes, forMemory = false, bloomFilterFalsePositiveRate = TestData.falsePositiveRate).assertGet
-      newSegments.size shouldBe 1
-      newSegments.head(0).key equiv segment1.head.key
-      newSegments.head(1).key equiv segment1.last.key
-      newSegments.head(2).key equiv smallerLastSegment.head.key
+        //minSegmentSize is 70.bytes but lastSegment size is 60.bytes. Expected result should move lastSegment's KeyValues to previous segment
+        val newSegments = SegmentMerger.completeMerge(segments, 70.bytes, forMemory = false, bloomFilterFalsePositiveRate = TestData.falsePositiveRate).assertGet
+        newSegments.size shouldBe 1
+
+        val newSegmentsUnzipped = unzipGroups(newSegments.head)
+        newSegmentsUnzipped(0).key equiv segment1.head.key
+        newSegmentsUnzipped(1).key equiv segment1.last.key
+        newSegmentsUnzipped(2).key equiv smallerLastSegment.head.key
+      }
     }
 
     "transfer the last segment's KeyValues to previous segment, if the last segment's segmentSize is < minSegmentSize for memory key-values" in {
+      runThisParallel(10.times) {
+        val segment1 = ListBuffer.empty[KeyValue.WriteOnly]
+        segment1.+=(Transient.put(key = 1, value = 1, previous = segment1.lastOption, falsePositiveRate = TestData.falsePositiveRate, compressDuplicateValues = true))
+        segment1.+=(Transient.put(key = 2, value = 2, previous = segment1.lastOption, falsePositiveRate = TestData.falsePositiveRate, compressDuplicateValues = true)) //total segmentSize is 21.bytes
 
-      val segment1 = ListBuffer.empty[KeyValue.WriteOnly]
-      segment1.+=(Transient.put(key = 1, value = 1, previous = segment1.lastOption, falsePositiveRate = TestData.falsePositiveRate, compressDuplicateValues = true))
-      segment1.+=(Transient.put(key = 2, value = 2, previous = segment1.lastOption, falsePositiveRate = TestData.falsePositiveRate, compressDuplicateValues = true)) //total segmentSize is 79.bytes
+        val smallerLastSegment = ListBuffer.empty[KeyValue.WriteOnly]
+        smallerLastSegment.+=(Transient.put(key = 1, value = 1, previous = None, falsePositiveRate = TestData.falsePositiveRate, compressDuplicateValues = true)) //total segmentSize is 12.bytes
 
-      val smallerLastSegment = ListBuffer.empty[KeyValue.WriteOnly]
-      smallerLastSegment.+=(Transient.put(key = 1, value = 1, previous = None, falsePositiveRate = TestData.falsePositiveRate, compressDuplicateValues = true)) //total segmentSize is 69.bytes
+        val segments = ListBuffer[ListBuffer[KeyValue.WriteOnly]](segment1, smallerLastSegment)
 
-      val segments = ListBuffer[ListBuffer[KeyValue.WriteOnly]](segment1, smallerLastSegment)
+        //minSegmentSize is 21.bytes but lastSegment size is 12.bytes. Expected result should move lastSegment's KeyValues to previous segment
+        val newSegments = SegmentMerger.completeMerge(segments, 21.bytes, forMemory = true, bloomFilterFalsePositiveRate = TestData.falsePositiveRate).assertGet
+        newSegments.size shouldBe 1
 
-      //minSegmentSize is 20.bytes but lastSegment size is 24.bytes. Expected result should move lastSegment's KeyValues to previous segment
-      val newSegments = SegmentMerger.completeMerge(segments, 50.bytes, forMemory = true, bloomFilterFalsePositiveRate = TestData.falsePositiveRate).assertGet
-      newSegments.size shouldBe 1
-      newSegments.head(0).key equiv segment1.head.key
-      newSegments.head(1).key equiv segment1.last.key
-      newSegments.head(2).key equiv smallerLastSegment.head.key
+        val newSegmentsUnzipped = unzipGroups(newSegments.head)
+        newSegmentsUnzipped(0).key equiv segment1.head.key
+        newSegmentsUnzipped(1).key equiv segment1.last.key
+        newSegmentsUnzipped(2).key equiv smallerLastSegment.head.key
+      }
     }
 
     "make no change if there is only one segment" in {
 
       val segment1 = ListBuffer.empty[KeyValue.WriteOnly]
       segment1.+=(Transient.put(key = 1, value = 1, previous = segment1.lastOption, falsePositiveRate = TestData.falsePositiveRate, compressDuplicateValues = true))
-      segment1.+=(Transient.put(key = 2, value = 2, previous = segment1.lastOption, falsePositiveRate = TestData.falsePositiveRate, compressDuplicateValues = true)) //total segmentSize is 37
+      segment1.+=(Transient.put(key = 2, value = 2, previous = segment1.lastOption, falsePositiveRate = TestData.falsePositiveRate, compressDuplicateValues = true))
 
       val segments = ListBuffer[ListBuffer[KeyValue.WriteOnly]](segment1)
 
       segments.size shouldBe 1
 
-      SegmentMerger.completeMerge(segments, 37.bytes, forMemory = false, bloomFilterFalsePositiveRate = TestData.falsePositiveRate).assertGet.size shouldBe 1
-      SegmentMerger.completeMerge(segments, 16.bytes, forMemory = true, bloomFilterFalsePositiveRate = TestData.falsePositiveRate).assertGet.size shouldBe 1
+      runThisParallel(100.times) {
+        SegmentMerger.completeMerge(segments, randomIntMax(segment1.last.stats.segmentSize + 1), forMemory = false, bloomFilterFalsePositiveRate = TestData.falsePositiveRate).assertGet.size shouldBe 1
+        SegmentMerger.completeMerge(segments, randomIntMax(segment1.last.stats.memorySegmentSize + 1), forMemory = true, bloomFilterFalsePositiveRate = TestData.falsePositiveRate).assertGet.size shouldBe 1
+      }
     }
 
     "split KeyValues into equal chunks" in {
+
+      implicit val groupingStrategy: Option[KeyValueGroupingStrategyInternal] = None
 
       val oldKeyValues: Slice[Memory] = Slice(Memory.put(1, 1), Memory.put(2, 2), Memory.put(3, 3), Memory.put(4, 4))
       val newKeyValues: Slice[Memory] = Slice(Memory.put(1, 22), Memory.put(2, 22), Memory.put(3, 22), Memory.put(4, 22))
@@ -129,6 +140,8 @@ class SegmentMergeSpec extends TestBase {
 
   "split" should {
     "split key-values" in {
+
+      implicit val groupingStrategy: Option[KeyValueGroupingStrategyInternal] = None
 
       val keyValues: Slice[Memory] = Slice(Memory.put(1, 1), Memory.remove(2), Memory.put(3, 3), Memory.put(4, 4), Memory.Range(5, 10, Some(Value.remove(None)), Value.update(5)))
 
@@ -176,17 +189,19 @@ class SegmentMergeSpec extends TestBase {
 
   "Merging fixed into Group" should {
     "return the same result as merging a list of Fixed key-values into Fixed" in {
-      val fixedKeyValues = randomKeyValues(count = keyValueCount, addRandomRemoves = true, startId = Some(1))
-      val oldKeyValues = randomKeyValues(count = keyValueCount, startId = Some(fixedKeyValues.head.key.readInt()), addRandomRemoves = true, addRandomRanges = true)
+      runThisParallel(10.times) {
+        val fixedKeyValues = randomKeyValues(count = keyValueCount, addRandomRemoves = true, startId = Some(1))
+        val oldKeyValues = randomKeyValues(count = keyValueCount, startId = Some(fixedKeyValues.head.key.readInt()), addRandomRemoves = true, addRandomRanges = true)
 
-      val mergeResultWithoutGroup = SegmentMerger.merge(fixedKeyValues, oldKeyValues, 100.mb, false, false, TestData.falsePositiveRate, compressDuplicateValues = true).assertGet
-      mergeResultWithoutGroup should have size 1
+        val mergeResultWithoutGroup = SegmentMerger.merge(fixedKeyValues, oldKeyValues, 100.mb, false, false, TestData.falsePositiveRate, compressDuplicateValues = true).assertGet
+        mergeResultWithoutGroup should have size 1
 
-      val group = Transient.Group(oldKeyValues, randomCompression(), randomCompression(), TestData.falsePositiveRate, None).assertGet.toMemory
-      val mergeResultWithGroup = SegmentMerger.merge(fixedKeyValues, Slice(group), 100.mb, false, false, TestData.falsePositiveRate, compressDuplicateValues = true).assertGet
-      mergeResultWithGroup should have size 1
+        val group = Transient.Group(oldKeyValues, randomCompression(), randomCompression(), TestData.falsePositiveRate, None).assertGet.toMemory
+        val mergeResultWithGroup = SegmentMerger.merge(fixedKeyValues, Slice(group), 100.mb, false, false, TestData.falsePositiveRate, compressDuplicateValues = true).assertGet
+        mergeResultWithGroup should have size 1
 
-      mergeResultWithoutGroup.head shouldBe mergeResultWithGroup.head
+        mergeResultWithoutGroup.head shouldBe mergeResultWithGroup.head
+      }
     }
   }
 

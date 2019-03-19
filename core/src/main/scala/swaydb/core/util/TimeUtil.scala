@@ -44,14 +44,12 @@ object TimeUtil {
   }
 
   implicit class LongImplicits(deadline: Long) {
-    def toDeadline: Deadline =
-      Deadline(deadline, TimeUnit.NANOSECONDS)
 
     def toDeadlineOption: Option[Deadline] =
-      if (deadline == 0L)
+      if (deadline <= 0L)
         None
       else
-        Some(toDeadline)
+        Some(Deadline(deadline, TimeUnit.NANOSECONDS))
   }
 
 }

@@ -46,7 +46,7 @@ class FiniteDurationUtilSpec extends FlatSpec with Matchers {
         timer.schedule(task, delay.toMillis)
 
         val timeLeft = task.timeLeft()
-        println(timeLeft.asString)
+        //        println(timeLeft.asString)
 
         //timeLeft should be nearly the same
         timeLeft should be <= delay

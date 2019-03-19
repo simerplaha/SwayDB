@@ -164,7 +164,7 @@ class AppendixRepairerSpec extends TestBase {
       }
       val reopenedLevel = level.reopen
       reopenedLevel.segmentsCount() shouldBe segmentsBeforeRepair.size
-      reopenedLevel.close
+      reopenedLevel.close.assertGet
     }
   }
 

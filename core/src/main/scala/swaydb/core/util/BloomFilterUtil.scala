@@ -50,6 +50,8 @@ private[core] object BloomFilterUtil {
       MurmurHash3Generic.murmurhash3_x64_64(bytes, 0, bytes.size, 0)
   }
 
+  val emptyBloomFilter = BloomFilter[Slice[Byte]](1, 1)
+
   implicit class BloomFilterImplicit[T](bloomFilter: BloomFilter[T]) {
     def toBytes: Array[Byte] = {
       val boomFilterOut = new ByteArrayOutputStream()
@@ -65,8 +67,6 @@ private[core] object BloomFilterUtil {
     def toBloomFilter: BloomFilter[Slice[Byte]] =
       BloomFilter.readFrom(new ByteArrayInputStream(slice.toArray))
   }
-
-  val emptyBloomFilter = BloomFilter[Slice[Byte]](1, 1)
 
   def byteSize(numberOfItems: Long, falsePositiveRate: Double): Int = {
     val numberOfBits = BloomFilter.optimalNumberOfBits(numberOfItems, falsePositiveRate)

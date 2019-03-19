@@ -32,7 +32,6 @@ import swaydb.data.IO
 import swaydb.data.IO._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-import swaydb.data.util.StorageUnits._
 
 private[core] object SegmentMerger extends LazyLogging {
   implicit val keyValueLimiter = KeyValueLimiter.none

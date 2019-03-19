@@ -40,5 +40,4 @@ class IDGeneratorSpec extends FlatSpec with Matchers {
   it should "return segment string" in {
     IDGenerator.segmentId(1) should fullyMatch regex "1.seg"
   }
-
 }

@@ -36,5 +36,4 @@ class CRC32Spec extends FlatSpec with Matchers {
   it should "return 0 for empty bytes" in {
     CRC32.forBytes(Slice.emptyBytes) shouldBe 0L
   }
-
 }
