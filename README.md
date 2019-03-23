@@ -76,7 +76,7 @@ db
 
 # Project status
 
-Undergoing integration, stress & performance testing.
+Undergoing integration, stress & performance testing. 
 
 # Master branch  status
 

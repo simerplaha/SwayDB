@@ -68,7 +68,7 @@ sealed trait SegmentGroupReadSpec extends TestBase with ScalaFutures with Privat
 
   //  override def deleteFiles = false
 
-  "Do read for randomly compressed key-values" in {
+  "read for randomly compressed key-values" in {
     implicit val groupingStrategy: Option[KeyValueGroupingStrategyInternal] =
       Some(
         KeyValueGroupingStrategyInternal.Count(

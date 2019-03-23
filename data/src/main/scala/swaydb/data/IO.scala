@@ -106,7 +106,7 @@ object IO {
         f(it.next()) match {
           case failed @ IO.Failure(_) =>
             failure = Some(failed)
-          case _ =>
+          case _: IO.Success[_] =>
         }
       }
       failure

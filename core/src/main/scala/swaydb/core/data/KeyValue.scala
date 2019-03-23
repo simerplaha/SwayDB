@@ -233,11 +233,9 @@ private[core] object KeyValue {
     * and Memory Segments.
     */
   sealed trait WriteOnly extends KeyValue {
-    //@formatter:off
-    val isRemoveRange: Boolean
+    val isRemoveRangeMayBe: Boolean
     val isRange: Boolean
     val isGroup: Boolean
-    val hasRemove: Boolean
     val previous: Option[KeyValue.WriteOnly]
     def fullKey: Slice[Byte]
     def stats: Stats
@@ -250,12 +248,11 @@ private[core] object KeyValue {
     def currentStartValueOffsetPosition: Int
     def currentEndValueOffsetPosition: Int
     def nextStartValueOffsetPosition: Int =
-      if(!hasValueEntryBytes && currentEndValueOffsetPosition == 0)
+      if (!hasValueEntryBytes && currentEndValueOffsetPosition == 0)
         0
       else
         currentEndValueOffsetPosition + 1
     def value: Option[Slice[Byte]]
-    //@formatter:on
 
     def updateStats(falsePositiveRate: Double,
                     previous: Option[KeyValue.WriteOnly]): KeyValue.WriteOnly
@@ -482,7 +479,6 @@ private[swaydb] object Memory {
     override def toRangeValue(): IO[Value.PendingApply] =
       toFromValue()
 
-
   }
 
   case class Remove(key: Slice[Byte],
@@ -640,10 +636,9 @@ private[core] object Transient {
                     time: Time,
                     previous: Option[KeyValue.WriteOnly],
                     falsePositiveRate: Double) extends Transient with KeyValue.WriteOnly.Fixed {
-    override val hasRemove: Boolean = true
     override val isRange: Boolean = false
     override val isGroup: Boolean = false
-    override val isRemoveRange = false
+    override val isRemoveRangeMayBe = false
     override val value: Option[Slice[Byte]] = None
     override val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition) =
       EntryWriter.write(
@@ -660,7 +655,7 @@ private[core] object Transient {
         key = indexEntryBytes,
         value = None,
         falsePositiveRate = falsePositiveRate,
-        isRemoveRange = isRemoveRange,
+        isRemoveRange = isRemoveRangeMayBe,
         isRange = isRange,
         isGroup = isGroup,
         bloomFiltersItemCount = 1,
@@ -686,8 +681,7 @@ private[core] object Transient {
                  falsePositiveRate: Double,
                  compressDuplicateValues: Boolean) extends Transient with KeyValue.WriteOnly.Fixed {
 
-    override val hasRemove: Boolean = previous.exists(_.hasRemove)
-    override val isRemoveRange = false
+    override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
     override val isRange: Boolean = false
 
@@ -706,7 +700,7 @@ private[core] object Transient {
         key = indexEntryBytes,
         value = valueEntryBytes,
         falsePositiveRate = falsePositiveRate,
-        isRemoveRange = isRemoveRange,
+        isRemoveRange = isRemoveRangeMayBe,
         isRange = isRange,
         isGroup = isGroup,
         bloomFiltersItemCount = 1,
@@ -732,8 +726,7 @@ private[core] object Transient {
                     previous: Option[KeyValue.WriteOnly],
                     falsePositiveRate: Double,
                     compressDuplicateValues: Boolean) extends Transient with KeyValue.WriteOnly.Fixed {
-    override val hasRemove: Boolean = previous.exists(_.hasRemove)
-    override val isRemoveRange = false
+    override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
     override val isRange: Boolean = false
     override def fullKey = key
@@ -757,7 +750,7 @@ private[core] object Transient {
         key = indexEntryBytes,
         value = valueEntryBytes,
         falsePositiveRate = falsePositiveRate,
-        isRemoveRange = isRemoveRange,
+        isRemoveRange = isRemoveRangeMayBe,
         isRange = isRange,
         isGroup = isGroup,
         bloomFiltersItemCount = 1,
@@ -765,8 +758,6 @@ private[core] object Transient {
         previous = previous,
         deadline = deadline
       )
-
-
 
   }
 
@@ -778,8 +769,7 @@ private[core] object Transient {
                       previous: Option[KeyValue.WriteOnly],
                       falsePositiveRate: Double,
                       compressDuplicateValues: Boolean) extends Transient with KeyValue.WriteOnly.Fixed {
-    override val hasRemove: Boolean = previous.exists(_.hasRemove)
-    override val isRemoveRange = false
+    override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
     override val isRange: Boolean = false
 
@@ -804,7 +794,7 @@ private[core] object Transient {
         key = indexEntryBytes,
         value = valueEntryBytes,
         falsePositiveRate = falsePositiveRate,
-        isRemoveRange = isRemoveRange,
+        isRemoveRange = isRemoveRangeMayBe,
         isRange = isRange,
         isGroup = isGroup,
         bloomFiltersItemCount = 1,
@@ -842,8 +832,7 @@ private[core] object Transient {
                           previous: Option[KeyValue.WriteOnly],
                           falsePositiveRate: Double,
                           compressDuplicateValues: Boolean) extends Transient with KeyValue.WriteOnly.Fixed {
-    override val hasRemove: Boolean = previous.exists(_.hasRemove)
-    override val isRemoveRange = false
+    override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
     override val isRange: Boolean = false
     override val deadline: Option[Deadline] =
@@ -872,7 +861,7 @@ private[core] object Transient {
         key = indexEntryBytes,
         value = valueEntryBytes,
         falsePositiveRate = falsePositiveRate,
-        isRemoveRange = isRemoveRange,
+        isRemoveRange = isRemoveRangeMayBe,
         isRange = isRange,
         isGroup = isGroup,
         bloomFiltersItemCount = 1,
@@ -880,7 +869,6 @@ private[core] object Transient {
         previous = previous,
         deadline = deadline
       )
-
 
   }
 
@@ -942,8 +930,7 @@ private[core] object Transient {
 
     def key = fromKey
 
-    override val hasRemove: Boolean = previous.exists(_.hasRemove)
-    override val isRemoveRange = rangeValue.hasRemoveMayBe
+    override val isRemoveRangeMayBe = rangeValue.hasRemoveMayBe
     override val isGroup: Boolean = false
     override val deadline: Option[Deadline] = None
     override def updateStats(falsePositiveRate: Double, previous: Option[KeyValue.WriteOnly]): Transient.Range =
@@ -973,7 +960,7 @@ private[core] object Transient {
         key = indexEntryBytes,
         value = valueEntryBytes,
         falsePositiveRate = falsePositiveRate,
-        isRemoveRange = isRemoveRange,
+        isRemoveRange = isRemoveRangeMayBe,
         isRange = isRange,
         isGroup = isGroup,
         previous = previous,
@@ -981,7 +968,6 @@ private[core] object Transient {
         isPut = fromValue.exists(_.isInstanceOf[Value.Put]),
         deadline = None
       )
-
 
   }
 
@@ -1026,8 +1012,7 @@ private[core] object Transient {
 
     override def key = minKey
 
-    override val hasRemove: Boolean = previous.exists(_.hasRemove)
-    override val isRemoveRange: Boolean = keyValues.last.stats.hasRemoveRange
+    override val isRemoveRangeMayBe: Boolean = keyValues.last.stats.hasRemoveRange
     override val isRange: Boolean = keyValues.last.stats.hasRange
     override val isGroup: Boolean = true
     override val value: Option[Slice[Byte]] = Some(compressedKeyValues)
@@ -1050,7 +1035,7 @@ private[core] object Transient {
         key = indexEntryBytes,
         value = valueEntryBytes,
         falsePositiveRate = falsePositiveRate,
-        isRemoveRange = isRemoveRange,
+        isRemoveRange = isRemoveRangeMayBe,
         isRange = isRange,
         isGroup = isGroup,
         previous = previous,

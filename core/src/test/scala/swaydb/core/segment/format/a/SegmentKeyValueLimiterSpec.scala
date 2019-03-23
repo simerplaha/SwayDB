@@ -68,7 +68,7 @@ class SegmentKeyValueLimiterSpec extends TestBase with Benchmark {
       val mergedKeyValues = (Seq(group) ++ nonGroupKeyValues).updateStats
 
       //set the limiter to drop key-values fast
-      implicit val keyValueLimiter = KeyValueLimiter(1.byte, 1.millis)
+      implicit val keyValueLimiter = KeyValueLimiter(1.byte, 100.millis)
 
       val segment =
         Segment.memory(

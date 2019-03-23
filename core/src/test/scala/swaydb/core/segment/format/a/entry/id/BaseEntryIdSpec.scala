@@ -24,7 +24,7 @@ import org.scalatest.{FlatSpec, Matchers}
 class BaseEntryIdSpec extends FlatSpec with Matchers {
 
   it should "contain unique ids" in {
-    BaseEntryId.keyIdsList should have size BaseEntryId.keyIdsList.map(_.id).distinct.size
+    val ids = BaseEntryId.keyIdsList
+    ids should have size ids.map(_.id).distinct.size
   }
-
 }

@@ -244,19 +244,28 @@ sealed trait WeatherDataSpec extends TestBase with LazyLogging with Benchmark wi
 
   def batchRequest(inBatchesOf: Int = 100) = Future(inBatchesOf)
 
+  def tryOrExit[F](f: => F) =
+    try
+      f
+    catch {
+      case ex: Exception =>
+        ex.printStackTrace()
+        System.exit(0)
+    }
+
   def readRequests: Future[Seq[Any]] =
     Future.sequence(
       Seq(
-        Future(doForeach),
-        Future(doGet),
-        Future(doHeadAndLast),
-        Future(doFoldLeft),
-        Future(doTakeWhile),
-        Future(doMapRight),
-        Future(doTake),
-        Future(doDrop),
-        Future(doTakeRight),
-        Future(doCount)
+        Future(tryOrExit(doForeach)),
+        Future(tryOrExit(doGet)),
+        Future(tryOrExit(doHeadAndLast)),
+        Future(tryOrExit(doFoldLeft)),
+        Future(tryOrExit(doTakeWhile)),
+        Future(tryOrExit(doMapRight)),
+        Future(tryOrExit(doTake)),
+        Future(tryOrExit(doDrop)),
+        Future(tryOrExit(doTakeRight)),
+        Future(tryOrExit(doCount))
       )
     )
 
@@ -275,8 +284,8 @@ sealed trait WeatherDataSpec extends TestBase with LazyLogging with Benchmark wi
     //      }
     //    }
 
-    //    readRequests runThis 10.times await 10.minutes
-    //    doDeleteAll
+    readRequests runThis 10.times await 10.minutes
+    doDeleteAll
     println("************************* DONE *************************")
   }
 }

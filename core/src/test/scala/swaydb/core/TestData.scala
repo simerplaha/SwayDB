@@ -20,6 +20,7 @@
 package swaydb.core
 
 import java.nio.file.{Path, Paths}
+import org.scalatest.exceptions.TestFailedException
 import scala.annotation.tailrec
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
@@ -1252,7 +1253,11 @@ object TestData {
     //            var key = 1
     var key = startId getOrElse randomInt(minus = count)
     val until = key + count
+    var iteration = 0
     while (key < until) {
+      iteration += 1
+      //protect to this going into infinite loop
+      if (iteration >= 10 && slice.isEmpty) throw new Exception("Too many iterations without generated data.")
       if (addRandomGroups && Random.nextBoolean()) {
         //create a Random group with the inner key-values the same as count of this group.
         val groupKeyValues =
