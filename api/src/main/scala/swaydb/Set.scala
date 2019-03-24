@@ -44,7 +44,7 @@ case class Set[T, W[_]](private val core: Core[W],
                         private[swaydb] val skip: Int = 0,
                         private[swaydb] val count: Option[Int] = None,
                         private[swaydb] val reverseIteration: Boolean = false,
-                        private val takeWhileCondition: Option[T => Boolean] = None)(implicit serializer: Serializer[T],
+                        private val till: Option[T => Boolean] = None)(implicit serializer: Serializer[T],
                                                                                      wrap: Wrap[W]) extends Stream[T, W] {
 
   def wrapCall[C](f: => W[C]): W[C] =
@@ -166,11 +166,11 @@ case class Set[T, W[_]](private val core: Core[W],
     copy(from = Some(From(key = key, orBefore = false, orAfter = true, before = false, after = false)))
 
   def takeWhile(condition: T => Boolean) =
-    copy(takeWhileCondition = Some(condition))
+    copy(till = Some(condition))
 
   private def checkTakeWhile(key: Slice[Byte]): Option[T] = {
     val keyT = key.read[T]
-    if (takeWhileCondition.forall(_ (keyT)))
+    if (till.forall(_ (keyT)))
       Some(keyT)
     else
       None
@@ -233,7 +233,7 @@ case class Set[T, W[_]](private val core: Core[W],
     isEmpty.map(!_)
 
   def lastOption: W[Option[T]] =
-    if (takeWhileCondition.isDefined)
+    if (till.isDefined)
       wrapCall(lastOptionStream)
     else if (reverseIteration)
       wrapCall(core.headKey.map(_.map(_.read[T])))

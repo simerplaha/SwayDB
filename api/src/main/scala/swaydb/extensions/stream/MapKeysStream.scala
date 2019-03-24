@@ -97,7 +97,7 @@ case class MapKeysStream[K](mapKey: Seq[K],
   def drop(count: Int): MapKeysStream[K] =
     copy(skip = count)
 
-  def till(condition: K => Boolean) =
+  def takeWhile(condition: K => Boolean) =
     copy(till = condition)
 
   private def validate(mapKey: Key[K]): Step[K] = {

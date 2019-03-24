@@ -41,7 +41,7 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
                            private[swaydb] val skip: Int = 0,
                            private val from: Option[From[K]] = None,
                            private[swaydb] val reverseIteration: Boolean = false,
-                           private val takeWhileCondition: Option[(K, V) => Boolean] = None)(implicit keySerializer: Serializer[K],
+                           private val till: Option[(K, V) => Boolean] = None)(implicit keySerializer: Serializer[K],
                                                                                              valueSerializer: Serializer[V],
                                                                                              wrap: Wrap[W]) extends Stream[(K, V), W] {
 
@@ -225,11 +225,11 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
     copy(from = Some(From(key = key, orBefore = false, orAfter = true, before = false, after = false)))
 
   def takeWhile(condition: (K, V) => Boolean) =
-    copy(takeWhileCondition = Some(condition))
+    copy(till = Some(condition))
 
   def takeWhileKey(condition: K => Boolean) =
     copy(
-      takeWhileCondition =
+      till =
         Some(
           (key: K, _: V) =>
             condition(key)
@@ -238,7 +238,7 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
 
   def takeWhileValue(condition: V => Boolean) =
     copy(
-      takeWhileCondition =
+      till =
         Some(
           (_: K, value: V) =>
             condition(value)
@@ -248,7 +248,7 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
   private def checkTakeWhile(key: Slice[Byte], value: Option[Slice[Byte]]): Option[(K, V)] = {
     val keyT = key.read[K]
     val valueT = value.read[V]
-    if (takeWhileCondition.forall(_ (keyT, valueT)))
+    if (till.forall(_ (keyT, valueT)))
       Some(keyT, valueT)
     else
       None
@@ -327,7 +327,7 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
     isEmpty.map(!_)
 
   def lastOption: W[Option[(K, V)]] =
-    if (takeWhileCondition.isDefined)
+    if (till.isDefined)
       wrapCall(lastOptionStream)
     else if (reverseIteration)
       wrapCall {

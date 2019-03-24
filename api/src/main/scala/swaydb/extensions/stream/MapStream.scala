@@ -93,17 +93,17 @@ case class MapStream[K, V](mapKey: Seq[K],
   private def reverse(reverse: Boolean): MapStream[K, V] =
     copy(map = map.copy(reverseIteration = reverse))
 
-  def till(condition: (K, V) => Boolean) =
+  def takeWhile(condition: (K, V) => Boolean) =
     copy(till = condition)
 
-  def tillKey(condition: K => Boolean) =
+  def takeWhileKey(condition: K => Boolean) =
     copy(
       till =
         (key: K, _: V) =>
           condition(key)
     )
 
-  def tillValue(condition: V => Boolean) =
+  def takeWhileValue(condition: V => Boolean) =
     copy(
       till =
         (_: K, value: V) =>
