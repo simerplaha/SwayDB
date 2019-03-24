@@ -17,7 +17,7 @@ parallelExecution in ThisBuild := false
 
 lazy val commonSettings = Seq(
   organization := "io.swaydb",
-  version := "0.8-beta.1",
+  version := "0.8-beta.2",
   scalaVersion := scalaVersion.value
 )
 
@@ -51,6 +51,7 @@ lazy val SwayDB =
   (project in file("."))
     .settings(commonSettings)
     .settings(publishSettings)
+    .dependsOn(api)
     .aggregate(api, core, compression, data, configs, serializers)
 
 lazy val core =
