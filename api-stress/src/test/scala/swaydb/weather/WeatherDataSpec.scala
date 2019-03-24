@@ -173,10 +173,10 @@ sealed trait WeatherDataSpec extends TestBase with LazyLogging with Benchmark wi
             if (key % 10000 == 0)
               println(s"mapRight: key = $key")
             key
-        }
+        }.get.toSeq.get
 
     val expected = (0 until 100) map (startFrom - _)
-    took.get.toSeq.get should have size 100
+    took should have size 100
     took shouldBe expected
   }
 
@@ -188,7 +188,7 @@ sealed trait WeatherDataSpec extends TestBase with LazyLogging with Benchmark wi
           if (key % 10000 == 0)
             println(s"take: key = $key")
           key
-      } shouldBe (1 to 100)
+      }.get.toSeq.get shouldBe (1 to 100)
 
     db
       .fromOrAfter(0)
@@ -198,7 +198,7 @@ sealed trait WeatherDataSpec extends TestBase with LazyLogging with Benchmark wi
           if (key % 10000 == 0)
             println(s"take: key = $key")
           key
-      } shouldBe (1 to 100)
+      }.get.toSeq.get shouldBe (1 to 100)
   }
 
   def doDrop =
@@ -210,7 +210,7 @@ sealed trait WeatherDataSpec extends TestBase with LazyLogging with Benchmark wi
           if (key % 10000 == 0)
             println(s"take: key = $key")
           key
-      } shouldBe (keyValueCount - 100 to keyValueCount)
+      }.get.toSeq.get shouldBe (keyValueCount - 100 to keyValueCount)
 
   def doTakeRight =
     db
@@ -222,7 +222,7 @@ sealed trait WeatherDataSpec extends TestBase with LazyLogging with Benchmark wi
           if (key % 10000 == 0)
             println(s"take: key = $key")
           key
-      } shouldBe (keyValueCount - 99 to keyValueCount).reverse
+      }.get.toSeq.get shouldBe (keyValueCount - 99 to keyValueCount).reverse
 
   def doCount =
     db.size.get should be >= keyValueCount

@@ -314,7 +314,7 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
   def drop(count: Int) =
     copy(skip = count)
 
-  def restart: Stream[(K, V), W] =
+  def restart: Map[K, V, W] =
     copy()
 
   def size: W[Int] =
