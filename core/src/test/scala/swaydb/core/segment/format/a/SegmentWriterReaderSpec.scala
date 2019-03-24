@@ -227,9 +227,35 @@ class SegmentWriterReaderSpec extends TestBase {
       }
     }
 
-    "set hasRange to true and hasRemoveRange to false when Segment does not contain Remove range but has other ranges" in {
+    "set hasRange to true and hasRemoveRange to false when Segment does not contain Remove range or function or pendingApply with function or remove but has other ranges" in {
       def doAssert(keyValues: Slice[KeyValue.WriteOnly]) = {
-        keyValues.last.stats.hasRemoveRange shouldBe false
+        val expectedHasRemoveRange =
+          unzipGroups(keyValues).exists {
+            case _: Transient.Remove => true
+            case _: Transient.Put => false
+            case _: Transient.Update => false
+            case _: Transient.Function => true
+            case range: Transient.Range =>
+              range.rangeValue match {
+                case _: Value.Remove => true
+                case _: Value.Update => false
+                case _: Value.Function => true
+                case Value.PendingApply(applies) =>
+                  applies exists {
+                    case _: Value.Remove => true
+                    case _: Value.Update => false
+                    case _: Value.Function => true
+                  }
+              }
+            case apply: Transient.PendingApply =>
+              apply.applies exists {
+                case _: Value.Remove => true
+                case _: Value.Update => false
+                case _: Value.Function => true
+              }
+          }
+
+        keyValues.last.stats.hasRemoveRange shouldBe expectedHasRemoveRange
 
         val (bytes, _) = SegmentWriter.write(keyValues, TestData.falsePositiveRate).assertGet
 
@@ -238,9 +264,11 @@ class SegmentWriterReaderSpec extends TestBase {
         footer.keyValueCount shouldBe keyValues.size
         //        footer.startIndexOffset shouldBe keyValues.last.stats.toValueOffset + 1
         footer.hasRange shouldBe true
-        val bloomFilter = footer.bloomFilter.assertGet
-        assertBloom(keyValues, bloomFilter)
-        IO(bloomFilter.mightContain(randomBytesSlice(100)) shouldBe false)
+        if (!expectedHasRemoveRange) {
+          val bloomFilter = footer.bloomFilter.assertGet
+          assertBloom(keyValues, bloomFilter)
+          IO(bloomFilter.mightContain(randomBytesSlice(100)) shouldBe false)
+        }
 
         footer.crc should be > 0L
       }

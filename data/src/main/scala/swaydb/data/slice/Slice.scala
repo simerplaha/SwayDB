@@ -36,12 +36,12 @@ import swaydb.data.util.{ByteSizeOf, ByteUtil}
   */
 object Slice {
 
-  def empty[T: ClassTag] =
-    Slice.create[T](0)
-
   val emptyBytes = Slice.create[Byte](0)
 
   val someEmptyBytes = Some(emptyBytes)
+
+  @inline final def empty[T: ClassTag] =
+    Slice.create[T](0)
 
   def fill[T: ClassTag](length: Int)(elem: => T): Slice[T] =
     new Slice(Array.fill(length)(elem), fromOffset = 0, toOffset = if (length == 0) -1 else length - 1, length)
@@ -366,7 +366,7 @@ class Slice[+T: ClassTag](array: Array[T],
   @throws[ArrayIndexOutOfBoundsException]
   override def slice(fromOffset: Int, toOffset: Int): Slice[T] =
     if (toOffset < 0) {
-      Slice.create[T](0)
+      Slice.empty[T]
     } else {
       //overflow check
       val fromOffsetAdjusted = fromOffset + this.fromOffset
@@ -386,7 +386,7 @@ class Slice[+T: ClassTag](array: Array[T],
 
   override def splitAt(index: Int): (Slice[T], Slice[T]) =
     if (index == 0) {
-      (Slice.create[T](0), slice(0, size - 1))
+      (Slice.empty[T], slice(0, size - 1))
     } else {
       val split1 = slice(0, index - 1)
       val split2 = slice(index, size - 1)
@@ -416,13 +416,13 @@ class Slice[+T: ClassTag](array: Array[T],
 
   override def drop(count: Int): Slice[T] =
     if (count >= size)
-      Slice.create[T](0)
+      Slice.empty[T]
     else
       slice(count, size - 1)
 
   override def dropRight(count: Int): Slice[T] =
     if (count >= size)
-      Slice.create[T](0)
+      Slice.empty[T]
     else
       slice(0, size - count - 1)
 
@@ -470,7 +470,7 @@ class Slice[+T: ClassTag](array: Array[T],
     else if (writePosition - 1 >= 0)
       slice(0, writePosition - 1)
     else if (writePosition == 0)
-      Slice.create[T](0)
+      Slice.empty[T]
     else
       this
 
