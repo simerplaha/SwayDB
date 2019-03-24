@@ -47,7 +47,7 @@ case class Set[T, W[_]](private val core: Core[W],
                         private val takeWhileCondition: Option[T => Boolean] = None)(implicit serializer: Serializer[T],
                                                                                      wrap: Wrap[W]) extends Stream[T, W] {
 
-  def wrapCall[T](f: => W[T]): W[T] =
+  def wrapCall[C](f: => W[C]): W[C] =
     wrap(()).flatMap(_ => f)
 
   def get(elem: T): W[Option[T]] =

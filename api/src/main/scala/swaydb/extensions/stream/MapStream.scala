@@ -28,11 +28,11 @@ import swaydb.extensions.Key
 import swaydb.serializers.Serializer
 
 /**
-  * TODO - [[MapStream]] and [[MapKeysStream]] are similar and need a higher type.
+  * TODO - [[MapStream]] and [[MapKeysStream]] are similar and need a higher type - tagless final.
   *
   * Sample order
   *
-  * MapKey.Start(1),
+  * Key.MapStart(1),
   *   MapKey.EntriesStart(1)
   *     MapKey.Entry(1, 1)
   *   MapKey.EntriesEnd(1)
@@ -110,7 +110,7 @@ case class MapStream[K, V](mapKey: Seq[K],
           condition(value)
     )
 
-  private def validate(mapKey: Key[K], valueOption: Option[V]): Step[K, V] = {
+  private def validate(mapKey: Key[K], valueOption: Option[V]): Step[(K, V)] = {
     //type casting here because a value set by the User will/should always have a serializer. If the inner value if
     //Option[V] then the full value would be Option[Option[V]] and the serializer is expected to handle serialization for
     //the inner Option[V] which would be of the User's type V.
@@ -139,11 +139,10 @@ case class MapStream[K, V](mapKey: Seq[K],
             else
               Step.Next
           } else {
-            if (till(dataKey, value)) {
-              Step.KeyValue(dataKey, value)
-            } else {
+            if (till(dataKey, value))
+              Step.Success(dataKey, value)
+            else
               Step.Stop
-            }
           }
 
         case Key.MapEntriesEnd(_) =>
@@ -166,11 +165,10 @@ case class MapStream[K, V](mapKey: Seq[K],
               Step.Next
             else //if it's going forward with subMaps excluded then end iteration as it's already iterated all key-value entries.
               Step.Stop
-          else if (till(dataKey, value)) {
-            Step.KeyValue(dataKey, value)
-          } else {
+          else if (till(dataKey, value))
+            Step.Success(dataKey, value)
+          else
             Step.Stop
-          }
 
         case Key.SubMapsEnd(_) =>
           //Exit if it's not going forward.
@@ -188,18 +186,26 @@ case class MapStream[K, V](mapKey: Seq[K],
       }
   }
 
+  /**
+    * Stores raw key-value from previous read. This is a temporary solution because
+    * this class extends Stream[(K, V)] and the types are being lost on stream.next here since previous
+    * (Key[K], Option[V]) is not known.
+    */
+  private var previousRaw = Option.empty[(Key[K], Option[V])]
+
   @tailrec
   private def step(previous: (Key[K], Option[V])): IO[Option[(K, V)]] =
     map.next(previous) match {
-      case IO.Success(Some((key, value))) =>
+      case IO.Success(some @ Some((key, value))) =>
+        previousRaw = some
         validate(key, value) match {
           case Step.Stop =>
             IO.none
 
           case Step.Next =>
             map.next(key, value) match {
-              case IO.Success(Some(value)) =>
-                step(value)
+              case IO.Success(Some(keyValue)) =>
+                step(keyValue)
 
               case IO.Success(None) =>
                 IO.none
@@ -208,8 +214,8 @@ case class MapStream[K, V](mapKey: Seq[K],
                 IO.Failure(error)
             }
 
-          case Step.KeyValue(key, value) =>
-            IO.Success(Some(key, value))
+          case Step.Success(keyValue) =>
+            IO.Success(Some(keyValue))
         }
 
       case IO.Success(None) =>
@@ -221,7 +227,9 @@ case class MapStream[K, V](mapKey: Seq[K],
 
   override def headOption: IO[Option[(K, V)]] =
     map.headOption match {
-      case IO.Success(Some((key, value))) =>
+      case IO.Success(some @ Some((key, value))) =>
+        previousRaw = some
+
         validate(key, value) match {
           case Step.Stop =>
             IO.none
@@ -229,8 +237,8 @@ case class MapStream[K, V](mapKey: Seq[K],
           case Step.Next =>
             step((key, value))
 
-          case Step.KeyValue(key, value) =>
-            IO.Success(Some(key, value))
+          case Step.Success(keyValue) =>
+            IO.Success(Some(keyValue))
         }
 
       case IO.Success(None) =>
@@ -240,8 +248,10 @@ case class MapStream[K, V](mapKey: Seq[K],
         IO.Failure(error)
     }
 
-  override def next(previous: (K, V)): IO[Option[(K, V)]] =
-    step((Key.MapEntry(mapKey, previous._1), Some(previous._2)))
+  override def next(previous: (K, V)): IO[Option[(K, V)]] = {
+    //ignore the input previous and use previousRaw instead. Temporary solution.
+    previousRaw.map(step) getOrElse IO.Failure(new Exception("Previous raw not defined."))
+  }
 
   override def restart: Stream[(K, V), IO] =
     copy()

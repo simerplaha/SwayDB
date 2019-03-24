@@ -106,6 +106,9 @@ class Maps[K, V](map: swaydb.Map[Key[K], Option[V], IO],
   def contains(key: K): IO[Boolean] =
     map.contains(Key.MapStart(mapKey :+ key))
 
+  def size: IO[Int] =
+    keys.toSeq.map(_.size)
+
   /**
     * Returns None if this map does not exist or returns the value.
     */
@@ -116,7 +119,7 @@ class Maps[K, V](map: swaydb.Map[Key[K], Option[V], IO],
     MapKeysStream[K](
       mapKey = mapKey,
       mapsOnly = true,
-      keysIterator =
+      set =
         new swaydb.Set[Key[K], IO](
           core = map.core,
           from = Some(From(Key.SubMapsStart(mapKey), orAfter = false, orBefore = false, before = false, after = true))

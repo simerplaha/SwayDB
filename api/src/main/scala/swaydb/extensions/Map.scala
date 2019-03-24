@@ -390,7 +390,7 @@ class Map[K, V](mapKey: Seq[K],
   def keys: MapKeysStream[K] =
     MapKeysStream[K](
       mapKey = mapKey,
-      keysIterator =
+      set =
         new swaydb.Set[Key[K], IO](
           core = map.core,
           from = Some(From(Key.MapStart(mapKey), orAfter = false, orBefore = false, before = false, after = true))
@@ -399,6 +399,9 @@ class Map[K, V](mapKey: Seq[K],
 
   def contains(key: K): IO[Boolean] =
     map contains Key.MapEntry(mapKey, key)
+
+  def size: IO[Int] =
+    keys.toSeq.map(_.size)
 
   def mightContain(key: K): IO[Boolean] =
     map mightContain Key.MapEntry(mapKey, key)

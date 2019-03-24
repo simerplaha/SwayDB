@@ -647,8 +647,8 @@ sealed trait MapSpec extends TestBase with TestBaseEmbedded {
       val subMap = rootMap.maps.put(1, "sub map").assertGet
       subMap.put((11, "one one"), (22, "two two"))
 
-      rootMap.keys.toList should contain inOrderOnly(1, 2)
-      subMap.keys.toList should contain inOrderOnly(11, 22)
+      rootMap.keys.toSeq.get should contain inOrderOnly(1, 2)
+      subMap.keys.toSeq.get should contain inOrderOnly(11, 22)
 
       rootMap.closeDatabase().get
     }
@@ -676,7 +676,7 @@ sealed trait MapSpec extends TestBase with TestBaseEmbedded {
       val secondMap = firstMap.maps.put(2, "second map").assertGet
 
       Map.childSubMapRanges(firstMap).get should contain only ((Key.SubMap(Seq(1), 2), Key.MapStart(Seq(1, 2)), Key.MapEnd(Seq(1, 2))))
-      //      Map.childSubMapRanges(secondMap).get shouldBe empty
+      Map.childSubMapRanges(secondMap).get shouldBe empty
 
       rootMap.closeDatabase().get
     }

@@ -17,7 +17,7 @@
 // * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
 // */
 //
-//package swaydb.extension
+//package swaydb.extensions
 //
 //import swaydb.core.TestBase
 //import swaydb.serializers.Default._

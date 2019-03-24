@@ -55,7 +55,7 @@ sealed trait IO[+T] {
     def withFilter(q: T => Boolean): WithFilter = new WithFilter(x => p(x) && q(x))
   }
   def onFailureSideEffect(f: IO.Failure[T] => Unit): IO[T]
-  def onSuccessSideEffect(f: IO.Success[T] => Unit): IO[T]
+  def onSuccessSideEffect(f: T => Unit): IO[T]
   def recoverWith[U >: T](f: PartialFunction[IO.Error, IO[U]]): IO[U]
   def recover[U >: T](f: PartialFunction[IO.Error, U]): IO[U]
   def toOption: Option[T]
@@ -423,8 +423,8 @@ object IO {
     override def toFuture: Future[T] = Future.successful(get)
     override def toTry: scala.util.Try[T] = scala.util.Success(get)
     override def onFailureSideEffect(f: IO.Failure[T] => Unit): IO.Success[T] = this
-    override def onSuccessSideEffect(f: IO.Success[T] => Unit): IO.Success[T] = {
-      try f(this) finally {}
+    override def onSuccessSideEffect(f: T => Unit): IO.Success[T] = {
+      try f(get) finally {}
       this
     }
     override def asAsync: IO.Async[T] = this
@@ -683,7 +683,7 @@ object IO {
       try f(this) finally {}
       this
     }
-    override def onSuccessSideEffect(f: Success[T] => Unit): IO.Failure[T] = this
+    override def onSuccessSideEffect(f: T => Unit): IO.Failure[T] = this
     def exception: Throwable = error.exception
     def recoverToAsync[U](operation: => IO.Async[U]): IO.Async[U] =
     //it's already know it's a failure, do not run it again on recovery, just flatMap onto operation.

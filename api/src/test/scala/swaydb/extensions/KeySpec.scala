@@ -17,7 +17,7 @@
 // * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
 // */
 //
-//package swaydb.extension
+//package swaydb.extensions
 //
 //import org.scalatest.{Matchers, WordSpec}
 //import scala.collection.SortedSet

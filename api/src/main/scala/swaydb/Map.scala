@@ -45,7 +45,7 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
                                                                                              valueSerializer: Serializer[V],
                                                                                              wrap: Wrap[W]) extends Stream[(K, V), W] {
 
-  def wrapCall[T](f: => W[T]): W[T] =
+  def wrapCall[C](f: => W[C]): W[C] =
     wrap(()).flatMap(_ => f)
 
   def put(key: K, value: V): W[Level0Meter] =
