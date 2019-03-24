@@ -338,7 +338,7 @@ private[core] object KeyValue {
 
       def fullKey: Slice[Byte]
 
-      def keyValues: Iterable[KeyValue.WriteOnly]
+      def keyValues: Slice[KeyValue.WriteOnly]
 
       def compressedKeyValues: Slice[Byte]
     }

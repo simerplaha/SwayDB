@@ -739,7 +739,7 @@ object CommonAssertions {
 
   def assertBloom(keyValues: Slice[KeyValue],
                   bloom: BloomFilter[Slice[Byte]]) = {
-    keyValues foreach {
+    keyValues.par foreach {
       keyValue =>
         bloom.mightContain(keyValue.key) shouldBe true
     }
@@ -748,7 +748,7 @@ object CommonAssertions {
   }
 
   def assertBloomNotContains(bloom: BloomFilter[Slice[Byte]]) =
-    runThis(10.times) {
+    runThisParallel(10.times) {
       IO(bloom.mightContain(randomBytesSlice(randomIntMax(1000) min 100)) shouldBe false)
     }
 

@@ -23,6 +23,7 @@ import bloomfilter.mutable.BloomFilter
 import com.typesafe.scalalogging.LazyLogging
 import java.nio.file.Path
 import java.util.concurrent.ConcurrentSkipListMap
+import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext
@@ -40,36 +41,59 @@ import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util.CollectionUtil._
 import swaydb.core.util.PipeOps._
 import swaydb.core.util.{BloomFilterUtil, IDGenerator}
-import swaydb.data.{IO, MaxKey}
-import swaydb.data.config.Dir
 import swaydb.data.IO._
+import swaydb.data.config.Dir
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
+import swaydb.data.{IO, MaxKey}
 
 private[core] object Segment extends LazyLogging {
 
-  /**
-    * Deeply nested groups are not expected. This should not stack overflow.
-    *
-    */
-  def writeBloomFilterAndGetNearestDeadline(group: KeyValue.WriteOnly.Group,
+  def writeBloomFilterAndGetNearestDeadline(keyValue: KeyValue.WriteOnly,
                                             bloomFilter: Option[BloomFilter[Slice[Byte]]],
-                                            currentNearestDeadline: Option[Deadline]): IO[Option[Deadline]] =
-    group.keyValues.foldLeftIO(currentNearestDeadline) {
-      case (currentNearestDeadline, childGroup: KeyValue.WriteOnly.Group) =>
-        Segment.getNearestDeadline(currentNearestDeadline, childGroup) ==> {
-          nearestDeadline =>
-            writeBloomFilterAndGetNearestDeadline(childGroup, bloomFilter, nearestDeadline)
-        }
+                                            currentNearestDeadline: Option[Deadline]): IO[Option[Deadline]] = {
 
-      case (currentNearestDeadline, otherKeyValue) =>
-        //unslice is not required since this is just bloomFilter add and groups are stored as compressed bytes.
-        IO {
+    def writeKeyValue(keyValue: KeyValue.WriteOnly): Unit =
+      keyValue match {
+        case group: KeyValue.WriteOnly.Group =>
+          writeKeyValues(group.keyValues)
+
+        case otherKeyValue: KeyValue.WriteOnly =>
           bloomFilter.foreach(_ add otherKeyValue.key)
-          //nearest deadline compare with this key-value is not required here as it's already set by the Group.
-          Segment.getNearestDeadline(currentNearestDeadline, otherKeyValue)
-        }
-    }
+      }
+
+    @tailrec
+    def writeKeyValues(keyValues: Slice[KeyValue.WriteOnly]): Unit =
+      keyValues.headOption match {
+        case Some(keyValue) =>
+          writeKeyValue(keyValue)
+          writeKeyValues(keyValues.drop(1))
+
+        case None =>
+          ()
+      }
+
+    @tailrec
+    def start(keyValues: Slice[KeyValue.WriteOnly], nearestDeadline: Option[Deadline]): IO[Option[Deadline]] =
+      keyValues.headOption match {
+        case Some(childGroup: KeyValue.WriteOnly.Group) =>
+          val nextNearestDeadline = Segment.getNearestDeadline(nearestDeadline, childGroup)
+          //run writeBloomFilters only if bloomFilters is defined. To keep the stack small do not pass BloomFilter
+          //to the function because a Segment can contain many key-values.
+          if (bloomFilter.isDefined) writeKeyValues(childGroup.keyValues)
+          start(keyValues.drop(1), nextNearestDeadline)
+
+        case Some(otherKeyValue) =>
+          bloomFilter.foreach(_ add otherKeyValue.key)
+          val nextNearestDeadline = Segment.getNearestDeadline(nearestDeadline, otherKeyValue)
+          start(keyValues.drop(1), nextNearestDeadline)
+
+        case None =>
+          IO.Success(nearestDeadline)
+      }
+
+    start(Slice(keyValue), currentNearestDeadline)
+  }
 
   def memory(path: Path,
              keyValues: Iterable[KeyValue.WriteOnly],
