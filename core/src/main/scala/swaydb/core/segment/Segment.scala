@@ -23,7 +23,6 @@ import bloomfilter.mutable.BloomFilter
 import com.typesafe.scalalogging.LazyLogging
 import java.nio.file.Path
 import java.util.concurrent.ConcurrentSkipListMap
-import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext
@@ -49,52 +48,6 @@ import swaydb.data.{IO, MaxKey}
 
 private[core] object Segment extends LazyLogging {
 
-  def writeBloomFilterAndGetNearestDeadline(keyValue: KeyValue.WriteOnly,
-                                            bloomFilter: Option[BloomFilter[Slice[Byte]]],
-                                            currentNearestDeadline: Option[Deadline]): IO[Option[Deadline]] = {
-
-    def writeKeyValue(keyValue: KeyValue.WriteOnly): Unit =
-      keyValue match {
-        case group: KeyValue.WriteOnly.Group =>
-          writeKeyValues(group.keyValues)
-
-        case otherKeyValue: KeyValue.WriteOnly =>
-          bloomFilter.foreach(_ add otherKeyValue.key)
-      }
-
-    @tailrec
-    def writeKeyValues(keyValues: Slice[KeyValue.WriteOnly]): Unit =
-      keyValues.headOption match {
-        case Some(keyValue) =>
-          writeKeyValue(keyValue)
-          writeKeyValues(keyValues.drop(1))
-
-        case None =>
-          ()
-      }
-
-    @tailrec
-    def start(keyValues: Slice[KeyValue.WriteOnly], nearestDeadline: Option[Deadline]): IO[Option[Deadline]] =
-      keyValues.headOption match {
-        case Some(childGroup: KeyValue.WriteOnly.Group) =>
-          val nextNearestDeadline = Segment.getNearestDeadline(nearestDeadline, childGroup)
-          //run writeBloomFilters only if bloomFilters is defined. To keep the stack small do not pass BloomFilter
-          //to the function because a Segment can contain many key-values.
-          if (bloomFilter.isDefined) writeKeyValues(childGroup.keyValues)
-          start(keyValues.drop(1), nextNearestDeadline)
-
-        case Some(otherKeyValue) =>
-          bloomFilter.foreach(_ add otherKeyValue.key)
-          val nextNearestDeadline = Segment.getNearestDeadline(nearestDeadline, otherKeyValue)
-          start(keyValues.drop(1), nextNearestDeadline)
-
-        case None =>
-          IO.Success(nearestDeadline)
-      }
-
-    start(Slice(keyValue), currentNearestDeadline)
-  }
-
   def memory(path: Path,
              keyValues: Iterable[KeyValue.WriteOnly],
              bloomFilterFalsePositiveRate: Double,
@@ -117,20 +70,20 @@ private[core] object Segment extends LazyLogging {
         val keyUnsliced = keyValue.key.unslice()
         keyValue match {
           case group: KeyValue.WriteOnly.Group =>
-            writeBloomFilterAndGetNearestDeadline(group, bloomFilter, currentNearestDeadline) map {
-              currentNearestDeadline =>
-                skipList.put(
-                  keyUnsliced,
-                  Memory.Group(
-                    minKey = keyUnsliced,
-                    maxKey = group.maxKey.unslice(),
-                    //this deadline is group's nearest deadline and the Segment's nearest deadline.
-                    deadline = group.deadline,
-                    compressedKeyValues = group.compressedKeyValues.unslice(),
-                    groupStartOffset = 0 //compressKeyValues are unsliced so startOffset is 0.
-                  )
+            IO {
+              val nextNearestDeadline = SegmentWriter.writeBloomFilterAndGetNearestDeadline(group, bloomFilter, currentNearestDeadline)
+              skipList.put(
+                keyUnsliced,
+                Memory.Group(
+                  minKey = keyUnsliced,
+                  maxKey = group.maxKey.unslice(),
+                  //this deadline is group's nearest deadline and the Segment's nearest deadline.
+                  deadline = group.deadline,
+                  compressedKeyValues = group.compressedKeyValues.unslice(),
+                  groupStartOffset = 0 //compressKeyValues are unsliced so startOffset is 0.
                 )
-                currentNearestDeadline
+              )
+              nextNearestDeadline
             }
 
           case remove: Transient.Remove =>

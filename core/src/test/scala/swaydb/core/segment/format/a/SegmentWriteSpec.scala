@@ -93,22 +93,6 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
 
   "Segment" should {
 
-    "writeBloomFilterAndGetNearestDeadline" in {
-      runThis(10.times) {
-        val keyValues = randomizedKeyValues(keyValuesCount)
-        val group = randomGroup(keyValues)
-        val bloom = BloomFilterUtil.init(keyValues, TestData.falsePositiveRate)
-        val deadline = Segment.writeBloomFilterAndGetNearestDeadline(group, bloom, None)
-
-        if (keyValues.last.stats.hasRemoveRange)
-          bloom shouldBe empty
-        else
-          assertBloom(keyValues, bloom.assertGet)
-
-        deadline.assertGetOpt shouldBe nearestDeadline(keyValues)
-      }
-    }
-
     "create a Segment" in {
       runThis(100.times) {
         assertSegment(

@@ -21,16 +21,17 @@ package swaydb.core.segment.format.a
 
 import bloomfilter.mutable.BloomFilter
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.data.{KeyValue, Transient}
+import scala.annotation.tailrec
+import scala.concurrent.duration.Deadline
+import swaydb.core.data.KeyValue
 import swaydb.core.segment.Segment
 import swaydb.core.util.BloomFilterUtil._
-import swaydb.core.util.{BloomFilterUtil, CRC32}
 import swaydb.core.util.PipeOps._
-import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice._
-import scala.concurrent.duration.Deadline
+import swaydb.core.util.{BloomFilterUtil, CRC32}
 import swaydb.data.IO
 import swaydb.data.IO._
+import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice._
 
 private[core] object SegmentWriter extends LazyLogging {
 
@@ -38,19 +39,52 @@ private[core] object SegmentWriter extends LazyLogging {
 
   val crcBytes: Int = 7
 
-  private def getNearestDeadlineAndAddToBloomFilter(bloomFilter: Option[BloomFilter[Slice[Byte]]],
-                                                    deadline: Option[Deadline],
-                                                    keyValue: KeyValue.WriteOnly): Option[Deadline] =
-    keyValue match {
-      case group: Transient.Group =>
-        group.keyValues.foldLeft(deadline) {
-          case (nearestDeadline, keyValue) =>
-            getNearestDeadlineAndAddToBloomFilter(bloomFilter, nearestDeadline, keyValue)
-        }
-      case _: Transient.Put | _: Transient.Remove | _: Transient.Update | _: Transient.Range | _: Transient.Function | _: Transient.PendingApply =>
-        bloomFilter foreach (_ add keyValue.key)
-        Segment.getNearestDeadline(deadline, keyValue)
-    }
+  def writeBloomFilterAndGetNearestDeadline(keyValue: KeyValue.WriteOnly,
+                                            bloomFilter: Option[BloomFilter[Slice[Byte]]],
+                                            currentNearestDeadline: Option[Deadline]): Option[Deadline] = {
+
+    def writeKeyValue(keyValue: KeyValue.WriteOnly): Unit =
+      keyValue match {
+        case group: KeyValue.WriteOnly.Group =>
+          writeKeyValues(group.keyValues)
+
+        case otherKeyValue: KeyValue.WriteOnly =>
+          bloomFilter.foreach(_ add otherKeyValue.key)
+      }
+
+    @tailrec
+    def writeKeyValues(keyValues: Slice[KeyValue.WriteOnly]): Unit =
+      keyValues.headOption match {
+        case Some(keyValue) =>
+          writeKeyValue(keyValue)
+          writeKeyValues(keyValues.drop(1))
+
+        case None =>
+          ()
+      }
+
+    @tailrec
+    def start(keyValues: Slice[KeyValue.WriteOnly], nearestDeadline: Option[Deadline]): Option[Deadline] =
+      keyValues.headOption match {
+        case Some(childGroup: KeyValue.WriteOnly.Group) =>
+          val nextNearestDeadline = Segment.getNearestDeadline(nearestDeadline, childGroup)
+          //run writeBloomFilters only if bloomFilters is defined. To keep the stack small do not pass BloomFilter
+          //to the function because a Segment can contain many key-values.
+          if (bloomFilter.isDefined) writeKeyValues(childGroup.keyValues)
+          start(keyValues.drop(1), nextNearestDeadline)
+
+        case Some(otherKeyValue) =>
+          bloomFilter.foreach(_ add otherKeyValue.key)
+          val nextNearestDeadline = Segment.getNearestDeadline(nearestDeadline, otherKeyValue)
+          start(keyValues.drop(1), nextNearestDeadline)
+
+        case None =>
+          nearestDeadline
+      }
+
+    start(Slice(keyValue), currentNearestDeadline)
+  }
+
 
   def write(keyValues: Iterable[KeyValue.WriteOnly],
             indexSlice: Slice[Byte],
@@ -64,7 +98,7 @@ private[core] object SegmentWriter extends LazyLogging {
           valuesSlice = valuesSlice
         ) map {
           _ =>
-            getNearestDeadlineAndAddToBloomFilter(bloomFilter, deadline, keyValue)
+            writeBloomFilterAndGetNearestDeadline(keyValue, bloomFilter, deadline)
         }
     } flatMap {
       result =>

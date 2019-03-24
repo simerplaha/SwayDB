@@ -23,14 +23,15 @@ import java.util.concurrent.TimeUnit
 import scala.concurrent.duration._
 import scala.util.Random
 import swaydb.core.CommonAssertions._
+import swaydb.core.IOAssert._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.IOAssert._
 import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data._
 import swaydb.core.group.compression.GroupCompressor
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
+import swaydb.core.util.BloomFilterUtil
 import swaydb.core.{TestBase, TestData, TestLimitQueues, TestTimer}
 import swaydb.data.IO
 import swaydb.data.order.KeyOrder
@@ -49,6 +50,23 @@ class SegmentWriterReaderSpec extends TestBase {
   implicit def testTimer: TestTimer = TestTimer.random
 
   "SegmentWriter" should {
+
+    "writeBloomFilterAndGetNearestDeadline" in {
+      runThis(10.times) {
+        val keyValues = randomizedKeyValues(keyValueCount)
+        val group = randomGroup(keyValues)
+        val bloom = BloomFilterUtil.init(keyValues, TestData.falsePositiveRate)
+        val deadline = SegmentWriter.writeBloomFilterAndGetNearestDeadline(group, bloom, None)
+
+        if (keyValues.last.stats.hasRemoveRange)
+          bloom shouldBe empty
+        else
+          assertBloom(keyValues, bloom.assertGet)
+
+        deadline shouldBe nearestDeadline(keyValues)
+      }
+    }
+
     "convert empty KeyValues and not throw exception but return empty bytes" in {
       val (bytes, nearestDeadline) = SegmentWriter.write(Seq(), TestData.falsePositiveRate).assertGet
       bytes.isEmpty shouldBe true
