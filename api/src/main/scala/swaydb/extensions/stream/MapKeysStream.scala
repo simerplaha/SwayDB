@@ -91,6 +91,12 @@ case class MapKeysStream[K](mapKey: Seq[K],
   private def reverse(reverse: Boolean): MapKeysStream[K] =
     copy(set = set.copy(reverseIteration = reverse))
 
+  def take(count: Int): MapKeysStream[K] =
+    copy(count = Some(count))
+
+  def drop(count: Int): MapKeysStream[K] =
+    copy(skip = count)
+
   def till(condition: K => Boolean) =
     copy(till = condition)
 
@@ -232,6 +238,10 @@ case class MapKeysStream[K](mapKey: Seq[K],
     //ignore the input previous and use previousRaw instead. Temporary solution.
     previousRaw.map(step) getOrElse IO.Failure(new Exception("Previous raw not defined."))
   }
+
+  def size: IO[Int] =
+    toSeq.map(_.size)
+
 
   override def restart: Stream[K, IO] =
     copy()
