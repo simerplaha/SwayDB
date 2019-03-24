@@ -245,7 +245,7 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
         )
     )
 
-  def checkTakeWhile(key: Slice[Byte], value: Option[Slice[Byte]]): Option[(K, V)] = {
+  private def checkTakeWhile(key: Slice[Byte], value: Option[Slice[Byte]]): Option[(K, V)] = {
     val keyT = key.read[K]
     val valueT = value.read[V]
     if (takeWhileCondition.forall(_ (keyT, valueT)))

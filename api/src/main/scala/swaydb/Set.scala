@@ -168,7 +168,7 @@ case class Set[T, W[_]](private val core: Core[W],
   def takeWhile(condition: T => Boolean) =
     copy(takeWhileCondition = Some(condition))
 
-  def checkTakeWhile(key: Slice[Byte]): Option[T] = {
+  private def checkTakeWhile(key: Slice[Byte]): Option[T] = {
     val keyT = key.read[T]
     if (takeWhileCondition.forall(_ (keyT)))
       Some(keyT)
