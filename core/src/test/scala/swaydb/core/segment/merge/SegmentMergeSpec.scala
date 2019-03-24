@@ -164,15 +164,17 @@ class SegmentMergeSpec extends TestBase {
           ListBuffer(Transient.Range.create[FromValue, RangeValue](5, 10, Some(Value.remove(None)), Value.update(5))) //56.bytes (segment size)
         )
 
-      val split2 =
+      val persistentSplit =
         SegmentMerger.split(
           keyValues = keyValues,
-          minSegmentSize = 255.bytes,
+          minSegmentSize = keyValues.toTransient.last.stats.segmentSize,
           isLastLevel = false,
           forInMemory = false,
           compressDuplicateValues = true,
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate
-        )
+        ).assertGet
+
+      persistentSplit should have size 1
 
       val expected =
         Seq(
@@ -183,7 +185,21 @@ class SegmentMergeSpec extends TestBase {
           Transient.Range.create[FromValue, RangeValue](5, 10, Some(Value.remove(None)), Value.update(5)) //56.bytes (segment size)
         ).updateStats
 
-      split2.assertGet.flatten shouldBe expected
+      persistentSplit.flatten shouldBe expected
+
+      val memorySplit =
+        SegmentMerger.split(
+          keyValues = keyValues,
+          minSegmentSize = keyValues.toTransient.last.stats.memorySegmentSize,
+          isLastLevel = false,
+          forInMemory = true,
+          compressDuplicateValues = true,
+          bloomFilterFalsePositiveRate = TestData.falsePositiveRate
+        ).assertGet
+
+      memorySplit should have size 1
+
+      memorySplit.flatten shouldBe expected
     }
   }
 

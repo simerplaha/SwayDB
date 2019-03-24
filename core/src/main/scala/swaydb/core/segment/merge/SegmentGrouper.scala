@@ -139,7 +139,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
       IO.none
     }
 
-  private def createGroup(keyValuesToGroup: Iterable[KeyValue.WriteOnly],
+  private def createGroup(keyValuesToGroup: Slice[KeyValue.WriteOnly],
                           lastGroup: Option[Transient.Group],
                           segmentKeyValues: ListBuffer[KeyValue.WriteOnly],
                           bloomFilterFalsePositiveRate: Double,

@@ -93,7 +93,7 @@ private[core] object GroupCompressor extends LazyLogging {
         }
     }
 
-  def compress(keyValues: Iterable[KeyValue.WriteOnly],
+  def compress(keyValues: Slice[KeyValue.WriteOnly],
                indexCompressions: Seq[CompressionInternal],
                valueCompressions: Seq[CompressionInternal],
                falsePositiveRate: Double,

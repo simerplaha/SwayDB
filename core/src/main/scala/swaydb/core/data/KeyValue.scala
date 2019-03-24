@@ -973,7 +973,7 @@ private[core] object Transient {
 
   object Group {
 
-    def apply(keyValues: Iterable[KeyValue.WriteOnly],
+    def apply(keyValues: Slice[KeyValue.WriteOnly],
               indexCompression: CompressionInternal,
               valueCompression: CompressionInternal,
               falsePositiveRate: Double,
@@ -986,7 +986,7 @@ private[core] object Transient {
         previous = previous
       )
 
-    def apply(keyValues: Iterable[KeyValue.WriteOnly],
+    def apply(keyValues: Slice[KeyValue.WriteOnly],
               indexCompressions: Seq[CompressionInternal],
               valueCompressions: Seq[CompressionInternal],
               falsePositiveRate: Double,
@@ -1006,7 +1006,7 @@ private[core] object Transient {
                    compressedKeyValues: Slice[Byte],
                    //the deadline is the nearest deadline in the Group's key-values.
                    deadline: Option[Deadline],
-                   keyValues: Iterable[KeyValue.WriteOnly],
+                   keyValues: Slice[KeyValue.WriteOnly],
                    previous: Option[KeyValue.WriteOnly],
                    falsePositiveRate: Double) extends Transient with KeyValue.WriteOnly.Group {
 

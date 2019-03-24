@@ -47,7 +47,7 @@ class GroupCompressorSpec extends TestBase {
   "GroupCompressor" should {
     "return no Group if key-values are empty" in {
       Transient.Group(
-        keyValues = Seq(),
+        keyValues = Slice.empty,
         indexCompression = randomCompressionLZ4OrSnappy(Random.nextInt()),
         valueCompression = randomCompressionLZ4OrSnappy(Random.nextInt()),
         falsePositiveRate = TestData.falsePositiveRate,

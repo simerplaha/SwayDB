@@ -433,9 +433,8 @@ object TestData {
               )
 
             case group @ Memory.Group(fromKey, toKey, nearestDeadline, groupDecompressor, _) =>
-              val keyValues: Iterable[KeyValue.WriteOnly] = group.segmentCache.getAll().assertGet.toTransient
               Transient.Group(
-                keyValues = keyValues,
+                keyValues = group.segmentCache.getAll().assertGet.toTransient,
                 indexCompression = randomCompression(),
                 valueCompression = randomCompression(),
                 falsePositiveRate = 0,
