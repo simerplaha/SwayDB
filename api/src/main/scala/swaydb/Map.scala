@@ -372,15 +372,14 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
   def closeDatabase(): W[Unit] =
     wrapCall(core.close())
 
-  def asyncAPI(implicit futureWrap: Wrap[Future],
-               ec: ExecutionContext): Map[K, V, Future] =
+  def asyncAPI(implicit ec: ExecutionContext): Map[K, V, Future] =
     copy(core = core.async())
 
-  def syncAPI(implicit ioWrap: Wrap[IO]): Map[K, V, IO] =
+  def syncAPI(): Map[K, V, IO] =
     copy(core = core.sync())
 
   def asScala: scala.collection.mutable.Map[K, V] =
-    ScalaMap[K, V](syncAPI(Wrap.ioWrap))
+    ScalaMap[K, V](syncAPI())
 
   override def toString(): String =
     classOf[Map[_, _, W]].getClass.getSimpleName

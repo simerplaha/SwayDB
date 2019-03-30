@@ -263,13 +263,12 @@ case class Set[T, W[_]](private val core: Core[W],
     wrapCall(core.close())
 
   def asScala: scala.collection.mutable.Set[T] =
-    ScalaSet[T](syncAPI(Wrap.ioWrap))
+    ScalaSet[T](syncAPI())
 
-  def asyncAPI(implicit futureWrap: Wrap[Future],
-               ec: ExecutionContext): Set[T, Future] =
+  def asyncAPI(implicit ec: ExecutionContext): Set[T, Future] =
     copy(core = core.async())
 
-  def syncAPI(implicit ioWrap: Wrap[IO]): Set[T, IO] =
+  def syncAPI(): Set[T, IO] =
     copy(core = core.sync())
 
   override def toString(): String =
