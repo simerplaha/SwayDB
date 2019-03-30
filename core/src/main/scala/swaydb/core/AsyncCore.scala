@@ -259,6 +259,6 @@ private[swaydb] case class AsyncCore(zero: LevelZero)(implicit ec: ExecutionCont
   override def async()(implicit ec: ExecutionContext): Core[Future] =
     this
 
-  override def sync()(implicit ec: ExecutionContext): Core[IO] =
+  override def sync(): Core[IO] =
     BlockingCore(zero)
 }

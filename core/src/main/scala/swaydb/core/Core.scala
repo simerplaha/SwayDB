@@ -107,6 +107,6 @@ private[swaydb] trait Core[W[_]] {
   def close(): W[Unit]
 
   def async()(implicit ec: ExecutionContext): Core[Future]
-  def sync()(implicit ec: ExecutionContext): Core[IO]
 
+  def sync(): Core[IO]
 }

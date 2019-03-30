@@ -19,9 +19,9 @@
 
 package swaydb
 
+import scala.collection.JavaConverters
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.Try
 import swaydb.PrepareImplicits._
 import swaydb.Wrap._
 import swaydb.core.Core
@@ -376,9 +376,14 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
                ec: ExecutionContext): Map[K, V, Future] =
     copy(core = core.async())
 
-  def syncAPI(implicit ioWrap: Wrap[IO],
-              ec: ExecutionContext): Map[K, V, IO] =
+  def syncAPI(implicit ioWrap: Wrap[IO]): Map[K, V, IO] =
     copy(core = core.sync())
+
+  def asScala: scala.collection.Map[K, V] =
+    ScalaMap[K, V](syncAPI(Wrap.ioWrap))
+
+  def asJava: java.util.Map[K, V] =
+    JavaConverters.mapAsJavaMap(asScala)
 
   override def toString(): String =
     classOf[Map[_, _, W]].getClass.getSimpleName
