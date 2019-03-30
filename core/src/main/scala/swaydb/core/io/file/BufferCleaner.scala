@@ -34,11 +34,11 @@ private[this] sealed trait Cleaner {
   def clean(byteBuffer: ByteBuffer): Unit
 }
 private[this] case object Cleaner {
-  case class PostJava9(handle: MethodHandle) extends Cleaner {
+  case class Java9(handle: MethodHandle) extends Cleaner {
     override def clean(byteBuffer: ByteBuffer): Unit =
       handle.invoke(byteBuffer)
   }
-  case object PreJava9 extends Cleaner {
+  case object Java8 extends Cleaner {
     override def clean(byteBuffer: ByteBuffer): Unit =
       byteBuffer.asInstanceOf[sun.nio.ch.DirectBuffer].cleaner.clean()
   }
@@ -48,6 +48,7 @@ private[file] object BufferCleaner extends LazyLogging {
 
   private val started = new AtomicBoolean(false)
   private var actor: ActorRef[(MappedByteBuffer, Path, Boolean)] = _
+  case class State(var cleaner: Option[Cleaner])
 
   private def java9Cleaner(): MethodHandle = {
     val unsafeClass = Class.forName("sun.misc.Unsafe")
@@ -60,31 +61,46 @@ private[file] object BufferCleaner extends LazyLogging {
       .bindTo(theUnsafe.get(null))
   }
 
-  private case class State(var cleaner: Option[Cleaner])
+  private[file] def initialiseCleaner(state: State, buffer: MappedByteBuffer, path: Path): IO[State] =
+    IO {
+      val cleaner = java9Cleaner()
+      cleaner.invoke(buffer)
+      state.cleaner = Some(Cleaner.Java9(cleaner))
+      logger.info("Initialised Java 9 ByteBuffer cleaner.")
+      state
+    } orElse {
+      IO {
+        Cleaner.Java8.clean(buffer)
+        state.cleaner = Some(Cleaner.Java8)
+        logger.info("Initialised Java 8 ByteBuffer cleaner.")
+        state
+      }
+    } onFailureSideEffect {
+      error =>
+        logger.error(s"ByteBuffer cleaner not initialised. Failed to clean MMAP file: ${path.toString}.", error.exception)
+        throw error.exception //also throw to output to stdout in-case logging is not enabled.
+    }
+
+  /**
+    * Mutates the state after cleaner is initialised. Do not copy state to avoid neccessary GC workload.
+    */
+  private[file] def clean(state: State, buffer: MappedByteBuffer, path: Path): IO[State] =
+    state.cleaner map {
+      cleaner =>
+        IO {
+          cleaner.clean(buffer)
+          state
+        }
+    } getOrElse {
+      initialiseCleaner(state, buffer, path)
+    }
 
   private def createActor(implicit ec: ExecutionContext) = {
     logger.debug("Starting buffer cleaner.")
     Actor.timer[(MappedByteBuffer, Path, Boolean), State](State(None), 3.seconds) {
       case (message @ (buffer, path, isOverdue), self) =>
         if (isOverdue)
-          self.state.cleaner.map(_.clean(buffer)) getOrElse {
-            IO {
-              val cleaner = java9Cleaner()
-              cleaner.invoke(buffer)
-              self.state.cleaner = Some(Cleaner.PostJava9(cleaner))
-              logger.info("Initialised Java 9 ByteBuffer cleaner.")
-            } orElse {
-              IO {
-                Cleaner.PreJava9.clean(buffer)
-                self.state.cleaner = Some(Cleaner.PreJava9)
-                logger.info("Initialised pre Java 9 ByteBuffer cleaner.")
-              }
-            } onFailureSideEffect {
-              error =>
-                logger.error("ByteBuffer cleaner not initialised.", error.exception)
-                throw error.exception //also throw to output to stdout in-case logging is not enabled.
-            }
-          }
+          clean(self.state, buffer, path)
         else
           self.schedule((message._1, path, true), 5.seconds)
     }

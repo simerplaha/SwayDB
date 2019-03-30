@@ -19,23 +19,35 @@
 
 package swaydb.core.io.file
 
-import java.nio.file.NoSuchFileException
+import java.nio.channels.FileChannel
+import java.nio.channels.FileChannel.MapMode
+import java.nio.file.{NoSuchFileException, StandardOpenOption}
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.queue.FileLimiter
+import swaydb.data.IO
 
 class BufferCleanerSpec extends TestBase {
 
-  "clear a MMAP file ByteBuffer" in {
-    implicit val limiter: FileLimiter = FileLimiter(0, 100.millisecond)
-    val file = DBFile.mmapWriteAndRead(randomBytesSlice(), randomDir, autoClose = true).get
+  "clear ByteBuffer" in {
+    val path = randomFilePath
+    val file = FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
+    val buffer = file.map(MapMode.READ_WRITE, 0, 1000)
+    BufferCleaner.clean(BufferCleaner.State(None), buffer, path) shouldBe a[IO.Success[BufferCleaner.State]]
+  }
+
+  "clear a MMAP file" in {
+    implicit val limiter: FileLimiter = FileLimiter(0, 10.millisecond)
+    val file: DBFile = DBFile.mmapWriteAndRead(randomBytesSlice(), randomDir, autoClose = true).get
 
     eventual {
       file.file.get.asInstanceOf[MMAPFile].isBufferEmpty shouldBe true
     }
+
+    sleep(1.second)
 
     limiter.terminate()
   }
