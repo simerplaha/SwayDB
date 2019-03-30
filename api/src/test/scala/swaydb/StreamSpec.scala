@@ -47,6 +47,9 @@ class StreamSpec extends WordSpec with Matchers {
 
       stream.foldLeft(0)(_ + _.takeWhile(_.isDigit).toInt).await shouldBe (1 to 1000).sum
       stream.lastOptionStream.await.get shouldBe "1000 one two three"
+
+      stream.filter(_.contains("00")).flatMap(_.toSeq).await should have size 10
+
     }
 
     "try" in {
@@ -66,6 +69,8 @@ class StreamSpec extends WordSpec with Matchers {
 
       stream.foldLeft(0)(_ + _.takeWhile(_.isDigit).toInt).get shouldBe (1 to 1000).sum
       stream.lastOptionStream.get.get shouldBe "1000 one two three"
+
+      stream.filter(_.contains("00")).flatMap(_.toSeq).get should have size 10
     }
 
     "IO" in {
@@ -85,6 +90,8 @@ class StreamSpec extends WordSpec with Matchers {
 
       stream.foldLeft(0)(_ + _.takeWhile(_.isDigit).toInt).get shouldBe (1 to 1000).sum
       stream.lastOptionStream.get.get shouldBe "1000 one two three"
+
+      stream.filter(_.contains("00")).flatMap(_.toSeq).get should have size 10
     }
   }
 }

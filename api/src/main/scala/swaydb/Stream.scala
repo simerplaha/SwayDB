@@ -110,6 +110,21 @@ abstract class Stream[A, W[_]](implicit wrap: Wrap[W]) {
           .map(_ => builder.result)
     }
 
+  def filter(p: A => Boolean): W[Stream[A, W]] =
+    wrap(()) flatMap {
+      _ =>
+        val builder = new StreamBuilder[A, W]()
+        this
+          .foreach {
+            item =>
+              if (p(item)) builder += item
+          }
+          .map(_ => builder.result)
+    }
+
+  def filterNot(p: A => Boolean): W[Stream[A, W]] =
+    filter(!p(_))
+
   def foldLeft[B](initial: B)(f: (B, A) => B): W[B] =
     wrap(()) flatMap {
       _ =>
