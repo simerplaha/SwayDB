@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Simer Plaha (@simerplaha)
+ * Copyright (c) 2019 Simer Plaha (@simerplaha) 
  *
  * This file is a part of SwayDB.
  *
@@ -23,18 +23,19 @@ import scala.collection.mutable
 import swaydb.data.IO
 
 /**
-  * Scala collections are blocking and requires an IO Map from SwayDB to build a Map.
+  * Scala collections are blocking and requires an IO Set from SwayDB to build a Set.
   */
-private[swaydb] object ScalaMap {
+private[swaydb] object ScalaSet {
 
-  def apply[K, V](db: Map[K, V, IO]): mutable.Map[K, V] =
-    new mutable.Map[K, V] {
-      override def get(key: K): Option[V] =
-        db.get(key).get
+  def apply[A](db: Set[A, IO]): mutable.Set[A] =
+    new mutable.Set[A] {
 
-      override def iterator: Iterator[(K, V)] =
-        new Iterator[(K, V)] {
-          var nextOne: (K, V) = _
+      override def contains(elem: A): Boolean =
+        db.contains(elem).get
+
+      override def iterator: Iterator[A] =
+        new Iterator[A] {
+          var nextOne: A = _
 
           override def hasNext: Boolean =
             if (nextOne == null)
@@ -50,7 +51,7 @@ private[swaydb] object ScalaMap {
                   true
               }
 
-          override def next(): (K, V) =
+          override def next(): A =
             nextOne
         }
 
@@ -60,19 +61,19 @@ private[swaydb] object ScalaMap {
       override def nonEmpty: Boolean =
         !isEmpty
 
-      override def headOption: Option[(K, V)] =
+      override def headOption: Option[A] =
         db.headOption.get
 
-      override def lastOption: Option[(K, V)] =
+      override def lastOption: Option[A] =
         db.lastOption.get
 
-      override def +=(kv: (K, V)): this.type = {
-        db.put(kv._1, kv._2).get
+      override def +=(elem: A): this.type = {
+        db.add(elem).get
         this
       }
 
-      override def -=(key: K): this.type = {
-        db.remove(key).get
+      override def -=(elem: A): this.type = {
+        db.remove(elem).get
         this
       }
     }

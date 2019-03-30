@@ -19,6 +19,7 @@
 
 package swaydb
 
+import scala.collection.JavaConverters
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 import swaydb.PrepareImplicits._
@@ -192,7 +193,7 @@ case class Set[T, W[_]](private val core: Core[W],
       None
   }
 
-  override def headOption(): W[Option[T]] =
+  override def headOption: W[Option[T]] =
     wrapCall {
       from match {
         case Some(from) =>
@@ -262,12 +263,17 @@ case class Set[T, W[_]](private val core: Core[W],
   def closeDatabase(): W[Unit] =
     wrapCall(core.close())
 
+  def asScala: scala.collection.Set[T] =
+    ScalaSet[T](syncAPI(Wrap.ioWrap))
+
+  def asJava: java.util.Set[T] =
+    JavaConverters.setAsJavaSet(asScala)
+
   def asyncAPI(implicit futureWrap: Wrap[Future],
                ec: ExecutionContext): Set[T, Future] =
     copy(core = core.async())
 
-  def syncAPI(implicit ioWrap: Wrap[IO],
-              ec: ExecutionContext): Set[T, IO] =
+  def syncAPI(implicit ioWrap: Wrap[IO]): Set[T, IO] =
     copy(core = core.sync())
 
   override def toString(): String =
