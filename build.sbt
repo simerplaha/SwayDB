@@ -63,7 +63,7 @@ lazy val core =
       libraryDependencies ++=
         commonDependencies
           :+ "com.github.alexandrnikitin" %% "bloom-filter" % bloomFilterVersion
-    ).dependsOn(data, macros % "compile-internal", compression, configs % Test, serializers % Test)
+    ).dependsOn(data, macros % "test->test;compile-internal", compression, configs % "test->test", serializers % "test->test")
 
 lazy val data =
   project
@@ -83,8 +83,7 @@ lazy val api =
         commonDependencies
           :+ "org.reactivestreams" % "reactive-streams" % "1.0.2"
 
-    ).dependsOn(core, configs)
-    .dependsOn(serializers, core % Test)
+    ).dependsOn(core % "test->test;compile->compile", serializers, configs)
 
 lazy val configs =
   project
@@ -97,7 +96,6 @@ lazy val serializers =
     .settings(commonSettings)
     .settings(publishSettings)
     .dependsOn(data)
-
 
 lazy val `core-stress` =
   project
@@ -125,7 +123,7 @@ lazy val compression =
           :+ "org.lz4" % "lz4-java" % lz4Version
           :+ "org.xerial.snappy" % "snappy-java" % snappyVersion
     )
-    .dependsOn(data, serializers % Test)
+    .dependsOn(data, serializers % "test->test")
 
 lazy val macros =
   project
@@ -145,7 +143,7 @@ lazy val `api-stress` =
           :+ "com.github.simerplaha" %% "actor" % "0.3" % Test
           :+ "io.suzaku" %% "boopickle" % "1.3.0" % Test
     ).dependsOn(core, configs)
-    .dependsOn(api, core % Test)
+    .dependsOn(api, core % "test->test")
 
 lazy val benchmark =
   project
@@ -154,4 +152,4 @@ lazy val benchmark =
     .settings(
       libraryDependencies ++= commonDependencies
     ).dependsOn(core, configs)
-    .dependsOn(api, core % Test)
+    .dependsOn(api, core % "test->test")
