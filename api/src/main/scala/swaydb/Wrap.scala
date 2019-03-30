@@ -22,6 +22,7 @@ package swaydb
 import scala.annotation.tailrec
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success, Try}
 import swaydb.core.util.Delay
 import swaydb.data.IO
 
@@ -40,6 +41,68 @@ trait Wrap[W[_]] {
 }
 
 object Wrap {
+
+  implicit val tryWrap = new Wrap[Try] {
+    private val unit = Success(())
+
+    override def apply[A](a: => A): Try[A] = Try(a)
+    override def map[A, B](a: A)(f: A => B): Try[B] = Try(f(a))
+    override def foreach[A, B](a: A)(f: A => B): Unit = f(a)
+    override def flatMap[A, B](fa: Try[A])(f: A => Try[B]): Try[B] = fa.flatMap(f)
+    override def success[A](value: A): Try[A] = scala.util.Success(value)
+    override def none[A]: Try[Option[A]] = scala.util.Success(None)
+    override def foreachStream[A, U](stream: Stream[A, Try], skip: Int, size: Option[Int])(f: A => U): Try[Unit] = {
+      @tailrec
+      def doForeach(previous: A, skip: Int, currentSize: Int): Try[Unit] =
+        if (size.contains(currentSize))
+          unit
+        else
+          stream.next(previous) match {
+            case Success(Some(next)) =>
+              if (skip >= 1) {
+                doForeach(next, skip - 1, currentSize)
+              } else {
+                try {
+                  f(next)
+                } catch {
+                  case exception: Throwable =>
+                    return Failure(exception)
+                }
+                doForeach(next, skip, currentSize + 1)
+              }
+
+            case Success(None) =>
+              unit
+
+            case Failure(exception) =>
+              Failure(exception)
+          }
+
+      if (size.contains(0))
+        unit
+      else
+        stream.headOption match {
+          case Success(Some(first)) =>
+            if (skip >= 1)
+              doForeach(first, skip - 1, 0)
+            else {
+              try {
+                f(first)
+              } catch {
+                case throwable: Throwable =>
+                  return Failure(throwable)
+              }
+              doForeach(first, skip, 1)
+            }
+
+          case Success(None) =>
+            unit
+
+          case Failure(exception) =>
+            Failure(exception)
+        }
+    }
+  }
 
   implicit val ioWrap = new Wrap[IO] {
     override def apply[A](a: => A): IO[A] = IO(a)
