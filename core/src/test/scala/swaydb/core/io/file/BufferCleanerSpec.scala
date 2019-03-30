@@ -32,24 +32,15 @@ import swaydb.data.IO
 
 class BufferCleanerSpec extends TestBase {
 
-  "clear ByteBuffer" in {
-    val path = randomFilePath
-    val file = FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
-    val buffer = file.map(MapMode.READ_WRITE, 0, 1000)
-    val result = BufferCleaner.clean(BufferCleaner.State(None), buffer, path)
-    result shouldBe a[IO.Success[BufferCleaner.State]]
-    result.get.cleaner shouldBe defined
-  }
-
   "clear a MMAP file" in {
-    implicit val limiter: FileLimiter = FileLimiter(0, 10.millisecond)
+    implicit val limiter: FileLimiter = FileLimiter(0, 1.second)
     val file: DBFile = DBFile.mmapWriteAndRead(randomBytesSlice(), randomDir, autoClose = true).get
 
     eventual {
       file.file.get.asInstanceOf[MMAPFile].isBufferEmpty shouldBe true
     }
 
-    sleep(1.second)
+    sleep(2.second)
 
     limiter.terminate()
   }
@@ -82,5 +73,14 @@ class BufferCleanerSpec extends TestBase {
 
       limiter.terminate()
     }
+  }
+
+  "clear ByteBuffer" in {
+    val path = randomFilePath
+    val file = FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
+    val buffer = file.map(MapMode.READ_WRITE, 0, 1000)
+    val result = BufferCleaner.clean(BufferCleaner.State(None), buffer, path)
+    result shouldBe a[IO.Success[_]]
+    result.get.cleaner shouldBe defined
   }
 }
