@@ -20,25 +20,23 @@
 package swaydb.core.level
 
 import org.scalamock.scalatest.MockFactory
-import swaydb.core.{TestBase, TestData, TestTimer}
-import swaydb.core.data.{Memory, Persistent, Transient, Value}
+import scala.concurrent.duration._
+import swaydb.core.CommonAssertions._
+import swaydb.core.IOAssert._
+import swaydb.core.RunThis._
+import swaydb.core.TestData._
+import swaydb.core.data.{Memory, Transient}
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
-import swaydb.core.util.Benchmark
 import swaydb.core.io.file.IOEffect._
-import swaydb.core.util.PipeOps._
+import swaydb.core.util.Benchmark
+import swaydb.core.{TestBase, TestData, TestTimer}
 import swaydb.data.compaction.{LevelMeter, Throttle}
+import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
-import swaydb.data.order.KeyOrder
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.core.TestData._
-import swaydb.core.CommonAssertions._
-import swaydb.core.RunThis._
-import swaydb.core.IOAssert._
-import scala.concurrent.duration._
 
-//@formatter:off
 class LevelReadSpec0 extends LevelReadSpec
 
 class LevelReadSpec1 extends LevelReadSpec {
@@ -60,7 +58,6 @@ class LevelReadSpec2 extends LevelReadSpec {
 class LevelReadSpec3 extends LevelReadSpec {
   override def inMemoryStorage = true
 }
-//@formatter:on
 
 sealed trait LevelReadSpec extends TestBase with MockFactory with Benchmark {
 
