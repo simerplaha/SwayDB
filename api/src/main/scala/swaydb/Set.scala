@@ -19,6 +19,7 @@
 
 package swaydb
 
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 import swaydb.PrepareImplicits._
 import swaydb.Wrap._
@@ -248,6 +249,14 @@ case class Set[T, W[_]](private val core: Core[W],
 
   def closeDatabase(): W[Unit] =
     wrapCall(core.close())
+
+  def asyncAPI(implicit futureWrap: Wrap[Future],
+               ec: ExecutionContext): Set[T, Future] =
+    copy(core = core.async())
+
+  def syncAPI(implicit ioWrap: Wrap[IO],
+              ec: ExecutionContext): Set[T, IO] =
+    copy(core = core.sync())
 
   override def toString(): String =
     classOf[Map[_, _, W]].getClass.getSimpleName

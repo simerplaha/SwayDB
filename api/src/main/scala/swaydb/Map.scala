@@ -42,8 +42,8 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
                            private val from: Option[From[K]] = None,
                            private[swaydb] val reverseIteration: Boolean = false,
                            private val till: Option[(K, V) => Boolean] = None)(implicit keySerializer: Serializer[K],
-                                                                                             valueSerializer: Serializer[V],
-                                                                                             wrap: Wrap[W]) extends Stream[(K, V), W] {
+                                                                               valueSerializer: Serializer[V],
+                                                                               wrap: Wrap[W]) extends Stream[(K, V), W] {
 
   def wrapCall[C](f: => W[C]): W[C] =
     wrap(()).flatMap(_ => f)
@@ -357,17 +357,13 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
   def closeDatabase(): W[Unit] =
     wrapCall(core.close())
 
-  def async(implicit futureWrap: Wrap[Future],
-            ec: ExecutionContext): Map[K, V, Future] =
+  def asyncAPI(implicit futureWrap: Wrap[Future],
+               ec: ExecutionContext): Map[K, V, Future] =
     copy(core = core.async())
 
-  def syncTry(implicit tryWrap: Wrap[Try],
-              ec: ExecutionContext): Map[K, V, Try] =
-    copy(core = core.syncTry())
-
-  def syncIO(implicit ioWrap: Wrap[IO],
-             ec: ExecutionContext): Map[K, V, IO] =
-    copy(core = core.syncIO())
+  def syncAPI(implicit ioWrap: Wrap[IO],
+              ec: ExecutionContext): Map[K, V, IO] =
+    copy(core = core.sync())
 
   override def toString(): String =
     classOf[Map[_, _, W]].getClass.getSimpleName
