@@ -26,7 +26,7 @@ import swaydb.core.util.Extension
 
 class IOEffectSpec extends TestBase {
 
-  "IOEffect.fileId" should {
+  "fileId" should {
     "get the file id" in {
       IOEffect.fileId(Paths.get("/one/1.log")).assertGet shouldBe(1, Extension.Log)
       IOEffect.fileId(Paths.get("/one/two/10.log")).assertGet shouldBe(10, Extension.Log)
@@ -44,7 +44,7 @@ class IOEffectSpec extends TestBase {
     }
   }
 
-  "IOEffect.folderId" should {
+  "folderId" should {
     "get the folderId" in {
       IOEffect.folderId(Paths.get("/one/1")) shouldBe 1
       IOEffect.folderId(Paths.get("/one/two/10")) shouldBe 10
@@ -52,7 +52,7 @@ class IOEffectSpec extends TestBase {
     }
   }
 
-  "IOEffect.incrementFileId" should {
+  "incrementFileId" should {
     "return a new file path with incremented file id" in {
       IOEffect.incrementFileId(Paths.get("/one/1.log")).assertGet shouldBe Paths.get("/one/2.log")
       IOEffect.incrementFileId(Paths.get("/one/two/10.log")).assertGet shouldBe Paths.get("/one/two/11.log")
@@ -60,7 +60,7 @@ class IOEffectSpec extends TestBase {
     }
   }
 
-  "IOEffect.incrementFolderId" should {
+  "incrementFolderId" should {
     "return a new file path with incremented folder id" in {
       IOEffect.incrementFolderId(Paths.get("/one/1")) shouldBe Paths.get("/one/2")
       IOEffect.incrementFolderId(Paths.get("/one/two/10")) shouldBe Paths.get("/one/two/11")
@@ -68,7 +68,7 @@ class IOEffectSpec extends TestBase {
     }
   }
 
-  "IOEffect.files" should {
+  "files" should {
     "fetch all the files in sorted order" in {
       val dir = createRandomIntDirectory
       val actual =
@@ -103,7 +103,7 @@ class IOEffectSpec extends TestBase {
     }
   }
 
-  "IOEffect.folders" should {
+  "folders" should {
     "fetch all the folders in sorted order" in {
       val dir = createRandomIntDirectory
       val actual =
@@ -138,7 +138,7 @@ class IOEffectSpec extends TestBase {
     }
   }
 
-  "IOEffect.segmentFilesOnDisk" should {
+  "segmentFilesOnDisk" should {
     "fetch all segment files in order" in {
       val dir1 = createRandomIntDirectory
       val dir2 = createRandomIntDirectory
