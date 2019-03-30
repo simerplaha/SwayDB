@@ -40,7 +40,7 @@ class SwayDBSize_Memory_Spec extends SwayDBSizeSpec {
     swaydb.memory.Map[Int, String]().assertGet
 }
 
-sealed trait SwayDBSizeSpec extends TestBase with TestBaseEmbedded {
+sealed trait SwayDBSizeSpec extends TestBaseEmbedded {
 
   val keyValueCount: Int
 

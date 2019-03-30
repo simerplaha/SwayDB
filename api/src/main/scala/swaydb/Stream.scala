@@ -147,5 +147,4 @@ abstract class Stream[A, W[_]](implicit wrap: Wrap[W]) {
           .foreach(item => builder += item)
           .map(_ => builder.asSeq)
     }
-
 }

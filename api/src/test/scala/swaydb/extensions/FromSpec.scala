@@ -56,7 +56,7 @@ class FromSpec3 extends FromSpec {
     swaydb.extensions.memory.Map[Int, String]().assertGet
 }
 
-sealed trait FromSpec extends TestBase with TestBaseEmbedded {
+sealed trait FromSpec extends TestBaseEmbedded {
 
   val keyValueCount: Int
 

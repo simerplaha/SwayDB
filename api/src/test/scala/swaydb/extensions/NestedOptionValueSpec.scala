@@ -26,7 +26,7 @@ import swaydb.core.TestBase
 import swaydb.data.slice.Slice
 import swaydb.serializers.Serializer
 
-class NestedOptionValueSpec extends TestBase with TestBaseEmbedded {
+class NestedOptionValueSpec extends TestBaseEmbedded {
   override val keyValueCount: Int = 1000
 
   "Option[Option[V]]" in {

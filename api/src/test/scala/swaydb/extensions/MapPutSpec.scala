@@ -56,7 +56,7 @@ class MapPutSpec3 extends MapPutSpec {
     swaydb.extensions.memory.Map[Int, String]().assertGet
 }
 
-sealed trait MapPutSpec extends TestBase with TestBaseEmbedded {
+sealed trait MapPutSpec extends TestBaseEmbedded {
 
   val keyValueCount: Int
 

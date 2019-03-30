@@ -72,7 +72,7 @@ class SwayDBRemoveSpec5 extends SwayDBRemoveSpec {
     swaydb.memory.zero.Map[Int, String]().assertGet
 }
 
-sealed trait SwayDBRemoveSpec extends TestBase with TestBaseEmbedded {
+sealed trait SwayDBRemoveSpec extends TestBaseEmbedded {
 
   val keyValueCount: Int
 
