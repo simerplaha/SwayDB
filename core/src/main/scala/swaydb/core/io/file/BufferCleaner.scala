@@ -77,12 +77,15 @@ private[file] object BufferCleaner extends LazyLogging {
       }
     } onFailureSideEffect {
       error =>
-        logger.error(s"ByteBuffer cleaner not initialised. Failed to clean MMAP file: ${path.toString}.", error.exception)
-        throw error.exception //also throw to output to stdout in-case logging is not enabled.
+        val errorMessage = s"ByteBuffer cleaner not initialised. Failed to clean MMAP file: ${path.toString}."
+        val exception = error.exception
+        logger.error(errorMessage, exception)
+        throw new Exception(errorMessage, exception) //also throw to output to stdout in-case logging is not enabled since this is critical.
+
     }
 
   /**
-    * Mutates the state after cleaner is initialised. Do not copy state to avoid neccessary GC workload.
+    * Mutates the state after cleaner is initialised. Do not copy state to avoid necessary GC workload.
     */
   private[file] def clean(state: State, buffer: MappedByteBuffer, path: Path): IO[State] =
     state.cleaner map {
@@ -90,6 +93,12 @@ private[file] object BufferCleaner extends LazyLogging {
         IO {
           cleaner.clean(buffer)
           state
+        } onFailureSideEffect {
+          error =>
+            val errorMessage = s"Failed to clean MappedByteBuffer at path '${path.toString}'."
+            val exception = error.exception
+            logger.error(errorMessage, exception)
+            throw new Exception(errorMessage, exception) //also throw to output to stdout in-case logging is not enabled since this is critical.
         }
     } getOrElse {
       initialiseCleaner(state, buffer, path)
