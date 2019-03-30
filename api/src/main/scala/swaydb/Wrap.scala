@@ -28,7 +28,7 @@ import swaydb.data.IO
 /**
   * New Wrappers can be implemented by extending this trait.
   */
-private[swaydb] trait Wrap[W[_]] {
+trait Wrap[W[_]] {
   def apply[A](a: => A): W[A]
   def foreach[A, B](a: A)(f: A => B): Unit
   def map[A, B](a: A)(f: A => B): W[B]
@@ -39,7 +39,7 @@ private[swaydb] trait Wrap[W[_]] {
   private[swaydb] def terminate[A]: W[A] = none.asInstanceOf[W[A]]
 }
 
-private[swaydb] object Wrap {
+object Wrap {
 
   implicit val ioWrap = new Wrap[IO] {
     override def apply[A](a: => A): IO[A] = IO(a)

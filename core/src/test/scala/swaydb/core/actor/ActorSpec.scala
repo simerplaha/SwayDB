@@ -104,11 +104,15 @@ class ActorSpec extends WordSpec with Matchers {
             self.state.processed add int
         }
 
-      (1 to 3) foreach {
+      (1 to 10) foreach {
         i =>
           actor ! i
-          if (i == 2)
+          if (i == 2) {
+            while (state.processed.size() != 2) {
+              sleep(100.millisecond)
+            }
             actor.terminate()
+          }
       }
       eventual(10.seconds) {
         state.processed.size shouldBe 2

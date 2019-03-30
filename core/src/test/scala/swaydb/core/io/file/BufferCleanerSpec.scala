@@ -36,7 +36,7 @@ class BufferCleanerSpec extends TestBase {
     implicit val limiter: FileLimiter = FileLimiter(0, 1.second)
     val file: DBFile = DBFile.mmapWriteAndRead(randomBytesSlice(), randomDir, autoClose = true).get
 
-    eventual {
+    eventual(10.seconds) {
       file.file.get.asInstanceOf[MMAPFile].isBufferEmpty shouldBe true
     }
 
