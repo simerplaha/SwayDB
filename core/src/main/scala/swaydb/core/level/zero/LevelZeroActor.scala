@@ -53,8 +53,10 @@ private[core] class LevelZeroActor(zero: LevelZero,
   def clearMessages() =
     actor.clearMessages()
 
+  import scala.concurrent.duration._
+
   def !(command: LevelZeroAPI): Unit =
-    actor ! command
+    actor.schedule(command, 1.second)
 
   def terminate() =
     actor.terminate()

@@ -23,16 +23,27 @@ import java.nio.file.NoSuchFileException
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import swaydb.core.RunThis._
+import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.queue.FileLimiter
-import swaydb.core.{TestBase, TestLimitQueues}
 
 class BufferCleanerSpec extends TestBase {
 
-  implicit val fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
+  "clear a MMAP file ByteBuffer" in {
+    implicit val limiter: FileLimiter = FileLimiter(0, 100.millisecond)
+    val file = DBFile.mmapWriteAndRead(randomBytesSlice(), randomDir, autoClose = true).get
+
+    eventual {
+      file.file.get.asInstanceOf[MMAPFile].isBufferEmpty shouldBe true
+    }
+
+    limiter.terminate()
+  }
 
   "it should not fatal terminate" when {
     "concurrently reading a deleted MMAP file" in {
+
+      implicit val limiter: FileLimiter = FileLimiter(0, 1.seconds)
 
       val files =
         (1 to 20) map {
@@ -41,7 +52,6 @@ class BufferCleanerSpec extends TestBase {
             file.delete().get
             file
         }
-
 
       //deleting a memory mapped file (that performs unsafe Buffer cleanup)
       //and repeatedly reading from it should not cause fatal shutdown.
@@ -55,6 +65,8 @@ class BufferCleanerSpec extends TestBase {
 
       //keep this test running for a few seconds.
       sleep(20.seconds)
+
+      limiter.terminate()
     }
   }
 }

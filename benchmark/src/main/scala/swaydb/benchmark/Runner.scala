@@ -97,11 +97,17 @@ case class Runner(test: Test) extends Benchmark with LazyLogging {
       benchmark("Read benchmark during compaction") {
         readKeys foreach {
           key =>
-            //            db.get(key)
-            val value = map.get(key).get.get
-            val longKey = key.readLong()
-            if (longKey % 10000 == 0)
-              println(longKey + " -> " + value.map(_.readString()))
+            try {
+              //            db.get(key)
+              val value = map.get(key).get.get
+              val longKey = key.readLong()
+              if (longKey % 10000 == 0)
+                println(longKey + " -> " + value.map(_.readString()))
+            } catch {
+              case ex: Exception =>
+                println("Key not found 1:" + key.readLong())
+                ex.printStackTrace()
+            }
         }
       }
     }
@@ -148,11 +154,17 @@ case class Runner(test: Test) extends Benchmark with LazyLogging {
       benchmark("Read benchmark after compaction") {
         readKeys foreach {
           key =>
-            //            db.get(key)
-            val value = map.get(key).get.get
-            val longKey = key.readLong()
-            if (longKey % 10000 == 0)
-              println(longKey + " -> " + value.map(_.readString()))
+            try {
+              //            db.get(key)
+              val value = map.get(key).get.get
+              val longKey = key.readLong()
+              if (longKey % 10000 == 0)
+                println(longKey + " -> " + value.map(_.readString()))
+            } catch {
+              case ex: Exception =>
+                println("Key not found 2:" + key.readLong())
+                ex.printStackTrace()
+            }
         }
       }
     }

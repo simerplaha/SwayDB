@@ -166,4 +166,7 @@ private[file] class MMAPFile(val path: Path,
       _ =>
         IOEffect.delete(path)
     }
+
+  def isBufferEmpty: Boolean =
+    buffer == null
 }

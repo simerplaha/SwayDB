@@ -75,7 +75,7 @@ sealed trait WeatherDataSpec extends TestBase with LazyLogging with Benchmark wi
 
         if (key % inBatchesOf == 0) {
           val keyValues =
-            (key - (inBatchesOf - 1) to key).map {
+            (key - (inBatchesOf - 1) to key) map {
               key =>
                 (key, WeatherData(Water(key, Direction.East, key), Wind(key, Direction.West, key, key), Location.Sydney))
             }

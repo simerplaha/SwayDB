@@ -28,9 +28,7 @@ object TestLimitQueues {
 
   implicit val level0PushDownPool = TestExecutionContext.executionContext
 
-
   val keyValueLimiter = KeyValueLimiter(10.mb, 5.seconds)
-
 
   val closeQueue = new ConcurrentLinkedQueue[FileLimiterItem]()
   @volatile var closeQueueSize = closeQueue.size()
@@ -55,5 +53,7 @@ object TestLimitQueues {
           closeQueue.poll().delete()
         }
       }
+
+      override def terminate(): Unit = ()
     }
 }

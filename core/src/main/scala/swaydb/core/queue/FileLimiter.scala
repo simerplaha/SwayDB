@@ -31,6 +31,8 @@ private[swaydb] trait FileLimiter {
 
   def delete(file: FileLimiterItem): Unit
 
+  def terminate(): Unit
+
 }
 
 private[core] trait FileLimiterItem {
@@ -48,8 +50,8 @@ private[core] object FileLimiter extends LazyLogging {
   val empty =
     new FileLimiter {
       override def close(file: FileLimiterItem): Unit = ()
-
       override def delete(file: FileLimiterItem): Unit = ()
+      override def terminate(): Unit = ()
     }
 
   private sealed trait Action {
@@ -86,6 +88,7 @@ private[core] object FileLimiter extends LazyLogging {
     }
 
     new FileLimiter {
+
       override def close(file: FileLimiterItem): Unit =
         queue ! Action.Close(new WeakReference[FileLimiterItem](file))
 
@@ -95,6 +98,9 @@ private[core] object FileLimiter extends LazyLogging {
       //delete on the file is triggered, the physical file will remain on disk.
       override def delete(file: FileLimiterItem): Unit =
         queue ! Action.Delete(file)
+
+      override def terminate(): Unit =
+        queue.terminate()
     }
   }
 }
