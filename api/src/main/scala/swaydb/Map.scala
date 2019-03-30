@@ -230,22 +230,22 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
   def from(key: K): Map[K, V, W] =
     copy(from = Some(From(key = key, orBefore = false, orAfter = false, before = false, after = false)))
 
-  def before(key: K) =
+  def before(key: K): Map[K, V, W] =
     copy(from = Some(From(key = key, orBefore = false, orAfter = false, before = true, after = false)))
 
-  def fromOrBefore(key: K) =
+  def fromOrBefore(key: K): Map[K, V, W] =
     copy(from = Some(From(key = key, orBefore = true, orAfter = false, before = false, after = false)))
 
-  def after(key: K) =
+  def after(key: K): Map[K, V, W] =
     copy(from = Some(From(key = key, orBefore = false, orAfter = false, before = false, after = true)))
 
-  def fromOrAfter(key: K) =
+  def fromOrAfter(key: K): Map[K, V, W] =
     copy(from = Some(From(key = key, orBefore = false, orAfter = true, before = false, after = false)))
 
-  def takeWhile(condition: (K, V) => Boolean) =
+  def takeWhile(condition: (K, V) => Boolean): Map[K, V, W] =
     copy(till = Some(condition))
 
-  def takeWhileKey(condition: K => Boolean) =
+  def takeWhileKey(condition: K => Boolean): Map[K, V, W] =
     copy(
       till =
         Some(
@@ -254,7 +254,7 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
         )
     )
 
-  def takeWhileValue(condition: V => Boolean) =
+  def takeWhileValue(condition: V => Boolean): Map[K, V, W] =
     copy(
       till =
         Some(
@@ -366,7 +366,7 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
         }
       }
 
-  def reverse =
+  def reverse: Map[K, V, W] =
     copy(reverseIteration = true)
 
   def closeDatabase(): W[Unit] =
@@ -379,11 +379,8 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
   def syncAPI(implicit ioWrap: Wrap[IO]): Map[K, V, IO] =
     copy(core = core.sync())
 
-  def asScala: scala.collection.Map[K, V] =
+  def asScala: scala.collection.mutable.Map[K, V] =
     ScalaMap[K, V](syncAPI(Wrap.ioWrap))
-
-  def asJava: java.util.Map[K, V] =
-    JavaConverters.mapAsJavaMap(asScala)
 
   override def toString(): String =
     classOf[Map[_, _, W]].getClass.getSimpleName

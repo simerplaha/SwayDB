@@ -19,9 +19,8 @@
 
 package swaydb
 
-import scala.collection.JavaConverters
-import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.{Deadline, FiniteDuration}
+import scala.concurrent.{ExecutionContext, Future}
 import swaydb.PrepareImplicits._
 import swaydb.Wrap._
 import swaydb.core.Core
@@ -170,19 +169,19 @@ case class Set[T, W[_]](private val core: Core[W],
   def from(key: T): Set[T, W] =
     copy(from = Some(From(key = key, orBefore = false, orAfter = false, before = false, after = false)))
 
-  def before(key: T) =
+  def before(key: T): Set[T, W] =
     copy(from = Some(From(key = key, orBefore = false, orAfter = false, before = true, after = false)))
 
-  def fromOrBefore(key: T) =
+  def fromOrBefore(key: T): Set[T, W] =
     copy(from = Some(From(key = key, orBefore = true, orAfter = false, before = false, after = false)))
 
-  def after(key: T) =
+  def after(key: T): Set[T, W] =
     copy(from = Some(From(key = key, orBefore = false, orAfter = false, before = false, after = true)))
 
-  def fromOrAfter(key: T) =
+  def fromOrAfter(key: T): Set[T, W] =
     copy(from = Some(From(key = key, orBefore = false, orAfter = true, before = false, after = false)))
 
-  def takeWhile(condition: T => Boolean) =
+  def takeWhile(condition: T => Boolean): Set[T, W] =
     copy(till = Some(condition))
 
   private def checkTakeWhile(key: Slice[Byte]): Option[T] = {
@@ -257,17 +256,14 @@ case class Set[T, W[_]](private val core: Core[W],
     else
       wrapCall(core.lastKey.map(_.map(_.read[T])))
 
-  def reverse =
+  def reverse: Set[T, W] =
     copy(reverseIteration = true)
 
   def closeDatabase(): W[Unit] =
     wrapCall(core.close())
 
-  def asScala: scala.collection.Set[T] =
+  def asScala: scala.collection.mutable.Set[T] =
     ScalaSet[T](syncAPI(Wrap.ioWrap))
-
-  def asJava: java.util.Set[T] =
-    JavaConverters.setAsJavaSet(asScala)
 
   def asyncAPI(implicit futureWrap: Wrap[Future],
                ec: ExecutionContext): Set[T, Future] =
