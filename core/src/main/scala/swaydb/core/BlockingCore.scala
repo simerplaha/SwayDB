@@ -157,6 +157,9 @@ private[swaydb] case class BlockingCore(zero: LevelZero) extends Core[IO] {
   def update(fromKey: Slice[Byte], to: Slice[Byte], value: Option[Slice[Byte]]): IO[Level0Meter] =
     zero.update(fromKey, to, value)
 
+  override def clear(): IO[Level0Meter] =
+    zero.clear().safeGetBlocking
+
   def function(key: Slice[Byte], function: Slice[Byte]): IO[Level0Meter] =
     zero.function(key, function)
 
@@ -338,4 +341,5 @@ private[swaydb] case class BlockingCore(zero: LevelZero) extends Core[IO] {
     AsyncCore(zero)
   override def syncTry()(implicit ec: ExecutionContext): Core[Try] = ???
   override def syncIO()(implicit ec: ExecutionContext): Core[IO] = ???
+
 }

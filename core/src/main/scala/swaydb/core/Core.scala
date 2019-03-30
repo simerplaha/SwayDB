@@ -58,6 +58,8 @@ private[swaydb] trait Core[F[_]] {
 
   def update(fromKey: Slice[Byte], to: Slice[Byte], value: Option[Slice[Byte]]): F[Level0Meter]
 
+  def clear(): F[Level0Meter]
+
   def function(key: Slice[Byte], function: Slice[Byte]): F[Level0Meter]
 
   def function(from: Slice[Byte], to: Slice[Byte], function: Slice[Byte]): F[Level0Meter]

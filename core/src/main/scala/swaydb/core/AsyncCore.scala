@@ -76,6 +76,9 @@ private[swaydb] case class AsyncCore(zero: LevelZero)(implicit ec: ExecutionCont
   override def update(fromKey: Slice[Byte], to: Slice[Byte], value: Option[Slice[Byte]]): Future[Level0Meter] =
     blocking.update(fromKey, to, value).toFuture
 
+  override def clear(): Future[Level0Meter] =
+    zero.clear().safeGetFuture
+
   override def function(key: Slice[Byte], function: Slice[Byte]): Future[Level0Meter] =
     blocking.function(key, function).toFuture
 
@@ -256,4 +259,5 @@ private[swaydb] case class AsyncCore(zero: LevelZero)(implicit ec: ExecutionCont
   override def async()(implicit ec: ExecutionContext): Core[Future] = this
   override def syncTry()(implicit ec: ExecutionContext): Core[Try] = ???
   override def syncIO()(implicit ec: ExecutionContext): Core[IO] = ???
+
 }

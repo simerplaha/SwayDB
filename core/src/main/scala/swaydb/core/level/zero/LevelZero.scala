@@ -277,6 +277,21 @@ private[core] class LevelZero(val path: Path,
       }
     }
 
+  def clear(): IO.Async[Level0Meter] =
+    headKey flatMap {
+      case Some(headKey) =>
+        lastKey flatMap {
+          case Some(lastKey) =>
+            remove(headKey, lastKey).asAsync
+
+          case None =>
+            IO.Success(level0Meter) //might have been removed by another thread?
+        }
+
+      case None =>
+        IO.Success(level0Meter)
+    }
+
   def registerFunction(functionID: Slice[Byte], function: SwayFunction): SwayFunction =
     functionStore.put(functionID, function)
 

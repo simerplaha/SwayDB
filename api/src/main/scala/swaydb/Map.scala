@@ -130,6 +130,9 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
       }
     }
 
+  def clear(): W[Level0Meter] =
+    wrapCall(core.clear())
+
   def registerFunction(functionID: K, function: V => Apply.Map[V]): K = {
     core.registerFunction(functionID, SwayDB.toCoreFunction(function))
     functionID

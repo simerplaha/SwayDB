@@ -45,7 +45,7 @@ case class Set[T, W[_]](private val core: Core[W],
                         private[swaydb] val count: Option[Int] = None,
                         private[swaydb] val reverseIteration: Boolean = false,
                         private val till: Option[T => Boolean] = None)(implicit serializer: Serializer[T],
-                                                                                     wrap: Wrap[W]) extends Stream[T, W] {
+                                                                       wrap: Wrap[W]) extends Stream[T, W] {
 
   def wrapCall[C](f: => W[C]): W[C] =
     wrap(()).flatMap(_ => f)
@@ -114,6 +114,9 @@ case class Set[T, W[_]](private val core: Core[W],
         }
       }
     }
+
+  def clear(): W[Level0Meter] =
+    wrapCall(core.clear())
 
   def registerFunction(functionID: T, function: (T, Option[Deadline]) => Apply.Set[T]): T = {
     core.registerFunction(functionID, SwayDB.toCoreFunction(function))

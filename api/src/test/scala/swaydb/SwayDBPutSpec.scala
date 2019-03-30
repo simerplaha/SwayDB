@@ -431,4 +431,25 @@ sealed trait SwayDBPutSpec extends TestBase with TestBaseEmbedded {
       db.closeDatabase().get
     }
   }
+
+  "clear" when {
+    "empty" in {
+      val db = newDB()
+
+      db.isEmpty.get shouldBe true
+      db.clear().assertGet
+      db.isEmpty.get shouldBe true
+    }
+
+    "not empty" in {
+      val db = newDB()
+
+      (1 to keyValueCount) foreach { i => db.put(i, i.toString).assertGet }
+      db.isEmpty.get shouldBe false
+
+      db.clear().assertGet
+      db.isEmpty.get shouldBe true
+    }
+
+  }
 }
