@@ -58,7 +58,7 @@ private[core] object CoreInitializer extends LazyLogging {
   def apply(config: LevelZeroConfig)(implicit ec: ExecutionContext,
                                      keyOrder: KeyOrder[Slice[Byte]],
                                      timeOrder: TimeOrder[Slice[Byte]],
-                                     functionStore: FunctionStore): IO[BlockingCore] = {
+                                     functionStore: FunctionStore): IO[BlockingCore[IO]] = {
     implicit val fileLimiter = FileLimiter.empty
     LevelZero(
       mapSize = config.mapSize,
@@ -69,7 +69,7 @@ private[core] object CoreInitializer extends LazyLogging {
     ) map {
       zero =>
         addShutdownHook(zero)
-        BlockingCore(zero)
+        BlockingCore[IO](zero)
     }
   }
 
@@ -80,7 +80,7 @@ private[core] object CoreInitializer extends LazyLogging {
             segmentCloserDelay: FiniteDuration)(implicit ec: ExecutionContext,
                                                 keyOrder: KeyOrder[Slice[Byte]],
                                                 timeOrder: TimeOrder[Slice[Byte]],
-                                                functionStore: FunctionStore): IO[BlockingCore] = {
+                                                functionStore: FunctionStore): IO[BlockingCore[IO]] = {
     implicit val fileOpenLimiter: FileLimiter =
       FileLimiter(maxSegmentsOpen, segmentCloserDelay)
 
@@ -130,7 +130,7 @@ private[core] object CoreInitializer extends LazyLogging {
       }
 
     def createLevels(levelConfigs: List[LevelConfig],
-                     previousLowerLevel: Option[LevelRef]): IO[BlockingCore] =
+                     previousLowerLevel: Option[LevelRef]): IO[BlockingCore[IO]] =
       levelConfigs match {
         case Nil =>
           createLevel(1, previousLowerLevel, config.level1) flatMap {

@@ -19,15 +19,14 @@
 
 package swaydb.core
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.Deadline
-import scala.util.Try
 import swaydb.Prepare
 import swaydb.core.data.KeyValue.KeyValueTuple
 import swaydb.core.data.SwayFunction
-import swaydb.data.IO
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
+import swaydb.data.io.converter.{AsyncIOConverter, BlockingIOConverter}
 import swaydb.data.slice.Slice
 
 private[swaydb] trait Core[W[_]] {
@@ -106,7 +105,7 @@ private[swaydb] trait Core[W[_]] {
 
   def close(): W[Unit]
 
-  def async()(implicit ec: ExecutionContext): Core[Future]
+  def async[T[_]](implicit ec: ExecutionContext, converter: AsyncIOConverter[T]): Core[T]
 
-  def sync(): Core[IO]
+  def blocking[T[_]](implicit converter: BlockingIOConverter[T]): BlockingCore[T]
 }

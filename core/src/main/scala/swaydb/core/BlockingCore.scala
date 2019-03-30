@@ -19,22 +19,22 @@
 
 package swaydb.core
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{Deadline, FiniteDuration}
-import scala.util.Try
 import swaydb.Prepare
 import swaydb.core.data.KeyValue._
 import swaydb.core.data.{Memory, SwayFunction, Time, Value}
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.zero.LevelZero
-import swaydb.core.map.serializer.LevelZeroMapEntryWriter
 import swaydb.core.map.MapEntry
+import swaydb.core.map.serializer.LevelZeroMapEntryWriter
 import swaydb.core.map.timer.Timer
 import swaydb.data.IO
+import swaydb.data.IO.Error
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.config.{LevelZeroConfig, SwayDBConfig}
-import swaydb.data.IO.Error
+import swaydb.data.io.converter.{AsyncIOConverter, BlockingIOConverter}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
@@ -47,7 +47,7 @@ private[swaydb] object BlockingCore {
             segmentsOpenCheckDelay: FiniteDuration)(implicit ec: ExecutionContext,
                                                     keyOrder: KeyOrder[Slice[Byte]],
                                                     timeOrder: TimeOrder[Slice[Byte]],
-                                                    functionStore: FunctionStore): IO[BlockingCore] =
+                                                    functionStore: FunctionStore): IO[BlockingCore[IO]] =
     CoreInitializer(
       config = config,
       maxSegmentsOpen = maxOpenSegments,
@@ -59,7 +59,7 @@ private[swaydb] object BlockingCore {
   def apply(config: LevelZeroConfig)(implicit ec: ExecutionContext,
                                      keyOrder: KeyOrder[Slice[Byte]],
                                      timeOrder: TimeOrder[Slice[Byte]],
-                                     functionStore: FunctionStore): IO[BlockingCore] =
+                                     functionStore: FunctionStore): IO[BlockingCore[IO]] =
     CoreInitializer(config = config)
 
   private def prepareToMapEntry(entries: Iterable[Prepare[Slice[Byte], Option[Slice[Byte]]]])(timer: Timer): Option[MapEntry[Slice[Byte], Memory.SegmentResponse]] =
@@ -104,19 +104,19 @@ private[swaydb] object BlockingCore {
     }
 }
 
-private[swaydb] case class BlockingCore(zero: LevelZero) extends Core[IO] {
+private[swaydb] case class BlockingCore[W[_]](zero: LevelZero)(implicit converter: BlockingIOConverter[W]) extends Core[W] {
 
-  def put(key: Slice[Byte]): IO[Level0Meter] =
-    zero.put(key)
+  def put(key: Slice[Byte]): W[Level0Meter] =
+    converter(zero.put(key))
 
-  def put(key: Slice[Byte], value: Slice[Byte]): IO[Level0Meter] =
-    zero.put(key, value)
+  def put(key: Slice[Byte], value: Slice[Byte]): W[Level0Meter] =
+    converter(zero.put(key, value))
 
-  def put(key: Slice[Byte], value: Option[Slice[Byte]]): IO[Level0Meter] =
-    zero.put(key, value)
+  def put(key: Slice[Byte], value: Option[Slice[Byte]]): W[Level0Meter] =
+    converter(zero.put(key, value))
 
-  def put(key: Slice[Byte], value: Option[Slice[Byte]], removeAt: Deadline): IO[Level0Meter] =
-    zero.put(key, value, removeAt)
+  def put(key: Slice[Byte], value: Option[Slice[Byte]], removeAt: Deadline): W[Level0Meter] =
+    converter(zero.put(key, value, removeAt))
 
   /**
     * Each [[Prepare]] requires a new next [[Time]] for cases where a batch contains overriding keys.
@@ -127,49 +127,49 @@ private[swaydb] case class BlockingCore(zero: LevelZero) extends Core[IO] {
     * NOTE: If the default time order [[TimeOrder.long]] is used
     * Times should always be unique and in incremental order for *ALL* key values.
     */
-  def put(entries: Iterable[Prepare[Slice[Byte], Option[Slice[Byte]]]]): IO[Level0Meter] =
+  def put(entries: Iterable[Prepare[Slice[Byte], Option[Slice[Byte]]]]): W[Level0Meter] =
     if (entries.isEmpty)
-      IO.Failure(new Exception("Cannot write empty batch"))
+      converter(IO.Failure(new Exception("Cannot write empty batch")))
     else
-      zero.put(BlockingCore.prepareToMapEntry(entries)(_).get) //Gah .get! hmm.
+      converter(zero.put(BlockingCore.prepareToMapEntry(entries)(_).get)) //Gah .get! hmm.
 
-  def remove(key: Slice[Byte]): IO[Level0Meter] =
-    zero.remove(key)
+  def remove(key: Slice[Byte]): W[Level0Meter] =
+    converter(zero.remove(key))
 
-  def remove(key: Slice[Byte], at: Deadline): IO[Level0Meter] =
-    zero.remove(key, at)
+  def remove(key: Slice[Byte], at: Deadline): W[Level0Meter] =
+    converter(zero.remove(key, at))
 
-  def remove(from: Slice[Byte], to: Slice[Byte]): IO[Level0Meter] =
-    zero.remove(from, to)
+  def remove(from: Slice[Byte], to: Slice[Byte]): W[Level0Meter] =
+    converter(zero.remove(from, to))
 
-  def remove(from: Slice[Byte], to: Slice[Byte], at: Deadline): IO[Level0Meter] =
-    zero.remove(from, to, at)
+  def remove(from: Slice[Byte], to: Slice[Byte], at: Deadline): W[Level0Meter] =
+    converter(zero.remove(from, to, at))
 
-  def update(key: Slice[Byte], value: Slice[Byte]): IO[Level0Meter] =
-    zero.update(key, value)
+  def update(key: Slice[Byte], value: Slice[Byte]): W[Level0Meter] =
+    converter(zero.update(key, value))
 
-  def update(key: Slice[Byte], value: Option[Slice[Byte]]): IO[Level0Meter] =
-    zero.update(key, value)
+  def update(key: Slice[Byte], value: Option[Slice[Byte]]): W[Level0Meter] =
+    converter(zero.update(key, value))
 
-  def update(fromKey: Slice[Byte], to: Slice[Byte], value: Slice[Byte]): IO[Level0Meter] =
-    zero.update(fromKey, to, value)
+  def update(fromKey: Slice[Byte], to: Slice[Byte], value: Slice[Byte]): W[Level0Meter] =
+    converter(zero.update(fromKey, to, value))
 
-  def update(fromKey: Slice[Byte], to: Slice[Byte], value: Option[Slice[Byte]]): IO[Level0Meter] =
-    zero.update(fromKey, to, value)
+  def update(fromKey: Slice[Byte], to: Slice[Byte], value: Option[Slice[Byte]]): W[Level0Meter] =
+    converter(zero.update(fromKey, to, value))
 
-  override def clear(): IO[Level0Meter] =
-    zero.clear().safeGetBlocking
+  override def clear(): W[Level0Meter] =
+    converter(zero.clear().safeGetBlocking)
 
-  def function(key: Slice[Byte], function: Slice[Byte]): IO[Level0Meter] =
-    zero.function(key, function)
+  def function(key: Slice[Byte], function: Slice[Byte]): W[Level0Meter] =
+    converter(zero.function(key, function))
 
-  def function(from: Slice[Byte], to: Slice[Byte], function: Slice[Byte]): IO[Level0Meter] =
-    zero.function(from, to, function)
+  def function(from: Slice[Byte], to: Slice[Byte], function: Slice[Byte]): W[Level0Meter] =
+    converter(zero.function(from, to, function))
 
   def registerFunction(functionID: Slice[Byte], function: SwayFunction): SwayFunction =
     zero.registerFunction(functionID, function)
 
-  def head: IO[Option[KeyValueTuple]] =
+  private def headIO: IO[Option[KeyValueTuple]] =
     zero.head.safeGetBlocking flatMap {
       result =>
         result map {
@@ -181,7 +181,7 @@ private[swaydb] case class BlockingCore(zero: LevelZero) extends Core[IO] {
               case error =>
                 error match {
                   case _: Error.Busy =>
-                    head
+                    headIO
 
                   case failure =>
                     IO.Failure(failure)
@@ -190,10 +190,13 @@ private[swaydb] case class BlockingCore(zero: LevelZero) extends Core[IO] {
         } getOrElse IO.none
     }
 
-  def headKey: IO[Option[Slice[Byte]]] =
-    zero.headKey.safeGetBlocking
+  def head: W[Option[(Slice[Byte], Option[Slice[Byte]])]] =
+    converter(headIO)
 
-  def last: IO[Option[KeyValueTuple]] =
+  def headKey: W[Option[Slice[Byte]]] =
+    converter(zero.headKey.safeGetBlocking)
+
+  private def lastIO: IO[Option[KeyValueTuple]] =
     zero.last.safeGetBlocking flatMap {
       result =>
         result map {
@@ -205,7 +208,7 @@ private[swaydb] case class BlockingCore(zero: LevelZero) extends Core[IO] {
               case error =>
                 error match {
                   case _: Error.Busy =>
-                    last
+                    lastIO
 
                   case failure =>
                     IO.Failure(failure)
@@ -214,25 +217,28 @@ private[swaydb] case class BlockingCore(zero: LevelZero) extends Core[IO] {
         } getOrElse IO.none
     }
 
-  def lastKey: IO[Option[Slice[Byte]]] =
-    zero.lastKey.safeGetBlocking
+  def last: W[Option[KeyValueTuple]] =
+    converter(lastIO)
 
-  def bloomFilterKeyValueCount: IO[Int] =
-    IO.Async.runSafe(zero.bloomFilterKeyValueCount.get).safeGetBlocking
+  def lastKey: W[Option[Slice[Byte]]] =
+    converter(zero.lastKey.safeGetBlocking)
 
-  def deadline(key: Slice[Byte]): IO[Option[Deadline]] =
-    zero.deadline(key).safeGetBlocking
+  def bloomFilterKeyValueCount: W[Int] =
+    converter(IO.Async.runSafe(zero.bloomFilterKeyValueCount.get).safeGetBlocking)
+
+  def deadline(key: Slice[Byte]): W[Option[Deadline]] =
+    converter(zero.deadline(key).safeGetBlocking)
 
   def sizeOfSegments: Long =
     zero.sizeOfSegments
 
-  def contains(key: Slice[Byte]): IO[Boolean] =
-    zero.contains(key).safeGetBlocking
+  def contains(key: Slice[Byte]): W[Boolean] =
+    converter(zero.contains(key).safeGetBlocking)
 
-  def mightContain(key: Slice[Byte]): IO[Boolean] =
-    IO.Async.runSafe(zero.mightContain(key).get).safeGetBlocking
+  def mightContain(key: Slice[Byte]): W[Boolean] =
+    converter(IO.Async.runSafe(zero.mightContain(key).get).safeGetBlocking)
 
-  def get(key: Slice[Byte]): IO[Option[Option[Slice[Byte]]]] =
+  private def getIO(key: Slice[Byte]): IO[Option[Option[Slice[Byte]]]] =
     zero.get(key).safeGetBlocking flatMap {
       result =>
         result map {
@@ -244,7 +250,7 @@ private[swaydb] case class BlockingCore(zero: LevelZero) extends Core[IO] {
               case error =>
                 error match {
                   case _: Error.Busy =>
-                    get(key)
+                    getIO(key)
 
                   case failure =>
                     IO.Failure(failure)
@@ -253,10 +259,13 @@ private[swaydb] case class BlockingCore(zero: LevelZero) extends Core[IO] {
         } getOrElse IO.none
     }
 
-  def getKey(key: Slice[Byte]): IO[Option[Slice[Byte]]] =
-    zero.getKey(key).safeGetBlocking
+  def get(key: Slice[Byte]): W[Option[Option[Slice[Byte]]]] =
+    converter(getIO(key))
 
-  def getKeyValue(key: Slice[Byte]): IO[Option[KeyValueTuple]] =
+  def getKey(key: Slice[Byte]): W[Option[Slice[Byte]]] =
+    converter(zero.getKey(key).safeGetBlocking)
+
+  private def getKeyValueIO(key: Slice[Byte]): IO[Option[KeyValueTuple]] =
     zero.get(key).safeGetBlocking flatMap {
       result =>
         result map {
@@ -268,7 +277,7 @@ private[swaydb] case class BlockingCore(zero: LevelZero) extends Core[IO] {
               case error =>
                 error match {
                   case _: Error.Busy =>
-                    getKeyValue(key)
+                    getKeyValueIO(key)
 
                   case failure =>
                     IO.Failure(failure)
@@ -277,7 +286,10 @@ private[swaydb] case class BlockingCore(zero: LevelZero) extends Core[IO] {
         } getOrElse IO.none
     }
 
-  def before(key: Slice[Byte]): IO[Option[KeyValueTuple]] =
+  def getKeyValue(key: Slice[Byte]): W[Option[KeyValueTuple]] =
+    converter(getKeyValueIO(key))
+
+  private def beforeIO(key: Slice[Byte]): IO[Option[KeyValueTuple]] =
     zero.lower(key).safeGetBlocking flatMap {
       result =>
         result map {
@@ -289,7 +301,7 @@ private[swaydb] case class BlockingCore(zero: LevelZero) extends Core[IO] {
               case error =>
                 error match {
                   case _: Error.Busy =>
-                    before(key)
+                    beforeIO(key)
 
                   case failure =>
                     IO.Failure(failure)
@@ -298,10 +310,13 @@ private[swaydb] case class BlockingCore(zero: LevelZero) extends Core[IO] {
         } getOrElse IO.none
     }
 
-  def beforeKey(key: Slice[Byte]): IO[Option[Slice[Byte]]] =
-    zero.lower(key).safeGetBlocking.map(_.map(_.key))
+  def before(key: Slice[Byte]): W[Option[KeyValueTuple]] =
+    converter(beforeIO(key))
 
-  def after(key: Slice[Byte]): IO[Option[KeyValueTuple]] =
+  def beforeKey(key: Slice[Byte]): W[Option[Slice[Byte]]] =
+    converter(zero.lower(key).safeGetBlocking.map(_.map(_.key)))
+
+  private def afterIO(key: Slice[Byte]): IO[Option[KeyValueTuple]] =
     zero.higher(key).safeGetBlocking flatMap {
       result =>
         result map {
@@ -313,7 +328,7 @@ private[swaydb] case class BlockingCore(zero: LevelZero) extends Core[IO] {
               case error =>
                 error match {
                   case _: Error.Busy =>
-                    after(key)
+                    afterIO(key)
 
                   case failure =>
                     IO.Failure(failure)
@@ -322,11 +337,14 @@ private[swaydb] case class BlockingCore(zero: LevelZero) extends Core[IO] {
         } getOrElse IO.none
     }
 
-  def afterKey(key: Slice[Byte]): IO[Option[Slice[Byte]]] =
-    zero.higher(key).safeGetBlocking.map(_.map(_.key))
+  def after(key: Slice[Byte]): W[Option[KeyValueTuple]] =
+    converter(afterIO(key))
 
-  def valueSize(key: Slice[Byte]): IO[Option[Int]] =
-    zero.valueSize(key).safeGetBlocking
+  def afterKey(key: Slice[Byte]): W[Option[Slice[Byte]]] =
+    converter(zero.higher(key).safeGetBlocking.map(_.map(_.key)))
+
+  def valueSize(key: Slice[Byte]): W[Option[Int]] =
+    converter(zero.valueSize(key).safeGetBlocking)
 
   def level0Meter: Level0Meter =
     zero.level0Meter
@@ -334,12 +352,12 @@ private[swaydb] case class BlockingCore(zero: LevelZero) extends Core[IO] {
   def levelMeter(levelNumber: Int): Option[LevelMeter] =
     zero.levelMeter(levelNumber)
 
-  def close(): IO[Unit] =
-    zero.close
+  def close(): W[Unit] =
+    converter(zero.close)
 
-  override def async()(implicit ec: ExecutionContext): AsyncCore =
+  override def async[T[_]](implicit ec: ExecutionContext, converter: AsyncIOConverter[T]): Core[T] =
     AsyncCore(zero)
 
-  override def sync(): Core[IO] =
-    this
+  override def blocking[T[_]](implicit converter: BlockingIOConverter[T]): BlockingCore[T] =
+    BlockingCore(zero)
 }

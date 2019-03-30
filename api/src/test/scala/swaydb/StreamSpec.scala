@@ -52,27 +52,6 @@ class StreamSpec extends WordSpec with Matchers {
 
     }
 
-    "try" in {
-
-      def stream =
-        Stream[Int, Try](1 to 1000)
-          .map(_ + " one")
-          .flatMap(_.map(_ + " two"))
-          .flatMap(_.map(_ + " three"))
-          .get
-
-      def assert() =
-        stream.toSeq.get shouldBe (1 to 1000).map(_ + " one two three")
-
-      assert()
-      assert() //assert again, streams can be re-read.
-
-      stream.foldLeft(0)(_ + _.takeWhile(_.isDigit).toInt).get shouldBe (1 to 1000).sum
-      stream.lastOptionStream.get.get shouldBe "1000 one two three"
-
-      stream.filter(_.contains("00")).flatMap(_.toSeq).get should have size 10
-    }
-
     "IO" in {
 
       def stream =

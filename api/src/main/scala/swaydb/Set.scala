@@ -27,6 +27,7 @@ import swaydb.core.Core
 import swaydb.data.IO
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
+import swaydb.data.io.converter.{AsyncIOConverter, BlockingIOConverter}
 import swaydb.data.slice.Slice
 import swaydb.serializers.{Serializer, _}
 
@@ -259,17 +260,20 @@ case class Set[T, W[_]](private val core: Core[W],
   def reverse: Set[T, W] =
     copy(reverseIteration = true)
 
-  def closeDatabase(): W[Unit] =
-    wrapCall(core.close())
+  def asyncAPI[O[_]](implicit ec: ExecutionContext,
+                     convert: AsyncIOConverter[O],
+                     wrap: Wrap[O]): Set[T, O] =
+    copy(core = core.async[O])
+
+  def blockingAPI[O[_]](implicit convert: BlockingIOConverter[O],
+                        wrap: Wrap[O]): Set[T, O] =
+    copy(core = core.blocking[O])
 
   def asScala: scala.collection.mutable.Set[T] =
-    ScalaSet[T](syncAPI())
+    ScalaSet[T](blockingAPI[IO])
 
-  def asyncAPI(implicit ec: ExecutionContext): Set[T, Future] =
-    copy(core = core.async())
-
-  def syncAPI(): Set[T, IO] =
-    copy(core = core.sync())
+  def closeDatabase(): W[Unit] =
+    wrapCall(core.close())
 
   override def toString(): String =
     classOf[Map[_, _, W]].getClass.getSimpleName

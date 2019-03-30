@@ -19,15 +19,15 @@
 
 package swaydb
 
-import scala.collection.JavaConverters
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{Deadline, FiniteDuration}
-import scala.concurrent.{ExecutionContext, Future}
 import swaydb.PrepareImplicits._
 import swaydb.Wrap._
 import swaydb.core.Core
 import swaydb.data.IO
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
+import swaydb.data.io.converter.{AsyncIOConverter, BlockingIOConverter}
 import swaydb.data.slice.Slice
 import swaydb.serializers.{Serializer, _}
 
@@ -352,6 +352,7 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
         core.head map {
           case Some((key, value)) =>
             Some(key.read[K], value.read[V])
+
           case _ =>
             None
         }
@@ -369,17 +370,20 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
   def reverse: Map[K, V, W] =
     copy(reverseIteration = true)
 
-  def closeDatabase(): W[Unit] =
-    wrapCall(core.close())
+  def asyncAPI[O[_]](implicit ec: ExecutionContext,
+                     convert: AsyncIOConverter[O],
+                     wrap: Wrap[O]): Map[K, V, O] =
+    copy(core = core.async[O])
 
-  def asyncAPI(implicit ec: ExecutionContext): Map[K, V, Future] =
-    copy(core = core.async())
-
-  def syncAPI(): Map[K, V, IO] =
-    copy(core = core.sync())
+  def blockingAPI[O[_]](implicit convert: BlockingIOConverter[O],
+                        wrap: Wrap[O]): Map[K, V, O] =
+    copy(core = core.blocking[O])
 
   def asScala: scala.collection.mutable.Map[K, V] =
-    ScalaMap[K, V](syncAPI())
+    ScalaMap[K, V](blockingAPI[IO])
+
+  def closeDatabase(): W[Unit] =
+    wrapCall(core.close())
 
   override def toString(): String =
     classOf[Map[_, _, W]].getClass.getSimpleName
