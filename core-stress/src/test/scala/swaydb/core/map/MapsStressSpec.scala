@@ -19,22 +19,21 @@
 
 package swaydb.core.map
 
-import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
+import swaydb.core.CommonAssertions._
+import swaydb.core.IOAssert._
+import swaydb.core.RunThis._
+import swaydb.core.TestData._
 import swaydb.core.data.Memory
-import swaydb.core.level.zero.LevelZeroSkipListMerger
+import swaydb.core.io.file.IOEffect
 import swaydb.core.io.file.IOEffect._
+import swaydb.core.level.zero.LevelZeroSkipListMerger
+import swaydb.core.queue.FileLimiter
+import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
 import swaydb.data.accelerate.{Accelerator, Level0Meter}
 import swaydb.data.config.RecoveryMode
+import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
-import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.core.TestData._
-import swaydb.core.CommonAssertions._
-import swaydb.core.RunThis._
-import swaydb.core.IOAssert._
-import scala.concurrent.duration._
-import swaydb.core.io.file.IOEffect
-import swaydb.core.queue.FileLimiter
 
 class MapsStressSpec extends TestBase {
 
