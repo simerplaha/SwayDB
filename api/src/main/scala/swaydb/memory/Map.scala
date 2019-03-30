@@ -49,7 +49,7 @@ object Map extends LazyLogging {
     * @param acceleration    Controls the write speed.
     * @param keySerializer   Converts keys to Bytes
     * @param valueSerializer Converts values to Bytes
-    * @param ordering        Sort order for keys
+    * @param keyOrder        Sort order for keys
     * @param ec
     * @tparam K
     * @tparam V

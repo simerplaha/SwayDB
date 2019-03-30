@@ -76,7 +76,7 @@ object SwayDB extends LazyLogging {
     *                               are dynamically adjusted based on the current number of open Segments.
     * @param keySerializer          Converts keys to Bytes
     * @param valueSerializer        Converts values to Bytes
-    * @param ordering               Sort order for keys
+    * @param keyOrder               Sort order for keys
     * @param ec                     ExecutionContext
     * @tparam K Type of key
     * @tparam V Type of value
