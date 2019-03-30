@@ -36,7 +36,9 @@ class BufferCleanerSpec extends TestBase {
     val path = randomFilePath
     val file = FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
     val buffer = file.map(MapMode.READ_WRITE, 0, 1000)
-    BufferCleaner.clean(BufferCleaner.State(None), buffer, path) shouldBe a[IO.Success[BufferCleaner.State]]
+    val result = BufferCleaner.clean(BufferCleaner.State(None), buffer, path)
+    result shouldBe a[IO.Success[BufferCleaner.State]]
+    result.get.cleaner shouldBe defined
   }
 
   "clear a MMAP file" in {
