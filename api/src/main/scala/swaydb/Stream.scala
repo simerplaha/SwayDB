@@ -27,25 +27,20 @@ import swaydb.Wrap._
 
 object Stream {
 
-  def apply[T, W[_]](seq: Seq[T])(implicit wrap: Wrap[W]): Stream[T, W] =
+  def apply[T, W[_]](items: Iterable[T])(implicit wrap: Wrap[W]): Stream[T, W] =
     new Stream[T, W] {
 
-      var index = 0
+      val iterator = items.iterator
 
       def step(): W[Option[T]] =
-        if (index < seq.size) {
-          wrap(seq(index)) map {
-            item =>
-              index += 1
-              Some(item)
-          }
-        }
+        if (iterator.hasNext)
+          wrap(Some(iterator.next()))
         else
           wrap.none
 
       override def headOption(): W[Option[T]] = step()
       override def next(previous: T): W[Option[T]] = step()
-      override def restart: Stream[T, W] = apply[T, W](seq)
+      override def restart: Stream[T, W] = apply[T, W](items)
       override def skip: Int = 0
       override def count: Option[Int] = None
     }
