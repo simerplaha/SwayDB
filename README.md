@@ -51,14 +51,13 @@ for both [Persistent](http://www.swaydb.io/create-databases/persistent/) & [Memo
 //Iteration: fetch all key-values withing range 10 to 90, update values and batch write updated key-values
 db
   .from(10)
-  .tillKey(_ <= 90)
+  .takeWhileKey(_ <= 90)
   .map {
     case (key, value) =>
       (key, value + "_updated")
-  } andThen {
-     updatedKeyValues =>
-       db.put(updatedKeyValues)
   }
+  .flatMap(_.toSeq) //convert to seq
+  .flatMap(db.put) //write updated key-values to database
 ```
 ## Quick start
 [Quick start demo](http://swaydb.io/quick-start).
