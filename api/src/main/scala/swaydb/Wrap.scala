@@ -36,7 +36,7 @@ trait Wrap[W[_]] {
   def flatMap[A, B](fa: W[A])(f: A => W[B]): W[B]
   def success[A](value: A): W[A]
   def none[A]: W[Option[A]]
-  def foreachStream[A, U](stream: Stream[A, W], skip: Int, size: Option[Int])(f: A => U): W[Unit]
+  def foldLeft[A, U](initial: U, stream: Stream[A, W], skip: Int, size: Option[Int])(operation: (U, A) => U): W[U]
   private[swaydb] def terminate[A]: W[A] = none.asInstanceOf[W[A]]
 }
 
@@ -51,52 +51,55 @@ object Wrap {
     override def flatMap[A, B](fa: Try[A])(f: A => Try[B]): Try[B] = fa.flatMap(f)
     override def success[A](value: A): Try[A] = scala.util.Success(value)
     override def none[A]: Try[Option[A]] = scala.util.Success(None)
-    override def foreachStream[A, U](stream: Stream[A, Try], skip: Int, size: Option[Int])(f: A => U): Try[Unit] = {
+
+    override def foldLeft[A, U](initial: U, stream: Stream[A, Try], skip: Int, size: Option[Int])(operation: (U, A) => U): Try[U] = {
       @tailrec
-      def doForeach(previous: A, skip: Int, currentSize: Int): Try[Unit] =
+      def doForeach(previous: A, skip: Int, currentSize: Int, previousResult: U): Try[U] =
         if (size.contains(currentSize))
-          unit
+          Success(previousResult)
         else
           stream.next(previous) match {
             case Success(Some(next)) =>
               if (skip >= 1) {
-                doForeach(next, skip - 1, currentSize)
+                doForeach(next, skip - 1, currentSize, previousResult)
               } else {
-                try {
-                  f(next)
-                } catch {
-                  case exception: Throwable =>
-                    return Failure(exception)
-                }
-                doForeach(next, skip, currentSize + 1)
+                val nextInput =
+                  try {
+                    operation(previousResult, next)
+                  } catch {
+                    case exception: Throwable =>
+                      return Failure(exception)
+                  }
+                doForeach(next, skip, currentSize + 1, nextInput)
               }
 
             case Success(None) =>
-              unit
+              Success(previousResult)
 
             case Failure(exception) =>
               Failure(exception)
           }
 
       if (size.contains(0))
-        unit
+        Success(initial)
       else
         stream.headOption match {
           case Success(Some(first)) =>
             if (skip >= 1)
-              doForeach(first, skip - 1, 0)
+              doForeach(first, skip - 1, 0, initial)
             else {
-              try {
-                f(first)
-              } catch {
-                case throwable: Throwable =>
-                  return Failure(throwable)
-              }
-              doForeach(first, skip, 1)
+              val next =
+                try {
+                  operation(initial, first)
+                } catch {
+                  case throwable: Throwable =>
+                    return Failure(throwable)
+                }
+              doForeach(first, skip, 1, next)
             }
 
           case Success(None) =>
-            unit
+            Success(initial)
 
           case Failure(exception) =>
             Failure(exception)
@@ -111,52 +114,54 @@ object Wrap {
     override def flatMap[A, B](fa: IO[A])(f: A => IO[B]): IO[B] = fa.flatMap(f)
     override def success[A](value: A): IO[A] = IO.Success(value)
     override def none[A]: IO[Option[A]] = IO.none
-    override def foreachStream[A, U](stream: Stream[A, IO], skip: Int, size: Option[Int])(f: A => U): IO[Unit] = {
+    override def foldLeft[A, U](initial: U, stream: Stream[A, IO], skip: Int, size: Option[Int])(operation: (U, A) => U): IO[U] = {
       @tailrec
-      def doForeach(previous: A, skip: Int, currentSize: Int): IO[Unit] =
+      def doForeach(previous: A, skip: Int, currentSize: Int, previousResult: U): IO[U] =
         if (size.contains(currentSize))
-          IO.unit
+          IO.Success(previousResult)
         else
           stream.next(previous) match {
             case IO.Success(Some(next)) =>
               if (skip >= 1) {
-                doForeach(next, skip - 1, currentSize)
+                doForeach(next, skip - 1, currentSize, previousResult)
               } else {
-                try {
-                  f(next)
-                } catch {
-                  case exception: Throwable =>
-                    return IO.Failure(exception)
-                }
-                doForeach(next, skip, currentSize + 1)
+                val nextInput =
+                  try {
+                    operation(previousResult, next)
+                  } catch {
+                    case exception: Throwable =>
+                      return IO.Failure(exception)
+                  }
+                doForeach(next, skip, currentSize + 1, nextInput)
               }
 
             case IO.Success(None) =>
-              IO.unit
+              IO.Success(previousResult)
 
             case IO.Failure(exception) =>
               IO.Failure(exception)
           }
 
       if (size.contains(0))
-        IO.unit
+        IO.Success(initial)
       else
         stream.headOption match {
           case IO.Success(Some(first)) =>
-            if (skip >= 1) {
-              doForeach(first, skip - 1, 0)
-            } else {
-              try {
-                f(first)
-              } catch {
-                case throwable: Throwable =>
-                  return IO.Failure(throwable)
-              }
-              doForeach(first, skip, 1)
+            if (skip >= 1)
+              doForeach(first, skip - 1, 0, initial)
+            else {
+              val next =
+                try {
+                  operation(initial, first)
+                } catch {
+                  case throwable: Throwable =>
+                    return IO.Failure(throwable)
+                }
+              doForeach(first, skip, 1, next)
             }
 
           case IO.Success(None) =>
-            IO.unit
+            IO.Success(initial)
 
           case IO.Failure(exception) =>
             IO.Failure(exception)
@@ -174,21 +179,21 @@ object Wrap {
     override def success[A](value: A): Future[A] = Future.successful(value)
     override def none[A]: Future[Option[A]] = Future.successful(None)
     override def foreach[A, B](a: A)(f: A => B): Unit = f(a)
-    override def foreachStream[A, U](stream: Stream[A, Future], skip: Int, size: Option[Int])(f: A => U): Future[Unit] = {
-      def doForeach(previous: A, skip: Int, currentSize: Int): Future[Option[A]] =
+    override def foldLeft[A, U](initial: U, stream: Stream[A, Future], skip: Int, size: Option[Int])(operation: (U, A) => U): Future[U] = {
+      def doForeach(previous: A, skip: Int, currentSize: Int, previousResult: U): Future[U] =
         if (size.contains(currentSize))
-          Delay.futureNone
+          Future.successful(previousResult)
         else
           stream
             .next(previous)
             .flatMap {
               case Some(next) =>
                 if (skip >= 1) {
-                  doForeach(next, skip - 1, currentSize)
+                  doForeach(next, skip - 1, currentSize, previousResult)
                 } else {
                   try {
-                    f(next)
-                    doForeach(next, skip, currentSize + 1)
+                    val newResult = operation(previousResult, next)
+                    doForeach(next, skip, currentSize + 1, newResult)
                   } catch {
                     case throwable: Throwable =>
                       Future.failed(throwable)
@@ -196,20 +201,20 @@ object Wrap {
                 }
 
               case None =>
-                Delay.futureNone
+                Future.successful(previousResult)
             }
 
       if (size.contains(0))
-        Delay.futureUnit
+        Future.successful(initial)
       else
         stream.headOption flatMap {
           case Some(first) =>
             if (skip >= 1) {
-              doForeach(first, skip - 1, 0)
+              doForeach(first, skip - 1, 0, initial)
             } else {
               try {
-                f(first)
-                doForeach(first, skip, 1)
+                val nextResult = operation(initial, first)
+                doForeach(first, skip, 1, nextResult)
               } catch {
                 case throwable: Throwable =>
                   Future.failed(throwable)
@@ -217,9 +222,7 @@ object Wrap {
             }
 
           case None =>
-            Delay.futureUnit
-        } map {
-          _ => ()
+            Future.successful(initial)
         }
     }
   }

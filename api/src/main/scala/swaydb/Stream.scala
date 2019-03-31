@@ -110,6 +110,20 @@ abstract class Stream[A, W[_]](implicit wrap: Wrap[W]) {
           .map(_ => builder.result)
     }
 
+  def flatMap[B](f: A => Stream[B, W]): W[Stream[B, W]] =
+    wrap(()) flatMap {
+      _ =>
+        wrap.foldLeft(wrap.success(new StreamBuilder[B, W]()), this, skip, count) {
+          (builder, next) =>
+            builder flatMap {
+              builder =>
+                f(next)
+                  .foreach(builder += _)
+                  .map(_ => builder)
+            }
+        } flatMap (_.map(_.result))
+    }
+
   def filter(p: A => Boolean): W[Stream[A, W]] =
     wrap(()) flatMap {
       _ =>
@@ -140,7 +154,10 @@ abstract class Stream[A, W[_]](implicit wrap: Wrap[W]) {
   def foreach[U](f: A => U): W[Unit] =
     wrap(()) flatMap {
       _ =>
-        wrap.foreachStream(this, skip, count)(f)
+        wrap.foldLeft((), this, skip, count) {
+          case (_, a) =>
+            f(a)
+        }
     }
 
   def lastOptionStream: W[Option[A]] =
