@@ -135,7 +135,7 @@ abstract class Stream[A, W[_]](implicit wrap: Wrap[W]) {
     }
 
   /**
-    * Note: this read
+    * Reads all items from the Stream and returns the last.
     */
   def lastOptionEager: W[Option[A]] =
     foldLeft(Option.empty[A]) {
