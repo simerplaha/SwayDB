@@ -407,6 +407,8 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
     sleep(1.minutes)
     doWrite()
     assertLevelsAreEmpty(db, submitUpdates = false)
+
+    db.closeDatabase().get
   }
 
   "debug before and mapRight" in {
