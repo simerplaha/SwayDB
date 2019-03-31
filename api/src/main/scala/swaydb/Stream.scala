@@ -19,6 +19,7 @@
 
 package swaydb
 
+import scala.annotation.tailrec
 import scala.collection.generic.CanBuildFrom
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
@@ -135,15 +136,60 @@ abstract class Stream[A, W[_]](skip: Int,
         }
     } flatMap (_.map(_.result))
 
-  def filter(p: A => Boolean): W[Stream[A, W]] =
-    foldLeft(new StreamBuilder[A, W]()) {
-      (builder, item) =>
-        if (p(item)) builder += item
-        builder
-    } map (_.result)
+  def filter(f: A => Boolean): Stream[A, W] =
+    new Stream[A, W](skip, count) {
 
-  def filterNot(p: A => Boolean): W[Stream[A, W]] =
-    filter(!p(_))
+      override def headOption: W[Option[A]] =
+        self.headOption flatMap {
+          previousAOption =>
+            previousAOption map {
+              a =>
+                if (f(a))
+                  wrap.success(previousAOption)
+                else
+                  next(a)
+            } getOrElse wrap.none
+        }
+
+      def nextAsync(previous: A): W[Option[A]] =
+        self.next(previous) flatMap {
+          case someNextA @ Some(nextA) =>
+            if (f(nextA))
+              wrap.success(someNextA)
+            else
+              next(nextA)
+          case None =>
+            wrap.none
+        }
+
+      /**
+        * If it's a sync API run it in a stack-safe manner.
+        */
+      @tailrec
+      def nextSync(previous: A): W[Option[A]] =
+        wrap.toIO(self.next(previous)) match {
+          case IO.Success(someNextA @ Some(nextA)) =>
+            if (f(nextA))
+              wrap.success(someNextA)
+            else
+              nextSync(nextA)
+
+          case IO.Success(None) =>
+            wrap.none
+
+          case IO.Failure(error) =>
+            wrap.failure(error.exception)
+        }
+
+      override def next(previous: A): W[Option[A]] =
+        if (wrap.isAsync)
+          nextAsync(previous)
+        else
+          nextSync(previous)
+    }
+
+  def filterNot(f: A => Boolean): Stream[A, W] =
+    filter(!f(_))
 
   /**
     * Reads all items from the Stream and returns the last.
@@ -154,17 +200,17 @@ abstract class Stream[A, W[_]](skip: Int,
         Some(next)
     }
 
-  def toSeq: W[Seq[A]] =
-    foldLeft(new StreamBuilder[A, W]()) {
-      (buffer, item) =>
-        buffer += item
-    } map (_.asSeq)
-
   def foldLeft[B](initial: B)(f: (B, A) => B): W[B] =
     wrap(()) flatMap {
       _ =>
         wrap.foldLeft(initial, this, skip, count)(f)
     }
+
+  def toSeq: W[Seq[A]] =
+    foldLeft(new StreamBuilder[A, W]()) {
+      (buffer, item) =>
+        buffer += item
+    } map (_.asSeq)
 
   def asFuture(implicit futureWrap: Wrap[Future]): Stream[A, Future] = {
     val stream: Stream[A, W] = this

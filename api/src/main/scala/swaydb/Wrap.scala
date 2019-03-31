@@ -36,10 +36,12 @@ sealed trait Wrap[W[_]] {
   def map[A, B](a: A)(f: A => B): W[B]
   def flatMap[A, B](fa: W[A])(f: A => W[B]): W[B]
   def success[A](value: A): W[A]
+  def failure[A](exception: Throwable): W[A]
   def none[A]: W[Option[A]]
   def foldLeft[A, U](initial: U, stream: Stream[A, W], skip: Int, size: Option[Int])(operation: (U, A) => U): W[U]
   def toFuture[A](a: W[A]): Future[A]
   def toIO[A](a: W[A]): IO[A]
+  def isAsync: Boolean
 }
 
 object Wrap {
@@ -53,11 +55,14 @@ object Wrap {
       override def map[A, B](a: A)(f: A => B): O[B] = converter(futureWrapper.map(a)(f))
       override def flatMap[A, B](fa: O[A])(f: A => O[B]): O[B] = converter(futureWrapper.flatMap(converter.toFuture(fa))(a => converter.toFuture(f(a))))
       override def success[A](value: A): O[A] = converter(futureWrapper.success(value))
+      override def failure[A](exception: Throwable): O[A] = converter(futureWrapper.failure(exception))
       override def none[A]: O[Option[A]] = converter.none
       override def foldLeft[A, U](initial: U, stream: Stream[A, O], skip: Int, size: Option[Int])(operation: (U, A) => U): O[U] =
         converter(futureWrapper.foldLeft(initial, stream.asFuture(futureWrapper), skip, size)(operation))
       override def toFuture[A](a: O[A]): Future[A] = converter.toFuture(a)
       override def toIO[A](a: O[A]): IO[A] = futureWrapper.toIO(converter.toFuture(a))
+      override def isAsync: Boolean = true
+
     }
 
   def sync[O[_]](converter: BlockingIOConverter[O]): Wrap[O] =
@@ -67,11 +72,13 @@ object Wrap {
       override def map[A, B](a: A)(f: A => B): O[B] = converter(ioWrap.map(a)(f))
       override def flatMap[A, B](fa: O[A])(f: A => O[B]): O[B] = converter(ioWrap.flatMap(converter.toIO(fa))(a => converter.toIO(f(a))))
       override def success[A](value: A): O[A] = converter(ioWrap.success(value))
+      override def failure[A](exception: Throwable): O[A] = converter(ioWrap.failure(exception))
       override def none[A]: O[Option[A]] = converter(ioWrap.none)
       override def foldLeft[A, U](initial: U, stream: Stream[A, O], skip: Int, size: Option[Int])(operation: (U, A) => U): O[U] =
         converter(ioWrap.foldLeft(initial, stream.asIO(ioWrap), skip, size)(operation))
       override def toFuture[A](a: O[A]): Future[A] = converter.toIO(a).toFuture
       override def toIO[A](a: O[A]): IO[A] = converter.toIO(a)
+      override def isAsync: Boolean = false
     }
 
   implicit val tryWrap: Wrap[Try] =
@@ -86,6 +93,8 @@ object Wrap {
         ioWrap.foldLeft(initial, stream.asIO(ioWrap), skip, size)(operation).toTry //use ioWrap and convert that result to try.
       override def toFuture[A](a: Try[A]): Future[A] = Future.fromTry(a)
       override def toIO[A](a: Try[A]): IO[A] = IO.fromTry(a)
+      override def isAsync: Boolean = false
+      override def failure[A](exception: Throwable): Try[A] = scala.util.Failure(exception)
     }
 
   implicit val ioWrap: Wrap[IO] =
@@ -95,9 +104,11 @@ object Wrap {
       override def foreach[A, B](a: A)(f: A => B): Unit = f(a)
       override def flatMap[A, B](fa: IO[A])(f: A => IO[B]): IO[B] = fa.flatMap(f)
       override def success[A](value: A): IO[A] = IO.Success(value)
+      override def failure[A](exception: Throwable): IO[A] = IO.Failure(exception)
       override def none[A]: IO[Option[A]] = IO.none
       override def toFuture[A](a: IO[A]): Future[A] = a.toFuture
       override def toIO[A](a: IO[A]): IO[A] = a
+      override def isAsync: Boolean = false
       override def foldLeft[A, U](initial: U, stream: Stream[A, IO], skip: Int, size: Option[Int])(operation: (U, A) => U): IO[U] = {
         @tailrec
         def fold(previous: A, skip: Int, currentSize: Int, previousResult: U): IO[U] =
@@ -151,6 +162,7 @@ object Wrap {
               IO.Failure(exception)
           }
       }
+
     }
 
   implicit def futureWrap(implicit ec: ExecutionContext): Wrap[Future] =
@@ -162,9 +174,11 @@ object Wrap {
       override def map[A, B](a: A)(f: A => B): Future[B] = Future(f(a))
       override def flatMap[A, B](fa: Future[A])(f: A => Future[B]): Future[B] = fa.flatMap(f)
       override def success[A](value: A): Future[A] = Future.successful(value)
+      override def failure[A](exception: Throwable): Future[A] = Future.failed(exception)
       override def none[A]: Future[Option[A]] = Future.successful(None)
       override def foreach[A, B](a: A)(f: A => B): Unit = f(a)
       override def toFuture[A](a: Future[A]): Future[A] = a
+      override def isAsync: Boolean = true
       override def toIO[A](a: Future[A]): IO[A] = IO(Await.result(a, timeout)) //blocking await should be configurable
       override def foldLeft[A, U](initial: U, stream: Stream[A, Future], skip: Int, size: Option[Int])(operation: (U, A) => U): Future[U] = {
         def fold(previous: A, skip: Int, currentSize: Int, previousResult: U): Future[U] =
@@ -212,6 +226,7 @@ object Wrap {
               Future.successful(initial)
           }
       }
+
     }
 
   implicit class WrapImplicits[A, W[_] : Wrap](a: W[A])(implicit wrap: Wrap[W]) {

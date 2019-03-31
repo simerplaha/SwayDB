@@ -47,7 +47,7 @@ class StreamSpec extends WordSpec with Matchers {
       stream.foldLeft(0)(_ + _.takeWhile(_.isDigit).toInt).await shouldBe (1 to 1000).sum
       stream.lastOptionLinear.await.get shouldBe "1000 one two three"
 
-      stream.filter(_.contains("00")).flatMap(_.toSeq).await should have size 10
+      stream.filter(_.contains("00")).toSeq.await should have size 10
 
       Stream[Int, Future](1 to 10).flatMap(_ => Stream[Int, Future](1 to 10)).await.toSeq.await shouldBe Array.fill(10)(1 to 10).flatten
 
@@ -70,7 +70,7 @@ class StreamSpec extends WordSpec with Matchers {
       stream.foldLeft(0)(_ + _.takeWhile(_.isDigit).toInt).get shouldBe (1 to 1000).sum
       stream.lastOptionLinear.get.get shouldBe "1000 one two three"
 
-      stream.filter(_.contains("00")).flatMap(_.toSeq).get should have size 10
+      stream.filter(_.contains("00")).toSeq.get should have size 10
 
       Stream[Int, Try](1 to 10).flatMap(_ => Stream[Int, Try](1 to 10)).get.toSeq.get shouldBe Array.fill(10)(1 to 10).flatten
     }
@@ -92,7 +92,7 @@ class StreamSpec extends WordSpec with Matchers {
       stream.foldLeft(0)(_ + _.takeWhile(_.isDigit).toInt).get shouldBe (1 to 1000).sum
       stream.lastOptionLinear.get.get shouldBe "1000 one two three"
 
-      stream.filter(_.contains("00")).flatMap(_.toSeq).get should have size 10
+      stream.filter(_.contains("00")).toSeq.get should have size 10
 
       Stream[Int, IO](1 to 10).flatMap(_ => Stream[Int, IO](1 to 10)).get.toSeq.get shouldBe Array.fill(10)(1 to 10).flatten
     }
