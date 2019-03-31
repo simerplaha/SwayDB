@@ -51,10 +51,13 @@ class EventuallyPersistent_WeatherDataSpec extends WeatherDataSpec {
 
 sealed trait WeatherDataSpec extends TestBase with LazyLogging with Benchmark with BeforeAndAfterAll {
 
-  //  override protected def afterAll(): Unit =
-  //    walkDeleteFolder(dir)
-
   val db: swaydb.Map[Int, WeatherData, IO]
+
+  override protected def afterAll(): Unit = {
+    db.closeDatabase().get
+    //    walkDeleteFolder(dir)
+    super.afterAll()
+  }
 
   val keyValueCount = 1000000
 
