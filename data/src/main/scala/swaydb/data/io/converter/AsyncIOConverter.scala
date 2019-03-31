@@ -20,10 +20,27 @@
 package swaydb.data.io.converter
 
 import scala.concurrent.Future
+import swaydb.data.IO
 
+/**
+  * SwayDB supports non-blocking (Future) and blocking APIs ([[IO]] & Try).
+  *
+  * The APIs can be converted to other external async and/or blocking types by providing the
+  * following implementation for non-blocking api or use [[BlockingIOConverter]] for blocking APIs.
+  */
 trait AsyncIOConverter[O[_]] {
+  /**
+    * Converts a Future to other async type
+    */
   def apply[I](result: Future[I]): O[I]
+  /**
+    * Converts other async type to Future
+    */
   def toFuture[I](result: O[I]): Future[I]
+
+  /**
+    * None value of other type.
+    */
   def none[I]: O[Option[I]]
 }
 
