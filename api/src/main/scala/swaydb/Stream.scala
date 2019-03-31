@@ -96,16 +96,26 @@ abstract class Stream[A, W[_]](skip: Int,
 
   def map[B](f: A => B): Stream[B, W] =
     new Stream[B, W](skip, count) {
+
       var previousA: Option[A] = Option.empty
+
       override def headOption: W[Option[B]] =
         self.headOption map {
           previousAOption =>
             previousA = previousAOption
             previousAOption.map(f)
         }
+
       override def next(previous: B): W[Option[B]] =
         previousA
-          .map(self.next)
+          .map {
+            previous =>
+              self.next(previous) map {
+                nextA =>
+                  previousA = nextA
+                  nextA
+              }
+          }
           .getOrElse(wrap.none[A])
           .map(_.map(f))
     }
