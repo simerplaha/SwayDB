@@ -25,7 +25,7 @@ import scala.concurrent.forkjoin.ForkJoinPool
 object TestExecutionContext {
 
   val executionContext = new ExecutionContext {
-    val threadPool = new ForkJoinPool(1000)
+    val threadPool = new ForkJoinPool(Runtime.getRuntime.availableProcessors())
 
     def execute(runnable: Runnable) =
       threadPool execute runnable

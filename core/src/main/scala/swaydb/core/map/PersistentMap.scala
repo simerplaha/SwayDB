@@ -252,7 +252,9 @@ private[map] case class PersistentMap[K, V: ClassTag](path: Path,
     currentFile.path
 
   def stateID: Long =
-    writeCount
+    synchronized {
+      writeCount
+    }
 
   override def write(mapEntry: MapEntry[K, V]): IO[Boolean] =
     synchronized {

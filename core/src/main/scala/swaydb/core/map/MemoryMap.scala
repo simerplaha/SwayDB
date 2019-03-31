@@ -45,7 +45,9 @@ private[map] class MemoryMap[K, V: ClassTag](val skipList: ConcurrentSkipListMap
   @volatile private var writeCount: Long = 0L
 
   def stateID: Long =
-    writeCount
+    synchronized {
+      writeCount
+    }
 
   def delete: IO[Unit] =
     IO(skipList.clear())

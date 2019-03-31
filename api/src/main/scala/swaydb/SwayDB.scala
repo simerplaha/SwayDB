@@ -51,7 +51,7 @@ object SwayDB extends LazyLogging {
     * This can be overridden by provided an implicit parameter in the scope of where the database is initialized.
     */
   def defaultExecutionContext = new ExecutionContext {
-    val threadPool = new ForkJoinPool(100)
+    val threadPool = new ForkJoinPool(Runtime.getRuntime.availableProcessors())
 
     def execute(runnable: Runnable) =
       threadPool execute runnable
