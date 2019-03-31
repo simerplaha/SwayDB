@@ -101,70 +101,52 @@ abstract class Stream[A, W[_]](implicit wrap: Wrap[W]) {
   def next(previous: A): W[Option[A]]
 
   def map[B](f: A => B): W[Stream[B, W]] =
-    wrap(()) flatMap {
-      _ =>
-        foldLeft(new StreamBuilder[B, W]()) {
-          case (builder, item) =>
-            builder += f(item)
-        } map (_.result)
-    }
+    foldLeft(new StreamBuilder[B, W]()) {
+      (builder, item) =>
+        builder += f(item)
+    } map (_.result)
 
   def flatMap[B](f: A => Stream[B, W]): W[Stream[B, W]] =
-    wrap(()) flatMap {
-      _ =>
-        foldLeft(wrap.success(new StreamBuilder[B, W]())) {
-          (builder, next) =>
-            builder flatMap {
-              builder =>
-                f(next)
-                  .foreach(builder += _)
-                  .map(_ => builder)
-            }
-        } flatMap (_.map(_.result))
-    }
+    foldLeft(wrap.success(new StreamBuilder[B, W]())) {
+      (builder, next) =>
+        builder flatMap {
+          builder =>
+            f(next)
+              .foreach(builder += _)
+              .map(_ => builder)
+        }
+    } flatMap (_.map(_.result))
 
   def filter(p: A => Boolean): W[Stream[A, W]] =
-    wrap(()) flatMap {
-      _ =>
-        foldLeft(new StreamBuilder[A, W]()) {
-          case (builder, item) =>
-            if (p(item)) builder += item
-            builder
-        } map (_.result)
-    }
+    foldLeft(new StreamBuilder[A, W]()) {
+      (builder, item) =>
+        if (p(item)) builder += item
+        builder
+    } map (_.result)
 
   def filterNot(p: A => Boolean): W[Stream[A, W]] =
     filter(!p(_))
 
-  def foldLeft[B](initial: B)(f: (B, A) => B): W[B] =
-    wrap(()) flatMap {
-      _ =>
-        wrap.foldLeft(initial, this, skip, count)(f)
-    }
-
   def foreach[U](f: A => U): W[Unit] =
-    wrap(()) flatMap {
-      _ =>
-        wrap.foldLeft((), this, skip, count) {
-          case (_, a) =>
-            f(a)
-        }
+    foldLeft(()) {
+      (_, a) =>
+        f(a)
     }
 
   def lastOptionStream: W[Option[A]] =
     foldLeft(Option.empty[A]) {
-      case (_, next) =>
+      (_, next) =>
         Some(next)
     }
 
   def toSeq: W[Seq[A]] =
-    wrap(()) flatMap {
-      _ =>
-        foldLeft(new StreamBuilder[A, W]()) {
-          (buffer, item) =>
-            buffer += item
-        } map (_.asSeq)
-    }
+    foldLeft(new StreamBuilder[A, W]()) {
+      (buffer, item) =>
+        buffer += item
+    } map (_.asSeq)
+
+  def foldLeft[B](initial: B)(f: (B, A) => B): W[B] =
+    wrap.foldLeft(initial, this, skip, count)(f)
 
   def asFuture(implicit futureWrap: Wrap[Future]): Stream[A, Future] = {
     val stream: Stream[A, W] = this
