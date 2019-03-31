@@ -74,87 +74,89 @@ object Wrap {
       override def toIO[A](a: O[A]): IO[A] = converter.toIO(a)
     }
 
-  implicit val tryWrap = new Wrap[Try] {
-    override def apply[A](a: => A): Try[A] = Try(a)
-    override def map[A, B](a: A)(f: A => B): Try[B] = Try(f(a))
-    override def foreach[A, B](a: A)(f: A => B): Unit = f(a)
-    override def flatMap[A, B](fa: Try[A])(f: A => Try[B]): Try[B] = fa.flatMap(f)
-    override def success[A](value: A): Try[A] = scala.util.Success(value)
-    override def none[A]: Try[Option[A]] = scala.util.Success(None)
-    override def foldLeft[A, U](initial: U, stream: Stream[A, Try], skip: Int, size: Option[Int])(operation: (U, A) => U): Try[U] =
-      ioWrap.foldLeft(initial, stream.asIO(ioWrap), skip, size)(operation).toTry //use ioWrap and convert that result to try.
-    override def toFuture[A](a: Try[A]): Future[A] = Future.fromTry(a)
-    override def toIO[A](a: Try[A]): IO[A] = IO.fromTry(a)
-  }
+  implicit val tryWrap: Wrap[Try] =
+    new Wrap[Try] {
+      override def apply[A](a: => A): Try[A] = Try(a)
+      override def map[A, B](a: A)(f: A => B): Try[B] = Try(f(a))
+      override def foreach[A, B](a: A)(f: A => B): Unit = f(a)
+      override def flatMap[A, B](fa: Try[A])(f: A => Try[B]): Try[B] = fa.flatMap(f)
+      override def success[A](value: A): Try[A] = scala.util.Success(value)
+      override def none[A]: Try[Option[A]] = scala.util.Success(None)
+      override def foldLeft[A, U](initial: U, stream: Stream[A, Try], skip: Int, size: Option[Int])(operation: (U, A) => U): Try[U] =
+        ioWrap.foldLeft(initial, stream.asIO(ioWrap), skip, size)(operation).toTry //use ioWrap and convert that result to try.
+      override def toFuture[A](a: Try[A]): Future[A] = Future.fromTry(a)
+      override def toIO[A](a: Try[A]): IO[A] = IO.fromTry(a)
+    }
 
-  implicit val ioWrap = new Wrap[IO] {
-    override def apply[A](a: => A): IO[A] = IO(a)
-    override def map[A, B](a: A)(f: A => B): IO[B] = IO(f(a))
-    override def foreach[A, B](a: A)(f: A => B): Unit = f(a)
-    override def flatMap[A, B](fa: IO[A])(f: A => IO[B]): IO[B] = fa.flatMap(f)
-    override def success[A](value: A): IO[A] = IO.Success(value)
-    override def none[A]: IO[Option[A]] = IO.none
-    override def toFuture[A](a: IO[A]): Future[A] = a.toFuture
-    override def toIO[A](a: IO[A]): IO[A] = a
-    override def foldLeft[A, U](initial: U, stream: Stream[A, IO], skip: Int, size: Option[Int])(operation: (U, A) => U): IO[U] = {
-      @tailrec
-      def fold(previous: A, skip: Int, currentSize: Int, previousResult: U): IO[U] =
-        if (size.contains(currentSize))
-          IO.Success(previousResult)
+  implicit val ioWrap: Wrap[IO] =
+    new Wrap[IO] {
+      override def apply[A](a: => A): IO[A] = IO(a)
+      override def map[A, B](a: A)(f: A => B): IO[B] = IO(f(a))
+      override def foreach[A, B](a: A)(f: A => B): Unit = f(a)
+      override def flatMap[A, B](fa: IO[A])(f: A => IO[B]): IO[B] = fa.flatMap(f)
+      override def success[A](value: A): IO[A] = IO.Success(value)
+      override def none[A]: IO[Option[A]] = IO.none
+      override def toFuture[A](a: IO[A]): Future[A] = a.toFuture
+      override def toIO[A](a: IO[A]): IO[A] = a
+      override def foldLeft[A, U](initial: U, stream: Stream[A, IO], skip: Int, size: Option[Int])(operation: (U, A) => U): IO[U] = {
+        @tailrec
+        def fold(previous: A, skip: Int, currentSize: Int, previousResult: U): IO[U] =
+          if (size.contains(currentSize))
+            IO.Success(previousResult)
+          else
+            stream.next(previous) match {
+              case IO.Success(Some(next)) =>
+                if (skip >= 1) {
+                  fold(next, skip - 1, currentSize, previousResult)
+                } else {
+                  val nextResult =
+                    try {
+                      operation(previousResult, next)
+                    } catch {
+                      case exception: Throwable =>
+                        return IO.Failure(exception)
+                    }
+                  fold(next, skip, currentSize + 1, nextResult)
+                }
+
+              case IO.Success(None) =>
+                IO.Success(previousResult)
+
+              case IO.Failure(exception) =>
+                IO.Failure(exception)
+            }
+
+        if (size.contains(0))
+          IO.Success(initial)
         else
-          stream.next(previous) match {
-            case IO.Success(Some(next)) =>
-              if (skip >= 1) {
-                fold(next, skip - 1, currentSize, previousResult)
-              } else {
-                val nextResult =
+          stream.headOption match {
+            case IO.Success(Some(first)) =>
+              if (skip >= 1)
+                fold(first, skip - 1, 0, initial)
+              else {
+                val next =
                   try {
-                    operation(previousResult, next)
+                    operation(initial, first)
                   } catch {
-                    case exception: Throwable =>
-                      return IO.Failure(exception)
+                    case throwable: Throwable =>
+                      return IO.Failure(throwable)
                   }
-                fold(next, skip, currentSize + 1, nextResult)
+                fold(first, skip, 1, next)
               }
 
             case IO.Success(None) =>
-              IO.Success(previousResult)
+              IO.Success(initial)
 
             case IO.Failure(exception) =>
               IO.Failure(exception)
           }
-
-      if (size.contains(0))
-        IO.Success(initial)
-      else
-        stream.headOption match {
-          case IO.Success(Some(first)) =>
-            if (skip >= 1)
-              fold(first, skip - 1, 0, initial)
-            else {
-              val next =
-                try {
-                  operation(initial, first)
-                } catch {
-                  case throwable: Throwable =>
-                    return IO.Failure(throwable)
-                }
-              fold(first, skip, 1, next)
-            }
-
-          case IO.Success(None) =>
-            IO.Success(initial)
-
-          case IO.Failure(exception) =>
-            IO.Failure(exception)
-        }
+      }
     }
-  }
 
   implicit def futureWrap(implicit ec: ExecutionContext): Wrap[Future] =
-    futureWrap()
+    futureWrap(timeout = 60.seconds)
 
-  implicit def futureWrap(timeout: FiniteDuration = 60.seconds)(implicit ec: ExecutionContext) =
+  implicit def futureWrap(timeout: FiniteDuration)(implicit ec: ExecutionContext): Wrap[Future] =
     new Wrap[Future] {
       override def apply[A](a: => A): Future[A] = Future(a)
       override def map[A, B](a: A)(f: A => B): Future[B] = Future(f(a))

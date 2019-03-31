@@ -19,8 +19,8 @@
 
 package swaydb
 
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{Deadline, FiniteDuration}
-import scala.concurrent.{ExecutionContext, Future}
 import swaydb.PrepareImplicits._
 import swaydb.Wrap._
 import swaydb.core.Core
