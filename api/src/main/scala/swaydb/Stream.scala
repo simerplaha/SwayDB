@@ -135,7 +135,7 @@ abstract class Stream[A, W[_]](implicit wrap: Wrap[W]) {
     }
 
   /**
-    * Note: Reads all items from the streams and returns the last.
+    * Note: this read
     */
   def lastOptionEager: W[Option[A]] =
     foldLeft(Option.empty[A]) {
@@ -150,7 +150,10 @@ abstract class Stream[A, W[_]](implicit wrap: Wrap[W]) {
     } map (_.asSeq)
 
   def foldLeft[B](initial: B)(f: (B, A) => B): W[B] =
-    wrap.foldLeft(initial, this, skip, count)(f)
+    wrap(()) flatMap {
+      _ =>
+        wrap.foldLeft(initial, this, skip, count)(f)
+    }
 
   def asFuture(implicit futureWrap: Wrap[Future]): Stream[A, Future] = {
     val stream: Stream[A, W] = this
