@@ -60,14 +60,14 @@ object Wrap {
               if (skip >= 1) {
                 doForeach(next, skip - 1, currentSize, previousResult)
               } else {
-                val nextInput =
+                val nextResult =
                   try {
                     operation(previousResult, next)
                   } catch {
                     case exception: Throwable =>
                       return Failure(exception)
                   }
-                doForeach(next, skip, currentSize + 1, nextInput)
+                doForeach(next, skip, currentSize + 1, nextResult)
               }
 
             case Success(None) =>
@@ -122,14 +122,14 @@ object Wrap {
               if (skip >= 1) {
                 doForeach(next, skip - 1, currentSize, previousResult)
               } else {
-                val nextInput =
+                val nextResult =
                   try {
                     operation(previousResult, next)
                   } catch {
                     case exception: Throwable =>
                       return IO.Failure(exception)
                   }
-                doForeach(next, skip, currentSize + 1, nextInput)
+                doForeach(next, skip, currentSize + 1, nextResult)
               }
 
             case IO.Success(None) =>
