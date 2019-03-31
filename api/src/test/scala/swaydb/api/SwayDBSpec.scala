@@ -255,7 +255,7 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
       }
 
       db.from(9999).run.assertGet should contain only((9999, "9999"), (10000, "10000"))
-      db.from(9998).drop(1).take(1).run.get should contain only ((10000, "10000"))
+      db.from(9998).drop(2).take(1).run.get should contain only ((10000, "10000"))
       db.before(9999).take(1).run.get should contain only ((9998, "9998"))
       db.after(9999).take(1).run.get should contain only ((10000, "10000"))
       db.after(9999).drop(1).run.get shouldBe empty
@@ -283,7 +283,8 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
           db.contains(i).assertGet shouldBe true
       }
 
-      db.mightContain(898989898).assertGet shouldBe false
+      db.mightContain(Int.MaxValue).assertGet shouldBe false
+      db.mightContain(Int.MinValue).assertGet shouldBe false
       db.contains(20000).assertGet shouldBe false
 
       db.closeDatabase().get
@@ -326,20 +327,20 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
       //      }
     }
 
-    "eventually remove all Segments from the database when remove range is submitted" in {
-      val db = newDB()
-
-      (1 to 2000000) foreach {
-        i =>
-          db.put(i, i.toString).assertGet
-      }
-
-      db.remove(1, 2000000).assertGet
-
-      assertLevelsAreEmpty(db, submitUpdates = true)
-
-      db.closeDatabase().get
-    }
+//    "eventually remove all Segments from the database when remove range is submitted" in {
+//      val db = newDB()
+//
+//      (1 to 2000000) foreach {
+//        i =>
+//          db.put(i, i.toString).assertGet
+//      }
+//
+//      db.remove(1, 2000000).assertGet
+//
+//      assertLevelsAreEmpty(db, submitUpdates = true)
+//
+//      db.closeDatabase().get
+//    }
 
     "eventually remove all Segments from the database when expire range is submitted" in {
       val db = newDB()
