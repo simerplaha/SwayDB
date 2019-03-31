@@ -20,12 +20,17 @@
 package swaydb
 
 import org.scalatest.{Matchers, WordSpec}
+import scala.util.Try
 
 class WrapSpec extends WordSpec with Matchers {
 
   "tryMap" should {
     "" in {
+      implicit val wrap = Wrap.tryWrap
 
+      val result: Stream[Int, Try] = Stream(1 to 100)
+
+      result.foreach(println)
 
     }
   }

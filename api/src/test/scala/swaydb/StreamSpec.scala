@@ -35,9 +35,8 @@ class StreamSpec extends WordSpec with Matchers {
       def stream =
         Stream[Int, Future](1 to 1000)
           .map(_ + " one")
-          .flatMap(_.map(_ + " two"))
-          .flatMap(_.map(_ + " three"))
-          .await
+          .map(_ + " two")
+          .map(_ + " three")
 
       def assert() =
         stream.toSeq.await shouldBe (1 to 1000).map(_ + " one two three")
@@ -59,9 +58,8 @@ class StreamSpec extends WordSpec with Matchers {
       def stream =
         Stream[Int, Try](1 to 1000)
           .map(_ + " one")
-          .flatMap(_.map(_ + " two"))
-          .flatMap(_.map(_ + " three"))
-          .get
+          .map(_ + " two")
+          .map(_ + " three")
 
       def assert() =
         stream.toSeq.get shouldBe (1 to 1000).map(_ + " one two three")
@@ -82,9 +80,8 @@ class StreamSpec extends WordSpec with Matchers {
       def stream =
         Stream[Int, IO](1 to 1000)
           .map(_ + " one")
-          .flatMap(_.map(_ + " two"))
-          .flatMap(_.map(_ + " three"))
-          .get
+          .map(_ + " two")
+          .map(_ + " three")
 
       def assert() =
         stream.toSeq.get shouldBe (1 to 1000).map(_ + " one two three")

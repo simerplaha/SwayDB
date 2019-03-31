@@ -89,16 +89,29 @@ object Stream {
 }
 
 abstract class Stream[A, W[_]](skip: Int,
-                               count: Option[Int])(implicit wrap: Wrap[W]) {
+                               count: Option[Int])(implicit wrap: Wrap[W]) { self =>
 
   def headOption: W[Option[A]]
   def next(previous: A): W[Option[A]]
 
-  def map[B](f: A => B): W[Stream[B, W]] =
-    foldLeft(new StreamBuilder[B, W]()) {
-      (builder, item) =>
-        builder += f(item)
-    } map (_.result)
+  def map[B](f: A => B): Stream[B, W] =
+    new Stream[B, W](skip, count) {
+      var previousA: Option[A] = Option.empty
+      override def headOption: W[Option[B]] =
+        self.headOption map {
+          previousAOption =>
+            previousA = previousAOption
+            previousAOption.map(f)
+        }
+      override def next(previous: B): W[Option[B]] =
+        previousA
+          .map(self.next)
+          .getOrElse(wrap.none[A])
+          .map(_.map(f))
+    }
+
+  def foreach[U](f: A => U): Stream[Unit, W] =
+    map[Unit](a => f(a))
 
   def flatMap[B](f: A => Stream[B, W]): W[Stream[B, W]] =
     foldLeft(wrap.success(new StreamBuilder[B, W]())) {
@@ -121,12 +134,6 @@ abstract class Stream[A, W[_]](skip: Int,
 
   def filterNot(p: A => Boolean): W[Stream[A, W]] =
     filter(!p(_))
-
-  def foreach[U](f: A => U): W[Unit] =
-    foldLeft(()) {
-      (_, a) =>
-        f(a)
-    }
 
   /**
     * Reads all items from the Stream and returns the last.

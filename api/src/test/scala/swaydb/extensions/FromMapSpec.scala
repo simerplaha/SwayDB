@@ -149,14 +149,14 @@ sealed trait FromMapSpec extends TestBaseEmbedded {
 
       rootMap.maps.from(1).toSeq.get shouldBe empty
       //reverse from the map.
-      rootMap.before(2).reverse.map { case (key, value) => (key, value) }.get.toSeq.get shouldBe List((1, "one"))
-      rootMap.before(3).reverse.map { case (key, value) => (key, value) }.get.toSeq.get shouldBe List((2, "two"), (1, "one"))
-      rootMap.before(4).reverse.map { case (key, value) => (key, value) }.get.toSeq.get shouldBe List((3, "three"), (2, "two"), (1, "one"))
-      rootMap.before(5).reverse.map { case (key, value) => (key, value) }.get.toSeq.get shouldBe List((4, "four"), (3, "three"), (2, "two"), (1, "one"))
-      rootMap.from(3).reverse.map { case (key, value) => (key, value) }.get.toSeq.get shouldBe List((3, "three"), (2, "two"), (1, "one"))
+      rootMap.before(2).reverse.map { case (key, value) => (key, value) }.toSeq.get shouldBe List((1, "one"))
+      rootMap.before(3).reverse.map { case (key, value) => (key, value) }.toSeq.get shouldBe List((2, "two"), (1, "one"))
+      rootMap.before(4).reverse.map { case (key, value) => (key, value) }.toSeq.get shouldBe List((3, "three"), (2, "two"), (1, "one"))
+      rootMap.before(5).reverse.map { case (key, value) => (key, value) }.toSeq.get shouldBe List((4, "four"), (3, "three"), (2, "two"), (1, "one"))
+      rootMap.from(3).reverse.map { case (key, value) => (key, value) }.toSeq.get shouldBe List((3, "three"), (2, "two"), (1, "one"))
 
-      rootMap.maps.before(3).reverse.map { case (key, value) => (key, value) }.get.toSeq.get shouldBe List((2, "sub map"))
-      rootMap.maps.from(3).reverse.map { case (key, value) => (key, value) }.get.toSeq.get shouldBe List((3, "sub map"), (2, "sub map"))
+      rootMap.maps.before(3).reverse.map { case (key, value) => (key, value) }.toSeq.get shouldBe List((2, "sub map"))
+      rootMap.maps.from(3).reverse.map { case (key, value) => (key, value) }.toSeq.get shouldBe List((3, "sub map"), (2, "sub map"))
 
       //forward from entry
       rootMap.from(1).toSeq.get shouldBe List((1, "one"), (2, "two"), (3, "three"), (4, "four"))
@@ -170,10 +170,10 @@ sealed trait FromMapSpec extends TestBaseEmbedded {
       firstMap.from(33).toSeq.get shouldBe List((33, "three three"), (44, "four four"))
       firstMap.from(44).toSeq.get shouldBe List((44, "four four"))
 
-      firstMap.from(11).reverse.map { case (key, value) => (key, value) }.get.toSeq.get shouldBe List((11, "one one"))
-      firstMap.from(22).reverse.map { case (key, value) => (key, value) }.get.toSeq.get shouldBe List((22, "two two"), (11, "one one"))
-      firstMap.from(33).reverse.map { case (key, value) => (key, value) }.get.toSeq.get shouldBe List((33, "three three"), (22, "two two"), (11, "one one"))
-      firstMap.from(44).reverse.map { case (key, value) => (key, value) }.get.toSeq.get shouldBe List((44, "four four"), (33, "three three"), (22, "two two"), (11, "one one"))
+      firstMap.from(11).reverse.map { case (key, value) => (key, value) }.toSeq.get shouldBe List((11, "one one"))
+      firstMap.from(22).reverse.map { case (key, value) => (key, value) }.toSeq.get shouldBe List((22, "two two"), (11, "one one"))
+      firstMap.from(33).reverse.map { case (key, value) => (key, value) }.toSeq.get shouldBe List((33, "three three"), (22, "two two"), (11, "one one"))
+      firstMap.from(44).reverse.map { case (key, value) => (key, value) }.toSeq.get shouldBe List((44, "four four"), (33, "three three"), (22, "two two"), (11, "one one"))
 
       firstMap.maps.toSeq.get shouldBe empty
 
