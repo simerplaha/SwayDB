@@ -63,7 +63,7 @@ sealed abstract class StreamSpec[T[_]](implicit wrap: Wrap[T]) extends WordSpec 
         .map(_ + " one")
         .map(_ + " two")
         .map(_ + " three")
-        .run
+        .materialize
         .await shouldBe (1 to 1000).map(_ + " one two three")
     }
 
@@ -73,7 +73,7 @@ sealed abstract class StreamSpec[T[_]](implicit wrap: Wrap[T]) extends WordSpec 
         .drop(10)
         .take(1)
         .map(_.toInt)
-        .run
+        .materialize
         .await should contain only 11
     }
 
@@ -84,7 +84,7 @@ sealed abstract class StreamSpec[T[_]](implicit wrap: Wrap[T]) extends WordSpec 
         .take(1)
         .map(_.toInt)
         .foreach(println)
-        .run
+        .materialize
         .await should have size 1
     }
 
@@ -92,7 +92,7 @@ sealed abstract class StreamSpec[T[_]](implicit wrap: Wrap[T]) extends WordSpec 
       Stream[Int, T](1 to 10)
         .flatMap(_ => Stream[Int, T](1 to 10))
         .await
-        .run
+        .materialize
         .await shouldBe Array.fill(10)(1 to 10).flatten
     }
 
@@ -101,7 +101,7 @@ sealed abstract class StreamSpec[T[_]](implicit wrap: Wrap[T]) extends WordSpec 
         .map(_ + 10)
         .filter(_ % 2 == 0)
         .take(2)
-        .run
+        .materialize
         .await should contain only(12, 14)
     }
 
@@ -109,14 +109,14 @@ sealed abstract class StreamSpec[T[_]](implicit wrap: Wrap[T]) extends WordSpec 
       Stream[Int, T](1 to 10)
         .filterNot(_ % 2 == 0)
         .take(2)
-        .run
+        .materialize
         .await shouldBe (1 to 10).filter(_ % 2 != 0).take(2)
     }
 
     "not stack overflow" in {
       Stream[Int, T](1 to 1000000)
         .filter(_ % 100000 == 0)
-        .run
+        .materialize
         .await should contain only(100000, 200000, 300000, 400000, 500000, 600000, 700000, 800000, 900000, 1000000)
     }
   }

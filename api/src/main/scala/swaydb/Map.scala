@@ -61,7 +61,7 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
     wrapCall(put(keyValues))
 
   def put(keyValues: Stream[(K, V), W]): W[Level0Meter] =
-    wrapCall(keyValues.run flatMap put)
+    wrapCall(keyValues.materialize flatMap put)
 
   def put(keyValues: Iterable[(K, V)]): W[Level0Meter] =
     wrapCall {
@@ -83,7 +83,7 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
     wrapCall(remove(keys))
 
   def remove(keys: Stream[K, W]): W[Level0Meter] =
-    wrapCall(keys.run flatMap remove)
+    wrapCall(keys.materialize flatMap remove)
 
   def remove(keys: Iterable[K]): W[Level0Meter] =
     wrapCall(core.put(keys.map(key => Prepare.Remove(keySerializer.write(key)))))
@@ -104,7 +104,7 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
     wrapCall(expire(keys))
 
   def expire(keys: Stream[(K, Deadline), W]): W[Level0Meter] =
-    wrapCall(keys.run flatMap expire)
+    wrapCall(keys.materialize flatMap expire)
 
   def expire(keys: Iterable[(K, Deadline)]): W[Level0Meter] =
     wrapCall {
@@ -130,7 +130,7 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
     wrapCall(update(keyValues))
 
   def update(keyValues: Stream[(K, V), W]): W[Level0Meter] =
-    wrapCall(keyValues.run flatMap update)
+    wrapCall(keyValues.materialize flatMap update)
 
   def update(keyValues: Iterable[(K, V)]): W[Level0Meter] =
     wrapCall {
@@ -170,7 +170,7 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
     wrapCall(core.put(prepare))
 
   def commit(prepare: Stream[Prepare[K, V], W]): W[Level0Meter] =
-    wrapCall(prepare.run flatMap commit)
+    wrapCall(prepare.materialize flatMap commit)
 
   def commit(prepare: Iterable[Prepare[K, V]]): W[Level0Meter] =
     wrapCall(core.put(prepare))

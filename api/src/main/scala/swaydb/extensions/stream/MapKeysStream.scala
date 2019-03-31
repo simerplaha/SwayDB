@@ -240,7 +240,7 @@ case class MapKeysStream[K](mapKey: Seq[K],
   }
 
   def size: IO[Int] =
-    run.map(_.size)
+    materialize.map(_.size)
 
   /**
     * Returns the start key when doing reverse iteration.

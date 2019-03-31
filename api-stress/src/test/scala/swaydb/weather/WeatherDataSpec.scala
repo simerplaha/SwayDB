@@ -140,7 +140,7 @@ sealed trait WeatherDataSpec extends TestBase with LazyLogging with Benchmark wi
             key < (startFrom + 100)
         }
 
-    took.run.get should have size 100
+    took.materialize.get should have size 100
     took.headOption.get.get._1 shouldBe startFrom
     took.lastOption.get.get._1 shouldBe (startFrom + 99)
   }
@@ -173,7 +173,7 @@ sealed trait WeatherDataSpec extends TestBase with LazyLogging with Benchmark wi
             if (key % 10000 == 0)
               println(s"mapRight: key = $key")
             key
-        }.run.get
+        }.materialize.get
 
     val expected = (0 until 100) map (startFrom - _)
     took should have size 100
@@ -188,7 +188,7 @@ sealed trait WeatherDataSpec extends TestBase with LazyLogging with Benchmark wi
           if (key % 10000 == 0)
             println(s"take: key = $key")
           key
-      }.run.get shouldBe (1 to 100)
+      }.materialize.get shouldBe (1 to 100)
 
     db
       .fromOrAfter(0)
@@ -198,7 +198,7 @@ sealed trait WeatherDataSpec extends TestBase with LazyLogging with Benchmark wi
           if (key % 10000 == 0)
             println(s"take: key = $key")
           key
-      }.run.get shouldBe (1 to 100)
+      }.materialize.get shouldBe (1 to 100)
   }
 
   def doDrop =
@@ -210,7 +210,7 @@ sealed trait WeatherDataSpec extends TestBase with LazyLogging with Benchmark wi
           if (key % 10000 == 0)
             println(s"take: key = $key")
           key
-      }.run.get shouldBe (keyValueCount - 100 to keyValueCount)
+      }.materialize.get shouldBe (keyValueCount - 100 to keyValueCount)
 
   def doTakeRight =
     db
@@ -222,7 +222,7 @@ sealed trait WeatherDataSpec extends TestBase with LazyLogging with Benchmark wi
           if (key % 10000 == 0)
             println(s"take: key = $key")
           key
-      }.run.get shouldBe (keyValueCount - 99 to keyValueCount).reverse
+      }.materialize.get shouldBe (keyValueCount - 99 to keyValueCount).reverse
 
   def doCount =
     db.size.get should be >= keyValueCount

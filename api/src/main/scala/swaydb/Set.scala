@@ -74,7 +74,7 @@ case class Set[T, W[_]](private val core: Core[W],
     add(elems)
 
   def add(elems: Stream[T, W]): W[Level0Meter] =
-    wrapCall(elems.run flatMap add)
+    wrapCall(elems.materialize flatMap add)
 
   def add(elems: Iterable[T]): W[Level0Meter] =
     wrapCall(core.put(elems.map(elem => Prepare.Put(key = serializer.write(elem), value = None, deadline = None))))
@@ -89,7 +89,7 @@ case class Set[T, W[_]](private val core: Core[W],
     remove(elems)
 
   def remove(elems: Stream[T, W]): W[Level0Meter] =
-    wrapCall(elems.run flatMap remove)
+    wrapCall(elems.materialize flatMap remove)
 
   def remove(elems: Iterable[T]): W[Level0Meter] =
     wrapCall(core.put(elems.map(elem => Prepare.Remove(serializer.write(elem)))))
@@ -110,7 +110,7 @@ case class Set[T, W[_]](private val core: Core[W],
     expire(elems)
 
   def expire(elems: Stream[(T, Deadline), W]): W[Level0Meter] =
-    wrapCall(elems.run flatMap expire)
+    wrapCall(elems.materialize flatMap expire)
 
   def expire(elems: Iterable[(T, Deadline)]): W[Level0Meter] =
     wrapCall {
@@ -144,7 +144,7 @@ case class Set[T, W[_]](private val core: Core[W],
     wrapCall(core.put(prepare))
 
   def commit(prepare: Stream[Prepare[T, Nothing], W]): W[Level0Meter] =
-    wrapCall(prepare.run flatMap commit)
+    wrapCall(prepare.materialize flatMap commit)
 
   def commit(prepare: Iterable[Prepare[T, Nothing]]): W[Level0Meter] =
     wrapCall(core.put(prepare))

@@ -221,7 +221,7 @@ abstract class Stream[A, W[_]](skip: Int,
         wrap.foldLeft(initial, this, skip, count)(f)
     }
 
-  def run: W[Seq[A]] =
+  def materialize: W[Seq[A]] =
     foldLeft(new StreamBuilder[A, W]()) {
       (buffer, item) =>
         buffer += item
