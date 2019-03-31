@@ -17,11 +17,11 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb
+package swaydb.api
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import swaydb.api.TestBaseEmbedded
+import swaydb._
 import swaydb.core.IOAssert._
 import swaydb.core.RunThis._
 import swaydb.data.IO

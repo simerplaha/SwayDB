@@ -30,7 +30,6 @@ import swaydb.data.compaction.LevelMeter
 import swaydb.data.io.converter.{AsyncIOConverter, BlockingIOConverter}
 import swaydb.data.slice.Slice
 import swaydb.serializers.{Serializer, _}
-import scala.concurrent.duration._
 
 /**
   * Map database API.

@@ -96,7 +96,7 @@ abstract class Stream[A, W[_]](skip: Int,
   def next(previous: A): W[Option[A]]
 
   def map[B](f: A => B): Stream[B, W] =
-    new Stream[B, W](skip, count) {
+    new Stream[B, W](0, None) {
 
       var previousA: Option[A] = Option.empty
 
@@ -140,7 +140,7 @@ abstract class Stream[A, W[_]](skip: Int,
     } flatMap (_.map(_.result))
 
   def filter(f: A => Boolean): Stream[A, W] =
-    new Stream[A, W](skip, count) {
+    new Stream[A, W](0, None) {
 
       override def headOption: W[Option[A]] =
         self.headOption flatMap {
