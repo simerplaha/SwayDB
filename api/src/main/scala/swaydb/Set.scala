@@ -43,9 +43,11 @@ object Set {
   */
 case class Set[T, W[_]](private val core: Core[W],
                         private val from: Option[From[T]],
+                        private[swaydb] val count: Option[Int] = None,
+                        private[swaydb] val skip: Int = 0,
                         private[swaydb] val reverseIteration: Boolean = false,
                         private val till: Option[T => Boolean] = None)(implicit serializer: Serializer[T],
-                                                                       wrap: Wrap[W]) extends Stream[T, W](0, None) {
+                                                                       wrap: Wrap[W]) extends Stream[T, W](skip, count) {
 
   def wrapCall[C](f: => W[C]): W[C] =
     wrap(()).flatMap(_ => f)
@@ -72,7 +74,7 @@ case class Set[T, W[_]](private val core: Core[W],
     add(elems)
 
   def add(elems: Stream[T, W]): W[Level0Meter] =
-    wrapCall(elems.toSeq flatMap add)
+    wrapCall(elems.run flatMap add)
 
   def add(elems: Iterable[T]): W[Level0Meter] =
     wrapCall(core.put(elems.map(elem => Prepare.Put(key = serializer.write(elem), value = None, deadline = None))))
@@ -87,7 +89,7 @@ case class Set[T, W[_]](private val core: Core[W],
     remove(elems)
 
   def remove(elems: Stream[T, W]): W[Level0Meter] =
-    wrapCall(elems.toSeq flatMap remove)
+    wrapCall(elems.run flatMap remove)
 
   def remove(elems: Iterable[T]): W[Level0Meter] =
     wrapCall(core.put(elems.map(elem => Prepare.Remove(serializer.write(elem)))))
@@ -108,7 +110,7 @@ case class Set[T, W[_]](private val core: Core[W],
     expire(elems)
 
   def expire(elems: Stream[(T, Deadline), W]): W[Level0Meter] =
-    wrapCall(elems.toSeq flatMap expire)
+    wrapCall(elems.run flatMap expire)
 
   def expire(elems: Iterable[(T, Deadline)]): W[Level0Meter] =
     wrapCall {
@@ -142,7 +144,7 @@ case class Set[T, W[_]](private val core: Core[W],
     wrapCall(core.put(prepare))
 
   def commit(prepare: Stream[Prepare[T, Nothing], W]): W[Level0Meter] =
-    wrapCall(prepare.toSeq flatMap commit)
+    wrapCall(prepare.run flatMap commit)
 
   def commit(prepare: Iterable[Prepare[T, Nothing]]): W[Level0Meter] =
     wrapCall(core.put(prepare))
@@ -182,6 +184,12 @@ case class Set[T, W[_]](private val core: Core[W],
 
   def takeWhile(condition: T => Boolean): Set[T, W] =
     copy(till = Some(condition))
+
+  def take(count: Int): Set[T, W] =
+    copy(count = Some(count))
+
+  def drop(count: Int) =
+    copy(skip = count)
 
   private def checkTakeWhile(key: Slice[Byte]): Option[T] = {
     val keyT = key.read[T]

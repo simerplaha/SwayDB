@@ -209,7 +209,7 @@ abstract class Stream[A, W[_]](skip: Int,
         wrap.foldLeft(initial, this, skip, count)(f)
     }
 
-  def toSeq: W[Seq[A]] =
+  def run: W[Seq[A]] =
     foldLeft(new StreamBuilder[A, W]()) {
       (buffer, item) =>
         buffer += item

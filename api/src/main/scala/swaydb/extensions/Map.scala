@@ -401,7 +401,7 @@ class Map[K, V](mapKey: Seq[K],
     map contains Key.MapEntry(mapKey, key)
 
   def size: IO[Int] =
-    keys.toSeq.map(_.size)
+    keys.run.map(_.size)
 
   def mightContain(key: K): IO[Boolean] =
     map mightContain Key.MapEntry(mapKey, key)

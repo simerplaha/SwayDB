@@ -50,8 +50,8 @@ class NestedOptionValueSpec extends TestBaseEmbedded {
 
     rootMap.put(1, None).assertGet
 
-    rootMap.toSeq.get should contain only ((1, None))
-    rootMap.keys.toSeq.get should contain only 1
+    rootMap.run.get should contain only ((1, None))
+    rootMap.keys.run.get should contain only 1
 
   }
 
@@ -87,8 +87,8 @@ class NestedOptionValueSpec extends TestBaseEmbedded {
     rootMap.put(2, Some(Value.NonEmpty("two"))).assertGet
     rootMap.put(3, None).assertGet
 
-    rootMap.toSeq.get should contain inOrderOnly((1, None), (2, Some(Value.NonEmpty("two"))), (3, None))
-    rootMap.keys.toSeq.get should contain inOrderOnly(1, 2, 3)
+    rootMap.run.get should contain inOrderOnly((1, None), (2, Some(Value.NonEmpty("two"))), (3, None))
+    rootMap.keys.run.get should contain inOrderOnly(1, 2, 3)
   }
 
 }

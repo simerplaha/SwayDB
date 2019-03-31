@@ -75,10 +75,10 @@ sealed trait MapSpec extends TestBaseEmbedded {
     "initialise a rootMap" in {
       val rootMap = newDB()
 
-      rootMap.toSeq.get shouldBe empty
+      rootMap.run.get shouldBe empty
 
       //assert
-      rootMap.baseMap().toSeq.get shouldBe
+      rootMap.baseMap().run.get shouldBe
         List(
           (Key.MapStart(Seq.empty), None),
           (Key.MapEntriesStart(Seq.empty), None),
@@ -99,7 +99,7 @@ sealed trait MapSpec extends TestBaseEmbedded {
       rootMap.getValue().assertGet shouldBe "rootMap"
 
       //assert
-      rootMap.baseMap().toSeq.get shouldBe
+      rootMap.baseMap().run.get shouldBe
         List(
           (Key.MapStart(Seq.empty), Some("rootMap")),
           (Key.MapEntriesStart(Seq.empty), None),
@@ -120,10 +120,10 @@ sealed trait MapSpec extends TestBaseEmbedded {
       rootMap.get(1).get.get shouldBe "one"
       rootMap.get(2).get.get shouldBe "two"
 
-      rootMap.toSeq.get shouldBe ListBuffer((1, "one"), (2, "two"))
+      rootMap.run.get shouldBe ListBuffer((1, "one"), (2, "two"))
 
       //assert
-      rootMap.baseMap().toSeq.get shouldBe
+      rootMap.baseMap().run.get shouldBe
         List(
           (Key.MapStart(Seq.empty), None),
           (Key.MapEntriesStart(Seq.empty), None),
@@ -152,11 +152,11 @@ sealed trait MapSpec extends TestBaseEmbedded {
       subMap.put(1, "subMap one").assertGet
       subMap.put(2, "subMap two").assertGet
 
-      rootMap.toSeq.get shouldBe ListBuffer((1, "one"), (2, "two"))
-      subMap.toSeq.get shouldBe ListBuffer((1, "subMap one"), (2, "subMap two"))
+      rootMap.run.get shouldBe ListBuffer((1, "one"), (2, "two"))
+      subMap.run.get shouldBe ListBuffer((1, "subMap one"), (2, "subMap two"))
 
       //assert
-      rootMap.baseMap().toSeq.get shouldBe
+      rootMap.baseMap().run.get shouldBe
         List(
           (Key.MapStart(Seq.empty), None),
           (Key.MapEntriesStart(Seq.empty), None),
@@ -264,7 +264,7 @@ sealed trait MapSpec extends TestBaseEmbedded {
 
       val subMapGet = rootMap.maps.get(1).assertGet
       subMapGet.getValue().assertGet shouldBe "sub map"
-      subMapGet.toSeq.get shouldBe ListBuffer((1, "one"), (2, "two"))
+      subMapGet.run.get shouldBe ListBuffer((1, "one"), (2, "two"))
 
       rootMap.maps.contains(1).assertGet shouldBe true
       rootMap.exists().assertGet shouldBe true
@@ -482,8 +482,8 @@ sealed trait MapSpec extends TestBaseEmbedded {
       ).assertGet
 
       eventual {
-        rootMap.toSeq.get shouldBe empty
-        subMap.toSeq.get shouldBe empty
+        rootMap.run.get shouldBe empty
+        subMap.run.get shouldBe empty
       }
 
       rootMap.closeDatabase().get
@@ -496,8 +496,8 @@ sealed trait MapSpec extends TestBaseEmbedded {
       val subMap = rootMap.maps.put(1, "sub map").assertGet
       subMap.put((1, "one one"), (2, "two two"))
 
-      rootMap.toSeq.get shouldBe ListBuffer((1, "one"), (2, "two"))
-      subMap.toSeq.get shouldBe ListBuffer((1, "one one"), (2, "two two"))
+      rootMap.run.get shouldBe ListBuffer((1, "one"), (2, "two"))
+      subMap.run.get shouldBe ListBuffer((1, "one one"), (2, "two two"))
 
       rootMap.closeDatabase().get
     }
@@ -511,8 +511,8 @@ sealed trait MapSpec extends TestBaseEmbedded {
       subMap.put((1, "one one"), (2, "two two"))
       subMap.update((1, "one one updated"), (2, "two two updated")).assertGet
 
-      rootMap.toSeq.get shouldBe ListBuffer((1, "one updated"), (2, "two updated"))
-      subMap.toSeq.get shouldBe ListBuffer((1, "one one updated"), (2, "two two updated"))
+      rootMap.run.get shouldBe ListBuffer((1, "one updated"), (2, "two updated"))
+      subMap.run.get shouldBe ListBuffer((1, "one one updated"), (2, "two two updated"))
 
       rootMap.closeDatabase().get
     }
@@ -526,8 +526,8 @@ sealed trait MapSpec extends TestBaseEmbedded {
       subMap.put((1, "one one"), (2, "two two"))
       subMap.remove(1, 2).assertGet
 
-      rootMap.toSeq.get shouldBe empty
-      subMap.toSeq.get shouldBe empty
+      rootMap.run.get shouldBe empty
+      subMap.run.get shouldBe empty
 
       rootMap.closeDatabase().get
     }
@@ -542,8 +542,8 @@ sealed trait MapSpec extends TestBaseEmbedded {
       subMap.expire((1, 1.second.fromNow), (2, 1.second.fromNow)).assertGet
 
       eventual {
-        rootMap.toSeq.get should contain only ((2, "two"))
-        subMap.toSeq.get shouldBe empty
+        rootMap.run.get should contain only ((2, "two"))
+        subMap.run.get shouldBe empty
       }
 
       rootMap.closeDatabase().get
@@ -648,8 +648,8 @@ sealed trait MapSpec extends TestBaseEmbedded {
       val subMap = rootMap.maps.put(1, "sub map").assertGet
       subMap.put((11, "one one"), (22, "two two"))
 
-      rootMap.keys.toSeq.get should contain inOrderOnly(1, 2)
-      subMap.keys.toSeq.get should contain inOrderOnly(11, 22)
+      rootMap.keys.run.get should contain inOrderOnly(1, 2)
+      subMap.keys.run.get should contain inOrderOnly(11, 22)
 
       rootMap.closeDatabase().get
     }
@@ -773,7 +773,7 @@ sealed trait MapSpec extends TestBaseEmbedded {
         second.put(2, "two").assertGet
         second.put(3, "three").assertGet
         //assert second map has these entries
-        second.toSeq.get shouldBe List((1, "one"), (2, "two"), (3, "three"))
+        second.run.get shouldBe List((1, "one"), (2, "two"), (3, "three"))
 
         val secondAgain = first.maps.put(2, "second again").assertGet
 
@@ -783,7 +783,7 @@ sealed trait MapSpec extends TestBaseEmbedded {
         second.getValue().assertGet shouldBe "second again"
         secondAgain.getValue().assertGet shouldBe "second again"
         //all the old entries are removed
-        second.toSeq.get shouldBe empty
+        second.run.get shouldBe empty
 
         root.closeDatabase().get
       }
@@ -814,17 +814,17 @@ sealed trait MapSpec extends TestBaseEmbedded {
         /**
           * Assert that the all maps' content is accurate
           */
-        second.toSeq.get shouldBe List((1, "second one"), (2, "second two"), (3, "second three"))
-        third.toSeq.get shouldBe List((1, "third one"), (2, "third two"), (3, "third three"))
-        fourth.toSeq.get shouldBe List((1, "fourth one"), (2, "fourth two"), (3, "fourth three"))
+        second.run.get shouldBe List((1, "second one"), (2, "second two"), (3, "second three"))
+        third.run.get shouldBe List((1, "third one"), (2, "third two"), (3, "third three"))
+        fourth.run.get shouldBe List((1, "fourth one"), (2, "fourth two"), (3, "fourth three"))
 
-        second.toSeq.get shouldBe List((1, "second one"), (2, "second two"), (3, "second three"))
-        third.toSeq.get shouldBe List((1, "third one"), (2, "third two"), (3, "third three"))
-        fourth.toSeq.get shouldBe List((1, "fourth one"), (2, "fourth two"), (3, "fourth three"))
+        second.run.get shouldBe List((1, "second one"), (2, "second two"), (3, "second three"))
+        third.run.get shouldBe List((1, "third one"), (2, "third two"), (3, "third three"))
+        fourth.run.get shouldBe List((1, "fourth one"), (2, "fourth two"), (3, "fourth three"))
 
-        second.maps.toSeq.get shouldBe List((3, "third"))
-        third.maps.toSeq.get shouldBe List((4, "fourth"))
-        fourth.maps.toSeq.get shouldBe empty
+        second.maps.run.get shouldBe List((3, "third"))
+        third.maps.run.get shouldBe List((4, "fourth"))
+        fourth.maps.run.get shouldBe empty
 
         //submit put on second map and assert that all it's contents are replaced.
         val secondAgain = first.maps.put(2, "second updated").assertGet
@@ -835,9 +835,9 @@ sealed trait MapSpec extends TestBaseEmbedded {
         second.getValue().assertGet shouldBe "second updated"
         secondAgain.getValue().assertGet shouldBe "second updated"
         //all the old entries are removed
-        second.toSeq.get shouldBe empty
-        third.toSeq.get shouldBe empty
-        fourth.toSeq.get shouldBe empty
+        second.run.get shouldBe empty
+        third.run.get shouldBe empty
+        fourth.run.get shouldBe empty
 
         second.maps.contains(3).assertGet shouldBe false
         second.maps.contains(4).assertGet shouldBe false
@@ -861,13 +861,13 @@ sealed trait MapSpec extends TestBaseEmbedded {
         third.put(2, "third two").assertGet
         third.put(3, "third three").assertGet
 
-        second.toSeq.get should have size 3
+        second.run.get should have size 3
         second.clear().assertGet
-        second.toSeq.get shouldBe empty
+        second.run.get shouldBe empty
 
-        third.toSeq.get should have size 3
+        third.run.get should have size 3
         second.maps.clear(3).assertGet
-        third.toSeq.get shouldBe empty
+        third.run.get shouldBe empty
 
         root.closeDatabase().get
       }

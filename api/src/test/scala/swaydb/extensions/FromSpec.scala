@@ -72,7 +72,7 @@ sealed trait FromSpec extends TestBaseEmbedded {
 
       firstMap
         .from(2)
-        .toSeq
+        .run
         .get shouldBe empty
 
       db.closeDatabase().get
@@ -89,41 +89,41 @@ sealed trait FromSpec extends TestBaseEmbedded {
 
       firstMap
         .from(2)
-        .toSeq
+        .run
         .get shouldBe empty
 
       firstMap
         .after(1)
-        .toSeq
+        .run
         .get shouldBe empty
 
       firstMap
         .from(1)
-        .toSeq
+        .run
         .get should contain only ((1, "one"))
 
       firstMap
         .fromOrBefore(2)
-        .toSeq
+        .run
         .get should contain only ((1, "one"))
 
       firstMap
         .fromOrBefore(1)
-        .toSeq
+        .run
         .get should contain only ((1, "one"))
 
       firstMap
         .after(0)
-        .toSeq
+        .run
         .get should contain only ((1, "one"))
 
       firstMap
         .fromOrAfter(0)
-        .toSeq
+        .run
         .get should contain only ((1, "one"))
 
       firstMap
-        .toSeq
+        .run
         .get
         .size shouldBe 1
 
@@ -146,24 +146,24 @@ sealed trait FromSpec extends TestBaseEmbedded {
       subMap2.put(3, "three").assertGet
       subMap2.put(4, "four").assertGet
 
-      subMap1.from(3).toSeq.get shouldBe empty
-      subMap1.after(2).toSeq.get shouldBe empty
-      subMap1.from(1).toSeq.get should contain inOrderOnly((1, "one"), (2, "two"))
-      subMap1.fromOrBefore(2).toSeq.get should contain only ((2, "two"))
-      subMap1.fromOrBefore(1).toSeq.get should contain inOrderOnly((1, "one"), (2, "two"))
-      subMap1.after(0).toSeq.get should contain inOrderOnly((1, "one"), (2, "two"))
-      subMap1.fromOrAfter(0).toSeq.get should contain inOrderOnly((1, "one"), (2, "two"))
+      subMap1.from(3).run.get shouldBe empty
+      subMap1.after(2).run.get shouldBe empty
+      subMap1.from(1).run.get should contain inOrderOnly((1, "one"), (2, "two"))
+      subMap1.fromOrBefore(2).run.get should contain only ((2, "two"))
+      subMap1.fromOrBefore(1).run.get should contain inOrderOnly((1, "one"), (2, "two"))
+      subMap1.after(0).run.get should contain inOrderOnly((1, "one"), (2, "two"))
+      subMap1.fromOrAfter(0).run.get should contain inOrderOnly((1, "one"), (2, "two"))
       subMap1.size.assertGet shouldBe 2
       subMap1.headOption.assertGetOpt should contain((1, "one"))
       subMap1.lastOption.assertGetOpt should contain((2, "two"))
 
-      subMap2.from(5).toSeq.get shouldBe empty
-      subMap2.after(4).toSeq.get shouldBe empty
-      subMap2.from(3).toSeq.get should contain inOrderOnly((3, "three"), (4, "four"))
-      subMap2.fromOrBefore(5).toSeq.get should contain only ((4, "four"))
-      subMap2.fromOrBefore(3).toSeq.get should contain inOrderOnly((3, "three"), (4, "four"))
-      subMap2.after(0).toSeq.get should contain inOrderOnly((3, "three"), (4, "four"))
-      subMap2.fromOrAfter(1).toSeq.get should contain inOrderOnly((3, "three"), (4, "four"))
+      subMap2.from(5).run.get shouldBe empty
+      subMap2.after(4).run.get shouldBe empty
+      subMap2.from(3).run.get should contain inOrderOnly((3, "three"), (4, "four"))
+      subMap2.fromOrBefore(5).run.get should contain only ((4, "four"))
+      subMap2.fromOrBefore(3).run.get should contain inOrderOnly((3, "three"), (4, "four"))
+      subMap2.after(0).run.get should contain inOrderOnly((3, "three"), (4, "four"))
+      subMap2.fromOrAfter(1).run.get should contain inOrderOnly((3, "three"), (4, "four"))
       subMap2.size.assertGet shouldBe 2
       subMap2.headOption.assertGet shouldBe ((3, "three"))
       subMap2.lastOption.assertGet shouldBe ((4, "four"))
@@ -184,31 +184,31 @@ sealed trait FromSpec extends TestBaseEmbedded {
       subMap2.put(3, "three").assertGet
       subMap2.put(4, "four").assertGet
 
-      subMap1.from(4).toSeq.get shouldBe empty
-      subMap1.after(3).toSeq.get shouldBe empty
-      subMap1.from(1).toSeq.get should contain inOrderOnly((1, "one"), (2, "two"))
-      subMap1.maps.from(1).toSeq.get shouldBe empty
-      subMap1.maps.after(1).toSeq.get should contain only ((3, "sub map 2"))
-      subMap1.fromOrBefore(2).toSeq.get should contain only ((2, "two"))
-      subMap1.maps.fromOrBefore(2).toSeq.get should contain only ((3, "sub map 2"))
+      subMap1.from(4).run.get shouldBe empty
+      subMap1.after(3).run.get shouldBe empty
+      subMap1.from(1).run.get should contain inOrderOnly((1, "one"), (2, "two"))
+      subMap1.maps.from(1).run.get shouldBe empty
+      subMap1.maps.after(1).run.get should contain only ((3, "sub map 2"))
+      subMap1.fromOrBefore(2).run.get should contain only ((2, "two"))
+      subMap1.maps.fromOrBefore(2).run.get should contain only ((3, "sub map 2"))
 
-      subMap1.fromOrBefore(1).toSeq.get should contain inOrderOnly((1, "one"), (2, "two"))
-      subMap1.maps.fromOrBefore(1).toSeq.get should contain only ((3, "sub map 2"))
-      subMap1.after(0).toSeq.get should contain inOrderOnly((1, "one"), (2, "two"))
-      subMap1.maps.after(0).toSeq.get should contain only ((3, "sub map 2"))
-      subMap1.fromOrAfter(0).toSeq.get should contain inOrderOnly((1, "one"), (2, "two"))
-      subMap1.maps.fromOrAfter(0).toSeq.get should contain only ((3, "sub map 2"))
+      subMap1.fromOrBefore(1).run.get should contain inOrderOnly((1, "one"), (2, "two"))
+      subMap1.maps.fromOrBefore(1).run.get should contain only ((3, "sub map 2"))
+      subMap1.after(0).run.get should contain inOrderOnly((1, "one"), (2, "two"))
+      subMap1.maps.after(0).run.get should contain only ((3, "sub map 2"))
+      subMap1.fromOrAfter(0).run.get should contain inOrderOnly((1, "one"), (2, "two"))
+      subMap1.maps.fromOrAfter(0).run.get should contain only ((3, "sub map 2"))
       subMap1.size.assertGet shouldBe 2
       subMap1.headOption.assertGet shouldBe ((1, "one"))
       subMap1.maps.lastOption.assertGet shouldBe ((3, "sub map 2"))
 
-      subMap2.from(5).toSeq.get shouldBe empty
-      subMap2.after(4).toSeq.get shouldBe empty
-      subMap2.from(3).toSeq.get should contain inOrderOnly((3, "three"), (4, "four"))
-      subMap2.fromOrBefore(5).toSeq.get should contain only ((4, "four"))
-      subMap2.fromOrBefore(3).toSeq.get should contain inOrderOnly((3, "three"), (4, "four"))
-      subMap2.after(0).toSeq.get should contain inOrderOnly((3, "three"), (4, "four"))
-      subMap2.fromOrAfter(1).toSeq.get should contain inOrderOnly((3, "three"), (4, "four"))
+      subMap2.from(5).run.get shouldBe empty
+      subMap2.after(4).run.get shouldBe empty
+      subMap2.from(3).run.get should contain inOrderOnly((3, "three"), (4, "four"))
+      subMap2.fromOrBefore(5).run.get should contain only ((4, "four"))
+      subMap2.fromOrBefore(3).run.get should contain inOrderOnly((3, "three"), (4, "four"))
+      subMap2.after(0).run.get should contain inOrderOnly((3, "three"), (4, "four"))
+      subMap2.fromOrAfter(1).run.get should contain inOrderOnly((3, "three"), (4, "four"))
       subMap2.size.assertGet shouldBe 2
       subMap2.headOption.assertGet shouldBe ((3, "three"))
       subMap2.lastOption.assertGet shouldBe ((4, "four"))

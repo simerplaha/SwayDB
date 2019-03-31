@@ -74,7 +74,7 @@ sealed trait MapPutSpec extends TestBaseEmbedded {
       firstMap.put(5, "five").assertGet
       firstMap.put(4, "four again").assertGet
 
-      firstMap.toSeq.get should contain inOrderOnly((3, "three"), (4, "four again"), (5, "five"))
+      firstMap.run.get should contain inOrderOnly((3, "three"), (4, "four again"), (5, "five"))
 
       db.closeDatabase().get
     }
@@ -97,8 +97,8 @@ sealed trait MapPutSpec extends TestBaseEmbedded {
       val thirdMap = firstMap.maps.put(3, "third map").assertGet
       insert(thirdMap)
 
-      secondMap.toSeq.get should contain inOrderOnly((3, "three"), (4, "four again"), (5, "five"))
-      thirdMap.toSeq.get should contain inOrderOnly((3, "three"), (4, "four again"), (5, "five"))
+      secondMap.run.get should contain inOrderOnly((3, "three"), (4, "four again"), (5, "five"))
+      thirdMap.run.get should contain inOrderOnly((3, "three"), (4, "four again"), (5, "five"))
 
       db.closeDatabase().get
     }
@@ -165,13 +165,13 @@ sealed trait MapPutSpec extends TestBaseEmbedded {
       subMap4.put(7, "seven").assertGet
       subMap4.put(8, "eight").assertGet
 
-      subMap1.toSeq.get should contain inOrderOnly((1, "one"), (2, "two"))
-      subMap1.maps.toSeq.get should contain only ((3, "sub map three"))
-      subMap2.toSeq.get should contain inOrderOnly((3, "three"), (4, "four"))
-      subMap2.maps.toSeq.get should contain only ((5, "sub map five"))
-      subMap3.toSeq.get should contain inOrderOnly((5, "five"), (6, "six"))
-      subMap3.maps.toSeq.get should contain only ((7, "sub map seven"))
-      subMap4.toSeq.get should contain inOrderOnly((7, "seven"), (8, "eight"))
+      subMap1.run.get should contain inOrderOnly((1, "one"), (2, "two"))
+      subMap1.maps.run.get should contain only ((3, "sub map three"))
+      subMap2.run.get should contain inOrderOnly((3, "three"), (4, "four"))
+      subMap2.maps.run.get should contain only ((5, "sub map five"))
+      subMap3.run.get should contain inOrderOnly((5, "five"), (6, "six"))
+      subMap3.maps.run.get should contain only ((7, "sub map seven"))
+      subMap4.run.get should contain inOrderOnly((7, "seven"), (8, "eight"))
 
       db.closeDatabase().get
     }
@@ -197,10 +197,10 @@ sealed trait MapPutSpec extends TestBaseEmbedded {
       subMap4.put(7, "seven").assertGet
       subMap4.put(8, "eight").assertGet
 
-      subMap1.toSeq.get should contain inOrderOnly((1, "one"), (2, "two"))
-      subMap2.toSeq.get should contain inOrderOnly((3, "three"), (4, "four"))
-      subMap3.toSeq.get should contain inOrderOnly((5, "five"), (6, "six"))
-      subMap4.toSeq.get should contain inOrderOnly((7, "seven"), (8, "eight"))
+      subMap1.run.get should contain inOrderOnly((1, "one"), (2, "two"))
+      subMap2.run.get should contain inOrderOnly((3, "three"), (4, "four"))
+      subMap3.run.get should contain inOrderOnly((5, "five"), (6, "six"))
+      subMap4.run.get should contain inOrderOnly((7, "seven"), (8, "eight"))
 
       db.closeDatabase().get
     }

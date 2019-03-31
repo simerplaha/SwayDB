@@ -20,6 +20,7 @@
 package swaydb
 
 import scala.concurrent.duration._
+import scala.util.Random
 import swaydb.core.IOAssert._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
@@ -67,6 +68,11 @@ sealed trait SwayDBGetSpec extends TestBase {
     "get" in {
 
       val db = newDB()
+
+      (1 to 100) foreach {
+        i =>
+          db.put(i, i.toString).assertGet
+      }
 
       (1 to 100) foreach {
         i =>
@@ -136,7 +142,7 @@ sealed trait SwayDBGetSpec extends TestBase {
       (1 to 9) foreach { i => db.get(i).assertGet shouldBe i.toString }
       (91 to 100) foreach { i => db.get(i).assertGet shouldBe i.toString }
 
-      db.keys.toSeq.get shouldBe ((1 to 9) ++ (91 to 100))
+      db.keys.run.get shouldBe ((1 to 9) ++ (91 to 100))
 
       db.closeDatabase().get
     }
