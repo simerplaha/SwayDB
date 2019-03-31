@@ -115,5 +115,21 @@ sealed trait ScalaSetSpec extends TestBaseEmbedded {
       db.asScala.contains(1) shouldBe false
       db.asScala.contains(2) shouldBe false
     }
+
+    "head, last, contains" in {
+      val db = newDB()
+
+      db.asScala ++= Seq(1, 2)
+
+      db.asScala.head shouldBe 1
+      db.asScala.last shouldBe 2
+
+      db.asScala.contains(1) shouldBe true
+      db.asScala.contains(2) shouldBe true
+      db.asScala.contains(3) shouldBe false
+
+      db.closeDatabase().get
+
+    }
   }
 }
