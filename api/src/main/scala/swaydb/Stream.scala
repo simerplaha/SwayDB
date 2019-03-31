@@ -215,12 +215,24 @@ abstract class Stream[A, W[_]](skip: Int,
         Some(next)
     }
 
+  /**
+    * Materializes are executes the
+    */
   def foldLeft[B](initial: B)(f: (B, A) => B): W[B] =
     wrap(()) flatMap {
       _ =>
         wrap.foldLeft(initial, this, skip, count)(f)
     }
 
+  /**
+    * Converts the Stream to executable type.
+    *
+    * If [[W]] is of type [[scala.util.Try]] or [[IO]] this
+    * will also execute the query.
+    *
+    * External library implementing [[IO]] monads can be used for delay execution.
+    *
+    */
   def materialize: W[Seq[A]] =
     foldLeft(new StreamBuilder[A, W]()) {
       (buffer, item) =>
