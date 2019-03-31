@@ -387,9 +387,8 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
     *                otherwise it's always non-blocking.
     *
     */
-  def asyncAPI[O[_]](implicit ec: ExecutionContext,
-                     converter: AsyncIOConverter[O],
-                     timeout: FiniteDuration = 60.seconds): Map[K, V, O] = {
+  def asyncAPI[O[_]](timeout: FiniteDuration)(implicit ec: ExecutionContext,
+                                              converter: AsyncIOConverter[O]): Map[K, V, O] = {
     implicit val wrapper = Wrap.async[O](converter, timeout)
     copy(core = core.async[O])
   }
