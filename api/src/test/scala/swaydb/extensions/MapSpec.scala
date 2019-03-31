@@ -21,7 +21,8 @@ package swaydb.extensions
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
-import swaydb.{Prepare, TestBaseEmbedded}
+import swaydb.api.TestBaseEmbedded
+import swaydb.{Prepare}
 import swaydb.core.CommonAssertions._
 import swaydb.core.IOAssert._
 import swaydb.core.RunThis._

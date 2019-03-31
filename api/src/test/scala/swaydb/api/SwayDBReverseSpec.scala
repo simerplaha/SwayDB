@@ -19,6 +19,7 @@
 
 package swaydb
 
+import swaydb.api.TestBaseEmbedded
 import swaydb.core.TestBase
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice

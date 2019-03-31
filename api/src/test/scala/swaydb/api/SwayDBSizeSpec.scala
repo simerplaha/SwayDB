@@ -19,6 +19,7 @@
 
 package swaydb
 
+import swaydb.api.TestBaseEmbedded
 import swaydb.core.TestBase
 import swaydb.serializers.Default._
 import swaydb.core.IOAssert._

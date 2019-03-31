@@ -17,10 +17,11 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb
+package swaydb.api
 
 import org.scalatest.{Matchers, WordSpec}
 import scala.util.Try
+import swaydb._
 
 class WrapSpec extends WordSpec with Matchers {
 

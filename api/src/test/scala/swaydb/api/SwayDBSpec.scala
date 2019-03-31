@@ -21,6 +21,7 @@ package swaydb
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
+import swaydb.api.TestBaseEmbedded
 import swaydb.core.IOAssert._
 import swaydb.core.RunThis._
 import swaydb.data.IO

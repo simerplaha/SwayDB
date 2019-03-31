@@ -19,12 +19,12 @@
 
 package swaydb.extensions
 
+import swaydb.api.TestBaseEmbedded
 import swaydb.core.IOAssert._
 import swaydb.core.RunThis._
-import swaydb.core.TestBase
 import swaydb.data.util.StorageUnits._
+import swaydb.extensions
 import swaydb.serializers.Default._
-import swaydb.{TestBaseEmbedded, extensions}
 
 class FromMapSpec0 extends FromMapSpec {
   val keyValueCount: Int = 1000

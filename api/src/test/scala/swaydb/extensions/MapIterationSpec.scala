@@ -19,7 +19,7 @@
 
 package swaydb.extensions
 
-import swaydb.TestBaseEmbedded
+import swaydb.api.TestBaseEmbedded
 import swaydb.core.IOAssert._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase

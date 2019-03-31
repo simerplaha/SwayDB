@@ -17,7 +17,7 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb
+package swaydb.api
 
 import scala.annotation.tailrec
 import scala.concurrent.Future
@@ -26,6 +26,7 @@ import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.IOAssert._
 import swaydb.data.IO
+import swaydb._
 
 trait TestBaseEmbedded extends TestBase {
 

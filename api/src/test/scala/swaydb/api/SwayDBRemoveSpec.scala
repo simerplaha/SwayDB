@@ -20,6 +20,7 @@
 package swaydb
 
 import scala.concurrent.duration._
+import swaydb.api.TestBaseEmbedded
 import swaydb.core.TestBase
 import swaydb.serializers.Default._
 import swaydb.core.IOAssert._
