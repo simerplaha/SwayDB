@@ -19,22 +19,20 @@
 
 package swaydb.api
 
-import scala.concurrent.duration._
 import swaydb._
-import swaydb.core.CommonAssertions._
 import swaydb.core.IOAssert._
 import swaydb.core.RunThis._
 import swaydb.data.IO
 import swaydb.serializers.Default._
 
-class SwayDBExpireSpec0 extends SwayDBExpireSpec {
+class ScalaMapSpec0 extends ScalaMapSpec {
   val keyValueCount: Int = 1000
 
   override def newDB(): Map[Int, String, IO] =
     swaydb.persistent.Map[Int, String](dir = randomDir).assertGet
 }
 
-class SwayDBExpireSpec1 extends SwayDBExpireSpec {
+class ScalaMapSpec1 extends ScalaMapSpec {
 
   val keyValueCount: Int = 1000
 
@@ -42,7 +40,7 @@ class SwayDBExpireSpec1 extends SwayDBExpireSpec {
     swaydb.persistent.Map[Int, String](randomDir, mapSize = 1.byte, segmentSize = 10.bytes).assertGet
 }
 
-class SwayDBExpireSpec2 extends SwayDBExpireSpec {
+class ScalaMapSpec2 extends ScalaMapSpec {
 
   val keyValueCount: Int = 10000
 
@@ -50,14 +48,14 @@ class SwayDBExpireSpec2 extends SwayDBExpireSpec {
     swaydb.memory.Map[Int, String](mapSize = 1.byte).assertGet
 }
 
-class SwayDBExpireSpec3 extends SwayDBExpireSpec {
+class ScalaMapSpec3 extends ScalaMapSpec {
   val keyValueCount: Int = 10000
 
   override def newDB(): Map[Int, String, IO] =
     swaydb.memory.Map[Int, String]().assertGet
 }
 
-class SwayDBExpireSpec4 extends SwayDBExpireSpec {
+class ScalaMapSpec4 extends ScalaMapSpec {
 
   val keyValueCount: Int = 10000
 
@@ -65,14 +63,14 @@ class SwayDBExpireSpec4 extends SwayDBExpireSpec {
     swaydb.memory.zero.Map[Int, String](mapSize = 1.byte).assertGet
 }
 
-class SwayDBExpireSpec5 extends SwayDBExpireSpec {
+class ScalaMapSpec5 extends ScalaMapSpec {
   val keyValueCount: Int = 10000
 
   override def newDB(): Map[Int, String, IO] =
     swaydb.memory.zero.Map[Int, String]().assertGet
 }
 
-sealed trait SwayDBExpireSpec extends TestBaseEmbedded {
+sealed trait ScalaMapSpec extends TestBaseEmbedded {
 
   val keyValueCount: Int
 
