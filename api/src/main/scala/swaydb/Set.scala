@@ -185,10 +185,10 @@ case class Set[T, W[_]](private val core: Core[W],
   def takeWhile(condition: T => Boolean): Set[T, W] =
     copy(till = Some(condition))
 
-  def take(count: Int): Set[T, W] =
+  override def take(count: Int): Set[T, W] =
     copy(count = Some(count))
 
-  def drop(count: Int): Set[T, W] =
+  override def drop(count: Int): Set[T, W] =
     copy(skip = count)
 
   private def checkTakeWhile(key: Slice[Byte]): Option[T] = {

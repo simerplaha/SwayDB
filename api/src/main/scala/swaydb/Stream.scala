@@ -95,8 +95,20 @@ abstract class Stream[A, W[_]](skip: Int,
   def headOption: W[Option[A]]
   def next(previous: A): W[Option[A]]
 
+  def drop(count: Int): Stream[A, W] =
+    new Stream[A, W](count, self.count) {
+      override def headOption: W[Option[A]] = self.headOption
+      override def next(previous: A): W[Option[A]] = self.next(previous)
+    }
+
+  def take(count: Int): Stream[A, W] =
+    new Stream[A, W](skip, Some(count)) {
+      override def headOption: W[Option[A]] = self.headOption
+      override def next(previous: A): W[Option[A]] = self.next(previous)
+    }
+
   def map[B](f: A => B): Stream[B, W] =
-    new Stream[B, W](0, None) {
+    new Stream[B, W](skip, count) {
 
       var previousA: Option[A] = Option.empty
 
@@ -140,7 +152,7 @@ abstract class Stream[A, W[_]](skip: Int,
     } flatMap (_.map(_.result))
 
   def filter(f: A => Boolean): Stream[A, W] =
-    new Stream[A, W](0, None) {
+    new Stream[A, W](skip, count) {
 
       override def headOption: W[Option[A]] =
         self.headOption flatMap {

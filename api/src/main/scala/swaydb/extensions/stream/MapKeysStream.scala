@@ -91,10 +91,10 @@ case class MapKeysStream[K](mapKey: Seq[K],
   private def reverse(reverse: Boolean): MapKeysStream[K] =
     copy(set = set.copy(reverseIteration = reverse))
 
-  def take(count: Int): MapKeysStream[K] =
+  override def take(count: Int): MapKeysStream[K] =
     copy(count = Some(count))
 
-  def drop(count: Int): MapKeysStream[K] =
+  override def drop(count: Int): MapKeysStream[K] =
     copy(skip = count)
 
   def takeWhile(condition: K => Boolean) =

@@ -110,10 +110,10 @@ case class MapStream[K, V](mapKey: Seq[K],
           condition(value)
     )
 
-  def take(count: Int): MapStream[K, V] =
+  override def take(count: Int): MapStream[K, V] =
     copy(count = Some(count))
 
-  def drop(count: Int): MapStream[K, V] =
+  override def drop(count: Int): MapStream[K, V] =
     copy(skip = count)
 
   private def validate(mapKey: Key[K], valueOption: Option[V]): Step[(K, V)] = {
