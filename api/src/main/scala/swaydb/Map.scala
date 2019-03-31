@@ -30,6 +30,7 @@ import swaydb.data.compaction.LevelMeter
 import swaydb.data.io.converter.{AsyncIOConverter, BlockingIOConverter}
 import swaydb.data.slice.Slice
 import swaydb.serializers.{Serializer, _}
+import scala.concurrent.duration._
 
 /**
   * Map database API.
@@ -370,17 +371,51 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
   def reverse: Map[K, V, W] =
     copy(reverseIteration = true)
 
+  /**
+    * Returns an Async API of type O where the [[Wrap]] is not known.
+    *
+    * Wrapper will be built from [[AsyncIOConverter]].
+    *
+    * @param timeout is used only when a async API gets converted into a blocking API
+    *                otherwise it's always non-blocking.
+    *
+    */
   def asyncAPI[O[_]](implicit ec: ExecutionContext,
-                     convert: AsyncIOConverter[O],
+                     converter: AsyncIOConverter[O],
+                     timeout: FiniteDuration = 60.seconds): Map[K, V, O] = {
+    implicit val wrapper = Wrap.async[O](converter, timeout)
+    copy(core = core.async[O])
+  }
+
+  /**
+    * Returns an Async API of type O where the [[Wrap]] is known.
+    *
+    * Wrapper will be built from [[AsyncIOConverter]].
+    */
+  def asyncAPI[O[_]](implicit ec: ExecutionContext,
+                     converter: AsyncIOConverter[O],
                      wrap: Wrap[O]): Map[K, V, O] =
     copy(core = core.async[O])
 
-  def blockingAPI[O[_]](implicit convert: BlockingIOConverter[O],
+  /**
+    * Returns an blocking API of type O where the [[Wrap]] is not known.
+    *
+    * Wrapper will be built from [[BlockingIOConverter]].
+    */
+  def blockingAPI[O[_]](implicit converter: BlockingIOConverter[O]): Map[K, V, O] = {
+    implicit val wrapper = Wrap.sync[O](converter)
+    copy(core = core.blocking[O])
+  }
+
+  /**
+    * Returns an blocking API of type O where the [[Wrap]] is known.
+    */
+  def blockingAPI[O[_]](implicit converter: BlockingIOConverter[O],
                         wrap: Wrap[O]): Map[K, V, O] =
     copy(core = core.blocking[O])
 
   def asScala: scala.collection.mutable.Map[K, V] =
-    ScalaMap[K, V](blockingAPI[IO])
+    ScalaMap[K, V](blockingAPI[IO](BlockingIOConverter.IOToIO, Wrap.ioWrap))
 
   def closeDatabase(): W[Unit] =
     wrapCall(core.close())

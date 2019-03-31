@@ -19,25 +19,23 @@
 
 package swaydb.data.io.converter
 
-import scala.concurrent.Future
 import scala.util.Try
 import swaydb.data.IO
 
 trait BlockingIOConverter[O[_]] {
   def apply[I](result: IO[I]): O[I]
+  def toIO[I](result: O[I]): IO[I]
 }
 
 object BlockingIOConverter {
 
   implicit object IOToIO extends BlockingIOConverter[IO] {
     override def apply[I](result: IO[I]): IO[I] = result
+    override def toIO[I](result: IO[I]): IO[I] = result
   }
 
   implicit object IOToTry extends BlockingIOConverter[Try] {
     override def apply[I](result: IO[I]): Try[I] = result.toTry
-  }
-
-  implicit object IOToFuture extends BlockingIOConverter[Future] {
-    override def apply[I](result: IO[I]): Future[I] = result.toFuture
+    override def toIO[I](result: Try[I]): IO[I] = IO.fromTry(result)
   }
 }

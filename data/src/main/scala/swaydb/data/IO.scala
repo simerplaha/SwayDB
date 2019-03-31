@@ -27,6 +27,8 @@ import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.{ExecutionContext, Future}
 import scala.reflect.ClassTag
+import scala.util
+import scala.util.Try
 import swaydb.data.slice.{Slice, SliceReader}
 
 /**
@@ -392,6 +394,15 @@ object IO {
           IO.Failure(IO.Error(ex))
       }
   }
+
+  def fromTry[T](tryBlock: Try[T]): IO[T] =
+    tryBlock match {
+      case scala.util.Success(value) =>
+        IO.Success(value)
+
+      case scala.util.Failure(exception) =>
+        IO.Failure(exception)
+    }
 
   final case class Success[+T](value: T) extends IO[T] with IO.Async[T] {
     override def isFailure: Boolean = false

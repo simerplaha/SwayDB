@@ -23,11 +23,15 @@ import scala.concurrent.Future
 
 trait AsyncIOConverter[O[_]] {
   def apply[I](result: Future[I]): O[I]
+  def toFuture[I](result: O[I]): Future[I]
+  def none[I]: O[Option[I]]
 }
 
 object AsyncIOConverter {
 
-  implicit object IOToIO extends AsyncIOConverter[Future] {
+  implicit object IOToFuture extends AsyncIOConverter[Future] {
     override def apply[I](result: Future[I]): Future[I] = result
+    override def toFuture[I](result: Future[I]): Future[I] = result
+    override def none[I]: Future[Option[I]] = Future.successful(None)
   }
 }

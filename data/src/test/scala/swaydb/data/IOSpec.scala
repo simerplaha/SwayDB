@@ -285,4 +285,18 @@ class IOSpec extends WordSpec with Matchers {
       IO.tryOrNone("success").get shouldBe "success"
     }
   }
+
+  "Failure fromTry" in {
+    val exception = new Exception("failed")
+    val failure = IO.fromTry(scala.util.Failure(exception))
+    failure shouldBe a[IO.Failure[_]]
+    failure.asInstanceOf[IO.Failure[_]].exception shouldBe exception
+  }
+
+  "Success fromTry" in {
+    val failure = IO.fromTry(scala.util.Success(1))
+    failure shouldBe a[IO.Success[_]]
+    failure.asInstanceOf[IO.Success[_]].get shouldBe 1
+  }
+
 }

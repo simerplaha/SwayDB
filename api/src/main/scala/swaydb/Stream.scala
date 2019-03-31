@@ -22,8 +22,10 @@ package swaydb
 import scala.collection.generic.CanBuildFrom
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
+import scala.concurrent.Future
 import swaydb.Stream.StreamBuilder
 import swaydb.Wrap._
+import swaydb.data.IO
 
 object Stream {
 
@@ -174,4 +176,27 @@ abstract class Stream[A, W[_]](implicit wrap: Wrap[W]) {
           .foreach(item => builder += item)
           .map(_ => builder.asSeq)
     }
+
+  def asFuture(implicit futureWrap: Wrap[Future]): Stream[A, Future] = {
+    val stream: Stream[A, W] = this
+    new Stream[A, Future]() {
+      override private[swaydb] def skip = stream.skip
+      override private[swaydb] def count = stream.count
+      override def headOption: Future[Option[A]] = wrap.toFuture(stream.headOption)
+      override def next(previous: A): Future[Option[A]] = wrap.toFuture(stream.next(previous))
+      override def restart: Stream[A, Future] = asFuture
+    }
+  }
+
+
+  def asIO(implicit ioWrap: Wrap[IO]): Stream[A, IO] = {
+    val stream: Stream[A, W] = this
+    new Stream[A, IO]() {
+      override private[swaydb] def skip = stream.skip
+      override private[swaydb] def count = stream.count
+      override def headOption: IO[Option[A]] = wrap.toIO(stream.headOption)
+      override def next(previous: A): IO[Option[A]] = wrap.toIO(stream.next(previous))
+      override def restart: Stream[A, IO] = asIO
+    }
+  }
 }
