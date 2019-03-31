@@ -107,6 +107,9 @@ abstract class Stream[A, W[_]](skip: Int,
             previousAOption.map(f)
         }
 
+      /**
+        * Previous input parameter here is ignored so that parent stream can be read.
+        */
       override def next(previous: B): W[Option[B]] =
         previousA
           .map {
@@ -212,6 +215,10 @@ abstract class Stream[A, W[_]](skip: Int,
         buffer += item
     } map (_.asSeq)
 
+  /**
+    * Converts the current Stream with Future API. If the current stream is blocking,
+    * the output stream will still return blocking stream but wrapped as future APIs.
+    */
   def asFuture(implicit futureWrap: Wrap[Future]): Stream[A, Future] = {
     val stream: Stream[A, W] = this
     new Stream[A, Future](skip, count) {
@@ -220,6 +227,9 @@ abstract class Stream[A, W[_]](skip: Int,
     }
   }
 
+  /**
+    * If the current stream is Async this will return a blocking stream.
+    */
   def asIO(implicit ioWrap: Wrap[IO]): Stream[A, IO] = {
     val stream: Stream[A, W] = this
     new Stream[A, IO](skip, count) {
