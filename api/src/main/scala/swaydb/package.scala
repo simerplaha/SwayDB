@@ -23,16 +23,6 @@ import swaydb.data.config.Dir
 
 package object swaydb {
 
-  class AndThen[A](a: A) {
-    def andThen[B](f: A => B) = f(a)
-  }
-
-  object AndThen {
-    def apply[A](v: A) = new AndThen(v)
-  }
-
-  implicit def andThen[A](a: A): AndThen[A] = AndThen(a)
-
   implicit def stringToPath(path: String): Path =
     Paths.get(path)
 
