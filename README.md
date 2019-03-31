@@ -56,7 +56,6 @@ db
     case (key, value) =>
       (key, value + "_updated")
   }
-  .flatMap(_.toSeq) //convert to seq
   .flatMap(db.put) //write updated key-values to database
 ```
 ## Quick start
