@@ -23,7 +23,6 @@ import scala.annotation.tailrec
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
-import swaydb.core.util.Delay
 import swaydb.data.IO
 
 /**
@@ -43,7 +42,6 @@ trait Wrap[W[_]] {
 object Wrap {
 
   implicit val tryWrap = new Wrap[Try] {
-    private val unit = Success(())
 
     override def apply[A](a: => A): Try[A] = Try(a)
     override def map[A, B](a: A)(f: A => B): Try[B] = Try(f(a))
