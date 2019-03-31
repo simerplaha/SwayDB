@@ -48,7 +48,7 @@ case class MapKeysStream[K](mapKey: Seq[K],
                             till: K => Boolean = (_: K) => true,
                             skip: Int = 0,
                             count: Option[Int] = None)(implicit keySerializer: Serializer[K],
-                                                       mapKeySerializer: Serializer[Key[K]]) extends Stream[K, IO] {
+                                                       mapKeySerializer: Serializer[Key[K]]) extends Stream[K, IO](skip, count) {
 
   private val endEntriesKey = Key.MapEntriesEnd(mapKey)
   private val endSubMapsKey = Key.SubMapsEnd(mapKey)
@@ -241,7 +241,6 @@ case class MapKeysStream[K](mapKey: Seq[K],
 
   def size: IO[Int] =
     toSeq.map(_.size)
-
 
   /**
     * Returns the start key when doing reverse iteration.

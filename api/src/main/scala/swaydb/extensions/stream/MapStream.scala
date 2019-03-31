@@ -50,7 +50,7 @@ case class MapStream[K, V](mapKey: Seq[K],
                            skip: Int = 0,
                            count: Option[Int] = None)(implicit keySerializer: Serializer[K],
                                                       mapKeySerializer: Serializer[Key[K]],
-                                                      optionValueSerializer: Serializer[Option[V]]) extends Stream[(K, V), IO] {
+                                                      optionValueSerializer: Serializer[Option[V]]) extends Stream[(K, V), IO](skip, count) {
 
   private val endEntriesKey = Key.MapEntriesEnd(mapKey)
   private val endSubMapsKey = Key.SubMapsEnd(mapKey)

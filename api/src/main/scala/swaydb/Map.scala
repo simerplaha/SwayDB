@@ -44,7 +44,7 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
                            private[swaydb] val reverseIteration: Boolean = false,
                            private val till: Option[(K, V) => Boolean] = None)(implicit keySerializer: Serializer[K],
                                                                                valueSerializer: Serializer[V],
-                                                                               wrap: Wrap[W]) extends Stream[(K, V), W] {
+                                                                               wrap: Wrap[W]) extends Stream[(K, V), W](skip, count) {
 
   def wrapCall[C](f: => W[C]): W[C] =
     wrap(()).flatMap(_ => f)
@@ -347,7 +347,7 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
 
   def lastOption: W[Option[(K, V)]] =
     if (till.isDefined)
-      wrapCall(lastOptionEager)
+      wrapCall(lastOptionLinear)
     else if (reverseIteration)
       wrapCall {
         core.head map {

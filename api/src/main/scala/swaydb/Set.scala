@@ -43,11 +43,9 @@ object Set {
   */
 case class Set[T, W[_]](private val core: Core[W],
                         private val from: Option[From[T]],
-                        private[swaydb] val skip: Int = 0,
-                        private[swaydb] val count: Option[Int] = None,
                         private[swaydb] val reverseIteration: Boolean = false,
                         private val till: Option[T => Boolean] = None)(implicit serializer: Serializer[T],
-                                                                       wrap: Wrap[W]) extends Stream[T, W] {
+                                                                       wrap: Wrap[W]) extends Stream[T, W](0, None) {
 
   def wrapCall[C](f: => W[C]): W[C] =
     wrap(()).flatMap(_ => f)
@@ -248,7 +246,7 @@ case class Set[T, W[_]](private val core: Core[W],
 
   def lastOption: W[Option[T]] =
     if (till.isDefined)
-      wrapCall(lastOptionEager)
+      wrapCall(lastOptionLinear)
     else if (reverseIteration)
       wrapCall(core.headKey.map(_.map(_.read[T])))
     else

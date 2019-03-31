@@ -30,7 +30,7 @@ import swaydb.data.IO
 object Stream {
 
   def apply[T, W[_]](items: Iterable[T])(implicit wrap: Wrap[W]): Stream[T, W] =
-    new Stream[T, W] {
+    new Stream[T, W](0, None) {
 
       private val iterator = items.iterator
 
@@ -42,8 +42,6 @@ object Stream {
 
       override def headOption(): W[Option[T]] = step()
       override def next(previous: T): W[Option[T]] = step()
-      override def skip: Int = 0
-      override def count: Option[Int] = None
     }
 
   class StreamBuilder[T, W[_]](implicit wrap: Wrap[W]) extends mutable.Builder[T, Stream[T, W]] {
@@ -61,7 +59,7 @@ object Stream {
       items.clear()
 
     override def result: Stream[T, W] =
-      new Stream[T, W] {
+      new Stream[T, W](0, None) {
 
         var index = 0
 
@@ -77,8 +75,6 @@ object Stream {
 
         override def headOption: W[Option[T]] = step()
         override def next(previous: T): W[Option[T]] = step()
-        override def skip: Int = 0
-        override def count: Option[Int] = None
       }
   }
 
@@ -92,10 +88,8 @@ object Stream {
     }
 }
 
-abstract class Stream[A, W[_]](implicit wrap: Wrap[W]) {
-
-  private[swaydb] def skip: Int
-  private[swaydb] def count: Option[Int]
+abstract class Stream[A, W[_]](skip: Int,
+                               count: Option[Int])(implicit wrap: Wrap[W]) {
 
   def headOption: W[Option[A]]
   def next(previous: A): W[Option[A]]
@@ -137,7 +131,7 @@ abstract class Stream[A, W[_]](implicit wrap: Wrap[W]) {
   /**
     * Reads all items from the Stream and returns the last.
     */
-  def lastOptionEager: W[Option[A]] =
+  def lastOptionLinear: W[Option[A]] =
     foldLeft(Option.empty[A]) {
       (_, next) =>
         Some(next)
@@ -157,9 +151,7 @@ abstract class Stream[A, W[_]](implicit wrap: Wrap[W]) {
 
   def asFuture(implicit futureWrap: Wrap[Future]): Stream[A, Future] = {
     val stream: Stream[A, W] = this
-    new Stream[A, Future]() {
-      override private[swaydb] def skip = stream.skip
-      override private[swaydb] def count = stream.count
+    new Stream[A, Future](skip, count) {
       override def headOption: Future[Option[A]] = wrap.toFuture(stream.headOption)
       override def next(previous: A): Future[Option[A]] = wrap.toFuture(stream.next(previous))
     }
@@ -167,9 +159,7 @@ abstract class Stream[A, W[_]](implicit wrap: Wrap[W]) {
 
   def asIO(implicit ioWrap: Wrap[IO]): Stream[A, IO] = {
     val stream: Stream[A, W] = this
-    new Stream[A, IO]() {
-      override private[swaydb] def skip = stream.skip
-      override private[swaydb] def count = stream.count
+    new Stream[A, IO](skip, count) {
       override def headOption: IO[Option[A]] = wrap.toIO(stream.headOption)
       override def next(previous: A): IO[Option[A]] = wrap.toIO(stream.next(previous))
     }
