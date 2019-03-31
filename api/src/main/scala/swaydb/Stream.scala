@@ -111,9 +111,10 @@ abstract class Stream[A, W[_]](implicit wrap: Wrap[W]) {
       (builder, next) =>
         builder flatMap {
           builder =>
-            f(next)
-              .foreach(builder += _)
-              .map(_ => builder)
+            f(next).foldLeft(builder) {
+              (builder, item) =>
+                builder += item
+            }
         }
     } flatMap (_.map(_.result))
 
@@ -133,7 +134,10 @@ abstract class Stream[A, W[_]](implicit wrap: Wrap[W]) {
         f(a)
     }
 
-  def lastOptionStream: W[Option[A]] =
+  /**
+    * Note: Reads all items from the streams and returns the last.
+    */
+  def lastOptionEager: W[Option[A]] =
     foldLeft(Option.empty[A]) {
       (_, next) =>
         Some(next)

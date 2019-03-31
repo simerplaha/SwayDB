@@ -248,7 +248,7 @@ case class Set[T, W[_]](private val core: Core[W],
 
   def lastOption: W[Option[T]] =
     if (till.isDefined)
-      wrapCall(lastOptionStream)
+      wrapCall(lastOptionEager)
     else if (reverseIteration)
       wrapCall(core.headKey.map(_.map(_.read[T])))
     else
