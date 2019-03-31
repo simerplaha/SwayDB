@@ -327,20 +327,20 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
       //      }
     }
 
-//    "eventually remove all Segments from the database when remove range is submitted" in {
-//      val db = newDB()
-//
-//      (1 to 2000000) foreach {
-//        i =>
-//          db.put(i, i.toString).assertGet
-//      }
-//
-//      db.remove(1, 2000000).assertGet
-//
-//      assertLevelsAreEmpty(db, submitUpdates = true)
-//
-//      db.closeDatabase().get
-//    }
+    //    "eventually remove all Segments from the database when remove range is submitted" in {
+    //      val db = newDB()
+    //
+    //      (1 to 2000000) foreach {
+    //        i =>
+    //          db.put(i, i.toString).assertGet
+    //      }
+    //
+    //      db.remove(1, 2000000).assertGet
+    //
+    //      assertLevelsAreEmpty(db, submitUpdates = true)
+    //
+    //      db.closeDatabase().get
+    //    }
 
     "eventually remove all Segments from the database when expire range is submitted" in {
       val db = newDB()

@@ -96,13 +96,13 @@ abstract class Stream[A, W[_]](skip: Int,
   def next(previous: A): W[Option[A]]
 
   def drop(count: Int): Stream[A, W] =
-    new Stream[A, W](count, self.count) {
+    new Stream[A, W](skip + count, self.count) {
       override def headOption: W[Option[A]] = self.headOption
       override def next(previous: A): W[Option[A]] = self.next(previous)
     }
 
   def take(count: Int): Stream[A, W] =
-    new Stream[A, W](skip, Some(count)) {
+    new Stream[A, W](skip, self.count.map(_ + count).orElse(Some(count))) {
       override def headOption: W[Option[A]] = self.headOption
       override def next(previous: A): W[Option[A]] = self.next(previous)
     }

@@ -333,12 +333,6 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
       })
     }
 
-  override def take(count: Int): Map[K, V, W] =
-    copy(count = Some(count))
-
-  override def drop(count: Int) =
-    copy(skip = count)
-
   def restart: Map[K, V, W] =
     copy()
 

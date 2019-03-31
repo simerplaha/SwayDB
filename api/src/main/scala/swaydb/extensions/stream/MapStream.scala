@@ -110,12 +110,6 @@ case class MapStream[K, V](mapKey: Seq[K],
           condition(value)
     )
 
-  override def take(count: Int): MapStream[K, V] =
-    copy(count = Some(count))
-
-  override def drop(count: Int): MapStream[K, V] =
-    copy(skip = count)
-
   private def validate(mapKey: Key[K], valueOption: Option[V]): Step[(K, V)] = {
     //type casting here because a value set by the User will/should always have a serializer. If the inner value if
     //Option[V] then the full value would be Option[Option[V]] and the serializer is expected to handle serialization for
