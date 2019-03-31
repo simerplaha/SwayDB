@@ -243,9 +243,6 @@ case class MapKeysStream[K](mapKey: Seq[K],
     toSeq.map(_.size)
 
 
-  override def restart: Stream[K, IO] =
-    copy()
-
   /**
     * Returns the start key when doing reverse iteration.
     *

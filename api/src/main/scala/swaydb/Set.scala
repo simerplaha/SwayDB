@@ -237,9 +237,6 @@ case class Set[T, W[_]](private val core: Core[W],
       next.map(_.flatMap(checkTakeWhile))
     }
 
-  override def restart: Stream[T, W] =
-    copy()
-
   def size: W[Int] =
     wrapCall(core.bloomFilterKeyValueCount)
 

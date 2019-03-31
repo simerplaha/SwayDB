@@ -42,7 +42,6 @@ object Stream {
 
       override def headOption(): W[Option[T]] = step()
       override def next(previous: T): W[Option[T]] = step()
-      override def restart: Stream[T, W] = apply[T, W](items)
       override def skip: Int = 0
       override def count: Option[Int] = None
     }
@@ -78,7 +77,6 @@ object Stream {
 
         override def headOption: W[Option[T]] = step()
         override def next(previous: T): W[Option[T]] = step()
-        override def restart: Stream[T, W] = result
         override def skip: Int = 0
         override def count: Option[Int] = None
       }
@@ -101,7 +99,6 @@ abstract class Stream[A, W[_]](implicit wrap: Wrap[W]) {
 
   def headOption: W[Option[A]]
   def next(previous: A): W[Option[A]]
-  def restart: Stream[A, W]
 
   def map[B](f: A => B): W[Stream[B, W]] =
     wrap(()) flatMap {
@@ -184,7 +181,6 @@ abstract class Stream[A, W[_]](implicit wrap: Wrap[W]) {
       override private[swaydb] def count = stream.count
       override def headOption: Future[Option[A]] = wrap.toFuture(stream.headOption)
       override def next(previous: A): Future[Option[A]] = wrap.toFuture(stream.next(previous))
-      override def restart: Stream[A, Future] = asFuture
     }
   }
 
@@ -196,7 +192,6 @@ abstract class Stream[A, W[_]](implicit wrap: Wrap[W]) {
       override private[swaydb] def count = stream.count
       override def headOption: IO[Option[A]] = wrap.toIO(stream.headOption)
       override def next(previous: A): IO[Option[A]] = wrap.toIO(stream.next(previous))
-      override def restart: Stream[A, IO] = asIO
     }
   }
 }

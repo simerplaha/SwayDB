@@ -259,9 +259,6 @@ case class MapStream[K, V](mapKey: Seq[K],
     previousRaw.map(step) getOrElse IO.Failure(new Exception("Previous raw not defined."))
   }
 
-  override def restart: Stream[(K, V), IO] =
-    copy()
-
   /**
     * Returns the start key when doing reverse iteration.
     *
