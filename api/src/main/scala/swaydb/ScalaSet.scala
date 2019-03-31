@@ -19,7 +19,7 @@
 
 package swaydb
 
-import scala.collection.mutable
+import scala.collection.{TraversableOnce, mutable}
 import swaydb.data.IO
 
 /**
@@ -76,5 +76,18 @@ private[swaydb] object ScalaSet {
         db.remove(elem).get
         this
       }
+
+      override def --=(xs: TraversableOnce[A]): this.type = {
+        db.remove(xs.toIterable).get
+        this
+      }
+
+      override def ++=(xs: TraversableOnce[A]): this.type = {
+        db.add(xs.toIterable).get
+        this
+      }
+
+      override def clear(): Unit =
+        db.clear().get
     }
 }
