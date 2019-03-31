@@ -86,8 +86,19 @@ private[swaydb] object ScalaMap {
         this
       }
 
+      override def keySet: collection.Set[K] =
+        db.keys.asScala
+
+      override def contains(key: K): Boolean =
+        db.contains(key).get
+
+      override def last: (K, V) =
+        db.lastOption.get.get
+
+      override def head: (K, V) =
+        db.headOption.get.get
+
       override def clear(): Unit =
         db.clear().get
-
     }
 }

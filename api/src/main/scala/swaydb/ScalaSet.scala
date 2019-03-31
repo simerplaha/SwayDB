@@ -87,6 +87,15 @@ private[swaydb] object ScalaSet {
         this
       }
 
+      override def last: A =
+        db.lastOption.get.get
+
+      override def head: A =
+        db.headOption.get.get
+
+      override def contains(key: A): Boolean =
+        db.contains(key).get
+
       override def clear(): Unit =
         db.clear().get
     }
