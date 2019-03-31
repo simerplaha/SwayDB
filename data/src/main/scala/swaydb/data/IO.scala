@@ -27,7 +27,6 @@ import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.{ExecutionContext, Future}
 import scala.reflect.ClassTag
-import scala.util
 import scala.util.Try
 import swaydb.data.slice.{Slice, SliceReader}
 
