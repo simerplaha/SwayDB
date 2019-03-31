@@ -36,7 +36,6 @@ trait Wrap[W[_]] {
   def success[A](value: A): W[A]
   def none[A]: W[Option[A]]
   def foldLeft[A, U](initial: U, stream: Stream[A, W], skip: Int, size: Option[Int])(operation: (U, A) => U): W[U]
-  private[swaydb] def terminate[A]: W[A] = none.asInstanceOf[W[A]]
 }
 
 object Wrap {
