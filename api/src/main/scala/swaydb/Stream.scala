@@ -32,9 +32,9 @@ object Stream {
   def apply[T, W[_]](items: Iterable[T])(implicit wrap: Wrap[W]): Stream[T, W] =
     new Stream[T, W] {
 
-      val iterator = items.iterator
+      private val iterator = items.iterator
 
-      def step(): W[Option[T]] =
+      private def step(): W[Option[T]] =
         if (iterator.hasNext)
           wrap(Some(iterator.next()))
         else
@@ -57,10 +57,10 @@ object Stream {
     def asSeq: Seq[T] =
       items
 
-    def clear() =
+    override def clear() =
       items.clear()
 
-    def result: Stream[T, W] =
+    override def result: Stream[T, W] =
       new Stream[T, W] {
 
         var index = 0
@@ -103,16 +103,16 @@ abstract class Stream[A, W[_]](implicit wrap: Wrap[W]) {
   def map[B](f: A => B): W[Stream[B, W]] =
     wrap(()) flatMap {
       _ =>
-        val builder = new StreamBuilder[B, W]()
-        this
-          .foreach(item => builder += f(item))
-          .map(_ => builder.result)
+        foldLeft(new StreamBuilder[B, W]()) {
+          case (builder, item) =>
+            builder += f(item)
+        } map (_.result)
     }
 
   def flatMap[B](f: A => Stream[B, W]): W[Stream[B, W]] =
     wrap(()) flatMap {
       _ =>
-        wrap.foldLeft(wrap.success(new StreamBuilder[B, W]()), this, skip, count) {
+        foldLeft(wrap.success(new StreamBuilder[B, W]())) {
           (builder, next) =>
             builder flatMap {
               builder =>
@@ -126,13 +126,11 @@ abstract class Stream[A, W[_]](implicit wrap: Wrap[W]) {
   def filter(p: A => Boolean): W[Stream[A, W]] =
     wrap(()) flatMap {
       _ =>
-        val builder = new StreamBuilder[A, W]()
-        this
-          .foreach {
-            item =>
-              if (p(item)) builder += item
-          }
-          .map(_ => builder.result)
+        foldLeft(new StreamBuilder[A, W]()) {
+          case (builder, item) =>
+            if (p(item)) builder += item
+            builder
+        } map (_.result)
     }
 
   def filterNot(p: A => Boolean): W[Stream[A, W]] =
@@ -141,13 +139,7 @@ abstract class Stream[A, W[_]](implicit wrap: Wrap[W]) {
   def foldLeft[B](initial: B)(f: (B, A) => B): W[B] =
     wrap(()) flatMap {
       _ =>
-        var result = initial
-        this
-          .foreach {
-            item =>
-              result = f(result, item)
-          }
-          .map(_ => result)
+        wrap.foldLeft(initial, this, skip, count)(f)
     }
 
   def foreach[U](f: A => U): W[Unit] =
@@ -168,10 +160,10 @@ abstract class Stream[A, W[_]](implicit wrap: Wrap[W]) {
   def toSeq: W[Seq[A]] =
     wrap(()) flatMap {
       _ =>
-        val builder = new StreamBuilder[A, W]()
-        this
-          .foreach(item => builder += item)
-          .map(_ => builder.asSeq)
+        foldLeft(new StreamBuilder[A, W]()) {
+          (buffer, item) =>
+            buffer += item
+        } map (_.asSeq)
     }
 
   def asFuture(implicit futureWrap: Wrap[Future]): Stream[A, Future] = {
@@ -183,7 +175,6 @@ abstract class Stream[A, W[_]](implicit wrap: Wrap[W]) {
       override def next(previous: A): Future[Option[A]] = wrap.toFuture(stream.next(previous))
     }
   }
-
 
   def asIO(implicit ioWrap: Wrap[IO]): Stream[A, IO] = {
     val stream: Stream[A, W] = this
