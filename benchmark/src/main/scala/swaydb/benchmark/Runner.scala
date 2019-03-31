@@ -40,7 +40,8 @@ case class Runner(test: Test) extends Benchmark with LazyLogging {
   def run = {
     println(s"\nCreating $keyValueCount test key-values.\n")
 
-    val valueBytes = StringSerializer.write("Test value of 60 bytes for benchmarking SwayDB's performance")
+    val stringValue = "Test value of 60 bytes for benchmarking SwayDB's performance"
+    val valueBytes = StringSerializer.write(stringValue)
 
     val testValue =
       if (test.useMap)
@@ -103,8 +104,11 @@ case class Runner(test: Test) extends Benchmark with LazyLogging {
                   //            db.get(key)
                   val value = map.get(key).get.get
                   val longKey = key.readLong()
-                  if (longKey % 10000 == 0)
-                    println(longKey + " -> " + value.map(_.readString()))
+                  if (longKey % 10000 == 0) {
+                    val valueString = value.map(_.readString())
+                    println(longKey + " -> " + valueString)
+                    assert(valueString.contains(stringValue))
+                  }
                 } catch {
                   case ex: Exception =>
                     println("Key not found 1:" + key.readLong())
