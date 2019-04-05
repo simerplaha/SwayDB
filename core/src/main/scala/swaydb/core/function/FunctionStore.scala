@@ -25,11 +25,8 @@ import swaydb.data.slice.Slice
 
 trait FunctionStore {
   def get(functionId: Slice[Byte]): Option[SwayFunction]
-
   def put(functionId: Slice[Byte], function: SwayFunction): SwayFunction
-
   def exists(functionId: Slice[Byte]): Boolean
-
 }
 
 object FunctionStore {

@@ -17,7 +17,7 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.data.io.converter
+package swaydb.data.io
 
 import scala.util.Try
 import swaydb.data.IO
@@ -26,28 +26,28 @@ import swaydb.data.IO
   * SwayDB supports non-blocking (Future) and blocking APIs ([[IO]] & Try).
   *
   * The APIs can be converted to other external async and/or blocking types by providing the
-  * following implementation for blocking api or use [[AsyncIOConverter]] for non-blocking APIs.
+  * following implementation for blocking api or use [[AsyncIOTransformer]] for non-blocking APIs.
   */
-trait BlockingIOConverter[O[_]] {
+trait BlockingIOTransformer[O[_]] {
   /**
     * Converts [[IO]] to other blocking type.
     */
-  def apply[I](result: IO[I]): O[I]
+  def toOther[I](io: IO[I]): O[I]
   /**
     * Converts other type to [[IO]].
     */
-  def toIO[I](result: O[I]): IO[I]
+  def toIO[I](io: O[I]): IO[I]
 }
 
-object BlockingIOConverter {
+object BlockingIOTransformer {
 
-  implicit object IOToIO extends BlockingIOConverter[IO] {
-    override def apply[I](result: IO[I]): IO[I] = result
-    override def toIO[I](result: IO[I]): IO[I] = result
+  implicit object IOToIO extends BlockingIOTransformer[IO] {
+    override def toOther[I](io: IO[I]): IO[I] = io
+    override def toIO[I](io: IO[I]): IO[I] = io
   }
 
-  implicit object IOToTry extends BlockingIOConverter[Try] {
-    override def apply[I](result: IO[I]): Try[I] = result.toTry
-    override def toIO[I](result: Try[I]): IO[I] = IO.fromTry(result)
+  implicit object IOToTry extends BlockingIOTransformer[Try] {
+    override def toOther[I](io: IO[I]): Try[I] = io.toTry
+    override def toIO[I](io: Try[I]): IO[I] = IO.fromTry(io)
   }
 }

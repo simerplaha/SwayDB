@@ -17,16 +17,15 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb
+package swaydb.data
 
-import scala.annotation.tailrec
 import scala.collection.generic.CanBuildFrom
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Future
-import swaydb.Stream.StreamBuilder
-import swaydb.Wrap._
-import swaydb.data.IO
+import swaydb.data.Stream.StreamBuilder
+import swaydb.data.io.Wrap
+import swaydb.data.io.Wrap._
 
 object Stream {
 
@@ -95,17 +94,17 @@ abstract class Stream[A, W[_]](skip: Int,
   def headOption: W[Option[A]]
   def next(previous: A): W[Option[A]]
 
-  def drop(count: Int): Stream[A, W] =
-    new Stream[A, W](skip + count, self.count) {
+  private def copyStream(skip: Int, count: Option[Int]) =
+    new Stream[A, W](skip, count) {
       override def headOption: W[Option[A]] = self.headOption
       override def next(previous: A): W[Option[A]] = self.next(previous)
     }
 
+  def drop(count: Int): Stream[A, W] =
+    copyStream(skip + count, self.count)
+
   def take(count: Int): Stream[A, W] =
-    new Stream[A, W](skip, self.count.map(_ + count).orElse(Some(count))) {
-      override def headOption: W[Option[A]] = self.headOption
-      override def next(previous: A): W[Option[A]] = self.next(previous)
-    }
+    copyStream(skip, self.count.map(_ + count).orElse(Some(count)))
 
   def map[B](f: A => B): Stream[B, W] =
     new Stream[B, W](skip, count) {
@@ -139,18 +138,6 @@ abstract class Stream[A, W[_]](skip: Int,
   def foreach[U](f: A => U): Stream[Unit, W] =
     map[Unit](a => f(a))
 
-  def flatMap[B](f: A => Stream[B, W]): W[Stream[B, W]] =
-    foldLeft(wrap.success(new StreamBuilder[B, W]())) {
-      (builder, next) =>
-        builder flatMap {
-          builder =>
-            f(next).foldLeft(builder) {
-              (builder, item) =>
-                builder += item
-            }
-        }
-    } flatMap (_.map(_.result))
-
   def filter(f: A => Boolean): Stream[A, W] =
     new Stream[A, W](skip, count) {
 
@@ -166,45 +153,53 @@ abstract class Stream[A, W[_]](skip: Int,
             } getOrElse wrap.none
         }
 
-      def nextAsync(previous: A): W[Option[A]] =
-        self.next(previous) flatMap {
-          case someNextA @ Some(nextA) =>
-            if (f(nextA))
-              wrap.success(someNextA)
-            else
-              next(nextA)
-          case None =>
-            wrap.none
-        }
-
-      /**
-        * If it's a sync API run it in a stack-safe manner.
-        */
-      @tailrec
-      def nextSync(previous: A): W[Option[A]] =
-        wrap.toIO(self.next(previous)) match {
-          case IO.Success(someNextA @ Some(nextA)) =>
-            if (f(nextA))
-              wrap.success(someNextA)
-            else
-              nextSync(nextA)
-
-          case IO.Success(None) =>
-            wrap.none
-
-          case IO.Failure(error) =>
-            wrap.failure(error.exception)
-        }
-
       override def next(previous: A): W[Option[A]] =
-        if (wrap.isAsync)
-          nextAsync(previous)
-        else
-          nextSync(previous)
+        wrap.collectFirst(previous, self)(f)
     }
 
   def filterNot(f: A => Boolean): Stream[A, W] =
     filter(!f(_))
+
+  def flatMap[B](f: A => Stream[B, W]): Stream[B, W] =
+    new Stream[B, W](skip, count) {
+      val buffer = ListBuffer.empty[B]
+      var bufferIterator: Iterator[B] = _
+      var previousA: A = _
+
+      def streamNext(nextA: A): W[Option[B]] = {
+        buffer.clear()
+        previousA = nextA
+        f(nextA).foldLeft(buffer)(_ += _) map {
+          _ =>
+            bufferIterator = buffer.iterator
+            if (bufferIterator.hasNext)
+              Some(bufferIterator.next())
+            else
+              None
+        }
+      }
+
+      override def headOption: W[Option[B]] =
+        self.headOption flatMap {
+          case Some(nextA) =>
+            streamNext(nextA)
+
+          case None =>
+            wrap.none
+        }
+
+      override def next(previous: B): W[Option[B]] =
+        if (bufferIterator.hasNext)
+          wrap.success(Some(bufferIterator.next()))
+        else
+          self.next(previousA) flatMap {
+            case Some(nextA) =>
+              streamNext(nextA)
+
+            case None =>
+              wrap.none
+          }
+    }
 
   /**
     * Reads all items from the Stream and returns the last.
@@ -243,22 +238,18 @@ abstract class Stream[A, W[_]](skip: Int,
     * Converts the current Stream with Future API. If the current stream is blocking,
     * the output stream will still return blocking stream but wrapped as future APIs.
     */
-  def asFuture(implicit futureWrap: Wrap[Future]): Stream[A, Future] = {
-    val stream: Stream[A, W] = this
+  def asFuture(implicit futureWrap: Wrap[Future]): Stream[A, Future] =
     new Stream[A, Future](skip, count) {
-      override def headOption: Future[Option[A]] = wrap.toFuture(stream.headOption)
-      override def next(previous: A): Future[Option[A]] = wrap.toFuture(stream.next(previous))
+      override def headOption: Future[Option[A]] = self.wrap.toFuture(self.headOption)
+      override def next(previous: A): Future[Option[A]] = self.wrap.toFuture(self.next(previous))
     }
-  }
 
   /**
     * If the current stream is Async this will return a blocking stream.
     */
-  def asIO(implicit ioWrap: Wrap[IO]): Stream[A, IO] = {
-    val stream: Stream[A, W] = this
+  def asIO(implicit ioWrap: Wrap[IO]): Stream[A, IO] =
     new Stream[A, IO](skip, count) {
-      override def headOption: IO[Option[A]] = wrap.toIO(stream.headOption)
-      override def next(previous: A): IO[Option[A]] = wrap.toIO(stream.next(previous))
+      override def headOption: IO[Option[A]] = self.wrap.toIO(self.headOption)
+      override def next(previous: A): IO[Option[A]] = self.wrap.toIO(self.next(previous))
     }
-  }
 }

@@ -23,7 +23,7 @@ import com.typesafe.scalalogging.LazyLogging
 import java.nio.file.Path
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{FiniteDuration, _}
-import swaydb.configs.level.{DefaultGroupingStrategy, DefaultEventuallyPersistentConfig}
+import swaydb.configs.level.{DefaultEventuallyPersistentConfig, DefaultGroupingStrategy}
 import swaydb.core.BlockingCore
 import swaydb.core.function.FunctionStore
 import swaydb.data.accelerate.{Accelerator, Level0Meter}

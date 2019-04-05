@@ -136,8 +136,8 @@ private[core] object SegmentReader extends LazyLogging {
             IO.Failure(
               IO.Error.Fatal(
                 SegmentCorruptionException(
-                  s"Corrupted Segment: Failed to read index entry at reader position ${indexReader.getPosition}$atPosition}",
-                  exception
+                  message = s"Corrupted Segment: Failed to read index entry at reader position ${indexReader.getPosition}$atPosition}",
+                  cause = exception
                 )
               )
             )
@@ -191,7 +191,10 @@ private[core] object SegmentReader extends LazyLogging {
           case _: ArrayIndexOutOfBoundsException | _: IndexOutOfBoundsException | _: IllegalArgumentException | _: NegativeArraySizeException =>
             IO.Failure(
               IO.Error.Fatal(
-                SegmentCorruptionException(s"Corrupted Segment: Failed to read index bytes", exception)
+                SegmentCorruptionException(
+                  message = s"Corrupted Segment: Failed to read index bytes",
+                  cause = exception
+                )
               )
             )
 
@@ -213,8 +216,8 @@ private[core] object SegmentReader extends LazyLogging {
             IO.Failure(
               IO.Error.Fatal(
                 SegmentCorruptionException(
-                  s"Corrupted Segment: Failed to get bytes of length $length from offset $fromOffset",
-                  exception
+                  message = s"Corrupted Segment: Failed to get bytes of length $length from offset $fromOffset",
+                  cause = exception
                 )
               )
             )
@@ -270,7 +273,10 @@ private[core] object SegmentReader extends LazyLogging {
           case _: ArrayIndexOutOfBoundsException | _: IndexOutOfBoundsException | _: IllegalArgumentException | _: NegativeArraySizeException =>
             IO.Failure(
               IO.Error.Fatal(
-                SegmentCorruptionException("Corrupted Segment: Failed to read footer bytes", exception)
+                SegmentCorruptionException(
+                  message = "Corrupted Segment: Failed to read footer bytes",
+                  cause = exception
+                )
               )
             )
 

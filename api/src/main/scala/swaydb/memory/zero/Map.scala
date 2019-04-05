@@ -55,5 +55,4 @@ object Map extends LazyLogging {
       db =>
         swaydb.Map[K, V, IO](db)
     }
-
 }

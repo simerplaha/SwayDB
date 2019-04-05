@@ -24,7 +24,7 @@ import java.nio.file.Path
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{FiniteDuration, _}
 import swaydb.SwayDB
-import swaydb.configs.level.{DefaultGroupingStrategy, DefaultEventuallyPersistentConfig}
+import swaydb.configs.level.{DefaultEventuallyPersistentConfig, DefaultGroupingStrategy}
 import swaydb.core.BlockingCore
 import swaydb.core.function.FunctionStore
 import swaydb.data.IO

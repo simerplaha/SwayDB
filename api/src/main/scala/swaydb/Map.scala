@@ -22,12 +22,12 @@ package swaydb
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 import swaydb.PrepareImplicits._
-import swaydb.Wrap._
+import swaydb.data.io.Wrap._
 import swaydb.core.Core
 import swaydb.data.IO
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
-import swaydb.data.io.converter.{AsyncIOConverter, BlockingIOConverter}
+import swaydb.data.io.{AsyncIOTransformer, BlockingIOTransformer, Wrap}
 import swaydb.data.slice.Slice
 import swaydb.serializers.{Serializer, _}
 
@@ -43,7 +43,7 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
                            private[swaydb] val reverseIteration: Boolean = false,
                            private val till: Option[(K, V) => Boolean] = None)(implicit keySerializer: Serializer[K],
                                                                                valueSerializer: Serializer[V],
-                                                                               wrap: Wrap[W]) extends Stream[(K, V), W](skip, count) {
+                                                                               wrap: Wrap[W]) extends data.Stream[(K, V), W](skip, count) {
 
   def wrapCall[C](f: => W[C]): W[C] =
     wrap(()).flatMap(_ => f)
@@ -60,7 +60,7 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
   def put(keyValues: (K, V)*): W[Level0Meter] =
     wrapCall(put(keyValues))
 
-  def put(keyValues: Stream[(K, V), W]): W[Level0Meter] =
+  def put(keyValues: data.Stream[(K, V), W]): W[Level0Meter] =
     wrapCall(keyValues.materialize flatMap put)
 
   def put(keyValues: Iterable[(K, V)]): W[Level0Meter] =
@@ -82,7 +82,7 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
   def remove(keys: K*): W[Level0Meter] =
     wrapCall(remove(keys))
 
-  def remove(keys: Stream[K, W]): W[Level0Meter] =
+  def remove(keys: data.Stream[K, W]): W[Level0Meter] =
     wrapCall(keys.materialize flatMap remove)
 
   def remove(keys: Iterable[K]): W[Level0Meter] =
@@ -103,7 +103,7 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
   def expire(keys: (K, Deadline)*): W[Level0Meter] =
     wrapCall(expire(keys))
 
-  def expire(keys: Stream[(K, Deadline), W]): W[Level0Meter] =
+  def expire(keys: data.Stream[(K, Deadline), W]): W[Level0Meter] =
     wrapCall(keys.materialize flatMap expire)
 
   def expire(keys: Iterable[(K, Deadline)]): W[Level0Meter] =
@@ -129,7 +129,7 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
   def update(keyValues: (K, V)*): W[Level0Meter] =
     wrapCall(update(keyValues))
 
-  def update(keyValues: Stream[(K, V), W]): W[Level0Meter] =
+  def update(keyValues: data.Stream[(K, V), W]): W[Level0Meter] =
     wrapCall(keyValues.materialize flatMap update)
 
   def update(keyValues: Iterable[(K, V)]): W[Level0Meter] =
@@ -169,7 +169,7 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
   def commit(prepare: Prepare[K, V]*): W[Level0Meter] =
     wrapCall(core.put(prepare))
 
-  def commit(prepare: Stream[Prepare[K, V], W]): W[Level0Meter] =
+  def commit(prepare: data.Stream[Prepare[K, V], W]): W[Level0Meter] =
     wrapCall(prepare.materialize flatMap commit)
 
   def commit(prepare: Iterable[Prepare[K, V]]): W[Level0Meter] =
@@ -374,47 +374,47 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
   /**
     * Returns an Async API of type O where the [[Wrap]] is not known.
     *
-    * Wrapper will be built from [[AsyncIOConverter]].
+    * Wrapper will be built from [[AsyncIOTransformer]].
     *
     * @param timeout is used only when a async API gets converted into a blocking API
     *                otherwise it's always non-blocking.
     *
     */
   def asyncAPI[O[_]](timeout: FiniteDuration)(implicit ec: ExecutionContext,
-                                              converter: AsyncIOConverter[O]): Map[K, V, O] = {
-    implicit val wrapper = Wrap.async[O](converter, timeout)
+                                              converter: AsyncIOTransformer[O]): Map[K, V, O] = {
+    implicit val wrapper = Wrap.buildAsyncWrap[O](converter, timeout)
     copy(core = core.async[O])
   }
 
   /**
     * Returns an Async API of type O where the [[Wrap]] is known.
     *
-    * Wrapper will be built from [[AsyncIOConverter]].
+    * Wrapper will be built from [[AsyncIOTransformer]].
     */
   def asyncAPI[O[_]](implicit ec: ExecutionContext,
-                     converter: AsyncIOConverter[O],
+                     converter: AsyncIOTransformer[O],
                      wrap: Wrap[O]): Map[K, V, O] =
     copy(core = core.async[O])
 
   /**
     * Returns an blocking API of type O where the [[Wrap]] is not known.
     *
-    * Wrapper will be built from [[BlockingIOConverter]].
+    * Wrapper will be built from [[BlockingIOTransformer]].
     */
-  def blockingAPI[O[_]](implicit converter: BlockingIOConverter[O]): Map[K, V, O] = {
-    implicit val wrapper = Wrap.sync[O](converter)
+  def blockingAPI[O[_]](implicit converter: BlockingIOTransformer[O]): Map[K, V, O] = {
+    implicit val wrapper = Wrap.buildSyncWrap[O](converter)
     copy(core = core.blocking[O])
   }
 
   /**
     * Returns an blocking API of type O where the [[Wrap]] is known.
     */
-  def blockingAPI[O[_]](implicit converter: BlockingIOConverter[O],
+  def blockingAPI[O[_]](implicit converter: BlockingIOTransformer[O],
                         wrap: Wrap[O]): Map[K, V, O] =
     copy(core = core.blocking[O])
 
   def asScala: scala.collection.mutable.Map[K, V] =
-    ScalaMap[K, V](blockingAPI[IO](BlockingIOConverter.IOToIO, Wrap.ioWrap))
+    ScalaMap[K, V](blockingAPI[IO](BlockingIOTransformer.IOToIO, Wrap.ioWrap))
 
   def closeDatabase(): W[Unit] =
     wrapCall(core.close())

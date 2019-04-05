@@ -139,7 +139,7 @@ class DBFile(val path: Path,
   def copyTo(toPath: Path): IO[Path] =
     if (file.map(_.memory).getOrElse(false))
       IO.Failure(IO.Error.Fatal(CannotCopyInMemoryFiles(path)))
-    else {
+    else
       forceSave() flatMap {
         _ =>
           IOEffect.copy(path, toPath) map {
@@ -148,7 +148,6 @@ class DBFile(val path: Path,
               path
           }
       }
-    }
 
   /**
     * Use [[openFile]] instead to disallow multiple concurrently opened files.

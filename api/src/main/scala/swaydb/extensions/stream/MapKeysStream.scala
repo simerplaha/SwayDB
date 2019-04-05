@@ -20,8 +20,7 @@
 package swaydb.extensions.stream
 
 import scala.annotation.tailrec
-import swaydb.Stream
-import swaydb.data.IO
+import swaydb.data.{IO, Stream}
 import swaydb.data.order.KeyOrder
 import swaydb.extensions.Key
 import swaydb.serializers.Serializer

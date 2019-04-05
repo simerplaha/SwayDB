@@ -20,9 +20,10 @@
 package swaydb.reactive
 
 import org.reactivestreams.Subscription
+import swaydb.data.Stream
 
 //make private as they are unimplemented
-private[swaydb] class ReactiveSubscription[A, W[_]](stream: swaydb.Stream[A, W]) extends Subscription {
+private[swaydb] class ReactiveSubscription[A, W[_]](stream: Stream[A, W]) extends Subscription {
   override def request(n: Long): Unit = ???
   override def cancel(): Unit = ???
 }

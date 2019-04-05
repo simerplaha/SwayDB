@@ -21,8 +21,8 @@ package swaydb.data
 
 import org.scalatest.{Matchers, WordSpec}
 import scala.collection.mutable.ListBuffer
+import swaydb.data.IO._
 import swaydb.data.slice.Slice
-import IO._
 
 class IOSpec extends WordSpec with Matchers {
 

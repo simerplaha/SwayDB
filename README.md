@@ -56,6 +56,7 @@ db
     case (key, value) =>
       (key, value + "_updated")
   }
+  .materialize
   .flatMap(db.put) //write updated key-values to database
 ```
 ## Quick start

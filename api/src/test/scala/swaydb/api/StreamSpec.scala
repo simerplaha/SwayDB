@@ -23,10 +23,10 @@ import org.scalatest.{Matchers, WordSpec}
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.util.Try
-import swaydb.Wrap._
-import swaydb._
+import swaydb.data.io.Wrap._
 import swaydb.core.RunThis._
-import swaydb.data.IO
+import swaydb.data.io.Wrap
+import swaydb.data._
 
 class StreamFutureSpec extends StreamSpec[Future] {
   override def get[A](a: Future[A]): A = Await.result(a, 60.seconds)
@@ -51,11 +51,15 @@ sealed abstract class StreamSpec[T[_]](implicit wrap: Wrap[T]) extends WordSpec 
   "Stream" should {
 
     "headOption" in {
-      Stream[Int, T](1 to 100).headOption.await should contain(1)
+      Stream[Int, T](1 to 100)
+        .headOption
+        .await should contain(1)
     }
 
     "lastOptionLinear" in {
-      Stream[Int, T](1 to 100).lastOptionLinear.await should contain(100)
+      Stream[Int, T](1 to 100)
+        .lastOptionLinear
+        .await should contain(100)
     }
 
     "map" in {
@@ -93,7 +97,6 @@ sealed abstract class StreamSpec[T[_]](implicit wrap: Wrap[T]) extends WordSpec 
     "flatMap" in {
       Stream[Int, T](1 to 10)
         .flatMap(_ => Stream[Int, T](1 to 10))
-        .await
         .materialize
         .await shouldBe Array.fill(10)(1 to 10).flatten
     }

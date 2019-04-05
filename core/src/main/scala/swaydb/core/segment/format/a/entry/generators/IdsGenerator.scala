@@ -33,21 +33,28 @@ object IdsGenerator extends App {
 
   val path = Paths.get(s"${System.getProperty("user.dir")}/core/src/main/scala/swaydb/core/segment/format/a/entry/id/$templateClass.scala")
 
-  val (lines, maxID) =
-    Source
-      .fromFile(path.toString)
-      .getLines
-      .foldLeft((ListBuffer.empty[String], startId)) {
-        case ((lines, id), oldLine) =>
-          if (oldLine.matches(""".*BaseEntryId\(\d+\).*""")) {
-            val nextLine = oldLine.replaceAll("""BaseEntryId\(\d+\)""", s"""BaseEntryId($id)""")
-            (lines += nextLine, id + 1)
-          } else {
-            (lines += oldLine, id)
-          }
-      }
+  val source = Source.fromFile(path.toString)
 
-  val content = Slice.writeString(lines.mkString("\n"))
-  IOEffect.replace(content, path).get
-  println(s"maxID: ${maxID - 1}")
+  try {
+    val (lines, maxID) =
+      source
+        .getLines
+        .foldLeft((ListBuffer.empty[String], startId)) {
+          case ((lines, id), oldLine) =>
+            if (oldLine.matches(""".*BaseEntryId\(\d+\).*""")) {
+              val nextLine = oldLine.replaceAll("""BaseEntryId\(\d+\)""", s"""BaseEntryId($id)""")
+              (lines += nextLine, id + 1)
+            } else {
+              (lines += oldLine, id)
+            }
+        }
+
+    val content = Slice.writeString(lines.mkString("\n"))
+    IOEffect.replace(content, path).get
+    println(s"maxID: ${maxID - 1}")
+
+  } finally {
+    source.close()
+  }
+
 }

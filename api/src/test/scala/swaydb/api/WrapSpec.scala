@@ -21,7 +21,8 @@ package swaydb.api
 
 import org.scalatest.{Matchers, WordSpec}
 import scala.util.Try
-import swaydb._
+import swaydb.data.io.Wrap
+import swaydb.data._
 
 class WrapSpec extends WordSpec with Matchers {
 

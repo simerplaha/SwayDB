@@ -22,12 +22,12 @@ package swaydb
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 import swaydb.PrepareImplicits._
-import swaydb.Wrap._
+import swaydb.data.io.Wrap._
 import swaydb.core.Core
 import swaydb.data.IO
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
-import swaydb.data.io.converter.{AsyncIOConverter, BlockingIOConverter}
+import swaydb.data.io.{AsyncIOTransformer, BlockingIOTransformer, Wrap}
 import swaydb.data.slice.Slice
 import swaydb.serializers.{Serializer, _}
 
@@ -47,7 +47,7 @@ case class Set[T, W[_]](private val core: Core[W],
                         private[swaydb] val skip: Int = 0,
                         private[swaydb] val reverseIteration: Boolean = false,
                         private val till: Option[T => Boolean] = None)(implicit serializer: Serializer[T],
-                                                                       wrap: Wrap[W]) extends Stream[T, W](skip, count) {
+                                                                       wrap: Wrap[W]) extends data.Stream[T, W](skip, count) {
 
   def wrapCall[C](f: => W[C]): W[C] =
     wrap(()).flatMap(_ => f)
@@ -73,7 +73,7 @@ case class Set[T, W[_]](private val core: Core[W],
   def add(elems: T*): W[Level0Meter] =
     add(elems)
 
-  def add(elems: Stream[T, W]): W[Level0Meter] =
+  def add(elems: data.Stream[T, W]): W[Level0Meter] =
     wrapCall(elems.materialize flatMap add)
 
   def add(elems: Iterable[T]): W[Level0Meter] =
@@ -88,7 +88,7 @@ case class Set[T, W[_]](private val core: Core[W],
   def remove(elems: T*): W[Level0Meter] =
     remove(elems)
 
-  def remove(elems: Stream[T, W]): W[Level0Meter] =
+  def remove(elems: data.Stream[T, W]): W[Level0Meter] =
     wrapCall(elems.materialize flatMap remove)
 
   def remove(elems: Iterable[T]): W[Level0Meter] =
@@ -109,7 +109,7 @@ case class Set[T, W[_]](private val core: Core[W],
   def expire(elems: (T, Deadline)*): W[Level0Meter] =
     expire(elems)
 
-  def expire(elems: Stream[(T, Deadline), W]): W[Level0Meter] =
+  def expire(elems: data.Stream[(T, Deadline), W]): W[Level0Meter] =
     wrapCall(elems.materialize flatMap expire)
 
   def expire(elems: Iterable[(T, Deadline)]): W[Level0Meter] =
@@ -143,7 +143,7 @@ case class Set[T, W[_]](private val core: Core[W],
   def commit(prepare: Prepare[T, Nothing]*): W[Level0Meter] =
     wrapCall(core.put(prepare))
 
-  def commit(prepare: Stream[Prepare[T, Nothing], W]): W[Level0Meter] =
+  def commit(prepare: data.Stream[Prepare[T, Nothing], W]): W[Level0Meter] =
     wrapCall(prepare.materialize flatMap commit)
 
   def commit(prepare: Iterable[Prepare[T, Nothing]]): W[Level0Meter] =
@@ -258,11 +258,11 @@ case class Set[T, W[_]](private val core: Core[W],
     copy(reverseIteration = true)
 
   def asyncAPI[O[_]](implicit ec: ExecutionContext,
-                     convert: AsyncIOConverter[O],
+                     convert: AsyncIOTransformer[O],
                      wrap: Wrap[O]): Set[T, O] =
     copy(core = core.async[O])
 
-  def blockingAPI[O[_]](implicit convert: BlockingIOConverter[O],
+  def blockingAPI[O[_]](implicit convert: BlockingIOTransformer[O],
                         wrap: Wrap[O]): Set[T, O] =
     copy(core = core.blocking[O])
 

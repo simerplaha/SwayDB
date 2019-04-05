@@ -25,8 +25,8 @@ import scala.concurrent.duration._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.IOAssert._
-import swaydb.data.IO
 import swaydb._
+import swaydb.data.IO
 
 trait TestBaseEmbedded extends TestBase {
 

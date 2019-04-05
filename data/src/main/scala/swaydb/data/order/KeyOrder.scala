@@ -47,16 +47,17 @@ object KeyOrder {
   /**
     * Provides the default reverse ordering.
     */
-  val reverse = new KeyOrder[Slice[Byte]] {
-    def compare(a: Slice[Byte], b: Slice[Byte]): Int =
-      default.compare(a, b) * -1
-  }
+  val reverse: KeyOrder[Slice[Byte]] =
+    new KeyOrder[Slice[Byte]] {
+      def compare(a: Slice[Byte], b: Slice[Byte]): Int =
+        default.compare(a, b) * -1
+    }
 
-  def apply[K](ordering: Ordering[K]): KeyOrder[K] = new KeyOrder[K]() {
-    override def compare(x: K, y: K): Int =
-      ordering.compare(x, y)
-  }
-
+  def apply[K](ordering: Ordering[K]): KeyOrder[K] =
+    new KeyOrder[K]() {
+      override def compare(x: K, y: K): Int =
+        ordering.compare(x, y)
+    }
 }
 
 trait KeyOrder[K] extends Ordering[K]
