@@ -1,6 +1,7 @@
 import sbt.Keys.{libraryDependencies, publishMavenStyle}
 import sbt.url
 import xerial.sbt.Sonatype._
+import ReleaseTransformations._
 
 val scala211 = "2.11.12"
 val scala212 = "2.12.8"
@@ -17,7 +18,7 @@ parallelExecution in ThisBuild := false
 
 lazy val commonSettings = Seq(
   organization := "io.swaydb",
-  version := "v0.8-beta.5",
+  version := "0.8-beta.5",
   scalaVersion := scalaVersion.value
 )
 
@@ -27,13 +28,28 @@ val publishSettings = Seq[Setting[_]](
   publishMavenStyle := true,
   licenses := Seq("AGPL3" -> url("https://www.gnu.org/licenses/agpl-3.0.en.html")),
   publish := {},
-//  publishLocal := {},
+  publishLocal := {},
   sonatypeProjectHosting := Some(GitHubHosting("simerplaha", "SwayDB", "simer.j@gmail.com")),
   developers := List(
     Developer(id = "simerplaha", name = "Simer Plaha", email = "simer.j@gmail.com", url = url("http://swaydb.io"))
   ),
-  publishTo := sonatypePublishTo.value
+  publishTo := sonatypePublishTo.value,
+  releaseCrossBuild := true,
+  releaseProcess := Seq[ReleaseStep](
+    checkSnapshotDependencies,
+    inquireVersions,
+    runClean,
+    setReleaseVersion,
+    commitReleaseVersion,
+    tagRelease,
+    releaseStepCommandAndRemaining("+publishSigned"),
+    setNextVersion,
+    commitNextVersion,
+    releaseStepCommand("sonatypeReleaseAll"),
+    pushChanges
+  )
 )
+
 
 val testDependencies =
   Seq(
@@ -100,7 +116,6 @@ lazy val serializers =
 lazy val `core-stress` =
   project
     .settings(commonSettings)
-    .settings(publishSettings)
     .settings(
       libraryDependencies ++= testDependencies
     ).dependsOn(core)
@@ -108,7 +123,6 @@ lazy val `core-stress` =
 lazy val `core-performance` =
   project
     .settings(commonSettings)
-    .settings(publishSettings)
     .settings(
       libraryDependencies ++= testDependencies
     ).dependsOn(core)
@@ -128,7 +142,6 @@ lazy val compression =
 lazy val macros =
   project
     .settings(commonSettings)
-    .settings(publishSettings)
     .settings(
       libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaVersion.value
     )
@@ -136,7 +149,6 @@ lazy val macros =
 lazy val `api-stress` =
   project
     .settings(commonSettings)
-    .settings(publishSettings)
     .settings(
       libraryDependencies ++=
         commonDependencies
@@ -148,8 +160,8 @@ lazy val `api-stress` =
 lazy val benchmark =
   project
     .settings(commonSettings)
-    .settings(publishSettings)
     .settings(
       libraryDependencies ++= commonDependencies
     ).dependsOn(core, configs)
     .dependsOn(api, core % "test->test")
+
