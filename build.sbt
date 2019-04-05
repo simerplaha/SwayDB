@@ -35,6 +35,7 @@ val publishSettings = Seq[Setting[_]](
   ),
   publishTo := sonatypePublishTo.value,
   releaseCrossBuild := true,
+  releaseVersionBump := sbtrelease.Version.Bump.Next,
   releaseProcess := Seq[ReleaseStep](
     checkSnapshotDependencies,
     inquireVersions,
