@@ -30,18 +30,9 @@ import scala.concurrent.duration._
 import swaydb.core.actor.{Actor, ActorRef}
 import swaydb.data.IO
 
-private[this] sealed trait Cleaner {
-  def clean(byteBuffer: ByteBuffer): Unit
-}
-private[this] case object Cleaner {
-  case class Java9(handle: MethodHandle) extends Cleaner {
-    override def clean(byteBuffer: ByteBuffer): Unit =
-      handle.invoke(byteBuffer)
-  }
-  case object Java8 extends Cleaner {
-    override def clean(byteBuffer: ByteBuffer): Unit =
-      byteBuffer.asInstanceOf[sun.nio.ch.DirectBuffer].cleaner.clean()
-  }
+case class Cleaner(handle: MethodHandle) {
+  def clean(byteBuffer: ByteBuffer): Unit =
+    handle.invoke(byteBuffer)
 }
 
 private[file] object BufferCleaner extends LazyLogging {
@@ -61,17 +52,33 @@ private[file] object BufferCleaner extends LazyLogging {
       .bindTo(theUnsafe.get(null))
   }
 
+  private def java8Cleaner(): MethodHandle = {
+    val directByteBuffer = Class.forName("java.nio.DirectByteBuffer")
+    val cleanerMethod = directByteBuffer.getDeclaredMethod("cleaner")
+    cleanerMethod.setAccessible(true)
+    val cleaner = MethodHandles.lookup.unreflect(cleanerMethod)
+
+    val cleanerClass = Class.forName("sun.misc.Cleaner")
+    val cleanMethod = cleanerClass.getDeclaredMethod("clean")
+    cleanerMethod.setAccessible(true)
+    val clean = MethodHandles.lookup.unreflect(cleanMethod)
+    val cleanDroppedArgument = MethodHandles.dropArguments(clean, 1, directByteBuffer)
+
+    MethodHandles.foldArguments(cleanDroppedArgument, cleaner)
+  }
+
   private[file] def initialiseCleaner(state: State, buffer: MappedByteBuffer, path: Path): IO[State] =
     IO {
       val cleaner = java9Cleaner()
       cleaner.invoke(buffer)
-      state.cleaner = Some(Cleaner.Java9(cleaner))
+      state.cleaner = Some(Cleaner(cleaner))
       logger.info("Initialised Java 9 ByteBuffer cleaner.")
       state
     } orElse {
       IO {
-        Cleaner.Java8.clean(buffer)
-        state.cleaner = Some(Cleaner.Java8)
+        val cleaner = java8Cleaner()
+        cleaner.invoke(buffer)
+        state.cleaner = Some(Cleaner(cleaner))
         logger.info("Initialised Java 8 ByteBuffer cleaner.")
         state
       }
@@ -81,7 +88,6 @@ private[file] object BufferCleaner extends LazyLogging {
         val exception = error.exception
         logger.error(errorMessage, exception)
         throw new Exception(errorMessage, exception) //also throw to output to stdout in-case logging is not enabled since this is critical.
-
     }
 
   /**
