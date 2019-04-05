@@ -101,6 +101,28 @@ abstract class Stream[A, W[_]](implicit wrap: Wrap[W]) extends Streamer[A, W] { 
   def headOption: W[Option[A]]
   def next(previous: A): W[Option[A]]
 
+  def take(count: Int): Stream[A, W] =
+    if (count == 0)
+      Stream.empty
+    else
+      new Stream[A, W] {
+
+        override def headOption: W[Option[A]] =
+          self.headOption
+
+        //flag to count how many were taken.
+        private var taken = 1
+        override def next(previous: A): W[Option[A]] =
+          if (taken == count)
+            wrap.none
+          else
+            wrap.foldLeft(Option.empty[A], Some(previous), self, 0, takeOne) {
+              case (_, next) =>
+                taken += 1
+                Some(next)
+            }
+      }
+
   def takeWhile(f: A => Boolean): Stream[A, W] =
     new Stream[A, W] {
       override def headOption: W[Option[A]] =
@@ -129,42 +151,40 @@ abstract class Stream[A, W[_]](implicit wrap: Wrap[W]) extends Streamer[A, W] { 
       new Stream[A, W] {
         override def headOption: W[Option[A]] =
           self.headOption flatMap {
-            head =>
-              head.map(next) getOrElse wrap.none
+            headOption =>
+              headOption map {
+                head =>
+                  if (count == 1)
+                    next(head)
+                  else
+                    wrap.foldLeft(Option.empty[A], Some(head), self, count - 1, takeOne) {
+                      case (_, next) =>
+                        Some(next)
+                    }
+              } getOrElse wrap.none
           }
 
-        //flag to determine if the next batch was dropped by foldLeft.
-        private var dropped = false
         override def next(previous: A): W[Option[A]] =
-        //if previous batch was dropped do not drop for the next iteration.
-          wrap.foldLeft(Option.empty[A], Some(previous), self, if (dropped) 0 else count - 1, takeOne) {
-            case (_, next) =>
-              dropped = true
-              Some(next)
-          }
+          self.next(previous)
       }
 
-  def take(count: Int): Stream[A, W] =
-    if (count == 0)
-      Stream.empty
-    else
-      new Stream[A, W] {
+  def dropWhile(f: A => Boolean): Stream[A, W] =
+    new Stream[A, W] {
+      override def headOption: W[Option[A]] =
+        self.headOption flatMap {
+          headOption =>
+            headOption map {
+              head =>
+                if (f(head))
+                  wrap.collectFirst(head, self)(!f(_))
+                else
+                  wrap.success(headOption)
+            } getOrElse wrap.none
+        }
 
-        override def headOption: W[Option[A]] =
-          self.headOption
-
-        //flag to count how many were taken.
-        private var taken = 1
-        override def next(previous: A): W[Option[A]] =
-          if (taken == count)
-            wrap.none
-          else
-            wrap.foldLeft(Option.empty[A], Some(previous), self, 0, takeOne) {
-              case (_, next) =>
-                taken += 1
-                Some(next)
-            }
-      }
+      override def next(previous: A): W[Option[A]] =
+        self.next(previous)
+    }
 
   def map[B](f: A => B): Stream[B, W] =
     new Stream[B, W] {

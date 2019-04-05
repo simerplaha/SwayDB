@@ -211,6 +211,9 @@ case class Set[T, W[_]](private val core: Core[W],
   override def drop(count: Int): data.Stream[T, W] =
     stream drop count
 
+  override def dropWhile(f: T => Boolean): data.Stream[T, W] =
+    stream dropWhile f
+
   override def take(count: Int): data.Stream[T, W] =
     stream take count
 

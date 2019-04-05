@@ -226,6 +226,9 @@ case class MapKeysStream[K](mapKey: Seq[K],
   override def drop(count: Int): data.Stream[K, IO] =
     stream drop count
 
+  override def dropWhile(f: K => Boolean): data.Stream[K, IO] =
+    stream dropWhile f
+
   override def take(count: Int): data.Stream[K, IO] =
     stream take count
 

@@ -279,6 +279,9 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
   override def drop(count: Int): data.Stream[(K, V), W] =
     stream drop count
 
+  override def dropWhile(f: ((K, V)) => Boolean): data.Stream[(K, V), W] =
+    stream dropWhile f
+
   override def take(count: Int): data.Stream[(K, V), W] =
     stream take count
 

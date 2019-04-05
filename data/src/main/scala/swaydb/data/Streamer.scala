@@ -27,6 +27,8 @@ trait Streamer[A, W[_]] {
 
   def drop(count: Int): Stream[A, W]
 
+  def dropWhile(f: A => Boolean): Stream[A, W]
+
   def take(count: Int): Stream[A, W]
 
   def takeWhile(f: A => Boolean): Stream[A, W]

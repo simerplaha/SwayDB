@@ -103,6 +103,22 @@ sealed abstract class StreamSpec[T[_]](implicit wrap: Wrap[T]) extends WordSpec 
         .await shouldBe empty
     }
 
+    "dropWhile" in {
+      Stream[Int, T](1 to 20)
+        .map(_.toString)
+        .drop(10)
+        .dropWhile(_.toInt <= 20)
+        .materialize
+        .await shouldBe empty
+
+      Stream[Int, T](1 to 20)
+        .map(_.toString)
+        .drop(11)
+        .dropWhile(_.toInt % 2 == 0)
+        .materialize
+        .await shouldBe (13 to 20).map(_.toString)
+    }
+
     "flatMap" in {
       Stream[Int, T](1 to 10)
         .flatMap(_ => Stream[Int, T](1 to 10))
@@ -117,6 +133,8 @@ sealed abstract class StreamSpec[T[_]](implicit wrap: Wrap[T]) extends WordSpec 
         .take(2)
         .materialize
         .await should contain only(12, 14)
+
+      println(List(1, 2, 3).dropWhile(_ < 2))
     }
 
     "filterNot" in {
