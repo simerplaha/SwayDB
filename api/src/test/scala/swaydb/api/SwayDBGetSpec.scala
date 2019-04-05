@@ -136,7 +136,7 @@ sealed trait SwayDBGetSpec extends TestBase {
 
       (1 to 100) foreach { i => db.get(i).assertGet shouldBe i.toString }
 
-      sleep(expire.timeLeft)
+      sleep(expire.timeLeft + 10.millisecond)
 
       (10 to 90) foreach { i => db.get(i).assertGetOpt shouldBe empty }
       (1 to 9) foreach { i => db.get(i).assertGet shouldBe i.toString }
@@ -161,7 +161,7 @@ sealed trait SwayDBGetSpec extends TestBase {
 
       (1 to 100) foreach { i => db.get(i).assertGet shouldBe i.toString }
 
-      sleep(expire.timeLeft)
+      sleep(expire.timeLeft + 10.millisecond)
 
       (10 to 90) foreach { i => db.get(i).assertGetOpt shouldBe empty }
       (1 to 9) foreach { i => db.get(i).assertGet shouldBe i.toString }
