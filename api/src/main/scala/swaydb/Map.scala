@@ -24,7 +24,7 @@ import scala.concurrent.duration.{Deadline, FiniteDuration}
 import swaydb.PrepareImplicits._
 import swaydb.data.io.Wrap._
 import swaydb.core.Core
-import swaydb.data.IO
+import swaydb.data.{IO, Streamer}
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.io.{AsyncIOTransformer, BlockingIOTransformer, Wrap}
@@ -41,7 +41,7 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
                            private[swaydb] val reverseIteration: Boolean = false,
                            private val till: Option[(K, V) => Boolean] = None)(implicit keySerializer: Serializer[K],
                                                                                valueSerializer: Serializer[V],
-                                                                               wrap: Wrap[W]) extends data.Stream[(K, V), W] {
+                                                                               wrap: Wrap[W]) extends Streamer[(K, V), W] { self =>
 
   def wrapCall[C](f: => W[C]): W[C] =
     wrap(()).flatMap(_ => f)
@@ -275,7 +275,7 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
       None
   }
 
-  override def headOption: W[Option[(K, V)]] =
+  def headOption: W[Option[(K, V)]] =
     wrapCall {
       from match {
         case Some(from) =>
@@ -315,22 +315,46 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
       }
     }
 
-  override def next(previous: (K, V)): W[Option[(K, V)]] =
-    wrapCall {
-      val next =
-        if (reverseIteration)
-          core.before(keySerializer.write(previous._1))
-        else
-          core.after(keySerializer.write(previous._1))
+  override def drop(count: Int): data.Stream[(K, V), W] =
+    stream drop count
 
-      next.map(_.flatMap {
-        case (key, value) =>
-          checkTakeWhile(key, value)
-      })
+  override def take(count: Int): data.Stream[(K, V), W] =
+    stream take count
+
+  override def map[B](f: ((K, V)) => B): data.Stream[B, W] =
+    stream map f
+
+  override def foreach[U](f: ((K, V)) => U): data.Stream[Unit, W] =
+    stream foreach f
+
+  override def filter(f: ((K, V)) => Boolean): data.Stream[(K, V), W] =
+    stream filter f
+
+  override def filterNot(f: ((K, V)) => Boolean): data.Stream[(K, V), W] =
+    stream filterNot f
+
+  override def foldLeft[B](initial: B)(f: (B, (K, V)) => B): W[B] =
+    stream.foldLeft(initial)(f)
+
+  def stream: data.Stream[(K, V), W] =
+    new data.Stream[(K, V), W] {
+      override def headOption: W[Option[(K, V)]] =
+        self.headOption
+
+      override def next(previous: (K, V)): W[Option[(K, V)]] =
+        wrapCall {
+          val next =
+            if (reverseIteration)
+              core.before(keySerializer.write(previous._1))
+            else
+              core.after(keySerializer.write(previous._1))
+
+          next.map(_.flatMap {
+            case (key, value) =>
+              checkTakeWhile(key, value)
+          })
+        }
     }
-
-  def restart: Map[K, V, W] =
-    copy()
 
   def size: W[Int] =
     wrapCall(core.bloomFilterKeyValueCount)
@@ -343,7 +367,7 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
 
   def lastOption: W[Option[(K, V)]] =
     if (till.isDefined)
-      wrapCall(lastOptionLinear)
+      wrapCall(stream.lastOption)
     else if (reverseIteration)
       wrapCall {
         core.head map {

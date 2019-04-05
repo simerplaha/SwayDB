@@ -78,7 +78,7 @@ sealed trait MapSpec extends TestBaseEmbedded {
       rootMap.materialize.get shouldBe empty
 
       //assert
-      rootMap.baseMap().materialize.get shouldBe
+      rootMap.baseMap().stream.materialize.get shouldBe
         List(
           (Key.MapStart(Seq.empty), None),
           (Key.MapEntriesStart(Seq.empty), None),
@@ -99,7 +99,7 @@ sealed trait MapSpec extends TestBaseEmbedded {
       rootMap.getValue().assertGet shouldBe "rootMap"
 
       //assert
-      rootMap.baseMap().materialize.get shouldBe
+      rootMap.baseMap().stream.materialize.get shouldBe
         List(
           (Key.MapStart(Seq.empty), Some("rootMap")),
           (Key.MapEntriesStart(Seq.empty), None),
@@ -123,7 +123,7 @@ sealed trait MapSpec extends TestBaseEmbedded {
       rootMap.materialize.get shouldBe ListBuffer((1, "one"), (2, "two"))
 
       //assert
-      rootMap.baseMap().materialize.get shouldBe
+      rootMap.baseMap().stream.materialize.get shouldBe
         List(
           (Key.MapStart(Seq.empty), None),
           (Key.MapEntriesStart(Seq.empty), None),
@@ -156,7 +156,7 @@ sealed trait MapSpec extends TestBaseEmbedded {
       subMap.materialize.get shouldBe ListBuffer((1, "subMap one"), (2, "subMap two"))
 
       //assert
-      rootMap.baseMap().materialize.get shouldBe
+      rootMap.baseMap().stream.materialize.get shouldBe
         List(
           (Key.MapStart(Seq.empty), None),
           (Key.MapEntriesStart(Seq.empty), None),
@@ -648,8 +648,8 @@ sealed trait MapSpec extends TestBaseEmbedded {
       val subMap = rootMap.maps.put(1, "sub map").assertGet
       subMap.put((11, "one one"), (22, "two two"))
 
-      rootMap.keys.materialize.get should contain inOrderOnly(1, 2)
-      subMap.keys.materialize.get should contain inOrderOnly(11, 22)
+      rootMap.keys.stream.materialize.get should contain inOrderOnly(1, 2)
+      subMap.keys.stream.materialize.get should contain inOrderOnly(11, 22)
 
       rootMap.closeDatabase().get
     }

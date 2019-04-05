@@ -51,7 +51,7 @@ class NestedOptionValueSpec extends TestBaseEmbedded {
     rootMap.put(1, None).assertGet
 
     rootMap.materialize.get should contain only ((1, None))
-    rootMap.keys.materialize.get should contain only 1
+    rootMap.keys.stream.materialize.get should contain only 1
 
   }
 
@@ -88,7 +88,7 @@ class NestedOptionValueSpec extends TestBaseEmbedded {
     rootMap.put(3, None).assertGet
 
     rootMap.materialize.get should contain inOrderOnly((1, None), (2, Some(Value.NonEmpty("two"))), (3, None))
-    rootMap.keys.materialize.get should contain inOrderOnly(1, 2, 3)
+    rootMap.keys.stream.materialize.get should contain inOrderOnly(1, 2, 3)
   }
 
 }

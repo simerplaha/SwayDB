@@ -20,8 +20,9 @@
 package swaydb.extensions.stream
 
 import scala.annotation.tailrec
-import swaydb.data.{IO, Stream}
+import swaydb.data
 import swaydb.data.order.KeyOrder
+import swaydb.data.{IO, Streamer}
 import swaydb.extensions.Key
 import swaydb.serializers.Serializer
 
@@ -45,7 +46,7 @@ case class MapKeysStream[K](mapKey: Seq[K],
                             userDefinedFrom: Boolean = false,
                             set: swaydb.Set[Key[K], IO],
                             till: K => Boolean = (_: K) => true)(implicit keySerializer: Serializer[K],
-                                                                 mapKeySerializer: Serializer[Key[K]]) extends Stream[K, IO] {
+                                                                 mapKeySerializer: Serializer[Key[K]]) extends Streamer[K, IO] { self =>
 
   private val endEntriesKey = Key.MapEntriesEnd(mapKey)
   private val endSubMapsKey = Key.SubMapsEnd(mapKey)
@@ -172,7 +173,7 @@ case class MapKeysStream[K](mapKey: Seq[K],
 
   @tailrec
   private def step(previous: Key[K]): IO[Option[K]] =
-    set.next(previous) match {
+    set.stream.next(previous) match {
       case IO.Success(some @ Some(key)) =>
         previousRaw = some
         validate(key) match {
@@ -180,7 +181,7 @@ case class MapKeysStream[K](mapKey: Seq[K],
             IO.none
 
           case Step.Next =>
-            set.next(key) match {
+            set.stream.next(key) match {
               case IO.Success(Some(keyValue)) =>
                 step(keyValue)
 
@@ -225,13 +226,38 @@ case class MapKeysStream[K](mapKey: Seq[K],
         IO.Failure(error)
     }
 
-  override def next(previous: K): IO[Option[K]] = {
-    //ignore the input previous and use previousRaw instead. Temporary solution.
-    previousRaw.map(step) getOrElse IO.Failure(new Exception("Previous raw not defined."))
-  }
+  override def drop(count: Int): data.Stream[K, IO] =
+    stream drop count
+
+  override def take(count: Int): data.Stream[K, IO] =
+    stream take count
+
+  override def map[B](f: K => B): data.Stream[B, IO] =
+    stream map f
+
+  override def foreach[U](f: K => U): data.Stream[Unit, IO] =
+    stream foreach f
+
+  override def filter(f: K => Boolean): data.Stream[K, IO] =
+    stream filter f
+
+  override def filterNot(f: K => Boolean): data.Stream[K, IO] =
+    stream filterNot f
+
+  override def foldLeft[B](initial: B)(f: (B, K) => B): IO[B] =
+    stream.foldLeft(initial)(f)
+
+  def stream: data.Stream[K, IO] =
+    new data.Stream[K, IO] {
+      override def headOption: IO[Option[K]] =
+        self.headOption
+
+      override def next(previous: K): IO[Option[K]] =
+        previousRaw.map(step) getOrElse IO.Failure(new Exception("Previous raw not defined."))
+    }
 
   def size: IO[Int] =
-    materialize.map(_.size)
+    stream.materialize.map(_.size)
 
   /**
     * Returns the start key when doing reverse iteration.
@@ -253,9 +279,10 @@ case class MapKeysStream[K](mapKey: Seq[K],
     * because from is always set in [[swaydb.extensions.Maps]] and regardless from where the iteration starts the
     * most efficient way to fetch the last is from the key [[endSubMapsKey]].
     */
-  def lastOption: IO[Option[K]] =
+  override def lastOption: IO[Option[K]] =
     reverse.headOption
 
   override def toString(): String =
     classOf[MapKeysStream[_]].getClass.getSimpleName
+
 }

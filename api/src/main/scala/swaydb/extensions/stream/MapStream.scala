@@ -20,9 +20,9 @@
 package swaydb.extensions.stream
 
 import scala.annotation.tailrec
-import swaydb.data.{IO, Stream}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
+import swaydb.data.{IO, Stream}
 import swaydb.extensions.Key
 import swaydb.serializers.Serializer
 
@@ -192,7 +192,7 @@ case class MapStream[K, V](mapKey: Seq[K],
 
   @tailrec
   private def step(previous: (Key[K], Option[V])): IO[Option[(K, V)]] =
-    map.next(previous) match {
+    map.stream.next(previous) match {
       case IO.Success(some @ Some((key, value))) =>
         previousRaw = some
         validate(key, value) match {
@@ -200,7 +200,7 @@ case class MapStream[K, V](mapKey: Seq[K],
             IO.none
 
           case Step.Next =>
-            map.next(key, value) match {
+            map.stream.next(key, value) match {
               case IO.Success(Some(keyValue)) =>
                 step(keyValue)
 
@@ -270,7 +270,7 @@ case class MapStream[K, V](mapKey: Seq[K],
     * because from is always set in [[swaydb.extensions.Maps]] and regardless from where the iteration starts the
     * most efficient way to fetch the last is from the key [[endSubMapsKey]].
     */
-  def lastOption: IO[Option[(K, V)]] =
+  override def lastOption: IO[Option[(K, V)]] =
     reverse.headOption
 
   override def toString(): String =

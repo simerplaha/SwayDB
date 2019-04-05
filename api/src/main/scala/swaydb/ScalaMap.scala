@@ -44,7 +44,7 @@ private[swaydb] object ScalaMap {
                   true
               }
             else
-              db.next(nextOne).get exists {
+              db.stream.next(nextOne).get exists {
                 some =>
                   nextOne = some
                   true

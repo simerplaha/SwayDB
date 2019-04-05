@@ -58,7 +58,7 @@ sealed abstract class StreamSpec[T[_]](implicit wrap: Wrap[T]) extends WordSpec 
 
     "lastOptionLinear" in {
       Stream[Int, T](1 to 100)
-        .lastOptionLinear
+        .lastOption
         .await should contain(100)
     }
 

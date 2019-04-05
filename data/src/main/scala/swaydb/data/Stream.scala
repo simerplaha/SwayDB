@@ -243,7 +243,7 @@ abstract class Stream[A, W[_]](implicit wrap: Wrap[W]) { self =>
   /**
     * Reads all items from the Stream and returns the last.
     */
-  def lastOptionLinear: W[Option[A]] =
+  def lastOption: W[Option[A]] =
     foldLeft(Option.empty[A]) {
       (_, next) =>
         Some(next)

@@ -45,7 +45,7 @@ case class Set[T, W[_]](private val core: Core[W],
                         private val from: Option[From[T]],
                         private[swaydb] val reverseIteration: Boolean = false,
                         private val till: Option[T => Boolean] = None)(implicit serializer: Serializer[T],
-                                                                       wrap: Wrap[W]) extends data.Stream[T, W] {
+                                                                       wrap: Wrap[W]) extends data.Streamer[T, W] { self =>
 
   def wrapCall[C](f: => W[C]): W[C] =
     wrap(()).flatMap(_ => f)
@@ -224,15 +224,42 @@ case class Set[T, W[_]](private val core: Core[W],
       }
     }
 
-  override def next(previous: T): W[Option[T]] =
-    wrapCall {
-      val next =
-        if (reverseIteration)
-          core.beforeKey(serializer.write(previous))
-        else
-          core.afterKey(serializer.write(previous))
+  override def drop(count: Int): data.Stream[T, W] =
+    stream drop count
 
-      next.map(_.flatMap(checkTakeWhile))
+  override def take(count: Int): data.Stream[T, W] =
+    stream take count
+
+  override def map[B](f: T => B): data.Stream[B, W] =
+    stream map f
+
+  override def foreach[U](f: T => U): data.Stream[Unit, W] =
+    stream foreach f
+
+  override def filter(f: T => Boolean): data.Stream[T, W] =
+    stream filter f
+
+  override def filterNot(f: T => Boolean): data.Stream[T, W] =
+    stream filterNot f
+
+  override def foldLeft[B](initial: B)(f: (B, T) => B): W[B] =
+    stream.foldLeft(initial)(f)
+
+  def stream: data.Stream[T, W] =
+    new data.Stream[T, W] {
+      override def headOption: W[Option[T]] =
+        self.headOption
+
+      override def next(previous: T): W[Option[T]] =
+        wrapCall {
+          val next =
+            if (reverseIteration)
+              core.beforeKey(serializer.write(previous))
+            else
+              core.afterKey(serializer.write(previous))
+
+          next.map(_.flatMap(checkTakeWhile))
+        }
     }
 
   def size: W[Int] =
@@ -246,7 +273,7 @@ case class Set[T, W[_]](private val core: Core[W],
 
   def lastOption: W[Option[T]] =
     if (till.isDefined)
-      wrapCall(lastOptionLinear)
+      wrapCall(stream.lastOption)
     else if (reverseIteration)
       wrapCall(core.headKey.map(_.map(_.read[T])))
     else
@@ -272,4 +299,5 @@ case class Set[T, W[_]](private val core: Core[W],
 
   override def toString(): String =
     classOf[Map[_, _, W]].getClass.getSimpleName
+
 }
