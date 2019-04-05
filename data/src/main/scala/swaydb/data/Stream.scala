@@ -91,7 +91,7 @@ object Stream {
     }
 }
 
-abstract class Stream[A, W[_]](implicit wrap: Wrap[W]) { self =>
+abstract class Stream[A, W[_]](implicit wrap: Wrap[W]) extends Streamer[A, W] { self =>
 
   /**
     * Private val used in [[wrap.foldLeft]] for reading only single item.
