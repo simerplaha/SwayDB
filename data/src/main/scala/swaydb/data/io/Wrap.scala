@@ -59,9 +59,9 @@ object Wrap {
       override def toFuture[A](a: O[A]): Future[A] = transform.toFuture(a)
       override def toIO[A](a: O[A]): IO[A] = futureWrapper.toIO(transform.toFuture(a))
       override def foldLeft[A, U](initial: U, after: Option[A], stream: Stream[A, O], drop: Int, take: Option[Int])(operation: (U, A) => U): O[U] =
-        transform.toOther(futureWrapper.foldLeft(initial, after, stream.asFuture(futureWrapper), drop, take)(operation))
+        transform.toOther(futureWrapper.foldLeft(initial, after, stream.toFutureStream(ec), drop, take)(operation))
       override def collectFirst[A](previous: A, stream: Stream[A, O])(condition: A => Boolean): O[Option[A]] =
-        transform.toOther(futureWrapper.collectFirst(previous, stream.asFuture)(condition))
+        transform.toOther(futureWrapper.collectFirst(previous, stream.toFutureStream)(condition))
     }
 
   def buildSyncWrap[O[_]](transform: BlockingIOTransformer[O]): Wrap[O] =
@@ -76,9 +76,9 @@ object Wrap {
       override def toFuture[A](a: O[A]): Future[A] = transform.toIO(a).toFuture
       override def toIO[A](a: O[A]): IO[A] = transform.toIO(a)
       override def foldLeft[A, U](initial: U, after: Option[A], stream: Stream[A, O], drop: Int, take: Option[Int])(operation: (U, A) => U): O[U] =
-        transform.toOther(ioWrap.foldLeft(initial, after, stream.asIO(ioWrap), drop, take)(operation))
+        transform.toOther(ioWrap.foldLeft(initial, after, stream.toIOStream, drop, take)(operation))
       override def collectFirst[A](previous: A, stream: Stream[A, O])(condition: A => Boolean): O[Option[A]] =
-        transform.toOther(ioWrap.collectFirst(previous, stream.asIO)(condition))
+        transform.toOther(ioWrap.collectFirst(previous, stream.toIOStream)(condition))
     }
 
   implicit val tryWrap: Wrap[Try] =
@@ -94,7 +94,7 @@ object Wrap {
       override def failure[A](exception: Throwable): Try[A] = scala.util.Failure(exception)
 
       override def foldLeft[A, U](initial: U, after: Option[A], stream: Stream[A, Try], drop: Int, take: Option[Int])(operation: (U, A) => U): Try[U] =
-        ioWrap.foldLeft(initial, after, stream.asIO(ioWrap), drop, take)(operation).toTry //use ioWrap and convert that result to try.
+        ioWrap.foldLeft(initial, after, stream.toIOStream, drop, take)(operation).toTry //use ioWrap and convert that result to try.
 
       @tailrec
       override def collectFirst[A](previous: A, stream: Stream[A, Try])(condition: A => Boolean): Try[Option[A]] =

@@ -22,7 +22,8 @@ package swaydb.data
 import scala.collection.generic.CanBuildFrom
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Try
 import swaydb.data.Stream.StreamBuilder
 import swaydb.data.io.Wrap
 import swaydb.data.io.Wrap._
@@ -318,8 +319,8 @@ abstract class Stream[A, W[_]](implicit wrap: Wrap[W]) extends Streamer[A, W] { 
     * Converts the current Stream with Future API. If the current stream is blocking,
     * the output stream will still return blocking stream but wrapped as future APIs.
     */
-  def asFuture(implicit futureWrap: Wrap[Future]): Stream[A, Future] =
-    new Stream[A, Future] {
+  def toFutureStream(implicit ec: ExecutionContext): Stream[A, Future] =
+    new Stream[A, Future]()(Wrap.futureWrap) {
       override def headOption: Future[Option[A]] = self.wrap.toFuture(self.headOption)
       override def next(previous: A): Future[Option[A]] = self.wrap.toFuture(self.next(previous))
     }
@@ -327,9 +328,18 @@ abstract class Stream[A, W[_]](implicit wrap: Wrap[W]) extends Streamer[A, W] { 
   /**
     * If the current stream is Async this will return a blocking stream.
     */
-  def asIO(implicit ioWrap: Wrap[IO]): Stream[A, IO] =
+  def toIOStream: Stream[A, IO] =
     new Stream[A, IO] {
       override def headOption: IO[Option[A]] = self.wrap.toIO(self.headOption)
       override def next(previous: A): IO[Option[A]] = self.wrap.toIO(self.next(previous))
+    }
+
+  /**
+    * If the current stream is Async this will return a blocking stream.
+    */
+  def toTryStream: Stream[A, Try] =
+    new Stream[A, Try] {
+      override def headOption: Try[Option[A]] = self.wrap.toIO(self.headOption).toTry
+      override def next(previous: A): Try[Option[A]] = self.wrap.toIO(self.next(previous)).toTry
     }
 }
