@@ -336,9 +336,7 @@ abstract class Stream[A, W[_]](implicit wrap: Wrap[W]) extends Streamer[A, W] { 
     }
 
   /**
-    * Converts the Stream to executable type.
-    *
-    *
+    * Closes and converts the Stream to executable.
     */
   def materialize: W[Seq[A]] =
     foldLeft(new StreamBuilder[A, W]()) {

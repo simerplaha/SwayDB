@@ -372,44 +372,44 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
     }
   }
 
-  "debug" in {
-    val db = newDB()
-
-    def doRead() =
-      Future {
-        while (true) {
-          (1 to 2000000) foreach {
-            i =>
-              db.get(i).assertGet shouldBe i.toString
-              if (i % 100000 == 0)
-                println(s"Read $i")
-          }
-        }
-      }
-
-    def doWrite() = {
-      println("writing")
-      (1 to 2000000) foreach {
-        i =>
-          db.put(i, i.toString).assertGet
-          if (i % 100000 == 0)
-            println(s"Write $i")
-      }
-      println("writing end")
-    }
-
-    doWrite()
-    doRead()
-    sleep(1.minutes)
-    doWrite()
-    sleep(1.minutes)
-    doWrite()
-    sleep(1.minutes)
-    doWrite()
-    assertLevelsAreEmpty(db, submitUpdates = false)
-
-    db.closeDatabase().get
-  }
+//  "debug" in {
+//    val db = newDB()
+//
+//    def doRead() =
+//      Future {
+//        while (true) {
+//          (1 to 2000000) foreach {
+//            i =>
+//              db.get(i).assertGet shouldBe i.toString
+//              if (i % 100000 == 0)
+//                println(s"Read $i")
+//          }
+//        }
+//      }
+//
+//    def doWrite() = {
+//      println("writing")
+//      (1 to 2000000) foreach {
+//        i =>
+//          db.put(i, i.toString).assertGet
+//          if (i % 100000 == 0)
+//            println(s"Write $i")
+//      }
+//      println("writing end")
+//    }
+//
+//    doWrite()
+//    doRead()
+//    sleep(1.minutes)
+//    doWrite()
+//    sleep(1.minutes)
+//    doWrite()
+//    sleep(1.minutes)
+//    doWrite()
+//    assertLevelsAreEmpty(db, submitUpdates = false)
+//
+//    db.closeDatabase().get
+//  }
 
   "debug before and mapRight" in {
     val db = newDB()
