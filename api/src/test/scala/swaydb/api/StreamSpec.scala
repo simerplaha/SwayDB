@@ -89,7 +89,6 @@ sealed abstract class StreamSpec[T[_]](implicit wrap: Wrap[T]) extends WordSpec 
         .drop(10)
         .take(1)
         .map(_.toInt)
-        .foreach(println)
         .materialize
         .await should have size 1
     }
@@ -133,8 +132,6 @@ sealed abstract class StreamSpec[T[_]](implicit wrap: Wrap[T]) extends WordSpec 
         .take(2)
         .materialize
         .await should contain only(12, 14)
-
-      println(List(1, 2, 3).dropWhile(_ < 2))
     }
 
     "filterNot" in {
