@@ -44,10 +44,8 @@ case class MapKeysStream[K](mapKey: Seq[K],
                             mapsOnly: Boolean = false,
                             userDefinedFrom: Boolean = false,
                             set: swaydb.Set[Key[K], IO],
-                            till: K => Boolean = (_: K) => true,
-                            skip: Int = 0,
-                            count: Option[Int] = None)(implicit keySerializer: Serializer[K],
-                                                       mapKeySerializer: Serializer[Key[K]]) extends Stream[K, IO](skip, count) {
+                            till: K => Boolean = (_: K) => true)(implicit keySerializer: Serializer[K],
+                                                                 mapKeySerializer: Serializer[Key[K]]) extends Stream[K, IO] {
 
   private val endEntriesKey = Key.MapEntriesEnd(mapKey)
   private val endSubMapsKey = Key.SubMapsEnd(mapKey)

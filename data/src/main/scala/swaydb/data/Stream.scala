@@ -29,8 +29,11 @@ import swaydb.data.io.Wrap._
 
 object Stream {
 
+  def empty[T, W[_]](implicit wrap: Wrap[W]) =
+    apply[T, W](Iterable.empty)
+
   def apply[T, W[_]](items: Iterable[T])(implicit wrap: Wrap[W]): Stream[T, W] =
-    new Stream[T, W](0, None) {
+    new Stream[T, W] {
 
       private val iterator = items.iterator
 
@@ -59,7 +62,7 @@ object Stream {
       items.clear()
 
     override def result: Stream[T, W] =
-      new Stream[T, W](0, None) {
+      new Stream[T, W] {
 
         var index = 0
 
@@ -88,26 +91,62 @@ object Stream {
     }
 }
 
-abstract class Stream[A, W[_]](skip: Int,
-                               count: Option[Int])(implicit wrap: Wrap[W]) { self =>
+abstract class Stream[A, W[_]](implicit wrap: Wrap[W]) { self =>
+
+  /**
+    * Private val used in [[wrap.foldLeft]] for reading only single item.
+    */
+  private val takeOne = Some(1)
 
   def headOption: W[Option[A]]
   def next(previous: A): W[Option[A]]
 
-  private def copyStream(skip: Int, count: Option[Int]) =
-    new Stream[A, W](skip, count) {
-      override def headOption: W[Option[A]] = self.headOption
-      override def next(previous: A): W[Option[A]] = self.next(previous)
-    }
-
   def drop(count: Int): Stream[A, W] =
-    copyStream(skip + count, self.count)
+    if (count == 0)
+      this
+    else
+      new Stream[A, W] {
+        override def headOption: W[Option[A]] =
+          self.headOption flatMap {
+            head =>
+              head.map(next) getOrElse wrap.none
+          }
+
+        //flag to determine if the next batch was dropped by foldLeft.
+        private var dropped = false
+        override def next(previous: A): W[Option[A]] =
+        //if previous batch was dropped do not drop for the next iteration.
+          wrap.foldLeft(Option.empty[A], Some(previous), self, if (dropped) 0 else count - 1, takeOne) {
+            case (_, next) =>
+              dropped = true
+              Some(next)
+          }
+      }
 
   def take(count: Int): Stream[A, W] =
-    copyStream(skip, self.count.map(_ + count).orElse(Some(count)))
+    if (count == 0)
+      Stream.empty
+    else
+      new Stream[A, W] {
+
+        override def headOption: W[Option[A]] =
+          self.headOption
+
+        //flag to count how many were taken.
+        private var taken = 1
+        override def next(previous: A): W[Option[A]] =
+          if (taken == count)
+            wrap.none
+          else
+            wrap.foldLeft(Option.empty[A], Some(previous), self, 0, takeOne) {
+              case (_, next) =>
+                taken += 1
+                Some(next)
+            }
+      }
 
   def map[B](f: A => B): Stream[B, W] =
-    new Stream[B, W](skip, count) {
+    new Stream[B, W] {
 
       var previousA: Option[A] = Option.empty
 
@@ -139,7 +178,7 @@ abstract class Stream[A, W[_]](skip: Int,
     map[Unit](a => f(a))
 
   def filter(f: A => Boolean): Stream[A, W] =
-    new Stream[A, W](skip, count) {
+    new Stream[A, W] {
 
       override def headOption: W[Option[A]] =
         self.headOption flatMap {
@@ -161,7 +200,7 @@ abstract class Stream[A, W[_]](skip: Int,
     filter(!f(_))
 
   def flatMap[B](f: A => Stream[B, W]): Stream[B, W] =
-    new Stream[B, W](skip, count) {
+    new Stream[B, W] {
       val buffer = ListBuffer.empty[B]
       var bufferIterator: Iterator[B] = _
       var previousA: A = _
@@ -216,7 +255,7 @@ abstract class Stream[A, W[_]](skip: Int,
   def foldLeft[B](initial: B)(f: (B, A) => B): W[B] =
     wrap(()) flatMap {
       _ =>
-        wrap.foldLeft(initial, this, skip, count)(f)
+        wrap.foldLeft(initial, None, this, 0, None)(f)
     }
 
   /**
@@ -239,7 +278,7 @@ abstract class Stream[A, W[_]](skip: Int,
     * the output stream will still return blocking stream but wrapped as future APIs.
     */
   def asFuture(implicit futureWrap: Wrap[Future]): Stream[A, Future] =
-    new Stream[A, Future](skip, count) {
+    new Stream[A, Future] {
       override def headOption: Future[Option[A]] = self.wrap.toFuture(self.headOption)
       override def next(previous: A): Future[Option[A]] = self.wrap.toFuture(self.next(previous))
     }
@@ -248,7 +287,7 @@ abstract class Stream[A, W[_]](skip: Int,
     * If the current stream is Async this will return a blocking stream.
     */
   def asIO(implicit ioWrap: Wrap[IO]): Stream[A, IO] =
-    new Stream[A, IO](skip, count) {
+    new Stream[A, IO] {
       override def headOption: IO[Option[A]] = self.wrap.toIO(self.headOption)
       override def next(previous: A): IO[Option[A]] = self.wrap.toIO(self.next(previous))
     }

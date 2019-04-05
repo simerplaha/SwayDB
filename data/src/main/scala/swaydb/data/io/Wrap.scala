@@ -37,7 +37,7 @@ sealed trait Wrap[W[_]] {
   def success[A](value: A): W[A]
   def failure[A](exception: Throwable): W[A]
   def none[A]: W[Option[A]]
-  def foldLeft[A, U](initial: U, stream: Stream[A, W], skip: Int, size: Option[Int])(operation: (U, A) => U): W[U]
+  def foldLeft[A, U](initial: U, after: Option[A], stream: Stream[A, W], drop: Int, take: Option[Int])(operation: (U, A) => U): W[U]
   def collectFirst[A](previous: A, stream: Stream[A, W])(condition: A => Boolean): W[Option[A]]
   def toFuture[A](a: W[A]): Future[A]
   def toIO[A](a: W[A]): IO[A]
@@ -58,8 +58,8 @@ object Wrap {
       override def none[A]: O[Option[A]] = transform.toOther(futureWrapper.none)
       override def toFuture[A](a: O[A]): Future[A] = transform.toFuture(a)
       override def toIO[A](a: O[A]): IO[A] = futureWrapper.toIO(transform.toFuture(a))
-      override def foldLeft[A, U](initial: U, stream: Stream[A, O], skip: Int, size: Option[Int])(operation: (U, A) => U): O[U] =
-        transform.toOther(futureWrapper.foldLeft(initial, stream.asFuture(futureWrapper), skip, size)(operation))
+      override def foldLeft[A, U](initial: U, after: Option[A], stream: Stream[A, O], drop: Int, take: Option[Int])(operation: (U, A) => U): O[U] =
+        transform.toOther(futureWrapper.foldLeft(initial, after, stream.asFuture(futureWrapper), drop, take)(operation))
       override def collectFirst[A](previous: A, stream: Stream[A, O])(condition: A => Boolean): O[Option[A]] =
         transform.toOther(futureWrapper.collectFirst(previous, stream.asFuture)(condition))
     }
@@ -75,8 +75,8 @@ object Wrap {
       override def none[A]: O[Option[A]] = transform.toOther(ioWrap.none)
       override def toFuture[A](a: O[A]): Future[A] = transform.toIO(a).toFuture
       override def toIO[A](a: O[A]): IO[A] = transform.toIO(a)
-      override def foldLeft[A, U](initial: U, stream: Stream[A, O], skip: Int, size: Option[Int])(operation: (U, A) => U): O[U] =
-        transform.toOther(ioWrap.foldLeft(initial, stream.asIO(ioWrap), skip, size)(operation))
+      override def foldLeft[A, U](initial: U, after: Option[A], stream: Stream[A, O], drop: Int, take: Option[Int])(operation: (U, A) => U): O[U] =
+        transform.toOther(ioWrap.foldLeft(initial, after, stream.asIO(ioWrap), drop, take)(operation))
       override def collectFirst[A](previous: A, stream: Stream[A, O])(condition: A => Boolean): O[Option[A]] =
         transform.toOther(ioWrap.collectFirst(previous, stream.asIO)(condition))
     }
@@ -93,8 +93,8 @@ object Wrap {
       override def toIO[A](a: Try[A]): IO[A] = IO.fromTry(a)
       override def failure[A](exception: Throwable): Try[A] = scala.util.Failure(exception)
 
-      override def foldLeft[A, U](initial: U, stream: Stream[A, Try], skip: Int, size: Option[Int])(operation: (U, A) => U): Try[U] =
-        ioWrap.foldLeft(initial, stream.asIO(ioWrap), skip, size)(operation).toTry //use ioWrap and convert that result to try.
+      override def foldLeft[A, U](initial: U, after: Option[A], stream: Stream[A, Try], drop: Int, take: Option[Int])(operation: (U, A) => U): Try[U] =
+        ioWrap.foldLeft(initial, after, stream.asIO(ioWrap), drop, take)(operation).toTry //use ioWrap and convert that result to try.
 
       @tailrec
       override def collectFirst[A](previous: A, stream: Stream[A, Try])(condition: A => Boolean): Try[Option[A]] =
@@ -125,16 +125,16 @@ object Wrap {
       override def none[A]: IO[Option[A]] = IO.none
       override def toFuture[A](a: IO[A]): Future[A] = a.toFuture
       override def toIO[A](a: IO[A]): IO[A] = a
-      override def foldLeft[A, U](initial: U, stream: Stream[A, IO], skip: Int, size: Option[Int])(operation: (U, A) => U): IO[U] = {
+      override def foldLeft[A, U](initial: U, after: Option[A], stream: Stream[A, IO], drop: Int, take: Option[Int])(operation: (U, A) => U): IO[U] = {
         @tailrec
-        def fold(previous: A, skip: Int, currentSize: Int, previousResult: U): IO[U] =
-          if (size.contains(currentSize))
+        def fold(previous: A, drop: Int, currentSize: Int, previousResult: U): IO[U] =
+          if (take.contains(currentSize))
             IO.Success(previousResult)
           else
             stream.next(previous) match {
               case IO.Success(Some(next)) =>
-                if (skip >= 1) {
-                  fold(next, skip - 1, currentSize, previousResult)
+                if (drop >= 1) {
+                  fold(next, drop - 1, currentSize, previousResult)
                 } else {
                   val nextResult =
                     try {
@@ -143,7 +143,7 @@ object Wrap {
                       case exception: Throwable =>
                         return IO.Failure(exception)
                     }
-                  fold(next, skip, currentSize + 1, nextResult)
+                  fold(next, drop, currentSize + 1, nextResult)
                 }
 
               case IO.Success(None) =>
@@ -153,13 +153,13 @@ object Wrap {
                 IO.Failure(exception)
             }
 
-        if (size.contains(0))
+        if (take.contains(0))
           IO.Success(initial)
         else
-          stream.headOption match {
+          after.map(stream.next).getOrElse(stream.headOption) match {
             case IO.Success(Some(first)) =>
-              if (skip >= 1)
-                fold(first, skip - 1, 0, initial)
+              if (drop >= 1)
+                fold(first, drop - 1, 0, initial)
               else {
                 val next =
                   try {
@@ -168,7 +168,7 @@ object Wrap {
                     case throwable: Throwable =>
                       return IO.Failure(throwable)
                   }
-                fold(first, skip, 1, next)
+                fold(first, drop, 1, next)
               }
 
             case IO.Success(None) =>
@@ -210,21 +210,21 @@ object Wrap {
       override def foreach[A, B](a: A)(f: A => B): Unit = f(a)
       override def toFuture[A](a: Future[A]): Future[A] = a
       override def toIO[A](a: Future[A]): IO[A] = IO(Await.result(a, timeout))
-      override def foldLeft[A, U](initial: U, stream: Stream[A, Future], skip: Int, size: Option[Int])(operation: (U, A) => U): Future[U] = {
-        def fold(previous: A, skip: Int, currentSize: Int, previousResult: U): Future[U] =
-          if (size.contains(currentSize))
+      override def foldLeft[A, U](initial: U, after: Option[A], stream: Stream[A, Future], drop: Int, take: Option[Int])(operation: (U, A) => U): Future[U] = {
+        def fold(previous: A, drop: Int, currentSize: Int, previousResult: U): Future[U] =
+          if (take.contains(currentSize))
             Future.successful(previousResult)
           else
             stream
               .next(previous)
               .flatMap {
                 case Some(next) =>
-                  if (skip >= 1) {
-                    fold(next, skip - 1, currentSize, previousResult)
+                  if (drop >= 1) {
+                    fold(next, drop - 1, currentSize, previousResult)
                   } else {
                     try {
                       val newResult = operation(previousResult, next)
-                      fold(next, skip, currentSize + 1, newResult)
+                      fold(next, drop, currentSize + 1, newResult)
                     } catch {
                       case throwable: Throwable =>
                         Future.failed(throwable)
@@ -235,17 +235,17 @@ object Wrap {
                   Future.successful(previousResult)
               }
 
-        if (size.contains(0))
+        if (take.contains(0))
           Future.successful(initial)
         else
-          stream.headOption flatMap {
+          after.map(stream.next).getOrElse(stream.headOption) flatMap {
             case Some(first) =>
-              if (skip >= 1) {
-                fold(first, skip - 1, 0, initial)
+              if (drop >= 1) {
+                fold(first, drop - 1, 0, initial)
               } else {
                 try {
                   val nextResult = operation(initial, first)
-                  fold(first, skip, 1, nextResult)
+                  fold(first, drop, 1, nextResult)
                 } catch {
                   case throwable: Throwable =>
                     Future.failed(throwable)

@@ -37,13 +37,11 @@ import swaydb.serializers.{Serializer, _}
   * For documentation check - http://swaydb.io/wrap/
   */
 case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
-                           private[swaydb] val count: Option[Int] = None,
-                           private[swaydb] val skip: Int = 0,
                            private val from: Option[From[K]] = None,
                            private[swaydb] val reverseIteration: Boolean = false,
                            private val till: Option[(K, V) => Boolean] = None)(implicit keySerializer: Serializer[K],
                                                                                valueSerializer: Serializer[V],
-                                                                               wrap: Wrap[W]) extends data.Stream[(K, V), W](skip, count) {
+                                                                               wrap: Wrap[W]) extends data.Stream[(K, V), W] {
 
   def wrapCall[C](f: => W[C]): W[C] =
     wrap(()).flatMap(_ => f)
@@ -208,8 +206,6 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
       core = core,
       from = from,
       reverseIteration = reverseIteration,
-      count = count,
-      skip = skip,
       till = None
     )(keySerializer, wrap)
 

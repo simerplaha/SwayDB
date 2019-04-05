@@ -72,15 +72,15 @@ sealed abstract class StreamSpec[T[_]](implicit wrap: Wrap[T]) extends WordSpec 
     }
 
     "drop, take and map" in {
-      Stream[Int, T](1 to 1000)
+      Stream[Int, T](1 to 20)
         .map(_.toString)
         .drop(10)
-        .take(1)
+        .take(5)
         .map(_.toInt)
         .drop(2)
         .take(1)
         .materialize
-        .await should contain only(13, 14)
+        .await should contain only 13
     }
 
     "drop, take and foreach" in {
