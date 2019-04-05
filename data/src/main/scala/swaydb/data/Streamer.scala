@@ -19,7 +19,7 @@
 
 package swaydb.data
 
-trait Streamer[A, W[_]] {
+private[swaydb] trait Streamer[A, W[_]] {
 
   def lastOption: W[Option[A]]
 

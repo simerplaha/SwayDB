@@ -146,7 +146,7 @@ abstract class Stream[A, W[_]](implicit wrap: Wrap[W]) extends Streamer[A, W] { 
 
   def drop(count: Int): Stream[A, W] =
     if (count == 0)
-      this
+      self
     else
       new Stream[A, W] {
         override def headOption: W[Option[A]] =
@@ -296,7 +296,7 @@ abstract class Stream[A, W[_]](implicit wrap: Wrap[W]) extends Streamer[A, W] { 
   def foldLeft[B](initial: B)(f: (B, A) => B): W[B] =
     wrap(()) flatMap {
       _ =>
-        wrap.foldLeft(initial, None, this, 0, None)(f)
+        wrap.foldLeft(initial, None, self, 0, None)(f)
     }
 
   /**
