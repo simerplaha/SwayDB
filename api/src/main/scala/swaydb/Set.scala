@@ -27,7 +27,7 @@ import swaydb.core.Core
 import swaydb.data.IO
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
-import swaydb.data.io.{AsyncIOTransformer, BlockingIOTransformer, Wrap}
+import swaydb.data.io.{FutureTransformer, IOTransformer, Wrap}
 import swaydb.data.slice.Slice
 import swaydb.serializers.{Serializer, _}
 
@@ -268,11 +268,11 @@ case class Set[T, W[_]](private val core: Core[W],
     copy(reverseIteration = true)
 
   def asyncAPI[O[_]](implicit ec: ExecutionContext,
-                     convert: AsyncIOTransformer[O],
+                     convert: FutureTransformer[O],
                      wrap: Wrap[O]): Set[T, O] =
     copy(core = core.async[O])
 
-  def blockingAPI[O[_]](implicit convert: BlockingIOTransformer[O],
+  def blockingAPI[O[_]](implicit convert: IOTransformer[O],
                         wrap: Wrap[O]): Set[T, O] =
     copy(core = core.blocking[O])
 

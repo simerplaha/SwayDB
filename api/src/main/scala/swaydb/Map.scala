@@ -26,7 +26,7 @@ import swaydb.core.Core
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.io.Wrap._
-import swaydb.data.io.{AsyncIOTransformer, BlockingIOTransformer, Wrap}
+import swaydb.data.io.{FutureTransformer, IOTransformer, Wrap}
 import swaydb.data.slice.Slice
 import swaydb.data.{IO, Streamer}
 import swaydb.serializers.{Serializer, _}
@@ -359,47 +359,47 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
   /**
     * Returns an Async API of type O where the [[Wrap]] is not known.
     *
-    * Wrapper will be built from [[AsyncIOTransformer]].
+    * Wrapper will be built from [[FutureTransformer]].
     *
     * @param timeout is used only when a async API gets converted into a blocking API
     *                otherwise it's always non-blocking.
     *
     */
   def asyncAPI[O[_]](timeout: FiniteDuration)(implicit ec: ExecutionContext,
-                                              converter: AsyncIOTransformer[O]): Map[K, V, O] = {
-    implicit val wrapper = Wrap.buildAsyncWrap[O](converter, timeout)
+                                              transform: FutureTransformer[O]): Map[K, V, O] = {
+    implicit val wrapper = Wrap.buildAsyncWrap[O](transform, timeout)
     copy(core = core.async[O])
   }
 
   /**
     * Returns an Async API of type O where the [[Wrap]] is known.
     *
-    * Wrapper will be built from [[AsyncIOTransformer]].
+    * Wrapper will be built from [[FutureTransformer]].
     */
   def asyncAPI[O[_]](implicit ec: ExecutionContext,
-                     converter: AsyncIOTransformer[O],
+                     transform: FutureTransformer[O],
                      wrap: Wrap[O]): Map[K, V, O] =
     copy(core = core.async[O])
 
   /**
     * Returns an blocking API of type O where the [[Wrap]] is not known.
     *
-    * Wrapper will be built from [[BlockingIOTransformer]].
+    * Wrapper will be built from [[IOTransformer]].
     */
-  def blockingAPI[O[_]](implicit converter: BlockingIOTransformer[O]): Map[K, V, O] = {
-    implicit val wrapper = Wrap.buildSyncWrap[O](converter)
+  def blockingAPI[O[_]](implicit transform: IOTransformer[O]): Map[K, V, O] = {
+    implicit val wrapper = Wrap.buildSyncWrap[O](transform)
     copy(core = core.blocking[O])
   }
 
   /**
     * Returns an blocking API of type O where the [[Wrap]] is known.
     */
-  def blockingAPI[O[_]](implicit converter: BlockingIOTransformer[O],
+  def blockingAPI[O[_]](implicit transform: IOTransformer[O],
                         wrap: Wrap[O]): Map[K, V, O] =
     copy(core = core.blocking[O])
 
   def asScala: scala.collection.mutable.Map[K, V] =
-    ScalaMap[K, V](blockingAPI[IO](BlockingIOTransformer.IOToIO, Wrap.ioWrap))
+    ScalaMap[K, V](blockingAPI[IO](IOTransformer.IOToIOTransformer, Wrap.ioWrap))
 
   def closeDatabase(): W[Unit] =
     wrapCall(core.close())

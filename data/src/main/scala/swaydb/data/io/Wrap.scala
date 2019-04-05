@@ -45,7 +45,7 @@ sealed trait Wrap[W[_]] {
 
 object Wrap {
 
-  def buildAsyncWrap[O[_]](transform: AsyncIOTransformer[O], timeout: FiniteDuration)(implicit ec: ExecutionContext): Wrap[O] =
+  def buildAsyncWrap[O[_]](transform: FutureTransformer[O], timeout: FiniteDuration)(implicit ec: ExecutionContext): Wrap[O] =
     new Wrap[O] {
       private val futureWrapper = futureWrap
 
@@ -64,7 +64,7 @@ object Wrap {
         transform.toOther(futureWrapper.collectFirst(previous, stream.toFutureStream)(condition))
     }
 
-  def buildSyncWrap[O[_]](transform: BlockingIOTransformer[O]): Wrap[O] =
+  def buildSyncWrap[O[_]](transform: IOTransformer[O]): Wrap[O] =
     new Wrap[O] {
       override def apply[A](a: => A): O[A] = transform.toOther(ioWrap.apply(a))
       override def foreach[A, B](a: A)(f: A => B): Unit = ioWrap.foreach(a)(f)
