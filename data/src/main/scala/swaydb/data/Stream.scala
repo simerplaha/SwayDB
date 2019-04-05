@@ -27,6 +27,7 @@ import scala.util.Try
 import swaydb.data.Stream.StreamBuilder
 import swaydb.data.io.Wrap
 import swaydb.data.io.Wrap._
+import scala.concurrent.duration._
 
 object Stream {
 
@@ -283,39 +284,6 @@ abstract class Stream[A, W[_]](implicit wrap: Wrap[W]) extends Streamer[A, W] { 
     }
 
   /**
-    * Reads all items from the Stream and returns the last.
-    */
-  def lastOption: W[Option[A]] =
-    foldLeft(Option.empty[A]) {
-      (_, next) =>
-        Some(next)
-    }
-
-  /**
-    * Materializes are executes the
-    */
-  def foldLeft[B](initial: B)(f: (B, A) => B): W[B] =
-    wrap(()) flatMap {
-      _ =>
-        wrap.foldLeft(initial, None, self, 0, None)(f)
-    }
-
-  /**
-    * Converts the Stream to executable type.
-    *
-    * If [[W]] is of type [[scala.util.Try]] or [[IO]] this
-    * will also execute the query.
-    *
-    * External library implementing [[IO]] monads can be used for delay execution.
-    *
-    */
-  def materialize: W[Seq[A]] =
-    foldLeft(new StreamBuilder[A, W]()) {
-      (buffer, item) =>
-        buffer += item
-    } map (_.asSeq)
-
-  /**
     * Converts the current Stream with Future API. If the current stream is blocking,
     * the output stream will still return blocking stream but wrapped as future APIs.
     */
@@ -326,20 +294,55 @@ abstract class Stream[A, W[_]](implicit wrap: Wrap[W]) extends Streamer[A, W] { 
     }
 
   /**
-    * If the current stream is Async this will return a blocking stream.
+    * If the current stream is Future/Async this will return a blocking stream.
+    *
+    * @param timeout If the current stream is async/future based then the timeout is used else it's ignored.
     */
-  def toIOStream: Stream[A, IO] =
+  def toIOStream(timeout: FiniteDuration): Stream[A, IO] =
     new Stream[A, IO] {
-      override def headOption: IO[Option[A]] = self.wrap.toIO(self.headOption)
-      override def next(previous: A): IO[Option[A]] = self.wrap.toIO(self.next(previous))
+      override def headOption: IO[Option[A]] = self.wrap.toIO(self.headOption, timeout)
+      override def next(previous: A): IO[Option[A]] = self.wrap.toIO(self.next(previous), timeout)
     }
 
   /**
     * If the current stream is Async this will return a blocking stream.
+    *
+    * @param timeout If the current stream is async/future based then the timeout is used else it's ignored.
     */
-  def toTryStream: Stream[A, Try] =
+  def toTryStream(timeout: FiniteDuration): Stream[A, Try] =
     new Stream[A, Try] {
-      override def headOption: Try[Option[A]] = self.wrap.toIO(self.headOption).toTry
-      override def next(previous: A): Try[Option[A]] = self.wrap.toIO(self.next(previous)).toTry
+      override def headOption: Try[Option[A]] = self.wrap.toIO(self.headOption, timeout).toTry
+      override def next(previous: A): Try[Option[A]] = self.wrap.toIO(self.next(previous), timeout).toTry
     }
+
+  /**
+    * Reads all items from the Stream and returns the last.
+    *
+    * For a more efficient one use [[swaydb.Map.lastOption]] or [[swaydb.Set.lastOption]] instead.
+    */
+  def lastOption: W[Option[A]] =
+    foldLeft(Option.empty[A]) {
+      (_, next) =>
+        Some(next)
+    }
+
+  /**
+    * Materializes are executes the stream.
+    */
+  def foldLeft[B](initial: B)(f: (B, A) => B): W[B] =
+    wrap(()) flatMap {
+      _ =>
+        wrap.foldLeft(initial, None, self, 0, None)(f)
+    }
+
+  /**
+    * Converts the Stream to executable type.
+    *
+    *
+    */
+  def materialize: W[Seq[A]] =
+    foldLeft(new StreamBuilder[A, W]()) {
+      (buffer, item) =>
+        buffer += item
+    } map (_.asSeq)
 }

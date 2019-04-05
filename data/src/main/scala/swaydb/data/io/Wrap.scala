@@ -40,14 +40,14 @@ sealed trait Wrap[W[_]] {
   def foldLeft[A, U](initial: U, after: Option[A], stream: Stream[A, W], drop: Int, take: Option[Int])(operation: (U, A) => U): W[U]
   def collectFirst[A](previous: A, stream: Stream[A, W])(condition: A => Boolean): W[Option[A]]
   def toFuture[A](a: W[A]): Future[A]
-  def toIO[A](a: W[A]): IO[A]
+  def toIO[A](a: W[A], timeout: FiniteDuration): IO[A]
 }
 
 object Wrap {
 
   def buildAsyncWrap[O[_]](transform: AsyncIOTransformer[O], timeout: FiniteDuration)(implicit ec: ExecutionContext): Wrap[O] =
     new Wrap[O] {
-      private val futureWrapper = futureWrap(timeout)
+      private val futureWrapper = futureWrap
 
       override def apply[A](a: => A): O[A] = transform.toOther(futureWrapper.apply(a))
       override def foreach[A, B](a: A)(f: A => B): Unit = futureWrapper.foreach(a)(f)
@@ -57,7 +57,7 @@ object Wrap {
       override def failure[A](exception: Throwable): O[A] = transform.toOther(futureWrapper.failure(exception))
       override def none[A]: O[Option[A]] = transform.toOther(futureWrapper.none)
       override def toFuture[A](a: O[A]): Future[A] = transform.toFuture(a)
-      override def toIO[A](a: O[A]): IO[A] = futureWrapper.toIO(transform.toFuture(a))
+      override def toIO[A](a: O[A], timeout: FiniteDuration): IO[A] = futureWrapper.toIO(transform.toFuture(a), timeout)
       override def foldLeft[A, U](initial: U, after: Option[A], stream: Stream[A, O], drop: Int, take: Option[Int])(operation: (U, A) => U): O[U] =
         transform.toOther(futureWrapper.foldLeft(initial, after, stream.toFutureStream(ec), drop, take)(operation))
       override def collectFirst[A](previous: A, stream: Stream[A, O])(condition: A => Boolean): O[Option[A]] =
@@ -74,11 +74,11 @@ object Wrap {
       override def failure[A](exception: Throwable): O[A] = transform.toOther(ioWrap.failure(exception))
       override def none[A]: O[Option[A]] = transform.toOther(ioWrap.none)
       override def toFuture[A](a: O[A]): Future[A] = transform.toIO(a).toFuture
-      override def toIO[A](a: O[A]): IO[A] = transform.toIO(a)
+      override def toIO[A](a: O[A], timeout: FiniteDuration): IO[A] = transform.toIO(a)
       override def foldLeft[A, U](initial: U, after: Option[A], stream: Stream[A, O], drop: Int, take: Option[Int])(operation: (U, A) => U): O[U] =
-        transform.toOther(ioWrap.foldLeft(initial, after, stream.toIOStream, drop, take)(operation))
+        transform.toOther(ioWrap.foldLeft(initial, after, stream.toIOStream(10.seconds), drop, take)(operation))
       override def collectFirst[A](previous: A, stream: Stream[A, O])(condition: A => Boolean): O[Option[A]] =
-        transform.toOther(ioWrap.collectFirst(previous, stream.toIOStream)(condition))
+        transform.toOther(ioWrap.collectFirst(previous, stream.toIOStream(10.seconds))(condition))
     }
 
   implicit val tryWrap: Wrap[Try] =
@@ -90,11 +90,11 @@ object Wrap {
       override def success[A](value: A): Try[A] = scala.util.Success(value)
       override def none[A]: Try[Option[A]] = scala.util.Success(None)
       override def toFuture[A](a: Try[A]): Future[A] = Future.fromTry(a)
-      override def toIO[A](a: Try[A]): IO[A] = IO.fromTry(a)
+      override def toIO[A](a: Try[A], timeout: FiniteDuration): IO[A] = IO.fromTry(a)
       override def failure[A](exception: Throwable): Try[A] = scala.util.Failure(exception)
 
       override def foldLeft[A, U](initial: U, after: Option[A], stream: Stream[A, Try], drop: Int, take: Option[Int])(operation: (U, A) => U): Try[U] =
-        ioWrap.foldLeft(initial, after, stream.toIOStream, drop, take)(operation).toTry //use ioWrap and convert that result to try.
+        ioWrap.foldLeft(initial, after, stream.toIOStream(10.seconds), drop, take)(operation).toTry //use ioWrap and convert that result to try.
 
       @tailrec
       override def collectFirst[A](previous: A, stream: Stream[A, Try])(condition: A => Boolean): Try[Option[A]] =
@@ -124,7 +124,7 @@ object Wrap {
       override def failure[A](exception: Throwable): IO[A] = IO.Failure(exception)
       override def none[A]: IO[Option[A]] = IO.none
       override def toFuture[A](a: IO[A]): Future[A] = a.toFuture
-      override def toIO[A](a: IO[A]): IO[A] = a
+      override def toIO[A](a: IO[A], timeout: FiniteDuration): IO[A] = a
       override def foldLeft[A, U](initial: U, after: Option[A], stream: Stream[A, IO], drop: Int, take: Option[Int])(operation: (U, A) => U): IO[U] = {
         @tailrec
         def fold(previous: A, drop: Int, currentSize: Int, previousResult: U): IO[U] =
@@ -197,9 +197,6 @@ object Wrap {
     }
 
   implicit def futureWrap(implicit ec: ExecutionContext): Wrap[Future] =
-    futureWrap(timeout = 60.seconds)
-
-  implicit def futureWrap(timeout: FiniteDuration)(implicit ec: ExecutionContext): Wrap[Future] =
     new Wrap[Future] {
       override def apply[A](a: => A): Future[A] = Future(a)
       override def map[A, B](a: A)(f: A => B): Future[B] = Future(f(a))
@@ -209,7 +206,7 @@ object Wrap {
       override def none[A]: Future[Option[A]] = Future.successful(None)
       override def foreach[A, B](a: A)(f: A => B): Unit = f(a)
       override def toFuture[A](a: Future[A]): Future[A] = a
-      override def toIO[A](a: Future[A]): IO[A] = IO(Await.result(a, timeout))
+      override def toIO[A](a: Future[A], timeout: FiniteDuration): IO[A] = IO(Await.result(a, timeout))
       override def foldLeft[A, U](initial: U, after: Option[A], stream: Stream[A, Future], drop: Int, take: Option[Int])(operation: (U, A) => U): Future[U] = {
         def fold(previous: A, drop: Int, currentSize: Int, previousResult: U): Future[U] =
           if (take.contains(currentSize))
