@@ -43,9 +43,8 @@ object Set {
   */
 case class Set[T, W[_]](private val core: Core[W],
                         private val from: Option[From[T]],
-                        private[swaydb] val reverseIteration: Boolean = false,
-                        private val till: Option[T => Boolean] = None)(implicit serializer: Serializer[T],
-                                                                       wrap: Wrap[W]) extends data.Streamer[T, W] { self =>
+                        private[swaydb] val reverseIteration: Boolean = false)(implicit serializer: Serializer[T],
+                                                                               wrap: Wrap[W]) extends data.Streamer[T, W] { self =>
 
   def wrapCall[C](f: => W[C]): W[C] =
     wrap(()).flatMap(_ => f)
@@ -180,55 +179,43 @@ case class Set[T, W[_]](private val core: Core[W],
   def fromOrAfter(key: T): Set[T, W] =
     copy(from = Some(From(key = key, orBefore = false, orAfter = true, before = false, after = false)))
 
-  def takeWhile(condition: T => Boolean): Set[T, W] =
-    copy(till = Some(condition))
-
-  private def checkTakeWhile(key: Slice[Byte]): Option[T] = {
-    val keyT = key.read[T]
-    if (till.forall(_ (keyT)))
-      Some(keyT)
-    else
-      None
-  }
-
   override def headOption: W[Option[T]] =
     wrapCall {
       from match {
         case Some(from) =>
           val fromKeyBytes: Slice[Byte] = from.key
-          val first =
-            if (from.before)
-              core.beforeKey(fromKeyBytes)
-            else if (from.after)
-              core.afterKey(fromKeyBytes)
-            else
-              core.getKey(fromKeyBytes)
-                .flatMap {
-                  case Some(key) =>
-                    wrap.success(Some(key)): W[Option[Slice[Byte]]]
+          if (from.before)
+            core.beforeKey(fromKeyBytes)
+          else if (from.after)
+            core.afterKey(fromKeyBytes)
+          else
+            core.getKey(fromKeyBytes)
+              .flatMap {
+                case Some(key) =>
+                  wrap.success(Some(key)): W[Option[Slice[Byte]]]
 
-                  case _ =>
-                    if (from.orAfter)
-                      core.afterKey(fromKeyBytes)
-                    else if (from.orBefore)
-                      core.beforeKey(fromKeyBytes)
-                    else
-                      wrap.success(None): W[Option[Slice[Byte]]]
-                }
-
-          first.map(_.flatMap(checkTakeWhile))
+                case _ =>
+                  if (from.orAfter)
+                    core.afterKey(fromKeyBytes)
+                  else if (from.orBefore)
+                    core.beforeKey(fromKeyBytes)
+                  else
+                    wrap.success(None): W[Option[Slice[Byte]]]
+              }
 
         case None =>
-          val first = if (reverseIteration) core.lastKey else core.headKey
-          first.map(_.flatMap(checkTakeWhile))
+          if (reverseIteration) core.lastKey else core.headKey
       }
-    }
+    } map (_.map(_.read[T]))
 
   override def drop(count: Int): data.Stream[T, W] =
     stream drop count
 
   override def take(count: Int): data.Stream[T, W] =
     stream take count
+
+  override def takeWhile(f: T => Boolean): data.Stream[T, W] =
+    stream takeWhile f
 
   override def map[B](f: T => B): data.Stream[B, W] =
     stream map f
@@ -252,14 +239,11 @@ case class Set[T, W[_]](private val core: Core[W],
 
       override def next(previous: T): W[Option[T]] =
         wrapCall {
-          val next =
-            if (reverseIteration)
-              core.beforeKey(serializer.write(previous))
-            else
-              core.afterKey(serializer.write(previous))
-
-          next.map(_.flatMap(checkTakeWhile))
-        }
+          if (reverseIteration)
+            core.beforeKey(serializer.write(previous))
+          else
+            core.afterKey(serializer.write(previous))
+        } map (_.map(_.read[T]))
     }
 
   def size: W[Int] =
@@ -272,9 +256,7 @@ case class Set[T, W[_]](private val core: Core[W],
     isEmpty.map(!_)
 
   def lastOption: W[Option[T]] =
-    if (till.isDefined)
-      wrapCall(stream.lastOption)
-    else if (reverseIteration)
+    if (reverseIteration)
       wrapCall(core.headKey.map(_.map(_.read[T])))
     else
       wrapCall(core.lastKey.map(_.map(_.read[T])))

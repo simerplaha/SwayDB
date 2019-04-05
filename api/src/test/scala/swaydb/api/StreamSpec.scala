@@ -94,6 +94,15 @@ sealed abstract class StreamSpec[T[_]](implicit wrap: Wrap[T]) extends WordSpec 
         .await should have size 1
     }
 
+    "takeWhile" in {
+      Stream[Int, T](1 to 1000)
+        .map(_.toString)
+        .drop(10)
+        .takeWhile(_.toInt <= 10)
+        .materialize
+        .await shouldBe empty
+    }
+
     "flatMap" in {
       Stream[Int, T](1 to 10)
         .flatMap(_ => Stream[Int, T](1 to 10))

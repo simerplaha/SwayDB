@@ -29,6 +29,8 @@ trait Streamer[A, W[_]] {
 
   def take(count: Int): Stream[A, W]
 
+  def takeWhile(f: A => Boolean): Stream[A, W]
+
   def map[B](f: A => B): Stream[B, W]
 
   def foreach[U](f: A => U): Stream[Unit, W]

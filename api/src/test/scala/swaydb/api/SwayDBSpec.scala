@@ -260,8 +260,8 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
       db.after(9999).take(1).materialize.get should contain only ((10000, "10000"))
       db.after(9999).drop(1).materialize.get shouldBe empty
 
-      db.after(10).takeWhileKey(_ <= 11).stream.materialize.get should contain only ((11, "11"))
-      db.after(10).takeWhileKey(_ <= 11).drop(1).materialize.get shouldBe empty
+      db.after(10).takeWhile(_._1 <= 11).materialize.get should contain only ((11, "11"))
+      db.after(10).takeWhile(_._1 <= 11).drop(1).materialize.get shouldBe empty
 
       db.fromOrBefore(0).stream.materialize.get shouldBe empty
       db.fromOrAfter(0).take(1).materialize.get should contain only ((1, "1"))

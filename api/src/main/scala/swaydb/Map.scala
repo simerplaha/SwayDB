@@ -22,13 +22,13 @@ package swaydb
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 import swaydb.PrepareImplicits._
-import swaydb.data.io.Wrap._
 import swaydb.core.Core
-import swaydb.data.{IO, Streamer}
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
+import swaydb.data.io.Wrap._
 import swaydb.data.io.{AsyncIOTransformer, BlockingIOTransformer, Wrap}
 import swaydb.data.slice.Slice
+import swaydb.data.{IO, Streamer}
 import swaydb.serializers.{Serializer, _}
 
 /**
@@ -38,10 +38,9 @@ import swaydb.serializers.{Serializer, _}
   */
 case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
                            private val from: Option[From[K]] = None,
-                           private[swaydb] val reverseIteration: Boolean = false,
-                           private val till: Option[(K, V) => Boolean] = None)(implicit keySerializer: Serializer[K],
-                                                                               valueSerializer: Serializer[V],
-                                                                               wrap: Wrap[W]) extends Streamer[(K, V), W] { self =>
+                           private[swaydb] val reverseIteration: Boolean = false)(implicit keySerializer: Serializer[K],
+                                                                                  valueSerializer: Serializer[V],
+                                                                                  wrap: Wrap[W]) extends Streamer[(K, V), W] { self =>
 
   def wrapCall[C](f: => W[C]): W[C] =
     wrap(()).flatMap(_ => f)
@@ -205,8 +204,7 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
     Set[K, W](
       core = core,
       from = from,
-      reverseIteration = reverseIteration,
-      till = None
+      reverseIteration = reverseIteration
     )(keySerializer, wrap)
 
   def level0Meter: Level0Meter =
@@ -245,81 +243,47 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
   def fromOrAfter(key: K): Map[K, V, W] =
     copy(from = Some(From(key = key, orBefore = false, orAfter = true, before = false, after = false)))
 
-  def takeWhile(condition: (K, V) => Boolean): Map[K, V, W] =
-    copy(till = Some(condition))
-
-  def takeWhileKey(condition: K => Boolean): Map[K, V, W] =
-    copy(
-      till =
-        Some(
-          (key: K, _: V) =>
-            condition(key)
-        )
-    )
-
-  def takeWhileValue(condition: V => Boolean): Map[K, V, W] =
-    copy(
-      till =
-        Some(
-          (_: K, value: V) =>
-            condition(value)
-        )
-    )
-
-  private def checkTakeWhile(key: Slice[Byte], value: Option[Slice[Byte]]): Option[(K, V)] = {
-    val keyT = key.read[K]
-    val valueT = value.read[V]
-    if (till.forall(_ (keyT, valueT)))
-      Some(keyT, valueT)
-    else
-      None
-  }
-
   def headOption: W[Option[(K, V)]] =
     wrapCall {
       from match {
         case Some(from) =>
           val fromKeyBytes: Slice[Byte] = from.key
 
-          val first =
-            if (from.before)
-              core.before(fromKeyBytes)
-            else if (from.after)
-              core.after(fromKeyBytes)
-            else
-              core.getKeyValue(fromKeyBytes)
-                .flatMap {
-                  case some @ Some(_) =>
-                    wrap.success(some): W[Option[(Slice[Byte], Option[Slice[Byte]])]]
+          if (from.before)
+            core.before(fromKeyBytes)
+          else if (from.after)
+            core.after(fromKeyBytes)
+          else
+            core.getKeyValue(fromKeyBytes)
+              .flatMap {
+                case some @ Some(_) =>
+                  wrap.success(some): W[Option[(Slice[Byte], Option[Slice[Byte]])]]
 
-                  case _ =>
-                    if (from.orAfter)
-                      core.after(fromKeyBytes)
-                    else if (from.orBefore)
-                      core.before(fromKeyBytes)
-                    else
-                      wrap.success(None): W[Option[(Slice[Byte], Option[Slice[Byte]])]]
-                }
-
-          first.map(_.flatMap {
-            case (key, value) =>
-              checkTakeWhile(key, value)
-          })
+                case _ =>
+                  if (from.orAfter)
+                    core.after(fromKeyBytes)
+                  else if (from.orBefore)
+                    core.before(fromKeyBytes)
+                  else
+                    wrap.success(None): W[Option[(Slice[Byte], Option[Slice[Byte]])]]
+              }
 
         case None =>
-          val first = if (reverseIteration) core.last else core.head
-          first.map(_.flatMap {
-            case (key, value) =>
-              checkTakeWhile(key, value)
-          })
+          if (reverseIteration) core.last else core.head
       }
-    }
+    } map (_.map {
+      case (key, value) =>
+        (key.read[K], value.read[V])
+    })
 
   override def drop(count: Int): data.Stream[(K, V), W] =
     stream drop count
 
   override def take(count: Int): data.Stream[(K, V), W] =
     stream take count
+
+  override def takeWhile(f: ((K, V)) => Boolean): data.Stream[(K, V), W] =
+    stream takeWhile f
 
   override def map[B](f: ((K, V)) => B): data.Stream[B, W] =
     stream map f
@@ -349,9 +313,9 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
             else
               core.after(keySerializer.write(previous._1))
 
-          next.map(_.flatMap {
+          next map (_.map {
             case (key, value) =>
-              checkTakeWhile(key, value)
+              (key.read[K], value.read[V])
           })
         }
     }
@@ -366,9 +330,7 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
     isEmpty.map(!_)
 
   def lastOption: W[Option[(K, V)]] =
-    if (till.isDefined)
-      wrapCall(stream.lastOption)
-    else if (reverseIteration)
+    if (reverseIteration)
       wrapCall {
         core.head map {
           case Some((key, value)) =>

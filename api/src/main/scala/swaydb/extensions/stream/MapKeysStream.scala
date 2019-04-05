@@ -89,9 +89,6 @@ case class MapKeysStream[K](mapKey: Seq[K],
   private def reverse(reverse: Boolean): MapKeysStream[K] =
     copy(set = set.copy(reverseIteration = reverse))
 
-  def takeWhile(condition: K => Boolean) =
-    copy(till = condition)
-
   private def validate(mapKey: Key[K]): Step[K] = {
     val mapKeyBytes = Key.writeKeys(mapKey.parentMapKeys, keySerializer)
     if (KeyOrder.default.compare(mapKeyBytes, thisMapKeyBytes) != 0) //Exit if it's moved onto another map
@@ -205,7 +202,7 @@ case class MapKeysStream[K](mapKey: Seq[K],
 
   override def headOption: IO[Option[K]] =
     set.headOption match {
-      case IO.Success(some @ Some((key))) =>
+      case IO.Success(some @ Some(key)) =>
         previousRaw = some
 
         validate(key) match {
@@ -213,7 +210,7 @@ case class MapKeysStream[K](mapKey: Seq[K],
             IO.none
 
           case Step.Next =>
-            step((key))
+            step(key)
 
           case Step.Success(keyValue) =>
             IO.Success(Some(keyValue))
@@ -231,6 +228,9 @@ case class MapKeysStream[K](mapKey: Seq[K],
 
   override def take(count: Int): data.Stream[K, IO] =
     stream take count
+
+  override def takeWhile(f: K => Boolean): data.Stream[K, IO] =
+    stream takeWhile f
 
   override def map[B](f: K => B): data.Stream[B, IO] =
     stream map f

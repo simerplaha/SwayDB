@@ -101,6 +101,27 @@ abstract class Stream[A, W[_]](implicit wrap: Wrap[W]) extends Streamer[A, W] { 
   def headOption: W[Option[A]]
   def next(previous: A): W[Option[A]]
 
+  def takeWhile(f: A => Boolean): Stream[A, W] =
+    new Stream[A, W] {
+      override def headOption: W[Option[A]] =
+        self.headOption map {
+          head =>
+            if (head.exists(f))
+              head
+            else
+              None
+        }
+
+      override def next(previous: A): W[Option[A]] =
+        wrap.foldLeft(Option.empty[A], Some(previous), self, 0, takeOne) {
+          case (_, next) =>
+            if (f(next))
+              Some(next)
+            else
+              None
+        }
+    }
+
   def drop(count: Int): Stream[A, W] =
     if (count == 0)
       this

@@ -143,7 +143,7 @@ sealed trait WeatherDataSpec extends TestBase with LazyLogging with Benchmark wi
             key < (startFrom + 100)
         }
 
-    took.stream.materialize.get should have size 100
+    took.materialize.get should have size 100
     took.headOption.get.get._1 shouldBe startFrom
     took.lastOption.get.get._1 shouldBe (startFrom + 99)
   }
@@ -166,11 +166,11 @@ sealed trait WeatherDataSpec extends TestBase with LazyLogging with Benchmark wi
     val took =
       db
         .from(startFrom)
+        .reverse
         .takeWhile {
           case (key, _) =>
             key > startFrom - 100
         }
-        .reverse
         .map {
           case (key, _) =>
             if (key % 10000 == 0)
