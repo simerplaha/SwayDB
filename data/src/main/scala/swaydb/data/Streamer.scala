@@ -21,6 +21,8 @@ package swaydb.data
 
 private[swaydb] trait Streamer[A, W[_]] {
 
+  def size: W[Int]
+
   def lastOption: W[Option[A]]
 
   def headOption: W[Option[A]]

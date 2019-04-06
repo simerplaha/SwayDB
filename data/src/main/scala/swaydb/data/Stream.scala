@@ -335,6 +335,9 @@ abstract class Stream[A, W[_]](implicit wrap: Wrap[W]) extends Streamer[A, W] { 
         wrap.foldLeft(initial, None, self, 0, None)(f)
     }
 
+  def size: W[Int] =
+    materialize.map(_.size)
+
   /**
     * Closes and converts the Stream to executable.
     */

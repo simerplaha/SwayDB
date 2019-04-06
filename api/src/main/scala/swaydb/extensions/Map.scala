@@ -393,14 +393,15 @@ class Map[K, V](mapKey: Seq[K],
       set =
         new swaydb.Set[Key[K], IO](
           core = map.core,
-          from = Some(From(Key.MapStart(mapKey), orAfter = false, orBefore = false, before = false, after = true))
+          from = Some(From(Key.MapStart(mapKey), orAfter = false, orBefore = false, before = false, after = true)),
+          reverseIteration = isReverse
         )
     )
 
   def contains(key: K): IO[Boolean] =
     map contains Key.MapEntry(mapKey, key)
 
-  def size: IO[Int] =
+  override def size: IO[Int] =
     keys
       .stream
       .materialize

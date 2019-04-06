@@ -62,10 +62,10 @@ object MapStream {
     }
   }
 
-  private def checkStep[K](key: Key[K],
-                           isReverse: Boolean,
-                           mapsOnly: Boolean,
-                           thisMapKeyBytes: Slice[Byte])(implicit keySerializer: Serializer[K]): Step =
+  private[stream] def checkStep[K](key: Key[K],
+                                   isReverse: Boolean,
+                                   mapsOnly: Boolean,
+                                   thisMapKeyBytes: Slice[Byte])(implicit keySerializer: Serializer[K]): Step =
     if (KeyOrder.default.compare(Key.writeKeys(key.parentMapKeys, keySerializer), thisMapKeyBytes) != 0) //Exit if it's moved onto another map
       Step.Stop
     else
@@ -286,6 +286,9 @@ case class MapStream[K, V](mapKey: Seq[K],
 
   override def foldLeft[B](initial: B)(f: (B, (K, V)) => B): IO[B] =
     stream.foldLeft(initial)(f)
+
+  override def size: IO[Int] =
+    stream.size
 
   def stream: data.Stream[(K, V), IO] =
     new data.Stream[(K, V), IO] {

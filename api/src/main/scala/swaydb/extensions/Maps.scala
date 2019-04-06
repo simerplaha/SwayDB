@@ -106,7 +106,7 @@ class Maps[K, V](map: swaydb.Map[Key[K], Option[V], IO],
   def contains(key: K): IO[Boolean] =
     map.contains(Key.MapStart(mapKey :+ key))
 
-  def size: IO[Int] =
+  override def size: IO[Int] =
     keys
       .stream
       .materialize

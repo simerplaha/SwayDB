@@ -21,8 +21,8 @@ package swaydb.extensions.stream
 
 import scala.annotation.tailrec
 import swaydb.data
-import swaydb.data.order.KeyOrder
-import swaydb.data.{IO, Streamer}
+import swaydb.data.slice.Slice
+import swaydb.data.{IO, Stream, Streamer}
 import swaydb.extensions.Key
 import swaydb.serializers.Serializer
 
@@ -41,12 +41,70 @@ import swaydb.serializers.Serializer
   * MapKey.End(1)
   **/
 
+object MapKeysStream {
+
+  private def toK[K](keyValue: Key[K]): K = {
+    keyValue match {
+      case key: Key.MapEntry[K] =>
+        key.dataKey
+
+      case key: Key.SubMap[K] =>
+        key.dataKey
+
+      //FIXME: make this is not type-safe. This should never occur.
+      case keyValue =>
+        throw new Exception(s"Can serialise toKV: $keyValue")
+    }
+  }
+
+  @tailrec
+  def step[K](stream: Stream[Key[K], IO],
+              previous: Key[K],
+              isReverse: Boolean,
+              mapsOnly: Boolean,
+              thisMapKeyBytes: Slice[Byte])(implicit keySerializer: Serializer[K]): IO[Option[Key[K]]] =
+    stream.next(previous) match {
+      case IO.Success(some @ Some(key)) =>
+        MapStream.checkStep(key = key, isReverse = isReverse, mapsOnly = mapsOnly, thisMapKeyBytes = thisMapKeyBytes) match {
+          case Step.Stop =>
+            IO.none
+
+          case Step.Next =>
+            stream.next(key) match {
+              case IO.Success(Some(keyValue)) =>
+                step(
+                  stream = stream,
+                  previous = keyValue,
+                  isReverse = isReverse,
+                  mapsOnly = mapsOnly,
+                  thisMapKeyBytes = thisMapKeyBytes
+                )
+
+              case IO.Success(None) =>
+                IO.none
+
+              case IO.Failure(error) =>
+                IO.Failure(error)
+            }
+
+          case Step.Success =>
+            IO.Success(some)
+        }
+
+      case IO.Success(None) =>
+        IO.none
+
+      case IO.Failure(error) =>
+        IO.Failure(error)
+    }
+
+}
+
 case class MapKeysStream[K](mapKey: Seq[K],
                             mapsOnly: Boolean = false,
                             userDefinedFrom: Boolean = false,
-                            set: swaydb.Set[Key[K], IO],
-                            till: K => Boolean = (_: K) => true)(implicit keySerializer: Serializer[K],
-                                                                 mapKeySerializer: Serializer[Key[K]]) extends Streamer[K, IO] { self =>
+                            set: swaydb.Set[Key[K], IO])(implicit keySerializer: Serializer[K],
+                                                         mapKeySerializer: Serializer[Key[K]]) extends Streamer[K, IO] { self =>
 
   private val endEntriesKey = Key.MapEntriesEnd(mapKey)
   private val endSubMapsKey = Key.SubMapsEnd(mapKey)
@@ -89,140 +147,45 @@ case class MapKeysStream[K](mapKey: Seq[K],
   private def reverse(reverse: Boolean): MapKeysStream[K] =
     copy(set = set.copy(reverseIteration = reverse))
 
-  private def validate(mapKey: Key[K]): Step = {
-//    val mapKeyBytes = Key.writeKeys(mapKey.parentMapKeys, keySerializer)
-//    if (KeyOrder.default.compare(mapKeyBytes, thisMapKeyBytes) != 0) //Exit if it's moved onto another map
-//      Step.Stop
-//    else
-//      mapKey match {
-//        case Key.MapStart(_) =>
-//          if (set.reverseIteration) //exit iteration if it's going backward since Start is the head key
-//            Step.Stop
-//          else
-//            Step.Next
-//
-//        case Key.MapEntriesStart(_) =>
-//          if (set.reverseIteration) //exit iteration if it's going backward as previous entry is pointer entry Start
-//            Step.Stop
-//          else
-//            Step.Next
-//
-//        case Key.MapEntry(_, dataKey) =>
-//          if (mapsOnly) {
-//            if (set.reverseIteration) //Exit if it's fetching subMaps only it's already reached an entry means it's has already crossed subMaps block
-//              Step.Stop
-//            else
-//              Step.Next
-//          } else {
-//            if (till(dataKey))
-//              Step.Success(dataKey)
-//            else
-//              Step.Stop
-//          }
-//
-//        case Key.MapEntriesEnd(_) =>
-//          //if it's not going backwards and it's trying to fetch subMaps only then move forward
-//          if (!set.reverseIteration && !mapsOnly)
-//            Step.Stop
-//          else
-//            Step.Next
-//
-//        case Key.SubMapsStart(_) =>
-//          //if it's not going backward and it's trying to fetch subMaps only then move forward
-//          if (!set.reverseIteration && !mapsOnly)
-//            Step.Stop
-//          else
-//            Step.Next
-//
-//        case Key.SubMap(_, dataKey) =>
-//          if (!mapsOnly) //if subMaps are excluded
-//            if (set.reverseIteration) //if subMaps are excluded & it's going in reverse continue iteration.
-//              Step.Next
-//            else //if it's going forward with subMaps excluded then end iteration as it's already iterated all key-value entries.
-//              Step.Stop
-//          else if (till(dataKey))
-//            Step.Success(dataKey)
-//          else
-//            Step.Stop
-//
-//        case Key.SubMapsEnd(_) =>
-//          //Exit if it's not going forward.
-//          if (!set.reverseIteration)
-//            Step.Stop
-//          else
-//            Step.Next
-//
-//        case Key.MapEnd(_) =>
-//          //Exit if it's not going in reverse.
-//          if (!set.reverseIteration)
-//            Step.Stop
-//          else
-//            Step.Next
-//      }
-    ???
+  def isReverse: Boolean =
+    self.set.reverseIteration
+
+  private def headOptionInner: IO[Option[Key[K]]] = {
+    val stream = set.stream
+    set.headOption match {
+      case IO.Success(someKeyValue @ Some(key)) =>
+        MapStream.checkStep(
+          key = key,
+          isReverse = set.reverseIteration,
+          mapsOnly = mapsOnly,
+          thisMapKeyBytes = thisMapKeyBytes
+        ) match {
+          case Step.Stop =>
+            IO.none
+
+          case Step.Next =>
+            MapKeysStream.step(
+              stream = stream,
+              previous = key,
+              isReverse = set.reverseIteration,
+              mapsOnly = mapsOnly,
+              thisMapKeyBytes = thisMapKeyBytes
+            )
+
+          case Step.Success =>
+            IO.Success(someKeyValue)
+        }
+
+      case IO.Success(None) =>
+        IO.none
+
+      case IO.Failure(error) =>
+        IO.Failure(error)
+    }
   }
 
-  /**
-    * Stores raw key from previous read. This is a temporary solution because
-    * this class extends Stream[K] and the types are being lost on stream.next here since previous
-    * Key[K] is not known.
-    */
-  private var previousRaw = Option.empty[Key[K]]
-
-  @tailrec
-  private def step(previous: Key[K]): IO[Option[K]] =
-    set.stream.next(previous) match {
-      case IO.Success(some @ Some(key)) =>
-        previousRaw = some
-        validate(key) match {
-          case Step.Stop =>
-            IO.none
-
-          case Step.Next =>
-            set.stream.next(key) match {
-              case IO.Success(Some(keyValue)) =>
-                step(keyValue)
-
-              case IO.Success(None) =>
-                IO.none
-
-              case IO.Failure(error) =>
-                IO.Failure(error)
-            }
-
-          /*case Step.Success(keyValue) =>
-            IO.Success(Some(keyValue))*/
-        }
-
-      case IO.Success(None) =>
-        IO.none
-
-      case IO.Failure(error) =>
-        IO.Failure(error)
-    }
-
   override def headOption: IO[Option[K]] =
-    set.headOption match {
-      case IO.Success(some @ Some(key)) =>
-        previousRaw = some
-
-        validate(key) match {
-          case Step.Stop =>
-            IO.none
-
-          case Step.Next =>
-            step(key)
-
-//          case Step.Success(keyValue) =>
-//            IO.Success(Some(keyValue))
-        }
-
-      case IO.Success(None) =>
-        IO.none
-
-      case IO.Failure(error) =>
-        IO.Failure(error)
-    }
+    headOptionInner.map(_.map(MapKeysStream.toK))
 
   override def drop(count: Int): data.Stream[K, IO] =
     stream drop count
@@ -248,20 +211,41 @@ case class MapKeysStream[K](mapKey: Seq[K],
   override def filterNot(f: K => Boolean): data.Stream[K, IO] =
     stream filterNot f
 
+  override def size: IO[Int] =
+    stream.size
+
   override def foldLeft[B](initial: B)(f: (B, K) => B): IO[B] =
     stream.foldLeft(initial)(f)
 
   def stream: data.Stream[K, IO] =
     new data.Stream[K, IO] {
+      /**
+        * Stores raw key-value from previous read. This is a temporary solution because
+        * this class extends Stream[K] and the types are being lost on stream.next here since previous
+        * Key[K] is not known.
+        */
+      private var previousRaw: Key[K] = _
+
       override def headOption: IO[Option[K]] =
-        self.headOption
+        self.headOptionInner.map(_.map {
+          raw =>
+            previousRaw = raw
+            MapKeysStream.toK(raw)
+        })
 
       override def next(previous: K): IO[Option[K]] =
-        previousRaw.map(step) getOrElse IO.Failure(new Exception("Previous raw not defined."))
+        MapKeysStream.step(
+          stream = self.set.stream,
+          previous = previousRaw,
+          isReverse = isReverse,
+          mapsOnly = mapsOnly,
+          thisMapKeyBytes = thisMapKeyBytes
+        ).map(_.map {
+          raw =>
+            previousRaw = raw
+            MapKeysStream.toK(raw)
+        })
     }
-
-  def size: IO[Int] =
-    stream.materialize.map(_.size)
 
   /**
     * Returns the start key when doing reverse iteration.
