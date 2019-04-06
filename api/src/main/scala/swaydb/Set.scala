@@ -223,6 +223,9 @@ case class Set[T, W[_]](private val core: Core[W],
   override def map[B](f: T => B): data.Stream[B, W] =
     stream map f
 
+  override def flatMap[B](f: T => data.Stream[B, W]): data.Stream[B, W] =
+    stream flatMap f
+
   override def foreach[U](f: T => U): data.Stream[Unit, W] =
     stream foreach f
 

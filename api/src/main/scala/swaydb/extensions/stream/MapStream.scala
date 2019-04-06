@@ -275,6 +275,9 @@ case class MapStream[K, V](mapKey: Seq[K],
   override def map[B](f: ((K, V)) => B): data.Stream[B, IO] =
     stream map f
 
+  override def flatMap[B](f: ((K, V)) => data.Stream[B, IO]): data.Stream[B, IO] =
+    stream flatMap f
+
   override def foreach[U](f: ((K, V)) => U): data.Stream[Unit, IO] =
     stream foreach f
 

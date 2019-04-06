@@ -291,6 +291,9 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
   override def map[B](f: ((K, V)) => B): data.Stream[B, W] =
     stream map f
 
+  override def flatMap[B](f: ((K, V)) => data.Stream[B, W]): data.Stream[B, W] =
+    stream flatMap f
+
   override def foreach[U](f: ((K, V)) => U): data.Stream[Unit, W] =
     stream foreach f
 

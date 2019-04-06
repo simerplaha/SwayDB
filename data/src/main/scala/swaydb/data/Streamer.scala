@@ -21,11 +21,9 @@ package swaydb.data
 
 private[swaydb] trait Streamer[A, W[_]] {
 
-  def size: W[Int]
+  def map[B](f: A => B): Stream[B, W]
 
-  def lastOption: W[Option[A]]
-
-  def headOption: W[Option[A]]
+  def flatMap[B](f: A => Stream[B, W]): Stream[B, W]
 
   def drop(count: Int): Stream[A, W]
 
@@ -35,8 +33,6 @@ private[swaydb] trait Streamer[A, W[_]] {
 
   def takeWhile(f: A => Boolean): Stream[A, W]
 
-  def map[B](f: A => B): Stream[B, W]
-
   def foreach[U](f: A => U): Stream[Unit, W]
 
   def filter(f: A => Boolean): Stream[A, W]
@@ -44,5 +40,11 @@ private[swaydb] trait Streamer[A, W[_]] {
   def filterNot(f: A => Boolean): Stream[A, W]
 
   def foldLeft[B](initial: B)(f: (B, A) => B): W[B]
+
+  def size: W[Int]
+
+  def lastOption: W[Option[A]]
+
+  def headOption: W[Option[A]]
 
 }
