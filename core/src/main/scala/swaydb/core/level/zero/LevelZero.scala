@@ -257,8 +257,8 @@ private[core] class LevelZero(val path: Path,
       maps.write(timer => MapEntry.Put(key, Memory.Update(key, value, None, timer.next)))
     }
 
-  def update(fromKey: Slice[Byte], to: Slice[Byte], value: Slice[Byte]): IO[Level0Meter] =
-    update(fromKey, to, Some(value))
+  def update(fromKey: Slice[Byte], toKey: Slice[Byte], value: Slice[Byte]): IO[Level0Meter] =
+    update(fromKey, toKey, Some(value))
 
   def update(fromKey: Slice[Byte], toKey: Slice[Byte], value: Option[Slice[Byte]]): IO[Level0Meter] =
     assertKey(fromKey) {
