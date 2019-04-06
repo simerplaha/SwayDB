@@ -19,9 +19,9 @@
 
 package swaydb.extensions.stream
 
-sealed trait Step[+T]
+sealed trait Step
 object Step {
-  case object Stop extends Step[Nothing]
-  case object Next extends Step[Nothing]
-  case class Success[T](data: T) extends Step[T]
+  case object Stop extends Step
+  case object Next extends Step
+  case object Success extends Step
 }

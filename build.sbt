@@ -51,7 +51,6 @@ val publishSettings = Seq[Setting[_]](
   )
 )
 
-
 val testDependencies =
   Seq(
     "org.scalatest" %% "scalatest" % scalaTestVersion % Test,

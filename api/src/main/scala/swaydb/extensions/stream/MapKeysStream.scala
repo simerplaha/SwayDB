@@ -89,76 +89,77 @@ case class MapKeysStream[K](mapKey: Seq[K],
   private def reverse(reverse: Boolean): MapKeysStream[K] =
     copy(set = set.copy(reverseIteration = reverse))
 
-  private def validate(mapKey: Key[K]): Step[K] = {
-    val mapKeyBytes = Key.writeKeys(mapKey.parentMapKeys, keySerializer)
-    if (KeyOrder.default.compare(mapKeyBytes, thisMapKeyBytes) != 0) //Exit if it's moved onto another map
-      Step.Stop
-    else
-      mapKey match {
-        case Key.MapStart(_) =>
-          if (set.reverseIteration) //exit iteration if it's going backward since Start is the head key
-            Step.Stop
-          else
-            Step.Next
-
-        case Key.MapEntriesStart(_) =>
-          if (set.reverseIteration) //exit iteration if it's going backward as previous entry is pointer entry Start
-            Step.Stop
-          else
-            Step.Next
-
-        case Key.MapEntry(_, dataKey) =>
-          if (mapsOnly) {
-            if (set.reverseIteration) //Exit if it's fetching subMaps only it's already reached an entry means it's has already crossed subMaps block
-              Step.Stop
-            else
-              Step.Next
-          } else {
-            if (till(dataKey))
-              Step.Success(dataKey)
-            else
-              Step.Stop
-          }
-
-        case Key.MapEntriesEnd(_) =>
-          //if it's not going backwards and it's trying to fetch subMaps only then move forward
-          if (!set.reverseIteration && !mapsOnly)
-            Step.Stop
-          else
-            Step.Next
-
-        case Key.SubMapsStart(_) =>
-          //if it's not going backward and it's trying to fetch subMaps only then move forward
-          if (!set.reverseIteration && !mapsOnly)
-            Step.Stop
-          else
-            Step.Next
-
-        case Key.SubMap(_, dataKey) =>
-          if (!mapsOnly) //if subMaps are excluded
-            if (set.reverseIteration) //if subMaps are excluded & it's going in reverse continue iteration.
-              Step.Next
-            else //if it's going forward with subMaps excluded then end iteration as it's already iterated all key-value entries.
-              Step.Stop
-          else if (till(dataKey))
-            Step.Success(dataKey)
-          else
-            Step.Stop
-
-        case Key.SubMapsEnd(_) =>
-          //Exit if it's not going forward.
-          if (!set.reverseIteration)
-            Step.Stop
-          else
-            Step.Next
-
-        case Key.MapEnd(_) =>
-          //Exit if it's not going in reverse.
-          if (!set.reverseIteration)
-            Step.Stop
-          else
-            Step.Next
-      }
+  private def validate(mapKey: Key[K]): Step = {
+//    val mapKeyBytes = Key.writeKeys(mapKey.parentMapKeys, keySerializer)
+//    if (KeyOrder.default.compare(mapKeyBytes, thisMapKeyBytes) != 0) //Exit if it's moved onto another map
+//      Step.Stop
+//    else
+//      mapKey match {
+//        case Key.MapStart(_) =>
+//          if (set.reverseIteration) //exit iteration if it's going backward since Start is the head key
+//            Step.Stop
+//          else
+//            Step.Next
+//
+//        case Key.MapEntriesStart(_) =>
+//          if (set.reverseIteration) //exit iteration if it's going backward as previous entry is pointer entry Start
+//            Step.Stop
+//          else
+//            Step.Next
+//
+//        case Key.MapEntry(_, dataKey) =>
+//          if (mapsOnly) {
+//            if (set.reverseIteration) //Exit if it's fetching subMaps only it's already reached an entry means it's has already crossed subMaps block
+//              Step.Stop
+//            else
+//              Step.Next
+//          } else {
+//            if (till(dataKey))
+//              Step.Success(dataKey)
+//            else
+//              Step.Stop
+//          }
+//
+//        case Key.MapEntriesEnd(_) =>
+//          //if it's not going backwards and it's trying to fetch subMaps only then move forward
+//          if (!set.reverseIteration && !mapsOnly)
+//            Step.Stop
+//          else
+//            Step.Next
+//
+//        case Key.SubMapsStart(_) =>
+//          //if it's not going backward and it's trying to fetch subMaps only then move forward
+//          if (!set.reverseIteration && !mapsOnly)
+//            Step.Stop
+//          else
+//            Step.Next
+//
+//        case Key.SubMap(_, dataKey) =>
+//          if (!mapsOnly) //if subMaps are excluded
+//            if (set.reverseIteration) //if subMaps are excluded & it's going in reverse continue iteration.
+//              Step.Next
+//            else //if it's going forward with subMaps excluded then end iteration as it's already iterated all key-value entries.
+//              Step.Stop
+//          else if (till(dataKey))
+//            Step.Success(dataKey)
+//          else
+//            Step.Stop
+//
+//        case Key.SubMapsEnd(_) =>
+//          //Exit if it's not going forward.
+//          if (!set.reverseIteration)
+//            Step.Stop
+//          else
+//            Step.Next
+//
+//        case Key.MapEnd(_) =>
+//          //Exit if it's not going in reverse.
+//          if (!set.reverseIteration)
+//            Step.Stop
+//          else
+//            Step.Next
+//      }
+    ???
   }
 
   /**
@@ -189,8 +190,8 @@ case class MapKeysStream[K](mapKey: Seq[K],
                 IO.Failure(error)
             }
 
-          case Step.Success(keyValue) =>
-            IO.Success(Some(keyValue))
+          /*case Step.Success(keyValue) =>
+            IO.Success(Some(keyValue))*/
         }
 
       case IO.Success(None) =>
@@ -212,8 +213,8 @@ case class MapKeysStream[K](mapKey: Seq[K],
           case Step.Next =>
             step(key)
 
-          case Step.Success(keyValue) =>
-            IO.Success(Some(keyValue))
+//          case Step.Success(keyValue) =>
+//            IO.Success(Some(keyValue))
         }
 
       case IO.Success(None) =>

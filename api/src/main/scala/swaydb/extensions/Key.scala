@@ -29,17 +29,22 @@ import swaydb.serializers.Serializer
 private[extensions] sealed trait Key[+K] {
   def parentMapKeys: Seq[K]
 }
+
 private[extensions] object Key {
+
+  private[extensions] sealed trait UserEntry[+K] extends Key[K] {
+    def dataKey: K
+  }
 
   //map start
   case class MapStart[K](parentMapKeys: Seq[K]) extends Key[K]
 
   case class MapEntriesStart[K](parentMapKeys: Seq[K]) extends Key[K]
-  case class MapEntry[K](parentMapKeys: Seq[K], dataKey: K) extends Key[K]
+  case class MapEntry[K](parentMapKeys: Seq[K], dataKey: K) extends UserEntry[K]
   case class MapEntriesEnd[K](parentMapKeys: Seq[K]) extends Key[K]
 
   case class SubMapsStart[K](parentMapKeys: Seq[K]) extends Key[K]
-  case class SubMap[K](parentMapKeys: Seq[K], subMapKey: K) extends Key[K]
+  case class SubMap[K](parentMapKeys: Seq[K], dataKey: K) extends UserEntry[K]
   case class SubMapsEnd[K](parentMapKeys: Seq[K]) extends Key[K]
 
   case class MapEnd[K](parentMapKeys: Seq[K]) extends Key[K]
