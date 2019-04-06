@@ -244,21 +244,15 @@ abstract class Stream[A, W[_]](implicit wrap: Wrap[W]) extends Streamer[A, W] { 
 
   def flatMap[B](f: A => Stream[B, W]): Stream[B, W] =
     new Stream[B, W] {
-      val buffer = ListBuffer.empty[B]
-      var bufferIterator: Iterator[B] = _
+      //cache stream and emits it's items.
+      //next Stream is read only if the current cached stream is emitted.
+      var innerStream: Stream[B, W] = _
       var previousA: A = _
 
       def streamNext(nextA: A): W[Option[B]] = {
-        buffer.clear()
+        innerStream = f(nextA)
         previousA = nextA
-        f(nextA).foldLeft(buffer)(_ += _) map {
-          _ =>
-            bufferIterator = buffer.iterator
-            if (bufferIterator.hasNext)
-              Some(bufferIterator.next())
-            else
-              None
-        }
+        innerStream.headOption
       }
 
       override def headOption: W[Option[B]] =
@@ -271,16 +265,19 @@ abstract class Stream[A, W[_]](implicit wrap: Wrap[W]) extends Streamer[A, W] { 
         }
 
       override def next(previous: B): W[Option[B]] =
-        if (bufferIterator.hasNext)
-          wrap.success(Some(bufferIterator.next()))
-        else
-          self.next(previousA) flatMap {
-            case Some(nextA) =>
-              streamNext(nextA)
+        innerStream.next(previous) flatMap {
+          case some @ Some(_) =>
+            wrap.success(some)
 
-            case None =>
-              wrap.none
-          }
+          case None =>
+            self.next(previousA) flatMap {
+              case Some(nextA) =>
+                streamNext(nextA)
+
+              case None =>
+                wrap.none
+            }
+        }
     }
 
   /**
@@ -318,7 +315,7 @@ abstract class Stream[A, W[_]](implicit wrap: Wrap[W]) extends Streamer[A, W] { 
   /**
     * Reads all items from the Stream and returns the last.
     *
-    * For a more efficient one use [[swaydb.Map.lastOption]] or [[swaydb.Set.lastOption]] instead.
+    * For a more efficient one use swaydb.Map.lastOption or swaydb.Set.lastOption instead.
     */
   def lastOption: W[Option[A]] =
     foldLeft(Option.empty[A]) {
