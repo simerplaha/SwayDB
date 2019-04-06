@@ -3,7 +3,7 @@
 [gitter-badge]: https://badges.gitter.im/Join%20Chat.svg
 [gitter-link]: https://gitter.im/SwayDB-chat/Lobby
 
-SwayDB is an embeddable database for single/multiple disks and in-memory storage.
+Embeddable persistent and in-memory database.
 
 Documentation: http://swaydb.io
 
@@ -18,8 +18,8 @@ View detailed benchmark results [here](http://swaydb.io/performance/macbook-pro-
 
 ## Features
 
-- Non-blocking
-- Single or multiple disks persistent, in-memory or periodically persistent
+- Non-blocking.
+- Single or multiple disks persistent, in-memory or periodically persistent.
 - Atomic updates and inserts.
 - APIs similar to Scala collections.
 - Auto expiring key-value ([TTL](http://www.swaydb.io/api/write-api/expire/))
@@ -51,7 +51,10 @@ for both [Persistent](http://www.swaydb.io/create-databases/persistent/) & [Memo
 //Iteration: fetch all key-values withing range 10 to 90, update values and batch write updated key-values
 db
   .from(10)
-  .takeWhileKey(_ <= 90)
+  .takeWhile {
+    case (key, value) =>
+      key <= 90
+  }
   .map {
     case (key, value) =>
       (key, value + "_updated")
