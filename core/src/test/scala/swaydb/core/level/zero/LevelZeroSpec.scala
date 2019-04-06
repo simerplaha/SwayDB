@@ -357,16 +357,16 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory with Benchmark {
   "LevelZero.remove range" should {
     "not allow from key to be > than to key" in {
       val zero = TestLevelZero(Some(TestLevel()), mapSize = 1.byte)
-      zero.remove(10, 1).failed.assertGet.exception.getMessage shouldBe "fromKey should be less than toKey"
-      zero.remove(10, 10).failed.assertGet.exception.getMessage shouldBe "fromKey should be less than toKey"
+      zero.remove(10, 1).failed.assertGet.exception.getMessage shouldBe "fromKey should be less than or equal to toKey"
+      zero.remove(2, 1).failed.assertGet.exception.getMessage shouldBe "fromKey should be less than or equal to toKey"
     }
   }
 
   "LevelZero.update range" should {
     "not allow from key to be > than to key" in {
       val zero = TestLevelZero(Some(TestLevel()), mapSize = 1.byte)
-      zero.update(10, 1, value = "value").failed.assertGet.exception.getMessage shouldBe "fromKey should be less than toKey"
-      zero.update(10, 10, value = "value").failed.assertGet.exception.getMessage shouldBe "fromKey should be less than toKey"
+      zero.update(10, 1, value = "value").failed.assertGet.exception.getMessage shouldBe "fromKey should be less than or equal to toKey"
+      zero.update(2, 1, value = "value").failed.assertGet.exception.getMessage shouldBe "fromKey should be less than or equal to toKey"
     }
   }
 }
