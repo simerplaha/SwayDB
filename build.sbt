@@ -143,6 +143,7 @@ lazy val compression =
 lazy val macros =
   project
     .settings(commonSettings)
+    .settings(publishSettings)
     .settings(
       libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaVersion.value
     )
