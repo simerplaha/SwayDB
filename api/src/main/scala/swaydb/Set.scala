@@ -235,6 +235,9 @@ case class Set[T, W[_]](private val core: Core[W],
   override def foldLeft[B](initial: B)(f: (B, T) => B): W[B] =
     stream.foldLeft(initial)(f)
 
+  override def size: W[Int] =
+    stream.size
+
   def stream: data.Stream[T, W] =
     new data.Stream[T, W] {
       override def headOption: W[Option[T]] =
@@ -249,7 +252,7 @@ case class Set[T, W[_]](private val core: Core[W],
         } map (_.map(_.read[T]))
     }
 
-  def size: W[Int] =
+  def sizeOfBloomFilterEntries: W[Int] =
     wrapCall(core.bloomFilterKeyValueCount)
 
   def isEmpty: W[Boolean] =

@@ -46,7 +46,7 @@ for both [Persistent](http://www.swaydb.io/create-databases/persistent/) & [Memo
 
 [Read more](http://swaydb.io/).
 
-## Demo API
+## Demo Streaming API
 ```scala
 //Iteration: fetch all key-values withing range 10 to 90, update values and batch write updated key-values
 db

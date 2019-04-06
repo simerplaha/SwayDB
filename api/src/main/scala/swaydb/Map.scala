@@ -304,10 +304,12 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
     stream.foldLeft(initial)(f)
 
   override def size: W[Int] =
-    keys
-      .stream
-      .materialize
-      .map(_.size)
+    wrapCall {
+      keys
+        .stream
+        .materialize
+        .map(_.size)
+    }
 
   def stream: data.Stream[(K, V), W] =
     new data.Stream[(K, V), W] {
@@ -329,7 +331,7 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
         }
     }
 
-  def sizeOfBloomFilterKeyValues: W[Int] =
+  def sizeOfBloomFilterEntries: W[Int] =
     wrapCall(core.bloomFilterKeyValueCount)
 
   def isEmpty: W[Boolean] =
