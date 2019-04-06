@@ -161,10 +161,10 @@ private[swaydb] case class BlockingCore[W[_]](zero: LevelZero)(implicit transfor
     transform.toOther(zero.clear().safeGetBlocking)
 
   def function(key: Slice[Byte], function: Slice[Byte]): W[Level0Meter] =
-    transform.toOther(zero.function(key, function))
+    transform.toOther(zero.applyFunction(key, function))
 
   def function(from: Slice[Byte], to: Slice[Byte], function: Slice[Byte]): W[Level0Meter] =
-    transform.toOther(zero.function(from, to, function))
+    transform.toOther(zero.applyFunction(from, to, function))
 
   def registerFunction(functionID: Slice[Byte], function: SwayFunction): SwayFunction =
     zero.registerFunction(functionID, function)

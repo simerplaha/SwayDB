@@ -245,6 +245,40 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory with Benchmark {
     }
   }
 
+  "LevelZero.clear" should {
+    "a database with single key-value" in {
+      val zero = TestLevelZero(Some(TestLevel(throttle = (_) => Throttle(10.seconds, 0))), mapSize = 1.byte)
+      val keyValues = randomIntKeyStringValues(1)
+      keyValues foreach {
+        keyValue =>
+          zero.put(keyValue.key, keyValue.getOrFetchValue).assertGet
+      }
+
+      zero.bloomFilterKeyValueCount.get shouldBe 1
+
+      zero.clear().safeGetBlocking.get
+
+      zero.head.assertGetOpt shouldBe empty
+      zero.last.assertGetOpt shouldBe empty
+    }
+
+
+    "remove all key-values" in {
+      val zero = TestLevelZero(Some(TestLevel(throttle = (_) => Throttle(10.seconds, 0))), mapSize = 1.byte)
+      val keyValues = randomIntKeyStringValues(keyValuesCount)
+      keyValues foreach {
+        keyValue =>
+          zero.put(keyValue.key, keyValue.getOrFetchValue).assertGet
+      }
+
+      zero.clear().safeGetBlocking.get
+
+      zero.head.assertGetOpt shouldBe empty
+      zero.last.assertGetOpt shouldBe empty
+    }
+
+  }
+
   "LevelZero.sizeOfSegments" should {
     "return the size of Segments in all the levels" in {
       val one = TestLevel()

@@ -215,30 +215,34 @@ private[core] class LevelZero(val path: Path,
       maps.write(timer => MapEntry.Put[Slice[Byte], Memory.Remove](key, Memory.Remove(key, Some(at), timer.next)))
     }
 
-  def remove(fromKey: Slice[Byte], to: Slice[Byte]): IO[Level0Meter] =
+  def remove(fromKey: Slice[Byte], toKey: Slice[Byte]): IO[Level0Meter] =
     assertKey(fromKey) {
-      assertKey(to) {
-        if (fromKey >= to)
-          IO.Failure(new Exception("fromKey should be less than toKey"))
+      assertKey(toKey) {
+        if (fromKey equiv toKey)
+          remove(fromKey)
+        else if (fromKey > toKey)
+          IO.Failure(new Exception("fromKey should be less than or equal to toKey"))
         else
           maps.write {
             timer =>
-              (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, to, None, Value.Remove(None, timer.next))): MapEntry[Slice[Byte], Memory.SegmentResponse]) ++
-                MapEntry.Put[Slice[Byte], Memory.Remove](to, Memory.Remove(to, None, timer.next))
+              (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, None, Value.Remove(None, timer.next))): MapEntry[Slice[Byte], Memory.SegmentResponse]) ++
+                MapEntry.Put[Slice[Byte], Memory.Remove](toKey, Memory.Remove(toKey, None, timer.next))
           }
       }
     }
 
-  def remove(fromKey: Slice[Byte], to: Slice[Byte], at: Deadline): IO[Level0Meter] =
+  def remove(fromKey: Slice[Byte], toKey: Slice[Byte], at: Deadline): IO[Level0Meter] =
     assertKey(fromKey) {
-      assertKey(to) {
-        if (fromKey >= to)
-          IO.Failure(new Exception("fromKey should be less than toKey"))
+      assertKey(toKey) {
+        if (fromKey equiv toKey)
+          remove(fromKey)
+        else if (fromKey > toKey)
+          IO.Failure(new Exception("fromKey should be less than or equal to toKey"))
         else
           maps.write {
             timer =>
-              (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, to, None, Value.Remove(Some(at), timer.next))): MapEntry[Slice[Byte], Memory.SegmentResponse]) ++
-                MapEntry.Put[Slice[Byte], Memory.Remove](to, Memory.Remove(to, Some(at), timer.next))
+              (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, None, Value.Remove(Some(at), timer.next))): MapEntry[Slice[Byte], Memory.SegmentResponse]) ++
+                MapEntry.Put[Slice[Byte], Memory.Remove](toKey, Memory.Remove(toKey, Some(at), timer.next))
           }
       }
     }
@@ -256,11 +260,13 @@ private[core] class LevelZero(val path: Path,
   def update(fromKey: Slice[Byte], to: Slice[Byte], value: Slice[Byte]): IO[Level0Meter] =
     update(fromKey, to, Some(value))
 
-  def update(fromKey: Slice[Byte], to: Slice[Byte], value: Option[Slice[Byte]]): IO[Level0Meter] =
+  def update(fromKey: Slice[Byte], toKey: Slice[Byte], value: Option[Slice[Byte]]): IO[Level0Meter] =
     assertKey(fromKey) {
-      assertKey(to) {
-        if (fromKey >= to)
-          IO.Failure(new Exception("fromKey should be less than toKey"))
+      assertKey(toKey) {
+        if (fromKey equiv toKey)
+          update(fromKey, value)
+        else if (fromKey >= toKey)
+          IO.Failure(new Exception("fromKey should be less than or equal to toKey"))
         else
           maps.write {
             timer =>
@@ -268,11 +274,11 @@ private[core] class LevelZero(val path: Path,
                 key = fromKey,
                 value = Memory.Range(
                   fromKey = fromKey,
-                  toKey = to,
+                  toKey = toKey,
                   fromValue = None,
                   rangeValue = Value.Update(value, None, timer.next)
                 )
-              ): MapEntry[Slice[Byte], Memory.SegmentResponse]) ++ MapEntry.Put[Slice[Byte], Memory.Update](to, Memory.Update(to, value, None, timer.next))
+              ): MapEntry[Slice[Byte], Memory.SegmentResponse]) ++ MapEntry.Put[Slice[Byte], Memory.Update](toKey, Memory.Update(toKey, value, None, timer.next))
           }
       }
     }
@@ -295,7 +301,7 @@ private[core] class LevelZero(val path: Path,
   def registerFunction(functionID: Slice[Byte], function: SwayFunction): SwayFunction =
     functionStore.put(functionID, function)
 
-  def function(key: Slice[Byte], function: Slice[Byte]): IO[Level0Meter] =
+  def applyFunction(key: Slice[Byte], function: Slice[Byte]): IO[Level0Meter] =
     if (!functionStore.exists(function))
       IO.Failure(new Exception("Function does not exists in function store."))
     else
@@ -303,19 +309,21 @@ private[core] class LevelZero(val path: Path,
         maps.write(timer => MapEntry.Put[Slice[Byte], Memory.Function](key, Memory.Function(key, function, timer.next)))
       }
 
-  def function(fromKey: Slice[Byte], to: Slice[Byte], function: Slice[Byte]): IO[Level0Meter] =
+  def applyFunction(fromKey: Slice[Byte], toKey: Slice[Byte], function: Slice[Byte]): IO[Level0Meter] =
     if (!functionStore.exists(function))
       IO.Failure(new Exception("Function does not exists in function store."))
     else
       assertKey(fromKey) {
-        assertKey(to) {
-          if (fromKey >= to)
-            IO.Failure(new Exception("fromKey should be less than toKey"))
+        assertKey(toKey) {
+          if (fromKey equiv toKey)
+            applyFunction(fromKey, function)
+          else if (fromKey >= toKey)
+            IO.Failure(new Exception("fromKey should be less than or equal to toKey"))
           else
             maps.write {
               timer =>
-                (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, to, None, Value.Function(function, timer.next))): MapEntry[Slice[Byte], Memory.SegmentResponse]) ++
-                  MapEntry.Put[Slice[Byte], Memory.Function](to, Memory.Function(to, function, timer.next))
+                (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, None, Value.Function(function, timer.next))): MapEntry[Slice[Byte], Memory.SegmentResponse]) ++
+                  MapEntry.Put[Slice[Byte], Memory.Function](toKey, Memory.Function(toKey, function, timer.next))
             }
         }
       }
