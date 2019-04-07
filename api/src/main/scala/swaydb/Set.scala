@@ -246,7 +246,7 @@ case class Set[T, W[_]](private val core: Core[W],
       override def headOption: W[Option[T]] =
         self.headOption
 
-      override def next(previous: T): W[Option[T]] =
+      override private[swaydb] def next(previous: T): W[Option[T]] =
         wrapCall {
           if (reverseIteration)
             core.beforeKey(serializer.write(previous))

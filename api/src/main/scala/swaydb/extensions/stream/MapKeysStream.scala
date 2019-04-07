@@ -236,7 +236,7 @@ case class MapKeysStream[K](mapKey: Seq[K],
             MapKeysStream.toK(raw)
         })
 
-      override def next(previous: K): IO[Option[K]] =
+      override private[swaydb] def next(previous: K): IO[Option[K]] =
         MapKeysStream.step(
           stream = self.set.stream,
           previous = previousRaw,

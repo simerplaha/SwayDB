@@ -319,7 +319,7 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
       override def headOption: W[Option[(K, V)]] =
         self.headOption
 
-      override def next(previous: (K, V)): W[Option[(K, V)]] =
+      override private[swaydb] def next(previous: (K, V)): W[Option[(K, V)]] =
         wrapCall {
           val next =
             if (reverseIteration)

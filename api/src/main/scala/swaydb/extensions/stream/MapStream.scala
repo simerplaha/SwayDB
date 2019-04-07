@@ -309,7 +309,7 @@ case class MapStream[K, V](mapKey: Seq[K],
             MapStream.toKV(raw)
         })
 
-      override def next(previous: (K, V)): IO[Option[(K, V)]] =
+      override private[swaydb] def next(previous: (K, V)): IO[Option[(K, V)]] =
         MapStream.step(
           stream = self.map.stream,
           previous = previousRaw,
