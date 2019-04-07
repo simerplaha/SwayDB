@@ -347,6 +347,9 @@ abstract class Stream[A, W[_]](implicit wrap: Wrap[W]) extends Streamer[A, W] { 
         wrap.foldLeft(initial, None, self, 0, None)(f)
     }
 
+  /**
+    * Folds over all elements in the Stream to calculate it's total size.
+    */
   def size: W[Int] =
     foldLeft(0) {
       case (size, _) =>
@@ -354,7 +357,7 @@ abstract class Stream[A, W[_]](implicit wrap: Wrap[W]) extends Streamer[A, W] { 
     }
 
   /**
-    * Closes and executes the stream.
+    * Materialises/closes and processes the stream to a [[Seq]].
     */
   def toSeq: W[Seq[A]] =
     foldLeft(new StreamBuilder[A, W]()) {
