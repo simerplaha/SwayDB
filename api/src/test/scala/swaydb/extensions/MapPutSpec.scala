@@ -76,7 +76,7 @@ sealed trait MapPutSpec extends TestBaseEmbedded {
 
       firstMap
         .stream
-        .toSeq.get should contain inOrderOnly((3, "three"), (4, "four again"), (5, "five"))
+        .materialize.get should contain inOrderOnly((3, "three"), (4, "four again"), (5, "five"))
 
       db.closeDatabase().get
     }
@@ -101,11 +101,11 @@ sealed trait MapPutSpec extends TestBaseEmbedded {
 
       secondMap
         .stream
-        .toSeq.get should contain inOrderOnly((3, "three"), (4, "four again"), (5, "five"))
+        .materialize.get should contain inOrderOnly((3, "three"), (4, "four again"), (5, "five"))
 
       thirdMap
         .stream
-        .toSeq.get should contain inOrderOnly((3, "three"), (4, "four again"), (5, "five"))
+        .materialize.get should contain inOrderOnly((3, "three"), (4, "four again"), (5, "five"))
 
       db.closeDatabase().get
     }
@@ -172,13 +172,13 @@ sealed trait MapPutSpec extends TestBaseEmbedded {
       subMap4.put(7, "seven").assertGet
       subMap4.put(8, "eight").assertGet
 
-      subMap1.stream.toSeq.get should contain inOrderOnly((1, "one"), (2, "two"))
-      subMap1.maps.stream.toSeq.get should contain only ((3, "sub map three"))
-      subMap2.stream.toSeq.get should contain inOrderOnly((3, "three"), (4, "four"))
-      subMap2.maps.stream.toSeq.get should contain only ((5, "sub map five"))
-      subMap3.stream.toSeq.get should contain inOrderOnly((5, "five"), (6, "six"))
-      subMap3.maps.stream.toSeq.get should contain only ((7, "sub map seven"))
-      subMap4.stream.toSeq.get should contain inOrderOnly((7, "seven"), (8, "eight"))
+      subMap1.stream.materialize.get should contain inOrderOnly((1, "one"), (2, "two"))
+      subMap1.maps.stream.materialize.get should contain only ((3, "sub map three"))
+      subMap2.stream.materialize.get should contain inOrderOnly((3, "three"), (4, "four"))
+      subMap2.maps.stream.materialize.get should contain only ((5, "sub map five"))
+      subMap3.stream.materialize.get should contain inOrderOnly((5, "five"), (6, "six"))
+      subMap3.maps.stream.materialize.get should contain only ((7, "sub map seven"))
+      subMap4.stream.materialize.get should contain inOrderOnly((7, "seven"), (8, "eight"))
 
       db.closeDatabase().get
     }
@@ -204,10 +204,10 @@ sealed trait MapPutSpec extends TestBaseEmbedded {
       subMap4.put(7, "seven").assertGet
       subMap4.put(8, "eight").assertGet
 
-      subMap1.stream.toSeq.get should contain inOrderOnly((1, "one"), (2, "two"))
-      subMap2.stream.toSeq.get should contain inOrderOnly((3, "three"), (4, "four"))
-      subMap3.stream.toSeq.get should contain inOrderOnly((5, "five"), (6, "six"))
-      subMap4.stream.toSeq.get should contain inOrderOnly((7, "seven"), (8, "eight"))
+      subMap1.stream.materialize.get should contain inOrderOnly((1, "one"), (2, "two"))
+      subMap2.stream.materialize.get should contain inOrderOnly((3, "three"), (4, "four"))
+      subMap3.stream.materialize.get should contain inOrderOnly((5, "five"), (6, "six"))
+      subMap4.stream.materialize.get should contain inOrderOnly((7, "seven"), (8, "eight"))
 
       db.closeDatabase().get
     }

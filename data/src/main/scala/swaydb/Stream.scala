@@ -359,7 +359,7 @@ abstract class Stream[A, W[_]](implicit wrap: Wrap[W]) extends Streamer[A, W] { 
   /**
     * Materialises/closes and processes the stream to a [[Seq]].
     */
-  def toSeq: W[Seq[A]] =
+  def materialize: W[Seq[A]] =
     foldLeft(new StreamBuilder[A, W]()) {
       (buffer, item) =>
         buffer += item

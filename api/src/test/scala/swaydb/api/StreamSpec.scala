@@ -54,7 +54,7 @@ sealed abstract class StreamSpec[T[_]](implicit wrap: Wrap[T]) extends WordSpec 
     "empty" in {
       Stream.empty[Int, T]
         .map(_.toString)
-        .toSeq
+        .materialize
         .await shouldBe empty
     }
 
@@ -75,7 +75,7 @@ sealed abstract class StreamSpec[T[_]](implicit wrap: Wrap[T]) extends WordSpec 
         .map(_ + " one")
         .map(_ + " two")
         .map(_ + " three")
-        .toSeq
+        .materialize
         .await shouldBe (1 to 1000).map(_ + " one two three")
     }
 
@@ -87,7 +87,7 @@ sealed abstract class StreamSpec[T[_]](implicit wrap: Wrap[T]) extends WordSpec 
         .map(_.toInt)
         .drop(2)
         .take(1)
-        .toSeq
+        .materialize
         .await should contain only 13
     }
 
@@ -97,7 +97,7 @@ sealed abstract class StreamSpec[T[_]](implicit wrap: Wrap[T]) extends WordSpec 
         .drop(10)
         .take(1)
         .map(_.toInt)
-        .toSeq
+        .materialize
         .await should have size 1
     }
 
@@ -106,7 +106,7 @@ sealed abstract class StreamSpec[T[_]](implicit wrap: Wrap[T]) extends WordSpec 
         .map(_.toString)
         .drop(10)
         .takeWhile(_.toInt <= 10)
-        .toSeq
+        .materialize
         .await shouldBe empty
     }
 
@@ -115,21 +115,21 @@ sealed abstract class StreamSpec[T[_]](implicit wrap: Wrap[T]) extends WordSpec 
         .map(_.toString)
         .drop(10)
         .dropWhile(_.toInt <= 20)
-        .toSeq
+        .materialize
         .await shouldBe empty
 
       Stream[Int, T](1 to 20)
         .map(_.toString)
         .drop(11)
         .dropWhile(_.toInt % 2 == 0)
-        .toSeq
+        .materialize
         .await shouldBe (13 to 20).map(_.toString)
     }
 
     "flatMap" in {
       Stream[Int, T](1 to 10)
         .flatMap(_ => Stream[Int, T](1 to 10))
-        .toSeq
+        .materialize
         .await shouldBe Array.fill(10)(1 to 10).flatten
     }
 
@@ -138,7 +138,7 @@ sealed abstract class StreamSpec[T[_]](implicit wrap: Wrap[T]) extends WordSpec 
         .map(_ + 10)
         .filter(_ % 2 == 0)
         .take(2)
-        .toSeq
+        .materialize
         .await should contain only(12, 14)
     }
 
@@ -146,14 +146,14 @@ sealed abstract class StreamSpec[T[_]](implicit wrap: Wrap[T]) extends WordSpec 
       Stream[Int, T](1 to 10)
         .filterNot(_ % 2 == 0)
         .take(2)
-        .toSeq
+        .materialize
         .await shouldBe (1 to 10).filter(_ % 2 != 0).take(2)
     }
 
     "not stack overflow" in {
       Stream[Int, T](1 to 1000000)
         .filter(_ % 100000 == 0)
-        .toSeq
+        .materialize
         .await should contain only(100000, 200000, 300000, 400000, 500000, 600000, 700000, 800000, 900000, 1000000)
     }
   }
