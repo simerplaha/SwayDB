@@ -29,11 +29,21 @@ import swaydb.data.io.Wrap
 import swaydb.data.io.Wrap._
 import scala.concurrent.duration._
 
+/**
+  * A [[Stream]] performs lazy iteration. It does not cache data and fetches data only if
+  * it's required by the stream.
+  */
 object Stream {
 
+  /**
+    * Create and empty [[Stream]].
+    */
   def empty[T, W[_]](implicit wrap: Wrap[W]) =
     apply[T, W](Iterable.empty)
 
+  /**
+    * Create a [[Stream]] from a collection.
+    */
   def apply[T, W[_]](items: Iterable[T])(implicit wrap: Wrap[W]): Stream[T, W] =
     new Stream[T, W] {
 
@@ -93,6 +103,14 @@ object Stream {
     }
 }
 
+/**
+  * A [[Stream]] performs lazy iteration. It does not cache data and fetches data only if
+  * it's required by the stream.
+  *
+  * @param wrap Implementation for the wrap type.
+  * @tparam A stream item's type
+  * @tparam W wrapper type.
+  */
 abstract class Stream[A, W[_]](implicit wrap: Wrap[W]) extends Streamer[A, W] { self =>
 
   /**
