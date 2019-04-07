@@ -61,7 +61,7 @@ object Stream {
     }
 
   class StreamBuilder[T, W[_]](implicit wrap: Wrap[W]) extends mutable.Builder[T, Stream[T, W]] {
-    protected var items: ListBuffer[T] = ListBuffer.empty[T]
+    private val items: ListBuffer[T] = ListBuffer.empty[T]
 
     override def +=(x: T): this.type = {
       items += x
