@@ -107,10 +107,7 @@ class Maps[K, V](map: swaydb.Map[Key[K], Option[V], IO],
     map.contains(Key.MapStart(mapKey :+ key))
 
   override def size: IO[Int] =
-    keys
-      .stream
-      .materialize
-      .map(_.size)
+    keys.size
 
   /**
     * Returns None if this map does not exist or returns the value.

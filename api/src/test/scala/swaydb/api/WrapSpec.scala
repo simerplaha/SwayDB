@@ -30,7 +30,7 @@ class WrapSpec extends WordSpec with Matchers {
     "" in {
       implicit val wrap = Wrap.tryWrap
 
-      val result: Stream[Int, Try] = Stream(1 to 100)
+      val result: swaydb.Stream[Int, Try] = swaydb.Stream(1 to 100)
 
       result.foreach(println)
 

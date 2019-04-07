@@ -17,7 +17,7 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.data
+package swaydb
 
 private[swaydb] trait Streamer[A, W[_]] {
 

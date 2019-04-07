@@ -20,9 +20,9 @@
 package swaydb.extensions.stream
 
 import scala.annotation.tailrec
-import swaydb.data
+import swaydb.Streamer
+import swaydb.data.IO
 import swaydb.data.slice.Slice
-import swaydb.data.{IO, Stream, Streamer}
 import swaydb.extensions.Key
 import swaydb.serializers.Serializer
 
@@ -58,7 +58,7 @@ object MapKeysStream {
   }
 
   @tailrec
-  def step[K](stream: Stream[Key[K], IO],
+  def step[K](stream: swaydb.Stream[Key[K], IO],
               previous: Key[K],
               isReverse: Boolean,
               mapsOnly: Boolean,
@@ -187,31 +187,31 @@ case class MapKeysStream[K](mapKey: Seq[K],
   override def headOption: IO[Option[K]] =
     headOptionInner.map(_.map(MapKeysStream.toK))
 
-  override def drop(count: Int): data.Stream[K, IO] =
+  override def drop(count: Int): swaydb.Stream[K, IO] =
     stream drop count
 
-  override def dropWhile(f: K => Boolean): data.Stream[K, IO] =
+  override def dropWhile(f: K => Boolean): swaydb.Stream[K, IO] =
     stream dropWhile f
 
-  override def take(count: Int): data.Stream[K, IO] =
+  override def take(count: Int): swaydb.Stream[K, IO] =
     stream take count
 
-  override def takeWhile(f: K => Boolean): data.Stream[K, IO] =
+  override def takeWhile(f: K => Boolean): swaydb.Stream[K, IO] =
     stream takeWhile f
 
-  override def map[B](f: K => B): data.Stream[B, IO] =
+  override def map[B](f: K => B): swaydb.Stream[B, IO] =
     stream map f
 
-  override def flatMap[B](f: K => Stream[B, IO]): Stream[B, IO] =
+  override def flatMap[B](f: K => swaydb.Stream[B, IO]): swaydb.Stream[B, IO] =
     stream flatMap f
 
-  override def foreach[U](f: K => U): data.Stream[Unit, IO] =
+  override def foreach[U](f: K => U): swaydb.Stream[Unit, IO] =
     stream foreach f
 
-  override def filter(f: K => Boolean): data.Stream[K, IO] =
+  override def filter(f: K => Boolean): swaydb.Stream[K, IO] =
     stream filter f
 
-  override def filterNot(f: K => Boolean): data.Stream[K, IO] =
+  override def filterNot(f: K => Boolean): swaydb.Stream[K, IO] =
     stream filterNot f
 
   override def size: IO[Int] =
@@ -220,8 +220,8 @@ case class MapKeysStream[K](mapKey: Seq[K],
   override def foldLeft[B](initial: B)(f: (B, K) => B): IO[B] =
     stream.foldLeft(initial)(f)
 
-  def stream: data.Stream[K, IO] =
-    new data.Stream[K, IO] {
+  def stream: swaydb.Stream[K, IO] =
+    new swaydb.Stream[K, IO] {
       /**
         * Stores raw key-value from previous read. This is a temporary solution because
         * this class extends Stream[K] and the types are being lost on stream.next here since previous

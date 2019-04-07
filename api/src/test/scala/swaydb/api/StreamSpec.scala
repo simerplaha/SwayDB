@@ -27,6 +27,7 @@ import swaydb.core.RunThis._
 import swaydb.data._
 import swaydb.data.io.Wrap
 import swaydb.data.io.Wrap._
+import swaydb.Stream
 
 class StreamFutureSpec extends StreamSpec[Future] {
   override def get[A](a: Future[A]): A = Await.result(a, 60.seconds)

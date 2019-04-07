@@ -23,7 +23,7 @@ import scala.annotation.tailrec
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.Try
-import swaydb.data.{IO, Stream}
+import swaydb.data.IO
 
 /**
   * [[Wrap]]s are used to wrap databases operations (side-effects) into types that can be
@@ -37,8 +37,8 @@ sealed trait Wrap[W[_]] {
   def success[A](value: A): W[A]
   def failure[A](exception: Throwable): W[A]
   def none[A]: W[Option[A]]
-  def foldLeft[A, U](initial: U, after: Option[A], stream: Stream[A, W], drop: Int, take: Option[Int])(operation: (U, A) => U): W[U]
-  def collectFirst[A](previous: A, stream: Stream[A, W])(condition: A => Boolean): W[Option[A]]
+  def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A, W], drop: Int, take: Option[Int])(operation: (U, A) => U): W[U]
+  def collectFirst[A](previous: A, stream: swaydb.Stream[A, W])(condition: A => Boolean): W[Option[A]]
   def toFuture[A](a: W[A]): Future[A]
   def toIO[A](a: W[A], timeout: FiniteDuration): IO[A]
 }
@@ -58,9 +58,9 @@ object Wrap {
       override def none[A]: O[Option[A]] = transform.toOther(futureWrapper.none)
       override def toFuture[A](a: O[A]): Future[A] = transform.toFuture(a)
       override def toIO[A](a: O[A], timeout: FiniteDuration): IO[A] = futureWrapper.toIO(transform.toFuture(a), timeout)
-      override def foldLeft[A, U](initial: U, after: Option[A], stream: Stream[A, O], drop: Int, take: Option[Int])(operation: (U, A) => U): O[U] =
+      override def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A, O], drop: Int, take: Option[Int])(operation: (U, A) => U): O[U] =
         transform.toOther(futureWrapper.foldLeft(initial, after, stream.toFutureStream(ec), drop, take)(operation))
-      override def collectFirst[A](previous: A, stream: Stream[A, O])(condition: A => Boolean): O[Option[A]] =
+      override def collectFirst[A](previous: A, stream: swaydb.Stream[A, O])(condition: A => Boolean): O[Option[A]] =
         transform.toOther(futureWrapper.collectFirst(previous, stream.toFutureStream)(condition))
     }
 
@@ -75,9 +75,9 @@ object Wrap {
       override def none[A]: O[Option[A]] = transform.toOther(ioWrap.none)
       override def toFuture[A](a: O[A]): Future[A] = transform.toIO(a).toFuture
       override def toIO[A](a: O[A], timeout: FiniteDuration): IO[A] = transform.toIO(a)
-      override def foldLeft[A, U](initial: U, after: Option[A], stream: Stream[A, O], drop: Int, take: Option[Int])(operation: (U, A) => U): O[U] =
+      override def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A, O], drop: Int, take: Option[Int])(operation: (U, A) => U): O[U] =
         transform.toOther(ioWrap.foldLeft(initial, after, stream.toIOStream(10.seconds), drop, take)(operation))
-      override def collectFirst[A](previous: A, stream: Stream[A, O])(condition: A => Boolean): O[Option[A]] =
+      override def collectFirst[A](previous: A, stream: swaydb.Stream[A, O])(condition: A => Boolean): O[Option[A]] =
         transform.toOther(ioWrap.collectFirst(previous, stream.toIOStream(10.seconds))(condition))
     }
 
@@ -93,11 +93,11 @@ object Wrap {
       override def toIO[A](a: Try[A], timeout: FiniteDuration): IO[A] = IO.fromTry(a)
       override def failure[A](exception: Throwable): Try[A] = scala.util.Failure(exception)
 
-      override def foldLeft[A, U](initial: U, after: Option[A], stream: Stream[A, Try], drop: Int, take: Option[Int])(operation: (U, A) => U): Try[U] =
+      override def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A, Try], drop: Int, take: Option[Int])(operation: (U, A) => U): Try[U] =
         ioWrap.foldLeft(initial, after, stream.toIOStream(10.seconds), drop, take)(operation).toTry //use ioWrap and convert that result to try.
 
       @tailrec
-      override def collectFirst[A](previous: A, stream: Stream[A, Try])(condition: A => Boolean): Try[Option[A]] =
+      override def collectFirst[A](previous: A, stream: swaydb.Stream[A, Try])(condition: A => Boolean): Try[Option[A]] =
         stream.next(previous) match {
           case success @ scala.util.Success(Some(nextA)) =>
             if (condition(nextA))
@@ -125,7 +125,7 @@ object Wrap {
       override def none[A]: IO[Option[A]] = IO.none
       override def toFuture[A](a: IO[A]): Future[A] = a.toFuture
       override def toIO[A](a: IO[A], timeout: FiniteDuration): IO[A] = a
-      override def foldLeft[A, U](initial: U, after: Option[A], stream: Stream[A, IO], drop: Int, take: Option[Int])(operation: (U, A) => U): IO[U] = {
+      override def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A, IO], drop: Int, take: Option[Int])(operation: (U, A) => U): IO[U] = {
         @tailrec
         def fold(previous: A, drop: Int, currentSize: Int, previousResult: U): IO[U] =
           if (take.contains(currentSize))
@@ -180,7 +180,7 @@ object Wrap {
       }
 
       @tailrec
-      override def collectFirst[A](previous: A, stream: Stream[A, IO])(condition: A => Boolean): IO[Option[A]] =
+      override def collectFirst[A](previous: A, stream: swaydb.Stream[A, IO])(condition: A => Boolean): IO[Option[A]] =
         stream.next(previous) match {
           case success @ IO.Success(Some(nextA)) =>
             if (condition(nextA))
@@ -207,7 +207,7 @@ object Wrap {
       override def foreach[A, B](a: A)(f: A => B): Unit = f(a)
       override def toFuture[A](a: Future[A]): Future[A] = a
       override def toIO[A](a: Future[A], timeout: FiniteDuration): IO[A] = IO(Await.result(a, timeout))
-      override def foldLeft[A, U](initial: U, after: Option[A], stream: Stream[A, Future], drop: Int, take: Option[Int])(operation: (U, A) => U): Future[U] = {
+      override def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A, Future], drop: Int, take: Option[Int])(operation: (U, A) => U): Future[U] = {
         def fold(previous: A, drop: Int, currentSize: Int, previousResult: U): Future[U] =
           if (take.contains(currentSize))
             Future.successful(previousResult)
@@ -254,7 +254,7 @@ object Wrap {
           }
       }
 
-      override def collectFirst[A](previous: A, stream: Stream[A, Future])(condition: A => Boolean): Future[Option[A]] =
+      override def collectFirst[A](previous: A, stream: swaydb.Stream[A, Future])(condition: A => Boolean): Future[Option[A]] =
         stream.next(previous) flatMap {
           case some @ Some(nextA) =>
             if (condition(nextA))

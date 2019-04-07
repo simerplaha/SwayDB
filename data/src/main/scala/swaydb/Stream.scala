@@ -17,17 +17,18 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.data
+package swaydb
 
 import scala.collection.generic.CanBuildFrom
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
+import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
-import swaydb.data.Stream.StreamBuilder
+import swaydb.Stream.StreamBuilder
+import swaydb.data.IO
 import swaydb.data.io.Wrap
 import swaydb.data.io.Wrap._
-import scala.concurrent.duration._
 
 /**
   * A [[Stream]] performs lazy iteration. It does not cache data and fetches data only if
@@ -351,7 +352,10 @@ abstract class Stream[A, W[_]](implicit wrap: Wrap[W]) extends Streamer[A, W] { 
     }
 
   def size: W[Int] =
-    materialize.map(_.size)
+    foldLeft(0) {
+      case (size, _) =>
+        size + 1
+    }
 
   /**
     * Closes and converts the Stream to executable.

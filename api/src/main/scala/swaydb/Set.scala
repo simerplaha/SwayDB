@@ -44,7 +44,7 @@ object Set {
 case class Set[T, W[_]](private val core: Core[W],
                         private val from: Option[From[T]],
                         private[swaydb] val reverseIteration: Boolean = false)(implicit serializer: Serializer[T],
-                                                                               wrap: Wrap[W]) extends data.Streamer[T, W] { self =>
+                                                                               wrap: Wrap[W]) extends Streamer[T, W] { self =>
 
   def wrapCall[C](f: => W[C]): W[C] =
     wrap(()).flatMap(_ => f)
@@ -70,7 +70,7 @@ case class Set[T, W[_]](private val core: Core[W],
   def add(elems: T*): W[Level0Meter] =
     add(elems)
 
-  def add(elems: data.Stream[T, W]): W[Level0Meter] =
+  def add(elems: Stream[T, W]): W[Level0Meter] =
     wrapCall(elems.materialize flatMap add)
 
   def add(elems: Iterable[T]): W[Level0Meter] =
@@ -85,7 +85,7 @@ case class Set[T, W[_]](private val core: Core[W],
   def remove(elems: T*): W[Level0Meter] =
     remove(elems)
 
-  def remove(elems: data.Stream[T, W]): W[Level0Meter] =
+  def remove(elems: Stream[T, W]): W[Level0Meter] =
     wrapCall(elems.materialize flatMap remove)
 
   def remove(elems: Iterable[T]): W[Level0Meter] =
@@ -106,7 +106,7 @@ case class Set[T, W[_]](private val core: Core[W],
   def expire(elems: (T, Deadline)*): W[Level0Meter] =
     expire(elems)
 
-  def expire(elems: data.Stream[(T, Deadline), W]): W[Level0Meter] =
+  def expire(elems: Stream[(T, Deadline), W]): W[Level0Meter] =
     wrapCall(elems.materialize flatMap expire)
 
   def expire(elems: Iterable[(T, Deadline)]): W[Level0Meter] =
@@ -140,7 +140,7 @@ case class Set[T, W[_]](private val core: Core[W],
   def commit(prepare: Prepare[T, Nothing]*): W[Level0Meter] =
     wrapCall(core.put(prepare))
 
-  def commit(prepare: data.Stream[Prepare[T, Nothing], W]): W[Level0Meter] =
+  def commit(prepare: Stream[Prepare[T, Nothing], W]): W[Level0Meter] =
     wrapCall(prepare.materialize flatMap commit)
 
   def commit(prepare: Iterable[Prepare[T, Nothing]]): W[Level0Meter] =
@@ -208,41 +208,41 @@ case class Set[T, W[_]](private val core: Core[W],
       }
     } map (_.map(_.read[T]))
 
-  override def drop(count: Int): data.Stream[T, W] =
+  override def drop(count: Int): Stream[T, W] =
     stream drop count
 
-  override def dropWhile(f: T => Boolean): data.Stream[T, W] =
+  override def dropWhile(f: T => Boolean): Stream[T, W] =
     stream dropWhile f
 
-  override def take(count: Int): data.Stream[T, W] =
+  override def take(count: Int): Stream[T, W] =
     stream take count
 
-  override def takeWhile(f: T => Boolean): data.Stream[T, W] =
+  override def takeWhile(f: T => Boolean): Stream[T, W] =
     stream takeWhile f
 
-  override def map[B](f: T => B): data.Stream[B, W] =
+  override def map[B](f: T => B): Stream[B, W] =
     stream map f
 
-  override def flatMap[B](f: T => data.Stream[B, W]): data.Stream[B, W] =
+  override def flatMap[B](f: T => Stream[B, W]): Stream[B, W] =
     stream flatMap f
 
-  override def foreach[U](f: T => U): data.Stream[Unit, W] =
+  override def foreach[U](f: T => U): Stream[Unit, W] =
     stream foreach f
 
-  override def filter(f: T => Boolean): data.Stream[T, W] =
+  override def filter(f: T => Boolean): Stream[T, W] =
     stream filter f
 
-  override def filterNot(f: T => Boolean): data.Stream[T, W] =
+  override def filterNot(f: T => Boolean): Stream[T, W] =
     stream filterNot f
 
   override def foldLeft[B](initial: B)(f: (B, T) => B): W[B] =
     stream.foldLeft(initial)(f)
 
-  override def size: W[Int] =
+  def size: W[Int] =
     stream.size
 
-  def stream: data.Stream[T, W] =
-    new data.Stream[T, W] {
+  def stream: Stream[T, W] =
+    new Stream[T, W] {
       override def headOption: W[Option[T]] =
         self.headOption
 

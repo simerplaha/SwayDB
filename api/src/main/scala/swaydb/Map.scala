@@ -28,7 +28,7 @@ import swaydb.data.compaction.LevelMeter
 import swaydb.data.io.Wrap._
 import swaydb.data.io.{FutureTransformer, IOTransformer, Wrap}
 import swaydb.data.slice.Slice
-import swaydb.data.{IO, Streamer}
+import swaydb.data.IO
 import swaydb.serializers.{Serializer, _}
 
 /**
@@ -57,7 +57,7 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
   def put(keyValues: (K, V)*): W[Level0Meter] =
     wrapCall(put(keyValues))
 
-  def put(keyValues: data.Stream[(K, V), W]): W[Level0Meter] =
+  def put(keyValues: Stream[(K, V), W]): W[Level0Meter] =
     wrapCall(keyValues.materialize flatMap put)
 
   def put(keyValues: Iterable[(K, V)]): W[Level0Meter] =
@@ -79,7 +79,7 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
   def remove(keys: K*): W[Level0Meter] =
     wrapCall(remove(keys))
 
-  def remove(keys: data.Stream[K, W]): W[Level0Meter] =
+  def remove(keys: Stream[K, W]): W[Level0Meter] =
     wrapCall(keys.materialize flatMap remove)
 
   def remove(keys: Iterable[K]): W[Level0Meter] =
@@ -100,7 +100,7 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
   def expire(keys: (K, Deadline)*): W[Level0Meter] =
     wrapCall(expire(keys))
 
-  def expire(keys: data.Stream[(K, Deadline), W]): W[Level0Meter] =
+  def expire(keys: Stream[(K, Deadline), W]): W[Level0Meter] =
     wrapCall(keys.materialize flatMap expire)
 
   def expire(keys: Iterable[(K, Deadline)]): W[Level0Meter] =
@@ -126,7 +126,7 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
   def update(keyValues: (K, V)*): W[Level0Meter] =
     wrapCall(update(keyValues))
 
-  def update(keyValues: data.Stream[(K, V), W]): W[Level0Meter] =
+  def update(keyValues: Stream[(K, V), W]): W[Level0Meter] =
     wrapCall(keyValues.materialize flatMap update)
 
   def update(keyValues: Iterable[(K, V)]): W[Level0Meter] =
@@ -166,7 +166,7 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
   def commit(prepare: Prepare[K, V]*): W[Level0Meter] =
     wrapCall(core.put(prepare))
 
-  def commit(prepare: data.Stream[Prepare[K, V], W]): W[Level0Meter] =
+  def commit(prepare: Stream[Prepare[K, V], W]): W[Level0Meter] =
     wrapCall(prepare.materialize flatMap commit)
 
   def commit(prepare: Iterable[Prepare[K, V]]): W[Level0Meter] =
@@ -276,46 +276,41 @@ case class Map[K, V, W[_]](private[swaydb] val core: Core[W],
         (key.read[K], value.read[V])
     })
 
-  override def drop(count: Int): data.Stream[(K, V), W] =
+  override def drop(count: Int): Stream[(K, V), W] =
     stream drop count
 
-  override def dropWhile(f: ((K, V)) => Boolean): data.Stream[(K, V), W] =
+  override def dropWhile(f: ((K, V)) => Boolean): Stream[(K, V), W] =
     stream dropWhile f
 
-  override def take(count: Int): data.Stream[(K, V), W] =
+  override def take(count: Int): Stream[(K, V), W] =
     stream take count
 
-  override def takeWhile(f: ((K, V)) => Boolean): data.Stream[(K, V), W] =
+  override def takeWhile(f: ((K, V)) => Boolean): Stream[(K, V), W] =
     stream takeWhile f
 
-  override def map[B](f: ((K, V)) => B): data.Stream[B, W] =
+  override def map[B](f: ((K, V)) => B): Stream[B, W] =
     stream map f
 
-  override def flatMap[B](f: ((K, V)) => data.Stream[B, W]): data.Stream[B, W] =
+  override def flatMap[B](f: ((K, V)) => Stream[B, W]): Stream[B, W] =
     stream flatMap f
 
-  override def foreach[U](f: ((K, V)) => U): data.Stream[Unit, W] =
+  override def foreach[U](f: ((K, V)) => U): Stream[Unit, W] =
     stream foreach f
 
-  override def filter(f: ((K, V)) => Boolean): data.Stream[(K, V), W] =
+  override def filter(f: ((K, V)) => Boolean): Stream[(K, V), W] =
     stream filter f
 
-  override def filterNot(f: ((K, V)) => Boolean): data.Stream[(K, V), W] =
+  override def filterNot(f: ((K, V)) => Boolean): Stream[(K, V), W] =
     stream filterNot f
 
   override def foldLeft[B](initial: B)(f: (B, (K, V)) => B): W[B] =
     stream.foldLeft(initial)(f)
 
-  override def size: W[Int] =
-    wrapCall {
-      keys
-        .stream
-        .materialize
-        .map(_.size)
-    }
+  def size: W[Int] =
+    wrapCall(keys.size)
 
-  def stream: data.Stream[(K, V), W] =
-    new data.Stream[(K, V), W] {
+  def stream: Stream[(K, V), W] =
+    new Stream[(K, V), W] {
       override def headOption: W[Option[(K, V)]] =
         self.headOption
 
