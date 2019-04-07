@@ -52,7 +52,7 @@ object Stream {
 
       private def step(): W[Option[T]] =
         if (iterator.hasNext)
-          wrap(Some(iterator.next()))
+          wrap.success(Some(iterator.next()))
         else
           wrap.none
 
@@ -77,15 +77,11 @@ object Stream {
     override def result: Stream[T, W] =
       new Stream[T, W] {
 
-        var index = 0
+        private val iterator = items.iterator
 
         def step(): W[Option[T]] =
-          if (index < items.size)
-            wrap(items(index)) map {
-              item =>
-                index += 1
-                Some(item)
-            }
+          if (iterator.hasNext)
+            wrap.success(Some(iterator.next()))
           else
             wrap.none
 
@@ -358,9 +354,9 @@ abstract class Stream[A, W[_]](implicit wrap: Wrap[W]) extends Streamer[A, W] { 
     }
 
   /**
-    * Closes and converts the Stream to executable.
+    * Closes and executes the stream.
     */
-  def materialize: W[Seq[A]] =
+  def toSeq: W[Seq[A]] =
     foldLeft(new StreamBuilder[A, W]()) {
       (buffer, item) =>
         buffer += item

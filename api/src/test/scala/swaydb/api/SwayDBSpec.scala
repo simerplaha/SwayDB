@@ -105,7 +105,7 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
       db.remove(2, 999).assertGet
       println("Removed .... ")
 
-      db.stream.materialize.get should contain only((1, "1"), (1000, "1000"))
+      db.stream.toSeq.get should contain only((1, "1"), (1000, "1000"))
       db.headOption.assertGet shouldBe ((1, "1"))
       db.lastOption.assertGet shouldBe ((1000, "1000"))
 
@@ -127,7 +127,7 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
 
       db.update(1, 100, value = "updated").assertGet
 
-      db.stream.materialize.get should contain only((1, "updated"), (100, "updated"))
+      db.stream.toSeq.get should contain only((1, "updated"), (100, "updated"))
       db.headOption.assertGet shouldBe ((1, "updated"))
       db.lastOption.assertGet shouldBe ((100, "updated"))
 
@@ -146,7 +146,7 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
 
       db.update(1, 100, value = "updated").assertGet
 
-      db.stream.materialize.get should contain only((1, "updated"), (100, "updated"))
+      db.stream.toSeq.get should contain only((1, "updated"), (100, "updated"))
       db.headOption.assertGet shouldBe ((1, "updated"))
       db.lastOption.assertGet shouldBe ((100, "updated"))
 
@@ -179,7 +179,7 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
 
       val expected = expectedUnchanged ++ expectedUpdated :+ (100, "100")
 
-      db.stream.materialize.get shouldBe expected
+      db.stream.toSeq.get shouldBe expected
       db.headOption.assertGet shouldBe ((1, "1"))
       db.lastOption.assertGet shouldBe ((100, "100"))
 
@@ -192,7 +192,7 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
 
       db.isEmpty.get shouldBe true
 
-      db.stream.materialize.get shouldBe empty
+      db.stream.toSeq.get shouldBe empty
 
       db.headOption.get shouldBe empty
       db.lastOption.get shouldBe empty
@@ -206,7 +206,7 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
 
       db.isEmpty.get shouldBe true
 
-      db.stream.materialize.get shouldBe empty
+      db.stream.toSeq.get shouldBe empty
 
       db.headOption.get shouldBe empty
       db.lastOption.get shouldBe empty
@@ -238,10 +238,10 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
 
       db.commit(Prepare.Put(1, "one"), Prepare.Put(2, "two"), Prepare.Put(1, "one again"), Prepare.Update(1, 100, "updated")).assertGet
       db.get(1).assertGet shouldBe "updated"
-      db.stream.materialize.map(_.toMap).assertGet.values should contain only "updated"
+      db.stream.toSeq.map(_.toMap).assertGet.values should contain only "updated"
 
       db.commit(Prepare.Put(1, "one"), Prepare.Put(2, "two"), Prepare.Put(100, "hundred"), Prepare.Remove(1, 100), Prepare.Update(1, 1000, "updated")).assertGet
-      db.stream.materialize.get shouldBe empty
+      db.stream.toSeq.get shouldBe empty
 
       db.closeDatabase().get
     }
@@ -254,17 +254,17 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
           db.put(i, i.toString).assertGet
       }
 
-      db.from(9999).stream.materialize.assertGet should contain only((9999, "9999"), (10000, "10000"))
-      db.from(9998).drop(2).take(1).materialize.get should contain only ((10000, "10000"))
-      db.before(9999).take(1).materialize.get should contain only ((9998, "9998"))
-      db.after(9999).take(1).materialize.get should contain only ((10000, "10000"))
-      db.after(9999).drop(1).materialize.get shouldBe empty
+      db.from(9999).stream.toSeq.assertGet should contain only((9999, "9999"), (10000, "10000"))
+      db.from(9998).drop(2).take(1).toSeq.get should contain only ((10000, "10000"))
+      db.before(9999).take(1).toSeq.get should contain only ((9998, "9998"))
+      db.after(9999).take(1).toSeq.get should contain only ((10000, "10000"))
+      db.after(9999).drop(1).toSeq.get shouldBe empty
 
-      db.after(10).takeWhile(_._1 <= 11).materialize.get should contain only ((11, "11"))
-      db.after(10).takeWhile(_._1 <= 11).drop(1).materialize.get shouldBe empty
+      db.after(10).takeWhile(_._1 <= 11).toSeq.get should contain only ((11, "11"))
+      db.after(10).takeWhile(_._1 <= 11).drop(1).toSeq.get shouldBe empty
 
-      db.fromOrBefore(0).stream.materialize.get shouldBe empty
-      db.fromOrAfter(0).take(1).materialize.get should contain only ((1, "1"))
+      db.fromOrBefore(0).stream.toSeq.get shouldBe empty
+      db.fromOrAfter(0).take(1).toSeq.get should contain only ((1, "1"))
 
       db.closeDatabase().get
     }
