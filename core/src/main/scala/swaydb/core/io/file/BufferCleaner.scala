@@ -30,7 +30,12 @@ import scala.concurrent.duration._
 import swaydb.core.actor.{Actor, ActorRef}
 import swaydb.data.IO
 
-case class Cleaner(handle: MethodHandle) {
+private object Cleaner {
+  def apply(handle: MethodHandle): Cleaner =
+    new Cleaner(handle)
+}
+
+private class Cleaner(handle: MethodHandle) {
   def clean(byteBuffer: ByteBuffer): Unit =
     handle.invoke(byteBuffer)
 }
