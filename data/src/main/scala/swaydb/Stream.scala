@@ -71,7 +71,7 @@ object Stream {
     def asSeq: Seq[T] =
       items
 
-    override def clear() =
+    override def clear(): Unit =
       items.clear()
 
     override def result: Stream[T, W] =

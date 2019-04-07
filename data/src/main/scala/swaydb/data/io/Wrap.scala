@@ -29,7 +29,7 @@ import swaydb.data.IO
   * [[Wrap]]s are used to wrap databases operations (side-effects) into types that can be
   * used to build more declarative APIs.
   */
-sealed trait Wrap[W[_]] {
+trait Wrap[W[_]] {
   def apply[A](a: => A): W[A]
   def foreach[A, B](a: A)(f: A => B): Unit
   def map[A, B](a: A)(f: A => B): W[B]
