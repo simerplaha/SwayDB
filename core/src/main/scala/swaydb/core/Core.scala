@@ -26,7 +26,7 @@ import swaydb.core.data.KeyValue.KeyValueTuple
 import swaydb.core.data.SwayFunction
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
-import swaydb.data.io.Tag
+import swaydb.data.io.{Tag, TagAsync}
 import swaydb.data.slice.Slice
 
 private[swaydb] trait Core[T[_]] {
@@ -105,7 +105,7 @@ private[swaydb] trait Core[T[_]] {
 
   def close(): T[Unit]
 
-  def async[X[_]](implicit ec: ExecutionContext, tag: Tag[X]): Core[X]
+  def async[T[_]](implicit ec: ExecutionContext, tag: TagAsync[T]): Core[T]
 
-  def blocking[X[_]](implicit tag: Tag[X]): BlockingCore[X]
+  def blocking[T[_]](implicit tag: Tag[T]): BlockingCore[T]
 }

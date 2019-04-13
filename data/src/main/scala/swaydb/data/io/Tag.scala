@@ -40,9 +40,12 @@ trait Tag[T[_]] {
   def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A, T], drop: Int, take: Option[Int])(operation: (U, A) => U): T[U]
   def collectFirst[A](previous: A, stream: swaydb.Stream[A, T])(condition: A => Boolean): T[Option[A]]
   def toFuture[A](a: T[A]): Future[A]
-  def fromFuture[A](a: Future[A]): T[A]
   def toIO[A](a: T[A], timeout: FiniteDuration): IO[A]
   def fromIO[A](a: IO[A]): T[A]
+}
+
+trait TagAsync[T[_]] extends Tag[T] {
+  def fromFuture[A](a: Future[A]): T[A]
 }
 
 object Tag {
@@ -56,7 +59,6 @@ object Tag {
       override def success[A](value: A): Try[A] = scala.util.Success(value)
       override def none[A]: Try[Option[A]] = scala.util.Success(None)
       override def toFuture[A](a: Try[A]): Future[A] = Future.fromTry(a)
-      override def fromFuture[A](a: Future[A]): Try[A] = Try(Await.result(a, 10.seconds)) //this is not very nice.
       override def toIO[A](a: Try[A], timeout: FiniteDuration): IO[A] = IO.fromTry(a)
       override def fromIO[A](a: IO[A]): Try[A] = a.toTry
       override def failure[A](exception: Throwable): Try[A] = scala.util.Failure(exception)
@@ -91,7 +93,6 @@ object Tag {
       override def failure[A](exception: Throwable): IO[A] = IO.Failure(exception)
       override def none[A]: IO[Option[A]] = IO.none
       override def toFuture[A](a: IO[A]): Future[A] = a.toFuture
-      override def fromFuture[A](a: Future[A]): IO[A] = IO(Await.result(a, 10.seconds)) //this is not very nice.
       override def toIO[A](a: IO[A], timeout: FiniteDuration): IO[A] = a
       override def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A, IO], drop: Int, take: Option[Int])(operation: (U, A) => U): IO[U] = {
         @tailrec
@@ -165,8 +166,8 @@ object Tag {
       override def fromIO[A](a: IO[A]): IO[A] = a
     }
 
-  implicit def future(implicit ec: ExecutionContext): Tag[Future] =
-    new Tag[Future] {
+  implicit def future(implicit ec: ExecutionContext): TagAsync[Future] =
+    new TagAsync[Future] {
       override def apply[A](a: => A): Future[A] = Future(a)
       override def map[A, B](a: A)(f: A => B): Future[B] = Future(f(a))
       override def flatMap[A, B](fa: Future[A])(f: A => Future[B]): Future[B] = fa.flatMap(f)

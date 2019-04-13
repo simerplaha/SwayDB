@@ -26,7 +26,7 @@ import swaydb.core.Core
 import swaydb.data.IO
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
-import swaydb.data.io.Tag
+import swaydb.data.io.{Tag, TagAsync}
 import swaydb.data.io.Tag._
 import swaydb.data.slice.Slice
 import swaydb.serializers.{Serializer, _}
@@ -47,7 +47,7 @@ case class Set[A, T[_]](private val core: Core[T],
                                                                                tag: Tag[T]) extends Streamer[A, T] { self =>
 
   def wrapCall[C](f: => T[C]): T[C] =
-    tag.success(()).flatMap(_ => f)
+    tag.success(()) flatMap (_ => f)
 
   def get(elem: A): T[Option[A]] =
     wrapCall(core.getKey(elem).map(_.map(_.read[A])))
@@ -274,7 +274,7 @@ case class Set[A, T[_]](private val core: Core[T],
     copy(reverseIteration = true)
 
   def tagAsync[O[_]](implicit ec: ExecutionContext,
-                     tag: Tag[O]): Set[A, O] =
+                     tag: TagAsync[O]): Set[A, O] =
     copy(core = core.async[O])
 
   def tagBlocking[O[_]](implicit tag: Tag[O]): Set[A, O] =
