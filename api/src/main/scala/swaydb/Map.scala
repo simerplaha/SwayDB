@@ -43,7 +43,7 @@ case class Map[K, V, T[_]](private[swaydb] val core: Core[T],
                                                                                   tag: Tag[T]) extends Streamer[(K, V), T] { self =>
 
   def wrapCall[C](f: => T[C]): T[C] =
-    tag(()).flatMap(_ => f)
+    tag.success(()).flatMap(_ => f)
 
   def put(key: K, value: V): T[Level0Meter] =
     wrapCall(core.put(key = key, value = Some(value)))

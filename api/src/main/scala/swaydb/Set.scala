@@ -48,7 +48,7 @@ case class Set[A, T[_]](private val core: Core[T],
 
 
   def wrapCall[C](f: => T[C]): T[C] =
-    tag(()).flatMap(_ => f)
+    tag.success(()).flatMap(_ => f)
 
   def get(elem: A): T[Option[A]] =
     wrapCall(core.getKey(elem).map(_.map(_.read[A])))
