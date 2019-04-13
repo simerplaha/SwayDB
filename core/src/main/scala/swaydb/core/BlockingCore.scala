@@ -34,7 +34,7 @@ import swaydb.data.IO.Error
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.config.{LevelZeroConfig, SwayDBConfig}
-import swaydb.data.io.{FutureTransformer, IOTransformer}
+import swaydb.data.io.{FutureToTag, IOToTag}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
@@ -104,7 +104,7 @@ private[swaydb] object BlockingCore {
     }
 }
 
-private[swaydb] case class BlockingCore[W[_]](zero: LevelZero)(implicit transform: IOTransformer[W]) extends Core[W] {
+private[swaydb] case class BlockingCore[W[_]](zero: LevelZero)(implicit transform: IOToTag[W]) extends Core[W] {
 
   def put(key: Slice[Byte]): W[Level0Meter] =
     transform.toOther(zero.put(key))
@@ -355,9 +355,9 @@ private[swaydb] case class BlockingCore[W[_]](zero: LevelZero)(implicit transfor
   def close(): W[Unit] =
     transform.toOther(zero.close)
 
-  override def async[T[_]](implicit ec: ExecutionContext, transform: FutureTransformer[T]): Core[T] =
+  override def async[T[_]](implicit ec: ExecutionContext, transform: FutureToTag[T]): Core[T] =
     AsyncCore(zero)
 
-  override def blocking[T[_]](implicit transform: IOTransformer[T]): BlockingCore[T] =
+  override def blocking[T[_]](implicit transform: IOToTag[T]): BlockingCore[T] =
     BlockingCore(zero)
 }

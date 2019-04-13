@@ -19,35 +19,30 @@
 
 package swaydb.data.io
 
-import scala.util.Try
+import scala.concurrent.Future
 import swaydb.data.IO
 
 /**
   * SwayDB supports non-blocking (Future) and blocking APIs ([[IO]] & Try).
   *
   * The APIs can be converted to other external async and/or blocking types by providing the
-  * following implementation for blocking api or use [[FutureTransformer]] for non-blocking APIs.
+  * following implementation for non-blocking api or use [[IOToTag]] for blocking APIs.
   */
-trait IOTransformer[O[_]] {
+trait FutureToTag[O[_]] {
   /**
-    * Converts [[IO]] to other blocking type.
+    * Converts a Future to other async type
     */
-  def toOther[I](io: IO[I]): O[I]
+  def toOther[I](future: Future[I]): O[I]
   /**
-    * Converts other type to [[IO]].
+    * Converts other async type to Future
     */
-  def toIO[I](io: O[I]): IO[I]
+  def toFuture[I](io: O[I]): Future[I]
 }
 
-object IOTransformer {
+object FutureToTag {
 
-  implicit object IOToIOTransformer extends IOTransformer[IO] {
-    override def toOther[I](io: IO[I]): IO[I] = io
-    override def toIO[I](io: IO[I]): IO[I] = io
-  }
-
-  implicit object IOToTryTransformer extends IOTransformer[Try] {
-    override def toOther[I](io: IO[I]): Try[I] = io.toTry
-    override def toIO[I](io: Try[I]): IO[I] = IO.fromTry(io)
+  implicit object FutureToFuture extends FutureToTag[Future] {
+    override def toOther[I](future: Future[I]): Future[I] = future
+    override def toFuture[I](future: Future[I]): Future[I] = future
   }
 }

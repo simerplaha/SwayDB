@@ -26,27 +26,27 @@ import scala.util.Try
 import swaydb.data.IO
 
 /**
-  * [[Wrap]]s are used to wrap databases operations (side-effects) into types that can be
+  * [[Tag]]s are used to tag databases operations (side-effects) into types that can be
   * used to build more declarative APIs.
   */
-trait Wrap[W[_]] {
-  def apply[A](a: => A): W[A]
+trait Tag[T[_]] {
+  def apply[A](a: => A): T[A]
   def foreach[A, B](a: A)(f: A => B): Unit
-  def map[A, B](a: A)(f: A => B): W[B]
-  def flatMap[A, B](fa: W[A])(f: A => W[B]): W[B]
-  def success[A](value: A): W[A]
-  def failure[A](exception: Throwable): W[A]
-  def none[A]: W[Option[A]]
-  def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A, W], drop: Int, take: Option[Int])(operation: (U, A) => U): W[U]
-  def collectFirst[A](previous: A, stream: swaydb.Stream[A, W])(condition: A => Boolean): W[Option[A]]
-  def toFuture[A](a: W[A]): Future[A]
-  def toIO[A](a: W[A], timeout: FiniteDuration): IO[A]
+  def map[A, B](a: A)(f: A => B): T[B]
+  def flatMap[A, B](fa: T[A])(f: A => T[B]): T[B]
+  def success[A](value: A): T[A]
+  def failure[A](exception: Throwable): T[A]
+  def none[A]: T[Option[A]]
+  def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A, T], drop: Int, take: Option[Int])(operation: (U, A) => U): T[U]
+  def collectFirst[A](previous: A, stream: swaydb.Stream[A, T])(condition: A => Boolean): T[Option[A]]
+  def toFuture[A](a: T[A]): Future[A]
+  def toIO[A](a: T[A], timeout: FiniteDuration): IO[A]
 }
 
-object Wrap {
+object Tag {
 
-  def buildAsyncWrap[O[_]](transform: FutureTransformer[O], timeout: FiniteDuration)(implicit ec: ExecutionContext): Wrap[O] =
-    new Wrap[O] {
+  def buildAsync[O[_]](transform: FutureToTag[O])(implicit ec: ExecutionContext): Tag[O] =
+    new Tag[O] {
       private val futureWrapper = futureWrap
 
       override def apply[A](a: => A): O[A] = transform.toOther(futureWrapper.apply(a))
@@ -64,8 +64,8 @@ object Wrap {
         transform.toOther(futureWrapper.collectFirst(previous, stream.toFutureStream)(condition))
     }
 
-  def buildSyncWrap[O[_]](transform: IOTransformer[O]): Wrap[O] =
-    new Wrap[O] {
+  def buildSync[O[_]](transform: IOToTag[O]): Tag[O] =
+    new Tag[O] {
       override def apply[A](a: => A): O[A] = transform.toOther(ioWrap.apply(a))
       override def foreach[A, B](a: A)(f: A => B): Unit = ioWrap.foreach(a)(f)
       override def map[A, B](a: A)(f: A => B): O[B] = transform.toOther(ioWrap.map(a)(f))
@@ -81,8 +81,8 @@ object Wrap {
         transform.toOther(ioWrap.collectFirst(previous, stream.toIOStream(10.seconds))(condition))
     }
 
-  implicit val tryWrap: Wrap[Try] =
-    new Wrap[Try] {
+  implicit val tryWrap: Tag[Try] =
+    new Tag[Try] {
       override def apply[A](a: => A): Try[A] = Try(a)
       override def map[A, B](a: A)(f: A => B): Try[B] = Try(f(a))
       override def foreach[A, B](a: A)(f: A => B): Unit = f(a)
@@ -114,8 +114,8 @@ object Wrap {
 
     }
 
-  implicit val ioWrap: Wrap[IO] =
-    new Wrap[IO] {
+  implicit val ioWrap: Tag[IO] =
+    new Tag[IO] {
       override def apply[A](a: => A): IO[A] = IO(a)
       override def map[A, B](a: A)(f: A => B): IO[B] = IO(f(a))
       override def foreach[A, B](a: A)(f: A => B): Unit = f(a)
@@ -196,8 +196,8 @@ object Wrap {
         }
     }
 
-  implicit def futureWrap(implicit ec: ExecutionContext): Wrap[Future] =
-    new Wrap[Future] {
+  implicit def futureWrap(implicit ec: ExecutionContext): Tag[Future] =
+    new Tag[Future] {
       override def apply[A](a: => A): Future[A] = Future(a)
       override def map[A, B](a: A)(f: A => B): Future[B] = Future(f(a))
       override def flatMap[A, B](fa: Future[A])(f: A => Future[B]): Future[B] = fa.flatMap(f)
@@ -267,14 +267,14 @@ object Wrap {
         }
     }
 
-  implicit class WrapImplicits[A, W[_] : Wrap](a: W[A])(implicit wrap: Wrap[W]) {
-    @inline def map[B](f: A => B): W[B] =
-      wrap.flatMap(a) {
+  implicit class WrapImplicits[A, T[_] : Tag](a: T[A])(implicit tag: Tag[T]) {
+    @inline def map[B](f: A => B): T[B] =
+      tag.flatMap(a) {
         a =>
-          wrap.map[A, B](a)(f)
+          tag.map[A, B](a)(f)
       }
 
-    @inline def flatMap[B](f: A => W[B]): W[B] =
-      wrap.flatMap(a)(f)
+    @inline def flatMap[B](f: A => T[B]): T[B] =
+      tag.flatMap(a)(f)
   }
 }

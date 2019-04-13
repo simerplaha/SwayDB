@@ -25,8 +25,8 @@ import scala.concurrent.{Await, Future}
 import scala.util.Try
 import swaydb.core.RunThis._
 import swaydb.data._
-import swaydb.data.io.Wrap
-import swaydb.data.io.Wrap._
+import swaydb.data.io.Tag
+import swaydb.data.io.Tag._
 import swaydb.Stream
 
 class StreamFutureSpec extends StreamSpec[Future] {
@@ -41,7 +41,7 @@ class StreamTrySpec extends StreamSpec[Try] {
   override def get[A](a: Try[A]): A = a.get
 }
 
-sealed abstract class StreamSpec[T[_]](implicit wrap: Wrap[T]) extends WordSpec with Matchers {
+sealed abstract class StreamSpec[T[_]](implicit wrap: Tag[T]) extends WordSpec with Matchers {
 
   def get[A](a: T[A]): A
 

@@ -130,11 +130,11 @@ object MapStream {
       }
 
   @tailrec
-  def step[K, V](stream: swaydb.Stream[(Key[K], Option[V]), IO],
-                 previous: (Key[K], Option[V]),
-                 isReverse: Boolean,
-                 mapsOnly: Boolean,
-                 thisMapKeyBytes: Slice[Byte])(implicit keySerializer: Serializer[K]): IO[Option[(Key[K], Option[V])]] =
+  private def step[K, V](stream: swaydb.Stream[(Key[K], Option[V]), IO],
+                         previous: (Key[K], Option[V]),
+                         isReverse: Boolean,
+                         mapsOnly: Boolean,
+                         thisMapKeyBytes: Slice[Byte])(implicit keySerializer: Serializer[K]): IO[Option[(Key[K], Option[V])]] =
     stream.next(previous) match {
       case IO.Success(some @ Some((key, value))) =>
         checkStep(key = key, isReverse = isReverse, mapsOnly = mapsOnly, thisMapKeyBytes = thisMapKeyBytes) match {

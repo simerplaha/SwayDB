@@ -26,8 +26,8 @@ import swaydb.core.data.KeyValue.KeyValueTuple
 import swaydb.core.data.SwayFunction
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
-import swaydb.data.io.{FutureTransformer, IOTransformer}
-import swaydb.data.io.FutureTransformer
+import swaydb.data.io.{FutureToTag, IOToTag}
+import swaydb.data.io.FutureToTag
 import swaydb.data.slice.Slice
 
 private[swaydb] trait Core[W[_]] {
@@ -106,7 +106,7 @@ private[swaydb] trait Core[W[_]] {
 
   def close(): W[Unit]
 
-  def async[T[_]](implicit ec: ExecutionContext, transform: FutureTransformer[T]): Core[T]
+  def async[T[_]](implicit ec: ExecutionContext, transform: FutureToTag[T]): Core[T]
 
-  def blocking[T[_]](implicit transform: IOTransformer[T]): BlockingCore[T]
+  def blocking[T[_]](implicit transform: IOToTag[T]): BlockingCore[T]
 }

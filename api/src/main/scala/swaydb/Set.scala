@@ -22,12 +22,12 @@ package swaydb
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 import swaydb.PrepareImplicits._
-import swaydb.data.io.Wrap._
+import swaydb.data.io.Tag._
 import swaydb.core.Core
 import swaydb.data.IO
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
-import swaydb.data.io.{FutureTransformer, IOTransformer, Wrap}
+import swaydb.data.io.{FutureToTag, IOToTag, Tag}
 import swaydb.data.slice.Slice
 import swaydb.serializers.{Serializer, _}
 
@@ -41,75 +41,76 @@ object Set {
   *
   * For documentation check - http://swaydb.io/api/
   */
-case class Set[T, W[_]](private val core: Core[W],
-                        private val from: Option[From[T]],
-                        private[swaydb] val reverseIteration: Boolean = false)(implicit serializer: Serializer[T],
-                                                                               wrap: Wrap[W]) extends Streamer[T, W] { self =>
+case class Set[A, T[_]](private val core: Core[T],
+                        private val from: Option[From[A]],
+                        private[swaydb] val reverseIteration: Boolean = false)(implicit serializer: Serializer[A],
+                                                                               wrap: Tag[T]) extends Streamer[A, T] { self =>
 
-  def wrapCall[C](f: => W[C]): W[C] =
+
+  def wrapCall[C](f: => T[C]): T[C] =
     wrap(()).flatMap(_ => f)
 
-  def get(elem: T): W[Option[T]] =
-    wrapCall(core.getKey(elem).map(_.map(_.read[T])))
+  def get(elem: A): T[Option[A]] =
+    wrapCall(core.getKey(elem).map(_.map(_.read[A])))
 
-  def contains(elem: T): W[Boolean] =
+  def contains(elem: A): T[Boolean] =
     wrapCall(core contains elem)
 
-  def mightContain(elem: T): W[Boolean] =
+  def mightContain(elem: A): T[Boolean] =
     wrapCall(core mightContain elem)
 
-  def add(elem: T): W[Level0Meter] =
+  def add(elem: A): T[Level0Meter] =
     wrapCall(core.put(key = elem))
 
-  def add(elem: T, expireAt: Deadline): W[Level0Meter] =
+  def add(elem: A, expireAt: Deadline): T[Level0Meter] =
     wrapCall(core.put(elem, None, expireAt))
 
-  def add(elem: T, expireAfter: FiniteDuration): W[Level0Meter] =
+  def add(elem: A, expireAfter: FiniteDuration): T[Level0Meter] =
     wrapCall(core.put(elem, None, expireAfter.fromNow))
 
-  def add(elems: T*): W[Level0Meter] =
+  def add(elems: A*): T[Level0Meter] =
     add(elems)
 
-  def add(elems: Stream[T, W]): W[Level0Meter] =
+  def add(elems: Stream[A, T]): T[Level0Meter] =
     wrapCall(elems.materialize flatMap add)
 
-  def add(elems: Iterable[T]): W[Level0Meter] =
+  def add(elems: Iterable[A]): T[Level0Meter] =
     wrapCall(core.put(elems.map(elem => Prepare.Put(key = serializer.write(elem), value = None, deadline = None))))
 
-  def remove(elem: T): W[Level0Meter] =
+  def remove(elem: A): T[Level0Meter] =
     wrapCall(core.remove(elem))
 
-  def remove(from: T, to: T): W[Level0Meter] =
+  def remove(from: A, to: A): T[Level0Meter] =
     wrapCall(core.remove(from, to))
 
-  def remove(elems: T*): W[Level0Meter] =
+  def remove(elems: A*): T[Level0Meter] =
     remove(elems)
 
-  def remove(elems: Stream[T, W]): W[Level0Meter] =
+  def remove(elems: Stream[A, T]): T[Level0Meter] =
     wrapCall(elems.materialize flatMap remove)
 
-  def remove(elems: Iterable[T]): W[Level0Meter] =
+  def remove(elems: Iterable[A]): T[Level0Meter] =
     wrapCall(core.put(elems.map(elem => Prepare.Remove(serializer.write(elem)))))
 
-  def expire(elem: T, after: FiniteDuration): W[Level0Meter] =
+  def expire(elem: A, after: FiniteDuration): T[Level0Meter] =
     wrapCall(core.remove(elem, after.fromNow))
 
-  def expire(elem: T, at: Deadline): W[Level0Meter] =
+  def expire(elem: A, at: Deadline): T[Level0Meter] =
     wrapCall(core.remove(elem, at))
 
-  def expire(from: T, to: T, after: FiniteDuration): W[Level0Meter] =
+  def expire(from: A, to: A, after: FiniteDuration): T[Level0Meter] =
     wrapCall(core.remove(from, to, after.fromNow))
 
-  def expire(from: T, to: T, at: Deadline): W[Level0Meter] =
+  def expire(from: A, to: A, at: Deadline): T[Level0Meter] =
     wrapCall(core.remove(from, to, at))
 
-  def expire(elems: (T, Deadline)*): W[Level0Meter] =
+  def expire(elems: (A, Deadline)*): T[Level0Meter] =
     expire(elems)
 
-  def expire(elems: Stream[(T, Deadline), W]): W[Level0Meter] =
+  def expire(elems: Stream[(A, Deadline), T]): T[Level0Meter] =
     wrapCall(elems.materialize flatMap expire)
 
-  def expire(elems: Iterable[(T, Deadline)]): W[Level0Meter] =
+  def expire(elems: Iterable[(A, Deadline)]): T[Level0Meter] =
     wrapCall {
       core.put {
         elems map {
@@ -123,27 +124,27 @@ case class Set[T, W[_]](private val core: Core[W],
       }
     }
 
-  def clear(): W[Level0Meter] =
+  def clear(): T[Level0Meter] =
     wrapCall(core.clear())
 
-  def registerFunction(functionID: T, function: (T, Option[Deadline]) => Apply.Set[T]): T = {
+  def registerFunction(functionID: A, function: (A, Option[Deadline]) => Apply.Set[A]): A = {
     core.registerFunction(functionID, SwayDB.toCoreFunction(function))
     functionID
   }
 
-  def applyFunction(from: T, to: T, functionID: T): W[Level0Meter] =
+  def applyFunction(from: A, to: A, functionID: A): T[Level0Meter] =
     wrapCall(core.function(from, to, functionID))
 
-  def applyFunction(elem: T, function: T): W[Level0Meter] =
+  def applyFunction(elem: A, function: A): T[Level0Meter] =
     wrapCall(core.function(elem, function))
 
-  def commit(prepare: Prepare[T, Nothing]*): W[Level0Meter] =
+  def commit(prepare: Prepare[A, Nothing]*): T[Level0Meter] =
     wrapCall(core.put(prepare))
 
-  def commit(prepare: Stream[Prepare[T, Nothing], W]): W[Level0Meter] =
+  def commit(prepare: Stream[Prepare[A, Nothing], T]): T[Level0Meter] =
     wrapCall(prepare.materialize flatMap commit)
 
-  def commit(prepare: Iterable[Prepare[T, Nothing]]): W[Level0Meter] =
+  def commit(prepare: Iterable[Prepare[A, Nothing]]): T[Level0Meter] =
     wrapCall(core.put(prepare))
 
   def level0Meter: Level0Meter =
@@ -155,31 +156,31 @@ case class Set[T, W[_]](private val core: Core[W],
   def sizeOfSegments: Long =
     core.sizeOfSegments
 
-  def elemSize(elem: T): Int =
+  def elemSize(elem: A): Int =
     (elem: Slice[Byte]).size
 
-  def expiration(elem: T): W[Option[Deadline]] =
+  def expiration(elem: A): T[Option[Deadline]] =
     wrapCall(core deadline elem)
 
-  def timeLeft(elem: T): W[Option[FiniteDuration]] =
+  def timeLeft(elem: A): T[Option[FiniteDuration]] =
     expiration(elem).map(_.map(_.timeLeft))
 
-  def from(key: T): Set[T, W] =
+  def from(key: A): Set[A, T] =
     copy(from = Some(From(key = key, orBefore = false, orAfter = false, before = false, after = false)))
 
-  def before(key: T): Set[T, W] =
+  def before(key: A): Set[A, T] =
     copy(from = Some(From(key = key, orBefore = false, orAfter = false, before = true, after = false)))
 
-  def fromOrBefore(key: T): Set[T, W] =
+  def fromOrBefore(key: A): Set[A, T] =
     copy(from = Some(From(key = key, orBefore = true, orAfter = false, before = false, after = false)))
 
-  def after(key: T): Set[T, W] =
+  def after(key: A): Set[A, T] =
     copy(from = Some(From(key = key, orBefore = false, orAfter = false, before = false, after = true)))
 
-  def fromOrAfter(key: T): Set[T, W] =
+  def fromOrAfter(key: A): Set[A, T] =
     copy(from = Some(From(key = key, orBefore = false, orAfter = true, before = false, after = false)))
 
-  override def headOption: W[Option[T]] =
+  override def headOption: T[Option[A]] =
     wrapCall {
       from match {
         case Some(from) =>
@@ -192,7 +193,7 @@ case class Set[T, W[_]](private val core: Core[W],
             core.getKey(fromKeyBytes)
               .flatMap {
                 case Some(key) =>
-                  wrap.success(Some(key)): W[Option[Slice[Byte]]]
+                  wrap.success(Some(key)): T[Option[Slice[Byte]]]
 
                 case _ =>
                   if (from.orAfter)
@@ -200,95 +201,95 @@ case class Set[T, W[_]](private val core: Core[W],
                   else if (from.orBefore)
                     core.beforeKey(fromKeyBytes)
                   else
-                    wrap.success(None): W[Option[Slice[Byte]]]
+                    wrap.success(None): T[Option[Slice[Byte]]]
               }
 
         case None =>
           if (reverseIteration) core.lastKey else core.headKey
       }
-    } map (_.map(_.read[T]))
+    } map (_.map(_.read[A]))
 
-  override def drop(count: Int): Stream[T, W] =
+  override def drop(count: Int): Stream[A, T] =
     stream drop count
 
-  override def dropWhile(f: T => Boolean): Stream[T, W] =
+  override def dropWhile(f: A => Boolean): Stream[A, T] =
     stream dropWhile f
 
-  override def take(count: Int): Stream[T, W] =
+  override def take(count: Int): Stream[A, T] =
     stream take count
 
-  override def takeWhile(f: T => Boolean): Stream[T, W] =
+  override def takeWhile(f: A => Boolean): Stream[A, T] =
     stream takeWhile f
 
-  override def map[B](f: T => B): Stream[B, W] =
+  override def map[B](f: A => B): Stream[B, T] =
     stream map f
 
-  override def flatMap[B](f: T => Stream[B, W]): Stream[B, W] =
+  override def flatMap[B](f: A => Stream[B, T]): Stream[B, T] =
     stream flatMap f
 
-  override def foreach[U](f: T => U): Stream[Unit, W] =
+  override def foreach[U](f: A => U): Stream[Unit, T] =
     stream foreach f
 
-  override def filter(f: T => Boolean): Stream[T, W] =
+  override def filter(f: A => Boolean): Stream[A, T] =
     stream filter f
 
-  override def filterNot(f: T => Boolean): Stream[T, W] =
+  override def filterNot(f: A => Boolean): Stream[A, T] =
     stream filterNot f
 
-  override def foldLeft[B](initial: B)(f: (B, T) => B): W[B] =
+  override def foldLeft[B](initial: B)(f: (B, A) => B): T[B] =
     stream.foldLeft(initial)(f)
 
-  def size: W[Int] =
+  def size: T[Int] =
     stream.size
 
-  def stream: Stream[T, W] =
-    new Stream[T, W] {
-      override def headOption: W[Option[T]] =
+  def stream: Stream[A, T] =
+    new Stream[A, T] {
+      override def headOption: T[Option[A]] =
         self.headOption
 
-      override private[swaydb] def next(previous: T): W[Option[T]] =
+      override private[swaydb] def next(previous: A): T[Option[A]] =
         wrapCall {
           if (reverseIteration)
             core.beforeKey(serializer.write(previous))
           else
             core.afterKey(serializer.write(previous))
-        } map (_.map(_.read[T]))
+        } map (_.map(_.read[A]))
     }
 
-  def sizeOfBloomFilterEntries: W[Int] =
+  def sizeOfBloomFilterEntries: T[Int] =
     wrapCall(core.bloomFilterKeyValueCount)
 
-  def isEmpty: W[Boolean] =
+  def isEmpty: T[Boolean] =
     wrapCall(core.headKey.map(_.isEmpty))
 
-  def nonEmpty: W[Boolean] =
+  def nonEmpty: T[Boolean] =
     isEmpty.map(!_)
 
-  def lastOption: W[Option[T]] =
+  def lastOption: T[Option[A]] =
     if (reverseIteration)
-      wrapCall(core.headKey.map(_.map(_.read[T])))
+      wrapCall(core.headKey.map(_.map(_.read[A])))
     else
-      wrapCall(core.lastKey.map(_.map(_.read[T])))
+      wrapCall(core.lastKey.map(_.map(_.read[A])))
 
-  def reverse: Set[T, W] =
+  def reverse: Set[A, T] =
     copy(reverseIteration = true)
 
   def asyncAPI[O[_]](implicit ec: ExecutionContext,
-                     convert: FutureTransformer[O],
-                     wrap: Wrap[O]): Set[T, O] =
+                     convert: FutureToTag[O],
+                     wrap: Tag[O]): Set[A, O] =
     copy(core = core.async[O])
 
-  def blockingAPI[O[_]](implicit convert: IOTransformer[O],
-                        wrap: Wrap[O]): Set[T, O] =
+  def blockingAPI[O[_]](implicit convert: IOToTag[O],
+                        wrap: Tag[O]): Set[A, O] =
     copy(core = core.blocking[O])
 
-  def asScala: scala.collection.mutable.Set[T] =
-    ScalaSet[T](blockingAPI[IO])
+  def asScala: scala.collection.mutable.Set[A] =
+    ScalaSet[A](blockingAPI[IO])
 
-  def closeDatabase(): W[Unit] =
+  def closeDatabase(): T[Unit] =
     wrapCall(core.close())
 
   override def toString(): String =
-    classOf[Map[_, _, W]].getClass.getSimpleName
+    classOf[Map[_, _, T]].getClass.getSimpleName
 
 }

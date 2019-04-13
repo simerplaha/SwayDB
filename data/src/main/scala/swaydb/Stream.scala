@@ -27,8 +27,8 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 import swaydb.Stream.StreamBuilder
 import swaydb.data.IO
-import swaydb.data.io.Wrap
-import swaydb.data.io.Wrap._
+import swaydb.data.io.Tag
+import swaydb.data.io.Tag._
 
 /**
   * A [[Stream]] performs lazy iteration. It does not cache data and fetches data only if
@@ -39,13 +39,13 @@ object Stream {
   /**
     * Create and empty [[Stream]].
     */
-  def empty[T, W[_]](implicit wrap: Wrap[W]) =
+  def empty[T, W[_]](implicit wrap: Tag[W]) =
     apply[T, W](Iterable.empty)
 
   /**
     * Create a [[Stream]] from a collection.
     */
-  def apply[T, W[_]](items: Iterable[T])(implicit wrap: Wrap[W]): Stream[T, W] =
+  def apply[T, W[_]](items: Iterable[T])(implicit wrap: Tag[W]): Stream[T, W] =
     new Stream[T, W] {
 
       private val iterator = items.iterator
@@ -60,7 +60,7 @@ object Stream {
       override private[swaydb] def next(previous: T): W[Option[T]] = step()
     }
 
-  class StreamBuilder[T, W[_]](implicit wrap: Wrap[W]) extends mutable.Builder[T, Stream[T, W]] {
+  class StreamBuilder[T, W[_]](implicit wrap: Tag[W]) extends mutable.Builder[T, Stream[T, W]] {
     private val items: ListBuffer[T] = ListBuffer.empty[T]
 
     override def +=(x: T): this.type = {
@@ -90,7 +90,7 @@ object Stream {
       }
   }
 
-  implicit def canBuildFrom[T, W[_]](implicit wrap: Wrap[W]): CanBuildFrom[Stream[T, W], T, Stream[T, W]] =
+  implicit def canBuildFrom[T, W[_]](implicit wrap: Tag[W]): CanBuildFrom[Stream[T, W], T, Stream[T, W]] =
     new CanBuildFrom[Stream[T, W], T, Stream[T, W]] {
       override def apply(from: Stream[T, W]) =
         new StreamBuilder()
@@ -108,7 +108,7 @@ object Stream {
   * @tparam A stream item's type
   * @tparam W wrapper type.
   */
-abstract class Stream[A, W[_]](implicit wrap: Wrap[W]) extends Streamer[A, W] { self =>
+abstract class Stream[A, W[_]](implicit wrap: Tag[W]) extends Streamer[A, W] { self =>
 
   /**
     * Private val used in [[wrap.foldLeft]] for reading only single item.
@@ -300,7 +300,7 @@ abstract class Stream[A, W[_]](implicit wrap: Wrap[W]) extends Streamer[A, W] { 
     * the output stream will still return blocking stream but wrapped as future APIs.
     */
   def toFutureStream(implicit ec: ExecutionContext): Stream[A, Future] =
-    new Stream[A, Future]()(Wrap.futureWrap) {
+    new Stream[A, Future]()(Tag.futureWrap) {
       override def headOption: Future[Option[A]] = self.wrap.toFuture(self.headOption)
       override private[swaydb] def next(previous: A): Future[Option[A]] = self.wrap.toFuture(self.next(previous))
     }

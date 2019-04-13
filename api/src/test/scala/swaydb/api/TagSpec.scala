@@ -21,14 +21,14 @@ package swaydb.api
 
 import org.scalatest.{Matchers, WordSpec}
 import scala.util.Try
-import swaydb.data.io.Wrap
+import swaydb.data.io.Tag
 import swaydb.data._
 
-class WrapSpec extends WordSpec with Matchers {
+class TagSpec extends WordSpec with Matchers {
 
   "tryMap" should {
     "" in {
-      implicit val wrap = Wrap.tryWrap
+      implicit val wrap = Tag.tryWrap
 
       val result: swaydb.Stream[Int, Try] = swaydb.Stream(1 to 100)
 
