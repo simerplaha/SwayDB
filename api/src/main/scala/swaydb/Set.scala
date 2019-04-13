@@ -44,11 +44,11 @@ object Set {
 case class Set[A, T[_]](private val core: Core[T],
                         private val from: Option[From[A]],
                         private[swaydb] val reverseIteration: Boolean = false)(implicit serializer: Serializer[A],
-                                                                               wrap: Tag[T]) extends Streamer[A, T] { self =>
+                                                                               tag: Tag[T]) extends Streamer[A, T] { self =>
 
 
   def wrapCall[C](f: => T[C]): T[C] =
-    wrap(()).flatMap(_ => f)
+    tag(()).flatMap(_ => f)
 
   def get(elem: A): T[Option[A]] =
     wrapCall(core.getKey(elem).map(_.map(_.read[A])))
@@ -193,7 +193,7 @@ case class Set[A, T[_]](private val core: Core[T],
             core.getKey(fromKeyBytes)
               .flatMap {
                 case Some(key) =>
-                  wrap.success(Some(key)): T[Option[Slice[Byte]]]
+                  tag.success(Some(key)): T[Option[Slice[Byte]]]
 
                 case _ =>
                   if (from.orAfter)
@@ -201,7 +201,7 @@ case class Set[A, T[_]](private val core: Core[T],
                   else if (from.orBefore)
                     core.beforeKey(fromKeyBytes)
                   else
-                    wrap.success(None): T[Option[Slice[Byte]]]
+                    tag.success(None): T[Option[Slice[Byte]]]
               }
 
         case None =>

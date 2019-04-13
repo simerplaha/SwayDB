@@ -40,10 +40,10 @@ case class Map[K, V, T[_]](private[swaydb] val core: Core[T],
                            private val from: Option[From[K]] = None,
                            private[swaydb] val reverseIteration: Boolean = false)(implicit keySerializer: Serializer[K],
                                                                                   valueSerializer: Serializer[V],
-                                                                                  wrap: Tag[T]) extends Streamer[(K, V), T] { self =>
+                                                                                  tag: Tag[T]) extends Streamer[(K, V), T] { self =>
 
   def wrapCall[C](f: => T[C]): T[C] =
-    wrap(()).flatMap(_ => f)
+    tag(()).flatMap(_ => f)
 
   def put(key: K, value: V): T[Level0Meter] =
     wrapCall(core.put(key = key, value = Some(value)))
@@ -205,7 +205,7 @@ case class Map[K, V, T[_]](private[swaydb] val core: Core[T],
       core = core,
       from = from,
       reverseIteration = reverseIteration
-    )(keySerializer, wrap)
+    )(keySerializer, tag)
 
   def level0Meter: Level0Meter =
     core.level0Meter
@@ -257,7 +257,7 @@ case class Map[K, V, T[_]](private[swaydb] val core: Core[T],
             core.getKeyValue(fromKeyBytes)
               .flatMap {
                 case some @ Some(_) =>
-                  wrap.success(some): T[Option[(Slice[Byte], Option[Slice[Byte]])]]
+                  tag.success(some): T[Option[(Slice[Byte], Option[Slice[Byte]])]]
 
                 case _ =>
                   if (from.orAfter)
@@ -265,7 +265,7 @@ case class Map[K, V, T[_]](private[swaydb] val core: Core[T],
                   else if (from.orBefore)
                     core.before(fromKeyBytes)
                   else
-                    wrap.success(None): T[Option[(Slice[Byte], Option[Slice[Byte]])]]
+                    tag.success(None): T[Option[(Slice[Byte], Option[Slice[Byte]])]]
               }
 
         case None =>
@@ -389,7 +389,7 @@ case class Map[K, V, T[_]](private[swaydb] val core: Core[T],
     * Wrapper will be built from [[IOToTag]].
     */
   def tagBlocking[O[_]](implicit toTag: IOToTag[O]): Map[K, V, O] = {
-    implicit val wrapper = Tag.buildSync[O](toTag)
+    implicit val tag = Tag.buildSync[O](toTag)
     copy(core = core.blocking[O])
   }
 
