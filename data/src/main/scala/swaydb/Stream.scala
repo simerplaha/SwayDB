@@ -104,45 +104,45 @@ object Stream {
   * A [[Stream]] performs lazy iteration. It does not cache data and fetches data only if
   * it's required by the stream.
   *
-  * @param wrap Implementation for the wrap type.
+  * @param tag Implementation for the wrap type.
   * @tparam A stream item's type
-  * @tparam W wrapper type.
+  * @tparam T wrapper type.
   */
-abstract class Stream[A, W[_]](implicit wrap: Tag[W]) extends Streamer[A, W] { self =>
+abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamer[A, T] { self =>
 
   /**
-    * Private val used in [[wrap.foldLeft]] for reading only single item.
+    * Private val used in [[tag.foldLeft]] for reading only single item.
     */
   private val takeOne = Some(1)
 
-  def headOption: W[Option[A]]
-  private[swaydb] def next(previous: A): W[Option[A]]
+  def headOption: T[Option[A]]
+  private[swaydb] def next(previous: A): T[Option[A]]
 
-  def take(count: Int): Stream[A, W] =
+  def take(count: Int): Stream[A, T] =
     if (count == 0)
       Stream.empty
     else
-      new Stream[A, W] {
+      new Stream[A, T] {
 
-        override def headOption: W[Option[A]] =
+        override def headOption: T[Option[A]] =
           self.headOption
 
         //flag to count how many were taken.
         private var taken = 1
-        override private[swaydb] def next(previous: A): W[Option[A]] =
+        override private[swaydb] def next(previous: A): T[Option[A]] =
           if (taken == count)
-            wrap.none
+            tag.none
           else
-            wrap.foldLeft(Option.empty[A], Some(previous), self, 0, takeOne) {
+            tag.foldLeft(Option.empty[A], Some(previous), self, 0, takeOne) {
               case (_, next) =>
                 taken += 1
                 Some(next)
             }
       }
 
-  def takeWhile(f: A => Boolean): Stream[A, W] =
-    new Stream[A, W] {
-      override def headOption: W[Option[A]] =
+  def takeWhile(f: A => Boolean): Stream[A, T] =
+    new Stream[A, T] {
+      override def headOption: T[Option[A]] =
         self.headOption map {
           head =>
             if (head.exists(f))
@@ -151,8 +151,8 @@ abstract class Stream[A, W[_]](implicit wrap: Tag[W]) extends Streamer[A, W] { s
               None
         }
 
-      override private[swaydb] def next(previous: A): W[Option[A]] =
-        wrap.foldLeft(Option.empty[A], Some(previous), self, 0, takeOne) {
+      override private[swaydb] def next(previous: A): T[Option[A]] =
+        tag.foldLeft(Option.empty[A], Some(previous), self, 0, takeOne) {
           case (_, next) =>
             if (f(next))
               Some(next)
@@ -161,12 +161,12 @@ abstract class Stream[A, W[_]](implicit wrap: Tag[W]) extends Streamer[A, W] { s
         }
     }
 
-  def drop(count: Int): Stream[A, W] =
+  def drop(count: Int): Stream[A, T] =
     if (count == 0)
       self
     else
-      new Stream[A, W] {
-        override def headOption: W[Option[A]] =
+      new Stream[A, T] {
+        override def headOption: T[Option[A]] =
           self.headOption flatMap {
             headOption =>
               headOption map {
@@ -174,41 +174,41 @@ abstract class Stream[A, W[_]](implicit wrap: Tag[W]) extends Streamer[A, W] { s
                   if (count == 1)
                     next(head)
                   else
-                    wrap.foldLeft(Option.empty[A], Some(head), self, count - 1, takeOne) {
+                    tag.foldLeft(Option.empty[A], Some(head), self, count - 1, takeOne) {
                       case (_, next) =>
                         Some(next)
                     }
-              } getOrElse wrap.none
+              } getOrElse tag.none
           }
 
-        override private[swaydb] def next(previous: A): W[Option[A]] =
+        override private[swaydb] def next(previous: A): T[Option[A]] =
           self.next(previous)
       }
 
-  def dropWhile(f: A => Boolean): Stream[A, W] =
-    new Stream[A, W] {
-      override def headOption: W[Option[A]] =
+  def dropWhile(f: A => Boolean): Stream[A, T] =
+    new Stream[A, T] {
+      override def headOption: T[Option[A]] =
         self.headOption flatMap {
           headOption =>
             headOption map {
               head =>
                 if (f(head))
-                  wrap.collectFirst(head, self)(!f(_))
+                  tag.collectFirst(head, self)(!f(_))
                 else
-                  wrap.success(headOption)
-            } getOrElse wrap.none
+                  tag.success(headOption)
+            } getOrElse tag.none
         }
 
-      override private[swaydb] def next(previous: A): W[Option[A]] =
+      override private[swaydb] def next(previous: A): T[Option[A]] =
         self.next(previous)
     }
 
-  def map[B](f: A => B): Stream[B, W] =
-    new Stream[B, W] {
+  def map[B](f: A => B): Stream[B, T] =
+    new Stream[B, T] {
 
       var previousA: Option[A] = Option.empty
 
-      override def headOption: W[Option[B]] =
+      override def headOption: T[Option[B]] =
         self.headOption map {
           previousAOption =>
             previousA = previousAOption
@@ -218,7 +218,7 @@ abstract class Stream[A, W[_]](implicit wrap: Tag[W]) extends Streamer[A, W] { s
       /**
         * Previous input parameter here is ignored so that parent stream can be read.
         */
-      override private[swaydb] def next(previous: B): W[Option[B]] =
+      override private[swaydb] def next(previous: B): T[Option[B]] =
         previousA
           .map {
             previous =>
@@ -228,61 +228,61 @@ abstract class Stream[A, W[_]](implicit wrap: Tag[W]) extends Streamer[A, W] { s
                   nextA
               }
           }
-          .getOrElse(wrap.none[A])
+          .getOrElse(tag.none[A])
           .map(_.map(f))
     }
 
-  def foreach[U](f: A => U): Stream[Unit, W] =
+  def foreach[U](f: A => U): Stream[Unit, T] =
     map[Unit](a => f(a))
 
-  def filter(f: A => Boolean): Stream[A, W] =
-    new Stream[A, W] {
+  def filter(f: A => Boolean): Stream[A, T] =
+    new Stream[A, T] {
 
-      override def headOption: W[Option[A]] =
+      override def headOption: T[Option[A]] =
         self.headOption flatMap {
           previousAOption =>
             previousAOption map {
               a =>
                 if (f(a))
-                  wrap.success(previousAOption)
+                  tag.success(previousAOption)
                 else
                   next(a)
-            } getOrElse wrap.none
+            } getOrElse tag.none
         }
 
-      override private[swaydb] def next(previous: A): W[Option[A]] =
-        wrap.collectFirst(previous, self)(f)
+      override private[swaydb] def next(previous: A): T[Option[A]] =
+        tag.collectFirst(previous, self)(f)
     }
 
-  def filterNot(f: A => Boolean): Stream[A, W] =
+  def filterNot(f: A => Boolean): Stream[A, T] =
     filter(!f(_))
 
-  def flatMap[B](f: A => Stream[B, W]): Stream[B, W] =
-    new Stream[B, W] {
+  def flatMap[B](f: A => Stream[B, T]): Stream[B, T] =
+    new Stream[B, T] {
       //cache stream and emits it's items.
       //next Stream is read only if the current cached stream is emitted.
-      var innerStream: Stream[B, W] = _
+      var innerStream: Stream[B, T] = _
       var previousA: A = _
 
-      def streamNext(nextA: A): W[Option[B]] = {
+      def streamNext(nextA: A): T[Option[B]] = {
         innerStream = f(nextA)
         previousA = nextA
         innerStream.headOption
       }
 
-      override def headOption: W[Option[B]] =
+      override def headOption: T[Option[B]] =
         self.headOption flatMap {
           case Some(nextA) =>
             streamNext(nextA)
 
           case None =>
-            wrap.none
+            tag.none
         }
 
-      override private[swaydb] def next(previous: B): W[Option[B]] =
+      override private[swaydb] def next(previous: B): T[Option[B]] =
         innerStream.next(previous) flatMap {
           case some @ Some(_) =>
-            wrap.success(some)
+            tag.success(some)
 
           case None =>
             self.next(previousA) flatMap {
@@ -290,7 +290,7 @@ abstract class Stream[A, W[_]](implicit wrap: Tag[W]) extends Streamer[A, W] { s
                 streamNext(nextA)
 
               case None =>
-                wrap.none
+                tag.none
             }
         }
     }
@@ -301,8 +301,8 @@ abstract class Stream[A, W[_]](implicit wrap: Tag[W]) extends Streamer[A, W] { s
     */
   def toFutureStream(implicit ec: ExecutionContext): Stream[A, Future] =
     new Stream[A, Future]()(Tag.future) {
-      override def headOption: Future[Option[A]] = self.wrap.toFuture(self.headOption)
-      override private[swaydb] def next(previous: A): Future[Option[A]] = self.wrap.toFuture(self.next(previous))
+      override def headOption: Future[Option[A]] = self.tag.toFuture(self.headOption)
+      override private[swaydb] def next(previous: A): Future[Option[A]] = self.tag.toFuture(self.next(previous))
     }
 
   /**
@@ -312,8 +312,8 @@ abstract class Stream[A, W[_]](implicit wrap: Tag[W]) extends Streamer[A, W] { s
     */
   def toIOStream(timeout: FiniteDuration): Stream[A, IO] =
     new Stream[A, IO] {
-      override def headOption: IO[Option[A]] = self.wrap.toIO(self.headOption, timeout)
-      override private[swaydb] def next(previous: A): IO[Option[A]] = self.wrap.toIO(self.next(previous), timeout)
+      override def headOption: IO[Option[A]] = self.tag.toIO(self.headOption, timeout)
+      override private[swaydb] def next(previous: A): IO[Option[A]] = self.tag.toIO(self.next(previous), timeout)
     }
 
   /**
@@ -323,8 +323,8 @@ abstract class Stream[A, W[_]](implicit wrap: Tag[W]) extends Streamer[A, W] { s
     */
   def toTryStream(timeout: FiniteDuration): Stream[A, Try] =
     new Stream[A, Try] {
-      override def headOption: Try[Option[A]] = self.wrap.toIO(self.headOption, timeout).toTry
-      override private[swaydb] def next(previous: A): Try[Option[A]] = self.wrap.toIO(self.next(previous), timeout).toTry
+      override def headOption: Try[Option[A]] = self.tag.toIO(self.headOption, timeout).toTry
+      override private[swaydb] def next(previous: A): Try[Option[A]] = self.tag.toIO(self.next(previous), timeout).toTry
     }
 
   /**
@@ -332,7 +332,7 @@ abstract class Stream[A, W[_]](implicit wrap: Tag[W]) extends Streamer[A, W] { s
     *
     * For a more efficient one use swaydb.Map.lastOption or swaydb.Set.lastOption instead.
     */
-  def lastOption: W[Option[A]] =
+  def lastOption: T[Option[A]] =
     foldLeft(Option.empty[A]) {
       (_, next) =>
         Some(next)
@@ -341,16 +341,16 @@ abstract class Stream[A, W[_]](implicit wrap: Tag[W]) extends Streamer[A, W] { s
   /**
     * Materializes are executes the stream.
     */
-  def foldLeft[B](initial: B)(f: (B, A) => B): W[B] =
-    wrap(()) flatMap {
+  def foldLeft[B](initial: B)(f: (B, A) => B): T[B] =
+    tag(()) flatMap {
       _ =>
-        wrap.foldLeft(initial, None, self, 0, None)(f)
+        tag.foldLeft(initial, None, self, 0, None)(f)
     }
 
   /**
     * Folds over all elements in the Stream to calculate it's total size.
     */
-  def size: W[Int] =
+  def size: T[Int] =
     foldLeft(0) {
       case (size, _) =>
         size + 1
@@ -359,8 +359,8 @@ abstract class Stream[A, W[_]](implicit wrap: Tag[W]) extends Streamer[A, W] { s
   /**
     * Materialises/closes and processes the stream to a [[Seq]].
     */
-  def materialize: W[Seq[A]] =
-    foldLeft(new StreamBuilder[A, W]()) {
+  def materialize: T[Seq[A]] =
+    foldLeft(new StreamBuilder[A, T]()) {
       (buffer, item) =>
         buffer += item
     } map (_.asSeq)

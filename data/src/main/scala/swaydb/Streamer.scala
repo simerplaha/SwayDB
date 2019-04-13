@@ -19,32 +19,32 @@
 
 package swaydb
 
-private[swaydb] trait Streamer[A, W[_]] {
+private[swaydb] trait Streamer[A, T[_]] {
 
-  def map[B](f: A => B): Stream[B, W]
+  def map[B](f: A => B): Stream[B, T]
 
-  def flatMap[B](f: A => Stream[B, W]): Stream[B, W]
+  def flatMap[B](f: A => Stream[B, T]): Stream[B, T]
 
-  def drop(count: Int): Stream[A, W]
+  def drop(count: Int): Stream[A, T]
 
-  def dropWhile(f: A => Boolean): Stream[A, W]
+  def dropWhile(f: A => Boolean): Stream[A, T]
 
-  def take(count: Int): Stream[A, W]
+  def take(count: Int): Stream[A, T]
 
-  def takeWhile(f: A => Boolean): Stream[A, W]
+  def takeWhile(f: A => Boolean): Stream[A, T]
 
-  def foreach[U](f: A => U): Stream[Unit, W]
+  def foreach[U](f: A => U): Stream[Unit, T]
 
-  def filter(f: A => Boolean): Stream[A, W]
+  def filter(f: A => Boolean): Stream[A, T]
 
-  def filterNot(f: A => Boolean): Stream[A, W]
+  def filterNot(f: A => Boolean): Stream[A, T]
 
-  def foldLeft[B](initial: B)(f: (B, A) => B): W[B]
+  def foldLeft[B](initial: B)(f: (B, A) => B): T[B]
 
-  def size: W[Int]
+  def size: T[Int]
 
-  def lastOption: W[Option[A]]
+  def lastOption: T[Option[A]]
 
-  def headOption: W[Option[A]]
+  def headOption: T[Option[A]]
 
 }

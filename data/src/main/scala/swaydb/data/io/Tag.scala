@@ -238,7 +238,7 @@ object Tag {
         }
     }
 
-  implicit class WrapImplicits[A, T[_] : Tag](a: T[A])(implicit tag: Tag[T]) {
+  implicit class TagImplicits[A, T[_] : Tag](a: T[A])(implicit tag: Tag[T]) {
     @inline def map[B](f: A => B): T[B] =
       tag.flatMap(a) {
         a =>
