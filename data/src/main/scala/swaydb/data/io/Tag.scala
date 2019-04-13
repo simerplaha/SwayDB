@@ -59,7 +59,7 @@ object Tag {
       override def none[A]: O[Option[A]] = transform.toOther(futureWrapper.none)
       override def toFuture[A](a: O[A]): Future[A] = transform.toFuture(a)
       override def toIO[A](a: O[A], timeout: FiniteDuration): IO[A] = futureWrapper.toIO(transform.toFuture(a), timeout)
-      override def fromIO[A](a: IO[A]): O[A] = transform.toOther(a)
+      override def fromIO[A](a: IO[A]): O[A] = transform.toOther(a.toFuture)
       override def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A, O], drop: Int, take: Option[Int])(operation: (U, A) => U): O[U] =
         transform.toOther(futureWrapper.foldLeft(initial, after, stream.toFutureStream(ec), drop, take)(operation))
       override def collectFirst[A](previous: A, stream: swaydb.Stream[A, O])(condition: A => Boolean): O[Option[A]] =
