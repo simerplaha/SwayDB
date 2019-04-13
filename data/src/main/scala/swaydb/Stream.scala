@@ -300,7 +300,7 @@ abstract class Stream[A, W[_]](implicit wrap: Tag[W]) extends Streamer[A, W] { s
     * the output stream will still return blocking stream but wrapped as future APIs.
     */
   def toFutureStream(implicit ec: ExecutionContext): Stream[A, Future] =
-    new Stream[A, Future]()(Tag.futureWrap) {
+    new Stream[A, Future]()(Tag.future) {
       override def headOption: Future[Option[A]] = self.wrap.toFuture(self.headOption)
       override private[swaydb] def next(previous: A): Future[Option[A]] = self.wrap.toFuture(self.next(previous))
     }

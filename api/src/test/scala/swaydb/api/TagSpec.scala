@@ -28,7 +28,7 @@ class TagSpec extends WordSpec with Matchers {
 
   "tryMap" should {
     "" in {
-      implicit val wrap = Tag.tryWrap
+      implicit val wrap = Tag.tryTag
 
       val result: swaydb.Stream[Int, Try] = swaydb.Stream(1 to 100)
 

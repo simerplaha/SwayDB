@@ -26,87 +26,86 @@ import swaydb.core.data.KeyValue.KeyValueTuple
 import swaydb.core.data.SwayFunction
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
-import swaydb.data.io.{FutureToTag, IOToTag}
-import swaydb.data.io.FutureToTag
+import swaydb.data.io.Tag
 import swaydb.data.slice.Slice
 
-private[swaydb] trait Core[W[_]] {
+private[swaydb] trait Core[T[_]] {
 
-  def put(key: Slice[Byte]): W[Level0Meter]
+  def put(key: Slice[Byte]): T[Level0Meter]
 
-  def put(key: Slice[Byte], value: Slice[Byte]): W[Level0Meter]
+  def put(key: Slice[Byte], value: Slice[Byte]): T[Level0Meter]
 
-  def put(key: Slice[Byte], value: Option[Slice[Byte]]): W[Level0Meter]
+  def put(key: Slice[Byte], value: Option[Slice[Byte]]): T[Level0Meter]
 
-  def put(key: Slice[Byte], value: Option[Slice[Byte]], removeAt: Deadline): W[Level0Meter]
+  def put(key: Slice[Byte], value: Option[Slice[Byte]], removeAt: Deadline): T[Level0Meter]
 
-  def put(entries: Iterable[Prepare[Slice[Byte], Option[Slice[Byte]]]]): W[Level0Meter]
+  def put(entries: Iterable[Prepare[Slice[Byte], Option[Slice[Byte]]]]): T[Level0Meter]
 
-  def remove(key: Slice[Byte]): W[Level0Meter]
+  def remove(key: Slice[Byte]): T[Level0Meter]
 
-  def remove(key: Slice[Byte], at: Deadline): W[Level0Meter]
+  def remove(key: Slice[Byte], at: Deadline): T[Level0Meter]
 
-  def remove(from: Slice[Byte], to: Slice[Byte]): W[Level0Meter]
+  def remove(from: Slice[Byte], to: Slice[Byte]): T[Level0Meter]
 
-  def remove(from: Slice[Byte], to: Slice[Byte], at: Deadline): W[Level0Meter]
+  def remove(from: Slice[Byte], to: Slice[Byte], at: Deadline): T[Level0Meter]
 
-  def update(key: Slice[Byte], value: Slice[Byte]): W[Level0Meter]
+  def update(key: Slice[Byte], value: Slice[Byte]): T[Level0Meter]
 
-  def update(key: Slice[Byte], value: Option[Slice[Byte]]): W[Level0Meter]
+  def update(key: Slice[Byte], value: Option[Slice[Byte]]): T[Level0Meter]
 
-  def update(fromKey: Slice[Byte], to: Slice[Byte], value: Slice[Byte]): W[Level0Meter]
+  def update(fromKey: Slice[Byte], to: Slice[Byte], value: Slice[Byte]): T[Level0Meter]
 
-  def update(fromKey: Slice[Byte], to: Slice[Byte], value: Option[Slice[Byte]]): W[Level0Meter]
+  def update(fromKey: Slice[Byte], to: Slice[Byte], value: Option[Slice[Byte]]): T[Level0Meter]
 
-  def clear(): W[Level0Meter]
+  def clear(): T[Level0Meter]
 
-  def function(key: Slice[Byte], function: Slice[Byte]): W[Level0Meter]
+  def function(key: Slice[Byte], function: Slice[Byte]): T[Level0Meter]
 
-  def function(from: Slice[Byte], to: Slice[Byte], function: Slice[Byte]): W[Level0Meter]
+  def function(from: Slice[Byte], to: Slice[Byte], function: Slice[Byte]): T[Level0Meter]
 
   def registerFunction(functionID: Slice[Byte], function: SwayFunction): SwayFunction
 
-  def head: W[Option[KeyValueTuple]]
+  def head: T[Option[KeyValueTuple]]
 
-  def headKey: W[Option[Slice[Byte]]]
+  def headKey: T[Option[Slice[Byte]]]
 
-  def last: W[Option[KeyValueTuple]]
+  def last: T[Option[KeyValueTuple]]
 
-  def lastKey: W[Option[Slice[Byte]]]
+  def lastKey: T[Option[Slice[Byte]]]
 
-  def bloomFilterKeyValueCount: W[Int]
+  def bloomFilterKeyValueCount: T[Int]
 
-  def deadline(key: Slice[Byte]): W[Option[Deadline]]
+  def deadline(key: Slice[Byte]): T[Option[Deadline]]
 
   def sizeOfSegments: Long
 
-  def contains(key: Slice[Byte]): W[Boolean]
+  def contains(key: Slice[Byte]): T[Boolean]
 
-  def mightContain(key: Slice[Byte]): W[Boolean]
+  def mightContain(key: Slice[Byte]): T[Boolean]
 
-  def get(key: Slice[Byte]): W[Option[Option[Slice[Byte]]]]
+  def get(key: Slice[Byte]): T[Option[Option[Slice[Byte]]]]
 
-  def getKey(key: Slice[Byte]): W[Option[Slice[Byte]]]
+  def getKey(key: Slice[Byte]): T[Option[Slice[Byte]]]
 
-  def getKeyValue(key: Slice[Byte]): W[Option[KeyValueTuple]]
+  def getKeyValue(key: Slice[Byte]): T[Option[KeyValueTuple]]
 
-  def before(key: Slice[Byte]): W[Option[KeyValueTuple]]
+  def before(key: Slice[Byte]): T[Option[KeyValueTuple]]
 
-  def beforeKey(key: Slice[Byte]): W[Option[Slice[Byte]]]
+  def beforeKey(key: Slice[Byte]): T[Option[Slice[Byte]]]
 
-  def after(key: Slice[Byte]): W[Option[KeyValueTuple]]
+  def after(key: Slice[Byte]): T[Option[KeyValueTuple]]
 
-  def afterKey(key: Slice[Byte]): W[Option[Slice[Byte]]]
+  def afterKey(key: Slice[Byte]): T[Option[Slice[Byte]]]
 
-  def valueSize(key: Slice[Byte]): W[Option[Int]]
+  def valueSize(key: Slice[Byte]): T[Option[Int]]
 
   def level0Meter: Level0Meter
 
   def levelMeter(levelNumber: Int): Option[LevelMeter]
 
-  def close(): W[Unit]
+  def close(): T[Unit]
 
-  def async[T[_]](implicit ec: ExecutionContext, transform: FutureToTag[T]): Core[T]
+  def async[X[_]](implicit ec: ExecutionContext, tag: Tag[X]): Core[X]
 
-  def blocking[T[_]](implicit transform: IOToTag[T]): BlockingCore[T]
+  def blocking[X[_]](implicit tag: Tag[X]): BlockingCore[X]
 }

@@ -22,12 +22,12 @@ package swaydb
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 import swaydb.PrepareImplicits._
-import swaydb.data.io.Tag._
 import swaydb.core.Core
 import swaydb.data.IO
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
-import swaydb.data.io.{FutureToTag, IOToTag, Tag}
+import swaydb.data.io.Tag
+import swaydb.data.io.Tag._
 import swaydb.data.slice.Slice
 import swaydb.serializers.{Serializer, _}
 
@@ -45,7 +45,6 @@ case class Set[A, T[_]](private val core: Core[T],
                         private val from: Option[From[A]],
                         private[swaydb] val reverseIteration: Boolean = false)(implicit serializer: Serializer[A],
                                                                                tag: Tag[T]) extends Streamer[A, T] { self =>
-
 
   def wrapCall[C](f: => T[C]): T[C] =
     tag.success(()).flatMap(_ => f)
@@ -274,17 +273,15 @@ case class Set[A, T[_]](private val core: Core[T],
   def reverse: Set[A, T] =
     copy(reverseIteration = true)
 
-  def asyncAPI[O[_]](implicit ec: ExecutionContext,
-                     convert: FutureToTag[O],
-                     wrap: Tag[O]): Set[A, O] =
+  def tagAsync[O[_]](implicit ec: ExecutionContext,
+                     tag: Tag[O]): Set[A, O] =
     copy(core = core.async[O])
 
-  def blockingAPI[O[_]](implicit convert: IOToTag[O],
-                        wrap: Tag[O]): Set[A, O] =
+  def tagBlocking[O[_]](implicit tag: Tag[O]): Set[A, O] =
     copy(core = core.blocking[O])
 
   def asScala: scala.collection.mutable.Set[A] =
-    ScalaSet[A](blockingAPI[IO])
+    ScalaSet[A](tagBlocking[IO])
 
   def closeDatabase(): T[Unit] =
     wrapCall(core.close())

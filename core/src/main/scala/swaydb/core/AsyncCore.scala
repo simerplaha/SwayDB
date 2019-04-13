@@ -30,61 +30,61 @@ import swaydb.data.IO
 import swaydb.data.IO.Error
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
-import swaydb.data.io.{FutureToTag, IOToTag}
+import swaydb.data.io.Tag
 import swaydb.data.slice.Slice
 
-private[swaydb] case class AsyncCore[W[_]](zero: LevelZero)(implicit ec: ExecutionContext,
-                                                            transform: FutureToTag[W]) extends Core[W] {
+private[swaydb] case class AsyncCore[T[_]](zero: LevelZero)(implicit ec: ExecutionContext,
+                                                            tag: Tag[T]) extends Core[T] {
 
-  private val block = BlockingCore[IO](zero)(IOToTag.IOToIOToTag)
+  private val block = BlockingCore[IO](zero)(Tag.io)
 
-  override def put(key: Slice[Byte]): W[Level0Meter] =
-    transform.toOther(block.put(key).toFuture)
+  override def put(key: Slice[Byte]): T[Level0Meter] =
+    tag.fromIO(block.put(key))
 
-  override def put(key: Slice[Byte], value: Slice[Byte]): W[Level0Meter] =
-    transform.toOther(block.put(key, value).toFuture)
+  override def put(key: Slice[Byte], value: Slice[Byte]): T[Level0Meter] =
+    tag.fromIO(block.put(key, value))
 
-  override def put(key: Slice[Byte], value: Option[Slice[Byte]]): W[Level0Meter] =
-    transform.toOther(block.put(key, value).toFuture)
+  override def put(key: Slice[Byte], value: Option[Slice[Byte]]): T[Level0Meter] =
+    tag.fromIO(block.put(key, value))
 
-  override def put(key: Slice[Byte], value: Option[Slice[Byte]], removeAt: Deadline): W[Level0Meter] =
-    transform.toOther(block.put(key, value, removeAt).toFuture)
+  override def put(key: Slice[Byte], value: Option[Slice[Byte]], removeAt: Deadline): T[Level0Meter] =
+    tag.fromIO(block.put(key, value, removeAt))
 
-  override def put(entries: Iterable[Prepare[Slice[Byte], Option[Slice[Byte]]]]): W[Level0Meter] =
-    transform.toOther(block.put(entries).toFuture)
+  override def put(entries: Iterable[Prepare[Slice[Byte], Option[Slice[Byte]]]]): T[Level0Meter] =
+    tag.fromIO(block.put(entries))
 
-  override def remove(key: Slice[Byte]): W[Level0Meter] =
-    transform.toOther(block.remove(key).toFuture)
+  override def remove(key: Slice[Byte]): T[Level0Meter] =
+    tag.fromIO(block.remove(key))
 
-  override def remove(key: Slice[Byte], at: Deadline): W[Level0Meter] =
-    transform.toOther(block.remove(key, at).toFuture)
+  override def remove(key: Slice[Byte], at: Deadline): T[Level0Meter] =
+    tag.fromIO(block.remove(key, at))
 
-  override def remove(from: Slice[Byte], to: Slice[Byte]): W[Level0Meter] =
-    transform.toOther(block.remove(from, to).toFuture)
+  override def remove(from: Slice[Byte], to: Slice[Byte]): T[Level0Meter] =
+    tag.fromIO(block.remove(from, to))
 
-  override def remove(from: Slice[Byte], to: Slice[Byte], at: Deadline): W[Level0Meter] =
-    transform.toOther(block.remove(from, to, at).toFuture)
+  override def remove(from: Slice[Byte], to: Slice[Byte], at: Deadline): T[Level0Meter] =
+    tag.fromIO(block.remove(from, to, at))
 
-  override def update(key: Slice[Byte], value: Slice[Byte]): W[Level0Meter] =
-    transform.toOther(block.update(key, value).toFuture)
+  override def update(key: Slice[Byte], value: Slice[Byte]): T[Level0Meter] =
+    tag.fromIO(block.update(key, value))
 
-  override def update(key: Slice[Byte], value: Option[Slice[Byte]]): W[Level0Meter] =
-    transform.toOther(block.update(key, value).toFuture)
+  override def update(key: Slice[Byte], value: Option[Slice[Byte]]): T[Level0Meter] =
+    tag.fromIO(block.update(key, value))
 
-  override def update(fromKey: Slice[Byte], to: Slice[Byte], value: Slice[Byte]): W[Level0Meter] =
-    transform.toOther(block.update(fromKey, to, value).toFuture)
+  override def update(fromKey: Slice[Byte], to: Slice[Byte], value: Slice[Byte]): T[Level0Meter] =
+    tag.fromIO(block.update(fromKey, to, value))
 
-  override def update(fromKey: Slice[Byte], to: Slice[Byte], value: Option[Slice[Byte]]): W[Level0Meter] =
-    transform.toOther(block.update(fromKey, to, value).toFuture)
+  override def update(fromKey: Slice[Byte], to: Slice[Byte], value: Option[Slice[Byte]]): T[Level0Meter] =
+    tag.fromIO(block.update(fromKey, to, value))
 
-  override def clear(): W[Level0Meter] =
-    transform.toOther(zero.clear().safeGetFuture)
+  override def clear(): T[Level0Meter] =
+    tag.fromFuture(zero.clear().safeGetFuture)
 
-  override def function(key: Slice[Byte], function: Slice[Byte]): W[Level0Meter] =
-    transform.toOther(block.function(key, function).toFuture)
+  override def function(key: Slice[Byte], function: Slice[Byte]): T[Level0Meter] =
+    tag.fromIO(block.function(key, function))
 
-  override def function(from: Slice[Byte], to: Slice[Byte], function: Slice[Byte]): W[Level0Meter] =
-    transform.toOther(block.function(from, to, function).toFuture)
+  override def function(from: Slice[Byte], to: Slice[Byte], function: Slice[Byte]): T[Level0Meter] =
+    tag.fromIO(block.function(from, to, function))
 
   override def registerFunction(functionID: Slice[Byte], function: SwayFunction): SwayFunction =
     block.registerFunction(functionID, function)
@@ -98,8 +98,8 @@ private[swaydb] case class AsyncCore[W[_]](zero: LevelZero)(implicit ec: Executi
   override def levelMeter(levelNumber: Int): Option[LevelMeter] =
     block.levelMeter(levelNumber)
 
-  override def close(): W[Unit] =
-    transform.toOther(block.close().toFuture)
+  override def close(): T[Unit] =
+    tag.fromIO(block.close())
 
   private def headFuture: Future[Option[KeyValueTuple]] =
     zero.head.safeGetFuture flatMap {
@@ -122,11 +122,11 @@ private[swaydb] case class AsyncCore[W[_]](zero: LevelZero)(implicit ec: Executi
         } getOrElse Delay.futureNone
     }
 
-  def head: W[Option[KeyValueTuple]] =
-    transform.toOther(headFuture)
+  def head: T[Option[KeyValueTuple]] =
+    tag.fromFuture(headFuture)
 
-  def headKey: W[Option[Slice[Byte]]] =
-    transform.toOther(zero.headKey.safeGetFuture)
+  def headKey: T[Option[Slice[Byte]]] =
+    tag.fromFuture(zero.headKey.safeGetFuture)
 
   private def lastFuture: Future[Option[KeyValueTuple]] =
     zero.last.safeGetFuture flatMap {
@@ -149,23 +149,23 @@ private[swaydb] case class AsyncCore[W[_]](zero: LevelZero)(implicit ec: Executi
         } getOrElse Delay.futureNone
     }
 
-  def last: W[Option[KeyValueTuple]] =
-    transform.toOther(lastFuture)
+  def last: T[Option[KeyValueTuple]] =
+    tag.fromFuture(lastFuture)
 
-  def lastKey: W[Option[Slice[Byte]]] =
-    transform.toOther(zero.lastKey.safeGetFuture)
+  def lastKey: T[Option[Slice[Byte]]] =
+    tag.fromFuture(zero.lastKey.safeGetFuture)
 
-  def bloomFilterKeyValueCount: W[Int] =
-    transform.toOther(IO.Async.runSafe(zero.bloomFilterKeyValueCount.get).safeGetFuture)
+  def bloomFilterKeyValueCount: T[Int] =
+    tag.fromFuture(IO.Async.runSafe(zero.bloomFilterKeyValueCount.get).safeGetFuture)
 
-  def deadline(key: Slice[Byte]): W[Option[Deadline]] =
-    transform.toOther(zero.deadline(key).safeGetFuture)
+  def deadline(key: Slice[Byte]): T[Option[Deadline]] =
+    tag.fromFuture(zero.deadline(key).safeGetFuture)
 
-  def contains(key: Slice[Byte]): W[Boolean] =
-    transform.toOther(zero.contains(key).safeGetFuture)
+  def contains(key: Slice[Byte]): T[Boolean] =
+    tag.fromFuture(zero.contains(key).safeGetFuture)
 
-  def mightContain(key: Slice[Byte]): W[Boolean] =
-    transform.toOther(IO.Async.runSafe(zero.mightContain(key).get).safeGetFuture)
+  def mightContain(key: Slice[Byte]): T[Boolean] =
+    tag.fromFuture(IO.Async.runSafe(zero.mightContain(key).get).safeGetFuture)
 
   def getFuture(key: Slice[Byte]): Future[Option[Option[Slice[Byte]]]] =
     zero.get(key).safeGetFuture flatMap {
@@ -188,11 +188,11 @@ private[swaydb] case class AsyncCore[W[_]](zero: LevelZero)(implicit ec: Executi
         } getOrElse Delay.futureNone
     }
 
-  def get(key: Slice[Byte]): W[Option[Option[Slice[Byte]]]] =
-    transform.toOther(getFuture(key))
+  def get(key: Slice[Byte]): T[Option[Option[Slice[Byte]]]] =
+    tag.fromFuture(getFuture(key))
 
-  def getKey(key: Slice[Byte]): W[Option[Slice[Byte]]] =
-    transform.toOther(zero.getKey(key).safeGetFuture)
+  def getKey(key: Slice[Byte]): T[Option[Slice[Byte]]] =
+    tag.fromFuture(zero.getKey(key).safeGetFuture)
 
   def getKeyValueFuture(key: Slice[Byte]): Future[Option[KeyValueTuple]] =
     zero.get(key).safeGetFuture flatMap {
@@ -215,8 +215,8 @@ private[swaydb] case class AsyncCore[W[_]](zero: LevelZero)(implicit ec: Executi
         } getOrElse Delay.futureNone
     }
 
-  def getKeyValue(key: Slice[Byte]): W[Option[KeyValueTuple]] =
-    transform.toOther(getKeyValueFuture(key))
+  def getKeyValue(key: Slice[Byte]): T[Option[KeyValueTuple]] =
+    tag.fromFuture(getKeyValueFuture(key))
 
   def beforeFuture(key: Slice[Byte]): Future[Option[KeyValueTuple]] =
     zero.lower(key).safeGetFuture flatMap {
@@ -239,13 +239,13 @@ private[swaydb] case class AsyncCore[W[_]](zero: LevelZero)(implicit ec: Executi
         } getOrElse Delay.futureNone
     }
 
-  def before(key: Slice[Byte]): W[Option[KeyValueTuple]] =
-    transform.toOther(beforeFuture(key))
+  def before(key: Slice[Byte]): T[Option[KeyValueTuple]] =
+    tag.fromFuture(beforeFuture(key))
 
-  def beforeKey(key: Slice[Byte]): W[Option[Slice[Byte]]] =
-    transform.toOther(zero.lower(key).safeGetFuture.map(_.map(_.key)))
+  def beforeKey(key: Slice[Byte]): T[Option[Slice[Byte]]] =
+    tag.fromFuture(zero.lower(key).safeGetFuture.map(_.map(_.key)))
 
-  def afterFuture(key: Slice[Byte]): Future[Option[KeyValueTuple]] =
+  private def afterFuture(key: Slice[Byte]): Future[Option[KeyValueTuple]] =
     zero.higher(key).safeGetFuture flatMap {
       result =>
         result map {
@@ -266,18 +266,18 @@ private[swaydb] case class AsyncCore[W[_]](zero: LevelZero)(implicit ec: Executi
         } getOrElse Delay.futureNone
     }
 
-  def after(key: Slice[Byte]): W[Option[KeyValueTuple]] =
-    transform.toOther(afterFuture(key))
+  def after(key: Slice[Byte]): T[Option[KeyValueTuple]] =
+    tag.fromFuture(afterFuture(key))
 
-  def afterKey(key: Slice[Byte]): W[Option[Slice[Byte]]] =
-    transform.toOther(zero.higher(key).safeGetFuture.map(_.map(_.key)))
+  def afterKey(key: Slice[Byte]): T[Option[Slice[Byte]]] =
+    tag.fromFuture(zero.higher(key).safeGetFuture.map(_.map(_.key)))
 
-  def valueSize(key: Slice[Byte]): W[Option[Int]] =
-    transform.toOther(zero.valueSize(key).safeGetFuture)
+  def valueSize(key: Slice[Byte]): T[Option[Int]] =
+    tag.fromFuture(zero.valueSize(key).safeGetFuture)
 
-  override def async[T[_]](implicit ec: ExecutionContext, transform: FutureToTag[T]): Core[T] =
+  override def async[T[_]](implicit ec: ExecutionContext, tag: Tag[T]): Core[T] =
     copy(zero)
 
-  override def blocking[T[_]](implicit transform: IOToTag[T]): BlockingCore[T] =
+  override def blocking[T[_]](implicit tag: Tag[T]): BlockingCore[T] =
     BlockingCore(zero)
 }

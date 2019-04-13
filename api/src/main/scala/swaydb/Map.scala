@@ -23,12 +23,12 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 import swaydb.PrepareImplicits._
 import swaydb.core.Core
+import swaydb.data.IO
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
+import swaydb.data.io.Tag
 import swaydb.data.io.Tag._
-import swaydb.data.io.{FutureToTag, IOToTag, Tag}
 import swaydb.data.slice.Slice
-import swaydb.data.IO
 import swaydb.serializers.{Serializer, _}
 
 /**
@@ -363,45 +363,20 @@ case class Map[K, V, T[_]](private[swaydb] val core: Core[T],
     copy(reverseIteration = true)
 
   /**
-    * Returns an Async API of type O where the [[Tag]] is not known.
-    *
-    * Wrapper will be built from [[FutureToTag]].
-    */
-  def tagAsync[O[_]](implicit ec: ExecutionContext,
-                     transform: FutureToTag[O]): Map[K, V, O] = {
-    implicit val tag = Tag.buildAsync[O](transform)
-    copy(core = core.async[O])
-  }
-
-  /**
     * Returns an Async API of type O where the [[Tag]] is known.
-    *
-    * Wrapper will be built from [[FutureToTag]].
     */
   def tagAsync[O[_]](implicit ec: ExecutionContext,
-                     toTag: FutureToTag[O],
                      tag: Tag[O]): Map[K, V, O] =
     copy(core = core.async[O])
 
   /**
-    * Returns an blocking API of type O where the [[Tag]] is not known.
-    *
-    * Wrapper will be built from [[IOToTag]].
-    */
-  def tagBlocking[O[_]](implicit toTag: IOToTag[O]): Map[K, V, O] = {
-    implicit val tag = Tag.buildSync[O](toTag)
-    copy(core = core.blocking[O])
-  }
-
-  /**
     * Returns an blocking API of type O where the [[Tag]] is known.
     */
-  def tagBlocking[O[_]](implicit transform: IOToTag[O],
-                        wrap: Tag[O]): Map[K, V, O] =
+  def tagBlocking[O[_]](implicit tag: Tag[O]): Map[K, V, O] =
     copy(core = core.blocking[O])
 
   def asScala: scala.collection.mutable.Map[K, V] =
-    ScalaMap[K, V](tagBlocking[IO](IOToTag.IOToIOToTag, Tag.ioWrap))
+    ScalaMap[K, V](tagBlocking[IO](Tag.io))
 
   def closeDatabase(): T[Unit] =
     wrapCall(core.close())
