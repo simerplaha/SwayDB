@@ -24,6 +24,7 @@ import scala.concurrent.duration.Deadline
 import swaydb.Prepare
 import swaydb.core.data.KeyValue.KeyValueTuple
 import swaydb.core.data.SwayFunction
+import swaydb.data.IO
 import swaydb.data.accelerate.Level0Meter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.io.{Tag, TagAsync}
@@ -31,37 +32,37 @@ import swaydb.data.slice.Slice
 
 private[swaydb] trait Core[T[_]] {
 
-  def put(key: Slice[Byte]): T[Level0Meter]
+  def put(key: Slice[Byte]): T[IO.OK]
 
-  def put(key: Slice[Byte], value: Slice[Byte]): T[Level0Meter]
+  def put(key: Slice[Byte], value: Slice[Byte]): T[IO.OK]
 
-  def put(key: Slice[Byte], value: Option[Slice[Byte]]): T[Level0Meter]
+  def put(key: Slice[Byte], value: Option[Slice[Byte]]): T[IO.OK]
 
-  def put(key: Slice[Byte], value: Option[Slice[Byte]], removeAt: Deadline): T[Level0Meter]
+  def put(key: Slice[Byte], value: Option[Slice[Byte]], removeAt: Deadline): T[IO.OK]
 
-  def put(entries: Iterable[Prepare[Slice[Byte], Option[Slice[Byte]]]]): T[Level0Meter]
+  def put(entries: Iterable[Prepare[Slice[Byte], Option[Slice[Byte]]]]): T[IO.OK]
 
-  def remove(key: Slice[Byte]): T[Level0Meter]
+  def remove(key: Slice[Byte]): T[IO.OK]
 
-  def remove(key: Slice[Byte], at: Deadline): T[Level0Meter]
+  def remove(key: Slice[Byte], at: Deadline): T[IO.OK]
 
-  def remove(from: Slice[Byte], to: Slice[Byte]): T[Level0Meter]
+  def remove(from: Slice[Byte], to: Slice[Byte]): T[IO.OK]
 
-  def remove(from: Slice[Byte], to: Slice[Byte], at: Deadline): T[Level0Meter]
+  def remove(from: Slice[Byte], to: Slice[Byte], at: Deadline): T[IO.OK]
 
-  def update(key: Slice[Byte], value: Slice[Byte]): T[Level0Meter]
+  def update(key: Slice[Byte], value: Slice[Byte]): T[IO.OK]
 
-  def update(key: Slice[Byte], value: Option[Slice[Byte]]): T[Level0Meter]
+  def update(key: Slice[Byte], value: Option[Slice[Byte]]): T[IO.OK]
 
-  def update(fromKey: Slice[Byte], to: Slice[Byte], value: Slice[Byte]): T[Level0Meter]
+  def update(fromKey: Slice[Byte], to: Slice[Byte], value: Slice[Byte]): T[IO.OK]
 
-  def update(fromKey: Slice[Byte], to: Slice[Byte], value: Option[Slice[Byte]]): T[Level0Meter]
+  def update(fromKey: Slice[Byte], to: Slice[Byte], value: Option[Slice[Byte]]): T[IO.OK]
 
-  def clear(): T[Level0Meter]
+  def clear(): T[IO.OK]
 
-  def function(key: Slice[Byte], function: Slice[Byte]): T[Level0Meter]
+  def function(key: Slice[Byte], function: Slice[Byte]): T[IO.OK]
 
-  def function(from: Slice[Byte], to: Slice[Byte], function: Slice[Byte]): T[Level0Meter]
+  def function(from: Slice[Byte], to: Slice[Byte], function: Slice[Byte]): T[IO.OK]
 
   def registerFunction(functionID: Slice[Byte], function: SwayFunction): SwayFunction
 

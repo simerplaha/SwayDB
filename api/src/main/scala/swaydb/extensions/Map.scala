@@ -206,19 +206,19 @@ class Map[K, V](mapKey: Seq[K],
         )
     }
 
-  def put(key: K, value: V): IO[Level0Meter] =
+  def put(key: K, value: V): IO[IO.OK] =
     map.put(key = Key.MapEntry(mapKey, key), value = Some(value))
 
-  def put(key: K, value: V, expireAfter: FiniteDuration): IO[Level0Meter] =
+  def put(key: K, value: V, expireAfter: FiniteDuration): IO[IO.OK] =
     map.put(Key.MapEntry(mapKey, key), Some(value), expireAfter.fromNow)
 
-  def put(key: K, value: V, expireAt: Deadline): IO[Level0Meter] =
+  def put(key: K, value: V, expireAt: Deadline): IO[IO.OK] =
     map.put(Key.MapEntry(mapKey, key), Some(value), expireAt)
 
-  def put(keyValues: (K, V)*): IO[Level0Meter] =
+  def put(keyValues: (K, V)*): IO[IO.OK] =
     put(keyValues)
 
-  def put(keyValues: Iterable[(K, V)]): IO[Level0Meter] =
+  def put(keyValues: Iterable[(K, V)]): IO[IO.OK] =
     map.put {
       keyValues map {
         case (key, value) =>
@@ -238,16 +238,16 @@ class Map[K, V](mapKey: Seq[K],
   private def preparePut(key: K, value: V, deadline: Option[Deadline]): Prepare[Key.MapEntry[K], Option[V]] =
     Prepare.Put(Key.MapEntry(mapKey, key), value = Some(value), deadline = deadline)
 
-  def remove(key: K): IO[Level0Meter] =
+  def remove(key: K): IO[IO.OK] =
     map.remove(Key.MapEntry(mapKey, key))
 
-  def remove(from: K, to: K): IO[Level0Meter] =
+  def remove(from: K, to: K): IO[IO.OK] =
     map.remove(Key.MapEntry(mapKey, from), Key.MapEntry(mapKey, to))
 
-  def remove(keys: K*): IO[Level0Meter] =
+  def remove(keys: K*): IO[IO.OK] =
     remove(keys)
 
-  def remove(keys: Iterable[K]): IO[Level0Meter] =
+  def remove(keys: Iterable[K]): IO[IO.OK] =
     map.remove(keys.map(key => Key.MapEntry(mapKey, key)))
 
   def prepareRemove(key: K): Prepare[Key.MapEntry[K], Option[V]] =
@@ -265,7 +265,7 @@ class Map[K, V](mapKey: Seq[K],
   /**
     * Removes all key-values from the current Map. SubMaps and subMap's key-values or not altered.
     */
-  def clear(): IO[Level0Meter] = {
+  def clear(): IO[IO.OK] = {
     val (start, end) = Map.entriesRangeKeys(mapKey)
     map.commit(
       //remove key-value entries, but also re-insert the start and end entries for the Map.
@@ -275,34 +275,34 @@ class Map[K, V](mapKey: Seq[K],
     )
   }
 
-  def expire(key: K, after: FiniteDuration): IO[Level0Meter] =
+  def expire(key: K, after: FiniteDuration): IO[IO.OK] =
     map.expire(Key.MapEntry(mapKey, key), after.fromNow)
 
-  def expire(key: K, at: Deadline): IO[Level0Meter] =
+  def expire(key: K, at: Deadline): IO[IO.OK] =
     map.expire(Key.MapEntry(mapKey, key), at)
 
-  def expire(from: K, to: K, after: FiniteDuration): IO[Level0Meter] =
+  def expire(from: K, to: K, after: FiniteDuration): IO[IO.OK] =
     map.expire(Key.MapEntry(mapKey, from), Key.MapEntry(mapKey, to), after.fromNow)
 
-  def expire(from: K, to: K, at: Deadline): IO[Level0Meter] =
+  def expire(from: K, to: K, at: Deadline): IO[IO.OK] =
     map.expire(Key.MapEntry(mapKey, from), Key.MapEntry(mapKey, to), at)
 
-  def expire(keys: (K, Deadline)*): IO[Level0Meter] =
+  def expire(keys: (K, Deadline)*): IO[IO.OK] =
     expire(keys)
 
-  def expire(keys: Iterable[(K, Deadline)]): IO[Level0Meter] =
+  def expire(keys: Iterable[(K, Deadline)]): IO[IO.OK] =
     map.expire(keys.map(keyDeadline => (Key.MapEntry(mapKey, keyDeadline._1), keyDeadline._2)))
 
-  def update(key: K, value: V): IO[Level0Meter] =
+  def update(key: K, value: V): IO[IO.OK] =
     map.update(Key.MapEntry(mapKey, key), Some(value))
 
-  def update(from: K, to: K, value: V): IO[Level0Meter] =
+  def update(from: K, to: K, value: V): IO[IO.OK] =
     map.update(Key.MapEntry(mapKey, from), Key.MapEntry(mapKey, to), Some(value))
 
-  def update(keyValues: (K, V)*): IO[Level0Meter] =
+  def update(keyValues: (K, V)*): IO[IO.OK] =
     update(keyValues)
 
-  def update(keyValues: Iterable[(K, V)]): IO[Level0Meter] =
+  def update(keyValues: Iterable[(K, V)]): IO[IO.OK] =
     map.update {
       keyValues map {
         case (key, value) =>
@@ -310,7 +310,7 @@ class Map[K, V](mapKey: Seq[K],
       }
     }
 
-  def commitPrepared(prepare: Prepare[K, V]*): IO[Level0Meter] =
+  def commitPrepared(prepare: Prepare[K, V]*): IO[IO.OK] =
     this.commit(prepare)
 
   private def makeCommit(prepare: Prepare[K, V]): Prepare[Key.MapEntry[K], Option[V]] =
@@ -334,7 +334,7 @@ class Map[K, V](mapKey: Seq[K],
   private def makeCommit(prepare: Iterable[Prepare[K, V]]): Iterable[Prepare[Key.MapEntry[K], Option[V]]] =
     prepare map makeCommit
 
-  def commit(prepare: Iterable[Prepare[K, V]]): IO[Level0Meter] =
+  def commit(prepare: Iterable[Prepare[K, V]]): IO[IO.OK] =
     map.commit(makeCommit(prepare))
 
   /**

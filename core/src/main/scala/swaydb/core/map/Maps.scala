@@ -246,7 +246,6 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
                                                                                       timer: Timer,
                                                                                       ec: ExecutionContext) extends LazyLogging {
 
-  private var meter = Level0Meter(fileSize, currentMap.fileSize, maps.size() + 1)
   //this listener is invoked when currentMap is full.
   private var onFullListener: () => Unit = () => ()
   // This is crucial for write performance use null instead of Option.
@@ -255,7 +254,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
   def setOnFullListener(event: () => Unit) =
     onFullListener = event
 
-  def write(mapEntry: Timer => MapEntry[K, V]): IO[Level0Meter] =
+  def write(mapEntry: Timer => MapEntry[K, V]): IO[OK] =
     synchronized {
       if (brakePedal != null && brakePedal.applyBrakes()) brakePedal = null
       persist(mapEntry(timer))
@@ -267,11 +266,11 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
     *         in LevelZero to determine if there is a map that should be converted Segment.
     */
   @tailrec
-  private def persist(entry: MapEntry[K, V]): IO[Level0Meter] =
+  private def persist(entry: MapEntry[K, V]): IO[OK] =
     currentMap.write(entry) match {
       case IO.Success(writeSuccessful) =>
         if (writeSuccessful)
-          IO.Success(meter)
+          IO.ok
         else {
           val mapsSize = maps.size() + 1
           IO(acceleration(Level0Meter(fileSize, currentMap.fileSize, mapsSize))) match {
@@ -289,7 +288,6 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
                 case IO.Success(nextMap) =>
                   maps addFirst currentMap
                   currentMap = nextMap
-                  meter = Level0Meter(fileSize, nextMapSize, mapsSize + 1)
                   onFullListener()
                   persist(entry)
 

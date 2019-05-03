@@ -74,7 +74,7 @@ class Maps[K, V](map: swaydb.Map[Key[K], Option[V], IO],
     }
   }
 
-  def remove(key: K): IO[Level0Meter] =
+  def remove(key: K): IO[IO.OK] =
     Map.removeMap(map, mapKey :+ key) flatMap map.commit
 
   def get(key: K): IO[Option[Map[K, V]]] = {
@@ -95,12 +95,12 @@ class Maps[K, V](map: swaydb.Map[Key[K], Option[V], IO],
   /**
     * Removes all key-values from the target Map.
     */
-  def clear(key: K): IO[Level0Meter] =
+  def clear(key: K): IO[IO.OK] =
     get(key) flatMap {
       case Some(map) =>
         map.clear()
       case None =>
-        IO.Success(map.core.level0Meter)
+        IO.ok
     }
 
   def contains(key: K): IO[Boolean] =

@@ -106,16 +106,16 @@ private[swaydb] object BlockingCore {
 
 private[swaydb] case class BlockingCore[T[_]](zero: LevelZero)(implicit tag: Tag[T]) extends Core[T] {
 
-  def put(key: Slice[Byte]): T[Level0Meter] =
+  def put(key: Slice[Byte]): T[IO.OK] =
     tag.fromIO(zero.put(key))
 
-  def put(key: Slice[Byte], value: Slice[Byte]): T[Level0Meter] =
+  def put(key: Slice[Byte], value: Slice[Byte]): T[IO.OK] =
     tag.fromIO(zero.put(key, value))
 
-  def put(key: Slice[Byte], value: Option[Slice[Byte]]): T[Level0Meter] =
+  def put(key: Slice[Byte], value: Option[Slice[Byte]]): T[IO.OK] =
     tag.fromIO(zero.put(key, value))
 
-  def put(key: Slice[Byte], value: Option[Slice[Byte]], removeAt: Deadline): T[Level0Meter] =
+  def put(key: Slice[Byte], value: Option[Slice[Byte]], removeAt: Deadline): T[IO.OK] =
     tag.fromIO(zero.put(key, value, removeAt))
 
   /**
@@ -127,43 +127,43 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero)(implicit tag: Tag
     * NOTE: If the default time order [[TimeOrder.long]] is used
     * Times should always be unique and in incremental order for *ALL* key values.
     */
-  def put(entries: Iterable[Prepare[Slice[Byte], Option[Slice[Byte]]]]): T[Level0Meter] =
+  def put(entries: Iterable[Prepare[Slice[Byte], Option[Slice[Byte]]]]): T[IO.OK] =
     if (entries.isEmpty)
       tag.fromIO(IO.Failure(new Exception("Cannot write empty batch")))
     else
       tag.fromIO(zero.put(BlockingCore.prepareToMapEntry(entries)(_).get)) //Gah .get! hmm.
 
-  def remove(key: Slice[Byte]): T[Level0Meter] =
+  def remove(key: Slice[Byte]): T[IO.OK] =
     tag.fromIO(zero.remove(key))
 
-  def remove(key: Slice[Byte], at: Deadline): T[Level0Meter] =
+  def remove(key: Slice[Byte], at: Deadline): T[IO.OK] =
     tag.fromIO(zero.remove(key, at))
 
-  def remove(from: Slice[Byte], to: Slice[Byte]): T[Level0Meter] =
+  def remove(from: Slice[Byte], to: Slice[Byte]): T[IO.OK] =
     tag.fromIO(zero.remove(from, to))
 
-  def remove(from: Slice[Byte], to: Slice[Byte], at: Deadline): T[Level0Meter] =
+  def remove(from: Slice[Byte], to: Slice[Byte], at: Deadline): T[IO.OK] =
     tag.fromIO(zero.remove(from, to, at))
 
-  def update(key: Slice[Byte], value: Slice[Byte]): T[Level0Meter] =
+  def update(key: Slice[Byte], value: Slice[Byte]): T[IO.OK] =
     tag.fromIO(zero.update(key, value))
 
-  def update(key: Slice[Byte], value: Option[Slice[Byte]]): T[Level0Meter] =
+  def update(key: Slice[Byte], value: Option[Slice[Byte]]): T[IO.OK] =
     tag.fromIO(zero.update(key, value))
 
-  def update(fromKey: Slice[Byte], to: Slice[Byte], value: Slice[Byte]): T[Level0Meter] =
+  def update(fromKey: Slice[Byte], to: Slice[Byte], value: Slice[Byte]): T[IO.OK] =
     tag.fromIO(zero.update(fromKey, to, value))
 
-  def update(fromKey: Slice[Byte], to: Slice[Byte], value: Option[Slice[Byte]]): T[Level0Meter] =
+  def update(fromKey: Slice[Byte], to: Slice[Byte], value: Option[Slice[Byte]]): T[IO.OK] =
     tag.fromIO(zero.update(fromKey, to, value))
 
-  override def clear(): T[Level0Meter] =
+  override def clear(): T[IO.OK] =
     tag.fromIO(zero.clear().safeGetBlocking)
 
-  def function(key: Slice[Byte], function: Slice[Byte]): T[Level0Meter] =
+  def function(key: Slice[Byte], function: Slice[Byte]): T[IO.OK] =
     tag.fromIO(zero.applyFunction(key, function))
 
-  def function(from: Slice[Byte], to: Slice[Byte], function: Slice[Byte]): T[Level0Meter] =
+  def function(from: Slice[Byte], to: Slice[Byte], function: Slice[Byte]): T[IO.OK] =
     tag.fromIO(zero.applyFunction(from, to, function))
 
   def registerFunction(functionID: Slice[Byte], function: SwayFunction): SwayFunction =

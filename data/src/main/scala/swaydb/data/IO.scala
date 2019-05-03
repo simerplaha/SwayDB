@@ -80,7 +80,7 @@ object IO {
   val emptyReader = IO.Success(SliceReader(Slice.emptyBytes))
   val emptyBytes = IO.Success(Slice.emptyBytes)
   val emptySeqBytes = IO.Success(Seq.empty[Slice[Byte]])
-  val done = IO.Success(OK)
+  val ok = IO.Success(OK)
 
   sealed trait Async[+T] {
     def isFailure: Boolean

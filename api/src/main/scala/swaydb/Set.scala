@@ -58,58 +58,58 @@ case class Set[A, T[_]](private val core: Core[T],
   def mightContain(elem: A): T[Boolean] =
     wrapCall(core mightContain elem)
 
-  def add(elem: A): T[Level0Meter] =
+  def add(elem: A): T[IO.OK] =
     wrapCall(core.put(key = elem))
 
-  def add(elem: A, expireAt: Deadline): T[Level0Meter] =
+  def add(elem: A, expireAt: Deadline): T[IO.OK] =
     wrapCall(core.put(elem, None, expireAt))
 
-  def add(elem: A, expireAfter: FiniteDuration): T[Level0Meter] =
+  def add(elem: A, expireAfter: FiniteDuration): T[IO.OK] =
     wrapCall(core.put(elem, None, expireAfter.fromNow))
 
-  def add(elems: A*): T[Level0Meter] =
+  def add(elems: A*): T[IO.OK] =
     add(elems)
 
-  def add(elems: Stream[A, T]): T[Level0Meter] =
+  def add(elems: Stream[A, T]): T[IO.OK] =
     wrapCall(elems.materialize flatMap add)
 
-  def add(elems: Iterable[A]): T[Level0Meter] =
+  def add(elems: Iterable[A]): T[IO.OK] =
     wrapCall(core.put(elems.map(elem => Prepare.Put(key = serializer.write(elem), value = None, deadline = None))))
 
-  def remove(elem: A): T[Level0Meter] =
+  def remove(elem: A): T[IO.OK] =
     wrapCall(core.remove(elem))
 
-  def remove(from: A, to: A): T[Level0Meter] =
+  def remove(from: A, to: A): T[IO.OK] =
     wrapCall(core.remove(from, to))
 
-  def remove(elems: A*): T[Level0Meter] =
+  def remove(elems: A*): T[IO.OK] =
     remove(elems)
 
-  def remove(elems: Stream[A, T]): T[Level0Meter] =
+  def remove(elems: Stream[A, T]): T[IO.OK] =
     wrapCall(elems.materialize flatMap remove)
 
-  def remove(elems: Iterable[A]): T[Level0Meter] =
+  def remove(elems: Iterable[A]): T[IO.OK] =
     wrapCall(core.put(elems.map(elem => Prepare.Remove(serializer.write(elem)))))
 
-  def expire(elem: A, after: FiniteDuration): T[Level0Meter] =
+  def expire(elem: A, after: FiniteDuration): T[IO.OK] =
     wrapCall(core.remove(elem, after.fromNow))
 
-  def expire(elem: A, at: Deadline): T[Level0Meter] =
+  def expire(elem: A, at: Deadline): T[IO.OK] =
     wrapCall(core.remove(elem, at))
 
-  def expire(from: A, to: A, after: FiniteDuration): T[Level0Meter] =
+  def expire(from: A, to: A, after: FiniteDuration): T[IO.OK] =
     wrapCall(core.remove(from, to, after.fromNow))
 
-  def expire(from: A, to: A, at: Deadline): T[Level0Meter] =
+  def expire(from: A, to: A, at: Deadline): T[IO.OK] =
     wrapCall(core.remove(from, to, at))
 
-  def expire(elems: (A, Deadline)*): T[Level0Meter] =
+  def expire(elems: (A, Deadline)*): T[IO.OK] =
     expire(elems)
 
-  def expire(elems: Stream[(A, Deadline), T]): T[Level0Meter] =
+  def expire(elems: Stream[(A, Deadline), T]): T[IO.OK] =
     wrapCall(elems.materialize flatMap expire)
 
-  def expire(elems: Iterable[(A, Deadline)]): T[Level0Meter] =
+  def expire(elems: Iterable[(A, Deadline)]): T[IO.OK] =
     wrapCall {
       core.put {
         elems map {
@@ -123,7 +123,7 @@ case class Set[A, T[_]](private val core: Core[T],
       }
     }
 
-  def clear(): T[Level0Meter] =
+  def clear(): T[IO.OK] =
     wrapCall(core.clear())
 
   def registerFunction(functionID: A, function: (A, Option[Deadline]) => Apply.Set[A]): A = {
@@ -131,19 +131,19 @@ case class Set[A, T[_]](private val core: Core[T],
     functionID
   }
 
-  def applyFunction(from: A, to: A, functionID: A): T[Level0Meter] =
+  def applyFunction(from: A, to: A, functionID: A): T[IO.OK] =
     wrapCall(core.function(from, to, functionID))
 
-  def applyFunction(elem: A, function: A): T[Level0Meter] =
+  def applyFunction(elem: A, function: A): T[IO.OK] =
     wrapCall(core.function(elem, function))
 
-  def commit(prepare: Prepare[A, Nothing]*): T[Level0Meter] =
+  def commit(prepare: Prepare[A, Nothing]*): T[IO.OK] =
     wrapCall(core.put(prepare))
 
-  def commit(prepare: Stream[Prepare[A, Nothing], T]): T[Level0Meter] =
+  def commit(prepare: Stream[Prepare[A, Nothing], T]): T[IO.OK] =
     wrapCall(prepare.materialize flatMap commit)
 
-  def commit(prepare: Iterable[Prepare[A, Nothing]]): T[Level0Meter] =
+  def commit(prepare: Iterable[Prepare[A, Nothing]]): T[IO.OK] =
     wrapCall(core.put(prepare))
 
   def level0Meter: Level0Meter =

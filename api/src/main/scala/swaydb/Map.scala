@@ -45,22 +45,22 @@ case class Map[K, V, T[_]](private[swaydb] val core: Core[T],
   def wrapCall[C](f: => T[C]): T[C] =
     tag.success(()) flatMap (_ => f)
 
-  def put(key: K, value: V): T[Level0Meter] =
+  def put(key: K, value: V): T[IO.OK] =
     wrapCall(core.put(key = key, value = Some(value)))
 
-  def put(key: K, value: V, expireAfter: FiniteDuration): T[Level0Meter] =
+  def put(key: K, value: V, expireAfter: FiniteDuration): T[IO.OK] =
     wrapCall(core.put(key, Some(value), expireAfter.fromNow))
 
-  def put(key: K, value: V, expireAt: Deadline): T[Level0Meter] =
+  def put(key: K, value: V, expireAt: Deadline): T[IO.OK] =
     wrapCall(core.put(key, Some(value), expireAt))
 
-  def put(keyValues: (K, V)*): T[Level0Meter] =
+  def put(keyValues: (K, V)*): T[IO.OK] =
     wrapCall(put(keyValues))
 
-  def put(keyValues: Stream[(K, V), T]): T[Level0Meter] =
+  def put(keyValues: Stream[(K, V), T]): T[IO.OK] =
     wrapCall(keyValues.materialize flatMap put)
 
-  def put(keyValues: Iterable[(K, V)]): T[Level0Meter] =
+  def put(keyValues: Iterable[(K, V)]): T[IO.OK] =
     wrapCall {
       core.put {
         keyValues map {
@@ -70,40 +70,40 @@ case class Map[K, V, T[_]](private[swaydb] val core: Core[T],
       }
     }
 
-  def remove(key: K): T[Level0Meter] =
+  def remove(key: K): T[IO.OK] =
     wrapCall(core.remove(key))
 
-  def remove(from: K, to: K): T[Level0Meter] =
+  def remove(from: K, to: K): T[IO.OK] =
     wrapCall(core.remove(from, to))
 
-  def remove(keys: K*): T[Level0Meter] =
+  def remove(keys: K*): T[IO.OK] =
     wrapCall(remove(keys))
 
-  def remove(keys: Stream[K, T]): T[Level0Meter] =
+  def remove(keys: Stream[K, T]): T[IO.OK] =
     wrapCall(keys.materialize flatMap remove)
 
-  def remove(keys: Iterable[K]): T[Level0Meter] =
+  def remove(keys: Iterable[K]): T[IO.OK] =
     wrapCall(core.put(keys.map(key => Prepare.Remove(keySerializer.write(key)))))
 
-  def expire(key: K, after: FiniteDuration): T[Level0Meter] =
+  def expire(key: K, after: FiniteDuration): T[IO.OK] =
     wrapCall(core.remove(key, after.fromNow))
 
-  def expire(key: K, at: Deadline): T[Level0Meter] =
+  def expire(key: K, at: Deadline): T[IO.OK] =
     wrapCall(core.remove(key, at))
 
-  def expire(from: K, to: K, after: FiniteDuration): T[Level0Meter] =
+  def expire(from: K, to: K, after: FiniteDuration): T[IO.OK] =
     wrapCall(core.remove(from, to, after.fromNow))
 
-  def expire(from: K, to: K, at: Deadline): T[Level0Meter] =
+  def expire(from: K, to: K, at: Deadline): T[IO.OK] =
     wrapCall(core.remove(from, to, at))
 
-  def expire(keys: (K, Deadline)*): T[Level0Meter] =
+  def expire(keys: (K, Deadline)*): T[IO.OK] =
     wrapCall(expire(keys))
 
-  def expire(keys: Stream[(K, Deadline), T]): T[Level0Meter] =
+  def expire(keys: Stream[(K, Deadline), T]): T[IO.OK] =
     wrapCall(keys.materialize flatMap expire)
 
-  def expire(keys: Iterable[(K, Deadline)]): T[Level0Meter] =
+  def expire(keys: Iterable[(K, Deadline)]): T[IO.OK] =
     wrapCall {
       core.put {
         keys map {
@@ -117,19 +117,19 @@ case class Map[K, V, T[_]](private[swaydb] val core: Core[T],
       }
     }
 
-  def update(key: K, value: V): T[Level0Meter] =
+  def update(key: K, value: V): T[IO.OK] =
     wrapCall(core.update(key, Some(value)))
 
-  def update(from: K, to: K, value: V): T[Level0Meter] =
+  def update(from: K, to: K, value: V): T[IO.OK] =
     wrapCall(core.update(from, to, Some(value)))
 
-  def update(keyValues: (K, V)*): T[Level0Meter] =
+  def update(keyValues: (K, V)*): T[IO.OK] =
     wrapCall(update(keyValues))
 
-  def update(keyValues: Stream[(K, V), T]): T[Level0Meter] =
+  def update(keyValues: Stream[(K, V), T]): T[IO.OK] =
     wrapCall(keyValues.materialize flatMap update)
 
-  def update(keyValues: Iterable[(K, V)]): T[Level0Meter] =
+  def update(keyValues: Iterable[(K, V)]): T[IO.OK] =
     wrapCall {
       core.put {
         keyValues map {
@@ -139,7 +139,7 @@ case class Map[K, V, T[_]](private[swaydb] val core: Core[T],
       }
     }
 
-  def clear(): T[Level0Meter] =
+  def clear(): T[IO.OK] =
     wrapCall(core.clear())
 
   def registerFunction(functionID: K, function: V => Apply.Map[V]): K = {
@@ -157,19 +157,19 @@ case class Map[K, V, T[_]](private[swaydb] val core: Core[T],
     functionID
   }
 
-  def applyFunction(key: K, functionID: K): T[Level0Meter] =
+  def applyFunction(key: K, functionID: K): T[IO.OK] =
     wrapCall(core.function(key, functionID))
 
-  def applyFunction(from: K, to: K, functionID: K): T[Level0Meter] =
+  def applyFunction(from: K, to: K, functionID: K): T[IO.OK] =
     wrapCall(core.function(from, to, functionID))
 
-  def commit(prepare: Prepare[K, V]*): T[Level0Meter] =
+  def commit(prepare: Prepare[K, V]*): T[IO.OK] =
     wrapCall(core.put(prepare))
 
-  def commit(prepare: Stream[Prepare[K, V], T]): T[Level0Meter] =
+  def commit(prepare: Stream[Prepare[K, V], T]): T[IO.OK] =
     wrapCall(prepare.materialize flatMap commit)
 
-  def commit(prepare: Iterable[Prepare[K, V]]): T[Level0Meter] =
+  def commit(prepare: Iterable[Prepare[K, V]]): T[IO.OK] =
     wrapCall(core.put(prepare))
 
   /**
