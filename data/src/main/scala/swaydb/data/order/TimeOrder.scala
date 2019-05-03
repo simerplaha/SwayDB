@@ -21,7 +21,7 @@ package swaydb.data.order
 
 import swaydb.data.slice.Slice
 
-object TimeOrder {
+private[swaydb] object TimeOrder {
   val long = new TimeOrder[Slice[Byte]] {
     override def compare(left: Slice[Byte], right: Slice[Byte]): Int =
       if (left.isEmpty || right.isEmpty)
@@ -31,4 +31,4 @@ object TimeOrder {
   }
 }
 
-trait TimeOrder[T] extends Ordering[T]
+private[swaydb] trait TimeOrder[T] extends Ordering[T]

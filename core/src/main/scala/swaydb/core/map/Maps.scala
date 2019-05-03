@@ -350,7 +350,6 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
                                reduce: (Option[R], Option[R]) => Option[R]): Option[R] = {
     val iterator = maps.iterator()
 
-    //iterator.next() could throw an exception if the map was removed and converted to Segment as this read occurred.
     def getNext() = if (iterator.hasNext) Option(iterator.next()) else None
 
     @tailrec
@@ -380,7 +379,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
     matcher(currentMap) orElse findFirst(matcher)
 
   def contains(key: K): Boolean =
-    get(key).exists(_ => true)
+    get(key).isDefined
 
   def get(key: K): Option[V] =
     find(_.get(key)(keyOrder))
