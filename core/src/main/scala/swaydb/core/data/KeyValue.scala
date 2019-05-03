@@ -85,91 +85,55 @@ private[core] object KeyValue {
 
     sealed trait Put extends KeyValue.ReadOnly.Fixed {
       def valueLength: Int
-
       def deadline: Option[Deadline]
-
       def hasTimeLeft(): Boolean
-
-      def isOverdue(): Boolean =
-        !hasTimeLeft()
-
+      def isOverdue(): Boolean = !hasTimeLeft()
       def hasTimeLeftAtLeast(minus: FiniteDuration): Boolean
-
       def getOrFetchValue: IO[Option[Slice[Byte]]]
-
       def time: Time
-
       def toFromValue(): IO[Value.Put]
-
       def copyWithDeadlineAndTime(deadline: Option[Deadline], time: Time): KeyValue.ReadOnly.Put
-
       def copyWithTime(time: Time): KeyValue.ReadOnly.Put
 
     }
 
     sealed trait Remove extends KeyValue.ReadOnly.Fixed {
       def deadline: Option[Deadline]
-
       def hasTimeLeft(): Boolean
-
-      def isOverdue(): Boolean =
-        !hasTimeLeft()
-
+      def isOverdue(): Boolean = !hasTimeLeft()
       def hasTimeLeftAtLeast(minus: FiniteDuration): Boolean
-
       def time: Time
-
       def toFromValue(): IO[Value.Remove]
-
       def toRemoveValue(): Value.Remove
-
       def copyWithTime(time: Time): KeyValue.ReadOnly.Remove
     }
 
     sealed trait Update extends KeyValue.ReadOnly.Fixed {
       def deadline: Option[Deadline]
-
       def hasTimeLeft(): Boolean
-
-      def isOverdue(): Boolean =
-        !hasTimeLeft()
-
+      def isOverdue(): Boolean = !hasTimeLeft()
       def hasTimeLeftAtLeast(minus: FiniteDuration): Boolean
-
       def time: Time
-
       def getOrFetchValue: IO[Option[Slice[Byte]]]
-
       def toFromValue(): IO[Value.Update]
-
       def toPut(): KeyValue.ReadOnly.Put
-
       def toPut(deadline: Option[Deadline]): KeyValue.ReadOnly.Put
-
       def copyWithDeadlineAndTime(deadline: Option[Deadline], time: Time): KeyValue.ReadOnly.Update
-
       def copyWithDeadline(deadline: Option[Deadline]): KeyValue.ReadOnly.Update
-
       def copyWithTime(time: Time): KeyValue.ReadOnly.Update
     }
 
     sealed trait Function extends KeyValue.ReadOnly.Fixed {
       def time: Time
-
       def getOrFetchFunction: IO[Slice[Byte]]
-
       def toFromValue(): IO[Value.Function]
-
       def copyWithTime(time: Time): Function
     }
 
     sealed trait PendingApply extends KeyValue.ReadOnly.Fixed {
       def getOrFetchApplies: IO[Slice[Value.Apply]]
-
       def toFromValue(): IO[Value.PendingApply]
-
       def time: Time
-
       def deadline: Option[Deadline]
     }
 
@@ -184,15 +148,10 @@ private[core] object KeyValue {
 
     sealed trait Range extends KeyValue.ReadOnly with SegmentResponse {
       def fromKey: Slice[Byte]
-
       def toKey: Slice[Byte]
-
       def fetchFromValue: IO[Option[Value.FromValue]]
-
       def fetchRangeValue: IO[Value.RangeValue]
-
       def fetchFromAndRangeValue: IO[(Option[Value.FromValue], Value.RangeValue)]
-
       def fetchFromOrElseRangeValue: IO[Value.FromValue] =
         fetchFromAndRangeValue map {
           case (fromValue, rangeValue) =>
@@ -216,14 +175,10 @@ private[core] object KeyValue {
 
     sealed trait Group extends KeyValue.ReadOnly with CacheAble {
       def minKey: Slice[Byte]
-
       def maxKey: MaxKey[Slice[Byte]]
-
       def header(): IO[GroupHeader]
-
       def segmentCache(implicit keyOrder: KeyOrder[Slice[Byte]],
                        keyValueLimiter: KeyValueLimiter): SegmentCache
-
       def deadline: Option[Deadline]
     }
   }
@@ -304,42 +259,27 @@ private[core] object KeyValue {
     sealed trait Fixed extends KeyValue.WriteOnly {
 
       def hasTimeLeft(): Boolean
-
-      def isOverdue(): Boolean =
-        !hasTimeLeft()
-
+      def isOverdue(): Boolean = !hasTimeLeft()
       def time: Time
     }
 
     sealed trait Range extends KeyValue.WriteOnly {
       val isRange: Boolean = true
-
       def fromKey: Slice[Byte]
-
       def toKey: Slice[Byte]
-
       def fromValue: Option[Value.FromValue]
-
       def rangeValue: Value.RangeValue
-
       def fetchFromValue: IO[Option[Value.FromValue]]
-
       def fetchRangeValue: IO[Value.RangeValue]
-
       def fetchFromAndRangeValue: IO[(Option[Value.FromValue], Value.RangeValue)]
     }
 
     sealed trait Group extends KeyValue.WriteOnly {
       val isRange: Boolean = true
-
       def minKey: Slice[Byte]
-
       def maxKey: MaxKey[Slice[Byte]]
-
       def fullKey: Slice[Byte]
-
       def keyValues: Slice[KeyValue.WriteOnly]
-
       def compressedKeyValues: Slice[Byte]
     }
   }

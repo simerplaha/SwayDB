@@ -206,7 +206,7 @@ private[swaydb] class Actor[T, +S](val state: S,
 
         case Some(delay) =>
           //if there are too many messages process instantly also let the next interval known so that
-          //next interval is adjusted to a shorter delay time.
+          //next interval is adjusted with a shorter delay time.
           val queueSize = queue.size()
           val adjustedDelay = Actor.adjustDelay(
             currentQueueSize = queueSize,
