@@ -69,6 +69,9 @@ sealed trait IO[+T] {
 
 object IO {
 
+  sealed trait OK
+  final case object OK extends OK
+
   val unit: IO.Success[Unit] = IO.Success()
   val none = IO.Success(None)
   val `false` = IO.Success(false)
@@ -77,6 +80,7 @@ object IO {
   val emptyReader = IO.Success(SliceReader(Slice.emptyBytes))
   val emptyBytes = IO.Success(Slice.emptyBytes)
   val emptySeqBytes = IO.Success(Seq.empty[Slice[Byte]])
+  val done = IO.Success(OK)
 
   sealed trait Async[+T] {
     def isFailure: Boolean
