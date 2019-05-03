@@ -19,13 +19,6 @@
 
 package swaydb.data.accelerate
 
-object Level0Meter {
-  def apply(defaultMapSize: Long,
-            currentMapSize: Long,
-            mapsCount: Long): Level0Meter =
-    new Level0Meter(defaultMapSize, currentMapSize, mapsCount)
-}
-
-class Level0Meter(val defaultMapSize: Long,
-                  val currentMapSize: Long,
-                  val mapsCount: Long)
+case class Level0Meter(defaultMapSize: Long,
+                       currentMapSize: Long,
+                       mapsCount: Long)

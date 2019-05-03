@@ -35,9 +35,9 @@ import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.core.map.timer.Timer
 import swaydb.core.queue.FileLimiter
 import swaydb.data.IO
+import swaydb.data.IO._
 import swaydb.data.accelerate.{Accelerator, Level0Meter}
 import swaydb.data.config.RecoveryMode
-import swaydb.data.IO._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
@@ -45,14 +45,14 @@ private[core] object Maps extends LazyLogging {
 
   def memory[K, V: ClassTag](fileSize: Long,
                              acceleration: Level0Meter => Accelerator)(implicit keyOrder: KeyOrder[K],
-                                                                       timeOrder: TimeOrder[Slice[Byte]],
-                                                                       limiter: FileLimiter,
-                                                                       functionStore: FunctionStore,
-                                                                       mapReader: MapEntryReader[MapEntry[K, V]],
-                                                                       writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                                       skipListMerger: SkipListMerger[K, V],
-                                                                       timer: Timer,
-                                                                       ec: ExecutionContext): Maps[K, V] =
+                                                                          timeOrder: TimeOrder[Slice[Byte]],
+                                                                          limiter: FileLimiter,
+                                                                          functionStore: FunctionStore,
+                                                                          mapReader: MapEntryReader[MapEntry[K, V]],
+                                                                          writer: MapEntryWriter[MapEntry.Put[K, V]],
+                                                                          skipListMerger: SkipListMerger[K, V],
+                                                                          timer: Timer,
+                                                                          ec: ExecutionContext): Maps[K, V] =
     new Maps[K, V](
       maps = new ConcurrentLinkedDeque[Map[K, V]](),
       fileSize = fileSize,
@@ -271,13 +271,13 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
       case IO.Success(writeSuccessful) =>
         if (writeSuccessful)
           IO.ok
-        else {
-          val mapsSize = maps.size() + 1
-          IO(acceleration(Level0Meter(fileSize, currentMap.fileSize, mapsSize))) match {
+        else
+          IO(acceleration(Level0Meter(fileSize, currentMap.fileSize, maps.size() + 1))) match {
             case IO.Success(accelerate) =>
               accelerate.brake match {
                 case Some(brake) =>
                   brakePedal = new BrakePedal(brake.brakeFor, brake.releaseRate)
+
                 case None =>
                   brakePedal = null
               }
@@ -297,7 +297,6 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
             case IO.Failure(error) =>
               IO.Failure(error)
           }
-        }
 
       //If there is a failure writing an Entry to the Map. Start a new Map immediately! This ensures that
       //if the failure was due to a corruption in the current Map, all the new Entries do not get submitted
@@ -323,25 +322,22 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
     def getNext() = if (iterator.hasNext) Some(iterator.next()) else None
 
     @tailrec
-    def find(nextMayBe: Option[Map[K, V]]): Option[R] = {
-      nextMayBe match {
-        case Some(next) =>
-          f(next) match {
-            case found @ Some(_) =>
-              found
+    def find(next: Map[K, V]): Option[R] =
+      f(next) match {
+        case found @ Some(_) =>
+          found
+
+        case None =>
+          getNext() match {
+            case Some(next) =>
+              find(next)
 
             case None =>
-              find(getNext())
+              None
           }
-        case _ =>
-          None
       }
-    }
 
-    if (iterator.hasNext)
-      find(Some(iterator.next()))
-    else
-      None
+    getNext() flatMap find
   }
 
   private def findAndReduce[R](f: Map[K, V] => Option[R],
@@ -351,26 +347,30 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
     def getNext() = if (iterator.hasNext) Option(iterator.next()) else None
 
     @tailrec
-    def find(nextMayBe: Option[Map[K, V]],
+    def find(next: Map[K, V],
              previousResult: Option[R]): Option[R] =
-      nextMayBe match {
-        case Some(next) =>
-          f(next) match {
-            case nextResult @ Some(_) =>
-              val result = reduce(previousResult, nextResult)
-              find(getNext(), result)
+      f(next) match {
+        case nextResult @ Some(_) =>
+          val result = reduce(previousResult, nextResult)
+          getNext() match {
+            case Some(next) =>
+              find(next, result)
 
             case None =>
-              find(getNext(), previousResult)
+              previousResult
           }
-        case _ =>
-          previousResult
+
+        case None =>
+          getNext() match {
+            case Some(next) =>
+              find(next, previousResult)
+
+            case None =>
+              previousResult
+          }
       }
 
-    if (iterator.hasNext)
-      find(Some(iterator.next()), None)
-    else
-      None
+    getNext() flatMap (find(_, None))
   }
 
   private def find[R](matcher: Map[K, V] => Option[R]): Option[R] =
@@ -406,7 +406,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
     }
 
   def keyValueCount: Option[Int] =
-    reduce[Int](map => Some(map.count), (one, two) => Some(one.getOrElse(0) + two.getOrElse(0)))
+    reduce[Int](map => Some(map.count()), (one, two) => Some(one.getOrElse(0) + two.getOrElse(0)))
 
   def queuedMapsCount =
     maps.size()
