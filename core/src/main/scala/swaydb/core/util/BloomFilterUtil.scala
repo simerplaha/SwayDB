@@ -73,15 +73,21 @@ private[core] object BloomFilterUtil {
     ((Math.ceil(numberOfBits / 64.0) * ByteSizeOf.long) + ByteSizeOf.long + ByteSizeOf.long + ByteSizeOf.int).toInt
   }
 
+  /**
+    * Initialise bloomFilter if key-values do no contain remove range.
+    */
   def init(keyValues: Iterable[KeyValue.WriteOnly],
            bloomFilterFalsePositiveRate: Double): Option[BloomFilter[Slice[Byte]]] =
-    if (keyValues.last.stats.hasRemoveRange)
-      None
-    else
-      Some(
-        BloomFilter[Slice[Byte]](
-          numberOfItems = keyValues.last.stats.bloomFilterItemsCount,
-          falsePositiveRate = bloomFilterFalsePositiveRate
-        )
-      )
+    keyValues.lastOption flatMap {
+      last =>
+        if (last.stats.hasRemoveRange)
+          None
+        else
+          Some(
+            BloomFilter[Slice[Byte]](
+              numberOfItems = last.stats.bloomFilterItemsCount,
+              falsePositiveRate = bloomFilterFalsePositiveRate
+            )
+          )
+    }
 }

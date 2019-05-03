@@ -30,6 +30,5 @@ object PipeOps {
   }
 
   implicit def pipe[A](a: A): Pipe[A] = Pipe(a)
-
 }
 

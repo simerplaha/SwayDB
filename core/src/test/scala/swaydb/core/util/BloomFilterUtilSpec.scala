@@ -59,6 +59,13 @@ class BloomFilterUtilSpec extends TestBase {
   }
 
   "init" should {
+    "not initialise if keyValues are empty" in {
+      BloomFilterUtil.init(
+        keyValues = Slice.empty,
+        bloomFilterFalsePositiveRate = TestData.falsePositiveRate
+      ) shouldBe empty
+    }
+
     "not initialise bloomFilter if it contain removeRange" in {
       runThisParallel(10.times) {
         implicit val time = TestTimer.random
