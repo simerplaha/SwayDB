@@ -44,8 +44,8 @@ sealed trait IO[+T] {
   def get: T
   def foreach[U](f: T => U): Unit
   def flatMap[U](f: T => IO[U]): IO[U]
-  def asAsync: IO.Async[T]
-  def asIO: IO[T]
+  private[swaydb] def asAsync: IO.Async[T]
+  private[swaydb] def asIO: IO[T]
   def map[U](f: T => U): IO[U]
   def filter(p: T => Boolean): IO[T]
   @inline final def withFilter(p: T => Boolean): WithFilter = new WithFilter(p)
@@ -82,12 +82,12 @@ object IO {
   val emptySeqBytes = IO.Success(Seq.empty[Slice[Byte]])
   val ok = IO.Success(OK)
 
-  sealed trait Async[+T] {
+  private[swaydb] sealed trait Async[+T] {
     def isFailure: Boolean
     def isSuccess: Boolean
     def isLater: Boolean
-    def flatMap[U](f: T => IO.Async[U]): IO.Async[U]
-    def mapAsync[U](f: T => U): IO.Async[U]
+    private[swaydb] def flatMap[U](f: T => IO.Async[U]): IO.Async[U]
+    private[swaydb] def mapAsync[U](f: T => U): IO.Async[U]
     def get: T
     def safeGet: IO.Async[T]
     def safeGetIfFileExists: IO.Async[T]
@@ -99,7 +99,7 @@ object IO {
     def recover[U >: T](f: PartialFunction[IO.Error, U]): IO[U]
     def recoverWith[U >: T](f: PartialFunction[IO.Error, IO[U]]): IO[U]
     def failed: IO[IO.Error]
-    def flattenAsync[U](implicit ev: T <:< IO.Async[U]): IO.Async[U]
+    private[swaydb] def flattenAsync[U](implicit ev: T <:< IO.Async[U]): IO.Async[U]
   }
 
   implicit class IterableIOImplicit[T: ClassTag](iterable: Iterable[T]) {
@@ -413,7 +413,7 @@ object IO {
     override def isLater: Boolean = false
     override def get: T = value
     override def safeGet: IO.Success[T] = this
-    override def safeGetIfFileExists: Async[T] = this
+    override def safeGetIfFileExists: IO.Success[T] = this
     override def safeGetBlocking: IO.Success[T] = this
     override def safeGetBlockingIfFileExists: IO[T] = this
     override def safeGetFutureIfFileExists(implicit ec: ExecutionContext): Future[T] = Future.successful(value)
@@ -421,12 +421,12 @@ object IO {
     override def getOrElse[U >: T](default: => U): U = get
     override def orElse[U >: T](default: => IO[U]): IO.Success[U] = this
     override def flatMap[U](f: T => IO[U]): IO[U] = IO.Catch(f(get))
-    override def flatMap[U](f: T => IO.Async[U]): IO.Async[U] = f(get)
+    private[swaydb] override def flatMap[U](f: T => IO.Async[U]): IO.Async[U] = f(get)
     override def flatten[U](implicit ev: T <:< IO[U]): IO[U] = get
-    override def flattenAsync[U](implicit ev: T <:< IO.Async[U]): IO.Async[U] = get
+    private[swaydb] override def flattenAsync[U](implicit ev: T <:< IO.Async[U]): IO.Async[U] = get
     override def foreach[U](f: T => U): Unit = f(get)
     override def map[U](f: T => U): IO[U] = IO[U](f(get))
-    override def mapAsync[U](f: T => U): IO.Async[U] = IO(f(get)).asInstanceOf[IO.Async[U]]
+    private[swaydb] override def mapAsync[U](f: T => U): IO.Async[U] = IO(f(get)).asInstanceOf[IO.Async[U]]
     override def recover[U >: T](f: PartialFunction[IO.Error, U]): IO[U] = this
     override def recoverWith[U >: T](f: PartialFunction[IO.Error, IO[U]]): IO[U] = this
     override def failed: IO[IO.Error] = Failure(Error.Fatal(new UnsupportedOperationException("IO.Success.failed")))
@@ -441,12 +441,11 @@ object IO {
       try f(get) finally {}
       this
     }
-    override def asAsync: IO.Async[T] = this
-    override def asIO: IO[T] = this
-
+    private[swaydb] override def asAsync: IO.Async[T] = this
+    private[swaydb] override def asIO: IO[T] = this
   }
 
-  object Async {
+  private[swaydb] object Async {
 
     @inline final def runSafe[T](f: => T): IO.Async[T] =
       try IO.Success(f) catch {
@@ -500,13 +499,13 @@ object IO {
       new Later(_ => value, error)
   }
 
-  object Later {
+  private[swaydb] object Later {
     @inline final def apply[T](value: => T, error: Error.Busy): Later[T] =
       new Later(_ => value, error)
   }
 
-  final case class Later[T](value: Unit => T,
-                            error: Error.Busy) extends IO.Async[T] {
+  private[swaydb] final case class Later[T](value: Unit => T,
+                                            error: Error.Busy) extends IO.Async[T] {
 
     @volatile private var _value: Option[T] = None
 
@@ -667,7 +666,7 @@ object IO {
     override def isLater: Boolean = false
     override def get: T = throw error.exception
     override def safeGet: IO.Failure[T] = this
-    override def safeGetIfFileExists: Async[T] = this
+    override def safeGetIfFileExists: IO.Failure[T] = this
     override def safeGetBlocking: IO.Failure[T] = this
     override def safeGetBlockingIfFileExists: IO[T] = this
     override def safeGetFutureIfFileExists(implicit ec: ExecutionContext): Future[T] = Future.failed(error.exception)
@@ -675,12 +674,12 @@ object IO {
     override def getOrElse[U >: T](default: => U): U = default
     override def orElse[U >: T](default: => IO[U]): IO[U] = IO.Catch(default)
     override def flatMap[U](f: T => IO[U]): IO.Failure[U] = this.asInstanceOf[IO.Failure[U]]
-    override def flatMap[U](f: T => IO.Async[U]): IO.Async[U] = this.asInstanceOf[IO.Async[U]]
+    private[swaydb] override def flatMap[U](f: T => IO.Async[U]): IO.Async[U] = this.asInstanceOf[IO.Async[U]]
     override def flatten[U](implicit ev: T <:< IO[U]): IO.Failure[U] = this.asInstanceOf[IO.Failure[U]]
-    override def flattenAsync[U](implicit ev: T <:< IO.Async[U]): IO.Async[U] = this.asInstanceOf[IO.Async[U]]
+    private[swaydb] override def flattenAsync[U](implicit ev: T <:< IO.Async[U]): IO.Async[U] = this.asInstanceOf[IO.Async[U]]
     override def foreach[U](f: T => U): Unit = ()
     override def map[U](f: T => U): IO.Failure[U] = this.asInstanceOf[IO.Failure[U]]
-    override def mapAsync[U](f: T => U): IO.Async[U] = this.asInstanceOf[IO.Async[U]]
+    private[swaydb] override def mapAsync[U](f: T => U): IO.Async[U] = this.asInstanceOf[IO.Async[U]]
     override def recover[U >: T](f: PartialFunction[IO.Error, U]): IO[U] =
       IO.Catch(if (f isDefinedAt error) IO.Success(f(error)) else this)
 
@@ -699,14 +698,14 @@ object IO {
     }
     override def onSuccessSideEffect(f: T => Unit): IO.Failure[T] = this
     def exception: Throwable = error.exception
-    def recoverToAsync[U](operation: => IO.Async[U]): IO.Async[U] =
+    private[swaydb] def recoverToAsync[U](operation: => IO.Async[U]): IO.Async[U] =
     //it's already know it's a failure, do not run it again on recovery, just flatMap onto operation.
       IO.Async.recover(this, ()) flatMap {
         _ =>
           operation
       }
 
-    override def asAsync: IO.Async[T] = this
-    override def asIO: IO[T] = this
+    private[swaydb] override def asAsync: IO.Async[T] = this
+    private[swaydb] override def asIO: IO[T] = this
   }
 }
