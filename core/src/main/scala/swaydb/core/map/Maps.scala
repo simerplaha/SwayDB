@@ -254,7 +254,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
   def setOnFullListener(event: () => Unit) =
     onFullListener = event
 
-  def write(mapEntry: Timer => MapEntry[K, V]): IO[OK] =
+  def write(mapEntry: Timer => MapEntry[K, V]): IO[IO.OK] =
     synchronized {
       if (brakePedal != null && brakePedal.applyBrakes()) brakePedal = null
       persist(mapEntry(timer))
@@ -266,7 +266,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
     *         in LevelZero to determine if there is a map that should be converted Segment.
     */
   @tailrec
-  private def persist(entry: MapEntry[K, V]): IO[OK] =
+  private def persist(entry: MapEntry[K, V]): IO[IO.OK] =
     currentMap.write(entry) match {
       case IO.Success(writeSuccessful) =>
         if (writeSuccessful)
