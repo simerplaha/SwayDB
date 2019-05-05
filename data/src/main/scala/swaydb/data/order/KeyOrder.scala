@@ -30,7 +30,7 @@ object KeyOrder {
     * Documentation: http://www.swaydb.io/custom-key-ordering
     *
     */
-  val default = new KeyOrder[Slice[Byte]] {
+  val default, lexicographic = new KeyOrder[Slice[Byte]] {
     def compare(a: Slice[Byte], b: Slice[Byte]): Int = {
       val minimum = java.lang.Math.min(a.written, b.written)
       var i = 0
