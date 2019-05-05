@@ -128,7 +128,7 @@ sealed trait ScalaSetSpec extends TestBaseEmbedded {
       db.asScala.contains(2) shouldBe true
       db.asScala.contains(3) shouldBe false
 
-      db.closeDatabase().get
+      db.close().get
 
     }
   }

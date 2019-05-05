@@ -78,7 +78,7 @@ sealed trait SwayDBFunctionSpec extends TestBase {
 
       db.get(1).get should contain(1000)
 
-      db.closeDatabase().get
+      db.close().get
     }
 
     "perform concurrent atomic updates to multiple keys" in {
@@ -105,7 +105,7 @@ sealed trait SwayDBFunctionSpec extends TestBase {
           db.get(i).get should contain(100)
       }
 
-      db.closeDatabase().get
+      db.close().get
     }
 
     "Nothing should not update data" in {
@@ -132,7 +132,7 @@ sealed trait SwayDBFunctionSpec extends TestBase {
           db.get(i).get should contain(0)
       }
 
-      db.closeDatabase().get
+      db.close().get
     }
   }
 }

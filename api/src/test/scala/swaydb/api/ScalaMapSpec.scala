@@ -84,7 +84,7 @@ sealed trait ScalaMapSpec extends TestBaseEmbedded {
 
       db.asScala.get(1) should contain("one")
 
-      db.closeDatabase().get
+      db.close().get
     }
 
     "putAll" in {
@@ -95,7 +95,7 @@ sealed trait ScalaMapSpec extends TestBaseEmbedded {
       db.asScala.get(1) should contain("one")
       db.asScala.get(2) should contain("two")
 
-      db.closeDatabase().get
+      db.close().get
     }
 
     "remove" in {
@@ -108,7 +108,7 @@ sealed trait ScalaMapSpec extends TestBaseEmbedded {
       db.asScala.get(1) shouldBe empty
       db.asScala.get(2) should contain("two")
 
-      db.closeDatabase().get
+      db.close().get
     }
 
     "removeAll" in {
@@ -121,7 +121,7 @@ sealed trait ScalaMapSpec extends TestBaseEmbedded {
       db.asScala.get(1) shouldBe empty
       db.asScala.get(2) shouldBe empty
 
-      db.closeDatabase().get
+      db.close().get
     }
 
     "keySet, head, last, contains" in {
@@ -138,7 +138,7 @@ sealed trait ScalaMapSpec extends TestBaseEmbedded {
       db.asScala.contains(2) shouldBe true
       db.asScala.contains(3) shouldBe false
 
-      db.closeDatabase().get
+      db.close().get
 
     }
   }

@@ -429,7 +429,7 @@ class Map[K, V](mapKey: Seq[K],
     expiration(key).map(_.map(_.timeLeft))
 
   def closeDatabase(): IO[Unit] =
-    baseMap().closeDatabase()
+    baseMap().close()
 
   private[swaydb] def baseMap(): swaydb.Map[Key[K], Option[V], IO] =
     map

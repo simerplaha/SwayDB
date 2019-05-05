@@ -378,7 +378,7 @@ case class Map[K, V, T[_]](private[swaydb] val core: Core[T],
   def asScala: scala.collection.mutable.Map[K, V] =
     ScalaMap[K, V](tagBlocking[IO](Tag.io))
 
-  def closeDatabase(): T[Unit] =
+  def close(): T[Unit] =
     wrapCall(core.close())
 
   override def toString(): String =

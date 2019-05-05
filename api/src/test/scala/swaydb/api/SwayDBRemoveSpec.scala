@@ -92,7 +92,7 @@ sealed trait SwayDBRemoveSpec extends TestBaseEmbedded {
 
       doAssertEmpty(db)
 
-      db.closeDatabase().get
+      db.close().get
     }
 
     "Put & Remove" in {
@@ -110,7 +110,7 @@ sealed trait SwayDBRemoveSpec extends TestBaseEmbedded {
 
       doAssertEmpty(db)
 
-      db.closeDatabase().get
+      db.close().get
     }
 
     "Put & Update" in {
@@ -128,7 +128,7 @@ sealed trait SwayDBRemoveSpec extends TestBaseEmbedded {
 
       doAssertEmpty(db)
 
-      db.closeDatabase().get
+      db.close().get
     }
 
     "Put & Expire" in {
@@ -150,7 +150,7 @@ sealed trait SwayDBRemoveSpec extends TestBaseEmbedded {
       sleep(deadline)
       doAssertEmpty(db)
 
-      db.closeDatabase().get
+      db.close().get
     }
 
     "Put & Put" in {
@@ -166,7 +166,7 @@ sealed trait SwayDBRemoveSpec extends TestBaseEmbedded {
 
       doAssertEmpty(db)
 
-      db.closeDatabase().get
+      db.close().get
     }
   }
 
@@ -185,7 +185,7 @@ sealed trait SwayDBRemoveSpec extends TestBaseEmbedded {
 
       doAssertEmpty(db)
 
-      db.closeDatabase().get
+      db.close().get
     }
 
     "Update & Remove" in {
@@ -206,7 +206,7 @@ sealed trait SwayDBRemoveSpec extends TestBaseEmbedded {
 
       doAssertEmpty(db)
 
-      db.closeDatabase().get
+      db.close().get
     }
 
     "Update & Update" in {
@@ -227,7 +227,7 @@ sealed trait SwayDBRemoveSpec extends TestBaseEmbedded {
 
       doAssertEmpty(db)
 
-      db.closeDatabase().get
+      db.close().get
     }
 
     "Update & Expire" in {
@@ -254,7 +254,7 @@ sealed trait SwayDBRemoveSpec extends TestBaseEmbedded {
       sleep(deadline2)
       doAssertEmpty(db)
 
-      db.closeDatabase().get
+      db.close().get
     }
 
     "Update & Put" in {
@@ -274,7 +274,7 @@ sealed trait SwayDBRemoveSpec extends TestBaseEmbedded {
 
       doAssertEmpty(db)
 
-      db.closeDatabase().get
+      db.close().get
     }
   }
 
@@ -293,7 +293,7 @@ sealed trait SwayDBRemoveSpec extends TestBaseEmbedded {
 
       doAssertEmpty(db)
 
-      db.closeDatabase().get
+      db.close().get
     }
 
     "Remove & Remove" in {
@@ -315,7 +315,7 @@ sealed trait SwayDBRemoveSpec extends TestBaseEmbedded {
 
       doAssertEmpty(db)
 
-      db.closeDatabase().get
+      db.close().get
     }
 
     "Remove & Update" in {
@@ -336,7 +336,7 @@ sealed trait SwayDBRemoveSpec extends TestBaseEmbedded {
 
       doAssertEmpty(db)
 
-      db.closeDatabase().get
+      db.close().get
     }
 
     "Remove & Expire" in {
@@ -362,7 +362,7 @@ sealed trait SwayDBRemoveSpec extends TestBaseEmbedded {
       sleep(deadline)
       doAssertEmpty(db)
 
-      db.closeDatabase().get
+      db.close().get
     }
 
     "Remove & Put" in {
@@ -386,7 +386,7 @@ sealed trait SwayDBRemoveSpec extends TestBaseEmbedded {
       sleep(deadline)
       doAssertEmpty(db)
 
-      db.closeDatabase().get
+      db.close().get
     }
   }
 
@@ -410,7 +410,7 @@ sealed trait SwayDBRemoveSpec extends TestBaseEmbedded {
       sleep(deadline)
       doAssertEmpty(db)
 
-      db.closeDatabase().get
+      db.close().get
     }
 
     "Expire & Remove" in {
@@ -435,7 +435,7 @@ sealed trait SwayDBRemoveSpec extends TestBaseEmbedded {
       sleep(deadline)
       doAssertEmpty(db)
 
-      db.closeDatabase().get
+      db.close().get
     }
 
     "Expire & Update" in {
@@ -461,7 +461,7 @@ sealed trait SwayDBRemoveSpec extends TestBaseEmbedded {
       sleep(deadline)
       doAssertEmpty(db)
 
-      db.closeDatabase().get
+      db.close().get
     }
 
     "Expire & Expire" in {
@@ -489,7 +489,7 @@ sealed trait SwayDBRemoveSpec extends TestBaseEmbedded {
       sleep(deadline2)
       doAssertEmpty(db)
 
-      db.closeDatabase().get
+      db.close().get
     }
 
     "Expire & Put" in {
@@ -514,7 +514,7 @@ sealed trait SwayDBRemoveSpec extends TestBaseEmbedded {
       sleep(deadline2)
       doAssertEmpty(db)
 
-      db.closeDatabase().get
+      db.close().get
     }
   }
 }

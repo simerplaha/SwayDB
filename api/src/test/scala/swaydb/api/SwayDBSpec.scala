@@ -109,7 +109,7 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
       db.headOption.assertGet shouldBe ((1, "1"))
       db.lastOption.assertGet shouldBe ((1000, "1000"))
 
-      db.closeDatabase().get
+      db.close().get
     }
 
     "update only key-values that are not removed" in {
@@ -131,7 +131,7 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
       db.headOption.assertGet shouldBe ((1, "updated"))
       db.lastOption.assertGet shouldBe ((100, "updated"))
 
-      db.closeDatabase().get
+      db.close().get
     }
 
     "update only key-values that are not removed by remove range" in {
@@ -150,7 +150,7 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
       db.headOption.assertGet shouldBe ((1, "updated"))
       db.lastOption.assertGet shouldBe ((100, "updated"))
 
-      db.closeDatabase().get
+      db.close().get
     }
 
     "return only key-values that were not removed from remove range" in {
@@ -183,7 +183,7 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
       db.headOption.assertGet shouldBe ((1, "1"))
       db.lastOption.assertGet shouldBe ((100, "100"))
 
-      db.closeDatabase().get
+      db.close().get
     }
 
     "return empty for an empty database with update range" in {
@@ -197,7 +197,7 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
       db.headOption.get shouldBe empty
       db.lastOption.get shouldBe empty
 
-      db.closeDatabase().get
+      db.close().get
     }
 
     "return empty for an empty database with remove range" in {
@@ -211,7 +211,7 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
       db.headOption.get shouldBe empty
       db.lastOption.get shouldBe empty
 
-      db.closeDatabase().get
+      db.close().get
     }
 
     "batch put, remove, update & range remove key-values" in {
@@ -243,7 +243,7 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
       db.commit(Prepare.Put(1, "one"), Prepare.Put(2, "two"), Prepare.Put(100, "hundred"), Prepare.Remove(1, 100), Prepare.Update(1, 1000, "updated")).assertGet
       db.stream.materialize.get shouldBe empty
 
-      db.closeDatabase().get
+      db.close().get
     }
 
     "perform from, until, before & after" in {
@@ -266,7 +266,7 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
       db.fromOrBefore(0).stream.materialize.get shouldBe empty
       db.fromOrAfter(0).take(1).materialize.get should contain only ((1, "1"))
 
-      db.closeDatabase().get
+      db.close().get
     }
 
     "perform mightContain & contains" in {
@@ -287,7 +287,7 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
 //      db.mightContain(Int.MinValue).assertGet shouldBe false
       db.contains(20000).assertGet shouldBe false
 
-      db.closeDatabase().get
+      db.close().get
     }
 
     "contains on removed should return false" in {
@@ -310,7 +310,7 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
 
       db.contains(100001).assertGet shouldBe false
 
-      db.closeDatabase().get
+      db.close().get
     }
 
     "return valueSize" in {

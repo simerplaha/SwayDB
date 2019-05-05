@@ -54,7 +54,7 @@ sealed trait WeatherDataSpec extends TestBase with LazyLogging with Benchmark wi
   val db: swaydb.Map[Int, WeatherData, IO]
 
   override protected def afterAll(): Unit = {
-    db.closeDatabase().get
+    db.close().get
     //    walkDeleteFolder(dir)
     super.afterAll()
   }

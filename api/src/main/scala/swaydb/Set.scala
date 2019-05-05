@@ -283,7 +283,7 @@ case class Set[A, T[_]](private val core: Core[T],
   def asScala: scala.collection.mutable.Set[A] =
     ScalaSet[A](tagBlocking[IO])
 
-  def closeDatabase(): T[Unit] =
+  def close(): T[Unit] =
     wrapCall(core.close())
 
   override def toString(): String =

@@ -59,6 +59,6 @@ sealed trait SwayDBSizeSpec extends TestBaseEmbedded {
 
     db.size shouldBe keyValueCount
 
-    db.closeDatabase().get
+    db.close().get
   }
 }
