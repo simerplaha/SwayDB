@@ -79,7 +79,7 @@ lazy val core =
     .settings(
       libraryDependencies ++=
         commonDependencies
-          :+ "com.github.alexandrnikitin" %% "bloom-filter" % bloomFilterVersion
+          :+ ("com.github.alexandrnikitin" %% "bloom-filter" % bloomFilterVersion exclude("org.scala-lang", "scala-library"))
     ).dependsOn(data, macros % "test->test;compile-internal", compression, configs % "test->test", serializers % "test->test")
 
 lazy val data =
