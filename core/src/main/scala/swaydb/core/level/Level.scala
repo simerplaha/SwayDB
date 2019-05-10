@@ -685,7 +685,7 @@ private[core] class Level(val dirs: Seq[Dir],
     logger.trace(s"{}: Merging {} KeyValues.", paths.head, keyValues.size)
     SegmentAssigner.assign(keyValues, targetSegments) flatMap {
       assignments =>
-        val busySegments: Seq[Segment] = getBusySegments()
+        val busySegments: Iterable[Segment] = getBusySegments()
         //check to ensure that assigned Segments do not overlap with busy Segments.
         if (Segment.intersects(assignments.keys, busySegments)) {
           logger.trace(s"{}: Assigned segments {} intersect with current busy segments: {}.", paths.head, assignments.map(_._1.path.toString), busySegments.map(_.path.toString))
@@ -1058,7 +1058,7 @@ private[core] class Level(val dirs: Seq[Dir],
   def higherSegment(key: Slice[Byte]): Option[Segment] =
     (appendix higher key).map(_._2)
 
-  override def getBusySegments(): List[Segment] =
+  override def getBusySegments(): Iterable[Segment] =
     actor.getBusySegments
 
   override def segmentsCount(): Int =

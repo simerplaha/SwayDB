@@ -31,7 +31,7 @@ private[core] sealed trait LevelState {
 
   val task: Option[TimerTask]
 
-  def busySegments: List[Segment]
+  def busySegments: Iterable[Segment]
 
   def isSleeping: Boolean
 
@@ -50,7 +50,7 @@ private[core] sealed trait LevelState {
 }
 
 private[core] object LevelState {
-  case class Pushing(busySegments: List[Segment],
+  case class Pushing(busySegments: Iterable[Segment],
                      collapseSmallSegmentsTaskScheduled: Boolean,
                      task: Option[TimerTask],
                      waitingPull: Option[ActorRef[Pull]]) extends LevelState {
@@ -78,7 +78,7 @@ private[core] object LevelState {
 
     override def isScheduled: Boolean = true
 
-    override def busySegments: List[Segment] = List.empty
+    override def busySegments: Iterable[Segment] = Iterable.empty
 
     override val waitingPull: Option[ActorRef[Pull]] = None
 
@@ -101,7 +101,7 @@ private[core] object LevelState {
 
     override def isScheduled: Boolean = false
 
-    override def busySegments: List[Segment] = List.empty
+    override def busySegments: Iterable[Segment] = Iterable.empty
 
     override val waitingPull: Option[ActorRef[Pull]] = None
 
@@ -124,7 +124,7 @@ private[core] object LevelState {
 
     override def isScheduled: Boolean = false
 
-    override def busySegments: List[Segment] = List.empty
+    override def busySegments: Iterable[Segment] = Iterable.empty
 
     override val waitingPull: Option[ActorRef[Pull]] = None
 

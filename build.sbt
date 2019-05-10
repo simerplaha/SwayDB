@@ -3,8 +3,6 @@ import sbt.url
 import xerial.sbt.Sonatype._
 import ReleaseTransformations._
 
-val scala211 = "2.11.12"
-val scala212 = "2.12.8"
 val lz4Version = "1.5.1"
 val snappyVersion = "1.1.7"
 val logbackClassicVersion = "1.2.3"
@@ -23,7 +21,7 @@ lazy val commonSettings = Seq(
 )
 
 val publishSettings = Seq[Setting[_]](
-  crossScalaVersions := Seq(scala211, scala212),
+  crossScalaVersions := Seq("2.11.12", "2.12.8"),
   sonatypeProfileName := "io.swaydb",
   publishMavenStyle := true,
   licenses := Seq("AGPL3" -> url("https://www.gnu.org/licenses/agpl-3.0.en.html")),

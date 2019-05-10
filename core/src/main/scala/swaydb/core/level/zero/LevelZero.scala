@@ -732,8 +732,8 @@ private[core] class LevelZero(val path: Path,
   override def getSegment(minKey: Slice[Byte]): Option[Segment] =
     nextLevel.flatMap(_.getSegment(minKey))
 
-  override def getBusySegments(): List[Segment] =
-    nextLevel.map(_.getBusySegments()) getOrElse List.empty
+  override def getBusySegments(): Iterable[Segment] =
+    nextLevel.map(_.getBusySegments()) getOrElse Iterable.empty
 
   override def takeSmallSegments(size: Int): Iterable[Segment] =
     nextLevel.map(_.takeSmallSegments(size)) getOrElse List.empty

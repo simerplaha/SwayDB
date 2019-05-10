@@ -90,7 +90,7 @@ private[core] trait LevelRef {
 
   def getSegment(minKey: Slice[Byte]): Option[Segment]
 
-  def getBusySegments(): List[Segment]
+  def getBusySegments(): Iterable[Segment]
 
   def takeSmallSegments(size: Int): Iterable[Segment]
 

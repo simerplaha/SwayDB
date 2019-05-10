@@ -81,8 +81,8 @@ private[core] object TrashLevel extends LevelRef {
   override def getSegment(minKey: Slice[Byte]): Option[Segment] =
     None
 
-  override val getBusySegments: List[Segment] =
-    List.empty
+  override val getBusySegments: Iterable[Segment] =
+    Iterable.empty
 
   override val existsOnDisk =
     false

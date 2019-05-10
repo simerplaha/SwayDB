@@ -174,7 +174,7 @@ private[core] object LevelActor extends LazyLogging {
               if (pickedSegments.nonEmpty) {
                 logger.debug(s"{}: Push segments {}", level.paths.head, pickedSegments.map(_.path.toString))
                 level push PushSegments(pickedSegments, self)
-                LevelState.Pushing(pickedSegments.toList, state.collapseSmallSegmentsTaskScheduled, state.task, None)
+                LevelState.Pushing(pickedSegments, state.collapseSmallSegmentsTaskScheduled, state.task, None)
               } else {
                 logger.debug(s"{}: No new Segments available to push. Sending PullRequest.", level.paths.head)
                 //              val segmentsToPush = level.take(batchSize)
@@ -276,7 +276,7 @@ private[core] class LevelActor(implicit level: LevelActorAPI,
   //and the Level's upper Level.
   @volatile private implicit var state: LevelState = Sleeping(collapseSmallSegmentsTaskScheduled = false, task = None)
 
-  def getBusySegments: List[Segment] =
+  def getBusySegments: Iterable[Segment] =
     state.busySegments
 
   def isSleeping: Boolean =
