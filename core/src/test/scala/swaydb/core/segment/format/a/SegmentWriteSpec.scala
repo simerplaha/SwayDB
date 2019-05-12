@@ -26,28 +26,28 @@ import scala.concurrent.duration._
 import scala.util.Random
 import swaydb.configs.level.DefaultGroupingStrategy
 import swaydb.core.CommonAssertions._
+import swaydb.core.IOAssert._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.IOAssert._
 import swaydb.core.data.Transient.Remove
 import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data.{Memory, Value, _}
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
+import swaydb.core.io.file.IOEffect._
 import swaydb.core.io.reader.Reader
 import swaydb.core.level.PathsDistributor
 import swaydb.core.queue.FileLimiter
 import swaydb.core.segment.Segment
 import swaydb.core.segment.SegmentException.CannotCopyInMemoryFiles
 import swaydb.core.segment.merge.SegmentMerger
-import swaydb.core.io.file.IOEffect._
 import swaydb.core.util._
 import swaydb.core.{TestBase, TestData, TestLimitQueues, TestTimer}
-import swaydb.data.{IO, MaxKey}
 import swaydb.data.config.Dir
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 import swaydb.data.util.StorageUnits._
+import swaydb.data.{IO, MaxKey}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
@@ -518,14 +518,16 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
       if (memory) {
         //memory Segments cannot re-initialise Segments after shutdown.
       } else {
-        assertSegment(
-          keyValues = randomizedKeyValues(keyValuesCount),
-          assert =
-            (keyValues, segment) => {
-              val readSegment = Segment(segment.path, randomBoolean(), randomBoolean(), false, true).assertGet
-              readSegment shouldBe segment
-            }
-        )
+        runThis(10.times) {
+          assertSegment(
+            keyValues = randomizedKeyValues(keyValuesCount),
+            assert =
+              (keyValues, segment) => {
+                val readSegment = Segment(segment.path, randomBoolean(), randomBoolean(), false, true).assertGet
+                readSegment shouldBe segment
+              }
+          )
+        }
       }
     }
 

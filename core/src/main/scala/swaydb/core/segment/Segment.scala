@@ -330,7 +330,7 @@ private[core] object Segment extends LazyLogging {
               nearestExpiryDeadline = segment.nearestExpiryDeadline,
               removeDeletes = removeDeletes
             ) onFailureSideEffect {
-              case exception =>
+              exception =>
                 logger.error("Failed to copyToPersist Segment {}", segment.path, exception)
                 IOEffect.deleteIfExists(nextPath) onFailureSideEffect {
                   exception =>
@@ -659,8 +659,8 @@ private[core] object Segment extends LazyLogging {
         }
     }
 
-  def tempMinMaxKeyValues(segments: Iterable[Segment]): Slice[Memory] =
-    segments.foldLeft(Slice.create[Memory](segments.size * 2)) {
+  def tempMinMaxKeyValues(segments: Iterable[Segment]): Slice[Memory.SegmentResponse] =
+    segments.foldLeft(Slice.create[Memory.SegmentResponse](segments.size * 2)) {
       case (keyValues, segment) =>
         keyValues add Memory.Put(segment.minKey, None, None, Time.empty)
         segment.maxKey match {
@@ -672,7 +672,7 @@ private[core] object Segment extends LazyLogging {
         }
     }
 
-  def tempMinMaxKeyValues(map: Map[Slice[Byte], Memory.SegmentResponse]): Slice[Memory] = {
+  def tempMinMaxKeyValues(map: Map[Slice[Byte], Memory.SegmentResponse]): Slice[Memory.SegmentResponse] = {
     for {
       minKey <- map.headValue().map(memory => Memory.Put(memory.key, None, None, Time.empty))
       maxKey <- map.lastValue() map {
@@ -684,7 +684,7 @@ private[core] object Segment extends LazyLogging {
       }
     } yield
       Slice(minKey, maxKey)
-  } getOrElse Slice.create[Memory](0)
+  } getOrElse Slice.create[Memory.SegmentResponse](0)
 
   def minMaxKey(map: Map[Slice[Byte], Memory.SegmentResponse]): Option[(Slice[Byte], Slice[Byte])] =
     for {
