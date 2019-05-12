@@ -139,7 +139,7 @@ private[core] object PersistentTimer extends LazyLogging {
 
 private[core] class PersistentTimer(mod: Long,
                                     startID: Long,
-                                    map: PersistentMap[Slice[Byte], Slice[Byte]])(implicit writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]]) extends Timer with LazyLogging {
+                                    map: PersistentMap[Slice[Byte], Slice[Byte]])(implicit writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]]) extends Timer {
 
   private val time = new AtomicLong(startID)
 

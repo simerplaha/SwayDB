@@ -96,21 +96,22 @@ private[core] class Single[H <: T, T](private var headRange: Option[H],
       this
     }
 
-  override def iterator = new Iterator[T] {
-    private var headDone = false
-    private val sliceIterator = tailKeyValues.iterator
+  override def iterator =
+    new Iterator[T] {
+      private var headDone = false
+      private val sliceIterator = tailKeyValues.iterator
 
-    override def hasNext: Boolean =
-      (!headDone && headRange.isDefined) || sliceIterator.hasNext
+      override def hasNext: Boolean =
+        (!headDone && headRange.isDefined) || sliceIterator.hasNext
 
-    override def next(): T =
-      if (!headDone && headRange.isDefined) {
-        headDone = true
-        headRange.get
-      } else {
-        sliceIterator.next()
-      }
-  }
+      override def next(): T =
+        if (!headDone && headRange.isDefined) {
+          headDone = true
+          headRange.get
+        } else {
+          sliceIterator.next()
+        }
+    }
 
   override def size =
     tailKeyValues.size + (if (headRange.isDefined) 1 else 0)
@@ -152,19 +153,20 @@ private[core] class Multiple[H <: T, T](private var left: MergeList[H, T],
   override def nextOption: Option[T] =
     left.nextOption orElse right.nextOption
 
-  override def iterator: Iterator[T] = new Iterator[T] {
-    private val leftIterator = left.iterator
-    private val rightIterator = right.iterator
+  override def iterator: Iterator[T] =
+    new Iterator[T] {
+      private val leftIterator = left.iterator
+      private val rightIterator = right.iterator
 
-    override def hasNext: Boolean =
-      leftIterator.hasNext || rightIterator.hasNext
+      override def hasNext: Boolean =
+        leftIterator.hasNext || rightIterator.hasNext
 
-    override def next(): T =
-      if (leftIterator.hasNext)
-        leftIterator.next()
-      else
-        rightIterator.next()
-  }
+      override def next(): T =
+        if (leftIterator.hasNext)
+          leftIterator.next()
+        else
+          rightIterator.next()
+    }
 
   override def depth: Int =
     left.depth + right.depth

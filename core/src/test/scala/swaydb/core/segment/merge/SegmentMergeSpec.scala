@@ -95,18 +95,11 @@ class SegmentMergeSpec extends TestBase {
     }
 
     "make no change if there is only one segment" in {
-
-      val segment1 = ListBuffer.empty[KeyValue.WriteOnly]
-      segment1.+=(Transient.put(key = 1, value = 1, previous = segment1.lastOption, falsePositiveRate = TestData.falsePositiveRate, compressDuplicateValues = true))
-      segment1.+=(Transient.put(key = 2, value = 2, previous = segment1.lastOption, falsePositiveRate = TestData.falsePositiveRate, compressDuplicateValues = true))
-
-      val segments = ListBuffer[ListBuffer[KeyValue.WriteOnly]](segment1)
-
-      segments.size shouldBe 1
-
       runThisParallel(100.times) {
-        SegmentMerger.completeMerge(segments, randomIntMax(segment1.last.stats.segmentSize + 1), forMemory = false, bloomFilterFalsePositiveRate = TestData.falsePositiveRate).assertGet.size shouldBe 1
-        SegmentMerger.completeMerge(segments, randomIntMax(segment1.last.stats.memorySegmentSize + 1), forMemory = true, bloomFilterFalsePositiveRate = TestData.falsePositiveRate).assertGet.size shouldBe 1
+        val segment: ListBuffer[KeyValue.WriteOnly] = ListBuffer(randomizedKeyValues(randomIntMax(5) max 1, addRandomGroups = false).toList: _*)
+
+        SegmentMerger.completeMerge(ListBuffer(segment), randomIntMax(segment.last.stats.segmentSize), forMemory = false, bloomFilterFalsePositiveRate = TestData.falsePositiveRate).assertGet.size shouldBe 1
+        SegmentMerger.completeMerge(ListBuffer(segment), randomIntMax(segment.last.stats.memorySegmentSize), forMemory = true, bloomFilterFalsePositiveRate = TestData.falsePositiveRate).assertGet.size shouldBe 1
       }
     }
 
@@ -218,13 +211,6 @@ class SegmentMergeSpec extends TestBase {
 
         mergeResultWithoutGroup.head shouldBe mergeResultWithGroup.head
       }
-    }
-  }
-
-  "SegmentMerger performance" in {
-    val keyValues = randomKeyValues(100000)
-    Benchmark("SegmentMerger performance") {
-      SegmentMerger.merge(keyValues, keyValues, 100.mb, false, false, TestData.falsePositiveRate, compressDuplicateValues = true).assertGet
     }
   }
 }
