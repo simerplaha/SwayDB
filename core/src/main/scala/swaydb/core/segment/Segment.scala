@@ -38,7 +38,6 @@ import swaydb.core.queue.{FileLimiter, FileLimiterItem, KeyValueLimiter}
 import swaydb.core.segment.format.a.{SegmentReader, SegmentWriter}
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util.CollectionUtil._
-import swaydb.core.util.PipeOps._
 import swaydb.core.util.{BloomFilterUtil, IDGenerator}
 import swaydb.data.IO._
 import swaydb.data.config.Dir
@@ -794,9 +793,9 @@ private[core] object Segment extends LazyLogging {
       case range: KeyValue.ReadOnly.Range =>
         range.fetchFromAndRangeValue map {
           case (Some(fromValue), rangeValue) =>
-            getNearestDeadline(deadline, fromValue) ==> {
-              getNearestDeadline(_, rangeValue)
-            }
+            val fromValueDeadline = getNearestDeadline(deadline, fromValue)
+            getNearestDeadline(fromValueDeadline, rangeValue)
+
           case (None, rangeValue) =>
             getNearestDeadline(deadline, rangeValue)
         }
@@ -815,9 +814,9 @@ private[core] object Segment extends LazyLogging {
       case range: KeyValue.WriteOnly.Range =>
         (range.fromValue, range.rangeValue) match {
           case (Some(fromValue), rangeValue) =>
-            getNearestDeadline(deadline, fromValue) ==> {
-              getNearestDeadline(_, rangeValue)
-            }
+            val fromValueDeadline = getNearestDeadline(deadline, fromValue)
+            getNearestDeadline(fromValueDeadline, rangeValue)
+
           case (None, rangeValue) =>
             getNearestDeadline(deadline, rangeValue)
         }
