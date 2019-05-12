@@ -52,7 +52,7 @@ class SegmentWriterReaderSpec extends TestBase {
   "SegmentWriter" should {
 
     "writeBloomFilterAndGetNearestDeadline" in {
-      runThis(10.times) {
+      runThis(100.times) {
         val keyValues = randomizedKeyValues(keyValueCount)
         val group = randomGroup(keyValues)
         val bloom = BloomFilterUtil.init(keyValues, TestData.falsePositiveRate)

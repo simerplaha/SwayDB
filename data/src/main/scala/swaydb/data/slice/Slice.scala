@@ -420,6 +420,9 @@ class Slice[+T: ClassTag](array: Array[T],
     else
       slice(count, size - 1)
 
+  def dropHead(): Slice[T] =
+    drop(1)
+
   override def dropRight(count: Int): Slice[T] =
     if (count >= size)
       Slice.empty[T]
