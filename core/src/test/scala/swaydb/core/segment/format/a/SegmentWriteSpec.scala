@@ -470,7 +470,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           keyValues = randomizedKeyValues(keyValuesCount),
           assert =
             (keyValues, segment) => {
-              val readSegment = Segment(segment.path, randomBoolean, randomBoolean, false, true).assertGet
+              val readSegment = Segment(segment.path, randomBoolean(), randomBoolean(), false, true).assertGet
               readSegment shouldBe segment
             }
         )

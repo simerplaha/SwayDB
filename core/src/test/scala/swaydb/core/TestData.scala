@@ -66,8 +66,11 @@ object TestData {
 
   implicit def toMemory(slice: Slice[KeyValue.WriteOnly])(implicit keyOrder: KeyOrder[Slice[Byte]]) = slice.toMemory
 
-  def randomNextInt(max: Int) =
+  def randomNextInt(max: Int): Int =
     Math.abs(Random.nextInt(max))
+
+  def randomBoolean(): Boolean =
+    Random.nextBoolean()
 
   implicit class ReopenSegment(segment: Segment)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                  ec: ExecutionContext,
@@ -82,8 +85,8 @@ object TestData {
     def tryReopen(path: Path, removeDeletes: Boolean = segment.removeDeletes): IO[Segment] =
       Segment(
         path = path,
-        mmapReads = Random.nextBoolean(),
-        mmapWrites = Random.nextBoolean(),
+        mmapReads = randomBoolean(),
+        mmapWrites = randomBoolean(),
         minKey = segment.minKey,
         maxKey = segment.maxKey,
         segmentSize = segment.segmentSize,
@@ -582,7 +585,7 @@ object TestData {
   }
 
   def randomStringOption: Option[Slice[Byte]] =
-    if (Random.nextBoolean())
+    if (randomBoolean())
       Some(randomString)
     else
       None
@@ -593,20 +596,17 @@ object TestData {
   def randomDeadlineOption: Option[Deadline] =
     randomDeadlineOption()
 
-  def randomDeadlineOption(expired: Boolean = randomBoolean): Option[Deadline] =
-    if (Random.nextBoolean())
+  def randomDeadlineOption(expired: Boolean = randomBoolean()): Option[Deadline] =
+    if (randomBoolean())
       Some(randomDeadline(expired))
     else
       None
 
-  def randomDeadline(expired: Boolean = randomBoolean): Deadline =
-    if (expired && Random.nextBoolean())
+  def randomDeadline(expired: Boolean = randomBoolean()): Deadline =
+    if (expired && randomBoolean())
       0.seconds.fromNow - (randomIntMax(30) + 10).seconds
     else
       (randomIntMax(60) max 30).seconds.fromNow
-
-  def randomBoolean =
-    Random.nextBoolean()
 
   def randomDeadUpdateOrExpiredPut(key: Slice[Byte]): Memory.Fixed =
     eitherOne(
@@ -666,7 +666,7 @@ object TestData {
     */
   def randomRemoveOrUpdateOrFunctionRemove(key: Slice[Byte],
                                            addFunctions: Boolean = true)(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Fixed =
-    if (randomBoolean)
+    if (randomBoolean())
       randomRemoveKeyValue(key, randomExpiredDeadlineOption())
     else if (randomBoolean && addFunctions)
       randomFunctionKeyValue(key, randomRemoveFunctionOutput())
@@ -799,16 +799,16 @@ object TestData {
       swayFunction = SwayFunction.ValueDeadline((_, _) => output)
     )
 
-  def randomFunctionOutput(addRemoves: Boolean = randomBoolean, expiredDeadline: Boolean = randomBoolean): SwayFunctionOutput =
-    if (addRemoves && Random.nextBoolean())
+  def randomFunctionOutput(addRemoves: Boolean = randomBoolean(), expiredDeadline: Boolean = randomBoolean()): SwayFunctionOutput =
+    if (addRemoves && randomBoolean())
       SwayFunctionOutput.Remove
-    else if (randomBoolean)
+    else if (randomBoolean())
       SwayFunctionOutput.Nothing
     else
       randomFunctionUpdateOutput(expiredDeadline)
 
-  def randomFunctionUpdateOutput(expiredDeadline: Boolean = randomBoolean): SwayFunctionOutput =
-    if (Random.nextBoolean())
+  def randomFunctionUpdateOutput(expiredDeadline: Boolean = randomBoolean()): SwayFunctionOutput =
+    if (randomBoolean())
       SwayFunctionOutput.Expire(randomDeadline(expiredDeadline))
     else
       SwayFunctionOutput.Update(randomStringOption, randomDeadlineOption(expiredDeadline))
@@ -887,7 +887,7 @@ object TestData {
   }
 
   def randomSwayFunction(functionOutput: SwayFunctionOutput = randomFunctionOutput()): SwayFunction =
-    if (Random.nextBoolean())
+    if (randomBoolean())
       randomRequiresKeyFunction(functionOutput)
     else
       randomValueOnlyFunction(functionOutput)
@@ -900,20 +900,20 @@ object TestData {
 
   def randomApply(value: Option[Slice[Byte]] = randomStringOption,
                   deadline: Option[Deadline] = randomDeadlineOption,
-                  addRemoves: Boolean = randomBoolean,
+                  addRemoves: Boolean = randomBoolean(),
                   functionOutput: SwayFunctionOutput = randomFunctionOutput(),
                   includeFunctions: Boolean = true)(implicit testTimer: TestTimer = TestTimer.Incremental()) =
-    if (addRemoves && Random.nextBoolean())
+    if (addRemoves && randomBoolean())
       Value.Remove(deadline, testTimer.next)
-    else if (includeFunctions && Random.nextBoolean())
+    else if (includeFunctions && randomBoolean())
       Value.Function(randomFunctionId(functionOutput), testTimer.next)
     else
       Value.Update(value, deadline, testTimer.next)
 
   def randomApplyWithDeadline(value: Option[Slice[Byte]] = randomStringOption,
-                              addRandomRangeRemoves: Boolean = randomBoolean,
+                              addRandomRangeRemoves: Boolean = randomBoolean(),
                               deadline: Deadline = randomDeadline())(implicit testTimer: TestTimer = TestTimer.Incremental()) =
-    if (addRandomRangeRemoves && Random.nextBoolean())
+    if (addRandomRangeRemoves && randomBoolean())
       Value.Remove(Some(deadline), testTimer.next)
     else
       Value.Update(value, Some(deadline), testTimer.next)
@@ -921,7 +921,7 @@ object TestData {
   def randomApplies(max: Int = 5,
                     value: Option[Slice[Byte]] = randomStringOption,
                     deadline: Option[Deadline] = randomDeadlineOption,
-                    addRemoves: Boolean = randomBoolean,
+                    addRemoves: Boolean = randomBoolean(),
                     functionOutput: SwayFunctionOutput = randomFunctionOutput(),
                     includeFunctions: Boolean = true)(implicit testTimer: TestTimer = TestTimer.Incremental()): Slice[Value.Apply] =
     Slice {
@@ -938,7 +938,7 @@ object TestData {
 
   def randomAppliesWithDeadline(max: Int = 5,
                                 value: Option[Slice[Byte]] = randomStringOption,
-                                addRandomRangeRemoves: Boolean = randomBoolean,
+                                addRandomRangeRemoves: Boolean = randomBoolean(),
                                 deadline: Deadline = randomDeadline())(implicit testTimer: TestTimer = TestTimer.Incremental()): Slice[Value.Apply] =
     Slice {
       (1 to (Random.nextInt(max) max 1)).map {
@@ -960,13 +960,13 @@ object TestData {
                           includeRemoves: Boolean = true,
                           includePuts: Boolean = true,
                           moveAppliesTimeBackward: Boolean = true)(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Fixed =
-    if (includePuts && Random.nextBoolean())
+    if (includePuts && randomBoolean())
       Memory.Put(key, value, deadline, testTimer.next)
-    else if (includeRemoves && Random.nextBoolean())
+    else if (includeRemoves && randomBoolean())
       Memory.Remove(key, deadline, testTimer.next)
-    else if (includeFunctions && Random.nextBoolean())
+    else if (includeFunctions && randomBoolean())
       Memory.Function(key, randomFunctionId(functionOutput), testTimer.next)
-    else if (includePendingApply && Random.nextBoolean())
+    else if (includePendingApply && randomBoolean())
       Memory.PendingApply(
         key,
         randomApplies(
@@ -1025,7 +1025,7 @@ object TestData {
     )
 
   def randomRangeValueOption(from: Slice[Byte], to: Slice[Byte]): Option[Memory.Range] =
-    if (Random.nextBoolean())
+    if (randomBoolean())
       Some(randomRangeKeyValue(from, to))
     else
       None
@@ -1033,9 +1033,9 @@ object TestData {
   def randomFromValueOption(value: Option[Slice[Byte]] = randomStringOption,
                             deadline: Option[Deadline] = randomDeadlineOption,
                             functionOutput: SwayFunctionOutput = randomFunctionOutput(),
-                            addRemoves: Boolean = Random.nextBoolean(),
-                            addPut: Boolean = Random.nextBoolean())(implicit testTimer: TestTimer = TestTimer.Incremental()): Option[Value.FromValue] =
-    if (Random.nextBoolean())
+                            addRemoves: Boolean = randomBoolean(),
+                            addPut: Boolean = randomBoolean())(implicit testTimer: TestTimer = TestTimer.Incremental()): Option[Value.FromValue] =
+    if (randomBoolean())
       Some(
         randomFromValue(
           value = value,
@@ -1049,15 +1049,15 @@ object TestData {
       None
 
   def randomFromValueWithDeadlineOption(value: Option[Slice[Byte]] = randomStringOption,
-                                        addRandomRangeRemoves: Boolean = Random.nextBoolean(),
+                                        addRandomRangeRemoves: Boolean = randomBoolean(),
                                         deadline: Deadline = randomDeadline())(implicit testTimer: TestTimer = TestTimer.Incremental()): Option[Value.FromValue] =
-    if (Random.nextBoolean())
+    if (randomBoolean())
       Some(randomFromValueWithDeadline(value, addRandomRangeRemoves, deadline))
     else
       None
 
   def randomUpdateRangeValue(value: Option[Slice[Byte]] = randomStringOption,
-                             addRemoves: Boolean = randomBoolean,
+                             addRemoves: Boolean = randomBoolean(),
                              functionOutput: SwayFunctionOutput = randomUpdateFunctionOutput())(implicit testTimer: TestTimer = TestTimer.Incremental()) = {
     val deadline =
     //if removes are allowed make sure to set the deadline
@@ -1070,11 +1070,11 @@ object TestData {
   }
 
   def randomFromValue(value: Option[Slice[Byte]] = randomStringOption,
-                      addRemoves: Boolean = Random.nextBoolean(),
+                      addRemoves: Boolean = randomBoolean(),
                       deadline: Option[Deadline] = randomDeadlineOption,
                       functionOutput: SwayFunctionOutput = randomFunctionOutput(),
-                      addPut: Boolean = Random.nextBoolean())(implicit testTimer: TestTimer = TestTimer.Incremental()): Value.FromValue =
-    if (addPut && Random.nextBoolean())
+                      addPut: Boolean = randomBoolean())(implicit testTimer: TestTimer = TestTimer.Incremental()): Value.FromValue =
+    if (addPut && randomBoolean())
       Value.Put(value, deadline, testTimer.next)
     else
       randomRangeValue(value = value, addRemoves = addRemoves, functionOutput = functionOutput, deadline = deadline)
@@ -1082,30 +1082,30 @@ object TestData {
   def randomRangeValue(value: Option[Slice[Byte]] = randomStringOption,
                        deadline: Option[Deadline] = randomDeadlineOption,
                        functionOutput: SwayFunctionOutput = randomFunctionOutput(),
-                       addRemoves: Boolean = Random.nextBoolean())(implicit testTimer: TestTimer = TestTimer.Incremental()): Value.RangeValue =
-    if (addRemoves && Random.nextBoolean())
+                       addRemoves: Boolean = randomBoolean())(implicit testTimer: TestTimer = TestTimer.Incremental()): Value.RangeValue =
+    if (addRemoves && randomBoolean())
       Value.Remove(deadline, testTimer.next)
-    else if (Random.nextBoolean())
+    else if (randomBoolean())
       Value.Function(randomFunctionId(functionOutput), testTimer.next)
-    else if (Random.nextBoolean())
+    else if (randomBoolean())
       Value.PendingApply(randomApplies(value = value, addRemoves = addRemoves, deadline = deadline, functionOutput = functionOutput))
     else
       Value.Update(value, deadline, testTimer.next)
 
   def randomFromValueWithDeadline(value: Option[Slice[Byte]] = randomStringOption,
-                                  addRandomRangeRemoves: Boolean = Random.nextBoolean(),
+                                  addRandomRangeRemoves: Boolean = randomBoolean(),
                                   deadline: Deadline = randomDeadline())(implicit testTimer: TestTimer = TestTimer.Incremental()): Value.FromValue =
-    if (Random.nextBoolean())
+    if (randomBoolean())
       Value.Put(value, Some(deadline), testTimer.next)
     else
       randomRangeValueWithDeadline(value = value, addRandomRangeRemoves = addRandomRangeRemoves, deadline = deadline)
 
   def randomRangeValueWithDeadline(value: Option[Slice[Byte]] = randomStringOption,
-                                   addRandomRangeRemoves: Boolean = Random.nextBoolean(),
+                                   addRandomRangeRemoves: Boolean = randomBoolean(),
                                    deadline: Deadline = randomDeadline())(implicit testTimer: TestTimer = TestTimer.Incremental()): Value.RangeValue =
-    if (addRandomRangeRemoves && Random.nextBoolean())
+    if (addRandomRangeRemoves && randomBoolean())
       Value.Remove(Some(deadline), testTimer.next)
-    else if (Random.nextBoolean())
+    else if (randomBoolean())
       Value.PendingApply(randomAppliesWithDeadline(value = value, deadline = deadline))
     else
       Value.Update(value, Some(deadline), testTimer.next)
@@ -1139,7 +1139,7 @@ object TestData {
     Math.abs(randomIntMax()) max min
 
   def randomIntMaxOption(max: Int = Int.MaxValue) =
-    if (Random.nextBoolean())
+    if (randomBoolean())
       Some(randomIntMax(max))
     else
       None
@@ -1167,19 +1167,19 @@ object TestData {
                           startId: Option[Int] = None,
                           valueSize: Int = 50,
                           addPut: Boolean = true,
-                          addRandomRemoves: Boolean = Random.nextBoolean(),
-                          addRandomRangeRemoves: Boolean = Random.nextBoolean(),
-                          addRandomUpdates: Boolean = Random.nextBoolean(),
-                          addRandomFunctions: Boolean = Random.nextBoolean(),
-                          addRandomRanges: Boolean = Random.nextBoolean(),
-                          addRandomPendingApply: Boolean = Random.nextBoolean(),
-                          addRandomRemoveDeadlines: Boolean = Random.nextBoolean(),
-                          addRandomPutDeadlines: Boolean = Random.nextBoolean(),
-                          addRandomExpiredPutDeadlines: Boolean = Random.nextBoolean(),
-                          addRandomUpdateDeadlines: Boolean = Random.nextBoolean(),
-                          addRandomGroups: Boolean = Random.nextBoolean())(implicit testTimer: TestTimer = TestTimer.Incremental(),
-                                                                           keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                           keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter): Slice[Transient] =
+                          addRandomRemoves: Boolean = randomBoolean(),
+                          addRandomRangeRemoves: Boolean = randomBoolean(),
+                          addRandomUpdates: Boolean = randomBoolean(),
+                          addRandomFunctions: Boolean = randomBoolean(),
+                          addRandomRanges: Boolean = randomBoolean(),
+                          addRandomPendingApply: Boolean = randomBoolean(),
+                          addRandomRemoveDeadlines: Boolean = randomBoolean(),
+                          addRandomPutDeadlines: Boolean = randomBoolean(),
+                          addRandomExpiredPutDeadlines: Boolean = randomBoolean(),
+                          addRandomUpdateDeadlines: Boolean = randomBoolean(),
+                          addRandomGroups: Boolean = randomBoolean())(implicit testTimer: TestTimer = TestTimer.Incremental(),
+                                                                      keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                                                      keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter): Slice[Transient] =
     randomKeyValues(
       count = count,
       startId = startId,
@@ -1257,7 +1257,7 @@ object TestData {
       iteration += 1
       //protect to this going into infinite loop
       if (iteration >= 10 && slice.isEmpty) throw new Exception("Too many iterations without generated data.")
-      if (addRandomGroups && Random.nextBoolean()) {
+      if (addRandomGroups && randomBoolean()) {
         //create a Random group with the inner key-values the same as count of this group.
         val groupKeyValues =
           randomKeyValues(
@@ -1280,24 +1280,24 @@ object TestData {
 
         //could be possible that randomKeyValues returns empty if all generations were set to false.
         if (groupKeyValues.isEmpty) {
-          if (Random.nextBoolean()) key += 1
+          if (randomBoolean()) key += 1
         } else {
           Transient.Group(groupKeyValues, randomCompression(), randomCompression(), TestData.falsePositiveRate, previous = slice.lastOption).assertGetOpt match {
             case Some(group) =>
               slice add group
               //randomly skip the Group's toKey for the next key. Next key should not be the same as toKey so add a minimum of 1 to next key.
-              if (Random.nextBoolean())
+              if (randomBoolean())
                 key = group.maxKey.maxKey.readInt() + 1
               else
                 key = group.maxKey.maxKey.readInt() + 1 + randomIntMax(5)
             case None =>
               //if it's empty randomly incrementing the key and continue.
-              if (Random.nextBoolean())
+              if (randomBoolean())
                 key += 1
           }
         }
 
-      } else if (addRandomRanges && Random.nextBoolean()) {
+      } else if (addRandomRanges && randomBoolean()) {
         val toKey = key + 10
         val fromValueValueBytes = eitherOne(None, Some(randomBytesSlice(valueSize)))
         val rangeValueValueBytes = eitherOne(None, Some(randomBytesSlice(valueSize)))
@@ -1314,21 +1314,21 @@ object TestData {
           rangeValue = randomRangeValue(value = rangeValueValueBytes, addRemoves = addRandomRangeRemoves, deadline = rangeValueDeadline)
         ).toTransient(slice.lastOption)
         //randomly skip the Range's toKey for the next key.
-        if (Random.nextBoolean())
+        if (randomBoolean())
           key = toKey
         else
           key = toKey + randomIntMax(5)
-      } else if (addRandomRemoves && Random.nextBoolean()) {
+      } else if (addRandomRemoves && randomBoolean()) {
         slice add randomRemoveKeyValue(key, if (addRandomRemoveDeadlines) randomDeadlineOption else None).toTransient(slice.lastOption)
         key = key + 1
-      } else if (addRandomUpdates && Random.nextBoolean()) {
+      } else if (addRandomUpdates && randomBoolean()) {
         val valueBytes = if (valueSize == 0) None else eitherOne(None, Some(randomBytesSlice(valueSize)))
         slice add randomUpdateKeyValue(key = key: Slice[Byte], deadline = if (addRandomUpdateDeadlines) randomDeadlineOption else None, value = valueBytes).toTransient(slice.lastOption)
         key = key + 1
-      } else if (addRandomFunctions && Random.nextBoolean()) {
+      } else if (addRandomFunctions && randomBoolean()) {
         slice add randomFunctionKeyValue(key = key: Slice[Byte]).toTransient(slice.lastOption)
         key = key + 1
-      } else if (addRandomPendingApply && Random.nextBoolean()) {
+      } else if (addRandomPendingApply && randomBoolean()) {
         val valueBytes = if (valueSize == 0) None else eitherOne(None, Some(randomBytesSlice(valueSize)))
         slice add randomPendingApplyKeyValue(key = key: Slice[Byte], deadline = if (addRandomUpdateDeadlines) randomDeadlineOption else None, value = valueBytes).toTransient(slice.lastOption)
         key = key + 1
@@ -2003,7 +2003,7 @@ object TestData {
     var keyUsed = keyValues.head.key.readInt() - 1
     keyValues flatMap {
       keyValue =>
-        if (randomlyDropUpdates && Random.nextBoolean()) {
+        if (randomlyDropUpdates && randomBoolean()) {
           keyUsed = keyValue.key.readInt()
           None
         } else if (keyUsed < keyValue.key.readInt()) {

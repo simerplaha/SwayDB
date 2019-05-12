@@ -188,7 +188,7 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
           val (productId, (product, deadline)) = randomCreatedProducts.head
           val updatedProduct = product.copy(name = product.name + "-" + s"updated_${System.nanoTime()}")
 
-          if (randomBoolean)
+          if (randomBoolean())
             db.update(productId, updatedProduct).get
           else {
             val functionID =
@@ -217,7 +217,7 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
           val (productId, (product, deadline)) = randomCreatedProducts.head
           val newDeadline = deadline.map(_ - 1.second) getOrElse 1.hour.fromNow
 
-          if (randomBoolean)
+          if (randomBoolean())
             db.expire(productId, newDeadline).get
           else {
             val functionID =
@@ -315,7 +315,7 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
           //state.updateRangeCount indicates the number of times UpdateRang is invoked on the key-value.
           val updatedProduct = Product(s"update_range_${System.nanoTime()}")
 
-          if (randomBoolean)
+          if (randomBoolean())
             db.update(from, to, updatedProduct).get
           else {
             val functionID =
@@ -353,7 +353,7 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
             else
               1.hour.fromNow
 
-          if (randomBoolean)
+          if (randomBoolean())
             db.expire(from, to, newDeadline).get
           else {
             val functionID =
@@ -384,7 +384,7 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
           //delete random single product
           val (productToRemoveId, productToRemove) = randomCreatedProducts.head
 
-          if (randomBoolean)
+          if (randomBoolean())
             db.remove(productToRemoveId).get
           else {
             val functionID =
@@ -434,7 +434,7 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
             System.exit(0)
           }
 
-          if (randomBoolean)
+          if (randomBoolean())
             db.remove(from, to).get
           else {
             val functionID =
