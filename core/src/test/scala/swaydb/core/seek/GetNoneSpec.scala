@@ -41,7 +41,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
 
   "return None" when {
     "put is expired" in {
-      runThis(10.times) {
+      runThis(100.times) {
         implicit val testTimer = eitherOne(TestTimer.Decremental(), TestTimer.Empty)
 
         implicit val getFromCurrentLevel = mock[CurrentGetter]
@@ -54,7 +54,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
     }
 
     "removed" in {
-      runThis(10.times) {
+      runThis(100.times) {
         implicit val testTimer = eitherOne(TestTimer.Decremental(), TestTimer.Empty)
 
         implicit val getFromCurrentLevel = mock[CurrentGetter]
@@ -67,7 +67,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
     }
 
     "remove has time left but next Level returns None" in {
-      runThis(10.times) {
+      runThis(100.times) {
         implicit val testTimer = eitherOne(TestTimer.Decremental(), TestTimer.Empty)
 
         implicit val getFromCurrentLevel = mock[CurrentGetter]
@@ -81,7 +81,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
     }
 
     "remove has time left but next Level Put is expired" in {
-      runThis(10.times) {
+      runThis(100.times) {
         implicit val testTimer = TestTimer.Decremental()
 
         implicit val getFromCurrentLevel = mock[CurrentGetter]
@@ -95,7 +95,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
     }
 
     "update has no next Level put" in {
-      runThis(10.times) {
+      runThis(100.times) {
         implicit val testTimer = eitherOne(TestTimer.Decremental(), TestTimer.Empty)
 
         implicit val getFromCurrentLevel = mock[CurrentGetter]
@@ -109,7 +109,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
     }
 
     "update has next Level expired put" in {
-      runThis(10.times) {
+      runThis(100.times) {
         implicit val testTimer = eitherOne(TestTimer.Decremental(), TestTimer.Empty)
 
         implicit val getFromCurrentLevel = mock[CurrentGetter]
@@ -123,7 +123,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
     }
 
     "function has no next Level put" in {
-      runThis(10.times) {
+      runThis(100.times) {
         implicit val testTimer = eitherOne(TestTimer.Decremental(), TestTimer.Empty)
 
         implicit val getFromCurrentLevel = mock[CurrentGetter]
@@ -137,7 +137,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
     }
 
     "function has next Level expired put" in {
-      runThis(10.times) {
+      runThis(100.times) {
         implicit val testTimer = eitherOne(TestTimer.Decremental(), TestTimer.Empty)
 
         implicit val getFromCurrentLevel = mock[CurrentGetter]
@@ -151,7 +151,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
     }
 
     "pending applies has no next Level put" in {
-      runThis(10.times) {
+      runThis(100.times) {
         implicit val testTimer = eitherOne(TestTimer.Decremental(), TestTimer.Empty)
 
         implicit val getFromCurrentLevel = mock[CurrentGetter]
@@ -165,7 +165,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
     }
 
     "pending applies has next Level expired put" in {
-      runThis(10.times) {
+      runThis(100.times) {
         implicit val testTimer = eitherOne(TestTimer.Decremental(), TestTimer.Empty)
 
         implicit val getFromCurrentLevel = mock[CurrentGetter]
@@ -179,7 +179,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
     }
 
     "pending applies has Level put that resulted in expiry" in {
-      runThis(10.times) {
+      runThis(100.times) {
         implicit val testTimer = eitherOne(TestTimer.Decremental(), TestTimer.Empty)
 
         implicit val getFromCurrentLevel = mock[CurrentGetter]
@@ -205,7 +205,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
     }
 
     "range's fromValue is removed or expired" in {
-      runThis(10.times) {
+      runThis(100.times) {
         implicit val testTimer = eitherOne(TestTimer.Decremental(), TestTimer.Empty)
 
         implicit val getFromCurrentLevel = mock[CurrentGetter]

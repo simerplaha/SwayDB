@@ -89,9 +89,6 @@ private[core] class LimitQueue[T](limit: Long,
   def hasMessages =
     actor.hasMessages
 
-  def messageCount: Int =
-    actor.messageCount
-
   def terminate() =
     actor.terminate()
 }

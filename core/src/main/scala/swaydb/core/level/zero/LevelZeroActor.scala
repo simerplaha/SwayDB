@@ -50,9 +50,6 @@ private[core] class LevelZeroActor(zero: LevelZero,
 
   logger.debug(s"{}: LevelZero actor started.", zero.path)
 
-  def clearMessages() =
-    actor.clearMessages()
-
   def !(command: LevelZeroAPI): Unit =
     actor ! command
 

@@ -59,7 +59,7 @@ object Map extends LazyLogging {
   def apply[K, V](mapSize: Int = 4.mb,
                   segmentSize: Int = 2.mb,
                   cacheSize: Int = 500.mb,
-                  cacheCheckDelay: FiniteDuration = 5.seconds,
+                  cacheCheckDelay: FiniteDuration = 10.seconds,
                   bloomFilterFalsePositiveRate: Double = 0.01,
                   compressDuplicateValues: Boolean = false,
                   deleteSegmentsEventually: Boolean = false,

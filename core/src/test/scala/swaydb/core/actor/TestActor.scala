@@ -47,9 +47,6 @@ case class TestActor[T](implicit ec: ExecutionContext) extends Actor[T, Unit](()
   override def hasMessages: Boolean =
     !queue.isEmpty
 
-  override def messageCount: Int =
-    queue.size()
-
   override def !(message: T): Unit =
     queue add message
 

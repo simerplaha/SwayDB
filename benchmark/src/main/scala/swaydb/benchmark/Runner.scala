@@ -172,6 +172,7 @@ case class Runner(test: Test) extends Benchmark with LazyLogging {
               case ex: Exception =>
                 println("Key not found 2:" + key.readLong())
                 ex.printStackTrace()
+                System.exit(0)
             }
         }
       }

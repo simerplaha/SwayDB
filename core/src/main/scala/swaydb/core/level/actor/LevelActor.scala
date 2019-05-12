@@ -288,9 +288,6 @@ private[core] class LevelActor(implicit level: LevelActorAPI,
   def !(command: LevelCommand): Unit =
     actor ! command
 
-  def clearMessages() =
-    actor.clearMessages()
-
   def terminate() = {
     logger.debug(s"{}: Terminating ${this.getClass.getSimpleName}.", dir.path)
     actor.terminate()

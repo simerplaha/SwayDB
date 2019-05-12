@@ -21,8 +21,8 @@ package swaydb.core.actor
 
 import com.typesafe.scalalogging.LazyLogging
 import java.util.TimerTask
-import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.{ConcurrentLinkedQueue, TimeUnit}
+import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
 import scala.concurrent.duration.{FiniteDuration, _}
 import scala.concurrent.{ExecutionContext, Future}
 import swaydb.core.util.Delay
@@ -49,10 +49,6 @@ private[swaydb] sealed trait ActorRef[-T] {
   def schedule(message: T, delay: FiniteDuration): TimerTask
 
   def hasMessages: Boolean
-
-  def messageCount: Int
-
-  def clearMessages(): Unit
 
   def terminate(): Unit
 }
@@ -159,6 +155,7 @@ private[swaydb] class Actor[T, +S](val state: S,
 
   private val busy = new AtomicBoolean(false)
   private val queue = new ConcurrentLinkedQueue[T]
+  private val queueSize = new AtomicInteger(0)
   @volatile private var terminated = false
 
   val maxMessagesToProcessAtOnce = 10000
@@ -166,28 +163,33 @@ private[swaydb] class Actor[T, +S](val state: S,
   //regular interval. This interval can be updated via the execution function.
   val continueIfEmpty = defaultDelay.isDefined
   //if initial detail is defined, trigger processMessages() to start the timer loop.
-  if (continueIfEmpty) processMessages(defaultDelay.map(_ / 2))
+  if (continueIfEmpty) processMessages()
 
   override def !(message: T): Unit =
     if (!terminated) {
       queue offer message
-      processMessages(defaultDelay)
+      queueSize.incrementAndGet()
+      processMessages()
     }
 
-  override def clearMessages(): Unit =
+  private def clearMessages(): Unit = {
     queue.clear()
+    queueSize.set(0)
+  }
 
   override def hasMessages: Boolean =
     queue.isEmpty
-
-  override def messageCount: Int =
-    queue.size()
 
   override def schedule(message: T, delay: FiniteDuration): TimerTask =
     Delay.task(delay)(this ! message)
 
   override def submit(message: T): Unit =
-    queue offer message
+    if (queueSize.get() >= maxMessagesToProcessAtOnce * 10) {
+      self ! message
+    } else {
+      queue offer message
+      queueSize.incrementAndGet()
+    }
 
   override def terminate(): Unit = {
     logger.debug(s"${this.getClass.getSimpleName} terminated.")
@@ -195,39 +197,17 @@ private[swaydb] class Actor[T, +S](val state: S,
     clearMessages()
   }
 
-  private def processMessages(delay: Option[FiniteDuration]): Unit =
+  private def processMessages(): Unit =
     if (!terminated && (continueIfEmpty || !queue.isEmpty) && busy.compareAndSet(false, true))
-      delay match {
-        case None =>
-          Future(receive(maxMessagesToProcessAtOnce, delay))
+      Future(receive((queueSize.get() - maxMessagesToProcessAtOnce) max maxMessagesToProcessAtOnce))
 
-        case Some(interval) if interval.fromNow.isOverdue() =>
-          Future(receive(maxMessagesToProcessAtOnce, delay.map(_ + Actor.incrementDelayBy)))
-
-        case Some(delay) =>
-          //if there are too many messages process instantly also let the next interval known so that
-          //next interval is adjusted with a shorter delay time.
-          val queueSize = queue.size()
-          val adjustedDelay = Actor.adjustDelay(
-            currentQueueSize = queueSize,
-            defaultQueueSize = maxMessagesToProcessAtOnce,
-            previousDelay = delay,
-            //need a type-safe way because here defaultDelay will never be None.
-            defaultDelay = defaultDelay.getOrElse(5.seconds)
-          )
-          //run now if it's overdue.
-          if ((adjustedDelay - 10.millisecond).fromNow.isOverdue())
-            Future(receive(maxMessagesToProcessAtOnce, Some(adjustedDelay)))
-          else
-            Delay.future(adjustedDelay)(receive(maxMessagesToProcessAtOnce, Some(adjustedDelay)))
-      }
-
-  private def receive(max: Int, delay: Option[FiniteDuration]): Unit = {
+  private def receive(max: Int): Unit = {
     var processed = 0
     try {
       while (!terminated && processed < max) {
         val message = queue.poll
         if (message != null) {
+          queueSize.decrementAndGet()
           IO(execution(message, self))
           processed += 1
         } else {
@@ -236,7 +216,7 @@ private[swaydb] class Actor[T, +S](val state: S,
       }
     } finally {
       busy.set(false)
-      processMessages(delay)
+      processMessages()
     }
   }
 }

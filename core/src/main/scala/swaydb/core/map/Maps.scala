@@ -45,14 +45,14 @@ private[core] object Maps extends LazyLogging {
 
   def memory[K, V: ClassTag](fileSize: Long,
                              acceleration: Level0Meter => Accelerator)(implicit keyOrder: KeyOrder[K],
-                                                                          timeOrder: TimeOrder[Slice[Byte]],
-                                                                          limiter: FileLimiter,
-                                                                          functionStore: FunctionStore,
-                                                                          mapReader: MapEntryReader[MapEntry[K, V]],
-                                                                          writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                                          skipListMerger: SkipListMerger[K, V],
-                                                                          timer: Timer,
-                                                                          ec: ExecutionContext): Maps[K, V] =
+                                                                       timeOrder: TimeOrder[Slice[Byte]],
+                                                                       limiter: FileLimiter,
+                                                                       functionStore: FunctionStore,
+                                                                       mapReader: MapEntryReader[MapEntry[K, V]],
+                                                                       writer: MapEntryWriter[MapEntry.Put[K, V]],
+                                                                       skipListMerger: SkipListMerger[K, V],
+                                                                       timer: Timer,
+                                                                       ec: ExecutionContext): Maps[K, V] =
     new Maps[K, V](
       maps = new ConcurrentLinkedDeque[Map[K, V]](),
       fileSize = fileSize,
@@ -347,30 +347,23 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
     def getNext() = if (iterator.hasNext) Option(iterator.next()) else None
 
     @tailrec
-    def find(next: Map[K, V],
+    def find(nextMayBe: Option[Map[K, V]],
              previousResult: Option[R]): Option[R] =
-      f(next) match {
-        case nextResult @ Some(_) =>
-          val result = reduce(previousResult, nextResult)
-          getNext() match {
-            case Some(next) =>
-              find(next, result)
+      nextMayBe match {
+        case Some(next) =>
+          f(next) match {
+            case nextResult @ Some(_) =>
+              val result = reduce(previousResult, nextResult)
+              find(getNext(), result)
 
             case None =>
-              previousResult
+              find(getNext(), previousResult)
           }
-
         case None =>
-          getNext() match {
-            case Some(next) =>
-              find(next, previousResult)
-
-            case None =>
-              previousResult
-          }
+          previousResult
       }
 
-    getNext() flatMap (find(_, None))
+    find(getNext(), None)
   }
 
   private def find[R](matcher: Map[K, V] => Option[R]): Option[R] =
