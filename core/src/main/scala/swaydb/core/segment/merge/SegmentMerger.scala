@@ -281,13 +281,13 @@ private[core] object SegmentMerger extends LazyLogging {
                 FixedMerger(
                   newKeyValue = newKeyValue,
                   oldKeyValue = oldFromValue.getOrElse(oldRangeRangeValue).toMemory(newKeyValue.key)
-                ) match {
+                ).flatMap(_.toFromValue()) match {
                   case IO.Success(newFromValue) =>
                     val toPrepend =
                       Memory.Range(
                         fromKey = oldRangeKeyValue.fromKey,
                         toKey = oldRangeKeyValue.toKey,
-                        fromValue = Some(newFromValue.toFromValue().get),
+                        fromValue = Some(newFromValue),
                         rangeValue = oldRangeRangeValue
                       )
                     doMerge(newKeyValues.dropHead(), oldKeyValues.dropPrepend(toPrepend))
@@ -300,10 +300,10 @@ private[core] object SegmentMerger extends LazyLogging {
                 FixedMerger(
                   newKeyValue = newKeyValue,
                   oldKeyValue = oldRangeValue.toMemory(newKeyValue.key)
-                ) match {
+                ).flatMap(_.toFromValue()) match {
                   case IO.Success(newFromValue) =>
                     val lowerSplit = Memory.Range(oldRangeKeyValue.fromKey, newKeyValue.key, oldFromValue, oldRangeValue)
-                    val upperSplit = Memory.Range(newKeyValue.key, oldRangeKeyValue.toKey, Some(newFromValue.toFromValue().get), oldRangeValue)
+                    val upperSplit = Memory.Range(newKeyValue.key, oldRangeKeyValue.toKey, Some(newFromValue), oldRangeValue)
                     add(lowerSplit) match {
                       case IO.Success(_) =>
                         doMerge(newKeyValues.dropHead(), oldKeyValues.dropPrepend(upperSplit))
@@ -351,13 +351,13 @@ private[core] object SegmentMerger extends LazyLogging {
                     FixedMerger(
                       newKeyValue = newRangeFromValue.getOrElse(newRangeRangeValue).toMemory(oldKeyValue.key),
                       oldKeyValue = oldKeyValue
-                    ) match {
+                    ).flatMap(_.toFromValue()) match {
                       case IO.Success(newFromValue) =>
                         val newKeyValue =
                           Memory.Range(
                             fromKey = newRangeKeyValue.fromKey,
                             toKey = newRangeKeyValue.toKey,
-                            fromValue = Some(newFromValue.toFromValue().get),
+                            fromValue = Some(newFromValue),
                             rangeValue = newRangeRangeValue
                           )
                         doMerge(newKeyValues.dropPrepend(newKeyValue), oldKeyValues.dropHead())
@@ -378,10 +378,10 @@ private[core] object SegmentMerger extends LazyLogging {
                     FixedMerger(
                       newKeyValue = newRangeRangeValue.toMemory(oldKeyValue.key),
                       oldKeyValue = oldKeyValue
-                    ) match {
+                    ).flatMap(_.toFromValue()) match {
                       case IO.Success(newFromValue) =>
                         val lowerSplit = Memory.Range(newRangeKeyValue.fromKey, oldKeyValue.key, newRangeFromValue, newRangeRangeValue)
-                        val upperSplit = Memory.Range(oldKeyValue.key, newRangeKeyValue.toKey, Some(newFromValue.toFromValue().get), newRangeRangeValue)
+                        val upperSplit = Memory.Range(oldKeyValue.key, newRangeKeyValue.toKey, Some(newFromValue), newRangeRangeValue)
                         add(lowerSplit) match {
                           case IO.Success(_) =>
                             doMerge(newKeyValues.dropPrepend(upperSplit), oldKeyValues.dropHead())
