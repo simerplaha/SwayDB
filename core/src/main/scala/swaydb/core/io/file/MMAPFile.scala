@@ -64,8 +64,8 @@ private[file] class MMAPFile(val path: Path,
 
   private val open = new AtomicBoolean(true)
 
-  def close(): IO[Unit] = {
-    //    logger.info(s"$path: Closing channel")
+  def close(): IO[Unit] =
+  //    logger.info(s"$path: Closing channel")
     if (open.compareAndSet(true, false)) {
       IO {
         forceSave()
@@ -76,22 +76,26 @@ private[file] class MMAPFile(val path: Path,
       logger.trace("{}: Already closed.", path)
       IO.unit
     }
-  }
 
+  //forceSave and clearBuffer are never called concurrently other than when the database is being shut down.
+  //so there is no blocking cost for using synchronized here on than when this file is already submitted for cleaning on shutdown.
   def forceSave(): IO[Unit] =
-    if (mode == MapMode.READ_ONLY)
-      IO.unit
-    else
-      IO(buffer.force())
+    synchronized {
+      if (mode == MapMode.READ_ONLY || isBufferEmpty)
+        IO.unit
+      else
+        IO(buffer.force())
+    }
 
-  private def clearBuffer(): Unit = {
-    val swapBuffer = buffer
-    //null the buffer so that all future read requests do not read this buffer.
-    //the resulting NullPointerException will re-route request to the new Segment.
-    //TO-DO: Use Option here instead. Test using Option does not have read performance impact.
-    buffer = null
-    BufferCleaner.clean(swapBuffer, path)
-  }
+  private def clearBuffer(): Unit =
+    synchronized {
+      val swapBuffer = buffer
+      //null the buffer so that all future read requests do not read this buffer.
+      //the resulting NullPointerException will re-route request to the new Segment.
+      //TO-DO: Use Option here instead. Test using Option does not have read performance impact.
+      buffer = null
+      BufferCleaner.clean(swapBuffer, path)
+    }
 
   private def extendBuffer(bufferSize: Long): IO[Unit] =
     IO {

@@ -25,7 +25,8 @@ object EntryId {
 
   trait EntryFormat {
     //@formatter:off
-    def keyIdsList: List[EntryId]
+    def
+    keyIdsList: List[EntryId]
     def format: EntryId.Format
     //@formatter:on
   }

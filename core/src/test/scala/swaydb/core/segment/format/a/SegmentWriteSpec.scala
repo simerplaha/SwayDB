@@ -46,6 +46,7 @@ import swaydb.data.{IO, MaxKey}
 import swaydb.data.config.Dir
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
+import swaydb.data.util.ByteSizeOf
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
@@ -147,6 +148,8 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
             (keyValues, segment) => {
               segment.minKey shouldBe (1: Slice[Byte])
               segment.maxKey shouldBe MaxKey.Fixed[Slice[Byte]](11)
+              segment.minKey.underlyingArraySize shouldBe ByteSizeOf.int
+              segment.maxKey.maxKey.underlyingArraySize shouldBe ByteSizeOf.int
               segment.close.assertGet
             }
         )
@@ -175,13 +178,19 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
             (keyValues, segment) => {
               segment.minKey shouldBe (0: Slice[Byte])
               segment.maxKey shouldBe MaxKey.Range[Slice[Byte]](5, 10)
+              segment.minKey.underlyingArraySize shouldBe ByteSizeOf.int
+
+              val rangeMaxKey = segment.maxKey.asInstanceOf[MaxKey.Range[Slice[Byte]]]
+              rangeMaxKey.maxKey.underlyingArraySize shouldBe ByteSizeOf.int
+              rangeMaxKey.fromKey.underlyingArraySize shouldBe ByteSizeOf.int
+
               segment.close.assertGet
             }
         )
       }
     }
 
-    "set minKey & maxKey to be Range if the last key-value is a Group and the Group's last key-value is Fixed" in {
+    "set minKey & maxKey to be Range if last key-value is a Group and the Group's last key-value is Fixed" in {
       runThis(10.times) {
         assertSegment(
           keyValues =
@@ -206,8 +215,12 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           keyValues =
             Slice(
               randomFixedKeyValue(0),
-              randomGroup(Slice(randomFixedKeyValue(2).toTransient,
-                randomGroup(Slice(randomRangeKeyValue(5, 10).toTransient))).updateStats)
+              randomGroup(
+                Slice(
+                  randomFixedKeyValue(2).toTransient,
+                  randomGroup(Slice(randomFixedKeyValue(3), randomRangeKeyValue(5, 10)).toTransient)
+                ).updateStats
+              )
             ).toMemory,
           assert =
             (keyValues, segment) => {
@@ -289,7 +302,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
       }
     }
 
-    "not create bloomFilter if the Segment has Remove range key-values and set hasRange to true" in {
+    "not create bloomFilter if the Segment has Remove range key-values or function key-values and set hasRange to true" in {
 
       def doAssert(keyValues: Slice[KeyValue], segment: Segment) = {
         segment.getBloomFilter.assertGetOpt shouldBe empty
@@ -317,11 +330,43 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         assert = doAssert
       )
 
+      //      assertSegment(
+      //        keyValues = Slice(Memory.put(0), Memory.Range(1, 10, Some(Value.PendingApply(Some(1), randomDeadlineOption, Time.empty)), Value.remove(randomDeadlineOption, Time.empty))),
+      //        assert = doAssert
+      //      )
+
       //group can also have a range key-value which should have the same effect.
-      assertSegment(
-        keyValues = Slice(Memory.put(0), randomGroup(Slice(Memory.Range(1, 10, Some(Value.put(Some(1), randomDeadlineOption, Time.empty)), Value.remove(randomDeadlineOption, Time.empty))).toTransient).toMemory),
-        assert = doAssert
-      )
+
+      runThis(100.times) {
+        assertSegment(
+          keyValues =
+            Slice(
+              Memory.put(0),
+              randomGroup(
+                Slice(
+                  eitherOne(
+                    Memory.Range(1, 10, Some(Value.put(Some(1), randomDeadlineOption, Time.empty)), Value.remove(randomDeadlineOption, Time.empty)),
+                    Memory.Range(1, 10, Some(Value.put(Some(1), randomDeadlineOption, Time.empty)), Value.Function(randomFunctionId(), Time.empty)),
+                    Memory.Range(
+                      fromKey = 1,
+                      toKey = 10,
+                      fromValue = Some(Value.put(Some(1), randomDeadlineOption, Time.empty)),
+                      rangeValue =
+                        Value.PendingApply(
+                          applies =
+                            eitherOne(
+                              left = Slice(randomFunctionValue()),
+                              right = Slice(randomRemoveFunctionValue())
+                            )
+                        )
+                    )
+                  )
+                ).toTransient
+              ).toMemory
+            ),
+          assert = doAssert
+        )
+      }
     }
 
     "create bloomFilter if the Segment has no Remove range key-values but has update range key-values. And set hasRange to true" in {
@@ -397,6 +442,13 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         keyValues = Slice(Memory.put(0), Memory.Range(1, 10, Some(Value.put(1)), Value.remove(None, Time.empty))),
         assert = doAssert
       )
+
+      runThisParallel(100.times) {
+        assertSegment(
+          keyValues = Slice(Memory.put(0), randomRangeKeyValue(1, 10)),
+          assert = doAssert
+        )
+      }
 
       assertSegment(
         keyValues = randomPutKeyValues(keyValuesCount, addRandomRemoves = true, addRandomRanges = true, addRandomPutDeadlines = true, addRandomRemoveDeadlines = true),

@@ -102,7 +102,7 @@ private[core] class SegmentCache(id: String,
     }
 
   def getBloomFilter: IO[Option[BloomFilter[Slice[Byte]]]] =
-    getFooter().map(_.bloomFilter)
+    getFooter() map (_.bloomFilter)
 
   def getFromCache(key: Slice[Byte]): Option[Persistent] =
     Option(cache.get(key))
