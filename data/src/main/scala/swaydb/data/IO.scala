@@ -477,7 +477,6 @@ object IO {
           recover(exception, operation)
 
         case Error.OverlappingPushSegment |
-             Error.OverlappingPushSegment |
              Error.NoSegmentsRemoved |
              Error.NotSentToNextLevel |
              _: Error.ReceivedKeyValuesToMergeWithoutTargetSegment |
