@@ -478,7 +478,7 @@ class LevelActorSpec extends TestBase with MockFactory {
 
       level.push _ expects PullRequest(self) returning()
 
-      LevelActor.doPushResponse(PushSegmentsResponse(request, IO.Failure.busyOverlappingPushSegments)) shouldBe(WaitingPull(true, None), None)
+      LevelActor.doPushResponse(PushSegmentsResponse(request, IO.Failure.overlappingPushSegments)) shouldBe(WaitingPull(true, None), None)
       self.expectNoMessage()
     }
 

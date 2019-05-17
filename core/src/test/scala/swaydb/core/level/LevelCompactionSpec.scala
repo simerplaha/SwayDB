@@ -228,7 +228,7 @@ sealed trait LevelCompactionSpec extends TestBase with MockFactory {
               segments should have size 5
               testSegments.drop(5) shouldHaveSameKeyValuesAs segments
               //for the first request respond back with Busy segments for all the segments
-              replyTo ! PushSegmentsResponse(request, IO.Failure.busyOverlappingPushSegments)
+              replyTo ! PushSegmentsResponse(request, IO.Failure.overlappingPushSegments)
           }
       }
 

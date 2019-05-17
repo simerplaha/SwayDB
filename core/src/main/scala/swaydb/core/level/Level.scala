@@ -354,7 +354,7 @@ private[core] class Level(val dirs: Seq[Dir],
       overlaps =>
         if (overlaps) {
           logger.debug("{}: Segments '{}' intersect with current busy segments: {}", paths.head, segments.map(_.path.toString), busySegments.map(_.path.toString))
-          IO.Failure(IO.Error.OverlappingPushSegment)
+          IO.Failure.overlappingPushSegments
         } else { //only copy Segments if the both this Level and the Segments are persistent.
           val (segmentToMerge, segmentToCopy) = Segment.partitionOverlapping(segments, appendixSegments)
           put(segmentToMerge, segmentToCopy, appendixSegments).map(_ => alertActorForSegmentManagement())
@@ -407,7 +407,7 @@ private[core] class Level(val dirs: Seq[Dir],
       overlapsWithBusySegments =>
         if (overlapsWithBusySegments) {
           logger.debug("{}: Map '{}' contains key-values intersect with current busy segments: {}", paths.head, map.pathOption.map(_.toString), busySegs.map(_.path.toString))
-          IO.Failure(IO.Error.OverlappingPushSegment)
+          IO.Failure.overlappingPushSegments
         } else {
           if (!Segment.overlaps(map, appendixValues))
             copy(map) flatMap {
@@ -528,7 +528,7 @@ private[core] class Level(val dirs: Seq[Dir],
           val busySegments = getBusySegments()
           if (Segment.intersects(Seq(segmentToClear), busySegments)) {
             logger.debug(s"{}: Clearing segments {} intersect with current busy segments: {}.", paths.head, segmentToClear.path, busySegments.map(_.path.toString))
-            IO.Failure(IO.Error.OverlappingPushSegment)
+            IO.Failure.overlappingPushSegments
           } else {
             segmentToClear.refresh(
               minSegmentSize = segmentSize,
@@ -598,7 +598,7 @@ private[core] class Level(val dirs: Seq[Dir],
         val busySegments = getBusySegments()
         if (Segment.intersects(segmentsToCollapse, busySegments)) {
           logger.debug(s"{}: Collapsing segments {} intersect with current busy segments: {}.", paths.head, segmentsToCollapse.map(_.path.toString), busySegments.map(_.path.toString))
-          IO.Failure(IO.Error.OverlappingPushSegment)
+          IO.Failure.overlappingPushSegments
         } else if (timesToRun == 0) {
           logger.debug(s"{}: Too many small Segments to collapse {}.", paths.head, segmentsToCollapse.map(_.path.toString))
           //there are too many small Segments to collapse, return the remaining small Segments and let the Actor decide when
@@ -689,7 +689,7 @@ private[core] class Level(val dirs: Seq[Dir],
         //check to ensure that assigned Segments do not overlap with busy Segments.
         if (Segment.intersects(assignments.keys, busySegments)) {
           logger.trace(s"{}: Assigned segments {} intersect with current busy segments: {}.", paths.head, assignments.map(_._1.path.toString), busySegments.map(_.path.toString))
-          IO.Failure(IO.Error.OverlappingPushSegment)
+          IO.Failure.overlappingPushSegments
         } else {
           logger.trace(s"{}: Assigned segments {} for {} KeyValues.", paths.head, assignments.map(_._1.path.toString), keyValues.size)
           if (assignments.isEmpty) {

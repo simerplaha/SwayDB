@@ -654,7 +654,7 @@ object IO {
   }
 
   object Failure {
-    val busyOverlappingPushSegments = IO.Failure(IO.Error.OverlappingPushSegment)
+    val overlappingPushSegments = IO.Failure(IO.Error.OverlappingPushSegment)
 
     @inline final def apply[T](exception: Throwable): IO.Failure[T] =
       IO.Failure[T](IO.Error(exception))
