@@ -25,7 +25,8 @@ import java.nio.channels.{AsynchronousCloseException, ClosedChannelException}
 import java.nio.file.{NoSuchFileException, Path}
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration._
+import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.reflect.ClassTag
 import scala.util.Try
 import swaydb.data.slice.{Slice, SliceReader}
@@ -226,6 +227,7 @@ object IO {
     case class DecompressionValues(busy: BusyBoolean) extends Exception("Failed to decompress values")
     case class FetchingValue(busy: BusyBoolean) extends Exception("Failed to fetch value")
     case class ReadingHeader(busy: BusyBoolean) extends Exception("Failed to read header")
+    case class BusyFuture(busy: BusyBoolean) extends Exception("Busy future")
 
     case object OverlappingPushSegment extends Exception("Contains overlapping busy Segments")
     case object NoSegmentsRemoved extends Exception("No Segments Removed")
@@ -342,6 +344,10 @@ object IO {
       override def exception: IO.Exception.FetchingValue = IO.Exception.FetchingValue(busy)
     }
 
+    case class BusyFuture(busy: BusyBoolean) extends Busy {
+      override def exception: IO.Exception.BusyFuture = IO.Exception.BusyFuture(busy)
+    }
+
     /**
       * This error can also be turned into Busy and LevelActor can use it to listen to when
       * there are no more overlapping Segments.
@@ -406,6 +412,9 @@ object IO {
       case scala.util.Failure(exception) =>
         IO.Failure(exception)
     }
+
+  def fromFuture[T](future: Future[T])(implicit ec: ExecutionContext): IO.Async[T] =
+    IO.Async(future)
 
   final case class Success[+T](value: T) extends IO[T] with IO.Async[T] {
     override def isFailure: Boolean = false
@@ -497,6 +506,23 @@ object IO {
 
     @inline final def apply[T](value: => T, error: Error.Busy): IO.Async[T] =
       new Later(_ => value, error)
+
+    private[swaydb] final def apply[T](future: Future[T])(implicit ec: ExecutionContext): IO.Async[T] = {
+      val busy = BusyBoolean(true)
+      val error = IO.Error.BusyFuture(busy)
+      future onComplete {
+        _ =>
+          BusyBoolean.setFree(busy)
+      }
+
+      //here value will only be access when the above busy boolean is true
+      //so the value should always exists at the time of Await.result
+      //therefore the cost of blocking should be negligible.
+      IO.Async(
+        value = Await.result(future, Duration.Zero),
+        error = error
+      )
+    }
   }
 
   private[swaydb] object Later {

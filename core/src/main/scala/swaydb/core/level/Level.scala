@@ -357,7 +357,7 @@ private[core] class Level(val dirs: Seq[Dir],
           IO.Failure.overlappingPushSegments
         } else { //only copy Segments if the both this Level and the Segments are persistent.
           val (segmentToMerge, segmentToCopy) = Segment.partitionOverlapping(segments, appendixSegments)
-          put(segmentToMerge, segmentToCopy, appendixSegments).map(_ => alertActorForSegmentManagement())
+          put(segmentToMerge, segmentToCopy, appendixSegments) map (_ => alertActorForSegmentManagement())
         }
     }
   }

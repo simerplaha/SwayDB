@@ -148,7 +148,40 @@ class IOAsyncSpec extends WordSpec with Matchers {
           else
             io.safeGetFuture.await shouldBe 102
       }
+    }
 
+    "be initialised from Future" in {
+      val result = IO.fromFuture(Future(1))
+      result.safeGetBlocking.get shouldBe 1
+    }
+
+    "recover from Future failures" in {
+      val failedMessage = "Something went wrong!"
+
+      (1 to 100) foreach {
+        @volatile var failFuture = Random.nextBoolean()
+
+        def future: Future[Int] =
+          if (!failFuture) {
+            failFuture = true
+            Future.failed(Base.randomBusyException().exception)
+          } else {
+            Future.failed(new Exception(failedMessage))
+          }
+
+        _ =>
+          val error =
+            IO.fromFuture(future)
+              .safeGetBlocking
+              .failed
+              .get
+
+          //final error should always result is fatal because the above
+          //future function will result failed message and will always
+          //recover from busy errors.
+          error shouldBe a[IO.Error.Fatal]
+          error.exception.getMessage shouldBe failedMessage
+      }
     }
   }
 }
