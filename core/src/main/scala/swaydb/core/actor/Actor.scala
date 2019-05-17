@@ -147,6 +147,12 @@ private[swaydb] object Actor {
       val adjustDelay = previousDelay.toMillis * overflow
       FiniteDuration(adjustDelay.toLong, TimeUnit.MILLISECONDS)
     }
+
+  def wire[T](impl: T)(implicit ec: ExecutionContext): WiredActor[T] =
+    new WiredActor[T](impl, None)
+
+  def wireTimer[T](delays: FiniteDuration, impl: T)(implicit ec: ExecutionContext): WiredActor[T] =
+    new WiredActor[T](impl, Some(delays))
 }
 
 private[swaydb] class Actor[T, +S](val state: S,
