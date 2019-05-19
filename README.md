@@ -3,6 +3,15 @@
 [gitter-badge]: https://badges.gitter.im/Join%20Chat.svg
 [gitter-link]: https://gitter.im/SwayDB-chat/Lobby
 
+[slack-badge]: https://img.shields.io/badge/slack-chat-e01563.svg
+[slack-link]: https://join.slack.com/t/swaydb/shared_invite/enQtNjM5MDM2MjYyMTE2LWU3ZTczNjA4YTAxZGNhMzk2MDc1MDViZTE0MzkyMmI2Y2E0OGE1ODg0MGJiZjY3YzY3MTE2MTA4MDcxZmMzMzY
+
+[maven-badge]: https://img.shields.io/maven-central/v/io.swaydb/swaydb_2.12.svg
+[maven-link]: https://search.maven.org/search?q=g:io.swaydb%20AND%20a:swaydb_2.12
+
+[build-badge]: https://travis-ci.com/simerplaha/SwayDB.svg?branch=master
+[build-link]: https://travis-ci.com/simerplaha/SwayDB
+
 Embeddable persistent and in-memory database.
 
 Documentation: http://swaydb.io
