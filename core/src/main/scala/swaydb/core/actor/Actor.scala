@@ -23,6 +23,7 @@ import com.typesafe.scalalogging.LazyLogging
 import java.util.TimerTask
 import java.util.concurrent.{ConcurrentLinkedQueue, TimeUnit}
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
+import java.util.function.IntUnaryOperator
 import scala.concurrent.duration.{FiniteDuration, _}
 import scala.concurrent.{ExecutionContext, Future}
 import swaydb.core.util.Delay
@@ -216,7 +217,12 @@ private[swaydb] class Actor[T, +S](val state: S,
           IO(execution(message, self))
           processed += 1
         } else {
-          queueSize.updateAndGet(_ - processed)
+          queueSize.updateAndGet {
+            new IntUnaryOperator {
+              override def applyAsInt(operand: Int): Int =
+                operand - processed
+            }
+          }
           processed = max
         }
       }
