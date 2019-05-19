@@ -213,10 +213,10 @@ private[swaydb] class Actor[T, +S](val state: S,
       while (!terminated && processed < max) {
         val message = queue.poll
         if (message != null) {
-          queueSize.decrementAndGet()
           IO(execution(message, self))
           processed += 1
         } else {
+          queueSize.updateAndGet(_ - processed)
           processed = max
         }
       }
