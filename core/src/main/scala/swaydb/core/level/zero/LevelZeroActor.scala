@@ -19,16 +19,17 @@
 
 package swaydb.core.level.zero
 
-import com.typesafe.scalalogging.LazyLogging
 import java.util.concurrent.atomic.AtomicBoolean
-import scala.concurrent.ExecutionContext
+
+import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.actor.{Actor, ActorRef}
 import swaydb.core.level.LevelRef
-import swaydb.core.level.actor.LevelCommand._
-import swaydb.core.level.actor.{LevelZeroAPI, LevelZeroCommand}
+import swaydb.core.level.zero.LevelCommand._
 import swaydb.data.IO
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
+
+import scala.concurrent.ExecutionContext
 
 /**
   * Actor that glues multiple Levels starts exchanging Segments based to push delay.

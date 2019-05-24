@@ -17,7 +17,7 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.level.actor
+package swaydb.core.level.zero
 
 import swaydb.core.actor.ActorRef
 import swaydb.core.data.Memory

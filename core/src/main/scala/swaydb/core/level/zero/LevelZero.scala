@@ -28,8 +28,7 @@ import swaydb.core.data.KeyValue._
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.IOEffect
-import swaydb.core.level.actor.LevelCommand.WakeUp
-import swaydb.core.level.actor.LevelZeroAPI
+import LevelCommand.WakeUp
 import swaydb.core.level.{LevelRef, PathsDistributor}
 import swaydb.core.map
 import swaydb.core.map.serializer.{TimerMapEntryReader, TimerMapEntryWriter}

@@ -5,6 +5,14 @@ import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.Try
 
+object WiredActor {
+  def apply[T](impl: T)(implicit ec: ExecutionContext): WiredActor[T] =
+    new WiredActor(impl, None)
+
+  def apply[T](impl: T, delays: FiniteDuration)(implicit ec: ExecutionContext): WiredActor[T] =
+    new WiredActor(impl, Some(delays))
+}
+
 class WiredActor[+T](impl: T, delays: Option[FiniteDuration])(implicit ec: ExecutionContext) {
 
   private val actor =

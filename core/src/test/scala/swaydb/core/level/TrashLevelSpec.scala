@@ -25,7 +25,7 @@
 //import swaydb.core.{TestBase, TestData}
 //import swaydb.core.TestData._
 //import swaydb.core.actor.TestActor
-//import swaydb.core.level.actor.LevelCommand.{PushSegments, PushSegmentsResponse}
+//import swaydb.core.level.zero.LevelCommand.{PushSegments, PushSegmentsResponse}
 //import swaydb.core.segment.Segment
 //import swaydb.data.compaction.Throttle
 //import swaydb.data.order.KeyOrder
