@@ -20,41 +20,37 @@
 package swaydb.core.level
 
 import java.nio.file.{FileAlreadyExistsException, Files, NoSuchFileException}
+
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.PrivateMethodTester
-import swaydb.core.actor.TestActor
+import swaydb.core.CommonAssertions._
+import swaydb.core.IOAssert._
+import swaydb.core.RunThis._
+import swaydb.core.TestData._
 import swaydb.core.data._
-import swaydb.core.group.compression.data.{GroupGroupingStrategyInternal, KeyValueGroupingStrategyInternal}
-import swaydb.core.io.file.{DBFile, IOEffect}
-import swaydb.core.level.actor.{LevelAPI, LevelCommand}
-import swaydb.core.level.actor.LevelCommand.{PushSegments, PushSegmentsResponse}
+import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
+import swaydb.core.io.file.IOEffect
+import swaydb.core.io.file.IOEffect._
 import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.map.{Map, MapEntry, SkipListMerger}
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment
-import swaydb.core.util.{Extension, IDGenerator}
-import swaydb.core.io.file.IOEffect._
 import swaydb.core.util.PipeOps._
+import swaydb.core.util.{Extension, IDGenerator}
 import swaydb.core.{TestBase, TestData, TestLimitQueues, TestTimer}
+import swaydb.data.IO
 import swaydb.data.compaction.Throttle
 import swaydb.data.config.Dir
+import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.LevelStorage
 import swaydb.data.util.StorageUnits._
-import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.serializers.Default._
 import swaydb.serializers._
+
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
 import scala.util.Random
-import swaydb.core.TestData._
-import swaydb.core.CommonAssertions._
-import swaydb.core.RunThis._
-import swaydb.core.TestData._
-import swaydb.core.CommonAssertions._
-import swaydb.core.RunThis._
-import swaydb.core.IOAssert._
-import swaydb.data.IO
 
 class LevelWriteSpec0 extends LevelWriteSpec
 
@@ -280,7 +276,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
           )
         val keyValues = randomPutKeyValues(100)
 
-        val level = TestLevel(throttle = (_) => Throttle(Duration.Zero, 0), segmentSize = 1.byte, levelStorage = storage)
+        val level = TestLevel(segmentSize = 1.byte, levelStorage = storage)
 
         level.putKeyValues(keyValues).assertGet
         level.segmentsCount() shouldBe keyValues.size
@@ -339,7 +335,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
       val keyValues = randomKeyValues(keyValuesCount).groupedSlice(5).map(_.updateStats)
       val segmentToCopy = keyValues map (keyValues => TestSegment(keyValues).assertGet)
 
-      val level = TestLevel(nextLevel = Some(TestLevel()), throttle = (_) => Throttle(Duration.Zero, 0))
+      val level = TestLevel(nextLevel = Some(TestLevel()))
 
       level.put(Seq.empty, segmentToCopy, Seq.empty, Iterable.empty).assertGet
 
@@ -352,7 +348,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
         val keyValues = randomKeyValues(keyValuesCount).groupedSlice(5).map(_.updateStats)
         val segmentToCopy = keyValues map (keyValues => TestSegment(keyValues).assertGet)
 
-        val level = TestLevel(nextLevel = Some(TestLevel()), throttle = (_) => Throttle(Duration.Zero, 0))
+        val level = TestLevel(nextLevel = Some(TestLevel()))
 
         //create a file with the same Segment name as the 4th Segment file. This should result in failure.
         val id = IDGenerator.segmentId(level.segmentIDGenerator.nextID + 4)
@@ -376,7 +372,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
       val segmentToMerge = keyValues.drop(5).take(4) map (keyValues => TestSegment(keyValues).assertGet)
       val targetSegment = TestSegment(keyValues.last).assertGet
 
-      val level = TestLevel(nextLevel = Some(TestLevel()), throttle = (_) => Throttle(Duration.Zero, 0))
+      val level = TestLevel(nextLevel = Some(TestLevel()))
       level.put(targetSegment, Iterable.empty).assertGet
       level.put(segmentToMerge, segmentToCopy, Seq(targetSegment), Iterable.empty).assertGet
 
@@ -392,7 +388,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
         val segmentToMerge = keyValues.drop(5).take(4) map (keyValues => TestSegment(keyValues).assertGet)
         val targetSegment = TestSegment(keyValues.last).assertGet
 
-        val level = TestLevel(segmentSize = 150.bytes, nextLevel = Some(TestLevel()), throttle = (_) => Throttle(Duration.Zero, 0))
+        val level = TestLevel(segmentSize = 150.bytes, nextLevel = Some(TestLevel()))
         level.put(targetSegment, Iterable.empty).assertGet
 
         //segment to copy
@@ -486,7 +482,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
     }
 
     "return an empty level if all the key values in the Level were REMOVED and if Level is the only Level" in {
-      val level = TestLevel(segmentSize = 1.kb, throttle = (_) => Throttle(Duration.Zero, 0))
+      val level = TestLevel(segmentSize = 1.kb)
 
       val keyValues = randomPutKeyValues(keyValuesCount)
       level.putKeyValues(keyValues).assertGet
@@ -535,7 +531,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
     }
 
     "return an empty level if all the key values in the Level were REMOVED by RANGE and if Level is the only Level" in {
-      val level = TestLevel(segmentSize = 1.kb, throttle = (_) => Throttle(Duration.Zero, 0))
+      val level = TestLevel(segmentSize = 1.kb)
 
       val keyValues = randomPutKeyValues(keyValuesCount)
       level.putKeyValues(keyValues).assertGet
@@ -551,7 +547,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
     }
 
     "not return an empty level if all the key values in the Level were REMOVED by RANGE but it has a lower Level" in {
-      val level = TestLevel(segmentSize = 1.kb, nextLevel = Some(TestLevel()), throttle = (_) => Throttle(Duration.Zero, 0))
+      val level = TestLevel(segmentSize = 1.kb, nextLevel = Some(TestLevel()))
 
       val keyValues = randomPutKeyValues(keyValuesCount)
       level.putKeyValues(keyValues).assertGet
@@ -568,7 +564,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
     }
 
     "return an empty level if all the key values in the Level were EXPIRED and if Level is the only Level" in {
-      val level = TestLevel(segmentSize = 1.kb, throttle = (_) => Throttle(Duration.Zero, 0))
+      val level = TestLevel(segmentSize = 1.kb)
 
       val keyValues = randomPutKeyValues(keyValuesCount)
       level.putKeyValues(keyValues).assertGet
@@ -611,7 +607,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
     }
 
     "not return an empty level if all the key values in the Level were EXPIRED and if Level has a lower Level" in {
-      val level = TestLevel(segmentSize = 1.kb, nextLevel = Some(TestLevel()), throttle = (_) => Throttle(Duration.Zero, 0))
+      val level = TestLevel(segmentSize = 1.kb, nextLevel = Some(TestLevel()))
 
       val keyValues = randomPutKeyValues(keyValuesCount)
       level.putKeyValues(keyValues).assertGet
@@ -649,7 +645,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
     }
 
     "return an empty level if all the key values in the Level were EXPIRED by RANGE and if Level is the only Level" in {
-      val level = TestLevel(segmentSize = 1.kb, throttle = (_) => Throttle(Duration.Zero, 0))
+      val level = TestLevel(segmentSize = 1.kb)
 
       val keyValues = randomPutKeyValues(keyValuesCount)
       level.putKeyValues(keyValues).assertGet
@@ -677,7 +673,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
     }
 
     "not return an empty level if all the key values in the Level were EXPIRED by RANGE and if Level has a last Level" in {
-      val level = TestLevel(segmentSize = 1.kb, nextLevel = Some(TestLevel()), throttle = (_) => Throttle(Duration.Zero, 0))
+      val level = TestLevel(segmentSize = 1.kb, nextLevel = Some(TestLevel()))
 
       val keyValues = randomPutKeyValues(keyValuesCount)
       level.putKeyValues(keyValues).assertGet
@@ -703,7 +699,112 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
     }
   }
 
-  "copy" should {
+  "collapse" should {
+    "collapse small Segments to 50% of the size when the Segment's size was reduced by deleting 50% of it's key-values" in {
+      //disable throttling so that it does not automatically collapse small Segments
+      val level = TestLevel(segmentSize = 1.kb)
+      val keyValues = randomPutKeyValues(1000, addRandomPutDeadlines = false)(TestTimer.Empty)
+      level.putKeyValues(keyValues).assertGet
+      //dispatch another put request so that existing Segment gets split
+      level.putKeyValues(Slice(keyValues.head)).assertGet
+
+      val segmentCountBeforeDelete = level.segmentsCount()
+      segmentCountBeforeDelete > 1 shouldBe true
+
+      val keyValuesNoDeleted = ListBuffer.empty[KeyValue]
+      val deleteEverySecond =
+        keyValues.zipWithIndex flatMap {
+          case (keyValue, index) =>
+            if (index % 2 == 0)
+              Some(Memory.Remove(keyValue.key, None, Time.empty))
+            else {
+              keyValuesNoDeleted += keyValue
+              None
+            }
+        }
+      //delete half of the key values which will create small Segments
+      level.putKeyValues(Slice(deleteEverySecond.toArray)).assertGet
+
+      level.collapse(level.segmentsInLevel(), Iterable.empty).assertGet
+      //since every second key-value was delete, the number of Segments is reduced to half
+      level.segmentFilesInAppendix shouldBe <=((segmentCountBeforeDelete / 2) + 1) //+1 for odd number of key-values
+      assertReads(Slice(keyValuesNoDeleted.toArray), level)
+    }
+
+    "collapse all small Segments into one of the existing small Segments, if the Segment was reopened with a larger segment size" in {
+      if (memory) {
+        //memory Level cannot be reopened.
+      } else {
+        runThis(10.times) {
+          //          implicit val compressionType: Option[KeyValueCompressionType] = randomCompressionTypeOption(keyValuesCount)
+          //disable throttling so that it does not automatically collapse small Segments
+          val level = TestLevel(segmentSize = 1.kb)
+
+          val keyValues = randomPutKeyValues(1000, addRandomPutDeadlines = false)(TestTimer.Empty)
+          level.putKeyValues(keyValues).assertGet
+          //dispatch another push to trigger split
+          level.putKeyValues(Slice(keyValues.head)).assertGet
+
+          level.segmentsCount() > 1 shouldBe true
+          level.close.assertGet
+
+          //reopen the Level with larger min segment size
+          val reopenLevel = level.reopen(segmentSize = 20.mb, throttle = _ => Throttle(Duration.Zero, 0))
+          reopenLevel.collapse(level.segmentsInLevel(), Iterable.empty).assertGet
+
+          //resulting segments is 1
+          eventually {
+            level.segmentFilesOnDisk should have size 1
+          }
+          //can still read Segments
+          assertReads(keyValues, reopenLevel)
+          val reopen2 = reopenLevel.reopen
+          eventual(assertReads(keyValues, reopen2))
+        }
+      }
+    }
+
+    "clear expired key-values" in {
+      //this test is similar as the above collapsing small Segment test.
+      //Remove or expiring key-values should have the same result
+      val level = TestLevel(segmentSize = 1.kb)
+      val expiryAt = 5.seconds.fromNow
+      val keyValues = randomPutKeyValues(1000, valueSize = 0, startId = Some(0), addRandomPutDeadlines = false)(TestTimer.Empty)
+      level.putKeyValues(keyValues).assertGet
+      //dispatch another put request so that existing Segment gets split
+      level.putKeyValues(Slice(keyValues.head)).assertGet
+      val segmentCountBeforeDelete = level.segmentsCount()
+      segmentCountBeforeDelete > 1 shouldBe true
+
+      val keyValuesNotExpired = ListBuffer.empty[KeyValue]
+      val expireEverySecond =
+        keyValues.zipWithIndex flatMap {
+          case (keyValue, index) =>
+            if (index % 2 == 0)
+              Some(Memory.Remove(keyValue.key, Some(expiryAt + index.millisecond), Time.empty))
+            else {
+              keyValuesNotExpired += keyValue
+              None
+            }
+        }
+
+      //delete half of the key values which will create small Segments
+      level.putKeyValues(Slice(expireEverySecond.toArray)).assertGet
+      keyValues.zipWithIndex foreach {
+        case (keyValue, index) =>
+          if (index % 2 == 0)
+            level.get(keyValue.key).assertGet.deadline should contain(expiryAt + index.millisecond)
+      }
+
+      sleep(20.seconds)
+      level.collapse(level.segmentsInLevel(), Iterable.empty).assertGet
+      level.segmentFilesInAppendix should be <= 4
+
+      assertReads(Slice(keyValuesNotExpired.toArray), level)
+    }
+  }
+
+  "Level.copy" should {
     "copy segments" in {
       val level = TestLevel(throttle = (_) => Throttle(Duration.Zero, 0))
       level.isEmpty shouldBe true
@@ -755,7 +856,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
 
   "putKeyValues" should {
     "write key values to target segments and update appendix" in {
-      val level = TestLevel(segmentSize = 10.mb, throttle = (_) => Throttle(Duration.Zero, 0))
+      val level = TestLevel(segmentSize = 10.mb)
 
       val targetSegmentKeyValues = randomIntKeyStringValues()
       val targetSegment = TestSegment(keyValues = targetSegmentKeyValues, path = testSegmentFile.resolveSibling("10.seg")).assertGet

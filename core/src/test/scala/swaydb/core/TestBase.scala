@@ -23,11 +23,11 @@ import java.io.IOException
 import java.nio.file._
 import java.nio.file.attribute.BasicFileAttributes
 import java.util.concurrent.atomic.AtomicInteger
+
 import org.scalatest.concurrent.Eventually
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
-import scala.concurrent.duration._
-import scala.util.Random
 import swaydb.core.CommonAssertions._
+import swaydb.core.IOAssert._
 import swaydb.core.TestData._
 import swaydb.core.TestLimitQueues.{fileOpenLimiter, _}
 import swaydb.core.actor.TestActor
@@ -35,13 +35,13 @@ import swaydb.core.data.{KeyValue, Memory, Time}
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.io.file.{DBFile, IOEffect}
 import swaydb.core.io.reader.FileReader
-import swaydb.core.level.actor.LevelCommand.{PushSegments, PushSegmentsResponse}
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, LevelRef}
 import swaydb.core.map.MapEntry
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment
 import swaydb.core.util.IDGenerator
+import swaydb.data.IO
 import swaydb.data.accelerate.{Accelerator, Level0Meter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.{Dir, RecoveryMode}
@@ -49,8 +49,9 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.{AppendixStorage, Level0Storage, LevelStorage}
 import swaydb.data.util.StorageUnits._
-import swaydb.core.IOAssert._
-import swaydb.data.IO
+
+import scala.concurrent.duration._
+import scala.util.Random
 
 trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventually {
 
@@ -259,10 +260,10 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
 
     implicit class TestLevelImplicit(level: Level) {
       def addSegments(segments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): Level = {
-        val replyTo = TestActor[PushSegmentsResponse]()
-//        level ! PushSegments(segments, replyTo)
+//        val replyTo = TestActor[PushSegmentsResponse]()
+        //        level ! PushSegments(segments, replyTo)
         ???
-        replyTo.getMessage(5.seconds).result.assertGet
+//        replyTo.getMessage(5.seconds).result.assertGet
         //        level.segmentsCount() shouldBe segments.size
         level
       }
@@ -290,10 +291,10 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
               bloomFilterFalsePositiveRate: Double = TestData.falsePositiveRate,
               compressDuplicateValues: Boolean = true,
               deleteSegmentsEventually: Boolean = false)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                        keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
-                                                        fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter,
-                                                        timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                        compression: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategy(randomNextInt(1000))): Level =
+                                                         keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
+                                                         fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter,
+                                                         timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
+                                                         compression: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategy(randomNextInt(1000))): Level =
       Level(
         levelStorage = levelStorage,
         segmentSize = segmentSize,
@@ -373,7 +374,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
                   assertLevel2: (Iterable[Memory], LevelRef) => Unit = (_, _) => (),
                   assertAllLevels: (Iterable[Memory], Iterable[Memory], Iterable[Memory], LevelRef) => Unit = (_, _, _, _) => (),
                   throttleOn: Boolean = false)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                 groupingStrategy: Option[KeyValueGroupingStrategyInternal]): Unit = {
+                                               groupingStrategy: Option[KeyValueGroupingStrategyInternal]): Unit = {
 
     def iterationMessage =
       s"Thread: ${Thread.currentThread().getId} - throttleOn: $throttleOn"
