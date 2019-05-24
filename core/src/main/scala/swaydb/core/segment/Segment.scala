@@ -908,6 +908,8 @@ private[core] trait Segment extends FileLimiterItem {
 
   def release: Unit
 
+  def onRelease: Future[Unit]
+
   def isReserved: Boolean
 
   def put(newKeyValues: Slice[KeyValue.ReadOnly],

@@ -90,6 +90,9 @@ private[segment] case class MemorySegment(path: Path,
   override def isReserved: Boolean =
     busy.isBusy
 
+  override def onRelease: Future[Unit] =
+    BusyBoolean.future(busy)
+
   override def put(newKeyValues: Slice[KeyValue.ReadOnly],
                    minSegmentSize: Long,
                    bloomFilterFalsePositiveRate: Double,

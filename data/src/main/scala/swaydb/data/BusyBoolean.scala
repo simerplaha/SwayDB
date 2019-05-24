@@ -38,8 +38,8 @@ private[swaydb] object BusyBoolean {
 
   val notBusy = BusyBoolean(false)
 
-  def apply(boolean: Boolean): BusyBoolean =
-    new BusyBoolean(boolean, ListBuffer.empty)
+  def apply(busy: Boolean): BusyBoolean =
+    new BusyBoolean(busy, ListBuffer.empty)
 
   def blockUntilFree(boolean: BusyBoolean): Unit =
     boolean.synchronized {

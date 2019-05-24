@@ -40,7 +40,7 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.{BusyBoolean, IO, MaxKey}
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.Deadline
 
 private[segment] case class PersistentSegment(file: DBFile,
@@ -113,6 +113,9 @@ private[segment] case class PersistentSegment(file: DBFile,
 
   override def isReserved: Boolean =
     busy.isBusy
+
+  override def onRelease: Future[Unit] =
+    BusyBoolean.future(busy)
 
   def copyTo(toPath: Path): IO[Path] =
     file copyTo toPath
