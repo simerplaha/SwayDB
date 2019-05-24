@@ -123,7 +123,7 @@ object TestData {
           segments =>
             segments mapIO {
               segment =>
-                level.put(segment)
+                level.put(segment, Iterable.empty)
             } map {
               _ => ()
             }

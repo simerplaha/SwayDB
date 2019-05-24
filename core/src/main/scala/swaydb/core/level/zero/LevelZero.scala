@@ -173,9 +173,6 @@ private[core] class LevelZero(val path: Path,
   def !(command: LevelZeroAPI): Unit =
     actor.foreach(_ ! command)
 
-  override def !(request: LevelAPI): Unit =
-    nextLevel.foreach(_ ! request)
-
   def assertKey(key: Slice[Byte])(block: => IO[IO.OK]): IO[IO.OK] =
     if (key.isEmpty)
       IO.Failure(new IllegalArgumentException("Input key(s) cannot be empty."))
@@ -731,9 +728,6 @@ private[core] class LevelZero(val path: Path,
 
   override def getSegment(minKey: Slice[Byte]): Option[Segment] =
     nextLevel.flatMap(_.getSegment(minKey))
-
-  override def getBusySegments(): Iterable[Segment] =
-    nextLevel.map(_.getBusySegments()) getOrElse Iterable.empty
 
   override def takeSmallSegments(size: Int): Iterable[Segment] =
     nextLevel.map(_.takeSmallSegments(size)) getOrElse List.empty

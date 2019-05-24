@@ -111,55 +111,6 @@ sealed trait LevelReadSpec extends TestBase with MockFactory with Benchmark {
     }
   }
 
-  "Level.pickSegmentsToPush" should {
-    "return segments in sequence when there is no lower level (These picks are for collapsing segments within the level)" in {
-      val segments = (1 to 10) map (index => TestSegment(Slice(Transient.put(index, index))).assertGet)
-
-      val level = TestLevel(segmentSize = 1.byte)
-      level.put(segments).assertGet
-      level.putKeyValues(Slice(Memory.put(1, 1))).assertGet
-
-      level.pickSegmentsToPush(0) shouldBe empty
-      level.pickSegmentsToPush(5) shouldHaveSameKeyValuesAs segments.take(5)
-      level.pickSegmentsToPush(10) shouldHaveSameKeyValuesAs segments
-      level.pickSegmentsToPush(20) shouldHaveSameKeyValuesAs segments
-    }
-
-    "return segments in sequence when there are busy segments in lower level" in {
-      val segments = (1 to 10) map (index => TestSegment(Slice(Transient.put(index, index))).assertGet)
-      val nextLevel = mock[LevelRef]
-      nextLevel.isTrash _ expects() returning false repeat 2.times
-
-      val level = TestLevel(segmentSize = 1.byte, nextLevel = Some(nextLevel), throttle = (_) => Throttle(Duration.Zero, 0))
-      level.put(segments).assertGet
-      level.putKeyValues(Slice(Memory.put(1, 1))).assertGet
-
-      level.pickSegmentsToPush(0) shouldBe empty
-
-      nextLevel.getBusySegments _ expects() returning List.empty repeat 4.times
-      level.pickSegmentsToPush(1) shouldHaveSameKeyValuesAs segments.take(1)
-      level.pickSegmentsToPush(5) shouldHaveSameKeyValuesAs segments.take(5)
-      level.pickSegmentsToPush(10) shouldHaveSameKeyValuesAs segments
-      level.pickSegmentsToPush(20) shouldHaveSameKeyValuesAs segments
-
-      nextLevel.getBusySegments _ expects() returning segments.take(5).toList repeat 6.times
-      level.pickSegmentsToPush(5) shouldHaveSameKeyValuesAs segments.drop(5)
-      level.pickSegmentsToPush(1) shouldHaveSameKeyValuesAs segments.drop(5).take(1)
-      level.pickSegmentsToPush(3) shouldHaveSameKeyValuesAs segments.drop(5).take(3)
-      level.pickSegmentsToPush(8) shouldHaveSameKeyValuesAs segments.drop(5)
-      level.pickSegmentsToPush(10) shouldHaveSameKeyValuesAs segments.drop(5)
-      level.pickSegmentsToPush(20) shouldHaveSameKeyValuesAs segments.drop(5)
-
-      nextLevel.getBusySegments _ expects() returning segments.drop(5).toList repeat 6.times
-      level.pickSegmentsToPush(5) shouldHaveSameKeyValuesAs segments.take(5)
-      level.pickSegmentsToPush(1) shouldHaveSameKeyValuesAs segments.take(1)
-      level.pickSegmentsToPush(3) shouldHaveSameKeyValuesAs segments.take(3)
-      level.pickSegmentsToPush(8) shouldHaveSameKeyValuesAs segments.take(5)
-      level.pickSegmentsToPush(10) shouldHaveSameKeyValuesAs segments.take(5)
-      level.pickSegmentsToPush(20) shouldHaveSameKeyValuesAs segments.take(5)
-    }
-  }
-
   "Level.meter" should {
     "return Level stats" in {
       val level = TestLevel()
@@ -170,7 +121,7 @@ sealed trait LevelReadSpec extends TestBase with MockFactory with Benchmark {
       segments should have size 1
       val segment = segments.head
 
-      level.put(Seq(segment)).assertGet
+      level.put(Seq(segment), Iterable.empty).assertGet
 
       level.meter shouldBe LevelMeter(1, segment.segmentSize)
     }
@@ -187,7 +138,7 @@ sealed trait LevelReadSpec extends TestBase with MockFactory with Benchmark {
       segments should have size 1
       val segment = segments.head
 
-      level2.put(Seq(segment)).assertGet
+      level2.put(Seq(segment), Iterable.empty).assertGet
 
       level1.meter shouldBe LevelMeter(0, 0)
       level1.meterFor(level1.paths.headPath.folderId.toInt) should contain(LevelMeter(0, 0))
@@ -202,7 +153,7 @@ sealed trait LevelReadSpec extends TestBase with MockFactory with Benchmark {
 
       val putKeyValues = randomPutKeyValues(keyValuesCount).toTransient
       val segment = TestSegment(putKeyValues).assertGet
-      level2.put(Seq(segment)).assertGet
+      level2.put(Seq(segment), Iterable.empty).assertGet
 
       level1.meterFor(3) shouldBe empty
     }

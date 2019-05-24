@@ -20,14 +20,15 @@
 package swaydb.core.level
 
 import java.nio.file.Path
-import scala.annotation.tailrec
+
 import swaydb.core.data.KeyValue
-import swaydb.core.level.actor.LevelAPI
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.segment.Segment
 import swaydb.data.IO
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.slice.Slice
+
+import scala.annotation.tailrec
 
 private[core] trait LevelRef {
 
@@ -38,8 +39,6 @@ private[core] trait LevelRef {
   def throttle: LevelMeter => Throttle
 
   def releaseLocks: IO[Unit]
-
-  def !(request: LevelAPI): Unit
 
   def nextLevel: Option[LevelRef]
 
@@ -89,8 +88,6 @@ private[core] trait LevelRef {
   def containsSegmentWithMinKey(minKey: Slice[Byte]): Boolean
 
   def getSegment(minKey: Slice[Byte]): Option[Segment]
-
-  def getBusySegments(): Iterable[Segment]
 
   def takeSmallSegments(size: Int): Iterable[Segment]
 

@@ -260,7 +260,8 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
     implicit class TestLevelImplicit(level: Level) {
       def addSegments(segments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): Level = {
         val replyTo = TestActor[PushSegmentsResponse]()
-        level ! PushSegments(segments, replyTo)
+//        level ! PushSegments(segments, replyTo)
+        ???
         replyTo.getMessage(5.seconds).result.assertGet
         //        level.segmentsCount() shouldBe segments.size
         level

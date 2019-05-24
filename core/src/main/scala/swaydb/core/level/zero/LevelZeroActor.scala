@@ -78,7 +78,8 @@ private[core] class LevelZeroActor(zero: LevelZero,
             maps.last() match {
               case Some(lastMap) =>
                 logger.debug(s"{}: Sending PushMap to level1 for map {}", zero.path, lastMap.pathOption)
-                nextLevel ! PushMap(lastMap, self)
+//                nextLevel ! PushMap(lastMap, self)
+                ???
 
               case None =>
                 logger.debug(s"{}: NO LAST MAP. No more maps to merge.", zero.path)
@@ -120,7 +121,8 @@ private[core] class LevelZeroActor(zero: LevelZero,
 
                 //wait for a Pull. But if a new maps gets added while waiting for a Pull.
                 //IO Push anyway, even if it's waiting for pull.
-                nextLevel ! PullRequest(self)
+//                nextLevel ! PullRequest(self)
+                ???
                 on.set(false)
             }
         }

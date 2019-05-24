@@ -41,16 +41,6 @@ private[core] object TrashLevel extends LevelRef {
   override val throttle: LevelMeter => Throttle =
     (_) => Throttle(Duration.Zero, 0)
 
-  override def !(request: LevelAPI): Unit =
-    request match {
-      case request: PushSegments =>
-        request.replyTo ! PushSegmentsResponse(request, IO.unit)
-      case request: PushMap =>
-        request.replyTo ! PushMapResponse(request, IO.unit)
-      case PullRequest(pullFrom) =>
-        pullFrom ! Pull
-    }
-
   override val nextLevel: Option[LevelRef] =
     None
 
@@ -80,9 +70,6 @@ private[core] object TrashLevel extends LevelRef {
 
   override def getSegment(minKey: Slice[Byte]): Option[Segment] =
     None
-
-  override val getBusySegments: Iterable[Segment] =
-    Iterable.empty
 
   override val existsOnDisk =
     false
