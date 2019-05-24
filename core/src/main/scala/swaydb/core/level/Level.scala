@@ -520,6 +520,80 @@ private[core] class Level(val dirs: Seq[Dir],
     )
   }
 
+  def refresh(segment: Segment): IO[Unit] = {
+    logger.debug("{}: Running refresh.", paths.head)
+    segment.refresh(
+      minSegmentSize = segmentSize,
+      bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+      compressDuplicateValues = compressDuplicateValues,
+      targetPaths = paths
+    ) flatMap {
+      newSegments =>
+        logger.debug(s"{}: Segment {} successfully refreshed. New Segments: {}.", paths.head, segment.path, newSegments.map(_.path).mkString(", "))
+        buildNewMapEntry(newSegments, Some(segment), None) flatMap {
+          entry =>
+            appendix.write(entry).map(_ => ()) onSuccessSideEffect {
+              _ =>
+                if (deleteSegmentsEventually)
+                  segment.deleteSegmentsEventually
+                else
+                  segment.delete onFailureSideEffect {
+                    failure =>
+                      logger.error(s"Failed to delete Segments '{}'. Manually delete these Segments or reboot the database.", segment.path, failure)
+                  }
+            }
+        } onFailureSideEffect {
+          _ =>
+            newSegments foreach {
+              segment =>
+                segment.delete onFailureSideEffect {
+                  failure =>
+                    logger.error(s"{}: Failed to delete Segment {}", paths.head, segment.path, failure)
+                }
+            }
+        }
+    }
+  }
+
+  def getSegmentWithExpiredKeyValues(): Option[Segment] =
+    Segment.getNearestDeadlineSegment(appendix.values().asScala)
+
+  def removeSegments(segments: Iterable[Segment]): IO[Int] = {
+    //create this list which is a copy of segments. Segments can be iterable only once if it's a Java iterable.
+    //this copy is for second read to delete the segments after the MapEntry is successfully created.
+    logger.trace(s"{}: Removing Segments {}", paths.head, segments.map(_.path.toString))
+    val segmentsToRemove = Slice.create[Segment](segments.size)
+
+    segments.foldLeft(Option.empty[MapEntry[Slice[Byte], Segment]]) {
+      case (previousEntry, segmentToRemove) =>
+        segmentsToRemove add segmentToRemove
+        val nextEntry = MapEntry.Remove[Slice[Byte]](segmentToRemove.minKey)
+        previousEntry.map(_ ++ nextEntry) orElse Some(nextEntry)
+    } map {
+      mapEntry =>
+        //        logger.info(s"$id. Build map entry: ${mapEntry.string(_.asInt().toString, _.id.toString)}")
+        logger.trace(s"{}: Built map entry to remove Segments {}", paths.head, segments.map(_.path.toString))
+        (appendix write mapEntry) flatMap {
+          _ =>
+            logger.debug(s"{}: MapEntry delete Segments successfully written. Deleting physical Segments: {}", paths.head, segments.map(_.path.toString))
+            // If a delete fails that would be due OS permission issue.
+            // But it's OK if it fails as long as appendix is updated with new segments. An error message will be logged
+            // asking to delete the uncommitted segments manually or do a database restart which will delete the uncommitted
+            // Segments on reboot.
+            if (deleteSegmentsEventually) {
+              segmentsToRemove foreach (_.deleteSegmentsEventually)
+              IO.zero
+            }
+            else
+              Segment.deleteSegments(segmentsToRemove) recoverWith {
+                case exception =>
+                  logger.error(s"Failed to delete Segments '{}'. Manually delete these Segments or reboot the database.", segmentsToRemove.map(_.path.toString).mkString(", "), exception)
+                  IO.zero
+              }
+        }
+    } getOrElse IO.Failure(IO.Error.NoSegmentsRemoved)
+  }
+
   /**
     * A Segment is considered small if it's size is less than 60% of the default [[segmentSize]]
     */
@@ -724,42 +798,6 @@ private[core] class Level(val dirs: Seq[Dir],
       case None =>
         IO.Failure(new Exception("Failed to build map entry"))
     }
-  }
-
-  def removeSegments(segments: Iterable[Segment]): IO[Int] = {
-    //create this list which is a copy of segments. Segments can be iterable only once if it's a Java iterable.
-    //this copy is for second read to delete the segments after the MapEntry is successfully created.
-    logger.trace(s"{}: Removing Segments {}", paths.head, segments.map(_.path.toString))
-    val segmentsToRemove = Slice.create[Segment](segments.size)
-
-    segments.foldLeft(Option.empty[MapEntry[Slice[Byte], Segment]]) {
-      case (previousEntry, segmentToRemove) =>
-        segmentsToRemove add segmentToRemove
-        val nextEntry = MapEntry.Remove[Slice[Byte]](segmentToRemove.minKey)
-        previousEntry.map(_ ++ nextEntry) orElse Some(nextEntry)
-    } map {
-      mapEntry =>
-        //        logger.info(s"$id. Build map entry: ${mapEntry.string(_.asInt().toString, _.id.toString)}")
-        logger.trace(s"{}: Built map entry to remove Segments {}", paths.head, segments.map(_.path.toString))
-        (appendix write mapEntry) flatMap {
-          _ =>
-            logger.debug(s"{}: MapEntry delete Segments successfully written. Deleting physical Segments: {}", paths.head, segments.map(_.path.toString))
-            // If a delete fails that would be due OS permission issue.
-            // But it's OK if it fails as long as appendix is updated with new segments. An error message will be logged
-            // asking to delete the uncommitted segments manually or do a database restart which will delete the uncommitted
-            // Segments on reboot.
-            if (deleteSegmentsEventually) {
-              segmentsToRemove foreach (_.deleteSegmentsEventually)
-              IO.zero
-            }
-            else
-              Segment.deleteSegments(segmentsToRemove) recoverWith {
-                case exception =>
-                  logger.error(s"Failed to delete Segments '{}'. Manually delete these Segments or reboot the database.", segmentsToRemove.map(_.path.toString).mkString(", "), exception)
-                  IO.zero
-              }
-        }
-    } getOrElse IO.Failure(IO.Error.NoSegmentsRemoved)
   }
 
   def getFromThisLevel(key: Slice[Byte]): IO[Option[KeyValue.ReadOnly.SegmentResponse]] =
