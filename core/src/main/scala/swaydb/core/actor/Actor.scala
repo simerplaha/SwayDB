@@ -149,11 +149,11 @@ private[swaydb] object Actor {
       FiniteDuration(adjustDelay.toLong, TimeUnit.MILLISECONDS)
     }
 
-  def wire[T](impl: T)(implicit ec: ExecutionContext): WiredActor[T] =
-    new WiredActor[T](impl, None)
+  def wire[T](impl: T)(implicit ec: ExecutionContext): WiredActor[T, Unit] =
+    new WiredActor[T, Unit](impl, None, ())
 
-  def wireTimer[T](delays: FiniteDuration, impl: T)(implicit ec: ExecutionContext): WiredActor[T] =
-    new WiredActor[T](impl, Some(delays))
+  def wireTimer[T](delays: FiniteDuration, impl: T)(implicit ec: ExecutionContext): WiredActor[T, Unit] =
+    new WiredActor[T, Unit](impl, Some(delays), ())
 }
 
 private[swaydb] class Actor[T, +S](val state: S,

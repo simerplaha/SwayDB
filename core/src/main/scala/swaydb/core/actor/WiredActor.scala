@@ -6,80 +6,83 @@ import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.Try
 
 object WiredActor {
-  def apply[T](impl: T)(implicit ec: ExecutionContext): WiredActor[T] =
-    new WiredActor(impl, None)
+  def apply[T, S](impl: T, state: S)(implicit ec: ExecutionContext): WiredActor[T, S] =
+    new WiredActor(impl, None, state)
 
-  def apply[T](impl: T, delays: FiniteDuration)(implicit ec: ExecutionContext): WiredActor[T] =
-    new WiredActor(impl, Some(delays))
+  def apply[T, S](impl: T, delays: FiniteDuration, state: S)(implicit ec: ExecutionContext): WiredActor[T, S] =
+    new WiredActor(impl, Some(delays), state)
 }
 
-class WiredActor[+T](impl: T, delays: Option[FiniteDuration])(implicit ec: ExecutionContext) {
+class WiredActor[+T, +S](impl: T, delays: Option[FiniteDuration], state: S)(implicit ec: ExecutionContext) {
 
-  private val actor =
+  private val actor: Actor[() => Unit, S] =
     delays map {
       delays =>
-        Actor.timer[() => Unit](delays)((function, _) => function())
+        Actor.timer[() => Unit, S](state, delays)((function, _) => function()).asInstanceOf[Actor[() => Unit, S]]
     } getOrElse {
-      Actor[() => Unit]((function, _) => function())
+      Actor[() => Unit, S](state)((function, _) => function()).asInstanceOf[Actor[() => Unit, S]]
     }
 
-  def ask[R](function: T => R): Future[R] = {
+  private def unsafeGetState =
+    actor.state
+
+  def ask[R](function: (T, S) => R): Future[R] = {
     val promise = Promise[R]()
-    actor ! (() => promise.tryComplete(Try(function(impl))))
+    actor ! (() => promise.tryComplete(Try(function(impl, unsafeGetState))))
     promise.future
   }
 
-  def askFlatMap[R](function: T => Future[R]): Future[R] = {
+  def askFlatMap[R](function: (T, S) => Future[R]): Future[R] = {
     val promise = Promise[R]()
-    actor ! (() => promise.tryCompleteWith(function(impl)))
+    actor ! (() => promise.tryCompleteWith(function(impl, unsafeGetState)))
     promise.future
   }
 
-  def ask[R](function: (T, WiredActor[T]) => R): Future[R] = {
+  def ask[R](function: (T, S, WiredActor[T, S]) => R): Future[R] = {
     val promise = Promise[R]()
-    actor ! (() => promise.tryComplete(Try(function(impl, this))))
+    actor ! (() => promise.tryComplete(Try(function(impl, unsafeGetState, this))))
     promise.future
   }
 
-  def askFlatMap[R](function: (T, WiredActor[T]) => Future[R]): Future[R] = {
+  def askFlatMap[R](function: (T, S, WiredActor[T, S]) => Future[R]): Future[R] = {
     val promise = Promise[R]()
-    actor ! (() => promise.tryCompleteWith(function(impl, this)))
+    actor ! (() => promise.tryCompleteWith(function(impl, unsafeGetState, this)))
     promise.future
   }
 
-  def send[R](function: T => R): Unit =
-    actor ! (() => function(impl))
+  def send[R](function: (T, S) => R): Unit =
+    actor ! (() => function(impl, unsafeGetState))
 
-  def send[R](function: (T, WiredActor[T]) => R): Unit =
-    actor ! (() => function(impl, this))
+  def send[R](function: (T, S, WiredActor[T, S]) => R): Unit =
+    actor ! (() => function(impl, unsafeGetState, this))
 
-  def scheduleAsk[R](delay: FiniteDuration)(function: T => R): (Future[R], TimerTask) = {
+  def scheduleAsk[R](delay: FiniteDuration)(function: (T, S) => R): (Future[R], TimerTask) = {
     val promise = Promise[R]()
-    val timerTask = actor.schedule(() => promise.tryComplete(Try(function(impl))), delay)
+    val timerTask = actor.schedule(() => promise.tryComplete(Try(function(impl, unsafeGetState))), delay)
     (promise.future, timerTask)
   }
 
-  def scheduleAskFlatMap[R](delay: FiniteDuration)(function: T => Future[R]): (Future[R], TimerTask) = {
+  def scheduleAskFlatMap[R](delay: FiniteDuration)(function: (T, S) => Future[R]): (Future[R], TimerTask) = {
     val promise = Promise[R]()
-    val timerTask = actor.schedule(() => promise.completeWith(function(impl)), delay)
+    val timerTask = actor.schedule(() => promise.completeWith(function(impl, unsafeGetState)), delay)
     (promise.future, timerTask)
   }
 
-  def scheduleAskWithSelf[R](delay: FiniteDuration)(function: (T, WiredActor[T]) => R): (Future[R], TimerTask) = {
+  def scheduleAskWithSelf[R](delay: FiniteDuration)(function: (T, S, WiredActor[T, S]) => R): (Future[R], TimerTask) = {
     val promise = Promise[R]()
-    val timerTask = actor.schedule(() => promise.tryComplete(Try(function(impl, this))), delay)
+    val timerTask = actor.schedule(() => promise.tryComplete(Try(function(impl, unsafeGetState, this))), delay)
     (promise.future, timerTask)
   }
 
-  def scheduleAskWithSelfFlatMap[R](delay: FiniteDuration)(function: (T, WiredActor[T]) => Future[R]): (Future[R], TimerTask) = {
+  def scheduleAskWithSelfFlatMap[R](delay: FiniteDuration)(function: (T, S, WiredActor[T, S]) => Future[R]): (Future[R], TimerTask) = {
     val promise = Promise[R]()
-    val timerTask = actor.schedule(() => promise.completeWith(function(impl, this)), delay)
+    val timerTask = actor.schedule(() => promise.completeWith(function(impl, unsafeGetState, this)), delay)
     (promise.future, timerTask)
   }
 
-  def scheduleSend[R](delay: FiniteDuration)(function: T => R): TimerTask =
-    actor.schedule(() => function(impl), delay)
+  def scheduleSend[R](delay: FiniteDuration)(function: (T, S) => R): TimerTask =
+    actor.schedule(() => function(impl, unsafeGetState), delay)
 
-  def scheduleSend[R](delay: FiniteDuration)(function: (T, WiredActor[T]) => R): TimerTask =
-    actor.schedule(() => function(impl, this), delay)
+  def scheduleSend[R](delay: FiniteDuration)(function: (T, S, WiredActor[T, S]) => R): TimerTask =
+    actor.schedule(() => function(impl, unsafeGetState, this), delay)
 }
