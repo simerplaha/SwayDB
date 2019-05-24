@@ -742,9 +742,6 @@ private[core] class LevelZero(val path: Path,
   override def segmentCountAndLevelSize: (Int, Long) =
     nextLevel.map(_.segmentCountAndLevelSize) getOrElse ((0, 0))
 
-  override def meter: LevelMeter =
-    nextLevel.map(_.meter) getOrElse LevelMeter(0, 0)
-
   override def meterFor(levelNumber: Int): Option[LevelMeter] =
     nextLevel.flatMap(_.meterFor(levelNumber))
 

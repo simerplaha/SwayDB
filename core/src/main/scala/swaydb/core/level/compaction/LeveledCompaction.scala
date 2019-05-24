@@ -8,13 +8,39 @@ import scala.concurrent.ExecutionContext
 
 private[core] object LeveledCompaction {
 
-  private[core] class MutableState(levelZero: LevelZero,
-                                   levels: Seq[Level])
+  sealed trait Job
+  sealed trait TemporaryJob extends Job
+  object Job {
+    case class Zero(zero: LevelZero, nextLevel: Level) extends Job
+    case class Push(level: Level) extends Job
+    case class CompactSmallSegments(level: Level) extends TemporaryJob
+    case class ClearExpiredKeyValues(level: Level) extends TemporaryJob
+  }
 
-  def create(levelZero: LevelZero)(implicit ec: ExecutionContext): WiredActor[LeveledCompaction.type, MutableState] = {
+  private[core] class State(jobs: Seq[Job])
+
+  def create(levelZero: LevelZero)(implicit ec: ExecutionContext): Option[WiredActor[LeveledCompaction.type, State]] = {
     //temporarily do typecast. It should actually return a CompactionAPI type.
     val levels = Level.getLevels(levelZero) map (_.asInstanceOf[Level])
-    WiredActor(LeveledCompaction, new MutableState(levelZero, levels))
+    levels.headOption map {
+      nextLevel =>
+        val jobZero = Job.Zero(levelZero, nextLevel)
+        val otherJobs =
+          levels flatMap {
+            level =>
+              Seq(
+                Job.Push(level),
+                Job.CompactSmallSegments(level),
+                Job.ClearExpiredKeyValues(level)
+              )
+          }
+        val allJobs = jobZero +: otherJobs
+
+        WiredActor(
+          impl = LeveledCompaction,
+          state = new State(allJobs)
+        )
+    }
   }
 }
 

@@ -115,9 +115,6 @@ private[core] object TrashLevel extends LevelRef {
   override val close: IO[Unit] =
     IO.unit
 
-  override val meter: LevelMeter =
-    LevelMeter(0, 0)
-
   override def meterFor(levelNumber: Int): Option[LevelMeter] =
     None
 

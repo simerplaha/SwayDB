@@ -105,8 +105,6 @@ private[core] trait LevelRef {
 
   def closeSegments(): IO[Unit]
 
-  def meter: LevelMeter
-
   def meterFor(levelNumber: Int): Option[LevelMeter]
 
   def levelNumber: Long
