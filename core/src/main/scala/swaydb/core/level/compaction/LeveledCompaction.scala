@@ -4,20 +4,14 @@ import swaydb.core.actor.WiredActor
 import swaydb.core.level.Level
 import swaydb.core.level.zero.LevelZero
 
+import scala.collection.mutable
 import scala.concurrent.ExecutionContext
 
 private[core] object LeveledCompaction {
 
-  sealed trait Job
-  sealed trait TemporaryJob extends Job
-  object Job {
-    case class Zero(zero: LevelZero, nextLevel: Level) extends Job
-    case class Push(level: Level) extends Job
-    case class CompactSmallSegments(level: Level) extends TemporaryJob
-    case class ClearExpiredKeyValues(level: Level) extends TemporaryJob
-  }
-
-  private[core] class State(jobs: Seq[Job])
+  private[core] class State(jobs: Seq[Job],
+                            levelZeroState: LevelZeroState,
+                            levelState: mutable.Map[Level, LevelState])
 
   def create(levelZero: LevelZero)(implicit ec: ExecutionContext): Option[WiredActor[LeveledCompaction.type, State]] = {
     //temporarily do typecast. It should actually return a CompactionAPI type.
@@ -36,11 +30,23 @@ private[core] object LeveledCompaction {
           }
         val allJobs = jobZero +: otherJobs
 
+        val levelStates: mutable.Map[Level, LevelState] =
+          levels.map(level => level -> LevelState.Idle)(collection.breakOut)
+
         WiredActor(
           impl = LeveledCompaction,
-          state = new State(allJobs)
+          state =
+            new State(
+              jobs = allJobs,
+              levelZeroState = LevelZeroState.Idle,
+              levelState = levelStates
+            )
         )
     }
   }
+
+  def startCompaction(state: State) =
+    ???
+
 }
 
