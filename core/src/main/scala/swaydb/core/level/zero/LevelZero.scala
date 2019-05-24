@@ -19,20 +19,17 @@
 
 package swaydb.core.level.zero
 
-import com.typesafe.scalalogging.LazyLogging
 import java.nio.channels.{FileChannel, FileLock}
 import java.nio.file.{Path, Paths, StandardOpenOption}
 import java.util
-import scala.annotation.tailrec
-import scala.collection.JavaConverters._
-import scala.concurrent.duration.{Deadline, _}
-import scala.concurrent.{ExecutionContext, Future}
+
+import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.KeyValue._
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.IOEffect
 import swaydb.core.level.actor.LevelCommand.WakeUp
-import swaydb.core.level.actor.{LevelAPI, LevelZeroAPI}
+import swaydb.core.level.actor.LevelZeroAPI
 import swaydb.core.level.{LevelRef, PathsDistributor}
 import swaydb.core.map
 import swaydb.core.map.serializer.{TimerMapEntryReader, TimerMapEntryWriter}
@@ -49,6 +46,11 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.Level0Storage
 import swaydb.data.util.StorageUnits._
+
+import scala.annotation.tailrec
+import scala.collection.JavaConverters._
+import scala.concurrent.duration.{Deadline, _}
+import scala.concurrent.{ExecutionContext, Future}
 
 private[core] object LevelZero extends LazyLogging {
 

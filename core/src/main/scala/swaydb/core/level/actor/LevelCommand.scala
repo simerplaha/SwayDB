@@ -22,53 +22,27 @@ package swaydb.core.level.actor
 import swaydb.core.actor.ActorRef
 import swaydb.core.data.Memory
 import swaydb.core.map.Map
-import swaydb.core.segment.Segment
-import swaydb.data.slice.Slice
-import scala.concurrent.duration.Deadline
 import swaydb.data.IO
-
-sealed trait LevelCommand
-sealed trait LevelZeroCommand
-
-sealed trait LevelRequest extends LevelCommand
-sealed trait LevelZeroRequest extends LevelZeroCommand
+import swaydb.data.slice.Slice
 
 //Commands that Levels use for communication
-sealed trait LevelAPI extends LevelRequest
-sealed trait LevelZeroAPI extends LevelZeroRequest
-
-sealed trait LevelResponse extends LevelCommand
+sealed trait LevelZeroCommand
+sealed trait LevelZeroAPI extends LevelZeroCommand
 sealed trait LevelZeroResponse extends LevelZeroCommand
 
 object LevelCommand {
 
-  case class PushSegmentsResponse(request: PushSegments,
-                                  result: IO[Unit]) extends LevelResponse
-
   case class PushMapResponse(request: PushMap,
                              result: IO[Unit]) extends LevelZeroResponse
 
-  sealed trait Push extends LevelCommand with LevelZeroCommand
+  sealed trait Push extends LevelZeroCommand
   case object Push extends Push
 
-  case object WakeUp extends LevelCommand with LevelZeroAPI
+  case object WakeUp extends LevelZeroAPI
 
-  sealed trait Pull extends LevelResponse with LevelZeroResponse
+  sealed trait Pull extends LevelZeroResponse
   case object Pull extends Pull
 
-  sealed trait CollapseSmallSegments extends LevelCommand
-  case object CollapseSmallSegments extends CollapseSmallSegments
-
-  sealed trait CollapseSmallSegmentsForce extends LevelCommand
-  case object CollapseSmallSegmentsForce extends CollapseSmallSegmentsForce
-
-  case class ClearExpiredKeyValues(nextDeadline: Deadline) extends LevelCommand
-
-  case class PushSegments(segments: Iterable[Segment],
-                          replyTo: ActorRef[PushSegmentsResponse]) extends LevelAPI
-
-  case class PullRequest(pullFrom: ActorRef[Pull]) extends LevelAPI
-
   case class PushMap(map: Map[Slice[Byte], Memory.SegmentResponse],
-                     replyTo: ActorRef[PushMapResponse]) extends LevelAPI
+                     replyTo: ActorRef[PushMapResponse])
 }

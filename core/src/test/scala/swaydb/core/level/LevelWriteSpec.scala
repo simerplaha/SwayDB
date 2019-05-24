@@ -56,7 +56,6 @@ import swaydb.core.RunThis._
 import swaydb.core.IOAssert._
 import swaydb.data.IO
 
-//@formatter:off
 class LevelWriteSpec0 extends LevelWriteSpec
 
 class LevelWriteSpec1 extends LevelWriteSpec {
@@ -78,7 +77,6 @@ class LevelWriteSpec2 extends LevelWriteSpec {
 class LevelWriteSpec3 extends LevelWriteSpec {
   override def inMemoryStorage = true
 }
-//@formatter:on
 
 sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester {
 
@@ -103,6 +101,9 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
         level.dirs should have size 1
         level.existsOnDisk shouldBe false
         level.inMemory shouldBe true
+        level.mmapSegmentsOnRead shouldBe false
+        level.mmapSegmentsOnWrite shouldBe false
+        level.compressDuplicateValues shouldBe true
       } else {
         level.existsOnDisk shouldBe true
         level.inMemory shouldBe false
@@ -142,7 +143,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
     }
   }
 
-  "Level.deleteUncommittedSegments" should {
+  "deleteUncommittedSegments" should {
     "delete segments that are not in the appendix" in {
       if (memory) {
         // memory Level do not have uncommitted Segments
@@ -165,8 +166,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
         //every level folder has 3 uncommitted Segments plus 1 valid Segment
         level.segmentFilesOnDisk should have size (level.dirs.size * 3) + 1
 
-        val function = PrivateMethod[Unit]('deleteUncommittedSegments)
-        level invokePrivate function()
+        Level.deleteUncommittedSegments(level.dirs, level.segmentsInLevel()).assertGet
 
         level.segmentFilesOnDisk should have size 1
         level.segmentFilesOnDisk should contain only segmentsIdsBeforeInvalidSegments.head
@@ -175,26 +175,22 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
     }
   }
 
-  "Level.currentLargestSegmentId" should {
+  "largestSegmentId" should {
     "get the largest segment in the Level when the Level is not empty" in {
       val level = TestLevel(segmentSize = 1.kb)
       level.putKeyValues(randomizedKeyValues(2000)).assertGet
 
-      val function = PrivateMethod[Long]('largestSegmentId)
-      val largeSegmentId = level invokePrivate function()
-
+      val largeSegmentId = Level.largestSegmentId(level.segmentsInLevel())
       largeSegmentId shouldBe level.segmentsInLevel().map(_.path.fileId.assertGet._1).max
     }
 
     "return 0 when the Level is empty" in {
       val level = TestLevel(segmentSize = 1.kb)
-
-      val function = PrivateMethod[Int]('largestSegmentId)
-      (level invokePrivate function()) shouldBe 0
+      Level.largestSegmentId(level.segmentsInLevel()) shouldBe 0
     }
   }
 
-  "Level.put segments" should {
+  "put segments" should {
     "write a segment to an empty Level" in {
       val level = TestLevel()
       val keyValues = randomIntKeyStringValues(keyValuesCount)
@@ -416,7 +412,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
     }
   }
 
-  "Level.putMap" should {
+  "putMap" should {
     import swaydb.core.map.serializer.LevelZeroMapEntryReader._
     import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
     implicit val merged: SkipListMerger[Slice[Byte], Memory.SegmentResponse] = LevelZeroSkipListMerger
@@ -474,7 +470,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
     }
   }
 
-  "Level.put KeyValues" should {
+  "put KeyValues" should {
     "write a key-values to the Level" in {
       val level = TestLevel(throttle = (_) => Throttle(Duration.Zero, 0))
 
@@ -707,7 +703,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
     }
   }
 
-  "Level.copy" should {
+  "copy" should {
     "copy segments" in {
       val level = TestLevel(throttle = (_) => Throttle(Duration.Zero, 0))
       level.isEmpty shouldBe true
@@ -757,7 +753,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
 
   }
 
-  "Level.putKeyValues" should {
+  "putKeyValues" should {
     "write key values to target segments and update appendix" in {
       val level = TestLevel(segmentSize = 10.mb, throttle = (_) => Throttle(Duration.Zero, 0))
 
@@ -802,7 +798,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
     }
   }
 
-  "Level.removeSegments" should {
+  "removeSegments" should {
     "remove segments from disk and remove them from appendix" in {
       val level = TestLevel(segmentSize = 1.kb)
       level.putKeyValues(randomPutKeyValues(keyValuesCount)).assertGet
@@ -819,7 +815,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
 
   }
 
-  "Level.buildNewMapEntry" should {
+  "buildNewMapEntry" should {
     import swaydb.core.map.serializer.AppendixMapEntryWriter._
 
     "build MapEntry.Put map for the first created Segment" in {

@@ -19,40 +19,38 @@
 
 package swaydb.core.level
 
-import com.typesafe.scalalogging.LazyLogging
 import java.nio.channels.{FileChannel, FileLock}
 import java.nio.file.{Path, StandardOpenOption}
-import scala.annotation.tailrec
-import scala.collection.JavaConverters._
-import scala.collection.mutable
-import scala.concurrent.ExecutionContext
-import scala.concurrent.duration._
+
+import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.io.file.IOEffect
-import swaydb.core.level.actor.LevelCommand.ClearExpiredKeyValues
-import swaydb.core.level.actor.{LevelAPI, LevelCommand}
+import swaydb.core.io.file.IOEffect._
 import swaydb.core.map.serializer._
 import swaydb.core.map.{Map, MapEntry}
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.seek.{NextWalker, _}
 import swaydb.core.segment.SegmentException.SegmentFileMissing
 import swaydb.core.segment.{Segment, SegmentAssigner}
-import swaydb.core.util.CollectionUtil._
 import swaydb.core.util.ExceptionUtil._
-import swaydb.core.io.file.IOEffect._
-import swaydb.core.util.FiniteDurationUtil._
-import swaydb.data.IO._
 import swaydb.core.util.{MinMax, _}
 import swaydb.data.IO
+import swaydb.data.IO._
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.Dir
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.slice.Slice._
 import swaydb.data.storage.{AppendixStorage, LevelStorage}
+
+import scala.annotation.tailrec
+import scala.collection.JavaConverters._
+import scala.collection.mutable
+import scala.concurrent.ExecutionContext
+import scala.concurrent.duration._
 
 private[core] object Level extends LazyLogging {
 
@@ -152,28 +150,36 @@ private[core] object Level extends LazyLogging {
               case None =>
                 logger.info("{}: Starting level.", levelStorage.dir)
 
-                implicit val segmentIDGenerator = IDGenerator(initial = largestSegmentId(appendix))
-                val paths: PathsDistributor = PathsDistributor(levelStorage.dirs, () => appendix.values().asScala)
+                val allSegments = appendix.values().asScala
+                implicit val segmentIDGenerator = IDGenerator(initial = largestSegmentId(allSegments))
+                val paths: PathsDistributor = PathsDistributor(levelStorage.dirs, () => allSegments)
 
-                IO.Success(
-                  new Level(
-                    dirs = levelStorage.dirs,
-                    bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-                    pushForward = pushForward,
-                    mmapSegmentsOnWrite = levelStorage.mmapSegmentsOnWrite,
-                    mmapSegmentsOnRead = levelStorage.mmapSegmentsOnRead,
-                    inMemory = levelStorage.memory,
-                    segmentSize = segmentSize,
-                    appendix = appendix,
-                    throttle = throttle,
-                    nextLevel = nextLevel,
-                    lock = lock,
-                    compressDuplicateValues = compressDuplicateValues,
-                    deleteSegmentsEventually = deleteSegmentsEventually,
-                    paths = paths,
-                    removeDeletedRecords = Level.removeDeletes(nextLevel)
-                  ).init
-                )
+                val deletedUnCommittedSegments =
+                  if (appendixStorage.persistent)
+                    deleteUncommittedSegments(levelStorage.dirs, appendix.values().asScala)
+                  else
+                    IO.unit
+
+                deletedUnCommittedSegments map {
+                  _ =>
+                    new Level(
+                      dirs = levelStorage.dirs,
+                      bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+                      pushForward = pushForward,
+                      mmapSegmentsOnWrite = levelStorage.mmapSegmentsOnWrite,
+                      mmapSegmentsOnRead = levelStorage.mmapSegmentsOnRead,
+                      inMemory = levelStorage.memory,
+                      segmentSize = segmentSize,
+                      appendix = appendix,
+                      throttle = throttle,
+                      nextLevel = nextLevel,
+                      lock = lock,
+                      compressDuplicateValues = compressDuplicateValues,
+                      deleteSegmentsEventually = deleteSegmentsEventually,
+                      paths = paths,
+                      removeDeletedRecords = Level.removeDeletes(nextLevel)
+                    )
+                }
             }
         }
     }
@@ -182,9 +188,9 @@ private[core] object Level extends LazyLogging {
   def removeDeletes(nextLevel: Option[LevelRef]): Boolean =
     nextLevel.isEmpty || nextLevel.exists(_.isTrash)
 
-  def largestSegmentId(appendix: Map[Slice[Byte], Segment]): Long =
+  def largestSegmentId(appendix: Iterable[Segment]): Long =
     appendix.foldLeft(0L) {
-      case (initialId, (_, segment)) =>
+      case (initialId, segment) =>
         val segmentId = segment.path.fileId.get._1
         if (initialId > segmentId)
           initialId
@@ -192,12 +198,12 @@ private[core] object Level extends LazyLogging {
           segmentId
     }
 
-  def deleteUncommittedSegments(dirs: Seq[Dir], appendix: Map[Slice[Byte], Segment]): Option[IO[Unit]] =
+  def deleteUncommittedSegments(dirs: Seq[Dir], appendixSegments: Iterable[Segment]): IO[Unit] =
     dirs.flatMap(_.path.files(Extension.Seg)) foreachIO {
       segmentToDelete =>
         val toDelete =
-          appendix.foldLeft(true) {
-            case (toDelete, (_, appendixSegment)) =>
+          appendixSegments.foldLeft(true) {
+            case (toDelete, appendixSegment) =>
               if (appendixSegment.path == segmentToDelete)
                 false
               else
@@ -209,7 +215,7 @@ private[core] object Level extends LazyLogging {
         } else {
           IO.unit
         }
-    }
+    } getOrElse IO.unit
 
   def getLevels(level: LevelRef): Seq[LevelRef] = {
     @tailrec
@@ -308,14 +314,6 @@ private[core] class Level(val dirs: Seq[Dir],
         nextLevel.map(_.releaseLocks) getOrElse IO.unit
     }
 
-  def init: Level = {
-    if (existsOnDisk) Level.deleteUncommittedSegments(dirs, appendix)
-    //If this is the last level, dispatch initial message to start the process of clearing expired key-values.
-    //    if (nextLevel.isEmpty) actor ! ClearExpiredKeyValues(0.nanosecond.fromNow)
-    self
-  }
-
-
   def nextPushDelay: FiniteDuration =
     throttle(meter).pushDelay
 
@@ -352,8 +350,8 @@ private[core] class Level(val dirs: Seq[Dir],
           put(
             segmentsToMerge = segmentToMerge,
             segmentsToCopy = segmentToCopy,
-            targetSegments = busySegments,
-            busySegments = appendixSegments
+            busySegments = busySegments,
+            targetSegments = appendixSegments,
           )
         }
     }
