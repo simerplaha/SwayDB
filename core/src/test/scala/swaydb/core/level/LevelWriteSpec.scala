@@ -124,7 +124,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
       if (persistent) {
         //create a non empty level
         val level = TestLevel()
-        level.put(TestSegment(randomKeyValues(keyValuesCount)).assertGet, Iterable.empty).assertGet
+        level.put(TestSegment(randomKeyValues(keyValuesCount)).assertGet).assertGet
 
         //delete the appendix file
         level.paths.headPath.resolve("appendix").files(Extension.Log) map IOEffect.delete
@@ -192,7 +192,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
       val keyValues = randomIntKeyStringValues(keyValuesCount)
       val segment = TestSegment(keyValues).assertGet
       segment.close.assertGet
-      level.put(segment, Iterable.empty).assertGet
+      level.put(segment).assertGet
       assertReads(keyValues, level)
     }
 
@@ -202,11 +202,11 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
       val level = TestLevel(segmentSize = 100.bytes)
       val keyValues = randomIntKeyStringValues(keyValuesCount)
       val segment = TestSegment(keyValues).assertGet
-      level.put(segment, Iterable.empty).assertGet
+      level.put(segment).assertGet
 
       val keyValues2 = randomIntKeyStringValues(keyValuesCount * 10)
       val segment2 = TestSegment(keyValues2).assertGet
-      level.put(segment2, Iterable.empty).assertGet
+      level.put(segment2).assertGet
 
       assertGet(keyValues, level)
       assertGet(keyValues2, level)
@@ -226,7 +226,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
           }
 
       val segments = Seq(TestSegment(keyValues1).assertGet, TestSegment(keyValues2).assertGet, TestSegment(keyValues3).assertGet)
-      level.put(segments, Iterable.empty).assertGet
+      level.put(segments).assertGet
 
       assertReads(keyValues, level)
     }
@@ -244,7 +244,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
       level.isEmpty shouldBe false
 
       val segments = Seq(TestSegment(keyValues1.toTransient).assertGet, TestSegment(keyValues3.toTransient).assertGet)
-      level.put(segments, Iterable.empty).assertGet
+      level.put(segments).assertGet
 
       assertReads(allKeyValues, level)
     }
@@ -312,7 +312,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
       val segment = TestSegment(keyValues).assertGet
       segment.delete.assertGet
 
-      val result = level.put(segment, Iterable.empty).failed.assertGet
+      val result = level.put(segment).failed.assertGet
       if (persistent)
         result.exception shouldBe a[NoSuchFileException]
       else
@@ -328,7 +328,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
       val keyValues = randomKeyValues(keyValuesCount)
       val segmentsToMerge = TestSegment(keyValues).assertGet
       val level = TestLevel()
-      level.put(Seq(segmentsToMerge), Seq(), Seq(), Iterable.empty).failed.assertGet shouldBe IO.Error.ReceivedKeyValuesToMergeWithoutTargetSegment(keyValues.size)
+      level.put(Seq(segmentsToMerge), Seq(), Seq()).failed.assertGet shouldBe IO.Error.ReceivedKeyValuesToMergeWithoutTargetSegment(keyValues.size)
     }
 
     "copy Segments if segmentsToMerge is empty" in {
@@ -337,7 +337,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
 
       val level = TestLevel(nextLevel = Some(TestLevel()))
 
-      level.put(Seq.empty, segmentToCopy, Seq.empty, Iterable.empty).assertGet
+      level.put(Seq.empty, segmentToCopy, Seq.empty).assertGet
 
       level.isEmpty shouldBe false
       assertReads(keyValues.flatten, level)
@@ -359,7 +359,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
         }
         val levelFilesBeforePut = level.segmentFilesOnDisk
 
-        level.put(Seq.empty, segmentToCopy, Seq.empty, Iterable.empty).failed.assertGet.exception shouldBe a[FileAlreadyExistsException]
+        level.put(Seq.empty, segmentToCopy, Seq.empty).failed.assertGet.exception shouldBe a[FileAlreadyExistsException]
 
         level.isEmpty shouldBe true
         level.segmentFilesOnDisk shouldBe levelFilesBeforePut
@@ -373,8 +373,8 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
       val targetSegment = TestSegment(keyValues.last).assertGet
 
       val level = TestLevel(nextLevel = Some(TestLevel()))
-      level.put(targetSegment, Iterable.empty).assertGet
-      level.put(segmentToMerge, segmentToCopy, Seq(targetSegment), Iterable.empty).assertGet
+      level.put(targetSegment).assertGet
+      level.put(segmentToMerge, segmentToCopy, Seq(targetSegment)).assertGet
 
       level.isEmpty shouldBe false
 
@@ -389,7 +389,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
         val targetSegment = TestSegment(keyValues.last).assertGet
 
         val level = TestLevel(segmentSize = 150.bytes, nextLevel = Some(TestLevel()))
-        level.put(targetSegment, Iterable.empty).assertGet
+        level.put(targetSegment).assertGet
 
         //segment to copy
         val id = IDGenerator.segmentId(level.segmentIDGenerator.nextID + 9)
@@ -401,7 +401,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
 
         val appendixBeforePut = level.segmentsInLevel()
         val levelFilesBeforePut = level.segmentFilesOnDisk
-        level.put(segmentToMerge, segmentToCopy, Seq(targetSegment), Iterable.empty).failed.assertGet.exception shouldBe a[FileAlreadyExistsException]
+        level.put(segmentToMerge, segmentToCopy, Seq(targetSegment)).failed.assertGet.exception shouldBe a[FileAlreadyExistsException]
         level.segmentFilesOnDisk shouldBe levelFilesBeforePut
         level.segmentsInLevel().map(_.path) shouldBe appendixBeforePut.map(_.path)
       }
@@ -427,7 +427,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
 
     "create a segment to an empty Level with no lower level" in {
       val level = TestLevel()
-      level.putMap(map, Iterable.empty).assertGet
+      level.put(map).assertGet
       //since this is a new Segment and Level has no sub-level, all the deleted key-values will get removed.
       val (deletedKeyValues, otherKeyValues) = keyValues.partition(_.isInstanceOf[Memory.Remove])
 
@@ -456,7 +456,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
       level.putKeyValues(sortedExistingKeyValues).assertGet
 
       //put a new map
-      level.putMap(map, Iterable.empty).assertGet
+      level.put(map).assertGet
       assertGet(keyValues.filterNot(_.isInstanceOf[Memory.Remove]), level)
 
       level.get("one").assertGet shouldBe existingKeyValues(0)
@@ -725,7 +725,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
       //delete half of the key values which will create small Segments
       level.putKeyValues(Slice(deleteEverySecond.toArray)).assertGet
 
-      level.collapse(level.segmentsInLevel(), Iterable.empty).assertGet
+      level.collapse(level.segmentsInLevel()).assertGet
       //since every second key-value was delete, the number of Segments is reduced to half
       level.segmentFilesInAppendix shouldBe <=((segmentCountBeforeDelete / 2) + 1) //+1 for odd number of key-values
       assertReads(Slice(keyValuesNoDeleted.toArray), level)
@@ -750,7 +750,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
 
           //reopen the Level with larger min segment size
           val reopenLevel = level.reopen(segmentSize = 20.mb, throttle = _ => Throttle(Duration.Zero, 0))
-          reopenLevel.collapse(level.segmentsInLevel(), Iterable.empty).assertGet
+          reopenLevel.collapse(level.segmentsInLevel()).assertGet
 
           //resulting segments is 1
           eventually {
@@ -797,7 +797,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
       }
 
       sleep(20.seconds)
-      level.collapse(level.segmentsInLevel(), Iterable.empty).assertGet
+      level.collapse(level.segmentsInLevel()).assertGet
       level.segmentFilesInAppendix should be <= 4
 
       assertReads(Slice(keyValuesNotExpired.toArray), level)

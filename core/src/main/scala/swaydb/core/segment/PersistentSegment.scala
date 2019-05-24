@@ -21,25 +21,27 @@ package swaydb.core.segment
 
 import java.nio.file.Path
 import java.util.concurrent.ConcurrentSkipListMap
+
 import bloomfilter.mutable.BloomFilter
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.data.{Persistent, _}
+import swaydb.core.function.FunctionStore
+import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
+import swaydb.core.io.file.DBFile
 import swaydb.core.io.reader.Reader
 import swaydb.core.level.PathsDistributor
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.format.a.{SegmentFooter, SegmentReader}
 import swaydb.core.segment.merge.SegmentMerger
-import swaydb.data.IO._
 import swaydb.core.util._
+import swaydb.data.IO._
 import swaydb.data.config.Dir
-import swaydb.data.slice.{Reader, Slice}
-import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.{Deadline, FiniteDuration}
-import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.DBFile
-import swaydb.data.{IO, MaxKey}
 import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.data.slice.{Reader, Slice}
+import swaydb.data.{BusyBoolean, IO, MaxKey}
+
+import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.Deadline
 
 private[segment] case class PersistentSegment(file: DBFile,
                                               mmapReads: Boolean,
@@ -48,13 +50,14 @@ private[segment] case class PersistentSegment(file: DBFile,
                                               maxKey: MaxKey[Slice[Byte]],
                                               segmentSize: Int,
                                               removeDeletes: Boolean,
-                                              nearestExpiryDeadline: Option[Deadline])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                       timeOrder: TimeOrder[Slice[Byte]],
-                                                                                       functionStore: FunctionStore,
-                                                                                       keyValueLimiter: KeyValueLimiter,
-                                                                                       fileOpenLimiter: FileLimiter,
-                                                                                       compression: Option[KeyValueGroupingStrategyInternal],
-                                                                                       ec: ExecutionContext) extends Segment with LazyLogging {
+                                              nearestExpiryDeadline: Option[Deadline],
+                                              busy: BusyBoolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                 timeOrder: TimeOrder[Slice[Byte]],
+                                                                 functionStore: FunctionStore,
+                                                                 keyValueLimiter: KeyValueLimiter,
+                                                                 fileOpenLimiter: FileLimiter,
+                                                                 compression: Option[KeyValueGroupingStrategyInternal],
+                                                                 ec: ExecutionContext) extends Segment with LazyLogging {
 
   def path = file.path
 
@@ -101,6 +104,15 @@ private[segment] case class PersistentSegment(file: DBFile,
         footer = None
     }
   }
+
+  override def reserve: Boolean =
+    BusyBoolean.setBusy(busy)
+
+  override def release: Unit =
+    BusyBoolean.setFree(busy)
+
+  override def isReserved: Boolean =
+    busy.isBusy
 
   def copyTo(toPath: Path): IO[Path] =
     file copyTo toPath

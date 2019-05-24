@@ -23,9 +23,10 @@ import bloomfilter.mutable.BloomFilter
 import com.typesafe.scalalogging.LazyLogging
 import java.nio.file.Path
 import java.util.concurrent.ConcurrentSkipListMap
+
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.Deadline
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
@@ -43,7 +44,7 @@ import swaydb.data.IO._
 import swaydb.data.config.Dir
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-import swaydb.data.{IO, MaxKey}
+import swaydb.data.{BusyBoolean, IO, MaxKey}
 
 private[core] object Segment extends LazyLogging {
 
@@ -225,7 +226,8 @@ private[core] object Segment extends LazyLogging {
               removeDeletes = removeDeletes,
               bloomFilter = bloomFilter,
               cache = skipList,
-              nearestExpiryDeadline = nearestExpiryDeadline
+              nearestExpiryDeadline = nearestExpiryDeadline,
+              busy = BusyBoolean(false)
             )
           }
       }
@@ -294,7 +296,8 @@ private[core] object Segment extends LazyLogging {
                   },
                 segmentSize = keyValues.last.stats.segmentSize,
                 removeDeletes = removeDeletes,
-                nearestExpiryDeadline = nearestExpiryDeadline
+                nearestExpiryDeadline = nearestExpiryDeadline,
+                busy = BusyBoolean(false)
               )
           }
         }
@@ -489,7 +492,8 @@ private[core] object Segment extends LazyLogging {
           maxKey = maxKey,
           segmentSize = segmentSize,
           removeDeletes = removeDeletes,
-          nearestExpiryDeadline = nearestExpiryDeadline
+          nearestExpiryDeadline = nearestExpiryDeadline,
+          busy = BusyBoolean(false)
         )
     }
   }
@@ -551,7 +555,8 @@ private[core] object Segment extends LazyLogging {
                                 },
                               segmentSize = fileSize.toInt,
                               nearestExpiryDeadline = nearestDeadline,
-                              removeDeletes = removeDeletes
+                              removeDeletes = removeDeletes,
+                              busy = BusyBoolean(false)
                             )
                         }
                     }
@@ -898,6 +903,12 @@ private[core] trait Segment extends FileLimiterItem {
   def getBloomFilter: IO[Option[BloomFilter[Slice[Byte]]]]
 
   def path: Path
+
+  def reserve: Boolean
+
+  def release: Unit
+
+  def isReserved: Boolean
 
   def put(newKeyValues: Slice[KeyValue.ReadOnly],
           minSegmentSize: Long,

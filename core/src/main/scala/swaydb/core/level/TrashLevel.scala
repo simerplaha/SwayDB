@@ -40,7 +40,7 @@ private[core] object TrashLevel extends LevelRef {
   override val throttle: LevelMeter => Throttle =
     (_) => Throttle(Duration.Zero, 0)
 
-  override val nextLevel: Option[LevelRef] =
+  override val nextLevel: Option[Level] =
     None
 
   override val segmentsInLevel: Iterable[Segment] =

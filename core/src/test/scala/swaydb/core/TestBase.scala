@@ -285,7 +285,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
     def apply(levelStorage: LevelStorage = levelStorage,
               appendixStorage: AppendixStorage = appendixStorage,
               segmentSize: Long = segmentSize,
-              nextLevel: Option[LevelRef] = None,
+              nextLevel: Option[Level] = None,
               pushForward: Boolean = false,
               throttle: LevelMeter => Throttle = testDefaultThrottle,
               bloomFilterFalsePositiveRate: Double = TestData.falsePositiveRate,
@@ -305,12 +305,12 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
         compressDuplicateValues = compressDuplicateValues,
         deleteSegmentsEventually = deleteSegmentsEventually
-      ).assertGet.asInstanceOf[Level]
+      ).assertGet
   }
 
   object TestLevelZero {
 
-    def apply(nextLevel: Option[LevelRef],
+    def apply(nextLevel: Option[Level],
               mapSize: Long = mapSize,
               brake: Level0Meter => Accelerator = Accelerator.brake(),
               throttleOn: Boolean = true)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,

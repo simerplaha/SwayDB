@@ -21,14 +21,17 @@ package swaydb.core.level
 
 import java.nio.channels.{FileChannel, FileLock}
 import java.nio.file.{Path, StandardOpenOption}
+import java.util.concurrent.{ConcurrentHashMap, ConcurrentMap, ConcurrentSkipListSet}
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.core.actor.WiredActor
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.io.file.IOEffect
 import swaydb.core.io.file.IOEffect._
+import swaydb.core.level.compaction.LevelState
 import swaydb.core.map.serializer._
 import swaydb.core.map.{Map, MapEntry}
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
@@ -75,7 +78,7 @@ private[core] object Level extends LazyLogging {
             bloomFilterFalsePositiveRate: Double,
             levelStorage: LevelStorage,
             appendixStorage: AppendixStorage,
-            nextLevel: Option[LevelRef],
+            nextLevel: Option[Level],
             pushForward: Boolean = false,
             throttle: LevelMeter => Throttle,
             compressDuplicateValues: Boolean,
@@ -85,7 +88,7 @@ private[core] object Level extends LazyLogging {
                                                ec: ExecutionContext,
                                                keyValueLimiter: KeyValueLimiter,
                                                fileOpenLimiter: FileLimiter,
-                                               groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[LevelRef] = {
+                                               groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Level] = {
     //acquire lock on folder
     acquireLock(levelStorage) flatMap {
       lock =>
@@ -241,7 +244,7 @@ private[core] class Level(val dirs: Seq[Dir],
                           val segmentSize: Long,
                           val pushForward: Boolean,
                           val throttle: LevelMeter => Throttle,
-                          val nextLevel: Option[LevelRef],
+                          val nextLevel: Option[Level],
                           appendix: Map[Slice[Byte], Segment],
                           lock: Option[FileLock],
                           val compressDuplicateValues: Boolean,
@@ -333,28 +336,19 @@ private[core] class Level(val dirs: Seq[Dir],
     (throttle(stats).segmentsToPush, stats.segmentsCount)
   }
 
-  def put(segment: Segment, busySegments: Iterable[Segment]): IO[Unit] =
-    put(Seq(segment), busySegments)
+  def put(segment: Segment): IO[Unit] =
+    put(Seq(segment))
 
-  def put(segments: Iterable[Segment], busySegments: Iterable[Segment]): IO[Unit] = {
+  def put(segments: Iterable[Segment]): IO[Unit] = {
     logger.trace(s"{}: Putting segments '{}' segments.", paths.head, segments.map(_.path.toString).toList)
     //check to ensure that the Segments do not overlap with busy Segments
     val appendixSegments = appendix.values().asScala
-    Segment.overlapsWithBusySegments(segments, busySegments, appendixSegments) flatMap {
-      overlaps =>
-        if (overlaps) {
-          logger.debug("{}: Segments '{}' intersect with current busy segments: {}", paths.head, segments.map(_.path.toString), busySegments.map(_.path.toString))
-          IO.Failure.overlappingPushSegments
-        } else { //only copy Segments if the both this Level and the Segments are persistent.
-          val (segmentToMerge, segmentToCopy) = Segment.partitionOverlapping(segments, appendixSegments)
-          put(
-            segmentsToMerge = segmentToMerge,
-            segmentsToCopy = segmentToCopy,
-            busySegments = busySegments,
-            targetSegments = appendixSegments,
-          )
-        }
-    }
+    val (segmentToMerge, segmentToCopy) = Segment.partitionOverlapping(segments, appendixSegments)
+    put(
+      segmentsToMerge = segmentToMerge,
+      segmentsToCopy = segmentToCopy,
+      targetSegments = appendixSegments
+    )
   }
 
   private def deleteCopiedSegments(copiedSegments: Iterable[Segment]) =
@@ -371,8 +365,7 @@ private[core] class Level(val dirs: Seq[Dir],
 
   private[level] def put(segmentsToMerge: Iterable[Segment],
                          segmentsToCopy: Iterable[Segment],
-                         targetSegments: Iterable[Segment],
-                         busySegments: Iterable[Segment]): IO[Unit] =
+                         targetSegments: Iterable[Segment]): IO[Unit] =
     if (segmentsToCopy.nonEmpty)
       copy(segmentsToCopy) flatMap {
         copiedSegments =>
@@ -383,7 +376,6 @@ private[core] class Level(val dirs: Seq[Dir],
                   merge(
                     segments = segmentsToMerge,
                     targetSegments = targetSegments,
-                    busySegments = busySegments,
                     appendEntry = Some(copiedSegmentsEntry)
                   )
                 else
@@ -400,54 +392,44 @@ private[core] class Level(val dirs: Seq[Dir],
       merge(
         segments = segmentsToMerge,
         targetSegments = targetSegments,
-        busySegments = busySegments,
         appendEntry = None
       )
 
-  def putMap(map: Map[Slice[Byte], Memory.SegmentResponse], busySegments: Iterable[Segment]): IO[Unit] = {
+  def put(map: Map[Slice[Byte], Memory.SegmentResponse]): IO[Unit] = {
     logger.trace("{}: PutMap '{}' Maps.", paths.head, map.count())
     //do an initial check to ensure that the Segments do not overlap with busy Segments
     val appendixValues = appendix.values().asScala
-    Segment.overlapsWithBusySegments(map, busySegments, appendixValues) flatMap {
-      overlapsWithBusySegments =>
-        if (overlapsWithBusySegments) {
-          logger.debug("{}: Map '{}' contains key-values intersect with current busy segments: {}", paths.head, map.pathOption.map(_.toString), busySegments.map(_.path.toString))
-          IO.Failure.overlappingPushSegments
-        } else {
-          if (!Segment.overlaps(map, appendixValues))
-            copy(map) flatMap {
-              newSegments =>
-                //maps can be submitted directly to last Level (if all levels have pushForward == true or if there are only two Levels (0 and 1)).
-                //If this Level is the last Level then copy can return empty List[Segments]. If this is not the last Level then continue execution regardless because
-                //upper Levels should ALWAYS return non-empty Segments on merge as key-values NEVER get removed/deleted from upper Levels.
-                //If the Segments are still empty, buildNewMapEntry will return a failure which is expected.
-                //Note: Logs can get spammed due to buildNewMapEntry's failure because LevelZeroActor will dispatch a PullRequest (for ANY failure),
-                //to which this Level will respond with a Push message to LevelZeroActor and the same failure will occur repeatedly since the error is not due to busy Segments.
-                //but this should not occur during runtime and if it's does occur the spam is OK because it's a crucial error and should be fixed immediately as this error would result
-                //to compaction coming to a halt.
-                if (nextLevel.isDefined || newSegments.nonEmpty)
-                  buildNewMapEntry(newSegments, None, None) flatMap {
-                    entry =>
-                      appendix
-                        .write(entry)
-                        .map(_ => ())
-                  } onFailureSideEffect {
-                    failure =>
-                      logFailure(s"${paths.head}: Failed to create a log entry.", failure)
-                      deleteCopiedSegments(newSegments)
-                  }
-                else
-                  IO.unit
+    if (!Segment.overlaps(map, appendixValues))
+      copy(map) flatMap {
+        newSegments =>
+          //maps can be submitted directly to last Level (if all levels have pushForward == true or if there are only two Levels (0 and 1)).
+          //If this Level is the last Level then copy can return empty List[Segments]. If this is not the last Level then continue execution regardless because
+          //upper Levels should ALWAYS return non-empty Segments on merge as key-values NEVER get removed/deleted from upper Levels.
+          //If the Segments are still empty, buildNewMapEntry will return a failure which is expected.
+          //Note: Logs can get spammed due to buildNewMapEntry's failure because LevelZeroActor will dispatch a PullRequest (for ANY failure),
+          //to which this Level will respond with a Push message to LevelZeroActor and the same failure will occur repeatedly since the error is not due to busy Segments.
+          //but this should not occur during runtime and if it's does occur the spam is OK because it's a crucial error and should be fixed immediately as this error would result
+          //to compaction coming to a halt.
+          if (nextLevel.isDefined || newSegments.nonEmpty)
+            buildNewMapEntry(newSegments, None, None) flatMap {
+              entry =>
+                appendix
+                  .write(entry)
+                  .map(_ => ())
+            } onFailureSideEffect {
+              failure =>
+                logFailure(s"${paths.head}: Failed to create a log entry.", failure)
+                deleteCopiedSegments(newSegments)
             }
           else
-            putKeyValues(
-              keyValues = Slice(map.values().toArray(new Array[Memory](map.skipList.size()))),
-              targetSegments = appendixValues,
-              busySegments = busySegments,
-              appendEntry = None
-            )
-        }
-    }
+            IO.unit
+      }
+    else
+      putKeyValues(
+        keyValues = Slice(map.values().toArray(new Array[Memory](map.skipList.size()))),
+        targetSegments = appendixValues,
+        appendEntry = None
+      )
   }
 
   private[level] def copy(map: Map[Slice[Byte], Memory.SegmentResponse]): IO[Iterable[Segment]] = {
@@ -600,8 +582,7 @@ private[core] class Level(val dirs: Seq[Dir],
   def isSmallSegment(segment: Segment): Boolean =
     segment.segmentSize < segmentSize * 0.60
 
-  def collapse(segments: Iterable[Segment],
-               busySegments: Iterable[Segment]): IO[Int] = {
+  def collapse(segments: Iterable[Segment]): IO[Int] = {
     logger.trace(s"{}: Collapsing '{}' segments", paths.head, segments.size)
     if (segments.isEmpty) {
       IO.zero
@@ -633,7 +614,6 @@ private[core] class Level(val dirs: Seq[Dir],
       merge(
         segments = segmentsToMerge,
         targetSegments = targetSegments,
-        busySegments = busySegments,
         appendEntry = appendEntry
       ) map {
         _ =>
@@ -655,7 +635,6 @@ private[core] class Level(val dirs: Seq[Dir],
 
   private def merge(segments: Iterable[Segment],
                     targetSegments: Iterable[Segment],
-                    busySegments: Iterable[Segment],
                     appendEntry: Option[MapEntry[Slice[Byte], Segment]]): IO[Unit] = {
     logger.trace(s"{}: Merging segments {}", paths.head, segments.map(_.path.toString))
     Segment.getAllKeyValues(bloomFilterFalsePositiveRate, segments) flatMap {
@@ -663,7 +642,6 @@ private[core] class Level(val dirs: Seq[Dir],
         putKeyValues(
           keyValues = keyValues,
           targetSegments = targetSegments,
-          busySegments = busySegments,
           appendEntry = appendEntry
         )
     }
@@ -671,67 +649,60 @@ private[core] class Level(val dirs: Seq[Dir],
 
   private def putKeyValues(keyValues: Slice[KeyValue.ReadOnly],
                            targetSegments: Iterable[Segment],
-                           busySegments: Iterable[Segment],
                            appendEntry: Option[MapEntry[Slice[Byte], Segment]]): IO[Unit] = {
     logger.trace(s"{}: Merging {} KeyValues.", paths.head, keyValues.size)
     SegmentAssigner.assign(keyValues, targetSegments) flatMap {
       assignments =>
-        //check to ensure that assigned Segments do not overlap with busy Segments.
-        if (Segment.intersects(assignments.keys, busySegments)) {
-          logger.trace(s"{}: Assigned segments {} intersect with current busy segments: {}.", paths.head, assignments.map(_._1.path.toString), busySegments.map(_.path.toString))
-          IO.Failure.overlappingPushSegments
+        logger.trace(s"{}: Assigned segments {} for {} KeyValues.", paths.head, assignments.map(_._1.path.toString), keyValues.size)
+        if (assignments.isEmpty) {
+          logger.error(s"{}: Assigned segments are empty. Cannot merge Segments to empty target Segments: {}.", paths.head, keyValues.size)
+          IO.Failure(IO.Error.ReceivedKeyValuesToMergeWithoutTargetSegment(keyValues.size))
         } else {
-          logger.trace(s"{}: Assigned segments {} for {} KeyValues.", paths.head, assignments.map(_._1.path.toString), keyValues.size)
-          if (assignments.isEmpty) {
-            logger.error(s"{}: Assigned segments are empty. Cannot merge Segments to empty target Segments: {}.", paths.head, keyValues.size)
-            IO.Failure(IO.Error.ReceivedKeyValuesToMergeWithoutTargetSegment(keyValues.size))
-          } else {
-            logger.debug(s"{}: Assigned segments {}. Merging {} KeyValues.", paths.head, assignments.map(_._1.path.toString), keyValues.size)
-            putAssignedKeyValues(assignments) flatMap {
-              targetSegmentAndNewSegments =>
-                targetSegmentAndNewSegments.foldLeftIO(Option.empty[MapEntry[Slice[Byte], Segment]]) {
-                  case (mapEntry, (targetSegment, newSegments)) =>
-                    buildNewMapEntry(newSegments, Some(targetSegment), mapEntry).map(Some(_))
-                } flatMap {
-                  case Some(mapEntry) =>
-                    //also write appendEntry to this mapEntry before committing entries to appendix.
-                    //Note: appendEntry should not overwrite new Segment's entries with same keys so perform distinct
-                    //which will remove oldEntries with duplicates with newer keys.
-                    val mapEntryToWrite = appendEntry.map(appendEntry => MapEntry.distinct(mapEntry, appendEntry)) getOrElse mapEntry
-                    (appendix write mapEntryToWrite) map {
-                      _ =>
-                        logger.debug(s"{}: putKeyValues successful. Deleting assigned Segments. {}.", paths.head, assignments.map(_._1.path.toString))
-                        //delete assigned segments as they are replaced with new segments.
-                        if (deleteSegmentsEventually)
-                          assignments foreach (_._1.deleteSegmentsEventually)
-                        else
-                          assignments foreach {
-                            case (segment, _) =>
-                              segment.delete onFailureSideEffect {
-                                exception =>
-                                  logger.error(s"{}: Failed to delete Segment {}", paths.head, segment.path, exception)
-                              }
-                          }
-                    }
-
-                  case None =>
-                    IO.Failure(new Exception(s"${paths.head}: Failed to create map entry"))
-
-                } onFailureSideEffect {
-                  failure =>
-                    logFailure(s"${paths.head}: Failed to write key-values. Reverting", failure)
-                    targetSegmentAndNewSegments foreach {
-                      case (_, newSegments) =>
-                        newSegments foreach {
-                          segment =>
+          logger.debug(s"{}: Assigned segments {}. Merging {} KeyValues.", paths.head, assignments.map(_._1.path.toString), keyValues.size)
+          putAssignedKeyValues(assignments) flatMap {
+            targetSegmentAndNewSegments =>
+              targetSegmentAndNewSegments.foldLeftIO(Option.empty[MapEntry[Slice[Byte], Segment]]) {
+                case (mapEntry, (targetSegment, newSegments)) =>
+                  buildNewMapEntry(newSegments, Some(targetSegment), mapEntry).map(Some(_))
+              } flatMap {
+                case Some(mapEntry) =>
+                  //also write appendEntry to this mapEntry before committing entries to appendix.
+                  //Note: appendEntry should not overwrite new Segment's entries with same keys so perform distinct
+                  //which will remove oldEntries with duplicates with newer keys.
+                  val mapEntryToWrite = appendEntry.map(appendEntry => MapEntry.distinct(mapEntry, appendEntry)) getOrElse mapEntry
+                  (appendix write mapEntryToWrite) map {
+                    _ =>
+                      logger.debug(s"{}: putKeyValues successful. Deleting assigned Segments. {}.", paths.head, assignments.map(_._1.path.toString))
+                      //delete assigned segments as they are replaced with new segments.
+                      if (deleteSegmentsEventually)
+                        assignments foreach (_._1.deleteSegmentsEventually)
+                      else
+                        assignments foreach {
+                          case (segment, _) =>
                             segment.delete onFailureSideEffect {
                               exception =>
                                 logger.error(s"{}: Failed to delete Segment {}", paths.head, segment.path, exception)
                             }
                         }
-                    }
-                }
-            }
+                  }
+
+                case None =>
+                  IO.Failure(new Exception(s"${paths.head}: Failed to create map entry"))
+
+              } onFailureSideEffect {
+                failure =>
+                  logFailure(s"${paths.head}: Failed to write key-values. Reverting", failure)
+                  targetSegmentAndNewSegments foreach {
+                    case (_, newSegments) =>
+                      newSegments foreach {
+                        segment =>
+                          segment.delete onFailureSideEffect {
+                            exception =>
+                              logger.error(s"{}: Failed to delete Segment {}", paths.head, segment.path, exception)
+                          }
+                      }
+                  }
+              }
           }
         }
     }

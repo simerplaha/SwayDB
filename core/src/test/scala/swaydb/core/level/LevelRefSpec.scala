@@ -30,14 +30,15 @@ class LevelRefSpec extends TestBase with MockFactory {
     }
 
     "return first persistent Level" in {
-      val level0 = mock[LevelRef]
-      val level1 = mock[LevelRef]
+      val level0 = mock[Level]
+      val level1 = mock[Level]
 
-      level0.inMemory _ expects() returning true
-      level0.nextLevel _ expects() returning Some(level1)
-      level1.inMemory _ expects() returning false
-
-      LevelRef.firstPersistentLevel(Some(level0)) should contain(level1)
+//      level0.inMemory _ expects() returning true
+//      level0.nextLevel _ expects() returning Some(level1)
+//      level1.inMemory _ expects() returning false
+//
+//      LevelRef.firstPersistentLevel(Some(level0)) should contain(level1)
+      ???
     }
   }
 }

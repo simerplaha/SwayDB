@@ -29,7 +29,7 @@ import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.IOEffect
 import LevelCommand.WakeUp
-import swaydb.core.level.{LevelRef, PathsDistributor}
+import swaydb.core.level.{Level, LevelRef, PathsDistributor}
 import swaydb.core.map
 import swaydb.core.map.serializer.{TimerMapEntryReader, TimerMapEntryWriter}
 import swaydb.core.map.timer.Timer
@@ -55,7 +55,7 @@ private[core] object LevelZero extends LazyLogging {
 
   def apply(mapSize: Long,
             storage: Level0Storage,
-            nextLevel: Option[LevelRef],
+            nextLevel: Option[Level],
             acceleration: Level0Meter => Accelerator,
             throttleOn: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                  timeOrder: TimeOrder[Slice[Byte]],
@@ -126,7 +126,7 @@ private[core] class LevelZero(val path: Path,
                               mapSize: Long,
                               val maps: Maps[Slice[Byte], Memory.SegmentResponse],
                               val throttleOn: Boolean,
-                              val nextLevel: Option[LevelRef],
+                              val nextLevel: Option[Level],
                               val inMemory: Boolean,
                               lock: Option[FileLock])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                       timeOrder: TimeOrder[Slice[Byte]],

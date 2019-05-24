@@ -24,6 +24,7 @@ import com.typesafe.scalalogging.LazyLogging
 import java.nio.file.Path
 import java.util.concurrent.ConcurrentSkipListMap
 import java.util.function.Consumer
+
 import scala.collection.JavaConverters._
 import scala.concurrent.duration.Deadline
 import swaydb.core.data.Memory.{Group, SegmentResponse}
@@ -34,10 +35,12 @@ import swaydb.core.level.PathsDistributor
 import swaydb.core.queue.{FileLimiter, FileLimiterItem, KeyValueLimiter}
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util._
-import swaydb.data.{IO, MaxKey}
+import swaydb.data.{BusyBoolean, IO, MaxKey}
 import swaydb.data.IO._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
+
+import scala.concurrent.Future
 
 private[segment] case class MemorySegment(path: Path,
                                           minKey: Slice[Byte],
@@ -50,12 +53,13 @@ private[segment] case class MemorySegment(path: Path,
                                           _hasGroup: Boolean,
                                           private[segment] val cache: ConcurrentSkipListMap[Slice[Byte], Memory],
                                           bloomFilter: Option[BloomFilter[Slice[Byte]]],
-                                          nearestExpiryDeadline: Option[Deadline])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                   timeOrder: TimeOrder[Slice[Byte]],
-                                                                                   functionStore: FunctionStore,
-                                                                                   groupingStrategy: Option[KeyValueGroupingStrategyInternal],
-                                                                                   keyValueLimiter: KeyValueLimiter,
-                                                                                   fileLimiter: FileLimiter) extends Segment with LazyLogging {
+                                          nearestExpiryDeadline: Option[Deadline],
+                                          busy: BusyBoolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                             timeOrder: TimeOrder[Slice[Byte]],
+                                                             functionStore: FunctionStore,
+                                                             groupingStrategy: Option[KeyValueGroupingStrategyInternal],
+                                                             keyValueLimiter: KeyValueLimiter,
+                                                             fileLimiter: FileLimiter) extends Segment with LazyLogging {
 
   @volatile private var deleted = false
 
@@ -76,6 +80,15 @@ private[segment] case class MemorySegment(path: Path,
       IO.unit
     else //else this is a new decompression, add to queue.
       keyValueLimiter.add(group, cache)
+
+  override def reserve: Boolean =
+    BusyBoolean.setBusy(busy)
+
+  override def release: Unit =
+    BusyBoolean.setFree(busy)
+
+  override def isReserved: Boolean =
+    busy.isBusy
 
   override def put(newKeyValues: Slice[KeyValue.ReadOnly],
                    minSegmentSize: Long,
@@ -397,4 +410,5 @@ private[segment] case class MemorySegment(path: Path,
 
   override def deleteSegmentsEventually: Unit =
     fileLimiter.delete(this)
+
 }

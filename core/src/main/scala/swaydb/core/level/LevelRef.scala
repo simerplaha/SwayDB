@@ -40,7 +40,7 @@ private[core] trait LevelRef {
 
   def releaseLocks: IO[Unit]
 
-  def nextLevel: Option[LevelRef]
+  def nextLevel: Option[Level]
 
   def segmentsInLevel(): Iterable[Segment]
 
