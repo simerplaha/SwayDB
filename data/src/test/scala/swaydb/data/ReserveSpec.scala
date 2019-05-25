@@ -21,7 +21,7 @@ class ReserveSpec extends FlatSpec with Matchers {
   }
 
   it should "complete futures when freed" in {
-    val busy = Reserve(info = true)
+    val busy = Reserve(info = ())
     val futures =
       (1 to 10000) map {
         i =>
@@ -34,7 +34,7 @@ class ReserveSpec extends FlatSpec with Matchers {
           if (i == 10000 || Random.nextBoolean())
             Reserve.setFree(busy)
           else
-            Reserve.setBusy(true, busy)
+            Reserve.setBusyOrGet((), busy)
       }
     }
 

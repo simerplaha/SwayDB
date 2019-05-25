@@ -105,8 +105,8 @@ private[segment] case class PersistentSegment(file: DBFile,
     }
   }
 
-  override def reserveForCompaction(): Boolean =
-    Reserve.setBusy((), compactionReserve)
+  override def reserveForCompactionOrGet(): Option[Unit] =
+    Reserve.setBusyOrGet((), compactionReserve)
 
   override def freeFromCompaction(): Unit =
     Reserve.setFree(compactionReserve)

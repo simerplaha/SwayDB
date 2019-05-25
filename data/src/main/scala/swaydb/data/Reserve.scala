@@ -28,8 +28,11 @@ private[swaydb] class Reserve[T](@volatile private var info: Option[T],
   def savePromise(promise: Promise[Unit]): Unit =
     promises += promise
 
-  def isBusy =
+  def isBusy: Boolean =
     info.isDefined
+
+  def isFree: Boolean =
+    !isBusy
 }
 
 private[swaydb] object Reserve {
@@ -63,13 +66,13 @@ private[swaydb] object Reserve {
       }
     }
 
-  def setBusy[T](info: T, reserve: Reserve[T]): Boolean =
+  def setBusyOrGet[T](info: T, reserve: Reserve[T]): Option[T] =
     reserve.synchronized {
-      if (!reserve.isBusy) {
+      if (reserve.isFree) {
         reserve.info = Some(info)
-        true
+        None
       } else {
-        false
+        reserve.info
       }
     }
 

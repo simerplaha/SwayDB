@@ -48,7 +48,7 @@ private[core] case class GroupDecompressor(private val compressedGroupReader: Re
                                  valuesCompression: DecompressorInternal): IO[Reader] =
     if (decompressedValuesReader != null) //if values are already decompressed, return values reader!
       IO(decompressedValuesReader.copy())
-    else if (Reserve.setBusy((), busyValueDecompressing)) //start values decompression.
+    else if (Reserve.setBusyOrGet((), busyValueDecompressing).isEmpty) //start values decompression.
       try
         compressedGroupReader.copy().moveTo(groupStartOffset + headerSize + 1).read(valuesCompressedLength) flatMap { //move to the head of the compressed and read compressed value bytes.
           compressedValueBytes =>
@@ -112,7 +112,7 @@ private[core] case class GroupDecompressor(private val compressedGroupReader: Re
   def header(): IO[GroupHeader] =
     if (groupHeader != null)
       IO.Success(groupHeader)
-    else if (Reserve.setBusy((), busyReadingHeader))
+    else if (Reserve.setBusyOrGet((), busyReadingHeader).isEmpty)
       try
         readHeader() map {
           header =>
@@ -163,7 +163,7 @@ private[core] case class GroupDecompressor(private val compressedGroupReader: Re
   def decompress(): IO[Reader] =
     if (decompressedIndexReader != null) //if keys are already decompressed, return!
       IO(decompressedIndexReader.copy())
-    else if (Reserve.setBusy((), busyIndexDecompressing)) //start decompressing keys.
+    else if (Reserve.setBusyOrGet((), busyIndexDecompressing).isEmpty) //start decompressing keys.
       try
         decompressor() map {
           reader =>

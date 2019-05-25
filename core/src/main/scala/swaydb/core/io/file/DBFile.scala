@@ -188,7 +188,7 @@ class DBFile(val path: Path,
         IO.Success(openedFile)
 
       case None =>
-        if (Reserve.setBusy((), busy))
+        if (Reserve.setBusyOrGet((), busy).isEmpty)
           try tryOpen() finally Reserve.setFree(busy)
         else if (maxTries == 0)
           IO.Failure(IO.Error.OpeningFile(path, busy))

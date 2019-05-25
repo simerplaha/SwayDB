@@ -228,7 +228,7 @@ private[core] object Segment extends LazyLogging {
               bloomFilter = bloomFilter,
               cache = skipList,
               nearestExpiryDeadline = nearestExpiryDeadline,
-              busy = Reserve(false)
+              busy = Reserve()
             )
           }
       }
@@ -298,7 +298,7 @@ private[core] object Segment extends LazyLogging {
                 segmentSize = keyValues.last.stats.segmentSize,
                 removeDeletes = removeDeletes,
                 nearestExpiryDeadline = nearestExpiryDeadline,
-                compactionReserve = Reserve(false)
+                compactionReserve = Reserve()
               )
           }
         }
@@ -494,7 +494,7 @@ private[core] object Segment extends LazyLogging {
           segmentSize = segmentSize,
           removeDeletes = removeDeletes,
           nearestExpiryDeadline = nearestExpiryDeadline,
-          compactionReserve = Reserve(false)
+          compactionReserve = Reserve()
         )
     }
   }
@@ -557,7 +557,7 @@ private[core] object Segment extends LazyLogging {
                               segmentSize = fileSize.toInt,
                               nearestExpiryDeadline = nearestDeadline,
                               removeDeletes = removeDeletes,
-                              compactionReserve = Reserve(false)
+                              compactionReserve = Reserve()
                             )
                         }
                     }
@@ -905,7 +905,7 @@ private[core] trait Segment extends FileLimiterItem {
 
   def path: Path
 
-  def reserveForCompaction(): Boolean
+  def reserveForCompactionOrGet(): Option[Unit]
 
   def freeFromCompaction(): Unit
 
