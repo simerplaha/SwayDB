@@ -24,7 +24,7 @@ import swaydb.core.group.compression.data.{GroupHeader, ValueInfo}
 import swaydb.core.io.reader.{GroupReader, Reader}
 import swaydb.core.segment.format.a.SegmentFooter
 import swaydb.data.slice.Reader
-import swaydb.data.{BusyBoolean, IO}
+import swaydb.data.{Reserve, IO}
 
 private[core] case class GroupDecompressor(private val compressedGroupReader: Reader,
                                            groupStartOffset: Int) {
@@ -33,9 +33,9 @@ private[core] case class GroupDecompressor(private val compressedGroupReader: Re
   @volatile private var decompressedIndexReader: GroupReader = _ //reader for keys bytes that contains function to read value bytes
   @volatile private var decompressedValuesReader: Reader = _ //value bytes reader.
 
-  private val busyReadingHeader = BusyBoolean(false) //atomic boolean for reading header
-  private val busyIndexDecompressing = BusyBoolean(false) //atomic boolean for decompressing key bytes
-  private val busyValueDecompressing = BusyBoolean(false) //atomic boolean for decompressing value bytes
+  private val busyReadingHeader = Reserve[Unit]() //atomic boolean for reading header
+  private val busyIndexDecompressing = Reserve[Unit]() //atomic boolean for decompressing key bytes
+  private val busyValueDecompressing = Reserve[Unit]() //atomic boolean for decompressing value bytes
 
   /**
     * Compressed values do not need to be read & decompressed by multiple thread concurrently. The responsibility
@@ -48,7 +48,7 @@ private[core] case class GroupDecompressor(private val compressedGroupReader: Re
                                  valuesCompression: DecompressorInternal): IO[Reader] =
     if (decompressedValuesReader != null) //if values are already decompressed, return values reader!
       IO(decompressedValuesReader.copy())
-    else if (BusyBoolean.setBusy(busyValueDecompressing)) //start values decompression.
+    else if (Reserve.setBusy((), busyValueDecompressing)) //start values decompression.
       try
         compressedGroupReader.copy().moveTo(groupStartOffset + headerSize + 1).read(valuesCompressedLength) flatMap { //move to the head of the compressed and read compressed value bytes.
           compressedValueBytes =>
@@ -59,7 +59,7 @@ private[core] case class GroupDecompressor(private val compressedGroupReader: Re
             }
         }
       finally
-        BusyBoolean.setFree(busyValueDecompressing)
+        Reserve.setFree(busyValueDecompressing)
     else //currently being decompressed by another thread. IO again!
       IO.Failure(IO.Error.DecompressingValues(busyValueDecompressing))
 
@@ -112,7 +112,7 @@ private[core] case class GroupDecompressor(private val compressedGroupReader: Re
   def header(): IO[GroupHeader] =
     if (groupHeader != null)
       IO.Success(groupHeader)
-    else if (BusyBoolean.setBusy(busyReadingHeader))
+    else if (Reserve.setBusy((), busyReadingHeader))
       try
         readHeader() map {
           header =>
@@ -120,7 +120,7 @@ private[core] case class GroupDecompressor(private val compressedGroupReader: Re
             header
         }
       finally
-        BusyBoolean.setFree(busyReadingHeader)
+        Reserve.setFree(busyReadingHeader)
     else
       IO.Failure(IO.Error.ReadingHeader(busyReadingHeader))
 
@@ -163,7 +163,7 @@ private[core] case class GroupDecompressor(private val compressedGroupReader: Re
   def decompress(): IO[Reader] =
     if (decompressedIndexReader != null) //if keys are already decompressed, return!
       IO(decompressedIndexReader.copy())
-    else if (BusyBoolean.setBusy(busyIndexDecompressing)) //start decompressing keys.
+    else if (Reserve.setBusy((), busyIndexDecompressing)) //start decompressing keys.
       try
         decompressor() map {
           reader =>
@@ -171,7 +171,7 @@ private[core] case class GroupDecompressor(private val compressedGroupReader: Re
             reader.copy()
         }
       finally
-        BusyBoolean.setFree(busyIndexDecompressing)
+        Reserve.setFree(busyIndexDecompressing)
     else
       IO.Failure(IO.Error.DecompressingIndex(busyIndexDecompressing))
 

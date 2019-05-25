@@ -35,7 +35,7 @@ import swaydb.core.level.PathsDistributor
 import swaydb.core.queue.{FileLimiter, FileLimiterItem, KeyValueLimiter}
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util._
-import swaydb.data.{BusyBoolean, IO, MaxKey}
+import swaydb.data.{Reserve, IO, MaxKey}
 import swaydb.data.IO._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -54,12 +54,12 @@ private[segment] case class MemorySegment(path: Path,
                                           private[segment] val cache: ConcurrentSkipListMap[Slice[Byte], Memory],
                                           bloomFilter: Option[BloomFilter[Slice[Byte]]],
                                           nearestExpiryDeadline: Option[Deadline],
-                                          busy: BusyBoolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                             timeOrder: TimeOrder[Slice[Byte]],
-                                                             functionStore: FunctionStore,
-                                                             groupingStrategy: Option[KeyValueGroupingStrategyInternal],
-                                                             keyValueLimiter: KeyValueLimiter,
-                                                             fileLimiter: FileLimiter) extends Segment with LazyLogging {
+                                          busy: Reserve[Unit])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                  timeOrder: TimeOrder[Slice[Byte]],
+                                                                  functionStore: FunctionStore,
+                                                                  groupingStrategy: Option[KeyValueGroupingStrategyInternal],
+                                                                  keyValueLimiter: KeyValueLimiter,
+                                                                  fileLimiter: FileLimiter) extends Segment with LazyLogging {
 
   @volatile private var deleted = false
 
@@ -82,16 +82,16 @@ private[segment] case class MemorySegment(path: Path,
       keyValueLimiter.add(group, cache)
 
   override def reserve: Boolean =
-    BusyBoolean.setBusy(busy)
+    Reserve.setBusy((), busy)
 
   override def release: Unit =
-    BusyBoolean.setFree(busy)
+    Reserve.setFree(busy)
 
   override def isReserved: Boolean =
     busy.isBusy
 
   override def onRelease: Future[Unit] =
-    BusyBoolean.future(busy)
+    Reserve.future(busy)
 
   override def put(newKeyValues: Slice[KeyValue.ReadOnly],
                    minSegmentSize: Long,

@@ -23,59 +23,60 @@ import scala.collection.mutable.ListBuffer
 import scala.concurrent.{Future, Promise}
 import scala.concurrent.duration._
 
-private[swaydb] class BusyBoolean(@volatile private var busy: Boolean,
-                                  private[data] val promises: ListBuffer[Promise[Unit]]) {
+private[swaydb] class Reserve[T](@volatile private var info: Option[T],
+                                 private[data] val promises: ListBuffer[Promise[Unit]]) {
   def savePromise(promise: Promise[Unit]): Unit =
     promises += promise
 
   def isBusy =
-    busy
+    info.isDefined
 }
 
-private[swaydb] object BusyBoolean {
+private[swaydb] object Reserve {
   private val blockingTimeout = 5.seconds.toMillis
   private val futureUnit = Future.successful(())
 
-  val notBusy = BusyBoolean(false)
+  def apply[T](): Reserve[T] =
+    new Reserve(None, ListBuffer.empty)
 
-  def apply(busy: Boolean): BusyBoolean =
-    new BusyBoolean(busy, ListBuffer.empty)
+  def apply[T](info: T): Reserve[T] =
+    new Reserve(Some(info), ListBuffer.empty)
 
-  def blockUntilFree(boolean: BusyBoolean): Unit =
-    boolean.synchronized {
-      while (boolean.busy) boolean.wait(blockingTimeout)
+  def blockUntilFree[T](reserve: Reserve[T]): Unit =
+    reserve.synchronized {
+      while (reserve.isBusy) reserve.wait(blockingTimeout)
     }
 
-  private def notifyBlocking(boolean: BusyBoolean): Unit = {
-    boolean.notifyAll()
-    boolean.promises.foreach(_.trySuccess(()))
+  private def notifyBlocking[T](reserve: Reserve[T]): Unit = {
+    reserve.notifyAll()
+    reserve.promises.foreach(_.trySuccess(()))
   }
 
-  def future(boolean: BusyBoolean): Future[Unit] =
-    boolean.synchronized {
-      if (boolean.isBusy) {
+  def future[T](reserve: Reserve[T]): Future[Unit] =
+    reserve.synchronized {
+      if (reserve.isBusy) {
         val promise = Promise[Unit]
-        boolean.savePromise(promise)
+        reserve.savePromise(promise)
         promise.future
       } else {
         futureUnit
       }
     }
 
-  def setBusy(boolean: BusyBoolean): Boolean =
-    boolean.synchronized {
-      if (!boolean.busy) {
-        boolean.busy = true
+  def setBusy[T](info: T, reserve: Reserve[T]): Boolean =
+    reserve.synchronized {
+      if (!reserve.isBusy) {
+        reserve.info = Some(info)
         true
       } else {
         false
       }
     }
 
-  def setFree(boolean: BusyBoolean): Unit =
-    boolean.synchronized {
-      boolean.busy = false
-      notifyBlocking(boolean)
+  def setFree[T](reserve: Reserve[T]): Unit =
+    reserve.synchronized {
+      reserve.info = None
+      notifyBlocking(reserve)
     }
 }
 

@@ -33,7 +33,7 @@ object Base {
       Await.result(f, 10.seconds)
   }
 
-  def busyErrors(busyBoolean: BusyBoolean = BusyBoolean.notBusy): List[IO.Error.Busy] =
+  def busyErrors(busyBoolean: Reserve[Unit] = Reserve()): List[IO.Error.Busy] =
     List(
       IO.Error.OpeningFile(Paths.get("/some/path"), busyBoolean),
       IO.Error.NoSuchFile(Some(Paths.get("/some/path")), None),
@@ -47,6 +47,6 @@ object Base {
       IO.Error.FetchingValue(busyBoolean)
     )
 
-  def randomBusyException(busyBoolean: BusyBoolean = BusyBoolean.notBusy): IO.Error.Busy =
+  def randomBusyException(busyBoolean: Reserve[Unit] = Reserve()): IO.Error.Busy =
     Random.shuffle(busyErrors(busyBoolean)).head
 }

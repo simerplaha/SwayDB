@@ -31,7 +31,7 @@ class IOAsyncSpec extends WordSpec with Matchers {
   "IO.Async" should {
     "flatMap on IO" in {
       val io =
-        IO.Async(1, IO.Error.DecompressingValues(BusyBoolean(false))) flatMap {
+        IO.Async(1, IO.Error.DecompressingValues(Reserve())) flatMap {
           int =>
             IO.Success(int + 1)
         }
@@ -43,10 +43,10 @@ class IOAsyncSpec extends WordSpec with Matchers {
     }
 
     "flatMap on IO.Failure" in {
-      val boolean = BusyBoolean(false)
+      val boolean = Reserve(())
 
       val io: IO.Async[Int] =
-        IO.Async(1, IO.Error.DecompressingValues(BusyBoolean(false))) flatMap {
+        IO.Async(1, IO.Error.DecompressingValues(Reserve())) flatMap {
           _ =>
             IO.Failure(IO.Error.OpeningFile(Paths.get(""), boolean))
         }
@@ -63,9 +63,9 @@ class IOAsyncSpec extends WordSpec with Matchers {
       val failure = IO.Failure(IO.Error.NoSuchFile(new NoSuchFileException("Not such file")))
 
       val io: IO.Async[Int] =
-        IO.Async(1, IO.Error.DecompressingIndex(BusyBoolean(false))) flatMap {
+        IO.Async(1, IO.Error.DecompressingIndex(Reserve())) flatMap {
           i =>
-            IO.Async(i + 1, IO.Error.ReadingHeader(BusyBoolean(false))) flatMap {
+            IO.Async(i + 1, IO.Error.ReadingHeader(Reserve())) flatMap {
               _ =>
                 failure
             }
@@ -75,9 +75,9 @@ class IOAsyncSpec extends WordSpec with Matchers {
     }
 
     "safeGet on multiple when last is Async should return last Async" in {
-      val busy1 = BusyBoolean(true)
-      val busy2 = BusyBoolean(true)
-      val busy3 = BusyBoolean(true)
+      val busy1 = Reserve(())
+      val busy2 = Reserve(())
+      val busy3 = Reserve(())
 
       val io: IO.Async[Int] =
         IO.Async(1, IO.Error.DecompressingIndex(busy1)) flatMap {
@@ -98,20 +98,20 @@ class IOAsyncSpec extends WordSpec with Matchers {
       io0 shouldBe io
 
       //make first IO available
-      BusyBoolean.setFree(busy1)
+      Reserve.setFree(busy1)
       val io1 = io.safeGet
       io1 shouldBe a[IO.Async[_]]
       io0.safeGet shouldBe a[IO.Async[_]]
 
       //make second IO available
-      BusyBoolean.setFree(busy2)
+      Reserve.setFree(busy2)
       val io2 = io.safeGet
       io2 shouldBe a[IO.Async[_]]
       io0.safeGet shouldBe a[IO.Async[_]]
       io1.safeGet shouldBe a[IO.Async[_]]
 
       //make third IO available. Now all IOs are ready, safeGet will result in Success.
-      BusyBoolean.setFree(busy3)
+      Reserve.setFree(busy3)
       val io3 = io.safeGet
       io3 shouldBe IO.Success(3)
       io0.safeGet shouldBe IO.Success(3)
@@ -130,16 +130,16 @@ class IOAsyncSpec extends WordSpec with Matchers {
       (1 to 2) foreach {
         i =>
           val io: IO.Async[Int] =
-            (0 to 100).foldLeft(IO.Async(1, IO.Error.DecompressingIndex(BusyBoolean(false)))) {
+            (0 to 100).foldLeft(IO.Async(1, IO.Error.DecompressingIndex(Reserve()))) {
               case (previous, i) =>
                 previous flatMap {
                   output =>
-                    val boolean = BusyBoolean(false)
+                    val reserve = Reserve[Unit]()
                     Future {
                       if (Random.nextBoolean()) Thread.sleep(Random.nextInt(100))
-                      BusyBoolean.setFree(boolean)
+                      Reserve.setFree(reserve)
                     }
-                    IO.Async(output + 1, Base.randomBusyException(boolean))
+                    IO.Async(output + 1, Base.randomBusyException(reserve))
                 }
             }
 

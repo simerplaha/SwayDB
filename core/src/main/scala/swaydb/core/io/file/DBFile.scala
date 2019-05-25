@@ -27,7 +27,7 @@ import scala.util.hashing.MurmurHash3
 import swaydb.core.queue.{FileLimiter, FileLimiterItem}
 import swaydb.core.segment.SegmentException
 import swaydb.core.segment.SegmentException.CannotCopyInMemoryFiles
-import swaydb.data.{BusyBoolean, IO}
+import swaydb.data.{Reserve, IO}
 import swaydb.data.slice.Slice
 
 object DBFile {
@@ -102,7 +102,7 @@ class DBFile(val path: Path,
              @volatile var file: Option[DBFileType])(implicit ec: ExecutionContext,
                                                      limiter: FileLimiter) extends FileLimiterItem with LazyLogging {
 
-  private val busy = BusyBoolean(false)
+  private val busy = Reserve[Unit]()
 
   if (autoClose && isOpen) limiter.close(this)
 
@@ -188,8 +188,8 @@ class DBFile(val path: Path,
         IO.Success(openedFile)
 
       case None =>
-        if (BusyBoolean.setBusy(busy))
-          try tryOpen() finally BusyBoolean.setFree(busy)
+        if (Reserve.setBusy((), busy))
+          try tryOpen() finally Reserve.setFree(busy)
         else if (maxTries == 0)
           IO.Failure(IO.Error.OpeningFile(path, busy))
         else

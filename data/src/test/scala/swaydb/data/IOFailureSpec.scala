@@ -29,7 +29,7 @@ class IOFailureSpec extends WordSpec with Matchers {
 
   "IO.Failure" should {
     "set boolean" in {
-      val io = IO.Failure(IO.Error.OpeningFile(Paths.get(""), BusyBoolean(false)))
+      val io = IO.Failure(IO.Error.OpeningFile(Paths.get(""), Reserve()))
       io.isFailure shouldBe true
       io.isLater shouldBe false
       io.isSuccess shouldBe false

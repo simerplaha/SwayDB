@@ -44,7 +44,7 @@ import swaydb.data.IO._
 import swaydb.data.config.Dir
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-import swaydb.data.{BusyBoolean, IO, MaxKey}
+import swaydb.data.{Reserve, IO, MaxKey}
 
 private[core] object Segment extends LazyLogging {
 
@@ -227,7 +227,7 @@ private[core] object Segment extends LazyLogging {
               bloomFilter = bloomFilter,
               cache = skipList,
               nearestExpiryDeadline = nearestExpiryDeadline,
-              busy = BusyBoolean(false)
+              busy = Reserve(false)
             )
           }
       }
@@ -297,7 +297,7 @@ private[core] object Segment extends LazyLogging {
                 segmentSize = keyValues.last.stats.segmentSize,
                 removeDeletes = removeDeletes,
                 nearestExpiryDeadline = nearestExpiryDeadline,
-                busy = BusyBoolean(false)
+                busy = Reserve(false)
               )
           }
         }
@@ -493,7 +493,7 @@ private[core] object Segment extends LazyLogging {
           segmentSize = segmentSize,
           removeDeletes = removeDeletes,
           nearestExpiryDeadline = nearestExpiryDeadline,
-          busy = BusyBoolean(false)
+          busy = Reserve(false)
         )
     }
   }
@@ -556,7 +556,7 @@ private[core] object Segment extends LazyLogging {
                               segmentSize = fileSize.toInt,
                               nearestExpiryDeadline = nearestDeadline,
                               removeDeletes = removeDeletes,
-                              busy = BusyBoolean(false)
+                              busy = Reserve(false)
                             )
                         }
                     }

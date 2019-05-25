@@ -79,7 +79,7 @@ class IOSuccessSpec extends WordSpec with Matchers {
       val async =
         IO.Success(1).asAsync flatMap {
           int =>
-            IO.Async(int + 1, IO.Error.OpeningFile(Paths.get(""), BusyBoolean.notBusy))
+            IO.Async(int + 1, IO.Error.OpeningFile(Paths.get(""), Reserve()))
         }
 
       async.get shouldBe 2

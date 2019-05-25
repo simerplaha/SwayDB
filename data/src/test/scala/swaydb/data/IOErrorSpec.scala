@@ -29,10 +29,10 @@ class IOErrorSpec extends FlatSpec with Matchers {
 
   it should "convert known Exception to known Error types and vice versa" in {
 
-    var error: IO.Error = IO.Error.OpeningFile(Paths.get("/some/path"), BusyBoolean.notBusy)
-    var exception: Throwable = IO.Exception.OpeningFile(Paths.get("/some/path"), BusyBoolean.notBusy)
-    error.exception shouldBe exception
-    IO.Error(exception) shouldBe error
+    var error: IO.Error = IO.Error.OpeningFile(Paths.get("/some/path"), Reserve())
+    var exception: Throwable = IO.Exception.OpeningFile(Paths.get("/some/path"), Reserve())
+    error.exception.getMessage shouldBe exception.getMessage
+    IO.Error(exception) shouldBe a[IO.Error.OpeningFile]
 
     //BUSY Errors
     error = IO.Error.NoSuchFile(Some(Paths.get("/some/path")), None)
@@ -60,22 +60,22 @@ class IOErrorSpec extends FlatSpec with Matchers {
     error.exception.getMessage shouldBe exception.getMessage
     IO.Error(exception) shouldBe a[IO.Error.NullPointer]
 
-    error = IO.Error.DecompressingIndex(BusyBoolean.notBusy)
+    error = IO.Error.DecompressingIndex(Reserve())
     exception = error.exception
     error.exception.getMessage shouldBe exception.getMessage
     IO.Error(exception) shouldBe a[IO.Error.DecompressingIndex]
 
-    error = IO.Error.DecompressingValues(BusyBoolean.notBusy)
+    error = IO.Error.DecompressingValues(Reserve())
     exception = error.exception
     error.exception.getMessage shouldBe exception.getMessage
     IO.Error(exception) shouldBe a[IO.Error.DecompressingValues]
 
-    error = IO.Error.ReadingHeader(BusyBoolean.notBusy)
+    error = IO.Error.ReadingHeader(Reserve())
     exception = error.exception
     error.exception.getMessage shouldBe exception.getMessage
     IO.Error(exception) shouldBe a[IO.Error.ReadingHeader]
 
-    error = IO.Error.FetchingValue(BusyBoolean.notBusy)
+    error = IO.Error.FetchingValue(Reserve())
     exception = error.exception
     error.exception.getMessage shouldBe exception.getMessage
     IO.Error(exception) shouldBe a[IO.Error.FetchingValue]

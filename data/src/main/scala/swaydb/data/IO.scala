@@ -221,13 +221,13 @@ object IO {
     */
   object Exception {
     case class Busy(error: Error.Busy) extends Exception("Is busy")
-    case class OpeningFile(file: Path, busy: BusyBoolean) extends Exception(s"Failed to open file $file")
+    case class OpeningFile(file: Path, busy: Reserve[Unit]) extends Exception(s"Failed to open file $file")
 
-    case class DecompressingIndex(busy: BusyBoolean) extends Exception("Failed to decompress index")
-    case class DecompressionValues(busy: BusyBoolean) extends Exception("Failed to decompress values")
-    case class FetchingValue(busy: BusyBoolean) extends Exception("Failed to fetch value")
-    case class ReadingHeader(busy: BusyBoolean) extends Exception("Failed to read header")
-    case class BusyFuture(busy: BusyBoolean) extends Exception("Busy future")
+    case class DecompressingIndex(busy: Reserve[Unit]) extends Exception("Failed to decompress index")
+    case class DecompressionValues(busy: Reserve[Unit]) extends Exception("Failed to decompress values")
+    case class FetchingValue(busy: Reserve[Unit]) extends Exception("Failed to fetch value")
+    case class ReadingHeader(busy: Reserve[Unit]) extends Exception("Failed to read header")
+    case class BusyFuture(busy: Reserve[Unit]) extends Exception("Busy future")
 
     case object OverlappingPushSegment extends Exception("Contains overlapping busy Segments")
     case object NoSegmentsRemoved extends Exception("No Segments Removed")
@@ -284,12 +284,12 @@ object IO {
       }
 
     sealed trait Busy extends Error {
-      def busy: BusyBoolean
+      def busy: Reserve[Unit]
       def isFree: Boolean =
         !busy.isBusy
     }
 
-    case class OpeningFile(file: Path, busy: BusyBoolean) extends Busy {
+    case class OpeningFile(file: Path, busy: Reserve[Unit]) extends Busy {
       override def exception: IO.Exception.OpeningFile = IO.Exception.OpeningFile(file, busy)
     }
 
@@ -301,7 +301,7 @@ object IO {
         new NoSuchFile(Some(path), None)
     }
     case class NoSuchFile(path: Option[Path], exp: Option[NoSuchFileException]) extends Busy {
-      override def busy: BusyBoolean = BusyBoolean.notBusy
+      override def busy: Reserve[Unit] = Reserve()
       override def exception: Throwable = exp getOrElse {
         path match {
           case Some(path) =>
@@ -313,38 +313,38 @@ object IO {
     }
 
     case class FileNotFound(exception: FileNotFoundException) extends Busy {
-      override def busy: BusyBoolean = BusyBoolean.notBusy
+      override def busy: Reserve[Unit] = Reserve()
     }
 
     case class AsynchronousClose(exception: AsynchronousCloseException) extends Busy {
-      override def busy: BusyBoolean = BusyBoolean.notBusy
+      override def busy: Reserve[Unit] = Reserve()
     }
 
     case class ClosedChannel(exception: ClosedChannelException) extends Busy {
-      override def busy: BusyBoolean = BusyBoolean.notBusy
+      override def busy: Reserve[Unit] = Reserve()
     }
 
     case class NullPointer(exception: NullPointerException) extends Busy {
-      override def busy: BusyBoolean = BusyBoolean.notBusy
+      override def busy: Reserve[Unit] = Reserve()
     }
 
-    case class DecompressingIndex(busy: BusyBoolean) extends Busy {
+    case class DecompressingIndex(busy: Reserve[Unit]) extends Busy {
       override def exception: IO.Exception.DecompressingIndex = IO.Exception.DecompressingIndex(busy)
     }
 
-    case class DecompressingValues(busy: BusyBoolean) extends Busy {
+    case class DecompressingValues(busy: Reserve[Unit]) extends Busy {
       override def exception: IO.Exception.DecompressionValues = IO.Exception.DecompressionValues(busy)
     }
 
-    case class ReadingHeader(busy: BusyBoolean) extends Busy {
+    case class ReadingHeader(busy: Reserve[Unit]) extends Busy {
       override def exception: IO.Exception.ReadingHeader = IO.Exception.ReadingHeader(busy)
     }
 
-    case class FetchingValue(busy: BusyBoolean) extends Busy {
+    case class FetchingValue(busy: Reserve[Unit]) extends Busy {
       override def exception: IO.Exception.FetchingValue = IO.Exception.FetchingValue(busy)
     }
 
-    case class BusyFuture(busy: BusyBoolean) extends Busy {
+    case class BusyFuture(busy: Reserve[Unit]) extends Busy {
       override def exception: IO.Exception.BusyFuture = IO.Exception.BusyFuture(busy)
     }
 
@@ -507,11 +507,10 @@ object IO {
       new Later(_ => value, error)
 
     private[swaydb] final def apply[T](future: Future[T])(implicit ec: ExecutionContext): IO.Async[T] = {
-      val busy = BusyBoolean(true)
-      val error = IO.Error.BusyFuture(busy)
+      val error = IO.Error.BusyFuture(Reserve(()))
       future onComplete {
         _ =>
-          BusyBoolean.setFree(busy)
+          Reserve.setFree(error.busy)
       }
 
       //here value will only be access when the above busy boolean is true
@@ -558,7 +557,7 @@ object IO {
     override def safeGetBlockingIfFileExists: IO[T] = {
       @tailrec
       def doGet(later: IO.Later[T]): IO[T] = {
-        BusyBoolean.blockUntilFree(later.error.busy)
+        Reserve.blockUntilFree(later.error.busy)
         later.safeGetIfFileExists match {
           case success @ IO.Success(_) =>
             success
@@ -581,7 +580,7 @@ object IO {
 
       @tailrec
       def doGet(later: IO.Later[T]): IO[T] = {
-        BusyBoolean.blockUntilFree(later.error.busy)
+        Reserve.blockUntilFree(later.error.busy)
         later.safeGet match {
           case success @ IO.Success(_) =>
             success
@@ -603,7 +602,7 @@ object IO {
     def safeGetFuture(implicit ec: ExecutionContext): Future[T] = {
 
       def doGet(later: IO.Later[T]): Future[T] =
-        BusyBoolean.future(later.error.busy).map(_ => later.safeGet) flatMap {
+        Reserve.future(later.error.busy).map(_ => later.safeGet) flatMap {
           case IO.Success(value) =>
             Future.successful(value)
 
@@ -623,7 +622,7 @@ object IO {
     def safeGetFutureIfFileExists(implicit ec: ExecutionContext): Future[T] = {
 
       def doGet(later: IO.Later[T]): Future[T] =
-        BusyBoolean.future(later.error.busy).map(_ => later.safeGetIfFileExists) flatMap {
+        Reserve.future(later.error.busy).map(_ => later.safeGetIfFileExists) flatMap {
           case IO.Success(value) =>
             Future.successful(value)
 
