@@ -21,17 +21,14 @@ package swaydb.core.level
 
 import java.nio.channels.{FileChannel, FileLock}
 import java.nio.file.{Path, StandardOpenOption}
-import java.util.concurrent.{ConcurrentHashMap, ConcurrentMap, ConcurrentSkipListSet}
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.actor.WiredActor
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.io.file.IOEffect
 import swaydb.core.io.file.IOEffect._
-import swaydb.core.level.compaction.LevelState
 import swaydb.core.map.serializer._
 import swaydb.core.map.{Map, MapEntry}
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}

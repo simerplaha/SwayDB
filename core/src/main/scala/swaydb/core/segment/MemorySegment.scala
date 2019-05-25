@@ -81,10 +81,10 @@ private[segment] case class MemorySegment(path: Path,
     else //else this is a new decompression, add to queue.
       keyValueLimiter.add(group, cache)
 
-  override def reserve: Boolean =
+  override def reserveForCompaction(): Boolean =
     Reserve.setBusy((), busy)
 
-  override def release: Unit =
+  override def freeFromCompaction(): Unit =
     Reserve.setFree(busy)
 
   override def isReserved: Boolean =

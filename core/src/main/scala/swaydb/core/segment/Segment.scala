@@ -19,15 +19,11 @@
 
 package swaydb.core.segment
 
-import bloomfilter.mutable.BloomFilter
-import com.typesafe.scalalogging.LazyLogging
 import java.nio.file.Path
 import java.util.concurrent.ConcurrentSkipListMap
 
-import scala.collection.JavaConverters._
-import scala.collection.mutable.ListBuffer
-import scala.concurrent.{ExecutionContext, Future}
-import scala.concurrent.duration.Deadline
+import bloomfilter.mutable.BloomFilter
+import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
@@ -44,7 +40,12 @@ import swaydb.data.IO._
 import swaydb.data.config.Dir
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-import swaydb.data.{Reserve, IO, MaxKey}
+import swaydb.data.{IO, MaxKey, Reserve}
+
+import scala.collection.JavaConverters._
+import scala.collection.mutable.ListBuffer
+import scala.concurrent.duration.Deadline
+import scala.concurrent.{ExecutionContext, Future}
 
 private[core] object Segment extends LazyLogging {
 
@@ -297,7 +298,7 @@ private[core] object Segment extends LazyLogging {
                 segmentSize = keyValues.last.stats.segmentSize,
                 removeDeletes = removeDeletes,
                 nearestExpiryDeadline = nearestExpiryDeadline,
-                busy = Reserve(false)
+                compactionReserve = Reserve(false)
               )
           }
         }
@@ -493,7 +494,7 @@ private[core] object Segment extends LazyLogging {
           segmentSize = segmentSize,
           removeDeletes = removeDeletes,
           nearestExpiryDeadline = nearestExpiryDeadline,
-          busy = Reserve(false)
+          compactionReserve = Reserve(false)
         )
     }
   }
@@ -556,7 +557,7 @@ private[core] object Segment extends LazyLogging {
                               segmentSize = fileSize.toInt,
                               nearestExpiryDeadline = nearestDeadline,
                               removeDeletes = removeDeletes,
-                              busy = Reserve(false)
+                              compactionReserve = Reserve(false)
                             )
                         }
                     }
@@ -904,9 +905,9 @@ private[core] trait Segment extends FileLimiterItem {
 
   def path: Path
 
-  def reserve: Boolean
+  def reserveForCompaction(): Boolean
 
-  def release: Unit
+  def freeFromCompaction(): Unit
 
   def onRelease: Future[Unit]
 
