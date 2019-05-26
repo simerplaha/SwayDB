@@ -1,6 +1,7 @@
 package swaydb.core.util
 
 import swaydb.data.Reserve
+import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 
 import scala.collection.mutable.ListBuffer
@@ -21,7 +22,7 @@ object ReserveRange {
     State(ListBuffer.empty)
 
   def get[T](from: Slice[Byte], to: Slice[Byte])(implicit state: State[T],
-                                                 ordering: Ordering[Slice[Byte]]): Option[T] = {
+                                                 ordering: KeyOrder[Slice[Byte]]): Option[T] = {
     import ordering._
     state.synchronized {
       state
@@ -33,37 +34,46 @@ object ReserveRange {
 
 
   def reserveOrGet[T](from: Slice[Byte], to: Slice[Byte], info: T)(implicit state: State[T],
-                                                                   ordering: Ordering[Slice[Byte]]): Option[T] =
+                                                                   ordering: KeyOrder[Slice[Byte]]): Option[T] =
     state.synchronized {
       reserveOrGetRange(
         from = from,
         to = to,
         info = info
-      ).flatMap(_.reserve.info)
-    }
+      ) match {
+        case Left(range) =>
+          range.reserve.info
 
-  def reserveOrListen[T](from: Slice[Byte], to: Slice[Byte], info: T)(implicit state: State[T],
-                                                                      ordering: Ordering[Slice[Byte]]): Option[Future[Unit]] =
-    state.synchronized {
-      reserveOrGetRange(
-        from = from,
-        to = to,
-        info = info
-      ) map {
-        range =>
-          val promise = Promise[Unit]()
-          range.reserve.savePromise(promise)
-          promise.future
+        case Right(_) =>
+          None
       }
     }
 
-  def free[T](from: Slice[Byte], to: Slice[Byte])(implicit state: State[T],
-                                                  ordering: Ordering[Slice[Byte]]): Unit =
+  def reserveOrListen[T](from: Slice[Byte], to: Slice[Byte], info: T)(implicit state: State[T],
+                                                                      ordering: KeyOrder[Slice[Byte]]): Either[Future[Unit], Slice[Byte]] =
+    state.synchronized {
+      reserveOrGetRange(
+        from = from,
+        to = to,
+        info = info
+      ) match {
+        case Left(range) =>
+          val promise = Promise[Unit]()
+          range.reserve.savePromise(promise)
+          Left(promise.future)
+
+        case Right(value) =>
+          Right(value)
+      }
+    }
+
+  def free[T](from: Slice[Byte])(implicit state: State[T],
+                                 ordering: KeyOrder[Slice[Byte]]): Unit =
     state.synchronized {
       import ordering._
       state
         .ranges
-        .find(range => from.equiv(range.from) && to.equiv(range.to))
+        .find(from equiv _.from)
         .foreach {
           range =>
             state.ranges -= range
@@ -73,14 +83,15 @@ object ReserveRange {
 
 
   private def reserveOrGetRange[T](from: Slice[Byte], to: Slice[Byte], info: T)(implicit state: State[T],
-                                                                                ordering: Ordering[Slice[Byte]]): Option[Range[T]] =
+                                                                                ordering: KeyOrder[Slice[Byte]]): Either[Range[T], Slice[Byte]] =
     state.synchronized {
       state
         .ranges
         .find(range => Slice.intersects((from, to), (range.from, range.to)))
-        .orElse {
+        .map(Left(_))
+        .getOrElse {
           state.ranges += ReserveRange.Range(from, to, Reserve(info))
-          None
+          Right(from)
         }
     }
 }

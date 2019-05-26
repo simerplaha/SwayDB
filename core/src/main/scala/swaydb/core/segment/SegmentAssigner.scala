@@ -20,9 +20,11 @@
 package swaydb.core.segment
 
 import swaydb.core.data.{KeyValue, Memory}
+import swaydb.core.map.Map
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.merge.MergeList
 import swaydb.data.slice.Slice
+
 import scala.annotation.tailrec
 import scala.collection.mutable
 import swaydb.data.IO
@@ -33,9 +35,13 @@ private[core] object SegmentAssigner {
   //keyValueLimiter for when reading a Group's inner key-values.
   implicit val keyValueLimiter = KeyValueLimiter.none
 
-  def assignMinMaxOnlyForSegments(inputSegments: Iterable[Segment],
-                                  targetSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Iterable[Segment]] =
+  def assignMinMaxOnly(inputSegments: Iterable[Segment],
+                       targetSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Iterable[Segment]] =
     SegmentAssigner.assign(Segment.tempMinMaxKeyValues(inputSegments), targetSegments).map(_.keys)
+
+  def assignMinMaxOnly(map: Map[Slice[Byte], Memory.SegmentResponse],
+                       targetSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Iterable[Segment]] =
+    SegmentAssigner.assign(Segment.tempMinMaxKeyValues(map), targetSegments).map(_.keys)
 
   def assign(keyValues: Slice[KeyValue.ReadOnly],
              segments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[mutable.Map[Segment, Slice[KeyValue.ReadOnly]]] = {

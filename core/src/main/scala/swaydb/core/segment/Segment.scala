@@ -705,13 +705,27 @@ private[core] object Segment extends LazyLogging {
       (minKey, maxKey)
     }
 
+  def minMaxKey(segment: Iterable[Segment]): Option[(Slice[Byte], Slice[Byte])] =
+    for {
+      minKey <- segment.headOption.map(_.minKey)
+      maxKey <- segment.lastOption map {
+        case fixed: Memory.Fixed =>
+          fixed.key
+
+        case range: Memory.Range =>
+          range.toKey
+      }
+    } yield {
+      (minKey, maxKey)
+    }
+
   def overlapsWithBusySegments(inputSegments: Iterable[Segment],
                                busySegments: Iterable[Segment],
                                appendixSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Boolean] =
     if (busySegments.isEmpty)
       IO.`false`
     else
-      SegmentAssigner.assignMinMaxOnlyForSegments(
+      SegmentAssigner.assignMinMaxOnly(
         inputSegments = inputSegments,
         targetSegments = appendixSegments
       ) map {

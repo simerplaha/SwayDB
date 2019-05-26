@@ -58,6 +58,7 @@ sealed trait IO[+T] {
   }
   def onFailureSideEffect(f: IO.Failure[T] => Unit): IO[T]
   def onSuccessSideEffect(f: T => Unit): IO[T]
+  def onCompleteSideEffect(f: IO[T] => Unit): IO[T]
   def recoverWith[U >: T](f: PartialFunction[IO.Error, IO[U]]): IO[U]
   def recover[U >: T](f: PartialFunction[IO.Error, U]): IO[U]
   def toOption: Option[T]
@@ -450,8 +451,13 @@ object IO {
       try f(get) finally {}
       this
     }
+    override def onCompleteSideEffect(f: IO[T] => Unit): IO[T] = {
+      try f(this) finally {}
+      this
+    }
     private[swaydb] override def asAsync: IO.Async[T] = this
     private[swaydb] override def asIO: IO[T] = this
+
   }
 
   private[swaydb] object Async {
@@ -487,19 +493,19 @@ object IO {
     def recover[T](exception: Throwable, operation: => T): IO.Async[T] =
       Error(exception) match {
         //@formatter:off
-        case error: Error.Busy  => IO.Later(operation, error)
-        case other: Error       => IO.Failure(other)
+        case error: Error.Busy => IO.Later(operation, error)
+        case other: Error => IO.Failure(other)
         //@formatter:on
       }
 
     def recoverIfFileExists[T](exception: Throwable, operation: => T): IO.Async[T] =
       Error(exception) match {
         //@formatter:off
-        case error: Error.FileNotFound  => IO.Failure(error)
-        case error: Error.NoSuchFile    => IO.Failure(error)
-        case error: Error.NullPointer   => IO.Failure(error)
-        case error: Error.Busy          => IO.Later(operation, error)
-        case other: Error               => IO.Failure(other)
+        case error: Error.FileNotFound => IO.Failure(error)
+        case error: Error.NoSuchFile => IO.Failure(error)
+        case error: Error.NullPointer => IO.Failure(error)
+        case error: Error.Busy => IO.Later(operation, error)
+        case other: Error => IO.Failure(other)
         //@formatter:on
       }
 
@@ -720,6 +726,7 @@ object IO {
       try f(this) finally {}
       this
     }
+    override def onCompleteSideEffect(f: IO[T] => Unit): IO[T] = onFailureSideEffect(f)
     override def onSuccessSideEffect(f: T => Unit): IO.Failure[T] = this
     def exception: Throwable = error.exception
     private[swaydb] def recoverToAsync[U](operation: => IO.Async[U]): IO.Async[U] =

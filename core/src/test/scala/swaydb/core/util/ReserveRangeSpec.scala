@@ -34,7 +34,7 @@ class ReserveRangeSpec extends FlatSpec with Matchers {
     val futures =
       (0 to 10) map {
         i =>
-          ReserveRange.reserveOrListen(1, 10, "does not register").get map {
+          ReserveRange.reserveOrListen(1, 10, "does not register").left.get map {
             _ =>
               i
           }
@@ -42,7 +42,7 @@ class ReserveRangeSpec extends FlatSpec with Matchers {
 
     Future {
       sleep(Random.nextInt(1000).millisecond)
-      ReserveRange.free(1, 10)
+      ReserveRange.free(1)
     }
 
     Future.sequence(futures).await shouldBe (0 to 10)
