@@ -121,7 +121,7 @@ sealed trait LevelReadSpec extends TestBase with MockFactory with Benchmark {
       segments should have size 1
       val segment = segments.head
 
-      level.put(Seq(segment)).assertGet
+      level.put(Seq(segment), copyOnly = false).assertGet
 
       level.meter shouldBe LevelMeter(1, segment.segmentSize)
     }
@@ -138,7 +138,7 @@ sealed trait LevelReadSpec extends TestBase with MockFactory with Benchmark {
       segments should have size 1
       val segment = segments.head
 
-      level2.put(Seq(segment)).assertGet
+      level2.put(Seq(segment), copyOnly = false).assertGet
 
       level1.meter shouldBe LevelMeter(0, 0)
       level1.meterFor(level1.paths.headPath.folderId.toInt) should contain(LevelMeter(0, 0))
@@ -153,7 +153,7 @@ sealed trait LevelReadSpec extends TestBase with MockFactory with Benchmark {
 
       val putKeyValues = randomPutKeyValues(keyValuesCount).toTransient
       val segment = TestSegment(putKeyValues).assertGet
-      level2.put(Seq(segment)).assertGet
+      level2.put(Seq(segment), copyOnly = false).assertGet
 
       level1.meterFor(3) shouldBe empty
     }

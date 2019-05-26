@@ -124,7 +124,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
       if (persistent) {
         //create a non empty level
         val level = TestLevel()
-        level.put(TestSegment(randomKeyValues(keyValuesCount)).assertGet).assertGet
+        level.put(TestSegment(randomKeyValues(keyValuesCount)).assertGet, copyOnly = false).assertGet
 
         //delete the appendix file
         level.paths.headPath.resolve("appendix").files(Extension.Log) map IOEffect.delete
@@ -192,7 +192,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
       val keyValues = randomIntKeyStringValues(keyValuesCount)
       val segment = TestSegment(keyValues).assertGet
       segment.close.assertGet
-      level.put(segment).assertGet
+      level.put(segment, copyOnly = false).assertGet
       assertReads(keyValues, level)
     }
 
@@ -202,11 +202,11 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
       val level = TestLevel(segmentSize = 100.bytes)
       val keyValues = randomIntKeyStringValues(keyValuesCount)
       val segment = TestSegment(keyValues).assertGet
-      level.put(segment).assertGet
+      level.put(segment, copyOnly = false).assertGet
 
       val keyValues2 = randomIntKeyStringValues(keyValuesCount * 10)
       val segment2 = TestSegment(keyValues2).assertGet
-      level.put(segment2).assertGet
+      level.put(segment2, copyOnly = false).assertGet
 
       assertGet(keyValues, level)
       assertGet(keyValues2, level)
@@ -226,7 +226,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
           }
 
       val segments = Seq(TestSegment(keyValues1).assertGet, TestSegment(keyValues2).assertGet, TestSegment(keyValues3).assertGet)
-      level.put(segments).assertGet
+      level.put(segments, copyOnly = false).assertGet
 
       assertReads(keyValues, level)
     }
@@ -244,7 +244,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
       level.isEmpty shouldBe false
 
       val segments = Seq(TestSegment(keyValues1.toTransient).assertGet, TestSegment(keyValues3.toTransient).assertGet)
-      level.put(segments).assertGet
+      level.put(segments, copyOnly = false).assertGet
 
       assertReads(allKeyValues, level)
     }
@@ -312,7 +312,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
       val segment = TestSegment(keyValues).assertGet
       segment.delete.assertGet
 
-      val result = level.put(segment).failed.assertGet
+      val result = level.put(segment, copyOnly = false).failed.assertGet
       if (persistent)
         result.exception shouldBe a[NoSuchFileException]
       else
@@ -328,7 +328,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
       val keyValues = randomKeyValues(keyValuesCount)
       val segmentsToMerge = TestSegment(keyValues).assertGet
       val level = TestLevel()
-      level.put(Seq(segmentsToMerge), Seq(), Seq()).failed.assertGet shouldBe IO.Error.ReceivedKeyValuesToMergeWithoutTargetSegment(keyValues.size)
+      level.put(Seq(segmentsToMerge), Seq(), Seq(), copyOnly = false).failed.assertGet shouldBe IO.Error.ReceivedKeyValuesToMergeWithoutTargetSegment(keyValues.size)
     }
 
     "copy Segments if segmentsToMerge is empty" in {
@@ -337,7 +337,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
 
       val level = TestLevel(nextLevel = Some(TestLevel()))
 
-      level.put(Seq.empty, segmentToCopy, Seq.empty).assertGet
+      level.put(Seq.empty, segmentToCopy, Seq.empty, copyOnly = false).assertGet
 
       level.isEmpty shouldBe false
       assertReads(keyValues.flatten, level)
@@ -359,7 +359,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
         }
         val levelFilesBeforePut = level.segmentFilesOnDisk
 
-        level.put(Seq.empty, segmentToCopy, Seq.empty).failed.assertGet.exception shouldBe a[FileAlreadyExistsException]
+        level.put(Seq.empty, segmentToCopy, Seq.empty, copyOnly = false).failed.assertGet.exception shouldBe a[FileAlreadyExistsException]
 
         level.isEmpty shouldBe true
         level.segmentFilesOnDisk shouldBe levelFilesBeforePut
@@ -373,8 +373,8 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
       val targetSegment = TestSegment(keyValues.last).assertGet
 
       val level = TestLevel(nextLevel = Some(TestLevel()))
-      level.put(targetSegment).assertGet
-      level.put(segmentToMerge, segmentToCopy, Seq(targetSegment)).assertGet
+      level.put(targetSegment, copyOnly = false).assertGet
+      level.put(segmentToMerge, segmentToCopy, Seq(targetSegment), copyOnly = false).assertGet
 
       level.isEmpty shouldBe false
 
@@ -389,7 +389,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
         val targetSegment = TestSegment(keyValues.last).assertGet
 
         val level = TestLevel(segmentSize = 150.bytes, nextLevel = Some(TestLevel()))
-        level.put(targetSegment).assertGet
+        level.put(targetSegment, copyOnly = false).assertGet
 
         //segment to copy
         val id = IDGenerator.segmentId(level.segmentIDGenerator.nextID + 9)
@@ -401,7 +401,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
 
         val appendixBeforePut = level.segmentsInLevel()
         val levelFilesBeforePut = level.segmentFilesOnDisk
-        level.put(segmentToMerge, segmentToCopy, Seq(targetSegment)).failed.assertGet.exception shouldBe a[FileAlreadyExistsException]
+        level.put(segmentToMerge, segmentToCopy, Seq(targetSegment), copyOnly = false).failed.assertGet.exception shouldBe a[FileAlreadyExistsException]
         level.segmentFilesOnDisk shouldBe levelFilesBeforePut
         level.segmentsInLevel().map(_.path) shouldBe appendixBeforePut.map(_.path)
       }
@@ -427,7 +427,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
 
     "create a segment to an empty Level with no lower level" in {
       val level = TestLevel()
-      level.put(map).assertGet
+      level.put(map, copyOnly = false).assertGet
       //since this is a new Segment and Level has no sub-level, all the deleted key-values will get removed.
       val (deletedKeyValues, otherKeyValues) = keyValues.partition(_.isInstanceOf[Memory.Remove])
 
@@ -456,7 +456,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
       level.putKeyValues(sortedExistingKeyValues).assertGet
 
       //put a new map
-      level.put(map).assertGet
+      level.put(map, copyOnly = false).assertGet
       assertGet(keyValues.filterNot(_.isInstanceOf[Memory.Remove]), level)
 
       level.get("one").assertGet shouldBe existingKeyValues(0)

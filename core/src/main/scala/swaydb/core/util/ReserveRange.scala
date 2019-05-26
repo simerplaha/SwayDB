@@ -1,5 +1,6 @@
 package swaydb.core.util
 
+import com.typesafe.scalalogging.LazyLogging
 import swaydb.data.Reserve
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -13,7 +14,7 @@ import scala.concurrent.{Future, Promise}
   * This is used to ensure that multiple threads do not concurrent perform compaction on overlapping keys within
   * the same Level.
   */
-object ReserveRange {
+object ReserveRange extends LazyLogging {
 
   case class Range[T](from: Slice[Byte], to: Slice[Byte], reserve: Reserve[T])
   case class State[T](ranges: ListBuffer[Range[T]])
@@ -91,6 +92,9 @@ object ReserveRange {
         .map(Left(_))
         .getOrElse {
           state.ranges += ReserveRange.Range(from, to, Reserve(info))
+          val waitingCount = state.ranges.size
+          //Helps debug situations if too many threads and try to compact into the same Segment.
+          if (waitingCount >= 100) logger.warn(s"Too many listeners: $waitingCount")
           Right(from)
         }
     }

@@ -123,7 +123,7 @@ object TestData {
           segments =>
             segments mapIO {
               segment =>
-                level.put(segment).safeGetBlocking
+                level.put(segment, copyOnly = false).safeGetBlocking
             } map {
               _ => ()
             }

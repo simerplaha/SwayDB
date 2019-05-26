@@ -49,6 +49,9 @@ import scala.concurrent.{ExecutionContext, Future}
 
 private[core] object Segment extends LazyLogging {
 
+  val emptyIterable = Iterable.empty[Segment]
+  val emptyIterableIO = IO.Success(emptyIterable)
+
   def memory(path: Path,
              keyValues: Iterable[KeyValue.WriteOnly],
              bloomFilterFalsePositiveRate: Double,
