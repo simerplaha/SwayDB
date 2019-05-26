@@ -524,4 +524,39 @@ class SliceSpec extends WordSpec with Matchers {
     }
   }
 
+  "minMax" should {
+    val oneTwo = (Slice.writeInt(1), Slice.writeInt(2))
+    val threeFour = (Slice.writeInt(3), Slice.writeInt(4))
+
+
+    "return one or the other on none" in {
+      Slice.minMax(Some(oneTwo), None) should contain(oneTwo)
+      Slice.minMax(None, Some(threeFour)) should contain(threeFour)
+    }
+
+    "return none if nones" in {
+      Slice.minMax(None, None) shouldBe empty
+    }
+
+    "return min and max" in {
+      //1 - 1
+      //1 - 1
+      Slice.minMax(
+        Some((Slice.writeInt(1), Slice.writeInt(1))),
+        Some((Slice.writeInt(1), Slice.writeInt(1)))) should contain((Slice.writeInt(1), Slice.writeInt(1)))
+
+      //1 - 5
+      //  3 - 10
+      Slice.minMax(
+        Some((Slice.writeInt(1), Slice.writeInt(3))),
+        Some((Slice.writeInt(3), Slice.writeInt(10)))) should contain((Slice.writeInt(1), Slice.writeInt(10)))
+
+      //  3 - 10
+      //1 - 5
+      Slice.minMax(
+        Some((Slice.writeInt(3), Slice.writeInt(10))),
+        Some((Slice.writeInt(1), Slice.writeInt(3)))) should contain((Slice.writeInt(1), Slice.writeInt(10)))
+    }
+  }
+
 }

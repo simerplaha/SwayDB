@@ -94,6 +94,20 @@ object Slice {
     }
   }
 
+  def minMax(left: Option[(Slice[Byte], Slice[Byte])],
+             right: Option[(Slice[Byte], Slice[Byte])])(implicit keyOrder: Ordering[Slice[Byte]]): Option[(Slice[Byte], Slice[Byte])] = {
+    for {
+      lft <- left
+      rht <- right
+    } yield {
+      minMax(lft, rht)
+    }
+  } orElse left.orElse(right)
+
+  def minMax(left: (Slice[Byte], Slice[Byte]),
+             right: (Slice[Byte], Slice[Byte]))(implicit keyOrder: Ordering[Slice[Byte]]): (Slice[Byte], Slice[Byte]) =
+    (keyOrder.min(left._1, right._1), keyOrder.max(left._2, right._2))
+
   /**
     * Boolean indicates if the toKey is inclusive.
     */

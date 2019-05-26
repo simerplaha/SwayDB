@@ -49,8 +49,8 @@ import swaydb.data.storage.{AppendixStorage, LevelStorage}
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 import scala.collection.mutable
-import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
+import scala.concurrent.{ExecutionContext, Future}
 
 private[core] object Level extends LazyLogging {
 
@@ -336,14 +336,16 @@ private[core] class Level(val dirs: Seq[Dir],
     (throttle(stats).segmentsToPush, stats.segmentsCount)
   }
 
-  private[level] def reserveKeys(segments: Iterable[Segment]): IO[Either[Future[Unit], Slice[Byte]]] =
+  def ensureRelease[T](key: Slice[Byte])(f: => T): T =
+    try f finally ReserveRange.free(key)
+
+  private[level] def reserve(segments: Iterable[Segment]): IO[Either[Future[Unit], Slice[Byte]]] =
     SegmentAssigner.assignMinMaxOnly(
       inputSegments = segments,
       targetSegments = appendix.values().asScala
     ) map {
       assigned =>
-        Segment.minMaxKey(assigned)
-          .orElse(Segment.minMaxKey(segments))
+        Segment.minMaxKey(assigned, segments)
           .map {
             case (minKey, maxKey) =>
               ReserveRange.reserveOrListen(minKey, maxKey, ())
@@ -351,14 +353,13 @@ private[core] class Level(val dirs: Seq[Dir],
           .getOrElse(Left(Delay.futureUnit))
     }
 
-  private[level] def reserveKeys(map: Map[Slice[Byte], Memory.SegmentResponse]): IO[Either[Future[Unit], Slice[Byte]]] =
+  private[level] def reserve(map: Map[Slice[Byte], Memory.SegmentResponse]): IO[Either[Future[Unit], Slice[Byte]]] =
     SegmentAssigner.assignMinMaxOnly(
       map = map,
       targetSegments = appendix.values().asScala
     ) map {
       assigned =>
-        Segment.minMaxKey(assigned)
-          .orElse(Segment.minMaxKey(map))
+        Segment.minMaxKey(assigned, map)
           .map {
             case (minKey, maxKey) =>
               ReserveRange.reserveOrListen(minKey, maxKey, ())
@@ -371,21 +372,20 @@ private[core] class Level(val dirs: Seq[Dir],
 
   def put(segments: Iterable[Segment]): IO.Async[Unit] = {
     logger.trace(s"{}: Putting segments '{}' segments.", paths.head, segments.map(_.path.toString).toList)
-    reserveKeys(segments).asAsync flatMap {
+    reserve(segments).asAsync flatMap {
       case Left(future) =>
         IO.fromFuture(future)
 
       case Right(minKey) =>
-        val appendixSegments = appendix.values().asScala
-        val (segmentToMerge, segmentToCopy) = Segment.partitionOverlapping(segments, appendixSegments)
-        put(
-          segmentsToMerge = segmentToMerge,
-          segmentsToCopy = segmentToCopy,
-          targetSegments = appendixSegments
-        ) onCompleteSideEffect {
-          _ =>
-            ReserveRange.free(minKey)
-        } asAsync
+        ensureRelease(minKey) {
+          val appendixSegments = appendix.values().asScala
+          val (segmentToMerge, segmentToCopy) = Segment.partitionOverlapping(segments, appendixSegments)
+          put(
+            segmentsToMerge = segmentToMerge,
+            segmentsToCopy = segmentToCopy,
+            targetSegments = appendixSegments
+          ).asAsync
+        }
     }
   }
 
@@ -436,49 +436,48 @@ private[core] class Level(val dirs: Seq[Dir],
 
   def put(map: Map[Slice[Byte], Memory.SegmentResponse]): IO.Async[Unit] = {
     logger.trace("{}: PutMap '{}' Maps.", paths.head, map.count())
-    reserveKeys(map).asAsync flatMap {
+    reserve(map).asAsync flatMap {
       case Left(future) =>
         IO.fromFuture(future)
 
       case Right(minKey) =>
-        val appendixValues = appendix.values().asScala
-        val result =
-          if (!Segment.overlaps(map, appendixValues))
-            copy(map) flatMap {
-              newSegments =>
-                //maps can be submitted directly to last Level (if all levels have pushForward == true or if there are only two Levels (0 and 1)).
-                //If this Level is the last Level then copy can return empty List[Segments]. If this is not the last Level then continue execution regardless because
-                //upper Levels should ALWAYS return non-empty Segments on merge as key-values NEVER get removed/deleted from upper Levels.
-                //If the Segments are still empty, buildNewMapEntry will return a failure which is expected.
-                //Note: Logs can get spammed due to buildNewMapEntry's failure because LevelZeroActor will dispatch a PullRequest (for ANY failure),
-                //to which this Level will respond with a Push message to LevelZeroActor and the same failure will occur repeatedly since the error is not due to busy Segments.
-                //but this should not occur during runtime and if it's does occur the spam is OK because it's a crucial error and should be fixed immediately as this error would result
-                //to compaction coming to a halt.
-                if (nextLevel.isDefined || newSegments.nonEmpty)
-                  buildNewMapEntry(newSegments, None, None) flatMap {
-                    entry =>
-                      appendix
-                        .write(entry)
-                        .map(_ => ())
-                  } onFailureSideEffect {
-                    failure =>
-                      logFailure(s"${paths.head}: Failed to create a log entry.", failure)
-                      deleteCopiedSegments(newSegments)
-                  }
-                else
-                  IO.unit
-            }
-          else
-            putKeyValues(
-              keyValues = Slice(map.values().toArray(new Array[Memory](map.skipList.size()))),
-              targetSegments = appendixValues,
-              appendEntry = None
-            )
+        ensureRelease(minKey) {
+          val appendixValues = appendix.values().asScala
+          val result =
+            if (!Segment.overlaps(map, appendixValues))
+              copy(map) flatMap {
+                newSegments =>
+                  //maps can be submitted directly to last Level (if all levels have pushForward == true or if there are only two Levels (0 and 1)).
+                  //If this Level is the last Level then copy can return empty List[Segments]. If this is not the last Level then continue execution regardless because
+                  //upper Levels should ALWAYS return non-empty Segments on merge as key-values NEVER get removed/deleted from upper Levels.
+                  //If the Segments are still empty, buildNewMapEntry will return a failure which is expected.
+                  //Note: Logs can get spammed due to buildNewMapEntry's failure because LevelZeroActor will dispatch a PullRequest (for ANY failure),
+                  //to which this Level will respond with a Push message to LevelZeroActor and the same failure will occur repeatedly since the error is not due to busy Segments.
+                  //but this should not occur during runtime and if it's does occur the spam is OK because it's a crucial error and should be fixed immediately as this error would result
+                  //to compaction coming to a halt.
+                  if (nextLevel.isDefined || newSegments.nonEmpty)
+                    buildNewMapEntry(newSegments, None, None) flatMap {
+                      entry =>
+                        appendix
+                          .write(entry)
+                          .map(_ => ())
+                    } onFailureSideEffect {
+                      failure =>
+                        logFailure(s"${paths.head}: Failed to create a log entry.", failure)
+                        deleteCopiedSegments(newSegments)
+                    }
+                  else
+                    IO.unit
+              }
+            else
+              putKeyValues(
+                keyValues = Slice(map.values().toArray(new Array[Memory](map.skipList.size()))),
+                targetSegments = appendixValues,
+                appendEntry = None
+              )
 
-        result onCompleteSideEffect {
-          _ =>
-            ReserveRange.free(minKey)
-        } asAsync
+          result.asAsync
+        }
     }
   }
 

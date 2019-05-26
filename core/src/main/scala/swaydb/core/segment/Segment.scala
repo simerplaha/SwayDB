@@ -719,6 +719,14 @@ private[core] object Segment extends LazyLogging {
       (minKey, maxKey)
     }
 
+  def minMaxKey(left: Iterable[Segment],
+                right: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): Option[(Slice[Byte], Slice[Byte])] =
+    Slice.minMax(Segment.minMaxKey(left), Segment.minMaxKey(right))
+
+  def minMaxKey(left: Iterable[Segment],
+                right: Map[Slice[Byte], Memory.SegmentResponse])(implicit keyOrder: KeyOrder[Slice[Byte]]): Option[(Slice[Byte], Slice[Byte])] =
+    Slice.minMax(Segment.minMaxKey(left), Segment.minMaxKey(right))
+
   def overlapsWithBusySegments(inputSegments: Iterable[Segment],
                                busySegments: Iterable[Segment],
                                appendixSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Boolean] =
