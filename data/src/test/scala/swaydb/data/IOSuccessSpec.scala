@@ -96,5 +96,15 @@ class IOSuccessSpec extends WordSpec with Matchers {
 
       nested.flatten.flatten.flatten.asInstanceOf[IO.Failure[Int]].exception.getMessage shouldBe "Kaboom!"
     }
+
+    "invoke onCompleteSideEffect" in {
+      var invoked = false
+
+      IO
+        .Success(123)
+        .onCompleteSideEffect(_ => invoked = true)
+
+      invoked shouldBe true
+    }
   }
 }

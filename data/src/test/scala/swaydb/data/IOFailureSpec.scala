@@ -128,5 +128,15 @@ class IOFailureSpec extends WordSpec with Matchers {
           failure.safeGetBlocking shouldBe IO.Success(100)
       }
     }
+
+    "invoke onCompleteSideEffect" in {
+      var invoked = false
+
+      IO
+        .Failure(new Exception("Oh no!"))
+        .onCompleteSideEffect(_ => invoked = true)
+
+      invoked shouldBe true
+    }
   }
 }
