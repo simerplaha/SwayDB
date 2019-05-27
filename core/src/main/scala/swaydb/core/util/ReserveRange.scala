@@ -1,6 +1,7 @@
 package swaydb.core.util
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.core.segment.Segment
 import swaydb.data.Reserve
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -82,6 +83,18 @@ object ReserveRange extends LazyLogging {
         }
     }
 
+  def isUnreserved[T](segment: Segment)(implicit state: State[T],
+                                        ordering: KeyOrder[Slice[Byte]]): Boolean =
+    state
+      .ranges
+      .forall {
+        range =>
+          !Segment.overlaps(range.from, range.to, segment)
+      }
+
+  def filterUnreserved[T](segments: Iterable[Segment])(implicit state: State[T],
+                                                       ordering: KeyOrder[Slice[Byte]]): Iterable[Segment] =
+    segments filter isUnreserved[T]
 
   private def reserveOrGetRange[T](from: Slice[Byte], to: Slice[Byte], info: T)(implicit state: State[T],
                                                                                 ordering: KeyOrder[Slice[Byte]]): Either[Range[T], Slice[Byte]] =

@@ -632,11 +632,18 @@ private[core] object Segment extends LazyLogging {
                segments2: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): Iterable[Segment] =
     segments1.filter(segment1 => segments2.exists(segment2 => overlaps(segment1, segment2)))
 
+  def overlaps(segment: Segment,
+               segments2: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean =
+    segments2.exists(segment2 => overlaps(segment, segment2))
+
   def intersects(segments1: Iterable[Segment], segments2: Iterable[Segment]): Boolean =
     if (segments1.isEmpty || segments2.isEmpty)
       false
     else
       segments1.exists(segment1 => segments2.exists(_.path == segment1.path))
+
+  def intersects(segment: Segment, segments2: Iterable[Segment]): Boolean =
+    segments2.exists(_.path == segment.path)
 
   /**
     * Pre condition: Segments should be sorted with their minKey in ascending order.
@@ -711,12 +718,12 @@ private[core] object Segment extends LazyLogging {
   def minMaxKey(segment: Iterable[Segment]): Option[(Slice[Byte], Slice[Byte])] =
     for {
       minKey <- segment.headOption.map(_.minKey)
-      maxKey <- segment.lastOption map {
-        case fixed: Memory.Fixed =>
-          fixed.key
+      maxKey <- segment.lastOption.map(_.maxKey) map {
+        case MaxKey.Fixed(maxKey) =>
+          maxKey
 
-        case range: Memory.Range =>
-          range.toKey
+        case MaxKey.Range(_, maxKey) =>
+          maxKey
       }
     } yield {
       (minKey, maxKey)

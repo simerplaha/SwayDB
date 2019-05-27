@@ -20,12 +20,10 @@
 package swaydb.core.level
 
 import org.scalamock.scalatest.MockFactory
-import scala.concurrent.duration._
 import swaydb.core.CommonAssertions._
 import swaydb.core.IOAssert._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.data.{Memory, Transient}
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.io.file.IOEffect._
 import swaydb.core.util.Benchmark
@@ -36,6 +34,8 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
+
+import scala.concurrent.duration._
 
 class LevelReadSpec0 extends LevelReadSpec
 
@@ -121,7 +121,7 @@ sealed trait LevelReadSpec extends TestBase with MockFactory with Benchmark {
       segments should have size 1
       val segment = segments.head
 
-      level.put(Seq(segment), copyOnly = false).assertGet
+      level.put(Seq(segment)).assertGet
 
       level.meter shouldBe LevelMeter(1, segment.segmentSize)
     }
@@ -138,7 +138,7 @@ sealed trait LevelReadSpec extends TestBase with MockFactory with Benchmark {
       segments should have size 1
       val segment = segments.head
 
-      level2.put(Seq(segment), copyOnly = false).assertGet
+      level2.put(Seq(segment)).assertGet
 
       level1.meter shouldBe LevelMeter(0, 0)
       level1.meterFor(level1.paths.headPath.folderId.toInt) should contain(LevelMeter(0, 0))
@@ -153,7 +153,7 @@ sealed trait LevelReadSpec extends TestBase with MockFactory with Benchmark {
 
       val putKeyValues = randomPutKeyValues(keyValuesCount).toTransient
       val segment = TestSegment(putKeyValues).assertGet
-      level2.put(Seq(segment), copyOnly = false).assertGet
+      level2.put(Seq(segment)).assertGet
 
       level1.meterFor(3) shouldBe empty
     }

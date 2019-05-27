@@ -367,10 +367,16 @@ private[core] class Level(val dirs: Seq[Dir],
           .getOrElse(Left(Delay.futureUnit))
     }
 
-  def put(segment: Segment, copyOnly: Boolean): IO.Async[Option[Segment]] =
-    put(Seq(segment), copyOnly) mapAsync (_.headOption)
+  def partitionUnreservedCopyable(segments: Iterable[Segment]): (Iterable[Segment], Iterable[Segment]) =
+    segments partition {
+      segment =>
+        ReserveRange.isUnreserved(segment) && !Segment.overlaps(segment, segmentsInLevel())
+    }
 
-  def put(segments: Iterable[Segment], copyOnly: Boolean): IO.Async[Iterable[Segment]] = {
+  def put(segment: Segment): IO.Async[Unit] =
+    put(Seq(segment))
+
+  def put(segments: Iterable[Segment]): IO.Async[Unit] = {
     logger.trace(s"{}: Putting segments '{}' segments.", paths.head, segments.map(_.path.toString).toList)
     reserve(segments).asAsync flatMap {
       case Left(future) =>
@@ -385,8 +391,7 @@ private[core] class Level(val dirs: Seq[Dir],
           put(
             segmentsToMerge = segmentToMerge,
             segmentsToCopy = segmentToCopy,
-            targetSegments = appendixSegments,
-            copyOnly = copyOnly
+            targetSegments = appendixSegments
           ).asAsync
         }
     }
@@ -406,44 +411,29 @@ private[core] class Level(val dirs: Seq[Dir],
 
   private[level] def put(segmentsToMerge: Iterable[Segment],
                          segmentsToCopy: Iterable[Segment],
-                         targetSegments: Iterable[Segment],
-                         copyOnly: Boolean): IO[Iterable[Segment]] =
+                         targetSegments: Iterable[Segment]): IO[Unit] =
     if (segmentsToCopy.nonEmpty)
-      copyForwardLocal(segmentsToCopy) flatMap {
-        copiedSegments =>
-          buildNewMapEntry(copiedSegments, None, None) flatMap {
+      copyForwardOrCopyLocal(segmentsToCopy) flatMap {
+        newlyCopiedSegments =>
+          buildNewMapEntry(newlyCopiedSegments, None, None) flatMap {
             copiedSegmentsEntry =>
-              val putResult: IO[Iterable[Segment]] =
-                if (!copyOnly && segmentsToMerge.nonEmpty)
+              val putResult: IO[Unit] =
+                if (segmentsToMerge.nonEmpty)
                   merge(
                     segments = segmentsToMerge,
                     targetSegments = targetSegments,
                     appendEntry = Some(copiedSegmentsEntry)
-                  ) map {
-                    _ =>
-                      segmentsToMerge ++ segmentsToCopy
-                  } recoverWith {
-                    case _ =>
-                      appendix.write(copiedSegmentsEntry) map {
-                        _ =>
-                          copiedSegments
-                      }
-                  }
+                  )
                 else
-                  appendix.write(copiedSegmentsEntry) map {
-                    _ =>
-                      copiedSegments
-                  }
+                  appendix.write(copiedSegmentsEntry) map (_ => ())
 
               putResult onFailureSideEffect {
                 failure =>
-                  logFailure(s"${paths.head}: Failed to create a log entry. Deleting ${copiedSegments.size} copied segments", failure)
-                  deleteCopiedSegments(copiedSegments)
+                  logFailure(s"${paths.head}: Failed to create a log entry. Deleting ${newlyCopiedSegments.size} copied segments", failure)
+                  deleteCopiedSegments(newlyCopiedSegments)
               }
           }
       }
-    else if (copyOnly)
-      Segment.emptyIterableIO
     else
       merge(
         segments = segmentsToMerge,
@@ -451,7 +441,7 @@ private[core] class Level(val dirs: Seq[Dir],
         appendEntry = None
       )
 
-  def put(map: Map[Slice[Byte], Memory.SegmentResponse], copyOnly: Boolean): IO.Async[Iterable[Segment]] = {
+  def put(map: Map[Slice[Byte], Memory.SegmentResponse]): IO.Async[Unit] = {
     logger.trace("{}: PutMap '{}' Maps.", paths.head, map.count())
     reserve(map).asAsync flatMap {
       case Left(future) =>
@@ -464,7 +454,7 @@ private[core] class Level(val dirs: Seq[Dir],
           val appendixValues = appendix.values().asScala
           val result =
             if (Segment.overlaps(map, appendixValues))
-              if (copyOnly)
+              if (???)
                 IO.Success(Segment.emptyIterable)
               else
                 putKeyValues(
@@ -498,7 +488,8 @@ private[core] class Level(val dirs: Seq[Dir],
                     Segment.emptyIterableIO
               }
 
-          result.asAsync
+          ???
+          //          result.asAsync
         }
     }
   }
@@ -518,18 +509,19 @@ private[core] class Level(val dirs: Seq[Dir],
 
   private def copyForward(map: Map[Slice[Byte], Memory.SegmentResponse]): IO[Iterable[Segment]] = {
     logger.trace(s"{}: Copying forward {} Map", paths.head, map.pathOption)
-    nextLevel map {
-      nextLevel =>
-        nextLevel.put(map, copyOnly = true) match {
-          case copied @ IO.Success(_) =>
-            copied
-
-          case IO.Later(_, _) | IO.Failure(_) =>
-            Segment.emptyIterableIO
-
-        }
-
-    } getOrElse Segment.emptyIterableIO
+    //    nextLevel map {
+    //      nextLevel =>
+    //        nextLevel.put(map, copyOnly = true) match {
+    //          case copied @ IO.Success(_) =>
+    //            IO.Success(copied)
+    //
+    //          case IO.Later(_, _) | IO.Failure(_) =>
+    //            Segment.emptyIterableIO
+    //
+    //        }
+    //
+    //    } getOrElse Segment.emptyIterableIO
+    ???
   }
 
   private[level] def copy(map: Map[Slice[Byte], Memory.SegmentResponse]): IO[Iterable[Segment]] = {
@@ -560,36 +552,41 @@ private[core] class Level(val dirs: Seq[Dir],
       )
   }
 
-  private def copyForwardLocal(segments: Iterable[Segment]): IO[Iterable[Segment]] =
-    copyForward(segments) match {
-      case success @ IO.Success(segmentsCopied) =>
-        if (segmentsCopied.size == segments.size) {
-          success
-        } else if (segmentsCopied.isEmpty) {
-          copy(segments)
-        } else {
-          val segmentsNotCopied = segments.filterNot(segment => segmentsCopied.exists(_.path == segment.path))
-          copy(segmentsNotCopied)
-        }
+  /**
+    * Returns newly created Segments.
+    */
+  private def copyForwardOrCopyLocal(segments: Iterable[Segment]): IO[Iterable[Segment]] =
+    forward(segments) match {
+      case IO.Success(segmentsNotForwarded) =>
+        if (segmentsNotForwarded.nonEmpty)
+          copy(segmentsNotForwarded)
+        else
+          Segment.emptyIterableIO
 
       case IO.Failure(error) =>
         logger.trace(s"{}: Copying forward failed. Trying to copy locally {} Segments", paths.head, segments.map(_.path.toString), error.exception)
         copy(segments)
     }
 
-  private def copyForward(segments: Iterable[Segment]): IO[Iterable[Segment]] = {
+  /**
+    * Returns segments that were not forwarded.
+    */
+  private def forward(segments: Iterable[Segment]): IO[Iterable[Segment]] = {
     logger.trace(s"{}: Copying forward {} Segments", paths.head, segments.map(_.path.toString))
     nextLevel map {
       nextLevel =>
-        nextLevel.put(segments, copyOnly = true) match {
-          case copied @ IO.Success(_) =>
-            copied
+        val (copyable, nonCopyable) = nextLevel partitionUnreservedCopyable segments
+        if (copyable.isEmpty)
+          IO.Success(nonCopyable)
+        else
+          nextLevel.put(copyable) match {
+            case IO.Success(_) =>
+              IO.Success(nonCopyable)
 
-          case IO.Later(_, _) | IO.Failure(_) =>
-            Segment.emptyIterableIO
-
-        }
-    } getOrElse Segment.emptyIterableIO
+            case IO.Later(_, _) | IO.Failure(_) =>
+              IO.Success(segments)
+          }
+    } getOrElse IO.Success(segments)
   }
 
   private[level] def copy(segments: Iterable[Segment]): IO[Iterable[Segment]] = {
@@ -668,9 +665,6 @@ private[core] class Level(val dirs: Seq[Dir],
         }
     }
   }
-
-  def getSegmentWithExpiredKeyValues(): Option[Segment] =
-    Segment.getNearestDeadlineSegment(appendix.values().asScala)
 
   def removeSegments(segments: Iterable[Segment]): IO[Int] = {
     //create this list which is a copy of segments. Segments can be iterable only once if it's a Java iterable.
@@ -767,7 +761,7 @@ private[core] class Level(val dirs: Seq[Dir],
 
   private def merge(segments: Iterable[Segment],
                     targetSegments: Iterable[Segment],
-                    appendEntry: Option[MapEntry[Slice[Byte], Segment]]): IO[Iterable[Segment]] = {
+                    appendEntry: Option[MapEntry[Slice[Byte], Segment]]): IO[Unit] = {
     logger.trace(s"{}: Merging segments {}", paths.head, segments.map(_.path.toString))
     Segment.getAllKeyValues(bloomFilterFalsePositiveRate, segments) flatMap {
       keyValues =>
@@ -775,10 +769,7 @@ private[core] class Level(val dirs: Seq[Dir],
           keyValues = keyValues,
           targetSegments = targetSegments,
           appendEntry = appendEntry
-        ) map {
-          _ =>
-            segments
-        }
+        )
     }
   }
 
@@ -787,7 +778,7 @@ private[core] class Level(val dirs: Seq[Dir],
     */
   private def putKeyValues(keyValues: Slice[KeyValue.ReadOnly],
                            targetSegments: Iterable[Segment],
-                           appendEntry: Option[MapEntry[Slice[Byte], Segment]]): IO[Iterable[Segment]] = {
+                           appendEntry: Option[MapEntry[Slice[Byte], Segment]]): IO[Unit] = {
     logger.trace(s"{}: Merging {} KeyValues.", paths.head, keyValues.size)
     SegmentAssigner.assign(keyValues, targetSegments) flatMap {
       assignments =>
@@ -822,9 +813,6 @@ private[core] class Level(val dirs: Seq[Dir],
                                 logger.error(s"{}: Failed to delete Segment {}", paths.head, segment.path, exception)
                             }
                         }
-                  } map {
-                    _ =>
-                      targetSegmentAndNewSegments flatMap (_._2)
                   }
 
                 case None =>
