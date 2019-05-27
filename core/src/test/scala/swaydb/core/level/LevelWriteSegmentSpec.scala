@@ -21,8 +21,6 @@ package swaydb.core.level
 
 import java.nio.file.{FileAlreadyExistsException, Files, NoSuchFileException}
 
-import org.scalamock.scalatest.MockFactory
-import org.scalatest.PrivateMethodTester
 import swaydb.core.CommonAssertions._
 import swaydb.core.IOAssert._
 import swaydb.core.RunThis._
@@ -66,7 +64,7 @@ class LevelWriteSegmentSpec3 extends LevelWriteSegmentSpec {
   override def inMemoryStorage = true
 }
 
-sealed trait LevelWriteSegmentSpec extends TestBase with MockFactory with PrivateMethodTester {
+sealed trait LevelWriteSegmentSpec extends TestBase {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit val testTimer: TestTimer = TestTimer.Empty
@@ -81,9 +79,9 @@ sealed trait LevelWriteSegmentSpec extends TestBase with MockFactory with Privat
   implicit val groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(keyValuesCount)
   implicit val skipListMerger = LevelZeroSkipListMerger
 
-  "put segments" when {
-    "single Level" should {
-      "write a segment to an empty Level" in {
+  "writing Segments to single level" should {
+    "succeed" when {
+      "level is empty" in {
         val level = TestLevel()
         val keyValues = randomIntKeyStringValues(keyValuesCount)
         val segment = TestSegment(keyValues).assertGet
@@ -92,7 +90,7 @@ sealed trait LevelWriteSegmentSpec extends TestBase with MockFactory with Privat
         assertReads(keyValues, level)
       }
 
-      "write a segment to a non empty Level" in {
+      "level is non-empty" in {
         //small Segment size so that small Segments do not collapse when running this test
         // as reads do not get retried on failure in Level, they only get retried in LevelZero.
         val level = TestLevel(segmentSize = 100.bytes)
@@ -108,7 +106,7 @@ sealed trait LevelWriteSegmentSpec extends TestBase with MockFactory with Privat
         assertGet(keyValues2, level)
       }
 
-      "write multiple Segments to an empty Level" in {
+      "writing multiple Segments to an empty Level" in {
         val level = TestLevel()
         val keyValues = randomIntKeyStringValues(keyValuesCount * 3, valueSize = 1000)
 
@@ -127,7 +125,7 @@ sealed trait LevelWriteSegmentSpec extends TestBase with MockFactory with Privat
         assertReads(keyValues, level)
       }
 
-      "write multiple Segments to a non empty Level" in {
+      "writing multiple Segments to a non empty Level" in {
         val level = TestLevel()
         val allKeyValues = randomPutKeyValues(keyValuesCount * 3, valueSize = 1000, addRandomPutDeadlines = false)(TestTimer.Empty)
         val slicedKeyValues = allKeyValues.groupedSlice(3)
@@ -201,6 +199,38 @@ sealed trait LevelWriteSegmentSpec extends TestBase with MockFactory with Privat
         }
       }
 
+
+      "copy Segments if segmentsToMerge is empty" in {
+        val keyValues = randomKeyValues(keyValuesCount).groupedSlice(5).map(_.updateStats)
+        val segmentToCopy = keyValues map (keyValues => TestSegment(keyValues).assertGet)
+
+        val level = TestLevel()
+
+        level.put(Seq.empty, segmentToCopy, Seq.empty).assertGet
+
+        level.isEmpty shouldBe false
+        assertReads(keyValues.flatten, level)
+      }
+
+      "copy and merge Segments" in {
+        val keyValues = randomKeyValues(100).groupedSlice(10).map(_.updateStats).toArray
+        val segmentToCopy = keyValues.take(5) map (keyValues => TestSegment(keyValues).assertGet)
+        val segmentToMerge = keyValues.drop(5).take(4) map (keyValues => TestSegment(keyValues).assertGet)
+        val targetSegment = TestSegment(keyValues.last).assertGet
+
+        val level = TestLevel()
+        level.put(targetSegment).assertGet
+        level.put(segmentToMerge, segmentToCopy, Seq(targetSegment)).assertGet
+
+        level.isEmpty shouldBe false
+
+        assertGet(keyValues.flatten, level)
+      }
+
+
+    }
+
+    "fail" when {
       "fail when writing a deleted segment" in {
         val level = TestLevel()
 
@@ -225,56 +255,6 @@ sealed trait LevelWriteSegmentSpec extends TestBase with MockFactory with Privat
         val segmentsToMerge = TestSegment(keyValues).assertGet
         val level = TestLevel()
         level.put(Seq(segmentsToMerge), Seq(), Seq()).failed.assertGet shouldBe IO.Error.ReceivedKeyValuesToMergeWithoutTargetSegment(keyValues.size)
-      }
-
-      "copy Segments if segmentsToMerge is empty" in {
-        val keyValues = randomKeyValues(keyValuesCount).groupedSlice(5).map(_.updateStats)
-        val segmentToCopy = keyValues map (keyValues => TestSegment(keyValues).assertGet)
-
-        val level = TestLevel()
-
-        level.put(Seq.empty, segmentToCopy, Seq.empty).assertGet
-
-        level.isEmpty shouldBe false
-        assertReads(keyValues.flatten, level)
-      }
-
-      "revert copy on failure" in {
-        if (persistent) {
-          val keyValues = randomKeyValues(keyValuesCount).groupedSlice(5).map(_.updateStats)
-          val segmentToCopy = keyValues map (keyValues => TestSegment(keyValues).assertGet)
-
-          val level = TestLevel()
-
-          //create a file with the same Segment name as the 4th Segment file. This should result in failure.
-          val id = IDGenerator.segmentId(level.segmentIDGenerator.nextID + 4)
-          level.paths.queuedPaths foreach { //create this file in all paths.
-            _ =>
-              Files.createFile(level.paths.next.resolve(id))
-
-          }
-          val levelFilesBeforePut = level.segmentFilesOnDisk
-
-          level.put(Seq.empty, segmentToCopy, Seq.empty).failed.assertGet.exception shouldBe a[FileAlreadyExistsException]
-
-          level.isEmpty shouldBe true
-          level.segmentFilesOnDisk shouldBe levelFilesBeforePut
-        }
-      }
-
-      "copy and merge Segments" in {
-        val keyValues = randomKeyValues(100).groupedSlice(10).map(_.updateStats).toArray
-        val segmentToCopy = keyValues.take(5) map (keyValues => TestSegment(keyValues).assertGet)
-        val segmentToMerge = keyValues.drop(5).take(4) map (keyValues => TestSegment(keyValues).assertGet)
-        val targetSegment = TestSegment(keyValues.last).assertGet
-
-        val level = TestLevel()
-        level.put(targetSegment).assertGet
-        level.put(segmentToMerge, segmentToCopy, Seq(targetSegment)).assertGet
-
-        level.isEmpty shouldBe false
-
-        assertGet(keyValues.flatten, level)
       }
 
       "revert copy if merge fails" in {
@@ -302,6 +282,30 @@ sealed trait LevelWriteSegmentSpec extends TestBase with MockFactory with Privat
           level.segmentsInLevel().map(_.path) shouldBe appendixBeforePut.map(_.path)
         }
       }
+
+      "revert copy on failure" in {
+        if (persistent) {
+          val keyValues = randomKeyValues(keyValuesCount).groupedSlice(5).map(_.updateStats)
+          val segmentToCopy = keyValues map (keyValues => TestSegment(keyValues).assertGet)
+
+          val level = TestLevel()
+
+          //create a file with the same Segment name as the 4th Segment file. This should result in failure.
+          val id = IDGenerator.segmentId(level.segmentIDGenerator.nextID + 4)
+          level.paths.queuedPaths foreach { //create this file in all paths.
+            _ =>
+              Files.createFile(level.paths.next.resolve(id))
+
+          }
+          val levelFilesBeforePut = level.segmentFilesOnDisk
+
+          level.put(Seq.empty, segmentToCopy, Seq.empty).failed.assertGet.exception shouldBe a[FileAlreadyExistsException]
+
+          level.isEmpty shouldBe true
+          level.segmentFilesOnDisk shouldBe levelFilesBeforePut
+        }
+      }
+
     }
   }
 }
