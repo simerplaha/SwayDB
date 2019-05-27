@@ -19,6 +19,8 @@
 
 package swaydb.core.level
 
+import java.nio.channels.OverlappingFileLockException
+
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.PrivateMethodTester
 import swaydb.core.CommonAssertions._
@@ -35,8 +37,10 @@ import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment
 import swaydb.core.util.Extension
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
+import swaydb.data.config.Dir
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
+import swaydb.data.storage.LevelStorage
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
@@ -78,8 +82,33 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
   implicit val groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(keyValuesCount)
   implicit val skipListMerger = LevelZeroSkipListMerger
 
-  "Level" should {
-    "initialise" in {
+  "acquireLock" should {
+    "create a lock file for only the root directory and not allow more locks" in {
+      //memory databases do not perform locks
+      if (persistent) {
+        val otherDirs = (0 to randomIntMax(5)) map (_ => Dir(randomDir, 1))
+        val storage = LevelStorage.Persistent(randomBoolean(), randomBoolean(), randomDir, otherDirs)
+        val lock = Level.acquireLock(storage).assertGetOpt
+        lock shouldBe defined
+        //other directories do not have locks.
+        storage.otherDirs foreach {
+          dir =>
+            IOEffect.exists(dir.path.resolve("LOCK")) shouldBe false
+        }
+
+        //trying to lock again should fail
+        Level.acquireLock(storage).failed.assertGet.exception shouldBe a[OverlappingFileLockException]
+
+        //closing the lock should allow re-locking
+        lock.get.close()
+        Level.acquireLock(storage).assertGetOpt shouldBe defined
+      }
+    }
+  }
+
+
+  "apply" should {
+    "create level" in {
       val level = TestLevel()
       if (memory) {
         //memory level always have one folder
