@@ -786,8 +786,18 @@ object CommonAssertions {
                                  level: Level) =
     keyValues foreach {
       keyValue =>
-        val actual = level.getFromThisLevel(keyValue.key).assertGet
-        actual.getOrFetchValue.safeGetBlocking() shouldBe keyValue.getOrFetchValue.safeGetBlocking()
+        try {
+          val actual = level.getFromThisLevel(keyValue.key).assertGet
+          actual.getOrFetchValue.safeGetBlocking() shouldBe keyValue.getOrFetchValue.safeGetBlocking()
+        } catch {
+          case ex: Exception =>
+            println(
+              "Test failed for key: " + keyValue.key.readInt() +
+                s" indexEntryDeadline: ${keyValue.toMemory.indexEntryDeadline.map(_.hasTimeLeft())}" +
+                s" class: ${keyValue.getClass.getSimpleName}"
+            )
+            throw ex
+        }
     }
 
   def assertEmptyHeadAndLast(level: LevelRef) =
@@ -955,7 +965,7 @@ object CommonAssertions {
 
   def assertGetNoneFromThisLevelOnly(keyValues: Iterable[KeyValue],
                                      level: Level) =
-    unzipGroups(keyValues).par foreach {
+    unzipGroups(keyValues) foreach {
       keyValue =>
         level.getFromThisLevel(keyValue.key).assertGetOpt shouldBe empty
     }
@@ -972,19 +982,19 @@ object CommonAssertions {
     val keyValuesToAssert = shuffleTake.map(Random.shuffle(unzipedKeyValues).take) getOrElse unzipedKeyValues
     keyValuesToAssert foreach {
       keyValue =>
-        //        try {
-        //          println(keyValue.key.readInt())
-        level.higher(keyValue.key).assertGetOpt shouldBe empty
-      //          println
-      //        } catch {
-      //          case ex: Exception =>
-      //            println(
-      //              "Test failed for key: " + keyValue.key.readInt() +
-      //                s" indexEntryDeadline: ${keyValue.toMemory.indexEntryDeadline.map(_.hasTimeLeft())}" +
-      //                s" class: ${keyValue.getClass.getSimpleName}"
-      //            )
-      //            throw ex
-      //        }
+        try {
+          //          println(keyValue.key.readInt())
+          level.higher(keyValue.key).assertGetOpt shouldBe empty
+          //          println
+        } catch {
+          case ex: Exception =>
+            println(
+              "Test failed for key: " + keyValue.key.readInt() +
+                s" indexEntryDeadline: ${keyValue.toMemory.indexEntryDeadline.map(_.hasTimeLeft())}" +
+                s" class: ${keyValue.getClass.getSimpleName}"
+            )
+            throw ex
+        }
     }
   }
 

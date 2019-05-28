@@ -31,6 +31,7 @@ import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.map.{Map, MapEntry, SkipListMerger}
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
+import swaydb.data.IO
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
@@ -74,7 +75,7 @@ sealed trait LevelWriteMapSpec extends TestBase with MockFactory with PrivateMet
   implicit val groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(keyValuesCount)
   implicit val skipListMerger = LevelZeroSkipListMerger
 
-  "putMap" should {
+  "putMap on a single Level" should {
     import swaydb.core.map.serializer.LevelZeroMapEntryReader._
     import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
     implicit val merged: SkipListMerger[Slice[Byte], Memory.SegmentResponse] = LevelZeroSkipListMerger
@@ -91,44 +92,113 @@ sealed trait LevelWriteMapSpec extends TestBase with MockFactory with PrivateMet
         map.write(MapEntry.Put(keyValue.key, keyValue.asInstanceOf[Memory.SegmentResponse]))
     }
 
-    "create a segment to an empty Level with no lower level" in {
-      val level = TestLevel()
-      level.put(map).assertGet
-      //since this is a new Segment and Level has no sub-level, all the deleted key-values will get removed.
-      val (deletedKeyValues, otherKeyValues) = keyValues.partition(_.isInstanceOf[Memory.Remove])
+    "succeed" when {
+      "writing to an empty Level" in {
+        val level = TestLevel()
+        level.put(map).assertGet
+        //since this is a new Segment and Level has no sub-level, all the deleted key-values will get removed.
+        val (deletedKeyValues, otherKeyValues) = keyValues.partition(_.isInstanceOf[Memory.Remove])
 
-      assertReads(otherKeyValues, level)
+        assertReads(otherKeyValues, level)
 
-      //deleted key-values do not exist.
-      deletedKeyValues foreach {
-        deleted =>
-          level.get(deleted.key).assertGetOpt shouldBe empty
+        //deleted key-values do not exist.
+        deletedKeyValues foreach {
+          deleted =>
+            level.get(deleted.key).assertGetOpt shouldBe empty
+        }
+      }
+
+      "writing to a non empty Level" in {
+        val level = TestLevel()
+
+        //creating a Segment with existing string key-values
+        val existingKeyValues = Array(Memory.put("one", "one"), Memory.put("two", "two"), Memory.put("three", "three"))
+
+        val sortedExistingKeyValues =
+          Slice(
+            Array(
+              //also randomly set expired deadline for Remove.
+              Memory.put("one", "one"), Memory.put("two", "two"), Memory.put("three", "three"), Memory.remove("four", randomly(expiredDeadline()))
+            ).sorted(keyOrder.on[KeyValue](_.key)))
+
+        level.putKeyValues(sortedExistingKeyValues).assertGet
+
+        //put a new map
+        level.put(map).assertGet
+        assertGet(keyValues.filterNot(_.isInstanceOf[Memory.Remove]), level)
+
+        level.get("one").assertGet shouldBe existingKeyValues(0)
+        level.get("two").assertGet shouldBe existingKeyValues(1)
+        level.get("three").assertGet shouldBe existingKeyValues(2)
+        level.get("four").assertGetOpt shouldBe empty
       }
     }
+  }
 
-    "create a segment to a non empty Level with no lower level" in {
-      val level = TestLevel()
+  "putMap on two Level" should {
+    import swaydb.core.map.serializer.LevelZeroMapEntryReader._
+    import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
+    implicit val merged: SkipListMerger[Slice[Byte], Memory.SegmentResponse] = LevelZeroSkipListMerger
 
-      //creating a Segment with existing string key-values
-      val existingKeyValues = Array(Memory.put("one", "one"), Memory.put("two", "two"), Memory.put("three", "three"))
+    val map =
+      if (persistent)
+        Map.persistent[Slice[Byte], Memory.SegmentResponse](randomIntDirectory, true, true, 1.mb, dropCorruptedTailEntries = false).assertGet.item
+      else
+        Map.memory[Slice[Byte], Memory.SegmentResponse]()
 
-      val sortedExistingKeyValues =
-        Slice(
-          Array(
-            //also randomly set expired deadline for Remove.
-            Memory.put("one", "one"), Memory.put("two", "two"), Memory.put("three", "three"), Memory.remove("four", randomly(expiredDeadline()))
-          ).sorted(keyOrder.on[KeyValue](_.key)))
+    val keyValues = randomPutKeyValues(keyValuesCount, addRandomRemoves = true, addRandomPutDeadlines = false)
+    keyValues foreach {
+      keyValue =>
+        map.write(MapEntry.Put(keyValue.key, keyValue.asInstanceOf[Memory.SegmentResponse]))
+    }
 
-      level.putKeyValues(sortedExistingKeyValues).assertGet
+    "succeed" when {
+      "writing to an empty Level by copying to last Level" in {
+        val nextLevel = mock[Level]
 
-      //put a new map
-      level.put(map).assertGet
-      assertGet(keyValues.filterNot(_.isInstanceOf[Memory.Remove]), level)
+        (nextLevel.isCopyable(_: Map[Slice[Byte], Memory.SegmentResponse])) expects * onCall {
+          putMap: Map[Slice[Byte], Memory.SegmentResponse] =>
+            putMap.pathOption shouldBe map.pathOption
+            true
+        }
 
-      level.get("one").assertGet shouldBe existingKeyValues(0)
-      level.get("two").assertGet shouldBe existingKeyValues(1)
-      level.get("three").assertGet shouldBe existingKeyValues(2)
-      level.get("four").assertGetOpt shouldBe empty
+        (nextLevel.put(_: Map[Slice[Byte], Memory.SegmentResponse])) expects * onCall {
+          putMap: Map[Slice[Byte], Memory.SegmentResponse] =>
+            putMap.pathOption shouldBe map.pathOption
+            IO.unit
+        }
+
+        val level = TestLevel(nextLevel = Some(nextLevel))
+        level.put(map).assertGet
+        assertGetNoneFromThisLevelOnly(keyValues, level) //because nextLevel is a mock.
+      }
+
+      "writing to non empty Levels by copying to last Level if key-values do not overlap upper Level" in {
+        val nextLevel = mock[Level]
+
+        val lastLevelKeyValues = randomPutKeyValues(keyValuesCount, addRandomRemoves = true, addRandomPutDeadlines = false, startId = Some(1)).map(_.asInstanceOf[Memory.SegmentResponse])
+        val map = TestMap(lastLevelKeyValues)
+
+        (nextLevel.isCopyable(_: Map[Slice[Byte], Memory.SegmentResponse])) expects * onCall {
+          putMap: Map[Slice[Byte], Memory.SegmentResponse] =>
+            putMap.pathOption shouldBe map.pathOption
+            true
+        }
+
+        (nextLevel.put(_: Map[Slice[Byte], Memory.SegmentResponse])) expects * onCall {
+          putMap: Map[Slice[Byte], Memory.SegmentResponse] =>
+            putMap.pathOption shouldBe map.pathOption
+            IO.unit
+        }
+
+        val level = TestLevel(nextLevel = Some(nextLevel))
+        val keyValues = randomPutKeyValues(keyValuesCount, addRandomRemoves = true, addRandomPutDeadlines = false, startId = Some(lastLevelKeyValues.last.key.readInt() + 1000)).toTransient
+        level.putKeyValues(keyValues, Seq(TestSegment(keyValues).assertGet), None).assertGet
+
+        level.put(map).assertGet
+        assertGetNoneFromThisLevelOnly(lastLevelKeyValues, level) //because nextLevel is a mock.
+        assertGetFromThisLevelOnly(keyValues, level)
+      }
     }
   }
 }
