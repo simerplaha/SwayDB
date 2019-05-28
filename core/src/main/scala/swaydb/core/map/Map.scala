@@ -98,6 +98,8 @@ private[core] trait Map[K, V] {
 
   def stateID: Long
 
+  def incrementStateID: Long
+
   def write(mapEntry: MapEntry[K, V]): IO[Boolean]
 
   def delete: IO[Unit]
@@ -219,5 +221,4 @@ private[core] trait Map[K, V] {
 
   def fileId: IO[Long] =
     IO.Success(0)
-
 }

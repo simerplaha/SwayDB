@@ -49,6 +49,12 @@ private[map] class MemoryMap[K, V: ClassTag](val skipList: ConcurrentSkipListMap
       writeCount
     }
 
+  def incrementStateID: Long =
+    synchronized {
+      writeCount += 1
+      writeCount
+    }
+
   def delete: IO[Unit] =
     IO(skipList.clear())
 

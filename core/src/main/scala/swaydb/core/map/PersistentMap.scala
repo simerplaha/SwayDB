@@ -256,6 +256,12 @@ private[map] case class PersistentMap[K, V: ClassTag](path: Path,
       writeCount
     }
 
+  def incrementStateID: Long =
+    synchronized {
+      writeCount += 1
+      writeCount
+    }
+
   override def write(mapEntry: MapEntry[K, V]): IO[Boolean] =
     synchronized {
       persist(mapEntry) onSuccessSideEffect {

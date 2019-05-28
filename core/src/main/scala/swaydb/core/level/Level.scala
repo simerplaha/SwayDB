@@ -438,12 +438,16 @@ private[core] class Level(val dirs: Seq[Dir],
                     deleteCopiedSegments(newlyCopiedSegments)
                 }
             }
-          else
+          else if (segmentsToMerge.nonEmpty) //check if there are Segments to merge.
             merge( //no segments were copied. Do merge!
               segments = segmentsToMerge,
               targetSegments = targetSegments,
               appendEntry = None
             )
+          else { //all Segments were forward copied, increment the stateID so reads can reset.
+            appendix.incrementStateID
+            IO.unit
+          }
       }
     else
       merge(
@@ -482,8 +486,10 @@ private[core] class Level(val dirs: Seq[Dir],
                         logFailure(s"${paths.head}: Failed to create a log entry.", failure)
                         deleteCopiedSegments(newSegments)
                     }
-                  else
+                  else {
+                    appendix.incrementStateID
                     Segment.emptyIterableIO
+                  }
               }
 
           result map (_ => ()) asAsync
@@ -557,10 +563,10 @@ private[core] class Level(val dirs: Seq[Dir],
   private def copyForwardOrCopyLocal(segments: Iterable[Segment]): IO[Iterable[Segment]] =
     forward(segments) match {
       case IO.Success(segmentsNotForwarded) =>
-        if (segmentsNotForwarded.nonEmpty)
-          copy(segmentsNotForwarded)
-        else
+        if (segmentsNotForwarded.isEmpty)
           Segment.emptyIterableIO
+        else
+          copy(segmentsNotForwarded)
 
       case IO.Failure(error) =>
         logger.trace(s"{}: Copying forward failed. Trying to copy locally {} Segments", paths.head, segments.map(_.path.toString), error.exception)
