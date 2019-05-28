@@ -308,105 +308,94 @@ sealed trait LevelWriteSegmentSpec extends TestBase with MockFactory {
   "writing Segments to two levels" should {
     "succeed" when {
       "upper level has overlapping Segments" in {
-        val level = TestLevel()
-        val keyValues = randomIntKeyStringValues(keyValuesCount)
-        val segment = TestSegment(keyValues).assertGet
-        segment.close.assertGet
-        level.put(segment).assertGet //write first Segment to Level
-        assertReads(keyValues, level)
-        level.close.assertGet
-
-        //write first key-value it does not get forwarded to next level
         val nextLevel = mock[Level]
+
+        //no key-values get forwarded to next Level
+        nextLevel.close _ expects() returning IO.unit
         nextLevel.releaseLocks _ expects() returning IO.unit
         nextLevel.closeSegments _ expects() returning IO.unit
-        val reopenedLevel1 = level.reopen(nextLevel = Some(nextLevel))
-        reopenedLevel1.put(TestSegment(keyValues.take(1).updateStats).assertGet).assertGet
 
-        //write last key-value it does not get forward to next Level
-        val reopenedLevel2 = reopenedLevel1.reopen(nextLevel = Some(nextLevel))
-        reopenedLevel2.put(TestSegment(keyValues.takeRight(1).updateStats).assertGet).assertGet
+        val level = TestLevel(nextLevel = Some(nextLevel))
+        val keyValues = randomIntKeyStringValues(keyValuesCount)
+        level.putKeyValues(keyValues, Seq(TestSegment(keyValues).assertGet), None).assertGet //write first Segment to Level
+        assertGetFromThisLevelOnly(keyValues, level)
+
+        level.put(TestSegment(keyValues.take(1).updateStats).assertGet).assertGet
+        level.put(TestSegment(keyValues.takeRight(1).updateStats).assertGet).assertGet
+
+        level.close.assertGet
       }
 
       "upper level has no overlapping Segments and nextLevel allows Segment copying" in {
-        val level = TestLevel()
+        val nextLevel = mock[Level]
+        val level = TestLevel(nextLevel = Some(nextLevel))
         val keyValues = randomIntKeyStringValues(keyValuesCount, startId = Some(1))
-        val segment = TestSegment(keyValues).assertGet
-        segment.close.assertGet
-        level.put(segment).assertGet //write first Segment to Level
-        assertReads(keyValues, level)
-        level.close.assertGet
+        level.putKeyValues(keyValues, Seq(TestSegment(keyValues).assertGet), None).assertGet //write first Segment to Level
+        assertGetFromThisLevelOnly(keyValues, level)
 
         //write non-overlapping key-values
-        val nextMaxKey = Segment.minMaxKey(Seq(segment)).assertGet._2.readInt() + 1
+        val nextMaxKey = keyValues.last.key.readInt() + 1000
         val keyValues2 = randomIntKeyStringValues(keyValuesCount, startId = Some(nextMaxKey))
-        val segment2 = TestSegment(keyValues2).assertGet
+        val segment = TestSegment(keyValues2).assertGet
 
-        val nextLevel = mock[Level]
         nextLevel.partitionUnreservedCopyable _ expects * onCall { //check if it can copied into next Level
           segments: Iterable[Segment] =>
+            segments should have size 1
+            segments.head.path shouldBe segment.path
             (segments, Iterable.empty)
         }
 
         (nextLevel.put(_: Iterable[Segment])) expects * onCall { //copy into next Level
           segments: Iterable[Segment] =>
             segments should have size 1
-            segments.head.path shouldBe segment2.path
+            segments.head.path shouldBe segment.path
             IO.unit
         }
 
-        val reopenedLevel1 = level.reopen(nextLevel = Some(nextLevel))
-        reopenedLevel1.put(segment2).assertGet
+        level.put(segment).assertGet
 
-        assertGet(keyValues, reopenedLevel1) //previous existing key-values should still exist
-        assertGetNoneFromThisLevelOnly(keyValues2, reopenedLevel1) //newly added key-values do not exist because nextLevel is mocked.
+        assertGet(keyValues, level) //previous existing key-values should still exist
+        assertGetNoneFromThisLevelOnly(keyValues2, level) //newly added key-values do not exist because nextLevel is mocked.
       }
 
       "upper level has no overlapping Segments and nextLevel does not allows Segment copying due to reserved Segments" in {
-        val level = TestLevel()
+        val nextLevel = mock[Level]
+        val level = TestLevel(nextLevel = Some(nextLevel))
         val keyValues = randomIntKeyStringValues(keyValuesCount, startId = Some(1))
-        val segment = TestSegment(keyValues).assertGet
-        segment.close.assertGet
-        level.put(segment).assertGet //write first Segment to Level
-        assertReads(keyValues, level)
-        level.close.assertGet
+        level.putKeyValues(keyValues, Seq(TestSegment(keyValues).assertGet), None).assertGet //write first Segment to Level
+        assertGetFromThisLevelOnly(keyValues, level)
 
         //write non-overlapping key-values
-        val nextMaxKey = Segment.minMaxKey(Seq(segment)).assertGet._2.readInt() + 1
+        val nextMaxKey = keyValues.last.key.readInt() + 1000
         val keyValues2 = randomIntKeyStringValues(keyValuesCount, startId = Some(nextMaxKey))
-        val segment2 = TestSegment(keyValues2).assertGet
+        val segment = TestSegment(keyValues2).assertGet
 
-        val nextLevel = mock[Level]
         nextLevel.partitionUnreservedCopyable _ expects * onCall { //check if it can copied into next Level
           segments: Iterable[Segment] =>
             segments should have size 1
-            segments.head.path shouldBe segment2.path //new segments gets requested to push forward.
+            segments.head.path shouldBe segment.path
             (Iterable.empty, segments)
         }
 
-        val reopenedLevel1 = level.reopen(nextLevel = Some(nextLevel))
-        reopenedLevel1.put(segment2).assertGet
+        level.put(segment).assertGet
 
-        assertGetFromThisLevelOnly(keyValues, reopenedLevel1) //all key-values get persisted into upper level.
-        assertGetFromThisLevelOnly(keyValues2, reopenedLevel1) //all key-values get persisted into upper level.
+        assertGet(keyValues, level) //previous existing key-values should still exist
+        assertGetFromThisLevelOnly(keyValues2, level) //newly added key-values do not exist because nextLevel is mocked.
       }
 
       "lower level can copy 1 of 2 Segments" in {
-        val level = TestLevel()
+        val nextLevel = mock[Level]
+        val level = TestLevel(nextLevel = Some(nextLevel))
         val keyValues = randomIntKeyStringValues(keyValuesCount, startId = Some(1))
-        val segment = TestSegment(keyValues).assertGet
-        segment.close.assertGet
-        level.put(segment).assertGet //write first Segment to Level
-        assertReads(keyValues, level)
-        level.close.assertGet
+        level.putKeyValues(keyValues, Seq(TestSegment(keyValues).assertGet), None).assertGet //write first Segment to Level
+        assertGet(keyValues, level)
 
         //write non-overlapping key-values
-        val nextMaxKey = Segment.minMaxKey(Seq(segment)).assertGet._2.readInt() + 1
+        val nextMaxKey = keyValues.last.key.readInt() + 1000
         val keyValues2 = randomIntKeyStringValues(keyValuesCount, startId = Some(nextMaxKey)).groupedSlice(2)
         val segment2 = TestSegment(keyValues2.head).assertGet
         val segment3 = TestSegment(keyValues2.last.updateStats).assertGet
 
-        val nextLevel = mock[Level]
         nextLevel.partitionUnreservedCopyable _ expects * onCall {
           segments: Iterable[Segment] =>
             segments should have size 2
@@ -422,29 +411,25 @@ sealed trait LevelWriteSegmentSpec extends TestBase with MockFactory {
             IO.unit
         }
 
-        val reopenedLevel1 = level.reopen(nextLevel = Some(nextLevel))
-        reopenedLevel1.put(Seq(segment2, segment3)).assertGet
+        level.put(Seq(segment2, segment3)).assertGet
 
-        assertGetFromThisLevelOnly(keyValues, reopenedLevel1) //all key-values get persisted into upper level.
+        assertGetFromThisLevelOnly(keyValues, level) //all key-values get persisted into upper level.
         //segment2's key-values still readable from upper Level since they were copied locally.
-        assertGetFromThisLevelOnly(keyValues2.head, reopenedLevel1) //all key-values get persisted into upper level.
+        assertGetFromThisLevelOnly(keyValues2.head, level) //all key-values get persisted into upper level.
       }
 
       "lower level can copy all Segments but fails to copy" in {
-        val level = TestLevel()
+        val nextLevel = mock[Level]
+        val level = TestLevel(nextLevel = Some(nextLevel))
         val keyValues = randomIntKeyStringValues(keyValuesCount, startId = Some(1))
-        val segment = TestSegment(keyValues).assertGet
-        segment.close.assertGet
-        level.put(segment).assertGet //write first Segment to Level
-        assertReads(keyValues, level)
-        level.close.assertGet
+        level.putKeyValues(keyValues, Seq(TestSegment(keyValues).assertGet), None).assertGet //write first Segment to Level
+        assertGet(keyValues, level)
 
         //write non-overlapping key-values
-        val nextMaxKey = Segment.minMaxKey(Seq(segment)).assertGet._2.readInt() + 1
+        val nextMaxKey = keyValues.last.key.readInt() + 1000
         val keyValues2 = randomIntKeyStringValues(keyValuesCount, startId = Some(nextMaxKey))
         val segment2 = TestSegment(keyValues2).assertGet
 
-        val nextLevel = mock[Level]
         nextLevel.partitionUnreservedCopyable _ expects * onCall { //check if it can copied into next Level
           segments: Iterable[Segment] =>
             segments should have size 1
@@ -459,11 +444,10 @@ sealed trait LevelWriteSegmentSpec extends TestBase with MockFactory {
             IO.Failure(new Exception("Kaboom!!")) //fail to copy, upper level will continue copying in it's Level.
         }
 
-        val reopenedLevel1 = level.reopen(nextLevel = Some(nextLevel))
-        reopenedLevel1.put(segment2).assertGet
+        level.put(segment2).assertGet
 
-        assertGetFromThisLevelOnly(keyValues, reopenedLevel1) //all key-values get persisted into upper level.
-        assertGetFromThisLevelOnly(keyValues2, reopenedLevel1) //all key-values get persisted into upper level.
+        assertGetFromThisLevelOnly(keyValues, level) //all key-values get persisted into upper level.
+        assertGetFromThisLevelOnly(keyValues2, level) //all key-values get persisted into upper level.
       }
     }
   }
