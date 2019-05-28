@@ -473,15 +473,6 @@ private[core] class Level(val dirs: Seq[Dir],
             else
               copyForwardOrCopyLocal(map) flatMap {
                 newSegments =>
-                  //maps can be submitted directly to last Level (if all levels have pushForward == true or if there are only two Levels (0 and 1)).
-                  //If this Level is the last Level then copy can return empty List[Segments]. If this is not the last Level then continue execution regardless because
-                  //upper Levels should ALWAYS return non-empty Segments on merge as key-values NEVER get removed/deleted from upper Levels.
-                  //If the Segments are still empty, buildNewMapEntry will return a failure which is expected.
-                  //Note: Logs can get spammed due to buildNewMapEntry's failure because LevelZeroActor will dispatch a PullRequest (for ANY failure),
-                  //to which this Level will respond with a Push message to LevelZeroActor and the same failure will occur repeatedly since the error is not due to busy Segments.
-                  //but this should not occur during runtime and if it's does occur the spam is OK because it's a crucial error and should be fixed immediately as this error would result
-                  //to compaction coming to a halt.
-                  //                  if (nextLevel.isDefined || newSegments.nonEmpty)
                   if (newSegments.nonEmpty)
                     buildNewMapEntry(newSegments, None, None) flatMap {
                       entry =>
@@ -500,6 +491,9 @@ private[core] class Level(val dirs: Seq[Dir],
     }
   }
 
+  /**
+    * @return empty if copied into next Level else Segments copied into this Level.
+    */
   private def copyForwardOrCopyLocal(map: Map[Slice[Byte], Memory.SegmentResponse]): IO[Iterable[Segment]] =
     forward(map) flatMap {
       copied =>
