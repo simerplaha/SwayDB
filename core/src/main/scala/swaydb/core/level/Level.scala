@@ -875,7 +875,6 @@ private[core] class Level(val dirs: Seq[Dir],
   def buildNewMapEntry(newSegments: Iterable[Segment],
                        originalSegmentMayBe: Option[Segment] = None,
                        initialMapEntry: Option[MapEntry[Slice[Byte], Segment]]): IO[MapEntry[Slice[Byte], Segment]] = {
-
     import keyOrder._
 
     var removeOriginalSegments = true

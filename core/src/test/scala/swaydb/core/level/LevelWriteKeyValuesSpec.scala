@@ -81,9 +81,9 @@ sealed trait LevelWriteKeyValuesSpec extends TestBase with MockFactory with Priv
       val level = TestLevel()
 
       val keyValues = randomPutKeyValues()
-      level.putKeyValues(keyValues).assertGet
+      level.putKeyValuesTest(keyValues).assertGet
 
-      level.putKeyValues(Slice(keyValues.head)).assertGet
+      level.putKeyValuesTest(Slice(keyValues.head)).assertGet
 
       if (persistent) {
         val reopen = level.reopen
@@ -95,7 +95,7 @@ sealed trait LevelWriteKeyValuesSpec extends TestBase with MockFactory with Priv
       val level = TestLevel(segmentSize = 1.kb)
 
       val keyValues = randomPutKeyValues(keyValuesCount)
-      level.putKeyValues(keyValues).assertGet
+      level.putKeyValuesTest(keyValues).assertGet
 
       val deleteKeyValues = Slice.create[KeyValue.ReadOnly](keyValues.size * 2)
       keyValues foreach {
@@ -110,7 +110,7 @@ sealed trait LevelWriteKeyValuesSpec extends TestBase with MockFactory with Priv
           deleteKeyValues add Memory.remove(id, randomly(expiredDeadline()))
       }
 
-      level.putKeyValues(deleteKeyValues).assertGet
+      level.putKeyValuesTest(deleteKeyValues).assertGet
       level.segmentFilesInAppendix shouldBe 0
 
       level.isEmpty shouldBe true
@@ -124,7 +124,7 @@ sealed trait LevelWriteKeyValuesSpec extends TestBase with MockFactory with Priv
       val level = TestLevel(nextLevel = Some(TestLevel()))
 
       val keyValues = randomPutKeyValues()
-      level.putKeyValues(keyValues).assertGet
+      level.putKeyValuesTest(keyValues).assertGet
 
       val deleteKeyValues = Slice.create[KeyValue.ReadOnly](keyValues.size)
       keyValues foreach {
@@ -132,7 +132,7 @@ sealed trait LevelWriteKeyValuesSpec extends TestBase with MockFactory with Priv
           deleteKeyValues add Memory.remove(keyValue.key)
       }
 
-      level.putKeyValues(deleteKeyValues).assertGet
+      level.putKeyValuesTest(deleteKeyValues).assertGet
       level.isEmpty shouldBe false
       keyValues foreach {
         keyValue =>
@@ -144,9 +144,9 @@ sealed trait LevelWriteKeyValuesSpec extends TestBase with MockFactory with Priv
       val level = TestLevel(segmentSize = 1.kb)
 
       val keyValues = randomPutKeyValues(keyValuesCount)
-      level.putKeyValues(keyValues).assertGet
+      level.putKeyValuesTest(keyValues).assertGet
 
-      level.putKeyValues(Slice(Memory.Range(keyValues.head.key, keyValues.last.key.readInt() + 1, None, Value.remove(None)))).assertGet
+      level.putKeyValuesTest(Slice(Memory.Range(keyValues.head.key, keyValues.last.key.readInt() + 1, None, Value.remove(None)))).assertGet
       level.segmentFilesInAppendix shouldBe 0
 
       level.isEmpty shouldBe true
@@ -160,10 +160,10 @@ sealed trait LevelWriteKeyValuesSpec extends TestBase with MockFactory with Priv
       val level = TestLevel(segmentSize = 1.kb, nextLevel = Some(TestLevel()))
 
       val keyValues = randomPutKeyValues(keyValuesCount)
-      level.putKeyValues(keyValues).assertGet
+      level.putKeyValuesTest(keyValues).assertGet
       val segmentsCountBeforeRemove = level.segmentFilesInAppendix
 
-      level.putKeyValues(Slice(Memory.Range(keyValues.head.key, keyValues.last.key.readInt() + 1, None, Value.remove(None)))).assertGet
+      level.putKeyValuesTest(Slice(Memory.Range(keyValues.head.key, keyValues.last.key.readInt() + 1, None, Value.remove(None)))).assertGet
       level.segmentFilesInAppendix shouldBe segmentsCountBeforeRemove
 
       level.isEmpty shouldBe false
@@ -177,7 +177,7 @@ sealed trait LevelWriteKeyValuesSpec extends TestBase with MockFactory with Priv
       val level = TestLevel(segmentSize = 1.kb)
 
       val keyValues = randomPutKeyValues(keyValuesCount)
-      level.putKeyValues(keyValues).assertGet
+      level.putKeyValuesTest(keyValues).assertGet
 
       val deleteKeyValues = Slice.create[KeyValue.ReadOnly](keyValues.size * 2)
       keyValues foreach {
@@ -194,7 +194,7 @@ sealed trait LevelWriteKeyValuesSpec extends TestBase with MockFactory with Priv
 
       level.nextLevel shouldBe empty
 
-      level.putKeyValues(deleteKeyValues).assertGet
+      level.putKeyValuesTest(deleteKeyValues).assertGet
 
       //expired key-values return empty after 2.seconds
       eventual(5.seconds) {
@@ -220,7 +220,7 @@ sealed trait LevelWriteKeyValuesSpec extends TestBase with MockFactory with Priv
       val level = TestLevel(segmentSize = 1.kb, nextLevel = Some(TestLevel()))
 
       val keyValues = randomPutKeyValues(keyValuesCount)
-      level.putKeyValues(keyValues).assertGet
+      level.putKeyValuesTest(keyValues).assertGet
 
       val deleteKeyValues = Slice.create[KeyValue.ReadOnly](keyValues.size * 2)
       keyValues foreach {
@@ -235,7 +235,7 @@ sealed trait LevelWriteKeyValuesSpec extends TestBase with MockFactory with Priv
           deleteKeyValues add Memory.remove(id, randomly(expiredDeadline()))
       }
 
-      level.putKeyValues(deleteKeyValues).assertGet
+      level.putKeyValuesTest(deleteKeyValues).assertGet
 
       //expired key-values return empty.
       keyValues foreach {
@@ -258,9 +258,9 @@ sealed trait LevelWriteKeyValuesSpec extends TestBase with MockFactory with Priv
       val level = TestLevel(segmentSize = 1.kb)
 
       val keyValues = randomPutKeyValues(keyValuesCount)
-      level.putKeyValues(keyValues).assertGet
+      level.putKeyValuesTest(keyValues).assertGet
 
-      level.putKeyValues(Slice(Memory.Range(keyValues.head.key, keyValues.last.key.readInt() + 1, None, Value.remove(2.seconds.fromNow)))).assertGet
+      level.putKeyValuesTest(Slice(Memory.Range(keyValues.head.key, keyValues.last.key.readInt() + 1, None, Value.remove(2.seconds.fromNow)))).assertGet
 
       //expired key-values return empty after 2.seconds
       eventual(5.seconds) {
@@ -286,9 +286,9 @@ sealed trait LevelWriteKeyValuesSpec extends TestBase with MockFactory with Priv
       val level = TestLevel(segmentSize = 1.kb, nextLevel = Some(TestLevel()))
 
       val keyValues = randomPutKeyValues(keyValuesCount)
-      level.putKeyValues(keyValues).assertGet
+      level.putKeyValuesTest(keyValues).assertGet
 
-      level.putKeyValues(Slice(Memory.Range(keyValues.head.key, keyValues.last.key.readInt() + 1, None, Value.remove(2.seconds.fromNow)))).assertGet
+      level.putKeyValuesTest(Slice(Memory.Range(keyValues.head.key, keyValues.last.key.readInt() + 1, None, Value.remove(2.seconds.fromNow)))).assertGet
 
       //expired key-values return empty after 2.seconds
       eventual(5.seconds) {

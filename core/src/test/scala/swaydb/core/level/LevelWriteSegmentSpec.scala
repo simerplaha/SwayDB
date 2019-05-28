@@ -136,7 +136,7 @@ sealed trait LevelWriteSegmentSpec extends TestBase with MockFactory {
         val keyValues3 = slicedKeyValues(2)
 
         //create a level with key-values
-        level.putKeyValues(keyValues2).assertGet
+        level.putKeyValuesTest(keyValues2).assertGet
         level.isEmpty shouldBe false
 
         val segments = Seq(TestSegment(keyValues1.toTransient).assertGet, TestSegment(keyValues3.toTransient).assertGet)
@@ -174,18 +174,18 @@ sealed trait LevelWriteSegmentSpec extends TestBase with MockFactory {
 
           val level = TestLevel(segmentSize = 1.byte, levelStorage = storage)
 
-          level.putKeyValues(keyValues).assertGet
+          level.putKeyValuesTest(keyValues).assertGet
           level.segmentsCount() shouldBe keyValues.size
           assertDistribution()
 
           //write the same key-values again so that all Segments are updated. This should still maintain the Segment distribution
-          level.putKeyValues(keyValues).assertGet
+          level.putKeyValuesTest(keyValues).assertGet
           assertDistribution()
 
           //shuffle key-values should still maintain distribution order
           Random.shuffle(keyValues.grouped(10)) foreach {
             keyValues =>
-              level.putKeyValues(keyValues).assertGet
+              level.putKeyValuesTest(keyValues).assertGet
           }
           assertDistribution()
 
@@ -193,10 +193,10 @@ sealed trait LevelWriteSegmentSpec extends TestBase with MockFactory {
           Random.shuffle(keyValues.grouped(10)).take(2) foreach {
             keyValues =>
               val deleteKeyValues = keyValues.map(keyValue => Memory.remove(keyValue.key)).toSlice
-              level.putKeyValues(deleteKeyValues).assertGet
+              level.putKeyValuesTest(deleteKeyValues).assertGet
           }
 
-          level.putKeyValues(keyValues).assertGet
+          level.putKeyValuesTest(keyValues).assertGet
           assertDistribution()
         }
       }

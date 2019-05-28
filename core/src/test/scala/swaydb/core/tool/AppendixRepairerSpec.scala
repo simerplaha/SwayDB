@@ -52,7 +52,7 @@ class AppendixRepairerSpec extends TestBase {
 
     "create new appendix file if all the Segments in the Level are non-overlapping Segments" in {
       val level = TestLevel(segmentSize = 1.kb)
-      level.putKeyValues(randomizedKeyValues(10000).toMemory).assertGet
+      level.putKeyValuesTest(randomizedKeyValues(10000).toMemory).assertGet
 
       level.segmentsCount() should be > 2
       val segmentsBeforeRepair = level.segmentsInLevel()
@@ -90,7 +90,7 @@ class AppendixRepairerSpec extends TestBase {
       val level = TestLevel(segmentSize = 1.kb, nextLevel = Some(TestLevel()), throttle = (_) => Throttle(Duration.Zero, 0))
 
       val keyValues = randomizedKeyValues(1000).toMemory
-      level.putKeyValues(keyValues).assertGet
+      level.putKeyValuesTest(keyValues).assertGet
 
       level.segmentsCount() should be > 2
       val segmentsBeforeRepair = level.segmentsInLevel()
@@ -127,7 +127,7 @@ class AppendixRepairerSpec extends TestBase {
       val level = TestLevel(segmentSize = 1.kb, nextLevel = Some(TestLevel()), throttle = (_) => Throttle(Duration.Zero, 0))
 
       val keyValues = randomizedKeyValues(10000).toMemory
-      level.putKeyValues(keyValues).assertGet
+      level.putKeyValuesTest(keyValues).assertGet
 
       level.segmentsCount() should be > 2
       val segmentsBeforeRepair = level.segmentsInLevel()

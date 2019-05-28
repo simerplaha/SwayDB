@@ -115,7 +115,7 @@ object TestData {
 
     import swaydb.data.IO._
 
-    def putKeyValues(keyValues: Iterable[KeyValue.ReadOnly])(implicit fileLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter): IO[Unit] =
+    def putKeyValuesTest(keyValues: Iterable[KeyValue.ReadOnly])(implicit fileLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter): IO[Unit] =
       if (keyValues.isEmpty)
         IO.unit
       else

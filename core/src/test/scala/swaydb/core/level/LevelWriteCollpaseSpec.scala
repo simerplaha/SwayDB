@@ -79,9 +79,9 @@ sealed trait LevelWriteCollapseSpec extends TestBase with MockFactory with Priva
       //disable throttling so that it does not automatically collapse small Segments
       val level = TestLevel(segmentSize = 1.kb)
       val keyValues = randomPutKeyValues(1000, addRandomPutDeadlines = false)(TestTimer.Empty)
-      level.putKeyValues(keyValues).assertGet
+      level.putKeyValuesTest(keyValues).assertGet
       //dispatch another put request so that existing Segment gets split
-      level.putKeyValues(Slice(keyValues.head)).assertGet
+      level.putKeyValuesTest(Slice(keyValues.head)).assertGet
 
       val segmentCountBeforeDelete = level.segmentsCount()
       segmentCountBeforeDelete > 1 shouldBe true
@@ -98,7 +98,7 @@ sealed trait LevelWriteCollapseSpec extends TestBase with MockFactory with Priva
             }
         }
       //delete half of the key values which will create small Segments
-      level.putKeyValues(Slice(deleteEverySecond.toArray)).assertGet
+      level.putKeyValuesTest(Slice(deleteEverySecond.toArray)).assertGet
 
       level.collapse(level.segmentsInLevel()).assertGet
       //since every second key-value was delete, the number of Segments is reduced to half
@@ -116,9 +116,9 @@ sealed trait LevelWriteCollapseSpec extends TestBase with MockFactory with Priva
           val level = TestLevel(segmentSize = 1.kb)
 
           val keyValues = randomPutKeyValues(1000, addRandomPutDeadlines = false)(TestTimer.Empty)
-          level.putKeyValues(keyValues).assertGet
+          level.putKeyValuesTest(keyValues).assertGet
           //dispatch another push to trigger split
-          level.putKeyValues(Slice(keyValues.head)).assertGet
+          level.putKeyValuesTest(Slice(keyValues.head)).assertGet
 
           level.segmentsCount() > 1 shouldBe true
           level.close.assertGet
@@ -145,9 +145,9 @@ sealed trait LevelWriteCollapseSpec extends TestBase with MockFactory with Priva
       val level = TestLevel(segmentSize = 1.kb)
       val expiryAt = 5.seconds.fromNow
       val keyValues = randomPutKeyValues(1000, valueSize = 0, startId = Some(0), addRandomPutDeadlines = false)(TestTimer.Empty)
-      level.putKeyValues(keyValues).assertGet
+      level.putKeyValuesTest(keyValues).assertGet
       //dispatch another put request so that existing Segment gets split
-      level.putKeyValues(Slice(keyValues.head)).assertGet
+      level.putKeyValuesTest(Slice(keyValues.head)).assertGet
       val segmentCountBeforeDelete = level.segmentsCount()
       segmentCountBeforeDelete > 1 shouldBe true
 
@@ -164,7 +164,7 @@ sealed trait LevelWriteCollapseSpec extends TestBase with MockFactory with Priva
         }
 
       //delete half of the key values which will create small Segments
-      level.putKeyValues(Slice(expireEverySecond.toArray)).assertGet
+      level.putKeyValuesTest(Slice(expireEverySecond.toArray)).assertGet
       keyValues.zipWithIndex foreach {
         case (keyValue, index) =>
           if (index % 2 == 0)

@@ -121,7 +121,7 @@ sealed trait LevelWriteMapSpec extends TestBase with MockFactory with PrivateMet
               Memory.put("one", "one"), Memory.put("two", "two"), Memory.put("three", "three"), Memory.remove("four", randomly(expiredDeadline()))
             ).sorted(keyOrder.on[KeyValue](_.key)))
 
-        level.putKeyValues(sortedExistingKeyValues).assertGet
+        level.putKeyValuesTest(sortedExistingKeyValues).assertGet
 
         //put a new map
         level.put(map).assertGet

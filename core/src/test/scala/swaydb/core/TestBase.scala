@@ -539,11 +539,11 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
                               assertLevel3ForAllLevels: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                  groupingStrategy: Option[KeyValueGroupingStrategyInternal]): Unit = {
     println("level3.putKeyValues")
-    if (level3KeyValues.nonEmpty) level3.putKeyValues(level3KeyValues).assertGet
+    if (level3KeyValues.nonEmpty) level3.putKeyValuesTest(level3KeyValues).assertGet
     println("level2.putKeyValues")
-    if (level2KeyValues.nonEmpty) level2.putKeyValues(level2KeyValues).assertGet
+    if (level2KeyValues.nonEmpty) level2.putKeyValuesTest(level2KeyValues).assertGet
     println("level1.putKeyValues")
-    if (level1KeyValues.nonEmpty) level1.putKeyValues(level1KeyValues).assertGet
+    if (level1KeyValues.nonEmpty) level1.putKeyValuesTest(level1KeyValues).assertGet
     println("level0.putKeyValues")
     if (level0KeyValues.nonEmpty) level0.putKeyValues(level0KeyValues).assertGet
     import RunThis._

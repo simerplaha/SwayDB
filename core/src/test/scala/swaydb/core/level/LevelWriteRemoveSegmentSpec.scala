@@ -73,7 +73,7 @@ sealed trait LevelWriteRemoveSegmentSpec extends TestBase with MockFactory with 
   "removeSegments" should {
     "remove segments from disk and remove them from appendix" in {
       val level = TestLevel(segmentSize = 1.kb)
-      level.putKeyValues(randomPutKeyValues(keyValuesCount)).assertGet
+      level.putKeyValuesTest(randomPutKeyValues(keyValuesCount)).assertGet
 
       level.removeSegments(level.segmentsInLevel()).assertGet
 

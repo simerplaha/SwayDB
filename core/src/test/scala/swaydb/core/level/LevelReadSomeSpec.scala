@@ -122,9 +122,9 @@ sealed trait LevelReadSomeSpec extends TestBase with MockFactory with Benchmark 
                       implicit val keyOrder = KeyOrder.default
                       implicit val timeOrder = TimeOrder.long
                       val level: Level = TestLevel()
-                      level.putKeyValues(level2KeyValues).assertGet
-                      level.putKeyValues(level1KeyValues).assertGet
-                      level.putKeyValues(level0KeyValues).assertGet
+                      level.putKeyValuesTest(level2KeyValues).assertGet
+                      level.putKeyValuesTest(level1KeyValues).assertGet
+                      level.putKeyValuesTest(level0KeyValues).assertGet
 
                       //if after merging into a single Level the result is not empty then print all the failed exceptions.
                       Try(level.get(update.key).safeGetBlocking.assertGetOpt shouldBe empty).failed foreach {

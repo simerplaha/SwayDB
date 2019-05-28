@@ -106,7 +106,6 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
     }
   }
 
-
   "apply" should {
     "create level" in {
       val level = TestLevel()
@@ -163,7 +162,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
         // memory Level do not have uncommitted Segments
       } else {
         val level = TestLevel()
-        level.putKeyValues(randomPutKeyValues()).assertGet
+        level.putKeyValuesTest(randomPutKeyValues()).assertGet
         val segmentsIdsBeforeInvalidSegments = level.segmentFilesOnDisk
         segmentsIdsBeforeInvalidSegments should have size 1
 
@@ -192,7 +191,7 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
   "largestSegmentId" should {
     "get the largest segment in the Level when the Level is not empty" in {
       val level = TestLevel(segmentSize = 1.kb)
-      level.putKeyValues(randomizedKeyValues(2000)).assertGet
+      level.putKeyValuesTest(randomizedKeyValues(2000)).assertGet
 
       val largeSegmentId = Level.largestSegmentId(level.segmentsInLevel())
       largeSegmentId shouldBe level.segmentsInLevel().map(_.path.fileId.assertGet._1).max
@@ -263,7 +262,6 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
 
       actualMapEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.maxKey.read[Int]) shouldBe
         expectedMapEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.maxKey.read[Int])
-
     }
 
     "build MapEntry.Put map for the newly merged Segments and also add Remove map entry for original map when all minKeys are unique" in {
@@ -286,5 +284,4 @@ sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethod
         expectedMapEntry.asString(_.read[Int].toString, segment => segment.path.toString + segment.maxKey.maxKey.read[Int])
     }
   }
-
 }

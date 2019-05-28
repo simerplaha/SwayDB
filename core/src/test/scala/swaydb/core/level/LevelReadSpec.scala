@@ -80,7 +80,7 @@ sealed trait LevelReadSpec extends TestBase with MockFactory with Benchmark {
       }
 
       val level = TestLevel()
-      level.putKeyValues(keyValues).assertGet
+      level.putKeyValuesTest(keyValues).assertGet
 
       assert(level)
       if (persistent) assert(level.reopen)
@@ -93,9 +93,9 @@ sealed trait LevelReadSpec extends TestBase with MockFactory with Benchmark {
       val level = TestLevel(segmentSize = 1.kb, nextLevel = None, throttle = (_) => Throttle(Duration.Zero, 0))
 
       val keyValues = randomPutKeyValues(1000, addRandomPutDeadlines = false)
-      level.putKeyValues(keyValues).assertGet
+      level.putKeyValuesTest(keyValues).assertGet
       //do another put so split occurs.
-      level.putKeyValues(keyValues.headSlice).assertGet
+      level.putKeyValuesTest(keyValues.headSlice).assertGet
       level.segmentsCount() > 1 shouldBe true //ensure there are Segments in this Level
 
       if (persistent) {
@@ -159,4 +159,21 @@ sealed trait LevelReadSpec extends TestBase with MockFactory with Benchmark {
     }
   }
 
+  "getLevels" should {
+    "return all levels" in {
+      val level3 = TestLevel()
+      val level2 = TestLevel(nextLevel = Some(level3))
+      val level1 = TestLevel(nextLevel = Some(level2))
+      val level0 = TestLevelZero(nextLevel = Some(level1))
+
+      val allPaths = Seq(level0, level1, level2, level3).map(_.rootPath)
+
+      Level.getLevels(level0).map(_.rootPath) shouldBe allPaths
+      Level.getLevels(level1).map(_.rootPath) shouldBe allPaths.drop(1)
+      Level.getLevels(level2).map(_.rootPath) shouldBe allPaths.drop(2)
+      Level.getLevels(level3).map(_.rootPath) shouldBe allPaths.drop(3)
+
+      level0.close.assertGet
+    }
+  }
 }

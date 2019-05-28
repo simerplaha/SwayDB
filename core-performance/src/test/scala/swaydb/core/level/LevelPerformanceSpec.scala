@@ -96,7 +96,7 @@ sealed trait LevelPerformanceSpec extends TestBase with Benchmark {
     }
 
   var level = TestLevel()
-  level.putKeyValues(keyValues).assertGet
+  level.putKeyValuesTest(keyValues).assertGet
 
   def reopenLevel() = {
     println("Re-opening Level")
