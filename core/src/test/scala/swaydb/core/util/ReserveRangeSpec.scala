@@ -1,10 +1,7 @@
 package swaydb.core.util
 
 import swaydb.core.RunThis._
-import swaydb.core.TestData._
-import swaydb.core.data.Memory
 import swaydb.core.{TestBase, TestTimer}
-import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
@@ -31,9 +28,7 @@ class ReserveRangeSpec extends TestBase {
           ReserveRange.reserveOrGet(i, i + 1, "does not register") should contain("first")
       }
     }
-  }
 
-  "ReserveRange" should {
     "complete futures when freed" in {
       implicit val state = ReserveRange.create[String]()
       ReserveRange.reserveOrGet(1, 10, "first") shouldBe empty
@@ -55,18 +50,13 @@ class ReserveRangeSpec extends TestBase {
       Future.sequence(futures).await shouldBe (0 to 10)
       state.ranges shouldBe empty
     }
-  }
 
-  "ReserveRange" should {
     "return unreserved if empty" in {
       implicit val state = ReserveRange.create[String]()
 
       (0 to 100) foreach {
         i =>
-          val keyValues = Slice(Memory.put(i), Memory.put(i + 1))
-          ReserveRange.isUnreserved(
-            segment = TestSegment(keyValues.toTransient).get
-          ) shouldBe true
+          ReserveRange.isUnreserved(i, i + 1) shouldBe true
       }
     }
 
@@ -76,26 +66,17 @@ class ReserveRangeSpec extends TestBase {
 
       (0 to 8) foreach {
         i =>
-          val keyValues = Slice(Memory.put(i), Memory.put(i + 1))
-          ReserveRange.isUnreserved(
-            segment = TestSegment(keyValues.toTransient).get
-          ) shouldBe true
+          ReserveRange.isUnreserved(i, i + 1) shouldBe true
       }
 
       (9 to 20) foreach {
         i =>
-          val keyValues = Slice(Memory.put(i), Memory.put(i + 1))
-          ReserveRange.isUnreserved(
-            segment = TestSegment(keyValues.toTransient).get
-          ) shouldBe false
+          ReserveRange.isUnreserved(i, i + 1) shouldBe false
       }
 
       (21 to 18) foreach {
         i =>
-          val keyValues = Slice(Memory.put(i), Memory.put(i + 1))
-          ReserveRange.isUnreserved(
-            segment = TestSegment(keyValues.toTransient).get
-          ) shouldBe true
+          ReserveRange.isUnreserved(i, i + 1) shouldBe true
       }
     }
   }

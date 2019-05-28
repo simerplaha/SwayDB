@@ -368,7 +368,13 @@ private[core] class Level(val dirs: Seq[Dir],
   def partitionUnreservedCopyable(segments: Iterable[Segment]): (Iterable[Segment], Iterable[Segment]) =
     segments partition {
       segment =>
-        ReserveRange.isUnreserved(segment) && !Segment.overlaps(segment, segmentsInLevel())
+        ReserveRange.isUnreserved(segment.minKey, segment.maxKey.maxKey) && !Segment.overlaps(segment, segmentsInLevel())
+    }
+
+  def isCopyable(map: Map[Slice[Byte], Memory.SegmentResponse]): Boolean =
+    Segment.minMaxKey(map) forall {
+      case (minKey, maxKey) =>
+        ReserveRange.isUnreserved(minKey, maxKey) && !Segment.overlaps(map, segmentsInLevel())
     }
 
   def put(segment: Segment): IO.Async[Unit] =
@@ -459,16 +465,13 @@ private[core] class Level(val dirs: Seq[Dir],
           val appendixValues = appendix.values().asScala
           val result =
             if (Segment.overlaps(map, appendixValues))
-              if (???)
-                IO.Success(Segment.emptyIterable)
-              else
-                putKeyValues(
-                  keyValues = Slice(map.values().toArray(new Array[Memory](map.skipList.size()))),
-                  targetSegments = appendixValues,
-                  appendEntry = None
-                )
+              putKeyValues(
+                keyValues = Slice(map.values().toArray(new Array[Memory](map.skipList.size()))),
+                targetSegments = appendixValues,
+                appendEntry = None
+              )
             else
-              copyForwardLocal(map) flatMap {
+              copyForwardOrCopyLocal(map) flatMap {
                 newSegments =>
                   //maps can be submitted directly to last Level (if all levels have pushForward == true or if there are only two Levels (0 and 1)).
                   //If this Level is the last Level then copy can return empty List[Segments]. If this is not the last Level then continue execution regardless because
@@ -478,12 +481,11 @@ private[core] class Level(val dirs: Seq[Dir],
                   //to which this Level will respond with a Push message to LevelZeroActor and the same failure will occur repeatedly since the error is not due to busy Segments.
                   //but this should not occur during runtime and if it's does occur the spam is OK because it's a crucial error and should be fixed immediately as this error would result
                   //to compaction coming to a halt.
-                  if (nextLevel.isDefined || newSegments.nonEmpty)
+                  //                  if (nextLevel.isDefined || newSegments.nonEmpty)
+                  if (newSegments.nonEmpty)
                     buildNewMapEntry(newSegments, None, None) flatMap {
                       entry =>
-                        appendix
-                          .write(entry)
-                          .map(_ => newSegments)
+                        appendix.write(entry)
                     } onFailureSideEffect {
                       failure =>
                         logFailure(s"${paths.head}: Failed to create a log entry.", failure)
@@ -493,40 +495,38 @@ private[core] class Level(val dirs: Seq[Dir],
                     Segment.emptyIterableIO
               }
 
-          ???
-          //          result.asAsync
+          result map (_ => ()) asAsync
         }
     }
   }
 
-  private def copyForwardLocal(map: Map[Slice[Byte], Memory.SegmentResponse]): IO[Iterable[Segment]] =
-    copyForward(map) match {
-      case success @ IO.Success(segmentsCopied) =>
-        if (segmentsCopied.nonEmpty)
-          success
+  private def copyForwardOrCopyLocal(map: Map[Slice[Byte], Memory.SegmentResponse]): IO[Iterable[Segment]] =
+    forward(map) flatMap {
+      copied =>
+        if (copied)
+          Segment.emptyIterableIO
         else
           copy(map)
-
-      case IO.Failure(error) =>
-        logger.trace(s"{}: Failed copy forward {} Map. Trying to copy locally.", paths.head, map.pathOption, error.exception)
-        copy(map)
     }
 
-  private def copyForward(map: Map[Slice[Byte], Memory.SegmentResponse]): IO[Iterable[Segment]] = {
-    logger.trace(s"{}: Copying forward {} Map", paths.head, map.pathOption)
-    //    nextLevel map {
-    //      nextLevel =>
-    //        nextLevel.put(map, copyOnly = true) match {
-    //          case copied @ IO.Success(_) =>
-    //            IO.Success(copied)
-    //
-    //          case IO.Later(_, _) | IO.Failure(_) =>
-    //            Segment.emptyIterableIO
-    //
-    //        }
-    //
-    //    } getOrElse Segment.emptyIterableIO
-    ???
+  /**
+    * Returns segments that were not forwarded.
+    */
+  private def forward(map: Map[Slice[Byte], Memory.SegmentResponse]): IO[Boolean] = {
+    logger.trace(s"{}: forwarding {} Map", paths.head, map.pathOption)
+    nextLevel map {
+      nextLevel =>
+        if (!nextLevel.isCopyable(map))
+          IO.`false`
+        else
+          nextLevel.put(map) match {
+            case IO.Success(_) =>
+              IO.`true`
+
+            case IO.Later(_, _) | IO.Failure(_) =>
+              IO.`false`
+          }
+    } getOrElse IO.`false`
   }
 
   private[level] def copy(map: Map[Slice[Byte], Memory.SegmentResponse]): IO[Iterable[Segment]] = {
