@@ -161,7 +161,6 @@ private[core] object Level extends LazyLogging {
                   else
                     IO.unit
 
-
                 deletedUnCommittedSegments map {
                   _ =>
                     new Level(
@@ -232,7 +231,6 @@ private[core] object Level extends LazyLogging {
 
     getLevels(Some(level), Seq.empty)
   }
-
 }
 
 private[core] class Level(val dirs: Seq[Dir],
@@ -415,24 +413,31 @@ private[core] class Level(val dirs: Seq[Dir],
     if (segmentsToCopy.nonEmpty)
       copyForwardOrCopyLocal(segmentsToCopy) flatMap {
         newlyCopiedSegments =>
-          buildNewMapEntry(newlyCopiedSegments, None, None) flatMap {
-            copiedSegmentsEntry =>
-              val putResult: IO[Unit] =
-                if (segmentsToMerge.nonEmpty)
-                  merge(
-                    segments = segmentsToMerge,
-                    targetSegments = targetSegments,
-                    appendEntry = Some(copiedSegmentsEntry)
-                  )
-                else
-                  appendix.write(copiedSegmentsEntry) map (_ => ())
+          if (newlyCopiedSegments.nonEmpty) //all Segments were copied.
+            buildNewMapEntry(newlyCopiedSegments, None, None) flatMap {
+              copiedSegmentsEntry =>
+                val putResult: IO[Unit] =
+                  if (segmentsToMerge.nonEmpty)
+                    merge(
+                      segments = segmentsToMerge,
+                      targetSegments = targetSegments,
+                      appendEntry = Some(copiedSegmentsEntry)
+                    )
+                  else
+                    appendix.write(copiedSegmentsEntry) map (_ => ())
 
-              putResult onFailureSideEffect {
-                failure =>
-                  logFailure(s"${paths.head}: Failed to create a log entry. Deleting ${newlyCopiedSegments.size} copied segments", failure)
-                  deleteCopiedSegments(newlyCopiedSegments)
-              }
-          }
+                putResult onFailureSideEffect {
+                  failure =>
+                    logFailure(s"${paths.head}: Failed to create a log entry. Deleting ${newlyCopiedSegments.size} copied segments", failure)
+                    deleteCopiedSegments(newlyCopiedSegments)
+                }
+            }
+          else
+            merge( //no segments were copied. Do merge!
+              segments = segmentsToMerge,
+              targetSegments = targetSegments,
+              appendEntry = None
+            )
       }
     else
       merge(
@@ -577,7 +582,7 @@ private[core] class Level(val dirs: Seq[Dir],
       nextLevel =>
         val (copyable, nonCopyable) = nextLevel partitionUnreservedCopyable segments
         if (copyable.isEmpty)
-          IO.Success(nonCopyable)
+          IO.Success(segments)
         else
           nextLevel.put(copyable) match {
             case IO.Success(_) =>
@@ -817,7 +822,6 @@ private[core] class Level(val dirs: Seq[Dir],
 
                 case None =>
                   IO.Failure(new Exception(s"${paths.head}: Failed to create map entry"))
-
               } onFailureSideEffect {
                 failure =>
                   logFailure(s"${paths.head}: Failed to write key-values. Reverting", failure)
@@ -864,7 +868,6 @@ private[core] class Level(val dirs: Seq[Dir],
                       logger.error(s"{}: Failed to delete Segment '{}' in recovery for putAssignedKeyValues", paths.head, segment.path, exception)
                   }
               }
-
           }
         }
     )

@@ -136,13 +136,19 @@ object TestData {
       tryReopen()
 
     def reopen(segmentSize: Long = level.segmentSize,
-               throttle: LevelMeter => Throttle = level.throttle)(implicit keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
-                                                                  fileOpenLimiter: FileLimiter = fileOpenLimiter): Level =
-      tryReopen(segmentSize, throttle).assertGet
+               throttle: LevelMeter => Throttle = level.throttle,
+               nextLevel: Option[Level] = level.nextLevel)(implicit keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
+                                                           fileOpenLimiter: FileLimiter = fileOpenLimiter): Level =
+      tryReopen(
+        segmentSize = segmentSize,
+        throttle = throttle,
+        nextLevel = nextLevel
+      ).assertGet
 
     def tryReopen(segmentSize: Long = level.segmentSize,
-                  throttle: LevelMeter => Throttle = level.throttle)(implicit keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
-                                                                     fileOpenLimiter: FileLimiter = fileOpenLimiter): IO[Level] =
+                  throttle: LevelMeter => Throttle = level.throttle,
+                  nextLevel: Option[Level] = level.nextLevel)(implicit keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
+                                                              fileOpenLimiter: FileLimiter = fileOpenLimiter): IO[Level] =
       level.releaseLocks flatMap {
         _ =>
           level.closeSegments flatMap {
@@ -156,13 +162,13 @@ object TestData {
                 ),
                 appendixStorage = AppendixStorage.Persistent(mmap = true, 4.mb),
                 segmentSize = segmentSize,
-                nextLevel = level.nextLevel,
+                nextLevel = nextLevel,
                 pushForward = level.pushForward,
                 bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
                 throttle = throttle,
                 compressDuplicateValues = level.compressDuplicateValues,
                 deleteSegmentsEventually = level.deleteSegmentsEventually
-              ).map(_.asInstanceOf[Level])
+              )
           }
       }
   }
@@ -322,7 +328,6 @@ object TestData {
 
         case _ =>
           toMemoryResponse
-
       }
     }
   }
@@ -1296,7 +1301,6 @@ object TestData {
                 key += 1
           }
         }
-
       } else if (addRandomRanges && randomBoolean()) {
         val toKey = key + 10
         val fromValueValueBytes = eitherOne(None, Some(randomBytesSlice(valueSize)))
@@ -1832,7 +1836,6 @@ object TestData {
         time = testTimer.next,
         compressDuplicateValues = compressDuplicateValues
       )
-
   }
 
   implicit class ValueUpdateTypeImplicits(remove: Value.type) {

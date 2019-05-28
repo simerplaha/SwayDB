@@ -89,7 +89,7 @@ db
 
 Undergoing integration, stress & performance testing. 
 
-# Master branch  status
+# Master branch status
 
 Development is done directly on master. So at times it will be unstable. 
 See the tags to get a more stable version.

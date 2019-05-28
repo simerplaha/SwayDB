@@ -972,19 +972,19 @@ object CommonAssertions {
     val keyValuesToAssert = shuffleTake.map(Random.shuffle(unzipedKeyValues).take) getOrElse unzipedKeyValues
     keyValuesToAssert foreach {
       keyValue =>
-        try {
-          //          println(keyValue.key.readInt())
-          level.higher(keyValue.key).assertGetOpt shouldBe empty
-          //          println
-        } catch {
-          case ex: Exception =>
-            println(
-              "Test failed for key: " + keyValue.key.readInt() +
-                s" indexEntryDeadline: ${keyValue.toMemory.indexEntryDeadline.map(_.hasTimeLeft())}" +
-                s" class: ${keyValue.getClass.getSimpleName}"
-            )
-            throw ex
-        }
+        //        try {
+        //          println(keyValue.key.readInt())
+        level.higher(keyValue.key).assertGetOpt shouldBe empty
+      //          println
+      //        } catch {
+      //          case ex: Exception =>
+      //            println(
+      //              "Test failed for key: " + keyValue.key.readInt() +
+      //                s" indexEntryDeadline: ${keyValue.toMemory.indexEntryDeadline.map(_.hasTimeLeft())}" +
+      //                s" class: ${keyValue.getClass.getSimpleName}"
+      //            )
+      //            throw ex
+      //        }
     }
   }
 
@@ -1458,7 +1458,6 @@ object CommonAssertions {
             _minKey.shouldBeSliced()
             _maxKey.maxKey.shouldBeSliced()
             lazyGroupValueReader.getOrFetchValue.safeGetBlocking().assertGet.shouldBeSliced()
-
         }
     }
 }
