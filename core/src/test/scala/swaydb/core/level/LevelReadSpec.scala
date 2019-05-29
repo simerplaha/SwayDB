@@ -158,22 +158,4 @@ sealed trait LevelReadSpec extends TestBase with MockFactory with Benchmark {
       level1.meterFor(3) shouldBe empty
     }
   }
-
-  "getLevels" should {
-    "return all levels" in {
-      val level3 = TestLevel()
-      val level2 = TestLevel(nextLevel = Some(level3))
-      val level1 = TestLevel(nextLevel = Some(level2))
-      val level0 = TestLevelZero(nextLevel = Some(level1))
-
-      val allPaths = Seq(level0, level1, level2, level3).map(_.rootPath)
-
-      Level.getLevels(level0).map(_.rootPath) shouldBe allPaths
-      Level.getLevels(level1).map(_.rootPath) shouldBe allPaths.drop(1)
-      Level.getLevels(level2).map(_.rootPath) shouldBe allPaths.drop(2)
-      Level.getLevels(level3).map(_.rootPath) shouldBe allPaths.drop(3)
-
-      level0.close.assertGet
-    }
-  }
 }

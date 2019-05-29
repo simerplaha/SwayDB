@@ -29,6 +29,75 @@ import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.slice.Slice
 
 import scala.annotation.tailrec
+import scala.collection.mutable.ListBuffer
+
+object LevelRef {
+
+  @tailrec
+  def firstPersistentLevel(level: Option[LevelRef]): Option[LevelRef] =
+    level match {
+      case Some(level) =>
+        if (level.inMemory)
+          firstPersistentLevel(level.nextLevel)
+        else
+          Some(level)
+      case None =>
+        None
+    }
+
+  def firstPersistentPath(level: Option[LevelRef]): Option[Path] =
+    firstPersistentLevel(level).map(_.rootPath)
+
+  def hasMMAP(level: Option[LevelRef]): Boolean =
+    firstPersistentLevel(level) exists {
+      case level: Level =>
+        level.mmapSegmentsOnRead || level.mmapSegmentsOnWrite
+
+      case _: LevelZero =>
+        //not true. LevelZero can also be mmap.
+        false
+    }
+
+  def getLevels(level: LevelRef): Seq[LevelRef] = {
+    @tailrec
+    def getLevels(level: Option[LevelRef], levels: Seq[LevelRef]): Seq[LevelRef] =
+      level match {
+        case Some(level) =>
+          getLevels(level.nextLevel, levels :+ level)
+
+        case None =>
+          levels
+      }
+
+    getLevels(Some(level), Seq.empty)
+  }
+
+  def foreach[T](level: LevelRef, f: LevelRef => T): Unit = {
+    f(level)
+    level.nextLevel foreach {
+      nextLevel =>
+        foreach(nextLevel, f)
+    }
+  }
+
+  def foldLeft[T](level: LevelRef, initial: T, f: (T, LevelRef) => T): T = {
+    var currentT = initial
+    level foreachLevel {
+      level =>
+        currentT = f(currentT, level)
+    }
+    currentT
+  }
+
+  def map[T](level: LevelRef, f: LevelRef => T): Seq[T] = {
+    val buffer = ListBuffer.empty[T]
+    level foreachLevel {
+      level =>
+        buffer += f(level)
+    }
+    buffer
+  }
+}
 
 private[core] trait LevelRef {
 
@@ -40,7 +109,7 @@ private[core] trait LevelRef {
 
   def releaseLocks: IO[Unit]
 
-  def nextLevel: Option[Level]
+  def nextLevel: Option[LevelRef]
 
   def segmentsInLevel(): Iterable[Segment]
 
@@ -83,7 +152,16 @@ private[core] trait LevelRef {
 
   def take(count: Int): Slice[Segment]
 
-  def foreach[T](f: (Slice[Byte], Segment) => T)
+  def foreachSegment[T](f: (Slice[Byte], Segment) => T)
+
+  def foreachLevel[T](f: LevelRef => T): Unit =
+    LevelRef.foreach(this, f)
+
+  def foldLeftLevels[T](initial: T)(f: (T, LevelRef) => T): T =
+    LevelRef.foldLeft(this, initial, f)
+
+  def mapLevels[T](f: LevelRef => T): Seq[T] =
+    LevelRef.map(this, f)
 
   def containsSegmentWithMinKey(minKey: Slice[Byte]): Boolean
 
@@ -110,33 +188,4 @@ private[core] trait LevelRef {
   def levelNumber: Long
 
   def isTrash: Boolean
-
-}
-
-object LevelRef {
-
-  @tailrec
-  def firstPersistentLevel(level: Option[LevelRef]): Option[LevelRef] =
-    level match {
-      case Some(level) =>
-        if (level.inMemory)
-          firstPersistentLevel(level.nextLevel)
-        else
-          Some(level)
-      case None =>
-        None
-    }
-
-  def firstPersistentPath(level: Option[LevelRef]): Option[Path] =
-    firstPersistentLevel(level).map(_.rootPath)
-
-  def hasMMAP(level: Option[LevelRef]): Boolean =
-    firstPersistentLevel(level) exists {
-      case level: Level =>
-        level.mmapSegmentsOnRead || level.mmapSegmentsOnWrite
-
-      case _: LevelZero =>
-        //not true. LevelZero can also be mmap.
-        false
-    }
 }

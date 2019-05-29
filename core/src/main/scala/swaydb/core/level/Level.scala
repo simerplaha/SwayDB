@@ -46,7 +46,6 @@ import swaydb.data.slice.Slice
 import swaydb.data.slice.Slice._
 import swaydb.data.storage.{AppendixStorage, LevelStorage}
 
-import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -222,20 +221,6 @@ private[core] object Level extends LazyLogging {
           IO.unit
         }
     } getOrElse IO.unit
-
-  def getLevels(level: LevelRef): Seq[LevelRef] = {
-    @tailrec
-    def getLevels(level: Option[LevelRef], levels: Seq[LevelRef]): Seq[LevelRef] =
-      level match {
-        case Some(level) =>
-          getLevels(level.nextLevel, levels :+ level)
-
-        case None =>
-          levels
-      }
-
-    getLevels(Some(level), Seq.empty)
-  }
 }
 
 private[core] class Level(val dirs: Seq[Dir],
@@ -389,9 +374,7 @@ private[core] class Level(val dirs: Seq[Dir],
     logger.trace(s"{}: Putting segments '{}' segments.", paths.head, segments.map(_.path.toString).toList)
     reserve(segments).asAsync flatMap {
       case Left(future) =>
-        IO.fromFuture {
-          future.map(_ => Segment.emptyIterable)
-        }
+        IO.fromFuture(future)
 
       case Right(minKey) =>
         ensureRelease(minKey) {
@@ -465,9 +448,7 @@ private[core] class Level(val dirs: Seq[Dir],
     logger.trace("{}: PutMap '{}' Maps.", paths.head, map.count())
     reserve(map).asAsync flatMap {
       case Left(future) =>
-        IO.fromFuture {
-          future.map(_ => Segment.emptyIterable)
-        }
+        IO.fromFuture(future)
 
       case Right(minKey) =>
         ensureRelease(minKey) {
@@ -1100,7 +1081,7 @@ private[core] class Level(val dirs: Seq[Dir],
   def segmentFilesInAppendix: Int =
     appendix.count()
 
-  def foreach[T](f: (Slice[Byte], Segment) => T): Unit =
+  def foreachSegment[T](f: (Slice[Byte], Segment) => T): Unit =
     appendix.foreach(f)
 
   def segmentsInLevel(): Iterable[Segment] =

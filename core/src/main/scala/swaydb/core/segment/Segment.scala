@@ -840,7 +840,6 @@ private[core] object Segment extends LazyLogging {
 
       case group: KeyValue.ReadOnly.Group =>
         IO(getNearestDeadline(deadline, group.deadline))
-
     }
 
   def getNearestDeadline(deadline: Option[Deadline],
@@ -922,7 +921,6 @@ private[core] object Segment extends LazyLogging {
             None
         }
     }
-
 }
 
 private[core] trait Segment extends FileLimiterItem {

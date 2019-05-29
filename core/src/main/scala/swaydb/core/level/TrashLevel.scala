@@ -61,7 +61,7 @@ private[core] object TrashLevel extends LevelRef {
   override def take(count: Int): Slice[Segment] =
     Slice.create[Segment](0)
 
-  override def foreach[T](f: (Slice[Byte], Segment) => T): Unit =
+  override def foreachSegment[T](f: (Slice[Byte], Segment) => T): Unit =
     ()
 
   override def containsSegmentWithMinKey(minKey: Slice[Byte]): Boolean =

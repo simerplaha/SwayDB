@@ -442,7 +442,6 @@ private[core] class LevelZero(val path: Path,
           nextLevelLastKey =>
             MinMax.max(lastKeyFromMaps, nextLevelLastKey)(keyOrder).map(floor) getOrElse IO.none
         }
-
     } getOrElse {
       lastKeyFromMaps.map(floor) getOrElse IO.none
     }
@@ -721,8 +720,8 @@ private[core] class LevelZero(val path: Path,
   override def take(count: Int): Slice[Segment] =
     nextLevel.map(_.take(count)) getOrElse Slice.empty
 
-  override def foreach[T](f: (Slice[Byte], Segment) => T): Unit =
-    nextLevel.foreach(_.foreach(f))
+  override def foreachSegment[T](f: (Slice[Byte], Segment) => T): Unit =
+    nextLevel.foreach(_.foreachSegment(f))
 
   override def containsSegmentWithMinKey(minKey: Slice[Byte]): Boolean =
     nextLevel.exists(_.containsSegmentWithMinKey(minKey))
@@ -749,5 +748,4 @@ private[core] class LevelZero(val path: Path,
     false
 
   override def levelNumber: Long = 0
-
 }

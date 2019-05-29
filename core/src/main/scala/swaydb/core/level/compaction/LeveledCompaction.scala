@@ -1,13 +1,8 @@
 package swaydb.core.level.compaction
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.actor.WiredActor
-import swaydb.core.data.Memory
-import swaydb.core.level.Level
 import swaydb.core.level.zero.LevelZero
-import swaydb.core.map.Map
-import swaydb.data.IO
-import swaydb.data.slice.Slice
+import swaydb.core.level.{Level, LevelRef}
 
 import scala.concurrent.ExecutionContext
 
@@ -21,7 +16,7 @@ private[core] object LeveledCompaction extends LazyLogging {
   def create(levelZero: LevelZero,
              maxConcurrentCompactions: Int)(implicit ec: ExecutionContext): Option[LeveledCompaction.State] = {
     //temporarily do typecast. It should actually return a CompactionAPI type.
-    val levels = Level.getLevels(levelZero).drop(1) map (_.asInstanceOf[Level])
+    val levels = LevelRef.getLevels(levelZero).drop(1) map (_.asInstanceOf[Level])
     levels.headOption map {
       nextLevel =>
         new State(
