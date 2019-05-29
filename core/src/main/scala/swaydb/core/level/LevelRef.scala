@@ -80,21 +80,55 @@ object LevelRef {
     }
   }
 
+  def foreachRight[T](level: LevelRef, f: LevelRef => T): Unit = {
+    level.nextLevel foreach {
+      nextLevel =>
+        foreachRight(nextLevel, f)
+    }
+    f(level)
+  }
+
   def foldLeft[T](level: LevelRef, initial: T, f: (T, LevelRef) => T): T = {
     var currentT = initial
-    level foreachLevel {
-      level =>
-        currentT = f(currentT, level)
-    }
+    foreach(
+      level = level,
+      f =
+        level =>
+          currentT = f(currentT, level)
+    )
+    currentT
+  }
+
+  def foldRight[T](level: LevelRef, initial: T, f: (T, LevelRef) => T): T = {
+    var currentT = initial
+    foreachRight(
+      level = level,
+      f =
+        level =>
+          currentT = f(currentT, level)
+    )
     currentT
   }
 
   def map[T](level: LevelRef, f: LevelRef => T): Seq[T] = {
     val buffer = ListBuffer.empty[T]
-    level foreachLevel {
-      level =>
-        buffer += f(level)
-    }
+    foreach(
+      level = level,
+      f =
+        level =>
+          buffer += f(level)
+    )
+    buffer
+  }
+
+  def mapRight[T](level: LevelRef, f: LevelRef => T): Seq[T] = {
+    val buffer = ListBuffer.empty[T]
+    foreachRight(
+      level = level,
+      f =
+        level =>
+          buffer += f(level)
+    )
     buffer
   }
 }
@@ -162,6 +196,25 @@ private[core] trait LevelRef {
 
   def mapLevels[T](f: LevelRef => T): Seq[T] =
     LevelRef.map(this, f)
+
+  def foreachRightLevel[T](f: LevelRef => T): Unit =
+    LevelRef.foreachRight(this, f)
+
+  def foldRightLevels[T](initial: T)(f: (T, LevelRef) => T): T =
+    LevelRef.foldRight(this, initial, f)
+
+  def mapRightLevels[T](f: LevelRef => T): Seq[T] =
+    LevelRef.mapRight(this, f)
+
+  def reverseLevels: ListBuffer[LevelRef] = {
+    val levels = ListBuffer.empty[LevelRef]
+    LevelRef.foreachRight(
+      level = this,
+      f = level =>
+        levels += level
+    )
+    levels
+  }
 
   def containsSegmentWithMinKey(minKey: Slice[Byte]): Boolean
 

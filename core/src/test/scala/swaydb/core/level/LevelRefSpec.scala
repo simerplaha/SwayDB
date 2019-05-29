@@ -74,6 +74,8 @@ class LevelRefSpec extends TestBase with MockFactory {
         }
 
       paths should contain only level.rootPath
+
+      level.close.assertGet
     }
 
     "multi level" in {
@@ -94,6 +96,8 @@ class LevelRefSpec extends TestBase with MockFactory {
       paths(level1) shouldBe allPaths.drop(1)
       paths(level2) shouldBe allPaths.drop(2)
       paths(level3) shouldBe allPaths.drop(3)
+
+      level0.close.assertGet
     }
   }
 
@@ -103,6 +107,7 @@ class LevelRefSpec extends TestBase with MockFactory {
       val paths = level.mapLevels(_.rootPath)
 
       paths should contain only level.rootPath
+      level.close.assertGet
     }
 
     "multi level" in {
@@ -119,6 +124,19 @@ class LevelRefSpec extends TestBase with MockFactory {
       paths(level1) shouldBe allPaths.drop(1)
       paths(level2) shouldBe allPaths.drop(2)
       paths(level3) shouldBe allPaths.drop(3)
+
+      level0.close.assertGet
     }
+  }
+
+  "reversedLevels" in {
+    val level3 = TestLevel()
+    val level2 = TestLevel(nextLevel = Some(level3))
+    val level1 = TestLevel(nextLevel = Some(level2))
+    val level0 = TestLevelZero(nextLevel = Some(level1))
+
+    level0.reverseLevels.map(_.rootPath) shouldBe Seq(level3.rootPath, level2.rootPath, level1.rootPath, level0.rootPath)
+
+    level0.close.assertGet
   }
 }
