@@ -21,9 +21,8 @@ package swaydb.core.level
 
 import java.nio.file.Path
 
-import swaydb.core.data.{KeyValue, Memory}
+import swaydb.core.data.KeyValue
 import swaydb.core.level.zero.LevelZero
-import swaydb.core.map.Map
 import swaydb.core.segment.Segment
 import swaydb.data.IO
 import swaydb.data.compaction.{LevelMeter, Throttle}
@@ -110,7 +109,7 @@ private[core] trait LevelRef {
 
   def releaseLocks: IO[Unit]
 
-  def nextLevel: Option[LevelRef]
+  def nextLevel: Option[NextLevel]
 
   def segmentsInLevel(): Iterable[Segment]
 
@@ -189,14 +188,4 @@ private[core] trait LevelRef {
   def levelNumber: Long
 
   def isTrash: Boolean
-
-  def isCopyable(map: Map[Slice[Byte], Memory.SegmentResponse]): Boolean
-
-  def partitionUnreservedCopyable(segments: Iterable[Segment]): (Iterable[Segment], Iterable[Segment])
-
-  def put(segment: Segment): IO.Async[Unit]
-
-  def put(map: Map[Slice[Byte], Memory.SegmentResponse]): IO.Async[Unit]
-
-  def put(segments: Iterable[Segment]): IO.Async[Unit]
 }

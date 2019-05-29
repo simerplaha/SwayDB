@@ -22,7 +22,6 @@ package swaydb.core.level
 import java.nio.file.{Path, Paths}
 
 import swaydb.core.data.{KeyValue, Memory}
-import swaydb.core.map
 import swaydb.core.segment.Segment
 import swaydb.data.IO
 import swaydb.data.compaction.{LevelMeter, Throttle}
@@ -30,7 +29,7 @@ import swaydb.data.slice.Slice
 
 import scala.concurrent.duration._
 
-private[core] object TrashLevel extends LevelRef {
+private[core] object TrashLevel extends NextLevel {
 
   override val paths: PathsDistributor = PathsDistributor(Seq(), () => Seq())
 
@@ -41,7 +40,7 @@ private[core] object TrashLevel extends LevelRef {
   override val throttle: LevelMeter => Throttle =
     (_) => Throttle(Duration.Zero, 0)
 
-  override val nextLevel: Option[LevelRef] =
+  override val nextLevel: Option[NextLevel] =
     None
 
   override val segmentsInLevel: Iterable[Segment] =

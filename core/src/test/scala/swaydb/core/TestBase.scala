@@ -36,7 +36,7 @@ import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.io.file.{DBFile, IOEffect}
 import swaydb.core.io.reader.FileReader
 import swaydb.core.level.zero.LevelZero
-import swaydb.core.level.{Level, LevelRef}
+import swaydb.core.level.{Level, LevelRef, NextLevel}
 import swaydb.core.map.MapEntry
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment
@@ -285,7 +285,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
     def apply(levelStorage: LevelStorage = levelStorage,
               appendixStorage: AppendixStorage = appendixStorage,
               segmentSize: Long = segmentSize,
-              nextLevel: Option[LevelRef] = None,
+              nextLevel: Option[NextLevel] = None,
               pushForward: Boolean = false,
               throttle: LevelMeter => Throttle = testDefaultThrottle,
               bloomFilterFalsePositiveRate: Double = TestData.falsePositiveRate,

@@ -80,7 +80,7 @@ private[core] object Level extends LazyLogging {
             bloomFilterFalsePositiveRate: Double,
             levelStorage: LevelStorage,
             appendixStorage: AppendixStorage,
-            nextLevel: Option[LevelRef],
+            nextLevel: Option[NextLevel],
             pushForward: Boolean = false,
             throttle: LevelMeter => Throttle,
             compressDuplicateValues: Boolean,
@@ -231,7 +231,7 @@ private[core] class Level(val dirs: Seq[Dir],
                           val segmentSize: Long,
                           val pushForward: Boolean,
                           val throttle: LevelMeter => Throttle,
-                          val nextLevel: Option[LevelRef],
+                          val nextLevel: Option[NextLevel],
                           appendix: Map[Slice[Byte], Segment],
                           lock: Option[FileLock],
                           val compressDuplicateValues: Boolean,
@@ -247,7 +247,7 @@ private[core] class Level(val dirs: Seq[Dir],
                                                              fileOpenLimiter: FileLimiter,
                                                              groupingStrategy: Option[KeyValueGroupingStrategyInternal],
                                                              val segmentIDGenerator: IDGenerator,
-                                                             reserve: ReserveRange.State[Unit]) extends LevelRef with LazyLogging { self =>
+                                                             reserve: ReserveRange.State[Unit]) extends NextLevel with LazyLogging { self =>
 
   logger.info(s"{}: Level started.", paths)
 

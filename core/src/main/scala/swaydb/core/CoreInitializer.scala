@@ -19,21 +19,23 @@
 
 package swaydb.core
 
-import com.typesafe.scalalogging.LazyLogging
 import java.nio.file.Paths
-import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.FiniteDuration
+
+import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
-import swaydb.core.level.zero.LevelZero
-import swaydb.core.level.{Level, LevelRef, TrashLevel}
-import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.io.file.IOEffect._
+import swaydb.core.level.zero.LevelZero
+import swaydb.core.level.{Level, NextLevel, TrashLevel}
+import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.data.IO
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.{AppendixStorage, LevelStorage}
+
+import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.FiniteDuration
 
 private[core] object CoreInitializer extends LazyLogging {
 
@@ -88,8 +90,8 @@ private[core] object CoreInitializer extends LazyLogging {
       KeyValueLimiter(cacheSize, keyValueQueueDelay)
 
     def createLevel(id: Long,
-                    nextLevel: Option[LevelRef],
-                    config: LevelConfig): IO[LevelRef] =
+                    nextLevel: Option[NextLevel],
+                    config: LevelConfig): IO[NextLevel] =
       config match {
         case config: MemoryLevelConfig =>
           implicit val compression: Option[KeyValueGroupingStrategyInternal] = config.groupingStrategy map KeyValueGroupingStrategyInternal.apply
@@ -130,7 +132,7 @@ private[core] object CoreInitializer extends LazyLogging {
       }
 
     def createLevels(levelConfigs: List[LevelConfig],
-                     previousLowerLevel: Option[LevelRef]): IO[BlockingCore[IO]] =
+                     previousLowerLevel: Option[NextLevel]): IO[BlockingCore[IO]] =
       levelConfigs match {
         case Nil =>
           createLevel(1, previousLowerLevel, config.level1) flatMap {

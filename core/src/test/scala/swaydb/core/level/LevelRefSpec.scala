@@ -36,7 +36,7 @@ class LevelRefSpec extends TestBase with MockFactory {
 
     "return first persistent Level" in {
       val level0 = mock[LevelRef]
-      val level1 = mock[LevelRef]
+      val level1 = mock[NextLevel]
 
       level0.inMemory _ expects() returning true
       level0.nextLevel _ expects() returning Some(level1)
