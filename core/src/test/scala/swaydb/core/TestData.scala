@@ -20,7 +20,9 @@
 package swaydb.core
 
 import java.nio.file.{Path, Paths}
+
 import org.scalatest.exceptions.TestFailedException
+
 import scala.annotation.tailrec
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
@@ -36,7 +38,7 @@ import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
-import swaydb.core.level.Level
+import swaydb.core.level.{Level, LevelRef}
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.map.serializer.RangeValueSerializer
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
@@ -137,8 +139,8 @@ object TestData {
 
     def reopen(segmentSize: Long = level.segmentSize,
                throttle: LevelMeter => Throttle = level.throttle,
-               nextLevel: Option[Level] = level.nextLevel)(implicit keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
-                                                           fileOpenLimiter: FileLimiter = fileOpenLimiter): Level =
+               nextLevel: Option[LevelRef] = level.nextLevel)(implicit keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
+                                                              fileOpenLimiter: FileLimiter = fileOpenLimiter): Level =
       tryReopen(
         segmentSize = segmentSize,
         throttle = throttle,
@@ -147,8 +149,8 @@ object TestData {
 
     def tryReopen(segmentSize: Long = level.segmentSize,
                   throttle: LevelMeter => Throttle = level.throttle,
-                  nextLevel: Option[Level] = level.nextLevel)(implicit keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
-                                                              fileOpenLimiter: FileLimiter = fileOpenLimiter): IO[Level] =
+                  nextLevel: Option[LevelRef] = level.nextLevel)(implicit keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
+                                                                 fileOpenLimiter: FileLimiter = fileOpenLimiter): IO[Level] =
       level.releaseLocks flatMap {
         _ =>
           level.closeSegments flatMap {

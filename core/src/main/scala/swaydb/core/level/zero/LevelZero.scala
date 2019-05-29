@@ -50,12 +50,13 @@ import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 import scala.concurrent.duration.{Deadline, _}
 import scala.concurrent.{ExecutionContext, Future}
+import IO._
 
 private[core] object LevelZero extends LazyLogging {
 
   def apply(mapSize: Long,
             storage: Level0Storage,
-            nextLevel: Option[Level],
+            nextLevel: Option[LevelRef],
             acceleration: Level0Meter => Accelerator,
             throttleOn: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                  timeOrder: TimeOrder[Slice[Byte]],
@@ -126,7 +127,7 @@ private[core] class LevelZero(val path: Path,
                               mapSize: Long,
                               val maps: Maps[Slice[Byte], Memory.SegmentResponse],
                               val throttleOn: Boolean,
-                              val nextLevel: Option[Level],
+                              val nextLevel: Option[LevelRef],
                               val inMemory: Boolean,
                               lock: Option[FileLock])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                       timeOrder: TimeOrder[Slice[Byte]],
@@ -748,4 +749,19 @@ private[core] class LevelZero(val path: Path,
     false
 
   override def levelNumber: Long = 0
+
+  override def isCopyable(map: swaydb.core.map.Map[Slice[Byte], Memory.SegmentResponse]): Boolean =
+    false
+
+  override def partitionUnreservedCopyable(segments: Iterable[Segment]): (Iterable[Segment], Iterable[Segment]) =
+    (Iterable.empty, segments)
+
+  override def put(segment: Segment): IO.Async[Unit] =
+    IO.notImplemented.asAsync
+
+  override def put(map: swaydb.core.map.Map[Slice[Byte], Memory.SegmentResponse]): IO.Async[Unit] =
+    IO.notImplemented.asAsync
+
+  override def put(segments: Iterable[Segment]): IO.Async[Unit] =
+    IO.notImplemented.asAsync
 }

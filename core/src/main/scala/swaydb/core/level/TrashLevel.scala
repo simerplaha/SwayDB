@@ -21,7 +21,8 @@ package swaydb.core.level
 
 import java.nio.file.{Path, Paths}
 
-import swaydb.core.data.KeyValue
+import swaydb.core.data.{KeyValue, Memory}
+import swaydb.core.map
 import swaydb.core.segment.Segment
 import swaydb.data.IO
 import swaydb.data.compaction.{LevelMeter, Throttle}
@@ -40,7 +41,7 @@ private[core] object TrashLevel extends LevelRef {
   override val throttle: LevelMeter => Throttle =
     (_) => Throttle(Duration.Zero, 0)
 
-  override val nextLevel: Option[Level] =
+  override val nextLevel: Option[LevelRef] =
     None
 
   override val segmentsInLevel: Iterable[Segment] =
@@ -141,4 +142,19 @@ private[core] object TrashLevel extends LevelRef {
   override def levelNumber: Long = -1
 
   override def inMemory: Boolean = true
+
+  override def isCopyable(map: swaydb.core.map.Map[Slice[Byte], Memory.SegmentResponse]): Boolean =
+    true
+
+  override def partitionUnreservedCopyable(segments: Iterable[Segment]): (Iterable[Segment], Iterable[Segment]) =
+    (segments, Iterable.empty)
+
+  override def put(segment: Segment): IO.Async[Unit] =
+    IO.unit
+
+  override def put(map: swaydb.core.map.Map[Slice[Byte], Memory.SegmentResponse]): IO.Async[Unit] =
+    IO.unit
+
+  override def put(segments: Iterable[Segment]): IO.Async[Unit] =
+    IO.unit
 }

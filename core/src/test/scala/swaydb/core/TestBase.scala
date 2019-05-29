@@ -285,7 +285,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
     def apply(levelStorage: LevelStorage = levelStorage,
               appendixStorage: AppendixStorage = appendixStorage,
               segmentSize: Long = segmentSize,
-              nextLevel: Option[Level] = None,
+              nextLevel: Option[LevelRef] = None,
               pushForward: Boolean = false,
               throttle: LevelMeter => Throttle = testDefaultThrottle,
               bloomFilterFalsePositiveRate: Double = TestData.falsePositiveRate,

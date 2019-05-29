@@ -83,6 +83,7 @@ object IO {
   val emptyBytes = IO.Success(Slice.emptyBytes)
   val emptySeqBytes = IO.Success(Seq.empty[Slice[Byte]])
   val ok = IO.Success(OK)
+  val notImplemented = IO.Failure(new NotImplementedError())
 
   private[swaydb] sealed trait Async[+T] {
     def isFailure: Boolean

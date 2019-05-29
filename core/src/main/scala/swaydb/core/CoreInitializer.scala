@@ -88,8 +88,8 @@ private[core] object CoreInitializer extends LazyLogging {
       KeyValueLimiter(cacheSize, keyValueQueueDelay)
 
     def createLevel(id: Long,
-                    nextLevel: Option[Level],
-                    config: LevelConfig): IO[Level] =
+                    nextLevel: Option[LevelRef],
+                    config: LevelConfig): IO[LevelRef] =
       config match {
         case config: MemoryLevelConfig =>
           implicit val compression: Option[KeyValueGroupingStrategyInternal] = config.groupingStrategy map KeyValueGroupingStrategyInternal.apply
@@ -126,12 +126,11 @@ private[core] object CoreInitializer extends LazyLogging {
           )
 
         case TrashLevelConfig =>
-          //          IO.Success(TrashLevel)
-          ???
+          IO.Success(TrashLevel)
       }
 
     def createLevels(levelConfigs: List[LevelConfig],
-                     previousLowerLevel: Option[Level]): IO[BlockingCore[IO]] =
+                     previousLowerLevel: Option[LevelRef]): IO[BlockingCore[IO]] =
       levelConfigs match {
         case Nil =>
           createLevel(1, previousLowerLevel, config.level1) flatMap {
@@ -165,5 +164,4 @@ private[core] object CoreInitializer extends LazyLogging {
     logger.info(s"Starting ${config.otherLevels.size} configured Levels.")
     createLevels(config.otherLevels.reverse, None)
   }
-
 }
