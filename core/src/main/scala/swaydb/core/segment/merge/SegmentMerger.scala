@@ -365,7 +365,6 @@ private[core] object SegmentMerger extends LazyLogging {
                       case IO.Failure(exception) =>
                         IO.Failure(exception)
                     }
-
                 }
 
               case IO.Success((newRangeFromValue, newRangeRangeValue)) => //split required.

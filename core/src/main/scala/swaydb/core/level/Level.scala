@@ -54,22 +54,28 @@ import scala.concurrent.{ExecutionContext, Future}
 
 private[core] object Level extends LazyLogging {
 
-  def acquireLock(levelStorage: LevelStorage): IO[Option[FileLock]] =
-    if (levelStorage.persistent)
-      IO {
-        IOEffect createDirectoriesIfAbsent levelStorage.dir
-        val lockFile = levelStorage.dir.resolve("LOCK")
-        logger.info("{}: Acquiring lock.", lockFile)
-        IOEffect createFileIfAbsent lockFile
-        val lock = FileChannel.open(lockFile, StandardOpenOption.WRITE).tryLock()
-        levelStorage.dirs foreach {
-          dir =>
-            IOEffect createDirectoriesIfAbsent dir.path
-        }
-        Some(lock)
+  def acquireLock(storage: LevelStorage.Persistent): IO[Option[FileLock]] =
+    IO {
+      IOEffect createDirectoriesIfAbsent storage.dir
+      val lockFile = storage.dir.resolve("LOCK")
+      logger.info("{}: Acquiring lock.", lockFile)
+      IOEffect createFileIfAbsent lockFile
+      val lock = FileChannel.open(lockFile, StandardOpenOption.WRITE).tryLock()
+      storage.dirs foreach {
+        dir =>
+          IOEffect createDirectoriesIfAbsent dir.path
       }
-    else
-      IO.none
+      Some(lock)
+    }
+
+  def acquireLock(levelStorage: LevelStorage): IO[Option[FileLock]] =
+    levelStorage match {
+      case persistent: LevelStorage.Persistent =>
+        acquireLock(persistent)
+
+      case _: LevelStorage.Memory =>
+        IO.none
+    }
 
   def apply(segmentSize: Long,
             bloomFilterFalsePositiveRate: Double,

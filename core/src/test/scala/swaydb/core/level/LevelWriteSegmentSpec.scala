@@ -90,6 +90,7 @@ sealed trait LevelWriteSegmentSpec extends TestBase with MockFactory {
         segment.close.assertGet
         level.put(segment).assertGet
         assertReads(keyValues, level)
+        level.close.assertGet
       }
 
       "level is non-empty" in {
@@ -416,6 +417,7 @@ sealed trait LevelWriteSegmentSpec extends TestBase with MockFactory {
         assertGetFromThisLevelOnly(keyValues, level) //all key-values get persisted into upper level.
         //segment2's key-values still readable from upper Level since they were copied locally.
         assertGetFromThisLevelOnly(keyValues2.head, level) //all key-values get persisted into upper level.
+        assertGetNoneFromThisLevelOnly(keyValues2.last, level) //they were copied to lower level.
       }
 
       "lower level can copy all Segments but fails to copy" in {
@@ -428,23 +430,23 @@ sealed trait LevelWriteSegmentSpec extends TestBase with MockFactory {
         //write non-overlapping key-values
         val nextMaxKey = keyValues.last.key.readInt() + 1000
         val keyValues2 = randomIntKeyStringValues(keyValuesCount, startId = Some(nextMaxKey))
-        val segment2 = TestSegment(keyValues2).assertGet
+        val segment = TestSegment(keyValues2).assertGet
 
         nextLevel.partitionUnreservedCopyable _ expects * onCall { //check if it can copied into next Level
           segments: Iterable[Segment] =>
             segments should have size 1
-            segments.head.path shouldBe segment2.path //new segments gets requested to push forward.
+            segments.head.path shouldBe segment.path //new segments gets requested to push forward.
             (segments, Iterable.empty)
         }
 
         (nextLevel.put(_: Iterable[Segment])) expects * onCall { //copy into next Level
           segments: Iterable[Segment] =>
             segments should have size 1
-            segments.head.path shouldBe segment2.path
+            segments.head.path shouldBe segment.path
             IO.Failure(new Exception("Kaboom!!")) //fail to copy, upper level will continue copying in it's Level.
         }
 
-        level.put(segment2).assertGet
+        level.put(segment).assertGet
 
         assertGetFromThisLevelOnly(keyValues, level) //all key-values get persisted into upper level.
         assertGetFromThisLevelOnly(keyValues2, level) //all key-values get persisted into upper level.
