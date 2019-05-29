@@ -122,7 +122,6 @@ private[core] object Level extends LazyLogging {
                 logger.info("{}: Failed to start Level. Appendix file is missing", appendixFolder)
                 IO.Failure(new IllegalStateException(s"Failed to start Level. Appendix file is missing '$appendixFolder'."))
               } else {
-
                 IOEffect createDirectoriesIfAbsent appendixFolder
                 Map.persistent[Slice[Byte], Segment](
                   folder = appendixFolder,

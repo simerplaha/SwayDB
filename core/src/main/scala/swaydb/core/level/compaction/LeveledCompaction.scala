@@ -19,28 +19,21 @@ private[core] object LeveledCompaction extends LazyLogging {
               var runningCompactions: Int)
 
   def create(levelZero: LevelZero,
-             maxConcurrentCompactions: Int)(implicit ec: ExecutionContext): Option[WiredActor[LeveledCompaction.type, State]] = {
+             maxConcurrentCompactions: Int)(implicit ec: ExecutionContext): Option[LeveledCompaction.State] = {
     //temporarily do typecast. It should actually return a CompactionAPI type.
     val levels = Level.getLevels(levelZero).drop(1) map (_.asInstanceOf[Level])
     levels.headOption map {
       nextLevel =>
-        WiredActor(
-          impl = LeveledCompaction,
-          state =
-            new State(
-              levelZero = levelZero,
-              nextLevel = nextLevel,
-              maxConcurrentCompactions = maxConcurrentCompactions,
-              runningCompactions = 0
-            )
+        new State(
+          levelZero = levelZero,
+          nextLevel = nextLevel,
+          maxConcurrentCompactions = maxConcurrentCompactions,
+          runningCompactions = 0
         )
     }
   }
 
-  private[compaction] def put(map: Map[Slice[Byte], Memory.SegmentResponse],
-                              level: Level,
-                              state: State): IO[Unit] =
-    ???
+  def score(state: State) = ???
 
   def startCompaction(state: State) = {
     ???
