@@ -156,4 +156,7 @@ private[core] object TrashLevel extends NextLevel {
 
   override def put(segments: Iterable[Segment]): IO.Async[Unit] =
     IO.unit
+
+  override def removeSegments(segments: Iterable[Segment]): IO[Int] =
+    IO(segments.size)
 }

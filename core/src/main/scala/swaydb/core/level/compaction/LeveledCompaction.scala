@@ -27,11 +27,5 @@ private[core] object LeveledCompaction extends LazyLogging {
         )
     }
   }
-
-  def score(state: State) = ???
-
-  def startCompaction(state: State) = {
-    ???
-  }
 }
 
