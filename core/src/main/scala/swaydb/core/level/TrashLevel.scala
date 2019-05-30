@@ -159,4 +159,13 @@ private[core] object TrashLevel extends NextLevel {
 
   override def removeSegments(segments: Iterable[Segment]): IO[Int] =
     IO(segments.size)
+
+  override def isUnReserved(minKey: Slice[Byte], maxKey: Slice[Byte]): Boolean =
+    true
+
+  override def isCopyable(minKey: Slice[Byte], maxKey: Slice[Byte]): Boolean =
+    true
+
+  override def meter: LevelMeter =
+    LevelMeter(0, 0)
 }

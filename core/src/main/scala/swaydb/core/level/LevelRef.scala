@@ -58,9 +58,9 @@ object LevelRef {
         false
     }
 
-  def getLevels(level: LevelRef): Seq[LevelRef] = {
+  def getLevels(level: LevelRef): List[LevelRef] = {
     @tailrec
-    def getLevels(level: Option[LevelRef], levels: Seq[LevelRef]): Seq[LevelRef] =
+    def getLevels(level: Option[LevelRef], levels: List[LevelRef]): List[LevelRef] =
       level match {
         case Some(level) =>
           getLevels(level.nextLevel, levels :+ level)
@@ -69,7 +69,7 @@ object LevelRef {
           levels
       }
 
-    getLevels(Some(level), Seq.empty)
+    getLevels(Some(level), List.empty)
   }
 
   def foreach[T](level: LevelRef, f: LevelRef => T): Unit = {

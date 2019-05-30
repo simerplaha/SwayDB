@@ -4,6 +4,7 @@ import swaydb.core.data.Memory
 import swaydb.core.map.Map
 import swaydb.core.segment.Segment
 import swaydb.data.IO
+import swaydb.data.compaction.LevelMeter
 import swaydb.data.slice.Slice
 
 import scala.collection.mutable.ListBuffer
@@ -34,6 +35,10 @@ object NextLevel {
   */
 trait NextLevel extends LevelRef {
 
+  def isUnReserved(minKey: Slice[Byte], maxKey: Slice[Byte]): Boolean
+
+  def isCopyable(minKey: Slice[Byte], maxKey: Slice[Byte]): Boolean
+
   def isCopyable(map: Map[Slice[Byte], Memory.SegmentResponse]): Boolean
 
   def partitionUnreservedCopyable(segments: Iterable[Segment]): (Iterable[Segment], Iterable[Segment])
@@ -45,6 +50,8 @@ trait NextLevel extends LevelRef {
   def put(segments: Iterable[Segment]): IO.Async[Unit]
 
   def removeSegments(segments: Iterable[Segment]): IO[Int]
+
+  def meter: LevelMeter
 
   def reverseNextLevels: ListBuffer[NextLevel] = {
     val levels = ListBuffer.empty[NextLevel]

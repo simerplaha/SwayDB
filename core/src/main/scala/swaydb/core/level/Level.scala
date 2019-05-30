@@ -223,31 +223,31 @@ private[core] object Level extends LazyLogging {
     } getOrElse IO.unit
 }
 
-private[core] class Level(val dirs: Seq[Dir],
-                          bloomFilterFalsePositiveRate: Double,
-                          val mmapSegmentsOnWrite: Boolean,
-                          val mmapSegmentsOnRead: Boolean,
-                          val inMemory: Boolean,
-                          val segmentSize: Long,
-                          val pushForward: Boolean,
-                          val throttle: LevelMeter => Throttle,
-                          val nextLevel: Option[NextLevel],
-                          appendix: Map[Slice[Byte], Segment],
-                          lock: Option[FileLock],
-                          val compressDuplicateValues: Boolean,
-                          val deleteSegmentsEventually: Boolean,
-                          val paths: PathsDistributor,
-                          val removeDeletedRecords: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                             timeOrder: TimeOrder[Slice[Byte]],
-                                                             functionStore: FunctionStore,
-                                                             ec: ExecutionContext,
-                                                             removeWriter: MapEntryWriter[MapEntry.Remove[Slice[Byte]]],
-                                                             addWriter: MapEntryWriter[MapEntry.Put[Slice[Byte], Segment]],
-                                                             keyValueLimiter: KeyValueLimiter,
-                                                             fileOpenLimiter: FileLimiter,
-                                                             groupingStrategy: Option[KeyValueGroupingStrategyInternal],
-                                                             val segmentIDGenerator: IDGenerator,
-                                                             reserve: ReserveRange.State[Unit]) extends NextLevel with LazyLogging { self =>
+private[core] case class Level(dirs: Seq[Dir],
+                               bloomFilterFalsePositiveRate: Double,
+                               mmapSegmentsOnWrite: Boolean,
+                               mmapSegmentsOnRead: Boolean,
+                               inMemory: Boolean,
+                               segmentSize: Long,
+                               pushForward: Boolean,
+                               throttle: LevelMeter => Throttle,
+                               nextLevel: Option[NextLevel],
+                               private val appendix: Map[Slice[Byte], Segment],
+                               private val lock: Option[FileLock],
+                               compressDuplicateValues: Boolean,
+                               deleteSegmentsEventually: Boolean,
+                               paths: PathsDistributor,
+                               removeDeletedRecords: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                              timeOrder: TimeOrder[Slice[Byte]],
+                                                              functionStore: FunctionStore,
+                                                              ec: ExecutionContext,
+                                                              removeWriter: MapEntryWriter[MapEntry.Remove[Slice[Byte]]],
+                                                              addWriter: MapEntryWriter[MapEntry.Put[Slice[Byte], Segment]],
+                                                              keyValueLimiter: KeyValueLimiter,
+                                                              fileOpenLimiter: FileLimiter,
+                                                              groupingStrategy: Option[KeyValueGroupingStrategyInternal],
+                                                              val segmentIDGenerator: IDGenerator,
+                                                              reserve: ReserveRange.State[Unit]) extends NextLevel with LazyLogging { self =>
 
   logger.info(s"{}: Level started.", paths)
 
@@ -361,11 +361,17 @@ private[core] class Level(val dirs: Seq[Dir],
         ReserveRange.isUnreserved(segment.minKey, segment.maxKey.maxKey) && !Segment.overlaps(segment, segmentsInLevel())
     }
 
+  def isCopyable(minKey: Slice[Byte], maxKey: Slice[Byte]): Boolean =
+    ReserveRange.isUnreserved(minKey, maxKey) && !Segment.overlaps(minKey, maxKey, segmentsInLevel())
+
   def isCopyable(map: Map[Slice[Byte], Memory.SegmentResponse]): Boolean =
     Segment.minMaxKey(map) forall {
       case (minKey, maxKey) =>
-        ReserveRange.isUnreserved(minKey, maxKey) && !Segment.overlaps(map, segmentsInLevel())
+        isCopyable(minKey, maxKey)
     }
+
+  def isUnReserved(minKey: Slice[Byte], maxKey: Slice[Byte]): Boolean =
+    ReserveRange.isUnreserved(minKey, maxKey)
 
   def put(segment: Segment): IO.Async[Unit] =
     put(Seq(segment))
