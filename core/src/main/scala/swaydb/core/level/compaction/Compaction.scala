@@ -1,5 +1,6 @@
 package swaydb.core.level.compaction
 
+import java.util.TimerTask
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -13,42 +14,46 @@ import swaydb.data.IO
 import swaydb.data.slice.Slice
 
 import scala.annotation.tailrec
+import scala.concurrent.duration.{FiniteDuration, _}
 import scala.concurrent.{ExecutionContext, Future}
-import scala.concurrent.duration.FiniteDuration
+
+object State {
+  def apply(zero: LevelZero,
+            running: AtomicBoolean,
+            compactionStates: ConcurrentHashMap[LevelRef, CompactionState],
+            concurrentCompactions: Int): State =
+    new State(
+      zero = zero,
+      levels = LevelRef.getLevels(zero),
+      running = running,
+      zeroReady = new AtomicBoolean(true),
+      concurrentCompactions = concurrentCompactions,
+      sleepTask = None,
+      compactionStates = compactionStates
+    )
+}
 
 /**
-  * Implements functions to execution Compaction on [[Compaction.State]].
+  * The state of compaction.
+  */
+case class State(zero: LevelZero,
+                 levels: List[LevelRef],
+                 running: AtomicBoolean,
+                 zeroReady: AtomicBoolean,
+                 concurrentCompactions: Int,
+                 @volatile var sleepTask: Option[TimerTask],
+                 compactionStates: ConcurrentHashMap[LevelRef, CompactionState])
+
+/**
+  * Implements functions to execution Compaction on [[State]].
   * Once executed Compaction will run infinitely until shutdown.
   *
   * The speed of compaction depends on [[swaydb.core.level.Level.throttle]] which
   * is used to determine how overflow is a Level and how often should compaction run.
   */
-object Compaction extends LazyLogging {
+object Compaction extends CompactionStrategy[State] with LazyLogging {
 
-  object State {
-    def apply(zero: LevelZero,
-              running: AtomicBoolean,
-              compactionStates: ConcurrentHashMap[LevelRef, CompactionState],
-              concurrentCompactions: Int): State =
-      new State(
-        zero = zero,
-        levels = LevelRef.getLevels(zero),
-        running = running,
-        zeroReady = new AtomicBoolean(true),
-        concurrentCompactions = concurrentCompactions,
-        compactionStates = compactionStates
-      )
-  }
-
-  /**
-    * The state of compaction.
-    */
-  case class State(zero: LevelZero,
-                   levels: List[LevelRef],
-                   running: AtomicBoolean,
-                   zeroReady: AtomicBoolean,
-                   concurrentCompactions: Int,
-                   compactionStates: ConcurrentHashMap[LevelRef, CompactionState])
+  val awaitPullTimeout = 30.seconds.fromNow
 
   def copyAndStart(state: State)(implicit ordering: Ordering[LevelRef],
                                  ec: ExecutionContext): IO[Unit] =
@@ -64,6 +69,12 @@ object Compaction extends LazyLogging {
       copyForwardSynchronously = true
     )
 
+  def zeroReady(state: State)(implicit ordering: Ordering[LevelRef],
+                              ec: ExecutionContext): Unit = {
+    state.zeroReady.compareAndSet(false, true)
+    wakeUp(state)
+  }
+
   private def start(state: State,
                     copyForwardSynchronously: Boolean)(implicit ordering: Ordering[LevelRef],
                                                        ec: ExecutionContext): IO[Unit] =
@@ -74,13 +85,7 @@ object Compaction extends LazyLogging {
             val totalCopies = copyForwardAllLazy(level)
             logger.debug(s"Compaction copied $totalCopies. Starting compaction!")
           }
-          Future(
-            runJobs(
-              state = state,
-              currentJobs = state.levels.sorted,
-              iterationNumber = 1
-            )
-          )
+          Future(wakeUp(state))
           IO.unit
 
         case TrashLevel =>
@@ -89,26 +94,39 @@ object Compaction extends LazyLogging {
     else
       IO.unit
 
-  def zeroReady(state: State)(implicit ordering: Ordering[LevelRef],
-                              ec: ExecutionContext): Unit = {
-    state.zeroReady.compareAndSet(false, true)
-    if (state.running.compareAndSet(false, true))
-      runJobs(
-        state = state,
-        currentJobs = state.levels.sorted,
-        iterationNumber = 1
-      )
+  /**
+    * Mutates current state. Do not create copies for memory sake.
+    */
+  private[compaction] def resetState(state: State): State = {
+    state.sleepTask.foreach(_.cancel())
+    state.sleepTask = None
+    state
   }
+
+  private[compaction] def wakeUp(state: State)(implicit ordering: Ordering[LevelRef],
+                                               ec: ExecutionContext): Unit =
+    if (state.running.compareAndSet(false, true)) {
+      val newState = resetState(state)
+      runJobs(
+        state = newState,
+        currentJobs = newState.levels.sorted,
+        iterationNumber = 1,
+        sleep = None
+      )
+    }
 
   private[compaction] def sleep(state: State,
                                 duration: FiniteDuration)(implicit ordering: Ordering[LevelRef],
                                                           ec: ExecutionContext) =
-    Delay.future(duration)(runJobs(state, state.levels.sorted, 1))
+    if (state.running.compareAndSet(true, false)) {
+      val task = Delay.task(duration)(wakeUp(state))
+      state.sleepTask = Some(task)
+    }
 
   def shouldRun(state: CompactionState): Boolean =
     state match {
-      case CompactionState.AwaitingPull(ready) =>
-        ready
+      case CompactionState.AwaitingPull(ready, timeout) =>
+        ready || timeout.isOverdue()
 
       case CompactionState.Sleep(ready) =>
         ready.fromNow.isOverdue()
@@ -117,34 +135,56 @@ object Compaction extends LazyLogging {
         true
     }
 
+  /**
+    * Should only be executed by [[wakeUp]] or by itself.
+    */
   @tailrec
   private[compaction] def runJobs(state: State,
                                   currentJobs: List[LevelRef],
-                                  iterationNumber: Int)(implicit ordering: Ordering[LevelRef],
-                                                        ec: ExecutionContext): Unit =
-    currentJobs.headOption match {
-      case Some(level) =>
-        //if there is a wake up call from LevelZero then re-prioritise Levels and run compaction.
-        if (state.zeroReady.compareAndSet(true, false)) {
-          runJobs(state, state.levels.sorted, 1)
-        } else if (shouldRun(state.compactionStates.getOrDefault(level, CompactionState.Idle))) {
-          val newState = runJob(level)
-          newState match {
-            case CompactionState.AwaitingPull(_) | CompactionState.Idle | CompactionState.Failed =>
-              state.compactionStates.put(level, newState)
-              runJobs(state, currentJobs.drop(1), iterationNumber + 1)
+                                  iterationNumber: Int,
+                                  sleep: Option[FiniteDuration])(implicit ordering: Ordering[LevelRef],
+                                                                 ec: ExecutionContext): Unit =
+    if (iterationNumber > currentJobs.size * 10)
+      logger.warn(s"Too many iterations: $iterationNumber")
+    else
+      currentJobs.headOption match {
+        case Some(level) =>
+          //if there is a wake up call from LevelZero then re-prioritise Levels and run compaction.
+          if (state.zeroReady.compareAndSet(true, false)) {
+            runJobs(state, state.levels.sorted, 1, sleep)
+          } else if (shouldRun(state.compactionStates.getOrDefault(level, CompactionState.Idle))) {
+            val newState = runJob(level)
+            newState match {
+              case CompactionState.AwaitingPull(ready, timeout) =>
+                if (ready || timeout.isOverdue()) {
+                  runJobs(state, currentJobs, iterationNumber + 1, sleep)
+                } else {
+                  val sleepFor = sleep.map(_ min timeout.timeLeft).orElse(Some(timeout.timeLeft))
+                  state.compactionStates.put(level, newState)
+                  runJobs(state, currentJobs.drop(1), iterationNumber + 1, sleepFor)
+                }
 
-            case CompactionState.Sleep(duration) =>
-              sleep(state, duration)
+              case CompactionState.Idle | CompactionState.Failed =>
+                state.compactionStates.put(level, newState)
+                runJobs(state, currentJobs.drop(1), iterationNumber + 1, sleep)
+
+              case CompactionState.Sleep(duration) =>
+                val sleepFor = sleep.map(_ min duration).orElse(Some(duration))
+                runJobs(state, currentJobs.drop(1), iterationNumber + 1, sleepFor)
+            }
+          } else {
+            runJobs(state, currentJobs.drop(1), iterationNumber + 1, sleep)
           }
-        } else {
-          runJobs(state, currentJobs.drop(1), iterationNumber + 1)
-        }
 
-      case None =>
-        //jobs complete! re-prioritise and re-run.
-        runJobs(state, state.levels.sorted, 1)
-    }
+        case None =>
+          sleep match {
+            case Some(duration) if duration.fromNow.hasTimeLeft() =>
+              Compaction.sleep(state, duration)
+
+            case Some(_) | None =>
+              runJobs(state, state.levels.sorted, 1, None)
+          }
+      }
 
   private[compaction] def runJob(level: LevelRef): CompactionState =
     level match {
@@ -166,7 +206,7 @@ object Compaction extends LazyLogging {
           CompactionState.Idle
 
         case later @ IO.Later(_, _) =>
-          val state = CompactionState.AwaitingPull(_ready = false)
+          val state = CompactionState.AwaitingPull(_ready = false, timeout = awaitPullTimeout)
           later mapAsync {
             _ =>
               state.ready = true
@@ -243,7 +283,7 @@ object Compaction extends LazyLogging {
         CompactionState.Failed
 
       case later @ IO.Later(_, _) =>
-        val state = CompactionState.AwaitingPull(_ready = false)
+        val state = CompactionState.AwaitingPull(_ready = false, timeout = awaitPullTimeout)
         later mapAsync {
           _ =>
             state.ready = true
