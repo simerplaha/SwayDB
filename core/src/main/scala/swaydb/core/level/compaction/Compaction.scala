@@ -10,11 +10,10 @@ import swaydb.core.level.{LevelRef, NextLevel, TrashLevel}
 import swaydb.core.segment.Segment
 import swaydb.core.util.Delay
 import swaydb.data.IO
-import swaydb.data.IO._
 import swaydb.data.slice.Slice
 
 import scala.annotation.tailrec
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.FiniteDuration
 
 /**
@@ -29,13 +28,15 @@ object Compaction extends LazyLogging {
   object State {
     def apply(zero: LevelZero,
               running: AtomicBoolean,
-              compactionState: ConcurrentHashMap[LevelRef, CompactionState]): State =
+              compactionStates: ConcurrentHashMap[LevelRef, CompactionState],
+              concurrentCompactions: Int): State =
       new State(
         zero = zero,
         levels = LevelRef.getLevels(zero),
         running = running,
-        hasMaps = new AtomicBoolean(true),
-        compactionState = compactionState
+        zeroReady = new AtomicBoolean(true),
+        concurrentCompactions = concurrentCompactions,
+        compactionStates = compactionStates
       )
   }
 
@@ -45,26 +46,41 @@ object Compaction extends LazyLogging {
   case class State(zero: LevelZero,
                    levels: List[LevelRef],
                    running: AtomicBoolean,
-                   hasMaps: AtomicBoolean,
-                   compactionState: ConcurrentHashMap[LevelRef, CompactionState])
+                   zeroReady: AtomicBoolean,
+                   concurrentCompactions: Int,
+                   compactionStates: ConcurrentHashMap[LevelRef, CompactionState])
 
-  def bootUp(state: State)(implicit ordering: Ordering[LevelRef],
-                           ec: ExecutionContext): IO[Unit] =
+  def copyAndStart(state: State)(implicit ordering: Ordering[LevelRef],
+                                 ec: ExecutionContext): IO[Unit] =
+    start(
+      state = state,
+      copyForwardSynchronously = true
+    )
+
+  def start(state: State)(implicit ordering: Ordering[LevelRef],
+                          ec: ExecutionContext): IO[Unit] =
+    start(
+      state = state,
+      copyForwardSynchronously = true
+    )
+
+  private def start(state: State,
+                    copyForwardSynchronously: Boolean)(implicit ordering: Ordering[LevelRef],
+                                                       ec: ExecutionContext): IO[Unit] =
     if (state.running.compareAndSet(false, true))
       state.zero.nextLevel map {
         case level: NextLevel =>
-          //On bootUp try copying all non overlapping Segments forward and start job.
-          //TODO - there should be an config option to run this sync and async on current thread.
-          copyForwardAll(level) onCompleteSideEffect {
-            case Success(copied) =>
-              logger.debug(s"Forward copied $copied Segments. Starting compaction!")
-              runJobs(state, state.levels.sorted, 1)
-
-            case Failure(error) =>
-              logger.error("Failed to start compaction with copy all", error.exception)
-              runJobs(state, state.levels.sorted, 1)
+          if (copyForwardSynchronously) {
+            val totalCopies = copyForwardAllLazy(level)
+            logger.debug(s"Compaction copied $totalCopies. Starting compaction!")
           }
-
+          Future(
+            runJobs(
+              state = state,
+              currentJobs = state.levels.sorted,
+              iterationNumber = 1
+            )
+          )
           IO.unit
 
         case TrashLevel =>
@@ -73,9 +89,9 @@ object Compaction extends LazyLogging {
     else
       IO.unit
 
-  def wakeUp(state: State)(implicit ordering: Ordering[LevelRef],
-                           ec: ExecutionContext): Unit = {
-    state.hasMaps.compareAndSet(false, true)
+  def zeroReady(state: State)(implicit ordering: Ordering[LevelRef],
+                              ec: ExecutionContext): Unit = {
+    state.zeroReady.compareAndSet(false, true)
     if (state.running.compareAndSet(false, true))
       runJobs(state, state.levels.sorted, 1)
   }
@@ -99,27 +115,26 @@ object Compaction extends LazyLogging {
 
   @tailrec
   private[compaction] def runJobs(state: State,
-                                  jobs: List[LevelRef],
+                                  currentJobs: List[LevelRef],
                                   iterationNumber: Int)(implicit ordering: Ordering[LevelRef],
                                                         ec: ExecutionContext): Unit =
-    jobs.headOption match {
+    currentJobs.headOption match {
       case Some(level) =>
-        //if there is a wake up call from LevelZero and two compaction cycles have already run
-        //then re-prioritise Levels and run compaction.
-        if (iterationNumber >= 2 && state.hasMaps.compareAndSet(true, false)) {
+        //if there is a wake up call from LevelZero then re-prioritise Levels and run compaction.
+        if (state.zeroReady.compareAndSet(true, false)) {
           runJobs(state, state.levels.sorted, 1)
-        } else if (shouldRun(state.compactionState.getOrDefault(level, CompactionState.Idle))) {
+        } else if (shouldRun(state.compactionStates.getOrDefault(level, CompactionState.Idle))) {
           val newState = runJob(level)
           newState match {
             case CompactionState.AwaitingPull(_) | CompactionState.Idle | CompactionState.Failed =>
-              state.compactionState.put(level, newState)
-              runJobs(state, jobs.drop(1), iterationNumber + 1)
+              state.compactionStates.put(level, newState)
+              runJobs(state, currentJobs.drop(1), iterationNumber + 1)
 
             case CompactionState.Sleep(duration) =>
               sleep(state, duration)
           }
         } else {
-          runJobs(state, jobs.drop(1), iterationNumber + 1)
+          runJobs(state, currentJobs.drop(1), iterationNumber + 1)
         }
 
       case None =>
@@ -127,7 +142,7 @@ object Compaction extends LazyLogging {
         runJobs(state, state.levels.sorted, 1)
     }
 
-  private[compaction] def runJob(level: LevelRef)(implicit ordering: Ordering[LevelRef]): CompactionState =
+  private[compaction] def runJob(level: LevelRef): CompactionState =
     level match {
       case zero: LevelZero =>
         pushForward(zero)
@@ -254,8 +269,12 @@ object Compaction extends LazyLogging {
         }
     } getOrElse IO.zero
 
-  private[compaction] def copyForwardAll(level: NextLevel): IO[Int] =
-    level.reverseNextLevels.foldLeftIO[Int](r = 0, failFast = false) {
+  /**
+    * Runs lazy error checks. Ignores all errors and continues copying
+    * each Level starting from the lowest level first.
+    */
+  private[compaction] def copyForwardAllLazy(level: NextLevel): Int =
+    level.reverseNextLevels.foldLeft[Int](0) {
       (totalCopied, nextLevel) =>
         val (copyable, _) = nextLevel.partitionUnreservedCopyable(level.segmentsInLevel())
         putForward(
@@ -264,10 +283,17 @@ object Compaction extends LazyLogging {
           nextLevel = nextLevel
         ) match {
           case IO.Success(copied) =>
-            IO.Success(totalCopied + copied)
+            logger.debug(s"Forward copied $copied Segments for level: ${level.rootPath}.")
+            totalCopied + copied
 
-          case IO.Later(_, _) | IO.Failure(_) =>
-            IO.Success(totalCopied)
+          case IO.Failure(error) =>
+            logger.error(s"Failed copy Segments forward for level: ${level.rootPath}", error.exception)
+            totalCopied
+
+          case IO.Later(_, _) =>
+            //this should never really occur when no other concurrent compactions are occurring.
+            logger.warn(s"Received later compaction for level: ${level.rootPath}.")
+            totalCopied
         }
     }
 
