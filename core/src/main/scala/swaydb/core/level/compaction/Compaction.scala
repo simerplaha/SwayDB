@@ -93,7 +93,11 @@ object Compaction extends LazyLogging {
                               ec: ExecutionContext): Unit = {
     state.zeroReady.compareAndSet(false, true)
     if (state.running.compareAndSet(false, true))
-      runJobs(state, state.levels.sorted, 1)
+      runJobs(
+        state = state,
+        currentJobs = state.levels.sorted,
+        iterationNumber = 1
+      )
   }
 
   private[compaction] def sleep(state: State,
@@ -267,8 +271,77 @@ object Compaction extends LazyLogging {
                 nextLevel = nextLevel
               )
         }
-    } getOrElse IO.zero
+    } getOrElse {
+      runLastLevelCompaction(
+        level = level,
+        checkExpired = true,
+        maxCompactionsToRun = segmentsToPush,
+        segmentsCompacted = 0
+      ).asAsync
+    }
 
+  @tailrec
+  def runLastLevelCompaction(level: NextLevel,
+                             checkExpired: Boolean,
+                             maxCompactionsToRun: Int,
+                             segmentsCompacted: Int): IO[Int] =
+    if (maxCompactionsToRun == 0 || level.hasNextLevel)
+      IO.Success(segmentsCompacted)
+    else if (checkExpired)
+      Segment.getNearestDeadlineSegment(level.segmentsInLevel()) match {
+        case Some(segment) =>
+          level.refresh(segment) match {
+            case IO.Success(_) =>
+              runLastLevelCompaction(
+                level = level,
+                checkExpired = checkExpired,
+                maxCompactionsToRun = maxCompactionsToRun - 1,
+                segmentsCompacted = segmentsCompacted + 1
+              )
+
+            case IO.Later(_, _) =>
+              runLastLevelCompaction(
+                level = level,
+                checkExpired = false,
+                maxCompactionsToRun = maxCompactionsToRun,
+                segmentsCompacted = segmentsCompacted
+              )
+
+            case IO.Failure(_) =>
+              runLastLevelCompaction(
+                level = level,
+                checkExpired = false,
+                maxCompactionsToRun = maxCompactionsToRun,
+                segmentsCompacted = segmentsCompacted
+              )
+          }
+
+        case None =>
+          runLastLevelCompaction(
+            level = level,
+            checkExpired = false,
+            maxCompactionsToRun = maxCompactionsToRun,
+            segmentsCompacted = segmentsCompacted
+          )
+      }
+    else
+      level.collapse(level.takeSmallSegments(maxCompactionsToRun max 2)) match { //need at least 2 for collapse.
+        case IO.Success(count) =>
+          runLastLevelCompaction(
+            level = level,
+            checkExpired = false,
+            maxCompactionsToRun = 0,
+            segmentsCompacted = segmentsCompacted + count
+          )
+
+        case IO.Later(_, _) | IO.Failure(_) =>
+          runLastLevelCompaction(
+            level = level,
+            checkExpired = false,
+            maxCompactionsToRun = 0,
+            segmentsCompacted = segmentsCompacted
+          )
+      }
   /**
     * Runs lazy error checks. Ignores all errors and continues copying
     * each Level starting from the lowest level first.

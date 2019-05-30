@@ -158,7 +158,7 @@ private[core] object TrashLevel extends NextLevel {
     IO.unit
 
   override def removeSegments(segments: Iterable[Segment]): IO[Int] =
-    IO(segments.size)
+    IO.Success(segments.size)
 
   override def isUnReserved(minKey: Slice[Byte], maxKey: Slice[Byte]): Boolean =
     true
@@ -168,4 +168,10 @@ private[core] object TrashLevel extends NextLevel {
 
   override def meter: LevelMeter =
     LevelMeter(0, 0)
+
+  override def refresh(segment: Segment): IO.Async[Unit] =
+    IO.unit
+
+  override def collapse(segments: Iterable[Segment]): IO.Async[Int] =
+    IO.Success(segments.size)
 }

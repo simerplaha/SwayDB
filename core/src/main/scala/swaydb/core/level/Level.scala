@@ -628,37 +628,45 @@ private[core] case class Level(dirs: Seq[Dir],
     )
   }
 
-  def refresh(segment: Segment): IO[Unit] = {
+  def refresh(segment: Segment): IO.Async[Unit] = {
     logger.debug("{}: Running refresh.", paths.head)
-    segment.refresh(
-      minSegmentSize = segmentSize,
-      bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-      compressDuplicateValues = compressDuplicateValues,
-      targetPaths = paths
-    ) flatMap {
-      newSegments =>
-        logger.debug(s"{}: Segment {} successfully refreshed. New Segments: {}.", paths.head, segment.path, newSegments.map(_.path).mkString(", "))
-        buildNewMapEntry(newSegments, Some(segment), None) flatMap {
-          entry =>
-            appendix.write(entry).map(_ => ()) onSuccessSideEffect {
-              _ =>
-                if (deleteSegmentsEventually)
-                  segment.deleteSegmentsEventually
-                else
-                  segment.delete onFailureSideEffect {
-                    failure =>
-                      logger.error(s"Failed to delete Segments '{}'. Manually delete these Segments or reboot the database.", segment.path, failure)
+    reserve(Seq(segment)).asAsync flatMap {
+      case Left(future) =>
+        IO.fromFuture(future)
+
+      case Right(minKey) =>
+        ensureRelease(minKey) {
+          segment.refresh(
+            minSegmentSize = segmentSize,
+            bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+            compressDuplicateValues = compressDuplicateValues,
+            targetPaths = paths
+          ) flatMap {
+            newSegments =>
+              logger.debug(s"{}: Segment {} successfully refreshed. New Segments: {}.", paths.head, segment.path, newSegments.map(_.path).mkString(", "))
+              buildNewMapEntry(newSegments, Some(segment), None) flatMap {
+                entry =>
+                  appendix.write(entry).map(_ => ()) onSuccessSideEffect {
+                    _ =>
+                      if (deleteSegmentsEventually)
+                        segment.deleteSegmentsEventually
+                      else
+                        segment.delete onFailureSideEffect {
+                          failure =>
+                            logger.error(s"Failed to delete Segments '{}'. Manually delete these Segments or reboot the database.", segment.path, failure)
+                        }
                   }
-            }
-        } onFailureSideEffect {
-          _ =>
-            newSegments foreach {
-              segment =>
-                segment.delete onFailureSideEffect {
-                  failure =>
-                    logger.error(s"{}: Failed to delete Segment {}", paths.head, segment.path, failure)
-                }
-            }
+              } onFailureSideEffect {
+                _ =>
+                  newSegments foreach {
+                    segment =>
+                      segment.delete onFailureSideEffect {
+                        failure =>
+                          logger.error(s"{}: Failed to delete Segment {}", paths.head, segment.path, failure)
+                      }
+                  }
+              }
+          } asAsync
         }
     }
   }
@@ -705,54 +713,62 @@ private[core] case class Level(dirs: Seq[Dir],
   def isSmallSegment(segment: Segment): Boolean =
     segment.segmentSize < segmentSize * 0.60
 
-  def collapse(segments: Iterable[Segment]): IO[Int] = {
+  def collapse(segments: Iterable[Segment]): IO.Async[Int] = {
     logger.trace(s"{}: Collapsing '{}' segments", paths.head, segments.size)
-    if (segments.isEmpty) {
-      IO.zero
-    } else if (appendix.size == 1) { //if there is only one Segment in this Level which is a small segment. No collapse required
-      IO.zero
-    } else {
-      //other segments in the appendix that are not the input segments (segments to collapse).
-      val targetAppendixSegments = appendix.values().asScala.filterNot(map => segments.exists(_.path == map.path))
-      val (segmentsToMerge, targetSegments) =
-        if (targetAppendixSegments.nonEmpty) {
-          logger.trace(s"{}: Target appendix segments {}", paths.head, targetAppendixSegments.size)
-          (segments, targetAppendixSegments)
-        } else {
-          //If appendix without the small Segments is empty.
-          // Then pick the first segment from the smallest segments and merge other small segments into it.
-          val firstSmallSegment = Iterable(segments.head)
-          logger.trace(s"{}: Target segments {}", paths.head, firstSmallSegment.size)
-          (segments.drop(1), firstSmallSegment)
-        }
+    reserve(segments).asAsync flatMap {
+      case Left(future) =>
+        IO.fromFuture(future.map(_ => 0))
 
-      //create an appendEntry that will remove smaller segments from the appendix.
-      //this entry will get applied only if the putSegments is successful orElse this entry will be discarded.
-      val appendEntry =
-      segmentsToMerge.foldLeft(Option.empty[MapEntry[Slice[Byte], Segment]]) {
-        case (mapEntry, smallSegment) =>
-          val entry = MapEntry.Remove(smallSegment.minKey)
-          mapEntry.map(_ ++ entry) orElse Some(entry)
-      }
-      merge(
-        segments = segmentsToMerge,
-        targetSegments = targetSegments,
-        appendEntry = appendEntry
-      ) map {
-        _ =>
-          //delete the segments merged with self.
-          if (deleteSegmentsEventually)
-            segmentsToMerge foreach (_.deleteSegmentsEventually)
-          else
-            segmentsToMerge foreach {
-              segment =>
-                segment.delete onFailureSideEffect {
-                  exception =>
-                    logger.warn(s"{}: Failed to delete Segment {} after successful collapse", paths.head, segment.path, exception)
-                }
+      case Right(minKey) =>
+        ensureRelease(minKey) {
+          if (segments.isEmpty) {
+            IO.zero
+          } else if (appendix.size == 1) { //if there is only one Segment in this Level which is a small segment. No collapse required
+            IO.zero
+          } else {
+            //other segments in the appendix that are not the input segments (segments to collapse).
+            val targetAppendixSegments = appendix.values().asScala.filterNot(map => segments.exists(_.path == map.path))
+            val (segmentsToMerge, targetSegments) =
+              if (targetAppendixSegments.nonEmpty) {
+                logger.trace(s"{}: Target appendix segments {}", paths.head, targetAppendixSegments.size)
+                (segments, targetAppendixSegments)
+              } else {
+                //If appendix without the small Segments is empty.
+                // Then pick the first segment from the smallest segments and merge other small segments into it.
+                val firstSmallSegment = Iterable(segments.head)
+                logger.trace(s"{}: Target segments {}", paths.head, firstSmallSegment.size)
+                (segments.drop(1), firstSmallSegment)
+              }
+
+            //create an appendEntry that will remove smaller segments from the appendix.
+            //this entry will get applied only if the putSegments is successful orElse this entry will be discarded.
+            val appendEntry =
+            segmentsToMerge.foldLeft(Option.empty[MapEntry[Slice[Byte], Segment]]) {
+              case (mapEntry, smallSegment) =>
+                val entry = MapEntry.Remove(smallSegment.minKey)
+                mapEntry.map(_ ++ entry) orElse Some(entry)
             }
-          segmentsToMerge.size
-      }
+            merge(
+              segments = segmentsToMerge,
+              targetSegments = targetSegments,
+              appendEntry = appendEntry
+            ) map {
+              _ =>
+                //delete the segments merged with self.
+                if (deleteSegmentsEventually)
+                  segmentsToMerge foreach (_.deleteSegmentsEventually)
+                else
+                  segmentsToMerge foreach {
+                    segment =>
+                      segment.delete onFailureSideEffect {
+                        exception =>
+                          logger.warn(s"{}: Failed to delete Segment {} after successful collapse", paths.head, segment.path, exception)
+                      }
+                  }
+                segmentsToMerge.size
+            }
+          }
+        } asAsync
     }
   }
 

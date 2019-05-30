@@ -53,6 +53,10 @@ trait NextLevel extends LevelRef {
 
   def meter: LevelMeter
 
+  def refresh(segment: Segment): IO.Async[Unit]
+
+  def collapse(segments: Iterable[Segment]): IO.Async[Int]
+
   def reverseNextLevels: ListBuffer[NextLevel] = {
     val levels = ListBuffer.empty[NextLevel]
     NextLevel.foreachRight(
