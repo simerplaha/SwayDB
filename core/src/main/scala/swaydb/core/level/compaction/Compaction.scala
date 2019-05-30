@@ -34,7 +34,7 @@ object Compaction extends LazyLogging {
         zero = zero,
         levels = LevelRef.getLevels(zero),
         running = running,
-        wakeUp = new AtomicBoolean(true),
+        hasMaps = new AtomicBoolean(true),
         compactionState = compactionState
       )
   }
@@ -45,7 +45,7 @@ object Compaction extends LazyLogging {
   case class State(zero: LevelZero,
                    levels: List[LevelRef],
                    running: AtomicBoolean,
-                   wakeUp: AtomicBoolean,
+                   hasMaps: AtomicBoolean,
                    compactionState: ConcurrentHashMap[LevelRef, CompactionState])
 
   def bootUp(state: State)(implicit ordering: Ordering[LevelRef],
@@ -53,21 +53,21 @@ object Compaction extends LazyLogging {
     if (state.running.compareAndSet(false, true))
       state.zero.nextLevel map {
         case level: NextLevel =>
-          //On bootUp try copying all non overlapping Segments forward.
+          //On bootUp try copying all non overlapping Segments forward and start job.
+          //TODO - there should be an config option to run this sync and async on current thread.
           copyForwardAll(level) onCompleteSideEffect {
             case Success(copied) =>
               logger.debug(s"Forward copied $copied Segments. Starting compaction!")
-              runJobs(state, state.levels.sorted)
+              runJobs(state, state.levels.sorted, 1)
 
             case Failure(error) =>
               logger.error("Failed to start compaction with copy all", error.exception)
-              runJobs(state, state.levels.sorted)
-          } map {
-            _ =>
-              ()
+              runJobs(state, state.levels.sorted, 1)
           }
 
-        case _: LevelZero | TrashLevel =>
+          IO.unit
+
+        case TrashLevel =>
           IO.unit
       } getOrElse IO.unit
     else
@@ -75,15 +75,15 @@ object Compaction extends LazyLogging {
 
   def wakeUp(state: State)(implicit ordering: Ordering[LevelRef],
                            ec: ExecutionContext): Unit = {
-    state.wakeUp.compareAndSet(false, true)
+    state.hasMaps.compareAndSet(false, true)
     if (state.running.compareAndSet(false, true))
-      runJobs(state, state.levels.sorted)
+      runJobs(state, state.levels.sorted, 1)
   }
 
   private[compaction] def sleep(state: State,
                                 duration: FiniteDuration)(implicit ordering: Ordering[LevelRef],
                                                           ec: ExecutionContext) =
-    Delay.future(duration)(runJobs(state, state.levels.sorted))
+    Delay.future(duration)(runJobs(state, state.levels.sorted, 1))
 
   def shouldRun(state: CompactionState): Boolean =
     state match {
@@ -99,28 +99,32 @@ object Compaction extends LazyLogging {
 
   @tailrec
   private[compaction] def runJobs(state: State,
-                                  jobs: List[LevelRef])(implicit ordering: Ordering[LevelRef],
+                                  jobs: List[LevelRef],
+                                  iterationNumber: Int)(implicit ordering: Ordering[LevelRef],
                                                         ec: ExecutionContext): Unit =
     jobs.headOption match {
       case Some(level) =>
-        if (state.wakeUp.compareAndSet(true, false)) {
-          runJobs(state, state.levels.sorted)
+        //if there is a wake up call from LevelZero and two compaction cycles have already run
+        //then re-prioritise Levels and run compaction.
+        if (iterationNumber >= 2 && state.hasMaps.compareAndSet(true, false)) {
+          runJobs(state, state.levels.sorted, 1)
         } else if (shouldRun(state.compactionState.getOrDefault(level, CompactionState.Idle))) {
           val newState = runJob(level)
           newState match {
             case CompactionState.AwaitingPull(_) | CompactionState.Idle | CompactionState.Failed =>
               state.compactionState.put(level, newState)
-              runJobs(state, jobs.drop(1))
+              runJobs(state, jobs.drop(1), iterationNumber + 1)
 
             case CompactionState.Sleep(duration) =>
               sleep(state, duration)
           }
         } else {
-          runJobs(state, jobs.drop(1))
+          runJobs(state, jobs.drop(1), iterationNumber + 1)
         }
 
       case None =>
-        runJobs(state, state.levels.sorted)
+        //jobs complete! re-prioritise and re-run.
+        runJobs(state, state.levels.sorted, 1)
     }
 
   private[compaction] def runJob(level: LevelRef)(implicit ordering: Ordering[LevelRef]): CompactionState =

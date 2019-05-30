@@ -5,53 +5,41 @@ import swaydb.core.level.{Level, LevelRef, TrashLevel}
 
 object CompactionOrdering {
 
-  val ordering = new Ordering[LevelRef] {
-    override def compare(left: LevelRef, right: LevelRef): Int =
-      (left, right) match {
-        //Level
-        case (left: Level, right: Level) => order(left, right)
-        case (left: Level, right: LevelZero) => order(left, right)
-        case (left: Level, right: TrashLevel.type) => order(left, right)
-        //LevelZero
-        case (left: LevelZero, right: Level) => order(left, right)
-        case (left: LevelZero, right: LevelZero) => order(left, right)
-        case (left: LevelZero, right: TrashLevel.type) => order(left, right)
-        //LevelZero
-        case (left: TrashLevel.type, right: Level) => order(left, right)
-        case (left: TrashLevel.type, right: LevelZero) => order(left, right)
-        case (left: TrashLevel.type, right: TrashLevel.type) => order(left, right)
+  def ordering(zero: LevelZero,
+               compactionState: LevelRef => CompactionState) =
+    new Ordering[LevelRef] {
+      override def compare(left: LevelRef, right: LevelRef): Int = {
+        (left, right) match {
+          //Level
+          case (left: Level, right: Level) => order(left, right, compactionState(left), compactionState(right))
+          case (left: Level, right: LevelZero) => order(right, left, compactionState(left), compactionState(right)) * -1
+          case (_: Level, TrashLevel) => 1
+          //LevelZero
+          case (left: LevelZero, right: Level) => order(left, right, compactionState(left), compactionState(right))
+          case (_: LevelZero, _: LevelZero) => 0
+          case (_: LevelZero, TrashLevel) => 1
+          //LevelZero
+          case (TrashLevel, _: Level) => -1
+          case (TrashLevel, _: LevelZero) => -1
+          case (TrashLevel, TrashLevel) => 0
+        }
       }
-  }
+    }
 
-  def order(left: Level, right: TrashLevel.type): Int =
-    1
-
-  def order(left: TrashLevel.type, right: Level): Int =
-    -1
-
-  def order(left: TrashLevel.type, right: TrashLevel.type): Int =
-    0
-
-  def order(left: TrashLevel.type, right: LevelZero): Int =
-    -1
-
-  def order(left: LevelZero, right: TrashLevel.type): Int =
-    1
-
-  def order(left: LevelZero, right: LevelZero): Int =
-    0
-
-  def order(left: LevelZero, right: Level): Int =
+  def order(left: LevelZero,
+            right: Level,
+            leftState: CompactionState,
+            rightState: CompactionState): Int =
     if (left.level0Meter.mapsCount >= 4)
       1
     else
       -1
 
-  def order(left: Level, right: LevelZero): Int =
-    order(right, left) * -1
-
-  def order(left: Level, right: Level): Int =
-    if (right.nextLevel.isEmpty) //last Level is always the lowest priority. TODO - check for expired keys
+  def order(left: Level,
+            right: Level,
+            leftState: CompactionState,
+            rightState: CompactionState): Int =
+    if (right.nextLevel.isEmpty) //last Level is always the lowest priority.
       1
     else
       left.throttle(left.meter).pushDelay compareTo right.throttle(right.meter).pushDelay
