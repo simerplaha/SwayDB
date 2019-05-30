@@ -57,55 +57,46 @@ object Compaction extends CompactionStrategy[State] with LazyLogging {
 
   def copyAndStart(state: State)(implicit ordering: Ordering[LevelRef],
                                  ec: ExecutionContext): IO[Unit] =
-    start(
-      state = state,
-      copyForwardSynchronously = true
-    )
+    IO(wakeUp(state = state, forwardCopyOnAllLevels = true))
 
   def start(state: State)(implicit ordering: Ordering[LevelRef],
                           ec: ExecutionContext): IO[Unit] =
-    start(
-      state = state,
-      copyForwardSynchronously = true
-    )
+    IO(wakeUp(state = state, forwardCopyOnAllLevels = false))
 
   def zeroReady(state: State)(implicit ordering: Ordering[LevelRef],
                               ec: ExecutionContext): Unit = {
     state.zeroReady.compareAndSet(false, true)
-    wakeUp(state)
+    wakeUp(state = state, forwardCopyOnAllLevels = false)
   }
 
-  private def start(state: State,
-                    copyForwardSynchronously: Boolean)(implicit ordering: Ordering[LevelRef],
-                                                       ec: ExecutionContext): IO[Unit] =
-    if (state.running.compareAndSet(false, true))
-      state.zero.nextLevel map {
-        case level: NextLevel =>
-          if (copyForwardSynchronously) {
-            val totalCopies = copyForwardAllLazy(level)
-            logger.debug(s"Compaction copied $totalCopies. Starting compaction!")
-          }
-          Future(wakeUp(state))
-          IO.unit
+  private def copyForwardLazily(state: State): IO[Unit] =
+    state.zero.nextLevel map {
+      case level: NextLevel =>
+        val totalCopies = copyForwardOnAllLevels(level)
+        logger.debug(s"Compaction copied $totalCopies. Starting compaction!")
+        IO.unit
 
-        case TrashLevel =>
-          IO.unit
-      } getOrElse IO.unit
-    else
-      IO.unit
+      case TrashLevel =>
+        IO.unit
+    } getOrElse IO.unit
 
   /**
     * Mutates current state. Do not create copies for memory sake.
     */
   private[compaction] def resetState(state: State): State = {
-    state.sleepTask.foreach(_.cancel())
+    state.sleepTask foreach (_.cancel())
     state.sleepTask = None
     state
   }
 
-  private[compaction] def wakeUp(state: State)(implicit ordering: Ordering[LevelRef],
-                                               ec: ExecutionContext): Unit =
+  private[compaction] def wakeUp(state: State,
+                                 forwardCopyOnAllLevels: Boolean)(implicit ordering: Ordering[LevelRef],
+                                                                  ec: ExecutionContext): Unit =
     if (state.running.compareAndSet(false, true)) {
+      if (forwardCopyOnAllLevels) {
+        val totalCopies = copyForwardLazily(state)
+        logger.debug(s"Compaction copied $totalCopies. Starting compaction!")
+      }
       val newState = resetState(state)
       runJobs(
         state = newState,
@@ -119,7 +110,7 @@ object Compaction extends CompactionStrategy[State] with LazyLogging {
                                 duration: FiniteDuration)(implicit ordering: Ordering[LevelRef],
                                                           ec: ExecutionContext) =
     if (state.running.compareAndSet(true, false)) {
-      val task = Delay.task(duration)(wakeUp(state))
+      val task = Delay.task(duration)(wakeUp(state, forwardCopyOnAllLevels = true))
       state.sleepTask = Some(task)
     }
 
@@ -386,28 +377,31 @@ object Compaction extends CompactionStrategy[State] with LazyLogging {
     * Runs lazy error checks. Ignores all errors and continues copying
     * each Level starting from the lowest level first.
     */
-  private[compaction] def copyForwardAllLazy(level: NextLevel): Int =
+  private[compaction] def copyForwardOnAllLevels(level: NextLevel): Int =
     level.reverseNextLevels.foldLeft[Int](0) {
-      (totalCopied, nextLevel) =>
-        val (copyable, _) = nextLevel.partitionUnreservedCopyable(level.segmentsInLevel())
-        putForward(
-          segments = copyable,
-          thisLevel = level,
-          nextLevel = nextLevel
-        ) match {
-          case IO.Success(copied) =>
-            logger.debug(s"Forward copied $copied Segments for level: ${level.rootPath}.")
-            totalCopied + copied
+      (totalCopied, level) =>
+        level.nextLevel map {
+          nextLevel =>
+            val (copyable, _) = nextLevel.partitionUnreservedCopyable(level.segmentsInLevel())
+            putForward(
+              segments = copyable,
+              thisLevel = level,
+              nextLevel = nextLevel
+            ) match {
+              case IO.Success(copied) =>
+                logger.debug(s"Forward copied $copied Segments for level: ${level.rootPath}.")
+                totalCopied + copied
 
-          case IO.Failure(error) =>
-            logger.error(s"Failed copy Segments forward for level: ${level.rootPath}", error.exception)
-            totalCopied
+              case IO.Failure(error) =>
+                logger.error(s"Failed copy Segments forward for level: ${level.rootPath}", error.exception)
+                totalCopied
 
-          case IO.Later(_, _) =>
-            //this should never really occur when no other concurrent compactions are occurring.
-            logger.warn(s"Received later compaction for level: ${level.rootPath}.")
-            totalCopied
-        }
+              case IO.Later(_, _) =>
+                //this should never really occur when no other concurrent compactions are occurring.
+                logger.warn(s"Received later compaction for level: ${level.rootPath}.")
+                totalCopied
+            }
+        } getOrElse totalCopied
     }
 
   private[compaction] def putForward(segments: Iterable[Segment],
