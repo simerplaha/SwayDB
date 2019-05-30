@@ -147,7 +147,7 @@ object Compaction extends LazyLogging {
           CompactionState.Idle
 
         case later @ IO.Later(_, _) =>
-          val state = CompactionState.AwaitingPull(ready = false)
+          val state = CompactionState.AwaitingPull(_ready = false)
           later mapAsync {
             _ =>
               state.ready = true
@@ -224,7 +224,7 @@ object Compaction extends LazyLogging {
         CompactionState.Failed
 
       case later @ IO.Later(_, _) =>
-        val state = CompactionState.AwaitingPull(ready = false)
+        val state = CompactionState.AwaitingPull(_ready = false)
         later mapAsync {
           _ =>
             state.ready = true
