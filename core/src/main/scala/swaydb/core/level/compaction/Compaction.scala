@@ -20,7 +20,7 @@ import scala.concurrent.duration.{FiniteDuration, _}
   * The speed of compaction depends on [[swaydb.core.level.Level.throttle]] which
   * is used to determine how overflow is a Level and how often should compaction run.
   */
-object Compaction extends CompactionStrategy[CompactionState] with LazyLogging {
+private[level] object Compaction extends CompactionStrategy[CompactionState] with LazyLogging {
 
   val awaitPullTimeout = 30.seconds.fromNow
 
@@ -88,7 +88,7 @@ object Compaction extends CompactionStrategy[CompactionState] with LazyLogging {
       case LevelCompactionState.AwaitingPull(ready, timeout) =>
         ready || timeout.isOverdue()
 
-      case LevelCompactionState.Sleep(ready) =>
+      case LevelCompactionState.Sleeping(ready) =>
         ready.fromNow.isOverdue()
 
       case LevelCompactionState.Idle | LevelCompactionState.Failed =>
@@ -128,7 +128,7 @@ object Compaction extends CompactionStrategy[CompactionState] with LazyLogging {
                 state.compactionStates.put(level, newState)
                 runJobs(state, currentJobs.drop(1), iterationNumber + 1, sleep)
 
-              case LevelCompactionState.Sleep(duration) =>
+              case LevelCompactionState.Sleeping(duration) =>
                 val sleepFor = sleep.map(_ min duration).orElse(Some(duration))
                 runJobs(state, currentJobs.drop(1), iterationNumber + 1, sleepFor)
             }
@@ -177,7 +177,7 @@ object Compaction extends CompactionStrategy[CompactionState] with LazyLogging {
           LevelCompactionState.Failed
       }
     else
-      LevelCompactionState.Sleep(throttle.pushDelay)
+      LevelCompactionState.Sleeping(throttle.pushDelay)
   }
 
   private[compaction] def pushForward(zero: LevelZero): LevelCompactionState =
@@ -379,5 +379,17 @@ object Compaction extends CompactionStrategy[CompactionState] with LazyLogging {
     if (segments.isEmpty)
       IO.zero
     else
-      nextLevel.put(segments) mapAsync (_ => segments.size)
+      nextLevel.put(segments) match {
+        case IO.Success(_) =>
+          thisLevel.removeSegments(segments) recoverWith {
+            case _ =>
+              IO.Success(segments.size)
+          } asAsync
+
+        case async @ IO.Later(_, _) =>
+          async mapAsync (_ => 0)
+
+        case IO.Failure(error) =>
+          IO.Failure(error)
+      }
 }

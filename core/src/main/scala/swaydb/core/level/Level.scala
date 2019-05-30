@@ -789,9 +789,9 @@ private[core] case class Level(dirs: Seq[Dir],
   /**
     * @return Newly created Segments.
     */
-  private[level] def putKeyValues(keyValues: Slice[KeyValue.ReadOnly],
-                                  targetSegments: Iterable[Segment],
-                                  appendEntry: Option[MapEntry[Slice[Byte], Segment]]): IO[Unit] = {
+  private[core] def putKeyValues(keyValues: Slice[KeyValue.ReadOnly],
+                                 targetSegments: Iterable[Segment],
+                                 appendEntry: Option[MapEntry[Slice[Byte], Segment]]): IO[Unit] = {
     logger.trace(s"{}: Merging {} KeyValues.", paths.head, keyValues.size)
     SegmentAssigner.assign(keyValues, targetSegments) flatMap {
       assignments =>

@@ -3,7 +3,7 @@ package swaydb.core.level.compaction
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, LevelRef, TrashLevel}
 
-object CompactionOrdering {
+private[swaydb] object CompactionOrdering {
 
   def ordering(zero: LevelZero,
                levelState: LevelRef => LevelCompactionState) =

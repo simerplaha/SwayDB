@@ -5,7 +5,7 @@ import swaydb.data.IO
 
 import scala.concurrent.ExecutionContext
 
-trait CompactionStrategy[S] {
+private[level] trait CompactionStrategy[S] {
 
   def start(state: S)(implicit ordering: Ordering[LevelRef],
                       ec: ExecutionContext): IO[Unit]

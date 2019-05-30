@@ -260,10 +260,10 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
 
     implicit class TestLevelImplicit(level: Level) {
       def addSegments(segments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): Level = {
-//        val replyTo = TestActor[PushSegmentsResponse]()
+        //        val replyTo = TestActor[PushSegmentsResponse]()
         //        level ! PushSegments(segments, replyTo)
         ???
-//        replyTo.getMessage(5.seconds).result.assertGet
+        //        replyTo.getMessage(5.seconds).result.assertGet
         //        level.segmentsCount() shouldBe segments.size
         level
       }
@@ -290,11 +290,12 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
               throttle: LevelMeter => Throttle = testDefaultThrottle,
               bloomFilterFalsePositiveRate: Double = TestData.falsePositiveRate,
               compressDuplicateValues: Boolean = true,
-              deleteSegmentsEventually: Boolean = false)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                         keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
-                                                         fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter,
-                                                         timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                         compression: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategy(randomNextInt(1000))): Level =
+              deleteSegmentsEventually: Boolean = false,
+              keyValues: Slice[Memory] = Slice.empty)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                                      keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
+                                                      fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter,
+                                                      timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
+                                                      compression: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategy(randomNextInt(1000))): Level =
       Level(
         levelStorage = levelStorage,
         segmentSize = segmentSize,
@@ -305,7 +306,13 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
         compressDuplicateValues = compressDuplicateValues,
         deleteSegmentsEventually = deleteSegmentsEventually
-      ).assertGet
+      ) flatMap {
+        level =>
+          level.putKeyValuesTest(keyValues) map {
+            _ =>
+              level
+          }
+      } assertGet
   }
 
   object TestLevelZero {
@@ -611,5 +618,4 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
       segment.close.assertGet
     }
   }
-
 }

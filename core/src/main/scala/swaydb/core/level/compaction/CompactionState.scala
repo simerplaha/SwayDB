@@ -7,30 +7,27 @@ import java.util.concurrent.atomic.AtomicBoolean
 import swaydb.core.level.LevelRef
 import swaydb.core.level.zero.LevelZero
 
-
-object CompactionState {
+private[level] object CompactionState {
   def apply(zero: LevelZero,
-            running: AtomicBoolean,
-            levelStates: ConcurrentHashMap[LevelRef, LevelCompactionState],
             concurrentCompactions: Int): CompactionState =
     new CompactionState(
       zero = zero,
-      levels = LevelRef.getLevels(zero),
-      running = running,
-      zeroReady = new AtomicBoolean(true),
       concurrentCompactions = concurrentCompactions,
-      compactionStates = levelStates
+      levels = LevelRef.getLevels(zero),
+      running = new AtomicBoolean(false),
+      zeroReady = new AtomicBoolean(true),
+      compactionStates = new ConcurrentHashMap[LevelRef, LevelCompactionState]()
     )
 }
 
 /**
   * The state of compaction.
   */
-case class CompactionState(zero: LevelZero,
-                           levels: List[LevelRef],
-                           running: AtomicBoolean,
-                           zeroReady: AtomicBoolean,
-                           concurrentCompactions: Int,
-                           compactionStates: ConcurrentHashMap[LevelRef, LevelCompactionState]) {
-  @volatile var sleepTask: Option[TimerTask] = None
+private[level] case class CompactionState(zero: LevelZero,
+                                          concurrentCompactions: Int,
+                                          private[compaction] val levels: List[LevelRef],
+                                          private[compaction] val running: AtomicBoolean,
+                                          private[compaction] val zeroReady: AtomicBoolean,
+                                          private[compaction] val compactionStates: ConcurrentHashMap[LevelRef, LevelCompactionState]) {
+  @volatile private[compaction] var sleepTask: Option[TimerTask] = None
 }

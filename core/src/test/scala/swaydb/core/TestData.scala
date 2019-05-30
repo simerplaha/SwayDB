@@ -19,7 +19,7 @@
 
 package swaydb.core
 
-import java.nio.file.{Path, Paths}
+import java.nio.file.{Files, Path, Paths}
 
 import org.scalatest.exceptions.TestFailedException
 
@@ -44,7 +44,7 @@ import swaydb.core.map.serializer.RangeValueSerializer
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.seek._
 import swaydb.core.segment.Segment
-import swaydb.core.util.UUIDUtil
+import swaydb.core.util.{IDGenerator, UUIDUtil}
 import swaydb.data.{IO, MaxKey}
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.compaction.{LevelMeter, Throttle}
@@ -120,12 +120,31 @@ object TestData {
     def putKeyValuesTest(keyValues: Iterable[KeyValue.ReadOnly])(implicit fileLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter): IO[Unit] =
       if (keyValues.isEmpty)
         IO.unit
-      else
+      else if (level.inMemory)
         Segment.copyToMemory(keyValues, Paths.get("testMemorySegment"), false, 1000.mb, TestData.falsePositiveRate, true) flatMap {
           segments =>
             segments mapIO {
               segment =>
-                level.put(segment).safeGetBlocking
+                level.putKeyValues(keyValues.toMemory, Seq(segment), None)
+            } map {
+              _ => ()
+            }
+        }
+      else
+        Segment.copyToPersist(
+          keyValues = keyValues.toTransient,
+          fetchNextPath = Files.createTempDirectory("testSegment").resolve(IDGenerator.segmentId(randomIntMax())),
+          mmapSegmentsOnRead = randomBoolean(),
+          mmapSegmentsOnWrite = randomBoolean(),
+          removeDeletes = false,
+          minSegmentSize = level.segmentSize,
+          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+          compressDuplicateValues = randomBoolean()
+        ) flatMap {
+          segments =>
+            segments mapIO {
+              segment =>
+                level.putKeyValues(keyValues.toMemory, Seq(segment), None)
             } map {
               _ => ()
             }
