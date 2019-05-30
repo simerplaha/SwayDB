@@ -22,13 +22,14 @@ package swaydb.core.level.zero
 import java.nio.channels.{FileChannel, FileLock}
 import java.nio.file.{Path, Paths, StandardOpenOption}
 import java.util
+import java.util.concurrent.Executors
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.KeyValue._
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.IOEffect
-import swaydb.core.level.compaction.{Compaction, CompactionOrdering, CompactionState, CompactionStrategy, LevelCompactionState}
+import swaydb.core.level.compaction._
 import swaydb.core.level.{LevelRef, NextLevel, PathsDistributor}
 import swaydb.core.map
 import swaydb.core.map.serializer.{TimerMapEntryReader, TimerMapEntryWriter}
@@ -140,6 +141,17 @@ private[core] case class LevelZero(path: Path,
   import keyOrder._
   import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
 
+  val compactionThreadPool =
+    new ExecutionContext {
+      val threadPool = Executors.newSingleThreadExecutor()
+
+      def execute(runnable: Runnable) =
+        threadPool execute runnable
+
+      def reportFailure(exception: Throwable): Unit =
+        logger.error("Execution context failure", exception)
+    }
+
   val compactionState =
     CompactionState(
       zero = this,
@@ -163,10 +175,10 @@ private[core] case class LevelZero(path: Path,
     }
 
   if (nextLevel.isDefined) {
-    compactionStrategy.copyAndStart(compactionState)
+    compactionStrategy.copyAndStart(compactionState)(leverOrdering, compactionThreadPool)
     maps setOnFullListener {
       () =>
-        Future(compactionStrategy.zeroReady(compactionState))
+        Future(compactionStrategy.zeroReady(compactionState)(leverOrdering, compactionThreadPool))(compactionThreadPool)
     }
   }
 

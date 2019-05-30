@@ -1,10 +1,14 @@
 package swaydb.core.level.compaction
 
+import org.scalamock.scalatest.MockFactory
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
+import swaydb.core.level.Level
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
+import swaydb.core.segment.Segment
 import swaydb.core.{TestBase, TestLimitQueues}
+import swaydb.data.IO
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
@@ -31,7 +35,7 @@ class CompactionSpec3 extends CompactionSpec {
   override def inMemoryStorage = true
 }
 
-sealed trait CompactionSpec extends TestBase {
+sealed trait CompactionSpec extends TestBase with MockFactory {
 
   val keyValueCount = 1000
 
@@ -48,7 +52,7 @@ sealed trait CompactionSpec extends TestBase {
       }
 
       "it's the last Level and is non empty" in {
-        val keyValues = randomizedKeyValues(keyValueCount).toMemory
+        val keyValues = randomPutKeyValues(keyValueCount).toMemory
         val level = TestLevel(keyValues = keyValues)
         level.isEmpty shouldBe false
         Compaction.copyForwardOnAllLevels(level) shouldBe 0
@@ -107,6 +111,90 @@ sealed trait CompactionSpec extends TestBase {
 
         assertReads(allKeyValues, level1)
         assertGet(allKeyValues, level1.reopen)
+      }
+    }
+  }
+
+  "putForward" should {
+    "return zero" when {
+      "input Segments are empty" in {
+        //levels are never invoked
+        val thisLevel = mock[Level]("thisLevel")
+        val nextLevel = mock[Level]("nextLevel")
+
+        Compaction.putForward(Iterable.empty, thisLevel, nextLevel) shouldBe IO.zero
+      }
+    }
+
+    "remove Segments" when {
+
+      "Segments from upper Level are merged into lower level" in {
+        val thisLevel = mock[Level]("thisLevel")
+        val nextLevel = mock[Level]("nextLevel")
+
+        val keyValues = randomPutKeyValues(keyValueCount).groupedSlice(2)
+        val segments = Seq(TestSegment(keyValues(0).toTransient).get, TestSegment(keyValues(1).toTransient).get)
+
+        //next level should get a put for all the input Segments
+        (nextLevel.put(_: Iterable[Segment])) expects * onCall {
+          putSegments: Iterable[Segment] =>
+            putSegments shouldHaveSameIds segments
+            IO.unit
+        }
+
+        //segments get removed
+        (thisLevel.removeSegments(_: Iterable[Segment])) expects * onCall {
+          putSegments: Iterable[Segment] =>
+            putSegments shouldHaveSameIds segments
+            IO.Success(segments.size)
+        }
+
+        Compaction.putForward(segments, thisLevel, nextLevel).get shouldBe segments.size
+      }
+    }
+
+    "return success" when {
+
+      "it fails to remove Segments" in {
+        val thisLevel = mock[Level]("thisLevel")
+        val nextLevel = mock[Level]("nextLevel")
+
+        val keyValues = randomPutKeyValues(keyValueCount).groupedSlice(2)
+        val segments = Seq(TestSegment(keyValues(0).toTransient).get, TestSegment(keyValues(1).toTransient).get)
+
+        //next level should get a put for all the input Segments
+        (nextLevel.put(_: Iterable[Segment])) expects * onCall {
+          putSegments: Iterable[Segment] =>
+            putSegments shouldHaveSameIds segments
+            IO.unit
+        }
+
+        //segments get removed
+        (thisLevel.removeSegments(_: Iterable[Segment])) expects * onCall {
+          putSegments: Iterable[Segment] =>
+            putSegments shouldHaveSameIds segments
+            IO.Failure(new Exception("Failed!"))
+        }
+
+        Compaction.putForward(segments, thisLevel, nextLevel).get shouldBe segments.size
+      }
+    }
+  }
+
+  "runLastLevelCompaction" should {
+    "not run compaction" when {
+      "level is not the last Level" in {
+        val level = mock[Level]("level")
+        level.hasNextLevel _ expects() returns false
+
+        Compaction.runLastLevelCompaction(level, true, 100, 0) shouldBe IO.zero
+      }
+
+      "remaining compactions are 0" in {
+        val level = mock[Level]("level")
+        level.hasNextLevel _ expects() returns true
+
+        Compaction.runLastLevelCompaction(level, true, remainingCompactions = 0, 10) shouldBe IO.Success(10)
       }
     }
   }

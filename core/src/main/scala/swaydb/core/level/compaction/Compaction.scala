@@ -281,7 +281,7 @@ private[level] object Compaction extends CompactionStrategy[CompactionState] wit
       runLastLevelCompaction(
         level = level,
         checkExpired = true,
-        maxCompactionsToRun = segmentsToPush,
+        remainingCompactions = segmentsToPush,
         segmentsCompacted = 0
       ).asAsync
     }
@@ -289,9 +289,9 @@ private[level] object Compaction extends CompactionStrategy[CompactionState] wit
   @tailrec
   def runLastLevelCompaction(level: NextLevel,
                              checkExpired: Boolean,
-                             maxCompactionsToRun: Int,
+                             remainingCompactions: Int,
                              segmentsCompacted: Int): IO[Int] =
-    if (maxCompactionsToRun == 0 || level.hasNextLevel)
+    if (!level.hasNextLevel || remainingCompactions == 0)
       IO.Success(segmentsCompacted)
     else if (checkExpired)
       Segment.getNearestDeadlineSegment(level.segmentsInLevel()) match {
@@ -301,7 +301,7 @@ private[level] object Compaction extends CompactionStrategy[CompactionState] wit
               runLastLevelCompaction(
                 level = level,
                 checkExpired = checkExpired,
-                maxCompactionsToRun = maxCompactionsToRun - 1,
+                remainingCompactions = remainingCompactions - 1,
                 segmentsCompacted = segmentsCompacted + 1
               )
 
@@ -309,7 +309,7 @@ private[level] object Compaction extends CompactionStrategy[CompactionState] wit
               runLastLevelCompaction(
                 level = level,
                 checkExpired = false,
-                maxCompactionsToRun = maxCompactionsToRun,
+                remainingCompactions = remainingCompactions,
                 segmentsCompacted = segmentsCompacted
               )
 
@@ -317,7 +317,7 @@ private[level] object Compaction extends CompactionStrategy[CompactionState] wit
               runLastLevelCompaction(
                 level = level,
                 checkExpired = false,
-                maxCompactionsToRun = maxCompactionsToRun,
+                remainingCompactions = remainingCompactions,
                 segmentsCompacted = segmentsCompacted
               )
           }
@@ -326,17 +326,17 @@ private[level] object Compaction extends CompactionStrategy[CompactionState] wit
           runLastLevelCompaction(
             level = level,
             checkExpired = false,
-            maxCompactionsToRun = maxCompactionsToRun,
+            remainingCompactions = remainingCompactions,
             segmentsCompacted = segmentsCompacted
           )
       }
     else
-      level.collapse(level.takeSmallSegments(maxCompactionsToRun max 2)) match { //need at least 2 for collapse.
+      level.collapse(level.takeSmallSegments(remainingCompactions max 2)) match { //need at least 2 for collapse.
         case IO.Success(count) =>
           runLastLevelCompaction(
             level = level,
             checkExpired = false,
-            maxCompactionsToRun = 0,
+            remainingCompactions = 0,
             segmentsCompacted = segmentsCompacted + count
           )
 
@@ -344,7 +344,7 @@ private[level] object Compaction extends CompactionStrategy[CompactionState] wit
           runLastLevelCompaction(
             level = level,
             checkExpired = false,
-            maxCompactionsToRun = 0,
+            remainingCompactions = 0,
             segmentsCompacted = segmentsCompacted
           )
       }

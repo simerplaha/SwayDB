@@ -526,6 +526,8 @@ private[core] case class Level(dirs: Seq[Dir],
 
     def targetSegmentPath = paths.next.resolve(IDGenerator.segmentId(segmentIDGenerator.nextID))
 
+    implicit val groupingStrategy = Option.empty[KeyValueGroupingStrategyInternal]
+
     val keyValues = Slice(map.skipList.values().asScala.toArray)
     if (inMemory)
       Segment.copyToMemory(
@@ -592,6 +594,8 @@ private[core] case class Level(dirs: Seq[Dir],
       ioBlock =
         segment => {
           def targetSegmentPath = paths.next.resolve(IDGenerator.segmentId(segmentIDGenerator.nextID))
+
+          implicit val groupingStrategy = Option.empty[KeyValueGroupingStrategyInternal]
 
           if (inMemory)
             Segment.copyToMemory(
