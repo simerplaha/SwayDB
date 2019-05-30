@@ -174,4 +174,7 @@ private[core] object TrashLevel extends NextLevel {
 
   override def collapse(segments: Iterable[Segment]): IO.Async[Int] =
     IO.Success(segments.size)
+
+  override def isZero: Boolean =
+    false
 }

@@ -762,4 +762,6 @@ private[core] case class LevelZero(path: Path,
     false
 
   override def levelNumber: Long = 0
+
+  override def isZero: Boolean = true
 }

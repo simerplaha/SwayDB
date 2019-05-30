@@ -241,4 +241,6 @@ private[core] trait LevelRef {
   def levelNumber: Long
 
   def isTrash: Boolean
+
+  def isZero: Boolean
 }

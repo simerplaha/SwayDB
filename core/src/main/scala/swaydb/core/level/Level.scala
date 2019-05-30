@@ -1185,4 +1185,7 @@ private[core] case class Level(dirs: Seq[Dir],
 
   override val isTrash: Boolean =
     false
+
+  override def isZero: Boolean =
+    false
 }
