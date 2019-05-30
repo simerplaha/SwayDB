@@ -20,6 +20,8 @@ import scala.concurrent.duration.{FiniteDuration, _}
   * The speed of compaction depends on [[swaydb.core.level.Level.throttle]] which
   * is used to determine how overflow is a Level and how often should compaction run.
   */
+
+
 private[level] object Compaction extends CompactionStrategy[CompactionState] with LazyLogging {
 
   val awaitPullTimeout = 30.seconds.fromNow
@@ -35,8 +37,12 @@ private[level] object Compaction extends CompactionStrategy[CompactionState] wit
   def zeroReady(state: CompactionState)(implicit ordering: Ordering[LevelRef],
                                         ec: ExecutionContext): Unit = {
     state.zeroReady.compareAndSet(false, true)
+    println(s"Zero ready. Already running: ${state.running}")
     wakeUp(state = state, forwardCopyOnAllLevels = false)
   }
+
+  def terminate(state: CompactionState): Unit =
+    state.terminate = true
 
   private def copyForwardLazily(state: CompactionState): IO[Unit] =
     state.zero.nextLevel map {
@@ -61,7 +67,7 @@ private[level] object Compaction extends CompactionStrategy[CompactionState] wit
   private[compaction] def wakeUp(state: CompactionState,
                                  forwardCopyOnAllLevels: Boolean)(implicit ordering: Ordering[LevelRef],
                                                                   ec: ExecutionContext): Unit =
-    if (state.running.compareAndSet(false, true)) {
+    if (!state.terminate && state.running.compareAndSet(false, true)) {
       if (forwardCopyOnAllLevels) {
         val totalCopies = copyForwardLazily(state)
         logger.debug(s"Compaction copied $totalCopies. Starting compaction!")
@@ -78,7 +84,7 @@ private[level] object Compaction extends CompactionStrategy[CompactionState] wit
   private[compaction] def sleep(state: CompactionState,
                                 duration: FiniteDuration)(implicit ordering: Ordering[LevelRef],
                                                           ec: ExecutionContext) =
-    if (state.running.compareAndSet(true, false)) {
+    if (!state.terminate && state.running.compareAndSet(true, false)) {
       val task = Delay.task(duration)(wakeUp(state, forwardCopyOnAllLevels = true))
       state.sleepTask = Some(task)
     }
@@ -104,8 +110,8 @@ private[level] object Compaction extends CompactionStrategy[CompactionState] wit
                                   iterationNumber: Int,
                                   sleep: Option[FiniteDuration])(implicit ordering: Ordering[LevelRef],
                                                                  ec: ExecutionContext): Unit =
-    if (iterationNumber > currentJobs.size * 10)
-      logger.warn(s"Too many iterations: $iterationNumber")
+    if (state.terminate)
+      ()
     else
       currentJobs.headOption match {
         case Some(level) =>

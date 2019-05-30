@@ -15,4 +15,6 @@ private[level] trait CompactionStrategy[S] {
 
   def zeroReady(state: S)(implicit ordering: Ordering[LevelRef],
                           ec: ExecutionContext): Unit
+
+  def terminate(state: CompactionState): Unit
 }

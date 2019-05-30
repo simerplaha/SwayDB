@@ -28,6 +28,7 @@ private[level] case class CompactionState(zero: LevelZero,
                                           private[compaction] val levels: List[LevelRef],
                                           private[compaction] val running: AtomicBoolean,
                                           private[compaction] val zeroReady: AtomicBoolean,
-                                          private[compaction] val compactionStates: ConcurrentHashMap[LevelRef, LevelCompactionState]) {
+                                          private[level] val compactionStates: ConcurrentHashMap[LevelRef, LevelCompactionState]) {
   @volatile private[compaction] var sleepTask: Option[TimerTask] = None
+  @volatile private[compaction] var terminate: Boolean = false
 }

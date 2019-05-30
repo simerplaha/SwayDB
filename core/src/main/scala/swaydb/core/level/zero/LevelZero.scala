@@ -28,7 +28,7 @@ import swaydb.core.data.KeyValue._
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.IOEffect
-import swaydb.core.level.zero.LevelCommand.WakeUp
+import swaydb.core.level.compaction.{Compaction, CompactionOrdering, CompactionState, CompactionStrategy, LevelCompactionState}
 import swaydb.core.level.{LevelRef, NextLevel, PathsDistributor}
 import swaydb.core.map
 import swaydb.core.map.serializer.{TimerMapEntryReader, TimerMapEntryWriter}
@@ -66,6 +66,7 @@ private[core] object LevelZero extends LazyLogging {
     import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
     implicit val timerReader = TimerMapEntryReader.TimerPutMapEntryReader
     implicit val timerWriter = TimerMapEntryWriter.TimerPutMapEntryWriter
+    implicit val compactionStrategy: CompactionStrategy[CompactionState] = Compaction
 
     implicit val skipListMerger: SkipListMerger[Slice[Byte], Memory.SegmentResponse] = LevelZeroSkipListMerger
     val mapsAndPathAndLock =
@@ -131,12 +132,25 @@ private[core] case class LevelZero(path: Path,
                                    private val lock: Option[FileLock])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                        timeOrder: TimeOrder[Slice[Byte]],
                                                                        functionStore: FunctionStore,
-                                                                       ec: ExecutionContext) extends LevelRef with LazyLogging {
+                                                                       ec: ExecutionContext,
+                                                                       compactionStrategy: CompactionStrategy[CompactionState]) extends LevelRef with LazyLogging {
 
   logger.info("{}: Level0 started.", path)
 
   import keyOrder._
   import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
+
+  val compactionState =
+    CompactionState(
+      zero = this,
+      concurrentCompactions = 0
+    )
+
+  implicit val leverOrdering =
+    CompactionOrdering.ordering(
+      zero = this,
+      levelState = level => compactionState.compactionStates.getOrDefault(level, LevelCompactionState.Idle)
+    )
 
   //LevelZero can also implement PathsDistributor to spread the Maps over to multiple paths.
   override def paths: PathsDistributor =
@@ -148,21 +162,12 @@ private[core] case class LevelZero(path: Path,
       _: LevelMeter => Throttle(0.second, 0)
     }
 
-  private val actor: Option[LevelZeroActor] =
-    if (!throttleOn)
-      None
-    else
-      nextLevel map {
-        nextLevel =>
-          LevelZeroActor(this, nextLevel)
-      }
-
-  actor foreach {
-    actor =>
-      maps setOnFullListener {
-        () =>
-          Future(actor ! WakeUp)
-      }
+  if (nextLevel.isDefined) {
+    compactionStrategy.copyAndStart(compactionState)
+    maps setOnFullListener {
+      () =>
+        Future(compactionStrategy.zeroReady(compactionState))
+    }
   }
 
   def releaseLocks: IO[Unit] =
@@ -170,9 +175,6 @@ private[core] case class LevelZero(path: Path,
       _ =>
         nextLevel.map(_.releaseLocks) getOrElse IO.unit
     }
-
-  def !(command: LevelZeroAPI): Unit =
-    actor.foreach(_ ! command)
 
   def assertKey(key: Slice[Byte])(block: => IO[IO.OK]): IO[IO.OK] =
     if (key.isEmpty)
@@ -672,7 +674,7 @@ private[core] case class LevelZero(path: Path,
     releaseLocks
     nextLevel.map(_.close) getOrElse IO.unit map {
       _ =>
-        actor.foreach(_.terminate())
+        compactionStrategy.terminate(compactionState)
     }
   }
 
