@@ -6,16 +6,16 @@ import swaydb.core.level.{Level, LevelRef, TrashLevel}
 object CompactionOrdering {
 
   def ordering(zero: LevelZero,
-               compactionState: LevelRef => CompactionState) =
+               levelState: LevelRef => LevelCompactionState) =
     new Ordering[LevelRef] {
       override def compare(left: LevelRef, right: LevelRef): Int = {
         (left, right) match {
           //Level
-          case (left: Level, right: Level) => order(left, right, compactionState(left), compactionState(right))
-          case (left: Level, right: LevelZero) => order(right, left, compactionState(left), compactionState(right)) * -1
+          case (left: Level, right: Level) => order(left, right, levelState(left), levelState(right))
+          case (left: Level, right: LevelZero) => order(right, left, levelState(left), levelState(right)) * -1
           case (_: Level, TrashLevel) => 1
           //LevelZero
-          case (left: LevelZero, right: Level) => order(left, right, compactionState(left), compactionState(right))
+          case (left: LevelZero, right: Level) => order(left, right, levelState(left), levelState(right))
           case (_: LevelZero, _: LevelZero) => 0
           case (_: LevelZero, TrashLevel) => 1
           //LevelZero
@@ -28,8 +28,8 @@ object CompactionOrdering {
 
   def order(left: LevelZero,
             right: Level,
-            leftState: CompactionState,
-            rightState: CompactionState): Int =
+            leftState: LevelCompactionState,
+            rightState: LevelCompactionState): Int =
     if (left.level0Meter.mapsCount >= 4)
       1
     else
@@ -37,8 +37,8 @@ object CompactionOrdering {
 
   def order(left: Level,
             right: Level,
-            leftState: CompactionState,
-            rightState: CompactionState): Int =
+            leftState: LevelCompactionState,
+            rightState: LevelCompactionState): Int =
     if (right.nextLevel.isEmpty) //last Level is always the lowest priority.
       1
     else

@@ -1,9 +1,5 @@
 package swaydb.core.level.compaction
 
-import java.util.TimerTask
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.atomic.AtomicBoolean
-
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.Memory
 import swaydb.core.level.zero.LevelZero
@@ -14,62 +10,35 @@ import swaydb.data.IO
 import swaydb.data.slice.Slice
 
 import scala.annotation.tailrec
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{FiniteDuration, _}
-import scala.concurrent.{ExecutionContext, Future}
-
-object State {
-  def apply(zero: LevelZero,
-            running: AtomicBoolean,
-            compactionStates: ConcurrentHashMap[LevelRef, CompactionState],
-            concurrentCompactions: Int): State =
-    new State(
-      zero = zero,
-      levels = LevelRef.getLevels(zero),
-      running = running,
-      zeroReady = new AtomicBoolean(true),
-      concurrentCompactions = concurrentCompactions,
-      sleepTask = None,
-      compactionStates = compactionStates
-    )
-}
 
 /**
-  * The state of compaction.
-  */
-case class State(zero: LevelZero,
-                 levels: List[LevelRef],
-                 running: AtomicBoolean,
-                 zeroReady: AtomicBoolean,
-                 concurrentCompactions: Int,
-                 @volatile var sleepTask: Option[TimerTask],
-                 compactionStates: ConcurrentHashMap[LevelRef, CompactionState])
-
-/**
-  * Implements functions to execution Compaction on [[State]].
+  * Implements functions to execution Compaction on [[CompactionState]].
   * Once executed Compaction will run infinitely until shutdown.
   *
   * The speed of compaction depends on [[swaydb.core.level.Level.throttle]] which
   * is used to determine how overflow is a Level and how often should compaction run.
   */
-object Compaction extends CompactionStrategy[State] with LazyLogging {
+object Compaction extends CompactionStrategy[CompactionState] with LazyLogging {
 
   val awaitPullTimeout = 30.seconds.fromNow
 
-  def copyAndStart(state: State)(implicit ordering: Ordering[LevelRef],
-                                 ec: ExecutionContext): IO[Unit] =
+  def copyAndStart(state: CompactionState)(implicit ordering: Ordering[LevelRef],
+                                           ec: ExecutionContext): IO[Unit] =
     IO(wakeUp(state = state, forwardCopyOnAllLevels = true))
 
-  def start(state: State)(implicit ordering: Ordering[LevelRef],
-                          ec: ExecutionContext): IO[Unit] =
+  def start(state: CompactionState)(implicit ordering: Ordering[LevelRef],
+                                    ec: ExecutionContext): IO[Unit] =
     IO(wakeUp(state = state, forwardCopyOnAllLevels = false))
 
-  def zeroReady(state: State)(implicit ordering: Ordering[LevelRef],
-                              ec: ExecutionContext): Unit = {
+  def zeroReady(state: CompactionState)(implicit ordering: Ordering[LevelRef],
+                                        ec: ExecutionContext): Unit = {
     state.zeroReady.compareAndSet(false, true)
     wakeUp(state = state, forwardCopyOnAllLevels = false)
   }
 
-  private def copyForwardLazily(state: State): IO[Unit] =
+  private def copyForwardLazily(state: CompactionState): IO[Unit] =
     state.zero.nextLevel map {
       case level: NextLevel =>
         val totalCopies = copyForwardOnAllLevels(level)
@@ -83,13 +52,13 @@ object Compaction extends CompactionStrategy[State] with LazyLogging {
   /**
     * Mutates current state. Do not create copies for memory sake.
     */
-  private[compaction] def resetState(state: State): State = {
+  private[compaction] def resetState(state: CompactionState): CompactionState = {
     state.sleepTask foreach (_.cancel())
     state.sleepTask = None
     state
   }
 
-  private[compaction] def wakeUp(state: State,
+  private[compaction] def wakeUp(state: CompactionState,
                                  forwardCopyOnAllLevels: Boolean)(implicit ordering: Ordering[LevelRef],
                                                                   ec: ExecutionContext): Unit =
     if (state.running.compareAndSet(false, true)) {
@@ -106,7 +75,7 @@ object Compaction extends CompactionStrategy[State] with LazyLogging {
       )
     }
 
-  private[compaction] def sleep(state: State,
+  private[compaction] def sleep(state: CompactionState,
                                 duration: FiniteDuration)(implicit ordering: Ordering[LevelRef],
                                                           ec: ExecutionContext) =
     if (state.running.compareAndSet(true, false)) {
@@ -114,15 +83,15 @@ object Compaction extends CompactionStrategy[State] with LazyLogging {
       state.sleepTask = Some(task)
     }
 
-  def shouldRun(state: CompactionState): Boolean =
+  def shouldRun(state: LevelCompactionState): Boolean =
     state match {
-      case CompactionState.AwaitingPull(ready, timeout) =>
+      case LevelCompactionState.AwaitingPull(ready, timeout) =>
         ready || timeout.isOverdue()
 
-      case CompactionState.Sleep(ready) =>
+      case LevelCompactionState.Sleep(ready) =>
         ready.fromNow.isOverdue()
 
-      case CompactionState.Idle | CompactionState.Failed =>
+      case LevelCompactionState.Idle | LevelCompactionState.Failed =>
         true
     }
 
@@ -130,7 +99,7 @@ object Compaction extends CompactionStrategy[State] with LazyLogging {
     * Should only be executed by [[wakeUp]] or by itself.
     */
   @tailrec
-  private[compaction] def runJobs(state: State,
+  private[compaction] def runJobs(state: CompactionState,
                                   currentJobs: List[LevelRef],
                                   iterationNumber: Int,
                                   sleep: Option[FiniteDuration])(implicit ordering: Ordering[LevelRef],
@@ -143,10 +112,10 @@ object Compaction extends CompactionStrategy[State] with LazyLogging {
           //if there is a wake up call from LevelZero then re-prioritise Levels and run compaction.
           if (state.zeroReady.compareAndSet(true, false)) {
             runJobs(state, state.levels.sorted, 1, sleep)
-          } else if (shouldRun(state.compactionStates.getOrDefault(level, CompactionState.Idle))) {
+          } else if (shouldRun(state.compactionStates.getOrDefault(level, LevelCompactionState.Idle))) {
             val newState = runJob(level)
             newState match {
-              case CompactionState.AwaitingPull(ready, timeout) =>
+              case LevelCompactionState.AwaitingPull(ready, timeout) =>
                 if (ready || timeout.isOverdue()) {
                   runJobs(state, currentJobs, iterationNumber + 1, sleep)
                 } else {
@@ -155,11 +124,11 @@ object Compaction extends CompactionStrategy[State] with LazyLogging {
                   runJobs(state, currentJobs.drop(1), iterationNumber + 1, sleepFor)
                 }
 
-              case CompactionState.Idle | CompactionState.Failed =>
+              case LevelCompactionState.Idle | LevelCompactionState.Failed =>
                 state.compactionStates.put(level, newState)
                 runJobs(state, currentJobs.drop(1), iterationNumber + 1, sleep)
 
-              case CompactionState.Sleep(duration) =>
+              case LevelCompactionState.Sleep(duration) =>
                 val sleepFor = sleep.map(_ min duration).orElse(Some(duration))
                 runJobs(state, currentJobs.drop(1), iterationNumber + 1, sleepFor)
             }
@@ -177,7 +146,7 @@ object Compaction extends CompactionStrategy[State] with LazyLogging {
           }
       }
 
-  private[compaction] def runJob(level: LevelRef): CompactionState =
+  private[compaction] def runJob(level: LevelRef): LevelCompactionState =
     level match {
       case zero: LevelZero =>
         pushForward(zero)
@@ -186,18 +155,18 @@ object Compaction extends CompactionStrategy[State] with LazyLogging {
         pushForward(level)
 
       case TrashLevel =>
-        CompactionState.Idle
+        LevelCompactionState.Idle
     }
 
-  private[compaction] def pushForward(level: NextLevel): CompactionState = {
+  private[compaction] def pushForward(level: NextLevel): LevelCompactionState = {
     val throttle = level.throttle(level.meter)
     if (throttle.pushDelay.fromNow.isOverdue())
       pushForward(level, throttle.segmentsToPush) match {
         case IO.Success(_) =>
-          CompactionState.Idle
+          LevelCompactionState.Idle
 
         case later @ IO.Later(_, _) =>
-          val state = CompactionState.AwaitingPull(_ready = false, timeout = awaitPullTimeout)
+          val state = LevelCompactionState.AwaitingPull(_ready = false, timeout = awaitPullTimeout)
           later mapAsync {
             _ =>
               state.ready = true
@@ -205,23 +174,23 @@ object Compaction extends CompactionStrategy[State] with LazyLogging {
           state
 
         case IO.Failure(_) =>
-          CompactionState.Failed
+          LevelCompactionState.Failed
       }
     else
-      CompactionState.Sleep(throttle.pushDelay)
+      LevelCompactionState.Sleep(throttle.pushDelay)
   }
 
-  private[compaction] def pushForward(zero: LevelZero): CompactionState =
+  private[compaction] def pushForward(zero: LevelZero): LevelCompactionState =
     zero.nextLevel map {
       nextLevel =>
         pushForward(
           zero,
           nextLevel
         )
-    } getOrElse CompactionState.Idle
+    } getOrElse LevelCompactionState.Idle
 
   private[compaction] def pushForward(zero: LevelZero,
-                                      nextLevel: NextLevel): CompactionState =
+                                      nextLevel: NextLevel): LevelCompactionState =
     zero.maps.last() match {
       case Some(map) =>
         logger.debug(s"{}: Pushing LevelZero map {}", zero.path, map.pathOption)
@@ -233,12 +202,12 @@ object Compaction extends CompactionStrategy[State] with LazyLogging {
 
       case None =>
         logger.debug(s"{}: NO LAST MAP. No more maps to merge.", zero.path)
-        CompactionState.Idle
+        LevelCompactionState.Idle
     }
 
   private[compaction] def pushForward(zero: LevelZero,
                                       nextLevel: NextLevel,
-                                      map: swaydb.core.map.Map[Slice[Byte], Memory.SegmentResponse]): CompactionState =
+                                      map: swaydb.core.map.Map[Slice[Byte], Memory.SegmentResponse]): LevelCompactionState =
     nextLevel.put(map) match {
       case IO.Success(_) =>
         logger.debug(s"{}: Put to map successful.", zero.path)
@@ -261,7 +230,7 @@ object Compaction extends CompactionStrategy[State] with LazyLogging {
                 )
             }
         }
-        CompactionState.Idle
+        LevelCompactionState.Idle
 
       case IO.Failure(exception) =>
         exception match {
@@ -271,10 +240,10 @@ object Compaction extends CompactionStrategy[State] with LazyLogging {
           case _ =>
             logger.debug(s"{}: Failed to push. Waiting for pull", zero.path, exception)
         }
-        CompactionState.Failed
+        LevelCompactionState.Failed
 
       case later @ IO.Later(_, _) =>
-        val state = CompactionState.AwaitingPull(_ready = false, timeout = awaitPullTimeout)
+        val state = LevelCompactionState.AwaitingPull(_ready = false, timeout = awaitPullTimeout)
         later mapAsync {
           _ =>
             state.ready = true

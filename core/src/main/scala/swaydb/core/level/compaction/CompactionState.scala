@@ -1,14 +1,36 @@
 package swaydb.core.level.compaction
 
+import java.util.TimerTask
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicBoolean
 
-import scala.concurrent.duration.{Deadline, FiniteDuration}
+import swaydb.core.level.LevelRef
+import swaydb.core.level.zero.LevelZero
 
-sealed trait CompactionState
+
 object CompactionState {
-  case class AwaitingPull(private val _ready: Boolean, timeout: Deadline) extends CompactionState {
-    @volatile var ready: Boolean = _ready
-  }
-  case object Idle extends CompactionState
-  case class Sleep(duration: FiniteDuration) extends CompactionState
-  case object Failed extends CompactionState
+  def apply(zero: LevelZero,
+            running: AtomicBoolean,
+            levelStates: ConcurrentHashMap[LevelRef, LevelCompactionState],
+            concurrentCompactions: Int): CompactionState =
+    new CompactionState(
+      zero = zero,
+      levels = LevelRef.getLevels(zero),
+      running = running,
+      zeroReady = new AtomicBoolean(true),
+      concurrentCompactions = concurrentCompactions,
+      compactionStates = levelStates
+    )
+}
+
+/**
+  * The state of compaction.
+  */
+case class CompactionState(zero: LevelZero,
+                           levels: List[LevelRef],
+                           running: AtomicBoolean,
+                           zeroReady: AtomicBoolean,
+                           concurrentCompactions: Int,
+                           compactionStates: ConcurrentHashMap[LevelRef, LevelCompactionState]) {
+  @volatile var sleepTask: Option[TimerTask] = None
 }
