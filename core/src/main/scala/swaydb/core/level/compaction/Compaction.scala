@@ -135,7 +135,7 @@ private[level] object Compaction extends CompactionStrategy[CompactionState] wit
                 runJobs(state, currentJobs.drop(1), iterationNumber + 1, sleep)
 
               case LevelCompactionState.Sleeping(duration) =>
-                val sleepFor = sleep.map(_ min duration).orElse(Some(duration))
+                val sleepFor = sleep.map(_ min duration) orElse Some(duration)
                 runJobs(state, currentJobs.drop(1), iterationNumber + 1, sleepFor)
             }
           } else {
@@ -242,9 +242,9 @@ private[level] object Compaction extends CompactionStrategy[CompactionState] wit
         exception match {
           //do not log the stack if the IO.Failure to merge was ContainsOverlappingBusySegments.
           case IO.Error.OverlappingPushSegment =>
-            logger.debug(s"{}: Failed to push. Waiting for pull. Cause - {}", zero.path, IO.Error.OverlappingPushSegment.getClass.getSimpleName.dropRight(1))
+            logger.debug(s"{}: Failed to push", zero.path, IO.Error.OverlappingPushSegment.getClass.getSimpleName.dropRight(1))
           case _ =>
-            logger.debug(s"{}: Failed to push. Waiting for pull", zero.path, exception)
+            logger.error(s"{}: Failed to push", zero.path, exception)
         }
         LevelCompactionState.Failed
 

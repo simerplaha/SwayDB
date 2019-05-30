@@ -13,7 +13,7 @@ private[level] object CompactionState {
     new CompactionState(
       zero = zero,
       concurrentCompactions = concurrentCompactions,
-      levels = LevelRef.getLevels(zero),
+      levels = LevelRef.getLevels(zero).filterNot(_.isTrash),
       running = new AtomicBoolean(false),
       zeroReady = new AtomicBoolean(true),
       compactionStates = new ConcurrentHashMap[LevelRef, LevelCompactionState]()
