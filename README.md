@@ -12,9 +12,7 @@
 [build-badge]: https://travis-ci.com/simerplaha/SwayDB.svg?branch=master
 [build-link]: https://travis-ci.com/simerplaha/SwayDB
 
-Embeddable persistent and in-memory database.
-
-Documentation: http://swaydb.io
+Embeddable persistent and in-memory database - [documentation](http://swaydb.io).
 
 ## Performance
 
@@ -27,33 +25,23 @@ View detailed benchmark results [here](http://swaydb.io/performance/macbook-pro-
 
 ## Features
 
-- Non-blocking.
+- [Java](https://github.com/simerplaha/SwayDB.java) & [Kotlin](https://github.com/simerplaha/SwayDB.kotlin) wrappers.
 - Single or multiple disks persistent, in-memory or periodically persistent.
+- Configurable non-blocking & blocking APIs.
+- Simple Stream based iteration following Scala collections APIs.
 - Atomic updates and inserts.
-- APIs similar to Scala collections.
-- Auto expiring key-value ([TTL](http://www.swaydb.io/api/write-api/expire/))
-- Range [update, remove & expire](http://www.swaydb.io/api/write-api/)
-- Key only iterations (Lazily fetched values)
-- Supported data types 
-    - `Map[K, V]`
-        - Nested maps similar to `Tables` with [extensions](http://www.swaydb.io/extending-databases/). 
-    - `Set[T]`
-- In-built custom serialization API with [Slice](http://www.swaydb.io/slice/byte-slice/) 
-- [Configurable Levels](http://www.swaydb.io/configuring-levels/)
-- Configurable [cacheSize](http://www.swaydb.io/configuring-levels/cacheSize/)
-- Concurrent level compaction
-- Duplicate values can be detected and written only ones with the configuration [compressDuplicateValues](http://www.swaydb.io/configuring-levels/compressDuplicateValues/).
-- Compression with [LZ4](https://github.com/lz4/lz4-java) & [Snappy](https://github.com/xerial/snappy-java) are fully supported
-for both [Persistent](http://www.swaydb.io/create-databases/persistent/) & [Memory](http://www.swaydb.io/create-databases/memory/) databases for each Level.
-- All LZ4 instances, compressors & decompressors are [configurable](http://www.swaydb.io/configuring-levels/groupingStrategy/).
-    - LZ4 Instances - `FastestInstance`, `FastestJavaInstance`, `NativeInstance`, `SafeInstance` & `UnsafeInstance`.
-    - LZ4 Compressors - `FastCompressor` & `HighCompressor`.
-    - LZ4 Decompressors - `FastDecompressor` & `SafeDecompressor`.
-- Optional Memory-mapped files
-- Scala Streams
-- Bloom filters
+- Custom updates using any [JVM function](http://www.swaydb.io/api/write/registerFunction/).
+- TTL - auto [expiring](http://www.swaydb.io/api/write/expire/) key-values.
+- Range [update, remove & expire](http://www.swaydb.io/api/write/update-range/).
+- Key only iterations (Lazily fetched values).
+- Supported data types - `Map[K, V]` & `Set[T]`. 
+- In-built custom serialization API with [Slice](http://www.swaydb.io/slice/byte-slice/). 
+- Highly [configurable](http://www.swaydb.io/configuring-levels/).
+- [Compression](http://www.swaydb.io/configuring-levels/groupingStrategy/) for both Persistent & Memory databases with LZ4 & Snappy.
+- Duplicate values can be eliminated with [compressDuplicateValues](http://www.swaydb.io/configuring-levels/compressDuplicateValues/).
 
 [Read more](http://swaydb.io/).
+
 
 ## Demo Streaming API
 ```scala
@@ -74,11 +62,6 @@ db
 ## Quick start
 [Quick start demo](http://swaydb.io/quick-start).
 
-## Examples 
-- [Creating Tables](http://swaydb.io/examples/creating-tables)
-- [Event-sourcing](http://swaydb.io/examples/event-sourcing)
-- [Storing data in chunks](http://swaydb.io/examples/storing-data-in-chunks)
-
 ## Related GitHub projects
 - [SwayDB.examples](https://github.com/simerplaha/SwayDB.examples) - Examples demonstrating features and APIs.
 - [SwayDB.benchmark](https://github.com/simerplaha/SwayDB.benchmark) - Benchmarks for write and read performance.
@@ -87,7 +70,7 @@ db
 
 # Project status
 
-Undergoing integration, stress & performance testing. 
+Undergoing changes & testing without maintaining of backward compatibility. 
 
 # Master branch status
 
