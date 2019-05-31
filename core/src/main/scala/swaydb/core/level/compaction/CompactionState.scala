@@ -5,30 +5,37 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 
 import swaydb.core.level.LevelRef
-import swaydb.core.level.zero.LevelZero
+import swaydb.core.util.CollectionUtil
 
 private[level] object CompactionState {
-  def apply(zero: LevelZero,
-            concurrentCompactions: Int): CompactionState =
-    new CompactionState(
-      zero = zero,
+  def apply(levels: List[LevelRef],
+            concurrentCompactions: Int)(implicit ordering: CompactionOrdering): List[CompactionState] =
+    CollectionUtil.groupedNoSingles(
       concurrentCompactions = concurrentCompactions,
-      levels = LevelRef.getLevels(zero).filterNot(_.isTrash),
-      running = new AtomicBoolean(false),
-      zeroReady = new AtomicBoolean(true),
-      compactionStates = new ConcurrentHashMap[LevelRef, LevelCompactionState]()
-    )
+      items = levels
+    ) map {
+      jobs =>
+        val statesMap = new ConcurrentHashMap[LevelRef, LevelCompactionState]()
+        val levelOrdering = ordering.ordering(statesMap.getOrDefault(_, LevelCompactionState.Idle))
+        new CompactionState(
+          levels = jobs,
+          running = new AtomicBoolean(false),
+          zeroReady = new AtomicBoolean(true),
+          compactionStates = statesMap,
+          ordering = levelOrdering
+        )
+    }
 }
 
 /**
-  * The state of compaction.
+  * Compaction state for a group of Levels. The number of compaction depends on concurrentCompactions input.
   */
-private[level] case class CompactionState(zero: LevelZero,
-                                          concurrentCompactions: Int,
-                                          private[compaction] val levels: List[LevelRef],
+private[level] case class CompactionState(levels: List[LevelRef],
                                           private[compaction] val running: AtomicBoolean,
                                           private[compaction] val zeroReady: AtomicBoolean,
-                                          private[level] val compactionStates: ConcurrentHashMap[LevelRef, LevelCompactionState]) {
+                                          private[level] val compactionStates: ConcurrentHashMap[LevelRef, LevelCompactionState],
+                                          ordering: Ordering[LevelRef]) {
   @volatile private[compaction] var sleepTask: Option[TimerTask] = None
   @volatile private[compaction] var terminate: Boolean = false
+  val levelsReversed = levels.reverse
 }

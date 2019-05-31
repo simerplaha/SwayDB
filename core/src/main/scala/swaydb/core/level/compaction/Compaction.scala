@@ -20,22 +20,17 @@ import scala.concurrent.duration.{FiniteDuration, _}
   * The speed of compaction depends on [[swaydb.core.level.Level.throttle]] which
   * is used to determine how overflow is a Level and how often should compaction run.
   */
-
-
 private[level] object Compaction extends CompactionStrategy[CompactionState] with LazyLogging {
 
   val awaitPullTimeout = 30.seconds.fromNow
 
-  def copyAndStart(state: CompactionState)(implicit ordering: Ordering[LevelRef],
-                                           ec: ExecutionContext): IO[Unit] =
+  def copyAndStart(state: CompactionState)(implicit ec: ExecutionContext): IO[Unit] =
     IO(wakeUp(state = state, forwardCopyOnAllLevels = true))
 
-  def start(state: CompactionState)(implicit ordering: Ordering[LevelRef],
-                                    ec: ExecutionContext): IO[Unit] =
+  def start(state: CompactionState)(implicit ec: ExecutionContext): IO[Unit] =
     IO(wakeUp(state = state, forwardCopyOnAllLevels = false))
 
-  def zeroReady(state: CompactionState)(implicit ordering: Ordering[LevelRef],
-                                        ec: ExecutionContext): Unit = {
+  def zeroReady(state: CompactionState)(implicit ec: ExecutionContext): Unit = {
     state.zeroReady.compareAndSet(false, true)
     println(s"Zero ready. Already running: ${state.running}")
     wakeUp(state = state, forwardCopyOnAllLevels = false)
@@ -43,17 +38,6 @@ private[level] object Compaction extends CompactionStrategy[CompactionState] wit
 
   def terminate(state: CompactionState): Unit =
     state.terminate = true
-
-  private def copyForwardLazily(state: CompactionState): IO[Unit] =
-    state.zero.nextLevel map {
-      case level: NextLevel =>
-        val totalCopies = copyForwardOnAllLevels(level)
-        logger.debug(s"Compaction copied $totalCopies. Starting compaction!")
-        IO.unit
-
-      case TrashLevel =>
-        IO.unit
-    } getOrElse IO.unit
 
   /**
     * Mutates current state. Do not create copies for memory sake.
@@ -65,14 +49,14 @@ private[level] object Compaction extends CompactionStrategy[CompactionState] wit
   }
 
   private[compaction] def wakeUp(state: CompactionState,
-                                 forwardCopyOnAllLevels: Boolean)(implicit ordering: Ordering[LevelRef],
-                                                                  ec: ExecutionContext): Unit =
+                                 forwardCopyOnAllLevels: Boolean)(implicit ec: ExecutionContext): Unit =
     if (!state.terminate && state.running.compareAndSet(false, true)) {
       if (forwardCopyOnAllLevels) {
-        val totalCopies = copyForwardLazily(state)
+        val totalCopies = copyForwardForEach(state.levelsReversed)
         logger.debug(s"Compaction copied $totalCopies. Starting compaction!")
       }
-      val newState = resetState(state)
+      val newState: CompactionState = resetState(state)
+      implicit val ordering: Ordering[LevelRef] = state.ordering
       runJobs(
         state = newState,
         currentJobs = newState.levels.sorted,
@@ -125,7 +109,7 @@ private[level] object Compaction extends CompactionStrategy[CompactionState] wit
                 if (ready || timeout.isOverdue()) {
                   runJobs(state, currentJobs, iterationNumber + 1, sleep)
                 } else {
-                  val sleepFor = sleep.map(_ min timeout.timeLeft).orElse(Some(timeout.timeLeft))
+                  val sleepFor = sleep.map(_ min timeout.timeLeft) orElse Some(timeout.timeLeft)
                   state.compactionStates.put(level, newState)
                   runJobs(state, currentJobs.drop(1), iterationNumber + 1, sleepFor)
                 }
@@ -348,36 +332,45 @@ private[level] object Compaction extends CompactionStrategy[CompactionState] wit
             segmentsCompacted = segmentsCompacted
           )
       }
+
   /**
     * Runs lazy error checks. Ignores all errors and continues copying
     * each Level starting from the lowest level first.
     */
-  private[compaction] def copyForwardOnAllLevels(level: NextLevel): Int =
-    level.reverseNextLevels.foldLeft[Int](0) {
-      (totalCopied, level) =>
-        level.nextLevel map {
-          nextLevel =>
-            val (copyable, _) = nextLevel.partitionUnreservedCopyable(level.segmentsInLevel())
-            putForward(
-              segments = copyable,
-              thisLevel = level,
-              nextLevel = nextLevel
-            ) match {
-              case IO.Success(copied) =>
-                logger.debug(s"Forward copied $copied Segments for level: ${level.rootPath}.")
-                totalCopied + copied
+  private[compaction] def copyForwardForEach(levels: Seq[LevelRef]): Int =
+    levels.foldLeft(0) {
+      case (totalCopies, level: NextLevel) =>
+        val copied = copyForward(level)
+        logger.debug(s"Compaction copied $copied. Starting compaction!")
+        totalCopies + copied
 
-              case IO.Failure(error) =>
-                logger.error(s"Failed copy Segments forward for level: ${level.rootPath}", error.exception)
-                totalCopied
-
-              case IO.Later(_, _) =>
-                //this should never really occur when no other concurrent compactions are occurring.
-                logger.warn(s"Received later compaction for level: ${level.rootPath}.")
-                totalCopied
-            }
-        } getOrElse totalCopied
+      case (copies, TrashLevel | _: LevelZero) =>
+        copies
     }
+
+  private def copyForward(level: NextLevel): Int =
+    level.nextLevel map {
+      nextLevel =>
+        val (copyable, _) = nextLevel.partitionUnreservedCopyable(level.segmentsInLevel())
+        putForward(
+          segments = copyable,
+          thisLevel = level,
+          nextLevel = nextLevel
+        ) match {
+          case IO.Success(copied) =>
+            logger.debug(s"Forward copied $copied Segments for level: ${level.rootPath}.")
+            copied
+
+          case IO.Failure(error) =>
+            logger.error(s"Failed copy Segments forward for level: ${level.rootPath}", error.exception)
+            0
+
+          case IO.Later(_, _) =>
+            //this should never really occur when no other concurrent compactions are occurring.
+            logger.warn(s"Received later compaction for level: ${level.rootPath}.")
+            0
+        }
+    } getOrElse 0
 
   private[compaction] def putForward(segments: Iterable[Segment],
                                      thisLevel: NextLevel,

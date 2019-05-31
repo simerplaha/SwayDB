@@ -68,6 +68,7 @@ private[core] object LevelZero extends LazyLogging {
     implicit val timerReader = TimerMapEntryReader.TimerPutMapEntryReader
     implicit val timerWriter = TimerMapEntryWriter.TimerPutMapEntryWriter
     implicit val compactionStrategy: CompactionStrategy[CompactionState] = Compaction
+    implicit val compactionOrdering: CompactionOrdering = DefaultCompactionOrdering
 
     implicit val skipListMerger: SkipListMerger[Slice[Byte], Memory.SegmentResponse] = LevelZeroSkipListMerger
     val mapsAndPathAndLock =
@@ -109,7 +110,7 @@ private[core] object LevelZero extends LazyLogging {
               (map, Paths.get("MEMORY_DB").resolve(0.toString), None)
           }
       }
-    mapsAndPathAndLock map {
+    mapsAndPathAndLock flatMap {
       case (maps, path, lock: Option[FileLock]) =>
         new LevelZero(
           path = path,
@@ -119,7 +120,7 @@ private[core] object LevelZero extends LazyLogging {
           nextLevel = nextLevel,
           inMemory = storage.memory,
           lock = lock
-        )
+        ).startCompaction()
     }
   }
 }
@@ -134,35 +135,55 @@ private[core] case class LevelZero(path: Path,
                                                                        timeOrder: TimeOrder[Slice[Byte]],
                                                                        functionStore: FunctionStore,
                                                                        ec: ExecutionContext,
-                                                                       compactionStrategy: CompactionStrategy[CompactionState]) extends LevelRef with LazyLogging {
+                                                                       compactionStrategy: CompactionStrategy[CompactionState],
+                                                                       compactionOrdering: CompactionOrdering) extends LevelRef with LazyLogging {
 
   logger.info("{}: Level0 started.", path)
 
   import keyOrder._
   import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
+  import IO._
 
-  val compactionThreadPool =
-    new ExecutionContext {
-      val threadPool = Executors.newSingleThreadExecutor()
-
-      def execute(runnable: Runnable) =
-        threadPool execute runnable
-
-      def reportFailure(exception: Throwable): Unit =
-        logger.error("Execution context failure", exception)
-    }
-
-  val compactionState =
+  val compactions: List[CompactionState] =
     CompactionState(
-      zero = this,
+      levels = LevelRef.getLevels(this).filterNot(_.isTrash),
       concurrentCompactions = 0
     )
 
-  implicit val leverOrdering =
-    CompactionOrdering.ordering(
-      zero = this,
-      levelState = level => compactionState.compactionStates.getOrDefault(level, LevelCompactionState.Idle)
-    )
+  def startCompaction(copyForwardAllOnStart: Boolean): IO[LevelZero] =
+    if (nextLevel.isDefined)
+      compactions.reverse foreachIO { //start compactions in reverse with the last Level being initialised first.
+        state =>
+          val compaction =
+            if (copyForwardAllOnStart)
+              compactionStrategy.copyAndStart(state)(ec)
+            else
+              compactionStrategy.start(state)(ec)
+
+          compaction onFailureSideEffect {
+            error =>
+              logger.error(s"FAILURE! Failed to start compaction for Levels: ${state.levels.map(_.levelNumber).mkString(",")}", error.exception)
+          } map {
+            _ =>
+              this
+          }
+      } getOrElse {
+        IO {
+          terminateCompaction()
+          maps setOnFullListener {
+            () =>
+              Future {
+                compactions foreach {
+                  state =>
+                    compactionStrategy.zeroReady(state)(ec)
+                }
+              }(ec)
+          }
+          this
+        }
+      }
+    else
+      IO.Success(this)
 
   //LevelZero can also implement PathsDistributor to spread the Maps over to multiple paths.
   override def paths: PathsDistributor =
@@ -174,13 +195,11 @@ private[core] case class LevelZero(path: Path,
       _: LevelMeter => Throttle(0.second, 0)
     }
 
-  if (nextLevel.isDefined) {
-    compactionStrategy.copyAndStart(compactionState)(leverOrdering, compactionThreadPool)
-    maps setOnFullListener {
-      () =>
-        Future(compactionStrategy.zeroReady(compactionState)(leverOrdering, compactionThreadPool))(compactionThreadPool)
+  def terminateCompaction(): Unit =
+    compactions foreach {
+      state =>
+        compactionStrategy.terminate(state)
     }
-  }
 
   def releaseLocks: IO[Unit] =
     IOEffect.release(lock) flatMap {
@@ -686,7 +705,7 @@ private[core] case class LevelZero(path: Path,
     releaseLocks
     nextLevel.map(_.close) getOrElse IO.unit map {
       _ =>
-        compactionStrategy.terminate(compactionState)
+        terminateCompaction()
     }
   }
 

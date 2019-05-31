@@ -3,10 +3,16 @@ package swaydb.core.level.compaction
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, LevelRef, TrashLevel}
 
-private[swaydb] object CompactionOrdering {
+private[swaydb] sealed trait CompactionOrdering {
+  def ordering(levelState: LevelRef => LevelCompactionState): Ordering[LevelRef]
+}
 
-  def ordering(zero: LevelZero,
-               levelState: LevelRef => LevelCompactionState) =
+private[swaydb] object DefaultCompactionOrdering extends CompactionOrdering {
+
+  /**
+    * Given the Level returns the ordering for [[LevelRef]].
+    */
+  def ordering(levelState: LevelRef => LevelCompactionState) =
     new Ordering[LevelRef] {
       override def compare(left: LevelRef, right: LevelRef): Int = {
         (left, right) match {
