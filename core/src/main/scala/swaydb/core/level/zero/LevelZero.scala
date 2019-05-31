@@ -154,7 +154,8 @@ private[core] case class LevelZero(path: Path,
           zero = this,
           levels = LevelRef.getLevels(nextLevel).filterNot(_.isTrash),
           dedicatedLevelZeroCompaction = dedicatedLevelZeroCompaction,
-          concurrentCompactions = concurrentCompactions
+          concurrentCompactions = concurrentCompactions,
+          executionContexts = List.fill(concurrentCompactions)(ec)
         )
     } getOrElse List.empty
 
@@ -167,9 +168,9 @@ private[core] case class LevelZero(path: Path,
         state =>
           val compaction =
             if (copyForwardAllOnStart)
-              compactionStrategy.copyAndStart(state)(ec)
+              compactionStrategy.copyAndStart(state)
             else
-              compactionStrategy.start(state)(ec)
+              compactionStrategy.start(state)
 
           compaction onFailureSideEffect {
             error =>
@@ -185,9 +186,9 @@ private[core] case class LevelZero(path: Path,
               Future {
                 headCompaction foreach {
                   state =>
-                    compactionStrategy.wakeUpFromZero(state)(ec)
+                    compactionStrategy.wakeUpFromZero(state)
                 }
-              }(ec)
+              }
           }
           this
         }

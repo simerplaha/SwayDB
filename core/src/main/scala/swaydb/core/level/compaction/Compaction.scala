@@ -10,9 +10,7 @@ import swaydb.data.IO
 import swaydb.data.slice.Slice
 
 import scala.annotation.tailrec
-import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
-
 
 /**
   * Implements functions to execution Compaction on [[CompactionState]].
@@ -25,14 +23,14 @@ private[level] object Compaction extends CompactionStrategy[CompactionState] wit
 
   val awaitPullTimeout = 30.seconds.fromNow
 
-  def copyAndStart(state: CompactionState)(implicit ec: ExecutionContext): IO[Unit] =
+  def copyAndStart(state: CompactionState): IO[Unit] =
     IO(wakeUp(state = state, forwardCopyOnAllLevels = true))
 
-  def start(state: CompactionState)(implicit ec: ExecutionContext): IO[Unit] =
+  def start(state: CompactionState): IO[Unit] =
     IO(wakeUp(state = state, forwardCopyOnAllLevels = false))
 
   //wakeUp call received from Levels.
-  def wakeUpFromZero(state: CompactionState)(implicit ec: ExecutionContext): Unit = {
+  def wakeUpFromZero(state: CompactionState): Unit = {
     logger.trace(s"WakeUp from Zero. Running: ${state.running}")
     state.zeroWakeUpCalls.incrementAndGet()
     wakeUp(state = state, forwardCopyOnAllLevels = false)
@@ -58,7 +56,7 @@ private[level] object Compaction extends CompactionStrategy[CompactionState] wit
     Slice(levels.sorted.toArray)
 
   private[compaction] def wakeUp(state: CompactionState,
-                                 forwardCopyOnAllLevels: Boolean)(implicit ec: ExecutionContext): Unit =
+                                 forwardCopyOnAllLevels: Boolean): Unit =
     if (state.terminate)
       logger.debug("Terminated! Ignoring wakeUp call.")
     else if (state.running.compareAndSet(false, true)) {
@@ -79,7 +77,7 @@ private[level] object Compaction extends CompactionStrategy[CompactionState] wit
       sleep(
         state = newState,
         duration = sleepFor
-      )(state.ordering, ec)
+      )(state.ordering)
 
       //on complete ask other lower compactions to wakeup if not already running.
       state.lowerCompactions foreach {
@@ -89,8 +87,7 @@ private[level] object Compaction extends CompactionStrategy[CompactionState] wit
     }
 
   private[compaction] def sleep(state: CompactionState,
-                                duration: Deadline)(implicit ordering: Ordering[LevelRef],
-                                                    ec: ExecutionContext): Unit =
+                                duration: Deadline)(implicit ordering: Ordering[LevelRef]): Unit =
     if (!state.terminate && state.running.compareAndSet(true, false)) {
       val task = Delay.task(duration.timeLeft)(wakeUp(state, forwardCopyOnAllLevels = true))
       state.sleepTask = Some(task)
