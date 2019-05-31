@@ -10,7 +10,7 @@ private[level] trait CompactionStrategy[S] {
 
   def copyAndStart(state: S)(implicit ec: ExecutionContext): IO[Unit]
 
-  def zeroReady(state: S)(implicit ec: ExecutionContext): Unit
+  def wakeUpFromZero(state: S)(implicit ec: ExecutionContext): Unit
 
   def terminate(state: CompactionState): Unit
 }

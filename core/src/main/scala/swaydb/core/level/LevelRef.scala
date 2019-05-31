@@ -72,6 +72,9 @@ object LevelRef {
     getLevels(Some(level), List.empty)
   }
 
+  def getLevels(level: NextLevel): List[NextLevel] =
+    getLevels(level: LevelRef) map (_.asInstanceOf[NextLevel])
+
   def foreach[T](level: LevelRef, f: LevelRef => T): Unit = {
     f(level)
     level.nextLevel foreach {

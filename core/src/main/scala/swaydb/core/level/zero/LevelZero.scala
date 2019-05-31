@@ -22,7 +22,6 @@ package swaydb.core.level.zero
 import java.nio.channels.{FileChannel, FileLock}
 import java.nio.file.{Path, Paths, StandardOpenOption}
 import java.util
-import java.util.concurrent.Executors
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.KeyValue._
@@ -119,8 +118,10 @@ private[core] object LevelZero extends LazyLogging {
           throttleOn = throttleOn,
           nextLevel = nextLevel,
           inMemory = storage.memory,
+          dedicatedLevelZeroCompaction = true,
+          concurrentCompactions = 2,
           lock = lock
-        ).startCompaction()
+        ).startCompaction(copyForwardAllOnStart = true)
     }
   }
 }
@@ -131,6 +132,8 @@ private[core] case class LevelZero(path: Path,
                                    throttleOn: Boolean,
                                    nextLevel: Option[NextLevel],
                                    inMemory: Boolean,
+                                   dedicatedLevelZeroCompaction: Boolean,
+                                   concurrentCompactions: Int,
                                    private val lock: Option[FileLock])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                        timeOrder: TimeOrder[Slice[Byte]],
                                                                        functionStore: FunctionStore,
@@ -140,15 +143,23 @@ private[core] case class LevelZero(path: Path,
 
   logger.info("{}: Level0 started.", path)
 
+  import IO._
   import keyOrder._
   import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
-  import IO._
 
   val compactions: List[CompactionState] =
-    CompactionState(
-      levels = LevelRef.getLevels(this).filterNot(_.isTrash),
-      concurrentCompactions = 0
-    )
+    nextLevel map {
+      nextLevel =>
+        CompactionState(
+          zero = this,
+          levels = LevelRef.getLevels(nextLevel).filterNot(_.isTrash),
+          dedicatedLevelZeroCompaction = dedicatedLevelZeroCompaction,
+          concurrentCompactions = concurrentCompactions
+        )
+    } getOrElse List.empty
+
+  val headCompaction =
+    compactions.headOption
 
   def startCompaction(copyForwardAllOnStart: Boolean): IO[LevelZero] =
     if (nextLevel.isDefined)
@@ -169,13 +180,12 @@ private[core] case class LevelZero(path: Path,
           }
       } getOrElse {
         IO {
-          terminateCompaction()
           maps setOnFullListener {
             () =>
               Future {
-                compactions foreach {
+                headCompaction foreach {
                   state =>
-                    compactionStrategy.zeroReady(state)(ec)
+                    compactionStrategy.wakeUpFromZero(state)(ec)
                 }
               }(ec)
           }

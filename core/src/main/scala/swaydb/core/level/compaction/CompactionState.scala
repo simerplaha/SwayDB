@@ -1,30 +1,45 @@
 package swaydb.core.level.compaction
 
 import java.util.TimerTask
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
 
-import swaydb.core.level.LevelRef
+import swaydb.core.level.zero.LevelZero
+import swaydb.core.level.{LevelRef, NextLevel}
 import swaydb.core.util.CollectionUtil
 
+import scala.collection.mutable
+
 private[level] object CompactionState {
-  def apply(levels: List[LevelRef],
-            concurrentCompactions: Int)(implicit ordering: CompactionOrdering): List[CompactionState] =
-    CollectionUtil.groupedNoSingles(
-      concurrentCompactions = concurrentCompactions,
-      items = levels
-    ) map {
-      jobs =>
-        val statesMap = new ConcurrentHashMap[LevelRef, LevelCompactionState]()
-        val levelOrdering = ordering.ordering(statesMap.getOrDefault(_, LevelCompactionState.Idle))
-        new CompactionState(
-          levels = jobs,
-          running = new AtomicBoolean(false),
-          zeroReady = new AtomicBoolean(true),
-          compactionStates = statesMap,
-          ordering = levelOrdering
-        )
-    }
+
+  private def createCompactions(concurrentCompactions: Int,
+                                levels: List[LevelRef])(implicit ordering: CompactionOrdering) =
+    CollectionUtil
+      .groupedNoSingles(concurrentCompactions, levels)
+      .reverse
+      .foldRight(List.empty[CompactionState]) {
+        case (jobs, lowerCompactions) =>
+          val statesMap = mutable.Map.empty[LevelRef, LevelCompactionState]
+          val levelOrdering = ordering.ordering(level => statesMap.getOrElse(level, LevelCompactionState.longSleep))
+          val compaction =
+            CompactionState(
+              levels = jobs,
+              running = new AtomicBoolean(false),
+              zeroWakeUpCalls = new AtomicInteger(0),
+              compactionStates = statesMap,
+              ordering = levelOrdering,
+              lowerCompactions = lowerCompactions
+            )
+          compaction +: lowerCompactions
+      }
+
+  def apply(zero: LevelZero,
+            levels: List[NextLevel],
+            concurrentCompactions: Int,
+            dedicatedLevelZeroCompaction: Boolean)(implicit ordering: CompactionOrdering): List[CompactionState] =
+    if (dedicatedLevelZeroCompaction)
+      createCompactions(1, List(zero)) ++ createCompactions((concurrentCompactions - 1) max 1, levels)
+    else
+      createCompactions(concurrentCompactions max 1, zero +: levels)
 }
 
 /**
@@ -32,10 +47,12 @@ private[level] object CompactionState {
   */
 private[level] case class CompactionState(levels: List[LevelRef],
                                           private[compaction] val running: AtomicBoolean,
-                                          private[compaction] val zeroReady: AtomicBoolean,
-                                          private[level] val compactionStates: ConcurrentHashMap[LevelRef, LevelCompactionState],
+                                          private[compaction] val zeroWakeUpCalls: AtomicInteger,
+                                          private[level] val compactionStates: mutable.Map[LevelRef, LevelCompactionState],
+                                          private[compaction] val lowerCompactions: List[CompactionState],
                                           ordering: Ordering[LevelRef]) {
-  @volatile private[compaction] var sleepTask: Option[TimerTask] = None
   @volatile private[compaction] var terminate: Boolean = false
+  private[compaction] var sleepTask: Option[TimerTask] = None
+
   val levelsReversed = levels.reverse
 }
