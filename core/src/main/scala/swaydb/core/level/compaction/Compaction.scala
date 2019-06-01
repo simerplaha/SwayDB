@@ -30,7 +30,7 @@ private[level] object Compaction extends LazyLogging {
   def run(state: CompactorState,
           forwardCopyOnAllLevels: Boolean): Unit =
     if (state.terminate)
-      logger.debug("Terminated! Ignoring wakeUp call.")
+      logger.debug("Ignoring wakeUp call. Compaction is terminated!")
     else
       runNow(
         state = state,
@@ -55,8 +55,8 @@ private[level] object Compaction extends LazyLogging {
       case waiting @ LevelCompactionState.AwaitingPull(_, timeout, previousStateID) =>
         waiting.isReady || timeout.isOverdue() || level.stateID != previousStateID
 
-      case LevelCompactionState.Sleep(ready, previousStateID) =>
-        ready.isOverdue() || level.stateID != previousStateID
+      case LevelCompactionState.Sleep(sleepDeadline, previousStateID) =>
+        sleepDeadline.isOverdue() || level.stateID != previousStateID
     }
 
   @tailrec

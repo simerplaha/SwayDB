@@ -11,7 +11,7 @@ import scala.collection.mutable
   * Compaction state for a group of Levels. The number of compaction depends on concurrentCompactions input.
   */
 private[core] case class CompactorState(levels: List[LevelRef],
-                                        children: List[WiredActor[CompactionStrategy[CompactorState], CompactorState]],
+                                        child: Option[WiredActor[CompactionStrategy[CompactorState], CompactorState]],
                                         ordering: Ordering[LevelRef],
                                         private[level] val compactionStates: mutable.Map[LevelRef, LevelCompactionState]) {
   @volatile private[compaction] var terminate: Boolean = false

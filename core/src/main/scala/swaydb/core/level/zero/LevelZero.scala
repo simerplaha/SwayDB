@@ -201,7 +201,7 @@ private[core] case class LevelZero(path: Path,
         //terminate all child compactions.
         compactor
           .unsafeGetState
-          .children
+          .child
           .foreach(terminate)
     }
 
