@@ -30,8 +30,8 @@ object Compactor {
             dedicatedLevelZeroCompaction: Boolean)(implicit ordering: CompactionOrdering,
                                                    compactionStrategy: CompactionStrategy[CompactionGroupState]): WiredActor[CompactionStrategy[CompactionGroupState], CompactionGroupState] =
     CollectionUtil
-      .groupedNoSingles(
-        concurrentCompactions = concurrentCompactions,
+      .groupedMergeSingles(
+        groupSize = concurrentCompactions,
         items = levels,
         splitAt = if (dedicatedLevelZeroCompaction) 1 else 0
       )

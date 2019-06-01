@@ -48,19 +48,29 @@ object CollectionUtil {
     }
   }
 
-  def groupedNoSingles[T](concurrentCompactions: Int,
-                          items: List[T],
-                          splitAt: Int): List[List[T]] = {
-    def doSplit(items: List[T]): List[List[T]] = {
-      val splitJobs: List[List[T]] = items.grouped(concurrentCompactions).toList
-      if (splitJobs.size >= 2 && splitJobs.last.size == 1)
-        splitJobs.dropRight(2) :+ (splitJobs(splitJobs.size - 2) ++ splitJobs.last)
-      else
-        splitJobs
-    }
+  /**
+    * Groups items ensuring if the input groupSize is > 1 then the output groups
+    * should not contain a single item. Single items get merged into their previous gorup.
+    */
+  def groupedMergeSingles[T](groupSize: Int,
+                             items: List[T]): List[List[T]] = {
+    val grouped: List[List[T]] = items.grouped(groupSize).toList
+    if (groupSize > 1 && grouped.size >= 2 && grouped.last.size == 1)
+      grouped.dropRight(2) :+ (grouped(grouped.size - 2) ++ grouped.last)
+    else
+      grouped
+  }
 
+  /**
+    * Groups items ensuring if the input groupSize is > 1 then the output groups
+    * should not contain a single item. Single items get merged into their previous gorup.
+    */
+  def groupedMergeSingles[T](groupSize: Int,
+                             items: List[T],
+                             splitAt: Int): List[List[T]] = {
     val (itemsToGroupHead, itemsToGroupLast) = items.splitAt(splitAt)
 
-    doSplit(itemsToGroupHead) ++ doSplit(itemsToGroupLast)
+    groupedMergeSingles(groupSize, itemsToGroupHead) ++
+      groupedMergeSingles(groupSize, itemsToGroupLast)
   }
 }
