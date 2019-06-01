@@ -10,6 +10,7 @@ private[level] sealed trait LevelCompactionState {
 }
 private[level] object LevelCompactionState {
   val longSleepDuration = 1.hour
+  val failureSleepDuration =  5.second.fromNow
   def longSleepDeadline = longSleepDuration.fromNow
 
   case class AwaitingPull(later: IO.Later[_],

@@ -46,8 +46,8 @@ private[level] object Compaction extends LazyLogging {
     //run compaction jobs
     runJobs(
       state = state,
-      currentJobs = rePrioritiseLevels(state.levels)(state.ordering),
-    )(state.ordering)
+      currentJobs = rePrioritiseLevels(state.levels)(state.ordering)
+    )
   }
 
   def shouldRun(level: LevelRef, state: LevelCompactionState): Boolean =
@@ -61,7 +61,7 @@ private[level] object Compaction extends LazyLogging {
 
   @tailrec
   private[compaction] def runJobs(state: CompactorState,
-                                  currentJobs: Slice[LevelRef])(implicit ordering: Ordering[LevelRef]): Unit =
+                                  currentJobs: Slice[LevelRef]): Unit =
     if (state.terminate)
       logger.warn("Cannot run jobs. Compaction is terminated.")
     else
@@ -110,7 +110,7 @@ private[level] object Compaction extends LazyLogging {
 
         case IO.Failure(_) =>
           LevelCompactionState.Sleep(
-            sleepDeadline = 5.second.fromNow,
+            sleepDeadline = LevelCompactionState.failureSleepDuration,
             previousStateID = level.stateID
           )
       }
