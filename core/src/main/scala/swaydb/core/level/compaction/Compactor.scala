@@ -28,7 +28,7 @@ object Compactor {
             executionContexts: Seq[ExecutionContext],
             concurrentCompactions: Int,
             dedicatedLevelZeroCompaction: Boolean)(implicit ordering: CompactionOrdering,
-                                                   compactionStrategy: CompactionStrategy[CompactorState]): WiredActor[CompactionStrategy[CompactorState], CompactorState] =
+                                                   compactionStrategy: CompactionStrategy[CompactionGroupState]): WiredActor[CompactionStrategy[CompactionGroupState], CompactionGroupState] =
     CollectionUtil
       .groupedNoSingles(
         concurrentCompactions = concurrentCompactions,
@@ -37,12 +37,12 @@ object Compactor {
       )
       .reverse
       .zip(executionContexts)
-      .foldRight(Option.empty[WiredActor[CompactionStrategy[CompactorState], CompactorState]]) {
+      .foldRight(Option.empty[WiredActor[CompactionStrategy[CompactionGroupState], CompactionGroupState]]) {
         case ((jobs, executionContext), child) =>
           val statesMap = mutable.Map.empty[LevelRef, LevelCompactionState]
           val levelOrdering = ordering.ordering(level => statesMap.getOrElse(level, LevelCompactionState.longSleep(level.stateID)))
           val compaction =
-            CompactorState(
+            CompactionGroupState(
               levels = Slice(jobs.toArray),
               compactionStates = statesMap,
               child = child,
@@ -52,10 +52,10 @@ object Compactor {
       } head
 }
 
-class Compactor extends CompactionStrategy[CompactorState] {
+class Compactor extends CompactionStrategy[CompactionGroupState] {
 
-  private def scheduleNextCompaction(state: CompactorState,
-                                     self: WiredActor[CompactionStrategy[CompactorState], CompactorState]): Unit =
+  private def scheduleNextCompaction(state: CompactionGroupState,
+                                     self: WiredActor[CompactionStrategy[CompactionGroupState], CompactionGroupState]): Unit =
     state
       .compactionStates
       .values
@@ -96,7 +96,7 @@ class Compactor extends CompactionStrategy[CompactorState] {
           state.sleepTask = Some(newTask)
       }
 
-  private def wakeUpChildren(state: CompactorState): Unit =
+  private def wakeUpChildren(state: CompactionGroupState): Unit =
     state
       .child
       .foreach {
@@ -111,8 +111,8 @@ class Compactor extends CompactionStrategy[CompactorState] {
           }
       }
 
-  def postCompaction[T](state: CompactorState,
-                        self: WiredActor[CompactionStrategy[CompactorState], CompactorState])(run: => T): T =
+  def postCompaction[T](state: CompactionGroupState,
+                        self: WiredActor[CompactionStrategy[CompactionGroupState], CompactionGroupState])(run: => T): T =
     try {
       state.sleepTask foreach (_.cancel())
       state.sleepTask = None
@@ -130,7 +130,7 @@ class Compactor extends CompactionStrategy[CompactorState] {
       )
     }
 
-  override def wakeUp(state: CompactorState, forwardCopyOnAllLevels: Boolean, self: WiredActor[CompactionStrategy[CompactorState], CompactorState]): Unit =
+  override def wakeUp(state: CompactionGroupState, forwardCopyOnAllLevels: Boolean, self: WiredActor[CompactionStrategy[CompactionGroupState], CompactionGroupState]): Unit =
     postCompaction(state, self) {
       Compaction.run(
         state = state,
