@@ -10,9 +10,10 @@ import swaydb.data.slice.Slice
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.Deadline
+import swaydb.core.util.FiniteDurationUtil._
 
 /**
-  * Compactor - Compaction-Actor.
+  * Compactor = Compaction-Actor.
   */
 object Compactor {
 
@@ -26,13 +27,21 @@ object Compactor {
   def apply(zero: LevelZero,
             levels: List[NextLevel],
             executionContexts: Seq[ExecutionContext],
-            concurrentCompactions: Int,
             dedicatedLevelZeroCompaction: Boolean)(implicit ordering: CompactionOrdering,
-                                                   compactionStrategy: CompactionStrategy[CompactorState]): WiredActor[CompactionStrategy[CompactorState], CompactorState] =
+                                                   compactionStrategy: CompactionStrategy[CompactorState]): WiredActor[CompactionStrategy[CompactorState], CompactorState] = {
+    //split levels into groups such that each group of Levels have dedicated ExecutionContext.
+    //if dedicatedLevelZeroCompaction is set to true set the first ExecutionContext for LevelZero.
+
+    val groupSizeDouble =
+      if (dedicatedLevelZeroCompaction)
+        (levels.size - 1).toDouble / (executionContexts.size - 1).toDouble
+      else
+        levels.size.toDouble / executionContexts.size.toDouble
+
     CollectionUtil
       .groupedMergeSingles(
-        groupSize = concurrentCompactions,
-        items = levels,
+        groupSize = Math.ceil(groupSizeDouble).toInt,
+        items = zero +: levels,
         splitAt = if (dedicatedLevelZeroCompaction) 1 else 0
       )
       .reverse
@@ -50,6 +59,7 @@ object Compactor {
             )
           Some(Compactor(compactionStrategy, compaction)(executionContext))
       } head
+  }
 }
 
 class Compactor extends CompactionStrategy[CompactorState] {

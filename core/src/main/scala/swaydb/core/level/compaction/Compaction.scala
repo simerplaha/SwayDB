@@ -65,15 +65,22 @@ private[level] object Compaction extends LazyLogging {
       currentJobs.headOption match {
         //project next job
         case Some(level) =>
-          if (state.compactionStates.get(level).forall(state => shouldRun(level, state)))
-            state.compactionStates.put(
-              key = level,
-              value = runJob(level)
-            )
+          logger.debug(s"Running compaction for Level ${level.rootPath}.")
+          if (state.compactionStates.get(level).forall(state => shouldRun(level, state))) {
+            val nextState = runJob(level)
+            if (shouldRun(level, nextState))
+              runJobs(state, currentJobs)
+            else
+              state.compactionStates.put(
+                key = level,
+                value = nextState
+              )
+          }
           else
             runJobs(state, currentJobs.dropHead())
 
         case None =>
+          logger.debug(s"Compaction round complete for Levels ${state.levels.map(_.rootPath)}.")
           () //all jobs complete.
       }
 
@@ -168,7 +175,10 @@ private[level] object Compaction extends LazyLogging {
                 )
             }
         }
-        LevelCompactionState.longSleep(zero.stateID)
+        if (zero.maps.isEmpty)
+          LevelCompactionState.longSleep(zero.stateID)
+        else
+          LevelCompactionState.Sleep(Deadline.now, zero.stateID)
 
       case IO.Failure(exception) =>
         exception match {
@@ -178,7 +188,7 @@ private[level] object Compaction extends LazyLogging {
           case _ =>
             logger.error(s"{}: Failed to push", zero.path, exception)
         }
-        LevelCompactionState.longSleep(zero.stateID)
+        LevelCompactionState.Sleep(LevelCompactionState.failureSleepDuration, zero.stateID)
 
       case later @ IO.Later(_, _) =>
         LevelCompactionState.AwaitingPull(

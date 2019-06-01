@@ -218,6 +218,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
             folder = path,
             mmap = mmap,
             flushOnOverflow = flushOnOverflow,
+            initialWriteCount = 0,
             fileSize = fileSize
           ).assertGet
 

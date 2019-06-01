@@ -43,7 +43,14 @@ package object map {
                reader: MapEntryReader[MapEntry[Slice[Byte], Memory.SegmentResponse]],
                skipListMerge: SkipListMerger[Slice[Byte], Memory.SegmentResponse]) = {
       map.close().assertGet
-      Map.persistent[Slice[Byte], Memory.SegmentResponse](map.path, mmap = Random.nextBoolean(), flushOnOverflow = Random.nextBoolean(), 10.mb, dropCorruptedTailEntries = false).assertGet.item
+      Map.persistent[Slice[Byte], Memory.SegmentResponse](
+        folder = map.path,
+        mmap = Random.nextBoolean(),
+        flushOnOverflow = Random.nextBoolean(),
+        fileSize = 10.mb,
+        initialWriteCount = 0,
+        dropCorruptedTailEntries = false
+      ).assertGet.item
     }
   }
 }

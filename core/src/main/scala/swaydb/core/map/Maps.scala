@@ -82,7 +82,7 @@ private[core] object Maps extends LazyLogging {
           recoveredMapsReversed.headOption match {
             case Some(lastMaps) =>
               lastMaps match {
-                case PersistentMap(path, _, _, _, _, _) =>
+                case PersistentMap(path, _, _, _, _, _, _) =>
                   path.incrementFolderId
                 case _ =>
                   path.resolve(0.toFolderId)
@@ -101,7 +101,14 @@ private[core] object Maps extends LazyLogging {
           case None =>
             logger.debug(s"{}: Creating next map with ID {} maps.", path, nextMapId)
             val queue = new ConcurrentLinkedDeque[Map[K, V]](otherMaps.asJavaCollection)
-            Map.persistent[K, V](nextMapId, mmap, flushOnOverflow = false, fileSize, recovery.drop) map {
+            Map.persistent[K, V](
+              folder = nextMapId,
+              mmap = mmap,
+              flushOnOverflow = false,
+              fileSize = fileSize,
+              initialWriteCount = 0,
+              dropCorruptedTailEntries = recovery.drop
+            ) map {
               nextMap =>
                 logger.debug(s"{}: Next map created with ID {}.", path, nextMapId)
                 new Maps[K, V](queue, fileSize, acceleration, nextMap.item)
@@ -182,7 +189,14 @@ private[core] object Maps extends LazyLogging {
         case mapPath :: otherMapsPaths =>
           logger.info(s"{}: Recovering.", mapPath)
 
-          Map.persistent[K, V](mapPath, mmap, flushOnOverflow = false, fileSize, recovery.drop) match {
+          Map.persistent[K, V](
+            folder = mapPath,
+            mmap = mmap,
+            flushOnOverflow = false,
+            initialWriteCount = 0,
+            fileSize = fileSize,
+            dropCorruptedTailEntries = recovery.drop
+          ) match {
             case IO.Success(recoveredMap) =>
               //recovered immutable memory map's files should be closed after load as they are always read from in memory
               // and does not require the files to be opened.
@@ -222,14 +236,25 @@ private[core] object Maps extends LazyLogging {
                                                      skipListMerger: SkipListMerger[K, V],
                                                      ec: ExecutionContext): IO[Map[K, V]] =
     currentMap match {
-      case currentMap @ PersistentMap(path, mmap, _, _, _, _) =>
+      case currentMap @ PersistentMap(_, _, _, _, _, _, _) =>
         currentMap.close() flatMap {
           _ =>
-            Map.persistent[K, V](path.incrementFolderId, mmap, flushOnOverflow = false, fileSize = nextMapSize)
+            Map.persistent[K, V](
+              folder = currentMap.path.incrementFolderId,
+              mmap = currentMap.mmap,
+              flushOnOverflow = false,
+              initialWriteCount = currentMap.stateID + 1,
+              fileSize = nextMapSize
+            )
         }
 
       case _ =>
-        IO.Success(Map.memory[K, V](nextMapSize, flushOnOverflow = false))
+        IO.Success(
+          Map.memory[K, V](
+            fileSize = nextMapSize,
+            flushOnOverflow = false
+          )
+        )
     }
 }
 
@@ -250,6 +275,8 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
   private var onFullListener: () => Unit = () => ()
   // This is crucial for write performance use null instead of Option.
   private var brakePedal: BrakePedal = _
+
+  @volatile var mapsCount = 0L
 
   def setOnFullListener(event: () => Unit) =
     onFullListener = event
@@ -288,6 +315,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
                 case IO.Success(nextMap) =>
                   maps addFirst currentMap
                   currentMap = nextMap
+                  mapsCount += 1
                   onFullListener()
                   persist(entry)
 
@@ -307,6 +335,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
           case IO.Success(nextMap) =>
             maps addFirst currentMap
             currentMap = nextMap
+            mapsCount += 1
             onFullListener()
             IO.Failure(writeException)
 
@@ -428,6 +457,9 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
 
   def iterator =
     maps.iterator()
+
+  def stateID: Long =
+    mapsCount
 
   def queuedMaps =
     maps.asScala

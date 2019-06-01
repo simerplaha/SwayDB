@@ -82,7 +82,14 @@ sealed trait LevelWriteMapSpec extends TestBase with MockFactory with PrivateMet
 
     val map =
       if (persistent)
-        Map.persistent[Slice[Byte], Memory.SegmentResponse](randomIntDirectory, true, true, 1.mb, dropCorruptedTailEntries = false).assertGet.item
+        Map.persistent[Slice[Byte], Memory.SegmentResponse](
+          folder = randomIntDirectory,
+          mmap = true,
+          flushOnOverflow = true,
+          fileSize = 1.mb,
+          initialWriteCount = 0,
+          dropCorruptedTailEntries = false
+        ).assertGet.item
       else
         Map.memory[Slice[Byte], Memory.SegmentResponse]()
 
@@ -142,7 +149,13 @@ sealed trait LevelWriteMapSpec extends TestBase with MockFactory with PrivateMet
 
     val map =
       if (persistent)
-        Map.persistent[Slice[Byte], Memory.SegmentResponse](randomIntDirectory, true, true, 1.mb, dropCorruptedTailEntries = false).assertGet.item
+        Map.persistent[Slice[Byte], Memory.SegmentResponse](
+          folder = randomIntDirectory,
+          mmap = true,
+          flushOnOverflow = true,
+          fileSize = 1.mb,
+          initialWriteCount = 0,
+          dropCorruptedTailEntries = false).assertGet.item
       else
         Map.memory[Slice[Byte], Memory.SegmentResponse]()
 

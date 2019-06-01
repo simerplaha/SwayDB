@@ -126,6 +126,7 @@ private[core] object Level extends LazyLogging {
                   folder = appendixFolder,
                   mmap = mmap,
                   flushOnOverflow = true,
+                  initialWriteCount = 0,
                   fileSize = appendixFlushCheckpointSize,
                   dropCorruptedTailEntries = false
                 ).map(_.item)

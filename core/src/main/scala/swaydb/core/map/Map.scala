@@ -41,6 +41,7 @@ private[core] object Map extends LazyLogging {
                                  mmap: Boolean,
                                  flushOnOverflow: Boolean,
                                  fileSize: Long,
+                                 initialWriteCount: Long,
                                  dropCorruptedTailEntries: Boolean)(implicit keyOrder: KeyOrder[K],
                                                                     timeOrder: TimeOrder[Slice[Byte]],
                                                                     functionStore: FunctionStore,
@@ -54,12 +55,14 @@ private[core] object Map extends LazyLogging {
       mmap = mmap,
       flushOnOverflow = flushOnOverflow,
       fileSize = fileSize,
+      initialWriteCount = initialWriteCount,
       dropCorruptedTailEntries = dropCorruptedTailEntries
     )
 
   def persistent[K, V: ClassTag](folder: Path,
                                  mmap: Boolean,
                                  flushOnOverflow: Boolean,
+                                 initialWriteCount: Long,
                                  fileSize: Long)(implicit keyOrder: KeyOrder[K],
                                                  timeOrder: TimeOrder[Slice[Byte]],
                                                  functionStore: FunctionStore,
@@ -72,6 +75,7 @@ private[core] object Map extends LazyLogging {
       folder = folder,
       mmap = mmap,
       flushOnOverflow = flushOnOverflow,
+      initialWriteCount = initialWriteCount,
       fileSize = fileSize
     )
 

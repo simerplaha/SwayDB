@@ -150,7 +150,13 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
                                                  ec: ExecutionContext): IO[Unit] =
     IOEffect.walkDelete(appendixDir) flatMap {
       _ =>
-        Map.persistent[Slice[Byte], Segment](appendixDir, false, flushOnOverflow = true, 1.gb) flatMap {
+        Map.persistent[Slice[Byte], Segment](
+          folder = appendixDir,
+          mmap = false,
+          flushOnOverflow = true,
+          initialWriteCount = 0,
+          fileSize = 1.gb
+        ) flatMap {
           appendix =>
             segments foreachIO {
               segment =>

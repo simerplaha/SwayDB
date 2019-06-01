@@ -45,6 +45,7 @@ private[map] object PersistentMap extends LazyLogging {
                                          mmap: Boolean,
                                          flushOnOverflow: Boolean,
                                          fileSize: Long,
+                                         initialWriteCount: Long,
                                          dropCorruptedTailEntries: Boolean)(implicit keyOrder: KeyOrder[K],
                                                                             timeOrder: TimeOrder[Slice[Byte]],
                                                                             functionStore: FunctionStore,
@@ -59,7 +60,15 @@ private[map] object PersistentMap extends LazyLogging {
     recover(folder, mmap, fileSize, skipList, dropCorruptedTailEntries) map {
       case (fileRecoveryResult, hasRange) =>
         RecoveryResult(
-          item = new PersistentMap[K, V](folder, mmap, fileSize, flushOnOverflow, fileRecoveryResult.item, hasRangeInitial = hasRange)(skipList),
+          item = new PersistentMap[K, V](
+            path = folder,
+            mmap = mmap,
+            fileSize = fileSize,
+            flushOnOverflow = flushOnOverflow,
+            initialWriteCount = initialWriteCount,
+            currentFile = fileRecoveryResult.item,
+            hasRangeInitial = hasRange
+          )(skipList),
           result = fileRecoveryResult.result
         )
     }
@@ -68,20 +77,29 @@ private[map] object PersistentMap extends LazyLogging {
   private[map] def apply[K, V: ClassTag](folder: Path,
                                          mmap: Boolean,
                                          flushOnOverflow: Boolean,
-                                         fileSize: Long)(implicit keyOrder: KeyOrder[K],
-                                                         timeOrder: TimeOrder[Slice[Byte]],
-                                                         limiter: FileLimiter,
-                                                         functionStore: FunctionStore,
-                                                         reader: MapEntryReader[MapEntry[K, V]],
-                                                         writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                         skipListMerger: SkipListMerger[K, V],
-                                                         ec: ExecutionContext): IO[PersistentMap[K, V]] = {
+                                         fileSize: Long,
+                                         initialWriteCount: Long)(implicit keyOrder: KeyOrder[K],
+                                                                  timeOrder: TimeOrder[Slice[Byte]],
+                                                                  limiter: FileLimiter,
+                                                                  functionStore: FunctionStore,
+                                                                  reader: MapEntryReader[MapEntry[K, V]],
+                                                                  writer: MapEntryWriter[MapEntry.Put[K, V]],
+                                                                  skipListMerger: SkipListMerger[K, V],
+                                                                  ec: ExecutionContext): IO[PersistentMap[K, V]] = {
     IOEffect.createDirectoryIfAbsent(folder)
     val skipList: ConcurrentSkipListMap[K, V] = new ConcurrentSkipListMap[K, V](keyOrder)
 
     firstFile(folder, mmap, fileSize) map {
       file =>
-        new PersistentMap[K, V](folder, mmap, fileSize, flushOnOverflow, hasRangeInitial = false, currentFile = file)(skipList)
+        new PersistentMap[K, V](
+          path = folder,
+          mmap = mmap,
+          fileSize = fileSize,
+          flushOnOverflow = flushOnOverflow,
+          initialWriteCount = initialWriteCount,
+          currentFile = file,
+          hasRangeInitial = false
+        )(skipList)
     }
   }
 
@@ -223,6 +241,7 @@ private[map] case class PersistentMap[K, V: ClassTag](path: Path,
                                                       mmap: Boolean,
                                                       fileSize: Long,
                                                       flushOnOverflow: Boolean,
+                                                      initialWriteCount: Long,
                                                       private var currentFile: DBFile,
                                                       private val hasRangeInitial: Boolean)(val skipList: ConcurrentSkipListMap[K, V])(implicit keyOrder: KeyOrder[K],
                                                                                                                                        timeOrder: TimeOrder[Slice[Byte]],
@@ -244,7 +263,7 @@ private[map] case class PersistentMap[K, V: ClassTag](path: Path,
   //_hasRange is not a case class input parameters because 2.11 throws compilation error 'values cannot be volatile'
   @volatile private var _hasRange: Boolean = hasRangeInitial
 
-  @volatile private var writeCount: Long = 0L
+  @volatile private var writeCount: Long = initialWriteCount
 
   override def hasRange: Boolean = _hasRange
 

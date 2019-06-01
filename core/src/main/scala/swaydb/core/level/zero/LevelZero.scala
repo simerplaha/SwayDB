@@ -120,7 +120,6 @@ private[core] object LevelZero extends LazyLogging {
           nextLevel = nextLevel,
           inMemory = storage.memory,
           dedicatedLevelZeroCompaction = true,
-          concurrentCompactions = 2,
           lock = lock
         ).startCompaction(copyForwardAllOnStart = true)
     }
@@ -134,7 +133,6 @@ private[core] case class LevelZero(path: Path,
                                    nextLevel: Option[NextLevel],
                                    inMemory: Boolean,
                                    dedicatedLevelZeroCompaction: Boolean,
-                                   concurrentCompactions: Int,
                                    private val lock: Option[FileLock])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                        timeOrder: TimeOrder[Slice[Byte]],
                                                                        functionStore: FunctionStore,
@@ -154,8 +152,7 @@ private[core] case class LevelZero(path: Path,
           zero = this,
           levels = LevelRef.getLevels(nextLevel).filterNot(_.isTrash),
           dedicatedLevelZeroCompaction = dedicatedLevelZeroCompaction,
-          concurrentCompactions = concurrentCompactions,
-          executionContexts = List.fill(concurrentCompactions)(ec)
+          executionContexts = List.fill(2)(ec)
         )
     }
 
@@ -789,5 +786,5 @@ private[core] case class LevelZero(path: Path,
   override def isZero: Boolean = true
 
   override def stateID: Long =
-    maps.map.stateID
+    maps.stateID
 }
