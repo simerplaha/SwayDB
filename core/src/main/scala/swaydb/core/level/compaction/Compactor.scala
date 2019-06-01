@@ -12,6 +12,9 @@ import scala.collection.mutable
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.Deadline
 
+/**
+  * Compactor - Compaction-Actor.
+  */
 object Compactor {
 
   def apply[S](compactionStrategy: CompactionStrategy[S],
@@ -54,50 +57,50 @@ object Compactor {
 
 class Compactor extends CompactionStrategy[CompactorState] {
 
-  def scheduleNextWakeUp[T](state: CompactorState, self: WiredActor[CompactionStrategy[CompactorState], CompactorState])(run: => T): T = {
-    val result = run
-    state
-      .compactionStates
-      .values
-      .foldRight(Option.empty[Deadline]) {
-        case (state, nearestDeadline) =>
-          state match {
-            case waiting @ LevelCompactionState.AwaitingPull(ioAync, timeout, _) =>
-              ioAync.safeGetFuture(self.ec).foreach {
-                _ =>
-                  waiting.isReady = true
-                  self send {
-                    (impl, state, self) =>
-                      impl.wakeUp(
-                        state = state,
-                        forwardCopyOnAllLevels = false,
-                        self = self
-                      )
-                  }
-              }(self.ec)
+  def scheduleNextWakeUp[T](state: CompactorState, self: WiredActor[CompactionStrategy[CompactorState], CompactorState])(run: => T): T =
+    try
+      run
+    finally
+      state
+        .compactionStates
+        .values
+        .foldLeft(Option.empty[Deadline]) {
+          case (nearestDeadline, state) =>
+            state match {
+              case waiting @ LevelCompactionState.AwaitingPull(ioAync, timeout, _) =>
+                ioAync.safeGetFuture(self.ec).foreach {
+                  _ =>
+                    waiting.isReady = true
+                    self send {
+                      (impl, state, self) =>
+                        impl.wakeUp(
+                          state = state,
+                          forwardCopyOnAllLevels = false,
+                          self = self
+                        )
+                    }
+                }(self.ec)
 
-              Segment.getNearestDeadline(nearestDeadline, Some(timeout))
+                Segment.getNearestDeadline(nearestDeadline, Some(timeout))
 
-            case LevelCompactionState.Sleep(sleepDeadline, _) =>
-              Segment.getNearestDeadline(nearestDeadline, Some(sleepDeadline))
-          }
-      }
-      .foreach {
-        deadline =>
-          state.sleepTask foreach (_.cancel())
-          val newTask =
-            self.scheduleSend(deadline.timeLeft) {
-              (impl, state) =>
-                impl.wakeUp(
-                  state = state,
-                  forwardCopyOnAllLevels = false,
-                  self = self
-                )
+              case LevelCompactionState.Sleep(sleepDeadline, _) =>
+                Segment.getNearestDeadline(nearestDeadline, Some(sleepDeadline))
             }
-          state.sleepTask = Some(newTask)
-      }
-    result
-  }
+        }
+        .foreach {
+          deadline =>
+            state.sleepTask foreach (_.cancel())
+            val newTask =
+              self.scheduleSend(deadline.timeLeft) {
+                (impl, state) =>
+                  impl.wakeUp(
+                    state = state,
+                    forwardCopyOnAllLevels = false,
+                    self = self
+                  )
+              }
+            state.sleepTask = Some(newTask)
+        }
 
   override def wakeUp(state: CompactorState, forwardCopyOnAllLevels: Boolean, self: WiredActor[CompactionStrategy[CompactorState], CompactorState]): Unit =
     scheduleNextWakeUp(state, self) {
@@ -107,11 +110,11 @@ class Compactor extends CompactionStrategy[CompactorState] {
       )
     }
 
-  override def wakeUpFromZero(state: CompactorState, self: WiredActor[CompactionStrategy[CompactorState], CompactorState]): Unit = {
+  override def wakeUpFromZero(state: CompactorState, forwardCopyOnAllLevels: Boolean, self: WiredActor[CompactionStrategy[CompactorState], CompactorState]): Unit = {
     state.zeroWakeUpCalls.incrementAndGet()
     wakeUp(
       state = state,
-      forwardCopyOnAllLevels = true,
+      forwardCopyOnAllLevels = forwardCopyOnAllLevels,
       self = self
     )
   }

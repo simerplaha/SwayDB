@@ -159,12 +159,13 @@ private[core] case class LevelZero(path: Path,
         )
     }
 
-  def sendWakeUp(compactor: WiredActor[CompactionStrategy[CompactorState], CompactorState]): Unit =
+  def sendWakeUp(forwardCopyOnAllLevels: Boolean,
+                 compactor: WiredActor[CompactionStrategy[CompactorState], CompactorState]): Unit =
     compactor send {
       (impl, state, self) =>
-        impl.wakeUp(
+        impl.wakeUpFromZero(
           state = state,
-          forwardCopyOnAllLevels = true,
+          forwardCopyOnAllLevels = forwardCopyOnAllLevels,
           self = self
         )
     }
@@ -172,8 +173,8 @@ private[core] case class LevelZero(path: Path,
   def startCompaction(copyForwardAllOnStart: Boolean): IO[LevelZero] =
     compactor map {
       compactor =>
-        maps setOnFullListener (() => sendWakeUp(compactor))
-        sendWakeUp(compactor)
+        maps setOnFullListener (() => sendWakeUp(forwardCopyOnAllLevels = false, compactor))
+        sendWakeUp(forwardCopyOnAllLevels = true, compactor)
         IO.Success(this)
     } getOrElse IO.Success(this)
 
@@ -197,7 +198,7 @@ private[core] case class LevelZero(path: Path,
       compactor =>
         terminate(compactor) //terminate root compaction
 
-        //terminate all concurrent child compactions.
+        //terminate all child compactions.
         compactor
           .unsafeGetState
           .children
