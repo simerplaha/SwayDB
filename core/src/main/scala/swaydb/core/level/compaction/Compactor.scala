@@ -28,7 +28,7 @@ object Compactor {
             executionContexts: Seq[ExecutionContext],
             concurrentCompactions: Int,
             dedicatedLevelZeroCompaction: Boolean)(implicit ordering: CompactionOrdering,
-                                                   compactionStrategy: CompactionStrategy[CompactionGroupState]): WiredActor[CompactionStrategy[CompactionGroupState], CompactionGroupState] =
+                                                   compactionStrategy: CompactionStrategy[CompactorState]): WiredActor[CompactionStrategy[CompactorState], CompactorState] =
     CollectionUtil
       .groupedMergeSingles(
         groupSize = concurrentCompactions,
@@ -37,12 +37,12 @@ object Compactor {
       )
       .reverse
       .zip(executionContexts)
-      .foldRight(Option.empty[WiredActor[CompactionStrategy[CompactionGroupState], CompactionGroupState]]) {
+      .foldRight(Option.empty[WiredActor[CompactionStrategy[CompactorState], CompactorState]]) {
         case ((jobs, executionContext), child) =>
           val statesMap = mutable.Map.empty[LevelRef, LevelCompactionState]
           val levelOrdering = ordering.ordering(level => statesMap.getOrElse(level, LevelCompactionState.longSleep(level.stateID)))
           val compaction =
-            CompactionGroupState(
+            CompactorState(
               levels = Slice(jobs.toArray),
               compactionStates = statesMap,
               child = child,
@@ -52,57 +52,62 @@ object Compactor {
       } head
 }
 
-class Compactor extends CompactionStrategy[CompactionGroupState] {
+class Compactor extends CompactionStrategy[CompactorState] {
 
-  private def scheduleNextCompaction(state: CompactionGroupState,
-                                     self: WiredActor[CompactionStrategy[CompactionGroupState], CompactionGroupState]): Unit =
+  private def scheduleNextWakeUp(state: CompactorState,
+                                 self: WiredActor[CompactionStrategy[CompactorState], CompactorState]): Unit =
     state
       .compactionStates
       .values
       .foldLeft(Option.empty[Deadline]) {
-        case (nearestDeadline, state) =>
-          state match {
-            case waiting @ LevelCompactionState.AwaitingPull(ioAync, timeout, _) =>
-              ioAync.safeGetFuture(self.ec).foreach {
-                _ =>
-                  waiting.isReady = true
-                  self send {
-                    (impl, state, self) =>
-                      impl.wakeUp(
-                        state = state,
-                        forwardCopyOnAllLevels = false,
-                        self = self
-                      )
-                  }
-              }(self.ec)
-
-              Segment.getNearestDeadline(
-                deadline = nearestDeadline,
-                next = Some(timeout)
-              )
-
-            case LevelCompactionState.Sleep(sleepDeadline, _) =>
-              Segment.getNearestDeadline(
-                deadline = nearestDeadline,
-                next = Some(sleepDeadline)
-              )
+        case (nearestDeadline, waiting @ LevelCompactionState.AwaitingPull(ioAync, timeout, _)) =>
+          //do not create another hook if a future was already initialised to invoke wakeUp.
+          if (!waiting.listenerInitialised) {
+            ioAync.safeGetFuture(self.ec).foreach {
+              _ =>
+                waiting.isReady = true
+                self send {
+                  (impl, state, self) =>
+                    impl.wakeUp(
+                      state = state,
+                      forwardCopyOnAllLevels = false,
+                      self = self
+                    )
+                }
+            }(self.ec)
+            waiting.listenerInitialised = true
           }
+
+          Segment.getNearestDeadline(
+            deadline = nearestDeadline,
+            next = Some(timeout)
+          )
+
+        case (nearestDeadline, LevelCompactionState.Sleep(sleepDeadline, _)) =>
+          Segment.getNearestDeadline(
+            deadline = nearestDeadline,
+            next = Some(sleepDeadline)
+          )
       }
       .foreach {
-        deadline =>
-          val newTask =
-            self.scheduleSend(deadline.timeLeft) {
-              (impl, state) =>
-                impl.wakeUp(
-                  state = state,
-                  forwardCopyOnAllLevels = false,
-                  self = self
-                )
-            }
-          state.sleepTask = Some(newTask)
+        newWakeUpDeadline =>
+          //if the wakeUp deadlines are the same do not trigger another wakeUp.
+          if (state.sleepTask.forall(_._2.compareTo(newWakeUpDeadline) != 0)) {
+            val newTask =
+              self.scheduleSend(newWakeUpDeadline.timeLeft) {
+                (impl, state) =>
+                  impl.wakeUp(
+                    state = state,
+                    forwardCopyOnAllLevels = false,
+                    self = self
+                  )
+              }
+            state.sleepTask foreach (_._1.cancel())
+            state.sleepTask = Some(newTask, newWakeUpDeadline)
+          }
       }
 
-  private def wakeUpChildren(state: CompactionGroupState): Unit =
+  private def wakeUpChildren(state: CompactorState): Unit =
     state
       .child
       .foreach {
@@ -117,21 +122,23 @@ class Compactor extends CompactionStrategy[CompactionGroupState] {
           }
       }
 
-  def postCompaction[T](state: CompactionGroupState,
-                        self: WiredActor[CompactionStrategy[CompactionGroupState], CompactionGroupState]): Unit = {
+  def postCompaction[T](state: CompactorState,
+                        self: WiredActor[CompactionStrategy[CompactorState], CompactorState]): Unit = {
+    //schedule the next compaction for current Compaction group levels
+    scheduleNextWakeUp(
+      state = state,
+      self = self
+    )
+
     //wake up child compaction.
     wakeUpChildren(
       state = state
     )
-
-    //schedule the next compaction for current Compaction group levels
-    scheduleNextCompaction(
-      state = state,
-      self = self
-    )
   }
 
-  override def wakeUp(state: CompactionGroupState, forwardCopyOnAllLevels: Boolean, self: WiredActor[CompactionStrategy[CompactionGroupState], CompactionGroupState]): Unit =
+  override def wakeUp(state: CompactorState,
+                      forwardCopyOnAllLevels: Boolean,
+                      self: WiredActor[CompactionStrategy[CompactorState], CompactorState]): Unit =
     try
       Compaction.run(
         state = state,

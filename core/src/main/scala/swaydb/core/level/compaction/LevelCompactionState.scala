@@ -17,6 +17,7 @@ private[level] object LevelCompactionState {
                           timeout: Deadline,
                           previousStateID: Long) extends LevelCompactionState {
     @volatile var isReady: Boolean = false
+    @volatile var listenerInitialised: Boolean = false
   }
   case class Sleep(sleepDeadline: Deadline, previousStateID: Long) extends LevelCompactionState
 

@@ -7,16 +7,17 @@ import swaydb.core.level.LevelRef
 import swaydb.data.slice.Slice
 
 import scala.collection.mutable
+import scala.concurrent.duration.Deadline
 
 /**
   * Compaction state for a group of Levels. The number of compaction depends on concurrentCompactions input.
   */
-private[core] case class CompactionGroupState(levels: Slice[LevelRef],
-                                              child: Option[WiredActor[CompactionStrategy[CompactionGroupState], CompactionGroupState]],
-                                              ordering: Ordering[LevelRef],
-                                              private[level] val compactionStates: mutable.Map[LevelRef, LevelCompactionState]) {
+private[core] case class CompactorState(levels: Slice[LevelRef],
+                                        child: Option[WiredActor[CompactionStrategy[CompactorState], CompactorState]],
+                                        ordering: Ordering[LevelRef],
+                                        private[level] val compactionStates: mutable.Map[LevelRef, LevelCompactionState]) {
   @volatile private[compaction] var terminate: Boolean = false
-  private[compaction] var sleepTask: Option[TimerTask] = None
+  private[compaction] var sleepTask: Option[(TimerTask, Deadline)] = None
   val hasLevelZero: Boolean = levels.exists(_.isZero)
   val levelsReversed = Slice(levels.reverse.toArray)
 

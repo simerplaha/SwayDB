@@ -14,7 +14,7 @@ import scala.concurrent.duration._
 /**
   * This object does not implement any concurrency which should be handled by an Actor.
   *
-  * It just implements functions that given a Level and it's [[CompactionGroupState]] mutates the state
+  * It just implements functions that given a Level and it's [[CompactorState]] mutates the state
   * such to reflect it's current compaction state. This state can then used to determine
   * how the next compaction should occur.
   *
@@ -24,7 +24,7 @@ private[level] object Compaction extends LazyLogging {
 
   val awaitPullTimeout = 30.seconds.fromNow
 
-  def run(state: CompactionGroupState,
+  def run(state: CompactorState,
           forwardCopyOnAllLevels: Boolean): Unit =
     if (state.terminate)
       logger.debug("Ignoring wakeUp call. Compaction is terminated!")
@@ -34,7 +34,7 @@ private[level] object Compaction extends LazyLogging {
         forwardCopyOnAllLevels = forwardCopyOnAllLevels
       )
 
-  private[compaction] def runNow(state: CompactionGroupState,
+  private[compaction] def runNow(state: CompactorState,
                                  forwardCopyOnAllLevels: Boolean): Unit = {
     if (forwardCopyOnAllLevels) {
       val totalCopies = copyForwardForEach(state.levelsReversed)
@@ -49,15 +49,15 @@ private[level] object Compaction extends LazyLogging {
 
   def shouldRun(level: LevelRef, state: LevelCompactionState): Boolean =
     state match {
-      case waiting @ LevelCompactionState.AwaitingPull(_, timeout, previousStateID) =>
-        waiting.isReady || timeout.isOverdue() || level.stateID != previousStateID
+      case awaitingPull @ LevelCompactionState.AwaitingPull(_, timeout, previousStateID) =>
+        awaitingPull.isReady || timeout.isOverdue() || level.stateID != previousStateID
 
       case LevelCompactionState.Sleep(sleepDeadline, previousStateID) =>
         sleepDeadline.isOverdue() || level.stateID != previousStateID
     }
 
   @tailrec
-  private[compaction] def runJobs(state: CompactionGroupState,
+  private[compaction] def runJobs(state: CompactorState,
                                   currentJobs: Slice[LevelRef]): Unit =
     if (state.terminate)
       logger.warn("Cannot run jobs. Compaction is terminated.")

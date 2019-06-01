@@ -67,7 +67,7 @@ private[core] object LevelZero extends LazyLogging {
     import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
     implicit val timerReader = TimerMapEntryReader.TimerPutMapEntryReader
     implicit val timerWriter = TimerMapEntryWriter.TimerPutMapEntryWriter
-    implicit val compactionStrategy: CompactionStrategy[CompactionGroupState] = new Compactor()
+    implicit val compactionStrategy: CompactionStrategy[CompactorState] = new Compactor()
     implicit val compactionOrdering: CompactionOrdering = DefaultCompactionOrdering
 
     implicit val skipListMerger: SkipListMerger[Slice[Byte], Memory.SegmentResponse] = LevelZeroSkipListMerger
@@ -139,7 +139,7 @@ private[core] case class LevelZero(path: Path,
                                                                        timeOrder: TimeOrder[Slice[Byte]],
                                                                        functionStore: FunctionStore,
                                                                        ec: ExecutionContext,
-                                                                       compactionStrategy: CompactionStrategy[CompactionGroupState],
+                                                                       compactionStrategy: CompactionStrategy[CompactorState],
                                                                        compactionOrdering: CompactionOrdering) extends LevelRef with LazyLogging {
 
   logger.info("{}: Level0 started.", path)
@@ -147,7 +147,7 @@ private[core] case class LevelZero(path: Path,
   import keyOrder._
   import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
 
-  val compactor: Option[WiredActor[CompactionStrategy[CompactionGroupState], CompactionGroupState]] =
+  val compactor: Option[WiredActor[CompactionStrategy[CompactorState], CompactorState]] =
     nextLevel map {
       nextLevel =>
         Compactor(
@@ -160,7 +160,7 @@ private[core] case class LevelZero(path: Path,
     }
 
   def sendWakeUp(forwardCopyOnAllLevels: Boolean,
-                 compactor: WiredActor[CompactionStrategy[CompactionGroupState], CompactionGroupState]): Unit =
+                 compactor: WiredActor[CompactionStrategy[CompactorState], CompactorState]): Unit =
     compactor send {
       (impl, state, self) =>
         impl.wakeUp(
@@ -188,7 +188,7 @@ private[core] case class LevelZero(path: Path,
       _: LevelMeter => Throttle(0.second, 0)
     }
 
-  def terminate(compactor: WiredActor[CompactionStrategy[CompactionGroupState], CompactionGroupState]) = {
+  def terminate(compactor: WiredActor[CompactionStrategy[CompactorState], CompactorState]) = {
     compactor.terminate() //terminate actor
     compactor.unsafeGetState.terminateCompaction() //terminate currently processed compactions.
   }
