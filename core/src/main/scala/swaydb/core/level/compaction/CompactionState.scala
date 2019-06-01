@@ -22,7 +22,7 @@ private[level] object CompactionState {
       .foldRight(List.empty[CompactionState]) {
         case ((jobs, executionContext), lowerCompactions) =>
           val statesMap = mutable.Map.empty[LevelRef, LevelCompactionState]
-          val levelOrdering = ordering.ordering(level => statesMap.getOrElse(level, LevelCompactionState.longSleep))
+          val levelOrdering = ordering.ordering(level => statesMap.getOrElse(level, LevelCompactionState.longSleep(level.stateID)))
           val compaction =
             CompactionState(
               levels = jobs,
@@ -59,6 +59,11 @@ private[level] case class CompactionState(levels: List[LevelRef],
                                           executionContext: ExecutionContext) {
   @volatile private[compaction] var terminate: Boolean = false
   private[compaction] var sleepTask: Option[TimerTask] = None
+  def isLevelStateChanged() =
+    levels exists {
+      level =>
+        compactionStates.get(level) forall (_.previousStateID != level.stateID)
+    }
 
   val levelsReversed = levels.reverse
 }

@@ -177,4 +177,7 @@ private[core] object TrashLevel extends NextLevel {
 
   override def isZero: Boolean =
     false
+
+  override def stateID: Long =
+    0
 }

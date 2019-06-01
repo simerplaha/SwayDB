@@ -794,4 +794,7 @@ private[core] case class LevelZero(path: Path,
   override def levelNumber: Long = 0
 
   override def isZero: Boolean = true
+
+  override def stateID: Long =
+    maps.map.stateID
 }

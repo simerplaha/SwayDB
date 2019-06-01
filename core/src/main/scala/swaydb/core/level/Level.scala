@@ -1188,4 +1188,7 @@ private[core] case class Level(dirs: Seq[Dir],
 
   override def isZero: Boolean =
     false
+
+  override def stateID: Long =
+    appendix.stateID
 }
