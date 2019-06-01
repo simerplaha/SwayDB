@@ -76,10 +76,16 @@ class Compactor extends CompactionStrategy[CompactionGroupState] {
                   }
               }(self.ec)
 
-              Segment.getNearestDeadline(nearestDeadline, Some(timeout))
+              Segment.getNearestDeadline(
+                deadline = nearestDeadline,
+                next = Some(timeout)
+              )
 
             case LevelCompactionState.Sleep(sleepDeadline, _) =>
-              Segment.getNearestDeadline(nearestDeadline, Some(sleepDeadline))
+              Segment.getNearestDeadline(
+                deadline = nearestDeadline,
+                next = Some(sleepDeadline)
+              )
           }
       }
       .foreach {
@@ -112,29 +118,28 @@ class Compactor extends CompactionStrategy[CompactionGroupState] {
       }
 
   def postCompaction[T](state: CompactionGroupState,
-                        self: WiredActor[CompactionStrategy[CompactionGroupState], CompactionGroupState])(run: => T): T =
-    try {
-      state.sleepTask foreach (_.cancel())
-      state.sleepTask = None
-      run
-    } finally {
-      //wake up child compaction.
-      wakeUpChildren(
-        state = state
-      )
+                        self: WiredActor[CompactionStrategy[CompactionGroupState], CompactionGroupState]): Unit = {
+    //wake up child compaction.
+    wakeUpChildren(
+      state = state
+    )
 
-      //schedule the next compaction for current Compaction group levels
-      scheduleNextCompaction(
-        state = state,
-        self = self
-      )
-    }
+    //schedule the next compaction for current Compaction group levels
+    scheduleNextCompaction(
+      state = state,
+      self = self
+    )
+  }
 
   override def wakeUp(state: CompactionGroupState, forwardCopyOnAllLevels: Boolean, self: WiredActor[CompactionStrategy[CompactionGroupState], CompactionGroupState]): Unit =
-    postCompaction(state, self) {
+    try
       Compaction.run(
         state = state,
         forwardCopyOnAllLevels = false
       )
-    }
+    finally
+      postCompaction(
+        state = state,
+        self = self
+      )
 }
