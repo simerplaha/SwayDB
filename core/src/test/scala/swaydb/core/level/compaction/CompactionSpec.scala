@@ -48,14 +48,14 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
   "copyForwardForEach" should {
     "not copy" when {
       "it's the last Level and is empty" in {
-        Compaction.copyForwardForEach(Seq(TestLevel())) shouldBe 0
+        Compaction.copyForwardForEach(Slice(TestLevel())) shouldBe 0
       }
 
       "it's the last Level and is non empty" in {
         val keyValues = randomPutKeyValues(keyValueCount).toMemory
         val level = TestLevel(keyValues = keyValues)
         level.isEmpty shouldBe false
-        Compaction.copyForwardForEach(level.reverseLevels) shouldBe 0
+        Compaction.copyForwardForEach(level.reverseLevels.toSlice) shouldBe 0
         assertGet(keyValues, level.reopen)
       }
     }
@@ -74,7 +74,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
         level1.foreachLevel(_.segmentsCount() should be > 1)
 
         val expectedCopiedSegments = level1.foldLeftLevels(0)(_ + _.segmentsCount()) - level5.segmentsCount()
-        Compaction.copyForwardForEach(level1.reverseLevels) shouldBe expectedCopiedSegments
+        Compaction.copyForwardForEach(level1.reverseLevels.toSlice) shouldBe expectedCopiedSegments
         //all top levels shouldBe empty
         level1.mapLevels(level => level).dropRight(1).foreach(_.isEmpty shouldBe true)
 
@@ -100,7 +100,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
         val level2 = TestLevel(nextLevel = Some(level3), keyValues = Slice(keyValues(0).last) ++ keyValues(1), segmentSize = 2.kb)
         val level1 = TestLevel(nextLevel = Some(level2), keyValues = keyValues(0), segmentSize = 2.kb)
 
-        Compaction.copyForwardForEach(level1.reverseLevels)
+        Compaction.copyForwardForEach(level1.reverseLevels.toSlice)
 
         //top levels are level, second last level get all overlapping Segments, last Level gets the rest.
         level1.isEmpty shouldBe true

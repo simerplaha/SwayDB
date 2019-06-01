@@ -278,7 +278,6 @@ object Slice {
       if (values.nonEmpty) slice.insertAll(values)
       slice
     }
-
   }
 
   implicit class SliceImplicitClassTag[T: ClassTag](slice: Slice[T]) {
@@ -335,7 +334,6 @@ object Slice {
       def apply() =
         new SliceBuilder[T](100)
     }
-
 }
 
 /**
@@ -586,6 +584,12 @@ class Slice[+T: ClassTag](array: Array[T],
 
   def underlyingArraySize =
     array.length
+
+  /**
+    * Return a new ordered Slice.
+    */
+  def sorted[B >: T](implicit ordering: Ordering[B]): Slice[B] =
+    Slice(toArrayCopy.sorted(ordering))
 
   override protected[this] def newBuilder: scala.collection.mutable.Builder[T, Slice[T]] =
     new Slice.SliceBuilder[T](array.length max 100)

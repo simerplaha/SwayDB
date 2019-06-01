@@ -5,6 +5,7 @@ import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{LevelRef, NextLevel}
 import swaydb.core.segment.Segment
 import swaydb.core.util.CollectionUtil
+import swaydb.data.slice.Slice
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext
@@ -42,7 +43,7 @@ object Compactor {
           val levelOrdering = ordering.ordering(level => statesMap.getOrElse(level, LevelCompactionState.longSleep(level.stateID)))
           val compaction =
             CompactorState(
-              levels = jobs,
+              levels = Slice(jobs.toArray),
               compactionStates = statesMap,
               child = child,
               ordering = levelOrdering

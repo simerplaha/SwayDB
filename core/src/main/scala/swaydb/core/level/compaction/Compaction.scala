@@ -24,9 +24,6 @@ private[level] object Compaction extends LazyLogging {
 
   val awaitPullTimeout = 30.seconds.fromNow
 
-  def rePrioritiseLevels(levels: List[LevelRef])(implicit ordering: Ordering[LevelRef]): Slice[LevelRef] =
-    Slice(levels.sorted.toArray)
-
   def run(state: CompactorState,
           forwardCopyOnAllLevels: Boolean): Unit =
     if (state.terminate)
@@ -46,7 +43,7 @@ private[level] object Compaction extends LazyLogging {
     //run compaction jobs
     runJobs(
       state = state,
-      currentJobs = rePrioritiseLevels(state.levels)(state.ordering)
+      currentJobs = state.levels.sorted(state.ordering)
     )
   }
 
@@ -287,7 +284,7 @@ private[level] object Compaction extends LazyLogging {
     * Runs lazy error checks. Ignores all errors and continues copying
     * each Level starting from the lowest level first.
     */
-  private[compaction] def copyForwardForEach(levels: Seq[LevelRef]): Int =
+  private[compaction] def copyForwardForEach(levels: Slice[LevelRef]): Int =
     levels.foldLeft(0) {
       case (totalCopies, level: NextLevel) =>
         val copied = copyForward(level)

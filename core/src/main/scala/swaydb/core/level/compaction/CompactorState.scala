@@ -4,20 +4,21 @@ import java.util.TimerTask
 
 import swaydb.core.actor.WiredActor
 import swaydb.core.level.LevelRef
+import swaydb.data.slice.Slice
 
 import scala.collection.mutable
 
 /**
   * Compaction state for a group of Levels. The number of compaction depends on concurrentCompactions input.
   */
-private[core] case class CompactorState(levels: List[LevelRef],
+private[core] case class CompactorState(levels: Slice[LevelRef],
                                         child: Option[WiredActor[CompactionStrategy[CompactorState], CompactorState]],
                                         ordering: Ordering[LevelRef],
                                         private[level] val compactionStates: mutable.Map[LevelRef, LevelCompactionState]) {
   @volatile private[compaction] var terminate: Boolean = false
   private[compaction] var sleepTask: Option[TimerTask] = None
   val hasLevelZero: Boolean = levels.exists(_.isZero)
-  val levelsReversed = levels.reverse
+  val levelsReversed = Slice(levels.reverse.toArray)
 
   def isLevelStateChanged() =
     levels exists {
