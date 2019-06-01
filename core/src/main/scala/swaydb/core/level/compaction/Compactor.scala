@@ -45,7 +45,6 @@ object Compactor {
           val compaction =
             CompactorState(
               levels = jobs,
-              zeroWakeUpCalls = new AtomicInteger(0),
               compactionStates = statesMap,
               children = children,
               ordering = levelOrdering
@@ -58,9 +57,11 @@ object Compactor {
 class Compactor extends CompactionStrategy[CompactorState] {
 
   def scheduleNextWakeUp[T](state: CompactorState, self: WiredActor[CompactionStrategy[CompactorState], CompactorState])(run: => T): T =
-    try
+    try {
+      state.sleepTask foreach (_.cancel())
+      state.sleepTask = None
       run
-    finally
+    } finally {
       state
         .compactionStates
         .values
@@ -101,6 +102,7 @@ class Compactor extends CompactionStrategy[CompactorState] {
               }
             state.sleepTask = Some(newTask)
         }
+    }
 
   override def wakeUp(state: CompactorState, forwardCopyOnAllLevels: Boolean, self: WiredActor[CompactionStrategy[CompactorState], CompactorState]): Unit =
     scheduleNextWakeUp(state, self) {
@@ -109,13 +111,4 @@ class Compactor extends CompactionStrategy[CompactorState] {
         forwardCopyOnAllLevels = false
       )
     }
-
-  override def wakeUpFromZero(state: CompactorState, forwardCopyOnAllLevels: Boolean, self: WiredActor[CompactionStrategy[CompactorState], CompactorState]): Unit = {
-    state.zeroWakeUpCalls.incrementAndGet()
-    wakeUp(
-      state = state,
-      forwardCopyOnAllLevels = forwardCopyOnAllLevels,
-      self = self
-    )
-  }
 }

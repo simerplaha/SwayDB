@@ -163,7 +163,7 @@ private[core] case class LevelZero(path: Path,
                  compactor: WiredActor[CompactionStrategy[CompactorState], CompactorState]): Unit =
     compactor send {
       (impl, state, self) =>
-        impl.wakeUpFromZero(
+        impl.wakeUp(
           state = state,
           forwardCopyOnAllLevels = forwardCopyOnAllLevels,
           self = self

@@ -19,9 +19,6 @@ import scala.concurrent.duration._
   * how the next compaction should occur.
   *
   * State mutation is necessary to avoid unnecessary garbage during compaction. Functions returning Unit mutate the state.
-  *
-  * [[CompactorState.zeroWakeUpCalls]] can be incremented for the current compaction to re-prioritise
-  * Level compaction.
   */
 private[level] object Compaction extends LazyLogging {
 
@@ -42,8 +39,6 @@ private[level] object Compaction extends LazyLogging {
 
   private[compaction] def runNow(state: CompactorState,
                                  forwardCopyOnAllLevels: Boolean): Unit = {
-    state.sleepTask foreach (_.cancel())
-    state.sleepTask = None
     if (forwardCopyOnAllLevels) {
       val totalCopies = copyForwardForEach(state.levelsReversed)
       logger.debug(s"Compaction copied $totalCopies. Starting compaction!")
@@ -52,7 +47,6 @@ private[level] object Compaction extends LazyLogging {
     runJobs(
       state = state,
       currentJobs = rePrioritiseLevels(state.levels)(state.ordering),
-      wakeUpCallNumber = state.zeroWakeUpCalls.get(),
     )(state.ordering)
   }
 
@@ -67,7 +61,6 @@ private[level] object Compaction extends LazyLogging {
 
   @tailrec
   private[compaction] def runJobs(state: CompactorState,
-                                  wakeUpCallNumber: Int,
                                   currentJobs: Slice[LevelRef])(implicit ordering: Ordering[LevelRef]): Unit =
     if (state.terminate)
       logger.warn("Cannot run jobs. Compaction is terminated.")
@@ -75,18 +68,13 @@ private[level] object Compaction extends LazyLogging {
       currentJobs.headOption match {
         //project next job
         case Some(level) =>
-          //before each job check if there was a wakeUp call from Levels and re-prioritise compactions.
-          val currentWakeUpCall = state.zeroWakeUpCalls.get()
-          //if there was a wakeup call then check if the current job is the last job only then re-prioritise or else keep processing.
-          if (currentWakeUpCall != wakeUpCallNumber)
-            runJobs(state, currentWakeUpCall, rePrioritiseLevels(state.levels))
-          else if (state.compactionStates.get(level).forall(state => shouldRun(level, state)))
+          if (state.compactionStates.get(level).forall(state => shouldRun(level, state)))
             state.compactionStates.put(
               key = level,
               value = runJob(level)
             )
           else
-            runJobs(state, wakeUpCallNumber, currentJobs.dropHead())
+            runJobs(state, currentJobs.dropHead())
 
         case None =>
           () //all jobs complete.
