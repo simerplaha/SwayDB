@@ -3,14 +3,12 @@ package swaydb.core.level.compaction
 import swaydb.core.actor.WiredActor
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{LevelRef, NextLevel}
-import swaydb.core.segment.Segment
-import swaydb.core.util.CollectionUtil
+import swaydb.core.util.{CollectionUtil, FiniteDurationUtil}
 import swaydb.data.slice.Slice
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.Deadline
-import swaydb.core.util.FiniteDurationUtil._
 
 /**
   * Compactor = Compaction-Actor.
@@ -88,13 +86,13 @@ class Compactor extends CompactionStrategy[CompactorState] {
             waiting.listenerInitialised = true
           }
 
-          Segment.getNearestDeadline(
+          FiniteDurationUtil.getNearestDeadline(
             deadline = nearestDeadline,
             next = Some(timeout)
           )
 
         case (nearestDeadline, LevelCompactionState.Sleep(sleepDeadline, _)) =>
-          Segment.getNearestDeadline(
+          FiniteDurationUtil.getNearestDeadline(
             deadline = nearestDeadline,
             next = Some(sleepDeadline)
           )

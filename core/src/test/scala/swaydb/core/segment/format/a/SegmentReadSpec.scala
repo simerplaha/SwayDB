@@ -863,24 +863,6 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures with PrivateMeth
   }
 
   "getNearestDeadline" should {
-    "return None for empty deadlines" in {
-      Segment.getNearestDeadline(None, None) shouldBe empty
-    }
-
-    "return earliest deadline" in {
-      val deadline1 = 10.seconds.fromNow
-      val deadline2 = 20.seconds.fromNow
-
-      Segment.getNearestDeadline(Some(deadline1), None) should contain(deadline1)
-      Segment.getNearestDeadline(Some(deadline2), None) should contain(deadline2)
-
-      Segment.getNearestDeadline(None, Some(deadline1)) should contain(deadline1)
-      Segment.getNearestDeadline(None, Some(deadline2)) should contain(deadline2)
-
-      Segment.getNearestDeadline(Some(deadline1), Some(deadline2)) should contain(deadline1)
-      Segment.getNearestDeadline(Some(deadline2), Some(deadline1)) should contain(deadline1)
-    }
-
     "return earliest deadline from key-values" in {
       runThis(10.times) {
         val deadlines = (1 to 8).map(_.seconds.fromNow)

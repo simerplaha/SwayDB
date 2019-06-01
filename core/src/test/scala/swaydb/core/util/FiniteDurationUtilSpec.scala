@@ -19,10 +19,12 @@
 
 package swaydb.core.util
 
-import org.scalatest.{FlatSpec, Matchers}
-import scala.concurrent.duration._
-import FiniteDurationUtil._
 import java.util.{Timer, TimerTask}
+
+import org.scalatest.{FlatSpec, Matchers}
+import swaydb.core.util.FiniteDurationUtil._
+
+import scala.concurrent.duration._
 
 class FiniteDurationUtilSpec extends FlatSpec with Matchers {
 
@@ -58,5 +60,23 @@ class FiniteDurationUtilSpec extends FlatSpec with Matchers {
     }
 
     timer.cancel()
+  }
+
+  it should "return None for empty deadlines" in {
+    FiniteDurationUtil.getNearestDeadline(None, None) shouldBe empty
+  }
+
+  it should "return earliest deadline" in {
+    val deadline1 = 10.seconds.fromNow
+    val deadline2 = 20.seconds.fromNow
+
+    FiniteDurationUtil.getNearestDeadline(Some(deadline1), None) should contain(deadline1)
+    FiniteDurationUtil.getNearestDeadline(Some(deadline2), None) should contain(deadline2)
+
+    FiniteDurationUtil.getNearestDeadline(None, Some(deadline1)) should contain(deadline1)
+    FiniteDurationUtil.getNearestDeadline(None, Some(deadline2)) should contain(deadline2)
+
+    FiniteDurationUtil.getNearestDeadline(Some(deadline1), Some(deadline2)) should contain(deadline1)
+    FiniteDurationUtil.getNearestDeadline(Some(deadline2), Some(deadline1)) should contain(deadline1)
   }
 }

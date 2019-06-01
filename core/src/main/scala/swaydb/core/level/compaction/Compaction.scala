@@ -80,8 +80,8 @@ private[level] object Compaction extends LazyLogging {
             runJobs(state, currentJobs.dropHead())
 
         case None =>
+          //all jobs complete.
           logger.debug(s"Compaction round complete for Levels ${state.levels.map(_.rootPath)}.")
-          () //all jobs complete.
       }
 
   private[compaction] def runJob(level: LevelRef): LevelCompactionState =
