@@ -786,8 +786,8 @@ private[core] object Segment extends LazyLogging {
     * Be sure to extract those before checking for nearest deadline. Use other [[getNearestDeadline]]
     * functions instead that take key-value as input to fetch the correct nearest deadline.
     */
-  private[segment] def getNearestDeadline(deadline: Option[Deadline],
-                                          next: Option[Deadline]): Option[Deadline] =
+  def getNearestDeadline(deadline: Option[Deadline],
+                         next: Option[Deadline]): Option[Deadline] =
 
     (deadline, next) match {
       case (None, None) => None

@@ -24,6 +24,7 @@ import java.nio.file.{Path, Paths, StandardOpenOption}
 import java.util
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.core.actor.WiredActor
 import swaydb.core.data.KeyValue._
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
@@ -66,7 +67,7 @@ private[core] object LevelZero extends LazyLogging {
     import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
     implicit val timerReader = TimerMapEntryReader.TimerPutMapEntryReader
     implicit val timerWriter = TimerMapEntryWriter.TimerPutMapEntryWriter
-    implicit val compactionStrategy: CompactionStrategy[CompactionState] = Compaction
+    implicit val compactionStrategy: CompactionStrategy[CompactorState] = new Compactor()
     implicit val compactionOrdering: CompactionOrdering = DefaultCompactionOrdering
 
     implicit val skipListMerger: SkipListMerger[Slice[Byte], Memory.SegmentResponse] = LevelZeroSkipListMerger
@@ -138,63 +139,43 @@ private[core] case class LevelZero(path: Path,
                                                                        timeOrder: TimeOrder[Slice[Byte]],
                                                                        functionStore: FunctionStore,
                                                                        ec: ExecutionContext,
-                                                                       compactionStrategy: CompactionStrategy[CompactionState],
+                                                                       compactionStrategy: CompactionStrategy[CompactorState],
                                                                        compactionOrdering: CompactionOrdering) extends LevelRef with LazyLogging {
 
   logger.info("{}: Level0 started.", path)
 
-  import IO._
   import keyOrder._
   import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
 
-  val compactions: List[CompactionState] =
+  val compactor: Option[WiredActor[CompactionStrategy[CompactorState], CompactorState]] =
     nextLevel map {
       nextLevel =>
-        CompactionState(
+        Compactor(
           zero = this,
           levels = LevelRef.getLevels(nextLevel).filterNot(_.isTrash),
           dedicatedLevelZeroCompaction = dedicatedLevelZeroCompaction,
           concurrentCompactions = concurrentCompactions,
           executionContexts = List.fill(concurrentCompactions)(ec)
         )
-    } getOrElse List.empty
+    }
 
-  val headCompaction =
-    compactions.headOption
+  def sendWakeUp(compactor: WiredActor[CompactionStrategy[CompactorState], CompactorState]): Unit =
+    compactor send {
+      (impl, state, self) =>
+        impl.wakeUp(
+          state = state,
+          forwardCopyOnAllLevels = true,
+          self = self
+        )
+    }
 
   def startCompaction(copyForwardAllOnStart: Boolean): IO[LevelZero] =
-    if (nextLevel.isDefined)
-      compactions.reverse foreachIO { //start compactions in reverse with the last Level being initialised first.
-        state =>
-          val compaction =
-            if (copyForwardAllOnStart)
-              compactionStrategy.copyAndStart(state)
-            else
-              compactionStrategy.start(state)
-
-          compaction onFailureSideEffect {
-            error =>
-              logger.error(s"FAILURE! Failed to start compaction for Levels: ${state.levels.map(_.levelNumber).mkString(",")}", error.exception)
-          } map {
-            _ =>
-              this
-          }
-      } getOrElse {
-        IO {
-          maps setOnFullListener {
-            () =>
-              Future {
-                headCompaction foreach {
-                  state =>
-                    compactionStrategy.wakeUpFromZero(state)
-                }
-              }
-          }
-          this
-        }
-      }
-    else
-      IO.Success(this)
+    compactor map {
+      compactor =>
+        maps setOnFullListener (() => sendWakeUp(compactor))
+        sendWakeUp(compactor)
+        IO.Success(this)
+    } getOrElse IO.Success(this)
 
   //LevelZero can also implement PathsDistributor to spread the Maps over to multiple paths.
   override def paths: PathsDistributor =
@@ -206,10 +187,21 @@ private[core] case class LevelZero(path: Path,
       _: LevelMeter => Throttle(0.second, 0)
     }
 
+  def terminate(compactor: WiredActor[CompactionStrategy[CompactorState], CompactorState]) = {
+    compactor.terminate() //terminate actor
+    compactor.unsafeGetState.terminateCompaction() //terminate currently processed compactions.
+  }
+
   def terminateCompaction(): Unit =
-    compactions foreach {
-      state =>
-        compactionStrategy.terminate(state)
+    compactor foreach {
+      compactor =>
+        terminate(compactor) //terminate root compaction
+
+        //terminate all concurrent child compactions.
+        compactor
+          .unsafeGetState
+          .children
+          .foreach(terminate)
     }
 
   def releaseLocks: IO[Unit] =

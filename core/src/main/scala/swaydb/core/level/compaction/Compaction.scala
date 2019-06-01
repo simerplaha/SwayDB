@@ -5,7 +5,6 @@ import swaydb.core.data.Memory
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{LevelRef, NextLevel, TrashLevel}
 import swaydb.core.segment.Segment
-import swaydb.core.util.Delay
 import swaydb.data.IO
 import swaydb.data.slice.Slice
 
@@ -13,151 +12,93 @@ import scala.annotation.tailrec
 import scala.concurrent.duration._
 
 /**
-  * Implements functions to execution Compaction on [[CompactionState]].
-  * Once executed Compaction will run infinitely until shutdown.
+  * This object does not implement any concurrency which should be handled by an Actor.
   *
-  * The speed of compaction depends on [[swaydb.core.level.Level.throttle]] which
-  * is used to determine how overflow is a Level and how often should compaction run.
+  * It just implements functions that given a Level and it's [[CompactorState]] mutates the state
+  * such to reflect it's current compaction state. This state can then used to determine
+  * how the next compaction should occur.
+  *
+  * State mutation is necessary to avoid unnecessary garbage during compaction. Functions returning Unit mutate the state.
+  *
+  * [[CompactorState.zeroWakeUpCalls]] can be incremented for the current compaction to re-prioritise
+  * Level compaction.
   */
-private[level] object Compaction extends CompactionStrategy[CompactionState] with LazyLogging {
+private[level] object Compaction extends LazyLogging {
 
   val awaitPullTimeout = 30.seconds.fromNow
-
-  def copyAndStart(state: CompactionState): IO[Unit] =
-    IO(wakeUp(state = state, forwardCopyOnAllLevels = true))
-
-  def start(state: CompactionState): IO[Unit] =
-    IO(wakeUp(state = state, forwardCopyOnAllLevels = false))
-
-  //wakeUp call received from Levels.
-  def wakeUpFromZero(state: CompactionState): Unit = {
-    logger.trace(s"WakeUp from Zero. Running: ${state.running}")
-    state.zeroWakeUpCalls.incrementAndGet()
-    wakeUp(state = state, forwardCopyOnAllLevels = false)
-  }
-
-  def terminate(state: CompactionState): Unit =
-    state.terminate = true
 
   def rePrioritiseLevels(levels: List[LevelRef])(implicit ordering: Ordering[LevelRef]): Slice[LevelRef] =
     Slice(levels.sorted.toArray)
 
-  private[compaction] def wakeUp(state: CompactionState,
-                                 forwardCopyOnAllLevels: Boolean): Unit =
+  def run(state: CompactorState,
+          forwardCopyOnAllLevels: Boolean): Unit =
     if (state.terminate)
       logger.debug("Terminated! Ignoring wakeUp call.")
-    else if (state.running.compareAndSet(false, true))
-      try
-        runNow(
-          state = state,
-          forwardCopyOnAllLevels = forwardCopyOnAllLevels
-        )
-      finally
-        state.running.set(false)
+    else
+      runNow(
+        state = state,
+        forwardCopyOnAllLevels = forwardCopyOnAllLevels
+      )
 
-  private def runNow(state: CompactionState,
-                     forwardCopyOnAllLevels: Boolean): Unit = {
-    state.sleepTask foreach {
-      task =>
-        task.cancel()
-        state.sleepTask = None
-    }
+  private[compaction] def runNow(state: CompactorState,
+                                 forwardCopyOnAllLevels: Boolean): Unit = {
+    state.sleepTask foreach (_.cancel())
+    state.sleepTask = None
     if (forwardCopyOnAllLevels) {
       val totalCopies = copyForwardForEach(state.levelsReversed)
       logger.debug(s"Compaction copied $totalCopies. Starting compaction!")
     }
     //run compaction jobs
-    val sleepFor =
-      runJobs(
-        state = state,
-        currentJobs = rePrioritiseLevels(state.levels)(state.ordering),
-        wakeUpCallNumber = state.zeroWakeUpCalls.get(),
-      )(state.ordering)
-
-    sleep(
+    runJobs(
       state = state,
-      duration = sleepFor
+      currentJobs = rePrioritiseLevels(state.levels)(state.ordering),
+      wakeUpCallNumber = state.zeroWakeUpCalls.get(),
     )(state.ordering)
-
-    //on complete ask other lower compactions to wakeup if not already running.
-    state.lowerCompactions foreach {
-      state =>
-        Compaction.wakeUp(state = state, forwardCopyOnAllLevels = forwardCopyOnAllLevels)
-    }
   }
-
-  private[compaction] def sleep(state: CompactionState,
-                                duration: Deadline)(implicit ordering: Ordering[LevelRef]): Unit =
-    if (state.terminate)
-      logger.debug("Terminated! Ignoring sleep.")
-    else {
-      val task = Delay.task(duration.timeLeft)(wakeUp(state, forwardCopyOnAllLevels = true))
-      state.sleepTask = Some(task)
-    }
 
   def shouldRun(level: LevelRef, state: LevelCompactionState): Boolean =
     state match {
-      case LevelCompactionState.AwaitingPull(ready, timeout, previousStateID) =>
-        ready || timeout.isOverdue() || level.stateID != previousStateID
+      case waiting @ LevelCompactionState.AwaitingPull(_, timeout, previousStateID) =>
+        waiting.isReady || timeout.isOverdue() || level.stateID != previousStateID
 
       case LevelCompactionState.Sleep(ready, previousStateID) =>
         ready.isOverdue() || level.stateID != previousStateID
     }
 
-  /**
-    * Should only be executed by [[wakeUpFromZero]] or by itself.
-    */
-
-  private[compaction] def runJobs(state: CompactionState,
+  @tailrec
+  private[compaction] def runJobs(state: CompactorState,
                                   wakeUpCallNumber: Int,
-                                  currentJobs: Slice[LevelRef])(implicit ordering: Ordering[LevelRef]): Deadline = {
-    @tailrec
-    def doRun(wakeUpCallNumber: Int,
-              currentJobs: Slice[LevelRef],
-              sleepDeadline: Deadline)(implicit ordering: Ordering[LevelRef]): Deadline =
-      if (state.terminate)
-        sleepDeadline
-      else
-        currentJobs.headOption match {
-          //project next job
-          case Some(level) =>
-            //before each job check if there was a wakeUp call from Levels and re-prioritise compactions.
-            val currentWakeUpCall = state.zeroWakeUpCalls.get()
-            //if there was a wakeup call then check if the current job is the last job only then re-prioritise or else keep processing.
-            //if LevelZero is higher priority then a dedicated compaction thread should be used when configuration compaction in LevelZero.
-            //check for currentJobs <=1 is necessary to ensure only Level0 compaction does not always gets run for cases where concurrent compaction is 1.
-            if (currentWakeUpCall != wakeUpCallNumber && currentJobs.size <= 1) {
-              doRun(currentWakeUpCall, rePrioritiseLevels(state.levels), sleepDeadline)
-            } else if (state.compactionStates.get(level).forall(state => shouldRun(level, state))) {
-              val newLevelState = runJob(level)
-              state.compactionStates.put(level, newLevelState)
-              if (newLevelState.sleepDeadline < sleepDeadline)
-                newLevelState.sleepDeadline
-              else
-                sleepDeadline
-            } else {
-              doRun(wakeUpCallNumber, currentJobs.dropHead(), sleepDeadline)
-            }
+                                  currentJobs: Slice[LevelRef])(implicit ordering: Ordering[LevelRef]): Unit =
+    if (state.terminate)
+      logger.warn("Cannot run jobs. Compaction is terminated.")
+    else
+      currentJobs.headOption match {
+        //project next job
+        case Some(level) =>
+          //before each job check if there was a wakeUp call from Levels and re-prioritise compactions.
+          val currentWakeUpCall = state.zeroWakeUpCalls.get()
+          //if there was a wakeup call then check if the current job is the last job only then re-prioritise or else keep processing.
+          if (currentWakeUpCall != wakeUpCallNumber)
+            runJobs(state, currentWakeUpCall, rePrioritiseLevels(state.levels))
+          else if (state.compactionStates.get(level).forall(state => shouldRun(level, state)))
+            state.compactionStates.put(
+              key = level,
+              value = runJob(level)
+            )
+          else
+            runJobs(state, wakeUpCallNumber, currentJobs.dropHead())
 
-          case None =>
-            //all jobs complete.
-            sleepDeadline
-        }
-
-    doRun(
-      wakeUpCallNumber = wakeUpCallNumber,
-      currentJobs = currentJobs,
-      sleepDeadline = LevelCompactionState.longSleepDeadline
-    )
-  }
+        case None =>
+          () //all jobs complete.
+      }
 
   private[compaction] def runJob(level: LevelRef): LevelCompactionState =
     level match {
       case zero: LevelZero =>
-        pushForward(zero)
+        pushForward(zero = zero)
 
       case level: NextLevel =>
-        pushForward(level)
+        pushForward(level = level)
 
       case TrashLevel =>
         logger.error(s"Received job for ${TrashLevel.getClass.getSimpleName}.")
@@ -173,18 +114,23 @@ private[level] object Compaction extends CompactionStrategy[CompactionState] wit
           pushForward(level)
 
         case later @ IO.Later(_, _) =>
-          val state = LevelCompactionState.AwaitingPull(_ready = false, timeout = awaitPullTimeout, previousStateID = level.stateID)
-          later mapAsync {
-            _ =>
-              state.ready = true
-          }
-          state
+          LevelCompactionState.AwaitingPull(
+            later = later,
+            timeout = awaitPullTimeout,
+            previousStateID = level.stateID
+          )
 
         case IO.Failure(_) =>
-          LevelCompactionState.Sleep(3.second.fromNow, previousStateID = level.stateID)
+          LevelCompactionState.Sleep(
+            sleepDeadline = 5.second.fromNow,
+            previousStateID = level.stateID
+          )
       }
     else
-      LevelCompactionState.Sleep(throttle.pushDelay.fromNow, previousStateID = level.stateID)
+      LevelCompactionState.Sleep(
+        sleepDeadline = throttle.pushDelay.fromNow,
+        previousStateID = level.stateID
+      )
   }
 
   private[compaction] def pushForward(zero: LevelZero): LevelCompactionState =
@@ -250,12 +196,11 @@ private[level] object Compaction extends CompactionStrategy[CompactionState] wit
         LevelCompactionState.longSleep(zero.stateID)
 
       case later @ IO.Later(_, _) =>
-        val state = LevelCompactionState.AwaitingPull(_ready = false, timeout = awaitPullTimeout, previousStateID = zero.stateID)
-        later mapAsync {
-          _ =>
-            state.ready = true
-        }
-        state
+        LevelCompactionState.AwaitingPull(
+          later = later,
+          timeout = awaitPullTimeout,
+          previousStateID = zero.stateID
+        )
     }
 
   private[compaction] def pushForward(level: NextLevel,

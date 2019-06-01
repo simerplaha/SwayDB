@@ -49,11 +49,18 @@ object CollectionUtil {
   }
 
   def groupedNoSingles[T](concurrentCompactions: Int,
-                          items: List[T]): List[List[T]] = {
-    val splitJobs: List[List[T]] = items.grouped(concurrentCompactions).toList
-    if (splitJobs.size >= 2 && splitJobs.last.size == 1)
-      splitJobs.dropRight(2) :+ (splitJobs(splitJobs.size - 2) ++ splitJobs.last)
-    else
-      splitJobs
+                          items: List[T],
+                          splitAt: Int): List[List[T]] = {
+    def doSplit(items: List[T]): List[List[T]] = {
+      val splitJobs: List[List[T]] = items.grouped(concurrentCompactions).toList
+      if (splitJobs.size >= 2 && splitJobs.last.size == 1)
+        splitJobs.dropRight(2) :+ (splitJobs(splitJobs.size - 2) ++ splitJobs.last)
+      else
+        splitJobs
+    }
+
+    val (itemsToGroupHead, itemsToGroupLast) = items.splitAt(splitAt)
+
+    doSplit(itemsToGroupHead) ++ doSplit(itemsToGroupLast)
   }
 }

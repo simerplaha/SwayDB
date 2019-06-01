@@ -13,7 +13,7 @@ object WiredActor {
     new WiredActor(impl, Some(delays), state)
 }
 
-class WiredActor[+T, +S](impl: T, delays: Option[FiniteDuration], state: S)(implicit ec: ExecutionContext) {
+class WiredActor[+T, +S](impl: T, delays: Option[FiniteDuration], state: S)(implicit val ec: ExecutionContext) {
 
   private val actor: Actor[() => Unit, S] =
     delays map {
@@ -23,8 +23,11 @@ class WiredActor[+T, +S](impl: T, delays: Option[FiniteDuration], state: S)(impl
       Actor[() => Unit, S](state)((function, _) => function()).asInstanceOf[Actor[() => Unit, S]]
     }
 
-  private def unsafeGetState =
+  def unsafeGetState: S =
     actor.state
+
+  def unsafeGetImpl: T =
+    impl
 
   def ask[R](function: (T, S) => R): Future[R] = {
     val promise = Promise[R]()
@@ -83,6 +86,6 @@ class WiredActor[+T, +S](impl: T, delays: Option[FiniteDuration], state: S)(impl
   def scheduleSend[R](delay: FiniteDuration)(function: (T, S) => R): TimerTask =
     actor.schedule(() => function(impl, unsafeGetState), delay)
 
-  def scheduleSend[R](delay: FiniteDuration)(function: (T, S, WiredActor[T, S]) => R): TimerTask =
-    actor.schedule(() => function(impl, unsafeGetState, this), delay)
+  def terminate(): Unit =
+    actor.terminate()
 }
