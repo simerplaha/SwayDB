@@ -174,7 +174,10 @@ private[level] object Compaction extends LazyLogging {
 
       case None =>
         logger.debug(s"{}: NO LAST MAP. No more maps to merge.", zero.path)
-        LevelCompactionState.longSleep(zero.stateID)
+        LevelCompactionState.Sleep(
+          sleepDeadline = zero.throttle(zero.levelZeroMeter).fromNow,
+          previousStateID = zero.stateID
+        )
     }
 
   private[compaction] def pushForward(zero: LevelZero,
@@ -202,10 +205,10 @@ private[level] object Compaction extends LazyLogging {
                 )
             }
         }
-        if (zero.maps.isEmpty)
-          LevelCompactionState.longSleep(zero.stateID)
-        else
-          LevelCompactionState.Sleep(Deadline.now, zero.stateID)
+        LevelCompactionState.Sleep(
+          sleepDeadline = zero.throttle(zero.levelZeroMeter).fromNow,
+          previousStateID = zero.stateID
+        )
 
       case IO.Failure(exception) =>
         exception match {
@@ -215,7 +218,10 @@ private[level] object Compaction extends LazyLogging {
           case _ =>
             logger.error(s"{}: Failed to push", zero.path, exception)
         }
-        LevelCompactionState.Sleep(LevelCompactionState.failureSleepDuration, zero.stateID)
+        LevelCompactionState.Sleep(
+          sleepDeadline = LevelCompactionState.failureSleepDuration,
+          previousStateID = zero.stateID
+        )
 
       case later @ IO.Later(_, _) =>
         LevelCompactionState.AwaitingPull(

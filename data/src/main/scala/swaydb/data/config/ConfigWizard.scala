@@ -34,8 +34,8 @@ sealed trait PersistentConfig
   * http://swaydb.io#configuring-levels
   */
 object ConfigWizard {
-  def addPersistentLevel0(mapSize: Long,
-                          dir: Path,
+  def addPersistentLevel0(dir: Path,
+                          mapSize: Long,
                           mmap: Boolean,
                           recoveryMode: RecoveryMode,
                           compactionExecutionContext: CompactionExecutionContext.Create,

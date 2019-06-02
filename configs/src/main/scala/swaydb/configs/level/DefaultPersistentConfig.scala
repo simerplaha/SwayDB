@@ -32,7 +32,7 @@ import scala.concurrent.forkjoin.ForkJoinPool
 
 object DefaultPersistentConfig {
 
-  private lazy val compactionExecutionContext =
+  private lazy val executionContext =
     new ExecutionContext {
       val threadPool = new ForkJoinPool(4)
 
@@ -67,8 +67,13 @@ object DefaultPersistentConfig {
         mmap = mmapMaps,
         recoveryMode = recoveryMode,
         acceleration = acceleration,
-        throttle = _ => Duration.Zero,
-        compactionExecutionContext = CompactionExecutionContext.Create(compactionExecutionContext)
+        compactionExecutionContext = CompactionExecutionContext.Create(executionContext),
+        throttle =
+          meter =>
+            if (meter.mapsCount >= 5)
+              Duration.Zero
+            else
+              1.second
       )
       .addPersistentLevel1( //level1
         dir = dir,
@@ -82,7 +87,7 @@ object DefaultPersistentConfig {
         compressDuplicateValues = compressDuplicateValues,
         deleteSegmentsEventually = deleteSegmentsEventually,
         groupingStrategy = None,
-        compactionExecutionContext = CompactionExecutionContext.Create(compactionExecutionContext),
+        compactionExecutionContext = CompactionExecutionContext.Create(executionContext),
         throttle =
           levelMeter => {
             val delay = (10 - levelMeter.segmentsCount).seconds
@@ -141,7 +146,7 @@ object DefaultPersistentConfig {
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
         compressDuplicateValues = compressDuplicateValues,
         deleteSegmentsEventually = deleteSegmentsEventually,
-        compactionExecutionContext = CompactionExecutionContext.Create(compactionExecutionContext),
+        compactionExecutionContext = CompactionExecutionContext.Create(executionContext),
         groupingStrategy = None,
         throttle =
           levelMeter => {
@@ -204,7 +209,7 @@ object DefaultPersistentConfig {
         compressDuplicateValues = compressDuplicateValues,
         deleteSegmentsEventually = deleteSegmentsEventually,
         groupingStrategy = groupingStrategy,
-        compactionExecutionContext = CompactionExecutionContext.Create(compactionExecutionContext),
+        compactionExecutionContext = CompactionExecutionContext.Create(executionContext),
         throttle =
           levelMeter => {
             val delay = (10 - levelMeter.segmentsCount).seconds
