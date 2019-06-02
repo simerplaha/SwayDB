@@ -20,10 +20,26 @@
 package swaydb.configs.level
 
 import java.nio.file.Path
+import java.util.concurrent.Executors
+
 import swaydb.data.accelerate.{Accelerator, Level0Meter}
+import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.config._
 
+import scala.concurrent.ExecutionContext
+
 object DefaultPersistentZeroConfig {
+
+  private lazy val compactionExecutionContext =
+    new ExecutionContext {
+      val threadPool = Executors.newSingleThreadExecutor()
+
+      def execute(runnable: Runnable) =
+        threadPool execute runnable
+
+      def reportFailure(exception: Throwable): Unit =
+        System.err.println("Execution context failure", exception)
+    }
 
   /**
     * Default configuration for a single persistent level zero only database.
@@ -40,6 +56,7 @@ object DefaultPersistentZeroConfig {
         mapSize = mapSize,
         mmap = mmapMaps,
         recoveryMode = recoveryMode,
-        acceleration = acceleration
+        acceleration = acceleration,
+        compactionExecutionContext = CompactionExecutionContext.Create(compactionExecutionContext)
       )
 }

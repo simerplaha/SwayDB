@@ -23,12 +23,25 @@ import java.nio.file.Path
 
 import swaydb.data.accelerate.{Accelerator, Level0Meter}
 import swaydb.data.api.grouping.KeyValueGroupingStrategy
-import swaydb.data.compaction.Throttle
+import swaydb.data.compaction.{CompactionExecutionContext, Throttle}
 import swaydb.data.config._
 
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
+import scala.concurrent.forkjoin.ForkJoinPool
 
 object DefaultEventuallyPersistentConfig {
+
+  private lazy val compactionExecutionContext =
+    new ExecutionContext {
+      val threadPool = new ForkJoinPool(2)
+
+      def execute(runnable: Runnable) =
+        threadPool execute runnable
+
+      def reportFailure(exception: Throwable): Unit =
+        System.err.println("Execution context failure", exception)
+    }
 
   /**
     * Default configuration for in-memory 3 leveled database that is persistent for the 3rd Level.
@@ -51,7 +64,8 @@ object DefaultEventuallyPersistentConfig {
     ConfigWizard
       .addMemoryLevel0(
         mapSize = mapSize,
-        acceleration = acceleration
+        acceleration = acceleration,
+        compactionExecutionContext = CompactionExecutionContext.Create(compactionExecutionContext)
       )
       .addMemoryLevel1(
         segmentSize = memoryLevelSegmentSize,
@@ -60,6 +74,7 @@ object DefaultEventuallyPersistentConfig {
         compressDuplicateValues = compressDuplicateValues,
         deleteSegmentsEventually = deleteSegmentsEventually,
         groupingStrategy = None,
+        compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =
           levelMeter => {
             if (levelMeter.levelSize > maxMemoryLevelSize)
@@ -80,6 +95,7 @@ object DefaultEventuallyPersistentConfig {
         compressDuplicateValues = compressDuplicateValues,
         deleteSegmentsEventually = deleteSegmentsEventually,
         groupingStrategy = groupingStrategy,
+        compactionExecutionContext = CompactionExecutionContext.Create(compactionExecutionContext),
         throttle = _ =>
           Throttle(
             pushDelay = 10.seconds,

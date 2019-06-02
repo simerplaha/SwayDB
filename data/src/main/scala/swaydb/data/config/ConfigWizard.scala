@@ -20,9 +20,10 @@
 package swaydb.data.config
 
 import java.nio.file.Path
+
 import swaydb.data.accelerate.{Accelerator, Level0Meter}
 import swaydb.data.api.grouping.KeyValueGroupingStrategy
-import swaydb.data.compaction.{LevelMeter, Throttle}
+import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
 import swaydb.data.storage.Level0Storage
 
 sealed trait PersistentConfig
@@ -35,18 +36,22 @@ object ConfigWizard {
                           dir: Path,
                           mmap: Boolean,
                           recoveryMode: RecoveryMode,
+                          compactionExecutionContext: CompactionExecutionContext.Create,
                           acceleration: Level0Meter => Accelerator) =
     LevelZeroPersistentConfig(
       mapSize = mapSize,
       storage = Level0Storage.Persistent(mmap, dir, recoveryMode),
+      compactionExecutionContext = compactionExecutionContext,
       acceleration = acceleration
     )
 
   def addMemoryLevel0(mapSize: Long,
+                      compactionExecutionContext: CompactionExecutionContext.Create,
                       acceleration: Level0Meter => Accelerator) =
     LevelZeroMemoryConfig(
       mapSize = mapSize,
       storage = Level0Storage.Memory,
+      compactionExecutionContext = compactionExecutionContext,
       acceleration = acceleration
     )
 }
@@ -54,12 +59,14 @@ object ConfigWizard {
 sealed trait LevelZeroConfig {
   val mapSize: Long
   val storage: Level0Storage
+  val compactionExecutionContext: CompactionExecutionContext.Create
 
   def acceleration: Level0Meter => Accelerator
 }
 
 case class LevelZeroPersistentConfig(mapSize: Long,
                                      storage: Level0Storage,
+                                     compactionExecutionContext: CompactionExecutionContext.Create,
                                      acceleration: Level0Meter => Accelerator) extends LevelZeroConfig {
   def addPersistentLevel1(dir: Path,
                           otherDirs: Seq[Dir],
@@ -72,6 +79,7 @@ case class LevelZeroPersistentConfig(mapSize: Long,
                           compressDuplicateValues: Boolean,
                           deleteSegmentsEventually: Boolean,
                           groupingStrategy: Option[KeyValueGroupingStrategy],
+                          compactionExecutionContext: CompactionExecutionContext,
                           throttle: LevelMeter => Throttle): SwayDBPersistentConfig =
     SwayDBPersistentConfig(
       level0 = this,
@@ -87,6 +95,7 @@ case class LevelZeroPersistentConfig(mapSize: Long,
         compressDuplicateValues = compressDuplicateValues,
         deleteSegmentsEventually = deleteSegmentsEventually,
         groupingStrategy = groupingStrategy,
+        compactionExecutionContext = compactionExecutionContext,
         throttle = throttle
       ),
       otherLevels = List.empty
@@ -98,6 +107,7 @@ case class LevelZeroPersistentConfig(mapSize: Long,
                       compressDuplicateValues: Boolean,
                       deleteSegmentsEventually: Boolean,
                       groupingStrategy: Option[KeyValueGroupingStrategy],
+                      compactionExecutionContext: CompactionExecutionContext,
                       throttle: LevelMeter => Throttle) =
     SwayDBPersistentConfig(
       level0 = this,
@@ -108,6 +118,7 @@ case class LevelZeroPersistentConfig(mapSize: Long,
         compressDuplicateValues = compressDuplicateValues,
         groupingStrategy = groupingStrategy,
         deleteSegmentsEventually = deleteSegmentsEventually,
+        compactionExecutionContext = compactionExecutionContext,
         throttle = throttle
       ),
       otherLevels = List.empty
@@ -116,6 +127,7 @@ case class LevelZeroPersistentConfig(mapSize: Long,
 
 case class LevelZeroMemoryConfig(mapSize: Long,
                                  storage: Level0Storage,
+                                 compactionExecutionContext: CompactionExecutionContext.Create,
                                  acceleration: Level0Meter => Accelerator) extends LevelZeroConfig {
 
   def addPersistentLevel1(dir: Path,
@@ -129,6 +141,7 @@ case class LevelZeroMemoryConfig(mapSize: Long,
                           compressDuplicateValues: Boolean,
                           deleteSegmentsEventually: Boolean,
                           groupingStrategy: Option[KeyValueGroupingStrategy],
+                          compactionExecutionContext: CompactionExecutionContext,
                           throttle: LevelMeter => Throttle): SwayDBPersistentConfig =
     SwayDBPersistentConfig(
       level0 = this,
@@ -144,6 +157,7 @@ case class LevelZeroMemoryConfig(mapSize: Long,
         compressDuplicateValues = compressDuplicateValues,
         deleteSegmentsEventually = deleteSegmentsEventually,
         groupingStrategy = groupingStrategy,
+        compactionExecutionContext = compactionExecutionContext,
         throttle = throttle
       ),
       otherLevels = List.empty
@@ -155,6 +169,7 @@ case class LevelZeroMemoryConfig(mapSize: Long,
                       compressDuplicateValues: Boolean,
                       deleteSegmentsEventually: Boolean,
                       groupingStrategy: Option[KeyValueGroupingStrategy],
+                      compactionExecutionContext: CompactionExecutionContext,
                       throttle: LevelMeter => Throttle) =
     SwayDBMemoryConfig(
       level0 = this,
@@ -165,11 +180,11 @@ case class LevelZeroMemoryConfig(mapSize: Long,
         compressDuplicateValues = compressDuplicateValues,
         deleteSegmentsEventually = deleteSegmentsEventually,
         groupingStrategy = groupingStrategy,
+        compactionExecutionContext = compactionExecutionContext,
         throttle = throttle
       ),
       otherLevels = List.empty
     )
-
 }
 
 sealed trait LevelConfig
@@ -182,6 +197,7 @@ case class MemoryLevelConfig(segmentSize: Int,
                              compressDuplicateValues: Boolean,
                              deleteSegmentsEventually: Boolean,
                              groupingStrategy: Option[KeyValueGroupingStrategy],
+                             compactionExecutionContext: CompactionExecutionContext,
                              throttle: LevelMeter => Throttle) extends LevelConfig
 
 case class PersistentLevelConfig(dir: Path,
@@ -195,13 +211,13 @@ case class PersistentLevelConfig(dir: Path,
                                  compressDuplicateValues: Boolean,
                                  deleteSegmentsEventually: Boolean,
                                  groupingStrategy: Option[KeyValueGroupingStrategy],
+                                 compactionExecutionContext: CompactionExecutionContext,
                                  throttle: LevelMeter => Throttle) extends LevelConfig
 
 sealed trait SwayDBConfig {
   val level0: LevelZeroConfig
   val level1: LevelConfig
   val otherLevels: List[LevelConfig]
-
   def persistent: Boolean
 
   def memory: Boolean = !persistent
@@ -222,6 +238,7 @@ case class SwayDBMemoryConfig(level0: LevelZeroMemoryConfig,
                          compressDuplicateValues: Boolean,
                          deleteSegmentsEventually: Boolean,
                          groupingStrategy: Option[KeyValueGroupingStrategy],
+                         compactionExecutionContext: CompactionExecutionContext,
                          throttle: LevelMeter => Throttle): SwayDBPersistentConfig =
     SwayDBPersistentConfig(
       level0 = level0,
@@ -239,6 +256,7 @@ case class SwayDBMemoryConfig(level0: LevelZeroMemoryConfig,
           compressDuplicateValues = compressDuplicateValues,
           deleteSegmentsEventually = deleteSegmentsEventually,
           groupingStrategy = groupingStrategy,
+          compactionExecutionContext = compactionExecutionContext,
           throttle = throttle
         )
     )
@@ -249,6 +267,7 @@ case class SwayDBMemoryConfig(level0: LevelZeroMemoryConfig,
                      compressDuplicateValues: Boolean,
                      deleteSegmentsEventually: Boolean,
                      groupingStrategy: Option[KeyValueGroupingStrategy],
+                     compactionExecutionContext: CompactionExecutionContext,
                      throttle: LevelMeter => Throttle): SwayDBMemoryConfig =
 
     copy(
@@ -260,6 +279,7 @@ case class SwayDBMemoryConfig(level0: LevelZeroMemoryConfig,
           compressDuplicateValues = compressDuplicateValues,
           deleteSegmentsEventually = deleteSegmentsEventually,
           groupingStrategy = groupingStrategy,
+          compactionExecutionContext = compactionExecutionContext,
           throttle = throttle
         )
     )
@@ -287,6 +307,7 @@ case class SwayDBPersistentConfig(level0: LevelZeroConfig,
                          compressDuplicateValues: Boolean,
                          deleteSegmentsEventually: Boolean,
                          groupingStrategy: Option[KeyValueGroupingStrategy],
+                         compactionExecutionContext: CompactionExecutionContext,
                          throttle: LevelMeter => Throttle): SwayDBPersistentConfig =
     copy(
       otherLevels = otherLevels :+
@@ -302,6 +323,7 @@ case class SwayDBPersistentConfig(level0: LevelZeroConfig,
           compressDuplicateValues = compressDuplicateValues,
           deleteSegmentsEventually = deleteSegmentsEventually,
           groupingStrategy = groupingStrategy,
+          compactionExecutionContext = compactionExecutionContext,
           throttle = throttle
         )
     )
@@ -312,6 +334,7 @@ case class SwayDBPersistentConfig(level0: LevelZeroConfig,
                      compressDuplicateValues: Boolean,
                      deleteSegmentsEventually: Boolean,
                      groupingStrategy: Option[KeyValueGroupingStrategy],
+                     compactionExecutionContext: CompactionExecutionContext,
                      throttle: LevelMeter => Throttle): SwayDBPersistentConfig =
 
     copy(
@@ -323,6 +346,7 @@ case class SwayDBPersistentConfig(level0: LevelZeroConfig,
           compressDuplicateValues = compressDuplicateValues,
           deleteSegmentsEventually = deleteSegmentsEventually,
           groupingStrategy = groupingStrategy,
+          compactionExecutionContext = compactionExecutionContext,
           throttle = throttle
         )
     )

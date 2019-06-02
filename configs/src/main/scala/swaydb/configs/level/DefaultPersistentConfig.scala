@@ -23,12 +23,25 @@ import java.nio.file.Path
 
 import swaydb.data.accelerate.{Accelerator, Level0Meter}
 import swaydb.data.api.grouping.KeyValueGroupingStrategy
-import swaydb.data.compaction.Throttle
+import swaydb.data.compaction.{CompactionExecutionContext, Throttle}
 import swaydb.data.config._
 
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
+import scala.concurrent.forkjoin.ForkJoinPool
 
 object DefaultPersistentConfig {
+
+  private lazy val compactionExecutionContext =
+    new ExecutionContext {
+      val threadPool = new ForkJoinPool(4)
+
+      def execute(runnable: Runnable) =
+        threadPool execute runnable
+
+      def reportFailure(exception: Throwable): Unit =
+        System.err.println("Execution context failure", exception)
+    }
 
   /**
     * Default configuration for a persistent 8 Leveled database.
@@ -53,7 +66,8 @@ object DefaultPersistentConfig {
         mapSize = mapSize,
         mmap = mmapMaps,
         recoveryMode = recoveryMode,
-        acceleration = acceleration
+        acceleration = acceleration,
+        compactionExecutionContext = CompactionExecutionContext.Create(compactionExecutionContext)
       )
       .addPersistentLevel1( //level1
         dir = dir,
@@ -67,6 +81,7 @@ object DefaultPersistentConfig {
         compressDuplicateValues = compressDuplicateValues,
         deleteSegmentsEventually = deleteSegmentsEventually,
         groupingStrategy = None,
+        compactionExecutionContext = CompactionExecutionContext.Create(compactionExecutionContext),
         throttle =
           levelMeter => {
             val delay = (10 - levelMeter.segmentsCount).seconds
@@ -86,6 +101,7 @@ object DefaultPersistentConfig {
         compressDuplicateValues = compressDuplicateValues,
         deleteSegmentsEventually = deleteSegmentsEventually,
         groupingStrategy = None,
+        compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =
           levelMeter => {
             val delay = (5 - levelMeter.segmentsCount).seconds
@@ -105,6 +121,7 @@ object DefaultPersistentConfig {
         compressDuplicateValues = compressDuplicateValues,
         deleteSegmentsEventually = deleteSegmentsEventually,
         groupingStrategy = groupingStrategy,
+        compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =
           levelMeter => {
             val delay = (5 - levelMeter.segmentsCount).seconds
@@ -123,6 +140,7 @@ object DefaultPersistentConfig {
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
         compressDuplicateValues = compressDuplicateValues,
         deleteSegmentsEventually = deleteSegmentsEventually,
+        compactionExecutionContext = CompactionExecutionContext.Create(compactionExecutionContext),
         groupingStrategy = None,
         throttle =
           levelMeter => {
@@ -142,6 +160,7 @@ object DefaultPersistentConfig {
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
         compressDuplicateValues = compressDuplicateValues,
         deleteSegmentsEventually = deleteSegmentsEventually,
+        compactionExecutionContext = CompactionExecutionContext.Shared,
         groupingStrategy = None,
         throttle =
           levelMeter => {
@@ -162,6 +181,7 @@ object DefaultPersistentConfig {
         compressDuplicateValues = compressDuplicateValues,
         deleteSegmentsEventually = deleteSegmentsEventually,
         groupingStrategy = None,
+        compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =
           levelMeter => {
             val delay = (50 - levelMeter.segmentsCount).seconds
@@ -183,6 +203,7 @@ object DefaultPersistentConfig {
         compressDuplicateValues = compressDuplicateValues,
         deleteSegmentsEventually = deleteSegmentsEventually,
         groupingStrategy = groupingStrategy,
+        compactionExecutionContext = CompactionExecutionContext.Create(compactionExecutionContext),
         throttle =
           levelMeter => {
             val delay = (10 - levelMeter.segmentsCount).seconds

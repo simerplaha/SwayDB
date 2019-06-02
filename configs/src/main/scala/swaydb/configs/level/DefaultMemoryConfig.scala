@@ -19,14 +19,28 @@
 
 package swaydb.configs.level
 
+import java.util.concurrent.Executors
+
 import swaydb.data.accelerate.{Accelerator, Level0Meter}
 import swaydb.data.api.grouping.KeyValueGroupingStrategy
-import swaydb.data.compaction.Throttle
+import swaydb.data.compaction.{CompactionExecutionContext, Throttle}
 import swaydb.data.config._
 
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 
 object DefaultMemoryConfig {
+
+  private lazy val compactionExecutionContext =
+    new ExecutionContext {
+      val threadPool = Executors.newSingleThreadExecutor()
+
+      def execute(runnable: Runnable) =
+        threadPool execute runnable
+
+      def reportFailure(exception: Throwable): Unit =
+        System.err.println("Execution context failure", exception)
+    }
 
   /**
     * Default configuration for 2 leveled Memory database.
@@ -41,7 +55,8 @@ object DefaultMemoryConfig {
     ConfigWizard
       .addMemoryLevel0(
         mapSize = mapSize,
-        acceleration = acceleration
+        acceleration = acceleration,
+        compactionExecutionContext = CompactionExecutionContext.Create(compactionExecutionContext)
       )
       .addMemoryLevel1(
         segmentSize = segmentSize,
@@ -50,6 +65,7 @@ object DefaultMemoryConfig {
         compressDuplicateValues = compressDuplicateValues,
         groupingStrategy = groupingStrategy,
         deleteSegmentsEventually = deleteSegmentsEventually,
+        compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =
           _ =>
             Throttle(5.seconds, 5)
