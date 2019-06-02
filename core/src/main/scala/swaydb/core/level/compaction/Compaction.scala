@@ -148,7 +148,7 @@ private[level] object Compaction extends LazyLogging {
   private[compaction] def pushForward(zero: LevelZero)(implicit ec: ExecutionContext): LevelCompactionState =
     zero.nextLevel map {
       nextLevel =>
-        val delay = zero.throttleZero(zero.level0Meter).fromNow
+        val delay = zero.throttle(zero.levelZeroMeter).fromNow
         if (delay.isOverdue())
           pushForward(
             zero = zero,

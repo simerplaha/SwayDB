@@ -55,7 +55,7 @@ private[swaydb] object DefaultCompactionOrdering extends CompactionOrdering {
             right: Level,
             leftState: LevelCompactionState,
             rightState: LevelCompactionState): Int =
-    if (left.level0Meter.mapsCount >= 4)
+    if (left.levelZeroMeter.mapsCount >= 4)
       1
     else
       -1

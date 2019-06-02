@@ -19,11 +19,13 @@
 
 package swaydb.core.level
 
+import java.nio.file.Path
+
 import swaydb.core.data.Memory
 import swaydb.core.map.Map
 import swaydb.core.segment.Segment
 import swaydb.data.IO
-import swaydb.data.compaction.LevelMeter
+import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.slice.Slice
 
 import scala.collection.mutable.ListBuffer
@@ -54,6 +56,10 @@ object NextLevel {
   * Levels that can have upper Levels or Levels that upper Levels can merge Segments or Maps into.
   */
 trait NextLevel extends LevelRef {
+
+  def paths: PathsDistributor
+
+  def throttle: LevelMeter => Throttle
 
   def isUnReserved(minKey: Slice[Byte], maxKey: Slice[Byte]): Boolean
 
@@ -86,4 +92,17 @@ trait NextLevel extends LevelRef {
     )
     levels
   }
+
+  def levelSize: Long
+
+  def take(count: Int): Slice[Segment]
+
+  def takeSmallSegments(size: Int): Iterable[Segment]
+
+  def takeLargeSegments(size: Int): Iterable[Segment]
+
+  def takeSegments(size: Int,
+                   condition: Segment => Boolean): Iterable[Segment]
+
+  def segmentsInLevel(): Iterable[Segment]
 }

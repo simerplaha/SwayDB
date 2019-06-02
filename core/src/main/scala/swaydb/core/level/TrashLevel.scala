@@ -77,9 +77,6 @@ private[core] object TrashLevel extends NextLevel {
   override val levelSize: Long =
     0
 
-  override val segmentCountAndLevelSize: (Int, Long) =
-    (0, 0)
-
   override val head =
     IO.none
 

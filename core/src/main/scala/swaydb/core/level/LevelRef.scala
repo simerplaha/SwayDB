@@ -140,24 +140,15 @@ private[core] trait LevelRef {
 
   def inMemory: Boolean
 
-  def paths: PathsDistributor
-
-  def throttle: LevelMeter => Throttle
-
   def releaseLocks: IO[Unit]
 
   def nextLevel: Option[NextLevel]
-
-  def segmentsInLevel(): Iterable[Segment]
 
   def hasNextLevel: Boolean
 
   def appendixPath: Path
 
   def rootPath: Path
-
-  def takeSegments(size: Int,
-                   condition: Segment => Boolean): Iterable[Segment]
 
   def head: IO.Async[Option[KeyValue.ReadOnly.Put]]
 
@@ -186,8 +177,6 @@ private[core] trait LevelRef {
   def segmentsCount(): Int
 
   def segmentFilesOnDisk: Seq[Path]
-
-  def take(count: Int): Slice[Segment]
 
   def foreachSegment[T](f: (Slice[Byte], Segment) => T)
 
@@ -223,17 +212,9 @@ private[core] trait LevelRef {
 
   def getSegment(minKey: Slice[Byte]): Option[Segment]
 
-  def takeSmallSegments(size: Int): Iterable[Segment]
-
-  def takeLargeSegments(size: Int): Iterable[Segment]
-
   def existsOnDisk: Boolean
 
-  def levelSize: Long
-
   def sizeOfSegments: Long
-
-  def segmentCountAndLevelSize: (Int, Long)
 
   def close: IO[Unit]
 

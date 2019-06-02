@@ -347,10 +347,10 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero)(implicit tag: Tag
     tag.fromIO(zero.valueSize(key).safeGetBlocking)
 
   def level0Meter: LevelZeroMeter =
-    zero.level0Meter
+    zero.levelZeroMeter
 
   def levelMeter(levelNumber: Int): Option[LevelMeter] =
-    zero.levelMeter(levelNumber)
+    zero.meterFor(levelNumber)
 
   def close(): T[Unit] =
     tag.fromIO(zero.close)

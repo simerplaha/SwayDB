@@ -121,7 +121,7 @@ private[core] object LevelZero extends LazyLogging {
           inMemory = storage.memory,
           dedicatedLevelZeroCompaction = true,
           executionContexts = executionContexts,
-          throttleZero = throttle,
+          throttle = throttle,
           lock = lock
         ).startCompaction(true)
     }
@@ -136,7 +136,7 @@ private[core] case class LevelZero(path: Path,
                                    inMemory: Boolean,
                                    dedicatedLevelZeroCompaction: Boolean,
                                    executionContexts: List[CompactionExecutionContext],
-                                   throttleZero: LevelZeroMeter => FiniteDuration,
+                                   throttle: LevelZeroMeter => FiniteDuration,
                                    private val lock: Option[FileLock])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                        timeOrder: TimeOrder[Slice[Byte]],
                                                                        functionStore: FunctionStore,
@@ -151,16 +151,6 @@ private[core] case class LevelZero(path: Path,
   //FIX ME - storing locally temporarily to be used for termination.
   private var compactor =
     Option.empty[WiredActor[CompactionStrategy[CompactorState], CompactorState]]
-
-  //LevelZero can also implement PathsDistributor to spread the Maps over to multiple paths.
-  override def paths: PathsDistributor =
-    nextLevel.map(_.paths) getOrElse PathsDistributor.empty
-
-  //Currently not used for Level0.
-  override def throttle: LevelMeter => Throttle =
-    nextLevel.map(_.throttle) getOrElse {
-      _: LevelMeter => Throttle(0.second, 0)
-    }
 
   def startCompaction(copyForwardAllOnStart: Boolean): IO[LevelZero] =
     if (!throttleOn || nextLevel.isEmpty)
@@ -687,20 +677,14 @@ private[core] case class LevelZero(path: Path,
   def closeSegments: IO[Unit] =
     nextLevel.map(_.closeSegments()) getOrElse IO.unit
 
-  def level0Meter: LevelZeroMeter =
+  def levelZeroMeter: LevelZeroMeter =
     maps.meter
-
-  def levelMeter(levelNumber: Int): Option[LevelMeter] =
-    nextLevel.flatMap(_.meterFor(levelNumber))
 
   def mightContain(key: Slice[Byte]): IO[Boolean] =
     if (maps.contains(key))
       IO.`true`
     else
       nextLevel.map(_.mightContain(key)) getOrElse IO.`true`
-
-  override def segmentsInLevel(): Iterable[Segment] =
-    nextLevel.map(_.segmentsInLevel()) getOrElse Iterable.empty
 
   override def hasNextLevel: Boolean =
     nextLevel.isDefined
@@ -713,9 +697,6 @@ private[core] case class LevelZero(path: Path,
   override def rootPath: Path =
     path
 
-  override def takeSegments(size: Int, condition: Segment => Boolean): Iterable[Segment] =
-    nextLevel.map(_.takeSegments(size, condition)) getOrElse Iterable.empty
-
   override def isEmpty: Boolean =
     maps.isEmpty
 
@@ -725,9 +706,6 @@ private[core] case class LevelZero(path: Path,
   override def segmentFilesOnDisk: Seq[Path] =
     nextLevel.map(_.segmentFilesOnDisk) getOrElse Seq.empty
 
-  override def take(count: Int): Slice[Segment] =
-    nextLevel.map(_.take(count)) getOrElse Slice.empty
-
   override def foreachSegment[T](f: (Slice[Byte], Segment) => T): Unit =
     nextLevel.foreach(_.foreachSegment(f))
 
@@ -736,18 +714,6 @@ private[core] case class LevelZero(path: Path,
 
   override def getSegment(minKey: Slice[Byte]): Option[Segment] =
     nextLevel.flatMap(_.getSegment(minKey))
-
-  override def takeSmallSegments(size: Int): Iterable[Segment] =
-    nextLevel.map(_.takeSmallSegments(size)) getOrElse List.empty
-
-  override def takeLargeSegments(size: Int): Iterable[Segment] =
-    nextLevel.map(_.takeLargeSegments(size)) getOrElse List.empty
-
-  override def levelSize: Long =
-    nextLevel.map(_.levelSize) getOrElse 0
-
-  override def segmentCountAndLevelSize: (Int, Long) =
-    nextLevel.map(_.segmentCountAndLevelSize) getOrElse ((0, 0))
 
   override def meterFor(levelNumber: Int): Option[LevelMeter] =
     nextLevel.flatMap(_.meterFor(levelNumber))

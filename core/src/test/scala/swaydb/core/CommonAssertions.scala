@@ -22,7 +22,9 @@ package swaydb.core
 import bloomfilter.mutable.BloomFilter
 import java.nio.file.Paths
 import java.util.concurrent.ConcurrentSkipListMap
+
 import org.scalatest.exceptions.TestFailedException
+
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 import scala.concurrent.duration._
@@ -40,7 +42,7 @@ import swaydb.core.group.compression.data.{GroupGroupingStrategyInternal, KeyVal
 import swaydb.core.io.file.IOEffect
 import swaydb.core.io.reader.Reader
 import swaydb.core.level.zero.{LevelZero, LevelZeroSkipListMerger}
-import swaydb.core.level.{Level, LevelRef}
+import swaydb.core.level.{Level, LevelRef, NextLevel}
 import swaydb.core.map.MapEntry
 import swaydb.core.map.serializer.{MapEntryWriter, RangeValueSerializer, ValueSerializer}
 import swaydb.core.merge._
@@ -872,21 +874,21 @@ object CommonAssertions {
     }
 
   @tailrec
-  def dump(levelRef: LevelRef): Unit =
-    levelRef.nextLevel match {
+  def dump(level: NextLevel): Unit =
+    level.nextLevel match {
       case Some(nextLevel) =>
         val data =
-          Seq(s"\nLevel: ${levelRef.paths}\n") ++
-            dump(levelRef.segmentsInLevel())
-        IOEffect.write(Slice.writeString(data.mkString("\n")), Paths.get(s"/Users/simerplaha/IdeaProjects/SwayDB/core/target/dump_Level_${levelRef.levelNumber}.txt")).get
+          Seq(s"\nLevel: ${level.rootPath}\n") ++
+            dump(level.segmentsInLevel())
+        IOEffect.write(Slice.writeString(data.mkString("\n")), Paths.get(s"/Users/simerplaha/IdeaProjects/SwayDB/core/target/dump_Level_${level.levelNumber}.txt")).get
 
         dump(nextLevel)
 
       case None =>
         val data =
-          Seq(s"\nLevel: ${levelRef.paths}\n") ++
-            dump(levelRef.segmentsInLevel())
-        IOEffect.write(Slice.writeString(data.mkString("\n")), Paths.get(s"/Users/simerplaha/IdeaProjects/SwayDB/core/target/dump_Level_${levelRef.levelNumber}.txt")).get
+          Seq(s"\nLevel: ${level.rootPath}\n") ++
+            dump(level.segmentsInLevel())
+        IOEffect.write(Slice.writeString(data.mkString("\n")), Paths.get(s"/Users/simerplaha/IdeaProjects/SwayDB/core/target/dump_Level_${level.levelNumber}.txt")).get
     }
 
   def assertGet(keyValues: Iterable[KeyValue],
