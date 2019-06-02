@@ -39,8 +39,8 @@ import scala.concurrent.ExecutionContext
   */
 object Compactor extends CompactionStrategy[CompactorState] {
 
-  def apply(levels: List[LevelRef],
-            executionContexts: List[CompactionExecutionContext])(implicit ordering: CompactionOrdering): IO[WiredActor[CompactionStrategy[CompactorState], CompactorState]] =
+  def createActor(levels: List[LevelRef],
+                  executionContexts: List[CompactionExecutionContext])(implicit ordering: CompactionOrdering): IO[WiredActor[CompactionStrategy[CompactorState], CompactorState]] =
   //split levels into groups such that each group of Levels have dedicated ExecutionContext.
   //if dedicatedLevelZeroCompaction is set to true set the first ExecutionContext for LevelZero.
     if (levels.size != executionContexts.size)
@@ -71,7 +71,6 @@ object Compactor extends CompactionStrategy[CompactorState] {
         .map {
           jobs =>
             jobs
-              .reverse
               .foldRight(Option.empty[WiredActor[CompactionStrategy[CompactorState], CompactorState]]) {
                 case ((jobs, executionContext), child) =>
                   val statesMap = mutable.Map.empty[LevelRef, LevelCompactionState]
@@ -85,13 +84,12 @@ object Compactor extends CompactionStrategy[CompactorState] {
                       ordering = levelOrdering
                     )
 
-                  val actor =
+                  Some(
                     WiredActor[CompactionStrategy[CompactorState], CompactorState](
                       impl = Compactor,
                       state = compaction
                     )(executionContext)
-
-                  Some(actor)
+                  )
               } head
         }
 
@@ -153,14 +151,10 @@ object Compactor extends CompactionStrategy[CompactorState] {
       .child
       .foreach {
         child =>
-          child send {
-            (impl, state, self) =>
-              impl.wakeUp(
-                state = state,
-                forwardCopyOnAllLevels = false,
-                self = self
-              )
-          }
+          sendWakeUp(
+            forwardCopyOnAllLevels = false,
+            compactor = child
+          )
       }
 
   def postCompaction[T](state: CompactorState,
@@ -198,7 +192,7 @@ object Compactor extends CompactionStrategy[CompactorState] {
 
     //terminate all child compactions.
     compactor
-      .unsafeGetState
+      .unsafeGetState //do unsafeGet to also terminate currently in progress compactions jobs.
       .child
       .foreach(terminateActor)
   }
@@ -208,7 +202,7 @@ object Compactor extends CompactionStrategy[CompactorState] {
                      copyForwardAllOnStart: Boolean)(implicit compactionOrdering: CompactionOrdering): IO[WiredActor[CompactionStrategy[CompactorState], CompactorState]] =
     zero.nextLevel.toList mapIO {
       nextLevel =>
-        Compactor(
+        Compactor.createActor(
           levels = zero +: LevelRef.getLevels(nextLevel).filterNot(_.isTrash),
           executionContexts = executionContexts
         )

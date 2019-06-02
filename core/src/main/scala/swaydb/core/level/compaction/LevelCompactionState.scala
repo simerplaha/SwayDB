@@ -19,6 +19,7 @@
 
 package swaydb.core.level.compaction
 
+import swaydb.core.util.FiniteDurationUtil._
 
 import swaydb.data.IO
 
@@ -29,7 +30,7 @@ private[level] sealed trait LevelCompactionState {
 }
 private[level] object LevelCompactionState {
   val longSleepDuration = 1.hour
-  val failureSleepDuration =  5.second.fromNow
+  val failureSleepDuration = 5.second.fromNow
   def longSleepDeadline = longSleepDuration.fromNow
 
   case class AwaitingPull(later: IO.Later[_],
@@ -37,8 +38,20 @@ private[level] object LevelCompactionState {
                           previousStateID: Long) extends LevelCompactionState {
     @volatile var isReady: Boolean = false
     @volatile var listenerInitialised: Boolean = false
+
+    override def toString: String =
+      this.getClass.getSimpleName +
+        s" later: ${later.getClass.getSimpleName}" +
+        s" timeout in: ${timeout.timeLeft.asString}" +
+        s" previousStateID: $previousStateID"
   }
-  case class Sleep(sleepDeadline: Deadline, previousStateID: Long) extends LevelCompactionState
+
+  case class Sleep(sleepDeadline: Deadline, previousStateID: Long) extends LevelCompactionState {
+    override def toString: String =
+      this.getClass.getSimpleName +
+        s" sleepDeadline: ${sleepDeadline.timeLeft.asString}" +
+        s" previousStateID: $previousStateID"
+  }
 
   def longSleep(stateID: Long) = Sleep(longSleepDuration.fromNow, stateID)
 }

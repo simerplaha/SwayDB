@@ -160,7 +160,7 @@ private[core] case class LevelZero(path: Path,
     }
 
   def startCompaction(copyForwardAllOnStart: Boolean): IO[LevelZero] =
-    if (nextLevel.isEmpty)
+    if (!throttleOn || nextLevel.isEmpty)
       IO.Success(this)
     else
       compactionStrategy.createAndStart(

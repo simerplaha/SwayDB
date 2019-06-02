@@ -164,7 +164,7 @@ private[core] object CoreInitializer extends LazyLogging {
                 storage = config.level0.storage,
                 nextLevel = Some(level1),
                 throttleOn = true,
-                executionContexts = executionContexts(levelConfigs),
+                executionContexts = executionContexts(config.otherLevels),
                 acceleration = config.level0.acceleration
               ) map {
                 zero =>
