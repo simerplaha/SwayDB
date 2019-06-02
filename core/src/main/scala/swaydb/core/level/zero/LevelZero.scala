@@ -123,7 +123,7 @@ private[core] object LevelZero extends LazyLogging {
           executionContexts = executionContexts,
           throttle = throttle,
           lock = lock
-        ).startCompaction(true)
+        ).startCompaction(copyForwardAllOnStart = true)
     }
   }
 }
@@ -151,6 +151,9 @@ private[core] case class LevelZero(path: Path,
   //FIX ME - storing locally temporarily to be used for termination.
   private var compactor =
     Option.empty[WiredActor[CompactionStrategy[CompactorState], CompactorState]]
+
+  val levelZeroMeter: LevelZeroMeter =
+    maps.meter
 
   def startCompaction(copyForwardAllOnStart: Boolean): IO[LevelZero] =
     if (!throttleOn || nextLevel.isEmpty)
@@ -676,9 +679,6 @@ private[core] case class LevelZero(path: Path,
 
   def closeSegments: IO[Unit] =
     nextLevel.map(_.closeSegments()) getOrElse IO.unit
-
-  def levelZeroMeter: LevelZeroMeter =
-    maps.meter
 
   def mightContain(key: Slice[Byte]): IO[Boolean] =
     if (maps.contains(key))

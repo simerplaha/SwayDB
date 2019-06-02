@@ -203,10 +203,18 @@ private[core] object Maps extends LazyLogging {
                   //apply corruption handling based on the value set for RecoveryMode.
                   recoveredMap.result match {
                     case IO.Success(_) => //Recovery was successful. Recover next map.
-                      doRecovery(otherMapsPaths, recoveredMaps)
+                      doRecovery(
+                        maps = otherMapsPaths,
+                        recoveredMaps = recoveredMaps
+                      )
 
                     case IO.Failure(error) =>
-                      applyRecoveryMode(error.exception, mapPath, otherMapsPaths, recoveredMaps)
+                      applyRecoveryMode(
+                        exception = error.exception,
+                        mapPath = mapPath,
+                        otherMapsPaths = otherMapsPaths,
+                        recoveredMaps = recoveredMaps
+                      )
                   }
 
                 case IO.Failure(error) => //failed to close the file.
@@ -215,7 +223,12 @@ private[core] object Maps extends LazyLogging {
 
             case IO.Failure(error) =>
               //if there was a full failure perform failure handling based on the value set for RecoveryMode.
-              applyRecoveryMode(error.exception, mapPath, otherMapsPaths, recoveredMaps)
+              applyRecoveryMode(
+                exception = error.exception,
+                mapPath = mapPath,
+                otherMapsPaths = otherMapsPaths,
+                recoveredMaps = recoveredMaps
+              )
           }
       }
 
@@ -270,13 +283,13 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
   // This is crucial for write performance use null instead of Option.
   private var brakePedal: BrakePedal = _
 
-  @volatile var totalMapsCount: Int = maps.size() + 1
-  @volatile var mapsCount: Int = maps.size() + 1
+  @volatile private var totalMapsCount: Int = maps.size() + 1
+  @volatile private var mapsCount: Int = maps.size() + 1
 
   def setOnFullListener(event: () => Unit) =
     onFullListener = event
 
-  def meter =
+  val meter =
     new LevelZeroMeter {
       override def defaultMapSize: Long = fileSize
       override def currentMapSize: Long = currentMap.fileSize
