@@ -41,16 +41,16 @@ private[level] object LevelCompactionState {
 
     override def toString: String =
       this.getClass.getSimpleName +
-        s" later: ${later.getClass.getSimpleName}" +
-        s" timeout in: ${timeout.timeLeft.asString}" +
-        s" previousStateID: $previousStateID"
+        s" - later: ${later.getClass.getSimpleName}, " +
+        s"timeout: ${timeout.timeLeft.asString}, " +
+        s"previousStateID: $previousStateID"
   }
 
   case class Sleep(sleepDeadline: Deadline, previousStateID: Long) extends LevelCompactionState {
     override def toString: String =
       this.getClass.getSimpleName +
-        s" sleepDeadline: ${sleepDeadline.timeLeft.asString}" +
-        s" previousStateID: $previousStateID"
+        s" - sleepDeadline: ${sleepDeadline.timeLeft.asString}, " +
+        s"previousStateID: $previousStateID"
   }
 
   def longSleep(stateID: Long) = Sleep(longSleepDuration.fromNow, stateID)
