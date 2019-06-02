@@ -148,10 +148,17 @@ private[level] object Compaction extends LazyLogging {
   private[compaction] def pushForward(zero: LevelZero)(implicit ec: ExecutionContext): LevelCompactionState =
     zero.nextLevel map {
       nextLevel =>
-        pushForward(
-          zero,
-          nextLevel
-        )
+        val delay = zero.throttleZero(zero.level0Meter).fromNow
+        if (delay.isOverdue())
+          pushForward(
+            zero = zero,
+            nextLevel = nextLevel
+          )
+        else
+          LevelCompactionState.Sleep(
+            sleepDeadline = delay,
+            previousStateID = zero.stateID
+          )
     } getOrElse LevelCompactionState.longSleep(zero.stateID)
 
   private[compaction] def pushForward(zero: LevelZero,

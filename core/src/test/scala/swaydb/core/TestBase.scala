@@ -322,6 +322,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
     def apply(nextLevel: Option[Level],
               mapSize: Long = mapSize,
               brake: LevelZeroMeter => Accelerator = Accelerator.brake(),
+              throttle: LevelZeroMeter => FiniteDuration = _ => Duration.Zero,
               throttleOn: Boolean = true)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                           keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
                                           timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
@@ -331,6 +332,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
         storage = level0Storage,
         nextLevel = nextLevel,
         throttleOn = throttleOn,
+        throttle = throttle,
         executionContexts =
           //start off with one ExecutionContext initialised for LevelZero.
           CompactionExecutionContext.Create(TestExecutionContext.executionContext) +:

@@ -26,6 +26,7 @@ import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.config._
 
 import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.Duration
 
 object DefaultMemoryZeroConfig {
 
@@ -49,6 +50,7 @@ object DefaultMemoryZeroConfig {
       .addMemoryLevel0(
         mapSize = mapSize,
         acceleration = acceleration,
+        throttle = _ => Duration.Zero,
         compactionExecutionContext = CompactionExecutionContext.Create(compactionExecutionContext)
       )
 }

@@ -27,6 +27,7 @@ import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.config._
 
 import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.Duration
 
 object DefaultPersistentZeroConfig {
 
@@ -57,6 +58,7 @@ object DefaultPersistentZeroConfig {
         mmap = mmapMaps,
         recoveryMode = recoveryMode,
         acceleration = acceleration,
+        throttle = _ => Duration.Zero,
         compactionExecutionContext = CompactionExecutionContext.Create(compactionExecutionContext)
       )
 }

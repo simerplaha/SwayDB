@@ -65,6 +65,7 @@ object DefaultEventuallyPersistentConfig {
       .addMemoryLevel0(
         mapSize = mapSize,
         acceleration = acceleration,
+        throttle = _ => Duration.Zero,
         compactionExecutionContext = CompactionExecutionContext.Create(compactionExecutionContext)
       )
       .addMemoryLevel1(

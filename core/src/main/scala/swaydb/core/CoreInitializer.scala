@@ -72,6 +72,7 @@ private[core] object CoreInitializer extends LazyLogging {
       nextLevel = None,
       throttleOn = false,
       executionContexts = List(config.compactionExecutionContext),
+      throttle = config.throttle,
       acceleration = config.acceleration
     ) map {
       zero =>
@@ -163,6 +164,7 @@ private[core] object CoreInitializer extends LazyLogging {
                 mapSize = config.level0.mapSize,
                 storage = config.level0.storage,
                 nextLevel = Some(level1),
+                throttle = config.level0.throttle,
                 throttleOn = true,
                 executionContexts = executionContexts(config.otherLevels),
                 acceleration = config.level0.acceleration

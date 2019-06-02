@@ -67,6 +67,7 @@ object DefaultPersistentConfig {
         mmap = mmapMaps,
         recoveryMode = recoveryMode,
         acceleration = acceleration,
+        throttle = _ => Duration.Zero,
         compactionExecutionContext = CompactionExecutionContext.Create(compactionExecutionContext)
       )
       .addPersistentLevel1( //level1
