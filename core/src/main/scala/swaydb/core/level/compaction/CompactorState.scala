@@ -42,12 +42,6 @@ private[core] case class CompactorState(levels: Slice[LevelRef],
   val hasLevelZero: Boolean = levels.exists(_.isZero)
   val levelsReversed = Slice(levels.reverse.toArray)
 
-  def isLevelStateChanged() =
-    levels exists {
-      level =>
-        compactionStates.get(level) forall (_.previousStateID != level.stateID)
-    }
-
   def terminateCompaction() =
     terminate = true
 }
