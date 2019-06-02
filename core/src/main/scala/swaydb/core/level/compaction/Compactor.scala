@@ -2,6 +2,7 @@ package swaydb.core.level.compaction
 
 import swaydb.core.actor.WiredActor
 import swaydb.core.level.LevelRef
+import swaydb.core.level.zero.LevelZero
 import swaydb.core.util.FiniteDurationUtil
 import swaydb.data.IO
 import swaydb.data.IO._
@@ -15,7 +16,7 @@ import scala.concurrent.ExecutionContext
 /**
   * Compactor = Compaction-Actor.
   */
-object Compactor {
+object Compactor extends CompactionStrategy[CompactorState] {
 
   def apply(levels: List[LevelRef],
             executionContexts: List[CompactionExecutionContext])(implicit ordering: CompactionOrdering,
@@ -70,9 +71,6 @@ object Compactor {
                 Some(actor)
             } head
       }
-}
-
-class Compactor extends CompactionStrategy[CompactorState] {
 
   private def scheduleNextWakeUp(state: CompactorState,
                                  self: WiredActor[CompactionStrategy[CompactorState], CompactorState]): Unit =
@@ -155,6 +153,52 @@ class Compactor extends CompactionStrategy[CompactorState] {
       state = state
     )
   }
+
+  def terminateThis(compactor: WiredActor[CompactionStrategy[CompactorState], CompactorState]): Unit = {
+    compactor.terminate() //terminate actor
+    compactor.unsafeGetState.terminateCompaction() //terminate currently processed compactions.
+  }
+
+  def sendWakeUp(forwardCopyOnAllLevels: Boolean,
+                 compactor: WiredActor[CompactionStrategy[CompactorState], CompactorState]): Unit =
+    compactor send {
+      (impl, state, self) =>
+        impl.wakeUp(
+          state = state,
+          forwardCopyOnAllLevels = forwardCopyOnAllLevels,
+          self = self
+        )
+    }
+
+  def terminate(compactor: WiredActor[CompactionStrategy[CompactorState], CompactorState]): Unit = {
+    terminateThis(compactor) //terminate root compaction
+
+    //terminate all child compactions.
+    compactor
+      .unsafeGetState
+      .child
+      .foreach(terminateThis)
+  }
+
+  def createAndStart(zero: LevelZero,
+                     executionContexts: List[CompactionExecutionContext],
+                     copyForwardAllOnStart: Boolean)(implicit compactionStrategy: CompactionStrategy[CompactorState],
+                                                     compactionOrdering: CompactionOrdering): IO[WiredActor[CompactionStrategy[CompactorState], CompactorState]] =
+    zero.nextLevel.toList mapIO {
+      nextLevel =>
+        Compactor(
+          levels = zero +: LevelRef.getLevels(nextLevel).filterNot(_.isTrash),
+          executionContexts = executionContexts
+        )
+    } flatMap {
+      compactorOption =>
+        compactorOption.headOption map {
+          actor =>
+            zero.maps setOnFullListener (() => sendWakeUp(forwardCopyOnAllLevels = false, actor))
+            sendWakeUp(forwardCopyOnAllLevels = true, actor)
+            IO.Success(actor)
+        } getOrElse IO.Failure(new Exception("Compaction not started."))
+    }
 
   override def wakeUp(state: CompactorState,
                       forwardCopyOnAllLevels: Boolean,
