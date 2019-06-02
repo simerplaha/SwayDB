@@ -19,8 +19,7 @@ import scala.concurrent.ExecutionContext
 object Compactor extends CompactionStrategy[CompactorState] {
 
   def apply(levels: List[LevelRef],
-            executionContexts: List[CompactionExecutionContext])(implicit ordering: CompactionOrdering,
-                                                                 compactionStrategy: CompactionStrategy[CompactorState]): IO[WiredActor[CompactionStrategy[CompactorState], CompactorState]] =
+            executionContexts: List[CompactionExecutionContext])(implicit ordering: CompactionOrdering): IO[WiredActor[CompactionStrategy[CompactorState], CompactorState]] =
   //split levels into groups such that each group of Levels have dedicated ExecutionContext.
   //if dedicatedLevelZeroCompaction is set to true set the first ExecutionContext for LevelZero.
     levels
@@ -64,7 +63,7 @@ object Compactor extends CompactionStrategy[CompactorState] {
 
                 val actor =
                   WiredActor[CompactionStrategy[CompactorState], CompactorState](
-                    impl = compactionStrategy,
+                    impl = Compactor,
                     state = compaction
                   )(executionContext)
 
@@ -182,8 +181,7 @@ object Compactor extends CompactionStrategy[CompactorState] {
 
   def createAndStart(zero: LevelZero,
                      executionContexts: List[CompactionExecutionContext],
-                     copyForwardAllOnStart: Boolean)(implicit compactionStrategy: CompactionStrategy[CompactorState],
-                                                     compactionOrdering: CompactionOrdering): IO[WiredActor[CompactionStrategy[CompactorState], CompactorState]] =
+                     copyForwardAllOnStart: Boolean)(implicit compactionOrdering: CompactionOrdering): IO[WiredActor[CompactionStrategy[CompactorState], CompactorState]] =
     zero.nextLevel.toList mapIO {
       nextLevel =>
         Compactor(
