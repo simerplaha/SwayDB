@@ -32,6 +32,11 @@ import swaydb.data.IO
 
 class BufferCleanerSpec extends TestBase {
 
+  override def beforeAll(): Unit = {
+    BufferCleaner.initialiseCleaner
+    super.beforeAll()
+  }
+
   "clear a MMAP file" in {
     implicit val limiter: FileLimiter = FileLimiter(0, 1.second)
     val file: DBFile = DBFile.mmapWriteAndRead(randomBytesSlice(), randomDir, autoClose = true).get

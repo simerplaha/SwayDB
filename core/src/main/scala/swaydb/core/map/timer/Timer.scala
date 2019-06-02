@@ -47,7 +47,6 @@ private[core] object Timer {
                  flushCheckpointSize: Long)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                             timeOrder: TimeOrder[Slice[Byte]],
                                             functionStore: FunctionStore,
-                                            ec: ExecutionContext,
                                             writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]],
                                             reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]]): IO[PersistentTimer] =
     PersistentTimer(

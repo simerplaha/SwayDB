@@ -25,7 +25,6 @@ import java.util.concurrent.ConcurrentSkipListMap
 import java.util.function.BiConsumer
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
-import scala.concurrent.ExecutionContext
 import scala.reflect.ClassTag
 import swaydb.core.function.FunctionStore
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
@@ -46,7 +45,6 @@ private[core] object Map extends LazyLogging {
                                                                     timeOrder: TimeOrder[Slice[Byte]],
                                                                     functionStore: FunctionStore,
                                                                     limiter: FileLimiter,
-                                                                    ec: ExecutionContext,
                                                                     writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                     reader: MapEntryReader[MapEntry[K, V]],
                                                                     skipListMerge: SkipListMerger[K, V]): IO[RecoveryResult[PersistentMap[K, V]]] =
@@ -67,7 +65,6 @@ private[core] object Map extends LazyLogging {
                                                  timeOrder: TimeOrder[Slice[Byte]],
                                                  functionStore: FunctionStore,
                                                  limiter: FileLimiter,
-                                                 ec: ExecutionContext,
                                                  reader: MapEntryReader[MapEntry[K, V]],
                                                  writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                  skipListMerger: SkipListMerger[K, V]): IO[PersistentMap[K, V]] =

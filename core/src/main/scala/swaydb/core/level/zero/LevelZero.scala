@@ -50,7 +50,6 @@ import swaydb.data.util.StorageUnits._
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 import scala.concurrent.duration.{Deadline, _}
-import scala.concurrent.{ExecutionContext, Future}
 
 private[core] object LevelZero extends LazyLogging {
 
@@ -61,8 +60,7 @@ private[core] object LevelZero extends LazyLogging {
             throttleOn: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                  timeOrder: TimeOrder[Slice[Byte]],
                                  limiter: FileLimiter,
-                                 functionStore: FunctionStore,
-                                 ec: ExecutionContext): IO[LevelZero] = {
+                                 functionStore: FunctionStore): IO[LevelZero] = {
     import swaydb.core.map.serializer.LevelZeroMapEntryReader.Level0Reader
     import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
     implicit val timerReader = TimerMapEntryReader.TimerPutMapEntryReader
@@ -136,7 +134,6 @@ private[core] case class LevelZero(path: Path,
                                    private val lock: Option[FileLock])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                        timeOrder: TimeOrder[Slice[Byte]],
                                                                        functionStore: FunctionStore,
-                                                                       ec: ExecutionContext,
                                                                        compactionStrategy: CompactionStrategy[CompactorState],
                                                                        compactionOrdering: CompactionOrdering) extends LevelRef with LazyLogging {
 
@@ -152,7 +149,7 @@ private[core] case class LevelZero(path: Path,
           zero = this,
           levels = LevelRef.getLevels(nextLevel).filterNot(_.isTrash),
           dedicatedLevelZeroCompaction = dedicatedLevelZeroCompaction,
-          executionContexts = List.fill(2)(ec)
+          executionContexts = List.fill(2)(???)
         )
     }
 

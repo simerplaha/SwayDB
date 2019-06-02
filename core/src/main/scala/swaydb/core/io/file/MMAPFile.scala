@@ -33,14 +33,14 @@ import swaydb.data.slice.Slice._
 
 private[file] object MMAPFile {
 
-  def read(path: Path)(implicit ec: ExecutionContext): IO[MMAPFile] =
+  def read(path: Path): IO[MMAPFile] =
     IO(FileChannel.open(path, StandardOpenOption.READ)) flatMap {
       channel =>
         MMAPFile(path, channel, MapMode.READ_ONLY, channel.size())
     }
 
   def write(path: Path,
-            bufferSize: Long)(implicit ec: ExecutionContext): IO[MMAPFile] =
+            bufferSize: Long): IO[MMAPFile] =
     IO(FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)) flatMap {
       channel =>
         MMAPFile(path, channel, MapMode.READ_WRITE, bufferSize)
@@ -49,7 +49,7 @@ private[file] object MMAPFile {
   private def apply(path: Path,
                     channel: FileChannel,
                     mode: MapMode,
-                    bufferSize: Long)(implicit ec: ExecutionContext): IO[MMAPFile] =
+                    bufferSize: Long): IO[MMAPFile] =
     IO {
       val buff = channel.map(mode, 0, bufferSize)
       new MMAPFile(path, channel, mode, bufferSize, buff)
@@ -60,7 +60,7 @@ private[file] class MMAPFile(val path: Path,
                              channel: FileChannel,
                              mode: MapMode,
                              bufferSize: Long,
-                             @volatile private var buffer: MappedByteBuffer)(implicit ec: ExecutionContext) extends LazyLogging with DBFileType {
+                             @volatile private var buffer: MappedByteBuffer) extends LazyLogging with DBFileType {
 
   private val open = new AtomicBoolean(true)
 

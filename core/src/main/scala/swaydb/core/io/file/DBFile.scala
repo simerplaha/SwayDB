@@ -19,16 +19,17 @@
 
 package swaydb.core.io.file
 
-import com.typesafe.scalalogging.LazyLogging
 import java.nio.file.Path
-import scala.annotation.tailrec
-import scala.concurrent.ExecutionContext
-import scala.util.hashing.MurmurHash3
+
+import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.queue.{FileLimiter, FileLimiterItem}
 import swaydb.core.segment.SegmentException
 import swaydb.core.segment.SegmentException.CannotCopyInMemoryFiles
-import swaydb.data.{Reserve, IO}
 import swaydb.data.slice.Slice
+import swaydb.data.{IO, Reserve}
+
+import scala.annotation.tailrec
+import scala.util.hashing.MurmurHash3
 
 object DBFile {
 
@@ -36,15 +37,13 @@ object DBFile {
             path: Path): IO[Path] =
     IOEffect.write(bytes, path)
 
-  def channelWrite(path: Path, autoClose: Boolean)(implicit ec: ExecutionContext,
-                                                   limiter: FileLimiter): IO[DBFile] =
+  def channelWrite(path: Path, autoClose: Boolean)(implicit limiter: FileLimiter): IO[DBFile] =
     ChannelFile.write(path) map {
       file =>
         new DBFile(path = path, memoryMapped = false, memory = false, autoClose = autoClose, file = Some(file))
     }
 
-  def channelRead(path: Path, autoClose: Boolean, checkExists: Boolean = true)(implicit ec: ExecutionContext,
-                                                                               limiter: FileLimiter): IO[DBFile] =
+  def channelRead(path: Path, autoClose: Boolean, checkExists: Boolean = true)(implicit limiter: FileLimiter): IO[DBFile] =
     if (checkExists && IOEffect.notExists(path))
       IO.Failure(IO.Error.NoSuchFile(path))
     else
@@ -52,8 +51,7 @@ object DBFile {
 
   def mmapWriteAndRead(bytes: Slice[Byte],
                        path: Path,
-                       autoClose: Boolean)(implicit ec: ExecutionContext,
-                                           limiter: FileLimiter): IO[DBFile] =
+                       autoClose: Boolean)(implicit limiter: FileLimiter): IO[DBFile] =
   //do not write bytes if the Slice has empty bytes.
     if (!bytes.isFull)
       IO.Failure(IO.Error.Fatal(SegmentException.FailedToWriteAllBytes(0, bytes.written, bytes.size)))
@@ -66,8 +64,7 @@ object DBFile {
           }
       }
 
-  def mmapRead(path: Path, autoClose: Boolean, checkExists: Boolean = true)(implicit ec: ExecutionContext,
-                                                                            limiter: FileLimiter): IO[DBFile] =
+  def mmapRead(path: Path, autoClose: Boolean, checkExists: Boolean = true)(implicit limiter: FileLimiter): IO[DBFile] =
     if (checkExists && IOEffect.notExists(path))
       IO.Failure(IO.Error.NoSuchFile(path))
     else
@@ -75,8 +72,7 @@ object DBFile {
 
   def mmapInit(path: Path,
                bufferSize: Long,
-               autoClose: Boolean)(implicit ec: ExecutionContext,
-                                   limiter: FileLimiter): IO[DBFile] =
+               autoClose: Boolean)(implicit limiter: FileLimiter): IO[DBFile] =
     MMAPFile.write(path, bufferSize) map {
       file =>
         new DBFile(path = path, memoryMapped = true, memory = false, autoClose = autoClose, file = Some(file))
@@ -84,8 +80,7 @@ object DBFile {
 
   def memory(path: Path,
              bytes: Slice[Byte],
-             autoClose: Boolean)(implicit ec: ExecutionContext,
-                                 limiter: FileLimiter): IO[DBFile] =
+             autoClose: Boolean)(implicit limiter: FileLimiter): IO[DBFile] =
     IO {
       new DBFile(path = path, memoryMapped = false, memory = true, autoClose = autoClose, file = Some(MemoryFile(path, bytes)))
     }
@@ -99,8 +94,7 @@ class DBFile(val path: Path,
              memoryMapped: Boolean,
              val memory: Boolean,
              autoClose: Boolean,
-             @volatile var file: Option[DBFileType])(implicit ec: ExecutionContext,
-                                                     limiter: FileLimiter) extends FileLimiterItem with LazyLogging {
+             @volatile var file: Option[DBFileType])(implicit limiter: FileLimiter) extends FileLimiterItem with LazyLogging {
 
   private val busy = Reserve[Unit]()
 

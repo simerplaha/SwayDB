@@ -25,7 +25,6 @@ import java.util.concurrent.ConcurrentLinkedDeque
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.ExecutionContext
 import scala.reflect.ClassTag
 import swaydb.core.brake.BrakePedal
 import swaydb.core.function.FunctionStore
@@ -51,8 +50,7 @@ private[core] object Maps extends LazyLogging {
                                                                        mapReader: MapEntryReader[MapEntry[K, V]],
                                                                        writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                        skipListMerger: SkipListMerger[K, V],
-                                                                       timer: Timer,
-                                                                       ec: ExecutionContext): Maps[K, V] =
+                                                                       timer: Timer): Maps[K, V] =
     new Maps[K, V](
       maps = new ConcurrentLinkedDeque[Map[K, V]](),
       fileSize = fileSize,
@@ -71,8 +69,7 @@ private[core] object Maps extends LazyLogging {
                                                          writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                          reader: MapEntryReader[MapEntry[K, V]],
                                                          skipListMerger: SkipListMerger[K, V],
-                                                         timer: Timer,
-                                                         ec: ExecutionContext): IO[Maps[K, V]] = {
+                                                         timer: Timer): IO[Maps[K, V]] = {
     logger.debug("{}: Maps persistent started. Initialising recovery.", path)
     //reverse to keep the newest maps at the top.
     recover[K, V](path, mmap, fileSize, recovery).map(_.reverse) flatMap {
@@ -126,8 +123,7 @@ private[core] object Maps extends LazyLogging {
                                                               functionStore: FunctionStore,
                                                               writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                               mapReader: MapEntryReader[MapEntry[K, V]],
-                                                              skipListMerger: SkipListMerger[K, V],
-                                                              ec: ExecutionContext): IO[Seq[Map[K, V]]] = {
+                                                              skipListMerger: SkipListMerger[K, V]): IO[Seq[Map[K, V]]] = {
     /**
       * Performs corruption handling based on the the value set for [[RecoveryMode]].
       */
@@ -233,8 +229,7 @@ private[core] object Maps extends LazyLogging {
                                                      functionStore: FunctionStore,
                                                      mapReader: MapEntryReader[MapEntry[K, V]],
                                                      writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                     skipListMerger: SkipListMerger[K, V],
-                                                     ec: ExecutionContext): IO[Map[K, V]] =
+                                                     skipListMerger: SkipListMerger[K, V]): IO[Map[K, V]] =
     currentMap match {
       case currentMap @ PersistentMap(_, _, _, _, _, _, _) =>
         currentMap.close() flatMap {
@@ -268,8 +263,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
                                                                                       mapReader: MapEntryReader[MapEntry[K, V]],
                                                                                       writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                                       skipListMerger: SkipListMerger[K, V],
-                                                                                      timer: Timer,
-                                                                                      ec: ExecutionContext) extends LazyLogging {
+                                                                                      timer: Timer) extends LazyLogging {
 
   //this listener is invoked when currentMap is full.
   private var onFullListener: () => Unit = () => ()

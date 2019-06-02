@@ -19,31 +19,32 @@
 
 package swaydb.core.io.file
 
-import com.typesafe.scalalogging.LazyLogging
 import java.lang.invoke.{MethodHandle, MethodHandles, MethodType}
 import java.nio.file.Path
 import java.nio.{ByteBuffer, MappedByteBuffer}
-import java.util.concurrent.atomic.AtomicBoolean
-import scala.annotation.tailrec
-import scala.concurrent.ExecutionContext
-import scala.concurrent.duration._
+
+import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.actor.{Actor, ActorRef}
+import swaydb.core.io.file.BufferCleaner.State
 import swaydb.data.IO
 
-private object Cleaner {
+import scala.concurrent.ExecutionContext
+import scala.concurrent.duration._
+
+private[core] object Cleaner {
   def apply(handle: MethodHandle): Cleaner =
     new Cleaner(handle)
 }
 
-private class Cleaner(handle: MethodHandle) {
+private[core] class Cleaner(handle: MethodHandle) {
   def clean(byteBuffer: ByteBuffer): Unit =
     handle.invoke(byteBuffer)
 }
 
-private[file] object BufferCleaner extends LazyLogging {
+private[core] object BufferCleaner extends LazyLogging {
 
-  private val started = new AtomicBoolean(false)
-  private var actor: ActorRef[(MappedByteBuffer, Path, Boolean)] = _
+  private[core] var cleaner = Option.empty[BufferCleaner]
+
   case class State(var cleaner: Option[Cleaner])
 
   private def java9Cleaner(): MethodHandle = {
@@ -115,24 +116,31 @@ private[file] object BufferCleaner extends LazyLogging {
       initialiseCleaner(state, buffer, path)
     }
 
-  private def createActor(implicit ec: ExecutionContext) = {
-    logger.debug("Starting buffer cleaner.")
+  //FIXME: Rah! Not very nice way to initialise BufferCleaner.
+  //       Currently BufferCleaner is required to be globally known.
+  //       Instead this should be passed around whenever required and be explicit.
+  def initialiseCleaner(implicit ec: ExecutionContext) =
+    cleaner = Some(new BufferCleaner)
+
+  def clean(buffer: MappedByteBuffer, path: Path): Unit =
+    cleaner map {
+      cleaner =>
+        cleaner.actor ! (buffer, path, false)
+    } getOrElse logger.error("Cleaner not initialised! ByteBuffer not cleaned.")
+}
+
+private[core] class BufferCleaner(implicit ec: ExecutionContext) extends LazyLogging {
+  logger.debug("Starting buffer cleaner.")
+
+  private val actor: ActorRef[(MappedByteBuffer, Path, Boolean)] =
     Actor.timer[(MappedByteBuffer, Path, Boolean), State](State(None), 3.seconds) {
       case (message @ (buffer, path, isOverdue), self) =>
         if (isOverdue)
-          clean(self.state, buffer, path)
+          BufferCleaner.clean(self.state, buffer, path)
         else
           self.schedule((message._1, path, true), 5.seconds)
     }
-  }
 
-  @tailrec
-  def clean(buffer: MappedByteBuffer, path: Path)(implicit ec: ExecutionContext): Unit =
-    if (started.compareAndSet(false, true)) {
-      actor = createActor
-      actor ! (buffer, path, false)
-    } else if (actor == null)
-      clean(buffer, path)
-    else
-      actor ! (buffer, path, false)
+  def clean(buffer: MappedByteBuffer, path: Path): Unit =
+    actor ! (buffer, path, false)
 }

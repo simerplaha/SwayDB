@@ -24,6 +24,7 @@ import java.nio.file.Paths
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
+import swaydb.core.io.file.BufferCleaner
 import swaydb.core.io.file.IOEffect._
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, NextLevel, TrashLevel}
@@ -62,6 +63,8 @@ private[core] object CoreInitializer extends LazyLogging {
                                      timeOrder: TimeOrder[Slice[Byte]],
                                      functionStore: FunctionStore): IO[BlockingCore[IO]] = {
     implicit val fileLimiter = FileLimiter.empty
+    if (config.storage.isMMAP) BufferCleaner.initialiseCleaner(ec)
+
     LevelZero(
       mapSize = config.mapSize,
       storage = config.storage,
@@ -88,6 +91,8 @@ private[core] object CoreInitializer extends LazyLogging {
 
     implicit val keyValueLimiter: KeyValueLimiter =
       KeyValueLimiter(cacheSize, keyValueQueueDelay)
+
+    BufferCleaner.initialiseCleaner(ec)
 
     def createLevel(id: Long,
                     nextLevel: Option[NextLevel],
