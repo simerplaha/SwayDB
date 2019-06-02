@@ -23,7 +23,7 @@ import scala.concurrent.duration._
   */
 private[level] object Compaction extends LazyLogging {
 
-  val awaitPullTimeout = 30.seconds.fromNow
+  val awaitPullTimeout = 6.seconds.fromNow
 
   def run(state: CompactorState,
           forwardCopyOnAllLevels: Boolean): Unit =
