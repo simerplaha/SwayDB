@@ -14,7 +14,9 @@ import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext
 
 /**
-  * Compactor = Compaction-Actor.
+  * Compactor = Compaction Actor.
+  *
+  * Implements Actor functions.
   */
 object Compactor extends CompactionStrategy[CompactorState] {
 
@@ -156,7 +158,7 @@ object Compactor extends CompactionStrategy[CompactorState] {
     )
   }
 
-  def terminateThis(compactor: WiredActor[CompactionStrategy[CompactorState], CompactorState]): Unit = {
+  def terminateActor(compactor: WiredActor[CompactionStrategy[CompactorState], CompactorState]): Unit = {
     compactor.terminate() //terminate actor
     compactor.unsafeGetState.terminateCompaction() //terminate currently processed compactions.
   }
@@ -173,13 +175,13 @@ object Compactor extends CompactionStrategy[CompactorState] {
     }
 
   def terminate(compactor: WiredActor[CompactionStrategy[CompactorState], CompactorState]): Unit = {
-    terminateThis(compactor) //terminate root compaction
+    terminateActor(compactor) //terminate root compaction
 
     //terminate all child compactions.
     compactor
       .unsafeGetState
       .child
-      .foreach(terminateThis)
+      .foreach(terminateActor)
   }
 
   def createAndStart(zero: LevelZero,

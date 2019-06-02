@@ -160,15 +160,18 @@ private[core] case class LevelZero(path: Path,
     }
 
   def startCompaction(copyForwardAllOnStart: Boolean): IO[LevelZero] =
-    compactionStrategy.createAndStart(
-      zero = this,
-      executionContexts = executionContexts,
-      copyForwardAllOnStart = copyForwardAllOnStart
-    ) map {
-      actor =>
-        compactor = Some(actor)
-        this
-    }
+    if (nextLevel.isEmpty)
+      IO.Success(this)
+    else
+      compactionStrategy.createAndStart(
+        zero = this,
+        executionContexts = executionContexts,
+        copyForwardAllOnStart = copyForwardAllOnStart
+      ) map {
+        actor =>
+          compactor = Some(actor)
+          this
+      }
 
   def releaseLocks: IO[Unit] =
     IOEffect.release(lock) flatMap {
