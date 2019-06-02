@@ -19,28 +19,28 @@
 
 package swaydb.core.segment
 
-import bloomfilter.mutable.BloomFilter
-import com.typesafe.scalalogging.LazyLogging
 import java.nio.file.Path
 import java.util.concurrent.ConcurrentSkipListMap
 import java.util.function.Consumer
 
-import scala.collection.JavaConverters._
-import scala.concurrent.duration.Deadline
+import bloomfilter.mutable.BloomFilter
+import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.Memory.{Group, SegmentResponse}
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.level.PathsDistributor
-import swaydb.core.queue.{FileLimiter, FileLimiterItem, KeyValueLimiter}
+import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util._
-import swaydb.data.{Reserve, IO, MaxKey}
 import swaydb.data.IO._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
+import swaydb.data.{IO, MaxKey, Reserve}
 
+import scala.collection.JavaConverters._
 import scala.concurrent.Future
+import scala.concurrent.duration.Deadline
 
 private[segment] case class MemorySegment(path: Path,
                                           minKey: Slice[Byte],
@@ -55,11 +55,11 @@ private[segment] case class MemorySegment(path: Path,
                                           bloomFilter: Option[BloomFilter[Slice[Byte]]],
                                           nearestExpiryDeadline: Option[Deadline],
                                           busy: Reserve[Unit])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                  timeOrder: TimeOrder[Slice[Byte]],
-                                                                  functionStore: FunctionStore,
-                                                                  groupingStrategy: Option[KeyValueGroupingStrategyInternal],
-                                                                  keyValueLimiter: KeyValueLimiter,
-                                                                  fileLimiter: FileLimiter) extends Segment with LazyLogging {
+                                                               timeOrder: TimeOrder[Slice[Byte]],
+                                                               functionStore: FunctionStore,
+                                                               groupingStrategy: Option[KeyValueGroupingStrategyInternal],
+                                                               keyValueLimiter: KeyValueLimiter,
+                                                               fileLimiter: FileLimiter) extends Segment with LazyLogging {
 
   @volatile private var deleted = false
 
@@ -232,7 +232,6 @@ private[segment] case class MemorySegment(path: Path,
 
               case _ =>
                 doBasicGet(key)
-
             }
           else
             doBasicGet(key)
@@ -413,5 +412,4 @@ private[segment] case class MemorySegment(path: Path,
 
   override def deleteSegmentsEventually: Unit =
     fileLimiter.delete(this)
-
 }

@@ -7,6 +7,7 @@ import swaydb.core.level.LevelRef
 import swaydb.data.slice.Slice
 
 import scala.collection.mutable
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.Deadline
 
 /**
@@ -15,6 +16,7 @@ import scala.concurrent.duration.Deadline
 private[core] case class CompactorState(levels: Slice[LevelRef],
                                         child: Option[WiredActor[CompactionStrategy[CompactorState], CompactorState]],
                                         ordering: Ordering[LevelRef],
+                                        executionContext: ExecutionContext,
                                         private[level] val compactionStates: mutable.Map[LevelRef, LevelCompactionState]) {
   @volatile private[compaction] var terminate: Boolean = false
   private[compaction] var sleepTask: Option[(TimerTask, Deadline)] = None

@@ -136,6 +136,7 @@ private[core] object CoreInitializer extends LazyLogging {
           IO.Success(TrashLevel)
       }
 
+
     def createLevels(levelConfigs: List[LevelConfig],
                      previousLowerLevel: Option[NextLevel]): IO[BlockingCore[IO]] =
       levelConfigs match {

@@ -9,6 +9,7 @@ import swaydb.data.IO
 import swaydb.data.slice.Slice
 
 import scala.annotation.tailrec
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 
 /**
@@ -37,7 +38,7 @@ private[level] object Compaction extends LazyLogging {
   private[compaction] def runNow(state: CompactorState,
                                  forwardCopyOnAllLevels: Boolean): Unit = {
     if (forwardCopyOnAllLevels) {
-      val totalCopies = copyForwardForEach(state.levelsReversed)
+      val totalCopies = copyForwardForEach(state.levelsReversed)(state.executionContext)
       logger.debug(s"Compaction copied $totalCopies. Starting compaction!")
     }
     //run compaction jobs
@@ -67,7 +68,7 @@ private[level] object Compaction extends LazyLogging {
         case Some(level) =>
           logger.debug(s"Running compaction for Level ${level.rootPath}.")
           if (state.compactionStates.get(level).forall(state => shouldRun(level, state))) {
-            val nextState = runJob(level)
+            val nextState = runJob(level)(state.executionContext)
             if (shouldRun(level, nextState))
               runJobs(state, currentJobs)
             else
@@ -84,7 +85,7 @@ private[level] object Compaction extends LazyLogging {
           logger.debug(s"Compaction round complete for Levels ${state.levels.map(_.rootPath)}.")
       }
 
-  private[compaction] def runJob(level: LevelRef): LevelCompactionState =
+  private[compaction] def runJob(level: LevelRef)(implicit ec: ExecutionContext): LevelCompactionState =
     level match {
       case zero: LevelZero =>
         pushForward(zero = zero)
@@ -98,7 +99,7 @@ private[level] object Compaction extends LazyLogging {
     }
 
   @tailrec
-  private[compaction] def pushForward(level: NextLevel): LevelCompactionState = {
+  private[compaction] def pushForward(level: NextLevel)(implicit ec: ExecutionContext): LevelCompactionState = {
     val throttle = level.throttle(level.meter)
     if (throttle.pushDelay.fromNow.isOverdue())
       pushForward(level, throttle.segmentsToPush max 1) match {
@@ -125,7 +126,7 @@ private[level] object Compaction extends LazyLogging {
       )
   }
 
-  private[compaction] def pushForward(zero: LevelZero): LevelCompactionState =
+  private[compaction] def pushForward(zero: LevelZero)(implicit ec: ExecutionContext): LevelCompactionState =
     zero.nextLevel map {
       nextLevel =>
         pushForward(
@@ -135,7 +136,7 @@ private[level] object Compaction extends LazyLogging {
     } getOrElse LevelCompactionState.longSleep(zero.stateID)
 
   private[compaction] def pushForward(zero: LevelZero,
-                                      nextLevel: NextLevel): LevelCompactionState =
+                                      nextLevel: NextLevel)(implicit ec: ExecutionContext): LevelCompactionState =
     zero.maps.last() match {
       case Some(map) =>
         logger.debug(s"{}: Pushing LevelZero map {}", zero.path, map.pathOption)
@@ -152,7 +153,7 @@ private[level] object Compaction extends LazyLogging {
 
   private[compaction] def pushForward(zero: LevelZero,
                                       nextLevel: NextLevel,
-                                      map: swaydb.core.map.Map[Slice[Byte], Memory.SegmentResponse]): LevelCompactionState =
+                                      map: swaydb.core.map.Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): LevelCompactionState =
     nextLevel.put(map) match {
       case IO.Success(_) =>
         logger.debug(s"{}: Put to map successful.", zero.path)
@@ -199,7 +200,7 @@ private[level] object Compaction extends LazyLogging {
     }
 
   private[compaction] def pushForward(level: NextLevel,
-                                      segmentsToPush: Int): IO.Async[Int] =
+                                      segmentsToPush: Int)(implicit ec: ExecutionContext): IO.Async[Int] =
     level.nextLevel map {
       nextLevel =>
         val (copyable, mergeable) = nextLevel.partitionUnreservedCopyable(level.segmentsInLevel())
@@ -231,7 +232,7 @@ private[level] object Compaction extends LazyLogging {
   def runLastLevelCompaction(level: NextLevel,
                              checkExpired: Boolean,
                              remainingCompactions: Int,
-                             segmentsCompacted: Int): IO[Int] =
+                             segmentsCompacted: Int)(implicit ec: ExecutionContext): IO[Int] =
     if (!level.hasNextLevel || remainingCompactions == 0)
       IO.Success(segmentsCompacted)
     else if (checkExpired)
@@ -294,7 +295,7 @@ private[level] object Compaction extends LazyLogging {
     * Runs lazy error checks. Ignores all errors and continues copying
     * each Level starting from the lowest level first.
     */
-  private[compaction] def copyForwardForEach(levels: Slice[LevelRef]): Int =
+  private[compaction] def copyForwardForEach(levels: Slice[LevelRef])(implicit ec: ExecutionContext): Int =
     levels.foldLeft(0) {
       case (totalCopies, level: NextLevel) =>
         val copied = copyForward(level)
@@ -305,7 +306,7 @@ private[level] object Compaction extends LazyLogging {
         copies
     }
 
-  private def copyForward(level: NextLevel): Int =
+  private def copyForward(level: NextLevel)(implicit ec: ExecutionContext): Int =
     level.nextLevel map {
       nextLevel =>
         val (copyable, _) = nextLevel.partitionUnreservedCopyable(level.segmentsInLevel())
@@ -331,7 +332,7 @@ private[level] object Compaction extends LazyLogging {
 
   private[compaction] def putForward(segments: Iterable[Segment],
                                      thisLevel: NextLevel,
-                                     nextLevel: NextLevel): IO.Async[Int] =
+                                     nextLevel: NextLevel)(implicit ec: ExecutionContext): IO.Async[Int] =
     if (segments.isEmpty)
       IO.zero
     else

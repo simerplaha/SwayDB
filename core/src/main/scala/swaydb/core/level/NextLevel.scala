@@ -8,6 +8,7 @@ import swaydb.data.compaction.LevelMeter
 import swaydb.data.slice.Slice
 
 import scala.collection.mutable.ListBuffer
+import scala.concurrent.ExecutionContext
 
 object NextLevel {
 
@@ -43,19 +44,19 @@ trait NextLevel extends LevelRef {
 
   def partitionUnreservedCopyable(segments: Iterable[Segment]): (Iterable[Segment], Iterable[Segment])
 
-  def put(segment: Segment): IO.Async[Unit]
+  def put(segment: Segment)(implicit ec: ExecutionContext): IO.Async[Unit]
 
-  def put(map: Map[Slice[Byte], Memory.SegmentResponse]): IO.Async[Unit]
+  def put(map: Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): IO.Async[Unit]
 
-  def put(segments: Iterable[Segment]): IO.Async[Unit]
+  def put(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO.Async[Unit]
 
   def removeSegments(segments: Iterable[Segment]): IO[Int]
 
   def meter: LevelMeter
 
-  def refresh(segment: Segment): IO.Async[Unit]
+  def refresh(segment: Segment)(implicit ec: ExecutionContext): IO.Async[Unit]
 
-  def collapse(segments: Iterable[Segment]): IO.Async[Int]
+  def collapse(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO.Async[Int]
 
   def reverseNextLevels: ListBuffer[NextLevel] = {
     val levels = ListBuffer.empty[NextLevel]

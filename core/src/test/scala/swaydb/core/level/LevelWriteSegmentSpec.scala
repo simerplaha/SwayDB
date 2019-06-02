@@ -42,6 +42,7 @@ import swaydb.data.slice.Slice
 import swaydb.data.storage.LevelStorage
 import swaydb.data.util.StorageUnits._
 
+import scala.concurrent.ExecutionContext
 import scala.util.Random
 
 class LevelWriteSegmentSpec0 extends LevelWriteSegmentSpec
@@ -346,8 +347,8 @@ sealed trait LevelWriteSegmentSpec extends TestBase with MockFactory {
             (segments, Iterable.empty)
         }
 
-        (nextLevel.put(_: Iterable[Segment])) expects * onCall { //copy into next Level
-          segments: Iterable[Segment] =>
+        (nextLevel.put(_: Iterable[Segment])(_: ExecutionContext)) expects(*, *) onCall { //copy into next Level
+          (segments: Iterable[Segment], _) =>
             segments should have size 1
             segments.head.path shouldBe segment.path
             IO.unit
@@ -405,8 +406,8 @@ sealed trait LevelWriteSegmentSpec extends TestBase with MockFactory {
             (Seq(segments.last), Seq(segments.head)) //last Segment is copyable.
         }
 
-        (nextLevel.put(_: Iterable[Segment])) expects * onCall { //successfully copied last Segment into next Level.
-          segments: Iterable[Segment] =>
+        (nextLevel.put(_: Iterable[Segment])(_: ExecutionContext)) expects(*, *) onCall { //successfully copied last Segment into next Level.
+          (segments: Iterable[Segment], _) =>
             segments should have size 1
             segments.head.path shouldBe segment3.path
             IO.unit
@@ -439,8 +440,8 @@ sealed trait LevelWriteSegmentSpec extends TestBase with MockFactory {
             (segments, Iterable.empty)
         }
 
-        (nextLevel.put(_: Iterable[Segment])) expects * onCall { //copy into next Level
-          segments: Iterable[Segment] =>
+        (nextLevel.put(_: Iterable[Segment])(_: ExecutionContext)) expects(*, *) onCall { //copy into next Level
+          (segments: Iterable[Segment], _) =>
             segments should have size 1
             segments.head.path shouldBe segment.path
             IO.Failure(new Exception("Kaboom!!")) //fail to copy, upper level will continue copying in it's Level.

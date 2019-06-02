@@ -27,6 +27,7 @@ import swaydb.data.IO
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.slice.Slice
 
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 
 private[core] object TrashLevel extends NextLevel {
@@ -148,13 +149,13 @@ private[core] object TrashLevel extends NextLevel {
   override def partitionUnreservedCopyable(segments: Iterable[Segment]): (Iterable[Segment], Iterable[Segment]) =
     (segments, Iterable.empty)
 
-  override def put(segment: Segment): IO.Async[Unit] =
+  override def put(segment: Segment)(implicit ec: ExecutionContext): IO.Async[Unit] =
     IO.unit
 
-  override def put(map: swaydb.core.map.Map[Slice[Byte], Memory.SegmentResponse]): IO.Async[Unit] =
+  override def put(map: swaydb.core.map.Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): IO.Async[Unit] =
     IO.unit
 
-  override def put(segments: Iterable[Segment]): IO.Async[Unit] =
+  override def put(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO.Async[Unit] =
     IO.unit
 
   override def removeSegments(segments: Iterable[Segment]): IO[Int] =
@@ -169,10 +170,10 @@ private[core] object TrashLevel extends NextLevel {
   override def meter: LevelMeter =
     LevelMeter(0, 0)
 
-  override def refresh(segment: Segment): IO.Async[Unit] =
+  override def refresh(segment: Segment)(implicit ec: ExecutionContext): IO.Async[Unit] =
     IO.unit
 
-  override def collapse(segments: Iterable[Segment]): IO.Async[Int] =
+  override def collapse(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO.Async[Int] =
     IO.Success(segments.size)
 
   override def isZero: Boolean =

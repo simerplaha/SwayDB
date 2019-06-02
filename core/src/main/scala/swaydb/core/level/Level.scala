@@ -87,7 +87,6 @@ private[core] object Level extends LazyLogging {
             deleteSegmentsEventually: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                timeOrder: TimeOrder[Slice[Byte]],
                                                functionStore: FunctionStore,
-                                               ec: ExecutionContext,
                                                keyValueLimiter: KeyValueLimiter,
                                                fileOpenLimiter: FileLimiter,
                                                groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Level] = {
@@ -241,7 +240,6 @@ private[core] case class Level(dirs: Seq[Dir],
                                removeDeletedRecords: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                               timeOrder: TimeOrder[Slice[Byte]],
                                                               functionStore: FunctionStore,
-                                                              ec: ExecutionContext,
                                                               removeWriter: MapEntryWriter[MapEntry.Remove[Slice[Byte]]],
                                                               addWriter: MapEntryWriter[MapEntry.Put[Slice[Byte], Segment]],
                                                               keyValueLimiter: KeyValueLimiter,
@@ -374,10 +372,10 @@ private[core] case class Level(dirs: Seq[Dir],
   def isUnReserved(minKey: Slice[Byte], maxKey: Slice[Byte]): Boolean =
     ReserveRange.isUnreserved(minKey, maxKey)
 
-  def put(segment: Segment): IO.Async[Unit] =
+  def put(segment: Segment)(implicit ec: ExecutionContext): IO.Async[Unit] =
     put(Seq(segment))
 
-  def put(segments: Iterable[Segment]): IO.Async[Unit] = {
+  def put(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO.Async[Unit] = {
     logger.trace(s"{}: Putting segments '{}' segments.", paths.head, segments.map(_.path.toString).toList)
     reserve(segments).asAsync flatMap {
       case Left(future) =>
@@ -410,7 +408,7 @@ private[core] case class Level(dirs: Seq[Dir],
 
   private[level] def put(segmentsToMerge: Iterable[Segment],
                          segmentsToCopy: Iterable[Segment],
-                         targetSegments: Iterable[Segment]): IO[Unit] =
+                         targetSegments: Iterable[Segment])(implicit ec: ExecutionContext): IO[Unit] =
     if (segmentsToCopy.nonEmpty)
       copyForwardOrCopyLocal(segmentsToCopy) flatMap {
         newlyCopiedSegments =>
@@ -451,7 +449,7 @@ private[core] case class Level(dirs: Seq[Dir],
         appendEntry = None
       )
 
-  def put(map: Map[Slice[Byte], Memory.SegmentResponse]): IO.Async[Unit] = {
+  def put(map: Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): IO.Async[Unit] = {
     logger.trace("{}: PutMap '{}' Maps.", paths.head, map.count())
     reserve(map).asAsync flatMap {
       case Left(future) =>
@@ -493,7 +491,7 @@ private[core] case class Level(dirs: Seq[Dir],
   /**
     * @return empty if copied into next Level else Segments copied into this Level.
     */
-  private def copyForwardOrCopyLocal(map: Map[Slice[Byte], Memory.SegmentResponse]): IO[Iterable[Segment]] =
+  private def copyForwardOrCopyLocal(map: Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): IO[Iterable[Segment]] =
     forward(map) flatMap {
       copied =>
         if (copied)
@@ -505,7 +503,7 @@ private[core] case class Level(dirs: Seq[Dir],
   /**
     * Returns segments that were not forwarded.
     */
-  private def forward(map: Map[Slice[Byte], Memory.SegmentResponse]): IO[Boolean] = {
+  private def forward(map: Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): IO[Boolean] = {
     logger.trace(s"{}: forwarding {} Map", paths.head, map.pathOption)
     nextLevel map {
       nextLevel =>
@@ -555,7 +553,7 @@ private[core] case class Level(dirs: Seq[Dir],
   /**
     * Returns newly created Segments.
     */
-  private def copyForwardOrCopyLocal(segments: Iterable[Segment]): IO[Iterable[Segment]] =
+  private def copyForwardOrCopyLocal(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO[Iterable[Segment]] =
     forward(segments) match {
       case IO.Success(segmentsNotForwarded) =>
         if (segmentsNotForwarded.isEmpty)
@@ -571,7 +569,7 @@ private[core] case class Level(dirs: Seq[Dir],
   /**
     * Returns segments that were not forwarded.
     */
-  private def forward(segments: Iterable[Segment]): IO[Iterable[Segment]] = {
+  private def forward(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO[Iterable[Segment]] = {
     logger.trace(s"{}: Copying forward {} Segments", paths.head, segments.map(_.path.toString))
     nextLevel map {
       nextLevel =>
@@ -633,7 +631,7 @@ private[core] case class Level(dirs: Seq[Dir],
     )
   }
 
-  def refresh(segment: Segment): IO.Async[Unit] = {
+  def refresh(segment: Segment)(implicit ec: ExecutionContext): IO.Async[Unit] = {
     logger.debug("{}: Running refresh.", paths.head)
     reserve(Seq(segment)).asAsync flatMap {
       case Left(future) =>
@@ -718,7 +716,7 @@ private[core] case class Level(dirs: Seq[Dir],
   def isSmallSegment(segment: Segment): Boolean =
     segment.segmentSize < segmentSize * 0.60
 
-  def collapse(segments: Iterable[Segment]): IO.Async[Int] = {
+  def collapse(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO.Async[Int] = {
     logger.trace(s"{}: Collapsing '{}' segments", paths.head, segments.size)
     reserve(segments).asAsync flatMap {
       case Left(future) =>

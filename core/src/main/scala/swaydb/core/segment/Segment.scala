@@ -44,8 +44,8 @@ import swaydb.data.{IO, MaxKey, Reserve}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
+import scala.concurrent.Future
 import scala.concurrent.duration.Deadline
-import scala.concurrent.{ExecutionContext, Future}
 
 private[core] object Segment extends LazyLogging {
 
@@ -247,8 +247,7 @@ private[core] object Segment extends LazyLogging {
                                          functionStore: FunctionStore,
                                          keyValueLimiter: KeyValueLimiter,
                                          fileOpenLimiter: FileLimiter,
-                                         compression: Option[KeyValueGroupingStrategyInternal],
-                                         ec: ExecutionContext): IO[Segment] =
+                                         compression: Option[KeyValueGroupingStrategyInternal]): IO[Segment] =
     SegmentWriter.write(keyValues, bloomFilterFalsePositiveRate) flatMap {
       case (bytes, nearestExpiryDeadline) =>
         if (bytes.isEmpty) {
@@ -319,8 +318,7 @@ private[core] object Segment extends LazyLogging {
                                                       functionStore: FunctionStore,
                                                       keyValueLimiter: KeyValueLimiter,
                                                       fileOpenLimiter: FileLimiter,
-                                                      compression: Option[KeyValueGroupingStrategyInternal],
-                                                      ec: ExecutionContext): IO[Slice[Segment]] =
+                                                      compression: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]] =
     segment match {
       case segment: PersistentSegment =>
         val nextPath = fetchNextPath
@@ -373,8 +371,7 @@ private[core] object Segment extends LazyLogging {
                                                       functionStore: FunctionStore,
                                                       keyValueLimiter: KeyValueLimiter,
                                                       fileOpenLimiter: FileLimiter,
-                                                      compression: Option[KeyValueGroupingStrategyInternal],
-                                                      ec: ExecutionContext): IO[Slice[Segment]] =
+                                                      compression: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]] =
     SegmentMerger.split(
       keyValues = keyValues,
       minSegmentSize = minSegmentSize,
@@ -418,8 +415,7 @@ private[core] object Segment extends LazyLogging {
                                                      functionStore: FunctionStore,
                                                      fileLimiter: FileLimiter,
                                                      groupingStrategy: Option[KeyValueGroupingStrategyInternal],
-                                                     keyValueLimiter: KeyValueLimiter,
-                                                     ec: ExecutionContext): IO[Slice[Segment]] =
+                                                     keyValueLimiter: KeyValueLimiter): IO[Slice[Segment]] =
     segment.getAll() flatMap {
       keyValues =>
         copyToMemory(
@@ -442,8 +438,7 @@ private[core] object Segment extends LazyLogging {
                                                      functionStore: FunctionStore,
                                                      fileLimiter: FileLimiter,
                                                      groupingStrategy: Option[KeyValueGroupingStrategyInternal],
-                                                     keyValueLimiter: KeyValueLimiter,
-                                                     ec: ExecutionContext): IO[Slice[Segment]] =
+                                                     keyValueLimiter: KeyValueLimiter): IO[Slice[Segment]] =
     SegmentMerger.split(
       keyValues = keyValues,
       minSegmentSize = minSegmentSize,
@@ -477,8 +472,7 @@ private[core] object Segment extends LazyLogging {
                                          functionStore: FunctionStore,
                                          keyValueLimiter: KeyValueLimiter,
                                          fileOpenLimiter: FileLimiter,
-                                         compression: Option[KeyValueGroupingStrategyInternal],
-                                         ec: ExecutionContext): IO[Segment] = {
+                                         compression: Option[KeyValueGroupingStrategyInternal]): IO[Segment] = {
 
     val fileIO =
       if (mmapReads)
@@ -519,8 +513,7 @@ private[core] object Segment extends LazyLogging {
                                   functionStore: FunctionStore,
                                   keyValueLimiter: KeyValueLimiter,
                                   fileOpenLimiter: FileLimiter,
-                                  compression: Option[KeyValueGroupingStrategyInternal],
-                                  ec: ExecutionContext): IO[Segment] = {
+                                  compression: Option[KeyValueGroupingStrategyInternal]): IO[Segment] = {
 
     val file =
       if (mmapReads)

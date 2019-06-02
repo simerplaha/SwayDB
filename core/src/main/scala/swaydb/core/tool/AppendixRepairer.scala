@@ -19,9 +19,9 @@
 
 package swaydb.core.tool
 
-import com.typesafe.scalalogging.LazyLogging
 import java.nio.file.Path
-import scala.concurrent.ExecutionContext
+
+import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.IOEffect
 import swaydb.core.level.AppendixSkipListMerger
@@ -44,16 +44,15 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
             strategy: AppendixRepairStrategy)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                               timeOrder: TimeOrder[Slice[Byte]],
                                               fileOpenLimiter: FileLimiter,
-                                              functionStore: FunctionStore,
-                                              ec: ExecutionContext): IO[Unit] = {
-    val reader = AppendixMapEntryReader(false, false, false)(keyOrder, timeOrder, functionStore, KeyValueLimiter.none, FileLimiter.empty, None, ec)
+                                              functionStore: FunctionStore): IO[Unit] = {
+    val reader = AppendixMapEntryReader(false, false, false)(keyOrder, timeOrder, functionStore, KeyValueLimiter.none, FileLimiter.empty, None)
     import reader._
     import swaydb.core.map.serializer.AppendixMapEntryWriter._
     implicit val merger = AppendixSkipListMerger
 
     IO(IOEffect.files(levelPath, Extension.Seg)) flatMap {
       files =>
-        files.mapIO(Segment(_, false, false, false, true)(keyOrder, timeOrder, functionStore, KeyValueLimiter.none, FileLimiter.empty, None, ec))
+        files.mapIO(Segment(_, false, false, false, true)(keyOrder, timeOrder, functionStore, KeyValueLimiter.none, FileLimiter.empty, None))
           .flatMap {
             segments =>
               checkOverlappingSegments(segments, strategy) flatMap {
@@ -146,8 +145,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
                                                  functionStore: FunctionStore,
                                                  writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Segment]],
                                                  mapReader: MapEntryReader[MapEntry[Slice[Byte], Segment]],
-                                                 skipListMerger: SkipListMerger[Slice[Byte], Segment],
-                                                 ec: ExecutionContext): IO[Unit] =
+                                                 skipListMerger: SkipListMerger[Slice[Byte], Segment]): IO[Unit] =
     IOEffect.walkDelete(appendixDir) flatMap {
       _ =>
         Map.persistent[Slice[Byte], Segment](

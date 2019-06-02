@@ -22,17 +22,18 @@ package swaydb.core.map.serializer
 import java.nio.charset.StandardCharsets
 import java.nio.file.Paths
 import java.util.concurrent.TimeUnit
-import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.Deadline
+
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.map.MapEntry
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment
 import swaydb.core.util.Bytes
-import swaydb.data.{IO, MaxKey}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Reader, Slice}
+import swaydb.data.{IO, MaxKey}
+
+import scala.concurrent.duration.Deadline
 
 object AppendixMapEntryReader {
   def apply(removeDeletes: Boolean,
@@ -42,8 +43,7 @@ object AppendixMapEntryReader {
                                           functionStore: FunctionStore,
                                           keyValueLimiter: KeyValueLimiter,
                                           fileOpenLimiter: FileLimiter,
-                                          compression: Option[KeyValueGroupingStrategyInternal],
-                                          ec: ExecutionContext): AppendixMapEntryReader =
+                                          compression: Option[KeyValueGroupingStrategyInternal]): AppendixMapEntryReader =
     new AppendixMapEntryReader(
       removeDeletes = removeDeletes,
       mmapSegmentsOnRead = mmapSegmentsOnRead,
@@ -58,8 +58,7 @@ class AppendixMapEntryReader(removeDeletes: Boolean,
                                                            functionStore: FunctionStore,
                                                            keyValueLimiter: KeyValueLimiter,
                                                            fileOpenLimiter: FileLimiter,
-                                                           compression: Option[KeyValueGroupingStrategyInternal],
-                                                           ec: ExecutionContext) {
+                                                           compression: Option[KeyValueGroupingStrategyInternal]) {
 
   implicit object AppendixPutReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Segment]] {
     override def read(reader: Reader): IO[Option[MapEntry.Put[Slice[Byte], Segment]]] =
@@ -74,14 +73,14 @@ class AppendixMapEntryReader(removeDeletes: Boolean,
         maxKeyLength <- reader.readIntUnsigned()
         maxKeyBytes <- reader.read(maxKeyLength).map(_.unslice())
         maxKey <-
-          if (maxKeyId == 1)
-            IO.Success(MaxKey.Fixed(maxKeyBytes))
-          else {
-            Bytes.decompressJoin(maxKeyBytes) map {
-              case (fromKey, toKey) =>
-                MaxKey.Range(fromKey, toKey)
-            }
+        if (maxKeyId == 1)
+          IO.Success(MaxKey.Fixed(maxKeyBytes))
+        else {
+          Bytes.decompressJoin(maxKeyBytes) map {
+            case (fromKey, toKey) =>
+              MaxKey.Range(fromKey, toKey)
           }
+        }
         nearestExpiryDeadline <- reader.readLongUnsigned() map {
           deadlineNanos =>
             if (deadlineNanos == 0)
@@ -90,17 +89,17 @@ class AppendixMapEntryReader(removeDeletes: Boolean,
               Some(Deadline(deadlineNanos, TimeUnit.NANOSECONDS))
         }
         segment <-
-          Segment(
-            path = segmentPath,
-            mmapReads = mmapSegmentsOnRead,
-            mmapWrites = mmapSegmentsOnWrite,
-            minKey = minKey,
-            maxKey = maxKey,
-            segmentSize = segmentSize,
-            removeDeletes = removeDeletes,
-            nearestExpiryDeadline = nearestExpiryDeadline,
-            checkExists = false
-          )
+        Segment(
+          path = segmentPath,
+          mmapReads = mmapSegmentsOnRead,
+          mmapWrites = mmapSegmentsOnWrite,
+          minKey = minKey,
+          maxKey = maxKey,
+          segmentSize = segmentSize,
+          removeDeletes = removeDeletes,
+          nearestExpiryDeadline = nearestExpiryDeadline,
+          checkExists = false
+        )
       } yield {
         Some(MapEntry.Put(minKey, segment)(AppendixMapEntryWriter.AppendixPutWriter))
       }

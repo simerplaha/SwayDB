@@ -14,13 +14,6 @@ import scala.concurrent.ExecutionContext
   */
 object Compactor {
 
-  def apply[S](compactionStrategy: CompactionStrategy[S],
-               state: S)(implicit ec: ExecutionContext): WiredActor[CompactionStrategy[S], S] =
-    WiredActor[CompactionStrategy[S], S](
-      impl = compactionStrategy,
-      state = state
-    )
-
   def apply(zero: LevelZero,
             levels: List[NextLevel],
             executionContexts: Seq[ExecutionContext],
@@ -51,10 +44,18 @@ object Compactor {
             CompactorState(
               levels = Slice(jobs.toArray),
               compactionStates = statesMap,
+              executionContext = executionContext,
               child = child,
               ordering = levelOrdering
             )
-          Some(Compactor(compactionStrategy, compaction)(executionContext))
+
+          val actor =
+            WiredActor[CompactionStrategy[CompactorState], CompactorState](
+              impl = compactionStrategy,
+              state = compaction
+            )(executionContext)
+
+          Some(actor)
       } head
   }
 }

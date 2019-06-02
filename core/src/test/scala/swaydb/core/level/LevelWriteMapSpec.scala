@@ -38,6 +38,8 @@ import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
+import scala.concurrent.ExecutionContext
+
 class LevelWriteMapSpec0 extends LevelWriteMapSpec
 
 class LevelWriteMapSpec1 extends LevelWriteMapSpec {
@@ -175,8 +177,8 @@ sealed trait LevelWriteMapSpec extends TestBase with MockFactory with PrivateMet
             true
         }
 
-        (nextLevel.put(_: Map[Slice[Byte], Memory.SegmentResponse])) expects * onCall {
-          putMap: Map[Slice[Byte], Memory.SegmentResponse] =>
+        (nextLevel.put(_: Map[Slice[Byte], Memory.SegmentResponse])(_: ExecutionContext)) expects (*, *) onCall {
+          (putMap: Map[Slice[Byte], Memory.SegmentResponse], _) =>
             putMap.pathOption shouldBe map.pathOption
             IO.unit
         }
@@ -198,8 +200,8 @@ sealed trait LevelWriteMapSpec extends TestBase with MockFactory with PrivateMet
             true
         }
 
-        (nextLevel.put(_: Map[Slice[Byte], Memory.SegmentResponse])) expects * onCall {
-          putMap: Map[Slice[Byte], Memory.SegmentResponse] =>
+        (nextLevel.put(_: Map[Slice[Byte], Memory.SegmentResponse])(_: ExecutionContext)) expects (*, *) onCall {
+          (putMap: Map[Slice[Byte], Memory.SegmentResponse], _) =>
             putMap.pathOption shouldBe map.pathOption
             IO.unit
         }

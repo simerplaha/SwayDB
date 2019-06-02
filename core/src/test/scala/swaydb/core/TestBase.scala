@@ -30,10 +30,9 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.IOAssert._
 import swaydb.core.TestData._
 import swaydb.core.TestLimitQueues.{fileOpenLimiter, _}
-import swaydb.core.actor.TestActor
 import swaydb.core.data.{KeyValue, Memory, Time}
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
-import swaydb.core.io.file.{DBFile, IOEffect}
+import swaydb.core.io.file.{BufferCleaner, DBFile, IOEffect}
 import swaydb.core.io.reader.FileReader
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, LevelRef, NextLevel}
@@ -54,6 +53,8 @@ import scala.concurrent.duration._
 import scala.util.Random
 
 trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventually {
+
+  BufferCleaner.initialiseCleaner
 
   implicit val idGenerator = IDGenerator()
 

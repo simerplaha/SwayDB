@@ -13,6 +13,8 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 
+import scala.concurrent.ExecutionContext
+
 class CompactionSpec0 extends CompactionSpec
 
 class CompactionSpec1 extends CompactionSpec {
@@ -136,8 +138,8 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
         val segments = Seq(TestSegment(keyValues(0).toTransient).get, TestSegment(keyValues(1).toTransient).get)
 
         //next level should get a put for all the input Segments
-        (nextLevel.put(_: Iterable[Segment])) expects * onCall {
-          putSegments: Iterable[Segment] =>
+        (nextLevel.put(_: Iterable[Segment])(_: ExecutionContext)) expects (*, *) onCall {
+          (putSegments: Iterable[Segment], _) =>
             putSegments shouldHaveSameIds segments
             IO.unit
         }
@@ -163,8 +165,8 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
         val segments = Seq(TestSegment(keyValues(0).toTransient).get, TestSegment(keyValues(1).toTransient).get)
 
         //next level should get a put for all the input Segments
-        (nextLevel.put(_: Iterable[Segment])) expects * onCall {
-          putSegments: Iterable[Segment] =>
+        (nextLevel.put(_: Iterable[Segment])(_: ExecutionContext)) expects (*, *) onCall {
+          (putSegments: Iterable[Segment], _) =>
             putSegments shouldHaveSameIds segments
             IO.unit
         }

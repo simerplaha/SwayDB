@@ -40,8 +40,8 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.{IO, MaxKey, Reserve}
 
+import scala.concurrent.Future
 import scala.concurrent.duration.Deadline
-import scala.concurrent.{ExecutionContext, Future}
 
 private[segment] case class PersistentSegment(file: DBFile,
                                               mmapReads: Boolean,
@@ -56,8 +56,7 @@ private[segment] case class PersistentSegment(file: DBFile,
                                                                                 functionStore: FunctionStore,
                                                                                 keyValueLimiter: KeyValueLimiter,
                                                                                 fileOpenLimiter: FileLimiter,
-                                                                                compression: Option[KeyValueGroupingStrategyInternal],
-                                                                                ec: ExecutionContext) extends Segment with LazyLogging {
+                                                                                compression: Option[KeyValueGroupingStrategyInternal]) extends Segment with LazyLogging {
 
   def path = file.path
 
