@@ -21,13 +21,6 @@ package swaydb.core
 
 import java.nio.file.{Files, Path, Paths}
 
-import org.scalatest.exceptions.TestFailedException
-
-import scala.annotation.tailrec
-import scala.concurrent.ExecutionContext
-import scala.concurrent.duration._
-import scala.reflect.ClassTag
-import scala.util.Random
 import swaydb.compression.CompressionInternal
 import swaydb.core.CommonAssertions._
 import swaydb.core.IOAssert._
@@ -38,23 +31,29 @@ import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
-import swaydb.core.level.{Level, LevelRef, NextLevel}
 import swaydb.core.level.zero.LevelZero
+import swaydb.core.level.{Level, NextLevel}
 import swaydb.core.map.serializer.RangeValueSerializer
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.seek._
 import swaydb.core.segment.Segment
 import swaydb.core.util.{IDGenerator, UUIDUtil}
-import swaydb.data.{IO, MaxKey}
 import swaydb.data.accelerate.Accelerator
-import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
+import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.{Dir, RecoveryMode}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.{AppendixStorage, Level0Storage, LevelStorage}
 import swaydb.data.util.StorageUnits._
+import swaydb.data.{IO, MaxKey}
 import swaydb.serializers.Default._
 import swaydb.serializers._
+
+import scala.annotation.tailrec
+import scala.concurrent.ExecutionContext
+import scala.concurrent.duration._
+import scala.reflect.ClassTag
+import scala.util.Random
 
 object TestData {
 
@@ -212,7 +211,12 @@ object TestData {
               _ =>
                 LevelZero(
                   mapSize = mapSize,
-                  storage = Level0Storage.Persistent(true, level.path.getParent, RecoveryMode.ReportFailure),
+                  storage =
+                    Level0Storage.Persistent(
+                      mmap = true,
+                      dir = level.path.getParent,
+                      recovery = RecoveryMode.ReportFailure
+                    ),
                   nextLevel = level.nextLevel,
                   executionContexts = level.executionContexts,
                   acceleration = Accelerator.brake(),

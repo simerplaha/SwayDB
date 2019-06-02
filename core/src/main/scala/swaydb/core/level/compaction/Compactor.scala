@@ -22,54 +22,57 @@ object Compactor extends CompactionStrategy[CompactorState] {
             executionContexts: List[CompactionExecutionContext])(implicit ordering: CompactionOrdering): IO[WiredActor[CompactionStrategy[CompactorState], CompactorState]] =
   //split levels into groups such that each group of Levels have dedicated ExecutionContext.
   //if dedicatedLevelZeroCompaction is set to true set the first ExecutionContext for LevelZero.
-    levels
-      .zip(executionContexts)
-      .foldLeftIO(ListBuffer.empty[(ListBuffer[LevelRef], ExecutionContext)]) {
-        case (jobs, (level, executionContext)) =>
-          executionContext match {
-            case CompactionExecutionContext.Create(executionContext) =>
-              jobs += ((ListBuffer(level), executionContext))
-              IO.Success(jobs)
+    if (levels.size != executionContexts.size)
+      IO.Failure(IO.Error.Fatal(new IllegalStateException(s"Number of ExecutionContexts(${executionContexts.size}) are not the same as number of Levels(${levels.size}).")))
+    else
+      levels
+        .zip(executionContexts)
+        .foldLeftIO(ListBuffer.empty[(ListBuffer[LevelRef], ExecutionContext)]) {
+          case (jobs, (level, executionContext)) =>
+            executionContext match {
+              case CompactionExecutionContext.Create(executionContext) =>
+                jobs += ((ListBuffer(level), executionContext))
+                IO.Success(jobs)
 
-            case CompactionExecutionContext.Shared =>
-              jobs.lastOption match {
-                case Some((lastGroup, _)) =>
-                  lastGroup += level
-                  IO.Success(jobs)
+              case CompactionExecutionContext.Shared =>
+                jobs.lastOption match {
+                  case Some((lastGroup, _)) =>
+                    lastGroup += level
+                    IO.Success(jobs)
 
-                case None =>
-                  //this will never occur because during configuration Level0 is only allowed to have Create
-                  //so Shared can never happen with Create.
-                  IO.Failure(new IllegalStateException("Shared ExecutionContext submitted without Create."))
-              }
-          }
-      }
-      .map {
-        jobs =>
-          jobs
-            .reverse
-            .foldRight(Option.empty[WiredActor[CompactionStrategy[CompactorState], CompactorState]]) {
-              case ((jobs, executionContext), child) =>
-                val statesMap = mutable.Map.empty[LevelRef, LevelCompactionState]
-                val levelOrdering = ordering.ordering(level => statesMap.getOrElse(level, LevelCompactionState.longSleep(level.stateID)))
-                val compaction =
-                  CompactorState(
-                    levels = Slice(jobs.toArray),
-                    compactionStates = statesMap,
-                    executionContext = executionContext,
-                    child = child,
-                    ordering = levelOrdering
-                  )
+                  case None =>
+                    //this will never occur because during configuration Level0 is only allowed to have Create
+                    //so Shared can never happen with Create.
+                    IO.Failure(IO.Error.Fatal(new IllegalStateException("Shared ExecutionContext submitted without Create.")))
+                }
+            }
+        }
+        .map {
+          jobs =>
+            jobs
+              .reverse
+              .foldRight(Option.empty[WiredActor[CompactionStrategy[CompactorState], CompactorState]]) {
+                case ((jobs, executionContext), child) =>
+                  val statesMap = mutable.Map.empty[LevelRef, LevelCompactionState]
+                  val levelOrdering = ordering.ordering(level => statesMap.getOrElse(level, LevelCompactionState.longSleep(level.stateID)))
+                  val compaction =
+                    CompactorState(
+                      levels = Slice(jobs.toArray),
+                      compactionStates = statesMap,
+                      executionContext = executionContext,
+                      child = child,
+                      ordering = levelOrdering
+                    )
 
-                val actor =
-                  WiredActor[CompactionStrategy[CompactorState], CompactorState](
-                    impl = Compactor,
-                    state = compaction
-                  )(executionContext)
+                  val actor =
+                    WiredActor[CompactionStrategy[CompactorState], CompactorState](
+                      impl = Compactor,
+                      state = compaction
+                    )(executionContext)
 
-                Some(actor)
-            } head
-      }
+                  Some(actor)
+              } head
+        }
 
   private def scheduleNextWakeUp(state: CompactorState,
                                  self: WiredActor[CompactionStrategy[CompactorState], CompactorState]): Unit =
@@ -195,7 +198,7 @@ object Compactor extends CompactionStrategy[CompactorState] {
             zero.maps setOnFullListener (() => sendWakeUp(forwardCopyOnAllLevels = false, actor))
             sendWakeUp(forwardCopyOnAllLevels = true, actor)
             IO.Success(actor)
-        } getOrElse IO.Failure(new Exception("Compaction not started."))
+        } getOrElse IO.Failure(IO.Error.Fatal(new Exception("Compaction not started.")))
     }
 
   override def wakeUp(state: CompactorState,
