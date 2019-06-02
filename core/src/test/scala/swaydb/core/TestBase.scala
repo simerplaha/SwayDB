@@ -41,7 +41,7 @@ import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment
 import swaydb.core.util.IDGenerator
 import swaydb.data.IO
-import swaydb.data.accelerate.{Accelerator, Level0Meter}
+import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
 import swaydb.data.config.{Dir, RecoveryMode}
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -321,7 +321,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
 
     def apply(nextLevel: Option[Level],
               mapSize: Long = mapSize,
-              brake: Level0Meter => Accelerator = Accelerator.brake(),
+              brake: LevelZeroMeter => Accelerator = Accelerator.brake(),
               throttleOn: Boolean = true)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                           keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
                                           timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,

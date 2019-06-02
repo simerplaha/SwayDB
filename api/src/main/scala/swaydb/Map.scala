@@ -24,7 +24,7 @@ import scala.concurrent.duration.{Deadline, FiniteDuration}
 import swaydb.PrepareImplicits._
 import swaydb.core.Core
 import swaydb.data.IO
-import swaydb.data.accelerate.Level0Meter
+import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.io.{Tag, TagAsync}
 import swaydb.data.io.Tag._
@@ -207,7 +207,7 @@ case class Map[K, V, T[_]](private[swaydb] val core: Core[T],
       reverseIteration = reverseIteration
     )(keySerializer, tag)
 
-  def level0Meter: Level0Meter =
+  def level0Meter: LevelZeroMeter =
     core.level0Meter
 
   def levelMeter(levelNumber: Int): Option[LevelMeter] =

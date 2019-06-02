@@ -25,7 +25,7 @@ import swaydb.Prepare
 import swaydb.core.data.KeyValue.KeyValueTuple
 import swaydb.core.data.SwayFunction
 import swaydb.data.IO
-import swaydb.data.accelerate.Level0Meter
+import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.io.{Tag, TagAsync}
 import swaydb.data.slice.Slice
@@ -100,7 +100,7 @@ private[swaydb] trait Core[T[_]] {
 
   def valueSize(key: Slice[Byte]): T[Option[Int]]
 
-  def level0Meter: Level0Meter
+  def level0Meter: LevelZeroMeter
 
   def levelMeter(levelNumber: Int): Option[LevelMeter]
 

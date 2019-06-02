@@ -167,8 +167,11 @@ private[core] object TrashLevel extends NextLevel {
   override def isCopyable(minKey: Slice[Byte], maxKey: Slice[Byte]): Boolean =
     true
 
-  override def meter: LevelMeter =
-    LevelMeter(0, 0)
+  override val meter: LevelMeter =
+    new LevelMeter {
+      override def segmentsCount: Int = 0
+      override def levelSize: Long = 0
+    }
 
   override def refresh(segment: Segment)(implicit ec: ExecutionContext): IO.Async[Unit] =
     IO.unit

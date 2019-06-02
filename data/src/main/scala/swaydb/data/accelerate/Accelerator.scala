@@ -33,7 +33,7 @@ object Accelerator {
   private def nextMapSize(mapCount: Int,
                           increaseMapSizeBy: Int,
                           maxMapSize: Long,
-                          level0Meter: Level0Meter) =
+                          level0Meter: LevelZeroMeter) =
     if (level0Meter.mapsCount < mapCount)
       level0Meter.defaultMapSize
     else
@@ -47,7 +47,7 @@ object Accelerator {
             maxMapSize: Long = 24.mb,
             brakeOnMapCount: Int = 6,
             brakeFor: FiniteDuration = 50.milliseconds,
-            releaseRate: FiniteDuration = 1.millisecond)(level0Meter: Level0Meter): Accelerator =
+            releaseRate: FiniteDuration = 1.millisecond)(level0Meter: LevelZeroMeter): Accelerator =
     Accelerator(
       nextMapSize =
         nextMapSize(increaseMapSizeOnMapCount, increaseMapSizeBy, maxMapSize, level0Meter),
@@ -69,7 +69,7 @@ object Accelerator {
 
   def noBrakes(onMapCount: Int = 6,
                increaseMapSizeBy: Int = 2,
-               maxMapSize: Long = 24.mb)(level0Meter: Level0Meter): Accelerator =
+               maxMapSize: Long = 24.mb)(level0Meter: LevelZeroMeter): Accelerator =
     Accelerator(
       nextMapSize =
         nextMapSize(onMapCount, increaseMapSizeBy, maxMapSize, level0Meter),
@@ -77,7 +77,7 @@ object Accelerator {
         None
     )
 
-  def cruise(level0Meter: Level0Meter): Accelerator =
+  def cruise(level0Meter: LevelZeroMeter): Accelerator =
     Accelerator(
       nextMapSize =
         level0Meter.defaultMapSize,

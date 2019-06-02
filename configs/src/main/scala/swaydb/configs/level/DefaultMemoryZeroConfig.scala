@@ -21,7 +21,7 @@ package swaydb.configs.level
 
 import java.util.concurrent.Executors
 
-import swaydb.data.accelerate.{Accelerator, Level0Meter}
+import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.config._
 
@@ -44,7 +44,7 @@ object DefaultMemoryZeroConfig {
     * Default configuration for a single level zero only Memory database.
     */
   def apply(mapSize: Int,
-            acceleration: Level0Meter => Accelerator): LevelZeroMemoryConfig =
+            acceleration: LevelZeroMeter => Accelerator): LevelZeroMemoryConfig =
     ConfigWizard
       .addMemoryLevel0(
         mapSize = mapSize,

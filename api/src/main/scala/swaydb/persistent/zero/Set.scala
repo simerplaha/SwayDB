@@ -27,7 +27,7 @@ import swaydb.configs.level.DefaultPersistentZeroConfig
 import swaydb.core.BlockingCore
 import swaydb.core.function.FunctionStore
 import swaydb.data.IO
-import swaydb.data.accelerate.{Accelerator, Level0Meter}
+import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config.{Dir, RecoveryMode}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -44,9 +44,9 @@ object Set extends LazyLogging {
                mmapMaps: Boolean = true,
                recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
                otherDirs: Seq[Dir] = Seq.empty,
-               acceleration: Level0Meter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[T],
-                                                                                  keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                  ec: ExecutionContext = SwayDB.defaultExecutionContext): IO[swaydb.Set[T, IO]] =
+               acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[T],
+                                                                                     keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                                                                     ec: ExecutionContext = SwayDB.defaultExecutionContext): IO[swaydb.Set[T, IO]] =
     BlockingCore(
       config = DefaultPersistentZeroConfig(
         dir = dir,

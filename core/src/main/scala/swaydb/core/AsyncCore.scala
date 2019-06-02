@@ -28,7 +28,7 @@ import swaydb.core.level.zero.LevelZero
 import swaydb.core.util.Delay
 import swaydb.data.IO
 import swaydb.data.IO.Error
-import swaydb.data.accelerate.Level0Meter
+import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.io.{Tag, TagAsync}
 import swaydb.data.slice.Slice
@@ -92,7 +92,7 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero)(implicit ec: Executi
   override def sizeOfSegments: Long =
     block.sizeOfSegments
 
-  override def level0Meter: Level0Meter =
+  override def level0Meter: LevelZeroMeter =
     block.level0Meter
 
   override def levelMeter(levelNumber: Int): Option[LevelMeter] =

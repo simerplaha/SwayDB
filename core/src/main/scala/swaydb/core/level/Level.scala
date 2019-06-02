@@ -292,6 +292,15 @@ private[core] case class Level(dirs: Seq[Dir],
         getFromThisLevel(key)
     }
 
+  val meter =
+    new LevelMeter {
+      override def segmentsCount: Int =
+        self.segmentsCount()
+
+      override def levelSize: Long =
+        self.levelSize
+    }
+
   def rootPath: Path =
     dirs.head.path
 
@@ -1130,11 +1139,6 @@ private[core] case class Level(dirs: Seq[Dir],
       case ((segments, size), (_, segment)) =>
         (segments + 1, size + segment.segmentSize)
     }
-
-  def meter: LevelMeter = {
-    val (segmentsCount, levelSize) = segmentCountAndLevelSize
-    LevelMeter(segmentsCount, levelSize)
-  }
 
   def levelNumber: Long =
     paths.head.path.folderId

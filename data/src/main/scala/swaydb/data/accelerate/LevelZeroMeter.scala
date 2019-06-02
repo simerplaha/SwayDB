@@ -19,6 +19,19 @@
 
 package swaydb.data.accelerate
 
-case class Level0Meter(defaultMapSize: Long,
-                       currentMapSize: Long,
-                       mapsCount: Long)
+trait LevelZeroMeter {
+  def defaultMapSize: Long
+  def currentMapSize: Long
+  def mapsCount: Int
+}
+
+private[swaydb] object LevelZeroMeter {
+  def apply(_defaultMapSize: Long,
+            _currentMapSize: Long,
+            _mapsCount: Int): LevelZeroMeter =
+    new LevelZeroMeter {
+      override def defaultMapSize: Long = _defaultMapSize
+      override def currentMapSize: Long = _currentMapSize
+      override def mapsCount: Int = _mapsCount
+    }
+}

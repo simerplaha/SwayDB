@@ -21,7 +21,7 @@ package swaydb.configs.level
 
 import java.nio.file.Path
 
-import swaydb.data.accelerate.{Accelerator, Level0Meter}
+import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.api.grouping.KeyValueGroupingStrategy
 import swaydb.data.compaction.{CompactionExecutionContext, Throttle}
 import swaydb.data.config._
@@ -59,7 +59,7 @@ object DefaultPersistentConfig {
             compressDuplicateValues: Boolean,
             deleteSegmentsEventually: Boolean,
             groupingStrategy: Option[KeyValueGroupingStrategy],
-            acceleration: Level0Meter => Accelerator): SwayDBPersistentConfig =
+            acceleration: LevelZeroMeter => Accelerator): SwayDBPersistentConfig =
     ConfigWizard
       .addPersistentLevel0( //level0
         dir = dir,

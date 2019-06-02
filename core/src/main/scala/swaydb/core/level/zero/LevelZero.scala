@@ -40,7 +40,7 @@ import swaydb.core.seek._
 import swaydb.core.segment.Segment
 import swaydb.core.util.MinMax
 import swaydb.data.IO
-import swaydb.data.accelerate.{Accelerator, Level0Meter}
+import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -56,7 +56,7 @@ private[core] object LevelZero extends LazyLogging {
   def apply(mapSize: Long,
             storage: Level0Storage,
             nextLevel: Option[NextLevel],
-            acceleration: Level0Meter => Accelerator,
+            acceleration: LevelZeroMeter => Accelerator,
             executionContexts: List[CompactionExecutionContext],
             throttleOn: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                  timeOrder: TimeOrder[Slice[Byte]],
@@ -684,8 +684,8 @@ private[core] case class LevelZero(path: Path,
   def closeSegments: IO[Unit] =
     nextLevel.map(_.closeSegments()) getOrElse IO.unit
 
-  def level0Meter: Level0Meter =
-    maps.getMeter
+  def level0Meter: LevelZeroMeter =
+    maps.meter
 
   def levelMeter(levelNumber: Int): Option[LevelMeter] =
     nextLevel.flatMap(_.meterFor(levelNumber))

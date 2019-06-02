@@ -35,7 +35,7 @@ import swaydb.core.map.timer.Timer
 import swaydb.core.queue.FileLimiter
 import swaydb.data.IO
 import swaydb.data.IO._
-import swaydb.data.accelerate.{Accelerator, Level0Meter}
+import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config.RecoveryMode
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -43,14 +43,14 @@ import swaydb.data.slice.Slice
 private[core] object Maps extends LazyLogging {
 
   def memory[K, V: ClassTag](fileSize: Long,
-                             acceleration: Level0Meter => Accelerator)(implicit keyOrder: KeyOrder[K],
-                                                                       timeOrder: TimeOrder[Slice[Byte]],
-                                                                       limiter: FileLimiter,
-                                                                       functionStore: FunctionStore,
-                                                                       mapReader: MapEntryReader[MapEntry[K, V]],
-                                                                       writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                                       skipListMerger: SkipListMerger[K, V],
-                                                                       timer: Timer): Maps[K, V] =
+                             acceleration: LevelZeroMeter => Accelerator)(implicit keyOrder: KeyOrder[K],
+                                                                          timeOrder: TimeOrder[Slice[Byte]],
+                                                                          limiter: FileLimiter,
+                                                                          functionStore: FunctionStore,
+                                                                          mapReader: MapEntryReader[MapEntry[K, V]],
+                                                                          writer: MapEntryWriter[MapEntry.Put[K, V]],
+                                                                          skipListMerger: SkipListMerger[K, V],
+                                                                          timer: Timer): Maps[K, V] =
     new Maps[K, V](
       maps = new ConcurrentLinkedDeque[Map[K, V]](),
       fileSize = fileSize,
@@ -61,7 +61,7 @@ private[core] object Maps extends LazyLogging {
   def persistent[K, V: ClassTag](path: Path,
                                  mmap: Boolean,
                                  fileSize: Long,
-                                 acceleration: Level0Meter => Accelerator,
+                                 acceleration: LevelZeroMeter => Accelerator,
                                  recovery: RecoveryMode)(implicit keyOrder: KeyOrder[K],
                                                          timeOrder: TimeOrder[Slice[Byte]],
                                                          limiter: FileLimiter,
@@ -255,7 +255,7 @@ private[core] object Maps extends LazyLogging {
 
 private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, V]],
                                          fileSize: Long,
-                                         acceleration: Level0Meter => Accelerator,
+                                         acceleration: LevelZeroMeter => Accelerator,
                                          @volatile private var currentMap: Map[K, V])(implicit keyOrder: KeyOrder[K],
                                                                                       timeOrder: TimeOrder[Slice[Byte]],
                                                                                       limiter: FileLimiter,
@@ -263,17 +263,25 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
                                                                                       mapReader: MapEntryReader[MapEntry[K, V]],
                                                                                       writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                                       skipListMerger: SkipListMerger[K, V],
-                                                                                      timer: Timer) extends LazyLogging {
+                                                                                      timer: Timer) extends LazyLogging { self =>
 
   //this listener is invoked when currentMap is full.
   private var onFullListener: () => Unit = () => ()
   // This is crucial for write performance use null instead of Option.
   private var brakePedal: BrakePedal = _
 
-  @volatile var mapsCount = 0L
+  @volatile var totalMapsCount: Int = maps.size() + 1
+  @volatile var mapsCount: Int = maps.size() + 1
 
   def setOnFullListener(event: () => Unit) =
     onFullListener = event
+
+  def meter =
+    new LevelZeroMeter {
+      override def defaultMapSize: Long = fileSize
+      override def currentMapSize: Long = currentMap.fileSize
+      override def mapsCount: Int = self.mapsCount
+    }
 
   def write(mapEntry: Timer => MapEntry[K, V]): IO[IO.OK] =
     synchronized {
@@ -293,7 +301,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
         if (writeSuccessful)
           IO.ok
         else
-          IO(acceleration(Level0Meter(fileSize, currentMap.fileSize, maps.size() + 1))) match {
+          IO(acceleration(meter)) match {
             case IO.Success(accelerate) =>
               accelerate.brake match {
                 case Some(brake) =>
@@ -309,6 +317,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
                 case IO.Success(nextMap) =>
                   maps addFirst currentMap
                   currentMap = nextMap
+                  totalMapsCount += 1
                   mapsCount += 1
                   onFullListener()
                   persist(entry)
@@ -329,6 +338,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
           case IO.Success(nextMap) =>
             maps addFirst currentMap
             currentMap = nextMap
+            totalMapsCount += 1
             mapsCount += 1
             onFullListener()
             IO.Failure(writeException)
@@ -417,6 +427,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
             IO.Failure(error)
 
           case IO.Success(_) =>
+            mapsCount -= 1
             IO.unit
         }
     }
@@ -446,14 +457,11 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
       .getOrElse(IO.unit)
   }
 
-  def getMeter =
-    Level0Meter(fileSize, currentMap.fileSize, maps.size() + 1)
-
   def iterator =
     maps.iterator()
 
   def stateID: Long =
-    mapsCount
+    totalMapsCount
 
   def queuedMaps =
     maps.asScala

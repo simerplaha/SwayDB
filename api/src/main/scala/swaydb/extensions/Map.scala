@@ -21,7 +21,7 @@ package swaydb.extensions
 
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 import swaydb.data.IO
-import swaydb.data.accelerate.Level0Meter
+import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -407,7 +407,7 @@ class Map[K, V](mapKey: Seq[K],
   def mightContain(key: K): IO[Boolean] =
     map mightContain Key.MapEntry(mapKey, key)
 
-  def level0Meter: Level0Meter =
+  def level0Meter: LevelZeroMeter =
     map.level0Meter
 
   def levelMeter(levelNumber: Int): Option[LevelMeter] =

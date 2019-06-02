@@ -21,7 +21,7 @@ package swaydb.extensions
 
 import swaydb.From
 import swaydb.data.IO
-import swaydb.data.accelerate.Level0Meter
+import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.extensions.stream.{MapKeysStream, MapStream}

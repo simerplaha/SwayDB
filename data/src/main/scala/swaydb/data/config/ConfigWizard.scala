@@ -21,7 +21,7 @@ package swaydb.data.config
 
 import java.nio.file.Path
 
-import swaydb.data.accelerate.{Accelerator, Level0Meter}
+import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.api.grouping.KeyValueGroupingStrategy
 import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
 import swaydb.data.storage.Level0Storage
@@ -37,7 +37,7 @@ object ConfigWizard {
                           mmap: Boolean,
                           recoveryMode: RecoveryMode,
                           compactionExecutionContext: CompactionExecutionContext.Create,
-                          acceleration: Level0Meter => Accelerator) =
+                          acceleration: LevelZeroMeter => Accelerator) =
     LevelZeroPersistentConfig(
       mapSize = mapSize,
       storage = Level0Storage.Persistent(mmap, dir, recoveryMode),
@@ -47,7 +47,7 @@ object ConfigWizard {
 
   def addMemoryLevel0(mapSize: Long,
                       compactionExecutionContext: CompactionExecutionContext.Create,
-                      acceleration: Level0Meter => Accelerator) =
+                      acceleration: LevelZeroMeter => Accelerator) =
     LevelZeroMemoryConfig(
       mapSize = mapSize,
       storage = Level0Storage.Memory,
@@ -61,13 +61,13 @@ sealed trait LevelZeroConfig {
   val storage: Level0Storage
   val compactionExecutionContext: CompactionExecutionContext.Create
 
-  def acceleration: Level0Meter => Accelerator
+  def acceleration: LevelZeroMeter => Accelerator
 }
 
 case class LevelZeroPersistentConfig(mapSize: Long,
                                      storage: Level0Storage,
                                      compactionExecutionContext: CompactionExecutionContext.Create,
-                                     acceleration: Level0Meter => Accelerator) extends LevelZeroConfig {
+                                     acceleration: LevelZeroMeter => Accelerator) extends LevelZeroConfig {
   def addPersistentLevel1(dir: Path,
                           otherDirs: Seq[Dir],
                           segmentSize: Int,
@@ -128,7 +128,7 @@ case class LevelZeroPersistentConfig(mapSize: Long,
 case class LevelZeroMemoryConfig(mapSize: Long,
                                  storage: Level0Storage,
                                  compactionExecutionContext: CompactionExecutionContext.Create,
-                                 acceleration: Level0Meter => Accelerator) extends LevelZeroConfig {
+                                 acceleration: LevelZeroMeter => Accelerator) extends LevelZeroConfig {
 
   def addPersistentLevel1(dir: Path,
                           otherDirs: Seq[Dir],

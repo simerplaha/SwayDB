@@ -29,7 +29,7 @@ import swaydb.core.io.file.IOEffect._
 import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.queue.FileLimiter
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
-import swaydb.data.accelerate.{Accelerator, Level0Meter}
+import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config.RecoveryMode
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -55,7 +55,7 @@ class MapsStressSpec extends TestBase {
 
       //disable braking
       val acceleration =
-        (meter: Level0Meter) => {
+        (meter: LevelZeroMeter) => {
           Accelerator(meter.currentMapSize, None)
         }
 

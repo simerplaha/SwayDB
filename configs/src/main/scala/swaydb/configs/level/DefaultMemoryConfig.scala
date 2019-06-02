@@ -21,7 +21,7 @@ package swaydb.configs.level
 
 import java.util.concurrent.Executors
 
-import swaydb.data.accelerate.{Accelerator, Level0Meter}
+import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.api.grouping.KeyValueGroupingStrategy
 import swaydb.data.compaction.{CompactionExecutionContext, Throttle}
 import swaydb.data.config._
@@ -51,7 +51,7 @@ object DefaultMemoryConfig {
             compressDuplicateValues: Boolean,
             deleteSegmentsEventually: Boolean,
             groupingStrategy: Option[KeyValueGroupingStrategy],
-            acceleration: Level0Meter => Accelerator): SwayDBMemoryConfig =
+            acceleration: LevelZeroMeter => Accelerator): SwayDBMemoryConfig =
     ConfigWizard
       .addMemoryLevel0(
         mapSize = mapSize,

@@ -31,7 +31,7 @@ import swaydb.core.map.serializer.LevelZeroMapEntryWriter
 import swaydb.core.map.timer.Timer
 import swaydb.data.IO
 import swaydb.data.IO.Error
-import swaydb.data.accelerate.Level0Meter
+import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.config.{LevelZeroConfig, SwayDBConfig}
 import swaydb.data.io.{Tag, TagAsync}
@@ -346,7 +346,7 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero)(implicit tag: Tag
   def valueSize(key: Slice[Byte]): T[Option[Int]] =
     tag.fromIO(zero.valueSize(key).safeGetBlocking)
 
-  def level0Meter: Level0Meter =
+  def level0Meter: LevelZeroMeter =
     zero.level0Meter
 
   def levelMeter(levelNumber: Int): Option[LevelMeter] =

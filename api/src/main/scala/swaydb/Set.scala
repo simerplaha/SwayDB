@@ -24,7 +24,7 @@ import scala.concurrent.duration.{Deadline, FiniteDuration}
 import swaydb.PrepareImplicits._
 import swaydb.core.Core
 import swaydb.data.IO
-import swaydb.data.accelerate.Level0Meter
+import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.io.{Tag, TagAsync}
 import swaydb.data.io.Tag._
@@ -146,7 +146,7 @@ case class Set[A, T[_]](private val core: Core[T],
   def commit(prepare: Iterable[Prepare[A, Nothing]]): T[IO.OK] =
     wrapCall(core.put(prepare))
 
-  def level0Meter: Level0Meter =
+  def level0Meter: LevelZeroMeter =
     core.level0Meter
 
   def levelMeter(levelNumber: Int): Option[LevelMeter] =

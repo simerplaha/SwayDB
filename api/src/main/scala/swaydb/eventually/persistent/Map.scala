@@ -28,7 +28,7 @@ import swaydb.configs.level.{DefaultEventuallyPersistentConfig, DefaultGroupingS
 import swaydb.core.BlockingCore
 import swaydb.core.function.FunctionStore
 import swaydb.data.IO
-import swaydb.data.accelerate.{Accelerator, Level0Meter}
+import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.api.grouping.KeyValueGroupingStrategy
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -89,10 +89,10 @@ object Map extends LazyLogging {
                   compressDuplicateValues: Boolean = true,
                   deleteSegmentsEventually: Boolean = false,
                   groupingStrategy: Option[KeyValueGroupingStrategy] = Some(DefaultGroupingStrategy()),
-                  acceleration: Level0Meter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
-                                                                                     valueSerializer: Serializer[V],
-                                                                                     keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                     ec: ExecutionContext = SwayDB.defaultExecutionContext): IO[swaydb.Map[K, V, IO]] =
+                  acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
+                                                                                        valueSerializer: Serializer[V],
+                                                                                        keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                                                                        ec: ExecutionContext = SwayDB.defaultExecutionContext): IO[swaydb.Map[K, V, IO]] =
     BlockingCore(
       config =
         DefaultEventuallyPersistentConfig(

@@ -19,5 +19,16 @@
 
 package swaydb.data.compaction
 
-case class LevelMeter(segmentsCount: Int,
-                      levelSize: Long)
+trait LevelMeter {
+  def segmentsCount: Int
+  def levelSize: Long
+}
+
+private[swaydb] object LevelMeter {
+  def apply(_segmentsCount: Int,
+            _levelSize: Long): LevelMeter =
+    new LevelMeter {
+      override def segmentsCount: Int = _segmentsCount
+      override def levelSize: Long = _levelSize
+    }
+}

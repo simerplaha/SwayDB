@@ -37,10 +37,10 @@ class AcceleratorSpec extends WordSpec with Matchers {
         maxMapSize = 10.mb
       )(
         level0Meter =
-          Level0Meter(
-            defaultMapSize = 4.mb,
-            currentMapSize = 4.mb,
-            mapsCount = 1
+          LevelZeroMeter(
+            _defaultMapSize = 4.mb,
+            _currentMapSize = 4.mb,
+            _mapsCount = 1
           )
       ) shouldBe Accelerator(nextMapSize = 4.mb, brake = None)
     }
@@ -55,10 +55,10 @@ class AcceleratorSpec extends WordSpec with Matchers {
         maxMapSize = 10.mb
       )(
         level0Meter =
-          Level0Meter(
-            defaultMapSize = 4.mb,
-            currentMapSize = 4.mb,
-            mapsCount = 2
+          LevelZeroMeter(
+            _defaultMapSize = 4.mb,
+            _currentMapSize = 4.mb,
+            _mapsCount = 2
           )
       ) shouldBe Accelerator(8.mb, Some(Brake(brakeFor = 10.millisecond, releaseRate = 0.5.millisecond)))
     }
@@ -73,10 +73,10 @@ class AcceleratorSpec extends WordSpec with Matchers {
         maxMapSize = 20.mb
       )(
         level0Meter =
-          Level0Meter(
-            defaultMapSize = 4.mb,
-            currentMapSize = 4.mb,
-            mapsCount = 5
+          LevelZeroMeter(
+            _defaultMapSize = 4.mb,
+            _currentMapSize = 4.mb,
+            _mapsCount = 5
           )
       ) shouldBe Accelerator(16.mb, Some(Brake(brakeFor = 40.millisecond, releaseRate = 0.5.millisecond)))
     }
@@ -91,10 +91,10 @@ class AcceleratorSpec extends WordSpec with Matchers {
         maxMapSize = 10.mb
       )(
         level0Meter =
-          Level0Meter(
-            defaultMapSize = 4.mb,
-            currentMapSize = 4.mb,
-            mapsCount = 2
+          LevelZeroMeter(
+            _defaultMapSize = 4.mb,
+            _currentMapSize = 4.mb,
+            _mapsCount = 2
           )
       ) shouldBe Accelerator(10.mb, Some(Brake(brakeFor = 1.second, releaseRate = 100.millisecond)))
     }
@@ -109,10 +109,10 @@ class AcceleratorSpec extends WordSpec with Matchers {
         maxMapSize = 20.mb
       )(
         level0Meter =
-          Level0Meter(
-            defaultMapSize = 4.mb,
-            currentMapSize = 8.mb,
-            mapsCount = 2
+          LevelZeroMeter(
+            _defaultMapSize = 4.mb,
+            _currentMapSize = 8.mb,
+            _mapsCount = 2
           )
       ) shouldBe Accelerator(16.mb, Some(Brake(brakeFor = 1.second, releaseRate = 100.millisecond)))
     }
