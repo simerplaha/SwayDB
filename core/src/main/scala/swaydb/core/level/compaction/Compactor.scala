@@ -8,7 +8,6 @@ import swaydb.data.slice.Slice
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.Deadline
 
 /**
   * Compactor = Compaction-Actor.
@@ -67,7 +66,7 @@ class Compactor extends CompactionStrategy[CompactorState] {
     state
       .compactionStates
       .values
-      .foldLeft(Option.empty[Deadline]) {
+      .foldLeft(Option(LevelCompactionState.longSleepDeadline)) {
         case (nearestDeadline, waiting @ LevelCompactionState.AwaitingPull(ioAync, timeout, _)) =>
           //do not create another hook if a future was already initialised to invoke wakeUp.
           if (!waiting.listenerInitialised) {
