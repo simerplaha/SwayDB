@@ -233,7 +233,7 @@ private[level] object Compaction extends LazyLogging {
                              checkExpired: Boolean,
                              remainingCompactions: Int,
                              segmentsCompacted: Int)(implicit ec: ExecutionContext): IO[Int] =
-    if (!level.hasNextLevel || remainingCompactions == 0)
+    if (!level.hasNextLevel || remainingCompactions <= 0)
       IO.Success(segmentsCompacted)
     else if (checkExpired)
       Segment.getNearestDeadlineSegment(level.segmentsInLevel()) match {
@@ -277,15 +277,15 @@ private[level] object Compaction extends LazyLogging {
         case IO.Success(count) =>
           runLastLevelCompaction(
             level = level,
-            checkExpired = false,
-            remainingCompactions = 0,
+            checkExpired = checkExpired,
+            remainingCompactions = remainingCompactions - segmentsCompacted,
             segmentsCompacted = segmentsCompacted + count
           )
 
         case IO.Later(_, _) | IO.Failure(_) =>
           runLastLevelCompaction(
             level = level,
-            checkExpired = false,
+            checkExpired = checkExpired,
             remainingCompactions = 0,
             segmentsCompacted = segmentsCompacted
           )
