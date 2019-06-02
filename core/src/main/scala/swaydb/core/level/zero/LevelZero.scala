@@ -41,7 +41,7 @@ import swaydb.core.segment.Segment
 import swaydb.core.util.MinMax
 import swaydb.data.IO
 import swaydb.data.accelerate.{Accelerator, Level0Meter}
-import swaydb.data.compaction.{LevelMeter, Throttle}
+import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.Level0Storage
@@ -57,6 +57,7 @@ private[core] object LevelZero extends LazyLogging {
             storage: Level0Storage,
             nextLevel: Option[NextLevel],
             acceleration: Level0Meter => Accelerator,
+            executionContexts: List[CompactionExecutionContext],
             throttleOn: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                  timeOrder: TimeOrder[Slice[Byte]],
                                  limiter: FileLimiter,
@@ -118,6 +119,7 @@ private[core] object LevelZero extends LazyLogging {
           nextLevel = nextLevel,
           inMemory = storage.memory,
           dedicatedLevelZeroCompaction = true,
+          executionContexts = executionContexts,
           lock = lock
         ).startCompaction(copyForwardAllOnStart = true)
     }
@@ -131,6 +133,7 @@ private[core] case class LevelZero(path: Path,
                                    nextLevel: Option[NextLevel],
                                    inMemory: Boolean,
                                    dedicatedLevelZeroCompaction: Boolean,
+                                   executionContexts: List[CompactionExecutionContext],
                                    private val lock: Option[FileLock])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                        timeOrder: TimeOrder[Slice[Byte]],
                                                                        functionStore: FunctionStore,
@@ -139,19 +142,13 @@ private[core] case class LevelZero(path: Path,
 
   logger.info("{}: Level0 started.", path)
 
+  import IO._
   import keyOrder._
   import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
 
-  val compactor: Option[WiredActor[CompactionStrategy[CompactorState], CompactorState]] =
-    nextLevel map {
-      nextLevel =>
-        Compactor(
-          zero = this,
-          levels = LevelRef.getLevels(nextLevel).filterNot(_.isTrash),
-          dedicatedLevelZeroCompaction = dedicatedLevelZeroCompaction,
-          executionContexts = List.fill(2)(???)
-        )
-    }
+  //FIX ME - storing locally temporarily to be used for termination.
+  private var compactor =
+    Option.empty[WiredActor[CompactionStrategy[CompactorState], CompactorState]]
 
   def sendWakeUp(forwardCopyOnAllLevels: Boolean,
                  compactor: WiredActor[CompactionStrategy[CompactorState], CompactorState]): Unit =
@@ -165,12 +162,25 @@ private[core] case class LevelZero(path: Path,
     }
 
   def startCompaction(copyForwardAllOnStart: Boolean): IO[LevelZero] =
-    compactor map {
-      compactor =>
-        maps setOnFullListener (() => sendWakeUp(forwardCopyOnAllLevels = false, compactor))
-        sendWakeUp(forwardCopyOnAllLevels = true, compactor)
-        IO.Success(this)
-    } getOrElse IO.Success(this)
+    nextLevel.toList mapIO {
+      nextLevel =>
+        Compactor(
+          levels = this +: LevelRef.getLevels(nextLevel).filterNot(_.isTrash),
+          executionContexts = executionContexts
+        )
+    } map {
+      compactorOption =>
+        compactorOption.headOption match {
+          case someActor @ Some(actor) =>
+            compactor = someActor
+            maps setOnFullListener (() => sendWakeUp(forwardCopyOnAllLevels = false, actor))
+            sendWakeUp(forwardCopyOnAllLevels = true, actor)
+            this
+
+          case None =>
+            this
+        }
+    }
 
   //LevelZero can also implement PathsDistributor to spread the Maps over to multiple paths.
   override def paths: PathsDistributor =

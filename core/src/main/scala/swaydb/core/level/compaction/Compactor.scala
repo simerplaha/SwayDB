@@ -1,12 +1,15 @@
 package swaydb.core.level.compaction
 
 import swaydb.core.actor.WiredActor
-import swaydb.core.level.zero.LevelZero
-import swaydb.core.level.{LevelRef, NextLevel}
-import swaydb.core.util.{CollectionUtil, FiniteDurationUtil}
+import swaydb.core.level.LevelRef
+import swaydb.core.util.FiniteDurationUtil
+import swaydb.data.IO
+import swaydb.data.IO._
+import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.slice.Slice
 
 import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext
 
 /**
@@ -14,50 +17,59 @@ import scala.concurrent.ExecutionContext
   */
 object Compactor {
 
-  def apply(zero: LevelZero,
-            levels: List[NextLevel],
-            executionContexts: Seq[ExecutionContext],
-            dedicatedLevelZeroCompaction: Boolean)(implicit ordering: CompactionOrdering,
-                                                   compactionStrategy: CompactionStrategy[CompactorState]): WiredActor[CompactionStrategy[CompactorState], CompactorState] = {
-    //split levels into groups such that each group of Levels have dedicated ExecutionContext.
-    //if dedicatedLevelZeroCompaction is set to true set the first ExecutionContext for LevelZero.
-
-    val groupSizeDouble =
-      if (dedicatedLevelZeroCompaction)
-        (levels.size - 1).toDouble / (executionContexts.size - 1).toDouble
-      else
-        levels.size.toDouble / executionContexts.size.toDouble
-
-    CollectionUtil
-      .groupedMergeSingles(
-        groupSize = Math.ceil(groupSizeDouble).toInt,
-        items = zero +: levels,
-        splitAt = if (dedicatedLevelZeroCompaction) 1 else 0
-      )
-      .reverse
+  def apply(levels: List[LevelRef],
+            executionContexts: List[CompactionExecutionContext])(implicit ordering: CompactionOrdering,
+                                                                 compactionStrategy: CompactionStrategy[CompactorState]): IO[WiredActor[CompactionStrategy[CompactorState], CompactorState]] =
+  //split levels into groups such that each group of Levels have dedicated ExecutionContext.
+  //if dedicatedLevelZeroCompaction is set to true set the first ExecutionContext for LevelZero.
+    levels
       .zip(executionContexts)
-      .foldRight(Option.empty[WiredActor[CompactionStrategy[CompactorState], CompactorState]]) {
-        case ((jobs, executionContext), child) =>
-          val statesMap = mutable.Map.empty[LevelRef, LevelCompactionState]
-          val levelOrdering = ordering.ordering(level => statesMap.getOrElse(level, LevelCompactionState.longSleep(level.stateID)))
-          val compaction =
-            CompactorState(
-              levels = Slice(jobs.toArray),
-              compactionStates = statesMap,
-              executionContext = executionContext,
-              child = child,
-              ordering = levelOrdering
-            )
+      .foldLeftIO(ListBuffer.empty[(ListBuffer[LevelRef], ExecutionContext)]) {
+        case (jobs, (level, executionContext)) =>
+          executionContext match {
+            case CompactionExecutionContext.Create(executionContext) =>
+              jobs += ((ListBuffer(level), executionContext))
+              IO.Success(jobs)
 
-          val actor =
-            WiredActor[CompactionStrategy[CompactorState], CompactorState](
-              impl = compactionStrategy,
-              state = compaction
-            )(executionContext)
+            case CompactionExecutionContext.Shared =>
+              jobs.lastOption match {
+                case Some((lastGroup, _)) =>
+                  lastGroup += level
+                  IO.Success(jobs)
 
-          Some(actor)
-      } head
-  }
+                case None =>
+                  //this will never occur because during configuration Level0 is only allowed to have Create
+                  //so Shared can never happen with Create.
+                  IO.Failure(new IllegalStateException("Shared ExecutionContext submitted without Create."))
+              }
+          }
+      }
+      .map {
+        jobs =>
+          jobs
+            .reverse
+            .foldRight(Option.empty[WiredActor[CompactionStrategy[CompactorState], CompactorState]]) {
+              case ((jobs, executionContext), child) =>
+                val statesMap = mutable.Map.empty[LevelRef, LevelCompactionState]
+                val levelOrdering = ordering.ordering(level => statesMap.getOrElse(level, LevelCompactionState.longSleep(level.stateID)))
+                val compaction =
+                  CompactorState(
+                    levels = Slice(jobs.toArray),
+                    compactionStates = statesMap,
+                    executionContext = executionContext,
+                    child = child,
+                    ordering = levelOrdering
+                  )
+
+                val actor =
+                  WiredActor[CompactionStrategy[CompactorState], CompactorState](
+                    impl = compactionStrategy,
+                    state = compaction
+                  )(executionContext)
+
+                Some(actor)
+            } head
+      }
 }
 
 class Compactor extends CompactionStrategy[CompactorState] {

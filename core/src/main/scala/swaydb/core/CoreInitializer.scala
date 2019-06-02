@@ -30,6 +30,7 @@ import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, NextLevel, TrashLevel}
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.data.IO
+import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -70,6 +71,7 @@ private[core] object CoreInitializer extends LazyLogging {
       storage = config.storage,
       nextLevel = None,
       throttleOn = false,
+      executionContexts = List(config.compactionExecutionContext),
       acceleration = config.acceleration
     ) map {
       zero =>
@@ -136,6 +138,20 @@ private[core] object CoreInitializer extends LazyLogging {
           IO.Success(TrashLevel)
       }
 
+    def executionContext(levelConfig: LevelConfig): Option[CompactionExecutionContext] =
+      levelConfig match {
+        case TrashLevelConfig =>
+          None
+        case config: MemoryLevelConfig =>
+          Some(config.compactionExecutionContext)
+        case config: PersistentLevelConfig =>
+          Some(config.compactionExecutionContext)
+      }
+
+    def executionContexts(levelConfigs: List[LevelConfig]): List[CompactionExecutionContext] =
+      List(config.level0.compactionExecutionContext) ++
+        executionContext(config.level1).toList ++
+        levelConfigs.flatMap(executionContext)
 
     def createLevels(levelConfigs: List[LevelConfig],
                      previousLowerLevel: Option[NextLevel]): IO[BlockingCore[IO]] =
@@ -148,6 +164,7 @@ private[core] object CoreInitializer extends LazyLogging {
                 storage = config.level0.storage,
                 nextLevel = Some(level1),
                 throttleOn = true,
+                executionContexts = executionContexts(levelConfigs),
                 acceleration = config.level0.acceleration
               ) map {
                 zero =>

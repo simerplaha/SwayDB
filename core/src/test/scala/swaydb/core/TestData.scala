@@ -47,7 +47,7 @@ import swaydb.core.segment.Segment
 import swaydb.core.util.{IDGenerator, UUIDUtil}
 import swaydb.data.{IO, MaxKey}
 import swaydb.data.accelerate.Accelerator
-import swaydb.data.compaction.{LevelMeter, Throttle}
+import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
 import swaydb.data.config.{Dir, RecoveryMode}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -214,6 +214,7 @@ object TestData {
                   mapSize = mapSize,
                   storage = Level0Storage.Persistent(true, level.path.getParent, RecoveryMode.ReportFailure),
                   nextLevel = level.nextLevel,
+                  executionContexts = level.executionContexts,
                   acceleration = Accelerator.brake(),
                   throttleOn = level.throttleOn
                 )

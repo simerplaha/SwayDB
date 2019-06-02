@@ -42,7 +42,7 @@ import swaydb.core.segment.Segment
 import swaydb.core.util.IDGenerator
 import swaydb.data.IO
 import swaydb.data.accelerate.{Accelerator, Level0Meter}
-import swaydb.data.compaction.{LevelMeter, Throttle}
+import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
 import swaydb.data.config.{Dir, RecoveryMode}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -331,6 +331,15 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
         storage = level0Storage,
         nextLevel = nextLevel,
         throttleOn = throttleOn,
+        executionContexts =
+          //start off with one ExecutionContext initialised for LevelZero.
+          CompactionExecutionContext.Create(TestExecutionContext.executionContext) +:
+            List.fill(
+              n = nextLevel.map(LevelRef.getLevels).map(_.size).getOrElse(0))(
+              eitherOne(
+                CompactionExecutionContext.Create(TestExecutionContext.executionContext),
+                CompactionExecutionContext.Shared)
+            ),
         acceleration = brake,
       ).assertGet
   }
