@@ -4,6 +4,8 @@ package swaydb.core.util
 import java.nio.ByteBuffer
 
 import swaydb.core.data.KeyValue
+import swaydb.core.io.reader.Reader
+import swaydb.data.IO
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 
@@ -14,13 +16,16 @@ object BloomFilter {
 
   val emptyBloomFilter = BloomFilter(1, 1)
 
+  val byteBufferStartOffset = ByteSizeOf.int + ByteSizeOf.int
+
   def apply(numberOfItems: Int, falsePositiveRate: Double): BloomFilter = {
     val numberOfBits = optimalNumberOfBits(numberOfItems, falsePositiveRate)
     val numberOfHashes = optimalNumberOfHashes(numberOfItems, numberOfBits)
-    val buffer = ByteBuffer.allocate(ByteSizeOf.int + ByteSizeOf.int + numberOfBits)
+    val buffer = ByteBuffer.allocate(byteBufferStartOffset + numberOfBits)
     buffer.putInt(numberOfBits)
     buffer.putInt(numberOfHashes)
     new BloomFilter(
+      startOffset = byteBufferStartOffset,
       numberOfBits = numberOfBits,
       numberOfHashes = numberOfHashes,
       buffer = buffer
@@ -33,12 +38,20 @@ object BloomFilter {
   def optimalNumberOfHashes(numberOfItems: Int, numberOfBits: Long): Int =
     math.ceil(numberOfBits / numberOfItems * math.log(2)).toInt
 
-  def apply(in: Slice[Byte]): BloomFilter = {
-    val reader = in.createReader()
-    val numberOfBits = reader.readInt()
-    val numberOfHashes = reader.readInt()
-    val buffer = reader.readRemaining().toByteBuffer
-    new BloomFilter(numberOfBits, numberOfHashes, buffer)
+  def apply(slice: Slice[Byte]): IO[BloomFilter] = {
+    val reader = Reader(slice)
+    for {
+      numberOfBits <- reader.readInt()
+      numberOfHashes <- reader.readInt()
+      buffer <- reader.readRemaining()
+    } yield {
+      new BloomFilter(
+        startOffset = byteBufferStartOffset,
+        numberOfBits = numberOfBits,
+        numberOfHashes = numberOfHashes,
+        buffer = buffer.toByteBuffer
+      )
+    }
   }
 
   def byteSize(numberOfItems: Int, falsePositiveRate: Double): Int =
@@ -63,11 +76,10 @@ object BloomFilter {
     }
 }
 
-class BloomFilter(numberOfBits: Int,
+class BloomFilter(startOffset: Int,
+                  numberOfBits: Int,
                   numberOfHashes: Int,
                   buffer: ByteBuffer) {
-
-  val startOffset = ByteSizeOf.int + ByteSizeOf.int
 
   private def get(index: Long): Boolean =
     (buffer.getLong(startOffset + ((index >>> 6) * 8L).toInt) & (1L << index)) != 0

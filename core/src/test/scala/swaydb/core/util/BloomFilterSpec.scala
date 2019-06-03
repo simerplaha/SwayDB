@@ -40,7 +40,7 @@ class BloomFilterSpec extends TestBase {
       (1 to 10) foreach (key => bloomFilter.mightContain(key) shouldBe true)
       (11 to 20) foreach (key => bloomFilter.mightContain(key) shouldBe false)
 
-      val readBloomFilter = BloomFilter(bloomFilter.toSlice)
+      val readBloomFilter = BloomFilter(bloomFilter.toSlice).get
       (1 to 10) foreach (key => readBloomFilter.mightContain(key) shouldBe true)
       (11 to 20) foreach (key => readBloomFilter.mightContain(key) shouldBe false)
     }

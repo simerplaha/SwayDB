@@ -263,7 +263,7 @@ private[core] object SegmentReader extends LazyLogging {
             hasRange = hasRange,
             hasPut = hasPut,
             bloomFilterItemsCount = bloomFilterItemsCount,
-            bloomFilter = bloomFilterSlice.map(BloomFilter(_))
+            bloomFilter = bloomFilterSlice.map(BloomFilter(_).get)
           )
         )
       }
