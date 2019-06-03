@@ -210,7 +210,7 @@ object Compactor extends CompactionStrategy[CompactorState] {
       compactorOption =>
         compactorOption.headOption map {
           actor =>
-            zero setCompactionListener (() => sendWakeUp(forwardCopyOnAllLevels = false, actor))
+            zero onNextMapCallback (() => sendWakeUp(forwardCopyOnAllLevels = false, actor))
             sendWakeUp(forwardCopyOnAllLevels = true, actor)
             IO.Success(actor)
         } getOrElse IO.Failure(IO.Error.Fatal(new Exception("Compaction not started.")))

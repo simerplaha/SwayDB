@@ -24,13 +24,11 @@ import java.nio.file.{Path, Paths, StandardOpenOption}
 import java.util
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.actor.WiredActor
 import swaydb.core.data.KeyValue._
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.IOEffect
-import swaydb.core.level.compaction._
-import swaydb.core.level.{LevelRef, NextLevel, PathsDistributor}
+import swaydb.core.level.{LevelRef, NextLevel}
 import swaydb.core.map
 import swaydb.core.map.serializer.{TimerMapEntryReader, TimerMapEntryWriter}
 import swaydb.core.map.timer.Timer
@@ -41,7 +39,7 @@ import swaydb.core.segment.Segment
 import swaydb.core.util.MinMax
 import swaydb.data.IO
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
+import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.Level0Storage
@@ -73,7 +71,12 @@ private[core] object LevelZero extends LazyLogging {
         case Level0Storage.Persistent(mmap, databaseDirectory, recovery) =>
           val timerDir = databaseDirectory.resolve("0").resolve("timer")
           IOEffect createDirectoriesIfAbsent timerDir
-          Timer.persistent(timerDir, mmap, 100000, 1.mb) flatMap {
+          Timer.persistent(
+            path = timerDir,
+            mmap = mmap,
+            mod = 100000,
+            flushCheckpointSize = 1.mb
+          ) flatMap {
             implicit timer =>
               val path = databaseDirectory.resolve("0")
               logger.info("{}: Acquiring lock.", path)
@@ -82,7 +85,13 @@ private[core] object LevelZero extends LazyLogging {
               IO(FileChannel.open(lockFile, StandardOpenOption.WRITE).tryLock()) flatMap {
                 lock =>
                   logger.info("{}: Recovering Maps.", path)
-                  Maps.persistent[Slice[Byte], Memory.SegmentResponse](path, mmap, mapSize, acceleration, recovery) map {
+                  Maps.persistent[Slice[Byte], Memory.SegmentResponse](
+                    path = path,
+                    mmap = mmap,
+                    fileSize = mapSize,
+                    acceleration = acceleration,
+                    recovery = recovery
+                  ) map {
                     maps =>
                       (maps, path, Some(lock))
                   }
@@ -108,7 +117,11 @@ private[core] object LevelZero extends LazyLogging {
 
           timer map {
             implicit timer =>
-              val map = Maps.memory[Slice[Byte], Memory.SegmentResponse](mapSize, acceleration)
+              val map =
+                Maps.memory[Slice[Byte], Memory.SegmentResponse](
+                  fileSize = mapSize,
+                  acceleration = acceleration
+                )
               (map, Paths.get("MEMORY_DB").resolve(0.toString), None)
           }
       }
@@ -120,7 +133,6 @@ private[core] object LevelZero extends LazyLogging {
           maps = maps,
           nextLevel = nextLevel,
           inMemory = storage.memory,
-          dedicatedLevelZeroCompaction = true,
           executionContexts = executionContexts,
           throttle = throttle,
           lock = lock
@@ -134,7 +146,6 @@ private[core] case class LevelZero(path: Path,
                                    maps: Maps[Slice[Byte], Memory.SegmentResponse],
                                    nextLevel: Option[NextLevel],
                                    inMemory: Boolean,
-                                   dedicatedLevelZeroCompaction: Boolean,
                                    executionContexts: List[CompactionExecutionContext],
                                    throttle: LevelZeroMeter => FiniteDuration,
                                    private val lock: Option[FileLock])(implicit keyOrder: KeyOrder[Slice[Byte]],
@@ -149,7 +160,7 @@ private[core] case class LevelZero(path: Path,
   val levelZeroMeter: LevelZeroMeter =
     maps.meter
 
-  def setCompactionListener(event: () => Unit): Unit =
+  def onNextMapCallback(event: () => Unit): Unit =
     maps onNextMapCallback event
 
   def releaseLocks: IO[Unit] =
