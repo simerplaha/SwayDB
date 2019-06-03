@@ -58,11 +58,10 @@ private[core] object LevelZero extends LazyLogging {
             nextLevel: Option[NextLevel],
             acceleration: LevelZeroMeter => Accelerator,
             executionContexts: List[CompactionExecutionContext],
-            throttle: LevelZeroMeter => FiniteDuration,
-            throttleOn: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                 timeOrder: TimeOrder[Slice[Byte]],
-                                 limiter: FileLimiter,
-                                 functionStore: FunctionStore): IO[LevelZero] = {
+            throttle: LevelZeroMeter => FiniteDuration)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                        timeOrder: TimeOrder[Slice[Byte]],
+                                                        limiter: FileLimiter,
+                                                        functionStore: FunctionStore): IO[LevelZero] = {
     import swaydb.core.map.serializer.LevelZeroMapEntryReader.Level0Reader
     import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
     implicit val timerReader = TimerMapEntryReader.TimerPutMapEntryReader
@@ -114,7 +113,6 @@ private[core] object LevelZero extends LazyLogging {
           path = path,
           mapSize = mapSize,
           maps = maps,
-          throttleOn = throttleOn,
           nextLevel = nextLevel,
           inMemory = storage.memory,
           dedicatedLevelZeroCompaction = true,
@@ -129,7 +127,6 @@ private[core] object LevelZero extends LazyLogging {
 private[core] case class LevelZero(path: Path,
                                    mapSize: Long,
                                    maps: Maps[Slice[Byte], Memory.SegmentResponse],
-                                   throttleOn: Boolean,
                                    nextLevel: Option[NextLevel],
                                    inMemory: Boolean,
                                    dedicatedLevelZeroCompaction: Boolean,

@@ -76,7 +76,6 @@ private[core] object CoreInitializer extends LazyLogging {
       mapSize = config.mapSize,
       storage = config.storage,
       nextLevel = None,
-      throttleOn = false,
       executionContexts = List(config.compactionExecutionContext),
       throttle = config.throttle,
       acceleration = config.acceleration
@@ -155,8 +154,10 @@ private[core] object CoreInitializer extends LazyLogging {
       levelConfig match {
         case TrashLevelConfig =>
           None
+
         case config: MemoryLevelConfig =>
           Some(config.compactionExecutionContext)
+
         case config: PersistentLevelConfig =>
           Some(config.compactionExecutionContext)
       }
@@ -188,7 +189,6 @@ private[core] object CoreInitializer extends LazyLogging {
                 storage = config.level0.storage,
                 nextLevel = Some(level1),
                 throttle = config.level0.throttle,
-                throttleOn = true,
                 executionContexts = executionContexts(config.otherLevels),
                 acceleration = config.level0.acceleration
               ) flatMap {
@@ -198,7 +198,11 @@ private[core] object CoreInitializer extends LazyLogging {
                     copyForwardAllOnStart = true
                   ) map {
                     compactor =>
-                      addShutdownHook(zero, compactor)
+                      addShutdownHook(
+                        zero = zero,
+                        compactor = compactor
+                      )
+
                       BlockingCore(
                         zero = zero,
                         onClose = () => IO(compactor foreach compactionStrategy.terminate)

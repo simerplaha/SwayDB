@@ -67,7 +67,7 @@ sealed trait CompactorSpec extends TestBase with MockFactory {
     "build compaction hierarchy" when {
       "there are two Levels and one new ExecutionContext" in {
         val nextLevel = TestLevel()
-        val zero = TestLevelZero(nextLevel = Some(nextLevel), throttleOn = false)
+        val zero = TestLevelZero(nextLevel = Some(nextLevel))
 
         val actor =
           Compactor.createActor(
@@ -85,7 +85,7 @@ sealed trait CompactorSpec extends TestBase with MockFactory {
 
       "there are two Levels and two new ExecutionContext" in {
         val nextLevel = TestLevel()
-        val zero = TestLevelZero(nextLevel = Some(nextLevel), throttleOn = false)
+        val zero = TestLevelZero(nextLevel = Some(nextLevel))
 
         val actor =
           Compactor.createActor(
@@ -108,7 +108,7 @@ sealed trait CompactorSpec extends TestBase with MockFactory {
       "there are three Levels and one new ExecutionContext" in {
         val nextLevel2 = TestLevel()
         val nextLevel = TestLevel(nextLevel = Some(nextLevel2))
-        val zero = TestLevelZero(nextLevel = Some(nextLevel), throttleOn = false)
+        val zero = TestLevelZero(nextLevel = Some(nextLevel))
 
         val actor =
           Compactor.createActor(
@@ -128,7 +128,7 @@ sealed trait CompactorSpec extends TestBase with MockFactory {
       "there are three Levels and two new ExecutionContext" in {
         val nextLevel2 = TestLevel()
         val nextLevel = TestLevel(nextLevel = Some(nextLevel2))
-        val zero = TestLevelZero(nextLevel = Some(nextLevel), throttleOn = false)
+        val zero = TestLevelZero(nextLevel = Some(nextLevel))
 
         val actor =
           Compactor.createActor(

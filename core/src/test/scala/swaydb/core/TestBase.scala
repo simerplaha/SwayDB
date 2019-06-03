@@ -322,8 +322,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
     def apply(nextLevel: Option[Level],
               mapSize: Long = mapSize,
               brake: LevelZeroMeter => Accelerator = Accelerator.brake(),
-              throttle: LevelZeroMeter => FiniteDuration = _ => Duration.Zero,
-              throttleOn: Boolean = true)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+              throttle: LevelZeroMeter => FiniteDuration = _ => Duration.Zero)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                           keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
                                           timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                           fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter): LevelZero =
@@ -331,7 +330,6 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
         mapSize = mapSize,
         storage = level0Storage,
         nextLevel = nextLevel,
-        throttleOn = throttleOn,
         throttle = throttle,
         executionContexts =
           //start off with one ExecutionContext initialised for LevelZero.
@@ -418,7 +416,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
     val level3 = TestLevel(nextLevel = Some(level4), throttle = throttle)
     val level2 = TestLevel(nextLevel = Some(level3), throttle = throttle)
     val level1 = TestLevel(nextLevel = Some(level2), throttle = throttle)
-    val level0 = TestLevelZero(nextLevel = Some(level1), throttleOn = throttleOn)
+    val level0 = TestLevelZero(nextLevel = Some(level1), ???)
 
     println("Levels started")
 

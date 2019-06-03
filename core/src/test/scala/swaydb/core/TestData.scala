@@ -220,8 +220,7 @@ object TestData {
                   nextLevel = level.nextLevel,
                   executionContexts = level.executionContexts,
                   acceleration = Accelerator.brake(),
-                  throttle = level.throttle,
-                  throttleOn = level.throttleOn
+                  throttle = level.throttle
                 )
             }
         }
