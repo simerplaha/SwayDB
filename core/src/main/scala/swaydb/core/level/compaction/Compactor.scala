@@ -200,20 +200,23 @@ object Compactor extends CompactionStrategy[CompactorState] {
   def createStartAndListen(zero: LevelZero,
                            executionContexts: List[CompactionExecutionContext],
                            copyForwardAllOnStart: Boolean)(implicit compactionOrdering: CompactionOrdering): IO[WiredActor[CompactionStrategy[CompactorState], CompactorState]] =
-    zero.nextLevel.toList mapIO {
-      nextLevel =>
+    zero.nextLevel match {
+      case Some(nextLevel) =>
         Compactor.createActor(
           levels = zero +: LevelRef.getLevels(nextLevel).filterNot(_.isTrash),
           executionContexts = executionContexts
-        )
-    } flatMap {
-      compactorOption =>
-        compactorOption.headOption map {
-          actor =>
-            zero onNextMapCallback (() => sendWakeUp(forwardCopyOnAllLevels = false, actor))
-            sendWakeUp(forwardCopyOnAllLevels = true, actor)
-            IO.Success(actor)
-        } getOrElse IO.Failure(IO.Error.Fatal(new Exception("Compaction not started.")))
+        ) map {
+          compactor =>
+            zero onNextMapCallback (() => sendWakeUp(forwardCopyOnAllLevels = false, compactor))
+            sendWakeUp(
+              forwardCopyOnAllLevels = true,
+              compactor = compactor
+            )
+            compactor
+        }
+
+      case None =>
+        IO.Failure(IO.Error.Fatal(new Exception("Compaction not started.")))
     }
 
   override def wakeUp(state: CompactorState,
