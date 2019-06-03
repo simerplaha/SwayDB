@@ -306,7 +306,6 @@ object Slice {
       slice = extendedSlice
     }
 
-    @tailrec
     final def +=(x: T): this.type =
       try {
         slice add x

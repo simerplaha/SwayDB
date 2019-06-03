@@ -41,7 +41,6 @@ private[core] sealed trait KeyValue {
 
   def keyLength =
     key.size
-
 }
 
 private[core] object KeyValue {
@@ -94,7 +93,6 @@ private[core] object KeyValue {
       def toFromValue(): IO[Value.Put]
       def copyWithDeadlineAndTime(deadline: Option[Deadline], time: Time): KeyValue.ReadOnly.Put
       def copyWithTime(time: Time): KeyValue.ReadOnly.Put
-
     }
 
     sealed trait Remove extends KeyValue.ReadOnly.Fixed {
@@ -228,7 +226,6 @@ private[core] object KeyValue {
           next
         }
       }
-
   }
 
   object WriteOnly {
@@ -290,7 +287,6 @@ private[core] object KeyValue {
 private[swaydb] sealed trait Memory extends KeyValue.ReadOnly {
 
   def key: Slice[Byte]
-
 }
 
 private[swaydb] object Memory {
@@ -418,7 +414,6 @@ private[swaydb] object Memory {
 
     override def toRangeValue(): IO[Value.PendingApply] =
       toFromValue()
-
   }
 
   case class Remove(key: Slice[Byte],
@@ -471,7 +466,6 @@ private[swaydb] object Memory {
 
     override def fetchFromAndRangeValue: IO[(Option[Value.FromValue], Value.RangeValue)] =
       IO.Success(fromValue, rangeValue)
-
   }
 
   object Group {
@@ -501,8 +495,8 @@ private[swaydb] object Memory {
         minKey = minKey,
         maxKey = maxKey,
         unsliceKey = false,
-        getFooter = groupDecompressor.footer,
-        createReader = groupDecompressor.reader
+        getFooter = groupDecompressor.footer _,
+        createReader = groupDecompressor.reader _
       )
 
     override def indexEntryDeadline: Option[Deadline] = deadline
@@ -610,7 +604,6 @@ private[core] object Transient {
 
     override def hasTimeLeft(): Boolean =
       deadline.exists(_.hasTimeLeft())
-
   }
 
   case class Put(key: Slice[Byte],
@@ -656,7 +649,6 @@ private[core] object Transient {
 
     override def hasTimeLeft(): Boolean =
       deadline.forall(_.hasTimeLeft())
-
   }
 
   case class Update(key: Slice[Byte],
@@ -698,7 +690,6 @@ private[core] object Transient {
         previous = previous,
         deadline = deadline
       )
-
   }
 
   case class Function(key: Slice[Byte],
@@ -742,7 +733,6 @@ private[core] object Transient {
         previous = previous,
         deadline = deadline
       )
-
   }
 
   object PendingApply {
@@ -809,7 +799,6 @@ private[core] object Transient {
         previous = previous,
         deadline = deadline
       )
-
   }
 
   object Range {
@@ -908,7 +897,6 @@ private[core] object Transient {
         isPut = fromValue.exists(_.isInstanceOf[Value.Put]),
         deadline = None
       )
-
   }
 
   object Group {
@@ -1015,7 +1003,6 @@ private[core] object Persistent {
 
     def toMemoryResponseOption(): IO[Option[Memory.SegmentResponse]] =
       toMemory() map (Some(_))
-
   }
   sealed trait Fixed extends Persistent.SegmentResponse with KeyValue.ReadOnly.Fixed
 
@@ -1257,7 +1244,6 @@ private[core] object Persistent {
         valueOffset = valueOffset,
         valueLength = valueLength
       )
-
   }
 
   case class Function(private var _key: Slice[Byte],
@@ -1494,8 +1480,8 @@ private[core] object Persistent {
         //slicing will just use more memory. On memory overflow the Group itself will get dropped and hence all the
         //key-values inside the group's SegmentCache will also be GC'd.
         unsliceKey = false,
-        getFooter = groupDecompressor.footer,
-        createReader = groupDecompressor.reader
+        getFooter = groupDecompressor.footer _,
+        createReader = groupDecompressor.reader _
       )
 
     override def indexEntryDeadline: Option[Deadline] = deadline
@@ -1539,6 +1525,5 @@ private[core] object Persistent {
 
     override def isValueDefined: Boolean =
       lazyGroupValueReader.isValueDefined
-
   }
 }

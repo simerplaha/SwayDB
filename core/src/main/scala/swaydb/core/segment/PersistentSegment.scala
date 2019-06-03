@@ -71,7 +71,7 @@ private[segment] case class PersistentSegment(file: DBFile,
       minKey = minKey,
       cache = cache,
       unsliceKey = true,
-      getFooter = getFooter,
+      getFooter = getFooter _,
       createReader = () => IO(createReader())
     )
 
