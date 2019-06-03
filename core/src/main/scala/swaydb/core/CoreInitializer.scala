@@ -172,11 +172,21 @@ private[core] object CoreInitializer extends LazyLogging {
       if (config.otherLevels.isEmpty)
         IO.none
       else
-        compactionStrategy.createStartAndListen(
+        compactionStrategy.createAndListen(
           zero = zero,
           executionContexts = executionContexts(config.otherLevels),
           copyForwardAllOnStart = copyForwardAllOnStart
         ) map (Some(_))
+
+    def sendInitialWakeUp(compactor: WiredActor[CompactionStrategy[CompactorState], CompactorState]): Unit =
+      compactor send {
+        (impl, state, self) =>
+          impl.wakeUp(
+            state = state,
+            forwardCopyOnAllLevels = true,
+            self = self
+          )
+      }
 
     def createLevels(levelConfigs: List[LevelConfig],
                      previousLowerLevel: Option[NextLevel]): IO[BlockingCore[IO]] =
@@ -198,6 +208,9 @@ private[core] object CoreInitializer extends LazyLogging {
                     copyForwardAllOnStart = true
                   ) map {
                     compactor =>
+                      //trigger initial wakeUp.
+                      compactor foreach sendInitialWakeUp
+
                       addShutdownHook(
                         zero = zero,
                         compactor = compactor

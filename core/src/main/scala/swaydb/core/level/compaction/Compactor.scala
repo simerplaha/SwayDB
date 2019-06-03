@@ -49,23 +49,20 @@ object Compactor extends CompactionStrategy[CompactorState] {
       levels
         .zip(executionContexts)
         .foldLeftIO(ListBuffer.empty[(ListBuffer[LevelRef], ExecutionContext)]) {
-          case (jobs, (level, executionContext)) =>
-            executionContext match {
-              case CompactionExecutionContext.Create(executionContext) =>
-                jobs += ((ListBuffer(level), executionContext))
+          case (jobs, (level, CompactionExecutionContext.Create(executionContext))) => //new thread pool.
+            jobs += ((ListBuffer(level), executionContext))
+            IO.Success(jobs)
+
+          case (jobs, (level, CompactionExecutionContext.Shared)) => //share with previous thread pool.
+            jobs.lastOption match {
+              case Some((lastGroup, _)) =>
+                lastGroup += level
                 IO.Success(jobs)
 
-              case CompactionExecutionContext.Shared =>
-                jobs.lastOption match {
-                  case Some((lastGroup, _)) =>
-                    lastGroup += level
-                    IO.Success(jobs)
-
-                  case None =>
-                    //this will never occur because during configuration Level0 is only allowed to have Create
-                    //so Shared can never happen with Create.
-                    IO.Failure(IO.Error.Fatal(new IllegalStateException("Shared ExecutionContext submitted without Create.")))
-                }
+              case None =>
+                //this will never occur because during configuration Level0 is only allowed to have Create
+                //so Shared can never happen with Create.
+                IO.Failure(IO.Error.Fatal(new IllegalStateException("Shared ExecutionContext submitted without Create.")))
             }
         }
         .map {
@@ -197,27 +194,45 @@ object Compactor extends CompactionStrategy[CompactorState] {
       .foreach(terminateActor)
   }
 
-  def createStartAndListen(zero: LevelZero,
-                           executionContexts: List[CompactionExecutionContext],
-                           copyForwardAllOnStart: Boolean)(implicit compactionOrdering: CompactionOrdering): IO[WiredActor[CompactionStrategy[CompactorState], CompactorState]] =
-    zero.nextLevel match {
-      case Some(nextLevel) =>
+  def createCompactor(zero: LevelZero,
+                      executionContexts: List[CompactionExecutionContext])(implicit compactionOrdering: CompactionOrdering): Option[IO[WiredActor[CompactionStrategy[CompactorState], CompactorState]]] =
+    zero.nextLevel map {
+      nextLevel =>
         Compactor.createActor(
           levels = zero +: LevelRef.getLevels(nextLevel).filterNot(_.isTrash),
           executionContexts = executionContexts
-        ) map {
+        )
+    }
+
+  private def listen(zero: LevelZero,
+                     actor: WiredActor[CompactionStrategy[CompactorState], CompactorState]) =
+    zero onNextMapCallback (
+      event =
+        () =>
+          sendWakeUp(
+            forwardCopyOnAllLevels = false,
+            compactor = actor
+          )
+      )
+
+  def createAndListen(zero: LevelZero,
+                      executionContexts: List[CompactionExecutionContext],
+                      copyForwardAllOnStart: Boolean)(implicit compactionOrdering: CompactionOrdering): IO[WiredActor[CompactionStrategy[CompactorState], CompactorState]] =
+    createCompactor(
+      zero = zero,
+      executionContexts = executionContexts
+    ) map {
+      compactor =>
+        compactor map {
           compactor =>
-            zero onNextMapCallback (() => sendWakeUp(forwardCopyOnAllLevels = false, compactor))
-            sendWakeUp(
-              forwardCopyOnAllLevels = true,
-              compactor = compactor
+            //listen to changes in levelZero
+            listen(
+              zero = zero,
+              actor = compactor
             )
             compactor
         }
-
-      case None =>
-        IO.Failure(IO.Error.Fatal(new Exception("Compaction not started.")))
-    }
+    } getOrElse IO.Failure(IO.Error.Fatal(new Exception("Compaction not started.")))
 
   override def wakeUp(state: CompactorState,
                       forwardCopyOnAllLevels: Boolean,

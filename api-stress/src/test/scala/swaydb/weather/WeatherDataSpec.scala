@@ -275,8 +275,8 @@ sealed trait WeatherDataSpec extends TestBase with LazyLogging with Benchmark wi
   "concurrently write 1 million weather data entries using BookPickle and read using multiple APIs concurrently" in {
     //do initial put or batch (whichever one) to ensure that data exists for readRequests.
     //    doPut
-//    doBatch(inBatchesOf = 100000 min keyValueCount)
-    putRequest runThis 4.times
+    doBatch(inBatchesOf = 100000 min keyValueCount)
+//    putRequest runThis 4.times
 //    batchRandomRequest runThis 2.times
 //    batchRequest(inBatchesOf = 10000 min keyValueCount)
     //    Future {

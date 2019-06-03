@@ -26,9 +26,9 @@ import swaydb.data.compaction.CompactionExecutionContext
 
 private[core] trait CompactionStrategy[S] {
 
-  def createStartAndListen(zero: LevelZero,
-                           executionContexts: List[CompactionExecutionContext],
-                           copyForwardAllOnStart: Boolean)(implicit compactionOrdering: CompactionOrdering): IO[WiredActor[CompactionStrategy[CompactorState], CompactorState]]
+  def createAndListen(zero: LevelZero,
+                      executionContexts: List[CompactionExecutionContext],
+                      copyForwardAllOnStart: Boolean)(implicit compactionOrdering: CompactionOrdering): IO[WiredActor[CompactionStrategy[CompactorState], CompactorState]]
 
   def wakeUp(state: S,
              forwardCopyOnAllLevels: Boolean,
