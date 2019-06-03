@@ -42,14 +42,20 @@ private[core] case class CompactorState(levels: Slice[LevelRef],
   val hasLevelZero: Boolean = levels.exists(_.isZero)
   val levelsReversed = Slice(levels.reverse.toArray)
 
-  def nextCompactionDeadline: Deadline =
-    levels.foldLeft(365.days.fromNow) {
-      case (deadline, level) =>
-        FiniteDurationUtil.getNearestDeadline(
-          Some(deadline),
-          Some(level.nextCompactionDelay.fromNow)
-        ) getOrElse deadline
-    }
+  def nextThrottleDeadline: Deadline =
+    if (levels.isEmpty)
+    //Yep there needs to be a type-safe way of doing this and not thrown exception using a NonEmptyList.
+    //But since levels are created internally this should never really occur. There will never be a
+    //empty levels in CompactorState.
+      throw new Exception("CompactorState created without Levels.")
+    else
+      levels.foldLeft(365.days.fromNow) {
+        case (deadline, level) =>
+          FiniteDurationUtil.getNearestDeadline(
+            Some(deadline),
+            Some(level.nextCompactionDelay.fromNow)
+          ) getOrElse deadline
+      }
 
   def terminateCompaction() =
     terminate = true

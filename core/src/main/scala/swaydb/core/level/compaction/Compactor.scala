@@ -111,7 +111,7 @@ object Compactor extends CompactionStrategy[CompactorState] {
     state
       .compactionStates
       .values
-      .foldLeft(Option(state.nextCompactionDeadline)) {
+      .foldLeft(Option(state.nextThrottleDeadline)) {
         case (nearestDeadline, waiting @ LevelCompactionState.AwaitingPull(ioAync, timeout, _)) =>
           //do not create another hook if a future was already initialised to invoke wakeUp.
           if (!waiting.listenerInitialised) {

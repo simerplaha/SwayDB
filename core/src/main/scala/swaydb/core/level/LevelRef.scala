@@ -25,7 +25,7 @@ import swaydb.core.data.KeyValue
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.segment.Segment
 import swaydb.data.IO
-import swaydb.data.compaction.{LevelMeter, Throttle}
+import swaydb.data.compaction.LevelMeter
 import swaydb.data.slice.Slice
 
 import scala.annotation.tailrec
