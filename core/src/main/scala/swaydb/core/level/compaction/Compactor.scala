@@ -39,10 +39,14 @@ import scala.concurrent.ExecutionContext
   */
 object Compactor extends CompactionStrategy[CompactorState] {
 
+  /**
+    * Split levels into compaction groups with dedicated or shared ExecutionContexts based on
+    * the input [[CompactionExecutionContext]] config.
+    *
+    * @return return the root parent Actor with child Actors.
+    */
   def createActor(levels: List[LevelRef],
                   executionContexts: List[CompactionExecutionContext])(implicit ordering: CompactionOrdering): IO[WiredActor[CompactionStrategy[CompactorState], CompactorState]] =
-  //split levels into groups such that each group of Levels have dedicated ExecutionContext.
-  //if dedicatedLevelZeroCompaction is set to true set the first ExecutionContext for LevelZero.
     if (levels.size != executionContexts.size)
       IO.Failure(IO.Error.Fatal(new IllegalStateException(s"Number of ExecutionContexts(${executionContexts.size}) are not the same as number of Levels(${levels.size}).")))
     else
@@ -110,7 +114,7 @@ object Compactor extends CompactionStrategy[CompactorState] {
                       self = self
                     )
                 }
-            }(self.ec)
+            }(self.ec) //use the execution context of the same Actor.
             waiting.listenerInitialised = true
           }
 
