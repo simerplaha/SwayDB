@@ -104,7 +104,7 @@ private[swaydb] object BlockingCore {
     }
 }
 
-private[swaydb] case class BlockingCore[T[_]](zero: LevelZero)(implicit tag: Tag[T]) extends Core[T] {
+private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO[Unit])(implicit tag: Tag[T]) extends Core[T] {
 
   def put(key: Slice[Byte]): T[IO.OK] =
     tag.fromIO(zero.put(key))
@@ -353,11 +353,11 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero)(implicit tag: Tag
     zero.meterFor(levelNumber)
 
   def close(): T[Unit] =
-    tag.fromIO(zero.close)
+    tag.fromIO(onClose().flatMap(_ => zero.close))
 
   override def async[T[_]](implicit ec: ExecutionContext, tag: TagAsync[T]): Core[T] =
-    AsyncCore(zero)
+    AsyncCore(zero, onClose)
 
   override def blocking[T[_]](implicit tag: Tag[T]): BlockingCore[T] =
-    BlockingCore(zero)
+    BlockingCore(zero, onClose)
 }

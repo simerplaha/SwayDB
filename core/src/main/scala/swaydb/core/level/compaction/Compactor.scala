@@ -197,9 +197,9 @@ object Compactor extends CompactionStrategy[CompactorState] {
       .foreach(terminateActor)
   }
 
-  def createAndStart(zero: LevelZero,
-                     executionContexts: List[CompactionExecutionContext],
-                     copyForwardAllOnStart: Boolean)(implicit compactionOrdering: CompactionOrdering): IO[WiredActor[CompactionStrategy[CompactorState], CompactorState]] =
+  def createStartAndListen(zero: LevelZero,
+                           executionContexts: List[CompactionExecutionContext],
+                           copyForwardAllOnStart: Boolean)(implicit compactionOrdering: CompactionOrdering): IO[WiredActor[CompactionStrategy[CompactorState], CompactorState]] =
     zero.nextLevel.toList mapIO {
       nextLevel =>
         Compactor.createActor(

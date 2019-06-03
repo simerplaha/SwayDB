@@ -33,10 +33,10 @@ import swaydb.data.compaction.LevelMeter
 import swaydb.data.io.{Tag, TagAsync}
 import swaydb.data.slice.Slice
 
-private[swaydb] case class AsyncCore[T[_]](zero: LevelZero)(implicit ec: ExecutionContext,
-                                                            tag: TagAsync[T]) extends Core[T] {
+private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[Unit])(implicit ec: ExecutionContext,
+                                                                                     tag: TagAsync[T]) extends Core[T] {
 
-  private val block = BlockingCore[IO](zero)(Tag.io)
+  private val block = BlockingCore[IO](zero, onClose)(Tag.io)
 
   override def put(key: Slice[Byte]): T[IO.OK] =
     tag.fromIO(block.put(key))
@@ -279,5 +279,5 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero)(implicit ec: Executi
     copy(zero)
 
   override def blocking[T[_]](implicit tag: Tag[T]): BlockingCore[T] =
-    BlockingCore(zero)
+    BlockingCore(zero, onClose)
 }

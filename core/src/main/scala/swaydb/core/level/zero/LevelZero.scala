@@ -67,8 +67,6 @@ private[core] object LevelZero extends LazyLogging {
     import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
     implicit val timerReader = TimerMapEntryReader.TimerPutMapEntryReader
     implicit val timerWriter = TimerMapEntryWriter.TimerPutMapEntryWriter
-    implicit val compactionStrategy: CompactionStrategy[CompactorState] = Compactor
-    implicit val compactionOrdering: CompactionOrdering = DefaultCompactionOrdering
 
     implicit val skipListMerger: SkipListMerger[Slice[Byte], Memory.SegmentResponse] = LevelZeroSkipListMerger
     val mapsAndPathAndLock =
@@ -110,7 +108,7 @@ private[core] object LevelZero extends LazyLogging {
               (map, Paths.get("MEMORY_DB").resolve(0.toString), None)
           }
       }
-    mapsAndPathAndLock flatMap {
+    mapsAndPathAndLock map {
       case (maps, path, lock: Option[FileLock]) =>
         new LevelZero(
           path = path,
@@ -123,7 +121,7 @@ private[core] object LevelZero extends LazyLogging {
           executionContexts = executionContexts,
           throttle = throttle,
           lock = lock
-        ).startCompaction(copyForwardAllOnStart = true)
+        )
     }
   }
 }
@@ -139,35 +137,15 @@ private[core] case class LevelZero(path: Path,
                                    throttle: LevelZeroMeter => FiniteDuration,
                                    private val lock: Option[FileLock])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                        timeOrder: TimeOrder[Slice[Byte]],
-                                                                       functionStore: FunctionStore,
-                                                                       compactionStrategy: CompactionStrategy[CompactorState],
-                                                                       compactionOrdering: CompactionOrdering) extends LevelRef with LazyLogging {
+                                                                       functionStore: FunctionStore) extends LevelRef with LazyLogging {
 
   logger.info("{}: Level0 started.", path)
 
   import keyOrder._
   import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
 
-  //FIX ME - storing locally temporarily to be used for termination.
-  private var compactor =
-    Option.empty[WiredActor[CompactionStrategy[CompactorState], CompactorState]]
-
   val levelZeroMeter: LevelZeroMeter =
     maps.meter
-
-  def startCompaction(copyForwardAllOnStart: Boolean): IO[LevelZero] =
-    if (!throttleOn || nextLevel.isEmpty)
-      IO.Success(this)
-    else
-      compactionStrategy.createAndStart(
-        zero = this,
-        executionContexts = executionContexts,
-        copyForwardAllOnStart = copyForwardAllOnStart
-      ) map {
-        actor =>
-          compactor = Some(actor)
-          this
-      }
 
   def releaseLocks: IO[Unit] =
     IOEffect.release(lock) flatMap {
@@ -671,10 +649,7 @@ private[core] case class LevelZero(path: Path,
         logger.error(s"$path: Failed to close maps", exception)
     }
     releaseLocks
-    nextLevel.map(_.close) getOrElse IO.unit map {
-      _ =>
-        compactor foreach compactionStrategy.terminate
-    }
+    nextLevel.map(_.close) getOrElse IO.unit
   }
 
   def closeSegments: IO[Unit] =

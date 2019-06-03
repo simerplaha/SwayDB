@@ -22,10 +22,12 @@ package swaydb.core
 import java.nio.file.Paths
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.core.actor.WiredActor
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.io.file.BufferCleaner
 import swaydb.core.io.file.IOEffect._
+import swaydb.core.level.compaction._
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, NextLevel, TrashLevel}
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
@@ -44,9 +46,12 @@ private[core] object CoreInitializer extends LazyLogging {
   /**
     * Closes all the open files and releases the locks on database folders.
     */
-  private def addShutdownHook(zero: LevelZero): Unit =
+  private def addShutdownHook(zero: LevelZero,
+                              compactor: Option[WiredActor[CompactionStrategy[CompactorState], CompactorState]])(implicit compactionStrategy: CompactionStrategy[CompactorState]): Unit =
     sys.addShutdownHook {
       logger.info("Closing files.")
+      compactor foreach compactionStrategy.terminate
+
       zero.close.failed foreach {
         exception =>
           logger.error("Failed to close Levels.", exception)
@@ -64,6 +69,7 @@ private[core] object CoreInitializer extends LazyLogging {
                                      timeOrder: TimeOrder[Slice[Byte]],
                                      functionStore: FunctionStore): IO[BlockingCore[IO]] = {
     implicit val fileLimiter = FileLimiter.empty
+    implicit val compactionStrategy: CompactionStrategy[CompactorState] = Compactor
     if (config.storage.isMMAP) BufferCleaner.initialiseCleaner(ec)
 
     LevelZero(
@@ -76,8 +82,8 @@ private[core] object CoreInitializer extends LazyLogging {
       acceleration = config.acceleration
     ) map {
       zero =>
-        addShutdownHook(zero)
-        BlockingCore[IO](zero)
+        addShutdownHook(zero, None)
+        BlockingCore[IO](zero, () => IO.unit)
     }
   }
 
@@ -94,6 +100,12 @@ private[core] object CoreInitializer extends LazyLogging {
 
     implicit val keyValueLimiter: KeyValueLimiter =
       KeyValueLimiter(cacheSize, keyValueQueueDelay)
+
+    implicit val compactionStrategy: CompactionStrategy[CompactorState] =
+      Compactor
+
+    implicit val compactionOrdering: CompactionOrdering =
+      DefaultCompactionOrdering
 
     BufferCleaner.initialiseCleaner(ec)
 
@@ -154,6 +166,17 @@ private[core] object CoreInitializer extends LazyLogging {
         executionContext(config.level1).toList ++
         levelConfigs.flatMap(executionContext)
 
+    def startCompaction(zero: LevelZero,
+                        copyForwardAllOnStart: Boolean): IO[Option[WiredActor[CompactionStrategy[CompactorState], CompactorState]]] =
+      if (config.otherLevels.isEmpty)
+        IO.none
+      else
+        compactionStrategy.createStartAndListen(
+          zero = zero,
+          executionContexts = executionContexts(config.otherLevels),
+          copyForwardAllOnStart = copyForwardAllOnStart
+        ) map (Some(_))
+
     def createLevels(levelConfigs: List[LevelConfig],
                      previousLowerLevel: Option[NextLevel]): IO[BlockingCore[IO]] =
       levelConfigs match {
@@ -168,10 +191,19 @@ private[core] object CoreInitializer extends LazyLogging {
                 throttleOn = true,
                 executionContexts = executionContexts(config.otherLevels),
                 acceleration = config.level0.acceleration
-              ) map {
+              ) flatMap {
                 zero =>
-                  addShutdownHook(zero)
-                  BlockingCore(zero)
+                  startCompaction(
+                    zero = zero,
+                    copyForwardAllOnStart = true
+                  ) map {
+                    compactor =>
+                      addShutdownHook(zero, compactor)
+                      BlockingCore(
+                        zero = zero,
+                        onClose = () => IO(compactor foreach compactionStrategy.terminate)
+                      )
+                  }
               }
           }
 
