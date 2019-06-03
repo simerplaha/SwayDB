@@ -279,15 +279,12 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
                                                                                       timer: Timer) extends LazyLogging { self =>
 
   //this listener is invoked when currentMap is full.
-  private var onFullListener: () => Unit = () => ()
+  private var onNextMapListener: () => Unit = () => ()
   // This is crucial for write performance use null instead of Option.
   private var brakePedal: BrakePedal = _
 
   @volatile private var totalMapsCount: Int = maps.size() + 1
   @volatile private var mapsCount: Int = maps.size() + 1
-
-  def setOnFullListener(event: () => Unit) =
-    onFullListener = event
 
   val meter =
     new LevelZeroMeter {
@@ -295,6 +292,9 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
       override def currentMapSize: Long = currentMap.fileSize
       override def mapsCount: Int = self.mapsCount
     }
+
+  private[level] def onNextMapCallback(event: () => Unit): Unit =
+    onNextMapListener = event
 
   def write(mapEntry: Timer => MapEntry[K, V]): IO[IO.OK] =
     synchronized {
@@ -332,7 +332,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
                   currentMap = nextMap
                   totalMapsCount += 1
                   mapsCount += 1
-                  onFullListener()
+                  onNextMapListener()
                   persist(entry)
 
                 case IO.Failure(error) =>
@@ -353,7 +353,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
             currentMap = nextMap
             totalMapsCount += 1
             mapsCount += 1
-            onFullListener()
+            onNextMapListener()
             IO.Failure(writeException)
 
           case IO.Failure(newMapException) =>

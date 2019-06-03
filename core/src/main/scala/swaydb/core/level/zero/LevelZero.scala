@@ -95,7 +95,12 @@ private[core] object LevelZero extends LazyLogging {
               case Some(persistentPath) =>
                 val timerDir = persistentPath.getParent.resolve("0").resolve("timer")
                 IOEffect createDirectoriesIfAbsent timerDir
-                Timer.persistent(timerDir, LevelRef.hasMMAP(nextLevel), 100000, 1.mb)
+                Timer.persistent(
+                  path = timerDir,
+                  mmap = LevelRef.hasMMAP(nextLevel),
+                  mod = 100000,
+                  flushCheckpointSize = 1.mb
+                )
 
               case None =>
                 IO.Success(Timer.memory())
@@ -143,6 +148,9 @@ private[core] case class LevelZero(path: Path,
 
   val levelZeroMeter: LevelZeroMeter =
     maps.meter
+
+  def setCompactionListener(event: () => Unit): Unit =
+    maps onNextMapCallback event
 
   def releaseLocks: IO[Unit] =
     IOEffect.release(lock) flatMap {

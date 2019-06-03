@@ -100,7 +100,6 @@ private[core] object PersistentTimer extends LazyLogging {
                   IO.Failure(IO.Error.Fatal(new Exception("Failed to initialise PersistentTimer.")))
             }
         }
-
     }
   }
 
@@ -113,7 +112,7 @@ private[core] object PersistentTimer extends LazyLogging {
     * for each [[PersistentTimer.next]] call can increase in-memory objects which can cause
     * performance issues.
     *
-    * Throwing exception on failure here is ok since failures are not expected and if failure does occur
+    * Throwing exception on failure is temporarily solution since failures are not expected and if failure does occur
     * it would be due to file system permission issue.
     *
     * Possibly needs a better solution.
@@ -125,13 +124,13 @@ private[core] object PersistentTimer extends LazyLogging {
       failed =>
         val message = s"Failed to write timer entry: $nextTime"
         logger.error(message, failed.exception)
-        throw new Exception(message)
+        throw new Exception(message) //:O see note above
     } foreach {
       wrote =>
         if (!wrote) {
           val message = s"Failed to write timer entry: $nextTime"
           logger.error(message)
-          throw new Exception(message)
+          throw new Exception(message) //:O see note above
         }
     }
 }
