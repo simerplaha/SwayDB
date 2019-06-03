@@ -90,8 +90,8 @@ object Compactor extends CompactionStrategy[CompactorState] {
               } head
         }
 
-  private def scheduleNextWakeUp(state: CompactorState,
-                                 self: WiredActor[CompactionStrategy[CompactorState], CompactorState]): Unit =
+  def scheduleNextWakeUp(state: CompactorState,
+                         self: WiredActor[CompactionStrategy[CompactorState], CompactorState]): Unit =
     state
       .compactionStates
       .values
@@ -143,7 +143,7 @@ object Compactor extends CompactionStrategy[CompactorState] {
           }
       }
 
-  private def wakeUpChild(state: CompactorState): Unit =
+  def wakeUpChild(state: CompactorState): Unit =
     state
       .child
       .foreach {
@@ -204,8 +204,12 @@ object Compactor extends CompactionStrategy[CompactorState] {
         )
     } getOrElse IO.Failure(IO.Error.Fatal(new Exception("Compaction not started because there is no lower level.")))
 
-  private def listen(zero: LevelZero,
-                     actor: WiredActor[CompactionStrategy[CompactorState], CompactorState]) =
+  /**
+    * Note: [[LevelZero.onNextMapCallback]] does not support thread-safe updates so it should be
+    * called on the same thread as LevelZero's initialisation thread.
+    */
+  def listen(zero: LevelZero,
+             actor: WiredActor[CompactionStrategy[CompactorState], CompactorState]) =
     zero onNextMapCallback (
       event =
         () =>

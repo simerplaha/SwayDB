@@ -293,7 +293,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
       override def mapsCount: Int = self.mapsCount
     }
 
-  private[level] def onNextMapCallback(event: () => Unit): Unit =
+  private[core] def onNextMapCallback(event: () => Unit): Unit =
     onNextMapListener = event
 
   def write(mapEntry: Timer => MapEntry[K, V]): IO[IO.OK] =

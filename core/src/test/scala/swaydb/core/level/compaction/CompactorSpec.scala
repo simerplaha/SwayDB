@@ -20,11 +20,18 @@
 package swaydb.core.level.compaction
 
 import org.scalamock.scalatest.MockFactory
+import swaydb.core.RunThis._
+import swaydb.core.actor.WiredActor
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
+import swaydb.core.util.Delay
 import swaydb.core.{TestBase, TestExecutionContext, TestLimitQueues, TestTimer}
 import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
+import swaydb.data.{IO, Reserve}
+
+import scala.collection.mutable
+import scala.concurrent.duration._
 
 class CompactorSpec0 extends CompactorSpec
 
@@ -147,6 +154,146 @@ sealed trait CompactorSpec extends TestBase with MockFactory {
         val childActor = actor.unsafeGetState.child.get.unsafeGetState
         childActor.child shouldBe empty
         childActor.levels.map(_.rootPath) should contain only nextLevel2.rootPath
+      }
+    }
+  }
+
+  "scheduleNextWakeUp" should {
+    val nextLevel = TestLevel()
+    val level = TestLevel(nextLevel = Some(nextLevel))
+
+    val testState =
+      CompactorState(
+        levels = Slice(level, nextLevel),
+        child = None,
+        ordering = DefaultCompactionOrdering.ordering(_ => LevelCompactionState.longSleep(0)),
+        executionContext = TestExecutionContext.executionContext,
+        compactionStates = mutable.Map.empty
+      )
+
+    "not trigger wakeUp" when {
+      "level states were empty" in {
+        val compactor = mock[CompactionStrategy[CompactorState]]
+
+        val actor =
+          WiredActor[CompactionStrategy[CompactorState], CompactorState](
+            impl = compactor,
+            state = testState
+          )
+
+        Compactor.scheduleNextWakeUp(
+          state = testState,
+          self = actor
+        )
+
+        sleep(5.seconds)
+      }
+    }
+
+    "trigger wakeUp" when {
+      "one of level states is awaiting pull and successfully received read" in {
+        //create IO.Later that is busy
+        val reserve = Reserve[Unit](())
+        reserve.isBusy shouldBe true
+        val busy = IO.Error.DecompressingIndex(reserve)
+        val later = IO.Later((), busy)
+        later.isBusy shouldBe true
+
+        val awaitingPull = LevelCompactionState.AwaitingPull(later, 1.minute.fromNow, 0)
+        awaitingPull.isReady shouldBe false
+        //set the state to be awaiting pull
+        val state =
+          testState.copy(
+            compactionStates =
+              mutable.Map(
+                level -> awaitingPull
+              )
+          )
+        //mock the compaction that should expect a wakeUp call
+        val compactor = mock[CompactionStrategy[CompactorState]]
+        compactor.wakeUp _ expects(*, *, *) onCall {
+          (callState, doCopy, _) =>
+            callState shouldBe state
+            doCopy shouldBe false
+        }
+
+        //initialise Compactor with the mocked class
+        val actor =
+          WiredActor[CompactionStrategy[CompactorState], CompactorState](
+            impl = compactor,
+            state = state
+          )
+
+        Compactor.scheduleNextWakeUp(
+          state = state,
+          self = actor
+        )
+        //after calling scheduleNextWakeUp listener should be initialised.
+        //this ensures that multiple wakeUp callbacks do not get registered for the same pull.
+        awaitingPull.listenerInitialised shouldBe true
+
+        //free the reserve and compaction should expect a message.
+        Delay.future(1.second)(Reserve.setFree(reserve))
+
+        eventual(3.seconds) {
+          //eventually is set to be ready.
+          awaitingPull.isReady shouldBe true
+          //next sleep task is initialised
+          state.sleepTask shouldBe defined
+          //it's the await's timeout.
+          state.sleepTask.get._2 shouldBe awaitingPull.timeout
+        }
+      }
+
+      "one of level states is awaiting pull and other Level's sleep is shorter" in {
+        //create IO.Later that is busy
+        val reserve = Reserve[Unit](())
+        reserve.isBusy shouldBe true
+        val busy = IO.Error.DecompressingIndex(reserve)
+        val later = IO.Later((), busy)
+        later.isBusy shouldBe true
+
+        val level1AwaitingPull = LevelCompactionState.AwaitingPull(later, 1.minute.fromNow, 0)
+        level1AwaitingPull.isReady shouldBe false
+
+        //level 2's sleep is shorter than level1's awaitPull timeout sleep.
+        val level2Sleep = LevelCompactionState.Sleep(5.seconds.fromNow, 0)
+        //set the state to be awaiting pull
+        val state =
+          testState.copy(
+            compactionStates =
+              mutable.Map(
+                level -> level1AwaitingPull,
+                nextLevel -> level2Sleep
+              )
+          )
+        //mock the compaction that should expect a wakeUp call
+        val compactor = mock[CompactionStrategy[CompactorState]]
+        compactor.wakeUp _ expects(*, *, *) onCall {
+          (callState, doCopy, _) =>
+            callState shouldBe state
+            doCopy shouldBe false
+        }
+
+        //initialise Compactor with the mocked class
+        val actor =
+          WiredActor[CompactionStrategy[CompactorState], CompactorState](
+            impl = compactor,
+            state = state
+          )
+
+        Compactor.scheduleNextWakeUp(
+          state = state,
+          self = actor
+        )
+        //a callback for awaiting pull should always be initialised.
+        level1AwaitingPull.listenerInitialised shouldBe true
+        state.sleepTask shouldBe defined
+        //Level2's sleep is ending earlier than Level1's so task should be set for Level2's deadline.
+        state.sleepTask.get._2 shouldBe level2Sleep.sleepDeadline
+
+        //give it sometime and wakeUp call initialised by Level2 will be triggered.
+        sleep(level2Sleep.sleepDeadline.timeLeft + 1.second)
       }
     }
   }
