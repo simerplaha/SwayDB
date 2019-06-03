@@ -70,10 +70,12 @@ object DefaultPersistentConfig {
         compactionExecutionContext = CompactionExecutionContext.Create(executionContext),
         throttle =
           meter =>
-            if (meter.mapsCount >= 5)
+            if (meter.mapsCount > 3)
               Duration.Zero
-            else
+            else if (meter.mapsCount > 2)
               1.second
+            else
+              1.minute
       )
       .addPersistentLevel1( //level1
         dir = dir,
@@ -211,10 +213,10 @@ object DefaultPersistentConfig {
         groupingStrategy = groupingStrategy,
         compactionExecutionContext = CompactionExecutionContext.Create(executionContext),
         throttle =
-          levelMeter => {
-            val delay = (10 - levelMeter.segmentsCount).seconds
-            val batch = levelMeter.segmentsCount min 5
-            Throttle(delay, batch)
-          }
+          levelMeter =>
+            if (levelMeter.hasSmallSegments)
+              Throttle(10.seconds, 5)
+            else
+              Throttle(1.hour, 5)
       )
 }

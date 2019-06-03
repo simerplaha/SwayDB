@@ -166,21 +166,18 @@ private[core] object CoreInitializer extends LazyLogging {
           Some(config.compactionExecutionContext)
       }
 
-    def executionContexts(levelConfigs: List[LevelConfig]): List[CompactionExecutionContext] =
+    def executionContexts(): List[CompactionExecutionContext] =
       List(config.level0.compactionExecutionContext) ++
         executionContext(config.level1).toList ++
-        levelConfigs.flatMap(executionContext)
+        config.otherLevels.flatMap(executionContext)
 
     def startCompaction(zero: LevelZero,
                         copyForwardAllOnStart: Boolean): IO[Option[WiredActor[CompactionStrategy[CompactorState], CompactorState]]] =
-      if (config.otherLevels.isEmpty)
-        IO.none
-      else
-        compactionStrategy.createAndListen(
-          zero = zero,
-          executionContexts = executionContexts(config.otherLevels),
-          copyForwardAllOnStart = copyForwardAllOnStart
-        ) map (Some(_))
+      compactionStrategy.createAndListen(
+        zero = zero,
+        executionContexts = executionContexts(),
+        copyForwardAllOnStart = copyForwardAllOnStart
+      ) map (Some(_))
 
     def sendInitialWakeUp(compactor: WiredActor[CompactionStrategy[CompactorState], CompactorState]): Unit =
       compactor send {
@@ -203,7 +200,7 @@ private[core] object CoreInitializer extends LazyLogging {
                 storage = config.level0.storage,
                 nextLevel = Some(level1),
                 throttle = config.level0.throttle,
-                executionContexts = executionContexts(config.otherLevels),
+                executionContexts = executionContexts(),
                 acceleration = config.level0.acceleration
               ) flatMap {
                 zero =>

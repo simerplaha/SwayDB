@@ -168,6 +168,7 @@ private[core] object TrashLevel extends NextLevel {
     new LevelMeter {
       override def segmentsCount: Int = 0
       override def levelSize: Long = 0
+      override def hasSmallSegments: Boolean = false
     }
 
   override def refresh(segment: Segment)(implicit ec: ExecutionContext): IO.Async[Unit] =
@@ -184,4 +185,7 @@ private[core] object TrashLevel extends NextLevel {
 
   override def nextCompactionDelay: FiniteDuration =
     365.days
+
+  override def nextThrottlePushCount: Int =
+    0
 }

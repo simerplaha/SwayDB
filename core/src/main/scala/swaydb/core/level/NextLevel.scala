@@ -105,4 +105,6 @@ trait NextLevel extends LevelRef {
                    condition: Segment => Boolean): Iterable[Segment]
 
   def segmentsInLevel(): Iterable[Segment]
+
+  def nextThrottlePushCount: Int
 }

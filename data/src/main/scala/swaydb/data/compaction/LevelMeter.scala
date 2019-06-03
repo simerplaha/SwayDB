@@ -22,6 +22,7 @@ package swaydb.data.compaction
 trait LevelMeter {
   def segmentsCount: Int
   def levelSize: Long
+  def hasSmallSegments: Boolean
 }
 
 private[swaydb] object LevelMeter {
@@ -30,5 +31,6 @@ private[swaydb] object LevelMeter {
     new LevelMeter {
       override def segmentsCount: Int = _segmentsCount
       override def levelSize: Long = _levelSize
+      override def hasSmallSegments: Boolean = false
     }
 }

@@ -59,4 +59,10 @@ private[core] case class CompactorState(levels: Slice[LevelRef],
 
   def terminateCompaction() =
     terminate = true
+
+  def id =
+    if (levels.size == 1)
+      "Level(" + levels.map(_.levelNumber).mkString(", ") + ")"
+    else
+      "Levels(" + levels.map(_.levelNumber).mkString(", ") + ")"
 }

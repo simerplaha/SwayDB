@@ -19,6 +19,7 @@
 
 package swaydb.core.level.compaction
 
+import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.actor.WiredActor
 import swaydb.core.level.LevelRef
 import swaydb.core.level.zero.LevelZero
@@ -37,7 +38,7 @@ import scala.concurrent.ExecutionContext
   *
   * Implements Actor functions.
   */
-object Compactor extends CompactionStrategy[CompactorState] {
+object Compactor extends CompactionStrategy[CompactorState] with LazyLogging {
 
   /**
     * Split levels into compaction groups with dedicated or shared ExecutionContexts based on
@@ -48,7 +49,7 @@ object Compactor extends CompactionStrategy[CompactorState] {
   def createActor(levels: List[LevelRef],
                   executionContexts: List[CompactionExecutionContext])(implicit ordering: CompactionOrdering): IO[WiredActor[CompactionStrategy[CompactorState], CompactorState]] =
     if (levels.size != executionContexts.size)
-      IO.Failure(IO.Error.Fatal(new IllegalStateException(s"Number of ExecutionContexts(${executionContexts.size}) are not the same as number of Levels(${levels.size}).")))
+      IO.Failure(IO.Error.Fatal(new IllegalStateException(s"Number of ExecutionContexts(${executionContexts.size}) is not the same as number of Levels(${levels.size}).")))
     else
       levels
         .zip(executionContexts)
@@ -214,6 +215,7 @@ object Compactor extends CompactionStrategy[CompactorState] {
                       executionContexts: List[CompactionExecutionContext])(implicit compactionOrdering: CompactionOrdering): IO[WiredActor[CompactionStrategy[CompactorState], CompactorState]] =
     zero.nextLevel map {
       nextLevel =>
+        logger.debug(s"Level(${zero.levelNumber}): Creating actor.")
         Compactor.createActor(
           levels = zero +: LevelRef.getLevels(nextLevel).filterNot(_.isTrash),
           executionContexts = executionContexts
@@ -243,6 +245,7 @@ object Compactor extends CompactionStrategy[CompactorState] {
       executionContexts = executionContexts
     ) map {
       compactor =>
+        logger.debug(s"Level(${zero.levelNumber}): Initialising listener.")
         //listen to changes in levelZero
         listen(
           zero = zero,

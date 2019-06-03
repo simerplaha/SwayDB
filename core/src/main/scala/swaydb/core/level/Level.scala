@@ -299,6 +299,9 @@ private[core] case class Level(dirs: Seq[Dir],
 
       override def levelSize: Long =
         self.levelSize
+
+      override def hasSmallSegments: Boolean =
+        self.hasSmallSegments
     }
 
   def rootPath: Path =
@@ -1161,6 +1164,9 @@ private[core] case class Level(dirs: Seq[Dir],
   override def takeSmallSegments(size: Int): Iterable[Segment] =
     appendix.values().asScala.filter(_.segmentSize < segmentSize) take size
 
+  def hasSmallSegments: Boolean =
+    appendix.values().asScala.exists(_.segmentSize < segmentSize)
+
   def close: IO[Unit] =
     (nextLevel.map(_.close) getOrElse IO.unit) flatMap {
       _ =>
@@ -1198,4 +1204,7 @@ private[core] case class Level(dirs: Seq[Dir],
 
   override def nextCompactionDelay: FiniteDuration =
     throttle(meter).pushDelay
+
+  override def nextThrottlePushCount: Int =
+    throttle(meter).segmentsToPush
 }

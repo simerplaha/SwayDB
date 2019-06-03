@@ -276,6 +276,9 @@ sealed trait WeatherDataSpec extends TestBase with LazyLogging with Benchmark wi
     //do initial put or batch (whichever one) to ensure that data exists for readRequests.
     //    doPut
     doBatch(inBatchesOf = 100000 min keyValueCount)
+
+    sleep(1.minute)
+    putRequest
 //    putRequest runThis 4.times
 //    batchRandomRequest runThis 2.times
 //    batchRequest(inBatchesOf = 10000 min keyValueCount)
