@@ -89,9 +89,12 @@ private[level] object Compaction extends LazyLogging {
         case Some(level) =>
           logger.debug(s"${state.id}: Running compaction.")
           if (state.compactionStates.get(level).forall(state => shouldRun(level, state))) {
+            logger.debug(s"${state.id}: shouldRun = true.")
             val nextState = runJob(level)(state.executionContext)
             logger.debug(s"${state.id}: next state $nextState.")
-            if (shouldRun(level, nextState))
+            val willRun = shouldRun(level, nextState)
+            logger.debug(s"${state.id}: shouldRun on nextState: $willRun. nextState: $nextState.")
+            if (willRun)
               runJobs(state, currentJobs)
             else
               state.compactionStates.put(
@@ -99,8 +102,10 @@ private[level] object Compaction extends LazyLogging {
                 value = nextState
               )
           }
-          else
+          else {
+            logger.debug(s"${state.id}: shouldRun = false.")
             runJobs(state, currentJobs.dropHead())
+          }
 
         case None =>
           //all jobs complete.
@@ -269,13 +274,14 @@ private[level] object Compaction extends LazyLogging {
                              checkExpired: Boolean,
                              remainingCompactions: Int,
                              segmentsCompacted: Int)(implicit ec: ExecutionContext): IO[Int] =
-    if (!level.hasNextLevel || remainingCompactions <= 0)
+    if (level.hasNextLevel || remainingCompactions <= 0)
       IO.Success(segmentsCompacted)
     else if (checkExpired)
       Segment.getNearestDeadlineSegment(level.segmentsInLevel()) match {
         case Some(segment) =>
           level.refresh(segment) match {
             case IO.Success(_) =>
+              logger.debug(s"Level(${level.levelNumber}): Refresh successful.")
               runLastLevelCompaction(
                 level = level,
                 checkExpired = checkExpired,
@@ -284,6 +290,7 @@ private[level] object Compaction extends LazyLogging {
               )
 
             case IO.Later(_, _) =>
+              logger.debug(s"Level(${level.levelNumber}): Later on refresh.")
               runLastLevelCompaction(
                 level = level,
                 checkExpired = false,
@@ -311,14 +318,24 @@ private[level] object Compaction extends LazyLogging {
     else
       level.collapse(level.takeSmallSegments(remainingCompactions max 2)) match { //need at least 2 for collapse.
         case IO.Success(count) =>
+          logger.debug(s"Level(${level.levelNumber}): Collapsed $count small segments.")
           runLastLevelCompaction(
             level = level,
             checkExpired = checkExpired,
-            remainingCompactions = remainingCompactions - segmentsCompacted,
+            remainingCompactions = if (count == 0) 0 else remainingCompactions - count,
             segmentsCompacted = segmentsCompacted + count
           )
 
-        case IO.Later(_, _) | IO.Failure(_) =>
+        case IO.Later(_, _) =>
+          logger.debug(s"Level(${level.levelNumber}): Later on collapse.")
+          runLastLevelCompaction(
+            level = level,
+            checkExpired = checkExpired,
+            remainingCompactions = 0,
+            segmentsCompacted = segmentsCompacted
+          )
+
+        case IO.Failure(_) =>
           runLastLevelCompaction(
             level = level,
             checkExpired = checkExpired,

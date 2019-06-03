@@ -1162,10 +1162,10 @@ private[core] case class Level(dirs: Seq[Dir],
     appendix.values().asScala.filter(_.segmentSize > segmentSize) take size
 
   override def takeSmallSegments(size: Int): Iterable[Segment] =
-    appendix.values().asScala.filter(_.segmentSize < segmentSize) take size
+    appendix.values().asScala.filter(isSmallSegment) take size
 
   def hasSmallSegments: Boolean =
-    appendix.values().asScala.exists(_.segmentSize < segmentSize)
+    appendix.values().asScala exists isSmallSegment
 
   def close: IO[Unit] =
     (nextLevel.map(_.close) getOrElse IO.unit) flatMap {

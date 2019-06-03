@@ -118,6 +118,7 @@ object Compactor extends CompactionStrategy[CompactorState] with LazyLogging {
           if (!waiting.listenerInitialised) {
             ioAync.safeGetFuture(self.ec).foreach {
               _ =>
+                logger.debug(s"${state.id}: received pull request. Sending wakeUp now.")
                 waiting.isReady = true
                 self send {
                   (impl, state, self) =>
