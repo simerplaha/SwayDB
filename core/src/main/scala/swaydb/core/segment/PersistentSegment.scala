@@ -22,7 +22,7 @@ package swaydb.core.segment
 import java.nio.file.Path
 import java.util.concurrent.ConcurrentSkipListMap
 
-import bloomfilter.mutable.BloomFilter
+import swaydb.core.util.BloomFilter
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.{Persistent, _}
 import swaydb.core.function.FunctionStore
@@ -214,7 +214,7 @@ private[segment] case class PersistentSegment(file: DBFile,
       }
     }
 
-  override def getBloomFilter: IO[Option[BloomFilter[Slice[Byte]]]] =
+  override def getBloomFilter: IO[Option[BloomFilter]] =
     segmentCache.getBloomFilter
 
   def getFromCache(key: Slice[Byte]): Option[Persistent] =

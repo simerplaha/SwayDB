@@ -20,7 +20,7 @@
 package swaydb.core.data
 
 import swaydb.core.segment.format.a.SegmentWriter
-import swaydb.core.util.{BloomFilterUtil, Bytes}
+import swaydb.core.util.{BloomFilter, Bytes}
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 
@@ -98,7 +98,7 @@ private[core] object Stats {
         if (hasRemoveRange) { //BloomFilter is not created when hasRemoveRange is true.
           1 //(1 for unsigned int 0)
         } else {
-          val bloomFilterByteSize = BloomFilterUtil.byteSize(totalBloomFiltersItemsCount, falsePositiveRate)
+          val bloomFilterByteSize = BloomFilter.byteSize(totalBloomFiltersItemsCount, falsePositiveRate)
           Bytes.sizeOf(bloomFilterByteSize) + bloomFilterByteSize
         }
       }

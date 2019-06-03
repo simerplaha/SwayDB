@@ -22,7 +22,7 @@ package swaydb.core.segment
 import java.nio.file.Path
 import java.util.concurrent.ConcurrentSkipListMap
 
-import bloomfilter.mutable.BloomFilter
+import swaydb.core.util.BloomFilter
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
@@ -35,7 +35,7 @@ import swaydb.core.queue.{FileLimiter, FileLimiterItem, KeyValueLimiter}
 import swaydb.core.segment.format.a.{SegmentReader, SegmentWriter}
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util.CollectionUtil._
-import swaydb.core.util.{BloomFilterUtil, FiniteDurationUtil, IDGenerator}
+import swaydb.core.util.{BloomFilter, FiniteDurationUtil, IDGenerator}
 import swaydb.data.IO._
 import swaydb.data.config.Dir
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -67,7 +67,7 @@ private[core] object Segment extends LazyLogging {
       val skipList = new ConcurrentSkipListMap[Slice[Byte], Memory](keyOrder)
 
       val bloomFilter =
-        BloomFilterUtil.init(keyValues, bloomFilterFalsePositiveRate)
+        BloomFilter.init(keyValues, bloomFilterFalsePositiveRate)
 
       def writeKeyValue(keyValue: KeyValue.WriteOnly,
                         currentNearestDeadline: Option[Deadline]): IO[Option[Deadline]] = {
@@ -903,7 +903,7 @@ private[core] trait Segment extends FileLimiterItem {
   val removeDeletes: Boolean
   val nearestExpiryDeadline: Option[Deadline]
 
-  def getBloomFilter: IO[Option[BloomFilter[Slice[Byte]]]]
+  def getBloomFilter: IO[Option[BloomFilter]]
 
   def path: Path
 

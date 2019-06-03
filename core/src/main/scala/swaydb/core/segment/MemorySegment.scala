@@ -23,7 +23,7 @@ import java.nio.file.Path
 import java.util.concurrent.ConcurrentSkipListMap
 import java.util.function.Consumer
 
-import bloomfilter.mutable.BloomFilter
+import swaydb.core.util.BloomFilter
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.Memory.{Group, SegmentResponse}
 import swaydb.core.data._
@@ -52,7 +52,7 @@ private[segment] case class MemorySegment(path: Path,
                                           //only Memory Segment's need to know if there is a Group. Persistent Segments always get floor from cache when reading.
                                           _hasGroup: Boolean,
                                           private[segment] val cache: ConcurrentSkipListMap[Slice[Byte], Memory],
-                                          bloomFilter: Option[BloomFilter[Slice[Byte]]],
+                                          bloomFilter: Option[BloomFilter],
                                           nearestExpiryDeadline: Option[Deadline],
                                           busy: Reserve[Unit])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                timeOrder: TimeOrder[Slice[Byte]],
@@ -398,7 +398,7 @@ private[segment] case class MemorySegment(path: Path,
   override def existsOnDisk: Boolean =
     false
 
-  override def getBloomFilter: IO[Option[BloomFilter[Slice[Byte]]]] =
+  override def getBloomFilter: IO[Option[BloomFilter]] =
     IO(bloomFilter)
 
   override def hasRange: IO[Boolean] =

@@ -19,7 +19,7 @@
 
 package swaydb.core.segment
 
-import bloomfilter.mutable.BloomFilter
+import swaydb.core.util.BloomFilter
 import com.typesafe.scalalogging.LazyLogging
 import java.util.concurrent.ConcurrentSkipListMap
 import java.util.concurrent.atomic.AtomicBoolean
@@ -101,7 +101,7 @@ private[core] class SegmentCache(id: String,
         ExceptionUtil.logFailure(s"$id: Failed to read Segment.", failure)
     }
 
-  def getBloomFilter: IO[Option[BloomFilter[Slice[Byte]]]] =
+  def getBloomFilter: IO[Option[BloomFilter]] =
     getFooter() map (_.bloomFilter)
 
   def getFromCache(key: Slice[Byte]): Option[Persistent] =

@@ -16,7 +16,7 @@ parallelExecution in ThisBuild := false
 
 lazy val commonSettings = Seq(
   organization := "io.swaydb",
-  version := "0.8",
+  version := "0.9",
   scalaVersion := scalaVersion.value
 )
 
@@ -75,9 +75,7 @@ lazy val core =
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(
-      libraryDependencies ++=
-        commonDependencies
-          :+ "com.github.alexandrnikitin" %% "bloom-filter" % bloomFilterVersion
+      libraryDependencies ++= commonDependencies
     ).dependsOn(data, macros % "test->test;compile-internal", compression, configs % "test->test", serializers % "test->test")
 
 lazy val data =

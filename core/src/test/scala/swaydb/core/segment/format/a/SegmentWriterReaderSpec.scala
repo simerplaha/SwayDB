@@ -31,7 +31,7 @@ import swaydb.core.data._
 import swaydb.core.group.compression.GroupCompressor
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
-import swaydb.core.util.BloomFilterUtil
+import swaydb.core.util.BloomFilter
 import swaydb.core.{TestBase, TestData, TestLimitQueues, TestTimer}
 import swaydb.data.IO
 import swaydb.data.order.KeyOrder
@@ -55,7 +55,7 @@ class SegmentWriterReaderSpec extends TestBase {
       runThis(100.times) {
         val keyValues = randomizedKeyValues(keyValueCount)
         val group = randomGroup(keyValues)
-        val bloom = BloomFilterUtil.init(keyValues, TestData.falsePositiveRate)
+        val bloom = BloomFilter.init(keyValues, TestData.falsePositiveRate)
         val deadline = SegmentWriter.writeBloomFilterAndGetNearestDeadline(group, bloom, None)
 
         if (keyValues.last.stats.hasRemoveRange)

@@ -19,19 +19,18 @@
 
 package swaydb.core.segment.format.a
 
-import bloomfilter.mutable.BloomFilter
 import com.typesafe.scalalogging.LazyLogging
-import scala.annotation.tailrec
-import scala.concurrent.duration.Deadline
 import swaydb.core.data.KeyValue
 import swaydb.core.segment.Segment
-import swaydb.core.util.BloomFilterUtil._
 import swaydb.core.util.PipeOps._
-import swaydb.core.util.{BloomFilterUtil, CRC32}
+import swaydb.core.util.{BloomFilter, CRC32}
 import swaydb.data.IO
 import swaydb.data.IO._
 import swaydb.data.slice.Slice
 import swaydb.data.slice.Slice._
+
+import scala.annotation.tailrec
+import scala.concurrent.duration.Deadline
 
 private[core] object SegmentWriter extends LazyLogging {
 
@@ -40,7 +39,7 @@ private[core] object SegmentWriter extends LazyLogging {
   val crcBytes: Int = 7
 
   def writeBloomFilterAndGetNearestDeadline(keyValue: KeyValue.WriteOnly,
-                                            bloomFilter: Option[BloomFilter[Slice[Byte]]],
+                                            bloomFilter: Option[BloomFilter],
                                             currentNearestDeadline: Option[Deadline]): Option[Deadline] = {
 
     def writeKeyValue(keyValue: KeyValue.WriteOnly): Unit =
@@ -89,7 +88,7 @@ private[core] object SegmentWriter extends LazyLogging {
   def write(keyValues: Iterable[KeyValue.WriteOnly],
             indexSlice: Slice[Byte],
             valuesSlice: Slice[Byte],
-            bloomFilter: Option[BloomFilter[Slice[Byte]]]): IO[Option[Deadline]] =
+            bloomFilter: Option[BloomFilter]): IO[Option[Deadline]] =
     keyValues.foldLeftIO(Option.empty[Deadline]) {
       case (deadline, keyValue) =>
         write(
@@ -136,7 +135,7 @@ private[core] object SegmentWriter extends LazyLogging {
     if (keyValues.isEmpty)
       IO.Success(Slice.emptyBytes, None)
     else {
-      val bloomFilter = BloomFilterUtil.init(keyValues, bloomFilterFalsePositiveRate)
+      val bloomFilter = BloomFilter.init(keyValues, bloomFilterFalsePositiveRate)
 
       val slice = Slice.create[Byte](keyValues.last.stats.segmentSize)
 

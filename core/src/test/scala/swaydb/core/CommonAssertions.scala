@@ -19,7 +19,7 @@
 
 package swaydb.core
 
-import bloomfilter.mutable.BloomFilter
+import swaydb.core.util.BloomFilter
 import java.nio.file.Paths
 import java.util.concurrent.ConcurrentSkipListMap
 
@@ -740,7 +740,7 @@ object CommonAssertions {
     }
 
   def assertBloom(keyValues: Slice[KeyValue],
-                  bloom: BloomFilter[Slice[Byte]]) = {
+                  bloom: BloomFilter) = {
     keyValues.par foreach {
       keyValue =>
         bloom.mightContain(keyValue.key) shouldBe true
@@ -749,7 +749,7 @@ object CommonAssertions {
     assertBloomNotContains(bloom)
   }
 
-  def assertBloomNotContains(bloom: BloomFilter[Slice[Byte]]) =
+  def assertBloomNotContains(bloom: BloomFilter) =
     runThisParallel(10.times) {
       IO(bloom.mightContain(randomBytesSlice(randomIntMax(1000) min 100)) shouldBe false)
     }

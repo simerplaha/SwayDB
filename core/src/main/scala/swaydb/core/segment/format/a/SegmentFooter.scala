@@ -19,7 +19,7 @@
 
 package swaydb.core.segment.format.a
 
-import bloomfilter.mutable.BloomFilter
+import swaydb.core.util.BloomFilter
 import swaydb.data.slice.Slice
 
 private[core] case class SegmentFooter(crc: Long,
@@ -29,4 +29,4 @@ private[core] case class SegmentFooter(crc: Long,
                                        hasRange: Boolean,
                                        hasPut: Boolean,
                                        bloomFilterItemsCount: Int,
-                                       bloomFilter: Option[BloomFilter[Slice[Byte]]])
+                                       bloomFilter: Option[BloomFilter])

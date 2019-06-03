@@ -20,19 +20,19 @@
 package swaydb.core.segment.format.a
 
 import com.typesafe.scalalogging.LazyLogging
-import scala.annotation.tailrec
 import swaydb.core.data.{KeyValue, Persistent}
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
 import swaydb.core.segment.format.a.entry.reader.EntryReader
-import swaydb.core.util.BloomFilterUtil._
-import swaydb.core.util.{Bytes, CRC32}
+import swaydb.core.util.{BloomFilter, Bytes, CRC32}
 import swaydb.data.IO
 import swaydb.data.IO._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice._
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
+
+import scala.annotation.tailrec
 
 /**
   * All public APIs are wrapped around a try catch block because eager fetches on IO's results (.get).
@@ -263,7 +263,7 @@ private[core] object SegmentReader extends LazyLogging {
             hasRange = hasRange,
             hasPut = hasPut,
             bloomFilterItemsCount = bloomFilterItemsCount,
-            bloomFilter = bloomFilterSlice.map(_.toBloomFilter)
+            bloomFilter = bloomFilterSlice.map(BloomFilter(_))
           )
         )
       }

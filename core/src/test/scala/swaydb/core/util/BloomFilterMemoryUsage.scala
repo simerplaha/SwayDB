@@ -19,11 +19,11 @@
 
 package swaydb.core.util
 
-import bloomfilter.mutable.BloomFilter
+import swaydb.core.util.BloomFilter
 import swaydb.core.TestData
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default.LongSerializer
-import swaydb.core.util.BloomFilterUtil._
+import swaydb.core.util.BloomFilter._
 
 object BloomFilterMemoryUsage extends App {
 
@@ -37,15 +37,13 @@ object BloomFilterMemoryUsage extends App {
         LongSerializer.write(key)
     }
 
-  val bloomFilter = BloomFilter[Slice[Byte]](1000000, TestData.falsePositiveRate)
+  val bloomFilter = BloomFilter(1000000, TestData.falsePositiveRate)
   keys.foreach(bloomFilter.add)
-
 
   val freeAfter = Runtime.getRuntime.freeMemory()
   println("freeMemory after creating bloomFilter: " + freeAfter)
 
   keys = null
-  bloomFilter.dispose()
 
   System.gc()
 
@@ -53,5 +51,4 @@ object BloomFilterMemoryUsage extends App {
   println("freeMemory after disposing bloomFilter: " + freeAfterDispose)
 
   println("bloomFilter.toBytes.length: " + bloomFilter.toBytes.length)
-
 }

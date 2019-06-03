@@ -19,28 +19,28 @@
 
 package swaydb.core.util
 
-import bloomfilter.mutable.BloomFilter
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data.{Transient, Value}
-import swaydb.core.util.BloomFilterUtil._
 import swaydb.core.{TestBase, TestData, TestTimer}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
-class BloomFilterUtilSpec extends TestBase {
+import scala.util.Random
+
+class BloomFilterSpec extends TestBase {
 
   "toBytes & toSlice" should {
     "write bloom filter to bytes" in {
 
-      val bloomFilter = BloomFilter[Slice[Byte]](10, 0.01)
+      val bloomFilter = BloomFilter(10, 0.01)
       (1 to 10) foreach (bloomFilter.add(_))
       (1 to 10) foreach (key => bloomFilter.mightContain(key) shouldBe true)
       (11 to 20) foreach (key => bloomFilter.mightContain(key) shouldBe false)
 
-      val readBloomFilter = bloomFilter.toSlice.toBloomFilter
+      val readBloomFilter = BloomFilter(bloomFilter.toSlice)
       (1 to 10) foreach (key => readBloomFilter.mightContain(key) shouldBe true)
       (11 to 20) foreach (key => readBloomFilter.mightContain(key) shouldBe false)
     }
@@ -52,15 +52,15 @@ class BloomFilterUtilSpec extends TestBase {
         i =>
           val numberOfItems = i * 10
           val falsePositiveRate = 0.0 + (0 + "." + i.toString).toDouble
-          val bloomFilter = BloomFilter[Slice[Byte]](numberOfItems, falsePositiveRate)
-          bloomFilter.toBytes.length shouldBe BloomFilterUtil.byteSize(numberOfItems, falsePositiveRate)
+          val bloomFilter = BloomFilter(numberOfItems, falsePositiveRate)
+          bloomFilter.toBytes.length shouldBe BloomFilter.byteSize(numberOfItems, falsePositiveRate)
       }
     }
   }
 
   "init" should {
     "not initialise if keyValues are empty" in {
-      BloomFilterUtil.init(
+      BloomFilter.init(
         keyValues = Slice.empty,
         bloomFilterFalsePositiveRate = TestData.falsePositiveRate
       ) shouldBe empty
@@ -70,12 +70,12 @@ class BloomFilterUtilSpec extends TestBase {
       runThisParallel(10.times) {
         implicit val time = TestTimer.random
 
-        BloomFilterUtil.init(
+        BloomFilter.init(
           keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, None, Value.Remove(None, time.next))),
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate
         ) shouldBe empty
 
-        BloomFilterUtil.init(
+        BloomFilter.init(
           keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, None, Value.Remove(Some(randomDeadline()), time.next))),
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate
         ) shouldBe empty
@@ -87,7 +87,7 @@ class BloomFilterUtilSpec extends TestBase {
         implicit val time = TestTimer.random
 
         //range functions can also contain Remove so BloomFilter should not be created
-        BloomFilterUtil.init(
+        BloomFilter.init(
           keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, None, Value.Function(Slice.emptyBytes, time.next))),
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate
         ) shouldBe empty
@@ -99,12 +99,12 @@ class BloomFilterUtilSpec extends TestBase {
         implicit val time = TestTimer.random
 
         //range functions can also contain Remove so BloomFilter should not be created
-        BloomFilterUtil.init(
+        BloomFilter.init(
           keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, None, Value.PendingApply(Slice(Value.Remove(randomDeadlineOption(), time.next))))),
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate
         ) shouldBe empty
 
-        BloomFilterUtil.init(
+        BloomFilter.init(
           keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, None, Value.PendingApply(Slice(Value.Function(randomFunctionId(), time.next))))),
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate
         ) shouldBe empty
@@ -116,7 +116,7 @@ class BloomFilterUtilSpec extends TestBase {
         implicit val time = TestTimer.random
 
         //pending apply should allow to create bloomFilter if it does not have remove or function.
-        BloomFilterUtil.init(
+        BloomFilter.init(
           keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, None, Value.PendingApply(Slice(Value.Update(randomStringOption, randomDeadlineOption(), time.next))))),
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate
         ) shouldBe defined
@@ -127,11 +127,31 @@ class BloomFilterUtilSpec extends TestBase {
       runThisParallel(10.times) {
         implicit val time = TestTimer.random
         //fromValue is remove but it's not a remove range.
-        BloomFilterUtil.init(
+        BloomFilter.init(
           keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, Some(Value.Remove(None, time.next)), Value.update(100))),
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate
         ) shouldBe defined
       }
     }
+  }
+
+  "bloomFilter error check" in {
+    val filter = BloomFilter(10000, 0.01)
+    val data =
+      (1 to 10000) map {
+        _ =>
+          val string = Random.alphanumeric.take(2000).mkString
+          filter.add(string.getBytes())
+          string
+      }
+
+    val errors =
+      data collect {
+        case data if filter.mightContain(Random.alphanumeric.take(2000).mkString.getBytes()) =>
+          data
+      }
+
+    println(s"errors out of ${data.size}: " + errors.size)
+    errors.size should be < 200
   }
 }
