@@ -143,7 +143,7 @@ object Compactor extends CompactionStrategy[CompactorState] {
           }
       }
 
-  private def wakeUpChildren(state: CompactorState): Unit =
+  private def wakeUpChild(state: CompactorState): Unit =
     state
       .child
       .foreach {
@@ -163,7 +163,7 @@ object Compactor extends CompactionStrategy[CompactorState] {
     )
 
     //wake up child compaction.
-    wakeUpChildren(
+    wakeUpChild(
       state = state
     )
   }
@@ -195,14 +195,14 @@ object Compactor extends CompactionStrategy[CompactorState] {
   }
 
   def createCompactor(zero: LevelZero,
-                      executionContexts: List[CompactionExecutionContext])(implicit compactionOrdering: CompactionOrdering): Option[IO[WiredActor[CompactionStrategy[CompactorState], CompactorState]]] =
+                      executionContexts: List[CompactionExecutionContext])(implicit compactionOrdering: CompactionOrdering): IO[WiredActor[CompactionStrategy[CompactorState], CompactorState]] =
     zero.nextLevel map {
       nextLevel =>
         Compactor.createActor(
           levels = zero +: LevelRef.getLevels(nextLevel).filterNot(_.isTrash),
           executionContexts = executionContexts
         )
-    }
+    } getOrElse IO.Failure(IO.Error.Fatal(new Exception("Compaction not started because there is no lower level.")))
 
   private def listen(zero: LevelZero,
                      actor: WiredActor[CompactionStrategy[CompactorState], CompactorState]) =
@@ -223,16 +223,13 @@ object Compactor extends CompactionStrategy[CompactorState] {
       executionContexts = executionContexts
     ) map {
       compactor =>
-        compactor map {
-          compactor =>
-            //listen to changes in levelZero
-            listen(
-              zero = zero,
-              actor = compactor
-            )
-            compactor
-        }
-    } getOrElse IO.Failure(IO.Error.Fatal(new Exception("Compaction not started.")))
+        //listen to changes in levelZero
+        listen(
+          zero = zero,
+          actor = compactor
+        )
+        compactor
+    }
 
   override def wakeUp(state: CompactorState,
                       forwardCopyOnAllLevels: Boolean,
