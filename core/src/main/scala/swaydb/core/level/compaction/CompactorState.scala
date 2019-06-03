@@ -21,10 +21,12 @@ package swaydb.core.level.compaction
 
 import java.util.TimerTask
 
+import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.actor.WiredActor
 import swaydb.core.level.LevelRef
 import swaydb.core.util.FiniteDurationUtil
 import swaydb.data.slice.Slice
+
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
@@ -36,11 +38,17 @@ private[core] case class CompactorState(levels: Slice[LevelRef],
                                         child: Option[WiredActor[CompactionStrategy[CompactorState], CompactorState]],
                                         ordering: Ordering[LevelRef],
                                         executionContext: ExecutionContext,
-                                        private[level] val compactionStates: mutable.Map[LevelRef, LevelCompactionState]) {
+                                        private[level] val compactionStates: mutable.Map[LevelRef, LevelCompactionState]) extends LazyLogging {
   @volatile private[compaction] var terminate: Boolean = false
   private[compaction] var sleepTask: Option[(TimerTask, Deadline)] = None
   val hasLevelZero: Boolean = levels.exists(_.isZero)
   val levelsReversed = Slice(levels.reverse.toArray)
+
+  def id =
+    if (levels.size == 1)
+      "Level(" + levels.map(_.levelNumber).mkString(", ") + ")"
+    else
+      "Levels(" + levels.map(_.levelNumber).mkString(", ") + ")"
 
   def nextThrottleDeadline: Deadline =
     if (levels.isEmpty)
@@ -60,9 +68,13 @@ private[core] case class CompactorState(levels: Slice[LevelRef],
   def terminateCompaction() =
     terminate = true
 
-  def id =
-    if (levels.size == 1)
-      "Level(" + levels.map(_.levelNumber).mkString(", ") + ")"
-    else
-      "Levels(" + levels.map(_.levelNumber).mkString(", ") + ")"
+  def check(state: LevelCompactionState, level: LevelRef) = {
+    logger.debug(s"${level.levelNumber}: state.previousStateID != level.stateID: ${state.previousStateID} != ${level.stateID} = ${state.previousStateID != level.stateID}")
+    state.previousStateID != level.stateID
+  }
+  def updatedLevelCompactionStates: mutable.Iterable[LevelCompactionState] =
+    compactionStates collect {
+      case (level, levelState) if check(levelState, level) =>
+        levelState
+    }
 }

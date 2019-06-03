@@ -32,6 +32,7 @@ import swaydb.data.slice.Slice
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.Deadline
 
 /**
   * Compactor = Compaction Actor.
@@ -110,9 +111,8 @@ object Compactor extends CompactionStrategy[CompactorState] with LazyLogging {
   def scheduleNextWakeUp(state: CompactorState,
                          self: WiredActor[CompactionStrategy[CompactorState], CompactorState]): Unit =
     state
-      .compactionStates
-      .values
-      .foldLeft(Option(state.nextThrottleDeadline)) {
+      .updatedLevelCompactionStates
+      .foldLeft(Option.empty[Deadline]) {
         case (nearestDeadline, waiting @ LevelCompactionState.AwaitingPull(ioAync, timeout, _)) =>
           //do not create another hook if a future was already initialised to invoke wakeUp.
           if (!waiting.listenerInitialised) {
