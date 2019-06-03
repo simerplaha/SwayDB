@@ -49,18 +49,22 @@ private[core] object CoreInitializer extends LazyLogging {
   private def addShutdownHook(zero: LevelZero,
                               compactor: Option[WiredActor[CompactionStrategy[CompactorState], CompactorState]])(implicit compactionStrategy: CompactionStrategy[CompactorState]): Unit =
     sys.addShutdownHook {
-      logger.info("Closing files.")
-      compactor foreach compactionStrategy.terminate
+      logger.info("Shutting down compaction.")
+      IO(compactor foreach compactionStrategy.terminate) onFailureSideEffect {
+        error =>
+          logger.error("Failed compaction shutdown.", error.exception)
+      }
 
-      zero.close.failed foreach {
-        exception =>
-          logger.error("Failed to close Levels.", exception)
+      logger.info("Closing files.")
+      zero.close onFailureSideEffect {
+        error =>
+          logger.error("Failed to close Levels.", error.exception)
       }
 
       logger.info("Releasing database locks.")
-      zero.releaseLocks.failed foreach {
-        exception =>
-          logger.error("Failed to release locks.", exception)
+      zero.releaseLocks onFailureSideEffect {
+        error =>
+          logger.error("Failed to release locks.", error.exception)
       }
     }
 
@@ -208,13 +212,13 @@ private[core] object CoreInitializer extends LazyLogging {
                     copyForwardAllOnStart = true
                   ) map {
                     compactor =>
-                      //trigger initial wakeUp.
-                      compactor foreach sendInitialWakeUp
-
                       addShutdownHook(
                         zero = zero,
                         compactor = compactor
                       )
+
+                      //trigger initial wakeUp.
+                      compactor foreach sendInitialWakeUp
 
                       BlockingCore(
                         zero = zero,
