@@ -75,7 +75,19 @@ object Compactor extends CompactionStrategy[CompactorState] {
               .foldRight(Option.empty[WiredActor[CompactionStrategy[CompactorState], CompactorState]]) {
                 case ((jobs, executionContext), child) =>
                   val statesMap = mutable.Map.empty[LevelRef, LevelCompactionState]
-                  val levelOrdering = ordering.ordering(level => statesMap.getOrElse(level, LevelCompactionState.longSleep(level.stateID)))
+                  val levelOrdering: Ordering[LevelRef] =
+                    ordering.ordering(
+                      level =>
+                        statesMap.getOrElse(
+                          key = level,
+                          default =
+                            LevelCompactionState.Sleep(
+                              sleepDeadline = level.nextCompactionDelay.fromNow,
+                              previousStateID = level.stateID
+                            )
+                        )
+                    )
+
                   val compaction =
                     CompactorState(
                       levels = Slice(jobs.toArray),
@@ -99,7 +111,7 @@ object Compactor extends CompactionStrategy[CompactorState] {
     state
       .compactionStates
       .values
-      .foldLeft(Option(LevelCompactionState.longSleepDeadline)) {
+      .foldLeft(Option(state.nextCompactionDeadline)) {
         case (nearestDeadline, waiting @ LevelCompactionState.AwaitingPull(ioAync, timeout, _)) =>
           //do not create another hook if a future was already initialised to invoke wakeUp.
           if (!waiting.listenerInitialised) {

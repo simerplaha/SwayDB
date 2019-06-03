@@ -181,4 +181,7 @@ private[core] object TrashLevel extends NextLevel {
 
   override def stateID: Long =
     0
+
+  override def nextCompactionDelay: FiniteDuration =
+    365.days
 }

@@ -114,7 +114,8 @@ private[level] object Compaction extends LazyLogging {
 
       case TrashLevel =>
         logger.error(s"Received job for ${TrashLevel.getClass.getSimpleName}.")
-        LevelCompactionState.longSleep(level.stateID)
+        //trash Levels should never error submitted for compaction anyway. Give it a long delay.
+        LevelCompactionState.Sleep(365.days.fromNow, level.stateID)
     }
 
   @tailrec
@@ -159,7 +160,7 @@ private[level] object Compaction extends LazyLogging {
             sleepDeadline = delay,
             previousStateID = zero.stateID
           )
-    } getOrElse LevelCompactionState.longSleep(zero.stateID)
+    } getOrElse LevelCompactionState.Sleep(365.days.fromNow, zero.stateID) //no nextLevel, no compaction!
 
   private[compaction] def pushForward(zero: LevelZero,
                                       nextLevel: NextLevel)(implicit ec: ExecutionContext): LevelCompactionState =

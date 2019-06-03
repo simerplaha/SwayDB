@@ -23,11 +23,11 @@ import java.util.TimerTask
 
 import swaydb.core.actor.WiredActor
 import swaydb.core.level.LevelRef
+import swaydb.core.util.FiniteDurationUtil
 import swaydb.data.slice.Slice
-
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.Deadline
+import scala.concurrent.duration._
 
 /**
   * Compaction state for a group of Levels. The number of compaction depends on concurrentCompactions input.
@@ -41,6 +41,15 @@ private[core] case class CompactorState(levels: Slice[LevelRef],
   private[compaction] var sleepTask: Option[(TimerTask, Deadline)] = None
   val hasLevelZero: Boolean = levels.exists(_.isZero)
   val levelsReversed = Slice(levels.reverse.toArray)
+
+  def nextCompactionDeadline: Deadline =
+    levels.foldLeft(365.days.fromNow) {
+      case (deadline, level) =>
+        FiniteDurationUtil.getNearestDeadline(
+          Some(deadline),
+          Some(level.nextCompactionDelay.fromNow)
+        ) getOrElse deadline
+    }
 
   def terminateCompaction() =
     terminate = true

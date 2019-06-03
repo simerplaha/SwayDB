@@ -1195,4 +1195,7 @@ private[core] case class Level(dirs: Seq[Dir],
 
   override def stateID: Long =
     appendix.stateID
+
+  override def nextCompactionDelay: FiniteDuration =
+    throttle(meter).pushDelay
 }

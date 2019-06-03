@@ -166,7 +166,7 @@ sealed trait CompactorSpec extends TestBase with MockFactory {
       CompactorState(
         levels = Slice(level, nextLevel),
         child = None,
-        ordering = DefaultCompactionOrdering.ordering(_ => LevelCompactionState.longSleep(0)),
+        ordering = DefaultCompactionOrdering.ordering(_ => LevelCompactionState.Sleep(1.day.fromNow, 0)),
         executionContext = TestExecutionContext.executionContext,
         compactionStates = mutable.Map.empty
       )

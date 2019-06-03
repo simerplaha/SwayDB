@@ -718,4 +718,7 @@ private[core] case class LevelZero(path: Path,
 
   override def stateID: Long =
     maps.stateID
+
+  override def nextCompactionDelay: FiniteDuration =
+    throttle(levelZeroMeter)
 }

@@ -30,6 +30,7 @@ import swaydb.data.slice.Slice
 
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
+import scala.concurrent.duration.FiniteDuration
 
 object LevelRef {
 
@@ -229,4 +230,6 @@ private[core] trait LevelRef {
   def isZero: Boolean
 
   def stateID: Long
+
+  def nextCompactionDelay: FiniteDuration
 }

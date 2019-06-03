@@ -29,9 +29,7 @@ private[level] sealed trait LevelCompactionState {
   def previousStateID: Long
 }
 private[level] object LevelCompactionState {
-  val longSleepDuration = 1.hour
   val failureSleepDuration = 5.second.fromNow
-  def longSleepDeadline = longSleepDuration.fromNow
 
   case class AwaitingPull(later: IO.Later[_],
                           timeout: Deadline,
@@ -53,5 +51,4 @@ private[level] object LevelCompactionState {
         s"previousStateID: $previousStateID"
   }
 
-  def longSleep(stateID: Long) = Sleep(longSleepDuration.fromNow, stateID)
 }
