@@ -2,6 +2,7 @@
 package swaydb.core.util
 
 import java.nio.ByteBuffer
+import java.util
 
 import swaydb.core.data.KeyValue
 import swaydb.core.io.reader.Reader
@@ -43,13 +44,12 @@ object BloomFilter {
     for {
       numberOfBits <- reader.readInt()
       numberOfHashes <- reader.readInt()
-      buffer <- reader.readRemaining()
     } yield {
       new BloomFilter(
         startOffset = byteBufferStartOffset,
         numberOfBits = numberOfBits,
         numberOfHashes = numberOfHashes,
-        buffer = buffer.toByteBuffer
+        buffer = slice.toByteBuffer
       )
     }
   }
@@ -120,8 +120,10 @@ class BloomFilter(startOffset: Int,
     true
   }
 
-  def toBytes: Array[Byte] =
-    buffer.array()
+  def toBytes: Array[Byte] = {
+    val array = buffer.array()
+    util.Arrays.copyOfRange(array, 0, numberOfBits + 8)
+  }
 
   def toSlice: Slice[Byte] =
     Slice(toBytes)

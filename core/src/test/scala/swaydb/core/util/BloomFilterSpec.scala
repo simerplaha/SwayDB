@@ -136,8 +136,28 @@ class BloomFilterSpec extends TestBase {
   }
 
   "bloomFilter error check" in {
+    def assert(data: Seq[String], filter: BloomFilter) = {
+      val positives =
+        data.par collect {
+          case data if !filter.mightContain(data) =>
+            data
+        }
+
+      val falsePositives =
+        data.par collect {
+          case data if filter.mightContain(Random.alphanumeric.take(2000).mkString.getBytes()) =>
+            data
+        }
+
+      println(s"missed out of ${data.size}: " + positives.size)
+      println(s"errors out of ${data.size}: " + falsePositives.size)
+
+      positives.size shouldBe 0
+      falsePositives.size should be < 200
+    }
+
     val filter = BloomFilter(10000, 0.01)
-    val data =
+    val data: Seq[String] =
       (1 to 10000) map {
         _ =>
           val string = Random.alphanumeric.take(2000).mkString
@@ -145,20 +165,8 @@ class BloomFilterSpec extends TestBase {
           string
       }
 
-    val missed =
-      data collect {
-        case data if !filter.mightContain(data) =>
-          data
-      }
-
-    val errors =
-      data collect {
-        case data if filter.mightContain(Random.alphanumeric.take(2000).mkString.getBytes()) =>
-          data
-      }
-
-    println(s"missed out of ${data.size}: " + missed.size)
-    println(s"errors out of ${data.size}: " + errors.size)
-    errors.size should be < 200
+    assert(data, filter)
+    //re-create bloomFilter and read again.
+    assert(data, BloomFilter(filter.toSlice).get)
   }
 }
