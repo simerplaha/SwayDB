@@ -176,8 +176,8 @@ private[core] object SegmentWriter extends LazyLogging {
             footerSlice addIntUnsigned keyValues.last.stats.bloomFilterItemsCount
             bloomFilter match {
               case Some(bloomFilter) =>
-                val bloomFilterBytes = bloomFilter.toBytes
-                footerSlice addIntUnsigned bloomFilterBytes.length
+                val bloomFilterBytes = bloomFilter.toSlice
+                footerSlice addIntUnsigned bloomFilterBytes.size
                 footerSlice addAll bloomFilterBytes
               case None =>
                 footerSlice addIntUnsigned 0

@@ -53,7 +53,7 @@ class BloomFilterSpec extends TestBase {
           val numberOfItems = i * 10
           val falsePositiveRate = 0.0 + (0 + "." + i.toString).toDouble
           val bloomFilter = BloomFilter(numberOfItems, falsePositiveRate)
-          bloomFilter.toBytes.length shouldBe BloomFilter.byteSize(numberOfItems, falsePositiveRate)
+          bloomFilter.toSlice.size shouldBe BloomFilter.byteSize(numberOfItems, falsePositiveRate)
       }
     }
   }

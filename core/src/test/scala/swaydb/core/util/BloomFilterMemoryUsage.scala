@@ -50,5 +50,5 @@ object BloomFilterMemoryUsage extends App {
   val freeAfterDispose = Runtime.getRuntime.freeMemory()
   println("freeMemory after disposing bloomFilter: " + freeAfterDispose)
 
-  println("bloomFilter.toBytes.length: " + bloomFilter.toBytes.length)
+  println("bloomFilter.toBytes.length: " + bloomFilter.toSlice.size)
 }

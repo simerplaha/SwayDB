@@ -87,9 +87,8 @@ class BloomFilter(startOffset: Int,
   private def set(index: Long): Unit = {
     val offset = startOffset + (index >>> 6) * 8L
     val long = buffer.getLong(offset.toInt)
-    if ((long & (1L << index)) == 0) {
+    if ((long & (1L << index)) == 0)
       buffer.putLong(offset.toInt, long | (1L << index))
-    }
   }
 
   def add(item: Slice[Byte]): Unit = {
@@ -120,13 +119,8 @@ class BloomFilter(startOffset: Int,
     true
   }
 
-  def toBytes: Array[Byte] = {
-    val array = buffer.array()
-    util.Arrays.copyOfRange(array, 0, numberOfBits + 8)
-  }
-
   def toSlice: Slice[Byte] =
-    Slice(toBytes)
+    Slice(buffer.array()).slice(0, numberOfBits + 7) //7 instead of 8 because toOffset is index not size.
 
   override def hashCode(): Int =
     buffer.hashCode()
