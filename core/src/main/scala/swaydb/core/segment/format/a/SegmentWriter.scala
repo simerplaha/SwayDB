@@ -36,7 +36,7 @@ private[core] object SegmentWriter extends LazyLogging {
 
   val formatId = 0
 
-  val crcBytes: Int = 7
+  val crcBytes: Int = 9
 
   def writeBloomFilterAndGetNearestDeadline(keyValue: KeyValue.WriteOnly,
                                             bloomFilter: Option[BloomFilter],

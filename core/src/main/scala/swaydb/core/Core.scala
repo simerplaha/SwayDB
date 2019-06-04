@@ -106,7 +106,7 @@ private[swaydb] trait Core[T[_]] {
 
   def close(): T[Unit]
 
-  def async[T[_]](implicit ec: ExecutionContext, tag: TagAsync[T]): Core[T]
+  def tagAsync[T[_]](implicit ec: ExecutionContext, tag: TagAsync[T]): Core[T]
 
-  def blocking[T[_]](implicit tag: Tag[T]): BlockingCore[T]
+  def tagBlocking[T[_]](implicit tag: Tag[T]): BlockingCore[T]
 }

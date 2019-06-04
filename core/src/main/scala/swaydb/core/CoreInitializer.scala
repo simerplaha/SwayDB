@@ -68,13 +68,13 @@ private[core] object CoreInitializer extends LazyLogging {
       }
     }
 
-  def apply(config: LevelZeroConfig)(implicit ec: ExecutionContext,
-                                     keyOrder: KeyOrder[Slice[Byte]],
-                                     timeOrder: TimeOrder[Slice[Byte]],
-                                     functionStore: FunctionStore): IO[BlockingCore[IO]] = {
+  def apply(config: LevelZeroConfig,
+            bufferCleanerEC: ExecutionContext)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                               timeOrder: TimeOrder[Slice[Byte]],
+                                               functionStore: FunctionStore): IO[BlockingCore[IO]] = {
     implicit val fileLimiter = FileLimiter.empty
     implicit val compactionStrategy: CompactionStrategy[CompactorState] = Compactor
-    if (config.storage.isMMAP) BufferCleaner.initialiseCleaner(ec)
+    if (config.storage.isMMAP) BufferCleaner.initialiseCleaner(bufferCleanerEC)
 
     LevelZero(
       mapSize = config.mapSize,
@@ -94,15 +94,16 @@ private[core] object CoreInitializer extends LazyLogging {
             maxSegmentsOpen: Int,
             cacheSize: Long,
             keyValueQueueDelay: FiniteDuration,
-            segmentCloserDelay: FiniteDuration)(implicit ec: ExecutionContext,
-                                                keyOrder: KeyOrder[Slice[Byte]],
-                                                timeOrder: TimeOrder[Slice[Byte]],
-                                                functionStore: FunctionStore): IO[BlockingCore[IO]] = {
+            segmentCloserDelay: FiniteDuration,
+            fileOpenLimiterEC: ExecutionContext,
+            keyValueLimiterEC: ExecutionContext)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                 timeOrder: TimeOrder[Slice[Byte]],
+                                                 functionStore: FunctionStore): IO[BlockingCore[IO]] = {
     implicit val fileOpenLimiter: FileLimiter =
-      FileLimiter(maxSegmentsOpen, segmentCloserDelay)
+      FileLimiter(maxSegmentsOpen, segmentCloserDelay)(fileOpenLimiterEC)
 
     implicit val keyValueLimiter: KeyValueLimiter =
-      KeyValueLimiter(cacheSize, keyValueQueueDelay)
+      KeyValueLimiter(cacheSize, keyValueQueueDelay)(keyValueLimiterEC)
 
     implicit val compactionStrategy: CompactionStrategy[CompactorState] =
       Compactor
@@ -110,7 +111,7 @@ private[core] object CoreInitializer extends LazyLogging {
     implicit val compactionOrdering: CompactionOrdering =
       DefaultCompactionOrdering
 
-    BufferCleaner.initialiseCleaner(ec)
+    BufferCleaner.initialiseCleaner(fileOpenLimiterEC)
 
     def createLevel(id: Long,
                     nextLevel: Option[NextLevel],

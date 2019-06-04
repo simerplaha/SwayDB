@@ -44,7 +44,8 @@ private[swaydb] object BlockingCore {
             maxOpenSegments: Int,
             cacheSize: Long,
             cacheCheckDelay: FiniteDuration,
-            segmentsOpenCheckDelay: FiniteDuration)(implicit ec: ExecutionContext,
+            segmentsOpenCheckDelay: FiniteDuration)(implicit fileOpenLimiterEC: ExecutionContext,
+                                                    keyValueLimiterEC: ExecutionContext,
                                                     keyOrder: KeyOrder[Slice[Byte]],
                                                     timeOrder: TimeOrder[Slice[Byte]],
                                                     functionStore: FunctionStore): IO[BlockingCore[IO]] =
@@ -53,14 +54,19 @@ private[swaydb] object BlockingCore {
       maxSegmentsOpen = maxOpenSegments,
       cacheSize = cacheSize,
       keyValueQueueDelay = cacheCheckDelay,
-      segmentCloserDelay = segmentsOpenCheckDelay
+      segmentCloserDelay = segmentsOpenCheckDelay,
+      fileOpenLimiterEC = fileOpenLimiterEC,
+      keyValueLimiterEC = keyValueLimiterEC
     )
 
-  def apply(config: LevelZeroConfig)(implicit ec: ExecutionContext,
+  def apply(config: LevelZeroConfig)(implicit mmapCleanerEC: ExecutionContext,
                                      keyOrder: KeyOrder[Slice[Byte]],
                                      timeOrder: TimeOrder[Slice[Byte]],
                                      functionStore: FunctionStore): IO[BlockingCore[IO]] =
-    CoreInitializer(config = config)
+    CoreInitializer(
+      config = config,
+      bufferCleanerEC = mmapCleanerEC
+    )
 
   private def prepareToMapEntry(entries: Iterable[Prepare[Slice[Byte], Option[Slice[Byte]]]])(timer: Timer): Option[MapEntry[Slice[Byte], Memory.SegmentResponse]] =
     entries.foldLeft(Option.empty[MapEntry[Slice[Byte], Memory.SegmentResponse]]) {
@@ -355,9 +361,9 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
   def close(): T[Unit] =
     tag.fromIO(onClose().flatMap(_ => zero.close))
 
-  override def async[T[_]](implicit ec: ExecutionContext, tag: TagAsync[T]): Core[T] =
+  override def tagAsync[T[_]](implicit ec: ExecutionContext, tag: TagAsync[T]): Core[T] =
     AsyncCore(zero, onClose)
 
-  override def blocking[T[_]](implicit tag: Tag[T]): BlockingCore[T] =
+  override def tagBlocking[T[_]](implicit tag: Tag[T]): BlockingCore[T] =
     BlockingCore(zero, onClose)
 }

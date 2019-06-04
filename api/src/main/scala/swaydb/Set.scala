@@ -275,10 +275,10 @@ case class Set[A, T[_]](private val core: Core[T],
 
   def tagAsync[O[_]](implicit ec: ExecutionContext,
                      tag: TagAsync[O]): Set[A, O] =
-    copy(core = core.async[O])
+    copy(core = core.tagAsync[O])
 
   def tagBlocking[O[_]](implicit tag: Tag[O]): Set[A, O] =
-    copy(core = core.blocking[O])
+    copy(core = core.tagBlocking[O])
 
   def asScala: scala.collection.mutable.Set[A] =
     ScalaSet[A](tagBlocking[IO])
