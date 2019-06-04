@@ -56,7 +56,7 @@ private[swaydb] object BlockingCore {
       keyValueQueueDelay = cacheCheckDelay,
       segmentCloserDelay = segmentsOpenCheckDelay,
       fileOpenLimiterEC = fileOpenLimiterEC,
-      keyValueLimiterEC = cacheLimiterEC
+      cacheLimiterEC = cacheLimiterEC
     )
 
   def apply(config: LevelZeroConfig)(implicit mmapCleanerEC: ExecutionContext,

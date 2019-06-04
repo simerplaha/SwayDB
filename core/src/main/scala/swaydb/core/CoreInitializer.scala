@@ -96,14 +96,14 @@ private[core] object CoreInitializer extends LazyLogging {
             keyValueQueueDelay: FiniteDuration,
             segmentCloserDelay: FiniteDuration,
             fileOpenLimiterEC: ExecutionContext,
-            keyValueLimiterEC: ExecutionContext)(implicit keyOrder: KeyOrder[Slice[Byte]],
+            cacheLimiterEC: ExecutionContext)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                  timeOrder: TimeOrder[Slice[Byte]],
                                                  functionStore: FunctionStore): IO[BlockingCore[IO]] = {
     implicit val fileOpenLimiter: FileLimiter =
       FileLimiter(maxSegmentsOpen, segmentCloserDelay)(fileOpenLimiterEC)
 
     implicit val keyValueLimiter: KeyValueLimiter =
-      KeyValueLimiter(cacheSize, keyValueQueueDelay)(keyValueLimiterEC)
+      KeyValueLimiter(cacheSize, keyValueQueueDelay)(cacheLimiterEC)
 
     implicit val compactionStrategy: CompactionStrategy[CompactorState] =
       Compactor
