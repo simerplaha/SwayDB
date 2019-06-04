@@ -145,12 +145,19 @@ class BloomFilterSpec extends TestBase {
           string
       }
 
+    val missed =
+      data collect {
+        case data if !filter.mightContain(data) =>
+          data
+      }
+
     val errors =
       data collect {
         case data if filter.mightContain(Random.alphanumeric.take(2000).mkString.getBytes()) =>
           data
       }
 
+    println(s"missed out of ${data.size}: " + missed.size)
     println(s"errors out of ${data.size}: " + errors.size)
     errors.size should be < 200
   }

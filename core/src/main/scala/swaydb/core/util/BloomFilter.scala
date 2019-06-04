@@ -14,7 +14,7 @@ import swaydb.data.util.ByteSizeOf
   */
 object BloomFilter {
 
-  val emptyBloomFilter = BloomFilter(1, 1)
+  val emptyBloomFilter = new BloomFilter(0, 0, 0, ByteBuffer.allocate(0))
 
   val byteBufferStartOffset = ByteSizeOf.int + ByteSizeOf.int
 
