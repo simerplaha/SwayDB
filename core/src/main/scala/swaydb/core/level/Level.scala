@@ -84,12 +84,13 @@ private[core] object Level extends LazyLogging {
             pushForward: Boolean = false,
             throttle: LevelMeter => Throttle,
             compressDuplicateValues: Boolean,
-            deleteSegmentsEventually: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                               timeOrder: TimeOrder[Slice[Byte]],
-                                               functionStore: FunctionStore,
-                                               keyValueLimiter: KeyValueLimiter,
-                                               fileOpenLimiter: FileLimiter,
-                                               groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Level] = {
+            deleteSegmentsEventually: Boolean,
+            applyGroupingOnCopy: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                          timeOrder: TimeOrder[Slice[Byte]],
+                                          functionStore: FunctionStore,
+                                          keyValueLimiter: KeyValueLimiter,
+                                          fileOpenLimiter: FileLimiter,
+                                          groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Level] = {
     //acquire lock on folder
     acquireLock(levelStorage) flatMap {
       lock =>
@@ -181,6 +182,7 @@ private[core] object Level extends LazyLogging {
                       lock = lock,
                       compressDuplicateValues = compressDuplicateValues,
                       deleteSegmentsEventually = deleteSegmentsEventually,
+                      applyGroupingOnCopy = applyGroupingOnCopy,
                       paths = paths,
                       removeDeletedRecords = Level.removeDeletes(nextLevel)
                     )
@@ -236,6 +238,7 @@ private[core] case class Level(dirs: Seq[Dir],
                                private val lock: Option[FileLock],
                                compressDuplicateValues: Boolean,
                                deleteSegmentsEventually: Boolean,
+                               applyGroupingOnCopy: Boolean,
                                paths: PathsDistributor,
                                removeDeletedRecords: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                               timeOrder: TimeOrder[Slice[Byte]],
@@ -537,7 +540,7 @@ private[core] case class Level(dirs: Seq[Dir],
 
     def targetSegmentPath = paths.next.resolve(IDGenerator.segmentId(segmentIDGenerator.nextID))
 
-    implicit val groupingStrategy = Option.empty[KeyValueGroupingStrategyInternal]
+    implicit val groupingStrategy = if (applyGroupingOnCopy) self.groupingStrategy else KeyValueGroupingStrategyInternal.none
 
     val keyValues = Slice(map.skipList.values().asScala.toArray)
     if (inMemory)
@@ -607,7 +610,7 @@ private[core] case class Level(dirs: Seq[Dir],
         segment => {
           def targetSegmentPath = paths.next.resolve(IDGenerator.segmentId(segmentIDGenerator.nextID))
 
-          implicit val groupingStrategy = Option.empty[KeyValueGroupingStrategyInternal]
+          implicit val groupingStrategy = if (applyGroupingOnCopy) self.groupingStrategy else KeyValueGroupingStrategyInternal.none
 
           if (inMemory)
             Segment.copyToMemory(

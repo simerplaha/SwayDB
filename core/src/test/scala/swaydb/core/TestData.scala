@@ -188,7 +188,8 @@ object TestData {
                 bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
                 throttle = throttle,
                 compressDuplicateValues = level.compressDuplicateValues,
-                deleteSegmentsEventually = level.deleteSegmentsEventually
+                deleteSegmentsEventually = level.deleteSegmentsEventually,
+                applyGroupingOnCopy = level.applyGroupingOnCopy
               )
           }
       }

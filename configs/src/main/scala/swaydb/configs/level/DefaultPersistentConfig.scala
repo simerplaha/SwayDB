@@ -88,6 +88,7 @@ object DefaultPersistentConfig {
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
         compressDuplicateValues = compressDuplicateValues,
         deleteSegmentsEventually = deleteSegmentsEventually,
+        applyGroupingOnCopy = false,
         groupingStrategy = None,
         compactionExecutionContext = CompactionExecutionContext.Create(executionContext),
         throttle =
@@ -108,6 +109,7 @@ object DefaultPersistentConfig {
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
         compressDuplicateValues = compressDuplicateValues,
         deleteSegmentsEventually = deleteSegmentsEventually,
+        applyGroupingOnCopy = false,
         groupingStrategy = None,
         compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =
@@ -128,6 +130,7 @@ object DefaultPersistentConfig {
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
         compressDuplicateValues = compressDuplicateValues,
         deleteSegmentsEventually = deleteSegmentsEventually,
+        applyGroupingOnCopy = false,
         groupingStrategy = groupingStrategy,
         compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =
@@ -148,6 +151,7 @@ object DefaultPersistentConfig {
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
         compressDuplicateValues = compressDuplicateValues,
         deleteSegmentsEventually = deleteSegmentsEventually,
+        applyGroupingOnCopy = false,
         compactionExecutionContext = CompactionExecutionContext.Create(executionContext),
         groupingStrategy = None,
         throttle =
@@ -168,6 +172,7 @@ object DefaultPersistentConfig {
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
         compressDuplicateValues = compressDuplicateValues,
         deleteSegmentsEventually = deleteSegmentsEventually,
+        applyGroupingOnCopy = false,
         compactionExecutionContext = CompactionExecutionContext.Shared,
         groupingStrategy = None,
         throttle =
@@ -188,6 +193,7 @@ object DefaultPersistentConfig {
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
         compressDuplicateValues = compressDuplicateValues,
         deleteSegmentsEventually = deleteSegmentsEventually,
+        applyGroupingOnCopy = false,
         groupingStrategy = None,
         compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =
@@ -210,6 +216,7 @@ object DefaultPersistentConfig {
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
         compressDuplicateValues = compressDuplicateValues,
         deleteSegmentsEventually = deleteSegmentsEventually,
+        applyGroupingOnCopy = false,
         groupingStrategy = groupingStrategy,
         compactionExecutionContext = CompactionExecutionContext.Create(executionContext),
         throttle =

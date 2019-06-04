@@ -74,6 +74,7 @@ object DefaultEventuallyPersistentConfig {
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
         compressDuplicateValues = compressDuplicateValues,
         deleteSegmentsEventually = deleteSegmentsEventually,
+        applyGroupingOnCopy = false,
         groupingStrategy = None,
         compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =
@@ -92,6 +93,7 @@ object DefaultEventuallyPersistentConfig {
         mmapAppendix = mmapPersistentAppendix,
         appendixFlushCheckpointSize = persistentLevelAppendixFlushCheckpointSize,
         pushForward = false,
+        applyGroupingOnCopy = false,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
         compressDuplicateValues = compressDuplicateValues,
         deleteSegmentsEventually = deleteSegmentsEventually,

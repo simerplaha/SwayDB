@@ -32,6 +32,8 @@ private[swaydb] sealed trait KeyValueGroupingStrategyInternal extends GroupingSt
 
 private[swaydb] object KeyValueGroupingStrategyInternal {
 
+  val none = Option.empty[KeyValueGroupingStrategyInternal]
+
   /**
     * Converts public type KeyValueGroupingStrategy to internal KeyValueGroupingStrategy which the core understands.
     */

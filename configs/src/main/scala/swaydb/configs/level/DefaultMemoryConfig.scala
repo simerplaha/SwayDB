@@ -62,6 +62,7 @@ object DefaultMemoryConfig {
       .addMemoryLevel1(
         segmentSize = segmentSize,
         pushForward = false,
+        applyGroupingOnCopy = false,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
         compressDuplicateValues = compressDuplicateValues,
         groupingStrategy = groupingStrategy,

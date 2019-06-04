@@ -127,7 +127,8 @@ private[core] object CoreInitializer extends LazyLogging {
             bloomFilterFalsePositiveRate = config.bloomFilterFalsePositiveRate,
             throttle = config.throttle,
             compressDuplicateValues = config.compressDuplicateValues,
-            deleteSegmentsEventually = config.deleteSegmentsEventually
+            deleteSegmentsEventually = config.deleteSegmentsEventually,
+            applyGroupingOnCopy = config.applyGroupingOnCopy
           )
 
         case config: PersistentLevelConfig =>
@@ -147,7 +148,8 @@ private[core] object CoreInitializer extends LazyLogging {
             bloomFilterFalsePositiveRate = config.bloomFilterFalsePositiveRate,
             throttle = config.throttle,
             compressDuplicateValues = config.compressDuplicateValues,
-            deleteSegmentsEventually = config.deleteSegmentsEventually
+            deleteSegmentsEventually = config.deleteSegmentsEventually,
+            applyGroupingOnCopy = config.applyGroupingOnCopy
           )
 
         case TrashLevelConfig =>
