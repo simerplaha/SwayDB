@@ -68,7 +68,8 @@ object Map extends LazyLogging {
                   acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
                                                                                         valueSerializer: Serializer[V],
                                                                                         keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                        ec: ExecutionContext = SwayDB.defaultExecutionContext): IO[swaydb.extensions.Map[K, V]] =
+                                                                                        fileOpenLimiterEC: ExecutionContext = SwayDB.defaultExecutionContext,
+                                                                                        cacheLimiterEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[swaydb.extensions.Map[K, V]] =
     BlockingCore(
       config = DefaultMemoryConfig(
         mapSize = mapSize,
@@ -83,7 +84,9 @@ object Map extends LazyLogging {
       cacheSize = cacheSize,
       cacheCheckDelay = cacheCheckDelay,
       //memory Segments are never closed.
-      segmentsOpenCheckDelay = Duration.Zero
+      segmentsOpenCheckDelay = Duration.Zero,
+      fileOpenLimiterEC = fileOpenLimiterEC,
+      cacheLimiterEC = cacheLimiterEC
     ) flatMap {
       db =>
         implicit val optionValueSerializer: Serializer[Option[V]] =

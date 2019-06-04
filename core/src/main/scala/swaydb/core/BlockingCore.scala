@@ -44,11 +44,11 @@ private[swaydb] object BlockingCore {
             maxOpenSegments: Int,
             cacheSize: Long,
             cacheCheckDelay: FiniteDuration,
-            segmentsOpenCheckDelay: FiniteDuration)(implicit fileOpenLimiterEC: ExecutionContext,
-                                                    keyValueLimiterEC: ExecutionContext,
-                                                    keyOrder: KeyOrder[Slice[Byte]],
-                                                    timeOrder: TimeOrder[Slice[Byte]],
-                                                    functionStore: FunctionStore): IO[BlockingCore[IO]] =
+            segmentsOpenCheckDelay: FiniteDuration,
+            fileOpenLimiterEC: ExecutionContext,
+            cacheLimiterEC: ExecutionContext)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                              timeOrder: TimeOrder[Slice[Byte]],
+                                              functionStore: FunctionStore): IO[BlockingCore[IO]] =
     CoreInitializer(
       config = config,
       maxSegmentsOpen = maxOpenSegments,
@@ -56,7 +56,7 @@ private[swaydb] object BlockingCore {
       keyValueQueueDelay = cacheCheckDelay,
       segmentCloserDelay = segmentsOpenCheckDelay,
       fileOpenLimiterEC = fileOpenLimiterEC,
-      keyValueLimiterEC = keyValueLimiterEC
+      keyValueLimiterEC = cacheLimiterEC
     )
 
   def apply(config: LevelZeroConfig)(implicit mmapCleanerEC: ExecutionContext,

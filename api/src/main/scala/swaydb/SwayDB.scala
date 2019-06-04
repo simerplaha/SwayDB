@@ -50,7 +50,7 @@ object SwayDB extends LazyLogging {
     *
     * This can be overridden by provided an implicit parameter in the scope of where the database is initialized.
     */
-  def defaultExecutionContext = new ExecutionContext {
+  lazy val defaultExecutionContext = new ExecutionContext {
     val threadPool = new ForkJoinPool(Runtime.getRuntime.availableProcessors())
 
     def execute(runnable: Runnable) =
@@ -77,7 +77,6 @@ object SwayDB extends LazyLogging {
     * @param keySerializer          Converts keys to Bytes
     * @param valueSerializer        Converts values to Bytes
     * @param keyOrder               Sort order for keys
-    * @param ec                     ExecutionContext
     * @tparam K Type of key
     * @tparam V Type of value
     * @return Database instance
@@ -89,13 +88,16 @@ object SwayDB extends LazyLogging {
                   segmentsOpenCheckDelay: FiniteDuration)(implicit keySerializer: Serializer[K],
                                                           valueSerializer: Serializer[V],
                                                           keyOrder: KeyOrder[Slice[Byte]],
-                                                          ec: ExecutionContext): IO[swaydb.Map[K, V, IO]] =
+                                                          fileOpenLimiterEC: ExecutionContext,
+                                                          keyValueLimiterEC: ExecutionContext): IO[swaydb.Map[K, V, IO]] =
     BlockingCore(
       config = config,
       maxOpenSegments = maxSegmentsOpen,
       cacheSize = cacheSize,
       cacheCheckDelay = cacheCheckDelay,
-      segmentsOpenCheckDelay = segmentsOpenCheckDelay
+      segmentsOpenCheckDelay = segmentsOpenCheckDelay,
+      fileOpenLimiterEC = fileOpenLimiterEC,
+      cacheLimiterEC = keyValueLimiterEC
     ) map {
       db =>
         swaydb.Map[K, V, IO](db)
@@ -107,13 +109,16 @@ object SwayDB extends LazyLogging {
                cacheCheckDelay: FiniteDuration,
                segmentsOpenCheckDelay: FiniteDuration)(implicit serializer: Serializer[T],
                                                        keyOrder: KeyOrder[Slice[Byte]],
-                                                       ec: ExecutionContext): IO[swaydb.Set[T, IO]] =
+                                                       fileOpenLimiterEC: ExecutionContext,
+                                                       keyValueLimiterEC: ExecutionContext): IO[swaydb.Set[T, IO]] =
     BlockingCore(
       config = config,
       maxOpenSegments = maxSegmentsOpen,
       cacheSize = cacheSize,
       cacheCheckDelay = cacheCheckDelay,
-      segmentsOpenCheckDelay = segmentsOpenCheckDelay
+      segmentsOpenCheckDelay = segmentsOpenCheckDelay,
+      fileOpenLimiterEC = fileOpenLimiterEC,
+      cacheLimiterEC = keyValueLimiterEC
     ) map {
       db =>
         swaydb.Set[T](db)
@@ -124,13 +129,16 @@ object SwayDB extends LazyLogging {
                   cacheCheckDelay: FiniteDuration)(implicit keySerializer: Serializer[K],
                                                    valueSerializer: Serializer[V],
                                                    keyOrder: KeyOrder[Slice[Byte]],
-                                                   ec: ExecutionContext): IO[swaydb.Map[K, V, IO]] =
+                                                   fileOpenLimiterEC: ExecutionContext,
+                                                   keyValueLimiterEC: ExecutionContext): IO[swaydb.Map[K, V, IO]] =
     BlockingCore(
       config = config,
       maxOpenSegments = 0,
       cacheSize = cacheSize,
       cacheCheckDelay = cacheCheckDelay,
-      segmentsOpenCheckDelay = Duration.Zero
+      segmentsOpenCheckDelay = Duration.Zero,
+      fileOpenLimiterEC = fileOpenLimiterEC,
+      cacheLimiterEC = keyValueLimiterEC
     ) map {
       db =>
         swaydb.Map[K, V, IO](db)
@@ -140,13 +148,16 @@ object SwayDB extends LazyLogging {
                cacheSize: Int,
                cacheCheckDelay: FiniteDuration)(implicit serializer: Serializer[T],
                                                 keyOrder: KeyOrder[Slice[Byte]],
-                                                ec: ExecutionContext): IO[swaydb.Set[T, IO]] =
+                                                fileOpenLimiterEC: ExecutionContext,
+                                                keyValueLimiterEC: ExecutionContext): IO[swaydb.Set[T, IO]] =
     BlockingCore(
       config = config,
       maxOpenSegments = 0,
       cacheSize = cacheSize,
       cacheCheckDelay = cacheCheckDelay,
-      segmentsOpenCheckDelay = Duration.Zero
+      segmentsOpenCheckDelay = Duration.Zero,
+      fileOpenLimiterEC = fileOpenLimiterEC,
+      cacheLimiterEC = keyValueLimiterEC
     ) map {
       db =>
         swaydb.Set[T](db)
