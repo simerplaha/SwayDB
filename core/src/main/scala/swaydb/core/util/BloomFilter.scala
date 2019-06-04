@@ -15,7 +15,13 @@ import swaydb.data.util.ByteSizeOf
   */
 object BloomFilter {
 
-  val emptyBloomFilter = new BloomFilter(0, 0, 0, ByteBuffer.allocate(0))
+  val empty =
+    new BloomFilter(
+      startOffset = 0,
+      numberOfBits = 0,
+      numberOfHashes = 0,
+      buffer = ByteBuffer.allocate(0)
+    )
 
   val byteBufferStartOffset = ByteSizeOf.int + ByteSizeOf.int
 
@@ -55,7 +61,10 @@ object BloomFilter {
   }
 
   def byteSize(numberOfItems: Int, falsePositiveRate: Double): Int =
-    BloomFilter.optimalNumberOfBits(numberOfItems, falsePositiveRate) + ByteSizeOf.int + ByteSizeOf.int
+    BloomFilter.optimalNumberOfBits(
+      numberOfItems = numberOfItems,
+      falsePositiveRate = falsePositiveRate
+    ) + ByteSizeOf.int + ByteSizeOf.int
 
   /**
     * Initialise bloomFilter if key-values do no contain remove range.
