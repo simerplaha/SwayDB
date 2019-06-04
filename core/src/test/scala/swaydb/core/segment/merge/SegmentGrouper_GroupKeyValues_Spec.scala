@@ -119,7 +119,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
           //no mutation occurs
           mutableKeyValues shouldBe keyValues
         } else {
-          val (bytes, _) = SegmentWriter.write(Slice(result.assertGet), TestData.falsePositiveRate).assertGet
+          val (bytes, _) = SegmentWriter.write(Slice(result.assertGet), 0, true, TestData.falsePositiveRate).assertGet
           readAll(bytes).assertGet.head.asInstanceOf[Persistent.Group].segmentCache.getAll().assertGet shouldBe keyValues
         }
       }
@@ -287,7 +287,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
           //no mutation occurs
           mutableKeyValues shouldBe keyValues
         } else {
-          val (bytes, _) = SegmentWriter.write(Slice(result.assertGet).updateStats, TestData.falsePositiveRate).assertGet
+          val (bytes, _) = SegmentWriter.write(Slice(result.assertGet).updateStats, 0, true, TestData.falsePositiveRate).assertGet
           readAll(bytes).assertGet.head.asInstanceOf[Persistent.Group].segmentCache.getAll().assertGet shouldBe otherKeyValues
         }
       }
@@ -328,7 +328,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
           //no mutation occurs
           mutableKeyValues shouldBe keyValues
         } else {
-          val (bytes, _) = SegmentWriter.write(Slice(result.assertGet).updateStats, TestData.falsePositiveRate).assertGet
+          val (bytes, _) = SegmentWriter.write(Slice(result.assertGet).updateStats, 0, true, TestData.falsePositiveRate).assertGet
           readAll(bytes).assertGet.head.asInstanceOf[Persistent.Group].segmentCache.getAll().assertGet shouldBe otherKeyValues
         }
       }
@@ -359,7 +359,6 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
                   valueCompression = randomCompressionLZ4OrSnappy(Double.MaxValue)
                 )
           )
-
         }
       }
     }
@@ -393,7 +392,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
 
         //all key-values are merged into one group.
         mutableKeyValues should have size 1
-        val (bytes, _) = SegmentWriter.write(mutableKeyValues, TestData.falsePositiveRate).assertGet
+        val (bytes, _) = SegmentWriter.write(mutableKeyValues, 0, true, TestData.falsePositiveRate).assertGet
         readAll(bytes).assertGet.head.asInstanceOf[Persistent.Group].segmentCache.getAll().assertGet shouldBe keyValues
       }
 
@@ -424,7 +423,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
         ).assertGet
 
         mutableKeyValues should have size 2
-        val (bytes, _) = SegmentWriter.write(mutableKeyValues, TestData.falsePositiveRate).assertGet
+        val (bytes, _) = SegmentWriter.write(mutableKeyValues, 0, true, TestData.falsePositiveRate).assertGet
         val readGroups = readAll(bytes).assertGet
         readGroups.head.asInstanceOf[Persistent.Group] shouldBe group
         readGroups.last.asInstanceOf[Persistent.Group].segmentCache.getAll().assertGet shouldBe keyValues
@@ -460,7 +459,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
         ).assertGet
 
         mutableKeyValues should have size 4
-        val (bytes, _) = SegmentWriter.write(mutableKeyValues, TestData.falsePositiveRate).assertGet
+        val (bytes, _) = SegmentWriter.write(mutableKeyValues, 0, true, TestData.falsePositiveRate).assertGet
         val readGroups = readAll(bytes).assertGet
         readGroups.head.asInstanceOf[Persistent.Group] shouldBe group1
         readGroups(1).asInstanceOf[Persistent.Group] shouldBe group2
@@ -501,11 +500,10 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
 
           //all key-values are merged into one group.
           mutableKeyValues should have size 1
-          val (bytes, _) = SegmentWriter.write(mutableKeyValues, TestData.falsePositiveRate).assertGet
+          val (bytes, _) = SegmentWriter.write(mutableKeyValues, 0, true, TestData.falsePositiveRate).assertGet
           readAll(bytes).assertGet.head.asInstanceOf[Persistent.Group].segmentCache.getAll().assertGet shouldBe keyValues
         }
       }
     }
   }
-
 }

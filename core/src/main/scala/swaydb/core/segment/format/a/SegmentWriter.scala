@@ -131,6 +131,8 @@ private[core] object SegmentWriter extends LazyLogging {
     * Segment reads can take appropriate steps to fetch the right range key-value.
     */
   def write(keyValues: Iterable[KeyValue.WriteOnly],
+            createdInLevel: Int,
+            isGrouped: Boolean,
             bloomFilterFalsePositiveRate: Double): IO[(Slice[Byte], Option[Deadline])] =
     if (keyValues.isEmpty)
       IO.Success(Slice.emptyBytes, None)
@@ -158,6 +160,8 @@ private[core] object SegmentWriter extends LazyLogging {
             //currently there is only one format. So this is hardcoded but if there are a new file format then
             //SegmentWriter and SegmentReader should be changed to be type classes with unique format types ids.
             footerSlice addIntUnsigned SegmentWriter.formatId
+            footerSlice addIntUnsigned createdInLevel
+            footerSlice addBoolean isGrouped
             footerSlice addBoolean keyValues.last.stats.hasRange
             footerSlice addBoolean keyValues.last.stats.hasPut
             footerSlice addIntUnsigned indexSlice.fromOffset

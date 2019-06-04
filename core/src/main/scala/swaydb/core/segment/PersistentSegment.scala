@@ -139,29 +139,33 @@ private[segment] case class PersistentSegment(file: DBFile,
           compressDuplicateValues = compressDuplicateValues
         ) flatMap {
           splits =>
-            splits.mapIO(
-              ioBlock =
-                keyValues => {
-                  Segment.persistent(
-                    path = targetPaths.next.resolve(idGenerator.nextSegmentID),
-                    mmapReads = mmapReads,
-                    mmapWrites = mmapWrites,
-                    keyValues = keyValues,
-                    bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-                    removeDeletes = removeDeletes
-                  )
-                },
+            getFooter() flatMap {
+              footer =>
+                splits.mapIO(
+                  ioBlock =
+                    keyValues => {
+                      Segment.persistent(
+                        path = targetPaths.next.resolve(idGenerator.nextSegmentID),
+                        createdInLevel = footer.createdInLevel,
+                        mmapReads = mmapReads,
+                        mmapWrites = mmapWrites,
+                        keyValues = keyValues,
+                        bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+                        removeDeletes = removeDeletes
+                      )
+                    },
 
-              recover =
-                (segments: Slice[Segment], _: IO.Failure[Slice[Segment]]) =>
-                  segments foreach {
-                    segmentToDelete =>
-                      segmentToDelete.delete onFailureSideEffect {
-                        exception =>
-                          logger.error(s"{}: Failed to delete Segment '{}' in recover due to failed put", path, segmentToDelete.path, exception)
+                  recover =
+                    (segments: Slice[Segment], _: IO.Failure[Slice[Segment]]) =>
+                      segments foreach {
+                        segmentToDelete =>
+                          segmentToDelete.delete onFailureSideEffect {
+                            exception =>
+                              logger.error(s"{}: Failed to delete Segment '{}' in recover due to failed put", path, segmentToDelete.path, exception)
+                          }
                       }
-                  }
-            )
+                )
+            }
         }
     }
 
@@ -180,28 +184,32 @@ private[segment] case class PersistentSegment(file: DBFile,
           compressDuplicateValues = compressDuplicateValues
         ) flatMap {
           splits =>
-            splits.mapIO(
-              ioBlock =
-                keyValues =>
-                  Segment.persistent(
-                    path = targetPaths.next.resolve(idGenerator.nextSegmentID),
-                    mmapReads = mmapReads,
-                    mmapWrites = mmapWrites,
-                    keyValues = keyValues,
-                    bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-                    removeDeletes = removeDeletes
-                  ),
+            getFooter() flatMap {
+              footer =>
+                splits.mapIO(
+                  ioBlock =
+                    keyValues =>
+                      Segment.persistent(
+                        path = targetPaths.next.resolve(idGenerator.nextSegmentID),
+                        createdInLevel = footer.createdInLevel,
+                        mmapReads = mmapReads,
+                        mmapWrites = mmapWrites,
+                        keyValues = keyValues,
+                        bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+                        removeDeletes = removeDeletes
+                      ),
 
-              recover =
-                (segments: Slice[Segment], _: IO.Failure[Slice[Segment]]) =>
-                  segments foreach {
-                    segmentToDelete =>
-                      segmentToDelete.delete onFailureSideEffect {
-                        exception =>
-                          logger.error(s"{}: Failed to delete Segment '{}' in recover due to failed refresh", path, segmentToDelete.path, exception)
+                  recover =
+                    (segments: Slice[Segment], _: IO.Failure[Slice[Segment]]) =>
+                      segments foreach {
+                        segmentToDelete =>
+                          segmentToDelete.delete onFailureSideEffect {
+                            exception =>
+                              logger.error(s"{}: Failed to delete Segment '{}' in recover due to failed refresh", path, segmentToDelete.path, exception)
+                          }
                       }
-                  }
-            )
+                )
+            }
         }
     }
 

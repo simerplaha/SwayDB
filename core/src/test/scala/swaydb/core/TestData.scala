@@ -132,6 +132,7 @@ object TestData {
       else
         Segment.copyToPersist(
           keyValues = keyValues.toTransient,
+          createdInLevel = level.levelNumber.toInt,
           fetchNextPath = Files.createTempDirectory("testSegment").resolve(IDGenerator.segmentId(randomIntMax())),
           mmapSegmentsOnRead = randomBoolean(),
           mmapSegmentsOnWrite = randomBoolean(),

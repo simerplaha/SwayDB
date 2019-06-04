@@ -250,6 +250,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
       else
         Segment.persistent(
           path = path,
+          createdInLevel = 0,
           mmapReads = levelStorage.mmapSegmentsOnRead,
           mmapWrites = levelStorage.mmapSegmentsOnWrite,
           keyValues = keyValues,

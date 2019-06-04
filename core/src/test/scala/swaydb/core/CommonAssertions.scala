@@ -1267,6 +1267,8 @@ object CommonAssertions {
       keyValueCount = groupKeyValues.size,
       hasRange = false,
       hasPut = false,
+      isGrouped = true,
+      createdInLevel = Int.MinValue,
       bloomFilterItemsCount = groupKeyValues.last.stats.bloomFilterItemsCount,
       bloomFilter = None
     )
@@ -1278,7 +1280,7 @@ object CommonAssertions {
     keyValues shouldBe groupKeyValues
 
     //now write the Group to a full Segment and read it as a normal Segment.
-    val (segmentBytes, nearestDeadline) = SegmentWriter.write(Seq(group.updateStats(TestData.falsePositiveRate, None)), TestData.falsePositiveRate).assertGet
+    val (segmentBytes, nearestDeadline) = SegmentWriter.write(Seq(group.updateStats(TestData.falsePositiveRate, None)), 1, true, TestData.falsePositiveRate).assertGet
     nearestDeadline shouldBe Segment.getNearestDeadline(groupKeyValues).assertGetOpt
     val segmentReader = Reader(segmentBytes)
     val footer = SegmentReader.readFooter(segmentReader).assertGet

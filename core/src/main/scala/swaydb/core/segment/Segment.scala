@@ -238,6 +238,7 @@ private[core] object Segment extends LazyLogging {
     }
 
   def persistent(path: Path,
+                 createdInLevel: Int,
                  bloomFilterFalsePositiveRate: Double,
                  mmapReads: Boolean,
                  mmapWrites: Boolean,
@@ -247,8 +248,13 @@ private[core] object Segment extends LazyLogging {
                                          functionStore: FunctionStore,
                                          keyValueLimiter: KeyValueLimiter,
                                          fileOpenLimiter: FileLimiter,
-                                         compression: Option[KeyValueGroupingStrategyInternal]): IO[Segment] =
-    SegmentWriter.write(keyValues, bloomFilterFalsePositiveRate) flatMap {
+                                         groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Segment] =
+    SegmentWriter.write(
+      keyValues = keyValues,
+      createdInLevel = createdInLevel,
+      isGrouped = groupingStrategy.isDefined,
+      bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate
+    ) flatMap {
       case (bytes, nearestExpiryDeadline) =>
         if (bytes.isEmpty) {
           IO.Failure(new Exception("Empty key-values submitted to persistent Segment."))
@@ -307,6 +313,7 @@ private[core] object Segment extends LazyLogging {
     }
 
   def copyToPersist(segment: Segment,
+                    createdInLevel: Int,
                     fetchNextPath: => Path,
                     mmapSegmentsOnRead: Boolean,
                     mmapSegmentsOnWrite: Boolean,
@@ -349,6 +356,7 @@ private[core] object Segment extends LazyLogging {
       case memory: MemorySegment =>
         copyToPersist(
           keyValues = Slice(memory.cache.values().asScala.toArray),
+          createdInLevel = createdInLevel,
           fetchNextPath = fetchNextPath,
           bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
           mmapSegmentsOnRead = mmapSegmentsOnRead,
@@ -360,6 +368,7 @@ private[core] object Segment extends LazyLogging {
     }
 
   def copyToPersist(keyValues: Slice[KeyValue.ReadOnly],
+                    createdInLevel: Int,
                     fetchNextPath: => Path,
                     mmapSegmentsOnRead: Boolean,
                     mmapSegmentsOnWrite: Boolean,
@@ -386,6 +395,7 @@ private[core] object Segment extends LazyLogging {
             keyValues =>
               Segment.persistent(
                 path = fetchNextPath,
+                createdInLevel = createdInLevel,
                 bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
                 mmapReads = mmapSegmentsOnRead,
                 mmapWrites = mmapSegmentsOnWrite,

@@ -68,14 +68,14 @@ class SegmentWriterReaderSpec extends TestBase {
     }
 
     "convert empty KeyValues and not throw exception but return empty bytes" in {
-      val (bytes, nearestDeadline) = SegmentWriter.write(Seq(), TestData.falsePositiveRate).assertGet
+      val (bytes, nearestDeadline) = SegmentWriter.write(Seq(), 0, false, TestData.falsePositiveRate).assertGet
       bytes.isEmpty shouldBe true
       nearestDeadline shouldBe empty
     }
 
     "converting KeyValues to bytes and execute readAll and find on the bytes" in {
       def test(keyValues: Slice[KeyValue.WriteOnly]) = {
-        val (bytes, _) = SegmentWriter.write(keyValues, TestData.falsePositiveRate).assertGet
+        val (bytes, _) = SegmentWriter.write(keyValues, 0, false, TestData.falsePositiveRate).assertGet
         bytes.isFull shouldBe true
         //in memory
         assertReads(keyValues, Reader(bytes))
@@ -95,7 +95,7 @@ class SegmentWriterReaderSpec extends TestBase {
         val groupKeyValues = randomizedKeyValues(keyValueCount, addRandomGroups = false)
         val group = Transient.Group(groupKeyValues, randomCompression(), randomCompression(), TestData.falsePositiveRate, None).assertGet
 
-        val (bytes, deadline) = SegmentWriter.write(Seq(group), TestData.falsePositiveRate).assertGet
+        val (bytes, deadline) = SegmentWriter.write(Seq(group), 0, false, TestData.falsePositiveRate).assertGet
         bytes.isFull shouldBe true
 
         val allKeyValuesForGroups = readAll(bytes).assertGet.asInstanceOf[Slice[KeyValue.ReadOnly.Group]].flatMap(_.segmentCache.getAll().assertGet)
@@ -111,7 +111,7 @@ class SegmentWriterReaderSpec extends TestBase {
         val group2KeyValues = randomizedKeyValues(keyValueCount, startId = Some(group1.maxKey.maxKey.readInt() + 1))
         val group2 = Transient.Group(group2KeyValues, randomCompression(), randomCompression(), TestData.falsePositiveRate, Some(group1)).assertGet
 
-        val (bytes, deadline) = SegmentWriter.write(Seq(group1, group2), TestData.falsePositiveRate).assertGet
+        val (bytes, deadline) = SegmentWriter.write(Seq(group1, group2), 0, false, TestData.falsePositiveRate).assertGet
         bytes.isFull shouldBe true
 
         val allBytes = readAll(bytes).assertGet
@@ -137,7 +137,7 @@ class SegmentWriterReaderSpec extends TestBase {
         val group4KeyValues = Seq(group1, group2, group3).updateStats
         val group4 = Transient.Group(group4KeyValues, randomCompression(), randomCompression(), TestData.falsePositiveRate, None).assertGet
 
-        val bytes = SegmentWriter.write(Seq(group4), TestData.falsePositiveRate).assertGet._1
+        val bytes = SegmentWriter.write(Seq(group4), 0, false, TestData.falsePositiveRate).assertGet._1
         bytes.isFull shouldBe true
 
         val rootGroup = readAll(bytes).assertGet
@@ -157,7 +157,7 @@ class SegmentWriterReaderSpec extends TestBase {
         //increase the size of value to test it on larger values.
         val keyValues = randomizedKeyValues(valueSize = 1.kb, count = 100)
 
-        val (bytes, _) = SegmentWriter.write(keyValues, TestData.falsePositiveRate).assertGet
+        val (bytes, _) = SegmentWriter.write(keyValues, 0, false, TestData.falsePositiveRate).assertGet
         bytes.isFull shouldBe true
 
         //in memory
@@ -170,7 +170,7 @@ class SegmentWriterReaderSpec extends TestBase {
     "write and read Int min max key values" in {
       val keyValues = Slice(Transient.put(Int.MaxValue, Int.MinValue), Transient.put(Int.MinValue, Int.MaxValue)).updateStats
 
-      val (bytes, deadline) = SegmentWriter.write(keyValues, TestData.falsePositiveRate).assertGet
+      val (bytes, deadline) = SegmentWriter.write(keyValues, 0, false, TestData.falsePositiveRate).assertGet
       deadline shouldBe empty
 
       //in memory
@@ -188,7 +188,7 @@ class SegmentWriterReaderSpec extends TestBase {
           keyValue.valueEntryBytes shouldBe empty
       }
 
-      val (bytes, deadline) = SegmentWriter.write(keyValues, TestData.falsePositiveRate).assertGet
+      val (bytes, deadline) = SegmentWriter.write(keyValues, 0, false, TestData.falsePositiveRate).assertGet
 
       if (!setDeadlines) deadline shouldBe empty
 
@@ -201,7 +201,7 @@ class SegmentWriterReaderSpec extends TestBase {
     "report Segment corruption if CRC check does not match when reading the footer" in {
       val keyValues = Slice(Transient.put(1)).updateStats
 
-      val (bytes, _) = SegmentWriter.write(keyValues, TestData.falsePositiveRate).assertGet
+      val (bytes, _) = SegmentWriter.write(keyValues, 0, false, TestData.falsePositiveRate).assertGet
 
       SegmentReader.readFooter(Reader(bytes.drop(1))).failed.assertGet.exception shouldBe a[SegmentCorruptionException]
       SegmentReader.readFooter(Reader(bytes.dropRight(1))).failed.assertGet.exception shouldBe a[SegmentCorruptionException]
@@ -214,7 +214,7 @@ class SegmentWriterReaderSpec extends TestBase {
       runThis(100.times) {
         val keyValues = randomizedKeyValues(keyValueCount, addRandomRanges = false, addRandomGroups = true)
 
-        val (bytes, deadline) = SegmentWriter.write(keyValues, TestData.falsePositiveRate).assertGet
+        val (bytes, deadline) = SegmentWriter.write(keyValues, 0, false, TestData.falsePositiveRate).assertGet
 
         val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).get
         footer.keyValueCount shouldBe keyValues.size
@@ -257,7 +257,7 @@ class SegmentWriterReaderSpec extends TestBase {
 
         keyValues.last.stats.hasRemoveRange shouldBe expectedHasRemoveRange
 
-        val (bytes, _) = SegmentWriter.write(keyValues, TestData.falsePositiveRate).assertGet
+        val (bytes, _) = SegmentWriter.write(keyValues, 0, false, TestData.falsePositiveRate).assertGet
 
         val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).get
         footer.keyValueCount shouldBe keyValues.size
@@ -282,7 +282,7 @@ class SegmentWriterReaderSpec extends TestBase {
       def doAssert(keyValues: Slice[KeyValue.WriteOnly]) = {
         keyValues.last.stats.hasRemoveRange shouldBe true
 
-        val (bytes, _) = SegmentWriter.write(keyValues, TestData.falsePositiveRate).assertGet
+        val (bytes, _) = SegmentWriter.write(keyValues, 0, false, TestData.falsePositiveRate).assertGet
 
         val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).get
         footer.keyValueCount shouldBe keyValues.size
@@ -311,7 +311,7 @@ class SegmentWriterReaderSpec extends TestBase {
       def doAssert(keyValues: Slice[KeyValue.WriteOnly]) = {
         keyValues.last.stats.hasRemoveRange shouldBe false
 
-        val (bytes, _) = SegmentWriter.write(keyValues, TestData.falsePositiveRate).assertGet
+        val (bytes, _) = SegmentWriter.write(keyValues, 0, false, TestData.falsePositiveRate).assertGet
 
         val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).get
         footer.keyValueCount shouldBe keyValues.size
@@ -339,7 +339,7 @@ class SegmentWriterReaderSpec extends TestBase {
       def doAssert(keyValues: Slice[KeyValue.WriteOnly]) = {
         keyValues.last.stats.hasRemoveRange shouldBe false
 
-        val (bytes, _) = SegmentWriter.write(keyValues, TestData.falsePositiveRate).assertGet
+        val (bytes, _) = SegmentWriter.write(keyValues, 0, false, TestData.falsePositiveRate).assertGet
 
         val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).get
         footer.keyValueCount shouldBe keyValues.size
@@ -350,7 +350,6 @@ class SegmentWriterReaderSpec extends TestBase {
         assertBloom(keyValues, bloomFilter)
         IO(bloomFilter.mightContain(randomBytesSlice(100)) shouldBe false)
         footer.crc should be > 0L
-
       }
 
       runThis(100.times) {
@@ -367,7 +366,7 @@ class SegmentWriterReaderSpec extends TestBase {
       def doAssert(keyValues: Slice[KeyValue.WriteOnly]) = {
         keyValues.last.stats.hasRemoveRange shouldBe false
 
-        val (bytes, _) = SegmentWriter.write(keyValues, TestData.falsePositiveRate).assertGet
+        val (bytes, _) = SegmentWriter.write(keyValues, 0, false, TestData.falsePositiveRate).assertGet
 
         val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).get
         footer.keyValueCount shouldBe keyValues.size
@@ -384,7 +383,6 @@ class SegmentWriterReaderSpec extends TestBase {
             assertGroup(group, keyCompression, Some(valueCompression))
           case _ =>
         }
-
       }
 
       runThis(100.times) {
@@ -411,7 +409,7 @@ class SegmentWriterReaderSpec extends TestBase {
       def doAssert(keyValues: Slice[KeyValue.WriteOnly]) = {
         keyValues.last.stats.hasRemoveRange shouldBe true
 
-        val (bytes, _) = SegmentWriter.write(keyValues, TestData.falsePositiveRate).assertGet
+        val (bytes, _) = SegmentWriter.write(keyValues, 0, false, TestData.falsePositiveRate).assertGet
 
         val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).get
         footer.keyValueCount shouldBe keyValues.size
@@ -453,7 +451,7 @@ class SegmentWriterReaderSpec extends TestBase {
           Transient.Group(Slice(randomPutKeyValue(Int.MaxValue - 600, Some("val")), randomRangeKeyValue(Int.MaxValue - 500, Int.MaxValue - 400, rangeValue = Value.remove(None))).toTransient, randomCompression(), randomCompression(), TestData.falsePositiveRate, None).assertGet
         ).updateStats
 
-      val (bytes, _) = SegmentWriter.write(keyValues, TestData.falsePositiveRate).assertGet
+      val (bytes, _) = SegmentWriter.write(keyValues, 0, false, TestData.falsePositiveRate).assertGet
       val footer = SegmentReader.readFooter(Reader(bytes)).assertGet
 
       /**
@@ -530,7 +528,7 @@ class SegmentWriterReaderSpec extends TestBase {
           Transient.Range.create[FromValue, RangeValue](Int.MaxValue - 9, Int.MaxValue, None, Value.update(10))
         ).updateStats
 
-      val (bytes, _) = SegmentWriter.write(keyValues, TestData.falsePositiveRate).assertGet
+      val (bytes, _) = SegmentWriter.write(keyValues, 0, false, TestData.falsePositiveRate).assertGet
 
       //FIRST
       SegmentReader.find(KeyMatcher.Lower(keyValues.head.key), None, Reader(bytes)).assertGetOpt shouldBe empty
@@ -586,7 +584,7 @@ class SegmentWriterReaderSpec extends TestBase {
           Transient.Range.create[FromValue, RangeValue](Int.MaxValue - 9, Int.MaxValue, None, Value.update(10))
         ).updateStats
 
-      val (bytes, _) = SegmentWriter.write(keyValues, TestData.falsePositiveRate).assertGet
+      val (bytes, _) = SegmentWriter.write(keyValues, 0, false, TestData.falsePositiveRate).assertGet
 
       val foundKeyValue1 = SegmentReader.find(KeyMatcher.Higher(keyValues.head.key), None, Reader(bytes)).assertGet
       foundKeyValue1 shouldBe keyValues(1)
@@ -670,6 +668,8 @@ class SegmentWriterReaderSpec extends TestBase {
         val actualNearestDeadline =
           SegmentWriter.write(
             keyValues = keyValuesWithDeadline.updateStats,
+            createdInLevel = 0,
+            isGrouped = false,
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate
           ).assertGet._2
 
@@ -721,7 +721,7 @@ class SegmentWriterReaderSpec extends TestBase {
         //this value is only expected to be written ones.
         val value = keyValues.head.value.assertGet
 
-        val (bytes, deadline) = SegmentWriter.write(keyValues, TestData.falsePositiveRate).assertGet
+        val (bytes, deadline) = SegmentWriter.write(keyValues, 0, false, TestData.falsePositiveRate).assertGet
         //      println(bytes)
 
         deadline shouldBe empty

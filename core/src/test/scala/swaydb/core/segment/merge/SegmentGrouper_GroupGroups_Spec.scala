@@ -122,7 +122,7 @@ sealed trait SegmentGrouper_GroupGroups_Spec extends TestBase {
           //no mutation occurs
           mutableKeyValues shouldBe keyValues
         } else {
-          val (bytes, _) = SegmentWriter.write(Slice(result.assertGet), TestData.falsePositiveRate).assertGet
+          val (bytes, _) = SegmentWriter.write(Slice(result.assertGet), 0, true, TestData.falsePositiveRate).assertGet
           val rootGroup = readAll(bytes).assertGet
           rootGroup should have size 1
           rootGroup.head.asInstanceOf[Persistent.Group].segmentCache.getAll().assertGet shouldBe keyValues
@@ -226,7 +226,7 @@ sealed trait SegmentGrouper_GroupGroups_Spec extends TestBase {
               //no mutation occurs
               mutableKeyValues shouldBe groups
             } else {
-              val (bytes, _) = SegmentWriter.write(Slice(result.assertGet).updateStats, TestData.falsePositiveRate).assertGet
+              val (bytes, _) = SegmentWriter.write(Slice(result.assertGet).updateStats, 0, true, TestData.falsePositiveRate).assertGet
               val rootGroup = readAll(bytes).assertGet
               rootGroup should have size 1
               rootGroup.head.asInstanceOf[Persistent.Group].segmentCache.getAll().assertGet shouldBe groups
@@ -267,7 +267,7 @@ sealed trait SegmentGrouper_GroupGroups_Spec extends TestBase {
         //all key-values are merged into one group.
         mutableKeyValues should have size 1
         //only a Group key-value exists with
-        val (bytes, _) = SegmentWriter.write(Slice(result.assertGet).updateStats, TestData.falsePositiveRate).assertGet
+        val (bytes, _) = SegmentWriter.write(Slice(result.assertGet).updateStats, 0, true, TestData.falsePositiveRate).assertGet
         val rootGroup = readAll(bytes).assertGet
         rootGroup should have size 1
         rootGroup.head.asInstanceOf[Persistent.Group].segmentCache.getAll().assertGet shouldBe groups

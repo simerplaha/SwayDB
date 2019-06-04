@@ -552,6 +552,7 @@ private[core] case class Level(dirs: Seq[Dir],
     else
       Segment.copyToPersist(
         keyValues = keyValues,
+        createdInLevel = levelNumber.toInt,
         fetchNextPath = targetSegmentPath,
         mmapSegmentsOnRead = mmapSegmentsOnRead,
         mmapSegmentsOnWrite = mmapSegmentsOnWrite,
@@ -621,6 +622,7 @@ private[core] case class Level(dirs: Seq[Dir],
             Segment.copyToPersist(
               segment = segment,
               fetchNextPath = targetSegmentPath,
+              createdInLevel = levelNumber.toInt,
               mmapSegmentsOnRead = mmapSegmentsOnRead,
               mmapSegmentsOnWrite = mmapSegmentsOnWrite,
               minSegmentSize = segmentSize,
@@ -1143,7 +1145,7 @@ private[core] case class Level(dirs: Seq[Dir],
         (segments + 1, size + segment.segmentSize)
     }
 
-  def levelNumber: Long =
+  val levelNumber: Long =
     paths.head.path.folderId
 
   def meterFor(levelNumber: Int): Option[LevelMeter] =

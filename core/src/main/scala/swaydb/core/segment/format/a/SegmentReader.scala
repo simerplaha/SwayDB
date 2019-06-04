@@ -235,6 +235,8 @@ private[core] object SegmentReader extends LazyLogging {
       val footerReader = Reader(footerBytes.get)
       val formatId = footerReader.readIntUnsigned().get
       assert(formatId == SegmentWriter.formatId, s"Invalid Segment formatId: $formatId. Expected: ${SegmentWriter.formatId}")
+      val createdInLevel = footerReader.readIntUnsigned().get
+      val isGrouped = footerReader.readBoolean().get
       val hasRange = footerReader.readBoolean().get
       val hasPut = footerReader.readBoolean().get
       val indexStartOffset = footerReader.readIntUnsigned().get
@@ -257,6 +259,8 @@ private[core] object SegmentReader extends LazyLogging {
         IO.Success(
           SegmentFooter(
             crc = expectedCRC,
+            createdInLevel = createdInLevel,
+            isGrouped = isGrouped,
             startIndexOffset = indexStartOffset,
             endIndexOffset = indexEndOffset,
             keyValueCount = keyValueCount,
@@ -355,10 +359,8 @@ private[core] object SegmentReader extends LazyLogging {
 
       case MatchResult.Stop =>
         IO.none
-
     }
 
   private def hasMore(keyValue: Persistent, footer: SegmentFooter) =
     keyValue.nextIndexOffset >= 0 && keyValue.nextIndexOffset < footer.endIndexOffset
-
 }

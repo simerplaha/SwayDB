@@ -89,6 +89,8 @@ private[core] object Stats {
 
     val footerSize =
       Bytes.sizeOf(SegmentWriter.formatId) + //1 byte for format
+        1 + //for created in level
+        1 + //for isGrouped
         1 + //for hasRange
         1 + //for hasPut
         ByteSizeOf.long + //for CRC. This cannot be unsignedLong because the size of the crc long bytes is not fixed.
@@ -160,5 +162,4 @@ private[core] case class Stats(valueLength: Int,
 
   def indexSize =
     segmentSizeWithoutFooter - segmentValuesSize
-
 }

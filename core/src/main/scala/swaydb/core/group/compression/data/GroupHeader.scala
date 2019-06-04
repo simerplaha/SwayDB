@@ -47,6 +47,8 @@ private[core] case class GroupHeader(headerSize: Int,
       keyValueCount = keyValueCount,
       hasRange = hasRange,
       hasPut = hasPut,
+      createdInLevel = Int.MinValue,
+      isGrouped = true,
       bloomFilterItemsCount = bloomFilterItemsCount,
       bloomFilter = None
     )
