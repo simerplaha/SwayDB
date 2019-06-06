@@ -51,6 +51,8 @@ private[segment] case class MemorySegment(path: Path,
                                           _hasPut: Boolean,
                                           //only Memory Segment's need to know if there is a Group. Persistent Segments always get floor from cache when reading.
                                           _hasGroup: Boolean,
+                                          _isGrouped: Boolean,
+                                          _createdInLevel: Int,
                                           private[segment] val cache: ConcurrentSkipListMap[Slice[Byte], Memory],
                                           bloomFilter: Option[BloomFilter],
                                           nearestExpiryDeadline: Option[Deadline],
@@ -115,6 +117,7 @@ private[segment] case class MemorySegment(path: Path,
                   keyValues => {
                     Segment.memory(
                       path = targetPaths.next.resolve(idGenerator.nextSegmentID),
+                      createdInLevel = _createdInLevel,
                       keyValues = keyValues,
                       bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
                       removeDeletes = removeDeletes
@@ -157,6 +160,7 @@ private[segment] case class MemorySegment(path: Path,
                   keyValues =>
                     Segment.memory(
                       path = targetPaths.next.resolve(idGenerator.nextSegmentID),
+                      createdInLevel = _createdInLevel,
                       keyValues = keyValues,
                       bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
                       removeDeletes = removeDeletes
@@ -403,4 +407,10 @@ private[segment] case class MemorySegment(path: Path,
 
   override def deleteSegmentsEventually: Unit =
     fileLimiter.delete(this)
+
+  override def createdInLevel: IO[Int] =
+    IO(_createdInLevel)
+
+  override def isGrouped: IO[Boolean] =
+    IO(_isGrouped)
 }

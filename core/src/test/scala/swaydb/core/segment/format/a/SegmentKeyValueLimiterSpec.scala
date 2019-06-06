@@ -73,6 +73,7 @@ class SegmentKeyValueLimiterSpec extends TestBase with Benchmark {
         val segment =
           Segment.memory(
             path = Paths.get("/test"),
+            createdInLevel = 0,
             keyValues = mergedKeyValues,
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             removeDeletes = false

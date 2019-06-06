@@ -53,6 +53,7 @@ private[core] object Segment extends LazyLogging {
   val emptyIterableIO = IO.Success(emptyIterable)
 
   def memory(path: Path,
+             createdInLevel: Long,
              keyValues: Iterable[KeyValue.WriteOnly],
              bloomFilterFalsePositiveRate: Double,
              removeDeletes: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
@@ -223,6 +224,8 @@ private[core] object Segment extends LazyLogging {
                   case keyValue: KeyValue.WriteOnly.Fixed =>
                     MaxKey.Fixed(keyValue.key.unslice())
                 },
+              _isGrouped = groupingStrategy.isDefined,
+              _createdInLevel = createdInLevel.toInt,
               _hasRange = keyValues.last.stats.hasRange,
               _hasPut = keyValues.last.stats.hasPut,
               _hasGroup = keyValues.last.stats.hasGroup,
@@ -418,6 +421,7 @@ private[core] object Segment extends LazyLogging {
     }
 
   def copyToMemory(segment: Segment,
+                   createdInLevel: Int,
                    fetchNextPath: => Path,
                    removeDeletes: Boolean,
                    minSegmentSize: Long,
@@ -434,6 +438,7 @@ private[core] object Segment extends LazyLogging {
           keyValues = keyValues,
           fetchNextPath = fetchNextPath,
           removeDeletes = removeDeletes,
+          createdInLevel = createdInLevel,
           minSegmentSize = minSegmentSize,
           bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
           compressDuplicateValues = compressDuplicateValues
@@ -444,6 +449,7 @@ private[core] object Segment extends LazyLogging {
                    fetchNextPath: => Path,
                    removeDeletes: Boolean,
                    minSegmentSize: Long,
+                   createdInLevel: Long,
                    bloomFilterFalsePositiveRate: Double,
                    compressDuplicateValues: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                      timeOrder: TimeOrder[Slice[Byte]],
@@ -464,6 +470,7 @@ private[core] object Segment extends LazyLogging {
           keyValues =>
             Segment.memory(
               path = fetchNextPath,
+              createdInLevel = createdInLevel,
               bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
               keyValues = keyValues,
               removeDeletes = removeDeletes
@@ -914,6 +921,10 @@ private[core] trait Segment extends FileLimiterItem {
   val segmentSize: Int
   val removeDeletes: Boolean
   val nearestExpiryDeadline: Option[Deadline]
+
+  def createdInLevel: IO[Int]
+
+  def isGrouped: IO[Boolean]
 
   def getBloomFilter: IO[Option[BloomFilter]]
 

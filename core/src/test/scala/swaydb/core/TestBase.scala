@@ -244,6 +244,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
         Segment.memory(
           path = path,
           keyValues = keyValues,
+          createdInLevel = 0,
           bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
           removeDeletes = removeDeletes
         )

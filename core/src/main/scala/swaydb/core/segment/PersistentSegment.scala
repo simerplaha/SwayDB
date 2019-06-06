@@ -274,4 +274,10 @@ private[segment] case class PersistentSegment(file: DBFile,
 
   def notExistsOnDisk: Boolean =
     !file.existsOnDisk
+
+  override def createdInLevel: IO[Int] =
+    getFooter().map(_.createdInLevel)
+
+  override def isGrouped: IO[Boolean] =
+    getFooter().map(_.isGrouped)
 }

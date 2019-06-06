@@ -835,6 +835,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         Segment.copyToMemory(
           segment = segment,
           fetchNextPath = levelPath.resolve(nextSegmentId),
+          createdInLevel = 0,
           removeDeletes = false,
           compressDuplicateValues = true,
           minSegmentSize =
@@ -860,6 +861,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         val segments =
           Segment.copyToMemory(
             segment = segment,
+            createdInLevel = 0,
             fetchNextPath = levelPath.resolve(nextSegmentId),
             removeDeletes = true,
             compressDuplicateValues = true,

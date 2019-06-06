@@ -157,6 +157,7 @@ class GroupSpec extends TestBase {
       val segment =
         Segment.memory(
           path = Paths.get("/test"),
+          createdInLevel = 0,
           keyValues = Seq(group),
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           removeDeletes = false

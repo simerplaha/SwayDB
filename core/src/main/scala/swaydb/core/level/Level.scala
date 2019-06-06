@@ -209,6 +209,12 @@ private[core] object Level extends LazyLogging {
           segmentId
     }
 
+  /**
+    * A Segment is considered small if it's size is less than 60% of the default [[Level.segmentSize]]
+    */
+  def isSmallSegment(segment: Segment, levelSegmentSize: Long): Boolean =
+    segment.segmentSize < levelSegmentSize * 0.60
+
   def deleteUncommittedSegments(dirs: Seq[Dir], appendixSegments: Iterable[Segment]): IO[Unit] =
     dirs.flatMap(_.path.files(Extension.Seg)) foreachIO {
       segmentToDelete =>
@@ -228,10 +234,10 @@ private[core] object Level extends LazyLogging {
         }
     } getOrElse IO.unit
 
-  def optimalSegmentsPushForward(level: NextLevel,
-                                 nextLevel: NextLevel,
-                                 take: Int)(implicit reserve: ReserveRange.State[Unit],
-                                            keyOrder: KeyOrder[Slice[Byte]]): (Iterable[Segment], Iterable[Segment]) = {
+  def optimalSegmentsToPushForward(level: NextLevel,
+                                   nextLevel: NextLevel,
+                                   take: Int)(implicit reserve: ReserveRange.State[Unit],
+                                              keyOrder: KeyOrder[Slice[Byte]]): (Iterable[Segment], Iterable[Segment]) = {
     val segmentsInNextLevel = nextLevel.segmentsInLevel()
     val segmentsToCopy = ListBuffer.empty[Segment]
     val segmentsToMerge = ListBuffer.empty[Segment]
@@ -251,6 +257,32 @@ private[core] object Level extends LazyLogging {
           segmentsTaken >= take
       }
     (segmentsToCopy, segmentsToMerge)
+  }
+
+  def optimalSegmentsToCollapse(level: NextLevel,
+                                take: Int)(implicit reserve: ReserveRange.State[Unit],
+                                           keyOrder: KeyOrder[Slice[Byte]]): Iterable[Segment] = {
+    var segmentsTaken: Int = 0
+    val segmentsToCollapse = ListBuffer.empty[Segment]
+    level
+      .segmentsInLevel()
+      .iterator
+      .foreachBreak {
+        segment =>
+          if (ReserveRange.isUnreserved(segment.minKey, segment.maxKey.maxKey))
+            if (isSmallSegment(segment, level.segmentSize) ||
+              //if group strategy in the level is defined and segment's grouping is undefined or vice-versa.
+              level.groupingStrategy.isDefined != segment.isGrouped.getOrElse(level.groupingStrategy.isDefined) ||
+              //if grouping is as expected by the Segment was not created in this level.
+              segment.createdInLevel.getOrElse(0) != level.levelNumber) {
+              //then add this segment to collapse.
+              segmentsToCollapse += segment
+              segmentsTaken += 1
+            }
+
+          segmentsTaken >= take
+      }
+    segmentsToCollapse
   }
 }
 
@@ -276,7 +308,7 @@ private[core] case class Level(dirs: Seq[Dir],
                                                               addWriter: MapEntryWriter[MapEntry.Put[Slice[Byte], Segment]],
                                                               keyValueLimiter: KeyValueLimiter,
                                                               fileOpenLimiter: FileLimiter,
-                                                              groupingStrategy: Option[KeyValueGroupingStrategyInternal],
+                                                              val groupingStrategy: Option[KeyValueGroupingStrategyInternal],
                                                               val segmentIDGenerator: IDGenerator,
                                                               reserve: ReserveRange.State[Unit]) extends NextLevel with LazyLogging { self =>
 
@@ -575,6 +607,7 @@ private[core] case class Level(dirs: Seq[Dir],
     if (inMemory)
       Segment.copyToMemory(
         keyValues = keyValues,
+        createdInLevel = levelNumber,
         fetchNextPath = targetSegmentPath,
         minSegmentSize = segmentSize,
         removeDeletes = removeDeletedRecords,
@@ -645,6 +678,7 @@ private[core] case class Level(dirs: Seq[Dir],
             Segment.copyToMemory(
               segment = segment,
               fetchNextPath = targetSegmentPath,
+              createdInLevel = levelNumber.toInt,
               minSegmentSize = segmentSize,
               removeDeletes = removeDeletedRecords,
               bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
@@ -756,19 +790,20 @@ private[core] case class Level(dirs: Seq[Dir],
     } getOrElse IO.Failure(IO.Error.NoSegmentsRemoved)
   }
 
-  /**
-    * A Segment is considered small if it's size is less than 60% of the default [[segmentSize]]
-    */
-  def isSmallSegment(segment: Segment): Boolean =
-    segment.segmentSize < segmentSize * 0.60
-
   def collapse(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO.Async[Int] = {
     logger.trace(s"{}: Collapsing '{}' segments", paths.head, segments.size)
     if (segments.isEmpty || appendix.size == 1) { //if there is only one Segment in this Level which is a small segment. No collapse required
       IO.zero
     } else {
       //other segments in the appendix that are not the input segments (segments to collapse).
-      val targetAppendixSegments = appendix.values().asScala.filterNot(map => segments.exists(_.path == map.path))
+      val levelSegments = segmentsInLevel()
+      val targetAppendixSegments =
+        levelSegments
+          .filter {
+            appendixSegment =>
+              segments.exists(_.path != appendixSegment.path)
+          }
+
       val (segmentsToMerge, targetSegments) =
         if (targetAppendixSegments.nonEmpty) {
           logger.trace(s"{}: Target appendix segments {}", paths.head, targetAppendixSegments.size)
@@ -776,12 +811,13 @@ private[core] case class Level(dirs: Seq[Dir],
         } else {
           //If appendix without the small Segments is empty.
           // Then pick the first segment from the smallest segments and merge other small segments into it.
-          val firstSmallSegment = Iterable(segments.head)
-          logger.trace(s"{}: Target segments {}", paths.head, firstSmallSegment.size)
-          (segments.drop(1), firstSmallSegment)
+          val firstToCollapse = Iterable(segments.head)
+          logger.trace(s"{}: Target segments {}", paths.head, firstToCollapse.size)
+          (segments.drop(1), firstToCollapse)
         }
 
-      reserve(segmentsInLevel()).asAsync flatMap {
+      //reserve the Level. It's unknown here what segments will get collapsed into what other Segments.
+      reserve(levelSegments).asAsync flatMap {
         case Left(future) =>
           IO.fromFuture(future.map(_ => 0))
 
@@ -1191,23 +1227,37 @@ private[core] case class Level(dirs: Seq[Dir],
     } take size
 
   override def takeLargeSegments(size: Int): Iterable[Segment] =
-    appendix.values().asScala.filter(_.segmentSize > segmentSize) take size
+    appendix
+      .values()
+      .asScala
+      .filter(_.segmentSize > segmentSize) take size
 
   override def takeSmallSegments(size: Int): Iterable[Segment] =
-    appendix.values().asScala.filter(isSmallSegment) take size
+    appendix
+      .values()
+      .asScala
+      .filter(Level.isSmallSegment(_, segmentSize)) take size
 
   override def optimalSegmentsPushForward(take: Int): (Iterable[Segment], Iterable[Segment]) =
     nextLevel map {
       nextLevel =>
-        Level.optimalSegmentsPushForward(
+        Level.optimalSegmentsToPushForward(
           level = self,
           nextLevel = nextLevel,
           take = take
         )
     } getOrElse Level.emptySegmentsToPush
 
+  override def optimalSegmentsToCollapse(take: Int): Iterable[Segment] =
+    Level.optimalSegmentsToCollapse(
+      level = self,
+      take = take
+    )
+
   def hasSmallSegments: Boolean =
-    appendix.values().asScala exists isSmallSegment
+    appendix
+      .values()
+      .asScala exists (Level.isSmallSegment(_, segmentSize))
 
   def close: IO[Unit] =
     (nextLevel.map(_.close) getOrElse IO.unit) flatMap {

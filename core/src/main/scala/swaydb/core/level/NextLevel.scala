@@ -19,9 +19,8 @@
 
 package swaydb.core.level
 
-import java.nio.file.Path
-
 import swaydb.core.data.Memory
+import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.map.Map
 import swaydb.core.segment.Segment
 import swaydb.data.IO
@@ -95,6 +94,8 @@ trait NextLevel extends LevelRef {
 
   def levelSize: Long
 
+  def segmentSize: Long
+
   def take(count: Int): Slice[Segment]
 
   def takeSmallSegments(size: Int): Iterable[Segment]
@@ -103,10 +104,14 @@ trait NextLevel extends LevelRef {
 
   def optimalSegmentsPushForward(take: Int): (Iterable[Segment], Iterable[Segment])
 
+  def optimalSegmentsToCollapse(take: Int): Iterable[Segment]
+
   def takeSegments(size: Int,
                    condition: Segment => Boolean): Iterable[Segment]
 
   def segmentsInLevel(): Iterable[Segment]
 
   def nextThrottlePushCount: Int
+
+  def groupingStrategy: Option[KeyValueGroupingStrategyInternal]
 }

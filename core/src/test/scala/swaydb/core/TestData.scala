@@ -120,7 +120,15 @@ object TestData {
       if (keyValues.isEmpty)
         IO.unit
       else if (level.inMemory)
-        Segment.copyToMemory(keyValues, Paths.get("testMemorySegment"), false, 1000.mb, TestData.falsePositiveRate, true) flatMap {
+        Segment.copyToMemory(
+          keyValues = keyValues,
+          fetchNextPath = Paths.get("testMemorySegment"),
+          removeDeletes = false,
+          minSegmentSize = 1000.mb,
+          createdInLevel = 0,
+          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+          compressDuplicateValues = true
+        ) flatMap {
           segments =>
             segments should have size 1
             segments mapIO {

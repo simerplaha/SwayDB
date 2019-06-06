@@ -22,6 +22,7 @@ package swaydb.core.level
 import java.nio.file.{Path, Paths}
 
 import swaydb.core.data.{KeyValue, Memory}
+import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.segment.Segment
 import swaydb.data.IO
 import swaydb.data.compaction.{LevelMeter, Throttle}
@@ -188,4 +189,14 @@ private[core] object TrashLevel extends NextLevel {
 
   override def nextThrottlePushCount: Int =
     0
+  override def segmentSize: Long = 0
+
+  override def optimalSegmentsPushForward(take: Int): (Iterable[Segment], Iterable[Segment]) =
+    Level.emptySegmentsToPush
+
+  override def optimalSegmentsToCollapse(take: Int): Iterable[Segment] =
+    Segment.emptyIterable
+
+  override def groupingStrategy: Option[KeyValueGroupingStrategyInternal] =
+    None
 }

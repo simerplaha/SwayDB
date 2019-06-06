@@ -343,7 +343,7 @@ private[level] object Compaction extends LazyLogging {
           )
       }
     else
-      level.collapse(level.takeSmallSegments(remainingCompactions max 2)) match { //need at least 2 for collapse.
+      level.collapse(level.optimalSegmentsToCollapse(remainingCompactions max 2)) match { //need at least 2 for collapse.
         case IO.Success(count) =>
           logger.debug(s"Level(${level.levelNumber}): Collapsed $count small segments.")
           runLastLevelCompaction(
