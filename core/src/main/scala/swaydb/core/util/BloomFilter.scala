@@ -2,7 +2,6 @@
 package swaydb.core.util
 
 import java.nio.ByteBuffer
-import java.util
 
 import swaydb.core.data.KeyValue
 import swaydb.core.io.reader.Reader
@@ -11,27 +10,30 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 
 /**
-  * Credit: borrows from https://github.com/alexandrnikitin/bloom-filter-scala.
+  * Credit: Follows bit shifting logic from https://github.com/alexandrnikitin/bloom-filter-scala.
   */
 object BloomFilter {
 
   val empty =
     new BloomFilter(
       startOffset = 0,
+      _maxStartOffset = 0,
       numberOfBits = 0,
       numberOfHashes = 0,
       buffer = ByteBuffer.allocate(0)
     )
 
-  val byteBufferStartOffset = ByteSizeOf.int + ByteSizeOf.int
+  val byteBufferStartOffset = ByteSizeOf.int + ByteSizeOf.int + ByteSizeOf.int
 
   def apply(numberOfItems: Int, falsePositiveRate: Double): BloomFilter = {
     val numberOfBits = optimalNumberOfBits(numberOfItems, falsePositiveRate)
     val numberOfHashes = optimalNumberOfHashes(numberOfItems, numberOfBits)
     val buffer = ByteBuffer.allocate(byteBufferStartOffset + numberOfBits)
+    buffer.putInt(0)
     buffer.putInt(numberOfBits)
     buffer.putInt(numberOfHashes)
     new BloomFilter(
+      _maxStartOffset = 0,
       startOffset = byteBufferStartOffset,
       numberOfBits = numberOfBits,
       numberOfHashes = numberOfHashes,
@@ -48,11 +50,13 @@ object BloomFilter {
   def apply(slice: Slice[Byte]): IO[BloomFilter] = {
     val reader = Reader(slice)
     for {
+      maxStartOffset <- reader.readInt()
       numberOfBits <- reader.readInt()
       numberOfHashes <- reader.readInt()
     } yield {
       new BloomFilter(
         startOffset = byteBufferStartOffset,
+        _maxStartOffset = maxStartOffset,
         numberOfBits = numberOfBits,
         numberOfHashes = numberOfHashes,
         buffer = slice.toByteBuffer
@@ -85,16 +89,21 @@ object BloomFilter {
     }
 }
 
-class BloomFilter(startOffset: Int,
-                  numberOfBits: Int,
-                  numberOfHashes: Int,
+class BloomFilter(val startOffset: Int,
+                  private var _maxStartOffset: Int,
+                  val numberOfBits: Int,
+                  val numberOfHashes: Int,
                   buffer: ByteBuffer) {
+
+  def maxStartOffset: Int =
+    _maxStartOffset
 
   private def get(index: Long): Boolean =
     (buffer.getLong(startOffset + ((index >>> 6) * 8L).toInt) & (1L << index)) != 0
 
   private def set(index: Long): Unit = {
     val offset = startOffset + (index >>> 6) * 8L
+    _maxStartOffset = _maxStartOffset max offset.toInt
     val long = buffer.getLong(offset.toInt)
     if ((long & (1L << index)) == 0)
       buffer.putLong(offset.toInt, long | (1L << index))
@@ -128,8 +137,10 @@ class BloomFilter(startOffset: Int,
     true
   }
 
-  def toSlice: Slice[Byte] =
-    Slice(buffer.array()).slice(0, numberOfBits + 7) //7 instead of 8 because toOffset is index not size.
+  def toSlice: Slice[Byte] = {
+    buffer.putInt(0, maxStartOffset)
+    Slice(buffer.array()).slice(0, maxStartOffset + 7)
+  }
 
   override def hashCode(): Int =
     buffer.hashCode()

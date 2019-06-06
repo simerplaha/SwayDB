@@ -43,6 +43,9 @@ class BloomFilterSpec extends TestBase {
       val readBloomFilter = BloomFilter(bloomFilter.toSlice).get
       (1 to 10) foreach (key => readBloomFilter.mightContain(key) shouldBe true)
       (11 to 20) foreach (key => readBloomFilter.mightContain(key) shouldBe false)
+
+      println(bloomFilter.numberOfBits)
+      println(bloomFilter.maxStartOffset)
     }
   }
 
@@ -136,7 +139,9 @@ class BloomFilterSpec extends TestBase {
   }
 
   "bloomFilter error check" in {
-    def assert(data: Seq[String], filter: BloomFilter) = {
+    def assert(data: Seq[String],
+               filter: BloomFilter,
+               previousFilter: Option[BloomFilter]) = {
       val positives =
         data.par collect {
           case data if !filter.mightContain(data) =>
@@ -151,9 +156,25 @@ class BloomFilterSpec extends TestBase {
 
       println(s"missed out of ${data.size}: " + positives.size)
       println(s"errors out of ${data.size}: " + falsePositives.size)
+      println(s"Optimal byte size: " + filter.numberOfBits)
+      println(s"Actual byte size: " + filter.toSlice.size)
+      println
 
       positives.size shouldBe 0
       falsePositives.size should be < 200
+
+      if(previousFilter.isEmpty)
+        filter.toSlice.underlyingArraySize shouldBe (filter.numberOfBits + filter.startOffset)
+
+      previousFilter map {
+        previousFilter =>
+          filter.maxStartOffset shouldBe previousFilter.maxStartOffset
+          filter.numberOfBits shouldBe previousFilter.numberOfBits
+          filter.numberOfHashes shouldBe previousFilter.numberOfHashes
+          filter.startOffset shouldBe previousFilter.startOffset
+          filter.toSlice.size shouldBe previousFilter.toSlice.size
+          filter.toSlice.underlyingArraySize shouldBe filter.toSlice.size
+      }
     }
 
     val filter = BloomFilter(10000, 0.01)
@@ -165,8 +186,12 @@ class BloomFilterSpec extends TestBase {
           string
       }
 
-    assert(data, filter)
+    assert(data, filter, None)
     //re-create bloomFilter and read again.
-    assert(data, BloomFilter(filter.toSlice).get)
+    val filter2 = BloomFilter(filter.toSlice.unslice()).get
+    assert(data, filter2, Some(filter))
+    //re-create bloomFilter from created filter.
+    val filter3 = BloomFilter(filter2.toSlice.unslice()).get
+    assert(data, filter3, Some(filter2))
   }
 }
