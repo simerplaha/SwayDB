@@ -100,7 +100,7 @@ private[core] object Stats {
         if (hasRemoveRange) { //BloomFilter is not created when hasRemoveRange is true.
           1 //(1 for unsigned int 0)
         } else {
-          val bloomFilterByteSize = BloomFilter.byteSize(totalBloomFiltersItemsCount, falsePositiveRate)
+          val bloomFilterByteSize = BloomFilter.optimalSegmentByteSize(totalBloomFiltersItemsCount, falsePositiveRate)
           Bytes.sizeOf(bloomFilterByteSize) + bloomFilterByteSize
         }
       }

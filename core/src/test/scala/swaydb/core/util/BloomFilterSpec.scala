@@ -56,7 +56,7 @@ class BloomFilterSpec extends TestBase {
           val numberOfItems = i * 10
           val falsePositiveRate = 0.0 + (0 + "." + i.toString).toDouble
           val bloomFilter = BloomFilter(numberOfItems, falsePositiveRate)
-          bloomFilter.toSlice.size shouldBe BloomFilter.byteSize(numberOfItems, falsePositiveRate)
+          bloomFilter.toSlice.size should be <= BloomFilter.optimalSegmentByteSize(numberOfItems, falsePositiveRate)
       }
     }
   }
@@ -163,7 +163,7 @@ class BloomFilterSpec extends TestBase {
       positives.size shouldBe 0
       falsePositives.size should be < 200
 
-      if(previousFilter.isEmpty)
+      if (previousFilter.isEmpty)
         filter.toSlice.underlyingArraySize shouldBe (filter.numberOfBits + filter.startOffset)
 
       previousFilter map {

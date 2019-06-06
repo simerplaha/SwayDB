@@ -131,7 +131,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
               if (keyValues.toTransient.last.stats.hasRemoveRange)
                 segment.getBloomFilter.assertGetOpt shouldBe empty
               else
-                assertBloom(keyValues, segment.getBloomFilter.assertGet)
+                assertBloom(keyValues.toTransient, segment.getBloomFilter.assertGet)
 
               segment.close.assertGet
             }
@@ -478,7 +478,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
                 keyValue =>
                   segment.get(keyValue.key).assertGetOpt.isEmpty shouldBe true
               }
-              assertBloom(keyValues, segment.getBloomFilter.assertGet)
+              assertBloom(keyValues.toTransient, segment.getBloomFilter.assertGet)
             }
         )
       }
@@ -505,7 +505,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
                 segment.isFileDefined shouldBe true
                 segment.isCacheEmpty shouldBe false
 
-                segment.getBloomFilter.assertGetOpt.foreach(bloom => assertBloom(keyValues, bloom))
+                segment.getBloomFilter.assertGetOpt.foreach(bloom => assertBloom(keyValues.toTransient, bloom))
 
                 segment.close.assertGet
               }

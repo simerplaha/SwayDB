@@ -739,18 +739,20 @@ object CommonAssertions {
         SegmentReader.find(KeyMatcher.Get(keyValue.key), None, reader.copy()).assertGet shouldBe keyValue
     }
 
-  def assertBloom(keyValues: Slice[KeyValue],
+  def assertBloom(keyValues: Slice[KeyValue.WriteOnly],
                   bloom: BloomFilter) = {
-    keyValues.par foreach {
+    val unzipedKeyValues = unzipGroups(keyValues)
+
+    unzipedKeyValues.par.count {
       keyValue =>
-        bloom.mightContain(keyValue.key) shouldBe true
-    }
+        bloom.mightContain(keyValue.key)
+    } should be >= (unzipedKeyValues.size * 0.90).toInt
 
     assertBloomNotContains(bloom)
   }
 
   def assertBloomNotContains(bloom: BloomFilter) =
-    runThisParallel(10.times) {
+    runThis(1000.times) {
       IO(bloom.mightContain(randomBytesSlice(randomIntMax(1000) min 100)) shouldBe false)
     }
 

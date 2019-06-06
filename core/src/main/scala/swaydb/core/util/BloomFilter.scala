@@ -55,7 +55,7 @@ object BloomFilter {
       numberOfHashes <- reader.readInt()
     } yield {
       new BloomFilter(
-        startOffset = byteBufferStartOffset,
+        startOffset = byteBufferStartOffset + slice.fromOffset,
         _maxStartOffset = slice.size - 8,
         numberOfBits = numberOfBits,
         numberOfHashes = numberOfHashes,
@@ -64,7 +64,7 @@ object BloomFilter {
     }
   }
 
-  def byteSize(numberOfItems: Int, falsePositiveRate: Double): Int =
+  def optimalSegmentByteSize(numberOfItems: Int, falsePositiveRate: Double): Int =
     BloomFilter.optimalNumberOfBits(
       numberOfItems = numberOfItems,
       falsePositiveRate = falsePositiveRate

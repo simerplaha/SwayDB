@@ -28,6 +28,7 @@ import swaydb.data.IO
 import swaydb.data.IO._
 import swaydb.data.slice.Slice
 import swaydb.data.slice.Slice._
+import swaydb.data.util.ByteSizeOf
 
 import scala.annotation.tailrec
 import scala.concurrent.duration.Deadline
@@ -84,7 +85,6 @@ private[core] object SegmentWriter extends LazyLogging {
     start(Slice(keyValue), currentNearestDeadline)
   }
 
-
   def write(keyValues: Iterable[KeyValue.WriteOnly],
             indexSlice: Slice[Byte],
             valuesSlice: Slice[Byte],
@@ -97,7 +97,11 @@ private[core] object SegmentWriter extends LazyLogging {
           valuesSlice = valuesSlice
         ) map {
           _ =>
-            writeBloomFilterAndGetNearestDeadline(keyValue, bloomFilter, deadline)
+            writeBloomFilterAndGetNearestDeadline(
+              keyValue = keyValue,
+              bloomFilter = bloomFilter,
+              currentNearestDeadline = deadline
+            )
         }
     } flatMap {
       result =>
@@ -186,11 +190,17 @@ private[core] object SegmentWriter extends LazyLogging {
               case None =>
                 footerSlice addIntUnsigned 0
             }
-            footerSlice addInt footerSlice.size
-            assert(footerSlice.isFull, s"footerSlice is not full. Size: ${footerSlice.size} - Written: ${footerSlice.written}")
-            val segmentArray = slice.toArray
-            assert(keyValues.last.stats.segmentSize == segmentArray.length, s"Invalid segment size. actual: ${segmentArray.length} - expected: ${keyValues.last.stats.segmentSize}")
-            (Slice(segmentArray), nearestDeadline)
+            footerSlice addInt (footerSlice.written + ByteSizeOf.int)
+
+            val actualSegmentSizeWithoutFooter = valuesSlice.size + indexSlice.size
+
+            assert(
+              keyValues.last.stats.segmentSizeWithoutFooter == actualSegmentSizeWithoutFooter,
+              s"Invalid segment size. actual: $actualSegmentSizeWithoutFooter - expected: ${keyValues.last.stats.segmentSizeWithoutFooter}"
+            )
+
+            val segmentSlice = Slice(slice.toArray).dropRight(footerSlice.size - footerSlice.written)
+            (segmentSlice, nearestDeadline)
           }
       }
     }

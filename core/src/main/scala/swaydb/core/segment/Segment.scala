@@ -303,7 +303,7 @@ private[core] object Segment extends LazyLogging {
                     case keyValue: KeyValue.WriteOnly.Fixed =>
                       MaxKey.Fixed(keyValue.key.unslice())
                   },
-                segmentSize = keyValues.last.stats.segmentSize,
+                segmentSize = bytes.size,
                 removeDeletes = removeDeletes,
                 nearestExpiryDeadline = nearestExpiryDeadline,
                 compactionReserve = Reserve()
