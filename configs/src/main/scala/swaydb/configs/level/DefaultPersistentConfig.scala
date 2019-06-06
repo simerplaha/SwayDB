@@ -221,7 +221,7 @@ object DefaultPersistentConfig {
         compactionExecutionContext = CompactionExecutionContext.Create(executionContext),
         throttle =
           levelMeter =>
-            if (levelMeter.hasSmallSegments)
+            if (levelMeter.hasSegmentsToCollapse)
               Throttle(10.seconds, 5)
             else
               Throttle(1.hour, 5)

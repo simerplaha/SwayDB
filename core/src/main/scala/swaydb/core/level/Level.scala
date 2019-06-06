@@ -259,6 +259,17 @@ private[core] object Level extends LazyLogging {
     (segmentsToCopy, segmentsToMerge)
   }
 
+  def shouldCollapse(level: NextLevel,
+                     segment: Segment)(implicit reserve: ReserveRange.State[Unit],
+                                       keyOrder: KeyOrder[Slice[Byte]]): Boolean =
+    ReserveRange.isUnreserved(segment.minKey, segment.maxKey.maxKey) && {
+      isSmallSegment(segment, level.segmentSize) ||
+        //if group strategy in the level is defined and segment's grouping is undefined or vice-versa.
+        level.groupingStrategy.isDefined != segment.isGrouped.getOrElse(level.groupingStrategy.isDefined) ||
+        //if grouping is as expected by the Segment was not created in this level.
+        segment.createdInLevel.getOrElse(0) != level.levelNumber
+    }
+
   def optimalSegmentsToCollapse(level: NextLevel,
                                 take: Int)(implicit reserve: ReserveRange.State[Unit],
                                            keyOrder: KeyOrder[Slice[Byte]]): Iterable[Segment] = {
@@ -269,16 +280,10 @@ private[core] object Level extends LazyLogging {
       .iterator
       .foreachBreak {
         segment =>
-          if (ReserveRange.isUnreserved(segment.minKey, segment.maxKey.maxKey))
-            if (isSmallSegment(segment, level.segmentSize) ||
-              //if group strategy in the level is defined and segment's grouping is undefined or vice-versa.
-              level.groupingStrategy.isDefined != segment.isGrouped.getOrElse(level.groupingStrategy.isDefined) ||
-              //if grouping is as expected by the Segment was not created in this level.
-              segment.createdInLevel.getOrElse(0) != level.levelNumber) {
-              //then add this segment to collapse.
-              segmentsToCollapse += segment
-              segmentsTaken += 1
-            }
+          if (shouldCollapse(level, segment)) {
+            segmentsToCollapse += segment
+            segmentsTaken += 1
+          }
 
           segmentsTaken >= take
       }
@@ -364,8 +369,14 @@ private[core] case class Level(dirs: Seq[Dir],
       override def levelSize: Long =
         self.levelSize
 
-      override def hasSmallSegments: Boolean =
-        self.hasSmallSegments
+      override def hasSegmentsToCollapse: Boolean =
+        self.shouldCollapse
+
+      override def nextLevelMeter: Option[LevelMeter] =
+        nextLevel.map(_.meter)
+
+      override def segmentCountAndLevelSize: (Int, Long) =
+        self.segmentCountAndLevelSize
     }
 
   def rootPath: Path =
@@ -1258,6 +1269,10 @@ private[core] case class Level(dirs: Seq[Dir],
     appendix
       .values()
       .asScala exists (Level.isSmallSegment(_, segmentSize))
+
+  def shouldCollapse: Boolean =
+    segmentsInLevel()
+      .exists(segment => Level.shouldCollapse(self, segment))
 
   def close: IO[Unit] =
     (nextLevel.map(_.close) getOrElse IO.unit) flatMap {

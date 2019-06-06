@@ -169,7 +169,9 @@ private[core] object TrashLevel extends NextLevel {
     new LevelMeter {
       override def segmentsCount: Int = 0
       override def levelSize: Long = 0
-      override def hasSmallSegments: Boolean = false
+      override def hasSegmentsToCollapse: Boolean = false
+      override def segmentCountAndLevelSize: (Int, Long) = (segmentsCount, levelSize)
+      override def nextLevelMeter: Option[LevelMeter] = None
     }
 
   override def refresh(segment: Segment)(implicit ec: ExecutionContext): IO.Async[Unit] =
