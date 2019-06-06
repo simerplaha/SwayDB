@@ -101,6 +101,8 @@ trait NextLevel extends LevelRef {
 
   def takeLargeSegments(size: Int): Iterable[Segment]
 
+  def optimalSegmentsPushForward(take: Int): (Iterable[Segment], Iterable[Segment])
+
   def takeSegments(size: Int,
                    condition: Segment => Boolean): Iterable[Segment]
 

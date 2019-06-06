@@ -45,13 +45,17 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.slice.Slice._
 import swaydb.data.storage.{AppendixStorage, LevelStorage}
+import CollectionUtil._
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 
 private[core] object Level extends LazyLogging {
+
+  val emptySegmentsToPush = (Iterable.empty, Iterable.empty)
 
   def acquireLock(storage: LevelStorage.Persistent): IO[Option[FileLock]] =
     IO {
@@ -223,6 +227,31 @@ private[core] object Level extends LazyLogging {
           IO.unit
         }
     } getOrElse IO.unit
+
+  def optimalSegmentsPushForward(level: NextLevel,
+                                 nextLevel: NextLevel,
+                                 take: Int)(implicit reserve: ReserveRange.State[Unit],
+                                            keyOrder: KeyOrder[Slice[Byte]]): (Iterable[Segment], Iterable[Segment]) = {
+    val segmentsInNextLevel = nextLevel.segmentsInLevel()
+    val segmentsToCopy = ListBuffer.empty[Segment]
+    val segmentsToMerge = ListBuffer.empty[Segment]
+    var segmentsTaken: Int = 0
+    level
+      .segmentsInLevel()
+      .iterator
+      .foreachBreak {
+        segment =>
+          if (ReserveRange.isUnreserved(segment.minKey, segment.maxKey.maxKey) && !Segment.overlaps(segment, segmentsInNextLevel)) {
+            segmentsToCopy += segment
+            segmentsTaken += 1
+          } else if (nextLevel.isUnReserved(segment.minKey, segment.maxKey.maxKey)) {
+            segmentsToMerge += segment
+            segmentsTaken += 1
+          }
+          segmentsTaken >= take
+      }
+    (segmentsToCopy, segmentsToMerge)
+  }
 }
 
 private[core] case class Level(dirs: Seq[Dir],
@@ -735,62 +764,60 @@ private[core] case class Level(dirs: Seq[Dir],
 
   def collapse(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO.Async[Int] = {
     logger.trace(s"{}: Collapsing '{}' segments", paths.head, segments.size)
-    if (segments.isEmpty)
+    if (segments.isEmpty || appendix.size == 1) { //if there is only one Segment in this Level which is a small segment. No collapse required
       IO.zero
-    else
-      reserve(segments).asAsync flatMap {
+    } else {
+      //other segments in the appendix that are not the input segments (segments to collapse).
+      val targetAppendixSegments = appendix.values().asScala.filterNot(map => segments.exists(_.path == map.path))
+      val (segmentsToMerge, targetSegments) =
+        if (targetAppendixSegments.nonEmpty) {
+          logger.trace(s"{}: Target appendix segments {}", paths.head, targetAppendixSegments.size)
+          (segments, targetAppendixSegments)
+        } else {
+          //If appendix without the small Segments is empty.
+          // Then pick the first segment from the smallest segments and merge other small segments into it.
+          val firstSmallSegment = Iterable(segments.head)
+          logger.trace(s"{}: Target segments {}", paths.head, firstSmallSegment.size)
+          (segments.drop(1), firstSmallSegment)
+        }
+
+      reserve(segmentsInLevel()).asAsync flatMap {
         case Left(future) =>
           IO.fromFuture(future.map(_ => 0))
 
         case Right(minKey) =>
           ensureRelease(minKey) {
-            if (appendix.size == 1) { //if there is only one Segment in this Level which is a small segment. No collapse required
-              IO.zero
-            } else {
-              //other segments in the appendix that are not the input segments (segments to collapse).
-              val targetAppendixSegments = appendix.values().asScala.filterNot(map => segments.exists(_.path == map.path))
-              val (segmentsToMerge, targetSegments) =
-                if (targetAppendixSegments.nonEmpty) {
-                  logger.trace(s"{}: Target appendix segments {}", paths.head, targetAppendixSegments.size)
-                  (segments, targetAppendixSegments)
-                } else {
-                  //If appendix without the small Segments is empty.
-                  // Then pick the first segment from the smallest segments and merge other small segments into it.
-                  val firstSmallSegment = Iterable(segments.head)
-                  logger.trace(s"{}: Target segments {}", paths.head, firstSmallSegment.size)
-                  (segments.drop(1), firstSmallSegment)
-                }
+            //create an appendEntry that will remove smaller segments from the appendix.
+            //this entry will get applied only if the putSegments is successful orElse this entry will be discarded.
+            val appendEntry =
+            segmentsToMerge.foldLeft(Option.empty[MapEntry[Slice[Byte], Segment]]) {
+              case (mapEntry, smallSegment) =>
+                val entry = MapEntry.Remove(smallSegment.minKey)
+                mapEntry.map(_ ++ entry) orElse Some(entry)
+            }
 
-              //create an appendEntry that will remove smaller segments from the appendix.
-              //this entry will get applied only if the putSegments is successful orElse this entry will be discarded.
-              val appendEntry =
-              segmentsToMerge.foldLeft(Option.empty[MapEntry[Slice[Byte], Segment]]) {
-                case (mapEntry, smallSegment) =>
-                  val entry = MapEntry.Remove(smallSegment.minKey)
-                  mapEntry.map(_ ++ entry) orElse Some(entry)
-              }
-              merge(
-                segments = segmentsToMerge,
-                targetSegments = targetSegments,
-                appendEntry = appendEntry
-              ) map {
-                _ =>
-                  //delete the segments merged with self.
-                  if (deleteSegmentsEventually)
-                    segmentsToMerge foreach (_.deleteSegmentsEventually)
-                  else
-                    segmentsToMerge foreach {
-                      segment =>
-                        segment.delete onFailureSideEffect {
-                          exception =>
-                            logger.warn(s"{}: Failed to delete Segment {} after successful collapse", paths.head, segment.path, exception)
-                        }
-                    }
-                  segmentsToMerge.size
-              }
+            merge(
+              segments = segmentsToMerge,
+              targetSegments = targetSegments,
+              appendEntry = appendEntry
+            ) map {
+              _ =>
+                //delete the segments merged with self.
+                if (deleteSegmentsEventually)
+                  segmentsToMerge foreach (_.deleteSegmentsEventually)
+                else
+                  segmentsToMerge foreach {
+                    segment =>
+                      segment.delete onFailureSideEffect {
+                        exception =>
+                          logger.warn(s"{}: Failed to delete Segment {} after successful collapse", paths.head, segment.path, exception)
+                      }
+                  }
+                segmentsToMerge.size
             }
           } asAsync
       }
+    }
   }
 
   private def merge(segments: Iterable[Segment],
@@ -1168,6 +1195,16 @@ private[core] case class Level(dirs: Seq[Dir],
 
   override def takeSmallSegments(size: Int): Iterable[Segment] =
     appendix.values().asScala.filter(isSmallSegment) take size
+
+  override def optimalSegmentsPushForward(take: Int): (Iterable[Segment], Iterable[Segment]) =
+    nextLevel map {
+      nextLevel =>
+        Level.optimalSegmentsPushForward(
+          level = self,
+          nextLevel = nextLevel,
+          take = take
+        )
+    } getOrElse Level.emptySegmentsToPush
 
   def hasSmallSegments: Boolean =
     appendix.values().asScala exists isSmallSegment
