@@ -170,7 +170,7 @@ private[swaydb] class Actor[T, +S](val state: S,
   //regular interval. This interval can be updated via the execution function.
   val continueIfEmpty = defaultDelay.isDefined
   //if initial detail is defined, trigger processMessages() to start the timer loop.
-  if (continueIfEmpty) processMessages()
+  if (continueIfEmpty) defaultDelay map (Delay.future(_)(processMessages()))
 
   override def !(message: T): Unit =
     if (!terminated) {

@@ -1119,7 +1119,7 @@ object CommonAssertions {
 
   def assertHigher(keyValues: Slice[KeyValue],
                    segment: Segment): Unit =
-    assertHigher(unzipGroups(keyValues), getHigher = key => segment.higher(key))
+    assertHigher(unzipGroups(keyValues), getHigher = key => IO(segment.higher(key).get.safeGetBlocking()))
 
   /**
     * Asserts that all key-values are returned in order when fetching higher in sequence.

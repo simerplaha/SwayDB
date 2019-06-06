@@ -17,7 +17,7 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.segment.format.a
+package swaydb.core.group.compression
 
 import scala.concurrent.duration._
 import scala.util.Random
@@ -28,6 +28,7 @@ import swaydb.core.IOAssert._
 import swaydb.core.data._
 import swaydb.core.io.reader.Reader
 import swaydb.core.queue.KeyValueLimiter
+import swaydb.core.segment.format.a.{SegmentReader, SegmentWriter}
 import swaydb.data.IO._
 import swaydb.core.{TestBase, TestData}
 import swaydb.data.IO

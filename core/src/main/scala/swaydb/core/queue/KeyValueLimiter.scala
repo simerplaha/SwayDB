@@ -53,6 +53,12 @@ private[core] object KeyValueLimiter {
     )
 
   val none: KeyValueLimiter = NoneKeyValueLimiter
+
+  def weight(keyValue: Persistent.SegmentResponse) = {
+    val otherBytes = (Math.ceil(keyValue.key.size + keyValue.valueLength / 8.0) - 1.0) * 8
+    //        if (keyValue.hasRemoveMayBe) (168 + otherBytes).toLong else (264 + otherBytes).toLong
+    ((264 * 2) + otherBytes).toLong
+  }
 }
 
 private[core] sealed trait KeyValueLimiter {
@@ -73,10 +79,7 @@ private class KeyValueLimiterImpl(cacheSize: Long,
       case WeighAndAdd(keyValue, _) =>
         keyValue.get map {
           keyValue =>
-            val otherBytes = (Math.ceil(keyValue.key.size + keyValue.valueLength / 8.0) - 1.0) * 8
-            //        if (keyValue.hasRemoveMayBe) (168 + otherBytes).toLong else (264 + otherBytes).toLong
-            ((264 * 2) + otherBytes).toLong
-
+            KeyValueLimiter.weight(keyValue)
         } getOrElse 264L //264L for the weight of WeakReference itself.
 
       case custom: AddWeighed =>

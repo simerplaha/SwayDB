@@ -21,6 +21,7 @@ package swaydb.core.segment.format.a
 
 import org.scalatest.PrivateMethodTester
 import org.scalatest.concurrent.ScalaFutures
+
 import scala.concurrent.duration._
 import swaydb.core.{TestBase, TestData}
 import swaydb.core.CommonAssertions._
@@ -29,7 +30,7 @@ import swaydb.core.TestData._
 import swaydb.core.IOAssert._
 import swaydb.core.data.{Memory, Persistent, Transient}
 import swaydb.core.group.compression.data.{GroupGroupingStrategyInternal, KeyValueGroupingStrategyInternal}
-import swaydb.core.queue.KeyValueLimiter
+import swaydb.core.queue.{Command, KeyValueLimiter}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 
@@ -123,73 +124,74 @@ sealed trait SegmentGroupReadSpec extends TestBase with ScalaFutures with Privat
     }
   }
 
-  "Decompressed group" should {
-    "eventually get uncompressed and update cache" in {
-      implicit val keyValueLimiter = KeyValueLimiter(100.bytes, 7.second)
-
-      val keyValues = randomizedKeyValues(100, addRandomGroups = false)
-      val group: Transient.Group = randomGroup(keyValues)
-      val segment = TestSegment(Slice(group)).assertGet
-
-      if (persistent) {
-        segment.isCacheEmpty shouldBe true
-
-        println(segment.segmentSize)
-
-        println("*** Reading single key-value ***")
-        segment.get(keyValues.head.key).assertGet shouldBe keyValues.head
-        assertPostReader()
-
-        println("*** Reading all key-values ***")
-        assertGet(keyValues, segment)
-        assertPostReader()
-
-        def assertPostReader() = {
-          println("Checking that group is decompressed")
-          eventual(10.seconds) {
-            val group = segment.cache.firstEntry().getValue.asInstanceOf[Persistent.Group]
-            group.isHeaderDecompressed shouldBe true
-            group.isValueDecompressed shouldBe true
-            group.isIndexDecompressed shouldBe true
-            segment.isCacheEmpty shouldBe false
-          }
-          println("Checking group should eventually get removed")
-          eventual(10.seconds) {
-            segment.isCacheEmpty shouldBe true
-          }
-        }
-      } else {
-        segment.isCacheEmpty shouldBe false
-
-        println(segment.segmentSize)
-
-        println("*** Reading single key-value ***")
-        segment.get(keyValues.head.key).assertGet shouldBe keyValues.head
-        assertPostReader()
-
-        println("*** Reading all key-values ***")
-        assertGet(keyValues, segment)
-        assertPostReader()
-
-        def assertPostReader() = {
-          println("Checking group should eventually decompressed")
-          eventual(10.seconds) {
-            val group = segment.cache.firstEntry().getValue.asInstanceOf[Memory.Group]
-            group.isHeaderDecompressed shouldBe false
-            group.isValueDecompressed shouldBe false
-            group.isIndexDecompressed shouldBe false
-            segment.isCacheEmpty shouldBe false
-          }
-          //Memory Groups are NEVER removed.
-          println("Checking Memory Group is not removed.")
-          eventual(10.seconds) {
-            segment.isCacheEmpty shouldBe false
-            segment.cache.firstEntry().getValue.isInstanceOf[Memory.Group] shouldBe true
-          }
-        }
-      }
-
-      keyValueLimiter.terminate()
-    }
-  }
+  //  "Decompressed group" should {
+  //    "eventually get uncompressed and update cache" in {
+  //      val keyValues = randomizedKeyValues(100, addRandomGroups = false)
+  //
+  //      implicit val keyValueLimiter = KeyValueLimiter(100.bytes, 5.second)
+  //
+  //      val group: Transient.Group = randomGroup(keyValues)
+  //      val segment = TestSegment(Slice(group)).assertGet
+  //
+  //      if (persistent) {
+  //        segment.isCacheEmpty shouldBe true
+  //
+  //        println(segment.segmentSize)
+  //
+  //        println("*** Reading single key-value ***")
+  //        segment.get(keyValues.head.key).assertGet shouldBe keyValues.head
+  //        assertPostReader()
+  //
+  //        println("*** Reading all key-values ***")
+  //        assertGet(keyValues, segment)
+  //        assertPostReader()
+  //
+  //        def assertPostReader() = {
+  //          println("Checking that group is decompressed")
+  //          eventual(10.seconds) {
+  //            val group = segment.cache.firstEntry().getValue.asInstanceOf[Persistent.Group]
+  //            group.isHeaderDecompressed shouldBe true
+  //            group.isValueDecompressed shouldBe true
+  //            group.isIndexDecompressed shouldBe true
+  //            segment.isCacheEmpty shouldBe false
+  //          }
+  //          println("Checking group should eventually get removed")
+  //          eventual(10.seconds) {
+  //            segment.isCacheEmpty shouldBe true
+  //          }
+  //        }
+  //      } else {
+  //        segment.isCacheEmpty shouldBe false
+  //
+  //        println(segment.segmentSize)
+  //
+  //        println("*** Reading single key-value ***")
+  //        segment.get(keyValues.head.key).assertGet shouldBe keyValues.head
+  //        assertPostReader()
+  //
+  //        println("*** Reading all key-values ***")
+  //        assertGet(keyValues, segment)
+  //        assertPostReader()
+  //
+  //        def assertPostReader() = {
+  //          println("Checking group should eventually decompressed")
+  //          eventual(10.seconds) {
+  //            val group = segment.cache.firstEntry().getValue.asInstanceOf[Memory.Group]
+  //            group.isHeaderDecompressed shouldBe false
+  //            group.isValueDecompressed shouldBe false
+  //            group.isIndexDecompressed shouldBe false
+  //            segment.isCacheEmpty shouldBe false
+  //          }
+  //          //Memory Groups are NEVER removed.
+  //          println("Checking Memory Group is not removed.")
+  //          eventual(10.seconds) {
+  //            segment.isCacheEmpty shouldBe false
+  //            segment.cache.firstEntry().getValue.isInstanceOf[Memory.Group] shouldBe true
+  //          }
+  //        }
+  //      }
+  //
+  //      keyValueLimiter.terminate()
+  //    }
+  //  }
 }

@@ -30,16 +30,15 @@ View detailed benchmark results [here](http://swaydb.io/performance/macbook-pro-
 
 - [Java](https://github.com/simerplaha/SwayDB.java) & [Kotlin](https://github.com/simerplaha/SwayDB.kotlin) wrappers.
 - Single or multiple disks persistent, in-memory or periodically persistent.
-- Configurable non-blocking & blocking APIs.
 - Simple Stream based iteration following Scala collections APIs.
 - Atomic updates and inserts.
-- Custom updates using any [JVM function](http://www.swaydb.io/api/write/registerFunction/).
+- Custom updates using [JVM function](http://www.swaydb.io/api/write/registerFunction/).
 - TTL - auto [expiring](http://www.swaydb.io/api/write/expire/) key-values.
 - Range [update, remove & expire](http://www.swaydb.io/api/write/update-range/).
 - Key only iterations (Lazily fetched values).
 - Supported data types - `Map[K, V]` & `Set[T]`. 
 - In-built custom serialization API with [Slice](http://www.swaydb.io/slice/byte-slice/). 
-- Highly [configurable](http://www.swaydb.io/configuring-levels/).
+- [Configurable](http://www.swaydb.io/configuring-levels/) levels.
 - [Compression](http://www.swaydb.io/configuring-levels/groupingStrategy/) for both Persistent & Memory databases with LZ4 & Snappy.
 - Duplicate values can be eliminated with [compressDuplicateValues](http://www.swaydb.io/configuring-levels/compressDuplicateValues/).
 
