@@ -33,7 +33,6 @@ import swaydb.core.queue.KeyValueLimiter
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 
-//@formatter:off
 class SegmentGroupReadSpec0 extends SegmentGroupReadSpec {
   val keyValuesCount = 100000
 }
@@ -60,7 +59,6 @@ class SegmentGroupReadSpec3 extends SegmentGroupReadSpec {
   val keyValuesCount = 100000
   override def inMemoryStorage = true
 }
-//@formatter:on
 
 sealed trait SegmentGroupReadSpec extends TestBase with ScalaFutures with PrivateMethodTester {
 
@@ -76,7 +74,7 @@ sealed trait SegmentGroupReadSpec extends TestBase with ScalaFutures with Privat
           groupCompression =
             Some(
               GroupGroupingStrategyInternal.Count(
-                count = 4,
+                count = 20,
                 indexCompression = randomCompression(),
                 valueCompression = randomCompression()
               )
@@ -96,7 +94,6 @@ sealed trait SegmentGroupReadSpec extends TestBase with ScalaFutures with Privat
 
     segments should have size 1
     val newSegment = segments.head
-
     assertReads(keyValues, newSegment)
   }
 

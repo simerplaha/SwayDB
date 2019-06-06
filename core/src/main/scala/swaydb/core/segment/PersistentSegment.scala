@@ -143,7 +143,7 @@ private[segment] case class PersistentSegment(file: DBFile,
               footer =>
                 splits.mapIO(
                   ioBlock =
-                    keyValues => {
+                    keyValues =>
                       Segment.persistent(
                         path = targetPaths.next.resolve(idGenerator.nextSegmentID),
                         createdInLevel = footer.createdInLevel,
@@ -152,8 +152,7 @@ private[segment] case class PersistentSegment(file: DBFile,
                         keyValues = keyValues,
                         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
                         removeDeletes = removeDeletes
-                      )
-                    },
+                      ),
 
                   recover =
                     (segments: Slice[Segment], _: IO.Failure[Slice[Segment]]) =>

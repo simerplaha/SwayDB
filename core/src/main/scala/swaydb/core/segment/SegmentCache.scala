@@ -150,7 +150,6 @@ private[core] class SegmentCache(id: String,
                       addToCache(group) flatMap {
                         _ =>
                           group.segmentCache.get(key)
-
                       }
 
                     case None =>
@@ -166,12 +165,21 @@ private[core] class SegmentCache(id: String,
     if (lowerKeyValue.nextIndexOffset == -1) //-1 indicated last key-value in the Segment.
       Some(lowerKeyValue)
     else
-      Option(cache.ceilingEntry(key)).map(_.getValue) flatMap {
-        ceilingKeyValue =>
-          if (lowerKeyValue.nextIndexOffset == ceilingKeyValue.indexOffset)
-            Some(lowerKeyValue)
-          else
-            None
+      lowerKeyValue match {
+        case lowerRange: Persistent.Range if lowerRange containsLower key =>
+          Some(lowerRange)
+
+        case lowerGroup: Persistent.Group if lowerGroup containsLower key =>
+          Some(lowerGroup)
+
+        case _ =>
+          Option(cache.ceilingEntry(key)).map(_.getValue) flatMap {
+            ceilingKeyValue =>
+              if (lowerKeyValue.nextIndexOffset == ceilingKeyValue.indexOffset)
+                Some(lowerKeyValue)
+              else
+                None
+          }
       }
 
   def lower(key: Slice[Byte]): IO[Option[Persistent.SegmentResponse]] =

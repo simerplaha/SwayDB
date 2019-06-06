@@ -141,6 +141,11 @@ private[core] object KeyValue {
           import keyOrder._
           key >= range.fromKey && key < range.toKey
         }
+
+        def containsLower(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean = {
+          import keyOrder._
+          key > range.fromKey && key <= range.toKey
+        }
       }
     }
 
@@ -167,6 +172,11 @@ private[core] object KeyValue {
         def containsHigher(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean = {
           import keyOrder._
           key >= group.minKey && key < group.maxKey.maxKey
+        }
+
+        def containsLower(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean = {
+          import keyOrder._
+          key > group.minKey && key <= group.maxKey.maxKey
         }
       }
     }
