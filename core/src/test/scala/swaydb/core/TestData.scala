@@ -122,6 +122,7 @@ object TestData {
       else if (level.inMemory)
         Segment.copyToMemory(keyValues, Paths.get("testMemorySegment"), false, 1000.mb, TestData.falsePositiveRate, true) flatMap {
           segments =>
+            segments should have size 1
             segments mapIO {
               segment =>
                 level.putKeyValues(keyValues.toMemory, Seq(segment), None)
@@ -137,11 +138,12 @@ object TestData {
           mmapSegmentsOnRead = randomBoolean(),
           mmapSegmentsOnWrite = randomBoolean(),
           removeDeletes = false,
-          minSegmentSize = level.segmentSize,
+          minSegmentSize = 1000.mb,
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           compressDuplicateValues = randomBoolean()
         ) flatMap {
           segments =>
+            segments should have size 1
             segments mapIO {
               segment =>
                 level.putKeyValues(keyValues.toMemory, Seq(segment), None)
