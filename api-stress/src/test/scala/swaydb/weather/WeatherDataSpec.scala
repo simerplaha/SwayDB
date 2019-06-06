@@ -276,22 +276,19 @@ sealed trait WeatherDataSpec extends TestBase with LazyLogging with Benchmark wi
     //do initial put or batch (whichever one) to ensure that data exists for readRequests.
     //    doPut
     doBatch(inBatchesOf = 100000 min keyValueCount)
+    putRequest runThis 4.times
+    batchRandomRequest runThis 2.times
+    batchRequest(inBatchesOf = 10000 min keyValueCount)
+//    Future {
+//      while (true) {
+//        println("db.level0Meter.mapsCount:     " + db.level0Meter.mapsCount)
+//        println("db.level1Meter.segmentsCount: " + db.level1Meter.segmentsCount)
+//        sleep(5.seconds)
+//      }
+//    }
 
-    sleep(1.minute)
-    putRequest
-//    putRequest runThis 4.times
-//    batchRandomRequest runThis 2.times
-//    batchRequest(inBatchesOf = 10000 min keyValueCount)
-    //    Future {
-    //      while (true) {
-    //        println("db.level0Meter.mapsCount:     " + db.level0Meter.mapsCount)
-    //        println("db.level1Meter.segmentsCount: " + db.level1Meter.segmentsCount)
-    //        sleep(5.seconds)
-    //      }
-    //    }
-
-//    readRequests runThis 10.times await 10.minutes
-//    doDeleteAll
+    readRequests runThis 10.times await 10.minutes
+    //    doDeleteAll
     sleep(10.minutes)
     println("************************* DONE *************************")
   }

@@ -133,7 +133,7 @@ private[level] object Compaction extends LazyLogging {
         LevelCompactionState.Sleep(
           sleepDeadline = LevelCompactionState.longSleep,
           stateID = level.stateID,
-          previousStateID = stateID,
+          previousStateID = stateID
         )
     }
 
