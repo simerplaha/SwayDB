@@ -24,14 +24,10 @@ import swaydb.core.data.Memory
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{LevelRef, NextLevel, TrashLevel}
 import swaydb.core.segment.Segment
-import swaydb.core.util.CollectionUtil._
-import swaydb.core.util.ReserveRange
 import swaydb.data.IO
-import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 
 import scala.annotation.tailrec
-import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 
@@ -270,7 +266,7 @@ private[level] object Compaction extends LazyLogging {
                                       segmentsToPush: Int)(implicit ec: ExecutionContext): IO.Async[Int] =
     level.nextLevel map {
       nextLevel =>
-        val (copyable, mergeable) = nextLevel.optimalSegmentsPushForward(take = segmentsToPush)
+        val (copyable, mergeable) = level.optimalSegmentsPushForward(take = segmentsToPush)
         logger.debug(s"Level(${level.levelNumber}): copyable: ${copyable.size}, mergeable: ${mergeable.size}")
         putForward(
           segments = copyable,
@@ -429,29 +425,4 @@ private[level] object Compaction extends LazyLogging {
         case IO.Failure(error) =>
           IO.Failure(error)
       }
-
-  def optimalSegmentsPushForward(level: NextLevel,
-                                 nextLevel: NextLevel,
-                                 take: Int)(implicit reserve: ReserveRange.State[Unit],
-                                            keyOrder: KeyOrder[Slice[Byte]]): (Iterable[Segment], Iterable[Segment]) = {
-    val segmentsInNextLevel = nextLevel.segmentsInLevel()
-    val segmentsToCopy = ListBuffer.empty[Segment]
-    val segmentsToMerge = ListBuffer.empty[Segment]
-    var segmentsTaken: Int = 0
-    level
-      .segmentsInLevel()
-      .iterator
-      .foreachBreak {
-        segment =>
-          if (ReserveRange.isUnreserved(segment.minKey, segment.maxKey.maxKey) && !Segment.overlaps(segment, segmentsInNextLevel)) {
-            segmentsToCopy += segment
-            segmentsTaken += 1
-          } else if (nextLevel.isUnReserved(segment.minKey, segment.maxKey.maxKey)) {
-            segmentsToMerge += segment
-            segmentsTaken += 1
-          }
-          segmentsTaken >= take
-      }
-    (segmentsToCopy, segmentsToMerge)
-  }
 }

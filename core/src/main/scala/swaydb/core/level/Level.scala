@@ -35,6 +35,7 @@ import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.seek.{NextWalker, _}
 import swaydb.core.segment.SegmentException.SegmentFileMissing
 import swaydb.core.segment.{Segment, SegmentAssigner}
+import swaydb.core.util.CollectionUtil._
 import swaydb.core.util.ExceptionUtil._
 import swaydb.core.util.{MinMax, _}
 import swaydb.data.IO
@@ -45,7 +46,6 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.slice.Slice._
 import swaydb.data.storage.{AppendixStorage, LevelStorage}
-import CollectionUtil._
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
@@ -238,23 +238,21 @@ private[core] object Level extends LazyLogging {
                                    nextLevel: NextLevel,
                                    take: Int)(implicit reserve: ReserveRange.State[Unit],
                                               keyOrder: KeyOrder[Slice[Byte]]): (Iterable[Segment], Iterable[Segment]) = {
-    val segmentsInNextLevel = nextLevel.segmentsInLevel()
     val segmentsToCopy = ListBuffer.empty[Segment]
     val segmentsToMerge = ListBuffer.empty[Segment]
-    var segmentsTaken: Int = 0
     level
       .segmentsInLevel()
       .iterator
       .foreachBreak {
-        segment =>
-          if (ReserveRange.isUnreserved(segment.minKey, segment.maxKey.maxKey) && !Segment.overlaps(segment, segmentsInNextLevel)) {
+        case segment if ReserveRange.isUnreserved(segment.minKey, segment.maxKey.maxKey) && nextLevel.isUnreserved(segment.minKey, segment.maxKey.maxKey) =>
+          if (!Segment.overlaps(segment, nextLevel.segmentsInLevel())) {
             segmentsToCopy += segment
-            segmentsTaken += 1
-          } else if (nextLevel.isUnReserved(segment.minKey, segment.maxKey.maxKey)) {
+          } else {
             segmentsToMerge += segment
-            segmentsTaken += 1
           }
-          segmentsTaken >= take
+          segmentsToCopy.size >= take
+        case _ =>
+          segmentsToCopy.size >= take
       }
     (segmentsToCopy, segmentsToMerge)
   }
@@ -456,7 +454,7 @@ private[core] case class Level(dirs: Seq[Dir],
         isCopyable(minKey, maxKey)
     }
 
-  def isUnReserved(minKey: Slice[Byte], maxKey: Slice[Byte]): Boolean =
+  def isUnreserved(minKey: Slice[Byte], maxKey: Slice[Byte]): Boolean =
     ReserveRange.isUnreserved(minKey, maxKey)
 
   def put(segment: Segment)(implicit ec: ExecutionContext): IO.Async[Unit] =
