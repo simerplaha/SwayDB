@@ -20,14 +20,16 @@
 package swaydb.core.queue
 
 import java.util.concurrent.ConcurrentSkipListMap
+import java.util.concurrent.atomic.AtomicInteger
+
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.{KeyValue, Memory, Persistent}
 import swaydb.core.queue.Command.{AddWeighed, WeighAndAdd}
 import swaydb.data.slice.Slice
+
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
 import scala.ref.WeakReference
-import swaydb.data.IO
 
 private sealed trait Command {
   val keyValueRef: WeakReference[KeyValue.CacheAble]
@@ -66,13 +68,15 @@ private[core] sealed trait KeyValueLimiter {
           skipList: ConcurrentSkipListMap[Slice[Byte], _]): Unit
 
   def add(keyValue: KeyValue.ReadOnly.Group,
-          skipList: ConcurrentSkipListMap[Slice[Byte], _]): IO[Unit]
+          skipList: ConcurrentSkipListMap[Slice[Byte], _]): Unit
 
   def terminate(): Unit
 }
 
 private class KeyValueLimiterImpl(cacheSize: Long,
                                   delay: FiniteDuration)(implicit ex: ExecutionContext) extends LazyLogging with KeyValueLimiter {
+
+  val nextGuessWeight = new AtomicInteger(10)
 
   private def keyValueWeigher(entry: Command): Long =
     entry match {
@@ -128,20 +132,28 @@ private class KeyValueLimiterImpl(cacheSize: Long,
           skipList: ConcurrentSkipListMap[Slice[Byte], _]): Unit =
     queue ! Command.WeighAndAdd(new WeakReference(keyValue), new WeakReference[ConcurrentSkipListMap[Slice[Byte], _]](skipList))
 
+  /**
+    * If there was failure reading the Group's header guess it's weight. Successful reads are priority over 100% cache's accuracy.
+    * The cache's will eventually adjust to be accurate but until then guessed weights should be used. The accuracy of guessed
+    * weights can also be used.
+    */
   def add(keyValue: KeyValue.ReadOnly.Group,
-          skipList: ConcurrentSkipListMap[Slice[Byte], _]): IO[Unit] =
+          skipList: ConcurrentSkipListMap[Slice[Byte], _]): Unit =
     keyValue.header() map {
       header =>
         val weight = header.indexDecompressedLength + header.valueInfo.map(_.valuesDecompressedLength).getOrElse(0) + (264 * 2)
+        nextGuessWeight lazySet ((weight + nextGuessWeight.get) / 2)
         queue ! Command.AddWeighed(new WeakReference(keyValue), new WeakReference[ConcurrentSkipListMap[Slice[Byte], _]](skipList), weight)
+    } getOrElse {
+      queue ! Command.AddWeighed(new WeakReference(keyValue), new WeakReference[ConcurrentSkipListMap[Slice[Byte], _]](skipList), nextGuessWeight.get)
     }
 }
 
 private object NoneKeyValueLimiter extends KeyValueLimiter {
 
   override def add(keyValue: KeyValue.ReadOnly.Group,
-                   skipList: ConcurrentSkipListMap[Slice[Byte], _]): IO[Unit] =
-    IO.unit
+                   skipList: ConcurrentSkipListMap[Slice[Byte], _]): Unit =
+    ()
 
   override def add(keyValue: Persistent.SegmentResponse,
                    skipList: ConcurrentSkipListMap[Slice[Byte], _]): Unit =

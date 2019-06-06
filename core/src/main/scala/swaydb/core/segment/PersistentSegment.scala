@@ -56,7 +56,7 @@ private[segment] case class PersistentSegment(file: DBFile,
                                                                                 functionStore: FunctionStore,
                                                                                 keyValueLimiter: KeyValueLimiter,
                                                                                 fileOpenLimiter: FileLimiter,
-                                                                                compression: Option[KeyValueGroupingStrategyInternal]) extends Segment with LazyLogging {
+                                                                                grouping: Option[KeyValueGroupingStrategyInternal]) extends Segment with LazyLogging {
 
   def path = file.path
 

@@ -72,14 +72,11 @@ private[segment] case class MemorySegment(path: Path,
     * populated, it means that this is a newly fetched/decompressed Group and should be added to the [[keyValueLimiter]].
     *
     * [[keyValueLimiter]] never removes [[Memory.Group]] key-value but instead uncompressed and re-adds them to the skipList.
+    *
     */
-  private def addToQueueMayBe(group: Memory.Group): IO[Unit] =
-  //if the header is already decompressed then this Group is already in the Limit queue as the queue always
-  //pre-reads the header
-    if (group.isHeaderDecompressed)
-      IO.unit
-    else //else this is a new decompression, add to queue.
-      keyValueLimiter.add(group, cache)
+  private def addToQueueMayBe(group: Memory.Group): Unit =
+    if (!group.isHeaderDecompressed) //If the header is already decompressed then this Group is already in the Limit queue as the queue always pre-reads the header
+      keyValueLimiter.add(group, cache) //this is a new decompression, add to queue.
 
   override def reserveForCompactionOrGet(): Option[Unit] =
     Reserve.setBusyOrGet((), busy)
@@ -219,15 +216,13 @@ private[segment] case class MemorySegment(path: Path,
                 IO.Success(Some(range))
 
               case Some(group: Memory.Group) if group contains key =>
-                addToQueueMayBe(group) flatMap {
-                  _ =>
-                    group.segmentCache.get(key) flatMap {
-                      case Some(persistent) =>
-                        persistent.toMemoryResponseOption()
+                addToQueueMayBe(group)
+                group.segmentCache.get(key) flatMap {
+                  case Some(persistent) =>
+                    persistent.toMemoryResponseOption()
 
-                      case None =>
-                        IO.none
-                    }
+                  case None =>
+                    IO.none
                 }
 
               case _ =>
@@ -250,14 +245,12 @@ private[segment] case class MemorySegment(path: Path,
             case response: Memory.SegmentResponse =>
               IO.Success(Some(response))
             case group: Memory.Group =>
-              addToQueueMayBe(group) flatMap {
-                _ =>
-                  group.segmentCache.lower(key) flatMap {
-                    case Some(persistent) =>
-                      persistent.toMemoryResponseOption()
-                    case None =>
-                      IO.none
-                  }
+              addToQueueMayBe(group)
+              group.segmentCache.lower(key) flatMap {
+                case Some(persistent) =>
+                  persistent.toMemoryResponseOption()
+                case None =>
+                  IO.none
               }
           }
       } getOrElse {
@@ -309,22 +302,20 @@ private[segment] case class MemorySegment(path: Path,
           IO.Success(Some(floorRange))
 
         case floorGroup: Memory.Group if floorGroup containsHigher key =>
-          addToQueueMayBe(floorGroup) flatMap {
-            _ =>
-              floorGroup.segmentCache.higher(key) flatMap {
-                case Some(persistent) =>
-                  persistent.toMemoryResponseOption()
-                case None =>
-                  IO.none
-              } flatMap {
-                higher =>
-                  //Group's last key-value can be inclusive or exclusive and fromKey & toKey can be the same.
-                  //So it's hard to know if the Group contain higher therefore a basicHigher is required if group returns None for higher.
-                  if (higher.isDefined)
-                    IO.Success(higher)
-                  else
-                    doBasicHigher(key)
-              }
+          addToQueueMayBe(floorGroup)
+          floorGroup.segmentCache.higher(key) flatMap {
+            case Some(persistent) =>
+              persistent.toMemoryResponseOption()
+            case None =>
+              IO.none
+          } flatMap {
+            higher =>
+              //Group's last key-value can be inclusive or exclusive and fromKey & toKey can be the same.
+              //So it's hard to know if the Group contain higher therefore a basicHigher is required if group returns None for higher.
+              if (higher.isDefined)
+                IO.Success(higher)
+              else
+                doBasicHigher(key)
           }
         case _ =>
           doBasicHigher(key)

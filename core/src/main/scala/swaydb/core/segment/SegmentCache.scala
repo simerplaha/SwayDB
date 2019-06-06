@@ -75,18 +75,25 @@ private[core] class SegmentCache(id: String,
 
   import keyOrder._
 
+  /**
+    * Notes for why use putIfAbsent before adding to cache:
+    *
+    * Sometimes file seeks will be done if the last known cached key-value's ranges are smaller than the
+    * key being searched. For example: Search key is 10, but the last lower cache key-value range is 1-5.
+    * here it's unknown if a lower key 7 exists without doing a file seek. This is also one of the reasons
+    * reverse iterations are slower than forward. There are ways we can improve this which will eventually be implemented.
+    *
+    */
   private def addToCache(keyValue: Persistent.SegmentResponse): Unit = {
     if (unsliceKey) keyValue.unsliceIndexBytes
-    cache.put(keyValue.key, keyValue)
-    keyValueLimiter.add(keyValue, cache)
+    if (cache.putIfAbsent(keyValue.key, keyValue) == null)
+      keyValueLimiter.add(keyValue, cache)
   }
 
-  private def addToCache(group: Persistent.Group): IO[Unit] = {
+  private def addToCache(group: Persistent.Group): Unit = {
     if (unsliceKey) group.unsliceIndexBytes
-    keyValueLimiter.add(group, cache) map {
-      _ =>
-        cache.put(group.key, group)
-    }
+    if (cache.putIfAbsent(group.key, group) == null)
+      keyValueLimiter.add(group, cache)
   }
 
   private def prepareGet[T](getOperation: (SegmentFooter, Reader) => IO[T]): IO[T] =
@@ -147,10 +154,8 @@ private[core] class SegmentCache(id: String,
                       IO.Success(Some(response))
 
                     case Some(group: Persistent.Group) =>
-                      addToCache(group) flatMap {
-                        _ =>
-                          group.segmentCache.get(key)
-                      }
+                      addToCache(group)
+                      group.segmentCache.get(key)
 
                     case None =>
                       IO.none
@@ -211,10 +216,8 @@ private[core] class SegmentCache(id: String,
                     IO.Success(Some(response))
 
                   case Some(group: Persistent.Group) =>
-                    addToCache(group) flatMap {
-                      _ =>
-                        group.segmentCache.lower(key)
-                    }
+                    addToCache(group)
+                    group.segmentCache.lower(key)
 
                   case None =>
                     IO.none
@@ -283,10 +286,8 @@ private[core] class SegmentCache(id: String,
                   IO.Success(Some(response))
 
                 case Some(group: Persistent.Group) =>
-                  addToCache(group) flatMap {
-                    _ =>
-                      group.segmentCache.higher(key)
-                  }
+                  addToCache(group)
+                  group.segmentCache.higher(key)
 
                 case None =>
                   IO.none
