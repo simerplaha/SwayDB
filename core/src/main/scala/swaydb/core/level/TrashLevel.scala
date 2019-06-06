@@ -169,7 +169,7 @@ private[core] object TrashLevel extends NextLevel {
     new LevelMeter {
       override def segmentsCount: Int = 0
       override def levelSize: Long = 0
-      override def hasSegmentsToCollapse: Boolean = false
+      override def requiresCleanUp: Boolean = false
       override def segmentCountAndLevelSize: (Int, Long) = (segmentsCount, levelSize)
       override def nextLevelMeter: Option[LevelMeter] = None
     }

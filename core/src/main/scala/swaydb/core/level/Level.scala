@@ -369,8 +369,8 @@ private[core] case class Level(dirs: Seq[Dir],
       override def levelSize: Long =
         self.levelSize
 
-      override def hasSegmentsToCollapse: Boolean =
-        self.shouldCollapse
+      override def requiresCleanUp: Boolean =
+        !hasNextLevel && self.shouldSelfCompactOrExpire
 
       override def nextLevelMeter: Option[LevelMeter] =
         nextLevel.map(_.meter)
@@ -1270,9 +1270,16 @@ private[core] case class Level(dirs: Seq[Dir],
       .values()
       .asScala exists (Level.isSmallSegment(_, segmentSize))
 
-  def shouldCollapse: Boolean =
+  def shouldSelfCompactOrExpire: Boolean =
     segmentsInLevel()
-      .exists(segment => Level.shouldCollapse(self, segment))
+      .exists {
+        segment =>
+          Level.shouldCollapse(self, segment) ||
+            FiniteDurationUtil.getNearestDeadline(None, segment.nearestExpiryDeadline).exists(_.isOverdue())
+      }
+
+  def hasKeyValuesToExpire: Boolean =
+    Segment.getNearestDeadlineSegment(segmentsInLevel()).isDefined
 
   def close: IO[Unit] =
     (nextLevel.map(_.close) getOrElse IO.unit) flatMap {
