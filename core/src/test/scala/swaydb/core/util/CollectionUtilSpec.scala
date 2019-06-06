@@ -141,7 +141,7 @@ class CollectionUtilSpec extends WordSpec with Matchers {
   }
 
   "groupedMergeSingles" in {
-    CollectionUtil.groupedMergeSingles(0, List(1, 2, 3)) shouldBe List(List(1), List(2), List(3))
+    CollectionUtil.groupedMergeSingles(0, List(1, 2, 3)) shouldBe List(List(1, 2, 3))
     CollectionUtil.groupedMergeSingles(1, List(1, 2, 3)) shouldBe List(List(1), List(2), List(3))
     CollectionUtil.groupedMergeSingles(2, List(1, 2, 3)) shouldBe List(List(1, 2, 3))
     CollectionUtil.groupedMergeSingles(3, List(1, 2, 3)) shouldBe List(List(1, 2, 3))

@@ -53,13 +53,16 @@ object CollectionUtil {
     * should not contain a single item. Single items get merged into their previous gorup.
     */
   def groupedMergeSingles[T](groupSize: Int,
-                             items: List[T]): List[List[T]] = {
-    val grouped: List[List[T]] = items.grouped(groupSize).toList
-    if (groupSize > 1 && grouped.size >= 2 && grouped.last.size == 1)
-      grouped.dropRight(2) :+ (grouped(grouped.size - 2) ++ grouped.last)
-    else
-      grouped
-  }
+                             items: List[T]): List[List[T]] =
+    if (groupSize <= 0) {
+      List(items)
+    } else {
+      val grouped: List[List[T]] = items.grouped(groupSize).toList
+      if (groupSize > 1 && grouped.size >= 2 && grouped.last.size == 1)
+        grouped.dropRight(2) :+ (grouped(grouped.size - 2) ++ grouped.last)
+      else
+        grouped
+    }
 
   /**
     * Groups items ensuring if the input groupSize is > 1 then the output groups
