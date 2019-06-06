@@ -24,6 +24,7 @@ import swaydb.core.actor.WiredActor
 import swaydb.core.level.LevelRef
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.util.FiniteDurationUtil
+import swaydb.core.util.FiniteDurationUtil._
 import swaydb.data.IO
 import swaydb.data.IO._
 import swaydb.data.compaction.CompactionExecutionContext
@@ -85,7 +86,8 @@ object Compactor extends CompactionStrategy[CompactorState] with LazyLogging {
                           default =
                             LevelCompactionState.Sleep(
                               sleepDeadline = level.nextCompactionDelay.fromNow,
-                              previousStateID = level.stateID
+                              stateID = level.stateID,
+                              previousStateID = 0
                             )
                         )
                     )
@@ -109,11 +111,13 @@ object Compactor extends CompactionStrategy[CompactorState] with LazyLogging {
         }
 
   def scheduleNextWakeUp(state: CompactorState,
-                         self: WiredActor[CompactionStrategy[CompactorState], CompactorState]): Unit =
-    state
-      .updatedLevelCompactionStates
+                         self: WiredActor[CompactionStrategy[CompactorState], CompactorState]): Unit = {
+    val updatedStates = state.updatedLevelCompactionStates
+    logger.debug(s"${state.id}: scheduling next wakeup for updated state: ${updatedStates.size}. Current scheduled: ${state.sleepTask.map(_._2.timeLeft.asString)}")
+
+    updatedStates
       .foldLeft(Option.empty[Deadline]) {
-        case (nearestDeadline, waiting @ LevelCompactionState.AwaitingPull(ioAync, timeout, _)) =>
+        case (nearestDeadline, waiting @ LevelCompactionState.AwaitingPull(ioAync, timeout, _, _)) =>
           //do not create another hook if a future was already initialised to invoke wakeUp.
           if (!waiting.listenerInitialised) {
             ioAync.safeGetFuture(self.ec).foreach {
@@ -137,7 +141,7 @@ object Compactor extends CompactionStrategy[CompactorState] with LazyLogging {
             next = Some(timeout)
           )
 
-        case (nearestDeadline, LevelCompactionState.Sleep(sleepDeadline, _)) =>
+        case (nearestDeadline, LevelCompactionState.Sleep(sleepDeadline, _, _)) =>
           FiniteDurationUtil.getNearestDeadline(
             deadline = nearestDeadline,
             next = Some(sleepDeadline)
@@ -158,8 +162,12 @@ object Compactor extends CompactionStrategy[CompactorState] with LazyLogging {
               }
             state.sleepTask foreach (_._1.cancel())
             state.sleepTask = Some(newTask, newWakeUpDeadline)
+            logger.debug(s"${state.id}: Next wakeup scheduled!. Current scheduled: ${newWakeUpDeadline.timeLeft.asString}")
+          } else {
+            logger.debug(s"${state.id}: Same deadline. Ignoring re-scheduling.")
           }
       }
+  }
 
   def wakeUpChild(state: CompactorState): Unit =
     state

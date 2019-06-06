@@ -75,7 +75,7 @@ object DefaultPersistentConfig {
             else if (meter.mapsCount > 2)
               1.second
             else
-              1.minute
+              30.seconds
       )
       .addPersistentLevel1( //level1
         dir = dir,

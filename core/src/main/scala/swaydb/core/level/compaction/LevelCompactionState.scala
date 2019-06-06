@@ -26,29 +26,37 @@ import swaydb.data.IO
 import scala.concurrent.duration.{Deadline, _}
 
 private[level] sealed trait LevelCompactionState {
+  def stateID: Long
   def previousStateID: Long
 }
 private[level] object LevelCompactionState {
   val failureSleepDuration = 5.second.fromNow
 
+  def longSleep = 365.days.fromNow
+
   case class AwaitingPull(later: IO.Later[_],
                           timeout: Deadline,
+                          stateID: Long,
                           previousStateID: Long) extends LevelCompactionState {
     @volatile var isReady: Boolean = false
     @volatile var listenerInitialised: Boolean = false
 
-    override def toString: String =
-      this.getClass.getSimpleName +
-        s" - later: ${later.getClass.getSimpleName}, " +
-        s"timeout: ${timeout.timeLeft.asString}, " +
-        s"previousStateID: $previousStateID"
+    //    override def toString: String =
+    //      this.getClass.getSimpleName +
+    //        s" - later: ${later.getClass.getSimpleName}, " +
+    //        s"timeout: ${timeout.timeLeft.asString}, " +
+    //        s"stateID: $stateID, " +
+    //        s"previousStateID: $previousStateID"
   }
 
-  case class Sleep(sleepDeadline: Deadline, previousStateID: Long) extends LevelCompactionState {
-    override def toString: String =
-      this.getClass.getSimpleName +
-        s" - sleepDeadline: ${sleepDeadline.timeLeft.asString}, " +
-        s"previousStateID: $previousStateID"
+  case class Sleep(sleepDeadline: Deadline,
+                   stateID: Long,
+                   previousStateID: Long) extends LevelCompactionState {
+    //    override def toString: String =
+    //      this.getClass.getSimpleName +
+    //        s" - sleepDeadline: ${sleepDeadline.timeLeft.asString}, " +
+    //        s"stateID: $stateID, " +
+    //        s"previousStateID: $previousStateID"
   }
 
 }

@@ -57,7 +57,7 @@ private[core] case class CompactorState(levels: Slice[LevelRef],
     //empty levels in CompactorState.
       throw new Exception("CompactorState created without Levels.")
     else
-      levels.foldLeft(365.days.fromNow) {
+      levels.foldLeft(LevelCompactionState.longSleep) {
         case (deadline, level) =>
           FiniteDurationUtil.getNearestDeadline(
             Some(deadline),
@@ -68,13 +68,9 @@ private[core] case class CompactorState(levels: Slice[LevelRef],
   def terminateCompaction() =
     terminate = true
 
-  def check(state: LevelCompactionState, level: LevelRef) = {
-    logger.debug(s"${level.levelNumber}: state.previousStateID != level.stateID: ${state.previousStateID} != ${level.stateID} = ${state.previousStateID != level.stateID}")
-    state.previousStateID != level.stateID
-  }
   def updatedLevelCompactionStates: mutable.Iterable[LevelCompactionState] =
     compactionStates collect {
-      case (level, levelState) if check(levelState, level) =>
+      case (_, levelState) if levelState.stateID != levelState.previousStateID =>
         levelState
     }
 }

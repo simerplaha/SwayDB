@@ -166,7 +166,7 @@ sealed trait CompactorSpec extends TestBase with MockFactory {
       CompactorState(
         levels = Slice(level, nextLevel),
         child = None,
-        ordering = DefaultCompactionOrdering.ordering(_ => LevelCompactionState.Sleep(1.day.fromNow, 0)),
+        ordering = DefaultCompactionOrdering.ordering(_ => LevelCompactionState.Sleep(1.day.fromNow, 0, 0)),
         executionContext = TestExecutionContext.executionContext,
         compactionStates = mutable.Map.empty
       )
@@ -199,7 +199,7 @@ sealed trait CompactorSpec extends TestBase with MockFactory {
         val later = IO.Later((), busy)
         later.isBusy shouldBe true
 
-        val awaitingPull = LevelCompactionState.AwaitingPull(later, 1.minute.fromNow, 0)
+        val awaitingPull = LevelCompactionState.AwaitingPull(later, 1.minute.fromNow, 0, 0)
         awaitingPull.isReady shouldBe false
         //set the state to be awaiting pull
         val state =
@@ -253,11 +253,11 @@ sealed trait CompactorSpec extends TestBase with MockFactory {
         val later = IO.Later((), busy)
         later.isBusy shouldBe true
 
-        val level1AwaitingPull = LevelCompactionState.AwaitingPull(later, 1.minute.fromNow, 0)
+        val level1AwaitingPull = LevelCompactionState.AwaitingPull(later, 1.minute.fromNow, 0, 0)
         level1AwaitingPull.isReady shouldBe false
 
         //level 2's sleep is shorter than level1's awaitPull timeout sleep.
-        val level2Sleep = LevelCompactionState.Sleep(5.seconds.fromNow, 0)
+        val level2Sleep = LevelCompactionState.Sleep(5.seconds.fromNow, 0, 0)
         //set the state to be awaiting pull
         val state =
           testState.copy(

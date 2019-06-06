@@ -98,12 +98,8 @@ private[swaydb] object Actor {
                   fixedDelay: FiniteDuration)(execution: (T, Actor[T, S]) => Unit)(implicit ec: ExecutionContext): ActorRef[T] =
     new Actor[T, S](
       state = state,
-      execution =
-        (message, actor) => {
-          execution(message, actor)
-          Some(fixedDelay)
-        },
-      defaultDelay = None
+      execution = execution,
+      defaultDelay = Some(fixedDelay, false)
     )
 
   /**
@@ -122,11 +118,8 @@ private[swaydb] object Actor {
                       initialDelay: FiniteDuration)(execution: (T, Actor[T, S]) => Unit)(implicit ec: ExecutionContext): ActorRef[T] =
     new Actor[T, S](
       state = state,
-      execution =
-        (message, actor) => {
-          Some(execution(message, actor))
-        },
-      defaultDelay = Some(initialDelay)
+      execution = execution,
+      defaultDelay = Some(initialDelay, true)
     )
 
   /**
@@ -158,7 +151,7 @@ private[swaydb] object Actor {
 
 private[swaydb] class Actor[T, +S](val state: S,
                                    execution: (T, Actor[T, S]) => Unit,
-                                   private val defaultDelay: Option[FiniteDuration])(implicit ec: ExecutionContext) extends ActorRef[T] with LazyLogging { self =>
+                                   private val defaultDelay: Option[(FiniteDuration, Boolean)])(implicit ec: ExecutionContext) extends ActorRef[T] with LazyLogging { self =>
 
   private val busy = new AtomicBoolean(false)
   private val queue = new ConcurrentLinkedQueue[T]
@@ -168,9 +161,9 @@ private[swaydb] class Actor[T, +S](val state: S,
   val maxMessagesToProcessAtOnce = 10000
   //if initial delay is defined this actor will keep checking for messages at
   //regular interval. This interval can be updated via the execution function.
-  val continueIfEmpty = defaultDelay.isDefined
+  val loop = defaultDelay.exists(_._2)
   //if initial detail is defined, trigger processMessages() to start the timer loop.
-  if (continueIfEmpty) defaultDelay map (Delay.future(_)(processMessages()))
+  if (loop) processMessages()
 
   override def !(message: T): Unit =
     if (!terminated) {
@@ -205,8 +198,17 @@ private[swaydb] class Actor[T, +S](val state: S,
   }
 
   private def processMessages(): Unit =
-    if (!terminated && (continueIfEmpty || !queue.isEmpty) && busy.compareAndSet(false, true))
-      Future(receive((queueSize.get() - maxMessagesToProcessAtOnce) max maxMessagesToProcessAtOnce))
+    if (!terminated && (loop || !queue.isEmpty) && busy.compareAndSet(false, true))
+      defaultDelay.map(_._1) match {
+        case None =>
+          Future(receive(maxMessagesToProcessAtOnce))
+
+        case Some(interval) if interval.fromNow.isOverdue() =>
+          Future(receive(maxMessagesToProcessAtOnce))
+
+        case Some(delay) =>
+          Delay.future(delay)(receive(maxMessagesToProcessAtOnce))
+      }
 
   private def receive(max: Int): Unit = {
     var processed = 0
