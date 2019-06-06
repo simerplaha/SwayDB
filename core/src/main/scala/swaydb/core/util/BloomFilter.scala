@@ -23,13 +23,14 @@ object BloomFilter {
       buffer = ByteBuffer.allocate(0)
     )
 
-  val byteBufferStartOffset = ByteSizeOf.int + ByteSizeOf.int + ByteSizeOf.int
+  val byteBufferStartOffset =
+    ByteSizeOf.int +
+      ByteSizeOf.int
 
   def apply(numberOfItems: Int, falsePositiveRate: Double): BloomFilter = {
     val numberOfBits = optimalNumberOfBits(numberOfItems, falsePositiveRate)
     val numberOfHashes = optimalNumberOfHashes(numberOfItems, numberOfBits)
     val buffer = ByteBuffer.allocate(byteBufferStartOffset + numberOfBits)
-    buffer.putInt(0)
     buffer.putInt(numberOfBits)
     buffer.putInt(numberOfHashes)
     new BloomFilter(
@@ -50,13 +51,12 @@ object BloomFilter {
   def apply(slice: Slice[Byte]): IO[BloomFilter] = {
     val reader = Reader(slice)
     for {
-      maxStartOffset <- reader.readInt()
       numberOfBits <- reader.readInt()
       numberOfHashes <- reader.readInt()
     } yield {
       new BloomFilter(
         startOffset = byteBufferStartOffset,
-        _maxStartOffset = maxStartOffset,
+        _maxStartOffset = slice.size - 8,
         numberOfBits = numberOfBits,
         numberOfHashes = numberOfHashes,
         buffer = slice.toByteBuffer
@@ -137,10 +137,8 @@ class BloomFilter(val startOffset: Int,
     true
   }
 
-  def toSlice: Slice[Byte] = {
-    buffer.putInt(0, maxStartOffset)
+  def toSlice: Slice[Byte] =
     Slice(buffer.array()).slice(0, maxStartOffset + 7)
-  }
 
   override def hashCode(): Int =
     buffer.hashCode()
