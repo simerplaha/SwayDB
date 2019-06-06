@@ -51,7 +51,6 @@ import swaydb.data.{IO, MaxKey}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
-//@formatter:off
 class SegmentWriteSpec0 extends SegmentWriteSpec
 
 class SegmentWriteSpec1 extends SegmentWriteSpec {
@@ -73,7 +72,6 @@ class SegmentWriteSpec2 extends SegmentWriteSpec {
 class SegmentWriteSpec3 extends SegmentWriteSpec {
   override def inMemoryStorage = true
 }
-//@formatter:on
 
 sealed trait SegmentWriteSpec extends TestBase with Benchmark {
 
@@ -884,7 +882,6 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         }
       }
     }
-
   }
 
   "put" should {

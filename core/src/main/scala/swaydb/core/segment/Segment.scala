@@ -257,7 +257,9 @@ private[core] object Segment extends LazyLogging {
     ) flatMap {
       case (bytes, nearestExpiryDeadline) =>
         if (bytes.isEmpty) {
-          IO.Failure(new Exception("Empty key-values submitted to persistent Segment."))
+          //This is fatal!! Empty Segments should never be created. If this does have for whatever reason it should
+          //not be allowed so that whatever is creating this Segment (eg: compaction) does not progress with a success response.
+          IO.Failure(IO.Error.Fatal(new Exception("Empty key-values submitted to persistent Segment.")))
         } else {
           val writeResult =
           //if both read and writes are mmaped. Keep the file open.
