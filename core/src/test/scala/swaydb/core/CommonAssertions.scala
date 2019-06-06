@@ -759,7 +759,7 @@ object CommonAssertions {
   def assertReads(keyValues: Slice[KeyValue],
                   segment: Segment) = {
     val asserts = Seq(() => assertGet(keyValues, segment), () => assertHigher(keyValues, segment), () => assertLower(keyValues, segment))
-    Random.shuffle(asserts).foreach(_ ())
+    Random.shuffle(asserts).par.foreach(_ ())
   }
 
   def assertReads(keyValues: Iterable[KeyValue],
@@ -1112,7 +1112,7 @@ object CommonAssertions {
       case keyValue: KeyValue.WriteOnly.Group =>
         unzipGroups(keyValue.keyValues)
       case keyValue: KeyValue.ReadOnly.Group =>
-        unzipGroups(keyValue.segmentCache.getAll().assertGet)
+        unzipGroups(keyValue.segmentCache.getAll().get.safeGetBlocking())
       case keyValue: KeyValue =>
         Slice(keyValue)
     }.toMemory.toTransient

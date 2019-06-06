@@ -110,7 +110,7 @@ sealed trait SegmentGroupWriteSpec extends TestBase with ScalaFutures with Priva
         val lastSegment = newSegmentsWithRemovedKeyValues.head
         keyValues foreach {
           keyValue =>
-            lastSegment.get(keyValue.key).assertGet match {
+            lastSegment.get(keyValue.key).get.safeGetBlocking().get match {
               case _: KeyValue.ReadOnly.Remove =>
               case remove: KeyValue.ReadOnly.Range =>
                 remove.fetchFromOrElseRangeValue.assertGet shouldBe Value.remove(None)
