@@ -55,8 +55,7 @@ private[segment] case class PersistentSegment(file: DBFile,
                                                                                 timeOrder: TimeOrder[Slice[Byte]],
                                                                                 functionStore: FunctionStore,
                                                                                 keyValueLimiter: KeyValueLimiter,
-                                                                                fileOpenLimiter: FileLimiter,
-                                                                                grouping: Option[KeyValueGroupingStrategyInternal]) extends Segment with LazyLogging {
+                                                                                fileOpenLimiter: FileLimiter) extends Segment with LazyLogging {
 
   def path = file.path
 
@@ -126,7 +125,8 @@ private[segment] case class PersistentSegment(file: DBFile,
           minSegmentSize: Long,
           bloomFilterFalsePositiveRate: Double,
           compressDuplicateValues: Boolean,
-          targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): IO[Slice[Segment]] =
+          targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
+                                                                                                      groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]] =
     getAll() flatMap {
       currentKeyValues =>
         SegmentMerger.merge(
@@ -171,7 +171,8 @@ private[segment] case class PersistentSegment(file: DBFile,
   def refresh(minSegmentSize: Long,
               bloomFilterFalsePositiveRate: Double,
               compressDuplicateValues: Boolean,
-              targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): IO[Slice[Segment]] =
+              targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
+                                                                                                          groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]] =
     getAll() flatMap {
       currentKeyValues =>
         SegmentMerger.split(

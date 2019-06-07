@@ -942,12 +942,14 @@ private[core] trait Segment extends FileLimiterItem {
           minSegmentSize: Long,
           bloomFilterFalsePositiveRate: Double,
           compressDuplicateValues: Boolean,
-          targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): IO[Slice[Segment]]
+          targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
+                                                                                                      groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]]
 
   def refresh(minSegmentSize: Long,
               bloomFilterFalsePositiveRate: Double,
               compressDuplicateValues: Boolean,
-              targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): IO[Slice[Segment]]
+              targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
+                                                                                                          groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]]
 
   def copyTo(toPath: Path): IO[Path]
 

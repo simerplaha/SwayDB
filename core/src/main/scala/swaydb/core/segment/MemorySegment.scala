@@ -59,7 +59,6 @@ private[segment] case class MemorySegment(path: Path,
                                           busy: Reserve[Unit])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                timeOrder: TimeOrder[Slice[Byte]],
                                                                functionStore: FunctionStore,
-                                                               groupingStrategy: Option[KeyValueGroupingStrategyInternal],
                                                                keyValueLimiter: KeyValueLimiter,
                                                                fileLimiter: FileLimiter) extends Segment with LazyLogging {
 
@@ -96,7 +95,8 @@ private[segment] case class MemorySegment(path: Path,
                    minSegmentSize: Long,
                    bloomFilterFalsePositiveRate: Double,
                    compressDuplicateValues: Boolean,
-                   targetPaths: PathsDistributor)(implicit idGenerator: IDGenerator): IO[Slice[Segment]] =
+                   targetPaths: PathsDistributor)(implicit idGenerator: IDGenerator,
+                                                  groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]] =
     if (deleted)
       IO.Failure(IO.Error.NoSuchFile(path))
     else
@@ -140,7 +140,8 @@ private[segment] case class MemorySegment(path: Path,
   override def refresh(minSegmentSize: Long,
                        bloomFilterFalsePositiveRate: Double,
                        compressDuplicateValues: Boolean,
-                       targetPaths: PathsDistributor)(implicit idGenerator: IDGenerator): IO[Slice[Segment]] =
+                       targetPaths: PathsDistributor)(implicit idGenerator: IDGenerator,
+                                                      groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]] =
     if (deleted)
       IO.Failure(IO.Error.NoSuchFile(path))
     else
