@@ -285,6 +285,20 @@ private[core] object Level extends LazyLogging {
       }
     segmentsToCollapse
   }
+
+  def delete(level: NextLevel): IO[Unit] =
+    level.close flatMap {
+      _ =>
+        level
+          .nextLevel
+          .map(_.delete)
+          .getOrElse {
+            level.paths.dirs foreachIO {
+              path =>
+                IOEffect.walkDelete(path.path)
+            } getOrElse IO.unit
+          }
+    }
 }
 
 private[core] case class Level(dirs: Seq[Dir],
@@ -1349,4 +1363,7 @@ private[core] case class Level(dirs: Seq[Dir],
 
   override def nextThrottlePushCount: Int =
     throttle(meter).segmentsToPush
+
+  override def delete: IO[Unit] =
+    Level.delete(self)
 }

@@ -80,7 +80,7 @@ object RunThis extends Eventually {
   def runThis(times: Int)(f: => Unit): Unit =
     (1 to times) foreach {
       i =>
-        //        println(s"Iteration number: $i")
+//        println(s"Iteration number: $i")
         f
     }
 
@@ -106,5 +106,4 @@ object RunThis extends Eventually {
 
   def eventual[A](after: FiniteDuration = 1.second)(code: => A): Unit =
     eventually(timeout(after))(code)
-
 }

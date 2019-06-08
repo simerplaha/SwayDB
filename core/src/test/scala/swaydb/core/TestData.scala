@@ -115,6 +115,8 @@ object TestData {
 
     import swaydb.data.IO._
 
+    //This test function is doing too much. This shouldn't be the case! There needs to be an easier way to write
+    //key-values in a Level without that level copying it forward to lower Levels.
     def putKeyValuesTest(keyValues: Iterable[KeyValue.ReadOnly])(implicit fileLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter): IO[Unit] =
       if (keyValues.isEmpty)
         IO.unit
@@ -123,7 +125,7 @@ object TestData {
       else if (level.inMemory)
         Segment.copyToMemory(
           keyValues = keyValues,
-          fetchNextPath = Paths.get("testMemorySegment"),
+          fetchNextPath = level.paths.next.resolve(level.segmentIDGenerator.nextSegmentID),
           removeDeletes = false,
           minSegmentSize = 1000.mb,
           createdInLevel = 0,
@@ -143,7 +145,7 @@ object TestData {
         Segment.copyToPersist(
           keyValues = keyValues.toTransient,
           createdInLevel = level.levelNumber.toInt,
-          fetchNextPath = Files.createTempDirectory("testSegment").resolve(IDGenerator.segmentId(randomIntMax())),
+          fetchNextPath = level.paths.next.resolve(level.segmentIDGenerator.nextSegmentID),
           mmapSegmentsOnRead = randomBoolean(),
           mmapSegmentsOnWrite = randomBoolean(),
           removeDeletes = false,

@@ -120,7 +120,8 @@ private[core] object BufferCleaner extends LazyLogging {
   //       Currently BufferCleaner is required to be globally known.
   //       Instead this should be passed around whenever required and be explicit.
   def initialiseCleaner(implicit ec: ExecutionContext) =
-    cleaner = Some(new BufferCleaner)
+    if (cleaner.isEmpty)
+      cleaner = Some(new BufferCleaner)
 
   def clean(buffer: MappedByteBuffer, path: Path): Unit =
     cleaner map {

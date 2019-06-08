@@ -116,4 +116,6 @@ trait NextLevel extends LevelRef {
   def nextThrottlePushCount: Int
 
   def groupingStrategy: Option[KeyValueGroupingStrategyInternal]
+
+  def delete: IO[Unit]
 }

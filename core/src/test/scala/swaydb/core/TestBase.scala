@@ -25,7 +25,7 @@ import java.nio.file.attribute.BasicFileAttributes
 import java.util.concurrent.atomic.AtomicInteger
 
 import org.scalatest.concurrent.Eventually
-import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
+import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpec}
 import swaydb.core.CommonAssertions._
 import swaydb.core.IOAssert._
 import swaydb.core.TestData._
@@ -52,15 +52,24 @@ import swaydb.data.util.StorageUnits._
 import scala.concurrent.duration._
 import scala.util.Random
 
-trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventually {
+trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Eventually {
 
   BufferCleaner.initialiseCleaner
 
   implicit val idGenerator = IDGenerator()
 
-  private val currentLevelId = new AtomicInteger(100)
+  private val currentLevelId = new AtomicInteger(Byte.MaxValue + 1)
 
-  private def nextLevelId = currentLevelId.decrementAndGet()
+  private def nextLevelId: Int = {
+    //LevelNumber cannot be greater than 1 byte. If more than one byte is used, reset.
+    val id = currentLevelId.decrementAndGet()
+    if (id < 0) {
+      currentLevelId.set(Byte.MaxValue)
+      Byte.MaxValue.toInt
+    } else {
+      id
+    }
+  }
 
   val testFileDirectory = Paths.get(getClass.getClassLoader.getResource("").getPath).getParent.getParent.resolve("TEST_FILES")
 
@@ -191,8 +200,9 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
   //    walkDeleteFolder(testDir)
   //  }
 
-  override protected def afterAll(): Unit = {
+  override protected def afterEach(): Unit = {
     walkDeleteFolder(testDir)
+    currentLevelId set 0
   }
 
   object TestMap {

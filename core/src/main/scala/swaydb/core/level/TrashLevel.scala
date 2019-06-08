@@ -204,4 +204,6 @@ private[core] object TrashLevel extends NextLevel {
 
   override def isCopyable(minKey: Slice[Byte], maxKey: Slice[Byte], maxKeyInclusive: Boolean): Boolean =
     true
+
+  override def delete: IO[Unit] = IO.unit
 }

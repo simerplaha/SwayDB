@@ -32,9 +32,9 @@ import swaydb.data.IO
 
 class BufferCleanerSpec extends TestBase {
 
-  override def beforeAll(): Unit = {
+  override def beforeEach(): Unit = {
     BufferCleaner.initialiseCleaner
-    super.beforeAll()
+    super.beforeEach()
   }
 
   "clear a MMAP file" in {
