@@ -52,7 +52,6 @@ class MapEntrySpec extends TestBase {
   val appendixReader = AppendixMapEntryReader(true, true)
 
   val keyValues = randomKeyValues(count = 10)
-  val segment = TestSegment(keyValues).assertGet
 
   "MapEntry" should {
     "set hasRemoveDeadline to true if Put has remove deadline" in {
@@ -183,6 +182,7 @@ class MapEntrySpec extends TestBase {
 
     "add Appendix single Put entry to skipList" in {
       import AppendixMapEntryWriter._
+      val segment = TestSegment(keyValues).assertGet
 
       val skipList = new ConcurrentSkipListMap[Slice[Byte], Segment](keyOrder)
 
@@ -192,10 +192,13 @@ class MapEntrySpec extends TestBase {
       entry applyTo skipList
       skipList should have size 1
       skipList.get(1: Slice[Byte]) shouldBe segment
+
+      segment.close.assertGet
     }
 
     "remove Appendix entry from skipList" in {
       import AppendixMapEntryWriter._
+      val segment = TestSegment(keyValues).assertGet
 
       val skipList = new ConcurrentSkipListMap[Slice[Byte], Segment](keyOrder)
 
@@ -208,6 +211,8 @@ class MapEntrySpec extends TestBase {
 
       MapEntry.Remove[Slice[Byte]](1) applyTo skipList
       skipList shouldBe empty
+
+      segment.close.assertGet
     }
 
     "batch multiple appendix entries to skipList" in {
@@ -235,6 +240,11 @@ class MapEntrySpec extends TestBase {
       skipList.get(2: Slice[Byte]) should be(null)
       skipList.get(3: Slice[Byte]) shouldBe segment3
       skipList.get(4: Slice[Byte]) shouldBe segment4
+
+      segment1.close.assertGet
+      segment2.close.assertGet
+      segment3.close.assertGet
+      segment4.close.assertGet
     }
 
   }
@@ -258,6 +268,7 @@ class MapEntrySpec extends TestBase {
     "write and read bytes for a single Appendix" in {
       import AppendixMapEntryWriter._
       import appendixReader._
+      val segment = TestSegment(keyValues).assertGet
 
       val entry = MapEntry.Put[Slice[Byte], Segment](segment.minKey, segment)
       entry.hasRange shouldBe false
@@ -268,6 +279,8 @@ class MapEntrySpec extends TestBase {
 
       MapEntryReader.read[MapEntry.Put[Slice[Byte], Segment]](bytes.drop(1)).assertGet shouldBe entry
       MapEntryReader.read[MapEntry[Slice[Byte], Segment]](bytes).assertGet shouldBe entry
+
+      segment.close.assertGet
     }
   }
 
@@ -290,6 +303,7 @@ class MapEntrySpec extends TestBase {
     "write and read bytes for single Appendix entry" in {
       import AppendixMapEntryWriter._
       import appendixReader._
+      val segment = TestSegment(keyValues).assertGet
 
       //do remove
       val entry = MapEntry.Remove[Slice[Byte]](segment.minKey)
@@ -301,6 +315,8 @@ class MapEntrySpec extends TestBase {
 
       MapEntryReader.read[MapEntry.Remove[Slice[Byte]]](bytes.drop(1)).assertGet.key shouldBe entry.key
       MapEntryReader.read[MapEntry[Slice[Byte], Segment]](bytes).assertGet shouldBe entry
+
+      segment.close.assertGet
     }
   }
 
@@ -364,6 +380,7 @@ class MapEntrySpec extends TestBase {
     "be written and read for Appendix" in {
       import AppendixMapEntryWriter._
       import appendixReader._
+      val segment = TestSegment(keyValues).assertGet
 
       val initialEntry: MapEntry[Slice[Byte], Segment] = MapEntry.Put[Slice[Byte], Segment](0, segment)
       var entry =
@@ -390,6 +407,8 @@ class MapEntrySpec extends TestBase {
       skipList should have size 5000
       skipList.firstKey() shouldBe (0: Slice[Byte])
       skipList.lastKey() shouldBe (4999: Slice[Byte])
+
+      segment.close.assertGet
     }
   }
 

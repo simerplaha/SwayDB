@@ -45,13 +45,14 @@ object Map extends LazyLogging {
     *
     * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
     *
-    * @param mapSize         size of Level0 maps before they are converted into Segments
-    * @param segmentSize     size of Level1 Segments
-    * @param acceleration    Controls the write speed.
-    * @param keySerializer   Converts keys to Bytes
-    * @param valueSerializer Converts values to Bytes
-    * @param keyOrder        Sort order for keys
-    * @param ec
+    * @param mapSize           size of Level0 maps before they are converted into Segments
+    * @param segmentSize       size of Level1 Segments
+    * @param acceleration      Controls the write speed.
+    * @param keySerializer     Converts keys to Bytes
+    * @param valueSerializer   Converts values to Bytes
+    * @param keyOrder          Sort order for keys
+    * @param fileOpenLimiterEC Execution context used to close opened files when the maxOpenFiles limit is reached.
+    * @param cacheLimiterEC    Execution context used to drop cached key-values when cacheSize is reached.
     * @tparam K
     * @tparam V
     * @return
@@ -108,5 +109,4 @@ object Map extends LazyLogging {
           keyOrder = Key.ordering(keyOrder)
         )
     }
-
 }
