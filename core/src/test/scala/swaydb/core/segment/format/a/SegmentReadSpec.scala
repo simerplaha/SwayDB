@@ -214,55 +214,70 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures with PrivateMeth
 
       //0 - 0
       //      1 - 5
-      Segment.overlaps(0, 0, segment) shouldBe false
+      Segment.overlaps(0, 0, true, segment) shouldBe false
+      Segment.overlaps(0, 0, false, segment) shouldBe false
       //  0 - 1
       //      1 - 5
-      Segment.overlaps(0, 1, segment) shouldBe true
+      Segment.overlaps(0, 1, true, segment) shouldBe true
+      Segment.overlaps(0, 1, false, segment) shouldBe false
       //    0 - 2
       //      1 - 5
-      Segment.overlaps(0, 2, segment) shouldBe true
+      Segment.overlaps(0, 2, true, segment) shouldBe true
+      Segment.overlaps(0, 2, false, segment) shouldBe true
       //    0   - 5
       //      1 - 5
-      Segment.overlaps(0, 5, segment) shouldBe true
+      Segment.overlaps(0, 5, true, segment) shouldBe true
+      Segment.overlaps(0, 5, false, segment) shouldBe true
       //    0   -   6
       //      1 - 5
-      Segment.overlaps(0, 6, segment) shouldBe true
+      Segment.overlaps(0, 6, true, segment) shouldBe true
+      Segment.overlaps(0, 6, false, segment) shouldBe true
 
 
       //      1-2
       //      1 - 5
-      Segment.overlaps(1, 2, segment) shouldBe true
+      Segment.overlaps(1, 2, true, segment) shouldBe true
+      Segment.overlaps(1, 2, false, segment) shouldBe true
       //      1-4
       //      1 - 5
-      Segment.overlaps(1, 4, segment) shouldBe true
+      Segment.overlaps(1, 4, true, segment) shouldBe true
+      Segment.overlaps(1, 4, false, segment) shouldBe true
       //      1 - 5
       //      1 - 5
-      Segment.overlaps(1, 5, segment) shouldBe true
+      Segment.overlaps(1, 5, true, segment) shouldBe true
+      Segment.overlaps(1, 5, false, segment) shouldBe true
       //      1 -  6
       //      1 - 5
-      Segment.overlaps(1, 6, segment) shouldBe true
+      Segment.overlaps(1, 6, true, segment) shouldBe true
+      Segment.overlaps(1, 6, false, segment) shouldBe true
 
 
       //       2-4
       //      1 - 5
-      Segment.overlaps(2, 4, segment) shouldBe true
+      Segment.overlaps(2, 4, true, segment) shouldBe true
+      Segment.overlaps(2, 4, false, segment) shouldBe true
       //       2- 5
       //      1 - 5
-      Segment.overlaps(2, 5, segment) shouldBe true
+      Segment.overlaps(2, 5, true, segment) shouldBe true
+      Segment.overlaps(2, 5, false, segment) shouldBe true
       //        2 - 6
       //      1 - 5
-      Segment.overlaps(2, 6, segment) shouldBe true
+      Segment.overlaps(2, 6, true, segment) shouldBe true
+      Segment.overlaps(2, 6, false, segment) shouldBe true
       //          5 - 6
       //      1 - 5
-      Segment.overlaps(5, 6, segment) shouldBe true
+      Segment.overlaps(5, 6, true, segment) shouldBe true
+      Segment.overlaps(5, 6, false, segment) shouldBe true
       //            6 - 7
       //      1 - 5
-      Segment.overlaps(6, 7, segment) shouldBe false
+      Segment.overlaps(6, 7, true, segment) shouldBe false
+      Segment.overlaps(6, 7, false, segment) shouldBe false
 
       //wide outer overlap
       //    0   -   6
       //      1 - 5
-      Segment.overlaps(0, 6, segment) shouldBe true
+      Segment.overlaps(0, 6, true, segment) shouldBe true
+      Segment.overlaps(0, 6, false, segment) shouldBe true
 
       segment.close.assertGet
     }
@@ -273,92 +288,118 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures with PrivateMeth
 
       //0 - 0
       //      1 - (5 - 10(EX))
-      Segment.overlaps(0, 0, segment) shouldBe false
+      Segment.overlaps(0, 0, true, segment) shouldBe false
+      Segment.overlaps(0, 0, false, segment) shouldBe false
       //  0 - 1
       //      1 - (5 - 10(EX))
-      Segment.overlaps(0, 1, segment) shouldBe true
+      Segment.overlaps(0, 1, true, segment) shouldBe true
+      Segment.overlaps(0, 1, false, segment) shouldBe false
       //    0 - 2
       //      1 - (5 - 10(EX))
-      Segment.overlaps(0, 2, segment) shouldBe true
+      Segment.overlaps(0, 2, true, segment) shouldBe true
+      Segment.overlaps(0, 2, false, segment) shouldBe true
       //    0 -    5
       //      1 - (5 - 10(EX))
-      Segment.overlaps(0, 5, segment) shouldBe true
+      Segment.overlaps(0, 5, true, segment) shouldBe true
+      Segment.overlaps(0, 5, false, segment) shouldBe true
       //    0   -    7
       //      1 - (5 - 10(EX))
-      Segment.overlaps(0, 7, segment) shouldBe true
+      Segment.overlaps(0, 7, true, segment) shouldBe true
+      Segment.overlaps(0, 7, false, segment) shouldBe true
       //    0     -    10
       //      1 - (5 - 10(EX))
-      Segment.overlaps(0, 10, segment) shouldBe true
+      Segment.overlaps(0, 10, true, segment) shouldBe true
+      Segment.overlaps(0, 10, false, segment) shouldBe true
       //    0      -      11
       //      1 - (5 - 10(EX))
-      Segment.overlaps(0, 11, segment) shouldBe true
+      Segment.overlaps(0, 11, true, segment) shouldBe true
+      Segment.overlaps(0, 11, false, segment) shouldBe true
 
       //      1 - 5
       //      1 - (5 - 10(EX))
-      Segment.overlaps(1, 5, segment) shouldBe true
+      Segment.overlaps(1, 5, true, segment) shouldBe true
+      Segment.overlaps(1, 5, false, segment) shouldBe true
       //      1 -   6
       //      1 - (5 - 10(EX))
-      Segment.overlaps(1, 6, segment) shouldBe true
+      Segment.overlaps(1, 6, true, segment) shouldBe true
+      Segment.overlaps(1, 6, false, segment) shouldBe true
       //      1 -      10
       //      1 - (5 - 10(EX))
-      Segment.overlaps(1, 10, segment) shouldBe true
+      Segment.overlaps(1, 10, true, segment) shouldBe true
+      Segment.overlaps(1, 10, false, segment) shouldBe true
       //      1 -          11
       //      1 - (5 - 10(EX))
-      Segment.overlaps(1, 11, segment) shouldBe true
+      Segment.overlaps(1, 11, true, segment) shouldBe true
+      Segment.overlaps(1, 11, false, segment) shouldBe true
 
       //       2-4
       //      1 - (5 - 10(EX))
-      Segment.overlaps(2, 4, segment) shouldBe true
+      Segment.overlaps(2, 4, true, segment) shouldBe true
+      Segment.overlaps(2, 4, false, segment) shouldBe true
       //       2 - 5
       //      1 - (5 - 10(EX))
-      Segment.overlaps(2, 5, segment) shouldBe true
+      Segment.overlaps(2, 5, true, segment) shouldBe true
+      Segment.overlaps(2, 5, false, segment) shouldBe true
       //       2 -   6
       //      1 - (5 - 10(EX))
-      Segment.overlaps(2, 6, segment) shouldBe true
+      Segment.overlaps(2, 6, true, segment) shouldBe true
+      Segment.overlaps(2, 6, false, segment) shouldBe true
       //       2   -    10
       //      1 - (5 - 10(EX))
-      Segment.overlaps(2, 10, segment) shouldBe true
+      Segment.overlaps(2, 10, true, segment) shouldBe true
+      Segment.overlaps(2, 10, false, segment) shouldBe true
       //       2     -    11
       //      1 - (5 - 10(EX))
-      Segment.overlaps(2, 11, segment) shouldBe true
+      Segment.overlaps(2, 11, true, segment) shouldBe true
+      Segment.overlaps(2, 11, false, segment) shouldBe true
 
 
       //          5 - 6
       //      1 - (5 - 10(EX))
-      Segment.overlaps(5, 6, segment) shouldBe true
+      Segment.overlaps(5, 6, true, segment) shouldBe true
+      Segment.overlaps(5, 6, false, segment) shouldBe true
       //          5 -  10
       //      1 - (5 - 10(EX))
-      Segment.overlaps(5, 10, segment) shouldBe true
+      Segment.overlaps(5, 10, true, segment) shouldBe true
+      Segment.overlaps(5, 10, false, segment) shouldBe true
       //          5   -   11
       //      1 - (5 - 10(EX))
-      Segment.overlaps(5, 11, segment) shouldBe true
+      Segment.overlaps(5, 11, true, segment) shouldBe true
+      Segment.overlaps(5, 11, false, segment) shouldBe true
       //            6 - 7
       //      1 - (5 - 10(EX))
-      Segment.overlaps(6, 7, segment) shouldBe true
+      Segment.overlaps(6, 7, true, segment) shouldBe true
+      Segment.overlaps(6, 7, false, segment) shouldBe true
       //             8 - 9
       //      1 - (5   -   10(EX))
-      Segment.overlaps(8, 9, segment) shouldBe true
+      Segment.overlaps(8, 9, true, segment) shouldBe true
+      Segment.overlaps(8, 9, false, segment) shouldBe true
       //             8   - 10
       //      1 - (5   -   10(EX))
-      Segment.overlaps(8, 10, segment) shouldBe true
+      Segment.overlaps(8, 10, true, segment) shouldBe true
+      Segment.overlaps(8, 10, false, segment) shouldBe true
       //               9 - 10
       //      1 - (5   -   10(EX))
-      Segment.overlaps(9, 10, segment) shouldBe true
+      Segment.overlaps(9, 10, true, segment) shouldBe true
+      Segment.overlaps(9, 10, false, segment) shouldBe true
       //               9 -   11
       //      1 - (5   -   10(EX))
-      Segment.overlaps(9, 11, segment) shouldBe true
+      Segment.overlaps(9, 11, true, segment) shouldBe true
+      Segment.overlaps(9, 11, false, segment) shouldBe true
       //                   10  -   11
       //      1 - (5   -   10(EX))
-      Segment.overlaps(10, 11, segment) shouldBe false
+      Segment.overlaps(10, 11, true, segment) shouldBe false
+      Segment.overlaps(10, 11, false, segment) shouldBe false
 
       //                      11  -   11
       //      1 - (5   -   10(EX))
-      Segment.overlaps(11, 11, segment) shouldBe false
+      Segment.overlaps(11, 11, true, segment) shouldBe false
+      Segment.overlaps(11, 11, false, segment) shouldBe false
 
       //wide outer overlap
       //    0   -   6
       //      1 - (5 - 10(EX))
-      Segment.overlaps(0, 6, segment) shouldBe true
+      Segment.overlaps(0, 6, true, segment) shouldBe true
 
       segment.close.assertGet
     }
@@ -896,7 +937,6 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures with PrivateMeth
         segment1.close.assertGet
         segment2.close.assertGet
       }
-
     }
 
     "return deadline if one of the Segments contains deadline" in {

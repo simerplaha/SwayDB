@@ -35,7 +35,7 @@ import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.map.MapEntry
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment
-import swaydb.core.util.Extension
+import swaydb.core.util.{Extension, ReserveRange}
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
 import swaydb.data.config.Dir
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -200,6 +200,69 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
     "return 0 when the Level is empty" in {
       val level = TestLevel(segmentSize = 1.kb)
       Level.largestSegmentId(level.segmentsInLevel()) shouldBe 0
+    }
+  }
+
+  "optimalSegmentsToPushForward" should {
+    "return empty if there Levels are empty" in {
+      val nextLevel = TestLevel()
+      val level = TestLevel()
+      implicit val reserve = ReserveRange.create[Unit]()
+
+      Level.optimalSegmentsToPushForward(
+        level = level,
+        nextLevel = nextLevel,
+        take = 10
+      ) shouldBe Level.emptySegmentsToPush
+
+      level.close.assertGet
+      nextLevel.close.assertGet
+    }
+
+    "return all Segments to copy if next Level is empty" in {
+      val nextLevel = TestLevel()
+      val level = TestLevel(keyValues = randomizedKeyValues(count = 10000, startId = Some(1)), segmentSize = 1.kb)
+      level.segmentsCount() should be >= 2
+
+      implicit val reserve = ReserveRange.create[Unit]()
+
+      val (toCopy, toMerge) =
+        Level.optimalSegmentsToPushForward(
+          level = level,
+          nextLevel = nextLevel,
+          take = 10
+        )
+
+      toMerge shouldBe empty
+      toCopy.map(_.path) shouldBe level.segmentsInLevel().take(10).map(_.path)
+
+      level.close.assertGet
+      nextLevel.close.assertGet
+    }
+
+    "return all unreserved Segments to copy if next Level is empty" in {
+      runThis(5.times) {
+        val nextLevel = TestLevel()
+        val level = TestLevel(keyValues = randomizedKeyValues(count = 10000, startId = Some(1)), segmentSize = 1.kb)
+        level.segmentsCount() should be >= 2
+
+        implicit val reserve = ReserveRange.create[Unit]()
+        val firstSegment = level.segmentsInLevel().head
+
+        ReserveRange.reserveOrGet(firstSegment.minKey, firstSegment.maxKey.maxKey, firstSegment.maxKey.inclusive, ()) shouldBe empty //reserve first segment
+
+        val (toCopy, toMerge) =
+          Level.optimalSegmentsToPushForward(
+            level = level,
+            nextLevel = nextLevel,
+            take = 10
+          )
+
+        toMerge shouldBe empty
+        toCopy.map(_.path) shouldBe level.segmentsInLevel().drop(1).take(10).map(_.path)
+        level.close.assertGet
+        nextLevel.close.assertGet
+      }
     }
   }
 

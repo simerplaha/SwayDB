@@ -60,9 +60,11 @@ trait NextLevel extends LevelRef {
 
   def throttle: LevelMeter => Throttle
 
-  def isUnreserved(minKey: Slice[Byte], maxKey: Slice[Byte]): Boolean
+  def isUnreserved(minKey: Slice[Byte], maxKey: Slice[Byte], maxKeyInclusive: Boolean): Boolean
 
-  def isCopyable(minKey: Slice[Byte], maxKey: Slice[Byte]): Boolean
+  def isUnreserved(segment: Segment): Boolean
+
+  def isCopyable(minKey: Slice[Byte], maxKey: Slice[Byte], maxKeyInclusive: Boolean): Boolean
 
   def isCopyable(map: Map[Slice[Byte], Memory.SegmentResponse]): Boolean
 

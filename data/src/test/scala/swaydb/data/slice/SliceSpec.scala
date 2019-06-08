@@ -456,7 +456,6 @@ class SliceSpec extends WordSpec with Matchers {
       //        11
       //  1 - 10
       Slice.within(key = 11, minKey = 1, maxKey = MaxKey.Fixed(10)) shouldBe false
-
     }
 
     "max key is Range" in {
@@ -525,13 +524,18 @@ class SliceSpec extends WordSpec with Matchers {
   }
 
   "minMax" should {
-    val oneTwo = (Slice.writeInt(1), Slice.writeInt(2))
-    val threeFour = (Slice.writeInt(3), Slice.writeInt(4))
+    val oneTwoInclusive = (Slice.writeInt(1), Slice.writeInt(2), true)
+    val threeFourInclusive = (Slice.writeInt(3), Slice.writeInt(4), true)
 
+    val oneTwoExclusive = (Slice.writeInt(1), Slice.writeInt(2), false)
+    val threeFourExclusive = (Slice.writeInt(3), Slice.writeInt(4), false)
 
     "return one or the other on none" in {
-      Slice.minMax(Some(oneTwo), None) should contain(oneTwo)
-      Slice.minMax(None, Some(threeFour)) should contain(threeFour)
+      Slice.minMax(Some(oneTwoInclusive), None) should contain(oneTwoInclusive)
+      Slice.minMax(None, Some(threeFourInclusive)) should contain(threeFourInclusive)
+
+      Slice.minMax(Some(oneTwoExclusive), None) should contain(oneTwoExclusive)
+      Slice.minMax(None, Some(threeFourExclusive)) should contain(threeFourExclusive)
     }
 
     "return none if nones" in {
@@ -542,21 +546,56 @@ class SliceSpec extends WordSpec with Matchers {
       //1 - 1
       //1 - 1
       Slice.minMax(
-        Some((Slice.writeInt(1), Slice.writeInt(1))),
-        Some((Slice.writeInt(1), Slice.writeInt(1)))) should contain((Slice.writeInt(1), Slice.writeInt(1)))
+        Some((Slice.writeInt(1), Slice.writeInt(1), true)),
+        Some((Slice.writeInt(1), Slice.writeInt(1), true))) should contain((Slice.writeInt(1), Slice.writeInt(1), true))
+
+      Slice.minMax(
+        Some((Slice.writeInt(1), Slice.writeInt(1), false)),
+        Some((Slice.writeInt(1), Slice.writeInt(1), true))) should contain((Slice.writeInt(1), Slice.writeInt(1), true))
+
+      Slice.minMax(
+        Some((Slice.writeInt(1), Slice.writeInt(1), true)),
+        Some((Slice.writeInt(1), Slice.writeInt(1), false))) should contain((Slice.writeInt(1), Slice.writeInt(1), true))
+
+      Slice.minMax(
+        Some((Slice.writeInt(1), Slice.writeInt(1), false)),
+        Some((Slice.writeInt(1), Slice.writeInt(1), false))) should contain((Slice.writeInt(1), Slice.writeInt(1), false))
 
       //1 - 5
       //  3 - 10
       Slice.minMax(
-        Some((Slice.writeInt(1), Slice.writeInt(3))),
-        Some((Slice.writeInt(3), Slice.writeInt(10)))) should contain((Slice.writeInt(1), Slice.writeInt(10)))
+        Some((Slice.writeInt(1), Slice.writeInt(3), true)),
+        Some((Slice.writeInt(3), Slice.writeInt(10), true))) should contain((Slice.writeInt(1), Slice.writeInt(10), true))
+
+      Slice.minMax(
+        Some((Slice.writeInt(1), Slice.writeInt(3), false)),
+        Some((Slice.writeInt(3), Slice.writeInt(10), true))) should contain((Slice.writeInt(1), Slice.writeInt(10), true))
+
+      Slice.minMax(
+        Some((Slice.writeInt(1), Slice.writeInt(3), true)),
+        Some((Slice.writeInt(3), Slice.writeInt(10), false))) should contain((Slice.writeInt(1), Slice.writeInt(10), false))
+
+      Slice.minMax(
+        Some((Slice.writeInt(1), Slice.writeInt(3), false)),
+        Some((Slice.writeInt(3), Slice.writeInt(10), false))) should contain((Slice.writeInt(1), Slice.writeInt(10), false))
 
       //  3 - 10
       //1 - 5
       Slice.minMax(
-        Some((Slice.writeInt(3), Slice.writeInt(10))),
-        Some((Slice.writeInt(1), Slice.writeInt(3)))) should contain((Slice.writeInt(1), Slice.writeInt(10)))
+        Some((Slice.writeInt(3), Slice.writeInt(10), true)),
+        Some((Slice.writeInt(1), Slice.writeInt(3), true))) should contain((Slice.writeInt(1), Slice.writeInt(10), true))
+
+      Slice.minMax(
+        Some((Slice.writeInt(3), Slice.writeInt(10), false)),
+        Some((Slice.writeInt(1), Slice.writeInt(3), true))) should contain((Slice.writeInt(1), Slice.writeInt(10), false))
+
+      Slice.minMax(
+        Some((Slice.writeInt(3), Slice.writeInt(10), true)),
+        Some((Slice.writeInt(1), Slice.writeInt(3), false))) should contain((Slice.writeInt(1), Slice.writeInt(10), true))
+
+      Slice.minMax(
+        Some((Slice.writeInt(3), Slice.writeInt(10), false)),
+        Some((Slice.writeInt(1), Slice.writeInt(3), false))) should contain((Slice.writeInt(1), Slice.writeInt(10), false))
     }
   }
-
 }

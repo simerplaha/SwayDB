@@ -94,19 +94,25 @@ object Slice {
     }
   }
 
-  def minMax(left: Option[(Slice[Byte], Slice[Byte])],
-             right: Option[(Slice[Byte], Slice[Byte])])(implicit keyOrder: Ordering[Slice[Byte]]): Option[(Slice[Byte], Slice[Byte])] = {
+  def minMax(left: Option[(Slice[Byte], Slice[Byte], Boolean)],
+             right: Option[(Slice[Byte], Slice[Byte], Boolean)])(implicit keyOrder: Ordering[Slice[Byte]]): Option[(Slice[Byte], Slice[Byte], Boolean)] = {
     for {
       lft <- left
       rht <- right
-    } yield {
-      minMax(lft, rht)
-    }
+    } yield minMax(lft, rht)
   } orElse left.orElse(right)
 
-  def minMax(left: (Slice[Byte], Slice[Byte]),
-             right: (Slice[Byte], Slice[Byte]))(implicit keyOrder: Ordering[Slice[Byte]]): (Slice[Byte], Slice[Byte]) =
-    (keyOrder.min(left._1, right._1), keyOrder.max(left._2, right._2))
+  def minMax(left: (Slice[Byte], Slice[Byte], Boolean),
+             right: (Slice[Byte], Slice[Byte], Boolean))(implicit keyOrder: Ordering[Slice[Byte]]): (Slice[Byte], Slice[Byte], Boolean) = {
+    val min = keyOrder.min(left._1, right._1)
+    val maxCompare = keyOrder.compare(left._2, right._2)
+    if (maxCompare == 0)
+      (min, left._2, left._3 || right._3)
+    else if (maxCompare < 0)
+      (min, right._2, right._3)
+    else
+      (min, left._2, left._3)
+  }
 
   /**
     * Boolean indicates if the toKey is inclusive.

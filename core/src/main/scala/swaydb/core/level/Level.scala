@@ -55,7 +55,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 private[core] object Level extends LazyLogging {
 
-  val emptySegmentsToPush = (Iterable.empty, Iterable.empty)
+  val emptySegmentsToPush = (Iterable.empty[Segment], Iterable.empty[Segment])
 
   def acquireLock(storage: LevelStorage.Persistent): IO[Option[FileLock]] =
     IO {
@@ -244,14 +244,13 @@ private[core] object Level extends LazyLogging {
       .segmentsInLevel()
       .iterator
       .foreachBreak {
-        case segment if ReserveRange.isUnreserved(segment.minKey, segment.maxKey.maxKey) && nextLevel.isUnreserved(segment.minKey, segment.maxKey.maxKey) =>
-          if (!Segment.overlaps(segment, nextLevel.segmentsInLevel())) {
-            segmentsToCopy += segment
-          } else {
-            segmentsToMerge += segment
-          }
-          segmentsToCopy.size >= take
-        case _ =>
+        segment =>
+          if (ReserveRange.isUnreserved(segment) && nextLevel.isUnreserved(segment))
+            if (!Segment.overlaps(segment, nextLevel.segmentsInLevel()))
+              segmentsToCopy += segment
+            else if (segmentsToMerge.size < take) //only cache enough Segments to merge.
+              segmentsToMerge += segment
+
           segmentsToCopy.size >= take
       }
     (segmentsToCopy, segmentsToMerge)
@@ -260,7 +259,7 @@ private[core] object Level extends LazyLogging {
   def shouldCollapse(level: NextLevel,
                      segment: Segment)(implicit reserve: ReserveRange.State[Unit],
                                        keyOrder: KeyOrder[Slice[Byte]]): Boolean =
-    ReserveRange.isUnreserved(segment.minKey, segment.maxKey.maxKey) && {
+    ReserveRange.isUnreserved(segment) && {
       isSmallSegment(segment, level.segmentSize) ||
         //if group strategy in the level is defined and segment's grouping is undefined or vice-versa.
         level.groupingStrategy.isDefined != segment.isGrouped.getOrElse(level.groupingStrategy.isDefined) ||
@@ -419,8 +418,8 @@ private[core] case class Level(dirs: Seq[Dir],
       assigned =>
         Segment.minMaxKey(assigned, segments)
           .map {
-            case (minKey, maxKey) =>
-              ReserveRange.reserveOrListen(minKey, maxKey, ())
+            case (minKey, maxKey, toInclusive) =>
+              ReserveRange.reserveOrListen(minKey, maxKey, toInclusive, ())
           }
           .getOrElse(Left(Delay.futureUnit))
     }
@@ -431,31 +430,61 @@ private[core] case class Level(dirs: Seq[Dir],
       targetSegments = appendix.values().asScala
     ) map {
       assigned =>
-        Segment.minMaxKey(assigned, map)
-          .map {
-            case (minKey, maxKey) =>
-              ReserveRange.reserveOrListen(minKey, maxKey, ())
-          }
-          .getOrElse(Left(Delay.futureUnit))
+        Segment.minMaxKey(
+          left = assigned,
+          right = map
+        ) map {
+          case (minKey, maxKey, toInclusive) =>
+            ReserveRange.reserveOrListen(minKey, maxKey, toInclusive, ())
+        } getOrElse Left(Delay.futureUnit)
     }
 
   def partitionUnreservedCopyable(segments: Iterable[Segment]): (Iterable[Segment], Iterable[Segment]) =
     segments partition {
       segment =>
-        ReserveRange.isUnreserved(segment.minKey, segment.maxKey.maxKey) && !Segment.overlaps(segment, segmentsInLevel())
+        ReserveRange.isUnreserved(
+          from = segment.minKey,
+          to = segment.maxKey.maxKey,
+          toInclusive = segment.maxKey.inclusive
+        ) &&
+          !Segment.overlaps(
+            segment = segment,
+            segments2 = segmentsInLevel()
+          )
     }
 
-  def isCopyable(minKey: Slice[Byte], maxKey: Slice[Byte]): Boolean =
-    ReserveRange.isUnreserved(minKey, maxKey) && !Segment.overlaps(minKey, maxKey, segmentsInLevel())
+  def isCopyable(minKey: Slice[Byte], maxKey: Slice[Byte], maxKeyInclusive: Boolean): Boolean =
+    ReserveRange.isUnreserved(
+      from = minKey,
+      to = maxKey,
+      toInclusive = maxKeyInclusive
+    ) &&
+      !Segment.overlaps(
+        minKey = minKey,
+        maxKey = maxKey,
+        maxKeyInclusive = maxKeyInclusive,
+        segments = segmentsInLevel()
+      )
 
   def isCopyable(map: Map[Slice[Byte], Memory.SegmentResponse]): Boolean =
     Segment.minMaxKey(map) forall {
-      case (minKey, maxKey) =>
-        isCopyable(minKey, maxKey)
+      case (minKey, maxKey, maxInclusive) =>
+        isCopyable(
+          minKey = minKey,
+          maxKey = maxKey,
+          maxKeyInclusive = maxInclusive
+        )
     }
 
-  def isUnreserved(minKey: Slice[Byte], maxKey: Slice[Byte]): Boolean =
-    ReserveRange.isUnreserved(minKey, maxKey)
+  def isUnreserved(minKey: Slice[Byte], maxKey: Slice[Byte], maxKeyInclusive: Boolean): Boolean =
+    ReserveRange.isUnreserved(minKey, maxKey, maxKeyInclusive)
+
+  def isUnreserved(segment: Segment): Boolean =
+    isUnreserved(
+      minKey = segment.minKey,
+      maxKey = segment.maxKey.maxKey,
+      maxKeyInclusive = segment.maxKey.inclusive
+    )
 
   def put(segment: Segment)(implicit ec: ExecutionContext): IO.Async[Unit] =
     put(Seq(segment))

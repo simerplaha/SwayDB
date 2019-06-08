@@ -93,14 +93,14 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
         //next level should get a put for all the input Segments
         (nextLevel.put(_: Iterable[Segment])(_: ExecutionContext)) expects(*, *) onCall {
           (putSegments: Iterable[Segment], _) =>
-            putSegments shouldHaveSameIds segments
+            putSegments.map(_.path) shouldBe segments.map(_.path)
             IO.unit
         }
 
         //segments get removed
         (thisLevel.removeSegments(_: Iterable[Segment])) expects * onCall {
           putSegments: Iterable[Segment] =>
-            putSegments shouldHaveSameIds segments
+            putSegments.map(_.path) shouldBe segments.map(_.path)
             IO.Success(segments.size)
         }
 
@@ -119,14 +119,14 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
         //next level should get a put for all the input Segments
         (nextLevel.put(_: Iterable[Segment])(_: ExecutionContext)) expects(*, *) onCall {
           (putSegments: Iterable[Segment], _) =>
-            putSegments shouldHaveSameIds segments
+            putSegments.map(_.path) shouldBe segments.map(_.path)
             IO.unit
         }
 
         //segments get removed
         (thisLevel.removeSegments(_: Iterable[Segment])) expects * onCall {
           putSegments: Iterable[Segment] =>
-            putSegments shouldHaveSameIds segments
+            putSegments.map(_.path) shouldBe segments.map(_.path)
             IO.Failure(new Exception("Failed!"))
         }
 

@@ -562,23 +562,14 @@ object CommonAssertions {
   }
 
   implicit class SegmentsImplicits(actual: Iterable[Segment]) {
-    def shouldHaveSameInOrderedIds(expected: Iterable[Segment]): Unit = {
-      actual.map(_.path) shouldBe expected.map(_.path)
-    }
 
-    def shouldHaveSameIds(expected: Iterable[Segment]): Unit = {
-      actual.map(_.path) should contain allElementsOf expected.map(_.path)
-    }
-
-    def shouldHaveSameKeyValuesAs(expected: Iterable[Segment]): Unit = {
+    def shouldHaveSameKeyValuesAs(expected: Iterable[Segment]): Unit =
       Segment.getAllKeyValues(TestData.falsePositiveRate, actual).assertGet shouldBe Segment.getAllKeyValues(TestData.falsePositiveRate, expected).assertGet
-    }
   }
 
   implicit class SliceByteImplicits(actual: Slice[Byte]) {
-    def shouldHaveSameKey(expected: KeyValue): Unit = {
+    def shouldHaveSameKey(expected: KeyValue): Unit =
       actual shouldBe expected.key
-    }
 
     def shouldBeSliced() =
       actual.underlyingArraySize shouldBe actual.toArrayCopy.length

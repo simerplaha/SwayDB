@@ -159,12 +159,6 @@ private[core] object TrashLevel extends NextLevel {
   override def removeSegments(segments: Iterable[Segment]): IO[Int] =
     IO.Success(segments.size)
 
-  override def isUnreserved(minKey: Slice[Byte], maxKey: Slice[Byte]): Boolean =
-    true
-
-  override def isCopyable(minKey: Slice[Byte], maxKey: Slice[Byte]): Boolean =
-    true
-
   override val meter: LevelMeter =
     new LevelMeter {
       override def segmentsCount: Int = 0
@@ -201,4 +195,13 @@ private[core] object TrashLevel extends NextLevel {
 
   override def groupingStrategy: Option[KeyValueGroupingStrategyInternal] =
     None
+
+  override def isUnreserved(minKey: Slice[Byte], maxKey: Slice[Byte], maxKeyInclusive: Boolean): Boolean =
+    true
+
+  override def isUnreserved(segment: Segment): Boolean =
+    true
+
+  override def isCopyable(minKey: Slice[Byte], maxKey: Slice[Byte], maxKeyInclusive: Boolean): Boolean =
+    true
 }

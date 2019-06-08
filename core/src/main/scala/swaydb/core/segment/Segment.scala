@@ -595,19 +595,26 @@ private[core] object Segment extends LazyLogging {
 
   def overlaps(minKey: Slice[Byte],
                maxKey: Slice[Byte],
+               maxKeyInclusive: Boolean,
                segment: Segment)(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean =
-    Slice.intersects((minKey, maxKey, true), (segment.minKey, segment.maxKey.maxKey, segment.maxKey.inclusive))
+    Slice.intersects((minKey, maxKey, maxKeyInclusive), (segment.minKey, segment.maxKey.maxKey, segment.maxKey.inclusive))
 
   def overlaps(minKey: Slice[Byte],
                maxKey: Slice[Byte],
+               maxKeyInclusive: Boolean,
                segments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean =
-    segments.exists(segment => overlaps(minKey, maxKey, segment))
+    segments.exists(segment => overlaps(minKey, maxKey, maxKeyInclusive, segment))
 
   def overlaps(map: Map[Slice[Byte], Memory.SegmentResponse],
                segments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean =
     Segment.minMaxKey(map) exists {
-      case (minKey, maxKey) =>
-        Segment.overlaps(minKey, maxKey, segments)
+      case (minKey, maxKey, maxKeyInclusive) =>
+        Segment.overlaps(
+          minKey = minKey,
+          maxKey = maxKey,
+          maxKeyInclusive = maxKeyInclusive,
+          segments = segments
+        )
     }
 
   def overlaps(segment1: Segment,
@@ -713,40 +720,38 @@ private[core] object Segment extends LazyLogging {
       Slice(minKey, maxKey)
   } getOrElse Slice.create[Memory.SegmentResponse](0)
 
-  def minMaxKey(map: Map[Slice[Byte], Memory.SegmentResponse]): Option[(Slice[Byte], Slice[Byte])] =
+  def minMaxKey(map: Map[Slice[Byte], Memory.SegmentResponse]): Option[(Slice[Byte], Slice[Byte], Boolean)] =
     for {
       minKey <- map.headValue().map(_.key)
       maxKey <- map.lastValue() map {
         case fixed: Memory.Fixed =>
-          fixed.key
+          (fixed.key, true)
 
         case range: Memory.Range =>
-          range.toKey
+          (range.toKey, false)
       }
-    } yield {
-      (minKey, maxKey)
-    }
+    } yield (minKey, maxKey._1, maxKey._2)
 
-  def minMaxKey(segment: Iterable[Segment]): Option[(Slice[Byte], Slice[Byte])] =
+  def minMaxKey(segment: Iterable[Segment]): Option[(Slice[Byte], Slice[Byte], Boolean)] =
     for {
       minKey <- segment.headOption.map(_.minKey)
       maxKey <- segment.lastOption.map(_.maxKey) map {
         case MaxKey.Fixed(maxKey) =>
-          maxKey
+          (maxKey, true)
 
         case MaxKey.Range(_, maxKey) =>
-          maxKey
+          (maxKey, false)
       }
     } yield {
-      (minKey, maxKey)
+      (minKey, maxKey._1, maxKey._2)
     }
 
   def minMaxKey(left: Iterable[Segment],
-                right: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): Option[(Slice[Byte], Slice[Byte])] =
+                right: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): Option[(Slice[Byte], Slice[Byte], Boolean)] =
     Slice.minMax(Segment.minMaxKey(left), Segment.minMaxKey(right))
 
   def minMaxKey(left: Iterable[Segment],
-                right: Map[Slice[Byte], Memory.SegmentResponse])(implicit keyOrder: KeyOrder[Slice[Byte]]): Option[(Slice[Byte], Slice[Byte])] =
+                right: Map[Slice[Byte], Memory.SegmentResponse])(implicit keyOrder: KeyOrder[Slice[Byte]]): Option[(Slice[Byte], Slice[Byte], Boolean)] =
     Slice.minMax(Segment.minMaxKey(left), Segment.minMaxKey(right))
 
   def overlapsWithBusySegments(inputSegments: Iterable[Segment],
