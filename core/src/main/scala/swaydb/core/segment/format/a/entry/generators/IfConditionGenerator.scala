@@ -21,9 +21,10 @@ package swaydb.core.segment.format.a.entry.generators
 
 import java.io.PrintWriter
 import java.nio.file.{Files, Paths}
-import scala.collection.JavaConverters._
-import swaydb.core.segment.format.a.entry.id.EntryId.Key
+
 import swaydb.core.segment.format.a.entry.id._
+
+import scala.collection.JavaConverters._
 
 /**
   * Generates if conditions for all readers.
@@ -34,66 +35,78 @@ object IfConditionGenerator extends App {
       entryId.getClass.getName.dropRight(1).replaceAll("swaydb.core.segment.format.a.entry.id.", "").replaceAll("\\$", ".")
   }
 
+  def generateBinarySearchConditions(ids: List[EntryId]): String = {
+    if (ids.size == 1) {
+      val typedId = ids.head
+
+      val targetFunction =
+        s"Some(reader(${typedId.name}, indexReader, valueReader, indexOffset, nextIndexOffset, nextIndexSize, previous))"
+
+      val ifCondition = s"if (id == ${typedId.id}) \n$targetFunction"
+
+      s"$ifCondition \nelse \nNone"
+    } else if (ids.size == 2) {
+      val typedId1 = ids.head
+      val typedId2 = ids.last
+
+      val targetFunction1 =
+        s"Some(reader(${typedId1.name}, indexReader, valueReader, indexOffset, nextIndexOffset, nextIndexSize, previous))"
+
+      val targetFunction2 =
+        s"Some(reader(${typedId2.name}, indexReader, valueReader, indexOffset, nextIndexOffset, nextIndexSize, previous))"
+
+      val ifCondition = s"if (id == ${typedId1.id}) \n$targetFunction1"
+      val elseIfCondition = s"else if (id == ${typedId2.id}) \n$targetFunction2"
+
+      s"$ifCondition \n$elseIfCondition \nelse \nNone"
+    } else {
+      val mid = ids(ids.size / 2)
+
+      //      println(ids.map(_.id).mkString(", "))
+      //      println("Mid:" + mid.id)
+
+      s"if(id == ${mid.id})" + {
+        s"\nSome(reader(${mid.name}, indexReader, valueReader, indexOffset, nextIndexOffset, nextIndexSize, previous))"
+      } + {
+        s"\nelse if(id < ${mid.id})\n" +
+          generateBinarySearchConditions(ids.takeWhile(_.id < mid.id))
+      } + {
+        s"\nelse if(id > ${mid.id})\n" +
+          generateBinarySearchConditions(ids.dropWhile(_.id <= mid.id))
+      } + {
+        s"\nelse \nNone"
+      }
+    }
+  }
+
   def write(fileNumber: Int, ids: List[EntryId]): Unit = {
+    val conditions = generateBinarySearchConditions(ids)
+
     val targetIdClass = Paths.get(s"${System.getProperty("user.dir")}/core/src/main/scala/swaydb/core/segment/format/a/entry/reader/base/BaseEntryReader$fileNumber.scala")
     val allLines = Files.readAllLines(targetIdClass).asScala
     val writer = new PrintWriter(targetIdClass.toFile)
 
-    val notFound = "None"
-
-    val defaultGroupSize = 20
-
-    val allNewConditions: Iterator[String] =
-      ids.sortBy(_.id).grouped(defaultGroupSize).zipWithIndex map {
-        case (groupedIds, groupIndex) =>
-          val innerIfBlock =
-            groupedIds.zipWithIndex map {
-              case (id, inGroupIndex) =>
-                val typedId = id.name
-
-                val targetFunction =
-                  s"Some(reader($typedId, indexReader, valueReader, indexOffset, nextIndexOffset, nextIndexSize, previous))"
-
-                val ifCondition = s"if (id == $typedId.id) $targetFunction"
-
-                if (inGroupIndex == 0)
-                  s"\t\t\t$ifCondition"
-                else if (inGroupIndex == groupedIds.size - 1) {
-                  s"""\t\t\telse $ifCondition
-                     |\t\t\telse $notFound""".stripMargin
-                } else
-                  s"\t\t\telse $ifCondition"
-            } mkString "\n"
-
-          val ifCondition = s"if (id >= ${groupedIds.head.name}.id && id <= ${groupedIds.last.name}.id)\n$innerIfBlock"
-
-          if (groupIndex == 0)
-            s"\t\t$ifCondition"
-          else
-            s"\t\telse $ifCondition"
-      }
-
-    val notFoundElse =
-      s"""else $notFound"""
-
     val conditionStartIndex = allLines.zipWithIndex.find { case (line, index) => line.contains("//GENERATED") }.get._2
-    val allNewLines =
+    val newLines =
       allLines.take(conditionStartIndex) ++
         Seq("\t//GENERATED CONDITIONS") ++
-        Seq(s"\tif(id >= ${ids.head.name}.id && id <= ${ids.last.name}.id)") ++
-        allNewConditions ++
-        Seq("\t\t" + notFoundElse, "\t" + notFoundElse, "}")
+        Seq(
+          conditions,
+          s"\n val minID = ${ids.head.id}",
+          s"val maxID = ${ids.last.id}"
+        ) ++
+        Seq("}")
 
-    writer.write(allNewLines.mkString("\n"))
+    writer.write(newLines.mkString("\n"))
     writer.close()
   }
 
-  def keyIdsGrouped: Map[Int, List[EntryId]] = {
+  def keyIdsGrouped: Iterator[(Int, List[BaseEntryId])] = {
     val ids = BaseEntryId.keyIdsList
     ids.grouped(ids.size / 20).zipWithIndex map {
       case (entries, index) =>
         index + 1 -> entries
-    } toMap
+    }
   }
 
   keyIdsGrouped foreach {

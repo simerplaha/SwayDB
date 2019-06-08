@@ -19,14 +19,16 @@
 
 package swaydb.core.segment.format.a.entry.reader
 
+import java.util.concurrent.ConcurrentSkipListMap
+
 import swaydb.core.data.Persistent
 import swaydb.core.segment.SegmentException
 import swaydb.core.segment.format.a.entry.id._
 import swaydb.core.segment.format.a.entry.reader.base._
 import swaydb.data.IO
-import swaydb.data.IO._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Reader, Slice}
+import scala.collection.Searching._
 
 trait EntryReader[E] {
   def apply[T <: EntryId](id: T,
@@ -45,8 +47,8 @@ trait EntryReader[E] {
 
 object EntryReader {
 
-  val readers =
-    Seq(
+  def allReaders: Array[BaseEntryReader] =
+    Array(
       BaseEntryReader1, BaseEntryReader2,
       BaseEntryReader3, BaseEntryReader4,
       BaseEntryReader5, BaseEntryReader6,
@@ -59,6 +61,13 @@ object EntryReader {
       BaseEntryReader19, BaseEntryReader20
     )
 
+  val readerMinIds = new ConcurrentSkipListMap[Int, BaseEntryReader]()
+
+  allReaders foreach {
+    reader =>
+      readerMinIds.put(reader.minID, reader)
+  }
+
   def read[T](id: Int,
               indexReader: Reader,
               valueReader: Reader,
@@ -67,9 +76,9 @@ object EntryReader {
               nextIndexSize: Int,
               previous: Option[Persistent],
               entryReader: EntryReader[T])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[T] =
-    readers.foldLeftIO(None) {
-      case (_, reader) =>
-        reader.read(
+    Option(readerMinIds.floorEntry(id)) flatMap {
+      entry =>
+        entry.getValue.read(
           id = id,
           indexReader = indexReader,
           valueReader = valueReader,
@@ -78,16 +87,8 @@ object EntryReader {
           nextIndexSize = nextIndexSize,
           previous = previous,
           reader = entryReader
-        ) match {
-          case Some(value) =>
-            return value
-          case None =>
-            IO.none
-        }
-    } flatMap {
-      _ =>
-        IO.Failure(IO.Error.Fatal(SegmentException.InvalidEntryId(id)))
-    }
+        )
+    } getOrElse IO.Failure(IO.Error.Fatal(SegmentException.InvalidEntryId(id)))
 
   def read(indexReader: Reader,
            valueReader: Reader,

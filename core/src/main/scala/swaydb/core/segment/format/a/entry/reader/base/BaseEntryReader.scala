@@ -26,6 +26,10 @@ import swaydb.data.slice.Reader
 
 trait BaseEntryReader {
 
+  def minID: Int
+
+  def maxID: Int
+
   def read[T](id: Int,
               indexReader: Reader,
               valueReader: Reader,
@@ -34,5 +38,13 @@ trait BaseEntryReader {
               nextIndexSize: Int,
               previous: Option[Persistent],
               reader: EntryReader[T]): Option[IO[T]]
+}
 
+object BaseEntryReader {
+  def finder(id: Int) =
+    new BaseEntryReader {
+      override def minID: Int = id
+      override def maxID: Int = id
+      override def read[T](id: Int, indexReader: Reader, valueReader: Reader, indexOffset: Int, nextIndexOffset: Int, nextIndexSize: Int, previous: Option[Persistent], reader: EntryReader[T]): Option[IO[T]] = None
+    }
 }
