@@ -19,8 +19,6 @@
 
 package swaydb.core.segment.format.a.entry.reader
 
-import java.util.concurrent.ConcurrentSkipListMap
-
 import swaydb.core.data.Persistent
 import swaydb.core.segment.SegmentException
 import swaydb.core.segment.format.a.entry.id._
@@ -28,7 +26,6 @@ import swaydb.core.segment.format.a.entry.reader.base._
 import swaydb.data.IO
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Reader, Slice}
-import scala.collection.Searching._
 
 trait EntryReader[E] {
   def apply[T <: EntryId](id: T,
@@ -47,26 +44,8 @@ trait EntryReader[E] {
 
 object EntryReader {
 
-  def allReaders: Array[BaseEntryReader] =
-    Array(
-      BaseEntryReader1, BaseEntryReader2,
-      BaseEntryReader3, BaseEntryReader4,
-      BaseEntryReader5, BaseEntryReader6,
-      BaseEntryReader7, BaseEntryReader8,
-      BaseEntryReader9, BaseEntryReader10,
-      BaseEntryReader11, BaseEntryReader12,
-      BaseEntryReader13, BaseEntryReader14,
-      BaseEntryReader15, BaseEntryReader16,
-      BaseEntryReader17, BaseEntryReader18,
-      BaseEntryReader19, BaseEntryReader20
-    )
-
-  val readerMinIds = new ConcurrentSkipListMap[Int, BaseEntryReader]()
-
-  allReaders foreach {
-    reader =>
-      readerMinIds.put(reader.minID, reader)
-  }
+  val readers: List[BaseEntryReader] =
+    List(BaseEntryReader1, BaseEntryReader2, BaseEntryReader3, BaseEntryReader4, BaseEntryReader5) sortBy (_.minID)
 
   def read[T](id: Int,
               indexReader: Reader,
@@ -76,9 +55,9 @@ object EntryReader {
               nextIndexSize: Int,
               previous: Option[Persistent],
               entryReader: EntryReader[T])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[T] =
-    Option(readerMinIds.floorEntry(id)) flatMap {
+    readers.find(_.maxID >= id) flatMap {
       entry =>
-        entry.getValue.read(
+        entry.read(
           id = id,
           indexReader = indexReader,
           valueReader = valueReader,
