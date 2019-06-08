@@ -74,7 +74,7 @@ sealed trait SegmentGroupWriteSpec extends TestBase with ScalaFutures with Priva
         val segment = TestSegment(keyValues).assertGet
 
         //write a head key-values so that it triggers merging and grouping
-        val groupedSegments = segment.put(Slice(mergePut.toMemory), 10.mb, TestData.falsePositiveRate, true).assertGet
+        val groupedSegments = segment.put(Slice(mergePut.toMemory), 10.mb, TestData.falsePositiveRate, true, false).assertGet
         //        printGroupHierarchy(newSegments)
         groupedSegments should have size 1
         val newGroupedSegment = groupedSegments.head
@@ -103,7 +103,8 @@ sealed trait SegmentGroupWriteSpec extends TestBase with ScalaFutures with Priva
             newKeyValues = removeKeyValues.toMemory,
             minSegmentSize = 10.mb,
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-            compressDuplicateValues = true
+            compressDuplicateValues = true,
+            removeDeletes = false
           ).assertGet
 
         newSegmentsWithRemovedKeyValues should have size 1

@@ -49,7 +49,6 @@ private[segment] case class PersistentSegment(file: DBFile,
                                               minKey: Slice[Byte],
                                               maxKey: MaxKey[Slice[Byte]],
                                               segmentSize: Int,
-                                              removeDeletes: Boolean,
                                               nearestExpiryDeadline: Option[Deadline],
                                               compactionReserve: Reserve[Unit])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                 timeOrder: TimeOrder[Slice[Byte]],
@@ -125,6 +124,7 @@ private[segment] case class PersistentSegment(file: DBFile,
           minSegmentSize: Long,
           bloomFilterFalsePositiveRate: Double,
           compressDuplicateValues: Boolean,
+          removeDeletes: Boolean,
           targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
                                                                                                       groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]] =
     getAll() flatMap {
@@ -142,7 +142,7 @@ private[segment] case class PersistentSegment(file: DBFile,
             getFooter() flatMap {
               footer =>
                 splits.mapIO(
-                  ioBlock =
+                  block =
                     keyValues =>
                       Segment.persistent(
                         path = targetPaths.next.resolve(idGenerator.nextSegmentID),
@@ -150,8 +150,7 @@ private[segment] case class PersistentSegment(file: DBFile,
                         mmapReads = mmapReads,
                         mmapWrites = mmapWrites,
                         keyValues = keyValues,
-                        bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-                        removeDeletes = removeDeletes
+                        bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate
                       ),
 
                   recover =
@@ -171,6 +170,7 @@ private[segment] case class PersistentSegment(file: DBFile,
   def refresh(minSegmentSize: Long,
               bloomFilterFalsePositiveRate: Double,
               compressDuplicateValues: Boolean,
+              removeDeletes: Boolean,
               targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
                                                                                                           groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]] =
     getAll() flatMap {
@@ -187,7 +187,7 @@ private[segment] case class PersistentSegment(file: DBFile,
             getFooter() flatMap {
               footer =>
                 splits.mapIO(
-                  ioBlock =
+                  block =
                     keyValues =>
                       Segment.persistent(
                         path = targetPaths.next.resolve(idGenerator.nextSegmentID),
@@ -195,8 +195,7 @@ private[segment] case class PersistentSegment(file: DBFile,
                         mmapReads = mmapReads,
                         mmapWrites = mmapWrites,
                         keyValues = keyValues,
-                        bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-                        removeDeletes = removeDeletes
+                        bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate
                       ),
 
                   recover =

@@ -159,8 +159,7 @@ class GroupSpec extends TestBase {
           path = Paths.get("/test"),
           createdInLevel = 0,
           keyValues = Seq(group),
-          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-          removeDeletes = false
+          bloomFilterFalsePositiveRate = TestData.falsePositiveRate
         ).assertGet
 
       val readKeyValues = segment.getAll().assertGet

@@ -46,7 +46,6 @@ private[segment] case class MemorySegment(path: Path,
                                           minKey: Slice[Byte],
                                           maxKey: MaxKey[Slice[Byte]],
                                           segmentSize: Int,
-                                          removeDeletes: Boolean,
                                           _hasRange: Boolean,
                                           _hasPut: Boolean,
                                           //only Memory Segment's need to know if there is a Group. Persistent Segments always get floor from cache when reading.
@@ -95,6 +94,7 @@ private[segment] case class MemorySegment(path: Path,
                    minSegmentSize: Long,
                    bloomFilterFalsePositiveRate: Double,
                    compressDuplicateValues: Boolean,
+                   removeDeletes: Boolean,
                    targetPaths: PathsDistributor)(implicit idGenerator: IDGenerator,
                                                   groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]] =
     if (deleted)
@@ -113,14 +113,13 @@ private[segment] case class MemorySegment(path: Path,
           ) flatMap {
             splits =>
               splits.mapIO[Segment](
-                ioBlock =
+                block =
                   keyValues => {
                     Segment.memory(
                       path = targetPaths.next.resolve(idGenerator.nextSegmentID),
                       createdInLevel = _createdInLevel,
                       keyValues = keyValues,
-                      bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-                      removeDeletes = removeDeletes
+                      bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate
                     )
                   },
 
@@ -140,6 +139,7 @@ private[segment] case class MemorySegment(path: Path,
   override def refresh(minSegmentSize: Long,
                        bloomFilterFalsePositiveRate: Double,
                        compressDuplicateValues: Boolean,
+                       removeDeletes: Boolean,
                        targetPaths: PathsDistributor)(implicit idGenerator: IDGenerator,
                                                       groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]] =
     if (deleted)
@@ -157,14 +157,13 @@ private[segment] case class MemorySegment(path: Path,
           ) flatMap {
             splits =>
               splits.mapIO[Segment](
-                ioBlock =
+                block =
                   keyValues =>
                     Segment.memory(
                       path = targetPaths.next.resolve(idGenerator.nextSegmentID),
                       createdInLevel = _createdInLevel,
                       keyValues = keyValues,
-                      bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-                      removeDeletes = removeDeletes
+                      bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate
                     ),
 
                 recover =

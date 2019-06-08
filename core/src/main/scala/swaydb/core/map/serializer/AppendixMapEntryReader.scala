@@ -36,8 +36,7 @@ import swaydb.data.{IO, MaxKey}
 import scala.concurrent.duration.Deadline
 
 object AppendixMapEntryReader {
-  def apply(removeDeletes: Boolean,
-            mmapSegmentsOnRead: Boolean,
+  def apply(mmapSegmentsOnRead: Boolean,
             mmapSegmentsOnWrite: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                           timeOrder: TimeOrder[Slice[Byte]],
                                           functionStore: FunctionStore,
@@ -45,14 +44,12 @@ object AppendixMapEntryReader {
                                           fileOpenLimiter: FileLimiter,
                                           compression: Option[KeyValueGroupingStrategyInternal]): AppendixMapEntryReader =
     new AppendixMapEntryReader(
-      removeDeletes = removeDeletes,
       mmapSegmentsOnRead = mmapSegmentsOnRead,
       mmapSegmentsOnWrite = mmapSegmentsOnWrite
     )
 }
 
-class AppendixMapEntryReader(removeDeletes: Boolean,
-                             mmapSegmentsOnRead: Boolean,
+class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
                              mmapSegmentsOnWrite: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                            timeOrder: TimeOrder[Slice[Byte]],
                                                            functionStore: FunctionStore,
@@ -96,7 +93,6 @@ class AppendixMapEntryReader(removeDeletes: Boolean,
           minKey = minKey,
           maxKey = maxKey,
           segmentSize = segmentSize,
-          removeDeletes = removeDeletes,
           nearestExpiryDeadline = nearestExpiryDeadline,
           checkExists = false
         )

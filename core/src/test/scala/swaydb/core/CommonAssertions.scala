@@ -589,10 +589,9 @@ object CommonAssertions {
     }
 
   implicit class StatsOptionImplicits(actual: Option[Stats]) {
-    def shouldBe(expected: Option[Stats], ignoreValueOffset: Boolean = false) = {
+    def shouldBe(expected: Option[Stats], ignoreValueOffset: Boolean = false) =
       if (actual.isDefined && expected.isDefined)
         actual.assertGet shouldBe(expected.assertGet, ignoreValueOffset)
-    }
   }
 
   implicit class PersistentReadOnlyOptionImplicits(actual: Option[Persistent]) {

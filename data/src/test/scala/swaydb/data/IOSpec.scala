@@ -114,7 +114,7 @@ class IOSpec extends WordSpec with Matchers {
 
       val result: IO[Slice[Int]] =
         slice.mapIO(
-          ioBlock = item => if (item == 3) IO.Failure(new Exception(s"Failed at $item")) else IO.Success(item),
+          block = item => if (item == 3) IO.Failure(new Exception(s"Failed at $item")) else IO.Success(item),
           recover = (ints: Slice[Int], _: IO.Failure[Slice[Int]]) => ints.foreach(intsCleanedUp += _)
         )
 

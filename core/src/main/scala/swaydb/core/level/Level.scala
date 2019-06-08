@@ -104,7 +104,6 @@ private[core] object Level extends LazyLogging {
 
         val appendixReader =
           new AppendixMapEntryReader(
-            removeDeletes = removeDeletes(nextLevel),
             mmapSegmentsOnRead = levelStorage.mmapSegmentsOnWrite,
             mmapSegmentsOnWrite = levelStorage.mmapSegmentsOnRead
           )
@@ -761,7 +760,8 @@ private[core] case class Level(dirs: Seq[Dir],
             minSegmentSize = segmentSize,
             bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
             compressDuplicateValues = compressDuplicateValues,
-            targetPaths = paths
+            targetPaths = paths,
+            removeDeletes = removeDeletedRecords
           ) flatMap {
             newSegments =>
               logger.debug(s"{}: Segment {} successfully refreshed. New Segments: {}.", paths.head, segment.path, newSegments.map(_.path).mkString(", "))
@@ -973,14 +973,15 @@ private[core] case class Level(dirs: Seq[Dir],
 
   private def putAssignedKeyValues(assignedSegments: mutable.Map[Segment, Slice[KeyValue.ReadOnly]]): IO[Slice[(Segment, Slice[Segment])]] =
     assignedSegments.mapIO[(Segment, Slice[Segment])](
-      ioBlock = {
+      block = {
         case (targetSegment, assignedKeyValues) =>
           targetSegment.put(
             newKeyValues = assignedKeyValues,
             minSegmentSize = segmentSize,
             bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
             compressDuplicateValues = compressDuplicateValues,
-            targetPaths = paths.addPriorityPath(targetSegment.path.getParent)
+            targetPaths = paths.addPriorityPath(targetSegment.path.getParent),
+            removeDeletes = removeDeletedRecords
           ) map {
             newSegments =>
               (targetSegment, newSegments)

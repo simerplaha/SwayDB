@@ -45,14 +45,28 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
                                               timeOrder: TimeOrder[Slice[Byte]],
                                               fileOpenLimiter: FileLimiter,
                                               functionStore: FunctionStore): IO[Unit] = {
-    val reader = AppendixMapEntryReader(false, false, false)(keyOrder, timeOrder, functionStore, KeyValueLimiter.none, FileLimiter.empty, None)
+    val reader =
+      AppendixMapEntryReader(
+        mmapSegmentsOnRead = false,
+        mmapSegmentsOnWrite = false
+      )(keyOrder, timeOrder, functionStore, KeyValueLimiter.none, FileLimiter.empty, None)
+
     import reader._
     import swaydb.core.map.serializer.AppendixMapEntryWriter._
     implicit val merger = AppendixSkipListMerger
 
     IO(IOEffect.files(levelPath, Extension.Seg)) flatMap {
       files =>
-        files.mapIO(Segment(_, false, false, false, true)(keyOrder, timeOrder, functionStore, KeyValueLimiter.none, FileLimiter.empty, None))
+        files
+          .mapIO {
+            segment =>
+              Segment(
+                path = segment,
+                mmapReads = false,
+                mmapWrites = false,
+                checkExists = true
+              )(keyOrder, timeOrder, functionStore, KeyValueLimiter.none, FileLimiter.empty, None)
+          }
           .flatMap {
             segments =>
               checkOverlappingSegments(segments, strategy) flatMap {

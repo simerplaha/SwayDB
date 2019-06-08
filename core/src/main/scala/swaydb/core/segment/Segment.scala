@@ -55,13 +55,12 @@ private[core] object Segment extends LazyLogging {
   def memory(path: Path,
              createdInLevel: Long,
              keyValues: Iterable[KeyValue.WriteOnly],
-             bloomFilterFalsePositiveRate: Double,
-             removeDeletes: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                     timeOrder: TimeOrder[Slice[Byte]],
-                                     functionStore: FunctionStore,
-                                     fileLimiter: FileLimiter,
-                                     groupingStrategy: Option[KeyValueGroupingStrategyInternal],
-                                     keyValueLimiter: KeyValueLimiter): IO[Segment] =
+             bloomFilterFalsePositiveRate: Double)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                   timeOrder: TimeOrder[Slice[Byte]],
+                                                   functionStore: FunctionStore,
+                                                   fileLimiter: FileLimiter,
+                                                   groupingStrategy: Option[KeyValueGroupingStrategyInternal],
+                                                   keyValueLimiter: KeyValueLimiter): IO[Segment] =
     if (keyValues.isEmpty) {
       IO.Failure(new Exception("Empty key-values submitted to memory Segment."))
     } else {
@@ -230,7 +229,6 @@ private[core] object Segment extends LazyLogging {
               _hasPut = keyValues.last.stats.hasPut,
               _hasGroup = keyValues.last.stats.hasGroup,
               segmentSize = keyValues.last.stats.memorySegmentSize,
-              removeDeletes = removeDeletes,
               bloomFilter = bloomFilter,
               cache = skipList,
               nearestExpiryDeadline = nearestExpiryDeadline,
@@ -245,13 +243,12 @@ private[core] object Segment extends LazyLogging {
                  bloomFilterFalsePositiveRate: Double,
                  mmapReads: Boolean,
                  mmapWrites: Boolean,
-                 keyValues: Iterable[KeyValue.WriteOnly],
-                 removeDeletes: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                         timeOrder: TimeOrder[Slice[Byte]],
-                                         functionStore: FunctionStore,
-                                         keyValueLimiter: KeyValueLimiter,
-                                         fileOpenLimiter: FileLimiter,
-                                         groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Segment] =
+                 keyValues: Iterable[KeyValue.WriteOnly])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                          timeOrder: TimeOrder[Slice[Byte]],
+                                                          functionStore: FunctionStore,
+                                                          keyValueLimiter: KeyValueLimiter,
+                                                          fileOpenLimiter: FileLimiter,
+                                                          groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Segment] =
     SegmentWriter.write(
       keyValues = keyValues,
       createdInLevel = createdInLevel,
@@ -309,7 +306,6 @@ private[core] object Segment extends LazyLogging {
                       MaxKey.Fixed(keyValue.key.unslice())
                   },
                 segmentSize = bytes.size,
-                removeDeletes = removeDeletes,
                 nearestExpiryDeadline = nearestExpiryDeadline,
                 compactionReserve = Reserve()
               )
@@ -343,8 +339,7 @@ private[core] object Segment extends LazyLogging {
               minKey = segment.minKey,
               maxKey = segment.maxKey,
               segmentSize = segment.segmentSize,
-              nearestExpiryDeadline = segment.nearestExpiryDeadline,
-              removeDeletes = removeDeletes
+              nearestExpiryDeadline = segment.nearestExpiryDeadline
             ) onFailureSideEffect {
               exception =>
                 logger.error("Failed to copyToPersist Segment {}", segment.path, exception)
@@ -396,7 +391,7 @@ private[core] object Segment extends LazyLogging {
     ) flatMap {
       splits =>
         splits.mapIO(
-          ioBlock =
+          block =
             keyValues =>
               Segment.persistent(
                 path = fetchNextPath,
@@ -404,8 +399,7 @@ private[core] object Segment extends LazyLogging {
                 bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
                 mmapReads = mmapSegmentsOnRead,
                 mmapWrites = mmapSegmentsOnWrite,
-                keyValues = keyValues,
-                removeDeletes = removeDeletes
+                keyValues = keyValues
               ),
 
           recover =
@@ -472,8 +466,7 @@ private[core] object Segment extends LazyLogging {
               path = fetchNextPath,
               createdInLevel = createdInLevel,
               bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-              keyValues = keyValues,
-              removeDeletes = removeDeletes
+              keyValues = keyValues
             )
         }
     }
@@ -484,7 +477,6 @@ private[core] object Segment extends LazyLogging {
             minKey: Slice[Byte],
             maxKey: MaxKey[Slice[Byte]],
             segmentSize: Int,
-            removeDeletes: Boolean,
             nearestExpiryDeadline: Option[Deadline],
             checkExists: Boolean = true)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                          timeOrder: TimeOrder[Slice[Byte]],
@@ -508,7 +500,6 @@ private[core] object Segment extends LazyLogging {
           minKey = minKey,
           maxKey = maxKey,
           segmentSize = segmentSize,
-          removeDeletes = removeDeletes,
           nearestExpiryDeadline = nearestExpiryDeadline,
           compactionReserve = Reserve()
         )
@@ -526,7 +517,6 @@ private[core] object Segment extends LazyLogging {
   def apply(path: Path,
             mmapReads: Boolean,
             mmapWrites: Boolean,
-            removeDeletes: Boolean,
             checkExists: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                   timeOrder: TimeOrder[Slice[Byte]],
                                   functionStore: FunctionStore,
@@ -571,7 +561,6 @@ private[core] object Segment extends LazyLogging {
                                 },
                               segmentSize = fileSize.toInt,
                               nearestExpiryDeadline = nearestDeadline,
-                              removeDeletes = removeDeletes,
                               compactionReserve = Reserve()
                             )
                         }
@@ -924,7 +913,6 @@ private[core] trait Segment extends FileLimiterItem {
   val minKey: Slice[Byte]
   val maxKey: MaxKey[Slice[Byte]]
   val segmentSize: Int
-  val removeDeletes: Boolean
   val nearestExpiryDeadline: Option[Deadline]
 
   def createdInLevel: IO[Int]
@@ -947,12 +935,14 @@ private[core] trait Segment extends FileLimiterItem {
           minSegmentSize: Long,
           bloomFilterFalsePositiveRate: Double,
           compressDuplicateValues: Boolean,
+          removeDeletes: Boolean,
           targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
                                                                                                       groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]]
 
   def refresh(minSegmentSize: Long,
               bloomFilterFalsePositiveRate: Double,
               compressDuplicateValues: Boolean,
+              removeDeletes: Boolean,
               targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
                                                                                                           groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]]
 

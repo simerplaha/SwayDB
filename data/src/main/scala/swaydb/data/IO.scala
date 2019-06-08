@@ -139,14 +139,14 @@ object IO {
       IO.none
     }
 
-    def mapIO[R: ClassTag](ioBlock: T => IO[R],
+    def mapIO[R: ClassTag](block: T => IO[R],
                            recover: (Slice[R], IO.Failure[Slice[R]]) => Unit = (_: Slice[R], _: IO.Failure[Slice[R]]) => (),
                            failFast: Boolean = true): IO[Slice[R]] = {
       val it = iterable.iterator
       var failure: Option[IO.Failure[Slice[R]]] = None
       val results = Slice.create[R](iterable.size)
       while ((!failFast || failure.isEmpty) && it.hasNext) {
-        ioBlock(it.next()) match {
+        block(it.next()) match {
           case IO.Success(value) =>
             results add value
 

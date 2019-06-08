@@ -49,7 +49,7 @@ class MapEntrySpec extends TestBase {
   implicit def compression: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(randomNextInt(1000))
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
 
-  val appendixReader = AppendixMapEntryReader(false, true, true)
+  val appendixReader = AppendixMapEntryReader(true, true)
 
   val keyValues = randomKeyValues(count = 10)
   val segment = TestSegment(keyValues).assertGet

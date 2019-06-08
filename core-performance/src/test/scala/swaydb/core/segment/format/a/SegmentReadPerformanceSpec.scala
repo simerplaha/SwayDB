@@ -173,8 +173,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase with Benchmark {
       minKey = segment.minKey,
       maxKey = segment.maxKey,
       segmentSize = segment.segmentSize,
-      nearestExpiryDeadline = segment.nearestExpiryDeadline,
-      removeDeletes = false
+      nearestExpiryDeadline = segment.nearestExpiryDeadline
     ).assertGet
   }
 

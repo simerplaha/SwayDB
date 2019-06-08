@@ -233,7 +233,6 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
 
   object TestSegment {
     def apply(keyValues: Slice[KeyValue.WriteOnly] = randomizedKeyValues()(TestTimer.Incremental(), KeyOrder.default, keyValueLimiter),
-              removeDeletes: Boolean = false,
               path: Path = testSegmentFile,
               bloomFilterFalsePositiveRate: Double = TestData.falsePositiveRate)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                  keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
@@ -245,8 +244,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
           path = path,
           keyValues = keyValues,
           createdInLevel = 0,
-          bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-          removeDeletes = removeDeletes
+          bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate
         )
       else
         Segment.persistent(
@@ -255,8 +253,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
           mmapReads = levelStorage.mmapSegmentsOnRead,
           mmapWrites = levelStorage.mmapSegmentsOnWrite,
           keyValues = keyValues,
-          bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-          removeDeletes = removeDeletes
+          bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate
         )
   }
 
@@ -327,9 +324,9 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
               mapSize: Long = mapSize,
               brake: LevelZeroMeter => Accelerator = Accelerator.brake(),
               throttle: LevelZeroMeter => FiniteDuration = _ => Duration.Zero)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                          keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
-                                          timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                          fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter): LevelZero =
+                                                                               keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
+                                                                               timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
+                                                                               fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter): LevelZero =
       LevelZero(
         mapSize = mapSize,
         storage = level0Storage,

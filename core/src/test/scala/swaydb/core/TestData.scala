@@ -83,7 +83,7 @@ object TestData {
     def tryReopen: IO[Segment] =
       tryReopen(segment.path)
 
-    def tryReopen(path: Path, removeDeletes: Boolean = segment.removeDeletes): IO[Segment] =
+    def tryReopen(path: Path): IO[Segment] =
       Segment(
         path = path,
         mmapReads = randomBoolean(),
@@ -91,7 +91,6 @@ object TestData {
         minKey = segment.minKey,
         maxKey = segment.maxKey,
         segmentSize = segment.segmentSize,
-        removeDeletes = removeDeletes,
         nearestExpiryDeadline = segment.nearestExpiryDeadline
       ) flatMap {
         reopenedSegment =>
@@ -104,8 +103,8 @@ object TestData {
     def reopen: Segment =
       tryReopen.assertGet
 
-    def reopen(path: Path, removeDeletes: Boolean = segment.removeDeletes): Segment =
-      tryReopen(path, removeDeletes).assertGet
+    def reopen(path: Path): Segment =
+      tryReopen(path).assertGet
   }
 
   implicit class ReopenLevel(level: Level)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
@@ -119,6 +118,8 @@ object TestData {
     def putKeyValuesTest(keyValues: Iterable[KeyValue.ReadOnly])(implicit fileLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter): IO[Unit] =
       if (keyValues.isEmpty)
         IO.unit
+      else if (!level.isEmpty)
+        level.putKeyValues(keyValues.toMemory, level.segmentsInLevel(), None)
       else if (level.inMemory)
         Segment.copyToMemory(
           keyValues = keyValues,

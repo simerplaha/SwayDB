@@ -80,14 +80,21 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
     "write a key-values to the Level" in {
       val level = TestLevel()
 
-      val keyValues = randomPutKeyValues()
+      val keyValues = randomPutKeyValues(startId = Some(1))
       level.putKeyValuesTest(keyValues).assertGet
-
       level.putKeyValuesTest(Slice(keyValues.head)).assertGet
+
+      level.segmentsInLevel() foreach {
+        segment =>
+          segment.createdInLevel.assertGet shouldBe level.levelNumber
+          segment.isGrouped.assertGet shouldBe groupingStrategy.isDefined
+      }
+
+      assertReads(keyValues, level)
 
       if (persistent) {
         val reopen = level.reopen
-        eventual(assertReads(keyValues, reopen))
+        assertReads(keyValues, reopen)
       }
     }
 
@@ -104,7 +111,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
       }
       //also add another set of Delete key-values where the keys do not belong to the Level but since there is no lower level
       //these delete keys should also be removed
-      val lastKeyValuesId = keyValues.last.key.read[Int] + 1
+      val lastKeyValuesId = keyValues.last.key.read[Int] + 10000
       (lastKeyValuesId until keyValues.size + lastKeyValuesId) foreach {
         id =>
           deleteKeyValues add Memory.remove(id, randomly(expiredDeadline()))
@@ -196,17 +203,20 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
 
       level.putKeyValuesTest(deleteKeyValues).assertGet
 
-      //expired key-values return empty after 2.seconds
-      eventual(5.seconds) {
-        keyValues foreach {
-          keyValue =>
-            level.get(keyValue.key).assertGetOpt shouldBe empty
-        }
+      sleep(2.seconds)
+
+      level.segmentsInLevel() foreach {
+        segment =>
+          level.refresh(segment).assertGet
       }
 
-      eventual(5.seconds) {
-        level.segmentFilesInAppendix shouldBe 0
+      //expired key-values return empty after 2.seconds
+      keyValues foreach {
+        keyValue =>
+          level.get(keyValue.key).assertGetOpt shouldBe empty
       }
+
+      level.segmentFilesInAppendix shouldBe 0
 
       level.isEmpty shouldBe true
 
@@ -270,9 +280,12 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
         }
       }
 
-      eventual(5.seconds) {
-        level.segmentFilesInAppendix shouldBe 0
+      level.segmentsInLevel() foreach {
+        segment =>
+          level.refresh(segment).assertGet
       }
+
+      level.segmentFilesInAppendix shouldBe 0
 
       level.isEmpty shouldBe true
 

@@ -60,7 +60,7 @@ class MapSpec extends TestBase {
 
   implicit def grouping = randomGroupingStrategyOption(randomNextInt(1000))
 
-  val appendixReader = AppendixMapEntryReader(false, true, true)
+  val appendixReader = AppendixMapEntryReader(true, true)
 
   "Map" should {
     "initialise a memory level0" in {

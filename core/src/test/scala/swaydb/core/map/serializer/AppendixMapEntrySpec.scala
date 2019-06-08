@@ -46,7 +46,7 @@ class AppendixMapEntrySpec extends TestBase {
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit def compression = randomGroupingStrategyOption(randomNextInt(1000))
 
-  val appendixReader = AppendixMapEntryReader(false, true, true)
+  val appendixReader = AppendixMapEntryReader(true, true)
   val segment = TestSegment().assertGet
 
   "MapEntryWriterAppendix & MapEntryReaderAppendix" should {
