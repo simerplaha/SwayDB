@@ -301,33 +301,6 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
       level.close.assertGet
       nextLevel.close.assertGet
     }
-
-    "return all unreserved Segments to copy if next Level is empty" in {
-      runThis(5.times) {
-        val nextLevel = TestLevel()
-        val level = TestLevel(keyValues = randomizedKeyValues(count = 10000, startId = Some(1)), segmentSize = 1.kb)
-        level.segmentsCount() should be >= 2
-
-        implicit val reserve = ReserveRange.create[Unit]()
-        val firstSegment = level.segmentsInLevel().head
-
-        ReserveRange.reserveOrGet(firstSegment.minKey, firstSegment.maxKey.maxKey, firstSegment.maxKey.inclusive, ()) shouldBe empty //reserve first segment
-
-        Level.optimalSegmentsToCollapse(
-          level = level,
-          take = 10
-        ).map(_.path) shouldBe
-          level
-            .segmentsInLevel()
-            .drop(1)
-            .take(10)
-            .filter(Level.isSmallSegment(_, level.segmentSize))
-            .map(_.path)
-
-        level.close.assertGet
-        nextLevel.close.assertGet
-      }
-    }
   }
 
   "reserve" should {

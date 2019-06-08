@@ -782,7 +782,7 @@ object CommonAssertions {
       keyValue =>
         try {
           val actual = level.getFromThisLevel(keyValue.key).assertGet
-          actual.getOrFetchValue.get.safeGetBlocking() shouldBe keyValue.getOrFetchValue.get.safeGetBlocking()
+          actual.getOrFetchValue.safeGetBlocking() shouldBe keyValue.getOrFetchValue.safeGetBlocking()
         } catch {
           case ex: Exception =>
             println(

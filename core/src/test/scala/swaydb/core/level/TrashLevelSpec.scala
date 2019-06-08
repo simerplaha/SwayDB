@@ -32,7 +32,7 @@ import swaydb.data.slice.Slice
 
 import scala.concurrent.duration._
 
-class TrashLevelsegmentsSpec0 extends TrashLevelSpec
+class TrashLevelSpec0 extends TrashLevelSpec
 
 class TrashLevelSpec1 extends TrashLevelSpec {
   override def levelFoldersCount = 10

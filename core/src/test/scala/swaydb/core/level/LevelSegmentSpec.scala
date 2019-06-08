@@ -155,7 +155,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
             dir.resolve(1.toString).files(Extension.Seg) should have size 7
             dir.resolve(2.toString).files(Extension.Seg) should have size 14
             dir.resolve(3.toString).files(Extension.Seg) should have size 21
-            dir.resolve(4.toString).files(Extension.Seg) should have size 28
+            dir.resolve(4.toString).files(Extension.Seg) should have size 27
             dir.resolve(5.toString).files(Extension.Seg) should have size 30
           }
 
@@ -310,15 +310,16 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
   "writing Segments to two levels" should {
     "succeed" when {
       "upper level has overlapping Segments" in {
-        val nextLevel = mock[Level]
+        val nextLevel = mock[NextLevel]
 
         //no key-values get forwarded to next Level
+        nextLevel.isTrash _ expects() returning false
         nextLevel.close _ expects() returning IO.unit
         nextLevel.releaseLocks _ expects() returning IO.unit
         nextLevel.closeSegments _ expects() returning IO.unit
 
         val level = TestLevel(nextLevel = Some(nextLevel))
-        val keyValues = randomIntKeyStringValues(keyValuesCount)
+        val keyValues = randomIntKeyStringValues(keyValuesCount, startId = Some(1))
         level.putKeyValues(keyValues, Seq(TestSegment(keyValues).assertGet), None).assertGet //write first Segment to Level
         assertGetFromThisLevelOnly(keyValues, level)
 
@@ -329,7 +330,9 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
       }
 
       "upper level has no overlapping Segments and nextLevel allows Segment copying" in {
-        val nextLevel = mock[Level]
+        val nextLevel = mock[NextLevel]
+        nextLevel.isTrash _ expects() returning false
+
         val level = TestLevel(nextLevel = Some(nextLevel))
         val keyValues = randomIntKeyStringValues(keyValuesCount, startId = Some(1))
         level.putKeyValues(keyValues, Seq(TestSegment(keyValues).assertGet), None).assertGet //write first Segment to Level
@@ -361,7 +364,9 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
       }
 
       "upper level has no overlapping Segments and nextLevel does not allows Segment copying due to reserved Segments" in {
-        val nextLevel = mock[Level]
+        val nextLevel = mock[NextLevel]
+        nextLevel.isTrash _ expects() returning false
+
         val level = TestLevel(nextLevel = Some(nextLevel))
         val keyValues = randomIntKeyStringValues(keyValuesCount, startId = Some(1))
         level.putKeyValues(keyValues, Seq(TestSegment(keyValues).assertGet), None).assertGet //write first Segment to Level
@@ -386,7 +391,9 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
       }
 
       "lower level can copy 1 of 2 Segments" in {
-        val nextLevel = mock[Level]
+        val nextLevel = mock[NextLevel]
+        nextLevel.isTrash _ expects() returning false
+
         val level = TestLevel(nextLevel = Some(nextLevel))
         val keyValues = randomIntKeyStringValues(keyValuesCount, startId = Some(1))
         level.putKeyValues(keyValues, Seq(TestSegment(keyValues).assertGet), None).assertGet //write first Segment to Level
@@ -422,7 +429,9 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
       }
 
       "lower level can copy all Segments but fails to copy" in {
-        val nextLevel = mock[Level]
+        val nextLevel = mock[NextLevel]
+        nextLevel.isTrash _ expects() returning false
+
         val level = TestLevel(nextLevel = Some(nextLevel))
         val keyValues = randomIntKeyStringValues(keyValuesCount, startId = Some(1))
         level.putKeyValues(keyValues, Seq(TestSegment(keyValues).assertGet), None).assertGet //write first Segment to Level
