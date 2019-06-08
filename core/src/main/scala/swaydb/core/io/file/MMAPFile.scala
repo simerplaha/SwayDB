@@ -36,14 +36,24 @@ private[file] object MMAPFile {
   def read(path: Path): IO[MMAPFile] =
     IO(FileChannel.open(path, StandardOpenOption.READ)) flatMap {
       channel =>
-        MMAPFile(path, channel, MapMode.READ_ONLY, channel.size())
+        MMAPFile(
+          path = path,
+          channel = channel,
+          mode = MapMode.READ_ONLY,
+          bufferSize = channel.size()
+        )
     }
 
   def write(path: Path,
             bufferSize: Long): IO[MMAPFile] =
     IO(FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)) flatMap {
       channel =>
-        MMAPFile(path, channel, MapMode.READ_WRITE, bufferSize)
+        MMAPFile(
+          path = path,
+          channel = channel,
+          mode = MapMode.READ_WRITE,
+          bufferSize = bufferSize
+        )
     }
 
   private def apply(path: Path,
@@ -52,7 +62,13 @@ private[file] object MMAPFile {
                     bufferSize: Long): IO[MMAPFile] =
     IO {
       val buff = channel.map(mode, 0, bufferSize)
-      new MMAPFile(path, channel, mode, bufferSize, buff)
+      new MMAPFile(
+        path = path,
+        channel = channel,
+        mode = mode,
+        bufferSize = bufferSize,
+        buffer = buff
+      )
     }
 }
 

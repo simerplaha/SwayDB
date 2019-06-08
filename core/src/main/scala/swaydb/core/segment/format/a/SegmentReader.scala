@@ -337,7 +337,11 @@ private[core] object SegmentReader extends LazyLogging {
                    matcher: KeyMatcher,
                    reader: Reader,
                    footer: SegmentFooter)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
-    matcher(previous, next, hasMore = hasMore(next getOrElse previous, footer)) match {
+    matcher(
+      previous = previous,
+      next = next,
+      hasMore = hasMore(next getOrElse previous, footer)
+    ) match {
       case MatchResult.Next =>
         val readFrom = next getOrElse previous
         readNextKeyValue(

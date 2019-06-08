@@ -30,14 +30,20 @@ private[file] object ChannelFile {
   def write(path: Path): IO[ChannelFile] =
     IO {
       val channel = FileChannel.open(path, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
-      new ChannelFile(path, channel)
+      new ChannelFile(
+        path = path,
+        channel = channel
+      )
     }
 
   def read(path: Path): IO[ChannelFile] =
     if (IOEffect.exists(path))
       IO {
         val channel = FileChannel.open(path, StandardOpenOption.READ)
-        new ChannelFile(path, channel)
+        new ChannelFile(
+          path = path,
+          channel = channel
+        )
       }
     else
       IO.Failure(IO.Error.NoSuchFile(path))

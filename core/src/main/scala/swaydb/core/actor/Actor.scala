@@ -157,25 +157,21 @@ private[swaydb] class Actor[T, +S](val state: S,
   private val queue = new ConcurrentLinkedQueue[T]
   private val queueSize = new AtomicInteger(0)
   @volatile private var terminated = false
+  @volatile private var task = Option.empty[TimerTask]
 
   val maxMessagesToProcessAtOnce = 10000
   //if initial delay is defined this actor will keep checking for messages at
   //regular interval. This interval can be updated via the execution function.
   val loop = defaultDelay.exists(_._2)
   //if initial detail is defined, trigger processMessages() to start the timer loop.
-  if (loop) processMessages()
+  if (loop) processMessages(runNow = false)
 
   override def !(message: T): Unit =
     if (!terminated) {
       queue offer message
       queueSize.incrementAndGet()
-      processMessages()
+      processMessages(runNow = false)
     }
-
-  private def clearMessages(): Unit = {
-    queue.clear()
-    queueSize.set(0)
-  }
 
   override def hasMessages: Boolean =
     queue.isEmpty
@@ -194,20 +190,39 @@ private[swaydb] class Actor[T, +S](val state: S,
   override def terminate(): Unit = {
     logger.debug(s"${this.getClass.getSimpleName} terminated.")
     terminated = true
-    clearMessages()
+    queue.clear()
+    queueSize.set(0)
   }
 
-  private def processMessages(): Unit =
+  private def clearTask() =
+    task foreach {
+      t =>
+        t.cancel()
+        task = None
+    }
+
+  /**
+    * @param runNow ignores default delays and processes actor.
+    */
+  private def processMessages(runNow: Boolean): Unit =
     if (!terminated && (loop || !queue.isEmpty) && busy.compareAndSet(false, true))
-      defaultDelay.map(_._1) match {
-        case None =>
-          Future(receive(maxMessagesToProcessAtOnce))
+      if (runNow) {
+        clearTask()
+        Future(receive(maxMessagesToProcessAtOnce))
+      } else {
+        defaultDelay.map(_._1) match {
+          case None =>
+            clearTask()
+            Future(receive(maxMessagesToProcessAtOnce))
 
-        case Some(interval) if interval.fromNow.isOverdue() =>
-          Future(receive(maxMessagesToProcessAtOnce))
+          case Some(interval) if interval.fromNow.isOverdue() =>
+            clearTask()
+            Future(receive(maxMessagesToProcessAtOnce))
 
-        case Some(delay) =>
-          Delay.future(delay)(receive(maxMessagesToProcessAtOnce))
+          case Some(delay) =>
+            busy.set(false) //cancel so that task can be overwritten if there is a message overflow.
+            task = Some(Delay.task(delay)(processMessages(runNow = true)))
+        }
       }
 
   private def receive(max: Int): Unit = {
@@ -230,7 +245,7 @@ private[swaydb] class Actor[T, +S](val state: S,
       }
     } finally {
       busy.set(false)
-      processMessages()
+      processMessages(runNow = false)
     }
   }
 }

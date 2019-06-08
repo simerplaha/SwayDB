@@ -26,7 +26,10 @@ import swaydb.data.slice.Slice
 
 private[file] object MemoryFile {
   def apply(path: Path, bytes: Slice[Byte]): DBFileType =
-    new MemoryFile(path, bytes)
+    new MemoryFile(
+      path = path,
+      bytes = bytes
+    )
 }
 
 private[file] class MemoryFile(val path: Path,

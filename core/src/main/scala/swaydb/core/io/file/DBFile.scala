@@ -40,14 +40,28 @@ object DBFile {
   def channelWrite(path: Path, autoClose: Boolean)(implicit limiter: FileLimiter): IO[DBFile] =
     ChannelFile.write(path) map {
       file =>
-        new DBFile(path = path, memoryMapped = false, memory = false, autoClose = autoClose, file = Some(file))
+        new DBFile(
+          path = path,
+          memoryMapped = false,
+          memory = false,
+          autoClose = autoClose,
+          file = Some(file)
+        )
     }
 
   def channelRead(path: Path, autoClose: Boolean, checkExists: Boolean = true)(implicit limiter: FileLimiter): IO[DBFile] =
     if (checkExists && IOEffect.notExists(path))
       IO.Failure(IO.Error.NoSuchFile(path))
     else
-      IO(new DBFile(path = path, memoryMapped = false, memory = false, autoClose = autoClose, file = None))
+      IO(
+        new DBFile(
+          path = path,
+          memoryMapped = false,
+          memory = false,
+          autoClose = autoClose,
+          file = None
+        )
+      )
 
   def mmapWriteAndRead(bytes: Slice[Byte],
                        path: Path,
@@ -56,7 +70,11 @@ object DBFile {
     if (!bytes.isFull)
       IO.Failure(IO.Error.Fatal(SegmentException.FailedToWriteAllBytes(0, bytes.written, bytes.size)))
     else
-      mmapInit(path, bytes.written, autoClose = autoClose) flatMap {
+      mmapInit(
+        path = path,
+        bufferSize = bytes.written,
+        autoClose = autoClose
+      ) flatMap {
         file =>
           file.append(bytes) map {
             _ =>
@@ -68,21 +86,41 @@ object DBFile {
     if (checkExists && IOEffect.notExists(path))
       IO.Failure(IO.Error.NoSuchFile(path))
     else
-      IO(new DBFile(path = path, memoryMapped = true, memory = false, autoClose = autoClose, file = None))
+      IO(
+        new DBFile(
+          path = path,
+          memoryMapped = true,
+          memory = false,
+          autoClose = autoClose,
+          file = None
+        )
+      )
 
   def mmapInit(path: Path,
                bufferSize: Long,
                autoClose: Boolean)(implicit limiter: FileLimiter): IO[DBFile] =
     MMAPFile.write(path, bufferSize) map {
       file =>
-        new DBFile(path = path, memoryMapped = true, memory = false, autoClose = autoClose, file = Some(file))
+        new DBFile(
+          path = path,
+          memoryMapped = true,
+          memory = false,
+          autoClose = autoClose,
+          file = Some(file)
+        )
     }
 
   def memory(path: Path,
              bytes: Slice[Byte],
              autoClose: Boolean)(implicit limiter: FileLimiter): IO[DBFile] =
     IO {
-      new DBFile(path = path, memoryMapped = false, memory = true, autoClose = autoClose, file = Some(MemoryFile(path, bytes)))
+      new DBFile(
+        path = path,
+        memoryMapped = false,
+        memory = true,
+        autoClose = autoClose,
+        file = Some(MemoryFile(path, bytes))
+      )
     }
 }
 /**
