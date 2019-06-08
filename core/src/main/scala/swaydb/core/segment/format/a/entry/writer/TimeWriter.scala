@@ -58,22 +58,6 @@ object TimeWriter {
         previousTime =>
           //need to compress at least 4 bytes because the meta data required after compression is minimum 2 bytes.
           compress(previous = previousTime.time, next = currentTime.time, minimumCommonBytes = 4) map {
-            case (_, remainingBytes) if remainingBytes.isEmpty =>
-
-              val (indexBytes, valueBytes, valueStartOffset, valueEndOffset) =
-                ValueWriter.write(
-                  current = current,
-                  compressDuplicateValues = compressDuplicateValues,
-                  entryId = entryId.timeFullyCompressed,
-                  plusSize = plusSize + sizeOf(currentTime.time.size)
-                )
-
-              val bytes =
-                indexBytes
-                  .addIntUnsigned(currentTime.time.size)
-
-              (bytes, valueBytes, valueStartOffset, valueEndOffset)
-
             case (commonBytes, remainingBytes) =>
               val (indexBytes, valueBytes, valueStartOffset, valueEndOffset) =
                 ValueWriter.write(

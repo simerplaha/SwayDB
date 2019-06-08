@@ -39,7 +39,6 @@ object EntryId {
 
   trait Key {
     def noTime: Time.NoTime
-    def timeFullyCompressed: Time.FullyCompressed
     def timePartiallyCompressed: Time.PartiallyCompressed
     def timeUncompressed: Time.Uncompressed
   }
@@ -56,10 +55,9 @@ object EntryId {
     def valueUncompressed: Value.Uncompressed
   }
   object Time {
-    trait NoTime extends Time
     trait PartiallyCompressed extends Time
     trait Uncompressed extends Time
-    trait FullyCompressed extends Time
+    trait NoTime extends Time
   }
 
   sealed trait GetDeadlineId {

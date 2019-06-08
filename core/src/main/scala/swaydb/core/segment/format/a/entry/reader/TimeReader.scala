@@ -97,38 +97,4 @@ object TimeReader {
         IO.Failure(EntryReaderFailure.NoPreviousKeyValue)
       }
   }
-
-  implicit object TimeFullyCompressedTimeReader extends TimeReader[EntryId.Time.FullyCompressed] {
-    def readTime(indexReader: Reader,
-                 previousTime: Time): IO[Time] =
-      indexReader.readIntUnsigned() map {
-        commonBytes =>
-          Time(previousTime.time.take(commonBytes))
-      }
-
-    override def read(indexReader: Reader,
-                      previous: Option[KeyValue.ReadOnly]): IO[Time] =
-      previous map {
-        case previous: KeyValue.ReadOnly.Put =>
-          readTime(indexReader, previous.time)
-
-        case previous: KeyValue.ReadOnly.Remove =>
-          readTime(indexReader, previous.time)
-
-        case previous: KeyValue.ReadOnly.Update =>
-          readTime(indexReader, previous.time)
-
-        case previous: KeyValue.ReadOnly.PendingApply =>
-          readTime(indexReader, previous.time)
-
-        case previous: KeyValue.ReadOnly.Function =>
-          readTime(indexReader, previous.time)
-
-        case _: KeyValue.ReadOnly.Range | _: KeyValue.ReadOnly.Group =>
-          IO.Failure(EntryReaderFailure.PreviousIsNotFixedKeyValue)
-
-      } getOrElse {
-        IO.Failure(EntryReaderFailure.NoPreviousKeyValue)
-      }
-  }
 }

@@ -41,7 +41,7 @@ object IfConditionGenerator extends App {
 
     val notFound = "None"
 
-    val defaultGroupSize = 22
+    val defaultGroupSize = 20
 
     val allNewConditions: Iterator[String] =
       ids.sortBy(_.id).grouped(defaultGroupSize).zipWithIndex map {
