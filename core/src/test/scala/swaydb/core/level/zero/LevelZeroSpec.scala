@@ -37,7 +37,6 @@ import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
-//@formatter:off
 class LevelZeroSpec0 extends LevelZeroSpec
 
 class LevelZeroSpec1 extends LevelZeroSpec {
@@ -59,7 +58,6 @@ class LevelZeroSpec2 extends LevelZeroSpec {
 class LevelZeroSpec3 extends LevelZeroSpec {
   override def inMemoryStorage = true
 }
-//@formatter:on
 
 sealed trait LevelZeroSpec extends TestBase with MockFactory with Benchmark {
 
@@ -277,22 +275,6 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory with Benchmark {
       zero.last.assertGetOpt shouldBe empty
     }
 
-  }
-
-  "LevelZero.sizeOfSegments" should {
-    "return the size of Segments in all the levels" in {
-      val one = TestLevel()
-      val zero = TestLevelZero(Some(one), mapSize = 100.byte)
-
-      val keyValues = randomIntKeyStringValues(keyValuesCount)
-      keyValues foreach {
-        keyValue =>
-          zero.put(keyValue.key, keyValue.getOrFetchValue).assertGet
-      }
-      eventual {
-        zero.sizeOfSegments should be > 1L
-      }
-    }
   }
 
   "LevelZero.head" should {

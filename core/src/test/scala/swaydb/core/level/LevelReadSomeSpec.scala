@@ -68,7 +68,7 @@ sealed trait LevelReadSomeSpec extends TestBase with MockFactory with Benchmark 
   "return Put" when {
 
     "level has valid puts" in {
-      runThisParallel(times) {
+      runThis(times) {
         assertLevel(
           level0KeyValues =
             (_, _, testTimer) =>
@@ -82,7 +82,7 @@ sealed trait LevelReadSomeSpec extends TestBase with MockFactory with Benchmark 
     }
 
     "contains put that were updated" in {
-      runThisParallel(times) {
+      runThis(times) {
         val updatedValue = randomStringOption
         //also update the deadline so that no puts are expired
         val updatedDeadline = eitherOne(None, randomDeadlineOption(false))

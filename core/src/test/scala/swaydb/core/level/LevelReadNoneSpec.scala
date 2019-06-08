@@ -61,9 +61,9 @@ sealed trait LevelReadNoneSpec extends TestBase with MockFactory with Benchmark 
 
   //  override def deleteFiles = false
 
-  val keyValuesCount = 1000
+  val keyValuesCount = 100
 
-  val times = 2
+  val times = 1
 
   "return None" when {
 
@@ -86,7 +86,7 @@ sealed trait LevelReadNoneSpec extends TestBase with MockFactory with Benchmark 
     }
 
     "level is nonEmpty but contains no put" in {
-      runThisParallel(times) {
+      runThis(times) {
         assertLevel(
           level0KeyValues =
             (_, _, testTimer) =>
@@ -100,7 +100,7 @@ sealed trait LevelReadNoneSpec extends TestBase with MockFactory with Benchmark 
     }
 
     "level contains expired puts" in {
-      runThisParallel(times) {
+      runThis(times) {
         assertLevel(
           level0KeyValues =
             (_, _, testTimer) =>
@@ -117,7 +117,7 @@ sealed trait LevelReadNoneSpec extends TestBase with MockFactory with Benchmark 
     }
 
     "level is non empty but the searched key do not exist" in {
-      runThisParallel(times) {
+      runThis(times) {
         assertLevel(
           level0KeyValues =
             (_, _, testTimer) =>
@@ -157,7 +157,7 @@ sealed trait LevelReadNoneSpec extends TestBase with MockFactory with Benchmark 
     }
 
     "for remove ranges with expired Put fromValue" in {
-      runThisParallel(times) {
+      runThis(times) {
         assertLevel(
           level0KeyValues =
             (_, _, testTimer) => {
@@ -176,7 +176,7 @@ sealed trait LevelReadNoneSpec extends TestBase with MockFactory with Benchmark 
     }
 
     "put existed but was removed or expired" in {
-      runThisParallel(times) {
+      runThis(times) {
         assertLevel(
 
           level0KeyValues =

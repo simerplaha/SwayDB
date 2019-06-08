@@ -26,15 +26,3 @@ trait LevelMeter {
   def requiresCleanUp: Boolean
   def nextLevelMeter: Option[LevelMeter]
 }
-
-private[swaydb] object LevelMeter {
-  def apply(_segmentsCount: Int,
-            _levelSize: Long): LevelMeter =
-    new LevelMeter {
-      override def segmentsCount: Int = _segmentsCount
-      override def levelSize: Long = _levelSize
-      override def requiresCleanUp: Boolean = false
-      override def nextLevelMeter: Option[LevelMeter] = None
-      override def segmentCountAndLevelSize: (Int, Long) = (segmentsCount, levelSize)
-    }
-}

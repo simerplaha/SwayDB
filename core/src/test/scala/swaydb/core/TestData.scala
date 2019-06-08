@@ -233,7 +233,6 @@ object TestData {
                       recovery = RecoveryMode.ReportFailure
                     ),
                   nextLevel = level.nextLevel,
-                  executionContexts = level.executionContexts,
                   acceleration = Accelerator.brake(),
                   throttle = level.throttle
                 )
@@ -1302,7 +1301,7 @@ object TestData {
     while (key < until) {
       iteration += 1
       //protect to this going into infinite loop
-      if (iteration >= 10 && slice.isEmpty) throw new Exception("Too many iterations without generated data.")
+      if (iteration >= 10 && slice.isEmpty) fail("Too many iterations without generated data.")
       if (addRandomGroups && randomBoolean()) {
         //create a Random group with the inner key-values the same as count of this group.
         val groupKeyValues =

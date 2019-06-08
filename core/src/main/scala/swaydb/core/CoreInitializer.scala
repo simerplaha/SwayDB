@@ -80,7 +80,6 @@ private[core] object CoreInitializer extends LazyLogging {
       mapSize = config.mapSize,
       storage = config.storage,
       nextLevel = None,
-      executionContexts = List(config.compactionExecutionContext),
       throttle = config.throttle,
       acceleration = config.acceleration
     ) map {
@@ -90,6 +89,43 @@ private[core] object CoreInitializer extends LazyLogging {
     }
   }
 
+  def executionContext(levelConfig: LevelConfig): Option[CompactionExecutionContext] =
+    levelConfig match {
+      case TrashLevelConfig =>
+        None
+
+      case config: MemoryLevelConfig =>
+        Some(config.compactionExecutionContext)
+
+      case config: PersistentLevelConfig =>
+        Some(config.compactionExecutionContext)
+    }
+
+  def executionContexts(config: SwayDBConfig): List[CompactionExecutionContext] =
+    List(config.level0.compactionExecutionContext) ++
+      executionContext(config.level1).toList ++
+      config.otherLevels.flatMap(executionContext)
+
+  def startCompaction(zero: LevelZero,
+                      executionContexts: List[CompactionExecutionContext],
+                      copyForwardAllOnStart: Boolean)(implicit compactionStrategy: CompactionStrategy[CompactorState],
+                                                      compactionOrdering: CompactionOrdering): IO[Option[WiredActor[CompactionStrategy[CompactorState], CompactorState]]] =
+    compactionStrategy.createAndListen(
+      zero = zero,
+      executionContexts = executionContexts,
+      copyForwardAllOnStart = copyForwardAllOnStart
+    ) map (Some(_))
+
+  def sendInitialWakeUp(compactor: WiredActor[CompactionStrategy[CompactorState], CompactorState]): Unit =
+    compactor send {
+      (impl, state, self) =>
+        impl.wakeUp(
+          state = state,
+          forwardCopyOnAllLevels = true,
+          self = self
+        )
+    }
+
   def apply(config: SwayDBConfig,
             maxSegmentsOpen: Int,
             cacheSize: Long,
@@ -97,8 +133,8 @@ private[core] object CoreInitializer extends LazyLogging {
             segmentCloserDelay: FiniteDuration,
             fileOpenLimiterEC: ExecutionContext,
             cacheLimiterEC: ExecutionContext)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                 timeOrder: TimeOrder[Slice[Byte]],
-                                                 functionStore: FunctionStore): IO[BlockingCore[IO]] = {
+                                              timeOrder: TimeOrder[Slice[Byte]],
+                                              functionStore: FunctionStore): IO[BlockingCore[IO]] = {
     implicit val fileOpenLimiter: FileLimiter =
       FileLimiter(maxSegmentsOpen, segmentCloserDelay)(fileOpenLimiterEC)
 
@@ -157,41 +193,6 @@ private[core] object CoreInitializer extends LazyLogging {
           IO.Success(TrashLevel)
       }
 
-    def executionContext(levelConfig: LevelConfig): Option[CompactionExecutionContext] =
-      levelConfig match {
-        case TrashLevelConfig =>
-          None
-
-        case config: MemoryLevelConfig =>
-          Some(config.compactionExecutionContext)
-
-        case config: PersistentLevelConfig =>
-          Some(config.compactionExecutionContext)
-      }
-
-    def executionContexts(): List[CompactionExecutionContext] =
-      List(config.level0.compactionExecutionContext) ++
-        executionContext(config.level1).toList ++
-        config.otherLevels.flatMap(executionContext)
-
-    def startCompaction(zero: LevelZero,
-                        copyForwardAllOnStart: Boolean): IO[Option[WiredActor[CompactionStrategy[CompactorState], CompactorState]]] =
-      compactionStrategy.createAndListen(
-        zero = zero,
-        executionContexts = executionContexts(),
-        copyForwardAllOnStart = copyForwardAllOnStart
-      ) map (Some(_))
-
-    def sendInitialWakeUp(compactor: WiredActor[CompactionStrategy[CompactorState], CompactorState]): Unit =
-      compactor send {
-        (impl, state, self) =>
-          impl.wakeUp(
-            state = state,
-            forwardCopyOnAllLevels = true,
-            self = self
-          )
-      }
-
     def createLevels(levelConfigs: List[LevelConfig],
                      previousLowerLevel: Option[NextLevel]): IO[BlockingCore[IO]] =
       levelConfigs match {
@@ -203,12 +204,12 @@ private[core] object CoreInitializer extends LazyLogging {
                 storage = config.level0.storage,
                 nextLevel = Some(level1),
                 throttle = config.level0.throttle,
-                executionContexts = executionContexts(),
                 acceleration = config.level0.acceleration
               ) flatMap {
                 zero =>
                   startCompaction(
                     zero = zero,
+                    executionContexts = executionContexts(config),
                     copyForwardAllOnStart = true
                   ) map {
                     compactor =>

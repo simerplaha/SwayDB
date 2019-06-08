@@ -123,7 +123,8 @@ sealed trait LevelReadSpec extends TestBase with MockFactory with Benchmark {
 
       level.put(Seq(segment)).assertGet
 
-      level.meter shouldBe LevelMeter(1, segment.segmentSize)
+      level.meter.segmentsCount shouldBe 1
+      level.meter.levelSize shouldBe segment.segmentSize
     }
   }
 
@@ -140,11 +141,19 @@ sealed trait LevelReadSpec extends TestBase with MockFactory with Benchmark {
 
       level2.put(Seq(segment)).assertGet
 
-      level1.meter shouldBe LevelMeter(0, 0)
-      level1.meterFor(level1.paths.headPath.folderId.toInt) should contain(LevelMeter(0, 0))
+      level1.meter.levelSize shouldBe 0
+      level1.meter.segmentsCount shouldBe 0
 
-      level2.meter shouldBe LevelMeter(1, segment.segmentSize)
-      level1.meterFor(level2.paths.headPath.folderId.toInt) should contain(LevelMeter(1, segment.segmentSize))
+      val level1Meter = level1.meterFor(level1.paths.headPath.folderId.toInt).get
+      level1Meter.levelSize shouldBe 0
+      level1Meter.segmentsCount shouldBe 0
+
+      level2.meter.segmentsCount shouldBe 1
+      level2.meter.levelSize shouldBe segment.segmentSize
+
+      val level2Meter = level1.meterFor(level2.paths.headPath.folderId.toInt).get
+      level2Meter.segmentsCount shouldBe 1
+      level2Meter.levelSize shouldBe segment.segmentSize
     }
 
     "return None is Level does not exist" in {

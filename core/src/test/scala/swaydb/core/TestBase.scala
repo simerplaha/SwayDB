@@ -30,10 +30,12 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.IOAssert._
 import swaydb.core.TestData._
 import swaydb.core.TestLimitQueues.{fileOpenLimiter, _}
+import swaydb.core.actor.WiredActor
 import swaydb.core.data.{KeyValue, Memory, Time}
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.io.file.{BufferCleaner, DBFile, IOEffect}
 import swaydb.core.io.reader.FileReader
+import swaydb.core.level.compaction.{CompactionOrdering, CompactionStrategy, Compactor, CompactorState, DefaultCompactionOrdering}
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, LevelRef, NextLevel}
 import swaydb.core.map.MapEntry
@@ -342,15 +344,6 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
         storage = level0Storage,
         nextLevel = nextLevel,
         throttle = throttle,
-        executionContexts =
-          //start off with one ExecutionContext initialised for LevelZero.
-          CompactionExecutionContext.Create(TestExecutionContext.executionContext) +:
-            List.fill(
-              n = nextLevel.map(LevelRef.getLevels).map(_.size).getOrElse(0))(
-              eitherOne(
-                CompactionExecutionContext.Create(TestExecutionContext.executionContext),
-                CompactionExecutionContext.Shared)
-            ),
         acceleration = brake,
       ).assertGet
   }
@@ -408,6 +401,12 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
     def iterationMessage =
       s"Thread: ${Thread.currentThread().getId} - throttleOn: $throttleOn"
 
+    implicit val compactionStrategy: CompactionStrategy[CompactorState] =
+      Compactor
+
+    implicit val compactionOrdering: CompactionOrdering =
+      DefaultCompactionOrdering
+
     println(iterationMessage)
 
     val noAssert =
@@ -429,6 +428,16 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
     val level2 = TestLevel(nextLevel = Some(level3), throttle = levelThrottle)
     val level1 = TestLevel(nextLevel = Some(level2), throttle = levelThrottle)
     val level0 = TestLevelZero(nextLevel = Some(level1), throttle = levelZeroThrottle)
+
+    val compaction: Option[WiredActor[CompactionStrategy[CompactorState], CompactorState]] =
+      if (throttleOn)
+        CoreInitializer.startCompaction(
+          zero = level0,
+          executionContexts = CompactionExecutionContext.Create(TestExecutionContext.executionContext) +: List.fill(4)(CompactionExecutionContext.Shared),
+          copyForwardAllOnStart = randomBoolean()
+        ) get
+      else
+        None
 
     println("Levels started")
 
@@ -538,7 +547,8 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
 
     runAsserts(asserts)
 
-    level0.close.assertGet
+    level0.delete.assertGet
+    compaction foreach Compactor.terminate
 
     if (!throttleOn)
       assertLevel(

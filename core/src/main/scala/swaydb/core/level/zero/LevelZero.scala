@@ -55,7 +55,6 @@ private[core] object LevelZero extends LazyLogging {
             storage: Level0Storage,
             nextLevel: Option[NextLevel],
             acceleration: LevelZeroMeter => Accelerator,
-            executionContexts: List[CompactionExecutionContext],
             throttle: LevelZeroMeter => FiniteDuration)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                         timeOrder: TimeOrder[Slice[Byte]],
                                                         limiter: FileLimiter,
@@ -133,7 +132,6 @@ private[core] object LevelZero extends LazyLogging {
           maps = maps,
           nextLevel = nextLevel,
           inMemory = storage.memory,
-          executionContexts = executionContexts,
           throttle = throttle,
           lock = lock
         )
@@ -148,7 +146,7 @@ private[core] object LevelZero extends LazyLogging {
           zero
             .nextLevel
             .map(_.delete)
-            .getOrElse(IOEffect.walkDelete(zero.path))
+            .getOrElse(IOEffect.walkDelete(zero.path.getParent))
       }
 }
 
@@ -157,7 +155,6 @@ private[core] case class LevelZero(path: Path,
                                    maps: Maps[Slice[Byte], Memory.SegmentResponse],
                                    nextLevel: Option[NextLevel],
                                    inMemory: Boolean,
-                                   executionContexts: List[CompactionExecutionContext],
                                    throttle: LevelZeroMeter => FiniteDuration,
                                    private val lock: Option[FileLock])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                        timeOrder: TimeOrder[Slice[Byte]],

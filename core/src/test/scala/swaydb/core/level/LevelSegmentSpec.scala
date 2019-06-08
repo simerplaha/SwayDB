@@ -155,7 +155,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
             dir.resolve(1.toString).files(Extension.Seg) should have size 7
             dir.resolve(2.toString).files(Extension.Seg) should have size 14
             dir.resolve(3.toString).files(Extension.Seg) should have size 21
-            dir.resolve(4.toString).files(Extension.Seg) should have size 27
+            dir.resolve(4.toString).files(Extension.Seg) should have size 28
             dir.resolve(5.toString).files(Extension.Seg) should have size 30
           }
 

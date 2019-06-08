@@ -184,4 +184,19 @@ sealed trait LevelCollapseSpec extends TestBase with MockFactory with PrivateMet
       level.delete.assertGet
     }
   }
+
+  "update createdInLevel" in {
+    val level = TestLevel(segmentSize = 1.kb)
+
+    val keyValues = randomPutKeyValues(keyValuesCount, addRandomExpiredPutDeadlines = false)
+    val maps = TestMap(keyValues.toTransient.toMemoryResponse)
+    level.put(maps).assertGet
+
+    val nextLevel = TestLevel()
+    nextLevel.put(level.segmentsInLevel()).assertGet
+
+    if (persistent) nextLevel.segmentsInLevel() foreach (_.createdInLevel.assertGet shouldBe level.levelNumber)
+    nextLevel.collapse(nextLevel.segmentsInLevel()).assertGet
+    nextLevel.segmentsInLevel() foreach (_.createdInLevel.assertGet shouldBe nextLevel.levelNumber)
+  }
 }

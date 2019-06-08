@@ -47,17 +47,17 @@ object Accelerator {
             maxMapSize: Long = 24.mb,
             brakeOnMapCount: Int = 6,
             brakeFor: FiniteDuration = 50.milliseconds,
-            releaseRate: FiniteDuration = 1.millisecond)(level0Meter: LevelZeroMeter): Accelerator =
+            releaseRate: FiniteDuration = 1.millisecond)(levelZeroMeter: LevelZeroMeter): Accelerator =
     Accelerator(
       nextMapSize =
-        nextMapSize(increaseMapSizeOnMapCount, increaseMapSizeBy, maxMapSize, level0Meter),
+        nextMapSize(increaseMapSizeOnMapCount, increaseMapSizeBy, maxMapSize, levelZeroMeter),
       brake =
-        if (level0Meter.mapsCount < brakeOnMapCount)
+        if (levelZeroMeter.mapsCount < brakeOnMapCount)
           None
         else
           Some(
             Brake(
-              brakeFor = brakeFor * (level0Meter.mapsCount - brakeOnMapCount + 1),
+              brakeFor = brakeFor * (levelZeroMeter.mapsCount - brakeOnMapCount + 1),
               releaseRate = releaseRate
             )
           )

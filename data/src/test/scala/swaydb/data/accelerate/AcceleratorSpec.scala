@@ -36,12 +36,12 @@ class AcceleratorSpec extends WordSpec with Matchers {
         increaseMapSizeBy = 5,
         maxMapSize = 10.mb
       )(
-        level0Meter =
-          LevelZeroMeter(
-            _defaultMapSize = 4.mb,
-            _currentMapSize = 4.mb,
-            _mapsCount = 1
-          )
+        levelZeroMeter =
+          new LevelZeroMeter {
+            def defaultMapSize = 4.mb
+            def currentMapSize = 4.mb
+            def mapsCount = 1
+          }
       ) shouldBe Accelerator(nextMapSize = 4.mb, brake = None)
     }
 
@@ -54,12 +54,12 @@ class AcceleratorSpec extends WordSpec with Matchers {
         increaseMapSizeBy = 2,
         maxMapSize = 10.mb
       )(
-        level0Meter =
-          LevelZeroMeter(
-            _defaultMapSize = 4.mb,
-            _currentMapSize = 4.mb,
-            _mapsCount = 2
-          )
+        levelZeroMeter =
+          new LevelZeroMeter {
+            def defaultMapSize = 4.mb
+            def currentMapSize = 4.mb
+            def mapsCount = 2
+          }
       ) shouldBe Accelerator(8.mb, Some(Brake(brakeFor = 10.millisecond, releaseRate = 0.5.millisecond)))
     }
 
@@ -72,12 +72,12 @@ class AcceleratorSpec extends WordSpec with Matchers {
         increaseMapSizeBy = 4,
         maxMapSize = 20.mb
       )(
-        level0Meter =
-          LevelZeroMeter(
-            _defaultMapSize = 4.mb,
-            _currentMapSize = 4.mb,
-            _mapsCount = 5
-          )
+        levelZeroMeter =
+          new LevelZeroMeter {
+            def defaultMapSize = 4.mb
+            def currentMapSize = 4.mb
+            def mapsCount = 5
+          }
       ) shouldBe Accelerator(16.mb, Some(Brake(brakeFor = 40.millisecond, releaseRate = 0.5.millisecond)))
     }
 
@@ -90,12 +90,12 @@ class AcceleratorSpec extends WordSpec with Matchers {
         increaseMapSizeBy = 50,
         maxMapSize = 10.mb
       )(
-        level0Meter =
-          LevelZeroMeter(
-            _defaultMapSize = 4.mb,
-            _currentMapSize = 4.mb,
-            _mapsCount = 2
-          )
+        levelZeroMeter =
+          new LevelZeroMeter {
+            def defaultMapSize = 4.mb
+            def currentMapSize = 4.mb
+            def mapsCount = 2
+          }
       ) shouldBe Accelerator(10.mb, Some(Brake(brakeFor = 1.second, releaseRate = 100.millisecond)))
     }
 
@@ -108,15 +108,13 @@ class AcceleratorSpec extends WordSpec with Matchers {
         increaseMapSizeBy = 2,
         maxMapSize = 20.mb
       )(
-        level0Meter =
-          LevelZeroMeter(
-            _defaultMapSize = 4.mb,
-            _currentMapSize = 8.mb,
-            _mapsCount = 2
-          )
+        levelZeroMeter =
+          new LevelZeroMeter {
+            def defaultMapSize = 4.mb
+            def currentMapSize = 8.mb
+            def mapsCount = 2
+          }
       ) shouldBe Accelerator(16.mb, Some(Brake(brakeFor = 1.second, releaseRate = 100.millisecond)))
     }
-
   }
-
 }
