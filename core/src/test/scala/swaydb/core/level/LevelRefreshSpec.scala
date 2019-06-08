@@ -38,9 +38,9 @@ import swaydb.serializers._
 
 import scala.concurrent.duration._
 
-class LevelWriteRefreshSpec0 extends LevelWriteRefreshSpec
+class LevelRefreshSpec0 extends LevelRefreshSpec
 
-class LevelWriteRefreshSpec1 extends LevelWriteRefreshSpec {
+class LevelRefreshSpec1 extends LevelRefreshSpec {
   override def levelFoldersCount = 10
   override def mmapSegmentsOnWrite = true
   override def mmapSegmentsOnRead = true
@@ -48,7 +48,7 @@ class LevelWriteRefreshSpec1 extends LevelWriteRefreshSpec {
   override def appendixStorageMMAP = true
 }
 
-class LevelWriteRefreshSpec2 extends LevelWriteRefreshSpec {
+class LevelRefreshSpec2 extends LevelRefreshSpec {
   override def levelFoldersCount = 10
   override def mmapSegmentsOnWrite = false
   override def mmapSegmentsOnRead = false
@@ -56,11 +56,11 @@ class LevelWriteRefreshSpec2 extends LevelWriteRefreshSpec {
   override def appendixStorageMMAP = false
 }
 
-class LevelWriteRefreshSpec3 extends LevelWriteRefreshSpec {
+class LevelRefreshSpec3 extends LevelRefreshSpec {
   override def inMemoryStorage = true
 }
 
-sealed trait LevelWriteRefreshSpec extends TestBase with MockFactory with PrivateMethodTester {
+sealed trait LevelRefreshSpec extends TestBase with MockFactory with PrivateMethodTester {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit val testTimer: TestTimer = TestTimer.Empty

@@ -45,9 +45,9 @@ import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
-class LevelWriteSpec0 extends LevelWriteSpec
+class LevelSpec0 extends LevelSpec
 
-class LevelWriteSpec1 extends LevelWriteSpec {
+class LevelSpec1 extends LevelSpec {
   override def levelFoldersCount = 10
   override def mmapSegmentsOnWrite = true
   override def mmapSegmentsOnRead = true
@@ -55,7 +55,7 @@ class LevelWriteSpec1 extends LevelWriteSpec {
   override def appendixStorageMMAP = true
 }
 
-class LevelWriteSpec2 extends LevelWriteSpec {
+class LevelSpec2 extends LevelSpec {
   override def levelFoldersCount = 10
   override def mmapSegmentsOnWrite = false
   override def mmapSegmentsOnRead = false
@@ -63,11 +63,11 @@ class LevelWriteSpec2 extends LevelWriteSpec {
   override def appendixStorageMMAP = false
 }
 
-class LevelWriteSpec3 extends LevelWriteSpec {
+class LevelSpec3 extends LevelSpec {
   override def inMemoryStorage = true
 }
 
-sealed trait LevelWriteSpec extends TestBase with MockFactory with PrivateMethodTester {
+sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTester {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit val testTimer: TestTimer = TestTimer.Empty

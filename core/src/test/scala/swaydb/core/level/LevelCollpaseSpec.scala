@@ -37,9 +37,9 @@ import swaydb.data.util.StorageUnits._
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
 
-class LevelWriteCollapseSpec0 extends LevelWriteCollapseSpec
+class LevelCollapseSpec0 extends LevelCollapseSpec
 
-class LevelWriteCollapseSpec1 extends LevelWriteCollapseSpec {
+class LevelCollapseSpec1 extends LevelCollapseSpec {
   override def levelFoldersCount = 10
   override def mmapSegmentsOnWrite = true
   override def mmapSegmentsOnRead = true
@@ -47,7 +47,7 @@ class LevelWriteCollapseSpec1 extends LevelWriteCollapseSpec {
   override def appendixStorageMMAP = true
 }
 
-class LevelWriteCollapseSpec2 extends LevelWriteCollapseSpec {
+class LevelCollapseSpec2 extends LevelCollapseSpec {
   override def levelFoldersCount = 10
   override def mmapSegmentsOnWrite = false
   override def mmapSegmentsOnRead = false
@@ -55,11 +55,11 @@ class LevelWriteCollapseSpec2 extends LevelWriteCollapseSpec {
   override def appendixStorageMMAP = false
 }
 
-class LevelWriteCollapseSpec3 extends LevelWriteCollapseSpec {
+class LevelCollapseSpec3 extends LevelCollapseSpec {
   override def inMemoryStorage = true
 }
 
-sealed trait LevelWriteCollapseSpec extends TestBase with MockFactory with PrivateMethodTester {
+sealed trait LevelCollapseSpec extends TestBase with MockFactory with PrivateMethodTester {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit val testTimer: TestTimer = TestTimer.Empty

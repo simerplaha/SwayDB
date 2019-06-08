@@ -45,9 +45,9 @@ import swaydb.data.util.StorageUnits._
 import scala.concurrent.ExecutionContext
 import scala.util.Random
 
-class LevelWriteSegmentSpec0 extends LevelWriteSegmentSpec
+class LevelSegmentSpec0 extends LevelSegmentSpec
 
-class LevelWriteSegmentSpec1 extends LevelWriteSegmentSpec {
+class LevelSegmentSpec1 extends LevelSegmentSpec {
   override def levelFoldersCount = 10
   override def mmapSegmentsOnWrite = true
   override def mmapSegmentsOnRead = true
@@ -55,7 +55,7 @@ class LevelWriteSegmentSpec1 extends LevelWriteSegmentSpec {
   override def appendixStorageMMAP = true
 }
 
-class LevelWriteSegmentSpec2 extends LevelWriteSegmentSpec {
+class LevelSegmentSpec2 extends LevelSegmentSpec {
   override def levelFoldersCount = 10
   override def mmapSegmentsOnWrite = false
   override def mmapSegmentsOnRead = false
@@ -63,11 +63,11 @@ class LevelWriteSegmentSpec2 extends LevelWriteSegmentSpec {
   override def appendixStorageMMAP = false
 }
 
-class LevelWriteSegmentSpec3 extends LevelWriteSegmentSpec {
+class LevelSegmentSpec3 extends LevelSegmentSpec {
   override def inMemoryStorage = true
 }
 
-sealed trait LevelWriteSegmentSpec extends TestBase with MockFactory {
+sealed trait LevelSegmentSpec extends TestBase with MockFactory {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit val testTimer: TestTimer = TestTimer.Empty

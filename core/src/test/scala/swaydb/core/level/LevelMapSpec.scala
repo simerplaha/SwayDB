@@ -40,9 +40,9 @@ import swaydb.serializers._
 
 import scala.concurrent.ExecutionContext
 
-class LevelWriteMapSpec0 extends LevelWriteMapSpec
+class LevelMapSpec0 extends LevelMapSpec
 
-class LevelWriteMapSpec1 extends LevelWriteMapSpec {
+class LevelMapSpec1 extends LevelMapSpec {
   override def levelFoldersCount = 10
   override def mmapSegmentsOnWrite = true
   override def mmapSegmentsOnRead = true
@@ -50,7 +50,7 @@ class LevelWriteMapSpec1 extends LevelWriteMapSpec {
   override def appendixStorageMMAP = true
 }
 
-class LevelWriteMapSpec2 extends LevelWriteMapSpec {
+class LevelMapSpec2 extends LevelMapSpec {
   override def levelFoldersCount = 10
   override def mmapSegmentsOnWrite = false
   override def mmapSegmentsOnRead = false
@@ -58,11 +58,11 @@ class LevelWriteMapSpec2 extends LevelWriteMapSpec {
   override def appendixStorageMMAP = false
 }
 
-class LevelWriteMapSpec3 extends LevelWriteMapSpec {
+class LevelMapSpec3 extends LevelMapSpec {
   override def inMemoryStorage = true
 }
 
-sealed trait LevelWriteMapSpec extends TestBase with MockFactory with PrivateMethodTester {
+sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTester {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit val testTimer: TestTimer = TestTimer.Empty

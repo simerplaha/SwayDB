@@ -33,9 +33,9 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 
-class LevelWriteRemoveSegmentSpec0 extends LevelWriteRemoveSegmentSpec
+class LevelRemoveSegmentSpec0 extends LevelRemoveSegmentSpec
 
-class LevelWriteRemoveSegmentSpec1 extends LevelWriteRemoveSegmentSpec {
+class LevelRemoveSegmentSpec1 extends LevelRemoveSegmentSpec {
   override def levelFoldersCount = 10
   override def mmapSegmentsOnWrite = true
   override def mmapSegmentsOnRead = true
@@ -43,7 +43,7 @@ class LevelWriteRemoveSegmentSpec1 extends LevelWriteRemoveSegmentSpec {
   override def appendixStorageMMAP = true
 }
 
-class LevelWriteRemoveSegmentSpec2 extends LevelWriteRemoveSegmentSpec {
+class LevelRemoveSegmentSpec2 extends LevelRemoveSegmentSpec {
   override def levelFoldersCount = 10
   override def mmapSegmentsOnWrite = false
   override def mmapSegmentsOnRead = false
@@ -51,11 +51,11 @@ class LevelWriteRemoveSegmentSpec2 extends LevelWriteRemoveSegmentSpec {
   override def appendixStorageMMAP = false
 }
 
-class LevelWriteRemoveSegmentSpec3 extends LevelWriteRemoveSegmentSpec {
+class LevelRemoveSegmentSpec3 extends LevelRemoveSegmentSpec {
   override def inMemoryStorage = true
 }
 
-sealed trait LevelWriteRemoveSegmentSpec extends TestBase with MockFactory with PrivateMethodTester {
+sealed trait LevelRemoveSegmentSpec extends TestBase with MockFactory with PrivateMethodTester {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit val testTimer: TestTimer = TestTimer.Empty

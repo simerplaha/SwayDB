@@ -36,9 +36,9 @@ import swaydb.core.{TestBase, TestData, TestLimitQueues, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
-class LevelWriteCopySpec0 extends LevelWriteCopySpec
+class LevelCopySpec0 extends LevelCopySpec
 
-class LevelWriteCopySpec1 extends LevelWriteCopySpec {
+class LevelCopySpec1 extends LevelCopySpec {
   override def levelFoldersCount = 10
   override def mmapSegmentsOnWrite = true
   override def mmapSegmentsOnRead = true
@@ -46,7 +46,7 @@ class LevelWriteCopySpec1 extends LevelWriteCopySpec {
   override def appendixStorageMMAP = true
 }
 
-class LevelWriteCopySpec2 extends LevelWriteCopySpec {
+class LevelCopySpec2 extends LevelCopySpec {
   override def levelFoldersCount = 10
   override def mmapSegmentsOnWrite = false
   override def mmapSegmentsOnRead = false
@@ -54,11 +54,11 @@ class LevelWriteCopySpec2 extends LevelWriteCopySpec {
   override def appendixStorageMMAP = false
 }
 
-class LevelWriteCopySpec3 extends LevelWriteCopySpec {
+class LevelCopySpec3 extends LevelCopySpec {
   override def inMemoryStorage = true
 }
 
-sealed trait LevelWriteCopySpec extends TestBase with MockFactory with PrivateMethodTester {
+sealed trait LevelCopySpec extends TestBase with MockFactory with PrivateMethodTester {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit val testTimer: TestTimer = TestTimer.Empty
