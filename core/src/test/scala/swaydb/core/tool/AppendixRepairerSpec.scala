@@ -98,7 +98,7 @@ class AppendixRepairerSpec extends TestBase {
         case (segmentId, segment) =>
           //create a duplicate Segment
           val duplicateSegment = segment.path.getParent.resolve(segmentId.toSegmentFileId)
-          segment.copyTo(duplicateSegment).assertGet
+          IOEffect.copy(segment.path, duplicateSegment).assertGet
           //perform repair
           AppendixRepairer(level.rootPath, AppendixRepairStrategy.ReportFailure).failed.assertGet.exception shouldBe a[OverlappingSegmentsException]
           //perform repair with DeleteNext. This will delete the newest duplicate Segment.
@@ -107,7 +107,7 @@ class AppendixRepairerSpec extends TestBase {
           duplicateSegment.exists shouldBe false
 
           //copy again
-          segment.copyTo(duplicateSegment).assertGet
+          IOEffect.copy(segment.path, duplicateSegment).assertGet
           //now use delete previous instead
           AppendixRepairer(level.rootPath, AppendixRepairStrategy.KeepNew).assertGet
           //newer duplicate Segment exists
@@ -140,7 +140,7 @@ class AppendixRepairerSpec extends TestBase {
             val keyValuesToOverlap = Random.shuffle(segment.getAll().assertGet.toList).take(numberOfKeyValuesToOverlap)
             //create overlapping Segment
             val overlappingSegment = TestSegment(keyValuesToOverlap.toTransient).assertGet
-            overlappingSegment.copyTo(overlappingLevelSegmentPath).assertGet
+            IOEffect.copy(overlappingSegment.path, overlappingLevelSegmentPath).assertGet
             overlappingSegment.close.assertGet //gotta close the new segment create after it's copied over.
           }
 
@@ -167,5 +167,4 @@ class AppendixRepairerSpec extends TestBase {
       reopenedLevel.close.assertGet
     }
   }
-
 }

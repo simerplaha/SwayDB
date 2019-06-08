@@ -20,10 +20,7 @@
 package swaydb.core.segment.format.a
 
 import java.nio.file._
-import scala.collection.JavaConverters._
-import scala.collection.mutable.ListBuffer
-import scala.concurrent.duration._
-import scala.util.Random
+
 import swaydb.configs.level.DefaultGroupingStrategy
 import swaydb.core.CommonAssertions._
 import swaydb.core.IOAssert._
@@ -37,9 +34,8 @@ import swaydb.core.io.file.IOEffect._
 import swaydb.core.io.reader.Reader
 import swaydb.core.level.PathsDistributor
 import swaydb.core.queue.FileLimiter
-import swaydb.core.segment.Segment
-import swaydb.core.segment.SegmentException.CannotCopyInMemoryFiles
 import swaydb.core.segment.merge.SegmentMerger
+import swaydb.core.segment.{PersistentSegment, Segment}
 import swaydb.core.util._
 import swaydb.core.{TestBase, TestData, TestLimitQueues, TestTimer}
 import swaydb.data.config.Dir
@@ -50,6 +46,11 @@ import swaydb.data.util.StorageUnits._
 import swaydb.data.{IO, MaxKey}
 import swaydb.serializers.Default._
 import swaydb.serializers._
+
+import scala.collection.JavaConverters._
+import scala.collection.mutable.ListBuffer
+import scala.concurrent.duration._
+import scala.util.Random
 
 class SegmentWriteSpec0 extends SegmentWriteSpec
 
@@ -670,14 +671,11 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
 
   "copyTo" should {
     "copy the segment to a target path without deleting the original" in {
-      if (memory) {
-        val segment = TestSegment(randomizedKeyValues(keyValuesCount)).assertGet
-        segment.copyTo(randomFilePath).failed.assertGet.exception shouldBe CannotCopyInMemoryFiles(segment.path)
-      } else {
+      if (persistent) {
         val keyValues = randomizedKeyValues(keyValuesCount)
         val keyValuesReadOnly = keyValues
 
-        val segment = TestSegment(keyValues).get
+        val segment = TestSegment(keyValues).get.asInstanceOf[PersistentSegment]
         val targetPath = createRandomIntDirectory.resolve(nextId + s".${Extension.Seg}")
 
         segment.copyTo(targetPath).assertGet

@@ -180,9 +180,6 @@ private[segment] case class MemorySegment(path: Path,
           }
       }
 
-  override def copyTo(toPath: Path): IO[Path] =
-    IO.Failure(IO.Error.Fatal(SegmentException.CannotCopyInMemoryFiles(path)))
-
   override def getFromCache(key: Slice[Byte]): Option[KeyValue.ReadOnly] =
     Option(cache.get(key))
 

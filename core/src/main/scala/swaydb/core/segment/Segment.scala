@@ -956,8 +956,6 @@ private[core] trait Segment extends FileLimiterItem {
               targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
                                                                                                           groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]]
 
-  def copyTo(toPath: Path): IO[Path]
-
   def getFromCache(key: Slice[Byte]): Option[KeyValue.ReadOnly]
 
   def mightContain(key: Slice[Byte]): IO[Boolean]

@@ -266,6 +266,70 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
     }
   }
 
+  "optimalSegmentsToCollapse" should {
+    "return empty if there Levels are empty" in {
+      val nextLevel = TestLevel()
+      val level = TestLevel()
+      implicit val reserve = ReserveRange.create[Unit]()
+
+      Level.optimalSegmentsToCollapse(
+        level = level,
+        take = 10
+      ) shouldBe empty
+
+      level.close.assertGet
+      nextLevel.close.assertGet
+    }
+
+    "return empty if all segments were reserved" in {
+      val nextLevel = TestLevel()
+      val keyValues = randomizedKeyValues(count = 10000, startId = Some(1))
+      val level = TestLevel(keyValues = keyValues, segmentSize = 1.kb)
+      level.segmentsCount() should be >= 2
+
+      implicit val reserve = ReserveRange.create[Unit]()
+
+      val minKey = keyValues.head.key
+      val maxKey = Segment.minMaxKey(level.segmentsInLevel()).get
+      ReserveRange.reserveOrGet(minKey, maxKey._2, maxKey._3, ()) shouldBe empty
+
+      Level.optimalSegmentsToCollapse(
+        level = level,
+        take = 10
+      ) shouldBe empty
+
+      level.close.assertGet
+      nextLevel.close.assertGet
+    }
+
+    "return all unreserved Segments to copy if next Level is empty" in {
+      runThis(5.times) {
+        val nextLevel = TestLevel()
+        val level = TestLevel(keyValues = randomizedKeyValues(count = 10000, startId = Some(1)), segmentSize = 1.kb)
+        level.segmentsCount() should be >= 2
+
+        implicit val reserve = ReserveRange.create[Unit]()
+        val firstSegment = level.segmentsInLevel().head
+
+        ReserveRange.reserveOrGet(firstSegment.minKey, firstSegment.maxKey.maxKey, firstSegment.maxKey.inclusive, ()) shouldBe empty //reserve first segment
+
+        Level.optimalSegmentsToCollapse(
+          level = level,
+          take = 10
+        ).map(_.path) shouldBe
+          level
+            .segmentsInLevel()
+            .drop(1)
+            .take(10)
+            .filter(Level.isSmallSegment(_, level.segmentSize))
+            .map(_.path)
+
+        level.close.assertGet
+        nextLevel.close.assertGet
+      }
+    }
+  }
+
   "reserve" should {
     "reserve keys for compaction where Level is empty" in {
       val level = TestLevel()
