@@ -24,31 +24,24 @@ abstract class EntryId(val id: Int)
 object EntryId {
 
   trait EntryFormat {
-    //@formatter:off
-    def
-    keyIdsList: List[EntryId]
+    def keyIdsList: List[EntryId]
     def format: EntryId.Format
-    //@formatter:on
   }
 
   trait Format {
-    //@formatter:off
     def keyFullyCompressed: Key.FullyCompressed
     def keyPartiallyCompressed: Key.PartiallyCompressed
     def keyUncompressed: Key.Uncompressed
-    //@formatter:on
   }
   object Format {
     trait A extends Format
   }
 
   trait Key {
-    //@formatter:off
     def noTime: Time.NoTime
     def timeFullyCompressed: Time.FullyCompressed
     def timePartiallyCompressed: Time.PartiallyCompressed
     def timeUncompressed: Time.Uncompressed
-    //@formatter:on
   }
 
   object Key {
@@ -58,11 +51,9 @@ object EntryId {
   }
 
   trait Time {
-    //@formatter:off
     def noValue: Value.NoValue
     def valueFullyCompressed: Value.FullyCompressed
     def valueUncompressed: Value.Uncompressed
-    //@formatter:on
   }
   object Time {
     trait NoTime extends Time
@@ -72,7 +63,6 @@ object EntryId {
   }
 
   sealed trait GetDeadlineId {
-    //@formatter:off
     def deadlineOneCompressed: Deadline.OneCompressed
     def deadlineTwoCompressed: Deadline.TwoCompressed
     def deadlineThreeCompressed: Deadline.ThreeCompressed
@@ -83,7 +73,6 @@ object EntryId {
     def deadlineFullyCompressed: Deadline.FullyCompressed
     def deadlineUncompressed: Deadline.Uncompressed
     def noDeadline: Deadline.NoDeadline
-    //@formatter:on
   }
 
   trait Value
@@ -91,23 +80,19 @@ object EntryId {
     trait NoValue extends Value with GetDeadlineId
     trait FullyCompressed extends Value with GetDeadlineId
     trait Uncompressed extends Value {
-      //@formatter:off
       def valueOffsetOneCompressed: ValueOffset.OneCompressed
       def valueOffsetTwoCompressed: ValueOffset.TwoCompressed
       def valueOffsetThreeCompressed: ValueOffset.ThreeCompressed
       def valueOffsetUncompressed: ValueOffset.Uncompressed
-      //@formatter:on
     }
   }
 
   trait ValueOffset {
-    //@formatter:off
     def valueLengthOneCompressed: ValueLength.OneCompressed
     def valueLengthTwoCompressed: ValueLength.TwoCompressed
     def valueLengthThreeCompressed: ValueLength.ThreeCompressed
     def valueLengthFullyCompressed: ValueLength.FullyCompressed
     def valueLengthUncompressed: ValueLength.Uncompressed
-    //@formatter:on
   }
   object ValueOffset {
     trait OneCompressed extends ValueOffset
