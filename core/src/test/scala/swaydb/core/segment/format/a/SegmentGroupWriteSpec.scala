@@ -36,11 +36,11 @@ import scala.concurrent.duration._
 
 //@formatter:off
 class SegmentGroupWriteSpec0 extends SegmentGroupWriteSpec {
-  val keyValuesCount = 100000
+  val keyValuesCount = 10000
 }
 
 class SegmentGroupWriteSpec1 extends SegmentGroupWriteSpec {
-  val keyValuesCount = 100000
+  val keyValuesCount = 10000
   override def levelFoldersCount = 1
   override def mmapSegmentsOnWrite = false
   override def mmapSegmentsOnRead = false
@@ -49,7 +49,7 @@ class SegmentGroupWriteSpec1 extends SegmentGroupWriteSpec {
 }
 
 class SegmentGroupWriteSpec2 extends SegmentGroupWriteSpec {
-  val keyValuesCount = 100000
+  val keyValuesCount = 10000
   override def inMemoryStorage = true
 }
 //@formatter:on
