@@ -27,9 +27,10 @@ import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data._
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
+import swaydb.core.level.compaction.{Compaction, Compactor, CompactorState, DefaultCompactionOrdering}
 import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
-import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
+import swaydb.core.{TestBase, TestExecutionContext, TestLimitQueues, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
@@ -95,6 +96,21 @@ sealed trait LevelRefreshSpec extends TestBase with MockFactory with PrivateMeth
       }
 
       level.segmentFilesInAppendix shouldBe 0
+    }
+
+    "update createdInLevel" in {
+      val level = TestLevel(segmentSize = 1.kb)
+
+      val keyValues = randomPutKeyValues(keyValuesCount, addRandomExpiredPutDeadlines = false)
+      val maps = TestMap(keyValues.toTransient.toMemoryResponse)
+      level.put(maps).assertGet
+
+      val nextLevel = TestLevel()
+      nextLevel.put(level.segmentsInLevel()).assertGet
+
+      nextLevel.segmentsInLevel() foreach (_.createdInLevel.assertGet shouldBe level.levelNumber)
+      nextLevel.segmentsInLevel() foreach (segment => nextLevel.refresh(segment).assertGet)
+      nextLevel.segmentsInLevel() foreach (_.createdInLevel.assertGet shouldBe nextLevel.levelNumber)
     }
   }
 }

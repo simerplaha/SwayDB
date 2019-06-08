@@ -139,6 +139,17 @@ private[core] object LevelZero extends LazyLogging {
         )
     }
   }
+
+  def delete(zero: LevelZero): IO[Unit] =
+    zero
+      .close
+      .flatMap {
+        _ =>
+          zero
+            .nextLevel
+            .map(_.delete)
+            .getOrElse(IOEffect.walkDelete(zero.path))
+      }
 }
 
 private[core] case class LevelZero(path: Path,
@@ -712,7 +723,7 @@ private[core] case class LevelZero(path: Path,
   override def isTrash: Boolean =
     false
 
-  override def levelNumber: Long = 0
+  override def levelNumber: Int = 0
 
   override def isZero: Boolean = true
 
@@ -721,4 +732,7 @@ private[core] case class LevelZero(path: Path,
 
   override def nextCompactionDelay: FiniteDuration =
     throttle(levelZeroMeter)
+
+  override def delete: IO[Unit] =
+    LevelZero.delete(this)
 }

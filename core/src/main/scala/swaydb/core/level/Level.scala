@@ -668,7 +668,7 @@ private[core] case class Level(dirs: Seq[Dir],
     else
       Segment.copyToPersist(
         keyValues = keyValues,
-        createdInLevel = levelNumber.toInt,
+        createdInLevel = levelNumber,
         fetchNextPath = targetSegmentPath,
         mmapSegmentsOnRead = mmapSegmentsOnRead,
         mmapSegmentsOnWrite = mmapSegmentsOnWrite,
@@ -729,7 +729,7 @@ private[core] case class Level(dirs: Seq[Dir],
             Segment.copyToMemory(
               segment = segment,
               fetchNextPath = targetSegmentPath,
-              createdInLevel = levelNumber.toInt,
+              createdInLevel = levelNumber,
               minSegmentSize = segmentSize,
               removeDeletes = removeDeletedRecords,
               bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
@@ -739,7 +739,7 @@ private[core] case class Level(dirs: Seq[Dir],
             Segment.copyToPersist(
               segment = segment,
               fetchNextPath = targetSegmentPath,
-              createdInLevel = levelNumber.toInt,
+              createdInLevel = levelNumber,
               mmapSegmentsOnRead = mmapSegmentsOnRead,
               mmapSegmentsOnWrite = mmapSegmentsOnWrite,
               minSegmentSize = segmentSize,
@@ -775,6 +775,7 @@ private[core] case class Level(dirs: Seq[Dir],
             bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
             compressDuplicateValues = compressDuplicateValues,
             targetPaths = paths,
+            createdInLevel = levelNumber,
             removeDeletes = removeDeletedRecords
           ) flatMap {
             newSegments =>
@@ -849,12 +850,7 @@ private[core] case class Level(dirs: Seq[Dir],
     } else {
       //other segments in the appendix that are not the input segments (segments to collapse).
       val levelSegments = segmentsInLevel()
-      val targetAppendixSegments =
-        levelSegments
-          .filter {
-            appendixSegment =>
-              segments.exists(_.path != appendixSegment.path)
-          }
+      val targetAppendixSegments = levelSegments.filterNot(map => segments.exists(_.path == map.path))
 
       val (segmentsToMerge, targetSegments) =
         if (targetAppendixSegments.nonEmpty) {
@@ -995,6 +991,7 @@ private[core] case class Level(dirs: Seq[Dir],
             bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
             compressDuplicateValues = compressDuplicateValues,
             targetPaths = paths.addPriorityPath(targetSegment.path.getParent),
+            createdInLevel = levelNumber,
             removeDeletes = removeDeletedRecords
           ) map {
             newSegments =>
@@ -1264,8 +1261,8 @@ private[core] case class Level(dirs: Seq[Dir],
         (segments + 1, size + segment.segmentSize)
     }
 
-  val levelNumber: Long =
-    paths.head.path.folderId
+  val levelNumber: Int =
+    paths.head.path.folderId.toInt
 
   def meterFor(levelNumber: Int): Option[LevelMeter] =
     if (levelNumber == paths.head.path.folderId)

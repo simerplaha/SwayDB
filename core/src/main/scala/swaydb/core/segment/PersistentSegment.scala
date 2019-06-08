@@ -125,6 +125,7 @@ private[segment] case class PersistentSegment(file: DBFile,
           bloomFilterFalsePositiveRate: Double,
           compressDuplicateValues: Boolean,
           removeDeletes: Boolean,
+          createdInLevel: Int,
           targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
                                                                                                       groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]] =
     getAll() flatMap {
@@ -139,31 +140,28 @@ private[segment] case class PersistentSegment(file: DBFile,
           compressDuplicateValues = compressDuplicateValues
         ) flatMap {
           splits =>
-            getFooter() flatMap {
-              footer =>
-                splits.mapIO(
-                  block =
-                    keyValues =>
-                      Segment.persistent(
-                        path = targetPaths.next.resolve(idGenerator.nextSegmentID),
-                        createdInLevel = footer.createdInLevel,
-                        mmapReads = mmapReads,
-                        mmapWrites = mmapWrites,
-                        keyValues = keyValues,
-                        bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate
-                      ),
+            splits.mapIO(
+              block =
+                keyValues =>
+                  Segment.persistent(
+                    path = targetPaths.next.resolve(idGenerator.nextSegmentID),
+                    createdInLevel = createdInLevel,
+                    mmapReads = mmapReads,
+                    mmapWrites = mmapWrites,
+                    keyValues = keyValues,
+                    bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate
+                  ),
 
-                  recover =
-                    (segments: Slice[Segment], _: IO.Failure[Slice[Segment]]) =>
-                      segments foreach {
-                        segmentToDelete =>
-                          segmentToDelete.delete onFailureSideEffect {
-                            exception =>
-                              logger.error(s"{}: Failed to delete Segment '{}' in recover due to failed put", path, segmentToDelete.path, exception)
-                          }
+              recover =
+                (segments: Slice[Segment], _: IO.Failure[Slice[Segment]]) =>
+                  segments foreach {
+                    segmentToDelete =>
+                      segmentToDelete.delete onFailureSideEffect {
+                        exception =>
+                          logger.error(s"{}: Failed to delete Segment '{}' in recover due to failed put", path, segmentToDelete.path, exception)
                       }
-                )
-            }
+                  }
+            )
         }
     }
 
@@ -171,6 +169,7 @@ private[segment] case class PersistentSegment(file: DBFile,
               bloomFilterFalsePositiveRate: Double,
               compressDuplicateValues: Boolean,
               removeDeletes: Boolean,
+              createdInLevel: Int,
               targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
                                                                                                           groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]] =
     getAll() flatMap {
@@ -184,31 +183,28 @@ private[segment] case class PersistentSegment(file: DBFile,
           compressDuplicateValues = compressDuplicateValues
         ) flatMap {
           splits =>
-            getFooter() flatMap {
-              footer =>
-                splits.mapIO(
-                  block =
-                    keyValues =>
-                      Segment.persistent(
-                        path = targetPaths.next.resolve(idGenerator.nextSegmentID),
-                        createdInLevel = footer.createdInLevel,
-                        mmapReads = mmapReads,
-                        mmapWrites = mmapWrites,
-                        keyValues = keyValues,
-                        bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate
-                      ),
+            splits.mapIO(
+              block =
+                keyValues =>
+                  Segment.persistent(
+                    path = targetPaths.next.resolve(idGenerator.nextSegmentID),
+                    createdInLevel = createdInLevel,
+                    mmapReads = mmapReads,
+                    mmapWrites = mmapWrites,
+                    keyValues = keyValues,
+                    bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate
+                  ),
 
-                  recover =
-                    (segments: Slice[Segment], _: IO.Failure[Slice[Segment]]) =>
-                      segments foreach {
-                        segmentToDelete =>
-                          segmentToDelete.delete onFailureSideEffect {
-                            exception =>
-                              logger.error(s"{}: Failed to delete Segment '{}' in recover due to failed refresh", path, segmentToDelete.path, exception)
-                          }
+              recover =
+                (segments: Slice[Segment], _: IO.Failure[Slice[Segment]]) =>
+                  segments foreach {
+                    segmentToDelete =>
+                      segmentToDelete.delete onFailureSideEffect {
+                        exception =>
+                          logger.error(s"{}: Failed to delete Segment '{}' in recover due to failed refresh", path, segmentToDelete.path, exception)
                       }
-                )
-            }
+                  }
+            )
         }
     }
 

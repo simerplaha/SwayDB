@@ -95,6 +95,7 @@ private[segment] case class MemorySegment(path: Path,
                    bloomFilterFalsePositiveRate: Double,
                    compressDuplicateValues: Boolean,
                    removeDeletes: Boolean,
+                   createdInLevel: Int,
                    targetPaths: PathsDistributor)(implicit idGenerator: IDGenerator,
                                                   groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]] =
     if (deleted)
@@ -117,7 +118,7 @@ private[segment] case class MemorySegment(path: Path,
                   keyValues => {
                     Segment.memory(
                       path = targetPaths.next.resolve(idGenerator.nextSegmentID),
-                      createdInLevel = _createdInLevel,
+                      createdInLevel = createdInLevel,
                       keyValues = keyValues,
                       bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate
                     )
@@ -140,6 +141,7 @@ private[segment] case class MemorySegment(path: Path,
                        bloomFilterFalsePositiveRate: Double,
                        compressDuplicateValues: Boolean,
                        removeDeletes: Boolean,
+                       createdInLevel: Int,
                        targetPaths: PathsDistributor)(implicit idGenerator: IDGenerator,
                                                       groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]] =
     if (deleted)
@@ -161,7 +163,7 @@ private[segment] case class MemorySegment(path: Path,
                   keyValues =>
                     Segment.memory(
                       path = targetPaths.next.resolve(idGenerator.nextSegmentID),
-                      createdInLevel = _createdInLevel,
+                      createdInLevel = createdInLevel,
                       keyValues = keyValues,
                       bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate
                     ),

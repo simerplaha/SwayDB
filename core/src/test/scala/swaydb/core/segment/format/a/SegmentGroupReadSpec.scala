@@ -90,7 +90,7 @@ sealed trait SegmentGroupReadSpec extends TestBase with ScalaFutures with Privat
     val keyValues = randomKeyValues(keyValuesCount, startId = Some(0))
     val segment = TestSegment(keyValues).assertGet
 
-    val segments = segment.put(keyValues.toMemory, 100.mb, TestData.falsePositiveRate, true, false).assertGet
+    val segments = segment.put(keyValues.toMemory, 100.mb, TestData.falsePositiveRate, true, false, 0).assertGet
     //    printGroupHierarchy(segments)
 
     segments should have size 1

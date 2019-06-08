@@ -936,6 +936,7 @@ private[core] trait Segment extends FileLimiterItem {
           bloomFilterFalsePositiveRate: Double,
           compressDuplicateValues: Boolean,
           removeDeletes: Boolean,
+          createdInLevel: Int,
           targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
                                                                                                       groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]]
 
@@ -943,6 +944,7 @@ private[core] trait Segment extends FileLimiterItem {
               bloomFilterFalsePositiveRate: Double,
               compressDuplicateValues: Boolean,
               removeDeletes: Boolean,
+              createdInLevel: Int,
               targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
                                                                                                           groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]]
 

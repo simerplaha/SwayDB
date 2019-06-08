@@ -223,7 +223,7 @@ private[core] trait LevelRef {
 
   def meterFor(levelNumber: Int): Option[LevelMeter]
 
-  def levelNumber: Long
+  def levelNumber: Int
 
   def isTrash: Boolean
 
@@ -232,4 +232,6 @@ private[core] trait LevelRef {
   def stateID: Long
 
   def nextCompactionDelay: FiniteDuration
+
+  def delete: IO[Unit]
 }

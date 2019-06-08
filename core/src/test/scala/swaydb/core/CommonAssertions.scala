@@ -752,6 +752,9 @@ object CommonAssertions {
     Random.shuffle(asserts).par.foreach(_ ())
   }
 
+  def assertAllSegmentsCreatedInLevel(level: Level) =
+    level.segmentsInLevel() foreach (_.createdInLevel.assertGet shouldBe level.levelNumber)
+
   def assertReads(keyValues: Iterable[KeyValue],
                   level: LevelRef) = {
     val asserts = Seq(() => assertGet(keyValues, level), () => assertHigher(keyValues, level), () => assertLower(keyValues, level))

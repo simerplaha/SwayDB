@@ -137,7 +137,7 @@ private[core] object TrashLevel extends NextLevel {
   override def closeSegments(): IO[Unit] =
     IO.unit
 
-  override def levelNumber: Long = -1
+  override def levelNumber: Int = -1
 
   override def inMemory: Boolean = true
 

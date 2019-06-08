@@ -27,6 +27,7 @@ import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data._
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
+import swaydb.core.io.file.IOEffect
 import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
@@ -80,11 +81,11 @@ sealed trait LevelCollapseSpec extends TestBase with MockFactory with PrivateMet
       val level = TestLevel(segmentSize = 1.kb)
       val keyValues = randomPutKeyValues(1000, addRandomPutDeadlines = false)(TestTimer.Empty)
       level.putKeyValuesTest(keyValues).assertGet
-      //dispatch another put request so that existing Segment gets split
-      level.putKeyValuesTest(Slice(keyValues.head)).assertGet
 
       val segmentCountBeforeDelete = level.segmentsCount()
       segmentCountBeforeDelete > 1 shouldBe true
+
+      assertAllSegmentsCreatedInLevel(level)
 
       val keyValuesNoDeleted = ListBuffer.empty[KeyValue]
       val deleteEverySecond =
@@ -99,11 +100,12 @@ sealed trait LevelCollapseSpec extends TestBase with MockFactory with PrivateMet
         }
       //delete half of the key values which will create small Segments
       level.putKeyValuesTest(Slice(deleteEverySecond.toArray)).assertGet
-
       level.collapse(level.segmentsInLevel()).assertGet
       //since every second key-value was delete, the number of Segments is reduced to half
       level.segmentFilesInAppendix shouldBe <=((segmentCountBeforeDelete / 2) + 1) //+1 for odd number of key-values
       assertReads(Slice(keyValuesNoDeleted.toArray), level)
+
+      level.delete.assertGet
     }
 
     "collapse all small Segments into one of the existing small Segments, if the Segment was reopened with a larger segment size" in {
@@ -114,6 +116,8 @@ sealed trait LevelCollapseSpec extends TestBase with MockFactory with PrivateMet
           //          implicit val compressionType: Option[KeyValueCompressionType] = randomCompressionTypeOption(keyValuesCount)
           //disable throttling so that it does not automatically collapse small Segments
           val level = TestLevel(segmentSize = 1.kb)
+
+          assertAllSegmentsCreatedInLevel(level)
 
           val keyValues = randomPutKeyValues(1000, addRandomPutDeadlines = false)(TestTimer.Empty)
           level.putKeyValuesTest(keyValues).assertGet
@@ -135,6 +139,8 @@ sealed trait LevelCollapseSpec extends TestBase with MockFactory with PrivateMet
           assertReads(keyValues, reopenLevel)
           val reopen2 = reopenLevel.reopen
           eventual(assertReads(keyValues, reopen2))
+
+          level.delete.assertGet
         }
       }
     }
@@ -146,8 +152,6 @@ sealed trait LevelCollapseSpec extends TestBase with MockFactory with PrivateMet
       val expiryAt = 5.seconds.fromNow
       val keyValues = randomPutKeyValues(1000, valueSize = 0, startId = Some(0), addRandomPutDeadlines = false)(TestTimer.Empty)
       level.putKeyValuesTest(keyValues).assertGet
-      //dispatch another put request so that existing Segment gets split
-      level.putKeyValuesTest(Slice(keyValues.head)).assertGet
       val segmentCountBeforeDelete = level.segmentsCount()
       segmentCountBeforeDelete > 1 shouldBe true
 
@@ -173,9 +177,11 @@ sealed trait LevelCollapseSpec extends TestBase with MockFactory with PrivateMet
 
       sleep(20.seconds)
       level.collapse(level.segmentsInLevel()).assertGet
-      level.segmentFilesInAppendix should be <= 4
+      level.segmentFilesInAppendix should be <= (segmentCountBeforeDelete / 2)
 
       assertReads(Slice(keyValuesNotExpired.toArray), level)
+
+      level.delete.assertGet
     }
   }
 }

@@ -194,7 +194,7 @@ private[swaydb] class Actor[T, +S](val state: S,
     queueSize.set(0)
   }
 
-  private def clearTask() =
+  private def clearTask(): Unit =
     task foreach {
       t =>
         t.cancel()
@@ -205,25 +205,24 @@ private[swaydb] class Actor[T, +S](val state: S,
     * @param runNow ignores default delays and processes actor.
     */
   private def processMessages(runNow: Boolean): Unit =
-    if (!terminated && (loop || !queue.isEmpty) && busy.compareAndSet(false, true))
-      if (runNow) {
-        clearTask()
+    if (!terminated && (loop || !queue.isEmpty) && busy.compareAndSet(false, true)) {
+      clearTask()
+
+      if (runNow)
         Future(receive(maxMessagesToProcessAtOnce))
-      } else {
+      else
         defaultDelay.map(_._1) match {
           case None =>
-            clearTask()
             Future(receive(maxMessagesToProcessAtOnce))
 
           case Some(interval) if interval.fromNow.isOverdue() =>
-            clearTask()
             Future(receive(maxMessagesToProcessAtOnce))
 
           case Some(delay) =>
             busy.set(false) //cancel so that task can be overwritten if there is a message overflow.
             task = Some(Delay.task(delay)(processMessages(runNow = true)))
         }
-      }
+    }
 
   private def receive(max: Int): Unit = {
     var processed = 0

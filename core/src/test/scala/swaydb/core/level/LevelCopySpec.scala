@@ -35,6 +35,7 @@ import swaydb.core.segment.Segment
 import swaydb.core.{TestBase, TestData, TestLimitQueues, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
+import swaydb.data.util.StorageUnits._
 
 class LevelCopySpec0 extends LevelCopySpec
 
@@ -120,6 +121,23 @@ sealed trait LevelCopySpec extends TestBase with MockFactory with PrivateMethodT
 
       Segment.getAllKeyValues(TestData.falsePositiveRate, copiedSegments).assertGet shouldBe keyValues
     }
-
   }
+
+  "copy map directly into lower level" in {
+    val level2 = TestLevel(segmentSize = 1.kb)
+    val level1 = TestLevel(segmentSize = 1.kb, nextLevel = Some(level2))
+
+    val keyValues = randomPutKeyValues(keyValuesCount, addRandomExpiredPutDeadlines = false)
+    val maps = TestMap(keyValues.toTransient.toMemoryResponse)
+
+    level1.put(maps).assertGet
+
+    level1.isEmpty shouldBe true
+    level2.isEmpty shouldBe false
+
+    assertReads(keyValues, level1)
+
+    level1.segmentsInLevel() foreach (_.createdInLevel.assertGet shouldBe level2.levelNumber)
+  }
+
 }

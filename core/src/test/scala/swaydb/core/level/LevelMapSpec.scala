@@ -169,7 +169,9 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
 
     "succeed" when {
       "writing to an empty Level by copying to last Level" in {
-        val nextLevel = mock[Level]
+        val nextLevel = mock[NextLevel]
+
+        nextLevel.isTrash _ expects() returning false
 
         (nextLevel.isCopyable(_: Map[Slice[Byte], Memory.SegmentResponse])) expects * onCall {
           putMap: Map[Slice[Byte], Memory.SegmentResponse] =>
@@ -177,7 +179,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
             true
         }
 
-        (nextLevel.put(_: Map[Slice[Byte], Memory.SegmentResponse])(_: ExecutionContext)) expects (*, *) onCall {
+        (nextLevel.put(_: Map[Slice[Byte], Memory.SegmentResponse])(_: ExecutionContext)) expects(*, *) onCall {
           (putMap: Map[Slice[Byte], Memory.SegmentResponse], _) =>
             putMap.pathOption shouldBe map.pathOption
             IO.unit
@@ -189,10 +191,12 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
       }
 
       "writing to non empty Levels by copying to last Level if key-values do not overlap upper Level" in {
-        val nextLevel = mock[Level]
+        val nextLevel = mock[NextLevel]
 
         val lastLevelKeyValues = randomPutKeyValues(keyValuesCount, addRandomRemoves = true, addRandomPutDeadlines = false, startId = Some(1)).map(_.asInstanceOf[Memory.SegmentResponse])
         val map = TestMap(lastLevelKeyValues)
+
+        nextLevel.isTrash _ expects() returning false
 
         (nextLevel.isCopyable(_: Map[Slice[Byte], Memory.SegmentResponse])) expects * onCall {
           putMap: Map[Slice[Byte], Memory.SegmentResponse] =>
@@ -200,7 +204,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
             true
         }
 
-        (nextLevel.put(_: Map[Slice[Byte], Memory.SegmentResponse])(_: ExecutionContext)) expects (*, *) onCall {
+        (nextLevel.put(_: Map[Slice[Byte], Memory.SegmentResponse])(_: ExecutionContext)) expects(*, *) onCall {
           (putMap: Map[Slice[Byte], Memory.SegmentResponse], _) =>
             putMap.pathOption shouldBe map.pathOption
             IO.unit

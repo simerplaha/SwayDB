@@ -128,7 +128,7 @@ object TestData {
           fetchNextPath = level.paths.next.resolve(level.segmentIDGenerator.nextSegmentID),
           removeDeletes = false,
           minSegmentSize = 1000.mb,
-          createdInLevel = 0,
+          createdInLevel = level.levelNumber,
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           compressDuplicateValues = true
         ) flatMap {
@@ -144,7 +144,7 @@ object TestData {
       else
         Segment.copyToPersist(
           keyValues = keyValues.toTransient,
-          createdInLevel = level.levelNumber.toInt,
+          createdInLevel = level.levelNumber,
           fetchNextPath = level.paths.next.resolve(level.segmentIDGenerator.nextSegmentID),
           mmapSegmentsOnRead = randomBoolean(),
           mmapSegmentsOnWrite = randomBoolean(),
