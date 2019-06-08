@@ -284,13 +284,13 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
   private var brakePedal: BrakePedal = _
 
   @volatile private var totalMapsCount: Int = maps.size() + 1
-  @volatile private var mapsCount: Int = maps.size() + 1
+  @volatile private var currentMapsCount: Int = maps.size() + 1
 
   val meter =
     new LevelZeroMeter {
       override def defaultMapSize: Long = fileSize
       override def currentMapSize: Long = currentMap.fileSize
-      override def mapsCount: Int = self.mapsCount
+      override def mapsCount: Int = self.currentMapsCount
     }
 
   private[core] def onNextMapCallback(event: () => Unit): Unit =
@@ -331,7 +331,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
                   maps addFirst currentMap
                   currentMap = nextMap
                   totalMapsCount += 1
-                  mapsCount += 1
+                  currentMapsCount += 1
                   onNextMapListener()
                   persist(entry)
 
@@ -352,7 +352,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
             maps addFirst currentMap
             currentMap = nextMap
             totalMapsCount += 1
-            mapsCount += 1
+            currentMapsCount += 1
             onNextMapListener()
             IO.Failure(writeException)
 
@@ -440,7 +440,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
             IO.Failure(error)
 
           case IO.Success(_) =>
-            mapsCount -= 1
+            currentMapsCount -= 1
             IO.unit
         }
     }

@@ -409,15 +409,16 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterAll with Eventu
       * If [[throttleOn]] is true then enable fast throttling
       * so that this test covers as many scenarios as possible.
       */
-    val throttle: LevelMeter => Throttle = if (throttleOn) _ => Throttle(Duration.Zero, randomNextInt(3) max 1) else _ => Throttle(Duration.Zero, 0)
+    val levelThrottle: LevelMeter => Throttle = if (throttleOn) _ => Throttle(Duration.Zero, randomNextInt(3) max 1) else _ => Throttle(Duration.Zero, 0)
+    val levelZeroThrottle: LevelZeroMeter => FiniteDuration = if (throttleOn) _ => Duration.Zero else _ => 365.days
 
     println("Starting levels")
 
-    val level4 = TestLevel(throttle = throttle)
-    val level3 = TestLevel(nextLevel = Some(level4), throttle = throttle)
-    val level2 = TestLevel(nextLevel = Some(level3), throttle = throttle)
-    val level1 = TestLevel(nextLevel = Some(level2), throttle = throttle)
-    val level0 = TestLevelZero(nextLevel = Some(level1), ???)
+    val level4 = TestLevel(throttle = levelThrottle)
+    val level3 = TestLevel(nextLevel = Some(level4), throttle = levelThrottle)
+    val level2 = TestLevel(nextLevel = Some(level3), throttle = levelThrottle)
+    val level1 = TestLevel(nextLevel = Some(level2), throttle = levelThrottle)
+    val level0 = TestLevelZero(nextLevel = Some(level1), throttle = levelZeroThrottle)
 
     println("Levels started")
 
