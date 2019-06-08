@@ -361,6 +361,9 @@ private[swaydb] case class BlockingCore[T[_]](zero: LevelZero, onClose: () => IO
   def close(): T[Unit] =
     tag.fromIO(onClose().flatMap(_ => zero.close))
 
+  def delete(): T[Unit] =
+    tag.fromIO(onClose().flatMap(_ => zero.delete))
+
   override def tagAsync[T[_]](implicit ec: ExecutionContext, tag: TagAsync[T]): Core[T] =
     AsyncCore(zero, onClose)
 

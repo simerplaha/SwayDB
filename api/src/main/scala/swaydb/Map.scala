@@ -381,6 +381,9 @@ case class Map[K, V, T[_]](private[swaydb] val core: Core[T],
   def close(): T[Unit] =
     wrapCall(core.close())
 
+  def delete(): T[Unit] =
+    wrapCall(core.delete())
+
   override def toString(): String =
     classOf[Map[_, _, T]].getClass.getSimpleName
 

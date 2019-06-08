@@ -101,6 +101,9 @@ private[swaydb] case class AsyncCore[T[_]](zero: LevelZero, onClose: () => IO[Un
   override def close(): T[Unit] =
     tag.fromIO(block.close())
 
+  override def delete(): T[Unit] =
+    tag.fromIO(block.delete())
+
   private def headFuture: Future[Option[KeyValueTuple]] =
     zero.head.safeGetFuture flatMap {
       result =>
