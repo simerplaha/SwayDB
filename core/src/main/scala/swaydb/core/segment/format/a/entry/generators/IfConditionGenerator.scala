@@ -41,7 +41,7 @@ object IfConditionGenerator extends App {
 
     val notFound = "None"
 
-    val defaultGroupSize = 20
+    val defaultGroupSize = 22
 
     val allNewConditions: Iterator[String] =
       ids.sortBy(_.id).grouped(defaultGroupSize).zipWithIndex map {
@@ -88,24 +88,13 @@ object IfConditionGenerator extends App {
     writer.close()
   }
 
-  def groupTime(key: Key): Int =
-    key match {
-      case _: EntryId.Time.NoTime =>
-        1
-      case _: EntryId.Time.FullyCompressed =>
-        2
-      case _: EntryId.Time.PartiallyCompressed =>
-        3
-      case _: EntryId.Time.Uncompressed =>
-        4
-    }
-
-  def keyIdsGrouped: Map[Int, List[EntryId]] =
-    BaseEntryId.keyIdsList groupBy {
-      case key: Key.PartiallyCompressed => 1 + groupTime(key)
-      case key: Key.Uncompressed => 6 + groupTime(key)
-      case key: Key.FullyCompressed => 11 + groupTime(key)
-    }
+  def keyIdsGrouped: Map[Int, List[EntryId]] = {
+    val ids = BaseEntryId.keyIdsList
+    ids.grouped(ids.size / 20).zipWithIndex map {
+      case (entries, index) =>
+        index + 1 -> entries
+    } toMap
+  }
 
   keyIdsGrouped foreach {
     case (keyCompressionType, ids) =>

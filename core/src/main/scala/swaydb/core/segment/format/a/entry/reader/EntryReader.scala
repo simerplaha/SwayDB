@@ -47,11 +47,16 @@ object EntryReader {
 
   val readers =
     Seq(
-      BaseEntryReader1, BaseEntryReader2, BaseEntryReader3,
-      BaseEntryReader4, BaseEntryReader5, BaseEntryReader6,
-      BaseEntryReader7, BaseEntryReader8, BaseEntryReader9,
-      BaseEntryReader10, BaseEntryReader11, BaseEntryReader12,
-      BaseEntryReader13, BaseEntryReader14, BaseEntryReader15
+      BaseEntryReader1, BaseEntryReader2,
+      BaseEntryReader3, BaseEntryReader4,
+      BaseEntryReader5, BaseEntryReader6,
+      BaseEntryReader7, BaseEntryReader8,
+      BaseEntryReader9, BaseEntryReader10,
+      BaseEntryReader11, BaseEntryReader12,
+      BaseEntryReader13, BaseEntryReader14,
+      BaseEntryReader15, BaseEntryReader16,
+      BaseEntryReader17, BaseEntryReader18,
+      BaseEntryReader19, BaseEntryReader20
     )
 
   def read[T](id: Int,

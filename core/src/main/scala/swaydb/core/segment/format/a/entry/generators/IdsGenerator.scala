@@ -52,9 +52,7 @@ object IdsGenerator extends App {
     val content = Slice.writeString(lines.mkString("\n"))
     IOEffect.replace(content, path).get
     println(s"maxID: ${maxID - 1}")
-
   } finally {
     source.close()
   }
-
 }
