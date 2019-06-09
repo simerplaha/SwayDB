@@ -88,6 +88,8 @@ sealed trait CompactorSpec extends TestBase with MockFactory {
         actor.unsafeGetState.compactionStates shouldBe empty
         actor.unsafeGetState.levels.map(_.rootPath) shouldBe Slice(zero.rootPath, nextLevel.rootPath)
         actor.unsafeGetState.child shouldBe empty
+
+        zero.delete.get
       }
 
       "there are two Levels and two new ExecutionContext" in {
@@ -110,6 +112,8 @@ sealed trait CompactorSpec extends TestBase with MockFactory {
         val childActor = actor.unsafeGetState.child.get.unsafeGetState
         childActor.child shouldBe empty
         childActor.levels.map(_.rootPath) should contain only nextLevel.rootPath
+
+        zero.delete.get
       }
 
       "there are three Levels and one new ExecutionContext" in {
@@ -130,6 +134,8 @@ sealed trait CompactorSpec extends TestBase with MockFactory {
         actor.unsafeGetState.compactionStates shouldBe empty
         actor.unsafeGetState.levels.map(_.rootPath) shouldBe Slice(zero.rootPath, nextLevel.rootPath, nextLevel2.rootPath)
         actor.unsafeGetState.child shouldBe empty
+
+        zero.delete.get
       }
 
       "there are three Levels and two new ExecutionContext" in {
@@ -154,6 +160,8 @@ sealed trait CompactorSpec extends TestBase with MockFactory {
         val childActor = actor.unsafeGetState.child.get.unsafeGetState
         childActor.child shouldBe empty
         childActor.levels.map(_.rootPath) should contain only nextLevel2.rootPath
+
+        zero.delete.get
       }
     }
   }

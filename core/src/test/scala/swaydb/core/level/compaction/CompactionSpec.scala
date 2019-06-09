@@ -24,7 +24,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.Memory
-import swaydb.core.level.Level
+import swaydb.core.level.NextLevel
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
@@ -32,8 +32,8 @@ import swaydb.data.IO
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
-import swaydb.serializers._
 import swaydb.serializers.Default._
+import swaydb.serializers._
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext
@@ -75,8 +75,8 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
     "return zero" when {
       "input Segments are empty" in {
         //levels are never invoked
-        val thisLevel = mock[Level]("thisLevel")
-        val nextLevel = mock[Level]("nextLevel")
+        val thisLevel = mock[NextLevel]("thisLevel")
+        val nextLevel = mock[NextLevel]("nextLevel")
 
         Compaction.putForward(Iterable.empty, thisLevel, nextLevel) shouldBe IO.zero
       }
@@ -84,8 +84,8 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
 
     "remove Segments" when {
       "Segments from upper Level are merged into lower level" in {
-        val thisLevel = mock[Level]("thisLevel")
-        val nextLevel = mock[Level]("nextLevel")
+        val thisLevel = mock[NextLevel]("thisLevel")
+        val nextLevel = mock[NextLevel]("nextLevel")
 
         val keyValues = randomPutKeyValues(keyValueCount).groupedSlice(2)
         val segments = Seq(TestSegment(keyValues(0).toTransient).get, TestSegment(keyValues(1).toTransient).get)
@@ -110,8 +110,8 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
 
     "return success" when {
       "it fails to remove Segments" in {
-        val thisLevel = mock[Level]("thisLevel")
-        val nextLevel = mock[Level]("nextLevel")
+        val thisLevel = mock[NextLevel]("thisLevel")
+        val nextLevel = mock[NextLevel]("nextLevel")
 
         val keyValues = randomPutKeyValues(keyValueCount).groupedSlice(2)
         val segments = Seq(TestSegment(keyValues(0).toTransient).get, TestSegment(keyValues(1).toTransient).get)
@@ -209,14 +209,14 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
   "runLastLevelCompaction" should {
     "not run compaction" when {
       "level is not the last Level" in {
-        val level = mock[Level]("level")
+        val level = mock[NextLevel]("level")
         level.hasNextLevel _ expects() returns false
 
         Compaction.runLastLevelCompaction(level, true, 100, 0) shouldBe IO.zero
       }
 
       "remaining compactions are 0" in {
-        val level = mock[Level]("level")
+        val level = mock[NextLevel]("level")
         level.hasNextLevel _ expects() returns true
 
         Compaction.runLastLevelCompaction(level, true, remainingCompactions = 0, 10) shouldBe IO.Success(10)
@@ -241,7 +241,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
                 None
           })(collection.breakOut)
 
-        val level = mock[Level]("level")
+        val level = mock[NextLevel]("level")
         level.hasNextLevel _ expects() returns true repeat 6.times
         level.segmentsInLevel _ expects() returning segments repeat 5.times
 
@@ -279,7 +279,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
                 None
           })(collection.breakOut)
 
-        val level = mock[Level]("level")
+        val level = mock[NextLevel]("level")
         level.hasNextLevel _ expects() returns true repeat 3.times
         level.takeSmallSegments _ expects * onCall {
           count: Int =>
