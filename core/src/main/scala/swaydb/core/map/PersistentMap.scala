@@ -261,22 +261,24 @@ private[map] case class PersistentMap[K, V: ClassTag](path: Path,
 
   override def hasRange: Boolean = _hasRange
 
+  private val stateIDLock = new Object()
+
   def currentFilePath =
     currentFile.path
 
   def stateID: Long =
-    synchronized {
+    stateIDLock.synchronized {
       writeCount
     }
 
   def incrementStateID: Long =
-    synchronized {
+    stateIDLock.synchronized {
       writeCount += 1
       writeCount
     }
 
   override def write(mapEntry: MapEntry[K, V]): IO[Boolean] =
-    synchronized {
+    stateIDLock.synchronized {
       persist(mapEntry) onSuccessSideEffect {
         _ =>
           writeCount += 1

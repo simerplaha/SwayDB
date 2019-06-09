@@ -78,7 +78,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
 
   val keyValuesCount = 100
 
-  implicit def testTimer: TestTimer = TestTimer.random
+  implicit val testTimer: TestTimer = TestTimer.Incremental()
 
   implicit def groupingStrategy: Option[KeyValueGroupingStrategyInternal] =
     randomGroupingStrategyOption(keyValuesCount)
@@ -1089,24 +1089,33 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
     }
 
     "return no new segments if all the KeyValues in the Segment were deleted and if remove deletes is true" in {
-      val keyValues =
-        Slice(
-          randomFixedKeyValue(1),
-          randomFixedKeyValue(2),
-          randomFixedKeyValue(3),
-          randomFixedKeyValue(4),
-          randomRangeKeyValue(5, 10, Some(randomRangeValue()), randomRangeValue()),
-          randomGroup(Slice(randomFixedKeyValue(11), randomRangeKeyValue(12, 15, Some(randomRangeValue()), randomRangeValue())).toTransient).toMemory
-        ).toTransient
+      runThis(1000.times) {
+        val keyValues =
+          Slice(
+            randomFixedKeyValue(1),
+            randomFixedKeyValue(2),
+            randomFixedKeyValue(3),
+            randomFixedKeyValue(4),
+            randomRangeKeyValue(5, 10, Some(randomRangeValue()), randomRangeValue()),
+            randomGroup(Slice(randomFixedKeyValue(11), randomRangeKeyValue(12, 15, Some(randomRangeValue()), randomRangeValue())).toTransient).toMemory
+          ).toTransient
 
-      val segment = TestSegment(keyValues).assertGet
+        val segment = TestSegment(keyValues).assertGet
 
-      val deleteKeyValues = Slice.create[Memory](keyValues.size)
-      (1 to 4).foreach(key => deleteKeyValues add Memory.remove(key))
-      deleteKeyValues add Memory.Range(5, 10, None, Value.remove(None))
-      deleteKeyValues add Memory.Range(11, 15, None, Value.remove(None))
+        val deleteKeyValues = Slice.create[Memory](keyValues.size)
+        (1 to 4).foreach(key => deleteKeyValues add Memory.remove(key))
+        deleteKeyValues add Memory.Range(5, 10, None, Value.remove(None))
+        deleteKeyValues add Memory.Range(11, 15, None, Value.remove(None))
 
-      segment.put(deleteKeyValues, 4.mb, TestData.falsePositiveRate, true, true, createdInLevel = 0).assertGet shouldBe empty
+        segment.put(
+          newKeyValues = deleteKeyValues,
+          minSegmentSize = 4.mb,
+          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+          compressDuplicateValues = true,
+          removeDeletes = true,
+          createdInLevel = 0
+        ).assertGet shouldBe empty
+      }
     }
 
     "slice Put range into slice with fromValue set to Remove" in {

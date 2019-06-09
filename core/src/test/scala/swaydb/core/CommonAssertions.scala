@@ -711,10 +711,28 @@ object CommonAssertions {
         level.lower(keyValues(0).key).assertGetOpt shouldBe empty
         assertLowers(index + 1)
       } else {
-        val expectedLowerKeyValue = keyValues(index - 1)
-        val lower = level.lower(keyValues(index).key).assertGet
-        lower.key shouldBe expectedLowerKeyValue.key
-        IO.Async.runSafe(lower.getOrFetchValue.get).get.safeGetBlocking shouldBe IO.Async.runSafe(expectedLowerKeyValue.getOrFetchValue).get.safeGetBlocking
+        try {
+          val lower = level.lower(keyValues(index).key).assertGetOpt
+
+          val expectedLowerKeyValue =
+            (0 until index).reverse collectFirst {
+              case i if unexpiredPuts(Slice(keyValues(i))).nonEmpty =>
+                keyValues(i)
+            }
+
+          if (lower.nonEmpty) {
+            expectedLowerKeyValue shouldBe defined
+            lower.get.key shouldBe expectedLowerKeyValue.get.key
+            lower.get.getOrFetchValue.get.safeGetBlocking shouldBe expectedLowerKeyValue.get.getOrFetchValue.safeGetBlocking()
+          } else {
+            expectedLowerKeyValue shouldBe empty
+          }
+
+        } catch {
+          case exception: Exception =>
+            exception.printStackTrace()
+            fail(exception)
+        }
         assertLowers(index + 1)
       }
     }
@@ -894,7 +912,7 @@ object CommonAssertions {
     unzipGroups(keyValues) foreach {
       keyValue =>
         try
-          level.get(keyValue.key).get.safeGetBlocking match {
+          level.get(keyValue.key).get.safeGetBlocking() match {
             case Some(got) =>
               got shouldBe keyValue
 
@@ -908,7 +926,7 @@ object CommonAssertions {
                 s" expired: ${keyValue.toMemory.indexEntryDeadline.map(_.hasTimeLeft())}" +
                 s" class: ${keyValue.getClass.getSimpleName}"
             )
-            throw ex
+            fail(ex)
         }
     }
 

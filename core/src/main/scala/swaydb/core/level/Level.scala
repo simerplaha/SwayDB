@@ -21,6 +21,7 @@ package swaydb.core.level
 
 import java.nio.channels.{FileChannel, FileLock}
 import java.nio.file.{Path, StandardOpenOption}
+import java.util.concurrent.locks.ReentrantReadWriteLock
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.KeyValue.ReadOnly
@@ -187,7 +188,8 @@ private[core] object Level extends LazyLogging {
                       deleteSegmentsEventually = deleteSegmentsEventually,
                       applyGroupingOnCopy = applyGroupingOnCopy,
                       paths = paths,
-                      removeDeletedRecords = Level.removeDeletes(nextLevel)
+                      removeDeletedRecords = Level.removeDeletes(nextLevel),
+                      appendixReadWriteLock = new ReentrantReadWriteLock()
                     )
                 }
             }
@@ -310,22 +312,23 @@ private[core] case class Level(dirs: Seq[Dir],
                                pushForward: Boolean,
                                throttle: LevelMeter => Throttle,
                                nextLevel: Option[NextLevel],
-                               private val appendix: Map[Slice[Byte], Segment],
-                               private val lock: Option[FileLock],
+                               appendix: Map[Slice[Byte], Segment],
+                               lock: Option[FileLock],
                                compressDuplicateValues: Boolean,
                                deleteSegmentsEventually: Boolean,
                                applyGroupingOnCopy: Boolean,
                                paths: PathsDistributor,
-                               removeDeletedRecords: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                              timeOrder: TimeOrder[Slice[Byte]],
-                                                              functionStore: FunctionStore,
-                                                              removeWriter: MapEntryWriter[MapEntry.Remove[Slice[Byte]]],
-                                                              addWriter: MapEntryWriter[MapEntry.Put[Slice[Byte], Segment]],
-                                                              keyValueLimiter: KeyValueLimiter,
-                                                              fileOpenLimiter: FileLimiter,
-                                                              val groupingStrategy: Option[KeyValueGroupingStrategyInternal],
-                                                              val segmentIDGenerator: IDGenerator,
-                                                              reserve: ReserveRange.State[Unit]) extends NextLevel with LazyLogging { self =>
+                               removeDeletedRecords: Boolean,
+                               appendixReadWriteLock: ReentrantReadWriteLock)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                              timeOrder: TimeOrder[Slice[Byte]],
+                                                                              functionStore: FunctionStore,
+                                                                              removeWriter: MapEntryWriter[MapEntry.Remove[Slice[Byte]]],
+                                                                              addWriter: MapEntryWriter[MapEntry.Put[Slice[Byte], Segment]],
+                                                                              keyValueLimiter: KeyValueLimiter,
+                                                                              fileOpenLimiter: FileLimiter,
+                                                                              val groupingStrategy: Option[KeyValueGroupingStrategyInternal],
+                                                                              val segmentIDGenerator: IDGenerator,
+                                                                              reserve: ReserveRange.State[Unit]) extends NextLevel with LazyLogging { self =>
 
   logger.info(s"{}: Level started.", paths)
 
@@ -388,6 +391,22 @@ private[core] case class Level(dirs: Seq[Dir],
       override def segmentCountAndLevelSize: (Int, Long) =
         self.segmentCountAndLevelSize
     }
+
+  private def appendixWriteLocked(initialMapEntry: MapEntry[Slice[Byte], Segment]): IO[Boolean] = {
+    appendixReadWriteLock.writeLock().lock()
+    try
+      appendix write initialMapEntry
+    finally
+      appendixReadWriteLock.writeLock().unlock()
+  }
+
+  private def appendixWithReadLocked[T](f: Map[Slice[Byte], Segment] => T): T = {
+    appendixReadWriteLock.readLock().lock()
+    try
+      f(appendix)
+    finally
+      appendixReadWriteLock.readLock().unlock()
+  }
 
   def rootPath: Path =
     dirs.head.path
@@ -550,7 +569,7 @@ private[core] case class Level(dirs: Seq[Dir],
                       appendEntry = Some(copiedSegmentsEntry)
                     )
                   else
-                    appendix.write(copiedSegmentsEntry) map (_ => ())
+                    appendixWriteLocked(copiedSegmentsEntry) map (_ => ())
 
                 putResult onFailureSideEffect {
                   failure =>
@@ -598,7 +617,7 @@ private[core] case class Level(dirs: Seq[Dir],
                   if (newSegments.nonEmpty)
                     buildNewMapEntry(newSegments, None, None) flatMap {
                       entry =>
-                        appendix.write(entry)
+                        appendixWriteLocked(entry)
                     } onFailureSideEffect {
                       failure =>
                         logFailure(s"${paths.head}: Failed to create a log entry.", failure)
@@ -782,7 +801,7 @@ private[core] case class Level(dirs: Seq[Dir],
               logger.debug(s"{}: Segment {} successfully refreshed. New Segments: {}.", paths.head, segment.path, newSegments.map(_.path).mkString(", "))
               buildNewMapEntry(newSegments, Some(segment), None) flatMap {
                 entry =>
-                  appendix.write(entry).map(_ => ()) onSuccessSideEffect {
+                  appendixWriteLocked(entry).map(_ => ()) onSuccessSideEffect {
                     _ =>
                       if (deleteSegmentsEventually)
                         segment.deleteSegmentsEventually
@@ -822,7 +841,7 @@ private[core] case class Level(dirs: Seq[Dir],
       mapEntry =>
         //        logger.info(s"$id. Build map entry: ${mapEntry.string(_.asInt().toString, _.id.toString)}")
         logger.trace(s"{}: Built map entry to remove Segments {}", paths.head, segments.map(_.path.toString))
-        (appendix write mapEntry) flatMap {
+        appendixWriteLocked(mapEntry) flatMap {
           _ =>
             logger.debug(s"{}: MapEntry delete Segments successfully written. Deleting physical Segments: {}", paths.head, segments.map(_.path.toString))
             // If a delete fails that would be due OS permission issue.
@@ -944,7 +963,7 @@ private[core] case class Level(dirs: Seq[Dir],
                   //Note: appendEntry should not overwrite new Segment's entries with same keys so perform distinct
                   //which will remove oldEntries with duplicates with newer keys.
                   val mapEntryToWrite = appendEntry.map(appendEntry => MapEntry.distinct(mapEntry, appendEntry)) getOrElse mapEntry
-                  (appendix write mapEntryToWrite) map {
+                  appendixWriteLocked(mapEntryToWrite) map {
                     _ =>
                       logger.debug(s"{}: putKeyValues successful. Deleting assigned Segments. {}.", paths.head, assignments.map(_._1.path.toString))
                       //delete assigned segments as they are replaced with new segments.
@@ -1039,13 +1058,14 @@ private[core] case class Level(dirs: Seq[Dir],
     }) match {
       case Some(value) =>
         IO.Success(value)
+
       case None =>
         IO.Failure(new Exception("Failed to build map entry"))
     }
   }
 
   def getFromThisLevel(key: Slice[Byte]): IO[Option[KeyValue.ReadOnly.SegmentResponse]] =
-    appendix.floor(key) match {
+    appendixWithReadLocked(_.floor(key)) match {
       case Some(segment) =>
         segment get key
 
@@ -1060,7 +1080,7 @@ private[core] case class Level(dirs: Seq[Dir],
     Get(key)
 
   private def mightContainInThisLevel(key: Slice[Byte]): IO[Boolean] =
-    appendix.floor(key) match {
+    appendixWithReadLocked(_.floor(key)) match {
       case Some(segment) =>
         segment mightContain key
 
@@ -1078,7 +1098,7 @@ private[core] case class Level(dirs: Seq[Dir],
     }
 
   private def lowerInThisLevel(key: Slice[Byte]): IO[Option[ReadOnly.SegmentResponse]] =
-    appendix.lowerValue(key).map(_.lower(key)) getOrElse IO.none
+    appendixWithReadLocked(_.lowerValue(key)).map(_.lower(key)) getOrElse IO.none
 
   private def lowerFromNextLevel(key: Slice[Byte]): IO.Async[Option[ReadOnly.Put]] =
     nextLevel.map(_.lower(key)) getOrElse IO.none
@@ -1106,10 +1126,10 @@ private[core] case class Level(dirs: Seq[Dir],
     )
 
   private def higherFromFloorSegment(key: Slice[Byte]): IO[Option[ReadOnly.SegmentResponse]] =
-    appendix.floor(key).map(_.higher(key)) getOrElse IO.none
+    appendixWithReadLocked(_.floor(key)).map(_.higher(key)) getOrElse IO.none
 
   private def higherFromHigherSegment(key: Slice[Byte]): IO[Option[ReadOnly.SegmentResponse]] =
-    appendix.higherValue(key).map(_.higher(key)) getOrElse IO.none
+    appendixWithReadLocked(_.higherValue(key)).map(_.higher(key)) getOrElse IO.none
 
   private[core] def higherInThisLevel(key: Slice[Byte]): IO[Option[KeyValue.ReadOnly.SegmentResponse]] =
     higherFromFloorSegment(key) flatMap {
@@ -1152,7 +1172,7 @@ private[core] case class Level(dirs: Seq[Dir],
   override def headKey: IO.Async[Option[Slice[Byte]]] =
     nextLevel.map(_.headKey) getOrElse IO.none mapAsync {
       nextLevelFirstKey =>
-        MinMax.min(appendix.firstKey, nextLevelFirstKey)(keyOrder)
+        MinMax.min(appendixWithReadLocked(_.firstKey), nextLevelFirstKey)(keyOrder)
     }
 
   /**
@@ -1162,7 +1182,7 @@ private[core] case class Level(dirs: Seq[Dir],
   override def lastKey: IO.Async[Option[Slice[Byte]]] =
     nextLevel.map(_.lastKey) getOrElse IO.none mapAsync {
       nextLevelLastKey =>
-        MinMax.max(appendix.lastValue().map(_.maxKey.maxKey), nextLevelLastKey)(keyOrder)
+        MinMax.max(appendixWithReadLocked(_.lastValue()).map(_.maxKey.maxKey), nextLevelLastKey)(keyOrder)
     }
 
   override def head: IO.Async[Option[KeyValue.ReadOnly.Put]] =
@@ -1212,15 +1232,6 @@ private[core] case class Level(dirs: Seq[Dir],
 
   def getSegment(minKey: Slice[Byte]): Option[Segment] =
     appendix.get(minKey)(keyOrder)
-
-  def lowerSegment(key: Slice[Byte]): Option[Segment] =
-    (appendix lower key).map(_._2)
-
-  def lowerSegmentMinKey(key: Slice[Byte]): Option[Slice[Byte]] =
-    lowerSegment(key).map(_.minKey)
-
-  def higherSegment(key: Slice[Byte]): Option[Segment] =
-    (appendix higher key).map(_._2)
 
   override def segmentsCount(): Int =
     appendix.count()

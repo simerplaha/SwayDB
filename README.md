@@ -12,8 +12,8 @@
 [build-badge]: https://travis-ci.com/simerplaha/SwayDB.svg?branch=master
 [build-link]: https://travis-ci.com/simerplaha/SwayDB
 
-Embeddable persistent and in-memory database focused on high resource efficiency & performance,
-support for all storage environments and simple collections like API for managing data.
+Embeddable persistent and in-memory database focused on high resource efficiency, performance 
+and simple collections like API for managing data.
 
 [Documentation - SwayDB.io](http://swaydb.io).
 
