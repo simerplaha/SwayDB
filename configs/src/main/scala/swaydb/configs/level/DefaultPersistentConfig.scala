@@ -34,7 +34,7 @@ object DefaultPersistentConfig {
 
   private lazy val executionContext =
     new ExecutionContext {
-      val threadPool = new ForkJoinPool(4)
+      val threadPool = new ForkJoinPool(3)
 
       def execute(runnable: Runnable) =
         threadPool execute runnable
@@ -90,10 +90,10 @@ object DefaultPersistentConfig {
         deleteSegmentsEventually = deleteSegmentsEventually,
         applyGroupingOnCopy = false,
         groupingStrategy = None,
-        compactionExecutionContext = CompactionExecutionContext.Create(executionContext),
+        compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =
           levelMeter => {
-            val delay = (10 - levelMeter.segmentsCount).seconds
+            val delay = (5 - levelMeter.segmentsCount).seconds
             val batch = levelMeter.segmentsCount min 5
             Throttle(delay, batch)
           }
@@ -110,11 +110,11 @@ object DefaultPersistentConfig {
         compressDuplicateValues = compressDuplicateValues,
         deleteSegmentsEventually = deleteSegmentsEventually,
         applyGroupingOnCopy = false,
-        groupingStrategy = None,
-        compactionExecutionContext = CompactionExecutionContext.Shared,
+        groupingStrategy = groupingStrategy,
+        compactionExecutionContext = CompactionExecutionContext.Create(executionContext),
         throttle =
           levelMeter => {
-            val delay = (5 - levelMeter.segmentsCount).seconds
+            val delay = (10 - levelMeter.segmentsCount).seconds
             val batch = levelMeter.segmentsCount min 5
             Throttle(delay, batch)
           }
@@ -126,33 +126,12 @@ object DefaultPersistentConfig {
         mmapSegment = mmapSegments,
         mmapAppendix = mmapAppendix,
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
-        pushForward = true,
-        bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-        compressDuplicateValues = compressDuplicateValues,
-        deleteSegmentsEventually = deleteSegmentsEventually,
-        applyGroupingOnCopy = false,
-        groupingStrategy = groupingStrategy,
-        compactionExecutionContext = CompactionExecutionContext.Shared,
-        throttle =
-          levelMeter => {
-            val delay = (5 - levelMeter.segmentsCount).seconds
-            val batch = levelMeter.segmentsCount min 5
-            Throttle(delay, batch)
-          }
-      )
-      .addPersistentLevel( //level4
-        dir = dir,
-        otherDirs = otherDirs,
-        segmentSize = segmentSize,
-        mmapSegment = mmapSegments,
-        mmapAppendix = mmapAppendix,
-        appendixFlushCheckpointSize = appendixFlushCheckpointSize,
         pushForward = false,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
         compressDuplicateValues = compressDuplicateValues,
         deleteSegmentsEventually = deleteSegmentsEventually,
         applyGroupingOnCopy = false,
-        compactionExecutionContext = CompactionExecutionContext.Create(executionContext),
+        compactionExecutionContext = CompactionExecutionContext.Shared,
         groupingStrategy = None,
         throttle =
           levelMeter => {
@@ -161,7 +140,7 @@ object DefaultPersistentConfig {
             Throttle(delay, batch)
           }
       )
-      .addPersistentLevel( //level5
+      .addPersistentLevel( //level4
         dir = dir,
         otherDirs = otherDirs,
         segmentSize = segmentSize,
@@ -182,7 +161,7 @@ object DefaultPersistentConfig {
             Throttle(delay, batch)
           }
       )
-      .addPersistentLevel( //level6
+      .addPersistentLevel( //level5
         dir = dir,
         otherDirs = otherDirs,
         segmentSize = segmentSize,
@@ -203,7 +182,7 @@ object DefaultPersistentConfig {
             Throttle(delay, batch)
           }
       )
-      .addPersistentLevel( //level7
+      .addPersistentLevel( //level6
         dir = dir,
         otherDirs = otherDirs,
         //double the size in last Levels so that if merge is not triggered(copied Segment),
@@ -222,7 +201,7 @@ object DefaultPersistentConfig {
         throttle =
           levelMeter =>
             if (levelMeter.requiresCleanUp)
-              Throttle(20.seconds, 5)
+              Throttle(20.seconds, 2)
             else
               Throttle(1.hour, 5)
       )
