@@ -28,8 +28,8 @@ import swaydb.data.util.ByteUtil
 
 private[swaydb] object Bytes {
 
-  private def commonPrefix(previous: Slice[Byte],
-                           next: Slice[Byte]): Int = {
+  def commonPrefix(previous: Slice[Byte],
+                   next: Slice[Byte]): Int = {
     val min = Math.min(previous.size, next.size)
     var i = 0
     while (i < min && previous(i) == next(i))
@@ -178,16 +178,16 @@ private[swaydb] object Bytes {
           commonBytes <- reader.readIntUnsigned()
           hasMore <- reader.hasAtLeast(lastBytesRead + 1) //if there are more bytes to read.
           right <-
-            if (!hasMore && commonBytes == leftBytesSize) //if right was fully compressed then right == left, return left.
-              IO.Success(left)
-            else
-              reader.readIntUnsigned() flatMap {
-                rightSize =>
-                  reader.read(rightSize) map {
-                    right =>
-                      decompress(left, right, commonBytes)
-                  }
-              }
+          if (!hasMore && commonBytes == leftBytesSize) //if right was fully compressed then right == left, return left.
+            IO.Success(left)
+          else
+            reader.readIntUnsigned() flatMap {
+              rightSize =>
+                reader.read(rightSize) map {
+                  right =>
+                    decompress(left, right, commonBytes)
+                }
+            }
         } yield {
           (left, right)
         }

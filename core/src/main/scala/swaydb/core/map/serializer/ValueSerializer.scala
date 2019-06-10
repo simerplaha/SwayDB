@@ -28,6 +28,9 @@ import swaydb.core.util.Bytes
 import swaydb.core.util.TimeUtil._
 import swaydb.data.IO
 import swaydb.data.slice.{Reader, Slice}
+import swaydb.data.util.ByteSizeOf
+import IO._
+import scala.collection.mutable
 
 @implicitNotFound("Type class implementation not found for ValueSerializer of type ${T}")
 sealed trait ValueSerializer[T] {
@@ -184,7 +187,7 @@ object ValueSerializer {
     }
 
     override def bytesRequired(value: Slice[Value.Apply]): Int =
-      //also add the total number of entries.
+    //also add the total number of entries.
       value.foldLeft(Bytes.sizeOf(value.size)) {
         case (total, function) =>
           function match {
@@ -232,7 +235,6 @@ object ValueSerializer {
                       else
                         IO.Failure(new Exception(s"Invalid id:$id"))
                   }
-
               }
           }
       }
@@ -341,6 +343,72 @@ object ValueSerializer {
               case (left, right) =>
                 (left, Some(right))
             }
+      }
+  }
+
+  /**
+    * Serializer for a tuple of Option bytes and sequence bytes.
+    */
+  implicit object IntMapListBufferSerializer extends ValueSerializer[mutable.Map[Int, Iterable[(Byte, Byte)]]] {
+    val formatId = 0.toByte
+
+    override def write(value: mutable.Map[Int, Iterable[(Byte, Byte)]], bytes: Slice[Byte]): Unit = {
+      bytes add formatId
+      value foreach {
+        case (int, bytesBuffer) =>
+          bytes.addIntUnsigned(int)
+          bytes.addIntUnsigned(bytesBuffer.size)
+          bytesBuffer foreach {
+            case (left, right) =>
+              bytes add left
+              bytes add right
+          }
+      }
+    }
+
+    override def read(reader: Reader): IO[mutable.Map[Int, Iterable[(Byte, Byte)]]] =
+      reader.get() flatMap {
+        format =>
+          if (format != formatId)
+            IO.Failure(IO.Error.Fatal(new Exception(s"Invalid formatID: $format")))
+          else
+            reader.foldLeftIO(mutable.Map.empty[Int, Iterable[(Byte, Byte)]]) {
+              case (map, reader) =>
+                reader.readIntUnsigned() flatMap {
+                  int =>
+                    reader.readIntUnsigned() flatMap {
+                      bufferSize =>
+                        (1 to bufferSize) mapIO {
+                          _ =>
+                            for {
+                              left <- reader.get()
+                              right <- reader.get()
+                            } yield {
+                              (left.toByte, right.toByte)
+                            }
+                        } map {
+                          bytes =>
+                            map.put(int, bytes)
+                            map
+                        }
+                    }
+                }
+            }
+      }
+
+    def optimalBytesRequired(numberOfRanges: Int): Int =
+      ByteSizeOf.byte + //formatId
+        ByteSizeOf.int * numberOfRanges +
+        ByteSizeOf.int * numberOfRanges +
+        numberOfRanges * 2
+
+    override def bytesRequired(value: mutable.Map[Int, Iterable[(Byte, Byte)]]): Int =
+      value.foldLeft(ByteSizeOf.byte) {
+        case (size, (int, bytesBuffer)) =>
+          Bytes.sizeOf(int) +
+            Bytes.sizeOf(bytesBuffer.size) +
+            (bytesBuffer.size * 2) +
+            size
       }
   }
 

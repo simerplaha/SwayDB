@@ -127,10 +127,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
                   maxKey.underlyingArraySize shouldBe 4
               }
 
-              if (keyValues.toTransient.last.stats.hasRemoveRange)
-                segment.getBloomFilter.assertGetOpt shouldBe empty
-              else
-                assertBloom(keyValues.toTransient, segment.getBloomFilter.assertGet)
+              assertBloom(keyValues.toTransient, segment.getBloomFilter.assertGet)
 
               segment.close.assertGet
             }
@@ -301,10 +298,11 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
       }
     }
 
-    "not create bloomFilter if the Segment has Remove range key-values or function key-values and set hasRange to true" in {
+    "create bloomFilter if the Segment has Remove range key-values or function key-values and set hasRange to true" in {
 
       def doAssert(keyValues: Slice[KeyValue], segment: Segment) = {
-        segment.getBloomFilter.assertGetOpt shouldBe empty
+        segment.getBloomFilter.assertGetOpt shouldBe defined
+        assertBloom(keyValues.toMemory.toTransient, segment.getBloomFilter.get.get)
         segment.hasRange.assertGet shouldBe true
         segment.close.assertGet
       }
@@ -1202,7 +1200,10 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         segment.getAll().assertGet shouldBe keyValues1
 
         val reopened = segment.reopen(segment.path)
-        reopened.getBloomFilterKeyValueCount().assertGet shouldBe keyValues1.size
+        val (ranges, nonRanges) = keyValues1.partition(_.isRange)
+        val expectedBloomFilterCount = (ranges.size * 2) + nonRanges.size
+
+        reopened.getBloomFilterKeyValueCount().assertGet shouldBe expectedBloomFilterCount
         reopened.refresh(1.mb, TestData.falsePositiveRate, true, true, createdInLevel = 0).assertGet shouldBe empty
       }
     }

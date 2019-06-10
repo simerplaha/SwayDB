@@ -202,7 +202,7 @@ private[segment] case class MemorySegment(path: Path,
     if (deleted)
       IO.Failure(IO.Error.NoSuchFile(path))
 
-    else if (!_hasRange && !bloomFilter.forall(_.mightContain(key)))
+    else if (!bloomFilter.forall(_.mightContain(key)))
       IO.none
     else
       maxKey match {

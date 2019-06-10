@@ -31,6 +31,7 @@ import swaydb.core.IOAssert._
 import swaydb.core.data.{Memory, Persistent, Transient}
 import swaydb.core.group.compression.data.{GroupGroupingStrategyInternal, KeyValueGroupingStrategyInternal}
 import swaydb.core.queue.{Command, KeyValueLimiter}
+import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 
@@ -62,6 +63,8 @@ class SegmentGroupReadSpec3 extends SegmentGroupReadSpec {
 }
 
 sealed trait SegmentGroupReadSpec extends TestBase with ScalaFutures with PrivateMethodTester {
+
+  implicit val keyOrder = KeyOrder.default
 
   def keyValuesCount: Int
 

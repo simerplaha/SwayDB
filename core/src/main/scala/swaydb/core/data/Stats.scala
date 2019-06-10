@@ -57,6 +57,12 @@ private[core] object Stats {
     val position =
       previousStats.map(_.position + 1) getOrElse 1
 
+    val numberOfRanges =
+      if (isRange)
+        previousStats.map(_.numberOfRanges + 1) getOrElse 1
+      else
+        previousStats.map(_.numberOfRanges) getOrElse 0
+
     val groupsCount =
       if (isGroup)
         previousStats.map(_.groupsCount + 1) getOrElse 1
@@ -66,7 +72,7 @@ private[core] object Stats {
     //Items to add to BloomFilters is different to the position because a Group can contain
     //multiple inner key-values but the Group's key itself does not get added to the BloomFilter.
     val totalBloomFiltersItemsCount =
-    previousStats.map(_.bloomFilterItemsCount + bloomFiltersItemCount) getOrElse bloomFiltersItemCount
+    previousStats.map(_.bloomFilterKeysCount + bloomFiltersItemCount) getOrElse bloomFiltersItemCount
 
     val thisKeyValuesIndexSizeWithoutFooter =
       Bytes.sizeOf(key.size) + key.size
@@ -97,12 +103,15 @@ private[core] object Stats {
         Bytes.sizeOf(segmentValuesSize) + //index offset
         Bytes.sizeOf(position) + //key-values count
         Bytes.sizeOf(totalBloomFiltersItemsCount) + {
-        if (hasRemoveRange) { //BloomFilter is not created when hasRemoveRange is true.
-          1 //(1 for unsigned int 0)
-        } else {
-          val bloomFilterByteSize = BloomFilter.optimalSegmentByteSize(totalBloomFiltersItemsCount, falsePositiveRate)
-          Bytes.sizeOf(bloomFilterByteSize) + bloomFilterByteSize
-        }
+        //        if (hasRemoveRange) { //BloomFilter is not created when hasRemoveRange is true.
+        //          1 //(1 for unsigned int 0)
+        //        } else {
+        val bloomFilterByteSize = BloomFilter.optimalSegmentByteSize(totalBloomFiltersItemsCount, falsePositiveRate)
+        Bytes.sizeOf(bloomFilterByteSize) + bloomFilterByteSize
+        //        }
+      } + {
+        val rangeFilterByteSize = BloomFilter.rangeFilterByteSize(totalBloomFiltersItemsCount)
+        Bytes.sizeOf(rangeFilterByteSize) + rangeFilterByteSize
       }
 
     val segmentSize: Int =
@@ -123,7 +132,8 @@ private[core] object Stats {
       thisKeyValuesSegmentSizeWithoutFooter = thisKeyValuesSegmentSizeWithoutFooter,
       thisKeyValuesIndexSizeWithoutFooter = thisKeyValuesIndexSizeWithoutFooter,
       hasRemoveRange = hasRemoveRange,
-      bloomFilterItemsCount = totalBloomFiltersItemsCount,
+      numberOfRanges = numberOfRanges,
+      bloomFilterKeysCount = totalBloomFiltersItemsCount,
       groupsCount = groupsCount,
       hasPut = hasPut,
       hasRange = hasRange,
@@ -136,7 +146,7 @@ private[core] case class Stats(valueLength: Int,
                                segmentSize: Int,
                                position: Int,
                                groupsCount: Int,
-                               bloomFilterItemsCount: Int,
+                               bloomFilterKeysCount: Int,
                                segmentValuesSize: Int,
                                segmentUncompressedKeysSize: Int,
                                segmentSizeWithoutFooter: Int,
@@ -144,6 +154,7 @@ private[core] case class Stats(valueLength: Int,
                                keySize: Int,
                                thisKeyValuesSegmentSizeWithoutFooter: Int,
                                thisKeyValuesIndexSizeWithoutFooter: Int,
+                               numberOfRanges: Int,
                                hasRemoveRange: Boolean,
                                hasRange: Boolean,
                                hasPut: Boolean,

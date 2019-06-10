@@ -24,6 +24,7 @@ import swaydb.core.TestData._
 import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data.{Transient, Value}
 import swaydb.core.{TestBase, TestData, TestTimer}
+import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
@@ -31,6 +32,8 @@ import swaydb.serializers._
 import scala.util.Random
 
 class BloomFilterSpec extends TestBase {
+
+  implicit val keyOrder = KeyOrder.default
 
   "toBytes & toSlice" should {
     "write bloom filter to bytes" in {
@@ -40,7 +43,7 @@ class BloomFilterSpec extends TestBase {
       (1 to 10) foreach (key => bloomFilter.mightContain(key) shouldBe true)
       (11 to 20) foreach (key => bloomFilter.mightContain(key) shouldBe false)
 
-      val readBloomFilter = BloomFilter(bloomFilter.toSlice).get
+      val readBloomFilter = BloomFilter(bloomFilter.toBloomFilterSlice, bloomFilter.toRangeFilterSlice).get
       (1 to 10) foreach (key => readBloomFilter.mightContain(key) shouldBe true)
       (11 to 20) foreach (key => readBloomFilter.mightContain(key) shouldBe false)
 
@@ -56,7 +59,7 @@ class BloomFilterSpec extends TestBase {
           val numberOfItems = i * 10
           val falsePositiveRate = 0.0 + (0 + "." + i.toString).toDouble
           val bloomFilter = BloomFilter(numberOfItems, falsePositiveRate)
-          bloomFilter.toSlice.size should be <= BloomFilter.optimalSegmentByteSize(numberOfItems, falsePositiveRate)
+          bloomFilter.toBloomFilterSlice.size should be <= BloomFilter.optimalSegmentByteSize(numberOfItems, falsePositiveRate)
       }
     }
   }
@@ -157,14 +160,14 @@ class BloomFilterSpec extends TestBase {
       println(s"missed out of ${data.size}: " + positives.size)
       println(s"errors out of ${data.size}: " + falsePositives.size)
       println(s"Optimal byte size: " + filter.numberOfBits)
-      println(s"Actual byte size: " + filter.toSlice.size)
+      println(s"Actual byte size: " + filter.toBloomFilterSlice.size)
       println
 
       positives.size shouldBe 0
       falsePositives.size should be < 200
 
       if (previousFilter.isEmpty)
-        filter.toSlice.underlyingArraySize shouldBe (filter.numberOfBits + filter.startOffset)
+        filter.toBloomFilterSlice.underlyingArraySize shouldBe (filter.numberOfBits + filter.startOffset)
 
       previousFilter map {
         previousFilter =>
@@ -172,8 +175,8 @@ class BloomFilterSpec extends TestBase {
           filter.numberOfBits shouldBe previousFilter.numberOfBits
           filter.numberOfHashes shouldBe previousFilter.numberOfHashes
           filter.startOffset shouldBe previousFilter.startOffset
-          filter.toSlice.size shouldBe previousFilter.toSlice.size
-          filter.toSlice.underlyingArraySize shouldBe filter.toSlice.size
+          filter.toBloomFilterSlice.size shouldBe previousFilter.toBloomFilterSlice.size
+          filter.toBloomFilterSlice.underlyingArraySize shouldBe filter.toBloomFilterSlice.size
       }
     }
 
@@ -188,10 +191,42 @@ class BloomFilterSpec extends TestBase {
 
     assert(data, filter, None)
     //re-create bloomFilter and read again.
-    val filter2 = BloomFilter(filter.toSlice.unslice()).get
+    val filter2 = BloomFilter(filter.toBloomFilterSlice.unslice(), filter.toRangeFilterSlice.unslice()).get
     assert(data, filter2, Some(filter))
     //re-create bloomFilter from created filter.
-    val filter3 = BloomFilter(filter2.toSlice.unslice()).get
+    val filter3 = BloomFilter(filter2.toBloomFilterSlice.unslice(), filter2.toRangeFilterSlice.unslice()).get
     assert(data, filter3, Some(filter2))
+  }
+
+  "range filter" in {
+    val filter = BloomFilter(7, 0.01)
+
+    filter.add(1)
+    filter.add(2)
+    filter.add(10, 20)
+    filter.add(20, 30)
+    filter.add(31)
+    filter.add(32, 40)
+    filter.add(40, 50)
+
+    def assert(filter: BloomFilter) = {
+      filter.mightContain(1) shouldBe true
+      filter.mightContain(2) shouldBe true
+      (10 to 29) foreach {
+        i =>
+          filter.mightContain(i) shouldBe true
+      }
+      filter.mightContain(30) shouldBe false
+      filter.mightContain(31) shouldBe true
+      (32 to 49) foreach {
+        i =>
+          filter.mightContain(i) shouldBe true
+      }
+      filter.mightContain(50) shouldBe false
+    }
+
+    assert(filter)
+
+    assert(BloomFilter(filter.toBloomFilterSlice.unslice(), filter.toRangeFilterSlice.unslice()).get)
   }
 }

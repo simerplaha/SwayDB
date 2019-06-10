@@ -1258,7 +1258,7 @@ object CommonAssertions {
     groupSegmentReader.readBoolean().assertGet shouldBe group.keyValues.last.stats.hasPut
     groupSegmentReader.readIntUnsigned().assertGet shouldBe expectedIndexCompressionUsed.decompressor.id //key decompression id
     groupSegmentReader.readIntUnsigned().assertGet shouldBe groupKeyValues.size //key-value count
-    groupSegmentReader.readIntUnsigned().assertGet shouldBe groupKeyValues.last.stats.bloomFilterItemsCount //bloomFilterItemsCount count
+    groupSegmentReader.readIntUnsigned().assertGet shouldBe groupKeyValues.last.stats.bloomFilterKeysCount //bloomFilterItemsCount count
     val keysDecompressLength = groupSegmentReader.readIntUnsigned().assertGet //keys length
     val keysCompressLength = groupSegmentReader.readIntUnsigned().assertGet //keys length
 
@@ -1289,7 +1289,7 @@ object CommonAssertions {
       hasPut = false,
       isGrouped = true,
       createdInLevel = Int.MinValue,
-      bloomFilterItemsCount = groupKeyValues.last.stats.bloomFilterItemsCount,
+      bloomFilterItemsCount = groupKeyValues.last.stats.bloomFilterKeysCount,
       bloomFilter = None
     )
 

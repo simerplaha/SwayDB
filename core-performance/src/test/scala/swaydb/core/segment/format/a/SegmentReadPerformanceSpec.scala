@@ -36,6 +36,8 @@ import swaydb.core.IOAssert._
 import swaydb.core.io.file.DBFile
 import swaydb.core.segment.Segment
 
+import scala.collection.mutable.ListBuffer
+
 //@formatter:off
 class SegmentReadPerformanceSpec0 extends SegmentReadPerformanceSpec {
   val testGroupedKeyValues: Boolean = false
@@ -101,18 +103,18 @@ sealed trait SegmentReadPerformanceSpec extends TestBase with Benchmark {
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   def testGroupedKeyValues: Boolean
 
-  val keyValuesCount = 1000000
+  val keyValuesCount = 10000000
 
   implicit val maxSegmentsOpenCacheImplicitLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter
   implicit val keyValuesLimitImplicitLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter
 
-  val unGroupedKeyValues: Slice[KeyValue.WriteOnly] =
+  lazy val unGroupedKeyValues: Slice[KeyValue.WriteOnly] =
     randomKeyValues(keyValuesCount, startId = Some(1))
 
   //  val unGroupedRandomKeyValues: List[KeyValue.WriteOnly] =
   //    Random.shuffle(unGroupedKeyValues.toList)
 
-  val groupedKeyValues: Slice[KeyValue.WriteOnly] = {
+  lazy val groupedKeyValues: Slice[KeyValue.WriteOnly] = {
     val grouped =
       SegmentMerger.split(
         keyValues = unGroupedKeyValues,
@@ -132,7 +134,10 @@ sealed trait SegmentReadPerformanceSpec extends TestBase with Benchmark {
   def assertGet(segment: Segment) =
     unGroupedKeyValues foreach {
       keyValue =>
-        segment.get(keyValue.key).assertGet shouldBe keyValue
+        val key = keyValue.key.readInt()
+        if (key % 1000 == 0)
+          println(key)
+        segment.get(keyValue.key)
     }
 
   def assertHigher(segment: Segment) = {
@@ -144,7 +149,6 @@ sealed trait SegmentReadPerformanceSpec extends TestBase with Benchmark {
         val expectedHigher = unGroupedKeyValues(index + 1)
         segment.higher(keyValue.key).assertGet shouldBe expectedHigher
     }
-
   }
 
   def assertLower(segment: Segment) =
@@ -159,8 +163,11 @@ sealed trait SegmentReadPerformanceSpec extends TestBase with Benchmark {
 
   var segment: Segment = null
 
-  def initSegment() =
+  def initSegment() = {
+    println("Creating segment...")
     segment = TestSegment(keyValues).assertGet
+    println("Segment created.")
+  }
 
   def reopenSegment() = {
     println("Re-opening Segment")

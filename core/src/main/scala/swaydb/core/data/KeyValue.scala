@@ -903,7 +903,7 @@ private[core] object Transient {
         isRange = isRange,
         isGroup = isGroup,
         previous = previous,
-        bloomFiltersItemCount = 1,
+        bloomFiltersItemCount = 2, //range's cost 2, one for fromKey and second for commonPrefix bytes.
         isPut = fromValue.exists(_.isInstanceOf[Value.Put]),
         deadline = None
       )
@@ -977,7 +977,7 @@ private[core] object Transient {
         isRange = isRange,
         isGroup = isGroup,
         previous = previous,
-        bloomFiltersItemCount = keyValues.last.stats.bloomFilterItemsCount,
+        bloomFiltersItemCount = keyValues.last.stats.bloomFilterKeysCount,
         isPut = keyValues.last.stats.hasPut,
         deadline = deadline
       )

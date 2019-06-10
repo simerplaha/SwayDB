@@ -227,7 +227,7 @@ private[core] object SegmentReader extends LazyLogging {
         }
     }
 
-  def readFooter(reader: Reader): IO[SegmentFooter] =
+  def readFooter(reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[SegmentFooter] =
     try {
       val fileSize = reader.size.get
       val footerSize = reader.moveTo(fileSize - ByteSizeOf.int).readInt().get
@@ -244,11 +244,15 @@ private[core] object SegmentReader extends LazyLogging {
       val keyValueCount = footerReader.readIntUnsigned().get
       val bloomFilterItemsCount = footerReader.readIntUnsigned().get
       val bloomFilterSize = footerReader.readIntUnsigned().get
-      val bloomFilterSlice =
-        if (bloomFilterSize == 0)
+      val bloomAndRangeFilterSlice =
+        if (bloomFilterSize == 0) {
           None
-        else
-          Some(footerReader.read(bloomFilterSize).get)
+        } else {
+          val bloomFilterSlice = footerReader.read(bloomFilterSize).get
+          val rangeFilterSize = footerReader.readIntUnsigned().get
+          val rangeFilterSlice = footerReader.read(rangeFilterSize).get
+          Some(bloomFilterSlice, rangeFilterSlice)
+        }
 
       val crcBytes = reader.moveTo(indexStartOffset).read(SegmentWriter.crcBytes).get
       val crc = CRC32.forBytes(crcBytes)
@@ -267,7 +271,11 @@ private[core] object SegmentReader extends LazyLogging {
             hasRange = hasRange,
             hasPut = hasPut,
             bloomFilterItemsCount = bloomFilterItemsCount,
-            bloomFilter = bloomFilterSlice.map(BloomFilter(_).get)
+            bloomFilter =
+              bloomAndRangeFilterSlice map {
+                case (bloomFilterSlice, rangeFilterSlice) =>
+                  BloomFilter(bloomFilterSlice, rangeFilterSlice).get
+              }
           )
         )
       }

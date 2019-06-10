@@ -19,13 +19,13 @@
 
 package swaydb.core.util
 
-import swaydb.core.util.BloomFilter
 import swaydb.core.TestData
-import swaydb.data.slice.Slice
+import swaydb.data.order.KeyOrder
 import swaydb.serializers.Default.LongSerializer
-import swaydb.core.util.BloomFilter._
 
 object BloomFilterMemoryUsage extends App {
+
+  implicit val keyOrder = KeyOrder.default
 
   System.gc()
 
@@ -50,5 +50,5 @@ object BloomFilterMemoryUsage extends App {
   val freeAfterDispose = Runtime.getRuntime.freeMemory()
   println("freeMemory after disposing bloomFilter: " + freeAfterDispose)
 
-  println("bloomFilter.toBytes.length: " + bloomFilter.toSlice.size)
+  println("bloomFilter.toBytes.length: " + bloomFilter.toBloomFilterSlice.size)
 }

@@ -145,7 +145,7 @@ private[core] class SegmentCache(id: String,
           case _ =>
             prepareGet {
               (footer, reader) =>
-                if (!footer.hasRange && !footer.bloomFilter.forall(_.mightContain(key)))
+                if (!footer.bloomFilter.forall(_.mightContain(key)))
                   IO.none
                 else
                   find(KeyMatcher.Get(key), startFrom = floorValue, reader, footer) flatMap {

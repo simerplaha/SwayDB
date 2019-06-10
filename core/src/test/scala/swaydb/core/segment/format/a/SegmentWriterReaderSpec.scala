@@ -58,10 +58,7 @@ class SegmentWriterReaderSpec extends TestBase {
         val bloom = BloomFilter.init(keyValues, TestData.falsePositiveRate)
         val deadline = SegmentWriter.writeBloomFilterAndGetNearestDeadline(group, bloom, None)
 
-        if (keyValues.last.stats.hasRemoveRange)
-          bloom shouldBe empty
-        else
-          assertBloom(keyValues, bloom.assertGet)
+        assertBloom(keyValues, bloom.assertGet)
 
         deadline shouldBe nearestDeadline(keyValues)
       }
@@ -278,35 +275,6 @@ class SegmentWriterReaderSpec extends TestBase {
       }
     }
 
-    "set hasRange & hasRemoveRange to true and not create bloomFilter when Segment contains Remove range key-value" in {
-      def doAssert(keyValues: Slice[KeyValue.WriteOnly]) = {
-        keyValues.last.stats.hasRemoveRange shouldBe true
-
-        val (bytes, _) = SegmentWriter.write(keyValues, 0, false, TestData.falsePositiveRate).assertGet
-
-        val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).get
-        footer.keyValueCount shouldBe keyValues.size
-        footer.keyValueCount shouldBe keyValues.size
-        footer.hasRange shouldBe true
-        //bloom filters do
-        footer.bloomFilter shouldBe empty
-        footer.crc should be > 0L
-      }
-
-      runThis(100.times) {
-        val keyValues =
-          randomizedKeyValues(keyValueCount, startId = Some(1)) ++
-            Seq(
-              eitherOne(
-                left = Transient.Group(Slice(randomFixedKeyValue(10), randomRangeKeyValue(12, 15, rangeValue = Value.remove(randomDeadlineOption))).toTransient, randomCompression(), randomCompression(), TestData.falsePositiveRate, None).assertGet,
-                right = Transient.Range.create[FromValue, RangeValue](20, 21, randomFromValueOption(), Value.remove(randomDeadlineOption))
-              )
-            )
-
-        doAssert(keyValues.updateStats)
-      }
-    }
-
     "create bloomFilter when Segment not does contains Remove range key-value but contains a Group" in {
       def doAssert(keyValues: Slice[KeyValue.WriteOnly]) = {
         keyValues.last.stats.hasRemoveRange shouldBe false
@@ -401,41 +369,6 @@ class SegmentWriterReaderSpec extends TestBase {
         )
       }
     }
-
-    "set hasRemoveRange to true, hasGroup to true & not create bloomFilter when only the group contains remove range" in {
-      val keyCompression = randomCompression()
-      val valueCompression = randomCompression()
-
-      def doAssert(keyValues: Slice[KeyValue.WriteOnly]) = {
-        keyValues.last.stats.hasRemoveRange shouldBe true
-
-        val (bytes, _) = SegmentWriter.write(keyValues, 0, false, TestData.falsePositiveRate).assertGet
-
-        val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).get
-        footer.keyValueCount shouldBe keyValues.size
-        footer.keyValueCount shouldBe keyValues.size
-        footer.hasRange shouldBe true
-        //bloom filters do
-        footer.bloomFilter shouldBe empty
-        footer.crc should be > 0L
-
-        keyValues foreach {
-          case group: Transient.Group =>
-            assertGroup(group, keyCompression, Some(valueCompression))
-          case _ =>
-        }
-      }
-
-      runThis(100.times) {
-        doAssert(
-          Slice(
-            randomFixedKeyValue(1).toTransient,
-            randomFixedKeyValue(2).toTransient,
-            Transient.Group(Slice(randomPutKeyValue(10, Some("val")), randomRangeKeyValue(12, 15, rangeValue = Value.remove(None))).toTransient, keyCompression, valueCompression, TestData.falsePositiveRate, None).assertGet
-          ).updateStats
-        )
-      }
-    }
   }
 
   "SegmentReader.find" should {
@@ -452,6 +385,7 @@ class SegmentWriterReaderSpec extends TestBase {
         ).updateStats
 
       val (bytes, _) = SegmentWriter.write(keyValues, 0, false, TestData.falsePositiveRate).assertGet
+      bytes.isFull shouldBe true
       val footer = SegmentReader.readFooter(Reader(bytes)).assertGet
 
       /**
