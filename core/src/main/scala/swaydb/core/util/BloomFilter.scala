@@ -47,7 +47,8 @@ object BloomFilter {
     ByteSizeOf.int + //numberOfBits
       ByteSizeOf.int //numberOfHashes
 
-  def apply(numberOfKeys: Int, falsePositiveRate: Double)(implicit keyOrder: KeyOrder[Slice[Byte]]): BloomFilter = {
+  def apply(numberOfKeys: Int,
+            falsePositiveRate: Double)(implicit keyOrder: KeyOrder[Slice[Byte]]): BloomFilter = {
     val numberOfBits = optimalNumberOfBloomFilterBits(numberOfKeys, falsePositiveRate)
     val numberOfHashes = optimalNumberOfBloomFilterHashes(numberOfKeys, numberOfBits)
     val buffer = Slice.create[Byte](byteBufferStartOffset + numberOfBits)
@@ -64,11 +65,37 @@ object BloomFilter {
     )
   }
 
+  def apply(numberOfBits: Int,
+            numberOfHashes: Int,
+            bytes: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): BloomFilter = {
+    bytes.addInt(numberOfBits)
+    bytes.addInt(numberOfHashes)
+
+    new BloomFilter(
+      _maxStartOffset = 0,
+      startOffset = byteBufferStartOffset,
+      numberOfBits = numberOfBits,
+      numberOfHashes = numberOfHashes,
+      hasRanges = false,
+      rangeFilter = mutable.Map.empty,
+      bytes = bytes
+    )
+  }
+
+  def optimalRangeFilterByteSize(numberOfRanges: Int): Int =
+    IntMapListBufferSerializer optimalBytesRequired numberOfRanges
+
   def optimalNumberOfBloomFilterBits(numberOfKeys: Int, falsePositiveRate: Double): Int =
     math.ceil(-1 * numberOfKeys * math.log(falsePositiveRate) / math.log(2) / math.log(2)).toInt
 
   def optimalNumberOfBloomFilterHashes(numberOfKeys: Int, numberOfInt: Long): Int =
     math.ceil(numberOfInt / numberOfKeys * math.log(2)).toInt
+
+  def optimalSegmentBloomFilterByteSize(numberOfKeys: Int, falsePositiveRate: Double): Int =
+    BloomFilter.optimalNumberOfBloomFilterBits(
+      numberOfKeys = numberOfKeys,
+      falsePositiveRate = falsePositiveRate
+    ) + byteBufferStartOffset
 
   def apply(bloomFilterBytes: Slice[Byte], rangeFilterBytes: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[BloomFilter] = {
     val reader = Reader(bloomFilterBytes)
@@ -88,15 +115,6 @@ object BloomFilter {
       )
     }
   }
-
-  def rangeFilterByteSize(numberOfRanges: Int): Int =
-    IntMapListBufferSerializer.optimalBytesRequired(numberOfRanges)
-
-  def optimalSegmentByteSize(numberOfKeys: Int, falsePositiveRate: Double): Int =
-    BloomFilter.optimalNumberOfBloomFilterBits(
-      numberOfKeys = numberOfKeys,
-      falsePositiveRate = falsePositiveRate
-    ) + ByteSizeOf.int + ByteSizeOf.int
 
   /**
     * Initialise bloomFilter if key-values do no contain remove range.
