@@ -44,16 +44,31 @@ object Slice {
     Slice.create[T](0)
 
   def fill[T: ClassTag](length: Int)(elem: => T): Slice[T] =
-    new Slice(Array.fill(length)(elem), fromOffset = 0, toOffset = if (length == 0) -1 else length - 1, length)
+    new Slice(
+      array = Array.fill(length)(elem),
+      fromOffset = 0,
+      toOffset = if (length == 0) -1 else length - 1,
+      _written = length
+    )
 
   def create[T: ClassTag](length: Int): Slice[T] =
-    new Slice(new Array[T](length), fromOffset = 0, toOffset = if (length == 0) -1 else length - 1, 0)
+    new Slice(
+      array = new Array[T](length),
+      fromOffset = 0,
+      toOffset = if (length == 0) -1 else length - 1,
+      _written = 0
+    )
 
   def apply[T: ClassTag](data: Array[T]): Slice[T] =
     if (data.length == 0)
       Slice.create[T](0)
     else
-      new Slice[T](data, 0, data.length - 1, data.length)
+      new Slice[T](
+        array = data,
+        fromOffset = 0,
+        toOffset = data.length - 1,
+        _written = data.length
+      )
 
   def apply[T: ClassTag](data: T*): Slice[T] =
     Slice(data.toArray)
@@ -392,13 +407,22 @@ class Slice[+T: ClassTag](array: Array[T],
       if (toOffsetAdjusted > this.toOffset) throw new ArrayIndexOutOfBoundsException(toOffset)
       if (fromOffsetAdjusted > toOffsetAdjusted) throw new ArrayIndexOutOfBoundsException(fromOffset)
       val sliceWritePosition =
-        if (writePosition <= fromOffsetAdjusted) //not written
+      //writePosition cannot be calculated if position was manually moved.
+      //new is set to be full is that's the case.
+        if (written >= size)
+          toOffsetAdjusted - fromOffsetAdjusted + 1
+        else if (writePosition <= fromOffsetAdjusted) //not written
           0
         else if (writePosition > toOffsetAdjusted) //fully written
           toOffsetAdjusted - fromOffsetAdjusted + 1
         else //some written
           toOffsetAdjusted - writePosition + 1
-      new Slice[T](array, fromOffsetAdjusted, toOffsetAdjusted, sliceWritePosition)
+      new Slice[T](
+        array = array,
+        fromOffset = fromOffsetAdjusted,
+        toOffset = toOffsetAdjusted,
+        _written = sliceWritePosition
+      )
     }
 
   override def splitAt(index: Int): (Slice[T], Slice[T]) =
@@ -432,9 +456,13 @@ class Slice[+T: ClassTag](array: Array[T],
   }
 
   //Note: using moveTo will set the writePosition incorrectly during runTime.
-  //one moveTo is invoked manually, all the subsequent writes should move this pointer.
-  private[swaydb] def moveTo(writePosition: Int): Unit =
+  //one moveTo is invoked manually, all the subsequent writes should move this pointer manually.
+  private[swaydb] def moveTo(writePosition: Int): Unit = {
+    //cannot track written once writePosition is manually moved.
+    //set this slice to be fully written.
+    this._written = size
     this.writePosition = writePosition
+  }
 
   override def drop(count: Int): Slice[T] =
     if (count >= size)
@@ -509,7 +537,7 @@ class Slice[+T: ClassTag](array: Array[T],
   private[slice] def insert(item: Any): Unit = {
     if (writePosition < fromOffset || writePosition > toOffset) throw new ArrayIndexOutOfBoundsException(writePosition)
     array(writePosition) = item.asInstanceOf[T]
-    _written += 1
+    _written = (written + 1) min size //this can occur if writePosition was manually moved.
     writePosition += 1
   }
 
@@ -520,7 +548,7 @@ class Slice[+T: ClassTag](array: Array[T],
     items.asInstanceOf[Iterable[T]] foreach {
       item =>
         array(writePosition) = item
-        _written += 1
+        _written = (written + 1) min size //this can occur if writePosition was manually moved.
         writePosition += 1
     }
   }
