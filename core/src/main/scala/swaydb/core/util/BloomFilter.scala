@@ -19,8 +19,6 @@
 
 package swaydb.core.util
 
-import java.nio.ByteBuffer
-
 import swaydb.core.data.KeyValue
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.serializer.ValueSerializer.IntMapListBufferSerializer
@@ -42,7 +40,7 @@ object BloomFilter {
       numberOfHashes = 0,
       hasRanges = false,
       mutable.Map.empty,
-      buffer = ByteBuffer.allocate(0)
+      bytes = Slice.emptyBytes
     )(KeyOrder.default)
 
   val byteBufferStartOffset =
@@ -52,9 +50,9 @@ object BloomFilter {
   def apply(numberOfKeys: Int, falsePositiveRate: Double)(implicit keyOrder: KeyOrder[Slice[Byte]]): BloomFilter = {
     val numberOfBits = optimalNumberOfBloomFilterBits(numberOfKeys, falsePositiveRate)
     val numberOfHashes = optimalNumberOfBloomFilterHashes(numberOfKeys, numberOfBits)
-    val buffer = ByteBuffer.allocate(byteBufferStartOffset + numberOfBits)
-    buffer.putInt(numberOfBits)
-    buffer.putInt(numberOfHashes)
+    val buffer = Slice.create[Byte](byteBufferStartOffset + numberOfBits)
+    buffer.addInt(numberOfBits)
+    buffer.addInt(numberOfHashes)
     new BloomFilter(
       _maxStartOffset = 0,
       startOffset = byteBufferStartOffset,
@@ -62,7 +60,7 @@ object BloomFilter {
       numberOfHashes = numberOfHashes,
       hasRanges = false,
       rangeFilter = mutable.Map.empty,
-      buffer = buffer
+      bytes = buffer
     )
   }
 
@@ -86,7 +84,7 @@ object BloomFilter {
         numberOfHashes = numberOfHashes,
         hasRanges = rangeEntries.nonEmpty,
         rangeFilter = rangeEntries,
-        buffer = bloomFilterBytes.toByteBuffer
+        bytes = bloomFilterBytes
       )
     }
   }
@@ -120,7 +118,7 @@ class BloomFilter(val startOffset: Int,
                   val numberOfHashes: Int,
                   var hasRanges: Boolean,
                   rangeFilter: mutable.Map[Int, Iterable[(Byte, Byte)]],
-                  buffer: ByteBuffer)(implicit ordering: KeyOrder[Slice[Byte]]) {
+                  bytes: Slice[Byte])(implicit ordering: KeyOrder[Slice[Byte]]) {
 
   import ordering._
 
@@ -128,14 +126,16 @@ class BloomFilter(val startOffset: Int,
     _maxStartOffset
 
   private def get(index: Long): Long =
-    buffer.getLong(startOffset + ((index >>> 6) * 8L).toInt) & (1L << index)
+    bytes.take(startOffset + ((index >>> 6) * 8L).toInt, ByteSizeOf.long).readLong() & (1L << index)
 
   private def set(index: Long): Unit = {
     val offset = startOffset + (index >>> 6) * 8L
     _maxStartOffset = _maxStartOffset max offset.toInt
-    val long = buffer.getLong(offset.toInt)
-    if ((long & (1L << index)) == 0)
-      buffer.putLong(offset.toInt, long | (1L << index))
+    val long = bytes.take(offset.toInt, ByteSizeOf.long).readLong()
+    if ((long & (1L << index)) == 0) {
+      bytes.moveTo(offset.toInt)
+      bytes.addLong(long | (1L << index))
+    }
   }
 
   def add(key: Slice[Byte]): Unit = {
@@ -204,7 +204,7 @@ class BloomFilter(val startOffset: Int,
   }
 
   def toBloomFilterSlice: Slice[Byte] =
-    Slice(buffer.array()).slice(0, maxStartOffset + 7)
+    bytes.slice(0, maxStartOffset + 7)
 
   def toRangeFilterSlice: Slice[Byte] =
     if (rangeFilter.isEmpty)
@@ -216,5 +216,5 @@ class BloomFilter(val startOffset: Int,
     }
 
   override def hashCode(): Int =
-    buffer.hashCode()
+    bytes.hashCode()
 }
