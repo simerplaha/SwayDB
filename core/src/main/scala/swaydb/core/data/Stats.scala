@@ -80,6 +80,12 @@ private[core] object Stats {
     val thisKeyValuesSegmentSizeWithoutFooter: Int =
       thisKeyValuesIndexSizeWithoutFooter + valueLength
 
+    val thisKeyValuesIndexOffset =
+      previousStats map {
+        previous =>
+          previous.thisKeyValuesIndexOffset + previous.thisKeyValuesIndexSizeWithoutFooter
+      } getOrElse 0
+
     val segmentSizeWithoutFooter: Int =
       previousStats.map(_.segmentSizeWithoutFooter).getOrElse(0) + thisKeyValuesSegmentSizeWithoutFooter
 
@@ -131,6 +137,7 @@ private[core] object Stats {
       keySize = key.size,
       thisKeyValuesSegmentSizeWithoutFooter = thisKeyValuesSegmentSizeWithoutFooter,
       thisKeyValuesIndexSizeWithoutFooter = thisKeyValuesIndexSizeWithoutFooter,
+      thisKeyValuesIndexOffset = thisKeyValuesIndexOffset,
       hasRemoveRange = hasRemoveRange,
       numberOfRanges = numberOfRanges,
       bloomFilterKeysCount = totalBloomFiltersItemsCount,
@@ -154,6 +161,7 @@ private[core] case class Stats(valueLength: Int,
                                keySize: Int,
                                thisKeyValuesSegmentSizeWithoutFooter: Int,
                                thisKeyValuesIndexSizeWithoutFooter: Int,
+                               thisKeyValuesIndexOffset: Int,
                                numberOfRanges: Int,
                                hasRemoveRange: Boolean,
                                hasRange: Boolean,
