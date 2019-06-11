@@ -431,6 +431,11 @@ class Slice[+T: ClassTag](array: Array[T],
     group(Slice.create[Slice[T]](size), this, size)
   }
 
+  //Note: using moveTo will set the writePosition incorrectly during runTime.
+  //one moveTo is invoked manually, all the subsequent writes should move this pointer.
+  private[swaydb] def moveTo(writePosition: Int): Unit =
+    this.writePosition = writePosition
+
   override def drop(count: Int): Slice[T] =
     if (count >= size)
       Slice.empty[T]
@@ -448,6 +453,9 @@ class Slice[+T: ClassTag](array: Array[T],
 
   override def take(count: Int): Slice[T] =
     slice(0, (size min count) - 1)
+
+  def take(fromIndex: Int, count: Int): Slice[T] =
+    slice(fromIndex, (size min (fromIndex + count)) - 1)
 
   override def takeRight(count: Int): Slice[T] =
     slice(size - count, size - 1)

@@ -598,4 +598,35 @@ class SliceSpec extends WordSpec with Matchers {
         Some((Slice.writeInt(1), Slice.writeInt(3), false))) should contain((Slice.writeInt(1), Slice.writeInt(10), false))
     }
   }
+
+  "take from index" in {
+    val slice = Slice(1, 2, 3, 4, 5, 6)
+    slice.take(0, 0) shouldBe Slice.empty[Int]
+    slice.take(0, 1) shouldBe Slice(1)
+    slice.take(0, 2) shouldBe Slice(1, 2)
+    slice.take(0, 3) shouldBe Slice(1, 2, 3)
+    slice.take(0, 4) shouldBe Slice(1, 2, 3, 4)
+    slice.take(0, 5) shouldBe Slice(1, 2, 3, 4, 5)
+    slice.take(0, 6) shouldBe Slice(1, 2, 3, 4, 5, 6)
+    slice.take(0, 7) shouldBe Slice(1, 2, 3, 4, 5, 6)
+
+    val grouped = Slice(1, 2, 3, 4, 5, 6).groupedSlice(2)
+    grouped should have size 2
+
+    //1, 2, 3
+    val slice1 = grouped(0)
+    slice1.take(0, 0) shouldBe Slice.empty[Int]
+    slice1.take(0, 1) shouldBe Slice(1)
+    slice1.take(0, 2) shouldBe Slice(1, 2)
+    slice1.take(0, 3) shouldBe Slice(1, 2, 3)
+    slice1.take(0, 4) shouldBe Slice(1, 2, 3)
+
+    //4, 5, 6
+    val slice2 = grouped(1)
+    slice2.take(0, 0) shouldBe Slice.empty[Int]
+    slice2.take(0, 1) shouldBe Slice(4)
+    slice2.take(0, 2) shouldBe Slice(4, 5)
+    slice2.take(0, 3) shouldBe Slice(4, 5, 6)
+    slice2.take(0, 4) shouldBe Slice(4, 5, 6)
+  }
 }

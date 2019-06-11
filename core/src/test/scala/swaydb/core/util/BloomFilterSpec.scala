@@ -199,34 +199,39 @@ class BloomFilterSpec extends TestBase {
   }
 
   "range filter" in {
-    val filter = BloomFilter(7, 0.01)
+    Seq(Slice.writeIntUnsigned(_), Slice.writeInt(_)) foreach {
+      serialiser =>
+        implicit def toBytes(int: Int): Slice[Byte] = serialiser(int)
 
-    filter.add(1)
-    filter.add(2)
-    filter.add(10, 20)
-    filter.add(20, 30)
-    filter.add(31)
-    filter.add(32, 40)
-    filter.add(40, 50)
+        val filter = BloomFilter(7, 0.01)
 
-    def assert(filter: BloomFilter) = {
-      filter.mightContain(1) shouldBe true
-      filter.mightContain(2) shouldBe true
-      (10 to 29) foreach {
-        i =>
-          filter.mightContain(i) shouldBe true
-      }
-      filter.mightContain(30) shouldBe false
-      filter.mightContain(31) shouldBe true
-      (32 to 49) foreach {
-        i =>
-          filter.mightContain(i) shouldBe true
-      }
-      filter.mightContain(50) shouldBe false
+        filter.add(1)
+        filter.add(2)
+        filter.add(10, 20)
+        filter.add(20, 30)
+        filter.add(31)
+        filter.add(32, 40)
+        filter.add(40, 50)
+
+        def assert(filter: BloomFilter) = {
+          filter.mightContain(1) shouldBe true
+          filter.mightContain(2) shouldBe true
+          (10 to 29) foreach {
+            i =>
+              filter.mightContain(i) shouldBe true
+          }
+          filter.mightContain(30) shouldBe false
+          filter.mightContain(31) shouldBe true
+          (32 to 49) foreach {
+            i =>
+              filter.mightContain(i) shouldBe true
+          }
+          filter.mightContain(50) shouldBe false
+        }
+
+        assert(filter)
+
+        assert(BloomFilter(filter.toBloomFilterSlice.unslice(), filter.toRangeFilterSlice.unslice()).get)
     }
-
-    assert(filter)
-
-    assert(BloomFilter(filter.toBloomFilterSlice.unslice(), filter.toRangeFilterSlice.unslice()).get)
   }
 }
