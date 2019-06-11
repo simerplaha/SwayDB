@@ -23,7 +23,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.KeyValue
 import swaydb.core.segment.Segment
 import swaydb.core.util.PipeOps._
-import swaydb.core.util.{Benchmark, BloomFilter, CRC32}
+import swaydb.core.util.{BloomFilter, CRC32}
 import swaydb.data.IO
 import swaydb.data.IO._
 import swaydb.data.order.KeyOrder
@@ -139,77 +139,75 @@ private[core] object SegmentWriter extends LazyLogging {
             createdInLevel: Int,
             isGrouped: Boolean,
             bloomFilterFalsePositiveRate: Double)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[(Slice[Byte], Option[Deadline])] =
-    Benchmark("creating Segment") {
-      if (keyValues.isEmpty)
-        IO.Success(Slice.emptyBytes, None)
-      else {
-        val bloomFilter = BloomFilter.init(keyValues, bloomFilterFalsePositiveRate)
+    if (keyValues.isEmpty)
+      IO.Success(Slice.emptyBytes, None)
+    else {
+      val bloomFilter = BloomFilter.init(keyValues, bloomFilterFalsePositiveRate)
 
-        val slice = Slice.create[Byte](keyValues.last.stats.segmentSize)
+      val slice = Slice.create[Byte](keyValues.last.stats.segmentSize)
 
-        val (valuesSlice, indexSlice, footerSlice) =
-          slice.splitAt(keyValues.last.stats.segmentValuesSize) ==> {
-            case (valuesSlice, indexAndFooterSlice) =>
-              val (indexSlice, footerSlice) = indexAndFooterSlice splitAt keyValues.last.stats.indexSize
-              (valuesSlice, indexSlice, footerSlice)
-          }
-
-        write(
-          keyValues = keyValues,
-          indexSlice = indexSlice,
-          valuesSlice = valuesSlice,
-          bloomFilter = bloomFilter
-        ) flatMap {
-          nearestDeadline =>
-            IO {
-              //this is a placeholder to store the format type of the Segment file written.
-              //currently there is only one format. So this is hardcoded but if there are a new file format then
-              //SegmentWriter and SegmentReader should be changed to be type classes with unique format types ids.
-              footerSlice addIntUnsigned SegmentWriter.formatId
-              footerSlice addIntUnsigned createdInLevel
-              footerSlice addBoolean isGrouped
-              footerSlice addBoolean keyValues.last.stats.hasRange
-              footerSlice addBoolean keyValues.last.stats.hasPut
-              footerSlice addIntUnsigned indexSlice.fromOffset
-
-              //do CRC
-              var indexBytesToCRC = indexSlice.take(SegmentWriter.crcBytes)
-              if (indexBytesToCRC.size < SegmentWriter.crcBytes) //if index does not have enough bytes, fill remaining from the footer.
-                indexBytesToCRC = indexBytesToCRC append footerSlice.take(SegmentWriter.crcBytes - indexBytesToCRC.size)
-              assert(indexBytesToCRC.size == SegmentWriter.crcBytes, s"Invalid CRC bytes size: ${indexBytesToCRC.size}. Required: ${SegmentWriter.crcBytes}")
-              footerSlice addLong CRC32.forBytes(indexBytesToCRC)
-
-              //here the top Level key-values are used instead of Group's internal key-values because Group's internal key-values
-              //are read when the Group key-value is read.
-              footerSlice addIntUnsigned keyValues.size
-              //total number of actual key-values grouped or un-grouped
-              footerSlice addIntUnsigned keyValues.last.stats.bloomFilterKeysCount
-              bloomFilter match {
-                case Some(bloomFilter) =>
-                  val bloomFilterBytes = bloomFilter.toBloomFilterSlice
-                  footerSlice addIntUnsigned bloomFilterBytes.size
-                  footerSlice addAll bloomFilterBytes
-
-                  val rangeFilterBytes = bloomFilter.toRangeFilterSlice
-                  footerSlice addIntUnsigned rangeFilterBytes.size
-                  footerSlice addAll rangeFilterBytes
-
-                case None =>
-                  footerSlice addIntUnsigned 0
-              }
-              footerSlice addInt (footerSlice.written + ByteSizeOf.int)
-
-              val actualSegmentSizeWithoutFooter = valuesSlice.size + indexSlice.size
-
-              assert(
-                keyValues.last.stats.segmentSizeWithoutFooter == actualSegmentSizeWithoutFooter,
-                s"Invalid segment size. actual: $actualSegmentSizeWithoutFooter - expected: ${keyValues.last.stats.segmentSizeWithoutFooter}"
-              )
-
-              val segmentSlice = Slice(slice.toArray).dropRight(footerSlice.size - footerSlice.written)
-              (segmentSlice, nearestDeadline)
-            }
+      val (valuesSlice, indexSlice, footerSlice) =
+        slice.splitAt(keyValues.last.stats.segmentValuesSize) ==> {
+          case (valuesSlice, indexAndFooterSlice) =>
+            val (indexSlice, footerSlice) = indexAndFooterSlice splitAt keyValues.last.stats.indexSize
+            (valuesSlice, indexSlice, footerSlice)
         }
+
+      write(
+        keyValues = keyValues,
+        indexSlice = indexSlice,
+        valuesSlice = valuesSlice,
+        bloomFilter = bloomFilter
+      ) flatMap {
+        nearestDeadline =>
+          IO {
+            //this is a placeholder to store the format type of the Segment file written.
+            //currently there is only one format. So this is hardcoded but if there are a new file format then
+            //SegmentWriter and SegmentReader should be changed to be type classes with unique format types ids.
+            footerSlice addIntUnsigned SegmentWriter.formatId
+            footerSlice addIntUnsigned createdInLevel
+            footerSlice addBoolean isGrouped
+            footerSlice addBoolean keyValues.last.stats.hasRange
+            footerSlice addBoolean keyValues.last.stats.hasPut
+            footerSlice addIntUnsigned indexSlice.fromOffset
+
+            //do CRC
+            var indexBytesToCRC = indexSlice.take(SegmentWriter.crcBytes)
+            if (indexBytesToCRC.size < SegmentWriter.crcBytes) //if index does not have enough bytes, fill remaining from the footer.
+              indexBytesToCRC = indexBytesToCRC append footerSlice.take(SegmentWriter.crcBytes - indexBytesToCRC.size)
+            assert(indexBytesToCRC.size == SegmentWriter.crcBytes, s"Invalid CRC bytes size: ${indexBytesToCRC.size}. Required: ${SegmentWriter.crcBytes}")
+            footerSlice addLong CRC32.forBytes(indexBytesToCRC)
+
+            //here the top Level key-values are used instead of Group's internal key-values because Group's internal key-values
+            //are read when the Group key-value is read.
+            footerSlice addIntUnsigned keyValues.size
+            //total number of actual key-values grouped or un-grouped
+            footerSlice addIntUnsigned keyValues.last.stats.bloomFilterKeysCount
+            bloomFilter match {
+              case Some(bloomFilter) =>
+                val bloomFilterBytes = bloomFilter.toBloomFilterSlice
+                footerSlice addIntUnsigned bloomFilterBytes.size
+                footerSlice addAll bloomFilterBytes
+
+                val rangeFilterBytes = bloomFilter.toRangeFilterSlice
+                footerSlice addIntUnsigned rangeFilterBytes.size
+                footerSlice addAll rangeFilterBytes
+
+              case None =>
+                footerSlice addIntUnsigned 0
+            }
+            footerSlice addInt (footerSlice.written + ByteSizeOf.int)
+
+            val actualSegmentSizeWithoutFooter = valuesSlice.size + indexSlice.size
+
+            assert(
+              keyValues.last.stats.segmentSizeWithoutFooter == actualSegmentSizeWithoutFooter,
+              s"Invalid segment size. actual: $actualSegmentSizeWithoutFooter - expected: ${keyValues.last.stats.segmentSizeWithoutFooter}"
+            )
+
+            val segmentSlice = Slice(slice.toArray).dropRight(footerSlice.size - footerSlice.written)
+            (segmentSlice, nearestDeadline)
+          }
       }
     }
 }
