@@ -24,6 +24,7 @@ import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.data.Transient
+import swaydb.core.io.reader.Reader
 import swaydb.data.IO
 import swaydb.data.IO._
 import swaydb.data.order.KeyOrder
@@ -34,29 +35,35 @@ class SegmentHashIndexSpec extends TestBase {
 
   import keyOrder._
 
-  "Hash index" should {
+  "it" should {
     "build index" in {
       runThis(100.times) {
-        val maxProbe = 100
-        val keyValues = unzipGroups(randomizedKeyValues(count = 100, startId = Some(1))).toMemory.toTransient
+        val maxProbe = 10
+        val keyValues = unzipGroups(randomizedKeyValues(count = 1000, startId = Some(1))).toMemory.toTransient
 
         val writeResult =
           SegmentHashIndex.write(
             keyValues = keyValues,
-            probe = maxProbe,
-            compensate = 0
+            maxProbe = maxProbe,
+            compensate = _ * 2
           ).get
 
-        //        println(s"hit: ${writeResult.hit}")
-        //        println(s"miss: ${writeResult.miss}")
-        //        println
+        println(s"hit: ${writeResult.hit}")
+        println(s"miss: ${writeResult.miss}")
+        println
 
         writeResult.hit should be >= (keyValues.size * 0.50).toInt
         writeResult.miss shouldBe keyValues.size - writeResult.hit
         writeResult.hit + writeResult.miss shouldBe keyValues.size
 
+        val indexOffsetMap: Map[Int, Transient] =
+          keyValues.map({
+            keyValue =>
+              (keyValue.stats.thisKeyValuesIndexOffset, keyValue)
+          })(collection.breakOut)
+
         def findKey(indexOffset: Int): IO[Option[Transient]] =
-          IO(keyValues.find(_.stats.thisKeyValuesIndexOffset == indexOffset))
+          IO(indexOffsetMap.get(indexOffset))
 
         val readResult =
           keyValues mapIO {
@@ -76,6 +83,15 @@ class SegmentHashIndexSpec extends TestBase {
           }
 
         readResult.get.flatten.size should be >= writeResult.hit //>= because it can get lucky with overlapping index bytes.
+
+        writeResult.bytes.moveWritePositionUnsafe(0)
+        SegmentHashIndex.readHeader(Reader(writeResult.bytes)).get shouldBe
+          SegmentHashIndex.Header(
+            formatId = SegmentHashIndex.formatID,
+            maxProbe = writeResult.maxProbe,
+            hit = writeResult.hit,
+            miss = writeResult.miss
+          )
       }
     }
   }

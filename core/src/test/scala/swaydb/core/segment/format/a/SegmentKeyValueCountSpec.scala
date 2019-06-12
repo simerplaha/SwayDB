@@ -77,8 +77,9 @@ sealed trait SegmentKeyValueCount extends TestBase with ScalaFutures with Privat
           keyValues = randomizedKeyValues(1, addRandomGroups = false),
           assert =
             (keyValues, segment) => {
+              keyValues should have size 1
               segment.getHeadKeyValueCount().assertGet shouldBe 1
-              segment.getBloomFilterKeyValueCount().assertGet shouldBe 1
+              segment.getBloomFilterKeyValueCount().assertGet shouldBe (if (keyValues.head.toTransient.isRange) 2 else 1)
             }
         )
       }
@@ -91,7 +92,8 @@ sealed trait SegmentKeyValueCount extends TestBase with ScalaFutures with Privat
           assert =
             (keyValues, segment) => {
               segment.getHeadKeyValueCount().assertGet shouldBe keyValues.size
-              segment.getBloomFilterKeyValueCount().assertGet shouldBe keyValues.size
+              segment.getBloomFilterKeyValueCount().assertGet shouldBe
+                ((keyValues.count(_.toTransient.isRange) * 2) + keyValues.count(keyValue => !keyValue.toTransient.isRange))
             }
         )
       }

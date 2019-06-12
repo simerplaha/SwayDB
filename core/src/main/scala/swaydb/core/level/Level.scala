@@ -211,10 +211,10 @@ private[core] object Level extends LazyLogging {
     }
 
   /**
-    * A Segment is considered small if it's size is less than 60% of the default [[Level.segmentSize]]
+    * A Segment is considered small if it's size is less than 40% of the default [[Level.segmentSize]]
     */
   def isSmallSegment(segment: Segment, levelSegmentSize: Long): Boolean =
-    segment.segmentSize < levelSegmentSize * 0.60
+    segment.segmentSize < levelSegmentSize * 0.40
 
   def deleteUncommittedSegments(dirs: Seq[Dir], appendixSegments: Iterable[Segment]): IO[Unit] =
     dirs.flatMap(_.path.files(Extension.Seg)) foreachIO {

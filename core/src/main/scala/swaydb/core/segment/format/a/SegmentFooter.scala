@@ -22,8 +22,10 @@ package swaydb.core.segment.format.a
 import swaydb.core.util.BloomFilter
 
 private[core] case class SegmentFooter(crc: Long,
-                                       startIndexOffset: Int,
-                                       endIndexOffset: Int,
+                                       sortedIndexstartOffset: Int,
+                                       sortedIndexEndOffset: Int,
+                                       hashIndexStartOffset: Int,
+                                       hashIndexEndOffset: Int,
                                        keyValueCount: Int,
                                        hasRange: Boolean,
                                        hasPut: Boolean,

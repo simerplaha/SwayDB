@@ -25,7 +25,7 @@ import swaydb.core.util.Bytes
 import swaydb.data.IO
 import swaydb.data.IO._
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice
+import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
 
 import scala.annotation.tailrec
@@ -37,46 +37,79 @@ object SegmentHashIndex extends LazyLogging {
 
   val formatID: Byte = 0.toByte
 
+  private val headerSize =
+    ByteSizeOf.byte + // format ID
+      ByteSizeOf.int + //max probe
+      ByteSizeOf.int + //hit rate
+      ByteSizeOf.int //miss rate
+
   object WriteResult {
-    val empty = WriteResult(0, 0, Slice.emptyBytes)
+    val empty = WriteResult(0, 0, 0, Slice.emptyBytes)
     val emptyIO = IO.Success(empty)
   }
   final case class WriteResult(var hit: Int,
                                var miss: Int,
+                               maxProbe: Int,
                                bytes: Slice[Byte])
+
+  case class Header(formatId: Int, maxProbe: Int, hit: Int, miss: Int)
 
   /**
     * Number of bytes required to build a high probability index.
     */
-  def optimalBytesRequired(keyValues: Iterable[KeyValue.WriteOnly],
-                           compensate: Int): Int =
-    (keyValues.last.stats.position * Bytes.sizeOf(keyValues.last.stats.thisKeyValuesIndexOffset)) + //number of bytes required for has indexes
-      compensate //optionally add some more space or remove.
+  def optimalBytesRequired(lastKeyValuePosition: Int,
+                           lastKeyValueIndexOffset: Int,
+                           compensate: Int => Int): Int = {
+    val bytesWithOutCompensation = lastKeyValuePosition * Bytes.sizeOf(lastKeyValueIndexOffset + 1) //number of bytes required for hash indexes. +1 to skip 0 empty markers.
+    val bytesRequired =
+      headerSize +
+        (ByteSizeOf.int + 1) + //give it another 5 bytes incase the hash index is the last index. Since varints are written a max of 5 bytes can be taken for an in with large index.
+        bytesWithOutCompensation +
+        compensate(bytesWithOutCompensation) //optionally add compensation space or remove.
 
-  def write(keyValues: Iterable[KeyValue.WriteOnly],
-            probe: Int,
-            compensate: Int): IO[WriteResult] =
-    write(
-      keyValues = keyValues,
-      bytes = Slice.create[Byte](optimalBytesRequired(keyValues, compensate)),
-      probe = probe
+    //in case compensation returns negative, reserve enough bytes for the header.
+    bytesRequired max headerSize
+  }
+
+  /**
+    * Number of bytes required to build a high probability index.
+    */
+  def optimalBytesRequired(lastKeyValue: KeyValue.WriteOnly,
+                           compensate: Int => Int): Int =
+    optimalBytesRequired(
+      lastKeyValuePosition = lastKeyValue.stats.position,
+      lastKeyValueIndexOffset = lastKeyValue.stats.thisKeyValuesIndexOffset,
+      compensate = compensate
     )
 
   def write(keyValues: Iterable[KeyValue.WriteOnly],
+            maxProbe: Int,
+            compensate: Int => Int): IO[WriteResult] =
+    keyValues.lastOption map {
+      last =>
+        write(
+          keyValues = keyValues,
+          bytes = Slice.create[Byte](optimalBytesRequired(last, compensate)),
+          maxProbe = maxProbe
+        )
+    } getOrElse {
+      logger.warn("Hash index not created. Empty key-values submitted.")
+      WriteResult.emptyIO
+    }
+
+  def write(keyValues: Iterable[KeyValue.WriteOnly],
             bytes: Slice[Byte],
-            probe: Int): IO[WriteResult] =
+            maxProbe: Int): IO[WriteResult] =
     if (bytes.size == 0)
       WriteResult.emptyIO
     else
-      keyValues.foldLeftIO(WriteResult(0, 0, bytes)) {
+      keyValues.foldLeftIO(WriteResult(0, 0, maxProbe, bytes)) {
         case (result, keyValue) =>
           write(
             key = keyValue.key,
-            //add 1 to each offset to avoid 0 offsets.
-            //0 bytes indicate empty bucket and cannot actually be a value.
-            indexOffset = keyValue.stats.thisKeyValuesIndexOffset + 1,
+            indexOffset = keyValue.stats.thisKeyValuesIndexOffset,
             bytes = bytes,
-            maxProbe = probe
+            maxProbe = maxProbe
           ) map {
             added =>
               if (added)
@@ -85,16 +118,55 @@ object SegmentHashIndex extends LazyLogging {
                 result.miss += 1
               result
           }
+      } flatMap {
+        writeResult =>
+          //it's important to move to 0 to write to head of the file.
+          writeHeader(writeResult, bytes) map {
+            _ =>
+              writeResult
+          }
       }
 
+  def writeHeader(writeResult: WriteResult, bytes: Slice[Byte]): IO[Slice[Byte]] =
+    IO {
+      //it's important to move to 0 to write to head of the file.
+      bytes moveWritePositionUnsafe 0
+      bytes add formatID
+      bytes addIntUnsigned writeResult.maxProbe
+      bytes addInt writeResult.hit
+      bytes addInt writeResult.miss
+    }
+
+  def readHeader(reader: Reader): IO[Header] =
+    for {
+      formatID <- reader.get()
+      maxProbe <- reader.readIntUnsigned()
+      hit <- reader.readInt()
+      miss <- reader.readInt()
+    } yield
+      Header(
+        formatId = formatID,
+        maxProbe = maxProbe,
+        hit = hit,
+        miss = miss
+      )
+
   def hashIndex(key: Slice[Byte],
-                hashIndexByteSize: Int,
+                totalBlockSpace: Int,
                 probe: Int) = {
-    val hash = key.##
-    val hash1 = hash >>> 32
-    val hash2 = (hash << 32) >> 32
-    val computedHash = hash1 + probe * hash2
-    (computedHash & Int.MaxValue) % ((hashIndexByteSize - ByteSizeOf.int) max hashIndexByteSize)
+    if (totalBlockSpace <= headerSize)
+      headerSize //if there are no bytes reserved for hashIndex, just return the next hashIndex to be an overflow.
+    else {
+      val hash = key.##
+      val hash1 = hash >>> 32
+      val hash2 = (hash << 32) >> 32
+      val computedHash = hash1 + probe * hash2
+      //create a hash with reserved header bytes removed.
+      //add headerSize of offset the output index skipping header bytes.
+      //similar to optimalBytesRequired adding 5 bytes to add space for last indexes, here we remove those bytes to
+      //generate indexes accounting for the last index being the larget integer with 5 bytes..
+      ((computedHash & Int.MaxValue) % (totalBlockSpace - (ByteSizeOf.int + 1) - headerSize)) + headerSize
+    }
   }
 
   /**
@@ -105,19 +177,26 @@ object SegmentHashIndex extends LazyLogging {
             bytes: Slice[Byte],
             maxProbe: Int): IO[Boolean] = {
 
+    //add 1 to each offset to avoid 0 offsets.
+    //0 bytes are reserved as empty bucket markers .
+    val indexOffsetPlusOne = indexOffset + 1
+
     @tailrec
     def doWrite(probe: Int): IO[Boolean] =
       if (probe >= maxProbe) {
+        //println(s"Key: ${key.readInt()}: write index: miss probe: $probe")
         IO.`false`
       } else {
         val index = hashIndex(key, bytes.size, probe)
-        val indexBytesRequired = Bytes.sizeOf(indexOffset)
-        if (index + indexBytesRequired >= bytes.toOffset)
+
+        val indexBytesRequired = Bytes.sizeOf(indexOffsetPlusOne)
+        if (index + indexBytesRequired >= bytes.size)
           IO.`false`
         else if (bytes.take(index, indexBytesRequired).forall(_ == 0))
           IO {
-            bytes moveTo index
-            bytes addIntUnsigned indexOffset
+            bytes moveWritePositionUnsafe index
+            bytes addIntUnsigned indexOffsetPlusOne
+            //println(s"Key: ${key.readInt()}: write index: $index probe: $probe, indexOffset: $indexOffset, writeBytes: ${Slice.writeIntUnsigned(indexOffset)}")
             true
           }
         else
@@ -126,8 +205,6 @@ object SegmentHashIndex extends LazyLogging {
 
     if (bytes.size == 0)
       IO.`false`
-    else if (indexOffset == 0)
-      IO.Failure(IO.Error.Fatal(new Exception("indexOffset cannot be zero."))) //0 is reserved to be for non-empty buckets.
     else
       doWrite(0)
   }
@@ -154,9 +231,11 @@ object SegmentHashIndex extends LazyLogging {
               case success @ IO.Success(foundMayBe) =>
                 foundMayBe match {
                   case Some(keyValue) if keyValue.key equiv key =>
+                    //println(s"Key: ${key.readInt()}: read index : $index probe: $probe, indexOffset: ${possibleIndexOffset - 1} = success")
                     success
 
                   case Some(_) | None =>
+                    //println(s"Key: ${key.readInt()}: read index : $index probe: $probe: indexOffset: ${possibleIndexOffset - 1}")
                     doFind(probe + 1)
                 }
               case IO.Failure(error) =>

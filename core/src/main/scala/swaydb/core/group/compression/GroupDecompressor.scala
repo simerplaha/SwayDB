@@ -78,6 +78,7 @@ private[core] case class GroupDecompressor(private val compressedGroupReader: Re
       bloomFilterItemsCount <- header.readIntUnsigned()
       indexDecompressedLength <- header.readIntUnsigned()
       indexCompressedLength <- header.readIntUnsigned()
+      hashIndexDecompressedLength <- header.readIntUnsigned()
       hasValues <- header.hasMore //read values related header bytes only if header contains more data.
       //this Compression instance is used for decompressing only so minCompressionPercentage is irrelevant
       valuesCompression <- if (hasValues) header.readIntUnsigned().flatMap(id => DecompressorInternal(id).map(Some(_))) else IO.none
@@ -97,6 +98,8 @@ private[core] case class GroupDecompressor(private val compressedGroupReader: Re
         compressedEndIndexOffset = groupStartOffset + headerSize + valuesCompressedLength + indexCompressedLength,
         decompressedStartIndexOffset = groupStartOffset + headerSize + valuesDecompressedLength + 1,
         decompressedEndIndexOffset = groupStartOffset + headerSize + valuesDecompressedLength + indexDecompressedLength,
+        hashIndexStartOffset = groupStartOffset + headerSize + valuesCompressedLength + indexCompressedLength + 1,
+        hashIndexEndOffset = groupStartOffset + headerSize + valuesCompressedLength + indexCompressedLength + hashIndexDecompressedLength,
         valueInfo =
           valuesCompression map {
             valuesCompression =>

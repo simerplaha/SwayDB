@@ -106,7 +106,7 @@ class SegmentGrouperSpec extends TestBase {
       val group = segments.head.head.asInstanceOf[Transient.Group]
       group.keyValues shouldBe keyValues
 
-      val (segmentBytes, deadline) = SegmentWriter.write(Slice(group), 0, true, TestData.falsePositiveRate).assertGet
+      val (segmentBytes, deadline) = SegmentWriter.write(Slice(group), 0, true, TestData.maxProbe, TestData.falsePositiveRate).assertGet
       val reader = Reader(segmentBytes)
       val footer = SegmentReader.readFooter(reader.copy()).assertGet
       val readKeyValues = SegmentReader.readAll(footer, reader).assertGet
@@ -147,7 +147,7 @@ class SegmentGrouperSpec extends TestBase {
       val group = segments.head.head.asInstanceOf[Transient.Group]
       group.keyValues shouldBe keyValues
 
-      val (segmentBytes, deadline) = SegmentWriter.write(Slice(group), 0, true, TestData.falsePositiveRate).assertGet
+      val (segmentBytes, deadline) = SegmentWriter.write(Slice(group), 0, true, TestData.maxProbe, TestData.falsePositiveRate).assertGet
       val reader = Reader(segmentBytes)
       val footer = SegmentReader.readFooter(reader.copy()).assertGet
       val readKeyValues = SegmentReader.readAll(footer, reader).assertGet

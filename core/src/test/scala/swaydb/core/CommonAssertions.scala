@@ -1282,8 +1282,10 @@ object CommonAssertions {
 
     val tempFooter = SegmentFooter(
       crc = 0,
-      startIndexOffset = valuesDecompressLength,
-      endIndexOffset = keyValuesDecompressedBytes.size - 1,
+      sortedIndexstartOffset = valuesDecompressLength,
+      sortedIndexEndOffset = keyValuesDecompressedBytes.size - 1,
+      hashIndexStartOffset = ???,
+      hashIndexEndOffset = ???,
       keyValueCount = groupKeyValues.size,
       hasRange = false,
       hasPut = false,
@@ -1300,7 +1302,7 @@ object CommonAssertions {
     keyValues shouldBe groupKeyValues
 
     //now write the Group to a full Segment and read it as a normal Segment.
-    val (segmentBytes, nearestDeadline) = SegmentWriter.write(Seq(group.updateStats(TestData.falsePositiveRate, None)), 1, true, TestData.falsePositiveRate).assertGet
+    val (segmentBytes, nearestDeadline) = SegmentWriter.write(Seq(group.updateStats(TestData.falsePositiveRate, None)), 1, true, 10, TestData.falsePositiveRate).assertGet
     nearestDeadline shouldBe Segment.getNearestDeadline(groupKeyValues).assertGetOpt
     val segmentReader = Reader(segmentBytes)
     val footer = SegmentReader.readFooter(segmentReader).assertGet

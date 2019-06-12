@@ -122,7 +122,7 @@ sealed trait SegmentGroupReadSpec extends TestBase with ScalaFutures with Privat
       val allGroupKeyValues = group1KeyValues ++ group2KeyValues ++ group3KeyValues ++ group4KeyValues ++ group5KeyValues
 
       //write the root Group
-      val (bytes, deadline) = SegmentWriter.write(Slice(group5), 0, true, TestData.falsePositiveRate).assertGet
+      val (bytes, deadline) = SegmentWriter.write(Slice(group5), 0, true, TestData.maxProbe, TestData.falsePositiveRate).assertGet
       readAll(bytes).assertGet shouldBe allGroupKeyValues
     }
   }

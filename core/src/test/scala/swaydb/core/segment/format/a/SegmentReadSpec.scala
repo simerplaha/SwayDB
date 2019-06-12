@@ -811,7 +811,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures with PrivateMeth
         val segment3 = TestSegment(keyValues3).assertGet
 
         val all = Slice((keyValues1 ++ keyValues2 ++ keyValues3).toArray).updateStats
-        val (slice, deadline) = SegmentWriter.write(all, 0, false, TestData.falsePositiveRate).assertGet
+        val (slice, deadline) = SegmentWriter.write(all, 0, false, TestData.maxProbe, TestData.falsePositiveRate).assertGet
         deadline shouldBe nearestDeadline(all)
 
         val readKeyValues = Segment.getAllKeyValues(TestData.falsePositiveRate, Seq(segment1, segment2, segment3)).assertGet

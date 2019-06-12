@@ -250,7 +250,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
       }
 
       def doAssert(keyValues: Slice[KeyValue.WriteOnly]) = {
-        val (bytes, _) = SegmentWriter.write(keyValues, 0, false, TestData.falsePositiveRate).assertGet
+        val (bytes, _) = SegmentWriter.write(keyValues, 0, false, TestData.maxProbe, TestData.falsePositiveRate).assertGet
 
         //read key-values so they are all part of the same byte array.
         val readKeyValues: Slice[Memory] = SegmentReader.readAll(SegmentReader.readFooter(Reader(bytes)).assertGet, Reader(bytes)).assertGet.toMemory
@@ -1242,7 +1242,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
       val result = SegmentMerger.split(keyValues, 100.mb, false, inMemoryStorage, TestData.falsePositiveRate, true).assertGet
       result should have size 1
       result.head should have size keyValues.size
-      val (bytes, deadline) = SegmentWriter.write(result.head, 0, false, TestData.falsePositiveRate).assertGet
+      val (bytes, deadline) = SegmentWriter.write(result.head, 0, false, TestData.maxProbe, TestData.falsePositiveRate).assertGet
       readAll(bytes).assertGet shouldBe keyValues
     }
 
@@ -1259,7 +1259,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
       result should have size 1
       result.head should have size 1
 
-      val (bytes, deadline) = SegmentWriter.write(result.head, 0, false, TestData.falsePositiveRate).assertGet
+      val (bytes, deadline) = SegmentWriter.write(result.head, 0, false, TestData.maxProbe, TestData.falsePositiveRate).assertGet
       readAll(bytes).assertGet shouldBe keyValues
     }
   }

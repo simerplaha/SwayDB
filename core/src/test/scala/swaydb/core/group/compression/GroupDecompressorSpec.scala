@@ -70,7 +70,7 @@ class GroupDecompressorSpec extends TestBase {
           ).assertGet
 
         //write the group to a Segment
-        val (bytes, _) = SegmentWriter.write(Seq(group), 0, true, TestData.falsePositiveRate).assertGet
+        val (bytes, _) = SegmentWriter.write(Seq(group), 0, true, TestData.maxProbe, TestData.falsePositiveRate).assertGet
 
         //read footer
         val readKeyValues = SegmentReader.readAll(SegmentReader.readFooter(Reader(bytes)).assertGet, Reader(bytes)).assertGet

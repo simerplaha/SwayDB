@@ -48,7 +48,7 @@ class BloomFilterSpec extends TestBase {
       (11 to 20) foreach (key => readBloomFilter.mightContain(key) shouldBe false)
 
       println(bloomFilter.numberOfBits)
-      println(bloomFilter.maxStartOffset)
+      println(bloomFilter.endOffset)
     }
   }
 
@@ -171,7 +171,7 @@ class BloomFilterSpec extends TestBase {
 
       previousFilter map {
         previousFilter =>
-          filter.maxStartOffset shouldBe previousFilter.maxStartOffset
+          filter.endOffset shouldBe previousFilter.endOffset
           filter.numberOfBits shouldBe previousFilter.numberOfBits
           filter.numberOfHashes shouldBe previousFilter.numberOfHashes
           filter.startOffset shouldBe previousFilter.startOffset
@@ -203,35 +203,46 @@ class BloomFilterSpec extends TestBase {
       serialiser =>
         implicit def toBytes(int: Int): Slice[Byte] = serialiser(int)
 
-        val filter = BloomFilter(7, 0.01)
+        val bloom1 = BloomFilter(7, 0.01)
 
-        filter.add(1)
-        filter.add(2)
-        filter.add(10, 20)
-        filter.add(20, 30)
-        filter.add(31)
-        filter.add(32, 40)
-        filter.add(40, 50)
+        bloom1.add(1)
+        bloom1.add(2)
+        bloom1.add(10, 20)
+        bloom1.add(20, 30)
+        bloom1.add(31)
+        bloom1.add(32, 40)
+        bloom1.add(40, 50)
 
-        def assert(filter: BloomFilter) = {
-          filter.mightContain(1) shouldBe true
-          filter.mightContain(2) shouldBe true
+        def assert(bloom: BloomFilter) = {
+          bloom.mightContain(1) shouldBe true
+          bloom.mightContain(2) shouldBe true
           (10 to 29) foreach {
             i =>
-              filter.mightContain(i) shouldBe true
+              bloom.mightContain(i) shouldBe true
           }
-          filter.mightContain(30) shouldBe false
-          filter.mightContain(31) shouldBe true
+          bloom.mightContain(30) shouldBe false
+          bloom.mightContain(31) shouldBe true
           (32 to 49) foreach {
             i =>
-              filter.mightContain(i) shouldBe true
+              bloom.mightContain(i) shouldBe true
           }
-          filter.mightContain(50) shouldBe false
+          bloom.mightContain(50) shouldBe false
+
+          bloom.endOffset shouldBe bloom1.endOffset
+          bloom.hasRanges shouldBe bloom1.hasRanges
+          bloom.numberOfHashes shouldBe bloom1.numberOfHashes
+          bloom.numberOfBits shouldBe bloom1.numberOfBits
+          bloom.startOffset shouldBe bloom1.startOffset
+
         }
 
-        assert(filter)
+        assert(bloom1)
 
-        assert(BloomFilter(filter.toBloomFilterSlice.unslice(), filter.toRangeFilterSlice.unslice()).get)
+        val bloom2 = BloomFilter(bloom1.toBloomFilterSlice.unslice(), bloom1.toRangeFilterSlice.unslice()).get
+        assert(bloom2)
+
+        val bloom3 = BloomFilter(bloom2.toBloomFilterSlice.unslice(), bloom2.toRangeFilterSlice.unslice()).get
+        assert(bloom3)
     }
   }
 }

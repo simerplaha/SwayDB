@@ -32,10 +32,12 @@ import scala.collection.mutable.ListBuffer
 
 object BloomFilter {
 
+  val bloomFilterFormatID = 0.toByte
+
   val empty =
     new BloomFilter(
       startOffset = 0,
-      _maxStartOffset = 0,
+      _endOffset = 0,
       numberOfBits = 0,
       numberOfHashes = 0,
       hasRanges = false,
@@ -43,37 +45,52 @@ object BloomFilter {
       bytes = Slice.emptyBytes
     )(KeyOrder.default)
 
-  val byteBufferStartOffset =
-    ByteSizeOf.int + //numberOfBits
-      ByteSizeOf.int //numberOfHashes
-
   def apply(numberOfKeys: Int,
             falsePositiveRate: Double)(implicit keyOrder: KeyOrder[Slice[Byte]]): BloomFilter = {
     val numberOfBits = optimalNumberOfBloomFilterBits(numberOfKeys, falsePositiveRate)
     val numberOfHashes = optimalNumberOfBloomFilterHashes(numberOfKeys, numberOfBits)
-    val buffer = Slice.create[Byte](byteBufferStartOffset + numberOfBits)
-    buffer.addInt(numberOfBits)
-    buffer.addInt(numberOfHashes)
+
+    val numberOfBitsSize = Bytes.sizeOf(numberOfBits)
+    val numberOfHashesSize = Bytes.sizeOf(numberOfHashes)
+
+    val bytes = Slice.create[Byte](ByteSizeOf.byte + numberOfBitsSize + numberOfHashesSize + numberOfBits)
+
+    bytes add bloomFilterFormatID
+    bytes addIntUnsigned numberOfBits
+    bytes addIntUnsigned numberOfHashes
+
+    val startOffset = ByteSizeOf.byte + numberOfBitsSize + numberOfHashesSize
+
     new BloomFilter(
-      _maxStartOffset = 0,
-      startOffset = byteBufferStartOffset,
+      startOffset = startOffset,
+      _endOffset = startOffset,
       numberOfBits = numberOfBits,
       numberOfHashes = numberOfHashes,
       hasRanges = false,
       rangeFilter = mutable.Map.empty,
-      bytes = buffer
+      bytes = bytes
     )
   }
 
-  def apply(numberOfBits: Int,
-            numberOfHashes: Int,
+  //when the byte size is already pre-computed.
+  def apply(numberOfKeys: Int,
+            falsePositiveRate: Double,
             bytes: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): BloomFilter = {
-    bytes.addInt(numberOfBits)
-    bytes.addInt(numberOfHashes)
+    val numberOfBits = optimalNumberOfBloomFilterBits(numberOfKeys, falsePositiveRate)
+    val numberOfHashes = optimalNumberOfBloomFilterHashes(numberOfKeys, numberOfBits)
+
+    val numberOfBitsSize = Bytes.sizeOf(numberOfBits)
+    val numberOfHashesSize = Bytes.sizeOf(numberOfHashes)
+
+    bytes add bloomFilterFormatID
+    bytes addIntUnsigned numberOfBits
+    bytes addIntUnsigned numberOfHashes
+
+    val startOffset = ByteSizeOf.byte + numberOfBitsSize + numberOfHashesSize
 
     new BloomFilter(
-      _maxStartOffset = 0,
-      startOffset = byteBufferStartOffset,
+      startOffset = startOffset,
+      _endOffset = startOffset,
       numberOfBits = numberOfBits,
       numberOfHashes = numberOfHashes,
       hasRanges = false,
@@ -95,24 +112,30 @@ object BloomFilter {
     BloomFilter.optimalNumberOfBloomFilterBits(
       numberOfKeys = numberOfKeys,
       falsePositiveRate = falsePositiveRate
-    ) + byteBufferStartOffset
+    ) + ByteSizeOf.byte + ByteSizeOf.int + ByteSizeOf.int
 
-  def apply(bloomFilterBytes: Slice[Byte], rangeFilterBytes: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[BloomFilter] = {
+  def apply(bloomFilterBytes: Slice[Byte],
+            rangeFilterBytes: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[BloomFilter] = {
     val reader = Reader(bloomFilterBytes)
-    for {
-      numberOfBits <- reader.readInt()
-      numberOfHashes <- reader.readInt()
-      rangeEntries <- if (rangeFilterBytes.isEmpty) IO.Success(mutable.Map.empty[Int, Iterable[(Byte, Byte)]]) else IntMapListBufferSerializer.read(rangeFilterBytes)
-    } yield {
-      new BloomFilter(
-        startOffset = byteBufferStartOffset + bloomFilterBytes.fromOffset,
-        _maxStartOffset = bloomFilterBytes.size - 8,
-        numberOfBits = numberOfBits,
-        numberOfHashes = numberOfHashes,
-        hasRanges = rangeEntries.nonEmpty,
-        rangeFilter = rangeEntries,
-        bytes = bloomFilterBytes
-      )
+    reader.get() flatMap {
+      formatID =>
+        if (formatID == bloomFilterFormatID)
+          for {
+            numberOfBits <- reader.readIntUnsigned()
+            numberOfHashes <- reader.readIntUnsigned()
+            rangeEntries <- if (rangeFilterBytes.isEmpty) IO.Success(mutable.Map.empty[Int, Iterable[(Byte, Byte)]]) else IntMapListBufferSerializer.read(rangeFilterBytes)
+          } yield
+            new BloomFilter(
+              startOffset = ByteSizeOf.byte + Bytes.sizeOf(numberOfBits) + Bytes.sizeOf(numberOfHashes) + bloomFilterBytes.fromOffset,
+              _endOffset = bloomFilterBytes.size - 1,
+              numberOfBits = numberOfBits,
+              numberOfHashes = numberOfHashes,
+              hasRanges = rangeEntries.nonEmpty,
+              rangeFilter = rangeEntries,
+              bytes = bloomFilterBytes
+            )
+        else
+          IO.Failure(IO.Error.Fatal(new Exception(s"Invalid bloomFilter formatID: $formatID. Expected: $bloomFilterFormatID")))
     }
   }
 
@@ -131,7 +154,7 @@ object BloomFilter {
 }
 
 class BloomFilter(val startOffset: Int,
-                  private var _maxStartOffset: Int,
+                  private var _endOffset: Int,
                   val numberOfBits: Int,
                   val numberOfHashes: Int,
                   var hasRanges: Boolean,
@@ -140,19 +163,19 @@ class BloomFilter(val startOffset: Int,
 
   import ordering._
 
-  def maxStartOffset: Int =
-    _maxStartOffset
+  def endOffset: Int =
+    _endOffset
 
   private def get(index: Long): Long =
     bytes.take(startOffset + ((index >>> 6) * 8L).toInt, ByteSizeOf.long).readLong() & (1L << index)
 
   private def set(index: Long): Unit = {
-    val offset = startOffset + (index >>> 6) * 8L
-    _maxStartOffset = _maxStartOffset max offset.toInt
-    val long = bytes.take(offset.toInt, ByteSizeOf.long).readLong()
+    val offset = (startOffset + (index >>> 6) * 8L).toInt
+    val long = bytes.take(offset, ByteSizeOf.long).readLong()
     if ((long & (1L << index)) == 0) {
-      bytes.moveTo(offset.toInt)
-      bytes.addLong(long | (1L << index))
+      bytes moveWritePositionUnsafe offset
+      bytes addLong (long | (1L << index))
+      _endOffset = _endOffset max (offset + ByteSizeOf.long)
     }
   }
 
@@ -221,8 +244,20 @@ class BloomFilter(val startOffset: Int,
     true
   }
 
+  def writeRangeFilter(slice: Slice[Byte]): Unit =
+    IntMapListBufferSerializer.write(
+      value = rangeFilter,
+      bytes = slice
+    )
+
   def toBloomFilterSlice: Slice[Byte] =
-    bytes.slice(0, maxStartOffset + 7)
+    bytes.slice(0, _endOffset)
+
+  def exportSize =
+    _endOffset + 1
+
+  def currentRangeFilterBytesRequired =
+    IntMapListBufferSerializer.bytesRequired(rangeFilter)
 
   def toRangeFilterSlice: Slice[Byte] =
     if (rangeFilter.isEmpty)

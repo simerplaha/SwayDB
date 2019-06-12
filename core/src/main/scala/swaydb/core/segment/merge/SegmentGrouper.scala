@@ -332,7 +332,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
           if (forInMemory)
             currentSegmentSize + nextKeyValueWithUpdatedStats.stats.thisKeyValueMemorySize
           else
-            currentSegmentSize + nextKeyValueWithUpdatedStats.stats.thisKeyValuesSegmentSizeWithoutFooter
+            currentSegmentSize + nextKeyValueWithUpdatedStats.stats.thisKeyValuesSegmentSizeWithoutFooterAndHashIndex
 
         //if there are no key-values in the current Segment or if the current Segment size with new key-value fits, do add else return false.
         if (force || currentSegmentSize == 0 || segmentSizeWithNextKeyValue <= minSegmentSize) {

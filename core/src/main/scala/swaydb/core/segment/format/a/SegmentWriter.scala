@@ -23,13 +23,12 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.KeyValue
 import swaydb.core.segment.Segment
 import swaydb.core.util.PipeOps._
-import swaydb.core.util.{BloomFilter, CRC32}
+import swaydb.core.util.{BloomFilter, Bytes, CRC32}
 import swaydb.data.IO
 import swaydb.data.IO._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.slice.Slice._
-import swaydb.data.util.ByteSizeOf
 
 import scala.annotation.tailrec
 import scala.concurrent.duration.Deadline
@@ -38,7 +37,7 @@ private[core] object SegmentWriter extends LazyLogging {
 
   val formatId = 0
 
-  val crcBytes: Int = 9
+  val crcBytes: Int = 7
 
   def writeBloomFilterAndGetNearestDeadline(keyValue: KeyValue.WriteOnly,
                                             bloomFilter: Option[BloomFilter],
@@ -87,41 +86,69 @@ private[core] object SegmentWriter extends LazyLogging {
   }
 
   def write(keyValues: Iterable[KeyValue.WriteOnly],
-            indexSlice: Slice[Byte],
+            sortedIndexSlice: Slice[Byte],
             valuesSlice: Slice[Byte],
+            hashIndexSlice: Slice[Byte],
+            maxProbe: Int,
             bloomFilter: Option[BloomFilter]): IO[Option[Deadline]] =
-    keyValues.foldLeftIO(Option.empty[Deadline]) {
-      case (deadline, keyValue) =>
+    keyValues.foldLeftIO((Option.empty[Deadline], SegmentHashIndex.WriteResult(0, 0, maxProbe, hashIndexSlice))) {
+      case ((deadline, hashIndexWriteResult), keyValue) =>
         write(
           keyValue = keyValue,
-          indexSlice = indexSlice,
-          valuesSlice = valuesSlice
+          sortedIndexSlice = sortedIndexSlice,
+          valuesSlice = valuesSlice,
+          hashIndexSlice = hashIndexSlice,
+          maxProbe = maxProbe
         ) map {
-          _ =>
-            writeBloomFilterAndGetNearestDeadline(
-              keyValue = keyValue,
-              bloomFilter = bloomFilter,
-              currentNearestDeadline = deadline
-            )
+          added =>
+            val newDeadline =
+              writeBloomFilterAndGetNearestDeadline(
+                keyValue = keyValue,
+                bloomFilter = bloomFilter,
+                currentNearestDeadline = deadline
+              )
+            if (added)
+              hashIndexWriteResult.hit += 1
+            else
+              hashIndexWriteResult.miss += 1
+
+            (newDeadline, hashIndexWriteResult)
         }
     } flatMap {
-      result =>
-        //ensure that all the slices are full.
-        if (!indexSlice.isFull)
-          IO.Failure(new Exception(s"indexSlice is not full actual: ${indexSlice.written} - expected: ${indexSlice.size}"))
-        else if (!valuesSlice.isFull)
-          IO.Failure(new Exception(s"valuesSlice is not full actual: ${valuesSlice.written} - expected: ${valuesSlice.size}"))
-        else
-          IO.Success(result)
+      case (deadline, hashIndexWriteResult) =>
+        //also write header bytes for hashIndex.
+        SegmentHashIndex.writeHeader(hashIndexWriteResult, hashIndexSlice) flatMap {
+          _ =>
+            //ensure that all the slices are full.
+            if (!sortedIndexSlice.isFull)
+              IO.Failure(new Exception(s"indexSlice is not full actual: ${sortedIndexSlice.written} - expected: ${sortedIndexSlice.size}"))
+            else if (!valuesSlice.isFull)
+              IO.Failure(new Exception(s"valuesSlice is not full actual: ${valuesSlice.written} - expected: ${valuesSlice.size}"))
+            else if (!hashIndexSlice.isFull)
+              IO.Failure(new Exception(s"hashIndexSlice is not full actual: ${hashIndexSlice.written} - expected: ${hashIndexSlice.size}"))
+            else
+              IO.Success(deadline)
+        }
     }
 
   private def write(keyValue: KeyValue.WriteOnly,
-                    indexSlice: Slice[Byte],
-                    valuesSlice: Slice[Byte]): IO[Unit] =
-    IO {
-      indexSlice addIntUnsigned keyValue.stats.keySize
-      indexSlice addAll keyValue.indexEntryBytes
-      keyValue.valueEntryBytes foreach (valuesSlice addAll _)
+                    sortedIndexSlice: Slice[Byte],
+                    valuesSlice: Slice[Byte],
+                    hashIndexSlice: Slice[Byte],
+                    maxProbe: Int): IO[Boolean] =
+    SegmentHashIndex.write(
+      key = keyValue.key,
+      indexOffset = keyValue.stats.thisKeyValuesIndexOffset,
+      bytes = hashIndexSlice,
+      maxProbe = maxProbe
+    ) flatMap {
+      hitOrMiss =>
+        IO {
+          sortedIndexSlice addIntUnsigned keyValue.stats.keySize
+          sortedIndexSlice addAll keyValue.indexEntryBytes
+          keyValue.valueEntryBytes foreach (valuesSlice addAll _)
+          hitOrMiss
+        }
     }
 
   /**
@@ -138,25 +165,50 @@ private[core] object SegmentWriter extends LazyLogging {
   def write(keyValues: Iterable[KeyValue.WriteOnly],
             createdInLevel: Int,
             isGrouped: Boolean,
+            maxProbe: Int,
             bloomFilterFalsePositiveRate: Double)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[(Slice[Byte], Option[Deadline])] =
     if (keyValues.isEmpty)
       IO.Success(Slice.emptyBytes, None)
     else {
-      val bloomFilter = BloomFilter.init(keyValues, bloomFilterFalsePositiveRate)
+      val lastStats = keyValues.last.stats
 
-      val slice = Slice.create[Byte](keyValues.last.stats.segmentSize)
+      val slice = Slice.create[Byte](lastStats.segmentSize)
 
-      val (valuesSlice, indexSlice, footerSlice) =
-        slice.splitAt(keyValues.last.stats.segmentValuesSize) ==> {
-          case (valuesSlice, indexAndFooterSlice) =>
-            val (indexSlice, footerSlice) = indexAndFooterSlice splitAt keyValues.last.stats.indexSize
-            (valuesSlice, indexSlice, footerSlice)
+      val (valuesSlice, sortedIndexSlice, hashIndexSlice, footerHeaderSlice, bloomFilterSlice) =
+        slice.splitAt(lastStats.segmentValuesSize) ==> {
+          case (valuesSlice, remainingSlice) =>
+            remainingSlice.splitAt(lastStats.sortedIndexSize) ==> {
+              case (sortedIndexSlice, remainingSlice) =>
+                remainingSlice.splitAt(lastStats.segmentHashIndexSize) ==> {
+                  case (hashIndexSlice, remainingSlice) =>
+                    val footerHeaderSize =
+                    //bloomFilter's size it will be written to footer but other will be sliced to use the main slice.
+                      lastStats.footerHeaderSize - (lastStats.bloomFilterSize + Bytes.sizeOf(lastStats.rangeFilterSize) + lastStats.rangeFilterSize)
+
+                    remainingSlice.splitAt(footerHeaderSize) ==> {
+                      case (footerStartSlice, rangeBloomFooterEndSlice) =>
+                        val bloomSlice = rangeBloomFooterEndSlice take lastStats.bloomFilterSize
+                        (valuesSlice, sortedIndexSlice, hashIndexSlice, footerStartSlice, bloomSlice)
+                    }
+                }
+            }
         }
+
+      val bloomFilter =
+        Option(
+          BloomFilter(
+            numberOfKeys = lastStats.bloomFilterKeysCount,
+            falsePositiveRate = bloomFilterFalsePositiveRate,
+            bytes = bloomFilterSlice
+          )
+        )
 
       write(
         keyValues = keyValues,
-        indexSlice = indexSlice,
+        sortedIndexSlice = sortedIndexSlice,
         valuesSlice = valuesSlice,
+        hashIndexSlice = hashIndexSlice,
+        maxProbe = maxProbe,
         bloomFilter = bloomFilter
       ) flatMap {
         nearestDeadline =>
@@ -164,48 +216,51 @@ private[core] object SegmentWriter extends LazyLogging {
             //this is a placeholder to store the format type of the Segment file written.
             //currently there is only one format. So this is hardcoded but if there are a new file format then
             //SegmentWriter and SegmentReader should be changed to be type classes with unique format types ids.
-            footerSlice addIntUnsigned SegmentWriter.formatId
-            footerSlice addIntUnsigned createdInLevel
-            footerSlice addBoolean isGrouped
-            footerSlice addBoolean keyValues.last.stats.hasRange
-            footerSlice addBoolean keyValues.last.stats.hasPut
-            footerSlice addIntUnsigned indexSlice.fromOffset
+            //the following group of bytes are also used for CRC check.
+            footerHeaderSlice addIntUnsigned SegmentWriter.formatId
+            footerHeaderSlice addIntUnsigned createdInLevel
+            footerHeaderSlice addBoolean isGrouped
+            footerHeaderSlice addBoolean lastStats.hasRange
+            footerHeaderSlice addBoolean lastStats.hasPut
+            footerHeaderSlice addIntUnsigned sortedIndexSlice.fromOffset
+            footerHeaderSlice addIntUnsigned hashIndexSlice.fromOffset
 
             //do CRC
-            var indexBytesToCRC = indexSlice.take(SegmentWriter.crcBytes)
+            var indexBytesToCRC = sortedIndexSlice.take(SegmentWriter.crcBytes)
             if (indexBytesToCRC.size < SegmentWriter.crcBytes) //if index does not have enough bytes, fill remaining from the footer.
-              indexBytesToCRC = indexBytesToCRC append footerSlice.take(SegmentWriter.crcBytes - indexBytesToCRC.size)
+              indexBytesToCRC = indexBytesToCRC append footerHeaderSlice.take(SegmentWriter.crcBytes - indexBytesToCRC.size)
             assert(indexBytesToCRC.size == SegmentWriter.crcBytes, s"Invalid CRC bytes size: ${indexBytesToCRC.size}. Required: ${SegmentWriter.crcBytes}")
-            footerSlice addLong CRC32.forBytes(indexBytesToCRC)
+            footerHeaderSlice addLong CRC32.forBytes(indexBytesToCRC)
 
             //here the top Level key-values are used instead of Group's internal key-values because Group's internal key-values
             //are read when the Group key-value is read.
-            footerSlice addIntUnsigned keyValues.size
+            footerHeaderSlice addIntUnsigned keyValues.size
             //total number of actual key-values grouped or un-grouped
-            footerSlice addIntUnsigned keyValues.last.stats.bloomFilterKeysCount
-            bloomFilter match {
-              case Some(bloomFilter) =>
-                val bloomFilterBytes = bloomFilter.toBloomFilterSlice
-                footerSlice addIntUnsigned bloomFilterBytes.size
-                footerSlice addAll bloomFilterBytes
+            footerHeaderSlice addIntUnsigned lastStats.bloomFilterKeysCount
 
-                val rangeFilterBytes = bloomFilter.toRangeFilterSlice
-                footerSlice addIntUnsigned rangeFilterBytes.size
-                footerSlice addAll rangeFilterBytes
+            //write the actual bytes used by bloomFilter.
+            val bloomFilterExportSize = bloomFilter.map(_.exportSize).getOrElse(0)
+            footerHeaderSlice addInt bloomFilterExportSize //cannot be unsigned int because optimalBloomFilterSize can be larger than actual.
+            //footer can also sometimes be not full when calculated size of bloomFilter is expected to be eg: 300 but the resulting size was 20.
+            //here a byte will be saved.
+            assert(footerHeaderSlice.isFull || footerHeaderSlice.size == footerHeaderSlice.written + 1)
 
-              case None =>
-                footerSlice addIntUnsigned 0
-            }
-            footerSlice addInt (footerSlice.written + ByteSizeOf.int)
+            //move to the last written byte position of bloomFilter on the original slice.
+            slice moveWritePositionUnsafe bloomFilter.map(bloom => bloomFilterSlice.fromOffset + bloom.endOffset + 1).getOrElse(bloomFilterSlice.fromOffset)
 
-            val actualSegmentSizeWithoutFooter = valuesSlice.size + indexSlice.size
+            slice addIntUnsigned bloomFilter.map(_.currentRangeFilterBytesRequired).getOrElse(0)
+            bloomFilter foreach (_.writeRangeFilter(slice))
+
+            slice addInt footerHeaderSlice.fromOffset
+
+            val actualSegmentSizeWithoutFooter = valuesSlice.size + sortedIndexSlice.size + hashIndexSlice.size
 
             assert(
-              keyValues.last.stats.segmentSizeWithoutFooter == actualSegmentSizeWithoutFooter,
-              s"Invalid segment size. actual: $actualSegmentSizeWithoutFooter - expected: ${keyValues.last.stats.segmentSizeWithoutFooter}"
+              lastStats.segmentSizeWithoutFooter == actualSegmentSizeWithoutFooter,
+              s"Invalid segment size. actual: $actualSegmentSizeWithoutFooter - expected: ${lastStats.segmentSizeWithoutFooter}"
             )
 
-            val segmentSlice = Slice(slice.toArray).dropRight(footerSlice.size - footerSlice.written)
+            val segmentSlice = Slice(slice.toArray).slice(slice.fromOffset, slice.currentWritePosition - 1)
             (segmentSlice, nearestDeadline)
           }
       }

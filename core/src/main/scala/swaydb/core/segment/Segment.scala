@@ -253,7 +253,8 @@ private[core] object Segment extends LazyLogging {
       keyValues = keyValues,
       createdInLevel = createdInLevel,
       isGrouped = groupingStrategy.isDefined,
-      bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate
+      bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+      maxProbe = 5 //todo - pass as input
     ) flatMap {
       case (bytes, nearestExpiryDeadline) =>
         if (bytes.isEmpty) {

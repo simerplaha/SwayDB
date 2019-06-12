@@ -457,11 +457,13 @@ class Slice[+T: ClassTag](array: Array[T],
 
   //Note: using moveTo will set the writePosition incorrectly during runTime.
   //one moveTo is invoked manually, all the subsequent writes should move this pointer manually.
-  private[swaydb] def moveTo(writePosition: Int): Unit = {
+  private[swaydb] def moveWritePositionUnsafe(writePosition: Int): Unit = {
     //cannot track written once writePosition is manually moved.
     //set this slice to be fully written.
     this._written = size
-    this.writePosition = writePosition
+    val adjustedPosition = fromOffset + writePosition
+//    if (adjustedPosition > toOffset) throw new ArrayIndexOutOfBoundsException(adjustedPosition)
+    this.writePosition = adjustedPosition
   }
 
   override def drop(count: Int): Slice[T] =
@@ -631,6 +633,9 @@ class Slice[+T: ClassTag](array: Array[T],
     */
   def sorted[B >: T](implicit ordering: Ordering[B]): Slice[B] =
     Slice(toArrayCopy.sorted(ordering))
+
+  def currentWritePosition =
+    writePosition
 
   override protected[this] def newBuilder: scala.collection.mutable.Builder[T, Slice[T]] =
     new Slice.SliceBuilder[T](array.length max 100)

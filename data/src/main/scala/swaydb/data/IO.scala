@@ -122,17 +122,18 @@ object IO {
 
     //returns the first IO.Success(Some(_)).
     def untilSome[R](f: T => IO[Option[R]]): IO[Option[(R, T)]] = {
-      //probably not a good Scala implementation using return statements. Needs improvement.
       iterable.iterator foreach {
         item =>
           f(item) match {
             case IO.Success(Some(value)) =>
+              //Not a good idea to break out with return. Needs improvement.
               return IO.Success(Some(value, item))
 
             case IO.Success(None) =>
             //continue reading
 
             case IO.Failure(exception) =>
+              //Not a good idea to break out with return. Needs improvement.
               return IO.Failure(exception)
           }
       }
@@ -458,7 +459,6 @@ object IO {
     }
     private[swaydb] override def asAsync: IO.Async[T] = this
     private[swaydb] override def asIO: IO[T] = this
-
   }
 
   private[swaydb] object Async {

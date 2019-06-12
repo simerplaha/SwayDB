@@ -61,7 +61,8 @@ object TestData {
     * Sequential time bytes generator.
     */
 
-  val falsePositiveRate = 0.01
+  val falsePositiveRate: Double = 0.01
+  val maxProbe: Int = 5
 
   implicit val functionStore: FunctionStore = FunctionStore.memory()
 

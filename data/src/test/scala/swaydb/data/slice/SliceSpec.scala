@@ -278,6 +278,7 @@ class SliceSpec extends WordSpec with Matchers {
       originalSlice.toArray shouldBe Array(100, 200)
     }
 
+
     "group elements" in {
       val slice = Slice((1 to 100).toArray)
 
