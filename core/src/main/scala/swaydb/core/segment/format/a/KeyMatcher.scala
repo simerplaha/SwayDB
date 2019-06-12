@@ -35,6 +35,8 @@ object MatchResult {
 private[core] sealed trait KeyMatcher {
   val key: Slice[Byte]
 
+  def isGet: Boolean
+
   def apply(previous: Persistent,
             next: Option[Persistent],
             hasMore: => Boolean): MatchResult
@@ -42,6 +44,7 @@ private[core] sealed trait KeyMatcher {
 
 private[core] object KeyMatcher {
   case class Get(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]) extends KeyMatcher {
+    override def isGet: Boolean = true
 
     override def apply(previous: Persistent,
                        next: Option[Persistent],
@@ -76,9 +79,12 @@ private[core] object KeyMatcher {
           else
             Stop
       }
+
   }
 
   case class Lower(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]) extends KeyMatcher {
+
+    override def isGet: Boolean = false
 
     override def apply(previous: Persistent,
                        next: Option[Persistent],
@@ -134,6 +140,8 @@ private[core] object KeyMatcher {
   }
 
   case class Higher(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]) extends KeyMatcher {
+
+    override def isGet: Boolean = false
 
     override def apply(previous: Persistent,
                        next: Option[Persistent],

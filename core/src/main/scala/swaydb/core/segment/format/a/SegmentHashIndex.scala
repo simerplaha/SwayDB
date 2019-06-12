@@ -184,7 +184,7 @@ object SegmentHashIndex extends LazyLogging {
     @tailrec
     def doWrite(probe: Int): IO[Boolean] =
       if (probe >= maxProbe) {
-        //println(s"Key: ${key.readInt()}: write index: miss probe: $probe")
+        println(s"Key: ${key.readInt()}: write index: miss probe: $probe")
         IO.`false`
       } else {
         val index = hashIndex(key, bytes.size, probe)
@@ -196,7 +196,7 @@ object SegmentHashIndex extends LazyLogging {
           IO {
             bytes moveWritePositionUnsafe index
             bytes addIntUnsigned indexOffsetPlusOne
-            //println(s"Key: ${key.readInt()}: write index: $index probe: $probe, indexOffset: $indexOffset, writeBytes: ${Slice.writeIntUnsigned(indexOffset)}")
+            println(s"Key: ${key.readInt()}: write index: $index probe: $probe, indexOffset: $indexOffset, writeBytes: ${Slice.writeIntUnsigned(indexOffset)}")
             true
           }
         else
@@ -213,29 +213,30 @@ object SegmentHashIndex extends LazyLogging {
     * Finds a key in the hash index using linear probing.
     */
   def find[K <: KeyValue](key: Slice[Byte],
-                          slice: Slice[Byte],
+                          hashIndexReader: Reader,
+                          hashIndexStartOffset: Int,
+                          hashIndexSize: Int,
                           maxProbe: Int,
                           finder: Int => IO[Option[K]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[K]] = {
     import keyOrder._
-
     @tailrec
     def doFind(probe: Int): IO[Option[K]] =
       if (probe >= maxProbe) {
         IO.none
       } else {
-        val index = hashIndex(key, slice.size, probe)
-        slice.take(index, ByteSizeOf.int).readIntUnsigned() match {
+        val index = hashIndex(key, hashIndexSize, probe)
+        hashIndexReader.moveTo(hashIndexStartOffset + index).readIntUnsigned() match {
           case IO.Success(possibleIndexOffset) =>
             //submit the indexOffset removing the add 1 offset to avoid overlapping bytes.
             finder(possibleIndexOffset - 1) match {
               case success @ IO.Success(foundMayBe) =>
                 foundMayBe match {
                   case Some(keyValue) if keyValue.key equiv key =>
-                    //println(s"Key: ${key.readInt()}: read index : $index probe: $probe, indexOffset: ${possibleIndexOffset - 1} = success")
+                    println(s"Key: ${key.readInt()}: read index : $index probe: $probe, indexOffset: ${possibleIndexOffset - 1} = success")
                     success
 
                   case Some(_) | None =>
-                    //println(s"Key: ${key.readInt()}: read index : $index probe: $probe: indexOffset: ${possibleIndexOffset - 1}")
+                    println(s"Key: ${key.readInt()}: read index : $index probe: $probe: indexOffset: ${possibleIndexOffset - 1}")
                     doFind(probe + 1)
                 }
               case IO.Failure(error) =>

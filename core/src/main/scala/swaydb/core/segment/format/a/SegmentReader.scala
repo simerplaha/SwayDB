@@ -248,7 +248,7 @@ private[core] object SegmentReader extends LazyLogging {
       val hashIndexStartOffset = footerReader.readIntUnsigned().get
       val expectedCRC = footerReader.readLong().get
       val keyValueCount = footerReader.readIntUnsigned().get
-      val bloomFilterItemsCount = footerReader.readIntUnsigned().get
+      val bloomFilterItemsCount = footerReader.readInt().get
       val bloomFilterSize = footerReader.readIntUnsigned().get
       val bloomAndRangeFilterSlice =
         if (bloomFilterSize == 0) {
@@ -309,16 +309,102 @@ private[core] object SegmentReader extends LazyLogging {
         }
     }
 
-  def find(matcher: KeyMatcher,
+  def find(matcher: KeyMatcher.Get,
+           startFrom: Option[Persistent],
+           reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+    readFooter(reader) flatMap (find(matcher, startFrom, reader, checkHashIndex = true, _))
+
+  def find(matcher: KeyMatcher.Lower,
            startFrom: Option[Persistent],
            reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
     readFooter(reader) flatMap (find(matcher, startFrom, reader, _))
 
-  def find(matcher: KeyMatcher,
+  def find(matcher: KeyMatcher.Higher,
+           startFrom: Option[Persistent],
+           reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+    readFooter(reader) flatMap (find(matcher, startFrom, reader, _))
+
+  def find(matcher: KeyMatcher.Lower,
            startFrom: Option[Persistent],
            reader: Reader,
            footer: SegmentFooter)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
     Catch {
+      doFindSafe(
+        matcher = matcher,
+        startFrom = startFrom,
+        reader = reader,
+        checkHashIndex = false,
+        footer = footer
+      )
+    }
+
+  def find(matcher: KeyMatcher.Higher,
+           startFrom: Option[Persistent],
+           reader: Reader,
+           footer: SegmentFooter)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+    Catch {
+      doFindSafe(
+        matcher = matcher,
+        startFrom = startFrom,
+        reader = reader,
+        checkHashIndex = false,
+        footer = footer
+      )
+    }
+
+  def find(matcher: KeyMatcher.Get,
+           startFrom: Option[Persistent],
+           reader: Reader,
+           checkHashIndex: Boolean,
+           footer: SegmentFooter)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+    Catch {
+      doFindSafe(
+        matcher = matcher,
+        startFrom = startFrom,
+        reader = reader,
+        checkHashIndex = checkHashIndex,
+        footer = footer
+      )
+    }
+
+  @tailrec
+  private def doFindSafe(matcher: KeyMatcher,
+                         startFrom: Option[Persistent],
+                         reader: Reader,
+                         checkHashIndex: Boolean,
+                         footer: SegmentFooter)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+    if (checkHashIndex && matcher.isGet)
+      SegmentHashIndex.find(
+        key = matcher.key,
+        hashIndexStartOffset = footer.hashIndexStartOffset,
+        hashIndexReader = reader,
+        hashIndexSize = footer.hashIndexEndOffset - footer.hashIndexStartOffset + 1,
+        maxProbe = 5,
+        finder =
+          sortedIndexOffset =>
+            readNextKeyValue(
+              fromPosition = sortedIndexOffset,
+              startIndexOffset = footer.sortedIndexstartOffset,
+              endIndexOffset = footer.sortedIndexEndOffset,
+              indexReader = reader,
+              valueReader = reader
+            ) map (Some(_))
+      ) match {
+        case success @ IO.Success(Some(_)) =>
+          success
+
+        case IO.Success(None) =>
+          doFindSafe(
+            matcher = matcher,
+            startFrom = startFrom,
+            reader = reader,
+            checkHashIndex = false,
+            footer = footer
+          )
+        case IO.Failure(error) =>
+          IO.Failure(error)
+      }
+    else
       startFrom match {
         case Some(startFrom) =>
           //if startFrom is the last index entry, return None.
@@ -349,7 +435,6 @@ private[core] object SegmentReader extends LazyLogging {
               find(keyValue, None, matcher, reader, footer)
           }
       }
-    }
 
   @tailrec
   private def find(previous: Persistent,

@@ -70,7 +70,9 @@ class SegmentHashIndexSpec extends TestBase {
             keyValue =>
               SegmentHashIndex.find(
                 key = keyValue.key,
-                slice = writeResult.bytes,
+                hashIndexReader = Reader(writeResult.bytes),
+                hashIndexSize = writeResult.bytes.size,
+                hashIndexStartOffset = 0,
                 maxProbe = maxProbe,
                 finder = findKey
               ) map {

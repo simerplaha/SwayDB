@@ -148,7 +148,13 @@ private[core] class SegmentCache(id: String,
                 if (!footer.bloomFilter.forall(_.mightContain(key)))
                   IO.none
                 else
-                  find(KeyMatcher.Get(key), startFrom = floorValue, reader, footer) flatMap {
+                  find(
+                    matcher = KeyMatcher.Get(key),
+                    startFrom = floorValue,
+                    reader = reader,
+                    checkHashIndex = true,
+                    footer = footer
+                  ) flatMap {
                     case Some(response: Persistent.SegmentResponse) =>
                       addToCache(response)
                       IO.Success(Some(response))
@@ -210,7 +216,12 @@ private[core] class SegmentCache(id: String,
           } getOrElse {
             prepareGet {
               (footer, reader) =>
-                find(KeyMatcher.Lower(key), startFrom = lowerKeyValue, reader, footer) flatMap {
+                find(
+                  matcher = KeyMatcher.Lower(key),
+                  startFrom = lowerKeyValue,
+                  reader = reader,
+                  footer = footer
+                ) flatMap {
                   case Some(response: Persistent.SegmentResponse) =>
                     addToCache(response)
                     IO.Success(Some(response))
@@ -280,17 +291,31 @@ private[core] class SegmentCache(id: String,
         } getOrElse {
           prepareGet {
             (footer, reader) =>
-              find(KeyMatcher.Higher(key), startFrom = floorKeyValue, reader, footer) flatMap {
-                case Some(response: Persistent.SegmentResponse) =>
-                  addToCache(response)
-                  IO.Success(Some(response))
+              val startFrom =
+                if (floorKeyValue.isDefined)
+                  IO(floorKeyValue)
+                else
+                  get(key)
 
-                case Some(group: Persistent.Group) =>
-                  addToCache(group)
-                  group.segmentCache.higher(key)
+              startFrom flatMap {
+                startFrom =>
+                  find(
+                    matcher = KeyMatcher.Higher(key),
+                    startFrom = startFrom,
+                    reader = reader,
+                    footer = footer
+                  ) flatMap {
+                    case Some(response: Persistent.SegmentResponse) =>
+                      addToCache(response)
+                      IO.Success(Some(response))
 
-                case None =>
-                  IO.none
+                    case Some(group: Persistent.Group) =>
+                      addToCache(group)
+                      group.segmentCache.higher(key)
+
+                    case None =>
+                      IO.none
+                  }
               }
           }
         }
