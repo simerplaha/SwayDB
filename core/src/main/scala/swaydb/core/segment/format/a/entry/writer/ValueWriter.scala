@@ -25,12 +25,12 @@ import swaydb.core.util.Bytes
 import swaydb.core.util.Bytes._
 import swaydb.data.slice.Slice
 
-object ValueWriter {
+private[writer] object ValueWriter {
 
-  def write(current: KeyValue.WriteOnly,
-            compressDuplicateValues: Boolean,
-            entryId: EntryId.Time,
-            plusSize: Int)(implicit id: TransientToEntryId[_]): EntryWriter.Result =
+  private[writer] def write(current: KeyValue.WriteOnly,
+                            compressDuplicateValues: Boolean,
+                            entryId: EntryId.Time,
+                            plusSize: Int)(implicit id: TransientToEntryId[_]): EntryWriter.Result =
     current.value map {
       currentValue: Slice[Byte] =>
         current.previous map {
@@ -59,12 +59,12 @@ object ValueWriter {
       )
     }
 
-  def compressWithPrevious(current: KeyValue.WriteOnly,
-                           currentValue: Slice[Byte],
-                           previous: KeyValue.WriteOnly,
-                           compressDuplicateValues: Boolean,
-                           entryId: EntryId.Time,
-                           plusSize: Int)(implicit id: TransientToEntryId[_]) =
+  private[writer] def compressWithPrevious(current: KeyValue.WriteOnly,
+                                           currentValue: Slice[Byte],
+                                           previous: KeyValue.WriteOnly,
+                                           compressDuplicateValues: Boolean,
+                                           entryId: EntryId.Time,
+                                           plusSize: Int)(implicit id: TransientToEntryId[_]) =
   //if value is empty byte slice, return None instead of empty Slice. We do not store empty byte arrays.
     previous.value.flatMap(value => if (value.isEmpty) None else Some(value)) map {
       previousValue => {
@@ -99,11 +99,11 @@ object ValueWriter {
       )
     }
 
-  def uncompressed(current: KeyValue.WriteOnly,
-                   currentValue: Slice[Byte],
-                   previous: KeyValue.WriteOnly,
-                   entryId: EntryId.Time,
-                   plusSize: Int)(implicit id: TransientToEntryId[_]) = {
+  private[writer] def uncompressed(current: KeyValue.WriteOnly,
+                                   currentValue: Slice[Byte],
+                                   previous: KeyValue.WriteOnly,
+                                   entryId: EntryId.Time,
+                                   plusSize: Int)(implicit id: TransientToEntryId[_]) = {
     //if previous does not exists write full offsets and then write deadline.
     val currentValueOffset = previous.nextStartValueOffsetPosition
     val currentValueOffsetUnsignedBytes = Slice.writeIntUnsigned(currentValueOffset)
@@ -125,12 +125,12 @@ object ValueWriter {
     )
   }
 
-  def compressExact(previous: KeyValue.WriteOnly,
-                    currentValue: Slice[Byte],
-                    previousValue: Slice[Byte],
-                    current: KeyValue.WriteOnly,
-                    entryId: EntryId.Time,
-                    plusSize: Int)(implicit id: TransientToEntryId[_]): Option[EntryWriter.Result] =
+  private[writer] def compressExact(previous: KeyValue.WriteOnly,
+                                    currentValue: Slice[Byte],
+                                    previousValue: Slice[Byte],
+                                    current: KeyValue.WriteOnly,
+                                    entryId: EntryId.Time,
+                                    plusSize: Int)(implicit id: TransientToEntryId[_]): Option[EntryWriter.Result] =
   //eliminate exact values only. Value size should also be the same.
     Bytes.compressExact(
       previous = previousValue,
@@ -153,12 +153,12 @@ object ValueWriter {
         )
     }
 
-  def partialCompressWithPrevious(current: KeyValue.WriteOnly,
-                                  entryId: EntryId.Time,
-                                  plusSize: Int,
-                                  currentValue: Slice[Byte],
-                                  previous: KeyValue.WriteOnly,
-                                  previousValue: Slice[Byte])(implicit id: TransientToEntryId[_]) = {
+  private[writer] def partialCompressWithPrevious(current: KeyValue.WriteOnly,
+                                                  entryId: EntryId.Time,
+                                                  plusSize: Int,
+                                                  currentValue: Slice[Byte],
+                                                  previous: KeyValue.WriteOnly,
+                                                  previousValue: Slice[Byte])(implicit id: TransientToEntryId[_]) = {
     //if the values are not the same, write compressed offset, length and then deadline.
     val currentValueOffset = previous.nextStartValueOffsetPosition
     val currentValueOffsetBytes = Slice.writeInt(currentValueOffset)
@@ -183,12 +183,12 @@ object ValueWriter {
     }
   }
 
-  private def compressValueLength(current: KeyValue.WriteOnly,
-                                  entryId: EntryId.Time,
-                                  plusSize: Int,
-                                  currentValue: Slice[Byte],
-                                  previousValue: Slice[Byte],
-                                  currentValueOffset: Int)(implicit id: TransientToEntryId[_]) =
+  private[writer] def compressValueLength(current: KeyValue.WriteOnly,
+                                          entryId: EntryId.Time,
+                                          plusSize: Int,
+                                          currentValue: Slice[Byte],
+                                          previousValue: Slice[Byte],
+                                          currentValueOffset: Int)(implicit id: TransientToEntryId[_]) =
   //if unable to compress valueOffsetBytes, try compressing value length valueLength bytes.
     compress(Slice.writeInt(previousValue.size), Slice.writeInt(currentValue.size), 1) map {
       case (valueLengthCommonBytes, valueLengthRemainingBytes) =>
@@ -242,14 +242,14 @@ object ValueWriter {
       )
     }
 
-  def compressValueOffset(current: KeyValue.WriteOnly,
-                          previous: KeyValue.WriteOnly,
-                          currentValueOffsetBytes: Slice[Byte],
-                          entryId: EntryId.Time,
-                          plusSize: Int,
-                          currentValue: Slice[Byte],
-                          previousValue: Slice[Byte],
-                          currentValueOffset: Int)(implicit id: TransientToEntryId[_]) =
+  private[writer] def compressValueOffset(current: KeyValue.WriteOnly,
+                                          previous: KeyValue.WriteOnly,
+                                          currentValueOffsetBytes: Slice[Byte],
+                                          entryId: EntryId.Time,
+                                          plusSize: Int,
+                                          currentValue: Slice[Byte],
+                                          previousValue: Slice[Byte],
+                                          currentValueOffset: Int)(implicit id: TransientToEntryId[_]) =
     compress(Slice.writeInt(previous.currentStartValueOffsetPosition), currentValueOffsetBytes, 1) map {
       case (valueOffsetCommonBytes, valueOffsetRemainingBytes) =>
         val valueOffsetId =
@@ -312,9 +312,9 @@ object ValueWriter {
         }
     }
 
-  def noValue(current: KeyValue.WriteOnly,
-              entryId: EntryId.Time,
-              plusSize: Int)(implicit id: TransientToEntryId[_]) = {
+  private[writer] def noValue(current: KeyValue.WriteOnly,
+                              entryId: EntryId.Time,
+                              plusSize: Int)(implicit id: TransientToEntryId[_]) = {
     //if there is no value then write deadline.
     val indexEntryBytes =
       DeadlineWriter.write(
@@ -332,10 +332,10 @@ object ValueWriter {
     )
   }
 
-  def noPreviousValue(current: KeyValue.WriteOnly,
-                      entryId: EntryId.Time,
-                      plusSize: Int,
-                      currentValue: Slice[Byte])(implicit id: TransientToEntryId[_]) = {
+  private[writer] def noPreviousValue(current: KeyValue.WriteOnly,
+                                      entryId: EntryId.Time,
+                                      plusSize: Int,
+                                      currentValue: Slice[Byte])(implicit id: TransientToEntryId[_]) = {
     //if previous does not exists write offset as the first value in the Transient chain.
     val currentValueOffset = 0
     val currentValueOffsetUnsignedBytes = Slice.writeIntUnsigned(currentValueOffset)

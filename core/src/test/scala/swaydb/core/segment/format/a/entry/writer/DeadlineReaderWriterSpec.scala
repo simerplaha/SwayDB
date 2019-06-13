@@ -118,7 +118,7 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
     }
   }
 
-  "compressed" should {
+  "tryCompress" should {
     "write compressed deadlines with previous deadline" in {
       implicit def bytesToDeadline(bytes: Slice[Byte]): FiniteDuration = FiniteDuration(bytes.readLong(), TimeUnit.NANOSECONDS)
 
@@ -126,6 +126,16 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
         deadlineID: EntryId.GetDeadlineId =>
           TransientToEntryId.all foreach { //for all key-values
             implicit adjustedEntryId =>
+
+              //Test for when there are zero compressed bytes, compression should return None.
+              DeadlineWriter.tryCompress(
+                currentDeadline = Deadline(Slice.fill[Byte](8)(0.toByte)),
+                previousDeadline = Deadline(Slice.fill[Byte](8)(1.toByte)),
+                getDeadlineId = deadlineID,
+                plusSize = 0
+              ) shouldBe empty
+
+              //Test for when there are compressed bytes.
               (1 to 8) foreach { //for some or all deadline bytes compressed.
                 commonBytes =>
                   val currentDeadlineBytes =
@@ -138,7 +148,7 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
                   val previousDeadline = Deadline(previousDeadlineBytes)
 
                   val deadlineBytes =
-                    DeadlineWriter.compressed(
+                    DeadlineWriter.tryCompress(
                       currentDeadline = currentDeadline,
                       previousDeadline = previousDeadline,
                       getDeadlineId = deadlineID,

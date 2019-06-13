@@ -25,7 +25,7 @@ import swaydb.core.segment.format.a.entry.id.{BaseEntryId, TransientToEntryId}
 import swaydb.core.util.Bytes._
 import swaydb.data.slice.Slice
 
-object EntryWriter {
+private[core] object EntryWriter {
 
   case class Result(indexBytes: Slice[Byte],
                     valueBytes: Option[Slice[Byte]],
@@ -70,10 +70,10 @@ object EntryWriter {
       )
     }
 
-  def writeCompressed[T <: KeyValue.WriteOnly](current: T,
-                                               previous: KeyValue.WriteOnly,
-                                               currentTime: Time,
-                                               compressDuplicateValues: Boolean)(implicit id: TransientToEntryId[T]) =
+  private[writer] def writeCompressed[T <: KeyValue.WriteOnly](current: T,
+                                                               previous: KeyValue.WriteOnly,
+                                                               currentTime: Time,
+                                                               compressDuplicateValues: Boolean)(implicit id: TransientToEntryId[T]) =
     compress(key = current.fullKey, previous = previous, minimumCommonBytes = 2) map {
       case (_, remainingBytes) if remainingBytes.isEmpty =>
 
@@ -89,17 +89,12 @@ object EntryWriter {
         //            assert(indexBytes.isFull, s"indexSlice is not full actual: ${indexBytes.written} - expected: ${indexBytes.size}")
         //            valueBytes foreach (valueBytes => assert(valueBytes.isFull, s"valueBytes is not full actual: ${valueBytes.written} - expected: ${valueBytes.size}"))
         //
-        val bytes =
+
         writeResult
           .indexBytes
           .addIntUnsigned(current.fullKey.size)
 
-        EntryWriter.Result(
-          indexBytes = bytes,
-          valueBytes = writeResult.valueBytes,
-          valueStartOffset = writeResult.valueStartOffset,
-          valueEndOffset = writeResult.valueEndOffset
-        )
+        writeResult
 
       case (commonBytes, remainingBytes) =>
         val writeResult =
@@ -111,23 +106,17 @@ object EntryWriter {
             plusSize = sizeOf(commonBytes) + remainingBytes.size //write the size of keys compressed and also the uncompressed Bytes
           )
 
-        val bytes =
-          writeResult
-            .indexBytes
-            .addIntUnsigned(commonBytes)
-            .addAll(remainingBytes)
+        writeResult
+          .indexBytes
+          .addIntUnsigned(commonBytes)
+          .addAll(remainingBytes)
 
-        EntryWriter.Result(
-          indexBytes = bytes,
-          valueBytes = writeResult.valueBytes,
-          valueStartOffset = writeResult.valueStartOffset,
-          valueEndOffset = writeResult.valueEndOffset
-        )
+        writeResult
     }
 
-  def writeUncompressed[T <: KeyValue.WriteOnly](current: T,
-                                                 currentTime: Time,
-                                                 compressDuplicateValues: Boolean)(implicit id: TransientToEntryId[T]) = {
+  private[writer] def writeUncompressed[T <: KeyValue.WriteOnly](current: T,
+                                                                 currentTime: Time,
+                                                                 compressDuplicateValues: Boolean)(implicit id: TransientToEntryId[T]) = {
     //no common prefixes or no previous write without compression
     val writeResult =
       TimeWriter.write(
@@ -138,16 +127,10 @@ object EntryWriter {
         plusSize = current.fullKey.size //write key bytes.
       )
 
-    val indexBytes =
-      writeResult
-        .indexBytes
-        .addAll(current.fullKey)
+    writeResult
+      .indexBytes
+      .addAll(current.fullKey)
 
-    EntryWriter.Result(
-      indexBytes = indexBytes,
-      valueBytes = writeResult.valueBytes,
-      valueStartOffset = writeResult.valueStartOffset,
-      valueEndOffset = writeResult.valueEndOffset
-    )
+    writeResult
   }
 }

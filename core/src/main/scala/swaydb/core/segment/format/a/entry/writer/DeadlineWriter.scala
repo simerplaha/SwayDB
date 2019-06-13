@@ -27,7 +27,7 @@ import swaydb.data.slice.Slice
 
 import scala.concurrent.duration.Deadline
 
-object DeadlineWriter {
+private[writer] object DeadlineWriter {
 
   private[writer] def applyDeadlineId(bytesCompressed: Int,
                                       getDeadlineId: GetDeadlineId): EntryId.Deadline =
@@ -63,10 +63,10 @@ object DeadlineWriter {
       .addAll(currentDeadlineUnsignedBytes)
   }
 
-  private[writer] def compressed(currentDeadline: Deadline,
-                                 previousDeadline: Deadline,
-                                 getDeadlineId: GetDeadlineId,
-                                 plusSize: Int)(implicit id: TransientToEntryId[_]) =
+  private[writer] def tryCompress(currentDeadline: Deadline,
+                                  previousDeadline: Deadline,
+                                  getDeadlineId: GetDeadlineId,
+                                  plusSize: Int)(implicit id: TransientToEntryId[_]) =
     compress(
       previous = previousDeadline.toBytes,
       next = currentDeadline.toBytes,
@@ -92,16 +92,16 @@ object DeadlineWriter {
       .addIntUnsigned(adjustedToEntryIdDeadlineId)
   }
 
-  def write(current: Option[Deadline],
-            previous: Option[Deadline],
-            getDeadlineId: GetDeadlineId,
-            plusSize: Int)(implicit id: TransientToEntryId[_]): Slice[Byte] =
+  private[writer] def write(current: Option[Deadline],
+                            previous: Option[Deadline],
+                            getDeadlineId: GetDeadlineId,
+                            plusSize: Int)(implicit id: TransientToEntryId[_]): Slice[Byte] =
     current map {
       currentDeadline: Deadline =>
         //fetch the previous deadline bytes
         previous flatMap {
           previousDeadline =>
-            compressed(
+            tryCompress(
               currentDeadline = currentDeadline,
               previousDeadline = previousDeadline,
               getDeadlineId = getDeadlineId,

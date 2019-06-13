@@ -31,6 +31,12 @@ sealed trait TestTimer extends Timer
 
 object TestTimer {
 
+  def single(time: Time): TestTimer =
+    new TestTimer {
+      override def next: Time = time
+      override def close: IO[Unit] = IO.unit
+    }
+
   case class Incremental(startTime: Long = 0) extends TestTimer {
     val timer = new AtomicLong(startTime)
 
@@ -95,4 +101,6 @@ object TestTimer {
   def random: TestTimer =
     Random.shuffle(all).head
 
+  def randomNonEmpty: TestTimer =
+    Random.shuffle(Seq(Incremental(), Decremental())).head
 }
