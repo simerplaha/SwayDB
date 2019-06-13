@@ -33,16 +33,15 @@ object RangeReader extends EntryReader[Persistent.Range] {
                           indexOffset: Int,
                           nextIndexOffset: Int,
                           nextIndexSize: Int,
-                          previous: Option[Persistent])(implicit keyReader: KeyReader[T],
-                                                        timeReader: TimeReader[T],
+                          previous: Option[Persistent])(implicit timeReader: TimeReader[T],
                                                         deadlineReader: DeadlineReader[T],
                                                         valueOffsetReader: ValueOffsetReader[T],
                                                         valueLengthReader: ValueLengthReader[T],
                                                         valueBytesReader: ValueReader[T]): IO[Persistent.Range] =
     valueBytesReader.read(indexReader, previous) flatMap {
       valueOffsetAndLength =>
-        keyReader.read(indexReader, previous) flatMap {
-          key =>
+        KeyReader.read(id, indexReader, previous, EntryId.Range) flatMap {
+          case (key, isKeyPrefixCompressed) =>
             val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
             val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
 
@@ -60,7 +59,7 @@ object RangeReader extends EntryReader[Persistent.Range] {
               valueOffset = valueOffset,
               valueLength = valueLength,
               isPrefixCompressed =
-                keyReader.isPrefixCompressed ||
+                isKeyPrefixCompressed ||
                   timeReader.isPrefixCompressed ||
                   deadlineReader.isPrefixCompressed ||
                   valueOffsetReader.isPrefixCompressed ||

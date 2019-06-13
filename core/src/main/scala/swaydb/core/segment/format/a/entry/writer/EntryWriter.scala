@@ -21,7 +21,7 @@ package swaydb.core.segment.format.a.entry.writer
 
 import swaydb.core.data.{KeyValue, Time}
 import swaydb.core.segment.format.a.entry.id.EntryId.EntryFormat
-import swaydb.core.segment.format.a.entry.id.{BaseEntryId, TransientToEntryId}
+import swaydb.core.segment.format.a.entry.id.{BaseEntryId, TransientEntryIdAdjuster}
 import swaydb.core.util.Bytes._
 import swaydb.data.slice.Slice
 
@@ -54,7 +54,7 @@ private[core] object EntryWriter {
   def write[T <: KeyValue.WriteOnly](current: T,
                                      currentTime: Time,
                                      compressDuplicateValues: Boolean,
-                                     enablePrefixCompression: Boolean)(implicit id: TransientToEntryId[T]): EntryWriter.Result =
+                                     enablePrefixCompression: Boolean)(implicit id: TransientEntryIdAdjuster[T]): EntryWriter.Result =
     current.previous flatMap {
       previous =>
         writeCompressed(
@@ -77,7 +77,7 @@ private[core] object EntryWriter {
                                                                previous: KeyValue.WriteOnly,
                                                                currentTime: Time,
                                                                compressDuplicateValues: Boolean,
-                                                               enablePrefixCompression: Boolean)(implicit id: TransientToEntryId[T]) =
+                                                               enablePrefixCompression: Boolean)(implicit id: TransientEntryIdAdjuster[T]) =
     compress(key = current.fullKey, previous = previous, minimumCommonBytes = 2) map {
       case (_, remainingBytes) if remainingBytes.isEmpty =>
 
@@ -86,9 +86,10 @@ private[core] object EntryWriter {
             current = current,
             currentTime = currentTime,
             compressDuplicateValues = compressDuplicateValues,
-            entryId = BaseEntryId.format.keyFullyCompressed,
+            entryId = BaseEntryId.format.start,
             enablePrefixCompression = enablePrefixCompression,
-            plusSize = sizeOf(current.fullKey.size) //write the size of keys that were compressed.
+            plusSize = sizeOf(current.fullKey.size), //write the size of keys that were compressed.
+            isKeyUncompressed = false
           )
 
         //            assert(indexBytes.isFull, s"indexSlice is not full actual: ${indexBytes.written} - expected: ${indexBytes.size}")
@@ -107,8 +108,9 @@ private[core] object EntryWriter {
             current = current,
             currentTime = currentTime,
             compressDuplicateValues = compressDuplicateValues,
-            entryId = BaseEntryId.format.keyPartiallyCompressed,
+            entryId = BaseEntryId.format.start,
             enablePrefixCompression = enablePrefixCompression,
+            isKeyUncompressed = false,
             plusSize = sizeOf(commonBytes) + remainingBytes.size //write the size of keys compressed and also the uncompressed Bytes
           )
 
@@ -123,15 +125,16 @@ private[core] object EntryWriter {
   private[writer] def writeUncompressed[T <: KeyValue.WriteOnly](current: T,
                                                                  currentTime: Time,
                                                                  compressDuplicateValues: Boolean,
-                                                                 enablePrefixCompression: Boolean)(implicit id: TransientToEntryId[T]) = {
+                                                                 enablePrefixCompression: Boolean)(implicit id: TransientEntryIdAdjuster[T]) = {
     //no common prefixes or no previous write without compression
     val writeResult =
       TimeWriter.write(
         current = current,
         currentTime = currentTime,
         compressDuplicateValues = compressDuplicateValues,
-        entryId = BaseEntryId.format.keyUncompressed,
+        entryId = BaseEntryId.format.start,
         enablePrefixCompression = enablePrefixCompression,
+        isKeyUncompressed = true,
         plusSize = current.fullKey.size //write key bytes.
       )
 

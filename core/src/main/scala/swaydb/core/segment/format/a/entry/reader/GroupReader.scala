@@ -33,8 +33,7 @@ object GroupReader extends EntryReader[Persistent.Group] {
                           indexOffset: Int,
                           nextIndexOffset: Int,
                           nextIndexSize: Int,
-                          previous: Option[Persistent])(implicit keyReader: KeyReader[T],
-                                                        timeReader: TimeReader[T],
+                          previous: Option[Persistent])(implicit timeReader: TimeReader[T],
                                                         deadlineReader: DeadlineReader[T],
                                                         valueOffsetReader: ValueOffsetReader[T],
                                                         valueLengthReader: ValueLengthReader[T],
@@ -43,8 +42,8 @@ object GroupReader extends EntryReader[Persistent.Group] {
       deadline =>
         valueBytesReader.read(indexReader, previous) flatMap {
           valueOffsetAndLength =>
-            keyReader.read(indexReader, previous) flatMap {
-              key =>
+            KeyReader.read(id, indexReader, previous, EntryId.Group) flatMap {
+              case (key, isKeyPrefixCompressed) =>
                 val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
                 val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
 
@@ -64,7 +63,7 @@ object GroupReader extends EntryReader[Persistent.Group] {
                   valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1),
                   valueLength = valueOffsetAndLength.map(_._2).getOrElse(0),
                   isPrefixCompressed =
-                    keyReader.isPrefixCompressed ||
+                    isKeyPrefixCompressed ||
                       timeReader.isPrefixCompressed ||
                       deadlineReader.isPrefixCompressed ||
                       valueOffsetReader.isPrefixCompressed ||
@@ -74,5 +73,4 @@ object GroupReader extends EntryReader[Persistent.Group] {
             }
         }
     }
-
 }

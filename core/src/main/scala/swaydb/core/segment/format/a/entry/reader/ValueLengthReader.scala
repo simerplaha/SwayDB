@@ -94,14 +94,6 @@ object ValueLengthReader {
       indexReader.readIntUnsigned()
   }
 
-  implicit object ValueLengthReaderValueFullyCompressed extends ValueLengthReader[EntryId.Value.FullyCompressed] {
-    override def isPrefixCompressed: Boolean = true
-
-    override def read(indexReader: Reader,
-                      previous: Option[Persistent]): IO[Int] =
-      IO.zero
-  }
-
   implicit object NoValue extends ValueLengthReader[EntryId.Value.NoValue] {
     override def isPrefixCompressed: Boolean = false
 

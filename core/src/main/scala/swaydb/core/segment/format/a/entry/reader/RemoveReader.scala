@@ -32,8 +32,7 @@ object RemoveReader extends EntryReader[Persistent.Remove] {
                           indexOffset: Int,
                           nextIndexOffset: Int,
                           nextIndexSize: Int,
-                          previous: Option[Persistent])(implicit keyReader: KeyReader[T],
-                                                        timeReader: TimeReader[T],
+                          previous: Option[Persistent])(implicit timeReader: TimeReader[T],
                                                         deadlineReader: DeadlineReader[T],
                                                         valueOffsetReader: ValueOffsetReader[T],
                                                         valueLengthReader: ValueLengthReader[T],
@@ -42,8 +41,8 @@ object RemoveReader extends EntryReader[Persistent.Remove] {
       deadline =>
         timeReader.read(indexReader, previous) flatMap {
           time =>
-            keyReader.read(indexReader, previous) map {
-              key =>
+            KeyReader.read(id, indexReader, previous, EntryId.Remove) map {
+              case (key, isKeyPrefixCompressed) =>
                 Persistent.Remove(
                   _key = key,
                   indexOffset = indexOffset,
@@ -52,7 +51,7 @@ object RemoveReader extends EntryReader[Persistent.Remove] {
                   deadline = deadline,
                   _time = time,
                   isPrefixCompressed =
-                    keyReader.isPrefixCompressed ||
+                    isKeyPrefixCompressed ||
                       timeReader.isPrefixCompressed ||
                       deadlineReader.isPrefixCompressed ||
                       valueOffsetReader.isPrefixCompressed ||
@@ -62,5 +61,4 @@ object RemoveReader extends EntryReader[Persistent.Remove] {
             }
         }
     }
-
 }

@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.core.TestData._
 import swaydb.core.io.reader.Reader
-import swaydb.core.segment.format.a.entry.id.{EntryId, TransientToEntryId}
+import swaydb.core.segment.format.a.entry.id.{EntryId, TransientEntryIdAdjuster}
 import swaydb.core.segment.format.a.entry.reader.DeadlineReader
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
@@ -97,14 +97,15 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
     "write deadline as uncompressed" in {
       getDeadlineIds.filter(_.isInstanceOf[EntryId.GetDeadlineId]) foreach { //for all deadline ids
         deadlineID: EntryId.GetDeadlineId =>
-          TransientToEntryId.all foreach { //for all key-values
+          TransientEntryIdAdjuster.all foreach { //for all key-values
             implicit adjustedEntryId =>
               val deadline = 10.seconds.fromNow
               val deadlineBytes =
                 DeadlineWriter.uncompressed(
                   currentDeadline = deadline,
                   getDeadlineId = deadlineID,
-                  plusSize = 0
+                  plusSize = 0,
+                  isKeyUncompressed = false
                 )
 
               val reader = Reader(deadlineBytes)
@@ -124,7 +125,7 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
 
       getDeadlineIds.filter(_.isInstanceOf[EntryId.GetDeadlineId]) foreach { //for all deadline ids
         deadlineID: EntryId.GetDeadlineId =>
-          TransientToEntryId.all foreach { //for all key-values
+          TransientEntryIdAdjuster.all foreach { //for all key-values
             implicit adjustedEntryId =>
 
               //Test for when there are zero compressed bytes, compression should return None.
@@ -132,7 +133,8 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
                 currentDeadline = Deadline(Slice.fill[Byte](8)(0.toByte)),
                 previousDeadline = Deadline(Slice.fill[Byte](8)(1.toByte)),
                 getDeadlineId = deadlineID,
-                plusSize = 0
+                plusSize = 0,
+                isKeyUncompressed = false
               ) shouldBe empty
 
               //Test for when there are compressed bytes.
@@ -152,7 +154,8 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
                       currentDeadline = currentDeadline,
                       previousDeadline = previousDeadline,
                       getDeadlineId = deadlineID,
-                      plusSize = 0
+                      plusSize = 0,
+                      isKeyUncompressed = false
                     )
 
                   deadlineBytes shouldBe defined
@@ -194,12 +197,13 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
     "write without deadline bytes" in {
       getDeadlineIds.filter(_.isInstanceOf[EntryId.GetDeadlineId]) foreach { //for all deadline ids
         deadlineID: EntryId.GetDeadlineId =>
-          TransientToEntryId.all foreach { //for all key-values
+          TransientEntryIdAdjuster.all foreach { //for all key-values
             implicit adjustedEntryId =>
               val deadlineBytes =
                 DeadlineWriter.noDeadline(
                   getDeadlineId = deadlineID,
-                  plusSize = 0
+                  plusSize = 0,
+                  isKeyUncompressed = false
                 )
 
               val reader = Reader(deadlineBytes)

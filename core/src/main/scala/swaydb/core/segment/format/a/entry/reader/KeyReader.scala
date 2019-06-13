@@ -22,61 +22,36 @@ package swaydb.core.segment.format.a.entry.reader
 import swaydb.core.data.KeyValue
 import swaydb.core.segment.format.a.entry.id.EntryId
 import swaydb.core.util.Bytes
-import swaydb.data.slice.{Reader, Slice}
-import scala.annotation.implicitNotFound
 import swaydb.data.IO
-
-@implicitNotFound("Type class implementation not found for KeyReader of type ${T}")
-sealed trait KeyReader[-T] {
-  def read(indexReader: Reader,
-           previous: Option[KeyValue.ReadOnly]): IO[Slice[Byte]]
-
-  def isPrefixCompressed: Boolean
-}
+import swaydb.data.slice.{Reader, Slice}
 
 object KeyReader {
 
-  implicit object UnCompressedKeyReader extends KeyReader[EntryId.Key.Uncompressed] {
-    override def isPrefixCompressed: Boolean = false
+  def uncompressed(indexReader: Reader,
+                   previous: Option[KeyValue.ReadOnly]): IO[Slice[Byte]] =
+    indexReader.readRemaining()
 
-    override def read(indexReader: Reader,
-                      previous: Option[KeyValue.ReadOnly]): IO[Slice[Byte]] =
-      indexReader.readRemaining()
+  def partiallyCompressed(indexReader: Reader,
+                          previous: Option[KeyValue.ReadOnly]): IO[Slice[Byte]] =
+    previous map {
+      previous =>
+        indexReader.readIntUnsigned() flatMap {
+          commonBytes =>
+            indexReader.readRemaining() map {
+              rightBytes =>
+                Bytes.decompress(previous.key, rightBytes, commonBytes)
+            }
+        }
+    } getOrElse {
+      IO.Failure(EntryReaderFailure.NoPreviousKeyValue)
+    }
 
-  }
-
-  implicit object PartiallyCompressedKeyReader extends KeyReader[EntryId.Key.PartiallyCompressed] {
-    override def isPrefixCompressed: Boolean = true
-
-    override def read(indexReader: Reader,
-                      previous: Option[KeyValue.ReadOnly]): IO[Slice[Byte]] =
-      previous map {
-        previous =>
-          indexReader.readIntUnsigned() flatMap {
-            commonBytes =>
-              indexReader.readRemaining() map {
-                rightBytes =>
-                  Bytes.decompress(previous.key, rightBytes, commonBytes)
-              }
-          }
-      } getOrElse {
-        IO.Failure(EntryReaderFailure.NoPreviousKeyValue)
-      }
-  }
-
-  implicit object KeyFullyCompressedReader extends KeyReader[EntryId.Key.FullyCompressed] {
-    override def isPrefixCompressed: Boolean = true
-
-    override def read(indexReader: Reader,
-                      previous: Option[KeyValue.ReadOnly]): IO[Slice[Byte]] =
-      previous map {
-        previous =>
-          indexReader.readIntUnsigned() map {
-            commonBytes =>
-              previous.key.take(commonBytes)
-          }
-      } getOrElse {
-        IO.Failure(EntryReaderFailure.NoPreviousKeyValue)
-      }
-  }
+  def read[T <: EntryId](id: T,
+                         indexReader: Reader,
+                         previous: Option[KeyValue.ReadOnly],
+                         entryId: EntryId.Id): IO[(Slice[Byte], Boolean)] =
+    if (entryId.isKeyPartiallyCompressed(id.id))
+      KeyReader.partiallyCompressed(indexReader, previous) map (key => (key, true))
+    else
+      KeyReader.uncompressed(indexReader, previous) map (key => (key, false))
 }

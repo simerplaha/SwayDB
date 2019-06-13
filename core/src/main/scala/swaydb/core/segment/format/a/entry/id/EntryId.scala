@@ -20,7 +20,10 @@
 package swaydb.core.segment.format.a.entry.id
 
 //TODO - change id to be Slice[Byte] with custom ordering to support better backward compatibility.
-abstract class EntryId(val id: Int)
+abstract class EntryId(val id: Int) {
+  def toKeyUncompressed(implicit mapper: TransientEntryIdAdjuster[_]): Int =
+    mapper.id toKeyUncompressedEntryId id
+}
 object EntryId {
 
   trait EntryFormat {
@@ -29,9 +32,7 @@ object EntryId {
   }
 
   trait Format {
-    def keyFullyCompressed: Key.FullyCompressed
-    def keyPartiallyCompressed: Key.PartiallyCompressed
-    def keyUncompressed: Key.Uncompressed
+    def start: Key
   }
   object Format {
     trait A extends Format
@@ -41,12 +42,6 @@ object EntryId {
     def noTime: Time.NoTime
     def timePartiallyCompressed: Time.PartiallyCompressed
     def timeUncompressed: Time.Uncompressed
-  }
-
-  object Key {
-    trait FullyCompressed extends Key
-    trait PartiallyCompressed extends Key
-    trait Uncompressed extends Key
   }
 
   trait Time {
@@ -76,7 +71,13 @@ object EntryId {
   trait Value
   object Value {
     trait NoValue extends Value with GetDeadlineId
-    trait FullyCompressed extends Value with GetDeadlineId
+    trait FullyCompressed extends Value {
+      def valueOffsetOneCompressed: ValueOffset.OneCompressed
+      def valueOffsetTwoCompressed: ValueOffset.TwoCompressed
+      def valueOffsetThreeCompressed: ValueOffset.ThreeCompressed
+      def valueOffsetFullyCompressed: ValueOffset.FullyCompressed
+      def valueOffsetUncompressed: ValueOffset.Uncompressed
+    }
     trait Uncompressed extends Value {
       def valueOffsetOneCompressed: ValueOffset.OneCompressed
       def valueOffsetTwoCompressed: ValueOffset.TwoCompressed
@@ -97,6 +98,7 @@ object EntryId {
     trait TwoCompressed extends ValueOffset
     trait ThreeCompressed extends ValueOffset
     trait Uncompressed extends ValueOffset
+    trait FullyCompressed extends ValueOffset
   }
 
   trait ValueLength extends GetDeadlineId
@@ -126,28 +128,69 @@ object EntryId {
 
   sealed trait Id {
 
-    def minId: Int
+    def minKeyPartiallyCompressedId: Int
+    def maxKeyPartiallyCompressedId: Int
 
-    def maxId: Int
+    def minKeyUncompressedId: Int
+    def maxKeyUncompressedId: Int
 
     def hasId(id: Int): Boolean =
-      id >= minId && id <= maxId
+      id >= minKeyPartiallyCompressedId && id <= maxKeyUncompressedId
+
+    def isKeyPartiallyCompressed(id: Int): Boolean =
+      id >= minKeyPartiallyCompressedId && id <= maxKeyPartiallyCompressedId
+
+    def isUncompressedKey(id: Int): Boolean =
+      id >= minKeyUncompressedId && id <= maxKeyUncompressedId
 
     def adjustToBaseId(id: Int): Int =
-      id - minId
+      if (isKeyPartiallyCompressed(id))
+        if (minKeyPartiallyCompressedId == 0)
+          id
+        else
+          id - minKeyPartiallyCompressedId
+      else {
+        if (minKeyPartiallyCompressedId == 0)
+          id
+        else
+          id - minKeyUncompressedId
+      }
 
     def adjustToEntryId(id: Int): Int =
-      id + minId
+      if (isKeyPartiallyCompressed(id))
+        if (minKeyPartiallyCompressedId == 0)
+          id
+        else
+          id + minKeyPartiallyCompressedId
+      else {
+        if (minKeyPartiallyCompressedId == 0)
+          id
+        else
+          id + minKeyUncompressedId
+      }
+
+    def toKeyUncompressedEntryId(id: Int): Int =
+      id + minKeyUncompressedId
+
+    def adjustToEntryIdUncompressed(id: Int): Int =
+      toKeyUncompressedEntryId(adjustToEntryId(id))
   }
 
+  //there are total of 1379 keys for a group of key compression tree.
+  val keysPerGroup = 1379
+
   object Put extends Id {
-    val minId = 0
-    val maxId = 3000
+    override val minKeyPartiallyCompressedId: Int = 0
+    override val maxKeyPartiallyCompressedId: Int = keysPerGroup
+    override val minKeyUncompressedId: Int = keysPerGroup + 1
+    override val maxKeyUncompressedId: Int = minKeyUncompressedId + keysPerGroup
   }
 
   object Group extends Id {
-    val minId = Put.maxId + 1
-    val maxId = Put.maxId * 2
+    override val minKeyPartiallyCompressedId: Int = Put.maxKeyUncompressedId + 1
+    override val maxKeyPartiallyCompressedId: Int = minKeyPartiallyCompressedId + keysPerGroup
+    override val minKeyUncompressedId: Int = maxKeyPartiallyCompressedId + 1
+    override val maxKeyUncompressedId: Int = minKeyUncompressedId + keysPerGroup
   }
 
   /**
@@ -155,27 +198,38 @@ object EntryId {
     * disappear in last Level but [[Put]] and [[Group]] are kept unless deleted.
     */
   object Range extends Id {
-    val minId = 16384
-    val maxId = minId + 3000
+    override val minKeyPartiallyCompressedId: Int = 16384
+    override val maxKeyPartiallyCompressedId: Int = minKeyPartiallyCompressedId + keysPerGroup
+    override val minKeyUncompressedId: Int = maxKeyPartiallyCompressedId + 1
+    override val maxKeyUncompressedId: Int = minKeyUncompressedId + keysPerGroup
   }
 
   object Remove extends Id {
-    val minId = Range.maxId + 1
-    val maxId = Range.maxId * 2
+
+    override val minKeyPartiallyCompressedId: Int = Range.maxKeyUncompressedId + 1
+    override val maxKeyPartiallyCompressedId: Int = minKeyPartiallyCompressedId + keysPerGroup
+    override val minKeyUncompressedId: Int = maxKeyPartiallyCompressedId + 1
+    override val maxKeyUncompressedId: Int = minKeyUncompressedId + keysPerGroup
   }
 
   object Update extends Id {
-    val minId = Remove.maxId + 1
-    val maxId = Remove.maxId * 2
+    override val minKeyPartiallyCompressedId: Int = Remove.maxKeyUncompressedId + 1
+    override val maxKeyPartiallyCompressedId: Int = minKeyPartiallyCompressedId + keysPerGroup
+    override val minKeyUncompressedId: Int = maxKeyPartiallyCompressedId + 1
+    override val maxKeyUncompressedId: Int = minKeyUncompressedId + keysPerGroup
   }
 
   object Function extends Id {
-    val minId = Update.maxId + 1
-    val maxId = Update.maxId * 2
+    override val minKeyPartiallyCompressedId: Int = Update.maxKeyUncompressedId + 1
+    override val maxKeyPartiallyCompressedId: Int = minKeyPartiallyCompressedId + keysPerGroup
+    override val minKeyUncompressedId: Int = maxKeyPartiallyCompressedId + 1
+    override val maxKeyUncompressedId: Int = minKeyUncompressedId + keysPerGroup
   }
 
   object PendingApply extends Id {
-    val minId = Function.maxId + 1
-    val maxId = Function.maxId * 2
+    override val minKeyPartiallyCompressedId: Int = Function.maxKeyUncompressedId + 1
+    override val maxKeyPartiallyCompressedId: Int = minKeyPartiallyCompressedId + keysPerGroup
+    override val minKeyUncompressedId: Int = maxKeyPartiallyCompressedId + 1
+    override val maxKeyUncompressedId: Int = minKeyUncompressedId + keysPerGroup
   }
 }

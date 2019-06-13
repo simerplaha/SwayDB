@@ -103,7 +103,7 @@ object IfConditionGenerator extends App {
 
   def keyIdsGrouped: Iterator[(Int, List[BaseEntryId])] = {
     val ids = BaseEntryId.keyIdsList
-    ids.grouped(ids.size / 5).zipWithIndex map {
+    ids.grouped(ids.size / 4).zipWithIndex map {
       case (entries, index) =>
         index + 1 -> entries
     }

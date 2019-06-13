@@ -25,7 +25,7 @@ import swaydb.core.TestData._
 import swaydb.core.TestTimer
 import swaydb.core.data.{Time, Transient}
 import swaydb.core.io.reader.Reader
-import swaydb.core.segment.format.a.entry.id.{EntryId, TransientToEntryId}
+import swaydb.core.segment.format.a.entry.id.{EntryId, TransientEntryIdAdjuster}
 import swaydb.core.segment.format.a.entry.reader.TimeReader
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
@@ -63,7 +63,7 @@ class TimeReaderWriterSpec extends WordSpec with Matchers {
 
               val currentTime = TimeWriter.getTime(current)
 
-              implicit val put = TransientToEntryId.Put
+              implicit val put = TransientEntryIdAdjuster.Put
 
               val writeResult =
                 TimeWriter.write(
@@ -72,7 +72,8 @@ class TimeReaderWriterSpec extends WordSpec with Matchers {
                   compressDuplicateValues = false,
                   enablePrefixCompression = true,
                   entryId = keyId,
-                  plusSize = 0
+                  plusSize = 0,
+                  isKeyUncompressed = false
                 )
 
               val reader = Reader(writeResult.indexBytes)
@@ -102,7 +103,7 @@ class TimeReaderWriterSpec extends WordSpec with Matchers {
 
           val currentTime = TimeWriter.getTime(current)
 
-          implicit val put = TransientToEntryId.Put
+          implicit val put = TransientEntryIdAdjuster.Put
 
           val writeResult =
             TimeWriter.write(
@@ -111,7 +112,8 @@ class TimeReaderWriterSpec extends WordSpec with Matchers {
               compressDuplicateValues = randomBoolean(),
               enablePrefixCompression = true,
               entryId = keyId,
-              plusSize = 0
+              plusSize = 0,
+              isKeyUncompressed = false
             )
 
           val reader = Reader(writeResult.indexBytes)
@@ -136,7 +138,7 @@ class TimeReaderWriterSpec extends WordSpec with Matchers {
     "write no time" in {
       keyIds foreach {
         keyId =>
-          TransientToEntryId.all foreach {
+          TransientEntryIdAdjuster.all foreach {
             implicit adjustedEntryId =>
 
               val writeResult =
@@ -146,7 +148,8 @@ class TimeReaderWriterSpec extends WordSpec with Matchers {
                   compressDuplicateValues = false,
                   enablePrefixCompression = true,
                   entryId = keyId,
-                  plusSize = 0
+                  plusSize = 0,
+                  isKeyUncompressed = false
                 )
 
               val reader = Reader(writeResult.indexBytes)

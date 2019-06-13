@@ -82,6 +82,14 @@ object ValueOffsetReader {
       indexReader.readIntUnsigned()
   }
 
+  implicit object ValueOffsetReaderValueOffsetFullyCompressed extends ValueOffsetReader[EntryId.ValueOffset.FullyCompressed] {
+    override def isPrefixCompressed: Boolean = true
+
+    override def read(indexReader: Reader,
+                      previous: Option[Persistent]): IO[Int] =
+      IO.zero
+  }
+
   implicit object ValueOffsetReaderNoValue extends ValueOffsetReader[EntryId.Value.NoValue] {
     override def isPrefixCompressed: Boolean = false
 
@@ -90,11 +98,4 @@ object ValueOffsetReader {
       IO.zero
   }
 
-  implicit object ValueOffsetReaderValueFullyCompressed extends ValueOffsetReader[EntryId.Value.FullyCompressed] {
-    override def isPrefixCompressed: Boolean = true
-
-    override def read(indexReader: Reader,
-                      previous: Option[Persistent]): IO[Int] =
-      IO.zero
-  }
 }

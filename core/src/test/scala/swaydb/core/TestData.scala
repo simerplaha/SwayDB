@@ -498,7 +498,7 @@ object TestData {
           persistent match {
             case persistent: Persistent.Fixed =>
               persistent match {
-                case put @ Persistent.Put(key, deadline, valueReader, time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength) =>
+                case put @ Persistent.Put(key, deadline, valueReader, time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _) =>
                   Transient.Put(
                     key = key,
                     value = put.getOrFetchValue.assertGetOpt,
@@ -509,7 +509,7 @@ object TestData {
                     time = time
                   )
 
-                case put @ Persistent.Update(key, deadline, valueReader, time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength) =>
+                case put @ Persistent.Update(key, deadline, valueReader, time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _) =>
                   Transient.Update(
                     key = key,
                     value = put.getOrFetchValue.assertGetOpt,
@@ -520,7 +520,7 @@ object TestData {
                     time = time
                   )
 
-                case function @ Persistent.Function(key, lazyFunctionReader, time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength) =>
+                case function @ Persistent.Function(key, lazyFunctionReader, time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _) =>
                   Transient.Function(
                     key = key,
                     value = function.getOrFetchValue,
@@ -532,7 +532,7 @@ object TestData {
                     function = lazyFunctionReader.getOrFetchFunction.assertGet
                   )
 
-                case pendingApply @ Persistent.PendingApply(key, time, deadline, lazyPendingApplyValueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength) =>
+                case pendingApply @ Persistent.PendingApply(key, time, deadline, lazyPendingApplyValueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _) =>
                   Transient.PendingApply(
                     key = key,
                     applies = pendingApply.getOrFetchApplies.assertGet,
@@ -541,7 +541,7 @@ object TestData {
                     compressDuplicateValues = true
                   )
 
-                case Persistent.Remove(_key, deadline, time, indexOffset, nextIndexOffset, nextIndexSize) =>
+                case Persistent.Remove(_key, deadline, time, indexOffset, nextIndexOffset, nextIndexSize, _) =>
                   Transient.Remove(
                     key = _key,
                     falsePositiveRate = TestData.falsePositiveRate,
@@ -551,7 +551,7 @@ object TestData {
                   )
               }
 
-            case range @ Persistent.Range(_fromKey, _toKey, valueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength) =>
+            case range @ Persistent.Range(_fromKey, _toKey, valueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _) =>
               val (fromValue, rangeValue) = range.fetchFromAndRangeValue.assertGet
               Transient.Range(
                 fromKey = _fromKey,
@@ -577,7 +577,7 @@ object TestData {
 
     def toMemoryGroup =
       keyValue match {
-        case Persistent.Group(minKey, maxKey, groupDecompressor, _, _, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, deadline) =>
+        case Persistent.Group(minKey, maxKey, groupDecompressor, _, _, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, deadline, _) =>
           Memory.Group(
             minKey = minKey,
             maxKey = maxKey,
@@ -609,23 +609,23 @@ object TestData {
           persistent match {
             case persistent: Persistent.Fixed =>
               persistent match {
-                case put @ Persistent.Put(key, deadline, valueReader, time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength) =>
+                case put @ Persistent.Put(key, deadline, valueReader, time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _) =>
                   Memory.Put(key, put.getOrFetchValue.get.safeGetBlocking(), deadline, time)
 
-                case put @ Persistent.Update(key, deadline, valueReader, time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength) =>
+                case put @ Persistent.Update(key, deadline, valueReader, time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _) =>
                   Memory.Update(key, put.getOrFetchValue.get.safeGetBlocking(), deadline, time)
 
-                case function @ Persistent.Function(key, lazyFunctionReader, time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength) =>
+                case function @ Persistent.Function(key, lazyFunctionReader, time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _) =>
                   Memory.Function(key, function.getOrFetchFunction.get.safeGetBlocking(), time)
 
-                case pendingApply @ Persistent.PendingApply(key, time, deadline, lazyPendingApplyValueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength) =>
+                case pendingApply @ Persistent.PendingApply(key, time, deadline, lazyPendingApplyValueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _) =>
                   Memory.PendingApply(key, pendingApply.getOrFetchApplies.get.safeGetBlocking())
 
-                case Persistent.Remove(_key, deadline, time, indexOffset, nextIndexOffset, nextIndexSize) =>
+                case Persistent.Remove(_key, deadline, time, indexOffset, nextIndexOffset, nextIndexSize, _) =>
                   Memory.Remove(_key, deadline, time)
               }
 
-            case range @ Persistent.Range(_fromKey, _toKey, _, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength) =>
+            case range @ Persistent.Range(_fromKey, _toKey, _, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _) =>
               val (fromValue, rangeValue) = range.fetchFromAndRangeValue.get.safeGetBlocking()
               Memory.Range(_fromKey, _toKey, fromValue, rangeValue)
           }

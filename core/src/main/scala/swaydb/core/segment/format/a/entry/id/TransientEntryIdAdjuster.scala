@@ -24,43 +24,43 @@ import swaydb.core.data.Transient
 import swaydb.macros.SealedList
 
 @implicitNotFound("Type class implementation not found for TransientToEntryId of type ${T}")
-sealed trait TransientToEntryId[T] {
+sealed trait TransientEntryIdAdjuster[T] {
   val id: EntryId.Id
 }
 
 /**
   * Glue objects to map [[Transient]] key-values to [[EntryId]].
   */
-object TransientToEntryId {
+object TransientEntryIdAdjuster {
 
-  implicit object Remove extends TransientToEntryId[Transient.Remove] {
+  implicit object Remove extends TransientEntryIdAdjuster[Transient.Remove] {
     override val id: EntryId.Id = EntryId.Remove
   }
 
-  implicit object Update extends TransientToEntryId[Transient.Update] {
+  implicit object Update extends TransientEntryIdAdjuster[Transient.Update] {
     override val id: EntryId.Id = EntryId.Update
   }
 
-  implicit object Function extends TransientToEntryId[Transient.Function] {
+  implicit object Function extends TransientEntryIdAdjuster[Transient.Function] {
     override val id: EntryId.Id = EntryId.Function
   }
 
-  implicit object Group extends TransientToEntryId[Transient.Group] {
+  implicit object Group extends TransientEntryIdAdjuster[Transient.Group] {
     override val id: EntryId.Id = EntryId.Group
   }
 
-  implicit object Range extends TransientToEntryId[Transient.Range] {
+  implicit object Range extends TransientEntryIdAdjuster[Transient.Range] {
     override val id: EntryId.Id = EntryId.Range
   }
 
-  implicit object Put extends TransientToEntryId[Transient.Put] {
+  implicit object Put extends TransientEntryIdAdjuster[Transient.Put] {
     override val id: EntryId.Id = EntryId.Put
   }
 
-  implicit object PendingApply extends TransientToEntryId[Transient.PendingApply] {
+  implicit object PendingApply extends TransientEntryIdAdjuster[Transient.PendingApply] {
     override val id: EntryId.Id = EntryId.PendingApply
   }
 
-  def all: List[TransientToEntryId[_]] =
-    SealedList.list[TransientToEntryId[_]]
+  def all: List[TransientEntryIdAdjuster[_]] =
+    SealedList.list[TransientEntryIdAdjuster[_]]
 }

@@ -34,8 +34,7 @@ trait EntryReader[E] {
                           indexOffset: Int,
                           nextIndexOffset: Int,
                           nextIndexSize: Int,
-                          previous: Option[Persistent])(implicit keyReader: KeyReader[T],
-                                                        timeReader: TimeReader[T],
+                          previous: Option[Persistent])(implicit timeReader: TimeReader[T],
                                                         deadlineReader: DeadlineReader[T],
                                                         valueOffsetReader: ValueOffsetReader[T],
                                                         valueLengthReader: ValueLengthReader[T],
@@ -45,7 +44,7 @@ trait EntryReader[E] {
 object EntryReader {
 
   val readers: List[BaseEntryReader] =
-    List(BaseEntryReader1, BaseEntryReader2, BaseEntryReader3, BaseEntryReader4, BaseEntryReader5) sortBy (_.minID)
+    List(BaseEntryReader1, BaseEntryReader2, BaseEntryReader3, BaseEntryReader4) sortBy (_.minID)
 
   def read[T](id: Int,
               indexReader: Reader,
