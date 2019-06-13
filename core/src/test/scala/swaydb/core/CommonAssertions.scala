@@ -1282,7 +1282,7 @@ object CommonAssertions {
 
     val tempFooter = SegmentFooter(
       crc = 0,
-      sortedIndexstartOffset = valuesDecompressLength,
+      sortedIndexStartOffset = valuesDecompressLength,
       sortedIndexEndOffset = keyValuesDecompressedBytes.size - 1,
       hashIndexStartOffset = ???,
       hashIndexEndOffset = ???,
@@ -1460,37 +1460,37 @@ object CommonAssertions {
         }
       case persistent: Persistent =>
         persistent match {
-          case Persistent.Remove(_key, deadline, _time, indexOffset, nextIndexOffset, nextIndexSize) =>
+          case Persistent.Remove(_key, deadline, _time, indexOffset, nextIndexOffset, nextIndexSize, _) =>
             _key.shouldBeSliced()
             _time.time.shouldBeSliced()
 
-          case Persistent.Put(_key, deadline, lazyValueReader, _time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength) =>
-            _key.shouldBeSliced()
-            _time.time.shouldBeSliced()
-            lazyValueReader.getOrFetchValue.get.safeGetBlocking().shouldBeSliced()
-
-          case Persistent.Update(_key, deadline, lazyValueReader, _time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength) =>
+          case Persistent.Put(_key, deadline, lazyValueReader, _time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _) =>
             _key.shouldBeSliced()
             _time.time.shouldBeSliced()
             lazyValueReader.getOrFetchValue.get.safeGetBlocking().shouldBeSliced()
 
-          case Persistent.Function(_key, lazyFunctionReader, _time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength) =>
+          case Persistent.Update(_key, deadline, lazyValueReader, _time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _) =>
+            _key.shouldBeSliced()
+            _time.time.shouldBeSliced()
+            lazyValueReader.getOrFetchValue.get.safeGetBlocking().shouldBeSliced()
+
+          case Persistent.Function(_key, lazyFunctionReader, _time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _) =>
             _key.shouldBeSliced()
             _time.time.shouldBeSliced()
             lazyFunctionReader.getOrFetchFunction.get.safeGetBlocking().shouldBeSliced()
 
-          case Persistent.PendingApply(_key, _time, deadline, lazyValueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength) =>
+          case Persistent.PendingApply(_key, _time, deadline, lazyValueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _) =>
             _key.shouldBeSliced()
             _time.time.shouldBeSliced()
             lazyValueReader.getOrFetchApplies.get.safeGetBlocking() foreach assertSliced
 
-          case Persistent.Range(_fromKey, _toKey, lazyRangeValueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength) =>
+          case Persistent.Range(_fromKey, _toKey, lazyRangeValueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _) =>
             _fromKey.shouldBeSliced()
             _toKey.shouldBeSliced()
             lazyRangeValueReader.fetchFromValue.assertGetOpt foreach assertSliced
             lazyRangeValueReader.fetchRangeValue foreach assertSliced
 
-          case Persistent.Group(_minKey, _maxKey, groupDecompressor, lazyGroupValueReader, valueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, deadline) =>
+          case Persistent.Group(_minKey, _maxKey, groupDecompressor, lazyGroupValueReader, valueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, deadline, _) =>
             _minKey.shouldBeSliced()
             _maxKey.maxKey.shouldBeSliced()
             lazyGroupValueReader.getOrFetchValue.get.safeGetBlocking().shouldBeSliced()

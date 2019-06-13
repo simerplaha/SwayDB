@@ -409,7 +409,7 @@ class SegmentWriterReaderSpec extends TestBase {
       }
 
       //first
-      var found = find(0, footer.sortedIndexstartOffset, bytes.size)
+      var found = find(0, footer.sortedIndexStartOffset, bytes.size)
 
       //second
       found = find(1, found.nextIndexOffset, 4)

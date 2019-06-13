@@ -152,9 +152,9 @@ private[core] object SegmentReader extends LazyLogging {
               addTo: Option[Slice[KeyValue.ReadOnly]] = None)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Slice[KeyValue.ReadOnly]] =
     try {
       //since this is a index slice of the full Segment, adjustments for nextIndexOffset is required.
-      val adjustNextIndexOffsetBy = footer.sortedIndexstartOffset
+      val adjustNextIndexOffsetBy = footer.sortedIndexStartOffset
       //read full index in one disk seek and Slice it to KeyValue chunks.
-      val indexOnlyReader = Reader((reader moveTo footer.sortedIndexstartOffset read (footer.sortedIndexEndOffset - footer.sortedIndexstartOffset + 1)).get)
+      val indexOnlyReader = Reader((reader moveTo footer.sortedIndexStartOffset read (footer.sortedIndexEndOffset - footer.sortedIndexStartOffset + 1)).get)
       val endIndexOffset: Int = indexOnlyReader.size.get.toInt - 1
 
       val entries = addTo getOrElse Slice.create[Persistent](footer.keyValueCount)
@@ -172,7 +172,7 @@ private[core] object SegmentReader extends LazyLogging {
           readNextKeyValue(
             indexEntrySizeMayBe = nextIndexSize,
             adjustNextIndexOffsetBy = adjustNextIndexOffsetBy,
-            startIndexOffset = previousMayBe.map(_.nextIndexOffset).getOrElse(footer.sortedIndexstartOffset),
+            startIndexOffset = previousMayBe.map(_.nextIndexOffset).getOrElse(footer.sortedIndexStartOffset),
             endIndexOffset = endIndexOffset,
             indexReader = indexOnlyReader,
             valueReader = reader.copy(),
@@ -275,7 +275,7 @@ private[core] object SegmentReader extends LazyLogging {
             crc = expectedCRC,
             createdInLevel = createdInLevel,
             isGrouped = isGrouped,
-            sortedIndexstartOffset = indexStartOffset,
+            sortedIndexStartOffset = indexStartOffset,
             sortedIndexEndOffset = indexEndOffset,
             hashIndexStartOffset = hashIndexStartOffset,
             hashIndexEndOffset = hashIndexEndOffset,
@@ -384,7 +384,7 @@ private[core] object SegmentReader extends LazyLogging {
           sortedIndexOffset =>
             readNextKeyValue(
               fromPosition = sortedIndexOffset,
-              startIndexOffset = footer.sortedIndexstartOffset,
+              startIndexOffset = footer.sortedIndexStartOffset,
               endIndexOffset = footer.sortedIndexEndOffset,
               indexReader = reader,
               valueReader = reader
@@ -396,7 +396,7 @@ private[core] object SegmentReader extends LazyLogging {
             else
               readNextKeyValue(
                 previous = previous,
-                startIndexOffset = footer.sortedIndexstartOffset,
+                startIndexOffset = footer.sortedIndexStartOffset,
                 endIndexOffset = footer.sortedIndexEndOffset,
                 indexReader = reader,
                 valueReader = reader
@@ -425,7 +425,7 @@ private[core] object SegmentReader extends LazyLogging {
           else
             readNextKeyValue(
               previous = startFrom,
-              startIndexOffset = footer.sortedIndexstartOffset,
+              startIndexOffset = footer.sortedIndexStartOffset,
               endIndexOffset = footer.sortedIndexEndOffset,
               indexReader = reader,
               valueReader = reader
@@ -437,8 +437,8 @@ private[core] object SegmentReader extends LazyLogging {
         //No start from. Get the first index entry from the File and start from there.
         case None =>
           readNextKeyValue(
-            fromPosition = footer.sortedIndexstartOffset,
-            startIndexOffset = footer.sortedIndexstartOffset,
+            fromPosition = footer.sortedIndexStartOffset,
+            startIndexOffset = footer.sortedIndexStartOffset,
             endIndexOffset = footer.sortedIndexEndOffset,
             indexReader = reader,
             valueReader = reader
@@ -463,7 +463,7 @@ private[core] object SegmentReader extends LazyLogging {
         val readFrom = next getOrElse previous
         readNextKeyValue(
           previous = readFrom,
-          startIndexOffset = footer.sortedIndexstartOffset,
+          startIndexOffset = footer.sortedIndexStartOffset,
           endIndexOffset = footer.sortedIndexEndOffset,
           indexReader = reader,
           valueReader = reader

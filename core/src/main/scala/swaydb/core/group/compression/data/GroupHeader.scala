@@ -44,7 +44,7 @@ private[core] case class GroupHeader(headerSize: Int,
   val footer =
     SegmentFooter(
       crc = 0,
-      sortedIndexstartOffset = decompressedStartIndexOffset,
+      sortedIndexStartOffset = decompressedStartIndexOffset,
       sortedIndexEndOffset = decompressedEndIndexOffset,
       hashIndexStartOffset = hashIndexStartOffset,
       hashIndexEndOffset = hashIndexEndOffset,
