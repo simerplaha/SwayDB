@@ -28,6 +28,8 @@ import swaydb.data.slice.Reader
 
 @implicitNotFound("Type class implementation not found for TimeReader of type ${T}")
 sealed trait TimeReader[-T] {
+  def isPrefixCompressed: Boolean
+
   def read(indexReader: Reader,
            previous: Option[KeyValue.ReadOnly]): IO[Time]
 }
@@ -39,12 +41,16 @@ sealed trait TimeReader[-T] {
 object TimeReader {
 
   implicit object NoTimeReader extends TimeReader[EntryId.Time.NoTime] {
+    override def isPrefixCompressed: Boolean = false
+
     override def read(indexReader: Reader,
                       previous: Option[KeyValue.ReadOnly]): IO[Time] =
       Time.successEmpty
   }
 
   implicit object UnCompressedTimeReader extends TimeReader[EntryId.Time.Uncompressed] {
+    override def isPrefixCompressed: Boolean = false
+
     override def read(indexReader: Reader,
                       previous: Option[KeyValue.ReadOnly]): IO[Time] =
       indexReader.readIntUnsigned() flatMap {
@@ -57,6 +63,8 @@ object TimeReader {
   }
 
   implicit object PartiallyCompressedTimeReader extends TimeReader[EntryId.Time.PartiallyCompressed] {
+
+    override def isPrefixCompressed: Boolean = true
 
     def readTime(indexReader: Reader,
                  previousTime: Time): IO[Time] =

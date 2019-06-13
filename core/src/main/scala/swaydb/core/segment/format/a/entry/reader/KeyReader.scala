@@ -30,17 +30,24 @@ import swaydb.data.IO
 sealed trait KeyReader[-T] {
   def read(indexReader: Reader,
            previous: Option[KeyValue.ReadOnly]): IO[Slice[Byte]]
+
+  def isPrefixCompressed: Boolean
 }
 
 object KeyReader {
 
   implicit object UnCompressedKeyReader extends KeyReader[EntryId.Key.Uncompressed] {
+    override def isPrefixCompressed: Boolean = false
+
     override def read(indexReader: Reader,
                       previous: Option[KeyValue.ReadOnly]): IO[Slice[Byte]] =
       indexReader.readRemaining()
+
   }
 
   implicit object PartiallyCompressedKeyReader extends KeyReader[EntryId.Key.PartiallyCompressed] {
+    override def isPrefixCompressed: Boolean = true
+
     override def read(indexReader: Reader,
                       previous: Option[KeyValue.ReadOnly]): IO[Slice[Byte]] =
       previous map {
@@ -58,6 +65,8 @@ object KeyReader {
   }
 
   implicit object KeyFullyCompressedReader extends KeyReader[EntryId.Key.FullyCompressed] {
+    override def isPrefixCompressed: Boolean = true
+
     override def read(indexReader: Reader,
                       previous: Option[KeyValue.ReadOnly]): IO[Slice[Byte]] =
       previous map {

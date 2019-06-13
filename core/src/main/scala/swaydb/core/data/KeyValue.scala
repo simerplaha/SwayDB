@@ -1023,6 +1023,8 @@ private[core] sealed trait Persistent extends KeyValue.ReadOnly with KeyValue.Ca
 
   def valueOffset: Int
 
+  def isPrefixCompressed: Boolean
+
   /**
     * This function is NOT thread-safe and is mutable. It should always be invoke at the time of creation
     * and before inserting into the Segment's cache.
@@ -1043,14 +1045,16 @@ private[core] object Persistent {
   object Remove {
     def apply(key: Slice[Byte],
               deadline: Option[Deadline],
-              time: Time): Persistent.Remove =
+              time: Time,
+              isPrefixCompressed: Boolean): Persistent.Remove =
       Persistent.Remove(
         _key = key,
         deadline = deadline,
         _time = time,
         indexOffset = 0,
         nextIndexOffset = -1,
-        nextIndexSize = 0
+        nextIndexSize = 0,
+        isPrefixCompressed = isPrefixCompressed
       )
   }
 
@@ -1059,7 +1063,8 @@ private[core] object Persistent {
                     private var _time: Time,
                     indexOffset: Int,
                     nextIndexOffset: Int,
-                    nextIndexSize: Int) extends Persistent.Fixed with KeyValue.ReadOnly.Remove {
+                    nextIndexSize: Int,
+                    isPrefixCompressed: Boolean) extends Persistent.Fixed with KeyValue.ReadOnly.Remove {
     override val valueLength: Int = 0
     override val isValueDefined: Boolean = true
     override val valueOffset: Int = 0
@@ -1107,7 +1112,8 @@ private[core] object Persistent {
     def apply(key: Slice[Byte],
               deadline: Option[Deadline],
               time: Time,
-              value: Option[Slice[Byte]]): Persistent.Put =
+              value: Option[Slice[Byte]],
+              isPrefixCompressed: Boolean): Persistent.Put =
       Persistent.Put(
         _key = key,
         deadline = deadline,
@@ -1122,7 +1128,8 @@ private[core] object Persistent {
         nextIndexSize = 0,
         indexOffset = 0,
         valueOffset = 0,
-        valueLength = value.map(_.size).getOrElse(0)
+        valueLength = value.map(_.size).getOrElse(0),
+        isPrefixCompressed = isPrefixCompressed
       )
   }
 
@@ -1134,7 +1141,8 @@ private[core] object Persistent {
                  nextIndexSize: Int,
                  indexOffset: Int,
                  valueOffset: Int,
-                 valueLength: Int) extends Persistent.Fixed with KeyValue.ReadOnly.Put {
+                 valueLength: Int,
+                 isPrefixCompressed: Boolean) extends Persistent.Fixed with KeyValue.ReadOnly.Put {
     override def unsliceIndexBytes: Unit = {
       _key = _key.unslice()
       _time = _time.unslice()
@@ -1196,7 +1204,8 @@ private[core] object Persistent {
                     nextIndexSize: Int,
                     indexOffset: Int,
                     valueOffset: Int,
-                    valueLength: Int) extends Persistent.Fixed with KeyValue.ReadOnly.Update {
+                    valueLength: Int,
+                    isPrefixCompressed: Boolean) extends Persistent.Fixed with KeyValue.ReadOnly.Update {
     override def unsliceIndexBytes: Unit = {
       _key = _key.unslice()
       _time = _time.unslice()
@@ -1262,7 +1271,8 @@ private[core] object Persistent {
         nextIndexSize = nextIndexSize,
         indexOffset = indexOffset,
         valueOffset = valueOffset,
-        valueLength = valueLength
+        valueLength = valueLength,
+        isPrefixCompressed = isPrefixCompressed
       )
 
     override def toPut(deadline: Option[Deadline]): Persistent.Put =
@@ -1275,7 +1285,8 @@ private[core] object Persistent {
         nextIndexSize = nextIndexSize,
         indexOffset = indexOffset,
         valueOffset = valueOffset,
-        valueLength = valueLength
+        valueLength = valueLength,
+        isPrefixCompressed = isPrefixCompressed
       )
   }
 
@@ -1286,7 +1297,8 @@ private[core] object Persistent {
                       nextIndexSize: Int,
                       indexOffset: Int,
                       valueOffset: Int,
-                      valueLength: Int) extends Persistent.Fixed with KeyValue.ReadOnly.Function {
+                      valueLength: Int,
+                      isPrefixCompressed: Boolean) extends Persistent.Fixed with KeyValue.ReadOnly.Function {
     override def unsliceIndexBytes: Unit = {
       _key = _key.unslice()
       _time = _time.unslice()
@@ -1333,7 +1345,8 @@ private[core] object Persistent {
     def apply(key: Slice[Byte],
               deadline: Option[Deadline],
               applies: Slice[Value.Apply],
-              time: Time): Persistent.PendingApply =
+              time: Time,
+              isPrefixCompressed: Boolean): Persistent.PendingApply =
       Persistent.PendingApply(
         _key = key,
         _time = time,
@@ -1343,7 +1356,8 @@ private[core] object Persistent {
         nextIndexSize = 0,
         indexOffset = 0,
         valueOffset = 0,
-        valueLength = 0
+        valueLength = 0,
+        isPrefixCompressed = isPrefixCompressed
       )
   }
 
@@ -1355,7 +1369,8 @@ private[core] object Persistent {
                           nextIndexSize: Int,
                           indexOffset: Int,
                           valueOffset: Int,
-                          valueLength: Int) extends Persistent.Fixed with KeyValue.ReadOnly.PendingApply {
+                          valueLength: Int,
+                          isPrefixCompressed: Boolean) extends Persistent.Fixed with KeyValue.ReadOnly.PendingApply {
     override def unsliceIndexBytes: Unit = {
       _key = _key.unslice()
       _time = _time.unslice()
@@ -1401,7 +1416,8 @@ private[core] object Persistent {
               nextIndexSize: Int,
               indexOffset: Int,
               valueOffset: Int,
-              valueLength: Int): IO[Persistent.Range] =
+              valueLength: Int,
+              isPrefixCompressed: Boolean): IO[Persistent.Range] =
       Bytes.decompressJoin(key) map {
         case (fromKey, toKey) =>
           Range(
@@ -1412,7 +1428,8 @@ private[core] object Persistent {
             nextIndexSize = nextIndexSize,
             indexOffset = indexOffset,
             valueOffset = valueOffset,
-            valueLength = valueLength
+            valueLength = valueLength,
+            isPrefixCompressed = isPrefixCompressed
           )
       }
   }
@@ -1424,7 +1441,8 @@ private[core] object Persistent {
                    nextIndexSize: Int,
                    indexOffset: Int,
                    valueOffset: Int,
-                   valueLength: Int) extends Persistent.SegmentResponse with KeyValue.ReadOnly.Range {
+                   valueLength: Int,
+                   isPrefixCompressed: Boolean) extends Persistent.SegmentResponse with KeyValue.ReadOnly.Range {
 
     def fromKey = _fromKey
 
@@ -1473,7 +1491,8 @@ private[core] object Persistent {
               indexOffset: Int,
               valueLength: Int,
               valueOffset: Int,
-              deadline: Option[Deadline]): IO[Group] =
+              deadline: Option[Deadline],
+              isPrefixCompressed: Boolean): IO[Group] =
       GroupKeyCompressor.decompress(key) map {
         case (minKey, maxKey) =>
           Group(
@@ -1487,7 +1506,8 @@ private[core] object Persistent {
             indexOffset = indexOffset,
             valueOffset = valueOffset,
             valueLength = valueLength,
-            deadline = deadline
+            deadline = deadline,
+            isPrefixCompressed = isPrefixCompressed
           )
       }
   }
@@ -1502,7 +1522,8 @@ private[core] object Persistent {
                    indexOffset: Int,
                    valueOffset: Int,
                    valueLength: Int,
-                   deadline: Option[Deadline]) extends Persistent with KeyValue.ReadOnly.Group {
+                   deadline: Option[Deadline],
+                   isPrefixCompressed: Boolean) extends Persistent with KeyValue.ReadOnly.Group {
 
     lazy val segmentCacheInitializer =
       new SegmentCacheInitializer(

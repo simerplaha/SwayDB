@@ -147,6 +147,7 @@ private[writer] object ValueWriter {
                             entryId: EntryId.Time,
                             plusSize: Int,
                             enablePrefixCompression: Boolean)(implicit id: TransientToEntryId[_]): Option[EntryWriter.Result] =
+  //todo if prefix compression is disable then write offsets with
   //eliminate exact values only. Value size should also be the same.
     Bytes.compressExact(
       previous = previousValue,

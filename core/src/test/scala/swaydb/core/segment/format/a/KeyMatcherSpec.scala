@@ -49,7 +49,7 @@ class KeyMatcherSpec extends TestBase {
     */
 
   implicit def toPut(int: Int): Persistent.Fixed =
-    Put(int, None, LazyValueReader(Reader(Slice.emptyBytes), 0, 0), Time.empty,  0, 0, 0, 0, 0)
+    Put(int, None, LazyValueReader(Reader(Slice.emptyBytes), 0, 0), Time.empty,  0, 0, 0, 0, 0, false)
 
   implicit def toSomePut(int: Int): Option[Persistent.Fixed] =
     Some(int)
@@ -62,7 +62,7 @@ class KeyMatcherSpec extends TestBase {
       */
 
     implicit def toRange(tuple: (Int, Int)): Persistent.Range =
-      Persistent.Range(tuple._1, tuple._2, LazyRangeValueReader(Reader(Slice.emptyBytes), 0, 0), 0, 0, 0, 0, 0)
+      Persistent.Range(tuple._1, tuple._2, LazyRangeValueReader(Reader(Slice.emptyBytes), 0, 0), 0, 0, 0, 0, 0, false)
 
     implicit def toSomeRange(tuple: (Int, Int)): Option[Persistent.Range] =
       Some(tuple)
@@ -88,7 +88,8 @@ class KeyMatcherSpec extends TestBase {
         indexOffset = 0,
         valueOffset = 0,
         valueLength = 0,
-        None
+        deadline = None,
+        isPrefixCompressed = false
       )
 
     implicit def toGroupRange(tuple: (Int, (Int, Int))): Group =
@@ -103,7 +104,8 @@ class KeyMatcherSpec extends TestBase {
         indexOffset = 0,
         valueOffset = 0,
         valueLength = 0,
-        None
+        deadline = None,
+        isPrefixCompressed = false
       )
 
     implicit def toSomeGroupFixed(tuple: (Int, Int)): Option[Group] =

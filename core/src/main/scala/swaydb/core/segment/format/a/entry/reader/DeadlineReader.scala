@@ -32,18 +32,24 @@ import scala.concurrent.duration
 
 @implicitNotFound("Type class implementation not found for DeadlineReader of type ${T}")
 sealed trait DeadlineReader[-T] {
+  def isPrefixCompressed: Boolean
+
   def read(indexReader: Reader,
            previous: Option[KeyValue.ReadOnly]): IO[Option[duration.Deadline]]
 }
 
 object DeadlineReader {
   implicit object NoDeadlineReader extends DeadlineReader[EntryId.Deadline.NoDeadline] {
+    override def isPrefixCompressed: Boolean = false
+
     override def read(indexReader: Reader,
                       previous: Option[KeyValue.ReadOnly]): IO[Option[duration.Deadline]] =
       IO.none
   }
 
   implicit object DeadlineFullyCompressedReader extends DeadlineReader[EntryId.Deadline.FullyCompressed] {
+    override def isPrefixCompressed: Boolean = true
+
     override def read(indexReader: Reader,
                       previous: Option[KeyValue.ReadOnly]): IO[Option[duration.Deadline]] =
       previous map {
@@ -87,45 +93,61 @@ object DeadlineReader {
     }
 
   implicit object DeadlineOneCompressedReader extends DeadlineReader[EntryId.Deadline.OneCompressed] {
+    override def isPrefixCompressed: Boolean = true
+
     override def read(indexReader: Reader,
                       previous: Option[KeyValue.ReadOnly]): IO[Option[duration.Deadline]] =
       decompressDeadline(indexReader = indexReader, commonBytes = 1, previous = previous)
   }
 
   implicit object DeadlineTwoCompressedReader extends DeadlineReader[EntryId.Deadline.TwoCompressed] {
+    override def isPrefixCompressed: Boolean = true
+
     override def read(indexReader: Reader,
                       previous: Option[KeyValue.ReadOnly]): IO[Option[duration.Deadline]] =
       decompressDeadline(indexReader = indexReader, commonBytes = 2, previous = previous)
   }
   implicit object DeadlineThreeCompressedReader extends DeadlineReader[EntryId.Deadline.ThreeCompressed] {
+    override def isPrefixCompressed: Boolean = true
+
     override def read(indexReader: Reader,
                       previous: Option[KeyValue.ReadOnly]): IO[Option[duration.Deadline]] =
       decompressDeadline(indexReader = indexReader, commonBytes = 3, previous = previous)
   }
   implicit object DeadlineFourCompressedReader extends DeadlineReader[EntryId.Deadline.FourCompressed] {
+    override def isPrefixCompressed: Boolean = true
+
     override def read(indexReader: Reader,
                       previous: Option[KeyValue.ReadOnly]): IO[Option[duration.Deadline]] =
       decompressDeadline(indexReader = indexReader, commonBytes = 4, previous = previous)
   }
   implicit object DeadlineFiveCompressedReader extends DeadlineReader[EntryId.Deadline.FiveCompressed] {
+    override def isPrefixCompressed: Boolean = true
+
     override def read(indexReader: Reader,
                       previous: Option[KeyValue.ReadOnly]): IO[Option[duration.Deadline]] =
       decompressDeadline(indexReader = indexReader, commonBytes = 5, previous = previous)
   }
 
   implicit object DeadlineSixCompressedReader extends DeadlineReader[EntryId.Deadline.SixCompressed] {
+    override def isPrefixCompressed: Boolean = true
+
     override def read(indexReader: Reader,
                       previous: Option[KeyValue.ReadOnly]): IO[Option[duration.Deadline]] =
       decompressDeadline(indexReader = indexReader, commonBytes = 6, previous = previous)
   }
 
   implicit object DeadlineSevenCompressedReader extends DeadlineReader[EntryId.Deadline.SevenCompressed] {
+    override def isPrefixCompressed: Boolean = true
+
     override def read(indexReader: Reader,
                       previous: Option[KeyValue.ReadOnly]): IO[Option[duration.Deadline]] =
       decompressDeadline(indexReader = indexReader, commonBytes = 7, previous = previous)
   }
 
   implicit object DeadlineUncompressedReader extends DeadlineReader[EntryId.Deadline.Uncompressed] {
+    override def isPrefixCompressed: Boolean = true
+
     override def read(indexReader: Reader,
                       previous: Option[KeyValue.ReadOnly]): IO[Option[duration.Deadline]] =
       indexReader.readLongUnsigned() map (_.toDeadlineOption)

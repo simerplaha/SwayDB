@@ -28,6 +28,8 @@ import swaydb.data.IO
 @implicitNotFound("Type class implementation not found for ValueReader of type ${T}")
 sealed trait ValueReader[-T] {
 
+  def isPrefixCompressed: Boolean
+
   def read[V](indexReader: Reader,
               previous: Option[Persistent])(implicit valueOffsetReader: ValueOffsetReader[V],
                                             valueLengthReader: ValueLengthReader[V]): IO[Option[(Int, Int)]]
@@ -36,6 +38,8 @@ sealed trait ValueReader[-T] {
 
 object ValueReader {
   implicit object NoValueReader extends ValueReader[EntryId.Value.NoValue] {
+    override def isPrefixCompressed: Boolean = false
+
     override def read[V](indexReader: Reader,
                          previous: Option[Persistent])(implicit valueOffsetReader: ValueOffsetReader[V],
                                                        valueLengthReader: ValueLengthReader[V]): IO[Option[(Int, Int)]] =
@@ -43,6 +47,7 @@ object ValueReader {
   }
 
   implicit object ValueUncompressedReader extends ValueReader[EntryId.Value.Uncompressed] {
+    override def isPrefixCompressed: Boolean = false
     override def read[V](indexReader: Reader,
                          previous: Option[Persistent])(implicit valueOffsetReader: ValueOffsetReader[V],
                                                        valueLengthReader: ValueLengthReader[V]): IO[Option[(Int, Int)]] =
@@ -56,6 +61,8 @@ object ValueReader {
   }
 
   implicit object ValueFullyCompressedReader extends ValueReader[EntryId.Value.FullyCompressed] {
+    override def isPrefixCompressed: Boolean = true
+
     override def read[V](indexReader: Reader,
                          previous: Option[Persistent])(implicit valueOffsetReader: ValueOffsetReader[V],
                                                        valueLengthReader: ValueLengthReader[V]): IO[Option[(Int, Int)]] =

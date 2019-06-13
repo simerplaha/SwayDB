@@ -63,7 +63,14 @@ object PutReader extends EntryReader[Persistent.Put] {
                       nextIndexSize = nextIndexSize,
                       indexOffset = indexOffset,
                       valueOffset = valueOffset,
-                      valueLength = valueLength
+                      valueLength = valueLength,
+                      isPrefixCompressed =
+                        keyReader.isPrefixCompressed ||
+                          timeReader.isPrefixCompressed ||
+                          deadlineReader.isPrefixCompressed ||
+                          valueOffsetReader.isPrefixCompressed ||
+                          valueLengthReader.isPrefixCompressed ||
+                          valueBytesReader.isPrefixCompressed
                     )
                 }
             }

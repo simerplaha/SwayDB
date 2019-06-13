@@ -58,7 +58,14 @@ object RangeReader extends EntryReader[Persistent.Range] {
               nextIndexSize = nextIndexSize,
               indexOffset = indexOffset,
               valueOffset = valueOffset,
-              valueLength = valueLength
+              valueLength = valueLength,
+              isPrefixCompressed =
+                keyReader.isPrefixCompressed ||
+                  timeReader.isPrefixCompressed ||
+                  deadlineReader.isPrefixCompressed ||
+                  valueOffsetReader.isPrefixCompressed ||
+                  valueLengthReader.isPrefixCompressed ||
+                  valueBytesReader.isPrefixCompressed
             )
         }
     }

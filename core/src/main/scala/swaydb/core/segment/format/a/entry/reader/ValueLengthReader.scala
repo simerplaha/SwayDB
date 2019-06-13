@@ -29,6 +29,7 @@ import swaydb.data.util.ByteSizeOf
 
 @implicitNotFound("Type class implementation not found for ValueLengthReader of type ${T}")
 sealed trait ValueLengthReader[-T] {
+  def isPrefixCompressed: Boolean
 
   def read(indexReader: Reader,
            previous: Option[Persistent]): IO[Int]
@@ -51,24 +52,32 @@ object ValueLengthReader {
     }
 
   implicit object ValueLengthOneCompressed extends ValueLengthReader[EntryId.ValueLength.OneCompressed] {
+    override def isPrefixCompressed: Boolean = true
+
     override def read(indexReader: Reader,
                       previous: Option[Persistent]): IO[Int] =
       readLength(indexReader, previous, 1)
   }
 
   implicit object ValueLengthTwoCompressed extends ValueLengthReader[EntryId.ValueLength.TwoCompressed] {
+    override def isPrefixCompressed: Boolean = true
+
     override def read(indexReader: Reader,
                       previous: Option[Persistent]): IO[Int] =
       readLength(indexReader, previous, 2)
   }
 
   implicit object ValueLengthThreeCompressed extends ValueLengthReader[EntryId.ValueLength.ThreeCompressed] {
+    override def isPrefixCompressed: Boolean = true
+
     override def read(indexReader: Reader,
                       previous: Option[Persistent]): IO[Int] =
       readLength(indexReader, previous, 3)
   }
 
   implicit object ValueLengthFullyCompressed extends ValueLengthReader[EntryId.ValueLength.FullyCompressed] {
+    override def isPrefixCompressed: Boolean = true
+
     override def read(indexReader: Reader,
                       previous: Option[Persistent]): IO[Int] =
       previous map {
@@ -78,17 +87,24 @@ object ValueLengthReader {
   }
 
   implicit object ValueLengthUncompressed extends ValueLengthReader[EntryId.ValueLength.Uncompressed] {
+    override def isPrefixCompressed: Boolean = false
+
     override def read(indexReader: Reader,
                       previous: Option[Persistent]): IO[Int] =
       indexReader.readIntUnsigned()
   }
 
   implicit object ValueLengthReaderValueFullyCompressed extends ValueLengthReader[EntryId.Value.FullyCompressed] {
+    override def isPrefixCompressed: Boolean = true
+
     override def read(indexReader: Reader,
                       previous: Option[Persistent]): IO[Int] =
       IO.zero
   }
+
   implicit object NoValue extends ValueLengthReader[EntryId.Value.NoValue] {
+    override def isPrefixCompressed: Boolean = false
+
     override def read(indexReader: Reader,
                       previous: Option[Persistent]): IO[Int] =
       IO.zero

@@ -62,7 +62,14 @@ object GroupReader extends EntryReader[Persistent.Group] {
                     ),
                   indexOffset = indexOffset,
                   valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1),
-                  valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
+                  valueLength = valueOffsetAndLength.map(_._2).getOrElse(0),
+                  isPrefixCompressed =
+                    keyReader.isPrefixCompressed ||
+                      timeReader.isPrefixCompressed ||
+                      deadlineReader.isPrefixCompressed ||
+                      valueOffsetReader.isPrefixCompressed ||
+                      valueLengthReader.isPrefixCompressed ||
+                      valueBytesReader.isPrefixCompressed
                 )
             }
         }

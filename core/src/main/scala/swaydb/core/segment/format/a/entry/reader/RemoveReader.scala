@@ -50,7 +50,14 @@ object RemoveReader extends EntryReader[Persistent.Remove] {
                   nextIndexOffset = nextIndexOffset,
                   nextIndexSize = nextIndexSize,
                   deadline = deadline,
-                  _time = time
+                  _time = time,
+                  isPrefixCompressed =
+                    keyReader.isPrefixCompressed ||
+                      timeReader.isPrefixCompressed ||
+                      deadlineReader.isPrefixCompressed ||
+                      valueOffsetReader.isPrefixCompressed ||
+                      valueLengthReader.isPrefixCompressed ||
+                      valueBytesReader.isPrefixCompressed
                 )
             }
         }
