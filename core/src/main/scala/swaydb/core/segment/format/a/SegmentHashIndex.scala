@@ -217,8 +217,26 @@ object SegmentHashIndex extends LazyLogging {
                           hashIndexStartOffset: Int,
                           hashIndexSize: Int,
                           maxProbe: Int,
-                          get: Int => IO[Option[K]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[K]] = {
+                          get: Int => IO[Option[K]],
+                          getNext: K => IO[Option[K]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[K]] = {
     import keyOrder._
+
+    @tailrec
+    def assertGetAndWalk(got: IO[Option[K]]): IO[Option[K]] =
+      got match {
+        case IO.Success(Some(found)) =>
+          if (found.key equiv key)
+            got
+          else
+            assertGetAndWalk(getNext(found))
+
+        case none @ IO.Success(None) =>
+          none
+
+        case IO.Failure(error) =>
+          IO.Failure(error)
+      }
+
     @tailrec
     def doFind(probe: Int): IO[Option[K]] =
       if (probe >= maxProbe) {
@@ -228,15 +246,15 @@ object SegmentHashIndex extends LazyLogging {
         hashIndexReader.moveTo(hashIndexStartOffset + index).readIntUnsigned() match {
           case IO.Success(possibleSortedIndexOffset) =>
             //submit the indexOffset removing the add 1 offset to avoid overlapping bytes.
-            get(possibleSortedIndexOffset - 1) match {
+            assertGetAndWalk(get(possibleSortedIndexOffset - 1)) match {
               case success @ IO.Success(foundMayBe) =>
                 foundMayBe match {
-                  case Some(keyValue) if keyValue.key equiv key =>
-                    //println(s"Key: ${key.readInt()}: read index : $index probe: $probe, indexOffset: ${possibleIndexOffset - 1} = success")
+                  case Some(_) =>
+                    //println(s"Key: ${key.readInt()}: read index : $index probe: $probe, indexOffset: ${possibleSortedIndexOffset - 1} = success")
                     success
 
-                  case Some(_) | None =>
-                    //println(s"Key: ${key.readInt()}: read index : $index probe: $probe: indexOffset: ${possibleIndexOffset - 1}")
+                  case None =>
+                    //println(s"Key: ${key.readInt()}: read index : $index probe: $probe: indexOffset: ${possibleSortedIndexOffset - 1}")
                     doFind(probe + 1)
                 }
               case IO.Failure(error) =>

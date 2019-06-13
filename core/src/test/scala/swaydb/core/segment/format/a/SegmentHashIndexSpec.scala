@@ -74,7 +74,8 @@ class SegmentHashIndexSpec extends TestBase {
                 hashIndexSize = writeResult.bytes.size,
                 hashIndexStartOffset = 0,
                 maxProbe = maxProbe,
-                get = findKey
+                get = findKey,
+                getNext = (_: Transient) => IO.none
               ) map {
                 foundOption =>
                   foundOption map {

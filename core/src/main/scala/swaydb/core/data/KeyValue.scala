@@ -546,7 +546,7 @@ private[core] sealed trait Transient extends KeyValue.WriteOnly
 private[core] object Transient {
 
   def resetPrefixCompression(previous: Option[KeyValue.WriteOnly]): Boolean =
-    previous.forall(_.stats.position % 100 != 0)
+    previous.forall(_.stats.position % 1 != 0)
 
   implicit class TransientImplicits(transient: Transient)(implicit keyOrder: KeyOrder[Slice[Byte]]) {
 
