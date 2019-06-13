@@ -588,7 +588,8 @@ private[core] object Transient {
       EntryWriter.write(
         current = this,
         currentTime = time,
-        compressDuplicateValues = false
+        compressDuplicateValues = false,
+        enablePrefixCompression = true
       ).unapply
 
     override def fullKey = key
@@ -632,7 +633,8 @@ private[core] object Transient {
       EntryWriter.write(
         current = this,
         currentTime = time,
-        compressDuplicateValues = compressDuplicateValues
+        compressDuplicateValues = compressDuplicateValues,
+        enablePrefixCompression = true
       ).unapply
 
     override val hasValueEntryBytes: Boolean =
@@ -683,7 +685,8 @@ private[core] object Transient {
       EntryWriter.write(
         current = this,
         currentTime = time,
-        compressDuplicateValues = compressDuplicateValues
+        compressDuplicateValues = compressDuplicateValues,
+        enablePrefixCompression = true
       ).unapply
 
     override val hasValueEntryBytes: Boolean = previous.exists(_.hasValueEntryBytes) || valueEntryBytes.exists(_.nonEmpty)
@@ -727,7 +730,8 @@ private[core] object Transient {
       EntryWriter.write(
         current = this,
         currentTime = time,
-        compressDuplicateValues = compressDuplicateValues
+        compressDuplicateValues = compressDuplicateValues,
+        enablePrefixCompression = true
       ).unapply
 
     override val hasValueEntryBytes: Boolean = previous.exists(_.hasValueEntryBytes) || valueEntryBytes.exists(_.nonEmpty)
@@ -794,7 +798,8 @@ private[core] object Transient {
       EntryWriter.write(
         current = this,
         currentTime = time,
-        compressDuplicateValues = compressDuplicateValues
+        compressDuplicateValues = compressDuplicateValues,
+        enablePrefixCompression = true
       ).unapply
 
     override val hasValueEntryBytes: Boolean = previous.exists(_.hasValueEntryBytes) || valueEntryBytes.exists(_.nonEmpty)
@@ -892,7 +897,8 @@ private[core] object Transient {
         current = this,
         currentTime = Time.empty,
         //It's highly likely that two sequential key-values within the same range have the same value after the range split occurs. So this is always set to true.
-        compressDuplicateValues = true
+        compressDuplicateValues = true,
+        enablePrefixCompression = true
       ).unapply
 
     override val hasValueEntryBytes: Boolean = previous.exists(_.hasValueEntryBytes) || valueEntryBytes.exists(_.nonEmpty)
@@ -967,7 +973,8 @@ private[core] object Transient {
         currentTime = Time.empty,
         //it's highly unlikely that 2 groups after compression will have duplicate values.
         //compressDuplicateValues check is unnecessary since the value bytes of a group can be large.
-        compressDuplicateValues = false
+        compressDuplicateValues = false,
+        enablePrefixCompression = true
       ).unapply
 
     override val hasValueEntryBytes: Boolean = previous.exists(_.hasValueEntryBytes) || valueEntryBytes.exists(_.nonEmpty)

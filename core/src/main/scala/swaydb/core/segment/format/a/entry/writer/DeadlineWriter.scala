@@ -95,11 +95,12 @@ private[writer] object DeadlineWriter {
   private[writer] def write(current: Option[Deadline],
                             previous: Option[Deadline],
                             getDeadlineId: GetDeadlineId,
+                            enablePrefixCompression: Boolean,
                             plusSize: Int)(implicit id: TransientToEntryId[_]): Slice[Byte] =
     current map {
       currentDeadline: Deadline =>
         //fetch the previous deadline bytes
-        previous flatMap {
+        (if (enablePrefixCompression) previous else None) flatMap {
           previousDeadline =>
             tryCompress(
               currentDeadline = currentDeadline,

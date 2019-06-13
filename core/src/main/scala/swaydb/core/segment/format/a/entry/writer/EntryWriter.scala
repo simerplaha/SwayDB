@@ -53,27 +53,31 @@ private[core] object EntryWriter {
     */
   def write[T <: KeyValue.WriteOnly](current: T,
                                      currentTime: Time,
-                                     compressDuplicateValues: Boolean)(implicit id: TransientToEntryId[T]): EntryWriter.Result =
+                                     compressDuplicateValues: Boolean,
+                                     enablePrefixCompression: Boolean)(implicit id: TransientToEntryId[T]): EntryWriter.Result =
     current.previous flatMap {
       previous =>
         writeCompressed(
           current = current,
           previous = previous,
           currentTime = currentTime,
-          compressDuplicateValues = compressDuplicateValues
+          compressDuplicateValues = compressDuplicateValues,
+          enablePrefixCompression = enablePrefixCompression
         )
     } getOrElse {
       writeUncompressed(
         current = current,
         currentTime = currentTime,
-        compressDuplicateValues = compressDuplicateValues
+        compressDuplicateValues = compressDuplicateValues,
+        enablePrefixCompression = enablePrefixCompression
       )
     }
 
   private[writer] def writeCompressed[T <: KeyValue.WriteOnly](current: T,
                                                                previous: KeyValue.WriteOnly,
                                                                currentTime: Time,
-                                                               compressDuplicateValues: Boolean)(implicit id: TransientToEntryId[T]) =
+                                                               compressDuplicateValues: Boolean,
+                                                               enablePrefixCompression: Boolean)(implicit id: TransientToEntryId[T]) =
     compress(key = current.fullKey, previous = previous, minimumCommonBytes = 2) map {
       case (_, remainingBytes) if remainingBytes.isEmpty =>
 
@@ -83,6 +87,7 @@ private[core] object EntryWriter {
             currentTime = currentTime,
             compressDuplicateValues = compressDuplicateValues,
             entryId = BaseEntryId.format.keyFullyCompressed,
+            enablePrefixCompression = enablePrefixCompression,
             plusSize = sizeOf(current.fullKey.size) //write the size of keys that were compressed.
           )
 
@@ -103,6 +108,7 @@ private[core] object EntryWriter {
             currentTime = currentTime,
             compressDuplicateValues = compressDuplicateValues,
             entryId = BaseEntryId.format.keyPartiallyCompressed,
+            enablePrefixCompression = enablePrefixCompression,
             plusSize = sizeOf(commonBytes) + remainingBytes.size //write the size of keys compressed and also the uncompressed Bytes
           )
 
@@ -116,7 +122,8 @@ private[core] object EntryWriter {
 
   private[writer] def writeUncompressed[T <: KeyValue.WriteOnly](current: T,
                                                                  currentTime: Time,
-                                                                 compressDuplicateValues: Boolean)(implicit id: TransientToEntryId[T]) = {
+                                                                 compressDuplicateValues: Boolean,
+                                                                 enablePrefixCompression: Boolean)(implicit id: TransientToEntryId[T]) = {
     //no common prefixes or no previous write without compression
     val writeResult =
       TimeWriter.write(
@@ -124,6 +131,7 @@ private[core] object EntryWriter {
         currentTime = currentTime,
         compressDuplicateValues = compressDuplicateValues,
         entryId = BaseEntryId.format.keyUncompressed,
+        enablePrefixCompression = enablePrefixCompression,
         plusSize = current.fullKey.size //write key bytes.
       )
 

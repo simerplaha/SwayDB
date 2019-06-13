@@ -70,6 +70,7 @@ class TimeReaderWriterSpec extends WordSpec with Matchers {
                   current = current,
                   currentTime = currentTime,
                   compressDuplicateValues = false,
+                  enablePrefixCompression = true,
                   entryId = keyId,
                   plusSize = 0
                 )
@@ -108,6 +109,7 @@ class TimeReaderWriterSpec extends WordSpec with Matchers {
               current = current,
               currentTime = currentTime,
               compressDuplicateValues = randomBoolean(),
+              enablePrefixCompression = true,
               entryId = keyId,
               plusSize = 0
             )
@@ -142,6 +144,7 @@ class TimeReaderWriterSpec extends WordSpec with Matchers {
                   current = randomPutKeyValue(1, None, None)(TestTimer.Empty).toTransient,
                   currentTime = Time.empty,
                   compressDuplicateValues = false,
+                  enablePrefixCompression = true,
                   entryId = keyId,
                   plusSize = 0
                 )
