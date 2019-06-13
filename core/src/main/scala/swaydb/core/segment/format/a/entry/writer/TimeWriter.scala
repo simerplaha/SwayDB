@@ -57,7 +57,7 @@ object TimeWriter {
   //need to compress at least 4 bytes because the meta data required after compression is minimum 2 bytes.
     compress(previous = previousTime.time, next = currentTime.time, minimumCommonBytes = 4) map {
       case (commonBytes, remainingBytes) =>
-        val (indexBytes, valueBytes, valueStartOffset, valueEndOffset) =
+        val writeResult =
           ValueWriter.write(
             current = current,
             compressDuplicateValues = compressDuplicateValues,
@@ -65,13 +65,19 @@ object TimeWriter {
             plusSize = plusSize + sizeOf(commonBytes) + sizeOf(remainingBytes.size) + remainingBytes.size
           )
 
-        val bytes =
-          indexBytes
+        val indexBytes =
+          writeResult
+            .indexBytes
             .addIntUnsigned(commonBytes)
             .addIntUnsigned(remainingBytes.size)
             .addAll(remainingBytes)
 
-        (bytes, valueBytes, valueStartOffset, valueEndOffset)
+        EntryWriter.Result(
+          indexBytes = indexBytes,
+          valueBytes = writeResult.valueBytes,
+          valueStartOffset = writeResult.valueStartOffset,
+          valueEndOffset = writeResult.valueEndOffset
+        )
     }
 
   private def writeUncompressed(currentTime: Time,
@@ -80,7 +86,7 @@ object TimeWriter {
                                 entryId: EntryId.Key,
                                 plusSize: Int)(implicit id: TransientToEntryId[_]) = {
     //no common prefixes or no previous write without compression
-    val (indexBytes, valueBytes, valueStartOffset, valueEndOffset) =
+    val writeResult =
       ValueWriter.write(
         current = current,
         compressDuplicateValues = compressDuplicateValues,
@@ -88,34 +94,36 @@ object TimeWriter {
         plusSize = plusSize + sizeOf(currentTime.time.size) + currentTime.time.size
       )
 
-    val bytes =
-      indexBytes
+    val indexBytes =
+      writeResult
+        .indexBytes
         .addIntUnsigned(currentTime.time.size)
         .addAll(currentTime.time)
 
-    (bytes, valueBytes, valueStartOffset, valueEndOffset)
+    EntryWriter.Result(
+      indexBytes = indexBytes,
+      valueBytes = writeResult.valueBytes,
+      valueStartOffset = writeResult.valueStartOffset,
+      valueEndOffset = writeResult.valueEndOffset
+    )
   }
 
   def writeNoTime(current: KeyValue.WriteOnly,
                   compressDuplicateValues: Boolean,
                   entryId: EntryId.Key,
-                  plusSize: Int)(implicit id: TransientToEntryId[_]) = {
-    val (indexBytes, valueBytes, valueStartOffset, valueEndOffset) =
-      ValueWriter.write(
-        current = current,
-        compressDuplicateValues = compressDuplicateValues,
-        entryId = entryId.noTime,
-        plusSize = plusSize
-      )
-
-    (indexBytes, valueBytes, valueStartOffset, valueEndOffset)
-  }
+                  plusSize: Int)(implicit id: TransientToEntryId[_]) =
+    ValueWriter.write(
+      current = current,
+      compressDuplicateValues = compressDuplicateValues,
+      entryId = entryId.noTime,
+      plusSize = plusSize
+    )
 
   def write(current: KeyValue.WriteOnly,
             currentTime: Time,
             compressDuplicateValues: Boolean,
             entryId: EntryId.Key,
-            plusSize: Int)(implicit id: TransientToEntryId[_]): (Slice[Byte], Option[Slice[Byte]], Int, Int) =
+            plusSize: Int)(implicit id: TransientToEntryId[_]) =
     if (currentTime.time.nonEmpty)
       current.previous.map(getTime) flatMap {
         previousTime =>

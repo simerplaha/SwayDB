@@ -27,6 +27,14 @@ import swaydb.data.slice.Slice
 
 object EntryWriter {
 
+  case class Result(indexBytes: Slice[Byte],
+                    valueBytes: Option[Slice[Byte]],
+                    valueStartOffset: Int,
+                    valueEndOffset: Int) {
+    def toTuple =
+      (indexBytes, valueBytes, valueStartOffset, valueEndOffset)
+  }
+
   /**
     * Returns the index bytes and value bytes for the key-value and also the used
     * value offset information for writing the next key-value.
@@ -44,7 +52,7 @@ object EntryWriter {
     */
   def write[T <: KeyValue.WriteOnly](current: T,
                                      currentTime: Time,
-                                     compressDuplicateValues: Boolean)(implicit id: TransientToEntryId[T]): (Slice[Byte], Option[Slice[Byte]], Int, Int) =
+                                     compressDuplicateValues: Boolean)(implicit id: TransientToEntryId[T]): EntryWriter.Result =
     current.previous flatMap {
       previous =>
         writeCompressed(
@@ -68,7 +76,7 @@ object EntryWriter {
     compress(key = current.fullKey, previous = previous, minimumCommonBytes = 2) map {
       case (_, remainingBytes) if remainingBytes.isEmpty =>
 
-        val (indexBytes, valueBytes, valueStartOffset, valueEndOffset) =
+        val writeResult =
           TimeWriter.write(
             current = current,
             currentTime = currentTime,
@@ -81,13 +89,19 @@ object EntryWriter {
         //            valueBytes foreach (valueBytes => assert(valueBytes.isFull, s"valueBytes is not full actual: ${valueBytes.written} - expected: ${valueBytes.size}"))
         //
         val bytes =
-        indexBytes
+        writeResult
+          .indexBytes
           .addIntUnsigned(current.fullKey.size)
 
-        (bytes, valueBytes, valueStartOffset, valueEndOffset)
+        EntryWriter.Result(
+          indexBytes = bytes,
+          valueBytes = writeResult.valueBytes,
+          valueStartOffset = writeResult.valueStartOffset,
+          valueEndOffset = writeResult.valueEndOffset
+        )
 
       case (commonBytes, remainingBytes) =>
-        val (indexBytes, valueBytes, valueStartOffset, valueEndOffset) =
+        val writeResult =
           TimeWriter.write(
             current = current,
             currentTime = currentTime,
@@ -97,18 +111,24 @@ object EntryWriter {
           )
 
         val bytes =
-          indexBytes
+          writeResult
+            .indexBytes
             .addIntUnsigned(commonBytes)
             .addAll(remainingBytes)
 
-        (bytes, valueBytes, valueStartOffset, valueEndOffset)
+        EntryWriter.Result(
+          indexBytes = bytes,
+          valueBytes = writeResult.valueBytes,
+          valueStartOffset = writeResult.valueStartOffset,
+          valueEndOffset = writeResult.valueEndOffset
+        )
     }
 
-  private def writeUncompressed[T <: KeyValue.WriteOnly](current: T,
-                                                         currentTime: Time,
-                                                         compressDuplicateValues: Boolean)(implicit id: TransientToEntryId[T]) = {
+  def writeUncompressed[T <: KeyValue.WriteOnly](current: T,
+                                                 currentTime: Time,
+                                                 compressDuplicateValues: Boolean)(implicit id: TransientToEntryId[T]) = {
     //no common prefixes or no previous write without compression
-    val (indexBytes, valueBytes, valueStartOffset, valueEndOffset) =
+    val writeResult =
       TimeWriter.write(
         current = current,
         currentTime = currentTime,
@@ -117,10 +137,16 @@ object EntryWriter {
         plusSize = current.fullKey.size //write key bytes.
       )
 
-    val bytes =
-      indexBytes
+    val indexBytes =
+      writeResult
+        .indexBytes
         .addAll(current.fullKey)
 
-    (bytes, valueBytes, valueStartOffset, valueEndOffset)
+    EntryWriter.Result(
+      indexBytes = indexBytes,
+      valueBytes = writeResult.valueBytes,
+      valueStartOffset = writeResult.valueStartOffset,
+      valueEndOffset = writeResult.valueEndOffset
+    )
   }
 }

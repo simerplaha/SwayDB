@@ -589,7 +589,7 @@ private[core] object Transient {
         current = this,
         currentTime = time,
         compressDuplicateValues = false
-      )
+      ).toTuple
 
     override def fullKey = key
 
@@ -633,7 +633,7 @@ private[core] object Transient {
         current = this,
         currentTime = time,
         compressDuplicateValues = compressDuplicateValues
-      )
+      ).toTuple
 
     override val hasValueEntryBytes: Boolean =
       previous.exists(_.hasValueEntryBytes) || valueEntryBytes.exists(_.nonEmpty)
@@ -684,7 +684,8 @@ private[core] object Transient {
         current = this,
         currentTime = time,
         compressDuplicateValues = compressDuplicateValues
-      )
+      ).toTuple
+
     override val hasValueEntryBytes: Boolean = previous.exists(_.hasValueEntryBytes) || valueEntryBytes.exists(_.nonEmpty)
 
     val stats =
@@ -727,7 +728,8 @@ private[core] object Transient {
         current = this,
         currentTime = time,
         compressDuplicateValues = compressDuplicateValues
-      )
+      ).toTuple
+
     override val hasValueEntryBytes: Boolean = previous.exists(_.hasValueEntryBytes) || valueEntryBytes.exists(_.nonEmpty)
 
     val stats =
@@ -793,7 +795,8 @@ private[core] object Transient {
         current = this,
         currentTime = time,
         compressDuplicateValues = compressDuplicateValues
-      )
+      ).toTuple
+
     override val hasValueEntryBytes: Boolean = previous.exists(_.hasValueEntryBytes) || valueEntryBytes.exists(_.nonEmpty)
 
     val stats =
@@ -890,7 +893,7 @@ private[core] object Transient {
         currentTime = Time.empty,
         //It's highly likely that two sequential key-values within the same range have the same value after the range split occurs. So this is always set to true.
         compressDuplicateValues = true
-      )
+      ).toTuple
 
     override val hasValueEntryBytes: Boolean = previous.exists(_.hasValueEntryBytes) || valueEntryBytes.exists(_.nonEmpty)
 
@@ -965,7 +968,8 @@ private[core] object Transient {
         //it's highly unlikely that 2 groups after compression will have duplicate values.
         //compressDuplicateValues check is unnecessary since the value bytes of a group can be large.
         compressDuplicateValues = false
-      )
+      ).toTuple
+
     override val hasValueEntryBytes: Boolean = previous.exists(_.hasValueEntryBytes) || valueEntryBytes.exists(_.nonEmpty)
 
     val stats =
