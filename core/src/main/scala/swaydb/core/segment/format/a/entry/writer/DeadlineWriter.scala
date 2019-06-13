@@ -29,8 +29,8 @@ import scala.concurrent.duration.Deadline
 
 object DeadlineWriter {
 
-  private def applyDeadlineId(bytesCompressed: Int,
-                              getDeadlineId: GetDeadlineId): EntryId.Deadline =
+  private[writer] def applyDeadlineId(bytesCompressed: Int,
+                                      getDeadlineId: GetDeadlineId): EntryId.Deadline =
     if (bytesCompressed == 1)
       getDeadlineId.deadlineOneCompressed
     else if (bytesCompressed == 2)
@@ -50,9 +50,9 @@ object DeadlineWriter {
     else
       throw new Exception(s"Fatal exception: deadlineBytesCompressed = $bytesCompressed")
 
-  def writeUncompressed(currentDeadline: Deadline,
-                        getDeadlineId: GetDeadlineId,
-                        plusSize: Int)(implicit id: TransientToEntryId[_]): Slice[Byte] = {
+  private[writer] def uncompressed(currentDeadline: Deadline,
+                                   getDeadlineId: GetDeadlineId,
+                                   plusSize: Int)(implicit id: TransientToEntryId[_]): Slice[Byte] = {
     //if previous deadline bytes do not exist or minimum compression was not met then write uncompressed deadline.
     val currentDeadlineUnsignedBytes = currentDeadline.toLongUnsignedBytes
     val deadlineId = getDeadlineId.deadlineUncompressed.id
@@ -63,23 +63,27 @@ object DeadlineWriter {
       .addAll(currentDeadlineUnsignedBytes)
   }
 
-  def writeCompressed(currentDeadline: Deadline,
-                      previousDeadline: Deadline,
-                      getDeadlineId: GetDeadlineId,
-                      plusSize: Int)(implicit id: TransientToEntryId[_]) =
-    compress(previous = previousDeadline.toBytes, next = currentDeadline.toBytes, minimumCommonBytes = 1) map {
-      case (deadlineCommonBytes, deadlineUncompressedBytes) =>
+  private[writer] def compressed(currentDeadline: Deadline,
+                                 previousDeadline: Deadline,
+                                 getDeadlineId: GetDeadlineId,
+                                 plusSize: Int)(implicit id: TransientToEntryId[_]) =
+    compress(
+      previous = previousDeadline.toBytes,
+      next = currentDeadline.toBytes,
+      minimumCommonBytes = 1
+    ) map {
+      case (deadlineCommonBytes, deadlineCompressedBytes) =>
 
         val deadlineId = applyDeadlineId(deadlineCommonBytes, getDeadlineId)
         val adjustedToEntryIdDeadlineId = id.id.adjustToEntryId(deadlineId.id)
 
-        Slice.create[Byte](sizeOf(adjustedToEntryIdDeadlineId) + deadlineUncompressedBytes.size + plusSize)
+        Slice.create[Byte](sizeOf(adjustedToEntryIdDeadlineId) + deadlineCompressedBytes.size + plusSize)
           .addIntUnsigned(adjustedToEntryIdDeadlineId)
-          .addAll(deadlineUncompressedBytes)
+          .addAll(deadlineCompressedBytes)
     }
 
-  def writeNoDeadline(getDeadlineId: GetDeadlineId,
-                      plusSize: Int)(implicit id: TransientToEntryId[_]) = {
+  private[writer] def noDeadline(getDeadlineId: GetDeadlineId,
+                                 plusSize: Int)(implicit id: TransientToEntryId[_]) = {
     //if current key-value has no deadline.
     val deadlineId = getDeadlineId.noDeadline.id
     val adjustedToEntryIdDeadlineId = id.id.adjustToEntryId(deadlineId)
@@ -97,7 +101,7 @@ object DeadlineWriter {
         //fetch the previous deadline bytes
         previous flatMap {
           previousDeadline =>
-            writeCompressed(
+            compressed(
               currentDeadline = currentDeadline,
               previousDeadline = previousDeadline,
               getDeadlineId = getDeadlineId,
@@ -105,14 +109,14 @@ object DeadlineWriter {
             )
         } getOrElse {
           //if previous deadline bytes do not exist or minimum compression was not met then write uncompressed deadline.
-          writeUncompressed(
+          uncompressed(
             currentDeadline = currentDeadline,
             getDeadlineId = getDeadlineId,
             plusSize = plusSize
           )
         }
     } getOrElse {
-      writeNoDeadline(
+      noDeadline(
         getDeadlineId = getDeadlineId,
         plusSize = plusSize
       )

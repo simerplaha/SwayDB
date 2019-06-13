@@ -21,12 +21,16 @@ package swaydb.core.segment.format.a.entry.id
 
 import scala.annotation.implicitNotFound
 import swaydb.core.data.Transient
+import swaydb.macros.SealedList
 
 @implicitNotFound("Type class implementation not found for TransientToEntryId of type ${T}")
 sealed trait TransientToEntryId[T] {
   val id: EntryId.Id
 }
 
+/**
+  * Glue objects to map [[Transient]] key-values to [[EntryId]].
+  */
 object TransientToEntryId {
 
   implicit object Remove extends TransientToEntryId[Transient.Remove] {
@@ -56,4 +60,7 @@ object TransientToEntryId {
   implicit object PendingApply extends TransientToEntryId[Transient.PendingApply] {
     override val id: EntryId.Id = EntryId.PendingApply
   }
+
+  def all: List[TransientToEntryId[_]] =
+    SealedList.list[TransientToEntryId[_]]
 }

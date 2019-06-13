@@ -31,7 +31,8 @@ object EntryWriter {
                     valueBytes: Option[Slice[Byte]],
                     valueStartOffset: Int,
                     valueEndOffset: Int) {
-    def toTuple =
+    //TODO check if companion object function unapply returning an Option[Result] is cheaper than this unapply function.
+    def unapply =
       (indexBytes, valueBytes, valueStartOffset, valueEndOffset)
   }
 

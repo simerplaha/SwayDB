@@ -19,8 +19,6 @@
 
 package swaydb.core.segment.format.a.entry.reader
 
-import scala.annotation.implicitNotFound
-import scala.concurrent.duration
 import swaydb.core.data.KeyValue
 import swaydb.core.segment.format.a.entry.id.EntryId
 import swaydb.core.util.Bytes
@@ -28,6 +26,9 @@ import swaydb.core.util.TimeUtil._
 import swaydb.data.IO
 import swaydb.data.slice.Reader
 import swaydb.data.util.ByteSizeOf
+
+import scala.annotation.implicitNotFound
+import scala.concurrent.duration
 
 @implicitNotFound("Type class implementation not found for DeadlineReader of type ${T}")
 sealed trait DeadlineReader[-T] {
@@ -68,8 +69,14 @@ object DeadlineReader {
             indexReader.read(remainingDeadlineBytes) flatMap {
               rightDeadlineBytes =>
                 IO {
-                  Bytes.decompress(previousDeadlineBytes, rightDeadlineBytes, commonBytes)
-                    .readLong().toDeadlineOption
+                  Bytes
+                    .decompress(
+                      previous = previousDeadlineBytes,
+                      next = rightDeadlineBytes,
+                      commonBytes = commonBytes
+                    )
+                    .readLong()
+                    .toDeadlineOption
                 }
             }
         } getOrElse {

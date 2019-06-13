@@ -5667,5 +5667,5 @@ object BaseEntryId extends EntryFormat {
     }
   }
 
-  override def keyIdsList: List[BaseEntryId] = SealedList.list[BaseEntryId].sortBy(_.id)
+  def keyIdsList: List[BaseEntryId] = SealedList.list[BaseEntryId].sortBy(_.id)
 }

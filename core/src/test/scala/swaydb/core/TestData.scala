@@ -37,6 +37,7 @@ import swaydb.core.map.serializer.RangeValueSerializer
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.seek._
 import swaydb.core.segment.Segment
+import swaydb.core.segment.format.a.entry.id.BaseEntryId
 import swaydb.core.util.{Benchmark, IDGenerator, UUIDUtil}
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.compaction.{LevelMeter, Throttle}
@@ -60,6 +61,8 @@ object TestData {
   /**
     * Sequential time bytes generator.
     */
+
+  val allBaseEntryIds = BaseEntryId.keyIdsList
 
   val falsePositiveRate: Double = 0.01
   val maxProbe: Int = 5
