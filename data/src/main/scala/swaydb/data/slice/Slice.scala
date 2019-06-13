@@ -462,7 +462,8 @@ class Slice[+T: ClassTag](array: Array[T],
     //set this slice to be fully written.
     this._written = size
     val adjustedPosition = fromOffset + writePosition
-    if (adjustedPosition > toOffset) throw new ArrayIndexOutOfBoundsException(adjustedPosition)
+    //+1 because write position can be a step ahead for the next write but cannot over over toOffset.
+    if (adjustedPosition > toOffset + 1) throw new ArrayIndexOutOfBoundsException(adjustedPosition)
     this.writePosition = adjustedPosition
   }
 

@@ -184,7 +184,7 @@ object SegmentHashIndex extends LazyLogging {
     @tailrec
     def doWrite(probe: Int): IO[Boolean] =
       if (probe >= maxProbe) {
-        println(s"Key: ${key.readInt()}: write index: miss probe: $probe")
+        //println(s"Key: ${key.readInt()}: write index: miss probe: $probe")
         IO.`false`
       } else {
         val index = hashIndex(key, bytes.size, probe)
@@ -196,7 +196,7 @@ object SegmentHashIndex extends LazyLogging {
           IO {
             bytes moveWritePositionUnsafe index
             bytes addIntUnsigned indexOffsetPlusOne
-            println(s"Key: ${key.readInt()}: write index: $index probe: $probe, indexOffset: $indexOffset, writeBytes: ${Slice.writeIntUnsigned(indexOffset)}")
+            //println(s"Key: ${key.readInt()}: write index: $index probe: $probe, indexOffset: $indexOffset, writeBytes: ${Slice.writeIntUnsigned(indexOffset)}")
             true
           }
         else
@@ -232,11 +232,11 @@ object SegmentHashIndex extends LazyLogging {
               case success @ IO.Success(foundMayBe) =>
                 foundMayBe match {
                   case Some(keyValue) if keyValue.key equiv key =>
-                    println(s"Key: ${key.readInt()}: read index : $index probe: $probe, indexOffset: ${possibleIndexOffset - 1} = success")
+                    //println(s"Key: ${key.readInt()}: read index : $index probe: $probe, indexOffset: ${possibleIndexOffset - 1} = success")
                     success
 
                   case Some(_) | None =>
-                    println(s"Key: ${key.readInt()}: read index : $index probe: $probe: indexOffset: ${possibleIndexOffset - 1}")
+                    //println(s"Key: ${key.readInt()}: read index : $index probe: $probe: indexOffset: ${possibleIndexOffset - 1}")
                     doFind(probe + 1)
                 }
               case IO.Failure(error) =>
