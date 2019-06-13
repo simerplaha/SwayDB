@@ -217,7 +217,7 @@ object SegmentHashIndex extends LazyLogging {
                           hashIndexStartOffset: Int,
                           hashIndexSize: Int,
                           maxProbe: Int,
-                          finder: Int => IO[Option[K]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[K]] = {
+                          get: Int => IO[Option[K]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[K]] = {
     import keyOrder._
     @tailrec
     def doFind(probe: Int): IO[Option[K]] =
@@ -226,9 +226,9 @@ object SegmentHashIndex extends LazyLogging {
       } else {
         val index = hashIndex(key, hashIndexSize, probe)
         hashIndexReader.moveTo(hashIndexStartOffset + index).readIntUnsigned() match {
-          case IO.Success(possibleIndexOffset) =>
+          case IO.Success(possibleSortedIndexOffset) =>
             //submit the indexOffset removing the add 1 offset to avoid overlapping bytes.
-            finder(possibleIndexOffset - 1) match {
+            get(possibleSortedIndexOffset - 1) match {
               case success @ IO.Success(foundMayBe) =>
                 foundMayBe match {
                   case Some(keyValue) if keyValue.key equiv key =>

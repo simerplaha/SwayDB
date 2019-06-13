@@ -380,7 +380,7 @@ private[core] object SegmentReader extends LazyLogging {
         hashIndexReader = reader,
         hashIndexSize = footer.hashIndexEndOffset - footer.hashIndexStartOffset + 1,
         maxProbe = 5,
-        finder =
+        get =
           sortedIndexOffset =>
             readNextKeyValue(
               fromPosition = sortedIndexOffset,

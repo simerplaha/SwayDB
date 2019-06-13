@@ -76,14 +76,17 @@ private[core] object Stats {
     val thisKeyValuesIndexSizeWithoutFooter =
       Bytes.sizeOf(key.size) + key.size
 
-    val thisKeyValuesHashIndexOffset =
+    val thisKeyValueIndexOffset =
       previousStats map {
         previous =>
-          if (usePreviousHashIndexOffset)
-            previous.thisKeyValuesHashIndexOffset
-          else
-            previous.thisKeyValuesHashIndexOffset + previous.thisKeyValuesIndexSizeWithoutFooter + thisKeyValuesIndexSizeWithoutFooter
+          previous.thisKeyValuesHashIndexOffset + previous.thisKeyValuesIndexSizeWithoutFooter + thisKeyValuesIndexSizeWithoutFooter
       } getOrElse 0
+
+    val thisKeyValuesHashIndexOffset =
+      if (usePreviousHashIndexOffset)
+        previousStats.map(_.thisKeyValuesHashIndexOffset) getOrElse thisKeyValueIndexOffset
+      else
+        0
 
     //Items to add to BloomFilters is different to the position because a Group can contain
     //multiple inner key-values but the Group's key itself does not get added to the BloomFilter.
