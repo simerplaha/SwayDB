@@ -39,6 +39,7 @@ private[core] object Stats {
             isGroup: Boolean,
             isPut: Boolean,
             bloomFiltersItemCount: Int,
+            usePreviousHashIndexOffset: Boolean,
             previous: Option[KeyValue.WriteOnly],
             deadline: Option[Deadline]): Stats = {
 
@@ -75,10 +76,13 @@ private[core] object Stats {
     val thisKeyValuesIndexSizeWithoutFooter =
       Bytes.sizeOf(key.size) + key.size
 
-    val thisKeyValuesIndexOffset =
+    val thisKeyValuesHashIndexOffset =
       previousStats map {
         previous =>
-          previous.thisKeyValuesIndexOffset + previous.thisKeyValuesIndexSizeWithoutFooter + thisKeyValuesIndexSizeWithoutFooter
+          if (usePreviousHashIndexOffset)
+            previous.thisKeyValuesHashIndexOffset
+          else
+            previous.thisKeyValuesHashIndexOffset + previous.thisKeyValuesIndexSizeWithoutFooter + thisKeyValuesIndexSizeWithoutFooter
       } getOrElse 0
 
     //Items to add to BloomFilters is different to the position because a Group can contain
@@ -93,7 +97,7 @@ private[core] object Stats {
     val segmentHashIndexSize =
       SegmentHashIndex.optimalBytesRequired(
         lastKeyValuePosition = position,
-        lastKeyValueIndexOffset = thisKeyValuesIndexOffset,
+        lastKeyValueIndexOffset = thisKeyValuesHashIndexOffset,
         compensate = _ => 0
       )
 
@@ -156,7 +160,7 @@ private[core] object Stats {
       keySize = key.size,
       thisKeyValuesSegmentSizeWithoutFooterAndHashIndex = thisKeyValuesSegmentSizeWithoutFooterAndHashIndex,
       thisKeyValuesIndexSizeWithoutFooter = thisKeyValuesIndexSizeWithoutFooter,
-      thisKeyValuesIndexOffset = thisKeyValuesIndexOffset,
+      thisKeyValuesHashIndexOffset = thisKeyValuesHashIndexOffset,
       segmentHashIndexSize = segmentHashIndexSize,
       bloomFilterSize = optimalBloomFilterSize,
       rangeFilterSize = optimalRangeFilterSize,
@@ -183,7 +187,7 @@ private[core] case class Stats(valueLength: Int,
                                keySize: Int,
                                thisKeyValuesSegmentSizeWithoutFooterAndHashIndex: Int,
                                thisKeyValuesIndexSizeWithoutFooter: Int,
-                               thisKeyValuesIndexOffset: Int,
+                               thisKeyValuesHashIndexOffset: Int,
                                segmentHashIndexSize: Int,
                                bloomFilterSize: Int,
                                rangeFilterSize: Int,

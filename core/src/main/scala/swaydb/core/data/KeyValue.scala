@@ -217,6 +217,9 @@ private[core] object KeyValue {
         currentEndValueOffsetPosition + 1
     def value: Option[Slice[Byte]]
 
+    def resetPrefixCompression: Boolean =
+      Transient.resetPrefixCompression(previous)
+
     def updateStats(falsePositiveRate: Double,
                     previous: Option[KeyValue.WriteOnly]): KeyValue.WriteOnly
 
@@ -542,6 +545,9 @@ private[core] sealed trait Transient extends KeyValue.WriteOnly
 
 private[core] object Transient {
 
+  def resetPrefixCompression(previous: Option[KeyValue.WriteOnly]): Boolean =
+    previous.forall(_.stats.position % 100 != 0)
+
   implicit class TransientImplicits(transient: Transient)(implicit keyOrder: KeyOrder[Slice[Byte]]) {
 
     def toMemoryResponse: Memory.SegmentResponse =
@@ -585,12 +591,12 @@ private[core] object Transient {
     override val isRemoveRangeMayBe = false
     override val value: Option[Slice[Byte]] = None
     override val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition) =
-      EntryWriter.write(
-        current = this,
-        currentTime = time,
-        compressDuplicateValues = false,
-        enablePrefixCompression = true
-      ).unapply
+    EntryWriter.write(
+      current = this,
+      currentTime = time,
+      compressDuplicateValues = false,
+      enablePrefixCompression = resetPrefixCompression
+    ).unapply
 
     override def fullKey = key
 
@@ -606,6 +612,7 @@ private[core] object Transient {
         bloomFiltersItemCount = 1,
         isPut = false,
         previous = previous,
+        usePreviousHashIndexOffset = !resetPrefixCompression,
         deadline = deadline
       )
 
@@ -634,7 +641,7 @@ private[core] object Transient {
         current = this,
         currentTime = time,
         compressDuplicateValues = compressDuplicateValues,
-        enablePrefixCompression = true
+        enablePrefixCompression = resetPrefixCompression
       ).unapply
 
     override val hasValueEntryBytes: Boolean =
@@ -651,6 +658,7 @@ private[core] object Transient {
         bloomFiltersItemCount = 1,
         isPut = true,
         previous = previous,
+        usePreviousHashIndexOffset = !resetPrefixCompression,
         deadline = deadline
       )
 
@@ -686,7 +694,7 @@ private[core] object Transient {
         current = this,
         currentTime = time,
         compressDuplicateValues = compressDuplicateValues,
-        enablePrefixCompression = true
+        enablePrefixCompression = resetPrefixCompression
       ).unapply
 
     override val hasValueEntryBytes: Boolean = previous.exists(_.hasValueEntryBytes) || valueEntryBytes.exists(_.nonEmpty)
@@ -702,6 +710,7 @@ private[core] object Transient {
         bloomFiltersItemCount = 1,
         isPut = false,
         previous = previous,
+        usePreviousHashIndexOffset = !resetPrefixCompression,
         deadline = deadline
       )
   }
@@ -731,7 +740,7 @@ private[core] object Transient {
         current = this,
         currentTime = time,
         compressDuplicateValues = compressDuplicateValues,
-        enablePrefixCompression = true
+        enablePrefixCompression = resetPrefixCompression
       ).unapply
 
     override val hasValueEntryBytes: Boolean = previous.exists(_.hasValueEntryBytes) || valueEntryBytes.exists(_.nonEmpty)
@@ -747,6 +756,7 @@ private[core] object Transient {
         bloomFiltersItemCount = 1,
         isPut = false,
         previous = previous,
+        usePreviousHashIndexOffset = !resetPrefixCompression,
         deadline = deadline
       )
   }
@@ -799,7 +809,7 @@ private[core] object Transient {
         current = this,
         currentTime = time,
         compressDuplicateValues = compressDuplicateValues,
-        enablePrefixCompression = true
+        enablePrefixCompression = resetPrefixCompression
       ).unapply
 
     override val hasValueEntryBytes: Boolean = previous.exists(_.hasValueEntryBytes) || valueEntryBytes.exists(_.nonEmpty)
@@ -815,6 +825,7 @@ private[core] object Transient {
         bloomFiltersItemCount = 1,
         isPut = false,
         previous = previous,
+        usePreviousHashIndexOffset = !resetPrefixCompression,
         deadline = deadline
       )
   }
@@ -898,7 +909,7 @@ private[core] object Transient {
         currentTime = Time.empty,
         //It's highly likely that two sequential key-values within the same range have the same value after the range split occurs. So this is always set to true.
         compressDuplicateValues = true,
-        enablePrefixCompression = true
+        enablePrefixCompression = resetPrefixCompression
       ).unapply
 
     override val hasValueEntryBytes: Boolean = previous.exists(_.hasValueEntryBytes) || valueEntryBytes.exists(_.nonEmpty)
@@ -912,6 +923,7 @@ private[core] object Transient {
         isRange = isRange,
         isGroup = isGroup,
         previous = previous,
+        usePreviousHashIndexOffset = !resetPrefixCompression,
         bloomFiltersItemCount = 2, //range's cost 2, one for fromKey and second for commonPrefix bytes.
         isPut = fromValue.exists(_.isInstanceOf[Value.Put]),
         deadline = None
@@ -974,7 +986,7 @@ private[core] object Transient {
         //it's highly unlikely that 2 groups after compression will have duplicate values.
         //compressDuplicateValues check is unnecessary since the value bytes of a group can be large.
         compressDuplicateValues = false,
-        enablePrefixCompression = true
+        enablePrefixCompression = resetPrefixCompression
       ).unapply
 
     override val hasValueEntryBytes: Boolean = previous.exists(_.hasValueEntryBytes) || valueEntryBytes.exists(_.nonEmpty)
@@ -988,6 +1000,7 @@ private[core] object Transient {
         isRange = isRange,
         isGroup = isGroup,
         previous = previous,
+        usePreviousHashIndexOffset = !resetPrefixCompression,
         bloomFiltersItemCount = keyValues.last.stats.bloomFilterKeysCount,
         isPut = keyValues.last.stats.hasPut,
         deadline = deadline
@@ -1067,8 +1080,6 @@ private[core] object Persistent {
 
     def hasTimeLeftAtLeast(minus: FiniteDuration): Boolean =
       deadline.exists(deadline => (deadline - minus).hasTimeLeft())
-
-
 
     override def toMemory(): IO[Memory.Remove] =
       IO.Success {

@@ -78,7 +78,7 @@ object SegmentHashIndex extends LazyLogging {
                            compensate: Int => Int): Int =
     optimalBytesRequired(
       lastKeyValuePosition = lastKeyValue.stats.position,
-      lastKeyValueIndexOffset = lastKeyValue.stats.thisKeyValuesIndexOffset,
+      lastKeyValueIndexOffset = lastKeyValue.stats.thisKeyValuesHashIndexOffset,
       compensate = compensate
     )
 
@@ -107,7 +107,7 @@ object SegmentHashIndex extends LazyLogging {
         case (result, keyValue) =>
           write(
             key = keyValue.key,
-            indexOffset = keyValue.stats.thisKeyValuesIndexOffset,
+            indexOffset = keyValue.stats.thisKeyValuesHashIndexOffset,
             bytes = bytes,
             maxProbe = maxProbe
           ) map {

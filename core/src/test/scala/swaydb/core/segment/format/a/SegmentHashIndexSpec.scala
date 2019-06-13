@@ -59,7 +59,7 @@ class SegmentHashIndexSpec extends TestBase {
         val indexOffsetMap: Map[Int, Transient] =
           keyValues.map({
             keyValue =>
-              (keyValue.stats.thisKeyValuesIndexOffset, keyValue)
+              (keyValue.stats.thisKeyValuesHashIndexOffset, keyValue)
           })(collection.breakOut)
 
         def findKey(indexOffset: Int): IO[Option[Transient]] =

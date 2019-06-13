@@ -138,7 +138,7 @@ private[core] object SegmentWriter extends LazyLogging {
                     maxProbe: Int): IO[Boolean] =
     SegmentHashIndex.write(
       key = keyValue.key,
-      indexOffset = keyValue.stats.thisKeyValuesIndexOffset,
+      indexOffset = keyValue.stats.thisKeyValuesHashIndexOffset,
       bytes = hashIndexSlice,
       maxProbe = maxProbe
     ) flatMap {
