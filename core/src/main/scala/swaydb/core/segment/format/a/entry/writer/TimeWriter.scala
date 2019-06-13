@@ -48,6 +48,69 @@ object TimeWriter {
         Time.empty
     }
 
+  private def writePartiallyCompressed(currentTime: Time,
+                                       previousTime: Time,
+                                       current: KeyValue.WriteOnly,
+                                       compressDuplicateValues: Boolean,
+                                       entryId: EntryId.Key,
+                                       plusSize: Int)(implicit id: TransientToEntryId[_]) =
+  //need to compress at least 4 bytes because the meta data required after compression is minimum 2 bytes.
+    compress(previous = previousTime.time, next = currentTime.time, minimumCommonBytes = 4) map {
+      case (commonBytes, remainingBytes) =>
+        val (indexBytes, valueBytes, valueStartOffset, valueEndOffset) =
+          ValueWriter.write(
+            current = current,
+            compressDuplicateValues = compressDuplicateValues,
+            entryId = entryId.timePartiallyCompressed,
+            plusSize = plusSize + sizeOf(commonBytes) + sizeOf(remainingBytes.size) + remainingBytes.size
+          )
+
+        val bytes =
+          indexBytes
+            .addIntUnsigned(commonBytes)
+            .addIntUnsigned(remainingBytes.size)
+            .addAll(remainingBytes)
+
+        (bytes, valueBytes, valueStartOffset, valueEndOffset)
+    }
+
+  private def writeUncompressed(currentTime: Time,
+                                current: KeyValue.WriteOnly,
+                                compressDuplicateValues: Boolean,
+                                entryId: EntryId.Key,
+                                plusSize: Int)(implicit id: TransientToEntryId[_]) = {
+    //no common prefixes or no previous write without compression
+    val (indexBytes, valueBytes, valueStartOffset, valueEndOffset) =
+      ValueWriter.write(
+        current = current,
+        compressDuplicateValues = compressDuplicateValues,
+        entryId = entryId.timeUncompressed,
+        plusSize = plusSize + sizeOf(currentTime.time.size) + currentTime.time.size
+      )
+
+    val bytes =
+      indexBytes
+        .addIntUnsigned(currentTime.time.size)
+        .addAll(currentTime.time)
+
+    (bytes, valueBytes, valueStartOffset, valueEndOffset)
+  }
+
+  def writeNoTime(current: KeyValue.WriteOnly,
+                  compressDuplicateValues: Boolean,
+                  entryId: EntryId.Key,
+                  plusSize: Int)(implicit id: TransientToEntryId[_]) = {
+    val (indexBytes, valueBytes, valueStartOffset, valueEndOffset) =
+      ValueWriter.write(
+        current = current,
+        compressDuplicateValues = compressDuplicateValues,
+        entryId = entryId.noTime,
+        plusSize = plusSize
+      )
+
+    (indexBytes, valueBytes, valueStartOffset, valueEndOffset)
+  }
+
   def write(current: KeyValue.WriteOnly,
             currentTime: Time,
             compressDuplicateValues: Boolean,
@@ -57,50 +120,29 @@ object TimeWriter {
       current.previous.map(getTime) flatMap {
         previousTime =>
           //need to compress at least 4 bytes because the meta data required after compression is minimum 2 bytes.
-          compress(previous = previousTime.time, next = currentTime.time, minimumCommonBytes = 4) map {
-            case (commonBytes, remainingBytes) =>
-              val (indexBytes, valueBytes, valueStartOffset, valueEndOffset) =
-                ValueWriter.write(
-                  current = current,
-                  compressDuplicateValues = compressDuplicateValues,
-                  entryId = entryId.timePartiallyCompressed,
-                  plusSize = plusSize + sizeOf(commonBytes) + sizeOf(remainingBytes.size) + remainingBytes.size
-                )
-
-              val bytes =
-                indexBytes
-                  .addIntUnsigned(commonBytes)
-                  .addIntUnsigned(remainingBytes.size)
-                  .addAll(remainingBytes)
-
-              (bytes, valueBytes, valueStartOffset, valueEndOffset)
-          }
-      } getOrElse {
-        //no common prefixes or no previous write without compression
-        val (indexBytes, valueBytes, valueStartOffset, valueEndOffset) =
-          ValueWriter.write(
+          writePartiallyCompressed(
+            currentTime = currentTime,
+            previousTime = previousTime,
             current = current,
             compressDuplicateValues = compressDuplicateValues,
-            entryId = entryId.timeUncompressed,
-            plusSize = plusSize + sizeOf(currentTime.time.size) + currentTime.time.size
+            entryId = entryId,
+            plusSize = plusSize
           )
-
-        val bytes =
-          indexBytes
-            .addIntUnsigned(currentTime.time.size)
-            .addAll(currentTime.time)
-
-        (bytes, valueBytes, valueStartOffset, valueEndOffset)
-      }
-    else {
-      val (indexBytes, valueBytes, valueStartOffset, valueEndOffset) =
-        ValueWriter.write(
+      } getOrElse {
+        //no common prefixes or no previous write without compression
+        writeUncompressed(
+          currentTime = currentTime,
           current = current,
           compressDuplicateValues = compressDuplicateValues,
-          entryId = entryId.noTime,
+          entryId = entryId,
           plusSize = plusSize
         )
-
-      (indexBytes, valueBytes, valueStartOffset, valueEndOffset)
-    }
+      }
+    else
+      writeNoTime(
+        current = current,
+        compressDuplicateValues = compressDuplicateValues,
+        entryId = entryId,
+        plusSize = plusSize
+      )
 }

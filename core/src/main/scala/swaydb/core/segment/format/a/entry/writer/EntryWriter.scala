@@ -44,64 +44,83 @@ object EntryWriter {
     */
   def write[T <: KeyValue.WriteOnly](current: T,
                                      currentTime: Time,
-                                     compressDuplicateValues: Boolean)(implicit id: TransientToEntryId[T]): (Slice[Byte], Option[Slice[Byte]], Int, Int) = {
+                                     compressDuplicateValues: Boolean)(implicit id: TransientToEntryId[T]): (Slice[Byte], Option[Slice[Byte]], Int, Int) =
     current.previous flatMap {
       previous =>
-        compress(key = current.fullKey, previous = previous, minimumCommonBytes = 2) map {
-          case (_, remainingBytes) if remainingBytes.isEmpty =>
-
-            val (indexBytes, valueBytes, valueStartOffset, valueEndOffset) =
-              TimeWriter.write(
-                current = current,
-                currentTime = currentTime,
-                compressDuplicateValues = compressDuplicateValues,
-                entryId = BaseEntryId.format.keyFullyCompressed,
-                plusSize = sizeOf(current.fullKey.size) //write the size of keys that were compressed.
-              )
-
-            //            assert(indexBytes.isFull, s"indexSlice is not full actual: ${indexBytes.written} - expected: ${indexBytes.size}")
-            //            valueBytes foreach (valueBytes => assert(valueBytes.isFull, s"valueBytes is not full actual: ${valueBytes.written} - expected: ${valueBytes.size}"))
-            //
-            val bytes =
-            indexBytes
-              .addIntUnsigned(current.fullKey.size)
-
-            (bytes, valueBytes, valueStartOffset, valueEndOffset)
-
-          case (commonBytes, remainingBytes) =>
-            val (indexBytes, valueBytes, valueStartOffset, valueEndOffset) =
-              TimeWriter.write(
-                current = current,
-                currentTime = currentTime,
-                compressDuplicateValues = compressDuplicateValues,
-                entryId = BaseEntryId.format.keyPartiallyCompressed,
-                plusSize = sizeOf(commonBytes) + remainingBytes.size //write the size of keys compressed and also the uncompressed Bytes
-              )
-
-            val bytes =
-              indexBytes
-                .addIntUnsigned(commonBytes)
-                .addAll(remainingBytes)
-
-            (bytes, valueBytes, valueStartOffset, valueEndOffset)
-        }
-    } getOrElse {
-      //no common prefixes or no previous write without compression
-      val (indexBytes, valueBytes, valueStartOffset, valueEndOffset) =
-        TimeWriter.write(
+        writeCompressed(
           current = current,
+          previous = previous,
           currentTime = currentTime,
-          compressDuplicateValues = compressDuplicateValues,
-          entryId = BaseEntryId.format.keyUncompressed,
-          plusSize = current.fullKey.size //write key bytes.
+          compressDuplicateValues = compressDuplicateValues
         )
-
-      val bytes =
-        indexBytes
-          .addAll(current.fullKey)
-
-      (bytes, valueBytes, valueStartOffset, valueEndOffset)
-
+    } getOrElse {
+      writeUncompressed(
+        current = current,
+        currentTime = currentTime,
+        compressDuplicateValues = compressDuplicateValues
+      )
     }
+
+  def writeCompressed[T <: KeyValue.WriteOnly](current: T,
+                                               previous: KeyValue.WriteOnly,
+                                               currentTime: Time,
+                                               compressDuplicateValues: Boolean)(implicit id: TransientToEntryId[T]) =
+    compress(key = current.fullKey, previous = previous, minimumCommonBytes = 2) map {
+      case (_, remainingBytes) if remainingBytes.isEmpty =>
+
+        val (indexBytes, valueBytes, valueStartOffset, valueEndOffset) =
+          TimeWriter.write(
+            current = current,
+            currentTime = currentTime,
+            compressDuplicateValues = compressDuplicateValues,
+            entryId = BaseEntryId.format.keyFullyCompressed,
+            plusSize = sizeOf(current.fullKey.size) //write the size of keys that were compressed.
+          )
+
+        //            assert(indexBytes.isFull, s"indexSlice is not full actual: ${indexBytes.written} - expected: ${indexBytes.size}")
+        //            valueBytes foreach (valueBytes => assert(valueBytes.isFull, s"valueBytes is not full actual: ${valueBytes.written} - expected: ${valueBytes.size}"))
+        //
+        val bytes =
+        indexBytes
+          .addIntUnsigned(current.fullKey.size)
+
+        (bytes, valueBytes, valueStartOffset, valueEndOffset)
+
+      case (commonBytes, remainingBytes) =>
+        val (indexBytes, valueBytes, valueStartOffset, valueEndOffset) =
+          TimeWriter.write(
+            current = current,
+            currentTime = currentTime,
+            compressDuplicateValues = compressDuplicateValues,
+            entryId = BaseEntryId.format.keyPartiallyCompressed,
+            plusSize = sizeOf(commonBytes) + remainingBytes.size //write the size of keys compressed and also the uncompressed Bytes
+          )
+
+        val bytes =
+          indexBytes
+            .addIntUnsigned(commonBytes)
+            .addAll(remainingBytes)
+
+        (bytes, valueBytes, valueStartOffset, valueEndOffset)
+    }
+
+  private def writeUncompressed[T <: KeyValue.WriteOnly](current: T,
+                                                         currentTime: Time,
+                                                         compressDuplicateValues: Boolean)(implicit id: TransientToEntryId[T]) = {
+    //no common prefixes or no previous write without compression
+    val (indexBytes, valueBytes, valueStartOffset, valueEndOffset) =
+      TimeWriter.write(
+        current = current,
+        currentTime = currentTime,
+        compressDuplicateValues = compressDuplicateValues,
+        entryId = BaseEntryId.format.keyUncompressed,
+        plusSize = current.fullKey.size //write key bytes.
+      )
+
+    val bytes =
+      indexBytes
+        .addAll(current.fullKey)
+
+    (bytes, valueBytes, valueStartOffset, valueEndOffset)
   }
 }

@@ -31,7 +31,7 @@ import swaydb.data.util.ByteSizeOf
 import scala.annotation.tailrec
 
 /**
-  * HashIndex with linear probing.
+  * HashIndex.
   */
 object SegmentHashIndex extends LazyLogging {
 

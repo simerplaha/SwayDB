@@ -19,12 +19,13 @@
 
 package swaydb.core.segment.format.a.entry.writer
 
-import scala.concurrent.duration.Deadline
 import swaydb.core.segment.format.a.entry.id.EntryId.GetDeadlineId
 import swaydb.core.segment.format.a.entry.id.{EntryId, TransientToEntryId}
 import swaydb.core.util.Bytes._
 import swaydb.core.util.TimeUtil._
 import swaydb.data.slice.Slice
+
+import scala.concurrent.duration.Deadline
 
 object DeadlineWriter {
 
@@ -49,43 +50,71 @@ object DeadlineWriter {
     else
       throw new Exception(s"Fatal exception: deadlineBytesCompressed = $bytesCompressed")
 
+  def writeUncompressed(currentDeadline: Deadline,
+                        getDeadlineId: GetDeadlineId,
+                        plusSize: Int)(implicit id: TransientToEntryId[_]): Slice[Byte] = {
+    //if previous deadline bytes do not exist or minimum compression was not met then write uncompressed deadline.
+    val currentDeadlineUnsignedBytes = currentDeadline.toLongUnsignedBytes
+    val deadlineId = getDeadlineId.deadlineUncompressed.id
+    val adjustedToEntryIdDeadlineId = id.id.adjustToEntryId(deadlineId)
+
+    Slice.create[Byte](sizeOf(adjustedToEntryIdDeadlineId) + currentDeadlineUnsignedBytes.size + plusSize)
+      .addIntUnsigned(adjustedToEntryIdDeadlineId)
+      .addAll(currentDeadlineUnsignedBytes)
+  }
+
+  def writeCompressed(currentDeadline: Deadline,
+                      previousDeadline: Deadline,
+                      getDeadlineId: GetDeadlineId,
+                      plusSize: Int)(implicit id: TransientToEntryId[_]) =
+    compress(previous = previousDeadline.toBytes, next = currentDeadline.toBytes, minimumCommonBytes = 1) map {
+      case (deadlineCommonBytes, deadlineUncompressedBytes) =>
+
+        val deadlineId = applyDeadlineId(deadlineCommonBytes, getDeadlineId)
+        val adjustedToEntryIdDeadlineId = id.id.adjustToEntryId(deadlineId.id)
+
+        Slice.create[Byte](sizeOf(adjustedToEntryIdDeadlineId) + deadlineUncompressedBytes.size + plusSize)
+          .addIntUnsigned(adjustedToEntryIdDeadlineId)
+          .addAll(deadlineUncompressedBytes)
+    }
+
+  def writeNoDeadline(getDeadlineId: GetDeadlineId,
+                      plusSize: Int)(implicit id: TransientToEntryId[_]) = {
+    //if current key-value has no deadline.
+    val deadlineId = getDeadlineId.noDeadline.id
+    val adjustedToEntryIdDeadlineId = id.id.adjustToEntryId(deadlineId)
+
+    Slice.create[Byte](sizeOf(adjustedToEntryIdDeadlineId) + plusSize)
+      .addIntUnsigned(adjustedToEntryIdDeadlineId)
+  }
+
   def write(current: Option[Deadline],
             previous: Option[Deadline],
             getDeadlineId: GetDeadlineId,
             plusSize: Int)(implicit id: TransientToEntryId[_]): Slice[Byte] =
     current map {
-      currentDeadline =>
+      currentDeadline: Deadline =>
         //fetch the previous deadline bytes
         previous flatMap {
           previousDeadline =>
-            val currentDeadlineBytes = currentDeadline.toBytes
-            val previousDeadlineBytes = previousDeadline.toBytes
-            compress(previous = previousDeadlineBytes, next = currentDeadlineBytes, minimumCommonBytes = 1) map {
-              case (deadlineCommonBytes, deadlineUncompressedBytes) =>
-
-                val deadlineId = applyDeadlineId(deadlineCommonBytes, getDeadlineId)
-                val adjustedToEntryIdDeadlineId = id.id.adjustToEntryId(deadlineId.id)
-
-                Slice.create[Byte](sizeOf(adjustedToEntryIdDeadlineId) + deadlineUncompressedBytes.size + plusSize)
-                  .addIntUnsigned(adjustedToEntryIdDeadlineId)
-                  .addAll(deadlineUncompressedBytes)
-            }
+            writeCompressed(
+              currentDeadline = currentDeadline,
+              previousDeadline = previousDeadline,
+              getDeadlineId = getDeadlineId,
+              plusSize = plusSize
+            )
         } getOrElse {
           //if previous deadline bytes do not exist or minimum compression was not met then write uncompressed deadline.
-          val currentDeadlineUnsignedBytes = currentDeadline.toLongUnsignedBytes
-          val deadlineId = getDeadlineId.deadlineUncompressed.id
-          val adjustedToEntryIdDeadlineId = id.id.adjustToEntryId(deadlineId)
-
-          Slice.create[Byte](sizeOf(adjustedToEntryIdDeadlineId) + currentDeadlineUnsignedBytes.size + plusSize)
-            .addIntUnsigned(adjustedToEntryIdDeadlineId)
-            .addAll(currentDeadlineUnsignedBytes)
+          writeUncompressed(
+            currentDeadline = currentDeadline,
+            getDeadlineId = getDeadlineId,
+            plusSize = plusSize
+          )
         }
     } getOrElse {
-      //if current key-value has no deadline.
-      val deadlineId = getDeadlineId.noDeadline.id
-      val adjustedToEntryIdDeadlineId = id.id.adjustToEntryId(deadlineId)
-
-      Slice.create[Byte](sizeOf(adjustedToEntryIdDeadlineId) + plusSize)
-        .addIntUnsigned(adjustedToEntryIdDeadlineId)
+      writeNoDeadline(
+        getDeadlineId = getDeadlineId,
+        plusSize = plusSize
+      )
     }
 }
