@@ -19,14 +19,12 @@
 
 package swaydb.core.segment.format.a.entry.id
 
-import swaydb.core.segment.format.a.entry.reader.EntryReader
-
 //TODO - change id to be Slice[Byte] with custom ordering to support better backward compatibility.
-abstract class EntryId(val id: Int)
-object EntryId {
+private[segment] abstract class EntryId(val baseId: Int)
+private[segment] object EntryId {
 
   trait EntryFormat {
-    def keyIdsList: List[EntryId]
+    def baseIds: List[BaseEntryId]
     def format: EntryId.Format
   }
 
@@ -110,7 +108,7 @@ object EntryId {
   }
 
   trait Deadline {
-    def id: Int
+    def baseId: Int
   }
   object Deadline {
     trait NoDeadline extends Deadline
@@ -123,117 +121,5 @@ object EntryId {
     trait SevenCompressed extends Deadline
     trait FullyCompressed extends Deadline
     trait Uncompressed extends Deadline
-  }
-
-  sealed trait Id {
-
-    def minKeyPartiallyCompressedId: Int
-    def maxKeyPartiallyCompressedId: Int
-
-    def minKeyUncompressedId: Int
-    def maxKeyUncompressedId: Int
-
-    def hasId(id: Int): Boolean =
-      id >= minKeyPartiallyCompressedId && id <= maxKeyUncompressedId
-
-    def isPartiallyCompressedKey(id: Int): Boolean =
-      id >= minKeyPartiallyCompressedId && id <= maxKeyPartiallyCompressedId
-
-    def isUncompressedKey(id: Int): Boolean =
-      id >= minKeyUncompressedId && id <= maxKeyUncompressedId
-
-    /**
-      * Given persisted entryID convert it to
-      */
-    def adjustEntryIdToBaseId(id: Int): Int =
-      if (isPartiallyCompressedKey(id))
-        if (minKeyPartiallyCompressedId == Put.minKeyPartiallyCompressedId)
-          id
-        else
-          id - minKeyPartiallyCompressedId
-      else if (isUncompressedKey(id))
-        id - minKeyUncompressedId
-      else
-      //this exception is not expected to occur. This may only occur due to file corruption.
-      //instead of wrapping in IO for performance throw exception as this is not expected to occur.
-      //if it does then it will be caught higher up in SegmentReader before responding the user.
-        throw new Exception(s"Invalid ${this.getClass.getSimpleName} id: $id")
-
-    def adjustBaseToEntryId(id: Int): Int =
-      if (isPartiallyCompressedKey(id))
-        if (minKeyPartiallyCompressedId == Put.minKeyPartiallyCompressedId) //if it's put the ids are the same as base entry.
-          id
-        else
-          id + minKeyPartiallyCompressedId
-      else if (isUncompressedKey(id))
-        id + minKeyUncompressedId
-      else
-      //this exception is not expected to occur. This may only occur due to file corruption.
-      //instead of wrapping in IO for performance throw exception as this is not expected to occur.
-      //if it does then it will be caught higher up in SegmentReader before responding the user.
-        throw new Exception(s"Invalid ${this.getClass.getSimpleName} id: $id")
-
-    def adjustToKeyUncompressed(id: Int): Int =
-      id + minKeyUncompressedId
-
-    def adjustBaseToEntryIdAndKeyUncompressed(id: Int): Int =
-      adjustToKeyUncompressed(adjustBaseToEntryId(id))
-  }
-
-  //Last max id used in BaseEntryId.
-  val reservedKeysPerGroup = EntryReader.readers.last.maxID
-
-  object Put extends Id {
-    override val minKeyPartiallyCompressedId: Int = EntryReader.readers.head.minID
-    override val maxKeyPartiallyCompressedId: Int = reservedKeysPerGroup
-    override val minKeyUncompressedId: Int = reservedKeysPerGroup + 1
-    override val maxKeyUncompressedId: Int = minKeyUncompressedId + reservedKeysPerGroup
-  }
-
-  object Group extends Id {
-    override val minKeyPartiallyCompressedId: Int = Put.maxKeyUncompressedId + 1
-    override val maxKeyPartiallyCompressedId: Int = minKeyPartiallyCompressedId + reservedKeysPerGroup
-    override val minKeyUncompressedId: Int = maxKeyPartiallyCompressedId + 1
-    override val maxKeyUncompressedId: Int = minKeyUncompressedId + reservedKeysPerGroup
-  }
-
-  /**
-    * Reserve 1 & 2 bytes ids for Put and Group. All the following key-values
-    * disappear in last Level but [[Put]] and [[Group]] are kept unless deleted.
-    */
-  object Range extends Id {
-    override val minKeyPartiallyCompressedId: Int = 16384
-    override val maxKeyPartiallyCompressedId: Int = minKeyPartiallyCompressedId + reservedKeysPerGroup
-    override val minKeyUncompressedId: Int = maxKeyPartiallyCompressedId + 1
-    override val maxKeyUncompressedId: Int = minKeyUncompressedId + reservedKeysPerGroup
-  }
-
-  object Remove extends Id {
-
-    override val minKeyPartiallyCompressedId: Int = Range.maxKeyUncompressedId + 1
-    override val maxKeyPartiallyCompressedId: Int = minKeyPartiallyCompressedId + reservedKeysPerGroup
-    override val minKeyUncompressedId: Int = maxKeyPartiallyCompressedId + 1
-    override val maxKeyUncompressedId: Int = minKeyUncompressedId + reservedKeysPerGroup
-  }
-
-  object Update extends Id {
-    override val minKeyPartiallyCompressedId: Int = Remove.maxKeyUncompressedId + 1
-    override val maxKeyPartiallyCompressedId: Int = minKeyPartiallyCompressedId + reservedKeysPerGroup
-    override val minKeyUncompressedId: Int = maxKeyPartiallyCompressedId + 1
-    override val maxKeyUncompressedId: Int = minKeyUncompressedId + reservedKeysPerGroup
-  }
-
-  object Function extends Id {
-    override val minKeyPartiallyCompressedId: Int = Update.maxKeyUncompressedId + 1
-    override val maxKeyPartiallyCompressedId: Int = minKeyPartiallyCompressedId + reservedKeysPerGroup
-    override val minKeyUncompressedId: Int = maxKeyPartiallyCompressedId + 1
-    override val maxKeyUncompressedId: Int = minKeyUncompressedId + reservedKeysPerGroup
-  }
-
-  object PendingApply extends Id {
-    override val minKeyPartiallyCompressedId: Int = Function.maxKeyUncompressedId + 1
-    override val maxKeyPartiallyCompressedId: Int = minKeyPartiallyCompressedId + reservedKeysPerGroup
-    override val minKeyUncompressedId: Int = maxKeyPartiallyCompressedId + 1
-    override val maxKeyUncompressedId: Int = minKeyUncompressedId + reservedKeysPerGroup
   }
 }

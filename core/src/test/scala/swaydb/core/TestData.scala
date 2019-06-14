@@ -62,7 +62,7 @@ object TestData {
     * Sequential time bytes generator.
     */
 
-  val allBaseEntryIds = BaseEntryId.keyIdsList
+  val allBaseEntryIds = BaseEntryId.baseIds
 
   val falsePositiveRate: Double = 0.01
   val maxProbe: Int = 5

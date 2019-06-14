@@ -20,7 +20,7 @@
 package swaydb.core.segment.format.a.entry.reader
 
 import swaydb.core.data.Persistent
-import swaydb.core.segment.format.a.entry.id.EntryId
+import swaydb.core.segment.format.a.entry.id.{EntryId, KeyValueId}
 import swaydb.core.segment.format.a.entry.reader.value.LazyPendingApplyValueReader
 import swaydb.data.IO
 import swaydb.data.slice.Reader
@@ -44,7 +44,7 @@ object PendingApplyReader extends EntryReader[Persistent.PendingApply] {
           valueOffsetAndLength =>
             timeReader.read(indexReader, previous) flatMap {
               time =>
-                KeyReader.read(id, indexReader, previous, EntryId.PendingApply) map {
+                KeyReader.read(id, indexReader, previous, KeyValueId.PendingApply) map {
                   case (key, isKeyPrefixCompressed) =>
                     val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
                     val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)

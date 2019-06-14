@@ -23,16 +23,35 @@ import org.scalatest.{FlatSpec, Matchers}
 
 class EntryIdSpec extends FlatSpec with Matchers {
 
-  it should "use the same id as base id for put key-values" in {
-    BaseEntryId.keyIdsList foreach {
-      entryID =>
-        val putAdjusted = EntryId.Put.adjustBaseToEntryId(entryID.id)
-        putAdjusted shouldBe entryID.id //not change. Put's are default.
+  it should "not allow conflicting ids and adjust baseIds to entryIds and vice versa" in {
+    KeyValueId.keyValueId foreach { //for all ids
+      id =>
+        BaseEntryId.baseIds foreach { //for all base ids for each
+          baseEntryId =>
 
-        //bump to entryID to be uncompressed.
-        val uncompressedID = EntryId.Put.adjustToKeyUncompressed(entryID.id)
-        uncompressedID should not be putAdjusted
-        EntryId.Put.adjustEntryIdToBaseId(uncompressedID) shouldBe entryID.id
+            val otherIds = KeyValueId.keyValueId.filter(_ != id)
+            otherIds should not be empty
+
+            val entryId = id.adjustBaseIdToKeyValueId(baseEntryId.baseId)
+            if (id == KeyValueId.Put) entryId shouldBe baseEntryId.baseId //not change. Put's are default.
+
+            //entryId should have this entryId
+            id.hasKeyValueId(keyValueId = entryId) shouldBe true
+
+            //others should not
+            otherIds.foreach(_.hasKeyValueId(entryId) shouldBe false)
+
+            //bump to entryID to be uncompressed.
+            val uncompressedEntryId = id.adjustKeyValueIdToKeyUncompressed(baseEntryId.baseId)
+            uncompressedEntryId should be >= entryId
+            //id should have this entryId
+            id.hasKeyValueId(keyValueId = uncompressedEntryId) shouldBe true
+            //others should not
+            otherIds.foreach(_.hasKeyValueId(uncompressedEntryId) shouldBe false)
+
+            //adjust uncompressed entryId to base should return back to original.
+            id.adjustKeyValueIdToBaseId(uncompressedEntryId) shouldBe baseEntryId.baseId
+        }
     }
   }
 }

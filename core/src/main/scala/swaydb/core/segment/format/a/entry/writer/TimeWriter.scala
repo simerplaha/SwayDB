@@ -21,7 +21,7 @@ package swaydb.core.segment.format.a.entry.writer
 
 import swaydb.core.data.KeyValue.WriteOnly
 import swaydb.core.data.{KeyValue, Time, Transient}
-import swaydb.core.segment.format.a.entry.id.{EntryId, TransientEntryIdAdjuster}
+import swaydb.core.segment.format.a.entry.id.{EntryId, TransientToEntryId}
 import swaydb.core.util.Bytes._
 
 private[writer] object TimeWriter {
@@ -59,7 +59,7 @@ private[writer] object TimeWriter {
                                        entryId: EntryId.Key,
                                        plusSize: Int,
                                        enablePrefixCompression: Boolean,
-                                       isKeyUncompressed: Boolean)(implicit id: TransientEntryIdAdjuster[_]) =
+                                       isKeyUncompressed: Boolean)(implicit id: TransientToEntryId[_]) =
     compress(
       previous = previousTime.time,
       next = currentTime.time,
@@ -91,7 +91,7 @@ private[writer] object TimeWriter {
                                 entryId: EntryId.Key,
                                 plusSize: Int,
                                 enablePrefixCompression: Boolean,
-                                isKeyUncompressed: Boolean)(implicit id: TransientEntryIdAdjuster[_]) = {
+                                isKeyUncompressed: Boolean)(implicit id: TransientToEntryId[_]) = {
     //no common prefixes or no previous write without compression
     val writeResult =
       ValueWriter.write(
@@ -116,7 +116,7 @@ private[writer] object TimeWriter {
                      entryId: EntryId.Key,
                      plusSize: Int,
                      enablePrefixCompression: Boolean,
-                     isKeyUncompressed: Boolean)(implicit id: TransientEntryIdAdjuster[_]) =
+                     isKeyUncompressed: Boolean)(implicit id: TransientToEntryId[_]) =
     ValueWriter.write(
       current = current,
       compressDuplicateValues = compressDuplicateValues,
@@ -132,7 +132,7 @@ private[writer] object TimeWriter {
                             entryId: EntryId.Key,
                             enablePrefixCompression: Boolean,
                             plusSize: Int,
-                            isKeyUncompressed: Boolean)(implicit id: TransientEntryIdAdjuster[_]) =
+                            isKeyCompressed: Boolean)(implicit id: TransientToEntryId[_]) =
     if (currentTime.time.nonEmpty)
       (if (enablePrefixCompression) current.previous.map(getTime) else None) flatMap {
         previousTime =>
@@ -145,7 +145,7 @@ private[writer] object TimeWriter {
             entryId = entryId,
             plusSize = plusSize,
             enablePrefixCompression = enablePrefixCompression,
-            isKeyUncompressed = isKeyUncompressed
+            isKeyUncompressed = isKeyCompressed
           )
       } getOrElse {
         //no common prefixes or no previous write without compression
@@ -156,7 +156,7 @@ private[writer] object TimeWriter {
           entryId = entryId,
           plusSize = plusSize,
           enablePrefixCompression = enablePrefixCompression,
-          isKeyUncompressed = isKeyUncompressed
+          isKeyUncompressed = isKeyCompressed
         )
       }
     else
@@ -166,6 +166,6 @@ private[writer] object TimeWriter {
         entryId = entryId,
         plusSize = plusSize,
         enablePrefixCompression = enablePrefixCompression,
-        isKeyUncompressed = isKeyUncompressed
+        isKeyUncompressed = isKeyCompressed
       )
 }

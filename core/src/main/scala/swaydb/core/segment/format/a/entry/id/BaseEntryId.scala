@@ -23,8 +23,8 @@ package swaydb.core.segment.format.a.entry.id
 import swaydb.core.segment.format.a.entry.id.EntryId._
 import swaydb.macros.SealedList
 
-sealed abstract class BaseEntryId(override val id: Int) extends EntryId(id)
-object BaseEntryId extends EntryFormat {
+private[core] sealed abstract class BaseEntryId(override val baseId: Int) extends EntryId(baseId)
+private[core] object BaseEntryId extends EntryFormat {
 
   override def format: EntryId.Format = BaseEntryId.FormatA
   trait FormatA extends Format.A {
@@ -3948,5 +3948,5 @@ object BaseEntryId extends EntryFormat {
     }
   }
 
-  def keyIdsList: List[BaseEntryId] = SealedList.list[BaseEntryId].sortBy(_.id)
+  def baseIds: List[BaseEntryId] = SealedList.list[BaseEntryId].sortBy(_.baseId)
 }

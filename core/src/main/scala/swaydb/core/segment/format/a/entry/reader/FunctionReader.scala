@@ -20,7 +20,7 @@
 package swaydb.core.segment.format.a.entry.reader
 
 import swaydb.core.data.Persistent
-import swaydb.core.segment.format.a.entry.id.EntryId
+import swaydb.core.segment.format.a.entry.id.{EntryId, KeyValueId}
 import swaydb.core.segment.format.a.entry.reader.value.LazyFunctionReader
 import swaydb.data.IO
 import swaydb.data.slice.Reader
@@ -41,7 +41,7 @@ object FunctionReader extends EntryReader[Persistent.Function] {
       valueOffsetAndLength =>
         timeReader.read(indexReader, previous) flatMap {
           time =>
-            KeyReader.read(id, indexReader, previous, EntryId.Function) map {
+            KeyReader.read(id, indexReader, previous, KeyValueId.Function) map {
               case (key, isKeyPrefixCompressed) =>
                 val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
                 val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)

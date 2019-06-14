@@ -20,7 +20,7 @@
 package swaydb.core.segment.format.a.entry.reader
 
 import swaydb.core.data.Persistent
-import swaydb.core.segment.format.a.entry.id.EntryId
+import swaydb.core.segment.format.a.entry.id.{EntryId, KeyValueId}
 import swaydb.data.IO
 import swaydb.data.slice.Reader
 
@@ -41,7 +41,7 @@ object RemoveReader extends EntryReader[Persistent.Remove] {
       deadline =>
         timeReader.read(indexReader, previous) flatMap {
           time =>
-            KeyReader.read(id, indexReader, previous, EntryId.Remove) map {
+            KeyReader.read(id, indexReader, previous, KeyValueId.Remove) map {
               case (key, isKeyPrefixCompressed) =>
                 Persistent.Remove(
                   _key = key,

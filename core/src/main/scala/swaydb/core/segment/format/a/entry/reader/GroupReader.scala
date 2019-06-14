@@ -20,7 +20,7 @@
 package swaydb.core.segment.format.a.entry.reader
 
 import swaydb.core.data.Persistent
-import swaydb.core.segment.format.a.entry.id.EntryId
+import swaydb.core.segment.format.a.entry.id.{EntryId, KeyValueId}
 import swaydb.core.segment.format.a.entry.reader.value.LazyGroupValueReader
 import swaydb.data.IO
 import swaydb.data.slice.Reader
@@ -42,7 +42,7 @@ object GroupReader extends EntryReader[Persistent.Group] {
       deadline =>
         valueBytesReader.read(indexReader, previous) flatMap {
           valueOffsetAndLength =>
-            KeyReader.read(id, indexReader, previous, EntryId.Group) flatMap {
+            KeyReader.read(id, indexReader, previous, KeyValueId.Group) flatMap {
               case (key, isKeyPrefixCompressed) =>
                 val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
                 val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)

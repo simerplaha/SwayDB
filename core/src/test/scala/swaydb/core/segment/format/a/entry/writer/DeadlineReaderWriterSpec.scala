@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.core.TestData._
 import swaydb.core.io.reader.Reader
-import swaydb.core.segment.format.a.entry.id.{EntryId, TransientEntryIdAdjuster}
+import swaydb.core.segment.format.a.entry.id.{EntryId, TransientToEntryId}
 import swaydb.core.segment.format.a.entry.reader.DeadlineReader
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
@@ -97,7 +97,7 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
     "write deadline as uncompressed" in {
       getDeadlineIds.filter(_.isInstanceOf[EntryId.GetDeadlineId]) foreach { //for all deadline ids
         deadlineID: EntryId.GetDeadlineId =>
-          TransientEntryIdAdjuster.all foreach { //for all key-values
+          TransientToEntryId.all foreach { //for all key-values
             implicit adjustedEntryId =>
               val deadline = 10.seconds.fromNow
               val deadlineBytes =
@@ -105,12 +105,12 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
                   currentDeadline = deadline,
                   getDeadlineId = deadlineID,
                   plusSize = 0,
-                  isKeyUncompressed = false
+                  isKeyCompressed = false
                 )
 
               val reader = Reader(deadlineBytes)
 
-              val expectedEntryID = adjustedEntryId.id.adjustBaseToEntryId(deadlineID.deadlineUncompressed.id)
+              val expectedEntryID = adjustedEntryId.keyValueId.adjustBaseIdToKeyValueId(deadlineID.deadlineUncompressed.baseId)
 
               reader.readIntUnsigned().get shouldBe expectedEntryID
               DeadlineReader.DeadlineUncompressedReader.read(reader, None).get should contain(deadline)
@@ -125,7 +125,7 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
 
       getDeadlineIds.filter(_.isInstanceOf[EntryId.GetDeadlineId]) foreach { //for all deadline ids
         deadlineID: EntryId.GetDeadlineId =>
-          TransientEntryIdAdjuster.all foreach { //for all key-values
+          TransientToEntryId.all foreach { //for all key-values
             implicit adjustedEntryId =>
 
               //Test for when there are zero compressed bytes, compression should return None.
@@ -134,7 +134,7 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
                 previousDeadline = Deadline(Slice.fill[Byte](8)(1.toByte)),
                 getDeadlineId = deadlineID,
                 plusSize = 0,
-                isKeyUncompressed = false
+                isKeyCompressed = false
               ) shouldBe empty
 
               //Test for when there are compressed bytes.
@@ -155,7 +155,7 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
                       previousDeadline = previousDeadline,
                       getDeadlineId = deadlineID,
                       plusSize = 0,
-                      isKeyUncompressed = false
+                      isKeyCompressed = false
                     )
 
                   deadlineBytes shouldBe defined
@@ -164,21 +164,21 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
 
                   val (expectedEntryID, deadlineReader: DeadlineReader[_]) =
                     if (commonBytes == 1)
-                      (adjustedEntryId.id.adjustBaseToEntryId(deadlineID.deadlineOneCompressed.id), DeadlineReader.DeadlineOneCompressedReader)
+                      (adjustedEntryId.keyValueId.adjustBaseIdToKeyValueId(deadlineID.deadlineOneCompressed.baseId), DeadlineReader.DeadlineOneCompressedReader)
                     else if (commonBytes == 2)
-                      (adjustedEntryId.id.adjustBaseToEntryId(deadlineID.deadlineTwoCompressed.id), DeadlineReader.DeadlineTwoCompressedReader)
+                      (adjustedEntryId.keyValueId.adjustBaseIdToKeyValueId(deadlineID.deadlineTwoCompressed.baseId), DeadlineReader.DeadlineTwoCompressedReader)
                     else if (commonBytes == 3)
-                      (adjustedEntryId.id.adjustBaseToEntryId(deadlineID.deadlineThreeCompressed.id), DeadlineReader.DeadlineThreeCompressedReader)
+                      (adjustedEntryId.keyValueId.adjustBaseIdToKeyValueId(deadlineID.deadlineThreeCompressed.baseId), DeadlineReader.DeadlineThreeCompressedReader)
                     else if (commonBytes == 4)
-                      (adjustedEntryId.id.adjustBaseToEntryId(deadlineID.deadlineFourCompressed.id), DeadlineReader.DeadlineFourCompressedReader)
+                      (adjustedEntryId.keyValueId.adjustBaseIdToKeyValueId(deadlineID.deadlineFourCompressed.baseId), DeadlineReader.DeadlineFourCompressedReader)
                     else if (commonBytes == 5)
-                      (adjustedEntryId.id.adjustBaseToEntryId(deadlineID.deadlineFiveCompressed.id), DeadlineReader.DeadlineFiveCompressedReader)
+                      (adjustedEntryId.keyValueId.adjustBaseIdToKeyValueId(deadlineID.deadlineFiveCompressed.baseId), DeadlineReader.DeadlineFiveCompressedReader)
                     else if (commonBytes == 6)
-                      (adjustedEntryId.id.adjustBaseToEntryId(deadlineID.deadlineSixCompressed.id), DeadlineReader.DeadlineSixCompressedReader)
+                      (adjustedEntryId.keyValueId.adjustBaseIdToKeyValueId(deadlineID.deadlineSixCompressed.baseId), DeadlineReader.DeadlineSixCompressedReader)
                     else if (commonBytes == 7)
-                      (adjustedEntryId.id.adjustBaseToEntryId(deadlineID.deadlineSevenCompressed.id), DeadlineReader.DeadlineSevenCompressedReader)
+                      (adjustedEntryId.keyValueId.adjustBaseIdToKeyValueId(deadlineID.deadlineSevenCompressed.baseId), DeadlineReader.DeadlineSevenCompressedReader)
                     else if (commonBytes == 8)
-                      (adjustedEntryId.id.adjustBaseToEntryId(deadlineID.deadlineFullyCompressed.id), DeadlineReader.DeadlineFullyCompressedReader)
+                      (adjustedEntryId.keyValueId.adjustBaseIdToKeyValueId(deadlineID.deadlineFullyCompressed.baseId), DeadlineReader.DeadlineFullyCompressedReader)
 
                   reader.readIntUnsigned().get shouldBe expectedEntryID
 
@@ -197,18 +197,18 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
     "write without deadline bytes" in {
       getDeadlineIds.filter(_.isInstanceOf[EntryId.GetDeadlineId]) foreach { //for all deadline ids
         deadlineID: EntryId.GetDeadlineId =>
-          TransientEntryIdAdjuster.all foreach { //for all key-values
+          TransientToEntryId.all foreach { //for all key-values
             implicit adjustedEntryId =>
               val deadlineBytes =
                 DeadlineWriter.noDeadline(
                   getDeadlineId = deadlineID,
                   plusSize = 0,
-                  isKeyUncompressed = false
+                  isKeyCompressed = false
                 )
 
               val reader = Reader(deadlineBytes)
 
-              val expectedEntryID = adjustedEntryId.id.adjustBaseToEntryId(deadlineID.noDeadline.id)
+              val expectedEntryID = adjustedEntryId.keyValueId.adjustBaseIdToKeyValueId(deadlineID.noDeadline.baseId)
 
               reader.readIntUnsigned().get shouldBe expectedEntryID
               DeadlineReader.NoDeadlineReader.read(reader, None).get shouldBe empty

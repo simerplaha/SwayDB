@@ -20,7 +20,7 @@
 package swaydb.core.segment.format.a.entry.reader
 
 import swaydb.core.data.Persistent
-import swaydb.core.segment.format.a.entry.id.EntryId
+import swaydb.core.segment.format.a.entry.id.{EntryId, KeyValueId}
 import swaydb.core.segment.format.a.entry.reader.value.LazyValueReader
 import swaydb.data.IO
 import swaydb.data.slice.Reader
@@ -46,7 +46,7 @@ object UpdateReader extends EntryReader[Persistent.Update] {
             val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
             timeReader.read(indexReader, previous) flatMap {
               time =>
-                KeyReader.read(id, indexReader, previous, EntryId.Update) map {
+                KeyReader.read(id, indexReader, previous, KeyValueId.Update) map {
                   case (key, isKeyPrefixCompressed) =>
                     Persistent.Update(
                       _key = key,

@@ -42,7 +42,7 @@ object IfConditionGenerator extends App {
       val targetFunction =
         s"Some(reader(${typedId.name}, indexReader, valueReader, indexOffset, nextIndexOffset, nextIndexSize, previous))"
 
-      val ifCondition = s"if (id == ${typedId.id}) \n$targetFunction"
+      val ifCondition = s"if (id == ${typedId.baseId}) \n$targetFunction"
 
       s"$ifCondition \nelse \nNone"
     } else if (ids.size == 2) {
@@ -55,8 +55,8 @@ object IfConditionGenerator extends App {
       val targetFunction2 =
         s"Some(reader(${typedId2.name}, indexReader, valueReader, indexOffset, nextIndexOffset, nextIndexSize, previous))"
 
-      val ifCondition = s"if (id == ${typedId1.id}) \n$targetFunction1"
-      val elseIfCondition = s"else if (id == ${typedId2.id}) \n$targetFunction2"
+      val ifCondition = s"if (id == ${typedId1.baseId}) \n$targetFunction1"
+      val elseIfCondition = s"else if (id == ${typedId2.baseId}) \n$targetFunction2"
 
       s"$ifCondition \n$elseIfCondition \nelse \nNone"
     } else {
@@ -65,14 +65,14 @@ object IfConditionGenerator extends App {
       //      println(ids.map(_.id).mkString(", "))
       //      println("Mid:" + mid.id)
 
-      s"if(id == ${mid.id})" + {
+      s"if(id == ${mid.baseId})" + {
         s"\nSome(reader(${mid.name}, indexReader, valueReader, indexOffset, nextIndexOffset, nextIndexSize, previous))"
       } + {
-        s"\nelse if(id < ${mid.id})\n" +
-          generateBinarySearchConditions(ids.takeWhile(_.id < mid.id))
+        s"\nelse if(id < ${mid.baseId})\n" +
+          generateBinarySearchConditions(ids.takeWhile(_.baseId < mid.baseId))
       } + {
-        s"\nelse if(id > ${mid.id})\n" +
-          generateBinarySearchConditions(ids.dropWhile(_.id <= mid.id))
+        s"\nelse if(id > ${mid.baseId})\n" +
+          generateBinarySearchConditions(ids.dropWhile(_.baseId <= mid.baseId))
       } + {
         s"\nelse \nNone"
       }
@@ -92,8 +92,8 @@ object IfConditionGenerator extends App {
         Seq("\t//GENERATED CONDITIONS") ++
         Seq(
           conditions,
-          s"\n val minID = ${ids.head.id}",
-          s"val maxID = ${ids.last.id}"
+          s"\n val minID = ${ids.head.baseId}",
+          s"val maxID = ${ids.last.baseId}"
         ) ++
         Seq("}")
 
@@ -102,7 +102,7 @@ object IfConditionGenerator extends App {
   }
 
   def keyIdsGrouped: Iterator[(Int, List[BaseEntryId])] = {
-    val ids = BaseEntryId.keyIdsList
+    val ids = BaseEntryId.baseIds
     ids.grouped(ids.size / 4).zipWithIndex map {
       case (entries, index) =>
         index + 1 -> entries
