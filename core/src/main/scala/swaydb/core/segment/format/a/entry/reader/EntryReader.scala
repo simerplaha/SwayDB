@@ -47,6 +47,9 @@ object EntryReader {
   val readers: List[BaseEntryReader] =
     List(BaseEntryReader1, BaseEntryReader2, BaseEntryReader3, BaseEntryReader4) sortBy (_.minID)
 
+  def findReader(baseId: Int): Option[BaseEntryReader] =
+    readers.find(_.maxID >= baseId)
+
   def read[T](baseId: Int,
               keyValueId: Int,
               indexReader: Reader,
@@ -56,7 +59,7 @@ object EntryReader {
               nextIndexSize: Int,
               previous: Option[Persistent],
               entryReader: EntryReader[T])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[T] =
-    readers.find(_.maxID >= baseId) flatMap {
+    findReader(baseId = baseId) flatMap {
       entry =>
         entry.read(
           baseId = baseId,

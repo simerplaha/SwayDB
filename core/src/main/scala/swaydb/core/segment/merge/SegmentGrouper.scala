@@ -491,7 +491,6 @@ private[merge] object SegmentGrouper extends LazyLogging {
                   Transient.Function(
                     key = key,
                     function = function,
-                    value = Some(function),
                     deadline = None,
                     time = time,
                     _,
@@ -510,7 +509,6 @@ private[merge] object SegmentGrouper extends LazyLogging {
                       Transient.Function(
                         key = function.key,
                         function = functionId,
-                        value = Some(functionId),
                         deadline = None,
                         time = function.time,
                         _,

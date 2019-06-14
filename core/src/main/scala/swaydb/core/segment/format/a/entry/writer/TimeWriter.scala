@@ -26,6 +26,50 @@ import swaydb.core.util.Bytes._
 
 private[writer] object TimeWriter {
 
+
+  private[writer] def write[T](current: KeyValue.WriteOnly,
+                               currentTime: Time,
+                               compressDuplicateValues: Boolean,
+                               entryId: BaseEntryId.Key,
+                               enablePrefixCompression: Boolean,
+                               plusSize: Int,
+                               isKeyCompressed: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]) =
+    if (currentTime.time.nonEmpty)
+      (if (enablePrefixCompression) current.previous.map(getTime) else None) flatMap {
+        previousTime =>
+          //need to compress at least 4 bytes because the meta data required after compression is minimum 2 bytes.
+          writePartiallyCompressed(
+            currentTime = currentTime,
+            previousTime = previousTime,
+            current = current,
+            compressDuplicateValues = compressDuplicateValues,
+            entryId = entryId,
+            plusSize = plusSize,
+            enablePrefixCompression = enablePrefixCompression,
+            isKeyUncompressed = isKeyCompressed
+          )
+      } getOrElse {
+        //no common prefixes or no previous write without compression
+        writeUncompressed(
+          currentTime = currentTime,
+          current = current,
+          compressDuplicateValues = compressDuplicateValues,
+          entryId = entryId,
+          plusSize = plusSize,
+          enablePrefixCompression = enablePrefixCompression,
+          isKeyUncompressed = isKeyCompressed
+        )
+      }
+    else
+      noTime(
+        current = current,
+        compressDuplicateValues = compressDuplicateValues,
+        entryId = entryId,
+        plusSize = plusSize,
+        enablePrefixCompression = enablePrefixCompression,
+        isKeyUncompressed = isKeyCompressed
+      )
+
   private[writer] def getTime(keyValue: KeyValue.WriteOnly): Time =
     keyValue match {
       case keyValue: WriteOnly.Fixed =>
@@ -126,46 +170,4 @@ private[writer] object TimeWriter {
       isKeyUncompressed = isKeyUncompressed
     )
 
-  private[writer] def write(current: KeyValue.WriteOnly,
-                            currentTime: Time,
-                            compressDuplicateValues: Boolean,
-                            entryId: BaseEntryId.Key,
-                            enablePrefixCompression: Boolean,
-                            plusSize: Int,
-                            isKeyCompressed: Boolean)(implicit binder: TransientToKeyValueIdBinder[_]) =
-    if (currentTime.time.nonEmpty)
-      (if (enablePrefixCompression) current.previous.map(getTime) else None) flatMap {
-        previousTime =>
-          //need to compress at least 4 bytes because the meta data required after compression is minimum 2 bytes.
-          writePartiallyCompressed(
-            currentTime = currentTime,
-            previousTime = previousTime,
-            current = current,
-            compressDuplicateValues = compressDuplicateValues,
-            entryId = entryId,
-            plusSize = plusSize,
-            enablePrefixCompression = enablePrefixCompression,
-            isKeyUncompressed = isKeyCompressed
-          )
-      } getOrElse {
-        //no common prefixes or no previous write without compression
-        writeUncompressed(
-          currentTime = currentTime,
-          current = current,
-          compressDuplicateValues = compressDuplicateValues,
-          entryId = entryId,
-          plusSize = plusSize,
-          enablePrefixCompression = enablePrefixCompression,
-          isKeyUncompressed = isKeyCompressed
-        )
-      }
-    else
-      noTime(
-        current = current,
-        compressDuplicateValues = compressDuplicateValues,
-        entryId = entryId,
-        plusSize = plusSize,
-        enablePrefixCompression = enablePrefixCompression,
-        isKeyUncompressed = isKeyCompressed
-      )
 }

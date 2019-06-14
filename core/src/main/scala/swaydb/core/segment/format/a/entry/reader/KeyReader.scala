@@ -31,7 +31,7 @@ object KeyReader {
                            previous: Option[KeyValue.ReadOnly]): IO[Slice[Byte]] =
     indexReader.readRemaining()
 
-  private def partiallyCompressed(indexReader: Reader,
+  private def compressed(indexReader: Reader,
                                   previous: Option[KeyValue.ReadOnly]): IO[Slice[Byte]] =
     previous map {
       previous =>
@@ -50,8 +50,8 @@ object KeyReader {
            indexReader: Reader,
            previous: Option[KeyValue.ReadOnly],
            keyValueId: KeyValueId): IO[(Slice[Byte], Boolean)] =
-    if (keyValueId.isKeyValueId_PartiallyCompressedKey(keyValueIdInt))
-      KeyReader.partiallyCompressed(indexReader, previous) map (key => (key, true))
+    if (keyValueId.isKeyValueId_CompressedKey(keyValueIdInt))
+      KeyReader.compressed(indexReader, previous) map (key => (key, true))
     else if (keyValueId.isKeyValueId_UncompressedKey(keyValueIdInt))
       KeyReader.uncompressed(indexReader, previous) map (key => (key, false))
     else

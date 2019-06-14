@@ -4,9 +4,9 @@
  * This file is a part of SwayDB.
  *
  * SwayDB is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
+ *  it under the terms of the GNU Affero General Public License as
+ *  published by the Free Software Foundation, either version 3 of the
+ *  License, or (at your option) any later version.
  *
  * SwayDB is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -248,8 +248,8 @@ private[core] object SegmentReader extends LazyLogging {
       val hashIndexStartOffset = footerReader.readIntUnsigned().get
       val expectedCRC = footerReader.readLong().get
       val keyValueCount = footerReader.readIntUnsigned().get
-      val bloomFilterItemsCount = footerReader.readInt().get
-      val bloomFilterSize = footerReader.readIntUnsigned().get
+      val bloomFilterItemsCount = footerReader.readIntUnsigned().get
+      val bloomFilterSize = footerReader.readInt().get
       val bloomAndRangeFilterSlice =
         if (bloomFilterSize == 0) {
           val rangeFilterByteSize = footerReader.readIntUnsigned().get
@@ -383,7 +383,7 @@ private[core] object SegmentReader extends LazyLogging {
         get =
           sortedIndexOffset =>
             readNextKeyValue(
-              fromPosition = sortedIndexOffset,
+              fromPosition = footer.sortedIndexStartOffset + sortedIndexOffset,
               startIndexOffset = footer.sortedIndexStartOffset,
               endIndexOffset = footer.sortedIndexEndOffset,
               indexReader = reader,

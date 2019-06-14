@@ -25,7 +25,7 @@ import swaydb.core.segment.format.a.entry.id.{BaseEntryIdFormatA, TransientToKey
 import swaydb.core.util.Bytes._
 import swaydb.data.slice.Slice
 
-private[core] object EntryWriter {
+private[core] object KeyValueWriter {
 
   case class Result(indexBytes: Slice[Byte],
                     valueBytes: Option[Slice[Byte]],
@@ -47,14 +47,14 @@ private[core] object EntryWriter {
     *
     * Note: No extra bytes are required to differentiate between a key that has meta or no meta block.
     *
-    * @param binder                      [[BaseEntryIdFormat]] for this key-value's type.
+    * @param binder                  [[BaseEntryIdFormat]] for this key-value's type.
     * @param compressDuplicateValues Compresses duplicate values if set to true.
     * @return indexEntry, valueBytes, valueOffsetBytes, nextValuesOffsetPosition
     */
   def write[T <: KeyValue.WriteOnly](current: T,
                                      currentTime: Time,
                                      compressDuplicateValues: Boolean,
-                                     enablePrefixCompression: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]): EntryWriter.Result =
+                                     enablePrefixCompression: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]): KeyValueWriter.Result =
     current.previous flatMap {
       previous =>
         writeCompressed(
@@ -73,35 +73,12 @@ private[core] object EntryWriter {
       )
     }
 
-  private[writer] def writeCompressed[T <: KeyValue.WriteOnly](current: T,
-                                                               previous: KeyValue.WriteOnly,
-                                                               currentTime: Time,
-                                                               compressDuplicateValues: Boolean,
-                                                               enablePrefixCompression: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]) =
+  private def writeCompressed[T <: KeyValue.WriteOnly](current: T,
+                                                       previous: KeyValue.WriteOnly,
+                                                       currentTime: Time,
+                                                       compressDuplicateValues: Boolean,
+                                                       enablePrefixCompression: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]) =
     compress(key = current.fullKey, previous = previous, minimumCommonBytes = 2) map {
-      case (_, remainingBytes) if remainingBytes.isEmpty =>
-
-        val writeResult =
-          TimeWriter.write(
-            current = current,
-            currentTime = currentTime,
-            compressDuplicateValues = compressDuplicateValues,
-            entryId = BaseEntryIdFormatA.format.start,
-            enablePrefixCompression = enablePrefixCompression,
-            plusSize = sizeOf(current.fullKey.size), //write the size of keys that were compressed.
-            isKeyCompressed = true
-          )
-
-        //            assert(indexBytes.isFull, s"indexSlice is not full actual: ${indexBytes.written} - expected: ${indexBytes.size}")
-        //            valueBytes foreach (valueBytes => assert(valueBytes.isFull, s"valueBytes is not full actual: ${valueBytes.written} - expected: ${valueBytes.size}"))
-        //
-
-        writeResult
-          .indexBytes
-          .addIntUnsigned(current.fullKey.size)
-
-        writeResult
-
       case (commonBytes, remainingBytes) =>
         val writeResult =
           TimeWriter.write(
@@ -122,10 +99,10 @@ private[core] object EntryWriter {
         writeResult
     }
 
-  private[writer] def writeUncompressed[T <: KeyValue.WriteOnly](current: T,
-                                                                 currentTime: Time,
-                                                                 compressDuplicateValues: Boolean,
-                                                                 enablePrefixCompression: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]) = {
+  private def writeUncompressed[T <: KeyValue.WriteOnly](current: T,
+                                                         currentTime: Time,
+                                                         compressDuplicateValues: Boolean,
+                                                         enablePrefixCompression: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]) = {
     //no common prefixes or no previous write without compression
     val writeResult =
       TimeWriter.write(

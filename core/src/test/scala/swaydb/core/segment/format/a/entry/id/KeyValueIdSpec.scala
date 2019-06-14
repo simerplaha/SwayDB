@@ -27,10 +27,10 @@ class KeyValueIdSpec extends FlatSpec with Matchers {
 
     KeyValueId.all.foldLeft(-1) {
       case (previousId, keyValueId) =>
-        keyValueId.minKey_PartiallyCompressed_KeyValueId == previousId + 1
-        keyValueId.maxKey_PartiallyCompressed_KeyValueId > keyValueId.minKey_PartiallyCompressed_KeyValueId + 1
+        keyValueId.minKey_Compressed_KeyValueId == previousId + 1
+        keyValueId.maxKey_Compressed_KeyValueId > keyValueId.minKey_Compressed_KeyValueId + 1
 
-        keyValueId.minKey_Uncompressed_KeyValueId == keyValueId.maxKey_PartiallyCompressed_KeyValueId + 1
+        keyValueId.minKey_Uncompressed_KeyValueId == keyValueId.maxKey_Compressed_KeyValueId + 1
         keyValueId.maxKey_Uncompressed_KeyValueId > keyValueId.minKey_Uncompressed_KeyValueId + 1
 
         keyValueId.maxKey_Uncompressed_KeyValueId

@@ -327,10 +327,10 @@ object TestData {
             case Transient.Put(key, value, deadline, time, previous, falsePositiveRate, compressDuplicateValues) =>
               Memory.Put(key, value, deadline, time)
 
-            case Transient.Function(key, function, value, deadline, time, previous, falsePositiveRate, compressDuplicateValues) =>
+            case Transient.Function(key, function, deadline, time, previous, falsePositiveRate, compressDuplicateValues) =>
               Memory.Function(key, function, time)
 
-            case Transient.PendingApply(key, applies, value, previous, falsePositiveRate, compressDuplicateValues) =>
+            case Transient.PendingApply(key, applies, previous, falsePositiveRate, compressDuplicateValues) =>
               Memory.PendingApply(key, applies)
           }
 
@@ -461,7 +461,6 @@ object TestData {
                     deadline = None,
                     time = time,
                     function = function,
-                    value = Some(function),
                     compressDuplicateValues = true
                   )
 
@@ -523,7 +522,6 @@ object TestData {
                 case function @ Persistent.Function(key, lazyFunctionReader, time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _) =>
                   Transient.Function(
                     key = key,
-                    value = function.getOrFetchValue,
                     falsePositiveRate = TestData.falsePositiveRate,
                     previous = previous,
                     deadline = None,
@@ -1304,7 +1302,7 @@ object TestData {
     var iteration = 0
     while (key < until) {
       iteration += 1
-//      if (slice.written % 100000 == 0) println(s"Generated ${slice.written} key-values.")
+      //      if (slice.written % 100000 == 0) println(s"Generated ${slice.written} key-values.")
       //protect to this going into infinite loop
       if (iteration >= 10 && slice.isEmpty) fail("Too many iterations without generated data.")
       if (addRandomGroups && randomBoolean()) {
@@ -1632,7 +1630,8 @@ object TestData {
       )
 
     def put(key: Slice[Byte],
-            value: Slice[Byte])(implicit testTimer: TestTimer): Transient.Put =
+            value: Slice[Byte],
+            compressDuplicateValues: Boolean = true)(implicit testTimer: TestTimer): Transient.Put =
       Transient.Put(
         key = key,
         value = Some(value),
@@ -1640,7 +1639,7 @@ object TestData {
         previous = None,
         time = testTimer.next,
         falsePositiveRate = TestData.falsePositiveRate,
-        compressDuplicateValues = true
+        compressDuplicateValues = compressDuplicateValues
       )
 
     def put(key: Slice[Byte],
@@ -1778,7 +1777,8 @@ object TestData {
       )
 
     def update(key: Slice[Byte],
-               value: Slice[Byte])(implicit testTimer: TestTimer): Transient.Update =
+               value: Slice[Byte],
+               compressDuplicateValues: Boolean = true)(implicit testTimer: TestTimer): Transient.Update =
       Transient.Update(
         key = key,
         value = Some(value),
@@ -1786,7 +1786,7 @@ object TestData {
         previous = None,
         time = testTimer.next,
         falsePositiveRate = TestData.falsePositiveRate,
-        compressDuplicateValues = true
+        compressDuplicateValues = compressDuplicateValues
       )
 
     def update(key: Slice[Byte],
