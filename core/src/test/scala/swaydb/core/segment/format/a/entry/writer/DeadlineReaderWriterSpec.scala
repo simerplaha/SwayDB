@@ -110,7 +110,7 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
 
               val reader = Reader(deadlineBytes)
 
-              val expectedEntryID = adjustedEntryId.id.adjustToEntryId(deadlineID.deadlineUncompressed.id)
+              val expectedEntryID = adjustedEntryId.id.adjustBaseToEntryId(deadlineID.deadlineUncompressed.id)
 
               reader.readIntUnsigned().get shouldBe expectedEntryID
               DeadlineReader.DeadlineUncompressedReader.read(reader, None).get should contain(deadline)
@@ -164,21 +164,21 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
 
                   val (expectedEntryID, deadlineReader: DeadlineReader[_]) =
                     if (commonBytes == 1)
-                      (adjustedEntryId.id.adjustToEntryId(deadlineID.deadlineOneCompressed.id), DeadlineReader.DeadlineOneCompressedReader)
+                      (adjustedEntryId.id.adjustBaseToEntryId(deadlineID.deadlineOneCompressed.id), DeadlineReader.DeadlineOneCompressedReader)
                     else if (commonBytes == 2)
-                      (adjustedEntryId.id.adjustToEntryId(deadlineID.deadlineTwoCompressed.id), DeadlineReader.DeadlineTwoCompressedReader)
+                      (adjustedEntryId.id.adjustBaseToEntryId(deadlineID.deadlineTwoCompressed.id), DeadlineReader.DeadlineTwoCompressedReader)
                     else if (commonBytes == 3)
-                      (adjustedEntryId.id.adjustToEntryId(deadlineID.deadlineThreeCompressed.id), DeadlineReader.DeadlineThreeCompressedReader)
+                      (adjustedEntryId.id.adjustBaseToEntryId(deadlineID.deadlineThreeCompressed.id), DeadlineReader.DeadlineThreeCompressedReader)
                     else if (commonBytes == 4)
-                      (adjustedEntryId.id.adjustToEntryId(deadlineID.deadlineFourCompressed.id), DeadlineReader.DeadlineFourCompressedReader)
+                      (adjustedEntryId.id.adjustBaseToEntryId(deadlineID.deadlineFourCompressed.id), DeadlineReader.DeadlineFourCompressedReader)
                     else if (commonBytes == 5)
-                      (adjustedEntryId.id.adjustToEntryId(deadlineID.deadlineFiveCompressed.id), DeadlineReader.DeadlineFiveCompressedReader)
+                      (adjustedEntryId.id.adjustBaseToEntryId(deadlineID.deadlineFiveCompressed.id), DeadlineReader.DeadlineFiveCompressedReader)
                     else if (commonBytes == 6)
-                      (adjustedEntryId.id.adjustToEntryId(deadlineID.deadlineSixCompressed.id), DeadlineReader.DeadlineSixCompressedReader)
+                      (adjustedEntryId.id.adjustBaseToEntryId(deadlineID.deadlineSixCompressed.id), DeadlineReader.DeadlineSixCompressedReader)
                     else if (commonBytes == 7)
-                      (adjustedEntryId.id.adjustToEntryId(deadlineID.deadlineSevenCompressed.id), DeadlineReader.DeadlineSevenCompressedReader)
+                      (adjustedEntryId.id.adjustBaseToEntryId(deadlineID.deadlineSevenCompressed.id), DeadlineReader.DeadlineSevenCompressedReader)
                     else if (commonBytes == 8)
-                      (adjustedEntryId.id.adjustToEntryId(deadlineID.deadlineFullyCompressed.id), DeadlineReader.DeadlineFullyCompressedReader)
+                      (adjustedEntryId.id.adjustBaseToEntryId(deadlineID.deadlineFullyCompressed.id), DeadlineReader.DeadlineFullyCompressedReader)
 
                   reader.readIntUnsigned().get shouldBe expectedEntryID
 
@@ -208,7 +208,7 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
 
               val reader = Reader(deadlineBytes)
 
-              val expectedEntryID = adjustedEntryId.id.adjustToEntryId(deadlineID.noDeadline.id)
+              val expectedEntryID = adjustedEntryId.id.adjustBaseToEntryId(deadlineID.noDeadline.id)
 
               reader.readIntUnsigned().get shouldBe expectedEntryID
               DeadlineReader.NoDeadlineReader.read(reader, None).get shouldBe empty

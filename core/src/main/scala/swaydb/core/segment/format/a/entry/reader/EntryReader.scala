@@ -77,19 +77,19 @@ object EntryReader {
     indexReader.readIntUnsigned() flatMap {
       id =>
         if (EntryId.Put.hasId(id))
-          EntryReader.read(EntryId.Put.adjustToBaseId(id), indexReader, valueReader, indexOffset, nextIndexOffset, nextIndexSize, previous, PutReader)
+          EntryReader.read(EntryId.Put.adjustEntryIdToBaseId(id), indexReader, valueReader, indexOffset, nextIndexOffset, nextIndexSize, previous, PutReader)
         else if (EntryId.Group.hasId(id))
-          EntryReader.read(EntryId.Group.adjustToBaseId(id), indexReader, valueReader, indexOffset, nextIndexOffset, nextIndexSize, previous, GroupReader)
+          EntryReader.read(EntryId.Group.adjustEntryIdToBaseId(id), indexReader, valueReader, indexOffset, nextIndexOffset, nextIndexSize, previous, GroupReader)
         else if (EntryId.Range.hasId(id))
-          EntryReader.read(EntryId.Range.adjustToBaseId(id), indexReader, valueReader, indexOffset, nextIndexOffset, nextIndexSize, previous, RangeReader)
+          EntryReader.read(EntryId.Range.adjustEntryIdToBaseId(id), indexReader, valueReader, indexOffset, nextIndexOffset, nextIndexSize, previous, RangeReader)
         else if (EntryId.Remove.hasId(id))
-          EntryReader.read(EntryId.Remove.adjustToBaseId(id), indexReader, valueReader, indexOffset, nextIndexOffset, nextIndexSize, previous, RemoveReader)
+          EntryReader.read(EntryId.Remove.adjustEntryIdToBaseId(id), indexReader, valueReader, indexOffset, nextIndexOffset, nextIndexSize, previous, RemoveReader)
         else if (EntryId.Update.hasId(id))
-          EntryReader.read(EntryId.Update.adjustToBaseId(id), indexReader, valueReader, indexOffset, nextIndexOffset, nextIndexSize, previous, UpdateReader)
+          EntryReader.read(EntryId.Update.adjustEntryIdToBaseId(id), indexReader, valueReader, indexOffset, nextIndexOffset, nextIndexSize, previous, UpdateReader)
         else if (EntryId.Function.hasId(id))
-          EntryReader.read(EntryId.Function.adjustToBaseId(id), indexReader, valueReader, indexOffset, nextIndexOffset, nextIndexSize, previous, FunctionReader)
+          EntryReader.read(EntryId.Function.adjustEntryIdToBaseId(id), indexReader, valueReader, indexOffset, nextIndexOffset, nextIndexSize, previous, FunctionReader)
         else if (EntryId.PendingApply.hasId(id))
-          EntryReader.read(EntryId.PendingApply.adjustToBaseId(id), indexReader, valueReader, indexOffset, nextIndexOffset, nextIndexSize, previous, PendingApplyReader)
+          EntryReader.read(EntryId.PendingApply.adjustEntryIdToBaseId(id), indexReader, valueReader, indexOffset, nextIndexOffset, nextIndexSize, previous, PendingApplyReader)
         else
           IO.Failure(IO.Error.Fatal(SegmentException.InvalidEntryId(id)))
     }

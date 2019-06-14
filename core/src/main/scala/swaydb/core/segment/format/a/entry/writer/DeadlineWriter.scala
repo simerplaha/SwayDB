@@ -59,9 +59,9 @@ private[writer] object DeadlineWriter {
     val deadlineId = getDeadlineId.deadlineUncompressed.id
     val adjustedToEntryIdDeadlineId =
       if (isKeyUncompressed)
-        id.id.adjustToEntryIdUncompressed(deadlineId)
+        id.id.adjustBaseToEntryIdAndKeyUncompressed(deadlineId)
       else
-        id.id.adjustToEntryId(deadlineId)
+        id.id.adjustBaseToEntryId(deadlineId)
 
     Slice.create[Byte](sizeOf(adjustedToEntryIdDeadlineId) + currentDeadlineUnsignedBytes.size + plusSize)
       .addIntUnsigned(adjustedToEntryIdDeadlineId)
@@ -83,9 +83,9 @@ private[writer] object DeadlineWriter {
         val deadlineId = applyDeadlineId(deadlineCommonBytes, getDeadlineId).id
         val adjustedToEntryIdDeadlineId =
           if (isKeyUncompressed)
-            id.id.adjustToEntryIdUncompressed(deadlineId)
+            id.id.adjustBaseToEntryIdAndKeyUncompressed(deadlineId)
           else
-            id.id.adjustToEntryId(deadlineId)
+            id.id.adjustBaseToEntryId(deadlineId)
 
         Slice.create[Byte](sizeOf(adjustedToEntryIdDeadlineId) + deadlineCompressedBytes.size + plusSize)
           .addIntUnsigned(adjustedToEntryIdDeadlineId)
@@ -99,9 +99,9 @@ private[writer] object DeadlineWriter {
     val deadlineId = getDeadlineId.noDeadline.id
     val adjustedToEntryIdDeadlineId =
       if (isKeyUncompressed)
-        id.id.adjustToEntryIdUncompressed(deadlineId)
+        id.id.adjustBaseToEntryIdAndKeyUncompressed(deadlineId)
       else
-        id.id.adjustToEntryId(deadlineId)
+        id.id.adjustBaseToEntryId(deadlineId)
 
     Slice.create[Byte](sizeOf(adjustedToEntryIdDeadlineId) + plusSize)
       .addIntUnsigned(adjustedToEntryIdDeadlineId)
