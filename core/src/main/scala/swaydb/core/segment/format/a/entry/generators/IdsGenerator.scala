@@ -41,8 +41,8 @@ object IdsGenerator extends App {
         .getLines
         .foldLeft((ListBuffer.empty[String], startId)) {
           case ((lines, id), oldLine) =>
-            if (oldLine.matches(""".*BaseEntryId\(\d+\).*""")) {
-              val nextLine = oldLine.replaceAll("""BaseEntryId\(\d+\)""", s"""BaseEntryId($id)""")
+            if (oldLine.matches(""".*BaseEntryIdFormatA\(\d+\).*""")) {
+              val nextLine = oldLine.replaceAll("""BaseEntryIdFormatA\(\d+\)""", s"""BaseEntryIdFormatA($id)""")
               (lines += nextLine, id + 1)
             } else {
               (lines += oldLine, id)
