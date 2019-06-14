@@ -33,7 +33,6 @@ sealed trait ValueReader[-T] {
   def read[V](indexReader: Reader,
               previous: Option[Persistent])(implicit valueOffsetReader: ValueOffsetReader[V],
                                             valueLengthReader: ValueLengthReader[V]): IO[Option[(Int, Int)]]
-
 }
 
 object ValueReader {
@@ -66,11 +65,9 @@ object ValueReader {
     override def read[V](indexReader: Reader,
                          previous: Option[Persistent])(implicit valueOffsetReader: ValueOffsetReader[V],
                                                        valueLengthReader: ValueLengthReader[V]): IO[Option[(Int, Int)]] =
-      previous map {
-        previous =>
-          IO.Success(Some((previous.valueOffset, previous.valueLength)))
-      } getOrElse {
-        IO.Failure(EntryReaderFailure.NoPreviousKeyValue)
-      }
+      ValueUncompressedReader.read(
+        indexReader = indexReader,
+        previous = previous
+      )
   }
 }

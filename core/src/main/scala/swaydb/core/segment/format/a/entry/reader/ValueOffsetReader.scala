@@ -87,7 +87,10 @@ object ValueOffsetReader {
 
     override def read(indexReader: Reader,
                       previous: Option[Persistent]): IO[Int] =
-      IO.zero
+      previous map {
+        previous =>
+          IO.Success(previous.valueOffset)
+      } getOrElse IO.Failure(IO.Error.Fatal(EntryReaderFailure.NoPreviousKeyValue))
   }
 
   implicit object ValueOffsetReaderNoValue extends ValueOffsetReader[BaseEntryId.Value.NoValue] {
