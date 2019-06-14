@@ -21,36 +21,50 @@ package swaydb.core.segment.format.a.entry.id
 
 import org.scalatest.{FlatSpec, Matchers}
 
-class BaseEntryIdSpec extends FlatSpec with Matchers {
+class KeyValueIdSpec extends FlatSpec with Matchers {
+
+  it should "not have overlapping ids" in {
+
+    KeyValueId.all.foldLeft(-1) {
+      case (previousId, keyValueId) =>
+        keyValueId.minKey_PartiallyCompressed_KeyValueId == previousId + 1
+        keyValueId.maxKey_PartiallyCompressed_KeyValueId > keyValueId.minKey_PartiallyCompressed_KeyValueId + 1
+
+        keyValueId.minKey_Uncompressed_KeyValueId == keyValueId.maxKey_PartiallyCompressed_KeyValueId + 1
+        keyValueId.maxKey_Uncompressed_KeyValueId > keyValueId.minKey_Uncompressed_KeyValueId + 1
+
+        keyValueId.maxKey_Uncompressed_KeyValueId
+    }
+  }
 
   it should "not allow conflicting ids and adjust baseIds to entryIds and vice versa" in {
-    KeyValueId.keyValueId foreach { //for all ids
-      id =>
+    KeyValueId.all foreach { //for all ids
+      keyValueId =>
         BaseEntryIdFormatA.baseIds foreach { //for all base ids for each
           baseEntryId =>
 
-            val otherIds = KeyValueId.keyValueId.filter(_ != id)
+            val otherIds = KeyValueId.all.filter(_ != keyValueId)
             otherIds should not be empty
 
-            val entryId = id.adjustBaseIdToKeyValueIdKey_Compressed(baseEntryId.baseId)
-            if (id == KeyValueId.Put) entryId shouldBe baseEntryId.baseId //not change. Put's are default.
+            val entryId = keyValueId.adjustBaseIdToKeyValueIdKey_Compressed(baseEntryId.baseId)
+            if (keyValueId == KeyValueId.Put) entryId shouldBe baseEntryId.baseId //not change. Put's are default.
 
             //entryId should have this entryId
-            id.hasKeyValueId(keyValueId = entryId) shouldBe true
+            keyValueId.hasKeyValueId(keyValueId = entryId) shouldBe true
 
             //others should not
             otherIds.foreach(_.hasKeyValueId(entryId) shouldBe false)
 
             //bump to entryID to be uncompressed.
-            val uncompressedEntryId = id.adjustBaseIdToKeyValueIdKey_UnCompressed(baseEntryId.baseId)
+            val uncompressedEntryId = keyValueId.adjustBaseIdToKeyValueIdKey_UnCompressed(baseEntryId.baseId)
             uncompressedEntryId should be >= entryId
             //id should have this entryId
-            id.hasKeyValueId(keyValueId = uncompressedEntryId) shouldBe true
+            keyValueId.hasKeyValueId(keyValueId = uncompressedEntryId) shouldBe true
             //others should not
             otherIds.foreach(_.hasKeyValueId(uncompressedEntryId) shouldBe false)
 
             //adjust uncompressed entryId to base should return back to original.
-            id.adjustKeyValueIdToBaseId(uncompressedEntryId) shouldBe baseEntryId.baseId
+            keyValueId.adjustKeyValueIdToBaseId(uncompressedEntryId) shouldBe baseEntryId.baseId
         }
     }
   }

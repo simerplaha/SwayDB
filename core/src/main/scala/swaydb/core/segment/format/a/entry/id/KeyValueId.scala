@@ -24,32 +24,32 @@ import swaydb.macros.SealedList
 
 sealed trait KeyValueId {
 
-  def minKeyPartiallyCompressedEntryId: Int
-  def maxKeyPartiallyCompressedEntryId: Int
+  def minKey_PartiallyCompressed_KeyValueId: Int
+  def maxKey_PartiallyCompressed_KeyValueId: Int
 
-  def minKeyUncompressedEntryId: Int
-  def maxKeyUncompressedEntryId: Int
+  def minKey_Uncompressed_KeyValueId: Int
+  def maxKey_Uncompressed_KeyValueId: Int
 
   def hasKeyValueId(keyValueId: Int): Boolean =
-    keyValueId >= minKeyPartiallyCompressedEntryId && keyValueId <= maxKeyUncompressedEntryId
+    keyValueId >= minKey_PartiallyCompressed_KeyValueId && keyValueId <= maxKey_Uncompressed_KeyValueId
 
-  def isKeyValueIdPartiallyCompressedKey(keyValueId: Int): Boolean =
-    keyValueId >= minKeyPartiallyCompressedEntryId && keyValueId <= maxKeyPartiallyCompressedEntryId
+  def isKeyValueId_PartiallyCompressedKey(keyValueId: Int): Boolean =
+    keyValueId >= minKey_PartiallyCompressed_KeyValueId && keyValueId <= maxKey_PartiallyCompressed_KeyValueId
 
-  def isKeyValueIdUncompressedKey(keyValueId: Int): Boolean =
-    keyValueId >= minKeyUncompressedEntryId && keyValueId <= maxKeyUncompressedEntryId
+  def isKeyValueId_UncompressedKey(keyValueId: Int): Boolean =
+    keyValueId >= minKey_Uncompressed_KeyValueId && keyValueId <= maxKey_Uncompressed_KeyValueId
 
   /**
     * Given persisted entryID convert it to
     */
   def adjustKeyValueIdToBaseId(keyValueId: Int): Int =
-    if (isKeyValueIdPartiallyCompressedKey(keyValueId))
-      if (minKeyPartiallyCompressedEntryId == KeyValueId.Put.minKeyPartiallyCompressedEntryId)
+    if (isKeyValueId_PartiallyCompressedKey(keyValueId))
+      if (minKey_PartiallyCompressed_KeyValueId == KeyValueId.Put.minKey_PartiallyCompressed_KeyValueId)
         keyValueId
       else
-        keyValueId - minKeyPartiallyCompressedEntryId
-    else if (isKeyValueIdUncompressedKey(keyValueId))
-      keyValueId - minKeyUncompressedEntryId
+        keyValueId - minKey_PartiallyCompressed_KeyValueId
+    else if (isKeyValueId_UncompressedKey(keyValueId))
+      keyValueId - minKey_Uncompressed_KeyValueId
     else
       throw new Exception(s"Int id: $keyValueId does not belong to ${this.getClass.getSimpleName} ")
 
@@ -65,22 +65,22 @@ sealed trait KeyValueId {
 
   //the _ is to highlight that this will return an uncompressed id. There used to be a type-safe way to handle this!
   def adjustBaseIdToKeyValueIdKey_Compressed(baseId: Int): Int =
-    if (minKeyPartiallyCompressedEntryId == KeyValueId.Put.minKeyPartiallyCompressedEntryId) //if it's put the ids are the same as base entry.
-      if (isKeyValueIdPartiallyCompressedKey(baseId))
+    if (minKey_PartiallyCompressed_KeyValueId == KeyValueId.Put.minKey_PartiallyCompressed_KeyValueId) //if it's put the ids are the same as base entry.
+      if (isKeyValueId_PartiallyCompressedKey(baseId))
         baseId
       else
         throw new Exception(s"Int id: $baseId does not belong to ${this.getClass.getSimpleName} ")
-    else if (isKeyValueIdPartiallyCompressedKey(baseId + minKeyPartiallyCompressedEntryId))
-      baseId + minKeyPartiallyCompressedEntryId
+    else if (isKeyValueId_PartiallyCompressedKey(baseId + minKey_PartiallyCompressed_KeyValueId))
+      baseId + minKey_PartiallyCompressed_KeyValueId
     else
-      throw new Exception(s"Int id: $baseId does not belong to ${this.getClass.getSimpleName}. Adjusted id was :${baseId + minKeyPartiallyCompressedEntryId}")
+      throw new Exception(s"Int id: $baseId does not belong to ${this.getClass.getSimpleName}. Adjusted id was :${baseId + minKey_PartiallyCompressed_KeyValueId}")
 
   //the _ is to highlight that this will return an uncompressed id. There used to be a type-safe way to handle this!
   def adjustBaseIdToKeyValueIdKey_UnCompressed(baseId: Int): Int =
-    if (isKeyValueIdUncompressedKey(baseId + minKeyUncompressedEntryId))
-      baseId + minKeyUncompressedEntryId
+    if (isKeyValueId_UncompressedKey(baseId + minKey_Uncompressed_KeyValueId))
+      baseId + minKey_Uncompressed_KeyValueId
     else
-      throw new Exception(s"Int id: $baseId does not belong to ${this.getClass.getSimpleName}. Adjusted id was :${baseId + minKeyUncompressedEntryId}")
+      throw new Exception(s"Int id: $baseId does not belong to ${this.getClass.getSimpleName}. Adjusted id was :${baseId + minKey_Uncompressed_KeyValueId}")
 }
 
 object KeyValueId {
@@ -88,17 +88,17 @@ object KeyValueId {
   val reservedKeysPerGroup = EntryReader.readers.last.maxID
 
   object Put extends KeyValueId {
-    override val minKeyPartiallyCompressedEntryId: Int = EntryReader.readers.head.minID
-    override val maxKeyPartiallyCompressedEntryId: Int = reservedKeysPerGroup
-    override val minKeyUncompressedEntryId: Int = reservedKeysPerGroup + 1
-    override val maxKeyUncompressedEntryId: Int = minKeyUncompressedEntryId + reservedKeysPerGroup
+    override val minKey_PartiallyCompressed_KeyValueId: Int = EntryReader.readers.head.minID
+    override val maxKey_PartiallyCompressed_KeyValueId: Int = reservedKeysPerGroup
+    override val minKey_Uncompressed_KeyValueId: Int = reservedKeysPerGroup + 1
+    override val maxKey_Uncompressed_KeyValueId: Int = minKey_Uncompressed_KeyValueId + reservedKeysPerGroup
   }
 
   object Group extends KeyValueId {
-    override val minKeyPartiallyCompressedEntryId: Int = Put.maxKeyUncompressedEntryId + 1
-    override val maxKeyPartiallyCompressedEntryId: Int = minKeyPartiallyCompressedEntryId + reservedKeysPerGroup
-    override val minKeyUncompressedEntryId: Int = maxKeyPartiallyCompressedEntryId + 1
-    override val maxKeyUncompressedEntryId: Int = minKeyUncompressedEntryId + reservedKeysPerGroup
+    override val minKey_PartiallyCompressed_KeyValueId: Int = Put.maxKey_Uncompressed_KeyValueId + 1
+    override val maxKey_PartiallyCompressed_KeyValueId: Int = minKey_PartiallyCompressed_KeyValueId + reservedKeysPerGroup
+    override val minKey_Uncompressed_KeyValueId: Int = maxKey_PartiallyCompressed_KeyValueId + 1
+    override val maxKey_Uncompressed_KeyValueId: Int = minKey_Uncompressed_KeyValueId + reservedKeysPerGroup
   }
 
   /**
@@ -106,41 +106,41 @@ object KeyValueId {
     * disappear in last Level but [[Put]] and [[Group]] are kept unless deleted.
     */
   object Range extends KeyValueId {
-    override val minKeyPartiallyCompressedEntryId: Int = 16384
-    override val maxKeyPartiallyCompressedEntryId: Int = minKeyPartiallyCompressedEntryId + reservedKeysPerGroup
-    override val minKeyUncompressedEntryId: Int = maxKeyPartiallyCompressedEntryId + 1
-    override val maxKeyUncompressedEntryId: Int = minKeyUncompressedEntryId + reservedKeysPerGroup
+    override val minKey_PartiallyCompressed_KeyValueId: Int = 16384
+    override val maxKey_PartiallyCompressed_KeyValueId: Int = minKey_PartiallyCompressed_KeyValueId + reservedKeysPerGroup
+    override val minKey_Uncompressed_KeyValueId: Int = maxKey_PartiallyCompressed_KeyValueId + 1
+    override val maxKey_Uncompressed_KeyValueId: Int = minKey_Uncompressed_KeyValueId + reservedKeysPerGroup
   }
 
   object Remove extends KeyValueId {
 
-    override val minKeyPartiallyCompressedEntryId: Int = Range.maxKeyUncompressedEntryId + 1
-    override val maxKeyPartiallyCompressedEntryId: Int = minKeyPartiallyCompressedEntryId + reservedKeysPerGroup
-    override val minKeyUncompressedEntryId: Int = maxKeyPartiallyCompressedEntryId + 1
-    override val maxKeyUncompressedEntryId: Int = minKeyUncompressedEntryId + reservedKeysPerGroup
+    override val minKey_PartiallyCompressed_KeyValueId: Int = Range.maxKey_Uncompressed_KeyValueId + 1
+    override val maxKey_PartiallyCompressed_KeyValueId: Int = minKey_PartiallyCompressed_KeyValueId + reservedKeysPerGroup
+    override val minKey_Uncompressed_KeyValueId: Int = maxKey_PartiallyCompressed_KeyValueId + 1
+    override val maxKey_Uncompressed_KeyValueId: Int = minKey_Uncompressed_KeyValueId + reservedKeysPerGroup
   }
 
   object Update extends KeyValueId {
-    override val minKeyPartiallyCompressedEntryId: Int = Remove.maxKeyUncompressedEntryId + 1
-    override val maxKeyPartiallyCompressedEntryId: Int = minKeyPartiallyCompressedEntryId + reservedKeysPerGroup
-    override val minKeyUncompressedEntryId: Int = maxKeyPartiallyCompressedEntryId + 1
-    override val maxKeyUncompressedEntryId: Int = minKeyUncompressedEntryId + reservedKeysPerGroup
+    override val minKey_PartiallyCompressed_KeyValueId: Int = Remove.maxKey_Uncompressed_KeyValueId + 1
+    override val maxKey_PartiallyCompressed_KeyValueId: Int = minKey_PartiallyCompressed_KeyValueId + reservedKeysPerGroup
+    override val minKey_Uncompressed_KeyValueId: Int = maxKey_PartiallyCompressed_KeyValueId + 1
+    override val maxKey_Uncompressed_KeyValueId: Int = minKey_Uncompressed_KeyValueId + reservedKeysPerGroup
   }
 
   object Function extends KeyValueId {
-    override val minKeyPartiallyCompressedEntryId: Int = Update.maxKeyUncompressedEntryId + 1
-    override val maxKeyPartiallyCompressedEntryId: Int = minKeyPartiallyCompressedEntryId + reservedKeysPerGroup
-    override val minKeyUncompressedEntryId: Int = maxKeyPartiallyCompressedEntryId + 1
-    override val maxKeyUncompressedEntryId: Int = minKeyUncompressedEntryId + reservedKeysPerGroup
+    override val minKey_PartiallyCompressed_KeyValueId: Int = Update.maxKey_Uncompressed_KeyValueId + 1
+    override val maxKey_PartiallyCompressed_KeyValueId: Int = minKey_PartiallyCompressed_KeyValueId + reservedKeysPerGroup
+    override val minKey_Uncompressed_KeyValueId: Int = maxKey_PartiallyCompressed_KeyValueId + 1
+    override val maxKey_Uncompressed_KeyValueId: Int = minKey_Uncompressed_KeyValueId + reservedKeysPerGroup
   }
 
   object PendingApply extends KeyValueId {
-    override val minKeyPartiallyCompressedEntryId: Int = Function.maxKeyUncompressedEntryId + 1
-    override val maxKeyPartiallyCompressedEntryId: Int = minKeyPartiallyCompressedEntryId + reservedKeysPerGroup
-    override val minKeyUncompressedEntryId: Int = maxKeyPartiallyCompressedEntryId + 1
-    override val maxKeyUncompressedEntryId: Int = minKeyUncompressedEntryId + reservedKeysPerGroup
+    override val minKey_PartiallyCompressed_KeyValueId: Int = Function.maxKey_Uncompressed_KeyValueId + 1
+    override val maxKey_PartiallyCompressed_KeyValueId: Int = minKey_PartiallyCompressed_KeyValueId + reservedKeysPerGroup
+    override val minKey_Uncompressed_KeyValueId: Int = maxKey_PartiallyCompressed_KeyValueId + 1
+    override val maxKey_Uncompressed_KeyValueId: Int = minKey_Uncompressed_KeyValueId + reservedKeysPerGroup
   }
 
-  def keyValueId: List[KeyValueId] =
+  def all: List[KeyValueId] =
     SealedList.list[KeyValueId]
 }

@@ -50,7 +50,7 @@ object KeyReader {
                              indexReader: Reader,
                              previous: Option[KeyValue.ReadOnly],
                              keyValueId: KeyValueId): IO[(Slice[Byte], Boolean)] =
-    if (keyValueId.isKeyValueIdPartiallyCompressedKey(keyValueId.adjustBaseIdToKeyValueIdKey_Compressed(id.baseId)))
+    if (keyValueId.isKeyValueId_PartiallyCompressedKey(keyValueId.adjustBaseIdToKeyValueIdKey_Compressed(id.baseId)))
       KeyReader.partiallyCompressed(indexReader, previous) map (key => (key, true))
     else
       KeyReader.uncompressed(indexReader, previous) map (key => (key, false))
