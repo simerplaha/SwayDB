@@ -63,7 +63,7 @@ class TimeReaderWriterSpec extends WordSpec with Matchers {
 
               val currentTime = TimeWriter.getTime(current)
 
-              implicit val put = TransientToKeyValueIdBinder.Put
+              implicit val put = TransientToKeyValueIdBinder.PutBinder
 
               val writeResult =
                 TimeWriter.write(
@@ -103,7 +103,7 @@ class TimeReaderWriterSpec extends WordSpec with Matchers {
 
           val currentTime = TimeWriter.getTime(current)
 
-          implicit val put = TransientToKeyValueIdBinder.Put
+          implicit val put = TransientToKeyValueIdBinder.PutBinder
 
           val writeResult =
             TimeWriter.write(
@@ -138,7 +138,7 @@ class TimeReaderWriterSpec extends WordSpec with Matchers {
     "write no time" in {
       keyIds foreach {
         keyId =>
-          TransientToKeyValueIdBinder.all foreach {
+          TransientToKeyValueIdBinder.allBinders foreach {
             implicit adjustedEntryId =>
 
               val writeResult =
