@@ -305,6 +305,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
               compressDuplicateValues: Boolean = true,
               deleteSegmentsEventually: Boolean = false,
               applyGroupingOnCopy: Boolean = false,
+              maxProbe: Int = TestData.maxProbe,
               keyValues: Slice[Memory] = Slice.empty)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                       keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
                                                       fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter,
@@ -320,6 +321,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
         compressDuplicateValues = compressDuplicateValues,
         deleteSegmentsEventually = deleteSegmentsEventually,
+        maxProbe = maxProbe,
         applyGroupingOnCopy = applyGroupingOnCopy
       ) flatMap {
         level =>

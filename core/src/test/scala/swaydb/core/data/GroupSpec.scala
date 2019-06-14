@@ -53,6 +53,7 @@ class GroupSpec extends TestBase {
           indexCompression = randomCompression(),
           valueCompression = randomCompression(),
           falsePositiveRate = TestData.falsePositiveRate,
+          maxProbe = TestData.maxProbe,
           previous = None
         ).assertGet
 
@@ -68,6 +69,7 @@ class GroupSpec extends TestBase {
               indexCompression = randomCompression(),
               valueCompression = randomCompression(),
               falsePositiveRate = TestData.falsePositiveRate,
+              maxProbe = TestData.maxProbe,
               previous = None
             ).assertGet
         }
@@ -87,6 +89,7 @@ class GroupSpec extends TestBase {
                 indexCompression = randomCompression(),
                 valueCompression = randomCompression(),
                 falsePositiveRate = TestData.falsePositiveRate,
+                maxProbe = TestData.maxProbe,
                 previous = None
               ).assertGet
         }
@@ -105,6 +108,7 @@ class GroupSpec extends TestBase {
           indexCompression = randomCompression(),
           valueCompression = randomCompression(),
           falsePositiveRate = TestData.falsePositiveRate,
+          maxProbe = TestData.maxProbe,
           previous = None
         ).assertGet
 
@@ -149,6 +153,7 @@ class GroupSpec extends TestBase {
           indexCompression = randomCompression(),
           valueCompression = randomCompression(),
           falsePositiveRate = TestData.falsePositiveRate,
+          maxProbe = TestData.maxProbe,
           previous = None
         ).assertGet
 

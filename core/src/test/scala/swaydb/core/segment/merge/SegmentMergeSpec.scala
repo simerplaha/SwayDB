@@ -62,7 +62,7 @@ class SegmentMergeSpec extends TestBase {
         val segments = ListBuffer[ListBuffer[KeyValue.WriteOnly]](segment1, smallerLastSegment)
 
         //minSegmentSize is 70.bytes but lastSegment size is 60.bytes. Expected result should move lastSegment's KeyValues to previous segment
-        val newSegments = SegmentMerger.completeMerge(segments, 70.bytes, forMemory = false, bloomFilterFalsePositiveRate = TestData.falsePositiveRate).assertGet
+        val newSegments = SegmentMerger.completeMerge(segments, 70.bytes, forMemory = false, maxProbe = TestData.maxProbe, bloomFilterFalsePositiveRate = TestData.falsePositiveRate).assertGet
         newSegments.size shouldBe 1
 
         val newSegmentsUnzipped = unzipGroups(newSegments.head)
@@ -84,7 +84,7 @@ class SegmentMergeSpec extends TestBase {
         val segments = ListBuffer[ListBuffer[KeyValue.WriteOnly]](segment1, smallerLastSegment)
 
         //minSegmentSize is 21.bytes but lastSegment size is 12.bytes. Expected result should move lastSegment's KeyValues to previous segment
-        val newSegments = SegmentMerger.completeMerge(segments, 21.bytes, forMemory = true, bloomFilterFalsePositiveRate = TestData.falsePositiveRate).assertGet
+        val newSegments = SegmentMerger.completeMerge(segments, 21.bytes, forMemory = true, maxProbe = TestData.maxProbe, bloomFilterFalsePositiveRate = TestData.falsePositiveRate).assertGet
         newSegments.size shouldBe 1
 
         val newSegmentsUnzipped = unzipGroups(newSegments.head)
@@ -98,8 +98,21 @@ class SegmentMergeSpec extends TestBase {
       runThisParallel(100.times) {
         val segment: ListBuffer[KeyValue.WriteOnly] = ListBuffer(randomizedKeyValues(randomIntMax(5) max 1, addRandomGroups = false).toList: _*)
 
-        SegmentMerger.completeMerge(ListBuffer(segment), randomIntMax(segment.last.stats.segmentSize), forMemory = false, bloomFilterFalsePositiveRate = TestData.falsePositiveRate).assertGet.size shouldBe 1
-        SegmentMerger.completeMerge(ListBuffer(segment), randomIntMax(segment.last.stats.memorySegmentSize), forMemory = true, bloomFilterFalsePositiveRate = TestData.falsePositiveRate).assertGet.size shouldBe 1
+        SegmentMerger.completeMerge(
+          segments = ListBuffer(segment),
+          minSegmentSize = randomIntMax(segment.last.stats.segmentSize),
+          maxProbe = TestData.maxProbe,
+          forMemory = false,
+          bloomFilterFalsePositiveRate = TestData.falsePositiveRate
+        ).assertGet.size shouldBe 1
+
+        SegmentMerger.completeMerge(
+          segments = ListBuffer(segment),
+          minSegmentSize = randomIntMax(segment.last.stats.memorySegmentSize),
+          maxProbe = TestData.maxProbe,
+          forMemory = true,
+          bloomFilterFalsePositiveRate = TestData.falsePositiveRate
+        ).assertGet.size shouldBe 1
       }
     }
 
@@ -126,8 +139,31 @@ class SegmentMergeSpec extends TestBase {
         segments(3).head.key equiv newKeyValues(3).key
       }
 
-      assert(SegmentMerger.merge(newKeyValues, oldKeyValues, minSegmentSize = 1.byte, isLastLevel = false, forInMemory = false, bloomFilterFalsePositiveRate = TestData.falsePositiveRate, compressDuplicateValues = true).assertGet.toArray)
-      assert(SegmentMerger.merge(newKeyValues, oldKeyValues, minSegmentSize = 1.byte, isLastLevel = false, forInMemory = true, bloomFilterFalsePositiveRate = TestData.falsePositiveRate, compressDuplicateValues = true).assertGet.toArray)
+      assert(
+        SegmentMerger.merge(
+          newKeyValues = newKeyValues,
+          oldKeyValues = oldKeyValues,
+          minSegmentSize = 1.byte,
+          maxProbe = TestData.maxProbe,
+          isLastLevel = false,
+          forInMemory = false,
+          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+          compressDuplicateValues = true
+        ).assertGet.toArray
+      )
+
+      assert(
+        SegmentMerger.merge(
+          newKeyValues = newKeyValues,
+          oldKeyValues = oldKeyValues,
+          minSegmentSize = 1.byte,
+          maxProbe = TestData.maxProbe,
+          isLastLevel = false,
+          forInMemory = true,
+          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+          compressDuplicateValues = true
+        ).assertGet.toArray
+      )
     }
   }
 
@@ -143,6 +179,7 @@ class SegmentMergeSpec extends TestBase {
           keyValues = keyValues,
           minSegmentSize = 1.byte,
           isLastLevel = false,
+          maxProbe = TestData.maxProbe,
           forInMemory = false,
           compressDuplicateValues = true,
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate
@@ -163,6 +200,7 @@ class SegmentMergeSpec extends TestBase {
           minSegmentSize = keyValues.toTransient.last.stats.segmentSize,
           isLastLevel = false,
           forInMemory = false,
+          maxProbe = TestData.maxProbe,
           compressDuplicateValues = true,
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate
         ).assertGet
@@ -186,6 +224,7 @@ class SegmentMergeSpec extends TestBase {
           minSegmentSize = keyValues.toTransient.last.stats.memorySegmentSize,
           isLastLevel = false,
           forInMemory = true,
+          maxProbe = TestData.maxProbe,
           compressDuplicateValues = true,
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate
         ).assertGet
@@ -202,11 +241,42 @@ class SegmentMergeSpec extends TestBase {
         val fixedKeyValues = randomKeyValues(count = keyValueCount, addRandomRemoves = true, startId = Some(1))
         val oldKeyValues = randomKeyValues(count = keyValueCount, startId = Some(fixedKeyValues.head.key.readInt()), addRandomRemoves = true, addRandomRanges = true)
 
-        val mergeResultWithoutGroup = SegmentMerger.merge(fixedKeyValues, oldKeyValues, 100.mb, false, false, TestData.falsePositiveRate, compressDuplicateValues = true).assertGet
+        val mergeResultWithoutGroup =
+          SegmentMerger.merge(
+            newKeyValues = fixedKeyValues,
+            oldKeyValues = oldKeyValues,
+            minSegmentSize = 100.mb,
+            maxProbe = TestData.maxProbe,
+            isLastLevel = false,
+            forInMemory = false,
+            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+            compressDuplicateValues = true
+          ).assertGet
+
         mergeResultWithoutGroup should have size 1
 
-        val group = Transient.Group(oldKeyValues, randomCompression(), randomCompression(), TestData.falsePositiveRate, None).assertGet.toMemory
-        val mergeResultWithGroup = SegmentMerger.merge(fixedKeyValues, Slice(group), 100.mb, false, false, TestData.falsePositiveRate, compressDuplicateValues = true).assertGet
+        val group =
+          Transient.Group(
+            keyValues = oldKeyValues,
+            indexCompression = randomCompression(),
+            valueCompression = randomCompression(),
+            falsePositiveRate = TestData.falsePositiveRate,
+            previous = None,
+            maxProbe = TestData.maxProbe
+          ).assertGet.toMemory
+
+        val mergeResultWithGroup =
+          SegmentMerger.merge(
+            newKeyValues = fixedKeyValues,
+            oldKeyValues = Slice(group),
+            minSegmentSize = 100.mb,
+            maxProbe = TestData.maxProbe,
+            isLastLevel = false,
+            forInMemory = false,
+            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+            compressDuplicateValues = true
+          ).assertGet
+
         mergeResultWithGroup should have size 1
 
         mergeResultWithoutGroup.head shouldBe mergeResultWithGroup.head

@@ -126,6 +126,7 @@ private[segment] case class PersistentSegment(file: DBFile,
           compressDuplicateValues: Boolean,
           removeDeletes: Boolean,
           createdInLevel: Int,
+          maxProbe: Int,
           targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
                                                                                                       groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]] =
     getAll() flatMap {
@@ -135,6 +136,7 @@ private[segment] case class PersistentSegment(file: DBFile,
           oldKeyValues = currentKeyValues,
           minSegmentSize = minSegmentSize,
           forInMemory = false,
+          maxProbe = maxProbe,
           isLastLevel = removeDeletes,
           bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
           compressDuplicateValues = compressDuplicateValues
@@ -170,6 +172,7 @@ private[segment] case class PersistentSegment(file: DBFile,
               compressDuplicateValues: Boolean,
               removeDeletes: Boolean,
               createdInLevel: Int,
+              maxProbe: Int,
               targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
                                                                                                           groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]] =
     getAll() flatMap {
@@ -179,6 +182,7 @@ private[segment] case class PersistentSegment(file: DBFile,
           minSegmentSize = minSegmentSize,
           forInMemory = false,
           isLastLevel = removeDeletes,
+          maxProbe = maxProbe,
           bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
           compressDuplicateValues = compressDuplicateValues
         ) flatMap {

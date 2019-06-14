@@ -117,7 +117,16 @@ sealed trait LevelReadSpec extends TestBase with MockFactory with Benchmark {
 
       val putKeyValues = randomPutKeyValues(keyValuesCount).toTransient
       //refresh so that if there is a compression running, this Segment will compressed.
-      val segments = TestSegment(putKeyValues).assertGet.refresh(100.mb, TestData.falsePositiveRate, compressDuplicateValues = true, removeDeletes = false, createdInLevel = 0).assertGet
+      val segments =
+        TestSegment(putKeyValues).assertGet.refresh(
+          minSegmentSize = 100.mb,
+          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+          compressDuplicateValues = true,
+          removeDeletes = false,
+          createdInLevel = 0,
+          maxProbe = TestData.maxProbe
+        ).assertGet
+
       segments should have size 1
       val segment = segments.head
 
@@ -135,7 +144,15 @@ sealed trait LevelReadSpec extends TestBase with MockFactory with Benchmark {
 
       val putKeyValues = randomPutKeyValues(keyValuesCount).toTransient
       //refresh so that if there is a compression running, this Segment will compressed.
-      val segments = TestSegment(putKeyValues).assertGet.refresh(100.mb, TestData.falsePositiveRate, true, removeDeletes = false, createdInLevel = 0).assertGet
+      val segments =
+        TestSegment(putKeyValues).assertGet.refresh(
+          minSegmentSize = 100.mb,
+          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+          compressDuplicateValues = true,
+          removeDeletes = false,
+          createdInLevel = 0,
+          maxProbe = TestData.maxProbe).assertGet
+
       segments should have size 1
       val segment = segments.head
 

@@ -90,7 +90,7 @@ class SegmentWriterReaderSpec extends TestBase {
     "write and read a group" in {
       runThis(100.times) {
         val groupKeyValues = randomizedKeyValues(keyValueCount, addRandomGroups = false)
-        val group = Transient.Group(groupKeyValues, randomCompression(), randomCompression(), TestData.falsePositiveRate, None).assertGet
+        val group = Transient.Group(groupKeyValues, randomCompression(), randomCompression(), TestData.falsePositiveRate, None, maxProbe = TestData.maxProbe).assertGet
 
         val (bytes, deadline) = SegmentWriter.write(Seq(group), 0, false, TestData.maxProbe, TestData.falsePositiveRate).assertGet
         bytes.isFull shouldBe true
@@ -103,10 +103,10 @@ class SegmentWriterReaderSpec extends TestBase {
     "write two sibling groups" in {
       runThis(100.times) {
         val group1KeyValues = randomizedKeyValues(keyValueCount)
-        val group1 = Transient.Group(group1KeyValues, randomCompression(), randomCompression(), TestData.falsePositiveRate, None).assertGet
+        val group1 = Transient.Group(group1KeyValues, randomCompression(), randomCompression(), TestData.falsePositiveRate, None, maxProbe = TestData.maxProbe).assertGet
 
         val group2KeyValues = randomizedKeyValues(keyValueCount, startId = Some(group1.maxKey.maxKey.readInt() + 1))
-        val group2 = Transient.Group(group2KeyValues, randomCompression(), randomCompression(), TestData.falsePositiveRate, Some(group1)).assertGet
+        val group2 = Transient.Group(group2KeyValues, randomCompression(), randomCompression(), TestData.falsePositiveRate, Some(group1), maxProbe = TestData.maxProbe).assertGet
 
         val (bytes, deadline) = SegmentWriter.write(Seq(group1, group2), 0, false, TestData.maxProbe, TestData.falsePositiveRate).assertGet
         bytes.isFull shouldBe true
@@ -122,17 +122,17 @@ class SegmentWriterReaderSpec extends TestBase {
     "write child groups to a root group" in {
       runThis(100.times) {
         val group1KeyValues = randomizedKeyValues(keyValueCount)
-        val group1 = Transient.Group(group1KeyValues, randomCompression(), randomCompressionLZ4OrSnappy(Double.MinValue), TestData.falsePositiveRate, None).assertGet
+        val group1 = Transient.Group(group1KeyValues, randomCompression(), randomCompressionLZ4OrSnappy(Double.MinValue), TestData.falsePositiveRate, None, maxProbe = TestData.maxProbe).assertGet
 
         val group2KeyValues = randomizedKeyValues(keyValueCount, startId = Some(group1.maxKey.maxKey.readInt() + 1))
-        val group2 = Transient.Group(group2KeyValues, randomCompressionLZ4OrSnappy(Double.MinValue), randomCompression(), TestData.falsePositiveRate, Some(group1)).assertGet
+        val group2 = Transient.Group(group2KeyValues, randomCompressionLZ4OrSnappy(Double.MinValue), randomCompression(), TestData.falsePositiveRate, Some(group1), maxProbe = TestData.maxProbe).assertGet
 
         val group3KeyValues = randomizedKeyValues(keyValueCount, startId = Some(group2.maxKey.maxKey.readInt() + 1))
-        val group3 = Transient.Group(group3KeyValues, randomCompression(), randomCompressionLZ4OrSnappy(Double.MinValue), TestData.falsePositiveRate, Some(group2)).assertGet
+        val group3 = Transient.Group(group3KeyValues, randomCompression(), randomCompressionLZ4OrSnappy(Double.MinValue), TestData.falsePositiveRate, Some(group2), maxProbe = TestData.maxProbe).assertGet
 
         //root group
         val group4KeyValues = Seq(group1, group2, group3).updateStats
-        val group4 = Transient.Group(group4KeyValues, randomCompression(), randomCompression(), TestData.falsePositiveRate, None).assertGet
+        val group4 = Transient.Group(group4KeyValues, randomCompression(), randomCompression(), TestData.falsePositiveRate, None, maxProbe = TestData.maxProbe).assertGet
 
         val bytes = SegmentWriter.write(Seq(group4), 0, false, TestData.maxProbe, TestData.falsePositiveRate).assertGet._1
         bytes.isFull shouldBe true
@@ -152,7 +152,7 @@ class SegmentWriterReaderSpec extends TestBase {
     "converting large KeyValues to bytes" in {
       runThis(10.times) {
         //increase the size of value to test it on larger values.
-        val keyValues = randomizedKeyValues(valueSize = 1.kb, count = 100)
+        val keyValues = randomizedKeyValues(valueSize = 1.kb, count = 100, startId = Some(0))
 
         val (bytes, _) = SegmentWriter.write(keyValues, 0, false, TestData.maxProbe, TestData.falsePositiveRate).assertGet
         bytes.isFull shouldBe true
@@ -297,7 +297,14 @@ class SegmentWriterReaderSpec extends TestBase {
           Slice(
             randomFixedKeyValue(1).toTransient,
             randomFixedKeyValue(2).toTransient,
-            Transient.Group(Slice(randomFixedKeyValue(10), randomRangeKeyValue(12, 15, rangeValue = Value.update(1))).toTransient, randomCompression(), randomCompression(), TestData.falsePositiveRate, None).assertGet
+            Transient.Group(
+              keyValues = Slice(randomFixedKeyValue(10), randomRangeKeyValue(12, 15, rangeValue = Value.update(1))).toTransient,
+              indexCompression = randomCompression(),
+              valueCompression = randomCompression(),
+              falsePositiveRate = TestData.falsePositiveRate,
+              previous = None,
+              maxProbe = TestData.maxProbe
+            ).assertGet
           ).updateStats
         )
       }
@@ -363,6 +370,7 @@ class SegmentWriterReaderSpec extends TestBase {
               indexCompression = keyCompression,
               valueCompression = valueCompression,
               falsePositiveRate = TestData.falsePositiveRate,
+              maxProbe = TestData.maxProbe,
               previous = None
             ).assertGet
           ).updateStats
@@ -381,7 +389,14 @@ class SegmentWriterReaderSpec extends TestBase {
           randomFunctionKeyValue(4).toTransient,
           Transient.remove(Int.MaxValue - 1000),
           Transient.Range.create[FromValue, RangeValue](Int.MaxValue - 900, Int.MaxValue - 800, None, Value.update(10)),
-          Transient.Group(Slice(randomPutKeyValue(Int.MaxValue - 600, Some("val")), randomRangeKeyValue(Int.MaxValue - 500, Int.MaxValue - 400, rangeValue = Value.remove(None))).toTransient, randomCompression(), randomCompression(), TestData.falsePositiveRate, None).assertGet
+          Transient.Group(
+            keyValues = Slice(randomPutKeyValue(Int.MaxValue - 600, Some("val")), randomRangeKeyValue(Int.MaxValue - 500, Int.MaxValue - 400, rangeValue = Value.remove(None))).toTransient,
+            indexCompression = randomCompression(),
+            valueCompression = randomCompression(),
+            falsePositiveRate = TestData.falsePositiveRate,
+            previous = None,
+            maxProbe = TestData.maxProbe
+          ).assertGet
         ).updateStats
 
       val (writtenBytes, _) = SegmentWriter.write(keyValues, 0, false, TestData.maxProbe, TestData.falsePositiveRate).assertGet

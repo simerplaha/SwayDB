@@ -70,6 +70,7 @@ sealed trait SegmentGrouper_GroupGroups_Spec extends TestBase {
           groupKeyValues = ListBuffer.empty,
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           force = force,
+          maxProbe = TestData.maxProbe,
           groupingStrategy =
             if (useCount)
               GroupGroupingStrategyInternal.Count(
@@ -102,6 +103,7 @@ sealed trait SegmentGrouper_GroupGroups_Spec extends TestBase {
             groupKeyValues = mutableKeyValues,
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             force = force,
+            maxProbe = TestData.maxProbe,
             groupingStrategy =
               if (useCount)
                 GroupGroupingStrategyInternal.Count(
@@ -141,6 +143,7 @@ sealed trait SegmentGrouper_GroupGroups_Spec extends TestBase {
           groupKeyValues = mutableKeyValues,
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           force = force,
+          maxProbe = TestData.maxProbe,
           groupingStrategy =
             if (useCount)
               GroupGroupingStrategyInternal.Count(
@@ -170,6 +173,7 @@ sealed trait SegmentGrouper_GroupGroups_Spec extends TestBase {
               groupKeyValues = mutableKeyValues,
               bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
               force = force,
+              maxProbe = TestData.maxProbe,
               groupingStrategy =
                 if (useCount)
                   GroupGroupingStrategyInternal.Count(
@@ -207,6 +211,7 @@ sealed trait SegmentGrouper_GroupGroups_Spec extends TestBase {
                 groupKeyValues = mutableKeyValues,
                 bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
                 force = force,
+                maxProbe = TestData.maxProbe,
                 groupingStrategy =
                   if (useCount)
                     GroupGroupingStrategyInternal.Count(
@@ -249,6 +254,7 @@ sealed trait SegmentGrouper_GroupGroups_Spec extends TestBase {
             groupKeyValues = mutableKeyValues,
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             force = force,
+            maxProbe = TestData.maxProbe,
             groupingStrategy =
               if (useCount)
                 GroupGroupingStrategyInternal.Count(

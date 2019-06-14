@@ -44,6 +44,7 @@ private[core] object SegmentMerger extends LazyLogging {
   @tailrec
   def completeMerge(segments: ListBuffer[ListBuffer[KeyValue.WriteOnly]],
                     minSegmentSize: Long,
+                    maxProbe: Int,
                     forMemory: Boolean,
                     bloomFilterFalsePositiveRate: Double,
                     groupLastSegment: Boolean = true)(implicit groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[ListBuffer[ListBuffer[KeyValue.WriteOnly]]] = {
@@ -71,6 +72,7 @@ private[core] object SegmentMerger extends LazyLogging {
               segmentKeyValues = lastSegmentsKeyValues,
               bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
               groupingStrategy = groupingS,
+              maxProbe = maxProbe,
               force = true
             ) match {
               case IO.Success(Some(_)) => //grouping occurred.
@@ -78,6 +80,7 @@ private[core] object SegmentMerger extends LazyLogging {
                 completeMerge(
                   segments = noSmallSegments,
                   minSegmentSize = minSegmentSize,
+                  maxProbe = maxProbe,
                   forMemory = forMemory,
                   bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
                   groupLastSegment = false
@@ -101,6 +104,7 @@ private[core] object SegmentMerger extends LazyLogging {
             minSegmentSize: Long,
             isLastLevel: Boolean,
             forInMemory: Boolean,
+            maxProbe: Int,
             bloomFilterFalsePositiveRate: Double,
             compressDuplicateValues: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                               groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Iterable[Iterable[KeyValue.WriteOnly]]] = {
@@ -110,6 +114,7 @@ private[core] object SegmentMerger extends LazyLogging {
         SegmentGrouper.addKeyValue(
           keyValueToAdd = keyValue,
           splits = splits,
+          maxProbe = maxProbe,
           minSegmentSize = minSegmentSize,
           forInMemory = forInMemory,
           isLastLevel = isLastLevel,
@@ -121,6 +126,7 @@ private[core] object SegmentMerger extends LazyLogging {
         completeMerge(
           segments = splits,
           minSegmentSize = minSegmentSize,
+          maxProbe = maxProbe,
           forMemory = forInMemory,
           bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate
         )
@@ -146,6 +152,7 @@ private[core] object SegmentMerger extends LazyLogging {
       minSegmentSize = Int.MaxValue,
       isLastLevel = false,
       forInMemory = true,
+      maxProbe = -1,
       bloomFilterFalsePositiveRate = 0.01,
       compressDuplicateValues = false
     ).get.flatten.asInstanceOf[ListBuffer[KeyValue.WriteOnly]]
@@ -161,6 +168,7 @@ private[core] object SegmentMerger extends LazyLogging {
       minSegmentSize = Int.MaxValue,
       isLastLevel = false,
       forInMemory = true,
+      maxProbe = -1,
       bloomFilterFalsePositiveRate = 0.01,
       compressDuplicateValues = false
     ).get.flatten.asInstanceOf[ListBuffer[KeyValue.WriteOnly]]
@@ -168,6 +176,7 @@ private[core] object SegmentMerger extends LazyLogging {
   def merge(newKeyValues: Slice[KeyValue.ReadOnly],
             oldKeyValues: Slice[KeyValue.ReadOnly],
             minSegmentSize: Long,
+            maxProbe: Int,
             isLastLevel: Boolean,
             forInMemory: Boolean,
             bloomFilterFalsePositiveRate: Double,
@@ -181,6 +190,7 @@ private[core] object SegmentMerger extends LazyLogging {
       splits = ListBuffer[ListBuffer[KeyValue.WriteOnly]](ListBuffer.empty),
       minSegmentSize = minSegmentSize,
       isLastLevel = isLastLevel,
+      maxProbe = maxProbe,
       forInMemory = forInMemory,
       bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
       compressDuplicateValues = compressDuplicateValues
@@ -189,6 +199,7 @@ private[core] object SegmentMerger extends LazyLogging {
         completeMerge(
           segments = splits,
           minSegmentSize = minSegmentSize,
+          maxProbe = maxProbe,
           forMemory = forInMemory,
           bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate
         )
@@ -200,6 +211,7 @@ private[core] object SegmentMerger extends LazyLogging {
                     minSegmentSize: Long,
                     isLastLevel: Boolean,
                     forInMemory: Boolean,
+                    maxProbe: Int,
                     bloomFilterFalsePositiveRate: Double,
                     compressDuplicateValues: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                       timeOrder: TimeOrder[Slice[Byte]],
@@ -215,6 +227,7 @@ private[core] object SegmentMerger extends LazyLogging {
         minSegmentSize = minSegmentSize,
         forInMemory = forInMemory,
         isLastLevel = isLastLevel,
+        maxProbe = maxProbe,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
         compressDuplicateValues = compressDuplicateValues
       )

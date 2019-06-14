@@ -57,13 +57,16 @@ private[core] object KeyValueWriter {
                                      enablePrefixCompression: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]): KeyValueWriter.Result =
     current.previous flatMap {
       previous =>
-        writeCompressed(
-          current = current,
-          previous = previous,
-          currentTime = currentTime,
-          compressDuplicateValues = compressDuplicateValues,
-          enablePrefixCompression = enablePrefixCompression
-        )
+        if (enablePrefixCompression)
+          writeCompressed(
+            current = current,
+            previous = previous,
+            currentTime = currentTime,
+            compressDuplicateValues = compressDuplicateValues,
+            enablePrefixCompression = enablePrefixCompression
+          )
+        else
+          None
     } getOrElse {
       writeUncompressed(
         current = current,

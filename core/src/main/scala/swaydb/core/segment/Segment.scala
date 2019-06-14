@@ -321,6 +321,7 @@ private[core] object Segment extends LazyLogging {
                     mmapSegmentsOnWrite: Boolean,
                     removeDeletes: Boolean,
                     minSegmentSize: Long,
+                    maxProbe: Int,
                     bloomFilterFalsePositiveRate: Double,
                     compressDuplicateValues: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                       timeOrder: TimeOrder[Slice[Byte]],
@@ -364,6 +365,7 @@ private[core] object Segment extends LazyLogging {
           mmapSegmentsOnWrite = mmapSegmentsOnWrite,
           removeDeletes = removeDeletes,
           minSegmentSize = minSegmentSize,
+          maxProbe = maxProbe,
           compressDuplicateValues = compressDuplicateValues
         )
     }
@@ -375,6 +377,7 @@ private[core] object Segment extends LazyLogging {
                     mmapSegmentsOnWrite: Boolean,
                     removeDeletes: Boolean,
                     minSegmentSize: Long,
+                    maxProbe: Int,
                     bloomFilterFalsePositiveRate: Double,
                     compressDuplicateValues: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                       timeOrder: TimeOrder[Slice[Byte]],
@@ -387,6 +390,7 @@ private[core] object Segment extends LazyLogging {
       minSegmentSize = minSegmentSize,
       isLastLevel = removeDeletes,
       forInMemory = false,
+      maxProbe = maxProbe,
       bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
       compressDuplicateValues = compressDuplicateValues
     ) flatMap {
@@ -420,6 +424,7 @@ private[core] object Segment extends LazyLogging {
                    fetchNextPath: => Path,
                    removeDeletes: Boolean,
                    minSegmentSize: Long,
+                   maxProbe: Int,
                    bloomFilterFalsePositiveRate: Double,
                    compressDuplicateValues: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                      timeOrder: TimeOrder[Slice[Byte]],
@@ -435,6 +440,7 @@ private[core] object Segment extends LazyLogging {
           removeDeletes = removeDeletes,
           createdInLevel = createdInLevel,
           minSegmentSize = minSegmentSize,
+          maxProbe = maxProbe,
           bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
           compressDuplicateValues = compressDuplicateValues
         )
@@ -445,6 +451,7 @@ private[core] object Segment extends LazyLogging {
                    removeDeletes: Boolean,
                    minSegmentSize: Long,
                    createdInLevel: Long,
+                   maxProbe: Int,
                    bloomFilterFalsePositiveRate: Double,
                    compressDuplicateValues: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                      timeOrder: TimeOrder[Slice[Byte]],
@@ -457,6 +464,7 @@ private[core] object Segment extends LazyLogging {
       minSegmentSize = minSegmentSize,
       isLastLevel = removeDeletes,
       forInMemory = true,
+      maxProbe = maxProbe,
       bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
       compressDuplicateValues = compressDuplicateValues
     ) flatMap { //recovery not required. On failure, uncommitted Segments will be GC'd as nothing holds references to them.
@@ -938,6 +946,7 @@ private[core] trait Segment extends FileLimiterItem {
           compressDuplicateValues: Boolean,
           removeDeletes: Boolean,
           createdInLevel: Int,
+          maxProbe: Int,
           targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
                                                                                                       groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]]
 
@@ -946,6 +955,7 @@ private[core] trait Segment extends FileLimiterItem {
               compressDuplicateValues: Boolean,
               removeDeletes: Boolean,
               createdInLevel: Int,
+              maxProbe: Int,
               targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
                                                                                                           groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]]
 

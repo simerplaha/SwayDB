@@ -96,6 +96,7 @@ private[segment] case class MemorySegment(path: Path,
                    compressDuplicateValues: Boolean,
                    removeDeletes: Boolean,
                    createdInLevel: Int,
+                   maxProbe: Int,
                    targetPaths: PathsDistributor)(implicit idGenerator: IDGenerator,
                                                   groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]] =
     if (deleted)
@@ -108,6 +109,7 @@ private[segment] case class MemorySegment(path: Path,
             oldKeyValues = currentKeyValues,
             minSegmentSize = minSegmentSize,
             forInMemory = true,
+            maxProbe = maxProbe,
             isLastLevel = removeDeletes,
             bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
             compressDuplicateValues = compressDuplicateValues
@@ -142,6 +144,7 @@ private[segment] case class MemorySegment(path: Path,
                        compressDuplicateValues: Boolean,
                        removeDeletes: Boolean,
                        createdInLevel: Int,
+                       maxProbe: Int,
                        targetPaths: PathsDistributor)(implicit idGenerator: IDGenerator,
                                                       groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]] =
     if (deleted)
@@ -154,6 +157,7 @@ private[segment] case class MemorySegment(path: Path,
             minSegmentSize = minSegmentSize,
             forInMemory = true,
             isLastLevel = removeDeletes,
+            maxProbe = maxProbe,
             bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
             compressDuplicateValues = compressDuplicateValues
           ) flatMap {

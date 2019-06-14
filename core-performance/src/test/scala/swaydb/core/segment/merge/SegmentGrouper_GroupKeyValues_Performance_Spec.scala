@@ -65,6 +65,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Performance_Spec extends TestBase {
           SegmentGrouper.groupKeyValues(
             segmentKeyValues = mutableKeyValues,
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+            maxProbe = TestData.maxProbe,
             force = force,
             groupingStrategy =
               if (useCount)
@@ -96,6 +97,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Performance_Spec extends TestBase {
           SegmentGrouper.groupKeyValues(
             segmentKeyValues = mutableKeyValues,
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+            maxProbe = TestData.maxProbe,
             force = force,
             groupingStrategy =
               if (useCount)

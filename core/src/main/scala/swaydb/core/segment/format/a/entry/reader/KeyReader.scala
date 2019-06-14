@@ -32,7 +32,7 @@ object KeyReader {
     indexReader.readRemaining()
 
   private def compressed(indexReader: Reader,
-                                  previous: Option[KeyValue.ReadOnly]): IO[Slice[Byte]] =
+                         previous: Option[KeyValue.ReadOnly]): IO[Slice[Byte]] =
     previous map {
       previous =>
         indexReader.readIntUnsigned() flatMap {

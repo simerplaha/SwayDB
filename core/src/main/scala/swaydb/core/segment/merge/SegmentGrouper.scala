@@ -143,13 +143,15 @@ private[merge] object SegmentGrouper extends LazyLogging {
                           lastGroup: Option[Transient.Group],
                           segmentKeyValues: ListBuffer[KeyValue.WriteOnly],
                           bloomFilterFalsePositiveRate: Double,
-                          groupingStrategy: GroupingStrategy): IO[Option[Group]] =
+                          groupingStrategy: GroupingStrategy,
+                          maxProbe: Int): IO[Option[Group]] =
     Group(
       keyValues = keyValuesToGroup,
       indexCompressions = groupingStrategy.indexCompressions,
       valueCompressions = groupingStrategy.valueCompressions,
       falsePositiveRate = bloomFilterFalsePositiveRate,
-      previous = lastGroup
+      previous = lastGroup,
+      maxProbe = maxProbe
     ) map {
       newGroup =>
         newGroup map {
@@ -169,6 +171,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
   private[segment] def groupKeyValues(segmentKeyValues: ListBuffer[KeyValue.WriteOnly],
                                       bloomFilterFalsePositiveRate: Double,
                                       groupingStrategy: KeyValueGroupingStrategyInternal,
+                                      maxProbe: Int,
                                       force: Boolean): IO[Option[Group]] =
     keyValuesToGroup(
       segmentKeyValues = segmentKeyValues,
@@ -182,7 +185,8 @@ private[merge] object SegmentGrouper extends LazyLogging {
           lastGroup = lastGroup,
           segmentKeyValues = segmentKeyValues,
           bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-          groupingStrategy = groupingStrategy
+          groupingStrategy = groupingStrategy,
+          maxProbe = maxProbe
         )
       case None =>
         IO.none
@@ -191,6 +195,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
   private[segment] def groupGroups(groupKeyValues: ListBuffer[KeyValue.WriteOnly],
                                    bloomFilterFalsePositiveRate: Double,
                                    groupingStrategy: GroupGroupingStrategyInternal,
+                                   maxProbe: Int,
                                    force: Boolean): IO[Option[Group]] =
     groupsToGroup(
       keyValues = groupKeyValues,
@@ -204,7 +209,8 @@ private[merge] object SegmentGrouper extends LazyLogging {
           lastGroup = None,
           segmentKeyValues = groupKeyValues,
           bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-          groupingStrategy = groupingStrategy
+          groupingStrategy = groupingStrategy,
+          maxProbe = maxProbe
         )
     } getOrElse IO.none
 
@@ -216,6 +222,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
   private[segment] def group(segmentKeyValues: ListBuffer[KeyValue.WriteOnly],
                              bloomFilterFalsePositiveRate: Double,
                              groupingStrategy: KeyValueGroupingStrategyInternal,
+                             maxProbe: Int,
                              force: Boolean): IO[Option[Group]] =
     for {
       keyValuesGroup <-
@@ -223,6 +230,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
           segmentKeyValues = segmentKeyValues,
           bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
           groupingStrategy = groupingStrategy,
+          maxProbe = maxProbe,
           force = force
         )
       groupsGroup <-
@@ -233,6 +241,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                 groupKeyValues = segmentKeyValues,
                 bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
                 groupingStrategy = groupingStrategy,
+                maxProbe = maxProbe,
                 force = force
               )
           } getOrElse IO.none
@@ -247,6 +256,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
   def addKeyValues(keyValues: MergeList[Memory.Range, KeyValue.ReadOnly],
                    splits: ListBuffer[ListBuffer[KeyValue.WriteOnly]],
                    minSegmentSize: Long,
+                   maxProbe: Int,
                    forInMemory: Boolean,
                    isLastLevel: Boolean,
                    bloomFilterFalsePositiveRate: Double,
@@ -265,7 +275,8 @@ private[merge] object SegmentGrouper extends LazyLogging {
                   forInMemory = forInMemory,
                   isLastLevel = isLastLevel,
                   bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-                  compressDuplicateValues = compressDuplicateValues
+                  compressDuplicateValues = compressDuplicateValues,
+                  maxProbe = maxProbe
                 )
               case IO.Failure(exception) =>
                 IO.Failure(exception)
@@ -276,6 +287,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
               keyValueToAdd = keyValue,
               splits = splits,
               minSegmentSize = minSegmentSize,
+              maxProbe = maxProbe,
               forInMemory = forInMemory,
               isLastLevel = isLastLevel,
               bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
@@ -285,6 +297,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                 addKeyValues(
                   keyValues = keyValues.dropHead(),
                   splits = splits,
+                  maxProbe = maxProbe,
                   minSegmentSize = minSegmentSize,
                   forInMemory = forInMemory,
                   isLastLevel = isLastLevel,
@@ -303,6 +316,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
   def addKeyValue(keyValueToAdd: KeyValue.ReadOnly,
                   splits: ListBuffer[ListBuffer[KeyValue.WriteOnly]],
                   minSegmentSize: Long,
+                  maxProbe: Int,
                   forInMemory: Boolean,
                   isLastLevel: Boolean,
                   bloomFilterFalsePositiveRate: Double,
@@ -352,6 +366,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                   segmentKeyValues = last,
                   bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
                   groupingStrategy = groupingStrategy,
+                  maxProbe = maxProbe,
                   force = force
                 ) map (_ => ())
             }
@@ -607,7 +622,8 @@ private[merge] object SegmentGrouper extends LazyLogging {
                 forInMemory = forInMemory,
                 isLastLevel = isLastLevel,
                 bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-                compressDuplicateValues = compressDuplicateValues
+                compressDuplicateValues = compressDuplicateValues,
+                maxProbe = maxProbe
               )
           }
       }

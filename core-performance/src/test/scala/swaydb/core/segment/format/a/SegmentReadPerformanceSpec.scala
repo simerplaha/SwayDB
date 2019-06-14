@@ -121,6 +121,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase with Benchmark {
         minSegmentSize = 1000.mb,
         isLastLevel = false,
         forInMemory = false,
+        maxProbe = TestData.maxProbe,
         bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
         compressDuplicateValues = true
       )(keyOrder = keyOrder, groupingStrategy = Some(KeyValueGroupingStrategyInternal(DefaultGroupingStrategy()))).assertGet

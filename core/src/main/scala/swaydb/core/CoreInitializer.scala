@@ -161,6 +161,7 @@ private[core] object CoreInitializer extends LazyLogging {
             nextLevel = nextLevel,
             pushForward = config.pushForward,
             appendixStorage = AppendixStorage.Memory,
+            maxProbe = 5, // todo make a config
             bloomFilterFalsePositiveRate = config.bloomFilterFalsePositiveRate,
             throttle = config.throttle,
             compressDuplicateValues = config.compressDuplicateValues,
@@ -179,6 +180,7 @@ private[core] object CoreInitializer extends LazyLogging {
                 otherDirs = config.otherDirs.map(dir => dir.copy(path = dir.path.resolve(id.toString)))
               ),
             segmentSize = config.segmentSize,
+            maxProbe = 5, //todo make a config
             nextLevel = nextLevel,
             pushForward = config.pushForward,
             appendixStorage = AppendixStorage.Persistent(config.mmapAppendix, config.appendixFlushCheckpointSize),

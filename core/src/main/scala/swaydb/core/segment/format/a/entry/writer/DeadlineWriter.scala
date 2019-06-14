@@ -106,7 +106,7 @@ private[writer] object DeadlineWriter {
                                   previousDeadline: Deadline,
                                   getDeadlineId: GetDeadlineId,
                                   plusSize: Int,
-                                  isKeyCompressed: Boolean)(implicit binder: TransientToKeyValueIdBinder[_]) =
+                                  isKeyCompressed: Boolean)(implicit binder: TransientToKeyValueIdBinder[_]): Option[Slice[Byte]] =
     compress(
       previous = previousDeadline.toBytes,
       next = currentDeadline.toBytes,

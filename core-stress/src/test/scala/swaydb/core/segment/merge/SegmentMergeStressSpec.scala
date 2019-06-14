@@ -97,7 +97,16 @@ class SegmentMergeStressSpec extends TestBase {
 
           val mergedKeyValues =
             Benchmark("Merge performance") {
-              SegmentMerger.merge(newKeyValues, oldKeyValues, 100.mb, false, false, TestData.falsePositiveRate, compressDuplicateValues = true).assertGet
+              SegmentMerger.merge(
+                newKeyValues = newKeyValues,
+                oldKeyValues = oldKeyValues,
+                minSegmentSize = 100.mb,
+                maxProbe = TestData.maxProbe,
+                isLastLevel = false,
+                forInMemory = false,
+                bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+                compressDuplicateValues = true
+              ).assertGet
             }
           mergedKeyValues should have size 1
           val head = mergedKeyValues.head.toSlice

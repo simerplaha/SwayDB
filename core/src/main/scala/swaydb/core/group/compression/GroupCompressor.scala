@@ -97,7 +97,8 @@ private[core] object GroupCompressor extends LazyLogging {
                indexCompressions: Seq[CompressionInternal],
                valueCompressions: Seq[CompressionInternal],
                falsePositiveRate: Double,
-               previous: Option[KeyValue.WriteOnly]): IO[Option[Transient.Group]] =
+               previous: Option[KeyValue.WriteOnly],
+               maxProbe: Int): IO[Option[Transient.Group]] =
     if (keyValues.isEmpty) {
       logger.error(s"Ignoring compression. Cannot compress on empty key-values")
       IO.none
@@ -124,7 +125,7 @@ private[core] object GroupCompressor extends LazyLogging {
         valuesSlice = valueBytes,
         bloomFilter = None,
         hashIndexSlice = hashIndexBytes,
-        maxProbe = 5 //todo pass as input
+        maxProbe = maxProbe
       ) flatMap {
         nearestDeadline =>
           assert(hashIndexBytes.isFull)

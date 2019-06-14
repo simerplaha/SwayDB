@@ -50,6 +50,7 @@ class GroupCompressorSpec extends TestBase {
         keyValues = Slice.empty,
         indexCompression = randomCompressionLZ4OrSnappy(Random.nextInt()),
         valueCompression = randomCompressionLZ4OrSnappy(Random.nextInt()),
+        maxProbe = TestData.maxProbe,
         falsePositiveRate = TestData.falsePositiveRate,
         previous = None
       ).assertGetOpt shouldBe empty
@@ -71,6 +72,7 @@ class GroupCompressorSpec extends TestBase {
             indexCompression = randomCompressionLZ4OrSnappy(12),
             valueCompression = randomCompressionLZ4OrSnappy(12),
             falsePositiveRate = TestData.falsePositiveRate,
+            maxProbe = TestData.maxProbe,
             previous = None
           ).assertGetOpt shouldBe empty
         }
@@ -95,6 +97,7 @@ class GroupCompressorSpec extends TestBase {
                 keyValues = Seq(keyValue).toTransient,
                 indexCompression = indexCompression,
                 valueCompression = valuesCompression,
+                maxProbe = TestData.maxProbe,
                 falsePositiveRate = TestData.falsePositiveRate,
                 previous = None
               ).assertGet,
@@ -120,6 +123,7 @@ class GroupCompressorSpec extends TestBase {
             indexCompression = randomCompressionLZ4OrSnappy(12),
             valueCompression = randomCompressionLZ4OrSnappy(12),
             falsePositiveRate = TestData.falsePositiveRate,
+            maxProbe = TestData.maxProbe,
             previous = None
           ).assertGetOpt shouldBe empty
         }
@@ -143,6 +147,7 @@ class GroupCompressorSpec extends TestBase {
                 indexCompression = indexCompression,
                 valueCompression = valuesCompression,
                 falsePositiveRate = TestData.falsePositiveRate,
+                maxProbe = TestData.maxProbe,
                 previous = None
               ).assertGet,
             expectedIndexCompressionUsed = indexCompression,
@@ -174,6 +179,7 @@ class GroupCompressorSpec extends TestBase {
                 indexCompressions = indexCompressions,
                 valueCompressions = valueCompressions,
                 falsePositiveRate = TestData.falsePositiveRate,
+                maxProbe = TestData.maxProbe,
                 previous = None
               ).assertGet,
             expectedIndexCompressionUsed = indexCompressions.last,
@@ -198,6 +204,7 @@ class GroupCompressorSpec extends TestBase {
               indexCompression = randomCompression(),
               valueCompression = randomCompression(),
               previous = None,
+              maxProbe = TestData.maxProbe,
               falsePositiveRate = TestData.falsePositiveRate
             ).assertGet
 
@@ -211,6 +218,7 @@ class GroupCompressorSpec extends TestBase {
             indexCompression = randomCompressionLZ4OrSnappy(12),
             valueCompression = randomCompressionLZ4OrSnappy(12),
             falsePositiveRate = TestData.falsePositiveRate,
+            maxProbe = TestData.maxProbe,
             previous = None
           ).assertGetOpt shouldBe empty
         }
@@ -226,6 +234,7 @@ class GroupCompressorSpec extends TestBase {
               indexCompression = randomCompression(),
               valueCompression = randomCompression(),
               falsePositiveRate = TestData.falsePositiveRate,
+              maxProbe = TestData.maxProbe,
               previous = None
             ).assertGet
 
@@ -246,6 +255,7 @@ class GroupCompressorSpec extends TestBase {
                 indexCompression = indexCompression,
                 valueCompression = valueCompression,
                 falsePositiveRate = TestData.falsePositiveRate,
+                maxProbe = TestData.maxProbe,
                 previous = None
               ).assertGet,
             expectedIndexCompressionUsed = indexCompression,
@@ -277,6 +287,7 @@ class GroupCompressorSpec extends TestBase {
                 indexCompressions = indexCompressions,
                 valueCompressions = valueCompressions,
                 falsePositiveRate = TestData.falsePositiveRate,
+                maxProbe = TestData.maxProbe,
                 previous = None
               ).assertGet,
             expectedIndexCompressionUsed = indexCompressions.last,

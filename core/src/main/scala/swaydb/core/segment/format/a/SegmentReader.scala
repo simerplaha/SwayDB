@@ -379,7 +379,7 @@ private[core] object SegmentReader extends LazyLogging {
         hashIndexStartOffset = footer.hashIndexStartOffset,
         hashIndexReader = reader,
         hashIndexSize = footer.hashIndexEndOffset - footer.hashIndexStartOffset + 1,
-        maxProbe = 5,
+        maxProbe = 1,
         get =
           sortedIndexOffset =>
             readNextKeyValue(
@@ -391,9 +391,7 @@ private[core] object SegmentReader extends LazyLogging {
             ) map (Some(_)),
         getNext =
           previous =>
-            if (!previous.isPrefixCompressed || previous.nextIndexSize == 0)
-              IO.none
-            else
+            if (previous.isPrefixCompressed && previous.nextIndexSize != 0)
               readNextKeyValue(
                 previous = previous,
                 startIndexOffset = footer.sortedIndexStartOffset,
@@ -401,6 +399,8 @@ private[core] object SegmentReader extends LazyLogging {
                 indexReader = reader,
                 valueReader = reader
               ) map (Some(_))
+            else
+              IO.none
       ) match {
         case success @ IO.Success(Some(_)) =>
           success

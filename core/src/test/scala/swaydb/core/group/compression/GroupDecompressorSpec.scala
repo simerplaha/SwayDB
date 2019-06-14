@@ -66,6 +66,7 @@ class GroupDecompressorSpec extends TestBase {
             indexCompressions = Seq(randomCompression()),
             valueCompressions = Seq(randomCompression()),
             falsePositiveRate = TestData.falsePositiveRate,
+            maxProbe = TestData.maxProbe,
             previous = None
           ).assertGet
 

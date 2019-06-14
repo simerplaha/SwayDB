@@ -65,7 +65,7 @@ object TestData {
   val allBaseEntryIds = BaseEntryIdFormatA.baseIds
 
   val falsePositiveRate: Double = 0.01
-  val maxProbe: Int = 5
+  val maxProbe: Int = 0
 
   implicit val functionStore: FunctionStore = FunctionStore.memory()
 
@@ -133,6 +133,7 @@ object TestData {
           removeDeletes = false,
           minSegmentSize = 1000.mb,
           createdInLevel = level.levelNumber,
+          maxProbe = level.maxProbe,
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           compressDuplicateValues = true
         ) flatMap {
@@ -154,6 +155,7 @@ object TestData {
           mmapSegmentsOnWrite = randomBoolean(),
           removeDeletes = false,
           minSegmentSize = 1000.mb,
+          maxProbe = level.maxProbe,
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           compressDuplicateValues = randomBoolean()
         ) flatMap {
@@ -199,6 +201,7 @@ object TestData {
                   otherDirs = level.dirs.drop(1).map(dir => Dir(dir.path, 1))
                 ),
                 appendixStorage = AppendixStorage.Persistent(mmap = true, 4.mb),
+                maxProbe = level.maxProbe,
                 segmentSize = segmentSize,
                 nextLevel = nextLevel,
                 pushForward = level.pushForward,
@@ -488,6 +491,7 @@ object TestData {
                 keyValues = group.segmentCache.getAll().assertGet.toTransient,
                 indexCompression = randomCompression(),
                 valueCompression = randomCompression(),
+                maxProbe = TestData.maxProbe,
                 falsePositiveRate = 0,
                 previous = previous
               ).assertGet
@@ -566,6 +570,7 @@ object TestData {
                 keyValues = allKeyValues,
                 indexCompression = randomCompression(),
                 valueCompression = randomCompression(),
+                maxProbe = TestData.maxProbe,
                 previous = previous,
                 falsePositiveRate = TestData.falsePositiveRate
               ).assertGet
@@ -1330,7 +1335,7 @@ object TestData {
         if (groupKeyValues.isEmpty) {
           if (randomBoolean()) key += 1
         } else {
-          Transient.Group(groupKeyValues, randomCompression(), randomCompression(), TestData.falsePositiveRate, previous = slice.lastOption).assertGetOpt match {
+          Transient.Group(groupKeyValues, randomCompression(), randomCompression(), TestData.falsePositiveRate, previous = slice.lastOption, maxProbe = TestData.maxProbe).assertGetOpt match {
             case Some(group) =>
               slice add group
               //randomly skip the Group's toKey for the next key. Next key should not be the same as toKey so add a minimum of 1 to next key.
@@ -1381,8 +1386,8 @@ object TestData {
         key = key + 1
       } else if (addPut) {
         val valueBytes = if (valueSize == 0) None else eitherOne(None, Some(randomBytesSlice(valueSize)))
-        val deadline = if (addRandomPutDeadlines) randomDeadlineOption(addRandomExpiredPutDeadlines) else None
-        slice add randomPutKeyValue(key = key: Slice[Byte], deadline = deadline, value = valueBytes).toTransient(slice.lastOption)
+//        val deadline = if (addRandomPutDeadlines) randomDeadlineOption(addRandomExpiredPutDeadlines) else None
+        slice add randomPutKeyValue(key = key: Slice[Byte], deadline = Some(randomDeadline()), value = valueBytes).toTransient(slice.lastOption)
         key = key + 1
       } else {
         key = key + 1
@@ -1419,6 +1424,7 @@ object TestData {
       keyValues = keyValues,
       indexCompression = keyCompression,
       valueCompression = valueCompression,
+      maxProbe = TestData.maxProbe,
       falsePositiveRate = falsePositiveRate,
       previous = previous
     ).assertGet

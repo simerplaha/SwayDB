@@ -76,10 +76,10 @@ private[core] object Stats {
     val thisKeyValuesIndexSizeWithoutFooter =
       Bytes.sizeOf(key.size) + key.size
 
-    def thisKeyValueIndexOffset =
+    val thisKeyValueIndexOffset =
       previousStats map {
         previous =>
-          previous.thisKeyValuesHashIndexOffset + previous.thisKeyValuesIndexSizeWithoutFooter + thisKeyValuesIndexSizeWithoutFooter
+          previous.thisKeyValueIndexOffset + previous.thisKeyValuesIndexSizeWithoutFooter
       } getOrElse 0
 
     val thisKeyValuesHashIndexOffset =
@@ -164,6 +164,7 @@ private[core] object Stats {
       thisKeyValuesSegmentSizeWithoutFooterAndHashIndex = thisKeyValuesSegmentSizeWithoutFooterAndHashIndex,
       thisKeyValuesIndexSizeWithoutFooter = thisKeyValuesIndexSizeWithoutFooter,
       thisKeyValuesHashIndexOffset = thisKeyValuesHashIndexOffset,
+      thisKeyValueIndexOffset = thisKeyValueIndexOffset,
       segmentHashIndexSize = segmentHashIndexSize,
       bloomFilterSize = optimalBloomFilterSize,
       rangeFilterSize = optimalRangeFilterSize,
@@ -191,6 +192,7 @@ private[core] case class Stats(valueLength: Int,
                                thisKeyValuesSegmentSizeWithoutFooterAndHashIndex: Int,
                                thisKeyValuesIndexSizeWithoutFooter: Int,
                                thisKeyValuesHashIndexOffset: Int,
+                               thisKeyValueIndexOffset: Int,
                                segmentHashIndexSize: Int,
                                bloomFilterSize: Int,
                                rangeFilterSize: Int,

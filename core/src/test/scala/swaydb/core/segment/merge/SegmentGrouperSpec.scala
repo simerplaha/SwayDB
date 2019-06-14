@@ -59,7 +59,16 @@ class SegmentGrouperSpec extends TestBase {
       //minSegmentSize is 69.bytes. Adding the above keyValues should create a segment of total size
       // 60 + 13 - 3 (common bytes between 2 and 3) which is over the limit = 70.bytes.
       // this should result is closing the existing segment and starting a new segment
-      SegmentGrouper.addKeyValue(keyValue, segments, 70.bytes, forInMemory = false, bloomFilterFalsePositiveRate = TestData.falsePositiveRate, isLastLevel = false, compressDuplicateValues = true)
+      SegmentGrouper.addKeyValue(
+        keyValueToAdd = keyValue,
+        splits = segments,
+        minSegmentSize = 70.bytes,
+        maxProbe = TestData.maxProbe,
+        forInMemory = false,
+        isLastLevel = false,
+        bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+        compressDuplicateValues = true
+      )
 
       //the initialSegment should be closed and a new segment should get started
       segments.size shouldBe 2
@@ -95,6 +104,7 @@ class SegmentGrouperSpec extends TestBase {
             splits = segments,
             minSegmentSize = 100.mb,
             forInMemory = Random.nextBoolean(),
+            maxProbe = TestData.maxProbe,
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             isLastLevel = false,
             compressDuplicateValues = true
@@ -136,6 +146,7 @@ class SegmentGrouperSpec extends TestBase {
             splits = segments,
             minSegmentSize = 100.mb,
             forInMemory = Random.nextBoolean(),
+            maxProbe = TestData.maxProbe,
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             isLastLevel = false,
             compressDuplicateValues = true
@@ -179,6 +190,7 @@ class SegmentGrouperSpec extends TestBase {
             splits = segments,
             minSegmentSize = 100.mb,
             forInMemory = Random.nextBoolean(),
+            maxProbe = TestData.maxProbe,
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             isLastLevel = false,
             compressDuplicateValues = true
