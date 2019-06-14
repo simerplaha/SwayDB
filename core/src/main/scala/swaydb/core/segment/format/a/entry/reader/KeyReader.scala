@@ -20,19 +20,19 @@
 package swaydb.core.segment.format.a.entry.reader
 
 import swaydb.core.data.KeyValue
-import swaydb.core.segment.format.a.entry.id.{BaseEntryId, KeyValueId}
+import swaydb.core.segment.format.a.entry.id.KeyValueId
 import swaydb.core.util.Bytes
 import swaydb.data.IO
 import swaydb.data.slice.{Reader, Slice}
 
 object KeyReader {
 
-  def uncompressed(indexReader: Reader,
-                   previous: Option[KeyValue.ReadOnly]): IO[Slice[Byte]] =
+  private def uncompressed(indexReader: Reader,
+                           previous: Option[KeyValue.ReadOnly]): IO[Slice[Byte]] =
     indexReader.readRemaining()
 
-  def partiallyCompressed(indexReader: Reader,
-                          previous: Option[KeyValue.ReadOnly]): IO[Slice[Byte]] =
+  private def partiallyCompressed(indexReader: Reader,
+                                  previous: Option[KeyValue.ReadOnly]): IO[Slice[Byte]] =
     previous map {
       previous =>
         indexReader.readIntUnsigned() flatMap {

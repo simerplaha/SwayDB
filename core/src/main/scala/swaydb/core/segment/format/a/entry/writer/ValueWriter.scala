@@ -166,7 +166,17 @@ private[writer] object ValueWriter {
     ) map {
       _ =>
         val indexEntry =
-          if (!enablePrefixCompression) {
+          if (enablePrefixCompression) {
+            //values are the same, no need to write offset & length, jump straight to deadline.
+            DeadlineWriter.write(
+              currentDeadline = current.deadline,
+              previousDeadline = current.previous.flatMap(_.deadline),
+              getDeadlineId = entryId.valueFullyCompressed.valueOffsetFullyCompressed.valueLengthFullyCompressed,
+              plusSize = plusSize,
+              enablePrefixCompression = enablePrefixCompression,
+              isKeyCompressed = isKeyUncompressed
+            )
+          } else {
             //use previous values offset but write the offset and length information.
             val currentValueOffsetUnsignedBytes = Slice.writeIntUnsigned(previous.currentStartValueOffsetPosition)
             val currentValueLengthUnsignedBytes = Slice.writeIntUnsigned(currentValue.size)
@@ -179,16 +189,6 @@ private[writer] object ValueWriter {
               isKeyCompressed = isKeyUncompressed
             ).addAll(currentValueOffsetUnsignedBytes)
               .addAll(currentValueLengthUnsignedBytes)
-          } else {
-            //values are the same, no need to write offset & length, jump straight to deadline.
-            DeadlineWriter.write(
-              currentDeadline = current.deadline,
-              previousDeadline = current.previous.flatMap(_.deadline),
-              getDeadlineId = entryId.valueFullyCompressed.valueOffsetFullyCompressed.valueLengthFullyCompressed,
-              plusSize = plusSize,
-              enablePrefixCompression = enablePrefixCompression,
-              isKeyCompressed = isKeyUncompressed
-            )
           }
         EntryWriter.Result(
           indexBytes = indexEntry,

@@ -200,6 +200,7 @@ private[core] object KeyValue {
     val isRange: Boolean
     val isGroup: Boolean
     val previous: Option[KeyValue.WriteOnly]
+    def value: Option[Slice[Byte]]
     def fullKey: Slice[Byte]
     def stats: Stats
     def deadline: Option[Deadline]
@@ -215,7 +216,6 @@ private[core] object KeyValue {
         0
       else
         currentEndValueOffsetPosition + 1
-    def value: Option[Slice[Byte]]
 
     def resetPrefixCompression: Boolean =
       Transient.resetPrefixCompression(previous)
@@ -591,12 +591,12 @@ private[core] object Transient {
     override val isRemoveRangeMayBe = false
     override val value: Option[Slice[Byte]] = None
     override val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition) =
-    EntryWriter.write(
-      current = this,
-      currentTime = time,
-      compressDuplicateValues = false,
-      enablePrefixCompression = resetPrefixCompression
-    ).unapply
+      EntryWriter.write(
+        current = this,
+        currentTime = time,
+        compressDuplicateValues = false,
+        enablePrefixCompression = resetPrefixCompression
+      ).unapply
 
     override def fullKey = key
 
@@ -924,7 +924,7 @@ private[core] object Transient {
         isGroup = isGroup,
         previous = previous,
         usePreviousHashIndexOffset = !resetPrefixCompression,
-        bloomFiltersItemCount = 2, //range's cost 2, one for fromKey and second for commonPrefix bytes.
+        bloomFiltersItemCount = 2, //ranges cost 2. One for fromKey and second for rangeFilter's common prefix bytes.
         isPut = fromValue.exists(_.isInstanceOf[Value.Put]),
         deadline = None
       )
