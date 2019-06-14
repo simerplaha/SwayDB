@@ -763,21 +763,6 @@ private[core] object Transient {
       )
   }
 
-  object PendingApply {
-    def apply(key: Slice[Byte],
-              applies: Slice[Value.Apply],
-              previous: Option[KeyValue.WriteOnly],
-              falsePositiveRate: Double,
-              compressDuplicateValues: Boolean): PendingApply =
-      new PendingApply(
-        key = key,
-        applies = applies,
-        previous = previous,
-        falsePositiveRate = falsePositiveRate,
-        compressDuplicateValues = compressDuplicateValues
-      )
-  }
-
   case class PendingApply(key: Slice[Byte],
                           applies: Slice[Value.Apply],
                           previous: Option[KeyValue.WriteOnly],
