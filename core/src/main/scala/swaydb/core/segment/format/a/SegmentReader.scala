@@ -226,6 +226,17 @@ private[core] object SegmentReader extends LazyLogging {
             IO.Failure(ex)
         }
     }
+
+  def readHashIndexHeader(reader: Reader,
+                          footer: SegmentFooter): IO[SegmentHashIndex.Header] =
+    reader
+      .moveTo(footer.hashIndexStartOffset)
+      .read(footer.hashIndexSize)
+      .flatMap {
+        bytes =>
+          SegmentHashIndex.readHeader(Reader(bytes))
+      }
+
   //all these functions are wrapper with a try catch block with get only to make it easier to read.
   def readFooter(reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[SegmentFooter] =
     try {

@@ -509,6 +509,7 @@ private[swaydb] object Memory {
         maxKey = maxKey,
         unsliceKey = false,
         getFooter = groupDecompressor.footer _,
+        getHashIndexHeader = groupDecompressor.hashIndexHeader _,
         createReader = groupDecompressor.reader _
       )
 
@@ -1540,6 +1541,7 @@ private[core] object Persistent {
         //key-values inside the group's SegmentCache will also be GC'd.
         unsliceKey = false,
         getFooter = groupDecompressor.footer _,
+        getHashIndexHeader = groupDecompressor.hashIndexHeader _,
         createReader = groupDecompressor.reader _
       )
 

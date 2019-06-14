@@ -65,7 +65,7 @@ object TestData {
   val allBaseEntryIds = BaseEntryIdFormatA.baseIds
 
   val falsePositiveRate: Double = 0.01
-  val maxProbe: Int = 0
+  val maxProbe: Int = 5
 
   implicit val functionStore: FunctionStore = FunctionStore.memory()
 

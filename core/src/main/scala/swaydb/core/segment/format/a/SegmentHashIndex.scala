@@ -185,7 +185,7 @@ object SegmentHashIndex extends LazyLogging {
     @tailrec
     def doWrite(probe: Int): IO[Boolean] =
       if (probe >= maxProbe) {
-        //println(s"Key: ${key.readInt()}: write index: miss probe: $probe")
+        println(s"Key: ${key.readInt()}: write index: miss probe: $probe")
         IO.`false`
       } else {
         val index = hashIndex(key, bytes.size, probe)
@@ -197,11 +197,11 @@ object SegmentHashIndex extends LazyLogging {
           IO {
             bytes moveWritePositionUnsafe index
             bytes addIntUnsigned indexOffsetPlusOne
-            //println(s"Key: ${key.readInt()}: write hashIndex: $index probe: $probe, sortedIndexOffset: $sortedIndexOffset, writeBytes: ${Slice.writeIntUnsigned(sortedIndexOffset)} = success")
+            println(s"Key: ${key.readInt()}: write hashIndex: $index probe: $probe, sortedIndexOffset: $sortedIndexOffset, writeBytes: ${Slice.writeIntUnsigned(sortedIndexOffset)} = success")
             true
           }
         else {
-          //println(s"Key: ${key.readInt()}: write hashIndex: $index probe: $probe, sortedIndexOffset: $sortedIndexOffset, writeBytes: ${Slice.writeIntUnsigned(sortedIndexOffset)} = failure")
+          println(s"Key: ${key.readInt()}: write hashIndex: $index probe: $probe, sortedIndexOffset: $sortedIndexOffset, writeBytes: ${Slice.writeIntUnsigned(sortedIndexOffset)} = failure")
           doWrite(probe = probe + 1)
         }
       }
@@ -235,9 +235,17 @@ object SegmentHashIndex extends LazyLogging {
 
         case none @ IO.Success(None) =>
           none
-
         case IO.Failure(error) =>
-          IO.Failure(error)
+          error.exception match {
+            case EntryReaderFailure.NoPreviousKeyValue =>
+              IO.none
+
+            case exception: IllegalArgumentException if exception.getMessage.contains("requirement failed") =>
+              IO.none
+
+            case _ =>
+              IO.Failure(error)
+          }
       }
 
     @tailrec
@@ -252,16 +260,16 @@ object SegmentHashIndex extends LazyLogging {
               doFind(probe + 1)
             else {
               //submit the indexOffset removing the add 1 offset to avoid overlapping bytes.
-              //println(s"Key: ${key.readInt()}: read hashIndex: $index probe: $probe, sortedIndex: ${possibleSortedIndexOffset - 1} = reading now!")
+              println(s"Key: ${key.readInt()}: read hashIndex: $index probe: $probe, sortedIndex: ${possibleSortedIndexOffset - 1} = reading now!")
               assertGetAndWalk(get(possibleSortedIndexOffset - 1)) match {
                 case success @ IO.Success(foundMayBe) =>
                   foundMayBe match {
                     case Some(_) =>
-                      //println(s"Key: ${key.readInt()}: read hashIndex: $index probe: $probe, sortedIndex: ${possibleSortedIndexOffset - 1} = success")
+                      println(s"Key: ${key.readInt()}: read hashIndex: $index probe: $probe, sortedIndex: ${possibleSortedIndexOffset - 1} = success")
                       success
 
                     case None =>
-                      //println(s"Key: ${key.readInt()}: read hashIndex: $index probe: $probe: sortedIndex: ${possibleSortedIndexOffset - 1} = not found")
+                      println(s"Key: ${key.readInt()}: read hashIndex: $index probe: $probe: sortedIndex: ${possibleSortedIndexOffset - 1} = not found")
                       doFind(probe + 1)
                   }
                 case IO.Failure(error) =>

@@ -152,7 +152,7 @@ class SegmentWriterReaderSpec extends TestBase {
     "converting large KeyValues to bytes" in {
       runThis(10.times) {
         //increase the size of value to test it on larger values.
-        val keyValues = randomizedKeyValues(valueSize = 1.kb, count = 100, startId = Some(0))
+        val keyValues = randomPutKeyValues(valueSize = 1.kb, count = 100, startId = Some(0)).toTransient
 
         val (bytes, _) = SegmentWriter.write(keyValues, 0, false, TestData.maxProbe, TestData.falsePositiveRate).assertGet
         bytes.isFull shouldBe true

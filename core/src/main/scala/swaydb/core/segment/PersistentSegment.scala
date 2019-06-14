@@ -31,7 +31,7 @@ import swaydb.core.io.file.DBFile
 import swaydb.core.io.reader.Reader
 import swaydb.core.level.PathsDistributor
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
-import swaydb.core.segment.format.a.{SegmentFooter, SegmentReader}
+import swaydb.core.segment.format.a.{SegmentFooter, SegmentHashIndex, SegmentReader}
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util._
 import swaydb.data.IO._
@@ -61,6 +61,7 @@ private[segment] case class PersistentSegment(file: DBFile,
   private[segment] val cache = new ConcurrentSkipListMap[Slice[Byte], Persistent](keyOrder)
 
   @volatile private[segment] var footer = Option.empty[SegmentFooter]
+  @volatile private[segment] var hashIndexHeader = Option.empty[SegmentHashIndex.Header]
 
   val segmentCache =
     new SegmentCache(
@@ -70,6 +71,7 @@ private[segment] case class PersistentSegment(file: DBFile,
       cache = cache,
       unsliceKey = true,
       getFooter = getFooter _,
+      getHashIndexHeader = getHashIndexHeader _,
       createReader = () => IO(createReader())
     )
 
@@ -215,10 +217,20 @@ private[segment] case class PersistentSegment(file: DBFile,
   def getFooter(): IO[SegmentFooter] =
     footer.map(IO.Success(_)) getOrElse {
       SegmentReader.readFooter(createReader()) map {
-        segmentFooter =>
-          footer = Some(segmentFooter)
-          segmentFooter
+        footer =>
+          this.footer = Some(footer)
+          footer
       }
+    }
+
+  def getHashIndexHeader(): IO[SegmentHashIndex.Header] =
+    getFooter() flatMap {
+      footer =>
+        SegmentReader.readHashIndexHeader(createReader(), footer) map {
+          hashIndexHeader =>
+            this.hashIndexHeader = Some(hashIndexHeader)
+            hashIndexHeader
+        }
     }
 
   override def getBloomFilter: IO[Option[BloomFilter]] =

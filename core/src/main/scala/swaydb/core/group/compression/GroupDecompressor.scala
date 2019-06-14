@@ -22,9 +22,9 @@ package swaydb.core.group.compression
 import swaydb.compression.DecompressorInternal
 import swaydb.core.group.compression.data.{GroupHeader, ValueInfo}
 import swaydb.core.io.reader.{GroupReader, Reader}
-import swaydb.core.segment.format.a.SegmentFooter
+import swaydb.core.segment.format.a.{SegmentFooter, SegmentHashIndex, SegmentReader}
 import swaydb.data.slice.Reader
-import swaydb.data.{Reserve, IO}
+import swaydb.data.{IO, Reserve}
 
 private[core] case class GroupDecompressor(private val compressedGroupReader: Reader,
                                            groupStartOffset: Int) {
@@ -180,6 +180,15 @@ private[core] case class GroupDecompressor(private val compressedGroupReader: Re
 
   def footer(): IO[SegmentFooter] =
     header().map(_.footer)
+
+  def hashIndexHeader(): IO[SegmentHashIndex.Header] =
+    footer() flatMap {
+      footer =>
+        SegmentReader.readHashIndexHeader(
+          reader = compressedGroupReader.copy(),
+          footer = footer
+        )
+    }
 
   def reader(): IO[Reader] =
     decompress()

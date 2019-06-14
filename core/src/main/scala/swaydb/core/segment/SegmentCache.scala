@@ -19,25 +19,27 @@
 
 package swaydb.core.segment
 
-import swaydb.core.util.BloomFilter
-import com.typesafe.scalalogging.LazyLogging
 import java.util.concurrent.ConcurrentSkipListMap
 import java.util.concurrent.atomic.AtomicBoolean
-import scala.annotation.tailrec
+
+import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.{Persistent, _}
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.format.a.SegmentReader._
-import swaydb.core.segment.format.a.{KeyMatcher, SegmentFooter, SegmentReader}
-import swaydb.core.util._
-import swaydb.data.{IO, MaxKey}
+import swaydb.core.segment.format.a.{KeyMatcher, SegmentFooter, SegmentHashIndex, SegmentReader}
+import swaydb.core.util.{BloomFilter, _}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Reader, Slice}
+import swaydb.data.{IO, MaxKey}
+
+import scala.annotation.tailrec
 
 private[core] class SegmentCacheInitializer(id: String,
                                             maxKey: MaxKey[Slice[Byte]],
                                             minKey: Slice[Byte],
                                             unsliceKey: Boolean,
                                             getFooter: () => IO[SegmentFooter],
+                                            getHashIndexHeader: () => IO[SegmentHashIndex.Header],
                                             createReader: () => IO[Reader]) {
   private val created = new AtomicBoolean(false)
   @volatile private var cache: SegmentCache = _
@@ -56,6 +58,7 @@ private[core] class SegmentCacheInitializer(id: String,
           cache = new ConcurrentSkipListMap[Slice[Byte], Persistent](keyOrder),
           unsliceKey = unsliceKey,
           getFooter = getFooter,
+          getHashIndexHeader = getHashIndexHeader,
           createReader = createReader
         )
       cache
@@ -70,6 +73,7 @@ private[core] class SegmentCache(id: String,
                                  cache: ConcurrentSkipListMap[Slice[Byte], Persistent],
                                  unsliceKey: Boolean,
                                  getFooter: () => IO[SegmentFooter],
+                                 getHashIndexHeader: () => IO[SegmentHashIndex.Header],
                                  createReader: () => IO[Reader])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                  keyValueLimiter: KeyValueLimiter) extends LazyLogging {
 
