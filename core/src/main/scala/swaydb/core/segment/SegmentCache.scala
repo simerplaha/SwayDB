@@ -39,7 +39,7 @@ private[core] class SegmentCacheInitializer(id: String,
                                             minKey: Slice[Byte],
                                             unsliceKey: Boolean,
                                             getFooter: () => IO[SegmentFooter],
-                                            getHashIndexHeader: () => IO[SegmentHashIndex.Header],
+                                            getHashIndexHeader: () => IO[Option[SegmentHashIndex.Header]],
                                             createReader: () => IO[Reader]) {
   private val created = new AtomicBoolean(false)
   @volatile private var cache: SegmentCache = _
@@ -73,7 +73,7 @@ private[core] class SegmentCache(id: String,
                                  cache: ConcurrentSkipListMap[Slice[Byte], Persistent],
                                  unsliceKey: Boolean,
                                  getFooter: () => IO[SegmentFooter],
-                                 getHashIndexHeader: () => IO[SegmentHashIndex.Header],
+                                 getHashIndexHeader: () => IO[Option[SegmentHashIndex.Header]],
                                  createReader: () => IO[Reader])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                  keyValueLimiter: KeyValueLimiter) extends LazyLogging {
 
@@ -149,27 +149,30 @@ private[core] class SegmentCache(id: String,
           case _ =>
             prepareGet {
               (footer, reader) =>
-                if (!footer.bloomFilter.forall(_.mightContain(key)))
-                  IO.none
-                else
-                  find(
-                    matcher = KeyMatcher.Get(key),
-                    startFrom = floorValue,
-                    reader = reader,
-                    checkHashIndex = true,
-                    footer = footer
-                  ) flatMap {
-                    case Some(response: Persistent.SegmentResponse) =>
-                      addToCache(response)
-                      IO.Success(Some(response))
-
-                    case Some(group: Persistent.Group) =>
-                      addToCache(group)
-                      group.segmentCache.get(key)
-
-                    case None =>
+                getHashIndexHeader() flatMap {
+                  hashIndexHeader =>
+                    if (!footer.bloomFilter.forall(_.mightContain(key)))
                       IO.none
-                  }
+                    else
+                      find(
+                        matcher = KeyMatcher.Get(key),
+                        startFrom = floorValue,
+                        reader = reader,
+                        hashIndexHeader = hashIndexHeader,
+                        footer = footer
+                      ) flatMap {
+                        case Some(response: Persistent.SegmentResponse) =>
+                          addToCache(response)
+                          IO.Success(Some(response))
+
+                        case Some(group: Persistent.Group) =>
+                          addToCache(group)
+                          group.segmentCache.get(key)
+
+                        case None =>
+                          IO.none
+                      }
+                }
             }
         }
     }

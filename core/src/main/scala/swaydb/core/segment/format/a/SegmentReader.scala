@@ -323,7 +323,19 @@ private[core] object SegmentReader extends LazyLogging {
   def find(matcher: KeyMatcher.Get,
            startFrom: Option[Persistent],
            reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
-    readFooter(reader) flatMap (find(matcher, startFrom, reader, checkHashIndex = true, _))
+    readFooter(reader) flatMap {
+      footer =>
+        readHashIndexHeader(reader, footer) flatMap {
+          header =>
+            find(
+              matcher = matcher,
+              startFrom = startFrom,
+              reader = reader,
+              hashIndexHeader = Some(header),
+              footer = footer
+            )
+        }
+    }
 
   def find(matcher: KeyMatcher.Lower,
            startFrom: Option[Persistent],
@@ -344,7 +356,7 @@ private[core] object SegmentReader extends LazyLogging {
         matcher = matcher,
         startFrom = startFrom,
         reader = reader,
-        checkHashIndex = false,
+        checkHashIndex = None,
         footer = footer
       )
     }
@@ -358,7 +370,7 @@ private[core] object SegmentReader extends LazyLogging {
         matcher = matcher,
         startFrom = startFrom,
         reader = reader,
-        checkHashIndex = false,
+        checkHashIndex = None,
         footer = footer
       )
     }
@@ -366,14 +378,14 @@ private[core] object SegmentReader extends LazyLogging {
   def find(matcher: KeyMatcher.Get,
            startFrom: Option[Persistent],
            reader: Reader,
-           checkHashIndex: Boolean,
+           hashIndexHeader: Option[SegmentHashIndex.Header],
            footer: SegmentFooter)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
     Catch {
       doFindSafe(
         matcher = matcher,
         startFrom = startFrom,
         reader = reader,
-        checkHashIndex = checkHashIndex,
+        checkHashIndex = hashIndexHeader,
         footer = footer
       )
     }
@@ -382,50 +394,62 @@ private[core] object SegmentReader extends LazyLogging {
   private def doFindSafe(matcher: KeyMatcher,
                          startFrom: Option[Persistent],
                          reader: Reader,
-                         checkHashIndex: Boolean,
+                         checkHashIndex: Option[SegmentHashIndex.Header],
                          footer: SegmentFooter)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
-    if (checkHashIndex && matcher.isGet)
-      SegmentHashIndex.find[Persistent](
-        key = matcher.key,
-        hashIndexStartOffset = footer.hashIndexStartOffset,
-        hashIndexReader = reader,
-        hashIndexSize = footer.hashIndexEndOffset - footer.hashIndexStartOffset + 1,
-        maxProbe = 1,
-        get =
-          sortedIndexOffset =>
-            readNextKeyValue(
-              fromPosition = footer.sortedIndexStartOffset + sortedIndexOffset,
-              startIndexOffset = footer.sortedIndexStartOffset,
-              endIndexOffset = footer.sortedIndexEndOffset,
-              indexReader = reader,
-              valueReader = reader
-            ) map (Some(_)),
-        getNext =
-          previous =>
-            if (previous.isPrefixCompressed && previous.nextIndexSize != 0)
-              readNextKeyValue(
-                previous = previous,
-                startIndexOffset = footer.sortedIndexStartOffset,
-                endIndexOffset = footer.sortedIndexEndOffset,
-                indexReader = reader,
-                valueReader = reader
-              ) map (Some(_))
-            else
-              IO.none
-      ) match {
-        case success @ IO.Success(Some(_)) =>
-          success
+    if (matcher.isGet && checkHashIndex.isDefined)
+      checkHashIndex match {
+        case Some(hashIndexHeader) =>
+          SegmentHashIndex.find[Persistent](
+            key = matcher.key,
+            hashIndexStartOffset = footer.hashIndexStartOffset,
+            hashIndexReader = reader,
+            hashIndexSize = footer.hashIndexSize,
+            maxProbe = hashIndexHeader.maxProbe,
+            get =
+              sortedIndexOffset =>
+                readNextKeyValue(
+                  fromPosition = footer.sortedIndexStartOffset + sortedIndexOffset,
+                  startIndexOffset = footer.sortedIndexStartOffset,
+                  endIndexOffset = footer.sortedIndexEndOffset,
+                  indexReader = reader,
+                  valueReader = reader
+                ) map (Some(_)),
+            getNext =
+              previous =>
+                if (previous.isPrefixCompressed && previous.nextIndexSize != 0)
+                  readNextKeyValue(
+                    previous = previous,
+                    startIndexOffset = footer.sortedIndexStartOffset,
+                    endIndexOffset = footer.sortedIndexEndOffset,
+                    indexReader = reader,
+                    valueReader = reader
+                  ) map (Some(_))
+                else
+                  IO.none
+          ) match {
+            case success @ IO.Success(Some(_)) =>
+              success
 
-        case IO.Success(None) =>
+            case IO.Success(None) =>
+              doFindSafe(
+                matcher = matcher,
+                startFrom = startFrom,
+                reader = reader,
+                checkHashIndex = None,
+                footer = footer
+              )
+            case IO.Failure(error) =>
+              IO.Failure(error)
+          }
+
+        case None =>
           doFindSafe(
             matcher = matcher,
             startFrom = startFrom,
             reader = reader,
-            checkHashIndex = false,
+            checkHashIndex = None,
             footer = footer
           )
-        case IO.Failure(error) =>
-          IO.Failure(error)
       }
     else
       startFrom match {

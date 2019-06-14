@@ -21,7 +21,6 @@ package swaydb.core.segment.format.a
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.KeyValue
-import swaydb.core.segment.format.a.entry.reader.EntryReaderFailure
 import swaydb.core.util.Bytes
 import swaydb.data.IO
 import swaydb.data.IO._
@@ -38,7 +37,7 @@ object SegmentHashIndex extends LazyLogging {
 
   val formatID: Byte = 0.toByte
 
-  private val headerSize =
+  val headerSize =
     ByteSizeOf.byte + // format ID
       ByteSizeOf.int + //max probe
       ByteSizeOf.int + //hit rate
@@ -61,7 +60,8 @@ object SegmentHashIndex extends LazyLogging {
   def optimalBytesRequired(lastKeyValuePosition: Int,
                            lastKeyValueIndexOffset: Int,
                            compensate: Int => Int): Int = {
-    val bytesWithOutCompensation = lastKeyValuePosition * Bytes.sizeOf(lastKeyValueIndexOffset + 1) //number of bytes required for hash indexes. +1 to skip 0 empty markers.
+    //number of bytes required for hash indexes. +1 to skip 0 empty markers.
+    val bytesWithOutCompensation = lastKeyValuePosition * Bytes.sizeOf(lastKeyValueIndexOffset + 1)
     val bytesRequired =
       headerSize +
         (ByteSizeOf.int + 1) + //give it another 5 bytes incase the hash index is the last index. Since varints are written a max of 5 bytes can be taken for an in with large index.
@@ -152,9 +152,9 @@ object SegmentHashIndex extends LazyLogging {
         miss = miss
       )
 
-  def hashIndex(key: Slice[Byte],
-                totalBlockSpace: Int,
-                probe: Int) = {
+  def generateHashIndex(key: Slice[Byte],
+                        totalBlockSpace: Int,
+                        probe: Int) = {
     if (totalBlockSpace <= headerSize)
       headerSize //if there are no bytes reserved for hashIndex, just return the next hashIndex to be an overflow.
     else {
@@ -185,10 +185,10 @@ object SegmentHashIndex extends LazyLogging {
     @tailrec
     def doWrite(probe: Int): IO[Boolean] =
       if (probe >= maxProbe) {
-        println(s"Key: ${key.readInt()}: write index: miss probe: $probe")
+        //println(s"Key: ${key.readInt()}: write index: miss probe: $probe")
         IO.`false`
       } else {
-        val index = hashIndex(key, bytes.size, probe)
+        val index = generateHashIndex(key, bytes.size, probe)
 
         val indexBytesRequired = Bytes.sizeOf(indexOffsetPlusOne)
         if (index + indexBytesRequired >= bytes.size)
@@ -197,11 +197,11 @@ object SegmentHashIndex extends LazyLogging {
           IO {
             bytes moveWritePositionUnsafe index
             bytes addIntUnsigned indexOffsetPlusOne
-            println(s"Key: ${key.readInt()}: write hashIndex: $index probe: $probe, sortedIndexOffset: $sortedIndexOffset, writeBytes: ${Slice.writeIntUnsigned(sortedIndexOffset)} = success")
+            //println(s"Key: ${key.readInt()}: write hashIndex: $index probe: $probe, sortedIndexOffset: $sortedIndexOffset, writeBytes: ${Slice.writeIntUnsigned(sortedIndexOffset)} = success")
             true
           }
         else {
-          println(s"Key: ${key.readInt()}: write hashIndex: $index probe: $probe, sortedIndexOffset: $sortedIndexOffset, writeBytes: ${Slice.writeIntUnsigned(sortedIndexOffset)} = failure")
+          //println(s"Key: ${key.readInt()}: write hashIndex: $index probe: $probe, sortedIndexOffset: $sortedIndexOffset, writeBytes: ${Slice.writeIntUnsigned(sortedIndexOffset)} = failure")
           doWrite(probe = probe + 1)
         }
       }
@@ -235,17 +235,16 @@ object SegmentHashIndex extends LazyLogging {
 
         case none @ IO.Success(None) =>
           none
-        case IO.Failure(error) =>
-          error.exception match {
-            case EntryReaderFailure.NoPreviousKeyValue =>
-              IO.none
 
-            case exception: IllegalArgumentException if exception.getMessage.contains("requirement failed") =>
-              IO.none
-
-            case _ =>
-              IO.Failure(error)
-          }
+        case IO.Failure(_) =>
+          //currently there is no way to detect starting point for a key-value entry in the sorted index.
+          //Read requests can be submitted to random parts of the sortedIndex depending on the index returned by the hash.
+          //Hash index also itself also does not store markers for a valid start sortedIndex offset
+          //that's why key-values can be read at random parts of the sorted index which can return failures.
+          //too many failures are not expected because probe should disallow that. And if the Segment is actually corrupted,
+          //the normal forward read of the index should catch that.
+          //HashIndex is suppose to make random reads faster, if the hashIndex is too small then there is no use creating one.
+          IO.none
       }
 
     @tailrec
@@ -253,29 +252,27 @@ object SegmentHashIndex extends LazyLogging {
       if (probe > maxProbe) {
         IO.none
       } else {
-        val index = hashIndex(key, hashIndexSize, probe)
-        hashIndexReader.moveTo(hashIndexStartOffset + index).readIntUnsigned() match {
-          case IO.Success(possibleSortedIndexOffset) =>
-            if (possibleSortedIndexOffset == 0)
-              doFind(probe + 1)
-            else {
-              //submit the indexOffset removing the add 1 offset to avoid overlapping bytes.
-              println(s"Key: ${key.readInt()}: read hashIndex: $index probe: $probe, sortedIndex: ${possibleSortedIndexOffset - 1} = reading now!")
-              assertGetAndWalk(get(possibleSortedIndexOffset - 1)) match {
-                case success @ IO.Success(foundMayBe) =>
-                  foundMayBe match {
-                    case Some(_) =>
-                      println(s"Key: ${key.readInt()}: read hashIndex: $index probe: $probe, sortedIndex: ${possibleSortedIndexOffset - 1} = success")
-                      success
+        val hashIndex = generateHashIndex(key, hashIndexSize, probe)
+        hashIndexReader.moveTo(hashIndexStartOffset + hashIndex).readIntUnsigned() match {
+          case IO.Success(possibleSortedIndexOffset) if possibleSortedIndexOffset != 0 =>
+            //submit the indexOffset removing the add 1 offset to avoid overlapping bytes.
+            //println(s"Key: ${key.readInt()}: read hashIndex: $hashIndex probe: $probe, sortedIndex: ${possibleSortedIndexOffset - 1} = reading now!")
+            assertGetAndWalk(get(possibleSortedIndexOffset - 1)) match {
+              case success @ IO.Success(Some(_)) =>
+                //println(s"Key: ${key.readInt()}: read hashIndex: $hashIndex probe: $probe, sortedIndex: ${possibleSortedIndexOffset - 1} = success")
+                success
 
-                    case None =>
-                      println(s"Key: ${key.readInt()}: read hashIndex: $index probe: $probe: sortedIndex: ${possibleSortedIndexOffset - 1} = not found")
-                      doFind(probe + 1)
-                  }
-                case IO.Failure(error) =>
-                  IO.Failure(error)
-              }
+              case IO.Success(None) =>
+                //println(s"Key: ${key.readInt()}: read hashIndex: $hashIndex probe: $probe: sortedIndex: ${possibleSortedIndexOffset - 1} = not found")
+                doFind(probe + 1)
+
+              case IO.Failure(error) =>
+                IO.Failure(error)
             }
+
+          case IO.Success(_) =>
+            doFind(probe + 1)
+
           case IO.Failure(error) =>
             IO.Failure(error)
         }

@@ -839,8 +839,8 @@ object CommonAssertions {
     SegmentReader.readAll(footer, reader.copy()).assertGet shouldBe keyValues
     //find each KeyValue using all Matchers
     assertGet(keyValues, reader.copy())
-    //    assertLower(keyValues, reader.copy())
-    //    assertHigher(keyValues, reader.copy())
+    assertLower(keyValues, reader.copy())
+    assertHigher(keyValues, reader.copy())
   }
 
   def assertGet(keyValues: Iterable[KeyValue],

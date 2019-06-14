@@ -30,6 +30,7 @@ private[core] case class GroupDecompressor(private val compressedGroupReader: Re
                                            groupStartOffset: Int) {
 
   @volatile private var groupHeader: GroupHeader = _ //header for compressed Segment info
+  @volatile private var hashIndexHeaderOption: Option[SegmentHashIndex.Header] = None //header for compressed Segment info
   @volatile private var decompressedIndexReader: GroupReader = _ //reader for keys bytes that contains function to read value bytes
   @volatile private var decompressedValuesReader: Reader = _ //value bytes reader.
 
@@ -181,13 +182,17 @@ private[core] case class GroupDecompressor(private val compressedGroupReader: Re
   def footer(): IO[SegmentFooter] =
     header().map(_.footer)
 
-  def hashIndexHeader(): IO[SegmentHashIndex.Header] =
+  def hashIndexHeader(): IO[Option[SegmentHashIndex.Header]] =
     footer() flatMap {
       footer =>
         SegmentReader.readHashIndexHeader(
           reader = compressedGroupReader.copy(),
           footer = footer
-        )
+        ) map {
+          header =>
+            this.hashIndexHeaderOption = Some(header)
+            this.hashIndexHeaderOption
+        }
     }
 
   def reader(): IO[Reader] =

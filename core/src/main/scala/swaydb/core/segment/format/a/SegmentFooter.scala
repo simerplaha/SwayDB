@@ -34,5 +34,5 @@ private[core] case class SegmentFooter(crc: Long,
                                        bloomFilterItemsCount: Int,
                                        bloomFilter: Option[BloomFilter]) {
   def hashIndexSize =
-    hashIndexEndOffset - hashIndexEndOffset
+    hashIndexEndOffset - hashIndexStartOffset + 1
 }

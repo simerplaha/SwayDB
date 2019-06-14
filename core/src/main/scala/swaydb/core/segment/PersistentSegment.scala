@@ -223,13 +223,13 @@ private[segment] case class PersistentSegment(file: DBFile,
       }
     }
 
-  def getHashIndexHeader(): IO[SegmentHashIndex.Header] =
+  def getHashIndexHeader(): IO[Option[SegmentHashIndex.Header]] =
     getFooter() flatMap {
       footer =>
         SegmentReader.readHashIndexHeader(createReader(), footer) map {
           hashIndexHeader =>
             this.hashIndexHeader = Some(hashIndexHeader)
-            hashIndexHeader
+            this.hashIndexHeader
         }
     }
 
