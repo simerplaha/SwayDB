@@ -4,9 +4,9 @@
  * This file is a part of SwayDB.
  *
  * SwayDB is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
+ *  it under the terms of the GNU Affero General Public License as
+ *  published by the Free Software Foundation, either version 3 of the
+ *  License, or (at your option) any later version.
  *
  * SwayDB is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -59,7 +59,7 @@ private[writer] object TimeWriter {
                                        entryId: BaseEntryId.Key,
                                        plusSize: Int,
                                        enablePrefixCompression: Boolean,
-                                       isKeyUncompressed: Boolean)(implicit id: TransientToKeyValueIdBinder[_]) =
+                                       isKeyUncompressed: Boolean)(implicit binder: TransientToKeyValueIdBinder[_]) =
     compress(
       previous = previousTime.time,
       next = currentTime.time,
@@ -91,7 +91,7 @@ private[writer] object TimeWriter {
                                 entryId: BaseEntryId.Key,
                                 plusSize: Int,
                                 enablePrefixCompression: Boolean,
-                                isKeyUncompressed: Boolean)(implicit id: TransientToKeyValueIdBinder[_]) = {
+                                isKeyUncompressed: Boolean)(implicit binder: TransientToKeyValueIdBinder[_]) = {
     //no common prefixes or no previous write without compression
     val writeResult =
       ValueWriter.write(
@@ -116,7 +116,7 @@ private[writer] object TimeWriter {
                      entryId: BaseEntryId.Key,
                      plusSize: Int,
                      enablePrefixCompression: Boolean,
-                     isKeyUncompressed: Boolean)(implicit id: TransientToKeyValueIdBinder[_]) =
+                     isKeyUncompressed: Boolean)(implicit binder: TransientToKeyValueIdBinder[_]) =
     ValueWriter.write(
       current = current,
       compressDuplicateValues = compressDuplicateValues,
@@ -132,7 +132,7 @@ private[writer] object TimeWriter {
                             entryId: BaseEntryId.Key,
                             enablePrefixCompression: Boolean,
                             plusSize: Int,
-                            isKeyCompressed: Boolean)(implicit id: TransientToKeyValueIdBinder[_]) =
+                            isKeyCompressed: Boolean)(implicit binder: TransientToKeyValueIdBinder[_]) =
     if (currentTime.time.nonEmpty)
       (if (enablePrefixCompression) current.previous.map(getTime) else None) flatMap {
         previousTime =>
