@@ -32,7 +32,7 @@ class BaseEntryIdSpec extends FlatSpec with Matchers {
             val otherIds = KeyValueId.keyValueId.filter(_ != id)
             otherIds should not be empty
 
-            val entryId = id.adjustBaseIdToKeyValueId(baseEntryId.baseId)
+            val entryId = id.adjustBaseIdToKeyValueIdKey_Compressed(baseEntryId.baseId)
             if (id == KeyValueId.Put) entryId shouldBe baseEntryId.baseId //not change. Put's are default.
 
             //entryId should have this entryId
@@ -42,7 +42,7 @@ class BaseEntryIdSpec extends FlatSpec with Matchers {
             otherIds.foreach(_.hasKeyValueId(entryId) shouldBe false)
 
             //bump to entryID to be uncompressed.
-            val uncompressedEntryId = id.adjustKeyValueIdToKeyUncompressed(baseEntryId.baseId)
+            val uncompressedEntryId = id.adjustBaseIdToKeyValueIdKey_UnCompressed(baseEntryId.baseId)
             uncompressedEntryId should be >= entryId
             //id should have this entryId
             id.hasKeyValueId(keyValueId = uncompressedEntryId) shouldBe true

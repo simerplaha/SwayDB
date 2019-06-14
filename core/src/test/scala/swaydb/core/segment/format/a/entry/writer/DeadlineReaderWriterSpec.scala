@@ -99,21 +99,26 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
         deadlineID: BaseEntryId.GetDeadlineId =>
           TransientToKeyValueIdBinder.allBinders foreach { //for all key-values
             implicit binder =>
-              val deadline = 10.seconds.fromNow
-              val deadlineBytes =
-                DeadlineWriter.uncompressed(
-                  currentDeadline = deadline,
-                  getDeadlineId = deadlineID,
-                  plusSize = 0,
-                  isKeyCompressed = false
-                )
+              def doAssert(isKeyCompressed: Boolean) = {
+                val deadline = 10.seconds.fromNow
+                val deadlineBytes =
+                  DeadlineWriter.uncompressed(
+                    currentDeadline = deadline,
+                    getDeadlineId = deadlineID,
+                    plusSize = 0,
+                    isKeyCompressed = isKeyCompressed
+                  )
 
-              val reader = Reader(deadlineBytes)
+                val reader = Reader(deadlineBytes)
 
-              val expectedKeyValueId = binder.keyValueId.adjustBaseIdToKeyValueIdAndKeyUncompressed(deadlineID.deadlineUncompressed.baseId)
+                val expectedKeyValueId = binder.keyValueId.adjustBaseIdToKeyValueIdKey(deadlineID.deadlineUncompressed.baseId, isKeyCompressed)
 
-              reader.readIntUnsigned().get shouldBe expectedKeyValueId
-              DeadlineReader.DeadlineUncompressedReader.read(reader, None).get should contain(deadline)
+                reader.readIntUnsigned().get shouldBe expectedKeyValueId
+                DeadlineReader.DeadlineUncompressedReader.read(reader, None).get should contain(deadline)
+              }
+
+              doAssert(true)
+              doAssert(false)
           }
       }
     }
@@ -149,44 +154,58 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
                   val currentDeadline = Deadline(currentDeadlineBytes)
                   val previousDeadline = Deadline(previousDeadlineBytes)
 
-                  val deadlineBytes =
-                    DeadlineWriter.tryCompress(
-                      currentDeadline = currentDeadline,
-                      previousDeadline = previousDeadline,
-                      getDeadlineId = deadlineID,
-                      plusSize = 0,
-                      isKeyCompressed = false
-                    )
+                  //test with both when the key is compressed and uncompressed.
+                  def doAssert(compressedKey: Boolean) = {
+                    val deadlineBytes =
+                      DeadlineWriter.tryCompress(
+                        currentDeadline = currentDeadline,
+                        previousDeadline = previousDeadline,
+                        getDeadlineId = deadlineID,
+                        plusSize = 0,
+                        isKeyCompressed = compressedKey
+                      )
 
-                  deadlineBytes shouldBe defined
+                    deadlineBytes shouldBe defined
 
-                  val reader = Reader(deadlineBytes.get)
+                    val reader = Reader(deadlineBytes.get)
 
-                  val (expectedEntryID, deadlineReader: DeadlineReader[_]) =
-                    if (commonBytes == 1)
-                      (binder.keyValueId.adjustBaseIdToKeyValueId(deadlineID.deadlineOneCompressed.baseId), DeadlineReader.DeadlineOneCompressedReader)
-                    else if (commonBytes == 2)
-                      (binder.keyValueId.adjustBaseIdToKeyValueId(deadlineID.deadlineTwoCompressed.baseId), DeadlineReader.DeadlineTwoCompressedReader)
-                    else if (commonBytes == 3)
-                      (binder.keyValueId.adjustBaseIdToKeyValueId(deadlineID.deadlineThreeCompressed.baseId), DeadlineReader.DeadlineThreeCompressedReader)
-                    else if (commonBytes == 4)
-                      (binder.keyValueId.adjustBaseIdToKeyValueId(deadlineID.deadlineFourCompressed.baseId), DeadlineReader.DeadlineFourCompressedReader)
-                    else if (commonBytes == 5)
-                      (binder.keyValueId.adjustBaseIdToKeyValueId(deadlineID.deadlineFiveCompressed.baseId), DeadlineReader.DeadlineFiveCompressedReader)
-                    else if (commonBytes == 6)
-                      (binder.keyValueId.adjustBaseIdToKeyValueId(deadlineID.deadlineSixCompressed.baseId), DeadlineReader.DeadlineSixCompressedReader)
-                    else if (commonBytes == 7)
-                      (binder.keyValueId.adjustBaseIdToKeyValueId(deadlineID.deadlineSevenCompressed.baseId), DeadlineReader.DeadlineSevenCompressedReader)
-                    else if (commonBytes == 8)
-                      (binder.keyValueId.adjustBaseIdToKeyValueId(deadlineID.deadlineFullyCompressed.baseId), DeadlineReader.DeadlineFullyCompressedReader)
+                    def keyValueIdAdjuster(baseId: Int) =
+                      if (compressedKey)
+                        binder.keyValueId.adjustBaseIdToKeyValueIdKey_Compressed(baseId)
+                      else
+                        binder.keyValueId.adjustBaseIdToKeyValueIdKey_UnCompressed(baseId)
 
-                  reader.readIntUnsigned().get shouldBe expectedEntryID
+                    val (expectedKeyValueId: Int, deadlineReader: DeadlineReader[_]) =
+                      if (commonBytes == 1)
+                        (keyValueIdAdjuster(deadlineID.deadlineOneCompressed.baseId), DeadlineReader.DeadlineOneCompressedReader)
+                      else if (commonBytes == 2)
+                        (keyValueIdAdjuster(deadlineID.deadlineTwoCompressed.baseId), DeadlineReader.DeadlineTwoCompressedReader)
+                      else if (commonBytes == 3)
+                        (keyValueIdAdjuster(deadlineID.deadlineThreeCompressed.baseId), DeadlineReader.DeadlineThreeCompressedReader)
+                      else if (commonBytes == 4)
+                        (keyValueIdAdjuster(deadlineID.deadlineFourCompressed.baseId), DeadlineReader.DeadlineFourCompressedReader)
+                      else if (commonBytes == 5)
+                        (keyValueIdAdjuster(deadlineID.deadlineFiveCompressed.baseId), DeadlineReader.DeadlineFiveCompressedReader)
+                      else if (commonBytes == 6)
+                        (keyValueIdAdjuster(deadlineID.deadlineSixCompressed.baseId), DeadlineReader.DeadlineSixCompressedReader)
+                      else if (commonBytes == 7)
+                        (keyValueIdAdjuster(deadlineID.deadlineSevenCompressed.baseId), DeadlineReader.DeadlineSevenCompressedReader)
+                      else if (commonBytes == 8)
+                        (keyValueIdAdjuster(deadlineID.deadlineFullyCompressed.baseId), DeadlineReader.DeadlineFullyCompressedReader)
+                      else
+                        fail("Cannot have more than 8 common bytes")
 
-                  deadlineReader
-                    .read(
-                      indexReader = reader,
-                      previous = Some(randomPutKeyValue(key = 1, deadline = Some(previousDeadline)))
-                    ).get should contain(currentDeadline)
+                    reader.readIntUnsigned().get shouldBe expectedKeyValueId
+
+                    deadlineReader
+                      .read(
+                        indexReader = reader,
+                        previous = Some(randomPutKeyValue(key = 1, deadline = Some(previousDeadline)))
+                      ).get should contain(currentDeadline)
+                  }
+
+                  doAssert(compressedKey = true)
+                  doAssert(compressedKey = false)
               }
           }
       }
@@ -199,19 +218,24 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
         deadlineID: BaseEntryId.GetDeadlineId =>
           TransientToKeyValueIdBinder.allBinders foreach { //for all key-values
             implicit binder =>
-              val deadlineBytes =
-                DeadlineWriter.noDeadline(
-                  getDeadlineId = deadlineID,
-                  plusSize = 0,
-                  isKeyCompressed = false
-                )
+              def doAssert(isKeyCompressed: Boolean) = {
+                val deadlineBytes =
+                  DeadlineWriter.noDeadline(
+                    getDeadlineId = deadlineID,
+                    plusSize = 0,
+                    isKeyCompressed = isKeyCompressed
+                  )
 
-              val reader = Reader(deadlineBytes)
+                val reader = Reader(deadlineBytes)
 
-              val expectedEntryID = binder.keyValueId.adjustBaseIdToKeyValueId(deadlineID.noDeadline.baseId)
+                val expectedEntryID = binder.keyValueId.adjustBaseIdToKeyValueIdKey(deadlineID.noDeadline.baseId, isKeyCompressed)
 
-              reader.readIntUnsigned().get shouldBe expectedEntryID
-              DeadlineReader.NoDeadlineReader.read(reader, None).get shouldBe empty
+                reader.readIntUnsigned().get shouldBe expectedEntryID
+                DeadlineReader.NoDeadlineReader.read(reader, None).get shouldBe empty
+              }
+
+              doAssert(true)
+              doAssert(false)
           }
       }
     }

@@ -78,7 +78,7 @@ class TimeReaderWriterSpec extends WordSpec with Matchers {
 
               val reader = Reader(writeResult.indexBytes)
 
-              val expectedEntryID = put.keyValueId.adjustBaseIdToKeyValueId(keyId.timePartiallyCompressed.noValue.noDeadline.baseId)
+              val expectedEntryID = put.keyValueId.adjustBaseIdToKeyValueIdKey_Compressed(keyId.timePartiallyCompressed.noValue.noDeadline.baseId)
               reader.readIntUnsigned().get shouldBe expectedEntryID
 
               TimeReader.PartiallyCompressedTimeReader.read(
@@ -118,7 +118,7 @@ class TimeReaderWriterSpec extends WordSpec with Matchers {
 
           val reader = Reader(writeResult.indexBytes)
 
-          val expectedEntryID = put.keyValueId.adjustBaseIdToKeyValueId(keyId.timeUncompressed.noValue.noDeadline.baseId)
+          val expectedEntryID = put.keyValueId.adjustBaseIdToKeyValueIdKey_Compressed(keyId.timeUncompressed.noValue.noDeadline.baseId)
           reader.readIntUnsigned().get shouldBe expectedEntryID
 
           TimeReader.UnCompressedTimeReader.read(
@@ -154,7 +154,7 @@ class TimeReaderWriterSpec extends WordSpec with Matchers {
 
               val reader = Reader(writeResult.indexBytes)
 
-              val expectedEntryID = adjustedEntryId.keyValueId.adjustBaseIdToKeyValueId(keyId.noTime.noValue.noDeadline.baseId)
+              val expectedEntryID = adjustedEntryId.keyValueId.adjustBaseIdToKeyValueIdKey_Compressed(keyId.noTime.noValue.noDeadline.baseId)
               reader.readIntUnsigned().get shouldBe expectedEntryID
 
               TimeReader.NoTimeReader.read(

@@ -4,9 +4,9 @@
  * This file is a part of SwayDB.
  *
  * SwayDB is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
+ *  it under the terms of the GNU Affero General Public License as
+ *  published by the Free Software Foundation, either version 3 of the
+ *  License, or (at your option) any later version.
  *
  * SwayDB is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -57,11 +57,7 @@ private[writer] object DeadlineWriter {
     //if previous deadline bytes do not exist or minimum compression was not met then write uncompressed deadline.
     val currentDeadlineUnsignedBytes = currentDeadline.toLongUnsignedBytes
     val deadlineId = getDeadlineId.deadlineUncompressed.baseId
-    val adjustedToEntryIdDeadlineId =
-      if (isKeyCompressed)
-        id.keyValueId.adjustBaseIdToKeyValueId(deadlineId)
-      else
-        id.keyValueId.adjustBaseIdToKeyValueIdAndKeyUncompressed(deadlineId)
+    val adjustedToEntryIdDeadlineId = id.keyValueId.adjustBaseIdToKeyValueIdKey(deadlineId, isKeyCompressed)
 
     Slice.create[Byte](sizeOf(adjustedToEntryIdDeadlineId) + currentDeadlineUnsignedBytes.size + plusSize)
       .addIntUnsigned(adjustedToEntryIdDeadlineId)
@@ -81,11 +77,7 @@ private[writer] object DeadlineWriter {
       case (deadlineCommonBytes, deadlineCompressedBytes) =>
 
         val deadlineId = applyDeadlineId(deadlineCommonBytes, getDeadlineId).baseId
-        val adjustedToEntryIdDeadlineId =
-          if (isKeyCompressed)
-            id.keyValueId.adjustBaseIdToKeyValueId(deadlineId)
-          else
-            id.keyValueId.adjustBaseIdToKeyValueIdAndKeyUncompressed(deadlineId)
+        val adjustedToEntryIdDeadlineId = id.keyValueId.adjustBaseIdToKeyValueIdKey(deadlineId, isKeyCompressed)
 
         Slice.create[Byte](sizeOf(adjustedToEntryIdDeadlineId) + deadlineCompressedBytes.size + plusSize)
           .addIntUnsigned(adjustedToEntryIdDeadlineId)
@@ -97,11 +89,7 @@ private[writer] object DeadlineWriter {
                                  isKeyCompressed: Boolean)(implicit id: TransientToKeyValueIdBinder[_]) = {
     //if current key-value has no deadline.
     val deadlineId = getDeadlineId.noDeadline.baseId
-    val adjustedToEntryIdDeadlineId =
-      if (isKeyCompressed)
-        id.keyValueId.adjustBaseIdToKeyValueId(deadlineId)
-      else
-        id.keyValueId.adjustBaseIdToKeyValueIdAndKeyUncompressed(deadlineId)
+    val adjustedToEntryIdDeadlineId = id.keyValueId.adjustBaseIdToKeyValueIdKey(deadlineId, isKeyCompressed)
 
     Slice.create[Byte](sizeOf(adjustedToEntryIdDeadlineId) + plusSize)
       .addIntUnsigned(adjustedToEntryIdDeadlineId)

@@ -57,26 +57,30 @@ sealed trait KeyValueId {
   //instead of wrapping in IO for performance throw exception as this is not expected to occur.
   //if it does then it will be caught higher up in SegmentReader before responding the user.
 
-  def adjustBaseIdToKeyValueId(baseId: Int): Int =
+  def adjustBaseIdToKeyValueIdKey(baseId: Int, keyCompressed: Boolean) =
+    if (keyCompressed)
+      adjustBaseIdToKeyValueIdKey_Compressed(baseId)
+    else
+      adjustBaseIdToKeyValueIdKey_UnCompressed(baseId)
+
+  //the _ is to highlight that this will return an uncompressed id. There used to be a type-safe way to handle this!
+  def adjustBaseIdToKeyValueIdKey_Compressed(baseId: Int): Int =
     if (minKeyPartiallyCompressedEntryId == KeyValueId.Put.minKeyPartiallyCompressedEntryId) //if it's put the ids are the same as base entry.
       if (isKeyValueIdPartiallyCompressedKey(baseId))
         baseId
-      else if (isKeyValueIdUncompressedKey(baseId + minKeyUncompressedEntryId))
-        baseId + minKeyUncompressedEntryId
       else
         throw new Exception(s"Int id: $baseId does not belong to ${this.getClass.getSimpleName} ")
     else if (isKeyValueIdPartiallyCompressedKey(baseId + minKeyPartiallyCompressedEntryId))
       baseId + minKeyPartiallyCompressedEntryId
-    else if (isKeyValueIdUncompressedKey(baseId + minKeyUncompressedEntryId))
+    else
+      throw new Exception(s"Int id: $baseId does not belong to ${this.getClass.getSimpleName}. Adjusted id was :${baseId + minKeyPartiallyCompressedEntryId}")
+
+  //the _ is to highlight that this will return an uncompressed id. There used to be a type-safe way to handle this!
+  def adjustBaseIdToKeyValueIdKey_UnCompressed(baseId: Int): Int =
+    if (isKeyValueIdUncompressedKey(baseId + minKeyUncompressedEntryId))
       baseId + minKeyUncompressedEntryId
     else
-      throw new Exception(s"Int id: $baseId does not belong to ${this.getClass.getSimpleName} ")
-
-  def adjustKeyValueIdToKeyUncompressed(keyValueId: Int): Int =
-    keyValueId + minKeyUncompressedEntryId
-
-  def adjustBaseIdToKeyValueIdAndKeyUncompressed(baseId: Int): Int =
-    adjustKeyValueIdToKeyUncompressed(adjustBaseIdToKeyValueId(baseId))
+      throw new Exception(s"Int id: $baseId does not belong to ${this.getClass.getSimpleName}. Adjusted id was :${baseId + minKeyUncompressedEntryId}")
 }
 
 object KeyValueId {
