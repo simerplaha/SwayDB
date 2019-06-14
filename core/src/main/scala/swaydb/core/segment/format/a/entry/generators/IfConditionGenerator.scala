@@ -30,12 +30,12 @@ import scala.collection.JavaConverters._
   * Generates if conditions for all readers.
   */
 object IfConditionGenerator extends App {
-  implicit class Implicits(entryId: EntryId) {
+  implicit class Implicits(entryId: BaseEntryId) {
     def name =
       entryId.getClass.getName.dropRight(1).replaceAll("swaydb.core.segment.format.a.entry.id.", "").replaceAll("\\$", ".")
   }
 
-  def generateBinarySearchConditions(ids: List[EntryId]): String = {
+  def generateBinarySearchConditions(ids: List[BaseEntryId]): String = {
     if (ids.size == 1) {
       val typedId = ids.head
 
@@ -79,7 +79,7 @@ object IfConditionGenerator extends App {
     }
   }
 
-  def write(fileNumber: Int, ids: List[EntryId]): Unit = {
+  def write(fileNumber: Int, ids: List[BaseEntryId]): Unit = {
     val conditions = generateBinarySearchConditions(ids)
 
     val targetIdClass = Paths.get(s"${System.getProperty("user.dir")}/core/src/main/scala/swaydb/core/segment/format/a/entry/reader/base/BaseEntryReader$fileNumber.scala")
@@ -101,8 +101,8 @@ object IfConditionGenerator extends App {
     writer.close()
   }
 
-  def keyIdsGrouped: Iterator[(Int, List[BaseEntryId])] = {
-    val ids = BaseEntryId.baseIds
+  def keyIdsGrouped: Iterator[(Int, List[BaseEntryIdFormatA])] = {
+    val ids = BaseEntryIdFormatA.baseIds
     ids.grouped(ids.size / 4).zipWithIndex map {
       case (entries, index) =>
         index + 1 -> entries

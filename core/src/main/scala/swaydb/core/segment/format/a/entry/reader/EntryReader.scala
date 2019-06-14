@@ -28,13 +28,13 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Reader, Slice}
 
 trait EntryReader[E] {
-  def apply[T <: EntryId](id: T,
-                          indexReader: Reader,
-                          valueReader: Reader,
-                          indexOffset: Int,
-                          nextIndexOffset: Int,
-                          nextIndexSize: Int,
-                          previous: Option[Persistent])(implicit timeReader: TimeReader[T],
+  def apply[T <: BaseEntryId](id: T,
+                              indexReader: Reader,
+                              valueReader: Reader,
+                              indexOffset: Int,
+                              nextIndexOffset: Int,
+                              nextIndexSize: Int,
+                              previous: Option[Persistent])(implicit timeReader: TimeReader[T],
                                                         deadlineReader: DeadlineReader[T],
                                                         valueOffsetReader: ValueOffsetReader[T],
                                                         valueLengthReader: ValueLengthReader[T],

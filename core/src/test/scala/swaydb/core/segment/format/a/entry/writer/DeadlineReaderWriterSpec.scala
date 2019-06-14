@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.core.TestData._
 import swaydb.core.io.reader.Reader
-import swaydb.core.segment.format.a.entry.id.{EntryId, TransientToEntryId}
+import swaydb.core.segment.format.a.entry.id.{BaseEntryId, TransientToKeyValueIdBinder}
 import swaydb.core.segment.format.a.entry.reader.DeadlineReader
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
@@ -36,7 +36,7 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
 
   val getDeadlineIds =
     allBaseEntryIds collect {
-      case entryId: EntryId.GetDeadlineId =>
+      case entryId: BaseEntryId.GetDeadlineId =>
         entryId
     }
 
@@ -47,42 +47,42 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
       getDeadlineIds foreach {
         entryId =>
           allBaseEntryIds collect {
-            case entryId: EntryId.Deadline.OneCompressed =>
+            case entryId: BaseEntryId.Deadline.OneCompressed =>
               entryId
           } contains DeadlineWriter.applyDeadlineId(1, entryId) shouldBe true
 
           allBaseEntryIds collect {
-            case entryId: EntryId.Deadline.TwoCompressed =>
+            case entryId: BaseEntryId.Deadline.TwoCompressed =>
               entryId
           } contains DeadlineWriter.applyDeadlineId(2, entryId) shouldBe true
 
           allBaseEntryIds collect {
-            case entryId: EntryId.Deadline.ThreeCompressed =>
+            case entryId: BaseEntryId.Deadline.ThreeCompressed =>
               entryId
           } contains DeadlineWriter.applyDeadlineId(3, entryId) shouldBe true
 
           allBaseEntryIds collect {
-            case entryId: EntryId.Deadline.FourCompressed =>
+            case entryId: BaseEntryId.Deadline.FourCompressed =>
               entryId
           } contains DeadlineWriter.applyDeadlineId(4, entryId) shouldBe true
 
           allBaseEntryIds collect {
-            case entryId: EntryId.Deadline.FiveCompressed =>
+            case entryId: BaseEntryId.Deadline.FiveCompressed =>
               entryId
           } contains DeadlineWriter.applyDeadlineId(5, entryId) shouldBe true
 
           allBaseEntryIds collect {
-            case entryId: EntryId.Deadline.SixCompressed =>
+            case entryId: BaseEntryId.Deadline.SixCompressed =>
               entryId
           } contains DeadlineWriter.applyDeadlineId(6, entryId) shouldBe true
 
           allBaseEntryIds collect {
-            case entryId: EntryId.Deadline.SevenCompressed =>
+            case entryId: BaseEntryId.Deadline.SevenCompressed =>
               entryId
           } contains DeadlineWriter.applyDeadlineId(7, entryId) shouldBe true
 
           allBaseEntryIds collect {
-            case entryId: EntryId.Deadline.FullyCompressed =>
+            case entryId: BaseEntryId.Deadline.FullyCompressed =>
               entryId
           } contains DeadlineWriter.applyDeadlineId(8, entryId) shouldBe true
 
@@ -95,9 +95,9 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
 
   "uncompress" should {
     "write deadline as uncompressed" in {
-      getDeadlineIds.filter(_.isInstanceOf[EntryId.GetDeadlineId]) foreach { //for all deadline ids
-        deadlineID: EntryId.GetDeadlineId =>
-          TransientToEntryId.all foreach { //for all key-values
+      getDeadlineIds.filter(_.isInstanceOf[BaseEntryId.GetDeadlineId]) foreach { //for all deadline ids
+        deadlineID: BaseEntryId.GetDeadlineId =>
+          TransientToKeyValueIdBinder.all foreach { //for all key-values
             implicit adjustedEntryId =>
               val deadline = 10.seconds.fromNow
               val deadlineBytes =
@@ -123,9 +123,9 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
     "write compressed deadlines with previous deadline" in {
       implicit def bytesToDeadline(bytes: Slice[Byte]): FiniteDuration = FiniteDuration(bytes.readLong(), TimeUnit.NANOSECONDS)
 
-      getDeadlineIds.filter(_.isInstanceOf[EntryId.GetDeadlineId]) foreach { //for all deadline ids
-        deadlineID: EntryId.GetDeadlineId =>
-          TransientToEntryId.all foreach { //for all key-values
+      getDeadlineIds.filter(_.isInstanceOf[BaseEntryId.GetDeadlineId]) foreach { //for all deadline ids
+        deadlineID: BaseEntryId.GetDeadlineId =>
+          TransientToKeyValueIdBinder.all foreach { //for all key-values
             implicit adjustedEntryId =>
 
               //Test for when there are zero compressed bytes, compression should return None.
@@ -195,9 +195,9 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
 
   "noDeadline" should {
     "write without deadline bytes" in {
-      getDeadlineIds.filter(_.isInstanceOf[EntryId.GetDeadlineId]) foreach { //for all deadline ids
-        deadlineID: EntryId.GetDeadlineId =>
-          TransientToEntryId.all foreach { //for all key-values
+      getDeadlineIds.filter(_.isInstanceOf[BaseEntryId.GetDeadlineId]) foreach { //for all deadline ids
+        deadlineID: BaseEntryId.GetDeadlineId =>
+          TransientToKeyValueIdBinder.all foreach { //for all key-values
             implicit adjustedEntryId =>
               val deadlineBytes =
                 DeadlineWriter.noDeadline(

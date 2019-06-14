@@ -20,7 +20,7 @@
 package swaydb.core.segment.format.a.entry.reader
 
 import swaydb.core.data.KeyValue
-import swaydb.core.segment.format.a.entry.id.EntryId
+import swaydb.core.segment.format.a.entry.id.BaseEntryId
 import swaydb.core.util.Bytes
 import swaydb.core.util.TimeUtil._
 import swaydb.data.IO
@@ -39,7 +39,7 @@ sealed trait DeadlineReader[-T] {
 }
 
 object DeadlineReader {
-  implicit object NoDeadlineReader extends DeadlineReader[EntryId.Deadline.NoDeadline] {
+  implicit object NoDeadlineReader extends DeadlineReader[BaseEntryId.Deadline.NoDeadline] {
     override def isPrefixCompressed: Boolean = false
 
     override def read(indexReader: Reader,
@@ -47,7 +47,7 @@ object DeadlineReader {
       IO.none
   }
 
-  implicit object DeadlineFullyCompressedReader extends DeadlineReader[EntryId.Deadline.FullyCompressed] {
+  implicit object DeadlineFullyCompressedReader extends DeadlineReader[BaseEntryId.Deadline.FullyCompressed] {
     override def isPrefixCompressed: Boolean = true
 
     override def read(indexReader: Reader,
@@ -92,7 +92,7 @@ object DeadlineReader {
       IO.Failure(EntryReaderFailure.NoPreviousKeyValue)
     }
 
-  implicit object DeadlineOneCompressedReader extends DeadlineReader[EntryId.Deadline.OneCompressed] {
+  implicit object DeadlineOneCompressedReader extends DeadlineReader[BaseEntryId.Deadline.OneCompressed] {
     override def isPrefixCompressed: Boolean = true
 
     override def read(indexReader: Reader,
@@ -100,28 +100,28 @@ object DeadlineReader {
       decompressDeadline(indexReader = indexReader, commonBytes = 1, previous = previous)
   }
 
-  implicit object DeadlineTwoCompressedReader extends DeadlineReader[EntryId.Deadline.TwoCompressed] {
+  implicit object DeadlineTwoCompressedReader extends DeadlineReader[BaseEntryId.Deadline.TwoCompressed] {
     override def isPrefixCompressed: Boolean = true
 
     override def read(indexReader: Reader,
                       previous: Option[KeyValue.ReadOnly]): IO[Option[duration.Deadline]] =
       decompressDeadline(indexReader = indexReader, commonBytes = 2, previous = previous)
   }
-  implicit object DeadlineThreeCompressedReader extends DeadlineReader[EntryId.Deadline.ThreeCompressed] {
+  implicit object DeadlineThreeCompressedReader extends DeadlineReader[BaseEntryId.Deadline.ThreeCompressed] {
     override def isPrefixCompressed: Boolean = true
 
     override def read(indexReader: Reader,
                       previous: Option[KeyValue.ReadOnly]): IO[Option[duration.Deadline]] =
       decompressDeadline(indexReader = indexReader, commonBytes = 3, previous = previous)
   }
-  implicit object DeadlineFourCompressedReader extends DeadlineReader[EntryId.Deadline.FourCompressed] {
+  implicit object DeadlineFourCompressedReader extends DeadlineReader[BaseEntryId.Deadline.FourCompressed] {
     override def isPrefixCompressed: Boolean = true
 
     override def read(indexReader: Reader,
                       previous: Option[KeyValue.ReadOnly]): IO[Option[duration.Deadline]] =
       decompressDeadline(indexReader = indexReader, commonBytes = 4, previous = previous)
   }
-  implicit object DeadlineFiveCompressedReader extends DeadlineReader[EntryId.Deadline.FiveCompressed] {
+  implicit object DeadlineFiveCompressedReader extends DeadlineReader[BaseEntryId.Deadline.FiveCompressed] {
     override def isPrefixCompressed: Boolean = true
 
     override def read(indexReader: Reader,
@@ -129,7 +129,7 @@ object DeadlineReader {
       decompressDeadline(indexReader = indexReader, commonBytes = 5, previous = previous)
   }
 
-  implicit object DeadlineSixCompressedReader extends DeadlineReader[EntryId.Deadline.SixCompressed] {
+  implicit object DeadlineSixCompressedReader extends DeadlineReader[BaseEntryId.Deadline.SixCompressed] {
     override def isPrefixCompressed: Boolean = true
 
     override def read(indexReader: Reader,
@@ -137,7 +137,7 @@ object DeadlineReader {
       decompressDeadline(indexReader = indexReader, commonBytes = 6, previous = previous)
   }
 
-  implicit object DeadlineSevenCompressedReader extends DeadlineReader[EntryId.Deadline.SevenCompressed] {
+  implicit object DeadlineSevenCompressedReader extends DeadlineReader[BaseEntryId.Deadline.SevenCompressed] {
     override def isPrefixCompressed: Boolean = true
 
     override def read(indexReader: Reader,
@@ -145,7 +145,7 @@ object DeadlineReader {
       decompressDeadline(indexReader = indexReader, commonBytes = 7, previous = previous)
   }
 
-  implicit object DeadlineUncompressedReader extends DeadlineReader[EntryId.Deadline.Uncompressed] {
+  implicit object DeadlineUncompressedReader extends DeadlineReader[BaseEntryId.Deadline.Uncompressed] {
     override def isPrefixCompressed: Boolean = true
 
     override def read(indexReader: Reader,

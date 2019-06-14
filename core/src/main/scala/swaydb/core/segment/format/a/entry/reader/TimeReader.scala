@@ -21,7 +21,7 @@ package swaydb.core.segment.format.a.entry.reader
 
 import scala.annotation.implicitNotFound
 import swaydb.core.data.{KeyValue, Time}
-import swaydb.core.segment.format.a.entry.id.EntryId
+import swaydb.core.segment.format.a.entry.id.BaseEntryId
 import swaydb.core.util.Bytes
 import swaydb.data.IO
 import swaydb.data.slice.Reader
@@ -40,7 +40,7 @@ sealed trait TimeReader[-T] {
   */
 object TimeReader {
 
-  implicit object NoTimeReader extends TimeReader[EntryId.Time.NoTime] {
+  implicit object NoTimeReader extends TimeReader[BaseEntryId.Time.NoTime] {
     override def isPrefixCompressed: Boolean = false
 
     override def read(indexReader: Reader,
@@ -48,7 +48,7 @@ object TimeReader {
       Time.successEmpty
   }
 
-  implicit object UnCompressedTimeReader extends TimeReader[EntryId.Time.Uncompressed] {
+  implicit object UnCompressedTimeReader extends TimeReader[BaseEntryId.Time.Uncompressed] {
     override def isPrefixCompressed: Boolean = false
 
     override def read(indexReader: Reader,
@@ -62,7 +62,7 @@ object TimeReader {
       }
   }
 
-  implicit object PartiallyCompressedTimeReader extends TimeReader[EntryId.Time.PartiallyCompressed] {
+  implicit object PartiallyCompressedTimeReader extends TimeReader[BaseEntryId.Time.PartiallyCompressed] {
 
     override def isPrefixCompressed: Boolean = true
 

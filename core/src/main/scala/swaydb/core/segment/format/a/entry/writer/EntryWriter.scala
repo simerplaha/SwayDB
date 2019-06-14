@@ -20,8 +20,8 @@
 package swaydb.core.segment.format.a.entry.writer
 
 import swaydb.core.data.{KeyValue, Time}
-import swaydb.core.segment.format.a.entry.id.EntryId.EntryFormat
-import swaydb.core.segment.format.a.entry.id.{BaseEntryId, TransientToEntryId}
+import swaydb.core.segment.format.a.entry.id.BaseEntryId.BaseEntryIdFormat
+import swaydb.core.segment.format.a.entry.id.{BaseEntryIdFormatA, TransientToKeyValueIdBinder}
 import swaydb.core.util.Bytes._
 import swaydb.data.slice.Slice
 
@@ -47,14 +47,14 @@ private[core] object EntryWriter {
     *
     * Note: No extra bytes are required to differentiate between a key that has meta or no meta block.
     *
-    * @param id                      [[EntryFormat]] for this key-value's type.
+    * @param id                      [[BaseEntryIdFormat]] for this key-value's type.
     * @param compressDuplicateValues Compresses duplicate values if set to true.
     * @return indexEntry, valueBytes, valueOffsetBytes, nextValuesOffsetPosition
     */
   def write[T <: KeyValue.WriteOnly](current: T,
                                      currentTime: Time,
                                      compressDuplicateValues: Boolean,
-                                     enablePrefixCompression: Boolean)(implicit id: TransientToEntryId[T]): EntryWriter.Result =
+                                     enablePrefixCompression: Boolean)(implicit id: TransientToKeyValueIdBinder[T]): EntryWriter.Result =
     current.previous flatMap {
       previous =>
         writeCompressed(
@@ -77,7 +77,7 @@ private[core] object EntryWriter {
                                                                previous: KeyValue.WriteOnly,
                                                                currentTime: Time,
                                                                compressDuplicateValues: Boolean,
-                                                               enablePrefixCompression: Boolean)(implicit id: TransientToEntryId[T]) =
+                                                               enablePrefixCompression: Boolean)(implicit id: TransientToKeyValueIdBinder[T]) =
     compress(key = current.fullKey, previous = previous, minimumCommonBytes = 2) map {
       case (_, remainingBytes) if remainingBytes.isEmpty =>
 
@@ -86,7 +86,7 @@ private[core] object EntryWriter {
             current = current,
             currentTime = currentTime,
             compressDuplicateValues = compressDuplicateValues,
-            entryId = BaseEntryId.format.start,
+            entryId = BaseEntryIdFormatA.format.start,
             enablePrefixCompression = enablePrefixCompression,
             plusSize = sizeOf(current.fullKey.size), //write the size of keys that were compressed.
             isKeyCompressed = true
@@ -108,7 +108,7 @@ private[core] object EntryWriter {
             current = current,
             currentTime = currentTime,
             compressDuplicateValues = compressDuplicateValues,
-            entryId = BaseEntryId.format.start,
+            entryId = BaseEntryIdFormatA.format.start,
             enablePrefixCompression = enablePrefixCompression,
             isKeyCompressed = true,
             plusSize = sizeOf(commonBytes) + remainingBytes.size //write the size of keys compressed and also the uncompressed Bytes
@@ -125,14 +125,14 @@ private[core] object EntryWriter {
   private[writer] def writeUncompressed[T <: KeyValue.WriteOnly](current: T,
                                                                  currentTime: Time,
                                                                  compressDuplicateValues: Boolean,
-                                                                 enablePrefixCompression: Boolean)(implicit id: TransientToEntryId[T]) = {
+                                                                 enablePrefixCompression: Boolean)(implicit id: TransientToKeyValueIdBinder[T]) = {
     //no common prefixes or no previous write without compression
     val writeResult =
       TimeWriter.write(
         current = current,
         currentTime = currentTime,
         compressDuplicateValues = compressDuplicateValues,
-        entryId = BaseEntryId.format.start,
+        entryId = BaseEntryIdFormatA.format.start,
         enablePrefixCompression = enablePrefixCompression,
         isKeyCompressed = false,
         plusSize = current.fullKey.size //write key bytes.

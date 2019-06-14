@@ -29,7 +29,7 @@ import swaydb.data.slice.Slice
 object IdsGenerator extends App {
 
   val startId = 0
-  val templateClass = classOf[BaseEntryId].getSimpleName
+  val templateClass = classOf[BaseEntryIdFormatA].getSimpleName
 
   val path = Paths.get(s"${System.getProperty("user.dir")}/core/src/main/scala/swaydb/core/segment/format/a/entry/id/$templateClass.scala")
 

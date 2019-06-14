@@ -20,7 +20,7 @@
 package swaydb.core.segment.format.a.entry.reader
 
 import swaydb.core.data.Persistent
-import swaydb.core.segment.format.a.entry.id.EntryId
+import swaydb.core.segment.format.a.entry.id.BaseEntryId
 import swaydb.data.slice.Reader
 import scala.annotation.implicitNotFound
 import swaydb.data.IO
@@ -37,7 +37,7 @@ sealed trait ValueReader[-T] {
 }
 
 object ValueReader {
-  implicit object NoValueReader extends ValueReader[EntryId.Value.NoValue] {
+  implicit object NoValueReader extends ValueReader[BaseEntryId.Value.NoValue] {
     override def isPrefixCompressed: Boolean = false
 
     override def read[V](indexReader: Reader,
@@ -46,7 +46,7 @@ object ValueReader {
       IO.none
   }
 
-  implicit object ValueUncompressedReader extends ValueReader[EntryId.Value.Uncompressed] {
+  implicit object ValueUncompressedReader extends ValueReader[BaseEntryId.Value.Uncompressed] {
     override def isPrefixCompressed: Boolean = false
     override def read[V](indexReader: Reader,
                          previous: Option[Persistent])(implicit valueOffsetReader: ValueOffsetReader[V],
@@ -60,7 +60,7 @@ object ValueReader {
       }
   }
 
-  implicit object ValueFullyCompressedReader extends ValueReader[EntryId.Value.FullyCompressed] {
+  implicit object ValueFullyCompressedReader extends ValueReader[BaseEntryId.Value.FullyCompressed] {
     override def isPrefixCompressed: Boolean = true
 
     override def read[V](indexReader: Reader,

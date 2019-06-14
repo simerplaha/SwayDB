@@ -20,19 +20,19 @@
 package swaydb.core.segment.format.a.entry.reader
 
 import swaydb.core.data.Persistent
-import swaydb.core.segment.format.a.entry.id.{EntryId, KeyValueId}
+import swaydb.core.segment.format.a.entry.id.{BaseEntryId, KeyValueId}
 import swaydb.core.segment.format.a.entry.reader.value.LazyFunctionReader
 import swaydb.data.IO
 import swaydb.data.slice.Reader
 
 object FunctionReader extends EntryReader[Persistent.Function] {
-  def apply[T <: EntryId](id: T,
-                          indexReader: Reader,
-                          valueReader: Reader,
-                          indexOffset: Int,
-                          nextIndexOffset: Int,
-                          nextIndexSize: Int,
-                          previous: Option[Persistent])(implicit timeReader: TimeReader[T],
+  def apply[T <: BaseEntryId](id: T,
+                              indexReader: Reader,
+                              valueReader: Reader,
+                              indexOffset: Int,
+                              nextIndexOffset: Int,
+                              nextIndexSize: Int,
+                              previous: Option[Persistent])(implicit timeReader: TimeReader[T],
                                                         deadlineReader: DeadlineReader[T],
                                                         valueOffsetReader: ValueOffsetReader[T],
                                                         valueLengthReader: ValueLengthReader[T],

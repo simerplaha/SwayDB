@@ -20,7 +20,7 @@
 package swaydb.core.segment.format.a.entry.reader
 
 import swaydb.core.data.KeyValue
-import swaydb.core.segment.format.a.entry.id.{EntryId, KeyValueId}
+import swaydb.core.segment.format.a.entry.id.{BaseEntryId, KeyValueId}
 import swaydb.core.util.Bytes
 import swaydb.data.IO
 import swaydb.data.slice.{Reader, Slice}
@@ -46,10 +46,10 @@ object KeyReader {
       IO.Failure(EntryReaderFailure.NoPreviousKeyValue)
     }
 
-  def read[T <: EntryId](id: T,
-                         indexReader: Reader,
-                         previous: Option[KeyValue.ReadOnly],
-                         keyValueId: KeyValueId): IO[(Slice[Byte], Boolean)] =
+  def read[T <: BaseEntryId](id: T,
+                             indexReader: Reader,
+                             previous: Option[KeyValue.ReadOnly],
+                             keyValueId: KeyValueId): IO[(Slice[Byte], Boolean)] =
     if (keyValueId.isKeyValueIdPartiallyCompressedKey(keyValueId.adjustBaseIdToKeyValueId(id.baseId)))
       KeyReader.partiallyCompressed(indexReader, previous) map (key => (key, true))
     else

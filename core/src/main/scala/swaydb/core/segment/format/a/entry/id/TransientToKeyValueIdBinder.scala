@@ -23,44 +23,44 @@ import scala.annotation.implicitNotFound
 import swaydb.core.data.Transient
 import swaydb.macros.SealedList
 
-@implicitNotFound("Type class implementation not found for TransientToEntryId of type ${T}")
-private[core] sealed trait TransientToEntryId[T] {
+@implicitNotFound("Type class implementation not found for TransientToKeyValueIdBinder of type ${T}")
+private[core] sealed trait TransientToKeyValueIdBinder[T] {
   val keyValueId: KeyValueId
 }
 
 /**
   * Glue objects to map [[Transient]] key-values to [[KeyValueId]].
   */
-private[core] object TransientToEntryId {
+private[core] object TransientToKeyValueIdBinder {
 
-  implicit object Remove extends TransientToEntryId[Transient.Remove] {
+  implicit object Remove extends TransientToKeyValueIdBinder[Transient.Remove] {
     override val keyValueId: KeyValueId = KeyValueId.Remove
   }
 
-  implicit object Update extends TransientToEntryId[Transient.Update] {
+  implicit object Update extends TransientToKeyValueIdBinder[Transient.Update] {
     override val keyValueId: KeyValueId = KeyValueId.Update
   }
 
-  implicit object Function extends TransientToEntryId[Transient.Function] {
+  implicit object Function extends TransientToKeyValueIdBinder[Transient.Function] {
     override val keyValueId: KeyValueId = KeyValueId.Function
   }
 
-  implicit object Group extends TransientToEntryId[Transient.Group] {
+  implicit object Group extends TransientToKeyValueIdBinder[Transient.Group] {
     override val keyValueId: KeyValueId = KeyValueId.Group
   }
 
-  implicit object Range extends TransientToEntryId[Transient.Range] {
+  implicit object Range extends TransientToKeyValueIdBinder[Transient.Range] {
     override val keyValueId: KeyValueId = KeyValueId.Range
   }
 
-  implicit object Put extends TransientToEntryId[Transient.Put] {
+  implicit object Put extends TransientToKeyValueIdBinder[Transient.Put] {
     override val keyValueId: KeyValueId = KeyValueId.Put
   }
 
-  implicit object PendingApply extends TransientToEntryId[Transient.PendingApply] {
+  implicit object PendingApply extends TransientToKeyValueIdBinder[Transient.PendingApply] {
     override val keyValueId: KeyValueId = KeyValueId.PendingApply
   }
 
-  def all: List[TransientToEntryId[_]] =
-    SealedList.list[TransientToEntryId[_]]
+  def all: List[TransientToKeyValueIdBinder[_]] =
+    SealedList.list[TransientToKeyValueIdBinder[_]]
 }

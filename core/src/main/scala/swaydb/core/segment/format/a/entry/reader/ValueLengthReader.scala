@@ -21,7 +21,7 @@ package swaydb.core.segment.format.a.entry.reader
 
 import scala.annotation.implicitNotFound
 import swaydb.core.data.Persistent
-import swaydb.core.segment.format.a.entry.id.EntryId
+import swaydb.core.segment.format.a.entry.id.BaseEntryId
 import swaydb.core.util.Bytes
 import swaydb.data.IO
 import swaydb.data.slice.{Reader, Slice}
@@ -51,7 +51,7 @@ object ValueLengthReader {
       IO.Failure(EntryReaderFailure.NoPreviousKeyValue)
     }
 
-  implicit object ValueLengthOneCompressed extends ValueLengthReader[EntryId.ValueLength.OneCompressed] {
+  implicit object ValueLengthOneCompressed extends ValueLengthReader[BaseEntryId.ValueLength.OneCompressed] {
     override def isPrefixCompressed: Boolean = true
 
     override def read(indexReader: Reader,
@@ -59,7 +59,7 @@ object ValueLengthReader {
       readLength(indexReader, previous, 1)
   }
 
-  implicit object ValueLengthTwoCompressed extends ValueLengthReader[EntryId.ValueLength.TwoCompressed] {
+  implicit object ValueLengthTwoCompressed extends ValueLengthReader[BaseEntryId.ValueLength.TwoCompressed] {
     override def isPrefixCompressed: Boolean = true
 
     override def read(indexReader: Reader,
@@ -67,7 +67,7 @@ object ValueLengthReader {
       readLength(indexReader, previous, 2)
   }
 
-  implicit object ValueLengthThreeCompressed extends ValueLengthReader[EntryId.ValueLength.ThreeCompressed] {
+  implicit object ValueLengthThreeCompressed extends ValueLengthReader[BaseEntryId.ValueLength.ThreeCompressed] {
     override def isPrefixCompressed: Boolean = true
 
     override def read(indexReader: Reader,
@@ -75,7 +75,7 @@ object ValueLengthReader {
       readLength(indexReader, previous, 3)
   }
 
-  implicit object ValueLengthFullyCompressed extends ValueLengthReader[EntryId.ValueLength.FullyCompressed] {
+  implicit object ValueLengthFullyCompressed extends ValueLengthReader[BaseEntryId.ValueLength.FullyCompressed] {
     override def isPrefixCompressed: Boolean = true
 
     override def read(indexReader: Reader,
@@ -86,7 +86,7 @@ object ValueLengthReader {
       } getOrElse IO.Failure(EntryReaderFailure.NoPreviousKeyValue)
   }
 
-  implicit object ValueLengthUncompressed extends ValueLengthReader[EntryId.ValueLength.Uncompressed] {
+  implicit object ValueLengthUncompressed extends ValueLengthReader[BaseEntryId.ValueLength.Uncompressed] {
     override def isPrefixCompressed: Boolean = false
 
     override def read(indexReader: Reader,
@@ -94,7 +94,7 @@ object ValueLengthReader {
       indexReader.readIntUnsigned()
   }
 
-  implicit object NoValue extends ValueLengthReader[EntryId.Value.NoValue] {
+  implicit object NoValue extends ValueLengthReader[BaseEntryId.Value.NoValue] {
     override def isPrefixCompressed: Boolean = false
 
     override def read(indexReader: Reader,

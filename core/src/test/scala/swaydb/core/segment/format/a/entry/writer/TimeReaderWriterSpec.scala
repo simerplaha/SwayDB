@@ -25,7 +25,7 @@ import swaydb.core.TestData._
 import swaydb.core.TestTimer
 import swaydb.core.data.{Time, Transient}
 import swaydb.core.io.reader.Reader
-import swaydb.core.segment.format.a.entry.id.{EntryId, TransientToEntryId}
+import swaydb.core.segment.format.a.entry.id.{BaseEntryId, TransientToKeyValueIdBinder}
 import swaydb.core.segment.format.a.entry.reader.TimeReader
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
@@ -35,7 +35,7 @@ class TimeReaderWriterSpec extends WordSpec with Matchers {
 
   val keyIds =
     allBaseEntryIds collect {
-      case entryId: EntryId.Key =>
+      case entryId: BaseEntryId.Key =>
         entryId
     }
 
@@ -63,7 +63,7 @@ class TimeReaderWriterSpec extends WordSpec with Matchers {
 
               val currentTime = TimeWriter.getTime(current)
 
-              implicit val put = TransientToEntryId.Put
+              implicit val put = TransientToKeyValueIdBinder.Put
 
               val writeResult =
                 TimeWriter.write(
@@ -103,7 +103,7 @@ class TimeReaderWriterSpec extends WordSpec with Matchers {
 
           val currentTime = TimeWriter.getTime(current)
 
-          implicit val put = TransientToEntryId.Put
+          implicit val put = TransientToKeyValueIdBinder.Put
 
           val writeResult =
             TimeWriter.write(
@@ -138,7 +138,7 @@ class TimeReaderWriterSpec extends WordSpec with Matchers {
     "write no time" in {
       keyIds foreach {
         keyId =>
-          TransientToEntryId.all foreach {
+          TransientToKeyValueIdBinder.all foreach {
             implicit adjustedEntryId =>
 
               val writeResult =
