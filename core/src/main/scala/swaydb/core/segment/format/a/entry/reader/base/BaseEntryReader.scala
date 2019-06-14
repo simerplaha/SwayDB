@@ -30,7 +30,8 @@ trait BaseEntryReader {
 
   def maxID: Int
 
-  def read[T](id: Int,
+  def read[T](baseId: Int,
+              keyValueId: Int,
               indexReader: Reader,
               valueReader: Reader,
               indexOffset: Int,

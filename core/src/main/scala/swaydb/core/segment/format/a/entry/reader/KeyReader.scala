@@ -46,12 +46,14 @@ object KeyReader {
       IO.Failure(EntryReaderFailure.NoPreviousKeyValue)
     }
 
-  def read[T <: BaseEntryId](id: T,
-                             indexReader: Reader,
-                             previous: Option[KeyValue.ReadOnly],
-                             keyValueId: KeyValueId): IO[(Slice[Byte], Boolean)] =
-    if (keyValueId.isKeyValueId_PartiallyCompressedKey(keyValueId.adjustBaseIdToKeyValueIdKey_Compressed(id.baseId)))
+  def read(keyValueIdInt: Int,
+           indexReader: Reader,
+           previous: Option[KeyValue.ReadOnly],
+           keyValueId: KeyValueId): IO[(Slice[Byte], Boolean)] =
+    if (keyValueId.isKeyValueId_PartiallyCompressedKey(keyValueIdInt))
       KeyReader.partiallyCompressed(indexReader, previous) map (key => (key, true))
-    else
+    else if (keyValueId.isKeyValueId_UncompressedKey(keyValueIdInt))
       KeyReader.uncompressed(indexReader, previous) map (key => (key, false))
+    else
+      IO.Failure(IO.Error.Fatal(new Exception(s"Invalid keyValueId $keyValueIdInt for ${keyValueId.getClass.getSimpleName}")))
 }

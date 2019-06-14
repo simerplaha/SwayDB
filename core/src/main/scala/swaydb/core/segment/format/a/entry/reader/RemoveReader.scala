@@ -26,7 +26,8 @@ import swaydb.data.slice.Reader
 
 object RemoveReader extends EntryReader[Persistent.Remove] {
 
-  def apply[T <: BaseEntryId](id: T,
+  def apply[T <: BaseEntryId](baseId: T,
+                              keyValueId: Int,
                               indexReader: Reader,
                               valueReader: Reader,
                               indexOffset: Int,
@@ -41,7 +42,7 @@ object RemoveReader extends EntryReader[Persistent.Remove] {
       deadline =>
         timeReader.read(indexReader, previous) flatMap {
           time =>
-            KeyReader.read(id, indexReader, previous, KeyValueId.Remove) map {
+            KeyReader.read(keyValueId, indexReader, previous, KeyValueId.Remove) map {
               case (key, isKeyPrefixCompressed) =>
                 Persistent.Remove(
                   _key = key,

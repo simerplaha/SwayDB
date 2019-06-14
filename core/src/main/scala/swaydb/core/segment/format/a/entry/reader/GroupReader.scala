@@ -27,22 +27,23 @@ import swaydb.data.slice.Reader
 
 object GroupReader extends EntryReader[Persistent.Group] {
 
-  def apply[T <: BaseEntryId](id: T,
+  def apply[T <: BaseEntryId](baseId: T,
+                              keyValueId: Int,
                               indexReader: Reader,
                               valueReader: Reader,
                               indexOffset: Int,
                               nextIndexOffset: Int,
                               nextIndexSize: Int,
                               previous: Option[Persistent])(implicit timeReader: TimeReader[T],
-                                                        deadlineReader: DeadlineReader[T],
-                                                        valueOffsetReader: ValueOffsetReader[T],
-                                                        valueLengthReader: ValueLengthReader[T],
-                                                        valueBytesReader: ValueReader[T]): IO[Persistent.Group] =
+                                                            deadlineReader: DeadlineReader[T],
+                                                            valueOffsetReader: ValueOffsetReader[T],
+                                                            valueLengthReader: ValueLengthReader[T],
+                                                            valueBytesReader: ValueReader[T]): IO[Persistent.Group] =
     deadlineReader.read(indexReader, previous) flatMap {
       deadline =>
         valueBytesReader.read(indexReader, previous) flatMap {
           valueOffsetAndLength =>
-            KeyReader.read(id, indexReader, previous, KeyValueId.Group) flatMap {
+            KeyReader.read(keyValueId, indexReader, previous, KeyValueId.Group) flatMap {
               case (key, isKeyPrefixCompressed) =>
                 val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
                 val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)

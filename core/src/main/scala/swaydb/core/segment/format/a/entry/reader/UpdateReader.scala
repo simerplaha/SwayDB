@@ -27,17 +27,18 @@ import swaydb.data.slice.Reader
 
 object UpdateReader extends EntryReader[Persistent.Update] {
 
-  def apply[T <: BaseEntryId](id: T,
+  def apply[T <: BaseEntryId](baseId: T,
+                              keyValueId: Int,
                               indexReader: Reader,
                               valueReader: Reader,
                               indexOffset: Int,
                               nextIndexOffset: Int,
                               nextIndexSize: Int,
                               previous: Option[Persistent])(implicit timeReader: TimeReader[T],
-                                                        deadlineReader: DeadlineReader[T],
-                                                        valueOffsetReader: ValueOffsetReader[T],
-                                                        valueLengthReader: ValueLengthReader[T],
-                                                        valueBytesReader: ValueReader[T]): IO[Persistent.Update] =
+                                                            deadlineReader: DeadlineReader[T],
+                                                            valueOffsetReader: ValueOffsetReader[T],
+                                                            valueLengthReader: ValueLengthReader[T],
+                                                            valueBytesReader: ValueReader[T]): IO[Persistent.Update] =
     deadlineReader.read(indexReader, previous) flatMap {
       deadline =>
         valueBytesReader.read(indexReader, previous) flatMap {
@@ -46,7 +47,7 @@ object UpdateReader extends EntryReader[Persistent.Update] {
             val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
             timeReader.read(indexReader, previous) flatMap {
               time =>
-                KeyReader.read(id, indexReader, previous, KeyValueId.Update) map {
+                KeyReader.read(keyValueId, indexReader, previous, KeyValueId.Update) map {
                   case (key, isKeyPrefixCompressed) =>
                     Persistent.Update(
                       _key = key,

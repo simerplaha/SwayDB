@@ -27,7 +27,8 @@ import swaydb.data.slice.Reader
 
 object PendingApplyReader extends EntryReader[Persistent.PendingApply] {
 
-  def apply[T <: BaseEntryId](id: T,
+  def apply[T <: BaseEntryId](baseId: T,
+                              keyValueId: Int,
                               indexReader: Reader,
                               valueReader: Reader,
                               indexOffset: Int,
@@ -44,7 +45,7 @@ object PendingApplyReader extends EntryReader[Persistent.PendingApply] {
           valueOffsetAndLength =>
             timeReader.read(indexReader, previous) flatMap {
               time =>
-                KeyReader.read(id, indexReader, previous, KeyValueId.PendingApply) map {
+                KeyReader.read(keyValueId, indexReader, previous, KeyValueId.PendingApply) map {
                   case (key, isKeyPrefixCompressed) =>
                     val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
                     val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)

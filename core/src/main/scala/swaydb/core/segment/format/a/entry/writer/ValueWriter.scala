@@ -4,9 +4,9 @@
  * This file is a part of SwayDB.
  *
  * SwayDB is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
+ *  it under the terms of the GNU Affero General Public License as
+ *  published by the Free Software Foundation, either version 3 of the
+ *  License, or (at your option) any later version.
  *
  * SwayDB is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -133,8 +133,8 @@ private[writer] object ValueWriter {
     val currentValueLengthUnsignedBytes = Slice.writeIntUnsigned(currentValue.size)
     val indexEntryBytes =
       DeadlineWriter.write(
-        current = current.deadline,
-        previous = current.previous.flatMap(_.deadline),
+        currentDeadline = current.deadline,
+        previousDeadline = current.previous.flatMap(_.deadline),
         getDeadlineId = entryId.valueUncompressed.valueOffsetUncompressed.valueLengthUncompressed,
         plusSize = plusSize + currentValueOffsetUnsignedBytes.size + currentValueLengthUnsignedBytes.size,
         enablePrefixCompression = enablePrefixCompression,
@@ -171,8 +171,8 @@ private[writer] object ValueWriter {
             val currentValueOffsetUnsignedBytes = Slice.writeIntUnsigned(previous.currentStartValueOffsetPosition)
             val currentValueLengthUnsignedBytes = Slice.writeIntUnsigned(currentValue.size)
             DeadlineWriter.write(
-              current = current.deadline,
-              previous = current.previous.flatMap(_.deadline),
+              currentDeadline = current.deadline,
+              previousDeadline = current.previous.flatMap(_.deadline),
               getDeadlineId = entryId.valueFullyCompressed.valueOffsetUncompressed.valueLengthUncompressed,
               plusSize = plusSize + currentValueOffsetUnsignedBytes.size + currentValueLengthUnsignedBytes.size,
               enablePrefixCompression = enablePrefixCompression,
@@ -182,8 +182,8 @@ private[writer] object ValueWriter {
           } else {
             //values are the same, no need to write offset & length, jump straight to deadline.
             DeadlineWriter.write(
-              current = current.deadline,
-              previous = current.previous.flatMap(_.deadline),
+              currentDeadline = current.deadline,
+              previousDeadline = current.previous.flatMap(_.deadline),
               getDeadlineId = entryId.valueFullyCompressed.valueOffsetFullyCompressed.valueLengthFullyCompressed,
               plusSize = plusSize,
               enablePrefixCompression = enablePrefixCompression,
@@ -260,8 +260,8 @@ private[writer] object ValueWriter {
         val currentUnsignedValueOffsetBytes = Slice.writeIntUnsigned(currentValueOffset)
         val indexEntryBytes =
           DeadlineWriter.write(
-            current = current.deadline,
-            previous = current.previous.flatMap(_.deadline),
+            currentDeadline = current.deadline,
+            previousDeadline = current.previous.flatMap(_.deadline),
             getDeadlineId = valueLengthId,
             plusSize = plusSize + currentUnsignedValueOffsetBytes.size + valueLengthRemainingBytes.size,
             enablePrefixCompression = enablePrefixCompression,
@@ -282,8 +282,8 @@ private[writer] object ValueWriter {
       val currentUnsignedValueLengthBytes = Slice.writeIntUnsigned(currentValue.size)
       val indexEntryBytes =
         DeadlineWriter.write(
-          current = current.deadline,
-          previous = current.previous.flatMap(_.deadline),
+          currentDeadline = current.deadline,
+          previousDeadline = current.previous.flatMap(_.deadline),
           getDeadlineId = entryId.valueUncompressed.valueOffsetUncompressed.valueLengthUncompressed,
           plusSize = plusSize + currentUnsignedValueOffsetBytes.size + currentUnsignedValueLengthBytes.size,
           enablePrefixCompression = enablePrefixCompression,
@@ -337,8 +337,8 @@ private[writer] object ValueWriter {
 
             val indexEntryBytes =
               DeadlineWriter.write(
-                current = current.deadline,
-                previous = current.previous.flatMap(_.deadline),
+                currentDeadline = current.deadline,
+                previousDeadline = current.previous.flatMap(_.deadline),
                 getDeadlineId = valueLengthId,
                 plusSize = plusSize + valueOffsetRemainingBytes.size + valueLengthRemainingBytes.size,
                 enablePrefixCompression = enablePrefixCompression,
@@ -357,8 +357,8 @@ private[writer] object ValueWriter {
           val currentUnsignedValueLengthBytes = Slice.writeIntUnsigned(currentValue.size)
           val indexEntryBytes =
             DeadlineWriter.write(
-              current = current.deadline,
-              previous = current.previous.flatMap(_.deadline),
+              currentDeadline = current.deadline,
+              previousDeadline = current.previous.flatMap(_.deadline),
               getDeadlineId = valueOffsetId.valueLengthUncompressed,
               plusSize = plusSize + valueOffsetRemainingBytes.size + currentUnsignedValueLengthBytes.size,
               enablePrefixCompression = enablePrefixCompression,
@@ -383,8 +383,8 @@ private[writer] object ValueWriter {
     //if there is no value then write deadline.
     val indexEntryBytes =
       DeadlineWriter.write(
-        current = current.deadline,
-        previous = current.previous.flatMap(_.deadline),
+        currentDeadline = current.deadline,
+        previousDeadline = current.previous.flatMap(_.deadline),
         getDeadlineId = entryId.noValue,
         plusSize = plusSize,
         enablePrefixCompression = enablePrefixCompression,
@@ -412,9 +412,9 @@ private[writer] object ValueWriter {
 
     val indexEntryBytes =
       DeadlineWriter.write(
-        current = current.deadline,
+        currentDeadline = current.deadline,
         enablePrefixCompression = enablePrefixCompression,
-        previous = current.previous.flatMap(_.deadline),
+        previousDeadline = current.previous.flatMap(_.deadline),
         getDeadlineId = entryId.valueUncompressed.valueOffsetUncompressed.valueLengthUncompressed,
         plusSize = plusSize + currentValueOffsetUnsignedBytes.size + currentValueLengthUnsignedBytes.size,
         isKeyCompressed = isKeyUncompressed
@@ -422,10 +422,10 @@ private[writer] object ValueWriter {
         .addAll(currentValueLengthUnsignedBytes)
 
     EntryWriter.Result(
-      indexEntryBytes,
-      Some(currentValue),
-      currentValueOffset,
-      currentValue.size - 1
+      indexBytes = indexEntryBytes,
+      valueBytes = Some(currentValue),
+      valueStartOffset = currentValueOffset,
+      valueEndOffset = currentValue.size - 1
     )
   }
 }

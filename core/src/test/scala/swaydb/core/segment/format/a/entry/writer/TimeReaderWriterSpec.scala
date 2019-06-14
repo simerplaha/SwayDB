@@ -43,7 +43,6 @@ class TimeReaderWriterSpec extends WordSpec with Matchers {
 
   "writePartiallyCompressed" should {
     "write compressed time" in {
-
       keyIds foreach {
         keyId =>
           (1 to 8) foreach { //for some or all deadline bytes compressed.
@@ -73,7 +72,7 @@ class TimeReaderWriterSpec extends WordSpec with Matchers {
                   enablePrefixCompression = true,
                   entryId = keyId,
                   plusSize = 0,
-                  isKeyCompressed = false
+                  isKeyCompressed = true
                 )
 
               val reader = Reader(writeResult.indexBytes)
@@ -113,7 +112,7 @@ class TimeReaderWriterSpec extends WordSpec with Matchers {
               enablePrefixCompression = true,
               entryId = keyId,
               plusSize = 0,
-              isKeyCompressed = false
+              isKeyCompressed = true
             )
 
           val reader = Reader(writeResult.indexBytes)
@@ -149,7 +148,7 @@ class TimeReaderWriterSpec extends WordSpec with Matchers {
                   enablePrefixCompression = true,
                   entryId = keyId,
                   plusSize = 0,
-                  isKeyCompressed = false
+                  isKeyCompressed = true
                 )
 
               val reader = Reader(writeResult.indexBytes)

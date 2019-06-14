@@ -28,7 +28,8 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Reader, Slice}
 
 trait EntryReader[E] {
-  def apply[T <: BaseEntryId](id: T,
+  def apply[T <: BaseEntryId](baseId: T,
+                              keyValueId: Int,
                               indexReader: Reader,
                               valueReader: Reader,
                               indexOffset: Int,
@@ -46,7 +47,8 @@ object EntryReader {
   val readers: List[BaseEntryReader] =
     List(BaseEntryReader1, BaseEntryReader2, BaseEntryReader3, BaseEntryReader4) sortBy (_.minID)
 
-  def read[T](id: Int,
+  def read[T](baseId: Int,
+              keyValueId: Int,
               indexReader: Reader,
               valueReader: Reader,
               indexOffset: Int,
@@ -54,10 +56,11 @@ object EntryReader {
               nextIndexSize: Int,
               previous: Option[Persistent],
               entryReader: EntryReader[T])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[T] =
-    readers.find(_.maxID >= id) flatMap {
+    readers.find(_.maxID >= baseId) flatMap {
       entry =>
         entry.read(
-          id = id,
+          baseId = baseId,
+          keyValueId = keyValueId,
           indexReader = indexReader,
           valueReader = valueReader,
           indexOffset = indexOffset,
@@ -66,7 +69,7 @@ object EntryReader {
           previous = previous,
           reader = entryReader
         )
-    } getOrElse IO.Failure(IO.Error.Fatal(SegmentException.InvalidKeyValueId(id)))
+    } getOrElse IO.Failure(IO.Error.Fatal(SegmentException.InvalidKeyValueId(baseId)))
 
   def read(indexReader: Reader,
            valueReader: Reader,
@@ -77,19 +80,19 @@ object EntryReader {
     indexReader.readIntUnsigned() flatMap {
       keyValueId =>
         if (KeyValueId.Put.hasKeyValueId(keyValueId))
-          EntryReader.read(KeyValueId.Put.adjustKeyValueIdToBaseId(keyValueId), indexReader, valueReader, indexOffset, nextIndexOffset, nextIndexSize, previous, PutReader)
+          EntryReader.read(KeyValueId.Put.adjustKeyValueIdToBaseId(keyValueId), keyValueId, indexReader, valueReader, indexOffset, nextIndexOffset, nextIndexSize, previous, PutReader)
         else if (KeyValueId.Group.hasKeyValueId(keyValueId))
-          EntryReader.read(KeyValueId.Group.adjustKeyValueIdToBaseId(keyValueId), indexReader, valueReader, indexOffset, nextIndexOffset, nextIndexSize, previous, GroupReader)
+          EntryReader.read(KeyValueId.Group.adjustKeyValueIdToBaseId(keyValueId), keyValueId, indexReader, valueReader, indexOffset, nextIndexOffset, nextIndexSize, previous, GroupReader)
         else if (KeyValueId.Range.hasKeyValueId(keyValueId))
-          EntryReader.read(KeyValueId.Range.adjustKeyValueIdToBaseId(keyValueId), indexReader, valueReader, indexOffset, nextIndexOffset, nextIndexSize, previous, RangeReader)
+          EntryReader.read(KeyValueId.Range.adjustKeyValueIdToBaseId(keyValueId), keyValueId, indexReader, valueReader, indexOffset, nextIndexOffset, nextIndexSize, previous, RangeReader)
         else if (KeyValueId.Remove.hasKeyValueId(keyValueId))
-          EntryReader.read(KeyValueId.Remove.adjustKeyValueIdToBaseId(keyValueId), indexReader, valueReader, indexOffset, nextIndexOffset, nextIndexSize, previous, RemoveReader)
+          EntryReader.read(KeyValueId.Remove.adjustKeyValueIdToBaseId(keyValueId), keyValueId, indexReader, valueReader, indexOffset, nextIndexOffset, nextIndexSize, previous, RemoveReader)
         else if (KeyValueId.Update.hasKeyValueId(keyValueId))
-          EntryReader.read(KeyValueId.Update.adjustKeyValueIdToBaseId(keyValueId), indexReader, valueReader, indexOffset, nextIndexOffset, nextIndexSize, previous, UpdateReader)
+          EntryReader.read(KeyValueId.Update.adjustKeyValueIdToBaseId(keyValueId), keyValueId, indexReader, valueReader, indexOffset, nextIndexOffset, nextIndexSize, previous, UpdateReader)
         else if (KeyValueId.Function.hasKeyValueId(keyValueId))
-          EntryReader.read(KeyValueId.Function.adjustKeyValueIdToBaseId(keyValueId), indexReader, valueReader, indexOffset, nextIndexOffset, nextIndexSize, previous, FunctionReader)
+          EntryReader.read(KeyValueId.Function.adjustKeyValueIdToBaseId(keyValueId), keyValueId, indexReader, valueReader, indexOffset, nextIndexOffset, nextIndexSize, previous, FunctionReader)
         else if (KeyValueId.PendingApply.hasKeyValueId(keyValueId))
-          EntryReader.read(KeyValueId.PendingApply.adjustKeyValueIdToBaseId(keyValueId), indexReader, valueReader, indexOffset, nextIndexOffset, nextIndexSize, previous, PendingApplyReader)
+          EntryReader.read(KeyValueId.PendingApply.adjustKeyValueIdToBaseId(keyValueId), keyValueId, indexReader, valueReader, indexOffset, nextIndexOffset, nextIndexSize, previous, PendingApplyReader)
         else
           IO.Failure(IO.Error.Fatal(SegmentException.InvalidKeyValueId(keyValueId)))
     }
