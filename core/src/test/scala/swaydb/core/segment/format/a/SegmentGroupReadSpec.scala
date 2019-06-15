@@ -99,6 +99,7 @@ sealed trait SegmentGroupReadSpec extends TestBase with ScalaFutures with Privat
         minSegmentSize = 100.mb,
         bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         enableRangeFilter = TestData.enableRangeFilter,
         compressDuplicateValues = true,
         removeDeletes = false,

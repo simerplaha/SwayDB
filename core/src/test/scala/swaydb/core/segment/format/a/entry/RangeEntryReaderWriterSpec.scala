@@ -66,6 +66,7 @@ class RangeEntryReaderWriterSpec extends WordSpec {
           rangeValue = randomRangeValue()(TestTimer.random),
           falsePositiveRate = TestData.falsePositiveRate,
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+          minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           previous = Some(previous)
         )
 

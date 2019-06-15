@@ -50,6 +50,7 @@ class SegmentMerge_Performance_Spec extends TestBase {
         forInMemory = false,
         bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         compressDuplicateValues = true
       ).assertGet
     }

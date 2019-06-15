@@ -94,6 +94,7 @@ private[segment] case class MemorySegment(path: Path,
                    minSegmentSize: Long,
                    bloomFilterFalsePositiveRate: Double,
                    resetPrefixCompressionEvery: Int,
+                   minimumNumberOfKeyForHashIndex: Int,
                    enableRangeFilter: Boolean,
                    compressDuplicateValues: Boolean,
                    removeDeletes: Boolean,
@@ -115,6 +116,7 @@ private[segment] case class MemorySegment(path: Path,
             isLastLevel = removeDeletes,
             bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
             resetPrefixCompressionEvery = resetPrefixCompressionEvery,
+            minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
             compressDuplicateValues = compressDuplicateValues
           ) flatMap {
             splits =>
@@ -146,6 +148,7 @@ private[segment] case class MemorySegment(path: Path,
   override def refresh(minSegmentSize: Long,
                        bloomFilterFalsePositiveRate: Double,
                        resetPrefixCompressionEvery: Int,
+                       minimumNumberOfKeyForHashIndex: Int,
                        enableRangeFilter: Boolean,
                        compressDuplicateValues: Boolean,
                        removeDeletes: Boolean,
@@ -166,6 +169,7 @@ private[segment] case class MemorySegment(path: Path,
             maxProbe = maxProbe,
             bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
             resetPrefixCompressionEvery = resetPrefixCompressionEvery,
+            minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
             compressDuplicateValues = compressDuplicateValues
           ) flatMap {
             splits =>

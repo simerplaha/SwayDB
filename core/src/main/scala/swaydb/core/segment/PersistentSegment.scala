@@ -126,6 +126,7 @@ private[segment] case class PersistentSegment(file: DBFile,
           minSegmentSize: Long,
           bloomFilterFalsePositiveRate: Double,
           resetPrefixCompressionEvery: Int,
+          minimumNumberOfKeyForHashIndex: Int,
           enableRangeFilter: Boolean,
           compressDuplicateValues: Boolean,
           removeDeletes: Boolean,
@@ -144,6 +145,7 @@ private[segment] case class PersistentSegment(file: DBFile,
           forInMemory = false,
           bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
           resetPrefixCompressionEvery = resetPrefixCompressionEvery,
+          minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
           compressDuplicateValues = compressDuplicateValues
         ) flatMap {
           splits =>
@@ -176,6 +178,7 @@ private[segment] case class PersistentSegment(file: DBFile,
   def refresh(minSegmentSize: Long,
               bloomFilterFalsePositiveRate: Double,
               resetPrefixCompressionEvery: Int,
+              minimumNumberOfKeyForHashIndex: Int,
               enableRangeFilter: Boolean,
               compressDuplicateValues: Boolean,
               removeDeletes: Boolean,
@@ -193,6 +196,7 @@ private[segment] case class PersistentSegment(file: DBFile,
           maxProbe = maxProbe,
           bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
           resetPrefixCompressionEvery = resetPrefixCompressionEvery,
+          minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
           compressDuplicateValues = compressDuplicateValues
         ) flatMap {
           splits =>

@@ -144,6 +144,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                           segmentKeyValues: ListBuffer[KeyValue.WriteOnly],
                           bloomFilterFalsePositiveRate: Double,
                           resetPrefixCompressionEvery: Int,
+                          minimumNumberOfKeyForHashIndex: Int,
                           groupingStrategy: GroupingStrategy,
                           maxProbe: Int): IO[Option[Group]] =
     Group(
@@ -152,6 +153,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
       valueCompressions = groupingStrategy.valueCompressions,
       falsePositiveRate = bloomFilterFalsePositiveRate,
       resetPrefixCompressionEvery = resetPrefixCompressionEvery,
+      minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
       previous = lastGroup,
       maxProbe = maxProbe
     ) map {
@@ -173,6 +175,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
   private[segment] def groupKeyValues(segmentKeyValues: ListBuffer[KeyValue.WriteOnly],
                                       bloomFilterFalsePositiveRate: Double,
                                       resetPrefixCompressionEvery: Int,
+                                      minimumNumberOfKeyForHashIndex: Int,
                                       groupingStrategy: KeyValueGroupingStrategyInternal,
                                       maxProbe: Int,
                                       force: Boolean): IO[Option[Group]] =
@@ -187,8 +190,9 @@ private[merge] object SegmentGrouper extends LazyLogging {
           keyValuesToGroup = keyValuesToGroup,
           lastGroup = lastGroup,
           segmentKeyValues = segmentKeyValues,
-          resetPrefixCompressionEvery = resetPrefixCompressionEvery,
           bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+          resetPrefixCompressionEvery = resetPrefixCompressionEvery,
+          minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
           groupingStrategy = groupingStrategy,
           maxProbe = maxProbe
         )
@@ -200,6 +204,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                                    groupingStrategy: GroupGroupingStrategyInternal,
                                    bloomFilterFalsePositiveRate: Double,
                                    resetPrefixCompressionEvery: Int,
+                                   minimumNumberOfKeyForHashIndex: Int,
                                    maxProbe: Int,
                                    force: Boolean): IO[Option[Group]] =
     groupsToGroup(
@@ -215,6 +220,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
           segmentKeyValues = groupKeyValues,
           bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
           resetPrefixCompressionEvery = resetPrefixCompressionEvery,
+          minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
           groupingStrategy = groupingStrategy,
           maxProbe = maxProbe
         )
@@ -228,6 +234,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
   private[segment] def group(segmentKeyValues: ListBuffer[KeyValue.WriteOnly],
                              bloomFilterFalsePositiveRate: Double,
                              resetPrefixCompressionEvery: Int,
+                             minimumNumberOfKeyForHashIndex: Int,
                              groupingStrategy: KeyValueGroupingStrategyInternal,
                              maxProbe: Int,
                              force: Boolean): IO[Option[Group]] =
@@ -237,6 +244,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
         segmentKeyValues = segmentKeyValues,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
         resetPrefixCompressionEvery = resetPrefixCompressionEvery,
+        minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
         groupingStrategy = groupingStrategy,
         maxProbe = maxProbe,
         force = force
@@ -249,6 +257,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
               groupKeyValues = segmentKeyValues,
               bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
               resetPrefixCompressionEvery = resetPrefixCompressionEvery,
+              minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
               groupingStrategy = groupingStrategy,
               maxProbe = maxProbe,
               force = force
@@ -269,6 +278,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                    isLastLevel: Boolean,
                    bloomFilterFalsePositiveRate: Double,
                    resetPrefixCompressionEvery: Int,
+                   minimumNumberOfKeyForHashIndex: Int,
                    compressDuplicateValues: Boolean)(implicit groupingStrategy: Option[KeyValueGroupingStrategyInternal],
                                                      keyOrder: KeyOrder[Slice[Byte]]): IO[Unit] =
     keyValues.headOption match {
@@ -281,12 +291,13 @@ private[merge] object SegmentGrouper extends LazyLogging {
                   keyValues = MergeList[Memory.Range, KeyValue.ReadOnly](groupKeyValues) append keyValues.dropHead(),
                   splits = splits,
                   minSegmentSize = minSegmentSize,
+                  maxProbe = maxProbe,
                   forInMemory = forInMemory,
                   isLastLevel = isLastLevel,
                   bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
                   resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-                  compressDuplicateValues = compressDuplicateValues,
-                  maxProbe = maxProbe
+                  minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
+                  compressDuplicateValues = compressDuplicateValues
                 )
               case IO.Failure(exception) =>
                 IO.Failure(exception)
@@ -302,18 +313,20 @@ private[merge] object SegmentGrouper extends LazyLogging {
               isLastLevel = isLastLevel,
               bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
               resetPrefixCompressionEvery = resetPrefixCompressionEvery,
+              minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
               compressDuplicateValues = compressDuplicateValues
             ) match {
               case IO.Success(_) =>
                 addKeyValues(
                   keyValues = keyValues.dropHead(),
                   splits = splits,
-                  maxProbe = maxProbe,
                   minSegmentSize = minSegmentSize,
+                  maxProbe = maxProbe,
                   forInMemory = forInMemory,
                   isLastLevel = isLastLevel,
                   bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
                   resetPrefixCompressionEvery = resetPrefixCompressionEvery,
+                  minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
                   compressDuplicateValues = compressDuplicateValues
                 )
               case IO.Failure(exception) =>
@@ -332,6 +345,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                   isLastLevel: Boolean,
                   bloomFilterFalsePositiveRate: Double,
                   resetPrefixCompressionEvery: Int,
+                  minimumNumberOfKeyForHashIndex: Int,
                   compressDuplicateValues: Boolean)(implicit groupingStrategy: Option[KeyValueGroupingStrategyInternal],
                                                     keyOrder: KeyOrder[Slice[Byte]]): IO[Unit] = {
 
@@ -378,6 +392,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                   segmentKeyValues = last,
                   bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
                   resetPrefixCompressionEvery = resetPrefixCompressionEvery,
+                  minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
                   groupingStrategy = groupingStrategy,
                   maxProbe = maxProbe,
                   force = force
@@ -425,8 +440,9 @@ private[merge] object SegmentGrouper extends LazyLogging {
                     time = time,
                     _,
                     falsePositiveRate = bloomFilterFalsePositiveRate,
+                    compressDuplicateValues = compressDuplicateValues,
                     resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-                    compressDuplicateValues = compressDuplicateValues
+                    minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex
                   )
                 )
 
@@ -444,8 +460,9 @@ private[merge] object SegmentGrouper extends LazyLogging {
                         time = put.time,
                         _,
                         falsePositiveRate = bloomFilterFalsePositiveRate,
+                        compressDuplicateValues = compressDuplicateValues,
                         resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-                        compressDuplicateValues = compressDuplicateValues
+                        minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex
                       )
                     )
                 }
@@ -461,7 +478,8 @@ private[merge] object SegmentGrouper extends LazyLogging {
                     time = remove.time,
                     _,
                     falsePositiveRate = bloomFilterFalsePositiveRate,
-                    resetPrefixCompressionEvery = resetPrefixCompressionEvery
+                    resetPrefixCompressionEvery = resetPrefixCompressionEvery,
+                    minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex
                   )
                 )
 
@@ -476,7 +494,8 @@ private[merge] object SegmentGrouper extends LazyLogging {
                     time = remove.time,
                     _,
                     falsePositiveRate = bloomFilterFalsePositiveRate,
-                    resetPrefixCompressionEvery = resetPrefixCompressionEvery
+                    resetPrefixCompressionEvery = resetPrefixCompressionEvery,
+                    minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex
                   )
                 )
 
@@ -493,7 +512,8 @@ private[merge] object SegmentGrouper extends LazyLogging {
                     _,
                     falsePositiveRate = bloomFilterFalsePositiveRate,
                     compressDuplicateValues = compressDuplicateValues,
-                    resetPrefixCompressionEvery = resetPrefixCompressionEvery
+                    resetPrefixCompressionEvery = resetPrefixCompressionEvery,
+                    minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex
                   )
                 )
 
@@ -512,7 +532,8 @@ private[merge] object SegmentGrouper extends LazyLogging {
                         _,
                         falsePositiveRate = bloomFilterFalsePositiveRate,
                         compressDuplicateValues = compressDuplicateValues,
-                        resetPrefixCompressionEvery = resetPrefixCompressionEvery
+                        resetPrefixCompressionEvery = resetPrefixCompressionEvery,
+                        minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex
                       )
                     )
                 }
@@ -530,7 +551,8 @@ private[merge] object SegmentGrouper extends LazyLogging {
                     _,
                     falsePositiveRate = bloomFilterFalsePositiveRate,
                     resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-                    compressDuplicateValues = compressDuplicateValues
+                    compressDuplicateValues = compressDuplicateValues,
+                    minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex
                   )
                 )
 
@@ -549,7 +571,8 @@ private[merge] object SegmentGrouper extends LazyLogging {
                         _,
                         falsePositiveRate = bloomFilterFalsePositiveRate,
                         resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-                        compressDuplicateValues = compressDuplicateValues
+                        compressDuplicateValues = compressDuplicateValues,
+                        minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex
                       )
                     )
                 }
@@ -565,7 +588,8 @@ private[merge] object SegmentGrouper extends LazyLogging {
                     _,
                     falsePositiveRate = bloomFilterFalsePositiveRate,
                     resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-                    compressDuplicateValues = compressDuplicateValues
+                    compressDuplicateValues = compressDuplicateValues,
+                    minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex
                   )
                 )
 
@@ -582,7 +606,8 @@ private[merge] object SegmentGrouper extends LazyLogging {
                         _,
                         falsePositiveRate = bloomFilterFalsePositiveRate,
                         resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-                        compressDuplicateValues = compressDuplicateValues
+                        compressDuplicateValues = compressDuplicateValues,
+                        minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex
                       )
                     )
                 }
@@ -606,7 +631,8 @@ private[merge] object SegmentGrouper extends LazyLogging {
                               _,
                               falsePositiveRate = bloomFilterFalsePositiveRate,
                               resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-                              compressDuplicateValues = compressDuplicateValues
+                              compressDuplicateValues = compressDuplicateValues,
+                              minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex
                             )
                           )
                         else
@@ -632,6 +658,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                     rangeValue = rangeValue,
                     falsePositiveRate = bloomFilterFalsePositiveRate,
                     resetPrefixCompressionEvery = resetPrefixCompressionEvery,
+                    minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
                     _
                   )
                 )
@@ -648,6 +675,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                 isLastLevel = isLastLevel,
                 bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
                 resetPrefixCompressionEvery = resetPrefixCompressionEvery,
+                minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
                 compressDuplicateValues = compressDuplicateValues,
                 maxProbe = maxProbe
               )

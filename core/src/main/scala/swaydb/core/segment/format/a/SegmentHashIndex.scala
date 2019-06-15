@@ -29,6 +29,7 @@ import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
 
 import scala.annotation.tailrec
+import scala.util.Try
 
 /**
   * HashIndex.
@@ -59,38 +60,53 @@ object SegmentHashIndex extends LazyLogging {
     */
   def optimalBytesRequired(lastKeyValuePosition: Int,
                            lastKeyValueIndexOffset: Int,
+                           minimumNumberOfKeyValues: Int,
                            compensate: Int => Int): Int = {
-    //number of bytes required for hash indexes. +1 to skip 0 empty markers.
-    val bytesWithOutCompensation = lastKeyValuePosition * Bytes.sizeOf(lastKeyValueIndexOffset + 1)
-    val bytesRequired =
-      headerSize +
-        (ByteSizeOf.int + 1) + //give it another 5 bytes incase the hash index is the last index. Since varints are written a max of 5 bytes can be taken for an in with large index.
-        bytesWithOutCompensation +
-        compensate(bytesWithOutCompensation) //optionally add compensation space or remove.
+    if (lastKeyValuePosition <= minimumNumberOfKeyValues) {
+      headerSize
+    } else {
+      //number of bytes required for hash indexes. +1 to skip 0 empty markers.
+      val bytesWithOutCompensation = lastKeyValuePosition * Bytes.sizeOf(lastKeyValueIndexOffset + 1)
+      val bytesRequired =
+        headerSize +
+          (ByteSizeOf.int + 1) + //give it another 5 bytes incase the hash index is the last index. Since varints are written a max of 5 bytes can be taken for an in with large index.
+          bytesWithOutCompensation +
+          Try(compensate(bytesWithOutCompensation)).getOrElse(0) //optionally add compensation space or remove.
 
-    //in case compensation returns negative, reserve enough bytes for the header.
-    bytesRequired max headerSize
+      //in case compensation returns negative, reserve enough bytes for the header.
+      bytesRequired max headerSize
+    }
   }
 
   /**
     * Number of bytes required to build a high probability index.
     */
   def optimalBytesRequired(lastKeyValue: KeyValue.WriteOnly,
+                           minimumNumberOfKeyValues: Int,
                            compensate: Int => Int): Int =
     optimalBytesRequired(
       lastKeyValuePosition = lastKeyValue.stats.position,
+      minimumNumberOfKeyValues = minimumNumberOfKeyValues,
       lastKeyValueIndexOffset = lastKeyValue.stats.thisKeyValuesHashIndexOffset,
       compensate = compensate
     )
 
   def write(keyValues: Iterable[KeyValue.WriteOnly],
             maxProbe: Int,
+            minimumNumberOfKeyValues: Int,
             compensate: Int => Int): IO[WriteResult] =
     keyValues.lastOption map {
       last =>
         write(
           keyValues = keyValues,
-          bytes = Slice.create[Byte](optimalBytesRequired(last, compensate)),
+          bytes =
+            Slice.create[Byte](
+              optimalBytesRequired(
+                lastKeyValue = last,
+                minimumNumberOfKeyValues = minimumNumberOfKeyValues,
+                compensate = compensate
+              )
+            ),
           maxProbe = maxProbe
         )
     } getOrElse {

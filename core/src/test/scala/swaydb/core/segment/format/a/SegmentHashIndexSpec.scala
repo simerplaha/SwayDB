@@ -45,6 +45,7 @@ class SegmentHashIndexSpec extends TestBase {
           SegmentHashIndex.write(
             keyValues = keyValues,
             maxProbe = maxProbe,
+            minimumNumberOfKeyValues = 0,
             compensate = _ * 2
           ).get
 

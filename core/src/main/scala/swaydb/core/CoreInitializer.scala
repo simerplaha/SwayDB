@@ -164,6 +164,7 @@ private[core] object CoreInitializer extends LazyLogging {
             maxProbe = 5, // todo make a config
             bloomFilterFalsePositiveRate = config.bloomFilterFalsePositiveRate,
             resetPrefixCompressionEvery = 100,
+            minimumNumberOfKeyForHashIndex = 50,
             enableRangeFilter = true,
             throttle = config.throttle,
             compressDuplicateValues = config.compressDuplicateValues,
@@ -185,6 +186,7 @@ private[core] object CoreInitializer extends LazyLogging {
             maxProbe = 5, //todo make a config
             nextLevel = nextLevel,
             resetPrefixCompressionEvery = 100,
+            minimumNumberOfKeyForHashIndex = 50,
             enableRangeFilter = true,
             pushForward = config.pushForward,
             appendixStorage = AppendixStorage.Persistent(config.mmapAppendix, config.appendixFlushCheckpointSize),

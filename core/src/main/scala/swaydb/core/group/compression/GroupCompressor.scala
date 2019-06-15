@@ -98,6 +98,7 @@ private[core] object GroupCompressor extends LazyLogging {
                valueCompressions: Seq[CompressionInternal],
                falsePositiveRate: Double,
                resetPrefixCompressionEvery: Int,
+               minimumNumberOfKeyForHashIndex: Int,
                previous: Option[KeyValue.WriteOnly],
                maxProbe: Int): IO[Option[Transient.Group]] =
     if (keyValues.isEmpty) {
@@ -215,7 +216,8 @@ private[core] object GroupCompressor extends LazyLogging {
                       keyValues = keyValues,
                       previous = previous,
                       falsePositiveRate = falsePositiveRate,
-                      resetPrefixCompressionEvery = resetPrefixCompressionEvery
+                      resetPrefixCompressionEvery = resetPrefixCompressionEvery,
+                      minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex
                     )
                   )
                 }

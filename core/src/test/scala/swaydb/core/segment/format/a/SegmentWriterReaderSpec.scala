@@ -119,6 +119,7 @@ class SegmentWriterReaderSpec extends TestBase {
             valueCompression = randomCompression(),
             falsePositiveRate = TestData.falsePositiveRate,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             previous = None,
             maxProbe = TestData.maxProbe
           ).assertGet
@@ -149,6 +150,7 @@ class SegmentWriterReaderSpec extends TestBase {
             valueCompression = randomCompression(),
             falsePositiveRate = TestData.falsePositiveRate,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             previous = None,
             maxProbe = TestData.maxProbe
           ).assertGet
@@ -162,6 +164,7 @@ class SegmentWriterReaderSpec extends TestBase {
             valueCompression = randomCompression(),
             falsePositiveRate = TestData.falsePositiveRate,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             previous = Some(group1),
             maxProbe = TestData.maxProbe
           ).assertGet
@@ -195,6 +198,7 @@ class SegmentWriterReaderSpec extends TestBase {
             valueCompression = randomCompressionLZ4OrSnappy(Double.MinValue),
             falsePositiveRate = TestData.falsePositiveRate,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             previous = None,
             maxProbe = TestData.maxProbe
           ).assertGet
@@ -207,6 +211,7 @@ class SegmentWriterReaderSpec extends TestBase {
             valueCompression = randomCompression(),
             falsePositiveRate = TestData.falsePositiveRate,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             previous = Some(group1),
             maxProbe = TestData.maxProbe
           ).assertGet
@@ -219,6 +224,7 @@ class SegmentWriterReaderSpec extends TestBase {
             valueCompression = randomCompressionLZ4OrSnappy(Double.MinValue),
             falsePositiveRate = TestData.falsePositiveRate,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             previous = Some(group2),
             maxProbe = TestData.maxProbe
           ).assertGet
@@ -232,6 +238,7 @@ class SegmentWriterReaderSpec extends TestBase {
             valueCompression = randomCompression(),
             falsePositiveRate = TestData.falsePositiveRate,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             previous = None,
             maxProbe = TestData.maxProbe
           ).assertGet
@@ -465,6 +472,7 @@ class SegmentWriterReaderSpec extends TestBase {
                     valueCompression = randomCompression(),
                     falsePositiveRate = TestData.falsePositiveRate,
                     resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+                    minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
                     previous = None,
                     maxProbe = TestData.maxProbe
                   ).assertGet,
@@ -517,6 +525,7 @@ class SegmentWriterReaderSpec extends TestBase {
               valueCompression = randomCompression(),
               falsePositiveRate = TestData.falsePositiveRate,
               resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+              minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
               previous = None,
               maxProbe = TestData.maxProbe
             ).assertGet
@@ -600,6 +609,7 @@ class SegmentWriterReaderSpec extends TestBase {
               valueCompression = valueCompression,
               falsePositiveRate = TestData.falsePositiveRate,
               resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+              minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
               maxProbe = TestData.maxProbe,
               previous = None
             ).assertGet
@@ -650,6 +660,7 @@ class SegmentWriterReaderSpec extends TestBase {
               valueCompression = valueCompression,
               falsePositiveRate = TestData.falsePositiveRate,
               resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+              minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
               previous = None,
               maxProbe = TestData.maxProbe
             ).assertGet
@@ -675,6 +686,7 @@ class SegmentWriterReaderSpec extends TestBase {
             valueCompression = randomCompression(),
             falsePositiveRate = TestData.falsePositiveRate,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             previous = None,
             maxProbe = TestData.maxProbe
           ).assertGet

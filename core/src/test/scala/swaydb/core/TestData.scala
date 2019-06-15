@@ -66,6 +66,7 @@ object TestData {
 
   val falsePositiveRate: Double = 0.01
   val resetPrefixCompressionEvery: Int = 100
+  val minimumNumberOfKeyForHashIndex: Int = resetPrefixCompressionEvery / 2
   val enableRangeFilter: Boolean = true
   val maxProbe: Int = 5
 
@@ -138,6 +139,7 @@ object TestData {
           maxProbe = level.maxProbe,
           bloomFilterFalsePositiveRate = level.bloomFilterFalsePositiveRate,
           resetPrefixCompressionEvery = level.resetPrefixCompressionEvery,
+          minimumNumberOfKeyForHashIndex = level.minimumNumberOfKeyForHashIndex,
           enableRangeFilter = level.enableRangeFilter,
           compressDuplicateValues = true
         ) flatMap {
@@ -162,6 +164,7 @@ object TestData {
           maxProbe = level.maxProbe,
           bloomFilterFalsePositiveRate = level.bloomFilterFalsePositiveRate,
           resetPrefixCompressionEvery = level.resetPrefixCompressionEvery,
+          minimumNumberOfKeyForHashIndex = level.minimumNumberOfKeyForHashIndex,
           enableRangeFilter = level.enableRangeFilter,
           compressDuplicateValues = randomBoolean()
         ) flatMap {
@@ -213,6 +216,7 @@ object TestData {
                 pushForward = level.pushForward,
                 bloomFilterFalsePositiveRate = level.bloomFilterFalsePositiveRate,
                 resetPrefixCompressionEvery = level.resetPrefixCompressionEvery,
+                minimumNumberOfKeyForHashIndex = level.minimumNumberOfKeyForHashIndex,
                 enableRangeFilter = level.enableRangeFilter,
                 throttle = throttle,
                 compressDuplicateValues = level.compressDuplicateValues,
@@ -329,25 +333,25 @@ object TestData {
       keyValue match {
         case fixed: KeyValue.WriteOnly.Fixed =>
           fixed match {
-            case Transient.Remove(key, deadline, time, previous, falsePositiveRate, _) =>
+            case Transient.Remove(key, deadline, time, previous, falsePositiveRate, _, _) =>
               Memory.Remove(key, deadline, time)
 
-            case Transient.Update(key, value, deadline, time, previous, falsePositiveRate, compressDuplicateValues, _) =>
+            case Transient.Update(key, value, deadline, time, previous, falsePositiveRate, compressDuplicateValues, _, _) =>
               Memory.Update(key, value, deadline, time)
 
-            case Transient.Put(key, value, deadline, time, previous, falsePositiveRate, compressDuplicateValues, _) =>
+            case Transient.Put(key, value, deadline, time, previous, falsePositiveRate, compressDuplicateValues, _, _) =>
               Memory.Put(key, value, deadline, time)
 
-            case Transient.Function(key, function, deadline, time, previous, falsePositiveRate, compressDuplicateValues, _) =>
+            case Transient.Function(key, function, deadline, time, previous, falsePositiveRate, compressDuplicateValues, _, _) =>
               Memory.Function(key, function, time)
 
-            case Transient.PendingApply(key, applies, previous, falsePositiveRate, compressDuplicateValues, _) =>
+            case Transient.PendingApply(key, applies, previous, falsePositiveRate, compressDuplicateValues, _, _) =>
               Memory.PendingApply(key, applies)
           }
 
         case range: KeyValue.WriteOnly.Range =>
           range match {
-            case Transient.Range(fromKey, toKey, fullKey, fromValue, rangeValue, value, previous, falsePositiveRate, _) =>
+            case Transient.Range(fromKey, toKey, fullKey, fromValue, rangeValue, value, previous, falsePositiveRate, _, _) =>
               Memory.Range(fromKey, toKey, fromValue, rangeValue)
           }
       }
@@ -356,7 +360,7 @@ object TestData {
       keyValue match {
         case group: KeyValue.WriteOnly.Group =>
           group match {
-            case Transient.Group(fromKey, toKey, fullKey, compressedKeyValues, deadline, keyValues, previous, falsePositiveRate, _) =>
+            case Transient.Group(fromKey, toKey, fullKey, compressedKeyValues, deadline, keyValues, previous, falsePositiveRate, _, _) =>
               Memory.Group(
                 minKey = fromKey,
                 maxKey = toKey,
@@ -371,7 +375,7 @@ object TestData {
       keyValue match {
         case group: KeyValue.WriteOnly.Group =>
           group match {
-            case Transient.Group(fromKey, toKey, fullKey, compressedKeyValues, deadline, keyValues, previous, falsePositiveRate, _) =>
+            case Transient.Group(fromKey, toKey, fullKey, compressedKeyValues, deadline, keyValues, previous, falsePositiveRate, _, _) =>
               Memory.Group(
                 minKey = fromKey,
                 maxKey = toKey,
@@ -439,6 +443,7 @@ object TestData {
                     value = value,
                     falsePositiveRate = TestData.falsePositiveRate,
                     resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+                    minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
                     previous = previous,
                     deadline = deadline,
                     compressDuplicateValues = true,
@@ -451,6 +456,7 @@ object TestData {
                     value = value,
                     falsePositiveRate = TestData.falsePositiveRate,
                     resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+                    minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
                     previous = previous,
                     deadline = deadline,
                     compressDuplicateValues = true,
@@ -462,6 +468,7 @@ object TestData {
                     key = key,
                     falsePositiveRate = TestData.falsePositiveRate,
                     resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+                    minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
                     previous = previous,
                     deadline = deadline,
                     time = time
@@ -472,6 +479,7 @@ object TestData {
                     key = key,
                     falsePositiveRate = TestData.falsePositiveRate,
                     resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+                    minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
                     previous = previous,
                     deadline = None,
                     time = time,
@@ -486,6 +494,7 @@ object TestData {
                     previous = previous,
                     falsePositiveRate = TestData.falsePositiveRate,
                     resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+                    minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
                     compressDuplicateValues = true
                   )
               }
@@ -497,6 +506,7 @@ object TestData {
                 rangeValue = rangeValue,
                 falsePositiveRate = TestData.falsePositiveRate,
                 resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+                minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
                 previous = previous
               )
 
@@ -507,6 +517,7 @@ object TestData {
                 valueCompression = randomCompression(),
                 maxProbe = TestData.maxProbe,
                 resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+                minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
                 falsePositiveRate = 0,
                 previous = previous
               ).assertGet
@@ -525,6 +536,7 @@ object TestData {
                     falsePositiveRate = TestData.falsePositiveRate,
                     compressDuplicateValues = true,
                     resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+                    minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
                     time = time
                   )
 
@@ -537,6 +549,7 @@ object TestData {
                     deadline = deadline,
                     compressDuplicateValues = true,
                     resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+                    minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
                     time = time
                   )
 
@@ -548,6 +561,7 @@ object TestData {
                     deadline = None,
                     compressDuplicateValues = true,
                     resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+                    minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
                     time = time,
                     function = lazyFunctionReader.getOrFetchFunction.assertGet
                   )
@@ -558,6 +572,7 @@ object TestData {
                     applies = pendingApply.getOrFetchApplies.assertGet,
                     falsePositiveRate = TestData.falsePositiveRate,
                     resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+                    minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
                     previous = previous,
                     compressDuplicateValues = true
                   )
@@ -567,6 +582,7 @@ object TestData {
                     key = _key,
                     falsePositiveRate = TestData.falsePositiveRate,
                     resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+                    minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
                     previous = previous,
                     deadline = deadline,
                     time = time
@@ -582,6 +598,7 @@ object TestData {
                 rangeValue = rangeValue,
                 falsePositiveRate = TestData.falsePositiveRate,
                 resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+                minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
                 previous = previous
               )
 
@@ -595,6 +612,7 @@ object TestData {
                 previous = previous,
                 falsePositiveRate = TestData.falsePositiveRate,
                 resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+                minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
               ).assertGet
           }
       }
@@ -1363,6 +1381,7 @@ object TestData {
             valueCompression = randomCompression(),
             falsePositiveRate = TestData.falsePositiveRate,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             previous = slice.lastOption,
             maxProbe = TestData.maxProbe
           ).assertGetOpt match {
@@ -1450,6 +1469,7 @@ object TestData {
                   valueCompression: CompressionInternal = randomCompression(),
                   falsePositiveRate: Double = TestData.falsePositiveRate,
                   resetPrefixCompressionEvery: Int = TestData.resetPrefixCompressionEvery,
+                  minimumNumberOfKeyForHashIndex: Int = TestData.minimumNumberOfKeyForHashIndex,
                   previous: Option[KeyValue.WriteOnly] = None)(implicit testTimer: TestTimer = TestTimer.Incremental()): Transient.Group =
     Transient.Group(
       keyValues = keyValues,
@@ -1458,6 +1478,7 @@ object TestData {
       maxProbe = TestData.maxProbe,
       falsePositiveRate = falsePositiveRate,
       resetPrefixCompressionEvery = resetPrefixCompressionEvery,
+      minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
       previous = previous
     ).assertGet
 
@@ -1578,6 +1599,7 @@ object TestData {
         key = key,
         falsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         time = testTimer.next,
         previous = None,
         deadline = None
@@ -1590,6 +1612,7 @@ object TestData {
         key = key,
         falsePositiveRate = falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         previous = None,
         deadline = Some(removeAfter.fromNow),
         time = testTimer.next
@@ -1601,6 +1624,7 @@ object TestData {
         key = key,
         falsePositiveRate = falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         previous = None,
         deadline = None,
         time = testTimer.next
@@ -1613,6 +1637,7 @@ object TestData {
         key = key,
         falsePositiveRate = falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         previous = previous,
         deadline = None,
         time = testTimer.next
@@ -1628,6 +1653,7 @@ object TestData {
         previous = previous,
         falsePositiveRate = falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         time = testTimer.next
       )
 
@@ -1643,6 +1669,7 @@ object TestData {
         previous = previousMayBe,
         falsePositiveRate = falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         compressDuplicateValues = true
       )
 
@@ -1659,6 +1686,7 @@ object TestData {
         previous = previousMayBe,
         falsePositiveRate = falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         time = testTimer.next,
         compressDuplicateValues = compressDuplicateValues
       )
@@ -1671,6 +1699,7 @@ object TestData {
         previous = None,
         falsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         time = testTimer.next,
         compressDuplicateValues = true
       )
@@ -1686,6 +1715,7 @@ object TestData {
         time = testTimer.next,
         falsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         compressDuplicateValues = compressDuplicateValues
       )
 
@@ -1699,6 +1729,7 @@ object TestData {
         previous = None,
         falsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         time = testTimer.next,
         compressDuplicateValues = true
       )
@@ -1713,6 +1744,7 @@ object TestData {
         previous = None,
         falsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         time = testTimer.next,
         compressDuplicateValues = true
       )
@@ -1726,6 +1758,7 @@ object TestData {
         previous = None,
         falsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         time = testTimer.next,
         compressDuplicateValues = true
       )
@@ -1740,6 +1773,7 @@ object TestData {
         previous = None,
         falsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         time = testTimer.next,
         compressDuplicateValues = true
       )
@@ -1754,6 +1788,7 @@ object TestData {
         previous = None,
         falsePositiveRate = falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         time = testTimer.next,
         compressDuplicateValues = true
       )
@@ -1769,6 +1804,7 @@ object TestData {
         previous = previous,
         falsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         time = testTimer.next,
         compressDuplicateValues = compressDuplicateValues
       )
@@ -1785,6 +1821,7 @@ object TestData {
         previous = previous,
         falsePositiveRate = falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         time = testTimer.next,
         compressDuplicateValues = compressDuplicateValues
       )
@@ -1801,6 +1838,7 @@ object TestData {
         previous = previousMayBe,
         falsePositiveRate = falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         compressDuplicateValues = true
       )
 
@@ -1817,6 +1855,7 @@ object TestData {
         previous = previousMayBe,
         falsePositiveRate = falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         time = testTimer.next,
         compressDuplicateValues = compressDuplicateValues
       )
@@ -1829,6 +1868,7 @@ object TestData {
         previous = None,
         falsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         time = testTimer.next,
         compressDuplicateValues = true
       )
@@ -1844,6 +1884,7 @@ object TestData {
         time = testTimer.next,
         falsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         compressDuplicateValues = compressDuplicateValues
       )
 
@@ -1857,6 +1898,7 @@ object TestData {
         previous = None,
         falsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         time = testTimer.next,
         compressDuplicateValues = true
       )
@@ -1871,6 +1913,7 @@ object TestData {
         previous = None,
         falsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         time = testTimer.next,
         compressDuplicateValues = true
       )
@@ -1884,6 +1927,7 @@ object TestData {
         previous = None,
         falsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         time = testTimer.next,
         compressDuplicateValues = true
       )
@@ -1898,6 +1942,7 @@ object TestData {
         previous = None,
         falsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         time = testTimer.next,
         compressDuplicateValues = true
       )
@@ -1912,6 +1957,7 @@ object TestData {
         previous = None,
         falsePositiveRate = falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         time = testTimer.next,
         compressDuplicateValues = true
       )
@@ -1927,6 +1973,7 @@ object TestData {
         previous = previous,
         falsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         time = testTimer.next,
         compressDuplicateValues = compressDuplicateValues
       )
@@ -1943,6 +1990,7 @@ object TestData {
         previous = previous,
         falsePositiveRate = falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         time = testTimer.next,
         compressDuplicateValues = compressDuplicateValues
       )
@@ -2022,6 +2070,7 @@ object TestData {
         rangeValue = rangeValue,
         falsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         previous = None
       )
   }

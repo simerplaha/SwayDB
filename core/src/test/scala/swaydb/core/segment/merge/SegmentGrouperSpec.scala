@@ -68,6 +68,7 @@ class SegmentGrouperSpec extends TestBase {
         isLastLevel = false,
         bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         compressDuplicateValues = true
       )
 
@@ -108,6 +109,7 @@ class SegmentGrouperSpec extends TestBase {
             maxProbe = TestData.maxProbe,
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             isLastLevel = false,
             compressDuplicateValues = true
           )
@@ -159,6 +161,7 @@ class SegmentGrouperSpec extends TestBase {
             maxProbe = TestData.maxProbe,
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             isLastLevel = false,
             compressDuplicateValues = true
           )
@@ -212,6 +215,7 @@ class SegmentGrouperSpec extends TestBase {
             maxProbe = TestData.maxProbe,
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             isLastLevel = false,
             compressDuplicateValues = true
           )

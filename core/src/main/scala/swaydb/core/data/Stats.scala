@@ -40,6 +40,7 @@ private[core] object Stats {
             isPut: Boolean,
             bloomFiltersItemCount: Int,
             usePreviousHashIndexOffset: Boolean,
+            minimumNumberOfKeyForHashIndex: Int,
             previous: Option[KeyValue.WriteOnly],
             deadline: Option[Deadline]): Stats = {
 
@@ -101,6 +102,7 @@ private[core] object Stats {
       SegmentHashIndex.optimalBytesRequired(
         lastKeyValuePosition = position,
         lastKeyValueIndexOffset = thisKeyValuesHashIndexOffset,
+        minimumNumberOfKeyValues = minimumNumberOfKeyForHashIndex,
         compensate = _ => 0
       )
 

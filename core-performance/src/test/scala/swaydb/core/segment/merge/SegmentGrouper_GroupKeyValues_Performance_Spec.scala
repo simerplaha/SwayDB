@@ -66,6 +66,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Performance_Spec extends TestBase {
             segmentKeyValues = mutableKeyValues,
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             maxProbe = TestData.maxProbe,
             force = force,
             groupingStrategy =
@@ -99,6 +100,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Performance_Spec extends TestBase {
             segmentKeyValues = mutableKeyValues,
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             maxProbe = TestData.maxProbe,
             force = force,
             groupingStrategy =
