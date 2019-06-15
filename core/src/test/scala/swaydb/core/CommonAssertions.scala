@@ -1312,7 +1312,16 @@ object CommonAssertions {
     keyValues shouldBe groupKeyValues
 
     //now write the Group to a full Segment and read it as a normal Segment.
-    val (segmentBytes, nearestDeadline) = SegmentWriter.write(Seq(group.updateStats(TestData.falsePositiveRate, None)), 1, true, 10, TestData.falsePositiveRate).assertGet
+    val (segmentBytes, nearestDeadline) =
+      SegmentWriter.write(
+        keyValues = Seq(group.updateStats(TestData.falsePositiveRate, None)),
+        createdInLevel = 1,
+        isGrouped = true,
+        maxProbe = 10,
+        bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+        enableRangeFilter = TestData.enableRangeFilter
+      ).assertGet
+
     nearestDeadline shouldBe Segment.getNearestDeadline(groupKeyValues).assertGetOpt
     val segmentReader = Reader(segmentBytes)
     val footer = SegmentReader.readFooter(segmentReader).assertGet

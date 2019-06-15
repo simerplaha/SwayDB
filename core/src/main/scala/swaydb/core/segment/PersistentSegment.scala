@@ -125,6 +125,7 @@ private[segment] case class PersistentSegment(file: DBFile,
   def put(newKeyValues: Slice[KeyValue.ReadOnly],
           minSegmentSize: Long,
           bloomFilterFalsePositiveRate: Double,
+          enableRangeFilter: Boolean,
           compressDuplicateValues: Boolean,
           removeDeletes: Boolean,
           createdInLevel: Int,
@@ -150,10 +151,11 @@ private[segment] case class PersistentSegment(file: DBFile,
                   Segment.persistent(
                     path = targetPaths.next.resolve(idGenerator.nextSegmentID),
                     createdInLevel = createdInLevel,
+                    bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+                    enableRangeFilter = enableRangeFilter,
                     mmapReads = mmapReads,
                     mmapWrites = mmapWrites,
-                    keyValues = keyValues,
-                    bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate
+                    keyValues = keyValues
                   ),
 
               recover =
@@ -171,6 +173,7 @@ private[segment] case class PersistentSegment(file: DBFile,
 
   def refresh(minSegmentSize: Long,
               bloomFilterFalsePositiveRate: Double,
+              enableRangeFilter: Boolean,
               compressDuplicateValues: Boolean,
               removeDeletes: Boolean,
               createdInLevel: Int,
@@ -195,10 +198,11 @@ private[segment] case class PersistentSegment(file: DBFile,
                   Segment.persistent(
                     path = targetPaths.next.resolve(idGenerator.nextSegmentID),
                     createdInLevel = createdInLevel,
+                    bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+                    enableRangeFilter = enableRangeFilter,
                     mmapReads = mmapReads,
                     mmapWrites = mmapWrites,
-                    keyValues = keyValues,
-                    bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate
+                    keyValues = keyValues
                   ),
 
               recover =

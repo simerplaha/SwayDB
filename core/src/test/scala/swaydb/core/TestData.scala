@@ -65,6 +65,7 @@ object TestData {
   val allBaseEntryIds = BaseEntryIdFormatA.baseIds
 
   val falsePositiveRate: Double = 0.01
+  val enableRangeFilter: Boolean = true
   val maxProbe: Int = 5
 
   implicit val functionStore: FunctionStore = FunctionStore.memory()
@@ -134,7 +135,8 @@ object TestData {
           minSegmentSize = 1000.mb,
           createdInLevel = level.levelNumber,
           maxProbe = level.maxProbe,
-          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+          bloomFilterFalsePositiveRate = level.bloomFilterFalsePositiveRate,
+          enableRangeFilter = level.enableRangeFilter,
           compressDuplicateValues = true
         ) flatMap {
           segments =>
@@ -156,7 +158,8 @@ object TestData {
           removeDeletes = false,
           minSegmentSize = 1000.mb,
           maxProbe = level.maxProbe,
-          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+          bloomFilterFalsePositiveRate = level.bloomFilterFalsePositiveRate,
+          enableRangeFilter = level.enableRangeFilter,
           compressDuplicateValues = randomBoolean()
         ) flatMap {
           segments =>
@@ -205,7 +208,8 @@ object TestData {
                 segmentSize = segmentSize,
                 nextLevel = nextLevel,
                 pushForward = level.pushForward,
-                bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+                bloomFilterFalsePositiveRate = level.bloomFilterFalsePositiveRate,
+                enableRangeFilter = level.enableRangeFilter,
                 throttle = throttle,
                 compressDuplicateValues = level.compressDuplicateValues,
                 deleteSegmentsEventually = level.deleteSegmentsEventually,

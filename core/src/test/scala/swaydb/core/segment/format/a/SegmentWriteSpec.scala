@@ -250,7 +250,15 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
       }
 
       def doAssert(keyValues: Slice[KeyValue.WriteOnly]) = {
-        val (bytes, _) = SegmentWriter.write(keyValues, 0, false, TestData.maxProbe, TestData.falsePositiveRate).assertGet
+        val (bytes, _) =
+          SegmentWriter.write(
+            keyValues = keyValues,
+            createdInLevel = 0,
+            isGrouped = false,
+            maxProbe = TestData.maxProbe,
+            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+            enableRangeFilter = TestData.enableRangeFilter
+          ).assertGet
 
         //read key-values so they are all part of the same byte array.
         val readKeyValues: Slice[Memory] = SegmentReader.readAll(SegmentReader.readFooter(Reader(bytes)).assertGet, Reader(bytes)).assertGet.toMemory
@@ -611,8 +619,28 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
 
       segment.existsOnDisk shouldBe false
       segment.get(keyValues.head.key).failed.assertGet.exception shouldBe a[NoSuchFileException]
-      segment.put(keyValues.toMemory, 1.mb, TestData.falsePositiveRate, true, false, 0, maxProbe = TestData.maxProbe).failed.assertGet.exception shouldBe a[NoSuchFileException]
-      segment.refresh(1.mb, TestData.falsePositiveRate, true, false, 0, maxProbe = TestData.maxProbe).failed.assertGet.exception shouldBe a[NoSuchFileException]
+
+      segment.put(
+        newKeyValues = keyValues.toMemory,
+        minSegmentSize = 1.mb,
+        bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+        enableRangeFilter = TestData.enableRangeFilter,
+        compressDuplicateValues = true,
+        removeDeletes = false,
+        createdInLevel = 0,
+        maxProbe = TestData.maxProbe
+      ).failed.assertGet.exception shouldBe a[NoSuchFileException]
+
+      segment.refresh(
+        minSegmentSize = 1.mb,
+        bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+        enableRangeFilter = TestData.enableRangeFilter,
+        compressDuplicateValues = true,
+        removeDeletes = false,
+        createdInLevel = 0,
+        maxProbe = TestData.maxProbe
+      ).failed.assertGet.exception shouldBe a[NoSuchFileException]
+
       segment.isOpen shouldBe false
       segment.isFileDefined shouldBe false
     }
@@ -701,6 +729,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           fetchNextPath = levelPath.resolve(nextSegmentId),
           mmapSegmentsOnRead = levelStorage.mmapSegmentsOnRead,
           mmapSegmentsOnWrite = levelStorage.mmapSegmentsOnWrite,
+          enableRangeFilter = TestData.enableRangeFilter,
           maxProbe = TestData.maxProbe,
           compressDuplicateValues = true,
           removeDeletes = false,
@@ -734,6 +763,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
             fetchNextPath = levelPath.resolve(nextSegmentId),
             mmapSegmentsOnRead = levelStorage.mmapSegmentsOnRead,
             mmapSegmentsOnWrite = levelStorage.mmapSegmentsOnWrite,
+            enableRangeFilter = TestData.enableRangeFilter,
             removeDeletes = true,
             maxProbe = TestData.maxProbe,
             compressDuplicateValues = true,
@@ -773,6 +803,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         fetchNextPath = nextPath,
         mmapSegmentsOnRead = levelStorage.mmapSegmentsOnRead,
         mmapSegmentsOnWrite = levelStorage.mmapSegmentsOnWrite,
+        enableRangeFilter = TestData.enableRangeFilter,
         removeDeletes = true,
         maxProbe = TestData.maxProbe,
         compressDuplicateValues = true,
@@ -817,6 +848,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         maxProbe = TestData.maxProbe,
         minSegmentSize = keyValues.toTransient.last.stats.segmentSize / 5,
         bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+        enableRangeFilter = TestData.enableRangeFilter,
         compressDuplicateValues = true
 
       ).failed.assertGet.exception shouldBe a[FileAlreadyExistsException]
@@ -844,7 +876,8 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
               keyValues.last.stats.segmentSize / 4
             else
               keyValues.last.stats.memorySegmentSize / 4,
-          bloomFilterFalsePositiveRate = TestData.falsePositiveRate
+          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+          enableRangeFilter = TestData.enableRangeFilter
         ).assertGet
 
       segments.size should be >= 2 //ensures that splits occurs. Memory Segments do not get written to disk without splitting.
@@ -868,7 +901,8 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
             maxProbe = TestData.maxProbe,
             compressDuplicateValues = true,
             minSegmentSize = keyValues.last.stats.segmentSize / 1000, //divide by large because key-value can contain all expired.
-            bloomFilterFalsePositiveRate = TestData.falsePositiveRate
+            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+            enableRangeFilter = TestData.enableRangeFilter
           ).assertGet
 
         segments.foreach(_.existsOnDisk shouldBe false)
@@ -957,7 +991,18 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
       if (persistent) segment.isOpen shouldBe false
 
       val keyValues2 = randomizedKeyValues(keyValuesCount)
-      segment.put(keyValues2, 1.mb, TestData.falsePositiveRate, true, false, createdInLevel = 0, maxProbe = TestData.maxProbe).assertGet
+
+      segment.put(
+        newKeyValues = keyValues2,
+        minSegmentSize = 1.mb,
+        bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+        enableRangeFilter = TestData.enableRangeFilter,
+        compressDuplicateValues = true,
+        removeDeletes = false,
+        createdInLevel = 0,
+        maxProbe = TestData.maxProbe
+      ).assertGet
+
       if (persistent) segment.isOpen shouldBe true
     }
 
@@ -966,7 +1011,18 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
       val segment = TestSegment(keyValues).assertGet
 
       val newKeyValues = Slice(Memory.put(2, 2))
-      val newSegments = segment.put(newKeyValues, 4.mb, TestData.falsePositiveRate, true, false, createdInLevel = 0, maxProbe = TestData.maxProbe).assertGet
+      val newSegments =
+        segment.put(
+          newKeyValues = newKeyValues,
+          minSegmentSize = 4.mb,
+          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+          enableRangeFilter = TestData.enableRangeFilter,
+          compressDuplicateValues = true,
+          removeDeletes = false,
+          createdInLevel = 0,
+          maxProbe = TestData.maxProbe
+        ).assertGet
+
       newSegments should have size 1
 
       val allReadKeyValues = Segment.getAllKeyValues(TestData.falsePositiveRate, newSegments).assertGet
@@ -982,7 +1038,18 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
       val segment = TestSegment(keyValues).get
 
       val newKeyValues = randomizedKeyValues(10000)
-      val newSegments = segment.put(newKeyValues.toMemory, 10.kb, TestData.falsePositiveRate, true, false, createdInLevel = 0, maxProbe = TestData.maxProbe).assertGet
+      val newSegments =
+        segment.put(
+          newKeyValues = newKeyValues.toMemory,
+          minSegmentSize = 10.kb,
+          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+          enableRangeFilter = TestData.enableRangeFilter,
+          compressDuplicateValues = true,
+          removeDeletes = false,
+          createdInLevel = 0,
+          maxProbe = TestData.maxProbe
+        ).assertGet
+
       newSegments.size should be > 1
 
       val allReadKeyValues = Segment.getAllKeyValues(TestData.falsePositiveRate, newSegments).assertGet
@@ -1012,7 +1079,16 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         //create a segment with the next id in sequence which should fail put with FileAlreadyExistsException
         val segmentToFailPut = TestSegment(path = tenthSegmentId).assertGet
 
-        segment.put(newKeyValues.toMemory, 1.kb, TestData.falsePositiveRate, true, false, createdInLevel = 0, maxProbe = TestData.maxProbe).failed.assertGet.exception shouldBe a[FileAlreadyExistsException]
+        segment.put(
+          newKeyValues = newKeyValues.toMemory,
+          minSegmentSize = 1.kb,
+          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+          enableRangeFilter = TestData.enableRangeFilter,
+          compressDuplicateValues = true,
+          removeDeletes = false,
+          createdInLevel = 0,
+          maxProbe = TestData.maxProbe
+        ).failed.assertGet.exception shouldBe a[FileAlreadyExistsException]
 
         //the folder should contain only the original segment and the segmentToFailPut
         segment.path.getParent.files(Extension.Seg) should contain only(segment.path, segmentToFailPut.path)
@@ -1034,7 +1110,18 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
 
       val deleteKeyValues = Slice(Memory.remove(1), Memory.remove(2), Memory.remove(3), Memory.remove(4), Memory.Range(5, 10, None, Value.remove(None)))
 
-      val deletedSegment = segment.put(deleteKeyValues, 4.mb, TestData.falsePositiveRate, true, false, createdInLevel = 0, maxProbe = TestData.maxProbe).assertGet
+      val deletedSegment =
+        segment.put(
+          newKeyValues = deleteKeyValues,
+          minSegmentSize = 4.mb,
+          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+          enableRangeFilter = TestData.enableRangeFilter,
+          compressDuplicateValues = true,
+          removeDeletes = false,
+          createdInLevel = 0,
+          maxProbe = TestData.maxProbe
+        ).assertGet
+
       deletedSegment should have size 1
       val newDeletedSegment = deletedSegment.head
       unzipGroups(newDeletedSegment.getAll().assertGet) shouldBe deleteKeyValues
@@ -1052,7 +1139,18 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
       val updatedKeyValues = Slice.create[Memory](keyValues.size)
       keyValues.foreach(keyValue => updatedKeyValues add Memory.put(keyValue.key, None))
 
-      val updatedSegments = segment.put(updatedKeyValues, 4.mb, TestData.falsePositiveRate, true, true, createdInLevel = 0, maxProbe = TestData.maxProbe).assertGet
+      val updatedSegments =
+        segment.put(
+          newKeyValues = updatedKeyValues,
+          minSegmentSize = 4.mb,
+          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+          enableRangeFilter = TestData.enableRangeFilter,
+          compressDuplicateValues = true,
+          removeDeletes = true,
+          createdInLevel = 0,
+          maxProbe = TestData.maxProbe
+        ).assertGet
+
       updatedSegments should have size 1
 
       val newUpdatedSegment = updatedSegments.head
@@ -1078,7 +1176,18 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
 
         val segment2 = TestSegment(keyValues2Closed).assertGet
 
-        val mergedSegments = segment1.put(segment2.getAll().assertGet.toSlice, 10.mb, TestData.falsePositiveRate, true, false, createdInLevel = 0, maxProbe = TestData.maxProbe).assertGet
+        val mergedSegments =
+          segment1.put(
+            newKeyValues = segment2.getAll().assertGet.toSlice,
+            minSegmentSize = 10.mb,
+            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+            enableRangeFilter = TestData.enableRangeFilter,
+            compressDuplicateValues = true,
+            removeDeletes = false,
+            createdInLevel = 0,
+            maxProbe = TestData.maxProbe
+          ).assertGet
+
         mergedSegments.size shouldBe 1
         val mergedSegment = mergedSegments.head
 
@@ -1115,10 +1224,11 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           newKeyValues = deleteKeyValues,
           minSegmentSize = 4.mb,
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+          enableRangeFilter = TestData.enableRangeFilter,
           compressDuplicateValues = true,
-          maxProbe = TestData.maxProbe,
           removeDeletes = true,
-          createdInLevel = 0
+          createdInLevel = 0,
+          maxProbe = TestData.maxProbe
         ).assertGet shouldBe empty
       }
     }
@@ -1132,7 +1242,17 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
       val deleteKeyValues = Slice.create[Memory](10)
       (1 to 10).foreach(key => deleteKeyValues add Memory.remove(key))
 
-      val removedRanges = segment.put(deleteKeyValues, 4.mb, TestData.falsePositiveRate, true, false, createdInLevel = 0, maxProbe = TestData.maxProbe).assertGet.head.getAll().assertGet
+      val removedRanges =
+        segment.put(
+          newKeyValues = deleteKeyValues,
+          minSegmentSize = 4.mb,
+          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+          enableRangeFilter = TestData.enableRangeFilter,
+          compressDuplicateValues = true,
+          removeDeletes = false,
+          createdInLevel = 0,
+          maxProbe = TestData.maxProbe
+        ).assertGet.head.getAll().assertGet
 
       val expected: Seq[Memory] = (1 to 9).map(key => Memory.Range(key, key + 1, Some(Value.remove(None)), Value.update(10))) :+ Memory.remove(10)
 
@@ -1148,7 +1268,18 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
       val deleteKeyValues = Slice.create[Remove](keyValues.size - 1)
       keyValues.drop(1).foreach(keyValue => deleteKeyValues add Transient.remove(keyValue.key))
 
-      val newSegments = segment.put(deleteKeyValues.toMemory, 4.mb, TestData.falsePositiveRate, true, true, createdInLevel = 0, maxProbe = TestData.maxProbe).assertGet
+      val newSegments =
+        segment.put(
+          newKeyValues = deleteKeyValues.toMemory,
+          minSegmentSize = 4.mb,
+          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+          enableRangeFilter = TestData.enableRangeFilter,
+          compressDuplicateValues = true,
+          removeDeletes = true,
+          createdInLevel = 0,
+          maxProbe = TestData.maxProbe
+        ).assertGet
+
       newSegments.size shouldBe 1
       newSegments.head.getHeadKeyValueCount().assertGet shouldBe 1
 
@@ -1174,9 +1305,29 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
       val distributor = PathsDistributor(dirs, () => Seq(segment))
       val segments =
         if (persistent)
-          segment.put(keyValues2, 60.bytes, TestData.falsePositiveRate, true, false, createdInLevel = 0, maxProbe = TestData.maxProbe, distributor).assertGet
+          segment.put(
+            newKeyValues = keyValues2,
+            minSegmentSize = 60.bytes,
+            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+            enableRangeFilter = TestData.enableRangeFilter,
+            compressDuplicateValues = true,
+            removeDeletes = false,
+            createdInLevel = 0,
+            maxProbe = TestData.maxProbe,
+            targetPaths = distributor
+          ).assertGet
         else
-          segment.put(keyValues2, 21.bytes, TestData.falsePositiveRate, true, false, createdInLevel = 0, maxProbe = TestData.maxProbe, distributor).assertGet
+          segment.put(
+            newKeyValues = keyValues2,
+            minSegmentSize = 21.bytes,
+            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+            enableRangeFilter = TestData.enableRangeFilter,
+            compressDuplicateValues = true,
+            removeDeletes = false,
+            createdInLevel = 0,
+            maxProbe = TestData.maxProbe,
+            targetPaths = distributor
+          ).assertGet
 
       //all returned segments contain all the KeyValues ???
       //      segments should have size 6
@@ -1211,7 +1362,15 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         val expectedBloomFilterCount = (ranges.size * 2) + nonRanges.size
 
         reopened.getBloomFilterKeyValueCount().assertGet shouldBe expectedBloomFilterCount
-        reopened.refresh(1.mb, TestData.falsePositiveRate, true, true, createdInLevel = 0, maxProbe = TestData.maxProbe).assertGet shouldBe empty
+        reopened.refresh(
+          minSegmentSize = 1.mb,
+          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+          enableRangeFilter = TestData.enableRangeFilter,
+          compressDuplicateValues = true,
+          removeDeletes = true,
+          createdInLevel = 0,
+          maxProbe = TestData.maxProbe
+        ).assertGet shouldBe empty
       }
     }
 
@@ -1224,10 +1383,11 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
       segment.refresh(
         minSegmentSize = 1.mb,
         bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+        enableRangeFilter = TestData.enableRangeFilter,
         compressDuplicateValues = true,
         removeDeletes = true,
-        maxProbe = TestData.maxProbe,
-        createdInLevel = 0
+        createdInLevel = 0,
+        maxProbe = TestData.maxProbe
       ).assertGet shouldBe empty
     }
 
@@ -1237,7 +1397,17 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
       segment.getHeadKeyValueCount().assertGet shouldBe keyValues1.size
 
       sleep(2.seconds)
-      val refresh = segment.refresh(1.mb, TestData.falsePositiveRate, true, false, createdInLevel = 0, maxProbe = TestData.maxProbe).assertGet
+      val refresh =
+        segment.refresh(
+          minSegmentSize = 1.mb,
+          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+          enableRangeFilter = TestData.enableRangeFilter,
+          compressDuplicateValues = true,
+          removeDeletes = false,
+          createdInLevel = 0,
+          maxProbe = TestData.maxProbe
+        ).assertGet
+
       refresh should have size 1
       refresh.head shouldContainAll keyValues1
     }
@@ -1250,7 +1420,16 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
       val result = SegmentMerger.split(keyValues, 100.mb, false, inMemoryStorage, maxProbe = TestData.maxProbe, TestData.falsePositiveRate, true).assertGet
       result should have size 1
       result.head should have size keyValues.size
-      val (bytes, deadline) = SegmentWriter.write(result.head, 0, false, TestData.maxProbe, TestData.falsePositiveRate).assertGet
+      val (bytes, deadline) =
+        SegmentWriter.write(
+          keyValues = result.head,
+          createdInLevel = 0,
+          isGrouped = false,
+          maxProbe = TestData.maxProbe,
+          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+          enableRangeFilter = TestData.enableRangeFilter
+        ).assertGet
+
       readAll(bytes).assertGet shouldBe keyValues
     }
 
@@ -1268,7 +1447,16 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
       result should have size 1
       result.head should have size 1
 
-      val (bytes, deadline) = SegmentWriter.write(result.head, 0, false, TestData.maxProbe, TestData.falsePositiveRate).assertGet
+      val (bytes, deadline) =
+        SegmentWriter.write(
+          keyValues = result.head,
+          createdInLevel = 0,
+          isGrouped = false,
+          maxProbe = TestData.maxProbe,
+          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+          enableRangeFilter = TestData.enableRangeFilter
+        ).assertGet
+
       readAll(bytes).assertGet shouldBe keyValues
     }
   }

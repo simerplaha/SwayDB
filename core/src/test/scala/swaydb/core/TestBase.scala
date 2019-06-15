@@ -246,7 +246,8 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
   object TestSegment {
     def apply(keyValues: Slice[KeyValue.WriteOnly] = randomizedKeyValues()(TestTimer.Incremental(), KeyOrder.default, keyValueLimiter),
               path: Path = testSegmentFile,
-              bloomFilterFalsePositiveRate: Double = TestData.falsePositiveRate)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+              bloomFilterFalsePositiveRate: Double = TestData.falsePositiveRate,
+              enableRangeFilter: Boolean = TestData.enableRangeFilter)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                  keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
                                                                                  fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter,
                                                                                  timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
@@ -256,7 +257,8 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
           path = path,
           keyValues = keyValues,
           createdInLevel = 0,
-          bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate
+          bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+          enableRangeFilter = enableRangeFilter
         )
       else
         Segment.persistent(
@@ -265,7 +267,8 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
           mmapReads = levelStorage.mmapSegmentsOnRead,
           mmapWrites = levelStorage.mmapSegmentsOnWrite,
           keyValues = keyValues,
-          bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate
+          bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+          enableRangeFilter = enableRangeFilter
         )
   }
 
@@ -302,6 +305,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
               pushForward: Boolean = false,
               throttle: LevelMeter => Throttle = testDefaultThrottle,
               bloomFilterFalsePositiveRate: Double = TestData.falsePositiveRate,
+              enableRangeFilter: Boolean = TestData.enableRangeFilter,
               compressDuplicateValues: Boolean = true,
               deleteSegmentsEventually: Boolean = false,
               applyGroupingOnCopy: Boolean = false,
@@ -319,6 +323,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
         appendixStorage = appendixStorage,
         throttle = throttle,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+        enableRangeFilter = enableRangeFilter,
         compressDuplicateValues = compressDuplicateValues,
         deleteSegmentsEventually = deleteSegmentsEventually,
         maxProbe = maxProbe,

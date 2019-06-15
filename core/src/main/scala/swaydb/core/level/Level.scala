@@ -83,6 +83,7 @@ private[core] object Level extends LazyLogging {
 
   def apply(segmentSize: Long,
             bloomFilterFalsePositiveRate: Double,
+            enableRangeFilter: Boolean,
             maxProbe: Int,
             levelStorage: LevelStorage,
             appendixStorage: AppendixStorage,
@@ -176,20 +177,21 @@ private[core] object Level extends LazyLogging {
                     new Level(
                       dirs = levelStorage.dirs,
                       bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-                      pushForward = pushForward,
+                      enableRangeFilter = enableRangeFilter,
                       mmapSegmentsOnWrite = levelStorage.mmapSegmentsOnWrite,
                       mmapSegmentsOnRead = levelStorage.mmapSegmentsOnRead,
                       inMemory = levelStorage.memory,
                       segmentSize = segmentSize,
-                      appendix = appendix,
+                      pushForward = pushForward,
                       throttle = throttle,
                       nextLevel = nextLevel,
-                      maxProbe = maxProbe,
+                      appendix = appendix,
                       lock = lock,
                       compressDuplicateValues = compressDuplicateValues,
                       deleteSegmentsEventually = deleteSegmentsEventually,
                       applyGroupingOnCopy = applyGroupingOnCopy,
                       paths = paths,
+                      maxProbe = maxProbe,
                       removeDeletedRecords = Level.removeDeletes(nextLevel),
                       appendixReadWriteLock = new ReentrantReadWriteLock()
                     )
@@ -307,6 +309,7 @@ private[core] object Level extends LazyLogging {
 
 private[core] case class Level(dirs: Seq[Dir],
                                bloomFilterFalsePositiveRate: Double,
+                               enableRangeFilter: Boolean,
                                mmapSegmentsOnWrite: Boolean,
                                mmapSegmentsOnRead: Boolean,
                                inMemory: Boolean,
@@ -686,6 +689,7 @@ private[core] case class Level(dirs: Seq[Dir],
         removeDeletes = removeDeletedRecords,
         maxProbe = maxProbe,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+        enableRangeFilter = enableRangeFilter,
         compressDuplicateValues = compressDuplicateValues
       )
     else
@@ -695,10 +699,11 @@ private[core] case class Level(dirs: Seq[Dir],
         fetchNextPath = targetSegmentPath,
         mmapSegmentsOnRead = mmapSegmentsOnRead,
         mmapSegmentsOnWrite = mmapSegmentsOnWrite,
-        maxProbe = maxProbe,
-        minSegmentSize = segmentSize,
         removeDeletes = removeDeletedRecords,
+        minSegmentSize = segmentSize,
+        maxProbe = maxProbe,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+        enableRangeFilter = enableRangeFilter,
         compressDuplicateValues = compressDuplicateValues
       )
   }
@@ -758,19 +763,21 @@ private[core] case class Level(dirs: Seq[Dir],
               maxProbe = maxProbe,
               removeDeletes = removeDeletedRecords,
               bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+              enableRangeFilter = enableRangeFilter,
               compressDuplicateValues = compressDuplicateValues
             )
           else
             Segment.copyToPersist(
               segment = segment,
-              fetchNextPath = targetSegmentPath,
               createdInLevel = levelNumber,
+              fetchNextPath = targetSegmentPath,
               mmapSegmentsOnRead = mmapSegmentsOnRead,
               mmapSegmentsOnWrite = mmapSegmentsOnWrite,
-              maxProbe = maxProbe,
-              minSegmentSize = segmentSize,
               removeDeletes = removeDeletedRecords,
+              minSegmentSize = segmentSize,
+              maxProbe = maxProbe,
               bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+              enableRangeFilter = enableRangeFilter,
               compressDuplicateValues = compressDuplicateValues
             )
         },
@@ -799,6 +806,7 @@ private[core] case class Level(dirs: Seq[Dir],
           segment.refresh(
             minSegmentSize = segmentSize,
             bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+            enableRangeFilter = enableRangeFilter,
             compressDuplicateValues = compressDuplicateValues,
             maxProbe = maxProbe,
             targetPaths = paths,
@@ -1016,6 +1024,7 @@ private[core] case class Level(dirs: Seq[Dir],
             newKeyValues = assignedKeyValues,
             minSegmentSize = segmentSize,
             bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+            enableRangeFilter = enableRangeFilter,
             compressDuplicateValues = compressDuplicateValues,
             maxProbe = maxProbe,
             targetPaths = paths.addPriorityPath(targetSegment.path.getParent),

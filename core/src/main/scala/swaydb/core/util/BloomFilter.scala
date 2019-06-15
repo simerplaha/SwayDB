@@ -34,6 +34,9 @@ object BloomFilter {
 
   val bloomFilterFormatID = 0.toByte
 
+  val emptyRangeFilter =
+    mutable.Map.empty[Int, Iterable[(Byte, Byte)]]
+
   val empty =
     new BloomFilter(
       startOffset = 0,
@@ -41,12 +44,13 @@ object BloomFilter {
       numberOfBits = 0,
       numberOfHashes = 0,
       hasRanges = false,
-      mutable.Map.empty,
+      rangeFilter = None,
       bytes = Slice.emptyBytes
     )(KeyOrder.default)
 
   def apply(numberOfKeys: Int,
-            falsePositiveRate: Double)(implicit keyOrder: KeyOrder[Slice[Byte]]): BloomFilter = {
+            falsePositiveRate: Double,
+            enableRangeFilter: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]]): BloomFilter = {
     val numberOfBits = optimalNumberOfBloomFilterBits(numberOfKeys, falsePositiveRate)
     val numberOfHashes = optimalNumberOfBloomFilterHashes(numberOfKeys, numberOfBits)
 
@@ -67,7 +71,7 @@ object BloomFilter {
       numberOfBits = numberOfBits,
       numberOfHashes = numberOfHashes,
       hasRanges = false,
-      rangeFilter = mutable.Map.empty,
+      rangeFilter = if (enableRangeFilter) Some(mutable.Map.empty) else None,
       bytes = bytes
     )
   }
@@ -75,6 +79,7 @@ object BloomFilter {
   //when the byte size is already pre-computed.
   def apply(numberOfKeys: Int,
             falsePositiveRate: Double,
+            enableRangeFilter: Boolean,
             bytes: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): BloomFilter = {
     val numberOfBits = optimalNumberOfBloomFilterBits(numberOfKeys, falsePositiveRate)
     val numberOfHashes = optimalNumberOfBloomFilterHashes(numberOfKeys, numberOfBits)
@@ -94,7 +99,7 @@ object BloomFilter {
       numberOfBits = numberOfBits,
       numberOfHashes = numberOfHashes,
       hasRanges = false,
-      rangeFilter = mutable.Map.empty,
+      rangeFilter = if (enableRangeFilter) Some(mutable.Map.empty) else None,
       bytes = bytes
     )
   }
@@ -123,14 +128,14 @@ object BloomFilter {
           for {
             numberOfBits <- reader.readIntUnsigned()
             numberOfHashes <- reader.readIntUnsigned()
-            rangeEntries <- if (rangeFilterBytes.isEmpty) IO.Success(mutable.Map.empty[Int, Iterable[(Byte, Byte)]]) else IntMapListBufferSerializer.read(rangeFilterBytes)
+            rangeEntries <- if (rangeFilterBytes.isEmpty) IO.none else IntMapListBufferSerializer.read(rangeFilterBytes).map(Some(_))
           } yield
             new BloomFilter(
               startOffset = ByteSizeOf.byte + Bytes.sizeOf(numberOfBits) + Bytes.sizeOf(numberOfHashes) + bloomFilterBytes.fromOffset,
               _endOffset = bloomFilterBytes.size - 1,
               numberOfBits = numberOfBits,
               numberOfHashes = numberOfHashes,
-              hasRanges = rangeEntries.nonEmpty,
+              hasRanges = rangeEntries.exists(_.nonEmpty),
               rangeFilter = rangeEntries,
               bytes = bloomFilterBytes
             )
@@ -143,12 +148,14 @@ object BloomFilter {
     * Initialise bloomFilter if key-values do no contain remove range.
     */
   def init(keyValues: Iterable[KeyValue.WriteOnly],
-           bloomFilterFalsePositiveRate: Double)(implicit keyOrder: KeyOrder[Slice[Byte]]): Option[BloomFilter] =
+           falsePositiveRate: Double,
+           enableRangeFilter: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]]): Option[BloomFilter] =
     keyValues.lastOption map {
       last =>
         BloomFilter(
           numberOfKeys = last.stats.bloomFilterKeysCount,
-          falsePositiveRate = bloomFilterFalsePositiveRate
+          falsePositiveRate = falsePositiveRate,
+          enableRangeFilter = enableRangeFilter
         )
     }
 }
@@ -158,7 +165,7 @@ class BloomFilter(val startOffset: Int,
                   val numberOfBits: Int,
                   val numberOfHashes: Int,
                   var hasRanges: Boolean,
-                  rangeFilter: mutable.Map[Int, Iterable[(Byte, Byte)]],
+                  rangeFilter: Option[mutable.Map[Int, Iterable[(Byte, Byte)]]],
                   bytes: Slice[Byte])(implicit ordering: KeyOrder[Slice[Byte]]) {
 
   import ordering._
@@ -194,13 +201,15 @@ class BloomFilter(val startOffset: Int,
 
   def add(from: Slice[Byte], to: Slice[Byte]): Unit = {
     val common = Bytes.commonPrefix(from, to)
-    rangeFilter.get(common) map {
-      ranges =>
-        ranges.asInstanceOf[ListBuffer[(Byte, Byte)]] += ((from(common), to(common)))
-    } getOrElse {
-      rangeFilter.put(common, ListBuffer((from(common), to(common))))
+    rangeFilter foreach {
+      rangeFilter =>
+        rangeFilter.get(common) map {
+          ranges =>
+            ranges.asInstanceOf[ListBuffer[(Byte, Byte)]] += ((from(common), to(common)))
+        } getOrElse {
+          rangeFilter.put(common, ListBuffer((from(common), to(common))))
+        }
     }
-
     hasRanges = true
     add(from)
     add(from.take(common))
@@ -210,19 +219,22 @@ class BloomFilter(val startOffset: Int,
     var contains = mightContainHashed(key)
     if (!contains && hasRanges) {
       rangeFilter exists {
-        case (commonLowerBytes, rangeBytes) =>
-          val lowerItemBytes = key.take(commonLowerBytes)
-          if (mightContainHashed(lowerItemBytes)) {
-            val lowerItemBytesWithOneBit = key.take(commonLowerBytes + 1)
-            rangeBytes exists {
-              case (leftBloomFilterRangeByte, rightBloomFilterRangeByte) =>
-                val leftBytes = lowerItemBytes ++ Slice(leftBloomFilterRangeByte)
-                val rightBytes = lowerItemBytes ++ Slice(rightBloomFilterRangeByte)
-                contains = leftBytes <= lowerItemBytesWithOneBit && lowerItemBytesWithOneBit < rightBytes
+        rangeFilter =>
+          rangeFilter exists {
+            case (commonLowerBytes, rangeBytes) =>
+              val lowerItemBytes = key.take(commonLowerBytes)
+              if (mightContainHashed(lowerItemBytes)) {
+                val lowerItemBytesWithOneBit = key.take(commonLowerBytes + 1)
+                rangeBytes exists {
+                  case (leftBloomFilterRangeByte, rightBloomFilterRangeByte) =>
+                    val leftBytes = lowerItemBytes ++ Slice(leftBloomFilterRangeByte)
+                    val rightBytes = lowerItemBytes ++ Slice(rightBloomFilterRangeByte)
+                    contains = leftBytes <= lowerItemBytesWithOneBit && lowerItemBytesWithOneBit < rightBytes
+                    contains
+                }
+              } else {
                 contains
-            }
-          } else {
-            contains
+              }
           }
       }
     }
@@ -246,7 +258,7 @@ class BloomFilter(val startOffset: Int,
 
   def writeRangeFilter(slice: Slice[Byte]): Unit =
     IntMapListBufferSerializer.write(
-      value = rangeFilter,
+      value = rangeFilter getOrElse BloomFilter.emptyRangeFilter,
       bytes = slice
     )
 
@@ -257,16 +269,16 @@ class BloomFilter(val startOffset: Int,
     _endOffset + 1
 
   def currentRangeFilterBytesRequired =
-    IntMapListBufferSerializer.bytesRequired(rangeFilter)
+    rangeFilter
+      .map(IntMapListBufferSerializer.bytesRequired)
+      .getOrElse(0)
 
-  def toRangeFilterSlice: Slice[Byte] =
-    if (rangeFilter.isEmpty)
-      Slice.emptyBytes
-    else {
-      val rangeFilterBytes = Slice.create[Byte](IntMapListBufferSerializer.bytesRequired(rangeFilter))
-      IntMapListBufferSerializer.write(value = rangeFilter, bytes = rangeFilterBytes)
-      rangeFilterBytes
-    }
+  def toRangeFilterSlice: Slice[Byte] = {
+    val bytesRequired = IntMapListBufferSerializer.bytesRequired(rangeFilter.getOrElse(BloomFilter.emptyRangeFilter))
+    val bytes = Slice.create[Byte](bytesRequired)
+    writeRangeFilter(bytes)
+    bytes
+  }
 
   override def hashCode(): Int =
     bytes.hashCode()

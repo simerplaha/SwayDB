@@ -93,7 +93,17 @@ sealed trait SegmentGroupReadSpec extends TestBase with ScalaFutures with Privat
     val keyValues = randomKeyValues(keyValuesCount, startId = Some(0))
     val segment = TestSegment(keyValues).assertGet
 
-    val segments = segment.put(keyValues.toMemory, 100.mb, TestData.falsePositiveRate, true, false, 0, maxProbe = TestData.maxProbe).assertGet
+    val segments =
+      segment.put(
+        newKeyValues = keyValues.toMemory,
+        minSegmentSize = 100.mb,
+        bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+        enableRangeFilter = TestData.enableRangeFilter,
+        compressDuplicateValues = true,
+        removeDeletes = false,
+        createdInLevel = 0,
+        maxProbe = TestData.maxProbe
+      ).assertGet
     //    printGroupHierarchy(segments)
 
     segments should have size 1
@@ -122,7 +132,16 @@ sealed trait SegmentGroupReadSpec extends TestBase with ScalaFutures with Privat
       val allGroupKeyValues = group1KeyValues ++ group2KeyValues ++ group3KeyValues ++ group4KeyValues ++ group5KeyValues
 
       //write the root Group
-      val (bytes, deadline) = SegmentWriter.write(Slice(group5), 0, true, TestData.maxProbe, TestData.falsePositiveRate).assertGet
+      val (bytes, deadline) =
+        SegmentWriter.write(
+          keyValues = Slice(group5),
+          createdInLevel = 0,
+          isGrouped = true,
+          maxProbe = TestData.maxProbe,
+          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+          enableRangeFilter = TestData.enableRangeFilter
+        ).assertGet
+      
       readAll(bytes).assertGet shouldBe allGroupKeyValues
     }
   }

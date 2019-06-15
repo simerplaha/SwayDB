@@ -163,6 +163,7 @@ private[core] object CoreInitializer extends LazyLogging {
             appendixStorage = AppendixStorage.Memory,
             maxProbe = 5, // todo make a config
             bloomFilterFalsePositiveRate = config.bloomFilterFalsePositiveRate,
+            enableRangeFilter = true,
             throttle = config.throttle,
             compressDuplicateValues = config.compressDuplicateValues,
             deleteSegmentsEventually = config.deleteSegmentsEventually,
@@ -182,6 +183,7 @@ private[core] object CoreInitializer extends LazyLogging {
             segmentSize = config.segmentSize,
             maxProbe = 5, //todo make a config
             nextLevel = nextLevel,
+            enableRangeFilter = true,
             pushForward = config.pushForward,
             appendixStorage = AppendixStorage.Persistent(config.mmapAppendix, config.appendixFlushCheckpointSize),
             bloomFilterFalsePositiveRate = config.bloomFilterFalsePositiveRate,

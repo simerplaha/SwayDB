@@ -93,6 +93,7 @@ private[segment] case class MemorySegment(path: Path,
   override def put(newKeyValues: Slice[KeyValue.ReadOnly],
                    minSegmentSize: Long,
                    bloomFilterFalsePositiveRate: Double,
+                   enableRangeFilter: Boolean,
                    compressDuplicateValues: Boolean,
                    removeDeletes: Boolean,
                    createdInLevel: Int,
@@ -121,6 +122,7 @@ private[segment] case class MemorySegment(path: Path,
                     Segment.memory(
                       path = targetPaths.next.resolve(idGenerator.nextSegmentID),
                       createdInLevel = createdInLevel,
+                      enableRangeFilter = enableRangeFilter,
                       keyValues = keyValues,
                       bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate
                     )
@@ -141,6 +143,7 @@ private[segment] case class MemorySegment(path: Path,
 
   override def refresh(minSegmentSize: Long,
                        bloomFilterFalsePositiveRate: Double,
+                       enableRangeFilter: Boolean,
                        compressDuplicateValues: Boolean,
                        removeDeletes: Boolean,
                        createdInLevel: Int,
@@ -168,6 +171,7 @@ private[segment] case class MemorySegment(path: Path,
                     Segment.memory(
                       path = targetPaths.next.resolve(idGenerator.nextSegmentID),
                       createdInLevel = createdInLevel,
+                      enableRangeFilter = enableRangeFilter,
                       keyValues = keyValues,
                       bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate
                     ),

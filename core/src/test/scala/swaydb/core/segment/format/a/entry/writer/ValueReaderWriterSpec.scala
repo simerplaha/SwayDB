@@ -25,7 +25,7 @@ import swaydb.core.data.{Time, Transient}
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, BaseEntryIdFormatA, TransientToKeyValueIdBinder}
 import swaydb.core.segment.format.a.{SegmentReader, SegmentWriter}
-import swaydb.core.{TestBase, TestTimer}
+import swaydb.core.{TestBase, TestData, TestTimer}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
@@ -76,7 +76,15 @@ class ValueReaderWriterSpec extends TestBase {
 
       //just a mini test to test these key-values are writable to Segment.
       implicit val keyOrder = KeyOrder.default
-      val (bytes, _) = SegmentWriter.write(keyValues, 0, false, 10, 0.01).get
+      val (bytes, _) =
+        SegmentWriter.write(
+          keyValues = keyValues,
+          createdInLevel = 0,
+          isGrouped = false,
+          maxProbe = 10,
+          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+          enableRangeFilter = TestData.enableRangeFilter
+        ).get
 
       val footer = SegmentReader.readFooter(Reader(bytes)).get
       footer.isGrouped shouldBe false

@@ -38,7 +38,13 @@ class BloomFilterSpec extends TestBase {
   "toBytes & toSlice" should {
     "write bloom filter to bytes" in {
 
-      val bloomFilter = BloomFilter(10, 0.01)
+      val bloomFilter =
+        BloomFilter(
+          numberOfKeys = 10,
+          falsePositiveRate = TestData.falsePositiveRate,
+          enableRangeFilter = TestData.enableRangeFilter
+        )
+
       (1 to 10) foreach (bloomFilter.add(_))
       (1 to 10) foreach (key => bloomFilter.mightContain(key) shouldBe true)
       (11 to 20) foreach (key => bloomFilter.mightContain(key) shouldBe false)
@@ -58,7 +64,12 @@ class BloomFilterSpec extends TestBase {
         i =>
           val numberOfItems = i * 10
           val falsePositiveRate = 0.0 + (0 + "." + i.toString).toDouble
-          val bloomFilter = BloomFilter(numberOfItems, falsePositiveRate)
+          val bloomFilter =
+            BloomFilter(
+              numberOfKeys = numberOfItems,
+              falsePositiveRate = falsePositiveRate,
+              enableRangeFilter = TestData.enableRangeFilter
+            )
           bloomFilter.toBloomFilterSlice.size should be <= BloomFilter.optimalSegmentBloomFilterByteSize(numberOfItems, falsePositiveRate)
       }
     }
@@ -68,7 +79,8 @@ class BloomFilterSpec extends TestBase {
     "not initialise if keyValues are empty" in {
       BloomFilter.init(
         keyValues = Slice.empty,
-        bloomFilterFalsePositiveRate = TestData.falsePositiveRate
+        falsePositiveRate = TestData.falsePositiveRate,
+        enableRangeFilter = TestData.enableRangeFilter
       ) shouldBe empty
     }
 
@@ -78,12 +90,14 @@ class BloomFilterSpec extends TestBase {
 
         BloomFilter.init(
           keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, None, Value.Remove(None, time.next))),
-          bloomFilterFalsePositiveRate = TestData.falsePositiveRate
+          falsePositiveRate = TestData.falsePositiveRate,
+          enableRangeFilter = TestData.enableRangeFilter
         ) shouldBe empty
 
         BloomFilter.init(
           keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, None, Value.Remove(Some(randomDeadline()), time.next))),
-          bloomFilterFalsePositiveRate = TestData.falsePositiveRate
+          falsePositiveRate = TestData.falsePositiveRate,
+          enableRangeFilter = TestData.enableRangeFilter
         ) shouldBe empty
       }
     }
@@ -95,7 +109,8 @@ class BloomFilterSpec extends TestBase {
         //range functions can also contain Remove so BloomFilter should not be created
         BloomFilter.init(
           keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, None, Value.Function(Slice.emptyBytes, time.next))),
-          bloomFilterFalsePositiveRate = TestData.falsePositiveRate
+          falsePositiveRate = TestData.falsePositiveRate,
+          enableRangeFilter = TestData.enableRangeFilter
         ) shouldBe empty
       }
     }
@@ -107,12 +122,14 @@ class BloomFilterSpec extends TestBase {
         //range functions can also contain Remove so BloomFilter should not be created
         BloomFilter.init(
           keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, None, Value.PendingApply(Slice(Value.Remove(randomDeadlineOption(), time.next))))),
-          bloomFilterFalsePositiveRate = TestData.falsePositiveRate
+          falsePositiveRate = TestData.falsePositiveRate,
+          enableRangeFilter = TestData.enableRangeFilter
         ) shouldBe empty
 
         BloomFilter.init(
           keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, None, Value.PendingApply(Slice(Value.Function(randomFunctionId(), time.next))))),
-          bloomFilterFalsePositiveRate = TestData.falsePositiveRate
+          falsePositiveRate = TestData.falsePositiveRate,
+          enableRangeFilter = TestData.enableRangeFilter
         ) shouldBe empty
       }
     }
@@ -124,7 +141,8 @@ class BloomFilterSpec extends TestBase {
         //pending apply should allow to create bloomFilter if it does not have remove or function.
         BloomFilter.init(
           keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, None, Value.PendingApply(Slice(Value.Update(randomStringOption, randomDeadlineOption(), time.next))))),
-          bloomFilterFalsePositiveRate = TestData.falsePositiveRate
+          falsePositiveRate = TestData.falsePositiveRate,
+          enableRangeFilter = TestData.enableRangeFilter
         ) shouldBe defined
       }
     }
@@ -135,7 +153,8 @@ class BloomFilterSpec extends TestBase {
         //fromValue is remove but it's not a remove range.
         BloomFilter.init(
           keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, Some(Value.Remove(None, time.next)), Value.update(100))),
-          bloomFilterFalsePositiveRate = TestData.falsePositiveRate
+          falsePositiveRate = TestData.falsePositiveRate,
+          enableRangeFilter = TestData.enableRangeFilter
         ) shouldBe defined
       }
     }
@@ -180,7 +199,12 @@ class BloomFilterSpec extends TestBase {
       }
     }
 
-    val filter = BloomFilter(10000, 0.01)
+    val filter =
+      BloomFilter(
+        numberOfKeys = 10000,
+        falsePositiveRate = TestData.falsePositiveRate,
+        enableRangeFilter = TestData.enableRangeFilter
+      )
     val data: Seq[String] =
       (1 to 10000) map {
         _ =>
@@ -203,7 +227,12 @@ class BloomFilterSpec extends TestBase {
       serialiser =>
         implicit def toBytes(int: Int): Slice[Byte] = serialiser(int)
 
-        val bloom1 = BloomFilter(7, 0.01)
+        val bloom1 =
+          BloomFilter(
+            numberOfKeys = 7,
+            falsePositiveRate = TestData.falsePositiveRate,
+            enableRangeFilter = TestData.enableRangeFilter
+          )
 
         bloom1.add(1)
         bloom1.add(2)
@@ -233,7 +262,6 @@ class BloomFilterSpec extends TestBase {
           bloom.numberOfHashes shouldBe bloom1.numberOfHashes
           bloom.numberOfBits shouldBe bloom1.numberOfBits
           bloom.startOffset shouldBe bloom1.startOffset
-
         }
 
         assert(bloom1)

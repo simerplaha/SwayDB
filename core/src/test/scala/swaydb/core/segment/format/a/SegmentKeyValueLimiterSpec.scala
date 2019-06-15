@@ -76,7 +76,8 @@ class SegmentKeyValueLimiterSpec extends TestBase with Benchmark {
             path = Paths.get("/test"),
             createdInLevel = 0,
             keyValues = mergedKeyValues,
-            bloomFilterFalsePositiveRate = TestData.falsePositiveRate
+            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+            enableRangeFilter = TestData.enableRangeFilter
           )(KeyOrder.default, timeOrder, functionStore, TestLimitQueues.fileOpenLimiter, None, keyValueLimiter).assertGet
 
         //perform reads multiple times and assert that while the key-values are getting drop, the group key-value does

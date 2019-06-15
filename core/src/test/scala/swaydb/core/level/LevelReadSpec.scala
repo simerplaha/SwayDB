@@ -121,6 +121,7 @@ sealed trait LevelReadSpec extends TestBase with MockFactory with Benchmark {
         TestSegment(putKeyValues).assertGet.refresh(
           minSegmentSize = 100.mb,
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+          enableRangeFilter = TestData.enableRangeFilter,
           compressDuplicateValues = true,
           removeDeletes = false,
           createdInLevel = 0,
@@ -148,6 +149,7 @@ sealed trait LevelReadSpec extends TestBase with MockFactory with Benchmark {
         TestSegment(putKeyValues).assertGet.refresh(
           minSegmentSize = 100.mb,
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+          enableRangeFilter = TestData.enableRangeFilter,
           compressDuplicateValues = true,
           removeDeletes = false,
           createdInLevel = 0,

@@ -124,7 +124,16 @@ sealed trait SegmentGrouper_GroupGroups_Spec extends TestBase {
           //no mutation occurs
           mutableKeyValues shouldBe keyValues
         } else {
-          val (bytes, _) = SegmentWriter.write(Slice(result.assertGet), 0, true, TestData.maxProbe, TestData.falsePositiveRate).assertGet
+          val (bytes, _) =
+            SegmentWriter.write(
+              keyValues = Slice(result.assertGet),
+              createdInLevel = 0,
+              isGrouped = true,
+              maxProbe = TestData.maxProbe,
+              bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+              enableRangeFilter = TestData.enableRangeFilter
+            ).assertGet
+
           val rootGroup = readAll(bytes).assertGet
           rootGroup should have size 1
           rootGroup.head.asInstanceOf[Persistent.Group].segmentCache.getAll().assertGet shouldBe keyValues
@@ -231,7 +240,16 @@ sealed trait SegmentGrouper_GroupGroups_Spec extends TestBase {
               //no mutation occurs
               mutableKeyValues shouldBe groups
             } else {
-              val (bytes, _) = SegmentWriter.write(Slice(result.assertGet).updateStats, 0, true, TestData.maxProbe, TestData.falsePositiveRate).assertGet
+              val (bytes, _) =
+                SegmentWriter.write(
+                  keyValues = Slice(result.assertGet).updateStats,
+                  createdInLevel = 0,
+                  isGrouped = true,
+                  maxProbe = TestData.maxProbe,
+                  bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+                  enableRangeFilter = TestData.enableRangeFilter
+                ).assertGet
+
               val rootGroup = readAll(bytes).assertGet
               rootGroup should have size 1
               rootGroup.head.asInstanceOf[Persistent.Group].segmentCache.getAll().assertGet shouldBe groups
@@ -273,7 +291,16 @@ sealed trait SegmentGrouper_GroupGroups_Spec extends TestBase {
         //all key-values are merged into one group.
         mutableKeyValues should have size 1
         //only a Group key-value exists with
-        val (bytes, _) = SegmentWriter.write(Slice(result.assertGet).updateStats, 0, true, TestData.maxProbe, TestData.falsePositiveRate).assertGet
+        val (bytes, _) =
+          SegmentWriter.write(
+            keyValues = Slice(result.assertGet).updateStats,
+            createdInLevel = 0,
+            isGrouped = true,
+            maxProbe = TestData.maxProbe,
+            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+            enableRangeFilter = TestData.enableRangeFilter
+          ).assertGet
+
         val rootGroup = readAll(bytes).assertGet
         rootGroup should have size 1
         rootGroup.head.asInstanceOf[Persistent.Group].segmentCache.getAll().assertGet shouldBe groups

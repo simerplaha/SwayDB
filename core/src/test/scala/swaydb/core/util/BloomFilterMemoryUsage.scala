@@ -37,7 +37,13 @@ object BloomFilterMemoryUsage extends App {
         LongSerializer.write(key)
     }
 
-  val bloomFilter = BloomFilter(1000000, TestData.falsePositiveRate)
+  val bloomFilter =
+    BloomFilter(
+      numberOfKeys = 1000000,
+      falsePositiveRate = TestData.falsePositiveRate,
+      enableRangeFilter = TestData.enableRangeFilter
+    )
+
   keys.foreach(bloomFilter.add)
 
   val freeAfter = Runtime.getRuntime.freeMemory()
