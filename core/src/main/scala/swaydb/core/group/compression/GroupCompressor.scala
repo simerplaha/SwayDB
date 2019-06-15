@@ -21,14 +21,13 @@ package swaydb.core.group.compression
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.compression.CompressionInternal
-import swaydb.core.data.{KeyValue, Transient}
+import swaydb.core.data.Compressor.{GroupCompressionResult, ValueCompressionResult}
+import swaydb.core.data.{Compressor, KeyValue, Transient}
 import swaydb.core.group.compression.GroupCompressorFailure.InvalidGroupKeyValuesHeadPosition
-import swaydb.core.group.compression.data.{CompressionResult, ValueCompressionResult}
 import swaydb.core.segment.format.a.SegmentWriter
 import swaydb.core.util.Bytes
-import swaydb.data.{IO, MaxKey}
 import swaydb.data.slice.Slice
-import swaydb.data.IO._
+import swaydb.data.{IO, MaxKey}
 
 private[core] object GroupCompressor extends LazyLogging {
 
@@ -42,56 +41,6 @@ private[core] object GroupCompressor extends LazyLogging {
     */
   def buildCompressedKey(keyValues: Iterable[KeyValue.WriteOnly]): (Slice[Byte], MaxKey[Slice[Byte]], Slice[Byte]) =
     GroupKeyCompressor.compress(keyValues.headOption, keyValues.last)
-
-  private def tryCompress(indexBytes: Slice[Byte],
-                          indexCompressions: Seq[CompressionInternal],
-                          valueBytes: Slice[Byte],
-                          valueCompressions: Seq[CompressionInternal],
-                          keyValueCount: Int): IO[Option[CompressionResult]] =
-    indexCompressions.untilSome(_.compressor.compress(indexBytes)) flatMap {
-      case None =>
-        logger.warn(s"Unable to apply valid compressor for keyBytes: ${indexBytes.size}. Ignoring key & value compression for $keyValueCount key-values.")
-        IO.none
-
-      case Some((compressedKeys, keyCompression)) =>
-        logger.debug(s"Keys successfully compressed with Compression: ${keyCompression.getClass.getSimpleName}. ${indexBytes.size}.bytes compressed to ${compressedKeys.size}.bytes")
-        if (valueBytes.size == 0) { //if no values exist, result is success.
-          logger.debug(s"No values in ${indexBytes.size}: key-values. Ignoring value compression for $keyValueCount key-values.")
-          IO.Success(
-            Some(
-              CompressionResult(
-                compressedIndex = compressedKeys,
-                indexCompression = keyCompression,
-                valuesCompressionResult = None
-              )
-            )
-          )
-        } else {
-          valueCompressions.untilSome(_.compressor.compress(valueBytes)) flatMap { //if values exists do compressed.
-            case None => //if unable to compress values from all the input compression configurations, return None so that compression continues on larger key-value bytes.
-              logger.warn(s"Unable to apply valid compressor for valueBytes of ${valueBytes.size}.bytes. Ignoring value compression for $keyValueCount key-values.")
-              IO.none //break out because values were not compressed.
-
-            case Some((compressedValueBytes, valueCompression)) =>
-              logger.debug(s"Values successfully compressed with Compression: ${valueCompression.getClass.getSimpleName}. ${valueBytes.size}.bytes compressed to ${compressedValueBytes.size}.bytes")
-              IO.Success(
-                Some(
-                  CompressionResult(
-                    compressedIndex = compressedKeys,
-                    indexCompression = keyCompression,
-                    valuesCompressionResult =
-                      Some(
-                        ValueCompressionResult(
-                          compressedValues = compressedValueBytes,
-                          valuesCompression = valueCompression
-                        )
-                      )
-                  )
-                )
-              )
-          }
-        }
-    }
 
   def compress(keyValues: Slice[KeyValue.WriteOnly],
                indexCompressions: Seq[CompressionInternal],
@@ -133,14 +82,14 @@ private[core] object GroupCompressor extends LazyLogging {
           assert(hashIndexBytes.isFull)
 
           //compress key-value bytes and write to group with meta data for key bytes and value bytes.
-          tryCompress(
+          Compressor.compress(
             indexBytes = indexBytes,
             indexCompressions = indexCompressions,
             valueBytes = valueBytes,
             valueCompressions = valueCompressions,
             keyValueCount = keyValues.size
           ) flatMap {
-            case Some(CompressionResult(compressedIndexBytes, indexCompression, valuesCompressionResult)) =>
+            case Some(GroupCompressionResult(compressedIndexBytes, indexCompression, valuesCompressionResult)) =>
               //calculate the total size of bytes required including the compressed keys and values byte sizes.
               val headerSize =
                 Bytes.sizeOf(formatId) + //format id
