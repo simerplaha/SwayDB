@@ -159,14 +159,45 @@ object BloomFilter {
   def init(keyValues: Iterable[KeyValue.WriteOnly],
            falsePositiveRate: Double,
            enableRangeFilter: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]]): Option[BloomFilter] =
-    keyValues.lastOption map {
-      last =>
+    if (falsePositiveRate <= 0.0)
+      None
+    else
+      keyValues.lastOption flatMap {
+        last =>
+          //if rangeFilter is disabled then disable bloomFilter if if it has remove range.
+          if (!enableRangeFilter && last.stats.hasRemoveRange)
+            None
+          else
+            Some(
+              BloomFilter(
+                numberOfKeys = last.stats.bloomFilterKeysCount,
+                falsePositiveRate = falsePositiveRate,
+                enableRangeFilter = enableRangeFilter
+              )
+            )
+      }
+
+  /**
+    * Initialise bloomFilter if key-values do no contain remove range.
+    */
+  def init(numberOfKeys: Int,
+           hasRemoveRange: Boolean,
+           falsePositiveRate: Double,
+           enableRangeFilter: Boolean,
+           bytes: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Option[BloomFilter] =
+    if (falsePositiveRate <= 0.0)
+      None
+    else if (!enableRangeFilter && hasRemoveRange)
+      None
+    else
+      Some(
         BloomFilter(
-          numberOfKeys = last.stats.bloomFilterKeysCount,
+          numberOfKeys = numberOfKeys,
           falsePositiveRate = falsePositiveRate,
-          enableRangeFilter = enableRangeFilter
+          enableRangeFilter = enableRangeFilter,
+          bytes = bytes
         )
-    }
+      )
 }
 
 class BloomFilter(val startOffset: Int,

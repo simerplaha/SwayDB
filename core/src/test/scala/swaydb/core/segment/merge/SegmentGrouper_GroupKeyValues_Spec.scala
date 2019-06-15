@@ -125,7 +125,6 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
             SegmentWriter.write(
               keyValues = Slice(result.assertGet),
               createdInLevel = 0,
-              isGrouped = true,
               maxProbe = TestData.maxProbe,
               bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
               enableRangeFilter = TestData.enableRangeFilter
@@ -307,7 +306,6 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
             SegmentWriter.write(
               keyValues = Slice(result.assertGet).updateStats,
               createdInLevel = 0,
-              isGrouped = true,
               maxProbe = TestData.maxProbe,
               bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
               enableRangeFilter = TestData.enableRangeFilter
@@ -358,7 +356,6 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
             SegmentWriter.write(
               keyValues = Slice(result.assertGet).updateStats,
               createdInLevel = 0,
-              isGrouped = true,
               maxProbe = TestData.maxProbe,
               bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
               enableRangeFilter = TestData.enableRangeFilter
@@ -433,7 +430,6 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
           SegmentWriter.write(
             keyValues = mutableKeyValues,
             createdInLevel = 0,
-            isGrouped = true,
             maxProbe = TestData.maxProbe,
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             enableRangeFilter = TestData.enableRangeFilter
@@ -474,7 +470,6 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
           SegmentWriter.write(
             keyValues = mutableKeyValues,
             createdInLevel = 0,
-            isGrouped = true,
             maxProbe = TestData.maxProbe,
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             enableRangeFilter = TestData.enableRangeFilter
@@ -520,7 +515,6 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
           SegmentWriter.write(
             keyValues = mutableKeyValues,
             createdInLevel = 0,
-            isGrouped = true,
             maxProbe = TestData.maxProbe,
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             enableRangeFilter = TestData.enableRangeFilter
@@ -571,7 +565,6 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
             SegmentWriter.write(
               keyValues = mutableKeyValues,
               createdInLevel = 0,
-              isGrouped = true,
               maxProbe = TestData.maxProbe,
               bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
               enableRangeFilter = TestData.enableRangeFilter

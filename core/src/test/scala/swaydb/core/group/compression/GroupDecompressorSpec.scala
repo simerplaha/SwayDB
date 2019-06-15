@@ -75,7 +75,6 @@ class GroupDecompressorSpec extends TestBase {
           SegmentWriter.write(
             keyValues = Seq(group),
             createdInLevel = 0,
-            isGrouped = true,
             maxProbe = TestData.maxProbe,
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             enableRangeFilter = TestData.enableRangeFilter

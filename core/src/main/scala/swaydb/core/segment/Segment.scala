@@ -258,7 +258,6 @@ private[core] object Segment extends LazyLogging {
     SegmentWriter.write(
       keyValues = keyValues,
       createdInLevel = createdInLevel,
-      isGrouped = groupingStrategy.isDefined,
       bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
       enableRangeFilter = enableRangeFilter,
       maxProbe = 5 //todo - pass as input

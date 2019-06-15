@@ -136,7 +136,6 @@ sealed trait SegmentGroupReadSpec extends TestBase with ScalaFutures with Privat
         SegmentWriter.write(
           keyValues = Slice(group5),
           createdInLevel = 0,
-          isGrouped = true,
           maxProbe = TestData.maxProbe,
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           enableRangeFilter = TestData.enableRangeFilter

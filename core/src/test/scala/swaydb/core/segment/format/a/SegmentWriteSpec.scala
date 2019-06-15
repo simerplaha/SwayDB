@@ -254,7 +254,6 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           SegmentWriter.write(
             keyValues = keyValues,
             createdInLevel = 0,
-            isGrouped = false,
             maxProbe = TestData.maxProbe,
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             enableRangeFilter = TestData.enableRangeFilter
@@ -1417,14 +1416,24 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
     "succeed for non group key-values" in {
       implicit val groupingStrategy: Option[KeyValueGroupingStrategyInternal] = None
       val keyValues = randomizedKeyValues(1000, addRandomGroups = false)
-      val result = SegmentMerger.split(keyValues, 100.mb, false, inMemoryStorage, maxProbe = TestData.maxProbe, TestData.falsePositiveRate, true).assertGet
+      val result =
+        SegmentMerger.split(
+          keyValues = keyValues,
+          minSegmentSize = 100.mb,
+          isLastLevel = false,
+          forInMemory = inMemoryStorage,
+          maxProbe = TestData.maxProbe,
+          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+          compressDuplicateValues = true
+        ).assertGet
+
       result should have size 1
       result.head should have size keyValues.size
+
       val (bytes, deadline) =
         SegmentWriter.write(
           keyValues = result.head,
           createdInLevel = 0,
-          isGrouped = false,
           maxProbe = TestData.maxProbe,
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           enableRangeFilter = TestData.enableRangeFilter
@@ -1435,6 +1444,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
 
     "succeed for grouped key-values" in {
       val keyValues = randomizedKeyValues(1000)
+
       val result = SegmentMerger.split(
         keyValues = keyValues,
         minSegmentSize = 100.mb,
@@ -1444,6 +1454,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
         compressDuplicateValues = true
       )(keyOrder, Some(KeyValueGroupingStrategyInternal(DefaultGroupingStrategy()))).assertGet
+
       result should have size 1
       result.head should have size 1
 
@@ -1451,7 +1462,6 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         SegmentWriter.write(
           keyValues = result.head,
           createdInLevel = 0,
-          isGrouped = false,
           maxProbe = TestData.maxProbe,
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           enableRangeFilter = TestData.enableRangeFilter

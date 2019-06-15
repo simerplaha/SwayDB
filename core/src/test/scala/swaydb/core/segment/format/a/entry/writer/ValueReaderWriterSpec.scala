@@ -80,7 +80,6 @@ class ValueReaderWriterSpec extends TestBase {
         SegmentWriter.write(
           keyValues = keyValues,
           createdInLevel = 0,
-          isGrouped = false,
           maxProbe = 10,
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           enableRangeFilter = TestData.enableRangeFilter

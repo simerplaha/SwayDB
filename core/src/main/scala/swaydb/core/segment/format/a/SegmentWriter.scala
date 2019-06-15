@@ -164,7 +164,6 @@ private[core] object SegmentWriter extends LazyLogging {
     */
   def write(keyValues: Iterable[KeyValue.WriteOnly],
             createdInLevel: Int,
-            isGrouped: Boolean,
             maxProbe: Int,
             bloomFilterFalsePositiveRate: Double,
             enableRangeFilter: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[(Slice[Byte], Option[Deadline])] =
@@ -196,13 +195,12 @@ private[core] object SegmentWriter extends LazyLogging {
         }
 
       val bloomFilter =
-        Option(
-          BloomFilter(
-            numberOfKeys = lastStats.bloomFilterKeysCount,
-            falsePositiveRate = bloomFilterFalsePositiveRate,
-            enableRangeFilter = enableRangeFilter,
-            bytes = bloomFilterSlice
-          )
+        BloomFilter.init(
+          numberOfKeys = lastStats.bloomFilterKeysCount,
+          hasRemoveRange = lastStats.hasRemoveRange,
+          falsePositiveRate = bloomFilterFalsePositiveRate,
+          enableRangeFilter = enableRangeFilter,
+          bytes = bloomFilterSlice
         )
 
       write(
@@ -221,7 +219,7 @@ private[core] object SegmentWriter extends LazyLogging {
             //the following group of bytes are also used for CRC check.
             footerHeaderSlice addIntUnsigned SegmentWriter.formatId
             footerHeaderSlice addIntUnsigned createdInLevel
-            footerHeaderSlice addBoolean isGrouped
+            footerHeaderSlice addBoolean lastStats.hasGroup
             footerHeaderSlice addBoolean lastStats.hasRange
             footerHeaderSlice addBoolean lastStats.hasPut
             footerHeaderSlice addIntUnsigned sortedIndexSlice.fromOffset
@@ -250,8 +248,12 @@ private[core] object SegmentWriter extends LazyLogging {
             //move to the last written byte position of bloomFilter on the original slice.
             slice moveWritePositionUnsafe bloomFilter.map(bloom => bloomFilterSlice.fromOffset + bloom.endOffset + 1).getOrElse(bloomFilterSlice.fromOffset)
 
-            slice addIntUnsigned bloomFilter.map(_.currentRangeFilterBytesRequired).getOrElse(0)
-            bloomFilter foreach (_.writeRangeFilter(slice))
+            //write range filter only if bloomFilter was created.
+            bloomFilter foreach {
+              filter =>
+                slice addIntUnsigned filter.currentRangeFilterBytesRequired
+                filter writeRangeFilter slice
+            }
 
             slice addInt footerHeaderSlice.fromOffset
 

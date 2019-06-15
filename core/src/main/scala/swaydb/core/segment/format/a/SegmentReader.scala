@@ -263,8 +263,6 @@ private[core] object SegmentReader extends LazyLogging {
       val bloomFilterSize = footerReader.readInt().get
       val bloomAndRangeFilterSlice =
         if (bloomFilterSize == 0) {
-          val rangeFilterByteSize = footerReader.readIntUnsigned().get
-          if (rangeFilterByteSize != 1) return IO.Failure(SegmentCorruptionException(s"Range filter byte size was $rangeFilterByteSize. Expected 0.", new Exception("CRC check failed.")))
           None
         } else {
           val bloomFilterSlice = footerReader.read(bloomFilterSize).get

@@ -120,7 +120,6 @@ class SegmentGrouperSpec extends TestBase {
         SegmentWriter.write(
           keyValues = Slice(group),
           createdInLevel = 0,
-          isGrouped = true,
           maxProbe = TestData.maxProbe,
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           enableRangeFilter = TestData.enableRangeFilter
@@ -171,7 +170,6 @@ class SegmentGrouperSpec extends TestBase {
         SegmentWriter.write(
           keyValues = Slice(group),
           createdInLevel = 0,
-          isGrouped = true,
           maxProbe = TestData.maxProbe,
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           enableRangeFilter = TestData.enableRangeFilter

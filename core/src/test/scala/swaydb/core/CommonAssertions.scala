@@ -1316,7 +1316,6 @@ object CommonAssertions {
       SegmentWriter.write(
         keyValues = Seq(group.updateStats(TestData.falsePositiveRate, None)),
         createdInLevel = 1,
-        isGrouped = true,
         maxProbe = 10,
         bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
         enableRangeFilter = TestData.enableRangeFilter

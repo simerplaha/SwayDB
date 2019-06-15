@@ -75,12 +75,20 @@ class BloomFilterSpec extends TestBase {
     }
   }
 
-  "init" should {
+  "create" should {
     "not initialise if keyValues are empty" in {
       BloomFilter.init(
         keyValues = Slice.empty,
         falsePositiveRate = TestData.falsePositiveRate,
         enableRangeFilter = TestData.enableRangeFilter
+      ) shouldBe empty
+    }
+
+    "not initialise if false positive range is 0.0 are empty" in {
+      BloomFilter.init(
+        keyValues = randomizedKeyValues(),
+        falsePositiveRate = 0.0,
+        enableRangeFilter = true
       ) shouldBe empty
     }
 
@@ -91,18 +99,18 @@ class BloomFilterSpec extends TestBase {
         BloomFilter.init(
           keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, None, Value.Remove(None, time.next))),
           falsePositiveRate = TestData.falsePositiveRate,
-          enableRangeFilter = TestData.enableRangeFilter
+          enableRangeFilter = false
         ) shouldBe empty
 
         BloomFilter.init(
           keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, None, Value.Remove(Some(randomDeadline()), time.next))),
           falsePositiveRate = TestData.falsePositiveRate,
-          enableRangeFilter = TestData.enableRangeFilter
+          enableRangeFilter = false
         ) shouldBe empty
       }
     }
 
-    "not initialise bloomFilter if it contain function" in {
+    "not initialise bloomFilter if it contains a range function" in {
       runThisParallel(10.times) {
         implicit val time = TestTimer.random
 
@@ -110,7 +118,7 @@ class BloomFilterSpec extends TestBase {
         BloomFilter.init(
           keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, None, Value.Function(Slice.emptyBytes, time.next))),
           falsePositiveRate = TestData.falsePositiveRate,
-          enableRangeFilter = TestData.enableRangeFilter
+          enableRangeFilter = false
         ) shouldBe empty
       }
     }
@@ -123,13 +131,13 @@ class BloomFilterSpec extends TestBase {
         BloomFilter.init(
           keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, None, Value.PendingApply(Slice(Value.Remove(randomDeadlineOption(), time.next))))),
           falsePositiveRate = TestData.falsePositiveRate,
-          enableRangeFilter = TestData.enableRangeFilter
+          enableRangeFilter = false
         ) shouldBe empty
 
         BloomFilter.init(
           keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, None, Value.PendingApply(Slice(Value.Function(randomFunctionId(), time.next))))),
           falsePositiveRate = TestData.falsePositiveRate,
-          enableRangeFilter = TestData.enableRangeFilter
+          enableRangeFilter = false
         ) shouldBe empty
       }
     }

@@ -75,7 +75,6 @@ class SegmentWriterReaderSpec extends TestBase {
         SegmentWriter.write(
           keyValues = Seq.empty,
           createdInLevel = 0,
-          isGrouped = false,
           maxProbe = TestData.maxProbe,
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           enableRangeFilter = TestData.enableRangeFilter
@@ -91,7 +90,6 @@ class SegmentWriterReaderSpec extends TestBase {
           SegmentWriter.write(
             keyValues = keyValues,
             createdInLevel = 0,
-            isGrouped = false,
             maxProbe = TestData.maxProbe,
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             enableRangeFilter = TestData.enableRangeFilter
@@ -120,7 +118,6 @@ class SegmentWriterReaderSpec extends TestBase {
           SegmentWriter.write(
             keyValues = Seq(group),
             createdInLevel = 0,
-            isGrouped = false,
             maxProbe = TestData.maxProbe,
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             enableRangeFilter = TestData.enableRangeFilter
@@ -145,7 +142,6 @@ class SegmentWriterReaderSpec extends TestBase {
           SegmentWriter.write(
             keyValues = Seq(group1, group2),
             createdInLevel = 0,
-            isGrouped = false,
             maxProbe = TestData.maxProbe,
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             enableRangeFilter = TestData.enableRangeFilter
@@ -180,7 +176,6 @@ class SegmentWriterReaderSpec extends TestBase {
           SegmentWriter.write(
             keyValues = Seq(group4),
             createdInLevel = 0,
-            isGrouped = false,
             maxProbe = TestData.maxProbe,
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             enableRangeFilter = TestData.enableRangeFilter
@@ -208,7 +203,6 @@ class SegmentWriterReaderSpec extends TestBase {
           SegmentWriter.write(
             keyValues = keyValues,
             createdInLevel = 0,
-            isGrouped = false,
             maxProbe = TestData.maxProbe,
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             enableRangeFilter = TestData.enableRangeFilter
@@ -230,7 +224,6 @@ class SegmentWriterReaderSpec extends TestBase {
         SegmentWriter.write(
           keyValues = keyValues,
           createdInLevel = 0,
-          isGrouped = false,
           maxProbe = TestData.maxProbe,
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           enableRangeFilter = TestData.enableRangeFilter
@@ -257,7 +250,6 @@ class SegmentWriterReaderSpec extends TestBase {
         SegmentWriter.write(
           keyValues = keyValues,
           createdInLevel = 0,
-          isGrouped = false,
           maxProbe = TestData.maxProbe,
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           enableRangeFilter = TestData.enableRangeFilter
@@ -278,7 +270,6 @@ class SegmentWriterReaderSpec extends TestBase {
         SegmentWriter.write(
           keyValues = keyValues,
           createdInLevel = 0,
-          isGrouped = false,
           maxProbe = TestData.maxProbe,
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           enableRangeFilter = TestData.enableRangeFilter
@@ -299,7 +290,6 @@ class SegmentWriterReaderSpec extends TestBase {
           SegmentWriter.write(
             keyValues = keyValues,
             createdInLevel = 0,
-            isGrouped = false,
             maxProbe = TestData.maxProbe,
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             enableRangeFilter = TestData.enableRangeFilter
@@ -350,7 +340,6 @@ class SegmentWriterReaderSpec extends TestBase {
           SegmentWriter.write(
             keyValues = keyValues,
             createdInLevel = 0,
-            isGrouped = false,
             maxProbe = TestData.maxProbe,
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             enableRangeFilter = TestData.enableRangeFilter
@@ -375,6 +364,59 @@ class SegmentWriterReaderSpec extends TestBase {
       }
     }
 
+    "set hasRange & hasRemoveRange to true and not create bloomFilter when Segment contains Remove range key-value" in {
+      def doAssert(keyValues: Slice[KeyValue.WriteOnly]) = {
+        keyValues.last.stats.hasRemoveRange shouldBe true
+
+        val (bytes, _) =
+          SegmentWriter.write(
+            keyValues = keyValues,
+            createdInLevel = 0,
+            maxProbe = TestData.maxProbe,
+            bloomFilterFalsePositiveRate = 0.01,
+            enableRangeFilter = false
+          ).assertGet
+
+        val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).get
+        footer.keyValueCount shouldBe keyValues.size
+        footer.keyValueCount shouldBe keyValues.size
+        footer.hasRange shouldBe true
+        //bloom filters do
+        footer.bloomFilter shouldBe empty
+        footer.crc should be > 0L
+      }
+
+      runThis(100.times) {
+        val keyValues =
+          randomizedKeyValues(keyValueCount, startId = Some(1)) ++
+            Seq(
+              eitherOne(
+                left =
+                  Transient.Group(
+                    keyValues = Slice(
+                      randomFixedKeyValue(10),
+                      randomRangeKeyValue(12, 15, rangeValue = Value.remove(randomDeadlineOption))
+                    ).toTransient,
+                    indexCompression = randomCompression(),
+                    valueCompression = randomCompression(),
+                    falsePositiveRate = TestData.falsePositiveRate,
+                    previous = None,
+                    maxProbe = TestData.maxProbe
+                  ).assertGet,
+                right =
+                  Transient.Range.create[FromValue, RangeValue](
+                    fromKey = 20,
+                    toKey = 21,
+                    fromValue = randomFromValueOption(),
+                    rangeValue = Value.remove(randomDeadlineOption)
+                  )
+              )
+            )
+
+        doAssert(keyValues.updateStats)
+      }
+    }
+
     "create bloomFilter when Segment not does contains Remove range key-value but contains a Group" in {
       def doAssert(keyValues: Slice[KeyValue.WriteOnly]) = {
         keyValues.last.stats.hasRemoveRange shouldBe false
@@ -383,7 +425,6 @@ class SegmentWriterReaderSpec extends TestBase {
           SegmentWriter.write(
             keyValues = keyValues,
             createdInLevel = 0,
-            isGrouped = false,
             maxProbe = TestData.maxProbe,
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             enableRangeFilter = TestData.enableRangeFilter
@@ -426,7 +467,6 @@ class SegmentWriterReaderSpec extends TestBase {
           SegmentWriter.write(
             keyValues = keyValues,
             createdInLevel = 0,
-            isGrouped = false,
             maxProbe = TestData.maxProbe,
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             enableRangeFilter = TestData.enableRangeFilter
@@ -461,7 +501,6 @@ class SegmentWriterReaderSpec extends TestBase {
           SegmentWriter.write(
             keyValues = keyValues,
             createdInLevel = 0,
-            isGrouped = false,
             maxProbe = TestData.maxProbe,
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             enableRangeFilter = TestData.enableRangeFilter
@@ -501,6 +540,55 @@ class SegmentWriterReaderSpec extends TestBase {
         )
       }
     }
+
+    "set hasRemoveRange to true, hasGroup to true & not create bloomFilter when only the group contains remove range" in {
+      val keyCompression = randomCompression()
+      val valueCompression = randomCompression()
+
+      def doAssert(keyValues: Slice[KeyValue.WriteOnly]) = {
+        keyValues.last.stats.hasRemoveRange shouldBe true
+
+        val (bytes, _) =
+          SegmentWriter.write(
+            keyValues = keyValues,
+            createdInLevel = 0,
+            maxProbe = TestData.maxProbe,
+            bloomFilterFalsePositiveRate = 0.01,
+            enableRangeFilter = false
+          ).assertGet
+
+        val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).get
+        footer.keyValueCount shouldBe keyValues.size
+        footer.keyValueCount shouldBe keyValues.size
+        footer.hasRange shouldBe true
+        //bloom filters do
+        footer.bloomFilter shouldBe empty
+        footer.crc should be > 0L
+
+        keyValues foreach {
+          case group: Transient.Group =>
+          //todo  assertGroup(group, keyCompression, Some(valueCompression))
+          case _ =>
+        }
+      }
+
+      runThis(100.times) {
+        doAssert(
+          Slice(
+            randomFixedKeyValue(1).toTransient,
+            randomFixedKeyValue(2).toTransient,
+            Transient.Group(
+              keyValues = Slice(randomPutKeyValue(10, Some("val")), randomRangeKeyValue(12, 15, rangeValue = Value.remove(None))).toTransient,
+              indexCompression = keyCompression,
+              valueCompression = valueCompression,
+              falsePositiveRate = TestData.falsePositiveRate,
+              previous = None,
+              maxProbe = TestData.maxProbe
+            ).assertGet
+          ).updateStats
+        )
+      }
+    }
   }
 
   "SegmentReader.find" should {
@@ -527,7 +615,6 @@ class SegmentWriterReaderSpec extends TestBase {
         SegmentWriter.write(
           keyValues = keyValues,
           createdInLevel = 0,
-          isGrouped = false,
           maxProbe = TestData.maxProbe,
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           enableRangeFilter = TestData.enableRangeFilter
@@ -615,7 +702,6 @@ class SegmentWriterReaderSpec extends TestBase {
         SegmentWriter.write(
           keyValues = keyValues,
           createdInLevel = 0,
-          isGrouped = false,
           maxProbe = TestData.maxProbe,
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           enableRangeFilter = TestData.enableRangeFilter
@@ -679,7 +765,6 @@ class SegmentWriterReaderSpec extends TestBase {
         SegmentWriter.write(
           keyValues = keyValues,
           createdInLevel = 0,
-          isGrouped = false,
           maxProbe = TestData.maxProbe,
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           enableRangeFilter = TestData.enableRangeFilter
@@ -768,7 +853,6 @@ class SegmentWriterReaderSpec extends TestBase {
           SegmentWriter.write(
             keyValues = keyValuesWithDeadline.updateStats,
             createdInLevel = 0,
-            isGrouped = false,
             maxProbe = TestData.maxProbe,
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             enableRangeFilter = TestData.enableRangeFilter
@@ -826,7 +910,6 @@ class SegmentWriterReaderSpec extends TestBase {
           SegmentWriter.write(
             keyValues = keyValues,
             createdInLevel = 0,
-            isGrouped = false,
             maxProbe = TestData.maxProbe,
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             enableRangeFilter = TestData.enableRangeFilter
