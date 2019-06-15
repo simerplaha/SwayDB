@@ -118,15 +118,18 @@ sealed trait LevelReadSpec extends TestBase with MockFactory with Benchmark {
       val putKeyValues = randomPutKeyValues(keyValuesCount).toTransient
       //refresh so that if there is a compression running, this Segment will compressed.
       val segments =
-        TestSegment(putKeyValues).assertGet.refresh(
-          minSegmentSize = 100.mb,
-          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-          enableRangeFilter = TestData.enableRangeFilter,
-          compressDuplicateValues = true,
-          removeDeletes = false,
-          createdInLevel = 0,
-          maxProbe = TestData.maxProbe
-        ).assertGet
+        TestSegment(putKeyValues)
+          .assertGet
+          .refresh(
+            minSegmentSize = 100.mb,
+            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+            resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+            enableRangeFilter = TestData.enableRangeFilter,
+            compressDuplicateValues = true,
+            removeDeletes = false,
+            createdInLevel = 0,
+            maxProbe = TestData.maxProbe
+          ).assertGet
 
       segments should have size 1
       val segment = segments.head
@@ -146,14 +149,17 @@ sealed trait LevelReadSpec extends TestBase with MockFactory with Benchmark {
       val putKeyValues = randomPutKeyValues(keyValuesCount).toTransient
       //refresh so that if there is a compression running, this Segment will compressed.
       val segments =
-        TestSegment(putKeyValues).assertGet.refresh(
-          minSegmentSize = 100.mb,
-          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-          enableRangeFilter = TestData.enableRangeFilter,
-          compressDuplicateValues = true,
-          removeDeletes = false,
-          createdInLevel = 0,
-          maxProbe = TestData.maxProbe).assertGet
+        TestSegment(putKeyValues)
+          .assertGet
+          .refresh(
+            minSegmentSize = 100.mb,
+            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+            resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+            enableRangeFilter = TestData.enableRangeFilter,
+            compressDuplicateValues = true,
+            removeDeletes = false,
+            createdInLevel = 0,
+            maxProbe = TestData.maxProbe).assertGet
 
       segments should have size 1
       val segment = segments.head

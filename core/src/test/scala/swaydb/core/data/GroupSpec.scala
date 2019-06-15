@@ -40,7 +40,6 @@ class GroupSpec extends TestBase {
   implicit val fileLimiter = TestLimitQueues.fileOpenLimiter
   implicit val keyValueLimiter = TestLimitQueues.keyValueLimiter
 
-
   "lastGroup on a list of WriteOnly key-values" should {
     "return empty if there are no groups" in {
       Seq.empty[KeyValue.WriteOnly].lastGroup() shouldBe empty
@@ -53,6 +52,7 @@ class GroupSpec extends TestBase {
           indexCompression = randomCompression(),
           valueCompression = randomCompression(),
           falsePositiveRate = TestData.falsePositiveRate,
+          resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           maxProbe = TestData.maxProbe,
           previous = None
         ).assertGet
@@ -69,6 +69,7 @@ class GroupSpec extends TestBase {
               indexCompression = randomCompression(),
               valueCompression = randomCompression(),
               falsePositiveRate = TestData.falsePositiveRate,
+              resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
               maxProbe = TestData.maxProbe,
               previous = None
             ).assertGet
@@ -89,6 +90,7 @@ class GroupSpec extends TestBase {
                 indexCompression = randomCompression(),
                 valueCompression = randomCompression(),
                 falsePositiveRate = TestData.falsePositiveRate,
+                resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
                 maxProbe = TestData.maxProbe,
                 previous = None
               ).assertGet
@@ -108,6 +110,7 @@ class GroupSpec extends TestBase {
           indexCompression = randomCompression(),
           valueCompression = randomCompression(),
           falsePositiveRate = TestData.falsePositiveRate,
+          resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           maxProbe = TestData.maxProbe,
           previous = None
         ).assertGet
@@ -153,6 +156,7 @@ class GroupSpec extends TestBase {
           indexCompression = randomCompression(),
           valueCompression = randomCompression(),
           falsePositiveRate = TestData.falsePositiveRate,
+          resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           maxProbe = TestData.maxProbe,
           previous = None
         ).assertGet
@@ -194,5 +198,4 @@ class GroupSpec extends TestBase {
       uncompressedGroup.segmentCache.isCacheEmpty shouldBe false
     }
   }
-
 }

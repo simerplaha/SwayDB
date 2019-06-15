@@ -93,6 +93,7 @@ private[segment] case class MemorySegment(path: Path,
   override def put(newKeyValues: Slice[KeyValue.ReadOnly],
                    minSegmentSize: Long,
                    bloomFilterFalsePositiveRate: Double,
+                   resetPrefixCompressionEvery: Int,
                    enableRangeFilter: Boolean,
                    compressDuplicateValues: Boolean,
                    removeDeletes: Boolean,
@@ -113,6 +114,7 @@ private[segment] case class MemorySegment(path: Path,
             maxProbe = maxProbe,
             isLastLevel = removeDeletes,
             bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+            resetPrefixCompressionEvery = resetPrefixCompressionEvery,
             compressDuplicateValues = compressDuplicateValues
           ) flatMap {
             splits =>
@@ -143,6 +145,7 @@ private[segment] case class MemorySegment(path: Path,
 
   override def refresh(minSegmentSize: Long,
                        bloomFilterFalsePositiveRate: Double,
+                       resetPrefixCompressionEvery: Int,
                        enableRangeFilter: Boolean,
                        compressDuplicateValues: Boolean,
                        removeDeletes: Boolean,
@@ -162,6 +165,7 @@ private[segment] case class MemorySegment(path: Path,
             isLastLevel = removeDeletes,
             maxProbe = maxProbe,
             bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+            resetPrefixCompressionEvery = resetPrefixCompressionEvery,
             compressDuplicateValues = compressDuplicateValues
           ) flatMap {
             splits =>

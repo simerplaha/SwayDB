@@ -56,7 +56,16 @@ class ValueReaderWriterSpec extends TestBase {
         Slice(
           Transient.put(1, 100),
           Transient.update(1, 100),
-          Transient.Function(1, 100, randomDeadlineOption(), Time.empty, None, 0.001, true)
+          Transient.Function(
+            key = 1,
+            function = 100,
+            deadline = randomDeadlineOption(),
+            time = Time.empty,
+            previous = None,
+            falsePositiveRate = 0.001,
+            compressDuplicateValues = true,
+            resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery
+          )
         ).updateStats
 
       //the first one is always going to be uncompressed so drop it.

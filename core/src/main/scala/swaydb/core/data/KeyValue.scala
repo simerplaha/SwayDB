@@ -200,6 +200,7 @@ private[core] object KeyValue {
     val isRange: Boolean
     val isGroup: Boolean
     val previous: Option[KeyValue.WriteOnly]
+    def resetPrefixCompressionEvery: Int
     def value: Option[Slice[Byte]]
     def fullKey: Slice[Byte]
     def stats: Stats
@@ -217,8 +218,8 @@ private[core] object KeyValue {
       else
         currentEndValueOffsetPosition + 1
 
-    def enablePrefixCompression() =
-      Transient.enablePrefixCompression(previous)
+    def enablePrefixCompression =
+      previous.forall(_.stats.position + 1 % resetPrefixCompressionEvery == 0)
 
     def updateStats(falsePositiveRate: Double,
                     previous: Option[KeyValue.WriteOnly]): KeyValue.WriteOnly
@@ -546,9 +547,6 @@ private[core] sealed trait Transient extends KeyValue.WriteOnly
 
 private[core] object Transient {
 
-  def enablePrefixCompression(previous: Option[KeyValue.WriteOnly]): Boolean =
-    false
-
   implicit class TransientImplicits(transient: Transient)(implicit keyOrder: KeyOrder[Slice[Byte]]) {
 
     def toMemoryResponse: Memory.SegmentResponse =
@@ -586,7 +584,8 @@ private[core] object Transient {
                     deadline: Option[Deadline],
                     time: Time,
                     previous: Option[KeyValue.WriteOnly],
-                    falsePositiveRate: Double) extends Transient with KeyValue.WriteOnly.Fixed {
+                    falsePositiveRate: Double,
+                    resetPrefixCompressionEvery: Int) extends Transient with KeyValue.WriteOnly.Fixed {
     override val isRange: Boolean = false
     override val isGroup: Boolean = false
     override val isRemoveRangeMayBe = false
@@ -596,7 +595,7 @@ private[core] object Transient {
         current = this,
         currentTime = time,
         compressDuplicateValues = false,
-        enablePrefixCompression = enablePrefixCompression()
+        enablePrefixCompression = enablePrefixCompression
       ).unapply
 
     override def fullKey = key
@@ -613,7 +612,7 @@ private[core] object Transient {
         bloomFiltersItemCount = 1,
         isPut = false,
         previous = previous,
-        usePreviousHashIndexOffset = enablePrefixCompression(),
+        usePreviousHashIndexOffset = enablePrefixCompression,
         deadline = deadline
       )
 
@@ -631,7 +630,8 @@ private[core] object Transient {
                  time: Time,
                  previous: Option[KeyValue.WriteOnly],
                  falsePositiveRate: Double,
-                 compressDuplicateValues: Boolean) extends Transient with KeyValue.WriteOnly.Fixed {
+                 compressDuplicateValues: Boolean,
+                 resetPrefixCompressionEvery: Int) extends Transient with KeyValue.WriteOnly.Fixed {
 
     override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
@@ -642,7 +642,7 @@ private[core] object Transient {
         current = this,
         currentTime = time,
         compressDuplicateValues = compressDuplicateValues,
-        enablePrefixCompression = enablePrefixCompression()
+        enablePrefixCompression = enablePrefixCompression
       ).unapply
 
     override val hasValueEntryBytes: Boolean =
@@ -659,7 +659,7 @@ private[core] object Transient {
         bloomFiltersItemCount = 1,
         isPut = true,
         previous = previous,
-        usePreviousHashIndexOffset = enablePrefixCompression(),
+        usePreviousHashIndexOffset = enablePrefixCompression,
         deadline = deadline
       )
 
@@ -678,7 +678,8 @@ private[core] object Transient {
                     time: Time,
                     previous: Option[KeyValue.WriteOnly],
                     falsePositiveRate: Double,
-                    compressDuplicateValues: Boolean) extends Transient with KeyValue.WriteOnly.Fixed {
+                    compressDuplicateValues: Boolean,
+                    resetPrefixCompressionEvery: Int) extends Transient with KeyValue.WriteOnly.Fixed {
     override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
     override val isRange: Boolean = false
@@ -695,7 +696,7 @@ private[core] object Transient {
         current = this,
         currentTime = time,
         compressDuplicateValues = compressDuplicateValues,
-        enablePrefixCompression = enablePrefixCompression()
+        enablePrefixCompression = enablePrefixCompression
       ).unapply
 
     override val hasValueEntryBytes: Boolean = previous.exists(_.hasValueEntryBytes) || valueEntryBytes.exists(_.nonEmpty)
@@ -711,7 +712,7 @@ private[core] object Transient {
         bloomFiltersItemCount = 1,
         isPut = false,
         previous = previous,
-        usePreviousHashIndexOffset = enablePrefixCompression(),
+        usePreviousHashIndexOffset = enablePrefixCompression,
         deadline = deadline
       )
   }
@@ -722,7 +723,8 @@ private[core] object Transient {
                       time: Time,
                       previous: Option[KeyValue.WriteOnly],
                       falsePositiveRate: Double,
-                      compressDuplicateValues: Boolean) extends Transient with KeyValue.WriteOnly.Fixed {
+                      compressDuplicateValues: Boolean,
+                      resetPrefixCompressionEvery: Int) extends Transient with KeyValue.WriteOnly.Fixed {
     override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
     override val isRange: Boolean = false
@@ -742,7 +744,7 @@ private[core] object Transient {
         current = this,
         currentTime = time,
         compressDuplicateValues = compressDuplicateValues,
-        enablePrefixCompression = enablePrefixCompression()
+        enablePrefixCompression = enablePrefixCompression
       ).unapply
 
     override val hasValueEntryBytes: Boolean = previous.exists(_.hasValueEntryBytes) || valueEntryBytes.exists(_.nonEmpty)
@@ -758,7 +760,7 @@ private[core] object Transient {
         bloomFiltersItemCount = 1,
         isPut = false,
         previous = previous,
-        usePreviousHashIndexOffset = enablePrefixCompression(),
+        usePreviousHashIndexOffset = enablePrefixCompression,
         deadline = deadline
       )
   }
@@ -767,7 +769,8 @@ private[core] object Transient {
                           applies: Slice[Value.Apply],
                           previous: Option[KeyValue.WriteOnly],
                           falsePositiveRate: Double,
-                          compressDuplicateValues: Boolean) extends Transient with KeyValue.WriteOnly.Fixed {
+                          compressDuplicateValues: Boolean,
+                          resetPrefixCompressionEvery: Int) extends Transient with KeyValue.WriteOnly.Fixed {
     override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
     override val isRange: Boolean = false
@@ -796,7 +799,7 @@ private[core] object Transient {
         current = this,
         currentTime = time,
         compressDuplicateValues = compressDuplicateValues,
-        enablePrefixCompression = enablePrefixCompression()
+        enablePrefixCompression = enablePrefixCompression
       ).unapply
 
     override val hasValueEntryBytes: Boolean = previous.exists(_.hasValueEntryBytes) || valueEntryBytes.exists(_.nonEmpty)
@@ -812,7 +815,7 @@ private[core] object Transient {
         bloomFiltersItemCount = 1,
         isPut = false,
         previous = previous,
-        usePreviousHashIndexOffset = enablePrefixCompression(),
+        usePreviousHashIndexOffset = enablePrefixCompression,
         deadline = deadline
       )
   }
@@ -823,6 +826,7 @@ private[core] object Transient {
                                      toKey: Slice[Byte],
                                      rangeValue: R,
                                      falsePositiveRate: Double,
+                                     resetPrefixCompressionEvery: Int,
                                      previous: Option[KeyValue.WriteOnly])(implicit rangeValueSerializer: RangeValueSerializer[Unit, R]): Range = {
       val bytesRequired = rangeValueSerializer.bytesRequired((), rangeValue)
       val value = if (bytesRequired == 0) None else Some(Slice.create[Byte](bytesRequired))
@@ -836,7 +840,8 @@ private[core] object Transient {
         rangeValue = rangeValue,
         value = value,
         previous = previous,
-        falsePositiveRate = falsePositiveRate
+        falsePositiveRate = falsePositiveRate,
+        resetPrefixCompressionEvery = resetPrefixCompressionEvery
       )
     }
 
@@ -845,6 +850,7 @@ private[core] object Transient {
                                                            fromValue: Option[F],
                                                            rangeValue: R,
                                                            falsePositiveRate: Double,
+                                                           resetPrefixCompressionEvery: Int,
                                                            previous: Option[KeyValue.WriteOnly])(implicit rangeValueSerializer: RangeValueSerializer[Option[F], R]): Range = {
       val bytesRequired = rangeValueSerializer.bytesRequired(fromValue, rangeValue)
       val value = if (bytesRequired == 0) None else Some(Slice.create[Byte](bytesRequired))
@@ -859,7 +865,8 @@ private[core] object Transient {
         rangeValue = rangeValue,
         value = value,
         previous = previous,
-        falsePositiveRate = falsePositiveRate
+        falsePositiveRate = falsePositiveRate,
+        resetPrefixCompressionEvery = resetPrefixCompressionEvery
       )
     }
   }
@@ -871,7 +878,8 @@ private[core] object Transient {
                    rangeValue: Value.RangeValue,
                    value: Option[Slice[Byte]],
                    previous: Option[KeyValue.WriteOnly],
-                   falsePositiveRate: Double) extends Transient with KeyValue.WriteOnly.Range {
+                   falsePositiveRate: Double,
+                   resetPrefixCompressionEvery: Int) extends Transient with KeyValue.WriteOnly.Range {
 
     def key = fromKey
 
@@ -896,7 +904,7 @@ private[core] object Transient {
         currentTime = Time.empty,
         //It's highly likely that two sequential key-values within the same range have the same value after the range split occurs. So this is always set to true.
         compressDuplicateValues = true,
-        enablePrefixCompression = enablePrefixCompression()
+        enablePrefixCompression = enablePrefixCompression
       ).unapply
 
     override val hasValueEntryBytes: Boolean = previous.exists(_.hasValueEntryBytes) || valueEntryBytes.exists(_.nonEmpty)
@@ -910,7 +918,7 @@ private[core] object Transient {
         isRange = isRange,
         isGroup = isGroup,
         previous = previous,
-        usePreviousHashIndexOffset = enablePrefixCompression(),
+        usePreviousHashIndexOffset = enablePrefixCompression,
         bloomFiltersItemCount = 2, //ranges cost 2. One for fromKey and second for rangeFilter's common prefix bytes.
         isPut = fromValue.exists(_.isInstanceOf[Value.Put]),
         deadline = None
@@ -923,6 +931,7 @@ private[core] object Transient {
               indexCompression: CompressionInternal,
               valueCompression: CompressionInternal,
               falsePositiveRate: Double,
+              resetPrefixCompressionEvery: Int,
               previous: Option[KeyValue.WriteOnly],
               maxProbe: Int): IO[Option[Transient.Group]] =
       GroupCompressor.compress(
@@ -930,6 +939,7 @@ private[core] object Transient {
         indexCompressions = Seq(indexCompression),
         valueCompressions = Seq(valueCompression),
         falsePositiveRate = falsePositiveRate,
+        resetPrefixCompressionEvery = resetPrefixCompressionEvery,
         previous = previous,
         maxProbe = maxProbe
       )
@@ -938,6 +948,7 @@ private[core] object Transient {
               indexCompressions: Seq[CompressionInternal],
               valueCompressions: Seq[CompressionInternal],
               falsePositiveRate: Double,
+              resetPrefixCompressionEvery: Int,
               previous: Option[KeyValue.WriteOnly],
               maxProbe: Int): IO[Option[Transient.Group]] =
       GroupCompressor.compress(
@@ -945,6 +956,7 @@ private[core] object Transient {
         indexCompressions = indexCompressions,
         valueCompressions = valueCompressions,
         falsePositiveRate = falsePositiveRate,
+        resetPrefixCompressionEvery = resetPrefixCompressionEvery,
         previous = previous,
         maxProbe = maxProbe
       )
@@ -958,7 +970,8 @@ private[core] object Transient {
                    deadline: Option[Deadline],
                    keyValues: Slice[KeyValue.WriteOnly],
                    previous: Option[KeyValue.WriteOnly],
-                   falsePositiveRate: Double) extends Transient with KeyValue.WriteOnly.Group {
+                   falsePositiveRate: Double,
+                   resetPrefixCompressionEvery: Int) extends Transient with KeyValue.WriteOnly.Group {
 
     override def key = minKey
 
@@ -977,7 +990,7 @@ private[core] object Transient {
         //it's highly unlikely that 2 groups after compression will have duplicate values.
         //compressDuplicateValues check is unnecessary since the value bytes of a group can be large.
         compressDuplicateValues = false,
-        enablePrefixCompression = enablePrefixCompression()
+        enablePrefixCompression = enablePrefixCompression
       ).unapply
 
     override val hasValueEntryBytes: Boolean = previous.exists(_.hasValueEntryBytes) || valueEntryBytes.exists(_.nonEmpty)
@@ -991,7 +1004,7 @@ private[core] object Transient {
         isRange = isRange,
         isGroup = isGroup,
         previous = previous,
-        usePreviousHashIndexOffset = enablePrefixCompression(),
+        usePreviousHashIndexOffset = enablePrefixCompression,
         bloomFiltersItemCount = keyValues.last.stats.bloomFilterKeysCount,
         isPut = keyValues.last.stats.hasPut,
         deadline = deadline

@@ -62,7 +62,15 @@ class SegmentMergeSpec extends TestBase {
         val segments = ListBuffer[ListBuffer[KeyValue.WriteOnly]](segment1, smallerLastSegment)
 
         //minSegmentSize is 70.bytes but lastSegment size is 60.bytes. Expected result should move lastSegment's KeyValues to previous segment
-        val newSegments = SegmentMerger.completeMerge(segments, 70.bytes, forMemory = false, maxProbe = TestData.maxProbe, bloomFilterFalsePositiveRate = TestData.falsePositiveRate).assertGet
+        val newSegments =
+          SegmentMerger.completeMerge(
+            segments = segments,
+            minSegmentSize = 70.bytes,
+            maxProbe = TestData.maxProbe,
+            forMemory = false,
+            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+            resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery
+          ).assertGet
         newSegments.size shouldBe 1
 
         val newSegmentsUnzipped = unzipGroups(newSegments.head)
@@ -84,7 +92,16 @@ class SegmentMergeSpec extends TestBase {
         val segments = ListBuffer[ListBuffer[KeyValue.WriteOnly]](segment1, smallerLastSegment)
 
         //minSegmentSize is 21.bytes but lastSegment size is 12.bytes. Expected result should move lastSegment's KeyValues to previous segment
-        val newSegments = SegmentMerger.completeMerge(segments, 21.bytes, forMemory = true, maxProbe = TestData.maxProbe, bloomFilterFalsePositiveRate = TestData.falsePositiveRate).assertGet
+        val newSegments =
+          SegmentMerger.completeMerge(
+            segments = segments,
+            minSegmentSize = 21.bytes,
+            maxProbe = TestData.maxProbe,
+            forMemory = true,
+            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+            resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery
+          ).assertGet
+
         newSegments.size shouldBe 1
 
         val newSegmentsUnzipped = unzipGroups(newSegments.head)
@@ -103,7 +120,8 @@ class SegmentMergeSpec extends TestBase {
           minSegmentSize = randomIntMax(segment.last.stats.segmentSize),
           maxProbe = TestData.maxProbe,
           forMemory = false,
-          bloomFilterFalsePositiveRate = TestData.falsePositiveRate
+          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+          resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery
         ).assertGet.size shouldBe 1
 
         SegmentMerger.completeMerge(
@@ -111,7 +129,8 @@ class SegmentMergeSpec extends TestBase {
           minSegmentSize = randomIntMax(segment.last.stats.memorySegmentSize),
           maxProbe = TestData.maxProbe,
           forMemory = true,
-          bloomFilterFalsePositiveRate = TestData.falsePositiveRate
+          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+          resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery
         ).assertGet.size shouldBe 1
       }
     }
@@ -148,6 +167,7 @@ class SegmentMergeSpec extends TestBase {
           isLastLevel = false,
           forInMemory = false,
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+          resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           compressDuplicateValues = true
         ).assertGet.toArray
       )
@@ -161,6 +181,7 @@ class SegmentMergeSpec extends TestBase {
           isLastLevel = false,
           forInMemory = true,
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+          resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           compressDuplicateValues = true
         ).assertGet.toArray
       )
@@ -179,10 +200,11 @@ class SegmentMergeSpec extends TestBase {
           keyValues = keyValues,
           minSegmentSize = 1.byte,
           isLastLevel = false,
-          maxProbe = TestData.maxProbe,
           forInMemory = false,
-          compressDuplicateValues = true,
-          bloomFilterFalsePositiveRate = TestData.falsePositiveRate
+          maxProbe = TestData.maxProbe,
+          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+          resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+          compressDuplicateValues = true
         ).assertGet
 
       split1 should have size 5
@@ -201,8 +223,9 @@ class SegmentMergeSpec extends TestBase {
           isLastLevel = false,
           forInMemory = false,
           maxProbe = TestData.maxProbe,
-          compressDuplicateValues = true,
-          bloomFilterFalsePositiveRate = TestData.falsePositiveRate
+          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+          resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+          compressDuplicateValues = true
         ).assertGet
 
       persistentSplit should have size 1
@@ -225,8 +248,9 @@ class SegmentMergeSpec extends TestBase {
           isLastLevel = false,
           forInMemory = true,
           maxProbe = TestData.maxProbe,
-          compressDuplicateValues = true,
-          bloomFilterFalsePositiveRate = TestData.falsePositiveRate
+          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+          resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+          compressDuplicateValues = true
         ).assertGet
 
       memorySplit should have size 1
@@ -250,6 +274,7 @@ class SegmentMergeSpec extends TestBase {
             isLastLevel = false,
             forInMemory = false,
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+            resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             compressDuplicateValues = true
           ).assertGet
 
@@ -261,6 +286,7 @@ class SegmentMergeSpec extends TestBase {
             indexCompression = randomCompression(),
             valueCompression = randomCompression(),
             falsePositiveRate = TestData.falsePositiveRate,
+            resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             previous = None,
             maxProbe = TestData.maxProbe
           ).assertGet.toMemory
@@ -274,6 +300,7 @@ class SegmentMergeSpec extends TestBase {
             isLastLevel = false,
             forInMemory = false,
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+            resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             compressDuplicateValues = true
           ).assertGet
 

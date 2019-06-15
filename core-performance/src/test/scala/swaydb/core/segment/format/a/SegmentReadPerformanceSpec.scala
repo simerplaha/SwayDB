@@ -123,6 +123,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase with Benchmark {
         forInMemory = false,
         maxProbe = TestData.maxProbe,
         bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         compressDuplicateValues = true
       )(keyOrder = keyOrder, groupingStrategy = Some(KeyValueGroupingStrategyInternal(DefaultGroupingStrategy()))).assertGet
 

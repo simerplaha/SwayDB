@@ -390,6 +390,7 @@ object CommonAssertions {
         isLastLevel = isLastLevel,
         forInMemory = false,
         bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         compressDuplicateValues = true
       ).assertGet
 
@@ -575,7 +576,7 @@ object CommonAssertions {
   implicit class SegmentsImplicits(actual: Iterable[Segment]) {
 
     def shouldHaveSameKeyValuesAs(expected: Iterable[Segment]): Unit =
-      Segment.getAllKeyValues(TestData.falsePositiveRate, actual).assertGet shouldBe Segment.getAllKeyValues(TestData.falsePositiveRate, expected).assertGet
+      Segment.getAllKeyValues(actual).assertGet shouldBe Segment.getAllKeyValues(expected).assertGet
   }
 
   implicit class SliceByteImplicits(actual: Slice[Byte]) {

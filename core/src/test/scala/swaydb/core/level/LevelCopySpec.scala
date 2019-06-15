@@ -90,7 +90,7 @@ sealed trait LevelCopySpec extends TestBase with MockFactory with PrivateMethodT
 
       if (persistent) level.segmentFilesOnDisk should not be empty
 
-      Segment.getAllKeyValues(TestData.falsePositiveRate, copiedSegments).assertGet shouldBe allKeyValues
+      Segment.getAllKeyValues(copiedSegments).assertGet shouldBe allKeyValues
     }
 
     "fail copying Segments if it failed to copy one of the Segments" in {
@@ -119,7 +119,7 @@ sealed trait LevelCopySpec extends TestBase with MockFactory with PrivateMethodT
 
       if (persistent) level.segmentFilesOnDisk should not be empty
 
-      Segment.getAllKeyValues(TestData.falsePositiveRate, copiedSegments).assertGet shouldBe keyValues
+      Segment.getAllKeyValues(copiedSegments).assertGet shouldBe keyValues
     }
   }
 

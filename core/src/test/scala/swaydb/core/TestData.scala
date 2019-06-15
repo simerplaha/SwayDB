@@ -65,6 +65,7 @@ object TestData {
   val allBaseEntryIds = BaseEntryIdFormatA.baseIds
 
   val falsePositiveRate: Double = 0.01
+  val resetPrefixCompressionEvery: Int = 100
   val enableRangeFilter: Boolean = true
   val maxProbe: Int = 5
 
@@ -136,6 +137,7 @@ object TestData {
           createdInLevel = level.levelNumber,
           maxProbe = level.maxProbe,
           bloomFilterFalsePositiveRate = level.bloomFilterFalsePositiveRate,
+          resetPrefixCompressionEvery = level.resetPrefixCompressionEvery,
           enableRangeFilter = level.enableRangeFilter,
           compressDuplicateValues = true
         ) flatMap {
@@ -159,6 +161,7 @@ object TestData {
           minSegmentSize = 1000.mb,
           maxProbe = level.maxProbe,
           bloomFilterFalsePositiveRate = level.bloomFilterFalsePositiveRate,
+          resetPrefixCompressionEvery = level.resetPrefixCompressionEvery,
           enableRangeFilter = level.enableRangeFilter,
           compressDuplicateValues = randomBoolean()
         ) flatMap {
@@ -209,6 +212,7 @@ object TestData {
                 nextLevel = nextLevel,
                 pushForward = level.pushForward,
                 bloomFilterFalsePositiveRate = level.bloomFilterFalsePositiveRate,
+                resetPrefixCompressionEvery = level.resetPrefixCompressionEvery,
                 enableRangeFilter = level.enableRangeFilter,
                 throttle = throttle,
                 compressDuplicateValues = level.compressDuplicateValues,
@@ -325,25 +329,25 @@ object TestData {
       keyValue match {
         case fixed: KeyValue.WriteOnly.Fixed =>
           fixed match {
-            case Transient.Remove(key, deadline, time, previous, falsePositiveRate) =>
+            case Transient.Remove(key, deadline, time, previous, falsePositiveRate, _) =>
               Memory.Remove(key, deadline, time)
 
-            case Transient.Update(key, value, deadline, time, previous, falsePositiveRate, compressDuplicateValues) =>
+            case Transient.Update(key, value, deadline, time, previous, falsePositiveRate, compressDuplicateValues, _) =>
               Memory.Update(key, value, deadline, time)
 
-            case Transient.Put(key, value, deadline, time, previous, falsePositiveRate, compressDuplicateValues) =>
+            case Transient.Put(key, value, deadline, time, previous, falsePositiveRate, compressDuplicateValues, _) =>
               Memory.Put(key, value, deadline, time)
 
-            case Transient.Function(key, function, deadline, time, previous, falsePositiveRate, compressDuplicateValues) =>
+            case Transient.Function(key, function, deadline, time, previous, falsePositiveRate, compressDuplicateValues, _) =>
               Memory.Function(key, function, time)
 
-            case Transient.PendingApply(key, applies, previous, falsePositiveRate, compressDuplicateValues) =>
+            case Transient.PendingApply(key, applies, previous, falsePositiveRate, compressDuplicateValues, _) =>
               Memory.PendingApply(key, applies)
           }
 
         case range: KeyValue.WriteOnly.Range =>
           range match {
-            case Transient.Range(fromKey, toKey, fullKey, fromValue, rangeValue, value, previous, falsePositiveRate) =>
+            case Transient.Range(fromKey, toKey, fullKey, fromValue, rangeValue, value, previous, falsePositiveRate, _) =>
               Memory.Range(fromKey, toKey, fromValue, rangeValue)
           }
       }
@@ -352,7 +356,7 @@ object TestData {
       keyValue match {
         case group: KeyValue.WriteOnly.Group =>
           group match {
-            case Transient.Group(fromKey, toKey, fullKey, compressedKeyValues, deadline, keyValues, previous, falsePositiveRate) =>
+            case Transient.Group(fromKey, toKey, fullKey, compressedKeyValues, deadline, keyValues, previous, falsePositiveRate, _) =>
               Memory.Group(
                 minKey = fromKey,
                 maxKey = toKey,
@@ -367,7 +371,7 @@ object TestData {
       keyValue match {
         case group: KeyValue.WriteOnly.Group =>
           group match {
-            case Transient.Group(fromKey, toKey, fullKey, compressedKeyValues, deadline, keyValues, previous, falsePositiveRate) =>
+            case Transient.Group(fromKey, toKey, fullKey, compressedKeyValues, deadline, keyValues, previous, falsePositiveRate, _) =>
               Memory.Group(
                 minKey = fromKey,
                 maxKey = toKey,
@@ -434,6 +438,7 @@ object TestData {
                     key = key,
                     value = value,
                     falsePositiveRate = TestData.falsePositiveRate,
+                    resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
                     previous = previous,
                     deadline = deadline,
                     compressDuplicateValues = true,
@@ -445,6 +450,7 @@ object TestData {
                     key = key,
                     value = value,
                     falsePositiveRate = TestData.falsePositiveRate,
+                    resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
                     previous = previous,
                     deadline = deadline,
                     compressDuplicateValues = true,
@@ -455,6 +461,7 @@ object TestData {
                   Transient.Remove(
                     key = key,
                     falsePositiveRate = TestData.falsePositiveRate,
+                    resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
                     previous = previous,
                     deadline = deadline,
                     time = time
@@ -464,6 +471,7 @@ object TestData {
                   Transient.Function(
                     key = key,
                     falsePositiveRate = TestData.falsePositiveRate,
+                    resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
                     previous = previous,
                     deadline = None,
                     time = time,
@@ -477,6 +485,7 @@ object TestData {
                     applies = applies,
                     previous = previous,
                     falsePositiveRate = TestData.falsePositiveRate,
+                    resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
                     compressDuplicateValues = true
                   )
               }
@@ -487,6 +496,7 @@ object TestData {
                 fromValue = fromValue,
                 rangeValue = rangeValue,
                 falsePositiveRate = TestData.falsePositiveRate,
+                resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
                 previous = previous
               )
 
@@ -496,6 +506,7 @@ object TestData {
                 indexCompression = randomCompression(),
                 valueCompression = randomCompression(),
                 maxProbe = TestData.maxProbe,
+                resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
                 falsePositiveRate = 0,
                 previous = previous
               ).assertGet
@@ -513,6 +524,7 @@ object TestData {
                     previous = previous,
                     falsePositiveRate = TestData.falsePositiveRate,
                     compressDuplicateValues = true,
+                    resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
                     time = time
                   )
 
@@ -524,6 +536,7 @@ object TestData {
                     previous = previous,
                     deadline = deadline,
                     compressDuplicateValues = true,
+                    resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
                     time = time
                   )
 
@@ -534,6 +547,7 @@ object TestData {
                     previous = previous,
                     deadline = None,
                     compressDuplicateValues = true,
+                    resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
                     time = time,
                     function = lazyFunctionReader.getOrFetchFunction.assertGet
                   )
@@ -543,6 +557,7 @@ object TestData {
                     key = key,
                     applies = pendingApply.getOrFetchApplies.assertGet,
                     falsePositiveRate = TestData.falsePositiveRate,
+                    resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
                     previous = previous,
                     compressDuplicateValues = true
                   )
@@ -551,6 +566,7 @@ object TestData {
                   Transient.Remove(
                     key = _key,
                     falsePositiveRate = TestData.falsePositiveRate,
+                    resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
                     previous = previous,
                     deadline = deadline,
                     time = time
@@ -565,6 +581,7 @@ object TestData {
                 fromValue = fromValue,
                 rangeValue = rangeValue,
                 falsePositiveRate = TestData.falsePositiveRate,
+                resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
                 previous = previous
               )
 
@@ -576,7 +593,8 @@ object TestData {
                 valueCompression = randomCompression(),
                 maxProbe = TestData.maxProbe,
                 previous = previous,
-                falsePositiveRate = TestData.falsePositiveRate
+                falsePositiveRate = TestData.falsePositiveRate,
+                resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
               ).assertGet
           }
       }
@@ -1339,7 +1357,15 @@ object TestData {
         if (groupKeyValues.isEmpty) {
           if (randomBoolean()) key += 1
         } else {
-          Transient.Group(groupKeyValues, randomCompression(), randomCompression(), TestData.falsePositiveRate, previous = slice.lastOption, maxProbe = TestData.maxProbe).assertGetOpt match {
+          Transient.Group(
+            keyValues = groupKeyValues,
+            indexCompression = randomCompression(),
+            valueCompression = randomCompression(),
+            falsePositiveRate = TestData.falsePositiveRate,
+            resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+            previous = slice.lastOption,
+            maxProbe = TestData.maxProbe
+          ).assertGetOpt match {
             case Some(group) =>
               slice add group
               //randomly skip the Group's toKey for the next key. Next key should not be the same as toKey so add a minimum of 1 to next key.
@@ -1390,7 +1416,7 @@ object TestData {
         key = key + 1
       } else if (addPut) {
         val valueBytes = if (valueSize == 0) None else eitherOne(None, Some(randomBytesSlice(valueSize)))
-//        val deadline = if (addRandomPutDeadlines) randomDeadlineOption(addRandomExpiredPutDeadlines) else None
+        //        val deadline = if (addRandomPutDeadlines) randomDeadlineOption(addRandomExpiredPutDeadlines) else None
         slice add randomPutKeyValue(key = key: Slice[Byte], deadline = Some(randomDeadline()), value = valueBytes).toTransient(slice.lastOption)
         key = key + 1
       } else {
@@ -1423,6 +1449,7 @@ object TestData {
                   keyCompression: CompressionInternal = randomCompression(),
                   valueCompression: CompressionInternal = randomCompression(),
                   falsePositiveRate: Double = TestData.falsePositiveRate,
+                  resetPrefixCompressionEvery: Int = TestData.resetPrefixCompressionEvery,
                   previous: Option[KeyValue.WriteOnly] = None)(implicit testTimer: TestTimer = TestTimer.Incremental()): Transient.Group =
     Transient.Group(
       keyValues = keyValues,
@@ -1430,6 +1457,7 @@ object TestData {
       valueCompression = valueCompression,
       maxProbe = TestData.maxProbe,
       falsePositiveRate = falsePositiveRate,
+      resetPrefixCompressionEvery = resetPrefixCompressionEvery,
       previous = previous
     ).assertGet
 
@@ -1549,6 +1577,7 @@ object TestData {
       Transient.Remove(
         key = key,
         falsePositiveRate = TestData.falsePositiveRate,
+        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         time = testTimer.next,
         previous = None,
         deadline = None
@@ -1560,6 +1589,7 @@ object TestData {
       Transient.Remove(
         key = key,
         falsePositiveRate = falsePositiveRate,
+        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         previous = None,
         deadline = Some(removeAfter.fromNow),
         time = testTimer.next
@@ -1570,6 +1600,7 @@ object TestData {
       Transient.Remove(
         key = key,
         falsePositiveRate = falsePositiveRate,
+        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         previous = None,
         deadline = None,
         time = testTimer.next
@@ -1581,6 +1612,7 @@ object TestData {
       Transient.Remove(
         key = key,
         falsePositiveRate = falsePositiveRate,
+        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         previous = previous,
         deadline = None,
         time = testTimer.next
@@ -1595,6 +1627,7 @@ object TestData {
         deadline = deadline,
         previous = previous,
         falsePositiveRate = falsePositiveRate,
+        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         time = testTimer.next
       )
 
@@ -1609,6 +1642,7 @@ object TestData {
         time = testTimer.next,
         previous = previousMayBe,
         falsePositiveRate = falsePositiveRate,
+        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         compressDuplicateValues = true
       )
 
@@ -1624,6 +1658,7 @@ object TestData {
         deadline = deadline,
         previous = previousMayBe,
         falsePositiveRate = falsePositiveRate,
+        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         time = testTimer.next,
         compressDuplicateValues = compressDuplicateValues
       )
@@ -1635,6 +1670,7 @@ object TestData {
         deadline = None,
         previous = None,
         falsePositiveRate = TestData.falsePositiveRate,
+        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         time = testTimer.next,
         compressDuplicateValues = true
       )
@@ -1649,6 +1685,7 @@ object TestData {
         previous = None,
         time = testTimer.next,
         falsePositiveRate = TestData.falsePositiveRate,
+        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         compressDuplicateValues = compressDuplicateValues
       )
 
@@ -1661,6 +1698,7 @@ object TestData {
         deadline = Some(removeAfter.fromNow),
         previous = None,
         falsePositiveRate = TestData.falsePositiveRate,
+        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         time = testTimer.next,
         compressDuplicateValues = true
       )
@@ -1674,6 +1712,7 @@ object TestData {
         deadline = Some(deadline),
         previous = None,
         falsePositiveRate = TestData.falsePositiveRate,
+        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         time = testTimer.next,
         compressDuplicateValues = true
       )
@@ -1686,6 +1725,7 @@ object TestData {
         deadline = Some(removeAfter.fromNow),
         previous = None,
         falsePositiveRate = TestData.falsePositiveRate,
+        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         time = testTimer.next,
         compressDuplicateValues = true
       )
@@ -1699,6 +1739,7 @@ object TestData {
         deadline = removeAfter.map(_.fromNow),
         previous = None,
         falsePositiveRate = TestData.falsePositiveRate,
+        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         time = testTimer.next,
         compressDuplicateValues = true
       )
@@ -1712,6 +1753,7 @@ object TestData {
         deadline = None,
         previous = None,
         falsePositiveRate = falsePositiveRate,
+        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         time = testTimer.next,
         compressDuplicateValues = true
       )
@@ -1726,6 +1768,7 @@ object TestData {
         deadline = deadline,
         previous = previous,
         falsePositiveRate = TestData.falsePositiveRate,
+        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         time = testTimer.next,
         compressDuplicateValues = compressDuplicateValues
       )
@@ -1741,6 +1784,7 @@ object TestData {
         deadline = None,
         previous = previous,
         falsePositiveRate = falsePositiveRate,
+        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         time = testTimer.next,
         compressDuplicateValues = compressDuplicateValues
       )
@@ -1756,6 +1800,7 @@ object TestData {
         time = testTimer.next,
         previous = previousMayBe,
         falsePositiveRate = falsePositiveRate,
+        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         compressDuplicateValues = true
       )
 
@@ -1771,6 +1816,7 @@ object TestData {
         deadline = deadline,
         previous = previousMayBe,
         falsePositiveRate = falsePositiveRate,
+        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         time = testTimer.next,
         compressDuplicateValues = compressDuplicateValues
       )
@@ -1782,6 +1828,7 @@ object TestData {
         deadline = None,
         previous = None,
         falsePositiveRate = TestData.falsePositiveRate,
+        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         time = testTimer.next,
         compressDuplicateValues = true
       )
@@ -1796,6 +1843,7 @@ object TestData {
         previous = None,
         time = testTimer.next,
         falsePositiveRate = TestData.falsePositiveRate,
+        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         compressDuplicateValues = compressDuplicateValues
       )
 
@@ -1808,6 +1856,7 @@ object TestData {
         deadline = Some(removeAfter.fromNow),
         previous = None,
         falsePositiveRate = TestData.falsePositiveRate,
+        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         time = testTimer.next,
         compressDuplicateValues = true
       )
@@ -1821,6 +1870,7 @@ object TestData {
         deadline = Some(deadline),
         previous = None,
         falsePositiveRate = TestData.falsePositiveRate,
+        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         time = testTimer.next,
         compressDuplicateValues = true
       )
@@ -1833,6 +1883,7 @@ object TestData {
         deadline = Some(removeAfter.fromNow),
         previous = None,
         falsePositiveRate = TestData.falsePositiveRate,
+        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         time = testTimer.next,
         compressDuplicateValues = true
       )
@@ -1846,6 +1897,7 @@ object TestData {
         deadline = removeAfter.map(_.fromNow),
         previous = None,
         falsePositiveRate = TestData.falsePositiveRate,
+        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         time = testTimer.next,
         compressDuplicateValues = true
       )
@@ -1859,6 +1911,7 @@ object TestData {
         deadline = None,
         previous = None,
         falsePositiveRate = falsePositiveRate,
+        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         time = testTimer.next,
         compressDuplicateValues = true
       )
@@ -1873,6 +1926,7 @@ object TestData {
         deadline = deadline,
         previous = previous,
         falsePositiveRate = TestData.falsePositiveRate,
+        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         time = testTimer.next,
         compressDuplicateValues = compressDuplicateValues
       )
@@ -1888,6 +1942,7 @@ object TestData {
         deadline = None,
         previous = previous,
         falsePositiveRate = falsePositiveRate,
+        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         time = testTimer.next,
         compressDuplicateValues = compressDuplicateValues
       )
@@ -1966,6 +2021,7 @@ object TestData {
         fromValue = fromValue,
         rangeValue = rangeValue,
         falsePositiveRate = TestData.falsePositiveRate,
+        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         previous = None
       )
   }

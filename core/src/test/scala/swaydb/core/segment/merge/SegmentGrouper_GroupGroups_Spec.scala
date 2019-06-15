@@ -69,6 +69,7 @@ sealed trait SegmentGrouper_GroupGroups_Spec extends TestBase {
         SegmentGrouper.groupGroups(
           groupKeyValues = ListBuffer.empty,
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+          resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           force = force,
           maxProbe = TestData.maxProbe,
           groupingStrategy =
@@ -102,6 +103,7 @@ sealed trait SegmentGrouper_GroupGroups_Spec extends TestBase {
           SegmentGrouper.groupGroups(
             groupKeyValues = mutableKeyValues,
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+            resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             force = force,
             maxProbe = TestData.maxProbe,
             groupingStrategy =
@@ -150,6 +152,7 @@ sealed trait SegmentGrouper_GroupGroups_Spec extends TestBase {
         SegmentGrouper.groupGroups(
           groupKeyValues = mutableKeyValues,
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+          resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           force = force,
           maxProbe = TestData.maxProbe,
           groupingStrategy =
@@ -180,6 +183,7 @@ sealed trait SegmentGrouper_GroupGroups_Spec extends TestBase {
             SegmentGrouper.groupGroups(
               groupKeyValues = mutableKeyValues,
               bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+              resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
               force = force,
               maxProbe = TestData.maxProbe,
               groupingStrategy =
@@ -218,6 +222,7 @@ sealed trait SegmentGrouper_GroupGroups_Spec extends TestBase {
               SegmentGrouper.groupGroups(
                 groupKeyValues = mutableKeyValues,
                 bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+                resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
                 force = force,
                 maxProbe = TestData.maxProbe,
                 groupingStrategy =
@@ -269,6 +274,7 @@ sealed trait SegmentGrouper_GroupGroups_Spec extends TestBase {
           SegmentGrouper.groupGroups(
             groupKeyValues = mutableKeyValues,
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+            resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             force = force,
             maxProbe = TestData.maxProbe,
             groupingStrategy =

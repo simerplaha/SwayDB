@@ -248,10 +248,10 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
               path: Path = testSegmentFile,
               bloomFilterFalsePositiveRate: Double = TestData.falsePositiveRate,
               enableRangeFilter: Boolean = TestData.enableRangeFilter)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                 keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
-                                                                                 fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter,
-                                                                                 timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                                                 groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(randomIntMax(1000))): IO[Segment] =
+                                                                       keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
+                                                                       fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter,
+                                                                       timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
+                                                                       groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(randomIntMax(1000))): IO[Segment] =
       if (levelStorage.memory)
         Segment.memory(
           path = path,
@@ -305,6 +305,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
               pushForward: Boolean = false,
               throttle: LevelMeter => Throttle = testDefaultThrottle,
               bloomFilterFalsePositiveRate: Double = TestData.falsePositiveRate,
+              resetPrefixCompressionEvery: Int = TestData.resetPrefixCompressionEvery,
               enableRangeFilter: Boolean = TestData.enableRangeFilter,
               compressDuplicateValues: Boolean = true,
               deleteSegmentsEventually: Boolean = false,
@@ -323,6 +324,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
         appendixStorage = appendixStorage,
         throttle = throttle,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+        resetPrefixCompressionEvery = resetPrefixCompressionEvery,
         enableRangeFilter = enableRangeFilter,
         compressDuplicateValues = compressDuplicateValues,
         deleteSegmentsEventually = deleteSegmentsEventually,

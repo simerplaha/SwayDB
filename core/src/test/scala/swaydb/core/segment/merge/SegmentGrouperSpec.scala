@@ -67,6 +67,7 @@ class SegmentGrouperSpec extends TestBase {
         forInMemory = false,
         isLastLevel = false,
         bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         compressDuplicateValues = true
       )
 
@@ -106,6 +107,7 @@ class SegmentGrouperSpec extends TestBase {
             forInMemory = Random.nextBoolean(),
             maxProbe = TestData.maxProbe,
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+            resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             isLastLevel = false,
             compressDuplicateValues = true
           )
@@ -156,6 +158,7 @@ class SegmentGrouperSpec extends TestBase {
             forInMemory = Random.nextBoolean(),
             maxProbe = TestData.maxProbe,
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+            resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             isLastLevel = false,
             compressDuplicateValues = true
           )
@@ -208,6 +211,7 @@ class SegmentGrouperSpec extends TestBase {
             forInMemory = Random.nextBoolean(),
             maxProbe = TestData.maxProbe,
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+            resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             isLastLevel = false,
             compressDuplicateValues = true
           )

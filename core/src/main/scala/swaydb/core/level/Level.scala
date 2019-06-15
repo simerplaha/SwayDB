@@ -83,6 +83,7 @@ private[core] object Level extends LazyLogging {
 
   def apply(segmentSize: Long,
             bloomFilterFalsePositiveRate: Double,
+            resetPrefixCompressionEvery: Int,
             enableRangeFilter: Boolean,
             maxProbe: Int,
             levelStorage: LevelStorage,
@@ -177,6 +178,7 @@ private[core] object Level extends LazyLogging {
                     new Level(
                       dirs = levelStorage.dirs,
                       bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+                      resetPrefixCompressionEvery = resetPrefixCompressionEvery,
                       enableRangeFilter = enableRangeFilter,
                       mmapSegmentsOnWrite = levelStorage.mmapSegmentsOnWrite,
                       mmapSegmentsOnRead = levelStorage.mmapSegmentsOnRead,
@@ -309,6 +311,7 @@ private[core] object Level extends LazyLogging {
 
 private[core] case class Level(dirs: Seq[Dir],
                                bloomFilterFalsePositiveRate: Double,
+                               resetPrefixCompressionEvery: Int,
                                enableRangeFilter: Boolean,
                                mmapSegmentsOnWrite: Boolean,
                                mmapSegmentsOnRead: Boolean,
@@ -689,6 +692,7 @@ private[core] case class Level(dirs: Seq[Dir],
         removeDeletes = removeDeletedRecords,
         maxProbe = maxProbe,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+        resetPrefixCompressionEvery = resetPrefixCompressionEvery,
         enableRangeFilter = enableRangeFilter,
         compressDuplicateValues = compressDuplicateValues
       )
@@ -703,6 +707,7 @@ private[core] case class Level(dirs: Seq[Dir],
         minSegmentSize = segmentSize,
         maxProbe = maxProbe,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+        resetPrefixCompressionEvery = resetPrefixCompressionEvery,
         enableRangeFilter = enableRangeFilter,
         compressDuplicateValues = compressDuplicateValues
       )
@@ -763,6 +768,7 @@ private[core] case class Level(dirs: Seq[Dir],
               maxProbe = maxProbe,
               removeDeletes = removeDeletedRecords,
               bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+              resetPrefixCompressionEvery = resetPrefixCompressionEvery,
               enableRangeFilter = enableRangeFilter,
               compressDuplicateValues = compressDuplicateValues
             )
@@ -777,6 +783,7 @@ private[core] case class Level(dirs: Seq[Dir],
               minSegmentSize = segmentSize,
               maxProbe = maxProbe,
               bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+              resetPrefixCompressionEvery = resetPrefixCompressionEvery,
               enableRangeFilter = enableRangeFilter,
               compressDuplicateValues = compressDuplicateValues
             )
@@ -806,6 +813,7 @@ private[core] case class Level(dirs: Seq[Dir],
           segment.refresh(
             minSegmentSize = segmentSize,
             bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+            resetPrefixCompressionEvery = resetPrefixCompressionEvery,
             enableRangeFilter = enableRangeFilter,
             compressDuplicateValues = compressDuplicateValues,
             maxProbe = maxProbe,
@@ -943,7 +951,7 @@ private[core] case class Level(dirs: Seq[Dir],
                     targetSegments: Iterable[Segment],
                     appendEntry: Option[MapEntry[Slice[Byte], Segment]]): IO[Unit] = {
     logger.trace(s"{}: Merging segments {}", paths.head, segments.map(_.path.toString))
-    Segment.getAllKeyValues(bloomFilterFalsePositiveRate, segments) flatMap {
+    Segment.getAllKeyValues(segments) flatMap {
       keyValues =>
         putKeyValues(
           keyValues = keyValues,
@@ -1024,6 +1032,7 @@ private[core] case class Level(dirs: Seq[Dir],
             newKeyValues = assignedKeyValues,
             minSegmentSize = segmentSize,
             bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+            resetPrefixCompressionEvery = resetPrefixCompressionEvery,
             enableRangeFilter = enableRangeFilter,
             compressDuplicateValues = compressDuplicateValues,
             maxProbe = maxProbe,

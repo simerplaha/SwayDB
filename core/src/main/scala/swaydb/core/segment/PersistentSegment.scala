@@ -125,6 +125,7 @@ private[segment] case class PersistentSegment(file: DBFile,
   def put(newKeyValues: Slice[KeyValue.ReadOnly],
           minSegmentSize: Long,
           bloomFilterFalsePositiveRate: Double,
+          resetPrefixCompressionEvery: Int,
           enableRangeFilter: Boolean,
           compressDuplicateValues: Boolean,
           removeDeletes: Boolean,
@@ -138,10 +139,11 @@ private[segment] case class PersistentSegment(file: DBFile,
           newKeyValues = newKeyValues,
           oldKeyValues = currentKeyValues,
           minSegmentSize = minSegmentSize,
-          forInMemory = false,
           maxProbe = maxProbe,
           isLastLevel = removeDeletes,
+          forInMemory = false,
           bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+          resetPrefixCompressionEvery = resetPrefixCompressionEvery,
           compressDuplicateValues = compressDuplicateValues
         ) flatMap {
           splits =>
@@ -173,6 +175,7 @@ private[segment] case class PersistentSegment(file: DBFile,
 
   def refresh(minSegmentSize: Long,
               bloomFilterFalsePositiveRate: Double,
+              resetPrefixCompressionEvery: Int,
               enableRangeFilter: Boolean,
               compressDuplicateValues: Boolean,
               removeDeletes: Boolean,
@@ -185,10 +188,11 @@ private[segment] case class PersistentSegment(file: DBFile,
         SegmentMerger.split(
           keyValues = currentKeyValues,
           minSegmentSize = minSegmentSize,
-          forInMemory = false,
           isLastLevel = removeDeletes,
+          forInMemory = false,
           maxProbe = maxProbe,
           bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+          resetPrefixCompressionEvery = resetPrefixCompressionEvery,
           compressDuplicateValues = compressDuplicateValues
         ) flatMap {
           splits =>

@@ -823,7 +823,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures with PrivateMeth
 
         deadline shouldBe nearestDeadline(all)
 
-        val readKeyValues = Segment.getAllKeyValues(TestData.falsePositiveRate, Seq(segment1, segment2, segment3)).assertGet
+        val readKeyValues = Segment.getAllKeyValues(Seq(segment1, segment2, segment3)).assertGet
 
         readKeyValues shouldBe all
       }
@@ -840,7 +840,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures with PrivateMeth
 
       segment3.delete.assertGet //delete a segment so that there is a failure.
 
-      Segment.getAllKeyValues(TestData.falsePositiveRate, Seq(segment1, segment2, segment3)).failed.assertGet.exception shouldBe a[NoSuchFileException]
+      Segment.getAllKeyValues(Seq(segment1, segment2, segment3)).failed.assertGet.exception shouldBe a[NoSuchFileException]
     }
 
     "fail read if reading any one Segment file is corrupted" in {
@@ -857,16 +857,16 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures with PrivateMeth
           val bytes = Files.readAllBytes(segment2.path)
 
           Files.write(segment2.path, bytes.drop(1))
-          Segment.getAllKeyValues(TestData.falsePositiveRate, Seq(segment1, segment2, segment3)).failed.assertGet.exception shouldBe a[SegmentCorruptionException]
+          Segment.getAllKeyValues(Seq(segment1, segment2, segment3)).failed.assertGet.exception shouldBe a[SegmentCorruptionException]
 
           Files.write(segment2.path, bytes.dropRight(1))
-          Segment.getAllKeyValues(TestData.falsePositiveRate, Seq(segment2)).failed.assertGet.exception shouldBe a[SegmentCorruptionException]
+          Segment.getAllKeyValues(Seq(segment2)).failed.assertGet.exception shouldBe a[SegmentCorruptionException]
 
           Files.write(segment2.path, bytes.drop(10))
-          Segment.getAllKeyValues(TestData.falsePositiveRate, Seq(segment1, segment2, segment3)).failed.assertGet.exception shouldBe a[SegmentCorruptionException]
+          Segment.getAllKeyValues(Seq(segment1, segment2, segment3)).failed.assertGet.exception shouldBe a[SegmentCorruptionException]
 
           Files.write(segment2.path, bytes.dropRight(1))
-          Segment.getAllKeyValues(TestData.falsePositiveRate, Seq(segment1, segment2, segment3)).failed.assertGet.exception shouldBe a[SegmentCorruptionException]
+          Segment.getAllKeyValues(Seq(segment1, segment2, segment3)).failed.assertGet.exception shouldBe a[SegmentCorruptionException]
         }
       } else {
         //memory files do not require this test

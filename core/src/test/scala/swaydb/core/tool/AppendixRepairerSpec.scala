@@ -118,7 +118,7 @@ class AppendixRepairerSpec extends TestBase {
       }
       //level still contains the same key-values
       val reopenedLevel = level.reopen
-      Segment.getAllKeyValues(TestData.falsePositiveRate, reopenedLevel.segmentsInLevel()).assertGet shouldBe keyValues
+      Segment.getAllKeyValues(reopenedLevel.segmentsInLevel()).assertGet shouldBe keyValues
       reopenedLevel.close.assertGet
     }
 

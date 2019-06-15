@@ -623,6 +623,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         newKeyValues = keyValues.toMemory,
         minSegmentSize = 1.mb,
         bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         enableRangeFilter = TestData.enableRangeFilter,
         compressDuplicateValues = true,
         removeDeletes = false,
@@ -633,6 +634,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
       segment.refresh(
         minSegmentSize = 1.mb,
         bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         enableRangeFilter = TestData.enableRangeFilter,
         compressDuplicateValues = true,
         removeDeletes = false,
@@ -729,6 +731,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           mmapSegmentsOnRead = levelStorage.mmapSegmentsOnRead,
           mmapSegmentsOnWrite = levelStorage.mmapSegmentsOnWrite,
           enableRangeFilter = TestData.enableRangeFilter,
+          resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           maxProbe = TestData.maxProbe,
           compressDuplicateValues = true,
           removeDeletes = false,
@@ -746,7 +749,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         segments.size should be > 2
 
       segments.foreach(_.existsOnDisk shouldBe true)
-      Segment.getAllKeyValues(TestData.falsePositiveRate, segments).assertGet shouldBe keyValues
+      Segment.getAllKeyValues(segments).assertGet shouldBe keyValues
     }
 
     "copy the segment and persist it to disk when remove deletes is true" in {
@@ -763,6 +766,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
             mmapSegmentsOnRead = levelStorage.mmapSegmentsOnRead,
             mmapSegmentsOnWrite = levelStorage.mmapSegmentsOnWrite,
             enableRangeFilter = TestData.enableRangeFilter,
+            resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             removeDeletes = true,
             maxProbe = TestData.maxProbe,
             compressDuplicateValues = true,
@@ -777,12 +781,12 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         segments.foreach(_.existsOnDisk shouldBe true)
 
         if (persistent)
-          unzipGroups(Segment.getAllKeyValues(TestData.falsePositiveRate, segments).assertGet) shouldBe unzipGroups(keyValues) //persistent Segments are simply copied and are not checked for removed key-values.
+          unzipGroups(Segment.getAllKeyValues(segments).assertGet) shouldBe unzipGroups(keyValues) //persistent Segments are simply copied and are not checked for removed key-values.
         else
-          unzipGroups(Segment.getAllKeyValues(TestData.falsePositiveRate, segments).assertGet) shouldBe unzipGroups(keyValues).collect { //memory Segments does a split/merge and apply lastLevel rules.
+          unzipGroups(Segment.getAllKeyValues(segments).assertGet) shouldBe unzipGroups(keyValues).collect { //memory Segments does a split/merge and apply lastLevel rules.
             case keyValue: Transient.Put if keyValue.hasTimeLeft() =>
               keyValue
-            case Transient.Range(fromKey, _, _, Some(put @ Value.Put(_, deadline, _)), _, _, _, _) if deadline.forall(_.hasTimeLeft()) =>
+            case Transient.Range(fromKey, _, _, Some(put @ Value.Put(_, deadline, _)), _, _, _, _, _) if deadline.forall(_.hasTimeLeft()) =>
               put.toMemory(fromKey).toTransient
           }.updateStats
       }
@@ -803,6 +807,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         mmapSegmentsOnRead = levelStorage.mmapSegmentsOnRead,
         mmapSegmentsOnWrite = levelStorage.mmapSegmentsOnWrite,
         enableRangeFilter = TestData.enableRangeFilter,
+        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         removeDeletes = true,
         maxProbe = TestData.maxProbe,
         compressDuplicateValues = true,
@@ -843,6 +848,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         fetchNextPath = nextPath,
         mmapSegmentsOnRead = levelStorage.mmapSegmentsOnRead,
         mmapSegmentsOnWrite = levelStorage.mmapSegmentsOnWrite,
+        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         removeDeletes = false,
         maxProbe = TestData.maxProbe,
         minSegmentSize = keyValues.toTransient.last.stats.segmentSize / 5,
@@ -869,6 +875,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           createdInLevel = 0,
           removeDeletes = false,
           compressDuplicateValues = true,
+          resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           maxProbe = TestData.maxProbe,
           minSegmentSize =
             if (persistent)
@@ -882,7 +889,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
       segments.size should be >= 2 //ensures that splits occurs. Memory Segments do not get written to disk without splitting.
 
       segments.foreach(_.existsOnDisk shouldBe false)
-      Segment.getAllKeyValues(TestData.falsePositiveRate, segments).assertGet shouldBe keyValues
+      Segment.getAllKeyValues(segments).assertGet shouldBe keyValues
     }
 
     "copy the segment and persist it to disk when removeDeletes is true" in {
@@ -896,6 +903,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
             segment = segment,
             createdInLevel = 0,
             fetchNextPath = levelPath.resolve(nextSegmentId),
+            resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             removeDeletes = true,
             maxProbe = TestData.maxProbe,
             compressDuplicateValues = true,
@@ -910,10 +918,10 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
 
         //some key-values could get expired while unexpired key-values are being collected. So try again!
         IO {
-          Segment.getAllKeyValues(TestData.falsePositiveRate, segments).assertGet shouldBe unzipGroups(keyValues).collect {
+          Segment.getAllKeyValues(segments).assertGet shouldBe unzipGroups(keyValues).collect {
             case keyValue: Transient.Put if keyValue.hasTimeLeft() =>
               keyValue
-            case Transient.Range(fromKey, _, _, Some(put @ Value.Put(_, deadline, _)), _, _, _, _) if deadline.forall(_.hasTimeLeft()) =>
+            case Transient.Range(fromKey, _, _, Some(put @ Value.Put(_, deadline, _)), _, _, _, _, _) if deadline.forall(_.hasTimeLeft()) =>
               put.toMemory(fromKey).toTransient
           }.updateStats
         }
@@ -994,6 +1002,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
       segment.put(
         newKeyValues = keyValues2,
         minSegmentSize = 1.mb,
+        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
         enableRangeFilter = TestData.enableRangeFilter,
         compressDuplicateValues = true,
@@ -1015,6 +1024,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           newKeyValues = newKeyValues,
           minSegmentSize = 4.mb,
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+          resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           enableRangeFilter = TestData.enableRangeFilter,
           compressDuplicateValues = true,
           removeDeletes = false,
@@ -1024,9 +1034,21 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
 
       newSegments should have size 1
 
-      val allReadKeyValues = Segment.getAllKeyValues(TestData.falsePositiveRate, newSegments).assertGet
+      val allReadKeyValues = Segment.getAllKeyValues(newSegments).assertGet
 
-      val expectedKeyValues = SegmentMerger.merge(newKeyValues, keyValues.toMemory, 1.mb, maxProbe = TestData.maxProbe, false, forInMemory = memory, TestData.falsePositiveRate, true).assertGet
+      val expectedKeyValues =
+        SegmentMerger.merge(
+          newKeyValues = newKeyValues,
+          oldKeyValues = keyValues.toMemory,
+          minSegmentSize = 1.mb,
+          maxProbe = TestData.maxProbe,
+          isLastLevel = false,
+          forInMemory = memory,
+          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+          resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+          compressDuplicateValues = true
+        ).assertGet
+
       expectedKeyValues should have size 1
 
       allReadKeyValues shouldBe expectedKeyValues.head
@@ -1043,6 +1065,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           minSegmentSize = 10.kb,
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           enableRangeFilter = TestData.enableRangeFilter,
+          resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           compressDuplicateValues = true,
           removeDeletes = false,
           createdInLevel = 0,
@@ -1051,10 +1074,22 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
 
       newSegments.size should be > 1
 
-      val allReadKeyValues = Segment.getAllKeyValues(TestData.falsePositiveRate, newSegments).assertGet
+      val allReadKeyValues = Segment.getAllKeyValues(newSegments).assertGet
 
       //give merge a very large size so that there are no splits (test convenience)
-      val expectedKeyValues = SegmentMerger.merge(newKeyValues.toMemory, keyValues.toMemory, 10.mb, maxProbe = TestData.maxProbe, false, forInMemory = memory, TestData.falsePositiveRate, true).assertGet
+      val expectedKeyValues =
+        SegmentMerger.merge(
+          newKeyValues = newKeyValues.toMemory,
+          oldKeyValues = keyValues.toMemory,
+          minSegmentSize = 10.mb,
+          maxProbe = TestData.maxProbe,
+          isLastLevel = false,
+          forInMemory = memory,
+          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+          resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+          compressDuplicateValues = true
+        ).assertGet
+
       expectedKeyValues should have size 1
 
       //allReadKeyValues are read from multiple Segments so valueOffsets will be invalid so stats will be invalid
@@ -1082,6 +1117,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           newKeyValues = newKeyValues.toMemory,
           minSegmentSize = 1.kb,
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+          resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           enableRangeFilter = TestData.enableRangeFilter,
           compressDuplicateValues = true,
           removeDeletes = false,
@@ -1114,6 +1150,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           newKeyValues = deleteKeyValues,
           minSegmentSize = 4.mb,
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+          resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           enableRangeFilter = TestData.enableRangeFilter,
           compressDuplicateValues = true,
           removeDeletes = false,
@@ -1143,6 +1180,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           newKeyValues = updatedKeyValues,
           minSegmentSize = 4.mb,
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+          resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           enableRangeFilter = TestData.enableRangeFilter,
           compressDuplicateValues = true,
           removeDeletes = true,
@@ -1180,6 +1218,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
             newKeyValues = segment2.getAll().assertGet.toSlice,
             minSegmentSize = 10.mb,
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+            resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             enableRangeFilter = TestData.enableRangeFilter,
             compressDuplicateValues = true,
             removeDeletes = false,
@@ -1223,6 +1262,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           newKeyValues = deleteKeyValues,
           minSegmentSize = 4.mb,
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+          resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           enableRangeFilter = TestData.enableRangeFilter,
           compressDuplicateValues = true,
           removeDeletes = true,
@@ -1246,6 +1286,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           newKeyValues = deleteKeyValues,
           minSegmentSize = 4.mb,
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+          resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           enableRangeFilter = TestData.enableRangeFilter,
           compressDuplicateValues = true,
           removeDeletes = false,
@@ -1272,6 +1313,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           newKeyValues = deleteKeyValues.toMemory,
           minSegmentSize = 4.mb,
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+          resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           enableRangeFilter = TestData.enableRangeFilter,
           compressDuplicateValues = true,
           removeDeletes = true,
@@ -1308,6 +1350,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
             newKeyValues = keyValues2,
             minSegmentSize = 60.bytes,
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+            resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             enableRangeFilter = TestData.enableRangeFilter,
             compressDuplicateValues = true,
             removeDeletes = false,
@@ -1320,6 +1363,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
             newKeyValues = keyValues2,
             minSegmentSize = 21.bytes,
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+            resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             enableRangeFilter = TestData.enableRangeFilter,
             compressDuplicateValues = true,
             removeDeletes = false,
@@ -1364,6 +1408,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         reopened.refresh(
           minSegmentSize = 1.mb,
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+          resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           enableRangeFilter = TestData.enableRangeFilter,
           compressDuplicateValues = true,
           removeDeletes = true,
@@ -1382,6 +1427,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
       segment.refresh(
         minSegmentSize = 1.mb,
         bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         enableRangeFilter = TestData.enableRangeFilter,
         compressDuplicateValues = true,
         removeDeletes = true,
@@ -1400,6 +1446,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         segment.refresh(
           minSegmentSize = 1.mb,
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+          resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           enableRangeFilter = TestData.enableRangeFilter,
           compressDuplicateValues = true,
           removeDeletes = false,
@@ -1424,6 +1471,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           forInMemory = inMemoryStorage,
           maxProbe = TestData.maxProbe,
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+          resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           compressDuplicateValues = true
         ).assertGet
 
@@ -1452,6 +1500,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         forInMemory = inMemoryStorage,
         maxProbe = TestData.maxProbe,
         bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         compressDuplicateValues = true
       )(keyOrder, Some(KeyValueGroupingStrategyInternal(DefaultGroupingStrategy()))).assertGet
 

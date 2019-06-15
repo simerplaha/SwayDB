@@ -98,6 +98,7 @@ sealed trait SegmentGroupReadSpec extends TestBase with ScalaFutures with Privat
         newKeyValues = keyValues.toMemory,
         minSegmentSize = 100.mb,
         bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
+        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         enableRangeFilter = TestData.enableRangeFilter,
         compressDuplicateValues = true,
         removeDeletes = false,
@@ -140,7 +141,7 @@ sealed trait SegmentGroupReadSpec extends TestBase with ScalaFutures with Privat
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           enableRangeFilter = TestData.enableRangeFilter
         ).assertGet
-      
+
       readAll(bytes).assertGet shouldBe allGroupKeyValues
     }
   }
