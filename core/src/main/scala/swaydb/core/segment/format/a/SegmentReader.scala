@@ -295,7 +295,10 @@ private[core] object SegmentReader extends LazyLogging {
             bloomFilter =
               bloomAndRangeFilterSlice map {
                 case (bloomFilterSlice, rangeFilterSlice) =>
-                  BloomFilter(bloomFilterSlice, rangeFilterSlice).get
+                  BloomFilter(
+                    bloomFilterBytes = bloomFilterSlice,
+                    rangeFilterBytes = rangeFilterSlice
+                  ).get
               }
           )
         )

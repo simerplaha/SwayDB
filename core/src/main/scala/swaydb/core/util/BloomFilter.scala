@@ -34,6 +34,11 @@ object BloomFilter {
 
   val bloomFilterFormatID = 0.toByte
 
+  val minimumSize =
+    ByteSizeOf.byte + //format
+      ByteSizeOf.int + //number of bits
+      ByteSizeOf.int //number of hashes
+
   /**
     * Used to create an empty rangeFilter instead of creating an empty one every time
     * this val is used to save memory.
@@ -117,7 +122,10 @@ object BloomFilter {
     IntMapListBufferSerializer optimalBytesRequired numberOfRanges
 
   def optimalNumberOfBloomFilterBits(numberOfKeys: Int, falsePositiveRate: Double): Int =
-    math.ceil(-1 * numberOfKeys * math.log(falsePositiveRate) / math.log(2) / math.log(2)).toInt
+    if (numberOfKeys <= 0 || falsePositiveRate <= 0.0)
+      0
+    else
+      math.ceil(-1 * numberOfKeys * math.log(falsePositiveRate) / math.log(2) / math.log(2)).toInt
 
   def optimalNumberOfBloomFilterHashes(numberOfKeys: Int, numberOfInt: Long): Int =
     math.ceil(numberOfInt / numberOfKeys * math.log(2)).toInt
@@ -126,7 +134,7 @@ object BloomFilter {
     BloomFilter.optimalNumberOfBloomFilterBits(
       numberOfKeys = numberOfKeys,
       falsePositiveRate = falsePositiveRate
-    ) + ByteSizeOf.byte + ByteSizeOf.int + ByteSizeOf.int
+    ) + minimumSize
 
   def apply(bloomFilterBytes: Slice[Byte],
             rangeFilterBytes: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[BloomFilter] = {

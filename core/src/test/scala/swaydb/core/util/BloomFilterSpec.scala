@@ -58,7 +58,12 @@ class BloomFilterSpec extends TestBase {
     }
   }
 
-  "byteSize" should {
+  "optimalSegmentBloomFilterByteSize" should {
+    "return empty if false positive rate is 0.0 or number of keys is 0" in {
+      BloomFilter.optimalSegmentBloomFilterByteSize(1000, 0.0) shouldBe BloomFilter.minimumSize
+      BloomFilter.optimalSegmentBloomFilterByteSize(0, 0.001) shouldBe BloomFilter.minimumSize
+    }
+
     "return the number of bytes required to store the Bloom filter" in {
       (1 to 1000) foreach {
         i =>
@@ -75,7 +80,7 @@ class BloomFilterSpec extends TestBase {
     }
   }
 
-  "create" should {
+  "init" should {
     "not initialise if keyValues are empty" in {
       BloomFilter.init(
         keyValues = Slice.empty,
