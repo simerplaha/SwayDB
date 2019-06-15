@@ -231,7 +231,7 @@ class BloomFilterSpec extends TestBase {
           BloomFilter(
             numberOfKeys = 7,
             falsePositiveRate = TestData.falsePositiveRate,
-            enableRangeFilter = TestData.enableRangeFilter
+            enableRangeFilter = true
           )
 
         bloom1.add(1)

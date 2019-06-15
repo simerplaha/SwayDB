@@ -34,8 +34,17 @@ object BloomFilter {
 
   val bloomFilterFormatID = 0.toByte
 
-  val emptyRangeFilter =
-    mutable.Map.empty[Int, Iterable[(Byte, Byte)]]
+  /**
+    * Used to create an empty rangeFilter instead of creating an empty one every time
+    * this val is used to save memory.
+    */
+  val emptyRangeFilter: mutable.Map[Int, Iterable[(Byte, Byte)]] =
+    new mutable.Map[Int, Iterable[(Byte, Byte)]] {
+      override def +=(kv: (Int, Iterable[(Byte, Byte)])): this.type = throw new NotImplementedError("emptyRangeFilter")
+      override def -=(key: Int): this.type = throw new NotImplementedError("emptyRangeFilter")
+      override def get(key: Int): Option[Iterable[(Byte, Byte)]] = throw new NotImplementedError("emptyRangeFilter")
+      override def iterator: Iterator[(Int, Iterable[(Byte, Byte)])] = throw new NotImplementedError("emptyRangeFilter")
+    }
 
   val empty =
     new BloomFilter(
