@@ -148,7 +148,7 @@ sealed trait SegmentGroupReadSpec extends TestBase with ScalaFutures with Privat
   }
 
   //  "Decompressed group" should {
-  //    "eventually get uncompressed and update cache" in {
+  //    "eventually getFromHashIndex uncompressed and update cache" in {
   //      val keyValues = randomizedKeyValues(100, addRandomGroups = false)
   //
   //      implicit val keyValueLimiter = KeyValueLimiter(100.bytes, 5.second)
@@ -162,7 +162,7 @@ sealed trait SegmentGroupReadSpec extends TestBase with ScalaFutures with Privat
   //        println(segment.segmentSize)
   //
   //        println("*** Reading single key-value ***")
-  //        segment.get(keyValues.head.key).assertGet shouldBe keyValues.head
+  //        segment.getFromHashIndex(keyValues.head.key).assertGet shouldBe keyValues.head
   //        assertPostReader()
   //
   //        println("*** Reading all key-values ***")
@@ -178,7 +178,7 @@ sealed trait SegmentGroupReadSpec extends TestBase with ScalaFutures with Privat
   //            group.isIndexDecompressed shouldBe true
   //            segment.isCacheEmpty shouldBe false
   //          }
-  //          println("Checking group should eventually get removed")
+  //          println("Checking group should eventually getFromHashIndex removed")
   //          eventual(10.seconds) {
   //            segment.isCacheEmpty shouldBe true
   //          }
@@ -189,7 +189,7 @@ sealed trait SegmentGroupReadSpec extends TestBase with ScalaFutures with Privat
   //        println(segment.segmentSize)
   //
   //        println("*** Reading single key-value ***")
-  //        segment.get(keyValues.head.key).assertGet shouldBe keyValues.head
+  //        segment.getFromHashIndex(keyValues.head.key).assertGet shouldBe keyValues.head
   //        assertPostReader()
   //
   //        println("*** Reading all key-values ***")

@@ -28,6 +28,9 @@ import swaydb.core.io.reader.Reader
 import swaydb.data.IO
 import swaydb.data.IO._
 import swaydb.data.order.KeyOrder
+import swaydb.data.slice.Slice
+
+import scala.collection.mutable
 
 class SegmentHashIndexSpec extends TestBase {
 
@@ -37,9 +40,9 @@ class SegmentHashIndexSpec extends TestBase {
 
   "it" should {
     "build index" in {
-      runThis(100.times) {
-        val maxProbe = 10
-        val keyValues = unzipGroups(randomizedKeyValues(count = 1000, startId = Some(1))).toMemory.toTransient
+      runThis(10.times) {
+        val maxProbe = 100
+        val keyValues = unzipGroups(randomizedKeyValues(count = 1000, startId = Some(1), addRandomGroups = false)).toMemory.toTransient
 
         val writeResult =
           SegmentHashIndex.write(
@@ -57,14 +60,32 @@ class SegmentHashIndexSpec extends TestBase {
         writeResult.miss shouldBe keyValues.size - writeResult.hit
         writeResult.hit + writeResult.miss shouldBe keyValues.size
 
-        val indexOffsetMap: Map[Int, Transient] =
+        val indexOffsetMap: mutable.ListMap[Int, Transient] =
           keyValues.map({
             keyValue =>
-              (keyValue.stats.thisKeyValuesHashIndexOffset, keyValue)
+              (keyValue.stats.thisKeyValuesHashIndexesSortedIndexOffset, keyValue)
           })(collection.breakOut)
 
-        def findKey(indexOffset: Int): IO[Option[Transient]] =
-          IO(indexOffsetMap.get(indexOffset))
+        def findKey(indexOffset: Int, key: Slice[Byte]): IO[Option[Transient]] =
+          indexOffsetMap.get(indexOffset) match {
+            case some @ Some(found) =>
+              IO {
+                if (found.key equiv key)
+                  some
+                else {
+                  //if not found collect the next block of prefix compress key-values
+                  //and see if the key exists in them.
+                  indexOffsetMap
+                    .dropWhile(_._1 <= indexOffset)
+                    .takeWhile(_._2.enablePrefixCompression)
+                    .find(_._2.key equiv key)
+                    .map(_._2)
+                }
+              }
+
+            case None =>
+              IO.none
+          }
 
         val readResult =
           keyValues mapIO {
@@ -75,8 +96,7 @@ class SegmentHashIndexSpec extends TestBase {
                 hashIndexSize = writeResult.bytes.size,
                 hashIndexStartOffset = 0,
                 maxProbe = maxProbe,
-                get = findKey,
-                getNext = (_: Transient) => IO.none
+                get = findKey(_, keyValue.key)
               ) map {
                 foundOption =>
                   foundOption map {
@@ -86,7 +106,7 @@ class SegmentHashIndexSpec extends TestBase {
               }
           }
 
-        readResult.get.flatten.size should be >= writeResult.hit //>= because it can get lucky with overlapping index bytes.
+        readResult.get.flatten.size should be >= writeResult.hit //>= because it can getFromHashIndex lucky with overlapping index bytes.
 
         writeResult.bytes.moveWritePositionUnsafe(0)
         SegmentHashIndex.readHeader(Reader(writeResult.bytes)).get shouldBe
@@ -94,7 +114,8 @@ class SegmentHashIndexSpec extends TestBase {
             formatId = SegmentHashIndex.formatID,
             maxProbe = writeResult.maxProbe,
             hit = writeResult.hit,
-            miss = writeResult.miss
+            miss = writeResult.miss,
+            rangeIndexingEnabled = false
           )
       }
     }

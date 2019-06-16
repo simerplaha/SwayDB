@@ -33,58 +33,85 @@ object MatchResult {
 }
 
 private[core] sealed trait KeyMatcher {
-  val key: Slice[Byte]
-
-  def isGet: Boolean
+  def key: Slice[Byte]
 
   def apply(previous: Persistent,
             next: Option[Persistent],
             hasMore: => Boolean): MatchResult
+
+  def keyOrder: KeyOrder[Slice[Byte]]
 }
 
 private[core] object KeyMatcher {
-  case class Get(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]) extends KeyMatcher {
-    override def isGet: Boolean = true
+  object Get {
+    def apply(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Get =
+      Getter(
+        key = key,
+        whileNextIsPrefixCompressed = false
+      )
+
+    /**
+      * Reserved for [[SegmentReader]] only. Other clients should just submit [[Get]]
+      * and [[SegmentReader]] should apply HashIndex check if necessary.
+      */
+    private[a] def forHashIndex(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): GetFromHashIndex =
+      Getter(
+        key = key,
+        whileNextIsPrefixCompressed = true
+      )
+  }
+
+  sealed trait Get extends KeyMatcher {
+    def toHashIndexMatcher =
+      Get.forHashIndex(key)(keyOrder)
+  }
+  sealed trait GetFromHashIndex extends KeyMatcher {
+    def whileNextIsPrefixCompressed: Boolean
+  }
+
+  //private to disallow creating hashIndex Get from here.
+  private case class Getter(key: Slice[Byte],
+                            whileNextIsPrefixCompressed: Boolean)(implicit val keyOrder: KeyOrder[Slice[Byte]]) extends Get with GetFromHashIndex {
 
     override def apply(previous: Persistent,
                        next: Option[Persistent],
                        hasMore: => Boolean): MatchResult =
-      next.getOrElse(previous) match {
-        case fixed: Persistent.Fixed =>
-          val matchResult = keyOrder.compare(key, fixed.key)
-          if (matchResult == 0)
-            Matched(fixed)
-          else if (matchResult > 0 && hasMore)
-            Next
-          else
-            Stop
+      if (whileNextIsPrefixCompressed && next.exists(next => !next.isPrefixCompressed))
+        MatchResult.Stop
+      else
+        next.getOrElse(previous) match {
+          case fixed: Persistent.Fixed =>
+            val matchResult = keyOrder.compare(key, fixed.key)
+            if (matchResult == 0)
+              Matched(fixed)
+            else if (matchResult > 0 && hasMore)
+              Next
+            else
+              Stop
 
-        case group: Persistent.Group =>
-          val fromKeyMatch = keyOrder.compare(key, group.minKey)
-          val toKeyMatch: Int = keyOrder.compare(key, group.maxKey.maxKey)
-          if (fromKeyMatch >= 0 && ((group.maxKey.inclusive && toKeyMatch <= 0) || (!group.maxKey.inclusive && toKeyMatch < 0))) //is within the range
-            Matched(group)
-          else if (toKeyMatch >= 0 && hasMore)
-            Next
-          else
-            Stop
+          case group: Persistent.Group =>
+            val fromKeyMatch = keyOrder.compare(key, group.minKey)
+            val toKeyMatch: Int = keyOrder.compare(key, group.maxKey.maxKey)
+            if (fromKeyMatch >= 0 && ((group.maxKey.inclusive && toKeyMatch <= 0) || (!group.maxKey.inclusive && toKeyMatch < 0))) //is within the range
+              Matched(group)
+            else if (toKeyMatch >= 0 && hasMore)
+              Next
+            else
+              Stop
 
-        case range: Persistent.Range =>
-          val fromKeyMatch = keyOrder.compare(key, range.fromKey)
-          val toKeyMatch = keyOrder.compare(key, range.toKey)
-          if (fromKeyMatch >= 0 && toKeyMatch < 0) //is within the range
-            Matched(range)
-          else if (toKeyMatch >= 0 && hasMore)
-            Next
-          else
-            Stop
-      }
-
+          case range: Persistent.Range =>
+            val fromKeyMatch = keyOrder.compare(key, range.fromKey)
+            val toKeyMatch = keyOrder.compare(key, range.toKey)
+            if (fromKeyMatch >= 0 && toKeyMatch < 0) //is within the range
+              Matched(range)
+            else if (toKeyMatch >= 0 && hasMore)
+              Next
+            else
+              Stop
+        }
   }
 
-  case class Lower(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]) extends KeyMatcher {
-
-    override def isGet: Boolean = false
+  case class Lower(key: Slice[Byte])(implicit val keyOrder: KeyOrder[Slice[Byte]]) extends KeyMatcher {
 
     override def apply(previous: Persistent,
                        next: Option[Persistent],
@@ -92,13 +119,12 @@ private[core] object KeyMatcher {
       next match {
         case Some(next) =>
           val nextCompare = keyOrder.compare(next.key, key)
-          if (nextCompare >= 0) {
-            val previousCompare = keyOrder.compare(previous.key, key)
-            if (previousCompare < 0)
+          if (nextCompare >= 0)
+            if (keyOrder.compare(previous.key, key) < 0)
               Matched(previous)
             else
               Stop
-          } else if (nextCompare < 0) {
+          else if (nextCompare < 0)
             if (hasMore)
               next match {
                 case range: Persistent.Range if keyOrder.compare(key, range.toKey) <= 0 =>
@@ -112,9 +138,8 @@ private[core] object KeyMatcher {
               }
             else
               Matched(next)
-          } else {
+          else
             Stop
-          }
 
         case None =>
           val previousCompare = keyOrder.compare(previous.key, key)
@@ -139,9 +164,7 @@ private[core] object KeyMatcher {
       }
   }
 
-  case class Higher(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]) extends KeyMatcher {
-
-    override def isGet: Boolean = false
+  case class Higher(key: Slice[Byte])(implicit val keyOrder: KeyOrder[Slice[Byte]]) extends KeyMatcher {
 
     override def apply(previous: Persistent,
                        next: Option[Persistent],

@@ -54,7 +54,7 @@ import scala.annotation.tailrec
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.reflect.ClassTag
-import scala.util.Random
+import scala.util.{Random, Try}
 
 object TestData {
 
@@ -65,8 +65,8 @@ object TestData {
   val allBaseEntryIds = BaseEntryIdFormatA.baseIds
 
   val falsePositiveRate: Double = 0.01
-  val resetPrefixCompressionEvery: Int = 100
-  val minimumNumberOfKeyForHashIndex: Int = resetPrefixCompressionEvery / 2
+  val resetPrefixCompressionEvery: Int = 0
+  val minimumNumberOfKeyForHashIndex: Int = Try(resetPrefixCompressionEvery / 2).getOrElse(Int.MaxValue)
   val enableRangeFilter: Boolean = true
   val maxProbe: Int = 5
 

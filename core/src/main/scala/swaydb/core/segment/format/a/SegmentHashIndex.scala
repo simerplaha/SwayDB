@@ -24,7 +24,6 @@ import swaydb.core.data.KeyValue
 import swaydb.core.util.Bytes
 import swaydb.data.IO
 import swaydb.data.IO._
-import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
 
@@ -42,7 +41,8 @@ object SegmentHashIndex extends LazyLogging {
     ByteSizeOf.byte + // format ID
       ByteSizeOf.int + //max probe
       ByteSizeOf.int + //hit rate
-      ByteSizeOf.int //miss rate
+      ByteSizeOf.int + //miss rate
+      ByteSizeOf.boolean //has range
 
   object WriteResult {
     val empty = WriteResult(0, 0, 0, Slice.emptyBytes)
@@ -53,7 +53,11 @@ object SegmentHashIndex extends LazyLogging {
                                maxProbe: Int,
                                bytes: Slice[Byte])
 
-  case class Header(formatId: Int, maxProbe: Int, hit: Int, miss: Int)
+  case class Header(formatId: Int,
+                    maxProbe: Int,
+                    hit: Int,
+                    miss: Int,
+                    rangeIndexingEnabled: Boolean)
 
   /**
     * Number of bytes required to build a high probability index.
@@ -87,7 +91,7 @@ object SegmentHashIndex extends LazyLogging {
     optimalBytesRequired(
       lastKeyValuePosition = lastKeyValue.stats.position,
       minimumNumberOfKeyValues = minimumNumberOfKeyValues,
-      lastKeyValueIndexOffset = lastKeyValue.stats.thisKeyValuesHashIndexOffset,
+      lastKeyValueIndexOffset = lastKeyValue.stats.thisKeyValuesHashIndexesSortedIndexOffset,
       compensate = compensate
     )
 
@@ -124,7 +128,7 @@ object SegmentHashIndex extends LazyLogging {
         case (result, keyValue) =>
           write(
             key = keyValue.key,
-            sortedIndexOffset = keyValue.stats.thisKeyValuesHashIndexOffset,
+            sortedIndexOffset = keyValue.stats.thisKeyValuesHashIndexesSortedIndexOffset,
             bytes = bytes,
             maxProbe = maxProbe
           ) map {
@@ -160,12 +164,14 @@ object SegmentHashIndex extends LazyLogging {
       maxProbe <- reader.readIntUnsigned()
       hit <- reader.readInt()
       miss <- reader.readInt()
+      hasRange <- reader.readBoolean()
     } yield
       Header(
         formatId = formatID,
         maxProbe = maxProbe,
         hit = hit,
-        miss = miss
+        miss = miss,
+        rangeIndexingEnabled = hasRange
       )
 
   def generateHashIndex(key: Slice[Byte],
@@ -195,7 +201,7 @@ object SegmentHashIndex extends LazyLogging {
             maxProbe: Int): IO[Boolean] = {
 
     //add 1 to each offset to avoid 0 offsets.
-    //0 bytes are reserved as empty bucket markers .
+    //0 bytes are reserved as empty bucket markers.
     val indexOffsetPlusOne = sortedIndexOffset + 1
 
     @tailrec
@@ -230,38 +236,15 @@ object SegmentHashIndex extends LazyLogging {
 
   /**
     * Finds a key in the hash index using linear probing.
+    *
+    * @param get performs get or forward fetch from the currently being read sorted index's hash block.
     */
   def find[K <: KeyValue](key: Slice[Byte],
                           hashIndexReader: Reader,
                           hashIndexStartOffset: Int,
                           hashIndexSize: Int,
                           maxProbe: Int,
-                          get: Int => IO[Option[K]],
-                          getNext: K => IO[Option[K]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[K]] = {
-    import keyOrder._
-
-    @tailrec
-    def assertGetAndWalk(got: IO[Option[K]]): IO[Option[K]] =
-      got match {
-        case IO.Success(Some(found)) =>
-          if (found.key equiv key)
-            got
-          else
-            assertGetAndWalk(getNext(found))
-
-        case none @ IO.Success(None) =>
-          none
-
-        case IO.Failure(_) =>
-          //currently there is no way to detect starting point for a key-value entry in the sorted index.
-          //Read requests can be submitted to random parts of the sortedIndex depending on the index returned by the hash.
-          //Hash index also itself also does not store markers for a valid start sortedIndex offset
-          //that's why key-values can be read at random parts of the sorted index which can return failures.
-          //too many failures are not expected because probe should disallow that. And if the Segment is actually corrupted,
-          //the normal forward read of the index should catch that.
-          //HashIndex is suppose to make random reads faster, if the hashIndex is too small then there is no use creating one.
-          IO.none
-      }
+                          get: Int => IO[Option[K]]): IO[Option[K]] = {
 
     @tailrec
     def doFind(probe: Int): IO[Option[K]] =
@@ -273,7 +256,7 @@ object SegmentHashIndex extends LazyLogging {
           case IO.Success(possibleSortedIndexOffset) if possibleSortedIndexOffset != 0 =>
             //submit the indexOffset removing the add 1 offset to avoid overlapping bytes.
             //println(s"Key: ${key.readInt()}: read hashIndex: $hashIndex probe: $probe, sortedIndex: ${possibleSortedIndexOffset - 1} = reading now!")
-            assertGetAndWalk(get(possibleSortedIndexOffset - 1)) match {
+            get(possibleSortedIndexOffset - 1) match {
               case success @ IO.Success(Some(_)) =>
                 //println(s"Key: ${key.readInt()}: read hashIndex: $hashIndex probe: $probe, sortedIndex: ${possibleSortedIndexOffset - 1} = success")
                 success

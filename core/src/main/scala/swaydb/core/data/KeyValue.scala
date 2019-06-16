@@ -36,6 +36,8 @@ import swaydb.data.{IO, MaxKey}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Reader, Slice}
 
+import scala.util.Try
+
 private[core] sealed trait KeyValue {
   def key: Slice[Byte]
 
@@ -220,7 +222,11 @@ private[core] object KeyValue {
         currentEndValueOffsetPosition + 1
 
     def enablePrefixCompression =
-      previous.forall(_.stats.position + 1 % resetPrefixCompressionEvery == 0)
+      resetPrefixCompressionEvery > 0 &&
+        previous.exists {
+          previous =>
+            previous.stats.position + 1 % resetPrefixCompressionEvery != 0
+        }
 
     def updateStats(falsePositiveRate: Double,
                     previous: Option[KeyValue.WriteOnly]): KeyValue.WriteOnly

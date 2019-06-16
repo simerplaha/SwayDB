@@ -671,7 +671,7 @@ class SegmentWriterReaderSpec extends TestBase {
   }
 
   "SegmentReader.find" should {
-    "get key-values using KeyMatcher.Get" in {
+    "getFromHashIndex key-values using KeyMatcher.Get" in {
       val keyValues =
         Slice(
           Transient.put(1, "one"),
@@ -713,7 +713,7 @@ class SegmentWriterReaderSpec extends TestBase {
         * @return the found key-value
         */
       def find(index: Int, expectedIndexOffset: Int, expectedKeyUnderlyingArraySize: Int): Persistent = {
-        val foundKeyValue = SegmentReader.find(KeyMatcher.Get(keyValues(index).key), None, Reader(bytes)).assertGet
+        val foundKeyValue = SegmentReader.get(KeyMatcher.Get(keyValues(index).key), None, Reader(bytes)).assertGet
         foundKeyValue.getOrFetchValue shouldBe keyValues(index).getOrFetchValue
 
         foundKeyValue.key.underlyingArraySize shouldBe expectedKeyUnderlyingArraySize
@@ -740,7 +740,7 @@ class SegmentWriterReaderSpec extends TestBase {
       found = find(4, found.nextIndexOffset, bytes.size)
 
       //FOURTH KEY
-      val foundKeyValue4 = SegmentReader.find(KeyMatcher.Get(keyValues(5).key), None, Reader(bytes)).assertGet.asInstanceOf[Persistent.Range]
+      val foundKeyValue4 = SegmentReader.get(KeyMatcher.Get(keyValues(5).key), None, Reader(bytes)).assertGet.asInstanceOf[Persistent.Range]
       foundKeyValue4.getOrFetchValue shouldBe keyValues(5).getOrFetchValue
       foundKeyValue4.fromKey shouldBe (Int.MaxValue - 900: Slice[Byte])
       foundKeyValue4.toKey shouldBe (Int.MaxValue - 800: Slice[Byte])
@@ -754,7 +754,7 @@ class SegmentWriterReaderSpec extends TestBase {
       foundKeyValue4.indexOffset shouldBe found.nextIndexOffset
 
       //FIFTH KEY
-      val foundKeyValue5 = SegmentReader.find(KeyMatcher.Get(keyValues(6).key), None, Reader(bytes)).assertGet.asInstanceOf[Persistent.Group]
+      val foundKeyValue5 = SegmentReader.get(KeyMatcher.Get(keyValues(6).key), None, Reader(bytes)).assertGet.asInstanceOf[Persistent.Group]
       foundKeyValue5.getOrFetchValue shouldBe keyValues(6).getOrFetchValue
       foundKeyValue5.minKey shouldBe (Int.MaxValue - 600: Slice[Byte])
       foundKeyValue5.maxKey shouldBe keyValues.maxKey()
@@ -768,7 +768,7 @@ class SegmentWriterReaderSpec extends TestBase {
       foundKeyValue5.indexOffset shouldBe foundKeyValue4.nextIndexOffset
     }
 
-    "get key-values using KeyMatcher.Lower" in {
+    "getFromHashIndex key-values using KeyMatcher.Lower" in {
       val keyValues =
         Slice(
           Transient.put(1, "one"),
@@ -789,31 +789,31 @@ class SegmentWriterReaderSpec extends TestBase {
         ).assertGet
 
       //FIRST
-      SegmentReader.find(KeyMatcher.Lower(keyValues.head.key), None, Reader(bytes)).assertGetOpt shouldBe empty
+      SegmentReader.lower(KeyMatcher.Lower(keyValues.head.key), None, Reader(bytes)).assertGetOpt shouldBe empty
 
       //SECOND
-      val foundKeyValue2 = SegmentReader.find(KeyMatcher.Lower(keyValues(1).key), None, Reader(bytes)).assertGet
+      val foundKeyValue2 = SegmentReader.lower(KeyMatcher.Lower(keyValues(1).key), None, Reader(bytes)).assertGet
       foundKeyValue2.getOrFetchValue shouldBe keyValues.head.getOrFetchValue
       foundKeyValue2.key shouldBe keyValues.head.key
       //ensure value is unsliced
       foundKeyValue2.getOrFetchValue.assertGet.underlyingArraySize shouldBe bytes.underlyingArraySize
 
       //THIRD
-      val foundKeyValue3 = SegmentReader.find(KeyMatcher.Lower(keyValues(2).key), None, Reader(bytes)).assertGet
+      val foundKeyValue3 = SegmentReader.lower(KeyMatcher.Lower(keyValues(2).key), None, Reader(bytes)).assertGet
       foundKeyValue3.getOrFetchValue shouldBe keyValues(1).getOrFetchValue
       foundKeyValue3.key shouldBe keyValues(1).key
       //ensure value is unsliced
       foundKeyValue3.getOrFetchValue.assertGet.underlyingArraySize shouldBe bytes.underlyingArraySize
 
       //Fourth
-      val foundKeyValue4 = SegmentReader.find(KeyMatcher.Lower(keyValues(3).key), None, Reader(bytes)).assertGet
+      val foundKeyValue4 = SegmentReader.lower(KeyMatcher.Lower(keyValues(3).key), None, Reader(bytes)).assertGet
       foundKeyValue4.getOrFetchValue shouldBe keyValues(2).getOrFetchValue
       foundKeyValue4.key shouldBe keyValues(2).key
       //ensure value is unsliced
       foundKeyValue4.getOrFetchValue.assertGet.underlyingArraySize shouldBe bytes.underlyingArraySize
 
       //Fifth
-      val foundKeyValue5 = SegmentReader.find(KeyMatcher.Lower(keyValues(4).key), None, Reader(bytes)).assertGet
+      val foundKeyValue5 = SegmentReader.lower(KeyMatcher.Lower(keyValues(4).key), None, Reader(bytes)).assertGet
       foundKeyValue5.getOrFetchValue shouldBe keyValues(3).getOrFetchValue
       foundKeyValue5.key shouldBe keyValues(3).key
       //ensure value is unsliced
@@ -821,17 +821,17 @@ class SegmentWriterReaderSpec extends TestBase {
 
       //Sixth
       val sixth = keyValues(5).asInstanceOf[Transient.Range]
-      val foundKeyValue4FromKey = SegmentReader.find(KeyMatcher.Lower(sixth.fromKey), None, Reader(bytes)).assertGet
+      val foundKeyValue4FromKey = SegmentReader.lower(KeyMatcher.Lower(sixth.fromKey), None, Reader(bytes)).assertGet
       foundKeyValue4FromKey.getOrFetchValue shouldBe empty //lower is Remove
       foundKeyValue4FromKey.key shouldBe keyValues(4).key
 
-      val sixthToKey = SegmentReader.find(KeyMatcher.Lower(sixth.toKey), None, Reader(bytes)).assertGet.asInstanceOf[Persistent.Range]
+      val sixthToKey = SegmentReader.lower(KeyMatcher.Lower(sixth.toKey), None, Reader(bytes)).assertGet.asInstanceOf[Persistent.Range]
       sixthToKey.getOrFetchValue shouldBe sixth.getOrFetchValue //lower is Self
       sixthToKey.fromKey shouldBe sixth.fromKey
       sixthToKey.toKey shouldBe sixth.toKey
     }
 
-    "get key-values using KeyMatcher.Higher" in {
+    "getFromHashIndex key-values using KeyMatcher.Higher" in {
       val keyValues =
         Slice(
           Transient.put(1, "one"),
@@ -851,37 +851,37 @@ class SegmentWriterReaderSpec extends TestBase {
           enableRangeFilter = TestData.enableRangeFilter
         ).assertGet
 
-      val foundKeyValue1 = SegmentReader.find(KeyMatcher.Higher(keyValues.head.key), None, Reader(bytes)).assertGet
+      val foundKeyValue1 = SegmentReader.higher(KeyMatcher.Higher(keyValues.head.key), None, Reader(bytes)).assertGet
       foundKeyValue1 shouldBe keyValues(1)
       //ensure value is unsliced
       foundKeyValue1.getOrFetchValue.assertGet.underlyingArraySize shouldBe bytes.underlyingArraySize
 
       //SECOND
-      val foundKeyValue2 = SegmentReader.find(KeyMatcher.Higher(keyValues(1).key), None, Reader(bytes)).assertGet
+      val foundKeyValue2 = SegmentReader.higher(KeyMatcher.Higher(keyValues(1).key), None, Reader(bytes)).assertGet
       foundKeyValue2 shouldBe keyValues(2)
       //ensure value is unsliced
 
       //THIRD
-      val foundKeyValue3 = SegmentReader.find(KeyMatcher.Higher(keyValues(2).key), None, Reader(bytes)).assertGet
+      val foundKeyValue3 = SegmentReader.higher(KeyMatcher.Higher(keyValues(2).key), None, Reader(bytes)).assertGet
       foundKeyValue3 shouldBe keyValues(3)
       //ensure value is unsliced
       foundKeyValue3.getOrFetchValue.assertGet.underlyingArraySize shouldBe bytes.underlyingArraySize
 
-      val foundKeyValue4 = SegmentReader.find(KeyMatcher.Higher(keyValues(3).key), None, Reader(bytes)).assertGet
+      val foundKeyValue4 = SegmentReader.higher(KeyMatcher.Higher(keyValues(3).key), None, Reader(bytes)).assertGet
       foundKeyValue4 shouldBe keyValues(4)
       //ensure value is unsliced
       foundKeyValue4.getOrFetchValue shouldBe empty
 
-      val foundKeyValue5 = SegmentReader.find(KeyMatcher.Higher(keyValues(4).key), None, Reader(bytes)).assertGet
+      val foundKeyValue5 = SegmentReader.higher(KeyMatcher.Higher(keyValues(4).key), None, Reader(bytes)).assertGet
       foundKeyValue5 shouldBe keyValues(5)
 
       val fourth = keyValues(5).asInstanceOf[Transient.Range]
-      val foundKeyValue4FromKey = SegmentReader.find(KeyMatcher.Higher(fourth.fromKey), None, Reader(bytes)).assertGet.asInstanceOf[Persistent.Range]
+      val foundKeyValue4FromKey = SegmentReader.higher(KeyMatcher.Higher(fourth.fromKey), None, Reader(bytes)).assertGet.asInstanceOf[Persistent.Range]
       foundKeyValue4FromKey.getOrFetchValue shouldBe fourth.getOrFetchValue //lower is Remove
       foundKeyValue4FromKey.fromKey shouldBe fourth.fromKey
       foundKeyValue4FromKey.toKey shouldBe fourth.toKey
 
-      SegmentReader.find(KeyMatcher.Higher(fourth.toKey), None, Reader(bytes)).assertGetOpt shouldBe empty
+      SegmentReader.higher(KeyMatcher.Higher(fourth.toKey), None, Reader(bytes)).assertGetOpt shouldBe empty
     }
 
     "return nearest deadline" in {
@@ -890,7 +890,7 @@ class SegmentWriterReaderSpec extends TestBase {
         //create sequential deadline and randomly select one on call.
         def deadlines = Random.shuffle((1 to 10).toList).map(i => Deadline(new FiniteDuration(i, TimeUnit.SECONDS)))
 
-        //may be get the next deadline
+        //may be getFromHashIndex the next deadline
         def nextDeadline =
           eitherOne(
             left = None,
@@ -983,7 +983,7 @@ class SegmentWriterReaderSpec extends TestBase {
             right = pendingApply
           )
 
-        //get the first value for either fixed or range.
+        //getFromHashIndex the first value for either fixed or range.
         //this value is only expected to be written ones.
         val value = keyValues.head.value.assertGet
 

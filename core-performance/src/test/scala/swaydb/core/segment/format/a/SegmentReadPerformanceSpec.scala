@@ -187,16 +187,16 @@ sealed trait SegmentReadPerformanceSpec extends TestBase with Benchmark {
     ).assertGet
   }
 
-  "Segment get benchmark 1" in {
+  "Segment getFromHashIndex benchmark 1" in {
     initSegment()
 
-    benchmark(s"get ${keyValues.size} key values when Segment memory = $memory, mmapSegmentWrites = ${levelStorage.mmapSegmentsOnWrite}, mmapSegmentReads = ${levelStorage.mmapSegmentsOnRead}") {
+    benchmark(s"getFromHashIndex ${keyValues.size} key values when Segment memory = $memory, mmapSegmentWrites = ${levelStorage.mmapSegmentsOnWrite}, mmapSegmentReads = ${levelStorage.mmapSegmentsOnRead}") {
       assertGet(segment)
     }
   }
 
-  "Segment get benchmark 2" in {
-    benchmark(s"get ${keyValues.size} cached key values when Segment memory = $memory, mmapSegmentWrites = ${levelStorage.mmapSegmentsOnWrite}, mmapSegmentReads = ${levelStorage.mmapSegmentsOnRead}") {
+  "Segment getFromHashIndex benchmark 2" in {
+    benchmark(s"getFromHashIndex ${keyValues.size} cached key values when Segment memory = $memory, mmapSegmentWrites = ${levelStorage.mmapSegmentsOnWrite}, mmapSegmentReads = ${levelStorage.mmapSegmentsOnRead}") {
       assertGet(segment)
     }
   }

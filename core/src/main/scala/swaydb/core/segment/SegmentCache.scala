@@ -154,7 +154,7 @@ private[core] class SegmentCache(id: String,
                     if (!footer.bloomFilter.forall(_.mightContain(key)))
                       IO.none
                     else
-                      find(
+                      SegmentReader.get(
                         matcher = KeyMatcher.Get(key),
                         startFrom = floorValue,
                         reader = reader,
@@ -223,7 +223,7 @@ private[core] class SegmentCache(id: String,
           } getOrElse {
             prepareGet {
               (footer, reader) =>
-                find(
+                SegmentReader.lower(
                   matcher = KeyMatcher.Lower(key),
                   startFrom = lowerKeyValue,
                   reader = reader,
@@ -306,7 +306,7 @@ private[core] class SegmentCache(id: String,
 
               startFrom flatMap {
                 startFrom =>
-                  find(
+                  SegmentReader.higher(
                     matcher = KeyMatcher.Higher(key),
                     startFrom = startFrom,
                     reader = reader,

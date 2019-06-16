@@ -271,7 +271,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           assert =
             (keyValues, segment) => {
               assertMinAndMaxKeyAreSliced(segment)
-              //if Persistent Segment, read all key-values from disk so that they get added to cache.
+              //if Persistent Segment, read all key-values from disk so that they getFromHashIndex added to cache.
               if (persistent) assertGet(readKeyValues, segment)
               //assert key-values added to cache are un-sliced
               assertCacheKeyValuesAreSliced(segment)
@@ -537,7 +537,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
 
     "fail initialisation if the segment does not exist" in {
       if (memory) {
-        //memory Segments do not get re-initialised
+        //memory Segments do not getFromHashIndex re-initialised
       } else {
         val segment = TestSegment().assertGet
         segment.delete.assertGet
@@ -651,7 +651,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
 
   "reopen closed channel for read when closed by LimitQueue" in {
     if (memory) {
-      //memory Segments do not get closed via
+      //memory Segments do not getFromHashIndex closed via
     } else {
       implicit val segmentOpenLimit = FileLimiter(1, 100.millisecond)
       val keyValues = randomizedKeyValues(keyValuesCount, addRandomGroups = false)
@@ -893,7 +893,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           enableRangeFilter = TestData.enableRangeFilter
         ).assertGet
 
-      segments.size should be >= 2 //ensures that splits occurs. Memory Segments do not get written to disk without splitting.
+      segments.size should be >= 2 //ensures that splits occurs. Memory Segments do not getFromHashIndex written to disk without splitting.
 
       segments.foreach(_.existsOnDisk shouldBe false)
       Segment.getAllKeyValues(segments).assertGet shouldBe keyValues
@@ -922,9 +922,9 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
 
         segments.foreach(_.existsOnDisk shouldBe false)
 
-        segments.size should be >= 2 //ensures that splits occurs. Memory Segments do not get written to disk without splitting.
+        segments.size should be >= 2 //ensures that splits occurs. Memory Segments do not getFromHashIndex written to disk without splitting.
 
-        //some key-values could get expired while unexpired key-values are being collected. So try again!
+        //some key-values could getFromHashIndex expired while unexpired key-values are being collected. So try again!
         IO {
           Segment.getAllKeyValues(segments).assertGet shouldBe unzipGroups(keyValues).collect {
             case keyValue: Transient.Put if keyValue.hasTimeLeft() =>
@@ -1215,7 +1215,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
     "merge existing segment file with new KeyValues returning new segment file with updated KeyValues" in {
       runThis(10.times) {
         implicit val testTimer: TestTimer = TestTimer.Incremental()
-        //ranges get split to make sure there are no ranges.
+        //ranges getFromHashIndex split to make sure there are no ranges.
         val keyValues1 = randomizedKeyValues(count = keyValuesCount, addRandomRanges = false)
         val segment1 = TestSegment(keyValues1).assertGet
 

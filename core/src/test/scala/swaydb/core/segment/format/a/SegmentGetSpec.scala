@@ -73,7 +73,7 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
   implicit val groupingStrategy: Option[KeyValueGroupingStrategyInternal] =
     randomGroupingStrategyOption(keyValuesCount)
 
-  "Segment.get" should {
+  "Segment.getFromHashIndex" should {
 
     "fixed key-value" in {
       runThis(100.times) {
@@ -151,7 +151,7 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
       }
     }
 
-    "get Group key-values" in {
+    "getFromHashIndex Group key-values" in {
       //run this test randomly to possibly test all range key-value combinations
       runThis(100.times) {
         val groupKeyValues = randomizedKeyValues(keyValuesCount)
@@ -165,7 +165,7 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
       }
     }
 
-    "get random key-values" in {
+    "getFromHashIndex random key-values" in {
       val keyValues = randomizedKeyValues(keyValuesCount)
       val segment = TestSegment(keyValues).assertGet
       assertGet(keyValues, segment)

@@ -83,9 +83,10 @@ private[core] object Stats {
           previous.thisKeyValueIndexOffset + previous.thisKeyValuesIndexSizeWithoutFooter
       } getOrElse 0
 
-    val thisKeyValuesHashIndexOffset =
+    //starts from 0. Do not need the actual index offset for space efficiency. The actual indexOffset can be adjust during read.
+    val thisKeyValuesHashIndexesSortedIndexOffset =
       if (usePreviousHashIndexOffset)
-        previousStats.map(_.thisKeyValuesHashIndexOffset) getOrElse thisKeyValueIndexOffset
+        previousStats.map(_.thisKeyValuesHashIndexesSortedIndexOffset) getOrElse thisKeyValueIndexOffset
       else
         thisKeyValueIndexOffset
 
@@ -101,7 +102,7 @@ private[core] object Stats {
     val segmentHashIndexSize =
       SegmentHashIndex.optimalBytesRequired(
         lastKeyValuePosition = position,
-        lastKeyValueIndexOffset = thisKeyValuesHashIndexOffset,
+        lastKeyValueIndexOffset = thisKeyValuesHashIndexesSortedIndexOffset,
         minimumNumberOfKeyValues = minimumNumberOfKeyForHashIndex,
         compensate = _ => 0
       )
@@ -165,7 +166,7 @@ private[core] object Stats {
       keySize = key.size,
       thisKeyValuesSegmentSizeWithoutFooterAndHashIndex = thisKeyValuesSegmentSizeWithoutFooterAndHashIndex,
       thisKeyValuesIndexSizeWithoutFooter = thisKeyValuesIndexSizeWithoutFooter,
-      thisKeyValuesHashIndexOffset = thisKeyValuesHashIndexOffset,
+      thisKeyValuesHashIndexesSortedIndexOffset = thisKeyValuesHashIndexesSortedIndexOffset,
       thisKeyValueIndexOffset = thisKeyValueIndexOffset,
       segmentHashIndexSize = segmentHashIndexSize,
       bloomFilterSize = optimalBloomFilterSize,
@@ -193,7 +194,7 @@ private[core] case class Stats(valueLength: Int,
                                keySize: Int,
                                thisKeyValuesSegmentSizeWithoutFooterAndHashIndex: Int,
                                thisKeyValuesIndexSizeWithoutFooter: Int,
-                               thisKeyValuesHashIndexOffset: Int,
+                               thisKeyValuesHashIndexesSortedIndexOffset: Int,
                                thisKeyValueIndexOffset: Int,
                                segmentHashIndexSize: Int,
                                bloomFilterSize: Int,
