@@ -625,6 +625,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+        hashIndexCompensation = TestData.hashIndexCompensation,
         enableRangeFilter = TestData.enableRangeFilter,
         compressDuplicateValues = true,
         removeDeletes = false,
@@ -637,6 +638,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+        hashIndexCompensation = TestData.hashIndexCompensation,
         enableRangeFilter = TestData.enableRangeFilter,
         compressDuplicateValues = true,
         removeDeletes = false,
@@ -735,6 +737,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           enableRangeFilter = TestData.enableRangeFilter,
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+          hashIndexCompensation = TestData.hashIndexCompensation,
           maxProbe = TestData.maxProbe,
           compressDuplicateValues = true,
           removeDeletes = false,
@@ -771,6 +774,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
             enableRangeFilter = TestData.enableRangeFilter,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+            hashIndexCompensation = TestData.hashIndexCompensation,
             removeDeletes = true,
             maxProbe = TestData.maxProbe,
             compressDuplicateValues = true,
@@ -790,7 +794,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           unzipGroups(Segment.getAllKeyValues(segments).assertGet) shouldBe unzipGroups(keyValues).collect { //memory Segments does a split/merge and apply lastLevel rules.
             case keyValue: Transient.Put if keyValue.hasTimeLeft() =>
               keyValue
-            case Transient.Range(fromKey, _, _, Some(put @ Value.Put(_, deadline, _)), _, _, _, _, _, _) if deadline.forall(_.hasTimeLeft()) =>
+            case Transient.Range(fromKey, _, _, Some(put @ Value.Put(_, deadline, _)), _, _, _, _, _, _, _) if deadline.forall(_.hasTimeLeft()) =>
               put.toMemory(fromKey).toTransient
           }.updateStats
       }
@@ -813,6 +817,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         enableRangeFilter = TestData.enableRangeFilter,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+        hashIndexCompensation = TestData.hashIndexCompensation,
         removeDeletes = true,
         maxProbe = TestData.maxProbe,
         compressDuplicateValues = true,
@@ -855,6 +860,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         mmapSegmentsOnWrite = levelStorage.mmapSegmentsOnWrite,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+        hashIndexCompensation = TestData.hashIndexCompensation,
         removeDeletes = false,
         maxProbe = TestData.maxProbe,
         minSegmentSize = keyValues.toTransient.last.stats.segmentSize / 5,
@@ -883,6 +889,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           compressDuplicateValues = true,
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+          hashIndexCompensation = TestData.hashIndexCompensation,
           maxProbe = TestData.maxProbe,
           minSegmentSize =
             if (persistent)
@@ -912,6 +919,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
             fetchNextPath = levelPath.resolve(nextSegmentId),
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+            hashIndexCompensation = TestData.hashIndexCompensation,
             removeDeletes = true,
             maxProbe = TestData.maxProbe,
             compressDuplicateValues = true,
@@ -929,7 +937,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           Segment.getAllKeyValues(segments).assertGet shouldBe unzipGroups(keyValues).collect {
             case keyValue: Transient.Put if keyValue.hasTimeLeft() =>
               keyValue
-            case Transient.Range(fromKey, _, _, Some(put @ Value.Put(_, deadline, _)), _, _, _, _, _, _) if deadline.forall(_.hasTimeLeft()) =>
+            case Transient.Range(fromKey, _, _, Some(put @ Value.Put(_, deadline, _)), _, _, _, _, _, _, _) if deadline.forall(_.hasTimeLeft()) =>
               put.toMemory(fromKey).toTransient
           }.updateStats
         }
@@ -1012,6 +1020,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         minSegmentSize = 1.mb,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+        hashIndexCompensation = TestData.hashIndexCompensation,
         bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
         enableRangeFilter = TestData.enableRangeFilter,
         compressDuplicateValues = true,
@@ -1035,6 +1044,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+          hashIndexCompensation = TestData.hashIndexCompensation,
           enableRangeFilter = TestData.enableRangeFilter,
           compressDuplicateValues = true,
           removeDeletes = false,
@@ -1057,6 +1067,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+          hashIndexCompensation = TestData.hashIndexCompensation,
           compressDuplicateValues = true
         ).assertGet
 
@@ -1078,6 +1089,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           enableRangeFilter = TestData.enableRangeFilter,
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+          hashIndexCompensation = TestData.hashIndexCompensation,
           compressDuplicateValues = true,
           removeDeletes = false,
           createdInLevel = 0,
@@ -1100,6 +1112,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+          hashIndexCompensation = TestData.hashIndexCompensation,
           compressDuplicateValues = true
         ).assertGet
 
@@ -1132,6 +1145,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+          hashIndexCompensation = TestData.hashIndexCompensation,
           enableRangeFilter = TestData.enableRangeFilter,
           compressDuplicateValues = true,
           removeDeletes = false,
@@ -1166,6 +1180,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+          hashIndexCompensation = TestData.hashIndexCompensation,
           enableRangeFilter = TestData.enableRangeFilter,
           compressDuplicateValues = true,
           removeDeletes = false,
@@ -1197,6 +1212,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+          hashIndexCompensation = TestData.hashIndexCompensation,
           enableRangeFilter = TestData.enableRangeFilter,
           compressDuplicateValues = true,
           removeDeletes = true,
@@ -1236,6 +1252,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+            hashIndexCompensation = TestData.hashIndexCompensation,
             enableRangeFilter = TestData.enableRangeFilter,
             compressDuplicateValues = true,
             removeDeletes = false,
@@ -1281,6 +1298,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+          hashIndexCompensation = TestData.hashIndexCompensation,
           enableRangeFilter = TestData.enableRangeFilter,
           compressDuplicateValues = true,
           removeDeletes = true,
@@ -1306,6 +1324,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+          hashIndexCompensation = TestData.hashIndexCompensation,
           enableRangeFilter = TestData.enableRangeFilter,
           compressDuplicateValues = true,
           removeDeletes = false,
@@ -1334,6 +1353,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+          hashIndexCompensation = TestData.hashIndexCompensation,
           enableRangeFilter = TestData.enableRangeFilter,
           compressDuplicateValues = true,
           removeDeletes = true,
@@ -1372,6 +1392,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+            hashIndexCompensation = TestData.hashIndexCompensation,
             enableRangeFilter = TestData.enableRangeFilter,
             compressDuplicateValues = true,
             removeDeletes = false,
@@ -1386,6 +1407,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+            hashIndexCompensation = TestData.hashIndexCompensation,
             enableRangeFilter = TestData.enableRangeFilter,
             compressDuplicateValues = true,
             removeDeletes = false,
@@ -1432,6 +1454,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+          hashIndexCompensation = TestData.hashIndexCompensation,
           enableRangeFilter = TestData.enableRangeFilter,
           compressDuplicateValues = true,
           removeDeletes = true,
@@ -1452,6 +1475,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+        hashIndexCompensation = TestData.hashIndexCompensation,
         enableRangeFilter = TestData.enableRangeFilter,
         compressDuplicateValues = true,
         removeDeletes = true,
@@ -1472,6 +1496,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+          hashIndexCompensation = TestData.hashIndexCompensation,
           enableRangeFilter = TestData.enableRangeFilter,
           compressDuplicateValues = true,
           removeDeletes = false,
@@ -1498,6 +1523,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+          hashIndexCompensation = TestData.hashIndexCompensation,
           compressDuplicateValues = true
         ).assertGet
 
@@ -1528,6 +1554,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+        hashIndexCompensation = TestData.hashIndexCompensation,
         compressDuplicateValues = true
       )(keyOrder, Some(KeyValueGroupingStrategyInternal(DefaultGroupingStrategy()))).assertGet
 

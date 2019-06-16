@@ -70,6 +70,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+          hashIndexCompensation = TestData.hashIndexCompensation,
           maxProbe = TestData.maxProbe,
           force = force,
           groupingStrategy =
@@ -101,6 +102,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+            hashIndexCompensation = TestData.hashIndexCompensation,
             maxProbe = TestData.maxProbe,
             force = force,
             groupingStrategy =
@@ -148,6 +150,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+          hashIndexCompensation = TestData.hashIndexCompensation,
           maxProbe = TestData.maxProbe,
           force = force,
           groupingStrategy =
@@ -181,6 +184,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+          hashIndexCompensation = TestData.hashIndexCompensation,
           maxProbe = TestData.maxProbe,
           force = force,
           groupingStrategy =
@@ -215,6 +219,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
               bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
               resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
               minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+              hashIndexCompensation = TestData.hashIndexCompensation,
               maxProbe = TestData.maxProbe,
               force = force,
               groupingStrategy =
@@ -255,6 +260,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
               bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
               resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
               minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+              hashIndexCompensation = TestData.hashIndexCompensation,
               maxProbe = TestData.maxProbe,
               force = force,
               groupingStrategy =
@@ -292,6 +298,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+            hashIndexCompensation = TestData.hashIndexCompensation,
             maxProbe = TestData.maxProbe,
             force = force,
             groupingStrategy =
@@ -344,6 +351,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+            hashIndexCompensation = TestData.hashIndexCompensation,
             maxProbe = TestData.maxProbe,
             force = force,
             groupingStrategy =
@@ -392,6 +400,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+            hashIndexCompensation = TestData.hashIndexCompensation,
             maxProbe = TestData.maxProbe,
             force = force,
             groupingStrategy =
@@ -425,6 +434,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+          hashIndexCompensation = TestData.hashIndexCompensation,
           maxProbe = TestData.maxProbe,
           force = force,
           groupingStrategy =
@@ -468,6 +478,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+          hashIndexCompensation = TestData.hashIndexCompensation,
           maxProbe = TestData.maxProbe,
           force = force,
           groupingStrategy =
@@ -515,6 +526,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+          hashIndexCompensation = TestData.hashIndexCompensation,
           maxProbe = TestData.maxProbe,
           force = force,
           groupingStrategy =
@@ -562,6 +574,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+            hashIndexCompensation = TestData.hashIndexCompensation,
             maxProbe = TestData.maxProbe,
             force = force,
             groupingStrategy =

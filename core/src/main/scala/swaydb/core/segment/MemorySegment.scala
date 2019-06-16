@@ -95,6 +95,7 @@ private[segment] case class MemorySegment(path: Path,
                    bloomFilterFalsePositiveRate: Double,
                    resetPrefixCompressionEvery: Int,
                    minimumNumberOfKeyForHashIndex: Int,
+                   hashIndexCompensation: Int => Int,
                    enableRangeFilter: Boolean,
                    compressDuplicateValues: Boolean,
                    removeDeletes: Boolean,
@@ -117,6 +118,7 @@ private[segment] case class MemorySegment(path: Path,
             bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
             resetPrefixCompressionEvery = resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
+            hashIndexCompensation = hashIndexCompensation,
             compressDuplicateValues = compressDuplicateValues
           ) flatMap {
             splits =>
@@ -149,6 +151,7 @@ private[segment] case class MemorySegment(path: Path,
                        bloomFilterFalsePositiveRate: Double,
                        resetPrefixCompressionEvery: Int,
                        minimumNumberOfKeyForHashIndex: Int,
+                       hashIndexCompensation: Int => Int,
                        enableRangeFilter: Boolean,
                        compressDuplicateValues: Boolean,
                        removeDeletes: Boolean,
@@ -170,6 +173,7 @@ private[segment] case class MemorySegment(path: Path,
             bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
             resetPrefixCompressionEvery = resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
+            hashIndexCompensation = hashIndexCompensation,
             compressDuplicateValues = compressDuplicateValues
           ) flatMap {
             splits =>

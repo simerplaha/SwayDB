@@ -60,6 +60,7 @@ class SegmentKeyValueLimiterSpec extends TestBase with Benchmark {
           falsePositiveRate = TestData.falsePositiveRate,
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+          hashIndexCompensation = TestData.hashIndexCompensation,
           maxProbe = TestData.maxProbe,
           previous = None
         ).assertGet
@@ -131,6 +132,7 @@ class SegmentKeyValueLimiterSpec extends TestBase with Benchmark {
           falsePositiveRate = TestData.falsePositiveRate,
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+          hashIndexCompensation = TestData.hashIndexCompensation,
           maxProbe = TestData.maxProbe,
           previous = None
         ).assertGet

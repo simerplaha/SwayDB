@@ -54,6 +54,7 @@ class GroupCompressorSpec extends TestBase {
         falsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+        hashIndexCompensation = TestData.hashIndexCompensation,
         previous = None
       ).assertGetOpt shouldBe empty
     }
@@ -76,6 +77,7 @@ class GroupCompressorSpec extends TestBase {
             falsePositiveRate = TestData.falsePositiveRate,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+            hashIndexCompensation = TestData.hashIndexCompensation,
             maxProbe = TestData.maxProbe,
             previous = None
           ).assertGetOpt shouldBe empty
@@ -105,6 +107,7 @@ class GroupCompressorSpec extends TestBase {
                 falsePositiveRate = TestData.falsePositiveRate,
                 resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
                 minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+                hashIndexCompensation = TestData.hashIndexCompensation,
                 previous = None
               ).assertGet,
             expectedIndexCompressionUsed = indexCompression,
@@ -131,6 +134,7 @@ class GroupCompressorSpec extends TestBase {
             falsePositiveRate = TestData.falsePositiveRate,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+            hashIndexCompensation = TestData.hashIndexCompensation,
             maxProbe = TestData.maxProbe,
             previous = None
           ).assertGetOpt shouldBe empty
@@ -157,6 +161,7 @@ class GroupCompressorSpec extends TestBase {
                 falsePositiveRate = TestData.falsePositiveRate,
                 resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
                 minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+                hashIndexCompensation = TestData.hashIndexCompensation,
                 maxProbe = TestData.maxProbe,
                 previous = None
               ).assertGet,
@@ -191,6 +196,7 @@ class GroupCompressorSpec extends TestBase {
                 falsePositiveRate = TestData.falsePositiveRate,
                 resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
                 minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+                hashIndexCompensation = TestData.hashIndexCompensation,
                 maxProbe = TestData.maxProbe,
                 previous = None
               ).assertGet,
@@ -219,7 +225,8 @@ class GroupCompressorSpec extends TestBase {
               maxProbe = TestData.maxProbe,
               falsePositiveRate = TestData.falsePositiveRate,
               resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-              minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex
+              minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+              hashIndexCompensation = TestData.hashIndexCompensation
             ).assertGet
 
           //add more key-values to existing group.
@@ -234,6 +241,7 @@ class GroupCompressorSpec extends TestBase {
             falsePositiveRate = TestData.falsePositiveRate,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+            hashIndexCompensation = TestData.hashIndexCompensation,
             maxProbe = TestData.maxProbe,
             previous = None
           ).assertGetOpt shouldBe empty
@@ -252,6 +260,7 @@ class GroupCompressorSpec extends TestBase {
               falsePositiveRate = TestData.falsePositiveRate,
               resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
               minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+              hashIndexCompensation = TestData.hashIndexCompensation,
               maxProbe = TestData.maxProbe,
               previous = None
             ).assertGet
@@ -275,6 +284,7 @@ class GroupCompressorSpec extends TestBase {
                 falsePositiveRate = TestData.falsePositiveRate,
                 resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
                 minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+                hashIndexCompensation = TestData.hashIndexCompensation,
                 maxProbe = TestData.maxProbe,
                 previous = None
               ).assertGet,
@@ -309,6 +319,7 @@ class GroupCompressorSpec extends TestBase {
                 falsePositiveRate = TestData.falsePositiveRate,
                 resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
                 minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+                hashIndexCompensation = TestData.hashIndexCompensation,
                 maxProbe = TestData.maxProbe,
                 previous = None
               ).assertGet,

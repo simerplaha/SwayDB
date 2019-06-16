@@ -236,7 +236,7 @@ object SegmentHashIndex extends LazyLogging {
   }
 
   /**
-    * Finds a key in the hash index using linear probing.
+    * Finds a key in the hash index.
     *
     * @param get performs get or forward fetch from the currently being read sorted index's hash block.
     */
@@ -254,24 +254,24 @@ object SegmentHashIndex extends LazyLogging {
       } else {
         val hashIndex = generateHashIndex(key, hashIndexSize, probe)
         hashIndexReader.moveTo(hashIndexStartOffset + hashIndex).readIntUnsigned() match {
-          case IO.Success(possibleSortedIndexOffset) if possibleSortedIndexOffset != 0 =>
+          case IO.Success(possibleSortedIndexOffset) =>
+            if (possibleSortedIndexOffset == 0)
+              doFind(probe + 1)
+            else
             //submit the indexOffset removing the add 1 offset to avoid overlapping bytes.
             //println(s"Key: ${key.readInt()}: read hashIndex: $hashIndex probe: $probe, sortedIndex: ${possibleSortedIndexOffset - 1} = reading now!")
-            get(possibleSortedIndexOffset - 1) match {
-              case success @ IO.Success(Some(_)) =>
-                //println(s"Key: ${key.readInt()}: read hashIndex: $hashIndex probe: $probe, sortedIndex: ${possibleSortedIndexOffset - 1} = success")
-                success
+              get(possibleSortedIndexOffset - 1) match {
+                case success @ IO.Success(Some(_)) =>
+                  //println(s"Key: ${key.readInt()}: read hashIndex: $hashIndex probe: $probe, sortedIndex: ${possibleSortedIndexOffset - 1} = success")
+                  success
 
-              case IO.Success(None) =>
-                //println(s"Key: ${key.readInt()}: read hashIndex: $hashIndex probe: $probe: sortedIndex: ${possibleSortedIndexOffset - 1} = not found")
-                doFind(probe + 1)
+                case IO.Success(None) =>
+                  //println(s"Key: ${key.readInt()}: read hashIndex: $hashIndex probe: $probe: sortedIndex: ${possibleSortedIndexOffset - 1} = not found")
+                  doFind(probe + 1)
 
-              case IO.Failure(error) =>
-                IO.Failure(error)
-            }
-
-          case IO.Success(_) =>
-            doFind(probe + 1)
+                case IO.Failure(error) =>
+                  IO.Failure(error)
+              }
 
           case IO.Failure(error) =>
             IO.Failure(error)

@@ -331,6 +331,7 @@ private[core] object Segment extends LazyLogging {
                     bloomFilterFalsePositiveRate: Double,
                     resetPrefixCompressionEvery: Int,
                     minimumNumberOfKeyForHashIndex: Int,
+                    hashIndexCompensation: Int => Int,
                     enableRangeFilter: Boolean,
                     compressDuplicateValues: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                       timeOrder: TimeOrder[Slice[Byte]],
@@ -377,6 +378,7 @@ private[core] object Segment extends LazyLogging {
           bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
           resetPrefixCompressionEvery = resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
+          hashIndexCompensation = hashIndexCompensation,
           enableRangeFilter = enableRangeFilter,
           compressDuplicateValues = compressDuplicateValues
         )
@@ -393,6 +395,7 @@ private[core] object Segment extends LazyLogging {
                     bloomFilterFalsePositiveRate: Double,
                     resetPrefixCompressionEvery: Int,
                     minimumNumberOfKeyForHashIndex: Int,
+                    hashIndexCompensation: Int => Int,
                     enableRangeFilter: Boolean,
                     compressDuplicateValues: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                       timeOrder: TimeOrder[Slice[Byte]],
@@ -409,6 +412,7 @@ private[core] object Segment extends LazyLogging {
       bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
       resetPrefixCompressionEvery = resetPrefixCompressionEvery,
       minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
+      hashIndexCompensation = hashIndexCompensation,
       compressDuplicateValues = compressDuplicateValues
     ) flatMap {
       splits =>
@@ -446,6 +450,7 @@ private[core] object Segment extends LazyLogging {
                    bloomFilterFalsePositiveRate: Double,
                    resetPrefixCompressionEvery: Int,
                    minimumNumberOfKeyForHashIndex: Int,
+                   hashIndexCompensation: Int => Int,
                    enableRangeFilter: Boolean,
                    compressDuplicateValues: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                      timeOrder: TimeOrder[Slice[Byte]],
@@ -465,6 +470,7 @@ private[core] object Segment extends LazyLogging {
           bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
           resetPrefixCompressionEvery = resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
+          hashIndexCompensation = hashIndexCompensation,
           enableRangeFilter = enableRangeFilter,
           compressDuplicateValues = compressDuplicateValues
         )
@@ -479,6 +485,7 @@ private[core] object Segment extends LazyLogging {
                    bloomFilterFalsePositiveRate: Double,
                    resetPrefixCompressionEvery: Int,
                    minimumNumberOfKeyForHashIndex: Int,
+                   hashIndexCompensation: Int => Int,
                    enableRangeFilter: Boolean,
                    compressDuplicateValues: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                      timeOrder: TimeOrder[Slice[Byte]],
@@ -495,6 +502,7 @@ private[core] object Segment extends LazyLogging {
       bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
       resetPrefixCompressionEvery = resetPrefixCompressionEvery,
       minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
+      hashIndexCompensation = hashIndexCompensation,
       compressDuplicateValues = compressDuplicateValues
     ) flatMap { //recovery not required. On failure, uncommitted Segments will be GC'd as nothing holds references to them.
       keyValues =>
@@ -975,6 +983,7 @@ private[core] trait Segment extends FileLimiterItem {
           bloomFilterFalsePositiveRate: Double,
           resetPrefixCompressionEvery: Int,
           minimumNumberOfKeyForHashIndex: Int,
+          hashIndexCompensation: Int => Int,
           enableRangeFilter: Boolean,
           compressDuplicateValues: Boolean,
           removeDeletes: Boolean,
@@ -987,6 +996,7 @@ private[core] trait Segment extends FileLimiterItem {
               bloomFilterFalsePositiveRate: Double,
               resetPrefixCompressionEvery: Int,
               minimumNumberOfKeyForHashIndex: Int,
+              hashIndexCompensation: Int => Int,
               enableRangeFilter: Boolean,
               compressDuplicateValues: Boolean,
               removeDeletes: Boolean,

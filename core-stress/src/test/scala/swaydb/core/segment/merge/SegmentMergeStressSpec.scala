@@ -107,6 +107,7 @@ class SegmentMergeStressSpec extends TestBase {
                 bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
                 resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
                 minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+                hashIndexCompensation = TestData.hashIndexCompensation,
                 compressDuplicateValues = true
               ).assertGet
             }

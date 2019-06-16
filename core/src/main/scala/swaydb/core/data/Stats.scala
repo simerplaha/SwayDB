@@ -41,6 +41,7 @@ private[core] object Stats {
             bloomFiltersItemCount: Int,
             usePreviousHashIndexOffset: Boolean,
             minimumNumberOfKeyForHashIndex: Int,
+            hashIndexCompensation: Int => Int,
             previous: Option[KeyValue.WriteOnly],
             deadline: Option[Deadline]): Stats = {
 
@@ -104,7 +105,7 @@ private[core] object Stats {
         lastKeyValuePosition = position,
         lastKeyValueIndexOffset = thisKeyValuesHashIndexesSortedIndexOffset,
         minimumNumberOfKeyValues = minimumNumberOfKeyForHashIndex,
-        compensate = _ => 0
+        compensate = hashIndexCompensation
       )
 
     val segmentSizeWithoutFooter: Int =

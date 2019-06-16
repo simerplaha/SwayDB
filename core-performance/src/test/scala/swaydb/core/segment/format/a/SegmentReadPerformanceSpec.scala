@@ -125,6 +125,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase with Benchmark {
         bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+        hashIndexCompensation = TestData.hashIndexCompensation,
         compressDuplicateValues = true
       )(keyOrder = keyOrder, groupingStrategy = Some(KeyValueGroupingStrategyInternal(DefaultGroupingStrategy()))).assertGet
 

@@ -70,7 +70,8 @@ class SegmentMergeSpec extends TestBase {
             forMemory = false,
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex
+            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+            hashIndexCompensation = TestData.hashIndexCompensation
           ).assertGet
         newSegments.size shouldBe 1
 
@@ -101,7 +102,8 @@ class SegmentMergeSpec extends TestBase {
             forMemory = true,
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex
+            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+            hashIndexCompensation = TestData.hashIndexCompensation
           ).assertGet
 
         newSegments.size shouldBe 1
@@ -124,7 +126,8 @@ class SegmentMergeSpec extends TestBase {
           forMemory = false,
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-          minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex
+          minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+          hashIndexCompensation = TestData.hashIndexCompensation
         ).assertGet.size shouldBe 1
 
         SegmentMerger.completeMerge(
@@ -134,7 +137,8 @@ class SegmentMergeSpec extends TestBase {
           forMemory = true,
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-          minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex
+          minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+          hashIndexCompensation = TestData.hashIndexCompensation
         ).assertGet.size shouldBe 1
       }
     }
@@ -173,6 +177,7 @@ class SegmentMergeSpec extends TestBase {
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+          hashIndexCompensation = TestData.hashIndexCompensation,
           compressDuplicateValues = true
         ).assertGet.toArray
       )
@@ -188,6 +193,7 @@ class SegmentMergeSpec extends TestBase {
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+          hashIndexCompensation = TestData.hashIndexCompensation,
           compressDuplicateValues = true
         ).assertGet.toArray
       )
@@ -211,6 +217,7 @@ class SegmentMergeSpec extends TestBase {
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+          hashIndexCompensation = TestData.hashIndexCompensation,
           compressDuplicateValues = true
         ).assertGet
 
@@ -233,6 +240,7 @@ class SegmentMergeSpec extends TestBase {
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+          hashIndexCompensation = TestData.hashIndexCompensation,
           compressDuplicateValues = true
         ).assertGet
 
@@ -259,6 +267,7 @@ class SegmentMergeSpec extends TestBase {
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+          hashIndexCompensation = TestData.hashIndexCompensation,
           compressDuplicateValues = true
         ).assertGet
 
@@ -285,6 +294,7 @@ class SegmentMergeSpec extends TestBase {
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+            hashIndexCompensation = TestData.hashIndexCompensation,
             compressDuplicateValues = true
           ).assertGet
 
@@ -298,6 +308,7 @@ class SegmentMergeSpec extends TestBase {
             falsePositiveRate = TestData.falsePositiveRate,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+            hashIndexCompensation = TestData.hashIndexCompensation,
             previous = None,
             maxProbe = TestData.maxProbe
           ).assertGet.toMemory
@@ -313,6 +324,7 @@ class SegmentMergeSpec extends TestBase {
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+            hashIndexCompensation = TestData.hashIndexCompensation,
             compressDuplicateValues = true
           ).assertGet
 

@@ -54,6 +54,7 @@ class GroupSpec extends TestBase {
           falsePositiveRate = TestData.falsePositiveRate,
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+          hashIndexCompensation = TestData.hashIndexCompensation,
           maxProbe = TestData.maxProbe,
           previous = None
         ).assertGet
@@ -72,6 +73,7 @@ class GroupSpec extends TestBase {
               falsePositiveRate = TestData.falsePositiveRate,
               resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
               minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+              hashIndexCompensation = TestData.hashIndexCompensation,
               maxProbe = TestData.maxProbe,
               previous = None
             ).assertGet
@@ -94,6 +96,7 @@ class GroupSpec extends TestBase {
                 falsePositiveRate = TestData.falsePositiveRate,
                 resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
                 minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+                hashIndexCompensation = TestData.hashIndexCompensation,
                 maxProbe = TestData.maxProbe,
                 previous = None
               ).assertGet
@@ -115,6 +118,7 @@ class GroupSpec extends TestBase {
           falsePositiveRate = TestData.falsePositiveRate,
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+          hashIndexCompensation = TestData.hashIndexCompensation,
           maxProbe = TestData.maxProbe,
           previous = None
         ).assertGet
@@ -162,6 +166,7 @@ class GroupSpec extends TestBase {
           falsePositiveRate = TestData.falsePositiveRate,
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+          hashIndexCompensation = TestData.hashIndexCompensation,
           maxProbe = TestData.maxProbe,
           previous = None
         ).assertGet
