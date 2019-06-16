@@ -156,6 +156,7 @@ object SegmentHashIndex extends LazyLogging {
       bytes addIntUnsigned writeResult.maxProbe
       bytes addInt writeResult.hit
       bytes addInt writeResult.miss
+      bytes addBoolean false //range indexing is not implemented.
     }
 
   def readHeader(reader: Reader): IO[Header] =
