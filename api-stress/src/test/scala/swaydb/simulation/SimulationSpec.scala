@@ -19,18 +19,15 @@
 
 package swaydb.simulation
 
-import com.github.simerplaha.actor.{Actor, ActorRef}
-import com.typesafe.scalalogging.LazyLogging
 import java.util.concurrent.atomic.AtomicInteger
+
+import com.typesafe.scalalogging.LazyLogging
 import org.scalatest.WordSpec
-import scala.collection.mutable
-import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
-import scala.util.{Random, Try}
 import swaydb.Apply
 import swaydb.configs.level.DefaultGroupingStrategy
 import swaydb.core.TestBase
 import swaydb.core.TestData._
+import swaydb.core.actor.{Actor, ActorRef}
 import swaydb.data.IO
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.config.MMAP
@@ -38,6 +35,11 @@ import swaydb.serializers.Default._
 import swaydb.simulation.Domain._
 import swaydb.simulation.ProductCommand._
 import swaydb.simulation.RemoveAsserted._
+
+import scala.collection.mutable
+import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
+import scala.util.{Random, Try}
 
 sealed trait RemoveAsserted
 object RemoveAsserted {
@@ -417,7 +419,6 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
               state.products remove productId
               state.removedProducts add productId
           }
-
         }
 
       case DeleteRange =>
@@ -452,7 +453,6 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
               state.products.remove(removedProductId)
               state.removedProducts.add(removedProductId)
           }
-
         }
       case AssertState(removeAsserted) =>
         println(s"UserId: $userId - AssertState. Asserting User.")
@@ -517,7 +517,6 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
 
         println(s"UserId: $userId - finished asserting ${shuffledRemovedProducts.size} removedProducts. removedProducts = $removedRemovedProducts, removeAsserted = $removeAsserted.")
         println(s"UserId: $userId - after Assertion - state.products = ${state.products.size}, state.removedProducts = ${state.removedProducts.size}, removeAsserted = $removeAsserted.")
-
     }
   }
 

@@ -6,11 +6,11 @@ import ReleaseTransformations._
 val lz4Version = "1.6.0"
 val snappyVersion = "1.1.7.3"
 val logbackClassicVersion = "1.2.3"
-val bloomFilterVersion = "0.11.0"
 val scalaLoggingVersion = "3.8.0"
 val scalaMockVersion = "4.2.0"
 val scalaTestVersion = "3.0.5-M1"
 val reactiveStreamsVersion = "1.0.2"
+val boopickleVersion = "1.3.1"
 
 parallelExecution in ThisBuild := false
 
@@ -94,7 +94,7 @@ lazy val api =
     .settings(
       libraryDependencies ++=
         commonDependencies
-          :+ "org.reactivestreams" % "reactive-streams" % "1.0.2"
+          :+ "org.reactivestreams" % "reactive-streams" % reactiveStreamsVersion
 
     ).dependsOn(core % "test->test;compile->compile", serializers, configs)
 
@@ -149,9 +149,7 @@ lazy val `api-stress` =
     .settings(commonSettings)
     .settings(
       libraryDependencies ++=
-        commonDependencies
-          :+ "com.github.simerplaha" %% "actor" % "0.3" % Test
-          :+ "io.suzaku" %% "boopickle" % "1.3.0" % Test
+        commonDependencies :+ "io.suzaku" %% "boopickle" % boopickleVersion % Test
     ).dependsOn(core, configs)
     .dependsOn(api, core % "test->test")
 
