@@ -40,24 +40,27 @@ private[core] object SegmentWriter extends LazyLogging {
   val crcBytes: Int = 7
 
   def writeBloomFilterAndGetNearestDeadline(keyValue: KeyValue.WriteOnly,
-                                            bloomFilter: Option[BloomFilter],
+                                            bloom: Option[BloomFilter],
                                             currentNearestDeadline: Option[Deadline]): Option[Deadline] = {
 
-    def writeKeyValue(keyValue: KeyValue.WriteOnly): Unit =
+    def writeToBloom(keyValue: KeyValue.WriteOnly, bloom: BloomFilter): Unit =
       keyValue match {
         case group: KeyValue.WriteOnly.Group =>
-          writeKeyValues(group.keyValues)
+          writesToBloom(group.keyValues, bloom)
+
+        case otherKeyValue: KeyValue.WriteOnly.Range =>
+          bloom.add(otherKeyValue.key, otherKeyValue.toKey)
 
         case otherKeyValue: KeyValue.WriteOnly =>
-          bloomFilter.foreach(_ add otherKeyValue.key)
+          bloom add otherKeyValue.key
       }
 
     @tailrec
-    def writeKeyValues(keyValues: Slice[KeyValue.WriteOnly]): Unit =
+    def writesToBloom(keyValues: Slice[KeyValue.WriteOnly], bloom: BloomFilter): Unit =
       keyValues.headOption match {
         case Some(keyValue) =>
-          writeKeyValue(keyValue)
-          writeKeyValues(keyValues.drop(1))
+          writeToBloom(keyValue, bloom)
+          writesToBloom(keyValues.drop(1), bloom)
 
         case None =>
           ()
@@ -70,11 +73,11 @@ private[core] object SegmentWriter extends LazyLogging {
           val nextNearestDeadline = Segment.getNearestDeadline(nearestDeadline, childGroup)
           //run writeBloomFilters only if bloomFilters is defined. To keep the stack small do not pass BloomFilter
           //to the function because a Segment can contain many key-values.
-          if (bloomFilter.isDefined) writeKeyValues(childGroup.keyValues)
+          bloom foreach (writesToBloom(childGroup.keyValues, _))
           start(keyValues.drop(1), nextNearestDeadline)
 
         case Some(otherKeyValue) =>
-          bloomFilter.foreach(_ add otherKeyValue.key)
+          bloom foreach (writeToBloom(otherKeyValue, _))
           val nextNearestDeadline = Segment.getNearestDeadline(nearestDeadline, otherKeyValue)
           start(keyValues.drop(1), nextNearestDeadline)
 
@@ -104,7 +107,7 @@ private[core] object SegmentWriter extends LazyLogging {
             val newDeadline =
               writeBloomFilterAndGetNearestDeadline(
                 keyValue = keyValue,
-                bloomFilter = bloomFilter,
+                bloom = bloomFilter,
                 currentNearestDeadline = deadline
               )
             if (added)

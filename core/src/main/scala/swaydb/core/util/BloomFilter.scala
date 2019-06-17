@@ -59,7 +59,7 @@ object BloomFilter {
       numberOfHashes = 0,
       hasRanges = false,
       rangeFilter = None,
-      bytes = Slice.emptyBytes
+      bloomBytes = Slice.emptyBytes
     )(KeyOrder.default)
 
   def apply(numberOfKeys: Int,
@@ -86,7 +86,7 @@ object BloomFilter {
       numberOfHashes = numberOfHashes,
       hasRanges = false,
       rangeFilter = if (enableRangeFilter) Some(mutable.Map.empty) else None,
-      bytes = bytes
+      bloomBytes = bytes
     )
   }
 
@@ -114,7 +114,7 @@ object BloomFilter {
       numberOfHashes = numberOfHashes,
       hasRanges = false,
       rangeFilter = if (enableRangeFilter) Some(mutable.Map.empty) else None,
-      bytes = bytes
+      bloomBytes = bytes
     )
   }
 
@@ -154,7 +154,7 @@ object BloomFilter {
               numberOfHashes = numberOfHashes,
               hasRanges = rangeEntries.exists(_.nonEmpty),
               rangeFilter = rangeEntries,
-              bytes = bloomFilterBytes
+              bloomBytes = bloomFilterBytes
             )
         else
           IO.Failure(IO.Error.Fatal(new Exception(s"Invalid bloomFilter formatID: $formatID. Expected: $bloomFilterFormatID")))
@@ -212,7 +212,7 @@ class BloomFilter(val startOffset: Int,
                   val numberOfHashes: Int,
                   var hasRanges: Boolean,
                   rangeFilter: Option[mutable.Map[Int, Iterable[(Byte, Byte)]]],
-                  bytes: Slice[Byte])(implicit ordering: KeyOrder[Slice[Byte]]) {
+                  bloomBytes: Slice[Byte])(implicit ordering: KeyOrder[Slice[Byte]]) {
 
   import ordering._
 
@@ -220,14 +220,14 @@ class BloomFilter(val startOffset: Int,
     _endOffset
 
   private def get(index: Long): Long =
-    bytes.take(startOffset + ((index >>> 6) * 8L).toInt, ByteSizeOf.long).readLong() & (1L << index)
+    bloomBytes.take(startOffset + ((index >>> 6) * 8L).toInt, ByteSizeOf.long).readLong() & (1L << index)
 
   private def set(index: Long): Unit = {
     val offset = (startOffset + (index >>> 6) * 8L).toInt
-    val long = bytes.take(offset, ByteSizeOf.long).readLong()
+    val long = bloomBytes.take(offset, ByteSizeOf.long).readLong()
     if ((long & (1L << index)) == 0) {
-      bytes moveWritePositionUnsafe offset
-      bytes addLong (long | (1L << index))
+      bloomBytes moveWritePositionUnsafe offset
+      bloomBytes addLong (long | (1L << index))
       _endOffset = _endOffset max (offset + ByteSizeOf.long)
     }
   }
@@ -309,7 +309,7 @@ class BloomFilter(val startOffset: Int,
     )
 
   def toBloomFilterSlice: Slice[Byte] =
-    bytes.slice(0, _endOffset)
+    bloomBytes.slice(0, _endOffset)
 
   def exportSize =
     _endOffset + 1
@@ -327,5 +327,5 @@ class BloomFilter(val startOffset: Int,
   }
 
   override def hashCode(): Int =
-    bytes.hashCode()
+    bloomBytes.hashCode()
 }
