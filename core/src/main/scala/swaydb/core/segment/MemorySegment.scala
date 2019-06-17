@@ -96,7 +96,7 @@ private[segment] case class MemorySegment(path: Path,
                    resetPrefixCompressionEvery: Int,
                    minimumNumberOfKeyForHashIndex: Int,
                    hashIndexCompensation: Int => Int,
-                   enableRangeFilter: Boolean,
+                   enableRangeFilterAndIndex: Boolean,
                    compressDuplicateValues: Boolean,
                    removeDeletes: Boolean,
                    createdInLevel: Int,
@@ -120,7 +120,7 @@ private[segment] case class MemorySegment(path: Path,
             minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = hashIndexCompensation,
             compressDuplicateValues = compressDuplicateValues,
-            enableRangeFilter = enableRangeFilter
+            enableRangeFilterAndIndex = enableRangeFilterAndIndex
           ) flatMap {
             splits =>
               splits.mapIO[Segment](
@@ -129,7 +129,7 @@ private[segment] case class MemorySegment(path: Path,
                     Segment.memory(
                       path = targetPaths.next.resolve(idGenerator.nextSegmentID),
                       createdInLevel = createdInLevel,
-                      enableRangeFilter = enableRangeFilter,
+                      enableRangeFilterAndIndex = enableRangeFilterAndIndex,
                       keyValues = keyValues,
                       bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate
                     )
@@ -153,7 +153,7 @@ private[segment] case class MemorySegment(path: Path,
                        resetPrefixCompressionEvery: Int,
                        minimumNumberOfKeyForHashIndex: Int,
                        hashIndexCompensation: Int => Int,
-                       enableRangeFilter: Boolean,
+                       enableRangeFilterAndIndex: Boolean,
                        compressDuplicateValues: Boolean,
                        removeDeletes: Boolean,
                        createdInLevel: Int,
@@ -176,7 +176,7 @@ private[segment] case class MemorySegment(path: Path,
             minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = hashIndexCompensation,
             compressDuplicateValues = compressDuplicateValues,
-            enableRangeFilter = enableRangeFilter
+            enableRangeFilterAndIndex = enableRangeFilterAndIndex
           ) flatMap {
             splits =>
               splits.mapIO[Segment](
@@ -185,7 +185,7 @@ private[segment] case class MemorySegment(path: Path,
                     Segment.memory(
                       path = targetPaths.next.resolve(idGenerator.nextSegmentID),
                       createdInLevel = createdInLevel,
-                      enableRangeFilter = enableRangeFilter,
+                      enableRangeFilterAndIndex = enableRangeFilterAndIndex,
                       keyValues = keyValues,
                       bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate
                     ),

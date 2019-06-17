@@ -41,7 +41,7 @@ object BloomFilterMemoryUsage extends App {
     BloomFilter(
       numberOfKeys = 1000000,
       falsePositiveRate = TestData.falsePositiveRate,
-      enableRangeFilter = TestData.enableRangeFilter
+      enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex
     )
 
   keys.foreach(bloomFilter.add)

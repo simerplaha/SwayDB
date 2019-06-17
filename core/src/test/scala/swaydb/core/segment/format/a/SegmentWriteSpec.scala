@@ -256,7 +256,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
             createdInLevel = 0,
             maxProbe = TestData.maxProbe,
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-            enableRangeFilter = TestData.enableRangeFilter
+            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex
           ).assertGet
 
         //read key-values so they are all part of the same byte array.
@@ -626,7 +626,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
-        enableRangeFilter = TestData.enableRangeFilter,
+        enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
         compressDuplicateValues = true,
         removeDeletes = false,
         createdInLevel = 0,
@@ -639,7 +639,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
-        enableRangeFilter = TestData.enableRangeFilter,
+        enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
         compressDuplicateValues = true,
         removeDeletes = false,
         createdInLevel = 0,
@@ -734,7 +734,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           fetchNextPath = levelPath.resolve(nextSegmentId),
           mmapSegmentsOnRead = levelStorage.mmapSegmentsOnRead,
           mmapSegmentsOnWrite = levelStorage.mmapSegmentsOnWrite,
-          enableRangeFilter = TestData.enableRangeFilter,
+          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
@@ -771,7 +771,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
             fetchNextPath = levelPath.resolve(nextSegmentId),
             mmapSegmentsOnRead = levelStorage.mmapSegmentsOnRead,
             mmapSegmentsOnWrite = levelStorage.mmapSegmentsOnWrite,
-            enableRangeFilter = TestData.enableRangeFilter,
+            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
@@ -814,7 +814,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         fetchNextPath = nextPath,
         mmapSegmentsOnRead = levelStorage.mmapSegmentsOnRead,
         mmapSegmentsOnWrite = levelStorage.mmapSegmentsOnWrite,
-        enableRangeFilter = TestData.enableRangeFilter,
+        enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
@@ -865,7 +865,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         maxProbe = TestData.maxProbe,
         minSegmentSize = keyValues.toTransient.last.stats.segmentSize / 5,
         bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-        enableRangeFilter = TestData.enableRangeFilter,
+        enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
         compressDuplicateValues = true
 
       ).failed.assertGet.exception shouldBe a[FileAlreadyExistsException]
@@ -897,7 +897,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
             else
               keyValues.last.stats.memorySegmentSize / 4,
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-          enableRangeFilter = TestData.enableRangeFilter
+          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex
         ).assertGet
 
       segments.size should be >= 2 //ensures that splits occurs. Memory Segments do not getFromHashIndex written to disk without splitting.
@@ -925,7 +925,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
             compressDuplicateValues = true,
             minSegmentSize = keyValues.last.stats.segmentSize / 1000, //divide by large because key-value can contain all expired.
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-            enableRangeFilter = TestData.enableRangeFilter
+            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex
           ).assertGet
 
         segments.foreach(_.existsOnDisk shouldBe false)
@@ -1022,7 +1022,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
         bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-        enableRangeFilter = TestData.enableRangeFilter,
+        enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
         compressDuplicateValues = true,
         removeDeletes = false,
         createdInLevel = 0,
@@ -1045,7 +1045,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
-          enableRangeFilter = TestData.enableRangeFilter,
+          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
           compressDuplicateValues = true,
           removeDeletes = false,
           createdInLevel = 0,
@@ -1068,7 +1068,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
-          enableRangeFilter = TestData.enableRangeFilter,
+          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
           compressDuplicateValues = true
         ).assertGet
 
@@ -1087,7 +1087,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           newKeyValues = newKeyValues.toMemory,
           minSegmentSize = 10.kb,
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-          enableRangeFilter = TestData.enableRangeFilter,
+          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
@@ -1114,7 +1114,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
-          enableRangeFilter = TestData.enableRangeFilter,
+          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
           compressDuplicateValues = true
         ).assertGet
 
@@ -1148,7 +1148,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
-          enableRangeFilter = TestData.enableRangeFilter,
+          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
           compressDuplicateValues = true,
           removeDeletes = false,
           createdInLevel = 0,
@@ -1183,7 +1183,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
-          enableRangeFilter = TestData.enableRangeFilter,
+          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
           compressDuplicateValues = true,
           removeDeletes = false,
           createdInLevel = 0,
@@ -1215,7 +1215,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
-          enableRangeFilter = TestData.enableRangeFilter,
+          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
           compressDuplicateValues = true,
           removeDeletes = true,
           createdInLevel = 0,
@@ -1255,7 +1255,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
-            enableRangeFilter = TestData.enableRangeFilter,
+            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
             compressDuplicateValues = true,
             removeDeletes = false,
             createdInLevel = 0,
@@ -1301,7 +1301,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
-          enableRangeFilter = TestData.enableRangeFilter,
+          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
           compressDuplicateValues = true,
           removeDeletes = true,
           createdInLevel = 0,
@@ -1327,7 +1327,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
-          enableRangeFilter = TestData.enableRangeFilter,
+          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
           compressDuplicateValues = true,
           removeDeletes = false,
           createdInLevel = 0,
@@ -1356,7 +1356,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
-          enableRangeFilter = TestData.enableRangeFilter,
+          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
           compressDuplicateValues = true,
           removeDeletes = true,
           createdInLevel = 0,
@@ -1395,7 +1395,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
-            enableRangeFilter = TestData.enableRangeFilter,
+            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
             compressDuplicateValues = true,
             removeDeletes = false,
             createdInLevel = 0,
@@ -1410,7 +1410,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
-            enableRangeFilter = TestData.enableRangeFilter,
+            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
             compressDuplicateValues = true,
             removeDeletes = false,
             createdInLevel = 0,
@@ -1457,7 +1457,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
-          enableRangeFilter = TestData.enableRangeFilter,
+          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
           compressDuplicateValues = true,
           removeDeletes = true,
           createdInLevel = 0,
@@ -1478,7 +1478,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
-        enableRangeFilter = TestData.enableRangeFilter,
+        enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
         compressDuplicateValues = true,
         removeDeletes = true,
         createdInLevel = 0,
@@ -1499,7 +1499,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
-          enableRangeFilter = TestData.enableRangeFilter,
+          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
           compressDuplicateValues = true,
           removeDeletes = false,
           createdInLevel = 0,
@@ -1526,7 +1526,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
-          enableRangeFilter = TestData.enableRangeFilter,
+          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
           compressDuplicateValues = true
         ).assertGet
 
@@ -1539,7 +1539,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           createdInLevel = 0,
           maxProbe = TestData.maxProbe,
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-          enableRangeFilter = TestData.enableRangeFilter
+          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex
         ).assertGet
 
       readAll(bytes).assertGet shouldBe keyValues
@@ -1557,7 +1557,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-        enableRangeFilter = TestData.enableRangeFilter,
+        enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
         compressDuplicateValues = true
       )(keyOrder, Some(KeyValueGroupingStrategyInternal(DefaultGroupingStrategy()))).assertGet
@@ -1571,7 +1571,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           createdInLevel = 0,
           maxProbe = TestData.maxProbe,
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-          enableRangeFilter = TestData.enableRangeFilter
+          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex
         ).assertGet
 
       readAll(bytes).assertGet shouldBe keyValues

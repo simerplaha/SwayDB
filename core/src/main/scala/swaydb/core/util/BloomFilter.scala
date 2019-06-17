@@ -65,7 +65,7 @@ object BloomFilter {
 
   def apply(numberOfKeys: Int,
             falsePositiveRate: Double,
-            enableRangeFilter: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]]): BloomFilter = {
+            enableRangeFilterAndIndex: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]]): BloomFilter = {
     val numberOfBits = optimalNumberOfBloomFilterBits(numberOfKeys, falsePositiveRate)
     val numberOfHashes = optimalNumberOfBloomFilterHashes(numberOfKeys, numberOfBits)
 
@@ -86,7 +86,7 @@ object BloomFilter {
       numberOfBits = numberOfBits,
       numberOfHashes = numberOfHashes,
       hasRanges = false,
-      rangeFilter = if (enableRangeFilter) Some(mutable.Map.empty) else None,
+      rangeFilter = if (enableRangeFilterAndIndex) Some(mutable.Map.empty) else None,
       bloomBytes = bytes
     )
   }
@@ -94,7 +94,7 @@ object BloomFilter {
   //when the byte size is already pre-computed.
   def apply(numberOfKeys: Int,
             falsePositiveRate: Double,
-            enableRangeFilter: Boolean,
+            enableRangeFilterAndIndex: Boolean,
             bytes: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): BloomFilter = {
     val numberOfBits = optimalNumberOfBloomFilterBits(numberOfKeys, falsePositiveRate)
     val numberOfHashes = optimalNumberOfBloomFilterHashes(numberOfKeys, numberOfBits)
@@ -114,13 +114,21 @@ object BloomFilter {
       numberOfBits = numberOfBits,
       numberOfHashes = numberOfHashes,
       hasRanges = false,
-      rangeFilter = if (enableRangeFilter) Some(mutable.Map.empty) else None,
+      rangeFilter = if (enableRangeFilterAndIndex) Some(mutable.Map.empty) else None,
       bloomBytes = bytes
     )
   }
 
-  def optimalRangeFilterByteSize(numberOfRanges: Int, rangeFilterCommonPrefixes: Iterable[Int]): Int =
-    IntMapListBufferSerializer.optimalBytesRequired(numberOfRanges, rangeFilterCommonPrefixes)
+  def optimalRangeFilterByteSize(enableRangeFilterAndIndex: Boolean,
+                                 numberOfRanges: Int,
+                                 rangeFilterCommonPrefixes: Iterable[Int]): Int =
+    if (enableRangeFilterAndIndex)
+      IntMapListBufferSerializer.optimalBytesRequired(
+        numberOfRanges,
+        rangeFilterCommonPrefixes
+      )
+    else
+      1
 
   def optimalNumberOfBloomFilterBits(numberOfKeys: Int, falsePositiveRate: Double): Int =
     if (numberOfKeys <= 0 || falsePositiveRate <= 0.0)
@@ -167,21 +175,21 @@ object BloomFilter {
     */
   def init(keyValues: Iterable[KeyValue.WriteOnly],
            falsePositiveRate: Double,
-           enableRangeFilter: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]]): Option[BloomFilter] =
+           enableRangeFilterAndIndex: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]]): Option[BloomFilter] =
     if (falsePositiveRate <= 0.0)
       None
     else
       keyValues.lastOption flatMap {
         last =>
           //if rangeFilter is disabled then disable bloomFilter if if it has remove range.
-          if (!enableRangeFilter && last.stats.hasRemoveRange)
+          if (!enableRangeFilterAndIndex && last.stats.hasRemoveRange)
             None
           else
             Some(
               BloomFilter(
                 numberOfKeys = last.stats.totalBloomFiltersItemsCount,
                 falsePositiveRate = falsePositiveRate,
-                enableRangeFilter = enableRangeFilter
+                enableRangeFilterAndIndex = enableRangeFilterAndIndex
               )
             )
       }
@@ -192,16 +200,16 @@ object BloomFilter {
   def init(numberOfKeys: Int,
            hasRemoveRange: Boolean,
            falsePositiveRate: Double,
-           enableRangeFilter: Boolean,
+           enableRangeFilterAndIndex: Boolean,
            bytes: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Option[BloomFilter] =
-    if (falsePositiveRate <= 0.0 || (!enableRangeFilter && hasRemoveRange))
+    if (falsePositiveRate <= 0.0 || (!enableRangeFilterAndIndex && hasRemoveRange))
       None
     else
       Some(
         BloomFilter(
           numberOfKeys = numberOfKeys,
           falsePositiveRate = falsePositiveRate,
-          enableRangeFilter = enableRangeFilter,
+          enableRangeFilterAndIndex = enableRangeFilterAndIndex,
           bytes = bytes
         )
       )

@@ -394,7 +394,7 @@ object CommonAssertions {
         minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
         compressDuplicateValues = randomBoolean(),
-        enableRangeFilter = TestData.enableRangeFilter
+        enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex
       ).assertGet
 
     if (expected.size == 0) {
@@ -1339,7 +1339,7 @@ object CommonAssertions {
         createdInLevel = 1,
         maxProbe = 10,
         bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-        enableRangeFilter = TestData.enableRangeFilter
+        enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex
       ).assertGet
 
     nearestDeadline shouldBe Segment.getNearestDeadline(groupKeyValues).assertGetOpt

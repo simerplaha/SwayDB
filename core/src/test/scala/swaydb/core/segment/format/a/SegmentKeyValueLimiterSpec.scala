@@ -61,7 +61,7 @@ class SegmentKeyValueLimiterSpec extends TestBase with Benchmark {
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
-          enableRangeFilter = TestData.enableRangeFilter,
+          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
           maxProbe = TestData.maxProbe,
           previous = None
         ).assertGet
@@ -81,7 +81,7 @@ class SegmentKeyValueLimiterSpec extends TestBase with Benchmark {
             createdInLevel = 0,
             keyValues = mergedKeyValues,
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-            enableRangeFilter = TestData.enableRangeFilter
+            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex
           )(KeyOrder.default, timeOrder, functionStore, TestLimitQueues.fileOpenLimiter, None, keyValueLimiter).assertGet
 
         //perform reads multiple times and assert that while the key-values are getting drop, the group key-value does
@@ -134,7 +134,7 @@ class SegmentKeyValueLimiterSpec extends TestBase with Benchmark {
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
-          enableRangeFilter = TestData.enableRangeFilter,
+          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
           maxProbe = TestData.maxProbe,
           previous = None
         ).assertGet

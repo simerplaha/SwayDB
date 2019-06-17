@@ -50,6 +50,7 @@ private[core] object Stats {
             minimumNumberOfKeysForHashIndex: Int,
             hashIndexCompensation: Int => Int,
             rangeCommonPrefixesCount: SortedSet[Int],
+            enableRangeFilterAndIndex: Boolean,
             previous: Option[KeyValue.WriteOnly],
             deadline: Option[Deadline]): Stats = {
 
@@ -130,7 +131,7 @@ private[core] object Stats {
     val segmentIndexSize =
       previousStats.map(_.segmentIndexSize).getOrElse(0) + thisKeyValuesIndexSizeWithoutFooter
 
-    val optimalRangeFilterSize = BloomFilter.optimalRangeFilterByteSize(totalNumberOfRanges, rangeCommonPrefixesCount)
+    val optimalRangeFilterSize = BloomFilter.optimalRangeFilterByteSize(enableRangeFilterAndIndex, totalNumberOfRanges, rangeCommonPrefixesCount)
     val optimalBloomFilterSize = BloomFilter.optimalSegmentBloomFilterByteSize(totalBloomFiltersItemsCount, falsePositiveRate)
 
     val footerHeaderSize =
@@ -152,7 +153,7 @@ private[core] object Stats {
     val segmentSize: Int =
       segmentSizeWithoutFooter +
         footerHeaderSize +
-        ByteSizeOf.int //int to store the size of the footer
+        ByteSizeOf.int //to store footer offset.
 
     val segmentUncompressedKeysSize: Int =
       previousStats.map(_.segmentUncompressedKeysSize).getOrElse(0) + indexEntry.size

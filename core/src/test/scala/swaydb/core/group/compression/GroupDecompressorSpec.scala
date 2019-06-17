@@ -69,7 +69,7 @@ class GroupDecompressorSpec extends TestBase {
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
-            enableRangeFilter = TestData.enableRangeFilter,
+            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
             maxProbe = TestData.maxProbe,
             previous = None
           ).assertGet
@@ -81,7 +81,7 @@ class GroupDecompressorSpec extends TestBase {
             createdInLevel = 0,
             maxProbe = TestData.maxProbe,
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-            enableRangeFilter = TestData.enableRangeFilter
+            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex
           ).assertGet
 
         //read footer

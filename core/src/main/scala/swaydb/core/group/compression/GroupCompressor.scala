@@ -50,7 +50,7 @@ private[core] object GroupCompressor extends LazyLogging {
                minimumNumberOfKeyForHashIndex: Int,
                hashIndexCompensation: Int => Int,
                previous: Option[KeyValue.WriteOnly],
-               enableRangeFilter: Boolean,
+               enableRangeFilterAndIndex: Boolean,
                maxProbe: Int): IO[Option[Transient.Group]] =
     if (keyValues.isEmpty) {
       logger.error(s"Ignoring compression. Cannot compress on empty key-values")
@@ -178,7 +178,7 @@ private[core] object GroupCompressor extends LazyLogging {
                       previous = previous,
                       falsePositiveRate = falsePositiveRate,
                       resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-                      enableRangeFilter = enableRangeFilter,
+                      enableRangeFilterAndIndex = enableRangeFilterAndIndex,
                       minimumNumberOfKeysForHashIndex = minimumNumberOfKeyForHashIndex,
                       hashIndexCompensation = hashIndexCompensation
                     )

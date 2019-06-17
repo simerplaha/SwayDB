@@ -101,7 +101,7 @@ sealed trait SegmentGroupReadSpec extends TestBase with ScalaFutures with Privat
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
-        enableRangeFilter = TestData.enableRangeFilter,
+        enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
         compressDuplicateValues = true,
         removeDeletes = false,
         createdInLevel = 0,
@@ -141,7 +141,7 @@ sealed trait SegmentGroupReadSpec extends TestBase with ScalaFutures with Privat
           createdInLevel = 0,
           maxProbe = TestData.maxProbe,
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-          enableRangeFilter = TestData.enableRangeFilter
+          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex
         ).assertGet
 
       readAll(bytes).assertGet shouldBe allGroupKeyValues

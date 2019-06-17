@@ -68,7 +68,7 @@ class RangeEntryReaderWriterSpec extends WordSpec {
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
-          enableRangeFilter = TestData.enableRangeFilter,
+          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
           previous = Some(previous)
         )
 

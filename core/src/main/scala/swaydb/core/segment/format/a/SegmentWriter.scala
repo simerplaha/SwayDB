@@ -210,7 +210,7 @@ private[core] object SegmentWriter extends LazyLogging {
             createdInLevel: Int,
             maxProbe: Int,
             bloomFilterFalsePositiveRate: Double,
-            enableRangeFilter: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[(Slice[Byte], Option[Deadline])] =
+            enableRangeFilterAndIndex: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[(Slice[Byte], Option[Deadline])] =
     if (keyValues.isEmpty)
       IO.Success(Slice.emptyBytes, None)
     else {
@@ -243,7 +243,7 @@ private[core] object SegmentWriter extends LazyLogging {
           numberOfKeys = lastStats.totalBloomFiltersItemsCount,
           hasRemoveRange = lastStats.hasRemoveRange,
           falsePositiveRate = bloomFilterFalsePositiveRate,
-          enableRangeFilter = enableRangeFilter,
+          enableRangeFilterAndIndex = enableRangeFilterAndIndex,
           bytes = bloomFilterSlice
         )
 

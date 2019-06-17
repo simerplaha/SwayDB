@@ -42,7 +42,7 @@ class BloomFilterSpec extends TestBase {
         BloomFilter(
           numberOfKeys = 10,
           falsePositiveRate = TestData.falsePositiveRate,
-          enableRangeFilter = TestData.enableRangeFilter
+          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex
         )
 
       (1 to 10) foreach (bloomFilter.add(_))
@@ -73,7 +73,7 @@ class BloomFilterSpec extends TestBase {
             BloomFilter(
               numberOfKeys = numberOfItems,
               falsePositiveRate = falsePositiveRate,
-              enableRangeFilter = TestData.enableRangeFilter
+              enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex
             )
           bloomFilter.toBloomFilterSlice.size should be <= BloomFilter.optimalSegmentBloomFilterByteSize(numberOfItems, falsePositiveRate)
       }
@@ -85,7 +85,7 @@ class BloomFilterSpec extends TestBase {
       BloomFilter.init(
         keyValues = Slice.empty,
         falsePositiveRate = TestData.falsePositiveRate,
-        enableRangeFilter = TestData.enableRangeFilter
+        enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex
       ) shouldBe empty
     }
 
@@ -93,7 +93,7 @@ class BloomFilterSpec extends TestBase {
       BloomFilter.init(
         keyValues = randomizedKeyValues(),
         falsePositiveRate = 0.0,
-        enableRangeFilter = true
+        enableRangeFilterAndIndex = true
       ) shouldBe empty
     }
 
@@ -104,13 +104,13 @@ class BloomFilterSpec extends TestBase {
         BloomFilter.init(
           keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, None, Value.Remove(None, time.next))),
           falsePositiveRate = TestData.falsePositiveRate,
-          enableRangeFilter = false
+          enableRangeFilterAndIndex = false
         ) shouldBe empty
 
         BloomFilter.init(
           keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, None, Value.Remove(Some(randomDeadline()), time.next))),
           falsePositiveRate = TestData.falsePositiveRate,
-          enableRangeFilter = false
+          enableRangeFilterAndIndex = false
         ) shouldBe empty
       }
     }
@@ -123,7 +123,7 @@ class BloomFilterSpec extends TestBase {
         BloomFilter.init(
           keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, None, Value.Function(Slice.emptyBytes, time.next))),
           falsePositiveRate = TestData.falsePositiveRate,
-          enableRangeFilter = false
+          enableRangeFilterAndIndex = false
         ) shouldBe empty
       }
     }
@@ -136,13 +136,13 @@ class BloomFilterSpec extends TestBase {
         BloomFilter.init(
           keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, None, Value.PendingApply(Slice(Value.Remove(randomDeadlineOption(), time.next))))),
           falsePositiveRate = TestData.falsePositiveRate,
-          enableRangeFilter = false
+          enableRangeFilterAndIndex = false
         ) shouldBe empty
 
         BloomFilter.init(
           keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, None, Value.PendingApply(Slice(Value.Function(randomFunctionId(), time.next))))),
           falsePositiveRate = TestData.falsePositiveRate,
-          enableRangeFilter = false
+          enableRangeFilterAndIndex = false
         ) shouldBe empty
       }
     }
@@ -155,7 +155,7 @@ class BloomFilterSpec extends TestBase {
         BloomFilter.init(
           keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, None, Value.PendingApply(Slice(Value.Update(randomStringOption, randomDeadlineOption(), time.next))))),
           falsePositiveRate = TestData.falsePositiveRate,
-          enableRangeFilter = TestData.enableRangeFilter
+          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex
         ) shouldBe defined
       }
     }
@@ -167,7 +167,7 @@ class BloomFilterSpec extends TestBase {
         BloomFilter.init(
           keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, Some(Value.Remove(None, time.next)), Value.update(100))),
           falsePositiveRate = TestData.falsePositiveRate,
-          enableRangeFilter = TestData.enableRangeFilter
+          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex
         ) shouldBe defined
       }
     }
@@ -216,8 +216,9 @@ class BloomFilterSpec extends TestBase {
       BloomFilter(
         numberOfKeys = 10000,
         falsePositiveRate = TestData.falsePositiveRate,
-        enableRangeFilter = TestData.enableRangeFilter
+        enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex
       )
+
     val data: Seq[String] =
       (1 to 10000) map {
         _ =>
@@ -244,7 +245,7 @@ class BloomFilterSpec extends TestBase {
           BloomFilter(
             numberOfKeys = 7,
             falsePositiveRate = TestData.falsePositiveRate,
-            enableRangeFilter = true
+            enableRangeFilterAndIndex = true
           )
 
         bloom1.add(1)

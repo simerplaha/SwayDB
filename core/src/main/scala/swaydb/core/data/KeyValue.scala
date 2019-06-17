@@ -202,7 +202,7 @@ private[core] object KeyValue {
     val isRange: Boolean
     val isGroup: Boolean
     val previous: Option[KeyValue.WriteOnly]
-    def enableRangeFilter: Boolean
+    def enableRangeFilterAndIndex: Boolean
     def resetPrefixCompressionEvery: Int
     def minimumNumberOfKeysForHashIndex: Int
     def hashIndexCompensation: Int => Int
@@ -598,7 +598,7 @@ private[core] object Transient {
                     resetPrefixCompressionEvery: Int,
                     minimumNumberOfKeysForHashIndex: Int,
                     hashIndexCompensation: Int => Int,
-                    enableRangeFilter: Boolean) extends Transient.SegmentResponse with KeyValue.WriteOnly.Fixed {
+                    enableRangeFilterAndIndex: Boolean) extends Transient.SegmentResponse with KeyValue.WriteOnly.Fixed {
     override val isRange: Boolean = false
     override val isGroup: Boolean = false
     override val isRemoveRangeMayBe = false
@@ -630,6 +630,7 @@ private[core] object Transient {
         usePreviousHashIndexOffset = enablePrefixCompression,
         minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
         hashIndexCompensation = hashIndexCompensation,
+        enableRangeFilterAndIndex = enableRangeFilterAndIndex,
         rangeCommonPrefixesCount = previous.map(_.stats.rangeCommonPrefixesCount).getOrElse(Stats.emptyRangeCommonPrefixesCount),
         previous = previous,
         deadline = deadline
@@ -653,7 +654,7 @@ private[core] object Transient {
                  resetPrefixCompressionEvery: Int,
                  minimumNumberOfKeysForHashIndex: Int,
                  hashIndexCompensation: Int => Int,
-                 enableRangeFilter: Boolean) extends Transient.SegmentResponse with KeyValue.WriteOnly.Fixed {
+                 enableRangeFilterAndIndex: Boolean) extends Transient.SegmentResponse with KeyValue.WriteOnly.Fixed {
 
     override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
@@ -686,6 +687,7 @@ private[core] object Transient {
         usePreviousHashIndexOffset = enablePrefixCompression,
         minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
         hashIndexCompensation = hashIndexCompensation,
+        enableRangeFilterAndIndex = enableRangeFilterAndIndex,
         rangeCommonPrefixesCount = previous.map(_.stats.rangeCommonPrefixesCount).getOrElse(Stats.emptyRangeCommonPrefixesCount),
         previous = previous,
         deadline = deadline
@@ -710,7 +712,7 @@ private[core] object Transient {
                     resetPrefixCompressionEvery: Int,
                     minimumNumberOfKeysForHashIndex: Int,
                     hashIndexCompensation: Int => Int,
-                    enableRangeFilter: Boolean) extends Transient.SegmentResponse with KeyValue.WriteOnly.Fixed {
+                    enableRangeFilterAndIndex: Boolean) extends Transient.SegmentResponse with KeyValue.WriteOnly.Fixed {
     override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
     override val isRange: Boolean = false
@@ -748,6 +750,7 @@ private[core] object Transient {
         usePreviousHashIndexOffset = enablePrefixCompression,
         minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
         hashIndexCompensation = hashIndexCompensation,
+        enableRangeFilterAndIndex = enableRangeFilterAndIndex,
         rangeCommonPrefixesCount = previous.map(_.stats.rangeCommonPrefixesCount).getOrElse(Stats.emptyRangeCommonPrefixesCount),
         previous = previous,
         deadline = deadline
@@ -764,7 +767,7 @@ private[core] object Transient {
                       resetPrefixCompressionEvery: Int,
                       minimumNumberOfKeysForHashIndex: Int,
                       hashIndexCompensation: Int => Int,
-                      enableRangeFilter: Boolean) extends Transient.SegmentResponse with KeyValue.WriteOnly.Fixed {
+                      enableRangeFilterAndIndex: Boolean) extends Transient.SegmentResponse with KeyValue.WriteOnly.Fixed {
     override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
     override val isRange: Boolean = false
@@ -805,6 +808,7 @@ private[core] object Transient {
         usePreviousHashIndexOffset = enablePrefixCompression,
         minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
         hashIndexCompensation = hashIndexCompensation,
+        enableRangeFilterAndIndex = enableRangeFilterAndIndex,
         rangeCommonPrefixesCount = previous.map(_.stats.rangeCommonPrefixesCount).getOrElse(Stats.emptyRangeCommonPrefixesCount),
         previous = previous,
         deadline = deadline
@@ -819,7 +823,7 @@ private[core] object Transient {
                           resetPrefixCompressionEvery: Int,
                           minimumNumberOfKeysForHashIndex: Int,
                           hashIndexCompensation: Int => Int,
-                          enableRangeFilter: Boolean) extends Transient.SegmentResponse with KeyValue.WriteOnly.Fixed {
+                          enableRangeFilterAndIndex: Boolean) extends Transient.SegmentResponse with KeyValue.WriteOnly.Fixed {
     override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
     override val isRange: Boolean = false
@@ -869,6 +873,7 @@ private[core] object Transient {
         usePreviousHashIndexOffset = enablePrefixCompression,
         minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
         hashIndexCompensation = hashIndexCompensation,
+        enableRangeFilterAndIndex = enableRangeFilterAndIndex,
         rangeCommonPrefixesCount = previous.map(_.stats.rangeCommonPrefixesCount).getOrElse(Stats.emptyRangeCommonPrefixesCount),
         previous = previous,
         deadline = deadline
@@ -884,7 +889,7 @@ private[core] object Transient {
                                      resetPrefixCompressionEvery: Int,
                                      minimumNumberOfKeyForHashIndex: Int,
                                      hashIndexCompensation: Int => Int,
-                                     enableRangeFilter: Boolean,
+                                     enableRangeFilterAndIndex: Boolean,
                                      previous: Option[KeyValue.WriteOnly])(implicit rangeValueSerializer: RangeValueSerializer[Unit, R]): Range = {
       val bytesRequired = rangeValueSerializer.bytesRequired((), rangeValue)
       val value = if (bytesRequired == 0) None else Some(Slice.create[Byte](bytesRequired))
@@ -901,7 +906,7 @@ private[core] object Transient {
         falsePositiveRate = falsePositiveRate,
         resetPrefixCompressionEvery = resetPrefixCompressionEvery,
         minimumNumberOfKeysForHashIndex = minimumNumberOfKeyForHashIndex,
-        enableRangeFilter = enableRangeFilter,
+        enableRangeFilterAndIndex = enableRangeFilterAndIndex,
         hashIndexCompensation = hashIndexCompensation
       )
     }
@@ -914,7 +919,7 @@ private[core] object Transient {
                                                            resetPrefixCompressionEvery: Int,
                                                            minimumNumberOfKeyForHashIndex: Int,
                                                            hashIndexCompensation: Int => Int,
-                                                           enableRangeFilter: Boolean,
+                                                           enableRangeFilterAndIndex: Boolean,
                                                            previous: Option[KeyValue.WriteOnly])(implicit rangeValueSerializer: RangeValueSerializer[Option[F], R]): Range = {
       val bytesRequired = rangeValueSerializer.bytesRequired(fromValue, rangeValue)
       val value = if (bytesRequired == 0) None else Some(Slice.create[Byte](bytesRequired))
@@ -932,7 +937,7 @@ private[core] object Transient {
         falsePositiveRate = falsePositiveRate,
         resetPrefixCompressionEvery = resetPrefixCompressionEvery,
         minimumNumberOfKeysForHashIndex = minimumNumberOfKeyForHashIndex,
-        enableRangeFilter = enableRangeFilter,
+        enableRangeFilterAndIndex = enableRangeFilterAndIndex,
         hashIndexCompensation = hashIndexCompensation
       )
     }
@@ -949,7 +954,7 @@ private[core] object Transient {
                    resetPrefixCompressionEvery: Int,
                    minimumNumberOfKeysForHashIndex: Int,
                    hashIndexCompensation: Int => Int,
-                   enableRangeFilter: Boolean) extends Transient.SegmentResponse with KeyValue.WriteOnly.Range {
+                   enableRangeFilterAndIndex: Boolean) extends Transient.SegmentResponse with KeyValue.WriteOnly.Range {
 
     def key = fromKey
 
@@ -973,7 +978,7 @@ private[core] object Transient {
       KeyValueWriter.write(
         current = this,
         currentTime = Time.empty,
-        //It's highly likely that two sequential key-values within the same range have the same value after the range split occurs. So this is always set to true.
+        //It's highly likely that two sequential key-values within the same range have the different value after the range split occurs so this is always set to true.
         compressDuplicateValues = true,
         enablePrefixCompression = enablePrefixCompression
       ).unapply
@@ -1005,6 +1010,7 @@ private[core] object Transient {
         numberOfRanges = 1,
         bloomFiltersItemCount = 2,
         usePreviousHashIndexOffset = enablePrefixCompression,
+        enableRangeFilterAndIndex = enableRangeFilterAndIndex,
         minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex, //ranges cost 2. One for fromKey and second for rangeFilter's common prefix bytes.
         hashIndexCompensation = hashIndexCompensation,
         rangeCommonPrefixesCount = rangeCommonPrefixesCount,
@@ -1024,7 +1030,7 @@ private[core] object Transient {
               hashIndexCompensation: Int => Int,
               previous: Option[KeyValue.WriteOnly],
               maxProbe: Int,
-              enableRangeFilter: Boolean): IO[Option[Transient.Group]] =
+              enableRangeFilterAndIndex: Boolean): IO[Option[Transient.Group]] =
       GroupCompressor.compress(
         keyValues = keyValues,
         indexCompressions = Seq(indexCompression),
@@ -1035,7 +1041,7 @@ private[core] object Transient {
         minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
         previous = previous,
         maxProbe = maxProbe,
-        enableRangeFilter = enableRangeFilter
+        enableRangeFilterAndIndex = enableRangeFilterAndIndex
       )
 
     def apply(keyValues: Slice[KeyValue.WriteOnly],
@@ -1047,7 +1053,7 @@ private[core] object Transient {
               hashIndexCompensation: Int => Int,
               previous: Option[KeyValue.WriteOnly],
               maxProbe: Int,
-              enableRangeFilter: Boolean): IO[Option[Transient.Group]] =
+              enableRangeFilterAndIndex: Boolean): IO[Option[Transient.Group]] =
       GroupCompressor.compress(
         keyValues = keyValues,
         indexCompressions = indexCompressions,
@@ -1058,7 +1064,7 @@ private[core] object Transient {
         minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
         previous = previous,
         maxProbe = maxProbe,
-        enableRangeFilter = enableRangeFilter
+        enableRangeFilterAndIndex = enableRangeFilterAndIndex
       )
   }
 
@@ -1074,7 +1080,7 @@ private[core] object Transient {
                    resetPrefixCompressionEvery: Int,
                    minimumNumberOfKeysForHashIndex: Int,
                    hashIndexCompensation: Int => Int,
-                   enableRangeFilter: Boolean) extends Transient with KeyValue.WriteOnly.Group {
+                   enableRangeFilterAndIndex: Boolean) extends Transient with KeyValue.WriteOnly.Group {
 
     override def key = minKey
 
@@ -1121,6 +1127,7 @@ private[core] object Transient {
         minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
         hashIndexCompensation = hashIndexCompensation,
         rangeCommonPrefixesCount = rangeCommonPrefixesCount,
+        enableRangeFilterAndIndex = enableRangeFilterAndIndex,
         previous = previous,
         deadline = deadline
       )

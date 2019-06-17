@@ -247,7 +247,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
     def apply(keyValues: Slice[KeyValue.WriteOnly] = randomizedKeyValues()(TestTimer.Incremental(), KeyOrder.default, keyValueLimiter),
               path: Path = testSegmentFile,
               bloomFilterFalsePositiveRate: Double = TestData.falsePositiveRate,
-              enableRangeFilter: Boolean = TestData.enableRangeFilter)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+              enableRangeFilterAndIndex: Boolean = TestData.enableRangeFilterAndIndex)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                        keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
                                                                        fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter,
                                                                        timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
@@ -258,7 +258,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
           keyValues = keyValues,
           createdInLevel = 0,
           bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-          enableRangeFilter = enableRangeFilter
+          enableRangeFilterAndIndex = enableRangeFilterAndIndex
         )
       else
         Segment.persistent(
@@ -268,7 +268,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
           mmapWrites = levelStorage.mmapSegmentsOnWrite,
           keyValues = keyValues,
           bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-          enableRangeFilter = enableRangeFilter
+          enableRangeFilterAndIndex = enableRangeFilterAndIndex
         )
   }
 
@@ -307,7 +307,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
               bloomFilterFalsePositiveRate: Double = TestData.falsePositiveRate,
               resetPrefixCompressionEvery: Int = TestData.resetPrefixCompressionEvery,
               minimumNumberOfKeyForHashIndex: Int = TestData.minimumNumberOfKeyForHashIndex,
-              enableRangeFilter: Boolean = TestData.enableRangeFilter,
+              enableRangeFilterAndIndex: Boolean = TestData.enableRangeFilterAndIndex,
               hashIndexCompensation: Int => Int = TestData.hashIndexCompensation,
               compressDuplicateValues: Boolean = true,
               deleteSegmentsEventually: Boolean = false,
@@ -329,7 +329,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
         resetPrefixCompressionEvery = resetPrefixCompressionEvery,
         minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = hashIndexCompensation,
-        enableRangeFilter = enableRangeFilter,
+        enableRangeFilterAndIndex = enableRangeFilterAndIndex,
         compressDuplicateValues = compressDuplicateValues,
         deleteSegmentsEventually = deleteSegmentsEventually,
         maxProbe = maxProbe,

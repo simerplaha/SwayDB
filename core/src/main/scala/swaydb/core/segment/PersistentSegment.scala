@@ -128,7 +128,7 @@ private[segment] case class PersistentSegment(file: DBFile,
           resetPrefixCompressionEvery: Int,
           minimumNumberOfKeyForHashIndex: Int,
           hashIndexCompensation : Int => Int,
-          enableRangeFilter: Boolean,
+          enableRangeFilterAndIndex: Boolean,
           compressDuplicateValues: Boolean,
           removeDeletes: Boolean,
           createdInLevel: Int,
@@ -149,7 +149,7 @@ private[segment] case class PersistentSegment(file: DBFile,
           minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = hashIndexCompensation,
           compressDuplicateValues = compressDuplicateValues,
-          enableRangeFilter = enableRangeFilter
+          enableRangeFilterAndIndex = enableRangeFilterAndIndex
         ) flatMap {
           splits =>
             splits.mapIO(
@@ -159,7 +159,7 @@ private[segment] case class PersistentSegment(file: DBFile,
                     path = targetPaths.next.resolve(idGenerator.nextSegmentID),
                     createdInLevel = createdInLevel,
                     bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-                    enableRangeFilter = enableRangeFilter,
+                    enableRangeFilterAndIndex = enableRangeFilterAndIndex,
                     mmapReads = mmapReads,
                     mmapWrites = mmapWrites,
                     keyValues = keyValues
@@ -183,7 +183,7 @@ private[segment] case class PersistentSegment(file: DBFile,
               resetPrefixCompressionEvery: Int,
               minimumNumberOfKeyForHashIndex: Int,
               hashIndexCompensation : Int => Int,
-              enableRangeFilter: Boolean,
+              enableRangeFilterAndIndex: Boolean,
               compressDuplicateValues: Boolean,
               removeDeletes: Boolean,
               createdInLevel: Int,
@@ -203,7 +203,7 @@ private[segment] case class PersistentSegment(file: DBFile,
           minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = hashIndexCompensation,
           compressDuplicateValues = compressDuplicateValues,
-          enableRangeFilter = enableRangeFilter
+          enableRangeFilterAndIndex = enableRangeFilterAndIndex
         ) flatMap {
           splits =>
             splits.mapIO(
@@ -213,7 +213,7 @@ private[segment] case class PersistentSegment(file: DBFile,
                     path = targetPaths.next.resolve(idGenerator.nextSegmentID),
                     createdInLevel = createdInLevel,
                     bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-                    enableRangeFilter = enableRangeFilter,
+                    enableRangeFilterAndIndex = enableRangeFilterAndIndex,
                     mmapReads = mmapReads,
                     mmapWrites = mmapWrites,
                     keyValues = keyValues
