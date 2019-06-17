@@ -419,7 +419,8 @@ private[core] object Segment extends LazyLogging {
       resetPrefixCompressionEvery = resetPrefixCompressionEvery,
       minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
       hashIndexCompensation = hashIndexCompensation,
-      compressDuplicateValues = compressDuplicateValues
+      compressDuplicateValues = compressDuplicateValues,
+      enableRangeFilter = enableRangeFilter
     ) flatMap {
       splits =>
         splits.mapIO(
@@ -509,7 +510,8 @@ private[core] object Segment extends LazyLogging {
       resetPrefixCompressionEvery = resetPrefixCompressionEvery,
       minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
       hashIndexCompensation = hashIndexCompensation,
-      compressDuplicateValues = compressDuplicateValues
+      compressDuplicateValues = compressDuplicateValues,
+      enableRangeFilter = enableRangeFilter
     ) flatMap { //recovery not required. On failure, uncommitted Segments will be GC'd as nothing holds references to them.
       keyValues =>
         keyValues mapIO {

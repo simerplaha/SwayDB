@@ -70,6 +70,7 @@ class SegmentGrouperSpec extends TestBase {
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
+        enableRangeFilter = TestData.enableRangeFilter,
         compressDuplicateValues = true
       )
 
@@ -112,6 +113,7 @@ class SegmentGrouperSpec extends TestBase {
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
+            enableRangeFilter = TestData.enableRangeFilter,
             isLastLevel = false,
             compressDuplicateValues = true
           )
@@ -165,6 +167,7 @@ class SegmentGrouperSpec extends TestBase {
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
+            enableRangeFilter = TestData.enableRangeFilter,
             isLastLevel = false,
             compressDuplicateValues = true
           )
@@ -220,6 +223,7 @@ class SegmentGrouperSpec extends TestBase {
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
+            enableRangeFilter = TestData.enableRangeFilter,
             isLastLevel = false,
             compressDuplicateValues = true
           )

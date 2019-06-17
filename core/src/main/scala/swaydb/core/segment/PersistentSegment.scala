@@ -148,7 +148,8 @@ private[segment] case class PersistentSegment(file: DBFile,
           resetPrefixCompressionEvery = resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = hashIndexCompensation,
-          compressDuplicateValues = compressDuplicateValues
+          compressDuplicateValues = compressDuplicateValues,
+          enableRangeFilter = enableRangeFilter
         ) flatMap {
           splits =>
             splits.mapIO(
@@ -201,7 +202,8 @@ private[segment] case class PersistentSegment(file: DBFile,
           resetPrefixCompressionEvery = resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = hashIndexCompensation,
-          compressDuplicateValues = compressDuplicateValues
+          compressDuplicateValues = compressDuplicateValues,
+          enableRangeFilter = enableRangeFilter
         ) flatMap {
           splits =>
             splits.mapIO(

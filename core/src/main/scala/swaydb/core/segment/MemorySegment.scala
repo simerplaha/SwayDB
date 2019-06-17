@@ -119,7 +119,8 @@ private[segment] case class MemorySegment(path: Path,
             resetPrefixCompressionEvery = resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = hashIndexCompensation,
-            compressDuplicateValues = compressDuplicateValues
+            compressDuplicateValues = compressDuplicateValues,
+            enableRangeFilter = enableRangeFilter
           ) flatMap {
             splits =>
               splits.mapIO[Segment](
@@ -174,7 +175,8 @@ private[segment] case class MemorySegment(path: Path,
             resetPrefixCompressionEvery = resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = hashIndexCompensation,
-            compressDuplicateValues = compressDuplicateValues
+            compressDuplicateValues = compressDuplicateValues,
+            enableRangeFilter = enableRangeFilter
           ) flatMap {
             splits =>
               splits.mapIO[Segment](

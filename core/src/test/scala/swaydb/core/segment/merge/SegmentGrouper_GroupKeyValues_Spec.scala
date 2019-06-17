@@ -71,6 +71,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
+          enableRangeFilter = TestData.enableRangeFilter,
           maxProbe = TestData.maxProbe,
           force = force,
           groupingStrategy =
@@ -103,6 +104,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
+            enableRangeFilter = TestData.enableRangeFilter,
             maxProbe = TestData.maxProbe,
             force = force,
             groupingStrategy =
@@ -151,6 +153,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
+          enableRangeFilter = TestData.enableRangeFilter,
           maxProbe = TestData.maxProbe,
           force = force,
           groupingStrategy =
@@ -185,6 +188,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
+          enableRangeFilter = TestData.enableRangeFilter,
           maxProbe = TestData.maxProbe,
           force = force,
           groupingStrategy =
@@ -220,6 +224,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
               resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
               minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
               hashIndexCompensation = TestData.hashIndexCompensation,
+              enableRangeFilter = TestData.enableRangeFilter,
               maxProbe = TestData.maxProbe,
               force = force,
               groupingStrategy =
@@ -261,6 +266,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
               resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
               minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
               hashIndexCompensation = TestData.hashIndexCompensation,
+              enableRangeFilter = TestData.enableRangeFilter,
               maxProbe = TestData.maxProbe,
               force = force,
               groupingStrategy =
@@ -299,6 +305,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
+            enableRangeFilter = TestData.enableRangeFilter,
             maxProbe = TestData.maxProbe,
             force = force,
             groupingStrategy =
@@ -352,6 +359,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
+            enableRangeFilter = TestData.enableRangeFilter,
             maxProbe = TestData.maxProbe,
             force = force,
             groupingStrategy =
@@ -401,6 +409,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
+            enableRangeFilter = TestData.enableRangeFilter,
             maxProbe = TestData.maxProbe,
             force = force,
             groupingStrategy =
@@ -435,6 +444,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
+          enableRangeFilter = TestData.enableRangeFilter,
           maxProbe = TestData.maxProbe,
           force = force,
           groupingStrategy =
@@ -479,6 +489,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
+          enableRangeFilter = TestData.enableRangeFilter,
           maxProbe = TestData.maxProbe,
           force = force,
           groupingStrategy =
@@ -527,6 +538,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
+          enableRangeFilter = TestData.enableRangeFilter,
           maxProbe = TestData.maxProbe,
           force = force,
           groupingStrategy =
@@ -575,6 +587,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
+            enableRangeFilter = TestData.enableRangeFilter,
             maxProbe = TestData.maxProbe,
             force = force,
             groupingStrategy =

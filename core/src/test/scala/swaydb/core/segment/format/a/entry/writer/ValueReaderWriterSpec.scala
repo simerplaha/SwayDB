@@ -66,6 +66,7 @@ class ValueReaderWriterSpec extends TestBase {
             compressDuplicateValues = true,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+            enableRangeFilter = TestData.enableRangeFilter,
             hashIndexCompensation = TestData.hashIndexCompensation,
           )
         ).updateStats

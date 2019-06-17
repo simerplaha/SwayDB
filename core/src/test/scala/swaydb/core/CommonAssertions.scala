@@ -393,7 +393,8 @@ object CommonAssertions {
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
-        compressDuplicateValues = true
+        compressDuplicateValues = randomBoolean(),
+        enableRangeFilter = TestData.enableRangeFilter
       ).assertGet
 
     if (expected.size == 0) {

@@ -55,6 +55,7 @@ class GroupSpec extends TestBase {
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
+          enableRangeFilter = TestData.enableRangeFilter,
           maxProbe = TestData.maxProbe,
           previous = None
         ).assertGet
@@ -74,6 +75,7 @@ class GroupSpec extends TestBase {
               resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
               minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
               hashIndexCompensation = TestData.hashIndexCompensation,
+              enableRangeFilter = TestData.enableRangeFilter,
               maxProbe = TestData.maxProbe,
               previous = None
             ).assertGet
@@ -97,6 +99,7 @@ class GroupSpec extends TestBase {
                 resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
                 minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
                 hashIndexCompensation = TestData.hashIndexCompensation,
+                enableRangeFilter = TestData.enableRangeFilter,
                 maxProbe = TestData.maxProbe,
                 previous = None
               ).assertGet
@@ -119,6 +122,7 @@ class GroupSpec extends TestBase {
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
+          enableRangeFilter = TestData.enableRangeFilter,
           maxProbe = TestData.maxProbe,
           previous = None
         ).assertGet
@@ -167,6 +171,7 @@ class GroupSpec extends TestBase {
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
+          enableRangeFilter = TestData.enableRangeFilter,
           maxProbe = TestData.maxProbe,
           previous = None
         ).assertGet

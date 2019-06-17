@@ -128,6 +128,7 @@ class SegmentWriterReaderSpec extends TestBase {
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
+            enableRangeFilter = TestData.enableRangeFilter,
             previous = None,
             maxProbe = TestData.maxProbe
           ).assertGet
@@ -160,6 +161,7 @@ class SegmentWriterReaderSpec extends TestBase {
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
+            enableRangeFilter = TestData.enableRangeFilter,
             previous = None,
             maxProbe = TestData.maxProbe
           ).assertGet
@@ -175,6 +177,7 @@ class SegmentWriterReaderSpec extends TestBase {
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
+            enableRangeFilter = TestData.enableRangeFilter,
             previous = Some(group1),
             maxProbe = TestData.maxProbe
           ).assertGet
@@ -210,6 +213,7 @@ class SegmentWriterReaderSpec extends TestBase {
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
+            enableRangeFilter = TestData.enableRangeFilter,
             previous = None,
             maxProbe = TestData.maxProbe
           ).assertGet
@@ -224,6 +228,7 @@ class SegmentWriterReaderSpec extends TestBase {
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
+            enableRangeFilter = TestData.enableRangeFilter,
             previous = Some(group1),
             maxProbe = TestData.maxProbe
           ).assertGet
@@ -238,6 +243,7 @@ class SegmentWriterReaderSpec extends TestBase {
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
+            enableRangeFilter = TestData.enableRangeFilter,
             previous = Some(group2),
             maxProbe = TestData.maxProbe
           ).assertGet
@@ -253,6 +259,7 @@ class SegmentWriterReaderSpec extends TestBase {
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
+            enableRangeFilter = TestData.enableRangeFilter,
             previous = None,
             maxProbe = TestData.maxProbe
           ).assertGet
@@ -488,6 +495,7 @@ class SegmentWriterReaderSpec extends TestBase {
                     resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
                     minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
                     hashIndexCompensation = TestData.hashIndexCompensation,
+                    enableRangeFilter = TestData.enableRangeFilter,
                     previous = None,
                     maxProbe = TestData.maxProbe
                   ).assertGet,
@@ -542,6 +550,7 @@ class SegmentWriterReaderSpec extends TestBase {
               resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
               minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
               hashIndexCompensation = TestData.hashIndexCompensation,
+              enableRangeFilter = TestData.enableRangeFilter,
               previous = None,
               maxProbe = TestData.maxProbe
             ).assertGet
@@ -627,6 +636,7 @@ class SegmentWriterReaderSpec extends TestBase {
               resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
               minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
               hashIndexCompensation = TestData.hashIndexCompensation,
+              enableRangeFilter = TestData.enableRangeFilter,
               maxProbe = TestData.maxProbe,
               previous = None
             ).assertGet
@@ -679,6 +689,7 @@ class SegmentWriterReaderSpec extends TestBase {
               resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
               minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
               hashIndexCompensation = TestData.hashIndexCompensation,
+              enableRangeFilter = TestData.enableRangeFilter,
               previous = None,
               maxProbe = TestData.maxProbe
             ).assertGet
@@ -706,6 +717,7 @@ class SegmentWriterReaderSpec extends TestBase {
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
+            enableRangeFilter = TestData.enableRangeFilter,
             previous = None,
             maxProbe = TestData.maxProbe
           ).assertGet
