@@ -62,7 +62,14 @@ class SegmentWriterReaderSpec extends TestBase {
             enableRangeFilter = TestData.enableRangeFilter
           )
 
-        val deadline = SegmentWriter.writeBloomFilterAndGetNearestDeadline(group, bloom, None)
+        val deadline =
+          SegmentWriter.writeToHashIndexAndBloomFilterBytes(
+            keyValue = group,
+            hashIndex = None,
+            maxProbe = 0,
+            bloom = bloom,
+            currentNearestDeadline = None
+          )
 
         assertBloom(keyValues, bloom.assertGet)
 

@@ -24,7 +24,7 @@ import swaydb.compression.CompressionInternal
 import swaydb.core.data.Compressor.{GroupCompressionResult, ValueCompressionResult}
 import swaydb.core.data.{Compressor, KeyValue, Transient}
 import swaydb.core.group.compression.GroupCompressorFailure.InvalidGroupKeyValuesHeadPosition
-import swaydb.core.segment.format.a.SegmentWriter
+import swaydb.core.segment.format.a.{SegmentHashIndex, SegmentWriter}
 import swaydb.core.util.Bytes
 import swaydb.data.slice.Slice
 import swaydb.data.{IO, MaxKey}
@@ -76,8 +76,16 @@ private[core] object GroupCompressor extends LazyLogging {
         sortedIndexSlice = indexBytes,
         valuesSlice = valueBytes,
         bloomFilter = None,
-        hashIndexSlice = hashIndexBytes,
-        maxProbe = maxProbe
+        maxProbe = maxProbe,
+        hashIndex =
+          Some(
+            SegmentHashIndex.WriteResult(
+              hit = 0,
+              miss = 0,
+              maxProbe = maxProbe,
+              bytes = hashIndexBytes
+            )
+          )
       ) flatMap {
         nearestDeadline =>
           assert(hashIndexBytes.isFull)
@@ -167,7 +175,7 @@ private[core] object GroupCompressor extends LazyLogging {
                       previous = previous,
                       falsePositiveRate = falsePositiveRate,
                       resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-                      minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
+                      minimumNumberOfKeysForHashIndex = minimumNumberOfKeyForHashIndex,
                       hashIndexCompensation = hashIndexCompensation
                     )
                   )

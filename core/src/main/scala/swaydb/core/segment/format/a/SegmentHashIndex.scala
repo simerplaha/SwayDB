@@ -53,6 +53,20 @@ object SegmentHashIndex extends LazyLogging {
                                maxProbe: Int,
                                bytes: Slice[Byte])
 
+  object Header {
+    def create(maxProbe: Int,
+               hit: Int,
+               miss: Int,
+               rangeIndexingEnabled: Boolean): Header =
+      new Header(
+        formatId = formatID,
+        maxProbe = maxProbe,
+        hit = hit,
+        miss = miss,
+        rangeIndexingEnabled = rangeIndexingEnabled
+      )
+  }
+
   case class Header(formatId: Int,
                     maxProbe: Int,
                     hit: Int,
@@ -142,21 +156,21 @@ object SegmentHashIndex extends LazyLogging {
       } flatMap {
         writeResult =>
           //it's important to move to 0 to write to head of the file.
-          writeHeader(writeResult, bytes) map {
+          writeHeader(writeResult) map {
             _ =>
               writeResult
           }
       }
 
-  def writeHeader(writeResult: WriteResult, bytes: Slice[Byte]): IO[Slice[Byte]] =
+  def writeHeader(writeResult: WriteResult): IO[Slice[Byte]] =
     IO {
       //it's important to move to 0 to write to head of the file.
-      bytes moveWritePositionUnsafe 0
-      bytes add formatID
-      bytes addIntUnsigned writeResult.maxProbe
-      bytes addInt writeResult.hit
-      bytes addInt writeResult.miss
-      bytes addBoolean false //range indexing is not implemented.
+      writeResult.bytes moveWritePositionUnsafe 0
+      writeResult.bytes add formatID
+      writeResult.bytes addIntUnsigned writeResult.maxProbe
+      writeResult.bytes addInt writeResult.hit
+      writeResult.bytes addInt writeResult.miss
+      writeResult.bytes addBoolean false //range indexing is not implemented.
     }
 
   def readHeader(reader: Reader): IO[Header] =

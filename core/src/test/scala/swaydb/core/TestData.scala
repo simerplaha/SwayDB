@@ -451,7 +451,7 @@ object TestData {
                     falsePositiveRate = TestData.falsePositiveRate,
                     compressDuplicateValues = true,
                     resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-                    minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+                    minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
                     hashIndexCompensation = TestData.hashIndexCompensation
                   )
 
@@ -465,7 +465,7 @@ object TestData {
                     falsePositiveRate = TestData.falsePositiveRate,
                     compressDuplicateValues = true,
                     resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-                    minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+                    minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
                     hashIndexCompensation = TestData.hashIndexCompensation
                   )
 
@@ -477,7 +477,7 @@ object TestData {
                     previous = previous,
                     falsePositiveRate = TestData.falsePositiveRate,
                     resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-                    minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+                    minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
                     hashIndexCompensation = TestData.hashIndexCompensation
                   )
 
@@ -491,7 +491,7 @@ object TestData {
                     falsePositiveRate = TestData.falsePositiveRate,
                     compressDuplicateValues = true,
                     resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-                    minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+                    minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
                     hashIndexCompensation = TestData.hashIndexCompensation
                   )
 
@@ -503,7 +503,7 @@ object TestData {
                     falsePositiveRate = TestData.falsePositiveRate,
                     compressDuplicateValues = true,
                     resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-                    minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+                    minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
                     hashIndexCompensation = TestData.hashIndexCompensation
                   )
               }
@@ -548,7 +548,7 @@ object TestData {
                     falsePositiveRate = TestData.falsePositiveRate,
                     compressDuplicateValues = true,
                     resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-                    minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+                    minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
                     hashIndexCompensation = TestData.hashIndexCompensation
                   )
 
@@ -562,7 +562,7 @@ object TestData {
                     falsePositiveRate = TestData.falsePositiveRate,
                     compressDuplicateValues = true,
                     resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-                    minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+                    minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
                     hashIndexCompensation = TestData.hashIndexCompensation
                   )
 
@@ -576,7 +576,7 @@ object TestData {
                     falsePositiveRate = TestData.falsePositiveRate,
                     compressDuplicateValues = true,
                     resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-                    minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+                    minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
                     hashIndexCompensation = TestData.hashIndexCompensation
                   )
 
@@ -588,7 +588,7 @@ object TestData {
                     falsePositiveRate = TestData.falsePositiveRate,
                     compressDuplicateValues = true,
                     resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-                    minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+                    minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
                     hashIndexCompensation = TestData.hashIndexCompensation
                   )
 
@@ -600,7 +600,7 @@ object TestData {
                     previous = previous,
                     falsePositiveRate = TestData.falsePositiveRate,
                     resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-                    minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+                    minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
                     hashIndexCompensation = TestData.hashIndexCompensation
                   )
               }
@@ -1620,7 +1620,7 @@ object TestData {
         key = key,
         falsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
         time = testTimer.next,
         previous = None,
@@ -1634,7 +1634,7 @@ object TestData {
         key = key,
         falsePositiveRate = falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
         previous = None,
         deadline = Some(removeAfter.fromNow),
@@ -1647,7 +1647,7 @@ object TestData {
         key = key,
         falsePositiveRate = falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
         previous = None,
         deadline = None,
@@ -1661,7 +1661,7 @@ object TestData {
         key = key,
         falsePositiveRate = falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
         previous = previous,
         deadline = None,
@@ -1678,7 +1678,7 @@ object TestData {
         previous = previous,
         falsePositiveRate = falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
         time = testTimer.next
       )
@@ -1695,7 +1695,7 @@ object TestData {
         previous = previousMayBe,
         falsePositiveRate = falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
         compressDuplicateValues = true
       )
@@ -1713,7 +1713,7 @@ object TestData {
         previous = previousMayBe,
         falsePositiveRate = falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
         time = testTimer.next,
         compressDuplicateValues = compressDuplicateValues
@@ -1727,7 +1727,7 @@ object TestData {
         previous = None,
         falsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
         time = testTimer.next,
         compressDuplicateValues = true
@@ -1744,7 +1744,7 @@ object TestData {
         time = testTimer.next,
         falsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
         compressDuplicateValues = compressDuplicateValues
       )
@@ -1759,7 +1759,7 @@ object TestData {
         previous = None,
         falsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
         time = testTimer.next,
         compressDuplicateValues = true
@@ -1775,7 +1775,7 @@ object TestData {
         previous = None,
         falsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
         time = testTimer.next,
         compressDuplicateValues = true
@@ -1790,7 +1790,7 @@ object TestData {
         previous = None,
         falsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
         time = testTimer.next,
         compressDuplicateValues = true
@@ -1806,7 +1806,7 @@ object TestData {
         previous = None,
         falsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
         time = testTimer.next,
         compressDuplicateValues = true
@@ -1822,7 +1822,7 @@ object TestData {
         previous = None,
         falsePositiveRate = falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
         time = testTimer.next,
         compressDuplicateValues = true
@@ -1839,7 +1839,7 @@ object TestData {
         previous = previous,
         falsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
         time = testTimer.next,
         compressDuplicateValues = compressDuplicateValues
@@ -1857,7 +1857,7 @@ object TestData {
         previous = previous,
         falsePositiveRate = falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
         time = testTimer.next,
         compressDuplicateValues = compressDuplicateValues
@@ -1875,7 +1875,7 @@ object TestData {
         previous = previousMayBe,
         falsePositiveRate = falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
         compressDuplicateValues = true
       )
@@ -1893,7 +1893,7 @@ object TestData {
         previous = previousMayBe,
         falsePositiveRate = falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
         time = testTimer.next,
         compressDuplicateValues = compressDuplicateValues
@@ -1907,7 +1907,7 @@ object TestData {
         previous = None,
         falsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
         time = testTimer.next,
         compressDuplicateValues = true
@@ -1924,7 +1924,7 @@ object TestData {
         time = testTimer.next,
         falsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
         compressDuplicateValues = compressDuplicateValues
       )
@@ -1939,7 +1939,7 @@ object TestData {
         previous = None,
         falsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
         time = testTimer.next,
         compressDuplicateValues = true
@@ -1955,7 +1955,7 @@ object TestData {
         previous = None,
         falsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
         time = testTimer.next,
         compressDuplicateValues = true
@@ -1970,7 +1970,7 @@ object TestData {
         previous = None,
         falsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
         time = testTimer.next,
         compressDuplicateValues = true
@@ -1986,7 +1986,7 @@ object TestData {
         previous = None,
         falsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
         time = testTimer.next,
         compressDuplicateValues = true
@@ -2002,7 +2002,7 @@ object TestData {
         previous = None,
         falsePositiveRate = falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
         time = testTimer.next,
         compressDuplicateValues = true
@@ -2019,7 +2019,7 @@ object TestData {
         previous = previous,
         falsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
         time = testTimer.next,
         compressDuplicateValues = compressDuplicateValues
@@ -2037,7 +2037,7 @@ object TestData {
         previous = previous,
         falsePositiveRate = falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
         time = testTimer.next,
         compressDuplicateValues = compressDuplicateValues

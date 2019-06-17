@@ -203,7 +203,7 @@ private[core] object KeyValue {
     val isGroup: Boolean
     val previous: Option[KeyValue.WriteOnly]
     def resetPrefixCompressionEvery: Int
-    def minimumNumberOfKeyForHashIndex: Int
+    def minimumNumberOfKeysForHashIndex: Int
     def hashIndexCompensation: Int => Int
     def value: Option[Slice[Byte]]
     def fullKey: Slice[Byte]
@@ -594,7 +594,7 @@ private[core] object Transient {
                     previous: Option[KeyValue.WriteOnly],
                     falsePositiveRate: Double,
                     resetPrefixCompressionEvery: Int,
-                    minimumNumberOfKeyForHashIndex: Int,
+                    minimumNumberOfKeysForHashIndex: Int,
                     hashIndexCompensation: Int => Int) extends Transient with KeyValue.WriteOnly.Fixed {
     override val isRange: Boolean = false
     override val isGroup: Boolean = false
@@ -624,7 +624,7 @@ private[core] object Transient {
         isPut = false,
         bloomFiltersItemCount = 1,
         usePreviousHashIndexOffset = enablePrefixCompression,
-        minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
+        minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
         hashIndexCompensation = hashIndexCompensation,
         previous = previous,
         deadline = deadline
@@ -646,7 +646,7 @@ private[core] object Transient {
                  falsePositiveRate: Double,
                  compressDuplicateValues: Boolean,
                  resetPrefixCompressionEvery: Int,
-                 minimumNumberOfKeyForHashIndex: Int,
+                 minimumNumberOfKeysForHashIndex: Int,
                  hashIndexCompensation: Int => Int) extends Transient with KeyValue.WriteOnly.Fixed {
 
     override val isRemoveRangeMayBe = false
@@ -677,7 +677,7 @@ private[core] object Transient {
         isPut = true,
         bloomFiltersItemCount = 1,
         usePreviousHashIndexOffset = enablePrefixCompression,
-        minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
+        minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
         hashIndexCompensation = hashIndexCompensation,
         previous = previous,
         deadline = deadline
@@ -700,7 +700,7 @@ private[core] object Transient {
                     falsePositiveRate: Double,
                     compressDuplicateValues: Boolean,
                     resetPrefixCompressionEvery: Int,
-                    minimumNumberOfKeyForHashIndex: Int,
+                    minimumNumberOfKeysForHashIndex: Int,
                     hashIndexCompensation: Int => Int) extends Transient with KeyValue.WriteOnly.Fixed {
     override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
@@ -736,7 +736,7 @@ private[core] object Transient {
         isPut = false,
         bloomFiltersItemCount = 1,
         usePreviousHashIndexOffset = enablePrefixCompression,
-        minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
+        minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
         hashIndexCompensation = hashIndexCompensation,
         previous = previous,
         deadline = deadline
@@ -751,7 +751,7 @@ private[core] object Transient {
                       falsePositiveRate: Double,
                       compressDuplicateValues: Boolean,
                       resetPrefixCompressionEvery: Int,
-                      minimumNumberOfKeyForHashIndex: Int,
+                      minimumNumberOfKeysForHashIndex: Int,
                       hashIndexCompensation: Int => Int) extends Transient with KeyValue.WriteOnly.Fixed {
     override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
@@ -790,7 +790,7 @@ private[core] object Transient {
         isPut = false,
         bloomFiltersItemCount = 1,
         usePreviousHashIndexOffset = enablePrefixCompression,
-        minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
+        minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
         hashIndexCompensation = hashIndexCompensation,
         previous = previous,
         deadline = deadline
@@ -803,7 +803,7 @@ private[core] object Transient {
                           falsePositiveRate: Double,
                           compressDuplicateValues: Boolean,
                           resetPrefixCompressionEvery: Int,
-                          minimumNumberOfKeyForHashIndex: Int,
+                          minimumNumberOfKeysForHashIndex: Int,
                           hashIndexCompensation: Int => Int) extends Transient with KeyValue.WriteOnly.Fixed {
     override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
@@ -851,7 +851,7 @@ private[core] object Transient {
         isPut = false,
         bloomFiltersItemCount = 1,
         usePreviousHashIndexOffset = enablePrefixCompression,
-        minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
+        minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
         hashIndexCompensation = hashIndexCompensation,
         previous = previous,
         deadline = deadline
@@ -882,7 +882,7 @@ private[core] object Transient {
         previous = previous,
         falsePositiveRate = falsePositiveRate,
         resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-        minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
+        minimumNumberOfKeysForHashIndex = minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = hashIndexCompensation
       )
     }
@@ -911,7 +911,7 @@ private[core] object Transient {
         previous = previous,
         falsePositiveRate = falsePositiveRate,
         resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-        minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
+        minimumNumberOfKeysForHashIndex = minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = hashIndexCompensation
       )
     }
@@ -926,7 +926,7 @@ private[core] object Transient {
                    previous: Option[KeyValue.WriteOnly],
                    falsePositiveRate: Double,
                    resetPrefixCompressionEvery: Int,
-                   minimumNumberOfKeyForHashIndex: Int,
+                   minimumNumberOfKeysForHashIndex: Int,
                    hashIndexCompensation: Int => Int) extends Transient with KeyValue.WriteOnly.Range {
 
     def key = fromKey
@@ -969,7 +969,7 @@ private[core] object Transient {
         isGroup = isGroup,
         previous = previous,
         usePreviousHashIndexOffset = enablePrefixCompression,
-        minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
+        minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
         hashIndexCompensation = hashIndexCompensation,
         bloomFiltersItemCount = 2, //ranges cost 2. One for fromKey and second for rangeFilter's common prefix bytes.
         isPut = fromValue.exists(_.isInstanceOf[Value.Put]),
@@ -1032,7 +1032,7 @@ private[core] object Transient {
                    previous: Option[KeyValue.WriteOnly],
                    falsePositiveRate: Double,
                    resetPrefixCompressionEvery: Int,
-                   minimumNumberOfKeyForHashIndex: Int,
+                   minimumNumberOfKeysForHashIndex: Int,
                    hashIndexCompensation: Int => Int) extends Transient with KeyValue.WriteOnly.Group {
 
     override def key = minKey
@@ -1069,7 +1069,7 @@ private[core] object Transient {
         isGroup = isGroup,
         previous = previous,
         usePreviousHashIndexOffset = enablePrefixCompression,
-        minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
+        minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
         hashIndexCompensation = hashIndexCompensation,
         bloomFiltersItemCount = keyValues.last.stats.bloomFilterKeysCount,
         isPut = keyValues.last.stats.hasPut,
