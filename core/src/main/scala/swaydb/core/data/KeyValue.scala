@@ -552,7 +552,9 @@ private[core] sealed trait Transient extends KeyValue.WriteOnly
 
 private[core] object Transient {
 
-  implicit class TransientImplicits(transient: Transient)(implicit keyOrder: KeyOrder[Slice[Byte]]) {
+  private[core] sealed trait SegmentResponse extends Transient
+
+  implicit class TransientImplicits(transient: Transient.SegmentResponse)(implicit keyOrder: KeyOrder[Slice[Byte]]) {
 
     def toMemoryResponse: Memory.SegmentResponse =
       transient match {
@@ -577,11 +579,12 @@ private[core] object Transient {
           )
 
         case range: Transient.Range =>
-          Memory.Range(range.fromKey, range.toKey, range.fromValue, range.rangeValue)
-
-        case _: Transient.Group =>
-          //todo make this type-safe instead.
-          throw new Exception("toMemoryResponse invoked on a Group")
+          Memory.Range(
+            fromKey = range.fromKey,
+            toKey = range.toKey,
+            fromValue = range.fromValue,
+            rangeValue = range.rangeValue
+          )
       }
   }
 
@@ -592,7 +595,7 @@ private[core] object Transient {
                     falsePositiveRate: Double,
                     resetPrefixCompressionEvery: Int,
                     minimumNumberOfKeysForHashIndex: Int,
-                    hashIndexCompensation: Int => Int) extends Transient with KeyValue.WriteOnly.Fixed {
+                    hashIndexCompensation: Int => Int) extends Transient.SegmentResponse with KeyValue.WriteOnly.Fixed {
     override val isRange: Boolean = false
     override val isGroup: Boolean = false
     override val isRemoveRangeMayBe = false
@@ -644,7 +647,7 @@ private[core] object Transient {
                  compressDuplicateValues: Boolean,
                  resetPrefixCompressionEvery: Int,
                  minimumNumberOfKeysForHashIndex: Int,
-                 hashIndexCompensation: Int => Int) extends Transient with KeyValue.WriteOnly.Fixed {
+                 hashIndexCompensation: Int => Int) extends Transient.SegmentResponse with KeyValue.WriteOnly.Fixed {
 
     override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
@@ -698,7 +701,7 @@ private[core] object Transient {
                     compressDuplicateValues: Boolean,
                     resetPrefixCompressionEvery: Int,
                     minimumNumberOfKeysForHashIndex: Int,
-                    hashIndexCompensation: Int => Int) extends Transient with KeyValue.WriteOnly.Fixed {
+                    hashIndexCompensation: Int => Int) extends Transient.SegmentResponse with KeyValue.WriteOnly.Fixed {
     override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
     override val isRange: Boolean = false
@@ -749,7 +752,7 @@ private[core] object Transient {
                       compressDuplicateValues: Boolean,
                       resetPrefixCompressionEvery: Int,
                       minimumNumberOfKeysForHashIndex: Int,
-                      hashIndexCompensation: Int => Int) extends Transient with KeyValue.WriteOnly.Fixed {
+                      hashIndexCompensation: Int => Int) extends Transient.SegmentResponse with KeyValue.WriteOnly.Fixed {
     override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
     override val isRange: Boolean = false
@@ -801,7 +804,7 @@ private[core] object Transient {
                           compressDuplicateValues: Boolean,
                           resetPrefixCompressionEvery: Int,
                           minimumNumberOfKeysForHashIndex: Int,
-                          hashIndexCompensation: Int => Int) extends Transient with KeyValue.WriteOnly.Fixed {
+                          hashIndexCompensation: Int => Int) extends Transient.SegmentResponse with KeyValue.WriteOnly.Fixed {
     override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
     override val isRange: Boolean = false
@@ -924,7 +927,7 @@ private[core] object Transient {
                    falsePositiveRate: Double,
                    resetPrefixCompressionEvery: Int,
                    minimumNumberOfKeysForHashIndex: Int,
-                   hashIndexCompensation: Int => Int) extends Transient with KeyValue.WriteOnly.Range {
+                   hashIndexCompensation: Int => Int) extends Transient.SegmentResponse with KeyValue.WriteOnly.Range {
 
     def key = fromKey
 

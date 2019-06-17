@@ -38,8 +38,6 @@ import swaydb.data.slice.Slice
   */
 object LevelZeroSkipListMerger extends SkipListMerger[Slice[Byte], Memory.SegmentResponse] {
 
-  implicit val groupingStrategy: Option[KeyValueGroupingStrategyInternal] = None
-
   //.get is no good. Memory key-values will never result in failure since they do not perform IO (no side-effects).
   //But this is a temporary solution until applyValue is updated to accept type classes to perform side effect.
   def applyValue(newKeyValue: Memory.Fixed,
@@ -70,7 +68,7 @@ object LevelZeroSkipListMerger extends SkipListMerger[Slice[Byte], Memory.Segmen
             //Gah! performing a .get here. Although .get should never fail in this case because both the input key-values are in-memory and do not perform IO.
             //This should still be done properly.
             SegmentMerger.merge(insert, floorRange).reverse foreach {
-              case transient: Transient =>
+              transient: Transient.SegmentResponse =>
                 skipList.put(transient.key, transient.toMemoryResponse)
             }
 
@@ -113,7 +111,7 @@ object LevelZeroSkipListMerger extends SkipListMerger[Slice[Byte], Memory.Segmen
       val mergedKeyValues = SegmentMerger.merge(Slice(insert), oldKeyValues)
       //while inserting also clear any conflicting key-values that are not replaced by new inserts.
       mergedKeyValues.reverse.foldLeft(Option.empty[Slice[Byte]]) {
-        case (previousInsertedKey, transient: Transient) =>
+        case (previousInsertedKey, transient: Transient.SegmentResponse) =>
           skipList.put(transient.key, transient.toMemoryResponse)
           //remove any entries that are greater than transient.key to the previously inserted entry.
           val toKey = previousInsertedKey.getOrElse(conflictingKeyValues.lastKey())

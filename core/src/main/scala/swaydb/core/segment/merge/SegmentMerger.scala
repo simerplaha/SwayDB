@@ -162,8 +162,7 @@ private[core] object SegmentMerger extends LazyLogging {
   def merge(newKeyValues: Slice[Memory.SegmentResponse],
             oldKeyValues: Slice[Memory.SegmentResponse])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                          timeOrder: TimeOrder[Slice[Byte]],
-                                                         functionStore: FunctionStore,
-                                                         groupingStrategy: Option[KeyValueGroupingStrategyInternal]): ListBuffer[KeyValue.WriteOnly] =
+                                                         functionStore: FunctionStore): ListBuffer[Transient.SegmentResponse] =
     merge(
       newKeyValues = newKeyValues,
       oldKeyValues = oldKeyValues,
@@ -176,13 +175,15 @@ private[core] object SegmentMerger extends LazyLogging {
       minimumNumberOfKeyForHashIndex = 50,
       hashIndexCompensation = _ => 0,
       compressDuplicateValues = false
-    ).get.flatten.asInstanceOf[ListBuffer[KeyValue.WriteOnly]]
+    )(keyOrder, timeOrder, functionStore, None)
+      .get
+      .flatten
+      .asInstanceOf[ListBuffer[Transient.SegmentResponse]]
 
   def merge(newKeyValue: Memory.SegmentResponse,
             oldKeyValue: Memory.SegmentResponse)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                  timeOrder: TimeOrder[Slice[Byte]],
-                                                 functionStore: FunctionStore,
-                                                 groupingStrategy: Option[KeyValueGroupingStrategyInternal]): ListBuffer[KeyValue.WriteOnly] =
+                                                 functionStore: FunctionStore): ListBuffer[Transient.SegmentResponse] =
     merge(
       newKeyValues = Slice(newKeyValue),
       oldKeyValues = Slice(oldKeyValue),
@@ -195,7 +196,10 @@ private[core] object SegmentMerger extends LazyLogging {
       minimumNumberOfKeyForHashIndex = 50,
       hashIndexCompensation = _ => 0,
       compressDuplicateValues = false
-    ).get.flatten.asInstanceOf[ListBuffer[KeyValue.WriteOnly]]
+    )(keyOrder, timeOrder, functionStore, None)
+      .get
+      .flatten
+      .asInstanceOf[ListBuffer[Transient.SegmentResponse]]
 
   def merge(newKeyValues: Slice[KeyValue.ReadOnly],
             oldKeyValues: Slice[KeyValue.ReadOnly],
