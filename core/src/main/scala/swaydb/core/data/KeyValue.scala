@@ -35,6 +35,7 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.{IO, MaxKey}
 
+import scala.collection.SortedSet
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 
 private[core] sealed trait KeyValue {
@@ -613,19 +614,21 @@ private[core] object Transient {
     override val hasValueEntryBytes: Boolean = previous.exists(_.hasValueEntryBytes) || valueEntryBytes.exists(_.nonEmpty)
     override val stats =
       Stats(
-        key = indexEntryBytes,
-        toKey = None,
-        toKeyInclusive = false,
+        indexEntry = indexEntryBytes,
         value = None,
         falsePositiveRate = falsePositiveRate,
         isRemoveRange = isRemoveRangeMayBe,
         isRange = isRange,
         isGroup = isGroup,
         isPut = false,
+        position = previous.map(_.stats.position + 1) getOrElse 1,
+        hashIndexItemsCount = previous.map(_.stats.hashIndexItemsCount + 1) getOrElse 1,
+        numberOfRanges = 0,
         bloomFiltersItemCount = 1,
         usePreviousHashIndexOffset = enablePrefixCompression,
         minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
         hashIndexCompensation = hashIndexCompensation,
+        rangeCommonPrefixesCount = previous.map(_.stats.rangeCommonPrefixesCount).getOrElse(Stats.emptyRangeCommonPrefixesCount),
         previous = previous,
         deadline = deadline
       )
@@ -666,19 +669,21 @@ private[core] object Transient {
 
     val stats =
       Stats(
-        key = indexEntryBytes,
-        toKey = None,
-        toKeyInclusive = false,
+        indexEntry = indexEntryBytes,
         value = valueEntryBytes,
         falsePositiveRate = falsePositiveRate,
         isRemoveRange = isRemoveRangeMayBe,
         isRange = isRange,
         isGroup = isGroup,
         isPut = true,
+        position = previous.map(_.stats.position + 1) getOrElse 1,
+        hashIndexItemsCount = previous.map(_.stats.hashIndexItemsCount + 1) getOrElse 1,
+        numberOfRanges = 0,
         bloomFiltersItemCount = 1,
         usePreviousHashIndexOffset = enablePrefixCompression,
         minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
         hashIndexCompensation = hashIndexCompensation,
+        rangeCommonPrefixesCount = previous.map(_.stats.rangeCommonPrefixesCount).getOrElse(Stats.emptyRangeCommonPrefixesCount),
         previous = previous,
         deadline = deadline
       )
@@ -725,19 +730,21 @@ private[core] object Transient {
 
     val stats =
       Stats(
-        key = indexEntryBytes,
-        toKey = None,
-        toKeyInclusive = false,
+        indexEntry = indexEntryBytes,
         value = valueEntryBytes,
         falsePositiveRate = falsePositiveRate,
         isRemoveRange = isRemoveRangeMayBe,
         isRange = isRange,
         isGroup = isGroup,
         isPut = false,
+        position = previous.map(_.stats.position + 1) getOrElse 1,
+        hashIndexItemsCount = previous.map(_.stats.hashIndexItemsCount + 1) getOrElse 1,
+        numberOfRanges = 0,
         bloomFiltersItemCount = 1,
         usePreviousHashIndexOffset = enablePrefixCompression,
         minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
         hashIndexCompensation = hashIndexCompensation,
+        rangeCommonPrefixesCount = previous.map(_.stats.rangeCommonPrefixesCount).getOrElse(Stats.emptyRangeCommonPrefixesCount),
         previous = previous,
         deadline = deadline
       )
@@ -779,19 +786,21 @@ private[core] object Transient {
 
     val stats =
       Stats(
-        key = indexEntryBytes,
-        toKey = None,
-        toKeyInclusive = false,
+        indexEntry = indexEntryBytes,
         value = valueEntryBytes,
         falsePositiveRate = falsePositiveRate,
         isRemoveRange = isRemoveRangeMayBe,
         isRange = isRange,
         isGroup = isGroup,
         isPut = false,
+        position = previous.map(_.stats.position + 1) getOrElse 1,
+        hashIndexItemsCount = previous.map(_.stats.hashIndexItemsCount + 1) getOrElse 1,
+        numberOfRanges = 0,
         bloomFiltersItemCount = 1,
         usePreviousHashIndexOffset = enablePrefixCompression,
         minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
         hashIndexCompensation = hashIndexCompensation,
+        rangeCommonPrefixesCount = previous.map(_.stats.rangeCommonPrefixesCount).getOrElse(Stats.emptyRangeCommonPrefixesCount),
         previous = previous,
         deadline = deadline
       )
@@ -840,19 +849,21 @@ private[core] object Transient {
 
     val stats =
       Stats(
-        key = indexEntryBytes,
-        toKey = None,
-        toKeyInclusive = false,
+        indexEntry = indexEntryBytes,
         value = valueEntryBytes,
         falsePositiveRate = falsePositiveRate,
         isRemoveRange = isRemoveRangeMayBe,
         isRange = isRange,
         isGroup = isGroup,
         isPut = false,
+        position = previous.map(_.stats.position + 1) getOrElse 1,
+        hashIndexItemsCount = previous.map(_.stats.hashIndexItemsCount + 1) getOrElse 1,
+        numberOfRanges = 0,
         bloomFiltersItemCount = 1,
         usePreviousHashIndexOffset = enablePrefixCompression,
         minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
         hashIndexCompensation = hashIndexCompensation,
+        rangeCommonPrefixesCount = previous.map(_.stats.rangeCommonPrefixesCount).getOrElse(Stats.emptyRangeCommonPrefixesCount),
         previous = previous,
         deadline = deadline
       )
@@ -958,22 +969,35 @@ private[core] object Transient {
 
     override val hasValueEntryBytes: Boolean = previous.exists(_.hasValueEntryBytes) || valueEntryBytes.exists(_.nonEmpty)
 
+    val commonBytesCount = Bytes.commonPrefixBytesCount(fromKey, toKey)
+
+    val rangeCommonPrefixesCount: SortedSet[Int] =
+      previous map {
+        previous =>
+          if (previous.stats.rangeCommonPrefixesCount.contains(commonBytesCount))
+            previous.stats.rangeCommonPrefixesCount
+          else
+            previous.stats.rangeCommonPrefixesCount + commonBytesCount
+      } getOrElse Stats.createRangeCommonPrefixesCount(commonBytesCount)
+
     val stats =
       Stats(
-        key = indexEntryBytes,
-        toKey = Some(toKey),
-        toKeyInclusive = false,
+        indexEntry = indexEntryBytes,
         value = valueEntryBytes,
         falsePositiveRate = falsePositiveRate,
         isRemoveRange = isRemoveRangeMayBe,
         isRange = isRange,
         isGroup = isGroup,
-        previous = previous,
-        usePreviousHashIndexOffset = enablePrefixCompression,
-        minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-        hashIndexCompensation = hashIndexCompensation,
-        bloomFiltersItemCount = 2, //ranges cost 2. One for fromKey and second for rangeFilter's common prefix bytes.
         isPut = fromValue.exists(_.isInstanceOf[Value.Put]),
+        position = previous.map(_.stats.position + 1) getOrElse 1,
+        hashIndexItemsCount = previous.map(_.stats.hashIndexItemsCount + 2) getOrElse 2,
+        numberOfRanges = 1,
+        bloomFiltersItemCount = 2,
+        usePreviousHashIndexOffset = enablePrefixCompression,
+        minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex, //ranges cost 2. One for fromKey and second for rangeFilter's common prefix bytes.
+        hashIndexCompensation = hashIndexCompensation,
+        rangeCommonPrefixesCount = rangeCommonPrefixesCount,
+        previous = previous,
         deadline = None
       )
   }
@@ -1058,22 +1082,30 @@ private[core] object Transient {
 
     override val hasValueEntryBytes: Boolean = previous.exists(_.hasValueEntryBytes) || valueEntryBytes.exists(_.nonEmpty)
 
+    val rangeCommonPrefixesCount: SortedSet[Int] =
+      previous map {
+        previous =>
+          previous.stats.rangeCommonPrefixesCount ++ keyValues.last.stats.rangeCommonPrefixesCount
+      } getOrElse keyValues.last.stats.rangeCommonPrefixesCount
+
     val stats =
       Stats(
-        key = indexEntryBytes,
-        toKey = Some(maxKey.maxKey),
-        toKeyInclusive = maxKey.inclusive,
+        indexEntry = indexEntryBytes,
         value = valueEntryBytes,
         falsePositiveRate = falsePositiveRate,
         isRemoveRange = isRemoveRangeMayBe,
         isRange = isRange,
         isGroup = isGroup,
-        previous = previous,
+        isPut = keyValues.last.stats.hasPut,
+        position = previous.map(_.stats.position + 1) getOrElse 1,
+        hashIndexItemsCount = previous.map(_.stats.hashIndexItemsCount + keyValues.last.stats.hashIndexItemsCount).getOrElse(keyValues.last.stats.hashIndexItemsCount),
+        numberOfRanges = keyValues.last.stats.totalNumberOfRanges,
+        bloomFiltersItemCount = keyValues.last.stats.totalBloomFiltersItemsCount,
         usePreviousHashIndexOffset = enablePrefixCompression,
         minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
         hashIndexCompensation = hashIndexCompensation,
-        bloomFiltersItemCount = keyValues.last.stats.bloomFilterKeysCount,
-        isPut = keyValues.last.stats.hasPut,
+        rangeCommonPrefixesCount = rangeCommonPrefixesCount,
+        previous = previous,
         deadline = deadline
       )
   }

@@ -1288,7 +1288,7 @@ object CommonAssertions {
     groupSegmentReader.readBoolean().assertGet shouldBe group.keyValues.last.stats.hasPut
     groupSegmentReader.readIntUnsigned().assertGet shouldBe expectedIndexCompressionUsed.decompressor.id //key decompression id
     groupSegmentReader.readIntUnsigned().assertGet shouldBe groupKeyValues.size //key-value count
-    groupSegmentReader.readIntUnsigned().assertGet shouldBe groupKeyValues.last.stats.bloomFilterKeysCount //bloomFilterItemsCount count
+    groupSegmentReader.readIntUnsigned().assertGet shouldBe groupKeyValues.last.stats.totalBloomFiltersItemsCount //bloomFilterItemsCount count
     val keysDecompressLength = groupSegmentReader.readIntUnsigned().assertGet //keys length
     val keysCompressLength = groupSegmentReader.readIntUnsigned().assertGet //keys length
 
@@ -1321,7 +1321,7 @@ object CommonAssertions {
       hasPut = false,
       isGrouped = true,
       createdInLevel = Int.MinValue,
-      bloomFilterItemsCount = groupKeyValues.last.stats.bloomFilterKeysCount,
+      bloomFilterItemsCount = groupKeyValues.last.stats.totalBloomFiltersItemsCount,
       bloomFilter = None
     )
 
@@ -1532,6 +1532,20 @@ object CommonAssertions {
             _minKey.shouldBeSliced()
             _maxKey.maxKey.shouldBeSliced()
             lazyGroupValueReader.getOrFetchValue.get.safeGetBlocking().shouldBeSliced()
+        }
+    }
+
+
+  def countRangesManually(keyValues: Iterable[KeyValue.WriteOnly]): Int =
+    keyValues.foldLeft(0) {
+      case (count, keyValue) =>
+        keyValue match {
+          case fixed: WriteOnly.Fixed =>
+            count
+          case range: WriteOnly.Range =>
+            count + 1
+          case group: WriteOnly.Group =>
+            count + countRangesManually(group.keyValues)
         }
     }
 }

@@ -109,7 +109,7 @@ private[core] object GroupCompressor extends LazyLogging {
                   Bytes.sizeOf(indexCompression.decompressor.id) + //index compression id
                   //key-value count. Use the stats position because in the future a Group might also be compressed with other groups.
                   Bytes.sizeOf(keyValues.last.stats.position) +
-                  Bytes.sizeOf(keyValues.last.stats.bloomFilterKeysCount) +
+                  Bytes.sizeOf(keyValues.last.stats.totalBloomFiltersItemsCount) +
                   Bytes.sizeOf(indexBytesRequired) + //index de-compressed size
                   Bytes.sizeOf(compressedIndexBytes.size) + //index compressed size. These bytes get added to the end.
                   Bytes.sizeOf(hashIndexBytes.size) + {
@@ -138,7 +138,7 @@ private[core] object GroupCompressor extends LazyLogging {
                 .addBoolean(keyValues.last.stats.hasPut)
                 .addIntUnsigned(indexCompression.decompressor.id)
                 .addIntUnsigned(keyValues.last.stats.position)
-                .addIntUnsigned(keyValues.last.stats.bloomFilterKeysCount)
+                .addIntUnsigned(keyValues.last.stats.totalBloomFiltersItemsCount)
                 .addIntUnsigned(indexBytesRequired)
                 .addIntUnsigned(compressedIndexBytes.size)
                 .addIntUnsigned(hashIndexBytes.size)

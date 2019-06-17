@@ -179,7 +179,7 @@ object BloomFilter {
           else
             Some(
               BloomFilter(
-                numberOfKeys = last.stats.bloomFilterKeysCount,
+                numberOfKeys = last.stats.totalBloomFiltersItemsCount,
                 falsePositiveRate = falsePositiveRate,
                 enableRangeFilter = enableRangeFilter
               )

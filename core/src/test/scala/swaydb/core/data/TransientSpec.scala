@@ -19,13 +19,15 @@
 
 package swaydb.core.data
 
-import org.scalatest.{Matchers, WordSpec}
-import swaydb.core.{TestData, TestTimer}
+import swaydb.core.CommonAssertions._
+import swaydb.core.RunThis._
 import swaydb.core.TestData._
+import swaydb.core.{TestBase, TestData, TestTimer}
+import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
-class TransientSpec extends WordSpec with Matchers {
+class TransientSpec extends TestBase {
 
   val keyValueCount = 100
 
@@ -40,6 +42,101 @@ class TransientSpec extends WordSpec with Matchers {
       val five = Transient.put(key = 5, value = Some(5), falsePositiveRate = TestData.falsePositiveRate, previousMayBe = Some(four))
 
       five.reverseIterator.toList should contain inOrderOnly(five, four, three, two, one)
+    }
+  }
+
+  "assert stats" in {
+    runThis(100.times) {
+      randomTransientKeyValue(
+        key = 1,
+        toKey = Some(2),
+        value = Option.empty[Slice[Byte]],
+        previous = None
+      ) match {
+        case keyValue: Transient.Remove =>
+          keyValue.stats.valueLength shouldBe 0
+          keyValue.stats.hasRemoveRange shouldBe false
+          keyValue.stats.hasPut shouldBe false
+          keyValue.stats.position shouldBe 1
+          keyValue.stats.totalNumberOfRanges shouldBe 0
+          keyValue.stats.groupsCount shouldBe 0
+          keyValue.stats.rangeCommonPrefixesCount shouldBe empty
+          keyValue.stats.thisKeyValueIndexOffset shouldBe 0
+          keyValue.stats.thisKeyValuesHashIndexesSortedIndexOffset shouldBe 0
+          keyValue.stats.totalBloomFiltersItemsCount shouldBe 1
+
+        case keyValue: Transient.Put =>
+          keyValue.stats.valueLength shouldBe 0
+          keyValue.stats.hasRemoveRange shouldBe false
+          keyValue.stats.hasPut shouldBe true
+          keyValue.stats.position shouldBe 1
+          keyValue.stats.totalNumberOfRanges shouldBe 0
+          keyValue.stats.groupsCount shouldBe 0
+          keyValue.stats.rangeCommonPrefixesCount shouldBe empty
+          keyValue.stats.thisKeyValueIndexOffset shouldBe 0
+          keyValue.stats.thisKeyValuesHashIndexesSortedIndexOffset shouldBe 0
+          keyValue.stats.totalBloomFiltersItemsCount shouldBe 1
+
+        case keyValue: Transient.Update =>
+          keyValue.stats.valueLength shouldBe 0
+          keyValue.stats.hasRemoveRange shouldBe false
+          keyValue.stats.hasPut shouldBe false
+          keyValue.stats.position shouldBe 1
+          keyValue.stats.totalNumberOfRanges shouldBe 0
+          keyValue.stats.groupsCount shouldBe 0
+          keyValue.stats.rangeCommonPrefixesCount shouldBe empty
+          keyValue.stats.thisKeyValueIndexOffset shouldBe 0
+          keyValue.stats.thisKeyValuesHashIndexesSortedIndexOffset shouldBe 0
+          keyValue.stats.totalBloomFiltersItemsCount shouldBe 1
+
+        case keyValue: Transient.Function =>
+          keyValue.stats.valueLength should be > 0
+          keyValue.stats.hasRemoveRange shouldBe false
+          keyValue.stats.hasPut shouldBe false
+          keyValue.stats.position shouldBe 1
+          keyValue.stats.totalNumberOfRanges shouldBe 0
+          keyValue.stats.groupsCount shouldBe 0
+          keyValue.stats.rangeCommonPrefixesCount shouldBe empty
+          keyValue.stats.thisKeyValueIndexOffset shouldBe 0
+          keyValue.stats.thisKeyValuesHashIndexesSortedIndexOffset shouldBe 0
+          keyValue.stats.totalBloomFiltersItemsCount shouldBe 1
+
+        case keyValue: Transient.PendingApply =>
+          keyValue.stats.valueLength should be > 0
+          keyValue.stats.hasRemoveRange shouldBe false
+          keyValue.stats.hasPut shouldBe false
+          keyValue.stats.position shouldBe 1
+          keyValue.stats.totalNumberOfRanges shouldBe 0
+          keyValue.stats.groupsCount shouldBe 0
+          keyValue.stats.rangeCommonPrefixesCount shouldBe empty
+          keyValue.stats.thisKeyValueIndexOffset shouldBe 0
+          keyValue.stats.thisKeyValuesHashIndexesSortedIndexOffset shouldBe 0
+          keyValue.stats.totalBloomFiltersItemsCount shouldBe 1
+
+        case keyValue: Transient.Range =>
+          keyValue.stats.valueLength should be > 0
+          keyValue.stats.hasRemoveRange shouldBe keyValue.rangeValue.hasRemoveMayBe
+          keyValue.stats.hasPut shouldBe keyValue.fromValue.exists(_.isInstanceOf[Value.Put])
+          keyValue.stats.position shouldBe 1
+          keyValue.stats.totalNumberOfRanges shouldBe 1
+          keyValue.stats.groupsCount shouldBe 0
+          keyValue.stats.rangeCommonPrefixesCount shouldBe Stats.createRangeCommonPrefixesCount(3)
+          keyValue.stats.thisKeyValueIndexOffset shouldBe 0
+          keyValue.stats.thisKeyValuesHashIndexesSortedIndexOffset shouldBe 0
+          keyValue.stats.totalBloomFiltersItemsCount shouldBe 2
+
+        case keyValue: Transient.Group =>
+          keyValue.stats.valueLength should be > 0
+          keyValue.stats.hasRemoveRange shouldBe keyValue.keyValues.exists(_.stats.hasRemoveRange)
+          keyValue.stats.hasPut shouldBe keyValue.keyValues.exists(_.stats.hasPut)
+          keyValue.stats.position shouldBe 1
+          keyValue.stats.totalNumberOfRanges shouldBe countRangesManually(keyValue.keyValues)
+          keyValue.stats.groupsCount shouldBe 1
+          keyValue.stats.rangeCommonPrefixesCount shouldBe keyValue.keyValues.last.stats.rangeCommonPrefixesCount
+          keyValue.stats.thisKeyValueIndexOffset shouldBe 0
+          keyValue.stats.thisKeyValuesHashIndexesSortedIndexOffset shouldBe 0
+          keyValue.stats.totalBloomFiltersItemsCount shouldBe keyValue.keyValues.last.stats.totalBloomFiltersItemsCount
+      }
     }
   }
 }

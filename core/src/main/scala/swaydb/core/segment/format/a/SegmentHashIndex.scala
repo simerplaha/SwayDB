@@ -73,15 +73,15 @@ object SegmentHashIndex extends LazyLogging {
   /**
     * Number of bytes required to build a high probability index.
     */
-  def optimalBytesRequired(lastKeyValuePosition: Int,
-                           lastKeyValueIndexOffset: Int,
+  def optimalBytesRequired(hashIndexItemsCount: Int,
+                           largestSortedIndexOffset: Int,
                            minimumNumberOfKeyValues: Int,
                            compensate: Int => Int): Int =
-    if (lastKeyValuePosition <= minimumNumberOfKeyValues) {
+    if (hashIndexItemsCount <= minimumNumberOfKeyValues) {
       headerSize
     } else {
       //number of bytes required for hash indexes. +1 to skip 0 empty markers.
-      val bytesWithOutCompensation = lastKeyValuePosition * Bytes.sizeOf(lastKeyValueIndexOffset + 1)
+      val bytesWithOutCompensation = hashIndexItemsCount * Bytes.sizeOf(largestSortedIndexOffset + 1)
       val bytesRequired =
         headerSize +
           (ByteSizeOf.int + 1) + //give it another 5 bytes incase the hash index is the last index. Since varints are written a max of 5 bytes can be taken for an in with large index.
@@ -99,9 +99,9 @@ object SegmentHashIndex extends LazyLogging {
                            minimumNumberOfKeyValues: Int,
                            compensate: Int => Int): Int =
     optimalBytesRequired(
-      lastKeyValuePosition = lastKeyValue.stats.position,
+      hashIndexItemsCount = lastKeyValue.stats.position,
       minimumNumberOfKeyValues = minimumNumberOfKeyValues,
-      lastKeyValueIndexOffset = lastKeyValue.stats.thisKeyValuesHashIndexesSortedIndexOffset,
+      largestSortedIndexOffset = lastKeyValue.stats.thisKeyValuesHashIndexesSortedIndexOffset,
       compensate = compensate
     )
 

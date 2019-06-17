@@ -81,6 +81,17 @@ object TestData {
   def randomBoolean(): Boolean =
     Random.nextBoolean()
 
+  implicit class KeyValuesImplicits(keyValues: Iterable[KeyValue.WriteOnly]) {
+    def updateStats: Slice[KeyValue.WriteOnly] = {
+      val slice = Slice.create[KeyValue.WriteOnly](keyValues.size)
+      keyValues foreach {
+        keyValue =>
+          slice.add(keyValue.updateStats(TestData.falsePositiveRate, previous = slice.lastOption))
+      }
+      slice
+    }
+  }
+
   implicit class ReopenSegment(segment: Segment)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                  ec: ExecutionContext,
                                                  keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
@@ -1061,6 +1072,171 @@ object TestData {
       } toArray
     }
 
+  def randomTransientKeyValue(key: Slice[Byte],
+                              toKey: Option[Slice[Byte]],
+                              value: Option[Slice[Byte]] = randomStringOption,
+                              fromValue: Option[FromValue] = randomFromValueOption(),
+                              rangeValue: RangeValue = randomRangeValue(),
+                              deadline: Option[Deadline] = randomDeadlineOption,
+                              time: Time = Time.empty,
+                              previous: Option[KeyValue.WriteOnly] = None,
+                              maxGroupKeyValues: Int = randomIntMax(50) + 1, //+1 to avoid empty groups
+                              falsePositiveRate: Double = TestData.falsePositiveRate,
+                              compressDuplicateValues: Boolean = randomBoolean(),
+                              resetPrefixCompressionEvery: Int = TestData.resetPrefixCompressionEvery,
+                              minimumNumberOfKeysForHashIndex: Int = TestData.minimumNumberOfKeyForHashIndex,
+                              hashIndexCompensation: Int => Int = TestData.hashIndexCompensation,
+                              functionOutput: SwayFunctionOutput = randomFunctionOutput(),
+                              includePendingApply: Boolean = true,
+                              includeFunctions: Boolean = true,
+                              includeRemoves: Boolean = true,
+                              includePuts: Boolean = true,
+                              includeRanges: Boolean = true,
+                              includeGroups: Boolean = true): KeyValue.WriteOnly =
+    if (toKey.isDefined && includeRanges && randomBoolean())
+      Transient.Range(
+        fromKey = key,
+        toKey = toKey.get,
+        fromValue = fromValue,
+        rangeValue = rangeValue,
+        falsePositiveRate = falsePositiveRate,
+        resetPrefixCompressionEvery = resetPrefixCompressionEvery,
+        minimumNumberOfKeyForHashIndex = minimumNumberOfKeysForHashIndex,
+        hashIndexCompensation = hashIndexCompensation,
+        previous = previous
+      )
+    else if (includeGroups && randomBoolean())
+      randomGroup(
+        keyValues =
+          (0 to maxGroupKeyValues) map {
+            i =>
+              randomTransientKeyValue(
+                key = key,
+                toKey = toKey,
+                fromValue = fromValue,
+                rangeValue = rangeValue,
+                value = value,
+                deadline = deadline,
+                time = time,
+                previous = previous,
+                falsePositiveRate = falsePositiveRate,
+                compressDuplicateValues = compressDuplicateValues,
+                resetPrefixCompressionEvery = resetPrefixCompressionEvery,
+                minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
+                hashIndexCompensation = hashIndexCompensation,
+                functionOutput = functionOutput,
+                includePendingApply = includePendingApply,
+                includeFunctions = includeFunctions,
+                includeRemoves = includeRemoves,
+                includePuts = includePuts,
+                includeRanges = includeRanges,
+                includeGroups = i % 4 == 0 && randomBoolean()
+              )
+          } updateStats
+      )
+    else
+      randomFixedTransientKeyValue(
+        key = key,
+        value = value,
+        deadline = deadline,
+        time = time,
+        previous = previous,
+        falsePositiveRate = falsePositiveRate,
+        compressDuplicateValues = compressDuplicateValues,
+        resetPrefixCompressionEvery = resetPrefixCompressionEvery,
+        minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
+        hashIndexCompensation = hashIndexCompensation,
+        functionOutput = functionOutput,
+        includePendingApply = includePendingApply,
+        includeFunctions = includeFunctions,
+        includeRemoves = includeRemoves,
+        includePuts = includePuts
+      )
+
+  def randomFixedTransientKeyValue(key: Slice[Byte],
+                                   value: Option[Slice[Byte]] = randomStringOption,
+                                   deadline: Option[Deadline] = randomDeadlineOption,
+                                   time: Time = Time.empty,
+                                   previous: Option[KeyValue.WriteOnly] = None,
+                                   falsePositiveRate: Double = TestData.falsePositiveRate,
+                                   compressDuplicateValues: Boolean = randomBoolean(),
+                                   resetPrefixCompressionEvery: Int = TestData.resetPrefixCompressionEvery,
+                                   minimumNumberOfKeysForHashIndex: Int = TestData.minimumNumberOfKeyForHashIndex,
+                                   hashIndexCompensation: Int => Int = TestData.hashIndexCompensation,
+                                   functionOutput: SwayFunctionOutput = randomFunctionOutput(),
+                                   includePendingApply: Boolean = true,
+                                   includeFunctions: Boolean = true,
+                                   includeRemoves: Boolean = true,
+                                   includePuts: Boolean = true): KeyValue.WriteOnly.Fixed =
+    if (includePuts && randomBoolean())
+      Transient.Put(
+        key = key,
+        value = value,
+        deadline = deadline,
+        time = time,
+        previous = previous,
+        falsePositiveRate = falsePositiveRate,
+        compressDuplicateValues = compressDuplicateValues,
+        resetPrefixCompressionEvery = resetPrefixCompressionEvery,
+        minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
+        hashIndexCompensation = hashIndexCompensation
+      )
+    else if (includeRemoves && randomBoolean())
+      Transient.Remove(
+        key = key,
+        deadline = deadline,
+        time = time,
+        previous = previous,
+        falsePositiveRate = falsePositiveRate,
+        resetPrefixCompressionEvery = resetPrefixCompressionEvery,
+        minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
+        hashIndexCompensation = hashIndexCompensation
+      )
+    else if (includeFunctions && randomBoolean())
+      Transient.Function(
+        key = key,
+        function = randomFunctionId(functionOutput),
+        deadline = deadline,
+        time = time,
+        previous = previous,
+        falsePositiveRate = falsePositiveRate,
+        compressDuplicateValues = compressDuplicateValues,
+        resetPrefixCompressionEvery = resetPrefixCompressionEvery,
+        minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
+        hashIndexCompensation = hashIndexCompensation
+      )
+    else if (includePendingApply && randomBoolean())
+      Transient.PendingApply(
+        key = key,
+        applies = randomApplies(
+          max = 10,
+          value = value,
+          deadline = deadline,
+          addRemoves = includeRemoves,
+          functionOutput = functionOutput,
+          includeFunctions = includeFunctions
+        ),
+        previous = previous,
+        falsePositiveRate = falsePositiveRate,
+        compressDuplicateValues = compressDuplicateValues,
+        resetPrefixCompressionEvery = resetPrefixCompressionEvery,
+        minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
+        hashIndexCompensation = hashIndexCompensation
+      )
+    else
+      Transient.Update(
+        key = key,
+        value = value,
+        deadline = deadline,
+        time = time,
+        previous = previous,
+        falsePositiveRate = falsePositiveRate,
+        compressDuplicateValues = compressDuplicateValues,
+        resetPrefixCompressionEvery = resetPrefixCompressionEvery,
+        minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
+        hashIndexCompensation = hashIndexCompensation
+      )
+
   def randomFixedKeyValue(key: Slice[Byte],
                           value: Option[Slice[Byte]] = randomStringOption,
                           deadline: Option[Deadline] = randomDeadlineOption,
@@ -1068,8 +1244,7 @@ object TestData {
                           includePendingApply: Boolean = true,
                           includeFunctions: Boolean = true,
                           includeRemoves: Boolean = true,
-                          includePuts: Boolean = true,
-                          moveAppliesTimeBackward: Boolean = true)(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Fixed =
+                          includePuts: Boolean = true)(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Fixed =
     if (includePuts && randomBoolean())
       Memory.Put(key, value, deadline, testTimer.next)
     else if (includeRemoves && randomBoolean())

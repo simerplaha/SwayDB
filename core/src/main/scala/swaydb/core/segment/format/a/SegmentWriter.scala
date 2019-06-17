@@ -240,7 +240,7 @@ private[core] object SegmentWriter extends LazyLogging {
 
       val bloomFilter =
         BloomFilter.init(
-          numberOfKeys = lastStats.bloomFilterKeysCount,
+          numberOfKeys = lastStats.totalBloomFiltersItemsCount,
           hasRemoveRange = lastStats.hasRemoveRange,
           falsePositiveRate = bloomFilterFalsePositiveRate,
           enableRangeFilter = enableRangeFilter,
@@ -289,7 +289,7 @@ private[core] object SegmentWriter extends LazyLogging {
             //are read when the Group key-value is read.
             footerHeaderSlice addIntUnsigned keyValues.size
             //total number of actual key-values grouped or un-grouped
-            footerHeaderSlice addIntUnsigned lastStats.bloomFilterKeysCount
+            footerHeaderSlice addIntUnsigned lastStats.totalBloomFiltersItemsCount
 
             //write the actual bytes used by bloomFilter.
             val bloomFilterExportSize = bloomFilter.map(_.exportSize).getOrElse(0)

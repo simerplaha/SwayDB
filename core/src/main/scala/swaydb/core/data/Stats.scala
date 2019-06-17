@@ -29,22 +29,27 @@ import scala.concurrent.duration.Deadline
 
 private[core] object Stats {
 
-  def createRangeCommonPrefixesCount =
+  def createRangeCommonPrefixesCount(int: Int) =
+    immutable.SortedSet[Int](int)(Ordering.Int.reverse)
+
+  val emptyRangeCommonPrefixesCount =
     immutable.SortedSet.empty[Int](Ordering.Int.reverse)
 
-  def apply(key: Slice[Byte],
-            toKey: Option[Slice[Byte]],
-            toKeyInclusive: Boolean,
+  def apply(indexEntry: Slice[Byte],
             value: Option[Slice[Byte]],
             falsePositiveRate: Double,
             isRemoveRange: Boolean,
             isRange: Boolean,
             isGroup: Boolean,
             isPut: Boolean,
+            position: Int,
+            hashIndexItemsCount: Int, //position accounting for Groups.
+            numberOfRanges: Int,
             bloomFiltersItemCount: Int,
             usePreviousHashIndexOffset: Boolean,
             minimumNumberOfKeysForHashIndex: Int,
             hashIndexCompensation: Int => Int,
+            rangeCommonPrefixesCount: SortedSet[Int],
             previous: Option[KeyValue.WriteOnly],
             deadline: Option[Deadline]): Stats = {
 
@@ -63,14 +68,8 @@ private[core] object Stats {
     val previousStats =
       previous.map(_.stats)
 
-    val position =
-      previousStats.map(_.position + 1) getOrElse 1
-
-    val numberOfRanges =
-      if (isRange)
-        previousStats.map(_.numberOfRanges + 1) getOrElse 1
-      else
-        previousStats.map(_.numberOfRanges) getOrElse 0
+    val totalNumberOfRanges =
+      previousStats.map(_.totalNumberOfRanges + numberOfRanges) getOrElse numberOfRanges
 
     val groupsCount =
       if (isGroup)
@@ -78,21 +77,8 @@ private[core] object Stats {
       else
         previousStats.map(_.groupsCount) getOrElse 0
 
-    val rangeCommonPrefixesCount =
-      toKey flatMap {
-        toKey =>
-          val commonBytesCount = Bytes.commonPrefixBytesCount(key, toKey)
-          previousStats map {
-            previousStats =>
-              if (previousStats.rangeCommonPrefixesCount.contains(commonBytesCount))
-                previousStats.rangeCommonPrefixesCount
-              else
-                previousStats.rangeCommonPrefixesCount + commonBytesCount
-          }
-      } getOrElse previousStats.map(_.rangeCommonPrefixesCount).getOrElse(createRangeCommonPrefixesCount)
-
     val thisKeyValuesIndexSizeWithoutFooter =
-      Bytes.sizeOf(key.size) + key.size
+      Bytes.sizeOf(indexEntry.size) + indexEntry.size
 
     val thisKeyValueIndexOffset =
       previousStats map {
@@ -110,7 +96,7 @@ private[core] object Stats {
     //Items to add to BloomFilters is different to the position because a Group can contain
     //multiple inner key-values but the Group's key itself does not get added to the BloomFilter.
     val totalBloomFiltersItemsCount =
-    previousStats.map(_.bloomFilterKeysCount + bloomFiltersItemCount) getOrElse bloomFiltersItemCount
+    previousStats.map(_.totalBloomFiltersItemsCount + bloomFiltersItemCount) getOrElse bloomFiltersItemCount
 
     val thisKeyValuesSegmentSizeWithoutFooterAndHashIndex: Int =
       thisKeyValuesIndexSizeWithoutFooter +
@@ -118,8 +104,8 @@ private[core] object Stats {
 
     val segmentHashIndexSize =
       SegmentHashIndex.optimalBytesRequired(
-        lastKeyValuePosition = position,
-        lastKeyValueIndexOffset = thisKeyValuesHashIndexesSortedIndexOffset,
+        hashIndexItemsCount = hashIndexItemsCount,
+        largestSortedIndexOffset = thisKeyValuesHashIndexesSortedIndexOffset,
         minimumNumberOfKeyValues = minimumNumberOfKeysForHashIndex,
         compensate = hashIndexCompensation
       )
@@ -144,7 +130,7 @@ private[core] object Stats {
     val segmentIndexSize =
       previousStats.map(_.segmentIndexSize).getOrElse(0) + thisKeyValuesIndexSizeWithoutFooter
 
-    val optimalRangeFilterSize = BloomFilter.optimalRangeFilterByteSize(numberOfRanges, rangeCommonPrefixesCount)
+    val optimalRangeFilterSize = BloomFilter.optimalRangeFilterByteSize(totalNumberOfRanges, rangeCommonPrefixesCount)
     val optimalBloomFilterSize = BloomFilter.optimalSegmentBloomFilterByteSize(totalBloomFiltersItemsCount, falsePositiveRate)
 
     val footerHeaderSize =
@@ -169,20 +155,21 @@ private[core] object Stats {
         ByteSizeOf.int //int to store the size of the footer
 
     val segmentUncompressedKeysSize: Int =
-      previousStats.map(_.segmentUncompressedKeysSize).getOrElse(0) + key.size
+      previousStats.map(_.segmentUncompressedKeysSize).getOrElse(0) + indexEntry.size
 
     new Stats(
       valueLength = valueLength,
       segmentSize = segmentSize,
       position = position,
+      hashIndexItemsCount = hashIndexItemsCount,
       groupsCount = groupsCount,
-      bloomFilterKeysCount = totalBloomFiltersItemsCount,
+      totalBloomFiltersItemsCount = totalBloomFiltersItemsCount,
       segmentValuesSize = segmentValuesSize,
       segmentIndexSize = segmentIndexSize,
       segmentUncompressedKeysSize = segmentUncompressedKeysSize,
       segmentSizeWithoutFooter = segmentSizeWithoutFooter,
       segmentSizeWithoutFooterForNextGroup = segmentSizeWithoutFooterForNextGroup,
-      keySize = key.size,
+      keySize = indexEntry.size,
       thisKeyValuesSegmentSizeWithoutFooterAndHashIndex = thisKeyValuesSegmentSizeWithoutFooterAndHashIndex,
       thisKeyValuesIndexSizeWithoutFooter = thisKeyValuesIndexSizeWithoutFooter,
       thisKeyValuesHashIndexesSortedIndexOffset = thisKeyValuesHashIndexesSortedIndexOffset,
@@ -191,7 +178,7 @@ private[core] object Stats {
       bloomFilterSize = optimalBloomFilterSize,
       rangeFilterSize = optimalRangeFilterSize,
       footerHeaderSize = footerHeaderSize,
-      numberOfRanges = numberOfRanges,
+      totalNumberOfRanges = totalNumberOfRanges,
       hasRemoveRange = hasRemoveRange,
       hasRange = hasRange,
       hasPut = hasPut,
@@ -204,8 +191,9 @@ private[core] object Stats {
 private[core] case class Stats(valueLength: Int,
                                segmentSize: Int,
                                position: Int,
+                               hashIndexItemsCount: Int,
                                groupsCount: Int,
-                               bloomFilterKeysCount: Int,
+                               totalBloomFiltersItemsCount: Int,
                                segmentValuesSize: Int,
                                segmentIndexSize: Int,
                                segmentUncompressedKeysSize: Int,
@@ -220,7 +208,7 @@ private[core] case class Stats(valueLength: Int,
                                bloomFilterSize: Int,
                                rangeFilterSize: Int,
                                footerHeaderSize: Int,
-                               numberOfRanges: Int,
+                               totalNumberOfRanges: Int,
                                hasRemoveRange: Boolean,
                                hasRange: Boolean,
                                hasPut: Boolean,

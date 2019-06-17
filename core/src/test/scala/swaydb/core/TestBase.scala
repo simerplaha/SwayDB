@@ -361,16 +361,6 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
       ).assertGet
   }
 
-  implicit class KeyValuesImplicits(keyValues: Iterable[KeyValue.WriteOnly]) {
-    def updateStats: Slice[KeyValue.WriteOnly] = {
-      val slice = Slice.create[KeyValue.WriteOnly](keyValues.size)
-      keyValues foreach {
-        keyValue =>
-          slice.add(keyValue.updateStats(TestData.falsePositiveRate, previous = slice.lastOption))
-      }
-      slice
-    }
-  }
 
   def createFile(bytes: Slice[Byte]): Path =
     IOEffect.write(bytes, testDir.resolve(nextSegmentId)).assertGet
