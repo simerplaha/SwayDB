@@ -118,8 +118,8 @@ object BloomFilter {
     )
   }
 
-  def optimalRangeFilterByteSize(numberOfRanges: Int): Int =
-    IntMapListBufferSerializer optimalBytesRequired numberOfRanges
+  def optimalRangeFilterByteSize(numberOfRanges: Int, rangeFilterCommonPrefixes: Iterable[Int]): Int =
+    IntMapListBufferSerializer.optimalBytesRequired(numberOfRanges, rangeFilterCommonPrefixes)
 
   def optimalNumberOfBloomFilterBits(numberOfKeys: Int, falsePositiveRate: Double): Int =
     if (numberOfKeys <= 0 || falsePositiveRate <= 0.0)
@@ -193,9 +193,7 @@ object BloomFilter {
            falsePositiveRate: Double,
            enableRangeFilter: Boolean,
            bytes: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Option[BloomFilter] =
-    if (falsePositiveRate <= 0.0)
-      None
-    else if (!enableRangeFilter && hasRemoveRange)
+    if (falsePositiveRate <= 0.0 || (!enableRangeFilter && hasRemoveRange))
       None
     else
       Some(

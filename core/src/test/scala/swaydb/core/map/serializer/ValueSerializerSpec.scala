@@ -23,8 +23,10 @@ import org.scalatest.{Matchers, WordSpec}
 import swaydb.compression.CompressionInternal
 import swaydb.core.map.serializer.ValueSerializer.IntMapListBufferSerializer
 import swaydb.data.slice.Slice
+import swaydb.core.TestData._
 
 import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 
 class ValueSerializerSpec extends WordSpec with Matchers {
 
@@ -35,7 +37,7 @@ class ValueSerializerSpec extends WordSpec with Matchers {
 
     val bytes = Slice.create[Byte](IntMapListBufferSerializer.bytesRequired(map))
 
-    IntMapListBufferSerializer.optimalBytesRequired(2) should be >= bytes.size
+    IntMapListBufferSerializer.optimalBytesRequired(2, ???) should be >= bytes.size
 
     IntMapListBufferSerializer.write(map, bytes)
     bytes.isFull shouldBe true
@@ -49,12 +51,14 @@ class ValueSerializerSpec extends WordSpec with Matchers {
 
     val map = mutable.Map.empty[Int, Iterable[(Byte, Byte)]]
     (1 to rangeCount) foreach {
-      i =>
-        map.put(i, Slice((1.toByte, 2.toByte), (3.toByte, 4.toByte)))
+      _ =>
+        val minByte = (randomIntMax(Byte.MaxValue) - 1).toByte
+        val maxByte = (minByte + 1).toByte
+        map.getOrElseUpdate(randomIntMax(200), ListBuffer((maxByte, minByte))).asInstanceOf[ListBuffer[(Byte, Byte)]] += ((maxByte, minByte))
     }
 
     val bytes = Slice.create[Byte](IntMapListBufferSerializer.bytesRequired(map))
-    val optimalBytes = IntMapListBufferSerializer.optimalBytesRequired(rangeCount)
+    val optimalBytes = IntMapListBufferSerializer.optimalBytesRequired(rangeCount, map.keys)
 
     println(s"Optimal bytes: $optimalBytes")
     println(s"Actual bytes : ${bytes.size}")
@@ -66,6 +70,9 @@ class ValueSerializerSpec extends WordSpec with Matchers {
 
     println("Compressed size: " + CompressionInternal.randomLZ4().compressor.compress(bytes).get.get.size)
 
-    IntMapListBufferSerializer.read(bytes).get shouldBe map
+    IntMapListBufferSerializer.read(bytes).get shouldBe map.map {
+      case (key, value) =>
+        (key, value.toSlice)
+    }.toMap
   }
 }

@@ -614,6 +614,8 @@ private[core] object Transient {
     override val stats =
       Stats(
         key = indexEntryBytes,
+        toKey = None,
+        toKeyInclusive = false,
         value = None,
         falsePositiveRate = falsePositiveRate,
         isRemoveRange = isRemoveRangeMayBe,
@@ -665,6 +667,8 @@ private[core] object Transient {
     val stats =
       Stats(
         key = indexEntryBytes,
+        toKey = None,
+        toKeyInclusive = false,
         value = valueEntryBytes,
         falsePositiveRate = falsePositiveRate,
         isRemoveRange = isRemoveRangeMayBe,
@@ -722,6 +726,8 @@ private[core] object Transient {
     val stats =
       Stats(
         key = indexEntryBytes,
+        toKey = None,
+        toKeyInclusive = false,
         value = valueEntryBytes,
         falsePositiveRate = falsePositiveRate,
         isRemoveRange = isRemoveRangeMayBe,
@@ -774,6 +780,8 @@ private[core] object Transient {
     val stats =
       Stats(
         key = indexEntryBytes,
+        toKey = None,
+        toKeyInclusive = false,
         value = valueEntryBytes,
         falsePositiveRate = falsePositiveRate,
         isRemoveRange = isRemoveRangeMayBe,
@@ -833,6 +841,8 @@ private[core] object Transient {
     val stats =
       Stats(
         key = indexEntryBytes,
+        toKey = None,
+        toKeyInclusive = false,
         value = valueEntryBytes,
         falsePositiveRate = falsePositiveRate,
         isRemoveRange = isRemoveRangeMayBe,
@@ -950,6 +960,8 @@ private[core] object Transient {
     val stats =
       Stats(
         key = indexEntryBytes,
+        toKey = Some(toKey),
+        toKeyInclusive = false,
         value = valueEntryBytes,
         falsePositiveRate = falsePositiveRate,
         isRemoveRange = isRemoveRangeMayBe,
@@ -1048,6 +1060,8 @@ private[core] object Transient {
     val stats =
       Stats(
         key = indexEntryBytes,
+        toKey = Some(maxKey.maxKey),
+        toKeyInclusive = maxKey.inclusive,
         value = valueEntryBytes,
         falsePositiveRate = falsePositiveRate,
         isRemoveRange = isRemoveRangeMayBe,

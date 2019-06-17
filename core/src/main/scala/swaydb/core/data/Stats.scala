@@ -28,10 +28,14 @@ import scala.concurrent.duration.Deadline
 
 private[core] object Stats {
 
+  val emptyRangeFilterCommonPrefixes = List.empty[Int]
+
   val footerEndSize =
     ByteSizeOf.int //int to store the size of the footer
 
   def apply(key: Slice[Byte],
+            toKey: Option[Slice[Byte]],
+            toKeyInclusive: Boolean,
             value: Option[Slice[Byte]],
             falsePositiveRate: Double,
             isRemoveRange: Boolean,
@@ -74,6 +78,19 @@ private[core] object Stats {
         previousStats.map(_.groupsCount + 1) getOrElse 1
       else
         previousStats.map(_.groupsCount) getOrElse 0
+
+    val rangeFilterCommonPrefixes =
+      toKey flatMap {
+        toKey =>
+          val commonBytes = Bytes.commonPrefix(key, toKey)
+          previousStats map {
+            previousStats =>
+              if (!previousStats.rangeFilterCommonPrefixes.contains(commonBytes))
+                previousStats.rangeFilterCommonPrefixes
+              else
+                previousStats.rangeFilterCommonPrefixes :+ commonBytes
+          }
+      } getOrElse previousStats.map(_.rangeFilterCommonPrefixes).getOrElse(emptyRangeFilterCommonPrefixes)
 
     val thisKeyValuesIndexSizeWithoutFooter =
       Bytes.sizeOf(key.size) + key.size
@@ -128,7 +145,7 @@ private[core] object Stats {
     val segmentIndexSize =
       previousStats.map(_.segmentIndexSize).getOrElse(0) + thisKeyValuesIndexSizeWithoutFooter
 
-    val optimalRangeFilterSize = BloomFilter.optimalRangeFilterByteSize(numberOfRanges)
+    val optimalRangeFilterSize = BloomFilter.optimalRangeFilterByteSize(numberOfRanges, rangeFilterCommonPrefixes)
     val optimalBloomFilterSize = BloomFilter.optimalSegmentBloomFilterByteSize(totalBloomFiltersItemsCount, falsePositiveRate)
 
     val footerHeaderSize =
@@ -177,7 +194,8 @@ private[core] object Stats {
       hasRemoveRange = hasRemoveRange,
       hasRange = hasRange,
       hasPut = hasPut,
-      isGroup = isGroup
+      isGroup = isGroup,
+      rangeFilterCommonPrefixes = rangeFilterCommonPrefixes
     )
   }
 }
@@ -205,7 +223,8 @@ private[core] case class Stats(valueLength: Int,
                                hasRemoveRange: Boolean,
                                hasRange: Boolean,
                                hasPut: Boolean,
-                               isGroup: Boolean) {
+                               isGroup: Boolean,
+                               rangeFilterCommonPrefixes: List[Int]) {
   def isNoneValue: Boolean =
     valueLength == 0
 

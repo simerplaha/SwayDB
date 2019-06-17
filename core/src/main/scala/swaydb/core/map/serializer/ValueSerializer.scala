@@ -355,10 +355,10 @@ object ValueSerializer {
     override def write(value: mutable.Map[Int, Iterable[(Byte, Byte)]], bytes: Slice[Byte]): Unit = {
       bytes add formatId
       value foreach {
-        case (int, bytesBuffer) =>
-          bytes.addIntUnsigned(int)
-          bytes.addIntUnsigned(bytesBuffer.size)
-          bytesBuffer foreach {
+        case (int, iterableBytes) =>
+          bytes addIntUnsigned int
+          bytes addIntUnsigned iterableBytes.size
+          iterableBytes foreach {
             case (left, right) =>
               bytes add left
               bytes add right
@@ -396,10 +396,10 @@ object ValueSerializer {
             }
       }
 
-    def optimalBytesRequired(numberOfRanges: Int): Int =
+    def optimalBytesRequired(numberOfRanges: Int, rangeFilterCommonPrefixes: Iterable[Int]): Int =
       ByteSizeOf.byte + //formatId
-        ByteSizeOf.int * numberOfRanges +
-        ByteSizeOf.int * numberOfRanges +
+        rangeFilterCommonPrefixes.foldLeft(0)(_ + Bytes.sizeOf(_)) +
+        ByteSizeOf.int * rangeFilterCommonPrefixes.size +
         numberOfRanges * 2
 
     override def bytesRequired(value: mutable.Map[Int, Iterable[(Byte, Byte)]]): Int =
