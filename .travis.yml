@@ -5,7 +5,7 @@ scala:
   - 2.13.0-M3
 
 script:
-  - sbt ++$TRAVIS_SCALA_VERSION clean compile
+  - sbt ++$TRAVIS_SCALA_VERSION clean test
 
 notifications:
   email:
