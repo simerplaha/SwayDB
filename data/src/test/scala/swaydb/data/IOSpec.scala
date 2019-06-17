@@ -26,14 +26,14 @@ import swaydb.data.slice.Slice
 
 class IOSpec extends WordSpec with Matchers {
 
-  "Catch" when {
+  "CatchLeak" when {
     "exception" in {
       val exception = new Exception("Failed")
-      IO.Catch(throw exception).failed.get shouldBe IO.Error.Fatal(exception)
+      IO.CatchLeak(throw exception).failed.get shouldBe IO.Error.Fatal(exception)
     }
 
     "no exception" in {
-      IO.Catch(IO.none).get shouldBe empty
+      IO.CatchLeak(IO.none).get shouldBe empty
     }
   }
 

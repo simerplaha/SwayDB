@@ -24,14 +24,13 @@ import swaydb.core.util.{BloomFilter, Bytes}
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 
+import scala.collection.{SortedSet, immutable}
 import scala.concurrent.duration.Deadline
 
 private[core] object Stats {
 
-  val emptyRangeFilterCommonPrefixes = List.empty[Int]
-
-  val footerEndSize =
-    ByteSizeOf.int //int to store the size of the footer
+  def createRangeCommonPrefixesCount =
+    immutable.SortedSet.empty[Int](Ordering.Int.reverse)
 
   def apply(key: Slice[Byte],
             toKey: Option[Slice[Byte]],
@@ -79,18 +78,18 @@ private[core] object Stats {
       else
         previousStats.map(_.groupsCount) getOrElse 0
 
-    val rangeFilterCommonPrefixes =
+    val rangeCommonPrefixesCount =
       toKey flatMap {
         toKey =>
-          val commonBytes = Bytes.commonPrefix(key, toKey)
+          val commonBytesCount = Bytes.commonPrefixBytesCount(key, toKey)
           previousStats map {
             previousStats =>
-              if (!previousStats.rangeFilterCommonPrefixes.contains(commonBytes))
-                previousStats.rangeFilterCommonPrefixes
+              if (previousStats.rangeCommonPrefixesCount.contains(commonBytesCount))
+                previousStats.rangeCommonPrefixesCount
               else
-                previousStats.rangeFilterCommonPrefixes :+ commonBytes
+                previousStats.rangeCommonPrefixesCount + commonBytesCount
           }
-      } getOrElse previousStats.map(_.rangeFilterCommonPrefixes).getOrElse(emptyRangeFilterCommonPrefixes)
+      } getOrElse previousStats.map(_.rangeCommonPrefixesCount).getOrElse(createRangeCommonPrefixesCount)
 
     val thisKeyValuesIndexSizeWithoutFooter =
       Bytes.sizeOf(key.size) + key.size
@@ -145,7 +144,7 @@ private[core] object Stats {
     val segmentIndexSize =
       previousStats.map(_.segmentIndexSize).getOrElse(0) + thisKeyValuesIndexSizeWithoutFooter
 
-    val optimalRangeFilterSize = BloomFilter.optimalRangeFilterByteSize(numberOfRanges, rangeFilterCommonPrefixes)
+    val optimalRangeFilterSize = BloomFilter.optimalRangeFilterByteSize(numberOfRanges, rangeCommonPrefixesCount)
     val optimalBloomFilterSize = BloomFilter.optimalSegmentBloomFilterByteSize(totalBloomFiltersItemsCount, falsePositiveRate)
 
     val footerHeaderSize =
@@ -165,7 +164,9 @@ private[core] object Stats {
         optimalRangeFilterSize
 
     val segmentSize: Int =
-      segmentSizeWithoutFooter + footerHeaderSize + footerEndSize
+      segmentSizeWithoutFooter +
+        footerHeaderSize +
+        ByteSizeOf.int //int to store the size of the footer
 
     val segmentUncompressedKeysSize: Int =
       previousStats.map(_.segmentUncompressedKeysSize).getOrElse(0) + key.size
@@ -195,7 +196,7 @@ private[core] object Stats {
       hasRange = hasRange,
       hasPut = hasPut,
       isGroup = isGroup,
-      rangeFilterCommonPrefixes = rangeFilterCommonPrefixes
+      rangeCommonPrefixesCount = rangeCommonPrefixesCount
     )
   }
 }
@@ -224,7 +225,7 @@ private[core] case class Stats(valueLength: Int,
                                hasRange: Boolean,
                                hasPut: Boolean,
                                isGroup: Boolean,
-                               rangeFilterCommonPrefixes: List[Int]) {
+                               rangeCommonPrefixesCount: SortedSet[Int]) {
   def isNoneValue: Boolean =
     valueLength == 0
 

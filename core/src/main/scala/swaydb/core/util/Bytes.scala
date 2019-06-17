@@ -28,13 +28,22 @@ import swaydb.data.util.ByteUtil
 
 private[swaydb] object Bytes {
 
-  def commonPrefix(previous: Slice[Byte],
-                   next: Slice[Byte]): Int = {
+  def commonPrefixBytesCount(previous: Slice[Byte],
+                             next: Slice[Byte]): Int = {
     val min = Math.min(previous.size, next.size)
     var i = 0
     while (i < min && previous(i) == next(i))
       i += 1
     i
+  }
+
+  def commonPrefixBytes(previous: Slice[Byte],
+                        next: Slice[Byte]): Slice[Byte] = {
+    val commonBytes = commonPrefixBytesCount(previous, next)
+    if (previous.size <= next.size)
+      next take commonBytes
+    else
+      previous take commonBytes
   }
 
   def compress(key: Slice[Byte],
@@ -49,7 +58,7 @@ private[swaydb] object Bytes {
   def compress(previous: Slice[Byte],
                next: Slice[Byte],
                minimumCommonBytes: Int): Option[(Int, Slice[Byte])] = {
-    val commonBytes = Bytes.commonPrefix(previous, next)
+    val commonBytes = Bytes.commonPrefixBytesCount(previous, next)
     if (commonBytes < minimumCommonBytes)
       None
     else
@@ -143,7 +152,7 @@ private[swaydb] object Bytes {
   def compressJoin(left: Slice[Byte],
                    right: Slice[Byte],
                    tail: Slice[Byte]): Slice[Byte] = {
-    val commonBytes = commonPrefix(left, right)
+    val commonBytes = commonPrefixBytesCount(left, right)
     val rightWithoutCommonBytes =
       if (commonBytes != 0)
         right.drop(commonBytes)

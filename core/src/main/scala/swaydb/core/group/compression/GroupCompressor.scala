@@ -61,10 +61,11 @@ private[core] object GroupCompressor extends LazyLogging {
       IO.Failure(message)
     } else {
       logger.debug(s"Compressing ${keyValues.size} key-values with previous key-value as ${previous.map(_.getClass.getSimpleName)}.")
+      val lastStats = keyValues.last.stats
 
-      val indexBytesRequired = keyValues.last.stats.sortedIndexSize
-      val valueBytesRequired = keyValues.last.stats.segmentValuesSize
-      val hashIndexBytesRequired = keyValues.last.stats.segmentHashIndexSize
+      val indexBytesRequired = lastStats.sortedIndexSize
+      val valueBytesRequired = lastStats.segmentValuesSize
+      val hashIndexBytesRequired = lastStats.segmentHashIndexSize
 
       //write raw key-values bytes.
       val indexBytes = Slice.create[Byte](indexBytesRequired)
@@ -79,11 +80,12 @@ private[core] object GroupCompressor extends LazyLogging {
         maxProbe = maxProbe,
         hashIndex =
           Some(
-            SegmentHashIndex.WriteResult(
+            SegmentHashIndex.State(
               hit = 0,
               miss = 0,
               maxProbe = maxProbe,
-              bytes = hashIndexBytes
+              bytes = hashIndexBytes,
+              commonRangePrefixesCount = lastStats.rangeCommonPrefixesCount
             )
           )
       ) flatMap {

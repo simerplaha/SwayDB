@@ -40,7 +40,7 @@ private[core] object SegmentWriter extends LazyLogging {
   val crcBytes: Int = 7
 
   def writeToHashIndexAndBloomFilterBytes(keyValue: KeyValue.WriteOnly,
-                                          hashIndex: Option[SegmentHashIndex.WriteResult],
+                                          hashIndex: Option[SegmentHashIndex.State],
                                           maxProbe: Int,
                                           bloom: Option[BloomFilter],
                                           currentNearestDeadline: Option[Deadline]): IO[Option[Deadline]] = {
@@ -54,46 +54,30 @@ private[core] object SegmentWriter extends LazyLogging {
             keyValues = childGroup.keyValues
           )
 
-        case otherKeyValue: KeyValue.WriteOnly.Range =>
-          bloom foreach (_.add(otherKeyValue.key, otherKeyValue.toKey))
+        case keyValue: KeyValue.WriteOnly.Range =>
+          bloom foreach (_.add(keyValue.key, keyValue.toKey))
           hashIndex foreach {
-            hashIndexResult =>
-              val thisKeyValuesHashIndex = rootGroup.map(_.stats.thisKeyValuesHashIndexesSortedIndexOffset).getOrElse(otherKeyValue.stats.thisKeyValuesHashIndexesSortedIndexOffset)
+            hashIndexState =>
+              val thisKeyValuesHashIndex = rootGroup.map(_.stats.thisKeyValuesHashIndexesSortedIndexOffset).getOrElse(keyValue.stats.thisKeyValuesHashIndexesSortedIndexOffset)
               SegmentHashIndex.write(
                 key = keyValue.key,
+                toKey = Some(keyValue.toKey),
                 sortedIndexOffset = thisKeyValuesHashIndex,
-                bytes = hashIndexResult.bytes,
-                maxProbe = maxProbe
-              ) map {
-                winner =>
-                  if (winner)
-                    hashIndexResult.hit += 1
-                  else
-                    hashIndexResult.miss += 1
-
-                  hashIndexResult
-              }
+                state = hashIndexState
+              )
           }
 
-        case otherKeyValue: KeyValue.WriteOnly =>
-          bloom foreach (_.add(otherKeyValue.key))
+        case keyValue: KeyValue.WriteOnly.Fixed =>
+          bloom foreach (_.add(keyValue.key))
           hashIndex foreach {
             hashIndexResult =>
-              val thisKeyValuesHashIndex = rootGroup.map(_.stats.thisKeyValuesHashIndexesSortedIndexOffset).getOrElse(otherKeyValue.stats.thisKeyValuesHashIndexesSortedIndexOffset)
+              val thisKeyValuesHashIndex = rootGroup.map(_.stats.thisKeyValuesHashIndexesSortedIndexOffset).getOrElse(keyValue.stats.thisKeyValuesHashIndexesSortedIndexOffset)
               SegmentHashIndex.write(
                 key = keyValue.key,
+                toKey = None,
                 sortedIndexOffset = thisKeyValuesHashIndex,
-                bytes = hashIndexResult.bytes,
-                maxProbe = maxProbe
-              ) map {
-                winner =>
-                  if (winner)
-                    hashIndexResult.hit += 1
-                  else
-                    hashIndexResult.miss += 1
-
-                  hashIndexResult
-              }
+                state = hashIndexResult
+              )
           }
       }
 
@@ -124,13 +108,13 @@ private[core] object SegmentWriter extends LazyLogging {
 
           start(keyValues.drop(1), nextNearestDeadline)
 
-        case Some(otherKeyValue) =>
+        case otherKeyValue @ Some(_: KeyValue.WriteOnly.Range | _: KeyValue.WriteOnly.Fixed) =>
           if (hashIndex.isDefined || bloom.isDefined)
             writeToBloomAndHashIndex(
               rootGroup = None,
-              keyValue = otherKeyValue
+              keyValue = otherKeyValue.get
             )
-          val nextNearestDeadline = Segment.getNearestDeadline(nearestDeadline, otherKeyValue)
+          val nextNearestDeadline = Segment.getNearestDeadline(nearestDeadline, otherKeyValue.get)
           start(keyValues.drop(1), nextNearestDeadline)
 
         case None =>
@@ -158,7 +142,7 @@ private[core] object SegmentWriter extends LazyLogging {
   private def writeSegmentBytes(keyValue: KeyValue.WriteOnly,
                                 sortedIndexSlice: Slice[Byte],
                                 valuesSlice: Slice[Byte],
-                                hashIndex: Option[SegmentHashIndex.WriteResult],
+                                hashIndex: Option[SegmentHashIndex.State],
                                 maxProbe: Int,
                                 bloomFilter: Option[BloomFilter],
                                 deadline: Option[Deadline]) =
@@ -180,7 +164,7 @@ private[core] object SegmentWriter extends LazyLogging {
   def write(keyValues: Iterable[KeyValue.WriteOnly],
             sortedIndexSlice: Slice[Byte],
             valuesSlice: Slice[Byte],
-            hashIndex: Option[SegmentHashIndex.WriteResult],
+            hashIndex: Option[SegmentHashIndex.State],
             maxProbe: Int,
             bloomFilter: Option[BloomFilter]): IO[Option[Deadline]] =
     keyValues.foldLeftIO(Option.empty[Deadline]) {
@@ -271,11 +255,12 @@ private[core] object SegmentWriter extends LazyLogging {
         bloomFilter = bloomFilter,
         hashIndex =
           Some(
-            SegmentHashIndex.WriteResult(
+            SegmentHashIndex.State(
               hit = 0,
               miss = 0,
               maxProbe = maxProbe,
-              bytes = hashIndexSlice
+              bytes = hashIndexSlice,
+              commonRangePrefixesCount = lastStats.rangeCommonPrefixesCount
             )
           )
       ) flatMap {

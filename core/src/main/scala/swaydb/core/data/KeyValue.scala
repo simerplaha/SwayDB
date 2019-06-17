@@ -19,7 +19,6 @@
 
 package swaydb.core.data
 
-import scala.concurrent.duration.{Deadline, FiniteDuration}
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.group.compression.data.GroupHeader
@@ -32,11 +31,11 @@ import swaydb.core.segment.format.a.entry.writer._
 import swaydb.core.segment.{Segment, SegmentCache, SegmentCacheInitializer}
 import swaydb.core.util.Bytes
 import swaydb.core.util.CollectionUtil._
-import swaydb.data.{IO, MaxKey}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Reader, Slice}
+import swaydb.data.{IO, MaxKey}
 
-import scala.util.Try
+import scala.concurrent.duration.{Deadline, FiniteDuration}
 
 private[core] sealed trait KeyValue {
   def key: Slice[Byte]
@@ -283,7 +282,6 @@ private[core] object KeyValue {
     }
 
     sealed trait Range extends KeyValue.WriteOnly {
-      val isRange: Boolean = true
       def fromKey: Slice[Byte]
       def toKey: Slice[Byte]
       def fromValue: Option[Value.FromValue]
@@ -294,7 +292,6 @@ private[core] object KeyValue {
     }
 
     sealed trait Group extends KeyValue.WriteOnly {
-      val isRange: Boolean = true
       def minKey: Slice[Byte]
       def maxKey: MaxKey[Slice[Byte]]
       def fullKey: Slice[Byte]
@@ -933,6 +930,7 @@ private[core] object Transient {
 
     override val isRemoveRangeMayBe = rangeValue.hasRemoveMayBe
     override val isGroup: Boolean = false
+    override val isRange: Boolean = true
     override val deadline: Option[Deadline] = None
     override def updateStats(falsePositiveRate: Double, previous: Option[KeyValue.WriteOnly]): Transient.Range =
       this.copy(falsePositiveRate = falsePositiveRate, previous = previous)

@@ -23,13 +23,15 @@ import java.io.FileNotFoundException
 import java.nio.ReadOnlyBufferException
 import java.nio.channels.{AsynchronousCloseException, ClosedChannelException}
 import java.nio.file.{NoSuchFileException, Path}
+
+import swaydb.data.slice.{Slice, SliceReader}
+
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.reflect.ClassTag
 import scala.util.Try
-import swaydb.data.slice.{Slice, SliceReader}
 
 /**
   * [[IO.Success]] and [[IO.Failure]] are similar to types in [[scala.util.Try]].
@@ -397,7 +399,7 @@ object IO {
         IO.Failure(IO.Error(ex))
     }
 
-  object Catch {
+  object CatchLeak {
     @inline final def apply[T](f: => IO[T]): IO[T] =
       try
         f
@@ -432,7 +434,7 @@ object IO {
     override def safeGetFuture(implicit ec: ExecutionContext): Future[T] = Future.successful(value)
     override def getOrElse[U >: T](default: => U): U = get
     override def orElse[U >: T](default: => IO[U]): IO.Success[U] = this
-    override def flatMap[U](f: T => IO[U]): IO[U] = IO.Catch(f(get))
+    override def flatMap[U](f: T => IO[U]): IO[U] = IO.CatchLeak(f(get))
     private[swaydb] override def flatMap[U](f: T => IO.Async[U]): IO.Async[U] = f(get)
     override def flatten[U](implicit ev: T <:< IO[U]): IO[U] = get
     private[swaydb] override def flattenAsync[U](implicit ev: T <:< IO.Async[U]): IO.Async[U] = get
@@ -445,7 +447,7 @@ object IO {
     override def toOption: Option[T] = Some(get)
     override def toEither: Either[IO.Error, T] = Right(get)
     override def filter(p: T => Boolean): IO[T] =
-      IO.Catch(if (p(get)) this else IO.Failure(Error.Fatal(new NoSuchElementException("Predicate does not hold for " + get))))
+      IO.CatchLeak(if (p(get)) this else IO.Failure(Error.Fatal(new NoSuchElementException("Predicate does not hold for " + get))))
     override def toFuture: Future[T] = Future.successful(get)
     override def toTry: scala.util.Try[T] = scala.util.Success(get)
     override def onFailureSideEffect(f: IO.Failure[T] => Unit): IO.Success[T] = this
@@ -703,7 +705,7 @@ object IO {
     override def safeGetFutureIfFileExists(implicit ec: ExecutionContext): Future[T] = Future.failed(error.exception)
     override def safeGetFuture(implicit ec: ExecutionContext): Future[T] = Future.failed(error.exception)
     override def getOrElse[U >: T](default: => U): U = default
-    override def orElse[U >: T](default: => IO[U]): IO[U] = IO.Catch(default)
+    override def orElse[U >: T](default: => IO[U]): IO[U] = IO.CatchLeak(default)
     override def flatMap[U](f: T => IO[U]): IO.Failure[U] = this.asInstanceOf[IO.Failure[U]]
     private[swaydb] override def flatMap[U](f: T => IO.Async[U]): IO.Async[U] = this.asInstanceOf[IO.Async[U]]
     override def flatten[U](implicit ev: T <:< IO[U]): IO.Failure[U] = this.asInstanceOf[IO.Failure[U]]
@@ -712,10 +714,10 @@ object IO {
     override def map[U](f: T => U): IO.Failure[U] = this.asInstanceOf[IO.Failure[U]]
     private[swaydb] override def mapAsync[U](f: T => U): IO.Async[U] = this.asInstanceOf[IO.Async[U]]
     override def recover[U >: T](f: PartialFunction[IO.Error, U]): IO[U] =
-      IO.Catch(if (f isDefinedAt error) IO.Success(f(error)) else this)
+      IO.CatchLeak(if (f isDefinedAt error) IO.Success(f(error)) else this)
 
     override def recoverWith[U >: T](f: PartialFunction[IO.Error, IO[U]]): IO[U] =
-      IO.Catch(if (f isDefinedAt error) f(error) else this)
+      IO.CatchLeak(if (f isDefinedAt error) f(error) else this)
 
     override def failed: IO[IO.Error] = IO.Success(error)
     override def toOption: Option[T] = None

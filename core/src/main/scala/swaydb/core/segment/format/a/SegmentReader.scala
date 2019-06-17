@@ -438,34 +438,14 @@ private[core] object SegmentReader extends LazyLogging {
                    startFrom: Option[Persistent],
                    reader: Reader,
                    footer: SegmentFooter)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
-    Catch {
-      startFrom match {
-        case Some(startFrom) =>
-          //if startFrom is the last index entry, return None.
-          if (startFrom.nextIndexSize == 0)
-            IO.none
-          else
-            readNextKeyValue(
-              previous = startFrom,
-              startIndexOffset = footer.sortedIndexStartOffset,
-              endIndexOffset = footer.sortedIndexEndOffset,
-              indexReader = reader,
-              valueReader = reader
-            ) flatMap {
-              keyValue =>
-                matchOrNext(
-                  previous = startFrom,
-                  next = Some(keyValue),
-                  matcher = matcher,
-                  reader = reader,
-                  footer = footer
-                )
-            }
-
-        //No start from. Get the first index entry from the File and start from there.
-        case None =>
+    startFrom match {
+      case Some(startFrom) =>
+        //if startFrom is the last index entry, return None.
+        if (startFrom.nextIndexSize == 0)
+          IO.none
+        else
           readNextKeyValue(
-            fromPosition = footer.sortedIndexStartOffset,
+            previous = startFrom,
             startIndexOffset = footer.sortedIndexStartOffset,
             endIndexOffset = footer.sortedIndexEndOffset,
             indexReader = reader,
@@ -473,37 +453,53 @@ private[core] object SegmentReader extends LazyLogging {
           ) flatMap {
             keyValue =>
               matchOrNext(
-                previous = keyValue,
-                next = None,
+                previous = startFrom,
+                next = Some(keyValue),
                 matcher = matcher,
                 reader = reader,
                 footer = footer
               )
           }
-      }
+
+      //No start from. Get the first index entry from the File and start from there.
+      case None =>
+        readNextKeyValue(
+          fromPosition = footer.sortedIndexStartOffset,
+          startIndexOffset = footer.sortedIndexStartOffset,
+          endIndexOffset = footer.sortedIndexEndOffset,
+          indexReader = reader,
+          valueReader = reader
+        ) flatMap {
+          keyValue =>
+            matchOrNext(
+              previous = keyValue,
+              next = None,
+              matcher = matcher,
+              reader = reader,
+              footer = footer
+            )
+        }
     }
 
   private def findFromIndex(matcher: KeyMatcher,
                             fromOffset: Int,
                             reader: Reader,
                             footer: SegmentFooter)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
-    Catch {
-      readNextKeyValue(
-        fromPosition = fromOffset,
-        startIndexOffset = footer.sortedIndexStartOffset,
-        endIndexOffset = footer.sortedIndexEndOffset,
-        indexReader = reader,
-        valueReader = reader
-      ) flatMap {
-        persistent =>
-          matchOrNext(
-            previous = persistent,
-            next = None,
-            matcher = matcher,
-            reader = reader,
-            footer = footer
-          )
-      }
+    readNextKeyValue(
+      fromPosition = fromOffset,
+      startIndexOffset = footer.sortedIndexStartOffset,
+      endIndexOffset = footer.sortedIndexEndOffset,
+      indexReader = reader,
+      valueReader = reader
+    ) flatMap {
+      persistent =>
+        matchOrNext(
+          previous = persistent,
+          next = None,
+          matcher = matcher,
+          reader = reader,
+          footer = footer
+        )
     }
 
   @tailrec

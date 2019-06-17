@@ -19,6 +19,7 @@
 
 package swaydb.core.util
 
+import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.KeyValue
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.serializer.ValueSerializer.IntMapListBufferSerializer
@@ -212,7 +213,7 @@ class BloomFilter(val startOffset: Int,
                   val numberOfHashes: Int,
                   var hasRanges: Boolean,
                   rangeFilter: Option[mutable.Map[Int, Iterable[(Byte, Byte)]]],
-                  bloomBytes: Slice[Byte])(implicit ordering: KeyOrder[Slice[Byte]]) {
+                  bloomBytes: Slice[Byte])(implicit ordering: KeyOrder[Slice[Byte]]) extends LazyLogging {
 
   import ordering._
 
@@ -245,21 +246,20 @@ class BloomFilter(val startOffset: Int,
     }
   }
 
-  def add(from: Slice[Byte], to: Slice[Byte]): Unit = {
-    val common = Bytes.commonPrefix(from, to)
+  def add(from: Slice[Byte], to: Slice[Byte]): Unit =
     rangeFilter foreach {
       rangeFilter =>
-        rangeFilter.get(common) map {
+        val commonBytes = Bytes.commonPrefixBytes(from, to)
+        rangeFilter.get(commonBytes.size) map {
           ranges =>
-            ranges.asInstanceOf[ListBuffer[(Byte, Byte)]] += ((from(common), to(common)))
+            ranges.asInstanceOf[ListBuffer[(Byte, Byte)]] += ((from(commonBytes.size), to(commonBytes.size)))
         } getOrElse {
-          rangeFilter.put(common, ListBuffer((from(common), to(common))))
+          rangeFilter.put(commonBytes.size, ListBuffer((from(commonBytes.size), to(commonBytes.size))))
         }
+        hasRanges = true
+        add(from)
+        add(commonBytes)
     }
-    hasRanges = true
-    add(from)
-    add(from.take(common))
-  }
 
   def mightContain(key: Slice[Byte]): Boolean = {
     var contains = mightContainHashed(key)

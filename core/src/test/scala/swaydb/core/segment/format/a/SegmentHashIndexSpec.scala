@@ -19,12 +19,12 @@
 
 package swaydb.core.segment.format.a
 
-import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.data.Transient
 import swaydb.core.io.reader.Reader
+import swaydb.core.util.CollectionUtil._
 import swaydb.data.IO
 import swaydb.data.IO._
 import swaydb.data.order.KeyOrder
@@ -39,84 +39,113 @@ class SegmentHashIndexSpec extends TestBase {
   import keyOrder._
 
   "it" should {
-    "build index" in {
-      runThis(10.times) {
-        val maxProbe = 100
-        val keyValues = unzipGroups(randomizedKeyValues(count = 1000, startId = Some(1), addRandomGroups = false)).toMemory.toTransient
+    "build index" when {
+      "there are only fixed key-values" in {
+        runThis(100.times) {
+          val maxProbe = 5
+          //        val keyValues = unzipGroups(randomizedKeyValues(count = 1000, startId = Some(1), addRandomGroups = false, addRandomRanges = false)).toMemory.toTransient
+          val keyValues = randomKeyValues(1000, startId = Some(1), addRandomRemoves = true, addRandomFunctions = true, addRandomRemoveDeadlines = true, addRandomUpdates = true, addRandomPendingApply = true)
 
-        val writeResult =
-          SegmentHashIndex.write(
-            keyValues = keyValues,
-            maxProbe = maxProbe,
-            minimumNumberOfKeyValues = 0,
-            compensate = _ * 2
-          ).get
+          val bytesSize = SegmentHashIndex.optimalBytesRequired(keyValues.last, 10, _ => 0)
+          val bytes = Slice.create[Byte](bytesSize)
 
-        println(s"hit: ${writeResult.hit}")
-        println(s"miss: ${writeResult.miss}")
-        println
+          val writeState =
+            keyValues.foldLeftIO(SegmentHashIndex.State(0, 0, maxProbe, bytes, mutable.SortedSet.empty)) {
+              case (state, keyValue) =>
+                SegmentHashIndex.write(
+                  key = keyValue.key,
+                  toKey = None,
+                  sortedIndexOffset = keyValue.stats.thisKeyValuesHashIndexesSortedIndexOffset,
+                  state = state
+                ) map {
+                  _ =>
+                    state
+                }
+            }.get
 
-        writeResult.hit should be >= (keyValues.size * 0.50).toInt
-        writeResult.miss shouldBe keyValues.size - writeResult.hit
-        writeResult.hit + writeResult.miss shouldBe keyValues.size
+          println(s"hit: ${writeState.hit}")
+          println(s"miss: ${writeState.miss}")
+          println
 
-        val indexOffsetMap: mutable.ListMap[Int, Transient] =
-          keyValues.map({
-            keyValue =>
-              (keyValue.stats.thisKeyValuesHashIndexesSortedIndexOffset, keyValue)
-          })(collection.breakOut)
+          writeState.hit should be >= (keyValues.size * 0.50).toInt
+          writeState.miss shouldBe keyValues.size - writeState.hit
+          writeState.hit + writeState.miss shouldBe keyValues.size
 
-        def findKey(indexOffset: Int, key: Slice[Byte]): IO[Option[Transient]] =
-          indexOffsetMap.get(indexOffset) match {
-            case some @ Some(found) =>
-              IO {
-                if (found.key equiv key)
-                  some
-                else {
+          val indexOffsetMap: mutable.ListMap[Int, Transient] =
+            keyValues.map({
+              keyValue =>
+                (keyValue.stats.thisKeyValuesHashIndexesSortedIndexOffset, keyValue)
+            })(collection.breakOut)
+
+          def findKey(indexOffset: Int, key: Slice[Byte]): IO[Option[Transient]] =
+            indexOffsetMap.get(indexOffset) match {
+              case some @ Some(found) if found.key equiv key =>
+                IO.Success(some) //woohoo! Found at first go.
+
+              case Some(_) =>
+                IO {
                   //if not found collect the next block of prefix compress key-values
                   //and see if the key exists in them.
-                  indexOffsetMap
-                    .dropWhile(_._1 <= indexOffset)
-                    .takeWhile(_._2.enablePrefixCompression)
-                    .find(_._2.key equiv key)
-                    .map(_._2)
-                }
-              }
+                  var found = Option.empty[Transient]
+                  indexOffsetMap.iterator foreachBreak {
+                    case (index, keyValue) if index > indexOffset => //walk upto the index.
+                      //ones we've reached the index, check for the index in the next compression block.
+                      if (keyValue.enablePrefixCompression) {
+                        //in the next prefix compression block
+                        if (keyValue.key equiv key) {
+                          found = Some(keyValue)
+                          true
+                        } else {
+                          false //moved out of the prefix compression block. kill!
+                        }
+                      } else {
+                        true
+                      }
 
-            case None =>
-              IO.none
-          }
-
-        val readResult =
-          keyValues mapIO {
-            keyValue =>
-              SegmentHashIndex.find(
-                key = keyValue.key,
-                hashIndexReader = Reader(writeResult.bytes),
-                hashIndexSize = writeResult.bytes.size,
-                hashIndexStartOffset = 0,
-                maxProbe = maxProbe,
-                get = findKey(_, keyValue.key)
-              ) map {
-                foundOption =>
-                  foundOption map {
-                    found =>
-                      (found.key equiv keyValue.key) shouldBe true
+                    case _ =>
+                      false
                   }
-              }
-          }
+                  found
+                }
 
-        readResult.get.flatten.size should be >= writeResult.hit //>= because it can getFromHashIndex lucky with overlapping index bytes.
+              case None =>
+                IO.none
+            }
 
-        writeResult.bytes.moveWritePositionUnsafe(0)
-        SegmentHashIndex.readHeader(Reader(writeResult.bytes)).get shouldBe
-          SegmentHashIndex.Header(
-            formatId = SegmentHashIndex.formatID,
-            maxProbe = writeResult.maxProbe,
-            hit = writeResult.hit,
-            miss = writeResult.miss,
-            rangeIndexingEnabled = false
-          )
+          val readResult =
+            keyValues mapIO {
+              keyValue =>
+                SegmentHashIndex.find(
+                  key = keyValue.key,
+                  hashIndexReader = Reader(writeState.bytes),
+                  hashIndexSize = writeState.bytes.size,
+                  hashIndexStartOffset = 0,
+                  maxProbe = maxProbe,
+                  get = findKey(_, keyValue.key)
+                ) map {
+                  foundOption =>
+                    foundOption map {
+                      found =>
+                        (found.key equiv keyValue.key) shouldBe true
+                    }
+                }
+            }
+
+          readResult.get.flatten.size should be >= writeState.hit //>= because it can getFromHashIndex lucky with overlapping index bytes.
+
+          SegmentHashIndex.writeHeader(writeState).get
+
+          SegmentHashIndex.readHeader(Reader(writeState.bytes)).get shouldBe
+            SegmentHashIndex.Header(
+              formatId = SegmentHashIndex.formatID,
+              maxProbe = writeState.maxProbe,
+              hit = writeState.hit,
+              miss = writeState.miss,
+              rangeIndexingEnabled = false
+            )
+          //there are no ranges
+          writeState.commonRangePrefixesCount shouldBe empty
+        }
       }
     }
   }
