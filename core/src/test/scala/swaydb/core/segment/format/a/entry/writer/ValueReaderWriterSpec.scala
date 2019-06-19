@@ -66,7 +66,6 @@ class ValueReaderWriterSpec extends TestBase {
             compressDuplicateValues = true,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
           )
         ).updateStats
@@ -93,9 +92,8 @@ class ValueReaderWriterSpec extends TestBase {
           keyValues = keyValues,
           createdInLevel = 0,
           maxProbe = 10,
-          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex
-        ).get
+          falsePositiveRate = TestData.falsePositiveRate
+        ).get.flatten
 
       val footer = SegmentReader.readFooter(Reader(bytes)).get
       footer.isGrouped shouldBe false

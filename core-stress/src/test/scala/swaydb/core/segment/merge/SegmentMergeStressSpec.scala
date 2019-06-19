@@ -108,7 +108,6 @@ class SegmentMergeStressSpec extends TestBase {
                 resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
                 minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
                 hashIndexCompensation = TestData.hashIndexCompensation,
-                enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
                 compressDuplicateValues = true
               ).assertGet
             }

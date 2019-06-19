@@ -125,16 +125,16 @@ sealed trait SegmentKeyValueCount extends TestBase with ScalaFutures with Privat
 
         val group2KeyValues = randomizedKeyValues(keyValuesCount, startId = Some(group1.maxKey.maxKey.readInt() + 1), addRandomGroups = false)
         val group2 = randomGroup((Slice(group1) ++ group2KeyValues).updateStats)
-        group2.stats.totalBloomFiltersItemsCount shouldBe (group1KeyValues.size + group2KeyValues.size)
+        group2.stats.segmentUniqueKeysCount shouldBe (group1KeyValues.size + group2KeyValues.size)
 
         //group3 contains group2 as a child and group2 contains group1 as a child.
         val group3KeyValues = randomizedKeyValues(keyValuesCount, startId = Some(group2.maxKey.maxKey.readInt() + 1), addRandomGroups = false)
         val group3 = randomGroup((Slice(group2) ++ group3KeyValues).updateStats)
-        group3.stats.totalBloomFiltersItemsCount shouldBe (group1KeyValues.size + group2KeyValues.size + group3KeyValues.size)
+        group3.stats.segmentUniqueKeysCount shouldBe (group1KeyValues.size + group2KeyValues.size + group3KeyValues.size)
 
         val group4KeyValues = randomizedKeyValues(keyValuesCount, startId = Some(group3.maxKey.maxKey.readInt() + 1), addRandomGroups = false)
         val group4 = randomGroup(group4KeyValues)
-        group4.stats.totalBloomFiltersItemsCount shouldBe group4KeyValues.size
+        group4.stats.segmentUniqueKeysCount shouldBe group4KeyValues.size
 
         assertSegment(
           keyValues = Slice(group4).toMemory,

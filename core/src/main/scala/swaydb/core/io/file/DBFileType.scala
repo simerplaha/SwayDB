@@ -33,6 +33,8 @@ private[file] trait DBFileType {
 
   def append(slice: Slice[Byte]): IO[Unit]
 
+  def append(slice: Slice[Byte]*): IO[Unit]
+
   def read(position: Int, size: Int): IO[Slice[Byte]]
 
   def get(position: Int): IO[Byte]

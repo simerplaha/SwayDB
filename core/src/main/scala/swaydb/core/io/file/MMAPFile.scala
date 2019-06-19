@@ -30,6 +30,7 @@ import scala.concurrent.ExecutionContext
 import swaydb.data.IO
 import swaydb.data.slice.Slice
 import swaydb.data.slice.Slice._
+import IO._
 
 private[file] object MMAPFile {
 
@@ -121,6 +122,9 @@ private[file] class MMAPFile(val path: Path,
       buffer = channel.map(mode, 0, positionBeforeClear + bufferSize)
       buffer.position(positionBeforeClear)
     }
+
+  override def append(slice: Slice[Byte]*): IO[Unit] =
+    (slice foreachIO append) getOrElse IO.unit
 
   @tailrec
   final def append(slice: Slice[Byte]): IO[Unit] =

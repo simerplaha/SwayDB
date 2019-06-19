@@ -20,6 +20,7 @@
 package swaydb.core.segment.format.a
 
 import java.util.concurrent.TimeUnit
+
 import scala.concurrent.duration._
 import scala.util.Random
 import swaydb.core.CommonAssertions._
@@ -31,7 +32,7 @@ import swaydb.core.data._
 import swaydb.core.group.compression.GroupCompressor
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
-import swaydb.core.util.BloomFilter
+import swaydb.core.segment.format.a.index.BloomFilter
 import swaydb.core.{TestBase, TestData, TestLimitQueues, TestTimer}
 import swaydb.data.IO
 import swaydb.data.order.KeyOrder
@@ -55,23 +56,25 @@ class SegmentWriterReaderSpec extends TestBase {
       runThis(100.times) {
         val keyValues = randomizedKeyValues(keyValueCount)
         val group = randomGroup(keyValues)
-        val bloom =
-          BloomFilter.init(
-            keyValues = keyValues,
-            falsePositiveRate = TestData.falsePositiveRate,
-            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex
-          )
+        val bloom: Option[BloomFilter.State] =
+        //          BloomFilter.init(
+        //            keyValues = keyValues,
+        //            falsePositiveRate = TestData.falsePositiveRate,
+        //            enablePositionIndex
+        //          )
+          ???
 
         val deadline =
-          SegmentWriter.writeToHashIndexAndBloomFilterBytes(
+          SegmentWriter.writeIndexes(
             keyValue = group,
             hashIndex = None,
-            maxProbe = 0,
-            bloom = bloom,
+            bloomFilter = bloom,
+            binarySearchIndex = None,
             currentNearestDeadline = None
           )
 
-        assertBloom(keyValues, bloom.assertGet)
+        //        assertBloom(keyValues, bloom.assertGet)
+        ???
 
         deadline shouldBe nearestDeadline(keyValues)
       }
@@ -83,9 +86,8 @@ class SegmentWriterReaderSpec extends TestBase {
           keyValues = Seq.empty,
           createdInLevel = 0,
           maxProbe = TestData.maxProbe,
-          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex
-        ).assertGet
+          falsePositiveRate = TestData.falsePositiveRate
+        ).assertGet.flatten
 
       bytes.isEmpty shouldBe true
       nearestDeadline shouldBe empty
@@ -98,9 +100,8 @@ class SegmentWriterReaderSpec extends TestBase {
             keyValues = keyValues,
             createdInLevel = 0,
             maxProbe = TestData.maxProbe,
-            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex
-          ).assertGet
+            falsePositiveRate = TestData.falsePositiveRate
+          ).assertGet.flatten
 
         bytes.isFull shouldBe true
         //in memory
@@ -128,7 +129,6 @@ class SegmentWriterReaderSpec extends TestBase {
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
-            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
             previous = None,
             maxProbe = TestData.maxProbe
           ).assertGet
@@ -138,9 +138,8 @@ class SegmentWriterReaderSpec extends TestBase {
             keyValues = Seq(group),
             createdInLevel = 0,
             maxProbe = TestData.maxProbe,
-            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex
-          ).assertGet
+            falsePositiveRate = TestData.falsePositiveRate
+          ).assertGet.flatten
 
         bytes.isFull shouldBe true
 
@@ -161,7 +160,6 @@ class SegmentWriterReaderSpec extends TestBase {
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
-            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
             previous = None,
             maxProbe = TestData.maxProbe
           ).assertGet
@@ -177,7 +175,6 @@ class SegmentWriterReaderSpec extends TestBase {
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
-            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
             previous = Some(group1),
             maxProbe = TestData.maxProbe
           ).assertGet
@@ -187,9 +184,8 @@ class SegmentWriterReaderSpec extends TestBase {
             keyValues = Seq(group1, group2),
             createdInLevel = 0,
             maxProbe = TestData.maxProbe,
-            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex
-          ).assertGet
+            falsePositiveRate = TestData.falsePositiveRate
+          ).assertGet.flatten
 
         bytes.isFull shouldBe true
 
@@ -213,7 +209,6 @@ class SegmentWriterReaderSpec extends TestBase {
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
-            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
             previous = None,
             maxProbe = TestData.maxProbe
           ).assertGet
@@ -228,7 +223,6 @@ class SegmentWriterReaderSpec extends TestBase {
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
-            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
             previous = Some(group1),
             maxProbe = TestData.maxProbe
           ).assertGet
@@ -243,7 +237,6 @@ class SegmentWriterReaderSpec extends TestBase {
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
-            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
             previous = Some(group2),
             maxProbe = TestData.maxProbe
           ).assertGet
@@ -259,7 +252,6 @@ class SegmentWriterReaderSpec extends TestBase {
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
-            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
             previous = None,
             maxProbe = TestData.maxProbe
           ).assertGet
@@ -269,9 +261,8 @@ class SegmentWriterReaderSpec extends TestBase {
             keyValues = Seq(group4),
             createdInLevel = 0,
             maxProbe = TestData.maxProbe,
-            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex
-          ).assertGet._1
+            falsePositiveRate = TestData.falsePositiveRate
+          ).assertGet.flattenBytes
         bytes.isFull shouldBe true
 
         val rootGroup = readAll(bytes).assertGet
@@ -296,9 +287,8 @@ class SegmentWriterReaderSpec extends TestBase {
             keyValues = keyValues,
             createdInLevel = 0,
             maxProbe = TestData.maxProbe,
-            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex
-          ).assertGet
+            falsePositiveRate = TestData.falsePositiveRate
+          ).assertGet.flatten
 
         bytes.isFull shouldBe true
 
@@ -317,9 +307,8 @@ class SegmentWriterReaderSpec extends TestBase {
           keyValues = keyValues,
           createdInLevel = 0,
           maxProbe = TestData.maxProbe,
-          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex
-        ).assertGet
+          falsePositiveRate = TestData.falsePositiveRate
+        ).assertGet.flatten
 
       deadline shouldBe empty
 
@@ -343,9 +332,8 @@ class SegmentWriterReaderSpec extends TestBase {
           keyValues = keyValues,
           createdInLevel = 0,
           maxProbe = TestData.maxProbe,
-          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex
-        ).assertGet
+          falsePositiveRate = TestData.falsePositiveRate
+        ).assertGet.flatten
 
       if (!setDeadlines) deadline shouldBe empty
 
@@ -363,9 +351,8 @@ class SegmentWriterReaderSpec extends TestBase {
           keyValues = keyValues,
           createdInLevel = 0,
           maxProbe = TestData.maxProbe,
-          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex
-        ).assertGet
+          falsePositiveRate = TestData.falsePositiveRate
+        ).assertGet.flatten
 
       SegmentReader.readFooter(Reader(bytes.drop(1))).failed.assertGet.exception shouldBe a[SegmentCorruptionException]
       SegmentReader.readFooter(Reader(bytes.dropRight(1))).failed.assertGet.exception shouldBe a[SegmentCorruptionException]
@@ -383,9 +370,8 @@ class SegmentWriterReaderSpec extends TestBase {
             keyValues = keyValues,
             createdInLevel = 0,
             maxProbe = TestData.maxProbe,
-            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex
-          ).assertGet
+            falsePositiveRate = TestData.falsePositiveRate
+          ).assertGet.flatten
 
         val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).get
         footer.keyValueCount shouldBe keyValues.size
@@ -426,16 +412,15 @@ class SegmentWriterReaderSpec extends TestBase {
               }
           }
 
-        keyValues.last.stats.hasRemoveRange shouldBe expectedHasRemoveRange
+        keyValues.last.stats.segmentHasRemoveRange shouldBe expectedHasRemoveRange
 
         val (bytes, _) =
           SegmentWriter.write(
             keyValues = keyValues,
             createdInLevel = 0,
             maxProbe = TestData.maxProbe,
-            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex
-          ).assertGet
+            falsePositiveRate = TestData.falsePositiveRate
+          ).assertGet.flatten
 
         val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).get
         footer.keyValueCount shouldBe keyValues.size
@@ -445,7 +430,7 @@ class SegmentWriterReaderSpec extends TestBase {
         if (!expectedHasRemoveRange) {
           val bloomFilter = footer.bloomFilter.assertGet
           assertBloom(keyValues, bloomFilter)
-          IO(bloomFilter.mightContain(randomBytesSlice(100)) shouldBe false)
+          IO(BloomFilter.mightContain(randomBytesSlice(100), bloomFilter) shouldBe false)
         }
 
         footer.crc should be > 0L
@@ -458,16 +443,15 @@ class SegmentWriterReaderSpec extends TestBase {
 
     "set hasRange & hasRemoveRange to true and not create bloomFilter when Segment contains Remove range key-value" in {
       def doAssert(keyValues: Slice[KeyValue.WriteOnly]) = {
-        keyValues.last.stats.hasRemoveRange shouldBe true
+        keyValues.last.stats.segmentHasRemoveRange shouldBe true
 
         val (bytes, _) =
           SegmentWriter.write(
             keyValues = keyValues,
             createdInLevel = 0,
             maxProbe = TestData.maxProbe,
-            bloomFilterFalsePositiveRate = 0.01,
-            enableRangeFilterAndIndex = false
-          ).assertGet
+            falsePositiveRate = 0.01
+          ).assertGet.flatten
 
         val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).get
         footer.keyValueCount shouldBe keyValues.size
@@ -495,7 +479,6 @@ class SegmentWriterReaderSpec extends TestBase {
                     resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
                     minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
                     hashIndexCompensation = TestData.hashIndexCompensation,
-                    enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
                     previous = None,
                     maxProbe = TestData.maxProbe
                   ).assertGet,
@@ -515,16 +498,15 @@ class SegmentWriterReaderSpec extends TestBase {
 
     "create bloomFilter when Segment not does contains Remove range key-value but contains a Group" in {
       def doAssert(keyValues: Slice[KeyValue.WriteOnly]) = {
-        keyValues.last.stats.hasRemoveRange shouldBe false
+        keyValues.last.stats.segmentHasRemoveRange shouldBe false
 
         val (bytes, _) =
           SegmentWriter.write(
             keyValues = keyValues,
             createdInLevel = 0,
             maxProbe = TestData.maxProbe,
-            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex
-          ).assertGet
+            falsePositiveRate = TestData.falsePositiveRate
+          ).assertGet.flatten
 
         val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).get
         footer.keyValueCount shouldBe keyValues.size
@@ -533,7 +515,7 @@ class SegmentWriterReaderSpec extends TestBase {
         //bloom filters do
         val bloomFilter = footer.bloomFilter.assertGet
         assertBloom(keyValues, bloomFilter)
-        IO(bloomFilter.mightContain(randomBytesSlice(100)) shouldBe false)
+        IO(BloomFilter.mightContain(randomBytesSlice(100), bloomFilter) shouldBe false)
         footer.crc should be > 0L
       }
 
@@ -550,7 +532,6 @@ class SegmentWriterReaderSpec extends TestBase {
               resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
               minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
               hashIndexCompensation = TestData.hashIndexCompensation,
-              enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
               previous = None,
               maxProbe = TestData.maxProbe
             ).assertGet
@@ -561,16 +542,15 @@ class SegmentWriterReaderSpec extends TestBase {
 
     "set hasRange to false when there are no ranges" in {
       def doAssert(keyValues: Slice[KeyValue.WriteOnly]) = {
-        keyValues.last.stats.hasRemoveRange shouldBe false
+        keyValues.last.stats.segmentHasRemoveRange shouldBe false
 
         val (bytes, _) =
           SegmentWriter.write(
             keyValues = keyValues,
             createdInLevel = 0,
             maxProbe = TestData.maxProbe,
-            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex
-          ).assertGet
+            falsePositiveRate = TestData.falsePositiveRate
+          ).assertGet.flatten
 
         val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).get
         footer.keyValueCount shouldBe keyValues.size
@@ -579,7 +559,7 @@ class SegmentWriterReaderSpec extends TestBase {
         //bloom filters do
         val bloomFilter = footer.bloomFilter.assertGet
         assertBloom(keyValues, bloomFilter)
-        IO(bloomFilter.mightContain(randomBytesSlice(100)) shouldBe false)
+        IO(BloomFilter.mightContain(randomBytesSlice(100), bloomFilter) shouldBe false)
         footer.crc should be > 0L
       }
 
@@ -595,16 +575,15 @@ class SegmentWriterReaderSpec extends TestBase {
       val valueCompression = randomCompression()
 
       def doAssert(keyValues: Slice[KeyValue.WriteOnly]) = {
-        keyValues.last.stats.hasRemoveRange shouldBe false
+        keyValues.last.stats.segmentHasRemoveRange shouldBe false
 
         val (bytes, _) =
           SegmentWriter.write(
             keyValues = keyValues,
             createdInLevel = 0,
             maxProbe = TestData.maxProbe,
-            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex
-          ).assertGet
+            falsePositiveRate = TestData.falsePositiveRate
+          ).assertGet.flatten
 
         val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).get
         footer.keyValueCount shouldBe keyValues.size
@@ -613,7 +592,7 @@ class SegmentWriterReaderSpec extends TestBase {
         //bloom filters do
         val bloomFilter = footer.bloomFilter.assertGet
         assertBloom(keyValues, bloomFilter)
-        IO(bloomFilter.mightContain(randomBytesSlice(100)) shouldBe false)
+        IO(BloomFilter.mightContain(randomBytesSlice(100), bloomFilter) shouldBe false)
         footer.crc should be > 0L
 
         keyValues foreach {
@@ -636,7 +615,6 @@ class SegmentWriterReaderSpec extends TestBase {
               resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
               minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
               hashIndexCompensation = TestData.hashIndexCompensation,
-              enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
               maxProbe = TestData.maxProbe,
               previous = None
             ).assertGet
@@ -650,16 +628,15 @@ class SegmentWriterReaderSpec extends TestBase {
       val valueCompression = randomCompression()
 
       def doAssert(keyValues: Slice[KeyValue.WriteOnly]) = {
-        keyValues.last.stats.hasRemoveRange shouldBe true
+        keyValues.last.stats.segmentHasRemoveRange shouldBe true
 
         val (bytes, _) =
           SegmentWriter.write(
             keyValues = keyValues,
             createdInLevel = 0,
             maxProbe = TestData.maxProbe,
-            bloomFilterFalsePositiveRate = 0.01,
-            enableRangeFilterAndIndex = false
-          ).assertGet
+            falsePositiveRate = 0.01
+          ).assertGet.flatten
 
         val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).get
         footer.keyValueCount shouldBe keyValues.size
@@ -689,7 +666,6 @@ class SegmentWriterReaderSpec extends TestBase {
               resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
               minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
               hashIndexCompensation = TestData.hashIndexCompensation,
-              enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
               previous = None,
               maxProbe = TestData.maxProbe
             ).assertGet
@@ -717,7 +693,6 @@ class SegmentWriterReaderSpec extends TestBase {
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
-            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
             previous = None,
             maxProbe = TestData.maxProbe
           ).assertGet
@@ -728,9 +703,8 @@ class SegmentWriterReaderSpec extends TestBase {
           keyValues = keyValues,
           createdInLevel = 0,
           maxProbe = TestData.maxProbe,
-          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex
-        ).assertGet
+          falsePositiveRate = TestData.falsePositiveRate
+        ).assertGet.flatten
 
       writtenBytes.isFull shouldBe true
       val bytes = Slice(writtenBytes.toArrayCopy)
@@ -815,9 +789,8 @@ class SegmentWriterReaderSpec extends TestBase {
           keyValues = keyValues,
           createdInLevel = 0,
           maxProbe = TestData.maxProbe,
-          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex
-        ).assertGet
+          falsePositiveRate = TestData.falsePositiveRate
+        ).assertGet.flatten
 
       //FIRST
       SegmentReader.lower(KeyMatcher.Lower(keyValues.head.key), None, Reader(bytes)).assertGetOpt shouldBe empty
@@ -878,9 +851,8 @@ class SegmentWriterReaderSpec extends TestBase {
           keyValues = keyValues,
           createdInLevel = 0,
           maxProbe = TestData.maxProbe,
-          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex
-        ).assertGet
+          falsePositiveRate = TestData.falsePositiveRate
+        ).assertGet.flatten
 
       val foundKeyValue1 = SegmentReader.higher(KeyMatcher.Higher(keyValues.head.key), None, Reader(bytes)).assertGet
       foundKeyValue1 shouldBe keyValues(1)
@@ -966,9 +938,8 @@ class SegmentWriterReaderSpec extends TestBase {
             keyValues = keyValuesWithDeadline.updateStats,
             createdInLevel = 0,
             maxProbe = TestData.maxProbe,
-            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex
-          ).assertGet._2
+            falsePositiveRate = TestData.falsePositiveRate
+          ).assertGet.nearestDeadline
 
         actualNearestDeadline shouldBe nearestDeadline(keyValuesWithDeadline.toSlice)
       }
@@ -1023,9 +994,8 @@ class SegmentWriterReaderSpec extends TestBase {
             keyValues = keyValues,
             createdInLevel = 0,
             maxProbe = TestData.maxProbe,
-            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex
-          ).assertGet
+            falsePositiveRate = TestData.falsePositiveRate
+          ).assertGet.flatten
         //      println(bytes)
 
         deadline shouldBe empty

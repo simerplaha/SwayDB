@@ -70,7 +70,6 @@ class SegmentGrouperSpec extends TestBase {
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
-        enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
         compressDuplicateValues = true
       )
 
@@ -113,7 +112,6 @@ class SegmentGrouperSpec extends TestBase {
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
-            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
             isLastLevel = false,
             compressDuplicateValues = true
           )
@@ -129,9 +127,8 @@ class SegmentGrouperSpec extends TestBase {
           keyValues = Slice(group),
           createdInLevel = 0,
           maxProbe = TestData.maxProbe,
-          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex
-        ).assertGet
+          falsePositiveRate = TestData.falsePositiveRate
+        ).assertGet.flatten
 
       val reader = Reader(segmentBytes)
       val footer = SegmentReader.readFooter(reader.copy()).assertGet
@@ -167,7 +164,6 @@ class SegmentGrouperSpec extends TestBase {
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
-            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
             isLastLevel = false,
             compressDuplicateValues = true
           )
@@ -183,9 +179,8 @@ class SegmentGrouperSpec extends TestBase {
           keyValues = Slice(group),
           createdInLevel = 0,
           maxProbe = TestData.maxProbe,
-          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex
-        ).assertGet
+          falsePositiveRate = TestData.falsePositiveRate
+        ).assertGet.flatten
 
       val reader = Reader(segmentBytes)
       val footer = SegmentReader.readFooter(reader.copy()).assertGet
@@ -223,7 +218,6 @@ class SegmentGrouperSpec extends TestBase {
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
-            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
             isLastLevel = false,
             compressDuplicateValues = true
           )

@@ -24,7 +24,8 @@ import swaydb.core.data.{KeyValue, Persistent}
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
 import swaydb.core.segment.format.a.entry.reader.EntryReader
-import swaydb.core.util.{BloomFilter, Bytes, CRC32}
+import swaydb.core.segment.format.a.index.HashIndex
+import swaydb.core.util.{Bytes, CRC32}
 import swaydb.data.IO
 import swaydb.data.IO._
 import swaydb.data.order.KeyOrder
@@ -228,13 +229,13 @@ private[core] object SegmentReader extends LazyLogging {
     }
 
   def readHashIndexHeader(reader: Reader,
-                          footer: SegmentFooter): IO[SegmentHashIndex.Header] =
+                          footer: SegmentFooter): IO[HashIndex.Header] =
     reader
       .moveTo(footer.hashIndexStartOffset)
       .read(footer.hashIndexSize)
       .flatMap {
         bytes =>
-          SegmentHashIndex.readHeader(Reader(bytes))
+          HashIndex.readHeader(Reader(bytes))
       }
 
   //all these functions are wrapper with a try catch block with getFromHashIndex only to make it easier to read.
@@ -293,13 +294,14 @@ private[core] object SegmentReader extends LazyLogging {
             hasPut = hasPut,
             bloomFilterItemsCount = bloomFilterItemsCount,
             bloomFilter =
-              bloomAndRangeFilterSlice map {
-                case (bloomFilterSlice, rangeFilterSlice) =>
-                  BloomFilter(
-                    bloomFilterBytes = bloomFilterSlice,
-                    rangeFilterBytes = rangeFilterSlice
-                  ).get
-              }
+              //              bloomAndRangeFilterSlice map {
+              //                case (bloomFilterSlice, rangeFilterSlice) =>
+              //                  BloomFilter(
+              //                    bloomFilterBytes = bloomFilterSlice,
+              //                    rangeFilterBytes = rangeFilterSlice
+              //                  ).find
+              //              }
+              ???
           )
         )
       }
@@ -373,12 +375,12 @@ private[core] object SegmentReader extends LazyLogging {
   def get(matcher: KeyMatcher.Get,
           startFrom: Option[Persistent],
           reader: Reader,
-          hashIndexHeader: Option[SegmentHashIndex.Header],
+          hashIndexHeader: Option[HashIndex.Header],
           footer: SegmentFooter)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
     hashIndexHeader map {
       hashIndexHeader =>
         getFromHashIndex(
-          matcher = matcher.toHashIndexMatcher,
+          matcher = matcher.toNextPrefixCompressedMatcher,
           reader = reader,
           header = hashIndexHeader,
           footer = footer
@@ -386,15 +388,16 @@ private[core] object SegmentReader extends LazyLogging {
           found =>
             //if the hashIndex hit rate is perfect means the key definitely does not exist.
             //so either the bloomFilter was disabled or it returned a false positive.
-            if (found.isEmpty && hashIndexHeader.miss == 0 && ((footer.hasRange && hashIndexHeader.rangeIndexingEnabled) || !footer.hasRange))
-              IO.none
-            else //still not sure go ahead with walk find.
-              find(
-                matcher = matcher,
-                //todo compare and start from nearest read key-value.
-                startFrom = startFrom,
-                reader = reader, footer = footer
-              )
+            //            if (found.isEmpty && hashIndexHeader.miss == 0 && ((footer.hasRange && hashIndexHeader.rangeIndexingEnabled) || !footer.hasRange))
+            //              IO.none
+            //            else //still not sure go ahead with walk find.
+            //              find(
+            //                matcher = matcher,
+            //                //todo compare and start from nearest read key-value.
+            //                startFrom = startFrom,
+            //                reader = reader, footer = footer
+            //              )
+            ???
         }
     } getOrElse {
       find(
@@ -404,17 +407,17 @@ private[core] object SegmentReader extends LazyLogging {
       )
     }
 
-  private[a] def getFromHashIndex(matcher: KeyMatcher.GetFromHashIndex,
+  private[a] def getFromHashIndex(matcher: KeyMatcher.GetNextPrefixCompressed,
                                   reader: Reader,
-                                  header: SegmentHashIndex.Header,
+                                  header: HashIndex.Header,
                                   footer: SegmentFooter)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
-    SegmentHashIndex.find[Persistent](
+    HashIndex.find[Persistent](
       key = matcher.key,
       hashIndexStartOffset = footer.hashIndexStartOffset,
       hashIndexReader = reader,
       hashIndexSize = footer.hashIndexSize,
       maxProbe = header.maxProbe,
-      get =
+      assertValue =
         sortedIndexOffset =>
           findFromIndex(
             matcher = matcher,

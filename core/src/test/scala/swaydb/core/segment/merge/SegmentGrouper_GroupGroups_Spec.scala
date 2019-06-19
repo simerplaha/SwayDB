@@ -72,7 +72,6 @@ sealed trait SegmentGrouper_GroupGroups_Spec extends TestBase {
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
-          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
           force = force,
           maxProbe = TestData.maxProbe,
           groupingStrategy =
@@ -109,7 +108,6 @@ sealed trait SegmentGrouper_GroupGroups_Spec extends TestBase {
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
-            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
             force = force,
             maxProbe = TestData.maxProbe,
             groupingStrategy =
@@ -137,9 +135,8 @@ sealed trait SegmentGrouper_GroupGroups_Spec extends TestBase {
               keyValues = Slice(result.assertGet),
               createdInLevel = 0,
               maxProbe = TestData.maxProbe,
-              bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-              enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex
-            ).assertGet
+              falsePositiveRate = TestData.falsePositiveRate
+            ).assertGet.flatten
 
           val rootGroup = readAll(bytes).assertGet
           rootGroup should have size 1
@@ -161,7 +158,6 @@ sealed trait SegmentGrouper_GroupGroups_Spec extends TestBase {
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
-          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
           force = force,
           maxProbe = TestData.maxProbe,
           groupingStrategy =
@@ -195,7 +191,6 @@ sealed trait SegmentGrouper_GroupGroups_Spec extends TestBase {
               resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
               minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
               hashIndexCompensation = TestData.hashIndexCompensation,
-              enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
               force = force,
               maxProbe = TestData.maxProbe,
               groupingStrategy =
@@ -237,7 +232,6 @@ sealed trait SegmentGrouper_GroupGroups_Spec extends TestBase {
                 resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
                 minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
                 hashIndexCompensation = TestData.hashIndexCompensation,
-                enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
                 force = force,
                 maxProbe = TestData.maxProbe,
                 groupingStrategy =
@@ -264,9 +258,8 @@ sealed trait SegmentGrouper_GroupGroups_Spec extends TestBase {
                   keyValues = Slice(result.assertGet).updateStats,
                   createdInLevel = 0,
                   maxProbe = TestData.maxProbe,
-                  bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-                  enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex
-                ).assertGet
+                  falsePositiveRate = TestData.falsePositiveRate
+                ).assertGet.flatten
 
               val rootGroup = readAll(bytes).assertGet
               rootGroup should have size 1
@@ -292,7 +285,6 @@ sealed trait SegmentGrouper_GroupGroups_Spec extends TestBase {
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
-            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
             force = force,
             maxProbe = TestData.maxProbe,
             groupingStrategy =
@@ -318,9 +310,8 @@ sealed trait SegmentGrouper_GroupGroups_Spec extends TestBase {
             keyValues = Slice(result.assertGet).updateStats,
             createdInLevel = 0,
             maxProbe = TestData.maxProbe,
-            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex
-          ).assertGet
+            falsePositiveRate = TestData.falsePositiveRate
+          ).assertGet.flatten
 
         val rootGroup = readAll(bytes).assertGet
         rootGroup should have size 1

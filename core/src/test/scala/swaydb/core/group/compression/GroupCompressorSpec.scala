@@ -34,7 +34,7 @@ import scala.util.Random
 
 /**
   * [[swaydb.core.group.compression.GroupCompressor]] is always invoked directly from [[Transient.Group]] there these test cases initialise the Group
-  * to get full code coverage.
+  * to find full code coverage.
   *
   */
 class GroupCompressorSpec extends TestBase {
@@ -55,7 +55,6 @@ class GroupCompressorSpec extends TestBase {
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
-        enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
         previous = None
       ).assertGetOpt shouldBe empty
     }
@@ -79,7 +78,6 @@ class GroupCompressorSpec extends TestBase {
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
-            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
             maxProbe = TestData.maxProbe,
             previous = None
           ).assertGetOpt shouldBe empty
@@ -110,7 +108,6 @@ class GroupCompressorSpec extends TestBase {
                 resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
                 minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
                 hashIndexCompensation = TestData.hashIndexCompensation,
-                enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
                 previous = None
               ).assertGet,
             expectedIndexCompressionUsed = indexCompression,
@@ -138,7 +135,6 @@ class GroupCompressorSpec extends TestBase {
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
-            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
             maxProbe = TestData.maxProbe,
             previous = None
           ).assertGetOpt shouldBe empty
@@ -166,7 +162,6 @@ class GroupCompressorSpec extends TestBase {
                 resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
                 minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
                 hashIndexCompensation = TestData.hashIndexCompensation,
-                enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
                 maxProbe = TestData.maxProbe,
                 previous = None
               ).assertGet,
@@ -202,7 +197,6 @@ class GroupCompressorSpec extends TestBase {
                 resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
                 minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
                 hashIndexCompensation = TestData.hashIndexCompensation,
-                enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
                 maxProbe = TestData.maxProbe,
                 previous = None
               ).assertGet,
@@ -232,7 +226,6 @@ class GroupCompressorSpec extends TestBase {
               falsePositiveRate = TestData.falsePositiveRate,
               resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
               minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-              enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
               hashIndexCompensation = TestData.hashIndexCompensation
             ).assertGet
 
@@ -249,7 +242,6 @@ class GroupCompressorSpec extends TestBase {
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
-            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
             maxProbe = TestData.maxProbe,
             previous = None
           ).assertGetOpt shouldBe empty
@@ -269,7 +261,6 @@ class GroupCompressorSpec extends TestBase {
               resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
               minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
               hashIndexCompensation = TestData.hashIndexCompensation,
-              enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
               maxProbe = TestData.maxProbe,
               previous = None
             ).assertGet
@@ -294,7 +285,6 @@ class GroupCompressorSpec extends TestBase {
                 resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
                 minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
                 hashIndexCompensation = TestData.hashIndexCompensation,
-                enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
                 maxProbe = TestData.maxProbe,
                 previous = None
               ).assertGet,
@@ -330,7 +320,6 @@ class GroupCompressorSpec extends TestBase {
                 resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
                 minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
                 hashIndexCompensation = TestData.hashIndexCompensation,
-                enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
                 maxProbe = TestData.maxProbe,
                 previous = None
               ).assertGet,

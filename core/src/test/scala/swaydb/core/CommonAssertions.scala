@@ -19,7 +19,6 @@
 
 package swaydb.core
 
-import swaydb.core.util.BloomFilter
 import java.nio.file.Paths
 import java.util.concurrent.ConcurrentSkipListMap
 
@@ -48,6 +47,7 @@ import swaydb.core.map.serializer.{MapEntryWriter, RangeValueSerializer, ValueSe
 import swaydb.core.merge._
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.Segment
+import swaydb.core.segment.format.a.index.BloomFilter
 import swaydb.core.segment.format.a.{KeyMatcher, SegmentFooter, SegmentReader, SegmentWriter}
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util.CollectionUtil._
@@ -393,8 +393,7 @@ object CommonAssertions {
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
-        compressDuplicateValues = randomBoolean(),
-        enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex
+        compressDuplicateValues = randomBoolean()
       ).assertGet
 
     if (expected.size == 0) {
@@ -779,20 +778,20 @@ object CommonAssertions {
     }
 
   def assertBloom(keyValues: Slice[KeyValue.WriteOnly],
-                  bloom: BloomFilter) = {
+                  bloom: BloomFilter.Header) = {
     val unzipedKeyValues = unzipGroups(keyValues)
 
     unzipedKeyValues.par.count {
       keyValue =>
-        bloom.mightContain(keyValue.key)
+        BloomFilter.mightContain(keyValue.key, bloom)
     } should be >= (unzipedKeyValues.size * 0.90).toInt
 
     assertBloomNotContains(bloom)
   }
 
-  def assertBloomNotContains(bloom: BloomFilter) =
+  def assertBloomNotContains(bloom: BloomFilter.Header) =
     runThis(1000.times) {
-      IO(bloom.mightContain(randomBytesSlice(randomIntMax(1000) min 100)) shouldBe false)
+      IO(BloomFilter.mightContain(randomBytesSlice(randomIntMax(1000) min 100), bloom) shouldBe false)
     }
 
   def assertReads(keyValues: Slice[KeyValue],
@@ -897,7 +896,7 @@ object CommonAssertions {
 
                           case PendingApply(key, applies) =>
                             //                        s"""
-                            //                           |${key.readInt()} -> ${functionStore.get(function)}, ${time.time.readLong()}
+                            //                           |${key.readInt()} -> ${functionStore.find(function)}, ${time.time.readLong()}
                             //                        """.stripMargin
                             "PENDING-APPLY"
 
@@ -927,7 +926,7 @@ object CommonAssertions {
         val data =
           Seq(s"\nLevel: ${level.rootPath}\n") ++
             dump(level.segmentsInLevel())
-        IOEffect.write(Slice.writeString(data.mkString("\n")), Paths.get(s"/Users/simerplaha/IdeaProjects/SwayDB/core/target/dump_Level_${level.levelNumber}.txt")).get
+        IOEffect.write(Paths.get(s"/Users/simerplaha/IdeaProjects/SwayDB/core/target/dump_Level_${level.levelNumber}.txt"), Slice.writeString(data.mkString("\n"))).get
 
         dump(nextLevel)
 
@@ -935,7 +934,7 @@ object CommonAssertions {
         val data =
           Seq(s"\nLevel: ${level.rootPath}\n") ++
             dump(level.segmentsInLevel())
-        IOEffect.write(Slice.writeString(data.mkString("\n")), Paths.get(s"/Users/simerplaha/IdeaProjects/SwayDB/core/target/dump_Level_${level.levelNumber}.txt")).get
+        IOEffect.write(Paths.get(s"/Users/simerplaha/IdeaProjects/SwayDB/core/target/dump_Level_${level.levelNumber}.txt"), Slice.writeString(data.mkString("\n"))).get
     }
 
   def assertGet(keyValues: Iterable[KeyValue],
@@ -1285,11 +1284,11 @@ object CommonAssertions {
       groupSegmentReader.readIntUnsigned().assertGet should be >= 8.bytes
 
     groupSegmentReader.readIntUnsigned().assertGet shouldBe GroupCompressor.formatId
-    groupSegmentReader.readBoolean().assertGet shouldBe group.keyValues.last.stats.hasRange
-    groupSegmentReader.readBoolean().assertGet shouldBe group.keyValues.last.stats.hasPut
+    groupSegmentReader.readBoolean().assertGet shouldBe group.keyValues.last.stats.segmentHasRange
+    groupSegmentReader.readBoolean().assertGet shouldBe group.keyValues.last.stats.segmentHasPut
     groupSegmentReader.readIntUnsigned().assertGet shouldBe expectedIndexCompressionUsed.decompressor.id //key decompression id
     groupSegmentReader.readIntUnsigned().assertGet shouldBe groupKeyValues.size //key-value count
-    groupSegmentReader.readIntUnsigned().assertGet shouldBe groupKeyValues.last.stats.totalBloomFiltersItemsCount //bloomFilterItemsCount count
+    groupSegmentReader.readIntUnsigned().assertGet shouldBe groupKeyValues.last.stats.segmentUniqueKeysCount //bloomFilterItemsCount count
     val keysDecompressLength = groupSegmentReader.readIntUnsigned().assertGet //keys length
     val keysCompressLength = groupSegmentReader.readIntUnsigned().assertGet //keys length
 
@@ -1322,7 +1321,7 @@ object CommonAssertions {
       hasPut = false,
       isGrouped = true,
       createdInLevel = Int.MinValue,
-      bloomFilterItemsCount = groupKeyValues.last.stats.totalBloomFiltersItemsCount,
+      bloomFilterItemsCount = groupKeyValues.last.stats.segmentUniqueKeysCount,
       bloomFilter = None
     )
 
@@ -1333,19 +1332,19 @@ object CommonAssertions {
     keyValues shouldBe groupKeyValues
 
     //now write the Group to a full Segment and read it as a normal Segment.
-    val (segmentBytes, nearestDeadline) =
-      SegmentWriter.write(
-        keyValues = Seq(group.updateStats(TestData.falsePositiveRate, None)),
-        createdInLevel = 1,
-        maxProbe = 10,
-        bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-        enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex
-      ).assertGet
-
-    nearestDeadline shouldBe Segment.getNearestDeadline(groupKeyValues).assertGetOpt
-    val segmentReader = Reader(segmentBytes)
-    val footer = SegmentReader.readFooter(segmentReader).assertGet
-    SegmentReader.readAll(footer, segmentReader.copy()).assertGet shouldBe Seq(group)
+    //    val (segmentBytes, nearestDeadline) =
+    //      SegmentWriter.write(
+    //        keyValues = Seq(group.updateStats(TestData.falsePositiveRate, None)),
+    //        createdInLevel = 1,
+    //        maxProbe = 10,
+    //        falsePositiveRate = TestData.falsePositiveRate
+    //      ).assertGet
+    //
+    //    nearestDeadline shouldBe Segment.getNearestDeadline(groupKeyValues).assertGetOpt
+    //    val segmentReader = Reader(segmentBytes)
+    //    val footer = SegmentReader.readFooter(segmentReader).assertGet
+    //    SegmentReader.readAll(footer, segmentReader.copy()).assertGet shouldBe Seq(group)
+    ???
   }
 
   def readAll(bytes: Slice[Byte]): IO[Slice[KeyValue.ReadOnly]] =
@@ -1535,7 +1534,6 @@ object CommonAssertions {
             lazyGroupValueReader.getOrFetchValue.get.safeGetBlocking().shouldBeSliced()
         }
     }
-
 
   def countRangesManually(keyValues: Iterable[KeyValue.WriteOnly]): Int =
     keyValues.foldLeft(0) {

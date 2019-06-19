@@ -80,6 +80,8 @@ object IO {
   val none = IO.Success(None)
   val `false` = IO.Success(false)
   val `true` = IO.Success(true)
+  val someTrue = IO.Success(Some(true))
+  val someFalse = IO.Success(Some(false))
   val zero = IO.Success(0)
   val emptyReader = IO.Success(SliceReader(Slice.emptyBytes))
   val emptyBytes = IO.Success(Slice.emptyBytes)

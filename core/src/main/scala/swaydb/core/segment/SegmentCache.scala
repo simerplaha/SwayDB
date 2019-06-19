@@ -26,8 +26,9 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.{Persistent, _}
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.format.a.SegmentReader._
-import swaydb.core.segment.format.a.{KeyMatcher, SegmentFooter, SegmentHashIndex, SegmentReader}
-import swaydb.core.util.{BloomFilter, _}
+import swaydb.core.segment.format.a.index.{BloomFilter, HashIndex}
+import swaydb.core.segment.format.a.{KeyMatcher, SegmentFooter, SegmentReader}
+import swaydb.core.util._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.{IO, MaxKey}
@@ -39,7 +40,7 @@ private[core] class SegmentCacheInitializer(id: String,
                                             minKey: Slice[Byte],
                                             unsliceKey: Boolean,
                                             getFooter: () => IO[SegmentFooter],
-                                            getHashIndexHeader: () => IO[Option[SegmentHashIndex.Header]],
+                                            getHashIndexHeader: () => IO[Option[HashIndex.Header]],
                                             createReader: () => IO[Reader]) {
   private val created = new AtomicBoolean(false)
   @volatile private var cache: SegmentCache = _
@@ -73,7 +74,7 @@ private[core] class SegmentCache(id: String,
                                  cache: ConcurrentSkipListMap[Slice[Byte], Persistent],
                                  unsliceKey: Boolean,
                                  getFooter: () => IO[SegmentFooter],
-                                 getHashIndexHeader: () => IO[Option[SegmentHashIndex.Header]],
+                                 getHashIndexHeader: () => IO[Option[HashIndex.Header]],
                                  createReader: () => IO[Reader])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                  keyValueLimiter: KeyValueLimiter) extends LazyLogging {
 
@@ -112,14 +113,14 @@ private[core] class SegmentCache(id: String,
         ExceptionUtil.logFailure(s"$id: Failed to read Segment.", failure)
     }
 
-  def getBloomFilter: IO[Option[BloomFilter]] =
+  def getBloomFilter: IO[Option[BloomFilter.Header]] =
     getFooter() map (_.bloomFilter)
 
   def getFromCache(key: Slice[Byte]): Option[Persistent] =
     Option(cache.get(key))
 
   def mightContain(key: Slice[Byte]): IO[Boolean] =
-    getFooter().map(_.bloomFilter.forall(_.mightContain(key)))
+    getFooter().map(_.bloomFilter forall (BloomFilter.mightContain(key, _)))
 
   def get(key: Slice[Byte]): IO[Option[Persistent.SegmentResponse]] =
     maxKey match {
@@ -151,7 +152,7 @@ private[core] class SegmentCache(id: String,
               (footer, reader) =>
                 getHashIndexHeader() flatMap {
                   hashIndexHeader =>
-                    if (!footer.bloomFilter.forall(_.mightContain(key)))
+                    if (!footer.bloomFilter.forall(BloomFilter.mightContain(key, _)))
                       IO.none
                     else
                       SegmentReader.get(

@@ -19,17 +19,20 @@
 
 package swaydb.core.io.file
 
-import com.typesafe.scalalogging.LazyLogging
 import java.io.IOException
 import java.nio.channels.{FileLock, WritableByteChannel}
 import java.nio.file._
 import java.nio.file.attribute.BasicFileAttributes
+
+import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.segment.SegmentException
 import swaydb.core.util.Extension
-import swaydb.data.slice.Slice
-import scala.collection.JavaConverters._
 import swaydb.core.util.PipeOps._
 import swaydb.data.IO
+import swaydb.data.IO._
+import swaydb.data.slice.Slice
+
+import scala.collection.JavaConverters._
 
 case class NotAnIntFile(path: Path) extends Throwable
 
@@ -60,12 +63,12 @@ private[core] object IOEffect extends LazyLogging {
       IOEffect.exists(path)
   }
 
-  def write(bytes: Slice[Byte],
-            to: Path): IO[Path] =
+  def write(to: Path,
+            bytes: Slice[Byte]*): IO[Path] =
     IO(Files.newByteChannel(to, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)) flatMap {
       channel =>
         try {
-          write(bytes, channel) map {
+          writeUnclosed(channel, bytes: _*) map {
             _ =>
               to
           }
@@ -79,7 +82,7 @@ private[core] object IOEffect extends LazyLogging {
     IO(Files.newByteChannel(to, StandardOpenOption.WRITE, StandardOpenOption.CREATE)) flatMap {
       channel =>
         try {
-          write(bytes, channel) map {
+          writeUnclosed(channel, bytes) map {
             _ =>
               to
           }
@@ -88,17 +91,21 @@ private[core] object IOEffect extends LazyLogging {
         }
     }
 
-  def write(bytes: Slice[Byte],
-            channel: WritableByteChannel): IO[Unit] =
+  def writeUnclosed(channel: WritableByteChannel,
+                    bytes: Slice[Byte]*): IO[Unit] =
     try {
-      val written = channel write bytes.toByteBuffer
-      // toByteBuffer uses size of Slice instead of written,
-      // but here the check on written ensures that only the actually written bytes get written.
-      // All the client code invoking writes to Disk using Slice should ensure that no Slice contains empty bytes.
-      if (written != bytes.written)
-        IO.Failure(IO.Error.Fatal(SegmentException.FailedToWriteAllBytes(written, bytes.written, bytes.size)))
-      else
-        IO.unit
+      bytes foreachIO {
+        bytes =>
+          val written = channel write bytes.toByteBuffer
+
+          // toByteBuffer uses size of Slice instead of written,
+          // but here the check on written ensures that only the actually written bytes find written.
+          // All the client code invoking writes to Disk using Slice should ensure that no Slice contains empty bytes.
+          if (written != bytes.written)
+            IO.Failure(IO.Error.Fatal(SegmentException.FailedToWriteAllBytes(written, bytes.written, bytes.size)))
+          else
+            IO.unit
+      } getOrElse IO.unit
     } catch {
       case exception: Exception =>
         IO.Failure(exception)

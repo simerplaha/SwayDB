@@ -22,7 +22,6 @@ package swaydb.core.segment
 import java.nio.file.Path
 import java.util.concurrent.ConcurrentSkipListMap
 
-import swaydb.core.util.BloomFilter
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.{Persistent, _}
 import swaydb.core.function.FunctionStore
@@ -31,7 +30,8 @@ import swaydb.core.io.file.DBFile
 import swaydb.core.io.reader.Reader
 import swaydb.core.level.PathsDistributor
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
-import swaydb.core.segment.format.a.{SegmentFooter, SegmentHashIndex, SegmentReader}
+import swaydb.core.segment.format.a.index.{BloomFilter, HashIndex}
+import swaydb.core.segment.format.a.{SegmentFooter, SegmentReader}
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util._
 import swaydb.data.IO._
@@ -61,7 +61,7 @@ private[segment] case class PersistentSegment(file: DBFile,
   private[segment] val cache = new ConcurrentSkipListMap[Slice[Byte], Persistent](keyOrder)
 
   @volatile private[segment] var footer = Option.empty[SegmentFooter]
-  @volatile private[segment] var hashIndexHeader = Option.empty[SegmentHashIndex.Header]
+  @volatile private[segment] var hashIndexHeader = Option.empty[HashIndex.Header]
 
   val segmentCache =
     new SegmentCache(
@@ -128,7 +128,6 @@ private[segment] case class PersistentSegment(file: DBFile,
           resetPrefixCompressionEvery: Int,
           minimumNumberOfKeyForHashIndex: Int,
           hashIndexCompensation : Int => Int,
-          enableRangeFilterAndIndex: Boolean,
           compressDuplicateValues: Boolean,
           removeDeletes: Boolean,
           createdInLevel: Int,
@@ -148,8 +147,7 @@ private[segment] case class PersistentSegment(file: DBFile,
           resetPrefixCompressionEvery = resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = hashIndexCompensation,
-          compressDuplicateValues = compressDuplicateValues,
-          enableRangeFilterAndIndex = enableRangeFilterAndIndex
+          compressDuplicateValues = compressDuplicateValues
         ) flatMap {
           splits =>
             splits.mapIO(
@@ -159,7 +157,6 @@ private[segment] case class PersistentSegment(file: DBFile,
                     path = targetPaths.next.resolve(idGenerator.nextSegmentID),
                     createdInLevel = createdInLevel,
                     bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-                    enableRangeFilterAndIndex = enableRangeFilterAndIndex,
                     mmapReads = mmapReads,
                     mmapWrites = mmapWrites,
                     keyValues = keyValues
@@ -183,7 +180,6 @@ private[segment] case class PersistentSegment(file: DBFile,
               resetPrefixCompressionEvery: Int,
               minimumNumberOfKeyForHashIndex: Int,
               hashIndexCompensation : Int => Int,
-              enableRangeFilterAndIndex: Boolean,
               compressDuplicateValues: Boolean,
               removeDeletes: Boolean,
               createdInLevel: Int,
@@ -202,8 +198,7 @@ private[segment] case class PersistentSegment(file: DBFile,
           resetPrefixCompressionEvery = resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = hashIndexCompensation,
-          compressDuplicateValues = compressDuplicateValues,
-          enableRangeFilterAndIndex = enableRangeFilterAndIndex
+          compressDuplicateValues = compressDuplicateValues
         ) flatMap {
           splits =>
             splits.mapIO(
@@ -213,7 +208,6 @@ private[segment] case class PersistentSegment(file: DBFile,
                     path = targetPaths.next.resolve(idGenerator.nextSegmentID),
                     createdInLevel = createdInLevel,
                     bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-                    enableRangeFilterAndIndex = enableRangeFilterAndIndex,
                     mmapReads = mmapReads,
                     mmapWrites = mmapWrites,
                     keyValues = keyValues
@@ -241,7 +235,7 @@ private[segment] case class PersistentSegment(file: DBFile,
       }
     }
 
-  def getHashIndexHeader(): IO[Option[SegmentHashIndex.Header]] =
+  def getHashIndexHeader(): IO[Option[HashIndex.Header]] =
     getFooter() flatMap {
       footer =>
         SegmentReader.readHashIndexHeader(createReader(), footer) map {
@@ -251,7 +245,7 @@ private[segment] case class PersistentSegment(file: DBFile,
         }
     }
 
-  override def getBloomFilter: IO[Option[BloomFilter]] =
+  override def getBloomFilter: IO[Option[BloomFilter.Header]] =
     segmentCache.getBloomFilter
 
   def getFromCache(key: Slice[Byte]): Option[Persistent] =

@@ -69,55 +69,54 @@ class GroupDecompressorSpec extends TestBase {
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
-            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
             maxProbe = TestData.maxProbe,
             previous = None
           ).assertGet
 
         //write the group to a Segment
-        val (bytes, _) =
-          SegmentWriter.write(
-            keyValues = Seq(group),
-            createdInLevel = 0,
-            maxProbe = TestData.maxProbe,
-            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-            enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex
-          ).assertGet
-
-        //read footer
-        val readKeyValues = SegmentReader.readAll(SegmentReader.readFooter(Reader(bytes)).assertGet, Reader(bytes)).assertGet
-        readKeyValues should have size 1
-        val persistentGroup = readKeyValues.head.asInstanceOf[Persistent.Group]
-
-        //concurrently with 100 threads read randomly all key-values from the Group. Hammer away!
-        runThisParallel(100.times) {
-          eitherOne(
-            left = Random.shuffle(unzipGroups(keyValues).toList),
-            right = unzipGroups(keyValues)
-          ) mapIO {
-            keyValue =>
-              IO.Async.runSafe(persistentGroup.segmentCache.get(keyValue.key).get).safeGetBlocking match {
-                case IO.Failure(exception) =>
-                  IO.Failure(exception)
-
-                case IO.Success(value) =>
-                  try {
-                    IO.Async.runSafe(value.get.toMemory().get).safeGetBlocking.assertGet shouldBe keyValue
-                    IO.unit
-                  } catch {
-                    case ex: Exception =>
-                      IO.Failure(ex.getCause)
-                  }
-              }
-          } assertGet
-        }
-
-        println("Done reading.")
-        //cache should eventually be empty.
-        eventual(20.seconds) {
-          persistentGroup.segmentCache.isCacheEmpty shouldBe true
-        }
-        println("Cache is empty")
+        //        val (bytes, _) =
+        //          SegmentWriter.write(
+        //            keyValues = Seq(group),
+        //            createdInLevel = 0,
+        //            maxProbe = TestData.maxProbe,
+        //            falsePositiveRate = TestData.falsePositiveRate
+        //          ).assertGet
+        //
+        //        //read footer
+        //        val readKeyValues = SegmentReader.readAll(SegmentReader.readFooter(Reader(bytes)).assertGet, Reader(bytes)).assertGet
+        //        readKeyValues should have size 1
+        //        val persistentGroup = readKeyValues.head.asInstanceOf[Persistent.Group]
+        //
+        //        //concurrently with 100 threads read randomly all key-values from the Group. Hammer away!
+        //        runThisParallel(100.times) {
+        //          eitherOne(
+        //            left = Random.shuffle(unzipGroups(keyValues).toList),
+        //            right = unzipGroups(keyValues)
+        //          ) mapIO {
+        //            keyValue =>
+        //              IO.Async.runSafe(persistentGroup.segmentCache.get(keyValue.key).get).safeGetBlocking match {
+        //                case IO.Failure(exception) =>
+        //                  IO.Failure(exception)
+        //
+        //                case IO.Success(value) =>
+        //                  try {
+        //                    IO.Async.runSafe(value.get.toMemory().get).safeGetBlocking.assertGet shouldBe keyValue
+        //                    IO.unit
+        //                  } catch {
+        //                    case ex: Exception =>
+        //                      IO.Failure(ex.getCause)
+        //                  }
+        //              }
+        //          } assertGet
+        //        }
+        //
+        //        println("Done reading.")
+        //        //cache should eventually be empty.
+        //        eventual(20.seconds) {
+        //          persistentGroup.segmentCache.isCacheEmpty shouldBe true
+        //        }
+        //        println("Cache is empty")
+        ???
       }
 
       keyValueLimiter.terminate()

@@ -19,7 +19,7 @@
 
 package swaydb.core.segment.format.a
 
-import swaydb.core.util.BloomFilter
+import swaydb.core.segment.format.a.index.BloomFilter
 
 private[core] case class SegmentFooter(crc: Long,
                                        sortedIndexStartOffset: Int,
@@ -32,7 +32,7 @@ private[core] case class SegmentFooter(crc: Long,
                                        createdInLevel: Int,
                                        isGrouped: Boolean,
                                        bloomFilterItemsCount: Int,
-                                       bloomFilter: Option[BloomFilter]) {
+                                       bloomFilter: Option[BloomFilter.Header]) {
   def hashIndexSize =
     hashIndexEndOffset - hashIndexStartOffset + 1
 }

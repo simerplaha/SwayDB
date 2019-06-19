@@ -54,88 +54,81 @@ class TransientSpec extends TestBase {
         previous = None
       ) match {
         case keyValue: Transient.Remove =>
-          keyValue.stats.valueLength shouldBe 0
-          keyValue.stats.hasRemoveRange shouldBe false
-          keyValue.stats.hasPut shouldBe false
-          keyValue.stats.position shouldBe 1
+          keyValue.stats.valueSize shouldBe 0
+          keyValue.stats.segmentHasRemoveRange shouldBe false
+          keyValue.stats.segmentHasPut shouldBe false
+          keyValue.stats.chainPosition shouldBe 1
           keyValue.stats.totalNumberOfRanges shouldBe 0
           keyValue.stats.groupsCount shouldBe 0
-          keyValue.stats.rangeCommonPrefixesCount shouldBe empty
           keyValue.stats.thisKeyValueIndexOffset shouldBe 0
-          keyValue.stats.thisKeyValuesHashIndexesSortedIndexOffset shouldBe 0
-          keyValue.stats.totalBloomFiltersItemsCount shouldBe 1
+          keyValue.stats.thisKeyValuesAccessIndexOffset shouldBe 0
+          keyValue.stats.segmentUniqueKeysCount shouldBe 1
 
         case keyValue: Transient.Put =>
-          keyValue.stats.valueLength shouldBe 0
-          keyValue.stats.hasRemoveRange shouldBe false
-          keyValue.stats.hasPut shouldBe true
-          keyValue.stats.position shouldBe 1
+          keyValue.stats.valueSize shouldBe 0
+          keyValue.stats.segmentHasRemoveRange shouldBe false
+          keyValue.stats.segmentHasPut shouldBe true
+          keyValue.stats.chainPosition shouldBe 1
           keyValue.stats.totalNumberOfRanges shouldBe 0
           keyValue.stats.groupsCount shouldBe 0
-          keyValue.stats.rangeCommonPrefixesCount shouldBe empty
           keyValue.stats.thisKeyValueIndexOffset shouldBe 0
-          keyValue.stats.thisKeyValuesHashIndexesSortedIndexOffset shouldBe 0
-          keyValue.stats.totalBloomFiltersItemsCount shouldBe 1
+          keyValue.stats.thisKeyValuesAccessIndexOffset shouldBe 0
+          keyValue.stats.segmentUniqueKeysCount shouldBe 1
 
         case keyValue: Transient.Update =>
-          keyValue.stats.valueLength shouldBe 0
-          keyValue.stats.hasRemoveRange shouldBe false
-          keyValue.stats.hasPut shouldBe false
-          keyValue.stats.position shouldBe 1
+          keyValue.stats.valueSize shouldBe 0
+          keyValue.stats.segmentHasRemoveRange shouldBe false
+          keyValue.stats.segmentHasPut shouldBe false
+          keyValue.stats.chainPosition shouldBe 1
           keyValue.stats.totalNumberOfRanges shouldBe 0
           keyValue.stats.groupsCount shouldBe 0
-          keyValue.stats.rangeCommonPrefixesCount shouldBe empty
           keyValue.stats.thisKeyValueIndexOffset shouldBe 0
-          keyValue.stats.thisKeyValuesHashIndexesSortedIndexOffset shouldBe 0
-          keyValue.stats.totalBloomFiltersItemsCount shouldBe 1
+          keyValue.stats.thisKeyValuesAccessIndexOffset shouldBe 0
+          keyValue.stats.segmentUniqueKeysCount shouldBe 1
 
         case keyValue: Transient.Function =>
-          keyValue.stats.valueLength should be > 0
-          keyValue.stats.hasRemoveRange shouldBe false
-          keyValue.stats.hasPut shouldBe false
-          keyValue.stats.position shouldBe 1
+          keyValue.stats.valueSize should be > 0
+          keyValue.stats.segmentHasRemoveRange shouldBe false
+          keyValue.stats.segmentHasPut shouldBe false
+          keyValue.stats.chainPosition shouldBe 1
           keyValue.stats.totalNumberOfRanges shouldBe 0
           keyValue.stats.groupsCount shouldBe 0
-          keyValue.stats.rangeCommonPrefixesCount shouldBe empty
           keyValue.stats.thisKeyValueIndexOffset shouldBe 0
-          keyValue.stats.thisKeyValuesHashIndexesSortedIndexOffset shouldBe 0
-          keyValue.stats.totalBloomFiltersItemsCount shouldBe 1
+          keyValue.stats.thisKeyValuesAccessIndexOffset shouldBe 0
+          keyValue.stats.segmentUniqueKeysCount shouldBe 1
 
         case keyValue: Transient.PendingApply =>
-          keyValue.stats.valueLength should be > 0
-          keyValue.stats.hasRemoveRange shouldBe false
-          keyValue.stats.hasPut shouldBe false
-          keyValue.stats.position shouldBe 1
+          keyValue.stats.valueSize should be > 0
+          keyValue.stats.segmentHasRemoveRange shouldBe false
+          keyValue.stats.segmentHasPut shouldBe false
+          keyValue.stats.chainPosition shouldBe 1
           keyValue.stats.totalNumberOfRanges shouldBe 0
           keyValue.stats.groupsCount shouldBe 0
-          keyValue.stats.rangeCommonPrefixesCount shouldBe empty
           keyValue.stats.thisKeyValueIndexOffset shouldBe 0
-          keyValue.stats.thisKeyValuesHashIndexesSortedIndexOffset shouldBe 0
-          keyValue.stats.totalBloomFiltersItemsCount shouldBe 1
+          keyValue.stats.thisKeyValuesAccessIndexOffset shouldBe 0
+          keyValue.stats.segmentUniqueKeysCount shouldBe 1
 
         case keyValue: Transient.Range =>
-          keyValue.stats.valueLength should be > 0
-          keyValue.stats.hasRemoveRange shouldBe keyValue.rangeValue.hasRemoveMayBe
-          keyValue.stats.hasPut shouldBe keyValue.fromValue.exists(_.isInstanceOf[Value.Put])
-          keyValue.stats.position shouldBe 1
+          keyValue.stats.valueSize should be > 0
+          keyValue.stats.segmentHasRemoveRange shouldBe keyValue.rangeValue.hasRemoveMayBe
+          keyValue.stats.segmentHasPut shouldBe keyValue.fromValue.exists(_.isInstanceOf[Value.Put])
+          keyValue.stats.chainPosition shouldBe 1
           keyValue.stats.totalNumberOfRanges shouldBe 1
           keyValue.stats.groupsCount shouldBe 0
-          keyValue.stats.rangeCommonPrefixesCount shouldBe Stats.createRangeCommonPrefixesCount(3)
           keyValue.stats.thisKeyValueIndexOffset shouldBe 0
-          keyValue.stats.thisKeyValuesHashIndexesSortedIndexOffset shouldBe 0
-          keyValue.stats.totalBloomFiltersItemsCount shouldBe 2
+          keyValue.stats.thisKeyValuesAccessIndexOffset shouldBe 0
+          keyValue.stats.segmentUniqueKeysCount shouldBe 2
 
         case keyValue: Transient.Group =>
-          keyValue.stats.valueLength should be > 0
-          keyValue.stats.hasRemoveRange shouldBe keyValue.keyValues.exists(_.stats.hasRemoveRange)
-          keyValue.stats.hasPut shouldBe keyValue.keyValues.exists(_.stats.hasPut)
-          keyValue.stats.position shouldBe 1
+          keyValue.stats.valueSize should be > 0
+          keyValue.stats.segmentHasRemoveRange shouldBe keyValue.keyValues.exists(_.stats.segmentHasRemoveRange)
+          keyValue.stats.segmentHasPut shouldBe keyValue.keyValues.exists(_.stats.segmentHasPut)
+          keyValue.stats.chainPosition shouldBe 1
           keyValue.stats.totalNumberOfRanges shouldBe countRangesManually(keyValue.keyValues)
           keyValue.stats.groupsCount shouldBe 1
-          keyValue.stats.rangeCommonPrefixesCount shouldBe keyValue.keyValues.last.stats.rangeCommonPrefixesCount
           keyValue.stats.thisKeyValueIndexOffset shouldBe 0
-          keyValue.stats.thisKeyValuesHashIndexesSortedIndexOffset shouldBe 0
-          keyValue.stats.totalBloomFiltersItemsCount shouldBe keyValue.keyValues.last.stats.totalBloomFiltersItemsCount
+          keyValue.stats.thisKeyValuesAccessIndexOffset shouldBe 0
+          keyValue.stats.segmentUniqueKeysCount shouldBe keyValue.keyValues.last.stats.segmentUniqueKeysCount
       }
     }
   }

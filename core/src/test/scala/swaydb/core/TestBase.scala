@@ -246,19 +246,17 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
   object TestSegment {
     def apply(keyValues: Slice[KeyValue.WriteOnly] = randomizedKeyValues()(TestTimer.Incremental(), KeyOrder.default, keyValueLimiter),
               path: Path = testSegmentFile,
-              bloomFilterFalsePositiveRate: Double = TestData.falsePositiveRate,
-              enableRangeFilterAndIndex: Boolean = TestData.enableRangeFilterAndIndex)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                       keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
-                                                                       fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter,
-                                                                       timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                                       groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(randomIntMax(1000))): IO[Segment] =
+              bloomFilterFalsePositiveRate: Double = TestData.falsePositiveRate)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                                                                 keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
+                                                                                 fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter,
+                                                                                 timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
+                                                                                 groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(randomIntMax(1000))): IO[Segment] =
       if (levelStorage.memory)
         Segment.memory(
           path = path,
           keyValues = keyValues,
           createdInLevel = 0,
-          bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-          enableRangeFilterAndIndex = enableRangeFilterAndIndex
+          bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate
         )
       else
         Segment.persistent(
@@ -267,8 +265,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
           mmapReads = levelStorage.mmapSegmentsOnRead,
           mmapWrites = levelStorage.mmapSegmentsOnWrite,
           keyValues = keyValues,
-          bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-          enableRangeFilterAndIndex = enableRangeFilterAndIndex
+          bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate
         )
   }
 
@@ -307,7 +304,6 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
               bloomFilterFalsePositiveRate: Double = TestData.falsePositiveRate,
               resetPrefixCompressionEvery: Int = TestData.resetPrefixCompressionEvery,
               minimumNumberOfKeyForHashIndex: Int = TestData.minimumNumberOfKeyForHashIndex,
-              enableRangeFilterAndIndex: Boolean = TestData.enableRangeFilterAndIndex,
               hashIndexCompensation: Int => Int = TestData.hashIndexCompensation,
               compressDuplicateValues: Boolean = true,
               deleteSegmentsEventually: Boolean = false,
@@ -329,7 +325,6 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
         resetPrefixCompressionEvery = resetPrefixCompressionEvery,
         minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = hashIndexCompensation,
-        enableRangeFilterAndIndex = enableRangeFilterAndIndex,
         compressDuplicateValues = compressDuplicateValues,
         deleteSegmentsEventually = deleteSegmentsEventually,
         maxProbe = maxProbe,
@@ -361,9 +356,8 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
       ).assertGet
   }
 
-
   def createFile(bytes: Slice[Byte]): Path =
-    IOEffect.write(bytes, testDir.resolve(nextSegmentId)).assertGet
+    IOEffect.write(testDir.resolve(nextSegmentId), bytes).assertGet
 
   def createFileReader(path: Path): FileReader = {
     implicit val limiter = fileOpenLimiter

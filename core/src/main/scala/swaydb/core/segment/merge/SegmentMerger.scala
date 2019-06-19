@@ -50,7 +50,6 @@ private[core] object SegmentMerger extends LazyLogging {
                     resetPrefixCompressionEvery: Int,
                     minimumNumberOfKeyForHashIndex: Int,
                     hashIndexCompensation: Int => Int,
-                    enableRangeFilterAndIndex: Boolean,
                     groupLastSegment: Boolean = true)(implicit groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[ListBuffer[ListBuffer[KeyValue.WriteOnly]]] = {
     //if there are any small Segments, merge them into previous Segment.
     val noSmallSegments =
@@ -80,7 +79,6 @@ private[core] object SegmentMerger extends LazyLogging {
               hashIndexCompensation = hashIndexCompensation,
               groupingStrategy = groupingS,
               maxProbe = maxProbe,
-              enableRangeFilterAndIndex = enableRangeFilterAndIndex,
               force = true
             ) match {
               case IO.Success(Some(_)) => //grouping occurred.
@@ -94,7 +92,6 @@ private[core] object SegmentMerger extends LazyLogging {
                   resetPrefixCompressionEvery = resetPrefixCompressionEvery,
                   minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
                   hashIndexCompensation = hashIndexCompensation,
-                  enableRangeFilterAndIndex = enableRangeFilterAndIndex,
                   groupLastSegment = false
                 )
 
@@ -121,7 +118,6 @@ private[core] object SegmentMerger extends LazyLogging {
             resetPrefixCompressionEvery: Int,
             minimumNumberOfKeyForHashIndex: Int,
             hashIndexCompensation: Int => Int,
-            enableRangeFilterAndIndex: Boolean,
             compressDuplicateValues: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                               groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Iterable[Iterable[KeyValue.WriteOnly]]] = {
     val splits = ListBuffer[ListBuffer[KeyValue.WriteOnly]](ListBuffer())
@@ -138,8 +134,7 @@ private[core] object SegmentMerger extends LazyLogging {
           resetPrefixCompressionEvery = resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = hashIndexCompensation,
-          compressDuplicateValues = compressDuplicateValues,
-          enableRangeFilterAndIndex = enableRangeFilterAndIndex
+          compressDuplicateValues = compressDuplicateValues
 
         )
     } match {
@@ -152,8 +147,7 @@ private[core] object SegmentMerger extends LazyLogging {
           bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
           resetPrefixCompressionEvery = resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
-          hashIndexCompensation = hashIndexCompensation,
-          enableRangeFilterAndIndex = enableRangeFilterAndIndex
+          hashIndexCompensation = hashIndexCompensation
         )
 
       case Some(IO.Failure(failure)) =>
@@ -162,7 +156,7 @@ private[core] object SegmentMerger extends LazyLogging {
   }
 
   /**
-    * TODO: Both inputs are Memory so temporarily it's OK to call .get because Memory key-values do not do IO. But this should be fixed and .get should not be invoked.
+    * TODO: Both inputs are Memory so temporarily it's OK to call .find because Memory key-values do not do IO. But this should be fixed and .find should not be invoked.
     *
     * Need a type class implementation on executing side effects of merging key-values, one for [[Memory]] key-values and other for [[Persistent]] key-value types.
     */
@@ -181,8 +175,7 @@ private[core] object SegmentMerger extends LazyLogging {
       resetPrefixCompressionEvery = 100,
       minimumNumberOfKeyForHashIndex = 50,
       hashIndexCompensation = _ => 0,
-      compressDuplicateValues = false,
-      enableRangeFilterAndIndex = false
+      compressDuplicateValues = false
     )(keyOrder, timeOrder, functionStore, None)
       .get
       .flatten
@@ -203,8 +196,7 @@ private[core] object SegmentMerger extends LazyLogging {
       resetPrefixCompressionEvery = 100,
       minimumNumberOfKeyForHashIndex = 50,
       hashIndexCompensation = _ => 0,
-      compressDuplicateValues = false,
-      enableRangeFilterAndIndex = false
+      compressDuplicateValues = false
     )(keyOrder, timeOrder, functionStore, None)
       .get
       .flatten
@@ -220,8 +212,7 @@ private[core] object SegmentMerger extends LazyLogging {
             resetPrefixCompressionEvery: Int,
             minimumNumberOfKeyForHashIndex: Int,
             hashIndexCompensation: Int => Int,
-            compressDuplicateValues: Boolean,
-            enableRangeFilterAndIndex: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
+            compressDuplicateValues: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                         timeOrder: TimeOrder[Slice[Byte]],
                                         functionStore: FunctionStore,
                                         groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Iterable[Iterable[KeyValue.WriteOnly]]] =
@@ -237,8 +228,7 @@ private[core] object SegmentMerger extends LazyLogging {
       resetPrefixCompressionEvery = resetPrefixCompressionEvery,
       minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
       hashIndexCompensation = hashIndexCompensation,
-      compressDuplicateValues = compressDuplicateValues,
-      enableRangeFilterAndIndex = enableRangeFilterAndIndex
+      compressDuplicateValues = compressDuplicateValues
     ) flatMap {
       splits =>
         completeMerge(
@@ -249,8 +239,7 @@ private[core] object SegmentMerger extends LazyLogging {
           resetPrefixCompressionEvery = resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = hashIndexCompensation,
-          bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-          enableRangeFilterAndIndex = enableRangeFilterAndIndex
+          bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate
         )
     }
 
@@ -265,8 +254,7 @@ private[core] object SegmentMerger extends LazyLogging {
                     resetPrefixCompressionEvery: Int,
                     minimumNumberOfKeyForHashIndex: Int,
                     hashIndexCompensation: Int => Int,
-                    compressDuplicateValues: Boolean,
-                    enableRangeFilterAndIndex: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                    compressDuplicateValues: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                 timeOrder: TimeOrder[Slice[Byte]],
                                                 functionStore: FunctionStore,
                                                 groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[ListBuffer[ListBuffer[KeyValue.WriteOnly]]] = {
@@ -285,8 +273,7 @@ private[core] object SegmentMerger extends LazyLogging {
         resetPrefixCompressionEvery = resetPrefixCompressionEvery,
         minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = hashIndexCompensation,
-        compressDuplicateValues = compressDuplicateValues,
-        enableRangeFilterAndIndex = enableRangeFilterAndIndex
+        compressDuplicateValues = compressDuplicateValues
       )
 
     @tailrec

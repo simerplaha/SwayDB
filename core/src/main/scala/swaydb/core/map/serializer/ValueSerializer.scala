@@ -349,42 +349,46 @@ object ValueSerializer {
   /**
     * Serializer for a tuple of Option bytes and sequence bytes.
     */
-  implicit object IntMapListBufferSerializer extends ValueSerializer[mutable.Map[Int, Iterable[(Byte, Byte)]]] {
+  implicit object IntMapListBufferSerializer extends ValueSerializer[mutable.Map[Int, Iterable[(Slice[Byte], Slice[Byte])]]] {
     val formatId = 0.toByte
 
-    override def write(value: mutable.Map[Int, Iterable[(Byte, Byte)]], bytes: Slice[Byte]): Unit = {
+    override def write(map: mutable.Map[Int, Iterable[(Slice[Byte], Slice[Byte])]], bytes: Slice[Byte]): Unit = {
       bytes add formatId
-      value foreach {
-        case (int, iterableBytes) =>
+      map foreach {
+        case (int, tuples) =>
           bytes addIntUnsigned int
-          bytes addIntUnsigned iterableBytes.size
-          iterableBytes foreach {
+          bytes addIntUnsigned tuples.size
+          tuples foreach {
             case (left, right) =>
-              bytes add left
-              bytes add right
+              bytes addIntUnsigned left.size
+              bytes addAll left
+              bytes addIntUnsigned right.size
+              bytes addAll right
           }
       }
     }
 
-    override def read(reader: Reader): IO[mutable.Map[Int, Iterable[(Byte, Byte)]]] =
+    override def read(reader: Reader): IO[mutable.Map[Int, Iterable[(Slice[Byte], Slice[Byte])]]] =
       reader.get() flatMap {
         format =>
           if (format != formatId)
             IO.Failure(IO.Error.Fatal(new Exception(s"Invalid formatID: $format")))
           else
-            reader.foldLeftIO(mutable.Map.empty[Int, Iterable[(Byte, Byte)]]) {
+            reader.foldLeftIO(mutable.Map.empty[Int, Iterable[(Slice[Byte], Slice[Byte])]]) {
               case (map, reader) =>
                 reader.readIntUnsigned() flatMap {
                   int =>
                     reader.readIntUnsigned() flatMap {
-                      bufferSize =>
-                        (1 to bufferSize) mapIO {
+                      tuplesCount =>
+                        (1 to tuplesCount) mapIO {
                           _ =>
                             for {
-                              left <- reader.get()
-                              right <- reader.get()
+                              leftSize <- reader.readIntUnsigned()
+                              left <- reader.read(leftSize)
+                              rightSize <- reader.readIntUnsigned()
+                              right <- reader.read(rightSize)
                             } yield {
-                              (left.toByte, right.toByte)
+                              (left, right)
                             }
                         } map {
                           bytes =>
@@ -396,19 +400,38 @@ object ValueSerializer {
             }
       }
 
-    def optimalBytesRequired(numberOfRanges: Int, rangeFilterCommonPrefixes: Iterable[Int]): Int =
+    /**
+      * Calculates the number of bytes required with minimal information about the RangeFilter.
+      */
+    def optimalBytesRequired(numberOfRanges: Int,
+                             maxUncommonBytesToStore: Int,
+                             rangeFilterCommonPrefixes: Iterable[Int]): Int =
       ByteSizeOf.byte + //formatId
-        rangeFilterCommonPrefixes.foldLeft(0)(_ + Bytes.sizeOf(_)) +
-        ByteSizeOf.int * rangeFilterCommonPrefixes.size +
-        numberOfRanges * 2
+        rangeFilterCommonPrefixes.foldLeft(0)(_ + Bytes.sizeOf(_)) + //common prefix bytes sizes
+        //Bytes.sizeOf(numberOfRanges) because there can only be a max of numberOfRanges per group so ByteSizeOf.int is not required.
+        (Bytes.sizeOf(numberOfRanges) * rangeFilterCommonPrefixes.size) + //tuples count per common prefix count
+        (numberOfRanges * Bytes.sizeOf(maxUncommonBytesToStore) * 2) +
+        (numberOfRanges * maxUncommonBytesToStore * 2) //store the bytes itself, * 2 because it's a tuple.
 
-    override def bytesRequired(value: mutable.Map[Int, Iterable[(Byte, Byte)]]): Int =
-      value.foldLeft(ByteSizeOf.byte) {
-        case (size, (int, bytesBuffer)) =>
+
+    /**
+      * This is not currently used by RangeFilter, [[optimalBytesRequired]] is used instead
+      * for faster calculation without long iterations. The size is almost always accurate and very rarely adds a few extra bytes.
+      * See tests.
+      */
+    override def bytesRequired(map: mutable.Map[Int, Iterable[(Slice[Byte], Slice[Byte])]]): Int =
+      map.foldLeft(ByteSizeOf.byte) {
+        case (totalSize, (int, tuples)) =>
           Bytes.sizeOf(int) +
-            Bytes.sizeOf(bytesBuffer.size) +
-            (bytesBuffer.size * 2) +
-            size
+            Bytes.sizeOf(tuples.size) +
+            tuples.foldLeft(0) {
+              case (totalSize, (left, right)) =>
+                Bytes.sizeOf(left.size) +
+                  left.size +
+                  Bytes.sizeOf(right.size) +
+                  right.size +
+                  totalSize
+            } + totalSize
       }
   }
 

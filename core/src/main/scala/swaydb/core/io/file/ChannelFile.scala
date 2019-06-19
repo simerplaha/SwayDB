@@ -59,7 +59,10 @@ private[file] class ChannelFile(val path: Path,
     }
 
   def append(slice: Slice[Byte]): IO[Unit] =
-    IOEffect.write(slice, channel)
+    IOEffect.writeUnclosed(channel, slice)
+
+  def append(slice: Slice[Byte]*): IO[Unit] =
+    IOEffect.writeUnclosed(channel, slice: _*)
 
   def read(position: Int, size: Int): IO[Slice[Byte]] =
     IO {

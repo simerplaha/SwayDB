@@ -55,7 +55,6 @@ class GroupSpec extends TestBase {
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
-          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
           maxProbe = TestData.maxProbe,
           previous = None
         ).assertGet
@@ -75,7 +74,6 @@ class GroupSpec extends TestBase {
               resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
               minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
               hashIndexCompensation = TestData.hashIndexCompensation,
-              enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
               maxProbe = TestData.maxProbe,
               previous = None
             ).assertGet
@@ -99,7 +97,6 @@ class GroupSpec extends TestBase {
                 resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
                 minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
                 hashIndexCompensation = TestData.hashIndexCompensation,
-                enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
                 maxProbe = TestData.maxProbe,
                 previous = None
               ).assertGet
@@ -122,7 +119,6 @@ class GroupSpec extends TestBase {
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
-          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
           maxProbe = TestData.maxProbe,
           previous = None
         ).assertGet
@@ -171,7 +167,6 @@ class GroupSpec extends TestBase {
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
-          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex,
           maxProbe = TestData.maxProbe,
           previous = None
         ).assertGet
@@ -183,8 +178,7 @@ class GroupSpec extends TestBase {
           path = Paths.get("/test"),
           createdInLevel = 0,
           keyValues = Seq(group),
-          bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-          enableRangeFilterAndIndex = TestData.enableRangeFilterAndIndex
+          bloomFilterFalsePositiveRate = TestData.falsePositiveRate
         ).assertGet
 
       val readKeyValues = segment.getAll().assertGet

@@ -25,6 +25,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.queue.{FileLimiter, FileLimiterItem}
 import swaydb.core.segment.SegmentException
 import swaydb.core.segment.SegmentException.CannotCopyInMemoryFiles
+import swaydb.data.IO._
 import swaydb.data.slice.Slice
 import swaydb.data.{IO, Reserve}
 
@@ -33,9 +34,9 @@ import scala.util.hashing.MurmurHash3
 
 object DBFile {
 
-  def write(bytes: Slice[Byte],
-            path: Path): IO[Path] =
-    IOEffect.write(bytes, path)
+  def write(path: Path,
+            bytes: Slice[Byte]*): IO[Path] =
+    IOEffect.write(path, bytes: _*)
 
   def channelWrite(path: Path, autoClose: Boolean)(implicit limiter: FileLimiter): IO[DBFile] =
     ChannelFile.write(path) map {
@@ -63,24 +64,30 @@ object DBFile {
         )
       )
 
-  def mmapWriteAndRead(bytes: Slice[Byte],
-                       path: Path,
-                       autoClose: Boolean)(implicit limiter: FileLimiter): IO[DBFile] =
+  def mmapWriteAndRead(path: Path,
+                       autoClose: Boolean,
+                       bytes: Slice[Byte]*)(implicit limiter: FileLimiter): IO[DBFile] =
   //do not write bytes if the Slice has empty bytes.
-    if (!bytes.isFull)
-      IO.Failure(IO.Error.Fatal(SegmentException.FailedToWriteAllBytes(0, bytes.written, bytes.size)))
-    else
-      mmapInit(
-        path = path,
-        bufferSize = bytes.written,
-        autoClose = autoClose
-      ) flatMap {
-        file =>
-          file.append(bytes) map {
-            _ =>
-              file
-          }
-      }
+    bytes.foldLeftIO(0) {
+      case (written, bytes) =>
+        if (!bytes.isFull)
+          IO.Failure(IO.Error.Fatal(SegmentException.FailedToWriteAllBytes(0, bytes.written, bytes.size)))
+        else
+          IO.Success(written + bytes.written)
+    } flatMap {
+      totalWritten =>
+        mmapInit(
+          path = path,
+          bufferSize = totalWritten,
+          autoClose = autoClose
+        ) flatMap {
+          file =>
+            file.append(bytes: _*) map {
+              _ =>
+                file
+            }
+        }
+    }
 
   def mmapRead(path: Path, autoClose: Boolean, checkExists: Boolean = true)(implicit limiter: FileLimiter): IO[DBFile] =
     if (checkExists && IOEffect.notExists(path))
@@ -230,6 +237,9 @@ class DBFile(val path: Path,
 
   def append(slice: Slice[Byte]) =
     openFile() flatMap (_.append(slice))
+
+  def append(slice: Slice[Byte]*) =
+    openFile() flatMap (_.append(slice: _*))
 
   def read(position: Int, size: Int): IO[Slice[Byte]] =
     openFile() flatMap (_.read(position, size))

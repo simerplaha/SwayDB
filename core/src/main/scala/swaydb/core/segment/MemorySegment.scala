@@ -23,7 +23,6 @@ import java.nio.file.Path
 import java.util.concurrent.ConcurrentSkipListMap
 import java.util.function.Consumer
 
-import swaydb.core.util.BloomFilter
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.Memory.{Group, SegmentResponse}
 import swaydb.core.data._
@@ -31,6 +30,7 @@ import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.level.PathsDistributor
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
+import swaydb.core.segment.format.a.index.BloomFilter
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util._
 import swaydb.data.IO._
@@ -48,12 +48,12 @@ private[segment] case class MemorySegment(path: Path,
                                           segmentSize: Int,
                                           _hasRange: Boolean,
                                           _hasPut: Boolean,
-                                          //only Memory Segment's need to know if there is a Group. Persistent Segments always get floor from cache when reading.
+                                          //only Memory Segment's need to know if there is a Group. Persistent Segments always find floor from cache when reading.
                                           _hasGroup: Boolean,
                                           _isGrouped: Boolean,
                                           _createdInLevel: Int,
                                           private[segment] val cache: ConcurrentSkipListMap[Slice[Byte], Memory],
-                                          bloomFilter: Option[BloomFilter],
+                                          bloomFilter: Option[BloomFilter.Header],
                                           nearestExpiryDeadline: Option[Deadline],
                                           busy: Reserve[Unit])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                timeOrder: TimeOrder[Slice[Byte]],
@@ -96,7 +96,6 @@ private[segment] case class MemorySegment(path: Path,
                    resetPrefixCompressionEvery: Int,
                    minimumNumberOfKeyForHashIndex: Int,
                    hashIndexCompensation: Int => Int,
-                   enableRangeFilterAndIndex: Boolean,
                    compressDuplicateValues: Boolean,
                    removeDeletes: Boolean,
                    createdInLevel: Int,
@@ -119,21 +118,18 @@ private[segment] case class MemorySegment(path: Path,
             resetPrefixCompressionEvery = resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = hashIndexCompensation,
-            compressDuplicateValues = compressDuplicateValues,
-            enableRangeFilterAndIndex = enableRangeFilterAndIndex
+            compressDuplicateValues = compressDuplicateValues
           ) flatMap {
             splits =>
               splits.mapIO[Segment](
                 block =
-                  keyValues => {
+                  keyValues =>
                     Segment.memory(
                       path = targetPaths.next.resolve(idGenerator.nextSegmentID),
                       createdInLevel = createdInLevel,
-                      enableRangeFilterAndIndex = enableRangeFilterAndIndex,
                       keyValues = keyValues,
                       bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate
-                    )
-                  },
+                    ),
 
                 recover =
                   (segments: Slice[Segment], _: IO.Failure[Iterable[Segment]]) =>
@@ -153,7 +149,6 @@ private[segment] case class MemorySegment(path: Path,
                        resetPrefixCompressionEvery: Int,
                        minimumNumberOfKeyForHashIndex: Int,
                        hashIndexCompensation: Int => Int,
-                       enableRangeFilterAndIndex: Boolean,
                        compressDuplicateValues: Boolean,
                        removeDeletes: Boolean,
                        createdInLevel: Int,
@@ -175,8 +170,7 @@ private[segment] case class MemorySegment(path: Path,
             resetPrefixCompressionEvery = resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = hashIndexCompensation,
-            compressDuplicateValues = compressDuplicateValues,
-            enableRangeFilterAndIndex = enableRangeFilterAndIndex
+            compressDuplicateValues = compressDuplicateValues
           ) flatMap {
             splits =>
               splits.mapIO[Segment](
@@ -185,7 +179,6 @@ private[segment] case class MemorySegment(path: Path,
                     Segment.memory(
                       path = targetPaths.next.resolve(idGenerator.nextSegmentID),
                       createdInLevel = createdInLevel,
-                      enableRangeFilterAndIndex = enableRangeFilterAndIndex,
                       keyValues = keyValues,
                       bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate
                     ),
@@ -224,7 +217,7 @@ private[segment] case class MemorySegment(path: Path,
     if (deleted)
       IO.Failure(IO.Error.NoSuchFile(path))
 
-    else if (!bloomFilter.forall(_.mightContain(key)))
+    else if (!bloomFilter.forall(BloomFilter.mightContain(key, _)))
       IO.none
     else
       maxKey match {
@@ -258,7 +251,7 @@ private[segment] case class MemorySegment(path: Path,
       }
 
   def mightContain(key: Slice[Byte]): IO[Boolean] =
-    IO(bloomFilter.forall(_.mightContain(key)))
+    IO(bloomFilter forall (BloomFilter.mightContain(key, _)))
 
   override def lower(key: Slice[Byte]): IO[Option[Memory.SegmentResponse]] =
     if (deleted)
@@ -414,7 +407,7 @@ private[segment] case class MemorySegment(path: Path,
   override def existsOnDisk: Boolean =
     false
 
-  override def getBloomFilter: IO[Option[BloomFilter]] =
+  override def getBloomFilter: IO[Option[BloomFilter.Header]] =
     IO(bloomFilter)
 
   override def hasRange: IO[Boolean] =
