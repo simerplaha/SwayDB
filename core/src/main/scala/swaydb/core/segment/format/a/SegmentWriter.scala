@@ -128,7 +128,7 @@ private[core] object SegmentWriter extends LazyLogging {
               binarySearchIndex map {
                 state =>
                   BinarySearchIndex.write(
-                    indexOffset = thisKeyValuesAccessOffset,
+                    value = thisKeyValuesAccessOffset,
                     state = state
                   )
               } getOrElse IO.unit
@@ -174,8 +174,6 @@ private[core] object SegmentWriter extends LazyLogging {
           write(keyValues.drop(1), nextNearestDeadline)
 
         case None =>
-          hashIndex foreach HashIndex.writeHeader
-          binarySearchIndex foreach BinarySearchIndex.writeFooter
           nearestDeadline
       }
 
@@ -187,9 +185,17 @@ private[core] object SegmentWriter extends LazyLogging {
     }
   }
 
-  private def writeKeyValue(keyValue: KeyValue.WriteOnly,
-                            sortedIndexSlice: Slice[Byte],
-                            valuesSlice: Slice[Byte]): IO[Unit] =
+  private def writeHeaders(hashIndex: Option[HashIndex.State],
+                           bloomFilter: Option[BloomFilter.State],
+                           binarySearchIndex: Option[BinarySearchIndex.State]): IO[Unit] =
+    IO {
+      hashIndex foreach HashIndex.writeHeader
+      binarySearchIndex foreach BinarySearchIndex.writeHeader
+    }
+
+  private def writeKeyValueBytes(keyValue: KeyValue.WriteOnly,
+                                 sortedIndexSlice: Slice[Byte],
+                                 valuesSlice: Slice[Byte]): IO[Unit] =
     IO {
       sortedIndexSlice addIntUnsigned keyValue.stats.keySize
       sortedIndexSlice addAll keyValue.indexEntryBytes
@@ -202,8 +208,8 @@ private[core] object SegmentWriter extends LazyLogging {
                                 hashIndex: Option[HashIndex.State],
                                 bloomFilter: Option[BloomFilter.State],
                                 binarySearchIndex: Option[BinarySearchIndex.State],
-                                deadline: Option[Deadline]) =
-    writeKeyValue(
+                                deadline: Option[Deadline]): IO[Option[Deadline]] =
+    writeKeyValueBytes(
       keyValue = keyValue,
       sortedIndexSlice = sortedIndexSlice,
       valuesSlice = valuesSlice
@@ -215,7 +221,17 @@ private[core] object SegmentWriter extends LazyLogging {
           bloomFilter = bloomFilter,
           binarySearchIndex = binarySearchIndex,
           currentNearestDeadline = deadline
-        )
+        ) flatMap {
+          nearestDeadline =>
+            writeHeaders(
+              hashIndex = hashIndex,
+              bloomFilter = bloomFilter,
+              binarySearchIndex = binarySearchIndex
+            ) map {
+              _ =>
+                nearestDeadline
+            }
+        }
     }
 
   def write(keyValues: Iterable[KeyValue.WriteOnly],
@@ -266,7 +282,7 @@ private[core] object SegmentWriter extends LazyLogging {
   def write(keyValues: Iterable[KeyValue.WriteOnly],
             createdInLevel: Int,
             maxProbe: Int,
-            falsePositiveRate: Double)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Result] =
+            falsePositiveRate: Double): IO[Result] =
     if (keyValues.isEmpty)
       Result.emptyIO
     else {
@@ -284,8 +300,8 @@ private[core] object SegmentWriter extends LazyLogging {
         else
           Some(
             BinarySearchIndex.State(
-              maxIndexOffset = lastStats.thisKeyValuesAccessIndexOffset,
-              entriesCount = lastStats.segmentUniqueKeysCount,
+              largestValue = lastStats.thisKeyValuesAccessIndexOffset,
+              valuesCount = lastStats.segmentUniqueKeysCount,
               bytes = Slice.create[Byte](lastStats.binarySearchIndexSize)
             )
           )
@@ -345,30 +361,30 @@ private[core] object SegmentWriter extends LazyLogging {
               fullSegmentOffset = 0
               segmentFooterSlice addIntUnsigned 0
             } else {
-              val offset = fullSegmentOffset + valuesSlice.toOffset + 1
+              val offset = fullSegmentOffset + valuesSlice.written + 1
               segmentFooterSlice addIntUnsigned offset
-              fullSegmentOffset = offset + sortedIndexSlice.size
+              fullSegmentOffset = offset + sortedIndexSlice.written
             }
 
             //hashIndexOffset
             hashIndex foreach {
               hashIndex =>
                 segmentFooterSlice addIntUnsigned (fullSegmentOffset + 1)
-                fullSegmentOffset = fullSegmentOffset + hashIndex.bytes.size
+                fullSegmentOffset = fullSegmentOffset + hashIndex.bytes.written
             }
 
             //binarySearchIndex
             binarySearchIndex foreach {
               binarySearchIndex =>
                 segmentFooterSlice addIntUnsigned (fullSegmentOffset + 1)
-                fullSegmentOffset = fullSegmentOffset + binarySearchIndex.bytes.size
+                fullSegmentOffset = fullSegmentOffset + binarySearchIndex.bytes.written
             }
 
             //bloomFilter
             bloomFilter foreach {
               bloomFilter =>
                 segmentFooterSlice addIntUnsigned (fullSegmentOffset + 1)
-                fullSegmentOffset = fullSegmentOffset + bloomFilter.exportSize
+                fullSegmentOffset = fullSegmentOffset + bloomFilter.written
             }
 
             segmentFooterSlice addInt fullSegmentOffset
@@ -377,8 +393,8 @@ private[core] object SegmentWriter extends LazyLogging {
               values = if (valuesSlice.isEmpty) None else Some(valuesSlice),
               sortedIndex = sortedIndexSlice,
               hashIndex = hashIndex.map(_.bytes),
-              binarySearchIndex = binarySearchIndex.map(_.bytes.unslice()),
-              bloomFilter = bloomFilter.map(_.unslice),
+              binarySearchIndex = binarySearchIndex.map(_.bytes),
+              bloomFilter = bloomFilter.map(_.bytes),
               footer = segmentFooterSlice,
               nearestDeadline = nearestDeadline
             )

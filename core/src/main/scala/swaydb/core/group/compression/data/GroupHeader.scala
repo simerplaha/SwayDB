@@ -20,40 +20,17 @@
 package swaydb.core.group.compression.data
 
 import swaydb.compression.DecompressorInternal
-import swaydb.core.segment.format.a.SegmentFooter
 
 private[core] case class ValueInfo(valuesDecompressor: DecompressorInternal,
                                    valuesDecompressedLength: Int,
                                    valuesCompressedLength: Int)
 
 private[core] case class GroupHeader(headerSize: Int,
-                                     hasRange: Boolean,
-                                     hasPut: Boolean,
                                      indexDecompressor: DecompressorInternal,
-                                     keyValueCount: Int,
                                      indexCompressedLength: Int,
                                      indexDecompressedLength: Int,
                                      compressedStartIndexOffset: Int,
                                      compressedEndIndexOffset: Int,
                                      decompressedStartIndexOffset: Int,
                                      decompressedEndIndexOffset: Int,
-                                     hashIndexStartOffset: Int,
-                                     hashIndexEndOffset: Int,
-                                     bloomFilterItemsCount: Int,
-                                     valueInfo: Option[ValueInfo]) {
-  val footer =
-    SegmentFooter(
-      crc = 0,
-      sortedIndexStartOffset = decompressedStartIndexOffset,
-      sortedIndexEndOffset = decompressedEndIndexOffset,
-      hashIndexStartOffset = hashIndexStartOffset,
-      hashIndexEndOffset = hashIndexEndOffset,
-      keyValueCount = keyValueCount,
-      hasRange = hasRange,
-      hasPut = hasPut,
-      createdInLevel = Int.MinValue,
-      isGrouped = true,
-      bloomFilterItemsCount = bloomFilterItemsCount,
-      bloomFilter = None
-    )
-}
+                                     valueInfo: Option[ValueInfo])

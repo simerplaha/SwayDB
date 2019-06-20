@@ -79,7 +79,7 @@ private[core] object HashIndex extends LazyLogging {
   def writeHeader(state: State): IO[Slice[Byte]] =
     IO {
       //it's important to move to 0 to write to head of the file.
-      state.bytes moveWritePositionUnsafe 0
+      state.bytes moveWritePosition 0
       state.bytes add formatID
       state.bytes addIntUnsigned state.maxProbe
       state.bytes addInt state.hit
@@ -132,7 +132,7 @@ private[core] object HashIndex extends LazyLogging {
         val index = adjustHash(hash1 + probe * hash2, state.bytes.size)
         val indexBytesRequired = Bytes.sizeOf(valuePlusOne)
         if (state.bytes.take(index, indexBytesRequired).forall(_ == 0)) {
-          state.bytes moveWritePositionUnsafe index
+          state.bytes moveWritePosition index
           state.bytes addIntUnsigned valuePlusOne
           state.hit += 1
           true

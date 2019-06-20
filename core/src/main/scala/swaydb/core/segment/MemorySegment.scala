@@ -382,7 +382,8 @@ private[segment] case class MemorySegment(path: Path,
             case _: SegmentResponse =>
               IO.Success(count + 1)
             case group: Group =>
-              group.header() map (count + _.bloomFilterItemsCount)
+              //              group.header() map (count + _.bloomFilterItemsCount)
+              ???
           }
       }
 

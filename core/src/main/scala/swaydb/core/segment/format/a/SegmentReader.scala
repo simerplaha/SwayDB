@@ -232,6 +232,7 @@ private[core] object SegmentReader extends LazyLogging {
                           footer: SegmentFooter): IO[HashIndex.Header] =
     reader
       .moveTo(footer.hashIndexStartOffset)
+      //todo read only the header bytes.
       .read(footer.hashIndexSize)
       .flatMap {
         bytes =>

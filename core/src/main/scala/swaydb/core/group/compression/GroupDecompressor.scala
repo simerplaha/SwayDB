@@ -72,15 +72,10 @@ private[core] case class GroupDecompressor(private val compressedGroupReader: Re
       header <- compressedReader.read(headerSize) map (Reader(_))
       //format id ignored. Currently there is only one format.
       _ <- header.readIntUnsigned()
-      hasRange <- header.readBoolean()
-      hasPut <- header.readBoolean()
       //this Compression instance is used for decompressing only so minCompressionPercentage is irrelevant
       keysCompression <- header.readIntUnsigned() flatMap (DecompressorInternal(_))
-      keyValueCount <- header.readIntUnsigned()
-      bloomFilterItemsCount <- header.readIntUnsigned()
       indexDecompressedLength <- header.readIntUnsigned()
       indexCompressedLength <- header.readIntUnsigned()
-      hashIndexDecompressedLength <- header.readIntUnsigned()
       hasValues <- header.hasMore //read values related header bytes only if header contains more data.
       //this Compression instance is used for decompressing only so minCompressionPercentage is irrelevant
       valuesCompression <- if (hasValues) header.readIntUnsigned().flatMap(id => DecompressorInternal(id).map(Some(_))) else IO.none
@@ -89,19 +84,13 @@ private[core] case class GroupDecompressor(private val compressedGroupReader: Re
     } yield {
       GroupHeader(
         headerSize = headerSize,
-        hasRange = hasRange,
-        hasPut = hasPut,
         indexDecompressor = keysCompression,
-        keyValueCount = keyValueCount,
-        bloomFilterItemsCount = bloomFilterItemsCount,
         indexDecompressedLength = indexDecompressedLength,
         indexCompressedLength = indexCompressedLength,
         compressedStartIndexOffset = groupStartOffset + headerSize + valuesCompressedLength + 1,
         compressedEndIndexOffset = groupStartOffset + headerSize + valuesCompressedLength + indexCompressedLength,
         decompressedStartIndexOffset = groupStartOffset + headerSize + valuesDecompressedLength + 1,
         decompressedEndIndexOffset = groupStartOffset + headerSize + valuesDecompressedLength + indexDecompressedLength,
-        hashIndexStartOffset = groupStartOffset + headerSize + valuesCompressedLength + indexCompressedLength + 1,
-        hashIndexEndOffset = groupStartOffset + headerSize + valuesCompressedLength + indexCompressedLength + hashIndexDecompressedLength,
         valueInfo =
           valuesCompression map {
             valuesCompression =>
@@ -181,7 +170,8 @@ private[core] case class GroupDecompressor(private val compressedGroupReader: Re
       IO.Failure(IO.Error.DecompressingIndex(busyIndexDecompressing))
 
   def footer(): IO[SegmentFooter] =
-    header().map(_.footer)
+    ???
+  //    header().map(_.footer)
 
   def hashIndexHeader(): IO[Option[HashIndex.Header]] =
     footer() flatMap {

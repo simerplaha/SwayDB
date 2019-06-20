@@ -21,7 +21,6 @@ package swaydb.core.segment.format.a.index
 
 import swaydb.core.util.{Bytes, MurmurHash3Generic}
 import swaydb.data.IO
-import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
 
@@ -30,21 +29,13 @@ object BloomFilter {
   val formatId: Byte = 1.toByte
 
   case class State(startOffset: Int,
-                   private var _endOffset: Int,
                    numberOfBits: Int,
                    probe: Int,
                    bytes: Slice[Byte]) {
-    def endOffset: Int =
-      _endOffset
 
-    def endOffset_=(offset: Int): Unit =
-      _endOffset = offset
+    def written =
+      bytes.written
 
-    def exportSize =
-      endOffset + 1
-
-    def unslice: Slice[Byte] =
-      bytes.slice(0, endOffset)
 
     override def hashCode(): Int =
       bytes.hashCode()
@@ -63,14 +54,13 @@ object BloomFilter {
   val empty =
     BloomFilter.State(
       startOffset = 0,
-      _endOffset = 0,
       numberOfBits = 0,
       probe = 0,
       bytes = Slice.emptyBytes
     )
 
   def apply(numberOfKeys: Int,
-            falsePositiveRate: Double)(implicit keyOrder: KeyOrder[Slice[Byte]]): BloomFilter.State = {
+            falsePositiveRate: Double): BloomFilter.State = {
     val numberOfBits = optimalNumberOfBits(numberOfKeys, falsePositiveRate)
     val maxProbe = optimalNumberOfProbes(numberOfKeys, numberOfBits)
 
@@ -87,7 +77,6 @@ object BloomFilter {
 
     BloomFilter.State(
       startOffset = startOffset,
-      _endOffset = startOffset,
       numberOfBits = numberOfBits,
       probe = maxProbe,
       bytes = bytes
@@ -97,7 +86,7 @@ object BloomFilter {
   //when the byte size is already pre-computed.
   def apply(numberOfKeys: Int,
             falsePositiveRate: Double,
-            bytes: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): BloomFilter.State = {
+            bytes: Slice[Byte]): BloomFilter.State = {
     val numberOfBits = optimalNumberOfBits(numberOfKeys, falsePositiveRate)
     val maxProbe = optimalNumberOfProbes(numberOfKeys, numberOfBits)
 
@@ -112,7 +101,6 @@ object BloomFilter {
 
     BloomFilter.State(
       startOffset = startOffset,
-      _endOffset = startOffset,
       numberOfBits = numberOfBits,
       probe = maxProbe,
       bytes = bytes
@@ -137,7 +125,7 @@ object BloomFilter {
       falsePositiveRate = falsePositiveRate
     ) + minimumSize
 
-  def apply(fromOffset: Int, reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[BloomFilter.Header] = {
+  def apply(fromOffset: Int, reader: Reader): IO[BloomFilter.Header] = {
     val newReader = reader.copy()
     newReader
       .moveTo(fromOffset)
@@ -164,7 +152,7 @@ object BloomFilter {
     * Initialise bloomFilter if key-values do no contain remove range.
     */
   def init(numberOfKeys: Int,
-           falsePositiveRate: Double)(implicit keyOrder: KeyOrder[Slice[Byte]]): Option[BloomFilter.State] =
+           falsePositiveRate: Double): Option[BloomFilter.State] =
     if (numberOfKeys <= 0 || falsePositiveRate <= 0.0)
       None
     else
@@ -188,9 +176,8 @@ object BloomFilter {
       val offset = (state.startOffset + (hashIndex >>> 6) * 8L).toInt
       val long = state.bytes.take(offset, ByteSizeOf.long).readLong()
       if ((long & (1L << hashIndex)) == 0) {
-        state.bytes moveWritePositionUnsafe offset
+        state.bytes moveWritePosition offset
         state.bytes addLong (long | (1L << hashIndex))
-        state.endOffset = state.endOffset max (offset + ByteSizeOf.long)
       }
       probe += 1
     }

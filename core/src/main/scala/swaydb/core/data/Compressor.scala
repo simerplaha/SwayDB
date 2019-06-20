@@ -57,7 +57,7 @@ private[core] object Compressor extends LazyLogging {
                                     valuesCompressionResult: Option[ValueCompressionResult])
   def compress(indexBytes: Slice[Byte],
                indexCompressions: Seq[CompressionInternal],
-               valueBytes: Slice[Byte],
+               valueBytes: Option[Slice[Byte]],
                valueCompressions: Seq[CompressionInternal],
                keyValueCount: Int): IO[Option[GroupCompressionResult]] =
     indexCompressions.untilSome(_.compressor.compress(indexBytes)) flatMap {
@@ -67,41 +67,43 @@ private[core] object Compressor extends LazyLogging {
 
       case Some((compressedKeys, keyCompression)) =>
         logger.debug(s"Keys successfully compressed with Compression: ${keyCompression.getClass.getSimpleName}. ${indexBytes.size}.bytes compressed to ${compressedKeys.size}.bytes")
-        if (valueBytes.size == 0) { //if no values exist, result is success.
-          logger.debug(s"No values in ${indexBytes.size}: key-values. Ignoring value compression for $keyValueCount key-values.")
-          IO.Success(
-            Some(
-              GroupCompressionResult(
-                compressedIndex = compressedKeys,
-                indexCompression = keyCompression,
-                valuesCompressionResult = None
-              )
-            )
-          )
-        } else {
-          valueCompressions.untilSome(_.compressor.compress(valueBytes)) flatMap { //if values exists do compressed.
-            case None => //if unable to compress values from all the input compression configurations, return None so that compression continues on larger key-value bytes.
-              logger.warn(s"Unable to apply valid compressor for valueBytes of ${valueBytes.size}.bytes. Ignoring value compression for $keyValueCount key-values.")
-              IO.none //break out because values were not compressed.
+        valueBytes match {
+          case Some(valueBytes) if valueBytes.nonEmpty =>
+            valueCompressions.untilSome(_.compressor.compress(valueBytes)) flatMap { //if values exists do compressed.
+              case None => //if unable to compress values from all the input compression configurations, return None so that compression continues on larger key-value bytes.
+                logger.warn(s"Unable to apply valid compressor for valueBytes of ${valueBytes.size}.bytes. Ignoring value compression for $keyValueCount key-values.")
+                IO.none //break out because values were not compressed.
 
-            case Some((compressedValueBytes, valueCompression)) =>
-              logger.debug(s"Values successfully compressed with Compression: ${valueCompression.getClass.getSimpleName}. ${valueBytes.size}.bytes compressed to ${compressedValueBytes.size}.bytes")
-              IO.Success(
-                Some(
-                  GroupCompressionResult(
-                    compressedIndex = compressedKeys,
-                    indexCompression = keyCompression,
-                    valuesCompressionResult =
-                      Some(
-                        ValueCompressionResult(
-                          compressedValues = compressedValueBytes,
-                          valuesCompression = valueCompression
+              case Some((compressedValueBytes, valueCompression)) =>
+                logger.debug(s"Values successfully compressed with Compression: ${valueCompression.getClass.getSimpleName}. ${valueBytes.size}.bytes compressed to ${compressedValueBytes.size}.bytes")
+                IO.Success(
+                  Some(
+                    GroupCompressionResult(
+                      compressedIndex = compressedKeys,
+                      indexCompression = keyCompression,
+                      valuesCompressionResult =
+                        Some(
+                          ValueCompressionResult(
+                            compressedValues = compressedValueBytes,
+                            valuesCompression = valueCompression
+                          )
                         )
-                      )
+                    )
                   )
                 )
+            }
+
+          case None | Some(_) =>
+            logger.debug(s"No values in ${indexBytes.size}: key-values. Ignoring value compression for $keyValueCount key-values.")
+            IO.Success(
+              Some(
+                GroupCompressionResult(
+                  compressedIndex = compressedKeys,
+                  indexCompression = keyCompression,
+                  valuesCompressionResult = None
+                )
               )
-          }
+            )
         }
     }
 }

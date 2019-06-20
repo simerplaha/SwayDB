@@ -17,17 +17,11 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.util
+package swaydb.core.segment.format.a.index
 
-import swaydb.core.RunThis._
-import swaydb.core.TestData._
-import swaydb.core.data.Value.{FromValue, RangeValue}
-import swaydb.core.data.{Transient, Value}
 import swaydb.core.io.reader.Reader
-import swaydb.core.segment.format.a.index.BloomFilter
-import swaydb.core.{TestBase, TestData, TestTimer}
+import swaydb.core.{TestBase, TestData}
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
@@ -46,17 +40,16 @@ class BloomFilterSpec extends TestBase {
         )
 
       (1 to 10) foreach (BloomFilter.add(_, filter))
-      val header = BloomFilter(0, Reader(filter.unslice)).get
+      val header = BloomFilter(0, Reader(filter.bytes)).get
       (1 to 10) foreach (key => BloomFilter.mightContain(key, header) shouldBe true)
       (11 to 20) foreach (key => BloomFilter.mightContain(key, header) shouldBe false)
 
-      val readBloomFilter = BloomFilter(0, Reader(filter.unslice)).get
+      val readBloomFilter = BloomFilter(0, Reader(filter.bytes)).get
       (1 to 10) foreach (key => BloomFilter.mightContain(key, readBloomFilter) shouldBe true)
       (11 to 20) foreach (key => BloomFilter.mightContain(key, readBloomFilter) shouldBe false)
 
       println("numberOfBits: " + filter.numberOfBits)
-      println("endOffset: " + filter.endOffset)
-      println("exportSize: " + filter.exportSize)
+      println("written: " + filter.written)
     }
   }
 
@@ -76,7 +69,7 @@ class BloomFilterSpec extends TestBase {
               numberOfKeys = numberOfItems,
               falsePositiveRate = falsePositiveRate
             )
-          bloomFilter.unslice.size should be <= BloomFilter.optimalSegmentBloomFilterByteSize(numberOfItems, falsePositiveRate)
+          bloomFilter.bytes.written should be <= BloomFilter.optimalSegmentBloomFilterByteSize(numberOfItems, falsePositiveRate)
       }
     }
   }
@@ -221,12 +214,13 @@ class BloomFilterSpec extends TestBase {
           string
       }
 
-    val header1 = BloomFilter(0, Reader(filter.unslice)).get
-
+    val header1 = BloomFilter(0, Reader(filter.bytes)).get
     assert(data, header1, None)
+
     //re-create bloomFilter and read again.
-    val header2 = BloomFilter(0, Reader(filter.unslice)).get
+    val header2 = BloomFilter(0, Reader(filter.bytes)).get
     assert(data, header2, Some(header1))
+
     //re-create bloomFilter from created filter.
     val filter3 = BloomFilter(0, Reader(header2.reader.copy().readRemaining().get)).get
     assert(data, filter3, Some(header2))

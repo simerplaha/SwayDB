@@ -406,17 +406,14 @@ class Slice[+T: ClassTag](array: Array[T],
       if (fromOffsetAdjusted < this.fromOffset) throw new ArrayIndexOutOfBoundsException(fromOffset)
       if (toOffsetAdjusted > this.toOffset) throw new ArrayIndexOutOfBoundsException(toOffset)
       if (fromOffsetAdjusted > toOffsetAdjusted) throw new ArrayIndexOutOfBoundsException(fromOffset)
+      val actualWritePosition = this.fromOffset + _written //in-case the slice was manually moved.
       val sliceWritePosition =
-      //writePosition cannot be calculated if position was manually moved.
-      //new is set to be full is that's the case.
-        if (written >= size)
-          toOffsetAdjusted - fromOffsetAdjusted + 1
-        else if (writePosition <= fromOffsetAdjusted) //not written
+        if (actualWritePosition <= fromOffsetAdjusted) //not written
           0
-        else if (writePosition > toOffsetAdjusted) //fully written
+        else if (actualWritePosition > toOffsetAdjusted) //fully written
           toOffsetAdjusted - fromOffsetAdjusted + 1
-        else //some written
-          toOffsetAdjusted - writePosition + 1
+        else //partially written
+          actualWritePosition - fromOffsetAdjusted
       new Slice[T](
         array = array,
         fromOffset = fromOffsetAdjusted,
@@ -457,14 +454,12 @@ class Slice[+T: ClassTag](array: Array[T],
 
   //Note: using moveTo will set the writePosition incorrectly during runTime.
   //one moveTo is invoked manually, all the subsequent writes should move this pointer manually.
-  private[swaydb] def moveWritePositionUnsafe(writePosition: Int): Unit = {
-    //cannot track written once writePosition is manually moved.
-    //set this slice to be fully written.
-    this._written = size
+  private[swaydb] def moveWritePosition(writePosition: Int): Unit = {
     val adjustedPosition = fromOffset + writePosition
     //+1 because write position can be a step ahead for the next write but cannot over over toOffset.
     if (adjustedPosition > toOffset + 1) throw new ArrayIndexOutOfBoundsException(adjustedPosition)
     this.writePosition = adjustedPosition
+    _written = adjustedPosition max _written
   }
 
   override def drop(count: Int): Slice[T] =
@@ -536,11 +531,15 @@ class Slice[+T: ClassTag](array: Array[T],
   def apply(index: Int): T =
     get(index)
 
+  def incrementWritten() =
+    if (writePosition >= written)
+      _written = _written + 1
+
   @throws[ArrayIndexOutOfBoundsException]
   private[slice] def insert(item: Any): Unit = {
     if (writePosition < fromOffset || writePosition > toOffset) throw new ArrayIndexOutOfBoundsException(writePosition)
     array(writePosition) = item.asInstanceOf[T]
-    _written = (written + 1) min size //this can occur if writePosition was manually moved.
+    incrementWritten()
     writePosition += 1
   }
 
@@ -551,7 +550,7 @@ class Slice[+T: ClassTag](array: Array[T],
     items.asInstanceOf[Iterable[T]] foreach {
       item =>
         array(writePosition) = item
-        _written = (written + 1) min size //this can occur if writePosition was manually moved.
+        incrementWritten()
         writePosition += 1
     }
   }

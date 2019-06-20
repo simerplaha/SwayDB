@@ -278,7 +278,6 @@ class SliceSpec extends WordSpec with Matchers {
       originalSlice.toArray shouldBe Array(100, 200)
     }
 
-
     "group elements" in {
       val slice = Slice((1 to 100).toArray)
 
@@ -629,5 +628,56 @@ class SliceSpec extends WordSpec with Matchers {
     slice2.take(0, 2) shouldBe Slice(4, 5)
     slice2.take(0, 3) shouldBe Slice(4, 5, 6)
     slice2.take(0, 4) shouldBe Slice(4, 5, 6)
+  }
+
+  "manually adjusting slice random testing 1" in {
+    val slice = Slice.create[Int](10)
+
+    slice.moveWritePosition(3)
+
+    slice.written shouldBe 3
+    slice add 4
+    slice(3) shouldBe 4
+    slice.written shouldBe 4
+    slice addAll Seq(5, 6, 7, 8, 9, 10)
+    slice.written shouldBe 10
+
+    slice.head shouldBe 0
+    slice.last shouldBe 10
+
+    slice.moveWritePosition(0)
+    slice.written shouldBe 10
+
+    slice.slice(0, 2).isFull shouldBe true
+    slice.slice(2, 5).isFull shouldBe true
+    slice.slice(5, 9).isFull shouldBe true
+    slice.slice(0, 9).isFull shouldBe true
+    slice.take(Int.MaxValue).isFull shouldBe true
+  }
+
+  "manually adjusting slice random testing 2" in {
+    val slice = Slice.create[Int](10)
+
+    slice.moveWritePosition(5)
+    slice add 6
+    slice.written shouldBe 6
+    slice.moveWritePosition(0)
+    slice add 1
+    slice.written shouldBe 6
+    slice add 2
+    slice add 3
+    slice add 4
+    slice add 5
+    slice.written shouldBe 6
+
+    slice.slice(5, 6).isEmpty shouldBe false
+    slice.slice(5, 6).written shouldBe 1
+    slice.slice(5, 7).written shouldBe 1
+    slice.slice(5, 8).written shouldBe 1
+    slice.slice(5, 9).written shouldBe 1
+
+    slice.slice(6, 7).isEmpty shouldBe true
+    slice.slice(7, 8).isEmpty shouldBe true
+    slice.slice(9, 9).isEmpty shouldBe true
   }
 }

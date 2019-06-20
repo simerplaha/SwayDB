@@ -62,52 +62,18 @@ private[core] object GroupCompressor extends LazyLogging {
       IO.Failure(message)
     } else {
       logger.debug(s"Compressing ${keyValues.size} key-values with previous key-value as ${previous.map(_.getClass.getSimpleName)}.")
-      val lastStats = keyValues.last.stats
-
-      val indexBytesRequired = lastStats.segmentKeyValueSize
-      val valueBytesRequired = lastStats.segmentValuesSize
-      val hashIndexBytesRequired = lastStats.segmentHashIndexSize
-
-      //write raw key-values bytes.
-      val indexBytes = Slice.create[Byte](indexBytesRequired)
-      val valueBytes = Slice.create[Byte](valueBytesRequired)
-      val hashIndexBytes = Slice.create[Byte](hashIndexBytesRequired)
-
-      val binarySearchIndex =
-        Some(
-          BinarySearchIndex.State(
-            entriesCount = 0,
-            maxIndexOffset = ???,
-            bytes = ???
-          )
-        )
-
-      val hashIndex =
-        Some(
-          HashIndex.State(
-            hit = 0,
-            miss = 0,
-            maxProbe = maxProbe,
-            bytes = hashIndexBytes
-          )
-        )
-
       SegmentWriter.write(
         keyValues = keyValues,
-        sortedIndexSlice = indexBytes,
-        valuesSlice = valueBytes,
-        bloomFilter = None,
-        binarySearchIndex = binarySearchIndex,
-        hashIndex = hashIndex
+        createdInLevel = 0,
+        maxProbe = maxProbe,
+        falsePositiveRate = falsePositiveRate
       ) flatMap {
-        nearestDeadline =>
-          assert(hashIndexBytes.isFull)
-
+        result =>
           //compress key-value bytes and write to group with meta data for key bytes and value bytes.
           Compressor.compress(
-            indexBytes = indexBytes,
+            indexBytes = result.sortedIndex,
             indexCompressions = indexCompressions,
-            valueBytes = valueBytes,
+            valueBytes = result.values,
             valueCompressions = valueCompressions,
             keyValueCount = keyValues.size
           ) flatMap {
@@ -115,19 +81,14 @@ private[core] object GroupCompressor extends LazyLogging {
               //calculate the total size of bytes required including the compressed keys and values byte sizes.
               val headerSize =
                 Bytes.sizeOf(formatId) + //format id
-                  1 + //for hasRange
-                  1 + //for hasPut
                   Bytes.sizeOf(indexCompression.decompressor.id) + //index compression id
                   //key-value count. Use the stats position because in the future a Group might also be compressed with other groups.
-                  Bytes.sizeOf(keyValues.last.stats.chainPosition) +
-                  Bytes.sizeOf(keyValues.last.stats.segmentUniqueKeysCount) +
-                  Bytes.sizeOf(indexBytesRequired) + //index de-compressed size
-                  Bytes.sizeOf(compressedIndexBytes.size) + //index compressed size. These bytes find added to the end.
-                  Bytes.sizeOf(hashIndexBytes.size) + {
+                  Bytes.sizeOf(result.sortedIndex.size) + //index de-compressed size
+                  Bytes.sizeOf(compressedIndexBytes.size) + { //index compressed size. These bytes find added to the end.
                   valuesCompressionResult map {
                     case ValueCompressionResult(compressedValuesBytes, valuesCompression) =>
                       Bytes.sizeOf(valuesCompression.decompressor.id) + //values id
-                        Bytes.sizeOf(valueBytesRequired) + //values de-compressed size
+                        Bytes.sizeOf(result.values.map(_.size).getOrElse(0)) + //values de-compressed size
                         Bytes.sizeOf(compressedValuesBytes.size) // values compressed size
                   } getOrElse 0
                 }
@@ -136,7 +97,6 @@ private[core] object GroupCompressor extends LazyLogging {
                 Bytes.sizeOf(headerSize) +
                   headerSize +
                   compressedIndexBytes.size +
-                  hashIndexBytes.size +
                   valuesCompressionResult.map(_.compressedValues.size).getOrElse(0)
 
               //also add header size
@@ -145,32 +105,20 @@ private[core] object GroupCompressor extends LazyLogging {
               compressedKeyValueBytes
                 .addIntUnsigned(headerSize) //write header size
                 .addIntUnsigned(formatId) //format
-                .addBoolean(keyValues.last.stats.segmentHasRange)
-                .addBoolean(keyValues.last.stats.segmentHasPut)
                 .addIntUnsigned(indexCompression.decompressor.id)
-                .addIntUnsigned(keyValues.last.stats.chainPosition)
-                .addIntUnsigned(keyValues.last.stats.segmentUniqueKeysCount)
-                .addIntUnsigned(indexBytesRequired)
+                .addIntUnsigned(result.sortedIndex.size)
                 .addIntUnsigned(compressedIndexBytes.size)
-                .addIntUnsigned(hashIndexBytes.size)
 
               valuesCompressionResult map {
                 case ValueCompressionResult(compressedValueBytes, valuesCompression) =>
                   compressedKeyValueBytes
                     .addIntUnsigned(valuesCompression.decompressor.id)
-                    .addIntUnsigned(valueBytesRequired)
+                    .addIntUnsigned(result.values.map(_.size).getOrElse(0))
                     .addIntUnsigned(compressedValueBytes.size)
                     .addAll(compressedValueBytes)
               }
 
               compressedKeyValueBytes addAll compressedIndexBytes
-              //hash indexing alters the position of the bytes which is screwing things up.
-              //the write position needs to be reset so that iterators work.
-              //set the write position to toOffset +1. (hashIndexBytes.size -1) will not work because
-              //for the iterators to complete writePosition should be pointing to the next offset. It's a tricky.
-              //moveWritePositionUnsafe needs to be safe.
-              hashIndexBytes moveWritePositionUnsafe hashIndexBytes.size
-              compressedKeyValueBytes addAll hashIndexBytes
 
               if (!compressedKeyValueBytes.isFull)
                 IO.Failure(new IllegalArgumentException(s"compressedKeyValueBytes Slice is not full. actual: ${compressedKeyValueBytes.written}, expected: ${compressedKeyValueBytes.size}"))
@@ -183,7 +131,7 @@ private[core] object GroupCompressor extends LazyLogging {
                       maxKey = maxKey,
                       fullKey = fullKey,
                       compressedKeyValues = compressedKeyValueBytes,
-                      deadline = nearestDeadline,
+                      deadline = result.nearestDeadline,
                       keyValues = keyValues,
                       previous = previous,
                       falsePositiveRate = falsePositiveRate,
