@@ -59,7 +59,7 @@ class CompressionSpec extends WordSpec with Matchers {
       "LZ4" in {
         (1 to 100) foreach {
           _ =>
-            val compressor = CompressorInternal.randomLZ4(minCompressionPercentage = 10)
+            val compressor = CompressorInternal.randomLZ4(minCompressionSavingsPercent = 10)
             val decompressor = DecompressorInternal.randomLZ4()
             //            println("compressor: " + compressor)
             //            println("decompressor: " + decompressor)
@@ -78,7 +78,7 @@ class CompressionSpec extends WordSpec with Matchers {
           slice addAll Slice.writeLong(long)
       }
 
-      val compressor = CompressorInternal.randomLZ4(minCompressionPercentage = 20)
+      val compressor = CompressorInternal.randomLZ4(minCompressionSavingsPercent = 20)
 
       def doCompression() = {
         val compressedBytes = compressor.compress(slice).assertGet
@@ -101,7 +101,7 @@ class CompressionSpec extends WordSpec with Matchers {
       "LZ4" in {
         (1 to 100) foreach {
           _ =>
-            val compressor = CompressorInternal.randomLZ4(minCompressionPercentage = 100)
+            val compressor = CompressorInternal.randomLZ4(minCompressionSavingsPercent = 100)
             val decompressor = DecompressorInternal.randomLZ4()
             //            println("compressor: " + compressor)
             //            println("decompressor: " + decompressor)

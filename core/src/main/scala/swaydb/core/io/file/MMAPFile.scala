@@ -128,7 +128,7 @@ private[file] class MMAPFile(val path: Path,
 
   @tailrec
   final def append(slice: Slice[Byte]): IO[Unit] =
-    IO[Unit](buffer.put(slice.toByteBuffer)) match {
+    IO[Unit](buffer.put(slice.toByteBufferWrap)) match {
       case success: IO.Success[_] =>
         success
 

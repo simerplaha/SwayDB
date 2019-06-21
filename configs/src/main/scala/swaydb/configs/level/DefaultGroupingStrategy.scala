@@ -51,7 +51,7 @@ object DefaultGroupingStrategy {
         //simply add the current keys as uncompressed Group.
         Seq(
           Compression.LZ4(
-            compressor = (LZ4Instance.FastestInstance, LZ4Compressor.FastCompressor(minCompressionPercentage = minCompressionPercentage)),
+            compressor = (LZ4Instance.FastestInstance, LZ4Compressor.FastCompressor(minCompressionSavingsPercent = minCompressionPercentage)),
             decompressor = (LZ4Instance.FastestInstance, LZ4Decompressor.FastDecompressor)
           ),
           Compression.UnCompressedGroup
@@ -61,7 +61,7 @@ object DefaultGroupingStrategy {
       valueCompressions =
         Seq(
           Compression.LZ4(
-            compressor = (LZ4Instance.FastestInstance, LZ4Compressor.FastCompressor(minCompressionPercentage = minCompressionPercentage)),
+            compressor = (LZ4Instance.FastestInstance, LZ4Compressor.FastCompressor(minCompressionSavingsPercent = minCompressionPercentage)),
             decompressor = (LZ4Instance.FastestInstance, LZ4Decompressor.FastDecompressor)
           ),
           Compression.UnCompressedGroup

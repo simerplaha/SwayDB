@@ -54,9 +54,9 @@ private[core] object MapCodec extends LazyLogging {
     headerSlice addLong (CRC32 forBytes payloadSlice)
     headerSlice addInt payloadSlice.size
 
-    val finalSlice = Slice(slice.toArray) //this is because the split does not update the written for slice. This is to ensure that written is updated.
-    assert(finalSlice.isFull, "Slice is not full")
-    finalSlice
+    slice moveWritePosition slice.size
+    assert(slice.isFull, "Slice is not full")
+    slice
   }
 
   /**

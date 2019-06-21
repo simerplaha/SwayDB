@@ -96,7 +96,7 @@ private[core] object IOEffect extends LazyLogging {
     try {
       bytes foreachIO {
         bytes =>
-          val written = channel write bytes.toByteBuffer
+          val written = channel write bytes.toByteBufferWrap
 
           // toByteBuffer uses size of Slice instead of written,
           // but here the check on written ensures that only the actually written bytes find written.

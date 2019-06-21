@@ -70,6 +70,14 @@ object Slice {
         _written = data.length
       )
 
+  def from(byteBuffer: ByteBuffer) =
+    new Slice[Byte](
+      array = byteBuffer.array(),
+      fromOffset = byteBuffer.arrayOffset(),
+      toOffset = byteBuffer.position() - 1,
+      _written = byteBuffer.position()
+    )
+
   def apply[T: ClassTag](data: T*): Slice[T] =
     Slice(data.toArray)
 
@@ -269,8 +277,11 @@ object Slice {
     def readString(charset: Charset = StandardCharsets.UTF_8): String =
       ByteUtil.readString(slice, charset)
 
-    def toByteBuffer: ByteBuffer =
-      slice.toByteBuffer
+    def toByteBufferWrap: ByteBuffer =
+      slice.toByteBufferWrap
+
+    def toByteBufferDirect: ByteBuffer =
+      slice.toByteBufferDirect
 
     def toByteArrayOutputStream =
       slice.toByteArrayInputStream
@@ -521,12 +532,8 @@ class Slice[+T: ClassTag](array: Array[T],
   def close(): Slice[T] =
     if (size == written)
       this
-    else if (writePosition - 1 >= 0)
-      slice(0, writePosition - 1)
-    else if (writePosition == 0)
-      Slice.empty[T]
     else
-      this
+      slice(0, written - 1)
 
   def apply(index: Int): T =
     get(index)
@@ -555,8 +562,13 @@ class Slice[+T: ClassTag](array: Array[T],
     }
   }
 
-  private[slice] def toByteBuffer: ByteBuffer =
+  private[slice] def toByteBufferWrap: ByteBuffer =
     ByteBuffer.wrap(array.asInstanceOf[Array[Byte]], fromOffset, written)
+
+  private[slice] def toByteBufferDirect: ByteBuffer =
+    ByteBuffer
+      .allocateDirect(written)
+      .put(array.asInstanceOf[Array[Byte]], 0, written)
 
   private[slice] def toByteArrayInputStream: ByteArrayInputStream =
     new ByteArrayInputStream(array.asInstanceOf[Array[Byte]], fromOffset, written)
@@ -577,24 +589,34 @@ class Slice[+T: ClassTag](array: Array[T],
     newArray
   }
 
+  def isOriginalSlice =
+    array.length == size
+
+  def isOriginalFullSlice =
+    isOriginalSlice && isFull
+
+  def arrayLength =
+    array.length
+
   def unslice(): Slice[T] =
     Slice(toArray)
 
   override def iterator = new Iterator[T] {
-    private var position = fromOffset
+    private val writtenPosition = fromOffset + written - 1
+    private var index = fromOffset
 
     override def hasNext: Boolean =
-      position <= toOffset && position <= writePosition - 1
+      index <= toOffset && index <= writtenPosition
 
     override def next(): T = {
-      val next = array(position)
-      position += 1
+      val next = array(index)
+      index += 1
       next
     }
   }
 
   def reverse: Iterator[T] = new Iterator[T] {
-    private var position = toOffset min (writePosition - 1)
+    private var position = toOffset min (fromOffset + written - 1)
 
     override def hasNext: Boolean =
       position >= fromOffset

@@ -33,7 +33,7 @@ class SliceSpec extends WordSpec with Matchers {
 
   "A Slice" should {
     "be created by specifying it's length" in {
-      val slice = Slice.create(10)
+      val slice = Slice.create[Int](10)
       slice.size shouldBe 10
       slice.written shouldBe 0
       slice.fromOffset shouldBe 0
@@ -84,17 +84,17 @@ class SliceSpec extends WordSpec with Matchers {
       //slice1 = (10, null)
       val slice2 = slice0.slice(1, 2)
       slice2.written shouldBe 1
-      slice2.toArray shouldBe Array(10, 0)
+      slice2.toArray shouldBe Array(10)
 
       //slice1 = (null, null)
       val slice3 = slice0.slice(2, 3)
       slice3.written shouldBe 0
-      slice3.toArray shouldBe Array(0, 0)
+      slice3.toArray shouldBe empty
 
       //slice4 = (10, 10, null, null)
       val slice4 = slice0.slice(0, 3)
       slice4.written shouldBe 2
-      slice4.toArray shouldBe Array(10, 10, 0, 0)
+      slice4.toArray shouldBe Array(10, 10)
     }
 
     "be sliced if the original slice is full written" in {
@@ -266,7 +266,7 @@ class SliceSpec extends WordSpec with Matchers {
       tail5.underlyingArraySize shouldBe slice.size
     }
 
-    "update original slice when splits are updated" in {
+    "update original slice with moveWritePosition when splits are updated" in {
       val originalSlice = Slice.create[Int](2)
       val (split1, split2) = originalSlice.splitAt(1)
       split1.size shouldBe 1
@@ -275,6 +275,8 @@ class SliceSpec extends WordSpec with Matchers {
       split1.add(100)
       split2.add(200)
 
+      originalSlice.moveWritePosition(2)
+      originalSlice should contain only(100, 200)
       originalSlice.toArray shouldBe Array(100, 200)
     }
 
@@ -679,5 +681,35 @@ class SliceSpec extends WordSpec with Matchers {
     slice.slice(6, 7).isEmpty shouldBe true
     slice.slice(7, 8).isEmpty shouldBe true
     slice.slice(9, 9).isEmpty shouldBe true
+  }
+
+  "closing an empty slice" in {
+    val close0 = Slice.create(0).close()
+    close0.size shouldBe 0
+    close0.written shouldBe 0
+    close0.fromOffset shouldBe 0
+    close0.toList shouldBe List.empty
+
+    val close1 = Slice.create(1).close()
+    close1.size shouldBe 0
+    close1.written shouldBe 0
+    close1.fromOffset shouldBe 0
+    close1.toList shouldBe List.empty
+  }
+
+  "moved a closed sub slice" in {
+    val slice = Slice.create[Int](10)
+    val subSlice = slice.slice(0, 4).close()
+
+    //can only write to a subslice
+    (5 to 20) foreach {
+      i =>
+        assertThrows[ArrayIndexOutOfBoundsException] {
+          subSlice.moveWritePosition(i)
+        }
+    }
+    slice add 1
+    subSlice shouldBe empty
+    slice should contain only 1
   }
 }
