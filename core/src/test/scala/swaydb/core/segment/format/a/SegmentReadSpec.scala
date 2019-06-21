@@ -800,7 +800,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures with PrivateMeth
   }
 
   "getAllKeyValues" should {
-    "getFromHashIndex KeyValues from multiple Segments" in {
+    "get KeyValues from multiple Segments" in {
       runThis(10.times) {
         val keyValues1 = randomizedKeyValues(keyValuesCount)
         val keyValues2 = randomizedKeyValues(keyValuesCount)

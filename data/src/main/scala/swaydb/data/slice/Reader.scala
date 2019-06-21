@@ -90,6 +90,9 @@ private[swaydb] trait Reader { self =>
 
   def copy(): Reader
 
+  def reset(): Reader =
+    this moveTo 0
+
   @tailrec
   final def foldLeftIO[R: ClassTag](result: R)(f: (R, Reader) => IO[R]): IO[R] =
     hasMore match {

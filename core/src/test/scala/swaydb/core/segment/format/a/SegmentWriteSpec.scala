@@ -128,7 +128,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
                   maxKey.underlyingArraySize shouldBe 4
               }
 
-//              assertBloom(keyValues.toTransient, segment.getBloomFilterHeader.assertGet)
+//              assertBloom(keyValues.toTransient, segment.getBloomFilter.assertGet)
               ???
 
               segment.close.assertGet
@@ -272,7 +272,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           assert =
             (keyValues, segment) => {
               assertMinAndMaxKeyAreSliced(segment)
-              //if Persistent Segment, read all key-values from disk so that they getFromHashIndex added to cache.
+              //if Persistent Segment, read all key-values from disk so that they get added to cache.
               if (persistent) assertGet(readKeyValues, segment)
               //assert key-values added to cache are un-sliced
               assertCacheKeyValuesAreSliced(segment)
@@ -309,8 +309,8 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
     "create bloomFilter if the Segment has Remove range key-values or function key-values and set hasRange to true" in {
 
       def doAssert(keyValues: Slice[KeyValue], segment: Segment) = {
-//        segment.getBloomFilterHeader.assertGetOpt shouldBe defined
-//        assertBloom(keyValues.toMemory.toTransient, segment.getBloomFilterHeader.get.get)
+//        segment.getBloomFilter.assertGetOpt shouldBe defined
+//        assertBloom(keyValues.toMemory.toTransient, segment.getBloomFilter.get.get)
         ???
         segment.hasRange.assertGet shouldBe true
         segment.close.assertGet
@@ -380,7 +380,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         keyValues = Slice(Memory.put(0), Memory.put(1, 1), Memory.remove(2, randomDeadlineOption)),
         assert =
           (keyValues, segment) => {
-//            segment.getBloomFilterHeader.assertGetOpt shouldBe defined
+//            segment.getBloomFilter.assertGetOpt shouldBe defined
             ???
             segment.hasRange.assertGet shouldBe false
             segment.close.assertGet
@@ -391,7 +391,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         keyValues = Slice(Memory.put(0), Memory.Range(1, 10, None, Value.update(10, randomDeadlineOption))),
         assert =
           (keyValues, segment) => {
-//            segment.getBloomFilterHeader.assertGetOpt shouldBe defined
+//            segment.getBloomFilter.assertGetOpt shouldBe defined
             ???
             segment.hasRange.assertGet shouldBe true
             segment.close.assertGet
@@ -406,7 +406,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           ),
         assert =
           (keyValues, segment) => {
-//            segment.getBloomFilterHeader.assertGetOpt shouldBe defined
+//            segment.getBloomFilter.assertGetOpt shouldBe defined
             ???
             segment.hasRange.assertGet shouldBe true
             segment.close.assertGet
@@ -487,7 +487,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
                 keyValue =>
                   segment.get(keyValue.key).assertGetOpt.isEmpty shouldBe true
               }
-//              assertBloom(keyValues.toTransient, segment.getBloomFilterHeader.assertGet)
+//              assertBloom(keyValues.toTransient, segment.getBloomFilter.assertGet)
               ???
             }
         )
@@ -515,7 +515,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
                 segment.isFileDefined shouldBe true
                 segment.isCacheEmpty shouldBe false
 
-//                segment.getBloomFilterHeader.assertGetOpt.foreach(bloom => assertBloom(keyValues.toTransient, bloom))
+//                segment.getBloomFilter.assertGetOpt.foreach(bloom => assertBloom(keyValues.toTransient, bloom))
                 ???
 
                 segment.close.assertGet
@@ -544,7 +544,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
 
     "fail initialisation if the segment does not exist" in {
       if (memory) {
-        //memory Segments do not getFromHashIndex re-initialised
+        //memory Segments do not get re-initialised
       } else {
         val segment = TestSegment().assertGet
         segment.delete.assertGet
@@ -662,7 +662,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
 
   "reopen closed channel for read when closed by LimitQueue" in {
     if (memory) {
-      //memory Segments do not getFromHashIndex closed via
+      //memory Segments do not get closed via
     } else {
       implicit val segmentOpenLimit = FileLimiter(1, 100.millisecond)
       val keyValues = randomizedKeyValues(keyValuesCount, addRandomGroups = false)
@@ -914,7 +914,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate
         ).assertGet
 
-      segments.size should be >= 2 //ensures that splits occurs. Memory Segments do not getFromHashIndex written to disk without splitting.
+      segments.size should be >= 2 //ensures that splits occurs. Memory Segments do not get written to disk without splitting.
 
       segments.foreach(_.existsOnDisk shouldBe false)
       Segment.getAllKeyValues(segments).assertGet shouldBe keyValues
@@ -945,9 +945,9 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
 
         segments.foreach(_.existsOnDisk shouldBe false)
 
-        segments.size should be >= 2 //ensures that splits occurs. Memory Segments do not getFromHashIndex written to disk without splitting.
+        segments.size should be >= 2 //ensures that splits occurs. Memory Segments do not get written to disk without splitting.
 
-        //some key-values could getFromHashIndex expired while unexpired key-values are being collected. So try again!
+        //some key-values could get expired while unexpired key-values are being collected. So try again!
         IO {
           Segment.getAllKeyValues(segments).assertGet shouldBe unzipGroups(keyValues).collect {
             case keyValue: Transient.Put if keyValue.hasTimeLeft() =>
@@ -1256,7 +1256,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
     "merge existing segment file with new KeyValues returning new segment file with updated KeyValues" in {
       runThis(10.times) {
         implicit val testTimer: TestTimer = TestTimer.Incremental()
-        //ranges getFromHashIndex split to make sure there are no ranges.
+        //ranges get split to make sure there are no ranges.
         val keyValues1 = randomizedKeyValues(count = keyValuesCount, addRandomRanges = false)
         val segment1 = TestSegment(keyValues1).assertGet
 

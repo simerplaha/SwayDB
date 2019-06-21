@@ -20,9 +20,11 @@
 package swaydb.core.segment.format.a.index
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.segment.format.a.OffsetBase
+import swaydb.core.data.Persistent
+import swaydb.core.segment.format.a.{KeyMatcher, OffsetBase}
 import swaydb.core.util.Bytes
 import swaydb.data.IO
+import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
 
@@ -225,4 +227,37 @@ private[core] object HashIndex extends LazyLogging {
 
     doFind(0, mutable.HashSet.empty)
   }
+
+  private[a] def get(matcher: KeyMatcher.GetNextPrefixCompressed,
+                     reader: Reader,
+                     header: HashIndex.Header,
+                     hashIndexOffset: HashIndex.Offset,
+                     sortedIndexOffset: SortedIndex.Offset)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+    find(
+      key = matcher.key,
+      offset = hashIndexOffset,
+      hashIndexReader = reader,
+      header = header,
+      assertValue =
+        sortedIndexOffsetValue =>
+          SortedIndex.findAndMatchOrNext(
+            matcher = matcher,
+            fromOffset = sortedIndexOffset.start + sortedIndexOffsetValue,
+            reader = reader,
+            offset = sortedIndexOffset
+          ) recoverWith {
+            case _ =>
+              //currently there is no way to detect starting point for a key-value entry in the sorted index.
+              //Read requests can be submitted to random parts of the sortedIndex depending on the index returned by the hash.
+              //Hash index also itself also does not store markers for a valid start sortedIndex offset
+              //that's why key-values can be read at random parts of the sorted index which can return failures.
+              //too many failures are not expected because probe should disallow that. And if the Segment is actually corrupted,
+              //the normal forward read of the index should catch that.
+              //HashIndex is suppose to make random reads faster, if the hashIndex is too small then there is no use creating one.
+              IO.none
+          }
+    )
 }
+
+case class HashIndex(offset: HashIndex.Offset,
+                     header: HashIndex.Header)

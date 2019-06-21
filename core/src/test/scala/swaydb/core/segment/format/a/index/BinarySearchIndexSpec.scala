@@ -53,8 +53,8 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
     values foreach {
       value =>
         BinarySearchIndex.find(
-          footer = footer,
-          startOffset = 0,
+          header = footer,
+          offset = BinarySearchIndex.Offset(0, state.bytes.written),
           assertValue = getValue(valueToFind = value)
         ).get shouldBe defined
     }
@@ -64,8 +64,8 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
     notInIndex foreach {
       i =>
         BinarySearchIndex.find(
-          footer = footer,
-          startOffset = 0,
+          header = footer,
+          offset = BinarySearchIndex.Offset(0, state.bytes.written),
           assertValue = getValue(valueToFind = i)
         ).get shouldBe empty
     }

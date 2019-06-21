@@ -30,7 +30,7 @@ import swaydb.data.util.ByteSizeOf
 
 object SegmentFooter {
 
-  //all these functions are wrapper with a try catch block with getFromHashIndex only to make it easier to read.
+  //all these functions are wrapper with a try catch block with get only to make it easier to read.
   def read(reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[SegmentFooter] =
     try {
       val fileSize = reader.size.get.toInt

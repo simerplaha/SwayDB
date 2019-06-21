@@ -50,6 +50,7 @@ sealed trait IO[+T] {
   private[swaydb] def asAsync: IO.Async[T]
   private[swaydb] def asIO: IO[T]
   def map[U](f: T => U): IO[U]
+  def exists(f: T => Boolean): Boolean
   def filter(p: T => Boolean): IO[T]
   @inline final def withFilter(p: T => Boolean): WithFilter = new WithFilter(p)
   class WithFilter(p: T => Boolean) {
@@ -428,6 +429,7 @@ object IO {
     override def isSuccess: Boolean = true
     override def isLater: Boolean = false
     override def get: T = value
+    override def exists(f: T => Boolean): Boolean = f(value)
     override def safeGet: IO.Success[T] = this
     override def safeGetIfFileExists: IO.Success[T] = this
     override def safeGetBlocking: IO.Success[T] = this
@@ -463,6 +465,7 @@ object IO {
     }
     private[swaydb] override def asAsync: IO.Async[T] = this
     private[swaydb] override def asIO: IO[T] = this
+
   }
 
   private[swaydb] object Async {
@@ -743,5 +746,6 @@ object IO {
 
     private[swaydb] override def asAsync: IO.Async[T] = this
     private[swaydb] override def asIO: IO[T] = this
+    override def exists(f: T => Boolean): Boolean = false
   }
 }

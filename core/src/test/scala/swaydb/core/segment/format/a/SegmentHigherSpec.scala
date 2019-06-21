@@ -69,7 +69,7 @@ sealed trait SegmentHigherSpec extends TestBase with ScalaFutures with PrivateMe
     randomGroupingStrategyOption(keyValuesCount)
 
   "Segment.higher" should {
-    "getFromHashIndex the higher key from the segment that has only 1 Remove key" in {
+    "get the higher key from the segment that has only 1 Remove key" in {
       runThis(50.times) {
         assertSegment(
           keyValues = Slice(randomFixedKeyValue(1)),
@@ -83,7 +83,7 @@ sealed trait SegmentHigherSpec extends TestBase with ScalaFutures with PrivateMe
       }
     }
 
-    "getFromHashIndex the higher key from the segment that has only 1 Range key" in {
+    "get the higher key from the segment that has only 1 Range key" in {
       runThis(50.times) {
         assertSegment(
           keyValues = Slice(randomRangeKeyValue(1, 10)),
@@ -103,7 +103,7 @@ sealed trait SegmentHigherSpec extends TestBase with ScalaFutures with PrivateMe
       }
     }
 
-    "getFromHashIndex the higher from the segment when there are no Range key-values" in {
+    "get the higher from the segment when there are no Range key-values" in {
       //1, 2, 3
       assertSegment(
         keyValues = Slice(randomFixedKeyValue(1), randomFixedKeyValue(2), randomFixedKeyValue(3)),
@@ -120,7 +120,7 @@ sealed trait SegmentHigherSpec extends TestBase with ScalaFutures with PrivateMe
       )
     }
 
-    "getFromHashIndex the higher from the segment when there are Range key-values" in {
+    "get the higher from the segment when there are Range key-values" in {
       //1, (2 - 5), 10, (11 - 20), (20 - 30)
       assertSegment(
         keyValues = Slice(

@@ -17,7 +17,7 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.segment.format.a
+package swaydb.core.segment.format.a.index
 
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
@@ -148,7 +148,7 @@ class HashIndexSpec extends TestBase {
                 }
             }
 
-          readResult.get.flatten.size should be >= writeState.hit //>= because it can getFromHashIndex lucky with overlapping index bytes.
+          readResult.get.flatten.size should be >= writeState.hit //>= because it can get lucky with overlapping index bytes.
 
 
         }

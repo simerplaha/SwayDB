@@ -21,9 +21,10 @@ package swaydb.core.segment.format.a.index
 
 import swaydb.core.data.{KeyValue, Persistent}
 import swaydb.core.io.reader.Reader
-import swaydb.core.segment.format.a.{MatchResult, OffsetBase}
+import swaydb.core.segment.format.a.{KeyMatcher, MatchResult, OffsetBase}
 import swaydb.core.util.Bytes
 import swaydb.data.IO
+import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
 
@@ -174,17 +175,17 @@ object BinarySearchIndex {
       state.incrementEntriesCount()
     }
 
-  def find(startOffset: Int,
-           footer: Header,
+  def find(offset: Offset,
+           header: Header,
            assertValue: Int => IO[MatchResult]): IO[Option[Persistent]] = {
 
-    val minimumOffset = startOffset + footer.headerSize
+    val minimumOffset = offset.start + header.headerSize
 
     @tailrec
     def hop(start: Int, end: Int): IO[Option[Persistent]] = {
       val mid = start + (end - start) / 2
 
-      val valueOffset = minimumOffset + (mid * footer.byteSizeOfLargestValue)
+      val valueOffset = minimumOffset + (mid * header.byteSizeOfLargestValue)
       if (start > end)
         IO.none
       else
@@ -205,6 +206,26 @@ object BinarySearchIndex {
         }
     }
 
-    hop(start = 0, end = footer.valuesCount - 1)
+    hop(start = 0, end = header.valuesCount - 1)
   }
+
+  def get(matcher: KeyMatcher.Get,
+          reader: Reader,
+          binarySearchIndex: BinarySearchIndex,
+          sortedIndexOffset: SortedIndex.Offset)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+    find(
+      offset = binarySearchIndex.offset,
+      header = binarySearchIndex.header,
+      assertValue =
+        sortedIndexOffsetValue =>
+          SortedIndex.findAndMatch(
+            matcher = matcher,
+            fromOffset = sortedIndexOffset.start + sortedIndexOffsetValue,
+            reader = reader,
+            offset = sortedIndexOffset
+          )
+    )
 }
+
+case class BinarySearchIndex(offset: BinarySearchIndex.Offset,
+                             header: BinarySearchIndex.Header)

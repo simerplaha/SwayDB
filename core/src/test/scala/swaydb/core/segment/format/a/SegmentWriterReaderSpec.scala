@@ -684,7 +684,7 @@ class SegmentWriterReaderSpec extends TestBase {
   }
 
   "SegmentReader.find" should {
-    "getFromHashIndex key-values using KeyMatcher.Get" in {
+    "get key-values using KeyMatcher.Get" in {
       val keyValues =
         Slice(
           Transient.put(1, "one"),
@@ -784,7 +784,7 @@ class SegmentWriterReaderSpec extends TestBase {
       ???
     }
 
-    "getFromHashIndex key-values using KeyMatcher.Lower" in {
+    "get key-values using KeyMatcher.Lower" in {
       val keyValues =
         Slice(
           Transient.put(1, "one"),
@@ -845,7 +845,7 @@ class SegmentWriterReaderSpec extends TestBase {
       sixthToKey.toKey shouldBe sixth.toKey
     }
 
-    "getFromHashIndex key-values using KeyMatcher.Higher" in {
+    "get key-values using KeyMatcher.Higher" in {
       val keyValues =
         Slice(
           Transient.put(1, "one"),
@@ -902,7 +902,7 @@ class SegmentWriterReaderSpec extends TestBase {
         //create sequential deadline and randomly select one on call.
         def deadlines = Random.shuffle((1 to 10).toList).map(i => Deadline(new FiniteDuration(i, TimeUnit.SECONDS)))
 
-        //may be getFromHashIndex the next deadline
+        //may be get the next deadline
         def nextDeadline =
           eitherOne(
             left = None,
@@ -993,7 +993,7 @@ class SegmentWriterReaderSpec extends TestBase {
             right = pendingApply
           )
 
-        //getFromHashIndex the first value for either fixed or range.
+        //get the first value for either fixed or range.
         //this value is only expected to be written ones.
         val value = keyValues.head.value.assertGet
 

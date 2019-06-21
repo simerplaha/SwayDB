@@ -133,7 +133,7 @@ sealed trait SegmentAssignerSpec extends TestBase {
       val segment2 = TestSegment(Slice(randomFixedKeyValue(20)).toTransient).assertGet
       val segments = Seq(segment1, segment2)
 
-      //1 belongs to first Segment, 15 is a gap key and since first segment is not empty, it will getFromHashIndex assigned 15.
+      //1 belongs to first Segment, 15 is a gap key and since first segment is not empty, it will get assigned 15.
       val keyValues =
         Slice(
           Memory.put(1, 1),
@@ -157,7 +157,7 @@ sealed trait SegmentAssignerSpec extends TestBase {
         val segment2 = TestSegment(segment2KeyValues.toTransient).assertGet
         val segments = Seq(segment1, segment2)
 
-        //15 is a gap key but no key-values are assigned to segment1 so segment2 will getFromHashIndex this key-value.
+        //15 is a gap key but no key-values are assigned to segment1 so segment2 will get this key-value.
         val keyValues =
           Slice(
             randomFixedKeyValue(15),
@@ -185,7 +185,7 @@ sealed trait SegmentAssignerSpec extends TestBase {
       val segment5 = TestSegment(Slice(Transient.put(70), Transient.remove(80)).updateStats).assertGet
       val segments = Seq(segment1, segment2, segment3, segment4, segment5)
 
-      //15 is a gap key but no key-values are assigned to segment1 so segment2 will getFromHashIndex this key-value an it will be split across.
+      //15 is a gap key but no key-values are assigned to segment1 so segment2 will get this key-value an it will be split across.
       //all next overlapping Segments.
       val keyValues =
       Slice(
@@ -232,7 +232,7 @@ sealed trait SegmentAssignerSpec extends TestBase {
       //segment3 - 6 - 10
       val segments = Seq(segment1, segment2, segment3)
 
-      //insert range 0 - 20. This overlaps all 3 Segment and key-values will getFromHashIndex sliced and distributed to all Segments.
+      //insert range 0 - 20. This overlaps all 3 Segment and key-values will get sliced and distributed to all Segments.
       SegmentAssigner.assign(Slice(Memory.Range(0, 20, Some(Value.put(0)), Value.remove(None))), segments).assertGet ==> {
         assignments =>
           assignments.size shouldBe 3

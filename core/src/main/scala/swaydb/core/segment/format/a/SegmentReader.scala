@@ -24,7 +24,7 @@ import swaydb.core.data.{KeyValue, Persistent}
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
 import swaydb.core.segment.format.a.entry.reader.EntryReader
-import swaydb.core.segment.format.a.index.{HashIndex, SortedIndex}
+import swaydb.core.segment.format.a.index.{BinarySearchIndex, HashIndex, SortedIndex}
 import swaydb.core.util.{Bytes, CRC32}
 import swaydb.data.IO
 import swaydb.data.IO._
@@ -36,7 +36,7 @@ import swaydb.data.util.ByteSizeOf
 import scala.annotation.tailrec
 
 /**
-  * All public APIs are wrapped around a try catch block because eager fetches on IO's results (.getFromHashIndex).
+  * All public APIs are wrapped around a try catch block because eager fetches on IO's results (.get).
   * Eventually need to re-factor this code to use for comprehension.
   *
   * Leaving as it is now because it's easier to read.
@@ -98,68 +98,73 @@ private[core] object SegmentReader extends LazyLogging {
   def get(matcher: KeyMatcher.Get,
           startFrom: Option[Persistent],
           reader: Reader,
-          hashIndexHeader: Option[(HashIndex.Header, HashIndex.Offset)],
-          footer: SegmentFooter)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
-    ???
-  //    hashIndexHeader map {
-  //      case (hashIndexHeader, hashIndexOffset) =>
-  //        getFromHashIndex(
-  //          matcher = matcher.toNextPrefixCompressedMatcher,
-  //          reader = reader,
-  //          header = hashIndexHeader,
-  //          hashIndexOffset = hashIndexOffset,
-  //          footer = footer
-  //        ) flatMap {
-  //          found =>
-  //            //if the hashIndex hit rate is perfect means the key definitely does not exist.
-  //            //so either the bloomFilter was disabled or it returned a false positive.
-  //            if (found.isEmpty && hashIndexHeader.miss == 0 && ((footer.hasRange && footer.binarySearchIndexOffset.isDefined) || !footer.hasRange))
-  //              IO.none
-  //            else //still not sure go ahead with walk find.
-  //              SortedIndex.find(
-  //                matcher = matcher,
-  //                //todo compare and start from nearest read key-value.
-  //                startFrom = startFrom,
-  //                reader = reader, footer = footer
-  //              )
-  //        }
-  //    } getOrElse {
-  //      SortedIndex.find(
-  //        matcher = matcher,
-  //        startFrom = startFrom,
-  //        reader = reader, footer = footer
-  //      )
-  //    }
+          hashIndex: Option[HashIndex],
+          binarySearchIndex: Option[BinarySearchIndex],
+          sortedIndexOffset: SortedIndex.Offset,
+          hasRange: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+    hashIndex map {
+      hashIndex =>
+        HashIndex.get(
+          matcher = matcher.toNextPrefixCompressedMatcher,
+          reader = reader,
+          header = hashIndex.header,
+          hashIndexOffset = hashIndex.offset,
+          sortedIndexOffset = sortedIndexOffset
+        ) flatMap {
+          case some @ Some(_) =>
+            IO.Success(some)
+          case None =>
+            if (hashIndex.header.miss == 0 && !hasRange)
+              IO.none
+            else
+              get(
+                matcher = matcher,
+                startFrom = startFrom,
+                reader = reader,
+                binarySearchIndex = binarySearchIndex,
+                sortedIndexOffset = sortedIndexOffset
+              )
+        }
+    } getOrElse {
+      get(
+        matcher = matcher,
+        startFrom = startFrom,
+        reader = reader,
+        binarySearchIndex = binarySearchIndex,
+        sortedIndexOffset = sortedIndexOffset
+      )
+    }
 
-  private[a] def getFromHashIndex(matcher: KeyMatcher.GetNextPrefixCompressed,
-                                  reader: Reader,
-                                  header: HashIndex.Header,
-                                  hashIndexOffset: HashIndex.Offset,
-                                  footer: SegmentFooter)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
-  //    HashIndex.find[Persistent](
-  //      key = matcher.key,
-  //      hashIndexStartOffset = hashIndexOffset.start,
-  //      hashIndexReader = reader,
-  //      hashIndexSize = hashIndexOffset.size,
-  //      maxProbe = header.maxProbe,
-  //      assertValue =
-  //        sortedIndexOffset =>
-  //          SortedIndex.findFromIndex(
-  //            matcher = matcher,
-  //            fromOffset = footer.sortedIndexOffset.start + sortedIndexOffset,
-  //            reader = reader,
-  //            footer = footer
-  //          ) recoverWith {
-  //            case _ =>
-  //              //currently there is no way to detect starting point for a key-value entry in the sorted index.
-  //              //Read requests can be submitted to random parts of the sortedIndex depending on the index returned by the hash.
-  //              //Hash index also itself also does not store markers for a valid start sortedIndex offset
-  //              //that's why key-values can be read at random parts of the sorted index which can return failures.
-  //              //too many failures are not expected because probe should disallow that. And if the Segment is actually corrupted,
-  //              //the normal forward read of the index should catch that.
-  //              //HashIndex is suppose to make random reads faster, if the hashIndex is too small then there is no use creating one.
-  //              IO.none
-  //          }
-  //    )
-    ???
+  def get(matcher: KeyMatcher.Get,
+          startFrom: Option[Persistent],
+          reader: Reader,
+          binarySearchIndex: Option[BinarySearchIndex],
+          sortedIndexOffset: SortedIndex.Offset)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+    binarySearchIndex map {
+      binarySearchIndex =>
+        BinarySearchIndex.get(
+          matcher = matcher,
+          reader = reader,
+          binarySearchIndex = binarySearchIndex,
+          sortedIndexOffset = sortedIndexOffset
+        ) flatMap {
+          case some @ Some(_) =>
+            IO.Success(some)
+
+          case None =>
+            SortedIndex.find(
+              matcher = matcher,
+              startFrom = startFrom,
+              reader = reader,
+              offset = sortedIndexOffset
+            )
+        }
+    } getOrElse {
+      SortedIndex.find(
+        matcher = matcher,
+        startFrom = startFrom,
+        reader = reader,
+        offset = sortedIndexOffset
+      )
+    }
 }

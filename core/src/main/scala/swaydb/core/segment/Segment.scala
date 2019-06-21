@@ -1068,6 +1068,8 @@ private[core] trait Segment extends FileLimiterItem {
 
   def isFooterDefined: Boolean
 
+  def isBloomFilterDefined: Boolean
+
   def isOpen: Boolean
 
   def isFileDefined: Boolean

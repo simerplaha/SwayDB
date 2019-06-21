@@ -260,7 +260,7 @@ private[segment] case class PersistentSegment(file: DBFile,
     segmentManager.getBloomFilterKeyValueCount()
 
   override def isFooterDefined: Boolean =
-    ???
+    segmentManager.isFooterDefined
 
   def existsOnDisk: Boolean =
     file.existsOnDisk
@@ -282,4 +282,7 @@ private[segment] case class PersistentSegment(file: DBFile,
 
   override def isGrouped: IO[Boolean] =
     segmentManager.getFooter().map(_.hasGroup)
+
+  override def isBloomFilterDefined: Boolean =
+    segmentManager.isBloomFilterDefined
 }

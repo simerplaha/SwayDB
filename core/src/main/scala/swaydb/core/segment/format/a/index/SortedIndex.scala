@@ -211,7 +211,7 @@ private[core] object SortedIndex {
             IO.Failure(
               IO.Error.Fatal(
                 SegmentCorruptionException(
-                  message = s"Corrupted Segment: Failed to getFromHashIndex bytes of length $length from offset $fromOffset",
+                  message = s"Corrupted Segment: Failed to get bytes of length $length from offset $fromOffset",
                   cause = exception
                 )
               )
@@ -269,10 +269,10 @@ private[core] object SortedIndex {
         }
     }
 
-  def findFromIndex(matcher: KeyMatcher,
-                    fromOffset: Int,
-                    reader: Reader,
-                    offset: SortedIndex.Offset)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+  def findAndMatchOrNext(matcher: KeyMatcher,
+                         fromOffset: Int,
+                         reader: Reader,
+                         offset: SortedIndex.Offset)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
     readNextKeyValue(
       fromPosition = fromOffset,
       startIndexOffset = offset.start,
@@ -287,6 +287,25 @@ private[core] object SortedIndex {
           matcher = matcher,
           reader = reader,
           offset = offset
+        )
+    }
+
+  def findAndMatch(matcher: KeyMatcher,
+                   fromOffset: Int,
+                   reader: Reader,
+                   offset: SortedIndex.Offset)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[MatchResult] =
+    readNextKeyValue(
+      fromPosition = fromOffset,
+      startIndexOffset = offset.start,
+      endIndexOffset = offset.end,
+      indexReader = reader,
+      valueReader = reader
+    ) map {
+      persistent =>
+        matcher(
+          previous = persistent,
+          next = None,
+          hasMore = hasMore(persistent, offset)
         )
     }
 

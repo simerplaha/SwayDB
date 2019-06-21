@@ -216,3 +216,6 @@ object BloomFilter {
     true
   }
 }
+
+case class BloomFilter(offset: BloomFilter.Offset,
+                       header: BloomFilter.Header)

@@ -25,7 +25,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.{Persistent, _}
 import swaydb.core.queue.KeyValueLimiter
-import swaydb.core.segment.format.a.index.{BloomFilter, HashIndex, SortedIndex}
+import swaydb.core.segment.format.a.index.{BinarySearchIndex, BloomFilter, HashIndex, SortedIndex}
 import swaydb.core.segment.format.a.{KeyMatcher, SegmentFooter, SegmentReader}
 import swaydb.core.util._
 import swaydb.data.order.KeyOrder
@@ -73,10 +73,10 @@ private[core] class SegmentManager(id: String,
 
   import keyOrder._
 
-  @volatile private[segment] var footer: Either[Unit, IO.Success[SegmentFooter]] = Left()
-  @volatile private[segment] var hashIndexHeader: Either[Unit, IO.Success[Option[(HashIndex.Header, HashIndex.Offset)]]] = Left()
-  @volatile private[segment] var bloomFilterHeader: Either[Unit, IO.Success[Option[(BloomFilter.Header, BloomFilter.Offset)]]] = Left()
-  @volatile private[segment] var binarySearchIndex: Either[Unit, IO.Success[Option[(BloomFilter.Header, BloomFilter.Offset)]]] = Left()
+  @volatile private var footer: Either[Unit, IO.Success[SegmentFooter]] = Left()
+  @volatile private var hashIndexHeader: Either[Unit, IO.Success[Option[HashIndex]]] = Left()
+  @volatile private var bloomFilterHeader: Either[Unit, IO.Success[Option[BloomFilter]]] = Left()
+  @volatile private var binarySearchIndexHeader: Either[Unit, IO.Success[Option[BinarySearchIndex]]] = Left()
 
   /**
     * Notes for why use putIfAbsent before adding to cache:
@@ -99,19 +99,21 @@ private[core] class SegmentManager(id: String,
       keyValueLimiter.add(group, cache)
   }
 
-  private def prepareGet[T](getOperation: (SegmentFooter, Reader) => IO[T]): IO[T] =
-    getFooter()
-      .flatMap {
-        footer =>
-          createReader() flatMap {
-            reader =>
-              getOperation(footer, reader)
-          }
-      }
-      .onFailureSideEffect {
-        failure: IO.Failure[_] =>
-          ExceptionUtil.logFailure(s"$id: Failed to read Segment.", failure)
-      }
+  private def prepareGet[T](getOperation: (SegmentFooter, Option[BloomFilter], Option[HashIndex], Option[BinarySearchIndex], Reader) => IO[T]): IO[T] = {
+    for {
+      footer <- getFooter()
+      bloomFilter <- getBloomFilter()
+      hashIndex <- getHashIndex()
+      binarySearchIndex <- getBinarySearchIndex()
+      reader <- createReader()
+      get <- getOperation(footer, bloomFilter, hashIndex, binarySearchIndex, reader)
+    } yield {
+      get
+    }
+  } onFailureSideEffect {
+    failure: IO.Failure[_] =>
+      ExceptionUtil.logFailure(s"$id: Failed to read Segment.", failure)
+  }
 
   def getFooter(): IO[SegmentFooter] =
     footer
@@ -126,18 +128,38 @@ private[core] class SegmentManager(id: String,
         }
       }
 
-  def getHashIndexHeader(): IO[Option[(HashIndex.Header, HashIndex.Offset)]] =
+  def getFooterAndReader(): IO[(SegmentFooter, Reader)] =
+    footer
+      .map {
+        footer =>
+          for {
+            reader <- createReader()
+            footer <- footer
+          } yield (footer, reader)
+      }
+      .getOrElse {
+        createReader() flatMap {
+          reader =>
+            SegmentFooter.read(reader) map {
+              footer =>
+                this.footer = Right(IO.Success(footer))
+                (footer, reader.reset())
+            }
+        }
+      }
+
+  def getHashIndex(): IO[Option[HashIndex]] =
     hashIndexHeader
       .getOrElse {
-        prepareGet {
-          (footer, reader) =>
+        getFooterAndReader() flatMap {
+          case (footer, reader) =>
             footer.hashIndexOffset map {
-              hashIndexOffset =>
-                HashIndex.readHeader(hashIndexOffset, reader) map {
-                  hashIndexHeader =>
-                    val headerOffset = Some(hashIndexHeader, hashIndexOffset)
-                    this.hashIndexHeader = Right(IO.Success(headerOffset))
-                    headerOffset
+              offset =>
+                HashIndex.readHeader(offset, reader) map {
+                  header =>
+                    val index = Some(HashIndex(offset, header))
+                    this.hashIndexHeader = Right(IO.Success(index))
+                    index
                 }
             } getOrElse {
               this.hashIndexHeader = Right(IO.none)
@@ -146,21 +168,41 @@ private[core] class SegmentManager(id: String,
         }
       }
 
-  def getBloomFilterHeader(): IO[Option[(BloomFilter.Header, BloomFilter.Offset)]] =
+  def getBloomFilter(): IO[Option[BloomFilter]] =
     bloomFilterHeader
       .getOrElse {
-        prepareGet {
-          (footer, reader) =>
+        getFooterAndReader() flatMap {
+          case (footer, reader) =>
             footer.bloomFilterOffset map {
               offset =>
                 BloomFilter.readHeader(offset, reader) map {
-                  bloomFilter =>
-                    val headerOffset = Some(bloomFilter, offset)
-                    this.bloomFilterHeader = Right(IO.Success(headerOffset))
-                    headerOffset
+                  header =>
+                    val index = Some(BloomFilter(offset, header))
+                    this.bloomFilterHeader = Right(IO.Success(index))
+                    index
                 }
             } getOrElse {
               this.bloomFilterHeader = Right(IO.none)
+              IO.none
+            }
+        }
+      }
+
+  def getBinarySearchIndex(): IO[Option[BinarySearchIndex]] =
+    binarySearchIndexHeader
+      .getOrElse {
+        getFooterAndReader() flatMap {
+          case (footer, reader) =>
+            footer.binarySearchIndexOffset map {
+              offset =>
+                BinarySearchIndex.readHeader(offset, reader) map {
+                  header =>
+                    val index = Some(BinarySearchIndex(offset, header))
+                    this.binarySearchIndexHeader = Right(IO.Success(index))
+                    index
+                }
+            } getOrElse {
+              this.binarySearchIndexHeader = Right(IO.none)
               IO.none
             }
         }
@@ -170,8 +212,8 @@ private[core] class SegmentManager(id: String,
     Option(cache.get(key))
 
   def mightContain(key: Slice[Byte]): IO[Boolean] =
-    getBloomFilterHeader()
-      .map(_.forall(header => BloomFilter.mightContain(key, header._1)))
+    getBloomFilter()
+      .map(_.forall(bloomFilter => BloomFilter.mightContain(key, bloomFilter.header)))
 
   def get(key: Slice[Byte]): IO[Option[Persistent.SegmentResponse]] =
     maxKey match {
@@ -200,8 +242,8 @@ private[core] class SegmentManager(id: String,
 
           case _ =>
             prepareGet {
-              (footer, reader) =>
-                getHashIndexHeader() flatMap {
+              (footer, bloomFilter, hashIndex, binarySearchIndex, reader) =>
+                getHashIndex() flatMap {
                   hashIndexHeader =>
                     //                    if (!footer.bloomFilter.forall(BloomFilter.mightContain(key, _)))
                     //                      IO.none
@@ -275,7 +317,7 @@ private[core] class SegmentManager(id: String,
               group.segmentCache.lower(key)
           } getOrElse {
             prepareGet {
-              (footer, reader) =>
+              (footer, bloomFilter, hashIndex, binarySearchIndex, reader) =>
                 //                SegmentReader.lower(
                 //                  matcher = KeyMatcher.Lower(key),
                 //                  startFrom = lowerKeyValue,
@@ -351,7 +393,7 @@ private[core] class SegmentManager(id: String,
             group.segmentCache.higher(key)
         } getOrElse {
           prepareGet {
-            (footer, reader) =>
+            (footer, bloomFilter, hashIndex, binarySearchIndex, reader) =>
               val startFrom =
                 if (floorKeyValue.isDefined)
                   IO(floorKeyValue)
@@ -384,8 +426,8 @@ private[core] class SegmentManager(id: String,
     }
 
   def getAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None): IO[Slice[KeyValue.ReadOnly]] =
-    prepareGet {
-      (footer, reader) =>
+    getFooterAndReader() flatMap {
+      case (footer, reader) =>
         SortedIndex
           .readAll(
             offset = footer.sortedIndexOffset,
@@ -395,7 +437,7 @@ private[core] class SegmentManager(id: String,
           )
           .onFailureSideEffect {
             _ =>
-              logger.trace("{}: Reading index block failed. Segment file is corrupted.", id)
+              logger.trace("{}: Reading sorted index block failed.", id)
           }
     }
 
@@ -417,6 +459,9 @@ private[core] class SegmentManager(id: String,
   def isFooterDefined: Boolean =
     footer.exists(_ => true)
 
+  def isBloomFilterDefined: Boolean =
+    bloomFilterHeader.exists(_.exists(_.isDefined))
+
   def createdInLevel: IO[Int] =
     getFooter().map(_.createdInLevel)
 
@@ -426,7 +471,7 @@ private[core] class SegmentManager(id: String,
   def close() = {
     footer = Left()
     hashIndexHeader = Left()
-    binarySearchIndex = Left()
+    binarySearchIndexHeader = Left()
     bloomFilterHeader = Left()
   }
 }

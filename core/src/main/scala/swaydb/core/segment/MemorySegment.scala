@@ -431,4 +431,7 @@ private[segment] case class MemorySegment(path: Path,
 
   override def isGrouped: IO[Boolean] =
     IO(_isGrouped)
+
+  override def isBloomFilterDefined: Boolean =
+    bloomFilter.isDefined
 }

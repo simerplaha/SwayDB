@@ -153,7 +153,7 @@ sealed trait SegmentGroupWriteSpec extends TestBase with ScalaFutures with Priva
 //
 //      val newSegment =
 //        Segment(
-//          path = Paths.getFromHashIndex("/Users/simer/IdeaProjects/SwayDB.range/core/target/TEST_FILES/SegmentGroupWriteSpec0/12/2.seg"),
+//          path = Paths.get("/Users/simer/IdeaProjects/SwayDB.range/core/target/TEST_FILES/SegmentGroupWriteSpec0/12/2.seg"),
 //          mmapReads = true,
 //          mmapWrites = true,
 //          minKey = 0,

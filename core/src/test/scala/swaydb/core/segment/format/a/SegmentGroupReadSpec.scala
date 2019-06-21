@@ -147,7 +147,7 @@
 //  }
 //
 //  //  "Decompressed group" should {
-//  //    "eventually getFromHashIndex uncompressed and update cache" in {
+//  //    "eventually get uncompressed and update cache" in {
 //  //      val keyValues = randomizedKeyValues(100, addRandomGroups = false)
 //  //
 //  //      implicit val keyValueLimiter = KeyValueLimiter(100.bytes, 5.second)
@@ -161,7 +161,7 @@
 //  //        println(segment.segmentSize)
 //  //
 //  //        println("*** Reading single key-value ***")
-//  //        segment.getFromHashIndex(keyValues.head.key).assertGet shouldBe keyValues.head
+//  //        segment.get(keyValues.head.key).assertGet shouldBe keyValues.head
 //  //        assertPostReader()
 //  //
 //  //        println("*** Reading all key-values ***")
@@ -177,7 +177,7 @@
 //  //            group.isIndexDecompressed shouldBe true
 //  //            segment.isCacheEmpty shouldBe false
 //  //          }
-//  //          println("Checking group should eventually getFromHashIndex removed")
+//  //          println("Checking group should eventually get removed")
 //  //          eventual(10.seconds) {
 //  //            segment.isCacheEmpty shouldBe true
 //  //          }
@@ -188,7 +188,7 @@
 //  //        println(segment.segmentSize)
 //  //
 //  //        println("*** Reading single key-value ***")
-//  //        segment.getFromHashIndex(keyValues.head.key).assertGet shouldBe keyValues.head
+//  //        segment.get(keyValues.head.key).assertGet shouldBe keyValues.head
 //  //        assertPostReader()
 //  //
 //  //        println("*** Reading all key-values ***")
