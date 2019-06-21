@@ -46,12 +46,12 @@ class BloomFilterSpec extends TestBase {
 
       (1 to 10) foreach (BloomFilter.add(_, filter))
       val bloom = BloomFilter.read(BloomFilter.Offset(0, filter.bytes.written), Reader(filter.bytes)).get
-      (1 to 10) foreach (key => BloomFilter.mightContain(key, Reader(filter.bytes), bloom) shouldBe true)
-      (11 to 20) foreach (key => BloomFilter.mightContain(key, Reader(filter.bytes), bloom) shouldBe false)
+      (1 to 10) foreach (key => BloomFilter.mightContain(key, Reader(filter.bytes), bloom).get shouldBe true)
+      (11 to 20) foreach (key => BloomFilter.mightContain(key, Reader(filter.bytes), bloom).get shouldBe false)
 
       val readBloom = BloomFilter.read(BloomFilter.Offset(0, filter.bytes.written), Reader(filter.bytes)).get
-      (1 to 10) foreach (key => BloomFilter.mightContain(key, Reader(filter.bytes), readBloom) shouldBe true)
-      (11 to 20) foreach (key => BloomFilter.mightContain(key, Reader(filter.bytes), readBloom) shouldBe false)
+      (1 to 10) foreach (key => BloomFilter.mightContain(key, Reader(filter.bytes), readBloom).get shouldBe true)
+      (11 to 20) foreach (key => BloomFilter.mightContain(key, Reader(filter.bytes), readBloom).get shouldBe false)
 
       println("numberOfBits: " + filter.numberOfBits)
       println("written: " + filter.written)
@@ -157,39 +157,6 @@ class BloomFilterSpec extends TestBase {
   }
 
   "bloomFilter error check" in {
-    def assert(data: Seq[String],
-               bytes: Slice[Byte],
-               bloom: BloomFilter,
-               previousFilter: Option[BloomFilter]) = {
-      val positives =
-        data.par collect {
-          case data if !BloomFilter.mightContain(data, Reader(bytes), bloom).get =>
-            data
-        }
-
-      val falsePositives =
-        data.par collect {
-          case data if BloomFilter.mightContain(Random.alphanumeric.take(2000).mkString.getBytes(), Reader(bytes), bloom).get =>
-            data
-        }
-
-      println(s"errors out of ${data.size}: " + positives.size)
-      println(s"falsePositives out of ${data.size}: " + falsePositives.size)
-      println(s"Optimal byte size: " + bloom.numberOfBits)
-      println(s"Actual byte size: " + bytes.size)
-      println
-
-      positives.size shouldBe 0
-      falsePositives.size should be < 200
-
-      previousFilter map {
-        previousFilter =>
-          bloom.numberOfBits shouldBe previousFilter.numberOfBits
-          bloom.probe shouldBe previousFilter.probe
-          bloom.startOffset shouldBe previousFilter.startOffset
-      }
-    }
-
     val state =
       BloomFilter(
         numberOfKeys = 10000,
@@ -205,11 +172,27 @@ class BloomFilterSpec extends TestBase {
       }
 
     val bloom = BloomFilter.read(BloomFilter.Offset(0, state.bytes.written), Reader(state.bytes)).get
-    assert(
-      data = data,
-      bytes = state.bytes,
-      bloom = bloom,
-      previousFilter = None
-    )
+    val bytes = state.bytes
+
+    val positives =
+      data.par collect {
+        case data if !BloomFilter.mightContain(data, Reader(bytes), bloom).get =>
+          data
+      }
+
+    val falsePositives =
+      data.par collect {
+        case data if BloomFilter.mightContain(Random.alphanumeric.take(2000).mkString.getBytes(), Reader(bytes), bloom).get =>
+          data
+      }
+
+    println(s"errors out of ${data.size}: " + positives.size)
+    println(s"falsePositives out of ${data.size}: " + falsePositives.size)
+    println(s"Optimal byte size: " + bloom.numberOfBits)
+    println(s"Actual byte size: " + bytes.size)
+    println
+
+    positives.size shouldBe 0
+    falsePositives.size should be < 200
   }
 }
