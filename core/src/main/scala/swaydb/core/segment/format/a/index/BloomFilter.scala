@@ -20,6 +20,7 @@
 package swaydb.core.segment.format.a.index
 
 import swaydb.core.data.KeyValue
+import swaydb.core.segment.format.a.OffsetBase
 import swaydb.core.util.{Bytes, MurmurHash3Generic}
 import swaydb.data.IO
 import swaydb.data.slice.{Reader, Slice}
@@ -28,6 +29,8 @@ import swaydb.data.util.ByteSizeOf
 object BloomFilter {
 
   val formatId: Byte = 1.toByte
+
+  case class Offset(start: Int, size: Int) extends OffsetBase
 
   case class State(startOffset: Int,
                    numberOfBits: Int,
@@ -125,28 +128,26 @@ object BloomFilter {
       falsePositiveRate = falsePositiveRate
     ) + minimumSize
 
-  def apply(fromOffset: Int, reader: Reader): IO[BloomFilter.Header] = {
-    val newReader = reader.copy()
-    newReader
-      .moveTo(fromOffset)
+  def readHeader(offset: Offset, reader: Reader): IO[BloomFilter.Header] =
+    reader
+      .moveTo(offset.start)
       .get()
       .flatMap {
         formatID =>
           if (formatID == formatId)
             for {
-              numberOfBits <- newReader.readIntUnsigned()
-              maxProbe <- newReader.readIntUnsigned()
+              numberOfBits <- reader.readIntUnsigned()
+              maxProbe <- reader.readIntUnsigned()
             } yield
               BloomFilter.Header(
-                startOffset = ByteSizeOf.byte + Bytes.sizeOf(numberOfBits) + Bytes.sizeOf(maxProbe) + fromOffset,
+                startOffset = ByteSizeOf.byte + Bytes.sizeOf(numberOfBits) + Bytes.sizeOf(maxProbe) + offset.start,
                 probe = maxProbe,
                 numberOfBits = numberOfBits,
-                reader = newReader
+                reader = reader
               )
           else
             IO.Failure(IO.Error.Fatal(new Exception(s"Invalid bloomFilter formatID: $formatID. Expected: $formatId")))
       }
-  }
 
   def init(keyValues: Iterable[KeyValue.WriteOnly]): Option[BloomFilter.State] =
     if (keyValues.isEmpty || keyValues.last.stats.segmentHasRemoveRange || keyValues.last.stats.segmentBloomFilterSize <= 1 || keyValues.last.falsePositiveRate <= 0.0)

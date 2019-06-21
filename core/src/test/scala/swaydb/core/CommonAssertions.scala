@@ -47,7 +47,7 @@ import swaydb.core.map.serializer.{MapEntryWriter, RangeValueSerializer, ValueSe
 import swaydb.core.merge._
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.Segment
-import swaydb.core.segment.format.a.index.BloomFilter
+import swaydb.core.segment.format.a.index.SortedIndex
 import swaydb.core.segment.format.a.{KeyMatcher, SegmentFooter, SegmentReader, SegmentWriter}
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util.CollectionUtil._
@@ -758,19 +758,20 @@ object CommonAssertions {
   def find(matcher: KeyMatcher.Get,
            startFrom: Option[Persistent],
            reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
-    SegmentReader.readFooter(reader) flatMap {
-      footer =>
-        SegmentReader.readHashIndexHeader(reader, footer) flatMap {
-          header =>
-            SegmentReader.get(
-              matcher = matcher,
-              startFrom = startFrom,
-              reader = reader,
-              hashIndexHeader = ???,
-              footer = footer
-            )
-        }
-    }
+  //    SegmentFooter.read(reader) flatMap {
+  //      footer =>
+  //        SegmentReader.readHashIndexHeader(reader, footer) flatMap {
+  //          header =>
+  //            SegmentReader.get(
+  //              matcher = matcher,
+  //              startFrom = startFrom,
+  //              reader = reader,
+  //              hashIndexHeader = ???,
+  //              footer = footer
+  //            )
+  //        }
+  //    }
+    ???
 
   def assertGet(keyValues: Slice[KeyValue.WriteOnly],
                 reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default) =
@@ -780,20 +781,20 @@ object CommonAssertions {
     }
 
   def assertBloom(keyValues: Slice[KeyValue.WriteOnly],
-                  bloom: BloomFilter.Header) = {
+                  segment: Segment) = {
     val unzipedKeyValues = unzipGroups(keyValues)
 
     unzipedKeyValues.par.count {
       keyValue =>
-        BloomFilter.mightContain(keyValue.key, bloom)
+        segment.mightContain(keyValue.key).get
     } should be >= (unzipedKeyValues.size * 0.90).toInt
 
-    assertBloomNotContains(bloom)
+    assertBloomNotContains(segment)
   }
 
-  def assertBloomNotContains(bloom: BloomFilter.Header) =
+  def assertBloomNotContains(segment: Segment) =
     runThis(1000.times) {
-      IO(BloomFilter.mightContain(randomBytesSlice(randomIntMax(1000) min 100), bloom) shouldBe false)
+      IO(segment.mightContain(randomBytesSlice(randomIntMax(1000) min 100)) shouldBe false)
     }
 
   def assertReads(keyValues: Slice[KeyValue],
@@ -856,9 +857,9 @@ object CommonAssertions {
   def assertReads(keyValues: Slice[KeyValue.WriteOnly],
                   reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default) = {
 
-    val footer = SegmentReader.readFooter(reader.copy()).assertGet
+    val footer = SegmentFooter.read(reader.copy()).assertGet
     //read fullIndex
-    SegmentReader.readAll(footer, reader.copy()).assertGet shouldBe keyValues
+    SortedIndex.readAll(footer.sortedIndexOffset, footer.keyValueCount, reader.copy()).assertGet shouldBe keyValues
     //find each KeyValue using all Matchers
     assertGet(keyValues, reader.copy())
     assertLower(keyValues, reader.copy())
@@ -1330,10 +1331,10 @@ object CommonAssertions {
       ???
 
     //read just the group bytes.
-    val keyValues = SegmentReader.readAll(footer = tempFooter, reader = Reader(keyValuesDecompressedBytes)).assertGet
-
-    keyValues should have size groupKeyValues.size
-    keyValues shouldBe groupKeyValues
+    //    val keyValues = SortedIndex.readAll(footer = tempFooter, reader = Reader(keyValuesDecompressedBytes)).assertGet
+    //
+    //    keyValues should have size groupKeyValues.size
+    //    keyValues shouldBe groupKeyValues
 
     //now write the Group to a full Segment and read it as a normal Segment.
     //    val (segmentBytes, nearestDeadline) =
@@ -1346,8 +1347,8 @@ object CommonAssertions {
     //
     //    nearestDeadline shouldBe Segment.getNearestDeadline(groupKeyValues).assertGetOpt
     //    val segmentReader = Reader(segmentBytes)
-    //    val footer = SegmentReader.readFooter(segmentReader).assertGet
-    //    SegmentReader.readAll(footer, segmentReader.copy()).assertGet shouldBe Seq(group)
+    //    val footer = SegmentFooter.read(segmentReader).assertGet
+    //    SortedIndex.readAll(footer, segmentReader.copy()).assertGet shouldBe Seq(group)
     ???
   }
 
@@ -1355,10 +1356,16 @@ object CommonAssertions {
     readAll(Reader(bytes))
 
   def readAll(reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default): IO[Slice[KeyValue.ReadOnly]] =
-    SegmentReader.readFooter(reader) flatMap {
-      footer =>
-        SegmentReader.readAll(footer, reader.copy())
-    }
+    SegmentFooter.read(reader)
+      .flatMap {
+        footer =>
+          SortedIndex
+            .readAll(
+              offset = footer.sortedIndexOffset,
+              keyValueCount = footer.keyValueCount,
+              reader = reader.copy()
+            )
+      }
 
   def printGroupHierarchy(keyValues: Slice[KeyValue.ReadOnly], spaces: Int)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                             keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter): Unit =

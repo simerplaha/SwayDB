@@ -28,7 +28,7 @@ import swaydb.core.map.serializer.{RangeValueSerializer, ValueSerializer}
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.format.a.entry.reader.value._
 import swaydb.core.segment.format.a.entry.writer._
-import swaydb.core.segment.{Segment, SegmentCache, SegmentCacheInitializer}
+import swaydb.core.segment.{Segment, SegmentManager, SegmentManagerInitialiser}
 import swaydb.core.util.Bytes
 import swaydb.core.util.CollectionUtil._
 import swaydb.data.order.KeyOrder
@@ -188,7 +188,7 @@ private[core] object KeyValue {
       def maxKey: MaxKey[Slice[Byte]]
       def header(): IO[GroupHeader]
       def segmentCache(implicit keyOrder: KeyOrder[Slice[Byte]],
-                       keyValueLimiter: KeyValueLimiter): SegmentCache
+                       keyValueLimiter: KeyValueLimiter): SegmentManager
       def deadline: Option[Deadline]
     }
   }
@@ -513,14 +513,12 @@ private[swaydb] object Memory {
                    groupDecompressor: GroupDecompressor,
                    valueLength: Int) extends Memory with KeyValue.ReadOnly.Group {
 
-    lazy val segmentCacheInitializer: SegmentCacheInitializer =
-      new SegmentCacheInitializer(
+    lazy val segmentCacheInitializer: SegmentManagerInitialiser =
+      new SegmentManagerInitialiser(
         id = "Persistent.Group",
         minKey = minKey,
         maxKey = maxKey,
         unsliceKey = false,
-        getFooter = groupDecompressor.footer _,
-        getHashIndexHeader = groupDecompressor.hashIndexHeader _,
         createReader = groupDecompressor.reader _
       )
 
@@ -532,8 +530,8 @@ private[swaydb] object Memory {
       groupDecompressor.isIndexDecompressed()
 
     def segmentCache(implicit keyOrder: KeyOrder[Slice[Byte]],
-                     keyValueLimiter: KeyValueLimiter): SegmentCache =
-      segmentCacheInitializer.segmentCache
+                     keyValueLimiter: KeyValueLimiter): SegmentManager =
+      segmentCacheInitializer.create
 
     def header() =
       groupDecompressor.header()
@@ -1652,8 +1650,8 @@ private[core] object Persistent {
                    deadline: Option[Deadline],
                    isPrefixCompressed: Boolean) extends Persistent with KeyValue.ReadOnly.Group {
 
-    lazy val segmentCacheInitializer =
-      new SegmentCacheInitializer(
+    lazy val segmentManagerInitialiser =
+      new SegmentManagerInitialiser(
         id = "Persistent.Group",
         minKey = minKey,
         maxKey = maxKey,
@@ -1661,8 +1659,6 @@ private[core] object Persistent {
         //slicing will just use more memory. On memory overflow the Group itself will find dropped and hence all the
         //key-values inside the group's SegmentCache will also be GC'd.
         unsliceKey = false,
-        getFooter = groupDecompressor.footer _,
-        getHashIndexHeader = groupDecompressor.hashIndexHeader _,
         createReader = groupDecompressor.reader _
       )
 
@@ -1695,15 +1691,15 @@ private[core] object Persistent {
       groupDecompressor.header()
 
     /**
-      * On uncompressed a new Group is returned. It would be much efficient if the Group's old [[SegmentCache]]'s skipList's
+      * On uncompressed a new Group is returned. It would be much efficient if the Group's old [[SegmentManager]]'s skipList's
       * key-values are also still passed to the new Group in a thread-safe manner.
       */
     def uncompress(): Persistent.Group =
       copy(groupDecompressor = groupDecompressor.uncompress(), valueReader = valueReader.copy())
 
     def segmentCache(implicit keyOrder: KeyOrder[Slice[Byte]],
-                     keyValueLimiter: KeyValueLimiter): SegmentCache =
-      segmentCacheInitializer.segmentCache
+                     keyValueLimiter: KeyValueLimiter): SegmentManager =
+      segmentManagerInitialiser.create
 
     override def isValueDefined: Boolean =
       lazyGroupValueReader.isValueDefined

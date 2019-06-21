@@ -22,8 +22,6 @@ package swaydb.core.group.compression
 import swaydb.compression.DecompressorInternal
 import swaydb.core.group.compression.data.{GroupHeader, ValueInfo}
 import swaydb.core.io.reader.{GroupReader, Reader}
-import swaydb.core.segment.format.a.index.HashIndex
-import swaydb.core.segment.format.a.{SegmentFooter, SegmentReader}
 import swaydb.data.slice.Reader
 import swaydb.data.{IO, Reserve}
 
@@ -31,7 +29,6 @@ private[core] case class GroupDecompressor(private val compressedGroupReader: Re
                                            groupStartOffset: Int) {
 
   @volatile private var groupHeader: GroupHeader = _ //header for compressed Segment info
-  @volatile private var hashIndexHeaderOption: Option[HashIndex.Header] = None //header for compressed Segment info
   @volatile private var decompressedIndexReader: GroupReader = _ //reader for keys bytes that contains function to read value bytes
   @volatile private var decompressedValuesReader: Reader = _ //value bytes reader.
 
@@ -168,23 +165,6 @@ private[core] case class GroupDecompressor(private val compressedGroupReader: Re
         Reserve.setFree(busyIndexDecompressing)
     else
       IO.Failure(IO.Error.DecompressingIndex(busyIndexDecompressing))
-
-  def footer(): IO[SegmentFooter] =
-    ???
-  //    header().map(_.footer)
-
-  def hashIndexHeader(): IO[Option[HashIndex.Header]] =
-    footer() flatMap {
-      footer =>
-        SegmentReader.readHashIndexHeader(
-          reader = compressedGroupReader.copy(),
-          footer = footer
-        ) map {
-          header =>
-            this.hashIndexHeaderOption = Some(header)
-            this.hashIndexHeaderOption
-        }
-    }
 
   def reader(): IO[Reader] =
     decompress()

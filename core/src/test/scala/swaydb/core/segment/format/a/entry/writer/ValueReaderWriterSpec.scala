@@ -24,6 +24,7 @@ import swaydb.core.TestData._
 import swaydb.core.data.{Time, Transient}
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, BaseEntryIdFormatA, TransientToKeyValueIdBinder}
+import swaydb.core.segment.format.a.index.SortedIndex
 import swaydb.core.segment.format.a.{SegmentReader, SegmentWriter}
 import swaydb.core.{TestBase, TestData, TestTimer}
 import swaydb.data.order.KeyOrder
@@ -96,13 +97,13 @@ class ValueReaderWriterSpec extends TestBase {
           maxProbe = TestData.maxProbe
         ).get.flatten
 
-      val footer = SegmentReader.readFooter(Reader(bytes)).get
+      val footer = SegmentFooter.read(Reader(bytes)).get
       footer.hasGroup shouldBe false
       footer.bloomFilterItemsCount shouldBe keyValues.size
       footer.hasRange shouldBe false
       footer.hasPut shouldBe true
 
-      SegmentReader.readAll(footer, Reader(bytes)).get shouldBe keyValues
+      SortedIndex.readAll(footer.sortedIndexOffset, footer.keyValueCount, Reader(bytes)).get shouldBe keyValues
     }
   }
 }

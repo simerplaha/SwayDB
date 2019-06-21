@@ -123,6 +123,11 @@ private[core] object Stats {
     val segmentSortedIndexSize =
       previousStats.map(_.segmentSortedIndexSize).getOrElse(0) + thisKeyValuesSortedIndexSize
 
+    val segmentValueEntryAndSortedIndexEntrySize =
+      previousStats.map(_.segmentValueAndSortedIndexEntrySize).getOrElse(0) +
+        segmentValuesSize +
+        segmentSortedIndexSize
+
     val segmentOptimalBloomFilterSize =
       if (falsePositiveRate <= 0.0 || (hasRemoveRange && !enableBinarySearchIndex))
         0
@@ -133,7 +138,9 @@ private[core] object Stats {
         )
 
     val segmentSizeWithoutFooter: Int =
-      previousStats.map(previous => previous.segmentSizeWithoutFooter - previous.segmentHashIndexSize - previous.binarySearchIndexSize - previous.segmentBloomFilterSize).getOrElse(0) +
+      previousStats.map(previous => previous.segmentValueAndSortedIndexEntrySize).getOrElse(0) +
+        segmentValuesSize +
+        segmentSortedIndexSize +
         segmentHashIndexSize +
         segmentBinarySearchIndexSize +
         segmentOptimalBloomFilterSize
@@ -141,18 +148,10 @@ private[core] object Stats {
     //calculates the size of Segment after the last Group. This is used for size based grouping/compression.
     val segmentSizeWithoutFooterForNextGroup: Int =
       if (previous.exists(_.isGroup)) //if previous is a group, restart the size calculation
-        segmentValuesSize +
-          segmentSortedIndexSize +
-          segmentHashIndexSize +
-          segmentBinarySearchIndexSize +
-          segmentOptimalBloomFilterSize
+        segmentSizeWithoutFooter
       else //if previous is not a group, add previous key-values set segment size since the last group to this key-values Segment size.
         previousStats.map(_.segmentSizeWithoutFooterForNextGroup).getOrElse(0) +
-          valueLength +
-          thisKeyValuesSortedIndexSize +
-          segmentHashIndexSize +
-          segmentBinarySearchIndexSize +
-          segmentOptimalBloomFilterSize
+          segmentSizeWithoutFooter
 
     val segmentFooterSize =
       Bytes.sizeOf(SegmentWriter.formatId) + //1 byte for format
@@ -183,6 +182,7 @@ private[core] object Stats {
     new Stats(
       valueSize = valueLength,
       segmentSize = segmentSize,
+      segmentValueAndSortedIndexEntrySize = segmentValueEntryAndSortedIndexEntrySize,
       chainPosition = chainPosition,
       groupsCount = groupsCount,
       segmentUniqueKeysCount = segmentUniqueKeysCount,
@@ -212,6 +212,7 @@ private[core] object Stats {
 private[core] case class Stats(valueSize: Int,
                                segmentSize: Int,
                                chainPosition: Int,
+                               segmentValueAndSortedIndexEntrySize: Int,
                                groupsCount: Int,
                                segmentUniqueKeysCount: Int,
                                segmentValuesSize: Int,

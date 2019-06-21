@@ -1,8 +1,27 @@
+/*
+ * Copyright (c) 2019 Simer Plaha (@simerplaha)
+ *
+ * This file is a part of SwayDB.
+ *
+ * SwayDB is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * SwayDB is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package swaydb.core.segment.format.a.index
 
-import swaydb.core.data.Persistent
+import swaydb.core.data.{KeyValue, Persistent}
 import swaydb.core.io.reader.Reader
-import swaydb.core.segment.format.a.MatchResult
+import swaydb.core.segment.format.a.{MatchResult, OffsetBase}
 import swaydb.core.util.Bytes
 import swaydb.data.IO
 import swaydb.data.slice.{Reader, Slice}
@@ -13,6 +32,8 @@ import scala.annotation.tailrec
 object BinarySearchIndex {
 
   val formatId: Byte = 1.toByte
+
+  case class Offset(start: Int, size: Int) extends OffsetBase
 
   object State {
     def apply(largestValue: Int,
@@ -63,6 +84,18 @@ object BinarySearchIndex {
       _valuesCount += 1
   }
 
+  def init(keyValues: Iterable[KeyValue.WriteOnly]) =
+    if (keyValues.last.stats.binarySearchIndexSize <= 1)
+      None
+    else
+      Some(
+        BinarySearchIndex.State(
+          largestValue = keyValues.last.stats.thisKeyValuesAccessIndexOffset,
+          valuesCount = keyValues.last.stats.segmentUniqueKeysCount,
+          buildFullBinarySearchIndex = keyValues.last.buildFullBinarySearchIndex
+        )
+      )
+
   def optimalBytesRequired(largestValue: Int,
                            valuesCount: Int): Int =
     optimalHeaderSize(
@@ -93,14 +126,14 @@ object BinarySearchIndex {
       state.bytes addBoolean state.buildFullBinarySearchIndex
     }
 
-  def readHeader(startOffset: Int,
-                 reader: Reader) =
-    reader
-      .moveTo(startOffset)
+  def readHeader(offset: Offset,
+                 reader: Reader): IO[Header] = {
+    val movedReader = reader.moveTo(offset.start)
+    movedReader
       .readIntUnsigned()
       .flatMap {
         headerSize =>
-          reader
+          movedReader
             .read(headerSize)
             .flatMap {
               headBytes =>
@@ -126,6 +159,7 @@ object BinarySearchIndex {
                   }
             }
       }
+  }
 
   def write(value: Int,
             state: State): IO[Unit] =
@@ -174,4 +208,3 @@ object BinarySearchIndex {
     hop(start = 0, end = footer.valuesCount - 1)
   }
 }
-

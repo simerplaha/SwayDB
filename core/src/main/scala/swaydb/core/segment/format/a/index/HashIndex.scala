@@ -1,13 +1,33 @@
+/*
+ * Copyright (c) 2019 Simer Plaha (@simerplaha)
+ *
+ * This file is a part of SwayDB.
+ *
+ * SwayDB is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * SwayDB is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package swaydb.core.segment.format.a.index
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.core.segment.format.a.OffsetBase
 import swaydb.core.util.Bytes
 import swaydb.data.IO
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
 
 import scala.annotation.tailrec
-import scala.collection.{SortedSet, mutable}
+import scala.collection.mutable
 import scala.util.Try
 
 /**
@@ -16,6 +36,8 @@ import scala.util.Try
 private[core] object HashIndex extends LazyLogging {
 
   val formatID: Byte = 1.toByte
+
+  case class Offset(start: Int, size: Int) extends OffsetBase
 
   val headerSize =
     ByteSizeOf.byte + // format ID
@@ -87,12 +109,13 @@ private[core] object HashIndex extends LazyLogging {
       state.bytes addBoolean false //range indexing is not implemented.
     }
 
-  def readHeader(reader: Reader): IO[Header] =
+  def readHeader(offset: Offset, reader: Reader): IO[Header] = {
+    val movedReader = reader.moveTo(offset.start)
     for {
-      formatID <- reader.get()
-      maxProbe <- reader.readIntUnsigned()
-      hit <- reader.readInt()
-      miss <- reader.readInt()
+      formatID <- movedReader.get()
+      maxProbe <- movedReader.readIntUnsigned()
+      hit <- movedReader.readInt()
+      miss <- movedReader.readInt()
     } yield
       Header(
         formatId = formatID,
@@ -100,6 +123,7 @@ private[core] object HashIndex extends LazyLogging {
         hit = hit,
         miss = miss
       )
+  }
 
   def adjustHash(hash: Int, totalBlockSpace: Int) =
   //add headerSize of offset the output index skipping header bytes.
@@ -155,10 +179,9 @@ private[core] object HashIndex extends LazyLogging {
     * @param assertValue performs find or forward fetch from the currently being read sorted index's hash block.
     */
   def find[V](key: Slice[Byte],
+              offset: Offset,
+              header: Header,
               hashIndexReader: Reader,
-              hashIndexStartOffset: Int,
-              hashIndexSize: Int,
-              maxProbe: Int,
               assertValue: Int => IO[Option[V]]): IO[Option[V]] = {
 
     val hash = key.##
@@ -167,14 +190,14 @@ private[core] object HashIndex extends LazyLogging {
 
     @tailrec
     def doFind(probe: Int, checkedHashIndexes: mutable.HashSet[Int]): IO[Option[V]] =
-      if (probe > maxProbe) {
+      if (probe > header.maxProbe) {
         IO.none
       } else {
-        val hashIndex = adjustHash(hash1 + probe * hash2, hashIndexSize)
+        val hashIndex = adjustHash(hash1 + probe * hash2, offset.size)
         if (checkedHashIndexes contains hashIndex) //do not check the same index again.
           doFind(probe + 1, checkedHashIndexes)
         else
-          hashIndexReader.moveTo(hashIndexStartOffset + hashIndex).readIntUnsigned() match {
+          hashIndexReader.moveTo(offset.start + hashIndex).readIntUnsigned() match {
             case IO.Success(possibleValue) =>
               if (possibleValue == 0) {
                 doFind(probe + 1, checkedHashIndexes)

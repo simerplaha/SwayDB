@@ -19,7 +19,7 @@
 
 package swaydb.core.segment.format.a.entry.reader.value
 
-import swaydb.core.segment.format.a.SegmentReader
+import swaydb.core.segment.format.a.index.SortedIndex
 import swaydb.data.IO
 import swaydb.data.slice.{Reader, Slice}
 
@@ -49,7 +49,7 @@ trait LazyValueReader {
   //tries fetching the value from the given reader
   private def fetchValue(reader: Reader): IO[Option[Slice[Byte]]] =
     if (valueOption == null)
-      SegmentReader.readBytes(valueOffset, valueLength, reader) map {
+      SortedIndex.readBytes(valueOffset, valueLength, reader) map {
         value =>
           valueOption = value
           value
@@ -74,5 +74,4 @@ trait LazyValueReader {
       case _ =>
         false
     }
-
 }

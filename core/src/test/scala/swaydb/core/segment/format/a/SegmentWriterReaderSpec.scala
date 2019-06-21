@@ -357,13 +357,13 @@ class SegmentWriterReaderSpec extends TestBase {
           maxProbe = TestData.maxProbe
         ).assertGet.flatten
 
-      SegmentReader.readFooter(Reader(bytes.drop(1))).failed.assertGet.exception shouldBe a[SegmentCorruptionException]
-      SegmentReader.readFooter(Reader(bytes.dropRight(1))).failed.assertGet.exception shouldBe a[SegmentCorruptionException]
-      SegmentReader.readFooter(Reader(bytes.slice(10, 20))).failed.assertGet.exception shouldBe a[SegmentCorruptionException]
+      SegmentFooter.read(Reader(bytes.drop(1))).failed.assertGet.exception shouldBe a[SegmentCorruptionException]
+      SegmentFooter.read(Reader(bytes.dropRight(1))).failed.assertGet.exception shouldBe a[SegmentCorruptionException]
+      SegmentFooter.read(Reader(bytes.slice(10, 20))).failed.assertGet.exception shouldBe a[SegmentCorruptionException]
     }
   }
 
-  "SegmentReader.readFooter" should {
+  "SegmentFooter.read" should {
     "set hasRange to false when Segment contains no Range key-value" in {
       runThis(100.times) {
         val keyValues = randomizedKeyValues(keyValueCount, addRandomRanges = false, addRandomGroups = true)
@@ -375,7 +375,7 @@ class SegmentWriterReaderSpec extends TestBase {
             maxProbe = TestData.maxProbe
         ).assertGet.flatten
 
-        val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).get
+        val footer: SegmentFooter = SegmentFooter.read(Reader(bytes)).get
         footer.keyValueCount shouldBe keyValues.size
         //      footer.startIndexOffset shouldBe keyValues.head.stats.toValueOffset + 1
         footer.hasRange shouldBe false
@@ -423,7 +423,7 @@ class SegmentWriterReaderSpec extends TestBase {
             maxProbe = TestData.maxProbe
         ).assertGet.flatten
 
-        val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).get
+        val footer: SegmentFooter = SegmentFooter.read(Reader(bytes)).get
         footer.keyValueCount shouldBe keyValues.size
         footer.keyValueCount shouldBe keyValues.size
         //        footer.startIndexOffset shouldBe keyValues.last.stats.toValueOffset + 1
@@ -454,7 +454,7 @@ class SegmentWriterReaderSpec extends TestBase {
             maxProbe = TestData.maxProbe
         ).assertGet.flatten
 
-        val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).get
+        val footer: SegmentFooter = SegmentFooter.read(Reader(bytes)).get
         footer.keyValueCount shouldBe keyValues.size
         footer.keyValueCount shouldBe keyValues.size
         footer.hasRange shouldBe true
@@ -511,7 +511,7 @@ class SegmentWriterReaderSpec extends TestBase {
             maxProbe = TestData.maxProbe
         ).assertGet.flatten
 
-        val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).get
+        val footer: SegmentFooter = SegmentFooter.read(Reader(bytes)).get
         footer.keyValueCount shouldBe keyValues.size
         footer.keyValueCount shouldBe keyValues.size
         footer.hasRange shouldBe true
@@ -557,7 +557,7 @@ class SegmentWriterReaderSpec extends TestBase {
             maxProbe = TestData.maxProbe
         ).assertGet.flatten
 
-        val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).get
+        val footer: SegmentFooter = SegmentFooter.read(Reader(bytes)).get
         footer.keyValueCount shouldBe keyValues.size
         footer.keyValueCount shouldBe keyValues.size
         footer.hasRange shouldBe false
@@ -590,7 +590,7 @@ class SegmentWriterReaderSpec extends TestBase {
             maxProbe = TestData.maxProbe
         ).assertGet.flatten
 
-        val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).get
+        val footer: SegmentFooter = SegmentFooter.read(Reader(bytes)).get
         footer.keyValueCount shouldBe keyValues.size
         footer.keyValueCount shouldBe keyValues.size
         footer.hasRange shouldBe true
@@ -644,7 +644,7 @@ class SegmentWriterReaderSpec extends TestBase {
             maxProbe = TestData.maxProbe
         ).assertGet.flatten
 
-        val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).get
+        val footer: SegmentFooter = SegmentFooter.read(Reader(bytes)).get
         footer.keyValueCount shouldBe keyValues.size
         footer.keyValueCount shouldBe keyValues.size
         footer.hasRange shouldBe true
@@ -717,7 +717,7 @@ class SegmentWriterReaderSpec extends TestBase {
 
       writtenBytes.isFull shouldBe true
       val bytes = Slice(writtenBytes.toArrayCopy)
-      val footer = SegmentReader.readFooter(Reader(bytes)).assertGet
+      val footer = SegmentFooter.read(Reader(bytes)).assertGet
 
       /**
         * @param index                          keyValue at index

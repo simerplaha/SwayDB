@@ -25,8 +25,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.{Persistent, _}
 import swaydb.core.queue.KeyValueLimiter
-import swaydb.core.segment.format.a.SegmentReader._
-import swaydb.core.segment.format.a.index.{BloomFilter, HashIndex}
+import swaydb.core.segment.format.a.index.{BloomFilter, HashIndex, SortedIndex}
 import swaydb.core.segment.format.a.{KeyMatcher, SegmentFooter, SegmentReader}
 import swaydb.core.util._
 import swaydb.data.order.KeyOrder
@@ -35,50 +34,49 @@ import swaydb.data.{IO, MaxKey}
 
 import scala.annotation.tailrec
 
-private[core] class SegmentCacheInitializer(id: String,
-                                            maxKey: MaxKey[Slice[Byte]],
-                                            minKey: Slice[Byte],
-                                            unsliceKey: Boolean,
-                                            getFooter: () => IO[SegmentFooter],
-                                            getHashIndexHeader: () => IO[Option[HashIndex.Header]],
-                                            createReader: () => IO[Reader]) {
+private[core] class SegmentManagerInitialiser(id: String,
+                                              maxKey: MaxKey[Slice[Byte]],
+                                              minKey: Slice[Byte],
+                                              unsliceKey: Boolean,
+                                              createReader: () => IO[Reader]) {
   private val created = new AtomicBoolean(false)
-  @volatile private var cache: SegmentCache = _
+  @volatile private var cache: SegmentManager = _
 
   @tailrec
-  final def segmentCache(implicit keyOrder: KeyOrder[Slice[Byte]],
-                         keyValueLimiter: KeyValueLimiter): SegmentCache =
+  final def create(implicit keyOrder: KeyOrder[Slice[Byte]],
+                   keyValueLimiter: KeyValueLimiter): SegmentManager =
     if (cache != null) {
       cache
     } else if (created.compareAndSet(false, true)) {
       cache =
-        new SegmentCache(
+        new SegmentManager(
           id = id,
           maxKey = maxKey,
           minKey = minKey,
           cache = new ConcurrentSkipListMap[Slice[Byte], Persistent](keyOrder),
           unsliceKey = unsliceKey,
-          getFooter = getFooter,
-          getHashIndexHeader = getHashIndexHeader,
           createReader = createReader
         )
       cache
     } else {
-      segmentCache
+      create
     }
 }
 
-private[core] class SegmentCache(id: String,
-                                 maxKey: MaxKey[Slice[Byte]],
-                                 minKey: Slice[Byte],
-                                 cache: ConcurrentSkipListMap[Slice[Byte], Persistent],
-                                 unsliceKey: Boolean,
-                                 getFooter: () => IO[SegmentFooter],
-                                 getHashIndexHeader: () => IO[Option[HashIndex.Header]],
-                                 createReader: () => IO[Reader])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                 keyValueLimiter: KeyValueLimiter) extends LazyLogging {
+private[core] class SegmentManager(id: String,
+                                   maxKey: MaxKey[Slice[Byte]],
+                                   minKey: Slice[Byte],
+                                   cache: ConcurrentSkipListMap[Slice[Byte], Persistent],
+                                   unsliceKey: Boolean,
+                                   createReader: () => IO[Reader])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                   keyValueLimiter: KeyValueLimiter) extends LazyLogging {
 
   import keyOrder._
+
+  @volatile private[segment] var footer: Either[Unit, IO.Success[SegmentFooter]] = Left()
+  @volatile private[segment] var hashIndexHeader: Either[Unit, IO.Success[Option[(HashIndex.Header, HashIndex.Offset)]]] = Left()
+  @volatile private[segment] var bloomFilterHeader: Either[Unit, IO.Success[Option[(BloomFilter.Header, BloomFilter.Offset)]]] = Left()
+  @volatile private[segment] var binarySearchIndex: Either[Unit, IO.Success[Option[(BloomFilter.Header, BloomFilter.Offset)]]] = Left()
 
   /**
     * Notes for why use putIfAbsent before adding to cache:
@@ -102,27 +100,78 @@ private[core] class SegmentCache(id: String,
   }
 
   private def prepareGet[T](getOperation: (SegmentFooter, Reader) => IO[T]): IO[T] =
-    getFooter() flatMap {
-      footer =>
+    getFooter()
+      .flatMap {
+        footer =>
+          createReader() flatMap {
+            reader =>
+              getOperation(footer, reader)
+          }
+      }
+      .onFailureSideEffect {
+        failure: IO.Failure[_] =>
+          ExceptionUtil.logFailure(s"$id: Failed to read Segment.", failure)
+      }
+
+  def getFooter(): IO[SegmentFooter] =
+    footer
+      .getOrElse {
         createReader() flatMap {
           reader =>
-            getOperation(footer, reader)
+            SegmentFooter.read(reader) map {
+              footer =>
+                this.footer = Right(IO.Success(footer))
+                footer
+            }
         }
-    } onFailureSideEffect {
-      failure: IO.Failure[_] =>
-        ExceptionUtil.logFailure(s"$id: Failed to read Segment.", failure)
-    }
+      }
 
-  def getBloomFilter: IO[Option[BloomFilter.Header]] =
-  //    getFooter() map (_.bloomFilter)
-    ???
+  def getHashIndexHeader(): IO[Option[(HashIndex.Header, HashIndex.Offset)]] =
+    hashIndexHeader
+      .getOrElse {
+        prepareGet {
+          (footer, reader) =>
+            footer.hashIndexOffset map {
+              hashIndexOffset =>
+                HashIndex.readHeader(hashIndexOffset, reader) map {
+                  hashIndexHeader =>
+                    val headerOffset = Some(hashIndexHeader, hashIndexOffset)
+                    this.hashIndexHeader = Right(IO.Success(headerOffset))
+                    headerOffset
+                }
+            } getOrElse {
+              this.hashIndexHeader = Right(IO.none)
+              IO.none
+            }
+        }
+      }
+
+  def getBloomFilterHeader(): IO[Option[(BloomFilter.Header, BloomFilter.Offset)]] =
+    bloomFilterHeader
+      .getOrElse {
+        prepareGet {
+          (footer, reader) =>
+            footer.bloomFilterOffset map {
+              offset =>
+                BloomFilter.readHeader(offset, reader) map {
+                  bloomFilter =>
+                    val headerOffset = Some(bloomFilter, offset)
+                    this.bloomFilterHeader = Right(IO.Success(headerOffset))
+                    headerOffset
+                }
+            } getOrElse {
+              this.bloomFilterHeader = Right(IO.none)
+              IO.none
+            }
+        }
+      }
 
   def getFromCache(key: Slice[Byte]): Option[Persistent] =
     Option(cache.get(key))
 
   def mightContain(key: Slice[Byte]): IO[Boolean] =
-  //    getFooter().map(_.bloomFilter forall (BloomFilter.mightContain(key, _)))
-    ???
+    getBloomFilterHeader()
+      .map(_.forall(header => BloomFilter.mightContain(key, header._1)))
 
   def get(key: Slice[Byte]): IO[Option[Persistent.SegmentResponse]] =
     maxKey match {
@@ -154,27 +203,27 @@ private[core] class SegmentCache(id: String,
               (footer, reader) =>
                 getHashIndexHeader() flatMap {
                   hashIndexHeader =>
-//                    if (!footer.bloomFilter.forall(BloomFilter.mightContain(key, _)))
-//                      IO.none
-//                    else
-//                      SegmentReader.get(
-//                        matcher = KeyMatcher.Get(key),
-//                        startFrom = floorValue,
-//                        reader = reader,
-//                        hashIndexHeader = hashIndexHeader,
-//                        footer = footer
-//                      ) flatMap {
-//                        case Some(response: Persistent.SegmentResponse) =>
-//                          addToCache(response)
-//                          IO.Success(Some(response))
-//
-//                        case Some(group: Persistent.Group) =>
-//                          addToCache(group)
-//                          group.segmentCache.get(key)
-//
-//                        case None =>
-//                          IO.none
-//                      }
+                    //                    if (!footer.bloomFilter.forall(BloomFilter.mightContain(key, _)))
+                    //                      IO.none
+                    //                    else
+                    //                      SegmentReader.get(
+                    //                        matcher = KeyMatcher.Get(key),
+                    //                        startFrom = floorValue,
+                    //                        reader = reader,
+                    //                        hashIndexHeader = hashIndexHeader,
+                    //                        footer = footer
+                    //                      ) flatMap {
+                    //                        case Some(response: Persistent.SegmentResponse) =>
+                    //                          addToCache(response)
+                    //                          IO.Success(Some(response))
+                    //
+                    //                        case Some(group: Persistent.Group) =>
+                    //                          addToCache(group)
+                    //                          group.segmentCache.get(key)
+                    //
+                    //                        case None =>
+                    //                          IO.none
+                    //                      }
                     ???
                 }
             }
@@ -227,23 +276,24 @@ private[core] class SegmentCache(id: String,
           } getOrElse {
             prepareGet {
               (footer, reader) =>
-                SegmentReader.lower(
-                  matcher = KeyMatcher.Lower(key),
-                  startFrom = lowerKeyValue,
-                  reader = reader,
-                  footer = footer
-                ) flatMap {
-                  case Some(response: Persistent.SegmentResponse) =>
-                    addToCache(response)
-                    IO.Success(Some(response))
-
-                  case Some(group: Persistent.Group) =>
-                    addToCache(group)
-                    group.segmentCache.lower(key)
-
-                  case None =>
-                    IO.none
-                }
+                //                SegmentReader.lower(
+                //                  matcher = KeyMatcher.Lower(key),
+                //                  startFrom = lowerKeyValue,
+                //                  reader = reader,
+                //                  footer = footer
+                //                ) flatMap {
+                //                  case Some(response: Persistent.SegmentResponse) =>
+                //                    addToCache(response)
+                //                    IO.Success(Some(response))
+                //
+                //                  case Some(group: Persistent.Group) =>
+                //                    addToCache(group)
+                //                    group.segmentCache.lower(key)
+                //
+                //                  case None =>
+                //                    IO.none
+                //                }
+                ???
             }
           }
       }
@@ -308,26 +358,27 @@ private[core] class SegmentCache(id: String,
                 else
                   get(key)
 
-              startFrom flatMap {
-                startFrom =>
-                  SegmentReader.higher(
-                    matcher = KeyMatcher.Higher(key),
-                    startFrom = startFrom,
-                    reader = reader,
-                    footer = footer
-                  ) flatMap {
-                    case Some(response: Persistent.SegmentResponse) =>
-                      addToCache(response)
-                      IO.Success(Some(response))
-
-                    case Some(group: Persistent.Group) =>
-                      addToCache(group)
-                      group.segmentCache.higher(key)
-
-                    case None =>
-                      IO.none
-                  }
-              }
+              //              startFrom flatMap {
+              //                startFrom =>
+              //                  SegmentReader.higher(
+              //                    matcher = KeyMatcher.Higher(key),
+              //                    startFrom = startFrom,
+              //                    reader = reader,
+              //                    footer = footer
+              //                  ) flatMap {
+              //                    case Some(response: Persistent.SegmentResponse) =>
+              //                      addToCache(response)
+              //                      IO.Success(Some(response))
+              //
+              //                    case Some(group: Persistent.Group) =>
+              //                      addToCache(group)
+              //                      group.segmentCache.higher(key)
+              //
+              //                    case None =>
+              //                      IO.none
+              //                  }
+              //              }
+              ???
           }
         }
     }
@@ -335,10 +386,17 @@ private[core] class SegmentCache(id: String,
   def getAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None): IO[Slice[KeyValue.ReadOnly]] =
     prepareGet {
       (footer, reader) =>
-        SegmentReader.readAll(footer, reader, addTo) onFailureSideEffect {
-          _ =>
-            logger.trace("{}: Reading index block failed. Segment file is corrupted.", id)
-        }
+        SortedIndex
+          .readAll(
+            offset = footer.sortedIndexOffset,
+            keyValueCount = footer.keyValueCount,
+            reader = reader,
+            addTo = addTo
+          )
+          .onFailureSideEffect {
+            _ =>
+              logger.trace("{}: Reading index block failed. Segment file is corrupted.", id)
+          }
     }
 
   def getHeadKeyValueCount(): IO[Int] =
@@ -346,9 +404,6 @@ private[core] class SegmentCache(id: String,
 
   def getBloomFilterKeyValueCount(): IO[Int] =
     getFooter().map(_.bloomFilterItemsCount)
-
-  def footer() =
-    getFooter()
 
   def hasRange: IO[Boolean] =
     getFooter().map(_.hasRange)
@@ -358,4 +413,20 @@ private[core] class SegmentCache(id: String,
 
   def isCacheEmpty =
     cache.isEmpty()
+
+  def isFooterDefined: Boolean =
+    footer.exists(_ => true)
+
+  def createdInLevel: IO[Int] =
+    getFooter().map(_.createdInLevel)
+
+  def isGrouped: IO[Boolean] =
+    getFooter().map(_.hasGroup)
+
+  def close() = {
+    footer = Left()
+    hashIndexHeader = Left()
+    binarySearchIndex = Left()
+    bloomFilterHeader = Left()
+  }
 }

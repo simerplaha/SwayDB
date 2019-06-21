@@ -28,7 +28,11 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
     BinarySearchIndex.writeHeader(state).get
     state.bytes.isFull shouldBe true
 
-    val footer = BinarySearchIndex.readHeader(0, Reader(state.bytes)).get
+    val footer =
+      BinarySearchIndex.readHeader(
+        offset = BinarySearchIndex.Offset(0, state.bytes.written),
+        reader = Reader(state.bytes)
+      ).get
 
     footer.byteSizeOfLargestValue shouldBe Bytes.sizeOf(largestValue)
     val headerSize = BinarySearchIndex.optimalHeaderSize(largestValue = largestValue, valuesCount = values.size)

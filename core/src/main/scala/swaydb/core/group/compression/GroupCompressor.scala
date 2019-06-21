@@ -24,7 +24,6 @@ import swaydb.compression.CompressionInternal
 import swaydb.core.data.Compressor.{GroupCompressionResult, ValueCompressionResult}
 import swaydb.core.data.{Compressor, KeyValue, Transient}
 import swaydb.core.group.compression.GroupCompressorFailure.InvalidGroupKeyValuesHeadPosition
-import swaydb.core.segment.format.a.index.{BinarySearchIndex, HashIndex}
 import swaydb.core.segment.format.a.SegmentWriter
 import swaydb.core.util.Bytes
 import swaydb.data.slice.Slice

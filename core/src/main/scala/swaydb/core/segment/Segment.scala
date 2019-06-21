@@ -31,8 +31,8 @@ import swaydb.core.io.reader.Reader
 import swaydb.core.level.PathsDistributor
 import swaydb.core.map.Map
 import swaydb.core.queue.{FileLimiter, FileLimiterItem, KeyValueLimiter}
-import swaydb.core.segment.format.a.index.BloomFilter
-import swaydb.core.segment.format.a.{SegmentReader, SegmentWriter}
+import swaydb.core.segment.format.a.SegmentWriter
+import swaydb.core.segment.format.a.index.{BloomFilter, SortedIndex}
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util.CollectionUtil._
 import swaydb.core.util.{FiniteDurationUtil, IDGenerator}
@@ -65,7 +65,7 @@ private[core] object Segment extends LazyLogging {
     } else {
       val skipList = new ConcurrentSkipListMap[Slice[Byte], Memory](keyOrder)
 
-      val bloomFilter: Option[BloomFilter.State] = BloomFilter.init(keyValues = keyValues)
+      val bloomFilterOption = BloomFilter.init(keyValues = keyValues)
 
       def writeKeyValue(keyValue: KeyValue.WriteOnly,
                         currentNearestDeadline: Option[Deadline]): IO[Option[Deadline]] = {
@@ -75,8 +75,8 @@ private[core] object Segment extends LazyLogging {
             SegmentWriter.writeIndexes(
               keyValue = group,
               hashIndex = None,
-              bloomFilter = bloomFilter,
-              binarySearchIndex = ???,
+              bloomFilter = bloomFilterOption,
+              binarySearchIndex = None,
               currentNearestDeadline = currentNearestDeadline
             ) map {
               nextNearestDeadline =>
@@ -103,7 +103,7 @@ private[core] object Segment extends LazyLogging {
                 time = remove.time.unslice()
               )
             )
-            bloomFilter foreach (BloomFilter.add(keyUnsliced, _))
+            bloomFilterOption foreach (BloomFilter.add(keyUnsliced, _))
             Segment.getNearestDeadline(currentNearestDeadline, remove)
 
           case put: Transient.Put =>
@@ -131,7 +131,7 @@ private[core] object Segment extends LazyLogging {
                   )
                 )
             }
-            bloomFilter foreach (BloomFilter.add(keyUnsliced, _))
+            bloomFilterOption foreach (BloomFilter.add(keyUnsliced, _))
             Segment.getNearestDeadline(currentNearestDeadline, put)
 
           case update: Transient.Update =>
@@ -159,7 +159,7 @@ private[core] object Segment extends LazyLogging {
                   )
                 )
             }
-            bloomFilter foreach (BloomFilter.add(keyUnsliced, _))
+            bloomFilterOption foreach (BloomFilter.add(keyUnsliced, _))
             Segment.getNearestDeadline(currentNearestDeadline, update)
 
           case function: Transient.Function =>
@@ -172,7 +172,7 @@ private[core] object Segment extends LazyLogging {
               )
             )
 
-            bloomFilter foreach (BloomFilter.add(keyUnsliced, _))
+            bloomFilterOption foreach (BloomFilter.add(keyUnsliced, _))
             Segment.getNearestDeadline(currentNearestDeadline, function)
 
           case pendingApply: Transient.PendingApply =>
@@ -184,7 +184,7 @@ private[core] object Segment extends LazyLogging {
               )
             )
 
-            bloomFilter foreach (BloomFilter.add(keyUnsliced, _))
+            bloomFilterOption foreach (BloomFilter.add(keyUnsliced, _))
             Segment.getNearestDeadline(currentNearestDeadline, pendingApply)
 
           case range: KeyValue.WriteOnly.Range =>
@@ -199,7 +199,7 @@ private[core] object Segment extends LazyLogging {
                     rangeValue = rangeValue.unslice
                   )
                 )
-                bloomFilter foreach (BloomFilter.add(keyUnsliced, _))
+                bloomFilterOption foreach (BloomFilter.add(keyUnsliced, _))
                 Segment.getNearestDeadline(currentNearestDeadline, range)
             }
         }
@@ -212,33 +212,45 @@ private[core] object Segment extends LazyLogging {
           writeKeyValue(keyValue, deadline)
       } flatMap {
         nearestExpiryDeadline =>
-          IO {
-            MemorySegment(
-              path = path,
-              minKey = keyValues.head.key.unslice(),
-              maxKey =
-                keyValues.last match {
-                  case range: KeyValue.WriteOnly.Range =>
-                    MaxKey.Range(range.fromKey.unslice(), range.toKey.unslice())
+          bloomFilterOption
+            .map {
+              bloomFilterState =>
+                BloomFilter
+                  .readHeader(
+                    offset = BloomFilter.Offset(0, bloomFilterState.bytes.written),
+                    reader = Reader(bloomFilterState.bytes.close())
+                  )
+                  .map(Some(_))
+            }
+            .getOrElse(IO.none)
+            .map {
+              bloomFilter =>
+                MemorySegment(
+                  path = path,
+                  minKey = keyValues.head.key.unslice(),
+                  maxKey =
+                    keyValues.last match {
+                      case range: KeyValue.WriteOnly.Range =>
+                        MaxKey.Range(range.fromKey.unslice(), range.toKey.unslice())
 
-                  case group: KeyValue.WriteOnly.Group =>
-                    group.maxKey.unslice()
+                      case group: KeyValue.WriteOnly.Group =>
+                        group.maxKey.unslice()
 
-                  case keyValue: KeyValue.WriteOnly.Fixed =>
-                    MaxKey.Fixed(keyValue.key.unslice())
-                },
-              _isGrouped = groupingStrategy.isDefined,
-              _createdInLevel = createdInLevel.toInt,
-              _hasRange = keyValues.last.stats.segmentHasRange,
-              _hasPut = keyValues.last.stats.segmentHasPut,
-              _hasGroup = keyValues.last.stats.segmentHasGroup,
-              segmentSize = keyValues.last.stats.memorySegmentSize,
-              bloomFilter = ???,
-              cache = skipList,
-              nearestExpiryDeadline = nearestExpiryDeadline,
-              busy = Reserve()
-            )
-          }
+                      case keyValue: KeyValue.WriteOnly.Fixed =>
+                        MaxKey.Fixed(keyValue.key.unslice())
+                    },
+                  _isGrouped = groupingStrategy.isDefined,
+                  _createdInLevel = createdInLevel.toInt,
+                  _hasRange = keyValues.last.stats.segmentHasRange,
+                  _hasPut = keyValues.last.stats.segmentHasPut,
+                  _hasGroup = keyValues.last.stats.segmentHasGroup,
+                  segmentSize = keyValues.last.stats.memorySegmentSize,
+                  bloomFilter = bloomFilter,
+                  cache = skipList,
+                  nearestExpiryDeadline = nearestExpiryDeadline,
+                  busy = Reserve()
+                )
+            }
       }
     }
 
@@ -584,38 +596,44 @@ private[core] object Segment extends LazyLogging {
       file =>
         file.fileSize flatMap {
           fileSize =>
-            SegmentReader.readFooter(Reader(file)) flatMap {
+            SegmentFooter.read(Reader(file)) flatMap {
               footer =>
-                SegmentReader.readAll(footer, Reader(file)) flatMap {
-                  keyValues =>
-                    //close the file
-                    file.close flatMap {
-                      _ =>
-                        getNearestDeadline(keyValues) map {
-                          nearestDeadline =>
-                            PersistentSegment(
-                              file = file,
-                              mmapReads = mmapReads,
-                              mmapWrites = mmapWrites,
-                              minKey = keyValues.head.key,
-                              maxKey =
-                                keyValues.last match {
-                                  case fixed: KeyValue.ReadOnly.Fixed =>
-                                    MaxKey.Fixed(fixed.key)
+                SortedIndex
+                  .readAll(
+                    offset = footer.sortedIndexOffset,
+                    keyValueCount = footer.keyValueCount,
+                    reader = Reader(file)
+                  )
+                  .flatMap {
+                    keyValues =>
+                      //close the file
+                      file.close flatMap {
+                        _ =>
+                          getNearestDeadline(keyValues) map {
+                            nearestDeadline =>
+                              PersistentSegment(
+                                file = file,
+                                mmapReads = mmapReads,
+                                mmapWrites = mmapWrites,
+                                minKey = keyValues.head.key,
+                                maxKey =
+                                  keyValues.last match {
+                                    case fixed: KeyValue.ReadOnly.Fixed =>
+                                      MaxKey.Fixed(fixed.key)
 
-                                  case group: KeyValue.ReadOnly.Group =>
-                                    group.maxKey
+                                    case group: KeyValue.ReadOnly.Group =>
+                                      group.maxKey
 
-                                  case range: KeyValue.ReadOnly.Range =>
-                                    MaxKey.Range(range.fromKey, range.toKey)
-                                },
-                              segmentSize = fileSize.toInt,
-                              nearestExpiryDeadline = nearestDeadline,
-                              compactionReserve = Reserve()
-                            )
-                        }
-                    }
-                }
+                                    case range: KeyValue.ReadOnly.Range =>
+                                      MaxKey.Range(range.fromKey, range.toKey)
+                                  },
+                                segmentSize = fileSize.toInt,
+                                nearestExpiryDeadline = nearestDeadline,
+                                compactionReserve = Reserve()
+                              )
+                          }
+                      }
+                  }
             }
         }
     }
@@ -968,8 +986,6 @@ private[core] trait Segment extends FileLimiterItem {
   def createdInLevel: IO[Int]
 
   def isGrouped: IO[Boolean]
-
-  def getBloomFilter: IO[Option[BloomFilter.Header]]
 
   def path: Path
 

@@ -85,7 +85,7 @@ class GroupDecompressorSpec extends TestBase {
         //          ).assertGet
         //
         //        //read footer
-        //        val readKeyValues = SegmentReader.readAll(SegmentReader.readFooter(Reader(bytes)).assertGet, Reader(bytes)).assertGet
+        //        val readKeyValues = SortedIndex.readAll(SegmentFooter.read(Reader(bytes)).assertGet, Reader(bytes)).assertGet
         //        readKeyValues should have size 1
         //        val persistentGroup = readKeyValues.head.asInstanceOf[Persistent.Group]
         //

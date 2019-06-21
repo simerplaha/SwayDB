@@ -387,9 +387,9 @@ private[segment] case class MemorySegment(path: Path,
           keyValue match {
             case _: SegmentResponse =>
               IO.Success(count + 1)
+
             case group: Group =>
-              //              group.header() map (count + _.bloomFilterItemsCount)
-              ???
+              group.segmentCache.getBloomFilterKeyValueCount() map (_ + count)
           }
       }
 
@@ -413,9 +413,6 @@ private[segment] case class MemorySegment(path: Path,
 
   override def existsOnDisk: Boolean =
     false
-
-  override def getBloomFilter: IO[Option[BloomFilter.Header]] =
-    IO(bloomFilter)
 
   override def hasRange: IO[Boolean] =
     IO(_hasRange)

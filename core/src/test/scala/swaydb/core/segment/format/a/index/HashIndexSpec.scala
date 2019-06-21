@@ -77,6 +77,18 @@ class HashIndexSpec extends TestBase {
           writeState.miss shouldBe keyValues.size - writeState.hit
           writeState.hit + writeState.miss shouldBe keyValues.size
 
+          HashIndex.writeHeader(writeState).get
+
+          val header = HashIndex.readHeader(HashIndex.Offset(0, writeState.bytes.written), Reader(writeState.bytes)).get
+
+          header shouldBe
+            HashIndex.Header(
+              formatId = HashIndex.formatID,
+              maxProbe = writeState.maxProbe,
+              hit = writeState.hit,
+              miss = writeState.miss
+            )
+
           val indexOffsetMap: mutable.ListMap[Int, Transient] =
             keyValues.map({
               keyValue =>
@@ -124,9 +136,8 @@ class HashIndexSpec extends TestBase {
                 HashIndex.find(
                   key = keyValue.key,
                   hashIndexReader = Reader(writeState.bytes),
-                  hashIndexSize = writeState.bytes.size,
-                  hashIndexStartOffset = 0,
-                  maxProbe = maxProbe,
+                  offset = HashIndex.Offset(0, writeState.bytes.size),
+                  header = header,
                   assertValue = findKey(_, keyValue.key)
                 ) map {
                   foundOption =>
@@ -139,15 +150,7 @@ class HashIndexSpec extends TestBase {
 
           readResult.get.flatten.size should be >= writeState.hit //>= because it can getFromHashIndex lucky with overlapping index bytes.
 
-          HashIndex.writeHeader(writeState).get
 
-          HashIndex.readHeader(Reader(writeState.bytes)).get shouldBe
-            HashIndex.Header(
-              formatId = HashIndex.formatID,
-              maxProbe = writeState.maxProbe,
-              hit = writeState.hit,
-              miss = writeState.miss
-            )
         }
       }
     }

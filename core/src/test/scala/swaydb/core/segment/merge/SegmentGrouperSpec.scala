@@ -32,9 +32,11 @@ import swaydb.serializers._
 import swaydb.core.TestData._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
+
 import scala.collection.mutable.ListBuffer
 import scala.util.Random
 import swaydb.core.IOAssert._
+import swaydb.core.segment.format.a.index.SortedIndex
 
 class SegmentGrouperSpec extends TestBase {
 
@@ -134,8 +136,8 @@ class SegmentGrouperSpec extends TestBase {
         ).assertGet.flatten
 
       val reader = Reader(segmentBytes)
-      val footer = SegmentReader.readFooter(reader.copy()).assertGet
-      val readKeyValues = SegmentReader.readAll(footer, reader).assertGet
+      val footer = SegmentFooter.read(reader.copy()).assertGet
+      val readKeyValues = SortedIndex.readAll(footer.sortedIndexOffset, footer.keyValueCount, reader).assertGet
       readKeyValues shouldBe keyValues
     }
 
@@ -187,8 +189,8 @@ class SegmentGrouperSpec extends TestBase {
         ).assertGet.flatten
 
       val reader = Reader(segmentBytes)
-      val footer = SegmentReader.readFooter(reader.copy()).assertGet
-      val readKeyValues = SegmentReader.readAll(footer, reader).assertGet
+      val footer = SegmentFooter.read(reader.copy()).assertGet
+      val readKeyValues = SortedIndex.readAll(footer.sortedIndexOffset, footer.keyValueCount, reader).assertGet
       readKeyValues shouldBe keyValues
     }
 

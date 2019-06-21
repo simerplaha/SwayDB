@@ -30,8 +30,8 @@ import swaydb.core.io.file.DBFile
 import swaydb.core.io.reader.Reader
 import swaydb.core.level.PathsDistributor
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
-import swaydb.core.segment.format.a.index.{BloomFilter, HashIndex}
-import swaydb.core.segment.format.a.{SegmentFooter, SegmentReader}
+import swaydb.core.segment.format.a.index.HashIndex
+import swaydb.core.segment.format.a.SegmentReader
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util._
 import swaydb.data.IO._
@@ -60,25 +60,20 @@ private[segment] case class PersistentSegment(file: DBFile,
 
   private[segment] val cache = new ConcurrentSkipListMap[Slice[Byte], Persistent](keyOrder)
 
-  @volatile private[segment] var footer = Option.empty[SegmentFooter]
-  @volatile private[segment] var hashIndexHeader = Option.empty[HashIndex.Header]
-
-  val segmentCache =
-    new SegmentCache(
+  private val segmentManager =
+    new SegmentManager(
       id = file.path.toString,
       maxKey = maxKey,
       minKey = minKey,
       cache = cache,
       unsliceKey = true,
-      getFooter = getFooter _,
-      getHashIndexHeader = getHashIndexHeader _,
-      createReader = () => IO(createReader())
+      createReader = () => IO.Success(Reader(file))
     )
 
   def close: IO[Unit] =
     file.close map {
       _ =>
-        footer = None
+        segmentManager.close()
     }
 
   def isOpen: Boolean =
@@ -86,9 +81,6 @@ private[segment] case class PersistentSegment(file: DBFile,
 
   def isFileDefined =
     file.isFileDefined
-
-  private def createReader(): Reader =
-    Reader(file)
 
   def deleteSegmentsEventually =
     fileOpenLimiter.delete(this)
@@ -100,7 +92,7 @@ private[segment] case class PersistentSegment(file: DBFile,
         logger.error(s"{}: Failed to delete Segment file.", path, failure)
     } map {
       _ =>
-        footer = None
+        segmentManager.close()
     }
   }
 
@@ -234,63 +226,41 @@ private[segment] case class PersistentSegment(file: DBFile,
         }
     }
 
-  def getFooter(): IO[SegmentFooter] =
-    footer.map(IO.Success(_)) getOrElse {
-      SegmentReader.readFooter(createReader()) map {
-        footer =>
-          this.footer = Some(footer)
-          footer
-      }
-    }
-
-  def getHashIndexHeader(): IO[Option[HashIndex.Header]] =
-    getFooter() flatMap {
-      footer =>
-        SegmentReader.readHashIndexHeader(createReader(), footer) map {
-          hashIndexHeader =>
-            this.hashIndexHeader = Some(hashIndexHeader)
-            this.hashIndexHeader
-        }
-    }
-
-  override def getBloomFilter: IO[Option[BloomFilter.Header]] =
-    segmentCache.getBloomFilter
-
   def getFromCache(key: Slice[Byte]): Option[Persistent] =
-    segmentCache getFromCache key
+    segmentManager getFromCache key
 
   def mightContain(key: Slice[Byte]): IO[Boolean] =
-    segmentCache mightContain key
+    segmentManager mightContain key
 
   def get(key: Slice[Byte]): IO[Option[Persistent.SegmentResponse]] =
-    segmentCache get key
+    segmentManager get key
 
   def lower(key: Slice[Byte]): IO[Option[Persistent.SegmentResponse]] =
-    segmentCache lower key
+    segmentManager lower key
 
   def floorHigherHint(key: Slice[Byte]): IO[Option[Slice[Byte]]] =
-    segmentCache floorHigherHint key
+    segmentManager floorHigherHint key
 
   def higher(key: Slice[Byte]): IO[Option[Persistent.SegmentResponse]] =
-    segmentCache higher key
+    segmentManager higher key
 
   def getAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None): IO[Slice[KeyValue.ReadOnly]] =
-    segmentCache getAll addTo
+    segmentManager getAll addTo
 
   override def hasRange: IO[Boolean] =
-    segmentCache.hasRange
+    segmentManager.hasRange
 
   override def hasPut: IO[Boolean] =
-    segmentCache.hasPut
+    segmentManager.hasPut
 
   def getHeadKeyValueCount(): IO[Int] =
-    segmentCache.getHeadKeyValueCount()
+    segmentManager.getHeadKeyValueCount()
 
   def getBloomFilterKeyValueCount(): IO[Int] =
-    segmentCache.getBloomFilterKeyValueCount()
+    segmentManager.getBloomFilterKeyValueCount()
 
   override def isFooterDefined: Boolean =
-    footer.isDefined
+    ???
 
   def existsOnDisk: Boolean =
     file.existsOnDisk
@@ -308,8 +278,8 @@ private[segment] case class PersistentSegment(file: DBFile,
     !file.existsOnDisk
 
   override def createdInLevel: IO[Int] =
-    getFooter().map(_.createdInLevel)
+    segmentManager.getFooter().map(_.createdInLevel)
 
   override def isGrouped: IO[Boolean] =
-    getFooter().map(_.hasGroup)
+    segmentManager.getFooter().map(_.hasGroup)
 }

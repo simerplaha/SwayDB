@@ -34,6 +34,7 @@ import swaydb.core.io.file.IOEffect._
 import swaydb.core.io.reader.Reader
 import swaydb.core.level.PathsDistributor
 import swaydb.core.queue.FileLimiter
+import swaydb.core.segment.format.a.index.SortedIndex
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.segment.{PersistentSegment, Segment}
 import swaydb.core.util._
@@ -127,7 +128,8 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
                   maxKey.underlyingArraySize shouldBe 4
               }
 
-              assertBloom(keyValues.toTransient, segment.getBloomFilter.assertGet)
+//              assertBloom(keyValues.toTransient, segment.getBloomFilterHeader.assertGet)
+              ???
 
               segment.close.assertGet
             }
@@ -258,7 +260,8 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           ).assertGet.flatten
 
         //read key-values so they are all part of the same byte array.
-        val readKeyValues: Slice[Memory] = SegmentReader.readAll(SegmentReader.readFooter(Reader(bytes)).assertGet, Reader(bytes)).assertGet.toMemory
+        val footer = SegmentFooter.read(Reader(bytes)).assertGet
+        val readKeyValues: Slice[Memory] = SortedIndex.readAll(footer.sortedIndexOffset, footer.keyValueCount, Reader(bytes)).assertGet.toMemory
 
         //assert that readKeyValues keys are not sliced.
         readKeyValues foreach assertNotSliced
@@ -306,8 +309,9 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
     "create bloomFilter if the Segment has Remove range key-values or function key-values and set hasRange to true" in {
 
       def doAssert(keyValues: Slice[KeyValue], segment: Segment) = {
-        segment.getBloomFilter.assertGetOpt shouldBe defined
-        assertBloom(keyValues.toMemory.toTransient, segment.getBloomFilter.get.get)
+//        segment.getBloomFilterHeader.assertGetOpt shouldBe defined
+//        assertBloom(keyValues.toMemory.toTransient, segment.getBloomFilterHeader.get.get)
+        ???
         segment.hasRange.assertGet shouldBe true
         segment.close.assertGet
       }
@@ -376,7 +380,8 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         keyValues = Slice(Memory.put(0), Memory.put(1, 1), Memory.remove(2, randomDeadlineOption)),
         assert =
           (keyValues, segment) => {
-            segment.getBloomFilter.assertGetOpt shouldBe defined
+//            segment.getBloomFilterHeader.assertGetOpt shouldBe defined
+            ???
             segment.hasRange.assertGet shouldBe false
             segment.close.assertGet
           }
@@ -386,7 +391,8 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         keyValues = Slice(Memory.put(0), Memory.Range(1, 10, None, Value.update(10, randomDeadlineOption))),
         assert =
           (keyValues, segment) => {
-            segment.getBloomFilter.assertGetOpt shouldBe defined
+//            segment.getBloomFilterHeader.assertGetOpt shouldBe defined
+            ???
             segment.hasRange.assertGet shouldBe true
             segment.close.assertGet
           }
@@ -400,7 +406,8 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           ),
         assert =
           (keyValues, segment) => {
-            segment.getBloomFilter.assertGetOpt shouldBe defined
+//            segment.getBloomFilterHeader.assertGetOpt shouldBe defined
+            ???
             segment.hasRange.assertGet shouldBe true
             segment.close.assertGet
           }
@@ -480,7 +487,8 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
                 keyValue =>
                   segment.get(keyValue.key).assertGetOpt.isEmpty shouldBe true
               }
-              assertBloom(keyValues.toTransient, segment.getBloomFilter.assertGet)
+//              assertBloom(keyValues.toTransient, segment.getBloomFilterHeader.assertGet)
+              ???
             }
         )
       }
@@ -507,7 +515,8 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
                 segment.isFileDefined shouldBe true
                 segment.isCacheEmpty shouldBe false
 
-                segment.getBloomFilter.assertGetOpt.foreach(bloom => assertBloom(keyValues.toTransient, bloom))
+//                segment.getBloomFilterHeader.assertGetOpt.foreach(bloom => assertBloom(keyValues.toTransient, bloom))
+                ???
 
                 segment.close.assertGet
               }

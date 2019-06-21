@@ -20,7 +20,7 @@
 package swaydb.core.segment.format.a
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.data.{KeyValue, Transient}
+import swaydb.core.data.KeyValue
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.index.{BinarySearchIndex, BloomFilter, HashIndex}
 import swaydb.core.util.CRC32
@@ -161,7 +161,7 @@ private[core] object SegmentWriter extends LazyLogging {
             keyValue match {
               case rootGroup: KeyValue.WriteOnly.Group =>
                 writeMany(
-                  rootGroup = rootGroup.asInstanceOf[Some[Transient.Group]],
+                  rootGroup = Some(rootGroup),
                   keyValues = rootGroup.keyValues
                 ).get
 
@@ -282,26 +282,9 @@ private[core] object SegmentWriter extends LazyLogging {
     else {
       val lastStats = keyValues.last.stats
 
-      val hashIndex =
-        HashIndex.init(
-          maxProbe = maxProbe,
-          size = lastStats.segmentHashIndexSize
-        )
-
-      val binarySearchIndex =
-        if (lastStats.binarySearchIndexSize <= 1)
-          None
-        else
-          Some(
-            BinarySearchIndex.State(
-              largestValue = lastStats.thisKeyValuesAccessIndexOffset,
-              valuesCount = lastStats.segmentUniqueKeysCount,
-              buildFullBinarySearchIndex = keyValues.last.buildFullBinarySearchIndex,
-              bytes = Slice.create[Byte](lastStats.binarySearchIndexSize)
-            )
-          )
-
-      val bloomFilter = BloomFilter.init(keyValues)
+      val hashIndex = HashIndex.init(maxProbe = maxProbe, size = lastStats.segmentHashIndexSize)
+      val binarySearchIndex = BinarySearchIndex.init(keyValues = keyValues)
+      val bloomFilter = BloomFilter.init(keyValues = keyValues)
 
       val sortedIndexSlice = Slice.create[Byte](lastStats.segmentSortedIndexSize)
       val valuesSlice = Slice.create[Byte](lastStats.segmentValuesSize)
@@ -378,10 +361,10 @@ private[core] object SegmentWriter extends LazyLogging {
             Result(
               values = if (valuesSlice.isEmpty) None else Some(valuesSlice),
               sortedIndex = sortedIndexSlice,
-              hashIndex = hashIndex.map(_.bytes),
-              binarySearchIndex = binarySearchIndex.map(_.bytes),
-              bloomFilter = bloomFilter.map(_.bytes),
-              footer = segmentFooterSlice,
+              hashIndex = hashIndex map (_.bytes.close()),
+              binarySearchIndex = binarySearchIndex map (_.bytes.close()),
+              bloomFilter = bloomFilter map (_.bytes.close()),
+              footer = segmentFooterSlice.close(),
               nearestDeadline = nearestDeadline
             )
           }
