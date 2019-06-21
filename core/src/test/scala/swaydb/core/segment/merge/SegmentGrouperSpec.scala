@@ -23,7 +23,7 @@ import swaydb.core.{TestBase, TestData, TestTimer}
 import swaydb.core.data._
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
 import swaydb.core.io.reader.Reader
-import swaydb.core.segment.format.a.{SegmentReader, SegmentWriter}
+import swaydb.core.segment.format.a.{SegmentFooter, SegmentReader, SegmentWriter}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.data.order.KeyOrder

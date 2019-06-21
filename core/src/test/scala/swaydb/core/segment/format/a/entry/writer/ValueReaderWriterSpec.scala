@@ -25,7 +25,7 @@ import swaydb.core.data.{Time, Transient}
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, BaseEntryIdFormatA, TransientToKeyValueIdBinder}
 import swaydb.core.segment.format.a.index.SortedIndex
-import swaydb.core.segment.format.a.{SegmentReader, SegmentWriter}
+import swaydb.core.segment.format.a.{SegmentFooter, SegmentWriter}
 import swaydb.core.{TestBase, TestData, TestTimer}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
