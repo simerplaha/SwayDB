@@ -61,7 +61,7 @@ private[segment] case class PersistentSegment(file: DBFile,
   private[segment] val cache = new ConcurrentSkipListMap[Slice[Byte], Persistent](keyOrder)
 
   private val segmentManager =
-    new SegmentManager(
+    new BitwiseSegment(
       id = file.path.toString,
       maxKey = maxKey,
       minKey = minKey,

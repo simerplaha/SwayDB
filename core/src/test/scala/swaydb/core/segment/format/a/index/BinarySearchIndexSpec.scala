@@ -26,22 +26,23 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
         offset
     }
     BinarySearchIndex.writeHeader(state).get
+
     state.bytes.isFull shouldBe true
 
-    val footer =
-      BinarySearchIndex.readHeader(
+    val index =
+      BinarySearchIndex.read(
         offset = BinarySearchIndex.Offset(0, state.bytes.written),
         reader = Reader(state.bytes)
       ).get
 
-    footer.byteSizeOfLargestValue shouldBe Bytes.sizeOf(largestValue)
+    index.byteSizeOfLargestValue shouldBe Bytes.sizeOf(largestValue)
     val headerSize = BinarySearchIndex.optimalHeaderSize(largestValue = largestValue, valuesCount = values.size)
-    footer.headerSize shouldBe headerSize
-    footer.valuesCount shouldBe values.size
+    index.headerSize shouldBe headerSize
+    index.valuesCount shouldBe values.size
 
     def getValue(valueToFind: Int)(value: Int): IO[MatchResult] =
       IO {
-        val valueOffset = state.bytes.take(value, footer.byteSizeOfLargestValue).readIntUnsigned().get
+        val valueOffset = state.bytes.take(value, index.byteSizeOfLargestValue).readIntUnsigned().get
         if (valueToFind == valueOffset)
           MatchResult.Matched(null)
         else if (valueToFind > valueOffset)
@@ -53,8 +54,7 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
     values foreach {
       value =>
         BinarySearchIndex.find(
-          header = footer,
-          offset = BinarySearchIndex.Offset(0, state.bytes.written),
+          index = index,
           assertValue = getValue(valueToFind = value)
         ).get shouldBe defined
     }
@@ -64,8 +64,7 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
     notInIndex foreach {
       i =>
         BinarySearchIndex.find(
-          header = footer,
-          offset = BinarySearchIndex.Offset(0, state.bytes.written),
+          index = index,
           assertValue = getValue(valueToFind = i)
         ).get shouldBe empty
     }

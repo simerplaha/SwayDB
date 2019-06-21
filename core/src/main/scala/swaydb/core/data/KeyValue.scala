@@ -28,7 +28,7 @@ import swaydb.core.map.serializer.{RangeValueSerializer, ValueSerializer}
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.format.a.entry.reader.value._
 import swaydb.core.segment.format.a.entry.writer._
-import swaydb.core.segment.{Segment, SegmentManager, SegmentManagerInitialiser}
+import swaydb.core.segment.{Segment, BitwiseSegment, BitwiseSegmentInitialiser}
 import swaydb.core.util.Bytes
 import swaydb.core.util.CollectionUtil._
 import swaydb.data.order.KeyOrder
@@ -188,7 +188,7 @@ private[core] object KeyValue {
       def maxKey: MaxKey[Slice[Byte]]
       def header(): IO[GroupHeader]
       def segmentCache(implicit keyOrder: KeyOrder[Slice[Byte]],
-                       keyValueLimiter: KeyValueLimiter): SegmentManager
+                       keyValueLimiter: KeyValueLimiter): BitwiseSegment
       def deadline: Option[Deadline]
     }
   }
@@ -513,8 +513,8 @@ private[swaydb] object Memory {
                    groupDecompressor: GroupDecompressor,
                    valueLength: Int) extends Memory with KeyValue.ReadOnly.Group {
 
-    lazy val segmentCacheInitializer: SegmentManagerInitialiser =
-      new SegmentManagerInitialiser(
+    lazy val segmentCacheInitializer: BitwiseSegmentInitialiser =
+      new BitwiseSegmentInitialiser(
         id = "Persistent.Group",
         minKey = minKey,
         maxKey = maxKey,
@@ -530,7 +530,7 @@ private[swaydb] object Memory {
       groupDecompressor.isIndexDecompressed()
 
     def segmentCache(implicit keyOrder: KeyOrder[Slice[Byte]],
-                     keyValueLimiter: KeyValueLimiter): SegmentManager =
+                     keyValueLimiter: KeyValueLimiter): BitwiseSegment =
       segmentCacheInitializer.create
 
     def header() =
@@ -1651,7 +1651,7 @@ private[core] object Persistent {
                    isPrefixCompressed: Boolean) extends Persistent with KeyValue.ReadOnly.Group {
 
     lazy val segmentManagerInitialiser =
-      new SegmentManagerInitialiser(
+      new BitwiseSegmentInitialiser(
         id = "Persistent.Group",
         minKey = minKey,
         maxKey = maxKey,
@@ -1691,14 +1691,14 @@ private[core] object Persistent {
       groupDecompressor.header()
 
     /**
-      * On uncompressed a new Group is returned. It would be much efficient if the Group's old [[SegmentManager]]'s skipList's
+      * On uncompressed a new Group is returned. It would be much efficient if the Group's old [[BitwiseSegment]]'s skipList's
       * key-values are also still passed to the new Group in a thread-safe manner.
       */
     def uncompress(): Persistent.Group =
       copy(groupDecompressor = groupDecompressor.uncompress(), valueReader = valueReader.copy())
 
     def segmentCache(implicit keyOrder: KeyOrder[Slice[Byte]],
-                     keyValueLimiter: KeyValueLimiter): SegmentManager =
+                     keyValueLimiter: KeyValueLimiter): BitwiseSegment =
       segmentManagerInitialiser.create
 
     override def isValueDefined: Boolean =

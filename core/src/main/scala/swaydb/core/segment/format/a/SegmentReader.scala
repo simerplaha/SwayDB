@@ -46,20 +46,23 @@ private[core] object SegmentReader extends LazyLogging {
   def get(matcher: KeyMatcher.Get,
           startFrom: Option[Persistent],
           reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
-  //    SegmentFooter.read(reader) flatMap {
-  //      footer =>
-  //        readHashIndexHeader(reader, footer) flatMap {
-  //          header =>
-  //            get(
-  //              matcher = matcher,
-  //              startFrom = startFrom,
-  //              reader = reader,
-  //              hashIndexHeader = ???,
-  //              footer = footer
-  //            )
-  //        }
-  //    }
-    ???
+    for {
+      footer <- SegmentFooter.read(reader)
+      hashIndex <- footer.hashIndexOffset.map(offset => HashIndex.read(offset, reader).map(Some(_))).getOrElse(IO.none)
+      binarySearchIndex <- footer.binarySearchIndexOffset.map(offset => BinarySearchIndex.read(offset, reader).map(Some(_))).getOrElse(IO.none)
+      got <- get(
+        matcher = matcher,
+        startFrom = startFrom,
+        reader = reader.reset(),
+        hashIndex = hashIndex,
+        binarySearchIndex = binarySearchIndex,
+        sortedIndexOffset = footer.sortedIndexOffset,
+        hasRange = footer.hasRange
+      )
+    } yield {
+
+      ???
+    }
 
   def lower(matcher: KeyMatcher.Lower,
             startFrom: Option[Persistent],
@@ -107,14 +110,13 @@ private[core] object SegmentReader extends LazyLogging {
         HashIndex.get(
           matcher = matcher.toNextPrefixCompressedMatcher,
           reader = reader,
-          header = hashIndex.header,
-          hashIndexOffset = hashIndex.offset,
+          hashIndex = hashIndex,
           sortedIndexOffset = sortedIndexOffset
         ) flatMap {
           case some @ Some(_) =>
             IO.Success(some)
           case None =>
-            if (hashIndex.header.miss == 0 && !hasRange)
+            if (hashIndex.miss == 0 && !hasRange)
               IO.none
             else
               get(
@@ -145,7 +147,7 @@ private[core] object SegmentReader extends LazyLogging {
         BinarySearchIndex.get(
           matcher = matcher,
           reader = reader,
-          binarySearchIndex = binarySearchIndex,
+          index = binarySearchIndex,
           sortedIndexOffset = sortedIndexOffset
         ) flatMap {
           case some @ Some(_) =>

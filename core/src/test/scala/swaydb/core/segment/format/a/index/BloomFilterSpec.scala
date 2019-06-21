@@ -45,11 +45,11 @@ class BloomFilterSpec extends TestBase {
         )
 
       (1 to 10) foreach (BloomFilter.add(_, filter))
-      val header = BloomFilter.readHeader(BloomFilter.Offset(0, filter.bytes.written), Reader(filter.bytes)).get
+      val header = BloomFilter.read(BloomFilter.Offset(0, filter.bytes.written), Reader(filter.bytes)).get
       (1 to 10) foreach (key => BloomFilter.mightContain(key, header) shouldBe true)
       (11 to 20) foreach (key => BloomFilter.mightContain(key, header) shouldBe false)
 
-      val readBloomFilter = BloomFilter.readHeader(BloomFilter.Offset(0, filter.bytes.written), Reader(filter.bytes)).get
+      val readBloomFilter = BloomFilter.read(BloomFilter.Offset(0, filter.bytes.written), Reader(filter.bytes)).get
       (1 to 10) foreach (key => BloomFilter.mightContain(key, readBloomFilter) shouldBe true)
       (11 to 20) foreach (key => BloomFilter.mightContain(key, readBloomFilter) shouldBe false)
 
@@ -158,8 +158,8 @@ class BloomFilterSpec extends TestBase {
 
   "bloomFilter error check" in {
     def assert(data: Seq[String],
-               filter: BloomFilter.Header,
-               previousFilter: Option[BloomFilter.Header]) = {
+               filter: BloomFilter,
+               previousFilter: Option[BloomFilter]) = {
       val positives =
         data.par collect {
           case data if !BloomFilter.mightContain(data, filter) =>
@@ -203,15 +203,15 @@ class BloomFilterSpec extends TestBase {
           string
       }
 
-    val header1 = BloomFilter.readHeader(BloomFilter.Offset(0, filter.bytes.written), Reader(filter.bytes)).get
+    val header1 = BloomFilter.read(BloomFilter.Offset(0, filter.bytes.written), Reader(filter.bytes)).get
     assert(data, header1, None)
 
     //re-create bloomFilter and read again.
-    val header2 = BloomFilter.readHeader(BloomFilter.Offset(0, filter.bytes.written), Reader(filter.bytes)).get
+    val header2 = BloomFilter.read(BloomFilter.Offset(0, filter.bytes.written), Reader(filter.bytes)).get
     assert(data, header2, Some(header1))
 
     //re-create bloomFilter from created filter.
-    val filter3 = BloomFilter.readHeader(BloomFilter.Offset(0, filter.bytes.written), Reader(header2.reader.copy().readRemaining().get)).get
+    val filter3 = BloomFilter.read(BloomFilter.Offset(0, filter.bytes.written), Reader(header2.reader.copy().readRemaining().get)).get
     assert(data, filter3, Some(header2))
   }
 }

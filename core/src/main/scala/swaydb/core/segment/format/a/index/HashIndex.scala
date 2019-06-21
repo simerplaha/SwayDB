@@ -67,21 +67,6 @@ private[core] object HashIndex extends LazyLogging {
         )
       )
 
-  object Header {
-    def apply(state: State): Header =
-      new Header(
-        formatId = formatID,
-        maxProbe = state.maxProbe,
-        hit = state.hit,
-        miss = state.miss
-      )
-  }
-
-  case class Header(formatId: Int,
-                    maxProbe: Int,
-                    hit: Int,
-                    miss: Int)
-
   /**
     * Number of bytes required to build a high probability index.
     */
@@ -111,20 +96,27 @@ private[core] object HashIndex extends LazyLogging {
       state.bytes addBoolean false //range indexing is not implemented.
     }
 
-  def readHeader(offset: Offset, reader: Reader): IO[Header] = {
+  def read(offset: Offset, reader: Reader): IO[HashIndex] = {
     val movedReader = reader.moveTo(offset.start)
     for {
       formatID <- movedReader.get()
       maxProbe <- movedReader.readIntUnsigned()
       hit <- movedReader.readInt()
       miss <- movedReader.readInt()
-    } yield
-      Header(
-        formatId = formatID,
-        maxProbe = maxProbe,
-        hit = hit,
-        miss = miss
-      )
+      index <-
+      if (formatID != HashIndex.formatID)
+        IO.Failure(IO.Error.Fatal(new Exception(s"Invalid formatID: $formatID. Expected: ${HashIndex.formatID}")))
+      else
+        IO.Success(
+          HashIndex(
+            offset = offset,
+            formatId = formatID,
+            maxProbe = maxProbe,
+            hit = hit,
+            miss = miss
+          )
+        )
+    } yield index
   }
 
   def adjustHash(hash: Int, totalBlockSpace: Int) =
@@ -182,8 +174,8 @@ private[core] object HashIndex extends LazyLogging {
     */
   def find[V](key: Slice[Byte],
               offset: Offset,
-              header: Header,
-              hashIndexReader: Reader,
+              hashIndex: HashIndex,
+              reader: Reader,
               assertValue: Int => IO[Option[V]]): IO[Option[V]] = {
 
     val hash = key.##
@@ -192,14 +184,14 @@ private[core] object HashIndex extends LazyLogging {
 
     @tailrec
     def doFind(probe: Int, checkedHashIndexes: mutable.HashSet[Int]): IO[Option[V]] =
-      if (probe > header.maxProbe) {
+      if (probe > hashIndex.maxProbe) {
         IO.none
       } else {
         val hashIndex = adjustHash(hash1 + probe * hash2, offset.size)
         if (checkedHashIndexes contains hashIndex) //do not check the same index again.
           doFind(probe + 1, checkedHashIndexes)
         else
-          hashIndexReader.moveTo(offset.start + hashIndex).readIntUnsigned() match {
+          reader.moveTo(offset.start + hashIndex).readIntUnsigned() match {
             case IO.Success(possibleValue) =>
               if (possibleValue == 0) {
                 doFind(probe + 1, checkedHashIndexes)
@@ -230,14 +222,13 @@ private[core] object HashIndex extends LazyLogging {
 
   private[a] def get(matcher: KeyMatcher.GetNextPrefixCompressed,
                      reader: Reader,
-                     header: HashIndex.Header,
-                     hashIndexOffset: HashIndex.Offset,
+                     hashIndex: HashIndex,
                      sortedIndexOffset: SortedIndex.Offset)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
     find(
       key = matcher.key,
-      offset = hashIndexOffset,
-      hashIndexReader = reader,
-      header = header,
+      offset = hashIndex.offset,
+      reader = reader,
+      hashIndex = hashIndex,
       assertValue =
         sortedIndexOffsetValue =>
           SortedIndex.findAndMatchOrNext(
@@ -260,4 +251,7 @@ private[core] object HashIndex extends LazyLogging {
 }
 
 case class HashIndex(offset: HashIndex.Offset,
-                     header: HashIndex.Header)
+                     formatId: Int,
+                     maxProbe: Int,
+                     hit: Int,
+                     miss: Int)

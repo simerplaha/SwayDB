@@ -44,11 +44,6 @@ object BloomFilter {
       bytes.hashCode()
   }
 
-  case class Header(startOffset: Int,
-                    probe: Int,
-                    numberOfBits: Int,
-                    reader: Reader)
-
   val minimumSize =
     ByteSizeOf.byte + //format
       ByteSizeOf.int + //number of bits
@@ -128,7 +123,8 @@ object BloomFilter {
       falsePositiveRate = falsePositiveRate
     ) + minimumSize
 
-  def readHeader(offset: Offset, reader: Reader): IO[BloomFilter.Header] =
+  def read(offset: Offset,
+           reader: Reader): IO[BloomFilter] =
     reader
       .moveTo(offset.start)
       .get()
@@ -139,11 +135,11 @@ object BloomFilter {
               numberOfBits <- reader.readIntUnsigned()
               maxProbe <- reader.readIntUnsigned()
             } yield
-              BloomFilter.Header(
+              BloomFilter(
+                offset = offset,
                 startOffset = ByteSizeOf.byte + Bytes.sizeOf(numberOfBits) + Bytes.sizeOf(maxProbe) + offset.start,
                 probe = maxProbe,
-                numberOfBits = numberOfBits,
-                reader = reader
+                numberOfBits = numberOfBits
               )
           else
             IO.Failure(IO.Error.Fatal(new Exception(s"Invalid bloomFilter formatID: $formatID. Expected: $formatId")))
@@ -173,7 +169,8 @@ object BloomFilter {
         )
       )
 
-  def add(key: Slice[Byte], state: BloomFilter.State): Unit = {
+  def add(key: Slice[Byte],
+          state: BloomFilter.State): Unit = {
     val hash = MurmurHash3Generic.murmurhash3_x64_64(key, 0, key.size, 0)
     val hash1 = hash >>> 32
     val hash2 = (hash << 32) >> 32
@@ -193,20 +190,20 @@ object BloomFilter {
   }
 
   def mightContain(key: Slice[Byte],
-                   header: Header): Boolean = {
+                   reader: Reader,
+                   bloom: BloomFilter): Boolean = {
     val hash = MurmurHash3Generic.murmurhash3_x64_64(key, 0, key.size, 0)
     val hash1 = hash >>> 32
     val hash2 = (hash << 32) >> 32
     var probe = 0
-    val reader = header.reader.copy()
 
-    while (probe < header.probe) {
+    while (probe < bloom.probe) {
       val computedHash = hash1 + probe * hash2
-      val hashIndex = (computedHash & Long.MaxValue) % header.numberOfBits
+      val hashIndex = (computedHash & Long.MaxValue) % bloom.numberOfBits
 
       val index =
         reader
-          .moveTo(header.startOffset + ((hashIndex >>> 6) * 8L).toInt)
+          .moveTo(bloom.startOffset + ((hashIndex >>> 6) * 8L).toInt)
           .readLong()
           .get & (1L << hashIndex)
 
@@ -218,4 +215,6 @@ object BloomFilter {
 }
 
 case class BloomFilter(offset: BloomFilter.Offset,
-                       header: BloomFilter.Header)
+                       startOffset: Int,
+                       probe: Int,
+                       numberOfBits: Int)

@@ -216,7 +216,7 @@ private[core] object Segment extends LazyLogging {
             .map {
               bloomFilterState =>
                 BloomFilter
-                  .readHeader(
+                  .read(
                     offset = BloomFilter.Offset(0, bloomFilterState.bytes.written),
                     reader = Reader(bloomFilterState.bytes.close())
                   )

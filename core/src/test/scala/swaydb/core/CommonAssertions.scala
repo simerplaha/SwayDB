@@ -23,11 +23,6 @@ import java.nio.file.Paths
 import java.util.concurrent.ConcurrentSkipListMap
 
 import org.scalatest.exceptions.TestFailedException
-
-import scala.annotation.tailrec
-import scala.collection.JavaConverters._
-import scala.concurrent.duration._
-import scala.util.Random
 import swaydb.compression.CompressionInternal
 import swaydb.core.IOAssert._
 import swaydb.core.RunThis._
@@ -48,13 +43,18 @@ import swaydb.core.merge._
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.index.SortedIndex
-import swaydb.core.segment.format.a.{KeyMatcher, SegmentFooter, SegmentReader, SegmentWriter}
+import swaydb.core.segment.format.a.{KeyMatcher, SegmentFooter, SegmentReader}
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util.CollectionUtil._
-import swaydb.data.{IO, MaxKey}
+import swaydb.data.IO
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.StorageUnits._
+
+import scala.annotation.tailrec
+import scala.collection.JavaConverters._
+import scala.concurrent.duration._
+import scala.util.Random
 
 object CommonAssertions {
 

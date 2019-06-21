@@ -64,11 +64,6 @@ object BinarySearchIndex {
       )
   }
 
-  case class Header(valuesCount: Int,
-                    headerSize: Int,
-                    byteSizeOfLargestValue: Int,
-                    isFullBinarySearchIndex: Boolean)
-
   case class State(byteSizeOfLargestValue: Int,
                    var _valuesCount: Int,
                    headerSize: Int,
@@ -127,8 +122,8 @@ object BinarySearchIndex {
       state.bytes addBoolean state.buildFullBinarySearchIndex
     }
 
-  def readHeader(offset: Offset,
-                 reader: Reader): IO[Header] = {
+  def read(offset: Offset,
+           reader: Reader): IO[BinarySearchIndex] = {
     val movedReader = reader.moveTo(offset.start)
     movedReader
       .readIntUnsigned()
@@ -151,7 +146,8 @@ object BinarySearchIndex {
                           byteSizeOfLargestValue <- headerReader.readIntUnsigned()
                           isFullBinarySearchIndex <- headerReader.readBoolean()
                         } yield
-                          Header(
+                          BinarySearchIndex(
+                            offset = offset,
                             valuesCount = valuesCount,
                             headerSize = headerSize,
                             byteSizeOfLargestValue = byteSizeOfLargestValue,
@@ -175,17 +171,16 @@ object BinarySearchIndex {
       state.incrementEntriesCount()
     }
 
-  def find(offset: Offset,
-           header: Header,
+  def find(index: BinarySearchIndex,
            assertValue: Int => IO[MatchResult]): IO[Option[Persistent]] = {
 
-    val minimumOffset = offset.start + header.headerSize
+    val minimumOffset = index.offset.start + index.headerSize
 
     @tailrec
     def hop(start: Int, end: Int): IO[Option[Persistent]] = {
       val mid = start + (end - start) / 2
 
-      val valueOffset = minimumOffset + (mid * header.byteSizeOfLargestValue)
+      val valueOffset = minimumOffset + (mid * index.byteSizeOfLargestValue)
       if (start > end)
         IO.none
       else
@@ -206,16 +201,15 @@ object BinarySearchIndex {
         }
     }
 
-    hop(start = 0, end = header.valuesCount - 1)
+    hop(start = 0, end = index.valuesCount - 1)
   }
 
   def get(matcher: KeyMatcher.Get,
           reader: Reader,
-          binarySearchIndex: BinarySearchIndex,
+          index: BinarySearchIndex,
           sortedIndexOffset: SortedIndex.Offset)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
     find(
-      offset = binarySearchIndex.offset,
-      header = binarySearchIndex.header,
+      index = index,
       assertValue =
         sortedIndexOffsetValue =>
           SortedIndex.findAndMatch(
@@ -228,4 +222,7 @@ object BinarySearchIndex {
 }
 
 case class BinarySearchIndex(offset: BinarySearchIndex.Offset,
-                             header: BinarySearchIndex.Header)
+                             valuesCount: Int,
+                             headerSize: Int,
+                             byteSizeOfLargestValue: Int,
+                             isFullBinarySearchIndex: Boolean)

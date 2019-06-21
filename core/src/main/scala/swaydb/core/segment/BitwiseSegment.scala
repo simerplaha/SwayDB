@@ -25,8 +25,8 @@ import java.util.concurrent.atomic.AtomicBoolean
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.{Persistent, _}
 import swaydb.core.queue.KeyValueLimiter
-import swaydb.core.segment.format.a.index.{BinarySearchIndex, BloomFilter, HashIndex, SortedIndex}
 import swaydb.core.segment.format.a.{KeyMatcher, SegmentFooter, SegmentReader}
+import swaydb.core.segment.format.a.index.{BinarySearchIndex, BloomFilter, HashIndex, SortedIndex}
 import swaydb.core.util._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Reader, Slice}
@@ -34,22 +34,22 @@ import swaydb.data.{IO, MaxKey}
 
 import scala.annotation.tailrec
 
-private[core] class SegmentManagerInitialiser(id: String,
+private[core] class BitwiseSegmentInitialiser(id: String,
                                               maxKey: MaxKey[Slice[Byte]],
                                               minKey: Slice[Byte],
                                               unsliceKey: Boolean,
                                               createReader: () => IO[Reader]) {
   private val created = new AtomicBoolean(false)
-  @volatile private var cache: SegmentManager = _
+  @volatile private var segment: BitwiseSegment = _
 
   @tailrec
   final def create(implicit keyOrder: KeyOrder[Slice[Byte]],
-                   keyValueLimiter: KeyValueLimiter): SegmentManager =
-    if (cache != null) {
-      cache
+                   keyValueLimiter: KeyValueLimiter): BitwiseSegment =
+    if (segment != null) {
+      segment
     } else if (created.compareAndSet(false, true)) {
-      cache =
-        new SegmentManager(
+      segment =
+        new BitwiseSegment(
           id = id,
           maxKey = maxKey,
           minKey = minKey,
@@ -57,13 +57,13 @@ private[core] class SegmentManagerInitialiser(id: String,
           unsliceKey = unsliceKey,
           createReader = createReader
         )
-      cache
+      segment
     } else {
       create
     }
 }
 
-private[core] class SegmentManager(id: String,
+private[core] class BitwiseSegment(id: String,
                                    maxKey: MaxKey[Slice[Byte]],
                                    minKey: Slice[Byte],
                                    cache: ConcurrentSkipListMap[Slice[Byte], Persistent],
@@ -99,14 +99,27 @@ private[core] class SegmentManager(id: String,
       keyValueLimiter.add(group, cache)
   }
 
-  private def prepareGet[T](getOperation: (SegmentFooter, Option[BloomFilter], Option[HashIndex], Option[BinarySearchIndex], Reader) => IO[T]): IO[T] = {
+  private def prepareGet[T](getOperation: (SegmentFooter, Option[HashIndex], Option[BinarySearchIndex], Reader) => IO[T]): IO[T] = {
     for {
       footer <- getFooter()
-      bloomFilter <- getBloomFilter()
       hashIndex <- getHashIndex()
       binarySearchIndex <- getBinarySearchIndex()
       reader <- createReader()
-      get <- getOperation(footer, bloomFilter, hashIndex, binarySearchIndex, reader)
+      get <- getOperation(footer, hashIndex, binarySearchIndex, reader)
+    } yield {
+      get
+    }
+  } onFailureSideEffect {
+    failure: IO.Failure[_] =>
+      ExceptionUtil.logFailure(s"$id: Failed to read Segment.", failure)
+  }
+
+  private def prepareIteration[T](getOperation: (SegmentFooter, Option[BinarySearchIndex], Reader) => IO[T]): IO[T] = {
+    for {
+      footer <- getFooter()
+      binarySearchIndex <- getBinarySearchIndex()
+      reader <- createReader()
+      get <- getOperation(footer, binarySearchIndex, reader)
     } yield {
       get
     }
@@ -155,11 +168,11 @@ private[core] class SegmentManager(id: String,
           case (footer, reader) =>
             footer.hashIndexOffset map {
               offset =>
-                HashIndex.readHeader(offset, reader) map {
-                  header =>
-                    val index = Some(HashIndex(offset, header))
-                    this.hashIndexHeader = Right(IO.Success(index))
-                    index
+                HashIndex.read(offset, reader) map {
+                  index =>
+                    val someIndex = Some(index)
+                    this.hashIndexHeader = Right(IO.Success(someIndex))
+                    someIndex
                 }
             } getOrElse {
               this.hashIndexHeader = Right(IO.none)
@@ -175,11 +188,11 @@ private[core] class SegmentManager(id: String,
           case (footer, reader) =>
             footer.bloomFilterOffset map {
               offset =>
-                BloomFilter.readHeader(offset, reader) map {
-                  header =>
-                    val index = Some(BloomFilter(offset, header))
-                    this.bloomFilterHeader = Right(IO.Success(index))
-                    index
+                BloomFilter.read(offset, reader) map {
+                  index =>
+                    val someIndex = Some(index)
+                    this.bloomFilterHeader = Right(IO.Success(someIndex))
+                    someIndex
                 }
             } getOrElse {
               this.bloomFilterHeader = Right(IO.none)
@@ -195,11 +208,11 @@ private[core] class SegmentManager(id: String,
           case (footer, reader) =>
             footer.binarySearchIndexOffset map {
               offset =>
-                BinarySearchIndex.readHeader(offset, reader) map {
-                  header =>
-                    val index = Some(BinarySearchIndex(offset, header))
-                    this.binarySearchIndexHeader = Right(IO.Success(index))
-                    index
+                BinarySearchIndex.read(offset, reader) map {
+                  index =>
+                    val someIndex = Some(index)
+                    this.binarySearchIndexHeader = Right(IO.Success(someIndex))
+                    someIndex
                 }
             } getOrElse {
               this.binarySearchIndexHeader = Right(IO.none)
@@ -212,8 +225,7 @@ private[core] class SegmentManager(id: String,
     Option(cache.get(key))
 
   def mightContain(key: Slice[Byte]): IO[Boolean] =
-    getBloomFilter()
-      .map(_.forall(bloomFilter => BloomFilter.mightContain(key, bloomFilter.header)))
+    getBloomFilter() map (_.forall(BloomFilter.mightContain(key, _)))
 
   def get(key: Slice[Byte]): IO[Option[Persistent.SegmentResponse]] =
     maxKey match {
@@ -241,33 +253,34 @@ private[core] class SegmentManager(id: String,
             IO.Success(Some(floorRange))
 
           case _ =>
-            prepareGet {
-              (footer, bloomFilter, hashIndex, binarySearchIndex, reader) =>
-                getHashIndex() flatMap {
-                  hashIndexHeader =>
-                    //                    if (!footer.bloomFilter.forall(BloomFilter.mightContain(key, _)))
-                    //                      IO.none
-                    //                    else
-                    //                      SegmentReader.get(
-                    //                        matcher = KeyMatcher.Get(key),
-                    //                        startFrom = floorValue,
-                    //                        reader = reader,
-                    //                        hashIndexHeader = hashIndexHeader,
-                    //                        footer = footer
-                    //                      ) flatMap {
-                    //                        case Some(response: Persistent.SegmentResponse) =>
-                    //                          addToCache(response)
-                    //                          IO.Success(Some(response))
-                    //
-                    //                        case Some(group: Persistent.Group) =>
-                    //                          addToCache(group)
-                    //                          group.segmentCache.get(key)
-                    //
-                    //                        case None =>
-                    //                          IO.none
-                    //                      }
-                    ???
-                }
+            mightContain(key) flatMap {
+              contains =>
+                if (contains)
+                  prepareGet {
+                    (footer, hashIndex, binarySearchIndex, reader) =>
+                      SegmentReader.get(
+                        matcher = KeyMatcher.Get(key),
+                        startFrom = floorValue,
+                        reader = reader,
+                        hashIndex = hashIndex,
+                        binarySearchIndex = binarySearchIndex,
+                        sortedIndexOffset = footer.sortedIndexOffset,
+                        hasRange = footer.hasRange
+                      ) flatMap {
+                        case Some(response: Persistent.SegmentResponse) =>
+                          addToCache(response)
+                          IO.Success(Some(response))
+
+                        case Some(group: Persistent.Group) =>
+                          addToCache(group)
+                          group.segmentCache.get(key)
+
+                        case None =>
+                          IO.none
+                      }
+                  }
+                else
+                  IO.none
             }
         }
     }
@@ -316,26 +329,25 @@ private[core] class SegmentManager(id: String,
             case group: Persistent.Group =>
               group.segmentCache.lower(key)
           } getOrElse {
-            prepareGet {
-              (footer, bloomFilter, hashIndex, binarySearchIndex, reader) =>
-                //                SegmentReader.lower(
-                //                  matcher = KeyMatcher.Lower(key),
-                //                  startFrom = lowerKeyValue,
-                //                  reader = reader,
-                //                  footer = footer
-                //                ) flatMap {
-                //                  case Some(response: Persistent.SegmentResponse) =>
-                //                    addToCache(response)
-                //                    IO.Success(Some(response))
-                //
-                //                  case Some(group: Persistent.Group) =>
-                //                    addToCache(group)
-                //                    group.segmentCache.lower(key)
-                //
-                //                  case None =>
-                //                    IO.none
-                //                }
-                ???
+            prepareIteration {
+              (footer, binarySearchIndex, reader) =>
+                SegmentReader.lower(
+                  matcher = KeyMatcher.Lower(key),
+                  startFrom = lowerKeyValue,
+                  reader = reader,
+                  footer = footer
+                ) flatMap {
+                  case Some(response: Persistent.SegmentResponse) =>
+                    addToCache(response)
+                    IO.Success(Some(response))
+
+                  case Some(group: Persistent.Group) =>
+                    addToCache(group)
+                    group.segmentCache.lower(key)
+
+                  case None =>
+                    IO.none
+                }
             }
           }
       }
@@ -392,35 +404,34 @@ private[core] class SegmentManager(id: String,
           case group: Persistent.Group =>
             group.segmentCache.higher(key)
         } getOrElse {
-          prepareGet {
-            (footer, bloomFilter, hashIndex, binarySearchIndex, reader) =>
+          prepareIteration {
+            (footer, binarySearchIndex, reader) =>
               val startFrom =
                 if (floorKeyValue.isDefined)
                   IO(floorKeyValue)
                 else
                   get(key)
 
-              //              startFrom flatMap {
-              //                startFrom =>
-              //                  SegmentReader.higher(
-              //                    matcher = KeyMatcher.Higher(key),
-              //                    startFrom = startFrom,
-              //                    reader = reader,
-              //                    footer = footer
-              //                  ) flatMap {
-              //                    case Some(response: Persistent.SegmentResponse) =>
-              //                      addToCache(response)
-              //                      IO.Success(Some(response))
-              //
-              //                    case Some(group: Persistent.Group) =>
-              //                      addToCache(group)
-              //                      group.segmentCache.higher(key)
-              //
-              //                    case None =>
-              //                      IO.none
-              //                  }
-              //              }
-              ???
+              startFrom flatMap {
+                startFrom =>
+                  SegmentReader.higher(
+                    matcher = KeyMatcher.Higher(key),
+                    startFrom = startFrom,
+                    reader = reader,
+                    footer = footer
+                  ) flatMap {
+                    case Some(response: Persistent.SegmentResponse) =>
+                      addToCache(response)
+                      IO.Success(Some(response))
+
+                    case Some(group: Persistent.Group) =>
+                      addToCache(group)
+                      group.segmentCache.higher(key)
+
+                    case None =>
+                      IO.none
+                  }
+              }
           }
         }
     }
