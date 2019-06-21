@@ -138,10 +138,7 @@ sealed trait SegmentGrouper_GroupGroups_Spec extends TestBase {
             SegmentWriter.write(
               keyValues = Slice(result.assertGet),
               createdInLevel = 0,
-              maxProbe = TestData.maxProbe,
-              falsePositiveRate = TestData.falsePositiveRate,
-              buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
-            ).assertGet.flatten
+              maxProbe = TestData.maxProbe).assertGet.flatten
 
           val rootGroup = readAll(bytes).assertGet
           rootGroup should have size 1
@@ -268,10 +265,7 @@ sealed trait SegmentGrouper_GroupGroups_Spec extends TestBase {
                 SegmentWriter.write(
                   keyValues = Slice(result.assertGet).updateStats,
                   createdInLevel = 0,
-                  maxProbe = TestData.maxProbe,
-                  falsePositiveRate = TestData.falsePositiveRate,
-                  buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
-                ).assertGet.flatten
+                  maxProbe = TestData.maxProbe).assertGet.flatten
 
               val rootGroup = readAll(bytes).assertGet
               rootGroup should have size 1
@@ -323,10 +317,7 @@ sealed trait SegmentGrouper_GroupGroups_Spec extends TestBase {
           SegmentWriter.write(
             keyValues = Slice(result.assertGet).updateStats,
             createdInLevel = 0,
-            maxProbe = TestData.maxProbe,
-            falsePositiveRate = TestData.falsePositiveRate,
-            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
-          ).assertGet.flatten
+            maxProbe = TestData.maxProbe).assertGet.flatten
 
         val rootGroup = readAll(bytes).assertGet
         rootGroup should have size 1

@@ -130,9 +130,7 @@ class SegmentGrouperSpec extends TestBase {
         SegmentWriter.write(
           keyValues = Slice(group),
           createdInLevel = 0,
-          maxProbe = TestData.maxProbe,
-          falsePositiveRate = TestData.falsePositiveRate,
-          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
+          maxProbe = TestData.maxProbe
         ).assertGet.flatten
 
       val reader = Reader(segmentBytes)
@@ -185,9 +183,7 @@ class SegmentGrouperSpec extends TestBase {
         SegmentWriter.write(
           keyValues = Slice(group),
           createdInLevel = 0,
-          maxProbe = TestData.maxProbe,
-          falsePositiveRate = TestData.falsePositiveRate,
-          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
+          maxProbe = TestData.maxProbe
         ).assertGet.flatten
 
       val reader = Reader(segmentBytes)

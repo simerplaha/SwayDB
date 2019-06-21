@@ -254,9 +254,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           SegmentWriter.write(
             keyValues = keyValues,
             createdInLevel = 0,
-            maxProbe = TestData.maxProbe,
-            falsePositiveRate = TestData.falsePositiveRate,
-            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
+            maxProbe = TestData.maxProbe
           ).assertGet.flatten
 
         //read key-values so they are all part of the same byte array.
@@ -1563,9 +1561,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         SegmentWriter.write(
           keyValues = result.head,
           createdInLevel = 0,
-          maxProbe = TestData.maxProbe,
-          falsePositiveRate = TestData.falsePositiveRate,
-          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
+          maxProbe = TestData.maxProbe
         ).assertGet.flatten
 
       readAll(bytes).assertGet shouldBe keyValues
@@ -1596,9 +1592,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         SegmentWriter.write(
           keyValues = result.head,
           createdInLevel = 0,
-          maxProbe = TestData.maxProbe,
-          falsePositiveRate = TestData.falsePositiveRate,
-          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
+          maxProbe = TestData.maxProbe
         ).assertGet.flatten
 
       readAll(bytes).assertGet shouldBe keyValues

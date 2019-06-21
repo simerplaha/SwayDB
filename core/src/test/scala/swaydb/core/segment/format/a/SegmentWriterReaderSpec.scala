@@ -85,9 +85,7 @@ class SegmentWriterReaderSpec extends TestBase {
         SegmentWriter.write(
           keyValues = Seq.empty,
           createdInLevel = 0,
-          maxProbe = TestData.maxProbe,
-          falsePositiveRate = TestData.falsePositiveRate,
-          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
+          maxProbe = TestData.maxProbe
         ).assertGet.flatten
 
       bytes.isEmpty shouldBe true
@@ -100,10 +98,8 @@ class SegmentWriterReaderSpec extends TestBase {
           SegmentWriter.write(
             keyValues = keyValues,
             createdInLevel = 0,
-            maxProbe = TestData.maxProbe,
-            falsePositiveRate = TestData.falsePositiveRate,
-            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
-          ).assertGet.flatten
+            maxProbe = TestData.maxProbe
+        ).assertGet.flatten
 
         bytes.isFull shouldBe true
         //in memory
@@ -141,10 +137,8 @@ class SegmentWriterReaderSpec extends TestBase {
           SegmentWriter.write(
             keyValues = Seq(group),
             createdInLevel = 0,
-            maxProbe = TestData.maxProbe,
-            falsePositiveRate = TestData.falsePositiveRate,
-            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
-          ).assertGet.flatten
+            maxProbe = TestData.maxProbe
+        ).assertGet.flatten
 
         bytes.isFull shouldBe true
 
@@ -192,10 +186,8 @@ class SegmentWriterReaderSpec extends TestBase {
           SegmentWriter.write(
             keyValues = Seq(group1, group2),
             createdInLevel = 0,
-            maxProbe = TestData.maxProbe,
-            falsePositiveRate = TestData.falsePositiveRate,
-            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
-          ).assertGet.flatten
+            maxProbe = TestData.maxProbe
+        ).assertGet.flatten
 
         bytes.isFull shouldBe true
 
@@ -278,10 +270,8 @@ class SegmentWriterReaderSpec extends TestBase {
           SegmentWriter.write(
             keyValues = Seq(group4),
             createdInLevel = 0,
-            maxProbe = TestData.maxProbe,
-            falsePositiveRate = TestData.falsePositiveRate,
-            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
-          ).assertGet.flattenBytes
+            maxProbe = TestData.maxProbe
+        ).assertGet.flattenBytes
         bytes.isFull shouldBe true
 
         val rootGroup = readAll(bytes).assertGet
@@ -305,10 +295,8 @@ class SegmentWriterReaderSpec extends TestBase {
           SegmentWriter.write(
             keyValues = keyValues,
             createdInLevel = 0,
-            maxProbe = TestData.maxProbe,
-            falsePositiveRate = TestData.falsePositiveRate,
-            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
-          ).assertGet.flattenBytes
+            maxProbe = TestData.maxProbe
+        ).assertGet.flattenBytes
 
         //in memory
         assertReads(keyValues, Reader(bytes.unslice()))
@@ -324,9 +312,7 @@ class SegmentWriterReaderSpec extends TestBase {
         SegmentWriter.write(
           keyValues = keyValues,
           createdInLevel = 0,
-          maxProbe = TestData.maxProbe,
-          falsePositiveRate = TestData.falsePositiveRate,
-          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
+          maxProbe = TestData.maxProbe
         ).assertGet.flatten
 
       deadline shouldBe empty
@@ -350,9 +336,7 @@ class SegmentWriterReaderSpec extends TestBase {
         SegmentWriter.write(
           keyValues = keyValues,
           createdInLevel = 0,
-          maxProbe = TestData.maxProbe,
-          falsePositiveRate = TestData.falsePositiveRate,
-          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
+          maxProbe = TestData.maxProbe
         ).assertGet.flatten
 
       if (!setDeadlines) deadline shouldBe empty
@@ -370,9 +354,7 @@ class SegmentWriterReaderSpec extends TestBase {
         SegmentWriter.write(
           keyValues = keyValues,
           createdInLevel = 0,
-          maxProbe = TestData.maxProbe,
-          falsePositiveRate = TestData.falsePositiveRate,
-          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
+          maxProbe = TestData.maxProbe
         ).assertGet.flatten
 
       SegmentReader.readFooter(Reader(bytes.drop(1))).failed.assertGet.exception shouldBe a[SegmentCorruptionException]
@@ -390,10 +372,8 @@ class SegmentWriterReaderSpec extends TestBase {
           SegmentWriter.write(
             keyValues = keyValues,
             createdInLevel = 0,
-            maxProbe = TestData.maxProbe,
-            falsePositiveRate = TestData.falsePositiveRate,
-            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
-          ).assertGet.flatten
+            maxProbe = TestData.maxProbe
+        ).assertGet.flatten
 
         val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).get
         footer.keyValueCount shouldBe keyValues.size
@@ -440,10 +420,8 @@ class SegmentWriterReaderSpec extends TestBase {
           SegmentWriter.write(
             keyValues = keyValues,
             createdInLevel = 0,
-            maxProbe = TestData.maxProbe,
-            falsePositiveRate = TestData.falsePositiveRate,
-            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
-          ).assertGet.flatten
+            maxProbe = TestData.maxProbe
+        ).assertGet.flatten
 
         val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).get
         footer.keyValueCount shouldBe keyValues.size
@@ -473,10 +451,8 @@ class SegmentWriterReaderSpec extends TestBase {
           SegmentWriter.write(
             keyValues = keyValues,
             createdInLevel = 0,
-            maxProbe = TestData.maxProbe,
-            falsePositiveRate = 0.01,
-            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
-          ).assertGet.flatten
+            maxProbe = TestData.maxProbe
+        ).assertGet.flatten
 
         val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).get
         footer.keyValueCount shouldBe keyValues.size
@@ -532,10 +508,8 @@ class SegmentWriterReaderSpec extends TestBase {
           SegmentWriter.write(
             keyValues = keyValues,
             createdInLevel = 0,
-            maxProbe = TestData.maxProbe,
-            falsePositiveRate = TestData.falsePositiveRate,
-            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
-          ).assertGet.flatten
+            maxProbe = TestData.maxProbe
+        ).assertGet.flatten
 
         val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).get
         footer.keyValueCount shouldBe keyValues.size
@@ -580,10 +554,8 @@ class SegmentWriterReaderSpec extends TestBase {
           SegmentWriter.write(
             keyValues = keyValues,
             createdInLevel = 0,
-            maxProbe = TestData.maxProbe,
-            falsePositiveRate = TestData.falsePositiveRate,
-            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
-          ).assertGet.flatten
+            maxProbe = TestData.maxProbe
+        ).assertGet.flatten
 
         val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).get
         footer.keyValueCount shouldBe keyValues.size
@@ -615,10 +587,8 @@ class SegmentWriterReaderSpec extends TestBase {
           SegmentWriter.write(
             keyValues = keyValues,
             createdInLevel = 0,
-            maxProbe = TestData.maxProbe,
-            falsePositiveRate = TestData.falsePositiveRate,
-            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
-          ).assertGet.flatten
+            maxProbe = TestData.maxProbe
+        ).assertGet.flatten
 
         val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).get
         footer.keyValueCount shouldBe keyValues.size
@@ -671,10 +641,8 @@ class SegmentWriterReaderSpec extends TestBase {
           SegmentWriter.write(
             keyValues = keyValues,
             createdInLevel = 0,
-            maxProbe = TestData.maxProbe,
-            falsePositiveRate = 0.01,
-            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
-          ).assertGet.flatten
+            maxProbe = TestData.maxProbe
+        ).assertGet.flatten
 
         val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).get
         footer.keyValueCount shouldBe keyValues.size
@@ -744,9 +712,7 @@ class SegmentWriterReaderSpec extends TestBase {
         SegmentWriter.write(
           keyValues = keyValues,
           createdInLevel = 0,
-          maxProbe = TestData.maxProbe,
-          falsePositiveRate = TestData.falsePositiveRate,
-          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
+          maxProbe = TestData.maxProbe
         ).assertGet.flatten
 
       writtenBytes.isFull shouldBe true
@@ -833,9 +799,7 @@ class SegmentWriterReaderSpec extends TestBase {
         SegmentWriter.write(
           keyValues = keyValues,
           createdInLevel = 0,
-          maxProbe = TestData.maxProbe,
-          falsePositiveRate = TestData.falsePositiveRate,
-          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
+          maxProbe = TestData.maxProbe
         ).assertGet.flatten
 
       //FIRST
@@ -896,9 +860,7 @@ class SegmentWriterReaderSpec extends TestBase {
         SegmentWriter.write(
           keyValues = keyValues,
           createdInLevel = 0,
-          maxProbe = TestData.maxProbe,
-          falsePositiveRate = TestData.falsePositiveRate,
-          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
+          maxProbe = TestData.maxProbe
         ).assertGet.flatten
 
       val foundKeyValue1 = SegmentReader.higher(KeyMatcher.Higher(keyValues.head.key), None, Reader(bytes)).assertGet
@@ -984,9 +946,7 @@ class SegmentWriterReaderSpec extends TestBase {
           SegmentWriter.write(
             keyValues = keyValuesWithDeadline.updateStats,
             createdInLevel = 0,
-            maxProbe = TestData.maxProbe,
-            falsePositiveRate = TestData.falsePositiveRate,
-            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
+            maxProbe = TestData.maxProbe
           ).assertGet.nearestDeadline
 
         actualNearestDeadline shouldBe nearestDeadline(keyValuesWithDeadline.toSlice)
@@ -1041,10 +1001,8 @@ class SegmentWriterReaderSpec extends TestBase {
           SegmentWriter.write(
             keyValues = keyValues,
             createdInLevel = 0,
-            maxProbe = TestData.maxProbe,
-            falsePositiveRate = TestData.falsePositiveRate,
-            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
-          ).assertGet.flatten
+            maxProbe = TestData.maxProbe
+        ).assertGet.flatten
         //      println(bytes)
 
         deadline shouldBe empty

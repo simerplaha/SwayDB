@@ -93,9 +93,7 @@ class ValueReaderWriterSpec extends TestBase {
         SegmentWriter.write(
           keyValues = keyValues,
           createdInLevel = 0,
-          maxProbe = 10,
-          falsePositiveRate = TestData.falsePositiveRate,
-          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
+          maxProbe = TestData.maxProbe
         ).get.flatten
 
       val footer = SegmentReader.readFooter(Reader(bytes)).get

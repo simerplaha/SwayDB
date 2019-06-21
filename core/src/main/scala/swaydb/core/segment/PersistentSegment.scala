@@ -160,9 +160,7 @@ private[segment] case class PersistentSegment(file: DBFile,
                   Segment.persistent(
                     path = targetPaths.next.resolve(idGenerator.nextSegmentID),
                     createdInLevel = createdInLevel,
-                    bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
                     maxProbe = maxProbe,
-                    buildFullBinarySearchIndex = buildFullBinarySearchIndex,
                     mmapReads = mmapReads,
                     mmapWrites = mmapWrites,
                     keyValues = keyValues
@@ -217,9 +215,7 @@ private[segment] case class PersistentSegment(file: DBFile,
                   Segment.persistent(
                     path = targetPaths.next.resolve(idGenerator.nextSegmentID),
                     createdInLevel = createdInLevel,
-                    bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
                     maxProbe = maxProbe,
-                    buildFullBinarySearchIndex = buildFullBinarySearchIndex,
                     mmapReads = mmapReads,
                     mmapWrites = mmapWrites,
                     keyValues = keyValues

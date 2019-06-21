@@ -276,9 +276,7 @@ private[core] object SegmentWriter extends LazyLogging {
     */
   def write(keyValues: Iterable[KeyValue.WriteOnly],
             createdInLevel: Int,
-            maxProbe: Int,
-            falsePositiveRate: Double,
-            buildFullBinarySearchIndex: Boolean): IO[Result] =
+            maxProbe: Int): IO[Result] =
     if (keyValues.isEmpty)
       Result.emptyIO
     else {
@@ -298,18 +296,18 @@ private[core] object SegmentWriter extends LazyLogging {
             BinarySearchIndex.State(
               largestValue = lastStats.thisKeyValuesAccessIndexOffset,
               valuesCount = lastStats.segmentUniqueKeysCount,
-              buildFullBinarySearchIndex = buildFullBinarySearchIndex,
+              buildFullBinarySearchIndex = keyValues.last.buildFullBinarySearchIndex,
               bytes = Slice.create[Byte](lastStats.binarySearchIndexSize)
             )
           )
 
       val bloomFilter =
-        if (lastStats.segmentHasRemoveRange || lastStats.segmentBloomFilterSize <= 1 || falsePositiveRate <= 0.0)
+        if (lastStats.segmentHasRemoveRange || lastStats.segmentBloomFilterSize <= 1 || keyValues.last.falsePositiveRate <= 0.0)
           None
         else
           BloomFilter.init(
             numberOfKeys = lastStats.segmentUniqueKeysCount,
-            falsePositiveRate = falsePositiveRate
+            falsePositiveRate = keyValues.last.falsePositiveRate
           )
 
       val sortedIndexSlice = Slice.create[Byte](lastStats.segmentSortedIndexSize)

@@ -67,9 +67,7 @@ private[core] object GroupCompressor extends LazyLogging {
       SegmentWriter.write(
         keyValues = keyValues,
         createdInLevel = 0,
-        maxProbe = maxProbe,
-        falsePositiveRate = falsePositiveRate,
-        buildFullBinarySearchIndex = buildFullBinarySearchIndex
+        maxProbe = maxProbe
       ) flatMap {
         result =>
           //compress key-value bytes and write to group with meta data for key bytes and value bytes.

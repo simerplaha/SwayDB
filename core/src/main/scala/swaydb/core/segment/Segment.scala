@@ -251,9 +251,7 @@ private[core] object Segment extends LazyLogging {
 
   def persistent(path: Path,
                  createdInLevel: Int,
-                 bloomFilterFalsePositiveRate: Double,
                  maxProbe: Int,
-                 buildFullBinarySearchIndex: Boolean,
                  mmapReads: Boolean,
                  mmapWrites: Boolean,
                  keyValues: Iterable[KeyValue.WriteOnly])(implicit keyOrder: KeyOrder[Slice[Byte]],
@@ -265,8 +263,6 @@ private[core] object Segment extends LazyLogging {
     SegmentWriter.write(
       keyValues = keyValues,
       createdInLevel = createdInLevel,
-      falsePositiveRate = bloomFilterFalsePositiveRate,
-      buildFullBinarySearchIndex = buildFullBinarySearchIndex,
       maxProbe = maxProbe
     ) flatMap {
       result =>
@@ -434,9 +430,7 @@ private[core] object Segment extends LazyLogging {
               Segment.persistent(
                 path = fetchNextPath,
                 createdInLevel = createdInLevel,
-                bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
                 maxProbe = maxProbe,
-                buildFullBinarySearchIndex = buildFullBinarySearchIndex,
                 mmapReads = mmapSegmentsOnRead,
                 mmapWrites = mmapSegmentsOnWrite,
                 keyValues = keyValues
