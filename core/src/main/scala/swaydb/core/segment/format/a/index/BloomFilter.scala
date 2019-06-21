@@ -191,26 +191,31 @@ object BloomFilter {
 
   def mightContain(key: Slice[Byte],
                    reader: Reader,
-                   bloom: BloomFilter): Boolean = {
+                   bloom: BloomFilter): IO[Boolean] = {
     val hash = MurmurHash3Generic.murmurhash3_x64_64(key, 0, key.size, 0)
     val hash1 = hash >>> 32
     val hash2 = (hash << 32) >> 32
     var probe = 0
 
-    while (probe < bloom.probe) {
-      val computedHash = hash1 + probe * hash2
-      val hashIndex = (computedHash & Long.MaxValue) % bloom.numberOfBits
+    try {
+      while (probe < bloom.probe) {
+        val computedHash = hash1 + probe * hash2
+        val hashIndex = (computedHash & Long.MaxValue) % bloom.numberOfBits
 
-      val index =
-        reader
-          .moveTo(bloom.startOffset + ((hashIndex >>> 6) * 8L).toInt)
-          .readLong()
-          .get & (1L << hashIndex)
+        val index =
+          reader
+            .moveTo(bloom.startOffset + ((hashIndex >>> 6) * 8L).toInt)
+            .readLong()
+            .get & (1L << hashIndex)
 
-      if (index == 0) return false
-      probe += 1
+        if (index == 0) return IO.`false`
+        probe += 1
+      }
+      IO.`true`
+    } catch {
+      case ex: Throwable =>
+        IO.Failure(ex)
     }
-    true
   }
 }
 

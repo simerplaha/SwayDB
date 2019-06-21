@@ -225,7 +225,20 @@ private[core] class BitwiseSegment(id: String,
     Option(cache.get(key))
 
   def mightContain(key: Slice[Byte]): IO[Boolean] =
-    getBloomFilter() map (_.forall(BloomFilter.mightContain(key, _)))
+    for {
+      bloom <- getBloomFilter()
+      contains <- bloom map {
+        bloom =>
+          createReader() flatMap {
+            reader =>
+              BloomFilter.mightContain(
+                key = key,
+                reader = reader,
+                bloom = bloom
+              )
+          }
+      } getOrElse IO.`true`
+    } yield contains
 
   def get(key: Slice[Byte]): IO[Option[Persistent.SegmentResponse]] =
     maxKey match {

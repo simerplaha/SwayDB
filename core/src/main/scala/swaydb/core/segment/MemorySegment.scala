@@ -28,6 +28,7 @@ import swaydb.core.data.Memory.{Group, SegmentResponse}
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.group.compression.data.KeyValueGroupingStrategyInternal
+import swaydb.core.io.reader.Reader
 import swaydb.core.level.PathsDistributor
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.format.a.index.BloomFilter
@@ -53,7 +54,7 @@ private[segment] case class MemorySegment(path: Path,
                                           _isGrouped: Boolean,
                                           _createdInLevel: Int,
                                           private[segment] val cache: ConcurrentSkipListMap[Slice[Byte], Memory],
-                                          bloomFilter: Option[BloomFilter],
+                                          bloomFilter: Option[(BloomFilter, Slice[Byte])],
                                           nearestExpiryDeadline: Option[Deadline],
                                           busy: Reserve[Unit])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                timeOrder: TimeOrder[Slice[Byte]],
@@ -223,41 +224,48 @@ private[segment] case class MemorySegment(path: Path,
     if (deleted)
       IO.Failure(IO.Error.NoSuchFile(path))
 
-    else if (!bloomFilter.forall(BloomFilter.mightContain(key, _)))
-      IO.none
     else
-      maxKey match {
-        case MaxKey.Fixed(maxKey) if key > maxKey =>
-          IO.none
+      mightContain(key) flatMap {
+        mightContain =>
+          if (!mightContain)
+            IO.none
+          else
+            maxKey match {
+              case MaxKey.Fixed(maxKey) if key > maxKey =>
+                IO.none
 
-        case range: MaxKey.Range[Slice[Byte]] if key >= range.maxKey =>
-          IO.none
-
-        case _ =>
-          if (_hasRange || _hasGroup)
-            Option(cache.floorEntry(key)).map(_.getValue) match {
-              case Some(range: Memory.Range) if range contains key =>
-                IO.Success(Some(range))
-
-              case Some(group: Memory.Group) if group contains key =>
-                addToQueueMayBe(group)
-                group.segmentCache.get(key) flatMap {
-                  case Some(persistent) =>
-                    persistent.toMemoryResponseOption()
-
-                  case None =>
-                    IO.none
-                }
+              case range: MaxKey.Range[Slice[Byte]] if key >= range.maxKey =>
+                IO.none
 
               case _ =>
-                doBasicGet(key)
+                if (_hasRange || _hasGroup)
+                  Option(cache.floorEntry(key)).map(_.getValue) match {
+                    case Some(range: Memory.Range) if range contains key =>
+                      IO.Success(Some(range))
+
+                    case Some(group: Memory.Group) if group contains key =>
+                      addToQueueMayBe(group)
+                      group.segmentCache.get(key) flatMap {
+                        case Some(persistent) =>
+                          persistent.toMemoryResponseOption()
+
+                        case None =>
+                          IO.none
+                      }
+
+                    case _ =>
+                      doBasicGet(key)
+                  }
+                else
+                  doBasicGet(key)
             }
-          else
-            doBasicGet(key)
       }
 
   def mightContain(key: Slice[Byte]): IO[Boolean] =
-    IO(bloomFilter forall (BloomFilter.mightContain(key, _)))
+    bloomFilter map {
+      case (bloomFilter, bytes) =>
+        BloomFilter.mightContain(key, Reader(bytes), bloomFilter)
+    } getOrElse IO.`true`
 
   override def lower(key: Slice[Byte]): IO[Option[Memory.SegmentResponse]] =
     if (deleted)

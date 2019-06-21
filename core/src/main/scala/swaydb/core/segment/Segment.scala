@@ -214,17 +214,16 @@ private[core] object Segment extends LazyLogging {
         nearestExpiryDeadline =>
           bloomFilterOption
             .map {
-              bloomFilterState =>
+              bloomFilterState: BloomFilter.State =>
                 BloomFilter
                   .read(
                     offset = BloomFilter.Offset(0, bloomFilterState.bytes.written),
                     reader = Reader(bloomFilterState.bytes.close())
                   )
-                  .map(Some(_))
             }
             .getOrElse(IO.none)
             .map {
-              bloomFilter =>
+              case bloomFilter: BloomFilter =>
                 MemorySegment(
                   path = path,
                   minKey = keyValues.head.key.unslice(),
@@ -245,7 +244,7 @@ private[core] object Segment extends LazyLogging {
                   _hasPut = keyValues.last.stats.segmentHasPut,
                   _hasGroup = keyValues.last.stats.segmentHasGroup,
                   segmentSize = keyValues.last.stats.memorySegmentSize,
-                  bloomFilter = bloomFilter,
+                  bloomFilter = ???,
                   cache = skipList,
                   nearestExpiryDeadline = nearestExpiryDeadline,
                   busy = Reserve()

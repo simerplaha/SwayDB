@@ -56,4 +56,3 @@ private[core] object Timer {
       flushCheckpointSize = flushCheckpointSize
     )
 }
-
