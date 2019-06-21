@@ -58,11 +58,13 @@ class SegmentKeyValueLimiterSpec extends TestBase with Benchmark {
           indexCompression = randomCompression(),
           valueCompression = randomCompression(),
           falsePositiveRate = TestData.falsePositiveRate,
+          enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
-          maxProbe = TestData.maxProbe,
-          previous = None
+          previous = None,
+          maxProbe = TestData.maxProbe
         ).assertGet
 
       //add more key-values to the right of the Group
@@ -129,11 +131,13 @@ class SegmentKeyValueLimiterSpec extends TestBase with Benchmark {
           indexCompression = randomCompression(),
           valueCompression = randomCompression(),
           falsePositiveRate = TestData.falsePositiveRate,
+          enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
-          maxProbe = TestData.maxProbe,
-          previous = None
+          previous = None,
+          maxProbe = TestData.maxProbe
         ).assertGet
 
       //add key-values to the right of the group

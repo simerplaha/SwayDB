@@ -44,16 +44,16 @@ import scala.annotation.tailrec
 private[core] object SegmentReader extends LazyLogging {
 
   private def readNextKeyValue(previous: Persistent,
-                               startIndexOffset: Int,
-                               endIndexOffset: Int,
+                               startOffset: Int,
+                               endOffset: Int,
                                indexReader: Reader,
                                valueReader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Persistent] = {
     indexReader moveTo previous.nextIndexOffset
     readNextKeyValue(
       indexEntrySizeMayBe = Some(previous.nextIndexSize),
       adjustNextIndexOffsetBy = 0,
-      startIndexOffset = startIndexOffset,
-      endIndexOffset = endIndexOffset,
+      startIndexOffset = startOffset,
+      endIndexOffset = endOffset,
       indexReader = indexReader,
       valueReader = valueReader,
       previous = Some(previous)
@@ -153,10 +153,10 @@ private[core] object SegmentReader extends LazyLogging {
               addTo: Option[Slice[KeyValue.ReadOnly]] = None)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Slice[KeyValue.ReadOnly]] =
     try {
       //since this is a index slice of the full Segment, adjustments for nextIndexOffset is required.
-      val adjustNextIndexOffsetBy = footer.sortedIndexStartOffset
+      val adjustNextIndexOffsetBy = footer.sortedIndexOffset.start
       //read full index in one disk seek and Slice it to KeyValue chunks.
-      val indexOnlyReader = Reader((reader moveTo footer.sortedIndexStartOffset read (footer.sortedIndexEndOffset - footer.sortedIndexStartOffset + 1)).get)
-      val endIndexOffset: Int = indexOnlyReader.size.get.toInt - 1
+      val sortedIndexReader = reader moveTo footer.sortedIndexOffset.start read footer.sortedIndexOffset.size map (Reader(_)) get
+      val endIndexOffset: Int = sortedIndexReader.size.get.toInt - 1
 
       val entries = addTo getOrElse Slice.create[Persistent](footer.keyValueCount)
       (1 to footer.keyValueCount).foldLeftIO(Option.empty[Persistent]) {
@@ -166,16 +166,16 @@ private[core] object SegmentReader extends LazyLogging {
               previous =>
                 //If previous is known, keep reading same reader
                 // and set the next position of the reader to be of the next index's offset.
-                indexOnlyReader moveTo (previous.nextIndexOffset - adjustNextIndexOffsetBy)
+                sortedIndexReader moveTo (previous.nextIndexOffset - adjustNextIndexOffsetBy)
                 previous.nextIndexSize
             }
 
           readNextKeyValue(
             indexEntrySizeMayBe = nextIndexSize,
             adjustNextIndexOffsetBy = adjustNextIndexOffsetBy,
-            startIndexOffset = previousMayBe.map(_.nextIndexOffset).getOrElse(footer.sortedIndexStartOffset),
+            startIndexOffset = previousMayBe.map(_.nextIndexOffset).getOrElse(footer.sortedIndexOffset.start),
             endIndexOffset = endIndexOffset,
-            indexReader = indexOnlyReader,
+            indexReader = sortedIndexReader,
             valueReader = reader.copy(),
             //user entries.lastOption instead of previousMayBe because, addTo might already be pre-populated and the
             //last entry would of bethe.
@@ -230,23 +230,24 @@ private[core] object SegmentReader extends LazyLogging {
 
   def readHashIndexHeader(reader: Reader,
                           footer: SegmentFooter): IO[HashIndex.Header] =
-    reader
-      .moveTo(footer.hashIndexStartOffset)
-      //todo read only the header bytes.
-      .read(footer.hashIndexSize)
-      .flatMap {
-        bytes =>
-          HashIndex.readHeader(Reader(bytes))
-      }
+  //    reader
+  //      .moveTo(footer.hashIndexOffsets)
+  //      //todo read only the header bytes.
+  //      .read(footer.hashIndexSize)
+  //      .flatMap {
+  //        bytes =>
+  //          HashIndex.readHeader(Reader(bytes))
+  //      }
+    ???
 
   //all these functions are wrapper with a try catch block with getFromHashIndex only to make it easier to read.
   def readFooter(reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[SegmentFooter] =
     try {
-      val fileSize = reader.size.get
+      val fileSize = reader.size.get.toInt
       val footerStartOffset = reader.moveTo(fileSize - ByteSizeOf.int).readInt().get
-      val footerSize = fileSize.toInt - footerStartOffset
-      val footerBytes = reader.moveTo(footerStartOffset).read(footerSize - ByteSizeOf.int)
-      val footerReader = Reader(footerBytes.get)
+      val footerSize = fileSize - footerStartOffset
+      val footerBytes = reader.moveTo(footerStartOffset).read(footerSize - ByteSizeOf.int).get
+      val footerReader = Reader(footerBytes)
       val formatId = footerReader.readIntUnsigned().get
       if (formatId != SegmentWriter.formatId) {
         val message = s"Invalid Segment formatId: $formatId. Expected: ${SegmentWriter.formatId}"
@@ -254,55 +255,71 @@ private[core] object SegmentReader extends LazyLogging {
       }
       assert(formatId == SegmentWriter.formatId, s"Invalid Segment formatId: $formatId. Expected: ${SegmentWriter.formatId}")
       val createdInLevel = footerReader.readIntUnsigned().get
-      val isGrouped = footerReader.readBoolean().get
+      val hasGroup = footerReader.readBoolean().get
       val hasRange = footerReader.readBoolean().get
       val hasPut = footerReader.readBoolean().get
-      val indexStartOffset = footerReader.readIntUnsigned().get
-      val hashIndexStartOffset = footerReader.readIntUnsigned().get
-      val expectedCRC = footerReader.readLong().get
       val keyValueCount = footerReader.readIntUnsigned().get
       val bloomFilterItemsCount = footerReader.readIntUnsigned().get
-      val bloomFilterSize = footerReader.readInt().get
-      val bloomAndRangeFilterSlice =
-        if (bloomFilterSize == 0) {
-          None
-        } else {
-          val bloomFilterSlice = footerReader.read(bloomFilterSize).get
-          val rangeFilterSize = footerReader.readIntUnsigned().get
-          val rangeFilterSlice = footerReader.read(rangeFilterSize).get
-          Some(bloomFilterSlice, rangeFilterSlice)
-        }
-
-      val crcBytes = reader.moveTo(indexStartOffset).read(SegmentWriter.crcBytes).get
+      val expectedCRC = footerReader.readLong().get
+      val crcBytes = footerBytes.take(SegmentWriter.crcBytes)
       val crc = CRC32.forBytes(crcBytes)
       if (expectedCRC != crc) {
         IO.Failure(SegmentCorruptionException(s"Corrupted Segment: CRC Check failed. $expectedCRC != $crc", new Exception("CRC check failed.")))
       } else {
-        val hashIndexEndOffset = fileSize.toInt - footerSize - 1
-        val hashIndexSize = hashIndexEndOffset - hashIndexStartOffset
-        val indexEndOffset = fileSize.toInt - hashIndexSize - footerSize - 2
+        val sortedIndexOffset =
+          Offset(
+            size = footerReader.readIntUnsigned().get,
+            start = footerReader.readIntUnsigned().get
+          )
+
+        val hashIndexSize = footerReader.readIntUnsigned().get
+        val hashIndexOffset =
+          if (hashIndexSize == 0)
+            None
+          else
+            Some(
+              Offset(
+                start = footerReader.readIntUnsigned().get,
+                size = hashIndexSize
+              )
+            )
+
+        val binarySearchIndexSize = footerReader.readIntUnsigned().get
+        val binarySearchIndexOffset =
+          if (binarySearchIndexSize == 0)
+            None
+          else
+            Some(
+              Offset(
+                start = footerReader.readIntUnsigned().get,
+                size = binarySearchIndexSize
+              )
+            )
+
+        val bloomFilterSize = footerReader.readIntUnsigned().get
+        val bloomFilterOffset =
+          if (hashIndexSize == 0)
+            None
+          else
+            Some(
+              Offset(
+                start = footerReader.readIntUnsigned().get,
+                size = bloomFilterSize
+              )
+            )
+
         IO.Success(
           SegmentFooter(
-            crc = expectedCRC,
-            createdInLevel = createdInLevel,
-            isGrouped = isGrouped,
-            sortedIndexStartOffset = indexStartOffset,
-            sortedIndexEndOffset = indexEndOffset,
-            hashIndexStartOffset = hashIndexStartOffset,
-            hashIndexEndOffset = hashIndexEndOffset,
+            sortedIndexOffset = sortedIndexOffset,
+            hashIndexOffset = hashIndexOffset,
+            binarySearchIndexOffset = binarySearchIndexOffset,
+            bloomFilterOffset = bloomFilterOffset,
             keyValueCount = keyValueCount,
-            hasRange = hasRange,
-            hasPut = hasPut,
+            createdInLevel = createdInLevel,
             bloomFilterItemsCount = bloomFilterItemsCount,
-            bloomFilter =
-              //              bloomAndRangeFilterSlice map {
-              //                case (bloomFilterSlice, rangeFilterSlice) =>
-              //                  BloomFilter(
-              //                    bloomFilterBytes = bloomFilterSlice,
-              //                    rangeFilterBytes = rangeFilterSlice
-              //                  ).find
-              //              }
-              ???
+            hasRange = hasRange,
+            hasGroup = hasGroup,
+            hasPut = hasPut
           )
         )
       }
@@ -335,7 +352,7 @@ private[core] object SegmentReader extends LazyLogging {
               matcher = matcher,
               startFrom = startFrom,
               reader = reader,
-              hashIndexHeader = Some(header),
+              hashIndexHeader = ???,
               footer = footer
             )
         }
@@ -376,29 +393,29 @@ private[core] object SegmentReader extends LazyLogging {
   def get(matcher: KeyMatcher.Get,
           startFrom: Option[Persistent],
           reader: Reader,
-          hashIndexHeader: Option[HashIndex.Header],
+          hashIndexHeader: Option[(HashIndex.Header, Offset)],
           footer: SegmentFooter)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
     hashIndexHeader map {
-      hashIndexHeader =>
+      case (hashIndexHeader, hashIndexOffset) =>
         getFromHashIndex(
           matcher = matcher.toNextPrefixCompressedMatcher,
           reader = reader,
           header = hashIndexHeader,
+          hashIndexOffset = hashIndexOffset,
           footer = footer
         ) flatMap {
           found =>
             //if the hashIndex hit rate is perfect means the key definitely does not exist.
             //so either the bloomFilter was disabled or it returned a false positive.
-            //            if (found.isEmpty && hashIndexHeader.miss == 0 && ((footer.hasRange && hashIndexHeader.rangeIndexingEnabled) || !footer.hasRange))
-            //              IO.none
-            //            else //still not sure go ahead with walk find.
-            //              find(
-            //                matcher = matcher,
-            //                //todo compare and start from nearest read key-value.
-            //                startFrom = startFrom,
-            //                reader = reader, footer = footer
-            //              )
-            ???
+            if (found.isEmpty && hashIndexHeader.miss == 0 && ((footer.hasRange && footer.binarySearchIndexOffset.isDefined) || !footer.hasRange))
+              IO.none
+            else //still not sure go ahead with walk find.
+              find(
+                matcher = matcher,
+                //todo compare and start from nearest read key-value.
+                startFrom = startFrom,
+                reader = reader, footer = footer
+              )
         }
     } getOrElse {
       find(
@@ -411,18 +428,19 @@ private[core] object SegmentReader extends LazyLogging {
   private[a] def getFromHashIndex(matcher: KeyMatcher.GetNextPrefixCompressed,
                                   reader: Reader,
                                   header: HashIndex.Header,
+                                  hashIndexOffset: Offset,
                                   footer: SegmentFooter)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
     HashIndex.find[Persistent](
       key = matcher.key,
-      hashIndexStartOffset = footer.hashIndexStartOffset,
+      hashIndexStartOffset = hashIndexOffset.start,
       hashIndexReader = reader,
-      hashIndexSize = footer.hashIndexSize,
+      hashIndexSize = hashIndexOffset.size,
       maxProbe = header.maxProbe,
       assertValue =
         sortedIndexOffset =>
           findFromIndex(
             matcher = matcher,
-            fromOffset = footer.sortedIndexStartOffset + sortedIndexOffset,
+            fromOffset = footer.sortedIndexOffset.start + sortedIndexOffset,
             reader = reader,
             footer = footer
           ) recoverWith {
@@ -450,8 +468,8 @@ private[core] object SegmentReader extends LazyLogging {
         else
           readNextKeyValue(
             previous = startFrom,
-            startIndexOffset = footer.sortedIndexStartOffset,
-            endIndexOffset = footer.sortedIndexEndOffset,
+            startOffset = footer.sortedIndexOffset.start,
+            endOffset = footer.sortedIndexOffset.end,
             indexReader = reader,
             valueReader = reader
           ) flatMap {
@@ -468,9 +486,9 @@ private[core] object SegmentReader extends LazyLogging {
       //No start from. Get the first index entry from the File and start from there.
       case None =>
         readNextKeyValue(
-          fromPosition = footer.sortedIndexStartOffset,
-          startIndexOffset = footer.sortedIndexStartOffset,
-          endIndexOffset = footer.sortedIndexEndOffset,
+          fromPosition = footer.sortedIndexOffset.start,
+          startIndexOffset = footer.sortedIndexOffset.start,
+          endIndexOffset = footer.sortedIndexOffset.end,
           indexReader = reader,
           valueReader = reader
         ) flatMap {
@@ -491,8 +509,8 @@ private[core] object SegmentReader extends LazyLogging {
                             footer: SegmentFooter)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
     readNextKeyValue(
       fromPosition = fromOffset,
-      startIndexOffset = footer.sortedIndexStartOffset,
-      endIndexOffset = footer.sortedIndexEndOffset,
+      startIndexOffset = footer.sortedIndexOffset.start,
+      endIndexOffset = footer.sortedIndexOffset.end,
       indexReader = reader,
       valueReader = reader
     ) flatMap {
@@ -521,8 +539,8 @@ private[core] object SegmentReader extends LazyLogging {
         val readFrom = next getOrElse previous
         readNextKeyValue(
           previous = readFrom,
-          startIndexOffset = footer.sortedIndexStartOffset,
-          endIndexOffset = footer.sortedIndexEndOffset,
+          startOffset = footer.sortedIndexOffset.start,
+          endOffset = footer.sortedIndexOffset.end,
           indexReader = reader,
           valueReader = reader
         ) match {
@@ -547,5 +565,5 @@ private[core] object SegmentReader extends LazyLogging {
     }
 
   private def hasMore(keyValue: Persistent, footer: SegmentFooter) =
-    keyValue.nextIndexOffset >= 0 && keyValue.nextIndexOffset < footer.sortedIndexEndOffset
+    keyValue.nextIndexOffset >= 0 && keyValue.nextIndexOffset < footer.sortedIndexOffset.end
 }

@@ -52,11 +52,13 @@ class GroupSpec extends TestBase {
           indexCompression = randomCompression(),
           valueCompression = randomCompression(),
           falsePositiveRate = TestData.falsePositiveRate,
+          enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
-          maxProbe = TestData.maxProbe,
-          previous = None
+          previous = None,
+          maxProbe = TestData.maxProbe
         ).assertGet
 
       Seq(group).lastGroup().assertGet shouldBe group
@@ -71,11 +73,13 @@ class GroupSpec extends TestBase {
               indexCompression = randomCompression(),
               valueCompression = randomCompression(),
               falsePositiveRate = TestData.falsePositiveRate,
+              enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+              buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
               resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
               minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
               hashIndexCompensation = TestData.hashIndexCompensation,
-              maxProbe = TestData.maxProbe,
-              previous = None
+              previous = None,
+              maxProbe = TestData.maxProbe
             ).assertGet
         }
 
@@ -94,11 +98,13 @@ class GroupSpec extends TestBase {
                 indexCompression = randomCompression(),
                 valueCompression = randomCompression(),
                 falsePositiveRate = TestData.falsePositiveRate,
+                enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+                buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
                 resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
                 minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
                 hashIndexCompensation = TestData.hashIndexCompensation,
-                maxProbe = TestData.maxProbe,
-                previous = None
+                previous = None,
+                maxProbe = TestData.maxProbe
               ).assertGet
         }
 
@@ -116,11 +122,13 @@ class GroupSpec extends TestBase {
           indexCompression = randomCompression(),
           valueCompression = randomCompression(),
           falsePositiveRate = TestData.falsePositiveRate,
+          enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
-          maxProbe = TestData.maxProbe,
-          previous = None
+          previous = None,
+          maxProbe = TestData.maxProbe
         ).assertGet
 
       //create Segment
@@ -164,11 +172,13 @@ class GroupSpec extends TestBase {
           indexCompression = randomCompression(),
           valueCompression = randomCompression(),
           falsePositiveRate = TestData.falsePositiveRate,
+          enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
-          maxProbe = TestData.maxProbe,
-          previous = None
+          previous = None,
+          maxProbe = TestData.maxProbe
         ).assertGet
 
       implicit val groupingStrategy = None

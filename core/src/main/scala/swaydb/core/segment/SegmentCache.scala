@@ -114,13 +114,15 @@ private[core] class SegmentCache(id: String,
     }
 
   def getBloomFilter: IO[Option[BloomFilter.Header]] =
-    getFooter() map (_.bloomFilter)
+  //    getFooter() map (_.bloomFilter)
+    ???
 
   def getFromCache(key: Slice[Byte]): Option[Persistent] =
     Option(cache.get(key))
 
   def mightContain(key: Slice[Byte]): IO[Boolean] =
-    getFooter().map(_.bloomFilter forall (BloomFilter.mightContain(key, _)))
+  //    getFooter().map(_.bloomFilter forall (BloomFilter.mightContain(key, _)))
+    ???
 
   def get(key: Slice[Byte]): IO[Option[Persistent.SegmentResponse]] =
     maxKey match {
@@ -152,27 +154,28 @@ private[core] class SegmentCache(id: String,
               (footer, reader) =>
                 getHashIndexHeader() flatMap {
                   hashIndexHeader =>
-                    if (!footer.bloomFilter.forall(BloomFilter.mightContain(key, _)))
-                      IO.none
-                    else
-                      SegmentReader.get(
-                        matcher = KeyMatcher.Get(key),
-                        startFrom = floorValue,
-                        reader = reader,
-                        hashIndexHeader = hashIndexHeader,
-                        footer = footer
-                      ) flatMap {
-                        case Some(response: Persistent.SegmentResponse) =>
-                          addToCache(response)
-                          IO.Success(Some(response))
-
-                        case Some(group: Persistent.Group) =>
-                          addToCache(group)
-                          group.segmentCache.get(key)
-
-                        case None =>
-                          IO.none
-                      }
+//                    if (!footer.bloomFilter.forall(BloomFilter.mightContain(key, _)))
+//                      IO.none
+//                    else
+//                      SegmentReader.get(
+//                        matcher = KeyMatcher.Get(key),
+//                        startFrom = floorValue,
+//                        reader = reader,
+//                        hashIndexHeader = hashIndexHeader,
+//                        footer = footer
+//                      ) flatMap {
+//                        case Some(response: Persistent.SegmentResponse) =>
+//                          addToCache(response)
+//                          IO.Success(Some(response))
+//
+//                        case Some(group: Persistent.Group) =>
+//                          addToCache(group)
+//                          group.segmentCache.get(key)
+//
+//                        case None =>
+//                          IO.none
+//                      }
+                    ???
                 }
             }
         }

@@ -64,9 +64,11 @@ class ValueReaderWriterSpec extends TestBase {
             previous = None,
             falsePositiveRate = 0.001,
             compressDuplicateValues = true,
+            enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-            hashIndexCompensation = TestData.hashIndexCompensation,
+            hashIndexCompensation = TestData.hashIndexCompensation
           )
         ).updateStats
 
@@ -92,11 +94,12 @@ class ValueReaderWriterSpec extends TestBase {
           keyValues = keyValues,
           createdInLevel = 0,
           maxProbe = 10,
-          falsePositiveRate = TestData.falsePositiveRate
+          falsePositiveRate = TestData.falsePositiveRate,
+          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
         ).get.flatten
 
       val footer = SegmentReader.readFooter(Reader(bytes)).get
-      footer.isGrouped shouldBe false
+      footer.hasGroup shouldBe false
       footer.bloomFilterItemsCount shouldBe keyValues.size
       footer.hasRange shouldBe false
       footer.hasPut shouldBe true

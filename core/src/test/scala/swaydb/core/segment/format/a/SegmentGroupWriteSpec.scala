@@ -85,7 +85,9 @@ sealed trait SegmentGroupWriteSpec extends TestBase with ScalaFutures with Priva
             compressDuplicateValues = true,
             removeDeletes = false,
             createdInLevel = 0,
-            maxProbe = TestData.maxProbe
+            maxProbe = TestData.maxProbe,
+            enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
           ).assertGet
         //        printGroupHierarchy(newSegments)
         groupedSegments should have size 1
@@ -120,8 +122,10 @@ sealed trait SegmentGroupWriteSpec extends TestBase with ScalaFutures with Priva
             hashIndexCompensation = TestData.hashIndexCompensation,
             compressDuplicateValues = true,
             removeDeletes = false,
+            createdInLevel = 0,
             maxProbe = TestData.maxProbe,
-            createdInLevel = 0
+            enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
           ).assertGet
 
         newSegmentsWithRemovedKeyValues should have size 1

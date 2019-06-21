@@ -19,7 +19,7 @@
 
 package swaydb.core
 
-import java.nio.file.{Files, Path, Paths}
+import java.nio.file.Path
 
 import swaydb.compression.CompressionInternal
 import swaydb.core.CommonAssertions._
@@ -38,7 +38,7 @@ import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.seek._
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
-import swaydb.core.util.{Benchmark, IDGenerator, UUIDUtil}
+import swaydb.core.util.UUIDUtil
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.{Dir, RecoveryMode}
@@ -68,6 +68,9 @@ object TestData {
   val resetPrefixCompressionEvery: Int = 0
   val minimumNumberOfKeyForHashIndex: Int = Try(resetPrefixCompressionEvery / 2).getOrElse(Int.MaxValue)
   val hashIndexCompensation: Int => Int = _ => 0
+  val compressDuplicateValues: Boolean = true
+  val buildFullBinarySearchIndex: Boolean = true
+  val enableBinarySearchIndex: Boolean = true
   val maxProbe: Int = 5
 
   implicit val functionStore: FunctionStore = FunctionStore.memory()
@@ -148,6 +151,8 @@ object TestData {
           minSegmentSize = 1000.mb,
           createdInLevel = level.levelNumber,
           maxProbe = level.maxProbe,
+          enableBinarySearchIndex = level.enableBinarySearchIndex,
+          buildFullBinarySearchIndex = level.buildFullBinarySearchIndex,
           bloomFilterFalsePositiveRate = level.bloomFilterFalsePositiveRate,
           resetPrefixCompressionEvery = level.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = level.minimumNumberOfKeyForHashIndex,
@@ -174,6 +179,8 @@ object TestData {
           minSegmentSize = 1000.mb,
           maxProbe = level.maxProbe,
           bloomFilterFalsePositiveRate = level.bloomFilterFalsePositiveRate,
+          enableBinarySearchIndex = level.enableBinarySearchIndex,
+          buildFullBinarySearchIndex = level.buildFullBinarySearchIndex,
           resetPrefixCompressionEvery = level.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = level.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = level.hashIndexCompensation,
@@ -228,6 +235,8 @@ object TestData {
                 bloomFilterFalsePositiveRate = level.bloomFilterFalsePositiveRate,
                 resetPrefixCompressionEvery = level.resetPrefixCompressionEvery,
                 minimumNumberOfKeyForHashIndex = level.minimumNumberOfKeyForHashIndex,
+                enableBinarySearchIndex = level.enableBinarySearchIndex,
+                buildFullBinarySearchIndex = level.buildFullBinarySearchIndex,
                 hashIndexCompensation = level.hashIndexCompensation,
                 throttle = throttle,
                 compressDuplicateValues = level.compressDuplicateValues,
@@ -344,25 +353,25 @@ object TestData {
       keyValue match {
         case fixed: KeyValue.WriteOnly.Fixed =>
           fixed match {
-            case Transient.Remove(key, deadline, time, previous, falsePositiveRate, _, _, _) =>
+            case Transient.Remove(key, deadline, time, previous, falsePositiveRate, _, _, _, _, _) =>
               Memory.Remove(key, deadline, time)
 
-            case Transient.Update(key, value, deadline, time, previous, falsePositiveRate, compressDuplicateValues, _, _, _) =>
+            case Transient.Update(key, value, deadline, time, _, _, _, _, _, _, _, _) =>
               Memory.Update(key, value, deadline, time)
 
-            case Transient.Put(key, value, deadline, time, previous, falsePositiveRate, compressDuplicateValues, _, _, _) =>
+            case Transient.Put(key, value, deadline, time, _, _, _, _, _, _, _, _) =>
               Memory.Put(key, value, deadline, time)
 
-            case Transient.Function(key, function, deadline, time, previous, falsePositiveRate, compressDuplicateValues, _, _, _) =>
+            case Transient.Function(key, function, deadline, time, _, _, _, _, _, _, _, _) =>
               Memory.Function(key, function, time)
 
-            case Transient.PendingApply(key, applies, previous, falsePositiveRate, compressDuplicateValues, _, _, _) =>
+            case Transient.PendingApply(key, applies, _, _, _, _, _, _, _, _) =>
               Memory.PendingApply(key, applies)
           }
 
         case range: KeyValue.WriteOnly.Range =>
           range match {
-            case Transient.Range(fromKey, toKey, fullKey, fromValue, rangeValue, value, previous, falsePositiveRate, _, _, _) =>
+            case Transient.Range(fromKey, toKey, fullKey, fromValue, rangeValue, _, _, _, _, _, _, _, _) =>
               Memory.Range(fromKey, toKey, fromValue, rangeValue)
           }
       }
@@ -371,7 +380,7 @@ object TestData {
       keyValue match {
         case group: KeyValue.WriteOnly.Group =>
           group match {
-            case Transient.Group(fromKey, toKey, fullKey, compressedKeyValues, deadline, keyValues, previous, falsePositiveRate, _, _, _) =>
+            case Transient.Group(fromKey, toKey, fullKey, compressedKeyValues, deadline, _, _, _, _, _, _, _, _) =>
               Memory.Group(
                 minKey = fromKey,
                 maxKey = toKey,
@@ -386,7 +395,7 @@ object TestData {
       keyValue match {
         case group: KeyValue.WriteOnly.Group =>
           group match {
-            case Transient.Group(fromKey, toKey, fullKey, compressedKeyValues, deadline, keyValues, previous, falsePositiveRate, _, _, _) =>
+            case Transient.Group(fromKey, toKey, fullKey, compressedKeyValues, deadline, _, _, _, _, _, _, _, _) =>
               Memory.Group(
                 minKey = fromKey,
                 maxKey = toKey,
@@ -456,7 +465,9 @@ object TestData {
                     time = time,
                     previous = previous,
                     falsePositiveRate = TestData.falsePositiveRate,
-                    compressDuplicateValues = true,
+                    enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+                    buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
+                    compressDuplicateValues = TestData.compressDuplicateValues,
                     resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
                     minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
                     hashIndexCompensation = TestData.hashIndexCompensation
@@ -470,7 +481,9 @@ object TestData {
                     time = time,
                     previous = previous,
                     falsePositiveRate = TestData.falsePositiveRate,
-                    compressDuplicateValues = true,
+                    enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+                    buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
+                    compressDuplicateValues = TestData.compressDuplicateValues,
                     resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
                     minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
                     hashIndexCompensation = TestData.hashIndexCompensation
@@ -483,6 +496,8 @@ object TestData {
                     time = time,
                     previous = previous,
                     falsePositiveRate = TestData.falsePositiveRate,
+                    enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+                    buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
                     resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
                     minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
                     hashIndexCompensation = TestData.hashIndexCompensation
@@ -496,7 +511,9 @@ object TestData {
                     time = time,
                     previous = previous,
                     falsePositiveRate = TestData.falsePositiveRate,
-                    compressDuplicateValues = true,
+                    enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+                    buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
+                    compressDuplicateValues = TestData.compressDuplicateValues,
                     resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
                     minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
                     hashIndexCompensation = TestData.hashIndexCompensation
@@ -508,7 +525,9 @@ object TestData {
                     applies = applies,
                     previous = previous,
                     falsePositiveRate = TestData.falsePositiveRate,
-                    compressDuplicateValues = true,
+                    enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+                    buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
+                    compressDuplicateValues = TestData.compressDuplicateValues,
                     resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
                     minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
                     hashIndexCompensation = TestData.hashIndexCompensation
@@ -520,6 +539,8 @@ object TestData {
                 toKey = toKey,
                 fromValue = fromValue,
                 rangeValue = rangeValue,
+                enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+                buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
                 falsePositiveRate = TestData.falsePositiveRate,
                 resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
                 minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
@@ -527,12 +548,14 @@ object TestData {
                 previous = previous
               )
 
-            case group @ Memory.Group(fromKey, toKey, nearestDeadline, groupDecompressor, _) =>
+            case group: Memory.Group =>
               Transient.Group(
                 keyValues = group.segmentCache.getAll().assertGet.toTransient,
                 indexCompression = randomCompression(),
                 valueCompression = randomCompression(),
                 falsePositiveRate = 0,
+                enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+                buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
                 resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
                 minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
                 hashIndexCompensation = TestData.hashIndexCompensation,
@@ -545,7 +568,7 @@ object TestData {
           persistent match {
             case persistent: Persistent.Fixed =>
               persistent match {
-                case put @ Persistent.Put(key, deadline, valueReader, time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _) =>
+                case put @ Persistent.Put(key, deadline, valueReader, time, _, _, _, _, _, _) =>
                   Transient.Put(
                     key = key,
                     value = put.getOrFetchValue.assertGetOpt,
@@ -553,13 +576,15 @@ object TestData {
                     time = time,
                     previous = previous,
                     falsePositiveRate = TestData.falsePositiveRate,
-                    compressDuplicateValues = true,
+                    enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+                    buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
+                    compressDuplicateValues = TestData.compressDuplicateValues,
                     resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
                     minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
                     hashIndexCompensation = TestData.hashIndexCompensation
                   )
 
-                case put @ Persistent.Update(key, deadline, valueReader, time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _) =>
+                case put @ Persistent.Update(key, deadline, valueReader, time, _, _, _, _, _, _) =>
                   Transient.Update(
                     key = key,
                     value = put.getOrFetchValue.assertGetOpt,
@@ -567,13 +592,15 @@ object TestData {
                     time = time,
                     previous = previous,
                     falsePositiveRate = TestData.falsePositiveRate,
-                    compressDuplicateValues = true,
+                    enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+                    buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
+                    compressDuplicateValues = TestData.compressDuplicateValues,
                     resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
                     minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
                     hashIndexCompensation = TestData.hashIndexCompensation
                   )
 
-                case function @ Persistent.Function(key, lazyFunctionReader, time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _) =>
+                case function @ Persistent.Function(key, lazyFunctionReader, time, _, _, _, _, _, _) =>
                   Transient.Function(
                     key = key,
                     function = lazyFunctionReader.getOrFetchFunction.assertGet,
@@ -581,30 +608,36 @@ object TestData {
                     time = time,
                     previous = previous,
                     falsePositiveRate = TestData.falsePositiveRate,
-                    compressDuplicateValues = true,
+                    enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+                    buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
+                    compressDuplicateValues = TestData.compressDuplicateValues,
                     resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
                     minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
                     hashIndexCompensation = TestData.hashIndexCompensation
                   )
 
-                case pendingApply @ Persistent.PendingApply(key, time, deadline, lazyPendingApplyValueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _) =>
+                case pendingApply: Persistent.PendingApply =>
                   Transient.PendingApply(
-                    key = key,
+                    key = pendingApply.key,
                     applies = pendingApply.getOrFetchApplies.assertGet,
                     previous = previous,
                     falsePositiveRate = TestData.falsePositiveRate,
-                    compressDuplicateValues = true,
+                    enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+                    buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
+                    compressDuplicateValues = TestData.compressDuplicateValues,
                     resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
                     minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
                     hashIndexCompensation = TestData.hashIndexCompensation
                   )
 
-                case Persistent.Remove(_key, deadline, time, indexOffset, nextIndexOffset, nextIndexSize, _) =>
+                case Persistent.Remove(_key, deadline, time, _, _, _, _) =>
                   Transient.Remove(
                     key = _key,
                     deadline = deadline,
                     time = time,
                     previous = previous,
+                    enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+                    buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
                     falsePositiveRate = TestData.falsePositiveRate,
                     resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
                     minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
@@ -612,7 +645,7 @@ object TestData {
                   )
               }
 
-            case range @ Persistent.Range(_fromKey, _toKey, valueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _) =>
+            case range @ Persistent.Range(_fromKey, _toKey, _, _, _, _, _, _, _) =>
               val (fromValue, rangeValue) = range.fetchFromAndRangeValue.assertGet
               Transient.Range(
                 fromKey = _fromKey,
@@ -620,6 +653,8 @@ object TestData {
                 fromValue = fromValue,
                 rangeValue = rangeValue,
                 falsePositiveRate = TestData.falsePositiveRate,
+                enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+                buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
                 resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
                 minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
                 hashIndexCompensation = TestData.hashIndexCompensation,
@@ -633,6 +668,8 @@ object TestData {
                 indexCompression = randomCompression(),
                 valueCompression = randomCompression(),
                 falsePositiveRate = TestData.falsePositiveRate,
+                enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+                buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
                 resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
                 minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
                 hashIndexCompensation = TestData.hashIndexCompensation,
@@ -1082,6 +1119,8 @@ object TestData {
                               resetPrefixCompressionEvery: Int = TestData.resetPrefixCompressionEvery,
                               minimumNumberOfKeysForHashIndex: Int = TestData.minimumNumberOfKeyForHashIndex,
                               hashIndexCompensation: Int => Int = TestData.hashIndexCompensation,
+                              enableBinarySearchIndex: Boolean = TestData.enableBinarySearchIndex,
+                              buildFullBinarySearchIndex: Boolean = TestData.buildFullBinarySearchIndex,
                               functionOutput: SwayFunctionOutput = randomFunctionOutput(),
                               includePendingApply: Boolean = true,
                               includeFunctions: Boolean = true,
@@ -1096,6 +1135,8 @@ object TestData {
         fromValue = fromValue,
         rangeValue = rangeValue,
         falsePositiveRate = falsePositiveRate,
+        enableBinarySearchIndex = enableBinarySearchIndex,
+        buildFullBinarySearchIndex = buildFullBinarySearchIndex,
         resetPrefixCompressionEvery = resetPrefixCompressionEvery,
         minimumNumberOfKeyForHashIndex = minimumNumberOfKeysForHashIndex,
         hashIndexCompensation = hashIndexCompensation,
@@ -1116,6 +1157,8 @@ object TestData {
                 time = time,
                 previous = previous,
                 falsePositiveRate = falsePositiveRate,
+                enableBinarySearchIndex = enableBinarySearchIndex,
+                buildFullBinarySearchIndex = buildFullBinarySearchIndex,
                 compressDuplicateValues = compressDuplicateValues,
                 resetPrefixCompressionEvery = resetPrefixCompressionEvery,
                 minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
@@ -1140,6 +1183,8 @@ object TestData {
         falsePositiveRate = falsePositiveRate,
         compressDuplicateValues = compressDuplicateValues,
         resetPrefixCompressionEvery = resetPrefixCompressionEvery,
+        enableBinarySearchIndex = enableBinarySearchIndex,
+        buildFullBinarySearchIndex = buildFullBinarySearchIndex,
         minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
         hashIndexCompensation = hashIndexCompensation,
         functionOutput = functionOutput,
@@ -1159,6 +1204,8 @@ object TestData {
                                    resetPrefixCompressionEvery: Int = TestData.resetPrefixCompressionEvery,
                                    minimumNumberOfKeysForHashIndex: Int = TestData.minimumNumberOfKeyForHashIndex,
                                    hashIndexCompensation: Int => Int = TestData.hashIndexCompensation,
+                                   enableBinarySearchIndex: Boolean = TestData.enableBinarySearchIndex,
+                                   buildFullBinarySearchIndex: Boolean = TestData.buildFullBinarySearchIndex,
                                    functionOutput: SwayFunctionOutput = randomFunctionOutput(),
                                    includePendingApply: Boolean = true,
                                    includeFunctions: Boolean = true,
@@ -1173,6 +1220,8 @@ object TestData {
         previous = previous,
         falsePositiveRate = falsePositiveRate,
         compressDuplicateValues = compressDuplicateValues,
+        enableBinarySearchIndex = enableBinarySearchIndex,
+        buildFullBinarySearchIndex = buildFullBinarySearchIndex,
         resetPrefixCompressionEvery = resetPrefixCompressionEvery,
         minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
         hashIndexCompensation = hashIndexCompensation
@@ -1184,6 +1233,8 @@ object TestData {
         time = time,
         previous = previous,
         falsePositiveRate = falsePositiveRate,
+        enableBinarySearchIndex = enableBinarySearchIndex,
+        buildFullBinarySearchIndex = buildFullBinarySearchIndex,
         resetPrefixCompressionEvery = resetPrefixCompressionEvery,
         minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
         hashIndexCompensation = hashIndexCompensation
@@ -1197,6 +1248,8 @@ object TestData {
         previous = previous,
         falsePositiveRate = falsePositiveRate,
         compressDuplicateValues = compressDuplicateValues,
+        enableBinarySearchIndex = enableBinarySearchIndex,
+        buildFullBinarySearchIndex = buildFullBinarySearchIndex,
         resetPrefixCompressionEvery = resetPrefixCompressionEvery,
         minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
         hashIndexCompensation = hashIndexCompensation
@@ -1214,6 +1267,8 @@ object TestData {
         ),
         previous = previous,
         falsePositiveRate = falsePositiveRate,
+        enableBinarySearchIndex = enableBinarySearchIndex,
+        buildFullBinarySearchIndex = buildFullBinarySearchIndex,
         compressDuplicateValues = compressDuplicateValues,
         resetPrefixCompressionEvery = resetPrefixCompressionEvery,
         minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
@@ -1227,6 +1282,8 @@ object TestData {
         time = time,
         previous = previous,
         falsePositiveRate = falsePositiveRate,
+        enableBinarySearchIndex = enableBinarySearchIndex,
+        buildFullBinarySearchIndex = buildFullBinarySearchIndex,
         compressDuplicateValues = compressDuplicateValues,
         resetPrefixCompressionEvery = resetPrefixCompressionEvery,
         minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
@@ -1572,6 +1629,8 @@ object TestData {
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
+            enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
             previous = slice.lastOption,
             maxProbe = TestData.maxProbe
           ).assertGetOpt match {
@@ -1661,6 +1720,8 @@ object TestData {
                   resetPrefixCompressionEvery: Int = TestData.resetPrefixCompressionEvery,
                   minimumNumberOfKeyForHashIndex: Int = TestData.minimumNumberOfKeyForHashIndex,
                   hashIndexCompensation: Int => Int = TestData.hashIndexCompensation,
+                  enableBinarySearchIndex: Boolean = TestData.enableBinarySearchIndex,
+                  buildFullBinarySearchIndex: Boolean = TestData.buildFullBinarySearchIndex,
                   previous: Option[KeyValue.WriteOnly] = None)(implicit testTimer: TestTimer = TestTimer.Incremental()): Transient.Group =
     Transient.Group(
       keyValues = keyValues,
@@ -1669,6 +1730,8 @@ object TestData {
       falsePositiveRate = falsePositiveRate,
       resetPrefixCompressionEvery = resetPrefixCompressionEvery,
       minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
+      enableBinarySearchIndex = enableBinarySearchIndex,
+      buildFullBinarySearchIndex = buildFullBinarySearchIndex,
       hashIndexCompensation = hashIndexCompensation,
       previous = previous,
       maxProbe = TestData.maxProbe
@@ -1793,6 +1856,8 @@ object TestData {
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
+        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
         time = testTimer.next,
         previous = None,
         deadline = None
@@ -1807,6 +1872,8 @@ object TestData {
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
+        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
         previous = None,
         deadline = Some(removeAfter.fromNow),
         time = testTimer.next
@@ -1820,6 +1887,8 @@ object TestData {
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
+        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
         previous = None,
         deadline = None,
         time = testTimer.next
@@ -1830,13 +1899,15 @@ object TestData {
                previous: Option[KeyValue.WriteOnly])(implicit testTimer: TestTimer): Transient.Remove =
       Transient.Remove(
         key = key,
-        falsePositiveRate = falsePositiveRate,
-        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-        hashIndexCompensation = TestData.hashIndexCompensation,
-        previous = previous,
         deadline = None,
-        time = testTimer.next
+        time = testTimer.next,
+        previous = previous,
+        falsePositiveRate = falsePositiveRate,
+        enableBinarySearchIndex = previous.map(_.enableBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
+        buildFullBinarySearchIndex = previous.map(_.buildFullBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
+        resetPrefixCompressionEvery = previous.map(_.resetPrefixCompressionEvery).getOrElse(TestData.resetPrefixCompressionEvery),
+        minimumNumberOfKeysForHashIndex = previous.map(_.minimumNumberOfKeysForHashIndex).getOrElse(TestData.minimumNumberOfKeyForHashIndex),
+        hashIndexCompensation = previous.map(_.hashIndexCompensation).getOrElse(TestData.hashIndexCompensation)
       )
 
     def remove(key: Slice[Byte],
@@ -1846,48 +1917,54 @@ object TestData {
       Transient.Remove(
         key = key,
         deadline = deadline,
+        time = testTimer.next,
         previous = previous,
         falsePositiveRate = falsePositiveRate,
-        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-        hashIndexCompensation = TestData.hashIndexCompensation,
-        time = testTimer.next
+        enableBinarySearchIndex = previous.map(_.enableBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
+        buildFullBinarySearchIndex = previous.map(_.buildFullBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
+        resetPrefixCompressionEvery = previous.map(_.resetPrefixCompressionEvery).getOrElse(TestData.resetPrefixCompressionEvery),
+        minimumNumberOfKeysForHashIndex = previous.map(_.minimumNumberOfKeysForHashIndex).getOrElse(TestData.minimumNumberOfKeyForHashIndex),
+        hashIndexCompensation = previous.map(_.hashIndexCompensation).getOrElse(TestData.hashIndexCompensation)
       )
 
     def put(key: Slice[Byte],
             value: Option[Slice[Byte]],
             falsePositiveRate: Double,
-            previousMayBe: Option[KeyValue.WriteOnly])(implicit testTimer: TestTimer): Transient.Put =
+            previous: Option[KeyValue.WriteOnly])(implicit testTimer: TestTimer): Transient.Put =
       Transient.Put(
         key = key,
         value = value,
         deadline = None,
         time = testTimer.next,
-        previous = previousMayBe,
+        previous = previous,
         falsePositiveRate = falsePositiveRate,
-        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-        hashIndexCompensation = TestData.hashIndexCompensation,
-        compressDuplicateValues = true
+        enableBinarySearchIndex = previous.map(_.enableBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
+        buildFullBinarySearchIndex = previous.map(_.buildFullBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
+        compressDuplicateValues = true,
+        resetPrefixCompressionEvery = previous.map(_.resetPrefixCompressionEvery).getOrElse(TestData.resetPrefixCompressionEvery),
+        minimumNumberOfKeysForHashIndex = previous.map(_.minimumNumberOfKeysForHashIndex).getOrElse(TestData.minimumNumberOfKeyForHashIndex),
+        hashIndexCompensation = previous.map(_.hashIndexCompensation).getOrElse(TestData.hashIndexCompensation)
       )
 
     def put(key: Slice[Byte],
             value: Option[Slice[Byte]],
             falsePositiveRate: Double,
-            previousMayBe: Option[KeyValue.WriteOnly],
+            previous: Option[KeyValue.WriteOnly],
             deadline: Option[Deadline],
             compressDuplicateValues: Boolean)(implicit testTimer: TestTimer): Transient.Put =
       Transient.Put(
         key = key,
         value = value,
         deadline = deadline,
-        previous = previousMayBe,
-        falsePositiveRate = falsePositiveRate,
-        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-        hashIndexCompensation = TestData.hashIndexCompensation,
         time = testTimer.next,
-        compressDuplicateValues = compressDuplicateValues
+        previous = previous,
+        falsePositiveRate = falsePositiveRate,
+        enableBinarySearchIndex = previous.map(_.enableBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
+        buildFullBinarySearchIndex = previous.map(_.buildFullBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
+        compressDuplicateValues = compressDuplicateValues,
+        resetPrefixCompressionEvery = previous.map(_.resetPrefixCompressionEvery).getOrElse(TestData.resetPrefixCompressionEvery),
+        minimumNumberOfKeysForHashIndex = previous.map(_.minimumNumberOfKeysForHashIndex).getOrElse(TestData.minimumNumberOfKeyForHashIndex),
+        hashIndexCompensation = previous.map(_.hashIndexCompensation).getOrElse(TestData.hashIndexCompensation)
       )
 
     def put(key: Slice[Byte])(implicit testTimer: TestTimer): Transient.Put =
@@ -1900,6 +1977,8 @@ object TestData {
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
+        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
         time = testTimer.next,
         compressDuplicateValues = true
       )
@@ -1916,6 +1995,8 @@ object TestData {
         falsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
         compressDuplicateValues = compressDuplicateValues
       )
@@ -1931,6 +2012,8 @@ object TestData {
         falsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
         time = testTimer.next,
         compressDuplicateValues = true
@@ -1948,6 +2031,8 @@ object TestData {
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
+        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
+        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
         time = testTimer.next,
         compressDuplicateValues = true
       )
@@ -1962,6 +2047,8 @@ object TestData {
         falsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
         time = testTimer.next,
         compressDuplicateValues = true
@@ -1978,6 +2065,8 @@ object TestData {
         falsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
         time = testTimer.next,
         compressDuplicateValues = true
@@ -1994,6 +2083,8 @@ object TestData {
         falsePositiveRate = falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
         time = testTimer.next,
         compressDuplicateValues = true
@@ -2008,10 +2099,12 @@ object TestData {
         value = None,
         deadline = deadline,
         previous = previous,
-        falsePositiveRate = TestData.falsePositiveRate,
-        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-        hashIndexCompensation = TestData.hashIndexCompensation,
+        falsePositiveRate = previous.map(_.falsePositiveRate).getOrElse(TestData.falsePositiveRate),
+        enableBinarySearchIndex = previous.map(_.enableBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
+        buildFullBinarySearchIndex = previous.map(_.buildFullBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
+        resetPrefixCompressionEvery = previous.map(_.resetPrefixCompressionEvery).getOrElse(TestData.resetPrefixCompressionEvery),
+        minimumNumberOfKeysForHashIndex = previous.map(_.minimumNumberOfKeysForHashIndex).getOrElse(TestData.minimumNumberOfKeyForHashIndex),
+        hashIndexCompensation = previous.map(_.hashIndexCompensation).getOrElse(TestData.hashIndexCompensation),
         time = testTimer.next,
         compressDuplicateValues = compressDuplicateValues
       )
@@ -2027,9 +2120,11 @@ object TestData {
         deadline = None,
         previous = previous,
         falsePositiveRate = falsePositiveRate,
-        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-        hashIndexCompensation = TestData.hashIndexCompensation,
+        enableBinarySearchIndex = previous.map(_.enableBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
+        buildFullBinarySearchIndex = previous.map(_.buildFullBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
+        resetPrefixCompressionEvery = previous.map(_.resetPrefixCompressionEvery).getOrElse(TestData.resetPrefixCompressionEvery),
+        minimumNumberOfKeysForHashIndex = previous.map(_.minimumNumberOfKeysForHashIndex).getOrElse(TestData.minimumNumberOfKeyForHashIndex),
+        hashIndexCompensation = previous.map(_.hashIndexCompensation).getOrElse(TestData.hashIndexCompensation),
         time = testTimer.next,
         compressDuplicateValues = compressDuplicateValues
       )
@@ -2037,35 +2132,39 @@ object TestData {
     def update(key: Slice[Byte],
                value: Option[Slice[Byte]],
                falsePositiveRate: Double,
-               previousMayBe: Option[KeyValue.WriteOnly])(implicit testTimer: TestTimer): Transient.Update =
+               previous: Option[KeyValue.WriteOnly])(implicit testTimer: TestTimer): Transient.Update =
       Transient.Update(
         key = key,
         value = value,
         deadline = None,
         time = testTimer.next,
-        previous = previousMayBe,
+        previous = previous,
         falsePositiveRate = falsePositiveRate,
-        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-        hashIndexCompensation = TestData.hashIndexCompensation,
+        enableBinarySearchIndex = previous.map(_.enableBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
+        buildFullBinarySearchIndex = previous.map(_.buildFullBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
+        resetPrefixCompressionEvery = previous.map(_.resetPrefixCompressionEvery).getOrElse(TestData.resetPrefixCompressionEvery),
+        minimumNumberOfKeysForHashIndex = previous.map(_.minimumNumberOfKeysForHashIndex).getOrElse(TestData.minimumNumberOfKeyForHashIndex),
+        hashIndexCompensation = previous.map(_.hashIndexCompensation).getOrElse(TestData.hashIndexCompensation),
         compressDuplicateValues = true
       )
 
     def update(key: Slice[Byte],
                value: Option[Slice[Byte]],
                falsePositiveRate: Double,
-               previousMayBe: Option[KeyValue.WriteOnly],
+               previous: Option[KeyValue.WriteOnly],
                deadline: Option[Deadline],
                compressDuplicateValues: Boolean)(implicit testTimer: TestTimer): Transient.Update =
       Transient.Update(
         key = key,
         value = value,
         deadline = deadline,
-        previous = previousMayBe,
+        previous = previous,
         falsePositiveRate = falsePositiveRate,
-        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-        hashIndexCompensation = TestData.hashIndexCompensation,
+        enableBinarySearchIndex = previous.map(_.enableBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
+        buildFullBinarySearchIndex = previous.map(_.buildFullBinarySearchIndex).getOrElse(TestData.enableBinarySearchIndex),
+        resetPrefixCompressionEvery = previous.map(_.resetPrefixCompressionEvery).getOrElse(TestData.resetPrefixCompressionEvery),
+        minimumNumberOfKeysForHashIndex = previous.map(_.minimumNumberOfKeysForHashIndex).getOrElse(TestData.minimumNumberOfKeyForHashIndex),
+        hashIndexCompensation = previous.map(_.hashIndexCompensation).getOrElse(TestData.hashIndexCompensation),
         time = testTimer.next,
         compressDuplicateValues = compressDuplicateValues
       )
@@ -2080,6 +2179,8 @@ object TestData {
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
+        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
+        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
         time = testTimer.next,
         compressDuplicateValues = true
       )
@@ -2096,6 +2197,8 @@ object TestData {
         falsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
         compressDuplicateValues = compressDuplicateValues
       )
@@ -2111,6 +2214,8 @@ object TestData {
         falsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
         time = testTimer.next,
         compressDuplicateValues = true
@@ -2127,6 +2232,8 @@ object TestData {
         falsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
         time = testTimer.next,
         compressDuplicateValues = true
@@ -2142,6 +2249,8 @@ object TestData {
         falsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
         time = testTimer.next,
         compressDuplicateValues = true
@@ -2158,6 +2267,8 @@ object TestData {
         falsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
         time = testTimer.next,
         compressDuplicateValues = true
@@ -2174,6 +2285,8 @@ object TestData {
         falsePositiveRate = falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
         time = testTimer.next,
         compressDuplicateValues = true
@@ -2191,6 +2304,8 @@ object TestData {
         falsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
         time = testTimer.next,
         compressDuplicateValues = compressDuplicateValues
@@ -2209,6 +2324,8 @@ object TestData {
         falsePositiveRate = falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
         time = testTimer.next,
         compressDuplicateValues = compressDuplicateValues
@@ -2291,6 +2408,8 @@ object TestData {
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
+        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
+        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
         previous = None
       )
   }

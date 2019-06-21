@@ -126,6 +126,8 @@ sealed trait SegmentReadPerformanceSpec extends TestBase with Benchmark {
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
+        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
         compressDuplicateValues = true
       )(keyOrder = keyOrder, groupingStrategy = Some(KeyValueGroupingStrategyInternal(DefaultGroupingStrategy()))).assertGet
 

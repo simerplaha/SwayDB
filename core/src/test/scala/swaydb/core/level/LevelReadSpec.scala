@@ -129,7 +129,9 @@ sealed trait LevelReadSpec extends TestBase with MockFactory with Benchmark {
             compressDuplicateValues = true,
             removeDeletes = false,
             createdInLevel = 0,
-            maxProbe = TestData.maxProbe
+            maxProbe = TestData.maxProbe,
+            enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
           ).assertGet
 
       segments should have size 1
@@ -161,7 +163,9 @@ sealed trait LevelReadSpec extends TestBase with MockFactory with Benchmark {
             compressDuplicateValues = true,
             removeDeletes = false,
             createdInLevel = 0,
-            maxProbe = TestData.maxProbe).assertGet
+            maxProbe = TestData.maxProbe,
+            enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex).assertGet
 
       segments should have size 1
       val segment = segments.head

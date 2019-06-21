@@ -162,6 +162,8 @@ private[core] object CoreInitializer extends LazyLogging {
             pushForward = config.pushForward,
             appendixStorage = AppendixStorage.Memory,
             maxProbe = 5, // todo make a config
+            enableBinarySearchIndex = false,
+            buildFullBinarySearchIndex = false,
             bloomFilterFalsePositiveRate = config.bloomFilterFalsePositiveRate,
             resetPrefixCompressionEvery = 100,
             minimumNumberOfKeyForHashIndex = 50,
@@ -184,6 +186,8 @@ private[core] object CoreInitializer extends LazyLogging {
               ),
             segmentSize = config.segmentSize,
             maxProbe = 5, //todo make a config
+            enableBinarySearchIndex = false,
+            buildFullBinarySearchIndex = false,
             nextLevel = nextLevel,
             resetPrefixCompressionEvery = 100,
             minimumNumberOfKeyForHashIndex = 50,

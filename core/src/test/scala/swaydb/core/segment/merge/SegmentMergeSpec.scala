@@ -67,11 +67,13 @@ class SegmentMergeSpec extends TestBase {
             segments = segments,
             minSegmentSize = 70.bytes,
             maxProbe = TestData.maxProbe,
+            enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
             forMemory = false,
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-            hashIndexCompensation = TestData.hashIndexCompensation
+            hashIndexCompensation = TestData.hashIndexCompensation,
           ).assertGet
         newSegments.size shouldBe 1
 
@@ -103,7 +105,9 @@ class SegmentMergeSpec extends TestBase {
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-            hashIndexCompensation = TestData.hashIndexCompensation
+            hashIndexCompensation = TestData.hashIndexCompensation,
+            enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
           ).assertGet
 
         newSegments.size shouldBe 1
@@ -127,7 +131,9 @@ class SegmentMergeSpec extends TestBase {
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-          hashIndexCompensation = TestData.hashIndexCompensation
+          hashIndexCompensation = TestData.hashIndexCompensation,
+          enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
         ).assertGet.size shouldBe 1
 
         SegmentMerger.completeMerge(
@@ -138,7 +144,9 @@ class SegmentMergeSpec extends TestBase {
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-          hashIndexCompensation = TestData.hashIndexCompensation
+          hashIndexCompensation = TestData.hashIndexCompensation,
+          enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
         ).assertGet.size shouldBe 1
       }
     }
@@ -178,6 +186,8 @@ class SegmentMergeSpec extends TestBase {
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
+          enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
           compressDuplicateValues = true
         ).assertGet.toArray
       )
@@ -194,6 +204,8 @@ class SegmentMergeSpec extends TestBase {
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
+          enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
           compressDuplicateValues = true
         ).assertGet.toArray
       )
@@ -218,6 +230,8 @@ class SegmentMergeSpec extends TestBase {
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
+          enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
           compressDuplicateValues = true
         ).assertGet
 
@@ -241,6 +255,8 @@ class SegmentMergeSpec extends TestBase {
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
+          enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
           compressDuplicateValues = true
         ).assertGet
 
@@ -268,6 +284,8 @@ class SegmentMergeSpec extends TestBase {
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
+          enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
           compressDuplicateValues = true
         ).assertGet
 
@@ -295,6 +313,8 @@ class SegmentMergeSpec extends TestBase {
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
+            enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
             compressDuplicateValues = true
           ).assertGet
 
@@ -309,6 +329,8 @@ class SegmentMergeSpec extends TestBase {
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
+            enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
             previous = None,
             maxProbe = TestData.maxProbe
           ).assertGet.toMemory
@@ -325,6 +347,8 @@ class SegmentMergeSpec extends TestBase {
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
+            enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
             compressDuplicateValues = true
           ).assertGet
 

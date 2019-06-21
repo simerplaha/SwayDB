@@ -16,18 +16,22 @@ object BinarySearchIndex {
 
   object State {
     def apply(largestValue: Int,
-              valuesCount: Int): State =
+              valuesCount: Int,
+              buildFullBinarySearchIndex: Boolean): State =
       State(
         largestValue = largestValue,
         valuesCount = 0,
+        buildFullBinarySearchIndex = buildFullBinarySearchIndex,
         bytes = Slice.create[Byte](optimalBytesRequired(largestValue, valuesCount))
       )
 
     def apply(largestValue: Int,
               valuesCount: Int,
+              buildFullBinarySearchIndex: Boolean,
               bytes: Slice[Byte]): State =
       new State(
         byteSizeOfLargestValue = Bytes.sizeOf(largestValue),
+        buildFullBinarySearchIndex = buildFullBinarySearchIndex,
         headerSize =
           optimalHeaderSize(
             largestValue = largestValue,
@@ -40,11 +44,13 @@ object BinarySearchIndex {
 
   case class Header(valuesCount: Int,
                     headerSize: Int,
-                    byteSizeOfLargestValue: Int)
+                    byteSizeOfLargestValue: Int,
+                    isFullBinarySearchIndex: Boolean)
 
   case class State(byteSizeOfLargestValue: Int,
                    var _valuesCount: Int,
                    headerSize: Int,
+                   buildFullBinarySearchIndex: Boolean,
                    bytes: Slice[Byte]) {
 
     def valuesCount =
@@ -70,7 +76,8 @@ object BinarySearchIndex {
     val headerSize =
       ByteSizeOf.byte + //formatId
         Bytes.sizeOf(valuesCount) +
-        Bytes.sizeOf(largestValue)
+        Bytes.sizeOf(largestValue) +
+        ByteSizeOf.boolean // buildFullBinarySearchIndex
 
     Bytes.sizeOf(headerSize) +
       headerSize
@@ -83,6 +90,7 @@ object BinarySearchIndex {
       state.bytes add formatId
       state.bytes addIntUnsigned state.valuesCount
       state.bytes addIntUnsigned state.byteSizeOfLargestValue
+      state.bytes addBoolean state.buildFullBinarySearchIndex
     }
 
   def readHeader(startOffset: Int,
@@ -107,11 +115,13 @@ object BinarySearchIndex {
                         for {
                           valuesCount <- headerReader.readIntUnsigned()
                           byteSizeOfLargestValue <- headerReader.readIntUnsigned()
+                          isFullBinarySearchIndex <- headerReader.readBoolean()
                         } yield
                           Header(
                             valuesCount = valuesCount,
                             headerSize = headerSize,
-                            byteSizeOfLargestValue = byteSizeOfLargestValue
+                            byteSizeOfLargestValue = byteSizeOfLargestValue,
+                            isFullBinarySearchIndex = isFullBinarySearchIndex
                           )
                   }
             }

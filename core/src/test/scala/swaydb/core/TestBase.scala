@@ -246,11 +246,13 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
   object TestSegment {
     def apply(keyValues: Slice[KeyValue.WriteOnly] = randomizedKeyValues()(TestTimer.Incremental(), KeyOrder.default, keyValueLimiter),
               path: Path = testSegmentFile,
-              bloomFilterFalsePositiveRate: Double = TestData.falsePositiveRate)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                 keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
-                                                                                 fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter,
-                                                                                 timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                                                 groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(randomIntMax(1000))): IO[Segment] =
+              maxProbe: Int = TestData.maxProbe,
+              bloomFilterFalsePositiveRate: Double = TestData.falsePositiveRate,
+              buildFullBinarySearchIndex: Boolean = TestData.buildFullBinarySearchIndex)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                                                                         keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
+                                                                                         fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter,
+                                                                                         timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
+                                                                                         groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(randomIntMax(1000))): IO[Segment] =
       if (levelStorage.memory)
         Segment.memory(
           path = path,
@@ -262,10 +264,12 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
         Segment.persistent(
           path = path,
           createdInLevel = 0,
+          bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+          maxProbe = maxProbe,
+          buildFullBinarySearchIndex = buildFullBinarySearchIndex,
           mmapReads = levelStorage.mmapSegmentsOnRead,
           mmapWrites = levelStorage.mmapSegmentsOnWrite,
-          keyValues = keyValues,
-          bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate
+          keyValues = keyValues
         )
   }
 
@@ -309,25 +313,29 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
               deleteSegmentsEventually: Boolean = false,
               applyGroupingOnCopy: Boolean = false,
               maxProbe: Int = TestData.maxProbe,
+              buildFullBinarySearchIndex: Boolean = TestData.buildFullBinarySearchIndex,
+              enableBinarySearchIndex: Boolean = TestData.enableBinarySearchIndex,
               keyValues: Slice[Memory] = Slice.empty)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                       keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
                                                       fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter,
                                                       timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                       compression: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategy(randomNextInt(1000))): Level =
       Level(
-        levelStorage = levelStorage,
         segmentSize = segmentSize,
-        nextLevel = nextLevel,
-        pushForward = pushForward,
-        appendixStorage = appendixStorage,
-        throttle = throttle,
         bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
         resetPrefixCompressionEvery = resetPrefixCompressionEvery,
         minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = hashIndexCompensation,
+        maxProbe = maxProbe,
+        enableBinarySearchIndex = enableBinarySearchIndex,
+        buildFullBinarySearchIndex = buildFullBinarySearchIndex,
+        levelStorage = levelStorage,
+        appendixStorage = appendixStorage,
+        nextLevel = nextLevel,
+        pushForward = pushForward,
+        throttle = throttle,
         compressDuplicateValues = compressDuplicateValues,
         deleteSegmentsEventually = deleteSegmentsEventually,
-        maxProbe = maxProbe,
         applyGroupingOnCopy = applyGroupingOnCopy
       ) flatMap {
         level =>

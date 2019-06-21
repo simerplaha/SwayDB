@@ -202,6 +202,9 @@ private[core] object KeyValue {
     val isRange: Boolean
     val isGroup: Boolean
     val previous: Option[KeyValue.WriteOnly]
+    def enableBinarySearchIndex: Boolean
+    def buildFullBinarySearchIndex: Boolean
+    def falsePositiveRate: Double
     def resetPrefixCompressionEvery: Int
     def minimumNumberOfKeysForHashIndex: Int
     def hashIndexCompensation: Int => Int
@@ -595,6 +598,8 @@ private[core] object Transient {
                     time: Time,
                     previous: Option[KeyValue.WriteOnly],
                     falsePositiveRate: Double,
+                    enableBinarySearchIndex: Boolean,
+                    buildFullBinarySearchIndex: Boolean,
                     resetPrefixCompressionEvery: Int,
                     minimumNumberOfKeysForHashIndex: Int,
                     hashIndexCompensation: Int => Int) extends Transient.SegmentResponse with KeyValue.WriteOnly.Fixed {
@@ -626,8 +631,8 @@ private[core] object Transient {
         thisKeyValuesUniqueKeys = 1,
         isPrefixCompressed = isPrefixCompressed,
         minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-        enableBinarySearchIndex = true,
-        buildFullBinarySearchIndex = false, //todo make config
+        enableBinarySearchIndex = enableBinarySearchIndex,
+        buildFullBinarySearchIndex = buildFullBinarySearchIndex,
         hashIndexCompensation = hashIndexCompensation,
         previous = previous,
         deadline = deadline
@@ -649,6 +654,8 @@ private[core] object Transient {
                  time: Time,
                  previous: Option[KeyValue.WriteOnly],
                  falsePositiveRate: Double,
+                 enableBinarySearchIndex: Boolean,
+                 buildFullBinarySearchIndex: Boolean,
                  compressDuplicateValues: Boolean,
                  resetPrefixCompressionEvery: Int,
                  minimumNumberOfKeysForHashIndex: Int,
@@ -683,8 +690,8 @@ private[core] object Transient {
         numberOfRanges = 0,
         thisKeyValuesUniqueKeys = 1,
         isPrefixCompressed = isPrefixCompressed,
-        enableBinarySearchIndex = true,
-        buildFullBinarySearchIndex = false, //todo make config
+        enableBinarySearchIndex = enableBinarySearchIndex,
+        buildFullBinarySearchIndex = buildFullBinarySearchIndex,
         minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
         hashIndexCompensation = hashIndexCompensation,
         previous = previous,
@@ -706,6 +713,8 @@ private[core] object Transient {
                     time: Time,
                     previous: Option[KeyValue.WriteOnly],
                     falsePositiveRate: Double,
+                    enableBinarySearchIndex: Boolean,
+                    buildFullBinarySearchIndex: Boolean,
                     compressDuplicateValues: Boolean,
                     resetPrefixCompressionEvery: Int,
                     minimumNumberOfKeysForHashIndex: Int,
@@ -738,8 +747,8 @@ private[core] object Transient {
         numberOfRanges = 0,
         thisKeyValuesUniqueKeys = 1,
         isPrefixCompressed = isPrefixCompressed,
-        enableBinarySearchIndex = true,
-        buildFullBinarySearchIndex = false, //todo make config
+        enableBinarySearchIndex = enableBinarySearchIndex,
+        buildFullBinarySearchIndex = buildFullBinarySearchIndex,
         minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
         hashIndexCompensation = hashIndexCompensation,
         previous = previous,
@@ -762,6 +771,8 @@ private[core] object Transient {
                       previous: Option[KeyValue.WriteOnly],
                       falsePositiveRate: Double,
                       compressDuplicateValues: Boolean,
+                      enableBinarySearchIndex: Boolean,
+                      buildFullBinarySearchIndex: Boolean,
                       resetPrefixCompressionEvery: Int,
                       minimumNumberOfKeysForHashIndex: Int,
                       hashIndexCompensation: Int => Int) extends Transient.SegmentResponse with KeyValue.WriteOnly.Fixed {
@@ -792,8 +803,8 @@ private[core] object Transient {
         isPut = false,
         numberOfRanges = 0,
         thisKeyValuesUniqueKeys = 1,
-        enableBinarySearchIndex = true,
-        buildFullBinarySearchIndex = false, //todo make config
+        enableBinarySearchIndex = enableBinarySearchIndex,
+        buildFullBinarySearchIndex = buildFullBinarySearchIndex,
         isPrefixCompressed = isPrefixCompressed,
         minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
         hashIndexCompensation = hashIndexCompensation,
@@ -816,6 +827,8 @@ private[core] object Transient {
                           applies: Slice[Value.Apply],
                           previous: Option[KeyValue.WriteOnly],
                           falsePositiveRate: Double,
+                          enableBinarySearchIndex: Boolean,
+                          buildFullBinarySearchIndex: Boolean,
                           compressDuplicateValues: Boolean,
                           resetPrefixCompressionEvery: Int,
                           minimumNumberOfKeysForHashIndex: Int,
@@ -849,8 +862,8 @@ private[core] object Transient {
         isPut = false,
         numberOfRanges = 0,
         thisKeyValuesUniqueKeys = 1,
-        enableBinarySearchIndex = true,
-        buildFullBinarySearchIndex = false, //todo make config
+        enableBinarySearchIndex = enableBinarySearchIndex,
+        buildFullBinarySearchIndex = buildFullBinarySearchIndex,
         isPrefixCompressed = isPrefixCompressed,
         minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
         hashIndexCompensation = hashIndexCompensation,
@@ -882,6 +895,8 @@ private[core] object Transient {
                                      toKey: Slice[Byte],
                                      rangeValue: R,
                                      falsePositiveRate: Double,
+                                     enableBinarySearchIndex: Boolean,
+                                     buildFullBinarySearchIndex: Boolean,
                                      resetPrefixCompressionEvery: Int,
                                      minimumNumberOfKeyForHashIndex: Int,
                                      hashIndexCompensation: Int => Int,
@@ -899,6 +914,8 @@ private[core] object Transient {
         value = value,
         previous = previous,
         falsePositiveRate = falsePositiveRate,
+        enableBinarySearchIndex = enableBinarySearchIndex,
+        buildFullBinarySearchIndex = buildFullBinarySearchIndex,
         resetPrefixCompressionEvery = resetPrefixCompressionEvery,
         minimumNumberOfKeysForHashIndex = minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = hashIndexCompensation
@@ -910,6 +927,8 @@ private[core] object Transient {
                                                            fromValue: Option[F],
                                                            rangeValue: R,
                                                            falsePositiveRate: Double,
+                                                           enableBinarySearchIndex: Boolean,
+                                                           buildFullBinarySearchIndex: Boolean,
                                                            resetPrefixCompressionEvery: Int,
                                                            minimumNumberOfKeyForHashIndex: Int,
                                                            hashIndexCompensation: Int => Int,
@@ -928,6 +947,8 @@ private[core] object Transient {
         value = value,
         previous = previous,
         falsePositiveRate = falsePositiveRate,
+        enableBinarySearchIndex = enableBinarySearchIndex,
+        buildFullBinarySearchIndex = buildFullBinarySearchIndex,
         resetPrefixCompressionEvery = resetPrefixCompressionEvery,
         minimumNumberOfKeysForHashIndex = minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = hashIndexCompensation
@@ -943,6 +964,8 @@ private[core] object Transient {
                    value: Option[Slice[Byte]],
                    previous: Option[KeyValue.WriteOnly],
                    falsePositiveRate: Double,
+                   enableBinarySearchIndex: Boolean,
+                   buildFullBinarySearchIndex: Boolean,
                    resetPrefixCompressionEvery: Int,
                    minimumNumberOfKeysForHashIndex: Int,
                    hashIndexCompensation: Int => Int) extends Transient.SegmentResponse with KeyValue.WriteOnly.Range {
@@ -979,8 +1002,8 @@ private[core] object Transient {
         isPut = fromValue.exists(_.isInstanceOf[Value.Put]),
         numberOfRanges = 1,
         thisKeyValuesUniqueKeys = 1,
-        enableBinarySearchIndex = true,
-        buildFullBinarySearchIndex = false, //todo make config
+        enableBinarySearchIndex = enableBinarySearchIndex,
+        buildFullBinarySearchIndex = buildFullBinarySearchIndex,
         isPrefixCompressed = isPrefixCompressed,
         minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex, //ranges cost 2. One for fromKey and second for rangeFilter's common prefix bytes.
         hashIndexCompensation = hashIndexCompensation,
@@ -1002,11 +1025,12 @@ private[core] object Transient {
   }
 
   object Group {
-
     def apply(keyValues: Slice[KeyValue.WriteOnly],
               indexCompression: CompressionInternal,
               valueCompression: CompressionInternal,
               falsePositiveRate: Double,
+              enableBinarySearchIndex: Boolean,
+              buildFullBinarySearchIndex: Boolean,
               resetPrefixCompressionEvery: Int,
               minimumNumberOfKeyForHashIndex: Int,
               hashIndexCompensation: Int => Int,
@@ -1017,17 +1041,21 @@ private[core] object Transient {
         indexCompressions = Seq(indexCompression),
         valueCompressions = Seq(valueCompression),
         falsePositiveRate = falsePositiveRate,
-        hashIndexCompensation = hashIndexCompensation,
         resetPrefixCompressionEvery = resetPrefixCompressionEvery,
         minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
+        hashIndexCompensation = hashIndexCompensation,
         previous = previous,
-        maxProbe = maxProbe
+        maxProbe = maxProbe,
+        enableBinarySearchIndex = enableBinarySearchIndex,
+        buildFullBinarySearchIndex = buildFullBinarySearchIndex
       )
 
     def apply(keyValues: Slice[KeyValue.WriteOnly],
               indexCompressions: Seq[CompressionInternal],
               valueCompressions: Seq[CompressionInternal],
               falsePositiveRate: Double,
+              enableBinarySearchIndex: Boolean,
+              buildFullBinarySearchIndex: Boolean,
               resetPrefixCompressionEvery: Int,
               minimumNumberOfKeyForHashIndex: Int,
               hashIndexCompensation: Int => Int,
@@ -1039,10 +1067,12 @@ private[core] object Transient {
         valueCompressions = valueCompressions,
         falsePositiveRate = falsePositiveRate,
         resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-        hashIndexCompensation = hashIndexCompensation,
         minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
+        hashIndexCompensation = hashIndexCompensation,
         previous = previous,
-        maxProbe = maxProbe
+        maxProbe = maxProbe,
+        enableBinarySearchIndex = enableBinarySearchIndex,
+        buildFullBinarySearchIndex = buildFullBinarySearchIndex
       )
   }
 
@@ -1055,6 +1085,8 @@ private[core] object Transient {
                    keyValues: Slice[KeyValue.WriteOnly],
                    previous: Option[KeyValue.WriteOnly],
                    falsePositiveRate: Double,
+                   enableBinarySearchIndex: Boolean,
+                   buildFullBinarySearchIndex: Boolean,
                    resetPrefixCompressionEvery: Int,
                    minimumNumberOfKeysForHashIndex: Int,
                    hashIndexCompensation: Int => Int) extends Transient with KeyValue.WriteOnly.Group {
@@ -1087,8 +1119,8 @@ private[core] object Transient {
         isRemoveRange = isRemoveRangeMayBe,
         isRange = isRange,
         isGroup = isGroup,
-        enableBinarySearchIndex = true,
-        buildFullBinarySearchIndex = false, //todo make config
+        enableBinarySearchIndex = enableBinarySearchIndex,
+        buildFullBinarySearchIndex = buildFullBinarySearchIndex,
         isPut = keyValues.last.stats.segmentHasPut,
         numberOfRanges = keyValues.last.stats.segmentTotalNumberOfRanges,
         thisKeyValuesUniqueKeys = keyValues.last.stats.segmentUniqueKeysCount,

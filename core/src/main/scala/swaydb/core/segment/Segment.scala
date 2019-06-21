@@ -252,6 +252,8 @@ private[core] object Segment extends LazyLogging {
   def persistent(path: Path,
                  createdInLevel: Int,
                  bloomFilterFalsePositiveRate: Double,
+                 maxProbe: Int,
+                 buildFullBinarySearchIndex: Boolean,
                  mmapReads: Boolean,
                  mmapWrites: Boolean,
                  keyValues: Iterable[KeyValue.WriteOnly])(implicit keyOrder: KeyOrder[Slice[Byte]],
@@ -264,7 +266,8 @@ private[core] object Segment extends LazyLogging {
       keyValues = keyValues,
       createdInLevel = createdInLevel,
       falsePositiveRate = bloomFilterFalsePositiveRate,
-      maxProbe = 5 //todo - pass as input
+      buildFullBinarySearchIndex = buildFullBinarySearchIndex,
+      maxProbe = maxProbe
     ) flatMap {
       result =>
         if (result.isEmpty) {
@@ -333,6 +336,8 @@ private[core] object Segment extends LazyLogging {
                     minSegmentSize: Long,
                     maxProbe: Int,
                     bloomFilterFalsePositiveRate: Double,
+                    enableBinarySearchIndex: Boolean,
+                    buildFullBinarySearchIndex: Boolean,
                     resetPrefixCompressionEvery: Int,
                     minimumNumberOfKeyForHashIndex: Int,
                     hashIndexCompensation: Int => Int,
@@ -379,6 +384,8 @@ private[core] object Segment extends LazyLogging {
           minSegmentSize = minSegmentSize,
           maxProbe = maxProbe,
           bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+          enableBinarySearchIndex = enableBinarySearchIndex,
+          buildFullBinarySearchIndex = buildFullBinarySearchIndex,
           resetPrefixCompressionEvery = resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = hashIndexCompensation,
@@ -395,6 +402,8 @@ private[core] object Segment extends LazyLogging {
                     minSegmentSize: Long,
                     maxProbe: Int,
                     bloomFilterFalsePositiveRate: Double,
+                    enableBinarySearchIndex: Boolean,
+                    buildFullBinarySearchIndex: Boolean,
                     resetPrefixCompressionEvery: Int,
                     minimumNumberOfKeyForHashIndex: Int,
                     hashIndexCompensation: Int => Int,
@@ -410,6 +419,8 @@ private[core] object Segment extends LazyLogging {
       isLastLevel = removeDeletes,
       forInMemory = false,
       maxProbe = maxProbe,
+      enableBinarySearchIndex = enableBinarySearchIndex,
+      buildFullBinarySearchIndex = buildFullBinarySearchIndex,
       bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
       resetPrefixCompressionEvery = resetPrefixCompressionEvery,
       minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
@@ -424,6 +435,8 @@ private[core] object Segment extends LazyLogging {
                 path = fetchNextPath,
                 createdInLevel = createdInLevel,
                 bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+                maxProbe = maxProbe,
+                buildFullBinarySearchIndex = buildFullBinarySearchIndex,
                 mmapReads = mmapSegmentsOnRead,
                 mmapWrites = mmapSegmentsOnWrite,
                 keyValues = keyValues
@@ -447,6 +460,8 @@ private[core] object Segment extends LazyLogging {
                    removeDeletes: Boolean,
                    minSegmentSize: Long,
                    maxProbe: Int,
+                   enableBinarySearchIndex: Boolean,
+                   buildFullBinarySearchIndex: Boolean,
                    bloomFilterFalsePositiveRate: Double,
                    resetPrefixCompressionEvery: Int,
                    minimumNumberOfKeyForHashIndex: Int,
@@ -466,6 +481,8 @@ private[core] object Segment extends LazyLogging {
           createdInLevel = createdInLevel,
           minSegmentSize = minSegmentSize,
           maxProbe = maxProbe,
+          enableBinarySearchIndex = enableBinarySearchIndex,
+          buildFullBinarySearchIndex = buildFullBinarySearchIndex,
           bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
           resetPrefixCompressionEvery = resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
@@ -480,6 +497,8 @@ private[core] object Segment extends LazyLogging {
                    minSegmentSize: Long,
                    createdInLevel: Long,
                    maxProbe: Int,
+                   enableBinarySearchIndex: Boolean,
+                   buildFullBinarySearchIndex: Boolean,
                    bloomFilterFalsePositiveRate: Double,
                    resetPrefixCompressionEvery: Int,
                    minimumNumberOfKeyForHashIndex: Int,
@@ -496,6 +515,8 @@ private[core] object Segment extends LazyLogging {
       isLastLevel = removeDeletes,
       forInMemory = true,
       maxProbe = maxProbe,
+      enableBinarySearchIndex = enableBinarySearchIndex,
+      buildFullBinarySearchIndex = buildFullBinarySearchIndex,
       bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
       resetPrefixCompressionEvery = resetPrefixCompressionEvery,
       minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
@@ -984,6 +1005,8 @@ private[core] trait Segment extends FileLimiterItem {
           removeDeletes: Boolean,
           createdInLevel: Int,
           maxProbe: Int,
+          enableBinarySearchIndex: Boolean,
+          buildFullBinarySearchIndex: Boolean,
           targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
                                                                                                       groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]]
 
@@ -996,6 +1019,8 @@ private[core] trait Segment extends FileLimiterItem {
               removeDeletes: Boolean,
               createdInLevel: Int,
               maxProbe: Int,
+              enableBinarySearchIndex: Boolean,
+              buildFullBinarySearchIndex: Boolean,
               targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
                                                                                                           groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Slice[Segment]]
 

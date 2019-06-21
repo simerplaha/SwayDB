@@ -68,6 +68,8 @@ sealed trait SegmentGrouper_GroupKeyValues_Performance_Spec extends TestBase {
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
+            enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
             maxProbe = TestData.maxProbe,
             force = force,
             groupingStrategy =
@@ -103,6 +105,8 @@ sealed trait SegmentGrouper_GroupKeyValues_Performance_Spec extends TestBase {
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
+            enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
             maxProbe = TestData.maxProbe,
             force = force,
             groupingStrategy =

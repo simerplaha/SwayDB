@@ -387,6 +387,8 @@ object CommonAssertions {
         oldKeyValues = oldKeyValues,
         minSegmentSize = 10.mb,
         maxProbe = TestData.maxProbe,
+        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
         isLastLevel = isLastLevel,
         forInMemory = false,
         bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
@@ -764,7 +766,7 @@ object CommonAssertions {
               matcher = matcher,
               startFrom = startFrom,
               reader = reader,
-              hashIndexHeader = Some(header),
+              hashIndexHeader = ???,
               footer = footer
             )
         }
@@ -1310,20 +1312,22 @@ object CommonAssertions {
     //merge both values and keys with values at the top and read key-values like it was a Segment.
     val keyValuesDecompressedBytes = valuesDecompressedBytes append keysDecompressedBytes
 
-    val tempFooter = SegmentFooter(
-      crc = 0,
-      sortedIndexStartOffset = valuesDecompressLength,
-      sortedIndexEndOffset = keyValuesDecompressedBytes.size - 1,
-      hashIndexStartOffset = ???,
-      hashIndexEndOffset = ???,
-      keyValueCount = groupKeyValues.size,
-      hasRange = false,
-      hasPut = false,
-      isGrouped = true,
-      createdInLevel = Int.MinValue,
-      bloomFilterItemsCount = groupKeyValues.last.stats.segmentUniqueKeysCount,
-      bloomFilter = None
-    )
+    val tempFooter: SegmentFooter =
+    //      SegmentFooter(
+    //      crc = 0,
+    //      sortedIndexStartOffset = valuesDecompressLength,
+    //      sortedIndexEndOffset = keyValuesDecompressedBytes.size - 1,
+    //      hashIndexOffsets = ???,
+    //      hashIndexEndOffset = ???,
+    //      keyValueCount = groupKeyValues.size,
+    //      hasRange = false,
+    //      hasPut = false,
+    //      hasGroup = true,
+    //      createdInLevel = Int.MinValue,
+    //      bloomFilterItemsCount = groupKeyValues.last.stats.segmentUniqueKeysCount,
+    //      bloomFilter = None
+    //    )
+      ???
 
     //read just the group bytes.
     val keyValues = SegmentReader.readAll(footer = tempFooter, reader = Reader(keyValuesDecompressedBytes)).assertGet

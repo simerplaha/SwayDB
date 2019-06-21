@@ -37,9 +37,9 @@ class TransientSpec extends TestBase {
     "be iterable" in {
       val one = Transient.remove(1)
       val two = Transient.remove(2, TestData.falsePositiveRate, Some(one))
-      val three = Transient.put(key = 3, value = Some(3), falsePositiveRate = TestData.falsePositiveRate, previousMayBe = Some(two))
+      val three = Transient.put(key = 3, value = Some(3), falsePositiveRate = TestData.falsePositiveRate, previous = Some(two))
       val four = Transient.remove(4, TestData.falsePositiveRate, Some(three))
-      val five = Transient.put(key = 5, value = Some(5), falsePositiveRate = TestData.falsePositiveRate, previousMayBe = Some(four))
+      val five = Transient.put(key = 5, value = Some(5), falsePositiveRate = TestData.falsePositiveRate, previous = Some(four))
 
       five.reverseIterator.toList should contain inOrderOnly(five, four, three, two, one)
     }

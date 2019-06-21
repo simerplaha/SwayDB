@@ -19,20 +19,22 @@
 
 package swaydb.core.segment.format.a
 
-import swaydb.core.segment.format.a.index.BloomFilter
 
-private[core] case class SegmentFooter(crc: Long,
-                                       sortedIndexStartOffset: Int,
-                                       sortedIndexEndOffset: Int,
-                                       hashIndexStartOffset: Int,
-                                       hashIndexEndOffset: Int,
-                                       keyValueCount: Int,
-                                       hasRange: Boolean,
-                                       hasPut: Boolean,
-                                       createdInLevel: Int,
-                                       isGrouped: Boolean,
-                                       bloomFilterItemsCount: Int,
-                                       bloomFilter: Option[BloomFilter.Header]) {
-  def hashIndexSize =
-    hashIndexEndOffset - hashIndexStartOffset + 1
+object Offset {
+  def apply(start: Int, size: Int): Offset =
+    new Offset(start, start + size - 1)
 }
+case class Offset(start: Int, end: Int) {
+  def size =
+    end - start + 1
+}
+private[core] case class SegmentFooter(sortedIndexOffset: Offset,
+                                       hashIndexOffset: Option[Offset],
+                                       binarySearchIndexOffset: Option[Offset],
+                                       bloomFilterOffset: Option[Offset],
+                                       keyValueCount: Int,
+                                       createdInLevel: Int,
+                                       bloomFilterItemsCount: Int,
+                                       hasRange: Boolean,
+                                       hasGroup: Boolean,
+                                       hasPut: Boolean)

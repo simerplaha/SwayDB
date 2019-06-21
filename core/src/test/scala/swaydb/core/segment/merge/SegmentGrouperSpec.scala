@@ -64,6 +64,8 @@ class SegmentGrouperSpec extends TestBase {
         splits = segments,
         minSegmentSize = 70.bytes,
         maxProbe = TestData.maxProbe,
+        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
         forInMemory = false,
         isLastLevel = false,
         bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
@@ -106,13 +108,15 @@ class SegmentGrouperSpec extends TestBase {
             keyValueToAdd = keyValue,
             splits = segments,
             minSegmentSize = 100.mb,
-            forInMemory = Random.nextBoolean(),
             maxProbe = TestData.maxProbe,
+            enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
+            forInMemory = Random.nextBoolean(),
+            isLastLevel = false,
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
-            isLastLevel = false,
             compressDuplicateValues = true
           )
       }
@@ -127,7 +131,8 @@ class SegmentGrouperSpec extends TestBase {
           keyValues = Slice(group),
           createdInLevel = 0,
           maxProbe = TestData.maxProbe,
-          falsePositiveRate = TestData.falsePositiveRate
+          falsePositiveRate = TestData.falsePositiveRate,
+          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
         ).assertGet.flatten
 
       val reader = Reader(segmentBytes)
@@ -158,13 +163,15 @@ class SegmentGrouperSpec extends TestBase {
             keyValueToAdd = keyValue.toMemoryResponse,
             splits = segments,
             minSegmentSize = 100.mb,
-            forInMemory = Random.nextBoolean(),
             maxProbe = TestData.maxProbe,
+            enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
+            forInMemory = Random.nextBoolean(),
+            isLastLevel = false,
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
-            isLastLevel = false,
             compressDuplicateValues = true
           )
       }
@@ -179,7 +186,8 @@ class SegmentGrouperSpec extends TestBase {
           keyValues = Slice(group),
           createdInLevel = 0,
           maxProbe = TestData.maxProbe,
-          falsePositiveRate = TestData.falsePositiveRate
+          falsePositiveRate = TestData.falsePositiveRate,
+          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
         ).assertGet.flatten
 
       val reader = Reader(segmentBytes)
@@ -212,13 +220,15 @@ class SegmentGrouperSpec extends TestBase {
             keyValueToAdd = keyValue.toMemoryResponse,
             splits = segments,
             minSegmentSize = 100.mb,
-            forInMemory = Random.nextBoolean(),
             maxProbe = TestData.maxProbe,
+            enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
+            forInMemory = Random.nextBoolean(),
+            isLastLevel = false,
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
-            isLastLevel = false,
             compressDuplicateValues = true
           )
       }

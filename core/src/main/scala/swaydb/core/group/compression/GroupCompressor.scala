@@ -51,7 +51,9 @@ private[core] object GroupCompressor extends LazyLogging {
                minimumNumberOfKeyForHashIndex: Int,
                hashIndexCompensation: Int => Int,
                previous: Option[KeyValue.WriteOnly],
-               maxProbe: Int): IO[Option[Transient.Group]] =
+               maxProbe: Int,
+               enableBinarySearchIndex: Boolean,
+               buildFullBinarySearchIndex: Boolean): IO[Option[Transient.Group]] =
     if (keyValues.isEmpty) {
       logger.error(s"Ignoring compression. Cannot compress on empty key-values")
       IO.none
@@ -66,7 +68,8 @@ private[core] object GroupCompressor extends LazyLogging {
         keyValues = keyValues,
         createdInLevel = 0,
         maxProbe = maxProbe,
-        falsePositiveRate = falsePositiveRate
+        falsePositiveRate = falsePositiveRate,
+        buildFullBinarySearchIndex = buildFullBinarySearchIndex
       ) flatMap {
         result =>
           //compress key-value bytes and write to group with meta data for key bytes and value bytes.
@@ -137,6 +140,8 @@ private[core] object GroupCompressor extends LazyLogging {
                       falsePositiveRate = falsePositiveRate,
                       resetPrefixCompressionEvery = resetPrefixCompressionEvery,
                       minimumNumberOfKeysForHashIndex = minimumNumberOfKeyForHashIndex,
+                      enableBinarySearchIndex = enableBinarySearchIndex,
+                      buildFullBinarySearchIndex = buildFullBinarySearchIndex,
                       hashIndexCompensation = hashIndexCompensation
                     )
                   )

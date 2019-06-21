@@ -66,11 +66,13 @@ class GroupDecompressorSpec extends TestBase {
             indexCompressions = Seq(randomCompression()),
             valueCompressions = Seq(randomCompression()),
             falsePositiveRate = TestData.falsePositiveRate,
+            enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
-            maxProbe = TestData.maxProbe,
-            previous = None
+            previous = None,
+            maxProbe = TestData.maxProbe
           ).assertGet
 
         //write the group to a Segment

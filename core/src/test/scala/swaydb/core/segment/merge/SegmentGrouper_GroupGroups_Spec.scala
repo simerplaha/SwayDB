@@ -72,6 +72,8 @@ sealed trait SegmentGrouper_GroupGroups_Spec extends TestBase {
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
+          enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
           force = force,
           maxProbe = TestData.maxProbe,
           groupingStrategy =
@@ -108,6 +110,8 @@ sealed trait SegmentGrouper_GroupGroups_Spec extends TestBase {
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
+            enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
             force = force,
             maxProbe = TestData.maxProbe,
             groupingStrategy =
@@ -135,7 +139,8 @@ sealed trait SegmentGrouper_GroupGroups_Spec extends TestBase {
               keyValues = Slice(result.assertGet),
               createdInLevel = 0,
               maxProbe = TestData.maxProbe,
-              falsePositiveRate = TestData.falsePositiveRate
+              falsePositiveRate = TestData.falsePositiveRate,
+              buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
             ).assertGet.flatten
 
           val rootGroup = readAll(bytes).assertGet
@@ -158,6 +163,8 @@ sealed trait SegmentGrouper_GroupGroups_Spec extends TestBase {
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
+          enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
           force = force,
           maxProbe = TestData.maxProbe,
           groupingStrategy =
@@ -191,6 +198,8 @@ sealed trait SegmentGrouper_GroupGroups_Spec extends TestBase {
               resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
               minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
               hashIndexCompensation = TestData.hashIndexCompensation,
+              enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+              buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
               force = force,
               maxProbe = TestData.maxProbe,
               groupingStrategy =
@@ -232,6 +241,8 @@ sealed trait SegmentGrouper_GroupGroups_Spec extends TestBase {
                 resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
                 minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
                 hashIndexCompensation = TestData.hashIndexCompensation,
+                enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+                buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
                 force = force,
                 maxProbe = TestData.maxProbe,
                 groupingStrategy =
@@ -258,7 +269,8 @@ sealed trait SegmentGrouper_GroupGroups_Spec extends TestBase {
                   keyValues = Slice(result.assertGet).updateStats,
                   createdInLevel = 0,
                   maxProbe = TestData.maxProbe,
-                  falsePositiveRate = TestData.falsePositiveRate
+                  falsePositiveRate = TestData.falsePositiveRate,
+                  buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
                 ).assertGet.flatten
 
               val rootGroup = readAll(bytes).assertGet
@@ -285,6 +297,8 @@ sealed trait SegmentGrouper_GroupGroups_Spec extends TestBase {
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
+            enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
             force = force,
             maxProbe = TestData.maxProbe,
             groupingStrategy =
@@ -310,7 +324,8 @@ sealed trait SegmentGrouper_GroupGroups_Spec extends TestBase {
             keyValues = Slice(result.assertGet).updateStats,
             createdInLevel = 0,
             maxProbe = TestData.maxProbe,
-            falsePositiveRate = TestData.falsePositiveRate
+            falsePositiveRate = TestData.falsePositiveRate,
+            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
           ).assertGet.flatten
 
         val rootGroup = readAll(bytes).assertGet

@@ -86,7 +86,8 @@ class SegmentWriterReaderSpec extends TestBase {
           keyValues = Seq.empty,
           createdInLevel = 0,
           maxProbe = TestData.maxProbe,
-          falsePositiveRate = TestData.falsePositiveRate
+          falsePositiveRate = TestData.falsePositiveRate,
+          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
         ).assertGet.flatten
 
       bytes.isEmpty shouldBe true
@@ -100,7 +101,8 @@ class SegmentWriterReaderSpec extends TestBase {
             keyValues = keyValues,
             createdInLevel = 0,
             maxProbe = TestData.maxProbe,
-            falsePositiveRate = TestData.falsePositiveRate
+            falsePositiveRate = TestData.falsePositiveRate,
+            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
           ).assertGet.flatten
 
         bytes.isFull shouldBe true
@@ -126,6 +128,8 @@ class SegmentWriterReaderSpec extends TestBase {
             indexCompression = randomCompression(),
             valueCompression = randomCompression(),
             falsePositiveRate = TestData.falsePositiveRate,
+            enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
@@ -138,7 +142,8 @@ class SegmentWriterReaderSpec extends TestBase {
             keyValues = Seq(group),
             createdInLevel = 0,
             maxProbe = TestData.maxProbe,
-            falsePositiveRate = TestData.falsePositiveRate
+            falsePositiveRate = TestData.falsePositiveRate,
+            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
           ).assertGet.flatten
 
         bytes.isFull shouldBe true
@@ -157,6 +162,8 @@ class SegmentWriterReaderSpec extends TestBase {
             indexCompression = randomCompression(),
             valueCompression = randomCompression(),
             falsePositiveRate = TestData.falsePositiveRate,
+            enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
@@ -172,6 +179,8 @@ class SegmentWriterReaderSpec extends TestBase {
             indexCompression = randomCompression(),
             valueCompression = randomCompression(),
             falsePositiveRate = TestData.falsePositiveRate,
+            enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
@@ -184,7 +193,8 @@ class SegmentWriterReaderSpec extends TestBase {
             keyValues = Seq(group1, group2),
             createdInLevel = 0,
             maxProbe = TestData.maxProbe,
-            falsePositiveRate = TestData.falsePositiveRate
+            falsePositiveRate = TestData.falsePositiveRate,
+            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
           ).assertGet.flatten
 
         bytes.isFull shouldBe true
@@ -206,6 +216,8 @@ class SegmentWriterReaderSpec extends TestBase {
             indexCompression = randomCompression(),
             valueCompression = randomCompressionLZ4OrSnappy(Double.MinValue),
             falsePositiveRate = TestData.falsePositiveRate,
+            enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
@@ -220,6 +232,8 @@ class SegmentWriterReaderSpec extends TestBase {
             indexCompression = randomCompressionLZ4OrSnappy(Double.MinValue),
             valueCompression = randomCompression(),
             falsePositiveRate = TestData.falsePositiveRate,
+            enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
@@ -234,6 +248,8 @@ class SegmentWriterReaderSpec extends TestBase {
             indexCompression = randomCompression(),
             valueCompression = randomCompressionLZ4OrSnappy(Double.MinValue),
             falsePositiveRate = TestData.falsePositiveRate,
+            enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
@@ -249,6 +265,8 @@ class SegmentWriterReaderSpec extends TestBase {
             indexCompression = randomCompression(),
             valueCompression = randomCompression(),
             falsePositiveRate = TestData.falsePositiveRate,
+            enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
@@ -261,7 +279,8 @@ class SegmentWriterReaderSpec extends TestBase {
             keyValues = Seq(group4),
             createdInLevel = 0,
             maxProbe = TestData.maxProbe,
-            falsePositiveRate = TestData.falsePositiveRate
+            falsePositiveRate = TestData.falsePositiveRate,
+            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
           ).assertGet.flattenBytes
         bytes.isFull shouldBe true
 
@@ -278,22 +297,21 @@ class SegmentWriterReaderSpec extends TestBase {
     }
 
     "converting large KeyValues to bytes" in {
-      runThis(10.times) {
+      runThis(1.times) {
         //increase the size of value to test it on larger values.
-        val keyValues = randomizedKeyValues(valueSize = 1.kb, count = 100, startId = Some(0))
+        val keyValues = randomPutKeyValues(count = 2, valueSize = 1, startId = Some(0)).toTransient
 
-        val (bytes, _) =
+        val bytes =
           SegmentWriter.write(
             keyValues = keyValues,
             createdInLevel = 0,
             maxProbe = TestData.maxProbe,
-            falsePositiveRate = TestData.falsePositiveRate
-          ).assertGet.flatten
-
-        bytes.isFull shouldBe true
+            falsePositiveRate = TestData.falsePositiveRate,
+            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
+          ).assertGet.flattenBytes
 
         //in memory
-        assertReads(keyValues, Reader(bytes))
+        assertReads(keyValues, Reader(bytes.unslice()))
         //on disk
         assertReads(keyValues, createFileChannelReader(bytes))
       }
@@ -307,7 +325,8 @@ class SegmentWriterReaderSpec extends TestBase {
           keyValues = keyValues,
           createdInLevel = 0,
           maxProbe = TestData.maxProbe,
-          falsePositiveRate = TestData.falsePositiveRate
+          falsePositiveRate = TestData.falsePositiveRate,
+          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
         ).assertGet.flatten
 
       deadline shouldBe empty
@@ -332,7 +351,8 @@ class SegmentWriterReaderSpec extends TestBase {
           keyValues = keyValues,
           createdInLevel = 0,
           maxProbe = TestData.maxProbe,
-          falsePositiveRate = TestData.falsePositiveRate
+          falsePositiveRate = TestData.falsePositiveRate,
+          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
         ).assertGet.flatten
 
       if (!setDeadlines) deadline shouldBe empty
@@ -351,7 +371,8 @@ class SegmentWriterReaderSpec extends TestBase {
           keyValues = keyValues,
           createdInLevel = 0,
           maxProbe = TestData.maxProbe,
-          falsePositiveRate = TestData.falsePositiveRate
+          falsePositiveRate = TestData.falsePositiveRate,
+          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
         ).assertGet.flatten
 
       SegmentReader.readFooter(Reader(bytes.drop(1))).failed.assertGet.exception shouldBe a[SegmentCorruptionException]
@@ -370,17 +391,18 @@ class SegmentWriterReaderSpec extends TestBase {
             keyValues = keyValues,
             createdInLevel = 0,
             maxProbe = TestData.maxProbe,
-            falsePositiveRate = TestData.falsePositiveRate
+            falsePositiveRate = TestData.falsePositiveRate,
+            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
           ).assertGet.flatten
 
         val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).get
         footer.keyValueCount shouldBe keyValues.size
         //      footer.startIndexOffset shouldBe keyValues.head.stats.toValueOffset + 1
         footer.hasRange shouldBe false
-        val bloomFilter = footer.bloomFilter.assertGet
-        assertBloom(keyValues, bloomFilter)
-
-        footer.crc should be > 0L
+//        val bloomFilter = footer.bloomFilter.assertGet
+//        assertBloom(keyValues, bloomFilter)
+//        footer.crc should be > 0L
+        ???
       }
     }
 
@@ -419,7 +441,8 @@ class SegmentWriterReaderSpec extends TestBase {
             keyValues = keyValues,
             createdInLevel = 0,
             maxProbe = TestData.maxProbe,
-            falsePositiveRate = TestData.falsePositiveRate
+            falsePositiveRate = TestData.falsePositiveRate,
+            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
           ).assertGet.flatten
 
         val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).get
@@ -427,13 +450,14 @@ class SegmentWriterReaderSpec extends TestBase {
         footer.keyValueCount shouldBe keyValues.size
         //        footer.startIndexOffset shouldBe keyValues.last.stats.toValueOffset + 1
         footer.hasRange shouldBe true
-        if (!expectedHasRemoveRange) {
-          val bloomFilter = footer.bloomFilter.assertGet
-          assertBloom(keyValues, bloomFilter)
-          IO(BloomFilter.mightContain(randomBytesSlice(100), bloomFilter) shouldBe false)
-        }
-
-        footer.crc should be > 0L
+//        if (!expectedHasRemoveRange) {
+//          val bloomFilter = footer.bloomFilter.assertGet
+//          assertBloom(keyValues, bloomFilter)
+//          IO(BloomFilter.mightContain(randomBytesSlice(100), bloomFilter) shouldBe false)
+//        }
+//
+//        footer.crc should be > 0L
+        ???
       }
 
       runThis(100.times) {
@@ -450,7 +474,8 @@ class SegmentWriterReaderSpec extends TestBase {
             keyValues = keyValues,
             createdInLevel = 0,
             maxProbe = TestData.maxProbe,
-            falsePositiveRate = 0.01
+            falsePositiveRate = 0.01,
+            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
           ).assertGet.flatten
 
         val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).get
@@ -458,8 +483,9 @@ class SegmentWriterReaderSpec extends TestBase {
         footer.keyValueCount shouldBe keyValues.size
         footer.hasRange shouldBe true
         //bloom filters do
-        footer.bloomFilter shouldBe empty
-        footer.crc should be > 0L
+//        footer.bloomFilter shouldBe empty
+//        footer.crc should be > 0L
+        ???
       }
 
       runThis(100.times) {
@@ -476,6 +502,8 @@ class SegmentWriterReaderSpec extends TestBase {
                     indexCompression = randomCompression(),
                     valueCompression = randomCompression(),
                     falsePositiveRate = TestData.falsePositiveRate,
+                    enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+                    buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
                     resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
                     minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
                     hashIndexCompensation = TestData.hashIndexCompensation,
@@ -505,7 +533,8 @@ class SegmentWriterReaderSpec extends TestBase {
             keyValues = keyValues,
             createdInLevel = 0,
             maxProbe = TestData.maxProbe,
-            falsePositiveRate = TestData.falsePositiveRate
+            falsePositiveRate = TestData.falsePositiveRate,
+            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
           ).assertGet.flatten
 
         val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).get
@@ -513,10 +542,11 @@ class SegmentWriterReaderSpec extends TestBase {
         footer.keyValueCount shouldBe keyValues.size
         footer.hasRange shouldBe true
         //bloom filters do
-        val bloomFilter = footer.bloomFilter.assertGet
-        assertBloom(keyValues, bloomFilter)
-        IO(BloomFilter.mightContain(randomBytesSlice(100), bloomFilter) shouldBe false)
-        footer.crc should be > 0L
+//        val bloomFilter = footer.bloomFilter.assertGet
+//        assertBloom(keyValues, bloomFilter)
+//        IO(BloomFilter.mightContain(randomBytesSlice(100), bloomFilter) shouldBe false)
+//        footer.crc should be > 0L
+        ???
       }
 
       runThis(100.times) {
@@ -529,6 +559,8 @@ class SegmentWriterReaderSpec extends TestBase {
               indexCompression = randomCompression(),
               valueCompression = randomCompression(),
               falsePositiveRate = TestData.falsePositiveRate,
+              enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+              buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
               resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
               minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
               hashIndexCompensation = TestData.hashIndexCompensation,
@@ -549,7 +581,8 @@ class SegmentWriterReaderSpec extends TestBase {
             keyValues = keyValues,
             createdInLevel = 0,
             maxProbe = TestData.maxProbe,
-            falsePositiveRate = TestData.falsePositiveRate
+            falsePositiveRate = TestData.falsePositiveRate,
+            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
           ).assertGet.flatten
 
         val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).get
@@ -557,10 +590,11 @@ class SegmentWriterReaderSpec extends TestBase {
         footer.keyValueCount shouldBe keyValues.size
         footer.hasRange shouldBe false
         //bloom filters do
-        val bloomFilter = footer.bloomFilter.assertGet
-        assertBloom(keyValues, bloomFilter)
-        IO(BloomFilter.mightContain(randomBytesSlice(100), bloomFilter) shouldBe false)
-        footer.crc should be > 0L
+//        val bloomFilter = footer.bloomFilter.assertGet
+//        assertBloom(keyValues, bloomFilter)
+//        IO(BloomFilter.mightContain(randomBytesSlice(100), bloomFilter) shouldBe false)
+//        footer.crc should be > 0L
+        ???
       }
 
       runThis(100.times) {
@@ -582,7 +616,8 @@ class SegmentWriterReaderSpec extends TestBase {
             keyValues = keyValues,
             createdInLevel = 0,
             maxProbe = TestData.maxProbe,
-            falsePositiveRate = TestData.falsePositiveRate
+            falsePositiveRate = TestData.falsePositiveRate,
+            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
           ).assertGet.flatten
 
         val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).get
@@ -590,10 +625,11 @@ class SegmentWriterReaderSpec extends TestBase {
         footer.keyValueCount shouldBe keyValues.size
         footer.hasRange shouldBe true
         //bloom filters do
-        val bloomFilter = footer.bloomFilter.assertGet
-        assertBloom(keyValues, bloomFilter)
-        IO(BloomFilter.mightContain(randomBytesSlice(100), bloomFilter) shouldBe false)
-        footer.crc should be > 0L
+//        val bloomFilter = footer.bloomFilter.assertGet
+//        assertBloom(keyValues, bloomFilter)
+//        IO(BloomFilter.mightContain(randomBytesSlice(100), bloomFilter) shouldBe false)
+//        footer.crc should be > 0L
+        ???
 
         keyValues foreach {
           case group: Transient.Group =>
@@ -612,11 +648,12 @@ class SegmentWriterReaderSpec extends TestBase {
               indexCompression = keyCompression,
               valueCompression = valueCompression,
               falsePositiveRate = TestData.falsePositiveRate,
-              resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-              minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+              enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+              buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
+              resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
               hashIndexCompensation = TestData.hashIndexCompensation,
-              maxProbe = TestData.maxProbe,
-              previous = None
+              previous = None,
+              maxProbe = TestData.maxProbe
             ).assertGet
           ).updateStats
         )
@@ -635,7 +672,8 @@ class SegmentWriterReaderSpec extends TestBase {
             keyValues = keyValues,
             createdInLevel = 0,
             maxProbe = TestData.maxProbe,
-            falsePositiveRate = 0.01
+            falsePositiveRate = 0.01,
+            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
           ).assertGet.flatten
 
         val footer: SegmentFooter = SegmentReader.readFooter(Reader(bytes)).get
@@ -643,8 +681,9 @@ class SegmentWriterReaderSpec extends TestBase {
         footer.keyValueCount shouldBe keyValues.size
         footer.hasRange shouldBe true
         //bloom filters do
-        footer.bloomFilter shouldBe empty
-        footer.crc should be > 0L
+//        footer.bloomFilter shouldBe empty
+//        footer.crc should be > 0L
+        ???
 
         keyValues foreach {
           case group: Transient.Group =>
@@ -663,8 +702,9 @@ class SegmentWriterReaderSpec extends TestBase {
               indexCompression = keyCompression,
               valueCompression = valueCompression,
               falsePositiveRate = TestData.falsePositiveRate,
-              resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-              minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+              enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+              buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
+              resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
               hashIndexCompensation = TestData.hashIndexCompensation,
               previous = None,
               maxProbe = TestData.maxProbe
@@ -690,6 +730,8 @@ class SegmentWriterReaderSpec extends TestBase {
             indexCompression = randomCompression(),
             valueCompression = randomCompression(),
             falsePositiveRate = TestData.falsePositiveRate,
+            enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
@@ -703,7 +745,8 @@ class SegmentWriterReaderSpec extends TestBase {
           keyValues = keyValues,
           createdInLevel = 0,
           maxProbe = TestData.maxProbe,
-          falsePositiveRate = TestData.falsePositiveRate
+          falsePositiveRate = TestData.falsePositiveRate,
+          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
         ).assertGet.flatten
 
       writtenBytes.isFull shouldBe true
@@ -729,48 +772,50 @@ class SegmentWriterReaderSpec extends TestBase {
         foundKeyValue
       }
 
-      //first
-      var found = find(0, footer.sortedIndexStartOffset, bytes.size)
-
-      //second
-      found = find(1, found.nextIndexOffset, 4)
-
-      //third
-      found = find(2, found.nextIndexOffset, 4)
-
-      //third
-      found = find(3, found.nextIndexOffset, 4)
-
-      //third
-      found = find(4, found.nextIndexOffset, bytes.size)
+//      //first
+//      var found = find(0, footer.sortedIndexStartOffset, bytes.size)
+//
+//      //second
+//      found = find(1, found.nextIndexOffset, 4)
+//
+//      //third
+//      found = find(2, found.nextIndexOffset, 4)
+//
+//      //third
+//      found = find(3, found.nextIndexOffset, 4)
+//
+//      //third
+//      found = find(4, found.nextIndexOffset, bytes.size)
+      ???
 
       //FOURTH KEY
-      val foundKeyValue4 = SegmentReader.get(KeyMatcher.Get(keyValues(5).key), None, Reader(bytes)).assertGet.asInstanceOf[Persistent.Range]
-      foundKeyValue4.getOrFetchValue shouldBe keyValues(5).getOrFetchValue
-      foundKeyValue4.fromKey shouldBe (Int.MaxValue - 900: Slice[Byte])
-      foundKeyValue4.toKey shouldBe (Int.MaxValue - 800: Slice[Byte])
-      //4 has common bytes with 3rd key-value. It will be sliced.
-      foundKeyValue4.key.underlyingArraySize shouldBe 8
-      foundKeyValue4.fromKey.underlyingArraySize shouldBe 8 //fromKey is unsliced
-      foundKeyValue4.toKey.underlyingArraySize shouldBe 4 //toKey shares common bytes with fromKey so it will be unsliced.
-
-      foundKeyValue4.key.toArray shouldBe keyValues(5).key.toArray
-      //value is a slice of bytes array and not
-      foundKeyValue4.indexOffset shouldBe found.nextIndexOffset
-
-      //FIFTH KEY
-      val foundKeyValue5 = SegmentReader.get(KeyMatcher.Get(keyValues(6).key), None, Reader(bytes)).assertGet.asInstanceOf[Persistent.Group]
-      foundKeyValue5.getOrFetchValue shouldBe keyValues(6).getOrFetchValue
-      foundKeyValue5.minKey shouldBe (Int.MaxValue - 600: Slice[Byte])
-      foundKeyValue5.maxKey shouldBe keyValues.maxKey()
-      //5 has common bytes with 4rd key-value. It will be sliced.
-      foundKeyValue5.key.underlyingArraySize shouldBe GroupCompressor.buildCompressedKey(Slice(foundKeyValue5).toTransient)._3.size
-      foundKeyValue5.minKey.underlyingArraySize shouldBe GroupCompressor.buildCompressedKey(Slice(foundKeyValue5).toTransient)._3.size //fromKey is unsliced
-      foundKeyValue5.maxKey.maxKey.underlyingArraySize shouldBe 4 //toKey shares common bytes with fromKey so it will be unsliced.
-
-      foundKeyValue5.key.toArray shouldBe keyValues(6).key.toArray
-      //value is a slice of bytes array and not
-      foundKeyValue5.indexOffset shouldBe foundKeyValue4.nextIndexOffset
+//      val foundKeyValue4 = SegmentReader.get(KeyMatcher.Get(keyValues(5).key), None, Reader(bytes)).assertGet.asInstanceOf[Persistent.Range]
+//      foundKeyValue4.getOrFetchValue shouldBe keyValues(5).getOrFetchValue
+//      foundKeyValue4.fromKey shouldBe (Int.MaxValue - 900: Slice[Byte])
+//      foundKeyValue4.toKey shouldBe (Int.MaxValue - 800: Slice[Byte])
+//      //4 has common bytes with 3rd key-value. It will be sliced.
+//      foundKeyValue4.key.underlyingArraySize shouldBe 8
+//      foundKeyValue4.fromKey.underlyingArraySize shouldBe 8 //fromKey is unsliced
+//      foundKeyValue4.toKey.underlyingArraySize shouldBe 4 //toKey shares common bytes with fromKey so it will be unsliced.
+//
+//      foundKeyValue4.key.toArray shouldBe keyValues(5).key.toArray
+//      //value is a slice of bytes array and not
+//      foundKeyValue4.indexOffset shouldBe found.nextIndexOffset
+//
+//      //FIFTH KEY
+//      val foundKeyValue5 = SegmentReader.get(KeyMatcher.Get(keyValues(6).key), None, Reader(bytes)).assertGet.asInstanceOf[Persistent.Group]
+//      foundKeyValue5.getOrFetchValue shouldBe keyValues(6).getOrFetchValue
+//      foundKeyValue5.minKey shouldBe (Int.MaxValue - 600: Slice[Byte])
+//      foundKeyValue5.maxKey shouldBe keyValues.maxKey()
+//      //5 has common bytes with 4rd key-value. It will be sliced.
+//      foundKeyValue5.key.underlyingArraySize shouldBe GroupCompressor.buildCompressedKey(Slice(foundKeyValue5).toTransient)._3.size
+//      foundKeyValue5.minKey.underlyingArraySize shouldBe GroupCompressor.buildCompressedKey(Slice(foundKeyValue5).toTransient)._3.size //fromKey is unsliced
+//      foundKeyValue5.maxKey.maxKey.underlyingArraySize shouldBe 4 //toKey shares common bytes with fromKey so it will be unsliced.
+//
+//      foundKeyValue5.key.toArray shouldBe keyValues(6).key.toArray
+//      //value is a slice of bytes array and not
+//      foundKeyValue5.indexOffset shouldBe foundKeyValue4.nextIndexOffset
+      ???
     }
 
     "getFromHashIndex key-values using KeyMatcher.Lower" in {
@@ -789,7 +834,8 @@ class SegmentWriterReaderSpec extends TestBase {
           keyValues = keyValues,
           createdInLevel = 0,
           maxProbe = TestData.maxProbe,
-          falsePositiveRate = TestData.falsePositiveRate
+          falsePositiveRate = TestData.falsePositiveRate,
+          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
         ).assertGet.flatten
 
       //FIRST
@@ -851,7 +897,8 @@ class SegmentWriterReaderSpec extends TestBase {
           keyValues = keyValues,
           createdInLevel = 0,
           maxProbe = TestData.maxProbe,
-          falsePositiveRate = TestData.falsePositiveRate
+          falsePositiveRate = TestData.falsePositiveRate,
+          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
         ).assertGet.flatten
 
       val foundKeyValue1 = SegmentReader.higher(KeyMatcher.Higher(keyValues.head.key), None, Reader(bytes)).assertGet
@@ -938,7 +985,8 @@ class SegmentWriterReaderSpec extends TestBase {
             keyValues = keyValuesWithDeadline.updateStats,
             createdInLevel = 0,
             maxProbe = TestData.maxProbe,
-            falsePositiveRate = TestData.falsePositiveRate
+            falsePositiveRate = TestData.falsePositiveRate,
+            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
           ).assertGet.nearestDeadline
 
         actualNearestDeadline shouldBe nearestDeadline(keyValuesWithDeadline.toSlice)
@@ -994,7 +1042,8 @@ class SegmentWriterReaderSpec extends TestBase {
             keyValues = keyValues,
             createdInLevel = 0,
             maxProbe = TestData.maxProbe,
-            falsePositiveRate = TestData.falsePositiveRate
+            falsePositiveRate = TestData.falsePositiveRate,
+            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
           ).assertGet.flatten
         //      println(bytes)
 

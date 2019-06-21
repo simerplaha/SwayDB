@@ -20,13 +20,12 @@
 package swaydb.core.segment.format.a
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.data.KeyValue
+import swaydb.core.data.{KeyValue, Transient}
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.index.{BinarySearchIndex, BloomFilter, HashIndex}
 import swaydb.core.util.CRC32
 import swaydb.data.IO
 import swaydb.data.IO._
-import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.slice.Slice._
 
@@ -38,7 +37,7 @@ private[core] object SegmentWriter extends LazyLogging {
 
   val formatId: Byte = 1.toByte
 
-  val crcBytes: Int = 10
+  val crcBytes: Int = 7
 
   object Result {
     val empty =
@@ -62,6 +61,7 @@ private[core] object SegmentWriter extends LazyLogging {
                     bloomFilter: Option[Slice[Byte]],
                     footer: Slice[Byte],
                     nearestDeadline: Option[Deadline]) {
+
     val segmentBytes: Seq[Slice[Byte]] = {
       val all = ListBuffer.empty[Slice[Byte]]
       values foreach (all += _)
@@ -82,7 +82,8 @@ private[core] object SegmentWriter extends LazyLogging {
     def flattenBytes: Slice[Byte] = {
       val size = segmentBytes.foldLeft(0)(_ + _.written)
       val slice = Slice.create[Byte](size)
-      segmentBytes foreach slice.addAll
+      segmentBytes.map(_.unslice()) foreach slice.addAll
+      assert(slice.isFull)
       slice
     }
 
@@ -121,10 +122,10 @@ private[core] object SegmentWriter extends LazyLogging {
                 state = hashIndexState
               )
           } match {
-            case Some(IO.Success(hit)) if hit =>
+            case Some(IO.Success(hit)) if hit && binarySearchIndex.forall(!_.buildFullBinarySearchIndex) =>
               IO.unit
 
-            case None | Some(IO.Success(_)) => //miss
+            case None | Some(IO.Success(_)) =>
               binarySearchIndex map {
                 state =>
                   BinarySearchIndex.write(
@@ -157,10 +158,10 @@ private[core] object SegmentWriter extends LazyLogging {
           val nextNearestDeadline = Segment.getNearestDeadline(nearestDeadline, keyValue)
 
           if (hashIndex.isDefined || binarySearchIndex.isDefined || bloomFilter.isDefined)
-            keyValues match {
+            keyValue match {
               case rootGroup: KeyValue.WriteOnly.Group =>
                 writeMany(
-                  rootGroup = rootGroup.asInstanceOf[Some[KeyValue.WriteOnly.Group]],
+                  rootGroup = rootGroup.asInstanceOf[Some[Transient.Group]],
                   keyValues = rootGroup.keyValues
                 ).get
 
@@ -259,13 +260,7 @@ private[core] object SegmentWriter extends LazyLogging {
         else if (!valuesSlice.isFull)
           IO.Failure(new Exception(s"valuesSlice is not full actual: ${valuesSlice.written} - expected: ${valuesSlice.size}"))
         else
-          hashIndex map {
-            hashIndex =>
-              if (!hashIndex.bytes.isFull)
-                IO.Failure(new Exception(s"hashIndexSlice is not full actual: ${hashIndex.bytes.written} - expected: ${hashIndex.bytes.size}"))
-              else
-                IO.Success(deadline)
-          } getOrElse IO.Success(deadline)
+          IO.Success(deadline)
     }
 
   /**
@@ -282,7 +277,8 @@ private[core] object SegmentWriter extends LazyLogging {
   def write(keyValues: Iterable[KeyValue.WriteOnly],
             createdInLevel: Int,
             maxProbe: Int,
-            falsePositiveRate: Double): IO[Result] =
+            falsePositiveRate: Double,
+            buildFullBinarySearchIndex: Boolean): IO[Result] =
     if (keyValues.isEmpty)
       Result.emptyIO
     else {
@@ -302,12 +298,13 @@ private[core] object SegmentWriter extends LazyLogging {
             BinarySearchIndex.State(
               largestValue = lastStats.thisKeyValuesAccessIndexOffset,
               valuesCount = lastStats.segmentUniqueKeysCount,
+              buildFullBinarySearchIndex = buildFullBinarySearchIndex,
               bytes = Slice.create[Byte](lastStats.binarySearchIndexSize)
             )
           )
 
       val bloomFilter =
-        if (lastStats.segmentHasRemoveRange || lastStats.bloomFilterSize <= 1 || falsePositiveRate <= 0.0)
+        if (lastStats.segmentHasRemoveRange || lastStats.segmentBloomFilterSize <= 1 || falsePositiveRate <= 0.0)
           None
         else
           BloomFilter.init(
@@ -315,7 +312,7 @@ private[core] object SegmentWriter extends LazyLogging {
             falsePositiveRate = falsePositiveRate
           )
 
-      val sortedIndexSlice = Slice.create[Byte](lastStats.segmentUncompressedKeysSize)
+      val sortedIndexSlice = Slice.create[Byte](lastStats.segmentSortedIndexSize)
       val valuesSlice = Slice.create[Byte](lastStats.segmentValuesSize)
 
       write(
@@ -338,9 +335,6 @@ private[core] object SegmentWriter extends LazyLogging {
             segmentFooterSlice addBoolean lastStats.segmentHasGroup
             segmentFooterSlice addBoolean lastStats.segmentHasRange
             segmentFooterSlice addBoolean lastStats.segmentHasPut
-            segmentFooterSlice addBoolean hashIndex.isDefined //has bloomFilter
-            segmentFooterSlice addBoolean binarySearchIndex.isDefined //has bloomFilter
-            segmentFooterSlice addBoolean bloomFilter.isDefined //has bloomFilter
             //here the top Level key-values are used instead of Group's internal key-values because Group's internal key-values
             //are read when the Group key-value is read.
             segmentFooterSlice addIntUnsigned keyValues.size
@@ -348,46 +342,47 @@ private[core] object SegmentWriter extends LazyLogging {
             segmentFooterSlice addIntUnsigned lastStats.segmentUniqueKeysCount
 
             //do CRC
-            var indexBytesToCRC = sortedIndexSlice.take(SegmentWriter.crcBytes)
-            if (indexBytesToCRC.size < SegmentWriter.crcBytes) //if index does not have enough bytes, fill remaining from the footer.
-              indexBytesToCRC = indexBytesToCRC append segmentFooterSlice.take(SegmentWriter.crcBytes - indexBytesToCRC.size)
+            val indexBytesToCRC = segmentFooterSlice.take(SegmentWriter.crcBytes)
             assert(indexBytesToCRC.size == SegmentWriter.crcBytes, s"Invalid CRC bytes size: ${indexBytesToCRC.size}. Required: ${SegmentWriter.crcBytes}")
             segmentFooterSlice addLong CRC32.forBytes(indexBytesToCRC)
 
-            var fullSegmentOffset = 0
+            var segmentOffset = valuesSlice.written
 
-            //sortedIndex start offset
-            if (valuesSlice.isEmpty) {
-              fullSegmentOffset = 0
-              segmentFooterSlice addIntUnsigned 0
-            } else {
-              val offset = fullSegmentOffset + valuesSlice.written + 1
-              segmentFooterSlice addIntUnsigned offset
-              fullSegmentOffset = offset + sortedIndexSlice.written
-            }
+            segmentFooterSlice addIntUnsigned sortedIndexSlice.written
+            segmentFooterSlice addIntUnsigned segmentOffset
+            segmentOffset = segmentOffset + sortedIndexSlice.written
 
-            //hashIndexOffset
-            hashIndex foreach {
+            hashIndex map {
               hashIndex =>
-                segmentFooterSlice addIntUnsigned (fullSegmentOffset + 1)
-                fullSegmentOffset = fullSegmentOffset + hashIndex.bytes.written
+                segmentFooterSlice addIntUnsigned hashIndex.bytes.written
+                segmentFooterSlice addIntUnsigned segmentOffset
+                segmentOffset = segmentOffset + hashIndex.bytes.written
+            } getOrElse {
+              segmentFooterSlice addIntUnsigned 0
+              segmentOffset = segmentOffset + 1
             }
 
-            //binarySearchIndex
-            binarySearchIndex foreach {
+            binarySearchIndex map {
               binarySearchIndex =>
-                segmentFooterSlice addIntUnsigned (fullSegmentOffset + 1)
-                fullSegmentOffset = fullSegmentOffset + binarySearchIndex.bytes.written
+                segmentFooterSlice addIntUnsigned binarySearchIndex.bytes.written
+                segmentFooterSlice addIntUnsigned segmentOffset
+                segmentOffset = segmentOffset + binarySearchIndex.bytes.written
+            } getOrElse {
+              segmentFooterSlice addIntUnsigned 0
+              segmentOffset = segmentOffset + 1
             }
 
-            //bloomFilter
-            bloomFilter foreach {
+            bloomFilter map {
               bloomFilter =>
-                segmentFooterSlice addIntUnsigned (fullSegmentOffset + 1)
-                fullSegmentOffset = fullSegmentOffset + bloomFilter.written
+                segmentFooterSlice addIntUnsigned bloomFilter.bytes.written
+                segmentFooterSlice addIntUnsigned segmentOffset
+                segmentOffset = segmentOffset + bloomFilter.bytes.written
+            } getOrElse {
+              segmentFooterSlice addIntUnsigned 0
+              segmentOffset = segmentOffset + 1
             }
 
-            segmentFooterSlice addInt fullSegmentOffset
+            segmentFooterSlice addInt segmentOffset
 
             Result(
               values = if (valuesSlice.isEmpty) None else Some(valuesSlice),

@@ -255,7 +255,8 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
             keyValues = keyValues,
             createdInLevel = 0,
             maxProbe = TestData.maxProbe,
-            falsePositiveRate = TestData.falsePositiveRate
+            falsePositiveRate = TestData.falsePositiveRate,
+            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
           ).assertGet.flatten
 
         //read key-values so they are all part of the same byte array.
@@ -625,7 +626,9 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
-        compressDuplicateValues = true,
+        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
+        compressDuplicateValues = TestData.compressDuplicateValues,
         removeDeletes = false,
         createdInLevel = 0,
         maxProbe = TestData.maxProbe
@@ -637,7 +640,9 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
-        compressDuplicateValues = true,
+        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
+        compressDuplicateValues = TestData.compressDuplicateValues,
         removeDeletes = false,
         createdInLevel = 0,
         maxProbe = TestData.maxProbe
@@ -734,8 +739,10 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
+          enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
           maxProbe = TestData.maxProbe,
-          compressDuplicateValues = true,
+          compressDuplicateValues = TestData.compressDuplicateValues,
           removeDeletes = false,
           minSegmentSize =
             if (persistent)
@@ -770,9 +777,11 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
+            enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
             removeDeletes = true,
             maxProbe = TestData.maxProbe,
-            compressDuplicateValues = true,
+            compressDuplicateValues = TestData.compressDuplicateValues,
             minSegmentSize =
               if (persistent)
                 keyValues.last.stats.segmentSize / 10
@@ -789,7 +798,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           unzipGroups(Segment.getAllKeyValues(segments).assertGet) shouldBe unzipGroups(keyValues).collect { //memory Segments does a split/merge and apply lastLevel rules.
             case keyValue: Transient.Put if keyValue.hasTimeLeft() =>
               keyValue
-            case Transient.Range(fromKey, _, _, Some(put @ Value.Put(_, deadline, _)), _, _, _, _, _, _, _) if deadline.forall(_.hasTimeLeft()) =>
+            case Transient.Range(fromKey, _, _, Some(put @ Value.Put(_, deadline, _)), _, _, _, _, _, _, _, _, _) if deadline.forall(_.hasTimeLeft()) =>
               put.toMemory(fromKey).toTransient
           }.updateStats
       }
@@ -812,9 +821,11 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
+        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
         removeDeletes = true,
         maxProbe = TestData.maxProbe,
-        compressDuplicateValues = true,
+        compressDuplicateValues = TestData.compressDuplicateValues,
         minSegmentSize =
           if (persistent)
             keyValues.last.stats.segmentSize / 10
@@ -855,11 +866,13 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
+        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
         removeDeletes = false,
         maxProbe = TestData.maxProbe,
         minSegmentSize = keyValues.toTransient.last.stats.segmentSize / 5,
         bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-        compressDuplicateValues = true
+        compressDuplicateValues = TestData.compressDuplicateValues
 
       ).failed.assertGet.exception shouldBe a[FileAlreadyExistsException]
 
@@ -879,10 +892,12 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           fetchNextPath = levelPath.resolve(nextSegmentId),
           createdInLevel = 0,
           removeDeletes = false,
-          compressDuplicateValues = true,
+          compressDuplicateValues = TestData.compressDuplicateValues,
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
+          enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
           maxProbe = TestData.maxProbe,
           minSegmentSize =
             if (persistent)
@@ -909,14 +924,16 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
             segment = segment,
             createdInLevel = 0,
             fetchNextPath = levelPath.resolve(nextSegmentId),
+            removeDeletes = true,
+            minSegmentSize = keyValues.last.stats.segmentSize / 1000,
+            maxProbe = TestData.maxProbe,
+            enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
+            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-            hashIndexCompensation = TestData.hashIndexCompensation,
-            removeDeletes = true,
-            maxProbe = TestData.maxProbe,
-            compressDuplicateValues = true,
-            minSegmentSize = keyValues.last.stats.segmentSize / 1000, //divide by large because key-value can contain all expired.
-            bloomFilterFalsePositiveRate = TestData.falsePositiveRate
+            hashIndexCompensation = TestData.hashIndexCompensation, //divide by large because key-value can contain all expired.
+            compressDuplicateValues = TestData.compressDuplicateValues
           ).assertGet
 
         segments.foreach(_.existsOnDisk shouldBe false)
@@ -928,7 +945,7 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           Segment.getAllKeyValues(segments).assertGet shouldBe unzipGroups(keyValues).collect {
             case keyValue: Transient.Put if keyValue.hasTimeLeft() =>
               keyValue
-            case Transient.Range(fromKey, _, _, Some(put @ Value.Put(_, deadline, _)), _, _, _, _, _, _, _) if deadline.forall(_.hasTimeLeft()) =>
+            case Transient.Range(fromKey, _, _, Some(put @ Value.Put(_, deadline, _)), _, _, _, _, _, _, _, _, _) if deadline.forall(_.hasTimeLeft()) =>
               put.toMemory(fromKey).toTransient
           }.updateStats
         }
@@ -1009,14 +1026,16 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
       segment.put(
         newKeyValues = keyValues2,
         minSegmentSize = 1.mb,
+        bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
-        bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-        compressDuplicateValues = true,
+        compressDuplicateValues = TestData.compressDuplicateValues,
         removeDeletes = false,
         createdInLevel = 0,
-        maxProbe = TestData.maxProbe
+        maxProbe = TestData.maxProbe,
+        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
       ).assertGet
 
       if (persistent) segment.isOpen shouldBe true
@@ -1035,10 +1054,12 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
-          compressDuplicateValues = true,
+          compressDuplicateValues = TestData.compressDuplicateValues,
           removeDeletes = false,
           createdInLevel = 0,
-          maxProbe = TestData.maxProbe
+          maxProbe = TestData.maxProbe,
+          enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
         ).assertGet
 
       newSegments should have size 1
@@ -1051,13 +1072,15 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           oldKeyValues = keyValues.toMemory,
           minSegmentSize = 1.mb,
           maxProbe = TestData.maxProbe,
+          enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
           isLastLevel = false,
           forInMemory = memory,
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
-          compressDuplicateValues = true
+          compressDuplicateValues = TestData.compressDuplicateValues
         ).assertGet
 
       expectedKeyValues should have size 1
@@ -1078,10 +1101,12 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
-          compressDuplicateValues = true,
+          compressDuplicateValues = TestData.compressDuplicateValues,
           removeDeletes = false,
           createdInLevel = 0,
-          maxProbe = TestData.maxProbe
+          maxProbe = TestData.maxProbe,
+          enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
         ).assertGet
 
       newSegments.size should be > 1
@@ -1095,13 +1120,15 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           oldKeyValues = keyValues.toMemory,
           minSegmentSize = 10.mb,
           maxProbe = TestData.maxProbe,
+          enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
           isLastLevel = false,
           forInMemory = memory,
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
-          compressDuplicateValues = true
+          compressDuplicateValues = TestData.compressDuplicateValues
         ).assertGet
 
       expectedKeyValues should have size 1
@@ -1134,10 +1161,12 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
-          compressDuplicateValues = true,
+          compressDuplicateValues = TestData.compressDuplicateValues,
           removeDeletes = false,
           createdInLevel = 0,
-          maxProbe = TestData.maxProbe
+          maxProbe = TestData.maxProbe,
+          enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
         ).failed.assertGet.exception shouldBe a[FileAlreadyExistsException]
 
         //the folder should contain only the original segment and the segmentToFailPut
@@ -1168,10 +1197,12 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
-          compressDuplicateValues = true,
+          compressDuplicateValues = TestData.compressDuplicateValues,
           removeDeletes = false,
           createdInLevel = 0,
-          maxProbe = TestData.maxProbe
+          maxProbe = TestData.maxProbe,
+          enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
         ).assertGet
 
       deletedSegment should have size 1
@@ -1199,10 +1230,12 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
-          compressDuplicateValues = true,
+          compressDuplicateValues = TestData.compressDuplicateValues,
           removeDeletes = true,
           createdInLevel = 0,
-          maxProbe = TestData.maxProbe
+          maxProbe = TestData.maxProbe,
+          enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
         ).assertGet
 
       updatedSegments should have size 1
@@ -1238,10 +1271,12 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
-            compressDuplicateValues = true,
+            compressDuplicateValues = TestData.compressDuplicateValues,
             removeDeletes = false,
             createdInLevel = 0,
-            maxProbe = TestData.maxProbe
+            maxProbe = TestData.maxProbe,
+            enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
           ).assertGet
 
         mergedSegments.size shouldBe 1
@@ -1283,10 +1318,12 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
-          compressDuplicateValues = true,
+          compressDuplicateValues = TestData.compressDuplicateValues,
           removeDeletes = true,
           createdInLevel = 0,
-          maxProbe = TestData.maxProbe
+          maxProbe = TestData.maxProbe,
+          enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
         ).assertGet shouldBe empty
       }
     }
@@ -1308,10 +1345,12 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
-          compressDuplicateValues = true,
+          compressDuplicateValues = TestData.compressDuplicateValues,
           removeDeletes = false,
           createdInLevel = 0,
-          maxProbe = TestData.maxProbe
+          maxProbe = TestData.maxProbe,
+          enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
         ).assertGet.head.getAll().assertGet
 
       val expected: Seq[Memory] = (1 to 9).map(key => Memory.Range(key, key + 1, Some(Value.remove(None)), Value.update(10))) :+ Memory.remove(10)
@@ -1336,10 +1375,12 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
-          compressDuplicateValues = true,
+          compressDuplicateValues = TestData.compressDuplicateValues,
           removeDeletes = true,
           createdInLevel = 0,
-          maxProbe = TestData.maxProbe
+          maxProbe = TestData.maxProbe,
+          enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
         ).assertGet
 
       newSegments.size shouldBe 1
@@ -1374,10 +1415,12 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
-            compressDuplicateValues = true,
+            compressDuplicateValues = TestData.compressDuplicateValues,
             removeDeletes = false,
             createdInLevel = 0,
             maxProbe = TestData.maxProbe,
+            enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
             targetPaths = distributor
           ).assertGet
         else
@@ -1388,10 +1431,12 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
-            compressDuplicateValues = true,
+            compressDuplicateValues = TestData.compressDuplicateValues,
             removeDeletes = false,
             createdInLevel = 0,
             maxProbe = TestData.maxProbe,
+            enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
             targetPaths = distributor
           ).assertGet
 
@@ -1434,10 +1479,12 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
-          compressDuplicateValues = true,
+          compressDuplicateValues = TestData.compressDuplicateValues,
           removeDeletes = true,
           createdInLevel = 0,
-          maxProbe = TestData.maxProbe
+          maxProbe = TestData.maxProbe,
+          enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
         ).assertGet shouldBe empty
       }
     }
@@ -1454,10 +1501,12 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
-        compressDuplicateValues = true,
+        compressDuplicateValues = TestData.compressDuplicateValues,
         removeDeletes = true,
         createdInLevel = 0,
-        maxProbe = TestData.maxProbe
+        maxProbe = TestData.maxProbe,
+        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
       ).assertGet shouldBe empty
     }
 
@@ -1474,10 +1523,12 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
-          compressDuplicateValues = true,
+          compressDuplicateValues = TestData.compressDuplicateValues,
           removeDeletes = false,
           createdInLevel = 0,
-          maxProbe = TestData.maxProbe
+          maxProbe = TestData.maxProbe,
+          enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
         ).assertGet
 
       refresh should have size 1
@@ -1496,11 +1547,13 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           isLastLevel = false,
           forInMemory = inMemoryStorage,
           maxProbe = TestData.maxProbe,
+          enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
           bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
-          compressDuplicateValues = true
+          compressDuplicateValues = TestData.compressDuplicateValues
         ).assertGet
 
       result should have size 1
@@ -1511,7 +1564,8 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           keyValues = result.head,
           createdInLevel = 0,
           maxProbe = TestData.maxProbe,
-          falsePositiveRate = TestData.falsePositiveRate
+          falsePositiveRate = TestData.falsePositiveRate,
+          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
         ).assertGet.flatten
 
       readAll(bytes).assertGet shouldBe keyValues
@@ -1526,11 +1580,13 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
         isLastLevel = false,
         forInMemory = inMemoryStorage,
         maxProbe = TestData.maxProbe,
+        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
         bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
-        compressDuplicateValues = true
+        compressDuplicateValues = TestData.compressDuplicateValues
       )(keyOrder, Some(KeyValueGroupingStrategyInternal(DefaultGroupingStrategy()))).assertGet
 
       result should have size 1
@@ -1541,7 +1597,8 @@ sealed trait SegmentWriteSpec extends TestBase with Benchmark {
           keyValues = result.head,
           createdInLevel = 0,
           maxProbe = TestData.maxProbe,
-          falsePositiveRate = TestData.falsePositiveRate
+          falsePositiveRate = TestData.falsePositiveRate,
+          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
         ).assertGet.flatten
 
       readAll(bytes).assertGet shouldBe keyValues

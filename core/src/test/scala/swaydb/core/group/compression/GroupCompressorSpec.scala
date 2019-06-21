@@ -50,12 +50,14 @@ class GroupCompressorSpec extends TestBase {
         keyValues = Slice.empty,
         indexCompression = randomCompressionLZ4OrSnappy(Random.nextInt()),
         valueCompression = randomCompressionLZ4OrSnappy(Random.nextInt()),
-        maxProbe = TestData.maxProbe,
         falsePositiveRate = TestData.falsePositiveRate,
+        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
-        previous = None
+        previous = None,
+        maxProbe = TestData.maxProbe
       ).assertGetOpt shouldBe empty
     }
 
@@ -75,11 +77,13 @@ class GroupCompressorSpec extends TestBase {
             indexCompression = randomCompressionLZ4OrSnappy(12),
             valueCompression = randomCompressionLZ4OrSnappy(12),
             falsePositiveRate = TestData.falsePositiveRate,
+            enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
-            maxProbe = TestData.maxProbe,
-            previous = None
+            previous = None,
+            maxProbe = TestData.maxProbe
           ).assertGetOpt shouldBe empty
         }
       }
@@ -103,12 +107,14 @@ class GroupCompressorSpec extends TestBase {
                 keyValues = Seq(keyValue).toTransient,
                 indexCompression = indexCompression,
                 valueCompression = valuesCompression,
-                maxProbe = TestData.maxProbe,
                 falsePositiveRate = TestData.falsePositiveRate,
+                enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+                buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
                 resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
                 minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
                 hashIndexCompensation = TestData.hashIndexCompensation,
-                previous = None
+                previous = None,
+                maxProbe = TestData.maxProbe
               ).assertGet,
             expectedIndexCompressionUsed = indexCompression,
             expectedValueCompressionUsed =
@@ -132,11 +138,13 @@ class GroupCompressorSpec extends TestBase {
             indexCompression = randomCompressionLZ4OrSnappy(12),
             valueCompression = randomCompressionLZ4OrSnappy(12),
             falsePositiveRate = TestData.falsePositiveRate,
+            enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
-            maxProbe = TestData.maxProbe,
-            previous = None
+            previous = None,
+            maxProbe = TestData.maxProbe
           ).assertGetOpt shouldBe empty
         }
       }
@@ -159,11 +167,13 @@ class GroupCompressorSpec extends TestBase {
                 indexCompression = indexCompression,
                 valueCompression = valuesCompression,
                 falsePositiveRate = TestData.falsePositiveRate,
+                enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+                buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
                 resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
                 minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
                 hashIndexCompensation = TestData.hashIndexCompensation,
-                maxProbe = TestData.maxProbe,
-                previous = None
+                previous = None,
+                maxProbe = TestData.maxProbe
               ).assertGet,
             expectedIndexCompressionUsed = indexCompression,
             expectedValueCompressionUsed =
@@ -194,11 +204,13 @@ class GroupCompressorSpec extends TestBase {
                 indexCompressions = indexCompressions,
                 valueCompressions = valueCompressions,
                 falsePositiveRate = TestData.falsePositiveRate,
+                enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+                buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
                 resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
                 minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
                 hashIndexCompensation = TestData.hashIndexCompensation,
-                maxProbe = TestData.maxProbe,
-                previous = None
+                previous = None,
+                maxProbe = TestData.maxProbe
               ).assertGet,
             expectedIndexCompressionUsed = indexCompressions.last,
             expectedValueCompressionUsed =
@@ -221,12 +233,14 @@ class GroupCompressorSpec extends TestBase {
               keyValues = randomKeyValues(keyValueCount),
               indexCompression = randomCompression(),
               valueCompression = randomCompression(),
-              previous = None,
-              maxProbe = TestData.maxProbe,
               falsePositiveRate = TestData.falsePositiveRate,
+              enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+              buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
               resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
               minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
-              hashIndexCompensation = TestData.hashIndexCompensation
+              hashIndexCompensation = TestData.hashIndexCompensation,
+              previous = None,
+              maxProbe = TestData.maxProbe
             ).assertGet
 
           //add more key-values to existing group.
@@ -239,11 +253,13 @@ class GroupCompressorSpec extends TestBase {
             indexCompression = randomCompressionLZ4OrSnappy(12),
             valueCompression = randomCompressionLZ4OrSnappy(12),
             falsePositiveRate = TestData.falsePositiveRate,
+            enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
-            maxProbe = TestData.maxProbe,
-            previous = None
+            previous = None,
+            maxProbe = TestData.maxProbe
           ).assertGetOpt shouldBe empty
         }
       }
@@ -258,11 +274,13 @@ class GroupCompressorSpec extends TestBase {
               indexCompression = randomCompression(),
               valueCompression = randomCompression(),
               falsePositiveRate = TestData.falsePositiveRate,
+              enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+              buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
               resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
               minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
               hashIndexCompensation = TestData.hashIndexCompensation,
-              maxProbe = TestData.maxProbe,
-              previous = None
+              previous = None,
+              maxProbe = TestData.maxProbe
             ).assertGet
 
           //add more key-values to existing group.
@@ -282,11 +300,13 @@ class GroupCompressorSpec extends TestBase {
                 indexCompression = indexCompression,
                 valueCompression = valueCompression,
                 falsePositiveRate = TestData.falsePositiveRate,
+                enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+                buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
                 resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
                 minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
                 hashIndexCompensation = TestData.hashIndexCompensation,
-                maxProbe = TestData.maxProbe,
-                previous = None
+                previous = None,
+                maxProbe = TestData.maxProbe
               ).assertGet,
             expectedIndexCompressionUsed = indexCompression,
             expectedValueCompressionUsed =
@@ -317,11 +337,13 @@ class GroupCompressorSpec extends TestBase {
                 indexCompressions = indexCompressions,
                 valueCompressions = valueCompressions,
                 falsePositiveRate = TestData.falsePositiveRate,
+                enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+                buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
                 resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
                 minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
                 hashIndexCompensation = TestData.hashIndexCompensation,
-                maxProbe = TestData.maxProbe,
-                previous = None
+                previous = None,
+                maxProbe = TestData.maxProbe
               ).assertGet,
             expectedIndexCompressionUsed = indexCompressions.last,
             expectedValueCompressionUsed =
@@ -335,5 +357,4 @@ class GroupCompressorSpec extends TestBase {
       }
     }
   }
-
 }

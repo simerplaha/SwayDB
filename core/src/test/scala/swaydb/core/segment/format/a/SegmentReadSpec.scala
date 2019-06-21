@@ -817,7 +817,8 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures with PrivateMeth
             keyValues = all,
             createdInLevel = 0,
             maxProbe = TestData.maxProbe,
-            falsePositiveRate = TestData.falsePositiveRate
+            falsePositiveRate = TestData.falsePositiveRate,
+            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
           ).assertGet.flatten
 
         deadline shouldBe nearestDeadline(all)

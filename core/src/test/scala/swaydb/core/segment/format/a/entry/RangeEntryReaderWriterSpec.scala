@@ -65,6 +65,8 @@ class RangeEntryReaderWriterSpec extends WordSpec {
           fromValue = randomFromValueOption()(TestTimer.random),
           rangeValue = randomRangeValue()(TestTimer.random),
           falsePositiveRate = TestData.falsePositiveRate,
+          enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,

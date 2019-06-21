@@ -1,6 +1,7 @@
 package swaydb.core.segment.format.a.index
 
 import org.scalatest.{Matchers, WordSpec}
+import swaydb.core.TestData
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.MatchResult
 import swaydb.core.util.Bytes
@@ -12,7 +13,12 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
     val values = 0 to 9
     val valuesCount = values.size
     val largestValue = values.last
-    val state = BinarySearchIndex.State(largestValue, valuesCount)
+    val state =
+      BinarySearchIndex.State(
+        largestValue = largestValue,
+        valuesCount = valuesCount,
+        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
+      )
 
     values map {
       offset =>

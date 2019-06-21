@@ -556,24 +556,24 @@ class Slice[+T: ClassTag](array: Array[T],
   }
 
   private[slice] def toByteBuffer: ByteBuffer =
-    ByteBuffer.wrap(array.asInstanceOf[Array[Byte]], fromOffset, size)
+    ByteBuffer.wrap(array.asInstanceOf[Array[Byte]], fromOffset, written)
 
   private[slice] def toByteArrayInputStream: ByteArrayInputStream =
-    new ByteArrayInputStream(array.asInstanceOf[Array[Byte]], fromOffset, size)
+    new ByteArrayInputStream(array.asInstanceOf[Array[Byte]], fromOffset, written)
 
   /**
     * Returns the original Array if Slice is not a sub Slice
     * else returns a new copied Array from the offsets defined for this Slice.
     */
   override def toArray[B >: T](implicit evidence$1: ClassTag[B]): Array[B] =
-    if (size == array.length)
+    if (written == array.length)
       array.asInstanceOf[Array[B]]
     else
       toArrayCopy
 
   def toArrayCopy[B >: T](implicit evidence$1: ClassTag[B]): Array[B] = {
-    val newArray = new Array[B](size)
-    Array.copy(array, fromOffset, newArray, 0, size)
+    val newArray = new Array[B](written)
+    Array.copy(array, fromOffset, newArray, 0, written)
     newArray
   }
 
