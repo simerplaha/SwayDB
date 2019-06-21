@@ -19,13 +19,17 @@
 
 package swaydb.core.segment.format.a.index
 
+import swaydb.core.data.{Transient, Value}
+import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.io.reader.Reader
-import swaydb.core.{TestBase, TestData}
+import swaydb.core.{TestBase, TestData, TestTimer}
 import swaydb.data.order.KeyOrder
+import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
-
+import swaydb.core.RunThis._
 import scala.util.Random
+import TestData._
 
 class BloomFilterSpec extends TestBase {
 
@@ -89,82 +93,66 @@ class BloomFilterSpec extends TestBase {
       ) shouldBe empty
     }
 
-    //todo - move these test to Segment
+    "not initialise bloomFilter if it contain removeRange" in {
+      runThisParallel(10.times) {
+        implicit val time = TestTimer.random
 
-    //    "not initialise bloomFilter if it contain removeRange" in {
-    //      runThisParallel(10.times) {
-    //        implicit val time = TestTimer.random
-    //
-    //        BloomFilter.init(
-    //          keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, None, Value.Remove(None, time.next))),
-    //          falsePositiveRate = TestData.falsePositiveRate,
-    //          enablePositionIndex = false
-    //        ) shouldBe empty
-    //
-    //        BloomFilter.init(
-    //          keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, None, Value.Remove(Some(randomDeadline()), time.next))),
-    //          falsePositiveRate = TestData.falsePositiveRate,
-    //          enablePositionIndex = false
-    //        ) shouldBe empty
-    //      }
-    //    }
-    //
-    //    "not initialise bloomFilter if it contains a range function" in {
-    //      runThisParallel(10.times) {
-    //        implicit val time = TestTimer.random
-    //
-    //        //range functions can also contain Remove so BloomFilter should not be created
-    //        BloomFilter.init(
-    //          keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, None, Value.Function(Slice.emptyBytes, time.next))),
-    //          falsePositiveRate = TestData.falsePositiveRate,
-    //          enablePositionIndex = false
-    //        ) shouldBe empty
-    //      }
-    //    }
-    //
-    //    "not initialise bloomFilter if it contain pendingApply with remove or function" in {
-    //      runThisParallel(10.times) {
-    //        implicit val time = TestTimer.random
-    //
-    //        //range functions can also contain Remove so BloomFilter should not be created
-    //        BloomFilter.init(
-    //          keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, None, Value.PendingApply(Slice(Value.Remove(randomDeadlineOption(), time.next))))),
-    //          falsePositiveRate = TestData.falsePositiveRate,
-    //          enablePositionIndex = false
-    //        ) shouldBe empty
-    //
-    //        BloomFilter.init(
-    //          keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, None, Value.PendingApply(Slice(Value.Function(randomFunctionId(), time.next))))),
-    //          falsePositiveRate = TestData.falsePositiveRate,
-    //          enablePositionIndex = false
-    //        ) shouldBe empty
-    //      }
-    //    }
-    //
-    //    "initialise bloomFilter if it does not contain pendingApply with remove or function" in {
-    //      runThisParallel(10.times) {
-    //        implicit val time = TestTimer.random
-    //
-    //        //pending apply should allow to create bloomFilter if it does not have remove or function.
-    //        BloomFilter.init(
-    //          keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, None, Value.PendingApply(Slice(Value.Update(randomStringOption, randomDeadlineOption(), time.next))))),
-    //          falsePositiveRate = TestData.falsePositiveRate,
-    //          enablePositionIndex
-    //        ) shouldBe defined
-    //      }
-    //    }
-    //
-    //    "initialise bloomFilter when from value is remove but range value is not" in {
-    //      runThisParallel(10.times) {
-    //        implicit val time = TestTimer.random
-    //        //fromValue is remove but it's not a remove range.
-    //        BloomFilter.init(
-    //          keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, Some(Value.Remove(None, time.next)), Value.update(100))),
-    //          falsePositiveRate = TestData.falsePositiveRate,
-    //          enablePositionIndex
-    //        ) shouldBe defined
-    //      }
-    //    }
+        BloomFilter.init(
+          keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, None, Value.Remove(None, time.next))),
+        ) shouldBe empty
+
+        BloomFilter.init(
+          keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, None, Value.Remove(Some(randomDeadline()), time.next))),
+        ) shouldBe empty
+      }
+    }
+
+    "not initialise bloomFilter if it contains a range function" in {
+      runThisParallel(10.times) {
+        implicit val time = TestTimer.random
+
+        //range functions can also contain Remove so BloomFilter should not be created
+        BloomFilter.init(
+          keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, None, Value.Function(Slice.emptyBytes, time.next))),
+        ) shouldBe empty
+      }
+    }
+
+    "not initialise bloomFilter if it contain pendingApply with remove or function" in {
+      runThisParallel(10.times) {
+        implicit val time = TestTimer.random
+
+        //range functions can also contain Remove so BloomFilter should not be created
+        BloomFilter.init(
+          keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, None, Value.PendingApply(Slice(Value.Remove(randomDeadlineOption(), time.next))))),
+        ) shouldBe empty
+
+        BloomFilter.init(
+          keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, None, Value.PendingApply(Slice(Value.Function(randomFunctionId(), time.next))))),
+        ) shouldBe empty
+      }
+    }
+
+    "initialise bloomFilter if it does not contain pendingApply with remove or function" in {
+      runThisParallel(10.times) {
+        implicit val time = TestTimer.random
+
+        //pending apply should allow to create bloomFilter if it does not have remove or function.
+        BloomFilter.init(
+          keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, None, Value.PendingApply(Slice(Value.Update(randomStringOption, randomDeadlineOption(), time.next))))),
+        ) shouldBe defined
+      }
+    }
+
+    "initialise bloomFilter when from value is remove but range value is not" in {
+      runThisParallel(10.times) {
+        implicit val time = TestTimer.random
+        //fromValue is remove but it's not a remove range.
+        BloomFilter.init(
+          keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, Some(Value.Remove(None, time.next)), Value.update(100))),
+        ) shouldBe defined
+      }
+    }
   }
 
   "bloomFilter error check" in {

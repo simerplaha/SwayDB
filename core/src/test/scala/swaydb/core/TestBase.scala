@@ -245,20 +245,16 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
 
   object TestSegment {
     def apply(keyValues: Slice[KeyValue.WriteOnly] = randomizedKeyValues()(TestTimer.Incremental(), KeyOrder.default, keyValueLimiter),
-              path: Path = testSegmentFile,
-              maxProbe: Int = TestData.maxProbe,
-              bloomFilterFalsePositiveRate: Double = TestData.falsePositiveRate,
-              buildFullBinarySearchIndex: Boolean = TestData.buildFullBinarySearchIndex)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                         keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
-                                                                                         fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter,
-                                                                                         timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                                                         groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(randomIntMax(1000))): IO[Segment] =
+              path: Path = testSegmentFile)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                            keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
+                                            fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter,
+                                            timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
+                                            groupingStrategy: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategyOption(randomIntMax(1000))): IO[Segment] =
       if (levelStorage.memory)
         Segment.memory(
           path = path,
           keyValues = keyValues,
-          createdInLevel = 0,
-          bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate
+          createdInLevel = 0
         )
       else
         Segment.persistent(

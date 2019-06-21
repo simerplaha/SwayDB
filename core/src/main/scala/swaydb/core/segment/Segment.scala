@@ -54,25 +54,18 @@ private[core] object Segment extends LazyLogging {
 
   def memory(path: Path,
              createdInLevel: Long,
-             keyValues: Iterable[KeyValue.WriteOnly],
-             bloomFilterFalsePositiveRate: Double)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                   timeOrder: TimeOrder[Slice[Byte]],
-                                                   functionStore: FunctionStore,
-                                                   fileLimiter: FileLimiter,
-                                                   groupingStrategy: Option[KeyValueGroupingStrategyInternal],
-                                                   keyValueLimiter: KeyValueLimiter): IO[Segment] =
+             keyValues: Iterable[KeyValue.WriteOnly])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                      timeOrder: TimeOrder[Slice[Byte]],
+                                                      functionStore: FunctionStore,
+                                                      fileLimiter: FileLimiter,
+                                                      groupingStrategy: Option[KeyValueGroupingStrategyInternal],
+                                                      keyValueLimiter: KeyValueLimiter): IO[Segment] =
     if (keyValues.isEmpty) {
       IO.Failure(new Exception("Empty key-values submitted to memory Segment."))
     } else {
       val skipList = new ConcurrentSkipListMap[Slice[Byte], Memory](keyOrder)
 
-      val bloomFilter: Option[BloomFilter.State] =
-      //        BloomFilter.init(
-      //          keyValues = keyValues,
-      //          falsePositiveRate = bloomFilterFalsePositiveRate,
-      //          enablePositionIndex = enablePositionIndex
-      //        )
-        ???
+      val bloomFilter: Option[BloomFilter.State] = BloomFilter.init(keyValues = keyValues)
 
       def writeKeyValue(keyValue: KeyValue.WriteOnly,
                         currentNearestDeadline: Option[Deadline]): IO[Option[Deadline]] = {
@@ -523,7 +516,6 @@ private[core] object Segment extends LazyLogging {
             Segment.memory(
               path = fetchNextPath,
               createdInLevel = createdInLevel,
-              bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
               keyValues = keyValues
             )
         }

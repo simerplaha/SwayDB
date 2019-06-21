@@ -301,14 +301,7 @@ private[core] object SegmentWriter extends LazyLogging {
             )
           )
 
-      val bloomFilter =
-        if (lastStats.segmentHasRemoveRange || lastStats.segmentBloomFilterSize <= 1 || keyValues.last.falsePositiveRate <= 0.0)
-          None
-        else
-          BloomFilter.init(
-            numberOfKeys = lastStats.segmentUniqueKeysCount,
-            falsePositiveRate = keyValues.last.falsePositiveRate
-          )
+      val bloomFilter = BloomFilter.init(keyValues)
 
       val sortedIndexSlice = Slice.create[Byte](lastStats.segmentSortedIndexSize)
       val valuesSlice = Slice.create[Byte](lastStats.segmentValuesSize)

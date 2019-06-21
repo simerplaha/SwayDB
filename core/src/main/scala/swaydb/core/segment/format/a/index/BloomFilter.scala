@@ -19,6 +19,7 @@
 
 package swaydb.core.segment.format.a.index
 
+import swaydb.core.data.KeyValue
 import swaydb.core.util.{Bytes, MurmurHash3Generic}
 import swaydb.data.IO
 import swaydb.data.slice.{Reader, Slice}
@@ -35,7 +36,6 @@ object BloomFilter {
 
     def written =
       bytes.written
-
 
     override def hashCode(): Int =
       bytes.hashCode()
@@ -148,6 +148,14 @@ object BloomFilter {
       }
   }
 
+  def init(keyValues: Iterable[KeyValue.WriteOnly]): Option[BloomFilter.State] =
+    if (keyValues.isEmpty || keyValues.last.stats.segmentHasRemoveRange || keyValues.last.stats.segmentBloomFilterSize <= 1 || keyValues.last.falsePositiveRate <= 0.0)
+      None
+    else
+      init(
+        numberOfKeys = keyValues.last.stats.segmentUniqueKeysCount,
+        falsePositiveRate = keyValues.last.falsePositiveRate
+      )
   /**
     * Initialise bloomFilter if key-values do no contain remove range.
     */

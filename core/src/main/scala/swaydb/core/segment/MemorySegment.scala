@@ -131,8 +131,7 @@ private[segment] case class MemorySegment(path: Path,
                     Segment.memory(
                       path = targetPaths.next.resolve(idGenerator.nextSegmentID),
                       createdInLevel = createdInLevel,
-                      keyValues = keyValues,
-                      bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate
+                      keyValues = keyValues
                     ),
 
                 recover =
@@ -187,8 +186,7 @@ private[segment] case class MemorySegment(path: Path,
                     Segment.memory(
                       path = targetPaths.next.resolve(idGenerator.nextSegmentID),
                       createdInLevel = createdInLevel,
-                      keyValues = keyValues,
-                      bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate
+                      keyValues = keyValues
                     ),
 
                 recover =
