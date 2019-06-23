@@ -58,7 +58,7 @@ object EntryReader {
               nextIndexOffset: Int,
               nextIndexSize: Int,
               previous: Option[Persistent],
-              entryReader: EntryReader[T])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[T] =
+              entryReader: EntryReader[T]): IO[T] =
     findReader(baseId = baseId) flatMap {
       entry =>
         entry.read(
@@ -79,7 +79,7 @@ object EntryReader {
            indexOffset: Int,
            nextIndexOffset: Int,
            nextIndexSize: Int,
-           previous: Option[Persistent])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Persistent] =
+           previous: Option[Persistent]): IO[Persistent] =
     indexReader.readIntUnsigned() flatMap {
       keyValueId =>
         if (KeyValueId.Put.hasKeyValueId(keyValueId))

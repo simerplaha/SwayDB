@@ -258,7 +258,7 @@ private[core] object KeyValue {
 
     implicit class WriteOnlyImplicits(keyValues: Iterable[KeyValue.WriteOnly]) {
       def lastGroup(): Option[Transient.Group] =
-        keyValues.iterator.foldLeftWhile(Option.empty[Transient.Group], _.isGroup) {
+        keyValues.foldLeftWhile(Option.empty[Transient.Group], _.isGroup) {
           case (_, group: Transient.Group) =>
             Some(group)
           case (previousGroup, _) =>

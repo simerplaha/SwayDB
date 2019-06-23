@@ -127,19 +127,18 @@ class SliceSpec extends WordSpec with Matchers {
       slice4.toArray shouldBe Array(1, 2, 3, 4)
     }
 
-    "throw ArrayIndexOutOfBoundsException when creating a sub Slice with invalid offsets" in {
-      val slice1 = Slice.fill(3)(Random.nextInt())
+    "return empty when creating a sub Slice with invalid offsets" in {
+      val slice1 = Slice(1, 2, 3)
       slice1.size shouldBe 3
-      assertThrows[ArrayIndexOutOfBoundsException] {
-        slice1.slice(0, 3)
-      }
+      slice1.slice(0, 3) shouldBe Slice(1, 2, 3)
+      slice1.slice(3, 100) shouldBe empty
+      slice1.slice(10, 3) shouldBe empty
+
       //valid subslice 2
       val slice2 = slice1.slice(1, 2)
       slice2.size shouldBe 2
-
-      assertThrows[ArrayIndexOutOfBoundsException] {
-        slice2.slice(0, 2)
-      }
+      slice2 shouldBe Slice(2, 3)
+      slice2.slice(100, 100) shouldBe empty
     }
 
     "throw ArrayIndexOutOfBoundsException when inserting items outside the Slice offset" in {

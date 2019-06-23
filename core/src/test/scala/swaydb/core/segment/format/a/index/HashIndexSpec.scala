@@ -19,17 +19,20 @@
 
 package swaydb.core.segment.format.a.index
 
+import swaydb.compression.CompressionInternal
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.data.Transient
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.index.HashIndex
+import swaydb.core.util.Bytes
 import swaydb.core.util.CollectionUtil._
 import swaydb.data.IO
 import swaydb.data.IO._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
+import swaydb.core.CommonAssertions._
 
 import scala.collection.mutable
 
@@ -37,58 +40,79 @@ class HashIndexSpec extends TestBase {
 
   implicit val keyOrder = KeyOrder.default
 
+  val keyValueCount = 10000
+
   import keyOrder._
 
+  "optimalBytesRequired" should {
+    "allocate optimal byte" in {
+      HashIndex.optimalBytesRequired(
+        keyCounts = 1,
+        largestValue = 1,
+        compensate = _ => 0
+      ) shouldBe
+        HashIndex.headerSize(
+          keyCounts = 1,
+          writeAbleLargestValueSize = 1
+        ) + 1 + 1
+    }
+  }
+
   "it" should {
+
     "build index" when {
       "there are only fixed key-values" in {
-        runThis(100.times) {
-          val maxProbe = 5
-          //        val keyValues = unzipGroups(randomizedKeyValues(count = 1000, startId = Some(1), addRandomGroups = false, addRandomRanges = false)).toMemory.toTransient
-          val keyValues = randomKeyValues(1000, startId = Some(1), addRandomRemoves = true, addRandomFunctions = true, addRandomRemoveDeadlines = true, addRandomUpdates = true, addRandomPendingApply = true)
+        runThis(1.times) {
+          val maxProbe = 10000
+          val startId = Some(0)
+          val keyValues = randomKeyValues(100000, startId = startId, addRandomRemoves = true, addRandomFunctions = true, addRandomRemoveDeadlines = true, addRandomUpdates = true, addRandomPendingApply = true)
+          keyValues should not be empty
 
-          val bytesSize =
-            HashIndex.optimalBytesRequired(
-              keyCounts = keyValues.last.stats.segmentUniqueKeysCount,
-              largestValue = keyValues.last.stats.thisKeyValuesAccessIndexOffset,
-              compensate = _ => 0
-            )
+          val state =
+            HashIndex.init(
+              maxProbe = maxProbe,
+              keyValues = keyValues
+            ).get
 
-          val bytes = Slice.create[Byte](bytesSize)
+          keyValues foreach {
+            keyValue =>
+              HashIndex.write(
+                key = keyValue.key,
+                value = keyValue.stats.thisKeyValuesAccessIndexOffset,
+                state = state
+              ) map {
+                _ =>
+                  state
+              }
+          }
 
-          val writeState =
-            keyValues.foldLeftIO(HashIndex.State(0, 0, maxProbe, bytes)) {
-              case (state, keyValue) =>
-                HashIndex.write(
-                  key = keyValue.key,
-                  value = keyValue.stats.thisKeyValuesAccessIndexOffset,
-                  state = state
-                ) map {
-                  _ =>
-                    state
-                }
-            }.get
-
-          println(s"hit: ${writeState.hit}")
-          println(s"miss: ${writeState.miss}")
+          println(s"hit: ${state.hit}")
+          println(s"miss: ${state.miss}")
           println
 
-          writeState.hit should be >= (keyValues.size * 0.50).toInt
-          writeState.miss shouldBe keyValues.size - writeState.hit
-          writeState.hit + writeState.miss shouldBe keyValues.size
+          HashIndex.writeHeader(state).get
 
-          HashIndex.writeHeader(writeState).get
+          println(s"Bytes allocated: ${state.bytes.size}")
+          println(s"Bytes written: ${state.bytes.written}")
+          println("Comrpessed bytes: " + CompressionInternal.randomLZ4().compressor.compress(state.bytes.unslice()).get.get.size)
 
-          val offset = HashIndex.Offset(0, writeState.bytes.written)
-          val header = HashIndex.read(offset, Reader(writeState.bytes)).get
+          state.hit should be(keyValues.size)
+          state.miss shouldBe 0
+          state.hit + state.miss shouldBe keyValues.size
 
-          header shouldBe
+          val offset = HashIndex.Offset(0, state.bytes.written)
+          val hashIndex = HashIndex.read(offset, Reader(state.bytes)).get
+
+          hashIndex shouldBe
             HashIndex(
+              offset = offset,
               formatId = HashIndex.formatID,
-              maxProbe = writeState.maxProbe,
-              hit = writeState.hit,
-              miss = writeState.miss,
-              offset = offset
+              maxProbe = state.maxProbe,
+              hit = state.hit,
+              miss = state.miss,
+              writeAbleLargestValueSize = state.writeAbleLargestValueSize,
+              headerSize = HashIndex.headerSize(keyValues.last.stats.segmentUniqueKeysCount, state.writeAbleLargestValueSize),
+              allocatedBytes = state.bytes.underlyingArraySize
             )
 
           val indexOffsetMap: mutable.ListMap[Int, Transient] =
@@ -107,10 +131,10 @@ class HashIndexSpec extends TestBase {
                   //if not found collect the next block of prefix compress key-values
                   //and see if the key exists in them.
                   var found = Option.empty[Transient]
-                  indexOffsetMap.iterator foreachBreak {
+                  indexOffsetMap foreachBreak {
                     case (index, keyValue) if index > indexOffset => //walk upto the index.
                       //ones we've reached the index, check for the index in the next compression block.
-                      if (keyValue.enablePrefixCompression) {
+                      if (keyValue.enablePrefixCompression()) {
                         //in the next prefix compression block
                         if (keyValue.key equiv key) {
                           found = Some(keyValue)
@@ -129,28 +153,32 @@ class HashIndexSpec extends TestBase {
                 }
 
               case None =>
-                IO.none
+                fail(s"Reading index that does not exist: $indexOffset")
             }
 
-          val readResult =
-            keyValues mapIO {
-              keyValue =>
+          val randomBytes = randomBytesSlice(randomIntMax(100))
+
+          val (adjustedOffset, alteredBytes) =
+            eitherOne(
+              (offset, state.bytes),
+              (offset, state.bytes ++ randomBytesSlice(randomIntMax(100))),
+              (offset.copy(start = randomBytes.size), randomBytes ++ state.bytes),
+              (offset.copy(start = randomBytes.size), randomBytes ++ state.bytes ++ randomBytesSlice(randomIntMax(100)))
+            )
+
+          keyValues foreach {
+            keyValue =>
+              val found =
                 HashIndex.find(
                   key = keyValue.key,
-                  reader = Reader(writeState.bytes),
-                  offset = HashIndex.Offset(0, writeState.bytes.size),
-                  hashIndex = header,
+                  offset = adjustedOffset,
+                  reader = Reader(alteredBytes),
+                  hashIndex = hashIndex,
                   assertValue = findKey(_, keyValue.key)
-                ) map {
-                  foundOption =>
-                    foundOption map {
-                      found =>
-                        (found.key equiv keyValue.key) shouldBe true
-                    }
-                }
-            }
+                ).get.get
 
-          readResult.get.flatten.size should be >= writeState.hit //>= because it can get lucky with overlapping index bytes.
+              (found.key equiv keyValue.key) shouldBe true
+          }
         }
       }
     }

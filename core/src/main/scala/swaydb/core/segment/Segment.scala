@@ -72,7 +72,7 @@ private[core] object Segment extends LazyLogging {
         val keyUnsliced = keyValue.key.unslice()
         keyValue match {
           case group: KeyValue.WriteOnly.Group =>
-            SegmentWriter.writeIndexes(
+            SegmentWriter.writeIndexesAndGetDeadline(
               keyValue = group,
               hashIndex = None,
               bloomFilter = bloomFilterOption,
@@ -215,15 +215,20 @@ private[core] object Segment extends LazyLogging {
           bloomFilterOption
             .map {
               bloomFilterState: BloomFilter.State =>
+                val unslicedBytes = bloomFilterState.bytes.unslice()
                 BloomFilter
                   .read(
-                    offset = BloomFilter.Offset(0, bloomFilterState.bytes.written),
-                    reader = Reader(bloomFilterState.bytes.close())
+                    offset = BloomFilter.Offset(0, unslicedBytes.size),
+                    reader = Reader(unslicedBytes)
                   )
+                  .map {
+                    bloom =>
+                      Some(bloom, unslicedBytes)
+                  }
             }
             .getOrElse(IO.none)
             .map {
-              case bloomFilter: BloomFilter =>
+              bloomFilter =>
                 MemorySegment(
                   path = path,
                   minKey = keyValues.head.key.unslice(),
@@ -244,7 +249,7 @@ private[core] object Segment extends LazyLogging {
                   _hasPut = keyValues.last.stats.segmentHasPut,
                   _hasGroup = keyValues.last.stats.segmentHasGroup,
                   segmentSize = keyValues.last.stats.memorySegmentSize,
-                  bloomFilter = ???,
+                  bloomFilter = bloomFilter,
                   cache = skipList,
                   nearestExpiryDeadline = nearestExpiryDeadline,
                   busy = Reserve()
@@ -693,7 +698,7 @@ private[core] object Segment extends LazyLogging {
       Iterable.empty
     else {
       val resultSegments = ListBuffer.empty[Segment]
-      segments1.iterator foreachBreak {
+      segments1 foreachBreak {
         segment1 =>
           if (!segments2.exists(segment2 => overlaps(segment1, segment2)))
             resultSegments += segment1

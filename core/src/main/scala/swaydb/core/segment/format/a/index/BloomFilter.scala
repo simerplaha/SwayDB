@@ -21,8 +21,9 @@ package swaydb.core.segment.format.a.index
 
 import swaydb.core.data.KeyValue
 import swaydb.core.segment.format.a.OffsetBase
-import swaydb.core.util.{Bytes, MurmurHash3Generic}
+import swaydb.core.util.{Bytes, MurmurHash3Generic, Options}
 import swaydb.data.IO
+import swaydb.data.IO._
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
 
@@ -145,14 +146,24 @@ object BloomFilter {
             IO.Failure(IO.Error.Fatal(new Exception(s"Invalid bloomFilter formatID: $formatID. Expected: $formatId")))
       }
 
+  def shouldNotCreateBloomFilter(keyValues: Iterable[KeyValue.WriteOnly]): Boolean =
+    keyValues.isEmpty ||
+      keyValues.last.stats.segmentHasRemoveRange ||
+      keyValues.last.stats.segmentBloomFilterSize <= 1 ||
+      keyValues.last.falsePositiveRate <= 0.0
+
+  def shouldCreateBloomFilter(keyValues: Iterable[KeyValue.WriteOnly]): Boolean =
+    !shouldNotCreateBloomFilter(keyValues)
+
   def init(keyValues: Iterable[KeyValue.WriteOnly]): Option[BloomFilter.State] =
-    if (keyValues.isEmpty || keyValues.last.stats.segmentHasRemoveRange || keyValues.last.stats.segmentBloomFilterSize <= 1 || keyValues.last.falsePositiveRate <= 0.0)
-      None
-    else
+    if (shouldCreateBloomFilter(keyValues))
       init(
         numberOfKeys = keyValues.last.stats.segmentUniqueKeysCount,
         falsePositiveRate = keyValues.last.falsePositiveRate
       )
+    else
+      None
+
   /**
     * Initialise bloomFilter if key-values do no contain remove range.
     */
@@ -195,27 +206,24 @@ object BloomFilter {
     val hash = MurmurHash3Generic.murmurhash3_x64_64(key, 0, key.size, 0)
     val hash1 = hash >>> 32
     val hash2 = (hash << 32) >> 32
-    var probe = 0
+    (0 until bloom.probe)
+      .untilSomeResult {
+        probe =>
+          val computedHash = hash1 + probe * hash2
+          val hashIndex = (computedHash & Long.MaxValue) % bloom.numberOfBits
 
-    try {
-      while (probe < bloom.probe) {
-        val computedHash = hash1 + probe * hash2
-        val hashIndex = (computedHash & Long.MaxValue) % bloom.numberOfBits
-
-        val index =
           reader
             .moveTo(bloom.startOffset + ((hashIndex >>> 6) * 8L).toInt)
             .readLong()
-            .get & (1L << hashIndex)
-
-        if (index == 0) return IO.`false`
-        probe += 1
+            .map {
+              index =>
+                if ((index & (1L << hashIndex)) == 0)
+                  Options.someFalse
+                else
+                  None
+            }
       }
-      IO.`true`
-    } catch {
-      case ex: Throwable =>
-        IO.Failure(ex)
-    }
+      .map(_.getOrElse(true))
   }
 }
 

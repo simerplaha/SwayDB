@@ -255,7 +255,6 @@ private[core] object Level extends LazyLogging {
     val segmentsToMerge = ListBuffer.empty[Segment]
     level
       .segmentsInLevel()
-      .iterator
       .foreachBreak {
         segment =>
           if (ReserveRange.isUnreserved(segment) && nextLevel.isUnreserved(segment))
@@ -287,7 +286,6 @@ private[core] object Level extends LazyLogging {
     val segmentsToCollapse = ListBuffer.empty[Segment]
     level
       .segmentsInLevel()
-      .iterator
       .foreachBreak {
         segment =>
           if (shouldCollapse(level, segment)) {

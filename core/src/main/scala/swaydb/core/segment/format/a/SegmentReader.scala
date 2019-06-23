@@ -20,20 +20,10 @@
 package swaydb.core.segment.format.a
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.data.{KeyValue, Persistent}
-import swaydb.core.io.reader.Reader
-import swaydb.core.segment.SegmentException.SegmentCorruptionException
-import swaydb.core.segment.format.a.entry.reader.EntryReader
+import swaydb.core.data.Persistent
 import swaydb.core.segment.format.a.index.{BinarySearchIndex, HashIndex, SortedIndex}
-import swaydb.core.util.{Bytes, CRC32}
 import swaydb.data.IO
-import swaydb.data.IO._
-import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice._
-import swaydb.data.slice.{Reader, Slice}
-import swaydb.data.util.ByteSizeOf
-
-import scala.annotation.tailrec
+import swaydb.data.slice.Reader
 
 /**
   * All public APIs are wrapped around a try catch block because eager fetches on IO's results (.get).
@@ -45,7 +35,7 @@ private[core] object SegmentReader extends LazyLogging {
 
   def get(matcher: KeyMatcher.Get,
           startFrom: Option[Persistent],
-          reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+          reader: Reader): IO[Option[Persistent]] =
     for {
       footer <- SegmentFooter.read(reader)
       hashIndex <- footer.hashIndexOffset.map(offset => HashIndex.read(offset, reader).map(Some(_))).getOrElse(IO.none)
@@ -59,44 +49,43 @@ private[core] object SegmentReader extends LazyLogging {
         sortedIndexOffset = footer.sortedIndexOffset,
         hasRange = footer.hasRange
       )
-    } yield {
-
-      ???
-    }
+    } yield got
 
   def lower(matcher: KeyMatcher.Lower,
             startFrom: Option[Persistent],
-            reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
-    SegmentFooter.read(reader) flatMap (lower(matcher, startFrom, reader, _))
+            reader: Reader): IO[Option[Persistent]] =
+    SegmentFooter
+      .read(reader)
+      .flatMap(footer => lower(matcher, startFrom, reader, footer.sortedIndexOffset))
 
   def higher(matcher: KeyMatcher.Higher,
              startFrom: Option[Persistent],
-             reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
-    SegmentFooter.read(reader) flatMap (higher(matcher, startFrom, reader, _))
+             reader: Reader): IO[Option[Persistent]] =
+    SegmentFooter
+      .read(reader)
+      .flatMap(footer => higher(matcher, startFrom, reader, footer.sortedIndexOffset))
 
   def lower(matcher: KeyMatcher.Lower,
             startFrom: Option[Persistent],
             reader: Reader,
-            footer: SegmentFooter)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
-  //    SortedIndex.find(
-  //      matcher = matcher,
-  //      startFrom = startFrom,
-  //      reader = reader,
-  //      footer = footer
-  //    )
-    ???
+            offset: SortedIndex.Offset): IO[Option[Persistent]] =
+    SortedIndex.find(
+      matcher = matcher,
+      startFrom = startFrom,
+      reader = reader,
+      offset = offset
+    )
 
   def higher(matcher: KeyMatcher.Higher,
              startFrom: Option[Persistent],
              reader: Reader,
-             footer: SegmentFooter)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
-  //    SortedIndex.find(
-  //      matcher = matcher,
-  //      startFrom = startFrom,
-  //      reader = reader,
-  //      footer = footer
-  //    )
-    ???
+             offset: SortedIndex.Offset): IO[Option[Persistent]] =
+    SortedIndex.find(
+      matcher = matcher,
+      startFrom = startFrom,
+      reader = reader,
+      offset = offset
+    )
 
   def get(matcher: KeyMatcher.Get,
           startFrom: Option[Persistent],
@@ -104,7 +93,7 @@ private[core] object SegmentReader extends LazyLogging {
           hashIndex: Option[HashIndex],
           binarySearchIndex: Option[BinarySearchIndex],
           sortedIndexOffset: SortedIndex.Offset,
-          hasRange: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+          hasRange: Boolean): IO[Option[Persistent]] =
     hashIndex map {
       hashIndex =>
         HashIndex.get(
@@ -141,7 +130,7 @@ private[core] object SegmentReader extends LazyLogging {
           startFrom: Option[Persistent],
           reader: Reader,
           binarySearchIndex: Option[BinarySearchIndex],
-          sortedIndexOffset: SortedIndex.Offset)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+          sortedIndexOffset: SortedIndex.Offset): IO[Option[Persistent]] =
     binarySearchIndex map {
       binarySearchIndex =>
         BinarySearchIndex.get(
@@ -154,19 +143,33 @@ private[core] object SegmentReader extends LazyLogging {
             IO.Success(some)
 
           case None =>
-            SortedIndex.find(
-              matcher = matcher,
-              startFrom = startFrom,
-              reader = reader,
-              offset = sortedIndexOffset
-            )
+            if (binarySearchIndex.isFullBinarySearchIndex)
+              IO.none
+            else
+              get(
+                matcher = matcher,
+                startFrom = startFrom,
+                reader = reader,
+                offset = sortedIndexOffset
+              )
         }
     } getOrElse {
-      SortedIndex.find(
+      get(
         matcher = matcher,
         startFrom = startFrom,
         reader = reader,
         offset = sortedIndexOffset
       )
     }
+
+  def get(matcher: KeyMatcher.Get,
+          startFrom: Option[Persistent],
+          reader: Reader,
+          offset: SortedIndex.Offset): IO[Option[Persistent]] =
+    SortedIndex.find(
+      matcher = matcher,
+      startFrom = startFrom,
+      reader = reader,
+      offset = offset
+    )
 }

@@ -207,7 +207,7 @@ object BinarySearchIndex {
   def get(matcher: KeyMatcher.Get,
           reader: Reader,
           index: BinarySearchIndex,
-          sortedIndexOffset: SortedIndex.Offset)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+          sortedIndexOffset: SortedIndex.Offset): IO[Option[Persistent]] =
     find(
       index = index,
       assertValue =

@@ -25,12 +25,13 @@ object CollectionUtil {
 
   val emptyStringSeq = Seq.empty[String]
 
-  implicit class IterableImplicit[T: ClassTag](it: Iterator[T]) {
+  implicit class IterableImplicit[T: ClassTag](items: Iterable[T]) {
 
     def foreachBreak(f: T => Boolean): Unit = {
+      val iterator = items.iterator
       var break: Boolean = false
-      while (it.hasNext && !break)
-        break = f(it.next())
+      while (iterator.hasNext && !break)
+        break = f(iterator.next())
     }
 
     /**
@@ -38,7 +39,7 @@ object CollectionUtil {
       */
     def foldLeftWhile[B](initial: B, condition: T => Boolean)(op: (B, T) => B): B = {
       var result = initial
-      it foreachBreak {
+      items foreachBreak {
         item =>
           val continue = condition(item)
           if (continue) result = op(result, item)

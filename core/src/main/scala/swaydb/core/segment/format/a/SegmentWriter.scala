@@ -23,7 +23,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.KeyValue
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.index.{BinarySearchIndex, BloomFilter, HashIndex}
-import swaydb.core.util.CRC32
+import swaydb.core.util.{Bytes, CRC32}
 import swaydb.data.IO
 import swaydb.data.IO._
 import swaydb.data.slice.Slice
@@ -91,11 +91,11 @@ private[core] object SegmentWriter extends LazyLogging {
       (flattenBytes, nearestDeadline)
   }
 
-  def writeIndexes(keyValue: KeyValue.WriteOnly,
-                   hashIndex: Option[HashIndex.State],
-                   binarySearchIndex: Option[BinarySearchIndex.State],
-                   bloomFilter: Option[BloomFilter.State],
-                   currentNearestDeadline: Option[Deadline]): IO[Option[Deadline]] = {
+  def writeIndexesAndGetDeadline(keyValue: KeyValue.WriteOnly,
+                                 hashIndex: Option[HashIndex.State],
+                                 binarySearchIndex: Option[BinarySearchIndex.State],
+                                 bloomFilter: Option[BloomFilter.State],
+                                 currentNearestDeadline: Option[Deadline]): IO[Option[Deadline]] = {
 
     def writeOne(rootGroup: Option[KeyValue.WriteOnly.Group],
                  keyValue: KeyValue.WriteOnly): IO[Unit] =
@@ -216,7 +216,7 @@ private[core] object SegmentWriter extends LazyLogging {
       valuesSlice = valuesSlice
     ) flatMap {
       _ =>
-        writeIndexes(
+        writeIndexesAndGetDeadline(
           keyValue = keyValue,
           hashIndex = hashIndex,
           bloomFilter = bloomFilter,
@@ -282,7 +282,7 @@ private[core] object SegmentWriter extends LazyLogging {
     else {
       val lastStats = keyValues.last.stats
 
-      val hashIndex = HashIndex.init(maxProbe = maxProbe, size = lastStats.segmentHashIndexSize)
+      val hashIndex = HashIndex.init(maxProbe = maxProbe, keyValues = keyValues)
       val binarySearchIndex = BinarySearchIndex.init(keyValues = keyValues)
       val bloomFilter = BloomFilter.init(keyValues = keyValues)
 

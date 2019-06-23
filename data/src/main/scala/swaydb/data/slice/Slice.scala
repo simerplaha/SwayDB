@@ -406,31 +406,38 @@ class Slice[+T: ClassTag](array: Array[T],
     * @param toOffset   end offset
     * @return Slice for the given offsets
     */
-  @throws[ArrayIndexOutOfBoundsException]
   override def slice(fromOffset: Int, toOffset: Int): Slice[T] =
     if (toOffset < 0) {
       Slice.empty[T]
     } else {
       //overflow check
-      val fromOffsetAdjusted = fromOffset + this.fromOffset
-      val toOffsetAdjusted = fromOffsetAdjusted + (toOffset - fromOffset)
-      if (fromOffsetAdjusted < this.fromOffset) throw new ArrayIndexOutOfBoundsException(fromOffset)
-      if (toOffsetAdjusted > this.toOffset) throw new ArrayIndexOutOfBoundsException(toOffset)
-      if (fromOffsetAdjusted > toOffsetAdjusted) throw new ArrayIndexOutOfBoundsException(fromOffset)
-      val actualWritePosition = this.fromOffset + _written //in-case the slice was manually moved.
-      val sliceWritePosition =
-        if (actualWritePosition <= fromOffsetAdjusted) //not written
-          0
-        else if (actualWritePosition > toOffsetAdjusted) //fully written
-          toOffsetAdjusted - fromOffsetAdjusted + 1
-        else //partially written
-          actualWritePosition - fromOffsetAdjusted
-      new Slice[T](
-        array = array,
-        fromOffset = fromOffsetAdjusted,
-        toOffset = toOffsetAdjusted,
-        _written = sliceWritePosition
-      )
+      var fromOffsetAdjusted = fromOffset + this.fromOffset
+      var toOffsetAdjusted = fromOffsetAdjusted + (toOffset - fromOffset)
+
+      if (fromOffsetAdjusted < this.fromOffset)
+        fromOffsetAdjusted = this.fromOffset
+
+      if (toOffsetAdjusted > this.toOffset)
+        toOffsetAdjusted = this.toOffset
+
+      if (fromOffsetAdjusted > toOffsetAdjusted) {
+        Slice.empty
+      } else {
+        val actualWritePosition = this.fromOffset + _written //in-case the slice was manually moved.
+        val sliceWritePosition =
+          if (actualWritePosition <= fromOffsetAdjusted) //not written
+            0
+          else if (actualWritePosition > toOffsetAdjusted) //fully written
+            toOffsetAdjusted - fromOffsetAdjusted + 1
+          else //partially written
+            actualWritePosition - fromOffsetAdjusted
+        new Slice[T](
+          array = array,
+          fromOffset = fromOffsetAdjusted,
+          toOffset = toOffsetAdjusted,
+          _written = sliceWritePosition
+        )
+      }
     }
 
   override def splitAt(index: Int): (Slice[T], Slice[T]) =
@@ -465,6 +472,7 @@ class Slice[+T: ClassTag](array: Array[T],
 
   //Note: using moveTo will set the writePosition incorrectly during runTime.
   //one moveTo is invoked manually, all the subsequent writes should move this pointer manually.
+  @throws[ArrayIndexOutOfBoundsException]
   private[swaydb] def moveWritePosition(writePosition: Int): Unit = {
     val adjustedPosition = fromOffset + writePosition
     //+1 because write position can be a step ahead for the next write but cannot over over toOffset.
@@ -474,28 +482,31 @@ class Slice[+T: ClassTag](array: Array[T],
   }
 
   override def drop(count: Int): Slice[T] =
-    if (count >= size)
+    if (count >= written)
       Slice.empty[T]
     else
-      slice(count, size - 1)
+      slice(count, written - 1)
 
   def dropHead(): Slice[T] =
     drop(1)
 
   override def dropRight(count: Int): Slice[T] =
-    if (count >= size)
+    if (count >= written)
       Slice.empty[T]
     else
-      slice(0, size - count - 1)
+      slice(0, written - count - 1)
 
   override def take(count: Int): Slice[T] =
-    slice(0, (size min count) - 1)
+    slice(0, (written min count) - 1)
 
   def take(fromIndex: Int, count: Int): Slice[T] =
-    slice(fromIndex, (size min (fromIndex + count)) - 1)
+    if (count == 0)
+      Slice.empty
+    else
+      slice(fromIndex, fromIndex + count - 1)
 
   override def takeRight(count: Int): Slice[T] =
-    slice(size - count, size - 1)
+    slice(written - count, written - 1)
 
   override def head: T =
     headOption.get

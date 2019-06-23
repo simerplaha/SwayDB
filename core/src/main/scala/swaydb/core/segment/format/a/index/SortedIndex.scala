@@ -27,7 +27,6 @@ import swaydb.core.segment.format.a.{KeyMatcher, MatchResult, OffsetBase}
 import swaydb.core.util.Bytes
 import swaydb.data.IO
 import swaydb.data.IO._
-import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Reader, Slice}
 
 import scala.annotation.tailrec
@@ -40,7 +39,7 @@ private[core] object SortedIndex {
                        startOffset: Int,
                        endOffset: Int,
                        indexReader: Reader,
-                       valueReader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Persistent] = {
+                       valueReader: Reader): IO[Persistent] = {
     indexReader moveTo previous.nextIndexOffset
     readNextKeyValue(
       indexEntrySizeMayBe = Some(previous.nextIndexSize),
@@ -57,7 +56,7 @@ private[core] object SortedIndex {
                                startIndexOffset: Int,
                                endIndexOffset: Int,
                                indexReader: Reader,
-                               valueReader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Persistent] = {
+                               valueReader: Reader): IO[Persistent] = {
     indexReader moveTo fromPosition
     readNextKeyValue(
       indexEntrySizeMayBe = None,
@@ -77,7 +76,7 @@ private[core] object SortedIndex {
                                endIndexOffset: Int,
                                indexReader: Reader,
                                valueReader: Reader,
-                               previous: Option[Persistent])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Persistent] =
+                               previous: Option[Persistent]): IO[Persistent] =
     try {
       val positionBeforeRead = indexReader.getPosition
       //size of the index entry to read
@@ -144,7 +143,7 @@ private[core] object SortedIndex {
   def readAll(offset: SortedIndex.Offset,
               keyValueCount: Int,
               reader: Reader,
-              addTo: Option[Slice[KeyValue.ReadOnly]] = None)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Slice[KeyValue.ReadOnly]] =
+              addTo: Option[Slice[KeyValue.ReadOnly]] = None): IO[Slice[KeyValue.ReadOnly]] =
     try {
       //since this is a index slice of the full Segment, adjustments for nextIndexOffset is required.
       val adjustNextIndexOffsetBy = offset.start
@@ -225,7 +224,7 @@ private[core] object SortedIndex {
   def find(matcher: KeyMatcher,
            startFrom: Option[Persistent],
            reader: Reader,
-           offset: SortedIndex.Offset)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+           offset: SortedIndex.Offset): IO[Option[Persistent]] =
     startFrom match {
       case Some(startFrom) =>
         //if startFrom is the last index entry, return None.
@@ -272,7 +271,7 @@ private[core] object SortedIndex {
   def findAndMatchOrNext(matcher: KeyMatcher,
                          fromOffset: Int,
                          reader: Reader,
-                         offset: SortedIndex.Offset)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+                         offset: SortedIndex.Offset): IO[Option[Persistent]] =
     readNextKeyValue(
       fromPosition = fromOffset,
       startIndexOffset = offset.start,
@@ -293,7 +292,7 @@ private[core] object SortedIndex {
   def findAndMatch(matcher: KeyMatcher,
                    fromOffset: Int,
                    reader: Reader,
-                   offset: SortedIndex.Offset)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[MatchResult] =
+                   offset: SortedIndex.Offset): IO[MatchResult] =
     readNextKeyValue(
       fromPosition = fromOffset,
       startIndexOffset = offset.start,
@@ -314,7 +313,7 @@ private[core] object SortedIndex {
                   next: Option[Persistent],
                   matcher: KeyMatcher,
                   reader: Reader,
-                  offset: SortedIndex.Offset)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+                  offset: SortedIndex.Offset): IO[Option[Persistent]] =
     matcher(
       previous = previous,
       next = next,

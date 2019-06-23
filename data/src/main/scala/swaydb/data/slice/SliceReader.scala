@@ -39,7 +39,7 @@ private[swaydb] case class SliceReader(slice: Slice[Byte]) extends Reader {
       if (size == 0)
         Slice.emptyBytes
       else {
-        val bytes = slice.slice(position, position + size - 1)
+        val bytes = slice.take(position, size)
         position += size
         bytes
       }

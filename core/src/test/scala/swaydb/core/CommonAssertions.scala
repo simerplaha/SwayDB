@@ -42,7 +42,7 @@ import swaydb.core.map.serializer.{MapEntryWriter, RangeValueSerializer, ValueSe
 import swaydb.core.merge._
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.Segment
-import swaydb.core.segment.format.a.index.SortedIndex
+import swaydb.core.segment.format.a.index.{BloomFilter, SortedIndex}
 import swaydb.core.segment.format.a.{KeyMatcher, SegmentFooter, SegmentReader}
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util.CollectionUtil._
@@ -781,6 +781,20 @@ object CommonAssertions {
     }
 
   def assertBloom(keyValues: Slice[KeyValue.WriteOnly],
+                  bloom: BloomFilter.State) = {
+    val unzipedKeyValues = unzipGroups(keyValues)
+
+    val bloomFilter = BloomFilter.read(BloomFilter.Offset(0, bloom.startOffset), Reader(bloom.bytes)).get
+
+    unzipedKeyValues.par.count {
+      keyValue =>
+        BloomFilter.mightContain(keyValue.key, Reader(bloom.bytes), bloomFilter).get
+    } should be >= (unzipedKeyValues.size * 0.90).toInt
+
+    assertBloomNotContains(bloom)
+  }
+
+  def assertBloom(keyValues: Slice[KeyValue.WriteOnly],
                   segment: Segment) = {
     val unzipedKeyValues = unzipGroups(keyValues)
 
@@ -795,6 +809,12 @@ object CommonAssertions {
   def assertBloomNotContains(segment: Segment) =
     runThis(1000.times) {
       IO(segment.mightContain(randomBytesSlice(randomIntMax(1000) min 100)) shouldBe false)
+    }
+
+  def assertBloomNotContains(bloom: BloomFilter.State) =
+    runThis(1000.times) {
+      val bloomFilter = BloomFilter.read(BloomFilter.Offset(0, bloom.startOffset), Reader(bloom.bytes)).get
+      IO(BloomFilter.mightContain(randomBytesSlice(randomIntMax(1000) min 100), Reader(bloom.bytes), bloomFilter).get shouldBe false)
     }
 
   def assertReads(keyValues: Slice[KeyValue],
@@ -1369,7 +1389,7 @@ object CommonAssertions {
 
   def printGroupHierarchy(keyValues: Slice[KeyValue.ReadOnly], spaces: Int)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                             keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter): Unit =
-    keyValues.iterator foreachBreak {
+    keyValues foreachBreak {
       case group: Persistent.Group =>
         println(s"$spaces " + " " * spaces + group.getClass.getSimpleName)
         printGroupHierarchy(group.segmentCache.getAll().assertGet, spaces + 1)

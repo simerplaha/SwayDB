@@ -81,8 +81,8 @@ object IO {
   val none = IO.Success(None)
   val `false` = IO.Success(false)
   val `true` = IO.Success(true)
-  val someTrue = IO.Success(Some(true))
-  val someFalse = IO.Success(Some(false))
+  val someTrue: IO[Some[Boolean]] = IO.Success(Some(true))
+  val someFalse: IO[Some[Boolean]] = IO.Success(Some(false))
   val zero = IO.Success(0)
   val emptyReader = IO.Success(SliceReader(Slice.emptyBytes))
   val emptyBytes = IO.Success(Slice.emptyBytes)
@@ -133,6 +133,25 @@ object IO {
             case IO.Success(Some(value)) =>
               //Not a good idea to break out with return. Needs improvement.
               return IO.Success(Some(value, item))
+
+            case IO.Success(None) =>
+            //continue reading
+
+            case IO.Failure(exception) =>
+              //Not a good idea to break out with return. Needs improvement.
+              return IO.Failure(exception)
+          }
+      }
+      IO.none
+    }
+
+    def untilSomeResult[R](f: T => IO[Option[R]]): IO[Option[R]] = {
+      iterable.iterator foreach {
+        item =>
+          f(item) match {
+            case IO.Success(Some(value)) =>
+              //Not a good idea to break out with return. Needs improvement.
+              return IO.Success(Some(value))
 
             case IO.Success(None) =>
             //continue reading
@@ -465,7 +484,6 @@ object IO {
     }
     private[swaydb] override def asAsync: IO.Async[T] = this
     private[swaydb] override def asIO: IO[T] = this
-
   }
 
   private[swaydb] object Async {

@@ -24,14 +24,13 @@ import swaydb.core.segment.SegmentException.SegmentCorruptionException
 import swaydb.core.segment.format.a.index.{BinarySearchIndex, BloomFilter, HashIndex, SortedIndex}
 import swaydb.core.util.CRC32
 import swaydb.data.IO
-import swaydb.data.order.KeyOrder
-import swaydb.data.slice.{Reader, Slice}
+import swaydb.data.slice.Reader
 import swaydb.data.util.ByteSizeOf
 
 object SegmentFooter {
 
   //all these functions are wrapper with a try catch block with get only to make it easier to read.
-  def read(reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[SegmentFooter] =
+  def read(reader: Reader): IO[SegmentFooter] =
     try {
       val fileSize = reader.size.get.toInt
       val footerStartOffset = reader.moveTo(fileSize - ByteSizeOf.int).readInt().get

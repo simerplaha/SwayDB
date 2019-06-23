@@ -348,7 +348,7 @@ private[core] class BitwiseSegment(id: String,
                   matcher = KeyMatcher.Lower(key),
                   startFrom = lowerKeyValue,
                   reader = reader,
-                  footer = footer
+                  offset = footer.sortedIndexOffset
                 ) flatMap {
                   case Some(response: Persistent.SegmentResponse) =>
                     addToCache(response)
@@ -431,7 +431,7 @@ private[core] class BitwiseSegment(id: String,
                     matcher = KeyMatcher.Higher(key),
                     startFrom = startFrom,
                     reader = reader,
-                    footer = footer
+                    offset = footer.sortedIndexOffset
                   ) flatMap {
                     case Some(response: Persistent.SegmentResponse) =>
                       addToCache(response)

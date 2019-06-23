@@ -33,7 +33,7 @@ class CollectionUtilSpec extends WordSpec with Matchers {
       val slice = Slice(1, 2, 3, 4)
       var iterations = 0
 
-      slice.iterator foreachBreak {
+      slice foreachBreak {
         item => {
           iterations += 1
           if (item == 3)
@@ -50,7 +50,7 @@ class CollectionUtilSpec extends WordSpec with Matchers {
       val slice = Slice(1, 2, 3, 4)
       var iterations = 0
 
-      slice.iterator foreachBreak {
+      slice foreachBreak {
         _ =>
           iterations += 1
           false
@@ -63,7 +63,7 @@ class CollectionUtilSpec extends WordSpec with Matchers {
       val slice = Slice.empty[Int]
       var iterations = 0
 
-      slice.iterator foreachBreak {
+      slice foreachBreak {
         _ =>
           iterations += 1
           false
@@ -76,7 +76,7 @@ class CollectionUtilSpec extends WordSpec with Matchers {
   "foldLeftWhile" should {
     "fold while the condition is true" in {
 
-      (10 to 20).iterator.foldLeftWhile(List.empty[Int], _ < 15) {
+      (10 to 20).foldLeftWhile(List.empty[Int], _ < 15) {
         case (fold, item) =>
           fold :+ item
       } shouldBe List(10, 11, 12, 13, 14)
@@ -84,21 +84,21 @@ class CollectionUtilSpec extends WordSpec with Matchers {
 
     "fold until the end of iteration" in {
 
-      (10 to 20).iterator.foldLeftWhile(List.empty[Int], _ => true) {
+      (10 to 20).foldLeftWhile(List.empty[Int], _ => true) {
         case (fold, item) =>
           fold :+ item
       } shouldBe (10 to 20).toList
     }
 
     "fold on empty" in {
-      List.empty[Int].iterator.foldLeftWhile(List.empty[Int], _ < 15) {
+      List.empty[Int].foldLeftWhile(List.empty[Int], _ < 15) {
         case (fold, item) =>
           fold :+ item
       } shouldBe List.empty
     }
 
     "return empty fold on fail condition" in {
-      (10 to 20).iterator.foldLeftWhile(List.empty[Int], _ => false) {
+      (10 to 20).foldLeftWhile(List.empty[Int], _ => false) {
         case (fold, item) =>
           fold :+ item
       } shouldBe List.empty

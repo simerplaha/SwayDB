@@ -19,22 +19,26 @@
 
 package swaydb.core.segment.format.a.index
 
-import swaydb.core.data.{Transient, Value}
+import swaydb.core.CommonAssertions.assertBloom
+import swaydb.core.RunThis._
+import swaydb.core.TestData._
 import swaydb.core.data.Value.{FromValue, RangeValue}
+import swaydb.core.data.{Transient, Value}
 import swaydb.core.io.reader.Reader
+import swaydb.core.segment.format.a.SegmentWriter
 import swaydb.core.{TestBase, TestData, TestTimer}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.core.RunThis._
 
 import scala.util.Random
-import TestData._
 
 class BloomFilterSpec extends TestBase {
 
   implicit val keyOrder = KeyOrder.default
+
+  val keyValueCount = 1000
 
   "toBytes & toSlice" should {
     "write bloom filter to bytes" in {
@@ -194,5 +198,30 @@ class BloomFilterSpec extends TestBase {
 
     positives.size shouldBe 0
     falsePositives.size should be < 200
+  }
+
+  "write indexes and get the nearest deadline" in {
+    runThis(100.times) {
+      val keyValues = randomizedKeyValues(keyValueCount)
+      val group = randomGroup(keyValues)
+      val bloom: Option[BloomFilter.State] = BloomFilter.init(keyValues = keyValues)
+      if (BloomFilter.shouldCreateBloomFilter(keyValues)) {
+        bloom shouldBe defined
+
+        val deadline =
+          SegmentWriter.writeIndexesAndGetDeadline(
+            keyValue = group,
+            hashIndex = None,
+            bloomFilter = bloom,
+            binarySearchIndex = None,
+            currentNearestDeadline = None
+          ).get
+
+        assertBloom(keyValues, bloom.get)
+        deadline shouldBe nearestDeadline(keyValues)
+      } else {
+        bloom shouldBe empty
+      }
+    }
   }
 }

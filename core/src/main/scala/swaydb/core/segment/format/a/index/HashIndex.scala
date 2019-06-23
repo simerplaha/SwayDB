@@ -20,11 +20,10 @@
 package swaydb.core.segment.format.a.index
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.data.Persistent
+import swaydb.core.data.{KeyValue, Persistent}
 import swaydb.core.segment.format.a.{KeyMatcher, OffsetBase}
 import swaydb.core.util.Bytes
 import swaydb.data.IO
-import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
 
@@ -41,31 +40,53 @@ private[core] object HashIndex extends LazyLogging {
 
   case class Offset(start: Int, size: Int) extends OffsetBase
 
-  val headerSize =
-    ByteSizeOf.byte + // format ID
-      ByteSizeOf.int + //max probe
-      ByteSizeOf.int + //hit rate
-      ByteSizeOf.int + //miss rate
-      ByteSizeOf.boolean //has range
-
   final case class State(var hit: Int,
                          var miss: Int,
+                         writeAbleLargestValueSize: Int,
+                         headerSize: Int,
                          maxProbe: Int,
                          bytes: Slice[Byte])
 
   def init(maxProbe: Int,
-           size: Int): Option[State] =
-    if (size <= headerSize)
+           keyCount: Int,
+           largestValue: Int,
+           size: Int): Option[HashIndex.State] =
+    if (size <= 4) //formatId, maxProbe, hit, miss
       None
     else
-      Some(
+      Some {
+        val writeAbleLargestValueSize = Bytes.sizeOf(largestValue + 1)
         HashIndex.State(
           hit = 0,
           miss = 0,
           maxProbe = maxProbe,
+          headerSize = headerSize(keyCounts = keyCount, writeAbleLargestValueSize = writeAbleLargestValueSize),
+          writeAbleLargestValueSize = writeAbleLargestValueSize,
           bytes = Slice.create[Byte](size)
         )
-      )
+      }
+
+  def init(maxProbe: Int,
+           keyValues: Iterable[KeyValue.WriteOnly]): Option[State] =
+    init(
+      maxProbe = maxProbe,
+      keyCount = keyValues.last.stats.segmentUniqueKeysCount,
+      largestValue = keyValues.last.stats.thisKeyValuesAccessIndexOffset,
+      size = keyValues.last.stats.segmentHashIndexSize
+    )
+
+  def headerSize(keyCounts: Int,
+                 writeAbleLargestValueSize: Int): Int = {
+    val headerSize =
+      ByteSizeOf.byte + //formatId
+        ByteSizeOf.int + //max probe
+        (Bytes.sizeOf(keyCounts) * 2) + //hit & miss rate
+        Bytes.sizeOf(writeAbleLargestValueSize) + //largest value size
+        ByteSizeOf.int //allocated bytes
+
+    Bytes.sizeOf(headerSize) +
+      headerSize
+  }
 
   /**
     * Number of bytes required to build a high probability index.
@@ -73,36 +94,43 @@ private[core] object HashIndex extends LazyLogging {
   def optimalBytesRequired(keyCounts: Int,
                            largestValue: Int,
                            compensate: Int => Int): Int = {
-    //number of bytes required for hash indexes. +1 to skip 0 empty markers.
-    val bytesWithOutCompensation = keyCounts * Bytes.sizeOf(largestValue + 1)
-    val bytesRequired =
-      headerSize +
-        (ByteSizeOf.int + 1) + //give it another 5 bytes incase the hash index is the last index. Since varints are written a max of 5 bytes can be taken for an in with large index.
-        bytesWithOutCompensation +
-        Try(compensate(bytesWithOutCompensation)).getOrElse(0) //optionally add compensation space or remove.
+    val writeAbleLargestValueSize = Bytes.sizeOf(largestValue + 1) //largest value is +1 because 0s are reserved.
 
-    //in case compensation returns negative, reserve enough bytes for the header.
-    bytesRequired max headerSize
+    val bytesWithOutCompensation =
+      headerSize(
+        keyCounts = keyCounts,
+        writeAbleLargestValueSize = writeAbleLargestValueSize
+      ) + (keyCounts * (writeAbleLargestValueSize + 1)) //+1 to skip left & right 0 start-end markers.
+
+    bytesWithOutCompensation +
+      Try(compensate(bytesWithOutCompensation)).getOrElse(0) //optionally add more space or remove.
   }
 
-  def writeHeader(state: State): IO[Slice[Byte]] =
+  def writeHeader(state: State): IO[Unit] =
     IO {
       //it's important to move to 0 to write to head of the file.
       state.bytes moveWritePosition 0
       state.bytes add formatID
-      state.bytes addIntUnsigned state.maxProbe
-      state.bytes addInt state.hit
-      state.bytes addInt state.miss
-      state.bytes addBoolean false //range indexing is not implemented.
+      state.bytes addInt state.maxProbe
+      state.bytes addIntUnsigned state.hit
+      state.bytes addIntUnsigned state.miss
+      state.bytes addIntUnsigned state.writeAbleLargestValueSize
+      state.bytes addIntUnsigned state.headerSize
+      state.bytes addInt state.bytes.size
+      if (state.bytes.currentWritePosition > state.headerSize)
+        throw new Exception(s"Calculated header size was invalid. Used: ${state.bytes.currentWritePosition - 1}. Expected: ${state.headerSize} ")
     }
 
   def read(offset: Offset, reader: Reader): IO[HashIndex] = {
     val movedReader = reader.moveTo(offset.start)
     for {
       formatID <- movedReader.get()
-      maxProbe <- movedReader.readIntUnsigned()
-      hit <- movedReader.readInt()
-      miss <- movedReader.readInt()
+      maxProbe <- movedReader.readInt()
+      hit <- movedReader.readIntUnsigned()
+      miss <- movedReader.readIntUnsigned()
+      largestValueSize <- movedReader.readIntUnsigned()
+      headerSize <- movedReader.readIntUnsigned()
+      allocatedBytes <- movedReader.readInt()
       index <-
       if (formatID != HashIndex.formatID)
         IO.Failure(IO.Error.Fatal(new Exception(s"Invalid formatID: $formatID. Expected: ${HashIndex.formatID}")))
@@ -113,17 +141,22 @@ private[core] object HashIndex extends LazyLogging {
             formatId = formatID,
             maxProbe = maxProbe,
             hit = hit,
-            miss = miss
+            miss = miss,
+            writeAbleLargestValueSize = largestValueSize,
+            headerSize = headerSize,
+            allocatedBytes = allocatedBytes
           )
         )
     } yield index
   }
 
-  def adjustHash(hash: Int, totalBlockSpace: Int) =
-  //add headerSize of offset the output index skipping header bytes.
-  //similar to optimalBytesRequired adding 5 bytes to add space for last indexes, here we remove those bytes to
-  //generate indexes accounting for the last index being the largest integer with 5 bytes.
-    ((hash & Int.MaxValue) % (totalBlockSpace - (ByteSizeOf.int + 1) - headerSize)) + headerSize
+  def adjustHash(hash: Int, totalBlockSpace: Int, headerSize: Int, writeAbleLargestValueSize: Int) = {
+    //adjust the hashIndex such that it does not overwrite the header bytes.
+    //add +1 to offset left and right 0 bytes.
+    val indexBlock = totalBlockSpace - writeAbleLargestValueSize - headerSize
+    //+1 to headerSize for skipping the first nonHeader 0 byte which could be an index marker.
+    ((hash & Int.MaxValue) % indexBlock) + headerSize
+  }
 
   /**
     * Mutates the slice and adds writes the indexOffset to it's hash index.
@@ -135,6 +168,8 @@ private[core] object HashIndex extends LazyLogging {
     //add 1 to each offset to avoid 0 offsets.
     //0 bytes are reserved as empty bucket markers.
     val valuePlusOne = value + 1
+    //+1 to reserve left 0 byte,
+    val bytesRequired = Bytes.sizeOf(valuePlusOne) + 1
 
     val hash = key.##
     val hash1 = hash >>> 32
@@ -147,16 +182,23 @@ private[core] object HashIndex extends LazyLogging {
         state.miss += 1
         false
       } else {
-        val index = adjustHash(hash1 + probe * hash2, state.bytes.size)
-        val indexBytesRequired = Bytes.sizeOf(valuePlusOne)
-        if (state.bytes.take(index, indexBytesRequired).forall(_ == 0)) {
-          state.bytes moveWritePosition index
+        val hashIndex =
+          adjustHash(
+            hash = hash1 + probe * hash2,
+            totalBlockSpace = state.bytes.size,
+            headerSize = state.headerSize,
+            writeAbleLargestValueSize = state.writeAbleLargestValueSize
+          )
+
+        val existing = state.bytes.take(hashIndex, bytesRequired + 1) //read one more to not overwrite next zero.
+        if (existing.forall(_ == 0)) {
+          state.bytes moveWritePosition (hashIndex + 1)
           state.bytes addIntUnsigned valuePlusOne
           state.hit += 1
+          //println(s"Key: ${key.readInt()}: write hashIndex: $hashIndex probe: $probe, value: $value, valueBytes: ${Slice.writeIntUnsigned(valuePlusOne)} = success")
           true
-          //println(s"Key: ${key.readInt()}: write hashIndex: $index probe: $probe, sortedIndexOffset: $sortedIndexOffset, writeBytes: ${Slice.writeIntUnsigned(sortedIndexOffset)} = success")
         } else {
-          //println(s"Key: ${key.readInt()}: write hashIndex: $index probe: $probe, sortedIndexOffset: $sortedIndexOffset, writeBytes: ${Slice.writeIntUnsigned(sortedIndexOffset)} = failure")
+          //println(s"Key: ${key.readInt()}: write hashIndex: $hashIndex probe: $probe, value: $value, valueBytes: ${Slice.writeIntUnsigned(valuePlusOne)} = failure")
           doWrite(key = key, probe = probe + 1)
         }
       }
@@ -172,11 +214,11 @@ private[core] object HashIndex extends LazyLogging {
     *
     * @param assertValue performs find or forward fetch from the currently being read sorted index's hash block.
     */
-  def find[V](key: Slice[Byte],
-              offset: Offset,
-              hashIndex: HashIndex,
-              reader: Reader,
-              assertValue: Int => IO[Option[V]]): IO[Option[V]] = {
+  private[index] def find[V](key: Slice[Byte],
+                             offset: HashIndex.Offset,
+                             hashIndex: HashIndex,
+                             reader: Reader,
+                             assertValue: Int => IO[Option[V]]): IO[Option[V]] = {
 
     val hash = key.##
     val hash1 = hash >>> 32
@@ -187,25 +229,46 @@ private[core] object HashIndex extends LazyLogging {
       if (probe > hashIndex.maxProbe) {
         IO.none
       } else {
-        val hashIndex = adjustHash(hash1 + probe * hash2, offset.size)
-        if (checkedHashIndexes contains hashIndex) //do not check the same index again.
+        val index =
+          adjustHash(
+            hash = hash1 + probe * hash2,
+            totalBlockSpace = hashIndex.allocatedBytes,
+            headerSize = hashIndex.headerSize,
+            writeAbleLargestValueSize = hashIndex.writeAbleLargestValueSize
+          )
+        if (checkedHashIndexes contains index) //do not check the same index again.
           doFind(probe + 1, checkedHashIndexes)
         else
-          reader.moveTo(offset.start + hashIndex).readIntUnsigned() match {
-            case IO.Success(possibleValue) =>
-              if (possibleValue == 0) {
+          reader
+            .moveTo(offset.start + index)
+            .read(hashIndex.bytesToReadPerIndex) match {
+            case IO.Success(possibleValueBytes) =>
+              if (possibleValueBytes.head != 0) {
+                //println(s"Key: ${key.readInt()}: read hashIndex: $index probe: $probe = failure - invalid start offset.")
                 doFind(probe + 1, checkedHashIndexes)
               } else {
-                //submit the indexOffset removing the add 1 offset to avoid overlapping bytes.
-                //println(s"Key: ${key.readInt()}: read hashIndex: $hashIndex probe: $probe, sortedIndex: ${possibleSortedIndexOffset - 1} = reading now!")
-                assertValue(possibleValue - 1) match {
-                  case success @ IO.Success(Some(_)) =>
-                    //println(s"Key: ${key.readInt()}: read hashIndex: $hashIndex probe: $probe, sortedIndex: ${possibleSortedIndexOffset - 1} = success")
-                    success
+                possibleValueBytes
+                  .dropHead()
+                  .readIntUnsigned() match {
+                  case IO.Success(possibleValue) =>
+                    //submit the indexOffset removing the add 1 offset to avoid overlapping bytes.
+                    //println(s"Key: ${key.readInt()}: read hashIndex: $index probe: $probe, sortedIndex: ${possibleValue - 1} = reading now!")
 
-                  case IO.Success(None) =>
-                    //println(s"Key: ${key.readInt()}: read hashIndex: $hashIndex probe: $probe: sortedIndex: ${possibleSortedIndexOffset - 1} = not found")
-                    doFind(probe + 1, checkedHashIndexes += hashIndex)
+                    if (possibleValue == 0)
+                      doFind(probe + 1, checkedHashIndexes)
+                    else
+                      assertValue(possibleValue - 1) match {
+                        case success @ IO.Success(Some(_)) =>
+                          //println(s"Key: ${key.readInt()}: read hashIndex: $index probe: $probe, sortedIndex: ${possibleValue - 1} = success")
+                          success
+
+                        case IO.Success(None) =>
+                          //println(s"Key: ${key.readInt()}: read hashIndex: $index probe: $probe: sortedIndex: ${possibleValue - 1} = not found")
+                          doFind(probe + 1, checkedHashIndexes += index)
+
+                        case IO.Failure(error) =>
+                          IO.Failure(error)
+                      }
 
                   case IO.Failure(error) =>
                     IO.Failure(error)
@@ -223,7 +286,7 @@ private[core] object HashIndex extends LazyLogging {
   private[a] def get(matcher: KeyMatcher.GetNextPrefixCompressed,
                      reader: Reader,
                      hashIndex: HashIndex,
-                     sortedIndexOffset: SortedIndex.Offset)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
+                     sortedIndexOffset: SortedIndex.Offset): IO[Option[Persistent]] =
     find(
       key = matcher.key,
       offset = hashIndex.offset,
@@ -236,17 +299,7 @@ private[core] object HashIndex extends LazyLogging {
             fromOffset = sortedIndexOffset.start + sortedIndexOffsetValue,
             reader = reader,
             offset = sortedIndexOffset
-          ) recoverWith {
-            case _ =>
-              //currently there is no way to detect starting point for a key-value entry in the sorted index.
-              //Read requests can be submitted to random parts of the sortedIndex depending on the index returned by the hash.
-              //Hash index also itself also does not store markers for a valid start sortedIndex offset
-              //that's why key-values can be read at random parts of the sorted index which can return failures.
-              //too many failures are not expected because probe should disallow that. And if the Segment is actually corrupted,
-              //the normal forward read of the index should catch that.
-              //HashIndex is suppose to make random reads faster, if the hashIndex is too small then there is no use creating one.
-              IO.none
-          }
+          )
     )
 }
 
@@ -254,4 +307,9 @@ case class HashIndex(offset: HashIndex.Offset,
                      formatId: Int,
                      maxProbe: Int,
                      hit: Int,
-                     miss: Int)
+                     miss: Int,
+                     writeAbleLargestValueSize: Int,
+                     headerSize: Int,
+                     allocatedBytes: Int) {
+  val bytesToReadPerIndex = writeAbleLargestValueSize + 1 //+1 to read header 0 byte.
+}
