@@ -61,7 +61,7 @@ class SegmentKeyValueLimiterSpec extends TestBase with Benchmark {
           enableBinarySearchIndex = TestData.enableBinarySearchIndex,
           buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-          minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+          minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
           previous = None,
           maxProbe = TestData.maxProbe
@@ -133,7 +133,7 @@ class SegmentKeyValueLimiterSpec extends TestBase with Benchmark {
           enableBinarySearchIndex = TestData.enableBinarySearchIndex,
           buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-          minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+          minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
           previous = None,
           maxProbe = TestData.maxProbe

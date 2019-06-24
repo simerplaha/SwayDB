@@ -55,7 +55,7 @@ class GroupSpec extends TestBase {
           enableBinarySearchIndex = TestData.enableBinarySearchIndex,
           buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-          minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+          minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
           previous = None,
           maxProbe = TestData.maxProbe
@@ -76,7 +76,7 @@ class GroupSpec extends TestBase {
               enableBinarySearchIndex = TestData.enableBinarySearchIndex,
               buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
               resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-              minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+              minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
               hashIndexCompensation = TestData.hashIndexCompensation,
               previous = None,
               maxProbe = TestData.maxProbe
@@ -101,7 +101,7 @@ class GroupSpec extends TestBase {
                 enableBinarySearchIndex = TestData.enableBinarySearchIndex,
                 buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
                 resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-                minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+                minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
                 hashIndexCompensation = TestData.hashIndexCompensation,
                 previous = None,
                 maxProbe = TestData.maxProbe
@@ -125,7 +125,7 @@ class GroupSpec extends TestBase {
           enableBinarySearchIndex = TestData.enableBinarySearchIndex,
           buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-          minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+          minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
           previous = None,
           maxProbe = TestData.maxProbe
@@ -175,7 +175,7 @@ class GroupSpec extends TestBase {
           enableBinarySearchIndex = TestData.enableBinarySearchIndex,
           buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-          minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+          minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
           previous = None,
           maxProbe = TestData.maxProbe

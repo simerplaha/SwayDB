@@ -404,6 +404,10 @@ object IO {
       * Pre-cautions are implemented in place to even recover from these failures using tools like AppendixRepairer.
       * This Error is not expected to occur on healthy databases.
       */
+    object Fatal {
+      def apply(message: String): Fatal =
+        new Fatal(new Exception(message))
+    }
     case class Fatal(exception: Throwable) extends Error
   }
 

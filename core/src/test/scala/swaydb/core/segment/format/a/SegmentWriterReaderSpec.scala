@@ -99,7 +99,7 @@ class SegmentWriterReaderSpec extends TestBase {
             enableBinarySearchIndex = TestData.enableBinarySearchIndex,
             buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+            minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
             previous = None,
             maxProbe = TestData.maxProbe
@@ -131,7 +131,7 @@ class SegmentWriterReaderSpec extends TestBase {
             enableBinarySearchIndex = TestData.enableBinarySearchIndex,
             buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+            minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
             previous = None,
             maxProbe = TestData.maxProbe
@@ -148,7 +148,7 @@ class SegmentWriterReaderSpec extends TestBase {
             enableBinarySearchIndex = TestData.enableBinarySearchIndex,
             buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+            minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
             previous = Some(group1),
             maxProbe = TestData.maxProbe
@@ -183,7 +183,7 @@ class SegmentWriterReaderSpec extends TestBase {
             enableBinarySearchIndex = TestData.enableBinarySearchIndex,
             buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+            minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
             previous = None,
             maxProbe = TestData.maxProbe
@@ -199,7 +199,7 @@ class SegmentWriterReaderSpec extends TestBase {
             enableBinarySearchIndex = TestData.enableBinarySearchIndex,
             buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+            minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
             previous = Some(group1),
             maxProbe = TestData.maxProbe
@@ -215,7 +215,7 @@ class SegmentWriterReaderSpec extends TestBase {
             enableBinarySearchIndex = TestData.enableBinarySearchIndex,
             buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+            minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
             previous = Some(group2),
             maxProbe = TestData.maxProbe
@@ -232,7 +232,7 @@ class SegmentWriterReaderSpec extends TestBase {
             enableBinarySearchIndex = TestData.enableBinarySearchIndex,
             buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+            minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
             previous = None,
             maxProbe = TestData.maxProbe
@@ -453,7 +453,7 @@ class SegmentWriterReaderSpec extends TestBase {
                     enableBinarySearchIndex = TestData.enableBinarySearchIndex,
                     buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
                     resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-                    minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+                    minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
                     hashIndexCompensation = TestData.hashIndexCompensation,
                     previous = None,
                     maxProbe = TestData.maxProbe
@@ -508,7 +508,7 @@ class SegmentWriterReaderSpec extends TestBase {
               enableBinarySearchIndex = TestData.enableBinarySearchIndex,
               buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
               resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-              minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+              minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
               hashIndexCompensation = TestData.hashIndexCompensation,
               previous = None,
               maxProbe = TestData.maxProbe
@@ -592,7 +592,7 @@ class SegmentWriterReaderSpec extends TestBase {
               falsePositiveRate = TestData.falsePositiveRate,
               enableBinarySearchIndex = TestData.enableBinarySearchIndex,
               buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
-              resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery, minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+              resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery, minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
               hashIndexCompensation = TestData.hashIndexCompensation,
               previous = None,
               maxProbe = TestData.maxProbe
@@ -644,7 +644,7 @@ class SegmentWriterReaderSpec extends TestBase {
               falsePositiveRate = TestData.falsePositiveRate,
               enableBinarySearchIndex = TestData.enableBinarySearchIndex,
               buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
-              resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery, minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+              resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery, minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
               hashIndexCompensation = TestData.hashIndexCompensation,
               previous = None,
               maxProbe = TestData.maxProbe
@@ -673,7 +673,7 @@ class SegmentWriterReaderSpec extends TestBase {
             enableBinarySearchIndex = TestData.enableBinarySearchIndex,
             buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+            minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
             previous = None,
             maxProbe = TestData.maxProbe

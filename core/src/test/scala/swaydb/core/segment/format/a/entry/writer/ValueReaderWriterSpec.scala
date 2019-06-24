@@ -68,7 +68,7 @@ class ValueReaderWriterSpec extends TestBase {
             enableBinarySearchIndex = TestData.enableBinarySearchIndex,
             buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-            minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+            minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation
           )
         ).updateStats

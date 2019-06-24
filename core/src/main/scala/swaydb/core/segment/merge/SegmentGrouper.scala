@@ -738,7 +738,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                     enableBinarySearchIndex = enableBinarySearchIndex,
                     buildFullBinarySearchIndex = buildFullBinarySearchIndex,
                     resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-                    minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
+                    minimumNumberOfKeysForHashIndex = minimumNumberOfKeyForHashIndex,
                     hashIndexCompensation = hashIndexCompensation,
                     _
                   )

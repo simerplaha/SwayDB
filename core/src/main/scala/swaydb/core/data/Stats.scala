@@ -98,6 +98,13 @@ private[core] object Stats {
     val segmentUniqueKeysCount =
     previousStats.map(_.segmentUniqueKeysCount + thisKeyValuesUniqueKeys) getOrElse thisKeyValuesUniqueKeys
 
+    //unique keys that do not have prefix compressed keys.
+    val segmentUniqueAccessIndexKeyCounts =
+      if (isPrefixCompressed)
+        previousStats.map(_.segmentUniqueAccessIndexKeyCounts) getOrElse 1
+      else
+        previousStats.map(_.segmentUniqueAccessIndexKeyCounts + 1) getOrElse 1
+
     val segmentHashIndexSize =
       if (segmentUniqueKeysCount < minimumNumberOfKeysForHashIndex)
         0
@@ -108,12 +115,31 @@ private[core] object Stats {
           compensate = hashIndexCompensation
         )
 
+    //binary search indexes are only created for non-prefix compressed or reset point keys.
+    //size calculation should only account for those entries because duplicates are not allowed.
+    def binarySearchIndexEntriesCount() =
+      if (buildFullBinarySearchIndex)
+        segmentUniqueAccessIndexKeyCounts
+      else
+        segmentTotalNumberOfRanges
+
     val segmentBinarySearchIndexSize =
       if (enableBinarySearchIndex)
-        BinarySearchIndex.optimalBytesRequired(
-          largestValue = thisKeyValuesAccessIndexOffset,
-          valuesCount = if (buildFullBinarySearchIndex) segmentUniqueKeysCount else segmentTotalNumberOfRanges
-        )
+        previousStats map {
+          previousStats =>
+            if (previousStats.thisKeyValuesAccessIndexOffset != thisKeyValuesAccessIndexOffset)
+              BinarySearchIndex.optimalBytesRequired(
+                largestValue = thisKeyValuesAccessIndexOffset,
+                valuesCount = binarySearchIndexEntriesCount()
+              )
+            else
+              previousStats.binarySearchIndexSize
+        } getOrElse {
+          BinarySearchIndex.optimalBytesRequired(
+            largestValue = thisKeyValuesAccessIndexOffset,
+            valuesCount = binarySearchIndexEntriesCount()
+          )
+        }
       else
         0
 
@@ -182,8 +208,8 @@ private[core] object Stats {
     new Stats(
       valueSize = valueLength,
       segmentSize = segmentSize,
-      segmentValueAndSortedIndexEntrySize = segmentValueEntryAndSortedIndexEntrySize,
       chainPosition = chainPosition,
+      segmentValueAndSortedIndexEntrySize = segmentValueEntryAndSortedIndexEntrySize,
       groupsCount = groupsCount,
       segmentUniqueKeysCount = segmentUniqueKeysCount,
       segmentValuesSize = segmentValuesSize,
@@ -191,6 +217,7 @@ private[core] object Stats {
       segmentUncompressedKeysSize = segmentUncompressedKeysSize,
       segmentSizeWithoutFooter = segmentSizeWithoutFooter,
       segmentSizeWithoutFooterForNextGroup = segmentSizeWithoutFooterForNextGroup,
+      segmentUniqueAccessIndexKeyCounts = segmentUniqueAccessIndexKeyCounts,
       keySize = indexEntry.size,
       thisKeyValuesSegmentKeyAndValueSize = thisKeyValuesSegmentKeyAndValueSize,
       thisKeyValuesIndexSizeWithoutFooter = thisKeyValuesSortedIndexSize,
@@ -220,6 +247,7 @@ private[core] case class Stats(valueSize: Int,
                                segmentUncompressedKeysSize: Int,
                                segmentSizeWithoutFooter: Int,
                                segmentSizeWithoutFooterForNextGroup: Int,
+                               segmentUniqueAccessIndexKeyCounts: Int,
                                keySize: Int,
                                thisKeyValuesSegmentKeyAndValueSize: Int,
                                thisKeyValuesIndexSizeWithoutFooter: Int,

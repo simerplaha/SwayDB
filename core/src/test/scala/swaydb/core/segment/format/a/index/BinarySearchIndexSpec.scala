@@ -16,7 +16,7 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
     val state =
       BinarySearchIndex.State(
         largestValue = largestValue,
-        valuesCount = valuesCount,
+        uniqueValuesCount = valuesCount,
         buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex
       )
 

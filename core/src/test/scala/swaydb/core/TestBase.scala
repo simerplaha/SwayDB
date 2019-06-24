@@ -301,7 +301,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
               throttle: LevelMeter => Throttle = testDefaultThrottle,
               bloomFilterFalsePositiveRate: Double = TestData.falsePositiveRate,
               resetPrefixCompressionEvery: Int = TestData.resetPrefixCompressionEvery,
-              minimumNumberOfKeyForHashIndex: Int = TestData.minimumNumberOfKeyForHashIndex,
+              minimumNumberOfKeyForHashIndex: Int = TestData.minimumNumberOfKeysForHashIndex,
               hashIndexCompensation: Int => Int = TestData.hashIndexCompensation,
               compressDuplicateValues: Boolean = true,
               deleteSegmentsEventually: Boolean = false,

@@ -118,7 +118,7 @@ private[core] object HashIndex extends LazyLogging {
       state.bytes addIntUnsigned state.headerSize
       state.bytes addInt state.bytes.size
       if (state.bytes.currentWritePosition > state.headerSize)
-        throw new Exception(s"Calculated header size was invalid. Used: ${state.bytes.currentWritePosition - 1}. Expected: ${state.headerSize} ")
+        throw new Exception(s"Calculated header size was incorrect. Expected: ${state.headerSize}. Used: ${state.bytes.currentWritePosition - 1}")
     }
 
   def read(offset: Offset, reader: Reader): IO[HashIndex] = {
@@ -300,6 +300,17 @@ private[core] object HashIndex extends LazyLogging {
             reader = reader,
             offset = sortedIndexOffset
           )
+      //            recoverWith {
+      //            case _ =>
+      //              //currently there is no way to detect starting point for a key-value entry in the sorted index.
+      //              //Read requests can be submitted to random parts of the sortedIndex depending on the index returned by the hash.
+      //              //Hash index also itself also does not store markers for a valid start sortedIndex offset
+      //              //that's why key-values can be read at random parts of the sorted index which can return failures.
+      //              //too many failures are not expected because probe should disallow that. And if the Segment is actually corrupted,
+      //              //the normal forward read of the index should catch that.
+      //              //HashIndex is suppose to make random reads faster, if the hashIndex is too small then there is no use creating one.
+      //              IO.none
+      //          }
     )
 }
 

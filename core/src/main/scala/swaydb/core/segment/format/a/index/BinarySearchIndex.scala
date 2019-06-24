@@ -24,7 +24,6 @@ import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.{KeyMatcher, MatchResult, OffsetBase}
 import swaydb.core.util.Bytes
 import swaydb.data.IO
-import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
 
@@ -38,46 +37,49 @@ object BinarySearchIndex {
 
   object State {
     def apply(largestValue: Int,
-              valuesCount: Int,
+              uniqueValuesCount: Int,
               buildFullBinarySearchIndex: Boolean): State =
       State(
         largestValue = largestValue,
-        valuesCount = 0,
+        uniqueValuesCount = 0,
         buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-        bytes = Slice.create[Byte](optimalBytesRequired(largestValue, valuesCount))
+        bytes = Slice.create[Byte](optimalBytesRequired(largestValue, uniqueValuesCount))
       )
 
     def apply(largestValue: Int,
-              valuesCount: Int,
+              uniqueValuesCount: Int,
               buildFullBinarySearchIndex: Boolean,
               bytes: Slice[Byte]): State =
       new State(
         byteSizeOfLargestValue = Bytes.sizeOf(largestValue),
         buildFullBinarySearchIndex = buildFullBinarySearchIndex,
+        _previousWritten = Int.MinValue,
+        writtenValues = 0,
         headerSize =
           optimalHeaderSize(
             largestValue = largestValue,
-            valuesCount = valuesCount
+            valuesCount = uniqueValuesCount
           ),
-        _valuesCount = valuesCount,
+        uniqueValuesCount = uniqueValuesCount,
         bytes = bytes
       )
   }
 
   case class State(byteSizeOfLargestValue: Int,
-                   var _valuesCount: Int,
+                   uniqueValuesCount: Int,
+                   var _previousWritten: Int,
+                   var writtenValues: Int,
                    headerSize: Int,
                    buildFullBinarySearchIndex: Boolean,
                    bytes: Slice[Byte]) {
 
-    def valuesCount =
-      _valuesCount
+    def incrementWrittenValuesCount() =
+      writtenValues += 1
 
-    def valuesCount_=(count: Int) =
-      _valuesCount = count
+    def previouslyWritten_=(previouslyWritten: Int) =
+      this._previousWritten = previouslyWritten
 
-    def incrementEntriesCount() =
-      _valuesCount += 1
+    def previouslyWritten = _previousWritten
   }
 
   def init(keyValues: Iterable[KeyValue.WriteOnly]) =
@@ -87,7 +89,7 @@ object BinarySearchIndex {
       Some(
         BinarySearchIndex.State(
           largestValue = keyValues.last.stats.thisKeyValuesAccessIndexOffset,
-          valuesCount = keyValues.last.stats.segmentUniqueKeysCount,
+          uniqueValuesCount = keyValues.last.stats.segmentUniqueKeysCount,
           buildFullBinarySearchIndex = keyValues.last.buildFullBinarySearchIndex
         )
       )
@@ -113,14 +115,17 @@ object BinarySearchIndex {
   }
 
   def writeHeader(state: State): IO[Unit] =
-    IO {
-      state.bytes moveWritePosition 0
-      state.bytes addIntUnsigned state.headerSize
-      state.bytes add formatId
-      state.bytes addIntUnsigned state.valuesCount
-      state.bytes addIntUnsigned state.byteSizeOfLargestValue
-      state.bytes addBoolean state.buildFullBinarySearchIndex
-    }
+    if (state.writtenValues != state.uniqueValuesCount)
+      IO.Failure(IO.Error.Fatal(s"Binary search index incomplete. Written: ${state.writtenValues}. Expected: ${state.uniqueValuesCount}"))
+    else
+      IO {
+        state.bytes moveWritePosition 0
+        state.bytes addIntUnsigned state.headerSize
+        state.bytes add formatId
+        state.bytes addIntUnsigned state.uniqueValuesCount
+        state.bytes addIntUnsigned state.byteSizeOfLargestValue
+        state.bytes addBoolean state.buildFullBinarySearchIndex
+      }
 
   def read(offset: Offset,
            reader: Reader): IO[BinarySearchIndex] = {
@@ -160,16 +165,20 @@ object BinarySearchIndex {
 
   def write(value: Int,
             state: State): IO[Unit] =
-    IO {
-      if (state.bytes.written == 0) state.bytes moveWritePosition state.headerSize
+    if (value == state.previouslyWritten) //do not write duplicate entries.
+      IO.unit
+    else
+      IO {
+        if (state.bytes.written == 0) state.bytes moveWritePosition state.headerSize
 
-      if (state.byteSizeOfLargestValue <= ByteSizeOf.int)
-        state.bytes addIntUnsigned value
-      else
-        state.bytes addInt value
+        if (state.byteSizeOfLargestValue <= ByteSizeOf.int)
+          state.bytes addIntUnsigned value
+        else
+          state.bytes addInt value
 
-      state.incrementEntriesCount()
-    }
+        state.incrementWrittenValuesCount()
+        state.previouslyWritten = value
+      }
 
   def find(index: BinarySearchIndex,
            assertValue: Int => IO[MatchResult]): IO[Option[Persistent]] = {

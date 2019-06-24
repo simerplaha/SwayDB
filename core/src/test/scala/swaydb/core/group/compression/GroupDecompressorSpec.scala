@@ -69,7 +69,7 @@ class GroupDecompressorSpec extends TestBase {
             enableBinarySearchIndex = TestData.enableBinarySearchIndex,
             buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
             previous = None,
             maxProbe = TestData.maxProbe

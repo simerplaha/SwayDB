@@ -393,7 +393,7 @@ object CommonAssertions {
         forInMemory = false,
         bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
         compressDuplicateValues = randomBoolean()
       ).assertGet

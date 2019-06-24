@@ -68,7 +68,7 @@ class RangeEntryReaderWriterSpec extends WordSpec {
           enableBinarySearchIndex = TestData.enableBinarySearchIndex,
           buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
           resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-          minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+          minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
           hashIndexCompensation = TestData.hashIndexCompensation,
           previous = Some(previous)
         )

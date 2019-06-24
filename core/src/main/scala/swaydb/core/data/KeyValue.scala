@@ -928,7 +928,7 @@ private[core] object Transient {
                                                            enableBinarySearchIndex: Boolean,
                                                            buildFullBinarySearchIndex: Boolean,
                                                            resetPrefixCompressionEvery: Int,
-                                                           minimumNumberOfKeyForHashIndex: Int,
+                                                           minimumNumberOfKeysForHashIndex: Int,
                                                            hashIndexCompensation: Int => Int,
                                                            previous: Option[KeyValue.WriteOnly])(implicit rangeValueSerializer: RangeValueSerializer[Option[F], R]): Range = {
       val bytesRequired = rangeValueSerializer.bytesRequired(fromValue, rangeValue)
@@ -948,7 +948,7 @@ private[core] object Transient {
         enableBinarySearchIndex = enableBinarySearchIndex,
         buildFullBinarySearchIndex = buildFullBinarySearchIndex,
         resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-        minimumNumberOfKeysForHashIndex = minimumNumberOfKeyForHashIndex,
+        minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
         hashIndexCompensation = hashIndexCompensation
       )
     }
@@ -1030,7 +1030,7 @@ private[core] object Transient {
               enableBinarySearchIndex: Boolean,
               buildFullBinarySearchIndex: Boolean,
               resetPrefixCompressionEvery: Int,
-              minimumNumberOfKeyForHashIndex: Int,
+              minimumNumberOfKeysForHashIndex: Int,
               hashIndexCompensation: Int => Int,
               previous: Option[KeyValue.WriteOnly],
               maxProbe: Int): IO[Option[Transient.Group]] =
@@ -1040,7 +1040,7 @@ private[core] object Transient {
         valueCompressions = Seq(valueCompression),
         falsePositiveRate = falsePositiveRate,
         resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-        minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
+        minimumNumberOfKeyForHashIndex = minimumNumberOfKeysForHashIndex,
         hashIndexCompensation = hashIndexCompensation,
         previous = previous,
         maxProbe = maxProbe,

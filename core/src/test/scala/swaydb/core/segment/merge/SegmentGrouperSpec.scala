@@ -72,7 +72,7 @@ class SegmentGrouperSpec extends TestBase {
         isLastLevel = false,
         bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
         hashIndexCompensation = TestData.hashIndexCompensation,
         compressDuplicateValues = true
       )
@@ -117,7 +117,7 @@ class SegmentGrouperSpec extends TestBase {
             isLastLevel = false,
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
             compressDuplicateValues = true
           )
@@ -170,7 +170,7 @@ class SegmentGrouperSpec extends TestBase {
             isLastLevel = false,
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
             compressDuplicateValues = true
           )
@@ -225,7 +225,7 @@ class SegmentGrouperSpec extends TestBase {
             isLastLevel = false,
             bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeyForHashIndex,
+            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
             hashIndexCompensation = TestData.hashIndexCompensation,
             compressDuplicateValues = true
           )
