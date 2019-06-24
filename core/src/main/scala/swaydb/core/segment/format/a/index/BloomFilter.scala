@@ -58,6 +58,16 @@ object BloomFilter {
       bytes = Slice.emptyBytes
     )
 
+  def optimalSegmentBloomFilterByteSize(numberOfKeys: Int, falsePositiveRate: Double): Int = {
+    val numberOfBits = optimalNumberOfBits(numberOfKeys, falsePositiveRate)
+    val maxProbe = optimalNumberOfProbes(numberOfKeys, numberOfBits)
+
+    val numberOfBitsSize = Bytes.sizeOf(numberOfBits)
+    val maxProbeSize = Bytes.sizeOf(maxProbe)
+
+    ByteSizeOf.byte + numberOfBitsSize + maxProbeSize + numberOfBits
+  }
+
   def apply(numberOfKeys: Int,
             falsePositiveRate: Double): BloomFilter.State = {
     val numberOfBits = optimalNumberOfBits(numberOfKeys, falsePositiveRate)
@@ -93,12 +103,6 @@ object BloomFilter {
       0
     else
       math.ceil(numberOfBits / numberOfKeys * math.log(2)).toInt
-
-  def optimalSegmentBloomFilterByteSize(numberOfKeys: Int, falsePositiveRate: Double): Int =
-    BloomFilter.optimalNumberOfBits(
-      numberOfKeys = numberOfKeys,
-      falsePositiveRate = falsePositiveRate
-    ) + minimumSize
 
   def read(offset: Offset,
            reader: Reader): IO[BloomFilter] =

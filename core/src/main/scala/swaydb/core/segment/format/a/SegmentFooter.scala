@@ -87,7 +87,7 @@ object SegmentFooter {
 
         val bloomFilterSize = footerReader.readIntUnsigned().get
         val bloomFilterOffset =
-          if (hashIndexSize == 0)
+          if (bloomFilterSize == 0)
             None
           else
             Some(

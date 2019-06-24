@@ -88,8 +88,8 @@ class SegmentWriterReaderSpec extends TestBase {
     }
 
     "write and read a group" in {
-      runThis(100.times) {
-        val groupKeyValues = randomizedKeyValues(keyValueCount, addRandomGroups = false)
+      runThis(1.times) {
+        val groupKeyValues = randomizedKeyValues(1, addRandomGroups = false)
         val group =
           Transient.Group(
             keyValues = groupKeyValues,
@@ -114,7 +114,8 @@ class SegmentWriterReaderSpec extends TestBase {
 
         bytes.isFull shouldBe true
 
-        val allKeyValuesForGroups = readAll(bytes).assertGet.asInstanceOf[Slice[KeyValue.ReadOnly.Group]].flatMap(_.segmentCache.getAll().assertGet)
+        val readGroup = readAll(bytes).assertGet.asInstanceOf[Slice[KeyValue.ReadOnly.Group]]
+        val allKeyValuesForGroups = readGroup.flatMap(_.segmentCache.getAll().assertGet)
         allKeyValuesForGroups shouldBe groupKeyValues.toMemory
       }
     }

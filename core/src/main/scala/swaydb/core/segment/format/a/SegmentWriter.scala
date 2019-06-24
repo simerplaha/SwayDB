@@ -339,7 +339,6 @@ private[core] object SegmentWriter extends LazyLogging {
                 segmentOffset = segmentOffset + hashIndex.bytes.written
             } getOrElse {
               segmentFooterSlice addIntUnsigned 0
-              segmentOffset = segmentOffset + 1
             }
 
             binarySearchIndex map {
@@ -349,7 +348,6 @@ private[core] object SegmentWriter extends LazyLogging {
                 segmentOffset = segmentOffset + binarySearchIndex.bytes.written
             } getOrElse {
               segmentFooterSlice addIntUnsigned 0
-              segmentOffset = segmentOffset + 1
             }
 
             bloomFilter map {
@@ -359,14 +357,20 @@ private[core] object SegmentWriter extends LazyLogging {
                 segmentOffset = segmentOffset + bloomFilter.bytes.written
             } getOrElse {
               segmentFooterSlice addIntUnsigned 0
-              segmentOffset = segmentOffset + 1
             }
 
-            segmentFooterSlice addInt segmentOffset
+            val footerOffset =
+              valuesSlice.written +
+                sortedIndexSlice.written +
+                hashIndex.map(_.bytes.written).getOrElse(0) +
+                binarySearchIndex.map(_.bytes.written).getOrElse(0) +
+                bloomFilter.map(_.bytes.written).getOrElse(0)
+
+            segmentFooterSlice addInt footerOffset
 
             Result(
               values = if (valuesSlice.isEmpty) None else Some(valuesSlice),
-              sortedIndex = sortedIndexSlice,
+              sortedIndex = sortedIndexSlice.close(),
               hashIndex = hashIndex map (_.bytes.close()),
               binarySearchIndex = binarySearchIndex map (_.bytes.close()),
               bloomFilter = bloomFilter map (_.bytes.close()),

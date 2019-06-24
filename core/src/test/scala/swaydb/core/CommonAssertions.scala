@@ -755,29 +755,12 @@ object CommonAssertions {
     assertLowers(0)
   }
 
-  def find(matcher: KeyMatcher.Get,
-           startFrom: Option[Persistent],
-           reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[Option[Persistent]] =
-  //    SegmentFooter.read(reader) flatMap {
-  //      footer =>
-  //        SegmentReader.readHashIndexHeader(reader, footer) flatMap {
-  //          header =>
-  //            SegmentReader.get(
-  //              matcher = matcher,
-  //              startFrom = startFrom,
-  //              reader = reader,
-  //              hashIndexHeader = ???,
-  //              footer = footer
-  //            )
-  //        }
-  //    }
-    ???
 
   def assertGet(keyValues: Slice[KeyValue.WriteOnly],
                 reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default) =
     keyValues foreach {
       keyValue =>
-        find(KeyMatcher.Get(keyValue.key), None, reader.copy()).assertGet shouldBe keyValue
+        SegmentReader.get(KeyMatcher.Get(keyValue.key), None, reader.copy()).assertGet shouldBe keyValue
     }
 
   def assertBloom(keyValues: Slice[KeyValue.WriteOnly],
