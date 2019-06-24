@@ -16,7 +16,7 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
                  values: Seq[Int],
                  index: BinarySearchIndex) =
     runThis(10.times) {
-      val randomBytes = randomBytesSlice(1)
+      val randomBytes = randomBytesSlice(randomIntMax(100))
 
       val (adjustedOffset, alteredBytes) =
         eitherOne(
@@ -28,7 +28,7 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
 
       val largestValue = values.last
 
-      def getValue(valueToFind: Int)(valueFound: Int): IO[MatchResult] =
+      def matcher(valueToFind: Int)(valueFound: Int): IO[MatchResult] =
         IO {
           if (valueToFind == valueFound)
             MatchResult.Matched(null)
@@ -43,10 +43,11 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
           BinarySearchIndex.find(
             index = index.copy(offset = adjustedOffset),
             reader = Reader(alteredBytes),
-            assertValue = getValue(valueToFind = value)
+            assertValue = matcher(valueToFind = value)
           ).get shouldBe defined
       }
 
+      //check for items not in the index.
       val notInIndex = (values.head - 100 until values.head) ++ (largestValue + 1 to largestValue + 100)
 
       notInIndex foreach {
@@ -54,7 +55,7 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
           BinarySearchIndex.find(
             index = index.copy(offset = adjustedOffset),
             reader = Reader(alteredBytes),
-            assertValue = getValue(valueToFind = i)
+            assertValue = matcher(valueToFind = i)
           ).get shouldBe empty
       }
     }

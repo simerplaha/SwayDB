@@ -19,7 +19,7 @@
 
 package swaydb.core.segment.format.a.index
 
-import swaydb.core.CommonAssertions.assertBloom
+import swaydb.core.CommonAssertions.{assertBloom, eitherOne}
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.Value.{FromValue, RangeValue}
@@ -161,6 +161,32 @@ class BloomFilterSpec extends TestBase {
   }
 
   "bloomFilter error check" in {
+    def runAssert(data: Seq[String],
+                  bloom: BloomFilter,
+                  bytes: Slice[Byte]) = {
+
+      val positives =
+        data.par collect {
+          case data if !BloomFilter.mightContain(data, Reader(bytes), bloom).get =>
+            data
+        }
+
+      val falsePositives =
+        data.par collect {
+          case data if BloomFilter.mightContain(Random.alphanumeric.take(2000).mkString.getBytes(), Reader(bytes), bloom).get =>
+            data
+        }
+
+      println(s"errors out of ${data.size}: " + positives.size)
+      println(s"falsePositives out of ${data.size}: " + falsePositives.size)
+      println(s"Optimal byte size: " + bloom.numberOfBits)
+      println(s"Actual byte size: " + bytes.written)
+      println
+
+      positives.size shouldBe 0
+      falsePositives.size should be < 200
+    }
+
     val state =
       BloomFilter(
         numberOfKeys = 10000,
@@ -175,29 +201,24 @@ class BloomFilterSpec extends TestBase {
           string
       }
 
-    val bloom = BloomFilter.read(BloomFilter.Offset(0, state.bytes.written), Reader(state.bytes)).get
+    val bloom: BloomFilter = BloomFilter.read(BloomFilter.Offset(0, state.bytes.written), Reader(state.bytes)).get
     val bytes = state.bytes
 
-    val positives =
-      data.par collect {
-        case data if !BloomFilter.mightContain(data, Reader(bytes), bloom).get =>
-          data
-      }
+    runAssert(data, bloom, bytes)
 
-    val falsePositives =
-      data.par collect {
-        case data if BloomFilter.mightContain(Random.alphanumeric.take(2000).mkString.getBytes(), Reader(bytes), bloom).get =>
-          data
-      }
+    runThis(10.times) {
+      val randomBytes = randomBytesSlice(1)
 
-    println(s"errors out of ${data.size}: " + positives.size)
-    println(s"falsePositives out of ${data.size}: " + falsePositives.size)
-    println(s"Optimal byte size: " + bloom.numberOfBits)
-    println(s"Actual byte size: " + bytes.size)
-    println
+      val (adjustedOffset, alteredBytes) =
+        eitherOne(
+          (bloom, bytes),
+          (bloom, bytes ++ randomBytesSlice(randomIntMax(100))),
+          (bloom.copy(offset = bloom.offset.copy(start = bloom.offset.start + randomBytes.size)), randomBytes ++ bytes.close()),
+          (bloom.copy(offset = bloom.offset.copy(start = bloom.offset.start + randomBytes.size)), randomBytes ++ bytes ++ randomBytesSlice(randomIntMax(100)))
+        )
 
-    positives.size shouldBe 0
-    falsePositives.size should be < 200
+      runAssert(data, adjustedOffset, alteredBytes)
+    }
   }
 
   "write indexes and get the nearest deadline" in {

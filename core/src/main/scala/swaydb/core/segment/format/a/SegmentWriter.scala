@@ -285,6 +285,12 @@ private[core] object SegmentWriter extends LazyLogging {
       val hashIndex = HashIndex.init(maxProbe = maxProbe, keyValues = keyValues)
       val binarySearchIndex = BinarySearchIndex.init(keyValues = keyValues)
       val bloomFilter = BloomFilter.init(keyValues = keyValues)
+      bloomFilter foreach {
+        bloomFilter =>
+          //temporary check.
+          if (bloomFilter.bytes.size != lastStats.segmentBloomFilterSize)
+            assert(false, s"BloomFilter size calculation were incorrect. Actual: ${bloomFilter.bytes.size}. Expected: ${lastStats.segmentBloomFilterSize}")
+      }
 
       val sortedIndexSlice = Slice.create[Byte](lastStats.segmentSortedIndexSize)
       val valuesSlice = Slice.create[Byte](lastStats.segmentValuesSize)

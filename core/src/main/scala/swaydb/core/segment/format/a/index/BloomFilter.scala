@@ -35,7 +35,7 @@ object BloomFilter {
 
   case class State(startOffset: Int,
                    numberOfBits: Int,
-                   probe: Int,
+                   maxProbe: Int,
                    bytes: Slice[Byte]) {
 
     def written =
@@ -54,7 +54,7 @@ object BloomFilter {
     BloomFilter.State(
       startOffset = 0,
       numberOfBits = 0,
-      probe = 0,
+      maxProbe = 0,
       bytes = Slice.emptyBytes
     )
 
@@ -77,31 +77,7 @@ object BloomFilter {
     BloomFilter.State(
       startOffset = startOffset,
       numberOfBits = numberOfBits,
-      probe = maxProbe,
-      bytes = bytes
-    )
-  }
-
-  //when the byte size is already pre-computed.
-  def apply(numberOfKeys: Int,
-            falsePositiveRate: Double,
-            bytes: Slice[Byte]): BloomFilter.State = {
-    val numberOfBits = optimalNumberOfBits(numberOfKeys, falsePositiveRate)
-    val maxProbe = optimalNumberOfProbes(numberOfKeys, numberOfBits)
-
-    val numberOfBitsSize = Bytes.sizeOf(numberOfBits)
-    val maxProbeSize = Bytes.sizeOf(maxProbe)
-
-    bytes add formatId
-    bytes addIntUnsigned numberOfBits
-    bytes addIntUnsigned maxProbe
-
-    val startOffset = ByteSizeOf.byte + numberOfBitsSize + maxProbeSize
-
-    BloomFilter.State(
-      startOffset = startOffset,
-      numberOfBits = numberOfBits,
-      probe = maxProbe,
+      maxProbe = maxProbe,
       bytes = bytes
     )
   }
@@ -137,9 +113,8 @@ object BloomFilter {
               maxProbe <- reader.readIntUnsigned()
             } yield
               BloomFilter(
-                offset = offset,
-                startOffset = ByteSizeOf.byte + Bytes.sizeOf(numberOfBits) + Bytes.sizeOf(maxProbe) + offset.start,
-                probe = maxProbe,
+                offset = offset.copy(start = offset.start + ByteSizeOf.byte + Bytes.sizeOf(numberOfBits) + Bytes.sizeOf(maxProbe)),
+                maxProbe = maxProbe,
                 numberOfBits = numberOfBits
               )
           else
@@ -175,8 +150,7 @@ object BloomFilter {
       Some(
         BloomFilter(
           numberOfKeys = numberOfKeys,
-          falsePositiveRate = falsePositiveRate,
-          bytes = Slice.create[Byte](optimalSegmentBloomFilterByteSize(numberOfKeys, falsePositiveRate))
+          falsePositiveRate = falsePositiveRate
         )
       )
 
@@ -187,7 +161,7 @@ object BloomFilter {
     val hash2 = (hash << 32) >> 32
 
     var probe = 0
-    while (probe < state.probe) {
+    while (probe < state.maxProbe) {
       val computedHash = hash1 + probe * hash2
       val hashIndex = (computedHash & Long.MaxValue) % state.numberOfBits
       val offset = (state.startOffset + (hashIndex >>> 6) * 8L).toInt
@@ -206,14 +180,14 @@ object BloomFilter {
     val hash = MurmurHash3Generic.murmurhash3_x64_64(key, 0, key.size, 0)
     val hash1 = hash >>> 32
     val hash2 = (hash << 32) >> 32
-    (0 until bloom.probe)
+    (0 until bloom.maxProbe)
       .untilSomeResult {
         probe =>
           val computedHash = hash1 + probe * hash2
           val hashIndex = (computedHash & Long.MaxValue) % bloom.numberOfBits
 
           reader
-            .moveTo(bloom.startOffset + ((hashIndex >>> 6) * 8L).toInt)
+            .moveTo(bloom.offset.start + ((hashIndex >>> 6) * 8L).toInt)
             .readLong()
             .map {
               index =>
@@ -228,6 +202,5 @@ object BloomFilter {
 }
 
 case class BloomFilter(offset: BloomFilter.Offset,
-                       startOffset: Int,
-                       probe: Int,
+                       maxProbe: Int,
                        numberOfBits: Int)
