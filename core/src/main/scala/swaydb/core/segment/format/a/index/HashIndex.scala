@@ -51,7 +51,7 @@ private[core] object HashIndex extends LazyLogging {
            keyCount: Int,
            largestValue: Int,
            size: Int): Option[HashIndex.State] =
-    if (size <= 4) //formatId, maxProbe, hit, miss
+    if (size <= 6) //formatId, maxProbe, hit, miss, largestValue, allocatedBytes
       None
     else
       Some {
@@ -150,7 +150,10 @@ private[core] object HashIndex extends LazyLogging {
     } yield index
   }
 
-  def adjustHash(hash: Int, totalBlockSpace: Int, headerSize: Int, writeAbleLargestValueSize: Int) = {
+  def adjustHash(hash: Int,
+                 totalBlockSpace: Int,
+                 headerSize: Int,
+                 writeAbleLargestValueSize: Int) = {
     //adjust the hashIndex such that it does not overwrite the header bytes.
     //add +1 to offset left and right 0 bytes.
     val indexBlock = totalBlockSpace - writeAbleLargestValueSize - headerSize

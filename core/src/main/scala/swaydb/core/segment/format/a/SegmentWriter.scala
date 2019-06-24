@@ -23,7 +23,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.KeyValue
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.index.{BinarySearchIndex, BloomFilter, HashIndex}
-import swaydb.core.util.{Bytes, CRC32}
+import swaydb.core.util.CRC32
 import swaydb.data.IO
 import swaydb.data.IO._
 import swaydb.data.slice.Slice
@@ -122,7 +122,7 @@ private[core] object SegmentWriter extends LazyLogging {
                 state = hashIndexState
               )
           } match {
-            case Some(IO.Success(hit)) if hit && binarySearchIndex.forall(!_.buildFullBinarySearchIndex) =>
+            case Some(IO.Success(hit)) if hit && binarySearchIndex.forall(!_.isFullIndex) =>
               IO.unit
 
             case None | Some(IO.Success(_)) =>

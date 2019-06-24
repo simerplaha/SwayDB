@@ -20,21 +20,18 @@
 package swaydb.core.segment.format.a.index
 
 import swaydb.compression.CompressionInternal
+import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.data.Transient
 import swaydb.core.io.reader.Reader
-import swaydb.core.segment.format.a.index.HashIndex
-import swaydb.core.util.Bytes
-import swaydb.core.util.CollectionUtil._
 import swaydb.data.IO
-import swaydb.data.IO._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.core.CommonAssertions._
 
 import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 
 class HashIndexSpec extends TestBase {
 
@@ -62,10 +59,22 @@ class HashIndexSpec extends TestBase {
 
     "build index" when {
       "there are only fixed key-values" in {
-        runThis(1.times) {
-          val maxProbe = 10000
+        runThis(10.times) {
+          val maxProbe = 1000
           val startId = Some(0)
-          val keyValues = randomKeyValues(100000, startId = startId, addRandomRemoves = true, addRandomFunctions = true, addRandomRemoveDeadlines = true, addRandomUpdates = true, addRandomPendingApply = true)
+          val keyValues =
+            randomKeyValues(
+              count = 100000,
+              startId = startId,
+              addRandomRemoves = true,
+              addRandomFunctions = true,
+              addRandomRemoveDeadlines = true,
+              addRandomUpdates = true,
+              addRandomPendingApply = true,
+              resetPrefixCompressionEvery = randomIntMax(20),
+              hashIndexCompensation = size => size * 3
+            )
+
           keyValues should not be empty
 
           val state =
@@ -94,7 +103,7 @@ class HashIndexSpec extends TestBase {
 
           println(s"Bytes allocated: ${state.bytes.size}")
           println(s"Bytes written: ${state.bytes.written}")
-          println("Comrpessed bytes: " + CompressionInternal.randomLZ4().compressor.compress(state.bytes.unslice()).get.get.size)
+          println("Compressed bytes: " + CompressionInternal.randomLZ4().compressor.compress(state.bytes.unslice()).get.get.size)
 
           state.hit should be(keyValues.size)
           state.miss shouldBe 0
@@ -115,46 +124,15 @@ class HashIndexSpec extends TestBase {
               allocatedBytes = state.bytes.underlyingArraySize
             )
 
-          val indexOffsetMap: mutable.ListMap[Int, Transient] =
-            keyValues.map({
-              keyValue =>
-                (keyValue.stats.thisKeyValuesAccessIndexOffset, keyValue)
-            })(collection.breakOut)
+          println("Building ListMap")
+          val indexOffsetMap = mutable.HashMap.empty[Int, ListBuffer[Transient]]
 
-          def findKey(indexOffset: Int, key: Slice[Byte]): IO[Option[Transient]] =
-            indexOffsetMap.get(indexOffset) match {
-              case some @ Some(found) if found.key equiv key =>
-                IO.Success(some) //woohoo! Found at first go.
+          keyValues foreach {
+            keyValue =>
+              indexOffsetMap.getOrElseUpdate(keyValue.stats.thisKeyValuesAccessIndexOffset, ListBuffer(keyValue)) += keyValue
+          }
 
-              case Some(_) =>
-                IO {
-                  //if not found collect the next block of prefix compress key-values
-                  //and see if the key exists in them.
-                  var found = Option.empty[Transient]
-                  indexOffsetMap foreachBreak {
-                    case (index, keyValue) if index > indexOffset => //walk upto the index.
-                      //ones we've reached the index, check for the index in the next compression block.
-                      if (keyValue.enablePrefixCompression()) {
-                        //in the next prefix compression block
-                        if (keyValue.key equiv key) {
-                          found = Some(keyValue)
-                          true
-                        } else {
-                          false //moved out of the prefix compression block. kill!
-                        }
-                      } else {
-                        true
-                      }
-
-                    case _ =>
-                      false
-                  }
-                  found
-                }
-
-              case None =>
-                fail(s"Reading index that does not exist: $indexOffset")
-            }
+          println(s"ListMap created with size: ${indexOffsetMap.size}")
 
           val randomBytes = randomBytesSlice(randomIntMax(100))
 
@@ -165,6 +143,15 @@ class HashIndexSpec extends TestBase {
               (offset.copy(start = randomBytes.size), randomBytes ++ state.bytes),
               (offset.copy(start = randomBytes.size), randomBytes ++ state.bytes ++ randomBytesSlice(randomIntMax(100)))
             )
+
+          def findKey(indexOffset: Int, key: Slice[Byte]): IO[Option[Transient]] =
+            indexOffsetMap.get(indexOffset) match {
+              case Some(keyValues) =>
+                IO(keyValues.find(_.key equiv key))
+
+              case None =>
+                IO.Failure(IO.Error.Fatal(s"Reading index that does not exist: $indexOffset"))
+            }
 
           keyValues foreach {
             keyValue =>

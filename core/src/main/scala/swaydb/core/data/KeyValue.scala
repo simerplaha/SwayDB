@@ -230,7 +230,7 @@ private[core] object KeyValue {
       resetPrefixCompressionEvery > 0 &&
         previous.exists {
           previous =>
-            previous.stats.chainPosition + 1 % resetPrefixCompressionEvery != 0
+            (previous.stats.chainPosition + 1) % resetPrefixCompressionEvery != 0
         }
 
     def updateStats(falsePositiveRate: Double,

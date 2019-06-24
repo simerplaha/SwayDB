@@ -51,7 +51,13 @@ class TransientSpec extends TestBase {
         key = 1,
         toKey = Some(2),
         value = Option.empty[Slice[Byte]],
-        previous = None
+        previous = None,
+        falsePositiveRate = 0.01,
+        enableBinarySearchIndex = true,
+        buildFullBinarySearchIndex = true,
+        resetPrefixCompressionEvery = 0,
+        minimumNumberOfKeysForHashIndex = 5,
+        hashIndexCompensation = _ => 0
       ) match {
         case keyValue: Transient.Remove =>
           keyValue.stats.valueSize shouldBe 0
@@ -130,6 +136,42 @@ class TransientSpec extends TestBase {
           keyValue.stats.thisKeyValuesAccessIndexOffset shouldBe 0
           keyValue.stats.segmentUniqueKeysCount shouldBe keyValue.keyValues.last.stats.segmentUniqueKeysCount
       }
+    }
+  }
+
+  "set hashIndex size to 0 if minimum number of keys is not met" in {
+    val keyValues =
+      randomKeyValues(
+        count = 10,
+        startId = Some(0),
+        addRandomRemoves = true,
+        addRandomFunctions = true,
+        addRandomRemoveDeadlines = true,
+        addRandomUpdates = true,
+        addRandomPendingApply = true,
+        resetPrefixCompressionEvery = randomIntMax(20),
+        minimumNumberOfKeysForHashIndex = 11
+      )
+
+    keyValues.last.stats.segmentHashIndexSize shouldBe 0
+  }
+
+  "calculate hashIndex size if minimum number of keys is met" in {
+    runThis(10.times) {
+      val keyValues =
+        randomKeyValues(
+          count = 10,
+          startId = Some(0),
+          addRandomRemoves = true,
+          addRandomFunctions = true,
+          addRandomRemoveDeadlines = true,
+          addRandomUpdates = true,
+          addRandomPendingApply = true,
+          resetPrefixCompressionEvery = randomIntMax(20),
+          minimumNumberOfKeysForHashIndex = randomIntMax(10)
+        )
+
+      keyValues.last.stats.segmentHashIndexSize should be > 0
     }
   }
 }

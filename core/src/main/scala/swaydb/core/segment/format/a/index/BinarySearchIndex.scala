@@ -38,21 +38,21 @@ object BinarySearchIndex {
   object State {
     def apply(largestValue: Int,
               uniqueValuesCount: Int,
-              buildFullBinarySearchIndex: Boolean): State =
+              isFullIndex: Boolean): State =
       State(
         largestValue = largestValue,
-        uniqueValuesCount = 0,
-        buildFullBinarySearchIndex = buildFullBinarySearchIndex,
+        uniqueValuesCount = uniqueValuesCount,
+        isFullIndex = isFullIndex,
         bytes = Slice.create[Byte](optimalBytesRequired(largestValue, uniqueValuesCount))
       )
 
     def apply(largestValue: Int,
               uniqueValuesCount: Int,
-              buildFullBinarySearchIndex: Boolean,
+              isFullIndex: Boolean,
               bytes: Slice[Byte]): State =
       new State(
-        byteSizeOfLargestValue = Bytes.sizeOf(largestValue),
-        buildFullBinarySearchIndex = buildFullBinarySearchIndex,
+        bytesPerValue = bytesToAllocatePerValue(largestValue),
+        isFullIndex = isFullIndex,
         _previousWritten = Int.MinValue,
         writtenValues = 0,
         headerSize =
@@ -65,12 +65,12 @@ object BinarySearchIndex {
       )
   }
 
-  case class State(byteSizeOfLargestValue: Int,
+  case class State(bytesPerValue: Int,
                    uniqueValuesCount: Int,
                    var _previousWritten: Int,
                    var writtenValues: Int,
                    headerSize: Int,
-                   buildFullBinarySearchIndex: Boolean,
+                   isFullIndex: Boolean,
                    bytes: Slice[Byte]) {
 
     def incrementWrittenValuesCount() =
@@ -90,25 +90,36 @@ object BinarySearchIndex {
         BinarySearchIndex.State(
           largestValue = keyValues.last.stats.thisKeyValuesAccessIndexOffset,
           uniqueValuesCount = keyValues.last.stats.segmentUniqueKeysCount,
-          buildFullBinarySearchIndex = keyValues.last.buildFullBinarySearchIndex
+          isFullIndex = keyValues.last.buildFullBinarySearchIndex
         )
       )
+
+  def isVarInt(varintSizeOfLargestValue: Int) =
+    varintSizeOfLargestValue < ByteSizeOf.int
+
+  def bytesToAllocatePerValue(largestValue: Int): Int = {
+    val varintSizeOfLargestValue = Bytes.sizeOf(largestValue)
+    if (isVarInt(varintSizeOfLargestValue))
+      varintSizeOfLargestValue
+    else
+      ByteSizeOf.int
+  }
 
   def optimalBytesRequired(largestValue: Int,
                            valuesCount: Int): Int =
     optimalHeaderSize(
       largestValue = largestValue,
       valuesCount = valuesCount
-    ) + (Bytes.sizeOf(largestValue) * valuesCount)
+    ) + (bytesToAllocatePerValue(largestValue) * valuesCount)
 
   def optimalHeaderSize(largestValue: Int,
                         valuesCount: Int): Int = {
 
     val headerSize =
       ByteSizeOf.byte + //formatId
-        Bytes.sizeOf(valuesCount) +
-        Bytes.sizeOf(largestValue) +
-        ByteSizeOf.boolean // buildFullBinarySearchIndex
+        Bytes.sizeOf(valuesCount) + //uniqueValuesCount
+        ByteSizeOf.int + //bytesPerValue
+        ByteSizeOf.boolean //isFullIndex
 
     Bytes.sizeOf(headerSize) +
       headerSize
@@ -123,8 +134,8 @@ object BinarySearchIndex {
         state.bytes addIntUnsigned state.headerSize
         state.bytes add formatId
         state.bytes addIntUnsigned state.uniqueValuesCount
-        state.bytes addIntUnsigned state.byteSizeOfLargestValue
-        state.bytes addBoolean state.buildFullBinarySearchIndex
+        state.bytes addInt state.bytesPerValue
+        state.bytes addBoolean state.isFullIndex
       }
 
   def read(offset: Offset,
@@ -148,14 +159,14 @@ object BinarySearchIndex {
                       else
                         for {
                           valuesCount <- headerReader.readIntUnsigned()
-                          byteSizeOfLargestValue <- headerReader.readIntUnsigned()
+                          bytesPerValue <- headerReader.readInt()
                           isFullBinarySearchIndex <- headerReader.readBoolean()
                         } yield
                           BinarySearchIndex(
                             offset = offset,
                             valuesCount = valuesCount,
                             headerSize = headerSize,
-                            byteSizeOfLargestValue = byteSizeOfLargestValue,
+                            bytesPerValue = bytesPerValue,
                             isFullBinarySearchIndex = isFullBinarySearchIndex
                           )
                   }
@@ -170,17 +181,23 @@ object BinarySearchIndex {
     else
       IO {
         if (state.bytes.written == 0) state.bytes moveWritePosition state.headerSize
-
-        if (state.byteSizeOfLargestValue <= ByteSizeOf.int)
+        //if the size of largest value is less than 4 bytes, write them as unsigned.
+        if (state.bytesPerValue < ByteSizeOf.int) {
+          val writePosition = state.bytes.currentWritePosition
           state.bytes addIntUnsigned value
-        else
+          val missedBytes = state.bytesPerValue - (state.bytes.currentWritePosition - writePosition)
+          if (missedBytes > 0)
+            state.bytes moveWritePosition (state.bytes.currentWritePosition + missedBytes)
+        } else {
           state.bytes addInt value
+        }
 
         state.incrementWrittenValuesCount()
         state.previouslyWritten = value
       }
 
   def find(index: BinarySearchIndex,
+           reader: Reader,
            assertValue: Int => IO[MatchResult]): IO[Option[Persistent]] = {
 
     val minimumOffset = index.offset.start + index.headerSize
@@ -189,25 +206,32 @@ object BinarySearchIndex {
     def hop(start: Int, end: Int): IO[Option[Persistent]] = {
       val mid = start + (end - start) / 2
 
-      val valueOffset = minimumOffset + (mid * index.byteSizeOfLargestValue)
+      val valueOffset = minimumOffset + (mid * index.bytesPerValue)
       if (start > end)
         IO.none
-      else
-        assertValue(valueOffset) match {
+      else {
+        val value =
+          if (index.isVarInt)
+            reader.moveTo(valueOffset).readIntUnsigned()
+          else
+            reader.moveTo(valueOffset).readInt()
+
+        value.flatMap(assertValue) match {
           case IO.Success(value) =>
             value match {
               case MatchResult.Matched(result) =>
                 IO.Success(Some(result))
 
               case MatchResult.Next =>
-                hop(start, mid - 1)
+                hop(mid + 1, end)
 
               case MatchResult.Stop =>
-                hop(mid + 1, end)
+                hop(start, mid - 1)
             }
           case IO.Failure(error) =>
             IO.Failure(error)
         }
+      }
     }
 
     hop(start = 0, end = index.valuesCount - 1)
@@ -219,6 +243,7 @@ object BinarySearchIndex {
           sortedIndexOffset: SortedIndex.Offset): IO[Option[Persistent]] =
     find(
       index = index,
+      reader = reader.copy(),
       assertValue =
         sortedIndexOffsetValue =>
           SortedIndex.findAndMatch(
@@ -233,5 +258,8 @@ object BinarySearchIndex {
 case class BinarySearchIndex(offset: BinarySearchIndex.Offset,
                              valuesCount: Int,
                              headerSize: Int,
-                             byteSizeOfLargestValue: Int,
-                             isFullBinarySearchIndex: Boolean)
+                             bytesPerValue: Int,
+                             isFullBinarySearchIndex: Boolean) {
+  val isVarInt: Boolean =
+    BinarySearchIndex.isVarInt(bytesPerValue)
+}
