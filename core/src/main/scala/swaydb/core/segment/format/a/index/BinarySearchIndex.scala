@@ -83,7 +83,7 @@ object BinarySearchIndex {
   }
 
   def init(keyValues: Iterable[KeyValue.WriteOnly]) =
-    if (keyValues.last.stats.binarySearchIndexSize <= 1)
+    if (keyValues.last.stats.segmentBinarySearchIndexSize <= 1)
       None
     else
       Some(

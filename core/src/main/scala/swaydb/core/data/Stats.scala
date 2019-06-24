@@ -133,7 +133,7 @@ private[core] object Stats {
                 valuesCount = binarySearchIndexEntriesCount()
               )
             else
-              previousStats.binarySearchIndexSize
+              previousStats.segmentBinarySearchIndexSize
         } getOrElse {
           BinarySearchIndex.optimalBytesRequired(
             largestValue = thisKeyValuesAccessIndexOffset,
@@ -225,7 +225,7 @@ private[core] object Stats {
       thisKeyValueIndexOffset = thisKeyValuesRealIndexOffset,
       segmentHashIndexSize = segmentHashIndexSize,
       segmentBloomFilterSize = segmentOptimalBloomFilterSize,
-      binarySearchIndexSize = segmentBinarySearchIndexSize,
+      segmentBinarySearchIndexSize = segmentBinarySearchIndexSize,
       segmentFooterSize = segmentFooterSize,
       segmentTotalNumberOfRanges = segmentTotalNumberOfRanges,
       segmentHasRemoveRange = hasRemoveRange,
@@ -255,7 +255,7 @@ private[core] case class Stats(valueSize: Int,
                                thisKeyValueIndexOffset: Int,
                                segmentHashIndexSize: Int,
                                segmentBloomFilterSize: Int,
-                               binarySearchIndexSize: Int,
+                               segmentBinarySearchIndexSize: Int,
                                segmentFooterSize: Int,
                                segmentTotalNumberOfRanges: Int,
                                segmentHasRemoveRange: Boolean,
