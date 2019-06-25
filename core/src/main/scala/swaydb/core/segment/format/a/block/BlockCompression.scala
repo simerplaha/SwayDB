@@ -101,32 +101,42 @@ object BlockCompression extends LazyLogging {
         }
     }
 
+  private def validateFormatId(formatID: Int) =
+    if (formatID != BlockCompression.uncompressedFormatId && formatID != BlockCompression.compressedFormatID)
+      IO.Failure(
+        IO.Error.Fatal(
+          new Exception(s"Invalid formatID: $formatID. Expected: ${BlockCompression.uncompressedFormatId} or ${BlockCompression.compressedFormatID}")
+        )
+      )
+    else
+      IO.unit
+
+  private def readBlockCompression(formatID: Int,
+                                   headerSize: Int,
+                                   reader: Reader): IO[Option[BlockCompression.State]] =
+    if (formatID == compressedFormatID)
+      for {
+        decompressor <- reader.readIntUnsigned() flatMap (DecompressorInternal(_))
+        decompressedLength <- reader.readIntUnsigned()
+      } yield
+        Some(
+          BlockCompression(
+            decompressor = decompressor,
+            headerSize = headerSize,
+            decompressedLength = decompressedLength
+          )
+        )
+    else
+      IO.none
+
   def readHeader(offset: OffsetBase, reader: Reader): IO[ReadResult] = {
     val movedReader = reader.moveTo(offset.start)
     for {
       headerSize <- movedReader.readIntUnsigned()
       headerReader <- movedReader.read(headerSize).map(Reader(_))
       formatID <- headerReader.get()
-      blockDecompressor <-
-      if (formatID == compressedFormatID)
-        for {
-          decompressor <- headerReader.readIntUnsigned() flatMap (DecompressorInternal(_))
-          decompressedLength <- headerReader.readIntUnsigned()
-        } yield
-          Some(
-            BlockCompression(
-              decompressor = decompressor,
-              headerSize = headerSize,
-              decompressedLength = decompressedLength
-            )
-          )
-      else
-        IO.none
-      headerReader <-
-      if (formatID != BlockCompression.uncompressedFormatId && formatID != BlockCompression.compressedFormatID)
-        IO.Failure(IO.Error.Fatal(new Exception(s"Invalid formatID: $formatID. Expected: ${BlockCompression.uncompressedFormatId} or ${BlockCompression.compressedFormatID}")))
-      else
-        IO.Success(headerReader)
+      headerReader <- validateFormatId(formatID).map(_ => headerReader)
+      blockDecompressor <- readBlockCompression(formatID, headerSize, headerReader)
     } yield
       ReadResult(
         blockCompression = blockDecompressor,
