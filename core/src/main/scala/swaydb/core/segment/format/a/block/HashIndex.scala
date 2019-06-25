@@ -17,13 +17,16 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.segment.format.a.index
+package swaydb.core.segment.format.a.block
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.compression.{CompressionInternal, DecompressorInternal}
 import swaydb.core.data.{KeyValue, Persistent}
+import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.{KeyMatcher, OffsetBase}
 import swaydb.core.util.Bytes
 import swaydb.data.IO
+import swaydb.data.IO._
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
 
@@ -36,7 +39,8 @@ import scala.util.Try
   */
 private[core] object HashIndex extends LazyLogging {
 
-  val formatID: Byte = 1.toByte
+  val uncompressedFormatId: Byte = 0.toByte
+  val compressedFormatID: Byte = 1.toByte
 
   case class Offset(start: Int, size: Int) extends OffsetBase
 
@@ -45,12 +49,20 @@ private[core] object HashIndex extends LazyLogging {
                          writeAbleLargestValueSize: Int,
                          headerSize: Int,
                          maxProbe: Int,
-                         bytes: Slice[Byte])
+                         var _bytes: Slice[Byte],
+                         compressions: Seq[CompressionInternal]) {
+
+    def bytes = _bytes
+
+    def bytes_=(bytes: Slice[Byte]) =
+      this._bytes = bytes
+  }
 
   def init(maxProbe: Int,
            keyCount: Int,
            largestValue: Int,
-           size: Int): Option[HashIndex.State] =
+           size: Int,
+           compressions: Seq[CompressionInternal]): Option[HashIndex.State] =
     if (size <= 6) //formatId, maxProbe, hit, miss, largestValue, allocatedBytes
       None
     else
@@ -62,27 +74,32 @@ private[core] object HashIndex extends LazyLogging {
           maxProbe = maxProbe,
           headerSize = headerSize(keyCounts = keyCount, writeAbleLargestValueSize = writeAbleLargestValueSize),
           writeAbleLargestValueSize = writeAbleLargestValueSize,
-          bytes = Slice.create[Byte](size)
+          _bytes = Slice.create[Byte](size),
+          compressions = compressions
         )
       }
 
   def init(maxProbe: Int,
-           keyValues: Iterable[KeyValue.WriteOnly]): Option[State] =
+           keyValues: Iterable[KeyValue.WriteOnly],
+           compressions: Seq[CompressionInternal]): Option[State] =
     init(
       maxProbe = maxProbe,
       keyCount = keyValues.last.stats.segmentUniqueKeysCount,
       largestValue = keyValues.last.stats.thisKeyValuesAccessIndexOffset,
-      size = keyValues.last.stats.segmentHashIndexSize
+      size = keyValues.last.stats.segmentHashIndexSize,
+      compressions = compressions
     )
 
   def headerSize(keyCounts: Int,
                  writeAbleLargestValueSize: Int): Int = {
     val headerSize =
       ByteSizeOf.byte + //formatId
+        ByteSizeOf.byte + //decompressor
+        ByteSizeOf.int + 1 + //decompressed length. +1 for larger varints
+        ByteSizeOf.int + 1 + //allocated bytes
         ByteSizeOf.int + //max probe
         (Bytes.sizeOf(keyCounts) * 2) + //hit & miss rate
-        Bytes.sizeOf(writeAbleLargestValueSize) + //largest value size
-        ByteSizeOf.int //allocated bytes
+        Bytes.sizeOf(writeAbleLargestValueSize) //largest value size
 
     Bytes.sizeOf(headerSize) +
       headerSize
@@ -106,39 +123,71 @@ private[core] object HashIndex extends LazyLogging {
       Try(compensate(bytesWithOutCompensation)).getOrElse(0) //optionally add more space or remove.
   }
 
-  def writeHeader(state: State): IO[Unit] =
-    IO {
-      //it's important to move to 0 to write to head of the file.
-      state.bytes moveWritePosition 0
-      state.bytes add formatID
-      state.bytes addInt state.maxProbe
-      state.bytes addIntUnsigned state.hit
-      state.bytes addIntUnsigned state.miss
-      state.bytes addIntUnsigned state.writeAbleLargestValueSize
-      state.bytes addIntUnsigned state.headerSize
-      state.bytes addInt state.bytes.size
-      if (state.bytes.currentWritePosition > state.headerSize)
-        throw new Exception(s"Calculated header size was incorrect. Expected: ${state.headerSize}. Used: ${state.bytes.currentWritePosition - 1}")
+  def close(state: State): IO[Unit] =
+  //it's important to move to 0 to write to head of the file.
+    state.compressions.untilSome(_.compressor.compress(state.headerSize, state.bytes.drop(state.headerSize))) flatMap {
+      case Some((compressedBytes, compression)) =>
+        IO {
+          compressedBytes moveWritePosition 0
+          compressedBytes add compressedFormatID
+          compressedBytes addIntUnsigned compression.decompressor.id
+          compressedBytes addIntUnsigned (state.bytes.written - state.headerSize) //decompressed bytes
+          compressedBytes addInt state.bytes.size //allocated bytes
+          state.bytes = compressedBytes
+        }
+
+      case None =>
+        logger.warn(s"Unable to apply valid compressor for HashIndex: ${state.bytes.written}. Skipping HashIndex compression.")
+        IO {
+          state.bytes moveWritePosition 0
+          state.bytes add uncompressedFormatId
+          state.bytes addInt state.bytes.size //allocated bytes
+        }
+    } flatMap {
+      _ =>
+        IO {
+          state.bytes addInt state.maxProbe
+          state.bytes addIntUnsigned state.hit
+          state.bytes addIntUnsigned state.miss
+          state.bytes addIntUnsigned state.writeAbleLargestValueSize
+          state.bytes addIntUnsigned state.headerSize
+          if (state.bytes.currentWritePosition > state.headerSize)
+            throw new Exception(s"Calculated header size was incorrect. Expected: ${state.headerSize}. Used: ${state.bytes.currentWritePosition - 1}")
+        }
     }
 
   def read(offset: Offset, reader: Reader): IO[HashIndex] = {
     val movedReader = reader.moveTo(offset.start)
     for {
       formatID <- movedReader.get()
+      blockDecompressor <-
+      if (formatID == compressedFormatID)
+        for {
+          decompressor <- movedReader.readIntUnsigned() flatMap (DecompressorInternal(_))
+          decompressedLength <- movedReader.readIntUnsigned()
+        } yield
+          Some(
+            BlockDecompressor(
+              decompressor = decompressor,
+              decompressedLength = decompressedLength
+            )
+          )
+      else
+        IO.none
+      allocatedBytes <- movedReader.readInt()
       maxProbe <- movedReader.readInt()
       hit <- movedReader.readIntUnsigned()
       miss <- movedReader.readIntUnsigned()
       largestValueSize <- movedReader.readIntUnsigned()
       headerSize <- movedReader.readIntUnsigned()
-      allocatedBytes <- movedReader.readInt()
       index <-
-      if (formatID != HashIndex.formatID)
-        IO.Failure(IO.Error.Fatal(new Exception(s"Invalid formatID: $formatID. Expected: ${HashIndex.formatID}")))
+      if (formatID != HashIndex.uncompressedFormatId && formatID != HashIndex.compressedFormatID)
+        IO.Failure(IO.Error.Fatal(new Exception(s"Invalid formatID: $formatID. Expected: ${HashIndex.uncompressedFormatId} or ${HashIndex.compressedFormatID}")))
       else
         IO.Success(
           HashIndex(
             offset = offset,
-            formatId = formatID,
+            blockDecompressor = blockDecompressor,
             maxProbe = maxProbe,
             hit = hit,
             miss = miss,
@@ -217,7 +266,7 @@ private[core] object HashIndex extends LazyLogging {
     *
     * @param assertValue performs find or forward fetch from the currently being read sorted index's hash block.
     */
-  private[index] def find[V](key: Slice[Byte],
+  private[block] def find[V](key: Slice[Byte],
                              offset: HashIndex.Offset,
                              hashIndex: HashIndex,
                              reader: Reader,
@@ -228,46 +277,55 @@ private[core] object HashIndex extends LazyLogging {
     val hash2 = (hash << 32) >> 32
 
     @tailrec
-    def doFind(probe: Int, checkedHashIndexes: mutable.HashSet[Int]): IO[Option[V]] =
+    def doFind(probe: Int, reader: Reader, checkedHashIndexes: mutable.HashSet[Int]): IO[Option[V]] =
       if (probe > hashIndex.maxProbe) {
         IO.none
       } else {
-        val index =
+        val hashedIndex =
           adjustHash(
             hash = hash1 + probe * hash2,
             totalBlockSpace = hashIndex.allocatedBytes,
             headerSize = hashIndex.headerSize,
             writeAbleLargestValueSize = hashIndex.writeAbleLargestValueSize
           )
+
+        //if the reader is decompressed reader then it would not have header bytes. Remove the header from the hashed index.
+        val index =
+          if (hashIndex.isCompressed)
+            hashedIndex - hashIndex.headerSize //compressed will contain only the decompressed bytes. Remove header and ignore the offset.
+          else
+            offset.start + hashedIndex //if it's not compressed the full reader is available.
+
         if (checkedHashIndexes contains index) //do not check the same index again.
-          doFind(probe + 1, checkedHashIndexes)
+          doFind(probe + 1, reader, checkedHashIndexes)
         else
           reader
-            .moveTo(offset.start + index)
+            .moveTo(index)
             .read(hashIndex.bytesToReadPerIndex) match {
             case IO.Success(possibleValueBytes) =>
-              if (possibleValueBytes.head != 0) {
-                //println(s"Key: ${key.readInt()}: read hashIndex: $index probe: $probe = failure - invalid start offset.")
-                doFind(probe + 1, checkedHashIndexes)
+              //println(s"Key: ${key.readInt()}: read hashIndex: $hashedIndex probe: $probe. sortedIndex bytes: $possibleValueBytes")
+              if (possibleValueBytes.head != 0) { //head should never be empty because the hash adjusts it.
+                //println(s"Key: ${key.readInt()}: read hashIndex: $hashedIndex probe: $probe = failure - invalid start offset.")
+                doFind(probe + 1, reader, checkedHashIndexes)
               } else {
                 possibleValueBytes
                   .dropHead()
                   .readIntUnsigned() match {
                   case IO.Success(possibleValue) =>
-                    //submit the indexOffset removing the add 1 offset to avoid overlapping bytes.
-                    //println(s"Key: ${key.readInt()}: read hashIndex: $index probe: $probe, sortedIndex: ${possibleValue - 1} = reading now!")
+                    //println(s"Key: ${key.readInt()}: read hashIndex: $hashedIndex probe: $probe, sortedIndex: ${possibleValue - 1} = reading now!")
 
+                    //submit the indexOffset removing the add 1 offset to avoid overlapping bytes.
                     if (possibleValue == 0)
-                      doFind(probe + 1, checkedHashIndexes)
+                      doFind(probe + 1, reader, checkedHashIndexes)
                     else
                       assertValue(possibleValue - 1) match {
                         case success @ IO.Success(Some(_)) =>
-                          //println(s"Key: ${key.readInt()}: read hashIndex: $index probe: $probe, sortedIndex: ${possibleValue - 1} = success")
+                          //println(s"Key: ${key.readInt()}: read hashIndex: $hashedIndex probe: $probe, sortedIndex: ${possibleValue - 1} = success")
                           success
 
                         case IO.Success(None) =>
-                          //println(s"Key: ${key.readInt()}: read hashIndex: $index probe: $probe: sortedIndex: ${possibleValue - 1} = not found")
-                          doFind(probe + 1, checkedHashIndexes += index)
+                          //println(s"Key: ${key.readInt()}: read hashIndex: $hashedIndex probe: $probe: sortedIndex: ${possibleValue - 1} = not found")
+                          doFind(probe + 1, reader, checkedHashIndexes += index)
 
                         case IO.Failure(error) =>
                           IO.Failure(error)
@@ -283,7 +341,28 @@ private[core] object HashIndex extends LazyLogging {
           }
       }
 
-    doFind(0, mutable.HashSet.empty)
+    hashIndex.blockDecompressor map {
+      blockDecompressor =>
+        BlockDecompressor.decompress(
+          blockDecompressor = blockDecompressor,
+          compressedReader = reader,
+          uncompressedHeaderBytes = hashIndex.headerSize,
+          offset = offset
+        ) flatMap {
+          decompressedBytes =>
+            doFind(
+              probe = 0,
+              reader = Reader(decompressedBytes),
+              checkedHashIndexes = mutable.HashSet.empty
+            )
+        }
+    } getOrElse {
+      doFind(
+        probe = 0,
+        reader = reader,
+        checkedHashIndexes = mutable.HashSet.empty
+      )
+    }
   }
 
   private[a] def get(matcher: KeyMatcher.GetNextPrefixCompressed,
@@ -318,7 +397,7 @@ private[core] object HashIndex extends LazyLogging {
 }
 
 case class HashIndex(offset: HashIndex.Offset,
-                     formatId: Int,
+                     blockDecompressor: Option[BlockDecompressor.State],
                      maxProbe: Int,
                      hit: Int,
                      miss: Int,
@@ -326,4 +405,6 @@ case class HashIndex(offset: HashIndex.Offset,
                      headerSize: Int,
                      allocatedBytes: Int) {
   val bytesToReadPerIndex = writeAbleLargestValueSize + 1 //+1 to read header 0 byte.
+
+  val isCompressed = blockDecompressor.isDefined
 }

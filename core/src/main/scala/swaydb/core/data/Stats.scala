@@ -20,7 +20,7 @@
 package swaydb.core.data
 
 import swaydb.core.segment.format.a.SegmentWriter
-import swaydb.core.segment.format.a.index.{BinarySearchIndex, BloomFilter, HashIndex}
+import swaydb.core.segment.format.a.block.{BinarySearchIndex, BloomFilter, HashIndex}
 import swaydb.core.util.Bytes
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf

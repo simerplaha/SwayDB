@@ -17,8 +17,9 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.segment.format.a.index
+package swaydb.core.segment.format.a.block
 
+import swaydb.compression.CompressionInternal
 import swaydb.core.data.{KeyValue, Persistent}
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
@@ -34,6 +35,14 @@ import scala.annotation.tailrec
 private[core] object SortedIndex {
 
   case class Offset(start: Int, size: Int) extends OffsetBase
+
+  case class State(bytes: Slice[Byte])
+
+  def init(keyValues: Iterable[KeyValue.WriteOnly],
+           compressions: Seq[CompressionInternal]) =
+    State(
+      Slice.create[Byte](keyValues.last.stats.segmentSortedIndexSize)
+    )
 
   def readNextKeyValue(previous: Persistent,
                        startOffset: Int,

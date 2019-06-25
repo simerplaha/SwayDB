@@ -21,7 +21,7 @@ package swaydb.core.segment.format.a
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.Persistent
-import swaydb.core.segment.format.a.index.{BinarySearchIndex, HashIndex, SortedIndex}
+import swaydb.core.segment.format.a.block.{BinarySearchIndex, HashIndex, SortedIndex}
 import swaydb.data.IO
 import swaydb.data.slice.Reader
 

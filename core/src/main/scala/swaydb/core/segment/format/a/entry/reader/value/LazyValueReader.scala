@@ -19,7 +19,7 @@
 
 package swaydb.core.segment.format.a.entry.reader.value
 
-import swaydb.core.segment.format.a.index.SortedIndex
+import swaydb.core.segment.format.a.block.SortedIndex
 import swaydb.data.IO
 import swaydb.data.slice.{Reader, Slice}
 

@@ -1,4 +1,4 @@
-package swaydb.core.segment.format.a.index
+package swaydb.core.segment.format.a.block
 
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.core.CommonAssertions.eitherOne

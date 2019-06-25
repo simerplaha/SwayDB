@@ -78,6 +78,14 @@ object Slice {
       _written = byteBuffer.position()
     )
 
+  def from(byteBuffer: ByteBuffer, from: Int, to: Int) =
+    new Slice[Byte](
+      array = byteBuffer.array(),
+      fromOffset = from,
+      toOffset = to,
+      _written = to - from + 1
+    )
+
   def apply[T: ClassTag](data: T*): Slice[T] =
     Slice(data.toArray)
 

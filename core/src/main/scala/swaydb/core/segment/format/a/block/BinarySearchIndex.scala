@@ -17,7 +17,7 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.segment.format.a.index
+package swaydb.core.segment.format.a.block
 
 import swaydb.core.data.{KeyValue, Persistent}
 import swaydb.core.io.reader.Reader

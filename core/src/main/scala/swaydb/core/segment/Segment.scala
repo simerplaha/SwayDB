@@ -32,7 +32,7 @@ import swaydb.core.level.PathsDistributor
 import swaydb.core.map.Map
 import swaydb.core.queue.{FileLimiter, FileLimiterItem, KeyValueLimiter}
 import swaydb.core.segment.format.a.{SegmentFooter, SegmentWriter}
-import swaydb.core.segment.format.a.index.{BloomFilter, SortedIndex}
+import swaydb.core.segment.format.a.block.{BloomFilter, SortedIndex}
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util.CollectionUtil._
 import swaydb.core.util.{FiniteDurationUtil, IDGenerator}

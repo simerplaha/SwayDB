@@ -32,7 +32,7 @@ import swaydb.core.data._
 import swaydb.core.group.compression.GroupCompressor
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
-import swaydb.core.segment.format.a.index.BloomFilter
+import swaydb.core.segment.format.a.block.BloomFilter
 import swaydb.core.{TestBase, TestData, TestLimitQueues, TestTimer}
 import swaydb.data.IO
 import swaydb.data.order.KeyOrder

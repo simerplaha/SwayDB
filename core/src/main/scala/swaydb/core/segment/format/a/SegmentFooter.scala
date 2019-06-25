@@ -21,7 +21,7 @@ package swaydb.core.segment.format.a
 
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
-import swaydb.core.segment.format.a.index.{BinarySearchIndex, BloomFilter, HashIndex, SortedIndex}
+import swaydb.core.segment.format.a.block.{BinarySearchIndex, BloomFilter, HashIndex, SortedIndex}
 import swaydb.core.util.CRC32
 import swaydb.data.IO
 import swaydb.data.slice.Reader

@@ -20,7 +20,7 @@
 package swaydb.core.util
 
 import swaydb.core.TestData
-import swaydb.core.segment.format.a.index.BloomFilter
+import swaydb.core.segment.format.a.block.BloomFilter
 import swaydb.data.order.KeyOrder
 import swaydb.serializers.Default.LongSerializer
 

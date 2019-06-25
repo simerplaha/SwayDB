@@ -90,7 +90,6 @@ class CompressionSpec extends WordSpec with Matchers {
         _ =>
           doCompression()
       }
-
     }
 
     "return None" when {
@@ -106,6 +105,44 @@ class CompressionSpec extends WordSpec with Matchers {
             //            println("compressor: " + compressor)
             //            println("decompressor: " + decompressor)
             assertUnsuccessfulCompression(CompressionInternal.LZ4(compressor, decompressor))
+        }
+      }
+    }
+
+    "compress with header space" when {
+      val string = "12345-12345-12345-12345" * 100
+      val bytes: Slice[Byte] = string
+
+      "lz4" in {
+        (1 to 100) foreach {
+          _ =>
+            val compressed = CompressorInternal.randomLZ4().compress(10, bytes).get.get
+            compressed.take(10) foreach (_ shouldBe 0.toByte)
+
+            val decompressedBytes = DecompressorInternal.randomLZ4().decompress(compressed.drop(10), bytes.written).get
+            decompressedBytes shouldBe bytes
+        }
+      }
+
+      "snappy" in {
+        (1 to 100) foreach {
+          _ =>
+            val compressed = CompressorInternal.Snappy(Int.MinValue).compress(10, bytes).get.get
+            compressed.take(10) foreach (_ shouldBe 0.toByte)
+
+            val decompressedBytes = DecompressorInternal.Snappy.decompress(compressed.drop(10), bytes.written).get
+            decompressedBytes shouldBe bytes
+        }
+      }
+
+      "UnCompressedGroup" in {
+        (1 to 100) foreach {
+          _ =>
+            val compressed = CompressorInternal.UnCompressedGroup.compress(10, bytes).get.get
+            compressed.take(10) foreach (_ shouldBe 0.toByte)
+
+            val decompressedBytes = DecompressorInternal.UnCompressedGroup.decompress(compressed.drop(10), bytes.written).get
+            decompressedBytes shouldBe bytes
         }
       }
     }

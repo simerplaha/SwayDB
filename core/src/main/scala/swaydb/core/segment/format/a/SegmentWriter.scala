@@ -22,7 +22,7 @@ package swaydb.core.segment.format.a
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.KeyValue
 import swaydb.core.segment.Segment
-import swaydb.core.segment.format.a.index.{BinarySearchIndex, BloomFilter, HashIndex}
+import swaydb.core.segment.format.a.block.{BinarySearchIndex, BloomFilter, HashIndex}
 import swaydb.core.util.CRC32
 import swaydb.data.IO
 import swaydb.data.IO._
@@ -190,7 +190,7 @@ private[core] object SegmentWriter extends LazyLogging {
                            bloomFilter: Option[BloomFilter.State],
                            binarySearchIndex: Option[BinarySearchIndex.State]): IO[Unit] =
     IO {
-      hashIndex foreach HashIndex.writeHeader
+      hashIndex foreach HashIndex.close
       binarySearchIndex foreach BinarySearchIndex.writeHeader
     }
 
@@ -282,7 +282,7 @@ private[core] object SegmentWriter extends LazyLogging {
     else {
       val lastStats = keyValues.last.stats
 
-      val hashIndex = HashIndex.init(maxProbe = maxProbe, keyValues = keyValues)
+      val hashIndex = HashIndex.init(maxProbe = maxProbe, keyValues = keyValues, Seq.empty)
       val binarySearchIndex = BinarySearchIndex.init(keyValues = keyValues)
       val bloomFilter = BloomFilter.init(keyValues = keyValues)
       bloomFilter foreach {
