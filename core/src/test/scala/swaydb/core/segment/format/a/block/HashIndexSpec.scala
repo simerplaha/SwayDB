@@ -131,10 +131,9 @@ class HashIndexSpec extends TestBase {
       blockDecompressor.isBusy shouldBe false
 
       val decompressedBytes =
-        BlockDecompressor.decompress(
+        BlockCompression.decompress(
           blockDecompressor = compressedHashIndex.blockDecompressor.get,
           compressedReader = Reader(compressedState.bytes),
-          uncompressedHeaderBytes = compressedHashIndex.headerSize,
           offset = compressedOffset
         ).get
 

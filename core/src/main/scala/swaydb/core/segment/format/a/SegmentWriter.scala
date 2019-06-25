@@ -282,9 +282,9 @@ private[core] object SegmentWriter extends LazyLogging {
     else {
       val lastStats = keyValues.last.stats
 
-      val hashIndex = HashIndex.init(maxProbe = maxProbe, keyValues = keyValues, Seq.empty)
+      val hashIndex = HashIndex.init(maxProbe = maxProbe, keyValues = keyValues, compressions = Seq.empty)
       val binarySearchIndex = BinarySearchIndex.init(keyValues = keyValues)
-      val bloomFilter = BloomFilter.init(keyValues = keyValues)
+      val bloomFilter = BloomFilter.init(keyValues = keyValues, compressions = Seq.empty)
       bloomFilter foreach {
         bloomFilter =>
           //temporary check.

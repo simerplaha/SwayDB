@@ -19,6 +19,8 @@
 
 package swaydb.core.segment.format.a.block
 
+import com.typesafe.scalalogging.LazyLogging
+import swaydb.compression.CompressionInternal
 import swaydb.core.data.KeyValue
 import swaydb.core.segment.format.a.OffsetBase
 import swaydb.core.util.{Bytes, MurmurHash3Generic, Options}
@@ -27,16 +29,24 @@ import swaydb.data.IO._
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
 
-object BloomFilter {
+object BloomFilter extends LazyLogging {
 
-  val formatId: Byte = 1.toByte
+  val uncompressedFormatId: Byte = 1.toByte
+  val compressedFormatId: Byte = 2.toByte
 
   case class Offset(start: Int, size: Int) extends OffsetBase
 
   case class State(startOffset: Int,
                    numberOfBits: Int,
                    maxProbe: Int,
-                   bytes: Slice[Byte]) {
+                   headerSize: Int,
+                   var _bytes: Slice[Byte],
+                   compressions: Seq[CompressionInternal]) {
+
+    def bytes = _bytes
+
+    def bytes_=(bytes: Slice[Byte]) =
+      this._bytes = bytes
 
     def written =
       bytes.written
@@ -45,19 +55,6 @@ object BloomFilter {
       bytes.hashCode()
   }
 
-  val minimumSize =
-    ByteSizeOf.byte + //format
-      ByteSizeOf.int + //number of bits
-      ByteSizeOf.int //max probe
-
-  val empty =
-    BloomFilter.State(
-      startOffset = 0,
-      numberOfBits = 0,
-      maxProbe = 0,
-      bytes = Slice.emptyBytes
-    )
-
   def optimalSegmentBloomFilterByteSize(numberOfKeys: Int, falsePositiveRate: Double): Int = {
     val numberOfBits = optimalNumberOfBits(numberOfKeys, falsePositiveRate)
     val maxProbe = optimalNumberOfProbes(numberOfKeys, numberOfBits)
@@ -65,30 +62,43 @@ object BloomFilter {
     val numberOfBitsSize = Bytes.sizeOf(numberOfBits)
     val maxProbeSize = Bytes.sizeOf(maxProbe)
 
-    ByteSizeOf.byte + numberOfBitsSize + maxProbeSize + numberOfBits
+    ByteSizeOf.byte +
+      ByteSizeOf.byte + //decompressor
+      ByteSizeOf.int + 1 + //decompressed length. +1 for larger varints
+      numberOfBitsSize +
+      maxProbeSize +
+      numberOfBits
   }
 
   def apply(numberOfKeys: Int,
-            falsePositiveRate: Double): BloomFilter.State = {
+            falsePositiveRate: Double,
+            compressions: Seq[CompressionInternal]): BloomFilter.State = {
     val numberOfBits = optimalNumberOfBits(numberOfKeys, falsePositiveRate)
     val maxProbe = optimalNumberOfProbes(numberOfKeys, numberOfBits)
 
     val numberOfBitsSize = Bytes.sizeOf(numberOfBits)
     val maxProbeSize = Bytes.sizeOf(maxProbe)
 
-    val bytes = Slice.create[Byte](ByteSizeOf.byte + numberOfBitsSize + maxProbeSize + numberOfBits)
+    val headerBytesSize =
+      ByteSizeOf.byte +
+        ByteSizeOf.byte + //decompressor
+        ByteSizeOf.int + 1 + //decompressed length. +1 for larger varints
+        numberOfBitsSize +
+        maxProbeSize
 
-    bytes add formatId
-    bytes addIntUnsigned numberOfBits
-    bytes addIntUnsigned maxProbe
+    val headerSize =
+      Bytes.sizeOf(headerBytesSize) +
+        headerBytesSize
 
-    val startOffset = ByteSizeOf.byte + numberOfBitsSize + maxProbeSize
+    val bytes = Slice.create[Byte](headerSize + numberOfBits)
 
     BloomFilter.State(
-      startOffset = startOffset,
+      startOffset = headerSize,
       numberOfBits = numberOfBits,
+      headerSize = headerSize,
       maxProbe = maxProbe,
-      bytes = bytes
+      _bytes = bytes,
+      compressions = compressions
     )
   }
 
@@ -104,26 +114,58 @@ object BloomFilter {
     else
       math.ceil(numberOfBits / numberOfKeys * math.log(2)).toInt
 
+  def close(state: State) = {
+    state.compressions.untilSome(_.compressor.compress(state.headerSize, state.bytes.drop(state.headerSize))) flatMap {
+      case Some((compressedBytes, compression)) =>
+        IO {
+          compressedBytes moveWritePosition 0
+          compressedBytes addIntUnsigned state.headerSize
+          compressedBytes add compressedFormatId
+          compressedBytes addIntUnsigned compression.decompressor.id
+          compressedBytes addIntUnsigned (state.bytes.written - state.headerSize) //decompressed bytes
+          state.bytes = compressedBytes
+        }
+
+      case None =>
+        logger.warn(s"Unable to apply valid compressor for HashIndex: ${state.bytes.written}. Skipping HashIndex compression.")
+        IO {
+          state.bytes moveWritePosition 0
+          state.bytes addIntUnsigned state.headerSize
+          state.bytes add uncompressedFormatId
+        }
+    } flatMap {
+      _ =>
+        IO {
+          state.bytes addIntUnsigned state.numberOfBits
+          state.bytes addIntUnsigned state.maxProbe
+          if (state.bytes.currentWritePosition > state.headerSize)
+            throw new Exception(s"Calculated header size was incorrect. Expected: ${state.headerSize}. Used: ${state.bytes.currentWritePosition - 1}")
+        }
+    }
+  }
+
   def read(offset: Offset,
            reader: Reader): IO[BloomFilter] =
-    reader
-      .moveTo(offset.start)
-      .get()
-      .flatMap {
-        formatID =>
-          if (formatID == formatId)
-            for {
-              numberOfBits <- reader.readIntUnsigned()
-              maxProbe <- reader.readIntUnsigned()
-            } yield
-              BloomFilter(
-                offset = offset.copy(start = offset.start + ByteSizeOf.byte + Bytes.sizeOf(numberOfBits) + Bytes.sizeOf(maxProbe)),
-                maxProbe = maxProbe,
-                numberOfBits = numberOfBits
-              )
-          else
-            IO.Failure(IO.Error.Fatal(new Exception(s"Invalid bloomFilter formatID: $formatID. Expected: $formatId")))
-      }
+  //    reader
+  //      .moveTo(offset.start)
+  //      .readIntUnsigned()
+  //      .flatMap {
+  //        headerSize =>
+  //          if (formatID == uncompressedFormatId)
+  //            for {
+  //              numberOfBits <- reader.readIntUnsigned()
+  //              maxProbe <- reader.readIntUnsigned()
+  //            } yield
+  //              BloomFilter(
+  //                offset = offset.copy(start = offset.start + ByteSizeOf.byte + Bytes.sizeOf(numberOfBits) + Bytes.sizeOf(maxProbe)),
+  //                maxProbe = maxProbe,
+  //                numberOfBits = numberOfBits,
+  //                ???
+  //              )
+  //          else
+  //            IO.Failure(IO.Error.Fatal(new Exception(s"Invalid bloomFilter formatID: $formatID. Expected: $uncompressedFormatId")))
+  //      }
+    ???
 
   def shouldNotCreateBloomFilter(keyValues: Iterable[KeyValue.WriteOnly]): Boolean =
     keyValues.isEmpty ||
@@ -134,11 +176,13 @@ object BloomFilter {
   def shouldCreateBloomFilter(keyValues: Iterable[KeyValue.WriteOnly]): Boolean =
     !shouldNotCreateBloomFilter(keyValues)
 
-  def init(keyValues: Iterable[KeyValue.WriteOnly]): Option[BloomFilter.State] =
+  def init(keyValues: Iterable[KeyValue.WriteOnly],
+           compressions: Seq[CompressionInternal]): Option[BloomFilter.State] =
     if (shouldCreateBloomFilter(keyValues))
       init(
         numberOfKeys = keyValues.last.stats.segmentUniqueKeysCount,
-        falsePositiveRate = keyValues.last.falsePositiveRate
+        falsePositiveRate = keyValues.last.falsePositiveRate,
+        compressions = compressions
       )
     else
       None
@@ -147,14 +191,16 @@ object BloomFilter {
     * Initialise bloomFilter if key-values do no contain remove range.
     */
   def init(numberOfKeys: Int,
-           falsePositiveRate: Double): Option[BloomFilter.State] =
+           falsePositiveRate: Double,
+           compressions: Seq[CompressionInternal]): Option[BloomFilter.State] =
     if (numberOfKeys <= 0 || falsePositiveRate <= 0.0)
       None
     else
       Some(
         BloomFilter(
           numberOfKeys = numberOfKeys,
-          falsePositiveRate = falsePositiveRate
+          falsePositiveRate = falsePositiveRate,
+          compressions = compressions
         )
       )
 
@@ -207,4 +253,7 @@ object BloomFilter {
 
 case class BloomFilter(offset: BloomFilter.Offset,
                        maxProbe: Int,
-                       numberOfBits: Int)
+                       numberOfBits: Int,
+                       blockDecompressor: Option[BlockCompression.State]) {
+  val isCompressed = blockDecompressor.isDefined
+}
