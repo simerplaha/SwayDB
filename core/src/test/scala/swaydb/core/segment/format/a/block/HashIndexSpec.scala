@@ -55,7 +55,6 @@ class HashIndexSpec extends TestBase {
   }
 
   "it" should {
-
     "write compressed HashIndex and result in the same as uncompressed HashIndex" in {
       val maxProbe = 10
       val keyValues =
@@ -236,7 +235,7 @@ class HashIndexSpec extends TestBase {
                 IO(keyValues.find(_.key equiv key))
 
               case None =>
-                IO.Failure(IO.Error.Fatal(s"Reading index that does not exist: $indexOffset"))
+                IO.Failure(IO.Error.Fatal(s"Got index that does not exist: $indexOffset"))
             }
 
           keyValues foreach {
