@@ -44,7 +44,7 @@ object Values {
   case class Offset(start: Int, size: Int) extends OffsetBase
 
   val optimalHeaderSize =
-    BlockCompression.blockCompressionOnlyHeaderSize
+    Block.blockCompressionOnlyHeaderSize
 
   def init(keyValues: Iterable[KeyValue.WriteOnly],
            compressions: Seq[CompressionInternal]): Option[Values.State] =
@@ -62,7 +62,7 @@ object Values {
     state.bytes addAll value
 
   def close(state: State) =
-    BlockCompression.compressAndUpdateHeader(
+    Block.compress(
       headerSize = optimalHeaderSize,
       bytes = state.bytes,
       compressions = state.compressions
@@ -77,19 +77,19 @@ object Values {
 
   def read(offset: Values.Offset,
            reader: Reader): IO[Values] =
-    BlockCompression.readHeader(offset = offset, reader = reader) map {
+    Block.readHeader(offset = offset, segmentReader = reader) map {
       result =>
         Values(
           offset =
-            if (result.blockCompression.isDefined)
+            if (result.block.isDefined)
               offset
             else
               Offset(
                 start = offset.start + result.headerSize,
                 size = offset.size - result.headerSize
               ),
-          blockCompression =
-            result.blockCompression
+          block =
+            result.block
         )
     }
 
@@ -180,4 +180,4 @@ object Values {
 }
 
 case class Values(offset: Values.Offset,
-                  blockCompression: Option[BlockCompression.State])
+                  block: Option[Block.State])

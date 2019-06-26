@@ -21,7 +21,7 @@ package swaydb.core.segment.format.a.block
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.compression.{CompressionInternal, DecompressorInternal}
-import swaydb.core.io.reader.Reader
+import swaydb.core.io.reader.{BlockReader, Reader}
 import swaydb.core.segment.format.a.OffsetBase
 import swaydb.core.util.Bytes
 import swaydb.data.IO._
@@ -29,19 +29,22 @@ import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
 import swaydb.data.{IO, Reserve}
 
-object BlockCompression extends LazyLogging {
+/**
+  * A block is a group of compressed or uncompressed bytes.
+  */
+object Block extends LazyLogging {
 
   val uncompressedFormatId: Byte = 0.toByte
   val compressedFormatID: Byte = 1.toByte
 
-  case class ReadResult(blockCompression: Option[BlockCompression.State],
-                        headerReader: Reader,
-                        headerSize: Int)
+  case class Header(block: Option[Block.State],
+                    headerReader: Reader,
+                    headerSize: Int)
 
   class State(val decompressor: DecompressorInternal,
               val decompressedLength: Int,
               val headerSize: Int,
-              private[BlockCompression] val reserve: Reserve[Unit],
+              private[Block] val reserve: Reserve[Unit],
               @volatile private var _decompressedBytes: Option[Slice[Byte]]) {
     def decompressedBytes = _decompressedBytes
 
@@ -89,9 +92,9 @@ object BlockCompression extends LazyLogging {
     * Others using this function should ensure that [[headerSize]] is accounted for in the byte size calculations.
     * They should also allocate enough bytes to write the total headerSize.
     */
-  def compressAndUpdateHeader(headerSize: Int,
-                              bytes: Slice[Byte],
-                              compressions: Seq[CompressionInternal]): IO[Slice[Byte]] =
+  def compress(headerSize: Int,
+               bytes: Slice[Byte],
+               compressions: Seq[CompressionInternal]): IO[Slice[Byte]] =
     compressions.untilSome(_.compressor.compress(headerSize, bytes.drop(headerSize))) flatMap {
       case Some((compressedBytes, compression)) =>
         IO {
@@ -118,25 +121,25 @@ object BlockCompression extends LazyLogging {
     }
 
   private def validateFormatId(formatID: Int) =
-    if (formatID != BlockCompression.uncompressedFormatId && formatID != BlockCompression.compressedFormatID)
+    if (formatID != Block.uncompressedFormatId && formatID != Block.compressedFormatID)
       IO.Failure(
         IO.Error.Fatal(
-          new Exception(s"Invalid formatID: $formatID. Expected: ${BlockCompression.uncompressedFormatId} or ${BlockCompression.compressedFormatID}")
+          new Exception(s"Invalid formatID: $formatID. Expected: ${Block.uncompressedFormatId} or ${Block.compressedFormatID}")
         )
       )
     else
       IO.unit
 
-  private def readBlockCompression(formatID: Int,
-                                   headerSize: Int,
-                                   reader: Reader): IO[Option[BlockCompression.State]] =
+  private def read(formatID: Int,
+                   headerSize: Int,
+                   segmentReader: Reader): IO[Option[Block.State]] =
     if (formatID == compressedFormatID)
       for {
-        decompressor <- reader.readIntUnsigned() flatMap (DecompressorInternal(_))
-        decompressedLength <- reader.readIntUnsigned()
+        decompressor <- segmentReader.readIntUnsigned() flatMap (DecompressorInternal(_))
+        decompressedLength <- segmentReader.readIntUnsigned()
       } yield
         Some(
-          BlockCompression(
+          Block(
             decompressor = decompressor,
             headerSize = headerSize,
             decompressedLength = decompressedLength
@@ -145,17 +148,17 @@ object BlockCompression extends LazyLogging {
     else
       IO.none
 
-  def readHeader(offset: OffsetBase, reader: Reader): IO[ReadResult] = {
-    val movedReader = reader.moveTo(offset.start)
+  def readHeader(offset: OffsetBase, segmentReader: Reader): IO[Block.Header] = {
+    val movedReader = segmentReader.moveTo(offset.start)
     for {
       headerSize <- movedReader.readIntUnsigned()
       headerReader <- movedReader.read(headerSize).map(Reader(_))
       formatID <- headerReader.get()
-      headerReader <- validateFormatId(formatID).map(_ => headerReader)
-      blockCompression <- readBlockCompression(formatID, headerSize, headerReader)
+      headerReader <- Block.validateFormatId(formatID).map(_ => headerReader)
+      block <- Block.read(formatID, headerSize, headerReader)
     } yield
-      ReadResult(
-        blockCompression = blockCompression,
+      Header(
+        block = block,
         headerReader = headerReader,
         headerSize = headerSize
       )
@@ -164,41 +167,43 @@ object BlockCompression extends LazyLogging {
   /**
     * Decompresses the block skipping the header bytes.
     */
-  def decompress(blockCompression: BlockCompression.State,
+  def decompress(block: Block.State,
                  compressedReader: Reader,
                  offset: OffsetBase): IO[Slice[Byte]] =
-    blockCompression
+    block
       .decompressedBytes
       .map(IO.Success(_))
       .getOrElse {
-        if (Reserve.setBusyOrGet((), blockCompression.reserve).isEmpty)
+        if (Reserve.setBusyOrGet((), block.reserve).isEmpty)
           try
             compressedReader
-              .moveTo(offset.start + blockCompression.headerSize)
-              .read(offset.size - blockCompression.headerSize)
+              .moveTo(offset.start + block.headerSize)
+              .read(offset.size - block.headerSize)
               .flatMap {
                 compressedBytes =>
-                  blockCompression.decompressor.decompress(
+                  block.decompressor.decompress(
                     slice = compressedBytes,
-                    decompressLength = blockCompression.decompressedLength
+                    decompressLength = block.decompressedLength
                   ) map {
                     decompressedBytes =>
-                      blockCompression.decompressedBytes = decompressedBytes
+                      block.decompressedBytes = decompressedBytes
                       decompressedBytes
                   }
               }
           finally
-            Reserve.setFree(blockCompression.reserve)
+            Reserve.setFree(block.reserve)
         else
-          IO.Failure(IO.Error.DecompressingValues(blockCompression.reserve))
+          IO.Failure(IO.Error.DecompressingValues(block.reserve))
       }
 
-  def getDecompressedReader(blockCompression: BlockCompression.State,
-                            compressedReader: Reader,
-                            offset: OffsetBase): IO[Reader] =
-    BlockCompression.decompress(
-      blockCompression = blockCompression,
-      compressedReader = compressedReader,
-      offset = offset
-    ) map (Reader(_))
+  def blockReader(offset: OffsetBase,
+                  segmentReader: Reader,
+                  headerSize: Int,
+                  block: Option[Block.State]): BlockReader =
+    new BlockReader(
+      reader = segmentReader,
+      offset = offset,
+      headerSize = headerSize,
+      block = block
+    )
 }

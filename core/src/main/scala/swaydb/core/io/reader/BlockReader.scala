@@ -21,26 +21,33 @@ package swaydb.core.io.reader
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.segment.format.a.OffsetBase
-import swaydb.core.segment.format.a.block.BlockCompression
+import swaydb.core.segment.format.a.block.Block
 import swaydb.data.IO
 import swaydb.data.slice.{Reader, Slice}
 
-private[core] class CompressedBlockReader(reader: Reader,
-                                          offset: OffsetBase,
-                                          headerSize: Int,
-                                          blockCompression: Option[BlockCompression.State]) extends Reader with LazyLogging {
+/**
+  * Reader for the [[Block]] that skips [[Block.Header]] bytes.
+  */
+private[core] class BlockReader(reader: Reader,
+                                offset: OffsetBase,
+                                headerSize: Int,
+                                block: Option[Block.State]) extends Reader with LazyLogging {
 
   private var position: Int = 0
 
-  def block: IO[(Int, Reader)] =
-    blockCompression
+  def blockReader: IO[(Int, Reader)] =
+    block
       .map {
-        blockCompression =>
-          BlockCompression.getDecompressedReader(
-            blockCompression = blockCompression,
+        block =>
+          Block.decompress(
+            block = block,
             compressedReader = reader.copy(),
             offset = offset
-          ) map ((0, _)) //decompressed bytes, offsets not required, set to 0.
+          ) map {
+            decompressedBytes =>
+              //decompressed bytes, offsets not required, set to 0.
+              (0, Reader(decompressedBytes))
+          }
       }
       .getOrElse {
         IO.Success((offset.start + headerSize, reader.copy())) //no compression used. Set the offset.
@@ -63,19 +70,19 @@ private[core] class CompressedBlockReader(reader: Reader,
         (size - position) >= atLeastSize
     }
 
-  override def copy(): CompressedBlockReader =
-    new CompressedBlockReader(
+  override def copy(): BlockReader =
+    new BlockReader(
       reader = reader.copy(),
       offset = offset,
       headerSize = headerSize,
-      blockCompression = blockCompression
+      block = block
     )
 
   override def getPosition: Int =
     position
 
   override def get() =
-    block flatMap {
+    blockReader flatMap {
       case (offset, reader) =>
         reader
           .moveTo(offset + position)
@@ -88,7 +95,7 @@ private[core] class CompressedBlockReader(reader: Reader,
     }
 
   override def read(size: Int) =
-    block flatMap {
+    blockReader flatMap {
       case (offset, reader) =>
         reader
           .moveTo(offset + position)
