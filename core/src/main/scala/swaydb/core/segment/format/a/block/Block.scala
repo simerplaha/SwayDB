@@ -34,8 +34,8 @@ import swaydb.data.{IO, Reserve}
   */
 object Block extends LazyLogging {
 
-  val uncompressedFormatId: Byte = 0.toByte
-  val compressedFormatID: Byte = 1.toByte
+  val uncompressedBlockId: Byte = 0.toByte
+  val compressedBlockID: Byte = 1.toByte
 
   class CompressionInfo(val decompressor: DecompressorInternal,
                         val decompressedLength: Int,
@@ -89,7 +89,7 @@ object Block extends LazyLogging {
         IO {
           compressedBytes moveWritePosition 0
           compressedBytes addIntUnsigned headerSize
-          compressedBytes add compressedFormatID
+          compressedBytes add compressedBlockID
           compressedBytes addIntUnsigned compression.decompressor.id
           compressedBytes addIntUnsigned (bytes.written - headerSize) //decompressed bytes
           compressedBytes
@@ -105,15 +105,15 @@ object Block extends LazyLogging {
         IO {
           bytes moveWritePosition 0
           bytes addIntUnsigned headerSize
-          bytes add uncompressedFormatId
+          bytes add uncompressedBlockId
         }
     }
 
   private def validateFormatId(formatID: Int) =
-    if (formatID != Block.uncompressedFormatId && formatID != Block.compressedFormatID)
+    if (formatID != Block.uncompressedBlockId && formatID != Block.compressedBlockID)
       IO.Failure(
         IO.Error.Fatal(
-          new Exception(s"Invalid formatID: $formatID. Expected: ${Block.uncompressedFormatId} or ${Block.compressedFormatID}")
+          new Exception(s"Invalid formatID: $formatID. Expected: ${Block.uncompressedBlockId} or ${Block.compressedBlockID}")
         )
       )
     else
@@ -122,7 +122,7 @@ object Block extends LazyLogging {
   private def readCompressionInfo(formatID: Int,
                                   headerSize: Int,
                                   segmentReader: Reader): IO[Option[CompressionInfo]] =
-    if (formatID == compressedFormatID)
+    if (formatID == compressedBlockID)
       for {
         decompressor <- segmentReader.readIntUnsigned() flatMap (DecompressorInternal(_))
         decompressedLength <- segmentReader.readIntUnsigned()
