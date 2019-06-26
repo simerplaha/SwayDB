@@ -115,7 +115,7 @@ class SegmentWriterReaderSpec extends TestBase {
         bytes.isFull shouldBe true
 
         val readGroup = readAll(bytes).assertGet.asInstanceOf[Slice[KeyValue.ReadOnly.Group]]
-        val allKeyValuesForGroups = readGroup.flatMap(_.segmentCache.getAll().assertGet)
+        val allKeyValuesForGroups = readGroup.flatMap(_.segment.getAll().assertGet)
         allKeyValuesForGroups shouldBe groupKeyValues.toMemory
       }
     }
@@ -167,7 +167,7 @@ class SegmentWriterReaderSpec extends TestBase {
         val allBytes = readAll(bytes).assertGet
         allBytes.isInstanceOf[Slice[KeyValue.ReadOnly.Group]] shouldBe true
 
-        val allKeyValuesForGroups = allBytes.asInstanceOf[Slice[KeyValue.ReadOnly.Group]].flatMap(_.segmentCache.getAll().assertGet)
+        val allKeyValuesForGroups = allBytes.asInstanceOf[Slice[KeyValue.ReadOnly.Group]].flatMap(_.segment.getAll().assertGet)
         allKeyValuesForGroups shouldBe (group1KeyValues ++ group2KeyValues).toMemory
       }
     }
@@ -251,10 +251,10 @@ class SegmentWriterReaderSpec extends TestBase {
         rootGroup should have size 1
         rootGroup.isInstanceOf[Slice[KeyValue.ReadOnly.Group]] shouldBe true
 
-        val childGroups = rootGroup.head.asInstanceOf[KeyValue.ReadOnly.Group].segmentCache.getAll().assertGet
+        val childGroups = rootGroup.head.asInstanceOf[KeyValue.ReadOnly.Group].segment.getAll().assertGet
         childGroups.isInstanceOf[Slice[KeyValue.ReadOnly.Group]] shouldBe true
 
-        val allKeyValuesForGroups = childGroups.asInstanceOf[Slice[KeyValue.ReadOnly.Group]].flatMap(_.segmentCache.getAll().assertGet)
+        val allKeyValuesForGroups = childGroups.asInstanceOf[Slice[KeyValue.ReadOnly.Group]].flatMap(_.segment.getAll().assertGet)
         allKeyValuesForGroups shouldBe (group1KeyValues ++ group2KeyValues ++ group3KeyValues).toMemory
       }
     }

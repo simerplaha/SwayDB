@@ -96,7 +96,7 @@ class SegmentKeyValueLimiterSpec extends TestBase with Benchmark {
             headGroup.isValueDecompressed shouldBe false
             headGroup.isIndexDecompressed shouldBe false
             //since no key-values are read the group's key-values should be empty
-            headGroup.segmentCache(KeyOrder.default, keyValueLimiter).isCacheEmpty shouldBe true
+            headGroup.segment(KeyOrder.default, keyValueLimiter).isCacheEmpty shouldBe true
 
             //read all key-values and this should trigger dropping of key-values
             assertGet(nonGroupKeyValues, segment)
@@ -107,7 +107,7 @@ class SegmentKeyValueLimiterSpec extends TestBase with Benchmark {
               headGroup.isHeaderDecompressed shouldBe true
               headGroup.isValueDecompressed shouldBe true
               headGroup.isIndexDecompressed shouldBe true
-              headGroup.segmentCache(KeyOrder.default, keyValueLimiter).isCacheEmpty shouldBe true
+              headGroup.segment(KeyOrder.default, keyValueLimiter).isCacheEmpty shouldBe true
             }
 
             //but Segment's cache is never empties
@@ -167,7 +167,7 @@ class SegmentKeyValueLimiterSpec extends TestBase with Benchmark {
         headGroup.isValueDecompressed shouldBe true
         headGroup.isIndexDecompressed shouldBe true
         //the Groups's cache is not empty as all it's key-values are read.
-        headGroup.segmentCache(KeyOrder.default, keyValueLimiter).isCacheEmpty shouldBe false
+        headGroup.segment(KeyOrder.default, keyValueLimiter).isCacheEmpty shouldBe false
 
         //eventually the cache has dropped all key-values other then Group key-values. Group key-value is only decompressed
         eventual(2.seconds)(segment.cacheSize shouldBe 1)
@@ -178,7 +178,7 @@ class SegmentKeyValueLimiterSpec extends TestBase with Benchmark {
         //      headGroupAgain.isHeaderDecompressed shouldBe false
         headGroupAgain.isValueDecompressed shouldBe false
         headGroupAgain.isIndexDecompressed shouldBe false
-        headGroupAgain.segmentCache(KeyOrder.default, keyValueLimiter).isCacheEmpty shouldBe true
+        headGroupAgain.segment(KeyOrder.default, keyValueLimiter).isCacheEmpty shouldBe true
 
         segment.close.assertGet
       } finally {

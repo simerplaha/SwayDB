@@ -43,8 +43,8 @@ private[core] class BitwiseSegmentInitialiser(id: String,
   @volatile private var segment: BitwiseSegment = _
 
   @tailrec
-  final def create(implicit keyOrder: KeyOrder[Slice[Byte]],
-                   keyValueLimiter: KeyValueLimiter): BitwiseSegment =
+  final def get(implicit keyOrder: KeyOrder[Slice[Byte]],
+                keyValueLimiter: KeyValueLimiter): BitwiseSegment =
     if (segment != null) {
       segment
     } else if (created.compareAndSet(false, true)) {
@@ -59,7 +59,7 @@ private[core] class BitwiseSegmentInitialiser(id: String,
         )
       segment
     } else {
-      create
+      get
     }
 }
 
@@ -260,7 +260,7 @@ private[core] class BitwiseSegment(id: String,
 
           //check if the key belongs to this group.
           case Some(group: Persistent.Group) if group contains key =>
-            group.segmentCache.get(key)
+            group.segment.get(key)
 
           case Some(floorRange: Persistent.Range) if floorRange contains key =>
             IO.Success(Some(floorRange))
@@ -286,7 +286,7 @@ private[core] class BitwiseSegment(id: String,
 
                         case Some(group: Persistent.Group) =>
                           addToCache(group)
-                          group.segmentCache.get(key)
+                          group.segment.get(key)
 
                         case None =>
                           IO.none
@@ -340,7 +340,7 @@ private[core] class BitwiseSegment(id: String,
               IO.Success(Some(response))
 
             case group: Persistent.Group =>
-              group.segmentCache.lower(key)
+              group.segment.lower(key)
           } getOrElse {
             prepareIteration {
               (footer, binarySearchIndex, reader) =>
@@ -356,7 +356,7 @@ private[core] class BitwiseSegment(id: String,
 
                   case Some(group: Persistent.Group) =>
                     addToCache(group)
-                    group.segmentCache.lower(key)
+                    group.segment.lower(key)
 
                   case None =>
                     IO.none
@@ -415,7 +415,7 @@ private[core] class BitwiseSegment(id: String,
             IO.Success(Some(response))
 
           case group: Persistent.Group =>
-            group.segmentCache.higher(key)
+            group.segment.higher(key)
         } getOrElse {
           prepareIteration {
             (footer, binarySearchIndex, reader) =>
@@ -439,7 +439,7 @@ private[core] class BitwiseSegment(id: String,
 
                     case Some(group: Persistent.Group) =>
                       addToCache(group)
-                      group.segmentCache.higher(key)
+                      group.segment.higher(key)
 
                     case None =>
                       IO.none

@@ -187,8 +187,8 @@ private[core] object KeyValue {
       def minKey: Slice[Byte]
       def maxKey: MaxKey[Slice[Byte]]
       def header(): IO[GroupHeader]
-      def segmentCache(implicit keyOrder: KeyOrder[Slice[Byte]],
-                       keyValueLimiter: KeyValueLimiter): BitwiseSegment
+      def segment(implicit keyOrder: KeyOrder[Slice[Byte]],
+                  keyValueLimiter: KeyValueLimiter): BitwiseSegment
       def deadline: Option[Deadline]
     }
   }
@@ -529,9 +529,9 @@ private[swaydb] object Memory {
     def isValueDefined: Boolean =
       groupDecompressor.isIndexDecompressed()
 
-    def segmentCache(implicit keyOrder: KeyOrder[Slice[Byte]],
-                     keyValueLimiter: KeyValueLimiter): BitwiseSegment =
-      segmentCacheInitializer.create
+    def segment(implicit keyOrder: KeyOrder[Slice[Byte]],
+                keyValueLimiter: KeyValueLimiter): BitwiseSegment =
+      segmentCacheInitializer.get
 
     def header() =
       groupDecompressor.header()
@@ -1650,7 +1650,7 @@ private[core] object Persistent {
                    deadline: Option[Deadline],
                    isPrefixCompressed: Boolean) extends Persistent with KeyValue.ReadOnly.Group {
 
-    lazy val segmentManagerInitialiser =
+    lazy val segmentInitialiser =
       new BitwiseSegmentInitialiser(
         id = "Persistent.Group",
         minKey = minKey,
@@ -1697,9 +1697,9 @@ private[core] object Persistent {
     def uncompress(): Persistent.Group =
       copy(groupDecompressor = groupDecompressor.uncompress(), valueReader = valueReader.copy())
 
-    def segmentCache(implicit keyOrder: KeyOrder[Slice[Byte]],
-                     keyValueLimiter: KeyValueLimiter): BitwiseSegment =
-      segmentManagerInitialiser.create
+    def segment(implicit keyOrder: KeyOrder[Slice[Byte]],
+                keyValueLimiter: KeyValueLimiter): BitwiseSegment =
+      segmentInitialiser.get
 
     override def isValueDefined: Boolean =
       lazyGroupValueReader.isValueDefined

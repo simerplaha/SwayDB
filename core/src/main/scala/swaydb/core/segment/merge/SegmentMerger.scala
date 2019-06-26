@@ -730,7 +730,7 @@ private[core] object SegmentMerger extends LazyLogging {
                 IO.Failure(exception)
             }
           else //is in-group key. Open the Group and merge.
-            oldGroupKeyValue.segmentCache.getAll() match {
+            oldGroupKeyValue.segment.getAll() match {
               case IO.Success(oldGroupKeyValues) =>
                 doMerge(
                   newKeyValues,
@@ -760,7 +760,7 @@ private[core] object SegmentMerger extends LazyLogging {
                 IO.Failure(exception)
             }
           else //Group overlaps fixed key-value
-            newGroupKeyValue.segmentCache.getAll() match {
+            newGroupKeyValue.segment.getAll() match {
               case IO.Success(newGroupKeyValues) =>
                 doMerge(
                   MergeList[Memory.Range, KeyValue.ReadOnly](newGroupKeyValues) append newKeyValues.dropHead(),
@@ -798,7 +798,7 @@ private[core] object SegmentMerger extends LazyLogging {
                 doMerge(newKeyValues, oldKeyValues.dropHead())
 
               case IO.Success(_) =>
-                oldGroupKeyValue.segmentCache.getAll() match {
+                oldGroupKeyValue.segment.getAll() match {
                   case IO.Success(oldGroupKeyValues) =>
                     doMerge(
                       newKeyValues,
@@ -832,7 +832,7 @@ private[core] object SegmentMerger extends LazyLogging {
                 IO.Failure(exception)
             }
           else //Group overlaps fixed key-value
-            newGroupKeyValue.segmentCache.getAll() match {
+            newGroupKeyValue.segment.getAll() match {
               case IO.Success(newGroupKeyValues) =>
                 doMerge(
                   MergeList[Memory.Range, KeyValue.ReadOnly](newGroupKeyValues) append newKeyValues.dropHead(),
@@ -862,9 +862,9 @@ private[core] object SegmentMerger extends LazyLogging {
                 IO.Failure(exception)
             }
           else //Group overlaps fixed key-value
-            newGroupKeyValue.segmentCache.getAll() match {
+            newGroupKeyValue.segment.getAll() match {
               case IO.Success(newGroupKeyValues) =>
-                oldGroupKeyValue.segmentCache.getAll() match {
+                oldGroupKeyValue.segment.getAll() match {
                   case IO.Success(oldGroupKeyValues) =>
                     doMerge(
                       MergeList[Memory.Range, KeyValue.ReadOnly](newGroupKeyValues) append newKeyValues.dropHead(),

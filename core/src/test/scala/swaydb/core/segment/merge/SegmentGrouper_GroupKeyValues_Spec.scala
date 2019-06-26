@@ -137,7 +137,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
               createdInLevel = 0,
               maxProbe = TestData.maxProbe).assertGet.flatten
 
-          readAll(bytes).assertGet.head.asInstanceOf[Persistent.Group].segmentCache.getAll().assertGet shouldBe keyValues
+          readAll(bytes).assertGet.head.asInstanceOf[Persistent.Group].segment.getAll().assertGet shouldBe keyValues
         }
       }
 
@@ -341,7 +341,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
               maxProbe = TestData.maxProbe
         ).assertGet.flatten
 
-          readAll(bytes).assertGet.head.asInstanceOf[Persistent.Group].segmentCache.getAll().assertGet shouldBe otherKeyValues
+          readAll(bytes).assertGet.head.asInstanceOf[Persistent.Group].segment.getAll().assertGet shouldBe otherKeyValues
         }
       }
 
@@ -394,7 +394,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
               maxProbe = TestData.maxProbe
         ).assertGet.flatten
 
-          readAll(bytes).assertGet.head.asInstanceOf[Persistent.Group].segmentCache.getAll().assertGet shouldBe otherKeyValues
+          readAll(bytes).assertGet.head.asInstanceOf[Persistent.Group].segment.getAll().assertGet shouldBe otherKeyValues
         }
       }
 
@@ -476,7 +476,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
             maxProbe = TestData.maxProbe
         ).assertGet.flatten
 
-        readAll(bytes).assertGet.head.asInstanceOf[Persistent.Group].segmentCache.getAll().assertGet shouldBe keyValues
+        readAll(bytes).assertGet.head.asInstanceOf[Persistent.Group].segment.getAll().assertGet shouldBe keyValues
       }
 
       "a Group exists with key-values" in {
@@ -521,7 +521,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
 
         val readGroups = readAll(bytes).assertGet
         readGroups.head.asInstanceOf[Persistent.Group] shouldBe group
-        readGroups.last.asInstanceOf[Persistent.Group].segmentCache.getAll().assertGet shouldBe keyValues
+        readGroups.last.asInstanceOf[Persistent.Group].segment.getAll().assertGet shouldBe keyValues
       }
 
       "multiple Groups exists with key-values" in {
@@ -571,7 +571,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
         readGroups.head.asInstanceOf[Persistent.Group] shouldBe group1
         readGroups(1).asInstanceOf[Persistent.Group] shouldBe group2
         readGroups(2).asInstanceOf[Persistent.Group] shouldBe group3
-        readGroups.last.asInstanceOf[Persistent.Group].segmentCache.getAll().assertGet shouldBe keyValues
+        readGroups.last.asInstanceOf[Persistent.Group].segment.getAll().assertGet shouldBe keyValues
       }
 
       "randomly generated key-values but minimum compression requirement is met" in {
@@ -620,7 +620,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
               maxProbe = TestData.maxProbe
         ).assertGet.flatten
 
-          readAll(bytes).assertGet.head.asInstanceOf[Persistent.Group].segmentCache.getAll().assertGet shouldBe keyValues
+          readAll(bytes).assertGet.head.asInstanceOf[Persistent.Group].segment.getAll().assertGet shouldBe keyValues
         }
       }
     }

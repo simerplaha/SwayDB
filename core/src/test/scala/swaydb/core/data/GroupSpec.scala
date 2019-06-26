@@ -144,9 +144,9 @@ class GroupSpec extends TestBase {
       readGroup.isIndexDecompressed shouldBe false
       readGroup.isValueDecompressed shouldBe false
 
-      val segmentCache = readGroup.segmentCache
-      segmentCache.isCacheEmpty shouldBe true
-      segmentCache.get(keyValues.head.key).assertGet shouldBe keyValues.head
+      val bitwiseSegment = readGroup.segment
+      bitwiseSegment.isCacheEmpty shouldBe true
+      bitwiseSegment.get(keyValues.head.key).assertGet shouldBe keyValues.head
 
       readGroup.isHeaderDecompressed shouldBe true
       readGroup.isIndexDecompressed shouldBe true
@@ -159,9 +159,9 @@ class GroupSpec extends TestBase {
       uncompressedGroup.isHeaderDecompressed shouldBe false
       uncompressedGroup.isIndexDecompressed shouldBe false
       uncompressedGroup.isValueDecompressed shouldBe false
-      uncompressedGroup.segmentCache.isCacheEmpty shouldBe true
-      uncompressedGroup.segmentCache.get(keyValues.head.key).assertGet shouldBe keyValues.head
-      uncompressedGroup.segmentCache.isCacheEmpty shouldBe false
+      uncompressedGroup.segment.isCacheEmpty shouldBe true
+      uncompressedGroup.segment.get(keyValues.head.key).assertGet shouldBe keyValues.head
+      uncompressedGroup.segment.isCacheEmpty shouldBe false
     }
 
     "return a new instance of uncompressed Memory.Group" in {
@@ -198,9 +198,9 @@ class GroupSpec extends TestBase {
       readGroup.isIndexDecompressed shouldBe false
       readGroup.isValueDecompressed shouldBe false
 
-      val segmentCache = readGroup.segmentCache
-      segmentCache.isCacheEmpty shouldBe true
-      segmentCache.get(keyValues.head.key).assertGet shouldBe keyValues.head
+      val bitwiseSegment = readGroup.segment
+      bitwiseSegment.isCacheEmpty shouldBe true
+      bitwiseSegment.get(keyValues.head.key).assertGet shouldBe keyValues.head
 
       readGroup.isHeaderDecompressed shouldBe true
       readGroup.isIndexDecompressed shouldBe true
@@ -211,9 +211,9 @@ class GroupSpec extends TestBase {
       uncompressedGroup.isHeaderDecompressed shouldBe false
       uncompressedGroup.isIndexDecompressed shouldBe false
       uncompressedGroup.isValueDecompressed shouldBe false
-      uncompressedGroup.segmentCache.isCacheEmpty shouldBe true
-      uncompressedGroup.segmentCache.get(keyValues.head.key).assertGet shouldBe keyValues.head
-      uncompressedGroup.segmentCache.isCacheEmpty shouldBe false
+      uncompressedGroup.segment.isCacheEmpty shouldBe true
+      uncompressedGroup.segment.get(keyValues.head.key).assertGet shouldBe keyValues.head
+      uncompressedGroup.segment.isCacheEmpty shouldBe false
     }
   }
 }

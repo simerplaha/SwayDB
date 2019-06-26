@@ -245,7 +245,7 @@ private[segment] case class MemorySegment(path: Path,
 
                     case Some(group: Memory.Group) if group contains key =>
                       addToQueueMayBe(group)
-                      group.segmentCache.get(key) flatMap {
+                      group.segment.get(key) flatMap {
                         case Some(persistent) =>
                           persistent.toMemoryResponseOption()
 
@@ -278,7 +278,7 @@ private[segment] case class MemorySegment(path: Path,
               IO.Success(Some(response))
             case group: Memory.Group =>
               addToQueueMayBe(group)
-              group.segmentCache.lower(key) flatMap {
+              group.segment.lower(key) flatMap {
                 case Some(persistent) =>
                   persistent.toMemoryResponseOption()
                 case None =>
@@ -298,7 +298,7 @@ private[segment] case class MemorySegment(path: Path,
       case response: Memory.SegmentResponse =>
         IO.Success(Some(response))
       case group: Memory.Group =>
-        group.segmentCache.higher(key) flatMap {
+        group.segment.higher(key) flatMap {
           case Some(persistent) =>
             persistent.toMemoryResponseOption()
           case None =>
@@ -335,7 +335,7 @@ private[segment] case class MemorySegment(path: Path,
 
         case floorGroup: Memory.Group if floorGroup containsHigher key =>
           addToQueueMayBe(floorGroup)
-          floorGroup.segmentCache.higher(key) flatMap {
+          floorGroup.segment.higher(key) flatMap {
             case Some(persistent) =>
               persistent.toMemoryResponseOption()
             case None =>
@@ -397,7 +397,7 @@ private[segment] case class MemorySegment(path: Path,
               IO.Success(count + 1)
 
             case group: Group =>
-              group.segmentCache.getBloomFilterKeyValueCount() map (_ + count)
+              group.segment.getBloomFilterKeyValueCount() map (_ + count)
           }
       }
 

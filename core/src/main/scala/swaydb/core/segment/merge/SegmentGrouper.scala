@@ -315,7 +315,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
       case Some(keyValue) =>
         keyValue match {
           case keyValue: KeyValue.ReadOnly.Group =>
-            keyValue.segmentCache.getAll() match {
+            keyValue.segment.getAll() match {
               case IO.Success(groupKeyValues) =>
                 addKeyValues(
                   keyValues = MergeList[Memory.Range, KeyValue.ReadOnly](groupKeyValues) append keyValues.dropHead(),
@@ -746,7 +746,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
             }
 
         case group: KeyValue.ReadOnly.Group =>
-          group.segmentCache.getAll() flatMap {
+          group.segment.getAll() flatMap {
             keyValues =>
               addKeyValues(
                 keyValues = MergeList(keyValues),

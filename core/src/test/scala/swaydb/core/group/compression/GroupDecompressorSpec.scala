@@ -96,7 +96,7 @@ class GroupDecompressorSpec extends TestBase {
         //            right = unzipGroups(keyValues)
         //          ) mapIO {
         //            keyValue =>
-        //              IO.Async.runSafe(persistentGroup.segmentCache.get(keyValue.key).get).safeGetBlocking match {
+        //              IO.Async.runSafe(persistentGroup.bitwiseSegment.get(keyValue.key).get).safeGetBlocking match {
         //                case IO.Failure(exception) =>
         //                  IO.Failure(exception)
         //
@@ -115,7 +115,7 @@ class GroupDecompressorSpec extends TestBase {
         //        println("Done reading.")
         //        //cache should eventually be empty.
         //        eventual(20.seconds) {
-        //          persistentGroup.segmentCache.isCacheEmpty shouldBe true
+        //          persistentGroup.bitwiseSegment.isCacheEmpty shouldBe true
         //        }
         //        println("Cache is empty")
         ???

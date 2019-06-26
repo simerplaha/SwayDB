@@ -126,7 +126,7 @@ private[core] object SegmentAssigner {
                   assign(remainingKeyValues.dropHead(), thisSegmentMayBe, nextSegmentMayBe)
 
                 case _ =>
-                  keyValue.segmentCache.getAll() match {
+                  keyValue.segment.getAll() match {
                     case IO.Success(groupsKeyValues) =>
                       assign(
                         MergeList[Memory.Range, KeyValue.ReadOnly](groupsKeyValues) append remainingKeyValues.dropHead(),
@@ -187,7 +187,7 @@ private[core] object SegmentAssigner {
                   assign(remainingKeyValues.dropHead(), thisSegmentMayBe, nextSegmentMayBe)
 
                 case _ =>
-                  keyValue.segmentCache.getAll() match {
+                  keyValue.segment.getAll() match {
                     case IO.Success(groupsKeyValues) =>
                       assign(
                         MergeList[Memory.Range, KeyValue.ReadOnly](groupsKeyValues) append remainingKeyValues.dropHead(),

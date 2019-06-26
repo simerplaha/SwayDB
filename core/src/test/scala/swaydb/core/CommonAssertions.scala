@@ -112,7 +112,7 @@ object CommonAssertions {
 
       (actualMemory, expectedMemory) match {
         case (actual: Memory.Group, expected: Memory.Group) =>
-          actual.segmentCache.getAll().assertGet shouldBe expected.segmentCache.getAll().assertGet
+          actual.segment.getAll().assertGet shouldBe expected.segment.getAll().assertGet
         case _ =>
           actualMemory should be(expectedMemory)
       }
@@ -1159,7 +1159,7 @@ object CommonAssertions {
       case keyValue: KeyValue.WriteOnly.Group =>
         unzipGroups(keyValue.keyValues)
       case keyValue: KeyValue.ReadOnly.Group =>
-        unzipGroups(keyValue.segmentCache.getAll().get.safeGetBlocking())
+        unzipGroups(keyValue.segment.getAll().get.safeGetBlocking())
       case keyValue: KeyValue =>
         Slice(keyValue)
     }.toMemory.toTransient
@@ -1375,11 +1375,11 @@ object CommonAssertions {
     keyValues foreachBreak {
       case group: Persistent.Group =>
         println(s"$spaces " + " " * spaces + group.getClass.getSimpleName)
-        printGroupHierarchy(group.segmentCache.getAll().assertGet, spaces + 1)
+        printGroupHierarchy(group.segment.getAll().assertGet, spaces + 1)
         false
       case group: Memory.Group =>
         println(s"$spaces " + " " * spaces + group.getClass.getSimpleName)
-        printGroupHierarchy(group.segmentCache.getAll().assertGet, spaces + 1)
+        printGroupHierarchy(group.segment.getAll().assertGet, spaces + 1)
         false
       case _ =>
         true
@@ -1403,7 +1403,7 @@ object CommonAssertions {
 
   def openGroup(group: KeyValue.ReadOnly.Group)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                 keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter): Slice[KeyValue.ReadOnly] = {
-    val allKeyValues = group.segmentCache.getAll().assertGet
+    val allKeyValues = group.segment.getAll().assertGet
     allKeyValues flatMap {
       case group: KeyValue.ReadOnly.Group =>
         openGroup(group)

@@ -558,7 +558,7 @@ object TestData {
 
             case group: Memory.Group =>
               Transient.Group(
-                keyValues = group.segmentCache.getAll().assertGet.toTransient,
+                keyValues = group.segment.getAll().assertGet.toTransient,
                 indexCompression = randomCompression(),
                 valueCompression = randomCompression(),
                 falsePositiveRate = falsePositiveRate,
@@ -670,7 +670,7 @@ object TestData {
               )
 
             case group: Persistent.Group =>
-              val allKeyValues = group.segmentCache.getAll().assertGet.toTransient
+              val allKeyValues = group.segment.getAll().assertGet.toTransient
               Transient.Group(
                 keyValues = allKeyValues,
                 indexCompression = randomCompression(),

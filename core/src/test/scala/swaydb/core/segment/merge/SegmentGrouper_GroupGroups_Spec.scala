@@ -142,7 +142,7 @@ sealed trait SegmentGrouper_GroupGroups_Spec extends TestBase {
 
           val rootGroup = readAll(bytes).assertGet
           rootGroup should have size 1
-          rootGroup.head.asInstanceOf[Persistent.Group].segmentCache.getAll().assertGet shouldBe keyValues
+          rootGroup.head.asInstanceOf[Persistent.Group].segment.getAll().assertGet shouldBe keyValues
         }
       }
 
@@ -269,7 +269,7 @@ sealed trait SegmentGrouper_GroupGroups_Spec extends TestBase {
 
               val rootGroup = readAll(bytes).assertGet
               rootGroup should have size 1
-              rootGroup.head.asInstanceOf[Persistent.Group].segmentCache.getAll().assertGet shouldBe groups
+              rootGroup.head.asInstanceOf[Persistent.Group].segment.getAll().assertGet shouldBe groups
             }
         }
       }
@@ -321,7 +321,7 @@ sealed trait SegmentGrouper_GroupGroups_Spec extends TestBase {
 
         val rootGroup = readAll(bytes).assertGet
         rootGroup should have size 1
-        rootGroup.head.asInstanceOf[Persistent.Group].segmentCache.getAll().assertGet shouldBe groups
+        rootGroup.head.asInstanceOf[Persistent.Group].segment.getAll().assertGet shouldBe groups
       }
     }
   }
