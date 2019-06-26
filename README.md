@@ -12,7 +12,7 @@
 [build-badge]: https://travis-ci.com/simerplaha/SwayDB.svg?branch=master
 [build-link]: https://travis-ci.com/simerplaha/SwayDB
 
-Embeddable persistent and in-memory database focused on resource efficiency, performance 
+Embeddable persistent and in-memory database for resource efficiency, performance 
 and easy data management with simple collections API.
 
 [Documentation - SwayDB.io](http://swaydb.io).
@@ -71,15 +71,12 @@ db
 
 # Project status
 
-Undergoing changes & testing without maintaining of backward compatibility. 
+Undergoing frequent changes & beta testing.
 
-# Master branch status
-
-Development is done directly on master. So at times it will be unstable. 
-See the tags to get a more stable version.
+Default branch is `develop` and is pushed to directly. See the tags to see a more stable version.
 
 # Project support
-Thank you
+Thank you Jetbrains for providing an open-source licence for their awesome development tools. 
 
 <a href="https://www.jetbrains.com/?from=SwayDB" target="_blank"><img src="/docs/jetbrains.png" 
 alt="Jetbrains support" height="150" border="10" /></a>
