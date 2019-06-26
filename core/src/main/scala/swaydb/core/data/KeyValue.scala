@@ -28,14 +28,13 @@ import swaydb.core.map.serializer.{RangeValueSerializer, ValueSerializer}
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.format.a.entry.reader.value._
 import swaydb.core.segment.format.a.entry.writer._
-import swaydb.core.segment.{Segment, BitwiseSegment, BitwiseSegmentInitialiser}
+import swaydb.core.segment.{BitwiseSegment, BitwiseSegmentInitialiser, Segment}
 import swaydb.core.util.Bytes
 import swaydb.core.util.CollectionUtil._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.{IO, MaxKey}
 
-import scala.collection.SortedSet
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 
 private[core] sealed trait KeyValue {
@@ -1134,7 +1133,7 @@ private[core] object Transient {
   }
 }
 
-private[core] sealed trait Persistent extends KeyValue.ReadOnly with KeyValue.CacheAble {
+private[core] sealed trait Persistent extends KeyValue.CacheAble {
 
   val indexOffset: Int
   val nextIndexOffset: Int

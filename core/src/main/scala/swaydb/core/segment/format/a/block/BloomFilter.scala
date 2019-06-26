@@ -243,7 +243,7 @@ object BloomFilter extends LazyLogging {
                   .map {
                     index =>
                       if ((index & (1L << hashIndex)) == 0)
-                        Options.someFalse
+                        Options.`false`
                       else
                         None
                   }
