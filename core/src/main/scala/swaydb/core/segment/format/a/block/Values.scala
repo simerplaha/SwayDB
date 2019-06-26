@@ -81,7 +81,7 @@ object Values {
       result =>
         Values(
           offset =
-            if (result.block.isDefined)
+            if (result.compressionInfo.isDefined)
               offset
             else
               Offset(
@@ -89,7 +89,7 @@ object Values {
                 size = offset.size - result.headerSize
               ),
           block =
-            result.block
+            result.compressionInfo
         )
     }
 
@@ -180,4 +180,4 @@ object Values {
 }
 
 case class Values(offset: Values.Offset,
-                  block: Option[Block.State])
+                  block: Option[Block.CompressionInfo])

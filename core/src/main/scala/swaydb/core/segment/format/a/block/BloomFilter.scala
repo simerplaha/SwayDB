@@ -139,7 +139,7 @@ object BloomFilter extends LazyLogging {
         } yield
           BloomFilter(
             offset =
-              if (result.block.isDefined)
+              if (result.compressionInfo.isDefined)
                 offset
               else
                 Offset(
@@ -148,7 +148,7 @@ object BloomFilter extends LazyLogging {
                 ),
             maxProbe = maxProbe,
             numberOfBits = numberOfBits,
-            block = result.block
+            compressionInfo = result.compressionInfo
           )
     }
 
@@ -257,4 +257,4 @@ object BloomFilter extends LazyLogging {
 case class BloomFilter(offset: BloomFilter.Offset,
                        maxProbe: Int,
                        numberOfBits: Int,
-                       block: Option[Block.State])
+                       compressionInfo: Option[Block.CompressionInfo])

@@ -26,21 +26,21 @@ import swaydb.data.IO
 import swaydb.data.slice.{Reader, Slice}
 
 /**
-  * Reader for the [[Block]] that skips [[Block.Header]] bytes.
+  * Reader for the [[Block.CompressionInfo]] that skips [[Block.Header]] bytes.
   */
 private[core] class BlockReader(reader: Reader,
                                 offset: OffsetBase,
                                 headerSize: Int,
-                                block: Option[Block.State]) extends Reader with LazyLogging {
+                                compressionInfo: Option[Block.CompressionInfo]) extends Reader with LazyLogging {
 
   private var position: Int = 0
 
-  def blockReader: IO[(Int, Reader)] =
-    block
+  private def blockReader: IO[(Int, Reader)] =
+    compressionInfo
       .map {
         block =>
           Block.decompress(
-            block = block,
+            compressionInfo = block,
             compressedReader = reader.copy(),
             offset = offset
           ) map {
@@ -75,7 +75,7 @@ private[core] class BlockReader(reader: Reader,
       reader = reader.copy(),
       offset = offset,
       headerSize = headerSize,
-      block = block
+      compressionInfo = compressionInfo
     )
 
   override def getPosition: Int =

@@ -149,7 +149,7 @@ private[core] object HashIndex extends LazyLogging {
         } yield
           HashIndex(
             offset = offset,
-            blockDecompressor = result.block,
+            compressionInfo = result.compressionInfo,
             maxProbe = maxProbe,
             hit = hit,
             miss = miss,
@@ -289,11 +289,11 @@ private[core] object HashIndex extends LazyLogging {
       probe = 0,
       checkedHashIndexes = mutable.HashSet.empty,
       blockReader =
-        Block.blockReader(
+        Block.createReader(
           offset = hashIndex.offset,
           segmentReader = segmentReader,
           headerSize = hashIndex.headerSize,
-          block = hashIndex.blockDecompressor
+          compressionInfo = hashIndex.compressionInfo
         )
     )
   }
@@ -329,7 +329,7 @@ private[core] object HashIndex extends LazyLogging {
 }
 
 case class HashIndex(offset: HashIndex.Offset,
-                     blockDecompressor: Option[Block.State],
+                     compressionInfo: Option[Block.CompressionInfo],
                      maxProbe: Int,
                      hit: Int,
                      miss: Int,
@@ -338,5 +338,5 @@ case class HashIndex(offset: HashIndex.Offset,
                      allocatedBytes: Int) {
   val bytesToReadPerIndex = writeAbleLargestValueSize + 1 //+1 to read header 0 byte.
 
-  val isCompressed = blockDecompressor.isDefined
+  val isCompressed = compressionInfo.isDefined
 }

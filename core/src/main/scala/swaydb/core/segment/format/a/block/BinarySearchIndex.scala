@@ -170,7 +170,7 @@ object BinarySearchIndex {
             headerSize = result.headerSize,
             bytesPerValue = bytesPerValue,
             isFullBinarySearchIndex = isFullBinarySearchIndex,
-            block = result.block
+            compressionInfo = result.compressionInfo
           )
     }
 
@@ -286,7 +286,7 @@ case class BinarySearchIndex(offset: BinarySearchIndex.Offset,
                              headerSize: Int,
                              bytesPerValue: Int,
                              isFullBinarySearchIndex: Boolean,
-                             block: Option[Block.State]) {
+                             compressionInfo: Option[Block.CompressionInfo]) {
   val isVarInt: Boolean =
     BinarySearchIndex.isVarInt(bytesPerValue)
 }

@@ -29,7 +29,6 @@ import swaydb.data.compression.LZ4Compressor.{FastCompressor, HighCompressor}
 import swaydb.data.compression.LZ4Instance
 import swaydb.data.compression.LZ4Instance._
 import swaydb.data.slice.Slice
-import swaydb.data.util.PipeOps._
 
 private[swaydb] sealed trait CompressorInternal {
   val minCompressionPercentage: Double
@@ -43,10 +42,10 @@ private[swaydb] object CompressorInternal extends LazyLogging {
 
   def apply(instance: swaydb.data.compression.LZ4Instance,
             compressor: swaydb.data.compression.LZ4Compressor): CompressorInternal.LZ4 =
-    lz4Factory(instance) ==> {
-      factory =>
-        lz4Compressor(compressor, factory)
-    }
+    lz4Compressor(
+      compressor = compressor,
+      factory = lz4Factory(instance)
+    )
 
   private def lz4Factory(instance: LZ4Instance): LZ4Factory =
     instance match {
@@ -94,7 +93,7 @@ private[swaydb] object CompressorInternal extends LazyLogging {
   private[swaydb] case class LZ4(minCompressionPercentage: Double,
                                  compressor: LZ4Compressor) extends CompressorInternal {
 
-    val compressionName = this.getClass.getSimpleName
+    final val compressionName = this.getClass.getSimpleName
 
     override def compress(slice: Slice[Byte]): IO[Option[Slice[Byte]]] =
       compress(
@@ -122,7 +121,10 @@ private[swaydb] object CompressorInternal extends LazyLogging {
   }
 
   private[swaydb] case object UnCompressedGroup extends CompressorInternal {
-    val compressionName = this.getClass.getSimpleName.dropRight(1)
+
+    final val compressionName = this.getClass.getSimpleName.dropRight(1)
+
+    override final val minCompressionPercentage: Double = Double.MinValue
 
     override def compress(emptyHeadSpace: Int, slice: Slice[Byte]): IO[Option[Slice[Byte]]] =
       IO(Some(Slice.fill[Byte](emptyHeadSpace)(0) ++ slice))
@@ -131,13 +133,11 @@ private[swaydb] object CompressorInternal extends LazyLogging {
       logger.debug(s"Grouped {}.bytes with {}", slice.written, compressionName)
       IO.Success(Some(slice))
     }
-
-    override val minCompressionPercentage: Double = Double.MinValue
   }
 
   private[swaydb] case class Snappy(minCompressionPercentage: Double) extends CompressorInternal {
 
-    val compressionName = this.getClass.getSimpleName
+    final val compressionName = this.getClass.getSimpleName
 
     override def compress(slice: Slice[Byte]): IO[Option[Slice[Byte]]] =
       compress(emptyHeadSpace = 0, slice = slice)

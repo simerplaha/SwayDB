@@ -113,8 +113,8 @@ class HashIndexSpec extends TestBase {
         val uncompressedHashIndex = HashIndex.read(uncompressedOffset, Reader(uncompressedState.bytes)).get
         val compressedHashIndex = HashIndex.read(compressedOffset, Reader(compressedState.bytes)).get
 
-        uncompressedHashIndex.blockDecompressor shouldBe empty
-        compressedHashIndex.blockDecompressor shouldBe defined
+        uncompressedHashIndex.compressionInfo shouldBe empty
+        compressedHashIndex.compressionInfo shouldBe defined
 
         uncompressedHashIndex.headerSize shouldBe compressedHashIndex.headerSize
         uncompressedHashIndex.allocatedBytes shouldBe compressedHashIndex.allocatedBytes
@@ -126,14 +126,14 @@ class HashIndexSpec extends TestBase {
         uncompressedHashIndex.offset.start shouldBe compressedHashIndex.offset.start
         uncompressedHashIndex.offset.size should be >= compressedHashIndex.offset.size
 
-        val blockDecompressor = compressedHashIndex.blockDecompressor.get
+        val blockDecompressor = compressedHashIndex.compressionInfo.get
         blockDecompressor.decompressedLength shouldBe uncompressedState.bytes.written - uncompressedState.headerSize
         blockDecompressor.decompressedBytes shouldBe empty
         blockDecompressor.isBusy shouldBe false
 
         val decompressedBytes =
           Block.decompress(
-            block = compressedHashIndex.blockDecompressor.get,
+            compressionInfo = compressedHashIndex.compressionInfo.get,
             compressedReader = Reader(compressedState.bytes),
             offset = compressedOffset
           ).get
@@ -212,7 +212,7 @@ class HashIndexSpec extends TestBase {
           hashIndex shouldBe
             HashIndex(
               offset = adjustedOffset,
-              blockDecompressor = hashIndex.blockDecompressor,
+              compressionInfo = hashIndex.compressionInfo,
               maxProbe = state.maxProbe,
               hit = state.hit,
               miss = state.miss,
