@@ -288,8 +288,10 @@ private[core] object SegmentWriter extends LazyLogging {
       bloomFilter foreach {
         bloomFilter =>
           //temporary check.
-          if (bloomFilter.bytes.size != lastStats.segmentBloomFilterSize)
-            assert(false, s"BloomFilter size calculation were incorrect. Actual: ${bloomFilter.bytes.size}. Expected: ${lastStats.segmentBloomFilterSize}")
+          assert(
+            bloomFilter.bytes.size == lastStats.segmentBloomFilterSize,
+            s"BloomFilter size calculation were incorrect. Actual: ${bloomFilter.bytes.size}. Expected: ${lastStats.segmentBloomFilterSize}"
+          )
       }
 
       val sortedIndexSlice = Slice.create[Byte](lastStats.segmentSortedIndexSize)

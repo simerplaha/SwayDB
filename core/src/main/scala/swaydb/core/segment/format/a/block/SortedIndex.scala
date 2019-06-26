@@ -36,12 +36,14 @@ private[core] object SortedIndex {
 
   case class Offset(start: Int, size: Int) extends OffsetBase
 
-  case class State(bytes: Slice[Byte])
+  case class State(bytes: Slice[Byte],
+                   compressions: Seq[CompressionInternal])
 
   def init(keyValues: Iterable[KeyValue.WriteOnly],
            compressions: Seq[CompressionInternal]) =
     State(
-      Slice.create[Byte](keyValues.last.stats.segmentSortedIndexSize)
+      bytes = Slice.create[Byte](keyValues.last.stats.segmentSortedIndexSize),
+      compressions = compressions
     )
 
   def readNextKeyValue(previous: Persistent,
