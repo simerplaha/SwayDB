@@ -74,9 +74,9 @@ private[core] class BitwiseSegment(id: String,
   import keyOrder._
 
   @volatile private var footer: Either[Unit, IO.Success[SegmentFooter]] = Left()
-  @volatile private var hashIndexHeader: Either[Unit, IO.Success[Option[HashIndex]]] = Left()
-  @volatile private var bloomFilterHeader: Either[Unit, IO.Success[Option[BloomFilter]]] = Left()
-  @volatile private var binarySearchIndexHeader: Either[Unit, IO.Success[Option[BinarySearchIndex]]] = Left()
+  @volatile private var hashIndex: Either[Unit, IO.Success[Option[HashIndex]]] = Left()
+  @volatile private var bloomFilter: Either[Unit, IO.Success[Option[BloomFilter]]] = Left()
+  @volatile private var binarySearchIndex: Either[Unit, IO.Success[Option[BinarySearchIndex]]] = Left()
 
   /**
     * Notes for why use putIfAbsent before adding to cache:
@@ -162,7 +162,7 @@ private[core] class BitwiseSegment(id: String,
       }
 
   def getHashIndex(): IO[Option[HashIndex]] =
-    hashIndexHeader
+    hashIndex
       .getOrElse {
         getFooterAndReader() flatMap {
           case (footer, reader) =>
@@ -171,18 +171,18 @@ private[core] class BitwiseSegment(id: String,
                 HashIndex.read(offset, reader) map {
                   index =>
                     val someIndex = Some(index)
-                    this.hashIndexHeader = Right(IO.Success(someIndex))
+                    this.hashIndex = Right(IO.Success(someIndex))
                     someIndex
                 }
             } getOrElse {
-              this.hashIndexHeader = Right(IO.none)
+              this.hashIndex = Right(IO.none)
               IO.none
             }
         }
       }
 
   def getBloomFilter(): IO[Option[BloomFilter]] =
-    bloomFilterHeader
+    bloomFilter
       .getOrElse {
         getFooterAndReader() flatMap {
           case (footer, reader) =>
@@ -191,18 +191,18 @@ private[core] class BitwiseSegment(id: String,
                 BloomFilter.read(offset, reader) map {
                   index =>
                     val someIndex = Some(index)
-                    this.bloomFilterHeader = Right(IO.Success(someIndex))
+                    this.bloomFilter = Right(IO.Success(someIndex))
                     someIndex
                 }
             } getOrElse {
-              this.bloomFilterHeader = Right(IO.none)
+              this.bloomFilter = Right(IO.none)
               IO.none
             }
         }
       }
 
   def getBinarySearchIndex(): IO[Option[BinarySearchIndex]] =
-    binarySearchIndexHeader
+    binarySearchIndex
       .getOrElse {
         getFooterAndReader() flatMap {
           case (footer, reader) =>
@@ -211,11 +211,11 @@ private[core] class BitwiseSegment(id: String,
                 BinarySearchIndex.read(offset, reader) map {
                   index =>
                     val someIndex = Some(index)
-                    this.binarySearchIndexHeader = Right(IO.Success(someIndex))
+                    this.binarySearchIndex = Right(IO.Success(someIndex))
                     someIndex
                 }
             } getOrElse {
-              this.binarySearchIndexHeader = Right(IO.none)
+              this.binarySearchIndex = Right(IO.none)
               IO.none
             }
         }
@@ -484,7 +484,7 @@ private[core] class BitwiseSegment(id: String,
     footer.exists(_ => true)
 
   def isBloomFilterDefined: Boolean =
-    bloomFilterHeader.exists(_.exists(_.isDefined))
+    bloomFilter.exists(_.exists(_.isDefined))
 
   def createdInLevel: IO[Int] =
     getFooter().map(_.createdInLevel)
@@ -494,8 +494,8 @@ private[core] class BitwiseSegment(id: String,
 
   def close() = {
     footer = Left()
-    hashIndexHeader = Left()
-    binarySearchIndexHeader = Left()
-    bloomFilterHeader = Left()
+    hashIndex = Left()
+    binarySearchIndex = Left()
+    bloomFilter = Left()
   }
 }
