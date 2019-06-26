@@ -3,7 +3,7 @@ package swaydb.core.segment.format.a.block
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.core.CommonAssertions.eitherOne
 import swaydb.core.RunThis._
-import swaydb.core.TestData.{randomBytesSlice, randomIntMax}
+import swaydb.core.TestData.{randomBytesSlice, randomCompression, randomIntMax}
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.MatchResult
 import swaydb.core.util.Bytes
@@ -63,40 +63,43 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
   "it" should {
     "write full index" when {
       "all values have the same size" in {
-        Seq(0 to 127, 128 to 300, 16384 to 16384 + 200, Int.MaxValue - 5000 to Int.MaxValue - 1000) foreach {
-          values =>
-            val valuesCount = values.size
-            val largestValue = values.last
-            val state =
-              BinarySearchIndex.State(
-                largestValue = largestValue,
-                uniqueValuesCount = valuesCount,
-                isFullIndex = true
+        runThis(10.times) {
+          Seq(0 to 127, 128 to 300, 16384 to 16384 + 200, Int.MaxValue - 5000 to Int.MaxValue - 1000) foreach {
+            values =>
+              val valuesCount = values.size
+              val largestValue = values.last
+              val state =
+                BinarySearchIndex.State(
+                  largestValue = largestValue,
+                  uniqueValuesCount = valuesCount,
+                  isFullIndex = true,
+                  compressions = eitherOne(Seq.empty, Seq(randomCompression()))
+                )
+
+              values foreach {
+                offset =>
+                  BinarySearchIndex.write(value = offset, state = state).get
+              }
+
+              BinarySearchIndex.close(state).get
+
+              state.bytes.isFull shouldBe true
+
+              val index =
+                BinarySearchIndex.read(
+                  offset = BinarySearchIndex.Offset(0, state.bytes.written),
+                  reader = Reader(state.bytes)
+                ).get
+
+              //byte size of Int.MaxValue is 5, but the index will switch to using 4 byte ints.
+              index.bytesPerValue should be <= 4
+
+              assertFind(
+                bytes = state.bytes,
+                values = values,
+                index = index
               )
-
-            values foreach {
-              offset =>
-                BinarySearchIndex.write(value = offset, state = state).get
-            }
-
-            BinarySearchIndex.writeHeader(state).get
-
-            state.bytes.isFull shouldBe true
-
-            val index =
-              BinarySearchIndex.read(
-                offset = BinarySearchIndex.Offset(0, state.bytes.written),
-                reader = Reader(state.bytes)
-              ).get
-
-            //byte size of Int.MaxValue is 5, but the index will switch to using 4 byte ints.
-            index.bytesPerValue should be <= 4
-
-            assertFind(
-              bytes = state.bytes,
-              values = values,
-              index = index
-            )
+          }
         }
       }
     }
@@ -105,40 +108,43 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
   "it" should {
     "write full index" when {
       "all values have unique size" in {
-        val values = (126 to 130) ++ (16384 - 2 to 16384)
-        val valuesCount = values.size
-        val largestValue = values.last
-        val state =
-          BinarySearchIndex.State(
-            largestValue = largestValue,
-            uniqueValuesCount = valuesCount,
-            isFullIndex = true
+        runThis(10.times) {
+          val values = (126 to 130) ++ (16384 - 2 to 16384)
+          val valuesCount = values.size
+          val largestValue = values.last
+          val state =
+            BinarySearchIndex.State(
+              largestValue = largestValue,
+              uniqueValuesCount = valuesCount,
+              isFullIndex = true,
+              compressions = eitherOne(Seq.empty, Seq(randomCompression()))
+            )
+
+          values foreach {
+            value =>
+              BinarySearchIndex.write(value = value, state = state).get
+          }
+          BinarySearchIndex.close(state).get
+
+          state.writtenValues shouldBe values.size
+
+          val index =
+            BinarySearchIndex.read(
+              offset = BinarySearchIndex.Offset(0, state.bytes.written),
+              reader = Reader(state.bytes)
+            ).get
+
+          index.bytesPerValue shouldBe Bytes.sizeOf(largestValue)
+          val headerSize = BinarySearchIndex.optimalHeaderSize(largestValue = largestValue, valuesCount = values.size)
+          index.headerSize shouldBe headerSize
+          index.valuesCount shouldBe values.size
+
+          assertFind(
+            bytes = state.bytes,
+            values = values,
+            index = index
           )
-
-        values foreach {
-          value =>
-            BinarySearchIndex.write(value = value, state = state).get
         }
-        BinarySearchIndex.writeHeader(state).get
-
-        state.writtenValues shouldBe values.size
-
-        val index =
-          BinarySearchIndex.read(
-            offset = BinarySearchIndex.Offset(0, state.bytes.written),
-            reader = Reader(state.bytes)
-          ).get
-
-        index.bytesPerValue shouldBe Bytes.sizeOf(largestValue)
-        val headerSize = BinarySearchIndex.optimalHeaderSize(largestValue = largestValue, valuesCount = values.size)
-        index.headerSize shouldBe headerSize
-        index.valuesCount shouldBe values.size
-
-        assertFind(
-          bytes = state.bytes,
-          values = values,
-          index = index
-        )
       }
     }
   }

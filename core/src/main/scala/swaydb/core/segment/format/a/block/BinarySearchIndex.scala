@@ -19,8 +19,8 @@
 
 package swaydb.core.segment.format.a.block
 
+import swaydb.compression.CompressionInternal
 import swaydb.core.data.{KeyValue, Persistent}
-import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.{KeyMatcher, MatchResult, OffsetBase}
 import swaydb.core.util.Bytes
 import swaydb.data.IO
@@ -38,18 +38,21 @@ object BinarySearchIndex {
   object State {
     def apply(largestValue: Int,
               uniqueValuesCount: Int,
-              isFullIndex: Boolean): State =
+              isFullIndex: Boolean,
+              compressions: Seq[CompressionInternal]): State =
       State(
         largestValue = largestValue,
         uniqueValuesCount = uniqueValuesCount,
         isFullIndex = isFullIndex,
-        bytes = Slice.create[Byte](optimalBytesRequired(largestValue, uniqueValuesCount))
+        bytes = Slice.create[Byte](optimalBytesRequired(largestValue, uniqueValuesCount)),
+        compressions = compressions
       )
 
     def apply(largestValue: Int,
               uniqueValuesCount: Int,
               isFullIndex: Boolean,
-              bytes: Slice[Byte]): State =
+              bytes: Slice[Byte],
+              compressions: Seq[CompressionInternal]): State =
       new State(
         bytesPerValue = bytesToAllocatePerValue(largestValue),
         isFullIndex = isFullIndex,
@@ -61,7 +64,8 @@ object BinarySearchIndex {
             valuesCount = uniqueValuesCount
           ),
         uniqueValuesCount = uniqueValuesCount,
-        bytes = bytes
+        _bytes = bytes,
+        compressions = compressions
       )
   }
 
@@ -71,7 +75,8 @@ object BinarySearchIndex {
                    var writtenValues: Int,
                    headerSize: Int,
                    isFullIndex: Boolean,
-                   bytes: Slice[Byte]) {
+                   var _bytes: Slice[Byte],
+                   compressions: Seq[CompressionInternal]) {
 
     def incrementWrittenValuesCount() =
       writtenValues += 1
@@ -80,9 +85,15 @@ object BinarySearchIndex {
       this._previousWritten = previouslyWritten
 
     def previouslyWritten = _previousWritten
+
+    def bytes = _bytes
+
+    def bytes_=(bytes: Slice[Byte]) =
+      this._bytes = bytes
   }
 
-  def init(keyValues: Iterable[KeyValue.WriteOnly]) =
+  def init(keyValues: Iterable[KeyValue.WriteOnly],
+           compressions: Seq[CompressionInternal]) =
     if (keyValues.last.stats.segmentBinarySearchIndexSize <= 1)
       None
     else
@@ -90,7 +101,8 @@ object BinarySearchIndex {
         BinarySearchIndex.State(
           largestValue = keyValues.last.stats.thisKeyValuesAccessIndexOffset,
           uniqueValuesCount = keyValues.last.stats.segmentUniqueKeysCount,
-          isFullIndex = keyValues.last.buildFullBinarySearchIndex
+          isFullIndex = keyValues.last.buildFullBinarySearchIndex,
+          compressions = compressions
         )
       )
 
@@ -116,7 +128,7 @@ object BinarySearchIndex {
                         valuesCount: Int): Int = {
 
     val headerSize =
-      ByteSizeOf.byte + //formatId
+      BlockCompression.headerSize +
         Bytes.sizeOf(valuesCount) + //uniqueValuesCount
         ByteSizeOf.int + //bytesPerValue
         ByteSizeOf.boolean //isFullIndex
@@ -125,54 +137,44 @@ object BinarySearchIndex {
       headerSize
   }
 
-  def writeHeader(state: State): IO[Unit] =
+  def close(state: State): IO[Unit] =
     if (state.writtenValues != state.uniqueValuesCount)
       IO.Failure(IO.Error.Fatal(s"Binary search index incomplete. Written: ${state.writtenValues}. Expected: ${state.uniqueValuesCount}"))
     else
-      IO {
-        state.bytes moveWritePosition 0
-        state.bytes addIntUnsigned state.headerSize
-        state.bytes add formatId
-        state.bytes addIntUnsigned state.uniqueValuesCount
-        state.bytes addInt state.bytesPerValue
-        state.bytes addBoolean state.isFullIndex
+      BlockCompression.compressAndUpdateHeader(
+        headerSize = state.headerSize,
+        bytes = state.bytes,
+        compressions = state.compressions
+      ) flatMap {
+        compressedOrUncompressedBytes =>
+          IO {
+            state.bytes = compressedOrUncompressedBytes
+            state.bytes addIntUnsigned state.uniqueValuesCount
+            state.bytes addInt state.bytesPerValue
+            state.bytes addBoolean state.isFullIndex
+            if (state.bytes.currentWritePosition > state.headerSize)
+              throw new Exception(s"Calculated header size was incorrect. Expected: ${state.headerSize}. Used: ${state.bytes.currentWritePosition - 1}")
+          }
       }
 
   def read(offset: Offset,
-           reader: Reader): IO[BinarySearchIndex] = {
-    val movedReader = reader.moveTo(offset.start)
-    movedReader
-      .readIntUnsigned()
-      .flatMap {
-        headerSize =>
-          movedReader
-            .read(headerSize)
-            .flatMap {
-              headBytes =>
-                val headerReader = Reader(headBytes)
-                headerReader
-                  .get()
-                  .flatMap {
-                    formatId =>
-                      if (formatId != this.formatId)
-                        IO.Failure(new Exception(s"Invalid formatID: $formatId"))
-                      else
-                        for {
-                          valuesCount <- headerReader.readIntUnsigned()
-                          bytesPerValue <- headerReader.readInt()
-                          isFullBinarySearchIndex <- headerReader.readBoolean()
-                        } yield
-                          BinarySearchIndex(
-                            offset = offset,
-                            valuesCount = valuesCount,
-                            headerSize = headerSize,
-                            bytesPerValue = bytesPerValue,
-                            isFullBinarySearchIndex = isFullBinarySearchIndex
-                          )
-                  }
-            }
-      }
-  }
+           reader: Reader): IO[BinarySearchIndex] =
+    BlockCompression.readHeader(offset = offset, reader = reader) flatMap {
+      result =>
+        for {
+          valuesCount <- result.headerReader.readIntUnsigned()
+          bytesPerValue <- result.headerReader.readInt()
+          isFullBinarySearchIndex <- result.headerReader.readBoolean()
+        } yield
+          BinarySearchIndex(
+            offset = offset,
+            valuesCount = valuesCount,
+            headerSize = result.headerSize,
+            bytesPerValue = bytesPerValue,
+            isFullBinarySearchIndex = isFullBinarySearchIndex,
+            blockCompression = result.blockCompression
+          )
+    }
 
   def write(value: Int,
             state: State): IO[Unit] =
@@ -196,17 +198,16 @@ object BinarySearchIndex {
         state.previouslyWritten = value
       }
 
-  def find(index: BinarySearchIndex,
-           reader: Reader,
-           assertValue: Int => IO[MatchResult]): IO[Option[Persistent]] = {
-
-    val minimumOffset = index.offset.start + index.headerSize
+  private def search(index: BinarySearchIndex,
+                     reader: Reader,
+                     baseOffset: Int,
+                     assertValue: Int => IO[MatchResult]) = {
 
     @tailrec
     def hop(start: Int, end: Int): IO[Option[Persistent]] = {
       val mid = start + (end - start) / 2
 
-      val valueOffset = minimumOffset + (mid * index.bytesPerValue)
+      val valueOffset = baseOffset + (mid * index.bytesPerValue)
       if (start > end)
         IO.none
       else {
@@ -223,10 +224,10 @@ object BinarySearchIndex {
                 IO.Success(Some(result))
 
               case MatchResult.Next =>
-                hop(mid + 1, end)
+                hop(start = mid + 1, end = end)
 
               case MatchResult.Stop =>
-                hop(start, mid - 1)
+                hop(start = start, end = mid - 1)
             }
           case IO.Failure(error) =>
             IO.Failure(error)
@@ -236,6 +237,32 @@ object BinarySearchIndex {
 
     hop(start = 0, end = index.valuesCount - 1)
   }
+
+  def find(index: BinarySearchIndex,
+           reader: Reader,
+           assertValue: Int => IO[MatchResult]): IO[Option[Persistent]] =
+    index
+      .blockCompression
+      .map {
+        blockDecompressor =>
+          BlockCompression.getDecompressedReader(
+            blockDecompressor = blockDecompressor,
+            compressedReader = reader,
+            offset = index.offset
+          ) map ((0, _)) //decompressed bytes, offsets not required, set to 0.
+      }
+      .getOrElse {
+        IO.Success((index.offset.start + index.headerSize, reader)) //no compression used. Set the offset.
+      }
+      .flatMap {
+        case (startOffset, decompressedReader) =>
+          search(
+            reader = decompressedReader,
+            baseOffset = startOffset,
+            assertValue = assertValue,
+            index = index
+          )
+      }
 
   def get(matcher: KeyMatcher.Get,
           reader: Reader,
@@ -259,7 +286,8 @@ case class BinarySearchIndex(offset: BinarySearchIndex.Offset,
                              valuesCount: Int,
                              headerSize: Int,
                              bytesPerValue: Int,
-                             isFullBinarySearchIndex: Boolean) {
+                             isFullBinarySearchIndex: Boolean,
+                             blockCompression: Option[BlockCompression.State]) {
   val isVarInt: Boolean =
     BinarySearchIndex.isVarInt(bytesPerValue)
 }

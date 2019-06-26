@@ -148,7 +148,7 @@ object BloomFilter extends LazyLogging {
                 ),
             maxProbe = maxProbe,
             numberOfBits = numberOfBits,
-            blockDecompressor = result.blockCompression
+            blockCompression = result.blockCompression
           )
     }
 
@@ -217,7 +217,7 @@ object BloomFilter extends LazyLogging {
     val hash2 = (hash << 32) >> 32
 
     bloom
-      .blockDecompressor
+      .blockCompression
       .map {
         blockDecompressor =>
           BlockCompression.getDecompressedReader(
@@ -256,6 +256,4 @@ object BloomFilter extends LazyLogging {
 case class BloomFilter(offset: BloomFilter.Offset,
                        maxProbe: Int,
                        numberOfBits: Int,
-                       blockDecompressor: Option[BlockCompression.State]) {
-  val isCompressed = blockDecompressor.isDefined
-}
+                       blockCompression: Option[BlockCompression.State])

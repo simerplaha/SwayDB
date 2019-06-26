@@ -191,7 +191,7 @@ private[core] object SegmentWriter extends LazyLogging {
                            binarySearchIndex: Option[BinarySearchIndex.State]): IO[Unit] =
     IO {
       hashIndex foreach HashIndex.close
-      binarySearchIndex foreach BinarySearchIndex.writeHeader
+      binarySearchIndex foreach BinarySearchIndex.close
     }
 
   private def writeKeyValueBytes(keyValue: KeyValue.WriteOnly,
@@ -283,7 +283,7 @@ private[core] object SegmentWriter extends LazyLogging {
       val lastStats = keyValues.last.stats
 
       val hashIndex = HashIndex.init(maxProbe = maxProbe, keyValues = keyValues, compressions = Seq.empty)
-      val binarySearchIndex = BinarySearchIndex.init(keyValues = keyValues)
+      val binarySearchIndex = BinarySearchIndex.init(keyValues = keyValues, compressions = Seq.empty)
       val bloomFilter = BloomFilter.init(keyValues = keyValues, compressions = Seq.empty)
       bloomFilter foreach {
         bloomFilter =>

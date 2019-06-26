@@ -116,8 +116,7 @@ private[core] object HashIndex extends LazyLogging {
       Try(compensate(bytesWithOutCompensation)).getOrElse(0) //optionally add more space or remove.
   }
 
-  def close(state: State): IO[Unit] = {
-    val allocatedBytes = state.bytes.size
+  def close(state: State): IO[Unit] =
     BlockCompression.compressAndUpdateHeader(
       headerSize = state.headerSize,
       bytes = state.bytes,
@@ -125,6 +124,7 @@ private[core] object HashIndex extends LazyLogging {
     ) flatMap {
       compressedOrUncompressedBytes =>
         IO {
+          val allocatedBytes = state.bytes.size
           state.bytes = compressedOrUncompressedBytes
           state.bytes addInt allocatedBytes //allocated bytes
           state.bytes addInt state.maxProbe
@@ -135,7 +135,6 @@ private[core] object HashIndex extends LazyLogging {
             throw new Exception(s"Calculated header size was incorrect. Expected: ${state.headerSize}. Used: ${state.bytes.currentWritePosition - 1}")
         }
     }
-  }
 
   def read(offset: Offset, reader: Reader): IO[HashIndex] =
     BlockCompression.readHeader(offset = offset, reader = reader) flatMap {
