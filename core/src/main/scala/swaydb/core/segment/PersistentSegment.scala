@@ -67,7 +67,7 @@ private[segment] case class PersistentSegment(file: DBFile,
       minKey = minKey,
       cache = cache,
       unsliceKey = true,
-      createReader = () => IO.Success(Reader(file))
+      createSegmentReader = () => IO.Success(Reader(file))
     )
 
   def close: IO[Unit] =

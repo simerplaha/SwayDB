@@ -33,82 +33,59 @@ import swaydb.data.slice.Slice
 private[swaydb] trait Core[T[_]] {
 
   def put(key: Slice[Byte]): T[IO.OK]
-
   def put(key: Slice[Byte], value: Slice[Byte]): T[IO.OK]
-
   def put(key: Slice[Byte], value: Option[Slice[Byte]]): T[IO.OK]
-
   def put(key: Slice[Byte], value: Option[Slice[Byte]], removeAt: Deadline): T[IO.OK]
-
   def put(entries: Iterable[Prepare[Slice[Byte], Option[Slice[Byte]]]]): T[IO.OK]
 
   def remove(key: Slice[Byte]): T[IO.OK]
-
   def remove(key: Slice[Byte], at: Deadline): T[IO.OK]
-
   def remove(from: Slice[Byte], to: Slice[Byte]): T[IO.OK]
-
   def remove(from: Slice[Byte], to: Slice[Byte], at: Deadline): T[IO.OK]
 
   def update(key: Slice[Byte], value: Slice[Byte]): T[IO.OK]
-
   def update(key: Slice[Byte], value: Option[Slice[Byte]]): T[IO.OK]
-
   def update(fromKey: Slice[Byte], to: Slice[Byte], value: Slice[Byte]): T[IO.OK]
-
   def update(fromKey: Slice[Byte], to: Slice[Byte], value: Option[Slice[Byte]]): T[IO.OK]
 
-  def clear(): T[IO.OK]
-
   def function(key: Slice[Byte], function: Slice[Byte]): T[IO.OK]
-
   def function(from: Slice[Byte], to: Slice[Byte], function: Slice[Byte]): T[IO.OK]
-
   def registerFunction(functionID: Slice[Byte], function: SwayFunction): SwayFunction
 
   def head: T[Option[KeyValueTuple]]
-
   def headKey: T[Option[Slice[Byte]]]
 
   def last: T[Option[KeyValueTuple]]
-
   def lastKey: T[Option[Slice[Byte]]]
 
-  def bloomFilterKeyValueCount: T[Int]
-
-  def deadline(key: Slice[Byte]): T[Option[Deadline]]
-
-  def sizeOfSegments: Long
-
   def contains(key: Slice[Byte]): T[Boolean]
-
   def mightContain(key: Slice[Byte]): T[Boolean]
 
   def get(key: Slice[Byte]): T[Option[Option[Slice[Byte]]]]
-
   def getKey(key: Slice[Byte]): T[Option[Slice[Byte]]]
-
   def getKeyValue(key: Slice[Byte]): T[Option[KeyValueTuple]]
 
   def before(key: Slice[Byte]): T[Option[KeyValueTuple]]
-
   def beforeKey(key: Slice[Byte]): T[Option[Slice[Byte]]]
 
   def after(key: Slice[Byte]): T[Option[KeyValueTuple]]
-
   def afterKey(key: Slice[Byte]): T[Option[Slice[Byte]]]
 
   def valueSize(key: Slice[Byte]): T[Option[Int]]
 
   def level0Meter: LevelZeroMeter
-
   def levelMeter(levelNumber: Int): Option[LevelMeter]
 
-  def close(): T[Unit]
+  def tagAsync[T[_]](implicit ec: ExecutionContext, tag: TagAsync[T]): Core[T]
+  def tagBlocking[T[_]](implicit tag: Tag[T]): BlockingCore[T]
 
+  def close(): T[Unit]
   def delete(): T[Unit]
 
-  def tagAsync[T[_]](implicit ec: ExecutionContext, tag: TagAsync[T]): Core[T]
+  def bloomFilterKeyValueCount: T[Int]
+  def sizeOfSegments: Long
 
-  def tagBlocking[T[_]](implicit tag: Tag[T]): BlockingCore[T]
+  def deadline(key: Slice[Byte]): T[Option[Deadline]]
+
+  def clear(): T[IO.OK]
 }

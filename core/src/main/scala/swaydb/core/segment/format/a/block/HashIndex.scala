@@ -22,6 +22,7 @@ package swaydb.core.segment.format.a.block
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.{KeyValue, Persistent}
+import swaydb.core.io.reader.CompressedBlockReader
 import swaydb.core.segment.format.a.{KeyMatcher, OffsetBase}
 import swaydb.core.util.Bytes
 import swaydb.data.IO
@@ -221,9 +222,8 @@ private[core] object HashIndex extends LazyLogging {
     * @param assertValue performs find or forward fetch from the currently being read sorted index's hash block.
     */
   private[block] def find[V](key: Slice[Byte],
-                             offset: HashIndex.Offset,
                              hashIndex: HashIndex,
-                             reader: Reader,
+                             segmentReader: Reader,
                              assertValue: Int => IO[Option[V]]): IO[Option[V]] = {
 
     val hash = key.##
@@ -231,42 +231,36 @@ private[core] object HashIndex extends LazyLogging {
     val hash2 = (hash << 32) >> 32
 
     @tailrec
-    def doFind(probe: Int, reader: Reader, checkedHashIndexes: mutable.HashSet[Int]): IO[Option[V]] =
+    def doFind(probe: Int, decompressedReader: CompressedBlockReader, checkedHashIndexes: mutable.HashSet[Int]): IO[Option[V]] =
       if (probe > hashIndex.maxProbe) {
         IO.none
       } else {
-        val hashedIndex =
+        val index =
           adjustHash(
             hash = hash1 + probe * hash2,
             totalBlockSpace = hashIndex.allocatedBytes,
             headerSize = hashIndex.headerSize,
             writeAbleLargestValueSize = hashIndex.writeAbleLargestValueSize
-          )
-
-        val index =
-          if (hashIndex.isCompressed)
-            hashedIndex - hashIndex.headerSize //compressed will contain only the decompressed bytes. No offset adjustments required.
-          else
-            offset.start + hashedIndex //if it's not compressed then the full reader is available. Move to the right offset.
+          ) - hashIndex.headerSize
 
         if (checkedHashIndexes contains index) //do not check the same index again.
-          doFind(probe + 1, reader, checkedHashIndexes)
+          doFind(probe + 1, decompressedReader, checkedHashIndexes)
         else
-          reader
+          decompressedReader
             .moveTo(index)
             .read(hashIndex.bytesToReadPerIndex) match {
             case IO.Success(possibleValueBytes) =>
               //println(s"Key: ${key.readInt()}: read hashIndex: $hashedIndex probe: $probe. sortedIndex bytes: $possibleValueBytes")
               if (possibleValueBytes.head != 0) { //head should never be empty because the hash adjusts it.
                 //println(s"Key: ${key.readInt()}: read hashIndex: $hashedIndex probe: $probe = failure - invalid start offset.")
-                doFind(probe + 1, reader, checkedHashIndexes)
+                doFind(probe + 1, decompressedReader, checkedHashIndexes)
               } else {
                 val possibleValueWithoutHeader = possibleValueBytes.dropHead()
                 possibleValueWithoutHeader.readIntUnsigned() match {
                   case IO.Success(possibleValue) =>
                     //println(s"Key: ${key.readInt()}: read hashIndex: $hashedIndex probe: $probe, sortedIndex: ${possibleValue - 1} = reading now!")
                     if (possibleValue == 0 || possibleValueWithoutHeader.take(Bytes.sizeOf(possibleValue)).exists(_ == 0))
-                      doFind(probe + 1, reader, checkedHashIndexes)
+                      doFind(probe + 1, decompressedReader, checkedHashIndexes)
                     else
                       assertValue(possibleValue - 1) match { //assert value removing the 1 added on write.
                         case success @ IO.Success(Some(_)) =>
@@ -275,7 +269,7 @@ private[core] object HashIndex extends LazyLogging {
 
                         case IO.Success(None) =>
                           //println(s"Key: ${key.readInt()}: read hashIndex: $hashedIndex probe: $probe: sortedIndex: ${possibleValue - 1} = not found")
-                          doFind(probe + 1, reader, checkedHashIndexes += index)
+                          doFind(probe + 1, decompressedReader, checkedHashIndexes += index)
 
                         case IO.Failure(error) =>
                           IO.Failure(error)
@@ -291,27 +285,11 @@ private[core] object HashIndex extends LazyLogging {
           }
       }
 
-    hashIndex.blockDecompressor map {
-      blockDecompressor =>
-        BlockCompression.getDecompressedReader(
-          blockDecompressor = blockDecompressor,
-          compressedReader = reader,
-          offset = offset
-        ) flatMap {
-          decompressedBytes =>
-            doFind(
-              probe = 0,
-              reader = decompressedBytes,
-              checkedHashIndexes = mutable.HashSet.empty
-            )
-        }
-    } getOrElse {
-      doFind(
-        probe = 0,
-        reader = reader,
-        checkedHashIndexes = mutable.HashSet.empty
-      )
-    }
+    doFind(
+      probe = 0,
+      decompressedReader = hashIndex compressedBlockReader segmentReader,
+      checkedHashIndexes = mutable.HashSet.empty
+    )
   }
 
   private[a] def get(matcher: KeyMatcher.GetNextPrefixCompressed,
@@ -320,8 +298,7 @@ private[core] object HashIndex extends LazyLogging {
                      sortedIndexOffset: SortedIndex.Offset): IO[Option[Persistent]] =
     find(
       key = matcher.key,
-      offset = hashIndex.offset,
-      reader = reader,
+      segmentReader = reader,
       hashIndex = hashIndex,
       assertValue =
         sortedIndexOffsetValue =>
@@ -356,4 +333,12 @@ case class HashIndex(offset: HashIndex.Offset,
   val bytesToReadPerIndex = writeAbleLargestValueSize + 1 //+1 to read header 0 byte.
 
   val isCompressed = blockDecompressor.isDefined
+
+  def compressedBlockReader(segmentReader: Reader): CompressedBlockReader =
+    new CompressedBlockReader(
+      reader = segmentReader,
+      offset = offset,
+      headerSize = headerSize,
+      blockCompression = blockDecompressor
+    )
 }

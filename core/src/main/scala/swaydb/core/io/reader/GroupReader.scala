@@ -48,7 +48,7 @@ private[core] class GroupReader(decompressedValuesSize: Int,
         (size - position) >= atLeastSize
     }
 
-  override def copy(): GroupReader =
+  override def copy(): Reader =
     new GroupReader(
       decompressedValuesSize = decompressedValuesSize,
       startIndexOffset = startIndexOffset,

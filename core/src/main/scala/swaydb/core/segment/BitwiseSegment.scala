@@ -55,7 +55,7 @@ private[core] class BitwiseSegmentInitialiser(id: String,
           minKey = minKey,
           cache = new ConcurrentSkipListMap[Slice[Byte], Persistent](keyOrder),
           unsliceKey = unsliceKey,
-          createReader = createReader
+          createSegmentReader = createReader
         )
       segment
     } else {
@@ -68,8 +68,8 @@ private[core] class BitwiseSegment(id: String,
                                    minKey: Slice[Byte],
                                    cache: ConcurrentSkipListMap[Slice[Byte], Persistent],
                                    unsliceKey: Boolean,
-                                   createReader: () => IO[Reader])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                   keyValueLimiter: KeyValueLimiter) extends LazyLogging {
+                                   createSegmentReader: () => IO[Reader])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                          keyValueLimiter: KeyValueLimiter) extends LazyLogging {
 
   import keyOrder._
 
@@ -104,7 +104,7 @@ private[core] class BitwiseSegment(id: String,
       footer <- getFooter()
       hashIndex <- getHashIndex()
       binarySearchIndex <- getBinarySearchIndex()
-      reader <- createReader()
+      reader <- createSegmentReader()
       get <- getOperation(footer, hashIndex, binarySearchIndex, reader)
     } yield {
       get
@@ -118,7 +118,7 @@ private[core] class BitwiseSegment(id: String,
     for {
       footer <- getFooter()
       binarySearchIndex <- getBinarySearchIndex()
-      reader <- createReader()
+      reader <- createSegmentReader()
       get <- getOperation(footer, binarySearchIndex, reader)
     } yield {
       get
@@ -131,7 +131,7 @@ private[core] class BitwiseSegment(id: String,
   def getFooter(): IO[SegmentFooter] =
     footer
       .getOrElse {
-        createReader() flatMap {
+        createSegmentReader() flatMap {
           reader =>
             SegmentFooter.read(reader) map {
               footer =>
@@ -146,12 +146,12 @@ private[core] class BitwiseSegment(id: String,
       .map {
         footer =>
           for {
-            reader <- createReader()
+            reader <- createSegmentReader()
             footer <- footer
           } yield (footer, reader)
       }
       .getOrElse {
-        createReader() flatMap {
+        createSegmentReader() flatMap {
           reader =>
             SegmentFooter.read(reader) map {
               footer =>
@@ -229,7 +229,7 @@ private[core] class BitwiseSegment(id: String,
       bloom <- getBloomFilter()
       contains <- bloom map {
         bloom =>
-          createReader() flatMap {
+          createSegmentReader() flatMap {
             reader =>
               BloomFilter.mightContain(
                 key = key,

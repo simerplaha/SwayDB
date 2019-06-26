@@ -1649,7 +1649,7 @@ private[core] object Persistent {
                    deadline: Option[Deadline],
                    isPrefixCompressed: Boolean) extends Persistent with KeyValue.ReadOnly.Group {
 
-    lazy val segmentInitialiser =
+    private lazy val bitwiseSegment =
       new BitwiseSegmentInitialiser(
         id = "Persistent.Group",
         minKey = minKey,
@@ -1698,7 +1698,7 @@ private[core] object Persistent {
 
     def segment(implicit keyOrder: KeyOrder[Slice[Byte]],
                 keyValueLimiter: KeyValueLimiter): BitwiseSegment =
-      segmentInitialiser.get
+      bitwiseSegment.get
 
     override def isValueDefined: Boolean =
       lazyGroupValueReader.isValueDefined

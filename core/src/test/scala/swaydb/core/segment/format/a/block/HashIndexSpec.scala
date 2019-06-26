@@ -133,7 +133,7 @@ class HashIndexSpec extends TestBase {
 
         val decompressedBytes =
           BlockCompression.decompress(
-            blockDecompressor = compressedHashIndex.blockDecompressor.get,
+            blockCompression = compressedHashIndex.blockDecompressor.get,
             compressedReader = Reader(compressedState.bytes),
             offset = compressedOffset
           ).get
@@ -196,11 +196,22 @@ class HashIndexSpec extends TestBase {
           state.hit + state.miss shouldBe keyValues.size
 
           val offset = HashIndex.Offset(0, state.bytes.written)
-          val hashIndex = HashIndex.read(offset, Reader(state.bytes)).get
+
+          val randomBytes = randomBytesSlice(randomIntMax(100))
+
+          val (adjustedOffset, alteredBytes) =
+            eitherOne(
+              (offset, state.bytes),
+              (offset, state.bytes ++ randomBytesSlice(randomIntMax(100))),
+              (offset.copy(start = randomBytes.size), randomBytes ++ state.bytes),
+              (offset.copy(start = randomBytes.size), randomBytes ++ state.bytes ++ randomBytesSlice(randomIntMax(100)))
+            )
+
+          val hashIndex = HashIndex.read(adjustedOffset, Reader(alteredBytes)).get
 
           hashIndex shouldBe
             HashIndex(
-              offset = offset,
+              offset = adjustedOffset,
               blockDecompressor = hashIndex.blockDecompressor,
               maxProbe = state.maxProbe,
               hit = state.hit,
@@ -220,16 +231,6 @@ class HashIndexSpec extends TestBase {
 
           println(s"ListMap created with size: ${indexOffsetMap.size}")
 
-          val randomBytes = randomBytesSlice(randomIntMax(100))
-
-          val (adjustedOffset, alteredBytes) =
-            eitherOne(
-              (offset, state.bytes),
-              (offset, state.bytes ++ randomBytesSlice(randomIntMax(100))),
-              (offset.copy(start = randomBytes.size), randomBytes ++ state.bytes),
-              (offset.copy(start = randomBytes.size), randomBytes ++ state.bytes ++ randomBytesSlice(randomIntMax(100)))
-            )
-
           def findKey(indexOffset: Int, key: Slice[Byte]): IO[Option[Transient]] =
             indexOffsetMap.get(indexOffset) match {
               case Some(keyValues) =>
@@ -244,8 +245,7 @@ class HashIndexSpec extends TestBase {
               val found =
                 HashIndex.find(
                   key = keyValue.key,
-                  offset = adjustedOffset,
-                  reader = Reader(alteredBytes),
+                  segmentReader = Reader(alteredBytes),
                   hashIndex = hashIndex,
                   assertValue = findKey(_, keyValue.key)
                 ).get.get

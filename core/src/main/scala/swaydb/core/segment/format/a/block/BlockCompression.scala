@@ -23,6 +23,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.compression.{CompressionInternal, DecompressorInternal}
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.OffsetBase
+import swaydb.core.util.Bytes
 import swaydb.data.IO._
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
@@ -57,8 +58,15 @@ object BlockCompression extends LazyLogging {
       ByteSizeOf.byte + //decompressor
       ByteSizeOf.int + 1 //decompressed length. +1 for larger varints
 
+  //header size if the header only contains block compression information.
+  val blockCompressionOnlyHeaderSize =
+    Bytes.sizeOf(headerSize) + headerSize
+
   val headerSizeNoCompression =
     ByteSizeOf.byte //formatId
+
+  val headerSizeNoCompressionByteSize =
+    Bytes.sizeOf(headerSizeNoCompression)
 
   def apply(decompressor: DecompressorInternal,
             headerSize: Int,
@@ -144,10 +152,10 @@ object BlockCompression extends LazyLogging {
       headerReader <- movedReader.read(headerSize).map(Reader(_))
       formatID <- headerReader.get()
       headerReader <- validateFormatId(formatID).map(_ => headerReader)
-      blockDecompressor <- readBlockCompression(formatID, headerSize, headerReader)
+      blockCompression <- readBlockCompression(formatID, headerSize, headerReader)
     } yield
       ReadResult(
-        blockCompression = blockDecompressor,
+        blockCompression = blockCompression,
         headerReader = headerReader,
         headerSize = headerSize
       )
@@ -156,40 +164,40 @@ object BlockCompression extends LazyLogging {
   /**
     * Decompresses the block skipping the header bytes.
     */
-  def decompress(blockDecompressor: BlockCompression.State,
+  def decompress(blockCompression: BlockCompression.State,
                  compressedReader: Reader,
                  offset: OffsetBase): IO[Slice[Byte]] =
-    blockDecompressor
+    blockCompression
       .decompressedBytes
       .map(IO.Success(_))
       .getOrElse {
-        if (Reserve.setBusyOrGet((), blockDecompressor.reserve).isEmpty)
+        if (Reserve.setBusyOrGet((), blockCompression.reserve).isEmpty)
           try
             compressedReader
-              .moveTo(offset.start + blockDecompressor.headerSize)
-              .read(offset.size - blockDecompressor.headerSize)
+              .moveTo(offset.start + blockCompression.headerSize)
+              .read(offset.size - blockCompression.headerSize)
               .flatMap {
                 compressedBytes =>
-                  blockDecompressor.decompressor.decompress(
+                  blockCompression.decompressor.decompress(
                     slice = compressedBytes,
-                    decompressLength = blockDecompressor.decompressedLength
+                    decompressLength = blockCompression.decompressedLength
                   ) map {
                     decompressedBytes =>
-                      blockDecompressor.decompressedBytes = decompressedBytes
+                      blockCompression.decompressedBytes = decompressedBytes
                       decompressedBytes
                   }
               }
           finally
-            Reserve.setFree(blockDecompressor.reserve)
+            Reserve.setFree(blockCompression.reserve)
         else
-          IO.Failure(IO.Error.DecompressingValues(blockDecompressor.reserve))
+          IO.Failure(IO.Error.DecompressingValues(blockCompression.reserve))
       }
 
-  def getDecompressedReader(blockDecompressor: BlockCompression.State,
+  def getDecompressedReader(blockCompression: BlockCompression.State,
                             compressedReader: Reader,
                             offset: OffsetBase): IO[Reader] =
     BlockCompression.decompress(
-      blockDecompressor = blockDecompressor,
+      blockCompression = blockCompression,
       compressedReader = compressedReader,
       offset = offset
     ) map (Reader(_))
