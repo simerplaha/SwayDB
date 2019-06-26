@@ -57,6 +57,9 @@ object BlockCompression extends LazyLogging {
       ByteSizeOf.byte + //decompressor
       ByteSizeOf.int + 1 //decompressed length. +1 for larger varints
 
+  val headerSizeNoCompression =
+    ByteSizeOf.byte //formatId
+
   def apply(decompressor: DecompressorInternal,
             headerSize: Int,
             decompressedLength: Int) =
@@ -70,7 +73,7 @@ object BlockCompression extends LazyLogging {
 
   /**
     * Compress the bytes and update the header with the compression information.
-    * The bytes are guaranteed to have enough space to write compression information.
+    * The bytes should make sure it has enough space to write compression information.
     *
     * Mutation is required here because compression is expensive. Instead of copying and merging we
     * ask the compressor to allocate empty header bytes to the compressed array.
@@ -93,7 +96,12 @@ object BlockCompression extends LazyLogging {
         }
 
       case None =>
-        logger.warn(s"Unable to apply valid compressor for HashIndex: ${bytes.written}. Skipping HashIndex compression.")
+        logger.debug {
+          if (compressions.isEmpty)
+            s"No compression strategies provided. Storing ${bytes.written}.bytes uncompressed."
+          else
+            s"Unable to satisfy compression requirement from ${compressions.size} compression strategies. Storing ${bytes.written}.bytes uncompressed."
+        }
         IO {
           bytes moveWritePosition 0
           bytes addIntUnsigned headerSize
@@ -176,4 +184,13 @@ object BlockCompression extends LazyLogging {
         else
           IO.Failure(IO.Error.DecompressingValues(blockDecompressor.reserve))
       }
+
+  def getDecompressedReader(blockDecompressor: BlockCompression.State,
+                            compressedReader: Reader,
+                            offset: OffsetBase): IO[Reader] =
+    BlockCompression.decompress(
+      blockDecompressor = blockDecompressor,
+      compressedReader = compressedReader,
+      offset = offset
+    ) map (Reader(_))
 }

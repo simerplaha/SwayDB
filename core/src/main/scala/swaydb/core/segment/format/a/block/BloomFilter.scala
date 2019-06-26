@@ -31,9 +31,6 @@ import swaydb.data.util.ByteSizeOf
 
 object BloomFilter extends LazyLogging {
 
-  val uncompressedFormatId: Byte = 1.toByte
-  val compressedFormatId: Byte = 2.toByte
-
   case class Offset(start: Int, size: Int) extends OffsetBase
 
   case class State(startOffset: Int,
@@ -55,19 +52,22 @@ object BloomFilter extends LazyLogging {
       bytes.hashCode()
   }
 
-  def optimalSegmentBloomFilterByteSize(numberOfKeys: Int, falsePositiveRate: Double): Int = {
-    val numberOfBits = optimalNumberOfBits(numberOfKeys, falsePositiveRate)
-    val maxProbe = optimalNumberOfProbes(numberOfKeys, numberOfBits)
+  def optimalSize(numberOfKeys: Int,
+                  falsePositiveRate: Double): Int = {
+    if (falsePositiveRate <= 0.0 || numberOfKeys <= 0) {
+      0
+    } else {
+      val numberOfBits = optimalNumberOfBits(numberOfKeys, falsePositiveRate)
+      val maxProbe = optimalNumberOfProbes(numberOfKeys, numberOfBits)
 
-    val numberOfBitsSize = Bytes.sizeOf(numberOfBits)
-    val maxProbeSize = Bytes.sizeOf(maxProbe)
+      val numberOfBitsSize = Bytes.sizeOf(numberOfBits)
+      val maxProbeSize = Bytes.sizeOf(maxProbe)
 
-    ByteSizeOf.byte +
-      ByteSizeOf.byte + //decompressor
-      ByteSizeOf.int + 1 + //decompressed length. +1 for larger varints
-      numberOfBitsSize +
-      maxProbeSize +
-      numberOfBits
+      BlockCompression.headerSize +
+        numberOfBitsSize +
+        maxProbeSize +
+        numberOfBits
+    }
   }
 
   def apply(numberOfKeys: Int,
@@ -80,9 +80,7 @@ object BloomFilter extends LazyLogging {
     val maxProbeSize = Bytes.sizeOf(maxProbe)
 
     val headerBytesSize =
-      ByteSizeOf.byte +
-        ByteSizeOf.byte + //decompressor
-        ByteSizeOf.int + 1 + //decompressed length. +1 for larger varints
+      (if (compressions.isEmpty) BlockCompression.headerSizeNoCompression else BlockCompression.headerSize) +
         numberOfBitsSize +
         maxProbeSize
 
@@ -115,27 +113,14 @@ object BloomFilter extends LazyLogging {
       math.ceil(numberOfBits / numberOfKeys * math.log(2)).toInt
 
   def close(state: State) = {
-    state.compressions.untilSome(_.compressor.compress(state.headerSize, state.bytes.drop(state.headerSize))) flatMap {
-      case Some((compressedBytes, compression)) =>
+    BlockCompression.compressAndUpdateHeader(
+      headerSize = state.headerSize,
+      bytes = state.bytes,
+      compressions = state.compressions
+    ) flatMap {
+      compressedOrUncompressedBytes =>
         IO {
-          compressedBytes moveWritePosition 0
-          compressedBytes addIntUnsigned state.headerSize
-          compressedBytes add compressedFormatId
-          compressedBytes addIntUnsigned compression.decompressor.id
-          compressedBytes addIntUnsigned (state.bytes.written - state.headerSize) //decompressed bytes
-          state.bytes = compressedBytes
-        }
-
-      case None =>
-        logger.warn(s"Unable to apply valid compressor for HashIndex: ${state.bytes.written}. Skipping HashIndex compression.")
-        IO {
-          state.bytes moveWritePosition 0
-          state.bytes addIntUnsigned state.headerSize
-          state.bytes add uncompressedFormatId
-        }
-    } flatMap {
-      _ =>
-        IO {
+          state.bytes = compressedOrUncompressedBytes
           state.bytes addIntUnsigned state.numberOfBits
           state.bytes addIntUnsigned state.maxProbe
           if (state.bytes.currentWritePosition > state.headerSize)
@@ -146,26 +131,26 @@ object BloomFilter extends LazyLogging {
 
   def read(offset: Offset,
            reader: Reader): IO[BloomFilter] =
-  //    reader
-  //      .moveTo(offset.start)
-  //      .readIntUnsigned()
-  //      .flatMap {
-  //        headerSize =>
-  //          if (formatID == uncompressedFormatId)
-  //            for {
-  //              numberOfBits <- reader.readIntUnsigned()
-  //              maxProbe <- reader.readIntUnsigned()
-  //            } yield
-  //              BloomFilter(
-  //                offset = offset.copy(start = offset.start + ByteSizeOf.byte + Bytes.sizeOf(numberOfBits) + Bytes.sizeOf(maxProbe)),
-  //                maxProbe = maxProbe,
-  //                numberOfBits = numberOfBits,
-  //                ???
-  //              )
-  //          else
-  //            IO.Failure(IO.Error.Fatal(new Exception(s"Invalid bloomFilter formatID: $formatID. Expected: $uncompressedFormatId")))
-  //      }
-    ???
+    BlockCompression.readHeader(offset = offset, reader = reader) flatMap {
+      result =>
+        for {
+          numberOfBits <- result.headerReader.readIntUnsigned()
+          maxProbe <- result.headerReader.readIntUnsigned()
+        } yield
+          BloomFilter(
+            offset =
+              if (result.blockCompression.isDefined)
+                offset
+              else
+                Offset(
+                  start = offset.start + result.headerSize,
+                  size = offset.size - result.headerSize
+                ),
+            maxProbe = maxProbe,
+            numberOfBits = numberOfBits,
+            blockDecompressor = result.blockCompression
+          )
+    }
 
   def shouldNotCreateBloomFilter(keyValues: Iterable[KeyValue.WriteOnly]): Boolean =
     keyValues.isEmpty ||
@@ -230,24 +215,41 @@ object BloomFilter extends LazyLogging {
     val hash = MurmurHash3Generic.murmurhash3_x64_64(key, 0, key.size, 0)
     val hash1 = hash >>> 32
     val hash2 = (hash << 32) >> 32
-    (0 until bloom.maxProbe)
-      .untilSomeResult {
-        probe =>
-          val computedHash = hash1 + probe * hash2
-          val hashIndex = (computedHash & Long.MaxValue) % bloom.numberOfBits
 
-          reader
-            .moveTo(bloom.offset.start + ((hashIndex >>> 6) * 8L).toInt)
-            .readLong()
-            .map {
-              index =>
-                if ((index & (1L << hashIndex)) == 0)
-                  Options.someFalse
-                else
-                  None
-            }
+    bloom
+      .blockDecompressor
+      .map {
+        blockDecompressor =>
+          BlockCompression.getDecompressedReader(
+            blockDecompressor = blockDecompressor,
+            compressedReader = reader,
+            offset = bloom.offset
+          ) map ((0, _)) //decompressed bytes, offsets not required, set to 0.
       }
-      .map(_.getOrElse(true))
+      .getOrElse {
+        IO.Success((bloom.offset.start, reader)) //no compression used. Set the offset.
+      }
+      .flatMap {
+        case (startOffset, reader) =>
+          (0 until bloom.maxProbe)
+            .untilSomeResult {
+              probe =>
+                val computedHash = hash1 + probe * hash2
+                val hashIndex = (computedHash & Long.MaxValue) % bloom.numberOfBits
+
+                reader
+                  .moveTo(startOffset + ((hashIndex >>> 6) * 8L).toInt)
+                  .readLong()
+                  .map {
+                    index =>
+                      if ((index & (1L << hashIndex)) == 0)
+                        Options.someFalse
+                      else
+                        None
+                  }
+            }
+            .map(_.getOrElse(true))
+      }
   }
 }
 

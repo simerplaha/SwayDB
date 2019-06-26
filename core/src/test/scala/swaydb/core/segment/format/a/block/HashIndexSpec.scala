@@ -56,90 +56,92 @@ class HashIndexSpec extends TestBase {
 
   "it" should {
     "write compressed HashIndex and result in the same as uncompressed HashIndex" in {
-      val maxProbe = 10
-      val keyValues =
-        randomKeyValues(
-          count = 1000,
-          addRandomRemoves = true,
-          addRandomFunctions = true,
-          addRandomRemoveDeadlines = true,
-          addRandomUpdates = true,
-          addRandomPendingApply = true,
-          resetPrefixCompressionEvery = randomIntMax(10),
-          hashIndexCompensation = size => size * randomIntMax(2)
-        )
+      runThis(100.times) {
+        val maxProbe = 10
+        val keyValues =
+          randomKeyValues(
+            count = 1000,
+            addRandomRemoves = true,
+            addRandomFunctions = true,
+            addRandomRemoveDeadlines = true,
+            addRandomUpdates = true,
+            addRandomPendingApply = true,
+            resetPrefixCompressionEvery = randomIntMax(10),
+            hashIndexCompensation = size => size * randomIntMax(2)
+          )
 
-      keyValues should not be empty
+        keyValues should not be empty
 
-      val uncompressedState =
-        HashIndex.init(
-          maxProbe = maxProbe,
-          keyValues = keyValues,
-          compressions = Seq.empty
-        ).get
-
-      val compressedState =
-        HashIndex.init(
-          maxProbe = maxProbe,
-          keyValues = keyValues,
-          compressions = Seq(randomCompressionLZ4())
-        ).get
-
-      keyValues foreach {
-        keyValue =>
-          HashIndex.write(
-            key = keyValue.key,
-            value = keyValue.stats.thisKeyValuesAccessIndexOffset,
-            state = uncompressedState
+        val uncompressedState =
+          HashIndex.init(
+            maxProbe = maxProbe,
+            keyValues = keyValues,
+            compressions = Seq.empty
           ).get
 
-          HashIndex.write(
-            key = keyValue.key,
-            value = keyValue.stats.thisKeyValuesAccessIndexOffset,
-            state = compressedState
+        val compressedState =
+          HashIndex.init(
+            maxProbe = maxProbe,
+            keyValues = keyValues,
+            compressions = Seq(randomCompression())
           ).get
+
+        keyValues foreach {
+          keyValue =>
+            HashIndex.write(
+              key = keyValue.key,
+              value = keyValue.stats.thisKeyValuesAccessIndexOffset,
+              state = uncompressedState
+            ).get
+
+            HashIndex.write(
+              key = keyValue.key,
+              value = keyValue.stats.thisKeyValuesAccessIndexOffset,
+              state = compressedState
+            ).get
+        }
+
+        HashIndex.close(uncompressedState).get
+        HashIndex.close(compressedState).get
+
+        //compressed bytes should be smaller
+        compressedState.bytes.written should be <= uncompressedState.bytes.written
+
+        val uncompressedOffset = HashIndex.Offset(0, uncompressedState.bytes.size)
+        val compressedOffset = HashIndex.Offset(0, compressedState.bytes.size)
+
+        val uncompressedHashIndex = HashIndex.read(uncompressedOffset, Reader(uncompressedState.bytes)).get
+        val compressedHashIndex = HashIndex.read(compressedOffset, Reader(compressedState.bytes)).get
+
+        uncompressedHashIndex.blockDecompressor shouldBe empty
+        compressedHashIndex.blockDecompressor shouldBe defined
+
+        uncompressedHashIndex.headerSize shouldBe compressedHashIndex.headerSize
+        uncompressedHashIndex.allocatedBytes shouldBe compressedHashIndex.allocatedBytes
+        uncompressedHashIndex.bytesToReadPerIndex shouldBe compressedHashIndex.bytesToReadPerIndex
+        uncompressedHashIndex.hit shouldBe compressedHashIndex.hit
+        uncompressedHashIndex.miss shouldBe compressedHashIndex.miss
+        uncompressedHashIndex.maxProbe shouldBe compressedHashIndex.maxProbe
+        uncompressedHashIndex.writeAbleLargestValueSize shouldBe compressedHashIndex.writeAbleLargestValueSize
+        uncompressedHashIndex.offset.start shouldBe compressedHashIndex.offset.start
+        uncompressedHashIndex.offset.size should be >= compressedHashIndex.offset.size
+
+        val blockDecompressor = compressedHashIndex.blockDecompressor.get
+        blockDecompressor.decompressedLength shouldBe uncompressedState.bytes.written - uncompressedState.headerSize
+        blockDecompressor.decompressedBytes shouldBe empty
+        blockDecompressor.isBusy shouldBe false
+
+        val decompressedBytes =
+          BlockCompression.decompress(
+            blockDecompressor = compressedHashIndex.blockDecompressor.get,
+            compressedReader = Reader(compressedState.bytes),
+            offset = compressedOffset
+          ).get
+
+        val expectedDecompressedBytes = uncompressedState.bytes.drop(uncompressedState.headerSize)
+
+        decompressedBytes shouldBe expectedDecompressedBytes
       }
-
-      HashIndex.close(uncompressedState).get
-      HashIndex.close(compressedState).get
-
-      //compressed bytes should be smaller
-      compressedState.bytes.written should be < uncompressedState.bytes.written
-
-      val uncompressedOffset = HashIndex.Offset(0, uncompressedState.bytes.size)
-      val compressedOffset = HashIndex.Offset(0, compressedState.bytes.size)
-
-      val uncompressedHashIndex = HashIndex.read(uncompressedOffset, Reader(uncompressedState.bytes)).get
-      val compressedHashIndex = HashIndex.read(compressedOffset, Reader(compressedState.bytes)).get
-
-      uncompressedHashIndex.blockDecompressor shouldBe empty
-      compressedHashIndex.blockDecompressor shouldBe defined
-
-      uncompressedHashIndex.headerSize shouldBe compressedHashIndex.headerSize
-      uncompressedHashIndex.allocatedBytes shouldBe compressedHashIndex.allocatedBytes
-      uncompressedHashIndex.bytesToReadPerIndex shouldBe compressedHashIndex.bytesToReadPerIndex
-      uncompressedHashIndex.hit shouldBe compressedHashIndex.hit
-      uncompressedHashIndex.miss shouldBe compressedHashIndex.miss
-      uncompressedHashIndex.maxProbe shouldBe compressedHashIndex.maxProbe
-      uncompressedHashIndex.writeAbleLargestValueSize shouldBe compressedHashIndex.writeAbleLargestValueSize
-      uncompressedHashIndex.offset.start shouldBe compressedHashIndex.offset.start
-      uncompressedHashIndex.offset.size should be > compressedHashIndex.offset.size
-
-      val blockDecompressor = compressedHashIndex.blockDecompressor.get
-      blockDecompressor.decompressedLength shouldBe uncompressedState.bytes.written - uncompressedState.headerSize
-      blockDecompressor.decompressedBytes shouldBe empty
-      blockDecompressor.isBusy shouldBe false
-
-      val decompressedBytes =
-        BlockCompression.decompress(
-          blockDecompressor = compressedHashIndex.blockDecompressor.get,
-          compressedReader = Reader(compressedState.bytes),
-          offset = compressedOffset
-        ).get
-
-      val expectedDecompressedBytes = uncompressedState.bytes.drop(uncompressedState.headerSize)
-
-      decompressedBytes shouldBe expectedDecompressedBytes
     }
 
     "build index" when {
@@ -166,7 +168,7 @@ class HashIndexSpec extends TestBase {
             HashIndex.init(
               maxProbe = maxProbe,
               keyValues = keyValues,
-              compressions = Seq(randomCompressionLZ4())
+              compressions = eitherOne(Seq.empty, Seq(randomCompression()))
             ).get
 
           val allocatedBytes = state.bytes.size

@@ -158,7 +158,7 @@ private[core] object Stats {
       if (falsePositiveRate <= 0.0 || (hasRemoveRange && !enableBinarySearchIndex))
         0
       else
-        BloomFilter.optimalSegmentBloomFilterByteSize(
+        BloomFilter.optimalSize(
           numberOfKeys = segmentUniqueKeysCount,
           falsePositiveRate = falsePositiveRate
         )

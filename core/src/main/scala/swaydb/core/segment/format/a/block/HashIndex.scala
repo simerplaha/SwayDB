@@ -22,7 +22,6 @@ package swaydb.core.segment.format.a.block
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.{KeyValue, Persistent}
-import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.{KeyMatcher, OffsetBase}
 import swaydb.core.util.Bytes
 import swaydb.data.IO
@@ -295,7 +294,7 @@ private[core] object HashIndex extends LazyLogging {
 
     hashIndex.blockDecompressor map {
       blockDecompressor =>
-        BlockCompression.decompress(
+        BlockCompression.getDecompressedReader(
           blockDecompressor = blockDecompressor,
           compressedReader = reader,
           offset = offset
@@ -303,7 +302,7 @@ private[core] object HashIndex extends LazyLogging {
           decompressedBytes =>
             doFind(
               probe = 0,
-              reader = Reader(decompressedBytes),
+              reader = decompressedBytes,
               checkedHashIndexes = mutable.HashSet.empty
             )
         }

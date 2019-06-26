@@ -669,6 +669,9 @@ class Slice[+T: ClassTag](array: Array[T],
   def underlyingArraySize =
     array.length
 
+  private[swaydb] def underlyingWrittenArrayUnsafe[X >: T]: (Array[X], Int, Int) =
+    (array.asInstanceOf[Array[X]], fromOffset, written)
+
   /**
     * Return a new ordered Slice.
     */
