@@ -109,16 +109,6 @@ object Block extends LazyLogging {
         }
     }
 
-  private def validateFormatId(formatID: Int) =
-    if (formatID != Block.uncompressedBlockId && formatID != Block.compressedBlockID)
-      IO.Failure(
-        IO.Error.Fatal(
-          new Exception(s"Invalid formatID: $formatID. Expected: ${Block.uncompressedBlockId} or ${Block.compressedBlockID}")
-        )
-      )
-    else
-      IO.unit
-
   private def readCompressionInfo(formatID: Int,
                                   headerSize: Int,
                                   segmentReader: Reader): IO[Option[CompressionInfo]] =
@@ -136,8 +126,14 @@ object Block extends LazyLogging {
             _decompressedBytes = None
           )
         )
-    else
+    else if (formatID == Block.uncompressedBlockId)
       IO.none
+    else
+      IO.Failure(
+        IO.Error.Fatal(
+          new Exception(s"Invalid formatID: $formatID. Expected: ${Block.uncompressedBlockId} or ${Block.compressedBlockID}")
+        )
+      )
 
   def readHeader(offset: OffsetBase, segmentReader: Reader): IO[Block.Header] = {
     val movedReader = segmentReader.moveTo(offset.start)
@@ -145,7 +141,6 @@ object Block extends LazyLogging {
       headerSize <- movedReader.readIntUnsigned()
       headerReader <- movedReader.read(headerSize).map(Reader(_))
       formatID <- headerReader.get()
-      headerReader <- Block.validateFormatId(formatID).map(_ => headerReader)
       compressionInfo <- Block.readCompressionInfo(formatID, headerSize, headerReader)
     } yield
       Header(
