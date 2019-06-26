@@ -31,8 +31,6 @@ import scala.annotation.tailrec
 
 object BinarySearchIndex {
 
-  val formatId: Byte = 1.toByte
-
   case class Offset(start: Int, size: Int) extends OffsetBase
 
   object State {
