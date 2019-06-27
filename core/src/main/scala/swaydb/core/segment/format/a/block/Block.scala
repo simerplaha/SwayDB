@@ -136,8 +136,8 @@ object Block extends LazyLogging {
       )
 
   def readHeader(offset: OffsetBase,
-                 segmentReader: Reader): IO[Block.Header] = {
-    val movedReader = segmentReader.moveTo(offset.start)
+                 compressedBytes: Reader): IO[Block.Header] = {
+    val movedReader = compressedBytes.moveTo(offset.start)
     for {
       headerSize <- movedReader.readIntUnsigned()
       headerReader <- movedReader.read(headerSize).map(Reader(_))
@@ -194,7 +194,7 @@ object Block extends LazyLogging {
                    headerSize: Int,
                    compressionInfo: Option[CompressionInfo]): BlockReader =
     new BlockReader(
-      reader = segmentReader,
+      compressedReader = segmentReader,
       offset = offset,
       headerSize = headerSize,
       compressionInfo = compressionInfo

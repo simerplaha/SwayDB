@@ -138,7 +138,7 @@ private[core] object HashIndex extends LazyLogging {
     }
 
   def read(offset: Offset, reader: Reader): IO[HashIndex] =
-    Block.readHeader(offset = offset, segmentReader = reader) flatMap {
+    Block.readHeader(offset = offset, compressedBytes = reader) flatMap {
       result =>
         for {
           allocatedBytes <- result.headerReader.readInt()
@@ -175,7 +175,7 @@ private[core] object HashIndex extends LazyLogging {
     //add 1 to each offset to avoid 0 offsets.
     //0 bytes are reserved as empty bucket markers.
     val valuePlusOne = value + 1
-    //+1 to reserve left 0 byte,
+    //+1 to reserve left 0 byte.
     val bytesRequired = Bytes.sizeOf(valuePlusOne) + 1
 
     val hash = key.##

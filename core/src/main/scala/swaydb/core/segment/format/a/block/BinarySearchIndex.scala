@@ -157,7 +157,7 @@ object BinarySearchIndex {
 
   def read(offset: Offset,
            reader: Reader): IO[BinarySearchIndex] =
-    Block.readHeader(offset = offset, segmentReader = reader) flatMap {
+    Block.readHeader(offset = offset, compressedBytes = reader) flatMap {
       result =>
         for {
           valuesCount <- result.headerReader.readIntUnsigned()

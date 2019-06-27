@@ -28,7 +28,7 @@ import swaydb.data.slice.{Reader, Slice}
 /**
   * Reader for the [[Block.CompressionInfo]] that skips [[Block.Header]] bytes.
   */
-private[core] class BlockReader(reader: Reader,
+private[core] class BlockReader(compressedReader: Reader,
                                 offset: OffsetBase,
                                 headerSize: Int,
                                 compressionInfo: Option[Block.CompressionInfo]) extends Reader with LazyLogging {
@@ -41,7 +41,7 @@ private[core] class BlockReader(reader: Reader,
         block =>
           Block.decompress(
             compressionInfo = block,
-            compressedReader = reader.copy(),
+            compressedReader = compressedReader.copy(),
             offset = offset
           ) map {
             decompressedBytes =>
@@ -50,11 +50,17 @@ private[core] class BlockReader(reader: Reader,
           }
       }
       .getOrElse {
-        IO.Success((offset.start + headerSize, reader.copy())) //no compression used. Set the offset.
+        IO.Success((offset.start + headerSize, compressedReader.copy())) //no compression used. Set the offset.
       }
 
+  //this is the size of the
   override def size: IO[Long] =
-    IO.Success(offset.size - headerSize)
+    IO.Success {
+      compressionInfo
+        .map(_.decompressedLength)
+        .getOrElse(offset.size - headerSize)
+        .toLong
+    }
 
   def moveTo(newPosition: Long): Reader = {
     position = newPosition.toInt
@@ -62,17 +68,17 @@ private[core] class BlockReader(reader: Reader,
   }
 
   def hasMore: IO[Boolean] =
-    IO.Success(position <= offset.end)
+    hasAtLeast(1)
 
   def hasAtLeast(atLeastSize: Long): IO[Boolean] =
     size map {
       size =>
-        (size - position) >= atLeastSize
+        (size - 1 - position) >= atLeastSize
     }
 
   override def copy(): BlockReader =
     new BlockReader(
-      reader = reader.copy(),
+      compressedReader = compressedReader.copy(),
       offset = offset,
       headerSize = headerSize,
       compressionInfo = compressionInfo

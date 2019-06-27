@@ -77,7 +77,7 @@ object Values {
 
   def read(offset: Values.Offset,
            reader: Reader): IO[Values] =
-    Block.readHeader(offset = offset, segmentReader = reader) map {
+    Block.readHeader(offset = offset, compressedBytes = reader) map {
       result =>
         Values(
           offset =

@@ -131,7 +131,7 @@ object BloomFilter extends LazyLogging {
 
   def read(offset: Offset,
            reader: Reader): IO[BloomFilter] =
-    Block.readHeader(offset = offset, segmentReader = reader) flatMap {
+    Block.readHeader(offset = offset, compressedBytes = reader) flatMap {
       result =>
         for {
           numberOfBits <- result.headerReader.readIntUnsigned()
