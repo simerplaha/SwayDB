@@ -198,14 +198,13 @@ object BinarySearchIndex {
 
   private def search(index: BinarySearchIndex,
                      reader: Reader,
-                     baseOffset: Int,
                      assertValue: Int => IO[MatchResult]) = {
 
     @tailrec
     def hop(start: Int, end: Int): IO[Option[Persistent]] = {
       val mid = start + (end - start) / 2
 
-      val valueOffset = baseOffset + (mid * index.bytesPerValue)
+      val valueOffset = mid * index.bytesPerValue
       if (start > end)
         IO.none
       else {
@@ -239,29 +238,17 @@ object BinarySearchIndex {
   def find(index: BinarySearchIndex,
            reader: Reader,
            assertValue: Int => IO[MatchResult]): IO[Option[Persistent]] =
-//    index
-//      .blockCompression
-//      .map {
-//        block =>
-//          Block.getDecompressedReader(
-//            block = block,
-//            compressedReader = reader,
-//            offset = index.offset
-//          ) map ((0, _)) //decompressed bytes, offsets not required, set to 0.
-//      }
-//      .getOrElse {
-//        IO.Success((index.offset.start + index.headerSize, reader)) //no compression used. Set the offset.
-//      }
-//      .flatMap {
-//        case (startOffset, decompressedReader) =>
-//          search(
-//            reader = decompressedReader,
-//            baseOffset = startOffset,
-//            assertValue = assertValue,
-//            index = index
-//          )
-//      }
-  ???
+    search(
+      index = index,
+      reader =
+        Block.createReader(
+          offset = index.offset,
+          segmentReader = reader,
+          headerSize = index.headerSize,
+          compressionInfo = index.compressionInfo
+        ),
+      assertValue = assertValue
+    )
 
   def get(matcher: KeyMatcher.Get,
           reader: Reader,

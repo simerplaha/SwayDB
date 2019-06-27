@@ -44,11 +44,11 @@ class BloomFilterSpec extends TestBase {
     "write bloom filter to bytes" in {
       runThis(10.times) {
         val filter =
-          BloomFilter(
+          BloomFilter.init(
             numberOfKeys = 10,
             falsePositiveRate = TestData.falsePositiveRate,
             compressions = eitherOne(Seq.empty, Seq(randomCompression()))
-          )
+          ).get
 
         (1 to 10) foreach (BloomFilter.add(_, filter))
 
@@ -80,11 +80,11 @@ class BloomFilterSpec extends TestBase {
           val numberOfItems = i * 10
           val falsePositiveRate = 0.0 + (0 + "." + i.toString).toDouble
           val bloomFilter =
-            BloomFilter(
+            BloomFilter.init(
               numberOfKeys = numberOfItems,
               falsePositiveRate = falsePositiveRate,
               compressions = eitherOne(Seq.empty, Seq(randomCompression()))
-            )
+            ).get
           bloomFilter.bytes.written should be <= BloomFilter.optimalSize(numberOfItems, falsePositiveRate)
       }
     }
@@ -205,11 +205,11 @@ class BloomFilterSpec extends TestBase {
 
     runThis(5.times) {
       val state =
-        BloomFilter(
+        BloomFilter.init(
           numberOfKeys = 10000,
           falsePositiveRate = TestData.falsePositiveRate,
           compressions = eitherOne(Seq.empty, Seq(randomCompression()))
-        )
+        ).get
 
       val data: Seq[String] =
         (1 to 10000) map {
