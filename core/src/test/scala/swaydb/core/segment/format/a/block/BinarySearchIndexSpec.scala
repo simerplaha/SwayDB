@@ -38,7 +38,7 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
           if (valueToFind == valueFound)
             MatchResult.Matched(null)
           else if (valueToFind < valueFound)
-            MatchResult.Ahead
+            MatchResult.AheadOrEnd
           else
             MatchResult.Behind
         }

@@ -343,10 +343,10 @@ private[core] object SortedIndex {
       case matched @ MatchResult.Matched(_) =>
         matched.asIO
 
-      case ahead @ MatchResult.BehindStop =>
+      case ahead @ MatchResult.BehindStopped =>
         ahead.asIO
 
-      case ahead @ MatchResult.Ahead =>
+      case ahead @ MatchResult.AheadOrEnd =>
         ahead.asIO
     }
 
@@ -375,7 +375,7 @@ private[core] object SortedIndex {
       case IO.Success(MatchResult.Matched(keyValue)) =>
         IO.Success(Some(keyValue))
 
-      case IO.Success(MatchResult.Ahead | MatchResult.BehindStop) =>
+      case IO.Success(MatchResult.AheadOrEnd | MatchResult.BehindStopped) =>
         IO.none
 
       case IO.Failure(error) =>

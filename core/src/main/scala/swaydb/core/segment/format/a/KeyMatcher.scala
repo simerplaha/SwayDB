@@ -37,10 +37,10 @@ object MatchResult {
   case object Behind extends MatchResult {
     val asIO = IO.Success(this)
   }
-  case object BehindStop extends MatchResult {
+  case object BehindStopped extends MatchResult {
     val asIO = IO.Success(this)
   }
-  case object Ahead extends MatchResult {
+  case object AheadOrEnd extends MatchResult {
     val asIO = IO.Success(this)
   }
 }
@@ -104,9 +104,9 @@ private[core] object KeyMatcher {
             if (shouldFetchNext(next))
               Behind
             else
-              BehindStop
+              BehindStopped
           else
-            Ahead
+            AheadOrEnd
 
         case group: Persistent.Group =>
           val fromKeyMatch = keyOrder.compare(key, group.minKey)
@@ -117,9 +117,9 @@ private[core] object KeyMatcher {
             if (shouldFetchNext(next))
               Behind
             else
-              BehindStop
+              BehindStopped
           else
-            Ahead
+            AheadOrEnd
 
         case range: Persistent.Range =>
           val fromKeyMatch = keyOrder.compare(key, range.fromKey)
@@ -130,9 +130,9 @@ private[core] object KeyMatcher {
             if (shouldFetchNext(next))
               Behind
             else
-              BehindStop
+              BehindStopped
           else
-            Ahead
+            AheadOrEnd
       }
   }
 
@@ -148,7 +148,7 @@ private[core] object KeyMatcher {
             if (keyOrder.compare(previous.key, key) < 0)
               Matched(previous)
             else
-              Ahead
+              AheadOrEnd
           else if (nextCompare < 0)
             if (hasMore)
               next match {
@@ -164,12 +164,12 @@ private[core] object KeyMatcher {
             else
               Matched(next)
           else
-            Ahead
+            AheadOrEnd
 
         case None =>
           val previousCompare = keyOrder.compare(previous.key, key)
           if (previousCompare == 0)
-            Ahead
+            AheadOrEnd
           else if (previousCompare < 0)
             if (hasMore)
               previous match {
@@ -185,7 +185,7 @@ private[core] object KeyMatcher {
             else
               Matched(previous)
           else
-            Ahead
+            AheadOrEnd
       }
   }
 
@@ -210,10 +210,10 @@ private[core] object KeyMatcher {
             if (hasMore)
               Behind
             else
-              Ahead
+              AheadOrEnd
         }
       else
-        Ahead
+        AheadOrEnd
     }
   }
 

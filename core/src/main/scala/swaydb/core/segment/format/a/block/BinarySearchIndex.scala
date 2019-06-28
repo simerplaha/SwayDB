@@ -215,10 +215,10 @@ object BinarySearchIndex {
               case MatchResult.Matched(result) =>
                 IO.Success(Some(result))
 
-              case MatchResult.Behind | MatchResult.BehindStop =>
+              case MatchResult.Behind | MatchResult.BehindStopped =>
                 hop(start = mid + 1, end = end)
 
-              case MatchResult.Ahead =>
+              case MatchResult.AheadOrEnd =>
                 hop(start = start, end = mid - 1)
             }
           case IO.Failure(error) =>
