@@ -89,27 +89,23 @@ private[core] object SortedIndex {
 
   private def readNextKeyValue(previous: Persistent,
                                indexReader: BlockReader[SortedIndex],
-                               valueReader: Option[BlockReader[Values]]): IO[Persistent] = {
-    indexReader moveTo previous.nextIndexOffset
+                               valueReader: Option[BlockReader[Values]]): IO[Persistent] =
     readNextKeyValue(
       indexEntrySizeMayBe = Some(previous.nextIndexSize),
-      indexReader = indexReader,
+      indexReader = indexReader moveTo previous.nextIndexOffset,
       valueReader = valueReader,
       previous = Some(previous)
     )
-  }
 
   private def readNextKeyValue(fromPosition: Int,
                                indexReader: BlockReader[SortedIndex],
-                               valueReader: Option[BlockReader[Values]]): IO[Persistent] = {
-    indexReader moveTo fromPosition
+                               valueReader: Option[BlockReader[Values]]): IO[Persistent] =
     readNextKeyValue(
       indexEntrySizeMayBe = None,
-      indexReader = indexReader,
+      indexReader = indexReader moveTo fromPosition,
       valueReader = valueReader,
       previous = None
     )
-  }
 
   //Pre-requisite: The position of the index on the reader should be set.
   private def readNextKeyValue(indexEntrySizeMayBe: Option[Int],
@@ -248,7 +244,7 @@ private[core] object SortedIndex {
             valueReader = valuesReader
           ) flatMap {
             keyValue =>
-              matchOrNext(
+              matchOrNextAndGet(
                 previous = startFrom,
                 next = Some(keyValue),
                 matcher = matcher,
@@ -265,7 +261,7 @@ private[core] object SortedIndex {
           valueReader = valuesReader
         ) flatMap {
           keyValue =>
-            matchOrNext(
+            matchOrNextAndGet(
               previous = keyValue,
               next = None,
               matcher = matcher,
@@ -285,7 +281,7 @@ private[core] object SortedIndex {
       valueReader = valueReader
     ) flatMap {
       persistent =>
-        matchOrNext(
+        matchOrNextAndGet(
           previous = persistent,
           next = None,
           matcher = matcher,
@@ -302,12 +298,14 @@ private[core] object SortedIndex {
       fromPosition = fromOffset,
       indexReader = sortedIndex,
       valueReader = values
-    ) map {
+    ) flatMap {
       persistent =>
-        matcher(
+        matchOrNext(
           previous = persistent,
           next = None,
-          hasMore = hasMore(persistent)
+          matcher = matcher,
+          indexReader = sortedIndex,
+          valueReader = values
         )
     }
 
@@ -316,7 +314,7 @@ private[core] object SortedIndex {
                   next: Option[Persistent],
                   matcher: KeyMatcher,
                   indexReader: BlockReader[SortedIndex],
-                  valueReader: Option[BlockReader[Values]]): IO[Option[Persistent]] =
+                  valueReader: Option[BlockReader[Values]]): IO[MatchResult] =
     matcher(
       previous = previous,
       next = next,
@@ -324,7 +322,7 @@ private[core] object SortedIndex {
     ) match {
       case MatchResult.Next =>
         val readFrom = next getOrElse previous
-        SortedIndex.readNextKeyValue(
+        readNextKeyValue(
           previous = readFrom,
           indexReader = indexReader,
           valueReader = valueReader
@@ -342,11 +340,43 @@ private[core] object SortedIndex {
             IO.Failure(exception)
         }
 
-      case MatchResult.Matched(keyValue) =>
+      case matched @ MatchResult.Matched(_) =>
+        IO.Success(matched)
+
+      case matched @ MatchResult.Stop =>
+        IO.Success(matched)
+    }
+
+  @tailrec
+  def matchOrNextAndGet(previous: Persistent,
+                        next: Option[Persistent],
+                        matcher: KeyMatcher,
+                        indexReader: BlockReader[SortedIndex],
+                        valueReader: Option[BlockReader[Values]]): IO[Option[Persistent]] =
+    matchOrNext(
+      previous = previous,
+      next = next,
+      matcher = matcher,
+      indexReader = indexReader,
+      valueReader = valueReader
+    ) match {
+      case IO.Success(MatchResult.Next) =>
+        matchOrNextAndGet(
+          previous = previous,
+          next = next,
+          matcher = matcher,
+          indexReader = indexReader,
+          valueReader = valueReader
+        )
+
+      case IO.Success(MatchResult.Matched(keyValue)) =>
         IO.Success(Some(keyValue))
 
-      case MatchResult.Stop =>
+      case IO.Success(MatchResult.Stop) =>
         IO.none
+
+      case IO.Failure(error) =>
+        IO.Failure(error)
     }
 
   private def hasMore(keyValue: Persistent) =

@@ -290,7 +290,7 @@ private[core] object HashIndex extends LazyLogging {
     )
   }
 
-  private[a] def get(matcher: KeyMatcher.GetNextPrefixCompressed,
+  private[a] def get(matcher: KeyMatcher.GetPrefixCompressed,
                      hashIndexReader: BlockReader[HashIndex],
                      sortedIndexReader: BlockReader[SortedIndex]): IO[Option[Persistent]] =
     find(

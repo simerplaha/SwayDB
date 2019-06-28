@@ -137,24 +137,21 @@ object BinarySearchIndex {
   }
 
   def close(state: State): IO[Unit] =
-    if (state.writtenValues != state.uniqueValuesCount)
-      IO.Failure(IO.Error.Fatal(s"Binary search index incomplete. Written: ${state.writtenValues}. Expected: ${state.uniqueValuesCount}"))
-    else
-      Block.compress(
-        headerSize = state.headerSize,
-        bytes = state.bytes,
-        compressions = state.compressions
-      ) flatMap {
-        compressedOrUncompressedBytes =>
-          IO {
-            state.bytes = compressedOrUncompressedBytes
-            state.bytes addIntUnsigned state.writtenValues
-            state.bytes addInt state.bytesPerValue
-            state.bytes addBoolean state.isFullIndex
-            if (state.bytes.currentWritePosition > state.headerSize)
-              throw new Exception(s"Calculated header size was incorrect. Expected: ${state.headerSize}. Used: ${state.bytes.currentWritePosition - 1}")
-          }
-      }
+    Block.compress(
+      headerSize = state.headerSize,
+      bytes = state.bytes,
+      compressions = state.compressions
+    ) flatMap {
+      compressedOrUncompressedBytes =>
+        IO {
+          state.bytes = compressedOrUncompressedBytes
+          state.bytes addIntUnsigned state.writtenValues
+          state.bytes addInt state.bytesPerValue
+          state.bytes addBoolean state.isFullIndex
+          if (state.bytes.currentWritePosition > state.headerSize)
+            throw new Exception(s"Calculated header size was incorrect. Expected: ${state.headerSize}. Used: ${state.bytes.currentWritePosition - 1}")
+        }
+    }
 
   def read(offset: Offset,
            reader: Reader): IO[BinarySearchIndex] =
@@ -202,6 +199,8 @@ object BinarySearchIndex {
     def hop(start: Int, end: Int): IO[Option[Persistent]] = {
       val mid = start + (end - start) / 2
 
+      println(s"Mid: $mid")
+
       val valueOffset = mid * reader.block.bytesPerValue
       if (start > end)
         IO.none
@@ -233,7 +232,7 @@ object BinarySearchIndex {
     hop(start = 0, end = reader.block.valuesCount - 1)
   }
 
-  def get(matcher: KeyMatcher.Get,
+  def get(matcher: KeyMatcher.GetPrefixCompressed,
           binarySearchIndex: BlockReader[BinarySearchIndex],
           sortedIndex: BlockReader[SortedIndex],
           values: Option[BlockReader[Values]]): IO[Option[Persistent]] =

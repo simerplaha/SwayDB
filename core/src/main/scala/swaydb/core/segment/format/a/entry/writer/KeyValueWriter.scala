@@ -30,10 +30,11 @@ private[core] object KeyValueWriter {
   case class Result(indexBytes: Slice[Byte],
                     valueBytes: Option[Slice[Byte]],
                     valueStartOffset: Int,
-                    valueEndOffset: Int) {
+                    valueEndOffset: Int,
+                    isPrefixCompressed: Boolean) {
     //TODO check if companion object function unapply returning an Option[Result] is cheaper than this unapply function.
     def unapply =
-      (indexBytes, valueBytes, valueStartOffset, valueEndOffset)
+      (indexBytes, valueBytes, valueStartOffset, valueEndOffset, isPrefixCompressed)
   }
 
   /**
@@ -91,6 +92,7 @@ private[core] object KeyValueWriter {
             entryId = BaseEntryIdFormatA.format.start,
             enablePrefixCompression = enablePrefixCompression,
             isKeyCompressed = true,
+            hasPrefixCompressed = true,
             plusSize = sizeOf(commonBytes) + remainingBytes.size //write the size of keys compressed and also the uncompressed Bytes
           )
 
@@ -115,6 +117,7 @@ private[core] object KeyValueWriter {
         entryId = BaseEntryIdFormatA.format.start,
         enablePrefixCompression = enablePrefixCompression,
         isKeyCompressed = false,
+        hasPrefixCompressed = false,
         plusSize = current.fullKey.size //write key bytes.
       )
 

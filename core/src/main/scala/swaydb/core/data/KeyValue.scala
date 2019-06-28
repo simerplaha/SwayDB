@@ -229,7 +229,7 @@ private[core] object KeyValue {
       resetPrefixCompressionEvery > 0 &&
         previous.exists {
           previous =>
-            (previous.stats.chainPosition + 1) % resetPrefixCompressionEvery != 0
+            (previous.stats.chainPosition + 1) % resetPrefixCompressionEvery == 0
         }
 
     def updateStats(falsePositiveRate: Double,
@@ -604,14 +604,13 @@ private[core] object Transient {
     override val isGroup: Boolean = false
     override val isRemoveRangeMayBe = false
     override val value: Option[Slice[Byte]] = None
-    override val isPrefixCompressed = enablePrefixCompression()
 
-    override val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition) =
+    override val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, isPrefixCompressed) =
       KeyValueWriter.write(
         current = this,
         currentTime = time,
         compressDuplicateValues = false,
-        enablePrefixCompression = isPrefixCompressed
+        enablePrefixCompression = enablePrefixCompression()
       ).unapply
 
     override val hasValueEntryBytes: Boolean = previous.exists(_.hasValueEntryBytes) || valueEntryBytes.exists(_.nonEmpty)
@@ -662,14 +661,12 @@ private[core] object Transient {
     override val isGroup: Boolean = false
     override val isRange: Boolean = false
 
-    override val isPrefixCompressed = enablePrefixCompression()
-
-    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition) =
+    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, isPrefixCompressed) =
       KeyValueWriter.write(
         current = this,
         currentTime = time,
         compressDuplicateValues = compressDuplicateValues,
-        enablePrefixCompression = isPrefixCompressed
+        enablePrefixCompression = enablePrefixCompression()
       ).unapply
 
     override val hasValueEntryBytes: Boolean =
@@ -720,14 +717,13 @@ private[core] object Transient {
     override val isGroup: Boolean = false
     override val isRange: Boolean = false
 
-    override val isPrefixCompressed = enablePrefixCompression()
 
-    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition) =
+    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, isPrefixCompressed) =
       KeyValueWriter.write(
         current = this,
         currentTime = time,
         compressDuplicateValues = compressDuplicateValues,
-        enablePrefixCompression = isPrefixCompressed
+        enablePrefixCompression = enablePrefixCompression()
       ).unapply
 
     override val hasValueEntryBytes: Boolean = previous.exists(_.hasValueEntryBytes) || valueEntryBytes.exists(_.nonEmpty)
@@ -777,14 +773,13 @@ private[core] object Transient {
     override val isGroup: Boolean = false
     override val isRange: Boolean = false
 
-    override val isPrefixCompressed = enablePrefixCompression()
 
-    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition) =
+    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, isPrefixCompressed) =
       KeyValueWriter.write(
         current = this,
         currentTime = time,
         compressDuplicateValues = compressDuplicateValues,
-        enablePrefixCompression = isPrefixCompressed
+        enablePrefixCompression = enablePrefixCompression()
       ).unapply
 
     override val hasValueEntryBytes: Boolean = previous.exists(_.hasValueEntryBytes) || valueEntryBytes.exists(_.nonEmpty)
@@ -836,14 +831,13 @@ private[core] object Transient {
     override val deadline: Option[Deadline] =
       Segment.getNearestDeadline(None, applies)
 
-    override val isPrefixCompressed = enablePrefixCompression()
 
-    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition) =
+    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, isPrefixCompressed) =
       KeyValueWriter.write(
         current = this,
         currentTime = time,
         compressDuplicateValues = compressDuplicateValues,
-        enablePrefixCompression = isPrefixCompressed
+        enablePrefixCompression = enablePrefixCompression()
       ).unapply
 
     override val hasValueEntryBytes: Boolean = previous.exists(_.hasValueEntryBytes) || valueEntryBytes.exists(_.nonEmpty)
@@ -973,15 +967,14 @@ private[core] object Transient {
     override val isGroup: Boolean = false
     override val isRange: Boolean = true
     override val deadline: Option[Deadline] = None
-    override val isPrefixCompressed = enablePrefixCompression()
 
-    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition) =
+    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, isPrefixCompressed) =
       KeyValueWriter.write(
         current = this,
         currentTime = Time.empty,
         //It's highly likely that two sequential key-values within the same range have the different value after the range split occurs so this is always set to true.
         compressDuplicateValues = true,
-        enablePrefixCompression = isPrefixCompressed
+        enablePrefixCompression = enablePrefixCompression()
       ).unapply
 
     override val hasValueEntryBytes: Boolean = previous.exists(_.hasValueEntryBytes) || valueEntryBytes.exists(_.nonEmpty)
@@ -1094,16 +1087,15 @@ private[core] object Transient {
     override val isRange: Boolean = keyValues.last.stats.segmentHasRange
     override val isGroup: Boolean = true
     override val value: Option[Slice[Byte]] = Some(compressedKeyValues)
-    override val isPrefixCompressed = enablePrefixCompression()
 
-    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition) =
+    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, isPrefixCompressed) =
       KeyValueWriter.write(
         current = this,
         currentTime = Time.empty,
         //it's highly unlikely that 2 groups after compression will have duplicate values.
         //compressDuplicateValues check is unnecessary since the value bytes of a group can be large.
         compressDuplicateValues = false,
-        enablePrefixCompression = isPrefixCompressed
+        enablePrefixCompression = enablePrefixCompression()
       ).unapply
 
     override val hasValueEntryBytes: Boolean = previous.exists(_.hasValueEntryBytes) || valueEntryBytes.exists(_.nonEmpty)
@@ -1232,30 +1224,30 @@ private[core] object Persistent {
       Value.Remove(deadline, time)
   }
 
-//  object Put {
-//    def apply(key: Slice[Byte],
-//              deadline: Option[Deadline],
-//              time: Time,
-//              value: Option[Slice[Byte]],
-//              isPrefixCompressed: Boolean): Persistent.Put =
-//      Persistent.Put(
-//        _key = key,
-//        deadline = deadline,
-//        lazyValueReader =
-//          LazyValueReader(
-//            reader = value.map(BlockReader(_)).getOrElse(Reader.empty),
-//            offset = 0,
-//            length = value.map(_.size).getOrElse(0)
-//          ),
-//        _time = time,
-//        nextIndexOffset = -1,
-//        nextIndexSize = 0,
-//        indexOffset = 0,
-//        valueOffset = 0,
-//        valueLength = value.map(_.size).getOrElse(0),
-//        isPrefixCompressed = isPrefixCompressed
-//      )
-//  }
+  //  object Put {
+  //    def apply(key: Slice[Byte],
+  //              deadline: Option[Deadline],
+  //              time: Time,
+  //              value: Option[Slice[Byte]],
+  //              isPrefixCompressed: Boolean): Persistent.Put =
+  //      Persistent.Put(
+  //        _key = key,
+  //        deadline = deadline,
+  //        lazyValueReader =
+  //          LazyValueReader(
+  //            reader = value.map(BlockReader(_)).getOrElse(Reader.empty),
+  //            offset = 0,
+  //            length = value.map(_.size).getOrElse(0)
+  //          ),
+  //        _time = time,
+  //        nextIndexOffset = -1,
+  //        nextIndexSize = 0,
+  //        indexOffset = 0,
+  //        valueOffset = 0,
+  //        valueLength = value.map(_.size).getOrElse(0),
+  //        isPrefixCompressed = isPrefixCompressed
+  //      )
+  //  }
 
   case class Put(private var _key: Slice[Byte],
                  deadline: Option[Deadline],

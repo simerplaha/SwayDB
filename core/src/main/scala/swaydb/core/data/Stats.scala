@@ -73,18 +73,18 @@ private[core] object Stats {
       else
         previousStats.map(_.groupsCount) getOrElse 0
 
-    val thisKeyValuesSortedIndexSizeWithoutHeader =
+    val thisKeyValuesSortedIndexSizeWithoutFooterAndHeader =
       Bytes.sizeOf(indexEntry.size) +
         indexEntry.size
 
-    val thisKeyValuesSortedIndexSize =
+    val thisKeyValuesSortedIndexSizeWithoutFooter =
       SortedIndex.headerSize +
-        thisKeyValuesSortedIndexSizeWithoutHeader
+        thisKeyValuesSortedIndexSizeWithoutFooterAndHeader
 
     val thisKeyValuesRealIndexOffset =
       previousStats map {
         previous =>
-          previous.thisKeyValueIndexOffset + previous.thisKeyValuesIndexSizeWithoutFooter
+          previous.thisKeyValueIndexOffset + previous.thisKeyValuesIndexSizeWithoutFooterAndHeader
       } getOrElse 0
 
     //starts from 0. Do not need the actual index offset for space efficiency. The actual indexOffset can be adjust during read.
@@ -103,7 +103,7 @@ private[core] object Stats {
 
     val thisKeyValuesSegmentKeyAndValueSize =
       thisKeyValuesSegmentValueSize +
-        thisKeyValuesSortedIndexSize
+        thisKeyValuesSortedIndexSizeWithoutFooter
 
     //Items to add to BloomFilters is different to the position because a Group can contain
     //multiple inner key-values but the Group's key itself does not find added to the BloomFilter.
@@ -171,7 +171,7 @@ private[core] object Stats {
 
     val segmentSortedIndexSizeWithoutHeader =
       previousStats.map(_.segmentSortedIndexSizeWithoutHeader).getOrElse(0) +
-        thisKeyValuesSortedIndexSizeWithoutHeader
+        thisKeyValuesSortedIndexSizeWithoutFooterAndHeader
 
     val segmentSortedIndexSize =
       SortedIndex.headerSize +
@@ -254,7 +254,7 @@ private[core] object Stats {
       segmentUniqueAccessIndexKeyCounts = segmentUniqueAccessIndexKeyCounts,
       keySize = indexEntry.size,
       thisKeyValuesSegmentKeyAndValueSize = thisKeyValuesSegmentKeyAndValueSize,
-      thisKeyValuesIndexSizeWithoutFooter = thisKeyValuesSortedIndexSize,
+      thisKeyValuesIndexSizeWithoutFooterAndHeader = thisKeyValuesSortedIndexSizeWithoutFooterAndHeader,
       thisKeyValuesAccessIndexOffset = thisKeyValuesAccessIndexOffset,
       thisKeyValueIndexOffset = thisKeyValuesRealIndexOffset,
       segmentHashIndexSize = segmentHashIndexSize,
@@ -286,7 +286,7 @@ private[core] case class Stats(valueSize: Int,
                                segmentUniqueAccessIndexKeyCounts: Int,
                                keySize: Int,
                                thisKeyValuesSegmentKeyAndValueSize: Int,
-                               thisKeyValuesIndexSizeWithoutFooter: Int,
+                               thisKeyValuesIndexSizeWithoutFooterAndHeader: Int,
                                thisKeyValuesAccessIndexOffset: Int,
                                thisKeyValueIndexOffset: Int,
                                segmentHashIndexSize: Int,

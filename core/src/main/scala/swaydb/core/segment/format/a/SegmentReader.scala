@@ -70,7 +70,7 @@ private[core] object SegmentReader extends LazyLogging {
     hashIndex map {
       hashIndex =>
         HashIndex.get(
-          matcher = matcher.toNextPrefixCompressedMatcher,
+          matcher = matcher.whilePrefixCompressed,
           hashIndexReader = hashIndex,
           sortedIndexReader = sortedIndex
         ) flatMap {
@@ -106,7 +106,7 @@ private[core] object SegmentReader extends LazyLogging {
     binarySearchIndex map {
       binarySearchIndex =>
         BinarySearchIndex.get(
-          matcher = matcher,
+          matcher = matcher.whilePrefixCompressed,
           binarySearchIndex = binarySearchIndex,
           sortedIndex = sortedIndex,
           values = valuesReader

@@ -5,12 +5,20 @@ import swaydb.core.CommonAssertions.eitherOne
 import swaydb.core.RunThis._
 import swaydb.core.TestData.{randomBytesSlice, randomCompression, randomIntMax}
 import swaydb.core.io.reader.Reader
-import swaydb.core.segment.format.a.MatchResult
+import swaydb.core.segment.format.a.{KeyMatcher, MatchResult, SegmentWriter}
 import swaydb.core.util.Bytes
 import swaydb.data.IO
 import swaydb.data.slice.Slice
+import swaydb.core.TestData._
+import swaydb.core.CommonAssertions._
+import swaydb.core.segment.{BinarySegment, Segment}
+import swaydb.data.order.KeyOrder
+import swaydb.serializers._
+import swaydb.serializers.Default._
 
 class BinarySearchIndexSpec extends WordSpec with Matchers {
+
+  implicit val keyOrder = KeyOrder.default
 
   def assertSearch(bytes: Slice[Byte],
                    values: Seq[Int],
@@ -146,6 +154,32 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
             unAlteredIndex = index
           )
         }
+      }
+    }
+  }
+
+  "searching a segment" should {
+    "get" in {
+      val keyValues =
+        randomizedKeyValues(
+          count = 3,
+          startId = Some(1),
+          addRandomGroups = false,
+          compressDuplicateValues = randomBoolean(),
+          enableBinarySearchIndex = true,
+          resetPrefixCompressionEvery = 2
+        )
+
+      val segment = SegmentWriter.write(keyValues, 0, 5).get.flattenBytes
+      val indexes = getIndexes(Reader(segment)).get
+
+      keyValues foreach {
+        keyValue =>
+          println(s"key: ${keyValue}")
+          println(s"${keyValue.isPrefixCompressed}")
+          indexes._5 shouldBe defined
+          val got = BinarySearchIndex.get(KeyMatcher.Get(keyValue.key).whilePrefixCompressed, indexes._5.get, indexes._3, indexes._2).get.get
+          got shouldBe keyValue
       }
     }
   }

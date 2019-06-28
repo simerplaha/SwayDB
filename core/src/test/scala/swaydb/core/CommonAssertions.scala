@@ -42,7 +42,7 @@ import swaydb.core.map.serializer.{MapEntryWriter, RangeValueSerializer, ValueSe
 import swaydb.core.merge._
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.Segment
-import swaydb.core.segment.format.a.block.{BloomFilter, SortedIndex, Values}
+import swaydb.core.segment.format.a.block.{BinarySearchIndex, BloomFilter, HashIndex, SortedIndex, Values}
 import swaydb.core.segment.format.a.{KeyMatcher, SegmentFooter, SegmentReader}
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util.CollectionUtil._
@@ -1375,6 +1375,16 @@ object CommonAssertions {
           )
       }
     } yield all
+
+  def getIndexes(reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default) =
+    for {
+      footer <- SegmentFooter.read(reader)
+      valuesReader <- footer.valuesOffset.map(Values.read(_, reader).map(_.createBlockReader(reader)).map(Some(_))) getOrElse IO.none
+      sortedIndex <- SortedIndex.read(footer.sortedIndexOffset, reader).map(_.createBlockReader(reader))
+      hashIndex <- footer.hashIndexOffset.map(HashIndex.read(_, reader).map(_.createBlockReader(reader)).map(Some(_))) getOrElse IO.none
+      binarySearchIndex <- footer.binarySearchIndexOffset.map(BinarySearchIndex.read(_, reader).map(_.createBlockReader(reader)).map(Some(_))) getOrElse IO.none
+      bloomFilter <- footer.bloomFilterOffset.map(BloomFilter.read(_, reader).map(_.createBlockReader(reader)).map(Some(_))) getOrElse IO.none
+    } yield (footer, valuesReader, sortedIndex, hashIndex, binarySearchIndex, bloomFilter)
 
   def printGroupHierarchy(keyValues: Slice[KeyValue.ReadOnly], spaces: Int)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                             keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter): Unit =
