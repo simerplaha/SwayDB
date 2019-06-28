@@ -41,9 +41,9 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
           if (valueToFind == valueFound)
             MatchResult.Matched(null)
           else if (valueToFind < valueFound)
-            MatchResult.Stop
+            MatchResult.Ahead
           else
-            MatchResult.Next
+            MatchResult.Behind
         }
 
       val alteredIndex =
@@ -92,6 +92,8 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
 
               BinarySearchIndex.close(state).get
 
+              state.writtenValues shouldBe values.size
+
               state.bytes.isFull shouldBe true
 
               val index =
@@ -99,6 +101,8 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
                   offset = BinarySearchIndex.Offset(0, state.bytes.written),
                   reader = Reader(state.bytes)
                 ).get
+
+              index.valuesCount shouldBe state.writtenValues
 
               //byte size of Int.MaxValue is 5, but the index will switch to using 4 byte ints.
               index.bytesPerValue should be <= 4
@@ -162,11 +166,12 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
     "get" in {
       val keyValues =
         randomizedKeyValues(
-          count = 3,
+          count = 100,
           startId = Some(1),
           addRandomGroups = false,
           compressDuplicateValues = randomBoolean(),
           enableBinarySearchIndex = true,
+          buildFullBinarySearchIndex = true,
           resetPrefixCompressionEvery = 2
         )
 
@@ -175,8 +180,6 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
 
       keyValues foreach {
         keyValue =>
-          println(s"key: ${keyValue}")
-          println(s"${keyValue.isPrefixCompressed}")
           indexes._5 shouldBe defined
           val got = BinarySearchIndex.get(KeyMatcher.Get(keyValue.key).whilePrefixCompressed, indexes._5.get, indexes._3, indexes._2).get.get
           got shouldBe keyValue

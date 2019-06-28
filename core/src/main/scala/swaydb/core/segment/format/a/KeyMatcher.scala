@@ -21,15 +21,28 @@ package swaydb.core.segment.format.a
 
 import swaydb.core.data.Persistent
 import swaydb.core.segment.format.a.MatchResult.{Matched, _}
+import swaydb.data.IO
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 
-sealed trait MatchResult
+sealed trait MatchResult {
+  def asIO: IO.Success[MatchResult]
+}
 
 object MatchResult {
-  case class Matched(result: Persistent) extends MatchResult
-  case object Next extends MatchResult
-  case object Stop extends MatchResult
+  case class Matched(result: Persistent) extends MatchResult {
+    override def asIO: IO.Success[MatchResult] =
+      IO.Success(this)
+  }
+  case object Behind extends MatchResult {
+    val asIO = IO.Success(this)
+  }
+  case object BehindStop extends MatchResult {
+    val asIO = IO.Success(this)
+  }
+  case object Ahead extends MatchResult {
+    val asIO = IO.Success(this)
+  }
 }
 
 private[core] sealed trait KeyMatcher {
@@ -73,42 +86,51 @@ private[core] object KeyMatcher {
   private case class Getter(key: Slice[Byte],
                             whileNextIsPrefixCompressed: Boolean)(implicit val keyOrder: KeyOrder[Slice[Byte]]) extends Get with GetPrefixCompressed {
 
+    def shouldFetchNext(next: Option[Persistent]) =
+      !whileNextIsPrefixCompressed || next.forall(_.isPrefixCompressed)
+
     override def apply(previous: Persistent,
                        next: Option[Persistent],
                        hasMore: => Boolean): MatchResult =
-      if (whileNextIsPrefixCompressed && next.exists(next => !next.isPrefixCompressed))
-        MatchResult.Stop
-      else
-        next.getOrElse(previous) match {
-          case fixed: Persistent.Fixed =>
-            val matchResult = keyOrder.compare(key, fixed.key)
-            if (matchResult == 0)
-              Matched(fixed)
-            else if (matchResult > 0 && hasMore)
-              Next
+      next.getOrElse(previous) match {
+        case fixed: Persistent.Fixed =>
+          val matchResult = keyOrder.compare(key, fixed.key)
+          if (matchResult == 0)
+            Matched(fixed)
+          else if (matchResult > 0 && hasMore)
+            if (shouldFetchNext(next))
+              Behind
             else
-              Stop
+              BehindStop
+          else
+            Ahead
 
-          case group: Persistent.Group =>
-            val fromKeyMatch = keyOrder.compare(key, group.minKey)
-            val toKeyMatch: Int = keyOrder.compare(key, group.maxKey.maxKey)
-            if (fromKeyMatch >= 0 && ((group.maxKey.inclusive && toKeyMatch <= 0) || (!group.maxKey.inclusive && toKeyMatch < 0))) //is within the range
-              Matched(group)
-            else if (toKeyMatch >= 0 && hasMore)
-              Next
+        case group: Persistent.Group =>
+          val fromKeyMatch = keyOrder.compare(key, group.minKey)
+          val toKeyMatch: Int = keyOrder.compare(key, group.maxKey.maxKey)
+          if (fromKeyMatch >= 0 && ((group.maxKey.inclusive && toKeyMatch <= 0) || (!group.maxKey.inclusive && toKeyMatch < 0))) //is within the range
+            Matched(group)
+          else if (toKeyMatch >= 0 && hasMore)
+            if (shouldFetchNext(next))
+              Behind
             else
-              Stop
+              BehindStop
+          else
+            Ahead
 
-          case range: Persistent.Range =>
-            val fromKeyMatch = keyOrder.compare(key, range.fromKey)
-            val toKeyMatch = keyOrder.compare(key, range.toKey)
-            if (fromKeyMatch >= 0 && toKeyMatch < 0) //is within the range
-              Matched(range)
-            else if (toKeyMatch >= 0 && hasMore)
-              Next
+        case range: Persistent.Range =>
+          val fromKeyMatch = keyOrder.compare(key, range.fromKey)
+          val toKeyMatch = keyOrder.compare(key, range.toKey)
+          if (fromKeyMatch >= 0 && toKeyMatch < 0) //is within the range
+            Matched(range)
+          else if (toKeyMatch >= 0 && hasMore)
+            if (shouldFetchNext(next))
+              Behind
             else
-              Stop
-        }
+              BehindStop
+          else
+            Ahead
+      }
   }
 
   case class Lower(key: Slice[Byte])(implicit val keyOrder: KeyOrder[Slice[Byte]]) extends KeyMatcher {
@@ -123,7 +145,7 @@ private[core] object KeyMatcher {
             if (keyOrder.compare(previous.key, key) < 0)
               Matched(previous)
             else
-              Stop
+              Ahead
           else if (nextCompare < 0)
             if (hasMore)
               next match {
@@ -134,17 +156,17 @@ private[core] object KeyMatcher {
                   Matched(next)
 
                 case _ =>
-                  Next
+                  Behind
               }
             else
               Matched(next)
           else
-            Stop
+            Ahead
 
         case None =>
           val previousCompare = keyOrder.compare(previous.key, key)
           if (previousCompare == 0)
-            Stop
+            Ahead
           else if (previousCompare < 0)
             if (hasMore)
               previous match {
@@ -155,12 +177,12 @@ private[core] object KeyMatcher {
                   Matched(previous)
 
                 case _ =>
-                  Next
+                  Behind
               }
             else
               Matched(previous)
           else
-            Stop
+            Ahead
       }
   }
 
@@ -183,12 +205,12 @@ private[core] object KeyMatcher {
 
           case _ =>
             if (hasMore)
-              Next
+              Behind
             else
-              Stop
+              Ahead
         }
       else
-        Stop
+        Ahead
     }
   }
 

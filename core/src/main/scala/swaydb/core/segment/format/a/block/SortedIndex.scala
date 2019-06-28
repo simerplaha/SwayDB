@@ -320,7 +320,7 @@ private[core] object SortedIndex {
       next = next,
       hasMore = hasMore(next getOrElse previous)
     ) match {
-      case MatchResult.Next =>
+      case MatchResult.Behind =>
         val readFrom = next getOrElse previous
         readNextKeyValue(
           previous = readFrom,
@@ -341,10 +341,13 @@ private[core] object SortedIndex {
         }
 
       case matched @ MatchResult.Matched(_) =>
-        IO.Success(matched)
+        matched.asIO
 
-      case matched @ MatchResult.Stop =>
-        IO.Success(matched)
+      case ahead @ MatchResult.BehindStop =>
+        ahead.asIO
+
+      case ahead @ MatchResult.Ahead =>
+        ahead.asIO
     }
 
   @tailrec
@@ -360,7 +363,7 @@ private[core] object SortedIndex {
       indexReader = indexReader,
       valueReader = valueReader
     ) match {
-      case IO.Success(MatchResult.Next) =>
+      case IO.Success(MatchResult.Behind) =>
         matchOrNextAndGet(
           previous = previous,
           next = next,
@@ -372,7 +375,7 @@ private[core] object SortedIndex {
       case IO.Success(MatchResult.Matched(keyValue)) =>
         IO.Success(Some(keyValue))
 
-      case IO.Success(MatchResult.Stop) =>
+      case IO.Success(MatchResult.Ahead | MatchResult.BehindStop) =>
         IO.none
 
       case IO.Failure(error) =>

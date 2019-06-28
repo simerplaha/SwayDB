@@ -199,8 +199,6 @@ object BinarySearchIndex {
     def hop(start: Int, end: Int): IO[Option[Persistent]] = {
       val mid = start + (end - start) / 2
 
-      println(s"Mid: $mid")
-
       val valueOffset = mid * reader.block.bytesPerValue
       if (start > end)
         IO.none
@@ -217,10 +215,10 @@ object BinarySearchIndex {
               case MatchResult.Matched(result) =>
                 IO.Success(Some(result))
 
-              case MatchResult.Next =>
+              case MatchResult.Behind | MatchResult.BehindStop =>
                 hop(start = mid + 1, end = end)
 
-              case MatchResult.Stop =>
+              case MatchResult.Ahead =>
                 hop(start = start, end = mid - 1)
             }
           case IO.Failure(error) =>

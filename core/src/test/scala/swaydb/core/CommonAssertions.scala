@@ -436,9 +436,9 @@ object CommonAssertions {
                                                              timeOrder: TimeOrder[Slice[Byte]],
                                                              groupingStrategy: Option[KeyValueGroupingStrategyInternal]): Unit = {
     //    println("*** Expected assert ***")
-    assertMerge(newKeyValues, oldKeyValues, expected.toTransient, isLastLevel = false)
+    assertMerge(newKeyValues, oldKeyValues, expected.toTransient(), isLastLevel = false)
     //println("*** Expected last level ***")
-    assertMerge(newKeyValues, oldKeyValues, lastLevelExpect.toTransient, isLastLevel = true)
+    assertMerge(newKeyValues, oldKeyValues, lastLevelExpect.toTransient(), isLastLevel = true)
     //println("*** Skip list assert ***")
     assertSkipListMerge(newKeyValues, oldKeyValues, expected)
   }
@@ -450,9 +450,9 @@ object CommonAssertions {
                                                              timeOrder: TimeOrder[Slice[Byte]],
                                                              groupingStrategy: Option[KeyValueGroupingStrategyInternal]): Iterable[Iterable[KeyValue.WriteOnly]] = {
     //    println("*** Last level = false ***")
-    assertMerge(Slice(newKeyValue), Slice(oldKeyValue), expected.toTransient, isLastLevel = false)
+    assertMerge(Slice(newKeyValue), Slice(oldKeyValue), expected.toTransient(), isLastLevel = false)
     //println("*** Last level = true ***")
-    assertMerge(Slice(newKeyValue), Slice(oldKeyValue), lastLevelExpect.toTransient, isLastLevel = true)
+    assertMerge(Slice(newKeyValue), Slice(oldKeyValue), lastLevelExpect.toTransient(), isLastLevel = true)
   }
 
   def assertMerge(newKeyValues: Slice[KeyValue.ReadOnly.SegmentResponse],
@@ -1165,7 +1165,7 @@ object CommonAssertions {
         unzipGroups(keyValue.segment.getAll().get.safeGetBlocking())
       case keyValue: KeyValue =>
         Slice(keyValue)
-    }.toMemory.toTransient
+    }.toMemory.toTransient()
 
   def assertHigher(keyValues: Slice[KeyValue],
                    segment: Segment): Unit =

@@ -170,7 +170,7 @@ object TestData {
         }
       else
         Segment.copyToPersist(
-          keyValues = keyValues.toTransient,
+          keyValues = keyValues.toTransient(),
           createdInLevel = level.levelNumber,
           fetchNextPath = level.paths.next.resolve(level.segmentIDGenerator.nextSegmentID),
           mmapSegmentsOnRead = randomBoolean(),
@@ -423,13 +423,34 @@ object TestData {
   }
 
   implicit class ReadOnlyToMemory(keyValues: Iterable[KeyValue.ReadOnly]) {
-    def toTransient(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                    keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter): Slice[Transient] = {
+    def toTransient: Slice[Transient] =
+      toTransient()
+
+    def toTransient(maxProbeForGroup: Int = TestData.maxProbe,
+                    falsePositiveRate: Double = TestData.falsePositiveRate,
+                    enableBinarySearchIndex: Boolean = TestData.enableBinarySearchIndex,
+                    buildFullBinarySearchIndex: Boolean = TestData.buildFullBinarySearchIndex,
+                    compressDuplicateValues: Boolean = TestData.compressDuplicateValues,
+                    resetPrefixCompressionEvery: Int = TestData.resetPrefixCompressionEvery,
+                    minimumNumberOfKeysForHashIndex: Int = TestData.minimumNumberOfKeysForHashIndex,
+                    hashIndexCompensation: Int => Int = TestData.hashIndexCompensation)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                                                                        keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter): Slice[Transient] = {
       val slice = Slice.create[Transient](keyValues.size)
 
       keyValues foreach {
         keyValue =>
-          slice add keyValue.toTransient.updateStats(TestData.falsePositiveRate, slice.lastOption).asInstanceOf[Transient]
+          slice add
+            keyValue.toTransient(
+              maxProbeForGroup = maxProbeForGroup,
+              falsePositiveRate = falsePositiveRate,
+              enableBinarySearchIndex = enableBinarySearchIndex,
+              buildFullBinarySearchIndex = buildFullBinarySearchIndex,
+              compressDuplicateValues = compressDuplicateValues,
+              resetPrefixCompressionEvery = resetPrefixCompressionEvery,
+              minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
+              hashIndexCompensation = hashIndexCompensation,
+              previous = slice.lastOption
+            )
       }
       slice
     }
@@ -558,7 +579,18 @@ object TestData {
 
             case group: Memory.Group =>
               Transient.Group(
-                keyValues = group.segment.getAll().assertGet.toTransient,
+                keyValues =
+                  group.segment.getAll().assertGet
+                    .toTransient(
+                      maxProbeForGroup = maxProbeForGroup,
+                      falsePositiveRate = falsePositiveRate,
+                      enableBinarySearchIndex = enableBinarySearchIndex,
+                      buildFullBinarySearchIndex = buildFullBinarySearchIndex,
+                      compressDuplicateValues = compressDuplicateValues,
+                      resetPrefixCompressionEvery = resetPrefixCompressionEvery,
+                      minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
+                      hashIndexCompensation = hashIndexCompensation
+                    ),
                 indexCompression = randomCompression(),
                 valueCompression = randomCompression(),
                 falsePositiveRate = falsePositiveRate,
@@ -670,7 +702,17 @@ object TestData {
               )
 
             case group: Persistent.Group =>
-              val allKeyValues = group.segment.getAll().assertGet.toTransient
+              val allKeyValues = group.segment.getAll().assertGet.toTransient(
+                maxProbeForGroup = maxProbeForGroup,
+                falsePositiveRate = falsePositiveRate,
+                enableBinarySearchIndex = enableBinarySearchIndex,
+                buildFullBinarySearchIndex = buildFullBinarySearchIndex,
+                compressDuplicateValues = compressDuplicateValues,
+                resetPrefixCompressionEvery = resetPrefixCompressionEvery,
+                minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
+                hashIndexCompensation = hashIndexCompensation
+              )
+
               Transient.Group(
                 keyValues = allKeyValues,
                 indexCompression = randomCompression(),
@@ -1298,7 +1340,6 @@ object TestData {
         hashIndexCompensation = hashIndexCompensation
       )
 
-
   def randomFixedKeyValue(key: Slice[Byte],
                           value: Option[Slice[Byte]] = randomStringOption,
                           deadline: Option[Deadline] = randomDeadlineOption,
@@ -1581,15 +1622,7 @@ object TestData {
                          addRandomRanges: Boolean = false,
                          addRandomRemoveDeadlines: Boolean = false,
                          addRandomPutDeadlines: Boolean = true,
-                         addRandomExpiredPutDeadlines: Boolean = false,
-                         maxProbeForGroup: Int = TestData.maxProbe,
-                         falsePositiveRate: Double = TestData.falsePositiveRate,
-                         enableBinarySearchIndex: Boolean = TestData.enableBinarySearchIndex,
-                         buildFullBinarySearchIndex: Boolean = TestData.buildFullBinarySearchIndex,
-                         compressDuplicateValues: Boolean = TestData.compressDuplicateValues,
-                         resetPrefixCompressionEvery: Int = TestData.resetPrefixCompressionEvery,
-                         minimumNumberOfKeysForHashIndex: Int = TestData.minimumNumberOfKeysForHashIndex,
-                         hashIndexCompensation: Int => Int = TestData.hashIndexCompensation)(implicit testTimer: TestTimer = TestTimer.random): Slice[Memory] =
+                         addRandomExpiredPutDeadlines: Boolean = false)(implicit testTimer: TestTimer = TestTimer.random): Slice[Memory] =
     randomKeyValues(
       count = count,
       startId = startId,
@@ -1599,15 +1632,7 @@ object TestData {
       addRandomRanges = addRandomRanges,
       addRandomExpiredPutDeadlines = addRandomExpiredPutDeadlines,
       addRandomRemoveDeadlines = addRandomRemoveDeadlines,
-      addRandomPutDeadlines = addRandomPutDeadlines,
-      falsePositiveRate = falsePositiveRate,
-      enableBinarySearchIndex = enableBinarySearchIndex,
-      maxProbeForGroup = maxProbeForGroup,
-      buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-      compressDuplicateValues = compressDuplicateValues,
-      resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-      minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-      hashIndexCompensation = hashIndexCompensation
+      addRandomPutDeadlines = addRandomPutDeadlines
     ).toMemory
 
   def randomKeyValues(count: Int = 20,
