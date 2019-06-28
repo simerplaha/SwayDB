@@ -56,6 +56,11 @@ private[core] sealed trait KeyMatcher {
 }
 
 private[core] object KeyMatcher {
+  sealed trait Get extends KeyMatcher {
+    def whilePrefixCompressed =
+      Get.WhilePrefixCompressed(key)(keyOrder)
+  }
+
   object Get {
     def apply(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Get =
       Getter(
@@ -67,24 +72,22 @@ private[core] object KeyMatcher {
       * Reserved for [[SegmentReader]] only. Other clients should just submit [[Get]]
       * and [[SegmentReader]] should apply HashIndex check if necessary.
       */
-    private[a] def nextPrefixCompressed(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): GetPrefixCompressed =
-      Getter(
-        key = key,
-        whileNextIsPrefixCompressed = true
-      )
-  }
 
-  sealed trait Get extends KeyMatcher {
-    def whilePrefixCompressed =
-      Get.nextPrefixCompressed(key)(keyOrder)
-  }
-  sealed trait GetPrefixCompressed extends KeyMatcher {
-    def whileNextIsPrefixCompressed: Boolean
+    object WhilePrefixCompressed {
+      private[a] def apply(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Get.WhilePrefixCompressed =
+        Getter(
+          key = key,
+          whileNextIsPrefixCompressed = true
+        )
+    }
+    sealed trait WhilePrefixCompressed extends KeyMatcher {
+      def whileNextIsPrefixCompressed: Boolean
+    }
   }
 
   //private to disallow creating hashIndex Get from here.
   private case class Getter(key: Slice[Byte],
-                            whileNextIsPrefixCompressed: Boolean)(implicit val keyOrder: KeyOrder[Slice[Byte]]) extends Get with GetPrefixCompressed {
+                            whileNextIsPrefixCompressed: Boolean)(implicit val keyOrder: KeyOrder[Slice[Byte]]) extends Get with Get.WhilePrefixCompressed {
 
     def shouldFetchNext(next: Option[Persistent]) =
       !whileNextIsPrefixCompressed || next.forall(_.isPrefixCompressed)

@@ -1,20 +1,17 @@
 package swaydb.core.segment.format.a.block
 
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.core.CommonAssertions.eitherOne
+import swaydb.core.CommonAssertions.{eitherOne, _}
 import swaydb.core.RunThis._
-import swaydb.core.TestData.{randomBytesSlice, randomCompression, randomIntMax}
+import swaydb.core.TestData.{randomBytesSlice, randomCompression, randomIntMax, _}
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.{KeyMatcher, MatchResult, SegmentWriter}
 import swaydb.core.util.Bytes
 import swaydb.data.IO
-import swaydb.data.slice.Slice
-import swaydb.core.TestData._
-import swaydb.core.CommonAssertions._
-import swaydb.core.segment.{BinarySegment, Segment}
 import swaydb.data.order.KeyOrder
-import swaydb.serializers._
+import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
+import swaydb.serializers._
 
 class BinarySearchIndexSpec extends WordSpec with Matchers {
 
@@ -181,7 +178,7 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
       keyValues foreach {
         keyValue =>
           indexes._5 shouldBe defined
-          val got = BinarySearchIndex.get(KeyMatcher.Get(keyValue.key).whilePrefixCompressed, indexes._5.get, indexes._3, indexes._2).get.get
+          val got = BinarySearchIndex.get(KeyMatcher.Get.WhilePrefixCompressed(keyValue.key), indexes._5.get, indexes._3, indexes._2).get.get
           got shouldBe keyValue
       }
     }

@@ -230,7 +230,7 @@ object BinarySearchIndex {
     hop(start = 0, end = reader.block.valuesCount - 1)
   }
 
-  def get(matcher: KeyMatcher.GetPrefixCompressed,
+  def get(matcher: KeyMatcher.Get.WhilePrefixCompressed,
           binarySearchIndex: BlockReader[BinarySearchIndex],
           sortedIndex: BlockReader[SortedIndex],
           values: Option[BlockReader[Values]]): IO[Option[Persistent]] =
