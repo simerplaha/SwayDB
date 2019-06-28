@@ -71,8 +71,9 @@ private[core] object SegmentReader extends LazyLogging {
       hashIndex =>
         HashIndex.get(
           matcher = matcher.whilePrefixCompressed,
-          hashIndexReader = hashIndex,
-          sortedIndexReader = sortedIndex
+          hashIndex = hashIndex,
+          sortedIndex = sortedIndex,
+          values = valuesReader
         ) flatMap {
           case some @ Some(_) =>
             IO.Success(some)

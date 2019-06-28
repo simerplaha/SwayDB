@@ -340,14 +340,8 @@ private[core] object SortedIndex {
             IO.Failure(exception)
         }
 
-      case matched @ MatchResult.Matched(_) =>
-        matched.asIO
-
-      case ahead @ MatchResult.BehindStopped =>
-        ahead.asIO
-
-      case ahead @ MatchResult.AheadOrEnd =>
-        ahead.asIO
+      case result @ (MatchResult.Matched(_) | MatchResult.BehindStopped | MatchResult.AheadOrEnd) =>
+        result.asIO
     }
 
   @tailrec

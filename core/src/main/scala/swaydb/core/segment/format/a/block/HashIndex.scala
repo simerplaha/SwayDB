@@ -290,32 +290,21 @@ private[core] object HashIndex extends LazyLogging {
     )
   }
 
-  private[a] def get(matcher: KeyMatcher.Get.WhilePrefixCompressed,
-                     hashIndexReader: BlockReader[HashIndex],
-                     sortedIndexReader: BlockReader[SortedIndex]): IO[Option[Persistent]] =
+  def get(matcher: KeyMatcher.Get.WhilePrefixCompressed,
+          hashIndex: BlockReader[HashIndex],
+          sortedIndex: BlockReader[SortedIndex],
+          values: Option[BlockReader[Values]]): IO[Option[Persistent]] =
     find(
       key = matcher.key,
-      blockReader = hashIndexReader,
+      blockReader = hashIndex,
       assertValue =
         sortedIndexOffsetValue =>
-          //          SortedIndex.findAndMatchOrNext(
-          //            matcher = matcher,
-          //            fromOffset = sortedIndexReader.start + sortedIndexOffsetValue,
-          //            hashIndexReader = hashIndexReader,
-          //            index = sortedIndexReader
-          //          )
-          ???
-      //            recoverWith {
-      //            case _ =>
-      //              //currently there is no way to detect starting point for a key-value entry in the sorted index.
-      //              //Read requests can be submitted to random parts of the sortedIndex depending on the index returned by the hash.
-      //              //Hash index also itself also does not store markers for a valid start sortedIndex offset
-      //              //that's why key-values can be read at random parts of the sorted index which can return failures.
-      //              //too many failures are not expected because probe should disallow that. And if the Segment is actually corrupted,
-      //              //the normal forward read of the index should catch that.
-      //              //HashIndex is suppose to make random reads faster, if the hashIndex is too small then there is no use creating one.
-      //              IO.none
-      //          }
+          SortedIndex.findAndMatchOrNext(
+            matcher = matcher,
+            fromOffset = sortedIndexOffsetValue,
+            indexReader = sortedIndex,
+            valueReader = values
+          )
     )
 }
 

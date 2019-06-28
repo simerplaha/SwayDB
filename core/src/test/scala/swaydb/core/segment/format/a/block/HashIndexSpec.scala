@@ -25,12 +25,14 @@ import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.data.Transient
 import swaydb.core.io.reader.Reader
+import swaydb.core.segment.format.a.{KeyMatcher, SegmentWriter}
 import swaydb.data.IO
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
+import scala.util.Random
 
 class HashIndexSpec extends TestBase {
 
@@ -250,6 +252,36 @@ class HashIndexSpec extends TestBase {
                 ).get.get
               (found.key equiv keyValue.key) shouldBe true
           }
+        }
+      }
+    }
+
+    "searching a segment" should {
+      "get" in {
+        val keyValues =
+          randomizedKeyValues(
+            count = 100,
+            startId = Some(1),
+            addRandomGroups = false,
+            compressDuplicateValues = randomBoolean(),
+            enableBinarySearchIndex = false,
+            addRandomRangeRemoves = false,
+            addRandomRanges = false,
+            buildFullBinarySearchIndex = true,
+            resetPrefixCompressionEvery = 2,
+            hashIndexCompensation = size => size * 3
+          )
+
+        val segment = SegmentWriter.write(keyValues, 0, 5).get.flattenBytes
+        val indexes = getIndexes(Reader(segment)).get
+
+        indexes._4.get.block.miss shouldBe 0
+
+        Random.shuffle(keyValues) foreach {
+          keyValue =>
+            indexes._4 shouldBe defined
+            val got = HashIndex.get(KeyMatcher.Get.WhilePrefixCompressed(keyValue.key), indexes._4.get, indexes._3, indexes._2).get.get
+            got shouldBe keyValue
         }
       }
     }

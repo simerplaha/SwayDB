@@ -717,7 +717,6 @@ private[core] object Transient {
     override val isGroup: Boolean = false
     override val isRange: Boolean = false
 
-
     val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, isPrefixCompressed) =
       KeyValueWriter.write(
         current = this,
@@ -772,7 +771,6 @@ private[core] object Transient {
     override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
     override val isRange: Boolean = false
-
 
     val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, isPrefixCompressed) =
       KeyValueWriter.write(
@@ -830,7 +828,6 @@ private[core] object Transient {
     override val isRange: Boolean = false
     override val deadline: Option[Deadline] =
       Segment.getNearestDeadline(None, applies)
-
 
     val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, isPrefixCompressed) =
       KeyValueWriter.write(
@@ -1223,31 +1220,6 @@ private[core] object Persistent {
     override def toRemoveValue(): Value.Remove =
       Value.Remove(deadline, time)
   }
-
-  //  object Put {
-  //    def apply(key: Slice[Byte],
-  //              deadline: Option[Deadline],
-  //              time: Time,
-  //              value: Option[Slice[Byte]],
-  //              isPrefixCompressed: Boolean): Persistent.Put =
-  //      Persistent.Put(
-  //        _key = key,
-  //        deadline = deadline,
-  //        lazyValueReader =
-  //          LazyValueReader(
-  //            reader = value.map(BlockReader(_)).getOrElse(Reader.empty),
-  //            offset = 0,
-  //            length = value.map(_.size).getOrElse(0)
-  //          ),
-  //        _time = time,
-  //        nextIndexOffset = -1,
-  //        nextIndexSize = 0,
-  //        indexOffset = 0,
-  //        valueOffset = 0,
-  //        valueLength = value.map(_.size).getOrElse(0),
-  //        isPrefixCompressed = isPrefixCompressed
-  //      )
-  //  }
 
   case class Put(private var _key: Slice[Byte],
                  deadline: Option[Deadline],
