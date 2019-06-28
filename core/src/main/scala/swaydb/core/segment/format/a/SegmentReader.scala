@@ -67,74 +67,70 @@ private[core] object SegmentReader extends LazyLogging {
           sortedIndex: BlockReader[SortedIndex],
           valuesReader: Option[BlockReader[Values]],
           hasRange: Boolean): IO[Option[Persistent]] =
-  //    hashIndex map {
-  //      hashIndex =>
-  //        HashIndex.get(
-  //          matcher = matcher.toNextPrefixCompressedMatcher,
-  //          reader = reader,
-  //          hashIndex = hashIndex,
-  //          sortedIndexOffset = sortedIndexOffset
-  //        ) flatMap {
-  //          case some @ Some(_) =>
-  //            IO.Success(some)
-  //          case None =>
-  //            if (hashIndex.miss == 0 && !hasRange)
-  //              IO.none
-  //            else
-  //              get(
-  //                matcher = matcher,
-  //                startFrom = startFrom,
-  //                reader = reader,
-  //                binarySearchIndex = binarySearchIndex,
-  //                sortedIndex = sortedIndexOffset
-  //              )
-  //        }
-  //    } getOrElse {
-  //      get(
-  //        matcher = matcher,
-  //        startFrom = startFrom,
-  //        reader = reader,
-  //        binarySearchIndex = binarySearchIndex,
-  //        sortedIndex = sortedIndexOffset
-  //      )
-  //    }
-    ???
+    hashIndex map {
+      hashIndex =>
+        HashIndex.get(
+          matcher = matcher.toNextPrefixCompressedMatcher,
+          hashIndexReader = hashIndex,
+          sortedIndexReader = sortedIndex
+        ) flatMap {
+          case some @ Some(_) =>
+            IO.Success(some)
+          case None =>
+            if (hashIndex.block.miss == 0 && !hasRange)
+              IO.none
+            else
+              get(
+                matcher = matcher,
+                startFrom = startFrom,
+                binarySearchIndex = binarySearchIndex,
+                sortedIndex = sortedIndex,
+                valuesReader = valuesReader
+              )
+        }
+    } getOrElse {
+      get(
+        matcher = matcher,
+        startFrom = startFrom,
+        binarySearchIndex = binarySearchIndex,
+        sortedIndex = sortedIndex,
+        valuesReader = valuesReader
+      )
+    }
 
-  def get(matcher: KeyMatcher.Get,
-          startFrom: Option[Persistent],
-          hashIndex: Option[BlockReader[HashIndex]],
-          binarySearchIndex: Option[BlockReader[BinarySearchIndex]],
-          sortedIndex: BlockReader[SortedIndex],
-          valuesReader: Option[BlockReader[Values]]): IO[Option[Persistent]] =
-  //    binarySearchIndex map {
-  //      binarySearchIndex =>
-  //        BinarySearchIndex.get(
-  //          matcher = matcher,
-  //          reader = reader,
-  //          binarySearchIndex = binarySearchIndex,
-  //          index = sortedIndex
-  //        ) flatMap {
-  //          case some @ Some(_) =>
-  //            IO.Success(some)
-  //
-  //          case None =>
-  //            if (binarySearchIndex.isFullBinarySearchIndex)
-  //              IO.none
-  //            else
-  //              get(
-  //                matcher = matcher,
-  //                startFrom = startFrom,
-  //                reader = reader,
-  //                sortedIndex = sortedIndex
-  //              )
-  //        }
-  //    } getOrElse {
-  //      get(
-  //        matcher = matcher,
-  //        startFrom = startFrom,
-  //        reader = reader,
-  //        sortedIndex = sortedIndex
-  //      )
-  //    }
-    ???
+  private def get(matcher: KeyMatcher.Get,
+                  startFrom: Option[Persistent],
+                  binarySearchIndex: Option[BlockReader[BinarySearchIndex]],
+                  sortedIndex: BlockReader[SortedIndex],
+                  valuesReader: Option[BlockReader[Values]]): IO[Option[Persistent]] =
+    binarySearchIndex map {
+      binarySearchIndex =>
+        BinarySearchIndex.get(
+          matcher = matcher,
+          binarySearchIndex = binarySearchIndex,
+          sortedIndex = sortedIndex,
+          values = valuesReader
+        ) flatMap {
+          case some @ Some(_) =>
+            IO.Success(some)
+
+          case None =>
+            if (binarySearchIndex.block.isFullBinarySearchIndex)
+              IO.none
+            else
+              SortedIndex.find(
+                matcher = matcher,
+                startFrom = startFrom,
+                indexReader = sortedIndex,
+                valuesReader = valuesReader
+              )
+        }
+    } getOrElse {
+      SortedIndex.find(
+        matcher = matcher,
+        startFrom = startFrom,
+        indexReader = sortedIndex,
+        valuesReader = valuesReader
+      )
+    }
 }

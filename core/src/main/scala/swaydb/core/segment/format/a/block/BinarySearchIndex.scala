@@ -233,18 +233,11 @@ object BinarySearchIndex {
     hop(start = 0, end = reader.block.valuesCount - 1)
   }
 
-  def find(reader: BlockReader[BinarySearchIndex],
-           assertValue: Int => IO[MatchResult]): IO[Option[Persistent]] =
-    search(
-      reader = reader,
-      assertValue = assertValue
-    )
-
   def get(matcher: KeyMatcher.Get,
           binarySearchIndex: BlockReader[BinarySearchIndex],
           sortedIndex: BlockReader[SortedIndex],
           values: Option[BlockReader[Values]]): IO[Option[Persistent]] =
-    find(
+    search(
       reader = binarySearchIndex,
       assertValue =
         sortedIndexOffsetValue =>

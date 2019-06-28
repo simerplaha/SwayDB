@@ -66,11 +66,11 @@ private[core] object SortedIndex {
       compressions = state.compressions
     ) flatMap {
       compressedOrUncompressedBytes =>
-        IO {
-          state.bytes = compressedOrUncompressedBytes
-          if (state.bytes.currentWritePosition > state.headerSize)
-            throw new Exception(s"Calculated header size was incorrect. Expected: ${state.headerSize}. Used: ${state.bytes.currentWritePosition - 1}")
-        }
+        state.bytes = compressedOrUncompressedBytes
+        if (state.bytes.currentWritePosition > state.headerSize)
+          IO.Failure(IO.Error.Fatal(s"Calculated header size was incorrect. Expected: ${state.headerSize}. Used: ${state.bytes.currentWritePosition - 1}"))
+        else
+          IO.unit
     }
 
   def read(offset: SortedIndex.Offset,
@@ -235,7 +235,7 @@ private[core] object SortedIndex {
   def find(matcher: KeyMatcher,
            startFrom: Option[Persistent],
            indexReader: BlockReader[SortedIndex],
-           valueReader: Option[BlockReader[Values]]): IO[Option[Persistent]] =
+           valuesReader: Option[BlockReader[Values]]): IO[Option[Persistent]] =
     startFrom match {
       case Some(startFrom) =>
         //if startFrom is the last index entry, return None.
@@ -245,7 +245,7 @@ private[core] object SortedIndex {
           readNextKeyValue(
             previous = startFrom,
             indexReader = indexReader,
-            valueReader = valueReader
+            valueReader = valuesReader
           ) flatMap {
             keyValue =>
               matchOrNext(
@@ -253,7 +253,7 @@ private[core] object SortedIndex {
                 next = Some(keyValue),
                 matcher = matcher,
                 indexReader = indexReader,
-                valueReader = valueReader
+                valueReader = valuesReader
               )
           }
 
@@ -262,7 +262,7 @@ private[core] object SortedIndex {
         readNextKeyValue(
           fromPosition = 0,
           indexReader = indexReader,
-          valueReader = valueReader
+          valueReader = valuesReader
         ) flatMap {
           keyValue =>
             matchOrNext(
@@ -270,7 +270,7 @@ private[core] object SortedIndex {
               next = None,
               matcher = matcher,
               indexReader = indexReader,
-              valueReader = valueReader
+              valueReader = valuesReader
             )
         }
     }
