@@ -60,8 +60,8 @@ private[segment] case class PersistentSegment(file: DBFile,
 
   private[segment] val cache = new ConcurrentSkipListMap[Slice[Byte], Persistent](keyOrder)
 
-  private val bitwiseSegment =
-    new BitwiseSegment(
+  private val binarySegment =
+    new BinarySegment(
       id = file.path.toString,
       maxKey = maxKey,
       minKey = minKey,
@@ -73,7 +73,7 @@ private[segment] case class PersistentSegment(file: DBFile,
   def close: IO[Unit] =
     file.close map {
       _ =>
-        bitwiseSegment.close()
+        binarySegment.close()
     }
 
   def isOpen: Boolean =
@@ -92,7 +92,7 @@ private[segment] case class PersistentSegment(file: DBFile,
         logger.error(s"{}: Failed to delete Segment file.", path, failure)
     } map {
       _ =>
-        bitwiseSegment.close()
+        binarySegment.close()
     }
   }
 
@@ -227,40 +227,40 @@ private[segment] case class PersistentSegment(file: DBFile,
     }
 
   def getFromCache(key: Slice[Byte]): Option[Persistent] =
-    bitwiseSegment getFromCache key
+    binarySegment getFromCache key
 
   def mightContain(key: Slice[Byte]): IO[Boolean] =
-    bitwiseSegment mightContain key
+    binarySegment mightContain key
 
   def get(key: Slice[Byte]): IO[Option[Persistent.SegmentResponse]] =
-    bitwiseSegment get key
+    binarySegment get key
 
   def lower(key: Slice[Byte]): IO[Option[Persistent.SegmentResponse]] =
-    bitwiseSegment lower key
+    binarySegment lower key
 
   def floorHigherHint(key: Slice[Byte]): IO[Option[Slice[Byte]]] =
-    bitwiseSegment floorHigherHint key
+    binarySegment floorHigherHint key
 
   def higher(key: Slice[Byte]): IO[Option[Persistent.SegmentResponse]] =
-    bitwiseSegment higher key
+    binarySegment higher key
 
   def getAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None): IO[Slice[KeyValue.ReadOnly]] =
-    bitwiseSegment getAll addTo
+    binarySegment getAll addTo
 
   override def hasRange: IO[Boolean] =
-    bitwiseSegment.hasRange
+    binarySegment.hasRange
 
   override def hasPut: IO[Boolean] =
-    bitwiseSegment.hasPut
+    binarySegment.hasPut
 
   def getHeadKeyValueCount(): IO[Int] =
-    bitwiseSegment.getHeadKeyValueCount()
+    binarySegment.getHeadKeyValueCount()
 
   def getBloomFilterKeyValueCount(): IO[Int] =
-    bitwiseSegment.getBloomFilterKeyValueCount()
+    binarySegment.getBloomFilterKeyValueCount()
 
   override def isFooterDefined: Boolean =
-    bitwiseSegment.isFooterDefined
+    binarySegment.isFooterDefined
 
   def existsOnDisk: Boolean =
     file.existsOnDisk
@@ -278,11 +278,11 @@ private[segment] case class PersistentSegment(file: DBFile,
     !file.existsOnDisk
 
   override def createdInLevel: IO[Int] =
-    bitwiseSegment.getFooter().map(_.createdInLevel)
+    binarySegment.getFooter().map(_.createdInLevel)
 
   override def isGrouped: IO[Boolean] =
-    bitwiseSegment.getFooter().map(_.hasGroup)
+    binarySegment.getFooter().map(_.hasGroup)
 
   override def isBloomFilterDefined: Boolean =
-    bitwiseSegment.isBloomFilterDefined
+    binarySegment.isBloomFilterDefined
 }

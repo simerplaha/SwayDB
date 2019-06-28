@@ -20,18 +20,19 @@
 package swaydb.core.segment.format.a.entry.reader
 
 import swaydb.core.data.Persistent
+import swaydb.core.io.reader.BlockReader
 import swaydb.core.segment.SegmentException
+import swaydb.core.segment.format.a.block.Values
 import swaydb.core.segment.format.a.entry.id._
 import swaydb.core.segment.format.a.entry.reader.base._
 import swaydb.data.IO
-import swaydb.data.order.KeyOrder
-import swaydb.data.slice.{Reader, Slice}
+import swaydb.data.slice.Reader
 
 trait EntryReader[E] {
   def apply[T <: BaseEntryId](baseId: T,
                               keyValueId: Int,
                               indexReader: Reader,
-                              valueReader: Reader,
+                              valueReader: Option[BlockReader[Values]],
                               indexOffset: Int,
                               nextIndexOffset: Int,
                               nextIndexSize: Int,
@@ -53,7 +54,7 @@ object EntryReader {
   def read[T](baseId: Int,
               keyValueId: Int,
               indexReader: Reader,
-              valueReader: Reader,
+              valueReader: Option[BlockReader[Values]],
               indexOffset: Int,
               nextIndexOffset: Int,
               nextIndexSize: Int,
@@ -75,7 +76,7 @@ object EntryReader {
     } getOrElse IO.Failure(IO.Error.Fatal(SegmentException.InvalidKeyValueId(baseId)))
 
   def read(indexReader: Reader,
-           valueReader: Reader,
+           valueReader: Option[BlockReader[Values]],
            indexOffset: Int,
            nextIndexOffset: Int,
            nextIndexSize: Int,

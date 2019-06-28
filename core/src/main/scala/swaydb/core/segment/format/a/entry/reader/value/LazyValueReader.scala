@@ -19,16 +19,26 @@
 
 package swaydb.core.segment.format.a.entry.reader.value
 
-import swaydb.core.segment.format.a.block.SortedIndex
+import swaydb.core.io.reader.{BlockReader, Reader}
+import swaydb.core.segment.format.a.block.Values
 import swaydb.data.IO
-import swaydb.data.slice.{Reader, Slice}
+import swaydb.data.slice.Slice
 
 object LazyValueReader {
-  def apply(reader: Reader,
+
+  val empty =
+    new LazyValueReader {
+      override val valueReader: BlockReader[Values] =
+        BlockReader(Reader.empty, Values.empty)
+      override val valueLength: Int = 0
+      override val valueOffset: Int = 0
+    }
+
+  def apply(reader: BlockReader[Values],
             offset: Int,
             length: Int): LazyValueReader =
     new LazyValueReader {
-      override val valueReader: Reader = reader
+      override val valueReader: BlockReader[Values] = reader
 
       override def valueLength: Int = length
 
@@ -40,16 +50,20 @@ trait LazyValueReader {
 
   @volatile var valueOption: Option[Slice[Byte]] = _
 
-  def valueReader: Reader
+  def valueReader: BlockReader[Values]
 
   def valueLength: Int
 
   def valueOffset: Int
 
   //tries fetching the value from the given reader
-  private def fetchValue(reader: Reader): IO[Option[Slice[Byte]]] =
+  private def fetchValue(reader: BlockReader[Values]): IO[Option[Slice[Byte]]] =
     if (valueOption == null)
-      SortedIndex.readBytes(valueOffset, valueLength, reader) map {
+      Values.read(
+        fromOffset = valueOffset,
+        length = valueLength,
+        reader = reader
+      ) map {
         value =>
           valueOption = value
           value

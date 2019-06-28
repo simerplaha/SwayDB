@@ -24,9 +24,10 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.{Persistent, _}
+import swaydb.core.io.reader.BlockReader
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.format.a.{KeyMatcher, SegmentFooter, SegmentReader}
-import swaydb.core.segment.format.a.block.{BinarySearchIndex, BloomFilter, HashIndex, SortedIndex}
+import swaydb.core.segment.format.a.block.{BinarySearchIndex, Block, BloomFilter, HashIndex, SortedIndex, Values}
 import swaydb.core.util._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Reader, Slice}
@@ -34,22 +35,22 @@ import swaydb.data.{IO, MaxKey}
 
 import scala.annotation.tailrec
 
-private[core] class BitwiseSegmentInitialiser(id: String,
-                                              maxKey: MaxKey[Slice[Byte]],
-                                              minKey: Slice[Byte],
-                                              unsliceKey: Boolean,
-                                              createReader: () => IO[Reader]) {
+private[core] class BinarySegmentInitialiser(id: String,
+                                             maxKey: MaxKey[Slice[Byte]],
+                                             minKey: Slice[Byte],
+                                             unsliceKey: Boolean,
+                                             createReader: () => IO[Reader]) {
   private val created = new AtomicBoolean(false)
-  @volatile private var segment: BitwiseSegment = _
+  @volatile private var segment: BinarySegment = _
 
   @tailrec
   final def get(implicit keyOrder: KeyOrder[Slice[Byte]],
-                keyValueLimiter: KeyValueLimiter): BitwiseSegment =
+                keyValueLimiter: KeyValueLimiter): BinarySegment =
     if (segment != null) {
       segment
     } else if (created.compareAndSet(false, true)) {
       segment =
-        new BitwiseSegment(
+        new BinarySegment(
           id = id,
           maxKey = maxKey,
           minKey = minKey,
@@ -63,13 +64,13 @@ private[core] class BitwiseSegmentInitialiser(id: String,
     }
 }
 
-private[core] class BitwiseSegment(id: String,
-                                   maxKey: MaxKey[Slice[Byte]],
-                                   minKey: Slice[Byte],
-                                   cache: ConcurrentSkipListMap[Slice[Byte], Persistent],
-                                   unsliceKey: Boolean,
-                                   createSegmentReader: () => IO[Reader])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                          keyValueLimiter: KeyValueLimiter) extends LazyLogging {
+private[core] class BinarySegment(id: String,
+                                  maxKey: MaxKey[Slice[Byte]],
+                                  minKey: Slice[Byte],
+                                  cache: ConcurrentSkipListMap[Slice[Byte], Persistent],
+                                  unsliceKey: Boolean,
+                                  createSegmentReader: () => IO[Reader])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                         keyValueLimiter: KeyValueLimiter) extends LazyLogging {
 
   import keyOrder._
 
@@ -77,6 +78,8 @@ private[core] class BitwiseSegment(id: String,
   @volatile private var hashIndex: Either[Unit, IO.Success[Option[HashIndex]]] = Left()
   @volatile private var bloomFilter: Either[Unit, IO.Success[Option[BloomFilter]]] = Left()
   @volatile private var binarySearchIndex: Either[Unit, IO.Success[Option[BinarySearchIndex]]] = Left()
+  @volatile private var sortedIndex: Either[Unit, IO.Success[SortedIndex]] = Left()
+  @volatile private var values: Either[Unit, IO.Success[Option[Values]]] = Left()
 
   /**
     * Notes for why use putIfAbsent before adding to cache:
@@ -99,29 +102,45 @@ private[core] class BitwiseSegment(id: String,
       keyValueLimiter.add(group, cache)
   }
 
-  private def prepareGet[T](getOperation: (SegmentFooter, Option[HashIndex], Option[BinarySearchIndex], Reader) => IO[T]): IO[T] = {
+  private def prepareGet[T](operation: (SegmentFooter, Option[BlockReader[HashIndex]], Option[BlockReader[BinarySearchIndex]], BlockReader[SortedIndex], Option[BlockReader[Values]]) => IO[T]): IO[T] = {
     for {
       footer <- getFooter()
-      hashIndex <- getHashIndex()
-      binarySearchIndex <- getBinarySearchIndex()
-      reader <- createSegmentReader()
-      get <- getOperation(footer, hashIndex, binarySearchIndex, reader)
+      hashIndex <- createHashIndexReader()
+      binarySearchIndex <- createBinarySearchIndexReader()
+      sortedIndex <- createSortedIndexReader()
+      values <- createValuesReader()
+      result <- operation(footer, hashIndex, binarySearchIndex, sortedIndex, values)
     } yield {
-      get
+      result
     }
   } onFailureSideEffect {
     failure: IO.Failure[_] =>
       ExceptionUtil.logFailure(s"$id: Failed to read Segment.", failure)
   }
 
-  private def prepareIteration[T](getOperation: (SegmentFooter, Option[BinarySearchIndex], Reader) => IO[T]): IO[T] = {
+  private def prepareGetAll[T](operation: (SegmentFooter, BlockReader[SortedIndex], Option[BlockReader[Values]]) => IO[T]): IO[T] = {
     for {
       footer <- getFooter()
-      binarySearchIndex <- getBinarySearchIndex()
-      reader <- createSegmentReader()
-      get <- getOperation(footer, binarySearchIndex, reader)
+      sortedIndex <- createSortedIndexReader()
+      values <- createValuesReader()
+      result <- operation(footer, sortedIndex, values)
     } yield {
-      get
+      result
+    }
+  } onFailureSideEffect {
+    failure: IO.Failure[_] =>
+      ExceptionUtil.logFailure(s"$id: Failed to read Segment.", failure)
+  }
+
+  private def prepareIteration[T](operation: (SegmentFooter, Option[BlockReader[BinarySearchIndex]], BlockReader[SortedIndex], Option[BlockReader[Values]]) => IO[T]): IO[T] = {
+    for {
+      footer <- getFooter()
+      binarySearchIndex <- createBinarySearchIndexReader()
+      sortedIndex <- createSortedIndexReader()
+      values <- createValuesReader()
+      result <- operation(footer, binarySearchIndex, sortedIndex, values)
+    } yield {
+      result
     }
   } onFailureSideEffect {
     failure: IO.Failure[_] =>
@@ -141,7 +160,7 @@ private[core] class BitwiseSegment(id: String,
         }
       }
 
-  def getFooterAndReader(): IO[(SegmentFooter, Reader)] =
+  def getFooterAndSegmentReader(): IO[(SegmentFooter, Reader)] =
     footer
       .map {
         footer =>
@@ -161,10 +180,22 @@ private[core] class BitwiseSegment(id: String,
         }
       }
 
+  def createOptionalBlockReader[B <: Block](block: Option[B]): IO[Option[BlockReader[B]]] =
+    block map {
+      index =>
+        createBlockReader(index).map(Some(_))
+    } getOrElse IO.none
+
+  def createBlockReader[B <: Block](block: B): IO[BlockReader[B]] =
+    createSegmentReader() map {
+      reader =>
+        block.createBlockReader(reader).asInstanceOf[BlockReader[B]]
+    }
+
   def getHashIndex(): IO[Option[HashIndex]] =
     hashIndex
       .getOrElse {
-        getFooterAndReader() flatMap {
+        getFooterAndSegmentReader() flatMap {
           case (footer, reader) =>
             footer.hashIndexOffset map {
               offset =>
@@ -181,10 +212,13 @@ private[core] class BitwiseSegment(id: String,
         }
       }
 
+  def createHashIndexReader(): IO[Option[BlockReader[HashIndex]]] =
+    getHashIndex() flatMap createOptionalBlockReader
+
   def getBloomFilter(): IO[Option[BloomFilter]] =
     bloomFilter
       .getOrElse {
-        getFooterAndReader() flatMap {
+        getFooterAndSegmentReader() flatMap {
           case (footer, reader) =>
             footer.bloomFilterOffset map {
               offset =>
@@ -201,10 +235,13 @@ private[core] class BitwiseSegment(id: String,
         }
       }
 
+  def createBloomFilterReader(): IO[Option[BlockReader[BloomFilter]]] =
+    getBloomFilter() flatMap createOptionalBlockReader
+
   def getBinarySearchIndex(): IO[Option[BinarySearchIndex]] =
     binarySearchIndex
       .getOrElse {
-        getFooterAndReader() flatMap {
+        getFooterAndSegmentReader() flatMap {
           case (footer, reader) =>
             footer.binarySearchIndexOffset map {
               offset =>
@@ -221,23 +258,67 @@ private[core] class BitwiseSegment(id: String,
         }
       }
 
+  def createBinarySearchReader(): IO[Option[BlockReader[BinarySearchIndex]]] =
+    getBinarySearchIndex() flatMap createOptionalBlockReader
+
+  def createBinarySearchIndexReader(): IO[Option[BlockReader[BinarySearchIndex]]] =
+    getBinarySearchIndex() flatMap {
+      indexOption =>
+        indexOption map {
+          index =>
+            createSegmentReader() map {
+              reader =>
+                Some(index.createBlockReader(reader))
+            }
+        } getOrElse IO.none
+    }
+
+  def getSortedIndex(): IO[SortedIndex] =
+    sortedIndex
+      .getOrElse {
+        getFooterAndSegmentReader() flatMap {
+          case (footer, reader) =>
+            SortedIndex.read(footer.sortedIndexOffset, reader) map {
+              index =>
+                this.sortedIndex = Right(IO.Success(index))
+                index
+            }
+        }
+      }
+
+  def createSortedIndexReader(): IO[BlockReader[SortedIndex]] =
+    getSortedIndex() flatMap createBlockReader
+
+  def getValues(): IO[Option[Values]] =
+    values
+      .getOrElse {
+        getFooterAndSegmentReader() flatMap {
+          case (footer, reader) =>
+            footer.valuesOffset map {
+              valuesOffset =>
+                Values.read(valuesOffset, reader) map {
+                  values =>
+                    val someValues = Some(values)
+                    this.values = Right(IO.Success(someValues))
+                    someValues
+                }
+            } getOrElse {
+              this.values = Right(IO.none)
+              IO.none
+            }
+        }
+      }
+
+  def createValuesReader(): IO[Option[BlockReader[Values]]] =
+    getValues() flatMap createOptionalBlockReader
+
   def getFromCache(key: Slice[Byte]): Option[Persistent] =
     Option(cache.get(key))
 
   def mightContain(key: Slice[Byte]): IO[Boolean] =
     for {
-      bloom <- getBloomFilter()
-      contains <- bloom map {
-        bloom =>
-          createSegmentReader() flatMap {
-            reader =>
-              BloomFilter.mightContain(
-                key = key,
-                reader = reader,
-                bloom = bloom
-              )
-          }
-      } getOrElse IO.`true`
+      bloom <- createBloomFilterReader()
+      contains <- bloom.map(BloomFilter.mightContain(key, _)) getOrElse IO.`true`
     } yield contains
 
   def get(key: Slice[Byte]): IO[Option[Persistent.SegmentResponse]] =
@@ -270,14 +351,14 @@ private[core] class BitwiseSegment(id: String,
               contains =>
                 if (contains)
                   prepareGet {
-                    (footer, hashIndex, binarySearchIndex, reader) =>
+                    (footer, hashIndex, binarySearchIndex, sortedIndex, values) =>
                       SegmentReader.get(
                         matcher = KeyMatcher.Get(key),
                         startFrom = floorValue,
-                        reader = reader,
                         hashIndex = hashIndex,
                         binarySearchIndex = binarySearchIndex,
-                        sortedIndexOffset = footer.sortedIndexOffset,
+                        sortedIndex = sortedIndex,
+                        valuesReader = values,
                         hasRange = footer.hasRange
                       ) flatMap {
                         case Some(response: Persistent.SegmentResponse) =>
@@ -343,12 +424,13 @@ private[core] class BitwiseSegment(id: String,
               group.segment.lower(key)
           } getOrElse {
             prepareIteration {
-              (footer, binarySearchIndex, reader) =>
+              (footer, binarySearchIndex, sortedIndex, valuesReader) =>
                 SegmentReader.lower(
                   matcher = KeyMatcher.Lower(key),
                   startFrom = lowerKeyValue,
-                  reader = reader,
-                  offset = footer.sortedIndexOffset
+                  binarySearch = binarySearchIndex,
+                  sortedIndex = sortedIndex,
+                  valuesReader
                 ) flatMap {
                   case Some(response: Persistent.SegmentResponse) =>
                     addToCache(response)
@@ -418,45 +500,46 @@ private[core] class BitwiseSegment(id: String,
             group.segment.higher(key)
         } getOrElse {
           prepareIteration {
-            (footer, binarySearchIndex, reader) =>
+            (footer, binarySearchIndex, sortedIndex, values) =>
               val startFrom =
                 if (floorKeyValue.isDefined)
                   IO(floorKeyValue)
                 else
                   get(key)
 
-              startFrom flatMap {
-                startFrom =>
-                  SegmentReader.higher(
-                    matcher = KeyMatcher.Higher(key),
-                    startFrom = startFrom,
-                    reader = reader,
-                    offset = footer.sortedIndexOffset
-                  ) flatMap {
-                    case Some(response: Persistent.SegmentResponse) =>
-                      addToCache(response)
-                      IO.Success(Some(response))
-
-                    case Some(group: Persistent.Group) =>
-                      addToCache(group)
-                      group.segment.higher(key)
-
-                    case None =>
-                      IO.none
-                  }
-              }
+              //              startFrom flatMap {
+              //                startFrom =>
+              //                  SegmentReader.higher(
+              //                    matcher = KeyMatcher.Higher(key),
+              //                    startFrom = startFrom,
+              //                    reader = reader,
+              //                    index = footer.sortedIndexOffset
+              //                  ) flatMap {
+              //                    case Some(response: Persistent.SegmentResponse) =>
+              //                      addToCache(response)
+              //                      IO.Success(Some(response))
+              //
+              //                    case Some(group: Persistent.Group) =>
+              //                      addToCache(group)
+              //                      group.segment.higher(key)
+              //
+              //                    case None =>
+              //                      IO.none
+              //                  }
+              //              }
+              ???
           }
         }
     }
 
   def getAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None): IO[Slice[KeyValue.ReadOnly]] =
-    getFooterAndReader() flatMap {
-      case (footer, reader) =>
+    prepareGetAll {
+      (footer, sortedIndex, values) =>
         SortedIndex
           .readAll(
-            offset = footer.sortedIndexOffset,
             keyValueCount = footer.keyValueCount,
-            reader = reader,
+            sortedIndexReader = sortedIndex,
+            valueReader = values,
             addTo = addTo
           )
           .onFailureSideEffect {
@@ -495,7 +578,9 @@ private[core] class BitwiseSegment(id: String,
   def close() = {
     footer = Left()
     hashIndex = Left()
-    binarySearchIndex = Left()
     bloomFilter = Left()
+    binarySearchIndex = Left()
+    sortedIndex = Left()
+    values = Left()
   }
 }

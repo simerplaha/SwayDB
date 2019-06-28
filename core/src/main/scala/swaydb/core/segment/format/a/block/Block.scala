@@ -32,6 +32,14 @@ import swaydb.data.{IO, Reserve}
 /**
   * A block is a group of compressed or uncompressed bytes.
   */
+trait Block {
+  def blockOffset: OffsetBase
+  def headerSize: Int
+  def compressionInfo: Option[Block.CompressionInfo]
+  def createBlockReader(segmentReader: Reader): BlockReader[_ <: Block]
+  def createBlockReader(bytes: Slice[Byte]): BlockReader[_ <: Block]
+}
+
 object Block extends LazyLogging {
 
   val uncompressedBlockId: Byte = 0.toByte
@@ -67,6 +75,9 @@ object Block extends LazyLogging {
 
   val headerSizeNoCompression =
     ByteSizeOf.byte //formatId
+
+  val blockNoCompressionOnlyHeaderSize =
+    Bytes.sizeOf(headerSizeNoCompression) + headerSizeNoCompression
 
   val headerSizeNoCompressionByteSize =
     Bytes.sizeOf(headerSizeNoCompression)
@@ -136,8 +147,8 @@ object Block extends LazyLogging {
       )
 
   def readHeader(offset: OffsetBase,
-                 compressedBytes: Reader): IO[Block.Header] = {
-    val movedReader = compressedBytes.moveTo(offset.start)
+                 segmentReader: Reader): IO[Block.Header] = {
+    val movedReader = segmentReader.moveTo(offset.start)
     for {
       headerSize <- movedReader.readIntUnsigned()
       headerReader <- movedReader.read(headerSize).map(Reader(_))
@@ -161,7 +172,7 @@ object Block extends LazyLogging {
     * Decompresses the block skipping the header bytes.
     */
   def decompress(compressionInfo: CompressionInfo,
-                 compressedReader: Reader,
+                 segmentReader: Reader,
                  offset: OffsetBase): IO[Slice[Byte]] =
     compressionInfo
       .decompressedBytes
@@ -169,7 +180,8 @@ object Block extends LazyLogging {
       .getOrElse {
         if (Reserve.setBusyOrGet((), compressionInfo.reserve).isEmpty)
           try
-            compressedReader
+            segmentReader
+              .copy()
               .moveTo(offset.start + compressionInfo.headerSize)
               .read(offset.size - compressionInfo.headerSize)
               .flatMap {
@@ -188,16 +200,4 @@ object Block extends LazyLogging {
         else
           IO.Failure(IO.Error.DecompressingValues(compressionInfo.reserve))
       }
-
-  def createReader(offset: OffsetBase,
-                   segmentReader: Reader,
-                   headerSize: Int,
-                   compressionInfo: Option[CompressionInfo]): BlockReader =
-    new BlockReader(
-      compressedReader = segmentReader,
-      offset = offset,
-      headerSize = headerSize,
-      compressionInfo = compressionInfo
-    )
 }
-

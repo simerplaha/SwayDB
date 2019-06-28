@@ -123,8 +123,8 @@ class HashIndexSpec extends TestBase {
         uncompressedHashIndex.miss shouldBe compressedHashIndex.miss
         uncompressedHashIndex.maxProbe shouldBe compressedHashIndex.maxProbe
         uncompressedHashIndex.writeAbleLargestValueSize shouldBe compressedHashIndex.writeAbleLargestValueSize
-        uncompressedHashIndex.offset.start shouldBe compressedHashIndex.offset.start
-        uncompressedHashIndex.offset.size should be >= compressedHashIndex.offset.size
+        uncompressedHashIndex.blockOffset.start shouldBe compressedHashIndex.blockOffset.start
+        uncompressedHashIndex.blockOffset.size should be >= compressedHashIndex.blockOffset.size
 
         val blockDecompressor = compressedHashIndex.compressionInfo.get
         blockDecompressor.decompressedLength shouldBe uncompressedState.bytes.written - uncompressedState.headerSize
@@ -134,7 +134,7 @@ class HashIndexSpec extends TestBase {
         val decompressedBytes =
           Block.decompress(
             compressionInfo = compressedHashIndex.compressionInfo.get,
-            compressedReader = Reader(compressedState.bytes),
+            segmentReader = Reader(compressedState.bytes),
             offset = compressedOffset
           ).get
 
@@ -211,7 +211,7 @@ class HashIndexSpec extends TestBase {
 
           hashIndex shouldBe
             HashIndex(
-              offset = adjustedOffset,
+              blockOffset = adjustedOffset,
               compressionInfo = hashIndex.compressionInfo,
               maxProbe = state.maxProbe,
               hit = state.hit,
@@ -245,8 +245,7 @@ class HashIndexSpec extends TestBase {
               val found =
                 HashIndex.find(
                   key = keyValue.key,
-                  segmentReader = Reader(alteredBytes),
-                  hashIndex = hashIndex,
+                  blockReader = hashIndex.createBlockReader(alteredBytes),
                   assertValue = findKey(_, keyValue.key)
                 ).get.get
               (found.key equiv keyValue.key) shouldBe true

@@ -20,6 +20,8 @@
 package swaydb.core.segment.format.a.entry.reader
 
 import swaydb.core.data.Persistent
+import swaydb.core.io.reader.BlockReader
+import swaydb.core.segment.format.a.block.Values
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, KeyValueId}
 import swaydb.core.segment.format.a.entry.reader.value.LazyValueReader
 import swaydb.data.IO
@@ -29,15 +31,15 @@ object PutReader extends EntryReader[Persistent.Put] {
   def apply[T <: BaseEntryId](baseId: T,
                               keyValueId: Int,
                               indexReader: Reader,
-                              valueReader: Reader,
+                              valueReader: Option[BlockReader[Values]],
                               indexOffset: Int,
                               nextIndexOffset: Int,
                               nextIndexSize: Int,
                               previous: Option[Persistent])(implicit timeReader: TimeReader[T],
-                                                        deadlineReader: DeadlineReader[T],
-                                                        valueOffsetReader: ValueOffsetReader[T],
-                                                        valueLengthReader: ValueLengthReader[T],
-                                                        valueBytesReader: ValueReader[T]): IO[Persistent.Put] =
+                                                            deadlineReader: DeadlineReader[T],
+                                                            valueOffsetReader: ValueOffsetReader[T],
+                                                            valueLengthReader: ValueLengthReader[T],
+                                                            valueBytesReader: ValueReader[T]): IO[Persistent.Put] =
     deadlineReader.read(indexReader, previous) flatMap {
       deadline =>
         valueBytesReader.read(indexReader, previous) flatMap {
@@ -49,15 +51,25 @@ object PutReader extends EntryReader[Persistent.Put] {
                     val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
                     val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
 
+                    val lazyValueReader =
+                      valueReader map {
+                        valueReader =>
+                          LazyValueReader(
+                            reader = valueReader,
+                            offset = valueOffset,
+                            length = valueLength
+                          )
+                      } getOrElse {
+                        if (valueLength > 0)
+                          return Values.valueNotFound
+                        else
+                          LazyValueReader.empty
+                      }
+
                     Persistent.Put(
                       _key = key,
                       deadline = deadline,
-                      lazyValueReader =
-                        LazyValueReader(
-                          reader = valueReader,
-                          offset = valueOffset,
-                          length = valueLength
-                        ),
+                      lazyValueReader = lazyValueReader,
                       _time = time,
                       nextIndexOffset = nextIndexOffset,
                       nextIndexSize = nextIndexSize,

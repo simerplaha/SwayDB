@@ -21,6 +21,7 @@ package swaydb.core.segment.format.a.block
 
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.KeyValue
+import swaydb.core.io.reader.{BlockReader, Reader}
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
 import swaydb.core.segment.format.a.OffsetBase
 import swaydb.data.IO
@@ -28,8 +29,14 @@ import swaydb.data.slice.{Reader, Slice}
 
 object Values {
 
+  def valueNotFound: IO.Failure[Nothing] =
+    IO.Failure(IO.Error.Fatal("Value not found."))
+
+  def valueSliceNotInitialised: IO.Failure[Nothing] =
+    IO.Failure(IO.Error.Fatal("Value slice not initialised."))
+
   val empty =
-    Values(Values.Offset.zero, None)
+    Values(Values.Offset.zero, 0, None)
 
   case class State(var _bytes: Slice[Byte],
                    compressions: Seq[CompressionInternal]) {
@@ -38,17 +45,19 @@ object Values {
     def bytes_=(bytes: Slice[Byte]) =
       this._bytes = bytes
   }
+
   object Offset {
     val zero = Offset(0, 0)
   }
+
   case class Offset(start: Int, size: Int) extends OffsetBase
 
-  val optimalHeaderSize =
+  val headerSize =
     Block.blockCompressionOnlyHeaderSize
 
   def init(keyValues: Iterable[KeyValue.WriteOnly],
            compressions: Seq[CompressionInternal]): Option[Values.State] =
-    if (keyValues.last.stats.segmentValuesSize > 0)
+    if (keyValues.last.stats.segmentValuesSize > Values.headerSize)
       Some(
         Values.State(
           _bytes = Slice.create[Byte](keyValues.last.stats.segmentValuesSize),
@@ -63,121 +72,66 @@ object Values {
 
   def close(state: State) =
     Block.compress(
-      headerSize = optimalHeaderSize,
+      headerSize = Values.headerSize,
       bytes = state.bytes,
       compressions = state.compressions
     ) flatMap {
       compressedOrUncompressedBytes =>
         IO {
           state.bytes = compressedOrUncompressedBytes
-          if (state.bytes.currentWritePosition > optimalHeaderSize)
-            throw new Exception(s"Calculated header size was incorrect. Expected: $optimalHeaderSize. Used: ${state.bytes.currentWritePosition - 1}")
+          if (state.bytes.currentWritePosition > Values.headerSize)
+            throw new Exception(s"Calculated header size was incorrect. Expected: ${Values.headerSize}. Used: ${state.bytes.currentWritePosition - 1}")
         }
     }
 
   def read(offset: Values.Offset,
-           reader: Reader): IO[Values] =
-    Block.readHeader(offset = offset, compressedBytes = reader) map {
+           segmentReader: Reader): IO[Values] =
+    Block.readHeader(offset = offset, segmentReader = segmentReader) map {
       result =>
         Values(
-          offset =
-            if (result.compressionInfo.isDefined)
-              offset
-            else
-              Offset(
-                start = offset.start + result.headerSize,
-                size = offset.size - result.headerSize
-              ),
-          block =
-            result.compressionInfo
+          blockOffset = offset,
+          headerSize = Values.headerSize,
+          compressionInfo = result.compressionInfo
         )
     }
 
-  def getDecompressedValues(reader: Reader, values: Values) =
-  //    values
-  //      .blockCompression
-  //      .map {
-  //        blockDecompressor =>
-  //          BlockCompression.getDecompressedReader(
-  //            blockDecompressor = blockDecompressor,
-  //            compressedReader = reader,
-  //            offset = values.offset
-  //          ) map ((0, _)) //decompressed bytes, offsets not required, set to 0.
-  //      }
-  //      .getOrElse {
-  //        IO.Success((values.offset.start, reader)) //no compression used. Set the offset.
-  //      }
-  //      .flatMap {
-  //        case (startOffset, reader) =>
-  //          reader
-  //            .copy()
-  //            .moveTo(startOffset)
-  //            .read(length)
-  //            .map(Some(_))
-  //      }
-  //      .recoverWith {
-  //        case error =>
-  //          error.exception match {
-  //            case exception @ (_: ArrayIndexOutOfBoundsException | _: IndexOutOfBoundsException | _: IllegalArgumentException | _: NegativeArraySizeException) =>
-  //              IO.Failure(
-  //                IO.Error.Fatal(
-  //                  SegmentCorruptionException(
-  //                    message = s"Corrupted Segment: Failed to get bytes of length $length from offset $fromOffset",
-  //                    cause = exception
-  //                  )
-  //                )
-  //              )
-  //
-  //            case ex: Exception =>
-  //              IO.Failure(ex)
-  //          }
-  //      }
-    ???
+  def read(fromOffset: Int, length: Int, reader: BlockReader[Values]): IO[Option[Slice[Byte]]] =
+    if (length == 0)
+      IO.none
+    else
+      reader
+        .moveTo(fromOffset)
+        .read(length)
+        .map(Some(_))
+        .recoverWith {
+          case error =>
+            error.exception match {
+              case exception @ (_: ArrayIndexOutOfBoundsException | _: IndexOutOfBoundsException | _: IllegalArgumentException | _: NegativeArraySizeException) =>
+                IO.Failure(
+                  IO.Error.Fatal(
+                    SegmentCorruptionException(
+                      message = s"Corrupted Segment: Failed to get bytes of length $length from offset $fromOffset",
+                      cause = exception
+                    )
+                  )
+                )
 
-  def read(fromOffset: Int, length: Int, reader: Reader): IO[Option[Slice[Byte]]] =
-  //    if (length == 0)
-  //      IO.none
-  //    else
-  //      values
-  //        .blockCompression
-  //        .map {
-  //          blockDecompressor =>
-  //            BlockCompression.getDecompressedReader(
-  //              blockDecompressor = blockDecompressor,
-  //              compressedReader = reader,
-  //              offset = values.offset
-  //            ) map ((0, _)) //decompressed bytes, offsets not required, set to 0.
-  //        }
-  //        .getOrElse {
-  //          IO.Success((values.offset.start + fromOffset, reader)) //no compression used. Set the offset.
-  //        }
-  //        .flatMap {
-  //          case (startOffset, reader) =>
-  //            reader
-  //              .copy()
-  //              .moveTo(startOffset)
-  //              .read(length)
-  //              .map(Some(_))
-  //        }
-  //        .recoverWith {
-  //          case error =>
-  //            error.exception match {
-  //              case exception @ (_: ArrayIndexOutOfBoundsException | _: IndexOutOfBoundsException | _: IllegalArgumentException | _: NegativeArraySizeException) =>
-  //                IO.Failure(
-  //                  IO.Error.Fatal(
-  //                    SegmentCorruptionException(
-  //                      message = s"Corrupted Segment: Failed to get bytes of length $length from offset $fromOffset",
-  //                      cause = exception
-  //                    )
-  //                  )
-  //                )
-  //
-  //              case ex: Exception =>
-  //                IO.Failure(ex)
-  //            }
-  //        }
-    ???
+              case ex: Exception =>
+                IO.Failure(ex)
+            }
+        }
 }
 
-case class Values(offset: Values.Offset,
-                  block: Option[Block.CompressionInfo])
+case class Values(blockOffset: Values.Offset,
+                  headerSize: Int,
+                  compressionInfo: Option[Block.CompressionInfo]) extends Block {
+
+  override def createBlockReader(bytes: Slice[Byte]): BlockReader[Values] =
+    createBlockReader(Reader(bytes))
+
+  def createBlockReader(segmentReader: Reader): BlockReader[Values] =
+    BlockReader(
+      segmentReader = segmentReader,
+      block = this
+    )
+}

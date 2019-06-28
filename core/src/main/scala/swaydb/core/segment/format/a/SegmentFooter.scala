@@ -21,7 +21,7 @@ package swaydb.core.segment.format.a
 
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
-import swaydb.core.segment.format.a.block.{BinarySearchIndex, BloomFilter, HashIndex, SortedIndex}
+import swaydb.core.segment.format.a.block.{BinarySearchIndex, BloomFilter, HashIndex, SortedIndex, Values}
 import swaydb.core.util.CRC32
 import swaydb.data.IO
 import swaydb.data.slice.Reader
@@ -97,8 +97,15 @@ object SegmentFooter {
               )
             )
 
+        val valuesOffset =
+          if (sortedIndexOffset.start == 0)
+            None
+          else
+            Some(Values.Offset(0, sortedIndexOffset.start))
+
         IO.Success(
           SegmentFooter(
+            valuesOffset = valuesOffset,
             sortedIndexOffset = sortedIndexOffset,
             hashIndexOffset = hashIndexOffset,
             binarySearchIndexOffset = binarySearchIndexOffset,
@@ -131,7 +138,8 @@ object SegmentFooter {
     }
 }
 
-private[core] case class SegmentFooter(sortedIndexOffset: SortedIndex.Offset,
+private[core] case class SegmentFooter(valuesOffset: Option[Values.Offset],
+                                       sortedIndexOffset: SortedIndex.Offset,
                                        hashIndexOffset: Option[HashIndex.Offset],
                                        binarySearchIndexOffset: Option[BinarySearchIndex.Offset],
                                        bloomFilterOffset: Option[BloomFilter.Offset],

@@ -14,16 +14,16 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
 
   def assertFind(bytes: Slice[Byte],
                  values: Seq[Int],
-                 index: BinarySearchIndex) =
+                 unAlteredIndex: BinarySearchIndex) =
     runThis(10.times) {
       val randomBytes = randomBytesSlice(randomIntMax(100))
 
       val (adjustedOffset, alteredBytes) =
         eitherOne(
-          (index.offset, bytes),
-          (index.offset, bytes ++ randomBytesSlice(randomIntMax(100))),
-          (index.offset.copy(start = randomBytes.size), randomBytes ++ bytes.close()),
-          (index.offset.copy(start = randomBytes.size), randomBytes ++ bytes ++ randomBytesSlice(randomIntMax(100)))
+          (unAlteredIndex.blockOffset, bytes),
+          (unAlteredIndex.blockOffset, bytes ++ randomBytesSlice(randomIntMax(100))),
+          (unAlteredIndex.blockOffset.copy(start = randomBytes.size), randomBytes ++ bytes.close()),
+          (unAlteredIndex.blockOffset.copy(start = randomBytes.size), randomBytes ++ bytes ++ randomBytesSlice(randomIntMax(100)))
         )
 
       val largestValue = values.last
@@ -38,11 +38,13 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
             MatchResult.Next
         }
 
+      val alteredIndex =
+        unAlteredIndex.copy(blockOffset = adjustedOffset)
+
       values foreach {
         value =>
           BinarySearchIndex.find(
-            index = index.copy(offset = adjustedOffset),
-            reader = Reader(alteredBytes),
+            reader = alteredIndex.createBlockReader(alteredBytes),
             assertValue = matcher(valueToFind = value)
           ).get shouldBe defined
       }
@@ -53,8 +55,7 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
       notInIndex foreach {
         i =>
           BinarySearchIndex.find(
-            index = index.copy(offset = adjustedOffset),
-            reader = Reader(alteredBytes),
+            reader = alteredIndex.createBlockReader(alteredBytes),
             assertValue = matcher(valueToFind = i)
           ).get shouldBe empty
       }
@@ -97,7 +98,7 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
               assertFind(
                 bytes = state.bytes,
                 values = values,
-                index = index
+                unAlteredIndex = index
               )
           }
         }
@@ -142,7 +143,7 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
           assertFind(
             bytes = state.bytes,
             values = values,
-            index = index
+            unAlteredIndex = index
           )
         }
       }

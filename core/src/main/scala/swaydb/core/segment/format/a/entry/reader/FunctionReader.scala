@@ -20,6 +20,8 @@
 package swaydb.core.segment.format.a.entry.reader
 
 import swaydb.core.data.Persistent
+import swaydb.core.io.reader.BlockReader
+import swaydb.core.segment.format.a.block.Values
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, KeyValueId}
 import swaydb.core.segment.format.a.entry.reader.value.LazyFunctionReader
 import swaydb.data.IO
@@ -30,15 +32,15 @@ object FunctionReader extends EntryReader[Persistent.Function] {
   def apply[T <: BaseEntryId](baseId: T,
                               keyValueId: Int,
                               indexReader: Reader,
-                              valueReader: Reader,
+                              valueReader: Option[BlockReader[Values]],
                               indexOffset: Int,
                               nextIndexOffset: Int,
                               nextIndexSize: Int,
                               previous: Option[Persistent])(implicit timeReader: TimeReader[T],
-                                                        deadlineReader: DeadlineReader[T],
-                                                        valueOffsetReader: ValueOffsetReader[T],
-                                                        valueLengthReader: ValueLengthReader[T],
-                                                        valueBytesReader: ValueReader[T]): IO[Persistent.Function] =
+                                                            deadlineReader: DeadlineReader[T],
+                                                            valueOffsetReader: ValueOffsetReader[T],
+                                                            valueLengthReader: ValueLengthReader[T],
+                                                            valueBytesReader: ValueReader[T]): IO[Persistent.Function] =
     valueBytesReader.read(indexReader, previous) flatMap {
       valueOffsetAndLength =>
         timeReader.read(indexReader, previous) flatMap {
@@ -47,29 +49,33 @@ object FunctionReader extends EntryReader[Persistent.Function] {
               case (key, isKeyPrefixCompressed) =>
                 val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
                 val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
-
-                Persistent.Function(
-                  _key = key,
-                  lazyFunctionReader =
-                    LazyFunctionReader(
-                      reader = valueReader,
-                      offset = valueOffset,
-                      length = valueLength
-                    ),
-                  _time = time,
-                  nextIndexOffset = nextIndexOffset,
-                  nextIndexSize = nextIndexSize,
-                  indexOffset = indexOffset,
-                  valueOffset = valueOffset,
-                  valueLength = valueLength,
-                  isPrefixCompressed =
-                    isKeyPrefixCompressed ||
-                      timeReader.isPrefixCompressed ||
-                      deadlineReader.isPrefixCompressed ||
-                      valueOffsetReader.isPrefixCompressed ||
-                      valueLengthReader.isPrefixCompressed ||
-                      valueBytesReader.isPrefixCompressed
-                )
+                valueReader map {
+                  valueReader =>
+                    Persistent.Function(
+                      _key = key,
+                      lazyFunctionReader =
+                        LazyFunctionReader(
+                          reader = valueReader,
+                          offset = valueOffset,
+                          length = valueLength
+                        ),
+                      _time = time,
+                      nextIndexOffset = nextIndexOffset,
+                      nextIndexSize = nextIndexSize,
+                      indexOffset = indexOffset,
+                      valueOffset = valueOffset,
+                      valueLength = valueLength,
+                      isPrefixCompressed =
+                        isKeyPrefixCompressed ||
+                          timeReader.isPrefixCompressed ||
+                          deadlineReader.isPrefixCompressed ||
+                          valueOffsetReader.isPrefixCompressed ||
+                          valueLengthReader.isPrefixCompressed ||
+                          valueBytesReader.isPrefixCompressed
+                    )
+                } getOrElse {
+                  return Values.valueNotFound
+                }
             }
         }
     }

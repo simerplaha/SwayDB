@@ -20,17 +20,18 @@
 package swaydb.core.segment.format.a.entry.reader.value
 
 import swaydb.core.data.Value
+import swaydb.core.io.reader.BlockReader
 import swaydb.core.map.serializer.RangeValueSerializer
+import swaydb.core.segment.format.a.block.Values
 import swaydb.data.IO
-import swaydb.data.slice.Reader
 
 object LazyRangeValueReader {
 
-  def apply(reader: Reader,
+  def apply(reader: BlockReader[Values],
             offset: Int,
             length: Int): LazyRangeValueReader =
     new LazyRangeValueReader {
-      override val valueReader: Reader = reader
+      override val valueReader: BlockReader[Values] = reader
 
       override def valueLength: Int = length
 

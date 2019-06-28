@@ -20,6 +20,8 @@
 package swaydb.core.segment.format.a.entry.reader
 
 import swaydb.core.data.Persistent
+import swaydb.core.io.reader.BlockReader
+import swaydb.core.segment.format.a.block.Values
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, KeyValueId}
 import swaydb.core.segment.format.a.entry.reader.value.LazyPendingApplyValueReader
 import swaydb.data.IO
@@ -30,15 +32,15 @@ object PendingApplyReader extends EntryReader[Persistent.PendingApply] {
   def apply[T <: BaseEntryId](baseId: T,
                               keyValueId: Int,
                               indexReader: Reader,
-                              valueReader: Reader,
+                              valueReader: Option[BlockReader[Values]],
                               indexOffset: Int,
                               nextIndexOffset: Int,
                               nextIndexSize: Int,
                               previous: Option[Persistent])(implicit timeReader: TimeReader[T],
-                                                        deadlineReader: DeadlineReader[T],
-                                                        valueOffsetReader: ValueOffsetReader[T],
-                                                        valueLengthReader: ValueLengthReader[T],
-                                                        valueBytesReader: ValueReader[T]): IO[Persistent.PendingApply] =
+                                                            deadlineReader: DeadlineReader[T],
+                                                            valueOffsetReader: ValueOffsetReader[T],
+                                                            valueLengthReader: ValueLengthReader[T],
+                                                            valueBytesReader: ValueReader[T]): IO[Persistent.PendingApply] =
     deadlineReader.read(indexReader, previous) flatMap {
       deadline =>
         valueBytesReader.read(indexReader, previous) flatMap {
@@ -47,32 +49,37 @@ object PendingApplyReader extends EntryReader[Persistent.PendingApply] {
               time =>
                 KeyReader.read(keyValueId, indexReader, previous, KeyValueId.PendingApply) map {
                   case (key, isKeyPrefixCompressed) =>
-                    val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
-                    val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
+                    valueReader map {
+                      valueReader =>
+                        val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
+                        val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
 
-                    Persistent.PendingApply(
-                      _key = key,
-                      _time = time,
-                      deadline = deadline,
-                      lazyValueReader =
-                        LazyPendingApplyValueReader(
-                          reader = valueReader,
-                          offset = valueOffset,
-                          length = valueLength
-                        ),
-                      nextIndexOffset = nextIndexOffset,
-                      nextIndexSize = nextIndexSize,
-                      indexOffset = indexOffset,
-                      valueOffset = valueOffset,
-                      valueLength = valueLength,
-                      isPrefixCompressed =
-                        isKeyPrefixCompressed ||
-                          timeReader.isPrefixCompressed ||
-                          deadlineReader.isPrefixCompressed ||
-                          valueOffsetReader.isPrefixCompressed ||
-                          valueLengthReader.isPrefixCompressed ||
-                          valueBytesReader.isPrefixCompressed
-                    )
+                        Persistent.PendingApply(
+                          _key = key,
+                          _time = time,
+                          deadline = deadline,
+                          lazyValueReader =
+                            LazyPendingApplyValueReader(
+                              reader = valueReader,
+                              offset = valueOffset,
+                              length = valueLength
+                            ),
+                          nextIndexOffset = nextIndexOffset,
+                          nextIndexSize = nextIndexSize,
+                          indexOffset = indexOffset,
+                          valueOffset = valueOffset,
+                          valueLength = valueLength,
+                          isPrefixCompressed =
+                            isKeyPrefixCompressed ||
+                              timeReader.isPrefixCompressed ||
+                              deadlineReader.isPrefixCompressed ||
+                              valueOffsetReader.isPrefixCompressed ||
+                              valueLengthReader.isPrefixCompressed ||
+                              valueBytesReader.isPrefixCompressed
+                        )
+                    } getOrElse {
+                      return Values.valueNotFound
+                    }
                 }
             }
         }

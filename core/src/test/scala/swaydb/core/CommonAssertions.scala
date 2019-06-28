@@ -42,7 +42,7 @@ import swaydb.core.map.serializer.{MapEntryWriter, RangeValueSerializer, ValueSe
 import swaydb.core.merge._
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.Segment
-import swaydb.core.segment.format.a.block.{BloomFilter, SortedIndex}
+import swaydb.core.segment.format.a.block.{BloomFilter, SortedIndex, Values}
 import swaydb.core.segment.format.a.{KeyMatcher, SegmentFooter, SegmentReader}
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util.CollectionUtil._
@@ -755,12 +755,12 @@ object CommonAssertions {
     assertLowers(0)
   }
 
-
   def assertGet(keyValues: Slice[KeyValue.WriteOnly],
                 reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default) =
     keyValues foreach {
       keyValue =>
-        SegmentReader.get(KeyMatcher.Get(keyValue.key), None, reader.copy()).assertGet shouldBe keyValue
+        //        SegmentReader.get(KeyMatcher.Get(keyValue.key), None, reader.copy()).assertGet shouldBe keyValue
+        ???
     }
 
   def assertBloom(keyValues: Slice[KeyValue.WriteOnly],
@@ -771,7 +771,8 @@ object CommonAssertions {
 
     unzipedKeyValues.par.count {
       keyValue =>
-        BloomFilter.mightContain(keyValue.key, Reader(bloom.bytes), bloomFilter).get
+        //        BloomFilter.mightContain(keyValue.key, Reader(bloom.bytes), bloomFilter).get
+        ???
     } should be >= (unzipedKeyValues.size * 0.90).toInt
 
     assertBloomNotContains(bloom)
@@ -797,7 +798,8 @@ object CommonAssertions {
   def assertBloomNotContains(bloom: BloomFilter.State) =
     runThis(1000.times) {
       val bloomFilter = BloomFilter.read(BloomFilter.Offset(0, bloom.startOffset), Reader(bloom.bytes)).get
-      IO(BloomFilter.mightContain(randomBytesSlice(randomIntMax(1000) min 100), Reader(bloom.bytes), bloomFilter).get shouldBe false)
+      //      IO(BloomFilter.mightContain(randomBytesSlice(randomIntMax(1000) min 100), Reader(bloom.bytes), bloomFilter).get shouldBe false)
+      ???
     }
 
   def assertReads(keyValues: Slice[KeyValue],
@@ -860,9 +862,8 @@ object CommonAssertions {
   def assertReads(keyValues: Slice[KeyValue.WriteOnly],
                   reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default) = {
 
-    val footer = SegmentFooter.read(reader.copy()).assertGet
     //read fullIndex
-    SortedIndex.readAll(footer.sortedIndexOffset, footer.keyValueCount, reader.copy()).assertGet shouldBe keyValues
+    readAll(reader.copy()).assertGet shouldBe keyValues
     //find each KeyValue using all Matchers
     assertGet(keyValues, reader.copy())
     assertLower(keyValues, reader.copy())
@@ -1075,48 +1076,50 @@ object CommonAssertions {
 
   def assertLower(keyValues: Slice[KeyValue.WriteOnly],
                   reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default) = {
-
-    @tailrec
-    def assertLowers(index: Int) {
-      //      println(s"assertLowers : ${index}")
-      if (index > keyValues.size - 1) {
-        //end
-      } else if (index == 0) {
-        keyValues(index) match {
-          case range: KeyValue.WriteOnly.Range =>
-            SegmentReader.lower(KeyMatcher.Lower(range.fromKey), None, reader.copy()).assertGetOpt shouldBe empty
-            SegmentReader.lower(KeyMatcher.Lower(range.toKey), None, reader.copy()).assertGetOpt shouldBe range
-
-          case _ =>
-            SegmentReader.lower(KeyMatcher.Lower(keyValues(index).key), None, reader.copy()).assertGetOpt shouldBe empty
-        }
-        assertLowers(index + 1)
-      } else {
-        val expectedLowerKeyValue = keyValues(index - 1)
-        keyValues(index) match {
-          case range: KeyValue.WriteOnly.Range =>
-            SegmentReader.lower(KeyMatcher.Lower(range.fromKey), None, reader.copy()).assertGet shouldBe expectedLowerKeyValue
-            SegmentReader.lower(KeyMatcher.Lower(range.toKey), None, reader.copy()).assertGet shouldBe range
-
-          case _ =>
-            SegmentReader.lower(KeyMatcher.Lower(keyValues(index).key), None, reader.copy()).assertGet shouldBe expectedLowerKeyValue
-        }
-
-        assertLowers(index + 1)
-      }
-    }
-
-    assertLowers(0)
+    //
+    //    @tailrec
+    //    def assertLowers(index: Int) {
+    //      //      println(s"assertLowers : ${index}")
+    //      if (index > keyValues.size - 1) {
+    //        //end
+    //      } else if (index == 0) {
+    //        keyValues(index) match {
+    //          case range: KeyValue.WriteOnly.Range =>
+    //            SegmentReader.lower(KeyMatcher.Lower(range.fromKey), None, reader.copy()).assertGetOpt shouldBe empty
+    //            SegmentReader.lower(KeyMatcher.Lower(range.toKey), None, reader.copy()).assertGetOpt shouldBe range
+    //
+    //          case _ =>
+    //            SegmentReader.lower(KeyMatcher.Lower(keyValues(index).key), None, reader.copy()).assertGetOpt shouldBe empty
+    //        }
+    //        assertLowers(index + 1)
+    //      } else {
+    //        val expectedLowerKeyValue = keyValues(index - 1)
+    //        keyValues(index) match {
+    //          case range: KeyValue.WriteOnly.Range =>
+    //            SegmentReader.lower(KeyMatcher.Lower(range.fromKey), None, reader.copy()).assertGet shouldBe expectedLowerKeyValue
+    //            SegmentReader.lower(KeyMatcher.Lower(range.toKey), None, reader.copy()).assertGet shouldBe range
+    //
+    //          case _ =>
+    //            SegmentReader.lower(KeyMatcher.Lower(keyValues(index).key), None, reader.copy()).assertGet shouldBe expectedLowerKeyValue
+    //        }
+    //
+    //        assertLowers(index + 1)
+    //      }
+    //    }
+    //
+    //    assertLowers(0)
+    ???
   }
 
   def assertHigher(keyValues: Slice[KeyValue],
                    reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default): Unit =
-    assertHigher(
-      keyValues,
-      getHigher =
-        key =>
-          SegmentReader.higher(KeyMatcher.Higher(key), None, reader.copy())
-    )
+  //    assertHigher(
+  //      keyValues,
+  //      getHigher =
+  //        key =>
+  //          SegmentReader.higher(KeyMatcher.Higher(key), None, reader.copy())
+  //    )
+    ???
 
   def assertLower(_keyValues: Slice[KeyValue],
                   segment: Segment) = {
@@ -1359,16 +1362,19 @@ object CommonAssertions {
     readAll(Reader(bytes))
 
   def readAll(reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default): IO[Slice[KeyValue.ReadOnly]] =
-    SegmentFooter.read(reader)
-      .flatMap {
-        footer =>
-          SortedIndex
-            .readAll(
-              offset = footer.sortedIndexOffset,
-              keyValueCount = footer.keyValueCount,
-              reader = reader.copy()
-            )
+    for {
+      footer <- SegmentFooter.read(reader)
+      sortedIndex <- SortedIndex.read(footer.sortedIndexOffset, reader).map(_.createBlockReader(reader))
+      valuesReader <- footer.valuesOffset.map(Values.read(_, reader).map(_.createBlockReader(reader)).map(Some(_))) getOrElse IO.none
+      all <- {
+        SortedIndex
+          .readAll(
+            keyValueCount = footer.keyValueCount,
+            sortedIndexReader = sortedIndex,
+            valueReader = valuesReader
+          )
       }
+    } yield all
 
   def printGroupHierarchy(keyValues: Slice[KeyValue.ReadOnly], spaces: Int)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                             keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter): Unit =

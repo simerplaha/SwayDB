@@ -23,12 +23,12 @@ import swaydb.compression.CompressionInternal
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.group.compression.data.GroupHeader
 import swaydb.core.group.compression.{GroupCompressor, GroupDecompressor, GroupKeyCompressor}
-import swaydb.core.io.reader.Reader
+import swaydb.core.io.reader.{BlockReader, Reader}
 import swaydb.core.map.serializer.{RangeValueSerializer, ValueSerializer}
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.format.a.entry.reader.value._
 import swaydb.core.segment.format.a.entry.writer._
-import swaydb.core.segment.{BitwiseSegment, BitwiseSegmentInitialiser, Segment}
+import swaydb.core.segment.{BinarySegment, BinarySegmentInitialiser, Segment}
 import swaydb.core.util.Bytes
 import swaydb.core.util.CollectionUtil._
 import swaydb.data.order.KeyOrder
@@ -187,7 +187,7 @@ private[core] object KeyValue {
       def maxKey: MaxKey[Slice[Byte]]
       def header(): IO[GroupHeader]
       def segment(implicit keyOrder: KeyOrder[Slice[Byte]],
-                  keyValueLimiter: KeyValueLimiter): BitwiseSegment
+                  keyValueLimiter: KeyValueLimiter): BinarySegment
       def deadline: Option[Deadline]
     }
   }
@@ -512,8 +512,8 @@ private[swaydb] object Memory {
                    groupDecompressor: GroupDecompressor,
                    valueLength: Int) extends Memory with KeyValue.ReadOnly.Group {
 
-    lazy val segmentCacheInitializer: BitwiseSegmentInitialiser =
-      new BitwiseSegmentInitialiser(
+    private lazy val binarySegment: BinarySegmentInitialiser =
+      new BinarySegmentInitialiser(
         id = "Persistent.Group",
         minKey = minKey,
         maxKey = maxKey,
@@ -529,8 +529,8 @@ private[swaydb] object Memory {
       groupDecompressor.isIndexDecompressed()
 
     def segment(implicit keyOrder: KeyOrder[Slice[Byte]],
-                keyValueLimiter: KeyValueLimiter): BitwiseSegment =
-      segmentCacheInitializer.get
+                keyValueLimiter: KeyValueLimiter): BinarySegment =
+      binarySegment.get
 
     def header() =
       groupDecompressor.header()
@@ -1232,30 +1232,30 @@ private[core] object Persistent {
       Value.Remove(deadline, time)
   }
 
-  object Put {
-    def apply(key: Slice[Byte],
-              deadline: Option[Deadline],
-              time: Time,
-              value: Option[Slice[Byte]],
-              isPrefixCompressed: Boolean): Persistent.Put =
-      Persistent.Put(
-        _key = key,
-        deadline = deadline,
-        lazyValueReader =
-          LazyValueReader(
-            reader = value.map(Reader(_)).getOrElse(Reader.empty),
-            offset = 0,
-            length = value.map(_.size).getOrElse(0)
-          ),
-        _time = time,
-        nextIndexOffset = -1,
-        nextIndexSize = 0,
-        indexOffset = 0,
-        valueOffset = 0,
-        valueLength = value.map(_.size).getOrElse(0),
-        isPrefixCompressed = isPrefixCompressed
-      )
-  }
+//  object Put {
+//    def apply(key: Slice[Byte],
+//              deadline: Option[Deadline],
+//              time: Time,
+//              value: Option[Slice[Byte]],
+//              isPrefixCompressed: Boolean): Persistent.Put =
+//      Persistent.Put(
+//        _key = key,
+//        deadline = deadline,
+//        lazyValueReader =
+//          LazyValueReader(
+//            reader = value.map(BlockReader(_)).getOrElse(Reader.empty),
+//            offset = 0,
+//            length = value.map(_.size).getOrElse(0)
+//          ),
+//        _time = time,
+//        nextIndexOffset = -1,
+//        nextIndexSize = 0,
+//        indexOffset = 0,
+//        valueOffset = 0,
+//        valueLength = value.map(_.size).getOrElse(0),
+//        isPrefixCompressed = isPrefixCompressed
+//      )
+//  }
 
   case class Put(private var _key: Slice[Byte],
                  deadline: Option[Deadline],
@@ -1649,8 +1649,8 @@ private[core] object Persistent {
                    deadline: Option[Deadline],
                    isPrefixCompressed: Boolean) extends Persistent with KeyValue.ReadOnly.Group {
 
-    private lazy val bitwiseSegment =
-      new BitwiseSegmentInitialiser(
+    private lazy val binarySegment =
+      new BinarySegmentInitialiser(
         id = "Persistent.Group",
         minKey = minKey,
         maxKey = maxKey,
@@ -1690,15 +1690,15 @@ private[core] object Persistent {
       groupDecompressor.header()
 
     /**
-      * On uncompressed a new Group is returned. It would be much efficient if the Group's old [[BitwiseSegment]]'s skipList's
+      * On uncompressed a new Group is returned. It would be much efficient if the Group's old [[BinarySegment]]'s skipList's
       * key-values are also still passed to the new Group in a thread-safe manner.
       */
     def uncompress(): Persistent.Group =
       copy(groupDecompressor = groupDecompressor.uncompress(), valueReader = valueReader.copy())
 
     def segment(implicit keyOrder: KeyOrder[Slice[Byte]],
-                keyValueLimiter: KeyValueLimiter): BitwiseSegment =
-      bitwiseSegment.get
+                keyValueLimiter: KeyValueLimiter): BinarySegment =
+      binarySegment.get
 
     override def isValueDefined: Boolean =
       lazyGroupValueReader.isValueDefined

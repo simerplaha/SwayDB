@@ -22,6 +22,7 @@ package swaydb.core.segment.format.a.block
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.KeyValue
+import swaydb.core.io.reader.{BlockReader, Reader}
 import swaydb.core.segment.format.a.OffsetBase
 import swaydb.core.util.{Bytes, MurmurHash3Generic, Options}
 import swaydb.data.IO
@@ -112,7 +113,7 @@ object BloomFilter extends LazyLogging {
     else
       math.ceil(numberOfBits / numberOfKeys * math.log(2)).toInt
 
-  def close(state: State) = {
+  def close(state: State) =
     Block.compress(
       headerSize = state.headerSize,
       bytes = state.bytes,
@@ -127,24 +128,21 @@ object BloomFilter extends LazyLogging {
             throw new Exception(s"Calculated header size was incorrect. Expected: ${state.headerSize}. Used: ${state.bytes.currentWritePosition - 1}")
         }
     }
-  }
 
   def read(offset: Offset,
-           reader: Reader): IO[BloomFilter] =
-    Block.readHeader(offset = offset, compressedBytes = reader) flatMap {
-      result =>
-        for {
-          numberOfBits <- result.headerReader.readIntUnsigned()
-          maxProbe <- result.headerReader.readIntUnsigned()
-        } yield
-          BloomFilter(
-            offset = offset,
-            headerSize = result.headerSize,
-            maxProbe = maxProbe,
-            numberOfBits = numberOfBits,
-            compressionInfo = result.compressionInfo
-          )
-    }
+           segmentReader: Reader): IO[BloomFilter] =
+    for {
+      blockHeader <- Block.readHeader(offset = offset, segmentReader = segmentReader)
+      numberOfBits <- blockHeader.headerReader.readIntUnsigned()
+      maxProbe <- blockHeader.headerReader.readIntUnsigned()
+    } yield
+      BloomFilter(
+        blockOffset = offset,
+        headerSize = blockHeader.headerSize,
+        maxProbe = maxProbe,
+        numberOfBits = numberOfBits,
+        compressionInfo = blockHeader.compressionInfo
+      )
 
   def shouldNotCreateBloomFilter(keyValues: Iterable[KeyValue.WriteOnly]): Boolean =
     keyValues.isEmpty ||
@@ -204,27 +202,18 @@ object BloomFilter extends LazyLogging {
   }
 
   def mightContain(key: Slice[Byte],
-                   reader: Reader,
-                   bloom: BloomFilter): IO[Boolean] = {
+                   reader: BlockReader[BloomFilter]): IO[Boolean] = {
     val hash = MurmurHash3Generic.murmurhash3_x64_64(key, 0, key.size, 0)
     val hash1 = hash >>> 32
     val hash2 = (hash << 32) >> 32
 
-    val blockReader =
-      Block.createReader(
-        offset = bloom.offset,
-        segmentReader = reader,
-        headerSize = bloom.headerSize,
-        compressionInfo = bloom.compressionInfo
-      )
-
-    (0 until bloom.maxProbe)
+    (0 until reader.block.maxProbe)
       .untilSomeResult {
         probe =>
           val computedHash = hash1 + probe * hash2
-          val hashIndex = (computedHash & Long.MaxValue) % bloom.numberOfBits
+          val hashIndex = (computedHash & Long.MaxValue) % reader.block.numberOfBits
 
-          blockReader
+          reader
             .moveTo(((hashIndex >>> 6) * 8L).toInt)
             .readLong()
             .map {
@@ -239,8 +228,18 @@ object BloomFilter extends LazyLogging {
   }
 }
 
-case class BloomFilter(offset: BloomFilter.Offset,
+case class BloomFilter(blockOffset: BloomFilter.Offset,
                        maxProbe: Int,
                        numberOfBits: Int,
                        headerSize: Int,
-                       compressionInfo: Option[Block.CompressionInfo])
+                       compressionInfo: Option[Block.CompressionInfo]) extends Block {
+
+  override def createBlockReader(bytes: Slice[Byte]): BlockReader[BloomFilter] =
+    createBlockReader(Reader(bytes))
+
+  override def createBlockReader(segmentReader: Reader): BlockReader[BloomFilter] =
+    new BlockReader(
+      segmentReader = segmentReader,
+      block = this
+    )
+}

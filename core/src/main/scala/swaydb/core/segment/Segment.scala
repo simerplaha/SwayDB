@@ -219,7 +219,7 @@ private[core] object Segment extends LazyLogging {
                 BloomFilter
                   .read(
                     offset = BloomFilter.Offset(0, unslicedBytes.size),
-                    reader = Reader(unslicedBytes)
+                    segmentReader = Reader(unslicedBytes)
                   )
                   .map {
                     bloom =>
@@ -602,42 +602,43 @@ private[core] object Segment extends LazyLogging {
           fileSize =>
             SegmentFooter.read(Reader(file)) flatMap {
               footer =>
-                SortedIndex
-                  .readAll(
-                    offset = footer.sortedIndexOffset,
-                    keyValueCount = footer.keyValueCount,
-                    reader = Reader(file)
-                  )
-                  .flatMap {
-                    keyValues =>
-                      //close the file
-                      file.close flatMap {
-                        _ =>
-                          getNearestDeadline(keyValues) map {
-                            nearestDeadline =>
-                              PersistentSegment(
-                                file = file,
-                                mmapReads = mmapReads,
-                                mmapWrites = mmapWrites,
-                                minKey = keyValues.head.key,
-                                maxKey =
-                                  keyValues.last match {
-                                    case fixed: KeyValue.ReadOnly.Fixed =>
-                                      MaxKey.Fixed(fixed.key)
-
-                                    case group: KeyValue.ReadOnly.Group =>
-                                      group.maxKey
-
-                                    case range: KeyValue.ReadOnly.Range =>
-                                      MaxKey.Range(range.fromKey, range.toKey)
-                                  },
-                                segmentSize = fileSize.toInt,
-                                nearestExpiryDeadline = nearestDeadline,
-                                compactionReserve = Reserve()
-                              )
-                          }
-                      }
-                  }
+                //                SortedIndex
+                //                  .readAll(
+                //                    offset = footer.sortedIndexOffset,
+                //                    keyValueCount = footer.keyValueCount,
+                //                    reader = Reader(file)
+                //                  )
+                //                  .flatMap {
+                //                    keyValues =>
+                //                      //close the file
+                //                      file.close flatMap {
+                //                        _ =>
+                //                          getNearestDeadline(keyValues) map {
+                //                            nearestDeadline =>
+                //                              PersistentSegment(
+                //                                file = file,
+                //                                mmapReads = mmapReads,
+                //                                mmapWrites = mmapWrites,
+                //                                minKey = keyValues.head.key,
+                //                                maxKey =
+                //                                  keyValues.last match {
+                //                                    case fixed: KeyValue.ReadOnly.Fixed =>
+                //                                      MaxKey.Fixed(fixed.key)
+                //
+                //                                    case group: KeyValue.ReadOnly.Group =>
+                //                                      group.maxKey
+                //
+                //                                    case range: KeyValue.ReadOnly.Range =>
+                //                                      MaxKey.Range(range.fromKey, range.toKey)
+                //                                  },
+                //                                segmentSize = fileSize.toInt,
+                //                                nearestExpiryDeadline = nearestDeadline,
+                //                                compactionReserve = Reserve()
+                //                              )
+                //                          }
+                //                      }
+                //                  }
+                ???
             }
         }
     }

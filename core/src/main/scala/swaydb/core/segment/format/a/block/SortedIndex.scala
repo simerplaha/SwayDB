@@ -21,7 +21,7 @@ package swaydb.core.segment.format.a.block
 
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.{KeyValue, Persistent}
-import swaydb.core.io.reader.Reader
+import swaydb.core.io.reader.{BlockReader, Reader}
 import swaydb.core.segment.SegmentException.SegmentCorruptionException
 import swaydb.core.segment.format.a.entry.reader.EntryReader
 import swaydb.core.segment.format.a.{KeyMatcher, MatchResult, OffsetBase}
@@ -36,27 +36,60 @@ private[core] object SortedIndex {
 
   case class Offset(start: Int, size: Int) extends OffsetBase
 
-  case class State(bytes: Slice[Byte],
-                   compressions: Seq[CompressionInternal])
+  case class State(var _bytes: Slice[Byte],
+                   headerSize: Int,
+                   compressions: Seq[CompressionInternal]) {
+    def bytes = _bytes
+
+    def bytes_=(bytes: Slice[Byte]) =
+      this._bytes = bytes
+  }
+
+  val headerSize =
+    Block.headerSize
 
   def init(keyValues: Iterable[KeyValue.WriteOnly],
-           compressions: Seq[CompressionInternal]) =
+           compressions: Seq[CompressionInternal]): SortedIndex.State =
     State(
-      bytes = Slice.create[Byte](keyValues.last.stats.segmentSortedIndexSize),
+      _bytes = Slice.create[Byte](keyValues.last.stats.segmentSortedIndexSize),
+      headerSize = SortedIndex.headerSize,
       compressions = compressions
     )
 
-  def readNextKeyValue(previous: Persistent,
-                       startOffset: Int,
-                       endOffset: Int,
-                       indexReader: Reader,
-                       valueReader: Reader): IO[Persistent] = {
+  def close(state: State): IO[Unit] =
+    Block.compress(
+      headerSize = state.headerSize,
+      bytes = state.bytes,
+      compressions = state.compressions
+    ) flatMap {
+      compressedOrUncompressedBytes =>
+        IO {
+          state.bytes = compressedOrUncompressedBytes
+          if (state.bytes.currentWritePosition > state.headerSize)
+            throw new Exception(s"Calculated header size was incorrect. Expected: ${state.headerSize}. Used: ${state.bytes.currentWritePosition - 1}")
+        }
+    }
+
+  def read(offset: SortedIndex.Offset,
+           segmentReader: Reader): IO[SortedIndex] =
+    Block.readHeader(
+      offset = offset,
+      segmentReader = segmentReader
+    ) map {
+      header =>
+        SortedIndex(
+          blockOffset = offset,
+          headerSize = header.headerSize,
+          compressionInfo = header.compressionInfo
+        )
+    }
+
+  private def readNextKeyValue(previous: Persistent,
+                               indexReader: BlockReader[SortedIndex],
+                               valueReader: Option[BlockReader[Values]]): IO[Persistent] = {
     indexReader moveTo previous.nextIndexOffset
     readNextKeyValue(
       indexEntrySizeMayBe = Some(previous.nextIndexSize),
-      adjustNextIndexOffsetBy = 0,
-      startIndexOffset = startOffset,
-      endIndexOffset = endOffset,
       indexReader = indexReader,
       valueReader = valueReader,
       previous = Some(previous)
@@ -64,16 +97,11 @@ private[core] object SortedIndex {
   }
 
   private def readNextKeyValue(fromPosition: Int,
-                               startIndexOffset: Int,
-                               endIndexOffset: Int,
-                               indexReader: Reader,
-                               valueReader: Reader): IO[Persistent] = {
+                               indexReader: BlockReader[SortedIndex],
+                               valueReader: Option[BlockReader[Values]]): IO[Persistent] = {
     indexReader moveTo fromPosition
     readNextKeyValue(
       indexEntrySizeMayBe = None,
-      adjustNextIndexOffsetBy = 0,
-      startIndexOffset = startIndexOffset,
-      endIndexOffset = endIndexOffset,
       indexReader = indexReader,
       valueReader = valueReader,
       previous = None
@@ -82,11 +110,8 @@ private[core] object SortedIndex {
 
   //Pre-requisite: The position of the index on the reader should be set.
   private def readNextKeyValue(indexEntrySizeMayBe: Option[Int],
-                               adjustNextIndexOffsetBy: Int, //the reader could be a sub slice. This is used to adjust next indexOffset size
-                               startIndexOffset: Int,
-                               endIndexOffset: Int,
-                               indexReader: Reader,
-                               valueReader: Reader,
+                               indexReader: BlockReader[SortedIndex],
+                               valueReader: Option[BlockReader[Values]],
                                previous: Option[Persistent]): IO[Persistent] =
     try {
       val positionBeforeRead = indexReader.getPosition
@@ -101,10 +126,8 @@ private[core] object SortedIndex {
             indexReader.readIntUnsigned().get
         }
 
-      val remainingIndexBytesTillEnd = endIndexOffset - (indexReader.getPosition - 1 + indexSize)
       //5 extra bytes are read for each entry to fetch the next index's size.
-      val extraTailBytesToRead = remainingIndexBytesTillEnd min 5
-      val bytesToRead = indexSize + extraTailBytesToRead
+      val bytesToRead = indexSize + 5
 
       //read all bytes for this index entry plus the next 5 bytes to fetch next index entry's size.
       val indexEntryBytesAndNextIndexEntrySize = (indexReader read bytesToRead).get
@@ -115,10 +138,10 @@ private[core] object SortedIndex {
       //The above fetches another 5 bytes (unsigned int) along with previous index entry.
       //These 5 bytes contains the next index's size. Here the next key-values indexSize and indexOffset are read.
       val (nextIndexSize, nextIndexOffset) =
-      if (extraTailBytesToRead > 0) { //if extra tail byte were read this mean that this index has a next key-value.
+      if (indexReader.hasMore.get) { //if extra tail byte were read this mean that this index has a next key-value.
         //next indexEntrySize is only read if it's required.
         val nextIndexEntrySize = Reader(indexEntryBytesAndNextIndexEntrySize.drop(indexSize))
-        (nextIndexEntrySize.readIntUnsigned().get, indexReader.getPosition - extraTailBytesToRead + adjustNextIndexOffsetBy)
+        (nextIndexEntrySize.readIntUnsigned().get, indexReader.getPosition - 5)
       } else {
         //no next key-value, next size is 0 and set offset to -1.
         (0, -1)
@@ -151,16 +174,19 @@ private[core] object SortedIndex {
         }
     }
 
-  def readAll(offset: SortedIndex.Offset,
-              keyValueCount: Int,
-              reader: Reader,
+  def readAll(keyValueCount: Int,
+              sortedIndexReader: BlockReader[SortedIndex],
+              valueReader: Option[BlockReader[Values]],
               addTo: Option[Slice[KeyValue.ReadOnly]] = None): IO[Slice[KeyValue.ReadOnly]] =
     try {
-      //since this is a index slice of the full Segment, adjustments for nextIndexOffset is required.
-      val adjustNextIndexOffsetBy = offset.start
-      //read full index in one disk seek and Slice it to KeyValue chunks.
-      val sortedIndexReader = reader moveTo offset.start read offset.size map (Reader(_)) get
-      val endIndexOffset: Int = sortedIndexReader.size.get.toInt - 1
+      sortedIndexReader moveTo 0
+      //      //since this is a index slice of the full Segment, adjustments for nextIndexOffset is required.
+      //      val adjustNextIndexOffsetBy = offset.start
+      //      //read full index in one disk seek and Slice it to KeyValue chunks.
+      //      val sortedIndexReader = reader moveTo offset.start read offset.size map (Reader(_)) get
+      //      val endIndexOffset: Int = sortedIndexReader.size.get.toInt - 1
+
+      val readSortedIndexReader = sortedIndexReader.readFullBlockAndGetReader().get
 
       val entries = addTo getOrElse Slice.create[Persistent](keyValueCount)
       (1 to keyValueCount).foldLeftIO(Option.empty[Persistent]) {
@@ -170,17 +196,15 @@ private[core] object SortedIndex {
               previous =>
                 //If previous is known, keep reading same reader
                 // and set the next position of the reader to be of the next index's offset.
-                sortedIndexReader moveTo (previous.nextIndexOffset - adjustNextIndexOffsetBy)
+                readSortedIndexReader moveTo previous.nextIndexOffset
                 previous.nextIndexSize
             }
 
           readNextKeyValue(
             indexEntrySizeMayBe = nextIndexSize,
-            adjustNextIndexOffsetBy = adjustNextIndexOffsetBy,
-            startIndexOffset = previousMayBe.map(_.nextIndexOffset).getOrElse(offset.start),
-            endIndexOffset = endIndexOffset,
-            indexReader = sortedIndexReader,
-            valueReader = reader.copy(),
+            //            startIndexOffset = previousMayBe.map(_.nextIndexOffset).getOrElse(offset.start),
+            indexReader = readSortedIndexReader,
+            valueReader = valueReader,
             //user entries.lastOption instead of previousMayBe because, addTo might already be pre-populated and the
             //last entry would of bethe.
             previous = previousMayBe
@@ -208,157 +232,145 @@ private[core] object SortedIndex {
         }
     }
 
-  def readBytes(fromOffset: Int, length: Int, reader: Reader): IO[Option[Slice[Byte]]] =
-    try {
-      if (length == 0)
-        IO.none
-      else
-        (reader.copy() moveTo fromOffset read length).map(Some(_))
-    } catch {
-      case exception: Exception =>
-        exception match {
-          case _: ArrayIndexOutOfBoundsException | _: IndexOutOfBoundsException | _: IllegalArgumentException | _: NegativeArraySizeException =>
-            IO.Failure(
-              IO.Error.Fatal(
-                SegmentCorruptionException(
-                  message = s"Corrupted Segment: Failed to get bytes of length $length from offset $fromOffset",
-                  cause = exception
-                )
-              )
-            )
-
-          case ex: Exception =>
-            IO.Failure(ex)
-        }
-    }
-
   def find(matcher: KeyMatcher,
            startFrom: Option[Persistent],
-           reader: Reader,
-           offset: SortedIndex.Offset): IO[Option[Persistent]] =
-    startFrom match {
-      case Some(startFrom) =>
-        //if startFrom is the last index entry, return None.
-        if (startFrom.nextIndexSize == 0)
-          IO.none
-        else
-          readNextKeyValue(
-            previous = startFrom,
-            startOffset = offset.start,
-            endOffset = offset.end,
-            indexReader = reader,
-            valueReader = reader
-          ) flatMap {
-            keyValue =>
-              matchOrNext(
-                previous = startFrom,
-                next = Some(keyValue),
-                matcher = matcher,
-                reader = reader,
-                offset = offset
-              )
-          }
-
-      //No start from. Get the first index entry from the File and start from there.
-      case None =>
-        readNextKeyValue(
-          fromPosition = offset.start,
-          startIndexOffset = offset.start,
-          endIndexOffset = offset.end,
-          indexReader = reader,
-          valueReader = reader
-        ) flatMap {
-          keyValue =>
-            matchOrNext(
-              previous = keyValue,
-              next = None,
-              matcher = matcher,
-              reader = reader,
-              offset = offset
-            )
-        }
-    }
+           indexReader: BlockReader[SortedIndex],
+           valueReader: Option[BlockReader[Values]]): IO[Option[Persistent]] =
+  //    startFrom match {
+  //      case Some(startFrom) =>
+  //        //if startFrom is the last index entry, return None.
+  //        if (startFrom.nextIndexSize == 0)
+  //          IO.none
+  //        else
+  //          readNextKeyValue(
+  //            previous = startFrom,
+  //            startOffset = index.offset.start,
+  //            endOffset = index.offset.end,
+  //            indexReader = segmentReader,
+  //            valueReader = segmentReader
+  //          ) flatMap {
+  //            keyValue =>
+  //              matchOrNext(
+  //                previous = startFrom,
+  //                next = Some(keyValue),
+  //                matcher = matcher,
+  //                segmentReader = segmentReader,
+  //                sortedIndex = index
+  //              )
+  //          }
+  //
+  //      //No start from. Get the first index entry from the File and start from there.
+  //      case None =>
+  //        readNextKeyValue(
+  //          fromPosition = index.offset.start,
+  //          startIndexOffset = index.offset.start,
+  //          endIndexOffset = index.offset.end,
+  //          indexReader = segmentReader,
+  //          valueReader = segmentReader
+  //        ) flatMap {
+  //          keyValue =>
+  //            matchOrNext(
+  //              previous = keyValue,
+  //              next = None,
+  //              matcher = matcher,
+  //              segmentReader = segmentReader,
+  //              sortedIndex = index
+  //            )
+  //        }
+  //    }
+    ???
 
   def findAndMatchOrNext(matcher: KeyMatcher,
                          fromOffset: Int,
-                         reader: Reader,
-                         offset: SortedIndex.Offset): IO[Option[Persistent]] =
-    readNextKeyValue(
-      fromPosition = fromOffset,
-      startIndexOffset = offset.start,
-      endIndexOffset = offset.end,
-      indexReader = reader,
-      valueReader = reader
-    ) flatMap {
-      persistent =>
-        matchOrNext(
-          previous = persistent,
-          next = None,
-          matcher = matcher,
-          reader = reader,
-          offset = offset
-        )
-    }
+                         indexReader: BlockReader[SortedIndex],
+                         valueReader: BlockReader[Values]): IO[Option[Persistent]] =
+  //    readNextKeyValue(
+  //      fromPosition = fromOffset,
+  //      indexReader = segmentReader,
+  //      valueReader = segmentReader
+  //    ) flatMap {
+  //      persistent =>
+  //        matchOrNext(
+  //          previous = persistent,
+  //          next = None,
+  //          matcher = matcher,
+  //          segmentReader = segmentReader,
+  //          sortedIndex = index
+  //        )
+  //    }
+    ???
 
   def findAndMatch(matcher: KeyMatcher,
                    fromOffset: Int,
-                   reader: Reader,
-                   offset: SortedIndex.Offset): IO[MatchResult] =
-    readNextKeyValue(
-      fromPosition = fromOffset,
-      startIndexOffset = offset.start,
-      endIndexOffset = offset.end,
-      indexReader = reader,
-      valueReader = reader
-    ) map {
-      persistent =>
-        matcher(
-          previous = persistent,
-          next = None,
-          hasMore = hasMore(persistent, offset)
-        )
-    }
+                   sortedIndex: BlockReader[SortedIndex],
+                   values: Option[BlockReader[Values]]): IO[MatchResult] =
+  //    readNextKeyValue(
+  //      fromPosition = fromOffset,
+  //      indexReader = segmentReader,
+  //      valueReader = segmentReader
+  //    ) map {
+  //      persistent =>
+  //        matcher(
+  //          previous = persistent,
+  //          next = None,
+  //          hasMore = hasMore(persistent, sortedIndex)
+  //        )
+  //    }
+    ???
 
-  @tailrec
+  //  @tailrec
   def matchOrNext(previous: Persistent,
                   next: Option[Persistent],
                   matcher: KeyMatcher,
-                  reader: Reader,
-                  offset: SortedIndex.Offset): IO[Option[Persistent]] =
-    matcher(
-      previous = previous,
-      next = next,
-      hasMore = hasMore(next getOrElse previous, offset)
-    ) match {
-      case MatchResult.Next =>
-        val readFrom = next getOrElse previous
-        SortedIndex.readNextKeyValue(
-          previous = readFrom,
-          startOffset = offset.start,
-          endOffset = offset.end,
-          indexReader = reader,
-          valueReader = reader
-        ) match {
-          case IO.Success(nextNextKeyValue) =>
-            matchOrNext(
-              previous = readFrom,
-              next = Some(nextNextKeyValue),
-              matcher = matcher,
-              reader = reader,
-              offset = offset
-            )
-
-          case IO.Failure(exception) =>
-            IO.Failure(exception)
-        }
-
-      case MatchResult.Matched(keyValue) =>
-        IO.Success(Some(keyValue))
-
-      case MatchResult.Stop =>
-        IO.none
-    }
+                  indexReader: BlockReader[SortedIndex],
+                  valueReader: Option[BlockReader[Values]]): IO[Option[Persistent]] =
+  //    matcher(
+  //      previous = previous,
+  //      next = next,
+  //      hasMore = hasMore(next getOrElse previous, sortedIndex.offset)
+  //    ) match {
+  //      case MatchResult.Next =>
+  //        val readFrom = next getOrElse previous
+  //        SortedIndex.readNextKeyValue(
+  //          previous = readFrom,
+  //          indexReader = segmentReader,
+  //          valueReader = segmentReader
+  //        ) match {
+  //          case IO.Success(nextNextKeyValue) =>
+  //            matchOrNext(
+  //              previous = readFrom,
+  //              next = Some(nextNextKeyValue),
+  //              matcher = matcher,
+  //              segmentReader = segmentReader,
+  //              sortedIndex = sortedIndex
+  //            )
+  //
+  //          case IO.Failure(exception) =>
+  //            IO.Failure(exception)
+  //        }
+  //
+  //      case MatchResult.Matched(keyValue) =>
+  //        IO.Success(Some(keyValue))
+  //
+  //      case MatchResult.Stop =>
+  //        IO.none
+  //    }
+    ???
 
   private def hasMore(keyValue: Persistent, offset: SortedIndex.Offset) =
     keyValue.nextIndexOffset >= 0 && keyValue.nextIndexOffset < offset.end
+}
+
+case class SortedIndex(blockOffset: SortedIndex.Offset,
+                       headerSize: Int,
+                       compressionInfo: Option[Block.CompressionInfo]) extends Block {
+
+  override def createBlockReader(bytes: Slice[Byte]): BlockReader[SortedIndex] =
+    createBlockReader(Reader(bytes))
+
+  def createBlockReader(segmentReader: Reader): BlockReader[SortedIndex] =
+    BlockReader(
+      segmentReader = segmentReader,
+      block = this
+    )
 }

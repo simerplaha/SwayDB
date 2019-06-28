@@ -20,6 +20,8 @@
 package swaydb.core.segment.format.a.entry.reader
 
 import swaydb.core.data.Persistent
+import swaydb.core.io.reader.BlockReader
+import swaydb.core.segment.format.a.block.Values
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, KeyValueId}
 import swaydb.core.segment.format.a.entry.reader.value.LazyValueReader
 import swaydb.data.IO
@@ -30,7 +32,7 @@ object UpdateReader extends EntryReader[Persistent.Update] {
   def apply[T <: BaseEntryId](baseId: T,
                               keyValueId: Int,
                               indexReader: Reader,
-                              valueReader: Reader,
+                              valueReader: Option[BlockReader[Values]],
                               indexOffset: Int,
                               nextIndexOffset: Int,
                               nextIndexSize: Int,
@@ -49,15 +51,26 @@ object UpdateReader extends EntryReader[Persistent.Update] {
               time =>
                 KeyReader.read(keyValueId, indexReader, previous, KeyValueId.Update) map {
                   case (key, isKeyPrefixCompressed) =>
+
+                    val lazyValueReader =
+                      valueReader map {
+                        valueReader =>
+                          LazyValueReader(
+                            reader = valueReader,
+                            offset = valueOffset,
+                            length = valueLength
+                          )
+                      } getOrElse {
+                        if (valueLength > 0)
+                          return Values.valueNotFound
+                        else
+                          LazyValueReader.empty
+                      }
+
                     Persistent.Update(
                       _key = key,
                       deadline = deadline,
-                      lazyValueReader =
-                        LazyValueReader(
-                          reader = valueReader,
-                          offset = valueOffset,
-                          length = valueLength
-                        ),
+                      lazyValueReader = lazyValueReader,
                       _time = time,
                       nextIndexOffset = nextIndexOffset,
                       nextIndexSize = nextIndexSize,

@@ -20,6 +20,8 @@
 package swaydb.core.segment.format.a.entry.reader
 
 import swaydb.core.data.Persistent
+import swaydb.core.io.reader.BlockReader
+import swaydb.core.segment.format.a.block.Values
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, KeyValueId}
 import swaydb.core.segment.format.a.entry.reader.value.LazyGroupValueReader
 import swaydb.data.IO
@@ -30,7 +32,7 @@ object GroupReader extends EntryReader[Persistent.Group] {
   def apply[T <: BaseEntryId](baseId: T,
                               keyValueId: Int,
                               indexReader: Reader,
-                              valueReader: Reader,
+                              valueReader: Option[BlockReader[Values]],
                               indexOffset: Int,
                               nextIndexOffset: Int,
                               nextIndexSize: Int,
@@ -45,32 +47,35 @@ object GroupReader extends EntryReader[Persistent.Group] {
           valueOffsetAndLength =>
             KeyReader.read(keyValueId, indexReader, previous, KeyValueId.Group) flatMap {
               case (key, isKeyPrefixCompressed) =>
-                val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
-                val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
+                valueReader map {
+                  valueReader =>
+                    val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
+                    val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
 
-                Persistent.Group(
-                  key = key,
-                  deadline = deadline,
-                  valueReader = valueReader,
-                  nextIndexOffset = nextIndexOffset,
-                  nextIndexSize = nextIndexSize,
-                  lazyGroupValueReader =
-                    LazyGroupValueReader(
-                      reader = valueReader,
-                      offset = valueOffset,
-                      length = valueLength
-                    ),
-                  indexOffset = indexOffset,
-                  valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1),
-                  valueLength = valueOffsetAndLength.map(_._2).getOrElse(0),
-                  isPrefixCompressed =
-                    isKeyPrefixCompressed ||
-                      timeReader.isPrefixCompressed ||
-                      deadlineReader.isPrefixCompressed ||
-                      valueOffsetReader.isPrefixCompressed ||
-                      valueLengthReader.isPrefixCompressed ||
-                      valueBytesReader.isPrefixCompressed
-                )
+                    Persistent.Group(
+                      key = key,
+                      deadline = deadline,
+                      valueReader = valueReader,
+                      nextIndexOffset = nextIndexOffset,
+                      nextIndexSize = nextIndexSize,
+                      lazyGroupValueReader =
+                        LazyGroupValueReader(
+                          reader = valueReader,
+                          offset = valueOffset,
+                          length = valueLength
+                        ),
+                      indexOffset = indexOffset,
+                      valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1),
+                      valueLength = valueOffsetAndLength.map(_._2).getOrElse(0),
+                      isPrefixCompressed =
+                        isKeyPrefixCompressed ||
+                          timeReader.isPrefixCompressed ||
+                          deadlineReader.isPrefixCompressed ||
+                          valueOffsetReader.isPrefixCompressed ||
+                          valueLengthReader.isPrefixCompressed ||
+                          valueBytesReader.isPrefixCompressed
+                    )
+                } getOrElse Values.valueNotFound
             }
         }
     }

@@ -55,12 +55,8 @@ class BloomFilterSpec extends TestBase {
         BloomFilter.close(filter).get
 
         val bloom = BloomFilter.read(BloomFilter.Offset(0, filter.bytes.written), Reader(filter.bytes)).get
-        (1 to 10) foreach (key => BloomFilter.mightContain(key, Reader(filter.bytes), bloom).get shouldBe true)
-        (11 to 20) foreach (key => BloomFilter.mightContain(key, Reader(filter.bytes), bloom).get shouldBe false)
-
-        val readBloom = BloomFilter.read(BloomFilter.Offset(0, filter.bytes.written), Reader(filter.bytes)).get
-        (1 to 10) foreach (key => BloomFilter.mightContain(key, Reader(filter.bytes), readBloom).get shouldBe true)
-        (11 to 20) foreach (key => BloomFilter.mightContain(key, Reader(filter.bytes), readBloom).get shouldBe false)
+        (1 to 10) foreach (key => BloomFilter.mightContain(key, bloom.createBlockReader(filter.bytes)).get shouldBe true)
+        (11 to 20) foreach (key => BloomFilter.mightContain(key, bloom.createBlockReader(filter.bytes)).get shouldBe false)
 
         println("numberOfBits: " + filter.numberOfBits)
         println("written: " + filter.written)
@@ -183,13 +179,13 @@ class BloomFilterSpec extends TestBase {
 
       val positives =
         data collect {
-          case data if !BloomFilter.mightContain(data, Reader(bytes), bloom).get =>
+          case data if !BloomFilter.mightContain(data, bloom.createBlockReader(bytes)).get =>
             data
         }
 
       val falsePositives =
         data collect {
-          case data if BloomFilter.mightContain(Random.alphanumeric.take(2000).mkString.getBytes(), Reader(bytes), bloom).get =>
+          case data if BloomFilter.mightContain(Random.alphanumeric.take(2000).mkString.getBytes(), bloom.createBlockReader(bytes)).get =>
             data
         }
 
@@ -233,8 +229,8 @@ class BloomFilterSpec extends TestBase {
           eitherOne(
             (bloom, bytes),
             (bloom, bytes ++ randomBytesSlice(randomIntMax(100))),
-            (bloom.copy(offset = bloom.offset.copy(start = bloom.offset.start + randomBytes.size)), randomBytes ++ bytes.close()),
-            (bloom.copy(offset = bloom.offset.copy(start = bloom.offset.start + randomBytes.size)), randomBytes ++ bytes ++ randomBytesSlice(randomIntMax(100)))
+            (bloom.copy(blockOffset = bloom.blockOffset.copy(start = bloom.blockOffset.start + randomBytes.size)), randomBytes ++ bytes.close()),
+            (bloom.copy(blockOffset = bloom.blockOffset.copy(start = bloom.blockOffset.start + randomBytes.size)), randomBytes ++ bytes ++ randomBytesSlice(randomIntMax(100)))
           )
 
         runAssert(data, adjustedOffset, alteredBytes)
@@ -242,35 +238,35 @@ class BloomFilterSpec extends TestBase {
     }
   }
 
-  "write indexes and get the nearest deadline" in {
-    runThis(100.times) {
-      val keyValues = randomizedKeyValues(keyValueCount)
-      val group = randomGroup(keyValues)
-      val bloom: Option[BloomFilter.State] =
-        BloomFilter.init(
-          keyValues = keyValues,
-          compressions = eitherOne(Seq.empty, Seq(randomCompression()))
-        )
-
-      if (BloomFilter.shouldCreateBloomFilter(keyValues)) {
-        BloomFilter.close(bloom.get).get
-
-        bloom shouldBe defined
-
-        val deadline =
-          SegmentWriter.writeIndexesAndGetDeadline(
-            keyValue = group,
-            hashIndex = None,
-            bloomFilter = bloom,
-            binarySearchIndex = None,
-            currentNearestDeadline = None
-          ).get
-
-        assertBloom(keyValues, bloom.get)
-        deadline shouldBe nearestDeadline(keyValues)
-      } else {
-        bloom shouldBe empty
-      }
-    }
-  }
+  //  "write indexes and get the nearest deadline" in {
+  //    runThis(100.times) {
+  //      val keyValues = randomizedKeyValues(keyValueCount)
+  //      val group = randomGroup(keyValues)
+  //      val bloom: Option[BloomFilter.State] =
+  //        BloomFilter.init(
+  //          keyValues = keyValues,
+  //          compressions = eitherOne(Seq.empty, Seq(randomCompression()))
+  //        )
+  //
+  //      if (BloomFilter.shouldCreateBloomFilter(keyValues)) {
+  //        BloomFilter.close(bloom.get).get
+  //
+  //        bloom shouldBe defined
+  //
+  //        val deadline =
+  //          SegmentWriter.writeIndexesAndGetDeadline(
+  //            keyValue = group,
+  //            hashIndex = None,
+  //            bloomFilter = bloom,
+  //            binarySearchIndex = None,
+  //            currentNearestDeadline = None
+  //          ).get
+  //
+  //        assertBloom(keyValues, bloom.get)
+  //        deadline shouldBe nearestDeadline(keyValues)
+  //      } else {
+  //        bloom shouldBe empty
+  //      }
+  //    }
+  //  }
 }

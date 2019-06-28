@@ -264,7 +264,8 @@ private[segment] case class MemorySegment(path: Path,
   def mightContain(key: Slice[Byte]): IO[Boolean] =
     bloomFilter map {
       case (bloomFilter, bytes) =>
-        BloomFilter.mightContain(key, Reader(bytes), bloomFilter)
+        //        BloomFilter.mightContain(key, Reader(bytes), bloomFilter)
+        ???
     } getOrElse IO.`true`
 
   override def lower(key: Slice[Byte]): IO[Option[Memory.SegmentResponse]] =

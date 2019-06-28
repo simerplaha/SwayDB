@@ -144,9 +144,9 @@ class GroupSpec extends TestBase {
       readGroup.isIndexDecompressed shouldBe false
       readGroup.isValueDecompressed shouldBe false
 
-      val bitwiseSegment = readGroup.segment
-      bitwiseSegment.isCacheEmpty shouldBe true
-      bitwiseSegment.get(keyValues.head.key).assertGet shouldBe keyValues.head
+      val binarySegment = readGroup.segment
+      binarySegment.isCacheEmpty shouldBe true
+      binarySegment.get(keyValues.head.key).assertGet shouldBe keyValues.head
 
       readGroup.isHeaderDecompressed shouldBe true
       readGroup.isIndexDecompressed shouldBe true
@@ -198,9 +198,9 @@ class GroupSpec extends TestBase {
       readGroup.isIndexDecompressed shouldBe false
       readGroup.isValueDecompressed shouldBe false
 
-      val bitwiseSegment = readGroup.segment
-      bitwiseSegment.isCacheEmpty shouldBe true
-      bitwiseSegment.get(keyValues.head.key).assertGet shouldBe keyValues.head
+      val binarySegment = readGroup.segment
+      binarySegment.isCacheEmpty shouldBe true
+      binarySegment.get(keyValues.head.key).assertGet shouldBe keyValues.head
 
       readGroup.isHeaderDecompressed shouldBe true
       readGroup.isIndexDecompressed shouldBe true

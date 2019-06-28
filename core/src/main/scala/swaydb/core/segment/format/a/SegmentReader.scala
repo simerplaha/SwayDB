@@ -21,7 +21,8 @@ package swaydb.core.segment.format.a
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.Persistent
-import swaydb.core.segment.format.a.block.{BinarySearchIndex, HashIndex, SortedIndex}
+import swaydb.core.io.reader.BlockReader
+import swaydb.core.segment.format.a.block.{BinarySearchIndex, HashIndex, SortedIndex, Values}
 import swaydb.data.IO
 import swaydb.data.slice.Reader
 
@@ -33,143 +34,107 @@ import swaydb.data.slice.Reader
   */
 private[core] object SegmentReader extends LazyLogging {
 
-  def get(matcher: KeyMatcher.Get,
-          startFrom: Option[Persistent],
-          reader: Reader): IO[Option[Persistent]] =
-    for {
-      footer <- SegmentFooter.read(reader)
-      hashIndex <- footer.hashIndexOffset.map(offset => HashIndex.read(offset, reader).map(Some(_))).getOrElse(IO.none)
-      binarySearchIndex <- footer.binarySearchIndexOffset.map(offset => BinarySearchIndex.read(offset, reader).map(Some(_))).getOrElse(IO.none)
-      got <- get(
-        matcher = matcher,
-        startFrom = startFrom,
-        reader = reader.reset(),
-        hashIndex = hashIndex,
-        binarySearchIndex = binarySearchIndex,
-        sortedIndexOffset = footer.sortedIndexOffset,
-        hasRange = footer.hasRange
-      )
-    } yield got
-
   def lower(matcher: KeyMatcher.Lower,
             startFrom: Option[Persistent],
-            reader: Reader): IO[Option[Persistent]] =
-    SegmentFooter
-      .read(reader)
-      .flatMap(footer => lower(matcher, startFrom, reader, footer.sortedIndexOffset))
+            binarySearch: Option[BlockReader[BinarySearchIndex]],
+            sortedIndex: BlockReader[SortedIndex],
+            values: Option[BlockReader[Values]]): IO[Option[Persistent]] =
+  //    SortedIndex.find(
+  //      matcher = matcher,
+  //      startFrom = startFrom,
+  //      segmentReader = reader,
+  //      index = index
+  //    )
+    ???
 
   def higher(matcher: KeyMatcher.Higher,
              startFrom: Option[Persistent],
-             reader: Reader): IO[Option[Persistent]] =
-    SegmentFooter
-      .read(reader)
-      .flatMap(footer => higher(matcher, startFrom, reader, footer.sortedIndexOffset))
-
-  def lower(matcher: KeyMatcher.Lower,
-            startFrom: Option[Persistent],
-            reader: Reader,
-            offset: SortedIndex.Offset): IO[Option[Persistent]] =
-    SortedIndex.find(
-      matcher = matcher,
-      startFrom = startFrom,
-      reader = reader,
-      offset = offset
-    )
-
-  def higher(matcher: KeyMatcher.Higher,
-             startFrom: Option[Persistent],
-             reader: Reader,
-             offset: SortedIndex.Offset): IO[Option[Persistent]] =
-    SortedIndex.find(
-      matcher = matcher,
-      startFrom = startFrom,
-      reader = reader,
-      offset = offset
-    )
+             binarySearch: Option[BlockReader[BinarySearchIndex]],
+             sortedIndex: BlockReader[SortedIndex],
+             values: Option[BlockReader[Values]]): IO[Option[Persistent]] =
+  //    SortedIndex.find(
+  //      matcher = matcher,
+  //      startFrom = startFrom,
+  //      segmentReader = reader,
+  //      index = index
+  //    )
+    ???
 
   def get(matcher: KeyMatcher.Get,
           startFrom: Option[Persistent],
-          reader: Reader,
-          hashIndex: Option[HashIndex],
-          binarySearchIndex: Option[BinarySearchIndex],
-          sortedIndexOffset: SortedIndex.Offset,
+          hashIndex: Option[BlockReader[HashIndex]],
+          binarySearchIndex: Option[BlockReader[BinarySearchIndex]],
+          sortedIndex: BlockReader[SortedIndex],
+          valuesReader: Option[BlockReader[Values]],
           hasRange: Boolean): IO[Option[Persistent]] =
-    hashIndex map {
-      hashIndex =>
-        HashIndex.get(
-          matcher = matcher.toNextPrefixCompressedMatcher,
-          reader = reader,
-          hashIndex = hashIndex,
-          sortedIndexOffset = sortedIndexOffset
-        ) flatMap {
-          case some @ Some(_) =>
-            IO.Success(some)
-          case None =>
-            if (hashIndex.miss == 0 && !hasRange)
-              IO.none
-            else
-              get(
-                matcher = matcher,
-                startFrom = startFrom,
-                reader = reader,
-                binarySearchIndex = binarySearchIndex,
-                sortedIndexOffset = sortedIndexOffset
-              )
-        }
-    } getOrElse {
-      get(
-        matcher = matcher,
-        startFrom = startFrom,
-        reader = reader,
-        binarySearchIndex = binarySearchIndex,
-        sortedIndexOffset = sortedIndexOffset
-      )
-    }
+  //    hashIndex map {
+  //      hashIndex =>
+  //        HashIndex.get(
+  //          matcher = matcher.toNextPrefixCompressedMatcher,
+  //          reader = reader,
+  //          hashIndex = hashIndex,
+  //          sortedIndexOffset = sortedIndexOffset
+  //        ) flatMap {
+  //          case some @ Some(_) =>
+  //            IO.Success(some)
+  //          case None =>
+  //            if (hashIndex.miss == 0 && !hasRange)
+  //              IO.none
+  //            else
+  //              get(
+  //                matcher = matcher,
+  //                startFrom = startFrom,
+  //                reader = reader,
+  //                binarySearchIndex = binarySearchIndex,
+  //                sortedIndex = sortedIndexOffset
+  //              )
+  //        }
+  //    } getOrElse {
+  //      get(
+  //        matcher = matcher,
+  //        startFrom = startFrom,
+  //        reader = reader,
+  //        binarySearchIndex = binarySearchIndex,
+  //        sortedIndex = sortedIndexOffset
+  //      )
+  //    }
+    ???
 
   def get(matcher: KeyMatcher.Get,
           startFrom: Option[Persistent],
-          reader: Reader,
-          binarySearchIndex: Option[BinarySearchIndex],
-          sortedIndexOffset: SortedIndex.Offset): IO[Option[Persistent]] =
-    binarySearchIndex map {
-      binarySearchIndex =>
-        BinarySearchIndex.get(
-          matcher = matcher,
-          reader = reader,
-          index = binarySearchIndex,
-          sortedIndexOffset = sortedIndexOffset
-        ) flatMap {
-          case some @ Some(_) =>
-            IO.Success(some)
-
-          case None =>
-            if (binarySearchIndex.isFullBinarySearchIndex)
-              IO.none
-            else
-              get(
-                matcher = matcher,
-                startFrom = startFrom,
-                reader = reader,
-                offset = sortedIndexOffset
-              )
-        }
-    } getOrElse {
-      get(
-        matcher = matcher,
-        startFrom = startFrom,
-        reader = reader,
-        offset = sortedIndexOffset
-      )
-    }
-
-  def get(matcher: KeyMatcher.Get,
-          startFrom: Option[Persistent],
-          reader: Reader,
-          offset: SortedIndex.Offset): IO[Option[Persistent]] =
-    SortedIndex.find(
-      matcher = matcher,
-      startFrom = startFrom,
-      reader = reader,
-      offset = offset
-    )
+          hashIndex: Option[BlockReader[HashIndex]],
+          binarySearchIndex: Option[BlockReader[BinarySearchIndex]],
+          sortedIndex: BlockReader[SortedIndex],
+          valuesReader: Option[BlockReader[Values]]): IO[Option[Persistent]] =
+  //    binarySearchIndex map {
+  //      binarySearchIndex =>
+  //        BinarySearchIndex.get(
+  //          matcher = matcher,
+  //          reader = reader,
+  //          binarySearchIndex = binarySearchIndex,
+  //          index = sortedIndex
+  //        ) flatMap {
+  //          case some @ Some(_) =>
+  //            IO.Success(some)
+  //
+  //          case None =>
+  //            if (binarySearchIndex.isFullBinarySearchIndex)
+  //              IO.none
+  //            else
+  //              get(
+  //                matcher = matcher,
+  //                startFrom = startFrom,
+  //                reader = reader,
+  //                sortedIndex = sortedIndex
+  //              )
+  //        }
+  //    } getOrElse {
+  //      get(
+  //        matcher = matcher,
+  //        startFrom = startFrom,
+  //        reader = reader,
+  //        sortedIndex = sortedIndex
+  //      )
+  //    }
+    ???
 }

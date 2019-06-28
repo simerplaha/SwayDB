@@ -19,12 +19,13 @@
 
 package swaydb.core.segment.format.a.entry.reader
 
-import scala.annotation.implicitNotFound
 import swaydb.core.data.{KeyValue, Time}
 import swaydb.core.segment.format.a.entry.id.BaseEntryId
 import swaydb.core.util.Bytes
 import swaydb.data.IO
 import swaydb.data.slice.Reader
+
+import scala.annotation.implicitNotFound
 
 @implicitNotFound("Type class implementation not found for TimeReader of type ${T}")
 sealed trait TimeReader[-T] {
@@ -100,7 +101,6 @@ object TimeReader {
 
         case _: KeyValue.ReadOnly.Range | _: KeyValue.ReadOnly.Group =>
           IO.Failure(EntryReaderFailure.PreviousIsNotFixedKeyValue)
-
       } getOrElse {
         IO.Failure(EntryReaderFailure.NoPreviousKeyValue)
       }

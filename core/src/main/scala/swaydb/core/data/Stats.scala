@@ -20,7 +20,7 @@
 package swaydb.core.data
 
 import swaydb.core.segment.format.a.SegmentWriter
-import swaydb.core.segment.format.a.block.{BinarySearchIndex, BloomFilter, HashIndex}
+import swaydb.core.segment.format.a.block.{BinarySearchIndex, BloomFilter, HashIndex, SortedIndex, Values}
 import swaydb.core.util.Bytes
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
@@ -73,8 +73,13 @@ private[core] object Stats {
       else
         previousStats.map(_.groupsCount) getOrElse 0
 
+    val thisKeyValuesSortedIndexSizeWithoutHeader =
+      Bytes.sizeOf(indexEntry.size) +
+        indexEntry.size
+
     val thisKeyValuesSortedIndexSize =
-      Bytes.sizeOf(indexEntry.size) + indexEntry.size
+      SortedIndex.headerSize +
+        thisKeyValuesSortedIndexSizeWithoutHeader
 
     val thisKeyValuesRealIndexOffset =
       previousStats map {
@@ -89,8 +94,12 @@ private[core] object Stats {
       else
         thisKeyValuesRealIndexOffset
 
+    val thisKeyValuesSegmentValueSize =
+      Values.headerSize +
+        valueLength
+
     val thisKeyValuesSegmentKeyAndValueSize =
-      valueLength +
+      thisKeyValuesSegmentValueSize +
         thisKeyValuesSortedIndexSize
 
     //Items to add to BloomFilters is different to the position because a Group can contain
@@ -143,18 +152,29 @@ private[core] object Stats {
       else
         0
 
+    val segmentValuesSizeWithoutHeader: Int =
+      previousStats.map(_.segmentValuesSizeWithoutHeader).getOrElse(0) +
+        valueLength
+
     val segmentValuesSize: Int =
-      previousStats.map(_.segmentValuesSize).getOrElse(0) + valueLength
+      Values.headerSize +
+        segmentValuesSizeWithoutHeader
+
+    val segmentSortedIndexSizeWithoutHeader =
+      previousStats.map(_.segmentSortedIndexSizeWithoutHeader).getOrElse(0) +
+        thisKeyValuesSortedIndexSizeWithoutHeader
 
     val segmentSortedIndexSize =
-      previousStats.map(_.segmentSortedIndexSize).getOrElse(0) + thisKeyValuesSortedIndexSize
+      SortedIndex.headerSize +
+        segmentSortedIndexSizeWithoutHeader
 
-    val segmentValueEntryAndSortedIndexEntrySize =
-      previousStats.map(_.segmentValueAndSortedIndexEntrySize).getOrElse(0) +
-        segmentValuesSize +
-        segmentSortedIndexSize
+    val segmentValueAndSortedIndexEntrySize =
+      segmentValuesSizeWithoutHeader +
+        segmentSortedIndexSizeWithoutHeader +
+        SortedIndex.headerSize +
+        Values.headerSize
 
-    val segmentOptimalBloomFilterSize =
+    val segmentBloomFilterSize =
       if (falsePositiveRate <= 0.0 || (hasRemoveRange && !enableBinarySearchIndex))
         0
       else
@@ -164,12 +184,11 @@ private[core] object Stats {
         )
 
     val segmentSizeWithoutFooter: Int =
-      previousStats.map(previous => previous.segmentValueAndSortedIndexEntrySize).getOrElse(0) +
-        segmentValuesSize +
+      segmentValuesSize +
         segmentSortedIndexSize +
         segmentHashIndexSize +
         segmentBinarySearchIndexSize +
-        segmentOptimalBloomFilterSize
+        segmentBloomFilterSize
 
     //calculates the size of Segment after the last Group. This is used for size based grouping/compression.
     val segmentSizeWithoutFooterForNextGroup: Int =
@@ -194,8 +213,8 @@ private[core] object Stats {
         Bytes.sizeOf(segmentHashIndexSize) + //hash index size.
         Bytes.sizeOf((segmentValuesSize + segmentSortedIndexSize + segmentHashIndexSize + segmentBinarySearchIndexSize) + 1) + //binarySearch index
         Bytes.sizeOf(segmentBinarySearchIndexSize) + //binary index size.
-        Bytes.sizeOf((segmentValuesSize + segmentSortedIndexSize + segmentHashIndexSize + segmentBinarySearchIndexSize + segmentOptimalBloomFilterSize) + 1) + //bloomFilter
-        Bytes.sizeOf(segmentOptimalBloomFilterSize) + //bloomFilter
+        Bytes.sizeOf((segmentValuesSize + segmentSortedIndexSize + segmentHashIndexSize + segmentBinarySearchIndexSize + segmentBloomFilterSize) + 1) + //bloomFilter
+        Bytes.sizeOf(segmentBloomFilterSize) + //bloomFilter
         ByteSizeOf.int //to store footer offset.
 
     val segmentSize: Int =
@@ -209,10 +228,12 @@ private[core] object Stats {
       valueSize = valueLength,
       segmentSize = segmentSize,
       chainPosition = chainPosition,
-      segmentValueAndSortedIndexEntrySize = segmentValueEntryAndSortedIndexEntrySize,
+      segmentValueAndSortedIndexEntrySize = segmentValueAndSortedIndexEntrySize,
+      segmentSortedIndexSizeWithoutHeader = segmentSortedIndexSizeWithoutHeader,
       groupsCount = groupsCount,
       segmentUniqueKeysCount = segmentUniqueKeysCount,
       segmentValuesSize = segmentValuesSize,
+      segmentValuesSizeWithoutHeader = segmentValuesSizeWithoutHeader,
       segmentSortedIndexSize = segmentSortedIndexSize,
       segmentUncompressedKeysSize = segmentUncompressedKeysSize,
       segmentSizeWithoutFooter = segmentSizeWithoutFooter,
@@ -224,7 +245,7 @@ private[core] object Stats {
       thisKeyValuesAccessIndexOffset = thisKeyValuesAccessIndexOffset,
       thisKeyValueIndexOffset = thisKeyValuesRealIndexOffset,
       segmentHashIndexSize = segmentHashIndexSize,
-      segmentBloomFilterSize = segmentOptimalBloomFilterSize,
+      segmentBloomFilterSize = segmentBloomFilterSize,
       segmentBinarySearchIndexSize = segmentBinarySearchIndexSize,
       segmentFooterSize = segmentFooterSize,
       segmentTotalNumberOfRanges = segmentTotalNumberOfRanges,
@@ -240,9 +261,11 @@ private[core] case class Stats(valueSize: Int,
                                segmentSize: Int,
                                chainPosition: Int,
                                segmentValueAndSortedIndexEntrySize: Int,
+                               segmentSortedIndexSizeWithoutHeader: Int,
                                groupsCount: Int,
                                segmentUniqueKeysCount: Int,
                                segmentValuesSize: Int,
+                               segmentValuesSizeWithoutHeader: Int,
                                segmentSortedIndexSize: Int,
                                segmentUncompressedKeysSize: Int,
                                segmentSizeWithoutFooter: Int,
