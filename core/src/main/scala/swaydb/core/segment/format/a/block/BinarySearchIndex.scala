@@ -148,7 +148,7 @@ object BinarySearchIndex {
         compressedOrUncompressedBytes =>
           IO {
             state.bytes = compressedOrUncompressedBytes
-            state.bytes addIntUnsigned state.uniqueValuesCount
+            state.bytes addIntUnsigned state.writtenValues
             state.bytes addInt state.bytesPerValue
             state.bytes addBoolean state.isFullIndex
             if (state.bytes.currentWritePosition > state.headerSize)
@@ -195,8 +195,8 @@ object BinarySearchIndex {
         state.previouslyWritten = value
       }
 
-  private def search(reader: BlockReader[BinarySearchIndex],
-                     assertValue: Int => IO[MatchResult]) = {
+  def search(reader: BlockReader[BinarySearchIndex],
+             assertValue: Int => IO[MatchResult]) = {
 
     @tailrec
     def hop(start: Int, end: Int): IO[Option[Persistent]] = {

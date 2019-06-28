@@ -12,9 +12,9 @@ import swaydb.data.slice.Slice
 
 class BinarySearchIndexSpec extends WordSpec with Matchers {
 
-  def assertFind(bytes: Slice[Byte],
-                 values: Seq[Int],
-                 unAlteredIndex: BinarySearchIndex) =
+  def assertSearch(bytes: Slice[Byte],
+                   values: Seq[Int],
+                   unAlteredIndex: BinarySearchIndex) =
     runThis(10.times) {
       val randomBytes = randomBytesSlice(randomIntMax(100))
 
@@ -43,7 +43,7 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
 
       values foreach {
         value =>
-          BinarySearchIndex.find(
+          BinarySearchIndex.search(
             reader = alteredIndex.createBlockReader(alteredBytes),
             assertValue = matcher(valueToFind = value)
           ).get shouldBe defined
@@ -54,7 +54,7 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
 
       notInIndex foreach {
         i =>
-          BinarySearchIndex.find(
+          BinarySearchIndex.search(
             reader = alteredIndex.createBlockReader(alteredBytes),
             assertValue = matcher(valueToFind = i)
           ).get shouldBe empty
@@ -95,7 +95,7 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
               //byte size of Int.MaxValue is 5, but the index will switch to using 4 byte ints.
               index.bytesPerValue should be <= 4
 
-              assertFind(
+              assertSearch(
                 bytes = state.bytes,
                 values = values,
                 unAlteredIndex = index
@@ -140,7 +140,7 @@ class BinarySearchIndexSpec extends WordSpec with Matchers {
           index.headerSize shouldBe headerSize
           index.valuesCount shouldBe values.size
 
-          assertFind(
+          assertSearch(
             bytes = state.bytes,
             values = values,
             unAlteredIndex = index

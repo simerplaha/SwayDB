@@ -78,15 +78,12 @@ private[core] class BlockReader[B <: Block](segmentReader: Reader,
     hasAtLeast(1)
 
   def hasAtLeast(atLeastSize: Long): IO[Boolean] =
-    size map {
-      size =>
-        (size - 1 - position) >= atLeastSize
-    }
+    hasAtLeast(position, atLeastSize)
 
   def hasAtLeast(fromPosition: Long, atLeastSize: Long): IO[Boolean] =
     size map {
       size =>
-        (size - 1 - fromPosition) >= atLeastSize
+        (size - fromPosition) >= atLeastSize
     }
 
   override def copy(): BlockReader[B] =

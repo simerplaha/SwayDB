@@ -22,7 +22,7 @@ package swaydb.core.io.reader
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.core.TestData._
 import swaydb.core.segment.format.a.block.{Block, Values}
-import swaydb.data.slice.{Reader, Slice}
+import swaydb.data.slice.Slice
 
 class BlockReaderSpec extends WordSpec with Matchers {
 
@@ -37,22 +37,22 @@ class BlockReaderSpec extends WordSpec with Matchers {
     }
 
     //hasMore
-    (0 until bodyBytes.size) foreach {
+    (0 to bodyBytes.size) foreach {
       index =>
         reader.moveTo(index)
 
-        if (index < bodyBytes.size - 1)
+        if (index < bodyBytes.size)
           reader.hasMore.get shouldBe true
         else
           reader.hasMore.get shouldBe false
     }
 
     //hasAtLeast
-    (0 until bodyBytes.size) foreach {
+    (0 to bodyBytes.size) foreach {
       index =>
         reader.moveTo(index)
 
-        if (index < bodyBytes.size - 1)
+        if (index < bodyBytes.size)
           reader.hasAtLeast(1).get shouldBe true
         else
           reader.hasAtLeast(1).get shouldBe false
@@ -125,7 +125,7 @@ class BlockReaderSpec extends WordSpec with Matchers {
 
         reader.size.get shouldBe 5
         reader.read(100).get should have size 5
-        println(reader.get().get)
+        reader.get().failed.get.exception.getMessage.contains("Has no more bytes") shouldBe true
       }
     }
   }
