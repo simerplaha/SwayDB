@@ -339,4 +339,7 @@ case class HashIndex(blockOffset: HashIndex.Offset,
       segmentReader = segmentReader,
       block = this
     )
+
+  override def updateOffset(start: Int, size: Int): Block =
+    copy(blockOffset = HashIndex.Offset(start = start, size = size))
 }

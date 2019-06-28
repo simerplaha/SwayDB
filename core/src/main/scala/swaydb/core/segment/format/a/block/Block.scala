@@ -38,6 +38,7 @@ trait Block {
   def compressionInfo: Option[Block.CompressionInfo]
   def createBlockReader(segmentReader: Reader): BlockReader[_ <: Block]
   def createBlockReader(bytes: Slice[Byte]): BlockReader[_ <: Block]
+  def updateOffset(start: Int, size: Int): Block
 }
 
 object Block extends LazyLogging {

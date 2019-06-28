@@ -91,11 +91,13 @@ private[core] object SegmentWriter extends LazyLogging {
       (flattenBytes, nearestDeadline)
   }
 
-  def writeIndexesAndGetDeadline(keyValue: KeyValue.WriteOnly,
-                                 hashIndex: Option[HashIndex.State],
-                                 binarySearchIndex: Option[BinarySearchIndex.State],
-                                 bloomFilter: Option[BloomFilter.State],
-                                 currentNearestDeadline: Option[Deadline]): IO[Option[Deadline]] = {
+  private def write(keyValue: KeyValue.WriteOnly,
+                    sortedIndex: SortedIndex.State,
+                    values: Option[Values.State],
+                    hashIndex: Option[HashIndex.State],
+                    binarySearchIndex: Option[BinarySearchIndex.State],
+                    bloomFilter: Option[BloomFilter.State],
+                    currentNearestDeadline: Option[Deadline]): IO[Option[Deadline]] = {
 
     def writeOne(rootGroup: Option[KeyValue.WriteOnly.Group],
                  keyValue: KeyValue.WriteOnly): IO[Unit] =
@@ -152,7 +154,8 @@ private[core] object SegmentWriter extends LazyLogging {
       }
 
     @tailrec
-    def write(keyValues: Slice[KeyValue.WriteOnly], nearestDeadline: Option[Deadline]): Option[Deadline] =
+    def writeIndexes(keyValues: Slice[KeyValue.WriteOnly],
+                     nearestDeadline: Option[Deadline]): Option[Deadline] =
       keyValues.headOption match {
         case Some(keyValue) =>
           val nextNearestDeadline = Segment.getNearestDeadline(nearestDeadline, keyValue)
@@ -172,78 +175,38 @@ private[core] object SegmentWriter extends LazyLogging {
                 ).get
             }
 
-          write(keyValues.drop(1), nextNearestDeadline)
+          writeIndexes(keyValues.drop(1), nextNearestDeadline)
 
         case None =>
           nearestDeadline
       }
 
-    IO {
-      write(
-        keyValues = Slice(keyValue),
-        nearestDeadline = currentNearestDeadline
-      )
-    }
+    if (keyValue.valueEntryBytes.isDefined && values.isEmpty)
+      Values.valueSliceNotInitialised
+    else
+      IO {
+        sortedIndex.bytes addIntUnsigned keyValue.stats.keySize
+        sortedIndex.bytes addAll keyValue.indexEntryBytes
+        keyValue.valueEntryBytes foreach (bytes => values.foreach(_.bytes.addAll(bytes)))
+        writeIndexes(
+          keyValues = Slice(keyValue),
+          nearestDeadline = currentNearestDeadline
+        )
+      }
   }
 
-  private def writeHeaders(hashIndex: Option[HashIndex.State],
-                           bloomFilter: Option[BloomFilter.State],
-                           binarySearchIndex: Option[BinarySearchIndex.State]): IO[Unit] =
-    IO {
-      hashIndex foreach HashIndex.close
-      binarySearchIndex foreach BinarySearchIndex.close
-    }
-
-  private def writeKeyValueBytes(keyValue: KeyValue.WriteOnly,
-                                 sortedIndex: SortedIndex.State,
-                                 values: Option[Values.State]): IO[Unit] =
-    IO {
-      sortedIndex.bytes addIntUnsigned keyValue.stats.keySize
-      sortedIndex.bytes addAll keyValue.indexEntryBytes
-    } flatMap {
-      _ =>
-        values map {
-          values =>
-            IO(keyValue.valueEntryBytes foreach (values.bytes addAll _))
-        } getOrElse {
-          if (keyValue.valueEntryBytes.isDefined)
-            Values.valueSliceNotInitialised
-          else
-            IO.unit
-        }
-    }
-
-  private def writeSegmentBytes(keyValue: KeyValue.WriteOnly,
-                                sortedIndex: SortedIndex.State,
-                                values: Option[Values.State],
-                                hashIndex: Option[HashIndex.State],
-                                bloomFilter: Option[BloomFilter.State],
-                                binarySearchIndex: Option[BinarySearchIndex.State],
-                                deadline: Option[Deadline]): IO[Option[Deadline]] =
-    writeKeyValueBytes(
-      keyValue = keyValue,
-      sortedIndex = sortedIndex,
-      values = values
-    ) flatMap {
-      _ =>
-        writeIndexesAndGetDeadline(
-          keyValue = keyValue,
-          hashIndex = hashIndex,
-          bloomFilter = bloomFilter,
-          binarySearchIndex = binarySearchIndex,
-          currentNearestDeadline = deadline
-        ) flatMap {
-          nearestDeadline =>
-            writeHeaders(
-              hashIndex = hashIndex,
-              bloomFilter = bloomFilter,
-              binarySearchIndex = binarySearchIndex
-            ) map {
-              _ =>
-                nearestDeadline
-            }
-        }
-    }
+  private def close(sortedIndex: SortedIndex.State,
+                    values: Option[Values.State],
+                    hashIndex: Option[HashIndex.State],
+                    binarySearchIndex: Option[BinarySearchIndex.State],
+                    bloomFilter: Option[BloomFilter.State]): IO[Unit] =
+    for {
+      _ <- SortedIndex.close(sortedIndex)
+      _ <- values.map(Values.close) getOrElse IO.unit
+      _ <- hashIndex.map(HashIndex.close) getOrElse IO.unit
+      _ <- binarySearchIndex.map(BinarySearchIndex.close) getOrElse IO.unit
+      _ <- bloomFilter.map(BloomFilter.close) getOrElse IO.unit
+    } yield ()
 
   def write(keyValues: Iterable[KeyValue.WriteOnly],
             sortedIndex: SortedIndex.State,
@@ -253,29 +216,37 @@ private[core] object SegmentWriter extends LazyLogging {
             bloomFilter: Option[BloomFilter.State]): IO[Option[Deadline]] =
     keyValues.foldLeftIO(Option.empty[Deadline]) {
       case (deadline, keyValue) =>
-        writeSegmentBytes(
+        write(
           keyValue = keyValue,
           sortedIndex = sortedIndex,
           values = values,
           hashIndex = hashIndex,
           bloomFilter = bloomFilter,
           binarySearchIndex = binarySearchIndex,
-          deadline = deadline
+          currentNearestDeadline = deadline
         )
+    } flatMap {
+      nearestDeadline =>
+        close(
+          sortedIndex = sortedIndex,
+          values = values,
+          hashIndex = hashIndex,
+          bloomFilter = bloomFilter,
+          binarySearchIndex = binarySearchIndex
+        ) map {
+          _ =>
+            nearestDeadline
+        }
+    } flatMap {
+      deadline =>
+        //ensure that all the slices are full.
+        if (!sortedIndex.bytes.isFull)
+          IO.Failure(new Exception(s"indexSlice is not full actual: ${sortedIndex.bytes.written} - expected: ${sortedIndex.bytes.size}"))
+        else if (values.exists(!_.bytes.isFull))
+          IO.Failure(new Exception(s"valuesSlice is not full actual: ${values.get.bytes.written} - expected: ${values.get.bytes.size}"))
+        else
+          IO.Success(deadline)
     }
-
-  def close(sortedIndex: SortedIndex.State,
-            values: Option[Values.State],
-            hashIndex: Option[HashIndex.State],
-            binarySearchIndex: Option[BinarySearchIndex.State],
-            bloomFilter: Option[BloomFilter.State]): IO[Unit] =
-    for {
-      _ <- SortedIndex.close(sortedIndex)
-      _ <- values.map(Values.close) getOrElse IO.unit
-      _ <- hashIndex.map(HashIndex.close) getOrElse IO.unit
-      _ <- binarySearchIndex.map(BinarySearchIndex.close) getOrElse IO.unit
-      _ <- bloomFilter.map(BloomFilter.close) getOrElse IO.unit
-    } yield ()
 
   /**
     * Rules for creating bloom filters
@@ -319,88 +290,79 @@ private[core] object SegmentWriter extends LazyLogging {
         bloomFilter = bloomFilter
       ) flatMap {
         nearestDeadline =>
-          close(
-            sortedIndex = sortedIndex,
-            values = values,
-            hashIndex = hashIndex,
-            binarySearchIndex = binarySearchIndex,
-            bloomFilter = bloomFilter
-          ) flatMap {
-            _ =>
-              IO {
-                val segmentFooterSlice = Slice.create[Byte](lastStats.segmentFooterSize)
-                //this is a placeholder to store the format type of the Segment file written.
-                //currently there is only one format. So this is hardcoded but if there are a new file format then
-                //SegmentWriter and SegmentReader should be changed to be type classes with unique format types ids.
-                //the following group of bytes are also used for CRC check.
-                segmentFooterSlice addIntUnsigned SegmentWriter.formatId
-                segmentFooterSlice addIntUnsigned createdInLevel
-                segmentFooterSlice addBoolean lastStats.segmentHasGroup
-                segmentFooterSlice addBoolean lastStats.segmentHasRange
-                segmentFooterSlice addBoolean lastStats.segmentHasPut
-                //here the top Level key-values are used instead of Group's internal key-values because Group's internal key-values
-                //are read when the Group key-value is read.
-                segmentFooterSlice addIntUnsigned keyValues.size
-                //total number of actual key-values grouped or un-grouped
-                segmentFooterSlice addIntUnsigned lastStats.segmentUniqueKeysCount
+          IO {
+            val segmentFooterSlice = Slice.create[Byte](lastStats.segmentFooterSize)
+            //this is a placeholder to store the format type of the Segment file written.
+            //currently there is only one format. So this is hardcoded but if there are a new file format then
+            //SegmentWriter and SegmentReader should be changed to be type classes with unique format types ids.
+            //the following group of bytes are also used for CRC check.
+            segmentFooterSlice addIntUnsigned SegmentWriter.formatId
+            segmentFooterSlice addIntUnsigned createdInLevel
+            segmentFooterSlice addBoolean lastStats.segmentHasGroup
+            segmentFooterSlice addBoolean lastStats.segmentHasRange
+            segmentFooterSlice addBoolean lastStats.segmentHasPut
+            //here the top Level key-values are used instead of Group's internal key-values because Group's internal key-values
+            //are read when the Group key-value is read.
+            segmentFooterSlice addIntUnsigned keyValues.size
+            //total number of actual key-values grouped or un-grouped
+            segmentFooterSlice addIntUnsigned lastStats.segmentUniqueKeysCount
 
-                //do CRC
-                val indexBytesToCRC = segmentFooterSlice.take(SegmentWriter.crcBytes)
-                assert(indexBytesToCRC.size == SegmentWriter.crcBytes, s"Invalid CRC bytes size: ${indexBytesToCRC.size}. Required: ${SegmentWriter.crcBytes}")
-                segmentFooterSlice addLong CRC32.forBytes(indexBytesToCRC)
+            //do CRC
+            val indexBytesToCRC = segmentFooterSlice.take(SegmentWriter.crcBytes)
+            assert(indexBytesToCRC.size == SegmentWriter.crcBytes, s"Invalid CRC bytes size: ${indexBytesToCRC.size}. Required: ${SegmentWriter.crcBytes}")
+            segmentFooterSlice addLong CRC32.forBytes(indexBytesToCRC)
 
-                var segmentOffset = values.map(_.bytes.written) getOrElse 0
+            var segmentOffset = values.map(_.bytes.written) getOrElse 0
 
-                segmentFooterSlice addIntUnsigned sortedIndex.bytes.written
+            segmentFooterSlice addIntUnsigned sortedIndex.bytes.written
+            segmentFooterSlice addIntUnsigned segmentOffset
+            segmentOffset = segmentOffset + sortedIndex.bytes.written
+
+            hashIndex map {
+              hashIndex =>
+                segmentFooterSlice addIntUnsigned hashIndex.bytes.written
                 segmentFooterSlice addIntUnsigned segmentOffset
-                segmentOffset = segmentOffset + sortedIndex.bytes.written
+                segmentOffset = segmentOffset + hashIndex.bytes.written
+            } getOrElse {
+              segmentFooterSlice addIntUnsigned 0
+            }
 
-                hashIndex map {
-                  hashIndex =>
-                    segmentFooterSlice addIntUnsigned hashIndex.bytes.written
-                    segmentFooterSlice addIntUnsigned segmentOffset
-                    segmentOffset = segmentOffset + hashIndex.bytes.written
-                } getOrElse {
-                  segmentFooterSlice addIntUnsigned 0
-                }
+            binarySearchIndex map {
+              binarySearchIndex =>
+                segmentFooterSlice addIntUnsigned binarySearchIndex.bytes.written
+                segmentFooterSlice addIntUnsigned segmentOffset
+                segmentOffset = segmentOffset + binarySearchIndex.bytes.written
+            } getOrElse {
+              segmentFooterSlice addIntUnsigned 0
+            }
 
-                binarySearchIndex map {
-                  binarySearchIndex =>
-                    segmentFooterSlice addIntUnsigned binarySearchIndex.bytes.written
-                    segmentFooterSlice addIntUnsigned segmentOffset
-                    segmentOffset = segmentOffset + binarySearchIndex.bytes.written
-                } getOrElse {
-                  segmentFooterSlice addIntUnsigned 0
-                }
+            bloomFilter map {
+              bloomFilter =>
+                segmentFooterSlice addIntUnsigned bloomFilter.bytes.written
+                segmentFooterSlice addIntUnsigned segmentOffset
+                segmentOffset = segmentOffset + bloomFilter.bytes.written
+            } getOrElse {
+              segmentFooterSlice addIntUnsigned 0
+            }
 
-                bloomFilter map {
-                  bloomFilter =>
-                    segmentFooterSlice addIntUnsigned bloomFilter.bytes.written
-                    segmentFooterSlice addIntUnsigned segmentOffset
-                    segmentOffset = segmentOffset + bloomFilter.bytes.written
-                } getOrElse {
-                  segmentFooterSlice addIntUnsigned 0
-                }
+            val footerOffset =
+              values.map(_.bytes.written).getOrElse(0) +
+                sortedIndex.bytes.written +
+                hashIndex.map(_.bytes.written).getOrElse(0) +
+                binarySearchIndex.map(_.bytes.written).getOrElse(0) +
+                bloomFilter.map(_.bytes.written).getOrElse(0)
 
-                val footerOffset =
-                  values.map(_.bytes.written).getOrElse(0) +
-                    sortedIndex.bytes.written +
-                    hashIndex.map(_.bytes.written).getOrElse(0) +
-                    binarySearchIndex.map(_.bytes.written).getOrElse(0) +
-                    bloomFilter.map(_.bytes.written).getOrElse(0)
+            segmentFooterSlice addInt footerOffset
 
-                segmentFooterSlice addInt footerOffset
-
-                Result(
-                  values = values.map(_.bytes.close()),
-                  sortedIndex = sortedIndex.bytes.close(),
-                  hashIndex = hashIndex map (_.bytes.close()),
-                  binarySearchIndex = binarySearchIndex map (_.bytes.close()),
-                  bloomFilter = bloomFilter map (_.bytes.close()),
-                  footer = segmentFooterSlice.close(),
-                  nearestDeadline = nearestDeadline
-                )
-              }
+            Result(
+              values = values.map(_.bytes.close()),
+              sortedIndex = sortedIndex.bytes.close(),
+              hashIndex = hashIndex map (_.bytes.close()),
+              binarySearchIndex = binarySearchIndex map (_.bytes.close()),
+              bloomFilter = bloomFilter map (_.bytes.close()),
+              footer = segmentFooterSlice.close(),
+              nearestDeadline = nearestDeadline
+            )
           }
       }
     }

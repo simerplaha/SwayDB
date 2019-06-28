@@ -39,6 +39,7 @@ object Values {
     Values(Values.Offset.zero, 0, None)
 
   case class State(var _bytes: Slice[Byte],
+                   headerSize: Int,
                    compressions: Seq[CompressionInternal]) {
     def bytes = _bytes
 
@@ -57,18 +58,19 @@ object Values {
 
   def init(keyValues: Iterable[KeyValue.WriteOnly],
            compressions: Seq[CompressionInternal]): Option[Values.State] =
-    if (keyValues.last.stats.segmentValuesSize > Values.headerSize)
+    if (keyValues.last.stats.segmentValuesSize > Values.headerSize) {
+      val bytes = Slice.create[Byte](keyValues.last.stats.segmentValuesSize)
+      bytes moveWritePosition headerSize
       Some(
         Values.State(
-          _bytes = Slice.create[Byte](keyValues.last.stats.segmentValuesSize),
+          _bytes = bytes,
+          headerSize = headerSize,
           compressions = compressions
         )
       )
+    }
     else
       None
-
-  def write(value: Slice[Byte], state: State) =
-    state.bytes addAll value
 
   def close(state: State) =
     Block.compress(
@@ -134,4 +136,7 @@ case class Values(blockOffset: Values.Offset,
       segmentReader = segmentReader,
       block = this
     )
+
+  override def updateOffset(start: Int, size: Int): Block =
+    copy(blockOffset = Values.Offset(start = start, size = size))
 }

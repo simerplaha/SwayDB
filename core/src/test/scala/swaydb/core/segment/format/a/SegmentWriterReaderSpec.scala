@@ -75,18 +75,14 @@ class SegmentWriterReaderSpec extends TestBase {
 
         bytes.isFull shouldBe true
 
-        val footer = SegmentFooter.read(Reader(bytes))
-
-        readAll(Reader(bytes)).assertGet shouldBe keyValues
-
         //in memory
-        //        assertReads(keyValues, Reader(bytes))
-        //        //on disk
-        //        assertReads(keyValues, createFileChannelReader(bytes))
+        assertReads(keyValues, Reader(bytes))
+        //on disk
+        assertReads(keyValues, createFileChannelReader(bytes))
       }
 
-      runThis(1.times) {
-        val count = randomIntMax(4) max 1
+      runThis(100.times) {
+        val count = randomIntMax(4) min 1
         val keyValues = randomizedKeyValues(count, addRandomGroups = false)
         if (keyValues.nonEmpty) test(keyValues)
       }

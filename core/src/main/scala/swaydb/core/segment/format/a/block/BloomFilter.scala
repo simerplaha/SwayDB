@@ -242,4 +242,6 @@ case class BloomFilter(blockOffset: BloomFilter.Offset,
       segmentReader = segmentReader,
       block = this
     )
+  override def updateOffset(start: Int, size: Int): Block =
+    copy(blockOffset = BloomFilter.Offset(start = start, size = size))
 }

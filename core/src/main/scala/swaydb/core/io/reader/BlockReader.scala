@@ -145,7 +145,7 @@ private[core] class BlockReader[B <: Block](segmentReader: Reader,
         bytes =>
           BlockReader[B](
             segmentReader = Reader(bytes),
-            block = block
+            block = block.updateOffset(0, bytes.size).asInstanceOf[B]
           )
       }
 

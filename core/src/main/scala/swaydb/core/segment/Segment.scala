@@ -72,27 +72,28 @@ private[core] object Segment extends LazyLogging {
         val keyUnsliced = keyValue.key.unslice()
         keyValue match {
           case group: KeyValue.WriteOnly.Group =>
-            SegmentWriter.writeIndexesAndGetDeadline(
-              keyValue = group,
-              hashIndex = None,
-              bloomFilter = bloomFilterOption,
-              binarySearchIndex = None,
-              currentNearestDeadline = currentNearestDeadline
-            ) map {
-              nextNearestDeadline =>
-                skipList.put(
-                  keyUnsliced,
-                  Memory.Group(
-                    minKey = keyUnsliced,
-                    maxKey = group.maxKey.unslice(),
-                    //this deadline is group's nearest deadline and the Segment's nearest deadline.
-                    deadline = group.deadline,
-                    compressedKeyValues = group.compressedKeyValues.unslice(),
-                    groupStartOffset = 0 //compressKeyValues are unsliced so startOffset is 0.
-                  )
-                )
-                nextNearestDeadline
-            }
+            //            SegmentWriter.write(
+            //              keyValue = group,
+            //              hashIndex = None,
+            //              bloomFilter = bloomFilterOption,
+            //              binarySearchIndex = None,
+            //              currentNearestDeadline = currentNearestDeadline
+            //            ) map {
+            //              nextNearestDeadline =>
+            //                skipList.put(
+            //                  keyUnsliced,
+            //                  Memory.Group(
+            //                    minKey = keyUnsliced,
+            //                    maxKey = group.maxKey.unslice(),
+            //                    //this deadline is group's nearest deadline and the Segment's nearest deadline.
+            //                    deadline = group.deadline,
+            //                    compressedKeyValues = group.compressedKeyValues.unslice(),
+            //                    groupStartOffset = 0 //compressKeyValues are unsliced so startOffset is 0.
+            //                  )
+            //                )
+            //                nextNearestDeadline
+            //            }
+            ???
 
           case remove: Transient.Remove =>
             skipList.put(

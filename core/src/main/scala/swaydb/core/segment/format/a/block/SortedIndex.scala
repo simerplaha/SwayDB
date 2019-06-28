@@ -49,12 +49,15 @@ private[core] object SortedIndex {
     Block.headerSize
 
   def init(keyValues: Iterable[KeyValue.WriteOnly],
-           compressions: Seq[CompressionInternal]): SortedIndex.State =
+           compressions: Seq[CompressionInternal]): SortedIndex.State = {
+    val bytes = Slice.create[Byte](keyValues.last.stats.segmentSortedIndexSize)
+    bytes moveWritePosition SortedIndex.headerSize
     State(
-      _bytes = Slice.create[Byte](keyValues.last.stats.segmentSortedIndexSize),
+      _bytes = bytes,
       headerSize = SortedIndex.headerSize,
       compressions = compressions
     )
+  }
 
   def close(state: State): IO[Unit] =
     Block.compress(
@@ -180,12 +183,6 @@ private[core] object SortedIndex {
               addTo: Option[Slice[KeyValue.ReadOnly]] = None): IO[Slice[KeyValue.ReadOnly]] =
     try {
       sortedIndexReader moveTo 0
-      //      //since this is a index slice of the full Segment, adjustments for nextIndexOffset is required.
-      //      val adjustNextIndexOffsetBy = offset.start
-      //      //read full index in one disk seek and Slice it to KeyValue chunks.
-      //      val sortedIndexReader = reader moveTo offset.start read offset.size map (Reader(_)) get
-      //      val endIndexOffset: Int = sortedIndexReader.size.get.toInt - 1
-
       val readSortedIndexReader = sortedIndexReader.readFullBlockAndGetReader().get
 
       val entries = addTo getOrElse Slice.create[Persistent](keyValueCount)
@@ -202,11 +199,8 @@ private[core] object SortedIndex {
 
           readNextKeyValue(
             indexEntrySizeMayBe = nextIndexSize,
-            //            startIndexOffset = previousMayBe.map(_.nextIndexOffset).getOrElse(offset.start),
             indexReader = readSortedIndexReader,
             valueReader = valueReader,
-            //user entries.lastOption instead of previousMayBe because, addTo might already be pre-populated and the
-            //last entry would of bethe.
             previous = previousMayBe
           ) map {
             next =>
@@ -373,4 +367,7 @@ case class SortedIndex(blockOffset: SortedIndex.Offset,
       segmentReader = segmentReader,
       block = this
     )
+
+  override def updateOffset(start: Int, size: Int): Block =
+    copy(blockOffset = SortedIndex.Offset(start = start, size = size))
 }

@@ -274,4 +274,7 @@ case class BinarySearchIndex(blockOffset: BinarySearchIndex.Offset,
       segmentReader = segmentReader,
       block = this
     )
+
+  override def updateOffset(start: Int, size: Int): Block =
+    copy(blockOffset = BinarySearchIndex.Offset(start = start, size = size))
 }
