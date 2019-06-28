@@ -95,8 +95,11 @@ private[core] object Stats {
         thisKeyValuesRealIndexOffset
 
     val thisKeyValuesSegmentValueSize =
-      Values.headerSize +
-        valueLength
+      if (valueLength == 0)
+        0
+      else
+        Values.headerSize +
+          valueLength
 
     val thisKeyValuesSegmentKeyAndValueSize =
       thisKeyValuesSegmentValueSize +
@@ -157,8 +160,14 @@ private[core] object Stats {
         valueLength
 
     val segmentValuesSize: Int =
-      Values.headerSize +
-        segmentValuesSizeWithoutHeader
+      if (segmentValuesSizeWithoutHeader != 0)
+        Values.headerSize +
+          segmentValuesSizeWithoutHeader
+      else if (valueLength != 0)
+        Values.headerSize +
+          segmentValuesSizeWithoutHeader
+      else
+        0
 
     val segmentSortedIndexSizeWithoutHeader =
       previousStats.map(_.segmentSortedIndexSizeWithoutHeader).getOrElse(0) +
@@ -169,10 +178,14 @@ private[core] object Stats {
         segmentSortedIndexSizeWithoutHeader
 
     val segmentValueAndSortedIndexEntrySize =
-      segmentValuesSizeWithoutHeader +
+      if (segmentValuesSizeWithoutHeader == 0)
         segmentSortedIndexSizeWithoutHeader +
-        SortedIndex.headerSize +
-        Values.headerSize
+          SortedIndex.headerSize
+      else
+        segmentValuesSizeWithoutHeader +
+          segmentSortedIndexSizeWithoutHeader +
+          SortedIndex.headerSize +
+          Values.headerSize
 
     val segmentBloomFilterSize =
       if (falsePositiveRate <= 0.0 || (hasRemoveRange && !enableBinarySearchIndex))
