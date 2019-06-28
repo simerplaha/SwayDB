@@ -236,129 +236,121 @@ private[core] object SortedIndex {
            startFrom: Option[Persistent],
            indexReader: BlockReader[SortedIndex],
            valueReader: Option[BlockReader[Values]]): IO[Option[Persistent]] =
-  //    startFrom match {
-  //      case Some(startFrom) =>
-  //        //if startFrom is the last index entry, return None.
-  //        if (startFrom.nextIndexSize == 0)
-  //          IO.none
-  //        else
-  //          readNextKeyValue(
-  //            previous = startFrom,
-  //            startOffset = index.offset.start,
-  //            endOffset = index.offset.end,
-  //            indexReader = segmentReader,
-  //            valueReader = segmentReader
-  //          ) flatMap {
-  //            keyValue =>
-  //              matchOrNext(
-  //                previous = startFrom,
-  //                next = Some(keyValue),
-  //                matcher = matcher,
-  //                segmentReader = segmentReader,
-  //                sortedIndex = index
-  //              )
-  //          }
-  //
-  //      //No start from. Get the first index entry from the File and start from there.
-  //      case None =>
-  //        readNextKeyValue(
-  //          fromPosition = index.offset.start,
-  //          startIndexOffset = index.offset.start,
-  //          endIndexOffset = index.offset.end,
-  //          indexReader = segmentReader,
-  //          valueReader = segmentReader
-  //        ) flatMap {
-  //          keyValue =>
-  //            matchOrNext(
-  //              previous = keyValue,
-  //              next = None,
-  //              matcher = matcher,
-  //              segmentReader = segmentReader,
-  //              sortedIndex = index
-  //            )
-  //        }
-  //    }
-    ???
+    startFrom match {
+      case Some(startFrom) =>
+        //if startFrom is the last index entry, return None.
+        if (startFrom.nextIndexSize == 0)
+          IO.none
+        else
+          readNextKeyValue(
+            previous = startFrom,
+            indexReader = indexReader,
+            valueReader = valueReader
+          ) flatMap {
+            keyValue =>
+              matchOrNext(
+                previous = startFrom,
+                next = Some(keyValue),
+                matcher = matcher,
+                indexReader = indexReader,
+                valueReader = valueReader
+              )
+          }
+
+      //No start from. Get the first index entry from the File and start from there.
+      case None =>
+        readNextKeyValue(
+          fromPosition = 0,
+          indexReader = indexReader,
+          valueReader = valueReader
+        ) flatMap {
+          keyValue =>
+            matchOrNext(
+              previous = keyValue,
+              next = None,
+              matcher = matcher,
+              indexReader = indexReader,
+              valueReader = valueReader
+            )
+        }
+    }
 
   def findAndMatchOrNext(matcher: KeyMatcher,
                          fromOffset: Int,
                          indexReader: BlockReader[SortedIndex],
-                         valueReader: BlockReader[Values]): IO[Option[Persistent]] =
-  //    readNextKeyValue(
-  //      fromPosition = fromOffset,
-  //      indexReader = segmentReader,
-  //      valueReader = segmentReader
-  //    ) flatMap {
-  //      persistent =>
-  //        matchOrNext(
-  //          previous = persistent,
-  //          next = None,
-  //          matcher = matcher,
-  //          segmentReader = segmentReader,
-  //          sortedIndex = index
-  //        )
-  //    }
-    ???
+                         valueReader: Option[BlockReader[Values]]): IO[Option[Persistent]] =
+    readNextKeyValue(
+      fromPosition = fromOffset,
+      indexReader = indexReader,
+      valueReader = valueReader
+    ) flatMap {
+      persistent =>
+        matchOrNext(
+          previous = persistent,
+          next = None,
+          matcher = matcher,
+          indexReader = indexReader,
+          valueReader = valueReader
+        )
+    }
 
   def findAndMatch(matcher: KeyMatcher,
                    fromOffset: Int,
                    sortedIndex: BlockReader[SortedIndex],
                    values: Option[BlockReader[Values]]): IO[MatchResult] =
-  //    readNextKeyValue(
-  //      fromPosition = fromOffset,
-  //      indexReader = segmentReader,
-  //      valueReader = segmentReader
-  //    ) map {
-  //      persistent =>
-  //        matcher(
-  //          previous = persistent,
-  //          next = None,
-  //          hasMore = hasMore(persistent, sortedIndex)
-  //        )
-  //    }
-    ???
+    readNextKeyValue(
+      fromPosition = fromOffset,
+      indexReader = sortedIndex,
+      valueReader = values
+    ) map {
+      persistent =>
+        matcher(
+          previous = persistent,
+          next = None,
+          hasMore = hasMore(persistent)
+        )
+    }
 
-  //  @tailrec
+  @tailrec
   def matchOrNext(previous: Persistent,
                   next: Option[Persistent],
                   matcher: KeyMatcher,
                   indexReader: BlockReader[SortedIndex],
                   valueReader: Option[BlockReader[Values]]): IO[Option[Persistent]] =
-  //    matcher(
-  //      previous = previous,
-  //      next = next,
-  //      hasMore = hasMore(next getOrElse previous, sortedIndex.offset)
-  //    ) match {
-  //      case MatchResult.Next =>
-  //        val readFrom = next getOrElse previous
-  //        SortedIndex.readNextKeyValue(
-  //          previous = readFrom,
-  //          indexReader = segmentReader,
-  //          valueReader = segmentReader
-  //        ) match {
-  //          case IO.Success(nextNextKeyValue) =>
-  //            matchOrNext(
-  //              previous = readFrom,
-  //              next = Some(nextNextKeyValue),
-  //              matcher = matcher,
-  //              segmentReader = segmentReader,
-  //              sortedIndex = sortedIndex
-  //            )
-  //
-  //          case IO.Failure(exception) =>
-  //            IO.Failure(exception)
-  //        }
-  //
-  //      case MatchResult.Matched(keyValue) =>
-  //        IO.Success(Some(keyValue))
-  //
-  //      case MatchResult.Stop =>
-  //        IO.none
-  //    }
-    ???
+    matcher(
+      previous = previous,
+      next = next,
+      hasMore = hasMore(next getOrElse previous)
+    ) match {
+      case MatchResult.Next =>
+        val readFrom = next getOrElse previous
+        SortedIndex.readNextKeyValue(
+          previous = readFrom,
+          indexReader = indexReader,
+          valueReader = valueReader
+        ) match {
+          case IO.Success(nextNextKeyValue) =>
+            matchOrNext(
+              previous = readFrom,
+              next = Some(nextNextKeyValue),
+              matcher = matcher,
+              indexReader = indexReader,
+              valueReader = valueReader
+            )
 
-  private def hasMore(keyValue: Persistent, offset: SortedIndex.Offset) =
-    keyValue.nextIndexOffset >= 0 && keyValue.nextIndexOffset < offset.end
+          case IO.Failure(exception) =>
+            IO.Failure(exception)
+        }
+
+      case MatchResult.Matched(keyValue) =>
+        IO.Success(Some(keyValue))
+
+      case MatchResult.Stop =>
+        IO.none
+    }
+
+  private def hasMore(keyValue: Persistent) =
+    keyValue.nextIndexSize > 0
 }
 
 case class SortedIndex(blockOffset: SortedIndex.Offset,
