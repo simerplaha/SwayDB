@@ -82,7 +82,7 @@ class SegmentWriterReaderSpec extends TestBase {
       }
 
       runThis(100.times) {
-        val count = randomIntMax(4) min 1
+        val count = randomIntMax(4) + 1
         val keyValues = randomizedKeyValues(count, addRandomGroups = false)
         if (keyValues.nonEmpty) test(keyValues)
       }

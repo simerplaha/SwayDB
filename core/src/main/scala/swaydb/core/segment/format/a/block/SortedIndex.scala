@@ -135,23 +135,29 @@ private[core] object SortedIndex {
       //read all bytes for this index entry plus the next 5 bytes to fetch next index entry's size.
       val indexEntryBytesAndNextIndexEntrySize = (indexReader read bytesToRead).get
 
-      //take only the bytes required for this in entry and submit it for parsing/reading.
-      val indexEntryReader = Reader(indexEntryBytesAndNextIndexEntrySize.take(indexSize))
+      val extraBytesRead = indexEntryBytesAndNextIndexEntrySize.size - indexSize
 
       //The above fetches another 5 bytes (unsigned int) along with previous index entry.
       //These 5 bytes contains the next index's size. Here the next key-values indexSize and indexOffset are read.
       val (nextIndexSize, nextIndexOffset) =
-      if (indexReader.hasMore.get) { //if extra tail byte were read this mean that this index has a next key-value.
-        //next indexEntrySize is only read if it's required.
-        val nextIndexEntrySize = Reader(indexEntryBytesAndNextIndexEntrySize.drop(indexSize))
-        (nextIndexEntrySize.readIntUnsigned().get, indexReader.getPosition - 5)
-      } else {
+      if (extraBytesRead == 0) {
         //no next key-value, next size is 0 and set offset to -1.
         (0, -1)
+      } else {
+        //if extra tail byte were read this mean that this index has a next key-value.
+        //next indexEntrySize is only read if it's required.
+        indexEntryBytesAndNextIndexEntrySize
+          .drop(indexSize)
+          .readIntUnsigned()
+          .map {
+            nextIndexEntrySize =>
+              (nextIndexEntrySize, indexReader.getPosition - extraBytesRead)
+          }.get
       }
 
       EntryReader.read(
-        indexReader = indexEntryReader,
+        //take only the bytes required for this in entry and submit it for parsing/reading.
+        indexReader = Reader(indexEntryBytesAndNextIndexEntrySize.take(indexSize)),
         valueReader = valueReader,
         indexOffset = positionBeforeRead,
         nextIndexOffset = nextIndexOffset,
