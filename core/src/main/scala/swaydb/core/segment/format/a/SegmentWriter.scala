@@ -22,7 +22,7 @@ package swaydb.core.segment.format.a
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.KeyValue
 import swaydb.core.segment.Segment
-import swaydb.core.segment.format.a.block.{BinarySearchIndex, Block, BloomFilter, HashIndex, SortedIndex, Values}
+import swaydb.core.segment.format.a.block._
 import swaydb.core.util.CRC32
 import swaydb.data.IO
 import swaydb.data.IO._
@@ -260,6 +260,7 @@ private[core] object SegmentWriter extends LazyLogging {
     * Segment reads can take appropriate steps to fetch the right range key-value.
     */
   def write(keyValues: Iterable[KeyValue.WriteOnly],
+            segmentCompression: SegmentCompression,
             createdInLevel: Int,
             maxProbe: Int): IO[Result] =
     if (keyValues.isEmpty)
@@ -267,11 +268,11 @@ private[core] object SegmentWriter extends LazyLogging {
     else {
       val lastStats = keyValues.last.stats
 
-      val sortedIndex = SortedIndex.init(keyValues = keyValues, compressions = Seq.empty)
-      val values = Values.init(keyValues = keyValues, compressions = Seq.empty)
-      val hashIndex = HashIndex.init(maxProbe = maxProbe, keyValues = keyValues, compressions = Seq.empty)
-      val binarySearchIndex = BinarySearchIndex.init(keyValues = keyValues, compressions = Seq.empty)
-      val bloomFilter = BloomFilter.init(keyValues = keyValues, compressions = Seq.empty)
+      val sortedIndex = SortedIndex.init(keyValues = keyValues, compressions = segmentCompression.sortedIndex)
+      val values = Values.init(keyValues = keyValues, compressions = segmentCompression.values)
+      val hashIndex = HashIndex.init(maxProbe = maxProbe, keyValues = keyValues, compressions = segmentCompression.hashIndex)
+      val binarySearchIndex = BinarySearchIndex.init(keyValues = keyValues, compressions = segmentCompression.binarySearchIndex)
+      val bloomFilter = BloomFilter.init(keyValues = keyValues, compressions = segmentCompression.bloomFilter)
       bloomFilter foreach {
         bloomFilter =>
           //temporary check.

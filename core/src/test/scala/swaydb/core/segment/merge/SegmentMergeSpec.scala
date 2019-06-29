@@ -323,8 +323,7 @@ class SegmentMergeSpec extends TestBase {
         val group =
           Transient.Group(
             keyValues = oldKeyValues,
-            indexCompression = randomCompression(),
-            valueCompression = randomCompression(),
+            segmentCompression = randomSegmentCompression(),
             falsePositiveRate = TestData.falsePositiveRate,
             resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
             minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,

@@ -815,6 +815,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures with PrivateMeth
         val (slice, deadline) =
           SegmentWriter.write(
             keyValues = all,
+            segmentCompression = randomSegmentCompression(),
             createdInLevel = 0,
             maxProbe = TestData.maxProbe
           ).assertGet.flatten

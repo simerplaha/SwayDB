@@ -1283,7 +1283,7 @@ object CommonAssertions {
     group.maxKey shouldBe groupKeyValues.maxKey()
 
     //read and assert keys info from the key bytes write
-    val groupSegmentReader = Reader(group.compressedKeyValues) //create a reader from the compressed group key-values.
+    val groupSegmentReader = Reader(group.value.get) //create a reader from the compressed group key-values.
     //read the header bytes.
 
     //assert key info
@@ -1292,7 +1292,8 @@ object CommonAssertions {
     else
       groupSegmentReader.readIntUnsigned().assertGet should be >= 8.bytes
 
-    groupSegmentReader.readIntUnsigned().assertGet shouldBe GroupCompressor.formatId
+//    groupSegmentReader.readIntUnsigned().assertGet shouldBe GroupCompressor.formatId
+    ???
     groupSegmentReader.readBoolean().assertGet shouldBe group.keyValues.last.stats.segmentHasRange
     groupSegmentReader.readBoolean().assertGet shouldBe group.keyValues.last.stats.segmentHasPut
     groupSegmentReader.readIntUnsigned().assertGet shouldBe expectedIndexCompressionUsed.decompressor.id //key decompression id

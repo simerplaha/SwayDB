@@ -273,7 +273,8 @@ private[core] object Segment extends LazyLogging {
     SegmentWriter.write(
       keyValues = keyValues,
       createdInLevel = createdInLevel,
-      maxProbe = maxProbe
+      maxProbe = maxProbe,
+      segmentCompression = ???
     ) flatMap {
       result =>
         if (result.isEmpty) {

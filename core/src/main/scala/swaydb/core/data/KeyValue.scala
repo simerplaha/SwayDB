@@ -26,6 +26,7 @@ import swaydb.core.group.compression.{GroupCompressor, GroupDecompressor, GroupK
 import swaydb.core.io.reader.{BlockReader, Reader}
 import swaydb.core.map.serializer.{RangeValueSerializer, ValueSerializer}
 import swaydb.core.queue.KeyValueLimiter
+import swaydb.core.segment.format.a.{SegmentCompression, SegmentWriter}
 import swaydb.core.segment.format.a.entry.reader.value._
 import swaydb.core.segment.format.a.entry.writer._
 import swaydb.core.segment.{BinarySegment, BinarySegmentInitialiser, Segment}
@@ -300,7 +301,6 @@ private[core] object KeyValue {
       def maxKey: MaxKey[Slice[Byte]]
       def fullKey: Slice[Byte]
       def keyValues: Slice[KeyValue.WriteOnly]
-      def compressedKeyValues: Slice[Byte]
     }
   }
 
@@ -1012,9 +1012,9 @@ private[core] object Transient {
   }
 
   object Group {
+
     def apply(keyValues: Slice[KeyValue.WriteOnly],
-              indexCompression: CompressionInternal,
-              valueCompression: CompressionInternal,
+              segmentCompression: SegmentCompression,
               falsePositiveRate: Double,
               enableBinarySearchIndex: Boolean,
               buildFullBinarySearchIndex: Boolean,
@@ -1025,36 +1025,10 @@ private[core] object Transient {
               maxProbe: Int): IO[Option[Transient.Group]] =
       GroupCompressor.compress(
         keyValues = keyValues,
-        indexCompressions = Seq(indexCompression),
-        valueCompressions = Seq(valueCompression),
+        segmentCompression = segmentCompression,
         falsePositiveRate = falsePositiveRate,
         resetPrefixCompressionEvery = resetPrefixCompressionEvery,
         minimumNumberOfKeyForHashIndex = minimumNumberOfKeysForHashIndex,
-        hashIndexCompensation = hashIndexCompensation,
-        previous = previous,
-        maxProbe = maxProbe,
-        enableBinarySearchIndex = enableBinarySearchIndex,
-        buildFullBinarySearchIndex = buildFullBinarySearchIndex
-      )
-
-    def apply(keyValues: Slice[KeyValue.WriteOnly],
-              indexCompressions: Seq[CompressionInternal],
-              valueCompressions: Seq[CompressionInternal],
-              falsePositiveRate: Double,
-              enableBinarySearchIndex: Boolean,
-              buildFullBinarySearchIndex: Boolean,
-              resetPrefixCompressionEvery: Int,
-              minimumNumberOfKeyForHashIndex: Int,
-              hashIndexCompensation: Int => Int,
-              previous: Option[KeyValue.WriteOnly],
-              maxProbe: Int): IO[Option[Transient.Group]] =
-      GroupCompressor.compress(
-        keyValues = keyValues,
-        indexCompressions = indexCompressions,
-        valueCompressions = valueCompressions,
-        falsePositiveRate = falsePositiveRate,
-        resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-        minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
         hashIndexCompensation = hashIndexCompensation,
         previous = previous,
         maxProbe = maxProbe,
@@ -1066,7 +1040,7 @@ private[core] object Transient {
   case class Group(minKey: Slice[Byte],
                    maxKey: MaxKey[Slice[Byte]],
                    fullKey: Slice[Byte],
-                   compressedKeyValues: Slice[Byte],
+                   result: SegmentWriter.Result,
                    //the deadline is the nearest deadline in the Group's key-values.
                    deadline: Option[Deadline],
                    keyValues: Slice[KeyValue.WriteOnly],
@@ -1083,7 +1057,7 @@ private[core] object Transient {
     override val isRemoveRangeMayBe: Boolean = keyValues.last.stats.segmentHasRemoveRange
     override val isRange: Boolean = keyValues.last.stats.segmentHasRange
     override val isGroup: Boolean = true
-    override val value: Option[Slice[Byte]] = Some(compressedKeyValues)
+    override val value: Option[Slice[Byte]] = Some(result.flattenBytes)
 
     val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, isPrefixCompressed) =
       KeyValueWriter.write(

@@ -55,8 +55,7 @@ class SegmentKeyValueLimiterSpec extends TestBase with Benchmark {
       val group =
         Transient.Group(
           keyValues = groupKeyValues,
-          indexCompression = randomCompression(),
-          valueCompression = randomCompression(),
+          segmentCompression = randomSegmentCompression(),
           falsePositiveRate = TestData.falsePositiveRate,
           enableBinarySearchIndex = TestData.enableBinarySearchIndex,
           buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
@@ -127,8 +126,7 @@ class SegmentKeyValueLimiterSpec extends TestBase with Benchmark {
       val group =
         Transient.Group(
           keyValues = groupKeyValues,
-          indexCompression = randomCompression(),
-          valueCompression = randomCompression(),
+          segmentCompression = randomSegmentCompression(),
           falsePositiveRate = TestData.falsePositiveRate,
           enableBinarySearchIndex = TestData.enableBinarySearchIndex,
           buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,

@@ -150,15 +150,14 @@ private[merge] object SegmentGrouper extends LazyLogging {
                           maxProbe: Int,
                           enableBinarySearchIndex: Boolean,
                           buildFullBinarySearchIndex: Boolean): IO[Option[Group]] =
-    Group(
+    Transient.Group(
       keyValues = keyValuesToGroup,
-      indexCompressions = groupingStrategy.indexCompressions,
-      valueCompressions = groupingStrategy.valueCompressions,
+      segmentCompression = ???,
       falsePositiveRate = bloomFilterFalsePositiveRate,
       enableBinarySearchIndex = enableBinarySearchIndex,
       buildFullBinarySearchIndex = buildFullBinarySearchIndex,
       resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-      minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
+      minimumNumberOfKeysForHashIndex = minimumNumberOfKeyForHashIndex,
       hashIndexCompensation = hashIndexCompensation,
       previous = lastGroup,
       maxProbe = maxProbe

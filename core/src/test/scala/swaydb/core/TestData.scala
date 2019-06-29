@@ -37,6 +37,7 @@ import swaydb.core.map.serializer.RangeValueSerializer
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.seek._
 import swaydb.core.segment.Segment
+import swaydb.core.segment.format.a.SegmentCompression
 import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
 import swaydb.core.util.UUIDUtil
 import swaydb.data.accelerate.Accelerator
@@ -384,7 +385,7 @@ object TestData {
               Memory.Group(
                 minKey = fromKey,
                 maxKey = toKey,
-                compressedKeyValues = compressedKeyValues.unslice(),
+                compressedKeyValues = compressedKeyValues.flattenBytes.unslice(),
                 deadline = deadline,
                 groupStartOffset = 0
               )
@@ -399,7 +400,7 @@ object TestData {
               Memory.Group(
                 minKey = fromKey,
                 maxKey = toKey,
-                compressedKeyValues = compressedKeyValues.unslice(),
+                compressedKeyValues = compressedKeyValues.flattenBytes.unslice(),
                 deadline = deadline,
                 groupStartOffset = 0
               )
@@ -591,8 +592,7 @@ object TestData {
                       minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
                       hashIndexCompensation = hashIndexCompensation
                     ),
-                indexCompression = randomCompression(),
-                valueCompression = randomCompression(),
+                segmentCompression = randomSegmentCompression(),
                 falsePositiveRate = falsePositiveRate,
                 enableBinarySearchIndex = enableBinarySearchIndex,
                 buildFullBinarySearchIndex = buildFullBinarySearchIndex,
@@ -715,8 +715,7 @@ object TestData {
 
               Transient.Group(
                 keyValues = allKeyValues,
-                indexCompression = randomCompression(),
-                valueCompression = randomCompression(),
+                segmentCompression = randomSegmentCompression(),
                 falsePositiveRate = falsePositiveRate,
                 enableBinarySearchIndex = enableBinarySearchIndex,
                 buildFullBinarySearchIndex = buildFullBinarySearchIndex,
@@ -1378,6 +1377,24 @@ object TestData {
   def randomCompressionLZ4(minCompressionPercentage: Double = Double.MinValue): CompressionInternal =
     CompressionInternal.randomLZ4(minCompressionPercentage = minCompressionPercentage)
 
+  def randomSegmentCompression(minCompressionPercentage: Double = Double.MinValue): SegmentCompression =
+    SegmentCompression(
+      values = (0 to randomIntMax(3) + 1) map (_ => randomCompression(minCompressionPercentage)),
+      sortedIndex = (0 to randomIntMax(3) + 1) map (_ => randomCompression(minCompressionPercentage)),
+      hashIndex = (0 to randomIntMax(3) + 1) map (_ => randomCompression(minCompressionPercentage)),
+      binarySearchIndex = (0 to randomIntMax(3) + 1) map (_ => randomCompression(minCompressionPercentage)),
+      bloomFilter = (0 to randomIntMax(3) + 1) map (_ => randomCompression(minCompressionPercentage))
+    )
+
+  def randomSegmentLZ4OrSnappyCompression(minCompressionPercentage: Double = Double.MinValue): SegmentCompression =
+    SegmentCompression(
+      values = (0 to randomIntMax(3) + 1) map (_ => randomCompressionLZ4OrSnappy(minCompressionPercentage)),
+      sortedIndex = (0 to randomIntMax(3) + 1) map (_ => randomCompressionLZ4OrSnappy(minCompressionPercentage)),
+      hashIndex = (0 to randomIntMax(3) + 1) map (_ => randomCompressionLZ4OrSnappy(minCompressionPercentage)),
+      binarySearchIndex = (0 to randomIntMax(3) + 1) map (_ => randomCompressionLZ4OrSnappy(minCompressionPercentage)),
+      bloomFilter = (0 to randomIntMax(3) + 1) map (_ => randomCompressionLZ4OrSnappy(minCompressionPercentage))
+    )
+
   def randomRangeKeyValue(from: Slice[Byte],
                           to: Slice[Byte],
                           fromValue: Option[FromValue] = randomFromValueOption()(TestTimer.random),
@@ -1705,8 +1722,7 @@ object TestData {
         } else {
           Transient.Group(
             keyValues = groupKeyValues,
-            indexCompression = randomCompression(),
-            valueCompression = randomCompression(),
+            segmentCompression = randomSegmentCompression(),
             falsePositiveRate = falsePositiveRate,
             enableBinarySearchIndex = enableBinarySearchIndex,
             buildFullBinarySearchIndex = buildFullBinarySearchIndex,
@@ -1872,8 +1888,7 @@ object TestData {
       addRandomRemoveDeadlines = addRandomRemoveDeadlines)
 
   def randomGroup(keyValues: Slice[KeyValue.WriteOnly] = randomizedKeyValues()(TestTimer.random, KeyOrder.default, TestLimitQueues.keyValueLimiter),
-                  keyCompression: CompressionInternal = randomCompression(),
-                  valueCompression: CompressionInternal = randomCompression(),
+                  segmentCompression: SegmentCompression = randomSegmentCompression(),
                   falsePositiveRate: Double = TestData.falsePositiveRate,
                   resetPrefixCompressionEvery: Int = TestData.resetPrefixCompressionEvery,
                   minimumNumberOfKeyForHashIndex: Int = TestData.minimumNumberOfKeysForHashIndex,
@@ -1883,8 +1898,7 @@ object TestData {
                   previous: Option[KeyValue.WriteOnly] = None)(implicit testTimer: TestTimer = TestTimer.Incremental()): Transient.Group =
     Transient.Group(
       keyValues = keyValues,
-      indexCompression = keyCompression,
-      valueCompression = valueCompression,
+      segmentCompression = segmentCompression,
       falsePositiveRate = falsePositiveRate,
       resetPrefixCompressionEvery = resetPrefixCompressionEvery,
       minimumNumberOfKeysForHashIndex = minimumNumberOfKeyForHashIndex,

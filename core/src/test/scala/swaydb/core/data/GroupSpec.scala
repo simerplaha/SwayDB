@@ -49,8 +49,7 @@ class GroupSpec extends TestBase {
       val group =
         Transient.Group(
           keyValues = randomizedKeyValues(keyValueCount),
-          indexCompression = randomCompression(),
-          valueCompression = randomCompression(),
+          segmentCompression = randomSegmentCompression(),
           falsePositiveRate = TestData.falsePositiveRate,
           enableBinarySearchIndex = TestData.enableBinarySearchIndex,
           buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
@@ -70,8 +69,7 @@ class GroupSpec extends TestBase {
           _ =>
             Transient.Group(
               keyValues = randomizedKeyValues(keyValueCount),
-              indexCompression = randomCompression(),
-              valueCompression = randomCompression(),
+              segmentCompression = randomSegmentCompression(),
               falsePositiveRate = TestData.falsePositiveRate,
               enableBinarySearchIndex = TestData.enableBinarySearchIndex,
               buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
@@ -95,8 +93,7 @@ class GroupSpec extends TestBase {
             else
               Transient.Group(
                 keyValues = randomizedKeyValues(keyValueCount),
-                indexCompression = randomCompression(),
-                valueCompression = randomCompression(),
+                segmentCompression = randomSegmentCompression(),
                 falsePositiveRate = TestData.falsePositiveRate,
                 enableBinarySearchIndex = TestData.enableBinarySearchIndex,
                 buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
@@ -119,8 +116,7 @@ class GroupSpec extends TestBase {
       val group =
         Transient.Group(
           keyValues = keyValues.toTransient,
-          indexCompression = randomCompression(),
-          valueCompression = randomCompression(),
+          segmentCompression = randomSegmentCompression(),
           falsePositiveRate = TestData.falsePositiveRate,
           enableBinarySearchIndex = TestData.enableBinarySearchIndex,
           buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
@@ -169,8 +165,7 @@ class GroupSpec extends TestBase {
       val group =
         Transient.Group(
           keyValues = keyValues,
-          indexCompression = randomCompression(),
-          valueCompression = randomCompression(),
+          segmentCompression = randomSegmentCompression(),
           falsePositiveRate = TestData.falsePositiveRate,
           enableBinarySearchIndex = TestData.enableBinarySearchIndex,
           buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,

@@ -20,19 +20,13 @@
 package swaydb.core.group.compression
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.compression.CompressionInternal
-import swaydb.core.data.Compressor.{GroupCompressionResult, ValueCompressionResult}
-import swaydb.core.data.{Compressor, KeyValue, Transient}
+import swaydb.core.data.{KeyValue, Transient}
 import swaydb.core.group.compression.GroupCompressorFailure.InvalidGroupKeyValuesHeadPosition
-import swaydb.core.segment.format.a.SegmentWriter
-import swaydb.core.util.Bytes
+import swaydb.core.segment.format.a.{SegmentCompression, SegmentWriter}
 import swaydb.data.slice.Slice
 import swaydb.data.{IO, MaxKey}
 
 private[core] object GroupCompressor extends LazyLogging {
-
-  //currently there is one format. This formatId is a placeholder to support future updates.
-  val formatId = 0
 
   /**
     * Returns (fromKey, toKey, fullKey) where fullKey is compressed fromKey and toKey.
@@ -43,8 +37,7 @@ private[core] object GroupCompressor extends LazyLogging {
     GroupKeyCompressor.compress(keyValues.headOption, keyValues.last)
 
   def compress(keyValues: Slice[KeyValue.WriteOnly],
-               indexCompressions: Seq[CompressionInternal],
-               valueCompressions: Seq[CompressionInternal],
+               segmentCompression: SegmentCompression,
                falsePositiveRate: Double,
                resetPrefixCompressionEvery: Int,
                minimumNumberOfKeyForHashIndex: Int,
@@ -65,87 +58,30 @@ private[core] object GroupCompressor extends LazyLogging {
       logger.debug(s"Compressing ${keyValues.size} key-values with previous key-value as ${previous.map(_.getClass.getSimpleName)}.")
       SegmentWriter.write(
         keyValues = keyValues,
+        segmentCompression = segmentCompression,
         createdInLevel = 0,
         maxProbe = maxProbe
       ) flatMap {
         result =>
-          //compress key-value bytes and write to group with meta data for key bytes and value bytes.
-          Compressor.compress(
-            indexBytes = result.sortedIndex,
-            indexCompressions = indexCompressions,
-            valueBytes = result.values,
-            valueCompressions = valueCompressions,
-            keyValueCount = keyValues.size
-          ) flatMap {
-            case Some(GroupCompressionResult(compressedIndexBytes, indexCompression, valuesCompressionResult)) =>
-              //calculate the total size of bytes required including the compressed keys and values byte sizes.
-              val headerSize =
-                Bytes.sizeOf(formatId) + //format id
-                  Bytes.sizeOf(indexCompression.decompressor.id) + //index compression id
-                  //key-value count. Use the stats position because in the future a Group might also be compressed with other groups.
-                  Bytes.sizeOf(result.sortedIndex.size) + //index de-compressed size
-                  Bytes.sizeOf(compressedIndexBytes.size) + { //index compressed size. These bytes find added to the end.
-                  valuesCompressionResult map {
-                    case ValueCompressionResult(compressedValuesBytes, valuesCompression) =>
-                      Bytes.sizeOf(valuesCompression.decompressor.id) + //values id
-                        Bytes.sizeOf(result.values.map(_.size).getOrElse(0)) + //values de-compressed size
-                        Bytes.sizeOf(compressedValuesBytes.size) // values compressed size
-                  } getOrElse 0
-                }
-
-              val totalCompressedKeyValueBytesRequired =
-                Bytes.sizeOf(headerSize) +
-                  headerSize +
-                  compressedIndexBytes.size +
-                  valuesCompressionResult.map(_.compressedValues.size).getOrElse(0)
-
-              //also add header size
-              val compressedKeyValueBytes = Slice.create[Byte](totalCompressedKeyValueBytesRequired)
-
-              compressedKeyValueBytes
-                .addIntUnsigned(headerSize) //write header size
-                .addIntUnsigned(formatId) //format
-                .addIntUnsigned(indexCompression.decompressor.id)
-                .addIntUnsigned(result.sortedIndex.size)
-                .addIntUnsigned(compressedIndexBytes.size)
-
-              valuesCompressionResult map {
-                case ValueCompressionResult(compressedValueBytes, valuesCompression) =>
-                  compressedKeyValueBytes
-                    .addIntUnsigned(valuesCompression.decompressor.id)
-                    .addIntUnsigned(result.values.map(_.size).getOrElse(0))
-                    .addIntUnsigned(compressedValueBytes.size)
-                    .addAll(compressedValueBytes)
-              }
-
-              compressedKeyValueBytes addAll compressedIndexBytes
-
-              if (!compressedKeyValueBytes.isFull)
-                IO.Failure(new IllegalArgumentException(s"compressedKeyValueBytes Slice is not full. actual: ${compressedKeyValueBytes.written}, expected: ${compressedKeyValueBytes.size}"))
-              else
-                IO {
-                  val (minKey, maxKey, fullKey) = buildCompressedKey(keyValues)
-                  Some(
-                    Transient.Group(
-                      minKey = minKey,
-                      maxKey = maxKey,
-                      fullKey = fullKey,
-                      compressedKeyValues = compressedKeyValueBytes,
-                      deadline = result.nearestDeadline,
-                      keyValues = keyValues,
-                      previous = previous,
-                      falsePositiveRate = falsePositiveRate,
-                      resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-                      minimumNumberOfKeysForHashIndex = minimumNumberOfKeyForHashIndex,
-                      enableBinarySearchIndex = enableBinarySearchIndex,
-                      buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-                      hashIndexCompensation = hashIndexCompensation
-                    )
-                  )
-                }
-
-            case None =>
-              IO.none
+          IO {
+            val (minKey, maxKey, fullKey) = buildCompressedKey(keyValues)
+            Some(
+              Transient.Group(
+                minKey = minKey,
+                maxKey = maxKey,
+                fullKey = fullKey,
+                result = result,
+                deadline = result.nearestDeadline,
+                keyValues = keyValues,
+                previous = previous,
+                falsePositiveRate = falsePositiveRate,
+                resetPrefixCompressionEvery = resetPrefixCompressionEvery,
+                minimumNumberOfKeysForHashIndex = minimumNumberOfKeyForHashIndex,
+                enableBinarySearchIndex = enableBinarySearchIndex,
+                buildFullBinarySearchIndex = buildFullBinarySearchIndex,
+                hashIndexCompensation = hashIndexCompensation
+              )
+            )
           }
       }
     }

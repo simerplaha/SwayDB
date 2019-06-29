@@ -25,5 +25,4 @@ case class SegmentCompression(values: Seq[CompressionInternal],
                               sortedIndex: Seq[CompressionInternal],
                               hashIndex: Seq[CompressionInternal],
                               binarySearchIndex: Seq[CompressionInternal],
-                              bloomFilter: Seq[CompressionInternal],
-                              footer: Seq[CompressionInternal])
+                              bloomFilter: Seq[CompressionInternal])

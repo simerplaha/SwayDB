@@ -134,6 +134,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
           val (bytes, _) =
             SegmentWriter.write(
               keyValues = Slice(result.assertGet),
+              segmentCompression = randomSegmentCompression(),
               createdInLevel = 0,
               maxProbe = TestData.maxProbe).assertGet.flatten
 
@@ -337,6 +338,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
           val (bytes, _) =
             SegmentWriter.write(
               keyValues = Slice(result.assertGet).updateStats,
+              segmentCompression = randomSegmentCompression(),
               createdInLevel = 0,
               maxProbe = TestData.maxProbe
         ).assertGet.flatten
@@ -390,6 +392,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
           val (bytes, _) =
             SegmentWriter.write(
               keyValues = Slice(result.assertGet).updateStats,
+              segmentCompression = randomSegmentCompression(),
               createdInLevel = 0,
               maxProbe = TestData.maxProbe
         ).assertGet.flatten
@@ -472,6 +475,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
         val (bytes, _) =
           SegmentWriter.write(
             keyValues = mutableKeyValues,
+            segmentCompression = randomSegmentCompression(),
             createdInLevel = 0,
             maxProbe = TestData.maxProbe
         ).assertGet.flatten
@@ -515,6 +519,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
         val (bytes, _) =
           SegmentWriter.write(
             keyValues = mutableKeyValues,
+            segmentCompression = randomSegmentCompression(),
             createdInLevel = 0,
             maxProbe = TestData.maxProbe
         ).assertGet.flatten
@@ -563,6 +568,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
         val (bytes, _) =
           SegmentWriter.write(
             keyValues = mutableKeyValues,
+            segmentCompression = randomSegmentCompression(),
             createdInLevel = 0,
             maxProbe = TestData.maxProbe
         ).assertGet.flatten
@@ -616,6 +622,7 @@ sealed trait SegmentGrouper_GroupKeyValues_Spec extends TestBase {
           val (bytes, _) =
             SegmentWriter.write(
               keyValues = mutableKeyValues,
+              segmentCompression = randomSegmentCompression(),
               createdInLevel = 0,
               maxProbe = TestData.maxProbe
         ).assertGet.flatten
