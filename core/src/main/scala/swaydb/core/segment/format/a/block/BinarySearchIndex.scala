@@ -201,7 +201,7 @@ object BinarySearchIndex {
   }
 
   def close(state: State): IO[Unit] =
-    Block.compress(
+    Block.create(
       headerSize = state.headerSize,
       bytes = state.bytes,
       compressions = state.compressions

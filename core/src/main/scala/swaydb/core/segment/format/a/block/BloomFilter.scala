@@ -148,7 +148,7 @@ object BloomFilter extends LazyLogging {
       math.ceil(numberOfBits / numberOfKeys * math.log(2)).toInt
 
   def close(state: State) =
-    Block.compress(
+    Block.create(
       headerSize = state.headerSize,
       bytes = state.bytes,
       compressions = state.compressions

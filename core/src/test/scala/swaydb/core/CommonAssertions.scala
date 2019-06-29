@@ -43,7 +43,7 @@ import swaydb.core.merge._
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block.{BinarySearchIndex, BloomFilter, HashIndex, SortedIndex, Values}
-import swaydb.core.segment.format.a.{KeyMatcher, SegmentFooter, SegmentReader, SegmentWriter}
+import swaydb.core.segment.format.a.{KeyMatcher, SegmentFooter, SegmentReader, SegmentBlock}
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util.CollectionUtil._
 import swaydb.data.IO
@@ -63,18 +63,6 @@ object CommonAssertions {
       IO.Async.runSafe(input).safeGetBlocking.get
   }
 
-  implicit class SegmentWriterResultImplicits(result: SegmentWriter.Result) {
-    def flattenSegmentBytes: Slice[Byte] = {
-      val size = result.segmentBytes.foldLeft(0)(_ + _.written)
-      val slice = Slice.create[Byte](size)
-      result.segmentBytes.map(_.unslice()) foreach slice.addAll
-      assert(slice.isFull)
-      slice
-    }
-
-    def flattenSegment: (Slice[Byte], Option[Deadline]) =
-      (flattenSegmentBytes, result.nearestDeadline)
-  }
 
   implicit class KeyValueImplicits(actual: KeyValue) {
 

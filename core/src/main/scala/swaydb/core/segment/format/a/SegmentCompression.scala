@@ -29,7 +29,8 @@ object SegmentCompression {
       sortedIndex = Seq.empty,
       hashIndex = Seq.empty,
       binarySearchIndex = Seq.empty,
-      bloomFilter = Seq.empty
+      bloomFilter = Seq.empty,
+      segmentCompression = Seq.empty
     )
 
   def apply(bloomFilter: swaydb.data.config.BloomFilter,
@@ -42,7 +43,8 @@ object SegmentCompression {
       sortedIndex = sortedIndex.toOption.map(_.compression.map(CompressionInternal.apply)).getOrElse(Seq.empty),
       hashIndex = hashIndex.toOption.map(_.compression.map(CompressionInternal.apply)).getOrElse(Seq.empty),
       binarySearchIndex = binarySearchIndex.toOption.map(_.compression.map(CompressionInternal.apply)).getOrElse(Seq.empty),
-      bloomFilter = bloomFilter.toOption.map(_.compression.map(CompressionInternal.apply)).getOrElse(Seq.empty)
+      bloomFilter = bloomFilter.toOption.map(_.compression.map(CompressionInternal.apply)).getOrElse(Seq.empty),
+      segmentCompression = ???
     )
 }
 
@@ -50,4 +52,5 @@ case class SegmentCompression(values: Seq[CompressionInternal],
                               sortedIndex: Seq[CompressionInternal],
                               hashIndex: Seq[CompressionInternal],
                               binarySearchIndex: Seq[CompressionInternal],
-                              bloomFilter: Seq[CompressionInternal])
+                              bloomFilter: Seq[CompressionInternal],
+                              segmentCompression: Seq[CompressionInternal])

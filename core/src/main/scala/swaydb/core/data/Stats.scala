@@ -19,7 +19,7 @@
 
 package swaydb.core.data
 
-import swaydb.core.segment.format.a.SegmentWriter
+import swaydb.core.segment.format.a.SegmentBlock
 import swaydb.core.segment.format.a.block._
 import swaydb.core.util.Bytes
 import swaydb.data.slice.Slice
@@ -219,7 +219,7 @@ private[core] object Stats {
           segmentSizeWithoutFooter
 
     val segmentFooterSize =
-      Bytes.sizeOf(SegmentWriter.formatId) + //1 byte for format
+      Bytes.sizeOf(SegmentBlock.formatId) + //1 byte for format
         1 + //created in level
         1 + //hasGroup
         1 + //hasRange

@@ -31,7 +31,7 @@ import swaydb.core.io.reader.Reader
 import swaydb.core.level.PathsDistributor
 import swaydb.core.map.Map
 import swaydb.core.queue.{FileLimiter, FileLimiterItem, KeyValueLimiter}
-import swaydb.core.segment.format.a.{SegmentCompression, SegmentFooter, SegmentWriter}
+import swaydb.core.segment.format.a.{SegmentCompression, SegmentFooter, SegmentBlock}
 import swaydb.core.segment.format.a.block.{BinarySearchIndex, BloomFilter, HashIndex, SortedIndex, Values}
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util.CollectionUtil._
@@ -271,7 +271,7 @@ private[core] object Segment extends LazyLogging {
                                                           functionStore: FunctionStore,
                                                           keyValueLimiter: KeyValueLimiter,
                                                           fileOpenLimiter: FileLimiter): IO[Segment] =
-    SegmentWriter.write(
+    SegmentBlock.write(
       keyValues = keyValues,
       createdInLevel = createdInLevel,
       maxProbe = maxProbe,

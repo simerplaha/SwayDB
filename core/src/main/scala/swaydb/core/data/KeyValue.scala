@@ -25,7 +25,7 @@ import swaydb.core.group.compression.{GroupCompressor, GroupDecompressor, GroupK
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.serializer.RangeValueSerializer
 import swaydb.core.queue.KeyValueLimiter
-import swaydb.core.segment.format.a.{SegmentCompression, SegmentWriter}
+import swaydb.core.segment.format.a.{SegmentCompression, SegmentBlock}
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.entry.reader.value._
 import swaydb.core.segment.format.a.entry.writer._
@@ -1088,7 +1088,7 @@ private[core] object Transient {
   case class Group(minKey: Slice[Byte],
                    maxKey: MaxKey[Slice[Byte]],
                    fullKey: Slice[Byte],
-                   result: SegmentWriter.Result,
+                   result: SegmentBlock.Result,
                    //the deadline is the nearest deadline in the Group's key-values.
                    deadline: Option[Deadline],
                    keyValues: Slice[KeyValue.WriteOnly],

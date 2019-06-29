@@ -21,26 +21,30 @@ package swaydb.core.segment.format.a
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.KeyValue
+import swaydb.core.io.reader.{BlockReader, Reader}
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block._
-import swaydb.core.util.CRC32
+import swaydb.core.util.{Bytes, CRC32}
 import swaydb.data.IO
 import swaydb.data.IO._
-import swaydb.data.slice.Slice
 import swaydb.data.slice.Slice._
+import swaydb.data.slice.{Reader, Slice}
 
 import scala.annotation.tailrec
 import scala.concurrent.duration.Deadline
 
-private[core] object SegmentWriter extends LazyLogging {
+private[core] object SegmentBlock extends LazyLogging {
 
   val formatId: Byte = 1.toByte
 
   val crcBytes: Int = 7
 
+  case class Offset(start: Int, size: Int) extends OffsetBase
+
   object Result {
     val empty =
       Result(
+        headerBytes = Slice.emptyBytes,
         values = None,
         sortedIndex = Slice.emptyBytes,
         hashIndex = None,
@@ -51,33 +55,72 @@ private[core] object SegmentWriter extends LazyLogging {
       )
 
     val emptyIO = IO.Success(empty)
+
+    def apply(headerBytes: Slice[Byte],
+              values: Option[Slice[Byte]],
+              sortedIndex: Slice[Byte],
+              hashIndex: Option[Slice[Byte]],
+              binarySearchIndex: Option[Slice[Byte]],
+              bloomFilter: Option[Slice[Byte]],
+              footer: Slice[Byte],
+              nearestDeadline: Option[Deadline]): Result = {
+      val segmentBytes: Slice[Slice[Byte]] = {
+        val allBytes = Slice.create[Slice[Byte]](6)
+        values foreach (allBytes add _)
+        allBytes add sortedIndex
+        hashIndex foreach (allBytes add _)
+        binarySearchIndex foreach (allBytes add _)
+        bloomFilter foreach (allBytes add _)
+        allBytes add footer
+        allBytes.close()
+      }
+
+      new Result(
+        segmentBytes = segmentBytes,
+        nearestDeadline = nearestDeadline
+      )
+    }
   }
 
-  case class Result(values: Option[Slice[Byte]],
-                    sortedIndex: Slice[Byte],
-                    hashIndex: Option[Slice[Byte]],
-                    binarySearchIndex: Option[Slice[Byte]],
-                    bloomFilter: Option[Slice[Byte]],
-                    footer: Slice[Byte],
+  def headerSize(hasCompression: Boolean): Int = {
+    val size = Block.headerSize(hasCompression)
+    Bytes.sizeOf(size) + size
+  }
+
+  case class Result(segmentBytes: Slice[Slice[Byte]],
                     nearestDeadline: Option[Deadline]) {
 
-    val segmentBytes: Slice[Slice[Byte]] = {
-      val allBytes = Slice.create[Slice[Byte]](6)
-      values foreach (allBytes add _)
-      allBytes add sortedIndex
-      hashIndex foreach (allBytes add _)
-      binarySearchIndex foreach (allBytes add _)
-      bloomFilter foreach (allBytes add _)
-      allBytes add footer
-      allBytes.close()
-    }
-
-    def isEmpty =
-      sortedIndex.isEmpty || footer.isEmpty
+    def isEmpty: Boolean =
+      segmentBytes.exists(_.isEmpty)
 
     def segmentSize =
       segmentBytes.foldLeft(0)(_ + _.written)
+
+    def flattenSegmentBytes: Slice[Byte] = {
+      val size = segmentBytes.foldLeft(0)(_ + _.written)
+      val slice = Slice.create[Byte](size)
+      segmentBytes.map(_.unslice()) foreach slice.addAll
+      assert(slice.isFull)
+      slice
+    }
+
+    def flattenSegment: (Slice[Byte], Option[Deadline]) =
+      (flattenSegmentBytes, nearestDeadline)
   }
+
+  def read(offset: SegmentBlock.Offset,
+           segmentReader: Reader): IO[SegmentBlock] =
+    Block.readHeader(
+      offset = offset,
+      segmentReader = segmentReader
+    ) map {
+      header =>
+        SegmentBlock(
+          blockOffset = offset,
+          headerSize = header.headerSize,
+          compressionInfo = header.compressionInfo
+        )
+    }
 
   private def write(keyValue: KeyValue.WriteOnly,
                     sortedIndex: SortedIndex.State,
@@ -285,7 +328,7 @@ private[core] object SegmentWriter extends LazyLogging {
             //currently there is only one format. So this is hardcoded but if there are a new file format then
             //SegmentWriter and SegmentReader should be changed to be type classes with unique format types ids.
             //the following group of bytes are also used for CRC check.
-            segmentFooterSlice addIntUnsigned SegmentWriter.formatId
+            segmentFooterSlice addIntUnsigned SegmentBlock.formatId
             segmentFooterSlice addIntUnsigned createdInLevel
             segmentFooterSlice addBoolean lastStats.segmentHasGroup
             segmentFooterSlice addBoolean lastStats.segmentHasRange
@@ -297,11 +340,13 @@ private[core] object SegmentWriter extends LazyLogging {
             segmentFooterSlice addIntUnsigned lastStats.segmentUniqueKeysCount
 
             //do CRC
-            val indexBytesToCRC = segmentFooterSlice.take(SegmentWriter.crcBytes)
-            assert(indexBytesToCRC.size == SegmentWriter.crcBytes, s"Invalid CRC bytes size: ${indexBytesToCRC.size}. Required: ${SegmentWriter.crcBytes}")
+            val indexBytesToCRC = segmentFooterSlice.take(SegmentBlock.crcBytes)
+            assert(indexBytesToCRC.size == SegmentBlock.crcBytes, s"Invalid CRC bytes size: ${indexBytesToCRC.size}. Required: ${SegmentBlock.crcBytes}")
             segmentFooterSlice addLong CRC32.forBytes(indexBytesToCRC)
 
-            var segmentOffset = values.map(_.bytes.written) getOrElse 0
+            val headerSize = SegmentBlock.headerSize(segmentCompression.segmentCompression.nonEmpty)
+
+            var segmentOffset = values.map(_.bytes.written + headerSize) getOrElse headerSize
 
             segmentFooterSlice addIntUnsigned sortedIndex.bytes.written
             segmentFooterSlice addIntUnsigned segmentOffset
@@ -343,7 +388,10 @@ private[core] object SegmentWriter extends LazyLogging {
 
             segmentFooterSlice addInt footerOffset
 
+            val headerBytes = Slice.create[Byte](headerSize)
+
             Result(
+              headerBytes = headerBytes,
               values = values.map(_.bytes.close()),
               sortedIndex = sortedIndex.bytes.close(),
               hashIndex = hashIndex map (_.bytes.close()),
@@ -352,7 +400,31 @@ private[core] object SegmentWriter extends LazyLogging {
               footer = segmentFooterSlice.close(),
               nearestDeadline = nearestDeadline
             )
+          } flatMap {
+            result =>
+              Block.create(
+                headerSize = result.segmentBytes.head.size,
+                writeResult = result,
+                compressions = segmentCompression.segmentCompression
+              )
           }
       }
     }
+}
+
+case class SegmentBlock(blockOffset: SegmentBlock.Offset,
+                        headerSize: Int,
+                        compressionInfo: Option[Block.CompressionInfo]) extends Block {
+
+  override def createBlockReader(bytes: Slice[Byte]): BlockReader[SegmentBlock] =
+    createBlockReader(Reader(bytes))
+
+  def createBlockReader(segmentReader: Reader): BlockReader[SegmentBlock] =
+    BlockReader(
+      segmentReader = segmentReader,
+      block = this
+    )
+
+  override def updateOffset(start: Int, size: Int): Block =
+    copy(blockOffset = SegmentBlock.Offset(start = start, size = size))
 }

@@ -42,6 +42,7 @@ import swaydb.core.map.MapEntry
 import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.SegmentCompression
+import swaydb.core.segment.format.a.block.{BinarySearchIndex, BloomFilter, HashIndex, SortedIndex, Values}
 import swaydb.core.util.IDGenerator
 import swaydb.data.IO
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
@@ -263,7 +264,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
         Segment.persistent(
           path = path,
           createdInLevel = 0,
-          maxProbe = maxProbe,
+          maxProbe = ???,
           segmentCompression = segmentCompression,
           mmapReads = levelStorage.mmapSegmentsOnRead,
           mmapWrites = levelStorage.mmapSegmentsOnWrite,
@@ -303,46 +304,40 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
               nextLevel: Option[NextLevel] = None,
               pushForward: Boolean = false,
               throttle: LevelMeter => Throttle = testDefaultThrottle,
-              bloomFilterFalsePositiveRate: Double = TestData.falsePositiveRate,
-              resetPrefixCompressionEvery: Int = TestData.resetPrefixCompressionEvery,
-              minimumNumberOfKeyForHashIndex: Int = TestData.minimumNumberOfKeysForHashIndex,
-              allocateSpace: HashIndexMeter => Int = TestData.allocateSpace,
-              compressDuplicateValues: Boolean = true,
               deleteSegmentsEventually: Boolean = false,
               applyGroupingOnCopy: Boolean = false,
-              maxProbe: Int = TestData.maxProbe,
-              buildFullBinarySearchIndex: Boolean = TestData.buildFullBinarySearchIndex,
-              enableBinarySearchIndex: Boolean = TestData.enableBinarySearchIndex,
+              valuesConfig: Values.Config = Values.Config.random,
+              sortedIndexConfig: SortedIndex.Config = SortedIndex.Config.random,
+              binarySearchIndexConfig: BinarySearchIndex.Config = BinarySearchIndex.Config.random,
+              hashIndexConfig: HashIndex.Config = HashIndex.Config.random,
+              bloomFilterConfig: BloomFilter.Config = BloomFilter.Config.random,
+              segmentCompression: SegmentCompression = randomSegmentCompression(),
               keyValues: Slice[Memory] = Slice.empty)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                       keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
                                                       fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter,
                                                       timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                       compression: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategy(randomNextInt(1000))): Level =
-    //      Level(
-    //        segmentSize = segmentSize,
-    //        bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-    //        resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-    //        minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
-    //        allocateSpace = allocateSpace,
-    //        maxProbe = maxProbe,
-    //        enableBinarySearchIndex = enableBinarySearchIndex,
-    //        buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-    //        levelStorage = levelStorage,
-    //        appendixStorage = appendixStorage,
-    //        nextLevel = nextLevel,
-    //        pushForward = pushForward,
-    //        throttle = throttle,
-    //        compressDuplicateValues = compressDuplicateValues,
-    //        deleteSegmentsEventually = deleteSegmentsEventually,
-    //        applyGroupingOnCopy = applyGroupingOnCopy
-    //      ) flatMap {
-    //        level =>
-    //          level.putKeyValuesTest(keyValues) map {
-    //            _ =>
-    //              level
-    //          }
-    //      } assertGet
-      ???
+      Level(
+        segmentSize = segmentSize,
+        levelStorage = levelStorage,
+        appendixStorage = appendixStorage,
+        nextLevel = nextLevel,
+        pushForward = pushForward,
+        throttle = throttle,
+        valuesConfig = valuesConfig,
+        sortedIndexConfig = sortedIndexConfig,
+        binarySearchIndexConfig = binarySearchIndexConfig,
+        hashIndexConfig = hashIndexConfig,
+        bloomFilterConfig = bloomFilterConfig,
+        deleteSegmentsEventually = deleteSegmentsEventually,
+        segmentCompression = segmentCompression
+      ) flatMap {
+        level =>
+          level.putKeyValuesTest(keyValues) map {
+            _ =>
+              level
+          }
+      } assertGet
   }
 
   object TestLevelZero {

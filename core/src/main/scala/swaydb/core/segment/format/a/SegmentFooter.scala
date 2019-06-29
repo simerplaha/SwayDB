@@ -38,11 +38,11 @@ object SegmentFooter {
       val footerBytes = reader.moveTo(footerStartOffset).read(footerSize - ByteSizeOf.int).get
       val footerReader = Reader(footerBytes)
       val formatId = footerReader.readIntUnsigned().get
-      if (formatId != SegmentWriter.formatId) {
-        val message = s"Invalid Segment formatId: $formatId. Expected: ${SegmentWriter.formatId}"
+      if (formatId != SegmentBlock.formatId) {
+        val message = s"Invalid Segment formatId: $formatId. Expected: ${SegmentBlock.formatId}"
         return IO.Failure(IO.Error.Fatal(SegmentCorruptionException(message = message, cause = new Exception(message))))
       }
-      assert(formatId == SegmentWriter.formatId, s"Invalid Segment formatId: $formatId. Expected: ${SegmentWriter.formatId}")
+      assert(formatId == SegmentBlock.formatId, s"Invalid Segment formatId: $formatId. Expected: ${SegmentBlock.formatId}")
       val createdInLevel = footerReader.readIntUnsigned().get
       val hasGroup = footerReader.readBoolean().get
       val hasRange = footerReader.readBoolean().get
@@ -50,7 +50,7 @@ object SegmentFooter {
       val keyValueCount = footerReader.readIntUnsigned().get
       val bloomFilterItemsCount = footerReader.readIntUnsigned().get
       val expectedCRC = footerReader.readLong().get
-      val crcBytes = footerBytes.take(SegmentWriter.crcBytes)
+      val crcBytes = footerBytes.take(SegmentBlock.crcBytes)
       val crc = CRC32.forBytes(crcBytes)
       if (expectedCRC != crc) {
         IO.Failure(SegmentCorruptionException(s"Corrupted Segment: CRC Check failed. $expectedCRC != $crc", new Exception("CRC check failed.")))

@@ -605,19 +605,20 @@ object TestData {
               )
 
             case group: Memory.Group =>
-              Transient.Group(
-                keyValues =
-                  group.segment.getAll().assertGet
-                    .toTransient(
-                      valuesConfig = valuesConfig,
-                      sortedIndexConfig = sortedIndexConfig,
-                      binarySearchIndexConfig = binarySearchIndexConfig,
-                      hashIndexConfig = hashIndexConfig,
-                      bloomFilterConfig = bloomFilterConfig
-                    ),
-                previous = previous,
-                groupingStrategy = ???
-              ).assertGet
+              //              Transient.Group(
+              //                keyValues =
+              //                  group.segment.getAll().assertGet
+              //                    .toTransient(
+              //                      valuesConfig = valuesConfig,
+              //                      sortedIndexConfig = sortedIndexConfig,
+              //                      binarySearchIndexConfig = binarySearchIndexConfig,
+              //                      hashIndexConfig = hashIndexConfig,
+              //                      bloomFilterConfig = bloomFilterConfig
+              //                    ),
+              //                previous = previous,
+              //                groupingStrategy = ???
+              //              ).assertGet
+              ???
           }
 
         case persistent: Persistent =>
@@ -708,24 +709,25 @@ object TestData {
               )
 
             case group: Persistent.Group =>
-              val allKeyValues =
-                group
-                  .segment
-                  .getAll()
-                  .assertGet
-                  .toTransient(
-                    valuesConfig = valuesConfig,
-                    sortedIndexConfig = sortedIndexConfig,
-                    binarySearchIndexConfig = binarySearchIndexConfig,
-                    hashIndexConfig = hashIndexConfig,
-                    bloomFilterConfig = bloomFilterConfig
-                  )
-
-              Transient.Group(
-                keyValues = allKeyValues,
-                previous = previous,
-                ???
-              ).assertGet
+              //              val allKeyValues =
+              //                group
+              //                  .segment
+              //                  .getAll()
+              //                  .assertGet
+              //                  .toTransient(
+              //                    valuesConfig = valuesConfig,
+              //                    sortedIndexConfig = sortedIndexConfig,
+              //                    binarySearchIndexConfig = binarySearchIndexConfig,
+              //                    hashIndexConfig = hashIndexConfig,
+              //                    bloomFilterConfig = bloomFilterConfig
+              //                  )
+              //
+              //              Transient.Group(
+              //                keyValues = allKeyValues,
+              //                previous = previous,
+              //                ???
+              //              ).assertGet
+              //              ???
               ???
           }
       }
@@ -1379,7 +1381,8 @@ object TestData {
       sortedIndex = (0 to randomIntMax(3) + 1) map (_ => randomCompression(minCompressionPercentage)),
       hashIndex = (0 to randomIntMax(3) + 1) map (_ => randomCompression(minCompressionPercentage)),
       binarySearchIndex = (0 to randomIntMax(3) + 1) map (_ => randomCompression(minCompressionPercentage)),
-      bloomFilter = (0 to randomIntMax(3) + 1) map (_ => randomCompression(minCompressionPercentage))
+      bloomFilter = (0 to randomIntMax(3) + 1) map (_ => randomCompression(minCompressionPercentage)),
+      segmentCompression = (0 to randomIntMax(3) + 1) map (_ => randomCompression(minCompressionPercentage))
     )
 
   def randomSegmentLZ4OrSnappyCompression(minCompressionPercentage: Double = Double.MinValue): SegmentCompression =
@@ -1388,7 +1391,8 @@ object TestData {
       sortedIndex = (0 to randomIntMax(3) + 1) map (_ => randomCompressionLZ4OrSnappy(minCompressionPercentage)),
       hashIndex = (0 to randomIntMax(3) + 1) map (_ => randomCompressionLZ4OrSnappy(minCompressionPercentage)),
       binarySearchIndex = (0 to randomIntMax(3) + 1) map (_ => randomCompressionLZ4OrSnappy(minCompressionPercentage)),
-      bloomFilter = (0 to randomIntMax(3) + 1) map (_ => randomCompressionLZ4OrSnappy(minCompressionPercentage))
+      bloomFilter = (0 to randomIntMax(3) + 1) map (_ => randomCompressionLZ4OrSnappy(minCompressionPercentage)),
+      segmentCompression = (0 to randomIntMax(3) + 1) map (_ => randomCompressionLZ4OrSnappy(minCompressionPercentage))
     )
 
   def randomRangeKeyValue(from: Slice[Byte],

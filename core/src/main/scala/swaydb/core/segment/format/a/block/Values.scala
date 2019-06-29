@@ -103,7 +103,7 @@ object Values {
   }
 
   def close(state: State) =
-    Block.compress(
+    Block.create(
       headerSize = state.headerSize,
       bytes = state.bytes,
       compressions = state.compressions

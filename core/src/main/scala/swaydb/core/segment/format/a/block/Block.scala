@@ -22,8 +22,7 @@ package swaydb.core.segment.format.a.block
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.compression.{CompressionInternal, DecompressorInternal}
 import swaydb.core.io.reader.{BlockReader, Reader}
-import swaydb.core.segment.format.a.OffsetBase
-import swaydb.core.util.Bytes
+import swaydb.core.segment.format.a.{OffsetBase, SegmentBlock}
 import swaydb.data.IO._
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
@@ -88,9 +87,9 @@ object Block extends LazyLogging {
     * Others using this function should ensure that [[headerSize]] is accounted for in the byte size calculations.
     * They should also allocate enough bytes to write the total headerSize.
     */
-  def compress(headerSize: Int,
-               bytes: Slice[Byte],
-               compressions: Seq[CompressionInternal]): IO[Slice[Byte]] =
+  def create(headerSize: Int,
+             bytes: Slice[Byte],
+             compressions: Seq[CompressionInternal]): IO[Slice[Byte]] =
     compressions.untilSome(_.compressor.compress(headerSize, bytes.drop(headerSize))) flatMap {
       case Some((compressedBytes, compression)) =>
         IO {
@@ -114,6 +113,31 @@ object Block extends LazyLogging {
           bytes addIntUnsigned headerSize
           bytes add uncompressedBlockId
         }
+    }
+
+  def create(headerSize: Int,
+             writeResult: SegmentBlock.Result,
+             compressions: Seq[CompressionInternal]): IO[SegmentBlock.Result] =
+    if (compressions.isEmpty) {
+      logger.debug(s"No compression strategies provided for Segment level compression. Storing ${writeResult.segmentSize}.bytes uncompressed.")
+      IO {
+        writeResult.segmentBytes.head moveWritePosition 0
+        writeResult.segmentBytes.head addIntUnsigned headerSize
+        writeResult.segmentBytes.head add uncompressedBlockId
+        writeResult
+      }
+    } else {
+      create(
+        headerSize = headerSize,
+        bytes = writeResult.flattenSegmentBytes,
+        compressions = compressions
+      ) map {
+        bytes =>
+          SegmentBlock.Result(
+            segmentBytes = Slice(bytes),
+            nearestDeadline = writeResult.nearestDeadline
+          )
+      }
     }
 
   private def readCompressionInfo(formatID: Int,
