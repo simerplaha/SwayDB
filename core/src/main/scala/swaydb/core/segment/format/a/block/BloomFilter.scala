@@ -32,6 +32,28 @@ import swaydb.data.util.ByteSizeOf
 
 object BloomFilter extends LazyLogging {
 
+  object Config {
+    def apply(config: swaydb.data.config.BloomFilter): Config =
+      config match {
+        case swaydb.data.config.BloomFilter.Disable =>
+          Config(
+            falsePositiveRate = 0.0,
+            minimumNumberOfKeys = Int.MaxValue,
+            cacheOnRead = false
+          )
+        case enable: swaydb.data.config.BloomFilter.Enable =>
+          Config(
+            falsePositiveRate = enable.falsePositiveRate,
+            minimumNumberOfKeys = enable.minimumNumberOfKeys,
+            cacheOnRead = enable.cacheOnRead
+          )
+      }
+  }
+
+  case class Config(falsePositiveRate: Double,
+                    minimumNumberOfKeys: Int,
+                    cacheOnRead: Boolean)
+
   case class Offset(start: Int, size: Int) extends OffsetBase
 
   case class State(startOffset: Int,

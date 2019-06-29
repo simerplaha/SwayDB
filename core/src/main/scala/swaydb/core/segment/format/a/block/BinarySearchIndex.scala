@@ -25,12 +25,46 @@ import swaydb.core.io.reader.{BlockReader, Reader}
 import swaydb.core.segment.format.a.{KeyMatcher, MatchResult, OffsetBase}
 import swaydb.core.util.Bytes
 import swaydb.data.IO
+import swaydb.data.config.BinarySearchIndex
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
 
 import scala.annotation.tailrec
 
 object BinarySearchIndex {
+
+  object Config {
+    def apply(config: swaydb.data.config.BinarySearchIndex): Config =
+      config match {
+        case swaydb.data.config.BinarySearchIndex.Disable =>
+          Config(
+            enabled = false,
+            minimumNumberOfKeys = Int.MaxValue,
+            fullIndex = false,
+            cacheOnRead = false
+          )
+        case enable: swaydb.data.config.BinarySearchIndex.FullIndex =>
+          Config(
+            enabled = true,
+            minimumNumberOfKeys = enable.minimumNumberOfKeys,
+            fullIndex = true,
+            cacheOnRead = enable.cacheOnRead
+          )
+
+        case enable: swaydb.data.config.BinarySearchIndex.SecondaryIndex =>
+          Config(
+            enabled = true,
+            minimumNumberOfKeys = enable.minimumNumberOfKeys,
+            fullIndex = false,
+            cacheOnRead = enable.cacheOnRead
+          )
+      }
+  }
+
+  case class Config(enabled: Boolean,
+                    minimumNumberOfKeys: Int,
+                    fullIndex: Boolean,
+                    cacheOnRead: Boolean)
 
   case class Offset(start: Int, size: Int) extends OffsetBase
 

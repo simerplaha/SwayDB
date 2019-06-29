@@ -23,6 +23,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.{KeyValue, Transient}
 import swaydb.core.group.compression.GroupCompressorFailure.InvalidGroupKeyValuesHeadPosition
 import swaydb.core.segment.format.a.{SegmentCompression, SegmentWriter}
+import swaydb.data.config.HashIndex.HashIndexMeter
 import swaydb.data.slice.Slice
 import swaydb.data.{IO, MaxKey}
 
@@ -41,7 +42,7 @@ private[core] object GroupCompressor extends LazyLogging {
                falsePositiveRate: Double,
                resetPrefixCompressionEvery: Int,
                minimumNumberOfKeyForHashIndex: Int,
-               hashIndexCompensation: Int => Int,
+               allocateSpace: HashIndexMeter => Int,
                previous: Option[KeyValue.WriteOnly],
                maxProbe: Int,
                enableBinarySearchIndex: Boolean,
@@ -79,7 +80,7 @@ private[core] object GroupCompressor extends LazyLogging {
                 minimumNumberOfKeysForHashIndex = minimumNumberOfKeyForHashIndex,
                 enableBinarySearchIndex = enableBinarySearchIndex,
                 buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-                hashIndexCompensation = hashIndexCompensation
+                allocateSpace = allocateSpace
               )
             )
           }

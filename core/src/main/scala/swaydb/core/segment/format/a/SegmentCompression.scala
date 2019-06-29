@@ -21,6 +21,21 @@ package swaydb.core.segment.format.a
 
 import swaydb.compression.CompressionInternal
 
+object SegmentCompression {
+  def apply(bloomFilter: swaydb.data.config.BloomFilter,
+            hashIndex: swaydb.data.config.HashIndex,
+            binarySearchIndex: swaydb.data.config.BinarySearchIndex,
+            sortedIndex: swaydb.data.config.SortedIndex,
+            values: swaydb.data.config.Values): SegmentCompression =
+    SegmentCompression(
+      values = bloomFilter.toOption.map(_.compression.map(CompressionInternal.apply)).getOrElse(Seq.empty),
+      sortedIndex = sortedIndex.toOption.map(_.compression.map(CompressionInternal.apply)).getOrElse(Seq.empty),
+      hashIndex = hashIndex.toOption.map(_.compression.map(CompressionInternal.apply)).getOrElse(Seq.empty),
+      binarySearchIndex = binarySearchIndex.toOption.map(_.compression.map(CompressionInternal.apply)).getOrElse(Seq.empty),
+      bloomFilter = bloomFilter.toOption.map(_.compression.map(CompressionInternal.apply)).getOrElse(Seq.empty)
+    )
+}
+
 case class SegmentCompression(values: Seq[CompressionInternal],
                               sortedIndex: Seq[CompressionInternal],
                               hashIndex: Seq[CompressionInternal],

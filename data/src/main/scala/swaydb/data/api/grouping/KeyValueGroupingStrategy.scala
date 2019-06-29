@@ -19,42 +19,28 @@
 
 package swaydb.data.api.grouping
 
+import swaydb.data.config._
+
 sealed trait KeyValueGroupingStrategy
 object KeyValueGroupingStrategy {
 
-  object Count {
-    def apply(count: Int,
-              indexCompression: Compression,
-              valueCompression: Compression,
-              groupGroupingStrategy: Option[GroupGroupingStrategy]): Count =
-      new Count(
-        count = count,
-        indexCompressions = Seq(indexCompression),
-        valueCompressions = Seq(valueCompression),
-        groupGroupingStrategy = groupGroupingStrategy
-      )
-  }
-
   case class Count(count: Int,
-                   indexCompressions: Seq[Compression],
-                   valueCompressions: Seq[Compression],
+                   sortedIndex: SortedIndex,
+                   hashIndex: HashIndex,
+                   binarySearchIndex: BinarySearchIndex,
+                   bloomFilter: BloomFilter,
+                   values: Values,
+                   prefixCompression: PrefixCompression,
+                   applyGroupingOnCopy: Boolean,
                    groupGroupingStrategy: Option[GroupGroupingStrategy]) extends KeyValueGroupingStrategy
 
-  object Size {
-    def apply(size: Int,
-              indexCompression: Compression,
-              valueCompression: Compression,
-              groupGroupingStrategy: Option[GroupGroupingStrategy]): Size =
-      new Size(
-        size = size,
-        indexCompressions = Seq(indexCompression),
-        valueCompressions = Seq(valueCompression),
-        groupGroupingStrategy = groupGroupingStrategy
-      )
-  }
-
   case class Size(size: Int,
-                  indexCompressions: Seq[Compression],
-                  valueCompressions: Seq[Compression],
+                  sortedIndex: SortedIndex,
+                  hashIndex: HashIndex,
+                  binarySearchIndex: BinarySearchIndex,
+                  bloomFilter: BloomFilter,
+                  values: Values,
+                  applyGroupingOnCopy: Boolean,
+                  prefixCompression: PrefixCompression,
                   groupGroupingStrategy: Option[GroupGroupingStrategy]) extends KeyValueGroupingStrategy
 }

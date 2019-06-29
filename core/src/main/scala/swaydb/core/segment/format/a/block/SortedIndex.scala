@@ -28,11 +28,29 @@ import swaydb.core.segment.format.a.{KeyMatcher, MatchResult, OffsetBase}
 import swaydb.core.util.Bytes
 import swaydb.data.IO
 import swaydb.data.IO._
+import swaydb.data.config.SortedIndex
 import swaydb.data.slice.{Reader, Slice}
 
 import scala.annotation.tailrec
 
 private[core] object SortedIndex {
+
+  object Config {
+    def apply(config: swaydb.data.config.SortedIndex): Config =
+      config match {
+        case config: swaydb.data.config.SortedIndex.Enable =>
+          apply(config)
+      }
+
+    def apply(config: swaydb.data.config.SortedIndex.Enable): Config =
+      Config(
+        cacheOnRead = config.cacheOnRead,
+        prefixCompressionResetCount = config.prefixCompression.toOption.flatMap(_.resetCount).getOrElse(0)
+      )
+  }
+
+  case class Config(cacheOnRead: Boolean,
+                    prefixCompressionResetCount: Int)
 
   case class Offset(start: Int, size: Int) extends OffsetBase
 

@@ -23,7 +23,7 @@ import java.nio.file.Path
 
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.api.grouping.KeyValueGroupingStrategy
-import swaydb.data.compaction.{CompactionExecutionContext, Throttle}
+import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
 import swaydb.data.config._
 
 import scala.concurrent.ExecutionContext
@@ -70,11 +70,10 @@ object DefaultEventuallyPersistentConfig {
       )
       .addMemoryLevel1(
         segmentSize = memoryLevelSegmentSize,
-        pushForward = false,
-        bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-        compressDuplicateValues = compressDuplicateValues,
+        copyForward = false,
         deleteSegmentsEventually = deleteSegmentsEventually,
-        applyGroupingOnCopy = false,
+        storeValues = true,
+        bloomFilter = BloomFilter.Enable(bloomFilterFalsePositiveRate, 10, false, Seq.empty),
         groupingStrategy = None,
         compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =
@@ -92,17 +91,51 @@ object DefaultEventuallyPersistentConfig {
         mmapSegment = mmapPersistentSegments,
         mmapAppendix = mmapPersistentAppendix,
         appendixFlushCheckpointSize = persistentLevelAppendixFlushCheckpointSize,
-        pushForward = false,
-        applyGroupingOnCopy = false,
-        bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-        compressDuplicateValues = compressDuplicateValues,
+        copyForward = false,
         deleteSegmentsEventually = deleteSegmentsEventually,
+        sortedIndex =
+          SortedIndex.Enable(
+            cacheOnRead = false,
+            prefixCompression =
+              PrefixCompression.Enable(
+                resetCount = Some(10)
+              ),
+            compression =
+              Seq.empty
+          ),
+        hashIndex =
+          HashIndex.Enable(
+            maxProbe = 5,
+            minimumNumberOfKeys = 20,
+            allocateSpace = _.requiredSpace * 2,
+            cacheOnRead = false,
+            compression = Seq.empty
+          ),
+        binarySearchIndex =
+          BinarySearchIndex.FullIndex(
+            minimumNumberOfKeys = 5,
+            cacheOnRead = false,
+            compression = Seq.empty
+          ),
+        bloomFilter =
+          BloomFilter.Enable(
+            falsePositiveRate = bloomFilterFalsePositiveRate,
+            minimumNumberOfKeys = 10,
+            cacheOnRead = false,
+            compression = Seq.empty
+          ),
+        values = Values.Stored(
+          compressDuplicateValues = compressDuplicateValues,
+          cacheOnRead = false,
+          compression = Seq.empty
+        ),
         groupingStrategy = groupingStrategy,
         compactionExecutionContext = CompactionExecutionContext.Create(compactionExecutionContext),
-        throttle = _ =>
-          Throttle(
-            pushDelay = 10.seconds,
-            segmentsToPush = maxSegmentsToPush
-          )
+        throttle =
+          (_: LevelMeter) =>
+            Throttle(
+              pushDelay = 10.seconds,
+              segmentsToPush = maxSegmentsToPush
+            )
       )
 }

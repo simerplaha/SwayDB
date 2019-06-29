@@ -47,7 +47,7 @@ class HashIndexSpec extends TestBase {
       HashIndex.optimalBytesRequired(
         keyCounts = 1,
         largestValue = 1,
-        compensate = _ => 0
+        allocateSpace = _ => 0
       ) shouldBe
         HashIndex.headerSize(
           keyCounts = 1,
@@ -69,7 +69,7 @@ class HashIndexSpec extends TestBase {
             addRandomUpdates = true,
             addRandomPendingApply = true,
             resetPrefixCompressionEvery = randomIntMax(10),
-            hashIndexCompensation = size => size * randomIntMax(2)
+            allocateSpace = _.requiredSpace * randomIntMax(2)
           )
 
         keyValues should not be empty
@@ -161,7 +161,7 @@ class HashIndexSpec extends TestBase {
               addRandomUpdates = true,
               addRandomPendingApply = true,
               resetPrefixCompressionEvery = 0,
-              hashIndexCompensation = size => size * 3 //give it enough space to create a perfect hash.
+              allocateSpace = _.requiredSpace * 3 //give it enough space to create a perfect hash.
             )
 
           keyValues should not be empty
@@ -269,7 +269,7 @@ class HashIndexSpec extends TestBase {
             addRandomRanges = false,
             buildFullBinarySearchIndex = true,
             resetPrefixCompressionEvery = 2,
-            hashIndexCompensation = size => size * 3
+            allocateSpace = _.requiredSpace * 3
           )
 
         val segment = SegmentWriter.write(keyValues, segmentCompression = randomSegmentCompression(), 0, 5).get.flattenSegmentBytes

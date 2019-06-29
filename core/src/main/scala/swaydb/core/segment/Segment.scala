@@ -38,6 +38,7 @@ import swaydb.core.util.CollectionUtil._
 import swaydb.core.util.{FiniteDurationUtil, IDGenerator}
 import swaydb.data.IO._
 import swaydb.data.config.Dir
+import swaydb.data.config.HashIndex.HashIndexMeter
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.{IO, MaxKey, Reserve}
@@ -348,7 +349,7 @@ private[core] object Segment extends LazyLogging {
                     buildFullBinarySearchIndex: Boolean,
                     resetPrefixCompressionEvery: Int,
                     minimumNumberOfKeyForHashIndex: Int,
-                    hashIndexCompensation: Int => Int,
+                    allocateSpace: HashIndexMeter => Int,
                     compressDuplicateValues: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                       timeOrder: TimeOrder[Slice[Byte]],
                                                       functionStore: FunctionStore,
@@ -397,7 +398,7 @@ private[core] object Segment extends LazyLogging {
           buildFullBinarySearchIndex = buildFullBinarySearchIndex,
           resetPrefixCompressionEvery = resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
-          hashIndexCompensation = hashIndexCompensation,
+          allocateSpace = allocateSpace,
           compressDuplicateValues = compressDuplicateValues
         )
     }
@@ -416,7 +417,7 @@ private[core] object Segment extends LazyLogging {
                     buildFullBinarySearchIndex: Boolean,
                     resetPrefixCompressionEvery: Int,
                     minimumNumberOfKeyForHashIndex: Int,
-                    hashIndexCompensation: Int => Int,
+                    allocateSpace: HashIndexMeter => Int,
                     compressDuplicateValues: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                       timeOrder: TimeOrder[Slice[Byte]],
                                                       functionStore: FunctionStore,
@@ -434,7 +435,7 @@ private[core] object Segment extends LazyLogging {
       bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
       resetPrefixCompressionEvery = resetPrefixCompressionEvery,
       minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
-      hashIndexCompensation = hashIndexCompensation,
+      allocateSpace = allocateSpace,
       compressDuplicateValues = compressDuplicateValues
     ) flatMap {
       splits =>
@@ -474,7 +475,7 @@ private[core] object Segment extends LazyLogging {
                    bloomFilterFalsePositiveRate: Double,
                    resetPrefixCompressionEvery: Int,
                    minimumNumberOfKeyForHashIndex: Int,
-                   hashIndexCompensation: Int => Int,
+                   allocateSpace: HashIndexMeter => Int,
                    compressDuplicateValues: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                      timeOrder: TimeOrder[Slice[Byte]],
                                                      functionStore: FunctionStore,
@@ -495,7 +496,7 @@ private[core] object Segment extends LazyLogging {
           bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
           resetPrefixCompressionEvery = resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
-          hashIndexCompensation = hashIndexCompensation,
+          allocateSpace = allocateSpace,
           compressDuplicateValues = compressDuplicateValues
         )
     }
@@ -511,7 +512,7 @@ private[core] object Segment extends LazyLogging {
                    bloomFilterFalsePositiveRate: Double,
                    resetPrefixCompressionEvery: Int,
                    minimumNumberOfKeyForHashIndex: Int,
-                   hashIndexCompensation: Int => Int,
+                   allocateSpace: HashIndexMeter => Int,
                    compressDuplicateValues: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                      timeOrder: TimeOrder[Slice[Byte]],
                                                      functionStore: FunctionStore,
@@ -529,7 +530,7 @@ private[core] object Segment extends LazyLogging {
       bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
       resetPrefixCompressionEvery = resetPrefixCompressionEvery,
       minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
-      hashIndexCompensation = hashIndexCompensation,
+      allocateSpace = allocateSpace,
       compressDuplicateValues = compressDuplicateValues
     ) flatMap { //recovery not required. On failure, uncommitted Segments will be GC'd as nothing holds references to them.
       keyValues =>
@@ -1012,7 +1013,7 @@ private[core] trait Segment extends FileLimiterItem {
           bloomFilterFalsePositiveRate: Double,
           resetPrefixCompressionEvery: Int,
           minimumNumberOfKeyForHashIndex: Int,
-          hashIndexCompensation: Int => Int,
+          allocateSpace: HashIndexMeter => Int,
           compressDuplicateValues: Boolean,
           removeDeletes: Boolean,
           createdInLevel: Int,
@@ -1027,7 +1028,7 @@ private[core] trait Segment extends FileLimiterItem {
               bloomFilterFalsePositiveRate: Double,
               resetPrefixCompressionEvery: Int,
               minimumNumberOfKeyForHashIndex: Int,
-              hashIndexCompensation: Int => Int,
+              allocateSpace: HashIndexMeter => Int,
               compressDuplicateValues: Boolean,
               removeDeletes: Boolean,
               createdInLevel: Int,

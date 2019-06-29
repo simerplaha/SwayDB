@@ -29,6 +29,28 @@ import swaydb.data.slice.{Reader, Slice}
 
 object Values {
 
+  object Config {
+    def apply(config: swaydb.data.config.Values): Config =
+      config match {
+        case swaydb.data.config.Values.Discard =>
+          Config(
+            stored = false,
+            compressDuplicateValues = false,
+            cacheOnRead = false
+          )
+        case stored: swaydb.data.config.Values.Stored =>
+          Config(
+            stored = true,
+            compressDuplicateValues = stored.compressDuplicateValues,
+            cacheOnRead = stored.cacheOnRead
+          )
+      }
+  }
+
+  case class Config(stored: Boolean,
+                    compressDuplicateValues: Boolean,
+                    cacheOnRead: Boolean)
+
   def valueNotFound: IO.Failure[Nothing] =
     IO.Failure(IO.Error.Fatal("Value not found."))
 

@@ -22,6 +22,7 @@ package swaydb.core.data
 import swaydb.core.segment.format.a.SegmentWriter
 import swaydb.core.segment.format.a.block.{BinarySearchIndex, BloomFilter, HashIndex, SortedIndex, Values}
 import swaydb.core.util.Bytes
+import swaydb.data.config.HashIndex.HashIndexMeter
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 
@@ -40,7 +41,7 @@ private[core] object Stats {
             thisKeyValuesUniqueKeys: Int,
             isPrefixCompressed: Boolean,
             minimumNumberOfKeysForHashIndex: Int,
-            hashIndexCompensation: Int => Int,
+            allocateSpace: HashIndexMeter => Int,
             enableBinarySearchIndex: Boolean,
             buildFullBinarySearchIndex: Boolean,
             previous: Option[KeyValue.WriteOnly],
@@ -124,7 +125,7 @@ private[core] object Stats {
         HashIndex.optimalBytesRequired(
           keyCounts = segmentUniqueKeysCount,
           largestValue = thisKeyValuesAccessIndexOffset,
-          compensate = hashIndexCompensation
+          allocateSpace = allocateSpace
         )
 
     //binary search indexes are only created for non-prefix compressed or reset point keys.

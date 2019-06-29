@@ -36,6 +36,7 @@ import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.seek.{NextWalker, _}
 import swaydb.core.segment.SegmentException.SegmentFileMissing
 import swaydb.core.segment.format.a.SegmentCompression
+import swaydb.core.segment.format.a.block.{BinarySearchIndex, BloomFilter, HashIndex, SortedIndex, Values}
 import swaydb.core.segment.{Segment, SegmentAssigner}
 import swaydb.core.util.CollectionUtil._
 import swaydb.core.util.ExceptionUtil._
@@ -83,26 +84,23 @@ private[core] object Level extends LazyLogging {
     }
 
   def apply(segmentSize: Long,
-            bloomFilterFalsePositiveRate: Double,
-            resetPrefixCompressionEvery: Int,
-            minimumNumberOfKeyForHashIndex: Int,
-            hashIndexCompensation: Int => Int,
-            maxProbe: Int,
-            enableBinarySearchIndex: Boolean,
-            buildFullBinarySearchIndex: Boolean,
+            bloomFilterConfig: BloomFilter.Config,
+            hashIndexConfig: HashIndex.Config,
+            binarySearchIndexConfig: BinarySearchIndex.Config,
+            sortedIndexConfig: SortedIndex.Config,
+            valuesConfig: Values.Config,
+            segmentCompression: SegmentCompression,
             levelStorage: LevelStorage,
             appendixStorage: AppendixStorage,
             nextLevel: Option[NextLevel],
             pushForward: Boolean = false,
             throttle: LevelMeter => Throttle,
-            compressDuplicateValues: Boolean,
-            deleteSegmentsEventually: Boolean,
-            applyGroupingOnCopy: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                          timeOrder: TimeOrder[Slice[Byte]],
-                                          functionStore: FunctionStore,
-                                          keyValueLimiter: KeyValueLimiter,
-                                          fileOpenLimiter: FileLimiter,
-                                          groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Level] = {
+            deleteSegmentsEventually: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                               timeOrder: TimeOrder[Slice[Byte]],
+                                               functionStore: FunctionStore,
+                                               keyValueLimiter: KeyValueLimiter,
+                                               fileOpenLimiter: FileLimiter,
+                                               groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[Level] = {
     //acquire lock on folder
     acquireLock(levelStorage) flatMap {
       lock =>
@@ -181,11 +179,12 @@ private[core] object Level extends LazyLogging {
                   _ =>
                     new Level(
                       dirs = levelStorage.dirs,
-                      segmentCompression = ???,
-                      bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-                      resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-                      minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
-                      hashIndexCompensation = hashIndexCompensation,
+                      bloomFilterConfig = bloomFilterConfig,
+                      hashIndexConfig = hashIndexConfig,
+                      binarySearchIndexConfig = binarySearchIndexConfig,
+                      sortedIndexConfig = sortedIndexConfig,
+                      valuesConfig = valuesConfig,
+                      segmentCompression = segmentCompression,
                       mmapSegmentsOnWrite = levelStorage.mmapSegmentsOnWrite,
                       mmapSegmentsOnRead = levelStorage.mmapSegmentsOnRead,
                       inMemory = levelStorage.memory,
@@ -195,13 +194,8 @@ private[core] object Level extends LazyLogging {
                       nextLevel = nextLevel,
                       appendix = appendix,
                       lock = lock,
-                      compressDuplicateValues = compressDuplicateValues,
                       deleteSegmentsEventually = deleteSegmentsEventually,
-                      applyGroupingOnCopy = applyGroupingOnCopy,
                       paths = paths,
-                      maxProbe = maxProbe,
-                      enableBinarySearchIndex = enableBinarySearchIndex,
-                      buildFullBinarySearchIndex = buildFullBinarySearchIndex,
                       removeDeletedRecords = Level.removeDeletes(nextLevel),
                       appendixReadWriteLock = new ReentrantReadWriteLock()
                     )
@@ -316,11 +310,12 @@ private[core] object Level extends LazyLogging {
 }
 
 private[core] case class Level(dirs: Seq[Dir],
+                               bloomFilterConfig: BloomFilter.Config,
+                               hashIndexConfig: HashIndex.Config,
+                               binarySearchIndexConfig: BinarySearchIndex.Config,
+                               sortedIndexConfig: SortedIndex.Config,
+                               valuesConfig: Values.Config,
                                segmentCompression: SegmentCompression,
-                               bloomFilterFalsePositiveRate: Double,
-                               resetPrefixCompressionEvery: Int,
-                               minimumNumberOfKeyForHashIndex: Int,
-                               hashIndexCompensation: Int => Int,
                                mmapSegmentsOnWrite: Boolean,
                                mmapSegmentsOnRead: Boolean,
                                inMemory: Boolean,
@@ -330,13 +325,8 @@ private[core] case class Level(dirs: Seq[Dir],
                                nextLevel: Option[NextLevel],
                                appendix: Map[Slice[Byte], Segment],
                                lock: Option[FileLock],
-                               compressDuplicateValues: Boolean,
                                deleteSegmentsEventually: Boolean,
-                               applyGroupingOnCopy: Boolean,
                                paths: PathsDistributor,
-                               maxProbe: Int,
-                               enableBinarySearchIndex: Boolean,
-                               buildFullBinarySearchIndex: Boolean,
                                removeDeletedRecords: Boolean,
                                appendixReadWriteLock: ReentrantReadWriteLock)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                               timeOrder: TimeOrder[Slice[Byte]],
@@ -528,7 +518,11 @@ private[core] case class Level(dirs: Seq[Dir],
     }
 
   def isUnreserved(minKey: Slice[Byte], maxKey: Slice[Byte], maxKeyInclusive: Boolean): Boolean =
-    ReserveRange.isUnreserved(minKey, maxKey, maxKeyInclusive)
+    ReserveRange.isUnreserved(
+      from = minKey,
+      to = maxKey,
+      toInclusive = maxKeyInclusive
+    )
 
   def isUnreserved(segment: Segment): Boolean =
     isUnreserved(
@@ -690,7 +684,14 @@ private[core] case class Level(dirs: Seq[Dir],
 
     def targetSegmentPath = paths.next.resolve(IDGenerator.segmentId(segmentIDGenerator.nextID))
 
-    implicit val groupingStrategy = if (applyGroupingOnCopy) self.groupingStrategy else KeyValueGroupingStrategyInternal.none
+    implicit val groupingStrategy =
+      self.groupingStrategy flatMap {
+        groupingStrategy =>
+          if (groupingStrategy.applyGroupingOnCopy)
+            self.groupingStrategy
+          else
+            None
+      }
 
     val keyValues = Slice(map.skipList.values().asScala.toArray)
     if (inMemory)
@@ -700,14 +701,14 @@ private[core] case class Level(dirs: Seq[Dir],
         fetchNextPath = targetSegmentPath,
         minSegmentSize = segmentSize,
         removeDeletes = removeDeletedRecords,
-        maxProbe = maxProbe,
-        enableBinarySearchIndex = enableBinarySearchIndex,
-        buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-        bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-        resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-        minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
-        hashIndexCompensation = hashIndexCompensation,
-        compressDuplicateValues = compressDuplicateValues
+        maxProbe = hashIndexConfig.maxProbe,
+        enableBinarySearchIndex = binarySearchIndexConfig.enabled,
+        buildFullBinarySearchIndex = binarySearchIndexConfig.fullIndex,
+        bloomFilterFalsePositiveRate = bloomFilterConfig.falsePositiveRate,
+        resetPrefixCompressionEvery = sortedIndexConfig.prefixCompressionResetCount,
+        minimumNumberOfKeyForHashIndex = hashIndexConfig.minimumNumberOfKeys,
+        allocateSpace = hashIndexConfig.allocateSpace,
+        compressDuplicateValues = valuesConfig.compressDuplicateValues
       )
     else
       Segment.copyToPersist(
@@ -719,14 +720,14 @@ private[core] case class Level(dirs: Seq[Dir],
         mmapSegmentsOnWrite = mmapSegmentsOnWrite,
         removeDeletes = removeDeletedRecords,
         minSegmentSize = segmentSize,
-        maxProbe = maxProbe,
-        enableBinarySearchIndex = enableBinarySearchIndex,
-        buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-        bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-        resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-        minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
-        hashIndexCompensation = hashIndexCompensation,
-        compressDuplicateValues = compressDuplicateValues
+        maxProbe = hashIndexConfig.maxProbe,
+        enableBinarySearchIndex = binarySearchIndexConfig.enabled,
+        buildFullBinarySearchIndex = binarySearchIndexConfig.fullIndex,
+        bloomFilterFalsePositiveRate = bloomFilterConfig.falsePositiveRate,
+        resetPrefixCompressionEvery = sortedIndexConfig.prefixCompressionResetCount,
+        minimumNumberOfKeyForHashIndex = hashIndexConfig.minimumNumberOfKeys,
+        allocateSpace = hashIndexConfig.allocateSpace,
+        compressDuplicateValues = valuesConfig.compressDuplicateValues
       )
   }
 
@@ -774,23 +775,30 @@ private[core] case class Level(dirs: Seq[Dir],
         segment => {
           def targetSegmentPath = paths.next.resolve(IDGenerator.segmentId(segmentIDGenerator.nextID))
 
-          implicit val groupingStrategy = if (applyGroupingOnCopy) self.groupingStrategy else KeyValueGroupingStrategyInternal.none
+          implicit val groupingStrategy =
+            self.groupingStrategy flatMap {
+              groupingStrategy =>
+                if (groupingStrategy.applyGroupingOnCopy)
+                  self.groupingStrategy
+                else
+                  None
+            }
 
           if (inMemory)
             Segment.copyToMemory(
               segment = segment,
-              fetchNextPath = targetSegmentPath,
               createdInLevel = levelNumber,
-              minSegmentSize = segmentSize,
-              maxProbe = maxProbe,
-              enableBinarySearchIndex = enableBinarySearchIndex,
-              buildFullBinarySearchIndex = buildFullBinarySearchIndex,
+              fetchNextPath = targetSegmentPath,
               removeDeletes = removeDeletedRecords,
-              bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-              resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-              minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
-              hashIndexCompensation = hashIndexCompensation,
-              compressDuplicateValues = compressDuplicateValues
+              minSegmentSize = segmentSize,
+              maxProbe = hashIndexConfig.maxProbe,
+              enableBinarySearchIndex = binarySearchIndexConfig.enabled,
+              buildFullBinarySearchIndex = binarySearchIndexConfig.fullIndex,
+              bloomFilterFalsePositiveRate = bloomFilterConfig.falsePositiveRate,
+              resetPrefixCompressionEvery = sortedIndexConfig.prefixCompressionResetCount,
+              minimumNumberOfKeyForHashIndex = hashIndexConfig.minimumNumberOfKeys,
+              allocateSpace = hashIndexConfig.allocateSpace,
+              compressDuplicateValues = valuesConfig.compressDuplicateValues
             )
           else
             Segment.copyToPersist(
@@ -802,14 +810,14 @@ private[core] case class Level(dirs: Seq[Dir],
               mmapSegmentsOnWrite = mmapSegmentsOnWrite,
               removeDeletes = removeDeletedRecords,
               minSegmentSize = segmentSize,
-              maxProbe = maxProbe,
-              enableBinarySearchIndex = enableBinarySearchIndex,
-              buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-              bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-              resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-              minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
-              hashIndexCompensation = hashIndexCompensation,
-              compressDuplicateValues = compressDuplicateValues
+              maxProbe = hashIndexConfig.maxProbe,
+              enableBinarySearchIndex = binarySearchIndexConfig.enabled,
+              buildFullBinarySearchIndex = binarySearchIndexConfig.fullIndex,
+              bloomFilterFalsePositiveRate = bloomFilterConfig.falsePositiveRate,
+              resetPrefixCompressionEvery = sortedIndexConfig.prefixCompressionResetCount,
+              minimumNumberOfKeyForHashIndex = hashIndexConfig.minimumNumberOfKeys,
+              allocateSpace = hashIndexConfig.allocateSpace,
+              compressDuplicateValues = valuesConfig.compressDuplicateValues
             )
         },
       recover =
@@ -836,16 +844,16 @@ private[core] case class Level(dirs: Seq[Dir],
         ensureRelease(minKey) {
           segment.refresh(
             minSegmentSize = segmentSize,
-            bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-            resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-            minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
-            hashIndexCompensation = hashIndexCompensation,
-            compressDuplicateValues = compressDuplicateValues,
+            bloomFilterFalsePositiveRate = bloomFilterConfig.falsePositiveRate,
+            resetPrefixCompressionEvery = sortedIndexConfig.prefixCompressionResetCount,
+            minimumNumberOfKeyForHashIndex = hashIndexConfig.minimumNumberOfKeys,
+            allocateSpace = hashIndexConfig.allocateSpace,
+            compressDuplicateValues = valuesConfig.compressDuplicateValues,
             removeDeletes = removeDeletedRecords,
             createdInLevel = levelNumber,
-            maxProbe = maxProbe,
-            enableBinarySearchIndex = enableBinarySearchIndex,
-            buildFullBinarySearchIndex = buildFullBinarySearchIndex,
+            maxProbe = hashIndexConfig.maxProbe,
+            enableBinarySearchIndex = binarySearchIndexConfig.enabled,
+            buildFullBinarySearchIndex = binarySearchIndexConfig.fullIndex,
             segmentCompression = segmentCompression,
             targetPaths = paths
           ) flatMap {
@@ -1059,16 +1067,16 @@ private[core] case class Level(dirs: Seq[Dir],
           targetSegment.put(
             newKeyValues = assignedKeyValues,
             minSegmentSize = segmentSize,
-            bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-            resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-            minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
-            hashIndexCompensation = hashIndexCompensation,
-            compressDuplicateValues = compressDuplicateValues,
+            bloomFilterFalsePositiveRate = bloomFilterConfig.falsePositiveRate,
+            resetPrefixCompressionEvery = sortedIndexConfig.prefixCompressionResetCount,
+            minimumNumberOfKeyForHashIndex = hashIndexConfig.minimumNumberOfKeys,
+            allocateSpace = hashIndexConfig.allocateSpace,
+            compressDuplicateValues = valuesConfig.compressDuplicateValues,
             removeDeletes = removeDeletedRecords,
             createdInLevel = levelNumber,
-            maxProbe = maxProbe,
-            enableBinarySearchIndex = enableBinarySearchIndex,
-            buildFullBinarySearchIndex = buildFullBinarySearchIndex,
+            maxProbe = hashIndexConfig.maxProbe,
+            enableBinarySearchIndex = binarySearchIndexConfig.enabled,
+            buildFullBinarySearchIndex = binarySearchIndexConfig.fullIndex,
             segmentCompression = segmentCompression,
             targetPaths = paths.addPriorityPath(targetSegment.path.getParent)
           ) map {

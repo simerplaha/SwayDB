@@ -73,7 +73,7 @@
 //        bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
 //        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
 //        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
-//        hashIndexCompensation = TestData.hashIndexCompensation,
+//        allocateSpace = TestData.allocateSpace,
 //        compressDuplicateValues = true
 //      )
 //
@@ -118,7 +118,7 @@
 //            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
 //            resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
 //            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
-//            hashIndexCompensation = TestData.hashIndexCompensation,
+//            allocateSpace = TestData.allocateSpace,
 //            compressDuplicateValues = true
 //          )
 //      }
@@ -171,7 +171,7 @@
 //            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
 //            resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
 //            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
-//            hashIndexCompensation = TestData.hashIndexCompensation,
+//            allocateSpace = TestData.allocateSpace,
 //            compressDuplicateValues = true
 //          )
 //      }
@@ -226,7 +226,7 @@
 //            bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
 //            resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
 //            minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
-//            hashIndexCompensation = TestData.hashIndexCompensation,
+//            allocateSpace = TestData.allocateSpace,
 //            compressDuplicateValues = true
 //          )
 //      }

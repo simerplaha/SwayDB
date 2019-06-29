@@ -66,8 +66,8 @@ object DefaultPersistentConfig {
         mapSize = mapSize,
         mmap = mmapMaps,
         recoveryMode = recoveryMode,
-        acceleration = acceleration,
         compactionExecutionContext = CompactionExecutionContext.Create(executionContext),
+        acceleration = acceleration,
         throttle =
           meter =>
             if (meter.mapsCount > 3)
@@ -84,11 +84,43 @@ object DefaultPersistentConfig {
         mmapSegment = mmapSegments,
         mmapAppendix = mmapAppendix,
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
-        pushForward = true,
-        bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-        compressDuplicateValues = compressDuplicateValues,
+        copyForward = true,
         deleteSegmentsEventually = deleteSegmentsEventually,
-        applyGroupingOnCopy = false,
+        sortedIndex =
+          SortedIndex.Enable(
+            cacheOnRead = false,
+            prefixCompression =
+              PrefixCompression.Enable(
+                resetCount = Some(10)
+              ),
+            compression = Seq.empty
+          ),
+        hashIndex =
+          HashIndex.Enable(
+            maxProbe = 5,
+            minimumNumberOfKeys = 20,
+            allocateSpace = _.requiredSpace * 2,
+            cacheOnRead = false,
+            compression = Seq.empty
+          ),
+        binarySearchIndex =
+          BinarySearchIndex.FullIndex(
+            minimumNumberOfKeys = 10,
+            cacheOnRead = false,
+            compression = Seq.empty
+          ),
+        bloomFilter =
+          BloomFilter.Enable(
+            falsePositiveRate = bloomFilterFalsePositiveRate,
+            minimumNumberOfKeys = 10,
+            cacheOnRead = false,
+            compression = Seq.empty
+          ),
+        values = Values.Stored(
+          compressDuplicateValues = compressDuplicateValues,
+          cacheOnRead = false,
+          compression = Seq.empty
+        ),
         groupingStrategy = None,
         compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =
@@ -105,11 +137,43 @@ object DefaultPersistentConfig {
         mmapSegment = mmapSegments,
         mmapAppendix = mmapAppendix,
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
-        pushForward = true,
-        bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-        compressDuplicateValues = compressDuplicateValues,
+        copyForward = true,
         deleteSegmentsEventually = deleteSegmentsEventually,
-        applyGroupingOnCopy = false,
+        sortedIndex =
+          SortedIndex.Enable(
+            cacheOnRead = false,
+            prefixCompression =
+              PrefixCompression.Enable(
+                resetCount = Some(10)
+              ),
+            compression = Seq.empty
+          ),
+        hashIndex =
+          HashIndex.Enable(
+            maxProbe = 5,
+            minimumNumberOfKeys = 20,
+            allocateSpace = _.requiredSpace * 2,
+            cacheOnRead = false,
+            compression = Seq.empty
+          ),
+        binarySearchIndex =
+          BinarySearchIndex.FullIndex(
+            minimumNumberOfKeys = 10,
+            cacheOnRead = false,
+            compression = Seq.empty
+          ),
+        bloomFilter =
+          BloomFilter.Enable(
+            falsePositiveRate = bloomFilterFalsePositiveRate,
+            minimumNumberOfKeys = 10,
+            cacheOnRead = false,
+            compression = Seq.empty
+          ),
+        values = Values.Stored(
+          compressDuplicateValues = compressDuplicateValues,
+          cacheOnRead = false,
+          compression = Seq.empty
+        ),
         groupingStrategy = groupingStrategy,
         compactionExecutionContext = CompactionExecutionContext.Create(executionContext),
         throttle =
@@ -126,13 +190,45 @@ object DefaultPersistentConfig {
         mmapSegment = mmapSegments,
         mmapAppendix = mmapAppendix,
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
-        pushForward = false,
-        bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-        compressDuplicateValues = compressDuplicateValues,
+        copyForward = false,
         deleteSegmentsEventually = deleteSegmentsEventually,
-        applyGroupingOnCopy = false,
-        compactionExecutionContext = CompactionExecutionContext.Shared,
+        sortedIndex =
+          SortedIndex.Enable(
+            cacheOnRead = false,
+            prefixCompression =
+              PrefixCompression.Enable(
+                resetCount = Some(10)
+              ),
+            compression = Seq.empty
+          ),
+        hashIndex =
+          HashIndex.Enable(
+            maxProbe = 5,
+            minimumNumberOfKeys = 20,
+            allocateSpace = _.requiredSpace * 2,
+            cacheOnRead = false,
+            compression = Seq.empty
+          ),
+        binarySearchIndex =
+          BinarySearchIndex.FullIndex(
+            minimumNumberOfKeys = 10,
+            cacheOnRead = false,
+            compression = Seq.empty
+          ),
+        bloomFilter =
+          BloomFilter.Enable(
+            falsePositiveRate = bloomFilterFalsePositiveRate,
+            minimumNumberOfKeys = 10,
+            cacheOnRead = false,
+            compression = Seq.empty
+          ),
+        values = Values.Stored(
+          compressDuplicateValues = compressDuplicateValues,
+          cacheOnRead = false,
+          compression = Seq.empty
+        ),
         groupingStrategy = None,
+        compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =
           levelMeter => {
             val delay = (30 - levelMeter.segmentsCount).seconds
@@ -147,13 +243,45 @@ object DefaultPersistentConfig {
         mmapSegment = mmapSegments,
         mmapAppendix = mmapAppendix,
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
-        pushForward = false,
-        bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-        compressDuplicateValues = compressDuplicateValues,
+        copyForward = false,
         deleteSegmentsEventually = deleteSegmentsEventually,
-        applyGroupingOnCopy = false,
-        compactionExecutionContext = CompactionExecutionContext.Shared,
+        sortedIndex =
+          SortedIndex.Enable(
+            cacheOnRead = false,
+            prefixCompression =
+              PrefixCompression.Enable(
+                resetCount = Some(10)
+              ),
+            compression = Seq.empty
+          ),
+        hashIndex =
+          HashIndex.Enable(
+            maxProbe = 5,
+            minimumNumberOfKeys = 20,
+            allocateSpace = _.requiredSpace * 2,
+            cacheOnRead = false,
+            compression = Seq.empty
+          ),
+        binarySearchIndex =
+          BinarySearchIndex.FullIndex(
+            minimumNumberOfKeys = 10,
+            cacheOnRead = false,
+            compression = Seq.empty
+          ),
+        bloomFilter =
+          BloomFilter.Enable(
+            falsePositiveRate = bloomFilterFalsePositiveRate,
+            minimumNumberOfKeys = 10,
+            cacheOnRead = false,
+            compression = Seq.empty
+          ),
+        values = Values.Stored(
+          compressDuplicateValues = compressDuplicateValues,
+          cacheOnRead = false,
+          compression = Seq.empty
+        ),
         groupingStrategy = None,
+        compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =
           levelMeter => {
             val delay = (40 - levelMeter.segmentsCount).seconds
@@ -168,11 +296,43 @@ object DefaultPersistentConfig {
         mmapSegment = mmapSegments,
         mmapAppendix = mmapAppendix,
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
-        pushForward = false,
-        bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-        compressDuplicateValues = compressDuplicateValues,
+        copyForward = false,
         deleteSegmentsEventually = deleteSegmentsEventually,
-        applyGroupingOnCopy = false,
+        sortedIndex =
+          SortedIndex.Enable(
+            cacheOnRead = false,
+            prefixCompression =
+              PrefixCompression.Enable(
+                resetCount = Some(10)
+              ),
+            compression = Seq.empty
+          ),
+        hashIndex =
+          HashIndex.Enable(
+            maxProbe = 5,
+            minimumNumberOfKeys = 20,
+            allocateSpace = _.requiredSpace * 2,
+            cacheOnRead = false,
+            compression = Seq.empty
+          ),
+        binarySearchIndex =
+          BinarySearchIndex.FullIndex(
+            minimumNumberOfKeys = 10,
+            cacheOnRead = false,
+            compression = Seq.empty
+          ),
+        bloomFilter =
+          BloomFilter.Enable(
+            falsePositiveRate = bloomFilterFalsePositiveRate,
+            minimumNumberOfKeys = 10,
+            cacheOnRead = false,
+            compression = Seq.empty
+          ),
+        values = Values.Stored(
+          compressDuplicateValues = compressDuplicateValues,
+          cacheOnRead = false,
+          compression = Seq.empty
+        ),
         groupingStrategy = None,
         compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =
@@ -191,11 +351,44 @@ object DefaultPersistentConfig {
         mmapSegment = mmapSegments,
         mmapAppendix = mmapAppendix,
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
-        pushForward = false,
-        bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-        compressDuplicateValues = compressDuplicateValues,
+        copyForward = false,
         deleteSegmentsEventually = deleteSegmentsEventually,
-        applyGroupingOnCopy = false,
+        sortedIndex =
+          SortedIndex.Enable(
+            cacheOnRead = false,
+            prefixCompression =
+              PrefixCompression.Enable(
+                resetCount = Some(10)
+              ),
+            compression = Seq.empty
+          ),
+        hashIndex =
+          HashIndex.Enable(
+            maxProbe = 5,
+            minimumNumberOfKeys = 20,
+            allocateSpace = _.requiredSpace * 2,
+            cacheOnRead = false,
+            compression = Seq.empty
+          ),
+        binarySearchIndex =
+          BinarySearchIndex.FullIndex(
+            minimumNumberOfKeys = 10,
+            cacheOnRead = false,
+            compression = Seq.empty
+          ),
+        bloomFilter =
+          BloomFilter.Enable(
+            falsePositiveRate = bloomFilterFalsePositiveRate,
+            minimumNumberOfKeys = 10,
+            cacheOnRead = false,
+            compression = Seq.empty
+          ),
+        values =
+          Values.Stored(
+            compressDuplicateValues = compressDuplicateValues,
+            cacheOnRead = false,
+            compression = Seq.empty
+          ),
         groupingStrategy = groupingStrategy,
         compactionExecutionContext = CompactionExecutionContext.Create(executionContext),
         throttle =

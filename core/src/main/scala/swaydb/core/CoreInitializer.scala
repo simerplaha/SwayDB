@@ -37,6 +37,7 @@ import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.{AppendixStorage, LevelStorage}
+import swaydb.core.segment.format.a.{SegmentCompression, block}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
@@ -156,27 +157,55 @@ private[core] object CoreInitializer extends LazyLogging {
         case config: MemoryLevelConfig =>
           implicit val compression: Option[KeyValueGroupingStrategyInternal] = config.groupingStrategy map KeyValueGroupingStrategyInternal.apply
           Level(
-            levelStorage = LevelStorage.Memory(dir = Paths.get("MEMORY_LEVEL").resolve(id.toString)),
             segmentSize = config.segmentSize,
+            bloomFilterConfig = block.BloomFilter.Config(config = config.bloomFilter),
+            hashIndexConfig = block.HashIndex.Config(config = HashIndex.Disable),
+            binarySearchIndexConfig = block.BinarySearchIndex.Config(config = BinarySearchIndex.Disable),
+            sortedIndexConfig = block.SortedIndex.Config(cacheOnRead = false, prefixCompressionResetCount = 0),
+            valuesConfig = block.Values.Config(stored = config.storeValues, compressDuplicateValues = false, cacheOnRead = false),
+            segmentCompression =
+              SegmentCompression(
+                bloomFilter = config.bloomFilter,
+                hashIndex = HashIndex.Disable,
+                binarySearchIndex = BinarySearchIndex.Disable,
+                sortedIndex =
+                  SortedIndex.Enable(
+                    cacheOnRead = false,
+                    prefixCompression = PrefixCompression.Disable,
+                    compression = Seq.empty
+                  ),
+                values =
+                  Values.Stored(
+                    compressDuplicateValues = false,
+                    cacheOnRead = false,
+                    compression = Seq.empty
+                  )
+              ),
+            levelStorage = LevelStorage.Memory(dir = Paths.get("MEMORY_LEVEL").resolve(id.toString)),
             nextLevel = nextLevel,
-            pushForward = config.pushForward,
+            pushForward = config.copyForward,
             appendixStorage = AppendixStorage.Memory,
-            maxProbe = 5, // todo make a config
-            enableBinarySearchIndex = false,
-            buildFullBinarySearchIndex = false,
-            bloomFilterFalsePositiveRate = config.bloomFilterFalsePositiveRate,
-            resetPrefixCompressionEvery = 100,
-            minimumNumberOfKeyForHashIndex = 50,
-            hashIndexCompensation = _ => 0,
             throttle = config.throttle,
-            compressDuplicateValues = config.compressDuplicateValues,
-            deleteSegmentsEventually = config.deleteSegmentsEventually,
-            applyGroupingOnCopy = config.applyGroupingOnCopy
+            deleteSegmentsEventually = config.deleteSegmentsEventually
           )
 
         case config: PersistentLevelConfig =>
           implicit val compression: Option[KeyValueGroupingStrategyInternal] = config.groupingStrategy map KeyValueGroupingStrategyInternal.apply
           Level(
+            segmentSize = config.segmentSize,
+            bloomFilterConfig = block.BloomFilter.Config(config = config.bloomFilter),
+            hashIndexConfig = block.HashIndex.Config(config = config.hashIndex),
+            binarySearchIndexConfig = block.BinarySearchIndex.Config(config = config.binarySearchIndex),
+            sortedIndexConfig = block.SortedIndex.Config(config.sortedIndex.toOption.get),
+            valuesConfig = block.Values.Config(config.values),
+            segmentCompression =
+              SegmentCompression(
+                bloomFilter = config.bloomFilter,
+                hashIndex = config.hashIndex,
+                binarySearchIndex = config.binarySearchIndex,
+                sortedIndex = config.sortedIndex,
+                values = config.values
+              ),
             levelStorage =
               LevelStorage.Persistent(
                 mmapSegmentsOnWrite = config.mmapSegment.mmapWrite,
@@ -184,21 +213,11 @@ private[core] object CoreInitializer extends LazyLogging {
                 dir = config.dir.resolve(id.toString),
                 otherDirs = config.otherDirs.map(dir => dir.copy(path = dir.path.resolve(id.toString)))
               ),
-            segmentSize = config.segmentSize,
-            maxProbe = 5, //todo make a config
-            enableBinarySearchIndex = false,
-            buildFullBinarySearchIndex = false,
             nextLevel = nextLevel,
-            resetPrefixCompressionEvery = 100,
-            minimumNumberOfKeyForHashIndex = 50,
-            hashIndexCompensation = _ => 0,
-            pushForward = config.pushForward,
+            pushForward = config.copyForward,
             appendixStorage = AppendixStorage.Persistent(config.mmapAppendix, config.appendixFlushCheckpointSize),
-            bloomFilterFalsePositiveRate = config.bloomFilterFalsePositiveRate,
             throttle = config.throttle,
-            compressDuplicateValues = config.compressDuplicateValues,
-            deleteSegmentsEventually = config.deleteSegmentsEventually,
-            applyGroupingOnCopy = config.applyGroupingOnCopy
+            deleteSegmentsEventually = config.deleteSegmentsEventually
           )
 
         case TrashLevelConfig =>

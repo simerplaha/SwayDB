@@ -21,7 +21,7 @@ package swaydb.core.data
 
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.KeyValue.ReadOnly
-import swaydb.core.group.compression.data.GroupHeader
+import swaydb.core.group.compression.data.{GroupHeader, GroupingStrategy}
 import swaydb.core.group.compression.{GroupCompressor, GroupDecompressor, GroupKeyCompressor}
 import swaydb.core.io.reader.{BlockReader, Reader}
 import swaydb.core.map.serializer.{RangeValueSerializer, ValueSerializer}
@@ -32,6 +32,7 @@ import swaydb.core.segment.format.a.entry.writer._
 import swaydb.core.segment.{BinarySegment, BinarySegmentInitialiser, Segment}
 import swaydb.core.util.Bytes
 import swaydb.core.util.CollectionUtil._
+import swaydb.data.config.HashIndex.HashIndexMeter
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.{IO, MaxKey}
@@ -207,7 +208,7 @@ private[core] object KeyValue {
     def falsePositiveRate: Double
     def resetPrefixCompressionEvery: Int
     def minimumNumberOfKeysForHashIndex: Int
-    def hashIndexCompensation: Int => Int
+    def allocateSpace: HashIndexMeter => Int
     def isPrefixCompressed: Boolean
     def fullKey: Slice[Byte]
     def stats: Stats
@@ -600,7 +601,7 @@ private[core] object Transient {
                     buildFullBinarySearchIndex: Boolean,
                     resetPrefixCompressionEvery: Int,
                     minimumNumberOfKeysForHashIndex: Int,
-                    hashIndexCompensation: Int => Int) extends Transient.SegmentResponse with KeyValue.WriteOnly.Fixed {
+                    allocateSpace: HashIndexMeter => Int) extends Transient.SegmentResponse with KeyValue.WriteOnly.Fixed {
     override val isRange: Boolean = false
     override val isGroup: Boolean = false
     override val isRemoveRangeMayBe = false
@@ -630,7 +631,7 @@ private[core] object Transient {
         minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
         enableBinarySearchIndex = enableBinarySearchIndex,
         buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-        hashIndexCompensation = hashIndexCompensation,
+        allocateSpace = allocateSpace,
         previous = previous,
         deadline = deadline
       )
@@ -656,7 +657,7 @@ private[core] object Transient {
                  compressDuplicateValues: Boolean,
                  resetPrefixCompressionEvery: Int,
                  minimumNumberOfKeysForHashIndex: Int,
-                 hashIndexCompensation: Int => Int) extends Transient.SegmentResponse with KeyValue.WriteOnly.Fixed {
+                 allocateSpace: HashIndexMeter => Int) extends Transient.SegmentResponse with KeyValue.WriteOnly.Fixed {
 
     override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
@@ -688,7 +689,7 @@ private[core] object Transient {
         enableBinarySearchIndex = enableBinarySearchIndex,
         buildFullBinarySearchIndex = buildFullBinarySearchIndex,
         minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-        hashIndexCompensation = hashIndexCompensation,
+        allocateSpace = allocateSpace,
         previous = previous,
         deadline = deadline
       )
@@ -713,7 +714,7 @@ private[core] object Transient {
                     compressDuplicateValues: Boolean,
                     resetPrefixCompressionEvery: Int,
                     minimumNumberOfKeysForHashIndex: Int,
-                    hashIndexCompensation: Int => Int) extends Transient.SegmentResponse with KeyValue.WriteOnly.Fixed {
+                    allocateSpace: HashIndexMeter => Int) extends Transient.SegmentResponse with KeyValue.WriteOnly.Fixed {
     override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
     override val isRange: Boolean = false
@@ -743,7 +744,7 @@ private[core] object Transient {
         enableBinarySearchIndex = enableBinarySearchIndex,
         buildFullBinarySearchIndex = buildFullBinarySearchIndex,
         minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-        hashIndexCompensation = hashIndexCompensation,
+        allocateSpace = allocateSpace,
         previous = previous,
         deadline = deadline
       )
@@ -768,7 +769,7 @@ private[core] object Transient {
                       buildFullBinarySearchIndex: Boolean,
                       resetPrefixCompressionEvery: Int,
                       minimumNumberOfKeysForHashIndex: Int,
-                      hashIndexCompensation: Int => Int) extends Transient.SegmentResponse with KeyValue.WriteOnly.Fixed {
+                      allocateSpace: HashIndexMeter => Int) extends Transient.SegmentResponse with KeyValue.WriteOnly.Fixed {
     override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
     override val isRange: Boolean = false
@@ -799,7 +800,7 @@ private[core] object Transient {
         buildFullBinarySearchIndex = buildFullBinarySearchIndex,
         isPrefixCompressed = isPrefixCompressed,
         minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-        hashIndexCompensation = hashIndexCompensation,
+        allocateSpace = allocateSpace,
         previous = previous,
         deadline = deadline
       )
@@ -822,7 +823,7 @@ private[core] object Transient {
                           compressDuplicateValues: Boolean,
                           resetPrefixCompressionEvery: Int,
                           minimumNumberOfKeysForHashIndex: Int,
-                          hashIndexCompensation: Int => Int) extends Transient.SegmentResponse with KeyValue.WriteOnly.Fixed {
+                          allocateSpace: HashIndexMeter => Int) extends Transient.SegmentResponse with KeyValue.WriteOnly.Fixed {
     override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
     override val isRange: Boolean = false
@@ -864,7 +865,7 @@ private[core] object Transient {
         buildFullBinarySearchIndex = buildFullBinarySearchIndex,
         isPrefixCompressed = isPrefixCompressed,
         minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-        hashIndexCompensation = hashIndexCompensation,
+        allocateSpace = allocateSpace,
         previous = previous,
         deadline = deadline
       )
@@ -880,7 +881,7 @@ private[core] object Transient {
                                      buildFullBinarySearchIndex: Boolean,
                                      resetPrefixCompressionEvery: Int,
                                      minimumNumberOfKeyForHashIndex: Int,
-                                     hashIndexCompensation: Int => Int,
+                                     allocateSpace: HashIndexMeter => Int,
                                      previous: Option[KeyValue.WriteOnly])(implicit rangeValueSerializer: RangeValueSerializer[Unit, R]): Range = {
       val bytesRequired = rangeValueSerializer.bytesRequired((), rangeValue)
       val value = if (bytesRequired == 0) None else Some(Slice.create[Byte](bytesRequired))
@@ -899,7 +900,7 @@ private[core] object Transient {
         buildFullBinarySearchIndex = buildFullBinarySearchIndex,
         resetPrefixCompressionEvery = resetPrefixCompressionEvery,
         minimumNumberOfKeysForHashIndex = minimumNumberOfKeyForHashIndex,
-        hashIndexCompensation = hashIndexCompensation
+        allocateSpace = allocateSpace
       )
     }
 
@@ -912,7 +913,7 @@ private[core] object Transient {
                                                            buildFullBinarySearchIndex: Boolean,
                                                            resetPrefixCompressionEvery: Int,
                                                            minimumNumberOfKeysForHashIndex: Int,
-                                                           hashIndexCompensation: Int => Int,
+                                                           allocateSpace: HashIndexMeter => Int,
                                                            previous: Option[KeyValue.WriteOnly])(implicit rangeValueSerializer: RangeValueSerializer[Option[F], R]): Range = {
       val bytesRequired = rangeValueSerializer.bytesRequired(fromValue, rangeValue)
       val value = if (bytesRequired == 0) None else Some(Slice.create[Byte](bytesRequired))
@@ -932,7 +933,7 @@ private[core] object Transient {
         buildFullBinarySearchIndex = buildFullBinarySearchIndex,
         resetPrefixCompressionEvery = resetPrefixCompressionEvery,
         minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-        hashIndexCompensation = hashIndexCompensation
+        allocateSpace = allocateSpace
       )
     }
   }
@@ -949,7 +950,7 @@ private[core] object Transient {
                    buildFullBinarySearchIndex: Boolean,
                    resetPrefixCompressionEvery: Int,
                    minimumNumberOfKeysForHashIndex: Int,
-                   hashIndexCompensation: Int => Int) extends Transient.SegmentResponse with KeyValue.WriteOnly.Range {
+                   allocateSpace: HashIndexMeter => Int) extends Transient.SegmentResponse with KeyValue.WriteOnly.Range {
 
     def key = fromKey
 
@@ -986,7 +987,7 @@ private[core] object Transient {
         buildFullBinarySearchIndex = buildFullBinarySearchIndex,
         isPrefixCompressed = isPrefixCompressed,
         minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex, //ranges cost 2. One for fromKey and second for rangeFilter's common prefix bytes.
-        hashIndexCompensation = hashIndexCompensation,
+        allocateSpace = allocateSpace,
         previous = previous,
         deadline = None
       )
@@ -1007,26 +1008,19 @@ private[core] object Transient {
   object Group {
 
     def apply(keyValues: Slice[KeyValue.WriteOnly],
-              segmentCompression: SegmentCompression,
-              falsePositiveRate: Double,
-              enableBinarySearchIndex: Boolean,
-              buildFullBinarySearchIndex: Boolean,
-              resetPrefixCompressionEvery: Int,
-              minimumNumberOfKeysForHashIndex: Int,
-              hashIndexCompensation: Int => Int,
               previous: Option[KeyValue.WriteOnly],
-              maxProbe: Int): IO[Option[Transient.Group]] =
+              groupingStrategy: GroupingStrategy): IO[Option[Transient.Group]] =
       GroupCompressor.compress(
         keyValues = keyValues,
-        segmentCompression = segmentCompression,
-        falsePositiveRate = falsePositiveRate,
-        resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-        minimumNumberOfKeyForHashIndex = minimumNumberOfKeysForHashIndex,
-        hashIndexCompensation = hashIndexCompensation,
+        segmentCompression = groupingStrategy.segmentCompression,
+        falsePositiveRate = groupingStrategy.bloomFilterConfig.falsePositiveRate,
+        resetPrefixCompressionEvery = groupingStrategy.sortedIndexConfig.prefixCompressionResetCount,
+        minimumNumberOfKeyForHashIndex = groupingStrategy.hashIndexConfig.minimumNumberOfKeys,
+        allocateSpace = groupingStrategy.hashIndexConfig.allocateSpace,
         previous = previous,
-        maxProbe = maxProbe,
-        enableBinarySearchIndex = enableBinarySearchIndex,
-        buildFullBinarySearchIndex = buildFullBinarySearchIndex
+        maxProbe = groupingStrategy.hashIndexConfig.maxProbe,
+        enableBinarySearchIndex = groupingStrategy.binarySearchIndexConfig.enabled,
+        buildFullBinarySearchIndex = groupingStrategy.binarySearchIndexConfig.fullIndex
       )
   }
 
@@ -1043,7 +1037,7 @@ private[core] object Transient {
                    buildFullBinarySearchIndex: Boolean,
                    resetPrefixCompressionEvery: Int,
                    minimumNumberOfKeysForHashIndex: Int,
-                   hashIndexCompensation: Int => Int) extends Transient with KeyValue.WriteOnly.Group {
+                   allocateSpace: HashIndexMeter => Int) extends Transient with KeyValue.WriteOnly.Group {
 
     override def key = minKey
 
@@ -1078,7 +1072,7 @@ private[core] object Transient {
         thisKeyValuesUniqueKeys = keyValues.last.stats.segmentUniqueKeysCount,
         isPrefixCompressed = isPrefixCompressed,
         minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-        hashIndexCompensation = hashIndexCompensation,
+        allocateSpace = allocateSpace,
         previous = previous,
         deadline = deadline
       )

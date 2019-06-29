@@ -125,7 +125,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase with Benchmark {
         bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
-        hashIndexCompensation = TestData.hashIndexCompensation,
+        allocateSpace = TestData.allocateSpace,
         enableBinarySearchIndex = TestData.enableBinarySearchIndex,
         buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
         compressDuplicateValues = true

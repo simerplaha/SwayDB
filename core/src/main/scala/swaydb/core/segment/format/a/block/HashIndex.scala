@@ -26,6 +26,8 @@ import swaydb.core.io.reader.{BlockReader, Reader}
 import swaydb.core.segment.format.a.{KeyMatcher, OffsetBase}
 import swaydb.core.util.Bytes
 import swaydb.data.IO
+import swaydb.data.config.HashIndex
+import swaydb.data.config.HashIndex.HashIndexMeter
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.ByteSizeOf
 
@@ -37,6 +39,31 @@ import scala.util.Try
   * HashIndex.
   */
 private[core] object HashIndex extends LazyLogging {
+
+  object Config {
+    def apply(config: swaydb.data.config.HashIndex): Config =
+      config match {
+        case swaydb.data.config.HashIndex.Disable =>
+          Config(
+            maxProbe = -1,
+            minimumNumberOfKeys = Int.MaxValue,
+            allocateSpace = _ => Int.MinValue,
+            cacheOnRead = false
+          )
+        case enable: swaydb.data.config.HashIndex.Enable =>
+          Config(
+            maxProbe = enable.maxProbe,
+            minimumNumberOfKeys = enable.minimumNumberOfKeys,
+            allocateSpace = enable.allocateSpace,
+            cacheOnRead = enable.cacheOnRead
+          )
+      }
+  }
+
+  case class Config(maxProbe: Int,
+                    minimumNumberOfKeys: Int,
+                    allocateSpace: HashIndexMeter => Int,
+                    cacheOnRead: Boolean)
 
   case class Offset(start: Int, size: Int) extends OffsetBase
 
@@ -104,7 +131,7 @@ private[core] object HashIndex extends LazyLogging {
     */
   def optimalBytesRequired(keyCounts: Int,
                            largestValue: Int,
-                           compensate: Int => Int): Int = {
+                           allocateSpace: HashIndexMeter => Int): Int = {
     val writeAbleLargestValueSize = Bytes.sizeOf(largestValue + 1) //largest value is +1 because 0s are reserved.
 
     val bytesWithOutCompensation =
@@ -113,8 +140,13 @@ private[core] object HashIndex extends LazyLogging {
         writeAbleLargestValueSize = writeAbleLargestValueSize
       ) + (keyCounts * (writeAbleLargestValueSize + 1)) //+1 to skip left & right 0 start-end markers.
 
-    bytesWithOutCompensation +
-      Try(compensate(bytesWithOutCompensation)).getOrElse(0) //optionally add more space or remove.
+    Try {
+      allocateSpace {
+        new HashIndexMeter {
+          override def requiredSpace: Int = bytesWithOutCompensation
+        }
+      }
+    } getOrElse 0
   }
 
   def close(state: State): IO[Unit] =

@@ -116,7 +116,7 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
         level.inMemory shouldBe true
         level.mmapSegmentsOnRead shouldBe false
         level.mmapSegmentsOnWrite shouldBe false
-        level.compressDuplicateValues shouldBe true
+        level.valuesConfig.compressDuplicateValues shouldBe true
       } else {
         level.existsOnDisk shouldBe true
         level.inMemory shouldBe false

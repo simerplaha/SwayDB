@@ -19,36 +19,24 @@
 
 package swaydb.data.api.grouping
 
+import swaydb.data.config._
+
 sealed trait GroupGroupingStrategy
 object GroupGroupingStrategy {
 
-  object Count {
-    def apply(count: Int,
-              indexCompression: Compression,
-              valueCompression: Compression): Count =
-      new Count(
-        count = count,
-        indexCompression = Seq(indexCompression),
-        valueCompression = Seq(valueCompression)
-      )
-  }
-
   case class Count(count: Int,
-                   indexCompression: Seq[Compression],
-                   valueCompression: Seq[Compression]) extends GroupGroupingStrategy
-
-  object Size {
-    def apply(size: Int,
-              indexCompression: Compression,
-              valueCompression: Compression): Size =
-      new Size(
-        size = size,
-        indexCompression = Seq(indexCompression),
-        valueCompression = Seq(valueCompression)
-      )
-  }
+                   sortedIndex: SortedIndex,
+                   hashIndex: HashIndex,
+                   binarySearchIndex: BinarySearchIndex,
+                   bloomFilter: BloomFilter,
+                   prefixCompression: PrefixCompression,
+                   values: Values) extends GroupGroupingStrategy
 
   case class Size(size: Int,
-                  indexCompression: Seq[Compression],
-                  valueCompression: Seq[Compression]) extends GroupGroupingStrategy
+                  sortedIndex: SortedIndex,
+                  hashIndex: HashIndex,
+                  binarySearchIndex: BinarySearchIndex,
+                  bloomFilter: BloomFilter,
+                  prefixCompression: PrefixCompression,
+                  values: Values) extends GroupGroupingStrategy
 }

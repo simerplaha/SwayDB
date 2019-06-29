@@ -1,214 +1,214 @@
-/*
- * Copyright (c) 2019 Simer Plaha (@simerplaha)
- *
- * This file is a part of SwayDB.
- *
- * SwayDB is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
- *
- * SwayDB is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
- */
-
-package swaydb.core.data
-
-import java.nio.file.Paths
-import swaydb.core.{TestBase, TestData, TestLimitQueues, TestTimer}
-import swaydb.core.segment.Segment
-import swaydb.data.slice.Slice
-import swaydb.serializers.Default._
-import swaydb.serializers._
-import swaydb.core.TestData._
-import swaydb.core.CommonAssertions._
-import swaydb.core.IOAssert._
-import swaydb.data.order.{KeyOrder, TimeOrder}
-
-class GroupSpec extends TestBase {
-
-  val keyValueCount = 100
-
-  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
-  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
-  implicit def testTimer: TestTimer = TestTimer.random
-  implicit val fileLimiter = TestLimitQueues.fileOpenLimiter
-  implicit val keyValueLimiter = TestLimitQueues.keyValueLimiter
-
-  "lastGroup on a list of WriteOnly key-values" should {
-    "return empty if there are no groups" in {
-      Seq.empty[KeyValue.WriteOnly].lastGroup() shouldBe empty
-    }
-
-    "return last group if there is only one group" in {
-      val group =
-        Transient.Group(
-          keyValues = randomizedKeyValues(keyValueCount),
-          segmentCompression = randomSegmentCompression(),
-          falsePositiveRate = TestData.falsePositiveRate,
-          enableBinarySearchIndex = TestData.enableBinarySearchIndex,
-          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
-          resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-          minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
-          hashIndexCompensation = TestData.hashIndexCompensation,
-          previous = None,
-          maxProbe = TestData.maxProbe
-        ).assertGet
-
-      Seq(group).lastGroup().assertGet shouldBe group
-    }
-
-    "return last group if there are multiple groups" in {
-      val groups =
-        (1 to 10) map {
-          _ =>
-            Transient.Group(
-              keyValues = randomizedKeyValues(keyValueCount),
-              segmentCompression = randomSegmentCompression(),
-              falsePositiveRate = TestData.falsePositiveRate,
-              enableBinarySearchIndex = TestData.enableBinarySearchIndex,
-              buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
-              resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-              minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
-              hashIndexCompensation = TestData.hashIndexCompensation,
-              previous = None,
-              maxProbe = TestData.maxProbe
-            ).assertGet
-        }
-
-      groups.lastGroup().assertGet shouldBe groups.last
-    }
-
-    "return last group if there are multiple groups after a non Group key-value" in {
-      val groups =
-        (1 to 10) map {
-          i =>
-            if (i == 5)
-              Transient.put(1) //on the 5th iteration add a Put key-values. The 4th group should be returned.
-            else
-              Transient.Group(
-                keyValues = randomizedKeyValues(keyValueCount),
-                segmentCompression = randomSegmentCompression(),
-                falsePositiveRate = TestData.falsePositiveRate,
-                enableBinarySearchIndex = TestData.enableBinarySearchIndex,
-                buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
-                resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-                minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
-                hashIndexCompensation = TestData.hashIndexCompensation,
-                previous = None,
-                maxProbe = TestData.maxProbe
-              ).assertGet
-        }
-
-      groups.lastGroup().assertGet shouldBe groups.drop(3).head.asInstanceOf[Transient.Group]
-    }
-  }
-
-  "uncompressing a Group" should {
-    "return a new instance of uncompressed Persistent.Group" in {
-      //create group key-values
-      val keyValues = randomPutKeyValues(keyValueCount)
-      val group =
-        Transient.Group(
-          keyValues = keyValues.toTransient,
-          segmentCompression = randomSegmentCompression(),
-          falsePositiveRate = TestData.falsePositiveRate,
-          enableBinarySearchIndex = TestData.enableBinarySearchIndex,
-          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
-          resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-          minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
-          hashIndexCompensation = TestData.hashIndexCompensation,
-          previous = None,
-          maxProbe = TestData.maxProbe
-        ).assertGet
-
-      //create Segment
-      val segment = TestSegment(Slice(group)).assertGet
-
-      //read all Group's key-values
-      val readKeyValues = segment.getAll().assertGet
-      readKeyValues should have size 1
-      val readGroup = readKeyValues.head.asInstanceOf[Persistent.Group]
-
-      //assert that group is decompressed
-      readGroup.isHeaderDecompressed shouldBe false
-      readGroup.isIndexDecompressed shouldBe false
-      readGroup.isValueDecompressed shouldBe false
-
-      val binarySegment = readGroup.segment
-      binarySegment.isCacheEmpty shouldBe true
-      binarySegment.get(keyValues.head.key).assertGet shouldBe keyValues.head
-
-      readGroup.isHeaderDecompressed shouldBe true
-      readGroup.isIndexDecompressed shouldBe true
-      readGroup.isValueDecompressed shouldBe true
-
-      //uncompressed the Group
-      val uncompressedGroup = readGroup.uncompress()
-
-      //assert the result of uncompression
-      uncompressedGroup.isHeaderDecompressed shouldBe false
-      uncompressedGroup.isIndexDecompressed shouldBe false
-      uncompressedGroup.isValueDecompressed shouldBe false
-      uncompressedGroup.segment.isCacheEmpty shouldBe true
-      uncompressedGroup.segment.get(keyValues.head.key).assertGet shouldBe keyValues.head
-      uncompressedGroup.segment.isCacheEmpty shouldBe false
-    }
-
-    "return a new instance of uncompressed Memory.Group" in {
-      val keyValues = randomKeyValues(keyValueCount)
-      val group =
-        Transient.Group(
-          keyValues = keyValues,
-          segmentCompression = randomSegmentCompression(),
-          falsePositiveRate = TestData.falsePositiveRate,
-          enableBinarySearchIndex = TestData.enableBinarySearchIndex,
-          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
-          resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-          minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
-          hashIndexCompensation = TestData.hashIndexCompensation,
-          previous = None,
-          maxProbe = TestData.maxProbe
-        ).assertGet
-
-      implicit val groupingStrategy = None
-
-      val segment =
-        Segment.memory(
-          path = Paths.get("/test"),
-          createdInLevel = 0,
-          keyValues = Seq(group)
-        ).assertGet
-
-      val readKeyValues = segment.getAll().assertGet
-      readKeyValues should have size 1
-      val readGroup = readKeyValues.head.asInstanceOf[Memory.Group]
-
-      readGroup.isHeaderDecompressed shouldBe false
-      readGroup.isIndexDecompressed shouldBe false
-      readGroup.isValueDecompressed shouldBe false
-
-      val binarySegment = readGroup.segment
-      binarySegment.isCacheEmpty shouldBe true
-      binarySegment.get(keyValues.head.key).assertGet shouldBe keyValues.head
-
-      readGroup.isHeaderDecompressed shouldBe true
-      readGroup.isIndexDecompressed shouldBe true
-      readGroup.isValueDecompressed shouldBe true
-
-      val uncompressedGroup = readGroup.uncompress()
-
-      uncompressedGroup.isHeaderDecompressed shouldBe false
-      uncompressedGroup.isIndexDecompressed shouldBe false
-      uncompressedGroup.isValueDecompressed shouldBe false
-      uncompressedGroup.segment.isCacheEmpty shouldBe true
-      uncompressedGroup.segment.get(keyValues.head.key).assertGet shouldBe keyValues.head
-      uncompressedGroup.segment.isCacheEmpty shouldBe false
-    }
-  }
-}
+///*
+// * Copyright (c) 2019 Simer Plaha (@simerplaha)
+// *
+// * This file is a part of SwayDB.
+// *
+// * SwayDB is free software: you can redistribute it and/or modify
+// * it under the terms of the GNU Affero General Public License as
+// * published by the Free Software Foundation, either version 3 of the
+// * License, or (at your option) any later version.
+// *
+// * SwayDB is distributed in the hope that it will be useful,
+// * but WITHOUT ANY WARRANTY; without even the implied warranty of
+// * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// * GNU Affero General Public License for more details.
+// *
+// * You should have received a copy of the GNU Affero General Public License
+// * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
+// */
+//
+//package swaydb.core.data
+//
+//import java.nio.file.Paths
+//import swaydb.core.{TestBase, TestData, TestLimitQueues, TestTimer}
+//import swaydb.core.segment.Segment
+//import swaydb.data.slice.Slice
+//import swaydb.serializers.Default._
+//import swaydb.serializers._
+//import swaydb.core.TestData._
+//import swaydb.core.CommonAssertions._
+//import swaydb.core.IOAssert._
+//import swaydb.data.order.{KeyOrder, TimeOrder}
+//
+//class GroupSpec extends TestBase {
+//
+//  val keyValueCount = 100
+//
+//  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
+//  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
+//  implicit def testTimer: TestTimer = TestTimer.random
+//  implicit val fileLimiter = TestLimitQueues.fileOpenLimiter
+//  implicit val keyValueLimiter = TestLimitQueues.keyValueLimiter
+//
+//  "lastGroup on a list of WriteOnly key-values" should {
+//    "return empty if there are no groups" in {
+//      Seq.empty[KeyValue.WriteOnly].lastGroup() shouldBe empty
+//    }
+//
+//    "return last group if there is only one group" in {
+//      val group =
+//        Transient.Group(
+//          keyValues = randomizedKeyValues(keyValueCount),
+//          segmentCompression = randomSegmentCompression(),
+//          falsePositiveRate = TestData.falsePositiveRate,
+//          enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+//          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
+//          resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+//          minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
+//          allocateSpace = TestData.allocateSpace,
+//          previous = None,
+//          maxProbe = TestData.maxProbe
+//        ).assertGet
+//
+//      Seq(group).lastGroup().assertGet shouldBe group
+//    }
+//
+//    "return last group if there are multiple groups" in {
+//      val groups =
+//        (1 to 10) map {
+//          _ =>
+//            Transient.Group(
+//              keyValues = randomizedKeyValues(keyValueCount),
+//              segmentCompression = randomSegmentCompression(),
+//              falsePositiveRate = TestData.falsePositiveRate,
+//              enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+//              buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
+//              resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+//              minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
+//              allocateSpace = TestData.allocateSpace,
+//              previous = None,
+//              maxProbe = TestData.maxProbe
+//            ).assertGet
+//        }
+//
+//      groups.lastGroup().assertGet shouldBe groups.last
+//    }
+//
+//    "return last group if there are multiple groups after a non Group key-value" in {
+//      val groups =
+//        (1 to 10) map {
+//          i =>
+//            if (i == 5)
+//              Transient.put(1) //on the 5th iteration add a Put key-values. The 4th group should be returned.
+//            else
+//              Transient.Group(
+//                keyValues = randomizedKeyValues(keyValueCount),
+//                segmentCompression = randomSegmentCompression(),
+//                falsePositiveRate = TestData.falsePositiveRate,
+//                enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+//                buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
+//                resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+//                minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
+//                allocateSpace = TestData.allocateSpace,
+//                previous = None,
+//                maxProbe = TestData.maxProbe
+//              ).assertGet
+//        }
+//
+//      groups.lastGroup().assertGet shouldBe groups.drop(3).head.asInstanceOf[Transient.Group]
+//    }
+//  }
+//
+//  "uncompressing a Group" should {
+//    "return a new instance of uncompressed Persistent.Group" in {
+//      //create group key-values
+//      val keyValues = randomPutKeyValues(keyValueCount)
+//      val group =
+//        Transient.Group(
+//          keyValues = keyValues.toTransient,
+//          segmentCompression = randomSegmentCompression(),
+//          falsePositiveRate = TestData.falsePositiveRate,
+//          enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+//          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
+//          resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+//          minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
+//          allocateSpace = TestData.allocateSpace,
+//          previous = None,
+//          maxProbe = TestData.maxProbe
+//        ).assertGet
+//
+//      //create Segment
+//      val segment = TestSegment(Slice(group)).assertGet
+//
+//      //read all Group's key-values
+//      val readKeyValues = segment.getAll().assertGet
+//      readKeyValues should have size 1
+//      val readGroup = readKeyValues.head.asInstanceOf[Persistent.Group]
+//
+//      //assert that group is decompressed
+//      readGroup.isHeaderDecompressed shouldBe false
+//      readGroup.isIndexDecompressed shouldBe false
+//      readGroup.isValueDecompressed shouldBe false
+//
+//      val binarySegment = readGroup.segment
+//      binarySegment.isCacheEmpty shouldBe true
+//      binarySegment.get(keyValues.head.key).assertGet shouldBe keyValues.head
+//
+//      readGroup.isHeaderDecompressed shouldBe true
+//      readGroup.isIndexDecompressed shouldBe true
+//      readGroup.isValueDecompressed shouldBe true
+//
+//      //uncompressed the Group
+//      val uncompressedGroup = readGroup.uncompress()
+//
+//      //assert the result of uncompression
+//      uncompressedGroup.isHeaderDecompressed shouldBe false
+//      uncompressedGroup.isIndexDecompressed shouldBe false
+//      uncompressedGroup.isValueDecompressed shouldBe false
+//      uncompressedGroup.segment.isCacheEmpty shouldBe true
+//      uncompressedGroup.segment.get(keyValues.head.key).assertGet shouldBe keyValues.head
+//      uncompressedGroup.segment.isCacheEmpty shouldBe false
+//    }
+//
+//    "return a new instance of uncompressed Memory.Group" in {
+//      val keyValues = randomKeyValues(keyValueCount)
+//      val group =
+//        Transient.Group(
+//          keyValues = keyValues,
+//          segmentCompression = randomSegmentCompression(),
+//          falsePositiveRate = TestData.falsePositiveRate,
+//          enableBinarySearchIndex = TestData.enableBinarySearchIndex,
+//          buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
+//          resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
+//          minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
+//          allocateSpace = TestData.allocateSpace,
+//          previous = None,
+//          maxProbe = TestData.maxProbe
+//        ).assertGet
+//
+//      implicit val groupingStrategy = None
+//
+//      val segment =
+//        Segment.memory(
+//          path = Paths.get("/test"),
+//          createdInLevel = 0,
+//          keyValues = Seq(group)
+//        ).assertGet
+//
+//      val readKeyValues = segment.getAll().assertGet
+//      readKeyValues should have size 1
+//      val readGroup = readKeyValues.head.asInstanceOf[Memory.Group]
+//
+//      readGroup.isHeaderDecompressed shouldBe false
+//      readGroup.isIndexDecompressed shouldBe false
+//      readGroup.isValueDecompressed shouldBe false
+//
+//      val binarySegment = readGroup.segment
+//      binarySegment.isCacheEmpty shouldBe true
+//      binarySegment.get(keyValues.head.key).assertGet shouldBe keyValues.head
+//
+//      readGroup.isHeaderDecompressed shouldBe true
+//      readGroup.isIndexDecompressed shouldBe true
+//      readGroup.isValueDecompressed shouldBe true
+//
+//      val uncompressedGroup = readGroup.uncompress()
+//
+//      uncompressedGroup.isHeaderDecompressed shouldBe false
+//      uncompressedGroup.isIndexDecompressed shouldBe false
+//      uncompressedGroup.isValueDecompressed shouldBe false
+//      uncompressedGroup.segment.isCacheEmpty shouldBe true
+//      uncompressedGroup.segment.get(keyValues.head.key).assertGet shouldBe keyValues.head
+//      uncompressedGroup.segment.isCacheEmpty shouldBe false
+//    }
+//  }
+//}

@@ -19,15 +19,27 @@
 
 package swaydb.core.group.compression.data
 
-import swaydb.compression.CompressionInternal
+import swaydb.core.segment.format.a.SegmentCompression
+import swaydb.core.segment.format.a.block._
 
 private[swaydb] sealed trait GroupingStrategy {
-  val indexCompressions: Seq[CompressionInternal]
-  val valueCompressions: Seq[CompressionInternal]
+  def bloomFilterConfig: BloomFilter.Config
+  def hashIndexConfig: HashIndex.Config
+  def binarySearchIndexConfig: BinarySearchIndex.Config
+  def sortedIndexConfig: SortedIndex.Config
+  def valuesConfig: Values.Config
+  def segmentCompression: SegmentCompression
 }
 
 private[swaydb] sealed trait KeyValueGroupingStrategyInternal extends GroupingStrategy {
-  val groupCompression: Option[GroupGroupingStrategyInternal]
+  def groupCompression: Option[GroupGroupingStrategyInternal]
+  def applyGroupingOnCopy: Boolean
+  def bloomFilterConfig: BloomFilter.Config
+  def hashIndexConfig: HashIndex.Config
+  def binarySearchIndexConfig: BinarySearchIndex.Config
+  def sortedIndexConfig: SortedIndex.Config
+  def valuesConfig: Values.Config
+  def segmentCompression: SegmentCompression
 }
 
 private[swaydb] object KeyValueGroupingStrategyInternal {
@@ -39,57 +51,66 @@ private[swaydb] object KeyValueGroupingStrategyInternal {
     */
   def apply(groupingStrategy: swaydb.data.api.grouping.KeyValueGroupingStrategy): KeyValueGroupingStrategyInternal =
     groupingStrategy match {
-      case swaydb.data.api.grouping.KeyValueGroupingStrategy.Count(count, indexCompressions, valueCompressions, groupGroupingStrategy) =>
+      case grouping: swaydb.data.api.grouping.KeyValueGroupingStrategy.Count =>
         KeyValueGroupingStrategyInternal.Count(
-          count = count,
-          groupCompression = groupGroupingStrategy map GroupGroupingStrategyInternal.apply,
-          indexCompressions = indexCompressions map CompressionInternal.apply,
-          valueCompressions = valueCompressions map CompressionInternal.apply
+          count = grouping.count,
+          applyGroupingOnCopy = grouping.applyGroupingOnCopy,
+          groupCompression = grouping.groupGroupingStrategy map GroupGroupingStrategyInternal.apply,
+          bloomFilterConfig = BloomFilter.Config(grouping.bloomFilter),
+          hashIndexConfig = HashIndex.Config(grouping.hashIndex),
+          binarySearchIndexConfig = BinarySearchIndex.Config(grouping.binarySearchIndex),
+          sortedIndexConfig = SortedIndex.Config(grouping.sortedIndex),
+          valuesConfig = Values.Config(grouping.values),
+          segmentCompression =
+            SegmentCompression(
+              bloomFilter = grouping.bloomFilter,
+              hashIndex = grouping.hashIndex,
+              binarySearchIndex = grouping.binarySearchIndex,
+              sortedIndex = grouping.sortedIndex,
+              values = grouping.values
+            )
         )
-      case swaydb.data.api.grouping.KeyValueGroupingStrategy.Size(size, indexCompressions, valueCompressions, groupGroupingStrategy) =>
+
+      case grouping: swaydb.data.api.grouping.KeyValueGroupingStrategy.Size =>
         KeyValueGroupingStrategyInternal.Size(
-          size = size,
-          groupCompression = groupGroupingStrategy map GroupGroupingStrategyInternal.apply,
-          indexCompressions = indexCompressions map CompressionInternal.apply,
-          valueCompressions = valueCompressions map CompressionInternal.apply
+          size = grouping.size,
+          applyGroupingOnCopy = grouping.applyGroupingOnCopy,
+          groupCompression = grouping.groupGroupingStrategy map GroupGroupingStrategyInternal.apply,
+          bloomFilterConfig = BloomFilter.Config(grouping.bloomFilter),
+          hashIndexConfig = HashIndex.Config(grouping.hashIndex),
+          binarySearchIndexConfig = BinarySearchIndex.Config(grouping.binarySearchIndex),
+          sortedIndexConfig = SortedIndex.Config(grouping.sortedIndex),
+          valuesConfig = Values.Config(grouping.values),
+          segmentCompression =
+            SegmentCompression(
+              bloomFilter = grouping.bloomFilter,
+              hashIndex = grouping.hashIndex,
+              binarySearchIndex = grouping.binarySearchIndex,
+              sortedIndex = grouping.sortedIndex,
+              values = grouping.values
+            )
         )
     }
 
-  object Count {
-    def apply(count: Int,
-              groupCompression: Option[GroupGroupingStrategyInternal],
-              indexCompression: CompressionInternal,
-              valueCompression: CompressionInternal): Count =
-      new Count(
-        count = count,
-        groupCompression = groupCompression,
-        indexCompressions = Seq(indexCompression),
-        valueCompressions = Seq(valueCompression)
-      )
-  }
-
   case class Count(count: Int,
+                   applyGroupingOnCopy: Boolean,
                    groupCompression: Option[GroupGroupingStrategyInternal],
-                   indexCompressions: Seq[CompressionInternal],
-                   valueCompressions: Seq[CompressionInternal]) extends KeyValueGroupingStrategyInternal
-
-  object Size {
-    def apply(size: Int,
-              groupCompression: Option[GroupGroupingStrategyInternal],
-              indexCompression: CompressionInternal,
-              valueCompression: CompressionInternal): Size =
-      new Size(
-        size = size,
-        groupCompression = groupCompression,
-        indexCompressions = Seq(indexCompression),
-        valueCompressions = Seq(valueCompression)
-      )
-  }
+                   bloomFilterConfig: BloomFilter.Config,
+                   hashIndexConfig: HashIndex.Config,
+                   binarySearchIndexConfig: BinarySearchIndex.Config,
+                   sortedIndexConfig: SortedIndex.Config,
+                   valuesConfig: Values.Config,
+                   segmentCompression: SegmentCompression) extends KeyValueGroupingStrategyInternal
 
   case class Size(size: Int,
+                  applyGroupingOnCopy: Boolean,
                   groupCompression: Option[GroupGroupingStrategyInternal],
-                  indexCompressions: Seq[CompressionInternal],
-                  valueCompressions: Seq[CompressionInternal]) extends KeyValueGroupingStrategyInternal
+                  bloomFilterConfig: BloomFilter.Config,
+                  hashIndexConfig: HashIndex.Config,
+                  binarySearchIndexConfig: BinarySearchIndex.Config,
+                  sortedIndexConfig: SortedIndex.Config,
+                  valuesConfig: Values.Config,
+                  segmentCompression: SegmentCompression) extends KeyValueGroupingStrategyInternal
 }
 
 private[swaydb] sealed trait GroupGroupingStrategyInternal extends GroupingStrategy
@@ -101,47 +122,55 @@ private[swaydb] object GroupGroupingStrategyInternal {
     */
   def apply(groupingStrategy: swaydb.data.api.grouping.GroupGroupingStrategy): GroupGroupingStrategyInternal =
     groupingStrategy match {
-      case swaydb.data.api.grouping.GroupGroupingStrategy.Count(count, indexCompressions, valueCompressions) =>
+      case grouping: swaydb.data.api.grouping.GroupGroupingStrategy.Count =>
         GroupGroupingStrategyInternal.Count(
-          count = count,
-          indexCompressions = indexCompressions map CompressionInternal.apply,
-          valueCompressions = valueCompressions map CompressionInternal.apply
+          count = grouping.count,
+          bloomFilterConfig = BloomFilter.Config(grouping.bloomFilter),
+          hashIndexConfig = HashIndex.Config(grouping.hashIndex),
+          binarySearchIndexConfig = BinarySearchIndex.Config(grouping.binarySearchIndex),
+          sortedIndexConfig = SortedIndex.Config(grouping.sortedIndex),
+          valuesConfig = Values.Config(grouping.values),
+          segmentCompression =
+            SegmentCompression(
+              bloomFilter = grouping.bloomFilter,
+              hashIndex = grouping.hashIndex,
+              binarySearchIndex = grouping.binarySearchIndex,
+              sortedIndex = grouping.sortedIndex,
+              values = grouping.values
+            )
         )
-      case swaydb.data.api.grouping.GroupGroupingStrategy.Size(size, indexCompressions, valueCompressions) =>
+      case grouping: swaydb.data.api.grouping.GroupGroupingStrategy.Size =>
         GroupGroupingStrategyInternal.Size(
-          size = size,
-          indexCompressions = indexCompressions map CompressionInternal.apply,
-          valueCompressions = valueCompressions map CompressionInternal.apply
+          size = grouping.size,
+          bloomFilterConfig = BloomFilter.Config(grouping.bloomFilter),
+          hashIndexConfig = HashIndex.Config(grouping.hashIndex),
+          binarySearchIndexConfig = BinarySearchIndex.Config(grouping.binarySearchIndex),
+          sortedIndexConfig = SortedIndex.Config(grouping.sortedIndex),
+          valuesConfig = Values.Config(grouping.values),
+          segmentCompression =
+            SegmentCompression(
+              bloomFilter = grouping.bloomFilter,
+              hashIndex = grouping.hashIndex,
+              binarySearchIndex = grouping.binarySearchIndex,
+              sortedIndex = grouping.sortedIndex,
+              values = grouping.values
+            )
         )
     }
 
-  object Count {
-    def apply(count: Int,
-              indexCompression: CompressionInternal,
-              valueCompression: CompressionInternal): Count =
-      new Count(
-        count = count,
-        indexCompressions = Seq(indexCompression),
-        valueCompressions = Seq(valueCompression)
-      )
-  }
-
   case class Count(count: Int,
-                   indexCompressions: Seq[CompressionInternal],
-                   valueCompressions: Seq[CompressionInternal]) extends GroupGroupingStrategyInternal
-
-  object Size {
-    def apply(size: Int,
-              indexCompression: CompressionInternal,
-              valueCompression: CompressionInternal): Size =
-      new Size(
-        size = size,
-        indexCompressions = Seq(indexCompression),
-        valueCompressions = Seq(valueCompression)
-      )
-  }
+                   bloomFilterConfig: BloomFilter.Config,
+                   hashIndexConfig: HashIndex.Config,
+                   binarySearchIndexConfig: BinarySearchIndex.Config,
+                   sortedIndexConfig: SortedIndex.Config,
+                   valuesConfig: Values.Config,
+                   segmentCompression: SegmentCompression) extends GroupGroupingStrategyInternal
 
   case class Size(size: Int,
-                  indexCompressions: Seq[CompressionInternal],
-                  valueCompressions: Seq[CompressionInternal]) extends GroupGroupingStrategyInternal
+                  bloomFilterConfig: BloomFilter.Config,
+                  hashIndexConfig: HashIndex.Config,
+                  binarySearchIndexConfig: BinarySearchIndex.Config,
+                  sortedIndexConfig: SortedIndex.Config,
+                  valuesConfig: Values.Config,
+                  segmentCompression: SegmentCompression) extends GroupGroupingStrategyInternal
 }

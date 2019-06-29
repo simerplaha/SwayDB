@@ -55,18 +55,23 @@ object DefaultMemoryConfig {
     ConfigWizard
       .addMemoryLevel0(
         mapSize = mapSize,
+        compactionExecutionContext = CompactionExecutionContext.Create(compactionExecutionContext),
         acceleration = acceleration,
-        throttle = _ => Duration.Zero,
-        compactionExecutionContext = CompactionExecutionContext.Create(compactionExecutionContext)
+        throttle = _ => Duration.Zero
       )
       .addMemoryLevel1(
         segmentSize = segmentSize,
-        pushForward = false,
-        applyGroupingOnCopy = false,
-        bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-        compressDuplicateValues = compressDuplicateValues,
-        groupingStrategy = groupingStrategy,
+        storeValues = true,
+        copyForward = false,
         deleteSegmentsEventually = deleteSegmentsEventually,
+        bloomFilter =
+          BloomFilter.Enable(
+            falsePositiveRate = bloomFilterFalsePositiveRate,
+            minimumNumberOfKeys = 100,
+            cacheOnRead = false,
+            compression = Seq.empty
+          ),
+        groupingStrategy = groupingStrategy,
         compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =
           _ =>

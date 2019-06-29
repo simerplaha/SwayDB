@@ -70,7 +70,7 @@
 //            buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
 //            resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
 //            minimumNumberOfKeysForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
-//            hashIndexCompensation = TestData.hashIndexCompensation,
+//            allocateSpace = TestData.allocateSpace,
 //            previous = None,
 //            maxProbe = TestData.maxProbe
 //          ).assertGet

@@ -36,6 +36,7 @@ import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util._
 import swaydb.data.IO._
 import swaydb.data.config.Dir
+import swaydb.data.config.HashIndex.HashIndexMeter
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.{IO, MaxKey, Reserve}
@@ -119,7 +120,7 @@ private[segment] case class PersistentSegment(file: DBFile,
           bloomFilterFalsePositiveRate: Double,
           resetPrefixCompressionEvery: Int,
           minimumNumberOfKeyForHashIndex: Int,
-          hashIndexCompensation: Int => Int,
+          allocateSpace: HashIndexMeter => Int,
           compressDuplicateValues: Boolean,
           removeDeletes: Boolean,
           createdInLevel: Int,
@@ -143,7 +144,7 @@ private[segment] case class PersistentSegment(file: DBFile,
           bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
           resetPrefixCompressionEvery = resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
-          hashIndexCompensation = hashIndexCompensation,
+          allocateSpace = allocateSpace,
           compressDuplicateValues = compressDuplicateValues
         ) flatMap {
           splits =>
@@ -177,7 +178,7 @@ private[segment] case class PersistentSegment(file: DBFile,
               bloomFilterFalsePositiveRate: Double,
               resetPrefixCompressionEvery: Int,
               minimumNumberOfKeyForHashIndex: Int,
-              hashIndexCompensation: Int => Int,
+              allocateSpace: HashIndexMeter => Int,
               compressDuplicateValues: Boolean,
               removeDeletes: Boolean,
               createdInLevel: Int,
@@ -200,7 +201,7 @@ private[segment] case class PersistentSegment(file: DBFile,
           bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
           resetPrefixCompressionEvery = resetPrefixCompressionEvery,
           minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
-          hashIndexCompensation = hashIndexCompensation,
+          allocateSpace = allocateSpace,
           compressDuplicateValues = compressDuplicateValues
         ) flatMap {
           splits =>

@@ -226,60 +226,61 @@ object CommonAssertions {
     )
 
   def randomGroupingStrategy(keyValuesCount: Int): KeyValueGroupingStrategyInternal =
-    eitherOne(
-      left =
-        KeyValueGroupingStrategyInternal.Count(
-          count = (keyValuesCount / (randomIntMax(50) + 1)) max 1000,
-          groupCompression =
-            eitherOne(
-              left =
-                Some(
-                  eitherOne(
-                    left = GroupGroupingStrategyInternal.Count(
-                      count = randomIntMax(5) max 1,
-                      indexCompression = TestData.randomCompression(),
-                      valueCompression = TestData.randomCompression()
-                    ),
-                    right =
-                      GroupGroupingStrategyInternal.Size(
-                        size = randomIntMax(keyValuesCount max 1000).bytes * 2,
-                        indexCompression = TestData.randomCompression(),
-                        valueCompression = TestData.randomCompression()
-                      )
-                  )
-                ),
-              right = None
-            ),
-          indexCompression = TestData.randomCompression(),
-          valueCompression = TestData.randomCompression()
-        ),
-      right =
-        KeyValueGroupingStrategyInternal.Size(
-          size = keyValuesCount.kb,
-          groupCompression =
-            eitherOne(
-              left =
-                Some(
-                  eitherOne(
-                    left = GroupGroupingStrategyInternal.Count(
-                      count = randomIntMax(5) max 1,
-                      indexCompression = TestData.randomCompression(),
-                      valueCompression = TestData.randomCompression()
-                    ),
-                    right =
-                      GroupGroupingStrategyInternal.Size(
-                        size = randomIntMax(500).kb,
-                        indexCompression = TestData.randomCompression(),
-                        valueCompression = TestData.randomCompression()
-                      )
-                  )
-                ),
-              right = None
-            ),
-          indexCompression = TestData.randomCompression(),
-          valueCompression = TestData.randomCompression()
-        )
-    )
+  //    eitherOne(
+  //      left =
+  //        KeyValueGroupingStrategyInternal.Count(
+  //          count = (keyValuesCount / (randomIntMax(50) + 1)) max 1000,
+  //          groupCompression =
+  //            eitherOne(
+  //              left =
+  //                Some(
+  //                  eitherOne(
+  //                    left = GroupGroupingStrategyInternal.Count(
+  //                      count = randomIntMax(5) max 1,
+  //                      sortedIndexCompression = TestData.randomCompression(),
+  //                      valuesCompression = TestData.randomCompression()
+  //                    ),
+  //                    right =
+  //                      GroupGroupingStrategyInternal.Size(
+  //                        size = randomIntMax(keyValuesCount max 1000).bytes * 2,
+  //                        sortedIndexCompression = TestData.randomCompression(),
+  //                        valuesCompression = TestData.randomCompression()
+  //                      )
+  //                  )
+  //                ),
+  //              right = None
+  //            ),
+  //          sortedIndexCompression = TestData.randomCompression(),
+  //          valuesCompression = TestData.randomCompression()
+  //        ),
+  //      right =
+  //        KeyValueGroupingStrategyInternal.Size(
+  //          size = keyValuesCount.kb,
+  //          groupCompression =
+  //            eitherOne(
+  //              left =
+  //                Some(
+  //                  eitherOne(
+  //                    left = GroupGroupingStrategyInternal.Count(
+  //                      count = randomIntMax(5) max 1,
+  //                      sortedIndexCompression = TestData.randomCompression(),
+  //                      valuesCompression = TestData.randomCompression()
+  //                    ),
+  //                    right =
+  //                      GroupGroupingStrategyInternal.Size(
+  //                        size = randomIntMax(500).kb,
+  //                        sortedIndexCompression = TestData.randomCompression(),
+  //                        valuesCompression = TestData.randomCompression()
+  //                      )
+  //                  )
+  //                ),
+  //              right = None
+  //            ),
+  //          sortedIndexCompression = TestData.randomCompression(),
+  //          valuesCompression = TestData.randomCompression()
+  //        )
+  //    )
+    ???
 
   implicit class ValueImplicits(value: Value) {
 
@@ -407,7 +408,7 @@ object CommonAssertions {
         bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
-        hashIndexCompensation = TestData.hashIndexCompensation,
+        allocateSpace = TestData.allocateSpace,
         compressDuplicateValues = randomBoolean()
       ).assertGet
 

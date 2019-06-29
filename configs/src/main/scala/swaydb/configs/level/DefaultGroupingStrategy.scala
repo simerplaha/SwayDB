@@ -42,55 +42,56 @@ object DefaultGroupingStrategy {
     */
   def apply(groupKeyValuesAtSize: Int = 1.mb,
             minCompressionPercentage: Double = 10.0) =
-    KeyValueGroupingStrategy.Size( //Grouping strategy for key-values
-      //when the size of keys and values reaches 1.mb, do grouping!
-      size = groupKeyValuesAtSize,
-      //specifies the number of key-values in a Segment before group. Grouping will be applies after every 1000th key-value.
-      indexCompressions =
-        //try index compression with LZ4 first with 10% compression requirement then Snappy and finally if both LZ4 & Snappy compression fails
-        //simply add the current keys as uncompressed Group.
-        Seq(
-          Compression.LZ4(
-            compressor = (LZ4Instance.FastestInstance, LZ4Compressor.FastCompressor(minCompressionSavingsPercent = minCompressionPercentage)),
-            decompressor = (LZ4Instance.FastestInstance, LZ4Decompressor.FastDecompressor)
-          ),
-          Compression.UnCompressedGroup
-        ),
-      //try values compression with LZ4 first with 10% compression requirement then Snappy and finally if both LZ4 & Snappy compression fails
-      //simply add the current values as uncompressed Group.
-      valueCompressions =
-        Seq(
-          Compression.LZ4(
-            compressor = (LZ4Instance.FastestInstance, LZ4Compressor.FastCompressor(minCompressionSavingsPercent = minCompressionPercentage)),
-            decompressor = (LZ4Instance.FastestInstance, LZ4Decompressor.FastDecompressor)
-          ),
-          Compression.UnCompressedGroup
-        ),
-      //this groups existing Groups into a parent Group.
-      groupGroupingStrategy = None
-      //Example Grouping groups into nested group strategy.
-      //      Some(
-      //        GroupGroupingStrategy.Count(
-      //          count = groupGroupsAtCount,
-      //          indexCompression =
-      //            Seq(
-      //              Compression.LZ4(
-      //                compressor = (LZ4Instance.FastestJavaInstance, LZ4Compressor.FastCompressor(minCompressionPercentage = minCompressionPercentage)),
-      //                decompressor = (LZ4Instance.FastestJavaInstance, LZ4Decompressor.FastDecompressor)
-      //              ),
-      //              Compression.Snappy(minCompressionPercentage = minCompressionPercentage),
-      //              Compression.UnCompressedGroup
-      //            ),
-      //          valueCompression =
-      //            Seq(
-      //              Compression.LZ4(
-      //                compressor = (LZ4Instance.FastestJavaInstance, LZ4Compressor.FastCompressor(minCompressionPercentage = minCompressionPercentage)),
-      //                decompressor = (LZ4Instance.FastestJavaInstance, LZ4Decompressor.FastDecompressor)
-      //              ),
-      //              Compression.Snappy(minCompressionPercentage = minCompressionPercentage),
-      //              Compression.UnCompressedGroup
-      //            )
-      //        )
-      //      )
-    )
+  //    KeyValueGroupingStrategy.Size( //Grouping strategy for key-values
+  //      //when the size of keys and values reaches 1.mb, do grouping!
+  //      size = groupKeyValuesAtSize,
+  //      //specifies the number of key-values in a Segment before group. Grouping will be applies after every 1000th key-value.
+  //      indexCompressions =
+  //        //try index compression with LZ4 first with 10% compression requirement then Snappy and finally if both LZ4 & Snappy compression fails
+  //        //simply add the current keys as uncompressed Group.
+  //        Seq(
+  //          Compression.LZ4(
+  //            compressor = (LZ4Instance.FastestInstance, LZ4Compressor.FastCompressor(minCompressionSavingsPercent = minCompressionPercentage)),
+  //            decompressor = (LZ4Instance.FastestInstance, LZ4Decompressor.FastDecompressor)
+  //          ),
+  //          Compression.UnCompressedGroup
+  //        ),
+  //      //try values compression with LZ4 first with 10% compression requirement then Snappy and finally if both LZ4 & Snappy compression fails
+  //      //simply add the current values as uncompressed Group.
+  //      valueCompressions =
+  //        Seq(
+  //          Compression.LZ4(
+  //            compressor = (LZ4Instance.FastestInstance, LZ4Compressor.FastCompressor(minCompressionSavingsPercent = minCompressionPercentage)),
+  //            decompressor = (LZ4Instance.FastestInstance, LZ4Decompressor.FastDecompressor)
+  //          ),
+  //          Compression.UnCompressedGroup
+  //        ),
+  //      //this groups existing Groups into a parent Group.
+  //      groupGroupingStrategy = None
+  //      //Example Grouping groups into nested group strategy.
+  //      //      Some(
+  //      //        GroupGroupingStrategy.Count(
+  //      //          count = groupGroupsAtCount,
+  //      //          indexCompression =
+  //      //            Seq(
+  //      //              Compression.LZ4(
+  //      //                compressor = (LZ4Instance.FastestJavaInstance, LZ4Compressor.FastCompressor(minCompressionPercentage = minCompressionPercentage)),
+  //      //                decompressor = (LZ4Instance.FastestJavaInstance, LZ4Decompressor.FastDecompressor)
+  //      //              ),
+  //      //              Compression.Snappy(minCompressionPercentage = minCompressionPercentage),
+  //      //              Compression.UnCompressedGroup
+  //      //            ),
+  //      //          valueCompression =
+  //      //            Seq(
+  //      //              Compression.LZ4(
+  //      //                compressor = (LZ4Instance.FastestJavaInstance, LZ4Compressor.FastCompressor(minCompressionPercentage = minCompressionPercentage)),
+  //      //                decompressor = (LZ4Instance.FastestJavaInstance, LZ4Decompressor.FastDecompressor)
+  //      //              ),
+  //      //              Compression.Snappy(minCompressionPercentage = minCompressionPercentage),
+  //      //              Compression.UnCompressedGroup
+  //      //            )
+  //      //        )
+  //      //      )
+  //    )
+    ???
 }

@@ -46,6 +46,7 @@ import swaydb.core.util.IDGenerator
 import swaydb.data.IO
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
+import swaydb.data.config.HashIndex.HashIndexMeter
 import swaydb.data.config.{Dir, RecoveryMode}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -305,7 +306,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
               bloomFilterFalsePositiveRate: Double = TestData.falsePositiveRate,
               resetPrefixCompressionEvery: Int = TestData.resetPrefixCompressionEvery,
               minimumNumberOfKeyForHashIndex: Int = TestData.minimumNumberOfKeysForHashIndex,
-              hashIndexCompensation: Int => Int = TestData.hashIndexCompensation,
+              allocateSpace: HashIndexMeter => Int = TestData.allocateSpace,
               compressDuplicateValues: Boolean = true,
               deleteSegmentsEventually: Boolean = false,
               applyGroupingOnCopy: Boolean = false,
@@ -317,30 +318,31 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
                                                       fileOpenLimiter: FileLimiter = TestLimitQueues.fileOpenLimiter,
                                                       timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                       compression: Option[KeyValueGroupingStrategyInternal] = randomGroupingStrategy(randomNextInt(1000))): Level =
-      Level(
-        segmentSize = segmentSize,
-        bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-        resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-        minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
-        hashIndexCompensation = hashIndexCompensation,
-        maxProbe = maxProbe,
-        enableBinarySearchIndex = enableBinarySearchIndex,
-        buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-        levelStorage = levelStorage,
-        appendixStorage = appendixStorage,
-        nextLevel = nextLevel,
-        pushForward = pushForward,
-        throttle = throttle,
-        compressDuplicateValues = compressDuplicateValues,
-        deleteSegmentsEventually = deleteSegmentsEventually,
-        applyGroupingOnCopy = applyGroupingOnCopy
-      ) flatMap {
-        level =>
-          level.putKeyValuesTest(keyValues) map {
-            _ =>
-              level
-          }
-      } assertGet
+    //      Level(
+    //        segmentSize = segmentSize,
+    //        bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
+    //        resetPrefixCompressionEvery = resetPrefixCompressionEvery,
+    //        minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
+    //        allocateSpace = allocateSpace,
+    //        maxProbe = maxProbe,
+    //        enableBinarySearchIndex = enableBinarySearchIndex,
+    //        buildFullBinarySearchIndex = buildFullBinarySearchIndex,
+    //        levelStorage = levelStorage,
+    //        appendixStorage = appendixStorage,
+    //        nextLevel = nextLevel,
+    //        pushForward = pushForward,
+    //        throttle = throttle,
+    //        compressDuplicateValues = compressDuplicateValues,
+    //        deleteSegmentsEventually = deleteSegmentsEventually,
+    //        applyGroupingOnCopy = applyGroupingOnCopy
+    //      ) flatMap {
+    //        level =>
+    //          level.putKeyValuesTest(keyValues) map {
+    //            _ =>
+    //              level
+    //          }
+    //      } assertGet
+      ???
   }
 
   object TestLevelZero {

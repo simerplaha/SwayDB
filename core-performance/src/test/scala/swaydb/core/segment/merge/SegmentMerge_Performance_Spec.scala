@@ -51,7 +51,7 @@ class SegmentMerge_Performance_Spec extends TestBase {
         bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
         resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
         minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
-        hashIndexCompensation = TestData.hashIndexCompensation,
+        allocateSpace = TestData.allocateSpace,
         enableBinarySearchIndex = TestData.enableBinarySearchIndex,
         buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
         compressDuplicateValues = true

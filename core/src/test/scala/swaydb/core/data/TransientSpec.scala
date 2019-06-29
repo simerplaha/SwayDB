@@ -57,7 +57,7 @@ class TransientSpec extends TestBase {
         buildFullBinarySearchIndex = true,
         resetPrefixCompressionEvery = 0,
         minimumNumberOfKeysForHashIndex = 5,
-        hashIndexCompensation = _ => 0
+        allocateSpace = _ => 0
       ) match {
         case keyValue: Transient.Remove =>
           keyValue.stats.valueSize shouldBe 0

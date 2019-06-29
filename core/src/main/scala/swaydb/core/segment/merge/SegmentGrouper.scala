@@ -20,6 +20,7 @@
 package swaydb.core.segment.merge
 
 import com.typesafe.scalalogging.LazyLogging
+
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
 import swaydb.core.data.Transient.Group
@@ -28,6 +29,7 @@ import swaydb.core.group.compression.data.{GroupGroupingStrategyInternal, Groupi
 import swaydb.core.queue.KeyValueLimiter
 import swaydb.data.IO
 import swaydb.data.IO._
+import swaydb.data.config.HashIndex.HashIndexMeter
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 
@@ -49,11 +51,11 @@ private[merge] object SegmentGrouper extends LazyLogging {
       true
     else
       groupingStrategy match {
-        case GroupGroupingStrategyInternal.Size(size, _, _) =>
-          segmentKeyValues.last.stats.segmentSizeWithoutFooter >= size
+        case size: GroupGroupingStrategyInternal.Size =>
+          segmentKeyValues.last.stats.segmentSizeWithoutFooter >= size.size
 
-        case GroupGroupingStrategyInternal.Count(count, _, _) =>
-          segmentKeyValues.last.stats.groupsCount >= count
+        case count: GroupGroupingStrategyInternal.Count =>
+          segmentKeyValues.last.stats.groupsCount >= count.count
       }
 
   private def shouldGroupKeyValues(segmentKeyValues: Iterable[KeyValue.WriteOnly],
@@ -65,16 +67,15 @@ private[merge] object SegmentGrouper extends LazyLogging {
       true
     else
       groupingStrategy match {
-        case KeyValueGroupingStrategyInternal.Size(size, _, _, _) =>
-          segmentKeyValues.last.stats.segmentSizeWithoutFooterForNextGroup >= size
+        case size: KeyValueGroupingStrategyInternal.Size =>
+          segmentKeyValues.last.stats.segmentSizeWithoutFooterForNextGroup >= size.size
 
-        case KeyValueGroupingStrategyInternal.Count(count, _, _, _) =>
+        case count: KeyValueGroupingStrategyInternal.Count =>
           //use segmentKeyValues.last.stats.position instead of segmentKeyValues.size because position is pre-calculated.
-          segmentKeyValues.last.stats.chainPosition - segmentKeyValues.last.stats.groupsCount >= count
+          segmentKeyValues.last.stats.chainPosition - segmentKeyValues.last.stats.groupsCount >= count.count
       }
 
   private def groupsToGroup(keyValues: Iterable[KeyValue.WriteOnly],
-                            bloomFilterFalsePositiveRate: Double,
                             groupingStrategy: GroupGroupingStrategyInternal,
                             force: Boolean): Option[Slice[KeyValue.WriteOnly]] =
     if (shouldGroupGroups(segmentKeyValues = keyValues, groupingStrategy = groupingStrategy, force = force)) {
@@ -95,7 +96,6 @@ private[merge] object SegmentGrouper extends LazyLogging {
     * @return IO.Success key-values to Group and the last Group. IO.Failure if the head of the List does not contain all the Group.
     */
   private def keyValuesToGroup(segmentKeyValues: Iterable[KeyValue.WriteOnly],
-                               bloomFilterFalsePositiveRate: Double,
                                groupingStrategy: KeyValueGroupingStrategyInternal,
                                force: Boolean): IO[Option[(Slice[KeyValue.WriteOnly], Option[Transient.Group])]] =
     if (shouldGroupKeyValues(segmentKeyValues = segmentKeyValues, groupingStrategy = groupingStrategy, force = force)) {
@@ -116,7 +116,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                 //                  IO.Failure(exception)
                 //                } else {
                 IO {
-                  keyValuesToGroup add keyValue.updateStats(bloomFilterFalsePositiveRate, keyValuesToGroup.lastOption)
+                  keyValuesToGroup add keyValue.updateStats(groupingStrategy.bloomFilterConfig.falsePositiveRate, keyValuesToGroup.lastOption)
                   (count + 1, lastGroup)
                 }
               //                }
@@ -142,25 +142,11 @@ private[merge] object SegmentGrouper extends LazyLogging {
   private def createGroup(keyValuesToGroup: Slice[KeyValue.WriteOnly],
                           lastGroup: Option[Transient.Group],
                           segmentKeyValues: ListBuffer[KeyValue.WriteOnly],
-                          bloomFilterFalsePositiveRate: Double,
-                          resetPrefixCompressionEvery: Int,
-                          minimumNumberOfKeyForHashIndex: Int,
-                          hashIndexCompensation: Int => Int,
-                          groupingStrategy: GroupingStrategy,
-                          maxProbe: Int,
-                          enableBinarySearchIndex: Boolean,
-                          buildFullBinarySearchIndex: Boolean): IO[Option[Group]] =
+                          groupingStrategy: GroupingStrategy): IO[Option[Group]] =
     Transient.Group(
       keyValues = keyValuesToGroup,
-      segmentCompression = ???,
-      falsePositiveRate = bloomFilterFalsePositiveRate,
-      enableBinarySearchIndex = enableBinarySearchIndex,
-      buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-      resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-      minimumNumberOfKeysForHashIndex = minimumNumberOfKeyForHashIndex,
-      hashIndexCompensation = hashIndexCompensation,
       previous = lastGroup,
-      maxProbe = maxProbe
+      groupingStrategy = groupingStrategy
     ) map {
       newGroup =>
         newGroup map {
@@ -178,18 +164,10 @@ private[merge] object SegmentGrouper extends LazyLogging {
     }
 
   private[segment] def groupKeyValues(segmentKeyValues: ListBuffer[KeyValue.WriteOnly],
-                                      bloomFilterFalsePositiveRate: Double,
-                                      resetPrefixCompressionEvery: Int,
-                                      minimumNumberOfKeyForHashIndex: Int,
-                                      hashIndexCompensation: Int => Int,
                                       groupingStrategy: KeyValueGroupingStrategyInternal,
-                                      maxProbe: Int,
-                                      enableBinarySearchIndex: Boolean,
-                                      buildFullBinarySearchIndex: Boolean,
                                       force: Boolean): IO[Option[Group]] =
     keyValuesToGroup(
       segmentKeyValues = segmentKeyValues,
-      bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
       groupingStrategy = groupingStrategy,
       force = force
     ) flatMap {
@@ -198,14 +176,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
           keyValuesToGroup = keyValuesToGroup,
           lastGroup = lastGroup,
           segmentKeyValues = segmentKeyValues,
-          bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-          resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-          minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
-          hashIndexCompensation = hashIndexCompensation,
-          groupingStrategy = groupingStrategy,
-          maxProbe = maxProbe,
-          enableBinarySearchIndex = enableBinarySearchIndex,
-          buildFullBinarySearchIndex = buildFullBinarySearchIndex
+          groupingStrategy = groupingStrategy
         )
       case None =>
         IO.none
@@ -213,17 +184,9 @@ private[merge] object SegmentGrouper extends LazyLogging {
 
   private[segment] def groupGroups(groupKeyValues: ListBuffer[KeyValue.WriteOnly],
                                    groupingStrategy: GroupGroupingStrategyInternal,
-                                   bloomFilterFalsePositiveRate: Double,
-                                   resetPrefixCompressionEvery: Int,
-                                   minimumNumberOfKeyForHashIndex: Int,
-                                   hashIndexCompensation: Int => Int,
-                                   maxProbe: Int,
-                                   enableBinarySearchIndex: Boolean,
-                                   buildFullBinarySearchIndex: Boolean,
                                    force: Boolean): IO[Option[Group]] =
     groupsToGroup(
       keyValues = groupKeyValues,
-      bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
       groupingStrategy = groupingStrategy,
       force = force
     ) map {
@@ -232,14 +195,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
           keyValuesToGroup = groupsToGroup,
           lastGroup = None,
           segmentKeyValues = groupKeyValues,
-          bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-          resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-          minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
-          hashIndexCompensation = hashIndexCompensation,
-          groupingStrategy = groupingStrategy,
-          maxProbe = maxProbe,
-          enableBinarySearchIndex = enableBinarySearchIndex,
-          buildFullBinarySearchIndex = buildFullBinarySearchIndex
+          groupingStrategy = groupingStrategy
         )
     } getOrElse IO.none
 
@@ -249,48 +205,29 @@ private[merge] object SegmentGrouper extends LazyLogging {
     * @return returns the last group in the List if grouping was successful else None.
     */
   private[segment] def group(segmentKeyValues: ListBuffer[KeyValue.WriteOnly],
-                             bloomFilterFalsePositiveRate: Double,
-                             resetPrefixCompressionEvery: Int,
-                             minimumNumberOfKeyForHashIndex: Int,
-                             hashIndexCompensation: Int => Int,
                              groupingStrategy: KeyValueGroupingStrategyInternal,
-                             maxProbe: Int,
-                             enableBinarySearchIndex: Boolean,
-                             buildFullBinarySearchIndex: Boolean,
                              force: Boolean): IO[Option[Group]] =
     for {
-      keyValuesGroup <-
-      groupKeyValues(
-        segmentKeyValues = segmentKeyValues,
-        bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-        resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-        minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
-        hashIndexCompensation = hashIndexCompensation,
-        groupingStrategy = groupingStrategy,
-        maxProbe = maxProbe,
-        enableBinarySearchIndex = enableBinarySearchIndex,
-        buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-        force = force
-      )
-      groupsGroup <-
-      if (keyValuesGroup.isDefined) //grouping of groups should only run if key-value grouping was successful.
-        groupingStrategy.groupCompression map {
-          groupingStrategy =>
-            groupGroups(
-              groupKeyValues = segmentKeyValues,
-              groupingStrategy = groupingStrategy,
-              bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-              resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-              minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
-              hashIndexCompensation = hashIndexCompensation,
-              maxProbe = maxProbe,
-              enableBinarySearchIndex = enableBinarySearchIndex,
-              buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-              force = force
-            )
-        } getOrElse IO.none
-      else
-        IO.none
+      keyValuesGroup <- {
+        groupKeyValues(
+          segmentKeyValues = segmentKeyValues,
+          groupingStrategy = groupingStrategy,
+          force = force
+        )
+      }
+      groupsGroup <- {
+        if (keyValuesGroup.isDefined) //grouping of groups should only run if key-value grouping was successful.
+          groupingStrategy.groupCompression map {
+            groupingStrategy =>
+              groupGroups(
+                groupKeyValues = segmentKeyValues,
+                groupingStrategy = groupingStrategy,
+                force = force
+              )
+          } getOrElse IO.none
+        else
+          IO.none
+      }
     } yield {
       groupsGroup orElse keyValuesGroup
     }
@@ -307,7 +244,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                    bloomFilterFalsePositiveRate: Double,
                    resetPrefixCompressionEvery: Int,
                    minimumNumberOfKeyForHashIndex: Int,
-                   hashIndexCompensation: Int => Int,
+                   allocateSpace: HashIndexMeter => Int,
                    compressDuplicateValues: Boolean)(implicit groupingStrategy: Option[KeyValueGroupingStrategyInternal],
                                                      keyOrder: KeyOrder[Slice[Byte]]): IO[Unit] =
     keyValues.headOption match {
@@ -328,7 +265,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                   bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
                   resetPrefixCompressionEvery = resetPrefixCompressionEvery,
                   minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
-                  hashIndexCompensation = hashIndexCompensation,
+                  allocateSpace = allocateSpace,
                   compressDuplicateValues = compressDuplicateValues
                 )
               case IO.Failure(exception) =>
@@ -348,7 +285,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
               bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
               resetPrefixCompressionEvery = resetPrefixCompressionEvery,
               minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
-              hashIndexCompensation = hashIndexCompensation,
+              allocateSpace = allocateSpace,
               compressDuplicateValues = compressDuplicateValues
             ) match {
               case IO.Success(_) =>
@@ -364,7 +301,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                   bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
                   resetPrefixCompressionEvery = resetPrefixCompressionEvery,
                   minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
-                  hashIndexCompensation = hashIndexCompensation,
+                  allocateSpace = allocateSpace,
                   compressDuplicateValues = compressDuplicateValues
                 )
               case IO.Failure(exception) =>
@@ -386,7 +323,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                   bloomFilterFalsePositiveRate: Double,
                   resetPrefixCompressionEvery: Int,
                   minimumNumberOfKeyForHashIndex: Int,
-                  hashIndexCompensation: Int => Int,
+                  allocateSpace: HashIndexMeter => Int,
                   compressDuplicateValues: Boolean)(implicit groupingStrategy: Option[KeyValueGroupingStrategyInternal],
                                                     keyOrder: KeyOrder[Slice[Byte]]): IO[Unit] = {
 
@@ -431,14 +368,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
               last =>
                 group(
                   segmentKeyValues = last,
-                  bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
-                  resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-                  minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
-                  hashIndexCompensation = hashIndexCompensation,
                   groupingStrategy = groupingStrategy,
-                  maxProbe = maxProbe,
-                  enableBinarySearchIndex = enableBinarySearchIndex,
-                  buildFullBinarySearchIndex = buildFullBinarySearchIndex,
                   force = force
                 ) map (_ => ())
             }
@@ -489,7 +419,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                     compressDuplicateValues = compressDuplicateValues,
                     resetPrefixCompressionEvery = resetPrefixCompressionEvery,
                     minimumNumberOfKeysForHashIndex = minimumNumberOfKeyForHashIndex,
-                    hashIndexCompensation = hashIndexCompensation
+                    allocateSpace = allocateSpace
                   )
                 )
 
@@ -512,7 +442,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                         compressDuplicateValues = compressDuplicateValues,
                         resetPrefixCompressionEvery = resetPrefixCompressionEvery,
                         minimumNumberOfKeysForHashIndex = minimumNumberOfKeyForHashIndex,
-                        hashIndexCompensation = hashIndexCompensation
+                        allocateSpace = allocateSpace
                       )
                     )
                 }
@@ -532,7 +462,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                     buildFullBinarySearchIndex = buildFullBinarySearchIndex,
                     resetPrefixCompressionEvery = resetPrefixCompressionEvery,
                     minimumNumberOfKeysForHashIndex = minimumNumberOfKeyForHashIndex,
-                    hashIndexCompensation = hashIndexCompensation
+                    allocateSpace = allocateSpace
                   )
                 )
 
@@ -551,7 +481,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                     buildFullBinarySearchIndex = buildFullBinarySearchIndex,
                     resetPrefixCompressionEvery = resetPrefixCompressionEvery,
                     minimumNumberOfKeysForHashIndex = minimumNumberOfKeyForHashIndex,
-                    hashIndexCompensation = hashIndexCompensation
+                    allocateSpace = allocateSpace
                   )
                 )
 
@@ -572,7 +502,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                     compressDuplicateValues = compressDuplicateValues,
                     resetPrefixCompressionEvery = resetPrefixCompressionEvery,
                     minimumNumberOfKeysForHashIndex = minimumNumberOfKeyForHashIndex,
-                    hashIndexCompensation = hashIndexCompensation
+                    allocateSpace = allocateSpace
                   )
                 )
 
@@ -595,7 +525,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                         compressDuplicateValues = compressDuplicateValues,
                         resetPrefixCompressionEvery = resetPrefixCompressionEvery,
                         minimumNumberOfKeysForHashIndex = minimumNumberOfKeyForHashIndex,
-                        hashIndexCompensation = hashIndexCompensation
+                        allocateSpace = allocateSpace
                       )
                     )
                 }
@@ -617,7 +547,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                     resetPrefixCompressionEvery = resetPrefixCompressionEvery,
                     compressDuplicateValues = compressDuplicateValues,
                     minimumNumberOfKeysForHashIndex = minimumNumberOfKeyForHashIndex,
-                    hashIndexCompensation = hashIndexCompensation
+                    allocateSpace = allocateSpace
                   )
                 )
 
@@ -640,7 +570,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                         resetPrefixCompressionEvery = resetPrefixCompressionEvery,
                         compressDuplicateValues = compressDuplicateValues,
                         minimumNumberOfKeysForHashIndex = minimumNumberOfKeyForHashIndex,
-                        hashIndexCompensation = hashIndexCompensation
+                        allocateSpace = allocateSpace
                       )
                     )
                 }
@@ -660,7 +590,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                     resetPrefixCompressionEvery = resetPrefixCompressionEvery,
                     compressDuplicateValues = compressDuplicateValues,
                     minimumNumberOfKeysForHashIndex = minimumNumberOfKeyForHashIndex,
-                    hashIndexCompensation = hashIndexCompensation
+                    allocateSpace = allocateSpace
                   )
                 )
 
@@ -681,7 +611,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                         resetPrefixCompressionEvery = resetPrefixCompressionEvery,
                         compressDuplicateValues = compressDuplicateValues,
                         minimumNumberOfKeysForHashIndex = minimumNumberOfKeyForHashIndex,
-                        hashIndexCompensation = hashIndexCompensation
+                        allocateSpace = allocateSpace
                       )
                     )
                 }
@@ -709,7 +639,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                               resetPrefixCompressionEvery = resetPrefixCompressionEvery,
                               compressDuplicateValues = compressDuplicateValues,
                               minimumNumberOfKeysForHashIndex = minimumNumberOfKeyForHashIndex,
-                              hashIndexCompensation = hashIndexCompensation
+                              allocateSpace = allocateSpace
                             )
                           )
                         else
@@ -738,7 +668,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                     buildFullBinarySearchIndex = buildFullBinarySearchIndex,
                     resetPrefixCompressionEvery = resetPrefixCompressionEvery,
                     minimumNumberOfKeysForHashIndex = minimumNumberOfKeyForHashIndex,
-                    hashIndexCompensation = hashIndexCompensation,
+                    allocateSpace = allocateSpace,
                     _
                   )
                 )
@@ -759,7 +689,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                 bloomFilterFalsePositiveRate = bloomFilterFalsePositiveRate,
                 resetPrefixCompressionEvery = resetPrefixCompressionEvery,
                 minimumNumberOfKeyForHashIndex = minimumNumberOfKeyForHashIndex,
-                hashIndexCompensation = hashIndexCompensation,
+                allocateSpace = allocateSpace,
                 compressDuplicateValues = compressDuplicateValues
               )
           }
