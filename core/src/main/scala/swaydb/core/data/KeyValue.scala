@@ -25,7 +25,7 @@ import swaydb.core.group.compression.{GroupCompressor, GroupDecompressor, GroupK
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.serializer.RangeValueSerializer
 import swaydb.core.queue.KeyValueLimiter
-import swaydb.core.segment.format.a.SegmentWriter
+import swaydb.core.segment.format.a.{SegmentCompression, SegmentWriter}
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.entry.reader.value._
 import swaydb.core.segment.format.a.entry.writer._
@@ -1065,11 +1065,23 @@ private[core] object Transient {
 
     def apply(keyValues: Slice[KeyValue.WriteOnly],
               previous: Option[KeyValue.WriteOnly],
-              groupingStrategy: GroupingStrategy): IO[Option[Transient.Group]] =
+              //compression is for the group's key-values.
+              groupCompression: SegmentCompression,
+              //these configs are for the Group itself and not the key-values within the group.
+              valuesConfig: Values.Config,
+              sortedIndexConfig: SortedIndex.Config,
+              binarySearchIndexConfig: BinarySearchIndex.Config,
+              hashIndexConfig: HashIndex.Config,
+              bloomFilterConfig: BloomFilter.Config): IO[Option[Transient.Group]] =
       GroupCompressor.compress(
         keyValues = keyValues,
         previous = previous,
-        groupingStrategy = groupingStrategy
+        segmentCompression = groupCompression,
+        valuesConfig = valuesConfig,
+        sortedIndexConfig = sortedIndexConfig,
+        binarySearchIndexConfig = binarySearchIndexConfig,
+        hashIndexConfig = hashIndexConfig,
+        bloomFilterConfig = bloomFilterConfig
       )
   }
 

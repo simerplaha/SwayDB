@@ -47,7 +47,12 @@ private[core] object SegmentMerger extends LazyLogging {
   def completeMerge(segments: ListBuffer[ListBuffer[KeyValue.WriteOnly]],
                     minSegmentSize: Long,
                     forMemory: Boolean,
-                    groupLastSegment: Boolean)(implicit groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[ListBuffer[ListBuffer[KeyValue.WriteOnly]]] = {
+                    groupLastSegment: Boolean,
+                    valuesConfig: Values.Config,
+                    sortedIndexConfig: SortedIndex.Config,
+                    binarySearchIndexConfig: BinarySearchIndex.Config,
+                    hashIndexConfig: HashIndex.Config,
+                    bloomFilterConfig: BloomFilter.Config)(implicit groupingStrategy: Option[KeyValueGroupingStrategyInternal]): IO[ListBuffer[ListBuffer[KeyValue.WriteOnly]]] = {
     //if there are any small Segments, merge them into previous Segment.
     val noSmallSegments =
       if (segments.length >= 2 && ((forMemory && segments.last.lastOption.map(_.stats.memorySegmentSize).getOrElse(0) < minSegmentSize) || segments.last.lastOption.map(_.stats.segmentSize).getOrElse(0) < minSegmentSize)) {
@@ -80,6 +85,11 @@ private[core] object SegmentMerger extends LazyLogging {
             SegmentGrouper.group(
               segmentKeyValues = lastSegmentsKeyValues,
               groupingStrategy = groupingS,
+              valuesConfig = valuesConfig,
+              sortedIndexConfig = sortedIndexConfig,
+              binarySearchIndexConfig = binarySearchIndexConfig,
+              hashIndexConfig = hashIndexConfig,
+              bloomFilterConfig = bloomFilterConfig,
               force = true
             ) match {
               case IO.Success(Some(_)) => //grouping occurred.
@@ -88,7 +98,12 @@ private[core] object SegmentMerger extends LazyLogging {
                   segments = noSmallSegments,
                   minSegmentSize = minSegmentSize,
                   forMemory = forMemory,
-                  groupLastSegment = false
+                  groupLastSegment = false,
+                  valuesConfig = valuesConfig,
+                  sortedIndexConfig = sortedIndexConfig,
+                  binarySearchIndexConfig = binarySearchIndexConfig,
+                  hashIndexConfig = hashIndexConfig,
+                  bloomFilterConfig = bloomFilterConfig
                 )
 
               case IO.Success(None) =>
@@ -137,7 +152,12 @@ private[core] object SegmentMerger extends LazyLogging {
           segments = splits,
           minSegmentSize = minSegmentSize,
           forMemory = forInMemory,
-          groupLastSegment = true
+          groupLastSegment = true,
+          valuesConfig = valuesConfig,
+          sortedIndexConfig = sortedIndexConfig,
+          binarySearchIndexConfig = binarySearchIndexConfig,
+          hashIndexConfig = hashIndexConfig,
+          bloomFilterConfig = bloomFilterConfig
         )
 
       case Some(IO.Failure(failure)) =>
@@ -221,7 +241,12 @@ private[core] object SegmentMerger extends LazyLogging {
           segments = splits,
           minSegmentSize = minSegmentSize,
           forMemory = forInMemory,
-          groupLastSegment = true
+          groupLastSegment = true,
+          valuesConfig = valuesConfig,
+          sortedIndexConfig = sortedIndexConfig,
+          binarySearchIndexConfig = binarySearchIndexConfig,
+          hashIndexConfig = hashIndexConfig,
+          bloomFilterConfig = bloomFilterConfig
         )
     }
 

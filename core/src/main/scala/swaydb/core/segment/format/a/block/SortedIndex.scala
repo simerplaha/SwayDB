@@ -220,7 +220,7 @@ private[core] object SortedIndex {
 
   def readAll(keyValueCount: Int,
               sortedIndexReader: BlockReader[SortedIndex],
-              valueReader: Option[BlockReader[Values]],
+              valuesReader: Option[BlockReader[Values]],
               addTo: Option[Slice[KeyValue.ReadOnly]] = None): IO[Slice[KeyValue.ReadOnly]] =
     try {
       sortedIndexReader moveTo 0
@@ -241,7 +241,7 @@ private[core] object SortedIndex {
           readNextKeyValue(
             indexEntrySizeMayBe = nextIndexSize,
             indexReader = readSortedIndexReader,
-            valueReader = valueReader,
+            valueReader = valuesReader,
             previous = previousMayBe
           ) map {
             next =>

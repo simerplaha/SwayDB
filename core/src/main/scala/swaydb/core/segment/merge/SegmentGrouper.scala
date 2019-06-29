@@ -150,11 +150,21 @@ private[merge] object SegmentGrouper extends LazyLogging {
   private def createGroup(keyValuesToGroup: Slice[KeyValue.WriteOnly],
                           lastGroup: Option[Transient.Group],
                           segmentKeyValues: ListBuffer[KeyValue.WriteOnly],
-                          groupingStrategy: GroupingStrategy): IO[Option[Group]] =
+                          groupingStrategy: GroupingStrategy,
+                          valuesConfig: Values.Config,
+                          sortedIndexConfig: SortedIndex.Config,
+                          binarySearchIndexConfig: BinarySearchIndex.Config,
+                          hashIndexConfig: HashIndex.Config,
+                          bloomFilterConfig: BloomFilter.Config): IO[Option[Group]] =
     Transient.Group(
       keyValues = keyValuesToGroup,
       previous = lastGroup,
-      groupingStrategy = groupingStrategy
+      groupCompression = groupingStrategy.segmentCompression,
+      valuesConfig = valuesConfig,
+      sortedIndexConfig = sortedIndexConfig,
+      binarySearchIndexConfig = binarySearchIndexConfig,
+      hashIndexConfig = hashIndexConfig,
+      bloomFilterConfig = bloomFilterConfig
     ) map {
       newGroup =>
         newGroup map {
@@ -173,6 +183,11 @@ private[merge] object SegmentGrouper extends LazyLogging {
 
   private[segment] def groupKeyValues(segmentKeyValues: ListBuffer[KeyValue.WriteOnly],
                                       groupingStrategy: KeyValueGroupingStrategyInternal,
+                                      valuesConfig: Values.Config,
+                                      sortedIndexConfig: SortedIndex.Config,
+                                      binarySearchIndexConfig: BinarySearchIndex.Config,
+                                      hashIndexConfig: HashIndex.Config,
+                                      bloomFilterConfig: BloomFilter.Config,
                                       force: Boolean): IO[Option[Group]] =
     keyValuesToGroup(
       segmentKeyValues = segmentKeyValues,
@@ -184,7 +199,12 @@ private[merge] object SegmentGrouper extends LazyLogging {
           keyValuesToGroup = keyValuesToGroup,
           lastGroup = lastGroup,
           segmentKeyValues = segmentKeyValues,
-          groupingStrategy = groupingStrategy
+          groupingStrategy = groupingStrategy,
+          valuesConfig = valuesConfig,
+          sortedIndexConfig = sortedIndexConfig,
+          binarySearchIndexConfig = binarySearchIndexConfig,
+          hashIndexConfig = hashIndexConfig,
+          bloomFilterConfig = bloomFilterConfig
         )
       case None =>
         IO.none
@@ -192,6 +212,11 @@ private[merge] object SegmentGrouper extends LazyLogging {
 
   private[segment] def groupGroups(groupKeyValues: ListBuffer[KeyValue.WriteOnly],
                                    groupingStrategy: GroupGroupingStrategyInternal,
+                                   valuesConfig: Values.Config,
+                                   sortedIndexConfig: SortedIndex.Config,
+                                   binarySearchIndexConfig: BinarySearchIndex.Config,
+                                   hashIndexConfig: HashIndex.Config,
+                                   bloomFilterConfig: BloomFilter.Config,
                                    force: Boolean): IO[Option[Group]] =
     groupsToGroup(
       keyValues = groupKeyValues,
@@ -203,7 +228,12 @@ private[merge] object SegmentGrouper extends LazyLogging {
           keyValuesToGroup = groupsToGroup,
           lastGroup = None,
           segmentKeyValues = groupKeyValues,
-          groupingStrategy = groupingStrategy
+          groupingStrategy = groupingStrategy,
+          valuesConfig = valuesConfig,
+          sortedIndexConfig = sortedIndexConfig,
+          binarySearchIndexConfig = binarySearchIndexConfig,
+          hashIndexConfig = hashIndexConfig,
+          bloomFilterConfig = bloomFilterConfig
         )
     } getOrElse IO.none
 
@@ -214,12 +244,22 @@ private[merge] object SegmentGrouper extends LazyLogging {
     */
   private[segment] def group(segmentKeyValues: ListBuffer[KeyValue.WriteOnly],
                              groupingStrategy: KeyValueGroupingStrategyInternal,
+                             valuesConfig: Values.Config,
+                             sortedIndexConfig: SortedIndex.Config,
+                             binarySearchIndexConfig: BinarySearchIndex.Config,
+                             hashIndexConfig: HashIndex.Config,
+                             bloomFilterConfig: BloomFilter.Config,
                              force: Boolean): IO[Option[Group]] =
     for {
       keyValuesGroup <- {
         groupKeyValues(
           segmentKeyValues = segmentKeyValues,
           groupingStrategy = groupingStrategy,
+          valuesConfig = valuesConfig,
+          sortedIndexConfig = sortedIndexConfig,
+          binarySearchIndexConfig = binarySearchIndexConfig,
+          hashIndexConfig = hashIndexConfig,
+          bloomFilterConfig = bloomFilterConfig,
           force = force
         )
       }
@@ -230,6 +270,11 @@ private[merge] object SegmentGrouper extends LazyLogging {
               groupGroups(
                 groupKeyValues = segmentKeyValues,
                 groupingStrategy = groupingStrategy,
+                valuesConfig = valuesConfig,
+                sortedIndexConfig = sortedIndexConfig,
+                binarySearchIndexConfig = binarySearchIndexConfig,
+                hashIndexConfig = hashIndexConfig,
+                bloomFilterConfig = bloomFilterConfig,
                 force = force
               )
           } getOrElse IO.none
@@ -362,6 +407,11 @@ private[merge] object SegmentGrouper extends LazyLogging {
                 group(
                   segmentKeyValues = last,
                   groupingStrategy = groupingStrategy,
+                  valuesConfig = valuesConfig,
+                  sortedIndexConfig = sortedIndexConfig,
+                  binarySearchIndexConfig = binarySearchIndexConfig,
+                  hashIndexConfig = hashIndexConfig,
+                  bloomFilterConfig = bloomFilterConfig,
                   force = force
                 ) map (_ => ())
             }

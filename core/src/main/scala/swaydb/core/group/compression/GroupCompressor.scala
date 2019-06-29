@@ -22,8 +22,8 @@ package swaydb.core.group.compression
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.{KeyValue, Transient}
 import swaydb.core.group.compression.GroupCompressorFailure.InvalidGroupKeyValuesHeadPosition
-import swaydb.core.group.compression.data.GroupingStrategy
-import swaydb.core.segment.format.a.SegmentWriter
+import swaydb.core.segment.format.a.block._
+import swaydb.core.segment.format.a.{SegmentCompression, SegmentWriter}
 import swaydb.data.slice.Slice
 import swaydb.data.{IO, MaxKey}
 
@@ -39,7 +39,12 @@ private[core] object GroupCompressor extends LazyLogging {
 
   def compress(keyValues: Slice[KeyValue.WriteOnly],
                previous: Option[KeyValue.WriteOnly],
-               groupingStrategy: GroupingStrategy): IO[Option[Transient.Group]] =
+               segmentCompression: SegmentCompression,
+               valuesConfig: Values.Config,
+               sortedIndexConfig: SortedIndex.Config,
+               binarySearchIndexConfig: BinarySearchIndex.Config,
+               hashIndexConfig: HashIndex.Config,
+               bloomFilterConfig: BloomFilter.Config): IO[Option[Transient.Group]] =
     if (keyValues.isEmpty) {
       logger.error(s"Ignoring compression. Cannot compress on empty key-values")
       IO.none
@@ -52,9 +57,9 @@ private[core] object GroupCompressor extends LazyLogging {
       logger.debug(s"Compressing ${keyValues.size} key-values with previous key-value as ${previous.map(_.getClass.getSimpleName)}.")
       SegmentWriter.write(
         keyValues = keyValues,
-        segmentCompression = groupingStrategy.segmentCompression,
+        segmentCompression = segmentCompression,
         createdInLevel = 0,
-        maxProbe = groupingStrategy.hashIndexConfig.maxProbe
+        maxProbe = keyValues.last.hashIndexConfig.maxProbe
       ) flatMap {
         result =>
           IO {
@@ -68,11 +73,11 @@ private[core] object GroupCompressor extends LazyLogging {
                 deadline = result.nearestDeadline,
                 keyValues = keyValues,
                 previous = previous,
-                valuesConfig = groupingStrategy.valuesConfig,
-                sortedIndexConfig = groupingStrategy.sortedIndexConfig,
-                binarySearchIndexConfig = groupingStrategy.binarySearchIndexConfig,
-                hashIndexConfig = groupingStrategy.hashIndexConfig,
-                bloomFilterConfig = groupingStrategy.bloomFilterConfig
+                valuesConfig = valuesConfig,
+                sortedIndexConfig = sortedIndexConfig,
+                binarySearchIndexConfig = binarySearchIndexConfig,
+                hashIndexConfig = hashIndexConfig,
+                bloomFilterConfig = bloomFilterConfig
               )
             )
           }

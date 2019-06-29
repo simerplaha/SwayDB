@@ -38,6 +38,7 @@ import swaydb.core.queue.{FileLimiter, KeyValueLimiter}
 import swaydb.core.seek._
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.SegmentCompression
+import swaydb.core.segment.format.a.block.{BinarySearchIndex, BloomFilter, HashIndex, SortedIndex, Values}
 import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
 import swaydb.core.util.UUIDUtil
 import swaydb.data.accelerate.Accelerator
@@ -65,15 +66,6 @@ object TestData {
     */
 
   val allBaseEntryIds = BaseEntryIdFormatA.baseIds
-
-  val falsePositiveRate: Double = 0.01
-  val resetPrefixCompressionEvery: Int = 0
-  val minimumNumberOfKeysForHashIndex: Int = Try(resetPrefixCompressionEvery / 2).getOrElse(Int.MaxValue)
-  val allocateSpace: HashIndexMeter => Int = _ => 0
-  val compressDuplicateValues: Boolean = true
-  val buildFullBinarySearchIndex: Boolean = true
-  val enableBinarySearchIndex: Boolean = true
-  val maxProbe: Int = 5
 
   implicit val functionStore: FunctionStore = FunctionStore.memory()
 
@@ -155,60 +147,52 @@ object TestData {
       else if (!level.isEmpty)
         level.putKeyValues(keyValues.toMemory, level.segmentsInLevel(), None)
       else if (level.inMemory)
-      //        Segment.copyToMemory(
-      //          keyValues = keyValues,
-      //          fetchNextPath = level.paths.next.resolve(level.segmentIDGenerator.nextSegmentID),
-      //          removeDeletes = false,
-      //          minSegmentSize = 1000.mb,
-      //          createdInLevel = level.levelNumber,
-      //          maxProbe = level.hashIndexConfig.maxProbe,
-      //          enableBinarySearchIndex = level.binarySearchIndexConfig.enabled,
-      //          buildFullBinarySearchIndex = level.binarySearchIndexConfig.fullIndex,
-      //          bloomFilterFalsePositiveRate = level.bloomFilterConfig.falsePositiveRate,
-      //          resetPrefixCompressionEvery = level.sortedIndexConfig.prefixCompressionResetCount,
-      //          minimumNumberOfKeyForHashIndex = level.hashIndexConfig.minimumNumberOfKeys,
-      //          allocateSpace = level.hashIndexConfig.allocateSpace,
-      //          compressDuplicateValues = level.valuesConfig.compressDuplicateValues
-      //        ) flatMap {
-      //          segments =>
-      //            segments should have size 1
-      //            segments mapIO {
-      //              segment =>
-      //                level.putKeyValues(keyValues.toMemory, Seq(segment), None)
-      //            } map {
-      //              _ => ()
-      //            }
-      //        }
-        ???
+        Segment.copyToMemory(
+          keyValues = keyValues,
+          fetchNextPath = level.paths.next.resolve(level.segmentIDGenerator.nextSegmentID),
+          removeDeletes = false,
+          minSegmentSize = 1000.mb,
+          createdInLevel = level.levelNumber,
+          valuesConfig = level.valuesConfig,
+          sortedIndexConfig = level.sortedIndexConfig,
+          binarySearchIndexConfig = level.binarySearchIndexConfig,
+          hashIndexConfig = level.hashIndexConfig,
+          bloomFilterConfig = level.bloomFilterConfig
+        ) flatMap {
+          segments =>
+            segments should have size 1
+            segments mapIO {
+              segment =>
+                level.putKeyValues(keyValues.toMemory, Seq(segment), None)
+            } map {
+              _ => ()
+            }
+        }
       else
-      //        Segment.copyToPersist(
-      //          keyValues = keyValues.toTransient(),
-      //          createdInLevel = level.levelNumber,
-      //          fetchNextPath = level.paths.next.resolve(level.segmentIDGenerator.nextSegmentID),
-      //          mmapSegmentsOnRead = randomBoolean(),
-      //          mmapSegmentsOnWrite = randomBoolean(),
-      //          removeDeletes = false,
-      //          minSegmentSize = 1000.mb,
-      //          segmentCompression = level.segmentCompression,
-      //          maxProbe = level.hashIndexConfig.maxProbe,
-      //          enableBinarySearchIndex = level.binarySearchIndexConfig.enabled,
-      //          buildFullBinarySearchIndex = level.binarySearchIndexConfig.fullIndex,
-      //          bloomFilterFalsePositiveRate = level.bloomFilterConfig.falsePositiveRate,
-      //          resetPrefixCompressionEvery = level.sortedIndexConfig.prefixCompressionResetCount,
-      //          minimumNumberOfKeyForHashIndex = level.hashIndexConfig.minimumNumberOfKeys,
-      //          allocateSpace = level.hashIndexConfig.allocateSpace,
-      //          compressDuplicateValues = level.valuesConfig.compressDuplicateValues
-      //        ) flatMap {
-      //          segments =>
-      //            segments should have size 1
-      //            segments mapIO {
-      //              segment =>
-      //                level.putKeyValues(keyValues.toMemory, Seq(segment), None)
-      //            } map {
-      //              _ => ()
-      //            }
-      //        }
-        ???
+        Segment.copyToPersist(
+          keyValues = keyValues.toTransient(),
+          createdInLevel = level.levelNumber,
+          fetchNextPath = level.paths.next.resolve(level.segmentIDGenerator.nextSegmentID),
+          mmapSegmentsOnRead = randomBoolean(),
+          mmapSegmentsOnWrite = randomBoolean(),
+          removeDeletes = false,
+          minSegmentSize = 1000.mb,
+          segmentCompression = level.segmentCompression,
+          valuesConfig = level.valuesConfig,
+          sortedIndexConfig = level.sortedIndexConfig,
+          binarySearchIndexConfig = level.binarySearchIndexConfig,
+          hashIndexConfig = level.hashIndexConfig,
+          bloomFilterConfig = level.bloomFilterConfig
+        ) flatMap {
+          segments =>
+            segments should have size 1
+            segments mapIO {
+              segment =>
+                level.putKeyValues(keyValues.toMemory, Seq(segment), None)
+            } map {
+              _ => ()
+            }
+        }
 
     def reopen: Level =
       reopen()
@@ -230,35 +214,32 @@ object TestData {
                   throttle: LevelMeter => Throttle = level.throttle,
                   nextLevel: Option[NextLevel] = level.nextLevel)(implicit keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter,
                                                                   fileOpenLimiter: FileLimiter = fileOpenLimiter): IO[Level] =
-    //      level.releaseLocks flatMap {
-    //        _ =>
-    //          level.closeSegments flatMap {
-    //            _ =>
-    //              Level(
-    //                levelStorage = LevelStorage.Persistent(
-    //                  mmapSegmentsOnWrite = level.mmapSegmentsOnWrite,
-    //                  mmapSegmentsOnRead = level.mmapSegmentsOnRead,
-    //                  dir = level.paths.headPath,
-    //                  otherDirs = level.dirs.drop(1).map(dir => Dir(dir.path, 1))
-    //                ),
-    //                appendixStorage = AppendixStorage.Persistent(mmap = true, 4.mb),
-    //                segmentSize = segmentSize,
-    //                nextLevel = nextLevel,
-    //                pushForward = level.pushForward,
-    //                bloomFilterFalsePositiveRate = level.bloomFilterFalsePositiveRate,
-    //                resetPrefixCompressionEvery = level.resetPrefixCompressionEvery,
-    //                minimumNumberOfKeyForHashIndex = level.minimumNumberOfKeyForHashIndex,
-    //                enableBinarySearchIndex = level.enableBinarySearchIndex,
-    //                buildFullBinarySearchIndex = level.buildFullBinarySearchIndex,
-    //                allocateSpace = level.allocateSpace,
-    //                throttle = throttle,
-    //                compressDuplicateValues = level.compressDuplicateValues,
-    //                deleteSegmentsEventually = level.deleteSegmentsEventually,
-    //                applyGroupingOnCopy = level.applyGroupingOnCopy
-    //              )
-    //          }
-    //      }
-      ???
+      level.releaseLocks flatMap {
+        _ =>
+          level.closeSegments flatMap {
+            _ =>
+              Level(
+                segmentSize = segmentSize,
+                levelStorage = LevelStorage.Persistent(
+                  mmapSegmentsOnWrite = level.mmapSegmentsOnWrite,
+                  mmapSegmentsOnRead = level.mmapSegmentsOnRead,
+                  dir = level.paths.headPath,
+                  otherDirs = level.dirs.drop(1).map(dir => Dir(dir.path, 1))
+                ),
+                appendixStorage = AppendixStorage.Persistent(mmap = true, 4.mb),
+                nextLevel = nextLevel,
+                pushForward = level.pushForward,
+                throttle = throttle,
+                segmentCompression = level.segmentCompression,
+                deleteSegmentsEventually = level.deleteSegmentsEventually,
+                valuesConfig = level.valuesConfig,
+                sortedIndexConfig = level.sortedIndexConfig,
+                binarySearchIndexConfig = level.binarySearchIndexConfig,
+                hashIndexConfig = level.hashIndexConfig,
+                bloomFilterConfig = level.bloomFilterConfig
+              )
+          }
+      }
   }
 
   implicit class ReopenLevelZero(level: LevelZero)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
@@ -440,29 +421,23 @@ object TestData {
     def toTransient: Slice[Transient] =
       toTransient()
 
-    def toTransient(maxProbeForGroup: Int = TestData.maxProbe,
-                    falsePositiveRate: Double = TestData.falsePositiveRate,
-                    enableBinarySearchIndex: Boolean = TestData.enableBinarySearchIndex,
-                    buildFullBinarySearchIndex: Boolean = TestData.buildFullBinarySearchIndex,
-                    compressDuplicateValues: Boolean = TestData.compressDuplicateValues,
-                    resetPrefixCompressionEvery: Int = TestData.resetPrefixCompressionEvery,
-                    minimumNumberOfKeysForHashIndex: Int = TestData.minimumNumberOfKeysForHashIndex,
-                    allocateSpace: HashIndexMeter => Int = TestData.allocateSpace)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                   keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter): Slice[Transient] = {
+    def toTransient(valuesConfig: Values.Config = Values.Config.random,
+                    sortedIndexConfig: SortedIndex.Config = SortedIndex.Config.random,
+                    binarySearchIndexConfig: BinarySearchIndex.Config = BinarySearchIndex.Config.random,
+                    hashIndexConfig: HashIndex.Config = HashIndex.Config.random,
+                    bloomFilterConfig: BloomFilter.Config = BloomFilter.Config.random)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                                                                       keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter): Slice[Transient] = {
       val slice = Slice.create[Transient](keyValues.size)
 
       keyValues foreach {
         keyValue =>
           slice add
             keyValue.toTransient(
-              maxProbeForGroup = maxProbeForGroup,
-              falsePositiveRate = falsePositiveRate,
-              enableBinarySearchIndex = enableBinarySearchIndex,
-              buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-              compressDuplicateValues = compressDuplicateValues,
-              resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-              minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-              allocateSpace = allocateSpace,
+              valuesConfig = valuesConfig,
+              sortedIndexConfig = sortedIndexConfig,
+              binarySearchIndexConfig = binarySearchIndexConfig,
+              hashIndexConfig = hashIndexConfig,
+              bloomFilterConfig = bloomFilterConfig,
               previous = slice.lastOption
             )
       }
@@ -480,6 +455,57 @@ object TestData {
     }
   }
 
+  implicit class ValuesConfig(values: Values.Config.type) {
+    def random =
+      Values.Config(
+        compressDuplicateValues = randomBoolean(),
+        compressDuplicateRangeValues = randomBoolean(),
+        cacheOnRead = randomBoolean(),
+        hasCompression = true
+      )
+  }
+
+  implicit class SortedIndexConfig(values: SortedIndex.Config.type) {
+    def random =
+      SortedIndex.Config(
+        cacheOnRead = randomBoolean(),
+        prefixCompressionResetCount = randomIntMax(50),
+        hasCompression = true
+      )
+  }
+
+  implicit class BinarySearchIndexConfig(values: BinarySearchIndex.Config.type) {
+    def random =
+      BinarySearchIndex.Config(
+        enabled = randomBoolean(),
+        minimumNumberOfKeys = randomIntMax(10),
+        fullIndex = randomBoolean(),
+        cacheOnRead = randomBoolean(),
+        hasCompression = true
+      )
+  }
+
+  implicit class HashIndexConfig(values: HashIndex.Config.type) {
+    def random =
+      HashIndex.Config(
+        maxProbe = randomIntMax(10),
+        minimumNumberOfKeys = randomIntMax(10),
+        allocateSpace = _.requiredSpace * randomIntMax(3),
+        cacheOnRead = randomBoolean(),
+        hasCompression = true
+      )
+  }
+
+  implicit class BloomFilterConfig(values: BloomFilter.Config.type) {
+    def random =
+      BloomFilter.Config(
+        falsePositiveRate = Random.nextDouble(),
+        minimumNumberOfKeys = randomIntMax(100),
+        cacheOnRead = randomBoolean(),
+        hasCompression = randomBoolean()
+      )
+  }
+
   implicit class ReadOnlyKeyValueToMemory(keyValue: KeyValue.ReadOnly)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                        keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter) {
 
@@ -487,262 +513,222 @@ object TestData {
       toTransient(None)
 
     def toTransient(previous: Option[Transient],
-                    maxProbeForGroup: Int = TestData.maxProbe,
-                    falsePositiveRate: Double = TestData.falsePositiveRate,
-                    enableBinarySearchIndex: Boolean = TestData.enableBinarySearchIndex,
-                    buildFullBinarySearchIndex: Boolean = TestData.buildFullBinarySearchIndex,
-                    compressDuplicateValues: Boolean = TestData.compressDuplicateValues,
-                    resetPrefixCompressionEvery: Int = TestData.resetPrefixCompressionEvery,
-                    minimumNumberOfKeysForHashIndex: Int = TestData.minimumNumberOfKeysForHashIndex,
-                    allocateSpace: HashIndexMeter => Int = TestData.allocateSpace): Transient = {
-      //      keyValue match {
-      //        case memory: Memory =>
-      //          memory match {
-      //            case fixed: Memory.Fixed =>
-      //              fixed match {
-      //                case Memory.Put(key, value, deadline, time) =>
-      //                  Transient.Put(
-      //                    key = key,
-      //                    value = value,
-      //                    deadline = deadline,
-      //                    time = time,
-      //                    previous = previous,
-      //                    falsePositiveRate = falsePositiveRate,
-      //                    enableBinarySearchIndex = enableBinarySearchIndex,
-      //                    buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-      //                    compressDuplicateValues = compressDuplicateValues,
-      //                    resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-      //                    minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-      //                    allocateSpace = allocateSpace
-      //                  )
-      //
-      //                case Memory.Update(key, value, deadline, time) =>
-      //                  Transient.Update(
-      //                    key = key,
-      //                    value = value,
-      //                    deadline = deadline,
-      //                    time = time,
-      //                    previous = previous,
-      //                    falsePositiveRate = falsePositiveRate,
-      //                    enableBinarySearchIndex = enableBinarySearchIndex,
-      //                    buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-      //                    compressDuplicateValues = compressDuplicateValues,
-      //                    resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-      //                    minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-      //                    allocateSpace = allocateSpace
-      //                  )
-      //
-      //                case Memory.Remove(key, deadline, time) =>
-      //                  Transient.Remove(
-      //                    key = key,
-      //                    deadline = deadline,
-      //                    time = time,
-      //                    previous = previous,
-      //                    falsePositiveRate = falsePositiveRate,
-      //                    enableBinarySearchIndex = enableBinarySearchIndex,
-      //                    buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-      //                    resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-      //                    minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-      //                    allocateSpace = allocateSpace
-      //                  )
-      //
-      //                case Memory.Function(key, function, time) =>
-      //                  Transient.Function(
-      //                    key = key,
-      //                    function = function,
-      //                    deadline = None,
-      //                    time = time,
-      //                    previous = previous,
-      //                    falsePositiveRate = falsePositiveRate,
-      //                    enableBinarySearchIndex = enableBinarySearchIndex,
-      //                    buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-      //                    compressDuplicateValues = compressDuplicateValues,
-      //                    resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-      //                    minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-      //                    allocateSpace = allocateSpace
-      //                  )
-      //
-      //                case Memory.PendingApply(key, applies) =>
-      //                  Transient.PendingApply(
-      //                    key = key,
-      //                    applies = applies,
-      //                    previous = previous,
-      //                    falsePositiveRate = falsePositiveRate,
-      //                    enableBinarySearchIndex = enableBinarySearchIndex,
-      //                    buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-      //                    compressDuplicateValues = compressDuplicateValues,
-      //                    resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-      //                    minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-      //                    allocateSpace = allocateSpace
-      //                  )
-      //              }
-      //            case Memory.Range(fromKey, toKey, fromValue, rangeValue) =>
-      //              Transient.Range[Value.FromValue, Value.RangeValue](
-      //                fromKey = fromKey,
-      //                toKey = toKey,
-      //                fromValue = fromValue,
-      //                rangeValue = rangeValue,
-      //                falsePositiveRate = falsePositiveRate,
-      //                enableBinarySearchIndex = enableBinarySearchIndex,
-      //                buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-      //                resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-      //                minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-      //                allocateSpace = allocateSpace,
-      //                previous = previous
-      //              )
-      //
-      //            case group: Memory.Group =>
-      //              //              Transient.Group(
-      //              //                keyValues =
-      //              //                  group.segment.getAll().assertGet
-      //              //                    .toTransient(
-      //              //                      maxProbeForGroup = maxProbeForGroup,
-      //              //                      falsePositiveRate = falsePositiveRate,
-      //              //                      enableBinarySearchIndex = enableBinarySearchIndex,
-      //              //                      buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-      //              //                      compressDuplicateValues = compressDuplicateValues,
-      //              //                      resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-      //              //                      minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-      //              //                      allocateSpace = allocateSpace
-      //              //                    ),
-      //              //                segmentCompression = randomSegmentCompression(),
-      //              //                falsePositiveRate = falsePositiveRate,
-      //              //                enableBinarySearchIndex = enableBinarySearchIndex,
-      //              //                buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-      //              //                resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-      //              //                minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-      //              //                allocateSpace = allocateSpace,
-      //              //                previous = previous,
-      //              //                maxProbe = maxProbeForGroup
-      //              //              ).assertGet
-      //              ???
-      //          }
-      //
-      //        case persistent: Persistent =>
-      //          persistent match {
-      //            case persistent: Persistent.Fixed =>
-      //              persistent match {
-      //                case put @ Persistent.Put(key, deadline, valueReader, time, _, _, _, _, _, _) =>
-      //                  Transient.Put(
-      //                    key = key,
-      //                    value = put.getOrFetchValue.assertGetOpt,
-      //                    deadline = deadline,
-      //                    time = time,
-      //                    previous = previous,
-      //                    falsePositiveRate = falsePositiveRate,
-      //                    enableBinarySearchIndex = enableBinarySearchIndex,
-      //                    buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-      //                    compressDuplicateValues = compressDuplicateValues,
-      //                    resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-      //                    minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-      //                    allocateSpace = allocateSpace
-      //                  )
-      //
-      //                case put @ Persistent.Update(key, deadline, valueReader, time, _, _, _, _, _, _) =>
-      //                  Transient.Update(
-      //                    key = key,
-      //                    value = put.getOrFetchValue.assertGetOpt,
-      //                    deadline = deadline,
-      //                    time = time,
-      //                    previous = previous,
-      //                    falsePositiveRate = falsePositiveRate,
-      //                    enableBinarySearchIndex = enableBinarySearchIndex,
-      //                    buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-      //                    compressDuplicateValues = compressDuplicateValues,
-      //                    resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-      //                    minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-      //                    allocateSpace = allocateSpace
-      //                  )
-      //
-      //                case function @ Persistent.Function(key, lazyFunctionReader, time, _, _, _, _, _, _) =>
-      //                  Transient.Function(
-      //                    key = key,
-      //                    function = lazyFunctionReader.getOrFetchFunction.assertGet,
-      //                    deadline = None,
-      //                    time = time,
-      //                    previous = previous,
-      //                    falsePositiveRate = falsePositiveRate,
-      //                    enableBinarySearchIndex = enableBinarySearchIndex,
-      //                    buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-      //                    compressDuplicateValues = compressDuplicateValues,
-      //                    resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-      //                    minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-      //                    allocateSpace = allocateSpace
-      //                  )
-      //
-      //                case pendingApply: Persistent.PendingApply =>
-      //                  Transient.PendingApply(
-      //                    key = pendingApply.key,
-      //                    applies = pendingApply.getOrFetchApplies.assertGet,
-      //                    previous = previous,
-      //                    falsePositiveRate = falsePositiveRate,
-      //                    enableBinarySearchIndex = enableBinarySearchIndex,
-      //                    buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-      //                    compressDuplicateValues = compressDuplicateValues,
-      //                    resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-      //                    minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-      //                    allocateSpace = allocateSpace
-      //                  )
-      //
-      //                case Persistent.Remove(_key, deadline, time, _, _, _, _) =>
-      //                  Transient.Remove(
-      //                    key = _key,
-      //                    deadline = deadline,
-      //                    time = time,
-      //                    previous = previous,
-      //                    falsePositiveRate = falsePositiveRate,
-      //                    enableBinarySearchIndex = enableBinarySearchIndex,
-      //                    buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-      //                    resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-      //                    minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-      //                    allocateSpace = allocateSpace
-      //                  )
-      //              }
-      //
-      //            case range @ Persistent.Range(_fromKey, _toKey, _, _, _, _, _, _, _) =>
-      //              val (fromValue, rangeValue) = range.fetchFromAndRangeValue.assertGet
-      //              Transient.Range(
-      //                fromKey = _fromKey,
-      //                toKey = _toKey,
-      //                fromValue = fromValue,
-      //                rangeValue = rangeValue,
-      //                falsePositiveRate = falsePositiveRate,
-      //                enableBinarySearchIndex = enableBinarySearchIndex,
-      //                buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-      //                resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-      //                minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-      //                allocateSpace = allocateSpace,
-      //                previous = previous
-      //              )
-      //
-      //            case group: Persistent.Group =>
-      //              val allKeyValues = group.segment.getAll().assertGet.toTransient(
-      //                maxProbeForGroup = maxProbeForGroup,
-      //                falsePositiveRate = falsePositiveRate,
-      //                enableBinarySearchIndex = enableBinarySearchIndex,
-      //                buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-      //                compressDuplicateValues = compressDuplicateValues,
-      //                resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-      //                minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-      //                allocateSpace = allocateSpace
-      //              )
-      //
-      //              //              Transient.Group(
-      //              //                keyValues = allKeyValues,
-      //              //                segmentCompression = randomSegmentCompression(),
-      //              //                falsePositiveRate = falsePositiveRate,
-      //              //                enableBinarySearchIndex = enableBinarySearchIndex,
-      //              //                buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-      //              //                resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-      //              //                minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-      //              //                allocateSpace = allocateSpace,
-      //              //                previous = previous,
-      //              //                maxProbe = maxProbeForGroup
-      //              //              ).assertGet
-      //              ???
-      //          }
-      //      }
-      ???
+                    valuesConfig: Values.Config = Values.Config.random,
+                    sortedIndexConfig: SortedIndex.Config = SortedIndex.Config.random,
+                    binarySearchIndexConfig: BinarySearchIndex.Config = BinarySearchIndex.Config.random,
+                    hashIndexConfig: HashIndex.Config = HashIndex.Config.random,
+                    bloomFilterConfig: BloomFilter.Config = BloomFilter.Config.random): Transient = {
+      keyValue match {
+        case memory: Memory =>
+          memory match {
+            case fixed: Memory.Fixed =>
+              fixed match {
+                case Memory.Put(key, value, deadline, time) =>
+                  Transient.Put(
+                    key = key,
+                    value = value,
+                    deadline = deadline,
+                    time = time,
+                    valuesConfig = valuesConfig,
+                    sortedIndexConfig = sortedIndexConfig,
+                    binarySearchIndexConfig = binarySearchIndexConfig,
+                    hashIndexConfig = hashIndexConfig,
+                    bloomFilterConfig = bloomFilterConfig,
+                    previous = previous
+                  )
+
+                case Memory.Update(key, value, deadline, time) =>
+                  Transient.Update(
+                    key = key,
+                    value = value,
+                    deadline = deadline,
+                    time = time,
+                    valuesConfig = valuesConfig,
+                    sortedIndexConfig = sortedIndexConfig,
+                    binarySearchIndexConfig = binarySearchIndexConfig,
+                    hashIndexConfig = hashIndexConfig,
+                    bloomFilterConfig = bloomFilterConfig,
+                    previous = previous
+                  )
+
+                case Memory.Remove(key, deadline, time) =>
+                  Transient.Remove(
+                    key = key,
+                    deadline = deadline,
+                    time = time,
+                    valuesConfig = valuesConfig,
+                    sortedIndexConfig = sortedIndexConfig,
+                    binarySearchIndexConfig = binarySearchIndexConfig,
+                    hashIndexConfig = hashIndexConfig,
+                    bloomFilterConfig = bloomFilterConfig,
+                    previous = previous
+                  )
+
+                case Memory.Function(key, function, time) =>
+                  Transient.Function(
+                    key = key,
+                    function = function,
+                    deadline = None,
+                    time = time,
+                    valuesConfig = valuesConfig,
+                    sortedIndexConfig = sortedIndexConfig,
+                    binarySearchIndexConfig = binarySearchIndexConfig,
+                    hashIndexConfig = hashIndexConfig,
+                    bloomFilterConfig = bloomFilterConfig,
+                    previous = previous
+                  )
+
+                case Memory.PendingApply(key, applies) =>
+                  Transient.PendingApply(
+                    key = key,
+                    applies = applies,
+                    valuesConfig = valuesConfig,
+                    sortedIndexConfig = sortedIndexConfig,
+                    binarySearchIndexConfig = binarySearchIndexConfig,
+                    hashIndexConfig = hashIndexConfig,
+                    bloomFilterConfig = bloomFilterConfig,
+                    previous = previous
+                  )
+              }
+            case Memory.Range(fromKey, toKey, fromValue, rangeValue) =>
+              Transient.Range[Value.FromValue, Value.RangeValue](
+                fromKey = fromKey,
+                toKey = toKey,
+                fromValue = fromValue,
+                rangeValue = rangeValue,
+                valuesConfig = valuesConfig,
+                sortedIndexConfig = sortedIndexConfig,
+                binarySearchIndexConfig = binarySearchIndexConfig,
+                hashIndexConfig = hashIndexConfig,
+                bloomFilterConfig = bloomFilterConfig,
+                previous = previous
+              )
+
+            case group: Memory.Group =>
+              Transient.Group(
+                keyValues =
+                  group.segment.getAll().assertGet
+                    .toTransient(
+                      valuesConfig = valuesConfig,
+                      sortedIndexConfig = sortedIndexConfig,
+                      binarySearchIndexConfig = binarySearchIndexConfig,
+                      hashIndexConfig = hashIndexConfig,
+                      bloomFilterConfig = bloomFilterConfig
+                    ),
+                previous = previous,
+                groupingStrategy = ???
+              ).assertGet
+          }
+
+        case persistent: Persistent =>
+          persistent match {
+            case persistent: Persistent.Fixed =>
+              persistent match {
+                case put @ Persistent.Put(key, deadline, valueReader, time, _, _, _, _, _, _) =>
+                  Transient.Put(
+                    key = key,
+                    value = put.getOrFetchValue.assertGetOpt,
+                    deadline = deadline,
+                    time = time,
+                    previous = previous,
+                    valuesConfig = valuesConfig,
+                    sortedIndexConfig = sortedIndexConfig,
+                    binarySearchIndexConfig = binarySearchIndexConfig,
+                    hashIndexConfig = hashIndexConfig,
+                    bloomFilterConfig = bloomFilterConfig
+                  )
+
+                case put @ Persistent.Update(key, deadline, valueReader, time, _, _, _, _, _, _) =>
+                  Transient.Update(
+                    key = key,
+                    value = put.getOrFetchValue.assertGetOpt,
+                    deadline = deadline,
+                    time = time,
+                    previous = previous,
+                    valuesConfig = valuesConfig,
+                    sortedIndexConfig = sortedIndexConfig,
+                    binarySearchIndexConfig = binarySearchIndexConfig,
+                    hashIndexConfig = hashIndexConfig,
+                    bloomFilterConfig = bloomFilterConfig
+                  )
+
+                case function @ Persistent.Function(key, lazyFunctionReader, time, _, _, _, _, _, _) =>
+                  Transient.Function(
+                    key = key,
+                    function = lazyFunctionReader.getOrFetchFunction.assertGet,
+                    deadline = None,
+                    time = time,
+                    previous = previous,
+                    valuesConfig = valuesConfig,
+                    sortedIndexConfig = sortedIndexConfig,
+                    binarySearchIndexConfig = binarySearchIndexConfig,
+                    hashIndexConfig = hashIndexConfig,
+                    bloomFilterConfig = bloomFilterConfig
+                  )
+
+                case pendingApply: Persistent.PendingApply =>
+                  Transient.PendingApply(
+                    key = pendingApply.key,
+                    applies = pendingApply.getOrFetchApplies.assertGet,
+                    previous = previous,
+                    valuesConfig = valuesConfig,
+                    sortedIndexConfig = sortedIndexConfig,
+                    binarySearchIndexConfig = binarySearchIndexConfig,
+                    hashIndexConfig = hashIndexConfig,
+                    bloomFilterConfig = bloomFilterConfig
+                  )
+
+                case Persistent.Remove(_key, deadline, time, _, _, _, _) =>
+                  Transient.Remove(
+                    key = _key,
+                    deadline = deadline,
+                    time = time,
+                    previous = previous,
+                    valuesConfig = valuesConfig,
+                    sortedIndexConfig = sortedIndexConfig,
+                    binarySearchIndexConfig = binarySearchIndexConfig,
+                    hashIndexConfig = hashIndexConfig,
+                    bloomFilterConfig = bloomFilterConfig
+                  )
+              }
+
+            case range @ Persistent.Range(_fromKey, _toKey, _, _, _, _, _, _, _) =>
+              val (fromValue, rangeValue) = range.fetchFromAndRangeValue.assertGet
+              Transient.Range(
+                fromKey = _fromKey,
+                toKey = _toKey,
+                fromValue = fromValue,
+                rangeValue = rangeValue,
+                valuesConfig = valuesConfig,
+                sortedIndexConfig = sortedIndexConfig,
+                binarySearchIndexConfig = binarySearchIndexConfig,
+                hashIndexConfig = hashIndexConfig,
+                bloomFilterConfig = bloomFilterConfig,
+                previous = previous
+              )
+
+            case group: Persistent.Group =>
+              val allKeyValues =
+                group
+                  .segment
+                  .getAll()
+                  .assertGet
+                  .toTransient(
+                    valuesConfig = valuesConfig,
+                    sortedIndexConfig = sortedIndexConfig,
+                    binarySearchIndexConfig = binarySearchIndexConfig,
+                    hashIndexConfig = hashIndexConfig,
+                    bloomFilterConfig = bloomFilterConfig
+                  )
+
+              Transient.Group(
+                keyValues = allKeyValues,
+                previous = previous,
+                ???
+              ).assertGet
+              ???
+          }
+      }
     }
 
     def toMemoryGroup =
@@ -1179,13 +1165,11 @@ object TestData {
                               time: Time = Time.empty,
                               previous: Option[KeyValue.WriteOnly] = None,
                               maxGroupKeyValues: Int = randomIntMax(50) + 1, //+1 to avoid empty groups
-                              falsePositiveRate: Double = TestData.falsePositiveRate,
-                              compressDuplicateValues: Boolean = randomBoolean(),
-                              resetPrefixCompressionEvery: Int = TestData.resetPrefixCompressionEvery,
-                              minimumNumberOfKeysForHashIndex: Int = TestData.minimumNumberOfKeysForHashIndex,
-                              allocateSpace: HashIndexMeter => Int = TestData.allocateSpace,
-                              enableBinarySearchIndex: Boolean = TestData.enableBinarySearchIndex,
-                              buildFullBinarySearchIndex: Boolean = TestData.buildFullBinarySearchIndex,
+                              valuesConfig: Values.Config = Values.Config.random,
+                              sortedIndexConfig: SortedIndex.Config = SortedIndex.Config.random,
+                              binarySearchIndexConfig: BinarySearchIndex.Config = BinarySearchIndex.Config.random,
+                              hashIndexConfig: HashIndex.Config = HashIndex.Config.random,
+                              bloomFilterConfig: BloomFilter.Config = BloomFilter.Config.random,
                               functionOutput: SwayFunctionOutput = randomFunctionOutput(),
                               includePendingApply: Boolean = true,
                               includeFunctions: Boolean = true,
@@ -1222,13 +1206,11 @@ object TestData {
                 deadline = deadline,
                 time = time,
                 previous = previous,
-                falsePositiveRate = falsePositiveRate,
-                enableBinarySearchIndex = enableBinarySearchIndex,
-                buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-                compressDuplicateValues = compressDuplicateValues,
-                resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-                minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-                allocateSpace = allocateSpace,
+                valuesConfig = valuesConfig,
+                sortedIndexConfig = sortedIndexConfig,
+                binarySearchIndexConfig = binarySearchIndexConfig,
+                hashIndexConfig = hashIndexConfig,
+                bloomFilterConfig = bloomFilterConfig,
                 functionOutput = functionOutput,
                 includePendingApply = includePendingApply,
                 includeFunctions = includeFunctions,
@@ -1246,13 +1228,11 @@ object TestData {
         deadline = deadline,
         time = time,
         previous = previous,
-        falsePositiveRate = falsePositiveRate,
-        compressDuplicateValues = compressDuplicateValues,
-        resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-        enableBinarySearchIndex = enableBinarySearchIndex,
-        buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-        minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-        allocateSpace = allocateSpace,
+        valuesConfig = valuesConfig,
+        sortedIndexConfig = sortedIndexConfig,
+        binarySearchIndexConfig = binarySearchIndexConfig,
+        hashIndexConfig = hashIndexConfig,
+        bloomFilterConfig = bloomFilterConfig,
         functionOutput = functionOutput,
         includePendingApply = includePendingApply,
         includeFunctions = includeFunctions,
@@ -1265,13 +1245,11 @@ object TestData {
                                    deadline: Option[Deadline] = randomDeadlineOption,
                                    time: Time = Time.empty,
                                    previous: Option[KeyValue.WriteOnly] = None,
-                                   falsePositiveRate: Double = TestData.falsePositiveRate,
-                                   compressDuplicateValues: Boolean = randomBoolean(),
-                                   resetPrefixCompressionEvery: Int = TestData.resetPrefixCompressionEvery,
-                                   minimumNumberOfKeysForHashIndex: Int = TestData.minimumNumberOfKeysForHashIndex,
-                                   allocateSpace: HashIndexMeter => Int = TestData.allocateSpace,
-                                   enableBinarySearchIndex: Boolean = TestData.enableBinarySearchIndex,
-                                   buildFullBinarySearchIndex: Boolean = TestData.buildFullBinarySearchIndex,
+                                   valuesConfig: Values.Config = Values.Config.random,
+                                   sortedIndexConfig: SortedIndex.Config = SortedIndex.Config.random,
+                                   binarySearchIndexConfig: BinarySearchIndex.Config = BinarySearchIndex.Config.random,
+                                   hashIndexConfig: HashIndex.Config = HashIndex.Config.random,
+                                   bloomFilterConfig: BloomFilter.Config = BloomFilter.Config.random,
                                    functionOutput: SwayFunctionOutput = randomFunctionOutput(),
                                    includePendingApply: Boolean = true,
                                    includeFunctions: Boolean = true,
@@ -1601,16 +1579,13 @@ object TestData {
                           addRandomExpiredPutDeadlines: Boolean = randomBoolean(),
                           addRandomUpdateDeadlines: Boolean = randomBoolean(),
                           addRandomGroups: Boolean = randomBoolean(),
-                          maxProbeForGroup: Int = TestData.maxProbe,
-                          falsePositiveRate: Double = TestData.falsePositiveRate,
-                          enableBinarySearchIndex: Boolean = TestData.enableBinarySearchIndex,
-                          buildFullBinarySearchIndex: Boolean = TestData.buildFullBinarySearchIndex,
-                          compressDuplicateValues: Boolean = TestData.compressDuplicateValues,
-                          resetPrefixCompressionEvery: Int = TestData.resetPrefixCompressionEvery,
-                          minimumNumberOfKeysForHashIndex: Int = TestData.minimumNumberOfKeysForHashIndex,
-                          allocateSpace: HashIndexMeter => Int = TestData.allocateSpace)(implicit testTimer: TestTimer = TestTimer.Incremental(),
-                                                                                         keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                         keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter): Slice[Transient] =
+                          valuesConfig: Values.Config = Values.Config.random,
+                          sortedIndexConfig: SortedIndex.Config = SortedIndex.Config.random,
+                          binarySearchIndexConfig: BinarySearchIndex.Config = BinarySearchIndex.Config.random,
+                          hashIndexConfig: HashIndex.Config = HashIndex.Config.random,
+                          bloomFilterConfig: BloomFilter.Config = BloomFilter.Config.random)(implicit testTimer: TestTimer = TestTimer.Incremental(),
+                                                                                             keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                                                                             keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter): Slice[Transient] =
     randomKeyValues(
       count = count,
       startId = startId,
@@ -1627,14 +1602,11 @@ object TestData {
       addRandomExpiredPutDeadlines = addRandomExpiredPutDeadlines,
       addRandomUpdateDeadlines = addRandomUpdateDeadlines,
       addRandomGroups = addRandomGroups,
-      falsePositiveRate = falsePositiveRate,
-      enableBinarySearchIndex = enableBinarySearchIndex,
-      buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-      compressDuplicateValues = compressDuplicateValues,
-      resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-      minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-      allocateSpace = allocateSpace,
-      maxProbeForGroup = maxProbeForGroup
+      valuesConfig = valuesConfig,
+      sortedIndexConfig = sortedIndexConfig,
+      binarySearchIndexConfig = binarySearchIndexConfig,
+      hashIndexConfig = hashIndexConfig,
+      bloomFilterConfig = bloomFilterConfig
     )
 
   def groupsOnly(count: Int = 5,
@@ -1685,16 +1657,13 @@ object TestData {
                       addRandomUpdateDeadlines: Boolean = false,
                       addRandomRanges: Boolean = false,
                       addRandomGroups: Boolean = false,
-                      maxProbeForGroup: Int = TestData.maxProbe,
-                      falsePositiveRate: Double = TestData.falsePositiveRate,
-                      enableBinarySearchIndex: Boolean = TestData.enableBinarySearchIndex,
-                      buildFullBinarySearchIndex: Boolean = TestData.buildFullBinarySearchIndex,
-                      compressDuplicateValues: Boolean = TestData.compressDuplicateValues,
-                      resetPrefixCompressionEvery: Int = TestData.resetPrefixCompressionEvery,
-                      minimumNumberOfKeysForHashIndex: Int = TestData.minimumNumberOfKeysForHashIndex,
-                      allocateSpace: HashIndexMeter => Int = TestData.allocateSpace)(implicit testTimer: TestTimer = TestTimer.Incremental(),
-                                                                                     keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                     keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter): Slice[Transient] = {
+                      valuesConfig: Values.Config = Values.Config.random,
+                      sortedIndexConfig: SortedIndex.Config = SortedIndex.Config.random,
+                      binarySearchIndexConfig: BinarySearchIndex.Config = BinarySearchIndex.Config.random,
+                      hashIndexConfig: HashIndex.Config = HashIndex.Config.random,
+                      bloomFilterConfig: BloomFilter.Config = BloomFilter.Config.random)(implicit testTimer: TestTimer = TestTimer.Incremental(),
+                                                                                         keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                                                                         keyValueLimiter: KeyValueLimiter = TestLimitQueues.keyValueLimiter): Slice[Transient] = {
     val slice = Slice.create[Transient](count * 50) //extra space because addRandomRanges and random Groups can be added for Fixed and Range key-values in the same iteration.
     //            var key = 1
     var key = startId getOrElse randomInt(minus = count)
@@ -1722,14 +1691,11 @@ object TestData {
             addRandomPendingApply = addRandomPendingApply,
             addRandomPutDeadlines = addRandomPutDeadlines,
             addRandomUpdateDeadlines = addRandomUpdateDeadlines,
-            falsePositiveRate = falsePositiveRate,
-            enableBinarySearchIndex = enableBinarySearchIndex,
-            buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-            compressDuplicateValues = compressDuplicateValues,
-            resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-            minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-            allocateSpace = allocateSpace,
-            maxProbeForGroup = maxProbeForGroup,
+            valuesConfig = valuesConfig,
+            sortedIndexConfig = sortedIndexConfig,
+            binarySearchIndexConfig = binarySearchIndexConfig,
+            hashIndexConfig = hashIndexConfig,
+            bloomFilterConfig = bloomFilterConfig,
             addRandomRanges = addRandomRanges,
             addRandomGroups = false //do not create more inner groups.
           )
@@ -1781,13 +1747,11 @@ object TestData {
           rangeValue = randomRangeValue(value = rangeValueValueBytes, addRemoves = addRandomRangeRemoves, deadline = rangeValueDeadline)
         ).toTransient(
           previous = slice.lastOption,
-          falsePositiveRate = falsePositiveRate,
-          enableBinarySearchIndex = enableBinarySearchIndex,
-          buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-          compressDuplicateValues = compressDuplicateValues,
-          resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-          minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-          allocateSpace = allocateSpace
+          valuesConfig = valuesConfig,
+          sortedIndexConfig = sortedIndexConfig,
+          binarySearchIndexConfig = binarySearchIndexConfig,
+          hashIndexConfig = hashIndexConfig,
+          bloomFilterConfig = bloomFilterConfig
         )
         //randomly skip the Range's toKey for the next key.
         if (randomBoolean())
@@ -1801,13 +1765,11 @@ object TestData {
             deadline = if (addRandomRemoveDeadlines) randomDeadlineOption else None
           ).toTransient(
             previous = slice.lastOption,
-            falsePositiveRate = falsePositiveRate,
-            enableBinarySearchIndex = enableBinarySearchIndex,
-            buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-            compressDuplicateValues = compressDuplicateValues,
-            resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-            minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-            allocateSpace = allocateSpace
+            valuesConfig = valuesConfig,
+            sortedIndexConfig = sortedIndexConfig,
+            binarySearchIndexConfig = binarySearchIndexConfig,
+            hashIndexConfig = hashIndexConfig,
+            bloomFilterConfig = bloomFilterConfig
           )
         key = key + 1
       } else if (addRandomUpdates && randomBoolean()) {
@@ -1819,13 +1781,11 @@ object TestData {
             value = valueBytes
           ).toTransient(
             previous = slice.lastOption,
-            falsePositiveRate = falsePositiveRate,
-            enableBinarySearchIndex = enableBinarySearchIndex,
-            compressDuplicateValues = compressDuplicateValues,
-            buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-            resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-            minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-            allocateSpace = allocateSpace
+            valuesConfig = valuesConfig,
+            sortedIndexConfig = sortedIndexConfig,
+            binarySearchIndexConfig = binarySearchIndexConfig,
+            hashIndexConfig = hashIndexConfig,
+            bloomFilterConfig = bloomFilterConfig
           )
         key = key + 1
       } else if (addRandomFunctions && randomBoolean()) {
@@ -1834,13 +1794,11 @@ object TestData {
             key = key: Slice[Byte]
           ).toTransient(
             previous = slice.lastOption,
-            falsePositiveRate = falsePositiveRate,
-            enableBinarySearchIndex = enableBinarySearchIndex,
-            compressDuplicateValues = compressDuplicateValues,
-            buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-            resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-            minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-            allocateSpace = allocateSpace
+            valuesConfig = valuesConfig,
+            sortedIndexConfig = sortedIndexConfig,
+            binarySearchIndexConfig = binarySearchIndexConfig,
+            hashIndexConfig = hashIndexConfig,
+            bloomFilterConfig = bloomFilterConfig
           )
         key = key + 1
       } else if (addRandomPendingApply && randomBoolean()) {
@@ -1852,13 +1810,11 @@ object TestData {
             value = valueBytes
           ).toTransient(
             previous = slice.lastOption,
-            falsePositiveRate = falsePositiveRate,
-            enableBinarySearchIndex = enableBinarySearchIndex,
-            compressDuplicateValues = compressDuplicateValues,
-            buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-            resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-            minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-            allocateSpace = allocateSpace
+            valuesConfig = valuesConfig,
+            sortedIndexConfig = sortedIndexConfig,
+            binarySearchIndexConfig = binarySearchIndexConfig,
+            hashIndexConfig = hashIndexConfig,
+            bloomFilterConfig = bloomFilterConfig
           )
         key = key + 1
       } else if (addPut) {
@@ -1871,13 +1827,11 @@ object TestData {
             value = valueBytes
           ).toTransient(
             slice.lastOption,
-            falsePositiveRate = falsePositiveRate,
-            enableBinarySearchIndex = enableBinarySearchIndex,
-            buildFullBinarySearchIndex = buildFullBinarySearchIndex,
-            compressDuplicateValues = compressDuplicateValues,
-            resetPrefixCompressionEvery = resetPrefixCompressionEvery,
-            minimumNumberOfKeysForHashIndex = minimumNumberOfKeysForHashIndex,
-            allocateSpace = allocateSpace
+            valuesConfig = valuesConfig,
+            sortedIndexConfig = sortedIndexConfig,
+            binarySearchIndexConfig = binarySearchIndexConfig,
+            hashIndexConfig = hashIndexConfig,
+            bloomFilterConfig = bloomFilterConfig
           )
         key = key + 1
       } else {
@@ -1908,12 +1862,11 @@ object TestData {
 
   def randomGroup(keyValues: Slice[KeyValue.WriteOnly] = randomizedKeyValues()(TestTimer.random, KeyOrder.default, TestLimitQueues.keyValueLimiter),
                   segmentCompression: SegmentCompression = randomSegmentCompression(),
-                  falsePositiveRate: Double = TestData.falsePositiveRate,
-                  resetPrefixCompressionEvery: Int = TestData.resetPrefixCompressionEvery,
-                  minimumNumberOfKeyForHashIndex: Int = TestData.minimumNumberOfKeysForHashIndex,
-                  allocateSpace: HashIndexMeter => Int = TestData.allocateSpace,
-                  enableBinarySearchIndex: Boolean = TestData.enableBinarySearchIndex,
-                  buildFullBinarySearchIndex: Boolean = TestData.buildFullBinarySearchIndex,
+                  valuesConfig: Values.Config = Values.Config.random,
+                  sortedIndexConfig: SortedIndex.Config = SortedIndex.Config.random,
+                  binarySearchIndexConfig: BinarySearchIndex.Config = BinarySearchIndex.Config.random,
+                  hashIndexConfig: HashIndex.Config = HashIndex.Config.random,
+                  bloomFilterConfig: BloomFilter.Config = BloomFilter.Config.random,
                   previous: Option[KeyValue.WriteOnly] = None)(implicit testTimer: TestTimer = TestTimer.Incremental()): Transient.Group =
   //    Transient.Group(
   //      keyValues = keyValues,

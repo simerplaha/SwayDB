@@ -539,7 +539,7 @@ private[core] class BinarySegment(id: String,
           .readAll(
             keyValueCount = footer.keyValueCount,
             sortedIndexReader = sortedIndex,
-            valueReader = values,
+            valuesReader = values,
             addTo = addTo
           )
           .onFailureSideEffect {

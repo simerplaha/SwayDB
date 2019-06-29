@@ -226,61 +226,87 @@ object CommonAssertions {
     )
 
   def randomGroupingStrategy(keyValuesCount: Int): KeyValueGroupingStrategyInternal =
-  //    eitherOne(
-  //      left =
-  //        KeyValueGroupingStrategyInternal.Count(
-  //          count = (keyValuesCount / (randomIntMax(50) + 1)) max 1000,
-  //          groupCompression =
-  //            eitherOne(
-  //              left =
-  //                Some(
-  //                  eitherOne(
-  //                    left = GroupGroupingStrategyInternal.Count(
-  //                      count = randomIntMax(5) max 1,
-  //                      sortedIndexCompression = TestData.randomCompression(),
-  //                      valuesCompression = TestData.randomCompression()
-  //                    ),
-  //                    right =
-  //                      GroupGroupingStrategyInternal.Size(
-  //                        size = randomIntMax(keyValuesCount max 1000).bytes * 2,
-  //                        sortedIndexCompression = TestData.randomCompression(),
-  //                        valuesCompression = TestData.randomCompression()
-  //                      )
-  //                  )
-  //                ),
-  //              right = None
-  //            ),
-  //          sortedIndexCompression = TestData.randomCompression(),
-  //          valuesCompression = TestData.randomCompression()
-  //        ),
-  //      right =
-  //        KeyValueGroupingStrategyInternal.Size(
-  //          size = keyValuesCount.kb,
-  //          groupCompression =
-  //            eitherOne(
-  //              left =
-  //                Some(
-  //                  eitherOne(
-  //                    left = GroupGroupingStrategyInternal.Count(
-  //                      count = randomIntMax(5) max 1,
-  //                      sortedIndexCompression = TestData.randomCompression(),
-  //                      valuesCompression = TestData.randomCompression()
-  //                    ),
-  //                    right =
-  //                      GroupGroupingStrategyInternal.Size(
-  //                        size = randomIntMax(500).kb,
-  //                        sortedIndexCompression = TestData.randomCompression(),
-  //                        valuesCompression = TestData.randomCompression()
-  //                      )
-  //                  )
-  //                ),
-  //              right = None
-  //            ),
-  //          sortedIndexCompression = TestData.randomCompression(),
-  //          valuesCompression = TestData.randomCompression()
-  //        )
-  //    )
-    ???
+    eitherOne(
+      left =
+        KeyValueGroupingStrategyInternal.Count(
+          count = (keyValuesCount / (randomIntMax(50) + 1)) max 1000,
+          groupCompression =
+            eitherOne(
+              left =
+                Some(
+                  GroupGroupingStrategyInternal.Count(
+                    count = randomIntMax(5) max 1,
+                    valuesConfig = Values.Config.random,
+                    sortedIndexConfig = SortedIndex.Config.random,
+                    binarySearchIndexConfig = BinarySearchIndex.Config.random,
+                    hashIndexConfig = HashIndex.Config.random,
+                    bloomFilterConfig = BloomFilter.Config.random,
+                    segmentCompression = randomSegmentCompression()
+                  )
+                ),
+              mid =
+                Some(
+                  GroupGroupingStrategyInternal.Size(
+                    size = randomIntMax(keyValuesCount max 1000).bytes * 2,
+                    valuesConfig = Values.Config.random,
+                    sortedIndexConfig = SortedIndex.Config.random,
+                    binarySearchIndexConfig = BinarySearchIndex.Config.random,
+                    hashIndexConfig = HashIndex.Config.random,
+                    bloomFilterConfig = BloomFilter.Config.random,
+                    segmentCompression = randomSegmentCompression()
+                  )
+                ),
+              right =
+                None
+            ),
+          valuesConfig = Values.Config.random,
+          sortedIndexConfig = SortedIndex.Config.random,
+          binarySearchIndexConfig = BinarySearchIndex.Config.random,
+          hashIndexConfig = HashIndex.Config.random,
+          bloomFilterConfig = BloomFilter.Config.random,
+          segmentCompression = randomSegmentCompression(),
+          applyGroupingOnCopy = randomBoolean()
+        ),
+      right =
+        KeyValueGroupingStrategyInternal.Size(
+          size = keyValuesCount.kb,
+          groupCompression =
+            eitherOne(
+              left =
+                Some(
+                  GroupGroupingStrategyInternal.Count(
+                    count = randomIntMax(5) max 1,
+                    valuesConfig = Values.Config.random,
+                    sortedIndexConfig = SortedIndex.Config.random,
+                    binarySearchIndexConfig = BinarySearchIndex.Config.random,
+                    hashIndexConfig = HashIndex.Config.random,
+                    bloomFilterConfig = BloomFilter.Config.random,
+                    segmentCompression = randomSegmentCompression()
+                  )
+                ),
+              mid =
+                Some(
+                  GroupGroupingStrategyInternal.Size(
+                    size = randomIntMax(500).kb,
+                    valuesConfig = Values.Config.random,
+                    sortedIndexConfig = SortedIndex.Config.random,
+                    binarySearchIndexConfig = BinarySearchIndex.Config.random,
+                    hashIndexConfig = HashIndex.Config.random,
+                    bloomFilterConfig = BloomFilter.Config.random,
+                    segmentCompression = randomSegmentCompression()
+                  )),
+              right =
+                None
+            ),
+          valuesConfig = Values.Config.random,
+          sortedIndexConfig = SortedIndex.Config.random,
+          binarySearchIndexConfig = BinarySearchIndex.Config.random,
+          hashIndexConfig = HashIndex.Config.random,
+          bloomFilterConfig = BloomFilter.Config.random,
+          segmentCompression = randomSegmentCompression(),
+          applyGroupingOnCopy = randomBoolean()
+        )
+    )
 
   implicit class ValueImplicits(value: Value) {
 
@@ -395,33 +421,29 @@ object CommonAssertions {
                   isLastLevel: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                         timeOrder: TimeOrder[Slice[Byte]],
                                         groupingStrategy: Option[KeyValueGroupingStrategyInternal]): Iterable[Iterable[KeyValue.WriteOnly]] = {
-    //    val result =
-    //      SegmentMerger.merge(
-    //        newKeyValues = newKeyValues,
-    //        oldKeyValues = oldKeyValues,
-    //        minSegmentSize = 10.mb,
-    //        maxProbe = TestData.maxProbe,
-    //        enableBinarySearchIndex = TestData.enableBinarySearchIndex,
-    //        buildFullBinarySearchIndex = TestData.buildFullBinarySearchIndex,
-    //        isLastLevel = isLastLevel,
-    //        forInMemory = false,
-    //        bloomFilterFalsePositiveRate = TestData.falsePositiveRate,
-    //        resetPrefixCompressionEvery = TestData.resetPrefixCompressionEvery,
-    //        minimumNumberOfKeyForHashIndex = TestData.minimumNumberOfKeysForHashIndex,
-    //        allocateSpace = TestData.allocateSpace,
-    //        compressDuplicateValues = randomBoolean()
-    //      ).assertGet
-    //
-    //    if (expected.size == 0) {
-    //      result shouldBe empty
-    //    } else {
-    //      result should have size 1
-    //      val ungrouped = unzipGroups(result.head)
-    //      ungrouped should have size expected.size
-    //      ungrouped.toList should contain inOrderElementsOf expected
-    //    }
-    //    result
-    ???
+    val result =
+      SegmentMerger.merge(
+        newKeyValues = newKeyValues,
+        oldKeyValues = oldKeyValues,
+        minSegmentSize = 10.mb,
+        isLastLevel = isLastLevel,
+        forInMemory = false,
+        valuesConfig = Values.Config.random,
+        sortedIndexConfig = SortedIndex.Config.random,
+        binarySearchIndexConfig = BinarySearchIndex.Config.random,
+        hashIndexConfig = HashIndex.Config.random,
+        bloomFilterConfig = BloomFilter.Config.random
+      ).assertGet
+
+    if (expected.size == 0) {
+      result shouldBe empty
+    } else {
+      result should have size 1
+      val ungrouped = unzipGroups(result.head)
+      ungrouped should have size expected.size
+      ungrouped.toList should contain inOrderElementsOf expected
+    }
+    result
   }
 
   def assertMerge(newKeyValue: KeyValue.ReadOnly.SegmentResponse,
@@ -771,23 +793,34 @@ object CommonAssertions {
   }
 
   def assertGet(keyValues: Slice[KeyValue.WriteOnly],
-                reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default) =
+                reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default) = {
+    val (footer, valuesReader, sortedIndex, hashIndex, binarySearchIndex, bloomFilter) = getIndexes(reader.copy()).get
+
     keyValues foreach {
       keyValue =>
-        //        SegmentReader.get(KeyMatcher.Get(keyValue.key), None, reader.copy()).assertGet shouldBe keyValue
-        ???
+        SegmentReader.get(
+          matcher = KeyMatcher.Get(keyValue.key),
+          startFrom = None,
+          hashIndex = hashIndex,
+          binarySearchIndex = binarySearchIndex,
+          sortedIndex = sortedIndex,
+          valuesReader = valuesReader,
+          hasRange = footer.hasRange
+        ).assertGet shouldBe keyValue
     }
+  }
 
   def assertBloom(keyValues: Slice[KeyValue.WriteOnly],
                   bloom: BloomFilter.State) = {
     val unzipedKeyValues = unzipGroups(keyValues)
-
     val bloomFilter = BloomFilter.read(BloomFilter.Offset(0, bloom.startOffset), Reader(bloom.bytes)).get
 
     unzipedKeyValues.par.count {
       keyValue =>
-        //        BloomFilter.mightContain(keyValue.key, Reader(bloom.bytes), bloomFilter).get
-        ???
+        BloomFilter.mightContain(
+          key = keyValue.key,
+          reader = bloomFilter.createBlockReader(Reader(bloom.bytes))
+        ).get
     } should be >= (unzipedKeyValues.size * 0.90).toInt
 
     assertBloomNotContains(bloom)
@@ -813,8 +846,10 @@ object CommonAssertions {
   def assertBloomNotContains(bloom: BloomFilter.State) =
     runThis(1000.times) {
       val bloomFilter = BloomFilter.read(BloomFilter.Offset(0, bloom.startOffset), Reader(bloom.bytes)).get
-      //      IO(BloomFilter.mightContain(randomBytesSlice(randomIntMax(1000) min 100), Reader(bloom.bytes), bloomFilter).get shouldBe false)
-      ???
+      BloomFilter.mightContain(
+        key = randomBytesSlice(randomIntMax(1000) min 100),
+        reader = bloomFilter.createBlockReader(bloom.bytes)
+      ).get shouldBe false
     }
 
   def assertReads(keyValues: Slice[KeyValue],
@@ -1290,7 +1325,7 @@ object CommonAssertions {
                   expectedValueCompressionUsed: Option[CompressionInternal])(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default) = {
     //    val groupKeyValues = group.keyValues
     //    //check if there are values exists in the group's key-values. Use this flag to read values bytes.
-    //    val hasNoValues = groupKeyValues.forall(_.value.isEmpty)
+    //    val hasNoValues = groupKeyValues.last.hasValueEntryBytes
     //    //if no values exist, no value compression should be used.
     //    if (hasNoValues) expectedValueCompressionUsed shouldBe empty
     //
@@ -1298,7 +1333,7 @@ object CommonAssertions {
     //    group.maxKey shouldBe groupKeyValues.maxKey()
     //
     //    //read and assert keys info from the key bytes write
-    //    val groupSegmentReader = Reader(group.value.get) //create a reader from the compressed group key-values.
+    //    val groupSegmentReader = Reader(group.result.flattenSegmentBytes) //create a reader from the compressed group key-values.
     //    //read the header bytes.
     //
     //    //assert key info
@@ -1307,8 +1342,7 @@ object CommonAssertions {
     //    else
     //      groupSegmentReader.readIntUnsigned().assertGet should be >= 8.bytes
     //
-    ////    groupSegmentReader.readIntUnsigned().assertGet shouldBe GroupCompressor.formatId
-    //    ???
+    //    groupSegmentReader.readIntUnsigned().assertGet shouldBe GroupCompressor.formatId
     //    groupSegmentReader.readBoolean().assertGet shouldBe group.keyValues.last.stats.segmentHasRange
     //    groupSegmentReader.readBoolean().assertGet shouldBe group.keyValues.last.stats.segmentHasPut
     //    groupSegmentReader.readIntUnsigned().assertGet shouldBe expectedIndexCompressionUsed.decompressor.id //key decompression id
@@ -1337,28 +1371,27 @@ object CommonAssertions {
     //
     //    val tempFooter: SegmentFooter =
     //      SegmentFooter(
-    //      crc = 0,
-    //      sortedIndexStartOffset = valuesDecompressLength,
-    //      sortedIndexEndOffset = keyValuesDecompressedBytes.size - 1,
-    //      hashIndexOffsets = ???,
-    //      hashIndexEndOffset = ???,
-    //      keyValueCount = groupKeyValues.size,
-    //      hasRange = false,
-    //      hasPut = false,
-    //      hasGroup = true,
-    //      createdInLevel = Int.MinValue,
-    //      bloomFilterItemsCount = groupKeyValues.last.stats.segmentUniqueKeysCount,
-    //      bloomFilter = None
-    //    )
-    ???
-
-    //read just the group bytes.
+    //        crc = 0,
+    //        sortedIndexStartOffset = valuesDecompressLength,
+    //        sortedIndexEndOffset = keyValuesDecompressedBytes.size - 1,
+    //        hashIndexOffsets = ???,
+    //        hashIndexEndOffset = ???,
+    //        keyValueCount = groupKeyValues.size,
+    //        hasRange = false,
+    //        hasPut = false,
+    //        hasGroup = true,
+    //        createdInLevel = Int.MinValue,
+    //        bloomFilterItemsCount = groupKeyValues.last.stats.segmentUniqueKeysCount,
+    //        bloomFilter = None
+    //      )
+    //
+    //    read just the group bytes.
     //    val keyValues = SortedIndex.readAll(footer = tempFooter, reader = Reader(keyValuesDecompressedBytes)).assertGet
     //
     //    keyValues should have size groupKeyValues.size
     //    keyValues shouldBe groupKeyValues
-
-    //now write the Group to a full Segment and read it as a normal Segment.
+    //
+    //    now write the Group to a full Segment and read it as a normal Segment.
     //    val (segmentBytes, nearestDeadline) =
     //      SegmentWriter.write(
     //        keyValues = Seq(group.updateStats(TestData.falsePositiveRate, None)),
@@ -1387,7 +1420,7 @@ object CommonAssertions {
           .readAll(
             keyValueCount = footer.keyValueCount,
             sortedIndexReader = sortedIndex,
-            valueReader = valuesReader
+            valuesReader = valuesReader
           )
       }
     } yield all
